@@ -9,6 +9,9 @@
 //! - `audio::decoder::transition_state` pushes playback state changes.
 //! - `commands::player::player_seek` pushes the new position so the
 //!   OS overlay's progress bar resyncs immediately.
+//! - While playing, the controls thread re-reads the engine's position
+//!   every second ([`POSITION_REFRESH`]): MPRIS `Position` is otherwise
+//!   frozen at the last pushed value (#807).
 //!
 //! Event flow (OS keys / overlay buttons):
 //! - The souvlaki callback runs on souvlaki's own thread. We forward
@@ -28,7 +31,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
-use crossbeam_channel::{unbounded, Sender};
+use crossbeam_channel::{unbounded, RecvTimeoutError, Sender};
 use souvlaki::{
     MediaControlEvent, MediaControls, MediaMetadata, MediaPlayback, MediaPosition, PlatformConfig,
     SeekDirection,
@@ -36,6 +39,15 @@ use souvlaki::{
 use tauri::{AppHandle, Manager};
 
 use crate::audio::{AudioCmd, AudioEngine, PlayerState};
+
+/// How often the controls thread re-publishes the position while playing.
+///
+/// souvlaki answers MPRIS `Position` with the last value it was handed and
+/// never advances it, and we hand it one only on a state change or a seek.
+/// `playerctl position`, and every lyrics client built on it, read the
+/// track's start for the whole track (#807). Once a second is the cadence
+/// of the clients that poll it, and each publish is one D-Bus signal.
+const POSITION_REFRESH: Duration = Duration::from_secs(1);
 
 /// Cached metadata held inside the controls thread so we can re-emit on
 /// every state transition (souvlaki forgets metadata between some
@@ -118,6 +130,27 @@ impl MediaControlsHandle {
 
     pub fn update_playback(&self, state: PlayerState, position_ms: u64) {
         let _ = self.tx.send(Msg::Playback { state, position_ms });
+    }
+}
+
+/// Re-publish the live position, read from the engine rather than
+/// extrapolated here: the engine's clock already accounts for the playback
+/// speed, a seek and a crossfade hand-off.
+fn refresh_position(controls: &mut MediaControls, app: &AppHandle) {
+    let Some(engine) = app.try_state::<Arc<AudioEngine>>() else {
+        return;
+    };
+    let shared = engine.shared();
+    // The state message for a pause may still be in flight: never publish
+    // a Playing the engine has already left.
+    if shared.state() != PlayerState::Playing {
+        return;
+    }
+    let progress = Some(MediaPosition(Duration::from_millis(
+        shared.current_position_ms(),
+    )));
+    if let Err(err) = controls.set_playback(MediaPlayback::Playing { progress }) {
+        tracing::debug!(?err, "media_controls: position refresh");
     }
 }
 
@@ -274,6 +307,7 @@ pub fn init(app: AppHandle) -> Option<MediaControlsHandle> {
 
     let (tx, rx) = unbounded::<Msg>();
     let event_app = app.clone();
+    let event_app_for_ticks = app.clone();
 
     let spawn = std::thread::Builder::new()
         .name("waveflow-media-controls".into())
@@ -303,12 +337,27 @@ pub fn init(app: AppHandle) -> Option<MediaControlsHandle> {
                 return;
             }
 
-            while let Ok(msg) = rx.recv() {
+            let tick_app = event_app_for_ticks;
+            // Whether the last state handed over was Playing: a paused or
+            // stopped position does not move, so it needs no refresh.
+            let mut playing = false;
+            loop {
+                let msg = match rx.recv_timeout(POSITION_REFRESH) {
+                    Ok(msg) => msg,
+                    Err(RecvTimeoutError::Timeout) => {
+                        if playing {
+                            refresh_position(&mut controls, &tick_app);
+                        }
+                        continue;
+                    }
+                    Err(RecvTimeoutError::Disconnected) => break,
+                };
                 match msg {
                     Msg::Metadata(meta) => {
                         push_metadata(&mut controls, &meta);
                     }
                     Msg::Playback { state, position_ms } => {
+                        playing = state == PlayerState::Playing;
                         let progress = Some(MediaPosition(Duration::from_millis(position_ms)));
                         let pb = match state {
                             PlayerState::Playing => MediaPlayback::Playing { progress },

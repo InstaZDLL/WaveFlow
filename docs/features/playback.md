@@ -390,6 +390,7 @@ The pill in the pipeline popover needs no change: it already compares the source
 
 - **Windows** — SMTC. Now-Playing artwork is served to SMTC over a tiny localhost HTTP shim because Windows expects a URL, not a file path.
 - **Linux** — MPRIS via D-Bus.
+  souvlaki answers the MPRIS `Position` property with the last value it was handed and never advances it, so `playerctl position` (and the lyrics clients built on it) used to read the start of the track until the next seek (#807). While playing, the controls thread now re-reads the engine's position once a second (`POSITION_REFRESH`) and republishes it; it reads the engine's own clock, so speed, seeks and crossfade hand-offs are already accounted for, and it skips the publish when the engine has already left `Playing`.
 - **macOS** — MediaRemote (NowPlayingInfoCenter).
 
 Initialised after the main window exists (needs an HWND on Windows). State transitions are driven through `transition_state()` so the OS overlay flips at the same instant as the in-app controls; the brief `Loading` state is skipped to avoid a 50 ms "controls flash off" between tracks.
