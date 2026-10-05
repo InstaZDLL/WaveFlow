@@ -23,7 +23,9 @@ default = []
 # must stay off the async runtime. Optional + feature-gated so the
 # postgres-only server build, which skips those modules entirely, does
 # not pick up a tokio dependency it has no use for.
-sqlite = ["sqlx/sqlite", "sqlx/runtime-tokio", "dep:tokio"]
+# `dep:unicode-normalization` decomposes accented letters for the
+# `FOLD` sort collation (`repository::sqlite::collation`).
+sqlite = ["sqlx/sqlite", "sqlx/runtime-tokio", "dep:tokio", "dep:unicode-normalization"]
 postgres = ["sqlx/postgres", "sqlx/runtime-tokio"]
 # Opt in to the WebAssembly Component Model plugin host. Pulls in
 # wasmtime + Cranelift + wasmtime-wasi + the WIT-generated bindings
@@ -209,6 +211,7 @@ wasmtime = { version = "49", default-features = false, features = [
 # them".
 wasmtime-wasi = { version = "49", default-features = false, optional = true }
 pinyin = { version = "0.11.0", default-features = false, features = ["plain"] }
+unicode-normalization = { version = "0.1.25", optional = true }
 
 [dev-dependencies]
 # Sandboxed scratch directories for the smart-playlist cover render

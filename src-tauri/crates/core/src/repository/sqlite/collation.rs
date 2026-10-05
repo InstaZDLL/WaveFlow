@@ -3,10 +3,16 @@
 //! `COLLATE NOCASE` folds ASCII only, so a library sorted with it puts
 //! "Émilie" after "Zoé" — `É` is U+00C9, past every ASCII letter — while
 //! the A-Z rail files her under E. `FOLD` compares names the way a reader
-//! does: case and accents set aside, with the same fold the remote
-//! mirror's sort keys are computed with
-//! ([`normalize_name`](crate::metadata::name_match::normalize_name)), so a
-//! local "Björk" and a mirrored "bjork" land next to each other.
+//! does: case and accents set aside, so a local "Björk" and a mirrored
+//! "bjork" (the mirror's sort keys go through
+//! [`normalize_name`](crate::metadata::name_match::normalize_name)) land
+//! next to each other.
+//!
+//! The fold decomposes every letter (NFD) and drops the marks, so any
+//! decomposable accent — "Ř", "Ő", "Ș", Vietnamese — sorts with its base
+//! letter, not only the ones `normalize_name`'s table lists. That table
+//! still runs after it for the letters NFD leaves whole ("ø"), and
+//! [`fold_stroke`] covers the rest of them.
 //!
 //! SQLite knows nothing of it until a connection registers it, and a query
 //! that names an unregistered collation fails to prepare. Every connection
@@ -15,6 +21,8 @@
 use std::cmp::Ordering;
 
 use sqlx::sqlite::SqliteConnectOptions;
+
+use unicode_normalization::UnicodeNormalization;
 
 use crate::metadata::name_match::{fold_diacritic, is_combining_mark};
 
@@ -31,22 +39,47 @@ pub fn register(options: SqliteConnectOptions) -> SqliteConnectOptions {
 /// two only break ties, and they make it a total order: two different
 /// strings never compare equal, so the sort is stable between queries.
 pub fn compare(a: &str, b: &str) -> Ordering {
-    folded(a)
-        .cmp(folded(b))
+    // Most names are ASCII, and for them the fold is only the lowercasing:
+    // no decomposition to pay for, once per comparison of every sort.
+    let primary = if a.is_ascii() && b.is_ascii() {
+        ascii_lowered(a).cmp(ascii_lowered(b))
+    } else {
+        folded(a).cmp(folded(b))
+    };
+    primary
         .then_with(|| lowered(a).cmp(lowered(b)))
         .then_with(|| a.cmp(b))
+}
+
+fn ascii_lowered(s: &str) -> impl Iterator<Item = u8> + '_ {
+    s.bytes().map(|byte| byte.to_ascii_lowercase())
 }
 
 fn lowered(s: &str) -> impl Iterator<Item = char> + '_ {
     s.chars().flat_map(char::to_lowercase)
 }
 
-/// Dropping combining marks folds a decomposed "e\u{301}" onto the same
-/// "e" as its precomposed "é".
+/// Decomposed, then stripped of its marks: "é" and "e\u{301}" both fold
+/// to "e". Lazy, like [`lowered`]: a comparison allocates nothing.
 fn folded(s: &str) -> impl Iterator<Item = char> + '_ {
-    lowered(s)
+    s.nfd()
         .filter(|ch| !is_combining_mark(*ch))
+        .flat_map(char::to_lowercase)
         .map(fold_diacritic)
+        .map(fold_stroke)
+}
+
+/// Latin letters whose accent is part of the glyph, so NFD has nothing to
+/// strip and `fold_diacritic`'s table does not list them.
+fn fold_stroke(ch: char) -> char {
+    match ch {
+        'ł' => 'l',
+        'đ' => 'd',
+        'ħ' => 'h',
+        'ı' => 'i',
+        'ŧ' => 't',
+        other => other,
+    }
 }
 
 #[cfg(test)]
@@ -64,6 +97,16 @@ mod tests {
         assert_eq!(
             sorted(&["Zoé", "Émilie", "eric", "Alain", "Ödland", "Oasis"]),
             ["Alain", "Émilie", "eric", "Oasis", "Ödland", "Zoé"]
+        );
+    }
+
+    /// Letters `normalize_name`'s table does not list still fold: through
+    /// NFD for the decomposable ones, through `fold_stroke` for the rest.
+    #[test]
+    fn accents_outside_the_fold_table_sort_with_their_letter() {
+        assert_eq!(
+            sorted(&["Zeta", "Řeka", "Rosa", "Ştefan", "Łódź", "Lima", "Sara"]),
+            ["Lima", "Łódź", "Řeka", "Rosa", "Sara", "Ştefan", "Zeta"]
         );
     }
 

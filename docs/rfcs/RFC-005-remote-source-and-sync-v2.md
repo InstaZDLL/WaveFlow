@@ -810,18 +810,26 @@ RFC — now written, as
 Two things the query has to get right, and both are about the halves being
 comparable rather than merely concatenated:
 
-- **The sort keys are normalised on both sides.** The local half sorts on
-  `album.canonical_title` / `artist.canonical_name` — lowercased with
-  punctuation dropped, but accents kept (the scanner's `canonical_name`, not
-  `normalize_name`; the `FOLD` collation sets the accents aside at sort time,
-  see [library.md](../features/library.md)). SQLite cannot reproduce any of
-  that (`COLLATE NOCASE` is ASCII-only), so
-  sorting the remote half on its raw display name puts "Björk" and "bjork" in
-  two different places and splits one artist in half down the middle of the
-  list. `remote_album.sort_title` / `sort_artist` therefore carry the same
-  normalised forms, computed by the mirror with the same function. A row
-  mirrored before those columns existed falls back to its display title, and
-  one walk fills it in.
+- **The sort keys are comparable on both sides.** The two halves do not
+  spell them the same way:
+  - the local half sorts on `album.canonical_title` /
+    `artist.canonical_name`, the scanner's `canonical_name`: lowercased,
+    punctuation dropped, **accents kept**;
+  - the remote half sorts on `remote_album.sort_title` / `sort_artist`,
+    which the mirror computes with `normalize_name`: lowercased, punctuation
+    dropped, **accents folded**, `&` spelled "and".
+
+  Sorting the remote half on its raw display name instead put "Björk" and
+  "bjork" in two different places and split one artist in half down the
+  middle of the list. The unified query projects each half's key under one
+  alias and orders it with `COLLATE FOLD` (see
+  [library.md](../features/library.md)), which sets case and accents aside
+  first, so a local key that kept its accents sorts next to a remote one
+  that folded them (case and the original characters only break the tie
+  between them). `COLLATE NOCASE`, which the listings used
+  before, is ASCII-only and could not. A row mirrored before the sort
+  columns existed has them `NULL`, and `COALESCE` supplies its display title
+  and artist until a mirror walk fills them in.
 - **A local library filter excludes the remote half.** The picker chooses among
   _local_ libraries, and a server album belongs to none of them; leaving the
   remote rows visible while the user has narrowed to one library reads as the
