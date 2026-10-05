@@ -1378,6 +1378,37 @@ export function parseLyrics(
 }
 
 /**
+ * LRC that carries stamps but no timing: more than half of its sung lines
+ * share one time. Some sources stamp every line `[00:00.00]`; read as
+ * synced, only the last line would ever light up. Shown as plain text
+ * instead. The backend applies the same rule (`lrc_has_timing` in
+ * `commands/lyrics.rs`) so such an answer does not end the search for
+ * real timing.
+ */
+export function isUntimedLrc(lines: LyricsLine[]): boolean {
+  // Enhanced LRC words stamped at two or more different times are timing
+  // however the lines are stamped, so those lyrics stay synced. Only words
+  // with text count: the stamp closing a line marks its end, not a word.
+  const wordTimes = new Set<number>();
+  for (const line of lines) {
+    for (const word of line.words ?? []) {
+      if (word.text.trim() !== "") wordTimes.add(word.timeMs);
+    }
+    if (wordTimes.size >= 2) return false;
+  }
+  const sung = lines.filter((line) => line.text.trim() !== "");
+  if (sung.length < 2) return false;
+  const counts = new Map<number, number>();
+  let top = 0;
+  for (const line of sung) {
+    const n = (counts.get(line.timeMs) ?? 0) + 1;
+    counts.set(line.timeMs, n);
+    if (n > top) top = n;
+  }
+  return top * 2 > sung.length;
+}
+
+/**
  * Serialize a list of word-stamped lines back to Enhanced LRC text.
  * Lines without `words` fall back to a plain `[mm:ss.xx]` entry.
  * Used by the editor when the user saves a word-timed track — TTML

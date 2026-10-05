@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { useLibrary } from "./useLibrary";
 import { importPaths } from "../lib/tauri/library";
@@ -31,6 +32,7 @@ export function useDragDropImport(): {
     createLibrary,
     refresh,
   } = useLibrary();
+  const { t } = useTranslation();
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [lastError, setLastError] = useState<string | null>(null);
@@ -48,7 +50,7 @@ export function useDragDropImport(): {
             libId = libraries[0].id;
             selectLibrary(libId);
           } else {
-            const lib = await createLibrary({ name: "Ma musique" });
+            const lib = await createLibrary({ name: t("onboarding.defaultLibraryName") });
             libId = lib.id;
             selectLibrary(libId);
           }
@@ -62,7 +64,7 @@ export function useDragDropImport(): {
         setIsImporting(false);
       }
     },
-    [libraries, selectedLibraryId, selectLibrary, createLibrary, refresh],
+    [libraries, selectedLibraryId, selectLibrary, createLibrary, refresh, t],
   );
 
   useEffect(() => {

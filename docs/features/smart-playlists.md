@@ -161,7 +161,7 @@ The cross-DB lookup in `top_artists_with_bpm` opens a short-lived secondary conn
 
 ## Manual edits
 
-A user adding or removing a track from a Daily Mix **will lose the change on the next regen**: `upsert_smart_playlist` deletes every `playlist_track` row for the playlist before re-inserting the freshly shuffled set. If durable curation is needed, the right move is to "Save as new playlist", which copies the tracks into a fresh `is_smart = 0` row.
+A user adding or removing a track from a Daily Mix **will lose the change on the next regen**: `upsert_smart_playlist` deletes every `playlist_track` row for the playlist before re-inserting the freshly shuffled set. **Adding is refused**: the "Add to playlist" menus list only regular playlists, and `add_track_to_playlist`, `add_tracks_to_playlist` and `add_source_to_playlist` reject a smart one, since the track would be accepted and then vanish. **Removing is still allowed** ("Remove from playlist" on the track and in the selection bar) and lasts until the next regeneration: it hides a track for now, which is still useful. There is no way yet to freeze a mix into a regular playlist (planned for 1.9); until then, durable curation means building a regular playlist by hand.
 
 ## Custom smart playlists (recursive boolean rule tree)
 

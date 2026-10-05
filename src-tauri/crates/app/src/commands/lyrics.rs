@@ -1838,8 +1838,8 @@ struct PluginAnswer {
     plugin_id: String,
 }
 
-/// Lyrics the renderer can follow: LRC or Enhanced LRC with at least one
-/// complete line stamp, or a well-formed TTML document with at least one
+/// Lyrics the renderer can follow: LRC or Enhanced LRC whose lines carry
+/// real timing (see [`lrc_has_timing`]), or a well-formed TTML document with at least one
 /// `<p>` whose `begin` it can read. Each rule mirrors the frontend parser,
 /// because an answer judged synced here ends the waterfall, and one the
 /// renderer then cannot follow is static text that beat synced lyrics.
@@ -1847,7 +1847,7 @@ struct PluginAnswer {
 /// `itunes:timing="None"` and bare lines.
 fn lyrics_are_synced(format: &LyricsFormat, content: &str) -> bool {
     match format {
-        LyricsFormat::Lrc | LyricsFormat::EnhancedLrc => lrc_has_line_stamp(content),
+        LyricsFormat::Lrc | LyricsFormat::EnhancedLrc => lrc_has_timing(content),
         LyricsFormat::Plain => false,
         LyricsFormat::Ttml => ttml_has_timed_line(content),
     }
@@ -1859,8 +1859,85 @@ static LRC_LINE_STAMP: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::
     regex::Regex::new(r"\[(\d{1,3}):(\d{1,2})(?:[.:](\d{1,3}))?\]").expect("static pattern")
 });
 
-fn lrc_has_line_stamp(content: &str) -> bool {
-    LRC_LINE_STAMP.is_match(content)
+/// Whether stamped LRC is actually timed. A complete line stamp is not
+/// enough: some sources stamp every line `[00:00.00]`, which the renderer
+/// shows as plain text (`isUntimedLrc` in `src/lib/tauri/lyrics.ts`), so
+/// an answer like that must not end the search ahead of real timing. The
+/// rule is the frontend's: untimed when more than half of the sung lines
+/// (a stamp followed by text) share one time. Enhanced LRC word stamps at
+/// two or more different times are timing however the lines are stamped:
+/// those words still carry the karaoke. Only a stamp followed by text
+/// counts; the one closing a line marks where it ends, not a word. Text
+/// before a line's first word stamp is a word sung at the line's own time,
+/// as `parseEnhancedLrc` reads it.
+fn lrc_has_timing(content: &str) -> bool {
+    let mut word_times = std::collections::HashSet::new();
+    for line in content.lines() {
+        // Read like the frontend: lines without a line stamp are skipped,
+        // and the words are found in what remains once those are removed.
+        let line_times: Vec<u64> = LRC_LINE_STAMP
+            .captures_iter(line)
+            .map(|stamp| lrc_stamp_ms(&stamp))
+            .collect();
+        if line_times.is_empty() {
+            continue;
+        }
+        let body = LRC_LINE_STAMP.replace_all(line, "");
+        let stamps: Vec<_> = LRC_WORD_STAMP.captures_iter(&body).collect();
+        let Some(first) = stamps.first().and_then(|stamp| stamp.get(0)) else {
+            continue;
+        };
+        if !body[..first.start()].trim().is_empty() {
+            word_times.extend(line_times.iter().copied());
+        }
+        for (i, stamp) in stamps.iter().enumerate() {
+            let from = stamp.get(0).map_or(body.len(), |m| m.end());
+            let to = stamps
+                .get(i + 1)
+                .and_then(|next| next.get(0))
+                .map_or(body.len(), |m| m.start());
+            if !body[from..to].trim().is_empty() {
+                word_times.insert(lrc_stamp_ms(stamp));
+            }
+        }
+    }
+    if word_times.len() >= 2 {
+        return true;
+    }
+    let mut per_time: std::collections::HashMap<u64, usize> = std::collections::HashMap::new();
+    let mut sung = 0usize;
+    for line in content.lines() {
+        if LRC_LINE_STAMP.replace_all(line, "").trim().is_empty() {
+            continue;
+        }
+        for stamp in LRC_LINE_STAMP.captures_iter(line) {
+            *per_time.entry(lrc_stamp_ms(&stamp)).or_default() += 1;
+            sung += 1;
+        }
+    }
+    let top = per_time.values().copied().max().unwrap_or(0);
+    sung > 0 && !(sung >= 2 && top * 2 > sung)
+}
+
+/// An Enhanced LRC word stamp, `<mm:ss.xx>`, same fields as a line stamp.
+static LRC_WORD_STAMP: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
+    regex::Regex::new(r"<(\d{1,3}):(\d{1,2})(?:[.:](\d{1,3}))?>").expect("static pattern")
+});
+
+/// A captured `[mm:ss.xx]` or `<mm:ss.xx>` stamp in milliseconds. Only compared for
+/// equality, but normalised the way the frontend reads it: a fraction of
+/// one, two or three digits is tenths, hundredths or thousandths.
+fn lrc_stamp_ms(stamp: &regex::Captures) -> u64 {
+    let number = |i: usize| {
+        stamp
+            .get(i)
+            .map_or(0, |m| m.as_str().parse::<u64>().unwrap_or(0))
+    };
+    let fraction = stamp.get(3).map_or(0, |m| {
+        let digits = m.as_str();
+        digits.parse::<u64>().unwrap_or(0) * 10u64.pow(3 - digits.len().min(3) as u32)
+    });
+    number(1) * 60_000 + number(2) * 1000 + fraction
 }
 
 fn ttml_has_timed_line(content: &str) -> bool {
@@ -5145,6 +5222,44 @@ mod tests {
     }
 
     #[test]
+    fn lrc_with_every_line_on_one_time_is_untimed() {
+        let all_zero = "[00:00.00]first\n[00:00.00]second\n[00:00.00]third";
+        assert!(!lyrics_are_synced(&LyricsFormat::Lrc, all_zero));
+        // A title card at 0 and real timing after it stays synced.
+        let mostly_timed =
+            "[00:00.00]Title\n[00:00.00]Artist\n[00:12.40]one\n[00:15.10]two\n[00:18.00]three";
+        assert!(lyrics_are_synced(&LyricsFormat::Lrc, mostly_timed));
+        // More than half on one time is untimed, whichever time it is.
+        let piled = "[00:30.00]a\n[00:30.00]b\n[00:30.00]c\n[00:31.00]d";
+        assert!(!lyrics_are_synced(&LyricsFormat::Lrc, piled));
+        // The same instant written with different precision is one time.
+        let same_instant = "[00:01.5]a\n[00:01.50]b\n[00:01.500]c";
+        assert!(!lyrics_are_synced(&LyricsFormat::Lrc, same_instant));
+        // Word stamps carry timing even when every line sits on 0.
+        let words = "[00:00.00]<00:01.00>a <00:01.50>b\n[00:00.00]<00:03.00>c <00:03.40>d";
+        assert!(lyrics_are_synced(&LyricsFormat::EnhancedLrc, words));
+        // A stamp closing a line times no word: words piled on one time
+        // stay untimed whatever their end markers say.
+        let closers = "[00:00.00]<00:00.00>a <00:00.00>b <00:05.00>\n[00:00.00]<00:00.00>c <00:00.00>d <00:06.00>";
+        assert!(!lyrics_are_synced(&LyricsFormat::EnhancedLrc, closers));
+        // …while real word timing with the same end markers stays synced.
+        let timed_with_closers = "[00:00.00]<00:01.00>a <00:01.50>b <00:02.00>\n[00:00.00]<00:03.00>c <00:03.40>d <00:04.00>";
+        assert!(lyrics_are_synced(
+            &LyricsFormat::EnhancedLrc,
+            timed_with_closers
+        ));
+        // Text before the first word stamp is sung at the line's time, as
+        // the frontend reads it: lines on 0 with words at 5 s are timed.
+        let prefixed = "[00:00.00]a <00:05.00>b\n[00:00.00]c <00:05.00>d";
+        assert!(lyrics_are_synced(&LyricsFormat::EnhancedLrc, prefixed));
+        // Exactly half is not more than half.
+        assert!(lyrics_are_synced(
+            &LyricsFormat::Lrc,
+            "[00:01.00]a\n[00:01.00]b\n[00:02.00]c\n[00:03.00]d"
+        ));
+    }
+
+    #[test]
     fn lrc_needs_a_complete_line_stamp() {
         assert!(lyrics_are_synced(&LyricsFormat::Lrc, "[00:01.00]x"));
         assert!(lyrics_are_synced(
@@ -5157,6 +5272,11 @@ mod tests {
         ));
         assert!(!lyrics_are_synced(&LyricsFormat::Lrc, "[00:01x\nline"));
         assert!(!lyrics_are_synced(&LyricsFormat::Lrc, "[ar:Someone]\nline"));
+        // Stamps with no words after them time nothing.
+        assert!(!lyrics_are_synced(
+            &LyricsFormat::Lrc,
+            "[00:01.00]\n[00:02.00]"
+        ));
         assert!(!lyrics_are_synced(&LyricsFormat::Plain, "x"));
     }
 

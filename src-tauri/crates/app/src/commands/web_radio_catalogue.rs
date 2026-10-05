@@ -487,14 +487,17 @@ pub async fn resolve_radio_catalogue(
         .await?
     } else if let Some(tag) = q.strip_prefix("tag:") {
         // Substring match on the comma-joined tag list. Broader than the
-        // live `bytag` exact match, but fine for offline browsing.
+        // live `bytag` exact match, but fine for offline browsing. The tag
+        // is escaped, so a `%` or `_` in it is a character, not a wildcard.
         let tag = tag.trim().to_lowercase();
         sqlx::query_as(
             "SELECT stream_url, name, country, tags, favicon, bitrate
-               FROM radio_station WHERE lower(tags) LIKE '%' || ? || '%'
+               FROM radio_station WHERE lower(tags) LIKE ? ESCAPE '\\'
               ORDER BY votes DESC LIMIT ?",
         )
-        .bind(tag)
+        .bind(waveflow_core::repository::sqlite::search::like_pattern(
+            &tag,
+        ))
         .bind(limit)
         .fetch_all(pool)
         .await?

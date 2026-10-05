@@ -39,6 +39,13 @@ export function useMultiSelect<
 
   const selectRange = useCallback(
     (id: number, items: T[]) => {
+      // With no anchor (nothing picked yet, or the selection was just
+      // cleared, which single-click play does on every play) or one no
+      // longer in the list, this click starts the range. Without it two
+      // Shift+clicks selected two lone rows and never what lay between.
+      if (anchorId == null || !items.some((x) => x.id === anchorId)) {
+        setAnchorId(id);
+      }
       setSelectedIds((prev) => {
         const anchor = anchorId ?? id;
         const fromIdx = items.findIndex((x) => x.id === anchor);

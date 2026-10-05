@@ -94,6 +94,9 @@ export function TrackContextMenu({
 }: TrackContextMenuProps) {
   const { t } = useTranslation();
   const artists = parseArtistList(track.artist_ids, track.artist_name);
+  // A smart playlist is rebuilt from its rules, so a track added by hand
+  // would vanish at the next regeneration. The backend refuses it too.
+  const editablePlaylists = playlists.filter((pl) => pl.is_smart !== 1);
   // Round POPM 0-255 to the nearest integer star (0-5) for the
   // current-rating chip on the submenu trigger. Sub-star precision
   // (half stars) is supported via the modal's slider — the context
@@ -142,12 +145,12 @@ export function TrackContextMenu({
         {/* `overscroll-contain`: reaching the end of the list must not
             scroll the page behind it, which closes the menu. */}
         <div className="max-h-64 overflow-y-auto overscroll-contain">
-          {playlists.length === 0 ? (
+          {editablePlaylists.length === 0 ? (
             <div className="px-3 py-2 text-xs text-zinc-400">
               {t("trackActions.noPlaylists")}
             </div>
           ) : (
-            playlists.map((pl) => {
+            editablePlaylists.map((pl) => {
               const color = resolvePlaylistColor(pl.color_id);
               return (
                 <button

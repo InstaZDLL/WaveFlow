@@ -282,7 +282,7 @@ export function HomeView({
           libId = libraries[0].id;
           selectLibrary(libId);
         } else {
-          const lib = await createLibrary({ name: "Ma musique" });
+          const lib = await createLibrary({ name: t("onboarding.defaultLibraryName") });
           libId = lib.id;
           selectLibrary(libId);
         }

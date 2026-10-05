@@ -967,7 +967,7 @@ export function LibraryView({
           libId = libraries[0].id;
           selectLibrary(libId);
         } else {
-          const lib = await createLibrary({ name: "Ma musique" });
+          const lib = await createLibrary({ name: t("onboarding.defaultLibraryName") });
           libId = lib.id;
           selectLibrary(libId);
         }
@@ -3034,13 +3034,16 @@ interface AddToPlaylistPopoverProps {
  * playlist doesn't accidentally start playback of the row underneath.
  */
 function AddToPlaylistPopover({
-  playlists,
+  playlists: allPlaylists,
   onPick,
   onCreate,
   t,
   memberPlaylistIds,
   anchorEl,
 }: AddToPlaylistPopoverProps) {
+  // Only playlists a track can be added to: a smart playlist is rebuilt
+  // from its rules and would drop the track at the next regeneration.
+  const playlists = allPlaylists.filter((pl) => pl.is_smart !== 1);
   // Portal mode: track the anchor's viewport rect AND the popover's own
   // height so we can flip / clamp against the viewport. `null` rect =
   // first render before the layout effect runs; we keep the popover
@@ -4269,7 +4272,7 @@ function FolderBrowser({
   locale,
   onOpen,
   onRoots,
-  playlists,
+  playlists: allPlaylists,
   onPlay,
   onQueue,
   onPlayNext,
@@ -4277,6 +4280,9 @@ function FolderBrowser({
   onCreatePlaylist,
   onBatchTag,
 }: FolderBrowserProps) {
+  // Only playlists a track can be added to: a smart playlist is rebuilt
+  // from its rules and would drop the track at the next regeneration.
+  const playlists = allPlaylists.filter((pl) => pl.is_smart !== 1);
   const [menuOpen, setMenuOpen] = useState(false);
 
   // Escape closes it, like every other menu here. Bound only while it is
