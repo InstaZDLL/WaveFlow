@@ -1211,12 +1211,7 @@ fn play_dop_track(
             ControlFlow::Continue => {}
             ControlFlow::Break => break 'pkt,
             ControlFlow::Shutdown => {
-                transition_state(shared, app, PlayerState::Idle, Some(stream.track_id));
-                return Ok((
-                    PlaybackEnd::Interrupted,
-                    shared.session_listened_ms(),
-                    finished_from(&stream),
-                ));
+                return shutdown_outcome(&stream, shared, app, pending_cmd);
             }
             ControlFlow::LoadNext => {
                 return Ok((
@@ -1289,12 +1284,7 @@ fn play_dop_track(
             PushOutcome::Ok => {}
             PushOutcome::Stop => break 'pkt,
             PushOutcome::Shutdown => {
-                transition_state(shared, app, PlayerState::Idle, Some(stream.track_id));
-                return Ok((
-                    PlaybackEnd::Interrupted,
-                    shared.session_listened_ms(),
-                    finished_from(&stream),
-                ));
+                return shutdown_outcome(&stream, shared, app, pending_cmd);
             }
             PushOutcome::LoadNext => {
                 return Ok((
@@ -1441,12 +1431,7 @@ fn play_track(
             ControlFlow::Continue => {}
             ControlFlow::Break => break 'pkt,
             ControlFlow::Shutdown => {
-                transition_state(shared, app, PlayerState::Idle, Some(stream.track_id));
-                return Ok((
-                    PlaybackEnd::Interrupted,
-                    shared.session_listened_ms(),
-                    finished_from(&stream),
-                ));
+                return shutdown_outcome(&stream, shared, app, pending_cmd);
             }
             ControlFlow::LoadNext => {
                 return Ok((
@@ -1705,12 +1690,7 @@ fn play_track(
                     PushOutcome::Ok => {}
                     PushOutcome::Stop => break 'pkt,
                     PushOutcome::Shutdown => {
-                        transition_state(shared, app, PlayerState::Idle, Some(stream.track_id));
-                        return Ok((
-                            PlaybackEnd::Interrupted,
-                            shared.session_listened_ms(),
-                            finished_from(&stream),
-                        ));
+                        return shutdown_outcome(&stream, shared, app, pending_cmd);
                     }
                     PushOutcome::LoadNext => {
                         return Ok((
@@ -1896,12 +1876,7 @@ fn play_track(
                 PushOutcome::Ok => primary_resampled.clear(),
                 PushOutcome::Stop => break 'pkt,
                 PushOutcome::Shutdown => {
-                    transition_state(shared, app, PlayerState::Idle, Some(stream.track_id));
-                    return Ok((
-                        PlaybackEnd::Interrupted,
-                        shared.session_listened_ms(),
-                        finished_from(&stream),
-                    ));
+                    return shutdown_outcome(&stream, shared, app, pending_cmd);
                 }
                 PushOutcome::LoadNext => {
                     return Ok((
@@ -1956,6 +1931,27 @@ fn play_track(
     } else {
         Ok((PlaybackEnd::Interrupted, listened_ms, finished))
     }
+}
+
+/// The outcome of a play cut short by `Shutdown`: credited like any other
+/// interruption, with the `Shutdown` it consumed queued again so the outer
+/// loop ends the thread once that credit is sent. The exit path waits for
+/// the thread to finish, then for the analytics task to write what it was
+/// sent; without the re-queue the thread went back to waiting for a command
+/// and the exit could not tell when the credit had left.
+fn shutdown_outcome(
+    stream: &ActiveStream,
+    shared: &SharedPlayback,
+    app: &AppHandle,
+    pending_cmd: &mut Option<AudioCmd>,
+) -> Result<(PlaybackEnd, u64, FinishedTrack), String> {
+    transition_state(shared, app, PlayerState::Idle, Some(stream.track_id));
+    *pending_cmd = Some(AudioCmd::Shutdown);
+    Ok((
+        PlaybackEnd::Interrupted,
+        shared.session_listened_ms(),
+        finished_from(stream),
+    ))
 }
 
 fn finished_from(stream: &ActiveStream) -> FinishedTrack {

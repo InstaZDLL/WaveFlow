@@ -62,6 +62,12 @@ pub enum AnalyticsMsg {
         source_type: String,
         source_id: Option<i64>,
     },
+    /// Answered once every message sent before it has been handled. The
+    /// channel is FIFO and the task handles one message at a time, so the
+    /// notification means the `play_event` rows those messages carried
+    /// are written. Sent by the exit path, which would otherwise end the
+    /// process with the last play still in the channel.
+    Flush(Arc<tokio::sync::Notify>),
     /// Sent by the decoder when it's approaching the end of the
     /// current track and crossfade is enabled. Triggers a
     /// `peek_next` and a `SetNextTrack` reply so the decoder can
@@ -113,6 +119,11 @@ async fn handle_message(
     cmd_tx: &CrossbeamSender<AudioCmd>,
     app: &AppHandle,
 ) -> Result<(), String> {
+    if let AnalyticsMsg::Flush(done) = msg {
+        done.notify_one();
+        return Ok(());
+    }
+
     let state = app.state::<AppState>();
 
     // A remote-queue track has no library row: it writes no play_event and
@@ -243,7 +254,7 @@ async fn handle_message(
         }
         // Handled before the pool acquisition above (no play_event, no
         // pool needed).
-        AnalyticsMsg::RemoteTrackEnded { .. } => {}
+        AnalyticsMsg::RemoteTrackEnded { .. } | AnalyticsMsg::Flush(_) => {}
         AnalyticsMsg::PrefetchNext => {
             // Look up what would be played next without bumping the
             // cursor (the cursor is bumped only when the crossfade
