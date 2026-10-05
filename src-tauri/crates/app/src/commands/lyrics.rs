@@ -1867,18 +1867,36 @@ static LRC_LINE_STAMP: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::
 /// (a stamp followed by text) share one time. Enhanced LRC word stamps at
 /// two or more different times are timing however the lines are stamped:
 /// those words still carry the karaoke. Only a stamp followed by text
-/// counts; the one closing a line marks where it ends, not a word.
+/// counts; the one closing a line marks where it ends, not a word. Text
+/// before a line's first word stamp is a word sung at the line's own time,
+/// as `parseEnhancedLrc` reads it.
 fn lrc_has_timing(content: &str) -> bool {
     let mut word_times = std::collections::HashSet::new();
     for line in content.lines() {
-        let stamps: Vec<_> = LRC_WORD_STAMP.captures_iter(line).collect();
+        // Read like the frontend: lines without a line stamp are skipped,
+        // and the words are found in what remains once those are removed.
+        let line_times: Vec<u64> = LRC_LINE_STAMP
+            .captures_iter(line)
+            .map(|stamp| lrc_stamp_ms(&stamp))
+            .collect();
+        if line_times.is_empty() {
+            continue;
+        }
+        let body = LRC_LINE_STAMP.replace_all(line, "");
+        let stamps: Vec<_> = LRC_WORD_STAMP.captures_iter(&body).collect();
+        let Some(first) = stamps.first().and_then(|stamp| stamp.get(0)) else {
+            continue;
+        };
+        if !body[..first.start()].trim().is_empty() {
+            word_times.extend(line_times.iter().copied());
+        }
         for (i, stamp) in stamps.iter().enumerate() {
-            let from = stamp.get(0).map_or(line.len(), |m| m.end());
+            let from = stamp.get(0).map_or(body.len(), |m| m.end());
             let to = stamps
                 .get(i + 1)
                 .and_then(|next| next.get(0))
-                .map_or(line.len(), |m| m.start());
-            if !line[from..to].trim().is_empty() {
+                .map_or(body.len(), |m| m.start());
+            if !body[from..to].trim().is_empty() {
                 word_times.insert(lrc_stamp_ms(stamp));
             }
         }
@@ -5230,6 +5248,10 @@ mod tests {
             &LyricsFormat::EnhancedLrc,
             timed_with_closers
         ));
+        // Text before the first word stamp is sung at the line's time, as
+        // the frontend reads it: lines on 0 with words at 5 s are timed.
+        let prefixed = "[00:00.00]a <00:05.00>b\n[00:00.00]c <00:05.00>d";
+        assert!(lyrics_are_synced(&LyricsFormat::EnhancedLrc, prefixed));
         // Exactly half is not more than half.
         assert!(lyrics_are_synced(
             &LyricsFormat::Lrc,
