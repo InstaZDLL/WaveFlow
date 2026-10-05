@@ -240,15 +240,15 @@ fn album_order_clause(order_by: Option<&str>, direction: Option<&str>) -> &'stat
         }
     };
     match (order_by, dir) {
-        (Some("title"), "ASC") => "ORDER BY al.canonical_title COLLATE NOCASE ASC",
-        (Some("title"), "DESC") => "ORDER BY al.canonical_title COLLATE NOCASE DESC",
-        (Some("artist"), "ASC") => "ORDER BY ar.canonical_name COLLATE NOCASE ASC, al.canonical_title COLLATE NOCASE",
-        (Some("artist"), "DESC") => "ORDER BY ar.canonical_name COLLATE NOCASE DESC, al.canonical_title COLLATE NOCASE",
-        (Some("year"), "ASC") => "ORDER BY al.year ASC, al.canonical_title COLLATE NOCASE",
-        (Some("year"), "DESC") => "ORDER BY al.year DESC, al.canonical_title COLLATE NOCASE",
+        (Some("title"), "ASC") => "ORDER BY al.canonical_title COLLATE FOLD ASC",
+        (Some("title"), "DESC") => "ORDER BY al.canonical_title COLLATE FOLD DESC",
+        (Some("artist"), "ASC") => "ORDER BY ar.canonical_name COLLATE FOLD ASC, al.canonical_title COLLATE FOLD",
+        (Some("artist"), "DESC") => "ORDER BY ar.canonical_name COLLATE FOLD DESC, al.canonical_title COLLATE FOLD",
+        (Some("year"), "ASC") => "ORDER BY al.year ASC, al.canonical_title COLLATE FOLD",
+        (Some("year"), "DESC") => "ORDER BY al.year DESC, al.canonical_title COLLATE FOLD",
         (Some("added_at"), "ASC") => "ORDER BY MIN(t.added_at) ASC",
         (Some("added_at"), "DESC") => "ORDER BY MIN(t.added_at) DESC",
-        _ => "ORDER BY ar.canonical_name COLLATE NOCASE,\n                  al.canonical_title COLLATE NOCASE",
+        _ => "ORDER BY ar.canonical_name COLLATE FOLD,\n                  al.canonical_title COLLATE FOLD",
     }
 }
 
@@ -267,21 +267,17 @@ fn artist_order_clause(order_by: Option<&str>, direction: Option<&str>) -> &'sta
         }
     };
     match (order_by, dir) {
-        (Some("name"), "ASC") => "ORDER BY ar.canonical_name COLLATE NOCASE ASC",
-        (Some("name"), "DESC") => "ORDER BY ar.canonical_name COLLATE NOCASE DESC",
-        (Some("albums_count"), "ASC") => {
-            "ORDER BY album_count ASC, ar.canonical_name COLLATE NOCASE"
-        }
+        (Some("name"), "ASC") => "ORDER BY ar.canonical_name COLLATE FOLD ASC",
+        (Some("name"), "DESC") => "ORDER BY ar.canonical_name COLLATE FOLD DESC",
+        (Some("albums_count"), "ASC") => "ORDER BY album_count ASC, ar.canonical_name COLLATE FOLD",
         (Some("albums_count"), "DESC") => {
-            "ORDER BY album_count DESC, ar.canonical_name COLLATE NOCASE"
+            "ORDER BY album_count DESC, ar.canonical_name COLLATE FOLD"
         }
-        (Some("tracks_count"), "ASC") => {
-            "ORDER BY track_count ASC, ar.canonical_name COLLATE NOCASE"
-        }
+        (Some("tracks_count"), "ASC") => "ORDER BY track_count ASC, ar.canonical_name COLLATE FOLD",
         (Some("tracks_count"), "DESC") => {
-            "ORDER BY track_count DESC, ar.canonical_name COLLATE NOCASE"
+            "ORDER BY track_count DESC, ar.canonical_name COLLATE FOLD"
         }
-        _ => "ORDER BY ar.canonical_name COLLATE NOCASE",
+        _ => "ORDER BY ar.canonical_name COLLATE FOLD",
     }
 }
 
@@ -455,19 +451,17 @@ fn library_album_order_clause(order_by: Option<&str>, direction: Option<&str>) -
         }
     };
     match (order_by, dir) {
-        (Some("title"), "ASC") => "ORDER BY sort_title COLLATE NOCASE ASC",
-        (Some("title"), "DESC") => "ORDER BY sort_title COLLATE NOCASE DESC",
-        (Some("artist"), "ASC") => {
-            "ORDER BY sort_artist COLLATE NOCASE ASC, sort_title COLLATE NOCASE"
-        }
+        (Some("title"), "ASC") => "ORDER BY sort_title COLLATE FOLD ASC",
+        (Some("title"), "DESC") => "ORDER BY sort_title COLLATE FOLD DESC",
+        (Some("artist"), "ASC") => "ORDER BY sort_artist COLLATE FOLD ASC, sort_title COLLATE FOLD",
         (Some("artist"), "DESC") => {
-            "ORDER BY sort_artist COLLATE NOCASE DESC, sort_title COLLATE NOCASE"
+            "ORDER BY sort_artist COLLATE FOLD DESC, sort_title COLLATE FOLD"
         }
-        (Some("year"), "ASC") => "ORDER BY year ASC, sort_title COLLATE NOCASE",
-        (Some("year"), "DESC") => "ORDER BY year DESC, sort_title COLLATE NOCASE",
+        (Some("year"), "ASC") => "ORDER BY year ASC, sort_title COLLATE FOLD",
+        (Some("year"), "DESC") => "ORDER BY year DESC, sort_title COLLATE FOLD",
         (Some("added_at"), "ASC") => "ORDER BY added_at ASC",
         (Some("added_at"), "DESC") => "ORDER BY added_at DESC",
-        _ => "ORDER BY sort_artist COLLATE NOCASE, sort_title COLLATE NOCASE",
+        _ => "ORDER BY sort_artist COLLATE FOLD, sort_title COLLATE FOLD",
     }
 }
 
@@ -567,7 +561,8 @@ pub(crate) struct LibraryTrackRawRow {
 /// anything that is not matched here must produce the default clause
 /// rather than reaching a query.
 ///
-/// Text columns sort case-insensitively; numeric ones do not, and every
+/// Text columns sort case-insensitively (names under `FOLD`, which sets
+/// accents aside too, so "Émilie" sits among the E); numeric ones do not, and every
 /// nullable one puts its NULLs last in both directions — an untagged
 /// track is not a track with the smallest value, and burying a run of
 /// blanks at the top of an ascending sort is the fastest way to make a
@@ -575,9 +570,9 @@ pub(crate) struct LibraryTrackRawRow {
 fn track_sort_expr(key: &str) -> Option<(&'static str, bool)> {
     // (expression, nulls_last)
     Some(match key {
-        "title" => ("title COLLATE NOCASE", false),
-        "artist" => ("sort_artist COLLATE NOCASE", true),
-        "album" => ("sort_album COLLATE NOCASE", true),
+        "title" => ("title COLLATE FOLD", false),
+        "artist" => ("sort_artist COLLATE FOLD", true),
+        "album" => ("sort_album COLLATE FOLD", true),
         "duration_ms" => ("duration_ms", false),
         "year" => ("year", true),
         "added_at" => ("added_at", false),
@@ -643,11 +638,11 @@ pub(crate) fn library_track_order_clause(
     // it: this is the order most lists are rendered in, so it is the one
     // where a pair of rows swapping places between two refreshes would
     // be seen most often.
-    const DEFAULT: &str = "ORDER BY sort_artist COLLATE NOCASE,
-                  sort_album COLLATE NOCASE,
+    const DEFAULT: &str = "ORDER BY sort_artist COLLATE FOLD,
+                  sort_album COLLATE FOLD,
                   disc_number,
                   track_number,
-                  title COLLATE NOCASE,
+                  title COLLATE FOLD,
                   source,
                   id";
 
@@ -674,9 +669,9 @@ pub(crate) fn library_track_order_clause(
         // album titles are not unique across artists (`Greatest Hits`,
         // `Live`, an untitled rip), and without it two such albums
         // interleave track 1 against track 1 all the way down.
-        Some("album") => clause.push_str(", sort_artist COLLATE NOCASE, disc_number, track_number"),
+        Some("album") => clause.push_str(", sort_artist COLLATE FOLD, disc_number, track_number"),
         Some("title") => {}
-        _ => clause.push_str(", title COLLATE NOCASE"),
+        _ => clause.push_str(", title COLLATE FOLD"),
     }
     // ...and then a **total** order. Two tracks of the same album with
     // the same disc and track number, or two files with the same title,
@@ -1288,13 +1283,13 @@ fn library_artist_order_clause(order_by: Option<&str>, direction: Option<&str>) 
         }
     };
     match (order_by, dir) {
-        (Some("name"), "ASC") => "ORDER BY sort_name COLLATE NOCASE ASC",
-        (Some("name"), "DESC") => "ORDER BY sort_name COLLATE NOCASE DESC",
-        (Some("albums_count"), "ASC") => "ORDER BY album_count ASC, sort_name COLLATE NOCASE",
-        (Some("albums_count"), "DESC") => "ORDER BY album_count DESC, sort_name COLLATE NOCASE",
-        (Some("tracks_count"), "ASC") => "ORDER BY track_count ASC, sort_name COLLATE NOCASE",
-        (Some("tracks_count"), "DESC") => "ORDER BY track_count DESC, sort_name COLLATE NOCASE",
-        _ => "ORDER BY sort_name COLLATE NOCASE",
+        (Some("name"), "ASC") => "ORDER BY sort_name COLLATE FOLD ASC",
+        (Some("name"), "DESC") => "ORDER BY sort_name COLLATE FOLD DESC",
+        (Some("albums_count"), "ASC") => "ORDER BY album_count ASC, sort_name COLLATE FOLD",
+        (Some("albums_count"), "DESC") => "ORDER BY album_count DESC, sort_name COLLATE FOLD",
+        (Some("tracks_count"), "ASC") => "ORDER BY track_count ASC, sort_name COLLATE FOLD",
+        (Some("tracks_count"), "DESC") => "ORDER BY track_count DESC, sort_name COLLATE FOLD",
+        _ => "ORDER BY sort_name COLLATE FOLD",
     }
 }
 
@@ -1604,7 +1599,7 @@ pub async fn search_albums(
            AND instr(al.canonical_title, ?) > 0
          GROUP BY al.id
          ORDER BY (instr(al.canonical_title, ?) = 1) DESC,
-                  al.canonical_title COLLATE NOCASE
+                  al.canonical_title COLLATE FOLD
          LIMIT ?
         "#,
     )
@@ -1669,7 +1664,7 @@ pub async fn search_artists(
            AND instr(ar.canonical_name, ?) > 0
          GROUP BY ar.id
          ORDER BY (instr(ar.canonical_name, ?) = 1) DESC,
-                  ar.canonical_name COLLATE NOCASE
+                  ar.canonical_name COLLATE FOLD
          LIMIT ?
         "#,
     )
@@ -1714,7 +1709,7 @@ pub async fn list_genres(
           LEFT JOIN artwork aw ON aw.id = g.artwork_id
          WHERE (? IS NULL OR t.library_id = ?) AND t.is_available = 1
          GROUP BY g.id
-         ORDER BY g.canonical_name COLLATE NOCASE
+         ORDER BY g.canonical_name COLLATE FOLD
         "#,
     )
     .bind(library_id)
@@ -2133,7 +2128,7 @@ const FOLDER_CHILDREN_SQL: &str = r#"
            artwork_format
       FROM child
      GROUP BY name COLLATE NOCASE
-     ORDER BY name COLLATE NOCASE
+     ORDER BY name COLLATE FOLD
 "#;
 
 /// SQL for the library root that contains a path.
@@ -2493,7 +2488,7 @@ pub async fn get_album_detail(
           JOIN track_genre tg ON tg.genre_id = g.id
           JOIN track t ON t.id = tg.track_id
          WHERE t.album_id = ?
-         ORDER BY g.name COLLATE NOCASE
+         ORDER BY g.name COLLATE FOLD
         "#,
     )
     .bind(album_id)
@@ -2768,7 +2763,7 @@ pub async fn get_artist_detail(
          WHERE al.artist_id = ?1
             OR t.id IN (SELECT track_id FROM track_artist WHERE artist_id = ?1)
          GROUP BY al.id
-         ORDER BY al.year DESC, al.canonical_title COLLATE NOCASE
+         ORDER BY al.year DESC, al.canonical_title COLLATE FOLD
         "#,
     )
     .bind(artist_id)
@@ -2975,11 +2970,11 @@ pub async fn get_genre_detail(
           LEFT JOIN artist  ar ON ar.id = t.primary_artist
           LEFT JOIN artwork aw ON aw.id = al.artwork_id
          WHERE tg.genre_id = ? AND t.is_available = 1
-         ORDER BY ar.canonical_name COLLATE NOCASE,
-                  al.canonical_title COLLATE NOCASE,
+         ORDER BY ar.canonical_name COLLATE FOLD,
+                  al.canonical_title COLLATE FOLD,
                   t.disc_number,
                   t.track_number,
-                  t.title COLLATE NOCASE
+                  t.title COLLATE FOLD
         "#,
     )
     .bind(genre_id)
@@ -3285,7 +3280,7 @@ mod tests {
         ] {
             let clause = library_track_order_clause(Some(key), Some("asc"));
             assert!(
-                clause.starts_with("ORDER BY sort_artist COLLATE NOCASE"),
+                clause.starts_with("ORDER BY sort_artist COLLATE FOLD"),
                 "{key:?} produced {clause:?}"
             );
             assert!(!clause.contains(key) || key.is_empty(), "{key:?} leaked");
@@ -3319,7 +3314,7 @@ mod tests {
             assert!(track_sort_expr(key).is_some(), "{key} is not sortable");
             let clause = library_track_order_clause(Some(key), Some("asc"));
             assert!(
-                !clause.starts_with("ORDER BY sort_artist COLLATE NOCASE,"),
+                !clause.starts_with("ORDER BY sort_artist COLLATE FOLD,"),
                 "{key} fell through to the default"
             );
         }
@@ -3357,7 +3352,7 @@ mod tests {
         for key in ["artist", "year", "bitrate", "codec"] {
             let clause = library_track_order_clause(Some(key), Some("asc"));
             assert!(
-                clause.contains("title COLLATE NOCASE"),
+                clause.contains("title COLLATE FOLD"),
                 "{key} has no tie-break: {clause}"
             );
         }
@@ -3366,7 +3361,7 @@ mod tests {
         // interleave their track 1s.
         let album = library_track_order_clause(Some("album"), Some("asc"));
         assert!(
-            album.contains("sort_artist COLLATE NOCASE, disc_number, track_number"),
+            album.contains("sort_artist COLLATE FOLD, disc_number, track_number"),
             "{album}"
         );
     }
@@ -3381,9 +3376,11 @@ mod tests {
     /// runs. The unified listings join the attached `app` database too, so the
     /// fixture attaches one and creates the single table they read.
     async fn pool() -> SqlitePool {
-        let options = SqliteConnectOptions::from_str(":memory:")
-            .unwrap()
-            .foreign_keys(true);
+        let options = waveflow_core::repository::sqlite::collation::register(
+            SqliteConnectOptions::from_str(":memory:")
+                .unwrap()
+                .foreign_keys(true),
+        );
         let pool = SqlitePoolOptions::new()
             // One connection: `ATTACH` is per-connection, and a second one
             // would not see the attached database.
@@ -4578,6 +4575,79 @@ mod tests {
             by_tracks.first().map(|row| row.1.as_str()),
             Some("Aphex Twin")
         );
+    }
+
+    /// The scanner's canonical forms keep their accents, so an ASCII-only
+    /// collation put "Émilie Simon" after "Zazie", past the whole alphabet,
+    /// while the A-Z rail files her under E.
+    #[tokio::test]
+    async fn an_accented_initial_sorts_with_its_letter() {
+        let pool = pool().await;
+        seed(&pool).await;
+        for (id, name, canonical) in [(2, "Zazie", "zazie"), (3, "Émilie Simon", "émilie simon")]
+        {
+            sqlx::query("INSERT INTO artist (id, name, canonical_name) VALUES (?, ?, ?)")
+                .bind(id)
+                .bind(name)
+                .bind(canonical)
+                .execute(&pool)
+                .await
+                .unwrap();
+            sqlx::query(
+                "INSERT INTO album (id, title, canonical_title, artist_id, year, is_compilation)
+                 VALUES (?, ?, ?, ?, 2000, 0)",
+            )
+            .bind(id)
+            .bind(name)
+            .bind(canonical)
+            .bind(id)
+            .execute(&pool)
+            .await
+            .unwrap();
+            sqlx::query(
+                "INSERT INTO track (id, library_id, file_path, file_hash, file_size,
+                                    file_modified, title, album_id, primary_artist,
+                                    duration_ms, added_at, is_available, hlc_wall,
+                                    hlc_logical, rating_hlc_wall, rating_hlc_logical)
+                 VALUES (?, 1, ?, ?, 1, 0, 'T', ?, ?, 1000, 500, 1, 0, 0, 0, 0)",
+            )
+            .bind(id)
+            .bind(format!("/m/{id}.flac"))
+            .bind(format!("h{id}"))
+            .bind(id)
+            .bind(id)
+            .execute(&pool)
+            .await
+            .unwrap();
+            sqlx::query(
+                "INSERT INTO track_artist (track_id, artist_id, position) VALUES (?, ?, 0)",
+            )
+            .bind(id)
+            .bind(id)
+            .execute(&pool)
+            .await
+            .unwrap();
+        }
+
+        let names: Vec<String> =
+            artists(&pool, None, None, library_artist_order_clause(None, None))
+                .await
+                .into_iter()
+                .map(|row| row.1)
+                .collect();
+        assert_eq!(names, ["Aphex Twin", "Björk", "Émilie Simon", "Zazie"]);
+
+        let titles: Vec<String> = albums(
+            &pool,
+            None,
+            None,
+            library_album_order_clause(Some("title"), Some("asc")),
+        )
+        .await
+        .into_iter()
+        .map(|row| row.1)
+        .collect();
+        assert_eq!(titles, ["Drukqs", "Émilie Simon", "Vespertine", "Zazie"]);
     }
 
     #[tokio::test]

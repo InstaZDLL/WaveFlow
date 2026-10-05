@@ -8738,14 +8738,14 @@
     {
         "type": "archive",
         "archive-type": "tar-gzip",
-        "url": "https://static.crates.io/crates/wasapi/wasapi-0.24.0.crate",
-        "sha256": "ee144c215d8d31e94c1a599fbaf540ca82a7017e4f1786816b179f334fac751d",
-        "dest": "cargo/vendor/wasapi-0.24.0"
+        "url": "https://static.crates.io/crates/wasapi/wasapi-0.25.0.crate",
+        "sha256": "5225a7c681bdaf6a63aa0ffc287adba7fd5a04b592a2730643869ce45641da99",
+        "dest": "cargo/vendor/wasapi-0.25.0"
     },
     {
         "type": "inline",
-        "contents": "{\"package\": \"ee144c215d8d31e94c1a599fbaf540ca82a7017e4f1786816b179f334fac751d\", \"files\": {}}",
-        "dest": "cargo/vendor/wasapi-0.24.0",
+        "contents": "{\"package\": \"5225a7c681bdaf6a63aa0ffc287adba7fd5a04b592a2730643869ce45641da99\", \"files\": {}}",
+        "dest": "cargo/vendor/wasapi-0.25.0",
         "dest-filename": ".cargo-checksum.json"
     },
     {

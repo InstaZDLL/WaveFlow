@@ -225,7 +225,7 @@ pub async fn get_track_genres(
            FROM track_genre tg
            JOIN genre g ON g.id = tg.genre_id
           WHERE tg.track_id = ?
-          ORDER BY g.name COLLATE NOCASE",
+          ORDER BY g.name COLLATE FOLD",
     )
     .bind(track_id)
     .fetch_all(&*pool)
@@ -457,11 +457,11 @@ pub async fn search_tracks_advanced(
         sql.push_str("ORDER BY rank\n");
     } else {
         sql.push_str(
-            "ORDER BY ar.canonical_name COLLATE NOCASE,\n\
-                      al.canonical_title COLLATE NOCASE,\n\
+            "ORDER BY ar.canonical_name COLLATE FOLD,\n\
+                      al.canonical_title COLLATE FOLD,\n\
                       t.disc_number,\n\
                       t.track_number,\n\
-                      t.title COLLATE NOCASE\n",
+                      t.title COLLATE FOLD\n",
         );
     }
     sql.push_str("LIMIT 200");

@@ -82,7 +82,7 @@ pub fn normalize_name(name: &str) -> String {
 /// standing in an NFD-decomposed string. Covers the standard combining
 /// blocks; dependency-free stand-in for the `Mn` general category so we
 /// don't pull in `unicode-normalization` just to fold accents.
-fn is_combining_mark(ch: char) -> bool {
+pub(crate) fn is_combining_mark(ch: char) -> bool {
     matches!(ch as u32,
         0x0300..=0x036F | // Combining Diacritical Marks
         0x1AB0..=0x1AFF | // Combining Diacritical Marks Extended
@@ -95,7 +95,7 @@ fn is_combining_mark(ch: char) -> bool {
 /// Map a lowercase accented Latin char to its base letter; pass anything
 /// else through unchanged. Covers the accents common in Western artist
 /// names without pulling in a Unicode-normalization dependency.
-fn fold_diacritic(ch: char) -> char {
+pub(crate) fn fold_diacritic(ch: char) -> char {
     match ch {
         'á' | 'à' | 'â' | 'ä' | 'ã' | 'å' | 'ā' | 'ą' => 'a',
         'ç' | 'ć' | 'č' => 'c',
