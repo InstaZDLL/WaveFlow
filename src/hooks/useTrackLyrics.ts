@@ -17,6 +17,7 @@ import {
   findInterludes,
   importLrcFile,
   lyricsExcludedGenre,
+  isUntimedLrc,
   parseLyrics,
   refetchLyrics,
   type LyricsInterlude,
@@ -26,6 +27,8 @@ import {
   type LyricsProvider,
   type PluginLyricsProvider,
 } from "../lib/tauri/lyrics";
+
+const NO_LINES: LyricsLine[] = [];
 
 /**
  * Owns the full lyrics lifecycle for the currently-playing track: the
@@ -264,10 +267,30 @@ export function useTrackLyrics(): TrackLyrics {
   ]);
 
   // ── Parse lyrics once per content change ─────────────────────────
-  const parsedLines = useMemo<LyricsLine[]>(() => {
+  const rawLines = useMemo<LyricsLine[]>(() => {
     if (!payload) return [];
     return parseLyrics(payload.content, payload.format);
   }, [payload]);
+
+  // Stamped LRC whose lines all sit on one time is untimed: it is handed
+  // out as the plain text it really is, which every surface already
+  // renders, rather than as synced lines of which only the last lights.
+  const untimed =
+    payload != null &&
+    (payload.format === "lrc" || payload.format === "enhanced_lrc") &&
+    isUntimedLrc(rawLines);
+  const parsedLines = untimed ? NO_LINES : rawLines;
+  const shownPayload = useMemo<LyricsPayload | null>(
+    () =>
+      untimed && payload
+        ? {
+            ...payload,
+            content: rawLines.map((line) => line.text).join("\n"),
+            format: "plain",
+          }
+        : payload,
+    [untimed, payload, rawLines],
+  );
 
   // Radio is always rendered statically (no karaoke scroll), even when
   // the fetched content is synced LRC — the stream position is "seconds
@@ -280,10 +303,9 @@ export function useTrackLyrics(): TrackLyrics {
   // already plain.
   const radioPlainText = useMemo<string | null>(() => {
     if (!isRadio || !payload) return null;
-    if (parsedLines.length > 0)
-      return parsedLines.map((l) => l.text).join("\n");
+    if (rawLines.length > 0) return rawLines.map((l) => l.text).join("\n");
     return payload.content;
-  }, [isRadio, payload, parsedLines]);
+  }, [isRadio, payload, rawLines]);
 
   // ── Active-line tracking (auto-scroll lives in each consumer) ─────
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -483,7 +505,7 @@ export function useTrackLyrics(): TrackLyrics {
   }, []);
 
   return {
-    payload,
+    payload: shownPayload,
     isFetching,
     error,
     excludedGenre,
