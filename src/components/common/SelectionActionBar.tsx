@@ -38,6 +38,9 @@ export function SelectionActionBar({
 }: SelectionActionBarProps) {
   const { t } = useTranslation();
   const { playlists } = usePlaylist();
+  // Smart playlists are rebuilt from their rules: a hand-added track would
+  // vanish at the next regeneration. The backend refuses it too.
+  const editablePlaylists = playlists.filter((pl) => pl.is_smart !== 1);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const addRef = useRef<HTMLDivElement>(null);
 
@@ -196,12 +199,12 @@ export function SelectionActionBar({
               {t("selection.addToPlaylist")}
             </div>
             <div className="px-2 max-h-64 overflow-y-auto">
-              {playlists.length === 0 ? (
+              {editablePlaylists.length === 0 ? (
                 <div className="px-2 py-3 text-xs text-zinc-400 text-center">
                   {t("trackActions.noPlaylists")}
                 </div>
               ) : (
-                playlists.map((pl) => {
+                editablePlaylists.map((pl) => {
                   const color = resolvePlaylistColor(pl.color_id);
                   return (
                     <button

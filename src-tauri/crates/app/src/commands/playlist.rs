@@ -400,6 +400,26 @@ pub async fn list_playlists_containing_track(
         .await?)
 }
 
+/// Refuse to add tracks to a smart playlist. Its tracks are rebuilt from
+/// its rules on every regeneration, so a hand-added track would be
+/// accepted, shown, and then silently dropped. The menus no longer offer
+/// smart playlists; this is the guard for every other way in.
+async fn refuse_smart_playlist(
+    conn: &mut sqlx::SqliteConnection,
+    playlist_id: i64,
+) -> AppResult<()> {
+    let is_smart: Option<i64> = sqlx::query_scalar("SELECT is_smart FROM playlist WHERE id = ?")
+        .bind(playlist_id)
+        .fetch_optional(&mut *conn)
+        .await?;
+    if is_smart == Some(1) {
+        return Err(AppError::Other(
+            "tracks cannot be added to a smart playlist: it is rebuilt from its rules".into(),
+        ));
+    }
+    Ok(())
+}
+
 /// Append a single track to the end of a playlist. Idempotent — if the track
 /// is already in the playlist the existing row is preserved and `updated_at`
 /// is still bumped so the UI reflects the user's intent.
@@ -414,6 +434,7 @@ pub async fn add_track_to_playlist(
     let now = now_millis();
 
     let mut tx = pool.begin().await?;
+    refuse_smart_playlist(&mut tx, playlist_id).await?;
     append_track_conn(&mut tx, playlist_id, track_id, now).await?;
     let entity_id = crate::sync::canonical::ensure_local_playlist(&mut tx, playlist_id).await?;
     // Phase 1.j.b — fold per-track snapshots into the outbound
@@ -462,6 +483,7 @@ pub async fn add_tracks_to_playlist(
     let now = now_millis();
 
     let mut tx = pool.begin().await?;
+    refuse_smart_playlist(&mut tx, playlist_id).await?;
     let inserted = append_tracks_conn(&mut tx, playlist_id, &track_ids, now).await?;
     let entity_id = crate::sync::canonical::ensure_local_playlist(&mut tx, playlist_id).await?;
     // Phase 1.j.b — per-track snapshots for the public share
@@ -625,6 +647,7 @@ pub async fn add_source_to_playlist(
         .await?;
 
     let mut tx = pool.begin().await?;
+    refuse_smart_playlist(&mut tx, playlist_id).await?;
     let inserted = append_tracks_conn(&mut tx, playlist_id, &track_ids, now_millis()).await?;
     let entity_id = crate::sync::canonical::ensure_local_playlist(&mut tx, playlist_id).await?;
     // Phase 1.j.b — per-track snapshots for the public share
