@@ -20,7 +20,9 @@ pub async fn open(path: &Path, app_db_path: &Path) -> AppResult<SqlitePool> {
         std::fs::create_dir_all(parent)?;
     }
 
-    let opts = SqliteConnectOptions::new()
+    // `FOLD` is how every listing sorts a name; a connection without it
+    // fails any query that names it.
+    let opts = waveflow_core::repository::sqlite::collation::register(SqliteConnectOptions::new())
         .filename(path)
         .create_if_missing(true)
         .foreign_keys(true)

@@ -74,30 +74,30 @@ fn order_clause(sort: TrackSort) -> &'static str {
 
     match (sort.column, dir) {
         (C::Default, _) => {
-            "ORDER BY ar.canonical_name COLLATE NOCASE,\n                  al.canonical_title COLLATE NOCASE,\n                  t.disc_number,\n                  t.track_number,\n                  t.title COLLATE NOCASE"
+            "ORDER BY ar.canonical_name COLLATE FOLD,\n                  al.canonical_title COLLATE FOLD,\n                  t.disc_number,\n                  t.track_number,\n                  t.title COLLATE FOLD"
         }
-        (C::Title, Asc) => "ORDER BY t.title COLLATE NOCASE ASC",
-        (C::Title, Desc) => "ORDER BY t.title COLLATE NOCASE DESC",
+        (C::Title, Asc) => "ORDER BY t.title COLLATE FOLD ASC",
+        (C::Title, Desc) => "ORDER BY t.title COLLATE FOLD DESC",
         (C::Artist, Asc) => {
-            "ORDER BY ar.canonical_name COLLATE NOCASE ASC, t.title COLLATE NOCASE"
+            "ORDER BY ar.canonical_name COLLATE FOLD ASC, t.title COLLATE FOLD"
         }
         (C::Artist, Desc) => {
-            "ORDER BY ar.canonical_name COLLATE NOCASE DESC, t.title COLLATE NOCASE"
+            "ORDER BY ar.canonical_name COLLATE FOLD DESC, t.title COLLATE FOLD"
         }
         (C::Album, Asc) => {
-            "ORDER BY al.canonical_title COLLATE NOCASE ASC, t.disc_number, t.track_number"
+            "ORDER BY al.canonical_title COLLATE FOLD ASC, t.disc_number, t.track_number"
         }
         (C::Album, Desc) => {
-            "ORDER BY al.canonical_title COLLATE NOCASE DESC, t.disc_number, t.track_number"
+            "ORDER BY al.canonical_title COLLATE FOLD DESC, t.disc_number, t.track_number"
         }
         (C::DurationMs, Asc) => "ORDER BY t.duration_ms ASC",
         (C::DurationMs, Desc) => "ORDER BY t.duration_ms DESC",
-        (C::Year, Asc) => "ORDER BY t.year ASC, t.title COLLATE NOCASE",
-        (C::Year, Desc) => "ORDER BY t.year DESC, t.title COLLATE NOCASE",
+        (C::Year, Asc) => "ORDER BY t.year ASC, t.title COLLATE FOLD",
+        (C::Year, Desc) => "ORDER BY t.year DESC, t.title COLLATE FOLD",
         (C::AddedAt, Asc) => "ORDER BY t.added_at ASC",
         (C::AddedAt, Desc) => "ORDER BY t.added_at DESC",
-        (C::Rating, Asc) => "ORDER BY t.rating ASC, t.title COLLATE NOCASE",
-        (C::Rating, Desc) => "ORDER BY t.rating DESC, t.title COLLATE NOCASE",
+        (C::Rating, Asc) => "ORDER BY t.rating ASC, t.title COLLATE FOLD",
+        (C::Rating, Desc) => "ORDER BY t.rating DESC, t.title COLLATE FOLD",
     }
 }
 
@@ -207,7 +207,7 @@ impl TrackRepository for SqliteTrackRepository {
                     sql.push_str(LIKE_TERM_CLAUSE);
                     sql.push('\n');
                 }
-                sql.push_str("ORDER BY t.title COLLATE NOCASE\nLIMIT ?");
+                sql.push_str("ORDER BY t.title COLLATE FOLD\nLIMIT ?");
 
                 let mut q = sqlx::query_as::<_, TrackRow>(sqlx::AssertSqlSafe(sql));
                 for p in &patterns {
@@ -225,17 +225,17 @@ impl TrackRepository for SqliteTrackRepository {
         let (sql, id) = match source {
             TrackSource::Folder(id) => (
                 "SELECT id FROM track WHERE folder_id = ? AND is_available = 1
-                 ORDER BY disc_number, track_number, title COLLATE NOCASE",
+                 ORDER BY disc_number, track_number, title COLLATE FOLD",
                 id,
             ),
             TrackSource::Album(id) => (
                 "SELECT id FROM track WHERE album_id = ? AND is_available = 1
-                 ORDER BY disc_number, track_number, title COLLATE NOCASE",
+                 ORDER BY disc_number, track_number, title COLLATE FOLD",
                 id,
             ),
             TrackSource::Artist(id) => (
                 "SELECT id FROM track WHERE primary_artist = ? AND is_available = 1
-                 ORDER BY title COLLATE NOCASE",
+                 ORDER BY title COLLATE FOLD",
                 id,
             ),
         };
@@ -301,6 +301,7 @@ impl TrackRepository for SqliteTrackRepository {
 mod tests {
     use super::*;
     use crate::search::plan_search;
+    use std::str::FromStr;
 
     /// Enough of the profile schema for `SELECT_TRACK_ROW` to resolve,
     /// plus the FTS index the search actually reads.
@@ -312,7 +313,10 @@ mod tests {
     /// `waveflow-core` (same constraint the scanner fixtures note), so
     /// this is a copy — if the tokenizer changes there, change it here.
     async fn fixture_pool() -> SqlitePool {
-        let pool = SqlitePool::connect("sqlite::memory:").await.unwrap();
+        let options = super::super::collation::register(
+            sqlx::sqlite::SqliteConnectOptions::from_str("sqlite::memory:").unwrap(),
+        );
+        let pool = SqlitePool::connect_with(options).await.unwrap();
         sqlx::raw_sql(
             "PRAGMA foreign_keys = ON;
              CREATE TABLE artwork (

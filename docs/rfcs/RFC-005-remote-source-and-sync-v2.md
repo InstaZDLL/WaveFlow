@@ -811,9 +811,11 @@ Two things the query has to get right, and both are about the halves being
 comparable rather than merely concatenated:
 
 - **The sort keys are normalised on both sides.** The local half sorts on
-  `album.canonical_title` / `artist.canonical_name` — forms produced by
-  `normalize_name`, which lowercases, folds diacritics and drops punctuation.
-  SQLite cannot reproduce any of that (`COLLATE NOCASE` is ASCII-only), so
+  `album.canonical_title` / `artist.canonical_name` — lowercased with
+  punctuation dropped, but accents kept (the scanner's `canonical_name`, not
+  `normalize_name`; the `FOLD` collation sets the accents aside at sort time,
+  see [library.md](../features/library.md)). SQLite cannot reproduce any of
+  that (`COLLATE NOCASE` is ASCII-only), so
   sorting the remote half on its raw display name puts "Björk" and "bjork" in
   two different places and splits one artist in half down the middle of the
   list. `remote_album.sort_title` / `sort_artist` therefore carry the same

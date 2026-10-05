@@ -9,6 +9,7 @@
 //! repo.list_all().await
 //! ```
 
+pub mod collation;
 pub mod library;
 pub mod playlist;
 pub mod profile;

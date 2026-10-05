@@ -530,9 +530,11 @@ mod tests {
     /// schema the app never has -- which is how `album.album_artist_id`
     /// survived being written down at all: the column does not exist.
     async fn pool() -> SqlitePool {
-        let options = SqliteConnectOptions::from_str(":memory:")
-            .unwrap()
-            .foreign_keys(true);
+        let options = waveflow_core::repository::sqlite::collation::register(
+            SqliteConnectOptions::from_str(":memory:")
+                .unwrap()
+                .foreign_keys(true),
+        );
         let pool = SqlitePoolOptions::new()
             .max_connections(1)
             .connect_with(options)
