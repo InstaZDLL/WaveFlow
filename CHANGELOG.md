@@ -1,5 +1,36 @@
 # Changelog
 
+## [1.8.2](https://github.com/InstaZDLL/WaveFlow/compare/v1.8.1...v1.8.2) (2026-10-05)
+
+
+### Bug Fixes
+
+* **audio:** make exclusive output actually bit-perfect ([43bf70f](https://github.com/InstaZDLL/WaveFlow/commit/43bf70ff986b08762b5897a99dd6741874006270))
+* **audio:** make exclusive output actually bit-perfect ([4c19800](https://github.com/InstaZDLL/WaveFlow/commit/4c19800fbf575cd148f7323b24293260f9322591))
+* five small bugs for 1.8.2 ([054d472](https://github.com/InstaZDLL/WaveFlow/commit/054d4728018ee7d580300e6a18dcd307a9b76bb4))
+* **i18n:** name an auto-created library in the user's language ([642d665](https://github.com/InstaZDLL/WaveFlow/commit/642d665775d57dc3e6e5bd2fbc94c5a8113260d0))
+* **library:** fold every decomposable accent in the sort collation ([ddaf79e](https://github.com/InstaZDLL/WaveFlow/commit/ddaf79ed1a12037635c029d2b7621dbc05b8a69f))
+* **library:** sort names with accents set aside ([b4efc75](https://github.com/InstaZDLL/WaveFlow/commit/b4efc751a3ae1fb3f2f9c1ccf1ea87310d7125b4))
+* **library:** sort names with accents set aside ([abe5f92](https://github.com/InstaZDLL/WaveFlow/commit/abe5f92e5af5113ffe59e519ff5a94569baeadf8))
+* **lyrics:** count only word stamps that time a word ([4c04fdb](https://github.com/InstaZDLL/WaveFlow/commit/4c04fdb8efd1fae8ef1e813b48e366127996c9fd))
+* **lyrics:** keep word-timed enhanced lrc synced ([6a57bd6](https://github.com/InstaZDLL/WaveFlow/commit/6a57bd6d513c98e57800fc5a0cb70485b8f712db))
+* **lyrics:** read enhanced lrc prefixes as the renderer does ([ca1d687](https://github.com/InstaZDLL/WaveFlow/commit/ca1d6874357d1c67c1c2a1538a3d2b2b1beeaa94))
+* **lyrics:** treat lrc stamped on one time as plain text ([7b46aa1](https://github.com/InstaZDLL/WaveFlow/commit/7b46aa11120b56ff0b21e13339fb1511c1f2d5d3))
+* **media:** keep the mpris position moving while playing ([4add4cb](https://github.com/InstaZDLL/WaveFlow/commit/4add4cb955dbdab8ac6f4bf897a91b0c3a6cfb41))
+* **media:** keep the mpris position moving while playing ([e7d9517](https://github.com/InstaZDLL/WaveFlow/commit/e7d9517199d8f48e1bcc8de254813dad18064393))
+* **playlists:** keep smart playlists out of add to playlist ([e6c7d6a](https://github.com/InstaZDLL/WaveFlow/commit/e6c7d6a670a374561834e848eefa3c5414496c2e))
+* **radio:** escape wildcards in the offline tag filter ([cb5f936](https://github.com/InstaZDLL/WaveFlow/commit/cb5f9366b7f3d072096044f3788f1f250916bdc9))
+* **stats:** credit the play in progress when the app quits ([03e40dd](https://github.com/InstaZDLL/WaveFlow/commit/03e40dd2be3dc0502f2bbab629b3ac32a791bbd2))
+* **stats:** credit the play in progress when the app quits ([21de015](https://github.com/InstaZDLL/WaveFlow/commit/21de015d901a61474095e6b0fb6ed9eaca3a0a32))
+* **stats:** silence the output before the exit writes ([de98561](https://github.com/InstaZDLL/WaveFlow/commit/de98561836b35eba5100e33ceb56d11a8f5a2bd8))
+* **ui:** start a shift-click range when there is no anchor ([cdc24a2](https://github.com/InstaZDLL/WaveFlow/commit/cdc24a2516b37e7514f2aeb1be4b64745b056c31))
+
+
+### Performance Improvements
+
+* **player:** keep the playback position out of the player context ([9dc565e](https://github.com/InstaZDLL/WaveFlow/commit/9dc565ebcf7ee66746bbb1f98ea464b31326f05c))
+* **player:** keep the playback position out of the player context ([b762631](https://github.com/InstaZDLL/WaveFlow/commit/b76263116d38cc474dbb732cde11dce6f627187c))
+
 ## [1.8.1](https://github.com/InstaZDLL/WaveFlow/compare/v1.8.0...v1.8.1) (2026-10-05)
 
 
