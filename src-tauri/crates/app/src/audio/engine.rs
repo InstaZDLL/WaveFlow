@@ -459,6 +459,9 @@ pub struct AudioEngine {
     pub(crate) shared: Arc<SharedPlayback>,
     output: Mutex<OutputSlot>,
     decoder: Mutex<Option<JoinHandle<()>>>,
+    /// The exit path's way to the analytics task: see
+    /// [`AudioEngine::shut_down_and_flush`].
+    analytics_tx: tokio::sync::mpsc::UnboundedSender<AnalyticsMsg>,
     /// AppHandle clone so we can rebuild the cpal output thread from
     /// `set_output_device` without plumbing the handle through every
     /// Tauri command call site.
@@ -1094,7 +1097,7 @@ impl AudioEngine {
                     producer,
                     shared.clone(),
                     app.clone(),
-                    analytics_tx,
+                    analytics_tx.clone(),
                 ) {
                     Ok(join) => (Some(handle), Some(join), active),
                     Err(err) => {
@@ -1121,6 +1124,7 @@ impl AudioEngine {
                 pinned,
             }),
             decoder: Mutex::new(decoder),
+            analytics_tx,
             app,
             exclusive_output: std::sync::atomic::AtomicBool::new(exclusive_output),
             exclusive_output_active: std::sync::atomic::AtomicBool::new(exclusive_output_active),
@@ -1201,6 +1205,55 @@ impl AudioEngine {
     /// and the publish that follows.
     pub fn claim_dispatch(&self, intent: LoadIntent) -> bool {
         self.shared.try_claim_load(intent.get())
+    }
+
+    /// Stop the decoder and wait, at most `budget`, for the play it was in
+    /// the middle of to reach the database.
+    ///
+    /// A play is credited when it ends, and quitting ends it: the decoder
+    /// answers `Shutdown` with the same credit a skip gets (15 s or more),
+    /// sent to the analytics task. The process used to exit with that
+    /// message still in the channel, so the last thing listened to before
+    /// quitting never reached the history or the stats. Waiting for the
+    /// thread to finish proves the message is sent; the [`AnalyticsMsg::Flush`]
+    /// queued behind it proves it was handled (written, or failed and
+    /// logged by the analytics task).
+    ///
+    /// Bounded because a decoder stuck in a slow read must not hold the
+    /// process open: past the budget the play is lost, as before.
+    pub async fn shut_down_and_flush(&self, budget: Duration) {
+        let deadline = tokio::time::Instant::now() + budget;
+        // A window close may have sent it already, and then the channel is
+        // closed: the thread is finishing or finished either way.
+        let _ = self.cmd_tx.send(AudioCmd::Shutdown);
+        let decoder = self
+            .decoder
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .take();
+        if let Some(decoder) = decoder {
+            while !decoder.is_finished() {
+                if tokio::time::Instant::now() >= deadline {
+                    tracing::warn!("decoder still running at exit; last play not credited");
+                    return;
+                }
+                tokio::time::sleep(Duration::from_millis(10)).await;
+            }
+        }
+        let done = Arc::new(tokio::sync::Notify::new());
+        if self
+            .analytics_tx
+            .send(AnalyticsMsg::Flush(done.clone()))
+            .is_err()
+        {
+            return;
+        }
+        if tokio::time::timeout_at(deadline, done.notified())
+            .await
+            .is_err()
+        {
+            tracing::warn!("analytics not drained at exit; last play may be lost");
+        }
     }
 
     /// Send a command to the decoder. Returns `AppError::Audio` if the

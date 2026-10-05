@@ -1299,7 +1299,20 @@ pub fn run() {
             // triggers `RunEvent::ExitRequested` / `Exit` instead, which is
             // why the resume point was never written (#624).
             if matches!(event, tauri::RunEvent::Exit) {
-                tauri::async_runtime::block_on(write_resume_point(app));
+                tauri::async_runtime::block_on(async {
+                    let engine = app.try_state::<Arc<AudioEngine>>();
+                    // Silent first, as the close path makes it: the ring still
+                    // holds audio that would play through both writes below.
+                    if let Some(engine) = &engine {
+                        engine.shared().paused_output.store(true, Ordering::Release);
+                    }
+                    write_resume_point(app).await;
+                    // After the resume point, which reads the position the
+                    // shutdown is about to leave behind.
+                    if let Some(engine) = engine {
+                        engine.shut_down_and_flush(Duration::from_secs(2)).await;
+                    }
+                });
             }
         });
 }
