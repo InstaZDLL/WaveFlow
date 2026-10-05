@@ -43,7 +43,7 @@ The PR checklist is `typecheck` / `lint` / `cargo fmt --check` / `cargo check`. 
 React 19 + TypeScript. Entry: `src/main.tsx` → `src/App.tsx`.
 
 - **Contexts** (provider tree in `App.tsx`): `ThemeContext`, `PlayerContext`, `LibraryContext`, `PlaylistContext`, `ProfileContext`. `PageScrollContext` mounts lower (in `AppLayout`) and exposes the main scrollable area to virtualized tables — one page-driven scrollbar.
-- **Hooks** wrap each context: `useTheme`, `usePlayer`, `useLibrary`, `usePlaylist`, `useProfile`, `usePageScroll`.
+- **Hooks** wrap each context: `useTheme`, `usePlayer`, `useLibrary`, `usePlaylist`, `useProfile`, `usePageScroll`. The playback position is the exception: it ticks at 4 Hz, so it lives outside `PlayerContext` in [`usePlayerPosition`](src/hooks/usePlayerPosition.ts) ([why](docs/architecture/invariants.md#events)).
 - **Tauri wrappers** (`src/lib/tauri/`): one typed `invoke()` per backend command.
 - **Views**: `HomeView`, `LibraryView`, `PlaylistView`, `AlbumDetailView`, `ArtistDetailView`, `LikedView`, `HistoryView`, `StatisticsView`, `WrappedView`, `SettingsView`, …
 - **Layout**: Apple-Music-style sidebar, TopBar with search, PlayerBar at the bottom, right-edge panels (`NowPlayingPanel` / `QueuePanel` / `LyricsPanel`) mutex'd via `PlayerContext`. A second `WebviewWindow` (label `mini`, `?mini=1`) ships the always-on-top mini-player — [`docs/features/ui.md`](docs/features/ui.md#mini-player) — and a third (label `lyrics`, `?lyrics=1`, created by the backend) the transparent desktop lyrics overlay — [`#desktop-lyrics`](docs/features/ui.md#desktop-lyrics).

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import { usePlayer } from "./usePlayer";
+import { usePlayerPosition } from "./usePlayerPosition";
 import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 import type { LyricsWord } from "../lib/tauri/lyrics";
 
@@ -43,7 +44,8 @@ function now(): number {
  * playback is paused mid-word.
  */
 export function useKaraokeWordFill(word: LyricsWord | null | undefined) {
-  const { positionMs, isPlaying, playbackSpeed } = usePlayer();
+  const { isPlaying, playbackSpeed } = usePlayer();
+  const positionMs = usePlayerPosition();
   const reduceMotion = usePrefersReducedMotion();
 
   const elRef = useRef<HTMLElement | null>(null);

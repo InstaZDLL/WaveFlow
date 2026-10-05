@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { usePlayer } from "./usePlayer";
+import { usePlayerPosition } from "./usePlayerPosition";
 import { useEstimatedKaraoke } from "./useEstimatedKaraoke";
 import { estimateLineWords } from "../lib/lyricsWordEstimate";
 import { isRadioTrack, isRemoteTrack } from "../lib/playerSources";
@@ -113,7 +114,8 @@ export interface TrackLyrics {
 
 export function useTrackLyrics(): TrackLyrics {
   const { t } = useTranslation();
-  const { currentTrack, positionMs, seek } = usePlayer();
+  const { currentTrack, seek } = usePlayer();
+  const positionMs = usePlayerPosition();
 
   const [payload, setPayload] = useState<LyricsPayload | null>(null);
   const [isFetching, setIsFetching] = useState(false);
