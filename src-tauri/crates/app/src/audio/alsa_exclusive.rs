@@ -53,6 +53,7 @@ use rtrb::{Consumer, Producer, RingBuffer};
 use tauri::AppHandle;
 
 use super::output::{DopFormat, OutputHandle, RequestedFormat, RING_CAPACITY};
+use super::pcm_scale;
 use super::state::SharedPlayback;
 use crate::error::{AppError, AppResult};
 
@@ -739,10 +740,10 @@ fn set_period_and_buffer(hwp: &HwParams<'_>) -> AppResult<()> {
 /// Pack the mixed `f32` samples into the byte image the negotiated
 /// format expects, little-endian throughout.
 ///
-/// Saturation is done by clamping to `[-1.0, 1.0]` before scaling rather
-/// than by checking the result: `as` casts on floats saturate in Rust,
-/// so an out-of-range sample would land on `i32::MAX` silently instead
-/// of at full scale. Gain (volume, normalize, the mono mix) is applied
+/// The integer formats go through [`super::pcm_scale`], which inverts the
+/// decoder's own float conversion exactly, so an untouched stream reaches
+/// the device bit for bit, and a sample past full scale saturates at the
+/// endpoint rather than wrapping. Gain (volume, normalize, the mono mix) is applied
 /// upstream in [`super::output::fill_pcm_period`], so a sample that clips
 /// here is one
 /// the chain genuinely pushed past 0 dBFS.
@@ -759,17 +760,13 @@ fn pack_samples(format: AlsaSampleFormat, samples: &[f32], bytes: &mut [u8]) {
         }
         AlsaSampleFormat::S32 => {
             for (sample, chunk) in samples.iter().zip(bytes.chunks_exact_mut(4)) {
-                // Scaled in f64 because an f32 cannot hold the scale
-                // factor: `2_147_483_647.0f32` rounds to 2^31, so every
-                // sample would be scaled by a hair too much and full
-                // scale would only land right because the cast saturates.
-                let v = (f64::from(sample.clamp(-1.0, 1.0)) * 2_147_483_647.0) as i32;
+                let v = pcm_scale::to_i32(*sample);
                 chunk.copy_from_slice(&v.to_le_bytes());
             }
         }
         AlsaSampleFormat::S24Packed => {
             for (sample, chunk) in samples.iter().zip(bytes.chunks_exact_mut(3)) {
-                let v = (sample.clamp(-1.0, 1.0) * 8_388_607.0) as i32;
+                let v = pcm_scale::to_i24(*sample);
                 chunk[0] = (v & 0xFF) as u8;
                 chunk[1] = ((v >> 8) & 0xFF) as u8;
                 chunk[2] = ((v >> 16) & 0xFF) as u8;
@@ -780,13 +777,13 @@ fn pack_samples(format: AlsaSampleFormat, samples: &[f32], bytes: &mut [u8]) {
             // bytes, unshifted. See the variant's doc — this is where
             // WASAPI's `<< 8` does not belong.
             for (sample, chunk) in samples.iter().zip(bytes.chunks_exact_mut(4)) {
-                let v = (sample.clamp(-1.0, 1.0) * 8_388_607.0) as i32;
+                let v = pcm_scale::to_i24(*sample);
                 chunk.copy_from_slice(&v.to_le_bytes());
             }
         }
         AlsaSampleFormat::S16 => {
             for (sample, chunk) in samples.iter().zip(bytes.chunks_exact_mut(2)) {
-                let v = (sample.clamp(-1.0, 1.0) * 32_767.0) as i16;
+                let v = pcm_scale::to_i16(*sample);
                 chunk.copy_from_slice(&v.to_le_bytes());
             }
         }
@@ -1207,10 +1204,10 @@ mod tests {
     fn a_negative_twenty_four_bit_sample_keeps_its_sign_extension() {
         let mut bytes = [0u8; 4];
         pack_samples(AlsaSampleFormat::S24In32, &[-1.0], &mut bytes);
-        // -8_388_607 as i32 = 0xFF_80_00_01. The driver reads the low
+        // -8_388_608 as i32 = 0xFF_80_00_00. The driver reads the low
         // three bytes; the 0xFF above them is the sign extension a plain
         // i32 store produces and is ignored.
-        assert_eq!(bytes, [0x01, 0x00, 0x80, 0xFF]);
+        assert_eq!(bytes, [0x00, 0x00, 0x80, 0xFF]);
     }
 
     #[test]
@@ -1225,19 +1222,19 @@ mod tests {
         let mut bytes = [0u8; 4];
         pack_samples(AlsaSampleFormat::S16, &[1.0, -1.0], &mut bytes);
         assert_eq!(i16::from_le_bytes([bytes[0], bytes[1]]), 32_767);
-        assert_eq!(i16::from_le_bytes([bytes[2], bytes[3]]), -32_767);
+        assert_eq!(i16::from_le_bytes([bytes[2], bytes[3]]), -32_768);
     }
 
     #[test]
     fn a_sample_past_full_scale_saturates_instead_of_wrapping() {
-        // Anything above 0 dBFS is clamped before the scale, so it comes
-        // out at the endpoint. Wrapping here would turn a loud passage
+        // Anything above 0 dBFS saturates, so it comes out at the
+        // endpoint. Wrapping here would turn a loud passage
         // into a burst of full-scale noise of the opposite sign.
         let mut bytes = [0u8; 4];
         pack_samples(AlsaSampleFormat::S32, &[9.0], &mut bytes);
         assert_eq!(i32::from_le_bytes(bytes), 2_147_483_647);
         pack_samples(AlsaSampleFormat::S32, &[-9.0], &mut bytes);
-        assert_eq!(i32::from_le_bytes(bytes), -2_147_483_647);
+        assert_eq!(i32::from_le_bytes(bytes), -2_147_483_648);
     }
 
     #[test]

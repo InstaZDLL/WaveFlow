@@ -459,15 +459,17 @@ Hovering (or keyboard-focusing) the footer opens [`AudioPipelinePopover`](../../
 #### Sections displayed
 
 - **Source** — codec, sample rate, bit depth, bitrate, channel layout (`Mono` / `Stereo` / `3.0` / `4.0` / `5.0` / `5.1` / `6.1` / `7.1`).
-- **Processing** — chips lighting up for every active stage. The two conversion chips inline the actual delta so they match the footer's arrow notation: `Rééchantillonnage 48 → 44.1 kHz`, `Downmix 5.1 → Stereo`. The other chips stay as bare labels: `DSD → PCM`, `EQ`, `ReplayGain`, `Normalize`, `Mono` mixdown, `Speed ≠ 1×`. No chip → "Aucun traitement appliqué".
+- **Processing** — chips lighting up for every active stage. The two conversion chips inline the actual delta so they match the footer's arrow notation: `Rééchantillonnage 48 → 44.1 kHz`, `Downmix 5.1 → Stereo`. The other chips stay as bare labels: `DSD → PCM`, `EQ`, `ReplayGain`, `Normalize`, `Mono` mixdown, `Speed ≠ 1×`, `Volume` below 100 % (with its value). No chip → "Aucun traitement appliqué".
 - **Output** — device sample rate + channel layout read from the live engine snapshot (`PlayerStateSnapshot.sample_rate` / `channels`), not the track row, so resampling and downmix are reflected correctly.
 
 #### Bit-perfect conditions
 
-Two things have to hold, and the pill used to check only the first:
+Three things have to hold. The pill used to check only the first, and the third did not hold until the integer conversion was fixed:
 
-1. **Nothing in our pipeline touches the samples** — no processing chip is active and the source rate matches the output rate. Any single chip lit (including `EQ` and `Speed`) suppresses it.
+1. **Nothing in our pipeline touches the samples** — no processing chip is active and the source rate matches the output rate. Any single chip lit (including `EQ`, `Speed` and `Volume`) suppresses it. The volume counts because a device we own has no mixer: below 100 % it is applied to every sample, exclusive mode included (DoP is never scaled).
 2. **Nothing downstream touches them either** — the stream owns the device (`PlayerStateSnapshot.exclusive_active` — WASAPI Exclusive, a raw ALSA `hw:` device or CoreAudio hog mode, whichever the platform has; native DoP implies an exclusive backend and qualifies on its own).
+
+3. **The samples reach the device as they were decoded.** The exclusive backends turn the float stream back into integer PCM through [`pcm_scale`](../../src-tauri/crates/app/src/audio/pcm_scale.rs), which multiplies by the power of two the decoder divided by (2^15, 2^23 or 2^31) and rounds. They used to multiply by one less and truncate, which took one step off every non-zero sample, so the green pill was never exactly true. The module's tests take every 16-bit and every 24-bit value through symphonia's own conversion and back. CoreAudio is handed floats and converts them itself.
 
 The second condition is what makes the claim true. A shared-mode stream at the same nominal rate still passes through the system mixer, which re-clocks it and mixes in every other sound on the machine — and that was being badged `Bit-perfect`. When the pipeline is clean but the device is shared, the pill reads `Sortie partagée (mixeur système)` instead, so the reason the green one is absent is on screen rather than left to guess.
 

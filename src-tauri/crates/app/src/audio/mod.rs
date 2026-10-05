@@ -38,6 +38,10 @@ pub mod eq;
 pub mod events;
 pub mod http_source;
 pub mod output;
+// The integer packing of the exclusive backends (WASAPI, ALSA); tested on
+// every system.
+#[cfg(any(target_os = "windows", target_os = "linux", test))]
+pub mod pcm_scale;
 pub mod replay_gain;
 pub mod resampler;
 pub mod spectrum;

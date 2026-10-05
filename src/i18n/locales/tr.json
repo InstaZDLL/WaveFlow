@@ -1331,7 +1331,8 @@
         "normalize": "Normalleştirme",
         "mono": "Mono",
         "speed": "Hız {{value}}×",
-        "dopNative": "Doğrudan DSD"
+        "dopNative": "Doğrudan DSD",
+        "volume": "Ses %{{value}}"
       }
     },
     "outputMode": {

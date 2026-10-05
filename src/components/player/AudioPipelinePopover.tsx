@@ -102,7 +102,7 @@ function formatSampleRate(hz: number | null | undefined): string | null {
  */
 export function AudioPipelinePopover({ track }: AudioPipelinePopoverProps) {
   const { t } = useTranslation();
-  const { playbackSpeed } = usePlayer();
+  const { playbackSpeed, volume } = usePlayer();
   const [rawSnap, setRawSnap] = useState<PipelineSnapshot | null>(null);
   // A track change and an output rebuild can put two reads in flight at
   // once; the older one resolving second would pin a stale output
@@ -248,6 +248,11 @@ export function AudioPipelinePopover({ track }: AudioPipelinePopoverProps) {
   const isNormalize = !isDopNative && (snap?.normalize ?? false);
   const isReplayGain = !isDopNative && (snap?.replaygain ?? false);
   const isMono = !isDopNative && (snap?.mono ?? false);
+  // The volume is a gain like any other: below 100 % every sample is
+  // scaled before it reaches the device, exclusive mode included (a
+  // device we own has no mixer to do it for us). DoP carries DSD and
+  // is never scaled.
+  const isAttenuated = !isDopNative && volume < 100;
   // `isResampling` / `isDownmixing` answer "no" both when the format
   // matches and when we never learned the source format — a track whose
   // scan recorded no sample rate would otherwise sail through them into
@@ -282,7 +287,8 @@ export function AudioPipelinePopover({ track }: AudioPipelinePopoverProps) {
     !isEq &&
     !isNormalize &&
     !isReplayGain &&
-    !isMono;
+    !isMono &&
+    !isAttenuated;
   // …but bit-perfect also means nothing *downstream* touches them, and
   // that only holds when the stream owns the device. A shared-mode
   // stream at the same nominal rate still goes through the system
@@ -348,6 +354,12 @@ export function AudioPipelinePopover({ track }: AudioPipelinePopoverProps) {
     chips.push({
       key: "mono",
       label: t("playerBar.pipeline.chip.mono"),
+      tone: "dsp",
+    });
+  if (isAttenuated)
+    chips.push({
+      key: "volume",
+      label: t("playerBar.pipeline.chip.volume", { value: Math.round(volume) }),
       tone: "dsp",
     });
   if (isSpeedShifted)

@@ -1331,7 +1331,8 @@
         "normalize": "音量标准化",
         "mono": "单声道",
         "speed": "速度 {{value}}×",
-        "dopNative": "原生 DSD"
+        "dopNative": "原生 DSD",
+        "volume": "音量 {{value}}%"
       }
     },
     "outputMode": {

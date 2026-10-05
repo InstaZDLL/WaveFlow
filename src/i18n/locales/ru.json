@@ -1429,7 +1429,8 @@
         "normalize": "Нормализация",
         "mono": "Моно",
         "speed": "Скорость {{value}}×",
-        "dopNative": "Нативный DSD"
+        "dopNative": "Нативный DSD",
+        "volume": "Громкость {{value}} %"
       }
     },
     "outputMode": {

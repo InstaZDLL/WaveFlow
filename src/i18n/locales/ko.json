@@ -1331,7 +1331,8 @@
         "normalize": "음량 평준화",
         "mono": "모노",
         "speed": "속도 {{value}}×",
-        "dopNative": "네이티브 DSD"
+        "dopNative": "네이티브 DSD",
+        "volume": "볼륨 {{value}}%"
       }
     },
     "outputMode": {

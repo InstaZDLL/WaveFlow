@@ -1331,7 +1331,8 @@
         "normalize": "ノーマライズ",
         "mono": "モノラル",
         "speed": "速度 {{value}}×",
-        "dopNative": "ネイティブ DSD"
+        "dopNative": "ネイティブ DSD",
+        "volume": "音量 {{value}}%"
       }
     },
     "outputMode": {
