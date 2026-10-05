@@ -1331,7 +1331,8 @@
         "normalize": "नॉर्मलाइज़",
         "mono": "मोनो",
         "speed": "गति {{value}}×",
-        "dopNative": "नेटिव DSD"
+        "dopNative": "नेटिव DSD",
+        "volume": "वॉल्यूम {{value}}%"
       }
     },
     "outputMode": {

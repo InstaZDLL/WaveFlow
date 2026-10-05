@@ -44,6 +44,7 @@ use wasapi::{
 };
 
 use super::output::{OutputHandle, RequestedFormat, RING_CAPACITY};
+use super::pcm_scale;
 use super::state::SharedPlayback;
 use crate::error::{AppError, AppResult};
 
@@ -1186,10 +1187,9 @@ fn run_dop_event_loop(
 /// Pack the decoded `f32` sample buffer into the little-endian byte
 /// layout the negotiated exclusive format expects.
 ///
-/// Saturation is done by clamping to `[-1.0, 1.0]` before scaling
-/// rather than checking the post-cast i32/i16 — this side-steps the
-/// undefined behaviour C-style casts have on `f32` overflow and
-/// avoids a branch per sample. The decoder upstream applies
+/// The integer formats go through [`super::pcm_scale`], which inverts the
+/// decoder's own float conversion exactly, so an untouched stream reaches
+/// the device bit for bit. The decoder upstream applies
 /// `volume * norm_gain` BEFORE this function, so the input is
 /// already at the final analogue amplitude; a clipped sample here
 /// means the upstream chain (EQ, ReplayGain, mono mix) pushed
@@ -1208,10 +1208,8 @@ fn pack_samples(format: ExclusiveSampleFormat, samples: &[f32], bytes: &mut [u8]
         }
         ExclusiveSampleFormat::Pcm24Packed => {
             // 24-bit signed integer, 3 bytes per sample, little-endian.
-            // i32::MAX for 24-bit is 2^23 - 1 = 8_388_607.
             for (sample, chunk) in samples.iter().zip(bytes.chunks_exact_mut(3)) {
-                let clamped = sample.clamp(-1.0, 1.0);
-                let v = (clamped * 8_388_607.0) as i32;
+                let v = pcm_scale::to_i24(*sample);
                 chunk[0] = (v & 0xFF) as u8;
                 chunk[1] = ((v >> 8) & 0xFF) as u8;
                 chunk[2] = ((v >> 16) & 0xFF) as u8;
@@ -1226,15 +1224,13 @@ fn pack_samples(format: ExclusiveSampleFormat, samples: &[f32], bytes: &mut [u8]
             // shifted up by 8 — right-justifying it would hand the device a
             // signal 48 dB down, since it reads precision from the top bits.
             for (sample, chunk) in samples.iter().zip(bytes.chunks_exact_mut(4)) {
-                let clamped = sample.clamp(-1.0, 1.0);
-                let v = ((clamped * 8_388_607.0) as i32) << 8;
+                let v = pcm_scale::to_i24(*sample) << 8;
                 chunk.copy_from_slice(&v.to_le_bytes());
             }
         }
         ExclusiveSampleFormat::Pcm16 => {
             for (sample, chunk) in samples.iter().zip(bytes.chunks_exact_mut(2)) {
-                let clamped = sample.clamp(-1.0, 1.0);
-                let v = (clamped * 32_767.0) as i16;
+                let v = pcm_scale::to_i16(*sample);
                 chunk.copy_from_slice(&v.to_le_bytes());
             }
         }
@@ -1451,11 +1447,11 @@ mod tests {
         pack_samples(ExclusiveSampleFormat::Pcm16, &samples, &mut bytes);
         let extract = |i: usize| i16::from_le_bytes(bytes[i * 2..i * 2 + 2].try_into().unwrap());
         assert_eq!(extract(0), 0);
-        assert_eq!(extract(1), 32_767);
-        assert_eq!(extract(2), -32_767);
-        assert_eq!(extract(3), 16_383); // ~0.5 * 32_767
+        assert_eq!(extract(1), 32_767); // +1.0 has no 16-bit value: saturates
+        assert_eq!(extract(2), -32_768);
+        assert_eq!(extract(3), 16_384); // exactly 0.5 * 2^15
         assert_eq!(extract(4), 32_767); // saturated above 1.0
-        assert_eq!(extract(5), -32_767); // saturated below -1.0
+        assert_eq!(extract(5), -32_768); // saturated below -1.0
     }
 
     #[test]
@@ -1467,8 +1463,8 @@ mod tests {
         assert_eq!(&bytes[0..3], &[0, 0, 0]);
         // 1.0 → 8_388_607 = 0x7F_FF_FF → LE [0xFF, 0xFF, 0x7F]
         assert_eq!(&bytes[3..6], &[0xFF, 0xFF, 0x7F]);
-        // -1.0 → -8_388_607 = signed i32 0xFF_80_00_01 → low 3 LE bytes
-        let expected = (-8_388_607_i32).to_le_bytes();
+        // -1.0 → -8_388_608 = signed i32 0xFF_80_00_00 → low 3 LE bytes
+        let expected = (-8_388_608_i32).to_le_bytes();
         assert_eq!(&bytes[6..9], &expected[0..3]);
     }
 
@@ -1480,7 +1476,7 @@ mod tests {
         // WAVEFORMATEXTENSIBLE: the 24 valid bits sit in the MOST significant
         // part of the 32-bit container, unused low bits zeroed.
         assert_eq!(&bytes[0..4], &(8_388_607_i32 << 8).to_le_bytes());
-        assert_eq!(&bytes[4..8], &((-8_388_607_i32) << 8).to_le_bytes());
+        assert_eq!(&bytes[4..8], &((-8_388_608_i32) << 8).to_le_bytes());
         assert_eq!(&bytes[8..12], &[0, 0, 0, 0]);
         // The zeroed byte is the LOW one, not the high one — a right-justified
         // packing would put the zero at index 3 and drop the signal 48 dB.

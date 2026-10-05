@@ -1331,7 +1331,8 @@
         "normalize": "Normalisasi",
         "mono": "Mono",
         "speed": "Kecepatan {{value}}×",
-        "dopNative": "DSD asli"
+        "dopNative": "DSD asli",
+        "volume": "Volume {{value}}%"
       }
     },
     "outputMode": {

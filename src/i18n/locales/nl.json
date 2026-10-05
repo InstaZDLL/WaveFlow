@@ -1331,7 +1331,8 @@
         "normalize": "Normaliseren",
         "mono": "Mono",
         "speed": "Snelheid {{value}}×",
-        "dopNative": "Native DSD"
+        "dopNative": "Native DSD",
+        "volume": "Volume {{value}} %"
       }
     },
     "outputMode": {

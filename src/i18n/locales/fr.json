@@ -1380,7 +1380,8 @@
         "normalize": "Normalisation",
         "mono": "Mono",
         "speed": "Vitesse {{value}}×",
-        "dopNative": "DSD natif"
+        "dopNative": "DSD natif",
+        "volume": "Volume {{value}} %"
       }
     },
     "outputMode": {
