@@ -1864,8 +1864,17 @@ static LRC_LINE_STAMP: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::
 /// shows as plain text (`isUntimedLrc` in `src/lib/tauri/lyrics.ts`), so
 /// an answer like that must not end the search ahead of real timing. The
 /// rule is the frontend's: untimed when more than half of the sung lines
-/// (a stamp followed by text) share one time.
+/// (a stamp followed by text) share one time. Enhanced LRC word stamps at
+/// two or more different times are timing however the lines are stamped:
+/// those words still carry the karaoke.
 fn lrc_has_timing(content: &str) -> bool {
+    let word_times: std::collections::HashSet<u64> = LRC_WORD_STAMP
+        .captures_iter(content)
+        .map(|stamp| lrc_stamp_ms(&stamp))
+        .collect();
+    if word_times.len() >= 2 {
+        return true;
+    }
     let mut per_time: std::collections::HashMap<u64, usize> = std::collections::HashMap::new();
     let mut sung = 0usize;
     for line in content.lines() {
@@ -1881,7 +1890,12 @@ fn lrc_has_timing(content: &str) -> bool {
     sung > 0 && !(sung >= 2 && top * 2 > sung)
 }
 
-/// A captured `[mm:ss.xx]` stamp in milliseconds. Only compared for
+/// An Enhanced LRC word stamp, `<mm:ss.xx>`, same fields as a line stamp.
+static LRC_WORD_STAMP: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
+    regex::Regex::new(r"<(\d{1,3}):(\d{1,2})(?:[.:](\d{1,3}))?>").expect("static pattern")
+});
+
+/// A captured `[mm:ss.xx]` or `<mm:ss.xx>` stamp in milliseconds. Only compared for
 /// equality, but normalised the way the frontend reads it: a fraction of
 /// one, two or three digits is tenths, hundredths or thousandths.
 fn lrc_stamp_ms(stamp: &regex::Captures) -> u64 {
@@ -5192,6 +5206,9 @@ mod tests {
         // The same instant written with different precision is one time.
         let same_instant = "[00:01.5]a\n[00:01.50]b\n[00:01.500]c";
         assert!(!lyrics_are_synced(&LyricsFormat::Lrc, same_instant));
+        // Word stamps carry timing even when every line sits on 0.
+        let words = "[00:00.00]<00:01.00>a <00:01.50>b\n[00:00.00]<00:03.00>c <00:03.40>d";
+        assert!(lyrics_are_synced(&LyricsFormat::EnhancedLrc, words));
         // Exactly half is not more than half.
         assert!(lyrics_are_synced(
             &LyricsFormat::Lrc,

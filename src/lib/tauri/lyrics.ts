@@ -1386,6 +1386,13 @@ export function parseLyrics(
  * real timing.
  */
 export function isUntimedLrc(lines: LyricsLine[]): boolean {
+  // Enhanced LRC words stamped at two or more different times are timing
+  // however the lines are stamped, so those lyrics stay synced.
+  const wordTimes = new Set<number>();
+  for (const line of lines) {
+    for (const word of line.words ?? []) wordTimes.add(word.timeMs);
+    if (wordTimes.size >= 2) return false;
+  }
   const sung = lines.filter((line) => line.text.trim() !== "");
   if (sung.length < 2) return false;
   const counts = new Map<number, number>();
