@@ -1866,12 +1866,23 @@ static LRC_LINE_STAMP: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::
 /// rule is the frontend's: untimed when more than half of the sung lines
 /// (a stamp followed by text) share one time. Enhanced LRC word stamps at
 /// two or more different times are timing however the lines are stamped:
-/// those words still carry the karaoke.
+/// those words still carry the karaoke. Only a stamp followed by text
+/// counts; the one closing a line marks where it ends, not a word.
 fn lrc_has_timing(content: &str) -> bool {
-    let word_times: std::collections::HashSet<u64> = LRC_WORD_STAMP
-        .captures_iter(content)
-        .map(|stamp| lrc_stamp_ms(&stamp))
-        .collect();
+    let mut word_times = std::collections::HashSet::new();
+    for line in content.lines() {
+        let stamps: Vec<_> = LRC_WORD_STAMP.captures_iter(line).collect();
+        for (i, stamp) in stamps.iter().enumerate() {
+            let from = stamp.get(0).map_or(line.len(), |m| m.end());
+            let to = stamps
+                .get(i + 1)
+                .and_then(|next| next.get(0))
+                .map_or(line.len(), |m| m.start());
+            if !line[from..to].trim().is_empty() {
+                word_times.insert(lrc_stamp_ms(stamp));
+            }
+        }
+    }
     if word_times.len() >= 2 {
         return true;
     }
@@ -5209,6 +5220,16 @@ mod tests {
         // Word stamps carry timing even when every line sits on 0.
         let words = "[00:00.00]<00:01.00>a <00:01.50>b\n[00:00.00]<00:03.00>c <00:03.40>d";
         assert!(lyrics_are_synced(&LyricsFormat::EnhancedLrc, words));
+        // A stamp closing a line times no word: words piled on one time
+        // stay untimed whatever their end markers say.
+        let closers = "[00:00.00]<00:00.00>a <00:00.00>b <00:05.00>\n[00:00.00]<00:00.00>c <00:00.00>d <00:06.00>";
+        assert!(!lyrics_are_synced(&LyricsFormat::EnhancedLrc, closers));
+        // …while real word timing with the same end markers stays synced.
+        let timed_with_closers = "[00:00.00]<00:01.00>a <00:01.50>b <00:02.00>\n[00:00.00]<00:03.00>c <00:03.40>d <00:04.00>";
+        assert!(lyrics_are_synced(
+            &LyricsFormat::EnhancedLrc,
+            timed_with_closers
+        ));
         // Exactly half is not more than half.
         assert!(lyrics_are_synced(
             &LyricsFormat::Lrc,
