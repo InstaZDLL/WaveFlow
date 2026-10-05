@@ -182,7 +182,7 @@ export function Sidebar({
           libraryId = libraries[0].id;
           selectLibrary(libraryId);
         } else {
-          const lib = await createLibrary({ name: "Ma musique" });
+          const lib = await createLibrary({ name: t("onboarding.defaultLibraryName") });
           libraryId = lib.id;
           selectLibrary(libraryId);
         }
