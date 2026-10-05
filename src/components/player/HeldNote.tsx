@@ -1,6 +1,7 @@
 import { Fragment, useState, type CSSProperties } from "react";
 
 import { usePlayer } from "../../hooks/usePlayer";
+import { usePlayerPosition } from "../../hooks/usePlayerPosition";
 import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
 import { heldNoteLetters, isLetterSegment } from "../../lib/heldNote";
 import type { LyricsWord } from "../../lib/tauri/lyrics";
@@ -46,7 +47,8 @@ export function HeldNoteText({
   word: LyricsWord;
   glow?: boolean;
 }) {
-  const { positionMs, isPlaying, playbackSpeed } = usePlayer();
+  const { isPlaying, playbackSpeed } = usePlayer();
+  const positionMs = usePlayerPosition();
   const reduceMotion = usePrefersReducedMotion();
   // Fixed when the word comes on screen: re-reading the position every
   // render would shift the running animations by a quarter second at a

@@ -48,6 +48,7 @@ import {
 import type { PluginFavorite } from "../lib/tauri/plugins";
 import { enrichArtistDeezer } from "../lib/tauri/detail";
 import { remoteArtwork } from "../lib/tauri/remoteServer";
+import { setPlayerPosition } from "../hooks/usePlayerPosition";
 import {
   isRadioTrack,
   isRemoteTrack,
@@ -168,7 +169,6 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   // track plays or playback goes idle.
   const [currentRadioStation, setCurrentRadioStation] =
     useState<PluginFavorite | null>(null);
-  const [positionMs, setPositionMs] = useState(0);
   const [durationMs, setDurationMs] = useState(0);
 
   // Volume: local + debounced backend push
@@ -373,7 +373,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     setPlaybackState("idle");
     setCurrentTrack(null);
     setCurrentRadioStation(null);
-    setPositionMs(0);
+    setPlayerPosition(0);
     setDurationMs(0);
     // Close the immersive view on profile switch — otherwise `immersiveOpen`
     // would linger true through the `currentTrack` null window and reopen
@@ -386,7 +386,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         const snap = await playerGetState();
         if (cancelled) return;
         setPlaybackState(snap.state);
-        setPositionMs(snap.position_ms);
+        setPlayerPosition(snap.position_ms);
         // Volume arrives as 0..1 from the snapshot; UI uses 0..100.
         setVolumeState(Math.round(snap.volume * 100));
         previousVolumeRef.current = Math.round(snap.volume * 100);
@@ -459,7 +459,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         unlisten.push(
           await listen<PlayerPositionPayload>("player:position", (e) => {
             if (!isSeekingRef.current) {
-              setPositionMs(e.payload.ms);
+              setPlayerPosition(e.payload.ms);
             }
           }),
         );
@@ -522,7 +522,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
             // session, so the favorite-station star disappears.
             setCurrentRadioStation(null);
             setDurationMs(e.payload.duration_ms);
-            setPositionMs(0);
+            setPlayerPosition(0);
             // Refresh the device-side fields from the engine: WASAPI
             // exclusive mode may have reopened the stream at the new
             // track's native rate, and we want the AudioQualityFooter
@@ -562,7 +562,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
               e.payload.is_remote ? null : radioStationFromMetadata(e.payload),
             );
             setDurationMs(e.payload.duration_ms ?? 0);
-            setPositionMs(0);
+            setPlayerPosition(0);
             // A remote track has a real cover behind a Bearer endpoint;
             // radio only carries the station favicon, so fetch the song's
             // album cover from Deezer instead. Either swaps in async.
@@ -704,7 +704,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       // so the PlayerBar doesn't lag the invoke round-trip.
       setCurrentTrack(chosen);
       setDurationMs(chosen.duration_ms);
-      setPositionMs(0);
+      setPlayerPosition(0);
       setPlaybackState("loading");
 
       try {
@@ -759,7 +759,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const seek = useCallback(async (ms: number) => {
     // Optimistic: update the UI position immediately; the backend
     // will also emit player:position after the seek lands.
-    setPositionMs(ms);
+    setPlayerPosition(ms);
     try {
       await playerSeek(ms);
     } catch (err) {
@@ -923,7 +923,6 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         isPlaying,
         currentTrack,
         currentRadioStation,
-        positionMs,
         durationMs,
         volume,
         setVolume,

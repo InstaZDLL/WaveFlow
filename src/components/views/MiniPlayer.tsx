@@ -33,6 +33,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Window as TauriWindow } from "@tauri-apps/api/window";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { usePlayer } from "../../hooks/usePlayer";
+import { usePlayerPosition } from "../../hooks/usePlayerPosition";
 import { useLikedTracks } from "../../hooks/useLikedTracks";
 import { useTrackLyrics } from "../../hooks/useTrackLyrics";
 import { useKaraokeWordFill } from "../../hooks/useKaraokeWordFill";
@@ -97,7 +98,6 @@ export function MiniPlayer() {
     togglePlayback,
     next,
     previous,
-    positionMs,
     durationMs,
     repeatMode,
     cycleRepeatMode,
@@ -110,6 +110,7 @@ export function MiniPlayer() {
     setVolume,
     toggleMute,
   } = usePlayer();
+  const positionMs = usePlayerPosition();
   // Live radio has no seekable timeline — the seek bar + timestamps are
   // hidden (matching the PlayerBar / immersive ProgressBar).
   const isRadio = isRadioTrack(currentTrack);

@@ -9,6 +9,7 @@ import {
 import { listen } from "@tauri-apps/api/event";
 import { useTranslation } from "react-i18next";
 import { usePlayer } from "../../hooks/usePlayer";
+import { usePlayerPosition } from "../../hooks/usePlayerPosition";
 import { isRadioTrack } from "../../lib/playerSources";
 import { formatDuration } from "../../lib/tauri/track";
 import { playerGetAbLoop, type AbLoopSnapshot } from "../../lib/tauri/player";
@@ -21,8 +22,8 @@ import { playerGetAbLoop, type AbLoopSnapshot } from "../../lib/tauri/player";
  */
 export function ProgressBar() {
   const { t } = useTranslation();
-  const { positionMs, durationMs, seek, setSeeking, currentTrack } =
-    usePlayer();
+  const { durationMs, seek, setSeeking, currentTrack } = usePlayer();
+  const positionMs = usePlayerPosition();
   const [dragMs, setDragMs] = useState<number | null>(null);
   const trackRef = useRef<HTMLDivElement | null>(null);
 

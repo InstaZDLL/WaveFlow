@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Repeat2 } from "lucide-react";
 import { listen } from "@tauri-apps/api/event";
 import { usePlayer } from "../../hooks/usePlayer";
+import { getPlayerPosition } from "../../hooks/usePlayerPosition";
 import {
   playerClearAbLoop,
   playerGetAbLoop,
@@ -23,7 +24,7 @@ import {
  */
 export function AbLoopButton() {
   const { t } = useTranslation();
-  const { positionMs, currentTrack } = usePlayer();
+  const { currentTrack } = usePlayer();
   const [snap, setSnap] = useState<AbLoopSnapshot>({ a_ms: null, b_ms: null });
 
   useEffect(() => {
@@ -55,7 +56,7 @@ export function AbLoopButton() {
       }
       // Use position - 1 ms to avoid the loop firing on the same
       // sample we just captured B at (would cause an immediate seek).
-      const ms = Math.max(0, Math.floor(positionMs));
+      const ms = Math.max(0, Math.floor(getPlayerPosition()));
       if (!hasA) {
         const next = await playerSetAbLoop(ms, null);
         setSnap(next);

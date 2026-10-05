@@ -83,7 +83,6 @@ interface PlayerContextValue {
    *  star can save the station even after an ICY title overwrote the
    *  track line. `null` when the current source isn't Web Radio. */
   currentRadioStation: PluginFavorite | null;
-  positionMs: number;
   durationMs: number;
 
   // Volume: UI-owned slider (0-100) debounced into the backend.

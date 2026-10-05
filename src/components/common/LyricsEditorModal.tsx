@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { save as showSaveDialog } from "@tauri-apps/plugin-dialog";
 import { usePlayer } from "../../hooks/usePlayer";
+import { usePlayerPosition } from "../../hooks/usePlayerPosition";
 import { useModalA11y } from "../../hooks/useModalA11y";
 import { AnimatedModalContent, AnimatedModalShell } from "./AnimatedModalShell";
 import {
@@ -93,7 +94,8 @@ export function LyricsEditorModal({
   trackFilePath,
 }: LyricsEditorModalProps) {
   const { t } = useTranslation();
-  const { isPlaying, togglePlayback, seek, positionMs } = usePlayer();
+  const { isPlaying, togglePlayback, seek } = usePlayer();
+  const positionMs = usePlayerPosition();
   const dialogRef = useModalA11y<HTMLDivElement>(isOpen, onClose);
 
   const [mode, setMode] = useState<Mode>("plain");
