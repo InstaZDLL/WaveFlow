@@ -64,9 +64,11 @@ pub enum AnalyticsMsg {
     },
     /// Answered once every message sent before it has been handled. The
     /// channel is FIFO and the task handles one message at a time, so the
-    /// notification means the `play_event` rows those messages carried
-    /// are written. Sent by the exit path, which would otherwise end the
-    /// process with the last play still in the channel.
+    /// notification means the writes those messages asked for have been
+    /// attempted: done, or failed and logged (no pool, a failed insert).
+    /// Sent by the exit path, which would otherwise end the process with
+    /// the last play still in the channel, and which could not retry a
+    /// failed write anyway.
     Flush(Arc<tokio::sync::Notify>),
     /// Sent by the decoder when it's approaching the end of the
     /// current track and crossfade is enabled. Triggers a

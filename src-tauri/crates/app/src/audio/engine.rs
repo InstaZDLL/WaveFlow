@@ -1216,7 +1216,8 @@ impl AudioEngine {
     /// message still in the channel, so the last thing listened to before
     /// quitting never reached the history or the stats. Waiting for the
     /// thread to finish proves the message is sent; the [`AnalyticsMsg::Flush`]
-    /// queued behind it proves it is written.
+    /// queued behind it proves it was handled (written, or failed and
+    /// logged by the analytics task).
     ///
     /// Bounded because a decoder stuck in a slow read must not hold the
     /// process open: past the budget the play is lost, as before.
