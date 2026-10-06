@@ -3403,6 +3403,7 @@ function AlbumGrid({
               and clicks on top of it. */}
           <button
             type="button"
+            data-artwork-hit-target
             onClick={open}
             aria-label={t("library.open", { name: album.title })}
             className="absolute inset-0 rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500"
