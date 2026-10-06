@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.8.3](https://github.com/InstaZDLL/WaveFlow/compare/v1.8.2...v1.8.3) (2026-10-06)
+
+
+### Bug Fixes
+
+* **library:** restore album artwork in Pulse and Lounge ([dc15193](https://github.com/InstaZDLL/WaveFlow/commit/dc15193f0db17a5c7b1f8e0d4c8623aa92942aff))
+* **library:** restore album artwork in Pulse and Lounge ([c3ffaab](https://github.com/InstaZDLL/WaveFlow/commit/c3ffaab05c065d980a02db0cf38860c6826470bd))
+* **skins:** preserve card selector specificity ([ba4d64a](https://github.com/InstaZDLL/WaveFlow/commit/ba4d64a5077cbeb2d9ffff88efa28b315aa0fcd6))
+
 ## [1.8.2](https://github.com/InstaZDLL/WaveFlow/compare/v1.8.1...v1.8.2) (2026-10-05)
 
 
