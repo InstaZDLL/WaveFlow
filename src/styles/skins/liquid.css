@@ -454,7 +454,7 @@
     [class*="rounded-xl"],
     [class*="rounded-2xl"],
     [class*="rounded-3xl"]
-  ):not([data-artwork-hit-target]) {
+  ):where(:not([data-artwork-hit-target])) {
   border-radius: 1.75rem !important;
   border: 0 !important;
   background-color: color-mix(
@@ -475,7 +475,7 @@
     [class*="rounded-xl"],
     [class*="rounded-2xl"],
     [class*="rounded-3xl"]
-  ):not([data-artwork-hit-target]):hover {
+  ):where(:not([data-artwork-hit-target])):hover {
   transform: translateY(-2px);
 }
 
@@ -1131,7 +1131,7 @@
     [class*="rounded-xl"],
     [class*="rounded-2xl"],
     [class*="rounded-3xl"]
-  ):not([data-immersive] *):not([data-artwork-hit-target]),
+  ):not([data-immersive] *):where(:not([data-artwork-hit-target])),
 :root[data-skin="liquid"][data-contrast="high"]
   [class*="sticky"]:where(
     [class*="bg-white"],
