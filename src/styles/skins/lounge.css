@@ -223,7 +223,7 @@
     [class*="rounded-xl"],
     [class*="rounded-2xl"],
     [class*="rounded-3xl"]
-  ) {
+  ):not([data-artwork-hit-target]) {
   background-color: var(--lounge-glass-soft) !important;
   border-color: var(--lounge-border-soft) !important;
   box-shadow: var(--lounge-shadow);
@@ -539,7 +539,7 @@
     [class*="rounded-xl"],
     [class*="rounded-2xl"],
     [class*="rounded-3xl"]
-  ) {
+  ):not([data-artwork-hit-target]) {
   background-color: var(--wf-contrast-surface) !important;
   /* The opaque colour alone does not get there: this skin's TopBar and
      PlayerBar each carry a `background-image` gradient, which paints
