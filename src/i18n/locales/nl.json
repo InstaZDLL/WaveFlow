@@ -15,6 +15,11 @@
     "message": "Je scrobbles worden niet meer verzonden. Log opnieuw in om door te gaan.",
     "action": "Instellingen openen"
   },
+  "skinRecovery": {
+    "title": "Studio hersteld",
+    "message": "WaveFlow is in de veilige modus gestart na een mogelijk probleem met de skin. Studio is actief zodat je de app weer kunt gebruiken.",
+    "saveFailed": "Opslaan is mislukt. Probeer het opnieuw."
+  },
   "rendering": {
     "banner": {
       "title": "Softwarematige weergave ingeschakeld",

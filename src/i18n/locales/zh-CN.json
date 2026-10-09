@@ -15,6 +15,11 @@
     "message": "你的播放记录已停止提交。请重新登录以恢复。",
     "action": "打开设置"
   },
+  "skinRecovery": {
+    "title": "已恢复 Studio 界面风格",
+    "message": "WaveFlow 检测到界面风格可能导致问题，已通过安全模式启动并启用 Studio，方便你继续使用应用。",
+    "saveFailed": "保存失败，请重试。"
+  },
   "rendering": {
     "banner": {
       "title": "已切换到软件渲染",

@@ -15,6 +15,11 @@
     "message": "Deine Scrobbles werden nicht mehr gesendet. Melde dich erneut an, um fortzufahren.",
     "action": "Einstellungen öffnen"
   },
+  "skinRecovery": {
+    "title": "Studio wiederhergestellt",
+    "message": "WaveFlow wurde nach einem möglichen Problem mit dem Design im abgesicherten Modus gestartet. Studio ist aktiv, damit du die App wieder verwenden kannst.",
+    "saveFailed": "Konnte nicht gespeichert werden. Erneut versuchen."
+  },
   "rendering": {
     "banner": {
       "title": "Software-Rendering aktiv",

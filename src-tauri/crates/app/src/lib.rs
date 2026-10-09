@@ -40,6 +40,7 @@ mod remote_playback;
 #[cfg(feature = "sync_v2")]
 mod remote;
 mod scrobbler;
+mod skin_recovery;
 mod smart_playlists;
 mod state;
 #[cfg(target_os = "windows")]
@@ -64,7 +65,7 @@ use std::time::Duration;
 use tauri::{
     menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    AppHandle, Listener, Manager, WindowEvent,
+    AppHandle, Listener, Manager, WebviewUrl, WindowEvent,
 };
 
 use audio::{AudioCmd, AudioEngine};
@@ -93,7 +94,7 @@ pub fn run() {
     // identifier to find the app-data root — `tauri.conf.json` stays
     // its single source of truth — and because everything this call
     // does is compile-time work anyway.
-    let context = tauri::generate_context!();
+    let mut context = tauri::generate_context!();
 
     // Before logging, and that ordering is the point: choosing a
     // renderer sets process-wide environment variables (#595), and
@@ -120,6 +121,31 @@ pub fn run() {
     // is not that place (issues #526, #529).
     preflight_schema_guard(&context.config().identifier);
 
+    let safe_mode = std::env::args_os().any(|arg| arg == "--safe-mode");
+    let skin_recovery = match paths::AppPaths::root_for_identifier(&context.config().identifier) {
+        Ok(root) => skin_recovery::preflight(root, safe_mode),
+        Err(err) => {
+            tracing::warn!(%err, "skin recovery unavailable");
+            if safe_mode {
+                skin_recovery::RecoveryReason::Manual
+            } else {
+                skin_recovery::RecoveryReason::None
+            }
+        }
+    };
+    if skin_recovery.is_active() {
+        if let Some(main) = context
+            .config_mut()
+            .app
+            .windows
+            .iter_mut()
+            .find(|w| w.label == "main")
+        {
+            main.url = WebviewUrl::App("index.html?safe-mode=1".into());
+        }
+        tracing::warn!(reason = ?skin_recovery, "Studio skin recovery selected");
+    }
+
     // `mut` is only consumed when the updater plugin is wired in (release
     // builds); the lint would fire in debug otherwise.
     #[allow(unused_mut)]
@@ -136,6 +162,7 @@ pub fn run() {
             // opened the app twice (#595). This instance is the one
             // that knows the truth, so it writes it back.
             render_mode::restore_after_duplicate_launch();
+            skin_recovery::restore_after_duplicate_launch();
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.show();
                 let _ = window.unminimize();
@@ -184,6 +211,7 @@ pub fn run() {
             // the renderer marker down on any of those paths — including
             // the ones added after this line (#595).
             let setup_guard = render_mode::SetupGuard::new();
+            let skin_setup_guard = skin_recovery::SetupGuard::new();
             let init_handle = app.handle().clone();
             let engine_handle = app.handle().clone();
             // Before any plugin runs, so a credential refused on the very
@@ -219,6 +247,7 @@ pub fn run() {
                             // Stopping on purpose is not a launch that
                             // failed to paint (#595).
                             render_mode::disarm_for_deliberate_exit();
+                            skin_recovery::graceful_exit();
                             // `exit` runs no destructors, so the line
                             // above would die in the writer's buffer.
                             // Here it is the only account there is —
@@ -740,10 +769,13 @@ pub fn run() {
             // Setup reached its end, so the marker stays armed until
             // something actually paints — which is what it is for.
             setup_guard.succeeded();
+            skin_setup_guard.succeeded();
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             commands::ready::app_ready,
+            skin_recovery::record_skin,
+            skin_recovery::complete_recovery,
             commands::renderer::renderer_status,
             commands::renderer::renderer_retry_gpu,
             commands::app_info::get_app_info,
@@ -1299,6 +1331,7 @@ pub fn run() {
             // triggers `RunEvent::ExitRequested` / `Exit` instead, which is
             // why the resume point was never written (#624).
             if matches!(event, tauri::RunEvent::Exit) {
+                skin_recovery::graceful_exit();
                 tauri::async_runtime::block_on(async {
                     let engine = app.try_state::<Arc<AudioEngine>>();
                     // Silent first, as the close path makes it: the ring still
@@ -1666,6 +1699,7 @@ fn report_fatal_and_exit(err: &AppError) -> ! {
     // The renderer marker comes down with it: this process is stopping
     // because it was told to, not because it could not draw (#595).
     render_mode::disarm_for_deliberate_exit();
+    skin_recovery::graceful_exit();
 
     // Straight out rather than unwinding: there is no state to tear
     // down (nothing has been built yet, and the pools the pre-flight

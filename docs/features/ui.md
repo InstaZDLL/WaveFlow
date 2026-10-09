@@ -529,6 +529,8 @@ Skins are an **orthogonal axis to the 14 colour themes**: a skin re-skins surfac
 
 The picker lives in Settings → Appearance → Theme and readability via [`SkinPickerCard`](../../src/components/views/settings/SkinPickerCard.tsx), alongside the theme picker and the contrast setting. View-Transitions API also drives skin swaps (radial reveal on click), with the same try/catch fallback used by the theme picker for WebKitGTK builds.
 
+**Skin recovery** — `waveflow --safe-mode` (or `WaveFlow.exe --safe-mode` on Windows) starts the main window in Studio before its first paint, then saves Studio to the active profile so the next launch is usable too. It does not reset other settings. On Linux, [`skin_recovery`](../../src-tauri/crates/app/src/skin_recovery.rs) also arms a small app-data marker while a non-Studio skin is active. A normal quit disarms it; if the process exits abruptly, the next launch uses the same Studio recovery path. The marker records its owner PID, so opening a second instance while the first is still running does not count as a crash. This catches process/system termination, not a web process that dies while WaveFlow itself stays alive; the manual flag remains available in that case.
+
 ## i18n
 
 17 locales in [`src/i18n/locales/`](../../src/i18n/locales): `fr` (source of truth), `en`, `es`, `de`, `it`, `nl`, `pt`, `pt-BR`, `ru`, `tr`, `id`, `ja`, `kr` (registered as `ko` + `kr` alias), `zh-CN`, `zh-TW`, `ar`, `hi`. Auto-detected at first launch from the OS locale, switchable from Settings.
