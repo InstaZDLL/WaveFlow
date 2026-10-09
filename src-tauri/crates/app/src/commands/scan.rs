@@ -13,6 +13,7 @@ use sqlx::SqlitePool;
 use tauri::Emitter;
 use walkdir::WalkDir;
 
+use waveflow_core::repository::{album::AlbumRepository, sqlite::SqliteAlbumRepository};
 use waveflow_core::scanner::{
     extract_album_artist, extract_artist_image, extract_compilation_flag, extract_cover,
     extract_folder_cover, extract_musical_key, extract_rating, extract_replay_gain,
@@ -915,7 +916,8 @@ pub(crate) async fn scan_folder_inner(
     // before-loop is safe: the walk yields distinct paths, so no row
     // inserted earlier in THIS scan is ever probed later.
     const PROBE_CHUNK: usize = 900;
-    let existing_probe: HashMap<String, (i64, i64, String, i64)> = if to_extract.is_empty() {
+    type ExistingTrackProbe = (i64, i64, String, i64, Option<i64>);
+    let existing_probe: HashMap<String, ExistingTrackProbe> = if to_extract.is_empty() {
         HashMap::new()
     } else {
         let t_db = Instant::now();
@@ -927,18 +929,19 @@ pub(crate) async fn scan_folder_inner(
         for chunk in paths.chunks(PROBE_CHUNK) {
             let placeholders = chunk.iter().map(|_| "?").collect::<Vec<_>>().join(",");
             let sql = format!(
-                "SELECT file_path, id, file_modified, file_hash, added_at
+                "SELECT file_path, id, file_modified, file_hash, added_at, album_id
                    FROM track
                   WHERE library_id = ? AND file_path IN ({placeholders})"
             );
-            let mut q =
-                sqlx::query_as::<_, (String, i64, i64, String, i64)>(sqlx::AssertSqlSafe(sql))
-                    .bind(library_id);
+            let mut q = sqlx::query_as::<_, (String, i64, i64, String, i64, Option<i64>)>(
+                sqlx::AssertSqlSafe(sql),
+            )
+            .bind(library_id);
             for p in chunk {
                 q = q.bind(p);
             }
-            for (path, id, mtime, hash, added_at) in q.fetch_all(pool).await? {
-                probe.insert(path, (id, mtime, hash, added_at));
+            for (path, id, mtime, hash, added_at, album_id) in q.fetch_all(pool).await? {
+                probe.insert(path, (id, mtime, hash, added_at, album_id));
             }
         }
         timings
@@ -946,6 +949,7 @@ pub(crate) async fn scan_folder_inner(
             .fetch_add(t_db.elapsed().as_micros() as u64, Ordering::Relaxed);
         probe
     };
+    let mut previous_album_ids = HashSet::new();
 
     // ─── Phase 2: Parallel extract + transactional DB writes ──────
     //
@@ -1120,7 +1124,12 @@ pub(crate) async fn scan_folder_inner(
         // added` view). Brand-new track path keeps using `now`.
         let existing = existing_probe.get(&extracted.abs_path).cloned();
 
-        if let Some((existing_track_id, mtime, ref hash, existing_added_at)) = existing {
+        if let Some((existing_track_id, mtime, ref hash, existing_added_at, old_album_id)) =
+            existing
+        {
+            if let Some(id) = old_album_id {
+                previous_album_ids.insert(id);
+            }
             if mtime == extracted.modified_ms && hash == &extracted.hash {
                 // Track content hasn't changed — backfill paths only.
                 // See the historical comments at the top of this branch
@@ -1718,6 +1727,19 @@ pub(crate) async fn scan_folder_inner(
     // single-track album rows fragmented by primary_artist.
     if let Err(err) = merge_implicit_compilations(pool).await {
         tracing::warn!(?err, "merge_implicit_compilations failed (non-fatal)");
+    }
+
+    // Album years are derived from the final set of available tracks. A
+    // previously missing or corrected year must survive a rescan, while
+    // conflicting track years must not depend on scan order (#816). Keep
+    // this on cancellation too: processed tracks are already committed.
+    let previous_album_ids: Vec<i64> = previous_album_ids.into_iter().collect();
+    let album_repo = SqliteAlbumRepository::new(pool.clone());
+    if let Err(err) = album_repo
+        .refresh_years_after_folder_scan(folder_id, &previous_album_ids)
+        .await
+    {
+        tracing::warn!(?err, "refresh_album_years failed (non-fatal)");
     }
 
     // VA is an album artist (never in `track_artist`), so the per-track

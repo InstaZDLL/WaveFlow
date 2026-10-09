@@ -9,6 +9,7 @@
 //! repo.list_all().await
 //! ```
 
+pub mod album;
 pub mod collation;
 pub mod library;
 pub mod playlist;
@@ -16,6 +17,7 @@ pub mod profile;
 pub mod search;
 pub mod track;
 
+pub use album::SqliteAlbumRepository;
 pub use library::SqliteLibraryRepository;
 pub use playlist::SqlitePlaylistRepository;
 pub use profile::SqliteProfileRepository;
