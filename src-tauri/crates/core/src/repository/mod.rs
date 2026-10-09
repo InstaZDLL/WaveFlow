@@ -11,6 +11,7 @@
 //! so they stay dyn-compatible. Errors flow through
 //! [`crate::error::CoreError`].
 
+pub mod album;
 pub mod library;
 pub mod playlist;
 pub mod profile;
