@@ -108,11 +108,17 @@ mod tests {
     async fn rescan_picks_a_stable_year_and_applies_tag_corrections() {
         let pool = fixture_pool().await;
         sqlx::raw_sql(
-            "INSERT INTO album (id, year) VALUES (1, NULL), (2, 1999);
-             INSERT INTO track (id, album_id, folder_id, file_path, track_number, year)
-             VALUES (2, 1, 1, '02.mp3', 2, 2025),
-                    (1, 1, 1, '01.mp3', 1, 2024),
-                    (3, 2, 2, 'other.mp3', 1, 2000);",
+            "INSERT INTO album (id, year)
+             VALUES (1, NULL), (2, 1999), (3, NULL), (4, NULL);
+             INSERT INTO track
+                 (id, album_id, folder_id, file_path, disc_number, track_number, year)
+             VALUES (2, 1, 1, 'a-track2.mp3', 1, 2, 2025),
+                    (1, 1, 1, 'z-track1.mp3', 1, 1, 2024),
+                    (3, 2, 2, 'other.mp3', 1, 1, 2000),
+                    (4, 3, 1, 'a-disc2.mp3', 2, 1, 2030),
+                    (5, 3, 1, 'z-disc1.mp3', 1, 2, 2020),
+                    (6, 4, 1, 'z-tie.mp3', 1, 1, 2040),
+                    (7, 4, 1, 'a-tie.mp3', 1, 1, 2035);",
         )
         .execute(&pool)
         .await
@@ -121,10 +127,14 @@ mod tests {
 
         assert_eq!(
             repo.refresh_years_after_folder_scan(1, &[]).await.unwrap(),
-            1
+            3
         );
+        // Each winner conflicts with the next sort key (or the row id),
+        // so removing disc, track, or path ordering changes one result.
         assert_eq!(album_year(&pool, 1).await, Some(2024));
         assert_eq!(album_year(&pool, 2).await, Some(1999));
+        assert_eq!(album_year(&pool, 3).await, Some(2020));
+        assert_eq!(album_year(&pool, 4).await, Some(2035));
 
         sqlx::query("UPDATE track SET year = 2026 WHERE album_id = 1")
             .execute(&pool)
