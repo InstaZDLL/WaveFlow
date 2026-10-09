@@ -6,6 +6,8 @@ interface SkinContextValue {
   skin: SkinPreset;
   /** Switch to a skin by id. Persists across launches. */
   setSkinId: (id: string) => void;
+  /** A skin change or Studio recovery could not be saved. */
+  skinError: boolean;
 }
 
 export const SkinContext = createContext<SkinContextValue | null>(null);

@@ -15,6 +15,11 @@
     "message": "Vos scrobbles ne sont plus envoyés. Reconnectez-vous pour reprendre.",
     "action": "Ouvrir les paramètres"
   },
+  "skinRecovery": {
+    "title": "Studio rétabli",
+    "message": "WaveFlow a démarré en mode de secours après un possible problème de skin. Studio est actif pour vous permettre de réutiliser l’application.",
+    "saveFailed": "Échec de l'enregistrement. Réessayez."
+  },
   "rendering": {
     "banner": {
       "title": "Rendu logiciel activé",

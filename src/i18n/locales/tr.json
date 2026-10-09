@@ -15,6 +15,11 @@
     "message": "Last.fm'e scrobble gönderimi durdu. Devam etmek için yeniden giriş yap.",
     "action": "Ayarları aç"
   },
+  "skinRecovery": {
+    "title": "Studio geri yüklendi",
+    "message": "WaveFlow, olası bir görünüm sorununun ardından güvenli modda başlatıldı. Uygulamayı yeniden kullanabilmeniz için Studio etkinleştirildi.",
+    "saveFailed": "Kaydedilemedi. Yeniden dene."
+  },
   "rendering": {
     "banner": {
       "title": "Yazılımla görüntüleme açık",

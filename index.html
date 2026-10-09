@@ -77,7 +77,12 @@
             pulse: 1,
             liquid: 1,
           };
-          var skin = localStorage.getItem("waveflow.skin.id");
+          // The native startup path adds this flag before creating the
+          // webview. It must beat the cached skin on the very first paint.
+          var skin =
+            new URLSearchParams(location.search).get("safe-mode") === "1"
+              ? "studio"
+              : localStorage.getItem("waveflow.skin.id");
           if (!skin || !VALID_SKINS[skin]) skin = "studio";
           root.setAttribute("data-skin", skin);
 

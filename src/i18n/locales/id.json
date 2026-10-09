@@ -15,6 +15,11 @@
     "message": "Scrobble-mu tidak lagi terkirim. Masuk kembali untuk melanjutkan.",
     "action": "Buka pengaturan"
   },
+  "skinRecovery": {
+    "title": "Studio dipulihkan",
+    "message": "WaveFlow dimulai dalam mode aman setelah kemungkinan masalah pada tampilan. Studio aktif agar Anda dapat menggunakan aplikasi lagi.",
+    "saveFailed": "Gagal menyimpan. Coba lagi."
+  },
   "rendering": {
     "banner": {
       "title": "Render perangkat lunak aktif",
