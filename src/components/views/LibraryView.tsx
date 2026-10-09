@@ -2499,6 +2499,7 @@ function TrackTable({
 
       {/* Virtualized body */}
       <div
+        data-track-body
         ref={(node) => {
           parentRef.current = node;
           bodyRef.current = node;
@@ -2618,6 +2619,8 @@ function TrackTable({
                 // to a single-column grid.
                 gridTemplateColumns: gridCols,
               }}
+              data-track-row
+              data-track-last={index === tracks.length - 1 ? "" : undefined}
               className={`group grid gap-4 px-5 items-center select-none transition-colors cursor-pointer border-b border-zinc-100 dark:border-zinc-800/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500 ${
                 isRowSelected
                   ? "bg-blue-500/15 ring-1 ring-inset ring-blue-500/40 dark:bg-blue-500/20"

@@ -297,7 +297,7 @@
     [class*="dark:bg-zinc-800"],
     [class*="bg-zinc-50"],
     [class*="bg-zinc-100"]
-  ) {
+  ):not([role="separator"]):not([data-track-row]) {
   background-color: rgb(20 6 13 / 0.56) !important;
   border-color: var(--lounge-border-soft) !important;
 }
@@ -316,7 +316,7 @@
     [class*="bg-emerald-50"],
     [class*="dark:bg-zinc-800"],
     [class*="dark:bg-emerald"]
-  ) {
+  ):not([role="separator"]) {
   background-color: rgb(255 45 121 / 0.14) !important;
 }
 

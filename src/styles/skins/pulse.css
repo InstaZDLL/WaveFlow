@@ -406,7 +406,7 @@
     [class*="rounded-xl"],
     [class*="rounded-2xl"],
     [class*="rounded-3xl"]
-  ):where(:not([data-artwork-hit-target])):hover {
+  ):where(:not([data-artwork-hit-target], [data-track-table])):hover {
   border-color: var(--pulse-cyan) !important;
   box-shadow: 0 0 24px -8px rgb(var(--pulse-cyan-rgb) / 0.4);
   transform: translateY(-2px);
@@ -785,7 +785,9 @@
     [class*="bg-zinc-100"],
     [class*="bg-zinc-200"],
     [class*="bg-surface-light"]
-  ):not(header):not(footer):not([role="slider"]):not([role="slider"] *) {
+  ):not([role="separator"]):not([data-track-row]):not(header):not(footer):not(
+    [role="slider"]
+  ):not([role="slider"] *) {
   background-color: var(--pulse-surface) !important;
   background-image: none !important;
 }
@@ -796,7 +798,9 @@
     [class*="dark:bg-zinc-800"],
     [class*="dark:bg-zinc-900"],
     [class*="dark:bg-surface-dark"]
-  ):not(header):not(footer):not([role="slider"]):not([role="slider"] *) {
+  ):not([role="separator"]):not([data-track-row]):not(header):not(footer):not(
+    [role="slider"]
+  ):not([role="slider"] *) {
   background-color: var(--pulse-surface) !important;
   background-image: none !important;
 }
@@ -828,7 +832,9 @@
 /* Active row state (the bg-emerald-50 the rest of WaveFlow
    uses) → magenta press. */
 :root[data-skin="pulse"]
-  :where([class*="bg-emerald-50"]):not(.pulse-mood-tile *) {
+  :where([class*="bg-emerald-50"]):not([role="separator"]):not(
+    .pulse-mood-tile *
+  ) {
   background-color: rgb(var(--pulse-magenta-rgb) / 0.08) !important;
   color: var(--pulse-magenta) !important;
 }
