@@ -316,7 +316,7 @@
     [class*="bg-emerald-50"],
     [class*="dark:bg-zinc-800"],
     [class*="dark:bg-emerald"]
-  ):not([role="separator"]) {
+  ):not([role="separator"]):not([data-track-row]) {
   background-color: rgb(255 45 121 / 0.14) !important;
 }
 
