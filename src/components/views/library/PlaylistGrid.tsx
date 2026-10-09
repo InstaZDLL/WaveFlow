@@ -275,6 +275,7 @@ function PlaylistCard({
       onClick={() =>
         remote ? onOpenRemote(playlist.id) : onOpen(Number(playlist.id))
       }
+      data-playlist-card
       onContextMenu={onContextMenu}
       onKeyDown={onKeyDown}
       className="group flex flex-col space-y-2 text-left cursor-pointer rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
@@ -297,7 +298,7 @@ function PlaylistCard({
           <PlaylistIcon iconId={playlist.icon_id ?? "music"} size={44} />
         </div>
       )}
-      <div className="min-w-0">
+      <div data-playlist-caption className="min-w-0 w-full">
         <div className="text-sm font-medium text-zinc-900 dark:text-white truncate flex items-center gap-1.5">
           <span className="truncate">{playlist.name}</span>
           {/* One list, and every tile says where it comes from. */}
