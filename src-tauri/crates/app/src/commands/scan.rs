@@ -18,9 +18,9 @@ use waveflow_core::scanner::{
     extract_folder_cover, extract_musical_key, extract_rating, extract_replay_gain,
     file_type_label, hash_file, is_scannable_audio, link_local_artist_image, link_va_artist_image,
     maybe_link_artist_images, merge_implicit_compilations, now_millis,
-    reattach_orphaned_play_events, refresh_folder_covers, repoint_fallback_album_artist,
-    split_artist_name, upsert_album, upsert_artist, upsert_artwork, ArtistImageScanCache,
-    ExtractedFile, ReplayGainTags, UpsertCache, VARIOUS_ARTISTS_LABEL,
+    reattach_orphaned_play_events, refresh_album_years, refresh_folder_covers,
+    repoint_fallback_album_artist, split_artist_name, upsert_album, upsert_artist, upsert_artwork,
+    ArtistImageScanCache, ExtractedFile, ReplayGainTags, UpsertCache, VARIOUS_ARTISTS_LABEL,
 };
 
 use crate::{
@@ -1718,6 +1718,14 @@ pub(crate) async fn scan_folder_inner(
     // single-track album rows fragmented by primary_artist.
     if let Err(err) = merge_implicit_compilations(pool).await {
         tracing::warn!(?err, "merge_implicit_compilations failed (non-fatal)");
+    }
+
+    // Album years are derived from the final set of available tracks. A
+    // previously missing or corrected year must survive a rescan, while
+    // conflicting track years must not depend on scan order (#816). Keep
+    // this on cancellation too: processed tracks are already committed.
+    if let Err(err) = refresh_album_years(pool, folder_id).await {
+        tracing::warn!(?err, "refresh_album_years failed (non-fatal)");
     }
 
     // VA is an album artist (never in `track_artist`), so the per-track

@@ -359,6 +359,37 @@ pub async fn upsert_album(
     Ok(Some(result.last_insert_rowid()))
 }
 
+/// Rebuild album years after a folder scan, once all track tags and implicit
+/// compilation merges are committed. The first available track with a year
+/// in disc/track/path order is the source, so rescanning files in a different
+/// order cannot change the album year (#816).
+pub async fn refresh_album_years(pool: &SqlitePool, folder_id: i64) -> CoreResult<u64> {
+    let result = sqlx::query(
+        "WITH chosen AS (
+            SELECT al.id AS album_id,
+                   (SELECT t.year FROM track t
+                     WHERE t.album_id = al.id
+                       AND t.is_available = 1
+                       AND t.year IS NOT NULL
+                     ORDER BY COALESCE(t.disc_number, 1),
+                              COALESCE(t.track_number, 2147483647),
+                              t.file_path COLLATE NOCASE, t.id
+                     LIMIT 1) AS year
+              FROM album al
+             WHERE al.id IN (SELECT album_id FROM track WHERE folder_id = ?)
+        )
+        UPDATE album
+           SET year = chosen.year
+          FROM chosen
+         WHERE album.id = chosen.album_id
+           AND album.year IS NOT chosen.year",
+    )
+    .bind(folder_id)
+    .execute(pool)
+    .await?;
+    Ok(result.rows_affected())
+}
+
 /// Resolve a raw multi-artist string (e.g. `"A, B; C"`) to a vector of
 /// artist row IDs. The first entry becomes the track's primary artist.
 /// Empty / whitespace-only inputs yield an empty vector.
@@ -1054,6 +1085,75 @@ pub async fn reattach_orphaned_play_events(pool: &SqlitePool) -> CoreResult<u32>
 
     tx.commit().await?;
     Ok(reattached.min(u32::MAX as u64) as u32)
+}
+
+#[cfg(test)]
+mod album_year_tests {
+    use super::*;
+    use sqlx::SqlitePool;
+
+    async fn album_year(pool: &SqlitePool, id: i64) -> Option<i64> {
+        sqlx::query_scalar("SELECT year FROM album WHERE id = ?")
+            .bind(id)
+            .fetch_one(pool)
+            .await
+            .unwrap()
+    }
+
+    #[tokio::test]
+    async fn rescan_picks_a_stable_year_and_applies_tag_corrections() {
+        let pool = SqlitePool::connect("sqlite::memory:").await.unwrap();
+        sqlx::raw_sql(
+            "CREATE TABLE album (
+                 id INTEGER PRIMARY KEY,
+                 year INTEGER
+             );
+             CREATE TABLE track (
+                 id INTEGER PRIMARY KEY,
+                 album_id INTEGER,
+                 folder_id INTEGER NOT NULL,
+                 file_path TEXT NOT NULL,
+                 disc_number INTEGER,
+                 track_number INTEGER,
+                 year INTEGER,
+                 is_available INTEGER NOT NULL DEFAULT 1
+             );
+             INSERT INTO album (id, year) VALUES (1, NULL), (2, 1999);
+             INSERT INTO track
+                 (id, album_id, folder_id, file_path, track_number, year)
+             VALUES (2, 1, 1, '02.mp3', 2, 2025),
+                    (1, 1, 1, '01.mp3', 1, 2024),
+                    (3, 2, 2, 'other.mp3', 1, 2000);",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        assert_eq!(refresh_album_years(&pool, 1).await.unwrap(), 1);
+        assert_eq!(album_year(&pool, 1).await, Some(2024));
+        assert_eq!(album_year(&pool, 2).await, Some(1999));
+
+        sqlx::query("UPDATE track SET year = 2026 WHERE album_id = 1")
+            .execute(&pool)
+            .await
+            .unwrap();
+        assert_eq!(refresh_album_years(&pool, 1).await.unwrap(), 1);
+        assert_eq!(album_year(&pool, 1).await, Some(2026));
+
+        sqlx::query("UPDATE track SET year = NULL WHERE id = 1")
+            .execute(&pool)
+            .await
+            .unwrap();
+        assert_eq!(refresh_album_years(&pool, 1).await.unwrap(), 0);
+        assert_eq!(album_year(&pool, 1).await, Some(2026));
+
+        sqlx::query("UPDATE track SET year = NULL WHERE id = 2")
+            .execute(&pool)
+            .await
+            .unwrap();
+        assert_eq!(refresh_album_years(&pool, 1).await.unwrap(), 1);
+        assert_eq!(album_year(&pool, 1).await, None);
+    }
 }
 
 #[cfg(test)]
