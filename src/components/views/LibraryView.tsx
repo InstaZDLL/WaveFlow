@@ -967,7 +967,9 @@ export function LibraryView({
           libId = libraries[0].id;
           selectLibrary(libId);
         } else {
-          const lib = await createLibrary({ name: t("onboarding.defaultLibraryName") });
+          const lib = await createLibrary({
+            name: t("onboarding.defaultLibraryName"),
+          });
           libId = lib.id;
           selectLibrary(libId);
         }
@@ -3248,6 +3250,12 @@ function AlbumGrid({
   const [colCount, setColCount] = useState(1);
   const [tileWidth, setTileWidth] = useState(180);
   const [scrollMargin, setScrollMargin] = useState(0);
+  // WebKitGTK can re-rasterize transformed rows on a descendant hover and
+  // round their fractional offsets differently, making every cover jump
+  // together (#817). Absolute top positioning avoids that compositor path.
+  const positionRowsWithTop = document.documentElement.hasAttribute(
+    "data-webkitgtk-safe",
+  );
 
   // Match the original Tailwind grid: `auto-fill,minmax(180px,1fr)` + gap-5.
   const MIN_TILE = 180;
@@ -3497,10 +3505,12 @@ function AlbumGrid({
               key={row.key}
               style={{
                 position: "absolute",
-                top: 0,
+                top: positionRowsWithTop ? row.start - scrollMargin : 0,
                 left: 0,
                 width: "100%",
-                transform: `translateY(${row.start - scrollMargin}px)`,
+                transform: positionRowsWithTop
+                  ? undefined
+                  : "translateY(" + (row.start - scrollMargin) + "px)",
                 display: "grid",
                 gridTemplateColumns: `repeat(${colCount}, minmax(0, 1fr))`,
                 gap: `${GAP}px`,
