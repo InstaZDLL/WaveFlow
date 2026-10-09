@@ -198,6 +198,15 @@
   backdrop-filter: none !important;
 }
 
+/* WebKitGTK briefly tears down and recreates the composited opacity layer
+   used by the album grid's add button. It flashes twice on entry and lingers
+   on the previous cover on exit (#817), so switch it without a transition. */
+:root[data-webkitgtk-safe]
+  [data-artwork-hit-target]
+  ~ [data-add-to-playlist-trigger] {
+  transition: none;
+}
+
 /* Keyboard focus becomes unmistakable — a real outline on every
    surface, not a subtle ring. `outline` rather than `box-shadow` so it
    survives an `overflow: hidden` ancestor, and offset so it never sits
