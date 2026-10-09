@@ -26,13 +26,17 @@ export function SkinAmbientBackdrop() {
   const { skin } = useSkin();
   const { currentTrack } = usePlayer();
 
-  const enabled = skin.id === "lounge";
+  // The fullscreen 140px blur is especially costly in WebKitGTK. The
+  // Linux skin safeguard uses Lounge's static body gradient instead.
+  const enabled =
+    skin.id === "lounge" &&
+    !document.documentElement.hasAttribute("data-webkitgtk-safe");
+  if (!enabled) return null;
+
   const artworkPath = currentTrack?.artwork_path ?? null;
   // Tauri's asset protocol — the path lives under the
   // per-profile data dir and isn't a regular http URL.
   const resolved = artworkPath ? convertFileSrc(artworkPath) : null;
-
-  if (!enabled) return null;
 
   // Respect the OS-level reduced-motion preference (WCAG 2.3.3).
   // The check is synchronous + non-reactive: the media query is

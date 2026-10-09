@@ -20,6 +20,19 @@
     -->
     <script>
       (function () {
+        var root = document.documentElement;
+        // WebKitGTK can retain very large compositing surfaces for the
+        // glass-heavy Lounge and Liquid skins. Set the safeguard before
+        // reading storage so a remembered skin is safe on its first paint.
+        // Exclude other Linux browsers used for frontend development.
+        var ua = navigator.userAgent;
+        if (
+          /linux/i.test(ua) &&
+          /AppleWebKit/i.test(ua) &&
+          !/(Chrome|Chromium|Edg|Android)/i.test(ua)
+        ) {
+          root.setAttribute("data-webkitgtk-safe", "");
+        }
         try {
           var id =
             localStorage.getItem("waveflow.theme.id") ||
@@ -51,7 +64,6 @@
               ocean: "#081420",
               neon: "#1a0a18",
             }[id] || "#121212";
-          var root = document.documentElement;
           root.setAttribute("data-theme", id);
           root.style.setProperty("--ambient-bg", ambient);
           if (!LIGHT_IDS[id]) root.classList.add("dark");

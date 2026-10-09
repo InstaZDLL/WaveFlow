@@ -166,6 +166,11 @@
   }
 }
 
+/* Avoid a perpetually re-rastered viewport-sized layer in WebKitGTK. */
+:root[data-skin="liquid"][data-webkitgtk-safe] body::before {
+  animation: none;
+}
+
 /* Neutralise the center-column slab so the aurora bleeds
    through every layer of the layout. */
 :root[data-skin="liquid"] [class*="bg-app-ambient"],
@@ -1120,6 +1125,16 @@
    No `[class*="dark:bg-"]` in the sticky list either, and it would
    change nothing: `[class*=…]` matches anywhere in the attribute, so
    `bg-zinc` already finds `dark:bg-zinc-900`. */
+/* The Linux WebKitGTK safeguard only needs opaque navigation chrome.
+   Keep this broader rule for explicit high contrast: it covers content
+   cards too, whose own artwork and gradients must remain visible when
+   users have not requested high contrast. */
+:root[data-skin="liquid"][data-webkitgtk-safe] .skin-sidebar-shell > aside,
+:root[data-skin="liquid"][data-webkitgtk-safe] header[class*="sticky"],
+:root[data-skin="liquid"][data-webkitgtk-safe] footer {
+  background-color: var(--wf-contrast-surface) !important;
+}
+
 :root[data-skin="liquid"][data-contrast="high"] .skin-sidebar-shell > aside,
 :root[data-skin="liquid"][data-contrast="high"] header[class*="sticky"],
 :root[data-skin="liquid"][data-contrast="high"] footer,

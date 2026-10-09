@@ -521,7 +521,7 @@
    token to reuse — this is the darkest of its three stops, which keeps
    the chrome in the skin's own family instead of dropping a neutral
    grey into it. */
-:root[data-skin="lounge"][data-contrast="high"] {
+:root[data-skin="lounge"]:is([data-contrast="high"], [data-webkitgtk-safe]) {
   --wf-contrast-surface: rgb(12 6 11);
 }
 
@@ -529,11 +529,16 @@
    own rule, so with the blur off it would let the page through the
    gutter around the panel; the `aside` inside it is the translucent
    surface the labels actually sit on. Liquid forces the same pair. */
-:root[data-skin="lounge"][data-contrast="high"] .lounge-sidebar-shell,
-:root[data-skin="lounge"][data-contrast="high"] .lounge-sidebar-shell > aside,
-:root[data-skin="lounge"][data-contrast="high"] header[class*="sticky"],
-:root[data-skin="lounge"][data-contrast="high"] footer,
-:root[data-skin="lounge"][data-contrast="high"]
+:root[data-skin="lounge"]:is([data-contrast="high"], [data-webkitgtk-safe])
+  .lounge-sidebar-shell,
+:root[data-skin="lounge"]:is([data-contrast="high"], [data-webkitgtk-safe])
+  .lounge-sidebar-shell
+  > aside,
+:root[data-skin="lounge"]:is([data-contrast="high"], [data-webkitgtk-safe])
+  header[class*="sticky"],
+:root[data-skin="lounge"]:is([data-contrast="high"], [data-webkitgtk-safe])
+  footer,
+:root[data-skin="lounge"]:is([data-contrast="high"], [data-webkitgtk-safe])
   main
   :where(
     [class*="rounded-xl"],
