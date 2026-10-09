@@ -34,6 +34,7 @@ import { PlayerBar } from "../player/PlayerBar";
 import { ProfileSelectorModal } from "../common/ProfileSelectorModal";
 import { LastfmReauthBanner } from "../common/LastfmReauthBanner";
 import { SoftwareRenderingBanner } from "../common/SoftwareRenderingBanner";
+import { SkinRecoveryBanner } from "../common/SkinRecoveryBanner";
 import { UpdateBanner } from "../common/UpdateBanner";
 import { ScanProgressToast } from "../common/ScanProgressToast";
 import { TaskStatusBar } from "./TaskStatusBar";
@@ -875,6 +876,7 @@ export function AppLayout() {
         <SoftwareRenderingBanner
           onGoToSettings={() => openSettingsAt("diagnostics")}
         />
+        <SkinRecoveryBanner />
         <UpdateBanner />
         <ScanProgressToast />
         <PlaybackAlertToast />

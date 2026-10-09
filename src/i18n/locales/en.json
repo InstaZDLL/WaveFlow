@@ -15,6 +15,11 @@
     "message": "Your scrobbles are no longer being sent. Sign in again to resume.",
     "action": "Open settings"
   },
+  "skinRecovery": {
+    "title": "Studio restored",
+    "message": "WaveFlow started in safe mode after a possible skin problem. Studio is active so you can use the app again.",
+    "saveFailed": "Could not save it. Try again."
+  },
   "rendering": {
     "banner": {
       "title": "Software rendering is on",

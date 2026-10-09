@@ -15,6 +15,11 @@
     "message": "你的播放紀錄已停止傳送。請重新登入以繼續。",
     "action": "開啟設定"
   },
+  "skinRecovery": {
+    "title": "已恢復 Studio 介面風格",
+    "message": "WaveFlow 偵測到介面風格可能有問題，已透過安全模式啟動並啟用 Studio，讓你能繼續使用應用程式。",
+    "saveFailed": "儲存失敗，請重試。"
+  },
   "rendering": {
     "banner": {
       "title": "已切換為軟體繪製",

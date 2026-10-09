@@ -15,6 +15,11 @@
     "message": "I tuoi scrobble non vengono più inviati. Accedi di nuovo per riprendere.",
     "action": "Apri le impostazioni"
   },
+  "skinRecovery": {
+    "title": "Studio ripristinato",
+    "message": "WaveFlow è stato avviato in modalità provvisoria dopo un possibile problema con lo stile. Studio è attivo per permetterti di usare di nuovo l'app.",
+    "saveFailed": "Salvataggio non riuscito. Riprova."
+  },
   "rendering": {
     "banner": {
       "title": "Rendering software attivo",

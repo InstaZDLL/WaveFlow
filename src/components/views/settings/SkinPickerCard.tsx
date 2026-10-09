@@ -20,7 +20,7 @@ import { SKIN_PRESETS } from "../../../lib/skins";
  */
 export function SkinPickerCard() {
   const { t } = useTranslation();
-  const { skin, setSkinId } = useSkin();
+  const { skin, setSkinId, skinError } = useSkin();
   // Refs to each radio button so the keyboard handler can move
   // DOM focus to the newly-selected option (WAI-ARIA radiogroup
   // pattern: arrow key changes selection AND focus, screen
@@ -78,6 +78,11 @@ export function SkinPickerCard() {
           </div>
         </div>
       </div>
+      {skinError && (
+        <p role="alert" className="mb-3 text-xs text-red-600 dark:text-red-400">
+          {t("skinRecovery.saveFailed")}
+        </p>
+      )}
       <div
         className="grid grid-cols-2 gap-3"
         role="radiogroup"

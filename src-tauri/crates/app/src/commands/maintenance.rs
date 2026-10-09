@@ -410,6 +410,7 @@ pub async fn reset_app(
         }
     }
 
+    crate::skin_recovery::graceful_exit();
     app.restart();
 }
 

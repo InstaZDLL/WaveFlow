@@ -15,6 +15,11 @@
     "message": "Seus scrobbles não estão mais sendo enviados. Faça login novamente para continuar.",
     "action": "Abrir as configurações"
   },
+  "skinRecovery": {
+    "title": "Studio restaurado",
+    "message": "O WaveFlow iniciou em modo de segurança após um possível problema com o visual. O Studio está ativo para que você possa usar o aplicativo novamente.",
+    "saveFailed": "Não foi possível salvar. Tente de novo."
+  },
   "rendering": {
     "banner": {
       "title": "Renderização por software ativada",
