@@ -3666,6 +3666,10 @@ function ArtistList({
   const [colCount, setColCount] = useState(1);
   const [tileWidth, setTileWidth] = useState(180);
   const [scrollMargin, setScrollMargin] = useState(0);
+  // Same WebKitGTK compositor workaround as AlbumGrid (#817).
+  const positionRowsWithTop = document.documentElement.hasAttribute(
+    "data-webkitgtk-safe",
+  );
 
   const MIN_TILE = 180;
   const GAP = 20;
@@ -3780,6 +3784,7 @@ function ArtistList({
               tile, so the "+" below keeps its own semantics. */}
           <button
             type="button"
+            data-artwork-hit-target
             onClick={open}
             aria-label={t("library.open", { name: artist.name })}
             className="absolute inset-0 rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500"
@@ -3865,10 +3870,12 @@ function ArtistList({
             key={row.key}
             style={{
               position: "absolute",
-              top: 0,
+              top: positionRowsWithTop ? row.start - scrollMargin : 0,
               left: 0,
               width: "100%",
-              transform: `translateY(${row.start - scrollMargin}px)`,
+              transform: positionRowsWithTop
+                ? undefined
+                : "translateY(" + (row.start - scrollMargin) + "px)",
               display: "grid",
               gridTemplateColumns: `repeat(${colCount}, minmax(0, 1fr))`,
               gap: `${GAP}px`,
