@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.8.4](https://github.com/InstaZDLL/WaveFlow/compare/v1.8.3...v1.8.4) (2026-10-09)
+
+
+### Bug Fixes
+
+* **library:** correct skin surfaces and row hover ([5e451ed](https://github.com/InstaZDLL/WaveFlow/commit/5e451ed82e50c9ce4b3dfe7d625c45d64c571c6e))
+* **library:** correct skin surfaces and row hover ([5f69225](https://github.com/InstaZDLL/WaveFlow/commit/5f692258c31b24a249ee940dae85c9f821d88b7c))
+* **library:** prevent album grid flicker on Linux ([204bfc0](https://github.com/InstaZDLL/WaveFlow/commit/204bfc08f346df0bd431070ca2d4edf3cbf784de))
+* **library:** prevent album grid flicker on Linux ([21891ca](https://github.com/InstaZDLL/WaveFlow/commit/21891ca07d246768b323a0f19624c785c5d267b6))
+* **library:** stabilize album hover action on Linux ([a49a120](https://github.com/InstaZDLL/WaveFlow/commit/a49a120b3022a6329e0cf5fb0dd9a3f2884c3a37))
+* **library:** stabilize artist grid on Linux ([fb337fa](https://github.com/InstaZDLL/WaveFlow/commit/fb337fafab8fecc6cbc59707e681ff4e7863893f))
+* **scanner:** refresh album year on rescan ([52adcdc](https://github.com/InstaZDLL/WaveFlow/commit/52adcdcda9839810c6e6ed700da4bb26693abcaa))
+* **scanner:** refresh album year on rescan ([05d7d00](https://github.com/InstaZDLL/WaveFlow/commit/05d7d00eeca311076125efaa90407854264d4740))
+* **scanner:** refresh years for reassigned albums ([6276a55](https://github.com/InstaZDLL/WaveFlow/commit/6276a550162e69e09ad3d4ab257f697e3ae4f553))
+* **skins:** add Studio recovery and Linux crash guard ([1a77cfa](https://github.com/InstaZDLL/WaveFlow/commit/1a77cfaf2597ab08e018a65fce916485a138ea62))
+* **skins:** handle planned restarts and log recovery errors ([64caa56](https://github.com/InstaZDLL/WaveFlow/commit/64caa56ba9008851f1ad7175601653a903f6b99a))
+* **skins:** limit WebKitGTK compositing for Lounge and Liquid ([abf8afa](https://github.com/InstaZDLL/WaveFlow/commit/abf8afa3e9247a019e365c5097e5b77a81b08924))
+* **skins:** limit WebKitGTK compositing for Lounge and Liquid ([71af968](https://github.com/InstaZDLL/WaveFlow/commit/71af9687454314571dc1adc42eaaa2b135cefdb0))
+* **skins:** preserve Lounge track row states ([654ca1c](https://github.com/InstaZDLL/WaveFlow/commit/654ca1c14174d03b207713ce264d9048fc4dd126))
+* **skins:** recover Studio after unsafe Linux skin exits ([19a4803](https://github.com/InstaZDLL/WaveFlow/commit/19a480304af6cc0e365b4f0aa26eb9f4a5d7f0dc))
+
 ## [1.8.3](https://github.com/InstaZDLL/WaveFlow/compare/v1.8.2...v1.8.3) (2026-10-06)
 
 
