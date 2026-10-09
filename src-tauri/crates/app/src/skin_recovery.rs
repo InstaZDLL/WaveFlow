@@ -68,13 +68,13 @@ fn read(path: &Path) -> SkinState {
         Ok(raw) => match serde_json::from_str(&raw) {
             Ok(state) => state,
             Err(err) => {
-                eprintln!("waveflow: invalid skin recovery marker: {err}");
+                tracing::warn!(%err, "invalid skin recovery marker");
                 SkinState::default()
             }
         },
         Err(err) if err.kind() == std::io::ErrorKind::NotFound => SkinState::default(),
         Err(err) => {
-            eprintln!("waveflow: cannot read skin recovery marker: {err}");
+            tracing::warn!(%err, "cannot read skin recovery marker");
             SkinState::default()
         }
     }
@@ -203,7 +203,7 @@ pub fn preflight(root: PathBuf, manual: bool) -> RecoveryReason {
             RECOVERING.store(reason.is_active(), std::sync::atomic::Ordering::Release);
         }
         if let Err(err) = write(&path, &next) {
-            eprintln!("waveflow: cannot arm skin recovery: {err}");
+            tracing::warn!(%err, "cannot arm skin recovery");
         }
         reason
     })

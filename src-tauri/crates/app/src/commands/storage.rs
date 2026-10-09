@@ -946,6 +946,7 @@ pub async fn restart_for_cache_move(
     // whatever the button is doing. Waiting is the whole of it: the
     // move either has not started, or this returns once it is durable.
     let _serialized = state.cache_move_lock.clone().lock_owned().await;
+    crate::skin_recovery::graceful_exit();
     app.restart();
 }
 
