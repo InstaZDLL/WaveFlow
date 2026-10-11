@@ -3007,5 +3007,11 @@
     "title": "Desktop lyrics",
     "lock": "Lock (click-through)",
     "lockHint": "Clicks pass through the lyrics. Unlock from the system tray icon, the More actions menu or here."
+  },
+  "queueToast": {
+    "playNext_one": "{{count}} track plays next",
+    "playNext_other": "{{count}} tracks play next",
+    "added_one": "{{count}} track added to the queue",
+    "added_other": "{{count}} tracks added to the queue"
   }
 }

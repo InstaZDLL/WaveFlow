@@ -3007,5 +3007,11 @@
     "title": "桌面歌詞",
     "lock": "鎖定（滑鼠穿透）",
     "lockHint": "滑鼠操作會穿透歌詞。可從系統列圖示、「更多動作」選單或此處解鎖。"
+  },
+  "queueToast": {
+    "playNext_one": "{{count}} 首曲目將接著播放",
+    "playNext_other": "{{count}} 首曲目將接著播放",
+    "added_one": "已將 {{count}} 首曲目加入播放佇列",
+    "added_other": "已將 {{count}} 首曲目加入播放佇列"
   }
 }

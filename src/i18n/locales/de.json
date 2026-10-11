@@ -3007,5 +3007,11 @@
     "title": "Desktop-Songtext",
     "lock": "Sperren (Klicks durchlassen)",
     "lockHint": "Klicks gehen durch den Songtext hindurch. Entsperre ihn über das Symbol im Infobereich, das Menü Weitere Aktionen oder hier."
+  },
+  "queueToast": {
+    "playNext_one": "{{count}} Titel wird als Nächstes gespielt",
+    "playNext_other": "{{count}} Titel werden als Nächstes gespielt",
+    "added_one": "{{count}} Titel zur Warteschlange hinzugefügt",
+    "added_other": "{{count}} Titel zur Warteschlange hinzugefügt"
   }
 }

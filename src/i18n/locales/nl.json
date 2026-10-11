@@ -3007,5 +3007,11 @@
     "title": "Songtekst op bureaublad",
     "lock": "Vergrendelen (klikken gaan erdoorheen)",
     "lockHint": "Klikken gaan door de songtekst heen. Ontgrendel via het pictogram in het systeemvak, het menu Meer acties of hier."
+  },
+  "queueToast": {
+    "playNext_one": "{{count}} nummer wordt hierna afgespeeld",
+    "playNext_other": "{{count}} nummers worden hierna afgespeeld",
+    "added_one": "{{count}} nummer aan de wachtrij toegevoegd",
+    "added_other": "{{count}} nummers aan de wachtrij toegevoegd"
   }
 }

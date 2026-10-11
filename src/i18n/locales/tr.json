@@ -3007,5 +3007,11 @@
     "title": "Masaüstü şarkı sözleri",
     "lock": "Kilitle (tıklamalar geçer)",
     "lockHint": "Tıklamalar şarkı sözlerinin içinden geçer. Kilidi sistem tepsisindeki simgeden, Daha fazla eylem menüsünden veya buradan aç."
+  },
+  "queueToast": {
+    "playNext_one": "{{count}} parça sıradaki olarak çalacak",
+    "playNext_other": "{{count}} parça sıradaki olarak çalacak",
+    "added_one": "{{count}} parça kuyruğa eklendi",
+    "added_other": "{{count}} parça kuyruğa eklendi"
   }
 }

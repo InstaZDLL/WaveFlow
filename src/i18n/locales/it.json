@@ -3103,5 +3103,13 @@
     "title": "Testi sul desktop",
     "lock": "Blocca (clic passanti)",
     "lockHint": "I clic attraversano il testo. Sblocca dall'icona nell'area di notifica, dal menu Altre azioni o da qui."
+  },
+  "queueToast": {
+    "playNext_one": "{{count}} brano verrà riprodotto dopo",
+    "playNext_many": "{{count}} brani verranno riprodotti dopo",
+    "playNext_other": "{{count}} brani verranno riprodotti dopo",
+    "added_one": "{{count}} brano aggiunto alla coda",
+    "added_many": "{{count}} brani aggiunti alla coda",
+    "added_other": "{{count}} brani aggiunti alla coda"
   }
 }

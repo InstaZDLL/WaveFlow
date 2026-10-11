@@ -3007,5 +3007,11 @@
     "title": "桌面歌词",
     "lock": "锁定（鼠标穿透）",
     "lockHint": "鼠标点击会穿过歌词。可在系统托盘图标、“更多操作”菜单或此处解锁。"
+  },
+  "queueToast": {
+    "playNext_one": "{{count}} 首曲目将接着播放",
+    "playNext_other": "{{count}} 首曲目将接着播放",
+    "added_one": "已将 {{count}} 首曲目加入播放队列",
+    "added_other": "已将 {{count}} 首曲目加入播放队列"
   }
 }

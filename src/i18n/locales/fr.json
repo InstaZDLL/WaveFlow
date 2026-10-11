@@ -3103,5 +3103,13 @@
     "title": "Paroles sur le bureau",
     "lock": "Verrouiller (clic traversant)",
     "lockHint": "Les clics traversent les paroles. Déverrouillez depuis l'icône de la barre système, le menu Plus d'actions ou ici."
+  },
+  "queueToast": {
+    "playNext_one": "{{count}} titre sera lu ensuite",
+    "playNext_many": "{{count}} titres seront lus ensuite",
+    "playNext_other": "{{count}} titres seront lus ensuite",
+    "added_one": "{{count}} titre ajouté à la file d'attente",
+    "added_many": "{{count}} titres ajoutés à la file d'attente",
+    "added_other": "{{count}} titres ajoutés à la file d'attente"
   }
 }

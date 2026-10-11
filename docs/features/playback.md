@@ -479,6 +479,8 @@ copy back its own. The frontend operates on a virtualised list so a 6000-track s
 
 Net effect matches Spotify's behaviour: the manual block stacks between Now Playing and the album / playlist tail. "Play next" pushes to the top of that block, "Add to queue" stacks at the bottom, and the album resumes once the user queue drains. No tracks get banished to the very end past the rest of the album any more.
 
+**Both actions confirm themselves.** The queue is usually out of sight, so a click on "Play next" or "Add to queue" with no word back read as a click that did nothing — and was repeated, queueing the tracks twice. Once the backend accepted the tracks, `playerPlayNext` / `playerAddToQueue` dispatch `waveflow:queue-added` (`{ mode, count }`), and [`QueueToast`](../../src/components/common/QueueToast.tsx) shows "3 tracks play next" / "3 tracks added to the queue" for 2.5 s above the selection bar (`role="status"`, polite). In the wrappers rather than at each call site: the context menus, the selection bar and the folder browser all queue tracks, and the next place that does is covered without knowing it.
+
 ### Ordering the loads
 
 Handing a track to the decoder is never immediate: a profile snapshot, the
