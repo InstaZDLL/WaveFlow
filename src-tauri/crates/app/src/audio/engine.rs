@@ -782,6 +782,21 @@ impl ExclusiveRefusal {
         }
     }
 
+    /// Whether `self` says more than `other` about what to do: another
+    /// app holding the device first, then a system policy, then a format,
+    /// then nothing.
+    pub fn outranks(self, other: Self) -> bool {
+        fn rank(reason: ExclusiveRefusal) -> u8 {
+            match reason {
+                ExclusiveRefusal::Busy => 3,
+                ExclusiveRefusal::NotAllowed => 2,
+                ExclusiveRefusal::Format => 1,
+                ExclusiveRefusal::Unknown => 0,
+            }
+        }
+        rank(self) > rank(other)
+    }
+
     /// The reason a backend put on its error, or `Unknown`.
     pub fn of(err: &AppError) -> Self {
         match err {
@@ -3854,6 +3869,24 @@ mod output_mode_tests {
     #[test]
     fn asked_and_granted_is_exclusive() {
         assert_eq!(output_mode_of(true, true, false), OutputMode::Exclusive);
+    }
+
+    /// Across a negotiation, the cause that tells the user what to do wins:
+    /// a device in use refused as busy on one layout and on format on the
+    /// next is a busy device.
+    #[test]
+    fn the_most_telling_refusal_wins() {
+        use super::ExclusiveRefusal::{self, *};
+        assert!(Busy.outranks(Format));
+        assert!(Busy.outranks(NotAllowed));
+        assert!(NotAllowed.outranks(Format));
+        assert!(Format.outranks(Unknown));
+        assert!(!Format.outranks(Busy));
+        assert!(!Busy.outranks(Busy));
+        for reason in [Busy, NotAllowed, Format, Unknown] {
+            assert_eq!(ExclusiveRefusal::from_u8(reason.as_u8()), Some(reason));
+        }
+        assert_eq!(ExclusiveRefusal::from_u8(0), None);
     }
 
     #[test]
