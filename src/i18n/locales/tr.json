@@ -935,7 +935,9 @@
     "radio": {
       "label": "Radyo",
       "basedOn": "Şuna dayalı: “{{title}}”"
-    }
+    },
+    "saveAsPlaylist": "Çalma listesi olarak kaydet",
+    "defaultPlaylistName": "{{date}} tarihli kuyruk"
   },
   "deviceMenu": {
     "activeLabel": "Etkin çıkış",
@@ -1071,7 +1073,8 @@
       "deleteConfirm": "Onaylamak için tekrar tıkla",
       "share": "Paylaş",
       "reorder": "Yeniden sırala",
-      "removeFromPlaylist": "Çalma listesinden çıkar"
+      "removeFromPlaylist": "Çalma listesinden çıkar",
+      "keepAsPlaylist": "Çalma listesi olarak sakla"
     },
     "export": {
       "dialogTitle": "Çalma listesini M3U olarak dışa aktar"

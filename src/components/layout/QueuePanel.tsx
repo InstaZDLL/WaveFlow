@@ -12,7 +12,7 @@ import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { motion } from "framer-motion";
-import { X, ListMusic, GripVertical, Radio } from "lucide-react";
+import { X, ListMusic, GripVertical, Radio, Save } from "lucide-react";
 import {
   DndContext,
   DragOverlay,
@@ -37,6 +37,9 @@ import { usePlayer } from "../../hooks/usePlayer";
 import { usePlayerTrackContextMenu } from "../../hooks/usePlayerTrackContextMenu";
 import { queuePayloadToTrack } from "../../lib/queueTrack";
 import { Artwork } from "../common/Artwork";
+import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
+import { usePlaylist } from "../../hooks/usePlaylist";
+import { useCreatePlaylistFromModal } from "../../hooks/useCreatePlaylistFromModal";
 import {
   playerGetQueue,
   playerJumpToIndex,
@@ -57,7 +60,7 @@ import { isRemoteTrack } from "../../lib/playerSources";
  * backend emits this after fill_queue, advance, shuffle, etc).
  */
 export function QueuePanel() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { isQueueOpen, toggleQueue, playbackState, currentTrack } = usePlayer();
   // A remote play session has its own in-memory queue, shown by a
   // dedicated view — the local `player_get_queue` path (and its jump /
@@ -136,6 +139,13 @@ export function QueuePanel() {
     [items, currentIndex],
   );
   const total = items.length;
+
+  // Save the queue as a playlist: every row, in queue order, played ones
+  // included — the queue is what the user built, and the playlist keeps
+  // it whole.
+  const { addTracksToPlaylist } = usePlaylist();
+  const createFromModal = useCreatePlaylistFromModal();
+  const [isSaveOpen, setIsSaveOpen] = useState(false);
 
   const handleJump = useCallback((absoluteIndex: number) => {
     playerJumpToIndex(absoluteIndex).catch((err) =>
@@ -226,15 +236,51 @@ export function QueuePanel() {
               )}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={toggleQueue}
-            aria-label={t("common.close")}
-            className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors"
-          >
-            <X size={20} />
-          </button>
+          <div className="flex items-center gap-1">
+            {!isRemote && total > 0 && (
+              <button
+                type="button"
+                onClick={() => setIsSaveOpen(true)}
+                aria-label={t("queue.saveAsPlaylist")}
+                title={t("queue.saveAsPlaylist")}
+                className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors"
+              >
+                <Save size={18} />
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={toggleQueue}
+              aria-label={t("common.close")}
+              className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors"
+            >
+              <X size={20} />
+            </button>
+          </div>
         </div>
+        <CreatePlaylistModal
+          isOpen={isSaveOpen}
+          onClose={() => setIsSaveOpen(false)}
+          initialName={t("queue.defaultPlaylistName", {
+            date: new Date().toLocaleDateString(i18n.language),
+          })}
+          onCreate={async (data) => {
+            const created = await createFromModal(data);
+            // Library rows only: a negative id is a sentinel for a row
+            // with no local track, which no playlist can hold.
+            const ids = items.map((item) => item.id).filter((id) => id > 0);
+            if (created?.id != null && ids.length > 0) {
+              try {
+                await addTracksToPlaylist(created.id, ids);
+              } catch (err) {
+                // The playlist exists; returning it keeps the modal from
+                // offering a retry that would create a duplicate.
+                console.error("[QueuePanel] save queue tracks failed", err);
+              }
+            }
+            return created;
+          }}
+        />
 
         {isRemote ? (
           <RemoteQueueView />

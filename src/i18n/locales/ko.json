@@ -935,7 +935,9 @@
     "radio": {
       "label": "라디오",
       "basedOn": "“{{title}}” 기반"
-    }
+    },
+    "saveAsPlaylist": "플레이리스트로 저장",
+    "defaultPlaylistName": "{{date}} 재생 대기열"
   },
   "deviceMenu": {
     "activeLabel": "활성 출력",
@@ -1071,7 +1073,8 @@
       "deleteConfirm": "확인하려면 다시 클릭하세요",
       "share": "공유",
       "reorder": "순서 변경",
-      "removeFromPlaylist": "재생 목록에서 제거"
+      "removeFromPlaylist": "재생 목록에서 제거",
+      "keepAsPlaylist": "플레이리스트로 보관"
     },
     "export": {
       "dialogTitle": "재생 목록을 M3U 형식으로 내보내기"

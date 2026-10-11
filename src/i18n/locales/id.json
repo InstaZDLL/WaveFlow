@@ -935,7 +935,9 @@
     "radio": {
       "label": "Radio",
       "basedOn": "Berdasarkan \"{{title}}\""
-    }
+    },
+    "saveAsPlaylist": "Simpan sebagai playlist",
+    "defaultPlaylistName": "Antrean {{date}}"
   },
   "deviceMenu": {
     "activeLabel": "Keluaran aktif",
@@ -1071,7 +1073,8 @@
       "deleteConfirm": "Klik lagi untuk konfirmasi",
       "share": "Bagikan",
       "reorder": "Susun ulang",
-      "removeFromPlaylist": "Hapus dari daftar putar"
+      "removeFromPlaylist": "Hapus dari daftar putar",
+      "keepAsPlaylist": "Simpan sebagai playlist"
     },
     "export": {
       "dialogTitle": "Ekspor daftar putar sebagai M3U"
