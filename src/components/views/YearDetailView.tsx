@@ -71,9 +71,17 @@ export function YearDetailView({
       setIsLoading(false);
       return;
     }
+    // Back from one year to another keeps this page mounted: the previous
+    // year's tracks must not stay under the new year's title while it
+    // loads. Data already for the requested year stays (a refetch).
+    // Loading is raised in the same pass, or the frame between would read
+    // "no data, not loading" and flash the not-found state.
+    setDetail((current) =>
+      current != null && current.year !== year ? null : current,
+    );
+    setIsLoading(true);
     let cancelled = false;
     (async () => {
-      setIsLoading(true);
       try {
         const loaded = await getYearDetail(year);
         if (!cancelled) setDetail(loaded);
