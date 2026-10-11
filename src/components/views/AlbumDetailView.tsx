@@ -262,9 +262,13 @@ export function AlbumDetailView({
 
   // Ctrl+A: every local track of the album. A server track has no rowid
   // to select. Above the skeleton's early return, as every hook must be.
-  // Only the album on screen: until the next one loads, the previous
-  // one is still in state.
-  const albumShown = album != null && loadedKey === albumKey;
+  // Only the album on screen (until the next one loads, the previous one
+  // is still in state), and only when it has a local track: on a server
+  // album Ctrl+A would just clear the selection.
+  const albumShown =
+    album != null &&
+    loadedKey === albumKey &&
+    album.tracks.some((track) => track.source !== "remote");
   useSelectAllShortcut(albumShown, () => {
     if (!album) return;
     selection.selectAll(
