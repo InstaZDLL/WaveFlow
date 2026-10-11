@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
+import { useProfile } from "./useProfile";
 import { useProfileSetting } from "./useProfileSetting";
 
 /** How many past searches the top bar keeps. */
@@ -74,6 +75,17 @@ export function useRecentSearches(): RecentSearches {
   // Searches made before the profile's list is read wait here: written
   // then, the updater would see the empty default and replace the list.
   const pendingRef = useRef<string[]>([]);
+  // The queue belongs to the profile that was active when it filled: a
+  // switch drops it, or the old profile's searches would land in the new
+  // one. Seeded with the current profile, so the first read keeps it.
+  const { activeProfile } = useProfile();
+  const activeProfileId = activeProfile?.id ?? null;
+  const pendingProfileRef = useRef(activeProfileId);
+  useEffect(() => {
+    if (pendingProfileRef.current === activeProfileId) return;
+    pendingProfileRef.current = activeProfileId;
+    pendingRef.current = [];
+  }, [activeProfileId]);
   useEffect(() => {
     if (!ready || pendingRef.current.length === 0) return;
     const queued = pendingRef.current;
