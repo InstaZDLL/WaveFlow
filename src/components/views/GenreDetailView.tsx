@@ -210,7 +210,7 @@ export function GenreDetailView({
 
       {/* Tracks */}
       {tracks.length > 0 ? (
-        <GenreTrackTable
+        <DetailTrackTable
           tracks={tracks}
           isLoading={isLoading}
           currentTrackId={currentTrack?.id ?? null}
@@ -263,7 +263,9 @@ export function GenreDetailView({
 
 // ── Track table ─────────────────────────────────────────────────────
 
-function GenreTrackTable({
+/** The track table of a detail page that lists tracks across albums: a
+ *  genre, a year. */
+export function DetailTrackTable({
   tracks,
   isLoading,
   currentTrackId,

@@ -232,6 +232,7 @@
       "albums": "Álbumes",
       "artists": "Artistas",
       "genres": "Géneros",
+      "years": "Años",
       "folders": "Carpetas"
     },
     "playlistSection": {
@@ -399,6 +400,10 @@
         "genres_one": "{{count}} género",
         "genres_other": "{{count}} géneros",
         "genres_many": "{{count}} géneros",
+        "years_zero": "0 años",
+        "years_one": "{{count}} año",
+        "years_many": "{{count}} años",
+        "years_other": "{{count}} años",
         "folders_zero": "0 carpetas",
         "folders_one": "{{count}} carpeta",
         "folders_other": "{{count}} carpetas",
@@ -418,6 +423,7 @@
       "albums": "Álbumes",
       "artists": "Artistas",
       "genres": "Géneros",
+      "years": "Años",
       "folders": "Carpetas",
       "playlists": "Listas",
       "needs-attention": "Por corregir"
@@ -438,6 +444,10 @@
       "genres": {
         "title": "No se han encontrado géneros",
         "description": "Importa archivos de audio para explorar distintos géneros."
+      },
+      "years": {
+        "title": "No se encontraron años",
+        "description": "Las canciones aparecen aquí agrupadas por el año de sus etiquetas."
       },
       "folders": {
         "title": "No hay carpetas importadas",
@@ -510,6 +520,10 @@
       "trackCount_one": "{{count}} pista",
       "trackCount_other": "{{count}} pistas",
       "trackCount_many": "{{count}} pistas"
+    },
+    "yearList": {
+      "unknown": "Año desconocido",
+      "decade": "Años {{decade}}"
     },
     "folderList": {
       "trackCount_zero": "0 pistas",
@@ -1332,6 +1346,13 @@
     "emptyDescription": "Este género ya no existe en el perfil activo.",
     "emptyTracksTitle": "Sin pistas",
     "emptyTracksDescription": "Este género no contiene pistas disponibles."
+  },
+  "yearDetail": {
+    "badge": "Año",
+    "emptyTitle": "Año no encontrado",
+    "emptyDescription": "Este año ya no tiene canciones en el perfil activo.",
+    "emptyTracksTitle": "Sin canciones",
+    "emptyTracksDescription": "Ninguna canción disponible tiene este año."
   },
   "genreImagePicker": {
     "title": "Cambiar imagen del género",

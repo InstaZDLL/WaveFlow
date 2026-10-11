@@ -228,6 +228,7 @@
       "albums": "Albums",
       "artists": "Artiesten",
       "genres": "Genres",
+      "years": "Jaren",
       "folders": "Mappen"
     },
     "playlistSection": {
@@ -385,6 +386,9 @@
         "genres_zero": "0 genres",
         "genres_one": "{{count}} genre",
         "genres_other": "{{count}} genres",
+        "years_zero": "0 jaar",
+        "years_one": "{{count}} jaar",
+        "years_other": "{{count}} jaar",
         "folders_zero": "0 mappen",
         "folders_one": "{{count}} map",
         "folders_other": "{{count}} mappen",
@@ -401,6 +405,7 @@
       "albums": "Albums",
       "artists": "Artiesten",
       "genres": "Genres",
+      "years": "Jaren",
       "folders": "Mappen",
       "playlists": "Afspeellijsten",
       "needs-attention": "Te verbeteren"
@@ -421,6 +426,10 @@
       "genres": {
         "title": "Geen genres gevonden",
         "description": "Importeer audiobestanden om verschillende genres te ontdekken."
+      },
+      "years": {
+        "title": "Geen jaren gevonden",
+        "description": "Nummers verschijnen hier, gegroepeerd op het jaar uit hun tags."
       },
       "folders": {
         "title": "Geen mappen geïmporteerd",
@@ -488,6 +497,10 @@
       "trackCount_zero": "0 nummers",
       "trackCount_one": "{{count}} nummer",
       "trackCount_other": "{{count}} nummers"
+    },
+    "yearList": {
+      "unknown": "Onbekend jaar",
+      "decade": "Jaren {{decade}}"
     },
     "folderList": {
       "trackCount_zero": "0 nummers",
@@ -1283,6 +1296,13 @@
     "emptyDescription": "Dit genre bestaat niet meer in het actieve profiel.",
     "emptyTracksTitle": "Geen nummers",
     "emptyTracksDescription": "Dit genre bevat geen beschikbare nummers."
+  },
+  "yearDetail": {
+    "badge": "Jaar",
+    "emptyTitle": "Jaar niet gevonden",
+    "emptyDescription": "Dit jaar heeft geen nummers meer in het actieve profiel.",
+    "emptyTracksTitle": "Geen nummers",
+    "emptyTracksDescription": "Geen beschikbaar nummer heeft dit jaar."
   },
   "genreImagePicker": {
     "title": "Genre-afbeelding wijzigen",

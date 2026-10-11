@@ -228,6 +228,7 @@
       "albums": "Alben",
       "artists": "Künstler",
       "genres": "Genres",
+      "years": "Jahre",
       "folders": "Ordner"
     },
     "playlistSection": {
@@ -385,6 +386,9 @@
         "genres_zero": "0 Genres",
         "genres_one": "{{count}} Genre",
         "genres_other": "{{count}} Genres",
+        "years_zero": "0 Jahre",
+        "years_one": "{{count}} Jahr",
+        "years_other": "{{count}} Jahre",
         "folders_zero": "0 Ordner",
         "folders_one": "{{count}} Ordner",
         "folders_other": "{{count}} Ordner",
@@ -401,6 +405,7 @@
       "albums": "Alben",
       "artists": "Künstler",
       "genres": "Genres",
+      "years": "Jahre",
       "folders": "Ordner",
       "playlists": "Playlists",
       "needs-attention": "Zu korrigieren"
@@ -421,6 +426,10 @@
       "genres": {
         "title": "Keine Genres gefunden",
         "description": "Importiere Audiodateien, um verschiedene Genres zu erkunden."
+      },
+      "years": {
+        "title": "Keine Jahre gefunden",
+        "description": "Titel erscheinen hier, gruppiert nach dem Jahr in ihren Tags."
       },
       "folders": {
         "title": "Keine Ordner importiert",
@@ -488,6 +497,10 @@
       "trackCount_zero": "0 Titel",
       "trackCount_one": "{{count}} Titel",
       "trackCount_other": "{{count}} Titel"
+    },
+    "yearList": {
+      "unknown": "Unbekanntes Jahr",
+      "decade": "{{decade}}er"
     },
     "folderList": {
       "trackCount_zero": "0 Titel",
@@ -1283,6 +1296,13 @@
     "emptyDescription": "Dieses Genre existiert im aktiven Profil nicht mehr.",
     "emptyTracksTitle": "Keine Titel",
     "emptyTracksDescription": "Dieses Genre enthält keine verfügbaren Titel."
+  },
+  "yearDetail": {
+    "badge": "Jahr",
+    "emptyTitle": "Jahr nicht gefunden",
+    "emptyDescription": "Dieses Jahr hat im aktiven Profil keine Titel mehr.",
+    "emptyTracksTitle": "Keine Titel",
+    "emptyTracksDescription": "Kein verfügbarer Titel trägt dieses Jahr."
   },
   "genreImagePicker": {
     "title": "Genre-Bild ändern",

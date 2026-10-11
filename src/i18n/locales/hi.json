@@ -228,6 +228,7 @@
       "albums": "एल्बम",
       "artists": "कलाकार",
       "genres": "शैलियाँ",
+      "years": "वर्ष",
       "folders": "फ़ोल्डर"
     },
     "playlistSection": {
@@ -385,6 +386,9 @@
         "genres_zero": "0 शैली",
         "genres_one": "{{count}} शैली",
         "genres_other": "{{count}} शैलियाँ",
+        "years_zero": "0 वर्ष",
+        "years_one": "{{count}} वर्ष",
+        "years_other": "{{count}} वर्ष",
         "folders_zero": "0 फ़ोल्डर",
         "folders_one": "{{count}} फ़ोल्डर",
         "folders_other": "{{count}} फ़ोल्डर",
@@ -401,6 +405,7 @@
       "albums": "एल्बम",
       "artists": "कलाकार",
       "genres": "शैलियाँ",
+      "years": "वर्ष",
       "folders": "फ़ोल्डर",
       "playlists": "प्लेलिस्ट",
       "needs-attention": "ध्यान चाहिए"
@@ -421,6 +426,10 @@
       "genres": {
         "title": "कोई शैली नहीं मिली",
         "description": "विभिन्न शैलियों का अन्वेषण करने के लिए ऑडियो फ़ाइलें आयात करें।"
+      },
+      "years": {
+        "title": "कोई वर्ष नहीं मिला",
+        "description": "ट्रैक यहाँ उनके टैग के वर्ष के अनुसार समूहित दिखते हैं।"
       },
       "folders": {
         "title": "कोई फ़ोल्डर आयात नहीं हुआ",
@@ -488,6 +497,10 @@
       "trackCount_zero": "0 ट्रैक",
       "trackCount_one": "{{count}} ट्रैक",
       "trackCount_other": "{{count}} ट्रैक"
+    },
+    "yearList": {
+      "unknown": "अज्ञात वर्ष",
+      "decade": "{{decade}} का दशक"
     },
     "folderList": {
       "trackCount_zero": "0 ट्रैक",
@@ -1283,6 +1296,13 @@
     "emptyDescription": "यह शैली सक्रिय प्रोफ़ाइल में अब मौजूद नहीं है।",
     "emptyTracksTitle": "कोई ट्रैक नहीं",
     "emptyTracksDescription": "इस शैली में कोई उपलब्ध ट्रैक नहीं है।"
+  },
+  "yearDetail": {
+    "badge": "वर्ष",
+    "emptyTitle": "वर्ष नहीं मिला",
+    "emptyDescription": "सक्रिय प्रोफ़ाइल में इस वर्ष के अब कोई ट्रैक नहीं हैं।",
+    "emptyTracksTitle": "कोई ट्रैक नहीं",
+    "emptyTracksDescription": "कोई उपलब्ध ट्रैक इस वर्ष का नहीं है।"
   },
   "genreImagePicker": {
     "title": "शैली की छवि बदलें",

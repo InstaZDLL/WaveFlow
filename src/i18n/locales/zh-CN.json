@@ -228,6 +228,7 @@
       "albums": "专辑",
       "artists": "艺人",
       "genres": "流派",
+      "years": "年份",
       "folders": "文件夹"
     },
     "playlistSection": {
@@ -385,6 +386,9 @@
         "genres_zero": "0 种流派",
         "genres_one": "{{count}} 种流派",
         "genres_other": "{{count}} 种流派",
+        "years_zero": "0 个年份",
+        "years_one": "{{count}} 个年份",
+        "years_other": "{{count}} 个年份",
         "folders_zero": "0 个文件夹",
         "folders_one": "{{count}} 个文件夹",
         "folders_other": "{{count}} 个文件夹",
@@ -401,6 +405,7 @@
       "albums": "专辑",
       "artists": "艺人",
       "genres": "流派",
+      "years": "年份",
       "folders": "文件夹",
       "playlists": "播放列表",
       "needs-attention": "待修正"
@@ -421,6 +426,10 @@
       "genres": {
         "title": "未找到任何流派",
         "description": "导入音频文件，探索不同音乐流派。"
+      },
+      "years": {
+        "title": "未找到年份",
+        "description": "歌曲会按标签中的年份分组显示在这里。"
       },
       "folders": {
         "title": "未导入任何文件夹",
@@ -488,6 +497,10 @@
       "trackCount_zero": "0 首曲目",
       "trackCount_one": "{{count}} 首曲目",
       "trackCount_other": "{{count}} 首曲目"
+    },
+    "yearList": {
+      "unknown": "未知年份",
+      "decade": "{{decade}} 年代"
     },
     "folderList": {
       "trackCount_zero": "0 首曲目",
@@ -1283,6 +1296,13 @@
     "emptyDescription": "此流派在当前个人资料中已不存在。",
     "emptyTracksTitle": "无曲目",
     "emptyTracksDescription": "此流派没有可用曲目。"
+  },
+  "yearDetail": {
+    "badge": "年份",
+    "emptyTitle": "未找到年份",
+    "emptyDescription": "当前资料中已没有该年份的歌曲。",
+    "emptyTracksTitle": "没有歌曲",
+    "emptyTracksDescription": "没有可用的歌曲标注为该年份。"
   },
   "genreImagePicker": {
     "title": "更改流派图片",

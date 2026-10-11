@@ -228,6 +228,7 @@
       "albums": "Albümler",
       "artists": "Sanatçılar",
       "genres": "Türler",
+      "years": "Yıllar",
       "folders": "Klasörler"
     },
     "playlistSection": {
@@ -385,6 +386,9 @@
         "genres_zero": "0 tür",
         "genres_one": "{{count}} tür",
         "genres_other": "{{count}} tür",
+        "years_zero": "0 yıl",
+        "years_one": "{{count}} yıl",
+        "years_other": "{{count}} yıl",
         "folders_zero": "0 klasör",
         "folders_one": "{{count}} klasör",
         "folders_other": "{{count}} klasör",
@@ -401,6 +405,7 @@
       "albums": "Albümler",
       "artists": "Sanatçılar",
       "genres": "Türler",
+      "years": "Yıllar",
       "folders": "Klasörler",
       "playlists": "Çalma listeleri",
       "needs-attention": "Düzeltilecekler"
@@ -421,6 +426,10 @@
       "genres": {
         "title": "Tür bulunamadı",
         "description": "Farklı türleri keşfetmek için ses dosyaları içe aktar."
+      },
+      "years": {
+        "title": "Yıl bulunamadı",
+        "description": "Parçalar burada etiketlerindeki yıla göre gruplanır."
       },
       "folders": {
         "title": "İçe aktarılmış klasör yok",
@@ -488,6 +497,10 @@
       "trackCount_zero": "0 parça",
       "trackCount_one": "{{count}} parça",
       "trackCount_other": "{{count}} parça"
+    },
+    "yearList": {
+      "unknown": "Bilinmeyen yıl",
+      "decade": "{{decade}} yılları"
     },
     "folderList": {
       "trackCount_zero": "0 parça",
@@ -1283,6 +1296,13 @@
     "emptyDescription": "Bu tür etkin profilde artık yok.",
     "emptyTracksTitle": "Parça yok",
     "emptyTracksDescription": "Bu tür kullanılabilir parça içermiyor."
+  },
+  "yearDetail": {
+    "badge": "Yıl",
+    "emptyTitle": "Yıl bulunamadı",
+    "emptyDescription": "Bu yılın etkin profilde artık parçası yok.",
+    "emptyTracksTitle": "Parça yok",
+    "emptyTracksDescription": "Bu yıla sahip kullanılabilir parça yok."
   },
   "genreImagePicker": {
     "title": "Tür görselini değiştir",

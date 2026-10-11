@@ -228,6 +228,7 @@
       "albums": "Albums",
       "artists": "Artists",
       "genres": "Genres",
+      "years": "Years",
       "folders": "Folders"
     },
     "playlistSection": {
@@ -385,6 +386,9 @@
         "genres_zero": "0 genres",
         "genres_one": "{{count}} genre",
         "genres_other": "{{count}} genres",
+        "years_zero": "0 years",
+        "years_one": "{{count}} year",
+        "years_other": "{{count}} years",
         "folders_zero": "0 folders",
         "folders_one": "{{count}} folder",
         "folders_other": "{{count}} folders",
@@ -401,6 +405,7 @@
       "albums": "Albums",
       "artists": "Artists",
       "genres": "Genres",
+      "years": "Years",
       "folders": "Folders",
       "playlists": "Playlists",
       "needs-attention": "Needs attention"
@@ -421,6 +426,10 @@
       "genres": {
         "title": "No genres found",
         "description": "Import audio files to explore different genres."
+      },
+      "years": {
+        "title": "No years found",
+        "description": "Tracks appear here grouped by the year their tags give."
       },
       "folders": {
         "title": "No folders imported",
@@ -488,6 +497,10 @@
       "trackCount_zero": "0 tracks",
       "trackCount_one": "{{count}} track",
       "trackCount_other": "{{count}} tracks"
+    },
+    "yearList": {
+      "unknown": "Unknown year",
+      "decade": "{{decade}}s"
     },
     "folderList": {
       "trackCount_zero": "0 tracks",
@@ -1283,6 +1296,13 @@
     "emptyDescription": "This genre no longer exists in the active profile.",
     "emptyTracksTitle": "No tracks",
     "emptyTracksDescription": "This genre contains no available tracks."
+  },
+  "yearDetail": {
+    "badge": "Year",
+    "emptyTitle": "Year not found",
+    "emptyDescription": "This year no longer has tracks in the active profile.",
+    "emptyTracksTitle": "No tracks",
+    "emptyTracksDescription": "No available track carries this year."
   },
   "genreImagePicker": {
     "title": "Change genre image",

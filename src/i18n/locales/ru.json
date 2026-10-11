@@ -236,6 +236,7 @@
       "albums": "Альбомы",
       "artists": "Исполнители",
       "genres": "Жанры",
+      "years": "Годы",
       "folders": "Папки"
     },
     "playlistSection": {
@@ -417,6 +418,11 @@
         "albums_many": "{{count}} альбомов",
         "artists_many": "{{count}} исполнителей",
         "genres_many": "{{count}} жанров",
+        "years_zero": "0 лет",
+        "years_one": "{{count}} год",
+        "years_few": "{{count}} года",
+        "years_many": "{{count}} лет",
+        "years_other": "{{count}} года",
         "folders_many": "{{count}} папок",
         "playlists_zero": "0 плейлистов",
         "playlists_one": "{{count}} плейлист",
@@ -435,6 +441,7 @@
       "albums": "Альбомы",
       "artists": "Исполнители",
       "genres": "Жанры",
+      "years": "Годы",
       "folders": "Папки",
       "playlists": "Плейлисты",
       "needs-attention": "Требует внимания"
@@ -455,6 +462,10 @@
       "genres": {
         "title": "Жанры не найдены",
         "description": "Импортируйте аудиофайлы, чтобы изучить разные жанры."
+      },
+      "years": {
+        "title": "Годы не найдены",
+        "description": "Здесь треки сгруппированы по году из их тегов."
       },
       "folders": {
         "title": "Папки не импортированы",
@@ -532,6 +543,10 @@
       "trackCount_few": "{{count}} трека",
       "trackCount_other": "{{count}} треков",
       "trackCount_many": "{{count}} треков"
+    },
+    "yearList": {
+      "unknown": "Год неизвестен",
+      "decade": "{{decade}}-е"
     },
     "folderList": {
       "trackCount_zero": "0 треков",
@@ -1381,6 +1396,13 @@
     "emptyTracksTitle": "Нет треков",
     "emptyTracksDescription": "В этом жанре нет доступных треков.",
     "trackCount_many": "{{count}} треков"
+  },
+  "yearDetail": {
+    "badge": "Год",
+    "emptyTitle": "Год не найден",
+    "emptyDescription": "В активном профиле больше нет треков этого года.",
+    "emptyTracksTitle": "Нет треков",
+    "emptyTracksDescription": "Ни у одного доступного трека нет этого года."
   },
   "genreImagePicker": {
     "title": "Изменить изображение жанра",

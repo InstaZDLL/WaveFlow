@@ -232,6 +232,7 @@
       "albums": "Álbuns",
       "artists": "Artistas",
       "genres": "Géneros",
+      "years": "Anos",
       "folders": "Pastas"
     },
     "playlistSection": {
@@ -399,6 +400,10 @@
         "genres_one": "{{count}} género",
         "genres_other": "{{count}} géneros",
         "genres_many": "{{count}} géneros",
+        "years_zero": "0 anos",
+        "years_one": "{{count}} ano",
+        "years_many": "{{count}} anos",
+        "years_other": "{{count}} anos",
         "folders_zero": "0 pastas",
         "folders_one": "{{count}} pasta",
         "folders_other": "{{count}} pastas",
@@ -418,6 +423,7 @@
       "albums": "Álbuns",
       "artists": "Artistas",
       "genres": "Géneros",
+      "years": "Anos",
       "folders": "Pastas",
       "playlists": "Listas de reprodução",
       "needs-attention": "A corrigir"
@@ -438,6 +444,10 @@
       "genres": {
         "title": "Não foi encontrado nenhum género",
         "description": "Importa ficheiros de áudio para descobrir os géneros."
+      },
+      "years": {
+        "title": "Nenhum ano encontrado",
+        "description": "As faixas aparecem aqui agrupadas pelo ano das suas etiquetas."
       },
       "folders": {
         "title": "Não há pastas importadas",
@@ -510,6 +520,10 @@
       "trackCount_one": "{{count}} faixa",
       "trackCount_other": "{{count}} faixas",
       "trackCount_many": "{{count}} faixas"
+    },
+    "yearList": {
+      "unknown": "Ano desconhecido",
+      "decade": "Anos {{decade}}"
     },
     "folderList": {
       "trackCount_zero": "0 faixas",
@@ -1333,6 +1347,13 @@
     "emptyDescription": "Este género já não existe no perfil ativo.",
     "emptyTracksTitle": "Sem faixas",
     "emptyTracksDescription": "Este género não contém faixas disponíveis."
+  },
+  "yearDetail": {
+    "badge": "Ano",
+    "emptyTitle": "Ano não encontrado",
+    "emptyDescription": "Este ano já não tem faixas no perfil ativo.",
+    "emptyTracksTitle": "Sem faixas",
+    "emptyTracksDescription": "Nenhuma faixa disponível tem este ano."
   },
   "genreImagePicker": {
     "title": "Alterar imagem do género",
