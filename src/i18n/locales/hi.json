@@ -249,6 +249,11 @@
       "results_one": "{{count}} परिणाम",
       "results_other": "{{count}} परिणाम",
       "empty": "आपकी खोज से कोई परिणाम मेल नहीं खाता",
+      "recent": {
+        "title": "हाल की खोजें",
+        "clear": "साफ़ करें",
+        "remove": "हाल की खोजों से “{{query}}” हटाएँ"
+      },
       "filters": {
         "toggle": "उन्नत फ़िल्टर",
         "title": "फ़िल्टर",
@@ -1728,7 +1733,9 @@
         "toggleQueue": "क्यू दिखाएँ / छिपाएँ",
         "toggleNowPlaying": "अभी चल रहा है दिखाएँ / छिपाएँ",
         "toggleLyrics": "बोल दिखाएँ / छिपाएँ",
-        "toggleLike": "पसंदीदा में जोड़ें / हटाएँ"
+        "toggleLike": "पसंदीदा में जोड़ें / हटाएँ",
+        "focusSearch": "खोज पर जाएँ",
+        "toggleFullscreen": "पूर्ण स्क्रीन"
       }
     },
     "offlineMode": {

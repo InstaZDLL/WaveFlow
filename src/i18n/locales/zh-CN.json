@@ -249,6 +249,11 @@
       "results_one": "{{count}} 个结果",
       "results_other": "{{count}} 个结果",
       "empty": "没有匹配的搜索结果",
+      "recent": {
+        "title": "最近搜索",
+        "clear": "清除",
+        "remove": "从最近搜索中移除“{{query}}”"
+      },
       "filters": {
         "toggle": "高级筛选",
         "title": "筛选",
@@ -2128,7 +2133,9 @@
         "toggleQueue": "显示/隐藏队列",
         "toggleNowPlaying": "显示/隐藏正在播放",
         "toggleLyrics": "显示/隐藏歌词",
-        "toggleLike": "喜欢/取消喜欢"
+        "toggleLike": "喜欢/取消喜欢",
+        "focusSearch": "跳转到搜索",
+        "toggleFullscreen": "全屏"
       }
     },
     "offlineMode": {

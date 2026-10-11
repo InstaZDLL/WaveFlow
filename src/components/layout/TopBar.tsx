@@ -19,11 +19,14 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   X,
+  History,
 } from "lucide-react";
 import type { ViewId } from "../../types";
 import { useTheme } from "../../hooks/useTheme";
 import { useProfile } from "../../hooks/useProfile";
 import { usePlayer } from "../../hooks/usePlayer";
+import { useRecentSearches } from "../../hooks/useRecentSearches";
+import { FOCUS_SEARCH_EVENT } from "../../lib/shortcuts";
 import { getProfileColor, profileInitial } from "../../lib/profileColors";
 import { MenuActionItem } from "../common/MenuActionItem";
 import { Artwork } from "../common/Artwork";
@@ -88,6 +91,13 @@ export function TopBar({
   const [artistResults, setArtistResults] = useState<ArtistRow[]>([]);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const { recent, remember, forget, clear } = useRecentSearches();
+  // Read from `runSearch`, which is memoised without it.
+  const recentCountRef = useRef(recent.length);
+  useEffect(() => {
+    recentCountRef.current = recent.length;
+  }, [recent.length]);
   const searchTimerRef = useRef<number | null>(null);
   // Monotonic id of the latest issued search. Each `runSearch` bumps it
   // and captures its value; the async `Promise.all` callback only writes
@@ -152,7 +162,12 @@ export function TopBar({
         setSearchResults([]);
         setAlbumResults([]);
         setArtistResults([]);
-        setIsSearchOpen(false);
+        // A field emptied while typing in it goes back to the recent
+        // searches rather than closing.
+        setIsSearchOpen(
+          document.activeElement === searchInputRef.current &&
+            recentCountRef.current > 0,
+        );
         return;
       }
 
@@ -262,20 +277,55 @@ export function TopBar({
     setArtistResults([]);
   };
 
+  // A search the user went somewhere from is worth offering again.
   const handleSearchResultClick = (tracks: Track[], index: number) => {
+    remember(searchQuery);
     playTracks(tracks, index, { type: "library", id: null });
     closeSearch();
   };
 
   const handleAlbumResultClick = (id: number) => {
+    remember(searchQuery);
     onNavigateToAlbum(id);
     closeSearch();
   };
 
   const handleArtistResultClick = (id: number) => {
+    remember(searchQuery);
     onNavigateToArtist(id);
     closeSearch();
   };
+
+  const runRecentSearch = (query: string) => {
+    if (searchTimerRef.current != null) {
+      window.clearTimeout(searchTimerRef.current);
+      searchTimerRef.current = null;
+    }
+    // Focus first: it fires `onFocus`, whose reopening must not be the
+    // last word in this batch.
+    searchInputRef.current?.focus();
+    setSearchQuery(query);
+    // Closed until the results land (`runSearch` reopens it), so the
+    // recent list does not give way to a passing "no result".
+    setIsSearchOpen(false);
+    runSearch(query, filters);
+  };
+
+  // An empty field with no filter shows the recent searches instead of
+  // results.
+  const showingRecent = searchQuery.trim() === "" && !hasActiveFilters;
+
+  // Ctrl+K (rebindable) from anywhere in the window.
+  useEffect(() => {
+    const focus = () => {
+      const input = searchInputRef.current;
+      if (!input) return;
+      input.focus();
+      input.select();
+    };
+    window.addEventListener(FOCUS_SEARCH_EVENT, focus);
+    return () => window.removeEventListener(FOCUS_SEARCH_EVENT, focus);
+  }, []);
 
   // Close search dropdown / filter panel on click outside.
   useEffect(() => {
@@ -390,6 +440,7 @@ export function TopBar({
         <div className="flex items-center px-4 py-2.5 rounded-full border transition-all focus-within:ring-2 ring-emerald-500/20 bg-white border-zinc-200 dark:bg-zinc-800/50 dark:border-zinc-700 dark:text-zinc-200">
           <Search size={18} className="text-zinc-400 mr-3" />
           <input
+            ref={searchInputRef}
             type="text"
             value={searchQuery}
             onChange={(e) => handleSearchInput(e.target.value)}
@@ -398,7 +449,8 @@ export function TopBar({
                 searchResults.length +
                   albumResults.length +
                   artistResults.length >
-                0
+                  0 ||
+                (showingRecent && recent.length > 0)
               )
                 setIsSearchOpen(true);
             }}
@@ -604,10 +656,67 @@ export function TopBar({
               style={{ transformOrigin: "top center" }}
               className="absolute top-full left-0 right-0 mt-2 z-50 rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated dark:shadow-black/40 overflow-hidden"
             >
-              {searchResults.length +
-                albumResults.length +
-                artistResults.length ===
-              0 ? (
+              {showingRecent ? (
+                recent.length > 0 && (
+                  <div className="max-h-96 overflow-y-auto py-1">
+                    <div className="flex items-center justify-between px-4 pt-2 pb-1">
+                      <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
+                        {t("topbar.search.recent.title")}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          clear();
+                          setIsSearchOpen(false);
+                        }}
+                        className="text-xs text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors"
+                      >
+                        {t("topbar.search.recent.clear")}
+                      </button>
+                    </div>
+                    <ul>
+                      {recent.map((query) => (
+                        <li key={query} className="group flex items-center">
+                          <button
+                            type="button"
+                            onClick={() => runRecentSearch(query)}
+                            className="flex flex-1 min-w-0 items-center space-x-3 px-4 py-2 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800/60 transition-colors"
+                          >
+                            <History
+                              size={16}
+                              className="text-zinc-400 shrink-0"
+                              aria-hidden="true"
+                            />
+                            <span
+                              dir="auto"
+                              className="truncate text-sm text-zinc-800 dark:text-zinc-200"
+                            >
+                              {query}
+                            </span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              forget(query);
+                              if (recent.length <= 1) setIsSearchOpen(false);
+                            }}
+                            aria-label={t("topbar.search.recent.remove", {
+                              query,
+                            })}
+                            title={t("topbar.search.recent.remove", { query })}
+                            className="mr-2 rounded-full p-1.5 text-zinc-400 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 hover:text-zinc-700 dark:hover:text-zinc-200 transition-opacity"
+                          >
+                            <X size={14} />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )
+              ) : searchResults.length +
+                  albumResults.length +
+                  artistResults.length ===
+                0 ? (
                 <div className="px-4 py-6 text-center text-sm text-zinc-500">
                   {t("topbar.search.empty")}
                 </div>

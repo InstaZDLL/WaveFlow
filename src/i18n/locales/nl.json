@@ -249,6 +249,11 @@
       "results_one": "{{count}} resultaat",
       "results_other": "{{count}} resultaten",
       "empty": "Geen resultaten gevonden voor je zoekopdracht",
+      "recent": {
+        "title": "Recente zoekopdrachten",
+        "clear": "Wissen",
+        "remove": "‘{{query}}’ uit recente zoekopdrachten verwijderen"
+      },
       "filters": {
         "toggle": "Geavanceerde filters",
         "title": "Filters",
@@ -1728,7 +1733,9 @@
         "toggleQueue": "Wachtrijpaneel in-/uitschakelen",
         "toggleNowPlaying": "Paneel ‘Speelt nu’ in-/uitschakelen",
         "toggleLyrics": "Songtekstpaneel in-/uitschakelen",
-        "toggleLike": "Huidig nummer favoriet maken / verwijderen"
+        "toggleLike": "Huidig nummer favoriet maken / verwijderen",
+        "focusSearch": "Naar zoeken",
+        "toggleFullscreen": "Volledig scherm"
       }
     },
     "offlineMode": {

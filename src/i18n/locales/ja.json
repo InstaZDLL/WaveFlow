@@ -249,6 +249,11 @@
       "results_one": "{{count}}件",
       "results_other": "{{count}}件",
       "empty": "検索に一致する結果はありません",
+      "recent": {
+        "title": "最近の検索",
+        "clear": "消去",
+        "remove": "「{{query}}」を最近の検索から削除"
+      },
       "filters": {
         "toggle": "詳細フィルター",
         "title": "フィルター",
@@ -2128,7 +2133,9 @@
         "toggleQueue": "キューを表示 / 非表示",
         "toggleNowPlaying": "再生中を表示 / 非表示",
         "toggleLyrics": "歌詞を表示 / 非表示",
-        "toggleLike": "いいね / 解除"
+        "toggleLike": "いいね / 解除",
+        "focusSearch": "検索に移動",
+        "toggleFullscreen": "全画面表示"
       }
     },
     "offlineMode": {

@@ -249,6 +249,11 @@
       "results_one": "{{count}} 個結果",
       "results_other": "{{count}} 個結果",
       "empty": "沒有符合的搜尋結果",
+      "recent": {
+        "title": "最近搜尋",
+        "clear": "清除",
+        "remove": "從最近搜尋中移除「{{query}}」"
+      },
       "filters": {
         "toggle": "進階篩選",
         "title": "篩選",
@@ -2128,7 +2133,9 @@
         "toggleQueue": "顯示 / 隱藏佇列",
         "toggleNowPlaying": "顯示 / 隱藏正在播放",
         "toggleLyrics": "顯示 / 隱藏歌詞",
-        "toggleLike": "收藏 / 取消收藏"
+        "toggleLike": "收藏 / 取消收藏",
+        "focusSearch": "跳至搜尋",
+        "toggleFullscreen": "全螢幕"
       }
     },
     "offlineMode": {
