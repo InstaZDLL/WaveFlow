@@ -26,6 +26,7 @@ import {
   ListPlus,
   Loader2,
   Pencil,
+  CopyPlus,
   Plus,
   Search,
   X,
@@ -325,10 +326,14 @@ export function PlaylistView({
     getPlaylistTracks,
     playlists,
     removeTrackFromPlaylist,
+    addTracksToPlaylist,
     refresh: refreshPlaylists,
   } = usePlaylist();
   const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] =
     useState(false);
+  // "Keep as playlist" on a mix: a smart playlist rebuilds itself, so the
+  // tracks it holds today are gone at the next refresh unless copied.
+  const [isKeepOpen, setIsKeepOpen] = useState(false);
 
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [tracks, setTracks] = useState<PlaylistTrack[]>([]);
@@ -1354,6 +1359,20 @@ export function PlaylistView({
                   </Tooltip>
                 )}
 
+                {!remote && (playlist?.is_smart ?? 0) === 1 && (
+                  <Tooltip label={t("playlistView.actions.keepAsPlaylist")}>
+                    <button
+                      type="button"
+                      onClick={() => setIsKeepOpen(true)}
+                      disabled={tracks.length === 0}
+                      aria-label={t("playlistView.actions.keepAsPlaylist")}
+                      className={`p-2 rounded-lg transition-colors ${headerControl} disabled:opacity-50 disabled:cursor-not-allowed`}
+                    >
+                      <CopyPlus size={18} />
+                    </button>
+                  </Tooltip>
+                )}
+
                 {/* The twin's own affordance: append tracks picked from a
                     live search of the server's catalogue. The local side
                     adds tracks from the library instead. */}
@@ -1641,6 +1660,29 @@ export function PlaylistView({
         }}
       />
 
+      <CreatePlaylistModal
+        isOpen={!remote && isKeepOpen}
+        onClose={() => setIsKeepOpen(false)}
+        initialName={playlist?.name ?? ""}
+        onCreate={async (data) => {
+          const created = await createFromModal(data);
+          // In the order shown, local rows only: a mix holds library
+          // tracks, and a copy is what the user sees right now.
+          const ids = displayTracksRef.current
+            .filter((track) => track.source !== "remote" && track.id > 0)
+            .map((track) => track.id);
+          if (created?.id != null && ids.length > 0) {
+            try {
+              await addTracksToPlaylist(created.id, ids);
+            } catch (err) {
+              // The playlist exists; returning it keeps the modal from
+              // offering a retry that would create a duplicate.
+              console.error("[PlaylistView] keep mix tracks failed", err);
+            }
+          }
+          return created;
+        }}
+      />
       <CreatePlaylistModal
         isOpen={!remote && isCreatePlaylistModalOpen}
         onClose={() => setIsCreatePlaylistModalOpen(false)}

@@ -935,7 +935,9 @@
     "radio": {
       "label": "電台",
       "basedOn": "根據「{{title}}」"
-    }
+    },
+    "saveAsPlaylist": "儲存為播放清單",
+    "defaultPlaylistName": "{{date}} 的播放佇列"
   },
   "deviceMenu": {
     "activeLabel": "作用中的輸出",
@@ -1071,7 +1073,8 @@
       "deleteConfirm": "請再按一下以確認",
       "share": "分享",
       "reorder": "重新排序",
-      "removeFromPlaylist": "從播放清單移除"
+      "removeFromPlaylist": "從播放清單移除",
+      "keepAsPlaylist": "保留為播放清單"
     },
     "export": {
       "dialogTitle": "將播放清單匯出為 M3U 格式"

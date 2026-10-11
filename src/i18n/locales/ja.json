@@ -935,7 +935,9 @@
     "radio": {
       "label": "ラジオ",
       "basedOn": "「{{title}}」を基に"
-    }
+    },
+    "saveAsPlaylist": "プレイリストとして保存",
+    "defaultPlaylistName": "{{date}}の再生キュー"
   },
   "deviceMenu": {
     "activeLabel": "アクティブ出力",
@@ -1071,7 +1073,8 @@
       "deleteConfirm": "もう一度クリックして確認してください",
       "share": "共有",
       "reorder": "並べ替え",
-      "removeFromPlaylist": "プレイリストから削除"
+      "removeFromPlaylist": "プレイリストから削除",
+      "keepAsPlaylist": "プレイリストとして保存"
     },
     "export": {
       "dialogTitle": "プレイリストをM3U形式でエクスポートする"

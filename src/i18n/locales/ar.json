@@ -1062,7 +1062,9 @@
     "count_many": "{{count}} مقطعًا",
     "upNext_two": "التالي · مقطعان",
     "upNext_few": "التالي · {{count}} مقاطع",
-    "upNext_many": "التالي · {{count}} مقطعًا"
+    "upNext_many": "التالي · {{count}} مقطعًا",
+    "saveAsPlaylist": "حفظ كقائمة تشغيل",
+    "defaultPlaylistName": "قائمة الانتظار بتاريخ {{date}}"
   },
   "deviceMenu": {
     "activeLabel": "الخرج النشط",
@@ -1206,7 +1208,8 @@
       "deleteConfirm": "انقر مرة أخرى للتأكيد",
       "share": "مشاركة",
       "reorder": "إعادة الترتيب",
-      "removeFromPlaylist": "إزالة من قائمة التشغيل"
+      "removeFromPlaylist": "إزالة من قائمة التشغيل",
+      "keepAsPlaylist": "الاحتفاظ كقائمة تشغيل"
     },
     "export": {
       "dialogTitle": "تصدير قائمة التشغيل كملف M3U"

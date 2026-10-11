@@ -56,6 +56,11 @@ interface CreatePlaylistModalProps {
    */
   existing?: Playlist | null;
   /**
+   * The name a new playlist starts with — a mix's own name when it is
+   * kept, a dated one for a saved queue. Ignored in edit mode.
+   */
+  initialName?: string;
+  /**
    * Called whenever the cover changes from inside the modal (upload or
    * remove). The parent should refresh its playlist state so the new
    * `cover_path` flows down on the next render. Only meaningful in edit
@@ -69,11 +74,12 @@ export function CreatePlaylistModal({
   onClose,
   onCreate,
   existing,
+  initialName,
   onCoverChanged,
 }: CreatePlaylistModalProps) {
   const { t } = useTranslation();
   const isEdit = existing != null;
-  const [name, setName] = useState(existing?.name ?? "");
+  const [name, setName] = useState(existing?.name ?? initialName ?? "");
   const [description, setDescription] = useState(existing?.description ?? "");
   const [selectedColorId, setSelectedColorId] = useState(
     existing?.color_id ?? PLAYLIST_COLORS[0].id,
@@ -112,7 +118,7 @@ export function CreatePlaylistModal({
   useEffect(() => {
     if (!isOpen) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setName(existing?.name ?? "");
+      setName(existing?.name ?? initialName ?? "");
       setDescription(existing?.description ?? "");
       setSelectedColorId(existing?.color_id ?? PLAYLIST_COLORS[0].id);
       setColorMode(existing?.color_mode === "manual" ? "manual" : "auto");
@@ -130,7 +136,7 @@ export function CreatePlaylistModal({
       // false, so no extra cleanup is needed here.
       setCoverMenuOpen(false);
     }
-  }, [isOpen, existing]);
+  }, [isOpen, existing, initialName]);
 
   // Modal a11y: Escape close, focus trap, focus restore on close.
   // Replaces the previous bespoke Escape listener.

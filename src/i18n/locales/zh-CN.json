@@ -935,7 +935,9 @@
     "radio": {
       "label": "电台",
       "basedOn": "基于“{{title}}”"
-    }
+    },
+    "saveAsPlaylist": "保存为歌单",
+    "defaultPlaylistName": "{{date}} 的播放队列"
   },
   "deviceMenu": {
     "activeLabel": "当前输出设备",
@@ -1071,7 +1073,8 @@
       "deleteConfirm": "再次点击以确认",
       "share": "分享",
       "reorder": "重新排序",
-      "removeFromPlaylist": "从播放列表中移除"
+      "removeFromPlaylist": "从播放列表中移除",
+      "keepAsPlaylist": "保存为歌单"
     },
     "export": {
       "dialogTitle": "将播放列表导出为 M3U 格式"

@@ -975,7 +975,9 @@
     "radio": {
       "label": "Rádio",
       "basedOn": "Baseado em “{{title}}”"
-    }
+    },
+    "saveAsPlaylist": "Salvar como playlist",
+    "defaultPlaylistName": "Fila de {{date}}"
   },
   "deviceMenu": {
     "activeLabel": "Saída ativa",
@@ -1114,7 +1116,8 @@
       "deleteConfirm": "Clique novamente para confirmar",
       "share": "Compartilhar",
       "reorder": "Reordenar",
-      "removeFromPlaylist": "Remover da playlist"
+      "removeFromPlaylist": "Remover da playlist",
+      "keepAsPlaylist": "Manter como playlist"
     },
     "export": {
       "dialogTitle": "Exportar a playlist como M3U"

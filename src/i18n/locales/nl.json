@@ -935,7 +935,9 @@
     "radio": {
       "label": "Radio",
       "basedOn": "Gebaseerd op ‘{{title}}’"
-    }
+    },
+    "saveAsPlaylist": "Opslaan als afspeellijst",
+    "defaultPlaylistName": "Wachtrij van {{date}}"
   },
   "deviceMenu": {
     "activeLabel": "Actieve uitvoer",
@@ -1071,7 +1073,8 @@
       "deleteConfirm": "Klik nogmaals om te bevestigen",
       "share": "Delen",
       "reorder": "Herschikken",
-      "removeFromPlaylist": "Uit afspeellijst verwijderen"
+      "removeFromPlaylist": "Uit afspeellijst verwijderen",
+      "keepAsPlaylist": "Bewaren als afspeellijst"
     },
     "export": {
       "dialogTitle": "Afspeellijst als M3U exporteren"

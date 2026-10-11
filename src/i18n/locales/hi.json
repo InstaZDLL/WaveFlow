@@ -935,7 +935,9 @@
     "radio": {
       "label": "रेडियो",
       "basedOn": "“{{title}}” पर आधारित"
-    }
+    },
+    "saveAsPlaylist": "प्लेलिस्ट के रूप में सहेजें",
+    "defaultPlaylistName": "{{date}} की कतार"
   },
   "deviceMenu": {
     "activeLabel": "सक्रिय आउटपुट",
@@ -1071,7 +1073,8 @@
       "deleteConfirm": "पुष्टि करने के लिए फिर से क्लिक करें",
       "share": "साझा करें",
       "reorder": "पुनः क्रमबद्ध करें",
-      "removeFromPlaylist": "प्लेलिस्ट से हटाएँ"
+      "removeFromPlaylist": "प्लेलिस्ट से हटाएँ",
+      "keepAsPlaylist": "प्लेलिस्ट के रूप में रखें"
     },
     "export": {
       "dialogTitle": "प्लेलिस्ट को M3U फ़ाइल के रूप में निर्यात करें"

@@ -1013,7 +1013,9 @@
       "basedOn": "На основе «{{title}}»"
     },
     "count_many": "{{count}} треков",
-    "upNext_many": "Далее · {{count}} треков"
+    "upNext_many": "Далее · {{count}} треков",
+    "saveAsPlaylist": "Сохранить как плейлист",
+    "defaultPlaylistName": "Очередь от {{date}}"
   },
   "deviceMenu": {
     "activeLabel": "Активный выход",
@@ -1154,7 +1156,8 @@
       "deleteConfirm": "Нажмите ещё раз для подтверждения",
       "share": "Поделиться",
       "reorder": "Изменить порядок",
-      "removeFromPlaylist": "Убрать из плейлиста"
+      "removeFromPlaylist": "Убрать из плейлиста",
+      "keepAsPlaylist": "Сохранить как плейлист"
     },
     "export": {
       "dialogTitle": "Экспорт плейлиста в M3U"
