@@ -2871,9 +2871,11 @@ struct GenreHeaderRaw {
     artwork_format: Option<String>,
 }
 
+/// One track row of a detail page that lists tracks across albums (a
+/// genre, a year), shaped by [`detail_tracks_sql`].
 #[derive(FromRow)]
-struct GenreTrackRaw {
-    id: i64,
+pub(crate) struct DetailTrackRaw {
+    pub(crate) id: i64,
     library_id: i64,
     title: String,
     album_id: Option<i64>,
@@ -2940,7 +2942,41 @@ pub async fn get_genre_detail(
         _ => (None, None, None),
     };
 
-    let rows = sqlx::query_as::<_, GenreTrackRaw>(
+    let rows = sqlx::query_as::<_, DetailTrackRaw>(detail_tracks_sql(
+        "JOIN track_genre tg ON tg.track_id = t.id",
+        "tg.genre_id = ?",
+    ))
+    .bind(genre_id)
+    .fetch_all(&*pool)
+    .await?;
+
+    let tracks: Vec<crate::commands::track::Track> = rows
+        .into_iter()
+        .map(|row| detail_track(row, &artwork_dir))
+        .collect();
+
+    let track_count = tracks.len() as i64;
+    let total_duration_ms = tracks.iter().map(|t| t.duration_ms).sum();
+
+    Ok(GenreDetail {
+        id: header.id,
+        name: header.name,
+        track_count,
+        total_duration_ms,
+        artwork_path,
+        artwork_path_1x,
+        artwork_path_2x,
+        tracks,
+    })
+}
+
+/// The track query of a detail page: every available track that `join`
+/// and `filter` keep, ordered by artist → album → disc → track number to
+/// match `list_tracks`'s default layout. `filter` binds what the caller
+/// binds. Both fragments are literals of this crate, never user input,
+/// which is what makes the assertion of safety true.
+pub(crate) fn detail_tracks_sql(join: &str, filter: &str) -> sqlx::AssertSqlSafe<String> {
+    sqlx::AssertSqlSafe(format!(
         r#"
         SELECT t.id, t.library_id, t.title,
                t.album_id,
@@ -2965,80 +3001,65 @@ pub async fn get_genre_detail(
                aw.format AS artwork_format,
                t.rating  AS rating
           FROM track t
-          JOIN track_genre tg ON tg.track_id = t.id
+          {join}
           LEFT JOIN album   al ON al.id = t.album_id
           LEFT JOIN artist  ar ON ar.id = t.primary_artist
           LEFT JOIN artwork aw ON aw.id = al.artwork_id
-         WHERE tg.genre_id = ? AND t.is_available = 1
+         WHERE {filter} AND t.is_available = 1
          ORDER BY ar.canonical_name COLLATE NAME,
                   al.canonical_title COLLATE NAME,
                   t.disc_number,
                   t.track_number,
                   t.title COLLATE FOLD
-        "#,
-    )
-    .bind(genre_id)
-    .fetch_all(&*pool)
-    .await?;
+        "#
+    ))
+}
 
-    let tracks: Vec<crate::commands::track::Track> = rows
-        .into_iter()
-        .map(|row| {
-            let (artwork_path, artwork_path_1x, artwork_path_2x) =
-                match (row.artwork_hash.as_deref(), row.artwork_format.as_deref()) {
-                    (Some(hash), Some(format)) => {
-                        let full = artwork_dir
-                            .join(format!("{}.{}", hash, format))
-                            .to_string_lossy()
-                            .to_string();
-                        let (p1, p2) = crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
-                        (Some(full), p1, p2)
-                    }
-                    _ => (None, None, None),
-                };
-            crate::commands::track::Track {
-                id: row.id,
-                library_id: row.library_id,
-                title: row.title,
-                album_id: row.album_id,
-                album_title: row.album_title,
-                artist_id: row.artist_id,
-                artist_name: row.artist_name,
-                artist_ids: row.artist_ids,
-                duration_ms: row.duration_ms,
-                track_number: row.track_number,
-                disc_number: row.disc_number,
-                year: row.year,
-                bitrate: row.bitrate,
-                sample_rate: row.sample_rate,
-                channels: row.channels,
-                bit_depth: row.bit_depth,
-                codec: row.codec,
-                musical_key: row.musical_key,
-                file_path: row.file_path,
-                file_size: row.file_size,
-                added_at: row.added_at,
-                artwork_path,
-                artwork_path_1x,
-                artwork_path_2x,
-                rating: row.rating,
+/// A [`DetailTrackRaw`] as the `Track` the frontend plays, its cover
+/// resolved under `artwork_dir`.
+pub(crate) fn detail_track(
+    row: DetailTrackRaw,
+    artwork_dir: &std::path::Path,
+) -> crate::commands::track::Track {
+    let (artwork_path, artwork_path_1x, artwork_path_2x) =
+        match (row.artwork_hash.as_deref(), row.artwork_format.as_deref()) {
+            (Some(hash), Some(format)) => {
+                let full = artwork_dir
+                    .join(format!("{}.{}", hash, format))
+                    .to_string_lossy()
+                    .to_string();
+                let (p1, p2) = crate::thumbnails::thumbnail_paths_for(artwork_dir, hash);
+                (Some(full), p1, p2)
             }
-        })
-        .collect();
-
-    let track_count = tracks.len() as i64;
-    let total_duration_ms = tracks.iter().map(|t| t.duration_ms).sum();
-
-    Ok(GenreDetail {
-        id: header.id,
-        name: header.name,
-        track_count,
-        total_duration_ms,
+            _ => (None, None, None),
+        };
+    crate::commands::track::Track {
+        id: row.id,
+        library_id: row.library_id,
+        title: row.title,
+        album_id: row.album_id,
+        album_title: row.album_title,
+        artist_id: row.artist_id,
+        artist_name: row.artist_name,
+        artist_ids: row.artist_ids,
+        duration_ms: row.duration_ms,
+        track_number: row.track_number,
+        disc_number: row.disc_number,
+        year: row.year,
+        bitrate: row.bitrate,
+        sample_rate: row.sample_rate,
+        channels: row.channels,
+        bit_depth: row.bit_depth,
+        codec: row.codec,
+        musical_key: row.musical_key,
+        file_path: row.file_path,
+        file_size: row.file_size,
+        added_at: row.added_at,
         artwork_path,
         artwork_path_1x,
         artwork_path_2x,
-        tracks,
-    })
+        rating: row.rating,
+    }
 }
 
 // ─── Play history (Last.fm-style chronological scrubber) ─────────

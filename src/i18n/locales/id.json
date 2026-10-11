@@ -228,6 +228,7 @@
       "albums": "Album",
       "artists": "Artis",
       "genres": "Genre",
+      "years": "Tahun",
       "folders": "Folder"
     },
     "playlistSection": {
@@ -385,6 +386,9 @@
         "genres_zero": "0 genre",
         "genres_one": "{{count}} genre",
         "genres_other": "{{count}} genre",
+        "years_zero": "0 tahun",
+        "years_one": "{{count}} tahun",
+        "years_other": "{{count}} tahun",
         "folders_zero": "0 folder",
         "folders_one": "{{count}} folder",
         "folders_other": "{{count}} folder",
@@ -401,6 +405,7 @@
       "albums": "Album",
       "artists": "Artis",
       "genres": "Genre",
+      "years": "Tahun",
       "folders": "Folder",
       "playlists": "Daftar putar",
       "needs-attention": "Perlu diperbaiki"
@@ -421,6 +426,10 @@
       "genres": {
         "title": "Tidak ada genre ditemukan",
         "description": "Impor berkas audio untuk menjelajahi berbagai genre."
+      },
+      "years": {
+        "title": "Tidak ada tahun",
+        "description": "Lagu tampil di sini, dikelompokkan menurut tahun pada tag-nya."
       },
       "folders": {
         "title": "Belum ada folder yang diimpor",
@@ -488,6 +497,10 @@
       "trackCount_zero": "0 lagu",
       "trackCount_one": "{{count}} lagu",
       "trackCount_other": "{{count}} lagu"
+    },
+    "yearList": {
+      "unknown": "Tahun tidak diketahui",
+      "decade": "Tahun {{decade}}-an"
     },
     "folderList": {
       "trackCount_zero": "0 lagu",
@@ -1283,6 +1296,13 @@
     "emptyDescription": "Genre ini tidak lagi ada di profil aktif.",
     "emptyTracksTitle": "Tidak ada lagu",
     "emptyTracksDescription": "Genre ini tidak berisi lagu yang tersedia."
+  },
+  "yearDetail": {
+    "badge": "Tahun",
+    "emptyTitle": "Tahun tidak ditemukan",
+    "emptyDescription": "Tahun ini tidak lagi memiliki lagu di profil aktif.",
+    "emptyTracksTitle": "Tidak ada lagu",
+    "emptyTracksDescription": "Tidak ada lagu tersedia yang bertahun ini."
   },
   "genreImagePicker": {
     "title": "Ubah gambar genre",

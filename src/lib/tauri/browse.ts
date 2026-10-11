@@ -758,6 +758,56 @@ export async function listGenres(
   return resp.items.map((item) => expandGenreRow(item, resp.artwork_base, sep));
 }
 
+/** One year of the Years tab, from `list_years`. `year` is `null` for
+ *  the tracks with no usable year ("Unknown year"). */
+export interface YearRow {
+  year: number | null;
+  track_count: number;
+  album_count: number;
+  /** Cover of the album with the most tracks that year. */
+  artwork_path: string | null;
+  artwork_path_1x: string | null;
+  artwork_path_2x: string | null;
+}
+
+interface YearRowSlim {
+  year: number | null;
+  track_count: number;
+  album_count: number;
+  artwork_hash: string | null;
+  artwork_format: string | null;
+  artwork_has_1x: boolean;
+  artwork_has_2x: boolean;
+}
+
+interface ListYearsResponse {
+  artwork_base: string;
+  items: YearRowSlim[];
+}
+
+export async function listYears(libraryId: number | null): Promise<YearRow[]> {
+  const resp = await invoke<ListYearsResponse>("list_years", { libraryId });
+  const base = resp.artwork_base;
+  const sep = pathSep(base);
+  return resp.items.map((item) => ({
+    year: item.year,
+    track_count: item.track_count,
+    album_count: item.album_count,
+    artwork_path:
+      item.artwork_hash && item.artwork_format
+        ? `${base}${sep}${item.artwork_hash}.${item.artwork_format}`
+        : null,
+    artwork_path_1x:
+      item.artwork_hash && item.artwork_has_1x
+        ? `${base}${sep}${item.artwork_hash}_1x.jpg`
+        : null,
+    artwork_path_2x:
+      item.artwork_hash && item.artwork_has_2x
+        ? `${base}${sep}${item.artwork_hash}_2x.jpg`
+        : null,
+  }));
+}
+
 export function setGenreArtworkFromFile(
   genreId: number,
   filePath: string,

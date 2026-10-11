@@ -14,6 +14,7 @@ export type ViewId =
   | "album-detail"
   | "artist-detail"
   | "genre-detail"
+  | "year-detail"
   | "web-radio"
   // A playlist that lives on the bound remote server (RFC-005 sync_v2).
   // The concrete playlist id is carried on the history entry, like the
@@ -32,6 +33,7 @@ export type LibraryTab =
   | "albums"
   | "artists"
   | "genres"
+  | "years"
   | "playlists"
   | "folders"
   // The "needs attention" inventory (#589). Last, because it is

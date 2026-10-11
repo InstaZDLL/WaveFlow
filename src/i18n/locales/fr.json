@@ -232,6 +232,7 @@
       "albums": "Albums",
       "artists": "Artistes",
       "genres": "Genres",
+      "years": "Années",
       "folders": "Dossiers"
     },
     "playlistSection": {
@@ -399,6 +400,10 @@
         "genres_one": "{{count}} genre",
         "genres_other": "{{count}} genres",
         "genres_many": "{{count}} genres",
+        "years_zero": "0 année",
+        "years_one": "{{count}} année",
+        "years_many": "{{count}} années",
+        "years_other": "{{count}} années",
         "folders_zero": "0 dossiers",
         "folders_one": "{{count}} dossier",
         "folders_other": "{{count}} dossiers",
@@ -418,6 +423,7 @@
       "albums": "Albums",
       "artists": "Artistes",
       "genres": "Genres",
+      "years": "Années",
       "folders": "Dossiers",
       "playlists": "Playlists",
       "needs-attention": "À corriger"
@@ -438,6 +444,10 @@
       "genres": {
         "title": "Aucun genre trouvé",
         "description": "Importez des fichiers audio pour découvrir les genres."
+      },
+      "years": {
+        "title": "Aucune année trouvée",
+        "description": "Les titres apparaissent ici, regroupés par l'année de leurs tags."
       },
       "folders": {
         "title": "Aucun dossier importé",
@@ -510,6 +520,10 @@
       "trackCount_one": "{{count}} titre",
       "trackCount_other": "{{count}} titres",
       "trackCount_many": "{{count}} titres"
+    },
+    "yearList": {
+      "unknown": "Année inconnue",
+      "decade": "Années {{decade}}"
     },
     "folderList": {
       "trackCount_zero": "0 titres",
@@ -1332,6 +1346,13 @@
     "emptyDescription": "Ce genre n'existe plus dans le profil actif.",
     "emptyTracksTitle": "Aucun titre",
     "emptyTracksDescription": "Ce genre ne contient aucun titre disponible."
+  },
+  "yearDetail": {
+    "badge": "Année",
+    "emptyTitle": "Année introuvable",
+    "emptyDescription": "Cette année n'a plus de titres dans le profil actif.",
+    "emptyTracksTitle": "Aucun titre",
+    "emptyTracksDescription": "Aucun titre disponible ne porte cette année."
   },
   "genreImagePicker": {
     "title": "Modifier l'image du genre",

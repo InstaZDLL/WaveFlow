@@ -228,6 +228,7 @@
       "albums": "專輯",
       "artists": "藝人",
       "genres": "曲風",
+      "years": "年份",
       "folders": "資料夾"
     },
     "playlistSection": {
@@ -385,6 +386,9 @@
         "genres_zero": "0 種曲風",
         "genres_one": "{{count}} 種曲風",
         "genres_other": "{{count}} 種曲風",
+        "years_zero": "0 個年份",
+        "years_one": "{{count}} 個年份",
+        "years_other": "{{count}} 個年份",
         "folders_zero": "0 個資料夾",
         "folders_one": "{{count}} 個資料夾",
         "folders_other": "{{count}} 個資料夾",
@@ -401,6 +405,7 @@
       "albums": "專輯",
       "artists": "藝人",
       "genres": "曲風",
+      "years": "年份",
       "folders": "資料夾",
       "playlists": "播放清單",
       "needs-attention": "待修正"
@@ -421,6 +426,10 @@
       "genres": {
         "title": "未找到任何曲風",
         "description": "匯入音訊檔案，探索各種曲風。"
+      },
+      "years": {
+        "title": "找不到年份",
+        "description": "歌曲會依標籤中的年份分組顯示在這裡。"
       },
       "folders": {
         "title": "未匯入任何資料夾",
@@ -488,6 +497,10 @@
       "trackCount_zero": "0 首曲目",
       "trackCount_one": "{{count}} 首曲目",
       "trackCount_other": "{{count}} 首曲目"
+    },
+    "yearList": {
+      "unknown": "未知年份",
+      "decade": "{{decade}} 年代"
     },
     "folderList": {
       "trackCount_zero": "0 首曲目",
@@ -1283,6 +1296,13 @@
     "emptyDescription": "此曲風在目前的個人檔案中已不存在。",
     "emptyTracksTitle": "無曲目",
     "emptyTracksDescription": "此曲風沒有可用的曲目。"
+  },
+  "yearDetail": {
+    "badge": "年份",
+    "emptyTitle": "找不到年份",
+    "emptyDescription": "目前的設定檔中已沒有該年份的歌曲。",
+    "emptyTracksTitle": "沒有歌曲",
+    "emptyTracksDescription": "沒有可用的歌曲標註為該年份。"
   },
   "genreImagePicker": {
     "title": "更改曲風圖片",

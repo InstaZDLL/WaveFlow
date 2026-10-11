@@ -8,6 +8,7 @@ import {
   Disc,
   Mic2,
   Tags,
+  CalendarDays,
   Heart,
   Clock,
   Plus,
@@ -396,6 +397,14 @@ export function Sidebar({
             active={activeView === "library" && libraryTab === "genres"}
             onClick={() => {
               navigateToLibraryTab("genres");
+            }}
+          />
+          <NavItem
+            icon={<CalendarDays size={18} />}
+            label={t("sidebar.myMusic.years")}
+            active={activeView === "library" && libraryTab === "years"}
+            onClick={() => {
+              navigateToLibraryTab("years");
             }}
           />
           <NavItem

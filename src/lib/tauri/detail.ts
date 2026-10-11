@@ -145,6 +145,23 @@ export function getGenreDetail(genreId: number): Promise<GenreDetail> {
   return invoke<GenreDetail>("get_genre_detail", { genreId });
 }
 
+// ── Year detail ─────────────────────────────────────────────────────
+
+export interface YearDetail {
+  /** `null`: the tracks with no usable year. */
+  year: number | null;
+  track_count: number;
+  total_duration_ms: number;
+  artwork_path: string | null;
+  artwork_path_1x: string | null;
+  artwork_path_2x: string | null;
+  tracks: Track[];
+}
+
+export function getYearDetail(year: number | null): Promise<YearDetail> {
+  return invoke<YearDetail>("get_year_detail", { year });
+}
+
 // ── Deezer enrichment ───────────────────────────────────────────────
 
 export interface DeezerAlbumEnrichment {

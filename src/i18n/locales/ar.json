@@ -240,6 +240,7 @@
       "albums": "الألبومات",
       "artists": "الفنانون",
       "genres": "الأنواع",
+      "years": "السنوات",
       "folders": "المجلدات"
     },
     "playlistSection": {
@@ -433,6 +434,12 @@
         "genres_two": "نوعان",
         "genres_few": "{{count}} أنواع",
         "genres_many": "{{count}} نوعًا",
+        "years_zero": "0 سنة",
+        "years_one": "سنة واحدة",
+        "years_two": "سنتان",
+        "years_few": "{{count}} سنوات",
+        "years_many": "{{count}} سنة",
+        "years_other": "{{count}} سنة",
         "tracks_two": "مقطعان",
         "tracks_few": "{{count}} مقاطع",
         "tracks_many": "{{count}} مقطعًا",
@@ -455,6 +462,7 @@
       "albums": "الألبومات",
       "artists": "الفنانون",
       "genres": "الأنواع",
+      "years": "السنوات",
       "folders": "المجلدات",
       "playlists": "قوائم التشغيل",
       "needs-attention": "بحاجة إلى مراجعة"
@@ -475,6 +483,10 @@
       "genres": {
         "title": "لم يُعثر على أي نوع",
         "description": "استورد ملفات صوتية لاستكشاف الأنواع المختلفة."
+      },
+      "years": {
+        "title": "لم يُعثر على سنوات",
+        "description": "تظهر المقاطع هنا مجمّعة حسب السنة في وسومها."
       },
       "folders": {
         "title": "لم يتم استيراد أي مجلد",
@@ -558,6 +570,10 @@
       "trackCount_two": "مقطعان",
       "trackCount_few": "{{count}} مقاطع",
       "trackCount_many": "{{count}} مقطعًا"
+    },
+    "yearList": {
+      "unknown": "سنة غير معروفة",
+      "decade": "عقد {{decade}}"
     },
     "folderList": {
       "trackCount_zero": "0 مقطع",
@@ -1443,6 +1459,13 @@
     "trackCount_two": "مقطعان",
     "trackCount_few": "{{count}} مقاطع",
     "trackCount_many": "{{count}} مقطعًا"
+  },
+  "yearDetail": {
+    "badge": "سنة",
+    "emptyTitle": "السنة غير موجودة",
+    "emptyDescription": "لم تعد لهذه السنة مقاطع في الملف الشخصي النشط.",
+    "emptyTracksTitle": "لا مقاطع",
+    "emptyTracksDescription": "لا يحمل أي مقطع متاح هذه السنة."
   },
   "genreImagePicker": {
     "title": "تغيير صورة النوع",

@@ -228,6 +228,7 @@
       "albums": "アルバム",
       "artists": "アーティスト",
       "genres": "ジャンル",
+      "years": "年",
       "folders": "フォルダ"
     },
     "playlistSection": {
@@ -385,6 +386,9 @@
         "genres_zero": "0ジャンル",
         "genres_one": "{{count}}ジャンル",
         "genres_other": "{{count}}ジャンル",
+        "years_zero": "0 年分",
+        "years_one": "{{count}} 年分",
+        "years_other": "{{count}} 年分",
         "folders_zero": "0個",
         "folders_one": "{{count}}個",
         "folders_other": "{{count}}個",
@@ -401,6 +405,7 @@
       "albums": "アルバム",
       "artists": "アーティスト",
       "genres": "ジャンル",
+      "years": "年",
       "folders": "フォルダ",
       "playlists": "プレイリスト",
       "needs-attention": "要確認"
@@ -421,6 +426,10 @@
       "genres": {
         "title": "該当するジャンルが見つかりませんでした",
         "description": "オーディオファイルをインポートして、ジャンルを確認しましょう。"
+      },
+      "years": {
+        "title": "年が見つかりません",
+        "description": "トラックはタグの年ごとにここにまとめて表示されます。"
       },
       "folders": {
         "title": "インポートされたフォルダはありません",
@@ -488,6 +497,10 @@
       "trackCount_zero": "0曲",
       "trackCount_one": "{{count}}曲",
       "trackCount_other": "{{count}}曲"
+    },
+    "yearList": {
+      "unknown": "年不明",
+      "decade": "{{decade}}年代"
     },
     "folderList": {
       "trackCount_zero": "0曲",
@@ -1283,6 +1296,13 @@
     "emptyDescription": "このジャンルは現在のプロフィールに存在しません。",
     "emptyTracksTitle": "曲がありません",
     "emptyTracksDescription": "このジャンルには利用可能な曲がありません。"
+  },
+  "yearDetail": {
+    "badge": "年",
+    "emptyTitle": "年が見つかりません",
+    "emptyDescription": "この年のトラックはアクティブなプロフィールにもうありません。",
+    "emptyTracksTitle": "トラックがありません",
+    "emptyTracksDescription": "この年の利用可能なトラックはありません。"
   },
   "genreImagePicker": {
     "title": "ジャンル画像を変更",

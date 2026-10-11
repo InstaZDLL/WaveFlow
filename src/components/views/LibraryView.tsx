@@ -42,6 +42,7 @@ import {
   Disc,
   Mic2,
   Tags,
+  CalendarDays,
   Folder,
   AlertTriangle,
   RefreshCcw,
@@ -142,6 +143,8 @@ import {
   type FolderListing,
   type FolderNode,
   listGenres,
+  listYears,
+  type YearRow,
   listFolders,
   type LibraryAlbumRow,
   type LibraryArtistRow,
@@ -172,6 +175,8 @@ interface LibraryViewProps {
   onNavigateToRemotePlaylist: (remotePlaylistId: string) => void;
   onNavigateToArtist: (artistId: number) => void;
   onNavigateToGenre: (genreId: number) => void;
+  /** `null` opens the tracks with no usable year. */
+  onNavigateToYear: (year: number | null) => void;
   onNavigateToPlaylist: (playlistId: number) => void;
 }
 
@@ -182,6 +187,7 @@ const tabConfig: { id: LibraryTab; icon: typeof Music2 }[] = [
   { id: "albums", icon: Disc },
   { id: "artists", icon: Mic2 },
   { id: "genres", icon: Tags },
+  { id: "years", icon: CalendarDays },
   { id: "playlists", icon: ListMusic },
   { id: "folders", icon: Folder },
   { id: "needs-attention", icon: AlertTriangle },
@@ -192,6 +198,7 @@ const emptyStateIcons: Record<LibraryTab, typeof Music2> = {
   albums: Disc,
   artists: Mic2,
   genres: Tags,
+  years: CalendarDays,
   playlists: ListMusic,
   folders: Folder,
   "needs-attention": AlertTriangle,
@@ -202,6 +209,7 @@ const headerIcons: Record<LibraryTab, typeof Music2> = {
   albums: Disc,
   artists: Mic2,
   genres: Tags,
+  years: CalendarDays,
   playlists: ListMusic,
   folders: Folder,
   "needs-attention": AlertTriangle,
@@ -216,6 +224,7 @@ export function LibraryView({
   onNavigateToRemoteArtist,
   onNavigateToRemotePlaylist,
   onNavigateToGenre,
+  onNavigateToYear,
   onNavigateToPlaylist,
 }: LibraryViewProps) {
   const { t, i18n } = useTranslation();
@@ -291,6 +300,7 @@ export function LibraryView({
   const librarySource = useLibrarySource();
   const [artists, setArtists] = useState<LibraryArtistRow[]>([]);
   const [genres, setGenres] = useState<GenreRow[]>([]);
+  const [years, setYears] = useState<YearRow[]>([]);
   const [folders, setFolders] = useState<FolderRow[]>([]);
   // Folder browsing (#578). `null` is the list of configured roots —
   // the tab's original content, which stays reachable because it is
@@ -319,6 +329,7 @@ export function LibraryView({
     albums: true,
     artists: true,
     genres: true,
+    years: true,
     // Playlists come from PlaylistContext, already loaded — there is no
     // fetch of our own to wait on, so this tab never shows a skeleton.
     playlists: false,
@@ -326,11 +337,12 @@ export function LibraryView({
     // The only tab that does NOT prefetch. Its counts are album-level
     // aggregates plus a walk over every track to chain probable
     // duplicates, so paying for them on every mount of the library --
-    // which is what the other six do -- would tax people who never open
-    // it. That is about the *fetch*, not about this flag: `true`,
-    // because an inventory nobody has asked for yet is an empty list,
-    // and an empty list is what "nothing to fix" looks like. The first
-    // paint would congratulate the user before a single count existed.
+    // which is what the six other tabs with a query of their own do --
+    // would tax people who never open it. That is about the *fetch*,
+    // not about this flag: `true`, because an inventory nobody has
+    // asked for yet is an empty list, and an empty list is what
+    // "nothing to fix" looks like. The first paint would congratulate
+    // the user before a single count existed.
     "needs-attention": true,
   });
   // Which columns the track table shows, in what order and how wide
@@ -837,6 +849,25 @@ export function LibraryView({
   useEffect(() => {
     let cancelled = false;
     // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLoading((p) => ({ ...p, years: true }));
+    listYears(null)
+      .then((list) => {
+        if (!cancelled) setYears(list);
+      })
+      .catch((err) => {
+        if (!cancelled) console.error("[LibraryView] listYears failed", err);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading((p) => ({ ...p, years: false }));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [librariesSignature, editRefetch]);
+
+  useEffect(() => {
+    let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading((p) => ({ ...p, folders: true }));
     listFolders(null)
       .then((list) => {
@@ -960,6 +991,8 @@ export function LibraryView({
         return artists.length;
       case "genres":
         return genres.length;
+      case "years":
+        return years.length;
       case "playlists":
         // The merged list, not the local one: the header would otherwise
         // count a different set from the grid right below it.
@@ -1158,6 +1191,7 @@ export function LibraryView({
     (activeTab === "albums" && albums.length > 0) ||
     (activeTab === "artists" && artists.length > 0) ||
     (activeTab === "genres" && genres.length > 0) ||
+    (activeTab === "years" && years.length > 0) ||
     // Playlists is renderable even when empty: `PlaylistGrid` owns its
     // own empty state ("playlists you create appear here"), which is the
     // right message. The generic one below is built for a library with
@@ -1621,6 +1655,14 @@ export function LibraryView({
               isLoading={loading.genres}
               t={t}
               onSelect={onNavigateToGenre}
+            />
+          )}
+          {activeTab === "years" && (
+            <YearList
+              years={years}
+              isLoading={loading.years}
+              t={t}
+              onSelect={onNavigateToYear}
             />
           )}
           {activeTab === "playlists" && (
@@ -3951,6 +3993,79 @@ function ArtistList({
   );
 }
 
+interface YearListProps {
+  years: YearRow[];
+  isLoading: boolean;
+  t: Translator;
+  onSelect: (year: number | null) => void;
+}
+
+/** A section per decade, newest first, then the tracks with no usable
+ *  year, which the backend already lists last. */
+function YearList({ years, isLoading, t, onSelect }: YearListProps) {
+  const sections: { key: string; label: string; rows: YearRow[] }[] = [];
+  for (const row of years) {
+    const decade = row.year == null ? null : Math.floor(row.year / 10) * 10;
+    const key = decade == null ? "unknown" : String(decade);
+    let section = sections[sections.length - 1];
+    if (!section || section.key !== key) {
+      section = {
+        key,
+        label:
+          decade == null
+            ? t("library.yearList.unknown")
+            : t("library.yearList.decade", { decade }),
+        rows: [],
+      };
+      sections.push(section);
+    }
+    section.rows.push(row);
+  }
+  return (
+    <div className={`space-y-8 ${isLoading ? "opacity-50" : ""}`}>
+      {sections.map((section) => (
+        <section key={section.key} aria-label={section.label}>
+          <h3 className="mb-3 text-sm font-bold tracking-wide text-zinc-500 dark:text-zinc-400">
+            {section.label}
+          </h3>
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4">
+            {section.rows.map((row) => (
+              <button
+                type="button"
+                key={row.year ?? "unknown"}
+                onClick={() => onSelect(row.year)}
+                className="flex items-center space-x-3 p-4 rounded-2xl border border-zinc-200 bg-white hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-800/40 dark:hover:bg-zinc-800/70 transition-colors cursor-pointer text-left focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+              >
+                <Artwork
+                  path={row.artwork_path}
+                  path1x={row.artwork_path_1x}
+                  path2x={row.artwork_path_2x}
+                  size="1x"
+                  className="w-12 h-12"
+                  rounded="xl"
+                  iconSize={22}
+                  placeholderIcon={CalendarDays}
+                  alt=""
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold tabular-nums text-zinc-800 dark:text-zinc-200 truncate">
+                    {row.year ?? t("library.yearList.unknown")}
+                  </div>
+                  <div className="text-xs text-zinc-500 truncate">
+                    {t("library.genreList.trackCount", {
+                      count: row.track_count,
+                    })}
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
+  );
+}
+
 interface GenreListProps {
   genres: GenreRow[];
   isLoading: boolean;
@@ -4767,7 +4882,8 @@ function LibraryTabSkeleton({ tab, t }: { tab: LibraryTab; t: Translator }) {
       </div>
     );
   }
-  if (tab === "genres") {
+  // Years lay out as the same grid of tiles.
+  if (tab === "genres" || tab === "years") {
     return (
       <div
         role="status"

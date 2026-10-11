@@ -123,6 +123,11 @@ const GenreDetailView = lazy(() =>
     default: module.GenreDetailView,
   })),
 );
+const YearDetailView = lazy(() =>
+  import("../views/YearDetailView").then((module) => ({
+    default: module.YearDetailView,
+  })),
+);
 // Each entry in the navigation history pairs a view id with its payload
 // (when relevant) so back/forward can restore the exact target the user
 // visited. Payload fields are optional so callers without a target (e.g.
@@ -157,6 +162,8 @@ type HistoryEntry =
   | { id: "album-detail"; albumId?: number | null }
   | { id: "artist-detail"; artistId?: number | null }
   | { id: "genre-detail"; genreId?: number | null }
+  // `year: null` is the "Unknown year" bucket, not a missing payload.
+  | { id: "year-detail"; year: number | null }
   | {
       id: "plugin-ui";
       pluginId: string;
@@ -279,6 +286,7 @@ export function AppLayout() {
       void import("../views/AlbumDetailView");
       void import("../views/ArtistDetailView");
       void import("../views/GenreDetailView");
+      void import("../views/YearDetailView");
       void import("../views/StatisticsView");
       void import("../views/WrappedView");
       void import("../views/SettingsView");
@@ -369,6 +377,8 @@ export function AppLayout() {
       : null;
   const activeGenreId =
     currentEntry.id === "genre-detail" ? (currentEntry.genreId ?? null) : null;
+  const activeYear =
+    currentEntry.id === "year-detail" ? currentEntry.year : undefined;
   const activePlaylistId =
     currentEntry.id === "playlist" ? (currentEntry.playlistId ?? null) : null;
   const activeRemotePlaylistId =
@@ -492,6 +502,13 @@ export function AppLayout() {
     [pushEntry],
   );
 
+  const navigateToYear = useCallback(
+    (year: number | null) => {
+      pushEntry({ id: "year-detail", year });
+    },
+    [pushEntry],
+  );
+
   const navigateToPlaylist = useCallback(
     (playlistId: number) => {
       pushEntry({ id: "playlist", playlistId });
@@ -567,6 +584,7 @@ export function AppLayout() {
             onNavigateToRemoteArtist={navigateToRemoteArtist}
             onNavigateToRemotePlaylist={navigateToRemotePlaylist}
             onNavigateToGenre={navigateToGenre}
+            onNavigateToYear={navigateToYear}
             onNavigateToPlaylist={navigateToPlaylist}
           />
         );
@@ -679,6 +697,14 @@ export function AppLayout() {
         return (
           <GenreDetailView
             genreId={activeGenreId}
+            onNavigateToAlbum={navigateToAlbum}
+            onNavigateToArtist={navigateToArtist}
+          />
+        );
+      case "year-detail":
+        return (
+          <YearDetailView
+            year={activeYear}
             onNavigateToAlbum={navigateToAlbum}
             onNavigateToArtist={navigateToArtist}
           />
