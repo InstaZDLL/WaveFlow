@@ -2368,6 +2368,10 @@
         "title": "Lirik di samping",
         "subtitle": "Menampilkan lirik di samping sampul agar kamu bisa ganti lagu sambil membaca. Kembali ke satu kolom pada jendela sempit."
       },
+      "hideEmptyLyrics": {
+        "title": "Sembunyikan kolom jika tanpa lirik",
+        "subtitle": "Menutup kolom lirik saat lagu tidak punya lirik, agar tampilan yang sedang diputar memakai seluruh lebar. Hanya saat lirik di samping aktif."
+      },
       "nativeFullscreen": {
         "title": "Layar penuh sistem",
         "subtitle": "Memenuhi seluruh layar saat dibuka dan memulihkan jendela saat ditutup. Matikan untuk mempertahankan lapisan dalam jendela (berguna pada banyak monitor)."

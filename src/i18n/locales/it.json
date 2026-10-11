@@ -2429,6 +2429,10 @@
         "title": "Testi a fianco",
         "subtitle": "Mostra il testo accanto alla copertina per cambiare brano mentre leggi. Torna a una sola colonna nelle finestre strette."
       },
+      "hideEmptyLyrics": {
+        "title": "Nascondi la colonna senza testo",
+        "subtitle": "Chiude la colonna del testo quando il brano non ne ha, così la riproduzione in corso occupa tutta la larghezza. Solo con i testi a fianco."
+      },
       "nativeFullscreen": {
         "title": "Schermo intero nativo",
         "subtitle": "Riempie tutto lo schermo all'apertura e ripristina la finestra alla chiusura. Disattiva per mantenere un overlay nella finestra (utile con più monitor)."

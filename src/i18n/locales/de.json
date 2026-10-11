@@ -2368,6 +2368,10 @@
         "title": "Songtext-Spalte",
         "subtitle": "Zeigt den Songtext neben dem Cover, sodass du beim Lesen Titel wechseln kannst. Bei schmalen Fenstern fällt die Ansicht auf eine Spalte zurück."
       },
+      "hideEmptyLyrics": {
+        "title": "Spalte ohne Songtext ausblenden",
+        "subtitle": "Schließt die Songtext-Spalte, wenn ein Titel keinen Songtext hat, damit die aktuelle Wiedergabe die ganze Breite nutzt. Nur mit der Songtext-Spalte."
+      },
       "nativeFullscreen": {
         "title": "Nativer Vollbildmodus",
         "subtitle": "Füllt beim Öffnen den ganzen Bildschirm und stellt dein Fenster beim Schließen wieder her. Deaktivieren, um eine Overlay-Ansicht im Fenster zu behalten (nützlich bei mehreren Monitoren)."
