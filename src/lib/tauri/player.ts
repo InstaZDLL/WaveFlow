@@ -725,6 +725,8 @@ export interface ExclusiveOutputState {
   requested: boolean;
   /** Whether the current stream really owns its device. */
   engaged: boolean;
+  /** Why it does not, when it was asked to and the backend could tell. */
+  refusal: "busy" | "not-allowed" | "format" | "unknown" | null;
 }
 
 /**

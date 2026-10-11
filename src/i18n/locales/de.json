@@ -913,6 +913,9 @@
       },
       "notice": {
         "exclusive-refused": "Dieses Gerät verweigert den Exklusivmodus: Wiedergabe im gemeinsamen Modus",
+        "exclusive-refused-busy": "Eine andere App nutzt dieses Gerät im Exklusivmodus: Wiedergabe im geteilten Modus",
+        "exclusive-refused-not-allowed": "Windows erlaubt für dieses Gerät keinen Exklusivmodus: Wiedergabe im geteilten Modus",
+        "exclusive-refused-format": "Dieses Gerät bietet kein im Exklusivmodus nutzbares Format: Wiedergabe im geteilten Modus",
         "dop-refused": "Dieser DAC verweigert natives DSD: Umwandlung in PCM",
         "paused-device-lost": "Gerät getrennt: Wiedergabe pausiert",
         "unknown": "Die Audioausgabe hat sich geändert"
@@ -1839,6 +1842,9 @@
       "title": "Exklusive Ausgabe",
       "subtitle": "Übernimmt das Gerät allein für diese App, statt es mit dem System-Mixer zu teilen. Fällt auf den gemeinsamen Modus zurück, wenn das Gerät ablehnt.",
       "fallback": "Das Gerät akzeptiert den Exklusivmodus nicht. Es wird auf den gemeinsamen Modus ausgewichen.",
+      "fallbackBusy": "Eine andere App nutzt dieses Gerät bereits im Exklusivmodus. Schließe sie und starte die Wiedergabe erneut.",
+      "fallbackNotAllowed": "Windows verbietet den Exklusivmodus für dieses Gerät. Aktiviere „Anwendungen haben alleinige Kontrolle über das Gerät“ in den erweiterten Eigenschaften (Soundeinstellungen).",
+      "fallbackFormat": "Das Gerät bietet kein im Exklusivmodus nutzbares Format. Zurück im geteilten Modus.",
       "hardwareVolume": "Die Systemlautstärke gilt nicht mehr: Das Gerät spielt mit seinem eigenen Hardwarepegel. Ist es zu leise, erhöhe diesen Pegel im Mixer des Systems."
     },
     "matchSourceRate": {

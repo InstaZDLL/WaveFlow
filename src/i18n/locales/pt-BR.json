@@ -951,6 +951,9 @@
       },
       "notice": {
         "exclusive-refused": "Este dispositivo recusa o modo exclusivo: reproduzindo em modo compartilhado",
+        "exclusive-refused-busy": "Outro app está usando este dispositivo no modo exclusivo: reprodução no modo compartilhado",
+        "exclusive-refused-not-allowed": "O Windows não permite o modo exclusivo neste dispositivo: reprodução no modo compartilhado",
+        "exclusive-refused-format": "Este dispositivo não oferece nenhum formato utilizável no modo exclusivo: reprodução no modo compartilhado",
         "dop-refused": "Este DAC recusa o DSD nativo: convertendo para PCM",
         "paused-device-lost": "Dispositivo desconectado: reprodução pausada",
         "unknown": "A saída de áudio mudou"
@@ -1902,6 +1905,9 @@
       "title": "Saída exclusiva",
       "subtitle": "Assume o dispositivo só para este aplicativo em vez de compartilhá-lo com o mixer do sistema. Volta ao modo compartilhado se o dispositivo recusar.",
       "fallback": "O dispositivo não aceita o modo exclusivo. Voltando ao modo compartilhado.",
+      "fallbackBusy": "Outro app já usa este dispositivo no modo exclusivo. Feche-o e reproduza de novo.",
+      "fallbackNotAllowed": "O Windows proíbe o modo exclusivo neste dispositivo. Ative “Permitir que aplicativos assumam o controle exclusivo deste dispositivo” nas propriedades avançadas (Configurações de som).",
+      "fallbackFormat": "O dispositivo não oferece nenhum formato utilizável no modo exclusivo. De volta ao modo compartilhado.",
       "hardwareVolume": "O volume do sistema não se aplica mais: o dispositivo toca no próprio nível de hardware. Se estiver baixo demais, aumente esse nível no mixer do sistema."
     },
     "matchSourceRate": {

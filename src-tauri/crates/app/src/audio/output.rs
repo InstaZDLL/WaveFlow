@@ -524,6 +524,12 @@ pub fn spawn_output_with_mode(
     exclusive: bool,
     requested: Option<RequestedFormat>,
 ) -> AppResult<(Producer<f32>, OutputHandle)> {
+    // Forget the last refusal: this open says again whether there is one —
+    // before the DoP branch too, which returns early.
+    shared
+        .exclusive_refusal
+        .store(0, std::sync::atomic::Ordering::Release);
+
     // DoP (#495) is a hard requirement, not a preference: a DoP stream
     // that can't open its exact rate in exclusive form must NOT fall back
     // to a shared / mixed output (the OS mixer would resample the marker
@@ -580,10 +586,13 @@ pub fn spawn_output_with_mode(
                 return Ok(pair);
             }
             Err(err) => {
+                let reason = super::engine::ExclusiveRefusal::of(&err);
                 tracing::warn!(
                     %err,
+                    ?reason,
                     "WASAPI Exclusive init failed, falling back to shared mode"
                 );
+                record_refusal(&shared, reason);
             }
         }
     }
@@ -604,10 +613,13 @@ pub fn spawn_output_with_mode(
                 return Ok(pair);
             }
             Err(err) => {
+                let reason = super::alsa_exclusive::refusal_of(&err);
                 tracing::warn!(
                     %err,
+                    ?reason,
                     "ALSA exclusive init failed, falling back to shared mode"
                 );
+                record_refusal(&shared, reason);
             }
         }
     }
@@ -629,10 +641,13 @@ pub fn spawn_output_with_mode(
                 return Ok(pair);
             }
             Err(err) => {
+                let reason = super::engine::ExclusiveRefusal::of(&err);
                 tracing::warn!(
                     %err,
+                    ?reason,
                     "CoreAudio exclusive init failed, falling back to shared mode"
                 );
+                record_refusal(&shared, reason);
             }
         }
     }
@@ -641,6 +656,15 @@ pub fn spawn_output_with_mode(
     let _ = (exclusive, requested); // no exclusive PCM backend on this target
 
     spawn_output_thread(shared, app, device_name)
+}
+
+/// Leave why exclusive was refused where the notice and the Settings card
+/// read it ([`SharedPlayback::exclusive_refusal`]).
+#[cfg(any(target_os = "windows", target_os = "linux", target_os = "macos"))]
+fn record_refusal(shared: &SharedPlayback, reason: super::engine::ExclusiveRefusal) {
+    shared
+        .exclusive_refusal
+        .store(reason.as_u8(), std::sync::atomic::Ordering::Release);
 }
 
 /// Surface a lost audio device to the user: park the player, tell the

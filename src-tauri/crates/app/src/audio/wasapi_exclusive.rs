@@ -59,6 +59,35 @@ use crate::error::{AppError, AppResult};
 /// mode (busy, unsupported format, no such device), the error is
 /// surfaced before this function returns so the caller can fall back
 /// to the cpal shared backend.
+/// Why an exclusive open failed, from the `HRESULT` the error carries.
+///
+/// The `wasapi` crate reports Win32 failures as text, with the code in it
+/// (`HRESULT(0x8889000A)`), and those codes are stable; the format probe
+/// says so in its own words. Anything else is `Unknown`.
+pub fn refusal_of(err: &AppError) -> super::engine::ExclusiveRefusal {
+    use super::engine::ExclusiveRefusal;
+    if let AppError::ExclusiveRefused { reason, .. } = err {
+        return *reason;
+    }
+    let text = err.to_string().to_ascii_uppercase();
+    if text.contains("8889000A") {
+        // AUDCLNT_E_DEVICE_IN_USE
+        ExclusiveRefusal::Busy
+    } else if text.contains("8889000E") {
+        // AUDCLNT_E_EXCLUSIVE_MODE_NOT_ALLOWED
+        ExclusiveRefusal::NotAllowed
+    } else if text.contains("88890008")
+        || text.contains("IS_SUPPORTED REJECTED")
+        || text.contains("NO USABLE SAMPLE RATE")
+    {
+        // AUDCLNT_E_UNSUPPORTED_FORMAT, the probe before the open, or a
+        // device that reports no layout to open at all
+        ExclusiveRefusal::Format
+    } else {
+        ExclusiveRefusal::Unknown
+    }
+}
+
 pub fn spawn_exclusive_output_thread(
     shared: Arc<SharedPlayback>,
     app: AppHandle,
@@ -103,7 +132,7 @@ pub fn spawn_exclusive_output_thread(
         )),
         Ok(Err(err)) => {
             let _ = join.join();
-            Err(err)
+            Err(refusal_of(&err).refuse(err))
         }
         Err(_) => Err(AppError::Audio(
             "wasapi exclusive thread died before reporting init result".into(),
@@ -542,6 +571,10 @@ fn open_exclusive_session(
     };
 
     let mut last_err: Option<AppError> = None;
+    // The most telling cause across every attempt, not the last one's: a
+    // device in use can be refused as busy on one layout and on format on
+    // the next, and "close the other app" is what the user needs to read.
+    let mut reason: Option<super::engine::ExclusiveRefusal> = None;
     // Every rejection, kept for the summary below. `debug` alone was
     // not enough: release logs run at `info`, so a user reporting a
     // failure only ever showed us the last attempt of eight and the
@@ -597,6 +630,11 @@ fn open_exclusive_session(
                         layout.channels,
                         layout.origin
                     ));
+                    let this = refusal_of(&err);
+                    reason = Some(match reason {
+                        Some(seen) if seen.outranks(this) => seen,
+                        _ => this,
+                    });
                     last_err = Some(err);
                 }
             }
@@ -610,9 +648,13 @@ fn open_exclusive_session(
         "wasapi exclusive: no (rate, channels, format) combination was accepted"
     );
 
-    Err(last_err.unwrap_or_else(|| {
+    let err = last_err.unwrap_or_else(|| {
         AppError::Audio("wasapi exclusive: every format in the fallback chain was rejected".into())
-    }))
+    });
+    Err(match reason {
+        Some(reason) => reason.refuse(err),
+        None => err,
+    })
 }
 
 /// Do two `WaveFormat`s describe the same stream? Compares every

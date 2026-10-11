@@ -728,6 +728,93 @@ fn output_mode_of(
     }
 }
 
+/// Why an exclusive output was not granted, as far as the backend could
+/// tell. Stored on [`SharedPlayback::exclusive_refusal`](super::state::SharedPlayback)
+/// by the output layer when it falls back to shared mode.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ExclusiveRefusal {
+    /// Another application holds the device (WASAPI `AUDCLNT_E_DEVICE_IN_USE`,
+    /// ALSA `EBUSY` that no reservation released, CoreAudio hog mode taken).
+    Busy,
+    /// The system forbids exclusive use of this device (Windows: "Allow
+    /// applications to take exclusive control" is off,
+    /// `AUDCLNT_E_EXCLUSIVE_MODE_NOT_ALLOWED`).
+    NotAllowed,
+    /// The device offers no format the stream could use.
+    Format,
+    /// Something else, or a backend that could not say.
+    Unknown,
+}
+
+impl ExclusiveRefusal {
+    /// `0` is reserved for "nothing was refused".
+    pub fn as_u8(self) -> u8 {
+        match self {
+            Self::Busy => 1,
+            Self::NotAllowed => 2,
+            Self::Format => 3,
+            Self::Unknown => 4,
+        }
+    }
+
+    pub fn from_u8(value: u8) -> Option<Self> {
+        match value {
+            1 => Some(Self::Busy),
+            2 => Some(Self::NotAllowed),
+            3 => Some(Self::Format),
+            4 => Some(Self::Unknown),
+            _ => None,
+        }
+    }
+
+    /// `err` as a refusal for this reason. The detail keeps the backend's
+    /// own message, without the `audio error:` prefix the variant adds back.
+    pub fn refuse(self, err: AppError) -> AppError {
+        let detail = match err {
+            AppError::Audio(text) => text,
+            AppError::ExclusiveRefused { detail, .. } => detail,
+            other => other.to_string(),
+        };
+        AppError::ExclusiveRefused {
+            reason: self,
+            detail,
+        }
+    }
+
+    /// Whether `self` says more than `other` about what to do: another
+    /// app holding the device first, then a system policy, then a format,
+    /// then nothing.
+    pub fn outranks(self, other: Self) -> bool {
+        fn rank(reason: ExclusiveRefusal) -> u8 {
+            match reason {
+                ExclusiveRefusal::Busy => 3,
+                ExclusiveRefusal::NotAllowed => 2,
+                ExclusiveRefusal::Format => 1,
+                ExclusiveRefusal::Unknown => 0,
+            }
+        }
+        rank(self) > rank(other)
+    }
+
+    /// The reason a backend put on its error, or `Unknown`.
+    pub fn of(err: &AppError) -> Self {
+        match err {
+            AppError::ExclusiveRefused { reason, .. } => *reason,
+            _ => Self::Unknown,
+        }
+    }
+
+    fn notice(self) -> PlaybackNotice {
+        match self {
+            Self::Busy => PlaybackNotice::ExclusiveRefusedBusy,
+            Self::NotAllowed => PlaybackNotice::ExclusiveRefusedNotAllowed,
+            Self::Format => PlaybackNotice::ExclusiveRefusedFormat,
+            Self::Unknown => PlaybackNotice::ExclusiveRefused,
+        }
+    }
+}
+
 /// Something the user should know about playback that is **not** a
 /// failure (#597).
 ///
@@ -739,8 +826,15 @@ fn output_mode_of(
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum PlaybackNotice {
-    /// Exclusive was requested, the device opened shared.
+    /// Exclusive was requested, the device opened shared, for no reason
+    /// the backend could name.
     ExclusiveRefused,
+    /// … because another application holds the device.
+    ExclusiveRefusedBusy,
+    /// … because the system forbids exclusive use of the device.
+    ExclusiveRefusedNotAllowed,
+    /// … because the device offers no usable format.
+    ExclusiveRefusedFormat,
     /// A DSD track was offered over DoP and the DAC would not take it;
     /// it is being converted to PCM instead.
     DopRefused,
@@ -1396,11 +1490,24 @@ impl AudioEngine {
         let notice = if dop_requested && !engaged_dop {
             Some(PlaybackNotice::DopRefused)
         } else if requested_exclusive && !engaged_exclusive && handle.is_some() {
-            Some(PlaybackNotice::ExclusiveRefused)
+            Some(
+                self.exclusive_refusal()
+                    .unwrap_or(ExclusiveRefusal::Unknown)
+                    .notice(),
+            )
         } else {
             None
         };
         self.announce_output_notice(notice);
+    }
+
+    /// Why the last exclusive open was refused, when it was.
+    pub fn exclusive_refusal(&self) -> Option<ExclusiveRefusal> {
+        ExclusiveRefusal::from_u8(
+            self.shared
+                .exclusive_refusal
+                .load(std::sync::atomic::Ordering::Acquire),
+        )
     }
 
     /// Emit `notice` only when it changes what the user was last told
@@ -3762,6 +3869,24 @@ mod output_mode_tests {
     #[test]
     fn asked_and_granted_is_exclusive() {
         assert_eq!(output_mode_of(true, true, false), OutputMode::Exclusive);
+    }
+
+    /// Across a negotiation, the cause that tells the user what to do wins:
+    /// a device in use refused as busy on one layout and on format on the
+    /// next is a busy device.
+    #[test]
+    fn the_most_telling_refusal_wins() {
+        use super::ExclusiveRefusal::{self, *};
+        assert!(Busy.outranks(Format));
+        assert!(Busy.outranks(NotAllowed));
+        assert!(NotAllowed.outranks(Format));
+        assert!(Format.outranks(Unknown));
+        assert!(!Format.outranks(Busy));
+        assert!(!Busy.outranks(Busy));
+        for reason in [Busy, NotAllowed, Format, Unknown] {
+            assert_eq!(ExclusiveRefusal::from_u8(reason.as_u8()), Some(reason));
+        }
+        assert_eq!(ExclusiveRefusal::from_u8(0), None);
     }
 
     #[test]

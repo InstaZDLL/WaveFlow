@@ -99,6 +99,16 @@ pub enum AppError {
     #[error("audio error: {0}")]
     Audio(String),
 
+    /// An exclusive output the device would not give, and why, where the
+    /// backend could tell. The output layer reads the reason when it
+    /// falls back to shared mode, so the user is told something more
+    /// useful than "refused".
+    #[error("audio error: {detail}")]
+    ExclusiveRefused {
+        reason: crate::audio::engine::ExclusiveRefusal,
+        detail: String,
+    },
+
     #[error("zip error: {0}")]
     Zip(#[from] zip::result::ZipError),
 

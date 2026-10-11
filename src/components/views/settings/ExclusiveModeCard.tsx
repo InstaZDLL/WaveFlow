@@ -43,7 +43,7 @@ export function ExclusiveModeCard() {
       .then(setState)
       .catch((err) => {
         console.error("[ExclusiveModeCard] get failed", err);
-        setState({ requested: false, engaged: false });
+        setState({ requested: false, engaged: false, refusal: null });
       });
   }, []);
 
@@ -152,7 +152,15 @@ export function ExclusiveModeCard() {
         </p>
       ) : state?.requested && !state.engaged ? (
         <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 ml-9">
-          {t("settings.exclusive.fallback")}
+          {t(
+            state.refusal === "busy"
+              ? "settings.exclusive.fallbackBusy"
+              : state.refusal === "not-allowed"
+                ? "settings.exclusive.fallbackNotAllowed"
+                : state.refusal === "format"
+                  ? "settings.exclusive.fallbackFormat"
+                  : "settings.exclusive.fallback",
+          )}
         </p>
       ) : state?.engaged ? (
         <p className="text-xs settings-description mt-2 ml-9">

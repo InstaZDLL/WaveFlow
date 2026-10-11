@@ -950,6 +950,9 @@
       },
       "notice": {
         "exclusive-refused": "Questo dispositivo rifiuta la modalità esclusiva: riproduzione in modalità condivisa",
+        "exclusive-refused-busy": "Un'altra app usa questo dispositivo in modalità esclusiva: riproduzione in modalità condivisa",
+        "exclusive-refused-not-allowed": "Windows non consente la modalità esclusiva su questo dispositivo: riproduzione in modalità condivisa",
+        "exclusive-refused-format": "Questo dispositivo non offre formati utilizzabili in modalità esclusiva: riproduzione in modalità condivisa",
         "dop-refused": "Questo DAC rifiuta il DSD nativo: conversione in PCM",
         "paused-device-lost": "Dispositivo disconnesso: riproduzione in pausa",
         "unknown": "L'uscita audio è cambiata"
@@ -1893,6 +1896,9 @@
       "title": "Uscita esclusiva",
       "subtitle": "Prende il dispositivo solo per questa app invece di condividerlo con il mixer di sistema. Torna alla modalità condivisa se il dispositivo rifiuta.",
       "fallback": "Il dispositivo non accetta la modalità esclusiva. Ricade sulla modalità condivisa.",
+      "fallbackBusy": "Un'altra app usa già questo dispositivo in modalità esclusiva. Chiudila, poi riavvia la riproduzione.",
+      "fallbackNotAllowed": "Windows vieta la modalità esclusiva su questo dispositivo. Attiva «Consenti alle applicazioni di assumere il controllo esclusivo del dispositivo» nelle proprietà avanzate (Impostazioni audio).",
+      "fallbackFormat": "Il dispositivo non offre formati utilizzabili in modalità esclusiva. Ritorno alla modalità condivisa.",
       "hardwareVolume": "Il volume di sistema non si applica più: il dispositivo suona al proprio livello hardware. Se è troppo basso, alza quel livello nel mixer di sistema."
     },
     "matchSourceRate": {

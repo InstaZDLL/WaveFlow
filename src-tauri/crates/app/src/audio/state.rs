@@ -316,6 +316,11 @@ pub struct SharedPlayback {
     /// stream (not in the hot path). Persisted in
     /// `profile_setting['audio.dsd_dop']`, default OFF.
     pub dsd_dop_enabled: AtomicBool,
+    /// Why the last exclusive open fell back to shared mode, as
+    /// [`ExclusiveRefusal::as_u8`](super::engine::ExclusiveRefusal::as_u8);
+    /// `0` when the last open asked for no exclusive or got it. Written by
+    /// the output layer, read by the notice and the Settings card.
+    pub exclusive_refusal: AtomicU8,
     /// Open the output at each track's own rate rather than taking
     /// whatever the device offers (#600). Read by the decoder at every
     /// load; default off.
@@ -370,6 +375,7 @@ impl SharedPlayback {
             speed_dirty: AtomicBool::new(false),
             dsd_taps: AtomicU32::new(256),
             dsd_dop_enabled: AtomicBool::new(false),
+            exclusive_refusal: AtomicU8::new(0),
             match_source_rate: AtomicBool::new(false),
         }
     }

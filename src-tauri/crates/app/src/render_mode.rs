@@ -593,6 +593,8 @@ fn set_unless_present(key: &str, value: &str) {
 }
 
 /// Turn the decision into the environment the web engine will read.
+// macOS has no software switch, so nothing follows the early return there.
+#[cfg_attr(target_os = "macos", allow(clippy::needless_return))]
 fn apply(mode: RenderMode) {
     // Every mode, GPU included: WebKitGTK's DMA-BUF video sink hands the
     // page frames as GL textures it cannot map back. Copying one into a
