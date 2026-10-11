@@ -1185,7 +1185,8 @@
     "playNext": "अगला चलाएँ",
     "addToPlaylist": "प्लेलिस्ट में जोड़ें",
     "removeFromPlaylist": "प्लेलिस्ट से हटाएँ",
-    "clear": "चयन हटाएँ"
+    "clear": "चयन हटाएँ",
+    "selectRow": "“{{title}}” चुनें"
   },
   "albumDetail": {
     "badge": "एल्बम",

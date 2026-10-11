@@ -1229,7 +1229,8 @@
     "playNext": "Reproduzir a seguir",
     "addToPlaylist": "Adicionar a uma playlist",
     "removeFromPlaylist": "Remover da playlist",
-    "clear": "Desmarcar"
+    "clear": "Desmarcar",
+    "selectRow": "Selecionar “{{title}}”"
   },
   "albumDetail": {
     "badge": "Álbum",

@@ -1185,7 +1185,8 @@
     "playNext": "Als Nächstes spielen",
     "addToPlaylist": "Zu einer Playlist hinzufügen",
     "removeFromPlaylist": "Aus Playlist entfernen",
-    "clear": "Auswahl aufheben"
+    "clear": "Auswahl aufheben",
+    "selectRow": "„{{title}}“ auswählen"
   },
   "albumDetail": {
     "badge": "Album",

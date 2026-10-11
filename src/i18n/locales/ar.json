@@ -1326,7 +1326,8 @@
     "clear": "إلغاء التحديد",
     "count_two": "عنصران محددان",
     "count_few": "{{count}} عناصر محددة",
-    "count_many": "{{count}} عنصرًا محددًا"
+    "count_many": "{{count}} عنصرًا محددًا",
+    "selectRow": "تحديد «{{title}}»"
   },
   "albumDetail": {
     "badge": "الألبوم",

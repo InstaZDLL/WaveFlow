@@ -110,6 +110,8 @@ import { useRemoteTrackContextMenu } from "../../hooks/useRemoteTrackContextMenu
 import { useTrackUpdated } from "../../hooks/useTrackUpdated";
 import { useArtistUpdated } from "../../hooks/useArtistUpdated";
 import { useMultiSelect } from "../../hooks/useMultiSelect";
+import { useSelectAllShortcut } from "../../hooks/useSelectAllShortcut";
+import { RowSelectCheckbox } from "../common/RowSelectCheckbox";
 import { resolvePlaylistColor } from "../../lib/playlistVisuals";
 import { resolveArtwork } from "../../lib/tauri/artwork";
 import { FadeInImage } from "../common/FadeInImage";
@@ -488,12 +490,40 @@ export function LibraryView({
     useCallback(() => setArtistRefetch((k) => k + 1), [setArtistRefetch]),
   );
   const clearSelection = selection.clear;
+  // The track table on screen, if any: the tracks tab, an opened folder,
+  // or an inventory category. Ctrl+A and the selection bar follow it, so
+  // a selection built in any of the three has its actions.
+  const listedTracks: LibraryTrackRow[] | null =
+    activeTab === "tracks"
+      ? tracks
+      : // The listing must be the open folder's: right after walking
+        // into another one, the previous rows are still in state.
+        activeTab === "folders" &&
+          folderPath != null &&
+          folderListing?.path === folderPath
+        ? folderTracks
+        : activeTab === "needs-attention" &&
+            inventoryCategory != null &&
+            inventoryCategory !== "phantom_artist"
+          ? inventoryRows
+          : null;
+  // Local rows only: selection is keyed on local rowids.
+  useSelectAllShortcut(
+    listedTracks?.some((row) => row.source === "local") ?? false,
+    () =>
+      selection.selectAll(
+        (listedTracks ?? [])
+          .filter((row) => row.source === "local")
+          .map(toLocalTrack),
+      ),
+  );
   // Also on `folderPath`: a selection is a set of track ids, and the
   // action bar it feeds would otherwise act on tracks the user can no
   // longer see after walking into another folder (#578).
   useEffect(() => {
     clearSelection();
-  }, [activeTab, folderPath, clearSelection]);
+    // And on the inventory category: switching one shows other rows.
+  }, [activeTab, folderPath, inventoryCategory, clearSelection]);
 
   const { available: remoteAvailable } = useRemoteSource();
 
@@ -1251,6 +1281,8 @@ export function LibraryView({
       onContextMenuRow={trackContextMenu.open}
       onRowMenuKey={trackContextMenu.openFromKeyboard}
       isSelected={selection.isSelected}
+      selectionActive={selection.count > 0}
+      onToggleSelect={selection.toggleOne}
       onNavigateToRemoteAlbum={onNavigateToRemoteAlbum}
       onNavigateToRemoteArtist={onNavigateToRemoteArtist}
       downloadingRemote={downloadingRemote}
@@ -1885,7 +1917,7 @@ export function LibraryView({
         />
       )}
 
-      {activeTab === "tracks" && (
+      {listedTracks != null && (
         <SelectionActionBar
           trackIds={[...selection.selectedIds]}
           onClear={selection.clear}
@@ -2178,6 +2210,10 @@ interface TrackTableProps {
    *  opened the menu, so the row's own key handling can stand down. */
   onRowMenuKey: (event: React.KeyboardEvent, track: Track) => boolean;
   isSelected: (id: number) => boolean;
+  /** Something is selected: every row shows its checkbox. */
+  selectionActive: boolean;
+  /** The row checkbox: a Ctrl+click without the modifier. */
+  onToggleSelect: (id: number) => void;
   onRowSelect: (track: Track, e: React.MouseEvent) => void;
   /** Whether a plain click plays instead of selecting. The table needs it
    *  because selection speaks in local rowids and a server row has none: it
@@ -2232,6 +2268,8 @@ function TrackTable({
   onContextMenuRow,
   onRowMenuKey,
   isSelected,
+  selectionActive,
+  onToggleSelect,
   onRowSelect,
   singleClickPlay,
   onNavigateToRemoteAlbum,
@@ -2634,7 +2672,20 @@ function TrackTable({
                   isCurrent ? "text-emerald-500 font-semibold" : "text-zinc-400"
                 }`}
               >
-                {isCurrent ? (
+                {localId !== null ? (
+                  <RowSelectCheckbox
+                    checked={isRowSelected}
+                    selectionActive={selectionActive}
+                    onToggle={() => onToggleSelect(localId)}
+                    title={track.title}
+                  >
+                    {isCurrent ? (
+                      <PlayingIndicator isPlaying={isPlaying} />
+                    ) : (
+                      index + 1
+                    )}
+                  </RowSelectCheckbox>
+                ) : isCurrent ? (
                   <PlayingIndicator isPlaying={isPlaying} />
                 ) : (
                   index + 1

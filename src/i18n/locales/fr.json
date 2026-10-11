@@ -1228,7 +1228,8 @@
     "playNext": "Lire ensuite",
     "addToPlaylist": "Ajouter à une playlist",
     "removeFromPlaylist": "Retirer de la playlist",
-    "clear": "Désélectionner"
+    "clear": "Désélectionner",
+    "selectRow": "Sélectionner « {{title}} »"
   },
   "albumDetail": {
     "badge": "Album",

@@ -1185,7 +1185,8 @@
     "playNext": "次に再生",
     "addToPlaylist": "プレイリストに追加",
     "removeFromPlaylist": "プレイリストから削除する",
-    "clear": "選択を解除する"
+    "clear": "選択を解除する",
+    "selectRow": "「{{title}}」を選択"
   },
   "albumDetail": {
     "badge": "アルバム",

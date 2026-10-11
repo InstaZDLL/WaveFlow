@@ -33,6 +33,8 @@ import { usePlayer } from "../../hooks/usePlayer";
 import { useTrackContextMenu } from "../../hooks/useTrackContextMenu";
 import { useTrackUpdated } from "../../hooks/useTrackUpdated";
 import { useMultiSelect } from "../../hooks/useMultiSelect";
+import { useSelectAllShortcut } from "../../hooks/useSelectAllShortcut";
+import { RowSelectCheckbox } from "../common/RowSelectCheckbox";
 import {
   getAlbumDetail,
   enrichAlbumDeezer,
@@ -257,6 +259,18 @@ export function AlbumDetailView({
   useEffect(() => {
     clearSelection();
   }, [albumId, remoteAlbumId, clearSelection]);
+
+  // Ctrl+A: every local track of the album. A server track has no rowid
+  // to select. Above the skeleton's early return, as every hook must be.
+  // Only the album on screen: until the next one loads, the previous
+  // one is still in state.
+  const albumShown = album != null && loadedKey === albumKey;
+  useSelectAllShortcut(albumShown, () => {
+    if (!album) return;
+    selection.selectAll(
+      album.tracks.filter((track) => track.source !== "remote"),
+    );
+  });
 
   // Deezer enrichment (async, fire-and-forget)
   useEffect(() => {
@@ -571,6 +585,8 @@ export function AlbumDetailView({
           onRowMenuKey={trackContextMenu.openFromKeyboard}
           t={t}
           isSelected={selection.isSelected}
+          selectionActive={selection.count > 0}
+          onToggleSelect={selection.toggleOne}
           onRowSelect={(track, e) => {
             if (e.shiftKey) {
               selection.selectRange(track.id, playableTracks);
@@ -681,6 +697,10 @@ interface AlbumTrackTableProps {
   onRowMenuKey: (event: React.KeyboardEvent, track: Track) => boolean;
   t: (key: string, opts?: Record<string, unknown>) => string;
   isSelected: (id: number) => boolean;
+  /** Something is selected: every row shows its checkbox. */
+  selectionActive: boolean;
+  /** The row checkbox: a Ctrl+click without the modifier. */
+  onToggleSelect: (id: number) => void;
   onRowSelect: (track: Track, e: React.MouseEvent) => void;
 }
 
@@ -700,6 +720,8 @@ function AlbumTrackTable({
   onRowMenuKey,
   t,
   isSelected,
+  selectionActive,
+  onToggleSelect,
   onRowSelect,
 }: AlbumTrackTableProps) {
   const gridCols = "grid-cols-[3rem_1fr_1fr_5rem_2rem]";
@@ -741,7 +763,7 @@ function AlbumTrackTable({
         onContextMenu={(e) => {
           if (playable) onContextMenuRow(e, playable);
         }}
-        className={`grid ${gridCols} gap-4 px-5 py-2 items-center select-none transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500 ${
+        className={`group grid ${gridCols} gap-4 px-5 py-2 items-center select-none transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500 ${
           isRowSelected
             ? "bg-blue-500/15 ring-1 ring-inset ring-blue-500/40 dark:bg-blue-500/20"
             : isCurrent
@@ -754,7 +776,20 @@ function AlbumTrackTable({
             isCurrent ? "text-emerald-500 font-semibold" : "text-zinc-400"
           }`}
         >
-          {isCurrent ? (
+          {playable ? (
+            <RowSelectCheckbox
+              checked={isRowSelected}
+              selectionActive={selectionActive}
+              onToggle={() => onToggleSelect(playable.id)}
+              title={track.title}
+            >
+              {isCurrent ? (
+                <PlayingIndicator isPlaying={isPlaying} />
+              ) : (
+                (track.track_number ?? globalIndex + 1)
+              )}
+            </RowSelectCheckbox>
+          ) : isCurrent ? (
             <PlayingIndicator isPlaying={isPlaying} />
           ) : (
             (track.track_number ?? globalIndex + 1)
