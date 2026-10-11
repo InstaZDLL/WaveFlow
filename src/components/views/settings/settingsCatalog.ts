@@ -236,6 +236,8 @@ export const SETTINGS_CATEGORIES = [
           "settings.desktopLyrics.background",
           "settings.desktopLyrics.showTranslation",
           "settings.desktopLyrics.showNextLine",
+          "settings.desktopLyrics.showProgress",
+          "settings.desktopLyrics.hideOnPause",
         ],
       },
       {

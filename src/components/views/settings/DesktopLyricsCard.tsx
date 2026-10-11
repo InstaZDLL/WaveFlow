@@ -7,6 +7,8 @@ import {
   BACKGROUND_OPACITY_MAX,
   FONT_SIZE_MAX,
   FONT_SIZE_MIN,
+  OUTLINE_WIDTH_MAX,
+  desktopLyricsOutline,
   useDesktopLyricsStyle,
 } from "../../../hooks/useDesktopLyricsStyle";
 
@@ -95,12 +97,10 @@ export function DesktopLyricsCard() {
           }}
         >
           <p
-            className="truncate font-bold leading-tight"
+            className="truncate font-bold leading-snug px-[0.15em]"
             style={{
               fontSize: Math.min(style.fontSize, 40),
-              textShadow: style.outline
-                ? "-1px -1px 0 rgba(0,0,0,.85), 1px -1px 0 rgba(0,0,0,.85), -1px 1px 0 rgba(0,0,0,.85), 1px 1px 0 rgba(0,0,0,.85)"
-                : undefined,
+              textShadow: desktopLyricsOutline(style.outlineWidth),
             }}
           >
             <span style={{ color: style.highlightColor }}>
@@ -110,6 +110,17 @@ export function DesktopLyricsCard() {
               {t("settings.desktopLyrics.previewUnsung")}
             </span>
           </p>
+          {style.showProgress && (
+            <div
+              className="mt-1.5 h-[3px] w-full overflow-hidden rounded-full"
+              style={{ backgroundColor: `${style.textColor}40` }}
+            >
+              <div
+                className="h-full w-2/5 rounded-full"
+                style={{ backgroundColor: style.highlightColor }}
+              />
+            </div>
+          )}
         </div>
       </div>
 
@@ -175,15 +186,25 @@ export function DesktopLyricsCard() {
           />
         </label>
 
-        <div className="flex items-center justify-between gap-3 text-sm text-zinc-700 dark:text-zinc-200">
-          <span>{t("settings.desktopLyrics.outline")}</span>
-          <ToggleSwitch
-            enabled={style.outline}
-            onToggle={() => update({ outline: !style.outline })}
-            label={t("settings.desktopLyrics.outline")}
-            disabled={!ready}
+        <label className="flex flex-col gap-1 text-sm text-zinc-700 dark:text-zinc-200">
+          <span className="flex justify-between">
+            {t("settings.desktopLyrics.outline")}
+            <span className="tabular-nums text-zinc-500">
+              {style.outlineWidth === 0
+                ? t("settings.desktopLyrics.outlineNone")
+                : `${style.outlineWidth}px`}
+            </span>
+          </span>
+          <input
+            type="range"
+            min={0}
+            max={OUTLINE_WIDTH_MAX}
+            step={1}
+            value={style.outlineWidth}
+            onChange={(e) => update({ outlineWidth: Number(e.target.value) })}
+            className="accent-emerald-500"
           />
-        </div>
+        </label>
 
         <div className="flex items-center justify-between gap-3 text-sm text-zinc-700 dark:text-zinc-200">
           <span>{t("settings.desktopLyrics.showTranslation")}</span>
@@ -201,6 +222,26 @@ export function DesktopLyricsCard() {
             enabled={style.showNextLine}
             onToggle={() => update({ showNextLine: !style.showNextLine })}
             label={t("settings.desktopLyrics.showNextLine")}
+            disabled={!ready}
+          />
+        </div>
+
+        <div className="flex items-center justify-between gap-3 text-sm text-zinc-700 dark:text-zinc-200">
+          <span>{t("settings.desktopLyrics.showProgress")}</span>
+          <ToggleSwitch
+            enabled={style.showProgress}
+            onToggle={() => update({ showProgress: !style.showProgress })}
+            label={t("settings.desktopLyrics.showProgress")}
+            disabled={!ready}
+          />
+        </div>
+
+        <div className="flex items-center justify-between gap-3 text-sm text-zinc-700 dark:text-zinc-200">
+          <span>{t("settings.desktopLyrics.hideOnPause")}</span>
+          <ToggleSwitch
+            enabled={style.hideOnPause}
+            onToggle={() => update({ hideOnPause: !style.hideOnPause })}
+            label={t("settings.desktopLyrics.hideOnPause")}
             disabled={!ready}
           />
         </div>

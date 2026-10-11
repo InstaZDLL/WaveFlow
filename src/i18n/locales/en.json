@@ -2593,9 +2593,12 @@
       "textColor": "Text colour",
       "highlightColor": "Sung colour",
       "outline": "Outline",
+      "outlineNone": "None",
       "showTranslation": "Show translation",
       "reset": "Reset appearance",
-      "showNextLine": "Show next line"
+      "showNextLine": "Show next line",
+      "showProgress": "Show progress bar",
+      "hideOnPause": "Hide while paused"
     }
   },
   "scanProgress": {

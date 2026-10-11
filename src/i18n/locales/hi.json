@@ -2593,9 +2593,12 @@
       "textColor": "टेक्स्ट का रंग",
       "highlightColor": "गाए गए हिस्से का रंग",
       "outline": "आउटलाइन",
+      "outlineNone": "कोई नहीं",
       "showTranslation": "अनुवाद दिखाएँ",
       "reset": "रूप रीसेट करें",
-      "showNextLine": "अगली पंक्ति दिखाएँ"
+      "showNextLine": "अगली पंक्ति दिखाएँ",
+      "showProgress": "प्रगति पट्टी दिखाएँ",
+      "hideOnPause": "रोकने पर छिपाएँ"
     }
   },
   "scanProgress": {

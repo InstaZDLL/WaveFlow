@@ -2593,9 +2593,12 @@
       "textColor": "Tekstkleur",
       "highlightColor": "Gezongen kleur",
       "outline": "Omlijning",
+      "outlineNone": "Geen",
       "showTranslation": "Vertaling tonen",
       "reset": "Weergave herstellen",
-      "showNextLine": "Volgende regel tonen"
+      "showNextLine": "Volgende regel tonen",
+      "showProgress": "Voortgangsbalk tonen",
+      "hideOnPause": "Verbergen bij pauze"
     }
   },
   "scanProgress": {

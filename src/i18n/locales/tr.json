@@ -2593,9 +2593,12 @@
       "textColor": "Metin rengi",
       "highlightColor": "Söylenen satırın rengi",
       "outline": "Dış çizgi",
+      "outlineNone": "Yok",
       "showTranslation": "Çeviriyi göster",
       "reset": "Görünümü sıfırla",
-      "showNextLine": "Sonraki satırı göster"
+      "showNextLine": "Sonraki satırı göster",
+      "showProgress": "İlerleme çubuğunu göster",
+      "hideOnPause": "Duraklatıldığında gizle"
     }
   },
   "scanProgress": {

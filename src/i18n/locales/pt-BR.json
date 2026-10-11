@@ -2655,9 +2655,12 @@
       "textColor": "Cor do texto",
       "highlightColor": "Cor do trecho cantado",
       "outline": "Contorno",
+      "outlineNone": "Nenhum",
       "showTranslation": "Mostrar tradução",
       "reset": "Redefinir aparência",
-      "showNextLine": "Mostrar a próxima linha"
+      "showNextLine": "Mostrar a próxima linha",
+      "showProgress": "Mostrar barra de progresso",
+      "hideOnPause": "Ocultar em pausa"
     }
   },
   "scanProgress": {

@@ -13,9 +13,9 @@ export interface DesktopLyricsStyle {
   textColor: string;
   /** Colour of the sung part of the current line. `#rrggbb`. */
   highlightColor: string;
-  /** A dark outline around the glyphs, so light text stays readable on
-   *  a light desktop. */
-  outline: boolean;
+  /** Width in px of the dark outline around the glyphs, so light text
+   *  stays readable on a light desktop. `0` draws none (#814). */
+  outlineWidth: number;
   /** Opacity of the panel behind the text, 0–80 %. 0 floats the text on
    *  the desktop with nothing behind it. */
   backgroundOpacity: number;
@@ -24,21 +24,55 @@ export interface DesktopLyricsStyle {
   /** Show the next line under the current one, when there is no
    *  translation to show there. Off, the window is a single line (#735). */
   showNextLine: boolean;
+  /** Fade the window out while playback is paused or stopped, and back in
+   *  when it resumes (#814). */
+  hideOnPause: boolean;
+  /** A thin bar along the bottom showing how far into the track playback
+   *  is. */
+  showProgress: boolean;
 }
 
 export const FONT_SIZE_MIN = 20;
 export const FONT_SIZE_MAX = 72;
 export const BACKGROUND_OPACITY_MAX = 80;
+export const OUTLINE_WIDTH_MAX = 6;
 
 export const DEFAULT_DESKTOP_LYRICS_STYLE: DesktopLyricsStyle = {
   fontSize: 36,
   textColor: "#ffffff",
   highlightColor: "#34d399",
-  outline: true,
+  outlineWidth: 2,
   backgroundOpacity: 0,
   showTranslation: true,
   showNextLine: true,
+  hideOnPause: false,
+  showProgress: false,
 };
+
+/**
+ * The outline, as text shadows rather than `-webkit-text-stroke`. A
+ * stroke is centred on the glyph edge, so it eats into thin letters at
+ * small sizes and needs `paint-order` to sit behind the fill, which HTML
+ * text does not honour everywhere. Shadows only ever add outside the
+ * glyph, on every webview WaveFlow ships in.
+ *
+ * Sixteen copies around a circle, not eight around a square: past a pixel
+ * or two the square's corners stood out from the letter as notches and
+ * spikes, which is what made a thick outline look wrong (#814).
+ */
+export function desktopLyricsOutline(width: number): string | undefined {
+  if (width <= 0) return undefined;
+  const c = "rgba(0,0,0,0.85)";
+  const steps = width <= 1 ? 8 : 16;
+  const shadows: string[] = [];
+  for (let i = 0; i < steps; i++) {
+    const angle = (i / steps) * 2 * Math.PI;
+    const x = Math.round(width * Math.cos(angle) * 100) / 100;
+    const y = Math.round(width * Math.sin(angle) * 100) / 100;
+    shadows.push(`${x}px ${y}px 0 ${c}`);
+  }
+  return shadows.join(", ");
+}
 
 const KEY = "ui.desktop_lyrics_style";
 
@@ -68,25 +102,32 @@ function parseStyle(raw: string | null): DesktopLyricsStyle {
   }
   const color = (v: unknown, fallback: string) =>
     typeof v === "string" && HEX.test(v) ? v : fallback;
+  const flag = (v: unknown, fallback: boolean) =>
+    typeof v === "boolean" ? v : fallback;
+  // Before #814 the outline was an on/off `outline` flag; a style saved
+  // then keeps its choice, off as no outline and on as the default width.
+  const legacyOutline =
+    parsed.outline === false ? 0 : d.outlineWidth;
   return {
     fontSize: clamp(parsed.fontSize, FONT_SIZE_MIN, FONT_SIZE_MAX, d.fontSize),
     textColor: color(parsed.textColor, d.textColor),
     highlightColor: color(parsed.highlightColor, d.highlightColor),
-    outline: typeof parsed.outline === "boolean" ? parsed.outline : d.outline,
+    outlineWidth: clamp(
+      parsed.outlineWidth,
+      0,
+      OUTLINE_WIDTH_MAX,
+      legacyOutline,
+    ),
     backgroundOpacity: clamp(
       parsed.backgroundOpacity,
       0,
       BACKGROUND_OPACITY_MAX,
       d.backgroundOpacity,
     ),
-    showTranslation:
-      typeof parsed.showTranslation === "boolean"
-        ? parsed.showTranslation
-        : d.showTranslation,
-    showNextLine:
-      typeof parsed.showNextLine === "boolean"
-        ? parsed.showNextLine
-        : d.showNextLine,
+    showTranslation: flag(parsed.showTranslation, d.showTranslation),
+    showNextLine: flag(parsed.showNextLine, d.showNextLine),
+    hideOnPause: flag(parsed.hideOnPause, d.hideOnPause),
+    showProgress: flag(parsed.showProgress, d.showProgress),
   };
 }
 
