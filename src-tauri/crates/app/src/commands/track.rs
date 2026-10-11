@@ -233,6 +233,32 @@ pub async fn get_track_genres(
     Ok(names)
 }
 
+/// The artists credited on a track, in credit order.
+///
+/// The properties dialog pre-fills its artist field with these, joined
+/// with `"; "` — the only separator `split_artist_name` splits on. The
+/// row's `artist_name` is joined with `", "` for display, so a dialog
+/// that echoed it back turned "A" and "B" into one artist named "A, B"
+/// on any save, title-only ones included.
+#[tauri::command]
+pub async fn get_track_artists(
+    state: tauri::State<'_, AppState>,
+    track_id: i64,
+) -> AppResult<Vec<String>> {
+    let pool = state.require_profile_pool().await?;
+    let names = sqlx::query_scalar::<_, String>(
+        "SELECT ar.name
+           FROM track_artist ta
+           JOIN artist ar ON ar.id = ta.artist_id
+          WHERE ta.track_id = ?
+          ORDER BY ta.position",
+    )
+    .bind(track_id)
+    .fetch_all(&*pool)
+    .await?;
+    Ok(names)
+}
+
 /// Text search over title / album / artist, up to 50 tracks.
 ///
 /// The shape of the query — which route it takes, how each term is

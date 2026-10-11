@@ -31,14 +31,29 @@ impl AlbumRepository for SqliteAlbumRepository {
         .fetch_all(&self.pool)
         .await?;
         album_ids.extend_from_slice(previous_album_ids);
-        album_ids.sort_unstable();
-        album_ids.dedup();
+        let mut conn = self.pool.acquire().await?;
+        refresh_album_years(&mut conn, &album_ids).await
+    }
+}
 
-        let mut changed = 0;
-        // Leave room under SQLite's bind limit for every album id.
-        for chunk in album_ids.chunks(900) {
-            let mut query = QueryBuilder::<Sqlite>::new(
-                "WITH chosen AS (
+/// Recompute `album.year` for these albums from their tracks: the year of
+/// the first available track in disc / track order that has one. Shared
+/// by the folder scan and by the tag editor, which changes a track's year
+/// (or moves it to another album) outside any scan. Takes a connection so
+/// the editor can run it inside its own transaction.
+pub async fn refresh_album_years(
+    conn: &mut sqlx::SqliteConnection,
+    album_ids: &[i64],
+) -> CoreResult<u64> {
+    let mut album_ids = album_ids.to_vec();
+    album_ids.sort_unstable();
+    album_ids.dedup();
+
+    let mut changed = 0;
+    // Leave room under SQLite's bind limit for every album id.
+    for chunk in album_ids.chunks(900) {
+        let mut query = QueryBuilder::<Sqlite>::new(
+            "WITH chosen AS (
                     SELECT al.id AS album_id,
                            (SELECT t.year FROM track t
                              WHERE t.album_id = al.id
@@ -50,25 +65,24 @@ impl AlbumRepository for SqliteAlbumRepository {
                              LIMIT 1) AS year
                       FROM album al
                      WHERE al.id IN (",
-            );
-            {
-                let mut ids = query.separated(", ");
-                for id in chunk {
-                    ids.push_bind(id);
-                }
+        );
+        {
+            let mut ids = query.separated(", ");
+            for id in chunk {
+                ids.push_bind(id);
             }
-            query.push(
-                "))
+        }
+        query.push(
+            "))
                 UPDATE album
                    SET year = chosen.year
                   FROM chosen
                  WHERE album.id = chosen.album_id
                    AND album.year IS NOT chosen.year",
-            );
-            changed += query.build().execute(&self.pool).await?.rows_affected();
-        }
-        Ok(changed)
+        );
+        changed += query.build().execute(&mut *conn).await?.rows_affected();
     }
+    Ok(changed)
 }
 
 #[cfg(test)]

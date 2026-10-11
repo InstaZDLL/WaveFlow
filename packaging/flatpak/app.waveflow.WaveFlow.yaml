@@ -60,10 +60,12 @@ finish-args:
   - --share=network
 
   # File access for music libraries.
-  # xdg-music covers ~/Music; users with libraries elsewhere can grant
-  # additional dirs via Flatseal or `flatpak override`. Avoid host=ro
-  # in the manifest itself so the Flathub reviewers don't push back.
-  - --filesystem=xdg-music:ro
+  # ~/Music read-write: the tag editor writes the files, lyrics can be
+  # saved as sidecars next to them, and generated clips go under
+  # `.waveflow/` in the library folder; read-only, every one of those
+  # failed there. Libraries elsewhere are granted per directory (Flatseal
+  # or `flatpak override`) rather than through a blanket `host` access.
+  - --filesystem=xdg-music
   - --filesystem=xdg-download:ro
   - --filesystem=xdg-videos:ro
   # Portal-based file picker for arbitrary folder add (FileChooser portal)
