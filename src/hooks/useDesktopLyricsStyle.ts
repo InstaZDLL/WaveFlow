@@ -74,6 +74,17 @@ export function desktopLyricsOutline(width: number): string | undefined {
   return shadows.join(", ");
 }
 
+/**
+ * Padding for a line drawn with that outline. The line is `truncate`, which
+ * clips at its padding box, and a padding sized only in `em` is thinner
+ * than a wide outline at a small font size (3 px at 20 px against up to
+ * {@link OUTLINE_WIDTH_MAX}): the shadow would be cut at the sides and
+ * along descenders. Whichever is larger wins.
+ */
+export function desktopLyricsLinePadding(outlineWidth: number): string {
+  return `max(0.1em, ${outlineWidth}px) max(0.15em, ${outlineWidth}px)`;
+}
+
 const KEY = "ui.desktop_lyrics_style";
 
 /** Window event `useProfileSetting` re-reads on, within one webview. */

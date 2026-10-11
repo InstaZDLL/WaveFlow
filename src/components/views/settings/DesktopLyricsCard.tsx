@@ -8,6 +8,7 @@ import {
   FONT_SIZE_MAX,
   FONT_SIZE_MIN,
   OUTLINE_WIDTH_MAX,
+  desktopLyricsLinePadding,
   desktopLyricsOutline,
   useDesktopLyricsStyle,
 } from "../../../hooks/useDesktopLyricsStyle";
@@ -97,10 +98,11 @@ export function DesktopLyricsCard() {
           }}
         >
           <p
-            className="truncate font-bold leading-snug px-[0.15em]"
+            className="truncate font-bold leading-snug"
             style={{
               fontSize: Math.min(style.fontSize, 40),
               textShadow: desktopLyricsOutline(style.outlineWidth),
+              padding: desktopLyricsLinePadding(style.outlineWidth),
             }}
           >
             <span style={{ color: style.highlightColor }}>

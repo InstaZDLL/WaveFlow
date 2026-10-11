@@ -16,6 +16,7 @@ import { usePlayerPosition } from "../../hooks/usePlayerPosition";
 import { useTrackLyrics } from "../../hooks/useTrackLyrics";
 import { useKaraokeWordFill } from "../../hooks/useKaraokeWordFill";
 import {
+  desktopLyricsLinePadding,
   desktopLyricsOutline,
   useDesktopLyricsStyle,
 } from "../../hooks/useDesktopLyricsStyle";
@@ -86,11 +87,12 @@ const MIN_FIT_SCALE = 0.6;
  * `truncate` clips at the element's box, and `leading-tight` made that box
  * shorter than the glyphs: the bottom of `g`, `y` and `p` was cut off, on
  * Linux in particular where the font's descent is deeper (#673). A roomier
- * line height and a padding sized in `em` keep the descenders and the
- * text-shadow outline inside the box at any font size.
+ * line height keeps the descenders inside the box, and the padding, set
+ * inline from `desktopLyricsLinePadding`, keeps the outline inside it at
+ * any font size and outline width.
  */
 const LINE_CLASS =
-  "desktop-lyrics-line max-w-full truncate text-center leading-snug px-[0.15em] py-[0.1em]";
+  "desktop-lyrics-line max-w-full truncate text-center leading-snug";
 
 /**
  * The floating desktop lyrics window (issue #582): the line being sung,
@@ -153,6 +155,7 @@ export function DesktopLyrics() {
   }
 
   const shadow = desktopLyricsOutline(style.outlineWidth);
+  const padding = desktopLyricsLinePadding(style.outlineWidth);
   // Focus counts as much as the pointer: the buttons are reachable from
   // the keyboard, and a frame that only appears under the mouse would
   // leave a keyboard user tabbing through controls they cannot see.
@@ -264,7 +267,7 @@ export function DesktopLyrics() {
 
         <FitLine
           size={style.fontSize}
-          fitKey={`${currentTrack?.id ?? ""}:${activeIndex}:${activeLine?.text ?? currentTrack?.title ?? ""}`}
+          fitKey={`${padding}:${currentTrack?.id ?? ""}:${activeIndex}:${activeLine?.text ?? currentTrack?.title ?? ""}`}
           className={`${LINE_CLASS} font-bold`}
           style={{
             color: activeLine?.words?.length
@@ -273,6 +276,7 @@ export function DesktopLyrics() {
                 ? "var(--dl-highlight)"
                 : "var(--dl-text)",
             textShadow: shadow,
+            padding,
           }}
         >
           {first}
@@ -280,12 +284,13 @@ export function DesktopLyrics() {
         {second && (
           <FitLine
             size={Math.round(style.fontSize * SECOND_LINE_SCALE)}
-            fitKey={second}
+            fitKey={`${padding}:${second}`}
             className={`${LINE_CLASS} font-semibold`}
             style={{
               color: "var(--dl-text)",
               opacity: 0.85,
               textShadow: shadow,
+              padding,
             }}
           >
             {second}
@@ -380,10 +385,20 @@ function FitLine({
       el.style.fontSize = `${size}px`;
       const natural = el.scrollWidth;
       const room = el.clientWidth;
+      // Both widths include the padding, which does not shrink with the
+      // font when the outline width sets it: scaling it along with the
+      // text would leave the line a few px too wide, and cut. Only the
+      // text scales, so only the text is compared. An `em` padding does
+      // shrink, which errs toward a line slightly smaller than needed.
+      const computed = getComputedStyle(el);
+      const pad =
+        parseFloat(computed.paddingLeft) + parseFloat(computed.paddingRight);
       el.style.fontSize = applied;
+      const text = natural - pad;
+      const textRoom = room - pad;
       const next =
-        natural > room && natural > 0
-          ? Math.max(MIN_FIT_SCALE, room / natural)
+        natural > room && text > 0
+          ? Math.max(MIN_FIT_SCALE, Math.max(0, textRoom) / text)
           : 1;
       // Always the measured value: the measurement is taken at the chosen
       // size, so it cannot feed back on itself, and rounding a slight
