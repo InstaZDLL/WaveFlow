@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useProfileSetting } from "./useProfileSetting";
 
 /** How many past searches the top bar keeps. */
@@ -52,32 +52,61 @@ export function useRecentSearches(): RecentSearches {
     label: "useRecentSearches",
   });
 
+  // Each query goes to the top in turn, so the last one recorded ends
+  // up first; duplicates are folded case-insensitively.
+  const record = useCallback(
+    (queries: string[]) => {
+      void setValue((previous) => {
+        let next = previous;
+        for (const query of queries) {
+          const folded = query.toLocaleLowerCase();
+          next = [
+            query,
+            ...next.filter((q) => q.toLocaleLowerCase() !== folded),
+          ].slice(0, MAX_RECENT);
+        }
+        return next;
+      });
+    },
+    [setValue],
+  );
+
+  // Searches made before the profile's list is read wait here: written
+  // then, the updater would see the empty default and replace the list.
+  const pendingRef = useRef<string[]>([]);
+  useEffect(() => {
+    if (!ready || pendingRef.current.length === 0) return;
+    const queued = pendingRef.current;
+    pendingRef.current = [];
+    record(queued);
+  }, [ready, record]);
+
   const remember = useCallback(
     (query: string) => {
-      const trimmed = query.trim();
       // A single character is a real search too: one Han character is a
-      // word. Before the profile's list is read, the updater would see
-      // the empty default and the write would replace the stored list.
-      if (trimmed === "" || !ready) return;
-      const folded = trimmed.toLocaleLowerCase();
-      void setValue((previous) =>
-        [
-          trimmed,
-          ...previous.filter((q) => q.toLocaleLowerCase() !== folded),
-        ].slice(0, MAX_RECENT),
-      );
+      // word.
+      const trimmed = query.trim();
+      if (trimmed === "") return;
+      if (!ready) {
+        pendingRef.current.push(trimmed);
+        return;
+      }
+      record([trimmed]);
     },
-    [ready, setValue],
+    [ready, record],
   );
 
   const forget = useCallback(
     (query: string) => {
+      // Also out of the queue, or reading the profile would bring it back.
+      pendingRef.current = pendingRef.current.filter((q) => q !== query);
       void setValue((previous) => previous.filter((q) => q !== query));
     },
     [setValue],
   );
 
   const clear = useCallback(() => {
+    pendingRef.current = [];
     void setValue(DEFAULT);
   }, [setValue]);
 
