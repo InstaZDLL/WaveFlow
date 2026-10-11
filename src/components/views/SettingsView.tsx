@@ -1956,7 +1956,7 @@ export function SettingsView({
       .catch(() => {})
       .then(() => {
         if (activeProfileIdRef.current !== profileId) return;
-        return playerSetKeepAwake(next);
+        return playerSetKeepAwake(next, profileId ?? null);
       })
       .catch((err) => {
         console.error("[Settings] set keep awake failed", err);

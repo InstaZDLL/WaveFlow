@@ -495,8 +495,11 @@ export function playerSetPauseOnDeviceLoss(enabled: boolean): Promise<void> {
  * Keep the computer awake while music plays (`power.rs`). Never blocks a
  * suspend the user asks for — closing the lid still suspends.
  */
-export function playerSetKeepAwake(enabled: boolean): Promise<void> {
-  return invoke<void>("player_set_keep_awake", { enabled });
+export function playerSetKeepAwake(
+  enabled: boolean,
+  expectedProfileId: number | null = null,
+): Promise<void> {
+  return invoke<void>("player_set_keep_awake", { enabled, expectedProfileId });
 }
 
 export function playerSetCrossfade(seconds: number): Promise<void> {

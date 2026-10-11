@@ -2467,8 +2467,12 @@ pub async fn player_set_pause_on_device_loss(
 pub async fn player_set_keep_awake(
     state: tauri::State<'_, AppState>,
     enabled: bool,
+    expected_profile_id: Option<i64>,
 ) -> AppResult<()> {
-    let pool = state.require_profile_pool().await?;
+    // The profile the toggle was flipped in: checked and leased under the
+    // lock a profile switch takes, so a switch in flight cannot redirect
+    // the write — or the inhibitor — to the next profile.
+    let pool = state.require_profile_pool_for(expected_profile_id).await?;
     let now = chrono::Utc::now().timestamp_millis();
     sqlx::query(
         "INSERT INTO profile_setting (key, value, value_type, updated_at)
