@@ -2472,7 +2472,9 @@ pub async fn player_set_keep_awake(
     // The profile the toggle was flipped in: checked and leased under the
     // lock a profile switch takes, so a switch in flight cannot redirect
     // the write — or the inhibitor — to the next profile.
-    let pool = state.require_profile_pool_for(expected_profile_id).await?;
+    let (pool, written_profile) = state
+        .require_profile_pool_with_id(expected_profile_id)
+        .await?;
     let now = chrono::Utc::now().timestamp_millis();
     sqlx::query(
         "INSERT INTO profile_setting (key, value, value_type, updated_at)
@@ -2483,7 +2485,16 @@ pub async fn player_set_keep_awake(
     .bind(now)
     .execute(&*pool)
     .await?;
-    crate::power::set_enabled(enabled);
+    drop(pool);
+    // The lease covered the write; the inhibitor is process-wide and needs
+    // its own ordering. Under the profile lock a switch takes for writing:
+    // applied while this is still the active profile, or not at all — a
+    // switch that got in first has run, or will run, the next profile's
+    // own restore, which must not be overwritten with this one's value.
+    let active = state.profile.read().await;
+    if active.as_ref().map(|p| p.profile_id) == Some(written_profile) {
+        crate::power::set_enabled(enabled);
+    }
     Ok(())
 }
 
