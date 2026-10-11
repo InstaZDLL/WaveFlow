@@ -96,9 +96,9 @@ pub(crate) async fn rehash_track_file(
 #[serde(default)]
 pub struct TrackEdit {
     pub title: Option<String>,
-    /// Raw multi-artist string ("Artist A, Artist B"). Split via the
-    /// scanner's `split_artist_name` so a comma-separated input gets
-    /// normalised to the same many-to-many shape.
+    /// Raw multi-artist string ("Artist A; Artist B"). Split via the
+    /// scanner's `split_artist_name`, on `"; "` only: a comma belongs to
+    /// names like "Earth, Wind & Fire".
     pub artist: Option<String>,
     pub album: Option<String>,
     pub year: Option<i64>,
@@ -1190,6 +1190,14 @@ fn write_tags_to_file(
 async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) -> AppResult<()> {
     let mut tx = pool.begin().await?;
 
+    // The album the track leaves, if it does: its year may have come
+    // from this track.
+    let old_album_id: Option<i64> = sqlx::query_scalar("SELECT album_id FROM track WHERE id = ?")
+        .bind(track_id)
+        .fetch_optional(&mut *tx)
+        .await?
+        .flatten();
+
     // Resolve the new artist list (and the new primary). When the
     // user didn't touch the artist field, leave the existing rows
     // alone — re-upserting the same names would no-op but the DELETE
@@ -1199,7 +1207,9 @@ async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) -> AppResul
             let mut ids: Vec<i64> = Vec::new();
             for name in split_artist_name(raw) {
                 if let Some(id) = upsert_artist(&mut tx, &name).await? {
+                    // First spelling wins when one credit lists an artist twice.
                     if !ids.contains(&id) {
+                        respell(&mut tx, Respell::Artist, id, &name).await?;
                         ids.push(id);
                     }
                 }
@@ -1262,6 +1272,9 @@ async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) -> AppResul
                 edit.year,
             )
             .await?;
+            if let Some(id) = aid {
+                respell(&mut tx, Respell::Album, id, title).await?;
+            }
             Some(aid)
         }
     } else {
@@ -1355,6 +1368,7 @@ async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) -> AppResul
         let trimmed = g.trim();
         if !trimmed.is_empty() {
             if let Some(gid) = upsert_genre(&mut tx, trimmed).await? {
+                respell(&mut tx, Respell::Genre, gid, trimmed).await?;
                 sqlx::query("INSERT OR IGNORE INTO track_genre (track_id, genre_id) VALUES (?, ?)")
                     .bind(track_id)
                     .bind(gid)
@@ -1364,10 +1378,76 @@ async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) -> AppResul
         }
     }
 
+    // The album year is the first track's (disc, then track order),
+    // recomputed by the scan only: an edited year, a renumbered track, or
+    // a track moved between albums left the header on the old one until
+    // the next scan of that folder.
+    if edit.year.is_some()
+        || edit.track_number.is_some()
+        || edit.disc_number.is_some()
+        || new_album_id.is_some()
+    {
+        let mut albums: Vec<i64> = old_album_id.into_iter().collect();
+        if let Some(Some(aid)) = new_album_id {
+            albums.push(aid);
+        }
+        waveflow_core::repository::sqlite::album::refresh_album_years(&mut tx, &albums).await?;
+    }
+
     tx.commit().await?;
     // Suppress unused-import warning when canonical_name isn't reached
     // via a code path in this function (it's exported for callers).
     let _ = canonical_name;
+    Ok(())
+}
+
+/// Which entity an edit names, for [`respell`].
+#[derive(Clone, Copy)]
+enum Respell {
+    Artist,
+    Album,
+    Genre,
+}
+
+/// Give an artist, album or genre the spelling the user just typed.
+///
+/// They are found by a canonical key that ignores case, punctuation and
+/// spacing, so "The Wall" typed over "the wall" resolves to the very same
+/// row — and nothing then renamed it: the file carried the fix, every
+/// view kept the old spelling, and no rescan could change it either.
+///
+/// Only here, on an explicit edit. The scanner must not do it: two files
+/// spelling one artist differently would rename it back and forth on
+/// every scan. It renames the entity for every track that shares it,
+/// which is what correcting a name means. Pinyin travels with the name.
+async fn respell(
+    conn: &mut sqlx::SqliteConnection,
+    kind: Respell,
+    id: i64,
+    spelled: &str,
+) -> AppResult<()> {
+    let pinyin = waveflow_core::scanner::pinyin_blob(spelled).unwrap_or_default();
+    let query = match kind {
+        Respell::Artist => {
+            sqlx::query("UPDATE artist SET name = ?, pinyin = ? WHERE id = ? AND name IS NOT ?")
+                .bind(spelled)
+                .bind(pinyin)
+                .bind(id)
+                .bind(spelled)
+        }
+        Respell::Album => {
+            sqlx::query("UPDATE album SET title = ?, pinyin = ? WHERE id = ? AND title IS NOT ?")
+                .bind(spelled)
+                .bind(pinyin)
+                .bind(id)
+                .bind(spelled)
+        }
+        Respell::Genre => sqlx::query("UPDATE genre SET name = ? WHERE id = ? AND name IS NOT ?")
+            .bind(spelled)
+            .bind(id)
+            .bind(spelled),
+    };
+    query.execute(&mut *conn).await?;
     Ok(())
 }
 
@@ -2069,5 +2149,134 @@ mod patch_agreement_tests {
         let all: Vec<_> = tag.lyrics().collect();
         assert_eq!(all.len(), 1);
         assert_eq!(all[0].text, "words already there");
+    }
+}
+
+#[cfg(test)]
+mod sync_db_tests {
+    use super::*;
+    use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
+    use std::str::FromStr;
+
+    /// The real migrator, `foreign_keys` on: what `sync_db` writes must
+    /// hold against the schema the app actually has.
+    async fn pool() -> SqlitePool {
+        let options = waveflow_core::repository::sqlite::collation::register(
+            SqliteConnectOptions::from_str(":memory:")
+                .unwrap()
+                .foreign_keys(true),
+        );
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect_with(options)
+            .await
+            .unwrap();
+        sqlx::migrate!("../../migrations/profile")
+            .run(&pool)
+            .await
+            .unwrap();
+        for statement in [
+            "INSERT INTO library (id, name, color_id, icon_id, created_at, updated_at,
+                                  hlc_wall, hlc_logical)
+             VALUES (1, 'L', 1, 1, 0, 0, 0, 0)",
+            "INSERT INTO artist (id, name, canonical_name) VALUES (1, 'pink floyd', 'pink floyd')",
+            "INSERT INTO album (id, title, canonical_title, artist_id, year, is_compilation)
+             VALUES (1, 'the wall', 'the wall', 1, 1979, 0)",
+            "INSERT INTO genre (id, name, canonical_name) VALUES (1, 'prog rock', 'prog rock')",
+            "INSERT INTO track (id, library_id, file_path, file_hash, file_size, file_modified,
+                                title, album_id, duration_ms, added_at, is_available, year,
+                                hlc_wall, hlc_logical, rating_hlc_wall, rating_hlc_logical)
+             VALUES (1, 1, '/m/1.flac', 'h1', 1, 0, 'In the Flesh?', 1, 1000, 0, 1, 1979,
+                     0, 0, 0, 0)",
+            "UPDATE track SET primary_artist = 1 WHERE id = 1",
+            "INSERT INTO track_artist (track_id, artist_id, position) VALUES (1, 1, 0)",
+            "INSERT INTO track_genre (track_id, genre_id) VALUES (1, 1)",
+        ] {
+            sqlx::raw_sql(statement).execute(&pool).await.unwrap();
+        }
+        pool
+    }
+
+    fn edit() -> TrackEdit {
+        TrackEdit {
+            title: None,
+            artist: None,
+            album: None,
+            year: None,
+            track_number: None,
+            disc_number: None,
+            genre: None,
+        }
+    }
+
+    /// Case and punctuation fixes resolve to the same rows through the
+    /// canonical key; they used to leave the old spelling on display.
+    #[tokio::test]
+    async fn a_respelled_name_reaches_the_existing_row() {
+        let pool = pool().await;
+        let fix = TrackEdit {
+            artist: Some("Pink Floyd".into()),
+            album: Some("The Wall".into()),
+            genre: Some("Prog Rock".into()),
+            ..edit()
+        };
+        sync_db(&pool, 1, &fix).await.unwrap();
+
+        let artist: (i64, String) =
+            sqlx::query_as("SELECT ar.id, ar.name FROM track t JOIN artist ar ON ar.id = t.primary_artist WHERE t.id = 1")
+                .fetch_one(&pool)
+                .await
+                .unwrap();
+        assert_eq!(artist, (1, "Pink Floyd".to_string()));
+        let album: (i64, String) =
+            sqlx::query_as("SELECT al.id, al.title FROM track t JOIN album al ON al.id = t.album_id WHERE t.id = 1")
+                .fetch_one(&pool)
+                .await
+                .unwrap();
+        assert_eq!(album, (1, "The Wall".to_string()));
+        let genre: (i64, String) = sqlx::query_as(
+            "SELECT g.id, g.name FROM track_genre tg JOIN genre g ON g.id = tg.genre_id WHERE tg.track_id = 1",
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(genre, (1, "Prog Rock".to_string()));
+    }
+
+    /// `"; "` separates artists; a comma stays inside a name.
+    #[tokio::test]
+    async fn artists_split_on_the_semicolon_only() {
+        let pool = pool().await;
+        let credits = TrackEdit {
+            artist: Some("Earth, Wind & Fire; The Emotions".into()),
+            ..edit()
+        };
+        sync_db(&pool, 1, &credits).await.unwrap();
+
+        let names: Vec<String> = sqlx::query_scalar(
+            "SELECT ar.name FROM track_artist ta JOIN artist ar ON ar.id = ta.artist_id
+              WHERE ta.track_id = 1 ORDER BY ta.position",
+        )
+        .fetch_all(&pool)
+        .await
+        .unwrap();
+        assert_eq!(names, ["Earth, Wind & Fire", "The Emotions"]);
+    }
+
+    /// The album header took its year from the scan alone.
+    #[tokio::test]
+    async fn an_edited_year_reaches_the_album() {
+        let pool = pool().await;
+        let year = TrackEdit {
+            year: Some(1980),
+            ..edit()
+        };
+        sync_db(&pool, 1, &year).await.unwrap();
+
+        let album_year: Option<i64> = sqlx::query_scalar("SELECT year FROM album WHERE id = 1")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(album_year, Some(1980));
     }
 }

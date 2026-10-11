@@ -213,6 +213,16 @@ export function getTrackGenres(trackId: number): Promise<string[]> {
 }
 
 /**
+ * The artists credited on a track, in credit order. The properties
+ * dialog joins them with `"; "`, the only separator the backend splits
+ * on: the row's `artist_name` is joined with `", "` for display, and
+ * echoing it back merged "A" and "B" into one artist named "A, B".
+ */
+export function getTrackArtists(trackId: number): Promise<string[]> {
+  return invoke<string[]>("get_track_artists", { trackId });
+}
+
+/**
  * Multi-criteria filters layered on top of the FTS5 search. Every field
  * is optional — `query` itself can be omitted to run a pure-filter
  * browse (e.g. "all my Hi-Res FLACs from the 90s").

@@ -854,6 +854,7 @@ pub fn run() {
             commands::track::list_tracks,
             commands::track::get_track,
             commands::track::get_track_genres,
+            commands::track::get_track_artists,
             commands::track::search_tracks,
             commands::track::search_tracks_advanced,
             commands::edit::update_track_tags,

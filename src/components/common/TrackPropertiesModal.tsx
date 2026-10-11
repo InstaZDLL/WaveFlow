@@ -17,6 +17,7 @@ import { HiResBadge } from "./HiResBadge";
 import {
   formatDuration,
   getTrack,
+  getTrackArtists,
   getTrackGenres,
   setTrackRating,
   updateTrackCover,
@@ -129,6 +130,20 @@ export function TrackPropertiesModal({
   // Genres as they stand in the database, loaded alongside the track.
   // `null` means "not loaded yet", which is what gates the save below.
   const [genres, setGenres] = useState<string[] | null>(null);
+  // The credited artists, from their own fetch: see `getTrackArtists`.
+  const [artists, setArtists] = useState<string[] | null>(null);
+  // The track as it is now, for the credits fetch: a refresh can land
+  // while it is in flight, and the display form to replace is the new one.
+  const trackRef = useRef(track);
+  useEffect(() => {
+    trackRef.current = track;
+  }, [track]);
+  // Read by the form hydration, which can run after the credits landed:
+  // a closure would still see them missing and put "A, B" back.
+  const artistsRef = useRef(artists);
+  useEffect(() => {
+    artistsRef.current = artists;
+  }, [artists]);
   const [form, setForm] = useState<{
     title: string;
     artist: string;
@@ -241,6 +256,25 @@ export function TrackPropertiesModal({
       .catch((err) =>
         console.error("[TrackProperties] get_track_genres failed", err),
       );
+    getTrackArtists(trackId)
+      .then((rows) => {
+        // No credit rows: keep the display form, which then stays the
+        // baseline for the save's comparison too.
+        if (cancelled || rows.length === 0) return;
+        setArtists(rows);
+        const joined = rows.join("; ");
+        // Replace the display form the hydration put there, never what
+        // the user typed.
+        setForm((prev) =>
+          prev.artist === "" ||
+          prev.artist === (trackRef.current?.artist_name ?? "")
+            ? { ...prev, artist: joined }
+            : prev,
+        );
+      })
+      .catch((err) =>
+        console.error("[TrackProperties] get_track_artists failed", err),
+      );
     return () => {
       cancelled = true;
     };
@@ -256,7 +290,12 @@ export function TrackPropertiesModal({
     const handle = window.setTimeout(() => {
       setForm((prev) => ({
         title: track.title ?? "",
-        artist: track.artist_name ?? "",
+        // The credits joined with "; " once they land; the display form
+        // until then (it is what the comparison on save falls back to).
+        artist:
+          artistsRef.current != null
+            ? artistsRef.current.join("; ")
+            : (track.artist_name ?? ""),
         album: track.album_title ?? "",
         year: track.year != null ? String(track.year) : "",
         track_number:
@@ -296,8 +335,6 @@ export function TrackPropertiesModal({
     try {
       const edit: TrackEdit = {
         title: form.title,
-        artist: form.artist,
-        album: form.album,
         // Empty string in a number field clears the value (sent as 0
         // → backend treats as "remove this tag"). Non-numeric input
         // is rejected silently — the input is `type="number"` so the
@@ -321,10 +358,45 @@ export function TrackPropertiesModal({
       const genre = form.genre.trim();
       const sendingGenre = genres != null && genre !== genres.join("; ");
       if (sendingGenre) edit.genre = genre;
+      // Artist and album likewise ride along only when changed. Sent on
+      // every save, a multi-artist track saved for its title alone had
+      // its credits rewritten — and with the display form "A, B", merged
+      // into one artist, in the database and in the file. The baseline
+      // is the credits joined with "; " when they loaded, the display
+      // form otherwise, so a real edit is never dropped.
+      const artist = form.artist.trim();
+      const artistBaseline =
+        artists != null ? artists.join("; ") : (track.artist_name ?? "");
+      const sendingArtist = artist !== artistBaseline.trim();
+      if (sendingArtist) edit.artist = artist;
+      // The album also goes when the artist changes: without an album
+      // artist an album is grouped by its artist, so the track belongs
+      // in the new artist's album — where a rescan of the file it now
+      // tags would put it anyway.
+      const album = form.album.trim();
+      if (sendingArtist || album !== (track.album_title ?? "").trim()) {
+        edit.album = album;
+      }
       await updateTrackTags(track.id, edit);
       // Only when we sent one — otherwise this would record a genre we
       // never wrote, and the *next* save would act on it.
       if (sendingGenre) setGenres(genre === "" ? [] : [genre]);
+      if (sendingArtist) {
+        // Re-read rather than rebuilt from the input: the save respelled
+        // and deduplicated the names, and the next comparison must start
+        // from what the database now holds.
+        try {
+          const rows = await getTrackArtists(track.id);
+          setArtists(rows.length > 0 ? rows : null);
+          setForm((prev) => ({
+            ...prev,
+            artist: rows.length > 0 ? rows.join("; ") : prev.artist,
+          }));
+        } catch (err) {
+          console.error("[TrackProperties] get_track_artists failed", err);
+          setArtists(null);
+        }
+      }
       setEditing(false);
       // The backend emits `track:updated` after the save, which the
       // surrounding views listen to and react to (re-fetch the row).
