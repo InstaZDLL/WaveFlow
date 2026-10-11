@@ -828,9 +828,12 @@ fn acquire_hog(device_id: AudioDeviceID) -> AppResult<()> {
             if owner == our_pid {
                 Ok(())
             } else {
-                Err(AppError::Audio(format!(
-                    "coreaudio: device is held exclusively by another process (pid {owner})"
-                )))
+                Err(AppError::ExclusiveRefused {
+                    reason: super::engine::ExclusiveRefusal::Busy,
+                    detail: format!(
+                        "coreaudio: device is held exclusively by another process (pid {owner})"
+                    ),
+                })
             }
         }
     }

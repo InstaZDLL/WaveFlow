@@ -512,7 +512,7 @@ fn open_reserving_the_card<T>(
                     %what,
                     "alsa: the card is busy and could not be reserved"
                 );
-                return Err(failure.err);
+                return Err(busy(failure.err));
             };
             match open_after_release(attempt) {
                 Ok(opened) => Ok((Some(reservation), opened)),
@@ -523,11 +523,38 @@ fn open_reserving_the_card<T>(
                         %what,
                         "alsa: the card stayed busy after the reservation"
                     );
-                    Err(failure.err)
+                    if failure.busy {
+                        Err(busy(failure.err))
+                    } else {
+                        Err(failure.err)
+                    }
                 }
             }
         }
         Err(failure) => Err(failure.err),
+    }
+}
+
+/// The device stayed held by someone else: a refusal that says so.
+fn busy(err: AppError) -> AppError {
+    super::engine::ExclusiveRefusal::Busy.refuse(err)
+}
+
+/// Why an exclusive open failed. Busy is marked where it is known; a
+/// rejected hardware parameter (rate, sample format, channels) means the
+/// device offers no format the stream could use.
+pub fn refusal_of(err: &AppError) -> super::engine::ExclusiveRefusal {
+    use super::engine::ExclusiveRefusal;
+    match err {
+        AppError::ExclusiveRefused { reason, .. } => *reason,
+        AppError::Audio(text)
+            if text.starts_with("alsa set_")
+                || text.starts_with("alsa hw_params")
+                || text.starts_with("alsa hwparams") =>
+        {
+            ExclusiveRefusal::Format
+        }
+        _ => ExclusiveRefusal::Unknown,
     }
 }
 

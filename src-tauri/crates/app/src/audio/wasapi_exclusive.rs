@@ -59,6 +59,31 @@ use crate::error::{AppError, AppResult};
 /// mode (busy, unsupported format, no such device), the error is
 /// surfaced before this function returns so the caller can fall back
 /// to the cpal shared backend.
+/// Why an exclusive open failed, from the `HRESULT` the error carries.
+///
+/// The `wasapi` crate reports Win32 failures as text, with the code in it
+/// (`HRESULT(0x8889000A)`), and those codes are stable; the format probe
+/// says so in its own words. Anything else is `Unknown`.
+pub fn refusal_of(err: &AppError) -> super::engine::ExclusiveRefusal {
+    use super::engine::ExclusiveRefusal;
+    if let AppError::ExclusiveRefused { reason, .. } = err {
+        return *reason;
+    }
+    let text = err.to_string().to_ascii_uppercase();
+    if text.contains("8889000A") {
+        // AUDCLNT_E_DEVICE_IN_USE
+        ExclusiveRefusal::Busy
+    } else if text.contains("8889000E") {
+        // AUDCLNT_E_EXCLUSIVE_MODE_NOT_ALLOWED
+        ExclusiveRefusal::NotAllowed
+    } else if text.contains("88890008") || text.contains("IS_SUPPORTED REJECTED") {
+        // AUDCLNT_E_UNSUPPORTED_FORMAT, or the probe before the open
+        ExclusiveRefusal::Format
+    } else {
+        ExclusiveRefusal::Unknown
+    }
+}
+
 pub fn spawn_exclusive_output_thread(
     shared: Arc<SharedPlayback>,
     app: AppHandle,
@@ -103,7 +128,7 @@ pub fn spawn_exclusive_output_thread(
         )),
         Ok(Err(err)) => {
             let _ = join.join();
-            Err(err)
+            Err(refusal_of(&err).refuse(err))
         }
         Err(_) => Err(AppError::Audio(
             "wasapi exclusive thread died before reporting init result".into(),
