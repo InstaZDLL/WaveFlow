@@ -913,6 +913,9 @@
       },
       "notice": {
         "exclusive-refused": "Perangkat ini menolak mode eksklusif: memutar dalam mode bersama",
+        "exclusive-refused-busy": "Aplikasi lain sedang memakai perangkat ini dalam mode eksklusif: diputar dalam mode bersama",
+        "exclusive-refused-not-allowed": "Windows tidak mengizinkan mode eksklusif pada perangkat ini: diputar dalam mode bersama",
+        "exclusive-refused-format": "Perangkat ini tidak menawarkan format yang bisa dipakai dalam mode eksklusif: diputar dalam mode bersama",
         "dop-refused": "DAC ini menolak DSD asli: mengonversi ke PCM",
         "paused-device-lost": "Perangkat terputus: pemutaran dijeda",
         "unknown": "Keluaran audio berubah"
@@ -1839,6 +1842,9 @@
       "title": "Keluaran eksklusif",
       "subtitle": "Mengambil perangkat hanya untuk aplikasi ini alih-alih membaginya dengan mixer sistem. Kembali ke mode bersama jika perangkat menolak.",
       "fallback": "Perangkat tidak menerima mode eksklusif. Kembali ke mode bersama.",
+      "fallbackBusy": "Aplikasi lain sudah memakai perangkat ini dalam mode eksklusif. Tutup aplikasi itu, lalu putar lagi.",
+      "fallbackNotAllowed": "Windows melarang mode eksklusif pada perangkat ini. Aktifkan “Izinkan aplikasi mengambil kendali eksklusif perangkat ini” di properti lanjutan (Pengaturan suara).",
+      "fallbackFormat": "Perangkat tidak menawarkan format yang bisa dipakai dalam mode eksklusif. Kembali ke mode bersama.",
       "hardwareVolume": "Volume sistem tidak lagi berlaku: perangkat memutar pada level perangkat kerasnya sendiri. Jika terlalu pelan, naikkan level itu di mixer sistem."
     },
     "matchSourceRate": {

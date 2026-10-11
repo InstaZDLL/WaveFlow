@@ -913,6 +913,9 @@
       },
       "notice": {
         "exclusive-refused": "Bu aygıt özel modu kabul etmiyor: paylaşımlı modda çalınıyor",
+        "exclusive-refused-busy": "Başka bir uygulama bu cihazı özel modda kullanıyor: paylaşılan modda çalınıyor",
+        "exclusive-refused-not-allowed": "Windows bu cihazda özel moda izin vermiyor: paylaşılan modda çalınıyor",
+        "exclusive-refused-format": "Bu cihaz özel modda kullanılabilecek bir biçim sunmuyor: paylaşılan modda çalınıyor",
         "dop-refused": "Bu DAC doğrudan DSD'yi kabul etmiyor: PCM'ye dönüştürülüyor",
         "paused-device-lost": "Aygıt bağlantısı kesildi: oynatma duraklatıldı",
         "unknown": "Ses çıkışı değişti"
@@ -1839,6 +1842,9 @@
       "title": "Özel çıkış",
       "subtitle": "Aygıtı sistem karıştırıcısıyla paylaşmak yerine yalnızca bu uygulama için alır. Aygıt reddederse paylaşımlı moda döner.",
       "fallback": "Aygıt özel modu kabul etmiyor. Paylaşımlı moda geri dönülüyor.",
+      "fallbackBusy": "Başka bir uygulama bu cihazı zaten özel modda kullanıyor. Onu kapatıp yeniden çalın.",
+      "fallbackNotAllowed": "Windows bu cihazda özel modu yasaklıyor. Gelişmiş özelliklerde (Ses ayarları) “Uygulamaların bu cihazın özel denetimini almasına izin ver” seçeneğini açın.",
+      "fallbackFormat": "Cihaz özel modda kullanılabilecek bir biçim sunmuyor. Paylaşılan moda dönüldü.",
       "hardwareVolume": "Sistem ses düzeyi artık uygulanmaz: aygıt kendi donanım düzeyinde çalar. Ses çok kısıksa bu düzeyi sistem karıştırıcısından yükseltin."
     },
     "matchSourceRate": {

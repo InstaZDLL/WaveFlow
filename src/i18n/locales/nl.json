@@ -913,6 +913,9 @@
       },
       "notice": {
         "exclusive-refused": "Dit apparaat weigert de exclusieve modus: afspelen in gedeelde modus",
+        "exclusive-refused-busy": "Een andere app gebruikt dit apparaat in exclusieve modus: afspelen in gedeelde modus",
+        "exclusive-refused-not-allowed": "Windows staat exclusieve modus op dit apparaat niet toe: afspelen in gedeelde modus",
+        "exclusive-refused-format": "Dit apparaat biedt geen formaat dat in exclusieve modus bruikbaar is: afspelen in gedeelde modus",
         "dop-refused": "Deze DAC weigert native DSD: omzetting naar PCM",
         "paused-device-lost": "Apparaat losgekoppeld: afspelen gepauzeerd",
         "unknown": "De audio-uitvoer is gewijzigd"
@@ -1839,6 +1842,9 @@
       "title": "Exclusieve uitvoer",
       "subtitle": "Neemt het apparaat alleen voor deze app in plaats van het te delen met de systeemmixer. Valt terug op de gedeelde modus als het apparaat weigert.",
       "fallback": "Het apparaat accepteert geen exclusieve modus. Terugvallen op gedeelde modus.",
+      "fallbackBusy": "Een andere app gebruikt dit apparaat al in exclusieve modus. Sluit die en speel opnieuw af.",
+      "fallbackNotAllowed": "Windows verbiedt exclusieve modus op dit apparaat. Schakel ‘Toepassingen toestaan exclusief beheer over dit apparaat te nemen’ in bij de geavanceerde eigenschappen (Geluidsinstellingen).",
+      "fallbackFormat": "Het apparaat biedt geen formaat dat in exclusieve modus bruikbaar is. Terug naar gedeelde modus.",
       "hardwareVolume": "Het systeemvolume geldt niet meer: het apparaat speelt op zijn eigen hardwareniveau. Is het te zacht, verhoog dat niveau dan in de mixer van het systeem."
     },
     "matchSourceRate": {

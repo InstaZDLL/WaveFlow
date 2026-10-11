@@ -2322,6 +2322,8 @@ pub struct ExclusiveOutputState {
     pub requested: bool,
     /// Whether the current stream really owns its device.
     pub engaged: bool,
+    /// Why it does not, when it was asked to and the backend could tell.
+    pub refusal: Option<crate::audio::engine::ExclusiveRefusal>,
 }
 
 /// For the Settings toggle, which has to show the preference: showing only
@@ -2337,6 +2339,7 @@ pub fn player_get_exclusive_output_state(
     ExclusiveOutputState {
         requested: engine.exclusive_output_requested(),
         engaged: engine.exclusive_output(),
+        refusal: engine.exclusive_refusal(),
     }
 }
 

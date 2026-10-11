@@ -913,6 +913,9 @@
       },
       "notice": {
         "exclusive-refused": "This device refuses exclusive mode: playing in shared mode",
+        "exclusive-refused-busy": "Another app is using this device in exclusive mode: playing in shared mode",
+        "exclusive-refused-not-allowed": "Windows does not allow exclusive mode on this device: playing in shared mode",
+        "exclusive-refused-format": "This device offers no format usable in exclusive mode: playing in shared mode",
         "dop-refused": "This DAC refuses native DSD: converting to PCM",
         "paused-device-lost": "Device disconnected: playback paused",
         "unknown": "The audio output changed"
@@ -1839,6 +1842,9 @@
       "title": "Exclusive output",
       "subtitle": "Takes the device for this app alone instead of sharing it with the system mixer. Falls back to shared mode if the device refuses.",
       "fallback": "The device doesn't accept exclusive mode. Falling back to shared mode.",
+      "fallbackBusy": "Another app already uses this device in exclusive mode. Close it, then play again.",
+      "fallbackNotAllowed": "Windows forbids exclusive mode on this device. Turn on “Allow applications to take exclusive control of this device” in its advanced properties (Sound settings).",
+      "fallbackFormat": "The device offers no format usable in exclusive mode. Back to shared mode.",
       "hardwareVolume": "The system volume no longer applies: the device plays at its own hardware level. If it's too quiet, raise that level in the system mixer."
     },
     "matchSourceRate": {

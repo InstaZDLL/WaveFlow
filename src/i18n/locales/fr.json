@@ -950,6 +950,9 @@
       },
       "notice": {
         "exclusive-refused": "Ce périphérique refuse le mode exclusif : lecture en mode partagé",
+        "exclusive-refused-busy": "Un autre logiciel utilise ce périphérique en mode exclusif : lecture en mode partagé",
+        "exclusive-refused-not-allowed": "Windows n'autorise pas le mode exclusif sur ce périphérique : lecture en mode partagé",
+        "exclusive-refused-format": "Ce périphérique n'accepte aucun format utilisable en mode exclusif : lecture en mode partagé",
         "dop-refused": "Ce DAC refuse le DSD natif : conversion en PCM",
         "paused-device-lost": "Périphérique déconnecté : lecture mise en pause",
         "unknown": "La sortie audio a changé"
@@ -1946,6 +1949,9 @@
       "title": "Sortie exclusive",
       "subtitle": "Réserve le périphérique à cette application au lieu de le partager avec le mixeur du système. Revient au mode partagé si le périphérique refuse.",
       "fallback": "Le périphérique n'accepte pas le mode exclusif. Retour en mode partagé.",
+      "fallbackBusy": "Un autre logiciel utilise déjà ce périphérique en mode exclusif. Fermez-le, puis relancez la lecture.",
+      "fallbackNotAllowed": "Windows interdit le mode exclusif sur ce périphérique. Activez « Autoriser les applications à prendre le contrôle exclusif de ce périphérique » dans ses propriétés avancées (Paramètres du son).",
+      "fallbackFormat": "Le périphérique n'accepte aucun format utilisable en mode exclusif. Retour en mode partagé.",
       "hardwareVolume": "Le volume du système ne s'applique plus : le périphérique joue à son propre niveau matériel. Si le son est trop faible, montez ce niveau dans le mixeur du système."
     },
     "matchSourceRate": {

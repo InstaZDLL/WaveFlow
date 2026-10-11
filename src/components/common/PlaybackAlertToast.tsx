@@ -20,6 +20,9 @@ const ERROR_KINDS = new Set([
 ]);
 const NOTICE_KINDS = new Set([
   "exclusive-refused",
+  "exclusive-refused-busy",
+  "exclusive-refused-not-allowed",
+  "exclusive-refused-format",
   "dop-refused",
   "paused-device-lost",
 ]);

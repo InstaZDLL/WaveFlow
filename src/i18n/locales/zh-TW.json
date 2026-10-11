@@ -913,6 +913,9 @@
       },
       "notice": {
         "exclusive-refused": "此裝置不接受獨佔模式：以共用模式播放",
+        "exclusive-refused-busy": "另一個應用程式正以獨佔模式使用此裝置：以共用模式播放",
+        "exclusive-refused-not-allowed": "Windows 不允許此裝置使用獨佔模式：以共用模式播放",
+        "exclusive-refused-format": "此裝置沒有可在獨佔模式下使用的格式：以共用模式播放",
         "dop-refused": "此 DAC 不接受原生 DSD：轉換為 PCM",
         "paused-device-lost": "裝置已中斷：播放已暫停",
         "unknown": "音訊輸出已變更"
@@ -1816,6 +1819,9 @@
       "title": "獨佔輸出",
       "subtitle": "讓本應用程式獨佔裝置，而不是與系統混音器共用。裝置拒絕時會回到共用模式。",
       "fallback": "裝置不接受獨佔模式，正在退回共用模式。",
+      "fallbackBusy": "另一個應用程式已在以獨佔模式使用此裝置。請關閉它，然後重新播放。",
+      "fallbackNotAllowed": "Windows 禁止此裝置使用獨佔模式。請在其進階內容（音效設定）中開啟「允許應用程式取得此裝置的獨佔控制權」。",
+      "fallbackFormat": "裝置沒有可在獨佔模式下使用的格式。已回到共用模式。",
       "hardwareVolume": "系統音量不再生效：裝置以其自身的硬體音量播放。如果聲音太小，請在系統混音器中調高該音量。"
     },
     "matchSourceRate": {
