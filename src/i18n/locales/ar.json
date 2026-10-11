@@ -1280,7 +1280,7 @@
       "artist": "مثال: Daft Punk، Justice",
       "album": "اسم الألبوم",
       "year": "مثال: 2026",
-      "genre": "مثال: إلكتروني"
+      "genre": "مثال: إلكتروني; أمبينت"
     },
     "result": {
       "updated": "عدد المقاطع المحدّثة: {{count}}",
@@ -1327,7 +1327,7 @@
       "trackNumber": "رقم المقطع",
       "discNumber": "رقم القرص",
       "genre": "النوع",
-      "genrePlaceholder": "بوب، روك، جاز…"
+      "genrePlaceholder": "بوب; روك; جاز…"
     },
     "changeCover": "تغيير الغلاف",
     "suggestions": {

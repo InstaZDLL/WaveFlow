@@ -1,4 +1,4 @@
-import { useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ChevronDown } from "lucide-react";
 
@@ -24,6 +24,13 @@ interface TagComboboxProps {
   disabled?: boolean;
   /** Classes of the text input; the list is sized to match it. */
   inputClassName: string;
+  /**
+   * The field holds a list ("Rock; Jazz"): suggestions complete the entry
+   * after the last separator, a pick replaces that entry and leaves room
+   * for the next one, and an entry already in the list is not offered
+   * again. Without it, the field holds one value and a pick replaces it.
+   */
+  separator?: string;
 }
 
 /** Suggestions shown per group. A library can hold thousands of artists,
@@ -60,6 +67,7 @@ export function TagCombobox({
   ariaLabel,
   disabled = false,
   inputClassName,
+  separator,
 }: TagComboboxProps) {
   const listId = useId();
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -73,36 +81,43 @@ export function TagCombobox({
     maxHeight: number;
   } | null>(null);
 
-  const query = fold(value.trim());
+  // In list mode the entry being typed is the one after the last
+  // separator; the ones before it are already chosen.
+  const entries = separator ? value.split(separator) : [value];
+  const query = fold(entries[entries.length - 1].trim());
 
   // Filtered groups, then flattened so the arrow keys walk through every
   // group as one list. Starts-with matches come before the rest, and a
   // value offered by an earlier group is not offered again by a later one
   // (a genre in the library and in the presets shows once, as the
-  // library's).
-  const { shown, flat } = useMemo(() => {
-    const taken = new Set<string>();
-    // `start`: where the group's first value sits in `flat`, which is
-    // what an option's id and the highlighted index are counted in.
-    const shown: (SuggestionGroup & { start: number })[] = [];
-    const flat: string[] = [];
-    for (const g of groups) {
-      const starts: string[] = [];
-      const contains: string[] = [];
-      for (const v of g.values) {
-        const f = fold(v);
-        if (taken.has(f)) continue;
-        if (g.matched || query === "" || f.startsWith(query)) starts.push(v);
-        else if (f.includes(query)) contains.push(v);
-      }
-      for (const v of g.values) taken.add(fold(v));
-      const values = starts.concat(contains).slice(0, MAX_PER_GROUP);
-      if (values.length === 0) continue;
-      shown.push({ label: g.label, values, start: flat.length });
-      flat.push(...values);
+  // library's), nor is an entry the list already holds. Not memoised by
+  // hand: the React Compiler memoises the component, and a manual
+  // `useMemo` over these values is one it refuses to preserve.
+  const taken = new Set<string>(
+    entries
+      .slice(0, -1)
+      .map((entry) => fold(entry.trim()))
+      .filter(Boolean),
+  );
+  // `start`: where the group's first value sits in `flat`, which is
+  // what an option's id and the highlighted index are counted in.
+  const shown: (SuggestionGroup & { start: number })[] = [];
+  const flat: string[] = [];
+  for (const g of groups) {
+    const starts: string[] = [];
+    const contains: string[] = [];
+    for (const v of g.values) {
+      const f = fold(v);
+      if (taken.has(f)) continue;
+      if (g.matched || query === "" || f.startsWith(query)) starts.push(v);
+      else if (f.includes(query)) contains.push(v);
     }
-    return { shown, flat };
-  }, [groups, query]);
+    for (const v of g.values) taken.add(fold(v));
+    const values = starts.concat(contains).slice(0, MAX_PER_GROUP);
+    if (values.length === 0) continue;
+    shown.push({ label: g.label, values, start: flat.length });
+    flat.push(...values);
+  }
 
   const visible = open && flat.length > 0 && !disabled;
 
@@ -153,7 +168,16 @@ export function TagCombobox({
   }, [visible, active, listId]);
 
   const pick = (choice: string) => {
-    onChange(choice);
+    if (separator) {
+      const kept = entries
+        .slice(0, -1)
+        .map((entry) => entry.trim())
+        .filter(Boolean);
+      // A trailing separator, so the next entry can be typed straight on.
+      onChange([...kept, choice].join(`${separator} `) + `${separator} `);
+    } else {
+      onChange(choice);
+    }
     setOpen(false);
     setActive(-1);
   };

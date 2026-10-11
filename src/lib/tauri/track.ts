@@ -205,8 +205,8 @@ export function getTrack(trackId: number): Promise<Track | null> {
  * input that opened empty read as "clear the genre" and erased it from
  * the file as well as from the database.
  *
- * A list because `track_genre` is a many-to-many, but the scanner writes
- * one row per track, so this is empty or a single entry in practice.
+ * Every genre the track carries (#729), ordered by name; the dialog
+ * joins them with "; " and splits its field the same way.
  */
 export function getTrackGenres(trackId: number): Promise<string[]> {
   return invoke<string[]>("get_track_genres", { trackId });

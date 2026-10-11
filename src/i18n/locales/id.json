@@ -1139,7 +1139,7 @@
       "artist": "mis. Daft Punk, Justice",
       "album": "Nama album",
       "year": "mis. 2026",
-      "genre": "mis. Electronic"
+      "genre": "mis. Electronic; Ambient"
     },
     "result": {
       "updated": "{{count}} lagu diperbarui",
@@ -1186,7 +1186,7 @@
       "trackNumber": "No. lagu",
       "discNumber": "No. disk",
       "genre": "Genre",
-      "genrePlaceholder": "Pop, Rock, Jazz…"
+      "genrePlaceholder": "Pop; Rock; Jazz…"
     },
     "changeCover": "Ganti sampul",
     "suggestions": {

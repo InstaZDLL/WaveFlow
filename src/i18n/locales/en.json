@@ -1139,7 +1139,7 @@
       "artist": "e.g. Daft Punk, Justice",
       "album": "Album name",
       "year": "e.g. 2026",
-      "genre": "e.g. Electronic"
+      "genre": "e.g. Electronic; Ambient"
     },
     "result": {
       "updated": "{{count}} track(s) updated",
@@ -1186,7 +1186,7 @@
       "trackNumber": "Track #",
       "discNumber": "Disc #",
       "genre": "Genre",
-      "genrePlaceholder": "Pop, Rock, Jazz…"
+      "genrePlaceholder": "Pop; Rock; Jazz…"
     },
     "changeCover": "Change cover",
     "suggestions": {

@@ -1139,7 +1139,7 @@
       "artist": "जैसे Daft Punk, Justice",
       "album": "एल्बम का नाम",
       "year": "जैसे 2026",
-      "genre": "जैसे Electronic"
+      "genre": "जैसे Electronic; Ambient"
     },
     "result": {
       "updated": "{{count}} ट्रैक अपडेट हुए",
@@ -1186,7 +1186,7 @@
       "trackNumber": "ट्रैक नं.",
       "discNumber": "डिस्क नं.",
       "genre": "शैली",
-      "genrePlaceholder": "पॉप, रॉक, जैज़…"
+      "genrePlaceholder": "पॉप; रॉक; जैज़…"
     },
     "changeCover": "कवर बदलें",
     "suggestions": {

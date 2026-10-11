@@ -1139,7 +1139,7 @@
       "artist": "Örn. Daft Punk, Justice",
       "album": "Albüm adı",
       "year": "Örn. 2026",
-      "genre": "Örn. Elektronik"
+      "genre": "Örn. Elektronik; Ambient"
     },
     "result": {
       "updated": "{{count}} parça güncellendi",
@@ -1186,7 +1186,7 @@
       "trackNumber": "Parça #",
       "discNumber": "Disk #",
       "genre": "Tür",
-      "genrePlaceholder": "Pop, Rock, Jazz…"
+      "genrePlaceholder": "Pop; Rock; Jazz…"
     },
     "changeCover": "Kapağı değiştir",
     "suggestions": {

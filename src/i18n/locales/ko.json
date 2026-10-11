@@ -1139,7 +1139,7 @@
       "artist": "예: Daft Punk, Justice",
       "album": "앨범 이름",
       "year": "예: 2026",
-      "genre": "예: Electronic"
+      "genre": "예: Electronic; Ambient"
     },
     "result": {
       "updated": "{{count}}곡 업데이트됨",
@@ -1186,7 +1186,7 @@
       "trackNumber": "트랙 번호",
       "discNumber": "디스크 번호",
       "genre": "장르",
-      "genrePlaceholder": "팝, 록, 재즈…"
+      "genrePlaceholder": "팝; 록; 재즈…"
     },
     "changeCover": "커버 변경",
     "suggestions": {

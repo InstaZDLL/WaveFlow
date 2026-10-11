@@ -227,7 +227,9 @@ pub struct ExtractedFile {
     /// Artists" album artist so a true compilation merges its tracks
     /// under a single album row even when no Album Artist tag exists.
     pub is_compilation: bool,
-    pub genre: Option<String>,
+    /// Every genre the tag names, split and deduplicated by
+    /// [`split_genres`](super::canonical::split_genres), in tag order.
+    pub genres: Vec<String>,
     pub year: Option<i64>,
     pub track_number: Option<i64>,
     pub disc_number: Option<i64>,

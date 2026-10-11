@@ -1182,7 +1182,7 @@
       "artist": "es. Daft Punk, Justice",
       "album": "Nome dell'album",
       "year": "es. 2026",
-      "genre": "es. Electronic"
+      "genre": "es. Electronic; Ambient"
     },
     "result": {
       "updated": "Brani aggiornati: {{count}}",
@@ -1229,7 +1229,7 @@
       "trackNumber": "N. traccia",
       "discNumber": "N. disco",
       "genre": "Genere",
-      "genrePlaceholder": "Pop, Rock, Jazz…"
+      "genrePlaceholder": "Pop; Rock; Jazz…"
     },
     "changeCover": "Cambia copertina",
     "suggestions": {

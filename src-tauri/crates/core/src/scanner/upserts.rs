@@ -100,6 +100,25 @@ impl UpsertCache {
         Ok(ids)
     }
 
+    /// Cached [`upsert_genre`] for each of `names`: the ids of the genres
+    /// a track is tagged with, deduplicated (two spellings the split kept
+    /// apart can still share a canonical row).
+    pub async fn genre_list(
+        &mut self,
+        conn: &mut sqlx::SqliteConnection,
+        names: &[String],
+    ) -> CoreResult<Vec<i64>> {
+        let mut ids = Vec::new();
+        for name in names {
+            if let Some(id) = self.genre(&mut *conn, name).await? {
+                if !ids.contains(&id) {
+                    ids.push(id);
+                }
+            }
+        }
+        Ok(ids)
+    }
+
     /// Cached [`upsert_genre`].
     pub async fn genre(
         &mut self,
