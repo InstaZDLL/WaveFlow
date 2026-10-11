@@ -524,6 +524,12 @@ pub fn spawn_output_with_mode(
     exclusive: bool,
     requested: Option<RequestedFormat>,
 ) -> AppResult<(Producer<f32>, OutputHandle)> {
+    // Forget the last refusal: this open says again whether there is one —
+    // before the DoP branch too, which returns early.
+    shared
+        .exclusive_refusal
+        .store(0, std::sync::atomic::Ordering::Release);
+
     // DoP (#495) is a hard requirement, not a preference: a DoP stream
     // that can't open its exact rate in exclusive form must NOT fall back
     // to a shared / mixed output (the OS mixer would resample the marker
@@ -566,11 +572,6 @@ pub fn spawn_output_with_mode(
             ));
         }
     }
-
-    // Forget the last refusal: this open says again whether there is one.
-    shared
-        .exclusive_refusal
-        .store(0, std::sync::atomic::Ordering::Release);
 
     #[cfg(target_os = "windows")]
     if exclusive {
