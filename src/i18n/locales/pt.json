@@ -2430,6 +2430,10 @@
         "title": "Letras em coluna",
         "subtitle": "Mostra a letra ao lado da capa para mudares de faixa enquanto lês. Volta a uma única coluna em janelas estreitas."
       },
+      "hideEmptyLyrics": {
+        "title": "Ocultar a coluna sem letra",
+        "subtitle": "Fecha a coluna da letra quando a faixa não tem, para que a reprodução atual ocupe toda a largura. Apenas com as letras em coluna."
+      },
       "nativeFullscreen": {
         "title": "Ecrã inteiro nativo",
         "subtitle": "Preenche todo o ecrã ao abrir e restaura a janela ao fechar. Desativa para manter uma sobreposição na janela (útil em vários monitores)."

@@ -2429,6 +2429,10 @@
         "title": "Paroles en colonne",
         "subtitle": "Affiche les paroles à côté de la pochette pour changer de titre tout en lisant. Repasse en colonne unique sur les fenêtres étroites."
       },
+      "hideEmptyLyrics": {
+        "title": "Masquer la colonne sans paroles",
+        "subtitle": "Ferme la colonne des paroles quand le titre n'en a pas, pour laisser toute la place à la lecture en cours. Uniquement avec les paroles en colonne."
+      },
       "nativeFullscreen": {
         "title": "Plein écran natif",
         "subtitle": "Remplit tout l'écran à l'ouverture et restaure votre fenêtre à la fermeture. Désactivez pour garder une surcouche fenêtrée (utile en multi-écran)."

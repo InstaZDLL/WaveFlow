@@ -81,6 +81,7 @@ export function ImmersiveView({
   const {
     mergedLyrics,
     useNativeFullscreen,
+    hideEmptyLyrics,
     loaded: prefsLoaded,
   } = useImmersivePrefs();
   const lyrics = useTrackLyrics();
@@ -174,7 +175,51 @@ export function ImmersiveView({
     initialTab === "lyrics" ? "lyrics" : "nowPlaying",
   );
 
-  const togglePanel = () => setPanelOpen((v) => !v);
+  // A track with no lyrics can close the lyrics column on its own
+  // (#794, opt-in). Only a finished lookup decides: while the next one
+  // runs, the column keeps the previous verdict, so two tracks without
+  // lyrics in a row do not flash it open in between. A failed lookup is
+  // not "no lyrics" — the column carries its retry.
+  const lyricsAreEmpty =
+    (lyrics.payload == null ||
+      lyrics.payload.content.trim() === "" ||
+      lyrics.excludedGenre != null) &&
+    lyrics.error == null;
+  const [settledEmpty, setSettledEmpty] = useState(false);
+  if (!lyrics.isFetching && settledEmpty !== lyricsAreEmpty) {
+    setSettledEmpty(lyricsAreEmpty);
+  }
+  // Reopening the column by hand wins until the song changes. A radio
+  // station keeps one id from song to song, so the title and artist are
+  // part of what "this song" means.
+  const songKey = currentTrack
+    ? `${currentTrack.id}:${currentTrack.artist_name ?? ""}:${currentTrack.title}`
+    : null;
+  const [shownAnywayFor, setShownAnywayFor] = useState<string | null>(null);
+  // Forgotten as soon as the song changes, so coming back to it later
+  // starts from the setting again.
+  const [lastSongKey, setLastSongKey] = useState(songKey);
+  if (lastSongKey !== songKey) {
+    setLastSongKey(songKey);
+    setShownAnywayFor(null);
+  }
+  const autoHidden =
+    hideEmptyLyrics &&
+    settledEmpty &&
+    activeTab === "lyrics" &&
+    shownAnywayFor !== songKey;
+  const panelShown = panelOpen && !autoHidden;
+
+  const togglePanel = () => {
+    // Hidden for want of lyrics, whatever the user's own toggle says: one
+    // press shows it, not two.
+    if (autoHidden) {
+      setShownAnywayFor(songKey);
+      setPanelOpen(true);
+      return;
+    }
+    setPanelOpen((v) => !v);
+  };
   const toggleClassicLyrics = () =>
     setClassicSide((s) => (s === "lyrics" ? "nowPlaying" : "lyrics"));
 
@@ -316,10 +361,10 @@ export function ImmersiveView({
                 type="button"
                 onClick={togglePanel}
                 aria-label={t("immersive.togglePanel")}
-                aria-pressed={panelOpen}
+                aria-pressed={panelShown}
                 title={t("immersive.togglePanel")}
                 className={`p-2.5 rounded-full transition-colors ${
-                  panelOpen
+                  panelShown
                     ? "bg-white/25 text-white"
                     : "bg-white/10 hover:bg-white/20 text-white/80"
                 }`}
@@ -397,7 +442,7 @@ export function ImmersiveView({
             </div>
           )}
           {/* NEW merged view → tabbed control panel on the right. */}
-          {dual && panelOpen && currentTrack && (
+          {dual && panelShown && currentTrack && (
             <div className="min-w-0 w-2/5 border-l border-white/10">
               <ImmersiveSidePanel
                 track={currentTrack}

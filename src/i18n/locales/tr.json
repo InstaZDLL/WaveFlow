@@ -2368,6 +2368,10 @@
         "title": "Yan sütunda şarkı sözleri",
         "subtitle": "Okurken parça değiştirebilmen için şarkı sözlerini kapağın yanında gösterir. Dar pencerelerde tek sütuna döner."
       },
+      "hideEmptyLyrics": {
+        "title": "Şarkı sözü yoksa sütunu gizle",
+        "subtitle": "Parçanın şarkı sözü yoksa sözler sütununu kapatır, böylece çalan parça ekranı tüm genişliği kullanır. Yalnızca yan sütunda şarkı sözleri açıkken."
+      },
       "nativeFullscreen": {
         "title": "Sistem tam ekranı",
         "subtitle": "Açılışta tüm ekranı kaplar ve kapanışta pencereni geri yükler. Pencere içi katmanı korumak için kapat (çoklu monitörde kullanışlı)."

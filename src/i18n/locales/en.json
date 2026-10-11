@@ -2368,6 +2368,10 @@
         "title": "Lyrics side column",
         "subtitle": "Show lyrics next to the cover so you can switch tracks while reading. Falls back to a single column on narrow windows."
       },
+      "hideEmptyLyrics": {
+        "title": "Hide the column when there are no lyrics",
+        "subtitle": "Closes the lyrics column when a track has none, so the now-playing side takes the full width. Only with the lyrics side column."
+      },
       "nativeFullscreen": {
         "title": "Native fullscreen",
         "subtitle": "Fill the whole screen on open and restore your window on close. Turn off to keep an in-window overlay (useful on multi-monitor setups)."

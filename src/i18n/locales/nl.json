@@ -2368,6 +2368,10 @@
         "title": "Songtekst naast hoes",
         "subtitle": "Toont de songtekst naast de hoes zodat je nummers kunt wisselen terwijl je leest. Valt terug op één kolom bij smalle vensters."
       },
+      "hideEmptyLyrics": {
+        "title": "Kolom verbergen zonder songtekst",
+        "subtitle": "Sluit de songtekstkolom als een nummer geen songtekst heeft, zodat het afspeelscherm de volle breedte krijgt. Alleen met songtekst naast de hoes."
+      },
       "nativeFullscreen": {
         "title": "Native volledig scherm",
         "subtitle": "Vult het hele scherm bij openen en herstelt je venster bij sluiten. Schakel uit om een overlay in het venster te houden (handig bij meerdere monitoren)."

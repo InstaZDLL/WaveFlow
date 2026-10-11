@@ -1,6 +1,11 @@
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Columns2, Expand, type LucideIcon } from "lucide-react";
+import {
+  Columns2,
+  Expand,
+  PanelRightClose,
+  type LucideIcon,
+} from "lucide-react";
 import {
   IMMERSIVE_PREF_KEYS,
   IMMERSIVE_PREFS_EVENT,
@@ -56,6 +61,12 @@ export function ImmersiveViewCard() {
       icon: Columns2,
       title: t("settings.immersiveView.mergedLyrics.title"),
       subtitle: t("settings.immersiveView.mergedLyrics.subtitle"),
+    },
+    {
+      prop: "hideEmptyLyrics",
+      icon: PanelRightClose,
+      title: t("settings.immersiveView.hideEmptyLyrics.title"),
+      subtitle: t("settings.immersiveView.hideEmptyLyrics.subtitle"),
     },
     {
       prop: "useNativeFullscreen",

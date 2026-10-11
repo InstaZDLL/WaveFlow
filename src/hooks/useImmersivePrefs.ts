@@ -14,6 +14,10 @@ import { useProfile } from "./useProfile";
  *   (`setFullscreen(true)`) on open, restoring the prior window state on
  *   close. OFF keeps the in-window overlay so multi-monitor users can
  *   still see the rest of their desktop.
+ * - `hideEmptyLyrics` — in the merged layout, close the lyrics column
+ *   for a track that has none, so the now-playing side takes the room
+ *   (#794). OFF by default: some prefer a layout that does not change
+ *   from one track to the next.
  *
  * Lives in `profile_setting` (not `app_setting`) to sit next to the
  * sibling appearance prefs — player-bar layout, cover action,
@@ -23,6 +27,7 @@ import { useProfile } from "./useProfile";
 export interface ImmersivePrefs {
   mergedLyrics: boolean;
   useNativeFullscreen: boolean;
+  hideEmptyLyrics: boolean;
   /** False until the first read resolves. Consumers that take an
    *  OS-level action on a pref (native fullscreen) MUST wait for this —
    *  acting on the optimistic defaults would briefly flash a user who
@@ -37,6 +42,7 @@ const DEFAULTS: ImmersivePrefs = {
   // view keeps to its window and a second monitor stays usable.
   mergedLyrics: true,
   useNativeFullscreen: false,
+  hideEmptyLyrics: false,
   loaded: false,
 };
 
@@ -45,11 +51,13 @@ type StoredPrefs = Omit<ImmersivePrefs, "loaded">;
 export const IMMERSIVE_PREF_KEYS: Record<keyof StoredPrefs, string> = {
   mergedLyrics: "immersive.merged_lyrics",
   useNativeFullscreen: "immersive.use_native_fullscreen",
+  hideEmptyLyrics: "immersive.hide_empty_lyrics",
 };
 
 const STORED_DEFAULTS: StoredPrefs = {
   mergedLyrics: DEFAULTS.mergedLyrics,
   useNativeFullscreen: DEFAULTS.useNativeFullscreen,
+  hideEmptyLyrics: DEFAULTS.hideEmptyLyrics,
 };
 
 /** Window event the Settings card dispatches after a write so every
