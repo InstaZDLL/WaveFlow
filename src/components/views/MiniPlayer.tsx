@@ -1165,6 +1165,17 @@ function MiniLyricsStage({ artworkUrl }: { artworkUrl: string | null }) {
                       ) : (
                         line.text || " "
                       )}
+                      {/* Lines the file stamped with this one (#821), lit
+                          with it: see LyricsPanel. */}
+                      {line.companions?.map((companion, ci) => (
+                        <span
+                          key={ci}
+                          dir="auto"
+                          className="block text-[10px] font-normal opacity-80"
+                        >
+                          {companion}
+                        </span>
+                      ))}
                       {line.background && (
                         <BackgroundVocals
                           reading={line.background}
