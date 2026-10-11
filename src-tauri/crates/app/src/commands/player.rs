@@ -2469,6 +2469,12 @@ pub async fn player_set_keep_awake(
     enabled: bool,
     expected_profile_id: Option<i64>,
 ) -> AppResult<()> {
+    // One write at a time, end to end: two calls interleaving between the
+    // SQL write and `set_enabled` could leave the inhibitor on the value
+    // that was written first. The settings view already serializes its
+    // writes; this keeps the command right for any caller.
+    static WRITE: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+    let _write = WRITE.lock().await;
     // The profile the toggle was flipped in: checked and leased under the
     // lock a profile switch takes, so a switch in flight cannot redirect
     // the write — or the inhibitor — to the next profile.
