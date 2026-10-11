@@ -1916,6 +1916,10 @@
       "title": "Pausar se o dispositivo for desconectado",
       "subtitle": "Quando a saída de áudio desaparece, a reprodução é pausada em vez de passar para outro dispositivo"
     },
+    "keepAwake": {
+      "title": "Impedir a suspensão durante a reprodução",
+      "subtitle": "O computador não entra em suspensão sozinho enquanto a música toca. Fechar a tampa ou escolher Suspender continua funcionando."
+    },
     "language": {
       "title": "Idioma",
       "subtitle": "Idioma da interface"

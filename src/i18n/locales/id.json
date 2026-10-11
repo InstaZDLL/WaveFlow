@@ -1853,6 +1853,10 @@
       "title": "Jeda saat perangkat keluaran terputus",
       "subtitle": "Saat keluaran audio hilang, pemutaran dijeda alih-alih pindah ke perangkat lain"
     },
+    "keepAwake": {
+      "title": "Cegah tidur saat memutar musik",
+      "subtitle": "Komputer tidak akan tidur sendiri selama musik diputar. Menutup layar atau memilih Tidur tetap berfungsi."
+    },
     "language": {
       "title": "Bahasa",
       "subtitle": "Bahasa antarmuka"

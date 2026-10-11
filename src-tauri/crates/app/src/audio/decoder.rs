@@ -206,6 +206,9 @@ pub(super) fn transition_state(
     // transient that would render as `Stopped` on the overlay and
     // flash the controls off for ~50 ms before Playing arrives.
     if !matches!(state, PlayerState::Loading) {
+        // Not on `Loading` either: between two tracks it would release the
+        // sleep inhibitor and take it again a moment later.
+        crate::power::set_playing(state == PlayerState::Playing);
         if let Some(controls) = app.try_state::<crate::media_controls::MediaControlsHandle>() {
             controls.update_playback(state, shared.current_position_ms());
         }

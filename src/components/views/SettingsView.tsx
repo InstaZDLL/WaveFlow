@@ -26,6 +26,7 @@ import {
   AudioWaveform,
   Headphones,
   Unplug,
+  Coffee,
   Shuffle,
   Radio,
   Eye,
@@ -71,6 +72,7 @@ import {
   playerSetNormalize,
   playerSetMono,
   playerSetPauseOnDeviceLoss,
+  playerSetKeepAwake,
   playerSetMatchSourceRate,
   playerSetCrossfade,
   playerSetGapless,
@@ -1225,6 +1227,8 @@ export function SettingsView({
   // #617. Mirrors the engine's own default, so the row does not flip
   // under the user between the first paint and the read below.
   const [pauseOnDeviceLoss, setPauseOnDeviceLoss] = useState(true);
+  // Keep the machine awake while playing; the backend's default too.
+  const [keepAwake, setKeepAwake] = useState(true);
   // Which of these two the user has touched since the audio-settings
   // read in flight started. That read is an IPC round trip, and a toggle
   // during it would otherwise be painted over by the value it just
@@ -1648,6 +1652,9 @@ export function SettingsView({
         if (!audioSettingsTouched.current.has("pauseOnDeviceLoss")) {
           setPauseOnDeviceLoss(s.pause_on_device_loss);
         }
+        if (!audioSettingsTouched.current.has("keepAwake")) {
+          setKeepAwake(s.keep_awake);
+        }
         if (!audioSettingsTouched.current.has("matchSourceRate")) {
           setMatchSourceRate(s.match_source_rate);
         }
@@ -1935,6 +1942,29 @@ export function SettingsView({
         setAudioSettingsNonce((n) => n + 1);
       });
   }, [pauseOnDeviceLoss, activeProfile?.id]);
+
+  // Same write discipline as the toggle above: serialized, dropped on a
+  // profile switch, rolled back on failure.
+  const keepAwakeWrite = useRef<Promise<void>>(Promise.resolve());
+  const handleToggleKeepAwake = useCallback(() => {
+    const prev = keepAwake;
+    const next = !prev;
+    const profileId = activeProfile?.id;
+    audioSettingsTouched.current.add("keepAwake");
+    setKeepAwake(next);
+    keepAwakeWrite.current = keepAwakeWrite.current
+      .catch(() => {})
+      .then(() => {
+        if (activeProfileIdRef.current !== profileId) return;
+        return playerSetKeepAwake(next);
+      })
+      .catch((err) => {
+        console.error("[Settings] set keep awake failed", err);
+        if (activeProfileIdRef.current !== profileId) return;
+        setKeepAwake((cur) => (cur === next ? prev : cur));
+        setAudioSettingsNonce((n) => n + 1);
+      });
+  }, [keepAwake, activeProfile?.id]);
 
   // Debounce crossfade slider changes to avoid spamming the backend.
   const crossfadeTimerRef = useRef<number | null>(null);
@@ -2521,6 +2551,28 @@ export function SettingsView({
                     enabled={pauseOnDeviceLoss}
                     onToggle={handleTogglePauseOnDeviceLoss}
                     label={t("settings.pauseOnDeviceLoss.title")}
+                  />
+                </div>
+                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                  <div className="flex items-center space-x-4">
+                    <Coffee
+                      size={20}
+                      className="text-zinc-400"
+                      aria-hidden="true"
+                    />
+                    <div>
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.keepAwake.title")}
+                      </div>
+                      <div className="text-xs settings-description">
+                        {t("settings.keepAwake.subtitle")}
+                      </div>
+                    </div>
+                  </div>
+                  <ToggleSwitch
+                    enabled={keepAwake}
+                    onToggle={handleToggleKeepAwake}
+                    label={t("settings.keepAwake.title")}
                   />
                 </div>
               </SettingsGroup>

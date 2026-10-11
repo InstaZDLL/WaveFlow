@@ -442,6 +442,8 @@ export interface AudioSettingsSnapshot {
   match_source_rate: boolean;
   /** Park playback when the output device goes away (#617), default true. */
   pause_on_device_loss: boolean;
+  /** Keep the machine from sleeping while playing, default true. */
+  keep_awake: boolean;
 }
 
 /** Allowed DSD → PCM precision tiers (FIR tap counts). */
@@ -487,6 +489,14 @@ export function playerSetMatchSourceRate(enabled: boolean): Promise<void> {
  */
 export function playerSetPauseOnDeviceLoss(enabled: boolean): Promise<void> {
   return invoke<void>("player_set_pause_on_device_loss", { enabled });
+}
+
+/**
+ * Keep the computer awake while music plays (`power.rs`). Never blocks a
+ * suspend the user asks for — closing the lid still suspends.
+ */
+export function playerSetKeepAwake(enabled: boolean): Promise<void> {
+  return invoke<void>("player_set_keep_awake", { enabled });
 }
 
 export function playerSetCrossfade(seconds: number): Promise<void> {

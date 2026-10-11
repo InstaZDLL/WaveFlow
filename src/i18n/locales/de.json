@@ -1853,6 +1853,10 @@
       "title": "Pausieren, wenn das Ausgabegerät getrennt wird",
       "subtitle": "Verschwindet die Audioausgabe, wird die Wiedergabe pausiert, statt auf ein anderes Gerät zu wechseln"
     },
+    "keepAwake": {
+      "title": "Ruhezustand während der Wiedergabe verhindern",
+      "subtitle": "Der Computer wechselt nicht von selbst in den Ruhezustand, solange Musik läuft. Deckel schließen oder Ruhezustand wählen funktioniert weiterhin."
+    },
     "language": {
       "title": "Sprache",
       "subtitle": "Sprache der Oberfläche"
