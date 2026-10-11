@@ -152,10 +152,13 @@ export function DesktopLyrics() {
   if (activeLine) {
     first = renderLine(activeLine, activeWordIndex, wordFillRef);
     // The row under the line: its translation, or — unless that preview
-    // is turned off (#735) — the next line.
+    // is turned off (#735) — the next line. A line the LRC stamped with
+    // this one (#821) is its translation as far as the file is concerned;
+    // only the first fits the overlay's two rows.
+    const translation = activeLine.translation ?? activeLine.companions?.[0];
     second =
-      style.showTranslation && activeLine.translation
-        ? activeLine.translation
+      style.showTranslation && translation
+        ? translation
         : style.showNextLine
           ? (lrcLines[activeIndex + 1]?.text ?? null)
           : null;

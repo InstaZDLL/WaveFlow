@@ -18,6 +18,7 @@ import {
   findInterludes,
   importLrcFile,
   lyricsExcludedGenre,
+  groupSharedStamps,
   isUntimedLrc,
   parseLyrics,
   refetchLyrics,
@@ -281,7 +282,18 @@ export function useTrackLyrics(): TrackLyrics {
     payload != null &&
     (payload.format === "lrc" || payload.format === "enhanced_lrc") &&
     isUntimedLrc(rawLines);
-  const parsedLines = untimed ? NO_LINES : rawLines;
+  // Lines sharing a stamp light together (#821). After the untimed
+  // check, which must see every line the file has: a file stamping all of
+  // them `[00:00.00]` is plain text, not one group of a hundred lines.
+  const groupedLines = useMemo<LyricsLine[]>(
+    () =>
+      payload != null &&
+      (payload.format === "lrc" || payload.format === "enhanced_lrc")
+        ? groupSharedStamps(rawLines)
+        : rawLines,
+    [payload, rawLines],
+  );
+  const parsedLines = untimed ? NO_LINES : groupedLines;
   const shownPayload = useMemo<LyricsPayload | null>(
     () =>
       untimed && payload

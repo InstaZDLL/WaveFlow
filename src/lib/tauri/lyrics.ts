@@ -518,6 +518,16 @@ export interface LyricsLine {
    * sing, and any group, keep the usual side.
    */
   side?: "end";
+  /**
+   * Lines the LRC stamped at the same time as this one, in file order:
+   * an original's translation, a romanization, a third language (#821).
+   * Musixmatch translations arrive the same way, each under its original.
+   * Written by whoever made the file, so always shown, under the line and
+   * lit with it — unlike `translation` / `romanization`, which belong to
+   * the TTML document and to the localization toggle. Set only by
+   * {@link groupSharedStamps}.
+   */
+  companions?: string[];
 }
 
 /**
@@ -1375,6 +1385,60 @@ export function parseLyrics(
     default:
       return [];
   }
+}
+
+/**
+ * Fold the lines an LRC stamps at the same time into one line (#821).
+ *
+ * An original and its translation, or a lyric, its translation and its
+ * romanization, often share one stamp. Read one by one, each but the last
+ * ends where the next begins, at the same instant: they last 0 ms and only
+ * the last of the group ever lights. Here the first line of the group in
+ * file order stays the line, the others become its `companions`, and the
+ * line ends where the group did.
+ *
+ * Only a line with no word timing joins a group: two karaoke lines on one
+ * stamp (a duet) keep their own words and stay apart, as before. Applied
+ * to the displayed lines only — the lyrics editor and the untimed check
+ * read the lines as the file has them.
+ */
+export function groupSharedStamps(lines: LyricsLine[]): LyricsLine[] {
+  const out: LyricsLine[] = [];
+  for (const line of lines) {
+    const head = out[out.length - 1];
+    const joins =
+      head !== undefined &&
+      line.timeMs === head.timeMs &&
+      (line.words?.length ?? 0) === 0;
+    if (!joins) {
+      out.push(line);
+      continue;
+    }
+    const lastWord = head.words?.[head.words.length - 1];
+    // `fillEndTimestamps` ended the head's last word with the head, at
+    // this companion's stamp: carry it to the group's end with the line.
+    const words =
+      lastWord && lastWord.endMs === head.endMs
+        ? [...head.words!.slice(0, -1), { ...lastWord, endMs: line.endMs }]
+        : head.words;
+    const merged: LyricsLine = {
+      ...head,
+      endMs: line.endMs,
+      ...(words ? { words } : {}),
+    };
+    // A blank line on the stamp says nothing, but it still joins: left on
+    // its own it would end the head at its own start, 0 ms again. And a
+    // blank head gives its place to the first line with text.
+    if (line.text.trim() !== "") {
+      if (head.text.trim() === "" && !head.words?.length) {
+        merged.text = line.text;
+      } else {
+        merged.companions = [...(head.companions ?? []), line.text];
+      }
+    }
+    out[out.length - 1] = merged;
+  }
+  return out;
 }
 
 /**

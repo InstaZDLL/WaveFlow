@@ -440,6 +440,17 @@ export function ImmersiveLyricsColumn({
                               )}
                             </span>
                           )}
+                        {/* Lines the file stamped with this one (#821),
+                            lit with it: see LyricsPanel. */}
+                        {line.companions?.map((companion, ci) => (
+                          <span
+                            key={ci}
+                            dir="auto"
+                            className={`block mt-1 text-lg md:text-xl font-medium opacity-80 ${align}`}
+                          >
+                            {companion}
+                          </span>
+                        ))}
                         {localization === "translation" && line.translation && (
                           <span
                             className={`block mt-1 text-lg md:text-xl font-normal italic text-white/60 ${

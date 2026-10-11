@@ -425,6 +425,19 @@ export function LyricsPanel() {
                               )}
                             </span>
                           )}
+                        {/* Lines the file stamped with this one (#821):
+                            inside the button, so they take its colour and
+                            light with it. Always shown — the file's author
+                            wrote them; the toggle governs the TTML's own. */}
+                        {line.companions?.map((companion, ci) => (
+                          <span
+                            key={ci}
+                            dir="auto"
+                            className="block mt-0.5 text-sm font-normal opacity-80"
+                          >
+                            {companion}
+                          </span>
+                        ))}
                         {localization === "translation" && line.translation && (
                           <span className="block mt-0.5 text-sm font-normal italic opacity-70">
                             {line.translation}
