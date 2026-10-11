@@ -3008,5 +3008,11 @@
     "title": "Lirik desktop",
     "lock": "Kunci (klik tembus)",
     "lockHint": "Klik menembus lirik. Buka kunci dari ikon baki sistem, menu Aksi lainnya, atau di sini."
+  },
+  "queueToast": {
+    "playNext_one": "{{count}} lagu diputar berikutnya",
+    "playNext_other": "{{count}} lagu diputar berikutnya",
+    "added_one": "{{count}} lagu ditambahkan ke antrean",
+    "added_other": "{{count}} lagu ditambahkan ke antrean"
   }
 }

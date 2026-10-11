@@ -3105,5 +3105,13 @@
     "title": "Letra na área de trabalho",
     "lock": "Bloquear (cliques atravessam)",
     "lockHint": "Os cliques atravessam a letra. Desbloqueie pelo ícone na bandeja do sistema, pelo menu Mais ações ou aqui."
+  },
+  "queueToast": {
+    "playNext_one": "{{count}} faixa vai tocar a seguir",
+    "playNext_many": "{{count}} faixas vão tocar a seguir",
+    "playNext_other": "{{count}} faixas vão tocar a seguir",
+    "added_one": "{{count}} faixa adicionada à fila",
+    "added_many": "{{count}} faixas adicionadas à fila",
+    "added_other": "{{count}} faixas adicionadas à fila"
   }
 }

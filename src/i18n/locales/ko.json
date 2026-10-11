@@ -3008,5 +3008,11 @@
     "title": "데스크톱 가사",
     "lock": "잠금(클릭 통과)",
     "lockHint": "클릭이 가사를 통과합니다. 시스템 트레이 아이콘, 추가 작업 메뉴 또는 여기에서 잠금을 해제하세요."
+  },
+  "queueToast": {
+    "playNext_one": "{{count}}곡을 다음에 재생합니다",
+    "playNext_other": "{{count}}곡을 다음에 재생합니다",
+    "added_one": "{{count}}곡을 재생 대기열에 추가했습니다",
+    "added_other": "{{count}}곡을 재생 대기열에 추가했습니다"
   }
 }

@@ -3104,5 +3104,13 @@
     "title": "Letras en el escritorio",
     "lock": "Bloquear (los clics atraviesan)",
     "lockHint": "Los clics atraviesan las letras. Desbloquea desde el icono de la bandeja del sistema, el menú Más acciones o aquí."
+  },
+  "queueToast": {
+    "playNext_one": "{{count}} pista sonará a continuación",
+    "playNext_many": "{{count}} pistas sonarán a continuación",
+    "playNext_other": "{{count}} pistas sonarán a continuación",
+    "added_one": "{{count}} pista añadida a la cola",
+    "added_many": "{{count}} pistas añadidas a la cola",
+    "added_other": "{{count}} pistas añadidas a la cola"
   }
 }

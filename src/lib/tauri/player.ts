@@ -301,14 +301,41 @@ export function playerNext(): Promise<void> {
   return invoke<void>("player_next");
 }
 
+/** Window event both queueing wrappers dispatch once the backend accepted
+ *  the tracks; `QueueToast` turns it into a confirmation. */
+export const QUEUE_ADDED_EVENT = "waveflow:queue-added";
+
+export interface QueueAddedDetail {
+  /** `next` after the current track, `end` at the end of the queue. */
+  mode: "next" | "end";
+  count: number;
+}
+
+/**
+ * Tell the UI tracks were queued. Here rather than at each call site: the
+ * context menus, the selection bar and the folder browser all queue
+ * tracks, and a confirmation that depended on each of them remembering
+ * would miss the next one added.
+ */
+function announceQueued(mode: QueueAddedDetail["mode"], count: number): void {
+  if (count <= 0) return;
+  window.dispatchEvent(
+    new CustomEvent<QueueAddedDetail>(QUEUE_ADDED_EVENT, {
+      detail: { mode, count },
+    }),
+  );
+}
+
 /** Append `trackIds` to the end of the queue, no playback interruption. */
-export function playerAddToQueue(trackIds: number[]): Promise<void> {
-  return invoke<void>("player_add_to_queue", { trackIds });
+export async function playerAddToQueue(trackIds: number[]): Promise<void> {
+  await invoke<void>("player_add_to_queue", { trackIds });
+  announceQueued("end", trackIds.length);
 }
 
 /** Insert `trackIds` immediately after the currently-playing slot. */
-export function playerPlayNext(trackIds: number[]): Promise<void> {
-  return invoke<void>("player_play_next", { trackIds });
+export async function playerPlayNext(trackIds: number[]): Promise<void> {
+  await invoke<void>("player_play_next", { trackIds });
+  announceQueued("next", trackIds.length);
 }
 
 /**
