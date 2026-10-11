@@ -2593,9 +2593,12 @@
       "textColor": "Warna teks",
       "highlightColor": "Warna yang dinyanyikan",
       "outline": "Garis tepi",
+      "outlineNone": "Tidak ada",
       "showTranslation": "Tampilkan terjemahan",
       "reset": "Atur ulang tampilan",
-      "showNextLine": "Tampilkan baris berikutnya"
+      "showNextLine": "Tampilkan baris berikutnya",
+      "showProgress": "Tampilkan bilah progres",
+      "hideOnPause": "Sembunyikan saat dijeda"
     }
   },
   "scanProgress": {

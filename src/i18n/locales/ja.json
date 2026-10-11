@@ -2593,9 +2593,12 @@
       "textColor": "文字の色",
       "highlightColor": "歌唱中の色",
       "outline": "縁取り",
+      "outlineNone": "なし",
       "showTranslation": "翻訳を表示",
       "reset": "外観をリセット",
-      "showNextLine": "次の行を表示"
+      "showNextLine": "次の行を表示",
+      "showProgress": "進行状況バーを表示",
+      "hideOnPause": "一時停止中は隠す"
     }
   },
   "scanProgress": {

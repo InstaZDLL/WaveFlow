@@ -2593,9 +2593,12 @@
       "textColor": "Textfarbe",
       "highlightColor": "Farbe der gesungenen Zeile",
       "outline": "Kontur",
+      "outlineNone": "Keine",
       "showTranslation": "Übersetzung anzeigen",
       "reset": "Darstellung zurücksetzen",
-      "showNextLine": "Nächste Zeile anzeigen"
+      "showNextLine": "Nächste Zeile anzeigen",
+      "showProgress": "Fortschrittsbalken anzeigen",
+      "hideOnPause": "Bei Pause ausblenden"
     }
   },
   "scanProgress": {

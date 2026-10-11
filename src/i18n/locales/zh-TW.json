@@ -2593,9 +2593,12 @@
       "textColor": "文字顏色",
       "highlightColor": "已唱歌詞顏色",
       "outline": "描邊",
+      "outlineNone": "無",
       "showTranslation": "顯示翻譯",
       "reset": "重設外觀",
-      "showNextLine": "顯示下一行"
+      "showNextLine": "顯示下一行",
+      "showProgress": "顯示進度列",
+      "hideOnPause": "暫停時隱藏"
     }
   },
   "scanProgress": {

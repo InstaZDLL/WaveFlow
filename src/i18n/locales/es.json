@@ -2654,9 +2654,12 @@
       "textColor": "Color del texto",
       "highlightColor": "Color cantado",
       "outline": "Contorno",
+      "outlineNone": "Ninguno",
       "showTranslation": "Mostrar traducción",
       "reset": "Restablecer apariencia",
-      "showNextLine": "Mostrar la línea siguiente"
+      "showNextLine": "Mostrar la línea siguiente",
+      "showProgress": "Mostrar barra de progreso",
+      "hideOnPause": "Ocultar en pausa"
     }
   },
   "scanProgress": {

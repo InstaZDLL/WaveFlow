@@ -12,9 +12,14 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Lock, X } from "lucide-react";
 
 import { usePlayer } from "../../hooks/usePlayer";
+import { usePlayerPosition } from "../../hooks/usePlayerPosition";
 import { useTrackLyrics } from "../../hooks/useTrackLyrics";
 import { useKaraokeWordFill } from "../../hooks/useKaraokeWordFill";
-import { useDesktopLyricsStyle } from "../../hooks/useDesktopLyricsStyle";
+import {
+  desktopLyricsLinePadding,
+  desktopLyricsOutline,
+  useDesktopLyricsStyle,
+} from "../../hooks/useDesktopLyricsStyle";
 import { useDesktopLyricsStatus } from "../../hooks/useDesktopLyricsStatus";
 import {
   closeDesktopLyrics,
@@ -82,35 +87,12 @@ const MIN_FIT_SCALE = 0.6;
  * `truncate` clips at the element's box, and `leading-tight` made that box
  * shorter than the glyphs: the bottom of `g`, `y` and `p` was cut off, on
  * Linux in particular where the font's descent is deeper (#673). A roomier
- * line height and a padding sized in `em` keep the descenders and the
- * text-shadow outline inside the box at any font size.
+ * line height keeps the descenders inside the box, and the padding, set
+ * inline from `desktopLyricsLinePadding`, keeps the outline inside it at
+ * any font size and outline width.
  */
 const LINE_CLASS =
-  "desktop-lyrics-line max-w-full truncate text-center leading-snug px-[0.15em] py-[0.1em]";
-
-/**
- * An outline drawn with eight text shadows rather than
- * `-webkit-text-stroke`. A stroke is centred on the glyph edge, so it
- * eats into thin letters at small sizes and needs `paint-order` to sit
- * behind the fill, which HTML text does not honour everywhere. Shadows
- * only ever add outside the glyph, on every webview WaveFlow ships in.
- */
-function outlineShadow(px: number): string {
-  const d = Math.max(1, Math.round(px));
-  const c = "rgba(0,0,0,0.85)";
-  return [
-    [-d, -d],
-    [0, -d],
-    [d, -d],
-    [-d, 0],
-    [d, 0],
-    [-d, d],
-    [0, d],
-    [d, d],
-  ]
-    .map(([x, y]) => `${x}px ${y}px 0 ${c}`)
-    .join(", ");
-}
+  "desktop-lyrics-line max-w-full truncate text-center leading-snug";
 
 /**
  * The floating desktop lyrics window (issue #582): the line being sung,
@@ -130,7 +112,7 @@ function outlineShadow(px: number): string {
  */
 export function DesktopLyrics() {
   const { t } = useTranslation();
-  const { currentTrack } = usePlayer();
+  const { currentTrack, playbackState, durationMs } = usePlayer();
   const { lrcLines, isSynced, activeIndex, activeWordIndex } = useTrackLyrics();
   const { style } = useDesktopLyricsStyle();
   const { status, setLocked } = useDesktopLyricsStatus();
@@ -172,7 +154,8 @@ export function DesktopLyrics() {
     first = "WaveFlow";
   }
 
-  const shadow = style.outline ? outlineShadow(style.fontSize / 18) : undefined;
+  const shadow = desktopLyricsOutline(style.outlineWidth);
+  const padding = desktopLyricsLinePadding(style.outlineWidth);
   // Focus counts as much as the pointer: the buttons are reachable from
   // the keyboard, and a frame that only appears under the mouse would
   // leave a keyboard user tabbing through controls they cannot see.
@@ -180,6 +163,17 @@ export function DesktopLyrics() {
   const background = showChrome
     ? Math.max(style.backgroundOpacity, 35)
     : style.backgroundOpacity;
+  // Faded out while nothing is being played, when the user asked for it
+  // (#814). `loading` is the gap between two tracks, not a pause: the
+  // window stays up through it. The frame brings it back under the
+  // pointer, so an unlocked window the user cannot see can still be
+  // found, moved and closed.
+  const faded =
+    style.hideOnPause &&
+    !showChrome &&
+    (playbackState === "paused" ||
+      playbackState === "idle" ||
+      playbackState === "ended");
 
   const rootStyle: CSSProperties = {
     backgroundColor: `rgba(0, 0, 0, ${background / 100})`,
@@ -233,9 +227,9 @@ export function DesktopLyrics() {
       }}
     >
       <div
-        className={`group relative flex h-full w-full flex-col items-center justify-center overflow-hidden rounded-2xl px-6 transition-colors ${
+        className={`group relative flex h-full w-full flex-col items-center justify-center overflow-hidden rounded-2xl px-6 transition-[opacity,background-color] duration-500 motion-reduce:transition-none ${
           showChrome ? "ring-1 ring-inset ring-white/25" : ""
-        }`}
+        } ${faded ? "opacity-0" : "opacity-100"}`}
         style={rootStyle}
       >
         {/* Mounted whenever unlocked, not only while shown, so the buttons
@@ -273,7 +267,7 @@ export function DesktopLyrics() {
 
         <FitLine
           size={style.fontSize}
-          fitKey={`${currentTrack?.id ?? ""}:${activeIndex}:${activeLine?.text ?? currentTrack?.title ?? ""}`}
+          fitKey={`${padding}:${currentTrack?.id ?? ""}:${activeIndex}:${activeLine?.text ?? currentTrack?.title ?? ""}`}
           className={`${LINE_CLASS} font-bold`}
           style={{
             color: activeLine?.words?.length
@@ -282,6 +276,7 @@ export function DesktopLyrics() {
                 ? "var(--dl-highlight)"
                 : "var(--dl-text)",
             textShadow: shadow,
+            padding,
           }}
         >
           {first}
@@ -289,18 +284,67 @@ export function DesktopLyrics() {
         {second && (
           <FitLine
             size={Math.round(style.fontSize * SECOND_LINE_SCALE)}
-            fitKey={second}
+            fitKey={`${padding}:${second}`}
             className={`${LINE_CLASS} font-semibold`}
             style={{
               color: "var(--dl-text)",
               opacity: 0.85,
               textShadow: shadow,
+              padding,
             }}
           >
             {second}
           </FitLine>
         )}
+        {style.showProgress && durationMs > 0 && (
+          <ProgressBar
+            durationMs={durationMs}
+            thickness={Math.max(3, Math.round(style.fontSize / 12))}
+            outlined={style.outlineWidth > 0}
+          />
+        )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * How far into the track playback is, as a thin bar under the lyrics.
+ * Its own component so the position, which ticks four times a second,
+ * re-renders this bar and not the lines above it. Hidden for a stream
+ * with no length (radio), where there is nothing to measure against.
+ */
+function ProgressBar({
+  durationMs,
+  thickness,
+  outlined,
+}: {
+  durationMs: number;
+  thickness: number;
+  outlined: boolean;
+}) {
+  const positionMs = usePlayerPosition();
+  const fraction = Math.min(1, Math.max(0, positionMs / durationMs));
+  return (
+    <div
+      aria-hidden="true"
+      className="mt-[0.4em] w-full shrink-0 overflow-hidden rounded-full"
+      style={{
+        height: thickness,
+        // The track in the text colour, faint; a dark rim when the text
+        // has an outline, so the bar stays visible on a light desktop too.
+        backgroundColor:
+          "color-mix(in srgb, var(--dl-text) 25%, transparent)",
+        boxShadow: outlined ? "0 0 0 1px rgba(0,0,0,0.55)" : undefined,
+      }}
+    >
+      <div
+        className="h-full w-full origin-left rounded-full transition-transform duration-250 ease-linear motion-reduce:transition-none"
+        style={{
+          backgroundColor: "var(--dl-highlight)",
+          transform: `scaleX(${fraction})`,
+        }}
+      />
     </div>
   );
 }
@@ -341,10 +385,20 @@ function FitLine({
       el.style.fontSize = `${size}px`;
       const natural = el.scrollWidth;
       const room = el.clientWidth;
+      // Both widths include the padding, which does not shrink with the
+      // font when the outline width sets it: scaling it along with the
+      // text would leave the line a few px too wide, and cut. Only the
+      // text scales, so only the text is compared. An `em` padding does
+      // shrink, which errs toward a line slightly smaller than needed.
+      const computed = getComputedStyle(el);
+      const pad =
+        parseFloat(computed.paddingLeft) + parseFloat(computed.paddingRight);
       el.style.fontSize = applied;
+      const text = natural - pad;
+      const textRoom = room - pad;
       const next =
-        natural > room && natural > 0
-          ? Math.max(MIN_FIT_SCALE, room / natural)
+        natural > room && text > 0
+          ? Math.max(MIN_FIT_SCALE, Math.max(0, textRoom) / text)
           : 1;
       // Always the measured value: the measurement is taken at the chosen
       // size, so it cannot feed back on itself, and rounding a slight

@@ -2799,9 +2799,12 @@
       "textColor": "لون النص",
       "highlightColor": "لون الجزء المُغنّى",
       "outline": "حدود النص",
+      "outlineNone": "بلا",
       "showTranslation": "عرض الترجمة",
       "reset": "إعادة تعيين المظهر",
-      "showNextLine": "إظهار السطر التالي"
+      "showNextLine": "إظهار السطر التالي",
+      "showProgress": "إظهار شريط التقدم",
+      "hideOnPause": "الإخفاء عند الإيقاف المؤقت"
     }
   },
   "scanProgress": {

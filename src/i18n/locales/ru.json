@@ -2715,9 +2715,12 @@
       "textColor": "Цвет текста",
       "highlightColor": "Цвет пропетого",
       "outline": "Обводка",
+      "outlineNone": "Нет",
       "showTranslation": "Показывать перевод",
       "reset": "Сбросить оформление",
-      "showNextLine": "Показывать следующую строку"
+      "showNextLine": "Показывать следующую строку",
+      "showProgress": "Показывать индикатор прогресса",
+      "hideOnPause": "Скрывать на паузе"
     }
   },
   "scanProgress": {
