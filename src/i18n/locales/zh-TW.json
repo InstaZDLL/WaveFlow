@@ -1185,7 +1185,8 @@
     "playNext": "播放下一首",
     "addToPlaylist": "加入播放清單",
     "removeFromPlaylist": "從播放清單中移除",
-    "clear": "取消選取"
+    "clear": "取消選取",
+    "selectRow": "選取「{{title}}」"
   },
   "albumDetail": {
     "badge": "專輯",

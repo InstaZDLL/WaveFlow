@@ -1185,7 +1185,8 @@
     "playNext": "다음에 재생",
     "addToPlaylist": "재생 목록에 추가",
     "removeFromPlaylist": "재생 목록에서 제거",
-    "clear": "선택 해제"
+    "clear": "선택 해제",
+    "selectRow": "‘{{title}}’ 선택"
   },
   "albumDetail": {
     "badge": "앨범",

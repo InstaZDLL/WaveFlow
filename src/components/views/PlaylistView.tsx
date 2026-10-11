@@ -66,6 +66,8 @@ import { usePlaylist } from "../../hooks/usePlaylist";
 import { useTrackContextMenu } from "../../hooks/useTrackContextMenu";
 import { useTrackUpdated } from "../../hooks/useTrackUpdated";
 import { useMultiSelect } from "../../hooks/useMultiSelect";
+import { useSelectAllShortcut } from "../../hooks/useSelectAllShortcut";
+import { RowSelectCheckbox } from "../common/RowSelectCheckbox";
 import {
   formatDuration,
   listLikedTrackIds,
@@ -790,6 +792,18 @@ export function PlaylistView({
     ? `remote:${remotePlaylistId}`
     : `local:${playlistId}`;
   const [loadedKey, setLoadedKey] = useState<string | null>(null);
+
+  // Ctrl+A, once this playlist's local rows are on screen: during the
+  // load the previous playlist's are still in state, and on a server
+  // playlist it would only clear the selection.
+  useSelectAllShortcut(
+    loadedKey === playlistKey &&
+      displayTracks.some((track) => track.source !== "remote"),
+    () =>
+      selection.selectAll(
+        displayTracksRef.current.filter((track) => track.source !== "remote"),
+      ),
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -1578,6 +1592,8 @@ export function PlaylistView({
           onRemoveAt={remote ? handleRemoveRemoteAt : undefined}
           busy={remoteBusy}
           isSelected={selection.isSelected}
+          selectionActive={selection.count > 0}
+          onToggleSelect={selection.toggleOne}
           onRowSelect={handleRowSelect}
           dragEnabled={isCustomOrder}
         />
@@ -1700,6 +1716,10 @@ interface PlaylistTrackTableProps {
   /** Remote only: a server write is in flight. */
   busy: boolean;
   isSelected: (id: number) => boolean;
+  /** Something is selected: every row shows its checkbox. */
+  selectionActive: boolean;
+  /** The row checkbox: a Ctrl+click without the modifier. */
+  onToggleSelect: (id: number) => void;
   onRowSelect: (track: PlaylistTrack, e: React.MouseEvent) => void;
   /**
    * When `false` the rows render without grip handles and `onReorder`
@@ -1739,6 +1759,8 @@ function PlaylistTrackTable({
   onRemoveAt,
   busy,
   isSelected,
+  selectionActive,
+  onToggleSelect,
   onRowSelect,
   dragEnabled,
 }: PlaylistTrackTableProps) {
@@ -1889,6 +1911,10 @@ function PlaylistTrackTable({
                       : likedIds.has(track.id)
                   }
                   isRowSelected={!remote && isSelected(track.id)}
+                  selectionActive={selectionActive}
+                  onToggleSelect={
+                    remote ? undefined : () => onToggleSelect(track.id)
+                  }
                   likeLabel={likeLabel}
                   unlikeLabel={unlikeLabel}
                   unknownLabel={unknownLabel}
@@ -1989,6 +2015,10 @@ interface SortablePlaylistRowProps {
   isPlaying: boolean;
   isLiked: boolean;
   isRowSelected: boolean;
+  /** Something is selected: the checkbox shows on every row. */
+  selectionActive: boolean;
+  /** Absent on a server row, which cannot be selected. */
+  onToggleSelect?: () => void;
   likeLabel: string;
   unlikeLabel: string;
   unknownLabel: string;
@@ -2028,6 +2058,8 @@ const SortablePlaylistRow = memo(function SortablePlaylistRow({
   isPlaying,
   isLiked,
   isRowSelected,
+  selectionActive,
+  onToggleSelect,
   likeLabel,
   unlikeLabel,
   unknownLabel,
@@ -2144,7 +2176,20 @@ const SortablePlaylistRow = memo(function SortablePlaylistRow({
           isCurrent ? "text-emerald-500 font-semibold" : "text-zinc-400"
         }`}
       >
-        {isCurrent ? <PlayingIndicator isPlaying={isPlaying} /> : index + 1}
+        {onToggleSelect ? (
+          <RowSelectCheckbox
+            checked={isRowSelected}
+            selectionActive={selectionActive}
+            onToggle={onToggleSelect}
+            title={track.title}
+          >
+            {isCurrent ? <PlayingIndicator isPlaying={isPlaying} /> : index + 1}
+          </RowSelectCheckbox>
+        ) : isCurrent ? (
+          <PlayingIndicator isPlaying={isPlaying} />
+        ) : (
+          index + 1
+        )}
       </span>
       {remote ? (
         <RemoteArtwork

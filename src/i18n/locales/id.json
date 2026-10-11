@@ -1185,7 +1185,8 @@
     "playNext": "Putar selanjutnya",
     "addToPlaylist": "Tambahkan ke daftar putar",
     "removeFromPlaylist": "Hapus dari daftar putar",
-    "clear": "Hapus pilihan"
+    "clear": "Hapus pilihan",
+    "selectRow": "Pilih “{{title}}”"
   },
   "albumDetail": {
     "badge": "Album",

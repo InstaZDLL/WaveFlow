@@ -1271,7 +1271,8 @@
     "addToPlaylist": "Добавить в плейлист",
     "removeFromPlaylist": "Удалить из плейлиста",
     "clear": "Снять выделение",
-    "count_many": "{{count}} выбрано"
+    "count_many": "{{count}} выбрано",
+    "selectRow": "Выбрать «{{title}}»"
   },
   "albumDetail": {
     "badge": "Альбом",

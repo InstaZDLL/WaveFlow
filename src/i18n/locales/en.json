@@ -1185,7 +1185,8 @@
     "playNext": "Play next",
     "addToPlaylist": "Add to a playlist",
     "removeFromPlaylist": "Remove from playlist",
-    "clear": "Deselect"
+    "clear": "Deselect",
+    "selectRow": "Select “{{title}}”"
   },
   "albumDetail": {
     "badge": "Album",

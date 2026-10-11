@@ -1185,7 +1185,8 @@
     "playNext": "Sonraki olarak çal",
     "addToPlaylist": "Çalma listesine ekle",
     "removeFromPlaylist": "Çalma listesinden çıkar",
-    "clear": "Seçimi kaldır"
+    "clear": "Seçimi kaldır",
+    "selectRow": "“{{title}}” parçasını seç"
   },
   "albumDetail": {
     "badge": "Albüm",

@@ -7,6 +7,9 @@ export interface MultiSelectState<T extends { id: number }> {
   toggleOne: (id: number) => void;
   selectRange: (id: number, items: T[]) => void;
   setSingle: (id: number) => void;
+  /** Every row of the list, anchored on the first (Ctrl+A). Only the ids
+   *  are read, so any rows of the list will do. */
+  selectAll: (items: readonly { id: number }[]) => void;
   clear: () => void;
   count: number;
 }
@@ -63,6 +66,11 @@ export function useMultiSelect<
     [anchorId],
   );
 
+  const selectAll = useCallback((items: readonly { id: number }[]) => {
+    setSelectedIds(new Set(items.map((item) => item.id)));
+    setAnchorId(items[0]?.id ?? null);
+  }, []);
+
   const clear = useCallback(() => {
     setSelectedIds(new Set());
     setAnchorId(null);
@@ -76,6 +84,7 @@ export function useMultiSelect<
       toggleOne,
       selectRange,
       setSingle,
+      selectAll,
       clear,
       count: selectedIds.size,
     }),
@@ -86,6 +95,7 @@ export function useMultiSelect<
       toggleOne,
       selectRange,
       setSingle,
+      selectAll,
       clear,
     ],
   );
