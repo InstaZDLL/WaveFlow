@@ -1879,6 +1879,10 @@
       "title": "Pindai saat mulai",
       "subtitle": "Pindai ulang pustaka secara otomatis saat aplikasi dimulai"
     },
+    "sortIgnoreArticles": {
+      "title": "Abaikan artikel saat mengurutkan",
+      "subtitle": "“The Beatles” masuk di B dan “Les Rita Mitsouko” di R, pada artis dan album."
+    },
     "singleClickPlay": {
       "title": "Putar dengan satu klik",
       "subtitle": "Klik sebuah lagu untuk memulai pemutaran (jika tidak, klik dua kali)"

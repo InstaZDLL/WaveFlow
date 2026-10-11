@@ -1856,6 +1856,10 @@
       "title": "起動時にスキャンする",
       "subtitle": "起動時にライブラリを自動的に再スキャンします"
     },
+    "sortIgnoreArticles": {
+      "title": "並べ替えで冠詞を無視",
+      "subtitle": "アーティストとアルバムで、「The Beatles」を B、「Les Rita Mitsouko」を R に並べます。"
+    },
     "singleClickPlay": {
       "title": "シングルクリック再生",
       "subtitle": "曲をクリックすると再生を開始します（オフの場合はダブルクリック）"

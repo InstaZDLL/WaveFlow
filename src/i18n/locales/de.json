@@ -1879,6 +1879,10 @@
       "title": "Beim Start scannen",
       "subtitle": "Bibliotheken beim Start automatisch erneut scannen"
     },
+    "sortIgnoreArticles": {
+      "title": "Artikel beim Sortieren ignorieren",
+      "subtitle": "Ordnet „The Beatles“ unter B und „Die Ärzte“ unter A ein, bei Künstlern und Alben."
+    },
     "singleClickPlay": {
       "title": "Wiedergabe per Einfachklick",
       "subtitle": "Ein Klick auf einen Titel startet die Wiedergabe (sonst Doppelklick)"

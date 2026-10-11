@@ -240,15 +240,15 @@ fn album_order_clause(order_by: Option<&str>, direction: Option<&str>) -> &'stat
         }
     };
     match (order_by, dir) {
-        (Some("title"), "ASC") => "ORDER BY al.canonical_title COLLATE FOLD ASC",
-        (Some("title"), "DESC") => "ORDER BY al.canonical_title COLLATE FOLD DESC",
-        (Some("artist"), "ASC") => "ORDER BY ar.canonical_name COLLATE FOLD ASC, al.canonical_title COLLATE FOLD",
-        (Some("artist"), "DESC") => "ORDER BY ar.canonical_name COLLATE FOLD DESC, al.canonical_title COLLATE FOLD",
-        (Some("year"), "ASC") => "ORDER BY al.year ASC, al.canonical_title COLLATE FOLD",
-        (Some("year"), "DESC") => "ORDER BY al.year DESC, al.canonical_title COLLATE FOLD",
+        (Some("title"), "ASC") => "ORDER BY al.canonical_title COLLATE NAME ASC",
+        (Some("title"), "DESC") => "ORDER BY al.canonical_title COLLATE NAME DESC",
+        (Some("artist"), "ASC") => "ORDER BY ar.canonical_name COLLATE NAME ASC, al.canonical_title COLLATE NAME",
+        (Some("artist"), "DESC") => "ORDER BY ar.canonical_name COLLATE NAME DESC, al.canonical_title COLLATE NAME",
+        (Some("year"), "ASC") => "ORDER BY al.year ASC, al.canonical_title COLLATE NAME",
+        (Some("year"), "DESC") => "ORDER BY al.year DESC, al.canonical_title COLLATE NAME",
         (Some("added_at"), "ASC") => "ORDER BY MIN(t.added_at) ASC",
         (Some("added_at"), "DESC") => "ORDER BY MIN(t.added_at) DESC",
-        _ => "ORDER BY ar.canonical_name COLLATE FOLD,\n                  al.canonical_title COLLATE FOLD",
+        _ => "ORDER BY ar.canonical_name COLLATE NAME,\n                  al.canonical_title COLLATE NAME",
     }
 }
 
@@ -267,17 +267,17 @@ fn artist_order_clause(order_by: Option<&str>, direction: Option<&str>) -> &'sta
         }
     };
     match (order_by, dir) {
-        (Some("name"), "ASC") => "ORDER BY ar.canonical_name COLLATE FOLD ASC",
-        (Some("name"), "DESC") => "ORDER BY ar.canonical_name COLLATE FOLD DESC",
-        (Some("albums_count"), "ASC") => "ORDER BY album_count ASC, ar.canonical_name COLLATE FOLD",
+        (Some("name"), "ASC") => "ORDER BY ar.canonical_name COLLATE NAME ASC",
+        (Some("name"), "DESC") => "ORDER BY ar.canonical_name COLLATE NAME DESC",
+        (Some("albums_count"), "ASC") => "ORDER BY album_count ASC, ar.canonical_name COLLATE NAME",
         (Some("albums_count"), "DESC") => {
-            "ORDER BY album_count DESC, ar.canonical_name COLLATE FOLD"
+            "ORDER BY album_count DESC, ar.canonical_name COLLATE NAME"
         }
-        (Some("tracks_count"), "ASC") => "ORDER BY track_count ASC, ar.canonical_name COLLATE FOLD",
+        (Some("tracks_count"), "ASC") => "ORDER BY track_count ASC, ar.canonical_name COLLATE NAME",
         (Some("tracks_count"), "DESC") => {
-            "ORDER BY track_count DESC, ar.canonical_name COLLATE FOLD"
+            "ORDER BY track_count DESC, ar.canonical_name COLLATE NAME"
         }
-        _ => "ORDER BY ar.canonical_name COLLATE FOLD",
+        _ => "ORDER BY ar.canonical_name COLLATE NAME",
     }
 }
 
@@ -451,17 +451,17 @@ fn library_album_order_clause(order_by: Option<&str>, direction: Option<&str>) -
         }
     };
     match (order_by, dir) {
-        (Some("title"), "ASC") => "ORDER BY sort_title COLLATE FOLD ASC",
-        (Some("title"), "DESC") => "ORDER BY sort_title COLLATE FOLD DESC",
-        (Some("artist"), "ASC") => "ORDER BY sort_artist COLLATE FOLD ASC, sort_title COLLATE FOLD",
+        (Some("title"), "ASC") => "ORDER BY sort_title COLLATE NAME ASC",
+        (Some("title"), "DESC") => "ORDER BY sort_title COLLATE NAME DESC",
+        (Some("artist"), "ASC") => "ORDER BY sort_artist COLLATE NAME ASC, sort_title COLLATE NAME",
         (Some("artist"), "DESC") => {
-            "ORDER BY sort_artist COLLATE FOLD DESC, sort_title COLLATE FOLD"
+            "ORDER BY sort_artist COLLATE NAME DESC, sort_title COLLATE NAME"
         }
-        (Some("year"), "ASC") => "ORDER BY year ASC, sort_title COLLATE FOLD",
-        (Some("year"), "DESC") => "ORDER BY year DESC, sort_title COLLATE FOLD",
+        (Some("year"), "ASC") => "ORDER BY year ASC, sort_title COLLATE NAME",
+        (Some("year"), "DESC") => "ORDER BY year DESC, sort_title COLLATE NAME",
         (Some("added_at"), "ASC") => "ORDER BY added_at ASC",
         (Some("added_at"), "DESC") => "ORDER BY added_at DESC",
-        _ => "ORDER BY sort_artist COLLATE FOLD, sort_title COLLATE FOLD",
+        _ => "ORDER BY sort_artist COLLATE NAME, sort_title COLLATE NAME",
     }
 }
 
@@ -571,8 +571,8 @@ fn track_sort_expr(key: &str) -> Option<(&'static str, bool)> {
     // (expression, nulls_last)
     Some(match key {
         "title" => ("title COLLATE FOLD", false),
-        "artist" => ("sort_artist COLLATE FOLD", true),
-        "album" => ("sort_album COLLATE FOLD", true),
+        "artist" => ("sort_artist COLLATE NAME", true),
+        "album" => ("sort_album COLLATE NAME", true),
         "duration_ms" => ("duration_ms", false),
         "year" => ("year", true),
         "added_at" => ("added_at", false),
@@ -638,8 +638,8 @@ pub(crate) fn library_track_order_clause(
     // it: this is the order most lists are rendered in, so it is the one
     // where a pair of rows swapping places between two refreshes would
     // be seen most often.
-    const DEFAULT: &str = "ORDER BY sort_artist COLLATE FOLD,
-                  sort_album COLLATE FOLD,
+    const DEFAULT: &str = "ORDER BY sort_artist COLLATE NAME,
+                  sort_album COLLATE NAME,
                   disc_number,
                   track_number,
                   title COLLATE FOLD,
@@ -669,7 +669,7 @@ pub(crate) fn library_track_order_clause(
         // album titles are not unique across artists (`Greatest Hits`,
         // `Live`, an untitled rip), and without it two such albums
         // interleave track 1 against track 1 all the way down.
-        Some("album") => clause.push_str(", sort_artist COLLATE FOLD, disc_number, track_number"),
+        Some("album") => clause.push_str(", sort_artist COLLATE NAME, disc_number, track_number"),
         Some("title") => {}
         _ => clause.push_str(", title COLLATE FOLD"),
     }
@@ -1283,13 +1283,13 @@ fn library_artist_order_clause(order_by: Option<&str>, direction: Option<&str>) 
         }
     };
     match (order_by, dir) {
-        (Some("name"), "ASC") => "ORDER BY sort_name COLLATE FOLD ASC",
-        (Some("name"), "DESC") => "ORDER BY sort_name COLLATE FOLD DESC",
-        (Some("albums_count"), "ASC") => "ORDER BY album_count ASC, sort_name COLLATE FOLD",
-        (Some("albums_count"), "DESC") => "ORDER BY album_count DESC, sort_name COLLATE FOLD",
-        (Some("tracks_count"), "ASC") => "ORDER BY track_count ASC, sort_name COLLATE FOLD",
-        (Some("tracks_count"), "DESC") => "ORDER BY track_count DESC, sort_name COLLATE FOLD",
-        _ => "ORDER BY sort_name COLLATE FOLD",
+        (Some("name"), "ASC") => "ORDER BY sort_name COLLATE NAME ASC",
+        (Some("name"), "DESC") => "ORDER BY sort_name COLLATE NAME DESC",
+        (Some("albums_count"), "ASC") => "ORDER BY album_count ASC, sort_name COLLATE NAME",
+        (Some("albums_count"), "DESC") => "ORDER BY album_count DESC, sort_name COLLATE NAME",
+        (Some("tracks_count"), "ASC") => "ORDER BY track_count ASC, sort_name COLLATE NAME",
+        (Some("tracks_count"), "DESC") => "ORDER BY track_count DESC, sort_name COLLATE NAME",
+        _ => "ORDER BY sort_name COLLATE NAME",
     }
 }
 
@@ -1599,7 +1599,7 @@ pub async fn search_albums(
            AND instr(al.canonical_title, ?) > 0
          GROUP BY al.id
          ORDER BY (instr(al.canonical_title, ?) = 1) DESC,
-                  al.canonical_title COLLATE FOLD
+                  al.canonical_title COLLATE NAME
          LIMIT ?
         "#,
     )
@@ -1664,7 +1664,7 @@ pub async fn search_artists(
            AND instr(ar.canonical_name, ?) > 0
          GROUP BY ar.id
          ORDER BY (instr(ar.canonical_name, ?) = 1) DESC,
-                  ar.canonical_name COLLATE FOLD
+                  ar.canonical_name COLLATE NAME
          LIMIT ?
         "#,
     )
@@ -2763,7 +2763,7 @@ pub async fn get_artist_detail(
          WHERE al.artist_id = ?1
             OR t.id IN (SELECT track_id FROM track_artist WHERE artist_id = ?1)
          GROUP BY al.id
-         ORDER BY al.year DESC, al.canonical_title COLLATE FOLD
+         ORDER BY al.year DESC, al.canonical_title COLLATE NAME
         "#,
     )
     .bind(artist_id)
@@ -2970,8 +2970,8 @@ pub async fn get_genre_detail(
           LEFT JOIN artist  ar ON ar.id = t.primary_artist
           LEFT JOIN artwork aw ON aw.id = al.artwork_id
          WHERE tg.genre_id = ? AND t.is_available = 1
-         ORDER BY ar.canonical_name COLLATE FOLD,
-                  al.canonical_title COLLATE FOLD,
+         ORDER BY ar.canonical_name COLLATE NAME,
+                  al.canonical_title COLLATE NAME,
                   t.disc_number,
                   t.track_number,
                   t.title COLLATE FOLD
@@ -3280,7 +3280,7 @@ mod tests {
         ] {
             let clause = library_track_order_clause(Some(key), Some("asc"));
             assert!(
-                clause.starts_with("ORDER BY sort_artist COLLATE FOLD"),
+                clause.starts_with("ORDER BY sort_artist COLLATE NAME"),
                 "{key:?} produced {clause:?}"
             );
             assert!(!clause.contains(key) || key.is_empty(), "{key:?} leaked");
@@ -3314,7 +3314,7 @@ mod tests {
             assert!(track_sort_expr(key).is_some(), "{key} is not sortable");
             let clause = library_track_order_clause(Some(key), Some("asc"));
             assert!(
-                !clause.starts_with("ORDER BY sort_artist COLLATE FOLD,"),
+                !clause.starts_with("ORDER BY sort_artist COLLATE NAME,"),
                 "{key} fell through to the default"
             );
         }
@@ -3361,7 +3361,7 @@ mod tests {
         // interleave their track 1s.
         let album = library_track_order_clause(Some("album"), Some("asc"));
         assert!(
-            album.contains("sort_artist COLLATE FOLD, disc_number, track_number"),
+            album.contains("sort_artist COLLATE NAME, disc_number, track_number"),
             "{album}"
         );
     }

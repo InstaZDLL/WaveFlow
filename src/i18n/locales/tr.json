@@ -1879,6 +1879,10 @@
       "title": "Başlangıçta tara",
       "subtitle": "Başlangıçta kütüphaneleri otomatik olarak yeniden tara"
     },
+    "sortIgnoreArticles": {
+      "title": "Sıralamada artikelleri yok say",
+      "subtitle": "“The Beatles” B harfine, “Les Rita Mitsouko” R harfine yerleşir; sanatçılarda ve albümlerde."
+    },
     "singleClickPlay": {
       "title": "Tek tıkla oynat",
       "subtitle": "Bir parçaya tıklayınca oynatma başlar (aksi halde çift tıkla)"

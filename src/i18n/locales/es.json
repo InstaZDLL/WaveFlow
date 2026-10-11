@@ -1933,6 +1933,10 @@
       "title": "Escanear al iniciar",
       "subtitle": "Vuelve a escanear las bibliotecas automáticamente al iniciar"
     },
+    "sortIgnoreArticles": {
+      "title": "Ignorar artículos al ordenar",
+      "subtitle": "Coloca «The Beatles» en la B y «Los Planetas» en la P, en artistas y álbumes."
+    },
     "singleClickPlay": {
       "title": "Reproducción con un solo clic",
       "subtitle": "Haz clic en una pista para iniciar la reproducción (si no, doble clic)"

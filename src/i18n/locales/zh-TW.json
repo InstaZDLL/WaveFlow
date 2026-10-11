@@ -1856,6 +1856,10 @@
       "title": "啟動時掃描",
       "subtitle": "啟動時自動重新掃描音樂庫"
     },
+    "sortIgnoreArticles": {
+      "title": "排序時忽略冠詞",
+      "subtitle": "在演出者和專輯中，將「The Beatles」歸入 B，將「Les Rita Mitsouko」歸入 R。"
+    },
     "singleClickPlay": {
       "title": "按一下播放",
       "subtitle": "按一下曲目即可開始播放（否則需按兩下）"

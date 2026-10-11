@@ -822,7 +822,7 @@ comparable rather than merely concatenated:
   Sorting the remote half on its raw display name instead put "Björk" and
   "bjork" in two different places and split one artist in half down the
   middle of the list. The unified query projects each half's key under one
-  alias and orders it with `COLLATE FOLD` (see
+  alias and orders it with `COLLATE NAME`, `FOLD` with a leading article optionally set aside (see
   [library.md](../features/library.md)), which sets case and accents aside
   first, so a local key that kept its accents sorts next to a remote one
   that folded them (case and the original characters only break the tie

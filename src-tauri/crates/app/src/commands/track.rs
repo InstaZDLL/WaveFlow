@@ -483,8 +483,8 @@ pub async fn search_tracks_advanced(
         sql.push_str("ORDER BY rank\n");
     } else {
         sql.push_str(
-            "ORDER BY ar.canonical_name COLLATE FOLD,\n\
-                      al.canonical_title COLLATE FOLD,\n\
+            "ORDER BY ar.canonical_name COLLATE NAME,\n\
+                      al.canonical_title COLLATE NAME,\n\
                       t.disc_number,\n\
                       t.track_number,\n\
                       t.title COLLATE FOLD\n",

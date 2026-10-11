@@ -1879,6 +1879,10 @@
       "title": "Scan at startup",
       "subtitle": "Automatically rescan libraries on startup"
     },
+    "sortIgnoreArticles": {
+      "title": "Ignore articles when sorting",
+      "subtitle": "Files “The Beatles” under B and “Les Rita Mitsouko” under R, in artists and albums."
+    },
     "singleClickPlay": {
       "title": "Single-click playback",
       "subtitle": "Click a track to start playback (otherwise double-click)"

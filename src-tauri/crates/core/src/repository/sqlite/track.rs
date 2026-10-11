@@ -74,21 +74,21 @@ fn order_clause(sort: TrackSort) -> &'static str {
 
     match (sort.column, dir) {
         (C::Default, _) => {
-            "ORDER BY ar.canonical_name COLLATE FOLD,\n                  al.canonical_title COLLATE FOLD,\n                  t.disc_number,\n                  t.track_number,\n                  t.title COLLATE FOLD"
+            "ORDER BY ar.canonical_name COLLATE NAME,\n                  al.canonical_title COLLATE NAME,\n                  t.disc_number,\n                  t.track_number,\n                  t.title COLLATE FOLD"
         }
         (C::Title, Asc) => "ORDER BY t.title COLLATE FOLD ASC",
         (C::Title, Desc) => "ORDER BY t.title COLLATE FOLD DESC",
         (C::Artist, Asc) => {
-            "ORDER BY ar.canonical_name COLLATE FOLD ASC, t.title COLLATE FOLD"
+            "ORDER BY ar.canonical_name COLLATE NAME ASC, t.title COLLATE FOLD"
         }
         (C::Artist, Desc) => {
-            "ORDER BY ar.canonical_name COLLATE FOLD DESC, t.title COLLATE FOLD"
+            "ORDER BY ar.canonical_name COLLATE NAME DESC, t.title COLLATE FOLD"
         }
         (C::Album, Asc) => {
-            "ORDER BY al.canonical_title COLLATE FOLD ASC, t.disc_number, t.track_number"
+            "ORDER BY al.canonical_title COLLATE NAME ASC, t.disc_number, t.track_number"
         }
         (C::Album, Desc) => {
-            "ORDER BY al.canonical_title COLLATE FOLD DESC, t.disc_number, t.track_number"
+            "ORDER BY al.canonical_title COLLATE NAME DESC, t.disc_number, t.track_number"
         }
         (C::DurationMs, Asc) => "ORDER BY t.duration_ms ASC",
         (C::DurationMs, Desc) => "ORDER BY t.duration_ms DESC",

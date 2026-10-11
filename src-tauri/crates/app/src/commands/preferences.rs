@@ -98,6 +98,52 @@ pub async fn set_minimize_to_tray(
     Ok(())
 }
 
+const KEY_SORT_IGNORE_ARTICLES: &str = "library.sort_ignore_articles";
+
+/// Hydrate whether artist and album listings set a leading article aside
+/// ("The Beatles" under B) once at boot. Missing key → `true`. The value
+/// lives in the `NAME` collation's process-wide flag, which every listing
+/// reads; this only puts the stored choice there.
+pub async fn load_sort_ignore_articles(app_db: &SqlitePool) {
+    let stored = sqlx::query_scalar::<_, String>("SELECT value FROM app_setting WHERE key = ?")
+        .bind(KEY_SORT_IGNORE_ARTICLES)
+        .fetch_optional(app_db)
+        .await
+        .unwrap_or_else(|err| {
+            tracing::warn!(%err, "could not read library.sort_ignore_articles; using the default");
+            None
+        });
+    let enabled = stored.map(|v| v == "true" || v == "1").unwrap_or(true);
+    waveflow_core::repository::sqlite::collation::set_ignore_articles(enabled);
+}
+
+#[tauri::command]
+pub async fn get_sort_ignore_articles() -> AppResult<bool> {
+    Ok(waveflow_core::repository::sqlite::collation::ignores_articles())
+}
+
+#[tauri::command]
+pub async fn set_sort_ignore_articles(
+    state: tauri::State<'_, AppState>,
+    enabled: bool,
+) -> AppResult<()> {
+    sqlx::query(
+        "INSERT INTO app_setting (key, value, value_type, updated_at)
+         VALUES (?, ?, 'bool', ?)
+         ON CONFLICT(key) DO UPDATE
+            SET value = excluded.value, updated_at = excluded.updated_at",
+    )
+    .bind(KEY_SORT_IGNORE_ARTICLES)
+    .bind(if enabled { "true" } else { "false" })
+    .bind(Utc::now().timestamp_millis())
+    .execute(&state.app_db)
+    .await?;
+    // After the write: a failed save must not leave the listings sorted
+    // one way while the next launch sorts them the other.
+    waveflow_core::repository::sqlite::collation::set_ignore_articles(enabled);
+    Ok(())
+}
+
 #[tauri::command]
 pub async fn get_auto_start(app: tauri::AppHandle) -> AppResult<bool> {
     Ok(app.autolaunch().is_enabled().unwrap_or(false))

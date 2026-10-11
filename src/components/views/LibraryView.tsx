@@ -99,6 +99,7 @@ import { RemoteTrackTagsModal } from "../common/RemoteTrackTagsModal";
 import { StarRating } from "../common/StarRating";
 import { SelectionActionBar } from "../common/SelectionActionBar";
 import { AlphabetIndex } from "../common/AlphabetIndex";
+import { useSortIgnoreArticles } from "../../hooks/useSortIgnoreArticles";
 import { useSortMemory } from "../../hooks/useSortMemory";
 import { usePageScroll } from "../../hooks/usePageScroll";
 import { getProfileSetting } from "../../lib/tauri/profile";
@@ -466,10 +467,13 @@ export function LibraryView({
     selectedTrackIds: [...selection.selectedIds],
   });
 
-  // Re-fetch when any library's updated_at changes (e.g. after a scan).
-  const librariesSignature = libraries
+  // Re-fetch when any library's updated_at changes (e.g. after a scan),
+  // and when the sort sets articles aside or stops: the backend sorts
+  // artists and albums with it, so every listing comes back reordered.
+  const { ignoreArticles } = useSortIgnoreArticles();
+  const librariesSignature = `${libraries
     .map((l) => `${l.id}:${l.updated_at}`)
-    .join(",");
+    .join(",")}|${ignoreArticles ? "articles" : "literal"}`;
   // Bumped when a tag edit elsewhere fires `track:updated` so the
   // active tab re-fetches and shows the new metadata.
   const [editRefetch, setEditRefetch] = useState(0);
