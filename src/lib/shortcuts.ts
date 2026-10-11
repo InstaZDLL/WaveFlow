@@ -57,6 +57,8 @@ const FIELD_EDITING_COMBOS: ReadonlySet<string> = new Set([
   "Ctrl+A",
   "Ctrl+C",
   "Ctrl+V",
+  "Ctrl+Shift+V",
+  "Ctrl+Insert",
   "Ctrl+X",
   "Ctrl+Z",
   "Ctrl+Y",
@@ -69,6 +71,8 @@ const FIELD_EDITING_COMBOS: ReadonlySet<string> = new Set([
   "Ctrl+Shift+ArrowRight",
   "Ctrl+Home",
   "Ctrl+End",
+  "Ctrl+Shift+Home",
+  "Ctrl+Shift+End",
 ]);
 
 /**

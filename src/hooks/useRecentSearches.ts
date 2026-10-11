@@ -3,8 +3,6 @@ import { useProfileSetting } from "./useProfileSetting";
 
 /** How many past searches the top bar keeps. */
 const MAX_RECENT = 8;
-/** Shorter than this is a keystroke on the way somewhere, not a search. */
-const MIN_LENGTH = 2;
 
 const KEY = "ui.recent_searches";
 const EVENT = "waveflow:recent-searches-changed";
@@ -44,7 +42,7 @@ export interface RecentSearches {
  * prefix typed on the way.
  */
 export function useRecentSearches(): RecentSearches {
-  const { value, setValue } = useProfileSetting<string[]>({
+  const { value, ready, setValue } = useProfileSetting<string[]>({
     key: KEY,
     defaultValue: DEFAULT,
     parse,
@@ -57,7 +55,10 @@ export function useRecentSearches(): RecentSearches {
   const remember = useCallback(
     (query: string) => {
       const trimmed = query.trim();
-      if (trimmed.length < MIN_LENGTH) return;
+      // A single character is a real search too: one Han character is a
+      // word. Before the profile's list is read, the updater would see
+      // the empty default and the write would replace the stored list.
+      if (trimmed === "" || !ready) return;
       const folded = trimmed.toLocaleLowerCase();
       void setValue((previous) =>
         [
@@ -66,7 +67,7 @@ export function useRecentSearches(): RecentSearches {
         ].slice(0, MAX_RECENT),
       );
     },
-    [setValue],
+    [ready, setValue],
   );
 
   const forget = useCallback(

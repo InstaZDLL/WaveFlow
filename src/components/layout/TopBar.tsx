@@ -95,6 +95,9 @@ export function TopBar({
   const { recent, remember, forget, clear } = useRecentSearches();
   // Read from `runSearch`, which is memoised without it.
   const recentCountRef = useRef(recent.length);
+  // The query the shown results answer. During the 250 ms debounce the
+  // field already holds the next one, which did not produce them.
+  const resultsQueryRef = useRef("");
   useEffect(() => {
     recentCountRef.current = recent.length;
   }, [recent.length]);
@@ -194,6 +197,7 @@ export function TopBar({
         .then(([tracks, albums, artists]) => {
           // Drop the response if a newer search has been issued since.
           if (seq !== searchSeqRef.current) return;
+          resultsQueryRef.current = trimmed;
           setSearchResults(tracks);
           setAlbumResults(albums);
           setArtistResults(artists);
@@ -279,19 +283,19 @@ export function TopBar({
 
   // A search the user went somewhere from is worth offering again.
   const handleSearchResultClick = (tracks: Track[], index: number) => {
-    remember(searchQuery);
+    remember(resultsQueryRef.current);
     playTracks(tracks, index, { type: "library", id: null });
     closeSearch();
   };
 
   const handleAlbumResultClick = (id: number) => {
-    remember(searchQuery);
+    remember(resultsQueryRef.current);
     onNavigateToAlbum(id);
     closeSearch();
   };
 
   const handleArtistResultClick = (id: number) => {
-    remember(searchQuery);
+    remember(resultsQueryRef.current);
     onNavigateToArtist(id);
     closeSearch();
   };
@@ -314,6 +318,18 @@ export function TopBar({
   // An empty field with no filter shows the recent searches instead of
   // results.
   const showingRecent = searchQuery.trim() === "" && !hasActiveFilters;
+
+  // Recent searches can land after the field took focus (the profile is
+  // still being read): show them then, if nothing else claims the field.
+  useEffect(() => {
+    if (recent.length === 0) return;
+    if (document.activeElement !== searchInputRef.current) return;
+    if (searchQuery.trim() !== "" || hasActiveFilters) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsSearchOpen(true);
+    // Keyed on the list's arrival only, not on typing.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recent.length]);
 
   // Ctrl+K (rebindable) from anywhere in the window.
   useEffect(() => {
