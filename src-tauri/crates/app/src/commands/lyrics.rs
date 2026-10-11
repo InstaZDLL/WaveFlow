@@ -4607,7 +4607,17 @@ mod tests {
         .await
         .unwrap();
 
-        assert!(!dir.path().join("Song.lrc").exists());
+        // Listed, not `exists()`: on a case-insensitive filesystem (APFS,
+        // NTFS) `Song.lrc` resolves to the user's `song.LRC`.
+        let names: Vec<String> = std::fs::read_dir(dir.path())
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())
+            .collect();
+        assert!(!names.iter().any(|name| name == "Song.lrc"));
+        assert_eq!(
+            std::fs::read_to_string(dir.path().join("song.LRC")).unwrap(),
+            "[00:01.00]Mine"
+        );
     }
 
     /// A sidecar already on disk is the user's file. The export adds one
