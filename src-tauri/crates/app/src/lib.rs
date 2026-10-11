@@ -271,6 +271,11 @@ pub fn run() {
             app.manage(commands::preferences::PreferencesState::new(
                 minimize_to_tray,
             ));
+            // Before the first listing: the collation reads it on every
+            // comparison.
+            tauri::async_runtime::block_on(
+                commands::preferences::load_sort_ignore_articles(&state.app_db),
+            );
             app.manage(desktop_lyrics::DesktopLyricsState::default());
 
             // Artwork reaches the webview through `convertFileSrc`, which
@@ -1102,6 +1107,8 @@ pub fn run() {
             commands::offline::set_offline_mode,
             commands::preferences::get_minimize_to_tray,
             commands::preferences::set_minimize_to_tray,
+            commands::preferences::get_sort_ignore_articles,
+            commands::preferences::set_sort_ignore_articles,
             commands::preferences::get_auto_start,
             commands::preferences::set_auto_start,
             commands::preferences::get_ui_zoom,

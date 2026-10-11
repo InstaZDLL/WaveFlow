@@ -1942,6 +1942,10 @@
       "title": "Escanear ao iniciar",
       "subtitle": "Escaneia automaticamente as bibliotecas ao abrir o programa"
     },
+    "sortIgnoreArticles": {
+      "title": "Ignorar artigos ao ordenar",
+      "subtitle": "Coloca “The Beatles” na letra B, em artistas e álbuns."
+    },
     "singleClickPlay": {
       "title": "Reprodução com um único clique",
       "subtitle": "Clique em uma faixa para iniciar a reprodução (ou clique duas vezes)"

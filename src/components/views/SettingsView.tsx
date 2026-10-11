@@ -9,6 +9,7 @@ import {
 import "./settings/settings.css";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
+import { useSortIgnoreArticles } from "../../hooks/useSortIgnoreArticles";
 import {
   ArrowLeft,
   Globe,
@@ -51,6 +52,7 @@ import {
   ZoomIn,
   Palette,
   Disc3,
+  ArrowDownAZ,
 } from "lucide-react";
 import { RemoteServerCard } from "./settings/RemoteServerCard";
 import { ReconciliationCard } from "./settings/ReconciliationCard";
@@ -735,6 +737,19 @@ export function SettingsView({
       setMinimizeToTray(!next);
     });
   }, [minimizeToTray]);
+
+  const { ignoreArticles, setIgnoreArticles } = useSortIgnoreArticles();
+  // The switch moves once the choice is saved, so a second click before
+  // then would flip from the same value; it waits instead.
+  const [savingIgnoreArticles, setSavingIgnoreArticles] = useState(false);
+  const handleToggleIgnoreArticles = useCallback(() => {
+    setSavingIgnoreArticles(true);
+    setIgnoreArticles(!ignoreArticles)
+      .catch((err) =>
+        console.error("[Settings] set sort_ignore_articles failed", err),
+      )
+      .finally(() => setSavingIgnoreArticles(false));
+  }, [ignoreArticles, setIgnoreArticles]);
 
   const handleToggleScanOnStart = useCallback(() => {
     const next = !scanOnStart;
@@ -2181,6 +2196,29 @@ export function SettingsView({
                     enabled={scanOnStart}
                     onToggle={handleToggleScanOnStart}
                     label={t("settings.scanOnStart.title")}
+                  />
+                </div>
+                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                  <div className="flex items-center space-x-4">
+                    <ArrowDownAZ
+                      size={20}
+                      className="text-zinc-400"
+                      aria-hidden="true"
+                    />
+                    <div>
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.sortIgnoreArticles.title")}
+                      </div>
+                      <div className="text-xs settings-description">
+                        {t("settings.sortIgnoreArticles.subtitle")}
+                      </div>
+                    </div>
+                  </div>
+                  <ToggleSwitch
+                    enabled={ignoreArticles}
+                    onToggle={handleToggleIgnoreArticles}
+                    label={t("settings.sortIgnoreArticles.title")}
+                    disabled={savingIgnoreArticles}
                   />
                 </div>
                 <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">

@@ -1986,6 +1986,10 @@
       "title": "Scanner au démarrage",
       "subtitle": "Rescanner automatiquement les bibliothèques à l'ouverture"
     },
+    "sortIgnoreArticles": {
+      "title": "Ignorer les articles au tri",
+      "subtitle": "Classe « The Beatles » à B et « Les Rita Mitsouko » à R, dans les artistes et les albums."
+    },
     "singleClickPlay": {
       "title": "Lecture au clic simple",
       "subtitle": "Un clic sur un titre lance la lecture (sinon double-clic)"

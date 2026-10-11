@@ -1887,6 +1887,10 @@
       "title": "시작 시 스캔",
       "subtitle": "앱을 실행할 때 라이브러리를 자동으로 다시 스캔합니다"
     },
+    "sortIgnoreArticles": {
+      "title": "정렬할 때 관사 무시",
+      "subtitle": "아티스트와 앨범에서 “The Beatles”는 B에, “Les Rita Mitsouko”는 R에 정렬합니다."
+    },
     "singleClickPlay": {
       "title": "한 번의 클릭으로 재생",
       "subtitle": "곡을 한 번 클릭하여 재생합니다. 이 설정을 끄면 두 번 클릭해야 합니다."

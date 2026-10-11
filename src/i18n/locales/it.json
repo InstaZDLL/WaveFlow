@@ -1933,6 +1933,10 @@
       "title": "Scansiona all'avvio",
       "subtitle": "Riscansiona automaticamente le librerie all'avvio"
     },
+    "sortIgnoreArticles": {
+      "title": "Ignora gli articoli nell'ordinamento",
+      "subtitle": "Mette «The Beatles» sotto la B e «Il Volo» sotto la V, in artisti e album."
+    },
     "singleClickPlay": {
       "title": "Riproduzione con un clic",
       "subtitle": "Clicca su un brano per avviare la riproduzione (altrimenti doppio clic)"

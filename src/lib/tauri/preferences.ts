@@ -122,3 +122,13 @@ export function setMainWindowBounds(bounds: MiniPlayerBounds): Promise<void> {
 export function clearMainWindowBounds(): Promise<void> {
   return invoke<void>("clear_main_window_bounds");
 }
+
+/** Whether artist and album listings set a leading article aside ("The
+ *  Beatles" under B). App-wide; the backend's `NAME` collation reads it. */
+export function getSortIgnoreArticles(): Promise<boolean> {
+  return invoke<boolean>("get_sort_ignore_articles");
+}
+
+export function setSortIgnoreArticles(enabled: boolean): Promise<void> {
+  return invoke<void>("set_sort_ignore_articles", { enabled });
+}

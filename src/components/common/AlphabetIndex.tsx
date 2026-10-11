@@ -1,5 +1,8 @@
 import { useMemo } from "react";
 
+import { useSortIgnoreArticles } from "../../hooks/useSortIgnoreArticles";
+import { stripArticle } from "../../lib/sortName";
+
 interface Props {
   items: { name: string }[];
   onLetterClick: (firstIndex: number) => void;
@@ -8,9 +11,12 @@ interface Props {
 
 const LETTERS: string[] = ["#", ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("")];
 
-function firstLetterKey(name: string): string {
-  // NFD-normalize then strip combining marks so "Émilie" buckets under "E".
-  const stripped = name
+function firstLetterKey(name: string, ignoreArticles: boolean): string {
+  // The letter the listing sorted the name under: without its article
+  // when the backend set it aside ("The Beatles" under B), then
+  // NFD-normalized and stripped of combining marks so "Émilie" buckets
+  // under "E".
+  const stripped = (ignoreArticles ? stripArticle(name) : name)
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
     .trim()
@@ -22,14 +28,15 @@ function firstLetterKey(name: string): string {
 }
 
 export function AlphabetIndex({ items, onLetterClick, className = "" }: Props) {
+  const { ignoreArticles } = useSortIgnoreArticles();
   const letterToIndex = useMemo(() => {
     const map = new Map<string, number>();
     for (let i = 0; i < items.length; i++) {
-      const key = firstLetterKey(items[i].name);
+      const key = firstLetterKey(items[i].name, ignoreArticles);
       if (!map.has(key)) map.set(key, i);
     }
     return map;
-  }, [items]);
+  }, [items, ignoreArticles]);
 
   return (
     <div

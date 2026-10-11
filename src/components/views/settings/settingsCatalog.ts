@@ -35,6 +35,8 @@ export const SETTINGS_CATEGORIES = [
         searchKeys: [
           "settings.scanOnStart.title",
           "settings.scanOnStart.subtitle",
+          "settings.sortIgnoreArticles.title",
+          "settings.sortIgnoreArticles.subtitle",
           "settings.rescan.title",
           "settings.rescan.subtitle",
           "settings.rescan.action",

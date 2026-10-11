@@ -1879,6 +1879,10 @@
       "title": "Scannen bij opstart",
       "subtitle": "Bibliotheken automatisch opnieuw scannen bij het opstarten"
     },
+    "sortIgnoreArticles": {
+      "title": "Lidwoorden negeren bij sorteren",
+      "subtitle": "Zet “The Beatles” onder B, bij artiesten en albums."
+    },
     "singleClickPlay": {
       "title": "Afspelen met één klik",
       "subtitle": "Klik op een nummer om het af te spelen (gebruik anders een dubbelklik)"

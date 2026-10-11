@@ -1856,6 +1856,10 @@
       "title": "启动时扫描",
       "subtitle": "启动时自动重新扫描音乐库"
     },
+    "sortIgnoreArticles": {
+      "title": "排序时忽略冠词",
+      "subtitle": "在艺人和专辑中，将“The Beatles”归入 B，将“Les Rita Mitsouko”归入 R。"
+    },
     "singleClickPlay": {
       "title": "单击播放",
       "subtitle": "点击一首曲目开始播放（否则请双击）"

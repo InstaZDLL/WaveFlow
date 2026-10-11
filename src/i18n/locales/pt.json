@@ -1942,6 +1942,10 @@
       "title": "Analisar no arranque",
       "subtitle": "Voltar a analisar automaticamente as bibliotecas ao iniciar"
     },
+    "sortIgnoreArticles": {
+      "title": "Ignorar artigos ao ordenar",
+      "subtitle": "Coloca “The Beatles” na letra B, em artistas e álbuns."
+    },
     "singleClickPlay": {
       "title": "Reprodução com um só clique",
       "subtitle": "Clica numa faixa para iniciar a reprodução (caso contrário, duplo clique)"
