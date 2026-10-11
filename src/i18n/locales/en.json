@@ -1853,6 +1853,10 @@
       "title": "Pause when the output device disconnects",
       "subtitle": "When the audio output goes away, playback pauses instead of moving to another device"
     },
+    "keepAwake": {
+      "title": "Keep the computer awake while playing",
+      "subtitle": "The computer won't go to sleep on its own while music plays. Closing the lid or choosing Sleep still works."
+    },
     "language": {
       "title": "Language",
       "subtitle": "Interface language"

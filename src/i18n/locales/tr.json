@@ -1853,6 +1853,10 @@
       "title": "Çıkış aygıtı ayrıldığında duraklat",
       "subtitle": "Ses çıkışı kaybolduğunda, oynatma başka bir aygıta geçmek yerine duraklatılır"
     },
+    "keepAwake": {
+      "title": "Çalarken uyku moduna geçmeyi engelle",
+      "subtitle": "Müzik çalarken bilgisayar kendiliğinden uyku moduna geçmez. Kapağı kapatmak veya Uyku'yu seçmek yine çalışır."
+    },
     "language": {
       "title": "Dil",
       "subtitle": "Arayüz dili"

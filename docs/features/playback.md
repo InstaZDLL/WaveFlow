@@ -384,6 +384,16 @@ It avoids the resampler rather than abolishing it: a playback speed other than 1
 
 The pill in the pipeline popover needs no change: it already compares the source rate against the output rate, so it starts telling the truth when this is on and stops the moment a device refuses.
 
+## Keeping the computer awake
+
+A desktop that sees no input for its idle delay suspends whatever is playing — reported on GNOME, where the idle suspend runs in the middle of an album. [`power.rs`](../../src-tauri/crates/app/src/power.rs) holds a sleep inhibitor while the player is `Playing` and releases it on pause, stop, idle, or when **Settings → Playback → Keep the computer awake while playing** is turned off (`profile_setting['playback.keep_awake']`, on by default, read on every profile load). It never blocks a suspend the user asks for: closing the lid or choosing Sleep still suspends.
+
+- **Linux** — the XDG desktop portal's `Inhibit` with the suspend and idle flags, which GNOME and KDE route into their own power management, and which works inside the Flatpak without extra permissions; released with `Request.Close` on its handle. A logind `idle` lock would not reach GNOME's auto-suspend, and a logind `sleep` lock in `block` mode would refuse even a requested suspend. Without a portal (a bare window manager) the call fails, is logged, and nothing else changes.
+- **Windows** — `SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED)`, cleared with `ES_CONTINUOUS`. That state belongs to the calling thread, which is why one worker thread (`waveflow-power`) owns the inhibitor for the life of the process.
+- **macOS** — nothing: `coreaudiod` holds its own assertion while audio plays.
+
+The decoder's `transition_state` feeds it (a non-blocking send), skipping `Loading` so the lock is not dropped and retaken between two tracks. Process-wide like the offline mode, so the profile settings loader reaches it without an `AppHandle`.
+
 ## OS media controls
 
 [`media_controls.rs`](../../src-tauri/crates/app/src/media_controls.rs) bridges the engine to [`souvlaki 0.8`](https://crates.io/crates/souvlaki):

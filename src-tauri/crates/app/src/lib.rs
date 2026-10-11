@@ -25,6 +25,7 @@ mod offline;
 mod paths;
 mod player_actions;
 mod plugin_attention;
+mod power;
 mod queue;
 mod render_mode;
 // Remote play queue (RFC-005). Plain in-memory data — compiled
@@ -1197,6 +1198,7 @@ pub fn run() {
             commands::player::player_get_exclusive_output,
             commands::player::player_get_exclusive_output_state,
             commands::player::player_set_pause_on_device_loss,
+            commands::player::player_set_keep_awake,
             commands::player::player_probe_output_device,
             commands::player::player_set_match_source_rate,
             commands::inventory::inventory_summary,

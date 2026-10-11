@@ -1907,6 +1907,10 @@
       "title": "Pausar si el dispositivo se desconecta",
       "subtitle": "Cuando la salida de audio desaparece, la reproducción se pausa en lugar de pasar a otro dispositivo"
     },
+    "keepAwake": {
+      "title": "Evitar la suspensión durante la reproducción",
+      "subtitle": "El equipo no se suspende por sí solo mientras suena la música. Cerrar la tapa o elegir Suspender sigue funcionando."
+    },
     "language": {
       "title": "Idioma",
       "subtitle": "Idioma de la interfaz"

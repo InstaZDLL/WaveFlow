@@ -663,11 +663,23 @@ impl AppState {
     /// [`Self::require_profile_pool`] — for callers with no profile in mind
     /// (a fresh user action against whatever is active right now).
     pub async fn require_profile_pool_for(&self, expected: Option<i64>) -> AppResult<ProfilePool> {
+        self.require_profile_pool_with_id(expected)
+            .await
+            .map(|(pool, _)| pool)
+    }
+
+    /// [`Self::require_profile_pool_for`], with the id of the profile the
+    /// lease belongs to — read under the same lock, so it names the
+    /// profile the caller writes into even when `expected` is `None`.
+    pub async fn require_profile_pool_with_id(
+        &self,
+        expected: Option<i64>,
+    ) -> AppResult<(ProfilePool, i64)> {
         let guard = self.profile.read().await;
         check_expected_profile(guard.as_ref().map(|p| p.profile_id), expected)?;
         guard
             .as_ref()
-            .map(ActiveProfile::lease)
+            .map(|p| (p.lease(), p.profile_id))
             .ok_or(AppError::NoActiveProfile)
     }
 

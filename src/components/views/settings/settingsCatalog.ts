@@ -101,6 +101,8 @@ export const SETTINGS_CATEGORIES = [
           "settings.generatorAlbumMode.subtitle",
           "settings.pauseOnDeviceLoss.title",
           "settings.pauseOnDeviceLoss.subtitle",
+          "settings.keepAwake.title",
+          "settings.keepAwake.subtitle",
         ],
       },
       {

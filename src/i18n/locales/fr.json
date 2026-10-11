@@ -1960,6 +1960,10 @@
       "title": "Mettre en pause si le périphérique est déconnecté",
       "subtitle": "Quand la sortie audio disparaît, la lecture est mise en pause au lieu de passer sur un autre périphérique"
     },
+    "keepAwake": {
+      "title": "Empêcher la mise en veille pendant la lecture",
+      "subtitle": "L'ordinateur ne se met pas en veille de lui-même tant que la musique joue. Fermer le capot ou demander la veille fonctionne toujours."
+    },
     "language": {
       "title": "Langue",
       "subtitle": "Langue de l'interface"

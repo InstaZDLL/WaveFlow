@@ -321,6 +321,9 @@ windows = { version = "0.62", features = [
     # the graph via `wasapi`; named here because we call it directly.
     "Win32_Media_Audio",
     "Win32_System_Threading",
+    # `SetThreadExecutionState`: keep the machine awake while playing
+    # (`power.rs`).
+    "Win32_System_Power",
     "Win32_Storage_FileSystem",
     # Playback buttons under the taskbar thumbnail (`taskbar_buttons.rs`):
     # ITaskbarList3 + window subclassing, the icons, the taskbar theme.

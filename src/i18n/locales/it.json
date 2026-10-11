@@ -1907,6 +1907,10 @@
       "title": "Metti in pausa se il dispositivo si disconnette",
       "subtitle": "Quando l'uscita audio scompare, la riproduzione viene messa in pausa invece di passare a un altro dispositivo"
     },
+    "keepAwake": {
+      "title": "Impedisci la sospensione durante la riproduzione",
+      "subtitle": "Il computer non va in sospensione da solo mentre suona la musica. Chiudere il coperchio o scegliere Sospendi funziona comunque."
+    },
     "language": {
       "title": "Lingua",
       "subtitle": "Lingua dell'interfaccia"

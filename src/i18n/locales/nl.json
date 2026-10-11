@@ -1853,6 +1853,10 @@
       "title": "Pauzeren als het uitvoerapparaat wordt losgekoppeld",
       "subtitle": "Verdwijnt de audio-uitvoer, dan wordt het afspelen gepauzeerd in plaats van over te gaan op een ander apparaat"
     },
+    "keepAwake": {
+      "title": "Slaapstand voorkomen tijdens het afspelen",
+      "subtitle": "De computer gaat niet vanzelf in slaapstand zolang er muziek speelt. Het deksel sluiten of slaapstand kiezen werkt nog steeds."
+    },
     "language": {
       "title": "Taal",
       "subtitle": "Interfacetaal"

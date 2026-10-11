@@ -755,6 +755,10 @@ pub(crate) async fn restore_profile_audio_settings(pool: &sqlx::SqlitePool, engi
         let pause_on_loss = read_bool_setting(pool, "audio.pause_on_device_loss", true).await;
         engine.set_pause_on_device_loss(pause_on_loss);
     }
+    // Keep the machine awake while playing (`power.rs`). Profile-scoped
+    // and read here for the same reason as the setting above. Absent
+    // means on.
+    crate::power::set_enabled(read_bool_setting(pool, "playback.keep_awake", true).await);
     // Every ReplayGain setting resolves to its default when the
     // row is missing or unparseable, and is stored either way —
     // the `dsd_dop` pattern above, for the same reason: this
@@ -2036,6 +2040,11 @@ pub async fn player_get_audio_settings(
     }
 
     let replay_gain_settings = shared.replay_gain_settings();
+    // No profile loaded reads as the default, like the other rows here.
+    let keep_awake = match state.require_profile_pool().await {
+        Ok(pool) => read_bool_setting(&pool, "playback.keep_awake", true).await,
+        Err(_) => true,
+    };
 
     Ok(AudioSettingsSnapshot {
         normalize,
@@ -2051,6 +2060,7 @@ pub async fn player_get_audio_settings(
         dsd_dop,
         match_source_rate,
         pause_on_device_loss: engine.pause_on_device_loss(),
+        keep_awake,
     })
 }
 
@@ -2078,6 +2088,9 @@ pub struct AudioSettingsSnapshot {
     /// Park playback when the output device goes away (#617), default
     /// true.
     pub pause_on_device_loss: bool,
+    /// Keep the machine from sleeping while playing (`power.rs`), default
+    /// true.
+    pub keep_awake: bool,
 }
 
 /// One row in the output-device picker that powers the PlayerBar
@@ -2441,6 +2454,53 @@ pub async fn player_set_pause_on_device_loss(
     .execute(&*pool)
     .await?;
     engine.set_pause_on_device_loss(enabled);
+    Ok(())
+}
+
+/// Keep the computer awake while music plays, or let it sleep as usual.
+///
+/// Persisted in `profile_setting['playback.keep_awake']`, read on every
+/// profile load, on by default: a desktop suspending in the middle of an
+/// album is the reported defect. It never blocks a suspend the user asks
+/// for — see `power.rs`.
+#[tauri::command]
+pub async fn player_set_keep_awake(
+    state: tauri::State<'_, AppState>,
+    enabled: bool,
+    expected_profile_id: Option<i64>,
+) -> AppResult<()> {
+    // One write at a time, end to end: two calls interleaving between the
+    // SQL write and `set_enabled` could leave the inhibitor on the value
+    // that was written first. The settings view already serializes its
+    // writes; this keeps the command right for any caller.
+    static WRITE: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+    let _write = WRITE.lock().await;
+    // The profile the toggle was flipped in: checked and leased under the
+    // lock a profile switch takes, so a switch in flight cannot redirect
+    // the write — or the inhibitor — to the next profile.
+    let (pool, written_profile) = state
+        .require_profile_pool_with_id(expected_profile_id)
+        .await?;
+    let now = chrono::Utc::now().timestamp_millis();
+    sqlx::query(
+        "INSERT INTO profile_setting (key, value, value_type, updated_at)
+             VALUES ('playback.keep_awake', ?, 'bool', ?)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+    )
+    .bind(if enabled { "1" } else { "0" })
+    .bind(now)
+    .execute(&*pool)
+    .await?;
+    drop(pool);
+    // The lease covered the write; the inhibitor is process-wide and needs
+    // its own ordering. Under the profile lock a switch takes for writing:
+    // applied while this is still the active profile, or not at all — a
+    // switch that got in first has run, or will run, the next profile's
+    // own restore, which must not be overwritten with this one's value.
+    let active = state.profile.read().await;
+    if active.as_ref().map(|p| p.profile_id) == Some(written_profile) {
+        crate::power::set_enabled(enabled);
+    }
     Ok(())
 }
 
