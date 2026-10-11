@@ -249,6 +249,11 @@
       "results_one": "{{count}} hasil",
       "results_other": "{{count}} hasil",
       "empty": "Tidak ada hasil yang cocok dengan pencarianmu",
+      "recent": {
+        "title": "Pencarian terbaru",
+        "clear": "Hapus",
+        "remove": "Hapus “{{query}}” dari pencarian terbaru"
+      },
       "filters": {
         "toggle": "Filter lanjutan",
         "title": "Filter",
@@ -1728,7 +1733,9 @@
         "toggleQueue": "Tampilkan/sembunyikan panel antrean",
         "toggleNowPlaying": "Tampilkan/sembunyikan panel \"Sedang diputar\"",
         "toggleLyrics": "Tampilkan/sembunyikan panel lirik",
-        "toggleLike": "Sukai / Batalkan suka untuk lagu saat ini"
+        "toggleLike": "Sukai / Batalkan suka untuk lagu saat ini",
+        "focusSearch": "Ke pencarian",
+        "toggleFullscreen": "Layar penuh"
       }
     },
     "offlineMode": {

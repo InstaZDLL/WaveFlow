@@ -249,6 +249,11 @@
       "results_one": "{{count}}개 결과",
       "results_other": "{{count}}개 결과",
       "empty": "검색 결과가 없습니다",
+      "recent": {
+        "title": "최근 검색",
+        "clear": "지우기",
+        "remove": "최근 검색에서 ‘{{query}}’ 삭제"
+      },
       "filters": {
         "toggle": "고급 필터",
         "title": "필터",
@@ -1728,7 +1733,9 @@
         "toggleQueue": "재생 대기열 표시 / 숨기기",
         "toggleNowPlaying": "지금 재생 중 패널 표시 / 숨기기",
         "toggleLyrics": "가사 표시 / 숨기기",
-        "toggleLike": "좋아요 / 좋아요 취소"
+        "toggleLike": "좋아요 / 좋아요 취소",
+        "focusSearch": "검색으로 이동",
+        "toggleFullscreen": "전체 화면"
       }
     },
     "offlineMode": {

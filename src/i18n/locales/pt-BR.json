@@ -256,6 +256,11 @@
       "results_other": "{{count}} resultados",
       "results_many": "{{count}} resultados",
       "empty": "Nenhum resultado corresponde à sua busca",
+      "recent": {
+        "title": "Buscas recentes",
+        "clear": "Limpar",
+        "remove": "Remover “{{query}}” das buscas recentes"
+      },
       "filters": {
         "toggle": "Filtros avançados",
         "title": "Filtros",
@@ -1783,7 +1788,9 @@
         "toggleQueue": "Mostrar / Ocultar fila",
         "toggleNowPlaying": "Mostrar / Ocultar reprodução",
         "toggleLyrics": "Mostrar / Ocultar letra",
-        "toggleLike": "Curtir / Remover curtida"
+        "toggleLike": "Curtir / Remover curtida",
+        "focusSearch": "Ir para a busca",
+        "toggleFullscreen": "Tela cheia"
       }
     },
     "offlineMode": {

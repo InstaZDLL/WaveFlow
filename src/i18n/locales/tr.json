@@ -249,6 +249,11 @@
       "results_one": "{{count}} sonuç",
       "results_other": "{{count}} sonuç",
       "empty": "Aramana uygun sonuç bulunamadı",
+      "recent": {
+        "title": "Son aramalar",
+        "clear": "Temizle",
+        "remove": "“{{query}}” aramasını son aramalardan kaldır"
+      },
       "filters": {
         "toggle": "Gelişmiş filtreler",
         "title": "Filtreler",
@@ -1728,7 +1733,9 @@
         "toggleQueue": "Sıra panelini aç/kapat",
         "toggleNowPlaying": "“Şimdi çalıyor” panelini aç/kapat",
         "toggleLyrics": "Söz panelini aç/kapat",
-        "toggleLike": "Mevcut parçayı beğen / beğenme"
+        "toggleLike": "Mevcut parçayı beğen / beğenme",
+        "focusSearch": "Aramaya git",
+        "toggleFullscreen": "Tam ekran"
       }
     },
     "offlineMode": {

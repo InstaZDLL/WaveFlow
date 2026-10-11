@@ -20,7 +20,9 @@ export type ShortcutAction =
   | "toggleQueue"
   | "toggleNowPlaying"
   | "toggleLyrics"
-  | "toggleLike";
+  | "toggleLike"
+  | "focusSearch"
+  | "toggleFullscreen";
 
 export const SHORTCUT_ACTIONS: ShortcutAction[] = [
   "togglePlayback",
@@ -35,7 +37,62 @@ export const SHORTCUT_ACTIONS: ShortcutAction[] = [
   "toggleNowPlaying",
   "toggleLyrics",
   "toggleLike",
+  "focusSearch",
+  "toggleFullscreen",
 ];
+
+/**
+ * Actions that also fire while typing in a field. The others are bare
+ * letters and arrows, which belong to the field; these are a modifier
+ * combo and a function key, which a field has no use for — and Ctrl+K
+ * from inside some other input is exactly when jumping to the search is
+ * wanted.
+ */
+export const SHORTCUTS_ALLOWED_IN_FIELDS: ReadonlySet<ShortcutAction> = new Set(
+  ["focusSearch", "toggleFullscreen"],
+);
+
+/** What a text field does with a combo itself: never taken from it. */
+const FIELD_EDITING_COMBOS: ReadonlySet<string> = new Set([
+  "Ctrl+A",
+  "Ctrl+C",
+  "Ctrl+V",
+  "Ctrl+Shift+V",
+  "Ctrl+Insert",
+  "Ctrl+X",
+  "Ctrl+Z",
+  "Ctrl+Y",
+  "Ctrl+Shift+Z",
+  "Ctrl+Backspace",
+  "Ctrl+Delete",
+  "Ctrl+ArrowLeft",
+  "Ctrl+ArrowRight",
+  "Ctrl+Shift+ArrowLeft",
+  "Ctrl+Shift+ArrowRight",
+  "Ctrl+Home",
+  "Ctrl+End",
+  "Ctrl+Shift+Home",
+  "Ctrl+Shift+End",
+]);
+
+/**
+ * Whether a combo can fire from inside a field without eating a
+ * keystroke: it carries Ctrl or Alt, or it is a function key, and it is
+ * not one of the field's own editing combos. A user can rebind
+ * `focusSearch` to a bare `K` or to `Ctrl+A`, and both must still do in
+ * a field what they always did.
+ */
+export function comboIsFieldSafe(combo: string): boolean {
+  if (FIELD_EDITING_COMBOS.has(combo)) return false;
+  const parts = combo.split("+");
+  const key = parts[parts.length - 1];
+  return (
+    parts.includes("Ctrl") || parts.includes("Alt") || /^F\d{1,2}$/.test(key)
+  );
+}
+
+/** Window event the top bar listens to for `focusSearch`. */
+export const FOCUS_SEARCH_EVENT = "waveflow:focus-search";
 
 /**
  * Combo string format: optional `Ctrl+` / `Shift+` / `Alt+` modifiers
@@ -57,6 +114,8 @@ export const DEFAULT_BINDINGS: Record<ShortcutAction, string> = {
   toggleNowPlaying: "N",
   toggleLyrics: "L",
   toggleLike: "Shift+L",
+  focusSearch: "Ctrl+K",
+  toggleFullscreen: "F11",
 };
 
 const SETTING_KEY = "ui.shortcuts";

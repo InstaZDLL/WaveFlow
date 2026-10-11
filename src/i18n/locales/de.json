@@ -249,6 +249,11 @@
       "results_one": "{{count}} Ergebnis",
       "results_other": "{{count}} Ergebnisse",
       "empty": "Keine Ergebnisse passen zu deiner Suche",
+      "recent": {
+        "title": "Letzte Suchen",
+        "clear": "Löschen",
+        "remove": "„{{query}}“ aus den letzten Suchen entfernen"
+      },
       "filters": {
         "toggle": "Erweiterte Filter",
         "title": "Filter",
@@ -1728,7 +1733,9 @@
         "toggleQueue": "Warteschlangen-Panel umschalten",
         "toggleNowPlaying": "„Wird gespielt“-Panel umschalten",
         "toggleLyrics": "Songtext-Panel umschalten",
-        "toggleLike": "Aktuellen Titel zu Favoriten hinzufügen / entfernen"
+        "toggleLike": "Aktuellen Titel zu Favoriten hinzufügen / entfernen",
+        "focusSearch": "Zur Suche springen",
+        "toggleFullscreen": "Vollbild"
       }
     },
     "offlineMode": {

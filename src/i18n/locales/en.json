@@ -249,6 +249,11 @@
       "results_one": "{{count}} result",
       "results_other": "{{count}} results",
       "empty": "No results match your search",
+      "recent": {
+        "title": "Recent searches",
+        "clear": "Clear",
+        "remove": "Remove “{{query}}” from recent searches"
+      },
       "filters": {
         "toggle": "Advanced filters",
         "title": "Filters",
@@ -1728,7 +1733,9 @@
         "toggleQueue": "Toggle queue panel",
         "toggleNowPlaying": "Toggle now-playing panel",
         "toggleLyrics": "Toggle lyrics panel",
-        "toggleLike": "Like / Unlike current track"
+        "toggleLike": "Like / Unlike current track",
+        "focusSearch": "Focus search",
+        "toggleFullscreen": "Full screen"
       }
     },
     "offlineMode": {
