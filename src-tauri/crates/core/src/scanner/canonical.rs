@@ -24,8 +24,11 @@ pub fn canonical_name(s: &str) -> String {
 /// A tag can carry several values (an ID3v2.4 `TCON` with NUL-separated
 /// values, repeated Vorbis `GENRE` comments, several MP4 `©gen`), and a
 /// single value can still list several genres: taggers that only write one
-/// field join them with `;` ("Rock; Jazz"). Both are split. `;` and NUL
-/// only: `/` and `,` occur inside genre names people actually use
+/// field join them with `;` ("Rock; Jazz"), and some write the `\\` a
+/// tag editor shows between multiple values into the file as text
+/// ("Alternative\\Rock"). All are split: on `;`, NUL and `\`, which no
+/// genre name contains. Not on `/` or `,`: they occur inside genre names
+/// people actually use
 /// ("Hip-Hop/Rap", "Folk, World, & Country"), and splitting on them would
 /// invent genres. Each name is trimmed, and a name the library would file
 /// under a genre already listed (same [`canonical_name`]) is dropped.
@@ -33,7 +36,7 @@ pub fn split_genres<'a>(values: impl IntoIterator<Item = &'a str>) -> Vec<String
     let mut seen = std::collections::HashSet::new();
     let mut out = Vec::new();
     for value in values {
-        for part in value.split([';', '\0']) {
+        for part in value.split([';', '\0', '\\']) {
             let name = part.trim();
             let key = canonical_name(name);
             if !key.is_empty() && seen.insert(key) {
@@ -126,7 +129,7 @@ mod pinyin_tests {
     }
 
     #[test]
-    fn genres_split_on_semicolons_and_nul_only() {
+    fn genres_split_on_semicolons_nul_and_backslashes() {
         assert_eq!(split_genres(["Rock; Jazz"]), ["Rock", "Jazz"]);
         assert_eq!(split_genres(["Rock\0Jazz"]), ["Rock", "Jazz"]);
         // Repeated values, and a list inside one of them.
@@ -134,6 +137,12 @@ mod pinyin_tests {
             split_genres(["Ambient", "Trip Hop;Downtempo"]),
             ["Ambient", "Trip Hop", "Downtempo"]
         );
+        // A tag editor's multi-value separator, written as text.
+        assert_eq!(
+            split_genres(["Alternative\\\\Rock"]),
+            ["Alternative", "Rock"]
+        );
+        assert_eq!(split_genres(["Alternative\\Rock"]), ["Alternative", "Rock"]);
         // Names that hold a slash or a comma are one genre each.
         assert_eq!(split_genres(["Hip-Hop/Rap"]), ["Hip-Hop/Rap"]);
         assert_eq!(
