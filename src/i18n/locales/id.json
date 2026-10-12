@@ -361,6 +361,16 @@
     "onRepeat": {
       "label": "On Repeat"
     },
+    "genreMix": {
+      "label": "Mix genre",
+      "name": "Mix {{name}}",
+      "description": "Yang terbaik dari {{name}} di pustakamu"
+    },
+    "decadeMix": {
+      "label": "Mix dekade",
+      "name": "Era {{decade}}-an",
+      "description": "Musikmu dari era {{decade}}-an"
+    },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
       "title": "Rangkumanmu untuk {{year}}",
@@ -1101,7 +1111,8 @@
     "noneDescription": "Pilih daftar putar di bilah samping untuk melihatnya di sini.",
     "notFoundTitle": "Daftar putar tidak ditemukan",
     "notFoundDescription": "Daftar putar ini tidak lagi ada di profil aktif.",
-    "smartLabel": "Daily Mix"
+    "smartLabel": "Daily Mix",
+    "smartLabelCustom": "Playlist pintar"
   },
   "trackActions": {
     "addToPlaylist": "Tambahkan ke daftar putar",

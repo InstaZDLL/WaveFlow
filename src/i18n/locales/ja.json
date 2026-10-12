@@ -361,6 +361,16 @@
     "onRepeat": {
       "label": "On Repeat"
     },
+    "genreMix": {
+      "label": "ジャンルミックス",
+      "name": "{{name}} ミックス",
+      "description": "ライブラリから選んだ{{name}}のベスト"
+    },
+    "decadeMix": {
+      "label": "年代ミックス",
+      "name": "{{decade}}年代",
+      "description": "あなたの{{decade}}年代の音楽"
+    },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
       "title": "{{year}}年の振り返り",
@@ -1101,7 +1111,8 @@
     "noneDescription": "サイドバーからプレイリストを選んで、ここに表示させてください。",
     "notFoundTitle": "プレイリストが見つかりません",
     "notFoundDescription": "このプレイリストは、現在のプロフィールには存在しません。",
-    "smartLabel": "Daily Mix"
+    "smartLabel": "Daily Mix",
+    "smartLabelCustom": "スマートプレイリスト"
   },
   "trackActions": {
     "addToPlaylist": "プレイリストに追加",

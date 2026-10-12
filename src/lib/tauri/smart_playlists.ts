@@ -29,17 +29,35 @@ export function regenerateOnRepeat(): Promise<number | null> {
 export interface RegenerateAllSmartPlaylistsOutput {
   daily_mix_ids: number[];
   on_repeat_id: number | null;
+  genre_mix_ids: number[];
+  decade_mix_ids: number[];
 }
 
 /**
- * Regen every built-in smart-playlist family (Daily Mix slots +
- * On Repeat) in one round-trip. Used by the Home view's "Régénérer"
- * button so the whole "Made for you" surface refreshes together
- * without the frontend having to know about the family split.
+ * The words around the genre and decade mixes' names, in the user's
+ * language. `{name}` stands for the genre, `{decade}` for the decade
+ * ("1990"); the backend fills them in.
  */
-export function regenerateAllSmartPlaylists(): Promise<RegenerateAllSmartPlaylistsOutput> {
+export interface MixLabels {
+  genre_name: string;
+  genre_description: string;
+  decade_name: string;
+  decade_description: string;
+}
+
+/**
+ * Regen every built-in smart-playlist family (Daily Mix slots, On
+ * Repeat, the genre and decade mixes) in one round-trip. Used by the
+ * Home view's "Regenerate" button so the whole "Made for you" surface
+ * refreshes together without the frontend having to know about the
+ * family split.
+ */
+export function regenerateAllSmartPlaylists(
+  labels: MixLabels,
+): Promise<RegenerateAllSmartPlaylistsOutput> {
   return invoke<RegenerateAllSmartPlaylistsOutput>(
     "regenerate_all_smart_playlists",
+    { labels },
   );
 }
 

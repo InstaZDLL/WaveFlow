@@ -422,7 +422,11 @@ async fn top_artists_with_bpm(
                 .collect::<Vec<_>>()
                 .join(",");
             let sql = format!(
-                "SELECT deezer_id, picture_hash FROM deezer_artist
+                // `metadata_artist` since the provider-neutral rename
+                // (20260427000000): the old name made this query fail,
+                // and the error, swallowed below, left every Daily Mix
+                // without its artist pictures.
+                "SELECT deezer_id, picture_hash FROM metadata_artist
                  WHERE deezer_id IN ({placeholders}) AND picture_hash IS NOT NULL"
             );
             #[derive(FromRow)]
