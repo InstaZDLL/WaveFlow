@@ -131,6 +131,12 @@ export function TrackPropertiesModal({
   // Genres as they stand in the database, loaded alongside the track.
   // `null` means "not loaded yet", which is what gates the save below.
   const [genres, setGenres] = useState<string[] | null>(null);
+  // Whether the user typed in the genre field since it was last saved.
+  // The prefill and the field can differ without anyone touching it: a
+  // genre stored before #729 ("Alternative\\Rock") splits into a
+  // different list than the one row it is, and a save made for the title
+  // alone must not rewrite the genres.
+  const [genreTouched, setGenreTouched] = useState(false);
   // The credited artists, from their own fetch: see `getTrackArtists`.
   const [artists, setArtists] = useState<string[] | null>(null);
   // The track as it is now, for the credits fetch: a refresh can land
@@ -347,13 +353,16 @@ export function TrackPropertiesModal({
           form.disc_number.trim() === "" ? 0 : Number(form.disc_number) || 0,
       };
       // The genres only ride along when the user actually changed them:
-      // the backend reads a present-but-empty genre as "clear it", so a
-      // fetch that hasn't landed must not be sent as one. Compared as the
-      // list the backend will store (#729), so "Rock; " against "Rock" is
-      // not a change and doesn't cost a file rewrite.
+      // edited the field, and to a different list. The backend reads a
+      // present-but-empty genre as "clear it", so a fetch that hasn't
+      // landed must not be sent as one; and the list is compared as the
+      // backend will store it (#729), so "Rock; " against "Rock" is not
+      // a change and doesn't cost a file rewrite.
       const genreList = splitGenres(form.genre);
       const sendingGenre =
-        genres != null && genreList.join("; ") !== genres.join("; ");
+        genreTouched &&
+        genres != null &&
+        genreList.join("; ") !== genres.join("; ");
       if (sendingGenre) edit.genre = genreList.join("; ");
       // Artist and album likewise ride along only when changed. Sent on
       // every save, a multi-artist track saved for its title alone had
@@ -377,6 +386,7 @@ export function TrackPropertiesModal({
       await updateTrackTags(track.id, edit);
       // Only when we sent one — otherwise this would record a genre we
       // never wrote, and the *next* save would act on it.
+      setGenreTouched(false);
       if (sendingGenre) {
         // Re-read, like the credits below: the database lists them in its
         // own order, and the next comparison must start from it.
@@ -641,7 +651,10 @@ export function TrackPropertiesModal({
                   </span>
                   <TagCombobox
                     value={form.genre}
-                    onChange={(v) => setForm((p) => ({ ...p, genre: v }))}
+                    onChange={(v) => {
+                      setGenreTouched(true);
+                      setForm((p) => ({ ...p, genre: v }));
+                    }}
                     // A list: each `;`-separated entry is its own genre
                     // (#729), completed on its own.
                     separator=";"
@@ -652,7 +665,9 @@ export function TrackPropertiesModal({
                     // An editable-but-empty box would take a value the save
                     // then drops on the floor, since a genre we can't
                     // compare against is a genre we won't send.
-                    disabled={genres == null}
+                    // Locked while a save runs, too: the save resets the
+                    // edited flag, and a keystroke in between would lose it.
+                    disabled={genres == null || saving}
                     inputClassName="w-full px-2 py-1 rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 disabled:cursor-not-allowed disabled:opacity-60"
                   />
                 </div>
