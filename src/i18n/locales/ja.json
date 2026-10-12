@@ -1139,7 +1139,7 @@
       "artist": "例：Daft Punk, Justice",
       "album": "アルバム名",
       "year": "例：2026",
-      "genre": "例：Electronic"
+      "genre": "例：Electronic; Ambient"
     },
     "result": {
       "updated": "{{count}}曲を更新しました",
@@ -1186,7 +1186,7 @@
       "trackNumber": "トラック番号",
       "discNumber": "ディスク番号",
       "genre": "ジャンル",
-      "genrePlaceholder": "ポップ、ロック、ジャズ…"
+      "genrePlaceholder": "ポップ; ロック; ジャズ…"
     },
     "changeCover": "ジャケットを変更",
     "suggestions": {

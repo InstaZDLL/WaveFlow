@@ -1183,7 +1183,7 @@
       "artist": "Ex.: Daft Punk, Justice",
       "album": "Nome do álbum",
       "year": "Ex.: 2026",
-      "genre": "Ex.: Eletrônica"
+      "genre": "Ex.: Eletrônica; Ambient"
     },
     "result": {
       "updated": "Faixas atualizadas: {{count}}",
@@ -1230,7 +1230,7 @@
       "trackNumber": "N.º da faixa",
       "discNumber": "N.º do disco",
       "genre": "Gênero",
-      "genrePlaceholder": "Pop, Rock, Jazz…"
+      "genrePlaceholder": "Pop; Rock; Jazz…"
     },
     "changeCover": "Alterar capa",
     "suggestions": {

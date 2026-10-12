@@ -211,9 +211,8 @@ pub async fn get_track(
 /// from `track_genre` — a rescan could not undo it because the file no
 /// longer carried the value either.
 ///
-/// Returns a list because `track_genre` is a many-to-many, but the
-/// scanner writes exactly one row per track (the raw tag string), so in
-/// practice this is empty or a single entry.
+/// Every genre the track carries (#729), ordered by name: `track_genre`
+/// keeps no position, and the dialog joins them with `"; "`.
 #[tauri::command]
 pub async fn get_track_genres(
     state: tauri::State<'_, AppState>,

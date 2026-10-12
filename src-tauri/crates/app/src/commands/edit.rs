@@ -36,8 +36,8 @@ use sqlx::SqlitePool;
 use tauri::{AppHandle, Emitter};
 
 use waveflow_core::scanner::{
-    canonical_name, split_artist_name, upsert_album, upsert_artist, upsert_artwork, upsert_genre,
-    ArtworkSource,
+    canonical_name, split_artist_name, split_genres, upsert_album, upsert_artist, upsert_artwork,
+    upsert_genre, ArtworkSource,
 };
 
 use crate::{
@@ -104,6 +104,9 @@ pub struct TrackEdit {
     pub year: Option<i64>,
     pub track_number: Option<i64>,
     pub disc_number: Option<i64>,
+    /// Every genre, `;`-separated ("Rock; Jazz"), split by the scanner's
+    /// `split_genres` so the file and the database read it the same way
+    /// (#729). Empty clears them.
     pub genre: Option<String>,
 }
 
@@ -580,10 +583,16 @@ fn apply_patch(tag: &mut lofty::tag::Tag, patch: &TagPatch<'_>) {
         }
     }
     if let Some(g) = edit.genre.as_ref() {
-        if g.trim().is_empty() {
-            tag.remove_genre();
-        } else {
-            tag.set_genre(g.trim().to_string());
+        // One item per genre, never `set_genre`, which keeps one. Merged
+        // into the concrete tag they become a multi-value TCON, repeated
+        // Vorbis GENRE comments or several MP4 `©gen`: the forms the
+        // scanner reads back as separate genres.
+        tag.remove_genre();
+        for name in split_genres([g.as_str()]) {
+            tag.push(lofty::tag::TagItem::new(
+                ItemKey::Genre,
+                lofty::tag::ItemValue::Text(name),
+            ));
         }
     }
 }
@@ -766,10 +775,12 @@ fn apply_patch_id3(tag: &mut id3::Tag, patch: &TagPatch<'_>) {
         }
     }
     if let Some(g) = edit.genre.as_ref() {
-        if g.trim().is_empty() {
+        let names = split_genres([g.as_str()]);
+        if names.is_empty() {
             tag.remove_genre();
         } else {
-            tag.set_genre(g.trim());
+            // One TCON, its values NUL-separated, as the lofty side writes.
+            tag.set_text_values("TCON", names);
         }
     }
 }
@@ -794,6 +805,31 @@ fn apply_patch_id3(tag: &mut id3::Tag, patch: &TagPatch<'_>) {
 /// that had a perfectly good year and removed it. Editing a title, or
 /// setting a cover, would have quietly erased the year of every 2.3 DSF
 /// it touched.
+/// Keep several genres readable as several in an ID3v2.2 / 2.3 tag
+/// (#729).
+///
+/// Only 2.4 has multi-value text frames. Asked to write one into an older
+/// version, the `id3` crate joins the values with `/` (measured: "Jazz" and
+/// "Trip Hop" come back as "Jazz/Trip Hop"), and `split_genres` does not
+/// split on `/`, which belongs to names like "Hip-Hop/Rap". So an older
+/// tag gets the one value the scanner does split: the genres joined with
+/// `"; "`.
+fn join_genres_for_legacy(tag: &mut id3::Tag, version: id3::Version) {
+    use id3::TagLike;
+
+    if !matches!(version, id3::Version::Id3v22 | id3::Version::Id3v23) {
+        return;
+    }
+    let Some(values) = tag.genres() else {
+        return;
+    };
+    if values.len() < 2 {
+        return;
+    }
+    let joined = values.join("; ");
+    tag.set_genre(joined);
+}
+
 fn mirror_year_for_legacy(tag: &mut id3::Tag, patch: &TagPatch<'_>, version: id3::Version) {
     use id3::TagLike;
 
@@ -846,6 +882,7 @@ fn patch_dsf(
     with_dsf_tag(path, |tag, version| {
         apply_patch_id3(tag, patch);
         mirror_year_for_legacy(tag, patch, version);
+        join_genres_for_legacy(tag, version);
         // An edit the dialog sent is an edit to write, even when it
         // happens to set what the file already said: the alternative is
         // comparing two encodings of the same tag to save a write of a
@@ -1358,17 +1395,16 @@ async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) -> AppResul
         }
     }
 
-    // Genre — single value for v1. Keep the current shape (track_genre
-    // is a many-to-many table) by clearing then optionally re-inserting.
+    // Genres: every one the edit names, split as the file was written so
+    // the next scan finds the same set (#729).
     if let Some(g) = edit.genre.as_ref() {
         sqlx::query("DELETE FROM track_genre WHERE track_id = ?")
             .bind(track_id)
             .execute(&mut *tx)
             .await?;
-        let trimmed = g.trim();
-        if !trimmed.is_empty() {
-            if let Some(gid) = upsert_genre(&mut tx, trimmed).await? {
-                respell(&mut tx, Respell::Genre, gid, trimmed).await?;
+        for name in split_genres([g.as_str()]) {
+            if let Some(gid) = upsert_genre(&mut tx, &name).await? {
+                respell(&mut tx, Respell::Genre, gid, &name).await?;
                 sqlx::query("INSERT OR IGNORE INTO track_genre (track_id, genre_id) VALUES (?, ?)")
                     .bind(track_id)
                     .bind(gid)
@@ -1614,7 +1650,7 @@ mod patch_agreement_tests {
             year: Some(1997),
             track_number: Some(4),
             disc_number: Some(2),
-            genre: Some(" Jazz ".into()),
+            genre: Some(" Jazz ; Trip Hop".into()),
         }
     }
 
@@ -1640,7 +1676,7 @@ mod patch_agreement_tests {
         year: Option<i32>,
         track: Option<u32>,
         disc: Option<u32>,
-        genre: Option<String>,
+        genres: Vec<String>,
     }
 
     fn through_lofty(edit: &TrackEdit) -> Fields {
@@ -1654,7 +1690,10 @@ mod patch_agreement_tests {
             year: tag.date().map(|d| i32::from(d.year)),
             track: tag.track(),
             disc: tag.disk(),
-            genre: tag.genre().map(|v| v.to_string()),
+            genres: tag
+                .get_strings(lofty::tag::ItemKey::Genre)
+                .map(str::to_string)
+                .collect(),
         }
     }
 
@@ -1669,7 +1708,12 @@ mod patch_agreement_tests {
             year: tag.date_recorded().map(|d| d.year),
             track: tag.track(),
             disc: tag.disc(),
-            genre: tag.genre().map(|v| v.to_string()),
+            genres: tag
+                .genres()
+                .unwrap_or_default()
+                .into_iter()
+                .map(str::to_string)
+                .collect(),
         }
     }
 
@@ -1680,7 +1724,10 @@ mod patch_agreement_tests {
         // whether the file is an MP3 or a DSF — which nobody would look
         // for, because the dialog is the same one.
         let edit = full_edit();
-        assert_eq!(through_lofty(&edit), through_id3(&edit));
+        let written = through_lofty(&edit);
+        assert_eq!(written, through_id3(&edit));
+        // Two genres, each its own value, trimmed (#729).
+        assert_eq!(written.genres, ["Jazz", "Trip Hop"]);
     }
 
     #[test]
@@ -1694,6 +1741,7 @@ mod patch_agreement_tests {
         assert_eq!(cleared.title, None);
         assert_eq!(cleared.year, None);
         assert_eq!(cleared.track, None);
+        assert!(cleared.genres.is_empty());
     }
 
     #[test]
@@ -1717,6 +1765,32 @@ mod patch_agreement_tests {
         apply_patch_id3(&mut tag, &TagPatch::Fields(&edit));
         let date = tag.date_recorded().expect("a date");
         assert_eq!((date.year, date.month, date.day), (1997, Some(6), Some(14)));
+    }
+
+    /// A DSF keeps the ID3 version it had, so both versions must carry
+    /// several genres to the scanner, which reads TCON whole and splits
+    /// it with `split_genres` (#729).
+    #[test]
+    fn several_genres_survive_an_id3_round_trip_in_both_versions() {
+        use id3::TagLike;
+
+        for version in [id3::Version::Id3v23, id3::Version::Id3v24] {
+            let mut tag = id3::Tag::new();
+            let edit = TrackEdit {
+                genre: Some("Jazz; Trip Hop".into()),
+                ..Default::default()
+            };
+            apply_patch_id3(&mut tag, &TagPatch::Fields(&edit));
+            join_genres_for_legacy(&mut tag, version);
+            let mut bytes = Vec::new();
+            tag.write_to(&mut bytes, version).expect("write");
+            let back = id3::Tag::read_from2(std::io::Cursor::new(&bytes)).expect("read");
+            assert_eq!(
+                split_genres(back.genre()),
+                ["Jazz", "Trip Hop"],
+                "{version:?}"
+            );
+        }
     }
 
     #[test]
@@ -2241,6 +2315,43 @@ mod sync_db_tests {
         .await
         .unwrap();
         assert_eq!(genre, (1, "Prog Rock".to_string()));
+    }
+
+    /// Several genres become several rows, the existing one reused through
+    /// its canonical key; clearing removes them all (#729).
+    #[tokio::test]
+    async fn several_genres_become_several_rows() {
+        let pool = pool().await;
+        let genres = |pool: SqlitePool| async move {
+            sqlx::query_scalar::<_, String>(
+                "SELECT g.name FROM track_genre tg JOIN genre g ON g.id = tg.genre_id
+                  WHERE tg.track_id = 1 ORDER BY g.name",
+            )
+            .fetch_all(&pool)
+            .await
+            .unwrap()
+        };
+
+        let tagged = TrackEdit {
+            genre: Some("Prog Rock; Art Rock;prog rock".into()),
+            ..edit()
+        };
+        sync_db(&pool, 1, &tagged).await.unwrap();
+        assert_eq!(genres(pool.clone()).await, ["Art Rock", "Prog Rock"]);
+        let reused: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM track_genre WHERE track_id = 1 AND genre_id = 1",
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(reused, 1, "the existing genre row is the one linked");
+
+        let cleared = TrackEdit {
+            genre: Some(" ; ".into()),
+            ..edit()
+        };
+        sync_db(&pool, 1, &cleared).await.unwrap();
+        assert!(genres(pool.clone()).await.is_empty());
     }
 
     /// `"; "` separates artists; a comma stays inside a name.

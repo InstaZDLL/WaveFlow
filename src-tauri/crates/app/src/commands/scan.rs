@@ -8,6 +8,7 @@ use std::time::{Instant, UNIX_EPOCH};
 use futures::StreamExt;
 use lofty::file::TaggedFileExt;
 use lofty::prelude::{Accessor, AudioFile};
+use lofty::tag::ItemKey;
 use serde::Serialize;
 use sqlx::SqlitePool;
 use tauri::Emitter;
@@ -20,8 +21,8 @@ use waveflow_core::scanner::{
     file_type_label, hash_file, is_scannable_audio, link_local_artist_image, link_va_artist_image,
     maybe_link_artist_images, merge_implicit_compilations, now_millis,
     reattach_orphaned_play_events, refresh_folder_covers, repoint_fallback_album_artist,
-    split_artist_name, upsert_album, upsert_artist, upsert_artwork, ArtistImageScanCache,
-    ExtractedFile, ReplayGainTags, UpsertCache, VARIOUS_ARTISTS_LABEL,
+    split_artist_name, split_genres, upsert_album, upsert_artist, upsert_artwork,
+    ArtistImageScanCache, ExtractedFile, ReplayGainTags, UpsertCache, VARIOUS_ARTISTS_LABEL,
 };
 
 use crate::{
@@ -287,7 +288,9 @@ fn extract_dsd_file(
         // OK as a v1 limitation.
         album_artist: None,
         is_compilation: false,
-        genre: meta.genre,
+        // The id3 crate hands TCON back whole: an ID3v2.4 multi-value
+        // frame keeps its NUL separators, which `split_genres` splits.
+        genres: split_genres(meta.genre.as_deref()),
         year: meta.year,
         track_number: meta.track_number,
         disc_number: meta.disc_number,
@@ -329,6 +332,28 @@ fn extract_dsd_file(
 /// leaves it behind forever. The pair runs inside the scan's own
 /// transaction, so a track never has half its old tags and half its new
 /// ones.
+/// Make `genre_ids` the genres of a track: one `track_genre` row each, the
+/// old rows gone. `OR IGNORE` because two spellings `split_genres` kept
+/// apart can still share one canonical genre.
+async fn link_genres(
+    tx: &mut sqlx::SqliteConnection,
+    track_id: i64,
+    genre_ids: &[i64],
+) -> Result<(), sqlx::Error> {
+    sqlx::query("DELETE FROM track_genre WHERE track_id = ?")
+        .bind(track_id)
+        .execute(&mut *tx)
+        .await?;
+    for genre_id in genre_ids {
+        sqlx::query("INSERT OR IGNORE INTO track_genre (track_id, genre_id) VALUES (?, ?)")
+            .bind(track_id)
+            .bind(genre_id)
+            .execute(&mut *tx)
+            .await?;
+    }
+    Ok(())
+}
+
 async fn write_extra_tags(
     tx: &mut sqlx::SqliteConnection,
     track_id: i64,
@@ -446,7 +471,7 @@ fn extract_file(
         album,
         album_artist,
         is_compilation,
-        genre,
+        genres,
         year,
         track_number,
         disc_number,
@@ -461,7 +486,11 @@ fn extract_file(
             tag.album().map(|s| s.into_owned()),
             extract_album_artist(tag),
             extract_compilation_flag(tag),
-            tag.genre().map(|s| s.into_owned()),
+            // Every genre item, not `tag.genre()`, which is the first one
+            // only: lofty already turns a multi-value TCON, repeated
+            // Vorbis GENRE comments and several MP4 `©gen` into one item
+            // each (#729).
+            split_genres(tag.get_strings(ItemKey::Genre)),
             tag.date().map(|d| d.year as i64),
             tag.track().map(|n| n as i64),
             tag.disk().map(|n| n as i64),
@@ -476,7 +505,7 @@ fn extract_file(
             None,
             None,
             false,
-            None,
+            Vec::new(),
             None,
             None,
             None,
@@ -526,7 +555,7 @@ fn extract_file(
         album,
         album_artist,
         is_compilation,
-        genre,
+        genres,
         year,
         track_number,
         disc_number,
@@ -782,6 +811,24 @@ pub(crate) async fn scan_folder_inner(
     };
     const TAG_BACKFILL_MAX_ATTEMPTS: i64 = 3;
 
+    // Several genres per track (#729) are read since a library already
+    // holds one per track — the first value, or a "Rock; Jazz" kept whole
+    // — and the fast path never reopens a file whose mtime and size still
+    // match. One forced pass per folder lets the unchanged-file branch
+    // relink them, marked like the custom-tag pass so it never repeats.
+    // A file that fails extraction holds the marker back, since a lock
+    // is usually transient and its genres would otherwise stay stale for
+    // good; but only for a few scans, as the custom-tag pass does, so a
+    // permanently unreadable file does not re-read the folder forever.
+    let genre_backfill_key = format!("scan.genre_backfill_done.{folder_id}");
+    let genre_backfill_pending = marker_absent(pool, &genre_backfill_key, folder_id).await;
+    let genre_backfill_attempt_key = format!("scan.genre_backfill_attempts.{folder_id}");
+    let genre_backfill_attempts = if genre_backfill_pending {
+        read_counter(pool, &genre_backfill_attempt_key, folder_id).await
+    } else {
+        0
+    };
+
     let meta_load_ms = t_scan.elapsed().as_millis();
 
     let total_files = audio_files.len();
@@ -862,6 +909,7 @@ pub(crate) async fn scan_folder_inner(
                         && disk_mtime_ms == stored_mtime
                         && !needs_rg_backfill
                         && !tag_backfill_pending
+                        && !genre_backfill_pending
                     {
                         summary.skipped += 1;
                         maybe_emit_progress(
@@ -1022,6 +1070,7 @@ pub(crate) async fn scan_folder_inner(
     // keeps empty columns for the life of the install — the pass never
     // runs twice.
     let mut tag_backfill_failed = false;
+    let mut genre_backfill_failed = false;
 
     while let Some((path, result)) = extraction_stream.next().await {
         if cancelled() {
@@ -1074,6 +1123,7 @@ pub(crate) async fn scan_folder_inner(
                 // its fast path. The case that does block it is below:
                 // extraction succeeded and only the tag read failed,
                 // which nothing else reports and nothing else retries.
+                genre_backfill_failed |= genre_backfill_pending;
                 summary.errors += 1;
                 emit_tick(processed, &summary, &path);
                 continue;
@@ -1083,6 +1133,7 @@ pub(crate) async fn scan_folder_inner(
                 if rg_backfill_pending && rg_missing.contains(path.to_string_lossy().as_ref()) {
                     rg_backfill_failed = true;
                 }
+                genre_backfill_failed |= genre_backfill_pending;
                 summary.errors += 1;
                 emit_tick(processed, &summary, &path);
                 continue;
@@ -1208,6 +1259,23 @@ pub(crate) async fn scan_folder_inner(
                 .bind(existing_track_id)
                 .execute(&mut *tx)
                 .await?;
+
+                // Genres too can be stale on an unchanged file: a library
+                // scanned before #729 holds one genre per track, the first
+                // value or a "Rock; Jazz" kept whole. Relinked when the set
+                // the file names differs from the stored one, so the next
+                // scan repairs it without rewriting anything else.
+                let mut wanted_genres = upsert_cache.genre_list(&mut tx, &extracted.genres).await?;
+                let mut stored_genres: Vec<i64> =
+                    sqlx::query_scalar("SELECT genre_id FROM track_genre WHERE track_id = ?")
+                        .bind(existing_track_id)
+                        .fetch_all(&mut *tx)
+                        .await?;
+                wanted_genres.sort_unstable();
+                stored_genres.sort_unstable();
+                if wanted_genres != stored_genres {
+                    link_genres(&mut tx, existing_track_id, &wanted_genres).await?;
+                }
 
                 let mut multi_artist_renormalised = false;
                 if let Some(raw) = &extracted.artist {
@@ -1348,10 +1416,7 @@ pub(crate) async fn scan_folder_inner(
                     }
                     None => None,
                 };
-                let genre_id = match &extracted.genre {
-                    Some(g) => upsert_cache.genre(&mut tx, g).await?,
-                    None => None,
-                };
+                let genre_ids = upsert_cache.genre_list(&mut tx, &extracted.genres).await?;
 
                 let t_link = Instant::now();
                 maybe_link_artist_images(
@@ -1482,17 +1547,7 @@ pub(crate) async fn scan_folder_inner(
                     .await?;
                 }
 
-                sqlx::query("DELETE FROM track_genre WHERE track_id = ?")
-                    .bind(existing_track_id)
-                    .execute(&mut *tx)
-                    .await?;
-                if let Some(gid) = genre_id {
-                    sqlx::query("INSERT INTO track_genre (track_id, genre_id) VALUES (?, ?)")
-                        .bind(existing_track_id)
-                        .bind(gid)
-                        .execute(&mut *tx)
-                        .await?;
-                }
+                link_genres(&mut tx, existing_track_id, &genre_ids).await?;
 
                 // Phase 4.d.0.3: emit the track insert op so the
                 // server's apply pipeline mirrors the update. The
@@ -1534,10 +1589,7 @@ pub(crate) async fn scan_folder_inner(
                 }
                 None => None,
             };
-            let genre_id = match &extracted.genre {
-                Some(g) => upsert_cache.genre(&mut tx, g).await?,
-                None => None,
-            };
+            let genre_ids = upsert_cache.genre_list(&mut tx, &extracted.genres).await?;
             if let (Some(cover), Some(aid)) = (&extracted.cover_art, album_id) {
                 let artwork_id =
                     upsert_artwork(&mut tx, &cover.hash, &cover.format, cover.source).await?;
@@ -1625,13 +1677,7 @@ pub(crate) async fn scan_folder_inner(
                 .execute(&mut *tx)
                 .await?;
             }
-            if let Some(gid) = genre_id {
-                sqlx::query("INSERT INTO track_genre (track_id, genre_id) VALUES (?, ?)")
-                    .bind(track_id)
-                    .bind(gid)
-                    .execute(&mut *tx)
-                    .await?;
-            }
+            link_genres(&mut tx, track_id, &genre_ids).await?;
 
             // Phase 4.d.0.3: emit the track insert op for the
             // sync server. Sits inside the same tx as the entity
@@ -1825,6 +1871,41 @@ pub(crate) async fn scan_folder_inner(
                 folder_id,
                 key = %tag_backfill_key,
                 "could not persist the custom-tag backfill marker (non-fatal); \
+                 the next scan will run the pass again"
+            );
+        }
+    }
+
+    // The genre pass is done once it read the whole folder; a stopped scan
+    // did not, and runs it again next time without spending a retry. A
+    // file that failed spends one, and past the last the folder is
+    // accepted as read.
+    let genre_spent = if genre_backfill_pending && !summary.cancelled && genre_backfill_failed {
+        let spent = genre_backfill_attempts + 1;
+        if let Err(err) = write_counter(pool, &genre_backfill_attempt_key, spent).await {
+            tracing::warn!(?err, folder_id, "could not record a genre-backfill attempt");
+        }
+        spent
+    } else {
+        genre_backfill_attempts
+    };
+    let genre_give_up = genre_backfill_failed && genre_spent >= TAG_BACKFILL_MAX_ATTEMPTS;
+    if genre_backfill_pending && !summary.cancelled && (!genre_backfill_failed || genre_give_up) {
+        if let Err(err) = sqlx::query(
+            "INSERT INTO profile_setting (key, value, value_type, updated_at)
+             VALUES (?, 'true', 'bool', ?)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+        )
+        .bind(&genre_backfill_key)
+        .bind(now_millis())
+        .execute(pool)
+        .await
+        {
+            tracing::warn!(
+                ?err,
+                folder_id,
+                key = %genre_backfill_key,
+                "could not persist the genre backfill marker (non-fatal); \
                  the next scan will run the pass again"
             );
         }

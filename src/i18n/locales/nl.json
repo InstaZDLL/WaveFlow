@@ -1139,7 +1139,7 @@
       "artist": "bv. Daft Punk, Justice",
       "album": "Naam van het album",
       "year": "bv. 2026",
-      "genre": "bv. Electronic"
+      "genre": "bv. Electronic; Ambient"
     },
     "result": {
       "updated": "{{count}} nummer(s) bijgewerkt",
@@ -1186,7 +1186,7 @@
       "trackNumber": "Tracknr.",
       "discNumber": "Discnr.",
       "genre": "Genre",
-      "genrePlaceholder": "Pop, Rock, Jazz…"
+      "genrePlaceholder": "Pop; Rock; Jazz…"
     },
     "changeCover": "Albumhoes wijzigen",
     "suggestions": {

@@ -1225,7 +1225,7 @@
       "artist": "напр. Daft Punk, Justice",
       "album": "Название альбома",
       "year": "напр. 2026",
-      "genre": "напр. Electronic"
+      "genre": "напр. Electronic; Ambient"
     },
     "result": {
       "updated": "Обновлено треков: {{count}}",
@@ -1272,7 +1272,7 @@
       "trackNumber": "№ трека",
       "discNumber": "№ диска",
       "genre": "Жанр",
-      "genrePlaceholder": "Pop, Rock, Jazz…"
+      "genrePlaceholder": "Pop; Rock; Jazz…"
     },
     "changeCover": "Сменить обложку",
     "suggestions": {
