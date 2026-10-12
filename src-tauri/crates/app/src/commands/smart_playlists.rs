@@ -500,15 +500,15 @@ mod themed_tests {
                 ));
             }
         }
-        // Artist 1's first track, then one track of 2, 3 and 4 minutes
-        // later; artist 5's a day before.
-        let plays = [
-            (1, now - 600_000, 900_000),
-            (21, now - 540_000, 60_000),
-            (31, now - 480_000, 60_000),
-            (41, now - 420_000, 60_000),
-            (51, now - 86_400_000, 60_000),
-        ];
+        // Artist 1's first track, then three plays each of 2, 3 and 4
+        // minutes later (a session neighbour needs `MIN_CO_LISTENS`);
+        // artist 5's a day before.
+        let mut plays = vec![(1, now - 600_000, 900_000), (51, now - 86_400_000, 60_000)];
+        for (k, track) in [21, 31, 41].into_iter().enumerate() {
+            for r in 0..3 {
+                plays.push((track, now - 540_000 + (k * 3 + r) as i64 * 10_000, 60_000));
+            }
+        }
         for (track, at, ms) in plays {
             statements.push(format!(
                 "INSERT INTO play_event (track_id, played_at, listened_ms, completed, skipped)

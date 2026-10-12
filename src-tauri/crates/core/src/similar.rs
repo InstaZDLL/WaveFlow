@@ -84,19 +84,21 @@ pub const SESSION_WINDOW_MS: i64 = 30 * 60 * 1000;
 /// How far back [`co_listened_artists`] looks.
 pub const CO_LISTEN_LOOKBACK_DAYS: i64 = 365;
 
-/// The artists the user plays around `artist_id`: those with a play within
-/// [`SESSION_WINDOW_MS`] of one of its plays over the last year, most
-/// often first. The neighbours a cache cannot know — the user's own
-/// pairings — and the ones available offline, for an artist nobody has
-/// looked up.
+/// The artists the user plays around `artist_id`, with how often: those
+/// with a play within [`SESSION_WINDOW_MS`] of one of its plays over the
+/// last year, most often first. The neighbours a cache cannot know — the
+/// user's own pairings — and the ones available offline, for an artist
+/// nobody has looked up. The count is what tells a pairing from a chance
+/// meeting in a long shuffled session; the caller decides where that
+/// line is.
 pub async fn co_listened_artists(
     pool: &SqlitePool,
     artist_id: i64,
     limit: usize,
-) -> CoreResult<Vec<i64>> {
+) -> CoreResult<Vec<(i64, i64)>> {
     let since = Utc::now().timestamp_millis() - CO_LISTEN_LOOKBACK_DAYS * 86_400_000;
-    Ok(sqlx::query_scalar(
-        "SELECT other.primary_artist
+    Ok(sqlx::query_as(
+        "SELECT other.primary_artist, COUNT(DISTINCT b.id)
            FROM play_event a
            JOIN track seed  ON seed.id = a.track_id AND seed.primary_artist = ?
            JOIN play_event b
@@ -107,7 +109,7 @@ pub async fn co_listened_artists(
             AND other.primary_artist IS NOT NULL
             AND other.primary_artist <> ?
           GROUP BY other.primary_artist
-          ORDER BY COUNT(*) DESC, other.primary_artist
+          ORDER BY COUNT(DISTINCT b.id) DESC, other.primary_artist
           LIMIT ?",
     )
     .bind(artist_id)

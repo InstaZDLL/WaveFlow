@@ -381,6 +381,13 @@ pub const NEIGHBOUR_CAP: usize = 4;
 pub const MIN_SEED_TRACKS: i64 = 8;
 /// Neighbours a mix needs: with one, it is a duet, not the artist's world.
 pub const MIN_NEIGHBOURS: usize = 2;
+/// A session neighbour needs this many shared plays…
+pub const MIN_CO_LISTENS: i64 = 3;
+/// …and this share of the strongest one's: past it, the list is artists
+/// that happened to come up in the same shuffle, not the artist's company.
+/// Measured on a real library: 45 plays of one lo-fi artist's closest
+/// neighbour came within a session of it, and 5 of the eighth, a K-pop act.
+pub const CO_LISTEN_SHARE: f64 = 0.25;
 
 async fn artist_seeds(pool: &SqlitePool) -> CoreResult<Vec<(i64, String)>> {
     Ok(sqlx::query_as(
@@ -422,8 +429,9 @@ async fn artists_candidates(pool: &SqlitePool, artist_ids: &[i64]) -> CoreResult
 }
 
 /// An artist's neighbours: the similar-artists cache first, in its order,
-/// then the artists the user plays in the same sessions, up to
-/// [`NEIGHBOURS`]. Only artists with an available track count, so a
+/// then the artists the user plays in the same sessions — those played
+/// beside it at least [`MIN_CO_LISTENS`] times and [`CO_LISTEN_SHARE`] as
+/// often as the closest — up to [`NEIGHBOURS`]. Only artists with an available track count, so a
 /// neighbour that would bring nothing does not take a place.
 async fn neighbours(pool: &SqlitePool, artist_id: i64) -> CoreResult<Vec<i64>> {
     // The cache is read through the attached `app` database; a pool that
@@ -449,7 +457,13 @@ async fn neighbours(pool: &SqlitePool, artist_id: i64) -> CoreResult<Vec<i64>> {
             return Ok(out);
         }
     }
-    for id in crate::similar::co_listened_artists(pool, artist_id, NEIGHBOURS * 2).await? {
+    let co = crate::similar::co_listened_artists(pool, artist_id, NEIGHBOURS * 2).await?;
+    let strongest = co.first().map_or(0, |(_, n)| *n);
+    let floor = MIN_CO_LISTENS.max((strongest as f64 * CO_LISTEN_SHARE).ceil() as i64);
+    for (id, shared) in co {
+        if shared < floor {
+            break;
+        }
         if !out.contains(&id) {
             out.push(id);
         }
