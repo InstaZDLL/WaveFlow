@@ -455,14 +455,15 @@ pub const SEED_ARTIST_CAP: usize = 15;
 /// Neighbours an artist mix draws from, and tracks each may take.
 pub const NEIGHBOURS: usize = 8;
 pub const NEIGHBOUR_CAP: usize = 4;
-/// An artist with fewer available tracks than this is not the centre of
-/// a mix.
-pub const MIN_SEED_TRACKS: i64 = 8;
+/// Songs an artist needs to be the centre of a mix, counted once copies
+/// are merged ([`dedupe`]): an MP3 and its Hi-Res re-buy are one song.
+pub const MIN_SEED_SONGS: usize = 4;
 /// Songs an artist mix needs. Lower than a genre's [`MIN_TRACKS`]: the mix
-/// is mostly the artist, and its neighbours are often in a library by a
-/// single or two — measured, eight of them brought 24 songs once copies
-/// were merged, one short of the genre floor.
-pub const MIN_ARTIST_MIX_TRACKS: i64 = 20;
+/// is mostly the artist, and in a library built of singles both the artist
+/// and its neighbours are there by a few songs each. Measured on one: the
+/// three most played artists had 4 to 9 songs and their eight neighbours
+/// one or two, which made mixes of 16 to 18.
+pub const MIN_ARTIST_MIX_TRACKS: i64 = 15;
 /// Neighbours a mix needs: with one, it is a duet, not the artist's world.
 pub const MIN_NEIGHBOURS: usize = 2;
 /// A session neighbour needs this many shared plays…
@@ -473,6 +474,9 @@ pub const MIN_CO_LISTENS: i64 = 3;
 /// neighbour came within a session of it, and 5 of the eighth, a K-pop act.
 pub const CO_LISTEN_SHARE: f64 = 0.25;
 
+/// The artists played most over the window, with spares: whether one
+/// holds [`MIN_SEED_SONGS`] is only known once its copies are merged, and
+/// one that falls short leaves its place to the next.
 async fn artist_seeds(pool: &SqlitePool) -> CoreResult<Vec<(i64, String)>> {
     Ok(sqlx::query_as(
         "SELECT ar.id, ar.name
@@ -480,15 +484,12 @@ async fn artist_seeds(pool: &SqlitePool) -> CoreResult<Vec<(i64, String)>> {
            JOIN track t   ON t.id = pe.track_id AND t.is_available = 1
            JOIN artist ar ON ar.id = t.primary_artist
           WHERE pe.played_at >= ?
-            AND (SELECT COUNT(*) FROM track own
-                  WHERE own.primary_artist = ar.id AND own.is_available = 1) >= ?
           GROUP BY ar.id
           ORDER BY SUM(pe.listened_ms) DESC, ar.id
           LIMIT ?",
     )
     .bind(cutoff_ms())
-    .bind(MIN_SEED_TRACKS)
-    .bind(MIXES_PER_FAMILY)
+    .bind(SEED_CANDIDATES)
     .fetch_all(pool)
     .await?)
 }
@@ -562,7 +563,7 @@ async fn neighbours(pool: &SqlitePool, artist_id: i64) -> CoreResult<Vec<i64>> {
 /// Regenerate the artist mixes. Returns their ids, best seed first.
 ///
 /// One per artist the user listened to most over the last
-/// [`LOOKBACK_DAYS`] that has [`MIN_SEED_TRACKS`] available tracks: the
+/// [`LOOKBACK_DAYS`] that has [`MIN_SEED_SONGS`] songs: the
 /// artist's own tracks (up to [`SEED_ARTIST_CAP`]) among those of its
 /// neighbours (up to [`NEIGHBOUR_CAP`] each), scored and shuffled as the
 /// other mixes are. The neighbours come from the similar-artists cache,
@@ -579,7 +580,14 @@ pub async fn regenerate_artist_mixes(
     labels: &MixLabels,
 ) -> CoreResult<Vec<i64>> {
     let mut created = Vec::new();
-    for (i, (artist_id, name)) in artist_seeds(pool).await?.into_iter().enumerate() {
+    for (artist_id, name) in artist_seeds(pool).await? {
+        if created.len() as i64 >= MIXES_PER_FAMILY {
+            break;
+        }
+        if dedupe(artists_candidates(pool, &[artist_id]).await?).len() < MIN_SEED_SONGS {
+            continue;
+        }
+        let i = created.len();
         let near = neighbours(pool, artist_id).await?;
         let mut members = vec![artist_id];
         members.extend(near.iter().copied());
