@@ -458,6 +458,11 @@ pub const NEIGHBOUR_CAP: usize = 4;
 /// An artist with fewer available tracks than this is not the centre of
 /// a mix.
 pub const MIN_SEED_TRACKS: i64 = 8;
+/// Songs an artist mix needs. Lower than a genre's [`MIN_TRACKS`]: the mix
+/// is mostly the artist, and its neighbours are often in a library by a
+/// single or two — measured, eight of them brought 24 songs once copies
+/// were merged, one short of the genre floor.
+pub const MIN_ARTIST_MIX_TRACKS: i64 = 20;
 /// Neighbours a mix needs: with one, it is a duet, not the artist's world.
 pub const MIN_NEIGHBOURS: usize = 2;
 /// A session neighbour needs this many shared plays…
@@ -564,7 +569,7 @@ async fn neighbours(pool: &SqlitePool, artist_id: i64) -> CoreResult<Vec<i64>> {
 /// then from the user's own sessions — never from the network, so a
 /// regeneration offline gives the same mixes. An artist with fewer than
 /// [`MIN_NEIGHBOURS`] neighbours bringing tracks, or a mix under
-/// [`MIN_TRACKS`], gets none: that is the artist's page shuffled, not a
+/// [`MIN_ARTIST_MIX_TRACKS`], gets none: that is the artist's page shuffled, not a
 /// mix. Unlike the genre and decade mixes there is no fallback without
 /// history: the family is "the artists you play".
 pub async fn regenerate_artist_mixes(
@@ -597,7 +602,7 @@ pub async fn regenerate_artist_mixes(
             let seen: HashSet<i64> = artist_of(pool, &tracks).await?;
             seen.iter().filter(|a| **a != artist_id).count()
         };
-        if neighbours_present < MIN_NEIGHBOURS || (tracks.len() as i64) < MIN_TRACKS {
+        if neighbours_present < MIN_NEIGHBOURS || (tracks.len() as i64) < MIN_ARTIST_MIX_TRACKS {
             continue;
         }
         if let Some(id) = write_mix(pool, paths, profile_id, &mix, tracks).await? {
