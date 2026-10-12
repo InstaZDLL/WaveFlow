@@ -101,6 +101,9 @@ pub enum SmartPlaylistRules {
     GenreMix { genre_id: i64 },
     /// The tracks of one decade, `decade` being its first year (1990).
     DecadeMix { decade: i64 },
+    /// One of the artists the user listens to most, with the artists
+    /// near it.
+    ArtistMix { artist_id: i64 },
     /// User-defined rule set evaluated by [`custom::materialize`]. Stored
     /// in JSON so the rule editor can round-trip it without a per-field
     /// SQL column.

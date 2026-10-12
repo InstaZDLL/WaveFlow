@@ -163,7 +163,7 @@ async fn read_counter(pool: &sqlx::SqlitePool, key: &str, folder_id: i64) -> i64
 async fn write_counter(pool: &sqlx::SqlitePool, key: &str, value: i64) -> Result<(), sqlx::Error> {
     sqlx::query(
         "INSERT INTO profile_setting (key, value, value_type, updated_at)
-         VALUES (?, ?, 'number', ?)
+         VALUES (?, ?, 'int', ?)
          ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
     )
     .bind(key)
@@ -2222,5 +2222,36 @@ mod walk_tests {
 
         let found = collect_scannable_files(&root);
         assert_eq!(found.len(), 1, "{found:?}");
+    }
+}
+
+#[cfg(test)]
+mod counter_tests {
+    use super::*;
+    use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
+    use std::str::FromStr;
+
+    /// A backfill's attempt counter has to survive `profile_setting`'s
+    /// `value_type` CHECK. It wrote `'number'`, which the CHECK refuses: no
+    /// attempt was ever recorded, the retry cap never reached, and a folder
+    /// holding one unreadable file was re-read in full on every scan.
+    #[tokio::test]
+    async fn an_attempt_counter_is_written_and_read_back() {
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect_with(SqliteConnectOptions::from_str(":memory:").unwrap())
+            .await
+            .unwrap();
+        sqlx::migrate!("../../migrations/profile")
+            .run(&pool)
+            .await
+            .unwrap();
+        let key = "scan.genre_backfill_attempts.1";
+        assert_eq!(read_counter(&pool, key, 1).await, 0);
+        write_counter(&pool, key, 1)
+            .await
+            .expect("the CHECK accepts it");
+        write_counter(&pool, key, 2).await.unwrap();
+        assert_eq!(read_counter(&pool, key, 1).await, 2);
     }
 }

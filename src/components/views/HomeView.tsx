@@ -178,6 +178,8 @@ export function HomeView({
         decade_description: t("home.decadeMix.description", {
           decade: "{decade}",
         }),
+        artist_name: t("home.artistMix.name", { name: "{name}" }),
+        artist_description: t("home.artistMix.description", { name: "{name}" }),
       });
       await refreshPlaylists();
     } catch (err) {

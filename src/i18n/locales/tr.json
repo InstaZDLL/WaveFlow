@@ -361,6 +361,11 @@
     "onRepeat": {
       "label": "On Repeat"
     },
+    "artistMix": {
+      "label": "Sanatçı miksi",
+      "name": "{{name}} Miksi",
+      "description": "{{name}} ve benzer sanatçılar"
+    },
     "genreMix": {
       "label": "Tür miksi",
       "name": "{{name}} Miksi",

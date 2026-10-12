@@ -361,6 +361,11 @@
     "onRepeat": {
       "label": "On Repeat"
     },
+    "artistMix": {
+      "label": "कलाकार मिक्स",
+      "name": "{{name}} मिक्स",
+      "description": "{{name}} और मिलते-जुलते कलाकार"
+    },
     "genreMix": {
       "label": "शैली मिक्स",
       "name": "{{name}} मिक्स",

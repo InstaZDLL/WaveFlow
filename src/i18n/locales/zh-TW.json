@@ -361,6 +361,11 @@
     "onRepeat": {
       "label": "On Repeat"
     },
+    "artistMix": {
+      "label": "演出者混音",
+      "name": "{{name}} 混音",
+      "description": "{{name}}與相似演出者"
+    },
     "genreMix": {
       "label": "曲風混音",
       "name": "{{name}} 混音",
