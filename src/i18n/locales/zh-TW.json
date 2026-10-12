@@ -361,6 +361,16 @@
     "onRepeat": {
       "label": "On Repeat"
     },
+    "genreMix": {
+      "label": "曲風混音",
+      "name": "{{name}} 混音",
+      "description": "資料庫中最棒的{{name}}"
+    },
+    "decadeMix": {
+      "label": "年代混音",
+      "name": "{{decade}} 年代",
+      "description": "你的 {{decade}} 年代音樂"
+    },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
       "title": "你的 {{year}} 年度回顧",
@@ -1101,7 +1111,8 @@
     "noneDescription": "請在側邊欄中選擇一個播放清單，即可在此處查看。",
     "notFoundTitle": "找不到播放清單",
     "notFoundDescription": "此播放清單在目前的個人檔案中已不存在。",
-    "smartLabel": "Daily Mix"
+    "smartLabel": "Daily Mix",
+    "smartLabelCustom": "智慧播放清單"
   },
   "trackActions": {
     "addToPlaylist": "加入播放清單",

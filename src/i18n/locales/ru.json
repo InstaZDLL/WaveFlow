@@ -381,6 +381,16 @@
     "onRepeat": {
       "label": "On Repeat"
     },
+    "genreMix": {
+      "label": "Жанровый микс",
+      "name": "Микс: {{name}}",
+      "description": "Лучшее из жанра «{{name}}» в вашей библиотеке"
+    },
+    "decadeMix": {
+      "label": "Микс десятилетия",
+      "name": "{{decade}}-е",
+      "description": "Ваша музыка {{decade}}-х"
+    },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
       "title": "Ваши итоги за {{year}} год",
@@ -1187,6 +1197,7 @@
     "notFoundTitle": "Плейлист не найден",
     "notFoundDescription": "Этого плейлиста больше нет в активном профиле.",
     "smartLabel": "Daily Mix",
+    "smartLabelCustom": "Умный плейлист",
     "trackCount_many": "{{count}} треков"
   },
   "trackActions": {

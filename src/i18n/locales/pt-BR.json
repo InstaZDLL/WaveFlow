@@ -371,6 +371,16 @@
     "onRepeat": {
       "label": "On Repeat"
     },
+    "genreMix": {
+      "label": "Mix de gênero",
+      "name": "Mix {{name}}",
+      "description": "O melhor de {{name}} na sua biblioteca"
+    },
+    "decadeMix": {
+      "label": "Mix de década",
+      "name": "Anos {{decade}}",
+      "description": "Sua música dos anos {{decade}}"
+    },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
       "title": "Sua retrospectiva {{year}}",
@@ -1145,7 +1155,8 @@
     "noneDescription": "Escolha uma playlist na barra lateral para visualizá-la aqui.",
     "notFoundTitle": "Playlist não encontrada",
     "notFoundDescription": "Essa playlist não existe mais no perfil ativo.",
-    "smartLabel": "Daily Mix"
+    "smartLabel": "Daily Mix",
+    "smartLabelCustom": "Playlist inteligente"
   },
   "trackActions": {
     "addToPlaylist": "Adicionar a uma playlist",

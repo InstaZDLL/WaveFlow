@@ -361,6 +361,16 @@
     "onRepeat": {
       "label": "On Repeat"
     },
+    "genreMix": {
+      "label": "장르 믹스",
+      "name": "{{name}} 믹스",
+      "description": "라이브러리 속 {{name}} 베스트"
+    },
+    "decadeMix": {
+      "label": "연대 믹스",
+      "name": "{{decade}}년대",
+      "description": "{{decade}}년대의 내 음악"
+    },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
       "title": "{{year}}년 결산",
@@ -1101,7 +1111,8 @@
     "noneDescription": "사이드바에서 재생 목록을 선택하면 여기에 표시됩니다.",
     "notFoundTitle": "재생 목록을 찾을 수 없습니다",
     "notFoundDescription": "이 재생 목록은 현재 프로필에서 더 이상 존재하지 않습니다.",
-    "smartLabel": "Daily Mix"
+    "smartLabel": "Daily Mix",
+    "smartLabelCustom": "스마트 플레이리스트"
   },
   "trackActions": {
     "addToPlaylist": "재생 목록에 추가",

@@ -31,7 +31,7 @@ import { usePlayer } from "../../hooks/usePlayer";
 import { usePlaylist } from "../../hooks/usePlaylist";
 import { pickFolder } from "../../lib/tauri/dialog";
 import { regenerateAllSmartPlaylists } from "../../lib/tauri/smart_playlists";
-import { smartPlaylistKind } from "../../lib/tauri/playlist";
+import { smartFamilyStyle, smartPlaylistKind } from "../../lib/tauri/playlist";
 import { availableWrappedYears } from "../../lib/tauri/wrapped";
 import { resolveRemoteImage } from "../../lib/tauri/artwork";
 import { useSkin } from "../../hooks/useSkin";
@@ -143,8 +143,13 @@ export function HomeView({
   // `is_smart` flag. Filter here so the "Made for you" carousel only
   // shows the auto-generated ones — user playlists keep their dedicated
   // sidebar list.
+  // The user's own rule-based playlists are smart too, but they are not
+  // "made for you": they stay in the sidebar, as the user's.
   const smartPlaylists = useMemo(
-    () => playlists.filter((p) => p.is_smart === 1),
+    () =>
+      playlists.filter(
+        (p) => p.is_smart === 1 && smartPlaylistKind(p)?.kind !== "custom",
+      ),
     [playlists],
   );
 
@@ -164,7 +169,16 @@ export function HomeView({
       // Single round-trip regenerates Daily Mix slots + On Repeat so
       // the whole "Made for you" carousel refreshes together — the
       // frontend doesn't need to know about the family split.
-      await regenerateAllSmartPlaylists();
+      // The mixes are named in the interface's language; `{name}` and
+      // `{decade}` go through as text for the backend to fill in.
+      await regenerateAllSmartPlaylists({
+        genre_name: t("home.genreMix.name", { name: "{name}" }),
+        genre_description: t("home.genreMix.description", { name: "{name}" }),
+        decade_name: t("home.decadeMix.name", { decade: "{decade}" }),
+        decade_description: t("home.decadeMix.description", {
+          decade: "{decade}",
+        }),
+      });
       await refreshPlaylists();
     } catch (err) {
       // Non-fatal — empty libraries / not enough listening data return
@@ -174,7 +188,7 @@ export function HomeView({
     } finally {
       setIsRegenerating(false);
     }
-  }, [isRegenerating, refreshPlaylists]);
+  }, [isRegenerating, refreshPlaylists, t]);
 
   const [likedCount, setLikedCount] = useState(0);
   const [recentCount, setRecentCount] = useState(0);
@@ -282,7 +296,9 @@ export function HomeView({
           libId = libraries[0].id;
           selectLibrary(libId);
         } else {
-          const lib = await createLibrary({ name: t("onboarding.defaultLibraryName") });
+          const lib = await createLibrary({
+            name: t("onboarding.defaultLibraryName"),
+          });
           libId = lib.id;
           selectLibrary(libId);
         }
@@ -597,20 +613,13 @@ export function HomeView({
             <div className="flex flex-wrap gap-4">
               {smartPlaylists.map((pl) => {
                 const cover = resolveRemoteImage(pl.cover_path, null);
-                const kind = smartPlaylistKind(pl);
-                // Per-family styling so On Repeat reads as a distinct
-                // surface from Daily Mix — different eyebrow, gradient,
-                // and focus ring tint without needing a separate carousel.
-                const isOnRepeat = kind?.kind === "on_repeat";
-                const eyebrow = isOnRepeat
-                  ? t("home.onRepeat.label", "On Repeat")
-                  : t("home.dailyMix.label", "Daily Mix");
-                const fallbackGradient = isOnRepeat
-                  ? "bg-linear-to-br from-emerald-400 to-emerald-700"
-                  : "bg-linear-to-br from-violet-400 to-violet-700";
-                const ringTint = isOnRepeat
-                  ? "focus-visible:ring-emerald-500"
-                  : "focus-visible:ring-violet-500";
+                // Per-family styling, so each family reads as a distinct
+                // surface — eyebrow, gradient and focus ring — without
+                // needing a carousel of its own.
+                const style = smartFamilyStyle(smartPlaylistKind(pl));
+                const eyebrow = t(style.labelKey);
+                const fallbackGradient = style.gradient;
+                const ringTint = style.ring;
                 return (
                   <button
                     key={`smart-${pl.id}`}

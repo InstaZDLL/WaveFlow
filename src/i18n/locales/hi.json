@@ -361,6 +361,16 @@
     "onRepeat": {
       "label": "On Repeat"
     },
+    "genreMix": {
+      "label": "शैली मिक्स",
+      "name": "{{name}} मिक्स",
+      "description": "आपकी लाइब्रेरी से {{name}} का सर्वश्रेष्ठ"
+    },
+    "decadeMix": {
+      "label": "दशक मिक्स",
+      "name": "{{decade}} का दशक",
+      "description": "{{decade}} के दशक का आपका संगीत"
+    },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
       "title": "आपका {{year}} रीकैप",
@@ -1101,7 +1111,8 @@
     "noneDescription": "इसे यहाँ देखने के लिए साइडबार से एक प्लेलिस्ट चुनें।",
     "notFoundTitle": "प्लेलिस्ट नहीं मिली",
     "notFoundDescription": "यह प्लेलिस्ट अब सक्रिय प्रोफ़ाइल में मौजूद नहीं है।",
-    "smartLabel": "Daily Mix"
+    "smartLabel": "Daily Mix",
+    "smartLabelCustom": "स्मार्ट प्लेलिस्ट"
   },
   "trackActions": {
     "addToPlaylist": "प्लेलिस्ट में जोड़ें",

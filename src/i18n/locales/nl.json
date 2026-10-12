@@ -361,6 +361,16 @@
     "onRepeat": {
       "label": "On Repeat"
     },
+    "genreMix": {
+      "label": "Genremix",
+      "name": "{{name}}-mix",
+      "description": "Het beste uit {{name}} in je bibliotheek"
+    },
+    "decadeMix": {
+      "label": "Decenniummix",
+      "name": "Jaren {{decade}}",
+      "description": "Je muziek uit de jaren {{decade}}"
+    },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
       "title": "Je jaaroverzicht {{year}}",
@@ -1101,7 +1111,8 @@
     "noneDescription": "Selecteer een afspeellijst in de zijbalk om hem hier te bekijken.",
     "notFoundTitle": "Afspeellijst niet gevonden",
     "notFoundDescription": "Deze afspeellijst bestaat niet meer in het actieve profiel.",
-    "smartLabel": "Daily Mix"
+    "smartLabel": "Daily Mix",
+    "smartLabelCustom": "Slimme playlist"
   },
   "trackActions": {
     "addToPlaylist": "Toevoegen aan afspeellijst",

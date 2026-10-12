@@ -361,6 +361,16 @@
     "onRepeat": {
       "label": "On Repeat"
     },
+    "genreMix": {
+      "label": "Tür miksi",
+      "name": "{{name}} Miksi",
+      "description": "Kitaplığındaki en iyi {{name}} parçaları"
+    },
+    "decadeMix": {
+      "label": "On yıl miksi",
+      "name": "{{decade}}'ler",
+      "description": "{{decade}}'lerden müziğin"
+    },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
       "title": "{{year}} özetin",
@@ -1101,7 +1111,8 @@
     "noneDescription": "Burada görmek için yan menüden bir çalma listesi seç.",
     "notFoundTitle": "Çalma listesi bulunamadı",
     "notFoundDescription": "Bu çalma listesi etkin profilde artık yok.",
-    "smartLabel": "Daily Mix"
+    "smartLabel": "Daily Mix",
+    "smartLabelCustom": "Akıllı çalma listesi"
   },
   "trackActions": {
     "addToPlaylist": "Çalma listesine ekle",

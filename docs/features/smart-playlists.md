@@ -131,6 +131,16 @@ On Repeat doesn't use the album-art composite — its identity is a fixed visual
 
 Future per-track-art families (Release Radar, Recently Added) will resolve the _first track's artist image_ instead — that's why [`generator::first_track_artwork_paths`](../../src-tauri/crates/core/src/smart_playlists/generator.rs) is `pub(super)` even though On Repeat doesn't use it.
 
+## Genre and decade mixes
+
+[`smart_playlists/themed.rs`](../../src-tauri/crates/core/src/smart_playlists/themed.rs). The other families cut the library on tempo (Daily Mix) or on recency (On Repeat); these cut it along axes of their own: one mix per genre, and one per decade, the user listens to most. Both families work the same way and differ only in how a mix's tracks are found (`track_genre` for a genre, `track.year` between the decade's first and last year for a decade).
+
+- **Seeds.** The three genres (decades) with the most `listened_ms` over the last 90 days, the largest in the library breaking ties — so a library with no history yet still gets mixes, of what it holds most of. A seed needs **25 available tracks by 4 artists** (`MIN_TRACKS`, `MIN_ARTISTS`): below that a "mix" is one album on repeat. A year outside 1–9999 belongs to no decade, as in the Years tab.
+- **Tracks.** Every available track of the seed, scored `ln(1 + plays) + jitter`, the jitter in `[0, 1)` drawn from a seed of the family, the genre or decade, and **the day**. One play already outweighs most of the draw while a track never played can still beat one played once, so the mix leans on what the user plays and still brings back what they have not; and it changes from one day to the next without moving between two visits the same day. Play counts are all-time: the window ranks the seeds, but a track loved two years ago still belongs at the front of its genre's mix. **At most 3 tracks per artist** (`PER_ARTIST_CAP`), then 50 tracks, then shuffled from the same seed so the favourites are spread through the mix rather than played first.
+- **Rows.** `GenreMix { genre_id }` / `DecadeMix { decade }` in `smart_rules`, upserted through the same `upsert_smart_playlist` as Daily Mix, with the rule JSON minus its opening brace as the `LIKE` needle — the closing brace stays, so genre 1 cannot match genre 12, and neither variant has a `slot` field for Daily Mix's `"slot":N` deletes to catch. Positions 20+ (genres) and 30+ (decades), after On Repeat (0) and Daily Mix (1–3). After a family is regenerated, its rows that were not rewritten are **removed**: a genre that left the top three, or no longer has 25 tracks, takes its mix with it. Cover: the 2×2 composite of the first tracks' album art, as Daily Mix's fallback.
+- **Names in the user's language.** Daily Mix and On Repeat store a fixed name; a genre or decade mix is named after data the backend has and words it does not. `regenerate_all_smart_playlists` takes `MixLabels` — the name and description templates, translated by the frontend with `{name}` / `{decade}` left in for the backend to fill — so the rows read "Mix Rock" / "Années 1990" in French and "Rock Mix" / "The 1990s" in English, as of the last regeneration.
+- **UI.** Each family has its eyebrow and fallback colour on the Home cards and on the playlist header (`smartFamilyStyle` in [`playlist.ts`](../../src/lib/tauri/playlist.ts)). The user's own rule-based playlists, also `is_smart`, are left out of "Made for you" — they are theirs, in the sidebar — and their header no longer reads "Daily Mix".
+
 ## Regen flow
 
 ```bash
@@ -148,16 +158,22 @@ User clicks "Régénérer" on HomeView
     ├── top_played_tracks()           ← profile DB, 30-day window
     ├── cover::build_on_repeat_cover()← deterministic brand artwork
     └── upsert_smart_playlist()       ← LIKE-match on "kind":"on_repeat" needle
+    │
+    → smart_playlists::themed::regenerate_genre_mixes() / regenerate_decade_mixes()
+    ├── genre_seeds() / decade_seeds()  ← 90-day listened_ms, then size; 25 tracks, 4 artists
+    ├── for each seed: candidates → pick() (score, 3 per artist, 50, shuffle)
+    ├── cover::build_composite_cover() + upsert_smart_playlist()
+    └── sweep()                         ← the family's rows not rewritten this time
   → frontend usePlaylist().refresh() → sidebar + home carousel update
 ```
 
-The cross-DB lookup in `top_artists_with_bpm` opens a short-lived secondary connection to `app.db` rather than `ATTACH`ing it — easier than routing through the same pool the Deezer commands use, and the lookup runs once per regen so the per-call cost is negligible.
+The cross-DB lookup in `top_artists_with_bpm` reads `metadata_artist` (renamed from `deezer_artist` in `20260427000000`; until the generator followed, the query failed, the error was swallowed, and no Daily Mix ever got its artist pictures) and opens a short-lived secondary connection to `app.db` rather than `ATTACH`ing it — easier than routing through the same pool the Deezer commands use, and the lookup runs once per regen so the per-call cost is negligible.
 
 ## UI
 
-- **Sidebar** ([`Sidebar.tsx`](../../src/components/layout/Sidebar.tsx)): when `cover_path` is set, the playlist row swaps its icon-tile for an 8 × 8 image. Smart playlists sort to the top of the playlist list because their `position` matches their `slot` (1-3) while user playlists default to 0.
+- **Sidebar** ([`Sidebar.tsx`](../../src/components/layout/Sidebar.tsx)): when `cover_path` is set, the playlist row swaps its icon-tile for an 8 × 8 image. Generated playlists carry their family's `position` (On Repeat 0, Daily Mix 1–3, genre mixes 20+, decade mixes 30+), and the list sorts on `position`, then on the last update.
 - **HomeView** ([`HomeView.tsx`](../../src/components/views/HomeView.tsx)): a "Pour vous" section above "Récemment joués" renders 16:7 cards with the cover as background, a black gradient, the `DAILY MIX` label, the playlist name and the track count. Empty state when `smartPlaylists.length === 0`.
-- **Regen button**: violet "Régénérer" with a spinning `RefreshCw` while in flight. Calls `regenerateDailyMixes()` then `refresh()` on the playlist context.
+- **Regen button**: violet "Régénérer" with a spinning `RefreshCw` while in flight. Calls `regenerateAllSmartPlaylists(labels)` — every family, with the genre and decade mixes' name templates — then `refresh()` on the playlist context.
 
 ## Manual edits
 

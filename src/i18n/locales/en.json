@@ -361,6 +361,16 @@
     "onRepeat": {
       "label": "On Repeat"
     },
+    "genreMix": {
+      "label": "Genre mix",
+      "name": "{{name}} Mix",
+      "description": "The best of {{name}} in your library"
+    },
+    "decadeMix": {
+      "label": "Decade mix",
+      "name": "The {{decade}}s",
+      "description": "Your music from the {{decade}}s"
+    },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
       "title": "Your {{year}} recap",
@@ -1101,7 +1111,8 @@
     "noneDescription": "Select a playlist from the sidebar to view it here.",
     "notFoundTitle": "Playlist not found",
     "notFoundDescription": "This playlist no longer exists in the active profile.",
-    "smartLabel": "Daily Mix"
+    "smartLabel": "Daily Mix",
+    "smartLabelCustom": "Smart playlist"
   },
   "trackActions": {
     "addToPlaylist": "Add to a playlist",

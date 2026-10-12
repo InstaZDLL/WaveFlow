@@ -5,5 +5,5 @@
 //! paths keep resolving without churn.
 
 pub use waveflow_core::smart_playlists::{
-    cover, custom, generator, on_repeat, PathsContext, SmartPlaylistRules,
+    cover, custom, generator, on_repeat, themed, PathsContext, SmartPlaylistRules,
 };

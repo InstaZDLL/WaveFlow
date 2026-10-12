@@ -47,6 +47,8 @@ export interface Playlist {
 export type SmartPlaylistKind =
   | { kind: "daily_mix"; slot: number }
   | { kind: "on_repeat" }
+  | { kind: "genre_mix"; genre_id: number }
+  | { kind: "decade_mix"; decade: number }
   | { kind: "custom" }
   | null;
 
@@ -62,15 +64,66 @@ export function smartPlaylistKind(p: Playlist): SmartPlaylistKind {
     const parsed = JSON.parse(p.smart_rules) as {
       kind?: string;
       slot?: number;
+      genre_id?: number;
+      decade?: number;
     };
     if (parsed.kind === "daily_mix" && typeof parsed.slot === "number") {
       return { kind: "daily_mix", slot: parsed.slot };
     }
     if (parsed.kind === "on_repeat") return { kind: "on_repeat" };
+    if (parsed.kind === "genre_mix" && typeof parsed.genre_id === "number") {
+      return { kind: "genre_mix", genre_id: parsed.genre_id };
+    }
+    if (parsed.kind === "decade_mix" && typeof parsed.decade === "number") {
+      return { kind: "decade_mix", decade: parsed.decade };
+    }
     if (parsed.kind === "custom") return { kind: "custom" };
     return null;
   } catch {
     return null;
+  }
+}
+
+/**
+ * The eyebrow a generated playlist carries over its cover, by family
+ * (an i18n key), and the colour its card falls back to without one.
+ */
+export function smartFamilyStyle(kind: SmartPlaylistKind): {
+  labelKey: string;
+  gradient: string;
+  ring: string;
+} {
+  switch (kind?.kind) {
+    case "on_repeat":
+      return {
+        labelKey: "home.onRepeat.label",
+        gradient: "bg-linear-to-br from-emerald-400 to-emerald-700",
+        ring: "focus-visible:ring-emerald-500",
+      };
+    case "genre_mix":
+      return {
+        labelKey: "home.genreMix.label",
+        gradient: "bg-linear-to-br from-amber-400 to-orange-700",
+        ring: "focus-visible:ring-amber-500",
+      };
+    case "decade_mix":
+      return {
+        labelKey: "home.decadeMix.label",
+        gradient: "bg-linear-to-br from-sky-400 to-indigo-700",
+        ring: "focus-visible:ring-sky-500",
+      };
+    case "custom":
+      return {
+        labelKey: "playlistView.smartLabelCustom",
+        gradient: "bg-linear-to-br from-violet-400 to-violet-700",
+        ring: "focus-visible:ring-violet-500",
+      };
+    default:
+      return {
+        labelKey: "home.dailyMix.label",
+        gradient: "bg-linear-to-br from-violet-400 to-violet-700",
+        ring: "focus-visible:ring-violet-500",
+      };
   }
 }
 

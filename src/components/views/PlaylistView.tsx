@@ -79,6 +79,8 @@ import {
   exportPlaylistM3u,
   getPlaylist,
   reorderPlaylistTrack,
+  smartFamilyStyle,
+  smartPlaylistKind,
   type Playlist,
 } from "../../lib/tauri/playlist";
 import {
@@ -1230,7 +1232,11 @@ export function PlaylistView({
                         <>
                           <div className="absolute inset-x-0 bottom-0 h-1/2 bg-linear-to-t from-black/70 to-transparent" />
                           <div className="absolute bottom-1.5 left-2 right-2 text-[9px] font-bold tracking-widest text-white uppercase truncate">
-                            {t("playlistView.smartLabel", "Daily Mix")}
+                            {t(
+                              smartFamilyStyle(
+                                playlist ? smartPlaylistKind(playlist) : null,
+                              ).labelKey,
+                            )}
                           </div>
                         </>
                       )}

@@ -394,6 +394,16 @@
     "onRepeat": {
       "label": "On Repeat"
     },
+    "genreMix": {
+      "label": "مزيج النوع",
+      "name": "مزيج {{name}}",
+      "description": "أفضل ما في {{name}} من مكتبتك"
+    },
+    "decadeMix": {
+      "label": "مزيج العقد",
+      "name": "عقد {{decade}}",
+      "description": "موسيقاك من عقد {{decade}}"
+    },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
       "title": "ملخصك لعام {{year}}",
@@ -1240,6 +1250,7 @@
     "notFoundTitle": "لم يتم العثور على قائمة التشغيل",
     "notFoundDescription": "لم تعد قائمة التشغيل هذه موجودة في الملف الشخصي النشط.",
     "smartLabel": "Daily Mix",
+    "smartLabelCustom": "قائمة تشغيل ذكية",
     "trackCount_two": "مقطعان",
     "trackCount_few": "{{count}} مقاطع",
     "trackCount_many": "{{count}} مقطعًا"

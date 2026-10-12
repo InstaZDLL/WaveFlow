@@ -29,6 +29,8 @@ pub mod custom;
 pub mod generator;
 #[cfg(feature = "sqlite")]
 pub mod on_repeat;
+#[cfg(feature = "sqlite")]
+pub mod themed;
 
 use std::path::PathBuf;
 
@@ -93,6 +95,12 @@ pub enum SmartPlaylistRules {
     /// family — only one playlist per profile — so the discriminant
     /// carries no payload.
     OnRepeat,
+    /// The tracks of one genre the user listens to most (theme D of 1.9).
+    /// Keyed by the genre's id; see [`themed`]. No field is named `slot`:
+    /// Daily Mix finds and deletes its rows by `"slot":N`.
+    GenreMix { genre_id: i64 },
+    /// The tracks of one decade, `decade` being its first year (1990).
+    DecadeMix { decade: i64 },
     /// User-defined rule set evaluated by [`custom::materialize`]. Stored
     /// in JSON so the rule editor can round-trip it without a per-field
     /// SQL column.
