@@ -805,6 +805,31 @@ fn apply_patch_id3(tag: &mut id3::Tag, patch: &TagPatch<'_>) {
 /// that had a perfectly good year and removed it. Editing a title, or
 /// setting a cover, would have quietly erased the year of every 2.3 DSF
 /// it touched.
+/// Keep several genres readable as several in an ID3v2.2 / 2.3 tag
+/// (#729).
+///
+/// Only 2.4 has multi-value text frames. Asked to write one into an older
+/// version, the `id3` crate joins the values with `/` (measured: "Jazz" and
+/// "Trip Hop" come back as "Jazz/Trip Hop"), and `split_genres` does not
+/// split on `/`, which belongs to names like "Hip-Hop/Rap". So an older
+/// tag gets the one value the scanner does split: the genres joined with
+/// `"; "`.
+fn join_genres_for_legacy(tag: &mut id3::Tag, version: id3::Version) {
+    use id3::TagLike;
+
+    if !matches!(version, id3::Version::Id3v22 | id3::Version::Id3v23) {
+        return;
+    }
+    let Some(values) = tag.genres() else {
+        return;
+    };
+    if values.len() < 2 {
+        return;
+    }
+    let joined = values.join("; ");
+    tag.set_genre(joined);
+}
+
 fn mirror_year_for_legacy(tag: &mut id3::Tag, patch: &TagPatch<'_>, version: id3::Version) {
     use id3::TagLike;
 
@@ -857,6 +882,7 @@ fn patch_dsf(
     with_dsf_tag(path, |tag, version| {
         apply_patch_id3(tag, patch);
         mirror_year_for_legacy(tag, patch, version);
+        join_genres_for_legacy(tag, version);
         // An edit the dialog sent is an edit to write, even when it
         // happens to set what the file already said: the alternative is
         // comparing two encodings of the same tag to save a write of a
@@ -1755,6 +1781,7 @@ mod patch_agreement_tests {
                 ..Default::default()
             };
             apply_patch_id3(&mut tag, &TagPatch::Fields(&edit));
+            join_genres_for_legacy(&mut tag, version);
             let mut bytes = Vec::new();
             tag.write_to(&mut bytes, version).expect("write");
             let back = id3::Tag::read_from2(std::io::Cursor::new(&bytes)).expect("read");

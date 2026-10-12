@@ -11,9 +11,12 @@ export function splitGenres(value: string): string[] {
   for (const part of value.split(/[;\\]/)) {
     const name = part.trim();
     // The scanner's canonical key: lowercased, anything that is not a
-    // letter or a digit made a single space.
-    const key = name
-      .toLowerCase()
+    // letter or a digit made a single space. Lowercased one character at
+    // a time, as Rust's `to_lowercase` per char does: the string method
+    // applies the Greek final-sigma rule ("ΟΣ" to "ος") and the two keys
+    // would differ.
+    const key = Array.from(name, (ch) => ch.toLowerCase())
+      .join("")
       // `Alphabetic` and `N`, as Rust's `is_alphanumeric`: some marks
       // (Indic vowel signs) are letters there, and `\p{L}` would split
       // a name on them that the backend keeps whole.
