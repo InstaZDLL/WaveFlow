@@ -36,11 +36,26 @@ use sqlx::{FromRow, SqlitePool};
 
 use super::{cover, generator, PathsContext, SmartPlaylistRules};
 use crate::error::{CoreError, CoreResult};
+use crate::scanner::canonical_name;
 
 /// Listening window the seeds are ranked on, as for Daily Mix.
 pub const LOOKBACK_DAYS: i64 = 90;
 /// Mixes per family.
 pub const MIXES_PER_FAMILY: i64 = 3;
+/// Genre and decade seeds read per regen: the files a seed was admitted
+/// on can merge into fewer songs than a mix needs, and a seed that falls
+/// short must leave its place to the next one rather than cost a mix.
+const SEED_CANDIDATES: i64 = MIXES_PER_FAMILY * 3;
+
+/// The songs of a seed, copies merged, or `None` when they are too few
+/// for a mix. Counted before the per-artist cap: a genre of 25 songs by 4
+/// artists is a mix, of 12 tracks. [`pick`] merges the copies again,
+/// which costs nothing here and covers the artist mixes, which do not
+/// come through this check.
+fn enough_songs(candidates: Vec<Candidate>) -> Option<Vec<Candidate>> {
+    let songs = dedupe(candidates);
+    ((songs.len() as i64) >= MIN_TRACKS).then_some(songs)
+}
 /// Tracks per mix, as for Daily Mix.
 pub const TRACKS_PER_MIX: usize = 50;
 /// A seed below this many available tracks is not a mix.
@@ -76,6 +91,54 @@ pub struct Candidate {
     pub track_id: i64,
     pub primary_artist: Option<i64>,
     pub plays: i64,
+    /// With the artist, what tells two files of one song apart from two
+    /// songs ([`dedupe`]).
+    pub title: String,
+    pub bit_depth: Option<i64>,
+    pub sample_rate: Option<i64>,
+}
+
+/// One candidate per song: a library holding the same track twice (an MP3
+/// and its Hi-Res re-buy) would otherwise put it in a mix twice. Same
+/// artist and same title under [`canonical_name`] is one song; the best
+/// copy stands for it (bit depth, then sample rate, then the lowest id),
+/// with the plays of every copy, so a song heard on two files is not
+/// ranked as half as loved.
+pub fn dedupe(candidates: Vec<Candidate>) -> Vec<Candidate> {
+    let mut songs: HashMap<(Option<i64>, String), Candidate> = HashMap::new();
+    let mut order = Vec::new();
+    for c in candidates {
+        // Without an artist a title says nothing ("Track 1"): such a
+        // track is only ever itself. `#` cannot start a canonical title,
+        // which drops punctuation, so the two kinds of key never meet.
+        // So does one whose title is all punctuation ("???"), which
+        // folds to nothing.
+        let title = canonical_name(&c.title);
+        let key = match c.primary_artist {
+            Some(_) if !title.is_empty() => (c.primary_artist, title),
+            _ => (c.primary_artist, format!("#{}", c.track_id)),
+        };
+        match songs.get_mut(&key) {
+            Some(kept) => {
+                let plays = kept.plays + c.plays;
+                let better = (c.bit_depth, c.sample_rate, std::cmp::Reverse(c.track_id))
+                    > (
+                        kept.bit_depth,
+                        kept.sample_rate,
+                        std::cmp::Reverse(kept.track_id),
+                    );
+                if better {
+                    *kept = c;
+                }
+                kept.plays = plays;
+            }
+            None => {
+                order.push(key.clone());
+                songs.insert(key, c);
+            }
+        }
+    }
+    order.into_iter().filter_map(|k| songs.remove(&k)).collect()
 }
 
 #[derive(FromRow)]
@@ -118,7 +181,7 @@ async fn genre_seeds(pool: &SqlitePool) -> CoreResult<Vec<GenreSeed>> {
         .bind(cutoff_ms())
         .bind(MIN_TRACKS)
         .bind(MIN_ARTISTS)
-        .bind(MIXES_PER_FAMILY)
+        .bind(SEED_CANDIDATES)
         .fetch_all(pool)
         .await?)
 }
@@ -138,7 +201,7 @@ async fn decade_seeds(pool: &SqlitePool) -> CoreResult<Vec<i64>> {
         .bind(cutoff_ms())
         .bind(MIN_TRACKS)
         .bind(MIN_ARTISTS)
-        .bind(MIXES_PER_FAMILY)
+        .bind(SEED_CANDIDATES)
         .fetch_all(pool)
         .await?)
 }
@@ -147,7 +210,8 @@ async fn decade_seeds(pool: &SqlitePool) -> CoreResult<Vec<i64>> {
 /// loved two years ago still belongs at the front of its genre's mix.
 async fn genre_candidates(pool: &SqlitePool, genre_id: i64) -> CoreResult<Vec<Candidate>> {
     Ok(sqlx::query_as::<_, Candidate>(
-        "SELECT t.id AS track_id, t.primary_artist, COUNT(pe.id) AS plays
+        "SELECT t.id AS track_id, t.primary_artist, COUNT(pe.id) AS plays,
+                t.title, t.bit_depth, t.sample_rate
            FROM track t
            JOIN track_genre tg ON tg.track_id = t.id AND tg.genre_id = ?
            LEFT JOIN play_event pe ON pe.track_id = t.id
@@ -161,7 +225,8 @@ async fn genre_candidates(pool: &SqlitePool, genre_id: i64) -> CoreResult<Vec<Ca
 
 async fn decade_candidates(pool: &SqlitePool, decade: i64) -> CoreResult<Vec<Candidate>> {
     Ok(sqlx::query_as::<_, Candidate>(
-        "SELECT t.id AS track_id, t.primary_artist, COUNT(pe.id) AS plays
+        "SELECT t.id AS track_id, t.primary_artist, COUNT(pe.id) AS plays,
+                t.title, t.bit_depth, t.sample_rate
            FROM track t
            LEFT JOIN play_event pe ON pe.track_id = t.id
           WHERE t.is_available = 1 AND t.year BETWEEN ? AND ?
@@ -207,7 +272,7 @@ fn pick_with(
     } else {
         seed
     };
-    let mut scored: Vec<(f64, Candidate)> = candidates
+    let mut scored: Vec<(f64, Candidate)> = dedupe(candidates)
         .into_iter()
         .map(|c| ((c.plays.max(0) as f64).ln_1p() + unit(&mut state), c))
         .collect();
@@ -327,7 +392,11 @@ pub async fn regenerate_genre_mixes(
     labels: &MixLabels,
 ) -> CoreResult<Vec<i64>> {
     let mut created = Vec::new();
-    for (i, seed) in genre_seeds(pool).await?.into_iter().enumerate() {
+    for seed in genre_seeds(pool).await? {
+        if created.len() as i64 >= MIXES_PER_FAMILY {
+            break;
+        }
+        let i = created.len();
         let mix = Mix {
             rules: SmartPlaylistRules::GenreMix { genre_id: seed.id },
             name: labels.genre_name.replace("{name}", &seed.name),
@@ -335,7 +404,10 @@ pub async fn regenerate_genre_mixes(
             position: GENRE_POSITION + i as i64,
             seed: day_seed(0x6E4E_5E00, seed.id),
         };
-        let tracks = pick(genre_candidates(pool, seed.id).await?, mix.seed);
+        let Some(songs) = enough_songs(genre_candidates(pool, seed.id).await?) else {
+            continue;
+        };
+        let tracks = pick(songs, mix.seed);
         if let Some(id) = write_mix(pool, paths, profile_id, &mix, tracks).await? {
             created.push(id);
         }
@@ -352,7 +424,11 @@ pub async fn regenerate_decade_mixes(
     labels: &MixLabels,
 ) -> CoreResult<Vec<i64>> {
     let mut created = Vec::new();
-    for (i, decade) in decade_seeds(pool).await?.into_iter().enumerate() {
+    for decade in decade_seeds(pool).await? {
+        if created.len() as i64 >= MIXES_PER_FAMILY {
+            break;
+        }
+        let i = created.len();
         let shown = decade.to_string();
         let mix = Mix {
             rules: SmartPlaylistRules::DecadeMix { decade },
@@ -361,7 +437,10 @@ pub async fn regenerate_decade_mixes(
             position: DECADE_POSITION + i as i64,
             seed: day_seed(0xDEC4_DE00, decade),
         };
-        let tracks = pick(decade_candidates(pool, decade).await?, mix.seed);
+        let Some(songs) = enough_songs(decade_candidates(pool, decade).await?) else {
+            continue;
+        };
+        let tracks = pick(songs, mix.seed);
         if let Some(id) = write_mix(pool, paths, profile_id, &mix, tracks).await? {
             created.push(id);
         }
@@ -415,7 +494,8 @@ async fn artists_candidates(pool: &SqlitePool, artist_ids: &[i64]) -> CoreResult
     }
     let placeholders = artist_ids.iter().map(|_| "?").collect::<Vec<_>>().join(",");
     let sql = format!(
-        "SELECT t.id AS track_id, t.primary_artist, COUNT(pe.id) AS plays
+        "SELECT t.id AS track_id, t.primary_artist, COUNT(pe.id) AS plays,
+                t.title, t.bit_depth, t.sample_rate
            FROM track t
            LEFT JOIN play_event pe ON pe.track_id = t.id
           WHERE t.is_available = 1 AND t.primary_artist IN ({placeholders})
@@ -557,6 +637,9 @@ mod tests {
                     track_id: (a * 100 + t) as i64,
                     primary_artist: Some(a as i64),
                     plays: 0,
+                    title: format!("Song {a}-{t}"),
+                    bit_depth: None,
+                    sample_rate: None,
                 });
             }
         }
@@ -592,6 +675,43 @@ mod tests {
         let favourites = picked.iter().filter(|id| *id % 100 == 0).count();
         assert_eq!(favourites, 30);
         assert_eq!(picked.len(), TRACKS_PER_MIX);
+    }
+
+    #[test]
+    fn one_song_on_two_files_is_one_candidate_the_best_copy() {
+        let copy = |id, title: &str, bit_depth, plays| Candidate {
+            track_id: id,
+            primary_artist: Some(1),
+            plays,
+            title: title.to_string(),
+            bit_depth,
+            sample_rate: Some(44_100),
+        };
+        let kept = dedupe(vec![
+            copy(1, "Heaven", None, 3),
+            copy(2, "heaven!", Some(24), 2),
+            copy(3, "Meltdown", None, 0),
+        ]);
+        assert_eq!(kept.len(), 2);
+        // The Hi-Res copy stands for the song, with both copies' plays.
+        assert_eq!((kept[0].track_id, kept[0].plays), (2, 5));
+        // The same title by another artist is another song.
+        let other = Candidate {
+            primary_artist: Some(2),
+            ..copy(4, "Heaven", None, 0)
+        };
+        assert_eq!(dedupe(vec![copy(1, "Heaven", None, 0), other]).len(), 2);
+        // Two tracks with no artist are two tracks, whatever their title.
+        let anonymous = |id| Candidate {
+            primary_artist: None,
+            ..copy(id, "Track 1", None, 0)
+        };
+        assert_eq!(dedupe(vec![anonymous(5), anonymous(6)]).len(), 2);
+        // Nor do two by one artist whose titles fold to nothing.
+        assert_eq!(
+            dedupe(vec![copy(7, "???", None, 0), copy(8, "!!!", None, 0)]).len(),
+            2
+        );
     }
 
     #[test]
