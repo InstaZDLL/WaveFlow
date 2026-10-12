@@ -59,7 +59,7 @@ jobs:
         # On Microsoft's side a Service-and-Reliability bot then
         # auto-reviews and (when clean) merges within minutes to a
         # day or two.
-        uses: vedantmgoyal9/winget-releaser@4ffc7888bffd451b357355dc214d43bb9f23917e # v2
+        uses: vedantmgoyal9/winget-releaser@b7370d4d152efdce803a26cc6ca9eee58cb2ad54 # v2
         with:
           identifier: InstaZDLL.WaveFlow
           version: ${{ env.VERSION }}
