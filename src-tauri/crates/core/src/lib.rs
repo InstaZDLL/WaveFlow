@@ -33,6 +33,8 @@ pub mod plugin;
 pub mod repository;
 pub mod scanner;
 pub mod search;
+#[cfg(feature = "sqlite")]
+pub mod similar;
 pub mod smart_playlists;
 pub mod sync;
 pub mod tagio;

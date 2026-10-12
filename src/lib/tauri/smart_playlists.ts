@@ -29,6 +29,7 @@ export function regenerateOnRepeat(): Promise<number | null> {
 export interface RegenerateAllSmartPlaylistsOutput {
   daily_mix_ids: number[];
   on_repeat_id: number | null;
+  artist_mix_ids: number[];
   genre_mix_ids: number[];
   decade_mix_ids: number[];
 }
@@ -43,6 +44,9 @@ export interface MixLabels {
   genre_description: string;
   decade_name: string;
   decade_description: string;
+  /** `{name}` stands for the artist. */
+  artist_name: string;
+  artist_description: string;
 }
 
 /**

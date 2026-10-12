@@ -361,6 +361,11 @@
     "onRepeat": {
       "label": "On Repeat"
     },
+    "artistMix": {
+      "label": "Artist mix",
+      "name": "{{name}} Mix",
+      "description": "{{name}} and artists like them"
+    },
     "genreMix": {
       "label": "Genre mix",
       "name": "{{name}} Mix",

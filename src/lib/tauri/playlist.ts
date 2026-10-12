@@ -49,6 +49,7 @@ export type SmartPlaylistKind =
   | { kind: "on_repeat" }
   | { kind: "genre_mix"; genre_id: number }
   | { kind: "decade_mix"; decade: number }
+  | { kind: "artist_mix"; artist_id: number }
   | { kind: "custom" }
   | null;
 
@@ -66,6 +67,7 @@ export function smartPlaylistKind(p: Playlist): SmartPlaylistKind {
       slot?: number;
       genre_id?: number;
       decade?: number;
+      artist_id?: number;
     };
     if (parsed.kind === "daily_mix" && typeof parsed.slot === "number") {
       return { kind: "daily_mix", slot: parsed.slot };
@@ -76,6 +78,9 @@ export function smartPlaylistKind(p: Playlist): SmartPlaylistKind {
     }
     if (parsed.kind === "decade_mix" && typeof parsed.decade === "number") {
       return { kind: "decade_mix", decade: parsed.decade };
+    }
+    if (parsed.kind === "artist_mix" && typeof parsed.artist_id === "number") {
+      return { kind: "artist_mix", artist_id: parsed.artist_id };
     }
     if (parsed.kind === "custom") return { kind: "custom" };
     return null;
@@ -105,6 +110,12 @@ export function smartFamilyStyle(kind: SmartPlaylistKind): {
         labelKey: "home.genreMix.label",
         gradient: "bg-linear-to-br from-amber-400 to-orange-700",
         ring: "focus-visible:ring-amber-500",
+      };
+    case "artist_mix":
+      return {
+        labelKey: "home.artistMix.label",
+        gradient: "bg-linear-to-br from-rose-400 to-fuchsia-700",
+        ring: "focus-visible:ring-rose-500",
       };
     case "decade_mix":
       return {

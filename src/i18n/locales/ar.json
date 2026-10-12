@@ -394,6 +394,11 @@
     "onRepeat": {
       "label": "On Repeat"
     },
+    "artistMix": {
+      "label": "مزيج الفنان",
+      "name": "مزيج {{name}}",
+      "description": "{{name}} وفنانون مشابهون"
+    },
     "genreMix": {
       "label": "مزيج النوع",
       "name": "مزيج {{name}}",

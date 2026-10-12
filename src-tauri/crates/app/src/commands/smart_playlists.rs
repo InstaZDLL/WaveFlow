@@ -51,7 +51,7 @@ pub async fn regenerate_on_repeat(state: tauri::State<'_, AppState>) -> AppResul
 }
 
 /// One-shot regen for every built-in smart-playlist family (Daily Mix
-/// slots, On Repeat, the genre and decade mixes). The frontend's
+/// slots, On Repeat, the artist, genre and decade mixes). The frontend's
 /// "Regenerate" button calls this so the user gets the whole "Made for
 /// you" surface refreshed in a single click without having to know about
 /// the family split.
@@ -59,11 +59,13 @@ pub async fn regenerate_on_repeat(state: tauri::State<'_, AppState>) -> AppResul
 pub struct RegenerateAllSmartPlaylistsOutput {
     pub daily_mix_ids: Vec<i64>,
     pub on_repeat_id: Option<i64>,
+    pub artist_mix_ids: Vec<i64>,
     pub genre_mix_ids: Vec<i64>,
     pub decade_mix_ids: Vec<i64>,
 }
 
-/// `labels` carries the words around the genre and decade mixes' names,
+/// `labels` carries the words around the artist, genre and decade mixes'
+/// names,
 /// in the user's language: the backend knows the genre and the decade,
 /// not the language the interface speaks.
 #[tauri::command]
@@ -76,11 +78,13 @@ pub async fn regenerate_all_smart_playlists(
     let ctx = paths_ctx(&state, profile_id);
     let daily_mix_ids = generator::regenerate_daily_mixes(&pool, &ctx, profile_id).await?;
     let on_repeat_id = on_repeat::regenerate_on_repeat(&pool, &ctx).await?;
+    let artist_mix_ids = themed::regenerate_artist_mixes(&pool, &ctx, profile_id, &labels).await?;
     let genre_mix_ids = themed::regenerate_genre_mixes(&pool, &ctx, profile_id, &labels).await?;
     let decade_mix_ids = themed::regenerate_decade_mixes(&pool, &ctx, profile_id, &labels).await?;
     Ok(RegenerateAllSmartPlaylistsOutput {
         daily_mix_ids,
         on_repeat_id,
+        artist_mix_ids,
         genre_mix_ids,
         decade_mix_ids,
     })
@@ -341,6 +345,8 @@ mod themed_tests {
             genre_description: "The best of {name}".into(),
             decade_name: "{decade}s".into(),
             decade_description: "Your {decade}s".into(),
+            artist_name: "{name} Mix".into(),
+            artist_description: "{name} and artists like them".into(),
         }
     }
 
@@ -462,5 +468,85 @@ mod themed_tests {
             .unwrap();
         assert!(after.is_empty());
         assert!(names(&pool).await.is_empty());
+    }
+
+    /// Artist 1 (20 tracks) is played, and artists 2, 3 and 4 (10 tracks
+    /// each) within its sessions; artist 5 a day later. No similar-artists
+    /// cache: the neighbours come from the sessions alone.
+    #[tokio::test]
+    async fn an_artist_mix_draws_on_the_artists_played_beside_it() {
+        let pool = pool().await;
+        let now = chrono::Utc::now().timestamp_millis();
+        let mut statements = vec![
+            "INSERT INTO library (id, name, color_id, icon_id, created_at, updated_at,
+                                  hlc_wall, hlc_logical)
+             VALUES (1, 'L', 1, 1, 0, 0, 0, 0)"
+                .to_string(),
+        ];
+        let mut id = 0;
+        for (artist, count) in [(1, 20), (2, 10), (3, 10), (4, 10), (5, 10)] {
+            statements.push(format!(
+                "INSERT INTO artist (id, name, canonical_name) VALUES ({artist}, 'A{artist}', 'a{artist}')"
+            ));
+            for _ in 0..count {
+                id += 1;
+                statements.push(format!(
+                    "INSERT INTO track (id, library_id, file_path, file_hash, file_size, file_modified,
+                                        title, duration_ms, added_at, is_available,
+                                        hlc_wall, hlc_logical, rating_hlc_wall, rating_hlc_logical,
+                                        primary_artist)
+                     VALUES ({id}, 1, '/m/{id}.flac', 'h{id}', 1, 0, 'T{id}', 1000, 0, 1,
+                             0, 0, 0, 0, {artist})"
+                ));
+            }
+        }
+        // Artist 1's first track, then one track of 2, 3 and 4 minutes
+        // later; artist 5's a day before.
+        let plays = [
+            (1, now - 600_000, 900_000),
+            (21, now - 540_000, 60_000),
+            (31, now - 480_000, 60_000),
+            (41, now - 420_000, 60_000),
+            (51, now - 86_400_000, 60_000),
+        ];
+        for (track, at, ms) in plays {
+            statements.push(format!(
+                "INSERT INTO play_event (track_id, played_at, listened_ms, completed, skipped)
+                 VALUES ({track}, {at}, {ms}, 1, 0)"
+            ));
+        }
+        for statement in statements {
+            sqlx::raw_sql(sqlx::AssertSqlSafe(statement))
+                .execute(&pool)
+                .await
+                .unwrap();
+        }
+
+        let dir = tempfile::tempdir().unwrap();
+        themed::regenerate_artist_mixes(&pool, &ctx(dir.path()), 1, &labels())
+            .await
+            .unwrap();
+        let (mix_id, name): (i64, String) = sqlx::query_as(
+            "SELECT id, name FROM playlist WHERE smart_rules LIKE '%\"artist_id\":1}%'",
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(name, "A1 Mix");
+
+        let per_artist: Vec<(i64, i64)> = sqlx::query_as(
+            "SELECT t.primary_artist, COUNT(*) FROM playlist_track pt
+               JOIN track t ON t.id = pt.track_id
+              WHERE pt.playlist_id = ? GROUP BY t.primary_artist ORDER BY 1",
+        )
+        .bind(mix_id)
+        .fetch_all(&pool)
+        .await
+        .unwrap();
+        assert_eq!(
+            per_artist,
+            [(1, 15), (2, 4), (3, 4), (4, 4)],
+            "the artist up to its cap, its session neighbours up to theirs, and not artist 5"
+        );
     }
 }

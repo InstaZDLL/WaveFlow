@@ -19,11 +19,9 @@
 
 use std::collections::HashSet;
 
-use serde::Deserialize;
 use sqlx::SqlitePool;
 
 use crate::{
-    commands::scan::canonical_name,
     error::{AppError, AppResult},
     state::AppState,
 };
@@ -62,13 +60,6 @@ const BPM_WINDOW: f64 = 18.0;
 /// Minimum number of survivors required before BPM filtering is
 /// allowed to take effect — below this we drop the constraint.
 const BPM_MIN_SURVIVORS: usize = 12;
-
-#[derive(Debug, Deserialize, Default)]
-struct RawSimilar {
-    name: String,
-    #[allow(dead_code)]
-    match_score: f32,
-}
 
 #[tauri::command]
 pub async fn start_radio(
@@ -251,60 +242,13 @@ async fn top_played_artists(pool: &SqlitePool, limit: usize) -> AppResult<Vec<i6
     Ok(rows.into_iter().map(|(id,)| id).collect())
 }
 
-/// Read the `app.lastfm_similar` cache for the seed artist and resolve
-/// each suggestion to a library artist ID. Stale entries (past
-/// `expires_at`) are still used — a slightly outdated similarity list
-/// beats no radio at all. The cache is populated on demand by the
-/// `get_similar_artists` command (artist detail page).
+/// The library artists the similar-artists cache lists for the seed,
+/// most similar first. The read is shared with the artist mixes
+/// (`waveflow_core::similar`); the cache is populated on demand by the
+/// `get_similar_artists` command (artist detail page) and, for a radio,
+/// by `ensure_similar_cached` just above the call.
 async fn cached_similar_library_ids(pool: &SqlitePool, seed_artist_id: i64) -> AppResult<Vec<i64>> {
-    let seed_name: Option<String> = sqlx::query_scalar("SELECT name FROM artist WHERE id = ?")
-        .bind(seed_artist_id)
-        .fetch_optional(pool)
-        .await?;
-    let Some(name) = seed_name else {
-        return Ok(Vec::new());
-    };
-    let canonical = canonical_name(&name);
-    if canonical.is_empty() {
-        return Ok(Vec::new());
-    }
-
-    let payload: Option<String> =
-        sqlx::query_scalar("SELECT payload FROM app.lastfm_similar WHERE name_canonical = ?")
-            .bind(&canonical)
-            .fetch_optional(pool)
-            .await?;
-    let Some(payload) = payload else {
-        return Ok(Vec::new());
-    };
-    let raw: Vec<RawSimilar> = serde_json::from_str(&payload).unwrap_or_default();
-    if raw.is_empty() {
-        return Ok(Vec::new());
-    }
-
-    // Batch-resolve names to artist IDs. Single query, preserves
-    // input order so high-affinity matches stay first.
-    let canonicals: Vec<String> = raw.iter().map(|r| canonical_name(&r.name)).collect();
-    let placeholders = canonicals.iter().map(|_| "?").collect::<Vec<_>>().join(",");
-    let sql =
-        format!("SELECT id, canonical_name FROM artist WHERE canonical_name IN ({placeholders})");
-    let mut q = sqlx::query_as::<_, (i64, String)>(sqlx::AssertSqlSafe(sql));
-    for c in &canonicals {
-        q = q.bind(c);
-    }
-    let rows = q.fetch_all(pool).await?;
-    let lookup: std::collections::HashMap<String, i64> =
-        rows.into_iter().map(|(id, c)| (c, id)).collect();
-
-    let mut out = Vec::with_capacity(canonicals.len());
-    for c in canonicals {
-        if let Some(&id) = lookup.get(&c) {
-            if id != seed_artist_id && !out.contains(&id) {
-                out.push(id);
-            }
-        }
-    }
-    Ok(out)
+    Ok(waveflow_core::similar::cached_similar_library_ids(pool, seed_artist_id).await?)
 }
 
 /// In-place Fisher-Yates shuffle backed by a tiny xorshift64 PRNG.
