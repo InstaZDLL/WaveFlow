@@ -956,6 +956,22 @@ mod tests {
         assert_eq!(artist_cap(0, 50), 50);
     }
 
+    /// The cap keeps whichever tracks the shuffle put first, so the mix
+    /// is only stable across regens if the shuffle is: the same seed
+    /// must give the same order, and another bucket's seed another one.
+    #[test]
+    fn the_seeded_shuffle_is_reproducible() {
+        let mut a: Vec<i64> = (0..100).collect();
+        let mut b = a.clone();
+        shuffle_with_seed(&mut a, SHUFFLE_SEED ^ 1);
+        shuffle_with_seed(&mut b, SHUFFLE_SEED ^ 1);
+        assert_eq!(a, b);
+
+        let mut c: Vec<i64> = (0..100).collect();
+        shuffle_with_seed(&mut c, SHUFFLE_SEED ^ 2);
+        assert_ne!(a, c);
+    }
+
     #[test]
     fn bucket_thresholds_partition_full_bpm_range() {
         // Every plausible BPM should match exactly one bucket.
