@@ -595,6 +595,9 @@ async fn mood_radio_by_album(pool: &SqlitePool, mood: Mood) -> AppResult<Vec<i64
 pub async fn mood_radio_counts(state: tauri::State<'_, AppState>) -> AppResult<MoodCounts> {
     let pool = state.require_profile_pool().await?;
     let (analysed_tracks, total_tracks) = analysis_coverage(&pool).await?;
+    let overrides: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM mood_override")
+        .fetch_one(&*pool)
+        .await?;
     Ok(MoodCounts {
         focus: count_for_mood(&pool, Mood::Focus).await?,
         chill: count_for_mood(&pool, Mood::Chill).await?,
@@ -603,6 +606,7 @@ pub async fn mood_radio_counts(state: tauri::State<'_, AppState>) -> AppResult<M
         sleep: count_for_mood(&pool, Mood::Sleep).await?,
         analysed_tracks,
         total_tracks,
+        overrides,
     })
 }
 
@@ -618,6 +622,11 @@ pub struct MoodCounts {
     pub analysed_tracks: i64,
     /// Playable tracks in the library, analysed or not.
     pub total_tracks: i64,
+    /// Tracks put into or taken out of a mood by hand, every mood
+    /// together. The home section stays while there are any, even with
+    /// every count at zero, or a user who took everything out could not
+    /// reach the dialog that puts it back.
+    pub overrides: i64,
 }
 
 /// How much of the library has a tempo, and how big the library is.

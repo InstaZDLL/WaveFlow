@@ -16,6 +16,8 @@ export interface MoodCounts {
   analysed_tracks: number;
   /** Playable tracks in the library, analysed or not. */
   total_tracks: number;
+  /** Hand-made changes across every mood — see `MoodRadioGrid`. */
+  overrides: number;
 }
 
 export interface MoodRadioSession {

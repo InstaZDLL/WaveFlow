@@ -125,7 +125,9 @@ export function MoodRadioGrid() {
   // analysis at all or only a handful of analysed tracks. In that
   // case we hide the section entirely instead of showing a row of
   // disabled tiles — feels less broken.
-  if (counts != null && eligible === 0) return null;
+  // Unless tracks were put into or taken out of a mood by hand: then
+  // the section stays, so the dialog that undoes them stays reachable.
+  if (counts != null && eligible === 0 && counts.overrides === 0) return null;
 
   // Every mood draws from the analysed part of the library, so a
   // partly-analysed one gives thin radios for a reason the tiles
