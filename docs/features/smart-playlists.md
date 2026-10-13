@@ -273,13 +273,13 @@ The gate decides what may be considered; everything inside it is ranked
 by how well it fits, and the forty tracks that play are the best of the
 pool rather than the first forty drawn out of it (#616).
 
-| Mood    | Tempo gate | Centre | Loudness           |
-| ------- | ---------- | ------ | ------------------ |
-| Focus   | 72–108     | 88     | prefers ≤ −14 LUFS |
-| Chill   | 65–95      | 78     | prefers ≤ −10 LUFS |
-| Workout | 128–180    | 150    | prefers ≥ −12 LUFS |
-| Party   | 110–132    | 122    | prefers ≥ −12 LUFS |
-| Sleep   | ≤ 68       | 52     | prefers ≤ −18 LUFS |
+| Mood    | Tempo gate | Centre | Loudness                                    |
+| ------- | ---------- | ------ | ------------------------------------------- |
+| Focus   | 72–108     | 88     | prefers ≤ −14 LUFS                          |
+| Chill   | 65–95      | 78     | prefers ≤ −10 LUFS                          |
+| Workout | 128–180    | 150    | prefers ≥ −12 LUFS                          |
+| Party   | 110–132    | 122    | prefers ≥ −12 LUFS                          |
+| Sleep   | ≤ 68       | 52     | prefers ≤ −18 LUFS, **excludes** > −12 LUFS |
 
 The pool of 400 is drawn **measured readings first**, shuffled within
 each group, and the ranking then decides which forty of it play. The
@@ -287,14 +287,23 @@ shuffle is what keeps two runs of one mood from being the same queue;
 the priority is what stops a guess from taking a slot from a track that
 really is this tempo — see the octave note below.
 
-### Why only tempo gates
+### Why mostly tempo gates
 
 A gate answers "is this the wrong kind of track", a score answers "how
-right is it". Tempo is the only signal where falling outside the range
-really does mean the wrong mood — a 160 BPM track is not Sleep at any
+right is it". Tempo is the signal where falling outside the range most
+clearly means the wrong mood — a 160 BPM track is not Sleep at any
 loudness. Loudness and genre rank instead, which is what lets a thin
 library still return forty tracks, closest fits first, rather than an
 error.
+
+**Sleep also gates on loudness** (`lufs_ceiling`, −12 LUFS: where its
+loudness ranking reaches zero). The tempo estimator rarely reads under
+60 BPM, so fast tracks come back as 60-something often enough that
+Sleep's window held a fifth of a library on tempo alone, and loudness
+is the only signal left that tells them apart. Mastered pop sits
+around −8 LUFS and is out; an unmeasured loudness still passes. The
+home-tile count answers the same gates, so it says what the radio can
+draw from.
 
 That also fixes the case the issue opened on: **an unmeasured loudness
 used to satisfy a ceiling exactly as well as a measured quiet track**
@@ -317,7 +326,11 @@ automatic ReplayGain that a record is playing through.
 Tempo estimators land an octave out often enough that a 170 BPM track
 is recorded as 85, and a library where that happened is a library where
 Focus quietly fills with drum'n'bass. The candidate query accepts any
-octave reading (`bpm`, `bpm × 2`, `bpm ÷ 2`) and the scorer discounts
+octave reading (`bpm`, `bpm × 2`, `bpm ÷ 2`) **toward a bounded side
+only** — doubled when the window has a ceiling, halved when it has a
+floor. Sleep has no floor, and halving into it admitted every track up
+to 136 BPM, nine tenths of a library (a user's Sleep counted 312
+tracks). The scorer discounts
 the corrected one by a third: a guess about a measurement is worth less
 than a measurement, so rescued tracks sit below the honest ones rather
 than beside them. A tempo already inside the window is **never**

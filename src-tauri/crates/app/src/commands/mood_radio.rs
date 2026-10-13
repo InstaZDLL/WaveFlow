@@ -7,14 +7,20 @@
 //! names. The forty tracks that play are the best of the pool, not the
 //! first forty drawn out of it (#616).
 //!
-//! # Why only tempo gates
+//! # Why mostly tempo gates
 //!
 //! A gate answers "is this the wrong kind of track"; a score answers
-//! "how right is it". Tempo is the only one of the three signals where
-//! falling outside the range really does mean the wrong mood — a
-//! 160 BPM track is not Sleep at any loudness. Loudness and genre are
-//! ranked instead, which is what lets a thin library still return
-//! forty tracks, closest fits first, rather than an error.
+//! "how right is it". Tempo is the signal where falling outside the
+//! range most clearly means the wrong mood — a 160 BPM track is not
+//! Sleep at any loudness. Loudness and genre are ranked instead, which
+//! is what lets a thin library still return forty tracks, closest fits
+//! first, rather than an error.
+//!
+//! Sleep is the exception, with a loudness gate as well
+//! (`lufs_ceiling`): the tempo estimator rarely reads under 60 BPM, so
+//! a slow window also holds fast tracks read as 60-something, and only
+//! loudness tells them apart. Without it Sleep held nine tenths of a
+//! library.
 //!
 //! Returns the ordered track IDs plus whether they are whole records
 //! ([`MoodRadioSession`]). The frontend hands both to
@@ -63,7 +69,10 @@ const ALBUM_POOL_SIZE: i64 = 60;
 const ALBUM_PER_ARTIST_CAP: usize = 2;
 
 /// The tempo gate, in SQL: does any octave reading of `ta.bpm` fall
-/// inside `?1 .. ?2`?
+/// inside `?1 .. ?2`? Doubled only toward a ceiling and halved only
+/// toward a floor, as [`waveflow_core::mood::effective_bpm`] reads it:
+/// halving into a window with no floor (Sleep) admitted every track up
+/// to twice its ceiling.
 ///
 /// Written once because three queries ask it — the track pool, the
 /// album pool and the count behind the home tile — and a copy that
@@ -77,8 +86,8 @@ macro_rules! bpm_any_octave {
         concat!(
             "(   ",
             bpm_plain_in_window!(),
-            " OR ((?1 IS NULL OR ta.bpm * 2.0 >= ?1) AND (?2 IS NULL OR ta.bpm * 2.0 <= ?2))",
-            " OR ((?1 IS NULL OR ta.bpm / 2.0 >= ?1) AND (?2 IS NULL OR ta.bpm / 2.0 <= ?2)))"
+            " OR (?2 IS NOT NULL AND (?1 IS NULL OR ta.bpm * 2.0 >= ?1) AND ta.bpm * 2.0 <= ?2)",
+            " OR (?1 IS NOT NULL AND ta.bpm / 2.0 >= ?1 AND (?2 IS NULL OR ta.bpm / 2.0 <= ?2)))"
         )
     };
 }
@@ -87,15 +96,29 @@ macro_rules! bpm_any_octave {
 ///
 /// Half of [`bpm_any_octave!`], and also what orders the draw: a
 /// corrected reading is a guess, and a guess must not take a place in
-/// the pool from a track that really is this tempo. Sleep is where it
-/// shows — its window has no floor, so everything up to 136 BPM
-/// qualifies once halved, which is most of a library. Drawing at
-/// random across all of that would fill the mood built on slowness
-/// with halved dance records whenever the genuinely slow ones are
-/// rare, which is the complaint the issue opened on.
+/// the pool from a track that really is this tempo: drawing at random
+/// across both would fill a mood with rescued readings whenever the
+/// genuinely matching tracks are rare.
 macro_rules! bpm_plain_in_window {
     () => {
         "((?1 IS NULL OR ta.bpm >= ?1) AND (?2 IS NULL OR ta.bpm <= ?2))"
+    };
+}
+
+/// The loudness gate, in SQL, against the placeholder `$p` bound to
+/// the profile's `lufs_ceiling`: as
+/// [`waveflow_core::mood::passes_loudness_gate`], a track measured
+/// louder is out and an unmeasured one passes. Shared by the same
+/// three queries as the tempo gate, for the same reason.
+macro_rules! lufs_under_ceiling {
+    ($p:literal) => {
+        concat!(
+            "(",
+            $p,
+            " IS NULL OR ta.loudness_lufs IS NULL OR ta.loudness_lufs <= ",
+            $p,
+            ")"
+        )
     };
 }
 
@@ -131,6 +154,7 @@ impl Mood {
                 bpm_centre: 88.0,
                 lufs_max: Some(-14.0),
                 lufs_min: None,
+                lufs_ceiling: None,
                 genre_words: &[
                     "ambient",
                     "classical",
@@ -150,6 +174,7 @@ impl Mood {
                 bpm_centre: 78.0,
                 lufs_max: Some(-10.0),
                 lufs_min: None,
+                lufs_ceiling: None,
                 genre_words: &[
                     "chill",
                     "lounge",
@@ -173,6 +198,7 @@ impl Mood {
                 bpm_centre: 150.0,
                 lufs_max: None,
                 lufs_min: Some(-12.0),
+                lufs_ceiling: None,
                 genre_words: &[
                     "electronic",
                     "dance",
@@ -193,6 +219,7 @@ impl Mood {
                 bpm_centre: 122.0,
                 lufs_max: None,
                 lufs_min: Some(-12.0),
+                lufs_ceiling: None,
                 genre_words: &[
                     "dance",
                     "pop",
@@ -204,13 +231,18 @@ impl Mood {
                     "latin",
                 ],
             },
-            // Sleep: very slow, very quiet.
+            // Sleep: very slow, very quiet. The ceiling sits where the
+            // loudness ranking reaches zero (−18 plus its six-decibel
+            // run): past it a track is the wrong loudness, not a weaker
+            // fit. Mastered pop sits around −8, so it is out; quiet
+            // acoustic and ambient records stay in.
             Mood::Sleep => MoodProfile {
                 bpm_min: None,
                 bpm_max: Some(68.0),
                 bpm_centre: 52.0,
                 lufs_max: Some(-18.0),
                 lufs_min: None,
+                lufs_ceiling: Some(-12.0),
                 genre_words: &[
                     "ambient",
                     "classical",
@@ -293,8 +325,8 @@ pub async fn start_mood_radio(
 /// exists to rescue. The corrected reading is discounted when scoring,
 /// so those tracks sit below the honest ones rather than beside them.
 ///
-/// Loudness and genre are **not** filtered here — they rank. See the
-/// module header.
+/// Loudness and genre rank rather than filter, except for a mood with a
+/// loudness gate (Sleep). See the module header.
 async fn candidate_pool(
     pool: &SqlitePool,
     profile: &MoodProfile,
@@ -323,6 +355,8 @@ async fn candidate_pool(
             AND ta.bpm IS NOT NULL
             AND ta.bpm > 0
             AND ",
+        lufs_under_ceiling!("?4"),
+        " AND ",
         bpm_any_octave!(),
         // Measured matches first, still shuffled among themselves; the
         // corrected ones only top up what is left. The album path does
@@ -338,6 +372,7 @@ async fn candidate_pool(
     .bind(profile.bpm_min)
     .bind(profile.bpm_max)
     .bind(limit)
+    .bind(profile.lufs_ceiling)
     .fetch_all(pool)
     .await?;
 
@@ -396,9 +431,17 @@ async fn mood_radio_by_album(pool: &SqlitePool, profile: &MoodProfile) -> AppRes
           GROUP BY t.album_id
          HAVING SUM(CASE WHEN ta.bpm IS NOT NULL THEN 1 ELSE 0 END) >= ?4
             AND SUM(CASE WHEN ta.bpm IS NOT NULL AND ta.bpm > 0 AND ",
+        lufs_under_ceiling!("?6"),
+        " AND ",
         bpm_any_octave!(),
         "          THEN 1 ELSE 0 END) * 1.0
                 / SUM(CASE WHEN ta.bpm IS NOT NULL THEN 1 ELSE 0 END) >= ?3
+            -- A record plays whole, so one track measured over the
+            -- loudness gate rules it out: the fit above only asks that
+            -- most of it be right, and would queue the loud track too.
+            AND SUM(CASE WHEN NOT ",
+        lufs_under_ceiling!("?6"),
+        " THEN 1 ELSE 0 END) = 0
           ORDER BY RANDOM()
           LIMIT ?5"
     ))
@@ -407,6 +450,7 @@ async fn mood_radio_by_album(pool: &SqlitePool, profile: &MoodProfile) -> AppRes
     .bind(ALBUM_FIT)
     .bind(ALBUM_MIN_ANALYSED)
     .bind(ALBUM_POOL_SIZE)
+    .bind(profile.lufs_ceiling)
     .fetch_all(pool)
     .await?;
 
@@ -463,8 +507,9 @@ async fn mood_radio_by_album(pool: &SqlitePool, profile: &MoodProfile) -> AppRes
 /// for libraries where BPM analysis hasn't been run yet, or where the
 /// user has no slow tracks at all).
 ///
-/// The counts answer the tempo gate only, because that is the only
-/// thing that can rule a track out — see the module header. They come
+/// The counts answer the gates only — tempo, and loudness where a mood
+/// has one — because they are what can rule a track out; see the
+/// module header. They come
 /// with how much of the library has been analysed at all, so the UI
 /// can say *why* a mood is thin instead of leaving the user to guess.
 #[tauri::command]
@@ -524,10 +569,13 @@ async fn count_for_mood(pool: &SqlitePool, profile: &MoodProfile) -> AppResult<i
             AND ta.bpm IS NOT NULL
             AND ta.bpm > 0
             AND ",
+        lufs_under_ceiling!("?3"),
+        " AND ",
         bpm_any_octave!()
     ))
     .bind(profile.bpm_min)
     .bind(profile.bpm_max)
+    .bind(profile.lufs_ceiling)
     .fetch_one(pool)
     .await?;
     Ok(n)
@@ -637,5 +685,71 @@ mod tests {
             Some(&3),
             "90 BPM is measured inside the window; 170 is a rescue"
         );
+    }
+
+    /// Sleep keeps a quiet slow track and nothing else: not a fast one
+    /// read at half speed, not a loud one the estimator read as slow.
+    /// Before, the halved reading alone let in every track up to 136.
+    #[tokio::test]
+    async fn sleep_keeps_only_quiet_slow_tracks() {
+        let pool = pool().await;
+        sqlx::query(
+            "INSERT INTO library (id, name, created_at, updated_at) VALUES (1, 'l', 0, 0);
+             INSERT INTO track (id, library_id, file_path, file_hash, file_size,
+                                file_modified, title, duration_ms, added_at)
+                  VALUES (1, 1, '/l/a.flac', 'h1', 1, 0, 'Lullaby', 200000, 0),
+                         (2, 1, '/l/b.flac', 'h2', 1, 0, 'Dance', 200000, 0),
+                         (3, 1, '/l/c.flac', 'h3', 1, 0, 'Loud', 200000, 0),
+                         (4, 1, '/l/d.flac', 'h4', 1, 0, 'Unmeasured', 200000, 0);
+             INSERT INTO track_analysis (track_id, bpm, loudness_lufs, analyzed_at)
+                  VALUES (1, 55.0, -20.0, 0), (2, 120.0, -16.0, 0),
+                         (3, 62.0, -7.0, 0), (4, 60.0, NULL, 0);",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let sleep = Mood::Sleep.profile();
+        let mut ids: Vec<i64> = candidate_pool(&pool, &sleep, 10)
+            .await
+            .unwrap()
+            .into_iter()
+            .map(|c| c.track_id)
+            .collect();
+        ids.sort_unstable();
+        assert_eq!(ids, vec![1, 4]);
+        assert_eq!(count_for_mood(&pool, &sleep).await.unwrap(), 2);
+    }
+
+    /// In album mode a record plays whole, so a single track measured
+    /// over Sleep's loudness gate rules the record out — the tempo fit
+    /// only asks that most of it be right, and would queue that track.
+    #[tokio::test]
+    async fn sleep_refuses_a_record_with_one_loud_track() {
+        let pool = pool().await;
+        sqlx::query(
+            "INSERT INTO library (id, name, created_at, updated_at) VALUES (1, 'l', 0, 0);
+             INSERT INTO album (id, title) VALUES (1, 'Quiet'), (2, 'Mostly quiet');
+             INSERT INTO track (id, library_id, album_id, track_number, file_path,
+                                file_hash, file_size, file_modified, title,
+                                duration_ms, added_at)
+                  VALUES (1, 1, 1, 1, '/q/1.flac', 'q1', 1, 0, 'a', 200000, 0),
+                         (2, 1, 1, 2, '/q/2.flac', 'q2', 1, 0, 'b', 200000, 0),
+                         (3, 1, 1, 3, '/q/3.flac', 'q3', 1, 0, 'c', 200000, 0),
+                         (4, 1, 2, 1, '/m/1.flac', 'm1', 1, 0, 'd', 200000, 0),
+                         (5, 1, 2, 2, '/m/2.flac', 'm2', 1, 0, 'e', 200000, 0),
+                         (6, 1, 2, 3, '/m/3.flac', 'm3', 1, 0, 'f', 200000, 0);
+             INSERT INTO track_analysis (track_id, bpm, loudness_lufs, analyzed_at)
+                  VALUES (1, 55.0, -20.0, 0), (2, 55.0, -20.0, 0), (3, 55.0, NULL, 0),
+                         (4, 55.0, -20.0, 0), (5, 55.0, -20.0, 0), (6, 55.0, -7.0, 0);",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let ids = mood_radio_by_album(&pool, &Mood::Sleep.profile())
+            .await
+            .unwrap();
+        assert_eq!(ids, vec![1, 2, 3], "an unmeasured track does not count");
     }
 }
