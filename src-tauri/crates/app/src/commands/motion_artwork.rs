@@ -425,6 +425,24 @@ pub async fn set_album_motion_artwork_from_file(
     Ok(())
 }
 
+/// Whether `album_id` has a manual motion cover set — the row, not the
+/// file, which is what "Remove" acts on. Asked by the picker directly
+/// rather than through the motion-cover lookup, which answers nothing when
+/// motion covers are turned off or the album has no artist (#766).
+#[tauri::command]
+pub async fn has_manual_album_motion_artwork(
+    state: State<'_, AppState>,
+    album_id: i64,
+) -> AppResult<bool> {
+    let pool = state.require_profile_pool().await?;
+    Ok(
+        sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM album_motion_artwork WHERE album_id = ?)")
+            .bind(album_id)
+            .fetch_one(&*pool)
+            .await?,
+    )
+}
+
 /// Clear `album_id`'s manual motion cover, if any — the resolution chain
 /// falls back to the plugin result on the next lookup. The old file is
 /// left on disk (same "future GC pass" tradeoff as `clear_artist_artwork`);

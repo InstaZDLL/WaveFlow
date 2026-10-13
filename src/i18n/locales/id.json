@@ -1288,6 +1288,8 @@
     "title": "Sampul animasi manual",
     "subtitle": "Pilih berkas MP4 lokal. Berkas ini menggantikan sampul animasi dari plugin dan tidak akan pernah ditimpa oleh pembaruan.",
     "pickFile": "Pilih berkas MP4",
+    "replaceFile": "Ganti berkas MP4",
+    "customSet": "Sampul animasi kustom terpasang",
     "removeAction": "Hapus sampul animasi"
   },
   "canvas": {

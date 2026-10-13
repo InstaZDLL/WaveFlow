@@ -19,6 +19,7 @@ import {
   importLrcFile,
   lyricsExcludedGenre,
   groupSharedStamps,
+  splitCaretTranslations,
   isUntimedLrc,
   parseLyrics,
   refetchLyrics,
@@ -289,7 +290,7 @@ export function useTrackLyrics(): TrackLyrics {
     () =>
       payload != null &&
       (payload.format === "lrc" || payload.format === "enhanced_lrc")
-        ? groupSharedStamps(rawLines)
+        ? splitCaretTranslations(groupSharedStamps(rawLines))
         : rawLines,
     [payload, rawLines],
   );

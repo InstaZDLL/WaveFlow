@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Film, FolderOpen, Trash2 } from "lucide-react";
+import { CheckCircle2, Film, FolderOpen, Trash2 } from "lucide-react";
 
 import { useModalA11y } from "../../hooks/useModalA11y";
 import { AnimatedModalContent, AnimatedModalShell } from "./AnimatedModalShell";
 import {
   clearAlbumMotionArtwork,
+  hasManualAlbumMotionArtwork,
   setAlbumMotionArtworkFromFile,
 } from "../../lib/tauri/plugins";
 import { pickFile } from "../../lib/tauri/dialog";
@@ -35,6 +36,30 @@ export function MotionCoverPickerModal({
   const [isApplying, setIsApplying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const dialogRef = useModalA11y<HTMLDivElement>(isOpen, onClose);
+  // Whether a manual cover is set, asked by album id each time the dialog
+  // opens: not through the motion-cover lookup, which answers nothing when
+  // motion covers are turned off or the album has no artist. Without it the
+  // dialog read the same whether a cover was set or not (#766).
+  // `null` until the answer is in, and after a failed check: then Remove
+  // stays usable rather than locked on a question nobody could answer.
+  const [hasManual, setHasManual] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (!isOpen) return;
+    // Not the previous opening's answer, which may be another album's.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setHasManual(null);
+    let cancelled = false;
+    hasManualAlbumMotionArtwork(albumId)
+      .then((set) => {
+        if (!cancelled) setHasManual(set);
+      })
+      .catch((err) =>
+        console.error("[MotionCoverPickerModal] manual check failed", err),
+      );
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, albumId]);
 
   const handlePickFile = async () => {
     if (isApplying) return;
@@ -101,6 +126,12 @@ export function MotionCoverPickerModal({
           <div className="w-16 h-16 rounded-2xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-400">
             <Film size={32} />
           </div>
+          {hasManual === true && (
+            <p className="flex items-center gap-1.5 text-sm font-medium text-emerald-600 dark:text-emerald-400">
+              <CheckCircle2 size={16} aria-hidden="true" />
+              {t("motionCoverPicker.customSet")}
+            </p>
+          )}
           <button
             type="button"
             onClick={handlePickFile}
@@ -108,7 +139,11 @@ export function MotionCoverPickerModal({
             className="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm disabled:opacity-50"
           >
             <FolderOpen size={16} />
-            <span>{t("motionCoverPicker.pickFile")}</span>
+            <span>
+              {hasManual
+                ? t("motionCoverPicker.replaceFile")
+                : t("motionCoverPicker.pickFile")}
+            </span>
           </button>
         </div>
 
@@ -116,7 +151,9 @@ export function MotionCoverPickerModal({
           <button
             type="button"
             onClick={handleClear}
-            disabled={isApplying}
+            // Nothing to remove without a manual cover: the plugins' own
+            // is not this dialog's to clear.
+            disabled={isApplying || hasManual === false}
             className="px-4 py-2 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors flex items-center space-x-2 disabled:opacity-50"
           >
             <Trash2 size={14} />

@@ -1288,6 +1288,8 @@
     "title": "Manuel hareketli kapak",
     "subtitle": "Yerel bir MP4 dosyası seç. Eklentinin sağladığı hareketli kapağın yerini alır ve yenilemeyle asla üzerine yazılmaz.",
     "pickFile": "Bir MP4 dosyası seç",
+    "replaceFile": "MP4 dosyasını değiştir",
+    "customSet": "Özel hareketli kapak ayarlı",
     "removeAction": "Hareketli kapağı kaldır"
   },
   "canvas": {
