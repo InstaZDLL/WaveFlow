@@ -38,6 +38,14 @@ pub struct MoodProfile {
     pub lufs_max: Option<f64>,
     /// Loudness floor in LUFS: louder than this.
     pub lufs_min: Option<f64>,
+    /// A loudness **gate**, unlike the two above: a track measured
+    /// louder than this is not considered at all. Only Sleep sets one.
+    /// Its tempo cannot do the excluding there, because the tempo
+    /// estimator rarely reads under 60 BPM: fast tracks come back as
+    /// 60-something often enough that a slow-tempo window holds a fifth
+    /// of a library, and loudness is the only signal left that tells a
+    /// lullaby from a halved dance record. Unmeasured loudness passes.
+    pub lufs_ceiling: Option<f64>,
     /// Genre words that suit the mood, matched case-insensitively as
     /// substrings of the track's genres. A **bonus only** — never a
     /// gate. Genre strings come from whatever tagger wrote the file,
@@ -91,6 +99,12 @@ pub struct MoodCandidate {
 /// reading, or half or double it when the plain one falls outside the
 /// gate and the corrected one does not. The second element is the
 /// factor the tempo score is multiplied by.
+///
+/// A reading is only corrected **toward a bounded side**: halved when
+/// the window has a floor, doubled when it has a ceiling. Toward an
+/// open side the correction rescues nothing and admits everything —
+/// Sleep has no floor, so halving let in every track up to twice its
+/// ceiling, nine tenths of a library.
 pub fn effective_bpm(profile: &MoodProfile, bpm: f64) -> (f64, f64) {
     if bpm <= 0.0 {
         return (bpm, 1.0);
@@ -102,12 +116,32 @@ pub fn effective_bpm(profile: &MoodProfile, bpm: f64) -> (f64, f64) {
     // already fits is never reinterpreted, however well the double of
     // it would score. Octave correction exists to rescue a
     // misestimated track, not to move a correct one.
-    for candidate in [bpm * 2.0, bpm / 2.0] {
+    for candidate in octave_readings(profile, bpm) {
         if in_window(profile, candidate) {
             return (candidate, OCTAVE_PENALTY);
         }
     }
     (bpm, 1.0)
+}
+
+/// The corrected readings a profile accepts: double when the window
+/// has a ceiling, half when it has a floor. See [`effective_bpm`].
+fn octave_readings(profile: &MoodProfile, bpm: f64) -> impl Iterator<Item = f64> {
+    [
+        profile.bpm_max.map(|_| bpm * 2.0),
+        profile.bpm_min.map(|_| bpm / 2.0),
+    ]
+    .into_iter()
+    .flatten()
+}
+
+/// Does this measured loudness pass the mood's loudness gate? An
+/// unmeasured one does: absence is not evidence.
+pub fn passes_loudness_gate(profile: &MoodProfile, lufs: Option<f64>) -> bool {
+    match (profile.lufs_ceiling, lufs) {
+        (Some(ceiling), Some(lufs)) => lufs <= ceiling,
+        _ => true,
+    }
 }
 
 /// Does this tempo pass the mood's gate?
@@ -118,14 +152,13 @@ pub fn in_window(profile: &MoodProfile, bpm: f64) -> bool {
     profile.bpm_min.map_or(true, |min| bpm >= min) && profile.bpm_max.map_or(true, |max| bpm <= max)
 }
 
-/// Does this tempo pass the gate under any reading — plain, doubled or
-/// halved? This is what the candidate query has to ask, or the octave
-/// correction below would never see the tracks it exists to rescue.
+/// Does this tempo pass the gate under any reading the profile accepts
+/// — plain, doubled or halved? This is what the candidate query has to
+/// ask, or the octave correction below would never see the tracks it
+/// exists to rescue.
 pub fn in_window_any_octave(profile: &MoodProfile, bpm: f64) -> bool {
     bpm > 0.0
-        && (in_window(profile, bpm)
-            || in_window(profile, bpm * 2.0)
-            || in_window(profile, bpm / 2.0))
+        && (in_window(profile, bpm) || octave_readings(profile, bpm).any(|b| in_window(profile, b)))
 }
 
 /// How well a track fits a mood, in `0.0..=1.0`.
@@ -271,6 +304,7 @@ mod tests {
         bpm_centre: 85.0,
         lufs_max: Some(-14.0),
         lufs_min: None,
+        lufs_ceiling: None,
         genre_words: &["ambient", "classical"],
     };
 
@@ -320,6 +354,7 @@ mod tests {
             bpm_centre: 124.0,
             lufs_max: None,
             lufs_min: None,
+            lufs_ceiling: None,
             genre_words: &[],
         };
         let (bpm, factor) = effective_bpm(&party, 62.0);
@@ -383,16 +418,18 @@ mod tests {
     /// that way. Sleep is the case: it has no floor, and scoring by
     /// distance from its centre made the slowest track in the library
     /// the worst fit for the mood built on slowness.
+    const SLEEP: MoodProfile = MoodProfile {
+        bpm_min: None,
+        bpm_max: Some(68.0),
+        bpm_centre: 52.0,
+        lufs_max: Some(-18.0),
+        lufs_min: None,
+        lufs_ceiling: Some(-12.0),
+        genre_words: &[],
+    };
+
     #[test]
     fn an_unbounded_side_has_no_too_far() {
-        const SLEEP: MoodProfile = MoodProfile {
-            bpm_min: None,
-            bpm_max: Some(68.0),
-            bpm_centre: 52.0,
-            lufs_max: Some(-18.0),
-            lufs_min: None,
-            genre_words: &[],
-        };
         let centre = fit_score(&SLEEP, &candidate(1, 52.0, Some(-20.0)));
         let slower = fit_score(&SLEEP, &candidate(2, 30.0, Some(-20.0)));
         assert_eq!(
@@ -426,5 +463,27 @@ mod tests {
         assert!(in_window_any_octave(&FOCUS, 42.5), "half");
         assert!(!in_window_any_octave(&FOCUS, 130.0));
         assert!(!in_window_any_octave(&FOCUS, 0.0), "no tempo at all");
+    }
+
+    /// No halving toward an open side: Sleep has no floor, and halving
+    /// let every track up to 136 BPM in. Doubling toward its ceiling
+    /// adds nothing either — whatever doubles under 68 is already under
+    /// it — so a fast track stays out under every reading.
+    #[test]
+    fn no_octave_correction_toward_an_open_side() {
+        assert!(in_window_any_octave(&SLEEP, 60.0));
+        assert!(!in_window_any_octave(&SLEEP, 120.0), "not read as 60");
+        assert_eq!(effective_bpm(&SLEEP, 120.0), (120.0, 1.0));
+    }
+
+    /// The loudness gate keeps out what is measured too loud, and only
+    /// that: an unmeasured track is not evidence of a loud one.
+    #[test]
+    fn the_loudness_gate_excludes_only_measured_loud_tracks() {
+        assert!(passes_loudness_gate(&SLEEP, Some(-20.0)));
+        assert!(passes_loudness_gate(&SLEEP, Some(-12.0)), "inclusive");
+        assert!(!passes_loudness_gate(&SLEEP, Some(-8.0)));
+        assert!(passes_loudness_gate(&SLEEP, None));
+        assert!(passes_loudness_gate(&FOCUS, Some(-3.0)), "no gate set");
     }
 }
