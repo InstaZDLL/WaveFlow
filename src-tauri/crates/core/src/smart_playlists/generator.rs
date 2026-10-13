@@ -67,6 +67,8 @@ struct ArtistListenRow {
 #[derive(Debug, FromRow)]
 struct TrackPickRow {
     track_id: i64,
+    /// The track's main artist, for the per-artist cap.
+    artist_id: i64,
     /// Surfaced by `COUNT(pe.id)`, used to drive `ORDER BY play_count DESC`
     /// in SQL. Not read in Rust but kept on the row so the column can be
     /// referenced safely if/when we want to log the cluster's top track.
@@ -222,11 +224,40 @@ async fn tracks_for_bucket(
     artist_ids: &[i64],
     bucket: Bucket,
 ) -> CoreResult<Vec<i64>> {
-    let tracks = pick_tracks_for_artists(pool, artist_ids).await?;
-    let mut ids: Vec<i64> = tracks.iter().map(|t| t.track_id).collect();
-    shuffle_with_seed(&mut ids, SHUFFLE_SEED ^ bucket.slot() as u64);
-    ids.truncate(TRACKS_PER_MIX);
-    Ok(ids)
+    let mut tracks = pick_tracks_for_artists(pool, artist_ids).await?;
+    shuffle_with_seed(&mut tracks, SHUFFLE_SEED ^ bucket.slot() as u64);
+    // The artists the pool holds, not those asked for: one with nothing
+    // available would lower everyone's share for no track of its own.
+    let present: std::collections::HashSet<i64> = tracks.iter().map(|t| t.artist_id).collect();
+    Ok(cap_per_artist(&tracks, present.len(), TRACKS_PER_MIX))
+}
+
+/// The first `limit` tracks of `tracks`, at most [`artist_cap`] of them
+/// per artist. Without the cap the most played artist of the bucket could
+/// fill the mix on its own; the shuffle has already happened, so the tracks an artist
+/// gives up are random ones, not its least played.
+fn cap_per_artist(tracks: &[TrackPickRow], artists: usize, limit: usize) -> Vec<i64> {
+    let cap = artist_cap(artists, limit);
+    let mut taken: HashMap<i64, usize> = HashMap::new();
+    let mut out = Vec::with_capacity(limit);
+    for t in tracks {
+        if out.len() >= limit {
+            break;
+        }
+        let n = taken.entry(t.artist_id).or_insert(0);
+        if *n < cap {
+            *n += 1;
+            out.push(t.track_id);
+        }
+    }
+    out
+}
+
+/// Tracks one artist may take in a mix of `limit` drawn from `artists`:
+/// an even share, rounded up, and never under 3 — a bucket of two
+/// artists must still make a mix rather than six tracks.
+fn artist_cap(artists: usize, limit: usize) -> usize {
+    limit.div_ceil(artists.max(1)).max(3)
 }
 
 async fn generate_one_mix(
@@ -630,6 +661,12 @@ async fn pick_albums_for_artists(
     Ok(query.fetch_all(pool).await?)
 }
 
+/// Tracks read per artist of a bucket, its most played first. Per artist
+/// rather than one cut over the whole bucket: a 200-track cut ordered by
+/// plays could be all one prolific artist's, and the per-artist cap would
+/// then leave the mix a handful of tracks.
+const POOL_PER_ARTIST: usize = TRACKS_PER_MIX;
+
 async fn pick_tracks_for_artists(
     pool: &SqlitePool,
     artist_ids: &[i64],
@@ -643,16 +680,23 @@ async fn pick_tracks_for_artists(
         .join(",");
     let sql = format!(
         r#"
-        SELECT t.id                  AS track_id,
-               COUNT(pe.id)          AS play_count
-          FROM track t
-          JOIN track_artist ta ON ta.track_id = t.id AND ta.position = 0
-          LEFT JOIN play_event pe ON pe.track_id = t.id
-         WHERE ta.artist_id IN ({placeholders})
-           AND t.is_available = 1
-         GROUP BY t.id
-         ORDER BY play_count DESC, t.id ASC
-         LIMIT 200
+        SELECT track_id, artist_id, play_count
+          FROM (
+            SELECT t.id         AS track_id,
+                   ta.artist_id AS artist_id,
+                   COUNT(pe.id) AS play_count,
+                   ROW_NUMBER() OVER (
+                     PARTITION BY ta.artist_id ORDER BY COUNT(pe.id) DESC, t.id
+                   )            AS rn
+              FROM track t
+              JOIN track_artist ta ON ta.track_id = t.id AND ta.position = 0
+              LEFT JOIN play_event pe ON pe.track_id = t.id
+             WHERE ta.artist_id IN ({placeholders})
+               AND t.is_available = 1
+             GROUP BY t.id
+          )
+         WHERE rn <= {POOL_PER_ARTIST}
+         ORDER BY play_count DESC, track_id ASC
         "#,
     );
     let mut q = sqlx::query_as::<_, TrackPickRow>(sqlx::AssertSqlSafe(sql));
@@ -877,6 +921,39 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn one_artist_cannot_fill_a_daily_mix() {
+        // Twelve artists, the first with a hundred tracks: an even share
+        // is five each, so it takes five and the others fill the rest.
+        let mut tracks: Vec<TrackPickRow> = (0..100)
+            .map(|i| TrackPickRow {
+                track_id: i,
+                artist_id: 0,
+                play_count: 0,
+            })
+            .collect();
+        for a in 1..12 {
+            for i in 0..10 {
+                tracks.push(TrackPickRow {
+                    track_id: a * 1000 + i,
+                    artist_id: a,
+                    play_count: 0,
+                });
+            }
+        }
+        let ids = cap_per_artist(&tracks, 12, TRACKS_PER_MIX);
+        assert_eq!(ids.len(), TRACKS_PER_MIX);
+        assert_eq!(ids.iter().filter(|id| **id < 1000).count(), 5);
+    }
+
+    #[test]
+    fn a_small_bucket_keeps_a_floor_of_three() {
+        assert_eq!(artist_cap(1, 50), 50);
+        assert_eq!(artist_cap(12, 50), 5);
+        assert_eq!(artist_cap(40, 50), 3);
+        assert_eq!(artist_cap(0, 50), 50);
     }
 
     #[test]

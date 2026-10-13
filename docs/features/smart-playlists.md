@@ -52,7 +52,7 @@ Artists with **no** analysed BPM fall back to slot 2. Same for ties — a missin
 
 ### 3. Track picking
 
-For each bucket: take the top 12 artists, fetch up to 200 of their tracks ordered by `play_count DESC, t.id ASC`, deterministic-shuffle (xorshift seeded with `SHUFFLE_SEED ^ slot`), truncate to 50.
+For each bucket: take the top 12 artists, fetch up to 50 tracks per artist (a mix's worth), its most played first (`POOL_PER_ARTIST`; one cut of 200 over the whole bucket could be all one prolific artist's), deterministic-shuffle (xorshift seeded with `SHUFFLE_SEED ^ slot`), then take 50 with **at most an even share per artist** (`cap_per_artist`: `ceil(50 / artists)`, never under 3). Without the cap the bucket's most played artist could fill the mix alone; the shuffle has already run, so the tracks it gives up are random ones.
 
 **Album mode** (#618, `profile_setting['playback.generator_album_mode']`,
 default off) replaces that with whole records: albums by the bucket's
