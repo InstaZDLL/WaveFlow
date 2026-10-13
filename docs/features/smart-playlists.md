@@ -359,8 +359,9 @@ what was changed by hand, each change undoable
 
 The choices live in `mood_override` (`mood`, `track_id`, `kind` =
 `include` / `exclude`). A track taken out is never drawn for that mood:
-the candidate pool skips it, and album mode drops it from the record it
-would otherwise play through. A track put in plays **ahead of the
+the candidate pool skips it, and album mode leaves it out of the record's
+tempo fit and track budget, then drops it from the record it would
+otherwise play through. A track put in plays **ahead of the
 ranking**, in a fresh order each run and outside the per-artist cap, and
 the ranking fills what is left of the forty. Album mode honours
 removals only — it plays whole records, and one added track does not

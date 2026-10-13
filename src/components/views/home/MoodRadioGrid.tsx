@@ -11,6 +11,7 @@ import {
 import {
   startMoodRadio,
   moodRadioCounts,
+  MOOD_OVERRIDES_EVENT,
   type Mood,
   type MoodCounts,
 } from "../../../lib/tauri/moodRadio";
@@ -71,8 +72,15 @@ export function MoodRadioGrid() {
   const [counts, setCounts] = useState<MoodCounts | null>(null);
   const [loadingMood, setLoadingMood] = useState<Mood | null>(null);
   const [curating, setCurating] = useState(false);
-  // Bumped when a hand-made change is undone, so the tiles count again.
+  // Bumped when a track is put into a mood or taken out of one by hand
+  // — from a track menu as much as from the moods dialog — so the tiles
+  // count again, and a mood that just gained its first track lights up.
   const [countsVersion, setCountsVersion] = useState(0);
+  useEffect(() => {
+    const bump = () => setCountsVersion((n) => n + 1);
+    window.addEventListener(MOOD_OVERRIDES_EVENT, bump);
+    return () => window.removeEventListener(MOOD_OVERRIDES_EVENT, bump);
+  }, []);
   const isLoungeSkin = skin.id === "lounge";
   const isEditorialSkin = skin.id === "editorial";
   const isPulseSkin = skin.id === "pulse";
@@ -173,11 +181,7 @@ export function MoodRadioGrid() {
           </button>
         </div>
       </div>
-      <MoodCurationModal
-        isOpen={curating}
-        onClose={() => setCurating(false)}
-        onChanged={() => setCountsVersion((n) => n + 1)}
-      />
+      <MoodCurationModal isOpen={curating} onClose={() => setCurating(false)} />
       <div
         className={
           isLoungeSkin

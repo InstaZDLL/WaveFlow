@@ -324,9 +324,11 @@ pub async fn start_mood_radio(
         // genuinely nothing, the track path says so in the words that
         // actually apply ("no tracks match this mood") rather than
         // blaming the albums.
-        let mut by_album = mood_radio_by_album(&pool, &profile).await?;
+        let mut by_album = mood_radio_by_album(&pool, mood).await?;
         // A record keeps its order but loses the tracks taken out of
-        // this mood: the record was chosen, those tracks were not.
+        // this mood: the record was chosen, those tracks were not. The
+        // query already left them out of its counts; this drops them
+        // from the queue, which reads every track of the record.
         let excluded: std::collections::HashSet<i64> =
             overridden_tracks(&pool, mood, OverrideKind::Exclude)
                 .await?
@@ -469,7 +471,8 @@ async fn candidate_pool(
 /// cap becomes a cap on records, for the same reason as on tracks:
 /// without it a heavy listener's mood radio is one artist's
 /// discography.
-async fn mood_radio_by_album(pool: &SqlitePool, profile: &MoodProfile) -> AppResult<Vec<i64>> {
+async fn mood_radio_by_album(pool: &SqlitePool, mood: Mood) -> AppResult<Vec<i64>> {
+    let profile = &mood.profile();
     #[derive(sqlx::FromRow)]
     struct Row {
         album_id: i64,
@@ -498,6 +501,11 @@ async fn mood_radio_by_album(pool: &SqlitePool, profile: &MoodProfile) -> AppRes
            LEFT JOIN track_analysis ta ON ta.track_id = t.id
           WHERE t.is_available = 1
             AND t.album_id IS NOT NULL
+            -- Out of the fit and of the budget: a track taken out of
+            -- this mood is not queued, so it must not be counted.
+            AND NOT EXISTS (SELECT 1 FROM mood_override mo
+                             WHERE mo.track_id = t.id AND mo.mood = ?7
+                               AND mo.kind = 'exclude')
           GROUP BY t.album_id
          HAVING SUM(CASE WHEN ta.bpm IS NOT NULL THEN 1 ELSE 0 END) >= ?4
             AND SUM(CASE WHEN ta.bpm IS NOT NULL AND ta.bpm > 0 AND ",
@@ -521,6 +529,7 @@ async fn mood_radio_by_album(pool: &SqlitePool, profile: &MoodProfile) -> AppRes
     .bind(ALBUM_MIN_ANALYSED)
     .bind(ALBUM_POOL_SIZE)
     .bind(profile.lufs_ceiling)
+    .bind(mood.as_str())
     .fetch_all(pool)
     .await?;
 
@@ -860,12 +869,8 @@ mod tests {
             Mood::Party,
             Mood::Sleep,
         ] {
-            let profile = mood.profile();
             assert!(candidate_pool(&pool, mood, 10).await.unwrap().is_empty());
-            assert!(mood_radio_by_album(&pool, &profile)
-                .await
-                .unwrap()
-                .is_empty());
+            assert!(mood_radio_by_album(&pool, mood).await.unwrap().is_empty());
             assert_eq!(count_for_mood(&pool, mood).await.unwrap(), 0);
             for kind in [OverrideKind::Include, OverrideKind::Exclude] {
                 assert!(overridden_tracks(&pool, mood, kind)
@@ -1006,9 +1011,24 @@ mod tests {
         .await
         .unwrap();
 
-        let ids = mood_radio_by_album(&pool, &Mood::Sleep.profile())
-            .await
-            .unwrap();
+        let ids = mood_radio_by_album(&pool, Mood::Sleep).await.unwrap();
         assert_eq!(ids, vec![1, 2, 3], "an unmeasured track does not count");
+
+        // Taking the loud track out of Sleep by hand lets its record in:
+        // what is left of it is all quiet.
+        sqlx::query(
+            "INSERT INTO mood_override (mood, track_id, kind, added_at)
+                  VALUES ('sleep', 6, 'exclude', 0);",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        let mut ids = mood_radio_by_album(&pool, Mood::Sleep).await.unwrap();
+        ids.sort_unstable();
+        assert_eq!(
+            ids,
+            vec![1, 2, 3, 4, 5, 6],
+            "the queue reads the whole record"
+        );
     }
 }

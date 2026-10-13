@@ -20,8 +20,6 @@ import {
 interface MoodCurationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  /** A change was undone: the tile counts are stale. */
-  onChanged: () => void;
 }
 
 /**
@@ -29,11 +27,7 @@ interface MoodCurationModalProps {
  * mood, each undoable. Changes are made from a track's menu (Moods);
  * this is where they are reviewed, without building a playlist.
  */
-export function MoodCurationModal({
-  isOpen,
-  onClose,
-  onChanged,
-}: MoodCurationModalProps) {
+export function MoodCurationModal({ isOpen, onClose }: MoodCurationModalProps) {
   const { t } = useTranslation();
   const dialogRef = useModalA11y<HTMLDivElement>(isOpen, onClose);
   const [mood, setMood] = useState<Mood>("focus");
@@ -65,10 +59,7 @@ export function MoodCurationModal({
 
   const undo = (trackId: number) => {
     setMoodOverride(mood, [trackId], null)
-      .then(() => {
-        setReload((n) => n + 1);
-        onChanged();
-      })
+      .then(() => setReload((n) => n + 1))
       .catch((err) => console.error("[MoodCurationModal] undo failed", err));
   };
 

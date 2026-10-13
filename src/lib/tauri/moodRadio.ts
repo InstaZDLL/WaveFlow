@@ -82,16 +82,24 @@ export function trackMoodOverrides(
 }
 
 /**
+ * Fired on `window` once a mood override is stored, whoever stored it —
+ * the track menu or the moods dialog — so the home tiles count again.
+ */
+export const MOOD_OVERRIDES_EVENT = "waveflow:mood-overrides-changed";
+
+/**
  * Put `trackIds` into `mood` (`"include"`), take them out of it
  * (`"exclude"`), or hand them back to the tempo and loudness gates
- * (`null`).
+ * (`null`). Announces the change with {@link MOOD_OVERRIDES_EVENT}, and
+ * only once it is stored.
  */
-export function setMoodOverride(
+export async function setMoodOverride(
   mood: Mood,
   trackIds: number[],
   kind: MoodOverrideKind | null,
 ): Promise<void> {
-  return invoke<void>("set_mood_override", { mood, trackIds, kind });
+  await invoke<void>("set_mood_override", { mood, trackIds, kind });
+  window.dispatchEvent(new CustomEvent(MOOD_OVERRIDES_EVENT));
 }
 
 /** Every track put into or taken out of `mood` by hand, newest first. */
