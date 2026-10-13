@@ -1337,6 +1337,8 @@
     "title": "Copertina animata manuale",
     "subtitle": "Scegli un file MP4 locale. Sostituisce la copertina animata fornita dal plugin e non viene mai sovrascritta da un aggiornamento.",
     "pickFile": "Scegli un file MP4",
+    "replaceFile": "Sostituisci il file MP4",
+    "customSet": "Copertina animata personalizzata attiva",
     "removeAction": "Rimuovi copertina animata"
   },
   "canvas": {

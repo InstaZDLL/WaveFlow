@@ -1288,6 +1288,8 @@
     "title": "Manuelles animiertes Cover",
     "subtitle": "Wähle eine lokale MP4-Datei. Sie ersetzt das vom Plugin bereitgestellte animierte Cover und wird nie durch eine Aktualisierung überschrieben.",
     "pickFile": "MP4-Datei auswählen",
+    "replaceFile": "MP4-Datei ersetzen",
+    "customSet": "Eigenes animiertes Cover aktiv",
     "removeAction": "Animiertes Cover entfernen"
   },
   "canvas": {

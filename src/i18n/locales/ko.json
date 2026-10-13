@@ -1288,6 +1288,8 @@
     "title": "수동 모션 커버",
     "subtitle": "로컬 MP4 파일을 선택하세요. 플러그인이 제공하는 모션 커버를 대체하며 새로고침으로 덮어써지지 않습니다.",
     "pickFile": "MP4 파일 선택",
+    "replaceFile": "MP4 파일 교체",
+    "customSet": "사용자 지정 움직이는 커버 설정됨",
     "removeAction": "모션 커버 제거"
   },
   "canvas": {

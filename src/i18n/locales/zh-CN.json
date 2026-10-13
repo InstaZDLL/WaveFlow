@@ -1288,6 +1288,8 @@
     "title": "手动动态封面",
     "subtitle": "选择本地 MP4 文件。它将替代插件提供的动态封面，且不会被刷新覆盖。",
     "pickFile": "选择 MP4 文件",
+    "replaceFile": "替换 MP4 文件",
+    "customSet": "已设置自定义动态封面",
     "removeAction": "移除动态封面"
   },
   "canvas": {

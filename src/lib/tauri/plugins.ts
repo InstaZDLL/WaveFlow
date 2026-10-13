@@ -336,6 +336,11 @@ export function clearAlbumMotionArtwork(albumId: number): Promise<void> {
   return invoke<void>("clear_album_motion_artwork", { albumId });
 }
 
+/** Whether `albumId` has a manual motion cover set (#766). */
+export function hasManualAlbumMotionArtwork(albumId: number): Promise<boolean> {
+  return invoke<boolean>("has_manual_album_motion_artwork", { albumId });
+}
+
 /**
  * Opt-in local motion-artwork cache state (Phase 1). When `enabled`, the
  * backend downloads each resolved mp4 into an app-wide LRU cache (1 GB) under

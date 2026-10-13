@@ -1337,6 +1337,8 @@
     "title": "Pochette animée manuelle",
     "subtitle": "Choisissez un fichier MP4 local. Il remplace la pochette animée fournie par un plugin et n'est jamais écrasé par une actualisation.",
     "pickFile": "Choisir un fichier MP4",
+    "replaceFile": "Remplacer le fichier MP4",
+    "customSet": "Pochette animée personnalisée en place",
     "removeAction": "Retirer la pochette animée"
   },
   "canvas": {

@@ -1337,6 +1337,8 @@
     "title": "Portada animada manual",
     "subtitle": "Elige un archivo MP4 local. Sustituye a la portada animada del complemento y nunca se sobrescribe con una actualización.",
     "pickFile": "Elegir un archivo MP4",
+    "replaceFile": "Reemplazar el archivo MP4",
+    "customSet": "Portada animada personalizada activa",
     "removeAction": "Quitar la portada animada"
   },
   "canvas": {

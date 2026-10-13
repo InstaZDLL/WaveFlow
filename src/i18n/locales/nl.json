@@ -1288,6 +1288,8 @@
     "title": "Handmatige bewegende hoes",
     "subtitle": "Kies een lokaal MP4-bestand. Het vervangt de door de plug-in geleverde bewegende hoes en wordt nooit overschreven door een vernieuwing.",
     "pickFile": "MP4-bestand kiezen",
+    "replaceFile": "MP4-bestand vervangen",
+    "customSet": "Eigen geanimeerde hoes ingesteld",
     "removeAction": "Bewegende hoes verwijderen"
   },
   "canvas": {

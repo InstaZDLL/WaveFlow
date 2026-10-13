@@ -1288,6 +1288,8 @@
     "title": "Manual motion cover",
     "subtitle": "Choose a local MP4 file. It replaces the plugin-supplied motion cover and is never overwritten by a refresh.",
     "pickFile": "Choose an MP4 file",
+    "replaceFile": "Replace the MP4 file",
+    "customSet": "Custom motion cover set",
     "removeAction": "Remove motion cover"
   },
   "canvas": {

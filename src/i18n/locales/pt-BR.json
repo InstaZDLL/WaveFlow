@@ -1338,6 +1338,8 @@
     "title": "Capa animada manual",
     "subtitle": "Escolha um arquivo MP4 local. Ele substitui a capa animada fornecida pelo plugin e nunca é sobrescrito por uma atualização.",
     "pickFile": "Escolher um arquivo MP4",
+    "replaceFile": "Substituir o arquivo MP4",
+    "customSet": "Capa animada personalizada definida",
     "removeAction": "Remover capa animada"
   },
   "canvas": {

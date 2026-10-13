@@ -1288,6 +1288,8 @@
     "title": "手動動態封面",
     "subtitle": "選擇本機 MP4 檔案。它會取代外掛提供的動態封面，且不會被重新整理覆蓋。",
     "pickFile": "選擇 MP4 檔案",
+    "replaceFile": "替換 MP4 檔案",
+    "customSet": "已設定自訂動態封面",
     "removeAction": "移除動態封面"
   },
   "canvas": {
