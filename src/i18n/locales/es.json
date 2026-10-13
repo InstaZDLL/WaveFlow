@@ -1181,7 +1181,10 @@
     "ratingNone": "Sin valoración",
     "batchEdit": "Editar etiquetas de {{count}} pistas…",
     "addToPlaylistNamed": "Añadir a «{{name}}»",
-    "removeFromPlaylistNamed": "Quitar de «{{name}}»"
+    "removeFromPlaylistNamed": "Quitar de «{{name}}»",
+    "moods": "Estados de ánimo",
+    "moodAddTo": "Añadir a",
+    "moodRemoveFrom": "Quitar de"
   },
   "batchTagEdit": {
     "title": "Editar etiquetas en lote",
@@ -3171,5 +3174,15 @@
     "added_one": "{{count}} pista añadida a la cola",
     "added_many": "{{count}} pistas añadidas a la cola",
     "added_other": "{{count}} pistas añadidas a la cola"
+  },
+  "moodCuration": {
+    "open": "Editar estados de ánimo",
+    "title": "Editar estados de ánimo",
+    "subtitle": "Canciones añadidas a un estado de ánimo o quitadas de uno a mano. Para cambiar una, haz clic derecho sobre ella y elige Estados de ánimo.",
+    "added": "Añadidas a mano",
+    "removed": "Quitadas a mano",
+    "empty": "No hay cambios hechos a mano para este estado de ánimo.",
+    "undo": "Deshacer",
+    "undoTrack": "Deshacer el cambio de {{title}}"
   }
 }

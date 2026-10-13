@@ -1182,7 +1182,10 @@
     "ratingNone": "Sem avaliação",
     "batchEdit": "Editar tags de {{count}} faixas…",
     "addToPlaylistNamed": "Adicionar a “{{name}}”",
-    "removeFromPlaylistNamed": "Remover de “{{name}}”"
+    "removeFromPlaylistNamed": "Remover de “{{name}}”",
+    "moods": "Humores",
+    "moodAddTo": "Adicionar a",
+    "moodRemoveFrom": "Remover de"
   },
   "batchTagEdit": {
     "title": "Editar tags em lote",
@@ -3172,5 +3175,15 @@
     "added_one": "{{count}} faixa adicionada à fila",
     "added_many": "{{count}} faixas adicionadas à fila",
     "added_other": "{{count}} faixas adicionadas à fila"
+  },
+  "moodCuration": {
+    "open": "Editar humores",
+    "title": "Editar humores",
+    "subtitle": "Faixas adicionadas a um humor ou removidas de um manualmente. Para mudar uma faixa, clique com o botão direito nela e escolha Humores.",
+    "added": "Adicionadas manualmente",
+    "removed": "Removidas manualmente",
+    "empty": "Nenhuma alteração manual para este humor.",
+    "undo": "Desfazer",
+    "undoTrack": "Desfazer a alteração de {{title}}"
   }
 }

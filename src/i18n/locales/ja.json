@@ -1138,7 +1138,10 @@
     "ratingNone": "評価なし",
     "batchEdit": "{{count}}曲のタグを編集…",
     "addToPlaylistNamed": "「{{name}}」に追加",
-    "removeFromPlaylistNamed": "「{{name}}」から削除"
+    "removeFromPlaylistNamed": "「{{name}}」から削除",
+    "moods": "ムード",
+    "moodAddTo": "追加先",
+    "moodRemoveFrom": "除外元"
   },
   "batchTagEdit": {
     "title": "タグの一括編集",
@@ -3072,5 +3075,15 @@
     "playNext_other": "{{count}}曲を次に再生します",
     "added_one": "{{count}}曲を再生キューに追加しました",
     "added_other": "{{count}}曲を再生キューに追加しました"
+  },
+  "moodCuration": {
+    "open": "ムードを編集",
+    "title": "ムードを編集",
+    "subtitle": "手動でムードに追加した曲、またはムードから除外した曲です。曲を変更するには、右クリックして「ムード」を選びます。",
+    "added": "手動で追加",
+    "removed": "手動で除外",
+    "empty": "このムードには手動の変更はありません。",
+    "undo": "元に戻す",
+    "undoTrack": "{{title}} の変更を元に戻す"
   }
 }

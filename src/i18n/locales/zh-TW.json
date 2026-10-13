@@ -1138,7 +1138,10 @@
     "ratingNone": "無評分",
     "batchEdit": "編輯 {{count}} 首曲目的標籤…",
     "addToPlaylistNamed": "加入「{{name}}」",
-    "removeFromPlaylistNamed": "從「{{name}}」移除"
+    "removeFromPlaylistNamed": "從「{{name}}」移除",
+    "moods": "心情",
+    "moodAddTo": "加入至",
+    "moodRemoveFrom": "移出"
   },
   "batchTagEdit": {
     "title": "批次編輯標籤",
@@ -3072,5 +3075,15 @@
     "playNext_other": "{{count}} 首曲目將接著播放",
     "added_one": "已將 {{count}} 首曲目加入播放佇列",
     "added_other": "已將 {{count}} 首曲目加入播放佇列"
+  },
+  "moodCuration": {
+    "open": "編輯心情",
+    "title": "編輯心情",
+    "subtitle": "手動加入某個心情或從中移出的曲目。若要變更某首曲目，請按右鍵並選擇「心情」。",
+    "added": "手動加入",
+    "removed": "手動移出",
+    "empty": "此心情沒有手動變更。",
+    "undo": "復原",
+    "undoTrack": "復原 {{title}} 的變更"
   }
 }

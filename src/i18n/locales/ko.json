@@ -1138,7 +1138,10 @@
     "ratingNone": "평점 없음",
     "batchEdit": "{{count}}곡의 태그 편집…",
     "addToPlaylistNamed": "“{{name}}”에 추가",
-    "removeFromPlaylistNamed": "“{{name}}”에서 제거"
+    "removeFromPlaylistNamed": "“{{name}}”에서 제거",
+    "moods": "분위기",
+    "moodAddTo": "추가할 분위기",
+    "moodRemoveFrom": "제외할 분위기"
   },
   "batchTagEdit": {
     "title": "태그 일괄 편집",
@@ -3072,5 +3075,15 @@
     "playNext_other": "{{count}}곡을 다음에 재생합니다",
     "added_one": "{{count}}곡을 재생 대기열에 추가했습니다",
     "added_other": "{{count}}곡을 재생 대기열에 추가했습니다"
+  },
+  "moodCuration": {
+    "open": "분위기 편집",
+    "title": "분위기 편집",
+    "subtitle": "직접 분위기에 추가하거나 분위기에서 제외한 곡입니다. 곡을 바꾸려면 마우스 오른쪽 버튼으로 클릭한 뒤 분위기를 선택하세요.",
+    "added": "직접 추가함",
+    "removed": "직접 제외함",
+    "empty": "이 분위기에는 직접 바꾼 내용이 없습니다.",
+    "undo": "되돌리기",
+    "undoTrack": "{{title}} 변경 되돌리기"
   }
 }

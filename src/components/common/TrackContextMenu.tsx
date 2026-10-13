@@ -25,6 +25,8 @@ import type { Track } from "../../lib/tauri/track";
 import type { Playlist } from "../../lib/tauri/playlist";
 import { resolvePlaylistColor } from "../../lib/playlistVisuals";
 import { PlaylistIcon } from "../../lib/PlaylistIcon";
+import { isRemoteTrack } from "../../lib/playerSources";
+import { TrackMoodSubmenu } from "./TrackMoodSubmenu";
 
 export interface TrackContextMenuProps {
   point: ContextMenuPoint;
@@ -250,6 +252,11 @@ export function TrackContextMenu({
             );
           })}
         </ContextMenuSub>
+      )}
+
+      {/* A server track plays under a sentinel id no mood can store. */}
+      {!isRemoteTrack(track) && (
+        <TrackMoodSubmenu trackId={track.id} onClose={onClose} />
       )}
 
       {currentPlaylistId != null && onRemoveFromPlaylist != null && (

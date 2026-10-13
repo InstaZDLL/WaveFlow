@@ -1138,7 +1138,10 @@
     "ratingNone": "Puan yok",
     "batchEdit": "{{count}} parçanın etiketlerini düzenle…",
     "addToPlaylistNamed": "“{{name}}” listesine ekle",
-    "removeFromPlaylistNamed": "“{{name}}” listesinden çıkar"
+    "removeFromPlaylistNamed": "“{{name}}” listesinden çıkar",
+    "moods": "Ruh halleri",
+    "moodAddTo": "Şuraya ekle",
+    "moodRemoveFrom": "Şuradan çıkar"
   },
   "batchTagEdit": {
     "title": "Etiketleri toplu düzenle",
@@ -3072,5 +3075,15 @@
     "playNext_other": "{{count}} parça sıradaki olarak çalacak",
     "added_one": "{{count}} parça kuyruğa eklendi",
     "added_other": "{{count}} parça kuyruğa eklendi"
+  },
+  "moodCuration": {
+    "open": "Ruh hallerini düzenle",
+    "title": "Ruh hallerini düzenle",
+    "subtitle": "Bir ruh haline elle eklenen ya da ondan elle çıkarılan parçalar. Bir parçayı değiştirmek için sağ tıklayıp Ruh halleri'ni seç.",
+    "added": "Elle eklenenler",
+    "removed": "Elle çıkarılanlar",
+    "empty": "Bu ruh hali için elle yapılmış değişiklik yok.",
+    "undo": "Geri al",
+    "undoTrack": "{{title}} için değişikliği geri al"
   }
 }
