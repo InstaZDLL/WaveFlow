@@ -42,6 +42,8 @@ export function MoodCurationModal({
 
   useEffect(() => {
     if (!isOpen) return;
+    // Not the last opening's list: a track menu may have changed it since.
+    setRows(null);
     let cancelled = false;
     listMoodOverrides(mood)
       .then((r) => {

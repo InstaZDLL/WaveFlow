@@ -347,6 +347,13 @@ pub async fn start_mood_radio(
     // the per-artist cap: the user chose each one.
     let mut track_ids = overridden_tracks(&pool, mood, OverrideKind::Include).await?;
     track_ids.truncate(TARGET_LEN);
+    if track_ids.len() == TARGET_LEN {
+        // The hand-picked tracks fill the radio: nothing to rank.
+        return Ok(MoodRadioSession {
+            track_ids,
+            album_ordered: false,
+        });
+    }
     let rows: Vec<MoodCandidate> = candidate_pool(&pool, mood, POOL_SIZE)
         .await?
         .into_iter()
