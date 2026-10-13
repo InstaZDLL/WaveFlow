@@ -1,14 +1,23 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Brain, Coffee, Dumbbell, Sparkles, Moon } from "lucide-react";
+import {
+  Brain,
+  Coffee,
+  Dumbbell,
+  Sparkles,
+  Moon,
+  SlidersHorizontal,
+} from "lucide-react";
 import {
   startMoodRadio,
   moodRadioCounts,
+  MOOD_OVERRIDES_EVENT,
   type Mood,
   type MoodCounts,
 } from "../../../lib/tauri/moodRadio";
 import { playerPlayTracks } from "../../../lib/tauri/player";
 import { useSkin } from "../../../hooks/useSkin";
+import { MoodCurationModal } from "./MoodCurationModal";
 
 interface MoodTile {
   mood: Mood;
@@ -62,6 +71,16 @@ export function MoodRadioGrid() {
   const { skin } = useSkin();
   const [counts, setCounts] = useState<MoodCounts | null>(null);
   const [loadingMood, setLoadingMood] = useState<Mood | null>(null);
+  const [curating, setCurating] = useState(false);
+  // Bumped when a track is put into a mood or taken out of one by hand
+  // — from a track menu as much as from the moods dialog — so the tiles
+  // count again, and a mood that just gained its first track lights up.
+  const [countsVersion, setCountsVersion] = useState(0);
+  useEffect(() => {
+    const bump = () => setCountsVersion((n) => n + 1);
+    window.addEventListener(MOOD_OVERRIDES_EVENT, bump);
+    return () => window.removeEventListener(MOOD_OVERRIDES_EVENT, bump);
+  }, []);
   const isLoungeSkin = skin.id === "lounge";
   const isEditorialSkin = skin.id === "editorial";
   const isPulseSkin = skin.id === "pulse";
@@ -77,7 +96,7 @@ export function MoodRadioGrid() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [countsVersion]);
 
   const handleStart = async (mood: Mood) => {
     if (loadingMood != null) return;
@@ -106,7 +125,9 @@ export function MoodRadioGrid() {
   // analysis at all or only a handful of analysed tracks. In that
   // case we hide the section entirely instead of showing a row of
   // disabled tiles — feels less broken.
-  if (counts != null && eligible === 0) return null;
+  // Unless tracks were put into or taken out of a mood by hand: then
+  // the section stays, so the dialog that undoes them stays reachable.
+  if (counts != null && eligible === 0 && counts.overrides === 0) return null;
 
   // Every mood draws from the analysed part of the library, so a
   // partly-analysed one gives thin radios for a reason the tiles
@@ -134,23 +155,35 @@ export function MoodRadioGrid() {
         <h2 className="text-2xl font-bold inline-block border-b-4 border-rose-500 pb-1 text-zinc-900 dark:text-white">
           {t("home.moodRadio.title")}
         </h2>
-        <span className="text-xs text-zinc-500 dark:text-zinc-400 text-right">
-          {t("home.moodRadio.subtitle")}
-          {partlyAnalysed && (
-            <>
-              <br />
-              {/* `count` is the total, because that is the number the
+        <div className="flex items-end gap-3">
+          <span className="text-xs text-zinc-500 dark:text-zinc-400 text-right">
+            {t("home.moodRadio.subtitle")}
+            {partlyAnalysed && (
+              <>
+                <br />
+                {/* `count` is the total, because that is the number the
                   sentence's noun agrees with — Russian and Arabic
                   inflect "tracks" on it, and a fixed form is wrong for
                   most of the values this line actually shows. */}
-              {t("home.moodRadio.coverage", {
-                count: counts.total_tracks,
-                analysed: counts.analysed_tracks,
-              })}
-            </>
-          )}
-        </span>
+                {t("home.moodRadio.coverage", {
+                  count: counts.total_tracks,
+                  analysed: counts.analysed_tracks,
+                })}
+              </>
+            )}
+          </span>
+          <button
+            type="button"
+            onClick={() => setCurating(true)}
+            title={t("moodCuration.open")}
+            aria-label={t("moodCuration.open")}
+            className="shrink-0 rounded-lg p-2 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+          >
+            <SlidersHorizontal size={16} />
+          </button>
+        </div>
       </div>
+      <MoodCurationModal isOpen={curating} onClose={() => setCurating(false)} />
       <div
         className={
           isLoungeSkin

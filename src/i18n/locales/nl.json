@@ -1138,7 +1138,10 @@
     "ratingNone": "Geen beoordeling",
     "batchEdit": "Tags van {{count}} nummers bewerken…",
     "addToPlaylistNamed": "Toevoegen aan ‘{{name}}’",
-    "removeFromPlaylistNamed": "Verwijderen uit ‘{{name}}’"
+    "removeFromPlaylistNamed": "Verwijderen uit ‘{{name}}’",
+    "moods": "Stemmingen",
+    "moodAddTo": "Toevoegen aan",
+    "moodRemoveFrom": "Verwijderen uit"
   },
   "batchTagEdit": {
     "title": "Tags batchgewijs bewerken",
@@ -3072,5 +3075,15 @@
     "playNext_other": "{{count}} nummers worden hierna afgespeeld",
     "added_one": "{{count}} nummer aan de wachtrij toegevoegd",
     "added_other": "{{count}} nummers aan de wachtrij toegevoegd"
+  },
+  "moodCuration": {
+    "open": "Stemmingen bewerken",
+    "title": "Stemmingen bewerken",
+    "subtitle": "Nummers die je met de hand aan een stemming hebt toegevoegd of eruit hebt verwijderd. Klik met de rechtermuisknop op een nummer en kies Stemmingen om het te wijzigen.",
+    "added": "Met de hand toegevoegd",
+    "removed": "Met de hand verwijderd",
+    "empty": "Geen handmatige wijzigingen voor deze stemming.",
+    "undo": "Ongedaan maken",
+    "undoTrack": "Wijziging voor {{title}} ongedaan maken"
   }
 }

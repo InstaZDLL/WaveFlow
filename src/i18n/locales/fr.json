@@ -1181,7 +1181,10 @@
     "ratingNone": "Aucune note",
     "batchEdit": "Modifier les tags de {{count}} titres…",
     "addToPlaylistNamed": "Ajouter à « {{name}} »",
-    "removeFromPlaylistNamed": "Retirer de « {{name}} »"
+    "removeFromPlaylistNamed": "Retirer de « {{name}} »",
+    "moods": "Humeurs",
+    "moodAddTo": "Ajouter à",
+    "moodRemoveFrom": "Retirer de"
   },
   "batchTagEdit": {
     "title": "Modifier les tags en lot",
@@ -3171,5 +3174,15 @@
     "added_one": "{{count}} titre ajouté à la file d'attente",
     "added_many": "{{count}} titres ajoutés à la file d'attente",
     "added_other": "{{count}} titres ajoutés à la file d'attente"
+  },
+  "moodCuration": {
+    "open": "Modifier les humeurs",
+    "title": "Modifier les humeurs",
+    "subtitle": "Les titres ajoutés à une humeur ou retirés d'une humeur à la main. Pour en changer un, fais un clic droit dessus puis Humeurs.",
+    "added": "Ajoutés à la main",
+    "removed": "Retirés à la main",
+    "empty": "Aucun changement fait à la main pour cette humeur.",
+    "undo": "Annuler",
+    "undoTrack": "Annuler le changement pour {{title}}"
   }
 }

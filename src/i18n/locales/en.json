@@ -1138,7 +1138,10 @@
     "ratingNone": "No rating",
     "batchEdit": "Edit tags for {{count}} tracks…",
     "addToPlaylistNamed": "Add to “{{name}}”",
-    "removeFromPlaylistNamed": "Remove from “{{name}}”"
+    "removeFromPlaylistNamed": "Remove from “{{name}}”",
+    "moods": "Moods",
+    "moodAddTo": "Add to",
+    "moodRemoveFrom": "Remove from"
   },
   "batchTagEdit": {
     "title": "Batch edit tags",
@@ -3072,5 +3075,15 @@
     "playNext_other": "{{count}} tracks play next",
     "added_one": "{{count}} track added to the queue",
     "added_other": "{{count}} tracks added to the queue"
+  },
+  "moodCuration": {
+    "open": "Edit moods",
+    "title": "Edit moods",
+    "subtitle": "Tracks added to a mood or removed from one by hand. To change a track, right-click it and choose Moods.",
+    "added": "Added by hand",
+    "removed": "Removed by hand",
+    "empty": "No changes made by hand for this mood.",
+    "undo": "Undo",
+    "undoTrack": "Undo the change for {{title}}"
   }
 }

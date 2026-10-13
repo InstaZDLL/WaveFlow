@@ -1,6 +1,10 @@
 import { invoke } from "@tauri-apps/api/core";
+import type { Track } from "./track";
 
 export type Mood = "focus" | "chill" | "workout" | "party" | "sleep";
+
+/** Every mood, in the order the home grid shows them. */
+export const MOODS: Mood[] = ["focus", "chill", "workout", "party", "sleep"];
 
 export interface MoodCounts {
   focus: number;
@@ -12,6 +16,8 @@ export interface MoodCounts {
   analysed_tracks: number;
   /** Playable tracks in the library, analysed or not. */
   total_tracks: number;
+  /** Hand-made changes across every mood — see `MoodRadioGrid`. */
+  overrides: number;
 }
 
 export interface MoodRadioSession {
@@ -48,11 +54,57 @@ export function startMoodRadio(mood: Mood): Promise<MoodRadioSession> {
  * How many tracks each mood could draw from, plus how much of the
  * library has been analysed at all.
  *
- * The per-mood numbers answer the tempo gate only — loudness and genre
- * rank rather than exclude, so they cannot make a mood empty. The
- * coverage pair is what lets the UI say *why* a mood is thin instead
+ * The per-mood numbers answer the gates — tempo, and loudness for
+ * Sleep — less the tracks taken out of the mood by hand, plus those put
+ * into it by hand. The coverage pair is what lets the UI say *why* a mood is thin instead
  * of leaving the user to guess.
  */
 export function moodRadioCounts(): Promise<MoodCounts> {
   return invoke<MoodCounts>("mood_radio_counts");
+}
+
+/** A track put into a mood by hand, or taken out of one. */
+export type MoodOverrideKind = "include" | "exclude";
+
+export interface TrackMoodOverride {
+  mood: Mood;
+  kind: MoodOverrideKind;
+}
+
+export interface MoodOverrideTrack {
+  kind: MoodOverrideKind;
+  track: Track;
+}
+
+/** The moods `trackId` was put into or taken out of by hand. */
+export function trackMoodOverrides(
+  trackId: number,
+): Promise<TrackMoodOverride[]> {
+  return invoke<TrackMoodOverride[]>("track_mood_overrides", { trackId });
+}
+
+/**
+ * Fired on `window` once a mood override is stored, whoever stored it —
+ * the track menu or the moods dialog — so the home tiles count again.
+ */
+export const MOOD_OVERRIDES_EVENT = "waveflow:mood-overrides-changed";
+
+/**
+ * Put `trackIds` into `mood` (`"include"`), take them out of it
+ * (`"exclude"`), or hand them back to the tempo and loudness gates
+ * (`null`). Announces the change with {@link MOOD_OVERRIDES_EVENT}, and
+ * only once it is stored.
+ */
+export async function setMoodOverride(
+  mood: Mood,
+  trackIds: number[],
+  kind: MoodOverrideKind | null,
+): Promise<void> {
+  await invoke<void>("set_mood_override", { mood, trackIds, kind });
+  window.dispatchEvent(new CustomEvent(MOOD_OVERRIDES_EVENT));
+}
+
+/** Every track put into or taken out of `mood` by hand, newest first. */
+export function listMoodOverrides(mood: Mood): Promise<MoodOverrideTrack[]> {
+  return invoke<MoodOverrideTrack[]>("list_mood_overrides", { mood });
 }

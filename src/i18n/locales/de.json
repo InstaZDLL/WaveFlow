@@ -1138,7 +1138,10 @@
     "ratingNone": "Keine Bewertung",
     "batchEdit": "Tags für {{count}} Titel bearbeiten…",
     "addToPlaylistNamed": "Zu „{{name}}“ hinzufügen",
-    "removeFromPlaylistNamed": "Aus „{{name}}“ entfernen"
+    "removeFromPlaylistNamed": "Aus „{{name}}“ entfernen",
+    "moods": "Stimmungen",
+    "moodAddTo": "Hinzufügen zu",
+    "moodRemoveFrom": "Entfernen aus"
   },
   "batchTagEdit": {
     "title": "Tags stapelweise bearbeiten",
@@ -3072,5 +3075,15 @@
     "playNext_other": "{{count}} Titel werden als Nächstes gespielt",
     "added_one": "{{count}} Titel zur Warteschlange hinzugefügt",
     "added_other": "{{count}} Titel zur Warteschlange hinzugefügt"
+  },
+  "moodCuration": {
+    "open": "Stimmungen bearbeiten",
+    "title": "Stimmungen bearbeiten",
+    "subtitle": "Titel, die du einer Stimmung von Hand hinzugefügt oder aus ihr entfernt hast. Um einen Titel zu ändern, klicke ihn mit der rechten Maustaste an und wähle Stimmungen.",
+    "added": "Von Hand hinzugefügt",
+    "removed": "Von Hand entfernt",
+    "empty": "Keine Änderungen von Hand für diese Stimmung.",
+    "undo": "Rückgängig",
+    "undoTrack": "Änderung für {{title}} rückgängig machen"
   }
 }

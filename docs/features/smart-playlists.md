@@ -346,6 +346,28 @@ genuinely do: "calm enough to work to" and "calm enough to sit in" are
 the same tempo, and what separates them is the centre, the loudness and
 the genre words.
 
+### Put in or taken out by hand
+
+No gate tells every slow ballad from a rock track the estimator read at
+60 BPM, and normalised files sit at −14 LUFS whatever they hold, so the
+user has the last word. A track's menu has a **Moods** submenu ("Add to"
+/ "Remove from", one row per mood, a tick where the track already
+stands; picking a ticked row hands it back to the gates), and the
+sliders button on the home section opens a dialog listing, per mood,
+what was changed by hand, each change undoable
+([`MoodCurationModal`](../../src/components/views/home/MoodCurationModal.tsx)).
+
+The choices live in `mood_override` (`mood`, `track_id`, `kind` =
+`include` / `exclude`). A track taken out is never drawn for that mood:
+the candidate pool skips it, and album mode leaves it out of the record's
+tempo fit and track budget, then drops it from the record it would
+otherwise play through. A track put in plays **ahead of the
+ranking**, in a fresh order each run and outside the per-artist cap, and
+the ranking fills what is left of the forty. Album mode honours
+removals only — it plays whole records, and one added track does not
+make a record. The tile count follows both: gated tracks less those
+taken out, plus those put in whatever their analysis says.
+
 ### What the home tile says
 
 `mood_radio_counts` returns the per-mood counts **and** how much of the

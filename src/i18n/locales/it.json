@@ -1181,7 +1181,10 @@
     "ratingNone": "Nessuna valutazione",
     "batchEdit": "Modifica i tag di {{count}} brani…",
     "addToPlaylistNamed": "Aggiungi a «{{name}}»",
-    "removeFromPlaylistNamed": "Rimuovi da «{{name}}»"
+    "removeFromPlaylistNamed": "Rimuovi da «{{name}}»",
+    "moods": "Mood",
+    "moodAddTo": "Aggiungi a",
+    "moodRemoveFrom": "Rimuovi da"
   },
   "batchTagEdit": {
     "title": "Modifica i tag in blocco",
@@ -3171,5 +3174,15 @@
     "added_one": "{{count}} brano aggiunto alla coda",
     "added_many": "{{count}} brani aggiunti alla coda",
     "added_other": "{{count}} brani aggiunti alla coda"
+  },
+  "moodCuration": {
+    "open": "Modifica i mood",
+    "title": "Modifica i mood",
+    "subtitle": "Brani aggiunti a un mood o rimossi da uno a mano. Per cambiarne uno, fai clic destro sul brano e scegli Mood.",
+    "added": "Aggiunti a mano",
+    "removed": "Rimossi a mano",
+    "empty": "Nessuna modifica fatta a mano per questo mood.",
+    "undo": "Annulla",
+    "undoTrack": "Annulla la modifica per {{title}}"
   }
 }

@@ -22,6 +22,15 @@
 //! loudness tells them apart. Without it Sleep held nine tenths of a
 //! library.
 //!
+//! # The user's last word
+//!
+//! No gate tells every slow ballad from a rock track the estimator read
+//! at 60 BPM, so a track can be put into a mood or taken out of one by
+//! hand (`mood_override`). A track taken out is never drawn for that
+//! mood, in either mode; a track put in plays ahead of the ranking in
+//! track mode and counts on the home tile whatever its analysis says.
+//! Album mode plays whole records, so it honours removals only.
+//!
 //! Returns the ordered track IDs plus whether they are whole records
 //! ([`MoodRadioSession`]). The frontend hands both to
 //! `player_play_tracks` with `source_type = "radio"` so
@@ -36,9 +45,11 @@ use sqlx::SqlitePool;
 use waveflow_core::mood::{MoodCandidate, MoodProfile};
 
 use crate::{
+    commands::track::{track_from_row, Track},
     error::{AppError, AppResult},
     state::AppState,
 };
+use waveflow_core::repository::{sqlite::SqliteTrackRepository, track::TrackRepository};
 
 /// Target queue size. Same logic as the seed-based radio: long enough
 /// to forget about it, short enough that the tail stays on-vibe.
@@ -122,7 +133,7 @@ macro_rules! lufs_under_ceiling {
     };
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Mood {
     Focus,
@@ -133,6 +144,29 @@ pub enum Mood {
 }
 
 impl Mood {
+    const ALL: [Mood; 5] = [
+        Mood::Focus,
+        Mood::Chill,
+        Mood::Workout,
+        Mood::Party,
+        Mood::Sleep,
+    ];
+
+    /// The spelling `mood_override.mood` stores, which its CHECK lists.
+    fn as_str(self) -> &'static str {
+        match self {
+            Mood::Focus => "focus",
+            Mood::Chill => "chill",
+            Mood::Workout => "workout",
+            Mood::Party => "party",
+            Mood::Sleep => "sleep",
+        }
+    }
+
+    fn parse(s: &str) -> Option<Mood> {
+        Mood::ALL.into_iter().find(|m| m.as_str() == s)
+    }
+
     /// The five shapes.
     ///
     /// The tempo windows are narrower than they were: Chill's used to
@@ -290,7 +324,17 @@ pub async fn start_mood_radio(
         // genuinely nothing, the track path says so in the words that
         // actually apply ("no tracks match this mood") rather than
         // blaming the albums.
-        let by_album = mood_radio_by_album(&pool, &profile).await?;
+        let mut by_album = mood_radio_by_album(&pool, mood).await?;
+        // A record keeps its order but loses the tracks taken out of
+        // this mood: the record was chosen, those tracks were not. The
+        // query already left them out of its counts; this drops them
+        // from the queue, which reads every track of the record.
+        let excluded: std::collections::HashSet<i64> =
+            overridden_tracks(&pool, mood, OverrideKind::Exclude)
+                .await?
+                .into_iter()
+                .collect();
+        by_album.retain(|id| !excluded.contains(id));
         if !by_album.is_empty() {
             return Ok(MoodRadioSession {
                 track_ids: by_album,
@@ -300,15 +344,38 @@ pub async fn start_mood_radio(
         tracing::info!("no record fits this mood; falling back to individual tracks");
     }
 
-    let rows = candidate_pool(&pool, &profile, POOL_SIZE).await?;
-    if rows.is_empty() {
+    // The tracks put into this mood by hand come first, in a fresh
+    // order each run, and the ranking fills what they leave. They skip
+    // the per-artist cap: the user chose each one.
+    let mut track_ids = overridden_tracks(&pool, mood, OverrideKind::Include).await?;
+    track_ids.truncate(TARGET_LEN);
+    if track_ids.len() == TARGET_LEN {
+        // The hand-picked tracks fill the radio: nothing to rank.
+        return Ok(MoodRadioSession {
+            track_ids,
+            album_ordered: false,
+        });
+    }
+    let rows: Vec<MoodCandidate> = candidate_pool(&pool, mood, POOL_SIZE)
+        .await?
+        .into_iter()
+        .filter(|c| !track_ids.contains(&c.track_id))
+        .collect();
+    if rows.is_empty() && track_ids.is_empty() {
         return Err(AppError::Other(
             "no tracks match this mood — run BPM analysis on your library first".into(),
         ));
     }
+    let room = TARGET_LEN - track_ids.len();
+    track_ids.extend(waveflow_core::mood::rank_and_cap(
+        &profile,
+        rows,
+        room,
+        PER_ARTIST_CAP,
+    ));
 
     Ok(MoodRadioSession {
-        track_ids: waveflow_core::mood::rank_and_cap(&profile, rows, TARGET_LEN, PER_ARTIST_CAP),
+        track_ids,
         // The fallback path, and every run with the setting off: a list
         // of individual tracks, whatever they happen to be.
         album_ordered: false,
@@ -329,9 +396,10 @@ pub async fn start_mood_radio(
 /// loudness gate (Sleep). See the module header.
 async fn candidate_pool(
     pool: &SqlitePool,
-    profile: &MoodProfile,
+    mood: Mood,
     limit: i64,
 ) -> AppResult<Vec<MoodCandidate>> {
+    let profile = mood.profile();
     #[derive(sqlx::FromRow)]
     struct Row {
         track_id: i64,
@@ -354,6 +422,9 @@ async fn candidate_pool(
           WHERE t.is_available = 1
             AND ta.bpm IS NOT NULL
             AND ta.bpm > 0
+            AND NOT EXISTS (SELECT 1 FROM mood_override mo
+                             WHERE mo.track_id = t.id AND mo.mood = ?5
+                               AND mo.kind = 'exclude')
             AND ",
         lufs_under_ceiling!("?4"),
         " AND ",
@@ -373,6 +444,7 @@ async fn candidate_pool(
     .bind(profile.bpm_max)
     .bind(limit)
     .bind(profile.lufs_ceiling)
+    .bind(mood.as_str())
     .fetch_all(pool)
     .await?;
 
@@ -399,7 +471,8 @@ async fn candidate_pool(
 /// cap becomes a cap on records, for the same reason as on tracks:
 /// without it a heavy listener's mood radio is one artist's
 /// discography.
-async fn mood_radio_by_album(pool: &SqlitePool, profile: &MoodProfile) -> AppResult<Vec<i64>> {
+async fn mood_radio_by_album(pool: &SqlitePool, mood: Mood) -> AppResult<Vec<i64>> {
+    let profile = &mood.profile();
     #[derive(sqlx::FromRow)]
     struct Row {
         album_id: i64,
@@ -428,6 +501,11 @@ async fn mood_radio_by_album(pool: &SqlitePool, profile: &MoodProfile) -> AppRes
            LEFT JOIN track_analysis ta ON ta.track_id = t.id
           WHERE t.is_available = 1
             AND t.album_id IS NOT NULL
+            -- Out of the fit and of the budget: a track taken out of
+            -- this mood is not queued, so it must not be counted.
+            AND NOT EXISTS (SELECT 1 FROM mood_override mo
+                             WHERE mo.track_id = t.id AND mo.mood = ?7
+                               AND mo.kind = 'exclude')
           GROUP BY t.album_id
          HAVING SUM(CASE WHEN ta.bpm IS NOT NULL THEN 1 ELSE 0 END) >= ?4
             AND SUM(CASE WHEN ta.bpm IS NOT NULL AND ta.bpm > 0 AND ",
@@ -451,6 +529,7 @@ async fn mood_radio_by_album(pool: &SqlitePool, profile: &MoodProfile) -> AppRes
     .bind(ALBUM_MIN_ANALYSED)
     .bind(ALBUM_POOL_SIZE)
     .bind(profile.lufs_ceiling)
+    .bind(mood.as_str())
     .fetch_all(pool)
     .await?;
 
@@ -516,14 +595,18 @@ async fn mood_radio_by_album(pool: &SqlitePool, profile: &MoodProfile) -> AppRes
 pub async fn mood_radio_counts(state: tauri::State<'_, AppState>) -> AppResult<MoodCounts> {
     let pool = state.require_profile_pool().await?;
     let (analysed_tracks, total_tracks) = analysis_coverage(&pool).await?;
+    let overrides: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM mood_override")
+        .fetch_one(&*pool)
+        .await?;
     Ok(MoodCounts {
-        focus: count_for_mood(&pool, &Mood::Focus.profile()).await?,
-        chill: count_for_mood(&pool, &Mood::Chill.profile()).await?,
-        workout: count_for_mood(&pool, &Mood::Workout.profile()).await?,
-        party: count_for_mood(&pool, &Mood::Party.profile()).await?,
-        sleep: count_for_mood(&pool, &Mood::Sleep.profile()).await?,
+        focus: count_for_mood(&pool, Mood::Focus).await?,
+        chill: count_for_mood(&pool, Mood::Chill).await?,
+        workout: count_for_mood(&pool, Mood::Workout).await?,
+        party: count_for_mood(&pool, Mood::Party).await?,
+        sleep: count_for_mood(&pool, Mood::Sleep).await?,
         analysed_tracks,
         total_tracks,
+        overrides,
     })
 }
 
@@ -539,6 +622,11 @@ pub struct MoodCounts {
     pub analysed_tracks: i64,
     /// Playable tracks in the library, analysed or not.
     pub total_tracks: i64,
+    /// Tracks put into or taken out of a mood by hand, every mood
+    /// together. The home section stays while there are any, even with
+    /// every count at zero, or a user who took everything out could not
+    /// reach the dialog that puts it back.
+    pub overrides: i64,
 }
 
 /// How much of the library has a tempo, and how big the library is.
@@ -560,25 +648,188 @@ async fn analysis_coverage(pool: &SqlitePool) -> AppResult<(i64, i64)> {
     Ok((row.0.unwrap_or(0), row.1))
 }
 
-async fn count_for_mood(pool: &SqlitePool, profile: &MoodProfile) -> AppResult<i64> {
+/// What a mood can draw from: the tracks its gates admit, less those
+/// taken out of it by hand, plus those put into it by hand whatever
+/// their analysis says.
+async fn count_for_mood(pool: &SqlitePool, mood: Mood) -> AppResult<i64> {
+    let profile = mood.profile();
     let n: i64 = sqlx::query_scalar(concat!(
         "SELECT COUNT(*)
            FROM track t
-           JOIN track_analysis ta ON ta.track_id = t.id
+           LEFT JOIN track_analysis ta ON ta.track_id = t.id
+           LEFT JOIN mood_override mo ON mo.track_id = t.id AND mo.mood = ?4
           WHERE t.is_available = 1
-            AND ta.bpm IS NOT NULL
-            AND ta.bpm > 0
-            AND ",
+            AND (mo.kind = 'include'
+                 OR (mo.kind IS NULL
+                     AND ta.bpm IS NOT NULL
+                     AND ta.bpm > 0
+                     AND ",
         lufs_under_ceiling!("?3"),
         " AND ",
-        bpm_any_octave!()
+        bpm_any_octave!(),
+        "))"
     ))
     .bind(profile.bpm_min)
     .bind(profile.bpm_max)
     .bind(profile.lufs_ceiling)
+    .bind(mood.as_str())
     .fetch_one(pool)
     .await?;
     Ok(n)
+}
+
+/// A track put into a mood by hand, or taken out of one.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum OverrideKind {
+    Include,
+    Exclude,
+}
+
+impl OverrideKind {
+    fn as_str(self) -> &'static str {
+        match self {
+            OverrideKind::Include => "include",
+            OverrideKind::Exclude => "exclude",
+        }
+    }
+
+    fn parse(s: &str) -> Option<OverrideKind> {
+        match s {
+            "include" => Some(OverrideKind::Include),
+            "exclude" => Some(OverrideKind::Exclude),
+            _ => None,
+        }
+    }
+}
+
+/// The playable tracks of one kind of override for a mood, in a fresh
+/// random order.
+async fn overridden_tracks(
+    pool: &SqlitePool,
+    mood: Mood,
+    kind: OverrideKind,
+) -> AppResult<Vec<i64>> {
+    Ok(sqlx::query_scalar(
+        "SELECT mo.track_id
+           FROM mood_override mo
+           JOIN track t ON t.id = mo.track_id
+          WHERE mo.mood = ? AND mo.kind = ? AND t.is_available = 1
+          ORDER BY RANDOM()",
+    )
+    .bind(mood.as_str())
+    .bind(kind.as_str())
+    .fetch_all(pool)
+    .await?)
+}
+
+#[derive(Debug, Serialize)]
+pub struct TrackMoodOverride {
+    pub mood: Mood,
+    pub kind: OverrideKind,
+}
+
+/// The moods a track was put into or taken out of by hand, for the
+/// track menu to show where it stands.
+#[tauri::command]
+pub async fn track_mood_overrides(
+    state: tauri::State<'_, AppState>,
+    track_id: i64,
+) -> AppResult<Vec<TrackMoodOverride>> {
+    let pool = state.require_profile_pool().await?;
+    let rows: Vec<(String, String)> =
+        sqlx::query_as("SELECT mood, kind FROM mood_override WHERE track_id = ?")
+            .bind(track_id)
+            .fetch_all(&*pool)
+            .await?;
+    Ok(rows
+        .into_iter()
+        .filter_map(|(mood, kind)| {
+            Some(TrackMoodOverride {
+                mood: Mood::parse(&mood)?,
+                kind: OverrideKind::parse(&kind)?,
+            })
+        })
+        .collect())
+}
+
+/// Put `track_ids` into `mood`, take them out of it, or — with `kind`
+/// absent — hand them back to the gates.
+#[tauri::command]
+pub async fn set_mood_override(
+    state: tauri::State<'_, AppState>,
+    mood: Mood,
+    track_ids: Vec<i64>,
+    kind: Option<OverrideKind>,
+) -> AppResult<()> {
+    let pool = state.require_profile_pool().await?;
+    let now = chrono::Utc::now().timestamp_millis();
+    let mut tx = pool.begin().await?;
+    for track_id in track_ids {
+        match kind {
+            Some(kind) => {
+                sqlx::query(
+                    "INSERT INTO mood_override (mood, track_id, kind, added_at)
+                     VALUES (?, ?, ?, ?)
+                     ON CONFLICT(mood, track_id)
+                     DO UPDATE SET kind = excluded.kind, added_at = excluded.added_at",
+                )
+                .bind(mood.as_str())
+                .bind(track_id)
+                .bind(kind.as_str())
+                .bind(now)
+                .execute(&mut *tx)
+                .await?;
+            }
+            None => {
+                sqlx::query("DELETE FROM mood_override WHERE mood = ? AND track_id = ?")
+                    .bind(mood.as_str())
+                    .bind(track_id)
+                    .execute(&mut *tx)
+                    .await?;
+            }
+        }
+    }
+    tx.commit().await?;
+    Ok(())
+}
+
+#[derive(Debug, Serialize)]
+pub struct MoodOverrideTrack {
+    pub kind: OverrideKind,
+    pub track: Track,
+}
+
+/// Every track put into or taken out of `mood` by hand, newest first,
+/// for the mood's page.
+#[tauri::command]
+pub async fn list_mood_overrides(
+    state: tauri::State<'_, AppState>,
+    mood: Mood,
+) -> AppResult<Vec<MoodOverrideTrack>> {
+    let pool = state.require_profile_pool().await?;
+    let profile_id = state.require_profile_id().await?;
+    let artwork_dir = state.paths.profile_artwork_dir(profile_id);
+    let rows: Vec<(i64, String)> = sqlx::query_as(
+        "SELECT track_id, kind FROM mood_override
+          WHERE mood = ? ORDER BY added_at DESC, track_id",
+    )
+    .bind(mood.as_str())
+    .fetch_all(&*pool)
+    .await?;
+    let repo = SqliteTrackRepository::new((*pool).clone());
+    let mut out = Vec::with_capacity(rows.len());
+    for (track_id, kind) in rows {
+        let (Some(kind), Some(row)) = (OverrideKind::parse(&kind), repo.get(track_id).await?)
+        else {
+            continue;
+        };
+        out.push(MoodOverrideTrack {
+            kind,
+            track: track_from_row(row, &artwork_dir),
+        });
+    }
+    Ok(out)
 }
 
 #[cfg(test)]
@@ -627,16 +878,15 @@ mod tests {
             Mood::Party,
             Mood::Sleep,
         ] {
-            let profile = mood.profile();
-            assert!(candidate_pool(&pool, &profile, 10)
-                .await
-                .unwrap()
-                .is_empty());
-            assert!(mood_radio_by_album(&pool, &profile)
-                .await
-                .unwrap()
-                .is_empty());
-            assert_eq!(count_for_mood(&pool, &profile).await.unwrap(), 0);
+            assert!(candidate_pool(&pool, mood, 10).await.unwrap().is_empty());
+            assert!(mood_radio_by_album(&pool, mood).await.unwrap().is_empty());
+            assert_eq!(count_for_mood(&pool, mood).await.unwrap(), 0);
+            for kind in [OverrideKind::Include, OverrideKind::Exclude] {
+                assert!(overridden_tracks(&pool, mood, kind)
+                    .await
+                    .unwrap()
+                    .is_empty());
+            }
         }
         assert_eq!(analysis_coverage(&pool).await.unwrap(), (0, 0));
     }
@@ -663,8 +913,7 @@ mod tests {
         .await
         .unwrap();
 
-        let focus = Mood::Focus.profile();
-        let ids: Vec<i64> = candidate_pool(&pool, &focus, 10)
+        let ids: Vec<i64> = candidate_pool(&pool, Mood::Focus, 10)
             .await
             .unwrap()
             .into_iter()
@@ -675,7 +924,7 @@ mod tests {
             "170 BPM must reach a mood built on 88, as a halved reading"
         );
         assert!(!ids.contains(&2), "30 BPM is out under every reading");
-        assert_eq!(count_for_mood(&pool, &focus).await.unwrap(), 2);
+        assert_eq!(count_for_mood(&pool, Mood::Focus).await.unwrap(), 2);
 
         // A measured match comes before a corrected one, whatever the
         // shuffle does inside each group: a guess must not take a place
@@ -709,8 +958,7 @@ mod tests {
         .await
         .unwrap();
 
-        let sleep = Mood::Sleep.profile();
-        let mut ids: Vec<i64> = candidate_pool(&pool, &sleep, 10)
+        let mut ids: Vec<i64> = candidate_pool(&pool, Mood::Sleep, 10)
             .await
             .unwrap()
             .into_iter()
@@ -718,7 +966,32 @@ mod tests {
             .collect();
         ids.sort_unstable();
         assert_eq!(ids, vec![1, 4]);
-        assert_eq!(count_for_mood(&pool, &sleep).await.unwrap(), 2);
+        assert_eq!(count_for_mood(&pool, Mood::Sleep).await.unwrap(), 2);
+
+        // Taken out by hand: out of the pool and the count. Put in by
+        // hand: counted, though its tempo is not Sleep's at all.
+        sqlx::query(
+            "INSERT INTO mood_override (mood, track_id, kind, added_at)
+                  VALUES ('sleep', 4, 'exclude', 0), ('sleep', 2, 'include', 0),
+                         ('focus', 1, 'exclude', 0);",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        let ids: Vec<i64> = candidate_pool(&pool, Mood::Sleep, 10)
+            .await
+            .unwrap()
+            .into_iter()
+            .map(|c| c.track_id)
+            .collect();
+        assert_eq!(ids, vec![1], "another mood's removal does not apply");
+        assert_eq!(count_for_mood(&pool, Mood::Sleep).await.unwrap(), 2);
+        assert_eq!(
+            overridden_tracks(&pool, Mood::Sleep, OverrideKind::Include)
+                .await
+                .unwrap(),
+            vec![2]
+        );
     }
 
     /// In album mode a record plays whole, so a single track measured
@@ -747,9 +1020,24 @@ mod tests {
         .await
         .unwrap();
 
-        let ids = mood_radio_by_album(&pool, &Mood::Sleep.profile())
-            .await
-            .unwrap();
+        let ids = mood_radio_by_album(&pool, Mood::Sleep).await.unwrap();
         assert_eq!(ids, vec![1, 2, 3], "an unmeasured track does not count");
+
+        // Taking the loud track out of Sleep by hand lets its record in:
+        // what is left of it is all quiet.
+        sqlx::query(
+            "INSERT INTO mood_override (mood, track_id, kind, added_at)
+                  VALUES ('sleep', 6, 'exclude', 0);",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        let mut ids = mood_radio_by_album(&pool, Mood::Sleep).await.unwrap();
+        ids.sort_unstable();
+        assert_eq!(
+            ids,
+            vec![1, 2, 3, 4, 5, 6],
+            "the queue reads the whole record"
+        );
     }
 }

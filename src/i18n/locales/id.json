@@ -1138,7 +1138,10 @@
     "ratingNone": "Tanpa penilaian",
     "batchEdit": "Sunting tag untuk {{count}} lagu…",
     "addToPlaylistNamed": "Tambahkan ke \"{{name}}\"",
-    "removeFromPlaylistNamed": "Hapus dari \"{{name}}\""
+    "removeFromPlaylistNamed": "Hapus dari \"{{name}}\"",
+    "moods": "Mood",
+    "moodAddTo": "Tambahkan ke",
+    "moodRemoveFrom": "Hapus dari"
   },
   "batchTagEdit": {
     "title": "Sunting tag massal",
@@ -3072,5 +3075,15 @@
     "playNext_other": "{{count}} lagu diputar berikutnya",
     "added_one": "{{count}} lagu ditambahkan ke antrean",
     "added_other": "{{count}} lagu ditambahkan ke antrean"
+  },
+  "moodCuration": {
+    "open": "Edit mood",
+    "title": "Edit mood",
+    "subtitle": "Lagu yang ditambahkan ke mood atau dihapus darinya secara manual. Untuk mengubah lagu, klik kanan lalu pilih Mood.",
+    "added": "Ditambahkan manual",
+    "removed": "Dihapus manual",
+    "empty": "Belum ada perubahan manual untuk mood ini.",
+    "undo": "Urungkan",
+    "undoTrack": "Urungkan perubahan untuk {{title}}"
   }
 }
