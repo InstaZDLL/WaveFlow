@@ -1442,6 +1442,40 @@ export function groupSharedStamps(lines: LyricsLine[]): LyricsLine[] {
 }
 
 /**
+ * Lines written `original^translation`, as some LRCLIB answers carry
+ * them: the part after the `^` becomes the line's first companion, shown
+ * under it and lit with it like a translation stamped on its own line
+ * (#821).
+ *
+ * Only when the file does it on purpose — at least half of its lines with
+ * text carry a `^` — because a single caret in a lyric is a character, not
+ * a separator. Word-timed lines are left whole: their words are the
+ * original's, and splitting the text would leave them pointing past it.
+ */
+export function splitCaretTranslations(lines: LyricsLine[]): LyricsLine[] {
+  const plain = lines.filter(
+    (l) => !(l.words?.length ?? 0) && l.text.trim() !== "",
+  );
+  const withCaret = plain.filter((l) => l.text.includes("^")).length;
+  if (withCaret === 0 || withCaret * 2 < plain.length) return lines;
+  return lines.map((line) => {
+    if (line.words?.length) return line;
+    const at = line.text.indexOf("^");
+    if (at < 0) return line;
+    const original = line.text.slice(0, at).trim();
+    const translation = line.text.slice(at + 1).trim();
+    if (original === "") return line;
+    return {
+      ...line,
+      text: original,
+      ...(translation !== ""
+        ? { companions: [translation, ...(line.companions ?? [])] }
+        : {}),
+    };
+  });
+}
+
+/**
  * LRC that carries stamps but no timing: more than half of its sung lines
  * share one time. Some sources stamp every line `[00:00.00]`; read as
  * synced, only the last line would ever light up. Shown as plain text
