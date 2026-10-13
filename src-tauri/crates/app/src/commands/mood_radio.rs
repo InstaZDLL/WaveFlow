@@ -436,6 +436,12 @@ async fn mood_radio_by_album(pool: &SqlitePool, profile: &MoodProfile) -> AppRes
         bpm_any_octave!(),
         "          THEN 1 ELSE 0 END) * 1.0
                 / SUM(CASE WHEN ta.bpm IS NOT NULL THEN 1 ELSE 0 END) >= ?3
+            -- A record plays whole, so one track measured over the
+            -- loudness gate rules it out: the fit above only asks that
+            -- most of it be right, and would queue the loud track too.
+            AND SUM(CASE WHEN NOT ",
+        lufs_under_ceiling!("?6"),
+        " THEN 1 ELSE 0 END) = 0
           ORDER BY RANDOM()
           LIMIT ?5"
     ))
@@ -713,5 +719,37 @@ mod tests {
         ids.sort_unstable();
         assert_eq!(ids, vec![1, 4]);
         assert_eq!(count_for_mood(&pool, &sleep).await.unwrap(), 2);
+    }
+
+    /// In album mode a record plays whole, so a single track measured
+    /// over Sleep's loudness gate rules the record out — the tempo fit
+    /// only asks that most of it be right, and would queue that track.
+    #[tokio::test]
+    async fn sleep_refuses_a_record_with_one_loud_track() {
+        let pool = pool().await;
+        sqlx::query(
+            "INSERT INTO library (id, name, created_at, updated_at) VALUES (1, 'l', 0, 0);
+             INSERT INTO album (id, title) VALUES (1, 'Quiet'), (2, 'Mostly quiet');
+             INSERT INTO track (id, library_id, album_id, track_number, file_path,
+                                file_hash, file_size, file_modified, title,
+                                duration_ms, added_at)
+                  VALUES (1, 1, 1, 1, '/q/1.flac', 'q1', 1, 0, 'a', 200000, 0),
+                         (2, 1, 1, 2, '/q/2.flac', 'q2', 1, 0, 'b', 200000, 0),
+                         (3, 1, 1, 3, '/q/3.flac', 'q3', 1, 0, 'c', 200000, 0),
+                         (4, 1, 2, 1, '/m/1.flac', 'm1', 1, 0, 'd', 200000, 0),
+                         (5, 1, 2, 2, '/m/2.flac', 'm2', 1, 0, 'e', 200000, 0),
+                         (6, 1, 2, 3, '/m/3.flac', 'm3', 1, 0, 'f', 200000, 0);
+             INSERT INTO track_analysis (track_id, bpm, loudness_lufs, analyzed_at)
+                  VALUES (1, 55.0, -20.0, 0), (2, 55.0, -20.0, 0), (3, 55.0, NULL, 0),
+                         (4, 55.0, -20.0, 0), (5, 55.0, -20.0, 0), (6, 55.0, -7.0, 0);",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let ids = mood_radio_by_album(&pool, &Mood::Sleep.profile())
+            .await
+            .unwrap();
+        assert_eq!(ids, vec![1, 2, 3], "an unmeasured track does not count");
     }
 }
