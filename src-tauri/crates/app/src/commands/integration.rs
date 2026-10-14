@@ -552,13 +552,16 @@ pub async fn listenbrainz_disconnect(state: tauri::State<'_, AppState>) -> AppRe
 /// disconnect command and the worker, which lands here when ListenBrainz
 /// stops accepting the token.
 pub async fn forget_listenbrainz(pool: &sqlx::SqlitePool) -> Result<(), sqlx::Error> {
+    // One transaction: a queue left behind without its token would sit
+    // there with nothing to send it.
+    let mut tx = pool.begin().await?;
     sqlx::query("DELETE FROM auth_credential WHERE provider = 'listenbrainz'")
-        .execute(pool)
+        .execute(&mut *tx)
         .await?;
     sqlx::query("DELETE FROM scrobble_queue WHERE provider = 'listenbrainz'")
-        .execute(pool)
+        .execute(&mut *tx)
         .await?;
-    Ok(())
+    tx.commit().await
 }
 
 /// Drop the ListenBrainz token **if it is still `token`**, and the queued
@@ -569,20 +572,24 @@ pub async fn forget_listenbrainz_token(
     pool: &sqlx::SqlitePool,
     token: &str,
 ) -> Result<bool, sqlx::Error> {
+    // One transaction, like `forget_listenbrainz`; the queue goes only
+    // with the token it belonged to.
+    let mut tx = pool.begin().await?;
     let gone = sqlx::query(
         "DELETE FROM auth_credential
           WHERE provider = 'listenbrainz' AND token_encrypted = ?",
     )
     .bind(token.as_bytes())
-    .execute(pool)
+    .execute(&mut *tx)
     .await?
     .rows_affected()
         > 0;
     if gone {
         sqlx::query("DELETE FROM scrobble_queue WHERE provider = 'listenbrainz'")
-            .execute(pool)
+            .execute(&mut *tx)
             .await?;
     }
+    tx.commit().await?;
     Ok(gone)
 }
 
