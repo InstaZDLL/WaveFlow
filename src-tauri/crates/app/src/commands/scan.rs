@@ -682,10 +682,15 @@ fn collect_scannable_files_with(
         });
     let mut found = Vec::new();
     for (visited, entry) in walker.enumerate() {
-        if visited % LISTING_CHECK_EVERY == 0 {
-            if should_stop() {
-                return None;
-            }
+        let periodic = visited % LISTING_CHECK_EVERY == 0;
+        // Before every directory as well: yielding one is what makes the
+        // walk open it next, and opening a directory is the slow part on
+        // a share — a stop must not wait out one more of them.
+        let is_dir = entry.as_ref().is_ok_and(|e| e.file_type().is_dir());
+        if (periodic || is_dir) && should_stop() {
+            return None;
+        }
+        if periodic {
             if let Ok(entry) = &entry {
                 let dir = if entry.file_type().is_dir() {
                     entry.path()
