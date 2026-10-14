@@ -171,9 +171,13 @@ function TaskRow({
               {task.detail}
             </span>
           )}
-          {determinate && (
+          {/* With no total yet, the count alone: a scan listing a slow
+              share knows how many files it has found long before it
+              knows how many there are, and saying nothing made a walk of
+              several minutes look frozen. */}
+          {(determinate || task.current > 0) && (
             <span className="text-[11px] text-zinc-500 dark:text-zinc-400 ml-auto shrink-0 tabular-nums">
-              {task.current} / {task.total}
+              {determinate ? `${task.current} / ${task.total}` : task.current}
             </span>
           )}
         </div>

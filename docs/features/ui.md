@@ -124,6 +124,11 @@ have got at least one wrong. A task whose whole mechanism is a flag registers
 
 Two things a stopping point has to respect, both learned the hard way:
 
+- **A row with no total still counts.** `total = 0` means indeterminate, and
+  the bar pulses — but a count with nothing to divide it by is still worth
+  showing, so the row prints `current` alone once it is above zero. The scan's
+  listing phase is the case it exists for: it knows how many files it has found
+  long before it knows how many there are.
 - **A scan's safe stopping point is not between two files.** The scan ends with
   a pass that marks everything the walk did not reach as `is_available = 0`.
   Stopping halfway and letting that run marks a working library unavailable

@@ -1002,7 +1002,8 @@ mod tests {
         let pool = pool().await;
         sqlx::query(
             "INSERT INTO library (id, name, created_at, updated_at) VALUES (1, 'l', 0, 0);
-             INSERT INTO album (id, title) VALUES (1, 'Quiet'), (2, 'Mostly quiet');
+             INSERT INTO album (id, title, canonical_title)
+                  VALUES (1, 'Quiet', 'quiet'), (2, 'Mostly quiet', 'mostly quiet');
              INSERT INTO track (id, library_id, album_id, track_number, file_path,
                                 file_hash, file_size, file_modified, title,
                                 duration_ms, added_at)
@@ -1011,10 +1012,14 @@ mod tests {
                          (3, 1, 1, 3, '/q/3.flac', 'q3', 1, 0, 'c', 200000, 0),
                          (4, 1, 2, 1, '/m/1.flac', 'm1', 1, 0, 'd', 200000, 0),
                          (5, 1, 2, 2, '/m/2.flac', 'm2', 1, 0, 'e', 200000, 0),
-                         (6, 1, 2, 3, '/m/3.flac', 'm3', 1, 0, 'f', 200000, 0);
+                         (6, 1, 2, 3, '/m/3.flac', 'm3', 1, 0, 'f', 200000, 0),
+                         (7, 1, 2, 4, '/m/4.flac', 'm4', 1, 0, 'g', 200000, 0);
+             -- Four on the second record, so that taking the loud one out
+             -- still leaves the three analysed tracks a record needs.
              INSERT INTO track_analysis (track_id, bpm, loudness_lufs, analyzed_at)
                   VALUES (1, 55.0, -20.0, 0), (2, 55.0, -20.0, 0), (3, 55.0, NULL, 0),
-                         (4, 55.0, -20.0, 0), (5, 55.0, -20.0, 0), (6, 55.0, -7.0, 0);",
+                         (4, 55.0, -20.0, 0), (5, 55.0, -20.0, 0), (6, 55.0, -7.0, 0),
+                         (7, 55.0, -20.0, 0);",
         )
         .execute(&pool)
         .await
@@ -1036,7 +1041,7 @@ mod tests {
         ids.sort_unstable();
         assert_eq!(
             ids,
-            vec![1, 2, 3, 4, 5, 6],
+            vec![1, 2, 3, 4, 5, 6, 7],
             "the queue reads the whole record"
         );
     }
