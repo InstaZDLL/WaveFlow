@@ -36,7 +36,7 @@ export function ShareImageButton({
   const [menuAt, setMenuAt] = useState<ContextMenuPoint | null>(null);
 
   const icon = share.busy ? (
-    <Loader2 size={iconSize} className="animate-spin" />
+    <Loader2 size={iconSize} className="motion-safe:animate-spin" />
   ) : share.state === "done" ? (
     <Check size={iconSize} />
   ) : (

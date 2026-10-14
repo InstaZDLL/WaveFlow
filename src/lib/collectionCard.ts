@@ -237,7 +237,8 @@ function wrapLines(
       );
       return lines;
     }
-    lines.push(line);
+    // Truncated too: a first word wider than the line was taken whole.
+    lines.push(truncate(ctx, line, maxWidth));
     line = words[i];
   }
   if (line) lines.push(truncate(ctx, line, maxWidth));

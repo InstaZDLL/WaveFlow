@@ -1511,7 +1511,8 @@ export function PlaylistView({
                         subtitle: `${t("playlistView.trackCount", {
                           count: playlist.track_count,
                         })} · ${totalDurationLabel}`,
-                        rows: tracks.map((tr) => ({
+                        // In the order on screen, sort included.
+                        rows: displayTracks.map((tr) => ({
                           title: tr.title,
                           subtitle: tr.artist_name,
                         })),

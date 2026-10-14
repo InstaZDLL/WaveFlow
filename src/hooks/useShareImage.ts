@@ -67,9 +67,11 @@ export function useShareImage(
     clearReset();
     try {
       setState("copying");
-      const blob = await buildCard();
+      // The card handed over as a promise, not awaited first: rendering
+      // takes long enough for WebKit to consider the click spent, and it
+      // refuses a clipboard write that starts after that.
       await navigator.clipboard.write([
-        new ClipboardItem({ "image/png": blob }),
+        new ClipboardItem({ "image/png": buildCard() }),
       ]);
       finish();
     } catch (err) {

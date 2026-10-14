@@ -30,6 +30,7 @@ import { useTrackUpdated } from "../../hooks/useTrackUpdated";
 import { useArtistBioCollapsed } from "../../hooks/useArtistBioCollapsed";
 import { useArtistHero } from "../../hooks/useArtistHero";
 import {
+  remoteArtwork,
   remoteGetArtist,
   type RemoteArtist,
 } from "../../lib/tauri/remoteServer";
@@ -619,10 +620,21 @@ export function ArtistDetailView({
                 iconSize={16}
                 label={t("nowPlaying.share.open")}
                 className={`${secondaryButtonClass} px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm disabled:opacity-50`}
-                buildCard={() =>
+                buildCard={async () =>
                   renderCollectionCard({
                     shape: "circle",
-                    imageSrc: pictureSrc,
+                    // A server artist with no photo found by name still has
+                    // the portrait the header falls back to, cached on disk
+                    // under its hash.
+                    imageSrc:
+                      pictureSrc ??
+                      (remote && artist.artwork_hash
+                        ? await remoteArtwork(artist.artwork_hash)
+                            .then((path) =>
+                              resolveArtwork({ full: path }, "full"),
+                            )
+                            .catch(() => null)
+                        : null),
                     title: artist.name,
                     subtitle: `${t("artistDetail.trackCount", {
                       count: artist.track_count,
