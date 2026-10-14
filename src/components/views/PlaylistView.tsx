@@ -56,6 +56,8 @@ import { Artwork } from "../common/Artwork";
 import { AlbumLink } from "../common/AlbumLink";
 import { ArtistLink } from "../common/ArtistLink";
 import { Tooltip } from "../common/Tooltip";
+import { ShareImageButton } from "../common/ShareImageButton";
+import { renderCollectionCard } from "../../lib/collectionCard";
 import { EmptyState } from "../common/EmptyState";
 import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
 import { HiResBadge } from "../common/HiResBadge";
@@ -88,6 +90,7 @@ import {
   remoteDeletePlaylist,
   remoteDownloadTrack,
   remoteListDownloads,
+  remoteArtwork,
   remoteGetPlayQueue,
   remoteListPlaylists,
   remoteListPlaylistTracks,
@@ -109,7 +112,7 @@ import {
 } from "../../lib/playlistVisuals";
 import { PlaylistIcon } from "../../lib/PlaylistIcon";
 import { RemoteArtwork } from "../common/RemoteArtwork";
-import { resolveRemoteImage } from "../../lib/tauri/artwork";
+import { resolveArtwork, resolveRemoteImage } from "../../lib/tauri/artwork";
 import { isRemoteTrack } from "../../lib/playerSources";
 import { notifyRemoteChanged } from "../../hooks/useRemoteSource";
 import { useSortMemory } from "../../hooks/useSortMemory";
@@ -986,6 +989,30 @@ export function PlaylistView({
     remoteCoverHashes[0] ?? null,
   );
   const localAccentArtwork = resolveRemoteImage(playlist?.cover_path, null);
+
+  // The share card's collage: the same covers the header shows. A server
+  // track has no local path, only the hash of a cover the app caches on
+  // disk, so those are resolved first — read at share time, since that is
+  // a round-trip per cover and most visits never share.
+  const shareCollageSrcs = async (): Promise<string[]> => {
+    if (remote) {
+      const resolved = await Promise.all(
+        remoteCoverHashes.map((hash) =>
+          remoteArtwork(hash)
+            .then((path) => resolveArtwork({ full: path }, "full"))
+            .catch(() => null),
+        ),
+      );
+      return resolved.filter((src): src is string => src != null);
+    }
+    return [
+      ...new Set(
+        tracks
+          .map((tr) => resolveRemoteImage(tr.artwork_path, null))
+          .filter((src): src is string => src != null),
+      ),
+    ].slice(0, 4);
+  };
   const accent = usePlaylistAccent(
     remote ? remoteAccentArtwork : localAccentArtwork,
     playlist?.color_id ?? "violet",
@@ -1468,6 +1495,37 @@ export function PlaylistView({
                     </button>
                   </Tooltip>
                 )}
+
+                <Tooltip label={t("nowPlaying.share.open")}>
+                  <ShareImageButton
+                    fileStem={playlist.name}
+                    className={`p-2 rounded-lg transition-colors ${headerControl} disabled:opacity-50 disabled:cursor-not-allowed`}
+                    buildCard={async () =>
+                      renderCollectionCard({
+                        shape: "square",
+                        imageSrc: coverUrl,
+                        // A playlist with no cover of its own is shown by
+                        // what is in it: the first four distinct covers.
+                        collageSrcs: await shareCollageSrcs(),
+                        title: playlist.name,
+                        subtitle: `${t("playlistView.trackCount", {
+                          count: playlist.track_count,
+                        })} · ${totalDurationLabel}`,
+                        // In the order on screen, sort included.
+                        rows: displayTracks.map((tr) => ({
+                          title: tr.title,
+                          subtitle: tr.artist_name,
+                        })),
+                        labels: {
+                          eyebrow: t("playlistView.badge"),
+                          footer: t("nowPlaying.share.footer", {
+                            app: "WaveFlow",
+                          }),
+                        },
+                      })
+                    }
+                  />
+                </Tooltip>
 
                 <Tooltip
                   label={
