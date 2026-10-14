@@ -788,7 +788,10 @@ pub(crate) async fn scan_folder_inner(
     // Stopped while listing: nothing was read and nothing is written. In
     // particular not the disappearance sweep, which would take every
     // track the unfinished list had not reached yet for a deleted file.
-    let Some(audio_files) = listed else {
+    // Asked once more on the way out: the walk only looks every few
+    // entries, and a stop that lands after its last look with nothing
+    // found would meet no loop to notice it before the sweep.
+    let Some(audio_files) = listed.filter(|_| !cancelled()) else {
         tracing::info!(folder_id, walk_ms, "scan stopped while listing files");
         let summary = ScanSummary {
             folder_id,
