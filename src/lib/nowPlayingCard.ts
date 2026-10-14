@@ -1,6 +1,14 @@
 import type { Track } from "./tauri/track";
 import { resolveRemoteImage } from "./tauri/artwork";
 import { dominantColor } from "./dominantColor";
+import {
+  canvasToPng,
+  darken,
+  drawCard,
+  drawRoundedImage,
+  loadImage,
+  truncate,
+} from "./cardCanvas";
 
 /**
  * Build a 1080×1080 square "Now Playing" share card on an offscreen
@@ -187,107 +195,5 @@ export async function renderNowPlayingCard(
   ctx.textAlign = "center";
   ctx.fillText(opts.labels.footer, SIZE / 2, SIZE - 36);
 
-  return await new Promise<Blob>((resolve, reject) => {
-    canvas.toBlob(
-      (blob) => {
-        if (blob) resolve(blob);
-        else reject(new Error("canvas.toBlob returned null"));
-      },
-      "image/png",
-      0.95,
-    );
-  });
-}
-
-// =============================================================================
-// Helpers
-// =============================================================================
-
-function loadImage(src: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => resolve(img);
-    img.onerror = (e) => reject(e);
-    img.src = src;
-  });
-}
-
-function roundedRect(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  r: number,
-) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  ctx.lineTo(x + r, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y, x + r, y);
-  ctx.closePath();
-}
-
-function drawCard(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  r: number,
-  fill: string,
-) {
-  ctx.fillStyle = fill;
-  roundedRect(ctx, x, y, w, h, r);
-  ctx.fill();
-}
-
-function drawRoundedImage(
-  ctx: CanvasRenderingContext2D,
-  img: HTMLImageElement,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  r: number,
-) {
-  ctx.save();
-  roundedRect(ctx, x, y, w, h, r);
-  ctx.clip();
-  // Cover-fit: scale + centre-crop so square covers fit a square
-  // frame even if the source isn't 1:1.
-  const ratio = Math.max(w / img.width, h / img.height);
-  const drawW = img.width * ratio;
-  const drawH = img.height * ratio;
-  ctx.drawImage(img, x + (w - drawW) / 2, y + (h - drawH) / 2, drawW, drawH);
-  ctx.restore();
-}
-
-function truncate(
-  ctx: CanvasRenderingContext2D,
-  text: string,
-  maxWidth: number,
-): string {
-  if (ctx.measureText(text).width <= maxWidth) return text;
-  let s = text;
-  while (s.length > 1 && ctx.measureText(s + "…").width > maxWidth) {
-    s = s.slice(0, -1);
-  }
-  return s + "…";
-}
-
-function darken(
-  c: { r: number; g: number; b: number },
-  factor: number,
-): string {
-  const r = Math.max(0, Math.round(c.r * factor));
-  const g = Math.max(0, Math.round(c.g * factor));
-  const b = Math.max(0, Math.round(c.b * factor));
-  return `${r},${g},${b}`;
+  return canvasToPng(canvas);
 }

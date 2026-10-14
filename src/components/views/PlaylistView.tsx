@@ -56,6 +56,8 @@ import { Artwork } from "../common/Artwork";
 import { AlbumLink } from "../common/AlbumLink";
 import { ArtistLink } from "../common/ArtistLink";
 import { Tooltip } from "../common/Tooltip";
+import { ShareImageButton } from "../common/ShareImageButton";
+import { renderCollectionCard } from "../../lib/collectionCard";
 import { EmptyState } from "../common/EmptyState";
 import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
 import { HiResBadge } from "../common/HiResBadge";
@@ -1468,6 +1470,44 @@ export function PlaylistView({
                     </button>
                   </Tooltip>
                 )}
+
+                <Tooltip label={t("nowPlaying.share.open")}>
+                  <ShareImageButton
+                    fileStem={playlist.name}
+                    className={`p-2 rounded-lg transition-colors ${headerControl} disabled:opacity-50 disabled:cursor-not-allowed`}
+                    buildCard={() =>
+                      renderCollectionCard({
+                        shape: "square",
+                        imageSrc: coverUrl,
+                        // A playlist with no cover of its own is shown by
+                        // what is in it: the first four distinct covers.
+                        collageSrcs: [
+                          ...new Set(
+                            tracks
+                              .map((tr) =>
+                                resolveRemoteImage(tr.artwork_path, null),
+                              )
+                              .filter((src): src is string => src != null),
+                          ),
+                        ].slice(0, 4),
+                        title: playlist.name,
+                        subtitle: `${t("playlistView.trackCount", {
+                          count: playlist.track_count,
+                        })} · ${totalDurationLabel}`,
+                        rows: tracks.map((tr) => ({
+                          title: tr.title,
+                          subtitle: tr.artist_name,
+                        })),
+                        labels: {
+                          eyebrow: t("playlistView.badge"),
+                          footer: t("nowPlaying.share.footer", {
+                            app: "WaveFlow",
+                          }),
+                        },
+                      })
+                    }
+                  />
+                </Tooltip>
 
                 <Tooltip
                   label={
