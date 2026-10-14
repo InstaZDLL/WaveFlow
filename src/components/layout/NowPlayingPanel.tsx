@@ -92,13 +92,18 @@ export function NowPlayingPanel({
   useEffect(() => {
     if (!isNowPlayingOpen) return;
     let cancelled = false;
+    // A burst of `queue-changed` events sends several reads at once, and
+    // they can answer out of order: only the latest one may write, or an
+    // older snapshot would list a queue that is already gone.
+    let latest = 0;
     const fetchNext = () => {
+      const seq = ++latest;
       playerGetQueue()
         .then((q) => {
-          if (!cancelled) setQueue(q);
+          if (!cancelled && seq === latest) setQueue(q);
         })
         .catch(() => {
-          if (!cancelled) setQueue(null);
+          if (!cancelled && seq === latest) setQueue(null);
         });
     };
     fetchNext();
