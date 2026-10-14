@@ -30,9 +30,15 @@ import { enrichArtistByName, enrichArtistDeezer } from "../../lib/tauri/detail";
 import { resolveArtwork } from "../../lib/tauri/artwork";
 import {
   playerGetQueue,
+  playerJumpToIndex,
   playerPlayTracks,
-  type QueueTrackPayload,
+  type PlayerQueueSnapshot,
 } from "../../lib/tauri/player";
+import { formatDuration } from "../../lib/tauri/track";
+
+/** Tracks of the rest of the album listed before the list stops and the
+ *  full queue takes over: a double album would otherwise fill the panel. */
+const ALBUM_REST_SHOWN = 12;
 import { startRadio } from "../../lib/tauri/radio";
 
 interface NowPlayingPanelProps {
@@ -78,25 +84,21 @@ export function NowPlayingPanel({
   const [bioFull, setBioFull] = useState<string | null>(null);
   const [bioExpanded, setBioExpanded] = useState(false);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
-  const [nextTrack, setNextTrack] = useState<QueueTrackPayload | null>(null);
+  const [queue, setQueue] = useState<PlayerQueueSnapshot | null>(null);
 
-  // Pull the next queue item so we can mirror Spotify's "Next in queue"
-  // teaser at the bottom of the panel. Refetched on track change and on
-  // any backend-driven queue mutation.
+  // The queue, for what plays next: the rest of the current album, or the
+  // one-track teaser. Refetched on track change and on any backend-driven
+  // queue mutation.
   useEffect(() => {
     if (!isNowPlayingOpen) return;
     let cancelled = false;
     const fetchNext = () => {
       playerGetQueue()
         .then((q) => {
-          if (cancelled) return;
-          const idx = q.current_index;
-          const upcoming =
-            idx >= 0 && idx + 1 < q.items.length ? q.items[idx + 1] : null;
-          setNextTrack(upcoming);
+          if (!cancelled) setQueue(q);
         })
         .catch(() => {
-          if (!cancelled) setNextTrack(null);
+          if (!cancelled) setQueue(null);
         });
     };
     fetchNext();
@@ -262,6 +264,28 @@ export function NowPlayingPanel({
       cancelled = true;
     };
   }, [isRemote, currentTrack?.id, currentTrack?.artist_name]);
+
+  // The track after the current one, and — when the queue goes on with the
+  // same record — that record's remaining tracks, as far as the queue keeps
+  // to it. Read from the queue rather than from its source label, so an
+  // album-mode Daily Mix or mood radio gets it too, and it ends where the
+  // record does. Only while the queue's current row is this track: during a
+  // change the snapshot can lag it, and would list the wrong record.
+  const currentIndex = queue?.current_index ?? -1;
+  const queueItems = queue?.items ?? [];
+  const onCurrent =
+    currentTrack != null && queueItems[currentIndex]?.id === currentTrack.id;
+  const nextTrack =
+    onCurrent && currentIndex + 1 < queueItems.length
+      ? queueItems[currentIndex + 1]
+      : null;
+  const albumRest: { item: (typeof queueItems)[number]; index: number }[] = [];
+  if (onCurrent && currentTrack?.album_id != null) {
+    for (let i = currentIndex + 1; i < queueItems.length; i++) {
+      if (queueItems[i].album_id !== currentTrack.album_id) break;
+      albumRest.push({ item: queueItems[i], index: i });
+    }
+  }
 
   const displayedBio = bioExpanded ? (bioFull ?? bioShort) : bioShort;
   const canExpand =
@@ -541,6 +565,117 @@ export function NowPlayingPanel({
               {t("nowPlaying.startRadio")}
             </button>
 
+            {/* What plays next. While the next tracks are the rest of the
+                current record, the record: its title and every track still
+                to come, in the order they will play (#423). Otherwise the
+                one-track teaser. Above the artist, whose biography can run
+                long and used to push this out of view. */}
+            {albumRest.length > 0 ? (
+              <div className="space-y-3 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h3 className="text-[10px] font-bold tracking-widest uppercase text-zinc-400">
+                      {t("nowPlaying.restOfAlbum")}
+                    </h3>
+                    {currentTrack.album_title && (
+                      <div className="mt-0.5 text-xs font-medium truncate text-zinc-600 dark:text-zinc-300">
+                        {currentTrack.album_title}
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      toggleNowPlaying();
+                      toggleQueue();
+                    }}
+                    className="shrink-0 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:underline"
+                  >
+                    {t("nowPlaying.openQueue")}
+                  </button>
+                </div>
+                <ol className="space-y-0.5">
+                  {albumRest
+                    .slice(0, ALBUM_REST_SHOWN)
+                    .map(({ item, index }) => (
+                      <li key={`${index}-${item.id}`}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            playerJumpToIndex(index).catch((err) =>
+                              console.error("[NowPlaying] jump failed", err),
+                            );
+                          }}
+                          className="w-full flex items-center gap-3 px-2 py-1.5 -mx-2 rounded-lg text-left hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-colors"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm truncate text-zinc-800 dark:text-zinc-200">
+                              {item.title}
+                            </div>
+                            {/* A compilation's tracks are not all the
+                              album artist's; say whose they are. */}
+                            {item.artist_name &&
+                              item.artist_name !== currentTrack.artist_name && (
+                                <div className="text-xs truncate text-zinc-500">
+                                  {item.artist_name}
+                                </div>
+                              )}
+                          </div>
+                          <span className="shrink-0 text-xs tabular-nums text-zinc-400">
+                            {formatDuration(item.duration_ms)}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                </ol>
+                {albumRest.length > ALBUM_REST_SHOWN && (
+                  <div className="text-[11px] text-zinc-400 tabular-nums">
+                    +{albumRest.length - ALBUM_REST_SHOWN}
+                  </div>
+                )}
+              </div>
+            ) : (
+              nextTrack && (
+                <div className="space-y-3 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-[10px] font-bold tracking-widest uppercase text-zinc-400">
+                      {t("nowPlaying.nextInQueue")}
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        toggleNowPlaying();
+                        toggleQueue();
+                      }}
+                      className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:underline"
+                    >
+                      {t("nowPlaying.openQueue")}
+                    </button>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <Artwork
+                      path={nextTrack.artwork_path}
+                      path1x={nextTrack.artwork_path_1x}
+                      path2x={nextTrack.artwork_path_2x}
+                      size="1x"
+                      className="w-12 h-12 shrink-0"
+                      iconSize={20}
+                      alt={nextTrack.album_title ?? nextTrack.title}
+                      rounded="md"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium truncate text-zinc-800 dark:text-zinc-200">
+                        {nextTrack.title}
+                      </div>
+                      <div className="text-xs text-zinc-500 truncate">
+                        {nextTrack.artist_name ?? "—"}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )
+            )}
+
             {/* About the artist */}
             {primaryArtistName && (
               <div className="space-y-3 pt-4 border-t border-zinc-100 dark:border-zinc-800">
@@ -594,47 +729,6 @@ export function NowPlayingPanel({
                     {t("nowPlaying.noBio")}
                   </p>
                 )}
-              </div>
-            )}
-
-            {/* Next in queue */}
-            {nextTrack && (
-              <div className="space-y-3 pt-4 border-t border-zinc-100 dark:border-zinc-800">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-[10px] font-bold tracking-widest uppercase text-zinc-400">
-                    {t("nowPlaying.nextInQueue")}
-                  </h3>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      toggleNowPlaying();
-                      toggleQueue();
-                    }}
-                    className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:underline"
-                  >
-                    {t("nowPlaying.openQueue")}
-                  </button>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Artwork
-                    path={nextTrack.artwork_path}
-                    path1x={nextTrack.artwork_path_1x}
-                    path2x={nextTrack.artwork_path_2x}
-                    size="1x"
-                    className="w-12 h-12 shrink-0"
-                    iconSize={20}
-                    alt={nextTrack.album_title ?? nextTrack.title}
-                    rounded="md"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium truncate text-zinc-800 dark:text-zinc-200">
-                      {nextTrack.title}
-                    </div>
-                    <div className="text-xs text-zinc-500 truncate">
-                      {nextTrack.artist_name ?? "—"}
-                    </div>
-                  </div>
-                </div>
               </div>
             )}
           </div>

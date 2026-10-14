@@ -1404,7 +1404,8 @@
       "copy": "Copiar imagem",
       "eyebrow": "Tocando agora",
       "footer": "no {{app}}"
-    }
+    },
+    "restOfAlbum": "Restante do álbum"
   },
   "playerBar": {
     "lyrics": "Letra",

@@ -1353,7 +1353,8 @@
       "copy": "이미지 복사",
       "eyebrow": "지금 재생 중",
       "footer": "{{app}}에서"
-    }
+    },
+    "restOfAlbum": "앨범의 남은 곡"
   },
   "playerBar": {
     "lyrics": "가사",

@@ -1353,7 +1353,8 @@
       "copy": "画像をコピー",
       "eyebrow": "再生中",
       "footer": "{{app}}で"
-    }
+    },
+    "restOfAlbum": "このアルバムの続き"
   },
   "playerBar": {
     "lyrics": "歌詞",

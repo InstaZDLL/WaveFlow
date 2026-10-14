@@ -1353,7 +1353,8 @@
       "copy": "Görseli kopyala",
       "eyebrow": "Şimdi çalıyor",
       "footer": "{{app}}'da"
-    }
+    },
+    "restOfAlbum": "Albümün devamı"
   },
   "playerBar": {
     "lyrics": "Sözler",

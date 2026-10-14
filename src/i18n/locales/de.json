@@ -1353,7 +1353,8 @@
       "copy": "Bild kopieren",
       "eyebrow": "Wird gespielt",
       "footer": "auf {{app}}"
-    }
+    },
+    "restOfAlbum": "Rest des Albums"
   },
   "playerBar": {
     "lyrics": "Songtext",

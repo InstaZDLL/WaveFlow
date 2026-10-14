@@ -1353,7 +1353,8 @@
       "copy": "Copy image",
       "eyebrow": "Now playing",
       "footer": "on {{app}}"
-    }
+    },
+    "restOfAlbum": "Rest of the album"
   },
   "playerBar": {
     "lyrics": "Lyrics",

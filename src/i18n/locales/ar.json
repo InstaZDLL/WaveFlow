@@ -1516,7 +1516,8 @@
       "copy": "نسخ الصورة",
       "eyebrow": "قيد التشغيل",
       "footer": "على {{app}}"
-    }
+    },
+    "restOfAlbum": "بقية الألبوم"
   },
   "playerBar": {
     "lyrics": "الكلمات",

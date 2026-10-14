@@ -1404,7 +1404,8 @@
       "copy": "Copiar imagem",
       "eyebrow": "A reproduzir",
       "footer": "no {{app}}"
-    }
+    },
+    "restOfAlbum": "Resto do álbum"
   },
   "playerBar": {
     "lyrics": "Letra",

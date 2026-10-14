@@ -1353,7 +1353,8 @@
       "copy": "複製圖片",
       "eyebrow": "正在播放",
       "footer": "來自 {{app}}"
-    }
+    },
+    "restOfAlbum": "專輯後續曲目"
   },
   "playerBar": {
     "lyrics": "歌詞",

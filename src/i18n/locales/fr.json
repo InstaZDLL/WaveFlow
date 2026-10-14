@@ -1403,7 +1403,8 @@
       "copy": "Copier l'image",
       "eyebrow": "En cours d'écoute",
       "footer": "sur {{app}}"
-    }
+    },
+    "restOfAlbum": "Suite de l'album"
   },
   "playerBar": {
     "lyrics": "Paroles",

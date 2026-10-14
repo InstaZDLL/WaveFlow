@@ -1403,7 +1403,8 @@
       "copy": "Copiar imagen",
       "eyebrow": "Reproduciendo ahora",
       "footer": "en {{app}}"
-    }
+    },
+    "restOfAlbum": "Resto del álbum"
   },
   "playerBar": {
     "lyrics": "Letras",
