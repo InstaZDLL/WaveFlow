@@ -241,9 +241,7 @@
       "playlistSubtextPending_zero": "0 ट्रैक · अभी नहीं भेजी गई",
       "playlistSubtextPending_one": "{{count}} ट्रैक · अभी नहीं भेजी गई",
       "playlistSubtextPending_other": "{{count}} ट्रैक · अभी नहीं भेजी गई"
-    },
-    "collapse": "साइडबार छोटा करें",
-    "expand": "साइडबार बड़ा करें"
+    }
   },
   "topbar": {
     "search": {
@@ -288,7 +286,8 @@
       "quit": "ऐप से बाहर निकलें"
     },
     "showSidebar": "साइडबार दिखाएँ",
-    "hideSidebar": "साइडबार छिपाएँ"
+    "hideSidebar": "साइडबार छिपाएँ",
+    "collapseSidebar": "साइडबार छोटा करें"
   },
   "home": {
     "greeting": {

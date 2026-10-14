@@ -247,9 +247,7 @@
       "playlistSubtextPending_one": "{{count}} faixa · ainda não enviada",
       "playlistSubtextPending_other": "{{count}} faixas · ainda não enviada",
       "playlistSubtextPending_many": "{{count}} faixas · ainda não enviada"
-    },
-    "collapse": "Recolher a barra lateral",
-    "expand": "Expandir a barra lateral"
+    }
   },
   "topbar": {
     "search": {
@@ -295,7 +293,8 @@
       "quit": "Sair da aplicação"
     },
     "showSidebar": "Mostrar a barra lateral",
-    "hideSidebar": "Ocultar a barra lateral"
+    "hideSidebar": "Ocultar a barra lateral",
+    "collapseSidebar": "Recolher a barra lateral"
   },
   "home": {
     "greeting": {

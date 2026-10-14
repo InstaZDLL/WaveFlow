@@ -15,8 +15,6 @@ import {
   Upload,
   Sparkles,
   Radio,
-  ChevronsLeft,
-  ChevronsRight,
 } from "lucide-react";
 import type { ViewId, LibraryTab } from "../../types";
 import { NavItem } from "../common/NavItem";
@@ -68,10 +66,9 @@ interface SidebarProps {
     initialPath: string,
     icon: string | null,
   ) => void;
-  /** Icons only, 80 px wide. Distinct from hiding the sidebar, which
-   *  the top bar does; both are remembered. */
+  /** Icons only, 80 px wide — one of the three widths the top bar's
+   *  button cycles. */
   collapsed: boolean;
-  onToggleCollapsed: () => void;
 }
 
 export function Sidebar({
@@ -86,7 +83,6 @@ export function Sidebar({
   activePluginId,
   navigateToPluginUi,
   collapsed,
-  onToggleCollapsed,
 }: SidebarProps) {
   const { t } = useTranslation();
   const createFromModal = useCreatePlaylistFromModal();
@@ -302,30 +298,18 @@ export function Sidebar({
           hides the wordmark and the name rather than removing them. */}
       <div className={collapsed ? "px-2 pt-5 pb-2" : "p-6 pb-2"}>
         <div
-          className={`flex font-bold text-xl mb-6 ${
-            collapsed ? "flex-col items-center gap-3" : "items-center space-x-2"
+          className={`flex items-center font-bold text-xl mb-6 ${
+            // No `space-x` when narrow: it would keep a margin on the
+            // logo for the hidden wordmark and push it off centre.
+            collapsed ? "justify-center" : "space-x-2"
           }`}
         >
           <WaveFlowLogo className="w-7 h-7 shrink-0" />
           <span
-            className={`text-zinc-800 dark:text-white ${collapsed ? "sr-only" : "flex-1 min-w-0"}`}
+            className={`text-zinc-800 dark:text-white ${collapsed ? "sr-only" : ""}`}
           >
             WaveFlow
           </span>
-          <button
-            type="button"
-            onClick={onToggleCollapsed}
-            aria-expanded={!collapsed}
-            aria-label={t(collapsed ? "sidebar.expand" : "sidebar.collapse")}
-            title={t(collapsed ? "sidebar.expand" : "sidebar.collapse")}
-            className="sidebar-collapse-toggle shrink-0 p-1 rounded-lg text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 dark:hover:text-zinc-200 dark:hover:bg-zinc-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
-          >
-            {collapsed ? (
-              <ChevronsRight size={16} />
-            ) : (
-              <ChevronsLeft size={16} />
-            )}
-          </button>
         </div>
 
         <button

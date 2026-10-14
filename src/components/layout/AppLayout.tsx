@@ -6,7 +6,7 @@ import {
   useEffect,
   useRef,
 } from "react";
-import type { ViewId, LibraryTab } from "../../types";
+import type { ViewId, LibraryTab, SidebarMode } from "../../types";
 import { useLibrary } from "../../hooks/useLibrary";
 import { useProfile } from "../../hooks/useProfile";
 import { usePlayer } from "../../hooks/usePlayer";
@@ -214,51 +214,41 @@ export function AppLayout() {
   // whenever it names one.
   const [lastLibraryTab, setLastLibraryTab] = useState<LibraryTab>("tracks");
 
-  // Sidebar visibility toggle (#167). Hidden state is persisted in
-  // localStorage rather than `profile_setting` because it's a UI
-  // affordance — not data — and users on 1080p screens typically
-  // hide once and forget. The Sidebar component stays mounted at
-  // `width: 0` so its data fetches / event listeners don't tear
-  // down on every toggle. Hydration happens lazily so the initial
-  // render matches the persisted choice without a flash.
-  const [isSidebarHidden, setIsSidebarHidden] = useState<boolean>(() => {
+  // Sidebar width (#167): full, icons only, or hidden, cycled in that
+  // order by the top bar's one button. Persisted in localStorage rather
+  // than `profile_setting` because it's a UI affordance — not data — and
+  // users on 1080p screens typically pick once and forget. The Sidebar
+  // component stays mounted at `width: 0` so its data fetches / event
+  // listeners don't tear down on every toggle. Hydration happens lazily
+  // so the initial render matches the persisted choice without a flash.
+  const [sidebarMode, setSidebarMode] = useState<SidebarMode>(() => {
     try {
-      return localStorage.getItem("waveflow.sidebar.hidden") === "1";
+      const mode = localStorage.getItem("waveflow.sidebar.mode");
+      if (mode === "full" || mode === "icons" || mode === "hidden") {
+        return mode;
+      }
+      // Before the icons-only width, the button only hid the sidebar,
+      // under this key: someone who hid it finds it hidden still.
+      return localStorage.getItem("waveflow.sidebar.hidden") === "1"
+        ? "hidden"
+        : "full";
     } catch {
-      return false;
+      return "full";
     }
   });
-  // Narrow, icons-only mode — the sidebar's own button, distinct from
-  // hiding it. Persisted the same way, for the same reason.
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
-    try {
-      return localStorage.getItem("waveflow.sidebar.collapsed") === "1";
-    } catch {
-      return false;
-    }
-  });
-  const toggleSidebarCollapsed = useCallback(() => {
-    setIsSidebarCollapsed((prev) => {
-      const next = !prev;
+  const cycleSidebar = useCallback(() => {
+    setSidebarMode((prev) => {
+      const next: SidebarMode =
+        prev === "full" ? "icons" : prev === "icons" ? "hidden" : "full";
       try {
-        localStorage.setItem("waveflow.sidebar.collapsed", next ? "1" : "0");
+        localStorage.setItem("waveflow.sidebar.mode", next);
       } catch {
         // Private mode / quota — UI still works for this session.
       }
       return next;
     });
   }, []);
-  const toggleSidebar = useCallback(() => {
-    setIsSidebarHidden((prev) => {
-      const next = !prev;
-      try {
-        localStorage.setItem("waveflow.sidebar.hidden", next ? "1" : "0");
-      } catch {
-        // Private mode / quota — UI still works for this session.
-      }
-      return next;
-    });
-  }, []);
+  const isSidebarHidden = sidebarMode === "hidden";
 
   // First-run onboarding: prompt the user to point WaveFlow at a
   // music folder when no library has been populated yet.
@@ -804,13 +794,13 @@ export function AppLayout() {
             <motion.div
               initial={false}
               animate={{
-                width: isSidebarHidden ? 0 : isSidebarCollapsed ? 80 : 256,
+                width: isSidebarHidden ? 0 : sidebarMode === "icons" ? 80 : 256,
               }}
               transition={{ duration: 0.22, ease: "easeOut" }}
               className="skin-sidebar-shell lounge-sidebar-shell shrink-0 overflow-hidden"
               // The skins narrow their padding on it: theirs is sized for
               // 256 px and would leave the icons no room at 80.
-              data-collapsed={isSidebarCollapsed ? "" : undefined}
+              data-collapsed={sidebarMode === "icons" ? "" : undefined}
               aria-hidden={isSidebarHidden}
               inert={isSidebarHidden}
             >
@@ -825,8 +815,7 @@ export function AppLayout() {
                 navigateToRemotePlaylist={navigateToRemotePlaylist}
                 activePluginId={activePluginId}
                 navigateToPluginUi={navigateToPluginUi}
-                collapsed={isSidebarCollapsed}
-                onToggleCollapsed={toggleSidebarCollapsed}
+                collapsed={sidebarMode === "icons"}
               />
             </motion.div>
 
@@ -849,8 +838,8 @@ export function AppLayout() {
                 canGoForward={canGoForward}
                 onGoBack={goBack}
                 onGoForward={goForward}
-                isSidebarHidden={isSidebarHidden}
-                onToggleSidebar={toggleSidebar}
+                sidebarMode={sidebarMode}
+                onCycleSidebar={cycleSidebar}
               />
 
               {/* Main Scrollable Content */}

@@ -241,9 +241,7 @@
       "playlistSubtextPending_zero": "0곡 · 아직 보내지 않음",
       "playlistSubtextPending_one": "{{count}}곡 · 아직 보내지 않음",
       "playlistSubtextPending_other": "{{count}}곡 · 아직 보내지 않음"
-    },
-    "collapse": "사이드바 접기",
-    "expand": "사이드바 펼치기"
+    }
   },
   "topbar": {
     "search": {
@@ -288,7 +286,8 @@
       "quit": "앱 종료"
     },
     "showSidebar": "사이드바 표시",
-    "hideSidebar": "사이드바 숨기기"
+    "hideSidebar": "사이드바 숨기기",
+    "collapseSidebar": "사이드바 접기"
   },
   "home": {
     "greeting": {

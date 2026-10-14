@@ -247,9 +247,7 @@
       "playlistSubtextPending_one": "{{count}} brano · non ancora inviata",
       "playlistSubtextPending_other": "{{count}} brani · non ancora inviata",
       "playlistSubtextPending_many": "{{count}} brani · non ancora inviata"
-    },
-    "collapse": "Comprimi la barra laterale",
-    "expand": "Espandi la barra laterale"
+    }
   },
   "topbar": {
     "search": {
@@ -295,7 +293,8 @@
       "quit": "Esci dall'app"
     },
     "showSidebar": "Mostra la barra laterale",
-    "hideSidebar": "Nascondi la barra laterale"
+    "hideSidebar": "Nascondi la barra laterale",
+    "collapseSidebar": "Comprimi la barra laterale"
   },
   "home": {
     "greeting": {

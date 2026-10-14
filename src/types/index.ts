@@ -53,6 +53,10 @@ export interface NavItemProps {
   collapsed?: boolean;
 }
 
+/** The sidebar's three widths, cycled by the top bar's button: full
+ *  (256 px), icons only (80 px), hidden. */
+export type SidebarMode = "full" | "icons" | "hidden";
+
 export type StatCardAccent = "emerald" | "pink" | "blue" | "purple";
 
 export interface StatCardProps {

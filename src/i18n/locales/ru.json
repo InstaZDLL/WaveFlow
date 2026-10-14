@@ -253,9 +253,7 @@
       "playlistSubtextPending_few": "{{count}} трека · ещё не отправлены",
       "playlistSubtextPending_other": "{{count}} треков · ещё не отправлены",
       "playlistSubtextPending_many": "{{count}} треков · ещё не отправлены"
-    },
-    "collapse": "Свернуть боковую панель",
-    "expand": "Развернуть боковую панель"
+    }
   },
   "topbar": {
     "search": {
@@ -302,7 +300,8 @@
       "quit": "Выйти из приложения"
     },
     "showSidebar": "Показать боковую панель",
-    "hideSidebar": "Скрыть боковую панель"
+    "hideSidebar": "Скрыть боковую панель",
+    "collapseSidebar": "Свернуть боковую панель"
   },
   "home": {
     "greeting": {

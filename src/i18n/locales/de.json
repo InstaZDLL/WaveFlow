@@ -241,9 +241,7 @@
       "playlistSubtextPending_zero": "0 Titel · noch nicht gesendet",
       "playlistSubtextPending_one": "{{count}} Titel · noch nicht gesendet",
       "playlistSubtextPending_other": "{{count}} Titel · noch nicht gesendet"
-    },
-    "collapse": "Seitenleiste einklappen",
-    "expand": "Seitenleiste ausklappen"
+    }
   },
   "topbar": {
     "search": {
@@ -288,7 +286,8 @@
       "quit": "App beenden"
     },
     "showSidebar": "Seitenleiste einblenden",
-    "hideSidebar": "Seitenleiste ausblenden"
+    "hideSidebar": "Seitenleiste ausblenden",
+    "collapseSidebar": "Seitenleiste einklappen"
   },
   "home": {
     "greeting": {

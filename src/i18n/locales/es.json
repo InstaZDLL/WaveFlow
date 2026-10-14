@@ -247,9 +247,7 @@
       "playlistSubtextPending_one": "{{count}} pista · aún sin enviar",
       "playlistSubtextPending_other": "{{count}} pistas · aún sin enviar",
       "playlistSubtextPending_many": "{{count}} pistas · aún sin enviar"
-    },
-    "collapse": "Contraer la barra lateral",
-    "expand": "Expandir la barra lateral"
+    }
   },
   "topbar": {
     "search": {
@@ -295,7 +293,8 @@
       "quit": "Salir de la aplicación"
     },
     "showSidebar": "Mostrar la barra lateral",
-    "hideSidebar": "Ocultar la barra lateral"
+    "hideSidebar": "Ocultar la barra lateral",
+    "collapseSidebar": "Contraer la barra lateral"
   },
   "home": {
     "greeting": {

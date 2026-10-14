@@ -977,17 +977,6 @@
   background-color: var(--wf-contrast-surface) !important;
 }
 
-/* Sidebar collapse toggle: not the profile pill it sits beside. */
-:root[data-skin="pulse"]
-  .skin-sidebar-shell
-  > aside
-  > div:first-child
-  button.sidebar-collapse-toggle {
-  border: 0 !important;
-  border-radius: 0.5rem !important;
-  background-color: transparent !important;
-}
-
 /* Icons only (80 px): the 1 rem gutters are sized for 256. */
 :root[data-skin="pulse"] .skin-sidebar-shell[data-collapsed] > aside {
   padding-left: 0.5rem;

@@ -241,9 +241,7 @@
       "playlistSubtextPending_zero": "0 首曲目 · 尚未傳送",
       "playlistSubtextPending_one": "{{count}} 首曲目 · 尚未傳送",
       "playlistSubtextPending_other": "{{count}} 首曲目 · 尚未傳送"
-    },
-    "collapse": "收合側邊欄",
-    "expand": "展開側邊欄"
+    }
   },
   "topbar": {
     "search": {
@@ -288,7 +286,8 @@
       "quit": "結束應用程式"
     },
     "showSidebar": "顯示側邊欄",
-    "hideSidebar": "隱藏側邊欄"
+    "hideSidebar": "隱藏側邊欄",
+    "collapseSidebar": "收合側邊欄"
   },
   "home": {
     "greeting": {

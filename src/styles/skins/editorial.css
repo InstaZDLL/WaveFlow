@@ -1045,40 +1045,6 @@
   background-color: var(--ed-press);
 }
 
-/* Sidebar collapse toggle. The logo row is hidden in this skin, and the
-   toggle lives in it: keep the row for the toggle alone, pinned to the
-   top right of the brand block, beside the "Sommaire" heading. */
-:root[data-skin="editorial"]
-  .skin-sidebar-shell
-  > aside
-  > div:first-child
-  > div:first-child:has(.sidebar-collapse-toggle) {
-  display: block !important;
-  position: absolute;
-  top: 0;
-  right: 1rem;
-  margin: 0 !important;
-}
-
-:root[data-skin="editorial"]
-  .skin-sidebar-shell
-  > aside
-  > div:first-child
-  > div:first-child
-  > :not(.sidebar-collapse-toggle) {
-  display: none !important;
-}
-
-:root[data-skin="editorial"]
-  .skin-sidebar-shell
-  > aside
-  > div:first-child
-  button.sidebar-collapse-toggle {
-  border: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
-}
-
 /* Icons only (80 px): no room for the heading or the print margins. */
 :root[data-skin="editorial"]
   .skin-sidebar-shell[data-collapsed]
@@ -1092,15 +1058,4 @@
   > aside
   > div:first-child::before {
   display: none;
-}
-
-:root[data-skin="editorial"]
-  .skin-sidebar-shell[data-collapsed]
-  > aside
-  > div:first-child
-  > div:first-child:has(.sidebar-collapse-toggle) {
-  position: static;
-  display: flex !important;
-  justify-content: center;
-  margin-bottom: 0.75rem !important;
 }
