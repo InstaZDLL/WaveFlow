@@ -27,6 +27,7 @@
 use serde::Deserialize;
 
 use crate::metadata::name_match::{normalize_name, select_by_name};
+use crate::metadata::{default_http, read_bounded, LookupError, MAX_RESPONSE_BYTES};
 
 const BASE_URL: &str = "https://www.theaudiodb.com/api/v1/json";
 const FREE_API_KEY: &str = "123";
@@ -150,6 +151,8 @@ impl TheAudioDbArtist {
 
 pub struct TheAudioDbClient {
     http: reqwest::Client,
+    base_url: String,
+    api_key: String,
 }
 
 impl Default for TheAudioDbClient {
@@ -159,13 +162,30 @@ impl Default for TheAudioDbClient {
 }
 
 impl TheAudioDbClient {
+    /// The desktop's client, on the shared free key — see the module
+    /// header for why one user stays under its cap.
     pub fn new() -> Self {
-        let http = reqwest::Client::builder()
-            .user_agent(USER_AGENT)
-            .timeout(std::time::Duration::from_secs(TIMEOUT_SECS))
-            .build()
-            .expect("failed to build reqwest client");
-        Self { http }
+        Self::with_http(
+            default_http(USER_AGENT, TIMEOUT_SECS),
+            BASE_URL,
+            FREE_API_KEY,
+        )
+    }
+
+    /// A client over `http`, aimed at `base_url` (the root that ends in
+    /// `/json`), asking under `api_key`. The free key is a test key the
+    /// whole internet shares: anything serving more than one person
+    /// should bring its own.
+    pub fn with_http(
+        http: reqwest::Client,
+        base_url: impl Into<String>,
+        api_key: impl Into<String>,
+    ) -> Self {
+        Self {
+            http,
+            base_url: base_url.into(),
+            api_key: api_key.into(),
+        }
     }
 
     /// Look up an artist by name, returning its bio in `lang` (English
@@ -173,21 +193,23 @@ impl TheAudioDbClient {
     /// nothing matches the name — a match with neither bio nor fanart
     /// still comes back as `Some` with both fields empty, so the caller
     /// can cache the "looked it up, nothing there" outcome instead of
-    /// re-querying a rate-limited API on every visit.
+    /// re-querying a rate-limited API on every visit. A failure status
+    /// is an `Err`: TheAudioDB has no in-band error to read instead.
     pub async fn artist_info(
         &self,
         name: &str,
         lang: &str,
-    ) -> reqwest::Result<Option<TheAudioDbArtist>> {
-        let url = format!("{BASE_URL}/{FREE_API_KEY}/search.php");
-        let resp: SearchResponse = self
-            .http
-            .get(url)
-            .query(&[("s", name)])
-            .send()
-            .await?
-            .json()
-            .await?;
+    ) -> Result<Option<TheAudioDbArtist>, LookupError> {
+        let url = format!("{}/{}/search.php", self.base_url, self.api_key);
+        let response = self.http.get(url).query(&[("s", name)]).send().await?;
+        let status = response.status();
+        if !status.is_success() {
+            return Err(LookupError::Status {
+                status: status.as_u16(),
+            });
+        }
+        let resp: SearchResponse =
+            serde_json::from_slice(&read_bounded(response, MAX_RESPONSE_BYTES).await?)?;
 
         let searched = normalize_name(name);
         let Some(artist) = resp
@@ -326,5 +348,81 @@ mod tests {
         .expect("payload with strips only");
         assert!(payload.fanart_urls().is_empty());
         assert_eq!(ArtistPayload::default().fanart_urls(), Vec::<String>::new());
+    }
+
+    use crate::metadata::test_server::{serve, serve_json, strict_http, Reply};
+
+    #[tokio::test]
+    async fn the_operators_key_goes_where_the_free_one_used_to() {
+        let provider = serve_json(
+            r#"{"artists":[{"strArtist":"Björk","strBiography":"Born in Reykjavík."}]}"#,
+        )
+        .await;
+        let client = TheAudioDbClient::with_http(
+            strict_http(),
+            format!("{}/api/v1/json", provider.base_url),
+            "operator-key",
+        );
+
+        let artist = client
+            .artist_info("Björk", "en")
+            .await
+            .unwrap()
+            .expect("a match");
+
+        assert_eq!(artist.bio_full.as_deref(), Some("Born in Reykjavík."));
+        let line = provider.request_line(0);
+        assert!(
+            line.starts_with("GET /api/v1/json/operator-key/search.php?"),
+            "{line}"
+        );
+        assert!(!line.contains("/123/"), "{line}");
+    }
+
+    #[tokio::test]
+    async fn a_failure_status_is_a_failure_and_not_an_absence() {
+        let provider = serve(Reply {
+            status: "503 Service Unavailable",
+            headers: &[],
+            body: "",
+            announce_length: true,
+        })
+        .await;
+        let client = TheAudioDbClient::with_http(strict_http(), provider.base_url.clone(), "k");
+
+        let error = client
+            .artist_info("Björk", "en")
+            .await
+            .expect_err("an outage must not read as an unknown artist");
+
+        assert!(
+            matches!(error, LookupError::Status { status: 503 }),
+            "{error:?}"
+        );
+    }
+
+    /// TheAudioDB takes its key in the path rather than the query, which
+    /// a redaction aimed at query strings alone would miss.
+    #[tokio::test]
+    async fn a_transport_error_does_not_carry_the_key() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        drop(listener);
+        let client = TheAudioDbClient::with_http(
+            strict_http(),
+            format!("http://{address}"),
+            "the-secret-key",
+        );
+
+        let error = client
+            .artist_info("Björk", "en")
+            .await
+            .expect_err("nothing is listening");
+
+        assert!(matches!(error, LookupError::Http(_)), "{error:?}");
+        assert!(
+            !format!("{error:?}").contains("the-secret-key"),
+            "{error:?}"
+        );
     }
 }

@@ -10,6 +10,8 @@
 
 use serde::Deserialize;
 
+use crate::metadata::{default_http, read_bounded, BodyError, MAX_RESPONSE_BYTES};
+
 const BASE_URL: &str = "https://api.deezer.com";
 const USER_AGENT: &str = "WaveFlow/0.1";
 const TIMEOUT_SECS: u64 = 5;
@@ -21,6 +23,7 @@ const TIMEOUT_SECS: u64 = 5;
 #[derive(Clone)]
 pub struct DeezerClient {
     http: reqwest::Client,
+    base_url: String,
 }
 
 // ── API response types ──────────────────────────────────────────────
@@ -94,6 +97,19 @@ pub enum DeezerError {
     /// decode failure.
     #[error("deezer rate-limited the request (HTTP 429)")]
     RateLimited,
+    #[error("deezer's answer exceeds {limit} bytes")]
+    TooLarge { limit: usize },
+    #[error("deezer's answer is not the expected JSON: {0}")]
+    Decode(#[from] serde_json::Error),
+}
+
+impl From<BodyError> for DeezerError {
+    fn from(err: BodyError) -> Self {
+        match err {
+            BodyError::Http(err) => DeezerError::Http(err),
+            BodyError::TooLarge { limit } => DeezerError::TooLarge { limit },
+        }
+    }
 }
 
 impl DeezerError {
@@ -103,7 +119,7 @@ impl DeezerError {
         match self {
             DeezerError::Api(err) => err.is_quota_exceeded(),
             DeezerError::RateLimited => true,
-            DeezerError::Http(_) => false,
+            DeezerError::Http(_) | DeezerError::TooLarge { .. } | DeezerError::Decode(_) => false,
         }
     }
 }
@@ -257,12 +273,16 @@ impl Default for DeezerClient {
 
 impl DeezerClient {
     pub fn new() -> Self {
-        let http = reqwest::Client::builder()
-            .user_agent(USER_AGENT)
-            .timeout(std::time::Duration::from_secs(TIMEOUT_SECS))
-            .build()
-            .expect("failed to build reqwest client");
-        Self { http }
+        Self::with_http(default_http(USER_AGENT, TIMEOUT_SECS), BASE_URL)
+    }
+
+    /// A client over `http`, aimed at `base_url` — the API root, with no
+    /// trailing slash.
+    pub fn with_http(http: reqwest::Client, base_url: impl Into<String>) -> Self {
+        Self {
+            http,
+            base_url: base_url.into(),
+        }
     }
 
     /// Send `request` and read the body as `T`, turning Deezer's in-band
@@ -279,18 +299,16 @@ impl DeezerClient {
         if response.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
             return Err(DeezerError::RateLimited);
         }
-        response
-            .error_for_status()?
-            .json::<DeezerReply<T>>()
-            .await?
-            .into_result()
+        let response = response.error_for_status()?;
+        let body = read_bounded(response, MAX_RESPONSE_BYTES).await?;
+        serde_json::from_slice::<DeezerReply<T>>(&body)?.into_result()
     }
 
     /// Search artists by name. Returns up to 25 hits (Deezer default).
     pub async fn search_artist(&self, name: &str) -> DeezerResult<Vec<DeezerArtistHit>> {
         let resp: DeezerSearchResponse<DeezerArtistHit> = Self::fetch(
             self.http
-                .get(format!("{BASE_URL}/search/artist"))
+                .get(format!("{}/search/artist", self.base_url))
                 .query(&[("q", name)]),
         )
         .await?;
@@ -299,14 +317,18 @@ impl DeezerClient {
 
     /// Fetch a single artist by Deezer ID.
     pub async fn get_artist(&self, deezer_id: i64) -> DeezerResult<DeezerArtistHit> {
-        Self::fetch(self.http.get(format!("{BASE_URL}/artist/{deezer_id}"))).await
+        Self::fetch(
+            self.http
+                .get(format!("{}/artist/{deezer_id}", self.base_url)),
+        )
+        .await
     }
 
     /// Search albums by a free-text query (typically "album title artist name").
     pub async fn search_album(&self, query: &str) -> DeezerResult<Vec<DeezerAlbumHit>> {
         let resp: DeezerSearchResponse<DeezerAlbumHit> = Self::fetch(
             self.http
-                .get(format!("{BASE_URL}/search/album"))
+                .get(format!("{}/search/album", self.base_url))
                 .query(&[("q", query)]),
         )
         .await?;
@@ -319,7 +341,7 @@ impl DeezerClient {
     pub async fn search_track(&self, query: &str) -> DeezerResult<Vec<DeezerTrackHit>> {
         let resp: DeezerSearchResponse<DeezerTrackHit> = Self::fetch(
             self.http
-                .get(format!("{BASE_URL}/search/track"))
+                .get(format!("{}/search/track", self.base_url))
                 .query(&[("q", query)]),
         )
         .await?;
@@ -328,7 +350,11 @@ impl DeezerClient {
 
     /// Fetch a single album by Deezer ID.
     pub async fn get_album(&self, deezer_id: i64) -> DeezerResult<DeezerAlbumHit> {
-        Self::fetch(self.http.get(format!("{BASE_URL}/album/{deezer_id}"))).await
+        Self::fetch(
+            self.http
+                .get(format!("{}/album/{deezer_id}", self.base_url)),
+        )
+        .await
     }
 
     /// The tracks of an album, in the catalogue's own order, **every
@@ -358,7 +384,7 @@ impl DeezerClient {
         for _ in 0..MAX_PAGES {
             let resp: DeezerSearchResponse<DeezerAlbumTrack> = Self::fetch(
                 self.http
-                    .get(format!("{BASE_URL}/album/{deezer_id}/tracks"))
+                    .get(format!("{}/album/{deezer_id}/tracks", self.base_url))
                     .query(&[("index", index.to_string()), ("limit", PAGE.to_string())]),
             )
             .await?;
@@ -386,7 +412,7 @@ impl DeezerClient {
     pub async fn get_related_artists(&self, deezer_id: i64) -> DeezerResult<Vec<DeezerArtistHit>> {
         let resp: DeezerSearchResponse<DeezerArtistHit> = Self::fetch(
             self.http
-                .get(format!("{BASE_URL}/artist/{deezer_id}/related")),
+                .get(format!("{}/artist/{deezer_id}/related", self.base_url)),
         )
         .await?;
         Ok(resp.data)
@@ -531,5 +557,41 @@ mod tests {
     #[test]
     fn best_picture_is_none_when_no_sizes_present() {
         assert_eq!(hit(None, None).best_picture(), None);
+    }
+
+    use crate::metadata::test_server::{serve, serve_json, strict_http, Reply};
+
+    #[tokio::test]
+    async fn a_search_is_read_through_an_injected_client_and_address() {
+        let provider = serve_json(r#"{"data":[{"id":464,"name":"Björk"}]}"#).await;
+        let client = DeezerClient::with_http(strict_http(), provider.base_url.clone());
+
+        let hits = client.search_artist("Björk").await.unwrap();
+
+        assert_eq!(hits.len(), 1);
+        assert_eq!(hits[0].name, "Björk");
+        assert!(provider.request_line(0).starts_with("GET /search/artist?"));
+    }
+
+    #[tokio::test]
+    async fn an_answer_over_the_ceiling_is_refused_even_unannounced() {
+        let padding = "x".repeat(crate::metadata::MAX_RESPONSE_BYTES);
+        let body = format!(r#"{{"data":[{{"id":1,"name":"{padding}"}}]}}"#);
+        let provider = serve(Reply {
+            status: "200 OK",
+            headers: &[],
+            body: &body,
+            announce_length: false,
+        })
+        .await;
+        let client = DeezerClient::with_http(strict_http(), provider.base_url.clone());
+
+        let error = client
+            .search_artist("Björk")
+            .await
+            .expect_err("an oversized answer must not be read whole");
+
+        assert!(matches!(error, DeezerError::TooLarge { .. }), "{error:?}");
+        assert!(!error.is_quota_exceeded());
     }
 }
