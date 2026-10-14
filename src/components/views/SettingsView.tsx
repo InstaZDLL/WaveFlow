@@ -3651,7 +3651,10 @@ export function SettingsView({
                     </div>
                   </div>
                 </div>
-                <ListenBrainzCard />
+                {/* Remounted per profile: the token is per profile, and
+                    the last one's status, half-typed token or error must
+                    not show under the next. */}
+                <ListenBrainzCard key={activeProfile?.id ?? "none"} />
                 <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
                   <div className="flex items-center space-x-4">
                     <Gamepad2

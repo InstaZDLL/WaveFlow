@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Headphones } from "lucide-react";
 
-import { useProfile } from "../../../hooks/useProfile";
 import { openUrl } from "../../../lib/tauri/external";
 import {
   listenbrainzConnect,
@@ -18,12 +17,11 @@ const TOKEN_PAGE = "https://listenbrainz.org/settings/";
  * Settings → Services row for ListenBrainz, the open counterpart to
  * Last.fm. One field: the user token from their ListenBrainz profile —
  * no API key, no password. The token is checked with ListenBrainz before
- * it is kept, and kept per profile, so the status is read again when the
- * profile changes.
+ * it is kept, and kept per profile: Settings mounts this card keyed on the
+ * profile, so a switch starts it afresh.
  */
 export function ListenBrainzCard() {
   const { t } = useTranslation();
-  const { activeProfile } = useProfile();
   const [status, setStatus] = useState<ListenBrainzStatus | null>(null);
   const [token, setToken] = useState("");
   const [showToken, setShowToken] = useState(false);
@@ -40,7 +38,7 @@ export function ListenBrainzCard() {
     return () => {
       cancelled = true;
     };
-  }, [activeProfile?.id]);
+  }, []);
 
   const connect = async () => {
     if (busy || !token.trim()) return;

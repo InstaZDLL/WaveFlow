@@ -503,13 +503,16 @@ pub async fn listenbrainz_connect(
     if token.is_empty() {
         return Err(AppError::Other("the ListenBrainz token is empty".into()));
     }
+    // Taken before the network call and held through it: a profile switch
+    // while ListenBrainz answers must not file the token under the profile
+    // switched to.
+    let pool = state.require_profile_pool().await?;
     let username = ListenBrainzClient::new()
         .validate_token(&token)
         .await
         .map_err(|e| AppError::Other(e.to_string()))?
         .ok_or_else(|| AppError::Other("ListenBrainz did not accept this token".into()))?;
 
-    let pool = state.require_profile_pool().await?;
     let now = now_ms();
     sqlx::query(
         "INSERT INTO auth_credential
