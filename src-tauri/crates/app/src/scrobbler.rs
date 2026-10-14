@@ -33,7 +33,7 @@ use waveflow_core::metadata::listenbrainz::{
 
 use crate::{
     commands::integration::{
-        forget_listenbrainz, read_lastfm_credentials, read_listenbrainz_credentials,
+        forget_listenbrainz_token, read_lastfm_credentials, read_listenbrainz_credentials,
     },
     state::AppState,
 };
@@ -182,15 +182,17 @@ async fn run_lastfm(app: &AppHandle) -> Result<(), String> {
 /// that listen, anything else is retried.
 async fn run_listenbrainz(app: &AppHandle) -> Result<(), String> {
     let state = app.state::<AppState>();
-    let Some((token, _username)) = read_listenbrainz_credentials(&state)
+    // The pool first, then the token from it: the whole pass — reads,
+    // deletes, a refused token — is on one profile.
+    let pool = match state.require_profile_pool().await {
+        Ok(p) => p,
+        Err(_) => return Ok(()),
+    };
+    let Some((token, _username)) = read_listenbrainz_credentials(&pool)
         .await
         .map_err(|e| format!("read credentials: {e}"))?
     else {
         return Ok(());
-    };
-    let pool = match state.require_profile_pool().await {
-        Ok(p) => p,
-        Err(_) => return Ok(()),
     };
 
     let FetchedDue {
@@ -228,7 +230,7 @@ async fn run_listenbrainz(app: &AppHandle) -> Result<(), String> {
             Err(ListenBrainzError::Unauthorized) => {
                 // Every remaining listen would be refused the same way.
                 tracing::warn!("ListenBrainz refused the token; dropping it and the queue");
-                if let Err(e) = forget_listenbrainz(&pool).await {
+                if let Err(e) = forget_listenbrainz_token(&pool, &token).await {
                     tracing::warn!(?e, "forget ListenBrainz failed");
                 }
                 return Ok(());
@@ -442,12 +444,20 @@ pub async fn enqueue(
 /// queued then: unlike Last.fm's, which wait for a sign-in, a queue no
 /// token will ever drain would only grow.
 pub async fn listenbrainz_connected(pool: &SqlitePool) -> bool {
-    sqlx::query_scalar::<_, i64>(
+    match sqlx::query_scalar::<_, i64>(
         "SELECT EXISTS(SELECT 1 FROM auth_credential WHERE provider = 'listenbrainz')",
     )
     .fetch_one(pool)
     .await
-    .is_ok_and(|n| n != 0)
+    {
+        Ok(n) => n != 0,
+        Err(e) => {
+            // Reads as "not connected", so the listen is not queued for
+            // it — said in the log, or it would vanish without a trace.
+            tracing::warn!(?e, "ListenBrainz connection check failed");
+            false
+        }
+    }
 }
 
 /// Eligibility check applied at enqueue time, for both providers (the

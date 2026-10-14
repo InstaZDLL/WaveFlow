@@ -487,8 +487,13 @@ async fn announce_listenbrainz(
         Listen, ListenBrainzClient, ListenBrainzError, ListenType,
     };
     let state = app.state::<AppState>();
+    // One pool for the read and the forget below, so a refusal drops the
+    // token of the profile that sent it.
+    let Ok(pool) = state.require_profile_pool().await else {
+        return;
+    };
     let Ok(Some((token, _username))) =
-        crate::commands::integration::read_listenbrainz_credentials(&state).await
+        crate::commands::integration::read_listenbrainz_credentials(&pool).await
     else {
         return;
     };
@@ -506,11 +511,12 @@ async fn announce_listenbrainz(
     {
         Ok(()) => tracing::debug!("listenbrainz playing_now ok"),
         Err(ListenBrainzError::Unauthorized) => {
-            // The token is dead: drop it, as the worker would.
-            if let Ok(pool) = state.require_profile_pool().await {
-                if let Err(e) = crate::commands::integration::forget_listenbrainz(&pool).await {
-                    tracing::warn!(?e, "forget ListenBrainz failed");
-                }
+            // The token is dead: drop it, as the worker would — only if
+            // it is still the stored one.
+            if let Err(e) =
+                crate::commands::integration::forget_listenbrainz_token(&pool, &token).await
+            {
+                tracing::warn!(?e, "forget ListenBrainz failed");
             }
         }
         Err(err) => tracing::warn!(%err, "listenbrainz playing_now failed"),

@@ -55,11 +55,16 @@ export function ListenBrainzCard() {
   };
 
   const disconnect = async () => {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
     try {
       await listenbrainzDisconnect();
       setStatus({ connected: false, username: null });
     } catch (err) {
-      console.error("[ListenBrainzCard] disconnect failed", err);
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -80,22 +85,26 @@ export function ListenBrainzCard() {
           </div>
 
           {status?.connected ? (
-            <div className="flex items-center justify-between">
-              <div className="text-xs">
-                <span className="text-zinc-500">
-                  {t("settings.integrations.lastfm.connectedAs")}{" "}
-                </span>
-                <span className="font-medium text-emerald-500">
-                  {status.username}
-                </span>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="text-xs">
+                  <span className="text-zinc-500">
+                    {t("settings.integrations.lastfm.connectedAs")}{" "}
+                  </span>
+                  <span className="font-medium text-emerald-500">
+                    {status.username}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void disconnect()}
+                  disabled={busy}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50"
+                >
+                  {t("settings.integrations.lastfm.disconnect")}
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={disconnect}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors"
-              >
-                {t("settings.integrations.lastfm.disconnect")}
-              </button>
+              {error && <div className="text-xs text-rose-500">{error}</div>}
             </div>
           ) : (
             <div className="space-y-2">

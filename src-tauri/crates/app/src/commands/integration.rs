@@ -479,7 +479,10 @@ pub struct ListenBrainzStatus {
 pub async fn listenbrainz_get_status(
     state: tauri::State<'_, AppState>,
 ) -> AppResult<ListenBrainzStatus> {
-    let creds = read_listenbrainz_credentials(&state).await?;
+    let creds = match state.require_profile_pool().await {
+        Ok(pool) => read_listenbrainz_credentials(&pool).await?,
+        Err(_) => None,
+    };
     Ok(ListenBrainzStatus {
         connected: creds.is_some(),
         username: creds.map(|(_, username)| username),
@@ -558,19 +561,43 @@ pub async fn forget_listenbrainz(pool: &sqlx::SqlitePool) -> Result<(), sqlx::Er
     Ok(())
 }
 
-/// The active profile's ListenBrainz `(token, username)`, if connected.
+/// Drop the ListenBrainz token **if it is still `token`**, and the queued
+/// listens with it. For a refusal: the request that saw the 401 may have
+/// left with a token the user has since replaced, and the refusal of the
+/// old one must not take the new one down. `true` when it dropped it.
+pub async fn forget_listenbrainz_token(
+    pool: &sqlx::SqlitePool,
+    token: &str,
+) -> Result<bool, sqlx::Error> {
+    let gone = sqlx::query(
+        "DELETE FROM auth_credential
+          WHERE provider = 'listenbrainz' AND token_encrypted = ?",
+    )
+    .bind(token.as_bytes())
+    .execute(pool)
+    .await?
+    .rows_affected()
+        > 0;
+    if gone {
+        sqlx::query("DELETE FROM scrobble_queue WHERE provider = 'listenbrainz'")
+            .execute(pool)
+            .await?;
+    }
+    Ok(gone)
+}
+
+/// The ListenBrainz `(token, username)` stored in `pool`, if any. Takes
+/// the pool rather than resolving the active profile, so a caller that
+/// acts on the answer — forgets a refused token — acts on the same
+/// profile it read.
 pub async fn read_listenbrainz_credentials(
-    state: &AppState,
+    pool: &sqlx::SqlitePool,
 ) -> AppResult<Option<(String, String)>> {
-    let pool = match state.require_profile_pool().await {
-        Ok(p) => p,
-        Err(_) => return Ok(None),
-    };
     let row: Option<(Option<String>, Vec<u8>)> = sqlx::query_as(
         "SELECT username, token_encrypted FROM auth_credential
           WHERE provider = 'listenbrainz'",
     )
-    .fetch_optional(&*pool)
+    .fetch_optional(pool)
     .await?;
     let Some((username, token)) = row else {
         return Ok(None);
