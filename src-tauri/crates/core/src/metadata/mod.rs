@@ -121,12 +121,75 @@ pub(crate) async fn read_bounded(
     Ok(body)
 }
 
-/// Builds the client `new()` constructors use: the desktop's defaults,
-/// unchanged from what each module used to build for itself.
+/// Why a client that carries a key refused the address it was given.
+#[derive(Debug, thiserror::Error)]
+pub enum BaseUrlError {
+    #[error("not an absolute URL")]
+    Invalid,
+    /// The key — in Last.fm's query string, in TheAudioDB's path — would
+    /// cross the network readable by anyone on the way.
+    #[error("a key would travel in clear to {host}; the address must be https")]
+    Plaintext { host: String },
+}
+
+/// `base_url`, if a key can be sent to it.
+///
+/// `https` always; plain `http` only to this machine, which is where a
+/// test's listener or a developer's local stand-in lives and where there
+/// is no wire to read the key from. Every other plaintext address is
+/// refused before a request exists to carry the key.
+pub(crate) fn require_secure(base_url: String) -> Result<String, BaseUrlError> {
+    let parsed = reqwest::Url::parse(&base_url).map_err(|_| BaseUrlError::Invalid)?;
+    let host = parsed.host_str().ok_or(BaseUrlError::Invalid)?;
+    // An IPv6 host comes back bracketed, `[::1]`.
+    let loopback = host.eq_ignore_ascii_case("localhost")
+        || host
+            .trim_start_matches('[')
+            .trim_end_matches(']')
+            .parse::<std::net::IpAddr>()
+            .is_ok_and(|address| address.is_loopback());
+    match parsed.scheme() {
+        "https" => Ok(base_url),
+        "http" if loopback => Ok(base_url),
+        _ => Err(BaseUrlError::Plaintext {
+            host: host.to_owned(),
+        }),
+    }
+}
+
+/// How many redirects a `new()` client follows, as `reqwest` did by default.
+const MAX_REDIRECTS: usize = 10;
+
+/// The redirect rule of a `new()` client: follow, but never out of the
+/// origin first asked.
+///
+/// The origin includes the scheme, so this also forbids falling back to
+/// plaintext. It matters for the signed Last.fm calls above all: on a
+/// `307` or `308`, `reqwest` sends the body again — a form carrying a
+/// session key or a password — to wherever the redirect points.
+/// `require_secure` vets the address a caller chose; this vets the ones
+/// the provider chooses afterwards.
+fn same_origin_only() -> reqwest::redirect::Policy {
+    reqwest::redirect::Policy::custom(|attempt| {
+        let first = attempt.previous().first().map(reqwest::Url::origin);
+        if attempt.previous().len() > MAX_REDIRECTS {
+            attempt.error("too many redirects")
+        } else if first.as_ref() == Some(&attempt.url().origin()) {
+            attempt.follow()
+        } else {
+            attempt.stop()
+        }
+    })
+}
+
+/// Builds the client `new()` constructors use: the desktop's timeout and
+/// user agent, as each module used to build for itself, and redirects
+/// kept inside the origin.
 pub(crate) fn default_http(user_agent: &str, timeout_secs: u64) -> reqwest::Client {
     reqwest::Client::builder()
         .user_agent(user_agent)
         .timeout(std::time::Duration::from_secs(timeout_secs))
+        .redirect(same_origin_only())
         .build()
         .expect("failed to build reqwest client")
 }
@@ -229,5 +292,84 @@ pub(crate) mod test_server {
             .redirect(reqwest::redirect::Policy::none())
             .build()
             .unwrap()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::test_server::{serve, serve_json, Reply};
+    use super::{default_http, require_secure, BaseUrlError};
+
+    /// The desktop's client follows a redirect only inside the origin it
+    /// asked: another port is another origin, so the target is never
+    /// contacted and the redirect comes back as the answer.
+    #[tokio::test]
+    async fn the_desktop_client_does_not_follow_a_redirect_out_of_its_origin() {
+        let elsewhere = serve_json("{}").await;
+        let location = format!("location: {}/", elsewhere.base_url);
+        let asked = serve(Reply {
+            status: "307 Temporary Redirect",
+            headers: &[&location],
+            body: "",
+            announce_length: true,
+        })
+        .await;
+
+        let response = default_http("test", 5)
+            .post(format!("{}/", asked.base_url))
+            .form(&[("sk", "a-session-key")])
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(response.status().as_u16(), 307);
+        assert_eq!(elsewhere.hits(), 0, "the signed form was sent elsewhere");
+    }
+
+    fn verdict(url: &str) -> Result<(), String> {
+        require_secure(url.to_owned())
+            .map(|_| ())
+            .map_err(|err| match err {
+                BaseUrlError::Invalid => "invalid".to_owned(),
+                BaseUrlError::Plaintext { host } => format!("plaintext to {host}"),
+            })
+    }
+
+    #[test]
+    fn https_is_accepted_anywhere() {
+        assert_eq!(verdict("https://ws.audioscrobbler.com/2.0/"), Ok(()));
+    }
+
+    #[test]
+    fn plaintext_is_accepted_to_this_machine_only() {
+        assert_eq!(verdict("http://127.0.0.1:8080/2.0/"), Ok(()));
+        assert_eq!(verdict("http://[::1]:8080/2.0/"), Ok(()));
+        assert_eq!(verdict("http://localhost/2.0/"), Ok(()));
+        assert_eq!(
+            verdict("http://ws.audioscrobbler.com/2.0/"),
+            Err("plaintext to ws.audioscrobbler.com".to_owned())
+        );
+    }
+
+    /// A name that merely starts like a loopback address is a remote host.
+    #[test]
+    fn a_host_that_only_looks_local_is_remote() {
+        assert_eq!(
+            verdict("http://127.0.0.1.attacker.example/"),
+            Err("plaintext to 127.0.0.1.attacker.example".to_owned())
+        );
+        assert_eq!(
+            verdict("http://localhost.attacker.example/"),
+            Err("plaintext to localhost.attacker.example".to_owned())
+        );
+    }
+
+    #[test]
+    fn another_scheme_or_no_url_is_refused() {
+        assert!(verdict("ftp://127.0.0.1/").is_err());
+        assert_eq!(
+            verdict("ws.audioscrobbler.com/2.0/"),
+            Err("invalid".to_owned())
+        );
     }
 }

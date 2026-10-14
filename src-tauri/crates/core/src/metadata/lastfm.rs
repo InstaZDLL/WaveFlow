@@ -19,7 +19,10 @@ use md5::{Digest, Md5};
 use regex::Regex;
 use serde::Deserialize;
 
-use super::{default_http, read_bounded, LookupError, MAX_RESPONSE_BYTES};
+use super::{
+    default_http, read_bounded, require_secure, BaseUrlError, BodyError, LookupError,
+    MAX_RESPONSE_BYTES,
+};
 
 const BASE_URL: &str = "https://ws.audioscrobbler.com/2.0/";
 const USER_AGENT: &str = "WaveFlow/0.1";
@@ -117,18 +120,27 @@ async fn read_reply<T: serde::de::DeserializeOwned>(
 
 impl LastfmClient {
     pub fn new() -> Self {
-        Self::with_http(default_http(USER_AGENT, TIMEOUT_SECS), BASE_URL)
+        Self {
+            http: default_http(USER_AGENT, TIMEOUT_SECS),
+            base_url: BASE_URL.to_owned(),
+        }
     }
 
     /// A client over `http`, aimed at `base_url` — the API root, the one
     /// that ends in `/2.0/`. Last.fm answers `/2.0` without the slash
     /// with a redirect, which a client that follows none would read as a
     /// failure.
-    pub fn with_http(http: reqwest::Client, base_url: impl Into<String>) -> Self {
-        Self {
+    ///
+    /// Refused unless `base_url` is `https` or this machine: every call
+    /// carries a key, and the signed ones a session key and a password.
+    pub fn with_http(
+        http: reqwest::Client,
+        base_url: impl Into<String>,
+    ) -> Result<Self, BaseUrlError> {
+        Ok(Self {
             http,
-            base_url: base_url.into(),
-        }
+            base_url: require_secure(base_url.into())?,
+        })
     }
 
     /// Fetch an artist's bio via `artist.getInfo`. Returns `Ok(None)`
@@ -321,10 +333,35 @@ pub fn is_lastfm_star_placeholder(url: &str) -> bool {
 /// `message` payload that comes back with a 200 OK.
 #[derive(Debug, thiserror::Error)]
 pub enum LastfmError {
+    /// Built through `From`, which strips the URL, as every transport
+    /// error in this module is.
     #[error("network: {0}")]
-    Http(#[from] reqwest::Error),
+    Http(reqwest::Error),
     #[error("Last.fm API error {code}: {message}")]
     Api { code: i64, message: String },
+    #[error("Last.fm's answer exceeds {limit} bytes")]
+    TooLarge { limit: usize },
+}
+
+impl From<reqwest::Error> for LastfmError {
+    fn from(err: reqwest::Error) -> Self {
+        LastfmError::Http(err.without_url())
+    }
+}
+
+impl From<BodyError> for LastfmError {
+    fn from(err: BodyError) -> Self {
+        match err {
+            BodyError::Http(err) => LastfmError::Http(err),
+            BodyError::TooLarge { limit } => LastfmError::TooLarge { limit },
+        }
+    }
+}
+
+/// A signed method's answer, read through the same ceiling as every other.
+async fn read_signed_body(response: reqwest::Response) -> Result<String, LastfmError> {
+    let body = read_bounded(response, MAX_RESPONSE_BYTES).await?;
+    Ok(String::from_utf8_lossy(&body).into_owned())
 }
 
 /// Compute the API signature for a Last.fm signed request: sort the
@@ -405,7 +442,7 @@ impl LastfmClient {
             .send()
             .await?;
 
-        let body = resp.text().await?;
+        let body = read_signed_body(resp).await?;
         if let Ok(err) = serde_json::from_str::<LastfmErrorBody>(&body) {
             return Err(LastfmError::Api {
                 code: err.error,
@@ -415,7 +452,9 @@ impl LastfmClient {
         let parsed: MobileSessionResponse =
             serde_json::from_str(&body).map_err(|e| LastfmError::Api {
                 code: -1,
-                message: format!("decode mobile session: {e}; body={body}"),
+                // Not the body: a reply that fails to decode may still
+                // carry a session key, and this message is logged.
+                message: format!("decode mobile session: {e}"),
             })?;
         let Some(session) = parsed.session else {
             return Err(LastfmError::Api {
@@ -477,7 +516,7 @@ impl LastfmClient {
         form.push(("format", "json"));
 
         let resp = self.http.post(&self.base_url).form(&form).send().await?;
-        let body = resp.text().await?;
+        let body = read_signed_body(resp).await?;
         if let Ok(err) = serde_json::from_str::<LastfmErrorBody>(&body) {
             return Err(LastfmError::Api {
                 code: err.error,
@@ -525,7 +564,7 @@ impl LastfmClient {
         form.push(("format", "json"));
 
         let resp = self.http.post(&self.base_url).form(&form).send().await?;
-        let body = resp.text().await?;
+        let body = read_signed_body(resp).await?;
         if let Ok(err) = serde_json::from_str::<LastfmErrorBody>(&body) {
             return Err(LastfmError::Api {
                 code: err.error,
@@ -593,7 +632,7 @@ mod tests {
     use crate::metadata::test_server::{serve, serve_json, strict_http, Reply};
 
     fn client_for(base_url: &str) -> LastfmClient {
-        LastfmClient::with_http(strict_http(), format!("{base_url}/2.0/"))
+        LastfmClient::with_http(strict_http(), format!("{base_url}/2.0/")).unwrap()
     }
 
     #[tokio::test]
@@ -671,12 +710,15 @@ mod tests {
     }
 
     #[tokio::test]
+    /// The redirect stays inside the origin on purpose: the desktop's own
+    /// client follows those, so only the client handed to `with_http` —
+    /// which follows none — can be the reason this one is refused. A
+    /// redirect to another origin would be refused by either, and could
+    /// not tell them apart.
     async fn a_redirect_is_not_followed_by_a_client_that_follows_none() {
-        let elsewhere = serve_json(r#"{"artist":{"name":"Björk"}}"#).await;
-        let location = format!("location: {}/2.0/", elsewhere.base_url);
         let provider = serve(Reply {
             status: "302 Found",
-            headers: &[&location],
+            headers: &["location: /2.0/moved"],
             body: "",
             announce_length: true,
         })
@@ -691,7 +733,7 @@ mod tests {
             matches!(error, LookupError::Status { status: 302 }),
             "{error:?}"
         );
-        assert_eq!(elsewhere.hits(), 0, "the redirect target was contacted");
+        assert_eq!(provider.hits(), 1, "the redirect was followed");
     }
 
     #[tokio::test]
@@ -741,6 +783,7 @@ mod tests {
         drop(listener);
 
         let error = LastfmClient::with_http(strict_http(), format!("http://{address}/2.0/"))
+            .unwrap()
             .artist_get_info("Björk", "the-secret-key")
             .await
             .expect_err("nothing is listening");
@@ -772,5 +815,72 @@ mod tests {
             matches!(error, LookupError::Status { status: 503 }),
             "{error:?}"
         );
+    }
+
+    #[tokio::test]
+    async fn a_signed_answer_over_the_ceiling_is_refused_even_unannounced() {
+        let padding = "x".repeat(MAX_RESPONSE_BYTES);
+        let body = format!(r#"{{"session":{{"name":"{padding}","key":"k"}}}}"#);
+        let provider = serve(Reply {
+            status: "200 OK",
+            headers: &[],
+            body: &body,
+            announce_length: false,
+        })
+        .await;
+
+        let error = client_for(&provider.base_url)
+            .auth_get_mobile_session("the-key", "the-secret", "someone", "a-password")
+            .await
+            .expect_err("an oversized answer must not be read whole");
+
+        assert!(matches!(error, LastfmError::TooLarge { .. }), "{error:?}");
+    }
+
+    /// A reply that fails to decode can still carry the session key, which
+    /// is good until revoked — and the error it becomes is logged.
+    #[tokio::test]
+    async fn a_session_reply_that_fails_to_decode_does_not_carry_its_key() {
+        let provider = serve_json(r#"{"session":{"key":"the-session-key"}}"#).await;
+
+        let error = client_for(&provider.base_url)
+            .auth_get_mobile_session("the-key", "the-secret", "someone", "a-password")
+            .await
+            .expect_err("a session without a name does not decode");
+
+        assert!(!format!("{error}").contains("the-session-key"), "{error}");
+        assert!(
+            !format!("{error:?}").contains("the-session-key"),
+            "{error:?}"
+        );
+    }
+
+    #[tokio::test]
+    async fn a_signed_transport_error_does_not_carry_its_url() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        drop(listener);
+        let client = LastfmClient::with_http(
+            strict_http(),
+            format!("http://{address}/a-path-worth-hiding/2.0/"),
+        )
+        .unwrap();
+
+        let error = client
+            .auth_get_mobile_session("the-key", "the-secret", "someone", "a-password")
+            .await
+            .expect_err("nothing is listening");
+
+        assert!(matches!(error, LastfmError::Http(_)), "{error:?}");
+        assert!(
+            !format!("{error:?}").contains("a-path-worth-hiding"),
+            "{error:?}"
+        );
+    }
+
+    #[test]
+    fn a_plaintext_address_off_this_machine_is_refused() {
+        let refused = LastfmClient::with_http(strict_http(), "http://ws.audioscrobbler.com/2.0/");
+        assert!(matches!(refused, Err(BaseUrlError::Plaintext { .. })));
     }
 }

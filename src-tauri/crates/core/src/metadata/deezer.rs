@@ -86,8 +86,10 @@ impl DeezerApiError {
 /// looked exactly alike (#406 was diagnosed through that fog).
 #[derive(Debug, thiserror::Error)]
 pub enum DeezerError {
+    /// Built through `From`, which strips the URL: it carries the search
+    /// query, and a caller that logs this error must not log that.
     #[error("deezer request failed: {0}")]
-    Http(#[from] reqwest::Error),
+    Http(reqwest::Error),
     #[error("deezer refused the request: {0}")]
     Api(DeezerApiError),
     /// Throttling that arrived as a status code rather than in the body.
@@ -101,6 +103,12 @@ pub enum DeezerError {
     TooLarge { limit: usize },
     #[error("deezer's answer is not the expected JSON: {0}")]
     Decode(#[from] serde_json::Error),
+}
+
+impl From<reqwest::Error> for DeezerError {
+    fn from(err: reqwest::Error) -> Self {
+        DeezerError::Http(err.without_url())
+    }
 }
 
 impl From<BodyError> for DeezerError {
@@ -593,5 +601,26 @@ mod tests {
 
         assert!(matches!(error, DeezerError::TooLarge { .. }), "{error:?}");
         assert!(!error.is_quota_exceeded());
+    }
+
+    /// The search travels in the query string, which a caller that logs
+    /// this error must not log.
+    #[tokio::test]
+    async fn a_transport_error_does_not_carry_the_search() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        drop(listener);
+        let client = DeezerClient::with_http(strict_http(), format!("http://{address}"));
+
+        let error = client
+            .search_artist("the-searched-name")
+            .await
+            .expect_err("nothing is listening");
+
+        assert!(matches!(error, DeezerError::Http(_)), "{error:?}");
+        assert!(
+            !format!("{error:?}").contains("the-searched-name"),
+            "{error:?}"
+        );
     }
 }

@@ -27,7 +27,9 @@
 use serde::Deserialize;
 
 use crate::metadata::name_match::{normalize_name, select_by_name};
-use crate::metadata::{default_http, read_bounded, LookupError, MAX_RESPONSE_BYTES};
+use crate::metadata::{
+    default_http, read_bounded, require_secure, BaseUrlError, LookupError, MAX_RESPONSE_BYTES,
+};
 
 const BASE_URL: &str = "https://www.theaudiodb.com/api/v1/json";
 const FREE_API_KEY: &str = "123";
@@ -165,27 +167,30 @@ impl TheAudioDbClient {
     /// The desktop's client, on the shared free key — see the module
     /// header for why one user stays under its cap.
     pub fn new() -> Self {
-        Self::with_http(
-            default_http(USER_AGENT, TIMEOUT_SECS),
-            BASE_URL,
-            FREE_API_KEY,
-        )
+        Self {
+            http: default_http(USER_AGENT, TIMEOUT_SECS),
+            base_url: BASE_URL.to_owned(),
+            api_key: FREE_API_KEY.to_owned(),
+        }
     }
 
     /// A client over `http`, aimed at `base_url` (the root that ends in
     /// `/json`), asking under `api_key`. The free key is a test key the
     /// whole internet shares: anything serving more than one person
     /// should bring its own.
+    ///
+    /// Refused unless `base_url` is `https` or this machine: the key
+    /// travels in the path.
     pub fn with_http(
         http: reqwest::Client,
         base_url: impl Into<String>,
         api_key: impl Into<String>,
-    ) -> Self {
-        Self {
+    ) -> Result<Self, BaseUrlError> {
+        Ok(Self {
             http,
-            base_url: base_url.into(),
+            base_url: require_secure(base_url.into())?,
             api_key: api_key.into(),
-        }
+        })
     }
 
     /// Look up an artist by name, returning its bio in `lang` (English
@@ -362,7 +367,8 @@ mod tests {
             strict_http(),
             format!("{}/api/v1/json", provider.base_url),
             "operator-key",
-        );
+        )
+        .unwrap();
 
         let artist = client
             .artist_info("Björk", "en")
@@ -388,7 +394,8 @@ mod tests {
             announce_length: true,
         })
         .await;
-        let client = TheAudioDbClient::with_http(strict_http(), provider.base_url.clone(), "k");
+        let client =
+            TheAudioDbClient::with_http(strict_http(), provider.base_url.clone(), "k").unwrap();
 
         let error = client
             .artist_info("Björk", "en")
@@ -412,7 +419,8 @@ mod tests {
             strict_http(),
             format!("http://{address}"),
             "the-secret-key",
-        );
+        )
+        .unwrap();
 
         let error = client
             .artist_info("Björk", "en")
@@ -424,5 +432,15 @@ mod tests {
             !format!("{error:?}").contains("the-secret-key"),
             "{error:?}"
         );
+    }
+
+    #[test]
+    fn a_plaintext_address_off_this_machine_is_refused() {
+        let refused = TheAudioDbClient::with_http(
+            strict_http(),
+            "http://www.theaudiodb.com/api/v1/json",
+            "operator-key",
+        );
+        assert!(matches!(refused, Err(BaseUrlError::Plaintext { .. })));
     }
 }
