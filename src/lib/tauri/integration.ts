@@ -128,3 +128,28 @@ export function getNotificationsTrackChange(): Promise<boolean> {
 export function setNotificationsTrackChange(enabled: boolean): Promise<void> {
   return invoke<void>("set_notifications_track_change", { enabled });
 }
+
+/** The active profile's ListenBrainz linkage. Per profile, like Last.fm. */
+export interface ListenBrainzStatus {
+  connected: boolean;
+  username: string | null;
+}
+
+export function listenbrainzGetStatus(): Promise<ListenBrainzStatus> {
+  return invoke<ListenBrainzStatus>("listenbrainz_get_status");
+}
+
+/**
+ * Check the user token with ListenBrainz and keep it for the profile.
+ * Rejects with ListenBrainz's answer when the token is not accepted.
+ */
+export function listenbrainzConnect(
+  token: string,
+): Promise<ListenBrainzStatus> {
+  return invoke<ListenBrainzStatus>("listenbrainz_connect", { token });
+}
+
+/** Forget the token and the listens still waiting to be sent. */
+export function listenbrainzDisconnect(): Promise<void> {
+  return invoke<void>("listenbrainz_disconnect");
+}

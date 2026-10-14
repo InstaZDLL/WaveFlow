@@ -12,6 +12,7 @@ use chrono::Utc;
 use serde::Serialize;
 
 use waveflow_core::metadata::lastfm::{LastfmClient, LastfmError};
+use waveflow_core::metadata::listenbrainz::ListenBrainzClient;
 
 use crate::{
     error::{AppError, AppResult},
@@ -462,4 +463,117 @@ pub async fn read_lastfm_credentials(
         return Ok(None);
     }
     Ok(Some((api_key, api_secret, session_key, username)))
+}
+
+// ── ListenBrainz ────────────────────────────────────────────────────
+
+/// The active profile's ListenBrainz linkage. Per profile, like the
+/// Last.fm session: two profiles can send their listens to two accounts.
+#[derive(Debug, Clone, Serialize)]
+pub struct ListenBrainzStatus {
+    pub connected: bool,
+    pub username: Option<String>,
+}
+
+#[tauri::command]
+pub async fn listenbrainz_get_status(
+    state: tauri::State<'_, AppState>,
+) -> AppResult<ListenBrainzStatus> {
+    let creds = read_listenbrainz_credentials(&state).await?;
+    Ok(ListenBrainzStatus {
+        connected: creds.is_some(),
+        username: creds.map(|(_, username)| username),
+    })
+}
+
+/// Check the user token with ListenBrainz, then keep it for the profile.
+/// Checked first so a mistyped token fails here, in the dialog, rather
+/// than silently in the background worker.
+#[tauri::command]
+pub async fn listenbrainz_connect(
+    state: tauri::State<'_, AppState>,
+    token: String,
+) -> AppResult<ListenBrainzStatus> {
+    if crate::offline::is_offline() {
+        return Err(AppError::Other(
+            "offline mode is enabled — disable it to connect ListenBrainz".into(),
+        ));
+    }
+    let token = token.trim().to_string();
+    if token.is_empty() {
+        return Err(AppError::Other("the ListenBrainz token is empty".into()));
+    }
+    let username = ListenBrainzClient::new()
+        .validate_token(&token)
+        .await
+        .map_err(|e| AppError::Other(e.to_string()))?
+        .ok_or_else(|| AppError::Other("ListenBrainz did not accept this token".into()))?;
+
+    let pool = state.require_profile_pool().await?;
+    let now = now_ms();
+    sqlx::query(
+        "INSERT INTO auth_credential
+            (provider, username, token_encrypted, refresh_token_encrypted,
+             expires_at, created_at, updated_at)
+         VALUES ('listenbrainz', ?, ?, NULL, NULL, ?, ?)
+         ON CONFLICT(provider) DO UPDATE SET
+            username = excluded.username,
+            token_encrypted = excluded.token_encrypted,
+            updated_at = excluded.updated_at",
+    )
+    .bind(&username)
+    .bind(token.as_bytes())
+    .bind(now)
+    .bind(now)
+    .execute(&*pool)
+    .await?;
+
+    Ok(ListenBrainzStatus {
+        connected: true,
+        username: Some(username),
+    })
+}
+
+/// Forget the profile's token, and the listens still waiting for it.
+#[tauri::command]
+pub async fn listenbrainz_disconnect(state: tauri::State<'_, AppState>) -> AppResult<()> {
+    let pool = state.require_profile_pool().await?;
+    forget_listenbrainz(&pool).await?;
+    Ok(())
+}
+
+/// Drop the ListenBrainz token and the queued listens. Shared by the
+/// disconnect command and the worker, which lands here when ListenBrainz
+/// stops accepting the token.
+pub async fn forget_listenbrainz(pool: &sqlx::SqlitePool) -> Result<(), sqlx::Error> {
+    sqlx::query("DELETE FROM auth_credential WHERE provider = 'listenbrainz'")
+        .execute(pool)
+        .await?;
+    sqlx::query("DELETE FROM scrobble_queue WHERE provider = 'listenbrainz'")
+        .execute(pool)
+        .await?;
+    Ok(())
+}
+
+/// The active profile's ListenBrainz `(token, username)`, if connected.
+pub async fn read_listenbrainz_credentials(
+    state: &AppState,
+) -> AppResult<Option<(String, String)>> {
+    let pool = match state.require_profile_pool().await {
+        Ok(p) => p,
+        Err(_) => return Ok(None),
+    };
+    let row: Option<(Option<String>, Vec<u8>)> = sqlx::query_as(
+        "SELECT username, token_encrypted FROM auth_credential
+          WHERE provider = 'listenbrainz'",
+    )
+    .fetch_optional(&*pool)
+    .await?;
+    let Some((username, token)) = row else {
+        return Ok(None);
+    };
+    match String::from_utf8(token) {
+        Ok(token) if !token.is_empty() => Ok(Some((token, username.unwrap_or_default()))),
+        _ => Ok(None),
+    }
 }

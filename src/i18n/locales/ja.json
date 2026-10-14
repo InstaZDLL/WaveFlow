@@ -1816,6 +1816,12 @@
       "notifications": {
         "title": "曲変更通知",
         "subtitle": "曲が変わるたびにシステム通知を表示します（タイトル + アーティスト）。既定はオフ。"
+      },
+      "listenbrainz": {
+        "subtitle": "再生履歴と再生中の曲を、オープンな再生記録サービス ListenBrainz に送信します。",
+        "tokenPrompt": "ListenBrainz アカウントのユーザートークンを貼り付けてください。",
+        "getToken": "トークンを確認",
+        "tokenPlaceholder": "ユーザートークン"
       }
     },
     "crossfade": {

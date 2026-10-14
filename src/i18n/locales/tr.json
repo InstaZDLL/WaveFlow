@@ -1843,6 +1843,12 @@
       "notifications": {
         "title": "Parça değişimi bildirimleri",
         "subtitle": "Her parça başında sistem bildirimi göster (başlık + sanatçı). Varsayılan olarak kapalı."
+      },
+      "listenbrainz": {
+        "subtitle": "Dinlemelerini ve şu an çalanı açık dinleme kaydı ListenBrainz'e gönder.",
+        "tokenPrompt": "ListenBrainz hesabındaki kullanıcı jetonunu yapıştır.",
+        "getToken": "Jetonumu bul",
+        "tokenPlaceholder": "Kullanıcı jetonu"
       }
     },
     "crossfade": {

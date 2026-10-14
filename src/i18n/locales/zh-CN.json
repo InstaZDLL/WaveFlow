@@ -1816,6 +1816,12 @@
       "notifications": {
         "title": "曲目变更通知",
         "subtitle": "每首曲目开始时显示系统通知（标题 + 艺人）。默认关闭。"
+      },
+      "listenbrainz": {
+        "subtitle": "将你的收听记录和正在播放的曲目发送到开放的收听记录服务 ListenBrainz。",
+        "tokenPrompt": "粘贴你 ListenBrainz 账户中的用户令牌。",
+        "getToken": "查找我的令牌",
+        "tokenPlaceholder": "用户令牌"
       }
     },
     "crossfade": {
