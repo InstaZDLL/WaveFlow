@@ -644,20 +644,63 @@ pub async fn scan_folder(
 /// The root is never pruned, whatever it is called: a library folder the
 /// user happens to have named `.waveflow` is still their library, and
 /// scanning none of it would be a defect with no symptom to follow.
+#[cfg(test)]
 fn collect_scannable_files(root: &Path) -> Vec<PathBuf> {
-    WalkDir::new(root)
+    collect_scannable_files_with(root, |_, _| {}, || false).unwrap_or_default()
+}
+
+/// Entries the walk visits between two reports and two looks at the
+/// stop flag. Small, because what is slow on a network share is opening
+/// a directory, not the entries in it, so a handful of entries can stand
+/// for a long wait; the reports themselves are throttled downstream.
+const LISTING_CHECK_EVERY: usize = 32;
+
+/// [`collect_scannable_files`], reporting as it goes and stoppable.
+///
+/// Listing used to be a silent phase: on a NAS the walk alone can take
+/// minutes, and the scan's row sat at zero with no folder named while
+/// its stop button did nothing, since nothing looked at it until the
+/// list was complete. Every [`LISTING_CHECK_EVERY`] entries this hands
+/// `on_progress` the count of files found so far and the directory it is
+/// in, and asks `should_stop`.
+///
+/// `None` when stopped. A partial list is not returned on purpose: the
+/// scan treats the list as the folder's contents, and every track missing
+/// from it would be swept as gone.
+fn collect_scannable_files_with(
+    root: &Path,
+    mut on_progress: impl FnMut(usize, &Path),
+    should_stop: impl Fn() -> bool,
+) -> Option<Vec<PathBuf>> {
+    let walker = WalkDir::new(root)
         .follow_links(false)
         .into_iter()
         .filter_entry(|entry| {
             entry.depth() == 0
                 || !entry.file_type().is_dir()
                 || !waveflow_core::scanner::is_reserved_dir_name(entry.file_name())
-        })
-        .filter_map(Result::ok)
-        .filter(|entry| entry.file_type().is_file())
-        .filter(|entry| is_scannable_audio(entry.path()))
-        .map(|entry| entry.path().to_path_buf())
-        .collect()
+        });
+    let mut found = Vec::new();
+    for (visited, entry) in walker.enumerate() {
+        if visited % LISTING_CHECK_EVERY == 0 {
+            if should_stop() {
+                return None;
+            }
+            if let Ok(entry) = &entry {
+                let dir = if entry.file_type().is_dir() {
+                    entry.path()
+                } else {
+                    entry.path().parent().unwrap_or(root)
+                };
+                on_progress(found.len(), dir);
+            }
+        }
+        let Ok(entry) = entry else { continue };
+        if entry.file_type().is_file() && is_scannable_audio(entry.path()) {
+            found.push(entry.path().to_path_buf());
+        }
+    }
+    Some(found)
 }
 
 /// Inner scan implementation shared between the `scan_folder` command and
@@ -701,7 +744,6 @@ pub(crate) async fn scan_folder_inner(
             crate::tasks::Cancellation::Flag,
         )
     });
-    let cancelled = || task.as_ref().is_some_and(|t| t.is_cancelling());
 
     // Belt-and-braces: the directory is created at profile bootstrap, but a
     // user fiddling with the data folder could have deleted it.
@@ -720,14 +762,58 @@ pub(crate) async fn scan_folder_inner(
     // on a big library tells us which phase to optimise).
     let t_scan = Instant::now();
 
-    // Walk the directory off-thread — walkdir is blocking and a deep tree can
-    // take a noticeable fraction of a second to enumerate.
+    // Walk the directory off-thread — walkdir is blocking, and a deep tree
+    // on a network share can take minutes to enumerate. The task row goes
+    // with it and comes back: the walk reports through it (files found,
+    // the directory it is in, no total yet) and watches its stop flag.
     let folder_path_owned = folder_path.clone();
-    let audio_files: Vec<PathBuf> =
-        tokio::task::spawn_blocking(move || collect_scannable_files(Path::new(&folder_path_owned)))
-            .await
-            .map_err(|e| AppError::Other(format!("walk task failed: {e}")))?;
+    let (listed, task) = tokio::task::spawn_blocking(move || {
+        let listed = collect_scannable_files_with(
+            Path::new(&folder_path_owned),
+            |found, dir| {
+                if let Some(task) = task.as_ref() {
+                    task.progress(found as u64, 0);
+                    task.detail(dir.to_string_lossy());
+                }
+            },
+            || task.as_ref().is_some_and(|t| t.is_cancelling()),
+        );
+        (listed, task)
+    })
+    .await
+    .map_err(|e| AppError::Other(format!("walk task failed: {e}")))?;
+    let cancelled = || task.as_ref().is_some_and(|t| t.is_cancelling());
     let walk_ms = t_scan.elapsed().as_millis();
+
+    // Stopped while listing: nothing was read and nothing is written. In
+    // particular not the disappearance sweep, which would take every
+    // track the unfinished list had not reached yet for a deleted file.
+    let Some(audio_files) = listed else {
+        tracing::info!(folder_id, walk_ms, "scan stopped while listing files");
+        let summary = ScanSummary {
+            folder_id,
+            cancelled: true,
+            ..Default::default()
+        };
+        if let Some(app) = app_handle {
+            let _ = app.emit(
+                "scan:progress",
+                ScanProgress {
+                    folder_id,
+                    current: 0,
+                    total: 0,
+                    added: 0,
+                    updated: 0,
+                    skipped: 0,
+                    errors: 0,
+                    done: true,
+                    cancelled: true,
+                    current_dir: None,
+                },
+            );
+        }
+        return Ok(summary);
+    };
 
     let mut summary = ScanSummary {
         folder_id,
@@ -2222,6 +2308,52 @@ mod walk_tests {
 
         let found = collect_scannable_files(&root);
         assert_eq!(found.len(), 1, "{found:?}");
+    }
+
+    /// Listing reports as it walks: files found so far and the directory
+    /// it is in, so a slow share no longer looks like a frozen scan.
+    #[test]
+    fn listing_reports_what_it_has_found() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        for i in 0..80 {
+            write(&root.join(format!("Album {}/{i:02}.flac", i / 10)));
+        }
+
+        let mut reports: Vec<(usize, PathBuf)> = Vec::new();
+        let found =
+            collect_scannable_files_with(root, |n, d| reports.push((n, d.to_path_buf())), || false)
+                .unwrap();
+        assert_eq!(found.len(), 80);
+        assert!(reports.len() > 1, "{reports:?}");
+        assert!(
+            reports.windows(2).all(|w| w[0].0 <= w[1].0),
+            "the count only grows: {reports:?}"
+        );
+        assert!(reports.iter().all(|(_, d)| d.starts_with(root)));
+    }
+
+    /// A stop while listing returns nothing at all, never the part of the
+    /// folder walked so far: the scan would sweep every track the list had
+    /// not reached as a deleted file.
+    #[test]
+    fn a_stopped_listing_returns_no_partial_list() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        for i in 0..80 {
+            write(&root.join(format!("{i:02}.flac")));
+        }
+
+        let asked = std::cell::Cell::new(0);
+        let listed = collect_scannable_files_with(
+            root,
+            |_, _| {},
+            || {
+                asked.set(asked.get() + 1);
+                asked.get() > 1
+            },
+        );
+        assert!(listed.is_none());
     }
 }
 
