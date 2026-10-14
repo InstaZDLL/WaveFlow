@@ -48,7 +48,14 @@ export interface NavItemProps {
   subtext?: string;
   active?: boolean;
   onClick?: () => void;
+  /** Icon only, for the sidebar's narrow mode: the label stays in the
+   *  accessibility tree and shows as the tooltip. */
+  collapsed?: boolean;
 }
+
+/** The sidebar's three widths, cycled by the top bar's button: full
+ *  (256 px), icons only (80 px), hidden. */
+export type SidebarMode = "full" | "icons" | "hidden";
 
 export type StatCardAccent = "emerald" | "pink" | "blue" | "purple";
 

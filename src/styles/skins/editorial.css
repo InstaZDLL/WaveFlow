@@ -1044,3 +1044,18 @@
 :root[data-skin="editorial"] ::-webkit-scrollbar-thumb:hover {
   background-color: var(--ed-press);
 }
+
+/* Icons only (80 px): no room for the heading or the print margins. */
+:root[data-skin="editorial"]
+  .skin-sidebar-shell[data-collapsed]
+  > aside
+  > div:first-child {
+  padding: 0 0.5rem 1rem !important;
+}
+
+:root[data-skin="editorial"]
+  .skin-sidebar-shell[data-collapsed]
+  > aside
+  > div:first-child::before {
+  display: none;
+}

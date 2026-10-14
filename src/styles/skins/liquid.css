@@ -1169,3 +1169,16 @@
   ):not([data-immersive]):not([data-immersive] *) {
   background-color: var(--wf-contrast-surface) !important;
 }
+
+/* Icons only (80 px): the 1 rem gutters are sized for 256. */
+:root[data-skin="liquid"] .skin-sidebar-shell[data-collapsed] > aside {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+:root[data-skin="liquid"]
+  .skin-sidebar-shell[data-collapsed]
+  > aside
+  > div:first-child {
+  padding: 0 0 1rem !important;
+}

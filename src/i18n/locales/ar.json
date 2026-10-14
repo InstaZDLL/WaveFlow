@@ -307,7 +307,8 @@
       "quit": "إغلاق التطبيق"
     },
     "showSidebar": "إظهار الشريط الجانبي",
-    "hideSidebar": "إخفاء الشريط الجانبي"
+    "hideSidebar": "إخفاء الشريط الجانبي",
+    "collapseSidebar": "طيّ الشريط الجانبي"
   },
   "home": {
     "greeting": {

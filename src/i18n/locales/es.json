@@ -293,7 +293,8 @@
       "quit": "Salir de la aplicación"
     },
     "showSidebar": "Mostrar la barra lateral",
-    "hideSidebar": "Ocultar la barra lateral"
+    "hideSidebar": "Ocultar la barra lateral",
+    "collapseSidebar": "Contraer la barra lateral"
   },
   "home": {
     "greeting": {

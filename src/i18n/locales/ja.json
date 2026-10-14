@@ -286,7 +286,8 @@
       "quit": "アプリを終了する"
     },
     "showSidebar": "サイドバーを表示",
-    "hideSidebar": "サイドバーを非表示"
+    "hideSidebar": "サイドバーを非表示",
+    "collapseSidebar": "サイドバーを折りたたむ"
   },
   "home": {
     "greeting": {

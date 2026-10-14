@@ -976,3 +976,16 @@
 :root[data-skin="pulse"][data-contrast="high"] footer {
   background-color: var(--wf-contrast-surface) !important;
 }
+
+/* Icons only (80 px): the 1 rem gutters are sized for 256. */
+:root[data-skin="pulse"] .skin-sidebar-shell[data-collapsed] > aside {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+:root[data-skin="pulse"]
+  .skin-sidebar-shell[data-collapsed]
+  > aside
+  > div:first-child {
+  padding: 0.5rem 0 1.25rem;
+}

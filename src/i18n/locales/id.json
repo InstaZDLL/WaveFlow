@@ -286,7 +286,8 @@
       "quit": "Keluar aplikasi"
     },
     "showSidebar": "Tampilkan bilah samping",
-    "hideSidebar": "Sembunyikan bilah samping"
+    "hideSidebar": "Sembunyikan bilah samping",
+    "collapseSidebar": "Ciutkan bilah samping"
   },
   "home": {
     "greeting": {

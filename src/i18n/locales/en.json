@@ -286,7 +286,8 @@
       "quit": "Quit app"
     },
     "showSidebar": "Show sidebar",
-    "hideSidebar": "Hide sidebar"
+    "hideSidebar": "Hide sidebar",
+    "collapseSidebar": "Collapse sidebar"
   },
   "home": {
     "greeting": {

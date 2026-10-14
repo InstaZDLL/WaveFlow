@@ -21,7 +21,14 @@ import {
   X,
   History,
 } from "lucide-react";
-import type { ViewId } from "../../types";
+import type { SidebarMode, ViewId } from "../../types";
+
+/** What the sidebar button does next, from each width. */
+const SIDEBAR_NEXT_LABEL: Record<SidebarMode, string> = {
+  full: "topbar.collapseSidebar",
+  icons: "topbar.hideSidebar",
+  hidden: "topbar.showSidebar",
+};
 import { useTheme } from "../../hooks/useTheme";
 import { useProfile } from "../../hooks/useProfile";
 import { usePlayer } from "../../hooks/usePlayer";
@@ -56,8 +63,8 @@ interface TopBarProps {
   canGoForward: boolean;
   onGoBack: () => void;
   onGoForward: () => void;
-  isSidebarHidden: boolean;
-  onToggleSidebar: () => void;
+  sidebarMode: SidebarMode;
+  onCycleSidebar: () => void;
 }
 
 export function TopBar({
@@ -69,8 +76,8 @@ export function TopBar({
   canGoForward,
   onGoBack,
   onGoForward,
-  isSidebarHidden,
-  onToggleSidebar,
+  sidebarMode,
+  onCycleSidebar,
 }: TopBarProps) {
   const { t } = useTranslation();
   const { isDark, toggleTheme } = useTheme();
@@ -408,20 +415,17 @@ export function TopBar({
       {/* Navigation Arrows + sidebar toggle (#167). The toggle sits
           left of the back/forward chevrons because that's where the
           sidebar's right edge would be when visible — keeps muscle
-          memory consistent. */}
+          memory consistent. It cycles the three widths — full, icons
+          only, hidden — and names the step it takes next. */}
       <div className="flex space-x-2">
         <button
           type="button"
-          onClick={onToggleSidebar}
-          aria-label={t(
-            isSidebarHidden ? "topbar.showSidebar" : "topbar.hideSidebar",
-          )}
-          title={t(
-            isSidebarHidden ? "topbar.showSidebar" : "topbar.hideSidebar",
-          )}
+          onClick={onCycleSidebar}
+          aria-label={t(SIDEBAR_NEXT_LABEL[sidebarMode])}
+          title={t(SIDEBAR_NEXT_LABEL[sidebarMode])}
           className="p-2 rounded-full border transition-colors border-zinc-200 bg-white text-zinc-600 hover:text-zinc-800 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:text-white"
         >
-          {isSidebarHidden ? (
+          {sidebarMode === "hidden" ? (
             <PanelLeftOpen size={20} />
           ) : (
             <PanelLeftClose size={20} />

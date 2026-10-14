@@ -286,7 +286,8 @@
       "quit": "App beenden"
     },
     "showSidebar": "Seitenleiste einblenden",
-    "hideSidebar": "Seitenleiste ausblenden"
+    "hideSidebar": "Seitenleiste ausblenden",
+    "collapseSidebar": "Seitenleiste einklappen"
   },
   "home": {
     "greeting": {

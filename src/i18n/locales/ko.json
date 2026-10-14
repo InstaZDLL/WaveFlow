@@ -286,7 +286,8 @@
       "quit": "앱 종료"
     },
     "showSidebar": "사이드바 표시",
-    "hideSidebar": "사이드바 숨기기"
+    "hideSidebar": "사이드바 숨기기",
+    "collapseSidebar": "사이드바 접기"
   },
   "home": {
     "greeting": {

@@ -286,7 +286,8 @@
       "quit": "Uygulamadan çık"
     },
     "showSidebar": "Kenar çubuğunu göster",
-    "hideSidebar": "Kenar çubuğunu gizle"
+    "hideSidebar": "Kenar çubuğunu gizle",
+    "collapseSidebar": "Kenar çubuğunu daralt"
   },
   "home": {
     "greeting": {

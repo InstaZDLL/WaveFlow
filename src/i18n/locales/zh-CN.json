@@ -286,7 +286,8 @@
       "quit": "退出应用程序"
     },
     "showSidebar": "显示侧边栏",
-    "hideSidebar": "隐藏侧边栏"
+    "hideSidebar": "隐藏侧边栏",
+    "collapseSidebar": "收起侧边栏"
   },
   "home": {
     "greeting": {

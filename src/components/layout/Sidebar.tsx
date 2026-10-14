@@ -66,6 +66,9 @@ interface SidebarProps {
     initialPath: string,
     icon: string | null,
   ) => void;
+  /** Icons only, 80 px wide — one of the three widths the top bar's
+   *  button cycles. */
+  collapsed: boolean;
 }
 
 export function Sidebar({
@@ -79,6 +82,7 @@ export function Sidebar({
   navigateToRemotePlaylist,
   activePluginId,
   navigateToPluginUi,
+  collapsed,
 }: SidebarProps) {
   const { t } = useTranslation();
   const createFromModal = useCreatePlaylistFromModal();
@@ -183,7 +187,9 @@ export function Sidebar({
           libraryId = libraries[0].id;
           selectLibrary(libraryId);
         } else {
-          const lib = await createLibrary({ name: t("onboarding.defaultLibraryName") });
+          const lib = await createLibrary({
+            name: t("onboarding.defaultLibraryName"),
+          });
           libraryId = lib.id;
           selectLibrary(libraryId);
         }
@@ -284,36 +290,70 @@ export function Sidebar({
   );
 
   return (
-    <aside className="w-64 flex flex-col border-r h-full border-zinc-200 bg-surface-light dark:border-zinc-800 dark:bg-surface-dark">
-      {/* Brand & Profile */}
-      <div className="p-6 pb-2">
-        <div className="flex items-center space-x-2 font-bold text-xl mb-6">
-          <WaveFlowLogo className="w-7 h-7" />
-          <span className="text-zinc-800 dark:text-white">WaveFlow</span>
+    <aside
+      className={`${collapsed ? "w-20" : "w-64"} flex flex-col border-r h-full border-zinc-200 bg-surface-light dark:border-zinc-800 dark:bg-surface-dark`}
+    >
+      {/* Brand & Profile. The skins address these by position (the
+          logo is the first child of the first row), so the narrow mode
+          hides the wordmark and the name rather than removing them. */}
+      <div className={collapsed ? "px-2 pt-5 pb-2" : "p-6 pb-2"}>
+        <div
+          className={`flex items-center font-bold text-xl mb-6 ${
+            // No `space-x` when narrow: it would keep a margin on the
+            // logo for the hidden wordmark and push it off centre.
+            collapsed ? "justify-center" : "space-x-2"
+          }`}
+        >
+          <WaveFlowLogo className="w-7 h-7 shrink-0" />
+          <span
+            className={`text-zinc-800 dark:text-white ${collapsed ? "sr-only" : ""}`}
+          >
+            WaveFlow
+          </span>
         </div>
 
-        <button className="w-full flex items-center justify-between p-2 rounded-xl border transition-colors border-zinc-200 bg-zinc-50 hover:bg-zinc-100 text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800/50 dark:hover:bg-zinc-800 dark:text-zinc-200">
-          <div className="flex items-center space-x-3 min-w-0">
+        <button
+          // Its visible name is hidden when narrow, and absent with no
+          // profile loaded: name it outright so it is never nameless.
+          aria-label={activeProfile?.name || t("topbar.profile.user")}
+          title={collapsed ? (activeProfile?.name ?? undefined) : undefined}
+          className={`w-full flex items-center p-2 rounded-xl border transition-colors border-zinc-200 bg-zinc-50 hover:bg-zinc-100 text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800/50 dark:hover:bg-zinc-800 dark:text-zinc-200 ${
+            collapsed ? "justify-center" : "justify-between"
+          }`}
+        >
+          {/* `space-x` puts its margin on every child but the last, and
+              the hidden name is still the last: the avatar would keep
+              12 px on its right and sit off centre. */}
+          <div
+            className={`flex items-center min-w-0 ${collapsed ? "" : "space-x-3"}`}
+          >
             <div
               className={`w-6 h-6 rounded-full ${profileColor.avatarBg} ${profileColor.avatarText} flex items-center justify-center text-xs font-bold shrink-0`}
             >
               {activeProfile ? profileInitial(activeProfile.name) : ""}
             </div>
-            <span className="text-sm font-medium truncate">
+            <span
+              className={`text-sm font-medium truncate ${collapsed ? "sr-only" : ""}`}
+            >
               {activeProfile?.name ?? ""}
             </span>
           </div>
-          <div
-            className={`w-2 h-2 rounded-full ${profileColor.dot} shrink-0`}
-          />
+          {!collapsed && (
+            <div
+              className={`w-2 h-2 rounded-full ${profileColor.dot} shrink-0`}
+            />
+          )}
         </button>
       </div>
 
       {/* Top navigation stays pinned: these are one-click
           destinations the user wants at hand regardless of how deep
           into the playlist list they've scrolled. */}
-      <div className="px-4 pt-4 pb-2 space-y-1 shrink-0">
+      <div
+        className={`${collapsed ? "px-2" : "px-4"} pt-4 pb-2 space-y-1 shrink-0`}
+      >
         <NavItem
+          collapsed={collapsed}
           icon={<Home size={18} />}
           label={t("sidebar.nav.home")}
           active={activeView === "home"}
@@ -321,6 +361,7 @@ export function Sidebar({
         />
         {showWebRadio && (
           <NavItem
+            collapsed={collapsed}
             icon={<Radio size={18} />}
             label={t("sidebar.nav.webRadio")}
             active={activeView === "web-radio"}
@@ -330,6 +371,7 @@ export function Sidebar({
         {uiPlugins.map((plugin) => (
           <NavItem
             key={plugin.pluginId}
+            collapsed={collapsed}
             icon={resolvePluginIcon(plugin.mountPoint.sidebarIcon)}
             label={plugin.mountPoint.sidebarLabel}
             active={
@@ -352,22 +394,31 @@ export function Sidebar({
           one extra pinned nav entry the playlist section collapsed to
           ~0 px because `shrink-0` on Ma musique pinned its full 5-row
           height. */}
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pb-4 space-y-4 scrollbar-hide">
+      <div
+        className={`flex-1 min-h-0 overflow-y-auto overscroll-contain ${collapsed ? "px-2" : "px-4"} pb-4 space-y-4 scrollbar-hide`}
+      >
         {/* ─── MA MUSIQUE ─── */}
         <div className="space-y-1">
-          <div className="flex items-center justify-between text-[10px] font-bold tracking-widest text-zinc-400 mb-1 px-2 uppercase">
-            <span>{t("sidebar.myMusic.title")}</span>
-            <button
-              type="button"
-              onClick={handleImportFolder}
-              disabled={isImporting}
-              aria-label={t("sidebar.myMusic.addFolderAria")}
-              className="p-0.5 rounded hover:text-emerald-500 transition-colors disabled:opacity-50"
-            >
-              <Folder size={14} />
-            </button>
-          </div>
+          {/* Narrow: a rule instead of the title and its actions, which
+              have no room; the full sidebar is one click away. */}
+          {collapsed ? (
+            <SectionRule />
+          ) : (
+            <div className="flex items-center justify-between text-[10px] font-bold tracking-widest text-zinc-400 mb-1 px-2 uppercase">
+              <span>{t("sidebar.myMusic.title")}</span>
+              <button
+                type="button"
+                onClick={handleImportFolder}
+                disabled={isImporting}
+                aria-label={t("sidebar.myMusic.addFolderAria")}
+                className="p-0.5 rounded hover:text-emerald-500 transition-colors disabled:opacity-50"
+              >
+                <Folder size={14} />
+              </button>
+            </div>
+          )}
           <NavItem
+            collapsed={collapsed}
             icon={<Music2 size={18} />}
             label={t("sidebar.myMusic.tracks")}
             active={activeView === "library" && libraryTab === "tracks"}
@@ -376,6 +427,7 @@ export function Sidebar({
             }}
           />
           <NavItem
+            collapsed={collapsed}
             icon={<Disc size={18} />}
             label={t("sidebar.myMusic.albums")}
             active={activeView === "library" && libraryTab === "albums"}
@@ -384,6 +436,7 @@ export function Sidebar({
             }}
           />
           <NavItem
+            collapsed={collapsed}
             icon={<Mic2 size={18} />}
             label={t("sidebar.myMusic.artists")}
             active={activeView === "library" && libraryTab === "artists"}
@@ -392,6 +445,7 @@ export function Sidebar({
             }}
           />
           <NavItem
+            collapsed={collapsed}
             icon={<Tags size={18} />}
             label={t("sidebar.myMusic.genres")}
             active={activeView === "library" && libraryTab === "genres"}
@@ -400,6 +454,7 @@ export function Sidebar({
             }}
           />
           <NavItem
+            collapsed={collapsed}
             icon={<CalendarDays size={18} />}
             label={t("sidebar.myMusic.years")}
             active={activeView === "library" && libraryTab === "years"}
@@ -408,6 +463,7 @@ export function Sidebar({
             }}
           />
           <NavItem
+            collapsed={collapsed}
             icon={<Folder size={18} />}
             label={t("sidebar.myMusic.folders")}
             active={activeView === "library" && libraryTab === "folders"}
@@ -419,37 +475,41 @@ export function Sidebar({
 
         {/* ─── PLAYLISTS ─── */}
         <div>
-          <div className="flex items-center justify-between text-[10px] font-bold tracking-widest text-zinc-400 mb-1 px-2 uppercase">
-            <span>{t("sidebar.playlistSection.title")}</span>
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={handleImportM3u}
-                aria-label={t("sidebar.playlists.importM3uAria")}
-                title={t("sidebar.playlists.importM3uAria")}
-                className="p-0.5 rounded hover:text-emerald-500 transition-colors"
-              >
-                <Upload size={14} />
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsSmartEditorOpen(true)}
-                aria-label={t("sidebar.playlists.createSmartAria")}
-                title={t("sidebar.playlists.createSmartAria")}
-                className="p-0.5 rounded hover:text-violet-500 transition-colors"
-              >
-                <Sparkles size={14} />
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsCreatePlaylistModalOpen(true)}
-                aria-label={t("sidebar.playlists.createPlaylistAria")}
-                className="p-0.5 rounded hover:text-emerald-500 transition-colors"
-              >
-                <Plus size={14} />
-              </button>
+          {collapsed ? (
+            <SectionRule />
+          ) : (
+            <div className="flex items-center justify-between text-[10px] font-bold tracking-widest text-zinc-400 mb-1 px-2 uppercase">
+              <span>{t("sidebar.playlistSection.title")}</span>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={handleImportM3u}
+                  aria-label={t("sidebar.playlists.importM3uAria")}
+                  title={t("sidebar.playlists.importM3uAria")}
+                  className="p-0.5 rounded hover:text-emerald-500 transition-colors"
+                >
+                  <Upload size={14} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsSmartEditorOpen(true)}
+                  aria-label={t("sidebar.playlists.createSmartAria")}
+                  title={t("sidebar.playlists.createSmartAria")}
+                  className="p-0.5 rounded hover:text-violet-500 transition-colors"
+                >
+                  <Sparkles size={14} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsCreatePlaylistModalOpen(true)}
+                  aria-label={t("sidebar.playlists.createPlaylistAria")}
+                  className="p-0.5 rounded hover:text-emerald-500 transition-colors"
+                >
+                  <Plus size={14} />
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="space-y-1">
             {/* Pinned: Liked + Recent */}
@@ -465,6 +525,7 @@ export function Sidebar({
               return (
                 <SidebarRow
                   key={row.key}
+                  collapsed={collapsed}
                   icon={row.icon}
                   label={row.label}
                   subtext={row.subtext}
@@ -486,6 +547,7 @@ export function Sidebar({
             {libraryPlaylists.map((pl) => (
               <PlaylistSidebarRow
                 key={`${pl.source}:${pl.id}`}
+                collapsed={collapsed}
                 playlist={pl}
                 active={
                   pl.source === "remote"
@@ -548,6 +610,16 @@ export function Sidebar({
   );
 }
 
+/** Stands in for a section title in the narrow sidebar. */
+function SectionRule() {
+  return (
+    <div
+      role="separator"
+      className="mx-2 my-2 h-px bg-zinc-200 dark:bg-zinc-800"
+    />
+  );
+}
+
 function SidebarRow({
   icon,
   label,
@@ -556,11 +628,14 @@ function SidebarRow({
   onClick,
   onContextMenu,
   onKeyDown,
+  collapsed,
 }: {
   icon: React.ReactNode;
   label: string;
   subtext?: string;
   active?: boolean;
+  /** The tile alone; the name stays the button's name and its tooltip. */
+  collapsed?: boolean;
   onClick?: () => void;
   /** Only the playlist rows pass these. The pinned Liked / Recently
    *  played rows have no menu, leave them out, and behave as before. */
@@ -573,14 +648,17 @@ function SidebarRow({
       onClick={onClick}
       onContextMenu={onContextMenu}
       onKeyDown={onKeyDown}
-      className={`w-full flex items-center space-x-3 p-2 rounded-xl text-left transition-colors ${
+      title={collapsed ? label : undefined}
+      className={`w-full flex items-center p-2 rounded-xl text-left transition-colors ${
+        collapsed ? "justify-center" : "space-x-3"
+      } ${
         active
           ? "bg-emerald-50 dark:bg-emerald-900/20"
           : "hover:bg-zinc-50 dark:hover:bg-zinc-800/40"
       }`}
     >
       <div className="shrink-0">{icon}</div>
-      <div className="flex-1 min-w-0">
+      <div className={collapsed ? "sr-only" : "flex-1 min-w-0"}>
         <div
           className={`text-sm font-medium truncate ${
             active
@@ -605,8 +683,10 @@ function PlaylistSidebarRow({
   subtext,
   onContextMenu,
   onKeyDown,
+  collapsed,
 }: {
   playlist: LibraryPlaylistRow;
+  collapsed?: boolean;
   active?: boolean;
   onClick?: () => void;
   subtext: string;
@@ -638,6 +718,7 @@ function PlaylistSidebarRow({
   );
   return (
     <SidebarRow
+      collapsed={collapsed}
       icon={tile}
       label={playlist.name}
       subtext={subtext}

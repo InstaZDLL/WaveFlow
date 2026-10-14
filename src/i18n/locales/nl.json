@@ -286,7 +286,8 @@
       "quit": "App afsluiten"
     },
     "showSidebar": "Zijbalk tonen",
-    "hideSidebar": "Zijbalk verbergen"
+    "hideSidebar": "Zijbalk verbergen",
+    "collapseSidebar": "Zijbalk inklappen"
   },
   "home": {
     "greeting": {

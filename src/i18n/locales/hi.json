@@ -286,7 +286,8 @@
       "quit": "ऐप से बाहर निकलें"
     },
     "showSidebar": "साइडबार दिखाएँ",
-    "hideSidebar": "साइडबार छिपाएँ"
+    "hideSidebar": "साइडबार छिपाएँ",
+    "collapseSidebar": "साइडबार छोटा करें"
   },
   "home": {
     "greeting": {
