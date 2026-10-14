@@ -1843,6 +1843,12 @@
       "notifications": {
         "title": "Meldingen bij nummerwissel",
         "subtitle": "Toon een systeemmelding aan het begin van elk nummer (titel + artiest). Standaard uit."
+      },
+      "listenbrainz": {
+        "subtitle": "Stuur je beluisterde nummers en wat nu speelt naar ListenBrainz, de open luisterregistratie.",
+        "tokenPrompt": "Plak het gebruikerstoken van je ListenBrainz-account.",
+        "getToken": "Mijn token vinden",
+        "tokenPlaceholder": "Gebruikerstoken"
       }
     },
     "crossfade": {

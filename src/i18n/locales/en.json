@@ -1843,6 +1843,12 @@
       "notifications": {
         "title": "Track-change notifications",
         "subtitle": "Show a system toast at the start of every track (title + artist). Off by default."
+      },
+      "listenbrainz": {
+        "subtitle": "Send your listens and what's playing now to ListenBrainz, the open listening tracker.",
+        "tokenPrompt": "Paste the user token from your ListenBrainz account.",
+        "getToken": "Find my token",
+        "tokenPlaceholder": "User token"
       }
     },
     "crossfade": {

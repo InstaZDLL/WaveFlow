@@ -1899,6 +1899,12 @@
       "notifications": {
         "title": "Notifiche di cambio brano",
         "subtitle": "Mostra una notifica di sistema all'inizio di ogni brano (titolo + artista). Disattivata per impostazione predefinita."
+      },
+      "listenbrainz": {
+        "subtitle": "Invia i tuoi ascolti e il brano in riproduzione a ListenBrainz, il registro di ascolti aperto.",
+        "tokenPrompt": "Incolla il token utente del tuo account ListenBrainz.",
+        "getToken": "Trova il mio token",
+        "tokenPlaceholder": "Token utente"
       }
     },
     "crossfade": {

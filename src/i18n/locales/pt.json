@@ -1900,6 +1900,12 @@
       "notifications": {
         "title": "Notificações de mudança de faixa",
         "subtitle": "Mostra uma notificação do sistema no início de cada faixa (título + artista). Desativado por defeito."
+      },
+      "listenbrainz": {
+        "subtitle": "Envia as tuas audições e o que está a tocar para o ListenBrainz, o registo de audições aberto.",
+        "tokenPrompt": "Cola o token de utilizador da tua conta ListenBrainz.",
+        "getToken": "Encontrar o meu token",
+        "tokenPlaceholder": "Token de utilizador"
       }
     },
     "crossfade": {

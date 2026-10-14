@@ -2028,6 +2028,12 @@
       "notifications": {
         "title": "إشعارات تغيير المقطع",
         "subtitle": "عرض إشعار من النظام في بداية كل مقطع (العنوان + الفنان). معطّل افتراضيًا."
+      },
+      "listenbrainz": {
+        "subtitle": "أرسل سجل استماعك وما يُشغَّل الآن إلى ListenBrainz، خدمة تتبّع الاستماع المفتوحة.",
+        "tokenPrompt": "الصق رمز المستخدم من حسابك على ListenBrainz.",
+        "getToken": "العثور على رمزي",
+        "tokenPlaceholder": "رمز المستخدم"
       }
     },
     "crossfade": {

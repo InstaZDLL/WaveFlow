@@ -1952,6 +1952,12 @@
       "notifications": {
         "title": "Notifications de changement de titre",
         "subtitle": "Affiche une notification système au début de chaque titre (titre et artiste). Désactivé par défaut."
+      },
+      "listenbrainz": {
+        "subtitle": "Envoie tes écoutes et le titre en cours à ListenBrainz, le service ouvert de suivi d'écoute.",
+        "tokenPrompt": "Colle le jeton utilisateur de ton compte ListenBrainz.",
+        "getToken": "Trouver mon jeton",
+        "tokenPlaceholder": "Jeton utilisateur"
       }
     },
     "crossfade": {

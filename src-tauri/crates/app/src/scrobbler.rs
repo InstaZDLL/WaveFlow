@@ -1,7 +1,8 @@
-//! Last.fm scrobble worker.
+//! Scrobble worker, for Last.fm and ListenBrainz.
 //!
-//! Drains the per-profile `scrobble_queue` table by signing and POSTing
-//! `track.scrobble` against Last.fm. Successful scrobbles are deleted;
+//! Drains the per-profile `scrobble_queue` table, one pass per provider:
+//! Last.fm by signing and POSTing `track.scrobble`, ListenBrainz by
+//! posting each listen with the user's token. Successful scrobbles are deleted;
 //! transient failures (network, 5xx, rate-limit) bump `retry_count` and
 //! schedule the next attempt with exponential backoff. Permanent
 //! failures (invalid signature, unknown track…) are deleted so the
@@ -26,8 +27,20 @@ use tauri::{AppHandle, Emitter, Manager};
 use tokio::time;
 
 use waveflow_core::metadata::lastfm::{is_permanent_error, LastfmClient, LastfmError};
+use waveflow_core::metadata::listenbrainz::{
+    Listen, ListenBrainzClient, ListenBrainzError, ListenType,
+};
 
-use crate::{commands::integration::read_lastfm_credentials, state::AppState};
+use crate::{
+    commands::integration::{
+        forget_listenbrainz_token, read_lastfm_credentials, read_listenbrainz_credentials,
+    },
+    state::AppState,
+};
+
+/// `scrobble_queue.provider` values, as its CHECK spells them.
+pub const LASTFM: &str = "lastfm";
+pub const LISTENBRAINZ: &str = "listenbrainz";
 
 /// Last.fm error code that signals our session key is no longer
 /// valid (the user revoked the app, changed password, or Last.fm
@@ -79,6 +92,13 @@ async fn run_once(app: &AppHandle) -> Result<(), String> {
     if crate::offline::is_offline() {
         return Ok(());
     }
+    // One provider failing must not hold the other's queue back.
+    let lastfm = run_lastfm(app).await;
+    let listenbrainz = run_listenbrainz(app).await;
+    lastfm.and(listenbrainz)
+}
+
+async fn run_lastfm(app: &AppHandle) -> Result<(), String> {
     let state = app.state::<AppState>();
     let creds = read_lastfm_credentials(&state)
         .await
@@ -95,7 +115,9 @@ async fn run_once(app: &AppHandle) -> Result<(), String> {
     let FetchedDue {
         pending,
         poison_ids,
-    } = fetch_due(&pool).await.map_err(|e| format!("fetch: {e}"))?;
+    } = fetch_due(&pool, LASTFM)
+        .await
+        .map_err(|e| format!("fetch: {e}"))?;
     delete_poison(&pool, &poison_ids).await;
     if pending.is_empty() {
         return Ok(());
@@ -154,6 +176,82 @@ async fn run_once(app: &AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+/// The ListenBrainz pass. Same queue, same retry schedule as Last.fm; what
+/// differs is how a failure reads: a refused token drops the token and
+/// the queue (the user has to paste a new one), a refused listen drops
+/// that listen, anything else is retried.
+async fn run_listenbrainz(app: &AppHandle) -> Result<(), String> {
+    let state = app.state::<AppState>();
+    // The pool first, then the token from it: the whole pass — reads,
+    // deletes, a refused token — is on one profile.
+    let pool = match state.require_profile_pool().await {
+        Ok(p) => p,
+        Err(_) => return Ok(()),
+    };
+    let Some((token, _username)) = read_listenbrainz_credentials(&pool)
+        .await
+        .map_err(|e| format!("read credentials: {e}"))?
+    else {
+        return Ok(());
+    };
+
+    let FetchedDue {
+        pending,
+        poison_ids,
+    } = fetch_due(&pool, LISTENBRAINZ)
+        .await
+        .map_err(|e| format!("fetch: {e}"))?;
+    delete_poison(&pool, &poison_ids).await;
+    if pending.is_empty() {
+        return Ok(());
+    }
+
+    let client = ListenBrainzClient::new();
+    for item in pending {
+        let listen = Listen {
+            artist: &item.artist_name,
+            track: &item.title,
+            release: item.album_title.as_deref(),
+            duration_ms: item.duration_s.map(|s| s * 1000),
+            track_number: item.track_number,
+            listened_at: Some(item.played_at_unix_s),
+        };
+        match client.submit(&token, ListenType::Single, &listen).await {
+            Ok(()) => {
+                tracing::info!(
+                    item_id = item.id,
+                    track_id = item.track_id,
+                    "listen submitted"
+                );
+                if let Err(e) = delete_item(&pool, item.id).await {
+                    tracing::warn!(?e, item_id = item.id, "delete after listen failed");
+                }
+            }
+            Err(ListenBrainzError::Unauthorized) => {
+                // Every remaining listen would be refused the same way.
+                tracing::warn!("ListenBrainz refused the token; dropping it and the queue");
+                if let Err(e) = forget_listenbrainz_token(&pool, &token).await {
+                    tracing::warn!(?e, "forget ListenBrainz failed");
+                }
+                return Ok(());
+            }
+            Err(err) if err.is_permanent() => {
+                tracing::warn!(item_id = item.id, %err, "listen refused, dropping");
+                let _ = delete_item(&pool, item.id).await;
+            }
+            Err(err) => {
+                tracing::warn!(item_id = item.id, %err, "listen retry");
+                if let Err(e) =
+                    bump_retry(&pool, item.id, item.retry_count + 1, err.to_string()).await
+                {
+                    tracing::warn!(?e, item_id = item.id, "bump retry failed");
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
 #[derive(Debug, Clone)]
 struct PendingScrobble {
     id: i64,
@@ -179,7 +277,7 @@ struct FetchedDue {
 /// (or null = first attempt) and that haven't burned all their
 /// retries. Joined with the track row so the worker doesn't need a
 /// second query per item to assemble the API payload.
-async fn fetch_due(pool: &SqlitePool) -> Result<FetchedDue, sqlx::Error> {
+async fn fetch_due(pool: &SqlitePool, provider: &str) -> Result<FetchedDue, sqlx::Error> {
     let now = chrono::Utc::now().timestamp_millis();
     #[allow(clippy::type_complexity)]
     let rows: Vec<(
@@ -210,13 +308,14 @@ async fn fetch_due(pool: &SqlitePool) -> Result<FetchedDue, sqlx::Error> {
           FROM scrobble_queue q
           JOIN track t        ON t.id = q.track_id
           LEFT JOIN album al  ON al.id = t.album_id
-         WHERE q.provider = 'lastfm'
+         WHERE q.provider = ?
            AND q.retry_count < 10
            AND (q.next_retry_at IS NULL OR q.next_retry_at <= ?)
          ORDER BY q.id
          LIMIT ?
         "#,
     )
+    .bind(provider)
     .bind(now)
     .bind(MAX_PER_TICK)
     .fetch_all(pool)
@@ -226,7 +325,7 @@ async fn fetch_due(pool: &SqlitePool) -> Result<FetchedDue, sqlx::Error> {
     let mut poison_ids = Vec::new();
     for row in rows {
         let (id, track_id, title, artist, album, track_no, duration_ms, played_at_ms, retry) = row;
-        // Last.fm requires an artist; if the joined GROUP_CONCAT
+        // Both providers require an artist; if the joined GROUP_CONCAT
         // yielded nothing the row is unfixable — collect its id so
         // the caller can DELETE it, otherwise we'd re-select the same
         // poison row every tick and keep dropping it client-side.
@@ -313,12 +412,13 @@ async fn bump_retry(
     Ok(())
 }
 
-/// Insert a scrobble candidate into `scrobble_queue`. Called from
-/// [`crate::audio::analytics`] right after a `play_event` row is
-/// written. Eligibility is checked before this call — by the time we
+/// Insert a scrobble candidate into `scrobble_queue` for `provider`.
+/// Called from [`crate::audio::analytics`] right after a `play_event` row
+/// is written. Eligibility is checked before this call — by the time we
 /// land here the listen is known to qualify.
 pub async fn enqueue(
     pool: &SqlitePool,
+    provider: &str,
     track_id: i64,
     played_at_ms: i64,
     listened_ms: i64,
@@ -328,8 +428,9 @@ pub async fn enqueue(
         "INSERT INTO scrobble_queue
             (provider, track_id, played_at, listened_ms,
              retry_count, next_retry_at, last_error, created_at)
-         VALUES ('lastfm', ?, ?, ?, 0, NULL, NULL, ?)",
+         VALUES (?, ?, ?, ?, 0, NULL, NULL, ?)",
     )
+    .bind(provider)
     .bind(track_id)
     .bind(played_at_ms)
     .bind(listened_ms)
@@ -339,7 +440,28 @@ pub async fn enqueue(
     Ok(())
 }
 
-/// Last.fm eligibility check applied at enqueue time: track must be
+/// Whether the profile has connected ListenBrainz. Its listens are only
+/// queued then: unlike Last.fm's, which wait for a sign-in, a queue no
+/// token will ever drain would only grow.
+pub async fn listenbrainz_connected(pool: &SqlitePool) -> bool {
+    match sqlx::query_scalar::<_, i64>(
+        "SELECT EXISTS(SELECT 1 FROM auth_credential WHERE provider = 'listenbrainz')",
+    )
+    .fetch_one(pool)
+    .await
+    {
+        Ok(n) => n != 0,
+        Err(e) => {
+            // Reads as "not connected", so the listen is not queued for
+            // it — said in the log, or it would vanish without a trace.
+            tracing::warn!(?e, "ListenBrainz connection check failed");
+            false
+        }
+    }
+}
+
+/// Eligibility check applied at enqueue time, for both providers (the
+/// rule ListenBrainz documents is Last.fm's): track must be
 /// at least 30 s long, and the user must have listened to at least
 /// half its duration or 4 minutes — whichever comes first. Tracks
 /// without a known duration are skipped (we have no basis to judge).

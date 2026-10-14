@@ -2,8 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Share2, Download, Copy, Loader2, Check } from "lucide-react";
 import type { Track } from "../../lib/tauri/track";
-import { pickSaveFile } from "../../lib/tauri/dialog";
-import { saveShareImage } from "../../lib/tauri/share";
+import { useShareImage } from "../../hooks/useShareImage";
 import { renderNowPlayingCard } from "../../lib/nowPlayingCard";
 
 interface ImmersiveShareButtonProps {
@@ -16,70 +15,26 @@ interface ImmersiveShareButtonProps {
  * native dialog or copies it to the clipboard. Self-contained (owns its
  * open/sharing state) so the orchestrator's top bar stays declarative.
  *
- * Lifted verbatim from the old `FullscreenNowPlaying` share menu.
+ * The save / copy flow is `useShareImage`, shared with the playlist and
+ * artist headers.
  */
 export function ImmersiveShareButton({ track }: ImmersiveShareButtonProps) {
   const { t } = useTranslation();
   const [shareOpen, setShareOpen] = useState(false);
-  const [sharing, setSharing] = useState<
-    "idle" | "saving" | "copying" | "done"
-  >("idle");
-
-  // Sanitise the track title for use as a default filename — the native
-  // save dialog rejects reserved characters on Windows (`< > : " / \ |
-  // ? *`), and a stripped fallback is friendlier than an opaque
-  // "card.png".
-  const sanitizeFilename = (s: string): string =>
-    s
-      // eslint-disable-next-line no-control-regex
-      .replace(/[<>:"/\\|?*\x00-\x1f]/g, "_")
-      .replace(/\s+/g, " ")
-      .trim()
-      .slice(0, 80) || "track";
-
-  const buildCard = async (): Promise<Blob> =>
-    renderNowPlayingCard(track, {
-      labels: {
-        nowPlaying: t("nowPlaying.share.eyebrow"),
-        footer: t("nowPlaying.share.footer", { app: "WaveFlow" }),
-      },
-    });
-
-  const handleSave = async () => {
-    try {
-      setSharing("saving");
-      const defaultName = `${sanitizeFilename(track.title)} - WaveFlow.png`;
-      const target = await pickSaveFile(defaultName, ["png"]);
-      if (!target) {
-        setSharing("idle");
-        return;
-      }
-      const blob = await buildCard();
-      const bytes = new Uint8Array(await blob.arrayBuffer());
-      await saveShareImage(bytes, target);
-      setSharing("done");
-      window.setTimeout(() => setSharing("idle"), 2000);
-    } catch (err) {
-      console.error("[ImmersiveShareButton] save image failed", err);
-      setSharing("idle");
-    }
-  };
-
-  const handleCopy = async () => {
-    try {
-      setSharing("copying");
-      const blob = await buildCard();
-      await navigator.clipboard.write([
-        new ClipboardItem({ "image/png": blob }),
-      ]);
-      setSharing("done");
-      window.setTimeout(() => setSharing("idle"), 2000);
-    } catch (err) {
-      console.error("[ImmersiveShareButton] copy image failed", err);
-      setSharing("idle");
-    }
-  };
-
+  const {
+    state: sharing,
+    save,
+    copy,
+  } = useShareImage(
+    () =>
+      renderNowPlayingCard(track, {
+        labels: {
+          nowPlaying: t("nowPlaying.share.eyebrow"),
+          footer: t("nowPlaying.share.footer", { app: "WaveFlow" }),
+        },
+      }),
+    track.title,
+  );
   return (
     <div className="relative">
       <button
@@ -103,7 +58,7 @@ export function ImmersiveShareButton({ track }: ImmersiveShareButtonProps) {
             type="button"
             onClick={async () => {
               setShareOpen(false);
-              await handleSave();
+              await save();
             }}
             className="w-full px-4 py-3 flex items-center gap-3 hover:bg-white/10 transition-colors text-sm"
           >
@@ -114,7 +69,7 @@ export function ImmersiveShareButton({ track }: ImmersiveShareButtonProps) {
             type="button"
             onClick={async () => {
               setShareOpen(false);
-              await handleCopy();
+              await copy();
             }}
             className="w-full px-4 py-3 flex items-center gap-3 hover:bg-white/10 transition-colors text-sm border-t border-white/5"
           >

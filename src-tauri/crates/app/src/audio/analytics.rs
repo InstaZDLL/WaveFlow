@@ -477,8 +477,29 @@ async fn insert_play_event(
         return;
     };
     if crate::scrobbler::is_eligible(duration_ms, listened_ms as i64) {
-        if let Err(e) = crate::scrobbler::enqueue(pool, track_id, now, listened_ms as i64).await {
+        if let Err(e) = crate::scrobbler::enqueue(
+            pool,
+            crate::scrobbler::LASTFM,
+            track_id,
+            now,
+            listened_ms as i64,
+        )
+        .await
+        {
             tracing::warn!(?e, track_id, "failed to enqueue scrobble");
+        }
+        if crate::scrobbler::listenbrainz_connected(pool).await {
+            if let Err(e) = crate::scrobbler::enqueue(
+                pool,
+                crate::scrobbler::LISTENBRAINZ,
+                track_id,
+                now,
+                listened_ms as i64,
+            )
+            .await
+            {
+                tracing::warn!(?e, track_id, "failed to enqueue listen");
+            }
         }
     }
 }

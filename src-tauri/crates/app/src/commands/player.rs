@@ -376,9 +376,9 @@ fn schedule_discord_presence(app: &AppHandle, track: &QueueTrack) {
     });
 }
 
-/// Spawn a tokio task that, after a 4 s settling window, posts
-/// `track.updateNowPlaying` to Last.fm if the user is still on the
-/// same track. The settling check is the cheap atomic read of
+/// Spawn a tokio task that, after a 4 s settling window, announces the
+/// track as playing now to Last.fm and ListenBrainz if the user is still
+/// on the same track. The settling check is the cheap atomic read of
 /// `current_track_id` — no DB hit before we know we'll actually
 /// fire the request.
 fn schedule_now_playing(app: &AppHandle, track: &QueueTrack) {
@@ -405,7 +405,7 @@ fn schedule_now_playing(app: &AppHandle, track: &QueueTrack) {
             return;
         }
 
-        // Need a real artist for Last.fm — the API rejects calls
+        // Need a real artist for either service — both APIs reject calls
         // without one, and our scanner falls back to the file name
         // when tags are empty.
         let Some(artist) = artist.filter(|s| !s.trim().is_empty()) else {
@@ -417,48 +417,110 @@ fn schedule_now_playing(app: &AppHandle, track: &QueueTrack) {
             return;
         }
 
-        let state = app.state::<AppState>();
-        let creds = match crate::commands::integration::read_lastfm_credentials(&state).await {
-            Ok(Some(c)) => c,
-            _ => return,
-        };
-        let (api_key, api_secret, session_key, _username) = creds;
+        // Each service on its own: one not being connected must not keep
+        // the other from hearing about the track.
+        announce_lastfm(&app, &artist, &title, album.as_deref(), duration_ms).await;
+        announce_listenbrainz(&app, &artist, &title, album.as_deref(), duration_ms).await;
+    });
+}
 
-        let client = waveflow_core::metadata::lastfm::LastfmClient::new();
-        let duration_s = if duration_ms > 0 {
-            Some(duration_ms / 1000)
-        } else {
-            None
-        };
-        match client
-            .update_now_playing(
-                &api_key,
-                &api_secret,
-                &session_key,
-                &artist,
-                &title,
-                album.as_deref(),
-                duration_s,
-            )
-            .await
-        {
-            Ok(()) => {
-                tracing::debug!(track_id, "lastfm updateNowPlaying ok");
-            }
-            Err(waveflow_core::metadata::lastfm::LastfmError::Api { code: 9, .. }) => {
-                // Same recovery as the scrobbler: wipe the dead
-                // session + raise the re-auth banner. Pulling the
-                // pool here is best-effort — failure to acquire it
-                // means we just drop the event.
-                if let Ok(pool) = state.require_profile_pool().await {
-                    crate::scrobbler::handle_invalid_session(&app, &pool).await;
-                }
-            }
-            Err(err) => {
-                tracing::warn!(track_id, %err, "lastfm updateNowPlaying failed");
+/// Last.fm's `track.updateNowPlaying`, when a session is stored.
+async fn announce_lastfm(
+    app: &AppHandle,
+    artist: &str,
+    title: &str,
+    album: Option<&str>,
+    duration_ms: i64,
+) {
+    let state = app.state::<AppState>();
+    let Ok(Some((api_key, api_secret, session_key, _username))) =
+        crate::commands::integration::read_lastfm_credentials(&state).await
+    else {
+        return;
+    };
+    let client = waveflow_core::metadata::lastfm::LastfmClient::new();
+    let duration_s = if duration_ms > 0 {
+        Some(duration_ms / 1000)
+    } else {
+        None
+    };
+    match client
+        .update_now_playing(
+            &api_key,
+            &api_secret,
+            &session_key,
+            artist,
+            title,
+            album,
+            duration_s,
+        )
+        .await
+    {
+        Ok(()) => {
+            tracing::debug!("lastfm updateNowPlaying ok");
+        }
+        Err(waveflow_core::metadata::lastfm::LastfmError::Api { code: 9, .. }) => {
+            // Same recovery as the scrobbler: wipe the dead
+            // session + raise the re-auth banner. Pulling the
+            // pool here is best-effort — failure to acquire it
+            // means we just drop the event.
+            if let Ok(pool) = state.require_profile_pool().await {
+                crate::scrobbler::handle_invalid_session(app, &pool).await;
             }
         }
-    });
+        Err(err) => {
+            tracing::warn!(%err, "lastfm updateNowPlaying failed");
+        }
+    }
+}
+
+/// ListenBrainz's "playing now", when a token is stored. Not retried and
+/// not queued: it is only true while the track plays.
+async fn announce_listenbrainz(
+    app: &AppHandle,
+    artist: &str,
+    title: &str,
+    album: Option<&str>,
+    duration_ms: i64,
+) {
+    use waveflow_core::metadata::listenbrainz::{
+        Listen, ListenBrainzClient, ListenBrainzError, ListenType,
+    };
+    let state = app.state::<AppState>();
+    // One pool for the read and the forget below, so a refusal drops the
+    // token of the profile that sent it.
+    let Ok(pool) = state.require_profile_pool().await else {
+        return;
+    };
+    let Ok(Some((token, _username))) =
+        crate::commands::integration::read_listenbrainz_credentials(&pool).await
+    else {
+        return;
+    };
+    let listen = Listen {
+        artist,
+        track: title,
+        release: album,
+        duration_ms: Some(duration_ms),
+        track_number: None,
+        listened_at: None,
+    };
+    match ListenBrainzClient::new()
+        .submit(&token, ListenType::PlayingNow, &listen)
+        .await
+    {
+        Ok(()) => tracing::debug!("listenbrainz playing_now ok"),
+        Err(ListenBrainzError::Unauthorized) => {
+            // The token is dead: drop it, as the worker would — only if
+            // it is still the stored one.
+            if let Err(e) =
+                crate::commands::integration::forget_listenbrainz_token(&pool, &token).await
+            {
+                tracing::warn!(?e, "forget ListenBrainz failed");
+            }
+        }
+        Err(err) => tracing::warn!(%err, "listenbrainz playing_now failed"),
+    }
 }
 
 /// Put a shuffle mode in force: persist it, reorder the queue to

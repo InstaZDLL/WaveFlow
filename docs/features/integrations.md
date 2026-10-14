@@ -67,12 +67,15 @@ Write commands: [`set_artist_bio_override`](../../src-tauri/crates/app/src/comma
 
 ### Authenticated (scrobbling)
 
-[`scrobbler.rs`](../../src-tauri/crates/app/src/scrobbler.rs) is the worker thread that drives Last.fm scrobbles:
+[`scrobbler.rs`](../../src-tauri/crates/app/src/scrobbler.rs) is the worker that sends listens to **Last.fm** and **ListenBrainz**. Both are per profile — two profiles can scrobble to two accounts — and both are skipped in offline mode, the queue kept for later.
 
-- **Login** — signed `auth.getMobileSession` (md-5 of params + secret). Session key persisted in `app_setting['lastfm_session_key']`.
-- **Now Playing** — `track.updateNowPlaying` fires on every `player:track-changed` event after the 240 s threshold. Best-effort; failures are logged but never block playback.
-- **Scrobble queue** — `track.scrobble` is queued in the per-profile `scrobble_queue` table and drained with exponential backoff (10 s → 5 min). Survives app restarts.
-- **Re-auth** — on `9` (`Invalid session key`) or `4` (`Authentication failed`), the session is wiped and a `lastfm:reauth` event is emitted. The frontend surfaces a banner (`LastfmReauthBanner`) with a one-click "Re-authenticate" button.
+- **Eligibility** — a listen is queued when the track is at least 30 s long and was played for half its length or 4 minutes ([`audio/analytics.rs`](../../src-tauri/crates/app/src/audio/analytics.rs), the rule both services document). One `scrobble_queue` row per provider (`provider` = `lastfm` / `listenbrainz`). A ListenBrainz row is only written while a token is stored: a queue no token will ever drain would only grow.
+- **Queue** — every 30 s the worker sends up to 50 due rows per provider, one pass each, so one service failing does not hold the other back. A sent row is deleted; a retryable failure backs off exponentially (1 min, doubling, ten tries); a row with no resolvable artist, or one the service refuses outright, is dropped.
+- **Now playing** — 4 s after a track change, if it is still the current track, it is announced to each connected service on its own (`track.updateNowPlaying`, ListenBrainz `playing_now` with no timestamp). Best-effort and never queued.
+
+**Last.fm** needs an API key and secret (`app_setting`, shared by every profile) and a session obtained with signed `auth.getMobileSession`, stored in the profile's `auth_credential`. Error `9` (invalid session) wipes the session and its queue and emits `lastfm:reauth-required` for the banner.
+
+**ListenBrainz** ([`waveflow_core::metadata::listenbrainz`](../../src-tauri/crates/core/src/metadata/listenbrainz.rs)) needs only the user token from the ListenBrainz profile page, sent as `Authorization: Token …`. It is checked with `validate-token` before it is kept (`auth_credential`, provider `listenbrainz`), so a mistyped token fails in Settings rather than silently in the worker. A `401` later drops the token and its queue — the Settings card then shows it as disconnected; a `400` drops the one listen; `429` and server errors are retried.
 
 ## Discord Rich Presence
 

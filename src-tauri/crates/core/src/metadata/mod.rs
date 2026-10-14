@@ -6,7 +6,9 @@
 //! both the desktop app (`crates/app`) and `waveflow-server` without any
 //! glue.
 //!
-//! Each client has two constructors. `new()` builds its own HTTP client
+//! The three enrichment clients — Last.fm, TheAudioDB and Deezer, the ones
+//! `waveflow-server` reads through — have two constructors (ListenBrainz,
+//! which only the desktop uses, has `new()` alone). `new()` builds its own HTTP client
 //! and aims at the provider's public address, which is what the desktop
 //! wants. `with_http` takes both from the caller, because a server has
 //! rules the desktop does not: it follows no redirect, and its tests
@@ -15,6 +17,7 @@
 pub mod album_match;
 pub mod deezer;
 pub mod lastfm;
+pub mod listenbrainz;
 pub mod lrclib;
 pub mod name_match;
 pub mod theaudiodb;
