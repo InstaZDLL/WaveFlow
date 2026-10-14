@@ -237,17 +237,19 @@ export function AppLayout() {
     }
   });
   const cycleSidebar = useCallback(() => {
-    setSidebarMode((prev) => {
-      const next: SidebarMode =
-        prev === "full" ? "icons" : prev === "icons" ? "hidden" : "full";
-      try {
-        localStorage.setItem("waveflow.sidebar.mode", next);
-      } catch {
-        // Private mode / quota — UI still works for this session.
-      }
-      return next;
-    });
+    setSidebarMode((prev) =>
+      prev === "full" ? "icons" : prev === "icons" ? "hidden" : "full",
+    );
   }, []);
+  // Persisted here rather than in the updater, which React may run twice
+  // and which has to stay pure.
+  useEffect(() => {
+    try {
+      localStorage.setItem("waveflow.sidebar.mode", sidebarMode);
+    } catch {
+      // Private mode / quota — UI still works for this session.
+    }
+  }, [sidebarMode]);
   const isSidebarHidden = sidebarMode === "hidden";
 
   // First-run onboarding: prompt the user to point WaveFlow at a
