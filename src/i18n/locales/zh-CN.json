@@ -1353,7 +1353,10 @@
       "copy": "复制图片",
       "eyebrow": "正在播放",
       "footer": "来自 {{app}}"
-    }
+    },
+    "restOfAlbum": "专辑后续曲目",
+    "moreTracks_one": "+{{count}} 首",
+    "moreTracks_other": "+{{count}} 首"
   },
   "playerBar": {
     "lyrics": "歌词",

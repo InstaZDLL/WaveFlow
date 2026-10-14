@@ -1353,7 +1353,10 @@
       "copy": "छवि कॉपी करें",
       "eyebrow": "अभी चल रहा है",
       "footer": "{{app}} पर"
-    }
+    },
+    "restOfAlbum": "एल्बम के बाकी गाने",
+    "moreTracks_one": "+{{count}} ट्रैक",
+    "moreTracks_other": "+{{count}} ट्रैक"
   },
   "playerBar": {
     "lyrics": "गीत के बोल",

@@ -1353,7 +1353,10 @@
       "copy": "Salin gambar",
       "eyebrow": "Sedang diputar",
       "footer": "di {{app}}"
-    }
+    },
+    "restOfAlbum": "Sisa album",
+    "moreTracks_one": "+{{count}} lagu",
+    "moreTracks_other": "+{{count}} lagu"
   },
   "playerBar": {
     "lyrics": "Lirik",
