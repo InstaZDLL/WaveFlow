@@ -313,6 +313,9 @@ export function Sidebar({
         </div>
 
         <button
+          // Its visible name is hidden when narrow, and absent with no
+          // profile loaded: name it outright so it is never nameless.
+          aria-label={activeProfile?.name || t("topbar.profile.user")}
           title={collapsed ? (activeProfile?.name ?? undefined) : undefined}
           className={`w-full flex items-center p-2 rounded-xl border transition-colors border-zinc-200 bg-zinc-50 hover:bg-zinc-100 text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800/50 dark:hover:bg-zinc-800 dark:text-zinc-200 ${
             collapsed ? "justify-center" : "justify-between"
