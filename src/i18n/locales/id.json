@@ -1843,6 +1843,12 @@
       "notifications": {
         "title": "Notifikasi pergantian lagu",
         "subtitle": "Tampilkan notifikasi sistem di awal setiap lagu (judul + artis). Nonaktif secara bawaan."
+      },
+      "listenbrainz": {
+        "subtitle": "Kirim riwayat dengar dan lagu yang sedang diputar ke ListenBrainz, pencatat dengar terbuka.",
+        "tokenPrompt": "Tempel token pengguna dari akun ListenBrainz kamu.",
+        "getToken": "Cari token saya",
+        "tokenPlaceholder": "Token pengguna"
       }
     },
     "crossfade": {

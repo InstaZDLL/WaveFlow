@@ -1843,6 +1843,12 @@
       "notifications": {
         "title": "Benachrichtigungen beim Titelwechsel",
         "subtitle": "Zeigt eine Systembenachrichtigung am Anfang jedes Titels (Titel + Künstler). Standardmäßig deaktiviert."
+      },
+      "listenbrainz": {
+        "subtitle": "Sende deine gehörten Titel und den aktuellen Titel an ListenBrainz, den offenen Hördienst.",
+        "tokenPrompt": "Füge das Benutzer-Token deines ListenBrainz-Kontos ein.",
+        "getToken": "Mein Token finden",
+        "tokenPlaceholder": "Benutzer-Token"
       }
     },
     "crossfade": {

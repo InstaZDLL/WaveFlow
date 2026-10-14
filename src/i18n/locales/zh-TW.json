@@ -1816,6 +1816,12 @@
       "notifications": {
         "title": "曲目變更通知",
         "subtitle": "每首曲目開始時顯示系統通知（標題 + 藝人）。預設關閉。"
+      },
+      "listenbrainz": {
+        "subtitle": "將你的收聽紀錄與正在播放的曲目傳送到開放的收聽紀錄服務 ListenBrainz。",
+        "tokenPrompt": "貼上你 ListenBrainz 帳號中的使用者權杖。",
+        "getToken": "尋找我的權杖",
+        "tokenPlaceholder": "使用者權杖"
       }
     },
     "crossfade": {

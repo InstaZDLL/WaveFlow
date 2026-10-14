@@ -1899,6 +1899,12 @@
       "notifications": {
         "title": "Notificaciones al cambiar de pista",
         "subtitle": "Muestra una notificación del sistema al inicio de cada pista (título + artista). Desactivado por defecto."
+      },
+      "listenbrainz": {
+        "subtitle": "Envía tus escuchas y lo que suena ahora a ListenBrainz, el registro de escuchas abierto.",
+        "tokenPrompt": "Pega el token de usuario de tu cuenta de ListenBrainz.",
+        "getToken": "Encontrar mi token",
+        "tokenPlaceholder": "Token de usuario"
       }
     },
     "crossfade": {

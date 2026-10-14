@@ -1843,6 +1843,12 @@
       "notifications": {
         "title": "곡 변경 알림",
         "subtitle": "곡이 바뀔 때마다 시스템 알림을 표시합니다(제목 + 아티스트). 기본적으로 꺼져 있습니다."
+      },
+      "listenbrainz": {
+        "subtitle": "감상 기록과 지금 재생 중인 곡을 개방형 감상 기록 서비스 ListenBrainz로 보냅니다.",
+        "tokenPrompt": "ListenBrainz 계정의 사용자 토큰을 붙여 넣으세요.",
+        "getToken": "내 토큰 찾기",
+        "tokenPlaceholder": "사용자 토큰"
       }
     },
     "crossfade": {
