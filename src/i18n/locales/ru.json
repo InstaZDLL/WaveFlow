@@ -1454,7 +1454,11 @@
       "eyebrow": "Сейчас играет",
       "footer": "в {{app}}"
     },
-    "restOfAlbum": "Дальше в альбоме"
+    "restOfAlbum": "Дальше в альбоме",
+    "moreTracks_one": "+{{count}} трек",
+    "moreTracks_few": "+{{count}} трека",
+    "moreTracks_other": "+{{count}} треков",
+    "moreTracks_many": "+{{count}} треков"
   },
   "playerBar": {
     "lyrics": "Текст",

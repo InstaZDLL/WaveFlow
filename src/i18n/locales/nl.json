@@ -1354,7 +1354,9 @@
       "eyebrow": "Speelt nu",
       "footer": "op {{app}}"
     },
-    "restOfAlbum": "Rest van het album"
+    "restOfAlbum": "Rest van het album",
+    "moreTracks_one": "+{{count}} nummer",
+    "moreTracks_other": "+{{count}} nummers"
   },
   "playerBar": {
     "lyrics": "Songtekst",

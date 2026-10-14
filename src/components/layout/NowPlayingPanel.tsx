@@ -630,7 +630,9 @@ export function NowPlayingPanel({
                 </ol>
                 {albumRest.length > ALBUM_REST_SHOWN && (
                   <div className="text-[11px] text-zinc-400 tabular-nums">
-                    +{albumRest.length - ALBUM_REST_SHOWN}
+                    {t("nowPlaying.moreTracks", {
+                      count: albumRest.length - ALBUM_REST_SHOWN,
+                    })}
                   </div>
                 )}
               </div>

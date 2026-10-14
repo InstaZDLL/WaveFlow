@@ -1405,7 +1405,10 @@
       "eyebrow": "Tocando agora",
       "footer": "no {{app}}"
     },
-    "restOfAlbum": "Restante do álbum"
+    "restOfAlbum": "Restante do álbum",
+    "moreTracks_one": "+{{count}} faixa",
+    "moreTracks_other": "+{{count}} faixas",
+    "moreTracks_many": "+{{count}} faixas"
   },
   "playerBar": {
     "lyrics": "Letra",

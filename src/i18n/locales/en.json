@@ -1354,7 +1354,9 @@
       "eyebrow": "Now playing",
       "footer": "on {{app}}"
     },
-    "restOfAlbum": "Rest of the album"
+    "restOfAlbum": "Rest of the album",
+    "moreTracks_one": "+{{count}} track",
+    "moreTracks_other": "+{{count}} tracks"
   },
   "playerBar": {
     "lyrics": "Lyrics",

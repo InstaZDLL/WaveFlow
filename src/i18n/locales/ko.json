@@ -1354,7 +1354,9 @@
       "eyebrow": "지금 재생 중",
       "footer": "{{app}}에서"
     },
-    "restOfAlbum": "앨범의 남은 곡"
+    "restOfAlbum": "앨범의 남은 곡",
+    "moreTracks_one": "+{{count}}곡",
+    "moreTracks_other": "+{{count}}곡"
   },
   "playerBar": {
     "lyrics": "가사",

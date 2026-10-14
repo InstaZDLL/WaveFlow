@@ -1517,7 +1517,13 @@
       "eyebrow": "قيد التشغيل",
       "footer": "على {{app}}"
     },
-    "restOfAlbum": "بقية الألبوم"
+    "restOfAlbum": "بقية الألبوم",
+    "moreTracks_one": "+{{count}} مقطع",
+    "moreTracks_other": "+{{count}} مقطع",
+    "moreTracks_zero": "+{{count}} مقطع",
+    "moreTracks_two": "+{{count}} مقطع",
+    "moreTracks_few": "+{{count}} مقاطع",
+    "moreTracks_many": "+{{count}} مقطعًا"
   },
   "playerBar": {
     "lyrics": "الكلمات",

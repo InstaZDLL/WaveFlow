@@ -1404,7 +1404,10 @@
       "eyebrow": "Reproduciendo ahora",
       "footer": "en {{app}}"
     },
-    "restOfAlbum": "Resto del álbum"
+    "restOfAlbum": "Resto del álbum",
+    "moreTracks_one": "+{{count}} pista",
+    "moreTracks_other": "+{{count}} pistas",
+    "moreTracks_many": "+{{count}} pistas"
   },
   "playerBar": {
     "lyrics": "Letras",
