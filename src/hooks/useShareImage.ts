@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { pickSaveFile } from "../lib/tauri/dialog";
 import { saveShareImage } from "../lib/tauri/share";
 
@@ -21,13 +21,29 @@ export function useShareImage(
   fileStem: string,
 ) {
   const [state, setState] = useState<ShareImageState>("idle");
+  // The tick's way back to idle. Cleared when a new share starts, or a
+  // tick left from the last one would turn its spinner off mid-flight,
+  // and on unmount.
+  const resetTimer = useRef<number | null>(null);
+  const clearReset = () => {
+    if (resetTimer.current != null) {
+      window.clearTimeout(resetTimer.current);
+      resetTimer.current = null;
+    }
+  };
+  useEffect(() => clearReset, []);
 
   const finish = () => {
+    clearReset();
     setState("done");
-    window.setTimeout(() => setState("idle"), 2000);
+    resetTimer.current = window.setTimeout(() => {
+      resetTimer.current = null;
+      setState("idle");
+    }, 2000);
   };
 
   const save = async () => {
+    clearReset();
     try {
       setState("saving");
       const target = await pickSaveFile(
@@ -48,6 +64,7 @@ export function useShareImage(
   };
 
   const copy = async () => {
+    clearReset();
     try {
       setState("copying");
       const blob = await buildCard();

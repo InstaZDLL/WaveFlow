@@ -90,6 +90,7 @@ import {
   remoteDeletePlaylist,
   remoteDownloadTrack,
   remoteListDownloads,
+  remoteArtwork,
   remoteGetPlayQueue,
   remoteListPlaylists,
   remoteListPlaylistTracks,
@@ -111,7 +112,7 @@ import {
 } from "../../lib/playlistVisuals";
 import { PlaylistIcon } from "../../lib/PlaylistIcon";
 import { RemoteArtwork } from "../common/RemoteArtwork";
-import { resolveRemoteImage } from "../../lib/tauri/artwork";
+import { resolveArtwork, resolveRemoteImage } from "../../lib/tauri/artwork";
 import { isRemoteTrack } from "../../lib/playerSources";
 import { notifyRemoteChanged } from "../../hooks/useRemoteSource";
 import { useSortMemory } from "../../hooks/useSortMemory";
@@ -988,6 +989,30 @@ export function PlaylistView({
     remoteCoverHashes[0] ?? null,
   );
   const localAccentArtwork = resolveRemoteImage(playlist?.cover_path, null);
+
+  // The share card's collage: the same covers the header shows. A server
+  // track has no local path, only the hash of a cover the app caches on
+  // disk, so those are resolved first — read at share time, since that is
+  // a round-trip per cover and most visits never share.
+  const shareCollageSrcs = async (): Promise<string[]> => {
+    if (remote) {
+      const resolved = await Promise.all(
+        remoteCoverHashes.map((hash) =>
+          remoteArtwork(hash)
+            .then((path) => resolveArtwork({ full: path }, "full"))
+            .catch(() => null),
+        ),
+      );
+      return resolved.filter((src): src is string => src != null);
+    }
+    return [
+      ...new Set(
+        tracks
+          .map((tr) => resolveRemoteImage(tr.artwork_path, null))
+          .filter((src): src is string => src != null),
+      ),
+    ].slice(0, 4);
+  };
   const accent = usePlaylistAccent(
     remote ? remoteAccentArtwork : localAccentArtwork,
     playlist?.color_id ?? "violet",
@@ -1475,21 +1500,13 @@ export function PlaylistView({
                   <ShareImageButton
                     fileStem={playlist.name}
                     className={`p-2 rounded-lg transition-colors ${headerControl} disabled:opacity-50 disabled:cursor-not-allowed`}
-                    buildCard={() =>
+                    buildCard={async () =>
                       renderCollectionCard({
                         shape: "square",
                         imageSrc: coverUrl,
                         // A playlist with no cover of its own is shown by
                         // what is in it: the first four distinct covers.
-                        collageSrcs: [
-                          ...new Set(
-                            tracks
-                              .map((tr) =>
-                                resolveRemoteImage(tr.artwork_path, null),
-                              )
-                              .filter((src): src is string => src != null),
-                          ),
-                        ].slice(0, 4),
+                        collageSrcs: await shareCollageSrcs(),
                         title: playlist.name,
                         subtitle: `${t("playlistView.trackCount", {
                           count: playlist.track_count,
