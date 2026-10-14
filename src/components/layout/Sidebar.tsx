@@ -334,7 +334,12 @@ export function Sidebar({
             collapsed ? "justify-center" : "justify-between"
           }`}
         >
-          <div className="flex items-center space-x-3 min-w-0">
+          {/* `space-x` puts its margin on every child but the last, and
+              the hidden name is still the last: the avatar would keep
+              12 px on its right and sit off centre. */}
+          <div
+            className={`flex items-center min-w-0 ${collapsed ? "" : "space-x-3"}`}
+          >
             <div
               className={`w-6 h-6 rounded-full ${profileColor.avatarBg} ${profileColor.avatarText} flex items-center justify-center text-xs font-bold shrink-0`}
             >
