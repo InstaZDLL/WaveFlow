@@ -39,7 +39,7 @@ The frontend helper `lib/tauri/artwork.ts::resolveRemoteImage` prefers the local
 
 ### Read-only (artist bios)
 
-`artist.getInfo` for biographies, called from `enrich_artist_deezer` after the Deezer pass. Cached in the same `metadata_artist` row with the same 30-day TTL. **Optional**: requires a user-supplied API key in `app_setting['lastfm_api_key']`. Without it, bios are skipped silently and the UI shows local data.
+`artist.getInfo` for biographies, called from `enrich_artist_deezer` after the Deezer pass. Cached in the same `metadata_artist` row with the same 30-day TTL. **Optional**: requires a user-supplied API key in `app_setting['lastfm_api_key']`. Without it, bios are skipped silently and the UI shows local data. Only Last.fm's error 6 ("artist not found") reads as an empty answer; any other code — a refused key, a spent quota — is an `Err`, so it is retried rather than cached as an artist with no biography.
 
 **Collapse toggle (issue #422).** A long bio pushes the discography off the artist page, so the bio block carries an inline Show/Hide chevron ([`ArtistDetailView`](../../src/components/views/ArtistDetailView.tsx) + [`useArtistBioCollapsed`](../../src/hooks/useArtistBioCollapsed.ts)). The preference is **global per-profile** (`profile_setting['artist.bio_collapsed']`, default shown), not per-artist and not in Settings — toggling on any artist page is remembered across every artist. Distinct from the existing "read more/less" which only swaps the short/full bio text; collapse hides the whole block so the tracklist moves up.
 
