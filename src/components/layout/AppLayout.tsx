@@ -228,6 +228,26 @@ export function AppLayout() {
       return false;
     }
   });
+  // Narrow, icons-only mode — the sidebar's own button, distinct from
+  // hiding it. Persisted the same way, for the same reason.
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("waveflow.sidebar.collapsed") === "1";
+    } catch {
+      return false;
+    }
+  });
+  const toggleSidebarCollapsed = useCallback(() => {
+    setIsSidebarCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("waveflow.sidebar.collapsed", next ? "1" : "0");
+      } catch {
+        // Private mode / quota — UI still works for this session.
+      }
+      return next;
+    });
+  }, []);
   const toggleSidebar = useCallback(() => {
     setIsSidebarHidden((prev) => {
       const next = !prev;
@@ -783,9 +803,14 @@ export function AppLayout() {
                 required. */}
             <motion.div
               initial={false}
-              animate={{ width: isSidebarHidden ? 0 : 256 }}
+              animate={{
+                width: isSidebarHidden ? 0 : isSidebarCollapsed ? 80 : 256,
+              }}
               transition={{ duration: 0.22, ease: "easeOut" }}
               className="skin-sidebar-shell lounge-sidebar-shell shrink-0 overflow-hidden"
+              // The skins narrow their padding on it: theirs is sized for
+              // 256 px and would leave the icons no room at 80.
+              data-collapsed={isSidebarCollapsed ? "" : undefined}
               aria-hidden={isSidebarHidden}
               inert={isSidebarHidden}
             >
@@ -800,6 +825,8 @@ export function AppLayout() {
                 navigateToRemotePlaylist={navigateToRemotePlaylist}
                 activePluginId={activePluginId}
                 navigateToPluginUi={navigateToPluginUi}
+                collapsed={isSidebarCollapsed}
+                onToggleCollapsed={toggleSidebarCollapsed}
               />
             </motion.div>
 

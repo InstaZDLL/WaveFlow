@@ -247,7 +247,9 @@
       "playlistSubtextPending_one": "{{count}} brano · non ancora inviata",
       "playlistSubtextPending_other": "{{count}} brani · non ancora inviata",
       "playlistSubtextPending_many": "{{count}} brani · non ancora inviata"
-    }
+    },
+    "collapse": "Comprimi la barra laterale",
+    "expand": "Espandi la barra laterale"
   },
   "topbar": {
     "search": {

@@ -241,7 +241,9 @@
       "playlistSubtextPending_zero": "0 首曲目 · 尚未傳送",
       "playlistSubtextPending_one": "{{count}} 首曲目 · 尚未傳送",
       "playlistSubtextPending_other": "{{count}} 首曲目 · 尚未傳送"
-    }
+    },
+    "collapse": "收合側邊欄",
+    "expand": "展開側邊欄"
   },
   "topbar": {
     "search": {

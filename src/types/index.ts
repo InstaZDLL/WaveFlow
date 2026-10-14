@@ -48,6 +48,9 @@ export interface NavItemProps {
   subtext?: string;
   active?: boolean;
   onClick?: () => void;
+  /** Icon only, for the sidebar's narrow mode: the label stays in the
+   *  accessibility tree and shows as the tooltip. */
+  collapsed?: boolean;
 }
 
 export type StatCardAccent = "emerald" | "pink" | "blue" | "purple";

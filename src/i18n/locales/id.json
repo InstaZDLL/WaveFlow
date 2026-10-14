@@ -241,7 +241,9 @@
       "playlistSubtextPending_zero": "0 lagu · belum dikirim",
       "playlistSubtextPending_one": "{{count}} lagu · belum dikirim",
       "playlistSubtextPending_other": "{{count}} lagu · belum dikirim"
-    }
+    },
+    "collapse": "Ciutkan bilah samping",
+    "expand": "Luaskan bilah samping"
   },
   "topbar": {
     "search": {

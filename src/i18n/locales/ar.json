@@ -259,7 +259,9 @@
       "playlistSubtextPending_two": "مقطعان · لم تُرسل بعد",
       "playlistSubtextPending_few": "{{count}} مقاطع · لم تُرسل بعد",
       "playlistSubtextPending_many": "{{count}} مقطعًا · لم تُرسل بعد"
-    }
+    },
+    "collapse": "طيّ الشريط الجانبي",
+    "expand": "توسيع الشريط الجانبي"
   },
   "topbar": {
     "search": {

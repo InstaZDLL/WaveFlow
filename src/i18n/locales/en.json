@@ -241,7 +241,9 @@
       "playlistSubtextPending_zero": "0 tracks · not sent yet",
       "playlistSubtextPending_one": "{{count}} track · not sent yet",
       "playlistSubtextPending_other": "{{count}} tracks · not sent yet"
-    }
+    },
+    "collapse": "Collapse sidebar",
+    "expand": "Expand sidebar"
   },
   "topbar": {
     "search": {

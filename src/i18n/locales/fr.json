@@ -247,7 +247,9 @@
       "playlistSubtextPending_one": "{{count}} titre · pas encore envoyée",
       "playlistSubtextPending_other": "{{count}} titres · pas encore envoyée",
       "playlistSubtextPending_many": "{{count}} titres · pas encore envoyée"
-    }
+    },
+    "collapse": "Réduire la barre latérale",
+    "expand": "Agrandir la barre latérale"
   },
   "topbar": {
     "search": {

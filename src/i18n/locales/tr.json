@@ -241,7 +241,9 @@
       "playlistSubtextPending_zero": "0 parça · henüz gönderilmedi",
       "playlistSubtextPending_one": "{{count}} parça · henüz gönderilmedi",
       "playlistSubtextPending_other": "{{count}} parça · henüz gönderilmedi"
-    }
+    },
+    "collapse": "Kenar çubuğunu daralt",
+    "expand": "Kenar çubuğunu genişlet"
   },
   "topbar": {
     "search": {

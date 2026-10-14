@@ -553,3 +553,10 @@
      `background-image: none` on their own chrome. */
   background-image: none !important;
 }
+
+/* Icons only (80 px): tighter outer margins, or the inset card leaves
+   the playlist tiles no room. */
+:root[data-skin="lounge"] .lounge-sidebar-shell[data-collapsed] > aside {
+  width: calc(100% - 0.875rem) !important;
+  margin: 0.75rem 0.375rem 0.75rem 0.5rem;
+}

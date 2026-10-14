@@ -241,7 +241,9 @@
       "playlistSubtextPending_zero": "0曲・未送信",
       "playlistSubtextPending_one": "{{count}}曲・未送信",
       "playlistSubtextPending_other": "{{count}}曲・未送信"
-    }
+    },
+    "collapse": "サイドバーを折りたたむ",
+    "expand": "サイドバーを展開"
   },
   "topbar": {
     "search": {

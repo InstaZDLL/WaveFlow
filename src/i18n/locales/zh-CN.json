@@ -241,7 +241,9 @@
       "playlistSubtextPending_zero": "0 首曲目 · 尚未发送",
       "playlistSubtextPending_one": "{{count}} 首曲目 · 尚未发送",
       "playlistSubtextPending_other": "{{count}} 首曲目 · 尚未发送"
-    }
+    },
+    "collapse": "收起侧边栏",
+    "expand": "展开侧边栏"
   },
   "topbar": {
     "search": {

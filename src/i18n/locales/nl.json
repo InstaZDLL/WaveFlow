@@ -241,7 +241,9 @@
       "playlistSubtextPending_zero": "0 nummers · nog niet verstuurd",
       "playlistSubtextPending_one": "{{count}} nummer · nog niet verstuurd",
       "playlistSubtextPending_other": "{{count}} nummers · nog niet verstuurd"
-    }
+    },
+    "collapse": "Zijbalk inklappen",
+    "expand": "Zijbalk uitklappen"
   },
   "topbar": {
     "search": {

@@ -247,7 +247,9 @@
       "playlistSubtextPending_one": "{{count}} faixa · ainda não enviada",
       "playlistSubtextPending_other": "{{count}} faixas · ainda não enviada",
       "playlistSubtextPending_many": "{{count}} faixas · ainda não enviada"
-    }
+    },
+    "collapse": "Recolher a barra lateral",
+    "expand": "Expandir a barra lateral"
   },
   "topbar": {
     "search": {
