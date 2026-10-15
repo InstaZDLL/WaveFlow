@@ -42,6 +42,11 @@ use crate::{
 /// TTL for cached Deezer entries: 30 days in milliseconds.
 const CACHE_TTL_MS: i64 = 30 * 24 * 60 * 60 * 1000;
 
+/// How long a row stands when the biography could not be asked for: an
+/// hour, so a refused key or a spent quota is retried soon without
+/// re-running the whole enrichment on every visit and every batch pass.
+const RETRY_AFTER_MS: i64 = 60 * 60 * 1000;
+
 fn now_ms() -> i64 {
     Utc::now().timestamp_millis()
 }
@@ -721,10 +726,10 @@ async fn enrich_artist_named(
     // 5. Fetch the bio from the selected source (issue #295). A missing
     //    match is an answer and is cached like one. A failure to ask —
     //    the network, a refused key, a spent quota — is not: the row
-    //    keeps the biography it had and expires now, so the next visit
-    //    asks again (see `upsert_artist_row`). The source/language we used
-    //    is stored alongside so a later switch re-fetches instead of
-    //    serving the wrong bio.
+    //    keeps the biography it had and expires within the hour, so a
+    //    later visit asks again (see `upsert_artist_row`). The
+    //    source/language we used is stored alongside so a later switch
+    //    re-fetches instead of serving the wrong bio.
     let (bio_short, bio_full, bio_reached) = match active_source {
         BioSource::Lastfm => match read_lastfm_api_key(&state).await? {
             Some(api_key) => {
@@ -883,10 +888,11 @@ struct ArtistRow<'a> {
 /// or not — an artist whose biography was removed upstream must lose it
 /// here too, so this tests whether the provider was reached rather than
 /// whether the new value is empty. When it was not reached, the row keeps
-/// the biography and the source it had, and **expires now**: the Deezer
-/// half was fetched and is stored, but the visit that failed to ask for
-/// a biography must not stand for thirty days. A fresh row in that case
-/// records no source, so nothing reads it as a biography looked up.
+/// the biography and the source it had, and **expires after
+/// `RETRY_AFTER_MS`**: the Deezer half was fetched and is stored, but the
+/// visit that failed to ask for a biography must not stand for thirty
+/// days — nor be repeated on every open while the key stays refused. A
+/// fresh row in that case records no source.
 async fn upsert_artist_row(
     pool: &sqlx::SqlitePool,
     row: &ArtistRow<'_>,
@@ -894,7 +900,7 @@ async fn upsert_artist_row(
     let expires = if row.bio.reached {
         row.now + CACHE_TTL_MS
     } else {
-        row.now
+        row.now + RETRY_AFTER_MS
     };
     let (source, language) = if row.bio.reached {
         (Some(row.bio.source), row.bio.language)
@@ -1852,7 +1858,7 @@ mod tests {
     }
 
     mod artist_row {
-        use super::super::{upsert_artist_row, ArtistRow, BioAnswer, CACHE_TTL_MS};
+        use super::super::{upsert_artist_row, ArtistRow, BioAnswer, CACHE_TTL_MS, RETRY_AFTER_MS};
 
         /// A pool whose connections see the real `app` schema as `app`,
         /// attached per connection the way the application attaches it
@@ -1928,9 +1934,10 @@ mod tests {
 
         /// A refused key or a network failure is not "this artist has no
         /// biography": the one already cached stays, is what the caller
-        /// shows, and the row expires so the next visit asks again.
+        /// shows, and the row expires within the hour so a later visit
+        /// asks again — not for the TTL, and not on the very next open.
         #[tokio::test]
-        async fn a_failure_to_ask_keeps_the_biography_and_expires_now() {
+        async fn a_failure_to_ask_keeps_the_biography_and_is_retried_soon() {
             let dir = tempfile::tempdir().unwrap();
             let pool = pool_with_app_schema(dir.path()).await;
             upsert_artist_row(&pool, &row(1_000, true, Some("Born in Reykjavík.")))
@@ -1946,8 +1953,9 @@ mod tests {
             assert_eq!(bio.as_deref(), Some("Born in Reykjavík."));
             assert_eq!(source.as_deref(), Some("lastfm"));
             assert_eq!(
-                expires_at, 2_000,
-                "a failure must not be cached for the TTL"
+                expires_at,
+                2_000 + RETRY_AFTER_MS,
+                "a failure is retried after the window, not the TTL"
             );
         }
 
@@ -1972,8 +1980,8 @@ mod tests {
             assert_eq!(expires_at, 2_000 + CACHE_TTL_MS);
         }
 
-        /// A first visit that failed to ask leaves a row no cache check
-        /// can read as a biography looked up.
+        /// A first visit that failed to ask records no source, and is
+        /// retried after the same window.
         #[tokio::test]
         async fn a_first_failure_records_no_source() {
             let dir = tempfile::tempdir().unwrap();
@@ -1984,7 +1992,10 @@ mod tests {
                 .unwrap();
 
             let (bio, source, expires_at) = stored(&pool).await;
-            assert_eq!((bio, source, expires_at), (None, None, 1_000));
+            assert_eq!(
+                (bio, source, expires_at),
+                (None, None, 1_000 + RETRY_AFTER_MS)
+            );
         }
 
         /// Kept through a failure is not the same as asked for: a biography

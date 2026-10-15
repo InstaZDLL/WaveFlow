@@ -65,12 +65,23 @@ pub async fn set_lastfm_api_key(
 /// leaves biographies fetched under the old one. Expiring the rows costs
 /// nothing up front; each artist is asked again the next time it is
 /// opened, and only then.
+///
+/// Saving the value already stored is a no-op: the Settings card and
+/// onboarding send the key on every save, changed or not, and each of
+/// those must not cost every Last.fm biography its cache.
 async fn store_lastfm_api_key(
     pool: &sqlx::SqlitePool,
     key: Option<&str>,
     now: i64,
 ) -> Result<(), sqlx::Error> {
     let mut tx = pool.begin().await?;
+    let stored: Option<String> = sqlx::query_scalar("SELECT value FROM app_setting WHERE key = ?")
+        .bind(LASTFM_KEY)
+        .fetch_optional(&mut *tx)
+        .await?;
+    if stored.as_deref() == key {
+        return Ok(());
+    }
     match key {
         None => {
             sqlx::query("DELETE FROM app_setting WHERE key = ?")
@@ -694,18 +705,46 @@ mod tests {
     /// predates the column and is read as Last.fm, so it expires too.
     #[tokio::test]
     async fn placing_or_clearing_the_key_expires_only_lastfm_biographies() {
-        for key in [Some("a-key-from-the-settings"), None] {
-            let dir = tempfile::tempdir().unwrap();
-            let pool = app_pool(dir.path()).await;
-            seed(&pool, 1, Some("lastfm")).await;
-            seed(&pool, 2, Some("theaudiodb")).await;
-            seed(&pool, 3, None).await;
-
-            store_lastfm_api_key(&pool, key, 42).await.unwrap();
-
-            assert_eq!(expires_at(&pool, 1).await, 0, "key {key:?}");
-            assert_eq!(expires_at(&pool, 2).await, 9_999_999_999_999, "key {key:?}");
-            assert_eq!(expires_at(&pool, 3).await, 0, "key {key:?}");
+        for (before, after) in [
+            (None, Some("a-key-from-the-settings")),
+            (Some("a-key-from-the-settings"), Some("another-key")),
+            (Some("a-key-from-the-settings"), None),
+        ] {
+            assert_eq!(
+                save_over(before, after).await,
+                [0, KEPT, 0],
+                "{before:?} -> {after:?}"
+            );
         }
+    }
+
+    /// The Settings card sends the key on every save, changed or not; a
+    /// save that changes nothing must not cost the biographies their cache.
+    #[tokio::test]
+    async fn saving_the_stored_key_again_expires_nothing() {
+        for key in [Some("a-key-from-the-settings"), None] {
+            assert_eq!(save_over(key, key).await, [KEPT; 3], "{key:?}");
+        }
+    }
+
+    const KEPT: i64 = 9_999_999_999_999;
+
+    /// Store `before`, seed a `lastfm`, a `theaudiodb` and a source-less
+    /// row, save `after`, and read the three expiries back.
+    async fn save_over(before: Option<&str>, after: Option<&str>) -> [i64; 3] {
+        let dir = tempfile::tempdir().unwrap();
+        let pool = app_pool(dir.path()).await;
+        store_lastfm_api_key(&pool, before, 1).await.unwrap();
+        seed(&pool, 1, Some("lastfm")).await;
+        seed(&pool, 2, Some("theaudiodb")).await;
+        seed(&pool, 3, None).await;
+
+        store_lastfm_api_key(&pool, after, 42).await.unwrap();
+
+        [
+            expires_at(&pool, 1).await,
+            expires_at(&pool, 2).await,
+            expires_at(&pool, 3).await,
+        ]
     }
 }
