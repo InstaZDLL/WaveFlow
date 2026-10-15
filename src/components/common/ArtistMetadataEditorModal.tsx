@@ -74,10 +74,14 @@ export function ArtistMetadataEditorModal({
   // comma-joined `ARTIST` tag the scanner didn't split. The preview
   // fragments let the user confirm this really is several artists and not
   // one name that contains a comma ("Tyler, The Creator") before acting.
+  //
+  // The same separators the backend splits on (`NAME_SEPARATORS` in
+  // artist_split.rs, #851): the ASCII comma, and the ideographic `、`, its
+  // halfwidth `､` and the fullwidth `，` a Chinese or Japanese credit uses.
   const splitFragments = useMemo(
     () =>
       artistName
-        .split(",")
+        .split(/[,，、､]/)
         .map((s) => s.trim())
         .filter((s) => s.length > 0),
     [artistName],
