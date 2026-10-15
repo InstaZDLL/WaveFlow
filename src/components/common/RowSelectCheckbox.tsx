@@ -14,6 +14,13 @@ interface RowSelectCheckboxProps {
   selectionActive: boolean;
   /** Same as a Ctrl+click on the row. */
   onToggle: () => void;
+  /**
+   * Whether hovering the row reveals the box (default). Off where a plain
+   * click plays: the box sits where the number is, so a click meant to
+   * start the track ticked it instead (#859). There a selection starts
+   * with Ctrl, Shift or Ctrl+A, and the boxes follow once it is open.
+   */
+  revealOnHover?: boolean;
   /** The row's title, so each box has a name of its own. */
   title: string;
   /** What the cell shows otherwise: the row number or the playing bars. */
@@ -32,6 +39,7 @@ export function RowSelectCheckbox({
   checked,
   selectionActive,
   onToggle,
+  revealOnHover = true,
   title,
   children,
 }: RowSelectCheckboxProps) {
@@ -48,7 +56,7 @@ export function RowSelectCheckbox({
     <span className="relative flex items-center justify-end">
       <span
         className={`flex items-center justify-end ${
-          shown ? "invisible" : "group-hover:invisible"
+          shown ? "invisible" : revealOnHover ? "group-hover:invisible" : ""
         }`}
       >
         {children}
@@ -71,7 +79,11 @@ export function RowSelectCheckbox({
           // and the keyboard must be able to start a selection too.
           shown
             ? ""
-            : "opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+            : revealOnHover
+              ? "opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+              : // Not clickable while unseen, so the click reaches the
+                // row and plays; the keyboard still reaches it.
+                "pointer-events-none opacity-0 focus-visible:opacity-100"
         } ${
           checked
             ? "border-blue-500 bg-blue-500 text-white"

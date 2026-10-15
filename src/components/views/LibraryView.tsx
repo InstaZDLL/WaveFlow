@@ -2723,6 +2723,7 @@ function TrackTable({
                     checked={isRowSelected}
                     selectionActive={selectionActive}
                     onToggle={() => onToggleSelect(localId)}
+                    revealOnHover={!singleClickPlay}
                     title={track.title}
                   >
                     {isCurrent ? (
