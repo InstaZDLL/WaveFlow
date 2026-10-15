@@ -6,8 +6,10 @@ interface RowSelectCheckboxProps {
   /** Whether the row is in the selection. */
   checked: boolean;
   /**
-   * Whether anything is selected in the list. While it is, every row
-   * shows its box, so adding to the selection needs no modifier.
+   * Whether the list is in checkbox mode (`useMultiSelect().checkboxMode`).
+   * While it is, every row shows its box, so adding to the selection
+   * needs no modifier. A row picked by a plain click is highlighted by
+   * the row itself and keeps its number, so the box waits for hover.
    */
   selectionActive: boolean;
   /** Same as a Ctrl+click on the row. */
@@ -20,7 +22,7 @@ interface RowSelectCheckboxProps {
 
 /**
  * The leading cell of a selectable track row: its number, giving way to a
- * checkbox on hover, on the selected rows and while a selection is open.
+ * checkbox on hover and while the list is in checkbox mode.
  * The row must carry the `group` class for the hover state.
  *
  * Its own click and Space/Enter never reach the row, which would start
@@ -34,7 +36,7 @@ export function RowSelectCheckbox({
   children,
 }: RowSelectCheckboxProps) {
   const { t } = useTranslation();
-  const shown = checked || selectionActive;
+  const shown = selectionActive;
 
   const toggle = (event: MouseEvent | KeyboardEvent) => {
     event.stopPropagation();
@@ -54,6 +56,8 @@ export function RowSelectCheckbox({
       <span
         role="checkbox"
         tabIndex={0}
+        // How `blurPointerFocusOnRow` recognises a track row.
+        data-row-select="true"
         aria-checked={checked}
         aria-label={t("selection.selectRow", { title })}
         title={t("selection.selectRow", { title })}
