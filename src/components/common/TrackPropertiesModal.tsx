@@ -760,7 +760,26 @@ export function TrackPropertiesModal({
           >
             <Row
               label={t("trackProperties.bpm")}
-              value={analysis?.bpm != null ? Math.round(analysis.bpm) : "—"}
+              value={
+                analysis?.bpm == null
+                  ? "—"
+                  : // Below the threshold the radios no longer take the
+                    // reading at face value (`TRUSTED_TEMPO` in mood.rs).
+                    analysis.bpm_confidence != null &&
+                      analysis.bpm_confidence < 0.4
+                    ? t("trackProperties.bpmUncertain", {
+                        bpm: Math.round(analysis.bpm),
+                      })
+                    : Math.round(analysis.bpm)
+              }
+            />
+            <Row
+              label={t("trackProperties.energy")}
+              value={
+                analysis?.energy != null
+                  ? `${Math.round(analysis.energy * 100)} / 100`
+                  : "—"
+              }
             />
             <Row
               label={t("trackProperties.loudness")}

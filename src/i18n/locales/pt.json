@@ -1219,6 +1219,8 @@
       "file": "Ficheiro"
     },
     "bpm": "BPM",
+    "bpmUncertain": "{{bpm}} (incerto)",
+    "energy": "Energia",
     "loudness": "Sonoridade",
     "replayGain": "ReplayGain",
     "peak": "Pico",

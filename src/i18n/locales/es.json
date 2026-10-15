@@ -1218,6 +1218,8 @@
       "file": "Archivo"
     },
     "bpm": "BPM",
+    "bpmUncertain": "{{bpm}} (incierto)",
+    "energy": "Energía",
     "loudness": "Sonoridad",
     "replayGain": "ReplayGain",
     "peak": "Pico",

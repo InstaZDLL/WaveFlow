@@ -15,10 +15,9 @@
 //!   2.0 target of −18 LUFS. `None` when the track has no measurable
 //!   loudness (silence, or shorter than one 400 ms gating block) —
 //!   suggesting a gain there would mean boosting silence.
-//! - **BPM**: autocorrelation peak on a coarse onset envelope.
-//!   Works well for 4/4 tracks in the 60-200 BPM range; can land
-//!   on half/double-time on heavily syncopated material — that's
-//!   acceptable for an MVP shipped without aubio/essentia.
+//! - **Tempo** and **energy**: from a spectral-flux onset detector
+//!   over a decimated mono sum, with a confidence for the tempo. See
+//!   [`rhythm`] for the algorithm and for what version 1 got wrong.
 //!
 //! Designed to run inside `spawn_blocking` because symphonia decode
 //! is CPU-bound and we don't want the tokio runtime to stall.
@@ -35,8 +34,10 @@ use symphonia::core::io::MediaSourceStream;
 use symphonia::core::meta::MetadataOptions;
 
 pub mod loudness;
+pub mod rhythm;
 
 use loudness::LoudnessMeter;
+use rhythm::OnsetDetector;
 
 /// Which generation of this module produced a given measurement.
 ///
@@ -49,27 +50,27 @@ use loudness::LoudnessMeter;
 ///   over that same downmix. Both superseded by #545. The peak is the
 ///   dangerous one: a downmix under-reports an out-of-phase mix, so
 ///   clipping prevention computed from it hands out a gain that clips.
-/// - `1` — the current pass: BS.1770-4 K-weighted gated loudness, and a
-///   peak across every channel.
+/// - `1` — BS.1770-4 K-weighted gated loudness, and a peak across every
+///   channel.
+/// - `2` — the current pass: the tempo from a spectral-flux onset
+///   detector over 40-240 BPM, with a confidence, and an energy measure
+///   that loudness normalisation does not erase ([`rhythm`]). Loudness
+///   and peak are measured as in `1`.
 ///
 /// **Bump this whenever a change here would move a stored number**, and
 /// only then — the value exists so a sweep can find rows worth
 /// re-measuring, so bumping it for a refactor costs every user a full
 /// re-decode of their library.
-pub const ANALYSIS_VERSION: i64 = 1;
+pub const ANALYSIS_VERSION: i64 = 2;
 
 /// ReplayGain 2.0 reference level. A track measured at exactly this
 /// loudness gets a gain of 0 dB.
 const REPLAY_GAIN_TARGET_LUFS: f64 = -18.0;
-/// Energy-envelope hop in samples at the analysis sample rate.
-/// 11_025 / 256 ≈ 43 frames/s — enough resolution to land 60-200 BPM
-/// peaks at 1 BPM granularity after autocorrelation refinement.
-const ENVELOPE_HOP_SAMPLES_AT_11025: usize = 256;
-/// Decimation target rate used internally for BPM detection. The
-/// decode pipeline still produces native-rate stereo for the
-/// loudness / peak pass; we just pick every Nth mono sum to feed
-/// the BPM stage so the autocorrelation stays small.
-const BPM_TARGET_RATE_HZ: u32 = 11_025;
+/// Rate the onset detector runs at. The decode pipeline still produces
+/// native-rate audio for the loudness / peak pass; the detector gets the
+/// mono sum averaged down to about this rate, which keeps everything up
+/// to ~5 kHz and costs a quarter of the FFTs.
+const RHYTHM_TARGET_RATE_HZ: u32 = 11_025;
 
 #[derive(Debug, Clone, Default)]
 pub struct AnalysisResult {
@@ -82,10 +83,17 @@ pub struct AnalysisResult {
     /// negative = attenuate on loud ones. `None` travels with
     /// `loudness_lufs`.
     pub replay_gain_db: Option<f64>,
-    /// Estimated tempo in beats per minute, or `None` when the
-    /// onset envelope had no usable autocorrelation peak (very short
-    /// or near-silent tracks).
+    /// Estimated tempo in beats per minute, or `None` when there was
+    /// nothing to read one from (very short or near-silent tracks).
     pub bpm: Option<f64>,
+    /// How far to trust `bpm`, 0 to 1. A tempo read on the edge of the
+    /// search range scores 0: that is the search running out.
+    pub bpm_confidence: Option<f64>,
+    /// How intense the track is, 0 (calm) to 1, independent of its level.
+    pub energy: Option<f64>,
+    /// The tempo and energy with their parts, for tuning (the
+    /// `analysis_bench` example). Nothing stores these.
+    pub rhythm: rhythm::Rhythm,
 }
 
 /// Run the full analysis on a file. Returns the gathered metrics or
@@ -125,7 +133,6 @@ pub fn analyze_file(path: &Path) -> Result<AnalysisResult, String> {
     let mut interleaved: Vec<f32> = Vec::new();
     let mut spec_captured = false;
     let mut src_channels: usize = 0;
-    let mut src_rate: u32 = 0;
 
     // The BS.1770 meter needs the channel count and rate, so it's
     // built once the first decoded packet reveals the spec.
@@ -133,17 +140,14 @@ pub fn analyze_file(path: &Path) -> Result<AnalysisResult, String> {
     let mut frames_seen: u64 = 0;
     let mut peak: f64 = 0.0;
 
-    // BPM envelope: every Nth mono sample, RMS over 256-sample hops.
-    // We keep a running sum of squares for the current hop; when a
-    // hop completes, we push its RMS into `envelope` and reset.
-    let mut envelope: Vec<f32> = Vec::with_capacity(8192);
-    let mut hop_sumsq: f32 = 0.0;
-    let mut hop_count: usize = 0;
-    // Decimation accumulator: stride between mono samples we
-    // actually feed to the envelope. Computed once we know the
-    // source rate.
+    // Onset detector over the mono sum, averaged down by `stride`: the
+    // average of each group is a crude low-pass, so the high end folds
+    // back far less than taking every Nth sample would. Built once the
+    // first packet reveals the rate.
+    let mut onsets: Option<OnsetDetector> = None;
     let mut decimate_stride: usize = 1;
-    let mut decimate_counter: usize = 0;
+    let mut group_sum: f32 = 0.0;
+    let mut group_len: usize = 0;
 
     loop {
         let packet = match format.next_packet() {
@@ -168,16 +172,16 @@ pub fn analyze_file(path: &Path) -> Result<AnalysisResult, String> {
         if !spec_captured {
             let spec = decoded.spec();
             src_channels = spec.channels().count().max(1);
-            src_rate = spec.rate().max(1);
+            let src_rate = spec.rate().max(1);
             spec_captured = true;
             meter = Some(LoudnessMeter::with_channel_weights(
                 src_rate,
                 &channel_weights(spec.channels()),
             ));
-            // Pre-decimate to ~11 kHz mono envelope for BPM. Feeding
-            // the autocorrelation a 44.1 kHz envelope would balloon
-            // memory and add no useful resolution.
-            decimate_stride = (src_rate / BPM_TARGET_RATE_HZ).max(1) as usize;
+            decimate_stride = (src_rate / RHYTHM_TARGET_RATE_HZ).max(1) as usize;
+            onsets = Some(OnsetDetector::new(
+                f64::from(src_rate) / decimate_stride as f64,
+            ));
         }
         decoded.copy_to_vec_interleaved(&mut interleaved);
         let samples = &interleaved[..];
@@ -190,8 +194,8 @@ pub fn analyze_file(path: &Path) -> Result<AnalysisResult, String> {
             meter.push_interleaved(samples);
         }
 
-        // Walk frames: peak across channels, and every Nth mono sum
-        // into the BPM envelope.
+        // Walk frames: peak across channels, and the mono sum averaged
+        // down into the onset detector.
         let frames = samples.len() / src_channels;
         frames_seen += frames as u64;
         for f in 0..frames {
@@ -207,19 +211,14 @@ pub fn analyze_file(path: &Path) -> Result<AnalysisResult, String> {
             }
             let mono = sum / src_channels as f32;
 
-            if decimate_counter == 0 {
-                hop_sumsq += mono * mono;
-                hop_count += 1;
-                if hop_count >= ENVELOPE_HOP_SAMPLES_AT_11025 {
-                    let rms = (hop_sumsq / hop_count as f32).sqrt();
-                    envelope.push(rms);
-                    hop_sumsq = 0.0;
-                    hop_count = 0;
+            group_sum += mono;
+            group_len += 1;
+            if group_len >= decimate_stride {
+                if let Some(onsets) = onsets.as_mut() {
+                    onsets.push(group_sum / group_len as f32);
                 }
-            }
-            decimate_counter += 1;
-            if decimate_counter >= decimate_stride {
-                decimate_counter = 0;
+                group_sum = 0.0;
+                group_len = 0;
             }
         }
     }
@@ -233,13 +232,16 @@ pub fn analyze_file(path: &Path) -> Result<AnalysisResult, String> {
     let loudness_lufs = meter.as_ref().and_then(LoudnessMeter::finish);
     let replay_gain_db = loudness_lufs.map(|lufs| REPLAY_GAIN_TARGET_LUFS - lufs);
 
-    let bpm = estimate_bpm(&envelope, src_rate, decimate_stride);
+    let rhythm = onsets.map(OnsetDetector::finish).unwrap_or_default();
 
     Ok(AnalysisResult {
         peak,
         loudness_lufs,
         replay_gain_db,
-        bpm,
+        bpm: rhythm.tempo.map(|t| t.bpm),
+        bpm_confidence: rhythm.tempo.map(|t| t.confidence),
+        energy: rhythm.energy.map(|e| e.value),
+        rhythm,
     })
 }
 
@@ -284,83 +286,4 @@ fn channel_weights(channels: &Channels) -> Vec<f64> {
         weights.push(1.0);
     }
     weights
-}
-
-/// Pick the dominant tempo from an onset-energy envelope by
-/// auto-correlating it and picking the strongest lag in the
-/// 60-200 BPM range.
-///
-/// `src_rate` and `decimate_stride` together tell us the effective
-/// sample rate of the envelope: each envelope sample covers
-/// `ENVELOPE_HOP_SAMPLES_AT_11025` mono samples taken every
-/// `decimate_stride` source samples. The product gives the number
-/// of source samples between consecutive envelope frames, hence
-/// the seconds-per-frame.
-fn estimate_bpm(envelope: &[f32], src_rate: u32, decimate_stride: usize) -> Option<f64> {
-    if envelope.len() < 64 {
-        return None;
-    }
-
-    // 1. High-pass differentiate the envelope to emphasize onsets
-    //    (a positive jump in energy = a beat). Negative deltas are
-    //    clamped to zero so the autocorrelation only sees attacks.
-    let mut onset: Vec<f32> = Vec::with_capacity(envelope.len());
-    onset.push(0.0);
-    for i in 1..envelope.len() {
-        onset.push((envelope[i] - envelope[i - 1]).max(0.0));
-    }
-
-    // 2. Subtract the running mean to remove DC bias before the
-    //    autocorrelation, otherwise long signals correlate with
-    //    themselves at every lag and the BPM peak gets buried.
-    let mean: f32 = onset.iter().sum::<f32>() / onset.len() as f32;
-    for v in onset.iter_mut() {
-        *v -= mean;
-    }
-
-    // 3. Frame-rate of the envelope. Each frame represents
-    //    `ENVELOPE_HOP_SAMPLES_AT_11025 * decimate_stride` source
-    //    samples, so frames-per-second is the source rate divided
-    //    by that product.
-    let frames_per_sec =
-        src_rate as f64 / (ENVELOPE_HOP_SAMPLES_AT_11025 as f64 * decimate_stride as f64);
-    if frames_per_sec <= 0.0 {
-        return None;
-    }
-
-    // 4. Autocorrelation over the BPM window. lag = frames between
-    //    repeats of the energy pattern; bpm = 60 / (lag / fps).
-    let min_bpm = 60.0;
-    let max_bpm = 200.0;
-    let max_lag = (frames_per_sec * 60.0 / min_bpm).round() as usize;
-    let min_lag = (frames_per_sec * 60.0 / max_bpm).round() as usize;
-    if max_lag >= onset.len() {
-        return None;
-    }
-
-    let mut best_lag = 0usize;
-    let mut best_score = f32::MIN;
-    for lag in min_lag..=max_lag {
-        let mut score: f32 = 0.0;
-        // Sum of products onset[i] * onset[i+lag]. The cap on `i`
-        // keeps the comparison length constant across lags so longer
-        // lags aren't unfairly penalised.
-        let limit = onset.len() - lag;
-        for i in 0..limit {
-            score += onset[i] * onset[i + lag];
-        }
-        // Normalise by the number of summed pairs so we compare
-        // averages, not totals.
-        score /= limit as f32;
-        if score > best_score {
-            best_score = score;
-            best_lag = lag;
-        }
-    }
-
-    if best_lag == 0 {
-        return None;
-    }
-    let bpm = 60.0 * frames_per_sec / best_lag as f64;
-    Some(bpm)
 }

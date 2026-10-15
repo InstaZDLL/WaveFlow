@@ -1175,6 +1175,8 @@
       "file": "Dosya"
     },
     "bpm": "BPM",
+    "bpmUncertain": "{{bpm}} (belirsiz)",
+    "energy": "Enerji",
     "loudness": "Ses yüksekliği",
     "replayGain": "ReplayGain",
     "peak": "Tepe",

@@ -1261,6 +1261,8 @@
       "file": "Файл"
     },
     "bpm": "BPM",
+    "bpmUncertain": "{{bpm}} (неточно)",
+    "energy": "Энергия",
     "loudness": "Громкость",
     "replayGain": "ReplayGain",
     "peak": "Пик",

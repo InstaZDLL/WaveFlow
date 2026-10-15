@@ -1316,6 +1316,8 @@
       "file": "الملف"
     },
     "bpm": "BPM",
+    "bpmUncertain": "{{bpm}} (غير مؤكد)",
+    "energy": "الطاقة",
     "loudness": "الجهارة",
     "replayGain": "ReplayGain",
     "peak": "الذروة",

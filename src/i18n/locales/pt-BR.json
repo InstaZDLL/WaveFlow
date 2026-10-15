@@ -1219,6 +1219,8 @@
       "file": "Arquivo"
     },
     "bpm": "BPM",
+    "bpmUncertain": "{{bpm}} (incerto)",
+    "energy": "Energia",
     "loudness": "Loudness",
     "replayGain": "ReplayGain",
     "peak": "Pico",

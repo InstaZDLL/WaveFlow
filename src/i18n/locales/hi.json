@@ -1175,6 +1175,8 @@
       "file": "फ़ाइल"
     },
     "bpm": "BPM",
+    "bpmUncertain": "{{bpm}} (अनिश्चित)",
+    "energy": "ऊर्जा",
     "loudness": "लाउडनेस",
     "replayGain": "ReplayGain",
     "peak": "पीक",

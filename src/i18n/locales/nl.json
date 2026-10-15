@@ -1175,6 +1175,8 @@
       "file": "Bestand"
     },
     "bpm": "BPM",
+    "bpmUncertain": "{{bpm}} (onzeker)",
+    "energy": "Energie",
     "loudness": "Luidheid",
     "replayGain": "ReplayGain",
     "peak": "Piek",
