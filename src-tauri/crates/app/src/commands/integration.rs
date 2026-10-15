@@ -92,9 +92,15 @@ async fn store_lastfm_api_key(
             .await?;
         }
     }
-    sqlx::query("UPDATE metadata_artist SET expires_at = 0 WHERE bio_source = 'lastfm'")
-        .execute(&mut *tx)
-        .await?;
+    // `BioSource::parse` reads a NULL source as Last.fm, so a row written
+    // before the column existed is served as a Last.fm biography and owes
+    // the key the same.
+    sqlx::query(
+        "UPDATE metadata_artist SET expires_at = 0
+         WHERE bio_source = 'lastfm' OR bio_source IS NULL",
+    )
+    .execute(&mut *tx)
+    .await?;
     tx.commit().await
 }
 
@@ -661,7 +667,7 @@ mod tests {
         pool
     }
 
-    async fn seed(pool: &sqlx::SqlitePool, deezer_id: i64, source: &str) {
+    async fn seed(pool: &sqlx::SqlitePool, deezer_id: i64, source: Option<&str>) {
         sqlx::query(
             "INSERT INTO metadata_artist (deezer_id, name, bio_source, fetched_at, expires_at)
              VALUES (?, 'artist', ?, 1, 9999999999999)",
@@ -684,19 +690,22 @@ mod tests {
     /// A biography cached while no key was set is empty and stamped
     /// `lastfm`; placing a key must make it ask again rather than serve
     /// that emptiness for the rest of the month. Biographies from another
-    /// source owe the key nothing and keep their TTL.
+    /// source owe the key nothing and keep their TTL. A row with no source
+    /// predates the column and is read as Last.fm, so it expires too.
     #[tokio::test]
     async fn placing_or_clearing_the_key_expires_only_lastfm_biographies() {
         for key in [Some("a-key-from-the-settings"), None] {
             let dir = tempfile::tempdir().unwrap();
             let pool = app_pool(dir.path()).await;
-            seed(&pool, 1, "lastfm").await;
-            seed(&pool, 2, "theaudiodb").await;
+            seed(&pool, 1, Some("lastfm")).await;
+            seed(&pool, 2, Some("theaudiodb")).await;
+            seed(&pool, 3, None).await;
 
             store_lastfm_api_key(&pool, key, 42).await.unwrap();
 
             assert_eq!(expires_at(&pool, 1).await, 0, "key {key:?}");
             assert_eq!(expires_at(&pool, 2).await, 9_999_999_999_999, "key {key:?}");
+            assert_eq!(expires_at(&pool, 3).await, 0, "key {key:?}");
         }
     }
 }
