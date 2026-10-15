@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.9.1](https://github.com/InstaZDLL/WaveFlow/compare/v1.9.0...v1.9.1) (2026-10-15)
+
+
+### Bug Fixes
+
+* **ui:** a plain click no longer turns the list into checkboxes ([#860](https://github.com/InstaZDLL/WaveFlow/issues/860)) ([4bd52c9](https://github.com/InstaZDLL/WaveFlow/commit/4bd52c9b928a73b10224702bf3d12dea98b2fbf1))
+* **ui:** with single-click play, hovering a row no longer shows its checkbox ([#862](https://github.com/InstaZDLL/WaveFlow/issues/862)) ([9f6d10e](https://github.com/InstaZDLL/WaveFlow/commit/9f6d10e805ab8fcc2dced9e19ebdbbca4950da0a)), closes [#859](https://github.com/InstaZDLL/WaveFlow/issues/859)
+
 ## [1.9.0](https://github.com/InstaZDLL/WaveFlow/compare/v1.8.4...v1.9.0) (2026-10-15)
 
 
