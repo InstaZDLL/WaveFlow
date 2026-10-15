@@ -29,6 +29,7 @@ import {
   type ColumnId,
   type ColumnLayout,
 } from "../../lib/trackColumns";
+import { formatMusicalKey } from "../../lib/musicalKey";
 import { fitWidth, styleOf } from "../../lib/measureText";
 import {
   inventorySummary,
@@ -2502,8 +2503,9 @@ function TrackTable({
             day: "numeric",
           }),
         tag: (r, key) => tagValues.get(r.id)?.[key] ?? null,
+        musicalKey: (raw) => formatMusicalKey(raw, t),
       }),
-    [locale, tagValues],
+    [locale, tagValues, t],
   );
 
   /** Double-click on a resize handle: size the column to its content.

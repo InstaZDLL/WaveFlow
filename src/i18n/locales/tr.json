@@ -1177,6 +1177,8 @@
     "bpm": "BPM",
     "bpmUncertain": "{{bpm}} (belirsiz)",
     "energy": "Enerji",
+    "analysedKey": "Ton (analiz)",
+    "keyUncertain": "{{key}} (belirsiz)",
     "loudness": "Ses yüksekliği",
     "replayGain": "ReplayGain",
     "peak": "Tepe",
@@ -3097,5 +3099,11 @@
     "empty": "Bu ruh hali için elle yapılmış değişiklik yok.",
     "undo": "Geri al",
     "undoTrack": "{{title}} için değişikliği geri al"
+  },
+  "keyNames": {
+    "major": "{{note}} majör",
+    "minor": "{{note}} minör",
+    "majorNotes": "Do,Re bemol,Re,Mi bemol,Mi,Fa,Fa diyez,Sol,La bemol,La,Si bemol,Si",
+    "minorNotes": "Do,Do diyez,Re,Mi bemol,Mi,Fa,Fa diyez,Sol,Sol diyez,La,Si bemol,Si"
   }
 }

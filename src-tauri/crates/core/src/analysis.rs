@@ -33,9 +33,11 @@ use symphonia::core::formats::{FormatOptions, TrackType};
 use symphonia::core::io::MediaSourceStream;
 use symphonia::core::meta::MetadataOptions;
 
+pub mod key;
 pub mod loudness;
 pub mod rhythm;
 
+use key::KeyDetector;
 use loudness::LoudnessMeter;
 use rhythm::OnsetDetector;
 
@@ -52,16 +54,18 @@ use rhythm::OnsetDetector;
 ///   clipping prevention computed from it hands out a gain that clips.
 /// - `1` — BS.1770-4 K-weighted gated loudness, and a peak across every
 ///   channel.
-/// - `2` — the current pass: the tempo from a spectral-flux onset
+/// - `2` — the tempo from a spectral-flux onset
 ///   detector over 40-240 BPM, with a confidence, and an energy measure
 ///   that loudness normalisation does not erase ([`rhythm`]). Loudness
-///   and peak are measured as in `1`.
+///   and peak are measured as in `1`. Never shipped in a release.
+/// - `3` — the current pass: `2`, and the key with its confidence
+///   ([`key`]).
 ///
 /// **Bump this whenever a change here would move a stored number**, and
 /// only then — the value exists so a sweep can find rows worth
 /// re-measuring, so bumping it for a refactor costs every user a full
 /// re-decode of their library.
-pub const ANALYSIS_VERSION: i64 = 2;
+pub const ANALYSIS_VERSION: i64 = 3;
 
 /// ReplayGain 2.0 reference level. A track measured at exactly this
 /// loudness gets a gain of 0 dB.
@@ -94,6 +98,11 @@ pub struct AnalysisResult {
     /// The tempo and energy with their parts, for tuning (the
     /// `analysis_bench` example). Nothing stores these.
     pub rhythm: rhythm::Rhythm,
+    /// The key read from the audio, `None` when there was too little to
+    /// read one from. See [`key`].
+    pub key: Option<key::Key>,
+    /// The chromagram the key was read from, for tuning. Not stored.
+    pub chroma: Option<[f64; 12]>,
 }
 
 /// Run the full analysis on a file. Returns the gathered metrics or
@@ -145,6 +154,7 @@ pub fn analyze_file(path: &Path) -> Result<AnalysisResult, String> {
     // back far less than taking every Nth sample would. Built once the
     // first packet reveals the rate.
     let mut onsets: Option<OnsetDetector> = None;
+    let mut keys: Option<KeyDetector> = None;
     let mut decimate_stride: usize = 1;
     let mut group_sum: f32 = 0.0;
     let mut group_len: usize = 0;
@@ -179,9 +189,9 @@ pub fn analyze_file(path: &Path) -> Result<AnalysisResult, String> {
                 &channel_weights(spec.channels()),
             ));
             decimate_stride = (src_rate / RHYTHM_TARGET_RATE_HZ).max(1) as usize;
-            onsets = Some(OnsetDetector::new(
-                f64::from(src_rate) / decimate_stride as f64,
-            ));
+            let rate = f64::from(src_rate) / decimate_stride as f64;
+            onsets = Some(OnsetDetector::new(rate));
+            keys = Some(KeyDetector::new(rate));
         }
         decoded.copy_to_vec_interleaved(&mut interleaved);
         let samples = &interleaved[..];
@@ -214,8 +224,12 @@ pub fn analyze_file(path: &Path) -> Result<AnalysisResult, String> {
             group_sum += mono;
             group_len += 1;
             if group_len >= decimate_stride {
+                let sample = group_sum / group_len as f32;
                 if let Some(onsets) = onsets.as_mut() {
-                    onsets.push(group_sum / group_len as f32);
+                    onsets.push(sample);
+                }
+                if let Some(keys) = keys.as_mut() {
+                    keys.push(sample);
                 }
                 group_sum = 0.0;
                 group_len = 0;
@@ -233,6 +247,7 @@ pub fn analyze_file(path: &Path) -> Result<AnalysisResult, String> {
     let replay_gain_db = loudness_lufs.map(|lufs| REPLAY_GAIN_TARGET_LUFS - lufs);
 
     let rhythm = onsets.map(OnsetDetector::finish).unwrap_or_default();
+    let (key, chroma) = keys.map(KeyDetector::finish).unwrap_or_default();
 
     Ok(AnalysisResult {
         peak,
@@ -242,6 +257,8 @@ pub fn analyze_file(path: &Path) -> Result<AnalysisResult, String> {
         bpm_confidence: rhythm.tempo.map(|t| t.confidence),
         energy: rhythm.energy.map(|e| e.value),
         rhythm,
+        key,
+        chroma,
     })
 }
 

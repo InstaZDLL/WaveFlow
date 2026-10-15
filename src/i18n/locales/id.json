@@ -1177,6 +1177,8 @@
     "bpm": "BPM",
     "bpmUncertain": "{{bpm}} (tidak pasti)",
     "energy": "Energi",
+    "analysedKey": "Kunci nada (analisis)",
+    "keyUncertain": "{{key}} (tidak pasti)",
     "loudness": "Kelantangan",
     "replayGain": "ReplayGain",
     "peak": "Puncak",
@@ -3097,5 +3099,11 @@
     "empty": "Belum ada perubahan manual untuk mood ini.",
     "undo": "Urungkan",
     "undoTrack": "Urungkan perubahan untuk {{title}}"
+  },
+  "keyNames": {
+    "major": "{{note}} mayor",
+    "minor": "{{note}} minor",
+    "majorNotes": "C,D♭,D,E♭,E,F,F♯,G,A♭,A,B♭,B",
+    "minorNotes": "C,C♯,D,E♭,E,F,F♯,G,G♯,A,B♭,B"
   }
 }

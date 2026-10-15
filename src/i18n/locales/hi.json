@@ -1177,6 +1177,8 @@
     "bpm": "BPM",
     "bpmUncertain": "{{bpm}} (अनिश्चित)",
     "energy": "ऊर्जा",
+    "analysedKey": "स्केल (विश्लेषण)",
+    "keyUncertain": "{{key}} (अनिश्चित)",
     "loudness": "लाउडनेस",
     "replayGain": "ReplayGain",
     "peak": "पीक",
@@ -3097,5 +3099,11 @@
     "empty": "इस मूड के लिए हाथ से कोई बदलाव नहीं किया गया है।",
     "undo": "पूर्ववत करें",
     "undoTrack": "{{title}} का बदलाव पूर्ववत करें"
+  },
+  "keyNames": {
+    "major": "{{note}} मेजर",
+    "minor": "{{note}} माइनर",
+    "majorNotes": "C,D♭,D,E♭,E,F,F♯,G,A♭,A,B♭,B",
+    "minorNotes": "C,C♯,D,E♭,E,F,F♯,G,G♯,A,B♭,B"
   }
 }

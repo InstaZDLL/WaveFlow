@@ -15,7 +15,10 @@ export interface TrackAnalysis {
   bpm_confidence: number | null;
   /** 0 (calm) to 1 (intense), whatever the track's level. */
   energy: number | null;
+  /** The key read from the audio (`Am`, `Eb`…), not the tag's. */
   musical_key: string | null;
+  /** How far to trust `musical_key`, 0 to 1. */
+  key_confidence: number | null;
   loudness_lufs: number | null;
   replay_gain_db: number | null;
   peak: number | null;

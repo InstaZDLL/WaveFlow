@@ -700,6 +700,7 @@ fn library_tracks_sql(order_clause: &str) -> String {
 /// holds `AND ...` fragments whose values are bound, and its `?`
 /// placeholders bind *after* the union's own five.
 pub(crate) fn library_tracks_sql_where(extra_where: &str, order_clause: &str) -> String {
+    let musical_key = waveflow_core::effective_musical_key_sql!();
     format!(
         r#"
         SELECT source, id, library_id, title, album_id, album_title, artist_id, artist_name,
@@ -734,7 +735,7 @@ pub(crate) fn library_tracks_sql_where(extra_where: &str, order_clause: &str) ->
                    t.bit_depth                AS bit_depth,
                    t.channels                 AS channels,
                    t.codec                    AS codec,
-                   t.musical_key              AS musical_key,
+                   {musical_key}              AS musical_key,
                    t.file_path                AS file_path,
                    t.file_size                AS file_size,
                    t.added_at                 AS added_at,
@@ -2507,7 +2508,7 @@ pub async fn get_album_detail(
     // 16-bit MP3, dropping the higher-quality DSD variant from a mixed
     // DSD/PCM album. The first sort key promotes `bit_depth = 1` rows ahead
     // of every PCM row so DSD always wins the collapse when present.
-    let tracks_raw = sqlx::query_as::<_, AlbumTrackRaw>(
+    let tracks_raw = sqlx::query_as::<_, AlbumTrackRaw>(concat!(
         r#"
         WITH ranked AS (
             SELECT t.id,
@@ -2540,7 +2541,9 @@ pub async fn get_album_detail(
                t.duration_ms, t.track_number, t.disc_number,
                t.file_path,
                t.bit_depth, t.sample_rate, t.codec,
-               t.year, t.bitrate, t.channels, t.musical_key,
+               t.year, t.bitrate, t.channels, "#,
+        waveflow_core::effective_musical_key_sql!(),
+        r#" AS musical_key,
                t.file_size, t.added_at, t.rating,
                aw.hash AS artwork_hash, aw.format AS artwork_format
           FROM ranked r
@@ -2550,7 +2553,7 @@ pub async fn get_album_detail(
          WHERE r.rn = 1
          ORDER BY t.disc_number, t.track_number
         "#,
-    )
+    ))
     .bind(album_id)
     .fetch_all(&*pool)
     .await?;
@@ -2976,6 +2979,7 @@ pub async fn get_genre_detail(
 /// binds. Both fragments are literals of this crate, never user input,
 /// which is what makes the assertion of safety true.
 pub(crate) fn detail_tracks_sql(join: &str, filter: &str) -> sqlx::AssertSqlSafe<String> {
+    let musical_key = waveflow_core::effective_musical_key_sql!();
     sqlx::AssertSqlSafe(format!(
         r#"
         SELECT t.id, t.library_id, t.title,
@@ -2995,7 +2999,7 @@ pub(crate) fn detail_tracks_sql(join: &str, filter: &str) -> sqlx::AssertSqlSafe
                )) AS artist_ids,
                t.duration_ms, t.track_number, t.disc_number, t.year,
                t.bitrate, t.sample_rate, t.channels,
-               t.bit_depth, t.codec, t.musical_key,
+               t.bit_depth, t.codec, {musical_key} AS musical_key,
                t.file_path, t.file_size, t.added_at,
                aw.hash   AS artwork_hash,
                aw.format AS artwork_format,

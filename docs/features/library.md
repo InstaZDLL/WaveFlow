@@ -48,7 +48,7 @@ Note the interaction with **Split this artist** below: a deep rescan re-reads ta
 
 ## Audio analysis
 
-[`analysis.rs`](../../src-tauri/crates/core/src/analysis.rs) computes peak, integrated loudness, tempo with a confidence, and energy. Loudness is **ITU-R BS.1770-4** — K-weighted and gated ([`analysis/loudness.rs`](../../src-tauri/crates/core/src/analysis/loudness.rs)) — so the number is real LUFS and lands on the same scale as the ReplayGain other taggers write; the earlier unweighted RMS over a mono sum was a fine relative yardstick inside one library but could not be compared with anything outside it. ReplayGain is `-18 LUFS - loudness`, and is `NULL` rather than a huge boost for a track with nothing above the absolute gate. Peak is taken across **every channel**, not over a mono downmix — an out-of-phase mix sums to near silence while its samples sit at full scale, and clipping prevention downstream depends on that number being true. Runs on demand (per track) or as a background sweep (whole library), gated by a Settings toggle. Results land in `track_analysis` and feed:
+[`analysis.rs`](../../src-tauri/crates/core/src/analysis.rs) computes peak, integrated loudness, tempo with a confidence, energy, and the key with a confidence. Loudness is **ITU-R BS.1770-4** — K-weighted and gated ([`analysis/loudness.rs`](../../src-tauri/crates/core/src/analysis/loudness.rs)) — so the number is real LUFS and lands on the same scale as the ReplayGain other taggers write; the earlier unweighted RMS over a mono sum was a fine relative yardstick inside one library but could not be compared with anything outside it. ReplayGain is `-18 LUFS - loudness`, and is `NULL` rather than a huge boost for a track with nothing above the absolute gate. Peak is taken across **every channel**, not over a mono downmix — an out-of-phase mix sums to near silence while its samples sit at full scale, and clipping prevention downstream depends on that number being true. Runs on demand (per track) or as a background sweep (whole library), gated by a Settings toggle. Results land in `track_analysis` and feed:
 
 - per-stream gain in the audio engine (`replaygain_enabled`) — as the **fallback** source, behind the file's own tags (see [playback](playback.md#replaygain)),
 - the BPM bucketing in [smart playlists](smart-playlists.md) and the [mood radios](smart-playlists.md#mood-radio), which also read the confidence and the energy,
@@ -65,7 +65,26 @@ Note the interaction with **Split this artist** below: a deep rescan re-reads ta
 
 Measured against Deezer's BPM on 209 tracks of a real library, version 1 was right on 49%, an octave out on 34% and wrong on 17%; version 2 is right on 86%, an octave out on 9% and wrong on 5%. Readings at confidence 0.6 or more are right 97% of the time, those under 0.2 half the time. Some of the remaining octave misses are the reference's (Deezer doubles a few slow songs). Widening the octave tie to 20% was tried and measured worse (83%, ten readings doubled instead of one). The [`analysis_bench`](../../src-tauri/crates/core/examples/analysis_bench.rs) example reruns the measurement on any folder, against the files' BPM tags; WaveFlow itself never reads those tags for its tempo.
 
-Bumping `ANALYSIS_VERSION` to 2 makes the background sweep re-measure every row once, which is a full re-decode of the library.
+Bumping `ANALYSIS_VERSION` makes the background sweep re-measure every row once, which is a full re-decode of the library. Version 2 never shipped on its own: version 3 adds the key, so a library is re-measured once for both.
+
+### Key (analysis version 3)
+
+[`analysis/key.rs`](../../src-tauri/crates/core/src/analysis/key.rs) reads the key from the same decimated mono signal as the tempo, with its own longer FFT (4096 samples, 2.7 Hz per bin: a semitone is 3 Hz wide in the bass). Each frame is **whitened** — every bin less the mean within about two semitones of it, which cancels broadband drums — and only the **peaks** that remain between 40 Hz and 1 kHz are folded onto the twelve pitch classes. The summed chromagram is correlated with **Shaath's key profile** (KeyFinder) rotated to all 24 keys; the best is the key, and its lead over the runner-up is the confidence.
+
+Every choice was measured on the GiantSteps Key dataset (604 hand-corrected electronic previews), MIREX-weighted (exact 1, fifth 0.5, relative 0.3, parallel 0.2):
+
+| Variant                                   | weighted | exact |
+| ----------------------------------------- | -------- | ----- |
+| plain chromagram, Temperley profile       | 49.4     | 36.9% |
+| plain chromagram, Shaath profile          | 52.8     | 41.1% |
+| whitened + peaks, Shaath, 60 Hz–2 kHz     | 58.4     | 46.5% |
+| **whitened + peaks, Shaath, 40 Hz–1 kHz** | **60.0** | 49.5% |
+
+Kept out, because they measured worse or no better: compressing the magnitudes (square root −19, log −40), magnitudes squared (−1.6), no per-frame normalisation (−0.8), a 100 Hz floor (−2.2), and folding each peak onto the fundamentals it could be a harmonic of (HPCP, −0.6). Shaath led Krumhansl, Temperley and Faraldo's EDMA on every variant. Trained detectors do better than 60 on this set; this is the level of a classic profile method, and the dataset is dance music only, so other genres are untested. The confidence separates only modestly (57% exact above 0.5, 32% under 0.1), so the UI marks a reading under 0.1 as uncertain and nothing filters on it.
+
+**A tagged key wins.** The analysis writes `track_analysis.musical_key`; `track.musical_key` stays the tag's, because a rescan rewrites it from the file and would erase a value the tag never held. Every query that shows a key reads [`effective_musical_key_sql!`](../../src-tauri/crates/core/src/analysis/key.rs) — the tag when there is one, the analysis otherwise — so the list, the album, the detail pages, search and the properties all agree. Track Properties shows both: the effective key with the file's metadata, the analysed one with the analysis.
+
+Keys are stored as a key signature spells them (`Eb`, `F#m`) and shown in the reader's language by [`formatMusicalKey`](../../src/lib/musicalKey.ts) — solfège where that is the convention (`Mi♭ majeur`, `до мажор`), German names in German and Dutch (`Es-Dur`, `fis-Moll`), the traditional names in Japanese and Korean (`変ホ長調`, `가단조`), `降E大调` in Chinese. It also reads what taggers write: `Am`, `A minor`, `Bbm`, Camelot `8A`, Open Key `1m`; anything else is shown as written. The `analysis_bench` example prints each file's key and chromagram, which is how the variants above were compared.
 
 Rows analysed before the BS.1770 switch are **left in place** — deleting a user's analysis results to force a re-run is a worse trade than the residual mismatch, and that decision stands. They hold two superseded values, and the second is not the harmless one this paragraph used to claim it was:
 

@@ -99,7 +99,11 @@ pub struct TrackAnalysisRow {
     pub bpm_confidence: Option<f64>,
     /// 0 (calm) to 1 (intense), independent of the track's level.
     pub energy: Option<f64>,
+    /// The key read from the audio (`Am`, `Eb`…), not the tag's: the
+    /// properties dialog shows both.
     pub musical_key: Option<String>,
+    /// 0 to 1; see `waveflow_core::analysis::key`.
+    pub key_confidence: Option<f64>,
     pub loudness_lufs: Option<f64>,
     pub replay_gain_db: Option<f64>,
     pub peak: Option<f64>,
@@ -148,9 +152,10 @@ pub async fn get_track_analysis(
         Option<f64>,
         Option<f64>,
         Option<f64>,
+        Option<f64>,
         i64,
     )> = sqlx::query_as(
-        "SELECT track_id, bpm, bpm_confidence, energy, musical_key,
+        "SELECT track_id, bpm, bpm_confidence, energy, musical_key, key_confidence,
                 loudness_lufs, replay_gain_db, peak, analyzed_at
            FROM track_analysis
           WHERE track_id = ?",
@@ -159,13 +164,25 @@ pub async fn get_track_analysis(
     .fetch_optional(&*pool)
     .await?;
     Ok(row.map(
-        |(track_id, bpm, bpm_confidence, energy, key, loudness, replay, peak, analyzed_at)| {
+        |(
+            track_id,
+            bpm,
+            bpm_confidence,
+            energy,
+            key,
+            key_confidence,
+            loudness,
+            replay,
+            peak,
+            analyzed_at,
+        )| {
             TrackAnalysisRow {
                 track_id,
                 bpm,
                 bpm_confidence,
                 energy,
                 musical_key: key,
+                key_confidence,
                 loudness_lufs: loudness,
                 replay_gain_db: replay,
                 peak,
@@ -208,7 +225,8 @@ pub async fn analyze_track(
         bpm: result.bpm,
         bpm_confidence: result.bpm_confidence,
         energy: result.energy,
-        musical_key: None,
+        musical_key: result.key.map(|k| k.name().to_string()),
+        key_confidence: result.key.map(|k| k.confidence),
         loudness_lufs: result.loudness_lufs,
         replay_gain_db: result.replay_gain_db,
         peak: Some(result.peak),
@@ -488,8 +506,9 @@ async fn persist_batch_once(
 /// Write one track's measurements, stamped with [`ANALYSIS_VERSION`].
 /// The single writer of `track_analysis` rows, for the one-track command
 /// and the library sweep alike, so a column added to the analysis cannot
-/// reach one of them and not the other. `musical_key` is left alone: the
-/// key comes from tags, not from here.
+/// reach one of them and not the other. `musical_key` here is the key
+/// read from the audio; the tag's lives on `track` and wins when it is
+/// there (`waveflow_core::effective_musical_key_sql!`).
 async fn upsert_analysis(
     conn: &mut sqlx::SqliteConnection,
     track_id: i64,
@@ -498,13 +517,15 @@ async fn upsert_analysis(
 ) -> Result<(), sqlx::Error> {
     sqlx::query(
         "INSERT INTO track_analysis
-            (track_id, bpm, bpm_confidence, energy, musical_key, loudness_lufs,
-             replay_gain_db, peak, analyzed_at, analysis_version)
-         VALUES (?, ?, ?, ?, NULL, ?, ?, ?, ?, ?)
+            (track_id, bpm, bpm_confidence, energy, musical_key, key_confidence,
+             loudness_lufs, replay_gain_db, peak, analyzed_at, analysis_version)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(track_id) DO UPDATE SET
             bpm              = excluded.bpm,
             bpm_confidence   = excluded.bpm_confidence,
             energy           = excluded.energy,
+            musical_key      = excluded.musical_key,
+            key_confidence   = excluded.key_confidence,
             loudness_lufs    = excluded.loudness_lufs,
             replay_gain_db   = excluded.replay_gain_db,
             peak             = excluded.peak,
@@ -515,6 +536,8 @@ async fn upsert_analysis(
     .bind(result.bpm)
     .bind(result.bpm_confidence)
     .bind(result.energy)
+    .bind(result.key.map(|k| k.name()))
+    .bind(result.key.map(|k| k.confidence))
     .bind(result.loudness_lufs)
     .bind(result.replay_gain_db)
     .bind(result.peak)

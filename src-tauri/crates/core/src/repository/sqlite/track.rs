@@ -29,7 +29,8 @@ impl SqliteTrackRepository {
 /// Shared `SELECT … FROM track t LEFT JOIN album / artist / artwork`
 /// projection. Every method that returns [`TrackRow`] glues this
 /// prefix in front of its `WHERE … ORDER BY …` tail.
-const SELECT_TRACK_ROW: &str = r#"
+const SELECT_TRACK_ROW: &str = concat!(
+    r#"
 SELECT t.id, t.library_id, t.title,
        t.album_id,
        al.title AS album_title,
@@ -47,12 +48,15 @@ SELECT t.id, t.library_id, t.title,
        )) AS artist_ids,
        t.duration_ms, t.track_number, t.disc_number, t.year,
        t.bitrate, t.sample_rate, t.channels,
-       t.bit_depth, t.codec, t.musical_key,
+       t.bit_depth, t.codec, "#,
+    crate::effective_musical_key_sql!(),
+    r#" AS musical_key,
        t.file_path, t.file_size, t.added_at,
        aw.hash   AS artwork_hash,
        aw.format AS artwork_format,
        t.rating  AS rating
-"#;
+"#
+);
 
 const FROM_TRACK_BASE: &str = r#"
 FROM track t
@@ -359,6 +363,11 @@ mod tests {
                  artist_id INTEGER NOT NULL,
                  position INTEGER NOT NULL
              );
+             -- What `effective_musical_key_sql!` reads.
+             CREATE TABLE track_analysis (
+                 track_id INTEGER PRIMARY KEY,
+                 musical_key TEXT
+             );
              CREATE VIRTUAL TABLE track_fts USING fts5(
                  title, album_title, artist_name, pinyin,
                  tokenize='trigram remove_diacritics 1'
@@ -400,6 +409,32 @@ mod tests {
         .execute(pool)
         .await
         .unwrap();
+    }
+
+    /// The key a track shows is its tag's, and the analysis's only when
+    /// the tag is missing or blank.
+    #[tokio::test]
+    async fn a_tagged_key_wins_over_the_analysed_one() {
+        let pool = fixture_pool().await;
+        seed(&pool).await;
+        sqlx::raw_sql(
+            "UPDATE track SET musical_key = '8A' WHERE id = 1;
+             UPDATE track SET musical_key = '  ' WHERE id = 2;
+             INSERT INTO track_analysis (track_id, musical_key)
+             VALUES (1, 'C'), (2, 'Ebm');",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        let repo = SqliteTrackRepository::new(pool.clone());
+        let key = |row: Option<TrackRow>| row.unwrap().musical_key;
+        assert_eq!(key(repo.get(1).await.unwrap()).as_deref(), Some("8A"));
+        assert_eq!(key(repo.get(2).await.unwrap()).as_deref(), Some("Ebm"));
+        sqlx::raw_sql("DELETE FROM track_analysis WHERE track_id = 2;")
+            .execute(&pool)
+            .await
+            .unwrap();
+        assert_eq!(key(repo.get(2).await.unwrap()), None);
     }
 
     async fn listed_for_artist(pool: &SqlitePool, artist_id: i64) -> Vec<i64> {

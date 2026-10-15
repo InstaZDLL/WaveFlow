@@ -1177,6 +1177,8 @@
     "bpm": "BPM",
     "bpmUncertain": "{{bpm}}（不確か）",
     "energy": "エネルギー",
+    "analysedKey": "キー（解析）",
+    "keyUncertain": "{{key}}（不確か）",
     "loudness": "ラウドネス",
     "replayGain": "ReplayGain",
     "peak": "ピーク",
@@ -3097,5 +3099,11 @@
     "empty": "このムードには手動の変更はありません。",
     "undo": "元に戻す",
     "undoTrack": "{{title}} の変更を元に戻す"
+  },
+  "keyNames": {
+    "major": "{{note}}長調",
+    "minor": "{{note}}短調",
+    "majorNotes": "ハ,変ニ,ニ,変ホ,ホ,ヘ,嬰ヘ,ト,変イ,イ,変ロ,ロ",
+    "minorNotes": "ハ,嬰ハ,ニ,変ホ,ホ,ヘ,嬰ヘ,ト,嬰ト,イ,変ロ,ロ"
   }
 }

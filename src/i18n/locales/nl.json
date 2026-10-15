@@ -1177,6 +1177,8 @@
     "bpm": "BPM",
     "bpmUncertain": "{{bpm}} (onzeker)",
     "energy": "Energie",
+    "analysedKey": "Toonsoort (analyse)",
+    "keyUncertain": "{{key}} (onzeker)",
     "loudness": "Luidheid",
     "replayGain": "ReplayGain",
     "peak": "Piek",
@@ -3097,5 +3099,11 @@
     "empty": "Geen handmatige wijzigingen voor deze stemming.",
     "undo": "Ongedaan maken",
     "undoTrack": "Wijziging voor {{title}} ongedaan maken"
+  },
+  "keyNames": {
+    "major": "{{note}} majeur",
+    "minor": "{{note}} mineur",
+    "majorNotes": "C,Des,D,Es,E,F,Fis,G,As,A,Bes,B",
+    "minorNotes": "c,cis,d,es,e,f,fis,g,gis,a,bes,b"
   }
 }
