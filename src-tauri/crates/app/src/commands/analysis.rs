@@ -17,6 +17,7 @@
 
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Mutex;
 use std::time::Duration;
 
 use chrono::Utc;
@@ -38,7 +39,7 @@ const AUTO_ANALYZE_KEY: &str = "audio.auto_analyze";
 /// active profile at a time), so a bare static atomic pair is enough;
 /// no need to thread tokens through `AppState`.
 ///
-/// `ANALYSIS_RUNNING` guards against double-start. The user is the
+/// The analysis [`Slot`] guards against double-start. The user is the
 /// one likely to trigger this by clicking the Library "Run analysis"
 /// button while the post-scan `maybe_auto_analyze` hook is already in
 /// flight — without the guard both runs would race on the same
@@ -50,8 +51,70 @@ const AUTO_ANALYZE_KEY: &str = "audio.auto_analyze";
 /// at every iteration and exits early; the post-loop summary carries
 /// `cancelled = true` so the frontend can render "Cancelled at X / Y"
 /// instead of pretending the run completed.
-static ANALYSIS_RUNNING: AtomicBool = AtomicBool::new(false);
 static ANALYSIS_CANCEL: AtomicBool = AtomicBool::new(false);
+
+/// The one sweep slot, and whether an automatic run was asked for while
+/// it was taken.
+///
+/// The double-start guard used to drop such a request on the floor,
+/// which loses work whenever the running sweep cannot cover it: tracks
+/// a second scan adds after the sweep built its queue, or the profile a
+/// switch opens while the previous profile's sweep is still draining.
+/// [`maybe_auto_analyze`] now records it, and [`RunningGuard`] honours
+/// it once when the current run ends — unless the user stopped that
+/// run, since a stop is not a request to start over.
+///
+/// One mutex rather than two atomics: taking the slot, recording a
+/// rerun and releasing the slot each have to see both fields at once,
+/// or a request can land between the release and the read and be
+/// consumed by the sweep that ended instead of the one it was meant
+/// for. The lock is only ever held for those few lines, never across
+/// an `.await` or a call out.
+struct Slot {
+    running: bool,
+    rerun: bool,
+}
+
+static SLOT: Mutex<Slot> = Mutex::new(Slot {
+    running: false,
+    rerun: false,
+});
+
+fn slot() -> std::sync::MutexGuard<'static, Slot> {
+    // A panic while holding it cannot leave the two booleans
+    // inconsistent, so a poisoned lock is still a usable one.
+    SLOT.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
+/// Take the slot if it is free. When it is not and `queue` is set,
+/// record that a run is wanted once it frees up.
+fn reserve(queue: bool) -> bool {
+    let mut slot = slot();
+    if slot.running {
+        if queue {
+            slot.rerun = true;
+        }
+        return false;
+    }
+    // The run starting now covers whatever was waiting, and a stop
+    // asked of the previous run does not carry over to this one.
+    slot.running = true;
+    slot.rerun = false;
+    ANALYSIS_CANCEL.store(false, Ordering::SeqCst);
+    true
+}
+
+/// Ask the running sweep to stop, under the slot's lock so a stop and
+/// the end of a run cannot interleave: either the stop lands first and
+/// the ending run sees it (no rerun), or the run has already released
+/// the slot and there is nothing to stop. `false` when nothing ran.
+fn request_stop() -> bool {
+    let slot = slot();
+    if slot.running {
+        ANALYSIS_CANCEL.store(true, Ordering::SeqCst);
+    }
+    slot.running
+}
 
 /// Sleep duration injected between two consecutive `analyze_file`
 /// calls in [`run_analyze_library`]. The analyzer is CPU-bound on
@@ -127,7 +190,7 @@ pub struct LibraryAnalysisSummary {
     /// `cancel_library_analysis` command (or any other call site set
     /// the cancel flag) — the UI uses this to render "Cancelled at
     /// X / Y" instead of pretending the run completed. Also `true`
-    /// when [`ANALYSIS_RUNNING`] was already set on entry, since the
+    /// when the analysis slot was already taken on entry, since the
     /// second caller never actually ran.
     pub cancelled: bool,
 }
@@ -269,11 +332,9 @@ pub async fn run_analyze_library(
     app: &AppHandle,
     pool: &SqlitePool,
 ) -> AppResult<LibraryAnalysisSummary> {
-    // Double-start guard. `swap` atomically takes the slot if it was
-    // free; if `prev == true` another call is already in flight and
-    // we bail with a cancelled summary so the caller's progress UI
-    // doesn't get stuck spinning.
-    if ANALYSIS_RUNNING.swap(true, Ordering::SeqCst) {
+    // Double-start guard: take the slot, or bail with a cancelled
+    // summary so the caller's progress UI doesn't get stuck spinning.
+    if !reserve(false) {
         tracing::info!("analyze_library called while another run is in flight; ignoring");
         return Ok(LibraryAnalysisSummary {
             processed: 0,
@@ -282,13 +343,17 @@ pub async fn run_analyze_library(
             cancelled: true,
         });
     }
-    // Reset the cancel flag at the START of every run — a stale
-    // `true` from a prior cancellation would otherwise short-circuit
-    // the new run before the first track. The RAII guard at the end
-    // clears `ANALYSIS_RUNNING` on every exit path (early returns +
-    // panics) so the flag can't get stuck `true`.
-    ANALYSIS_CANCEL.store(false, Ordering::SeqCst);
-    let _guard = RunningGuard;
+    run_reserved(app, pool).await
+}
+
+/// The sweep itself, for a caller that already holds the slot.
+async fn run_reserved(app: &AppHandle, pool: &SqlitePool) -> AppResult<LibraryAnalysisSummary> {
+    // The cancel flag was reset when the slot was taken (`reserve`): a
+    // stale `true` from a prior stop would otherwise short-circuit this
+    // run before its first track. The RAII guard at the end releases the
+    // slot on every exit path (early returns + panics) so it can't stay
+    // taken.
+    let _guard = RunningGuard { app: app.clone() };
 
     // Announced before the query, with an unknown total. That query is
     // a join over every track in the library, which on a large one
@@ -302,7 +367,7 @@ pub async fn run_analyze_library(
         crate::tasks::TaskKind::Analysis,
         0,
         crate::tasks::cancel_fn(|| {
-            ANALYSIS_CANCEL.store(true, Ordering::SeqCst);
+            request_stop();
         }),
     );
 
@@ -444,18 +509,38 @@ pub async fn run_analyze_library(
     Ok(summary)
 }
 
-/// RAII guard that clears [`ANALYSIS_RUNNING`] on drop. Lets every
+/// RAII guard that releases the analysis [`Slot`] on drop. Lets every
 /// exit path of `run_analyze_library` — early return on cancel, the
 /// SQL error path, a future `?` on a new query, even a panic during
 /// decode — reset the running flag without explicit cleanup. Without
 /// this a single error from `sqlx::query_as` would leave the static
 /// `true` forever and brick auto-analyze for the rest of the
 /// session.
-struct RunningGuard;
+///
+/// It is also where a request refused mid-run ([`Slot::rerun`]) is
+/// picked up: every way a run ends passes through here, so this is the
+/// one place where "the sweep that refused it is over" is certain.
+struct RunningGuard {
+    app: AppHandle,
+}
 
 impl Drop for RunningGuard {
     fn drop(&mut self) {
-        ANALYSIS_RUNNING.store(false, Ordering::SeqCst);
+        let rerun = {
+            let mut slot = slot();
+            // Under the lock, like `request_stop` and `reserve`: a stop
+            // cannot slip in between this read and the release.
+            let stopped_by_user = ANALYSIS_CANCEL.load(Ordering::SeqCst);
+            let wanted = slot.rerun && !stopped_by_user;
+            slot.running = false;
+            slot.rerun = false;
+            wanted
+        };
+        if rerun {
+            // Re-resolves the active profile and its toggle: after a
+            // profile switch that is the profile the request was for.
+            maybe_auto_analyze(&self.app);
+        }
     }
 }
 
@@ -628,14 +713,10 @@ async fn wait_out_active_scan() {
 /// "Start" shouldn't surface as an error.
 ///
 /// Idempotent: setting the cancel flag while it's already `true` is
-/// fine; the worker loop clears it at the start of the next run.
+/// fine; taking the slot for the next run clears it.
 #[tauri::command]
 pub fn cancel_library_analysis() -> bool {
-    let was_running = ANALYSIS_RUNNING.load(Ordering::Relaxed);
-    if was_running {
-        ANALYSIS_CANCEL.store(true, Ordering::SeqCst);
-    }
-    was_running
+    request_stop()
 }
 
 /// Read the per-profile auto-analyze flag. `true` when the user has
@@ -700,7 +781,12 @@ pub fn maybe_auto_analyze(app: &AppHandle) {
         if !read_auto_analyze(&pool).await {
             return;
         }
-        if let Err(err) = run_analyze_library(&app, &pool).await {
+        // Take the slot, or leave the request for the sweep holding it
+        // to pick up when it ends.
+        if !reserve(true) {
+            return;
+        }
+        if let Err(err) = run_reserved(&app, &pool).await {
             tracing::warn!(%err, "auto analyze run failed");
         }
     });
@@ -709,6 +795,33 @@ pub fn maybe_auto_analyze(app: &AppHandle) {
 #[cfg(test)]
 mod tests {
     use super::code_is_busy;
+
+    /// The slot hands itself out once, records a request made while it
+    /// is taken (only when asked to), and a run that starts afresh
+    /// covers what was waiting. The only test touching `SLOT`, so the
+    /// shared static is not raced by another.
+    #[test]
+    fn the_slot_queues_one_request_while_taken() {
+        use super::{reserve, slot};
+        {
+            let mut s = slot();
+            s.running = false;
+            s.rerun = false;
+        }
+        assert!(reserve(false), "a free slot is taken");
+        assert!(!reserve(false), "a taken slot refuses");
+        assert!(!slot().rerun, "a manual refusal queues nothing");
+        assert!(!reserve(true), "still taken");
+        assert!(slot().rerun, "an automatic refusal is kept");
+        // What `RunningGuard::drop` does, minus the call out.
+        {
+            let mut s = slot();
+            s.running = false;
+        }
+        assert!(reserve(true), "free again");
+        assert!(!slot().rerun, "the new run covers the waiting request");
+        slot().running = false;
+    }
 
     #[test]
     fn busy_and_locked_primary_codes_match() {
