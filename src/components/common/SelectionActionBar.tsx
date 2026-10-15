@@ -13,7 +13,7 @@ import {
 import { usePlaylist } from "../../hooks/usePlaylist";
 import { resolvePlaylistColor } from "../../lib/playlistVisuals";
 import { PlaylistIcon } from "../../lib/PlaylistIcon";
-import { blurPointerFocus } from "../../lib/inputModality";
+import { blurPointerFocusOnRow } from "../../lib/inputModality";
 import { Tooltip } from "./Tooltip";
 
 export type SelectionContext =
@@ -56,7 +56,7 @@ export function SelectionActionBar({
           onClear();
           // The row the mouse picked still holds focus, and this key
           // would paint its ring until the next click (#859).
-          blurPointerFocus();
+          blurPointerFocusOnRow();
         }
       }
     };

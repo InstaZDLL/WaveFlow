@@ -56,6 +56,8 @@ export function RowSelectCheckbox({
       <span
         role="checkbox"
         tabIndex={0}
+        // How `blurPointerFocusOnRow` recognises a track row.
+        data-row-select="true"
         aria-checked={checked}
         aria-label={t("selection.selectRow", { title })}
         title={t("selection.selectRow", { title })}

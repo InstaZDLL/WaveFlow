@@ -31,15 +31,18 @@ export function lastInputModality(): InputModality {
 }
 
 /**
- * Drop the focus a mouse click left behind, so a key press does not
- * paint a ring on it. Focus reached from the keyboard is kept: that ring
- * is how a keyboard user knows where they are. Text fields keep their
- * focus either way.
+ * Drop the focus a mouse click left on a selectable track row (or on its
+ * checkbox), so a key press does not paint a ring on it. Focus reached
+ * from the keyboard is kept: that ring is how a keyboard user knows where
+ * they are. Anything else keeps its focus too — a button clicked outside
+ * the list is where the next Tab starts from.
  */
-export function blurPointerFocus(): void {
+export function blurPointerFocusOnRow(): void {
   if (last !== "pointer") return;
   const active = document.activeElement;
-  if (!(active instanceof HTMLElement) || active === document.body) return;
-  if (active.matches("input, textarea, select, [contenteditable]")) return;
-  active.blur();
+  if (!(active instanceof HTMLElement)) return;
+  const onRow =
+    active.matches("[data-row-select]") ||
+    active.querySelector(":scope [data-row-select]") !== null;
+  if (onRow) active.blur();
 }
