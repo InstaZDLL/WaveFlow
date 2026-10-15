@@ -11,6 +11,10 @@ import { invoke } from "@tauri-apps/api/core";
 export interface TrackAnalysis {
   track_id: number;
   bpm: number | null;
+  /** How far to trust `bpm`, 0 to 1; `null` before analysis version 2. */
+  bpm_confidence: number | null;
+  /** 0 (calm) to 1 (intense), whatever the track's level. */
+  energy: number | null;
   musical_key: string | null;
   loudness_lufs: number | null;
   replay_gain_db: number | null;

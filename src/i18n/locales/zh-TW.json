@@ -1175,6 +1175,8 @@
       "file": "檔案"
     },
     "bpm": "BPM",
+    "bpmUncertain": "{{bpm}}（不確定）",
+    "energy": "能量",
     "loudness": "響度",
     "replayGain": "ReplayGain",
     "peak": "峰值",

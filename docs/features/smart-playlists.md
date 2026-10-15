@@ -273,13 +273,15 @@ The gate decides what may be considered; everything inside it is ranked
 by how well it fits, and the forty tracks that play are the best of the
 pool rather than the first forty drawn out of it (#616).
 
-| Mood    | Tempo gate | Centre | Loudness                                    |
-| ------- | ---------- | ------ | ------------------------------------------- |
-| Focus   | 72–108     | 88     | prefers ≤ −14 LUFS                          |
-| Chill   | 65–95      | 78     | prefers ≤ −10 LUFS                          |
-| Workout | 128–180    | 150    | prefers ≥ −12 LUFS                          |
-| Party   | 110–132    | 122    | prefers ≥ −12 LUFS                          |
-| Sleep   | ≤ 68       | 52     | prefers ≤ −18 LUFS, **excludes** > −12 LUFS |
+| Mood    | Tempo gate | Centre | Energy                             | Loudness                                    |
+| ------- | ---------- | ------ | ---------------------------------- | ------------------------------------------- |
+| Focus   | 72–108     | 88     | prefers ≤ 0.55                     | prefers ≤ −14 LUFS                          |
+| Chill   | 65–95      | 78     | prefers ≤ 0.5                      | prefers ≤ −10 LUFS                          |
+| Workout | 128–180    | 150    | prefers ≥ 0.6, **excludes** < 0.4  | prefers ≥ −12 LUFS                          |
+| Party   | 110–132    | 122    | prefers ≥ 0.6, **excludes** < 0.4  | prefers ≥ −12 LUFS                          |
+| Sleep   | ≤ 68       | 52     | prefers ≤ 0.25, **excludes** > 0.4 | prefers ≤ −18 LUFS, **excludes** > −12 LUFS |
+
+The score weighs tempo 0.5, energy 0.3, loudness 0.1 and genre 0.1. A tempo read with confidence `c` counts as `c` of its fit plus `1 − c` of the unknown score, so a reading the estimator doubts is weak evidence either way. Rows from analysis version 1 have neither a confidence nor an energy and are judged as before until the sweep re-measures them.
 
 The pool of 400 is drawn **measured readings first**, shuffled within
 each group, and the ranking then decides which forty of it play. The
@@ -296,14 +298,18 @@ loudness. Loudness and genre rank instead, which is what lets a thin
 library still return forty tracks, closest fits first, rather than an
 error.
 
-**Sleep also gates on loudness** (`lufs_ceiling`, −12 LUFS: where its
-loudness ranking reaches zero). The tempo estimator rarely reads under
-60 BPM, so fast tracks come back as 60-something often enough that
-Sleep's window held a fifth of a library on tempo alone, and loudness
-is the only signal left that tells them apart. Mastered pop sits
-around −8 LUFS and is out; an unmeasured loudness still passes. The
-home-tile count answers the same gates, so it says what the radio can
-draw from.
+**Sleep also gates on energy and loudness.** The energy ceiling (0.4,
+about the calmest third of a real library) is what keeps a dance record
+out at any level; Workout and Party take the mirror floor, so a fast
+but gentle track does not end up on a treadmill. The loudness ceiling
+(`lufs_ceiling`, −12 LUFS: where its loudness ranking reaches zero)
+dates from analysis version 1, whose tempo stuck to 60 BPM when it
+could not decide, so fast tracks read as 60-something often enough that
+Sleep's window held a fifth of a library; it stays for rows not yet
+re-measured, and does little on a library normalised to −14. Unmeasured
+energy and loudness both pass. A record in album mode is out whole if
+one of its tracks is measured past either gate. The home-tile count
+answers the same gates, so it says what the radio can draw from.
 
 That also fixes the case the issue opened on: **an unmeasured loudness
 used to satisfy a ceiling exactly as well as a measured quiet track**
@@ -334,7 +340,11 @@ tracks). The scorer discounts
 the corrected one by a third: a guess about a measurement is worth less
 than a measurement, so rescued tracks sit below the honest ones rather
 than beside them. A tempo already inside the window is **never**
-reinterpreted, however well its double would score.
+reinterpreted, however well its double would score — and since analysis
+version 2, neither is a tempo read with confidence 0.4 or more
+(`TRUSTED_TEMPO`): 91% of those are right, and reinterpreting them would
+move far more correct readings than it rescued. The SQL gate and the
+scorer share the threshold, and a test holds them equal.
 
 ### Narrowed, not de-overlapped
 

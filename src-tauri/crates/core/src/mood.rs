@@ -40,12 +40,22 @@ pub struct MoodProfile {
     pub lufs_min: Option<f64>,
     /// A loudness **gate**, unlike the two above: a track measured
     /// louder than this is not considered at all. Only Sleep sets one.
-    /// Its tempo cannot do the excluding there, because the tempo
-    /// estimator rarely reads under 60 BPM: fast tracks come back as
-    /// 60-something often enough that a slow-tempo window holds a fifth
-    /// of a library, and loudness is the only signal left that tells a
-    /// lullaby from a halved dance record. Unmeasured loudness passes.
+    /// It dates from analysis version 1, whose tempo stuck to 60 BPM
+    /// whenever it could not decide, so a slow window held a fifth of a
+    /// library; [`MoodProfile::energy_ceiling`] now does most of that
+    /// work, and this stays for rows not yet re-measured. Unmeasured
+    /// loudness passes.
     pub lufs_ceiling: Option<f64>,
+    /// Preferred energy (0 calm .. 1 intense, analysis version 2): the
+    /// ranking's bounds, like `lufs_max` / `lufs_min`.
+    pub energy_max: Option<f64>,
+    pub energy_min: Option<f64>,
+    /// Energy **gates**: a track measured past one is not considered.
+    /// Energy survives loudness normalisation, which is what makes it
+    /// the signal that keeps a dance record out of Sleep and a ballad
+    /// out of Workout. Unmeasured energy passes.
+    pub energy_ceiling: Option<f64>,
+    pub energy_floor: Option<f64>,
     /// Genre words that suit the mood, matched case-insensitively as
     /// substrings of the track's genres. A **bonus only** — never a
     /// gate. Genre strings come from whatever tagger wrote the file,
@@ -63,6 +73,15 @@ pub struct MoodProfile {
 /// only a measurement.
 pub const OCTAVE_PENALTY: f64 = 0.65;
 
+/// Tempo confidence from which the reading is taken as it is.
+///
+/// Measured against a reference on a real library, analysis version 2
+/// is right on 91% of the readings at or above this, and an octave out
+/// on only 7%: reinterpreting those would move far more correct
+/// readings than it rescues. Below it — and on rows from version 1,
+/// which have no confidence — the octave readings stay open.
+pub const TRUSTED_TEMPO: f64 = 0.4;
+
 /// What an unmeasured value scores.
 ///
 /// Neither the reward of a match nor the cost of a miss: a track whose
@@ -72,10 +91,13 @@ pub const OCTAVE_PENALTY: f64 = 0.65;
 /// keeps an unanalysed library from returning an empty radio.
 pub const UNKNOWN_SCORE: f64 = 0.5;
 
-/// Weights of the three signals. Tempo carries the mood; loudness
-/// confirms it; genre is corroboration from a field nobody validates.
-const W_TEMPO: f64 = 0.6;
-const W_LOUDNESS: f64 = 0.3;
+/// Weights of the four signals. Tempo carries the mood; energy confirms
+/// it; loudness says little once a library is normalised, but is all a
+/// row from analysis version 1 has; genre is corroboration from a field
+/// nobody validates.
+const W_TEMPO: f64 = 0.5;
+const W_ENERGY: f64 = 0.3;
+const W_LOUDNESS: f64 = 0.1;
 const W_GENRE: f64 = 0.1;
 
 /// One track, as the ranking sees it.
@@ -87,7 +109,12 @@ pub struct MoodCandidate {
     /// treating each as its own artist.
     pub primary_artist: Option<i64>,
     pub bpm: f64,
+    /// How far to trust `bpm`, 0 to 1. `None` on a row from analysis
+    /// version 1, which is judged as before.
+    pub bpm_confidence: Option<f64>,
     pub loudness_lufs: Option<f64>,
+    /// 0 (calm) to 1 (intense); `None` before analysis version 2.
+    pub energy: Option<f64>,
     /// The track's genres, already lower-cased and joined — the shape
     /// the query hands back.
     pub genres: Option<String>,
@@ -105,11 +132,13 @@ pub struct MoodCandidate {
 /// open side the correction rescues nothing and admits everything —
 /// Sleep has no floor, so halving let in every track up to twice its
 /// ceiling, nine tenths of a library.
-pub fn effective_bpm(profile: &MoodProfile, bpm: f64) -> (f64, f64) {
+///
+/// A reading trusted at [`TRUSTED_TEMPO`] or more is never corrected.
+pub fn effective_bpm(profile: &MoodProfile, bpm: f64, confidence: Option<f64>) -> (f64, f64) {
     if bpm <= 0.0 {
         return (bpm, 1.0);
     }
-    if in_window(profile, bpm) {
+    if in_window(profile, bpm) || is_trusted(confidence) {
         return (bpm, 1.0);
     }
     // Only when the plain reading is out of the window: a track that
@@ -135,6 +164,21 @@ fn octave_readings(profile: &MoodProfile, bpm: f64) -> impl Iterator<Item = f64>
     .flatten()
 }
 
+/// Whether a tempo is sure enough to be taken as read.
+pub fn is_trusted(confidence: Option<f64>) -> bool {
+    confidence.is_some_and(|c| c >= TRUSTED_TEMPO)
+}
+
+/// Does this measured energy pass the mood's energy gates? An
+/// unmeasured one does: absence is not evidence.
+pub fn passes_energy_gate(profile: &MoodProfile, energy: Option<f64>) -> bool {
+    let Some(energy) = energy else {
+        return true;
+    };
+    profile.energy_ceiling.map_or(true, |c| energy <= c)
+        && profile.energy_floor.map_or(true, |f| energy >= f)
+}
+
 /// Does this measured loudness pass the mood's loudness gate? An
 /// unmeasured one does: absence is not evidence.
 pub fn passes_loudness_gate(profile: &MoodProfile, lufs: Option<f64>) -> bool {
@@ -156,18 +200,54 @@ pub fn in_window(profile: &MoodProfile, bpm: f64) -> bool {
 /// — plain, doubled or halved? This is what the candidate query has to
 /// ask, or the octave correction below would never see the tracks it
 /// exists to rescue.
-pub fn in_window_any_octave(profile: &MoodProfile, bpm: f64) -> bool {
+pub fn in_window_any_octave(profile: &MoodProfile, bpm: f64, confidence: Option<f64>) -> bool {
     bpm > 0.0
-        && (in_window(profile, bpm) || octave_readings(profile, bpm).any(|b| in_window(profile, b)))
+        && (in_window(profile, bpm)
+            || (!is_trusted(confidence)
+                && octave_readings(profile, bpm).any(|b| in_window(profile, b))))
 }
 
 /// How well a track fits a mood, in `0.0..=1.0`.
+///
+/// A tempo read with little confidence scores towards [`UNKNOWN_SCORE`]
+/// in proportion: a reading the estimator itself doubts is weak
+/// evidence either way.
 pub fn fit_score(profile: &MoodProfile, candidate: &MoodCandidate) -> f64 {
-    let (bpm, octave_factor) = effective_bpm(profile, candidate.bpm);
-    let tempo = tempo_score(profile, bpm) * octave_factor;
+    let (bpm, octave_factor) = effective_bpm(profile, candidate.bpm, candidate.bpm_confidence);
+    let measured = tempo_score(profile, bpm) * octave_factor;
+    let tempo = match candidate.bpm_confidence {
+        Some(c) => {
+            let c = c.clamp(0.0, 1.0);
+            c * measured + (1.0 - c) * UNKNOWN_SCORE
+        }
+        None => measured,
+    };
+    let energy = energy_score(profile, candidate.energy);
     let loudness = loudness_score(profile, candidate.loudness_lufs);
     let genre = genre_score(profile, candidate.genres.as_deref());
-    (W_TEMPO * tempo + W_LOUDNESS * loudness + W_GENRE * genre).clamp(0.0, 1.0)
+    (W_TEMPO * tempo + W_ENERGY * energy + W_LOUDNESS * loudness + W_GENRE * genre).clamp(0.0, 1.0)
+}
+
+/// Where a measured energy sits relative to the mood's preferred
+/// bounds: 1 inside, falling to 0 over a quarter of the scale past
+/// them. Unmeasured energy scores [`UNKNOWN_SCORE`].
+fn energy_score(profile: &MoodProfile, energy: Option<f64>) -> f64 {
+    let Some(energy) = energy else {
+        return UNKNOWN_SCORE;
+    };
+    /// Overshoot that takes the score from 1 to 0.
+    const RUN: f64 = 0.25;
+    if profile.energy_max.is_none() && profile.energy_min.is_none() {
+        return UNKNOWN_SCORE;
+    }
+    let mut overshoot: f64 = 0.0;
+    if let Some(max) = profile.energy_max {
+        overshoot = overshoot.max(energy - max);
+    }
+    if let Some(min) = profile.energy_min {
+        overshoot = overshoot.max(min - energy);
+    }
+    (1.0 - overshoot.max(0.0) / RUN).clamp(0.0, 1.0)
 }
 
 /// Distance from the mood's centre, normalised by the half-width of
@@ -305,6 +385,10 @@ mod tests {
         lufs_max: Some(-14.0),
         lufs_min: None,
         lufs_ceiling: None,
+        energy_max: None,
+        energy_min: None,
+        energy_ceiling: None,
+        energy_floor: None,
         genre_words: &["ambient", "classical"],
     };
 
@@ -313,7 +397,9 @@ mod tests {
             track_id,
             primary_artist: Some(1),
             bpm,
+            bpm_confidence: None,
             loudness_lufs: lufs,
+            energy: None,
             genres: None,
         }
     }
@@ -331,7 +417,7 @@ mod tests {
     /// A tempo read an octave out is rescued, and discounted for it.
     #[test]
     fn an_octave_error_is_rescued_but_discounted() {
-        let (bpm, factor) = effective_bpm(&FOCUS, 170.0);
+        let (bpm, factor) = effective_bpm(&FOCUS, 170.0, None);
         assert_eq!(bpm, 85.0, "170 must be read as 85 for a mood built on 85");
         assert_eq!(factor, OCTAVE_PENALTY);
 
@@ -355,9 +441,13 @@ mod tests {
             lufs_max: None,
             lufs_min: None,
             lufs_ceiling: None,
+            energy_max: None,
+            energy_min: None,
+            energy_ceiling: None,
+            energy_floor: None,
             genre_words: &[],
         };
-        let (bpm, factor) = effective_bpm(&party, 62.0);
+        let (bpm, factor) = effective_bpm(&party, 62.0, None);
         assert_eq!((bpm, factor), (62.0, 1.0));
     }
 
@@ -425,6 +515,10 @@ mod tests {
         lufs_max: Some(-18.0),
         lufs_min: None,
         lufs_ceiling: Some(-12.0),
+        energy_max: None,
+        energy_min: None,
+        energy_ceiling: None,
+        energy_floor: None,
         genre_words: &[],
     };
 
@@ -458,11 +552,11 @@ mod tests {
     /// correction above would never see the tracks it rescues.
     #[test]
     fn the_gate_accepts_any_octave() {
-        assert!(in_window_any_octave(&FOCUS, 85.0));
-        assert!(in_window_any_octave(&FOCUS, 170.0), "double");
-        assert!(in_window_any_octave(&FOCUS, 42.5), "half");
-        assert!(!in_window_any_octave(&FOCUS, 130.0));
-        assert!(!in_window_any_octave(&FOCUS, 0.0), "no tempo at all");
+        assert!(in_window_any_octave(&FOCUS, 85.0, None));
+        assert!(in_window_any_octave(&FOCUS, 170.0, None), "double");
+        assert!(in_window_any_octave(&FOCUS, 42.5, None), "half");
+        assert!(!in_window_any_octave(&FOCUS, 130.0, None));
+        assert!(!in_window_any_octave(&FOCUS, 0.0, None), "no tempo at all");
     }
 
     /// No halving toward an open side: Sleep has no floor, and halving
@@ -471,9 +565,9 @@ mod tests {
     /// it — so a fast track stays out under every reading.
     #[test]
     fn no_octave_correction_toward_an_open_side() {
-        assert!(in_window_any_octave(&SLEEP, 60.0));
-        assert!(!in_window_any_octave(&SLEEP, 120.0), "not read as 60");
-        assert_eq!(effective_bpm(&SLEEP, 120.0), (120.0, 1.0));
+        assert!(in_window_any_octave(&SLEEP, 60.0, None));
+        assert!(!in_window_any_octave(&SLEEP, 120.0, None), "not read as 60");
+        assert_eq!(effective_bpm(&SLEEP, 120.0, None), (120.0, 1.0));
     }
 
     /// The loudness gate keeps out what is measured too loud, and only
@@ -485,5 +579,73 @@ mod tests {
         assert!(!passes_loudness_gate(&SLEEP, Some(-8.0)));
         assert!(passes_loudness_gate(&SLEEP, None));
         assert!(passes_loudness_gate(&FOCUS, Some(-3.0)), "no gate set");
+    }
+
+    /// A reading the estimator trusts is taken as it is: no octave
+    /// reading rescues it into a window it does not fit, and the gate
+    /// the queries ask says the same.
+    #[test]
+    fn a_trusted_tempo_is_never_reinterpreted() {
+        assert_eq!(effective_bpm(&FOCUS, 170.0, Some(0.8)), (170.0, 1.0));
+        assert!(!in_window_any_octave(&FOCUS, 170.0, Some(0.8)));
+        // Below the threshold the octave readings stay open.
+        assert_eq!(
+            effective_bpm(&FOCUS, 170.0, Some(0.1)),
+            (85.0, OCTAVE_PENALTY)
+        );
+        assert!(in_window_any_octave(&FOCUS, 170.0, Some(0.1)));
+    }
+
+    /// A doubtful tempo is weaker evidence than a sure one, in both
+    /// directions: at the centre it scores lower, and nothing scores it
+    /// as a miss.
+    #[test]
+    fn a_doubtful_tempo_counts_for_less() {
+        let mut sure = candidate(1, 85.0, Some(-16.0));
+        sure.bpm_confidence = Some(0.9);
+        let mut doubtful = candidate(2, 85.0, Some(-16.0));
+        doubtful.bpm_confidence = Some(0.1);
+        assert!(fit_score(&FOCUS, &sure) > fit_score(&FOCUS, &doubtful));
+    }
+
+    /// Energy gates like loudness does, and an unmeasured one passes.
+    #[test]
+    fn the_energy_gates_keep_out_what_they_name() {
+        let sleep = MoodProfile {
+            energy_ceiling: Some(0.4),
+            ..FOCUS
+        };
+        assert!(passes_energy_gate(&sleep, Some(0.2)));
+        assert!(!passes_energy_gate(&sleep, Some(0.8)));
+        assert!(passes_energy_gate(&sleep, None));
+        let workout = MoodProfile {
+            energy_floor: Some(0.4),
+            ..FOCUS
+        };
+        assert!(!passes_energy_gate(&workout, Some(0.2)));
+        assert!(passes_energy_gate(&workout, Some(0.7)));
+    }
+
+    /// Two tracks at the same tempo and level: the calmer one fits a
+    /// calm mood better. Loudness could not tell them apart once a
+    /// library is normalised; this is what energy is for.
+    #[test]
+    fn energy_separates_tracks_the_level_cannot() {
+        let calm_mood = MoodProfile {
+            energy_max: Some(0.4),
+            ..FOCUS
+        };
+        let mut calm = candidate(1, 85.0, Some(-14.0));
+        calm.energy = Some(0.2);
+        let mut intense = candidate(2, 85.0, Some(-14.0));
+        intense.energy = Some(0.9);
+        let mut unknown = candidate(3, 85.0, Some(-14.0));
+        unknown.energy = None;
+        let (c, i, u) = (
+            fit_score(&calm_mood, &calm),
+            fit_score(&calm_mood, &intense),
+            fit_score(&calm_mood, &unknown),
+        );
+        assert!(c > u && u > i, "calm {c} unknown {u} intense {i}");
     }
 }

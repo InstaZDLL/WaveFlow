@@ -97,8 +97,41 @@ macro_rules! bpm_any_octave {
         concat!(
             "(   ",
             bpm_plain_in_window!(),
-            " OR (?2 IS NOT NULL AND (?1 IS NULL OR ta.bpm * 2.0 >= ?1) AND ta.bpm * 2.0 <= ?2)",
-            " OR (?1 IS NOT NULL AND ta.bpm / 2.0 >= ?1 AND (?2 IS NULL OR ta.bpm / 2.0 <= ?2)))"
+            // A reading trusted at `TRUSTED_TEMPO` is taken as it is,
+            // as `waveflow_core::mood::in_window_any_octave` does.
+            " OR ((ta.bpm_confidence IS NULL OR ta.bpm_confidence < ",
+            trusted_tempo!(),
+            ") AND (",
+            "    (?2 IS NOT NULL AND (?1 IS NULL OR ta.bpm * 2.0 >= ?1) AND ta.bpm * 2.0 <= ?2)",
+            " OR (?1 IS NOT NULL AND ta.bpm / 2.0 >= ?1 AND (?2 IS NULL OR ta.bpm / 2.0 <= ?2)))))"
+        )
+    };
+}
+
+/// [`waveflow_core::mood::TRUSTED_TEMPO`] as a SQL literal, so the gate
+/// stays a `&'static str`. A test holds the two equal.
+macro_rules! trusted_tempo {
+    () => {
+        "0.4"
+    };
+}
+
+/// The energy gates, in SQL, against the placeholders bound to the
+/// profile's `energy_floor` and `energy_ceiling`: as
+/// [`waveflow_core::mood::passes_energy_gate`], a track measured past
+/// either is out and an unmeasured one passes.
+macro_rules! energy_in_gates {
+    ($floor:literal, $ceiling:literal) => {
+        concat!(
+            "((",
+            $ceiling,
+            " IS NULL OR ta.energy IS NULL OR ta.energy <= ",
+            $ceiling,
+            ") AND (",
+            $floor,
+            " IS NULL OR ta.energy IS NULL OR ta.energy >= ",
+            $floor,
+            "))"
         )
     };
 }
@@ -189,6 +222,10 @@ impl Mood {
                 lufs_max: Some(-14.0),
                 lufs_min: None,
                 lufs_ceiling: None,
+                energy_max: Some(0.55),
+                energy_min: None,
+                energy_ceiling: None,
+                energy_floor: None,
                 genre_words: &[
                     "ambient",
                     "classical",
@@ -209,6 +246,10 @@ impl Mood {
                 lufs_max: Some(-10.0),
                 lufs_min: None,
                 lufs_ceiling: None,
+                energy_max: Some(0.5),
+                energy_min: None,
+                energy_ceiling: None,
+                energy_floor: None,
                 genre_words: &[
                     "chill",
                     "lounge",
@@ -222,8 +263,9 @@ impl Mood {
                 ],
             },
             // Workout: keeps the cadence above ~128 (running,
-            // lifting), and wants the loud end of the library rather
-            // than merely tolerating it. Upper bound at 180 to avoid
+            // lifting), and wants the loud, intense end of the library
+            // rather than merely tolerating it; the energy floor keeps a
+            // fast but gentle track (a brisk folk song) off the treadmill. Upper bound at 180 to avoid
             // the drum'n'bass and speedcore most users wouldn't want
             // for a treadmill session.
             Mood::Workout => MoodProfile {
@@ -233,6 +275,10 @@ impl Mood {
                 lufs_max: None,
                 lufs_min: Some(-12.0),
                 lufs_ceiling: None,
+                energy_max: None,
+                energy_min: Some(0.6),
+                energy_ceiling: None,
+                energy_floor: Some(0.4),
                 genre_words: &[
                     "electronic",
                     "dance",
@@ -254,6 +300,10 @@ impl Mood {
                 lufs_max: None,
                 lufs_min: Some(-12.0),
                 lufs_ceiling: None,
+                energy_max: None,
+                energy_min: Some(0.6),
+                energy_ceiling: None,
+                energy_floor: Some(0.4),
                 genre_words: &[
                     "dance",
                     "pop",
@@ -265,11 +315,13 @@ impl Mood {
                     "latin",
                 ],
             },
-            // Sleep: very slow, very quiet. The ceiling sits where the
-            // loudness ranking reaches zero (−18 plus its six-decibel
-            // run): past it a track is the wrong loudness, not a weaker
-            // fit. Mastered pop sits around −8, so it is out; quiet
-            // acoustic and ambient records stay in.
+            // Sleep: very slow, very quiet, very calm. The loudness
+            // ceiling sits where the loudness ranking reaches zero (−18
+            // plus its six-decibel run): past it a track is the wrong
+            // loudness, not a weaker fit. A normalised library defeats
+            // it, which is what the energy ceiling is for: 0.4 is about
+            // the calmest third of a real library, and a dance record
+            // stays out of it at any level.
             Mood::Sleep => MoodProfile {
                 bpm_min: None,
                 bpm_max: Some(68.0),
@@ -277,6 +329,10 @@ impl Mood {
                 lufs_max: Some(-18.0),
                 lufs_min: None,
                 lufs_ceiling: Some(-12.0),
+                energy_max: Some(0.25),
+                energy_min: None,
+                energy_ceiling: Some(0.4),
+                energy_floor: None,
                 genre_words: &[
                     "ambient",
                     "classical",
@@ -405,7 +461,9 @@ async fn candidate_pool(
         track_id: i64,
         primary_artist: Option<i64>,
         bpm: f64,
+        bpm_confidence: Option<f64>,
         loudness_lufs: Option<f64>,
+        energy: Option<f64>,
         genres: Option<String>,
     }
 
@@ -413,7 +471,9 @@ async fn candidate_pool(
         "SELECT t.id                AS track_id,
                 t.primary_artist    AS primary_artist,
                 ta.bpm              AS bpm,
+                ta.bpm_confidence   AS bpm_confidence,
                 ta.loudness_lufs    AS loudness_lufs,
+                ta.energy           AS energy,
                 (SELECT GROUP_CONCAT(g.name, ' ')
                    FROM track_genre tg JOIN genre g ON g.id = tg.genre_id
                   WHERE tg.track_id = t.id) AS genres
@@ -427,6 +487,8 @@ async fn candidate_pool(
                                AND mo.kind = 'exclude')
             AND ",
         lufs_under_ceiling!("?4"),
+        " AND ",
+        energy_in_gates!("?6", "?7"),
         " AND ",
         bpm_any_octave!(),
         // Measured matches first, still shuffled among themselves; the
@@ -445,6 +507,8 @@ async fn candidate_pool(
     .bind(limit)
     .bind(profile.lufs_ceiling)
     .bind(mood.as_str())
+    .bind(profile.energy_floor)
+    .bind(profile.energy_ceiling)
     .fetch_all(pool)
     .await?;
 
@@ -454,7 +518,9 @@ async fn candidate_pool(
             track_id: r.track_id,
             primary_artist: r.primary_artist,
             bpm: r.bpm,
+            bpm_confidence: r.bpm_confidence,
             loudness_lufs: r.loudness_lufs,
+            energy: r.energy,
             genres: r.genres,
         })
         .collect())
@@ -488,7 +554,9 @@ async fn mood_radio_by_album(pool: &SqlitePool, mood: Mood) -> AppResult<Vec<i64
         /// The record judged as one track: the mood ranks it by the
         /// average of what was measured on it.
         avg_bpm: Option<f64>,
+        avg_confidence: Option<f64>,
         avg_lufs: Option<f64>,
+        avg_energy: Option<f64>,
     }
 
     let rows: Vec<Row> = sqlx::query_as::<_, Row>(concat!(
@@ -496,7 +564,9 @@ async fn mood_radio_by_album(pool: &SqlitePool, mood: Mood) -> AppResult<Vec<i64
                 COUNT(*)               AS track_count,
                 MIN(t.primary_artist)  AS primary_artist,
                 AVG(ta.bpm)            AS avg_bpm,
-                AVG(ta.loudness_lufs)  AS avg_lufs
+                AVG(ta.bpm_confidence) AS avg_confidence,
+                AVG(ta.loudness_lufs)  AS avg_lufs,
+                AVG(ta.energy)         AS avg_energy
            FROM track t
            LEFT JOIN track_analysis ta ON ta.track_id = t.id
           WHERE t.is_available = 1
@@ -511,14 +581,19 @@ async fn mood_radio_by_album(pool: &SqlitePool, mood: Mood) -> AppResult<Vec<i64
             AND SUM(CASE WHEN ta.bpm IS NOT NULL AND ta.bpm > 0 AND ",
         lufs_under_ceiling!("?6"),
         " AND ",
+        energy_in_gates!("?8", "?9"),
+        " AND ",
         bpm_any_octave!(),
         "          THEN 1 ELSE 0 END) * 1.0
                 / SUM(CASE WHEN ta.bpm IS NOT NULL THEN 1 ELSE 0 END) >= ?3
-            -- A record plays whole, so one track measured over the
-            -- loudness gate rules it out: the fit above only asks that
-            -- most of it be right, and would queue the loud track too.
+            -- A record plays whole, so one track measured past the
+            -- loudness or energy gates rules it out: the fit above only
+            -- asks that most of it be right, and would queue that
+            -- track too.
             AND SUM(CASE WHEN NOT ",
         lufs_under_ceiling!("?6"),
+        " OR NOT ",
+        energy_in_gates!("?8", "?9"),
         " THEN 1 ELSE 0 END) = 0
           ORDER BY RANDOM()
           LIMIT ?5"
@@ -530,6 +605,8 @@ async fn mood_radio_by_album(pool: &SqlitePool, mood: Mood) -> AppResult<Vec<i64
     .bind(ALBUM_POOL_SIZE)
     .bind(profile.lufs_ceiling)
     .bind(mood.as_str())
+    .bind(profile.energy_floor)
+    .bind(profile.energy_ceiling)
     .fetch_all(pool)
     .await?;
 
@@ -555,7 +632,9 @@ async fn mood_radio_by_album(pool: &SqlitePool, mood: Mood) -> AppResult<Vec<i64
                 // then scores as the worst possible tempo rather than
                 // taking the radio down.
                 bpm: r.avg_bpm.unwrap_or(0.0),
+                bpm_confidence: r.avg_confidence,
                 loudness_lufs: r.avg_lufs,
+                energy: r.avg_energy,
                 genres: None,
             })
             .collect(),
@@ -666,6 +745,8 @@ async fn count_for_mood(pool: &SqlitePool, mood: Mood) -> AppResult<i64> {
                      AND ",
         lufs_under_ceiling!("?3"),
         " AND ",
+        energy_in_gates!("?5", "?6"),
+        " AND ",
         bpm_any_octave!(),
         "))"
     ))
@@ -673,6 +754,8 @@ async fn count_for_mood(pool: &SqlitePool, mood: Mood) -> AppResult<i64> {
     .bind(profile.bpm_max)
     .bind(profile.lufs_ceiling)
     .bind(mood.as_str())
+    .bind(profile.energy_floor)
+    .bind(profile.energy_ceiling)
     .fetch_one(pool)
     .await?;
     Ok(n)
@@ -1044,5 +1127,93 @@ mod tests {
             vec![1, 2, 3, 4, 5, 6, 7],
             "the queue reads the whole record"
         );
+    }
+
+    /// The SQL gate and the scorer must agree on what "trusted" means,
+    /// or a track would be ranked as rescued by a query that never
+    /// returned it — or returned by one the scorer then refuses.
+    #[test]
+    fn the_sql_threshold_is_the_core_one() {
+        let sql: f64 = trusted_tempo!().parse().unwrap();
+        assert_eq!(sql, waveflow_core::mood::TRUSTED_TEMPO);
+    }
+
+    /// A tempo the estimator is sure of is not doubled or halved into a
+    /// mood; a doubtful one, or one from analysis version 1, still is.
+    #[tokio::test]
+    async fn only_a_doubtful_tempo_is_read_at_another_octave() {
+        let pool = pool().await;
+        sqlx::query(
+            "INSERT INTO library (id, name, created_at, updated_at) VALUES (1, 'l', 0, 0);
+             INSERT INTO track (id, library_id, file_path, file_hash, file_size,
+                                file_modified, title, duration_ms, added_at)
+                  VALUES (1, 1, '/l/a.flac', 'h1', 1, 0, 'Sure', 200000, 0),
+                         (2, 1, '/l/b.flac', 'h2', 1, 0, 'Doubtful', 200000, 0),
+                         (3, 1, '/l/c.flac', 'h3', 1, 0, 'Version 1', 200000, 0);
+             INSERT INTO track_analysis (track_id, bpm, bpm_confidence, analyzed_at)
+                  VALUES (1, 170.0, 0.9, 0), (2, 170.0, 0.1, 0), (3, 170.0, NULL, 0);",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let mut ids: Vec<i64> = candidate_pool(&pool, Mood::Focus, 10)
+            .await
+            .unwrap()
+            .into_iter()
+            .map(|c| c.track_id)
+            .collect();
+        ids.sort_unstable();
+        assert_eq!(ids, vec![2, 3]);
+        assert_eq!(count_for_mood(&pool, Mood::Focus).await.unwrap(), 2);
+    }
+
+    /// Sleep keeps out a track measured as intense, at any loudness —
+    /// the case loudness could not catch once a library is normalised —
+    /// and lets an unmeasured one through. A record with one intense
+    /// track is out whole, since it would play that track too.
+    #[tokio::test]
+    async fn sleep_keeps_out_what_is_measured_as_intense() {
+        let pool = pool().await;
+        sqlx::query(
+            "INSERT INTO library (id, name, created_at, updated_at) VALUES (1, 'l', 0, 0);
+             INSERT INTO album (id, title, canonical_title)
+                  VALUES (1, 'Calm', 'calm'), (2, 'Mixed', 'mixed');
+             INSERT INTO track (id, library_id, album_id, track_number, file_path,
+                                file_hash, file_size, file_modified, title,
+                                duration_ms, added_at)
+                  VALUES (1, 1, 1, 1, '/c/1.flac', 'c1', 1, 0, 'a', 200000, 0),
+                         (2, 1, 1, 2, '/c/2.flac', 'c2', 1, 0, 'b', 200000, 0),
+                         (3, 1, 1, 3, '/c/3.flac', 'c3', 1, 0, 'c', 200000, 0),
+                         (4, 1, 2, 1, '/m/1.flac', 'm1', 1, 0, 'd', 200000, 0),
+                         (5, 1, 2, 2, '/m/2.flac', 'm2', 1, 0, 'e', 200000, 0),
+                         (6, 1, 2, 3, '/m/3.flac', 'm3', 1, 0, 'f', 200000, 0);
+             -- All at -14 LUFS, a normalised library: loudness tells
+             -- nothing apart here, only energy does.
+             INSERT INTO track_analysis
+                    (track_id, bpm, bpm_confidence, loudness_lufs, energy, analyzed_at)
+                  VALUES (1, 55.0, 0.8, -14.0, 0.1, 0),
+                         (2, 55.0, 0.8, -14.0, NULL, 0),
+                         (3, 55.0, 0.8, -14.0, 0.2, 0),
+                         (4, 55.0, 0.8, -14.0, 0.1, 0),
+                         (5, 55.0, 0.8, -14.0, 0.9, 0),
+                         (6, 55.0, 0.8, -14.0, 0.2, 0);",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let mut ids: Vec<i64> = candidate_pool(&pool, Mood::Sleep, 10)
+            .await
+            .unwrap()
+            .into_iter()
+            .map(|c| c.track_id)
+            .collect();
+        ids.sort_unstable();
+        assert_eq!(ids, vec![1, 2, 3, 4, 6], "the intense track is out");
+        assert_eq!(count_for_mood(&pool, Mood::Sleep).await.unwrap(), 5);
+
+        let albums = mood_radio_by_album(&pool, Mood::Sleep).await.unwrap();
+        assert_eq!(albums, vec![1, 2, 3], "the mixed record is out whole");
     }
 }

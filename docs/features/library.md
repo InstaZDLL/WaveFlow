@@ -48,11 +48,24 @@ Note the interaction with **Split this artist** below: a deep rescan re-reads ta
 
 ## Audio analysis
 
-[`analysis.rs`](../../src-tauri/crates/core/src/analysis.rs) computes peak, integrated loudness and BPM (autocorrelation). Loudness is **ITU-R BS.1770-4** — K-weighted and gated ([`analysis/loudness.rs`](../../src-tauri/crates/core/src/analysis/loudness.rs)) — so the number is real LUFS and lands on the same scale as the ReplayGain other taggers write; the earlier unweighted RMS over a mono sum was a fine relative yardstick inside one library but could not be compared with anything outside it. ReplayGain is `-18 LUFS - loudness`, and is `NULL` rather than a huge boost for a track with nothing above the absolute gate. Peak is taken across **every channel**, not over a mono downmix — an out-of-phase mix sums to near silence while its samples sit at full scale, and clipping prevention downstream depends on that number being true. Runs on demand (per track) or as a background sweep (whole library), gated by a Settings toggle. Results land in `track_analysis` and feed:
+[`analysis.rs`](../../src-tauri/crates/core/src/analysis.rs) computes peak, integrated loudness, tempo with a confidence, and energy. Loudness is **ITU-R BS.1770-4** — K-weighted and gated ([`analysis/loudness.rs`](../../src-tauri/crates/core/src/analysis/loudness.rs)) — so the number is real LUFS and lands on the same scale as the ReplayGain other taggers write; the earlier unweighted RMS over a mono sum was a fine relative yardstick inside one library but could not be compared with anything outside it. ReplayGain is `-18 LUFS - loudness`, and is `NULL` rather than a huge boost for a track with nothing above the absolute gate. Peak is taken across **every channel**, not over a mono downmix — an out-of-phase mix sums to near silence while its samples sit at full scale, and clipping prevention downstream depends on that number being true. Runs on demand (per track) or as a background sweep (whole library), gated by a Settings toggle. Results land in `track_analysis` and feed:
 
 - per-stream gain in the audio engine (`replaygain_enabled`) — as the **fallback** source, behind the file's own tags (see [playback](playback.md#replaygain)),
-- the BPM bucketing in [smart playlists](smart-playlists.md),
+- the BPM bucketing in [smart playlists](smart-playlists.md) and the [mood radios](smart-playlists.md#mood-radio), which also read the confidence and the energy,
 - the per-track audio specs strip under the player.
+
+### Tempo and energy (analysis version 2)
+
+[`analysis/rhythm.rs`](../../src-tauri/crates/core/src/analysis/rhythm.rs) replaced version 1's tempo, an autocorrelation peak over an RMS envelope between 60 and 200 BPM. That one failed in two ways a user could hear (#848): it read fast tracks at half speed, and when nothing stood out it stuck to the edge of its range, so "60 BPM" meant "no idea" about as often as it meant 60 — which is how dance records ended up in Sleep.
+
+- **Onsets** are a spectral flux over the mono sum averaged down to ~11 kHz: frame by frame (1024 samples, hop 128, ~86 frames/s), how much each band up to 5 kHz rose, in dB. Working in dB makes it blind to the track's level, since a gain change cancels out of every difference.
+- **Tempo** is chosen over 40–240 BPM from an autocorrelation averaged over 8-second windows, each candidate scored with its first harmonic and a log-normal prior around 120 BPM. When a reading and its double or half score within 10% of each other — which the prior, symmetric in octaves, cannot settle — the energy does: an intense track takes the faster reading, a calm one the slower.
+- **Confidence** (`bpm_confidence`, 0–1) multiplies how clearly the winner beats any unrelated tempo, how far ahead of its own octave it is, and how many windows agree. A winner on the edge of the range gets 0.
+- **Energy** (`energy`, 0–1) blends attack strength (the flux itself), onsets per second, spectral centroid and level spread, each squashed around the median measured on a real library. None of them is a level, so a track normalised to −14 LUFS and the same track at −6 read the same.
+
+Measured against Deezer's BPM on 209 tracks of a real library, version 1 was right on 49%, an octave out on 34% and wrong on 17%; version 2 is right on 86%, an octave out on 9% and wrong on 5%. Readings at confidence 0.6 or more are right 97% of the time, those under 0.2 half the time. Some of the remaining octave misses are the reference's (Deezer doubles a few slow songs). Widening the octave tie to 20% was tried and measured worse (83%, ten readings doubled instead of one). The [`analysis_bench`](../../src-tauri/crates/core/examples/analysis_bench.rs) example reruns the measurement on any folder, against the files' BPM tags; WaveFlow itself never reads those tags for its tempo.
+
+Bumping `ANALYSIS_VERSION` to 2 makes the background sweep re-measure every row once, which is a full re-decode of the library.
 
 Rows analysed before the BS.1770 switch are **left in place** — deleting a user's analysis results to force a re-run is a worse trade than the residual mismatch, and that decision stands. They hold two superseded values, and the second is not the harmless one this paragraph used to claim it was:
 

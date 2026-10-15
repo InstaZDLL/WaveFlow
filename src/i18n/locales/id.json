@@ -1175,6 +1175,8 @@
       "file": "Berkas"
     },
     "bpm": "BPM",
+    "bpmUncertain": "{{bpm}} (tidak pasti)",
+    "energy": "Energi",
     "loudness": "Kelantangan",
     "replayGain": "ReplayGain",
     "peak": "Puncak",

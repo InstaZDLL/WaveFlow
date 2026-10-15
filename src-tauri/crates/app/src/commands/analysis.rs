@@ -94,6 +94,11 @@ const SCAN_WAIT_POLL: Duration = Duration::from_millis(250);
 pub struct TrackAnalysisRow {
     pub track_id: i64,
     pub bpm: Option<f64>,
+    /// 0 to 1; see `waveflow_core::analysis::rhythm`. `None` on a row
+    /// measured before analysis version 2.
+    pub bpm_confidence: Option<f64>,
+    /// 0 (calm) to 1 (intense), independent of the track's level.
+    pub energy: Option<f64>,
     pub musical_key: Option<String>,
     pub loudness_lufs: Option<f64>,
     pub replay_gain_db: Option<f64>,
@@ -137,14 +142,16 @@ pub async fn get_track_analysis(
     let row: Option<(
         i64,
         Option<f64>,
+        Option<f64>,
+        Option<f64>,
         Option<String>,
         Option<f64>,
         Option<f64>,
         Option<f64>,
         i64,
     )> = sqlx::query_as(
-        "SELECT track_id, bpm, musical_key, loudness_lufs, replay_gain_db,
-                peak, analyzed_at
+        "SELECT track_id, bpm, bpm_confidence, energy, musical_key,
+                loudness_lufs, replay_gain_db, peak, analyzed_at
            FROM track_analysis
           WHERE track_id = ?",
     )
@@ -152,14 +159,18 @@ pub async fn get_track_analysis(
     .fetch_optional(&*pool)
     .await?;
     Ok(row.map(
-        |(track_id, bpm, key, loudness, replay, peak, analyzed_at)| TrackAnalysisRow {
-            track_id,
-            bpm,
-            musical_key: key,
-            loudness_lufs: loudness,
-            replay_gain_db: replay,
-            peak,
-            analyzed_at,
+        |(track_id, bpm, bpm_confidence, energy, key, loudness, replay, peak, analyzed_at)| {
+            TrackAnalysisRow {
+                track_id,
+                bpm,
+                bpm_confidence,
+                energy,
+                musical_key: key,
+                loudness_lufs: loudness,
+                replay_gain_db: replay,
+                peak,
+                analyzed_at,
+            }
         },
     ))
 }
@@ -187,32 +198,16 @@ pub async fn analyze_track(
         .map_err(AppError::Other)?;
 
     let now = Utc::now().timestamp_millis();
-    sqlx::query(
-        "INSERT INTO track_analysis
-            (track_id, bpm, musical_key, loudness_lufs, replay_gain_db,
-             peak, analyzed_at, analysis_version)
-         VALUES (?, ?, NULL, ?, ?, ?, ?, ?)
-         ON CONFLICT(track_id) DO UPDATE SET
-            bpm              = excluded.bpm,
-            loudness_lufs    = excluded.loudness_lufs,
-            replay_gain_db   = excluded.replay_gain_db,
-            peak             = excluded.peak,
-            analyzed_at      = excluded.analyzed_at,
-            analysis_version = excluded.analysis_version",
-    )
-    .bind(track_id)
-    .bind(result.bpm)
-    .bind(result.loudness_lufs)
-    .bind(result.replay_gain_db)
-    .bind(result.peak)
-    .bind(now)
-    .bind(ANALYSIS_VERSION)
-    .execute(&*pool)
-    .await?;
+    {
+        let mut conn = pool.acquire().await?;
+        upsert_analysis(&mut conn, track_id, &result, now).await?;
+    }
 
     Ok(TrackAnalysisRow {
         track_id,
         bpm: result.bpm,
+        bpm_confidence: result.bpm_confidence,
+        energy: result.energy,
         musical_key: None,
         loudness_lufs: result.loudness_lufs,
         replay_gain_db: result.replay_gain_db,
@@ -485,30 +480,49 @@ async fn persist_batch_once(
 ) -> Result<(), sqlx::Error> {
     let mut tx = pool.begin().await?;
     for p in batch {
-        sqlx::query(
-            "INSERT INTO track_analysis
-                (track_id, bpm, musical_key, loudness_lufs,
-                 replay_gain_db, peak, analyzed_at, analysis_version)
-             VALUES (?, ?, NULL, ?, ?, ?, ?, ?)
-             ON CONFLICT(track_id) DO UPDATE SET
-                bpm = excluded.bpm,
-                loudness_lufs = excluded.loudness_lufs,
-                replay_gain_db = excluded.replay_gain_db,
-                peak = excluded.peak,
-                analyzed_at = excluded.analyzed_at,
-                analysis_version = excluded.analysis_version",
-        )
-        .bind(p.track_id)
-        .bind(p.result.bpm)
-        .bind(p.result.loudness_lufs)
-        .bind(p.result.replay_gain_db)
-        .bind(p.result.peak)
-        .bind(p.analyzed_at)
-        .bind(ANALYSIS_VERSION)
-        .execute(&mut *tx)
-        .await?;
+        upsert_analysis(&mut tx, p.track_id, &p.result, p.analyzed_at).await?;
     }
     tx.commit().await
+}
+
+/// Write one track's measurements, stamped with [`ANALYSIS_VERSION`].
+/// The single writer of `track_analysis` rows, for the one-track command
+/// and the library sweep alike, so a column added to the analysis cannot
+/// reach one of them and not the other. `musical_key` is left alone: the
+/// key comes from tags, not from here.
+async fn upsert_analysis(
+    conn: &mut sqlx::SqliteConnection,
+    track_id: i64,
+    result: &AnalysisResult,
+    analyzed_at: i64,
+) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        "INSERT INTO track_analysis
+            (track_id, bpm, bpm_confidence, energy, musical_key, loudness_lufs,
+             replay_gain_db, peak, analyzed_at, analysis_version)
+         VALUES (?, ?, ?, ?, NULL, ?, ?, ?, ?, ?)
+         ON CONFLICT(track_id) DO UPDATE SET
+            bpm              = excluded.bpm,
+            bpm_confidence   = excluded.bpm_confidence,
+            energy           = excluded.energy,
+            loudness_lufs    = excluded.loudness_lufs,
+            replay_gain_db   = excluded.replay_gain_db,
+            peak             = excluded.peak,
+            analyzed_at      = excluded.analyzed_at,
+            analysis_version = excluded.analysis_version",
+    )
+    .bind(track_id)
+    .bind(result.bpm)
+    .bind(result.bpm_confidence)
+    .bind(result.energy)
+    .bind(result.loudness_lufs)
+    .bind(result.replay_gain_db)
+    .bind(result.peak)
+    .bind(analyzed_at)
+    .bind(ANALYSIS_VERSION)
+    .execute(conn)
+    .await?;
+    Ok(())
 }
 
 /// Flush a batch of analysis results, retrying the whole batch on a

@@ -124,6 +124,8 @@ uuid = { version = "1", features = ["v4", "v5", "serde"] }
 # time, which every build environment already has.
 opusic-sys = { version = "0.7", features = ["bundled"] }
 
+# FFT for the onset detector of the tempo and energy analysis (`analysis::rhythm`).
+realfft = "3"
 symphonia = { version = "0.6", default-features = false, features = [
     "mp3",
     "flac",
