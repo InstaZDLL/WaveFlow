@@ -65,7 +65,7 @@ Note the interaction with **Split this artist** below: a deep rescan re-reads ta
 
 Measured against Deezer's BPM on 209 tracks of a real library, version 1 was right on 49%, an octave out on 34% and wrong on 17%; version 2 is right on 86%, an octave out on 9% and wrong on 5%. Readings at confidence 0.6 or more are right 97% of the time, those under 0.2 half the time. Some of the remaining octave misses are the reference's (Deezer doubles a few slow songs). Widening the octave tie to 20% was tried and measured worse (83%, ten readings doubled instead of one). The [`analysis_bench`](../../src-tauri/crates/core/examples/analysis_bench.rs) example reruns the measurement on any folder, against the files' BPM tags; WaveFlow itself never reads those tags for its tempo.
 
-Bumping `ANALYSIS_VERSION` makes the background sweep re-measure every row once, which is a full re-decode of the library. Version 2 never shipped on its own: version 3 adds the key, so a library is re-measured once for both.
+Bumping `ANALYSIS_VERSION` makes the background sweep re-measure every row once, which is a full re-decode of the library. Version 2 never shipped on its own: version 3 adds the key, so a library is re-measured once for both. With automatic analysis on, the sweep starts when a profile opens — at startup (after the startup scan when there is one, since a sweep started during it would make the second one a no-op) and on a profile switch — because the other triggers only fire when a scan adds a file, and a library that gains none would otherwise stay on the old version until someone pressed Analyse.
 
 ### Key (analysis version 3)
 

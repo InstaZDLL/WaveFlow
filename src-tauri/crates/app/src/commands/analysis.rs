@@ -683,7 +683,10 @@ async fn read_auto_analyze(pool: &SqlitePool) -> bool {
 
 /// Spawn a background task that runs the full analyzer if the
 /// auto-analyze flag is set for the active profile. Called from
-/// scan callers after `summary.added > 0`. No-op when the flag is
+/// scan callers after `summary.added > 0`, and when a profile opens (at
+/// startup, after the startup scan if there is one, and on a profile
+/// switch) so rows from an older `ANALYSIS_VERSION` are re-measured
+/// without waiting for a new file. No-op when the flag is
 /// off, when there's no active profile, or when the spawn itself
 /// fails — auto-analyze is best-effort by definition.
 pub fn maybe_auto_analyze(app: &AppHandle) {
