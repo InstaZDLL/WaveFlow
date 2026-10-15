@@ -90,6 +90,15 @@ pub async fn split_artist(
 /// DB-only core of [`split_artist`], split out so integration tests can
 /// drive it against a migrated in-memory profile DB without a Tauri
 /// `AppState`.
+/// What separates two names in a joined credit (#851). The ASCII comma,
+/// and the ones a Chinese or Japanese credit is written with: the
+/// ideographic enumeration comma `、` — the usual mark between two names —
+/// its halfwidth form `､`, and the fullwidth comma `，` a CJK keyboard
+/// types for `,`. With the ASCII comma alone, `庄心妍、祁隆` never reached
+/// the list, and neither did a tag the user rewrote with their keyboard's
+/// comma. The frontend's split preview mirrors this set.
+pub(crate) const NAME_SEPARATORS: [char; 4] = [',', '，', '、', '､'];
+
 /// The names a split of `name` would produce, in tag order.
 ///
 /// Comma-split — the deliberate opposite of the scanner's `"; "`-only
@@ -98,7 +107,7 @@ pub async fn split_artist(
 /// the inventory's list of artists to split (#719), so what that list
 /// offers is exactly what the split then does.
 pub(crate) fn split_fragments(name: &str) -> Vec<String> {
-    name.split(',')
+    name.split(NAME_SEPARATORS)
         .map(str::trim)
         .filter(|s| !s.is_empty())
         .map(str::to_string)
@@ -497,5 +506,14 @@ mod tests {
         let pool = pool().await;
         let solo = seed_artist(&pool, "Solo").await;
         assert!(split_artist_inner(&pool, solo).await.is_err());
+    }
+    /// #851: the separators a CJK credit is written with split the same
+    /// way the ASCII comma does, and can be mixed in one name.
+    #[test]
+    fn cjk_commas_separate_names() {
+        assert_eq!(split_fragments("庄心妍、祁隆"), vec!["庄心妍", "祁隆"]);
+        assert_eq!(split_fragments("蔡依林，周杰伦"), vec!["蔡依林", "周杰伦"]);
+        assert_eq!(split_fragments("A､B, C"), vec!["A", "B", "C"]);
+        assert_eq!(split_fragments("Solo"), vec!["Solo"]);
     }
 }

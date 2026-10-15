@@ -262,7 +262,9 @@ async fn phantom_artists(pool: &sqlx::SqlitePool) -> AppResult<Vec<PhantomArtist
            FROM artist a
            JOIN track_artist ta ON ta.artist_id = a.id
            JOIN track t ON t.id = ta.track_id AND t.is_available = 1
-          WHERE instr(a.name, ',') > 0
+          -- The characters of `NAME_SEPARATORS` (artist_split.rs), #851.
+          WHERE instr(a.name, ',') > 0 OR instr(a.name, '，') > 0
+             OR instr(a.name, '、') > 0 OR instr(a.name, '､') > 0
           GROUP BY a.id",
     )
     .fetch_all(pool)
@@ -835,5 +837,65 @@ mod tests {
         assert_eq!(listed[0].track_count, 2);
         assert_eq!(listed[0].fragments[0].artist_id, Some(2));
         assert_eq!(listed[0].fragments[1].artist_id, None);
+    }
+
+    /// #851: a Chinese credit joins two names with `、`, or with the
+    /// fullwidth `，` a CJK keyboard types for a comma. Neither reached the
+    /// list when only the ASCII comma counted.
+    #[tokio::test]
+    async fn names_joined_by_cjk_commas_are_listed() {
+        let pool = pool().await;
+        sqlx::raw_sql(
+            r#"INSERT INTO library (id, name, color_id, icon_id, created_at, updated_at,
+                                  hlc_wall, hlc_logical)
+             VALUES (1, 'L', 1, 1, 0, 0, 0, 0);"#,
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        for (id, name) in [(1i64, "庄心妍、祁隆"), (2, "蔡依林，周杰伦"), (3, "蔡依林")]
+        {
+            sqlx::query("INSERT INTO artist (id, name, canonical_name) VALUES (?, ?, ?)")
+                .bind(id)
+                .bind(name)
+                .bind(canonical_name(name))
+                .execute(&pool)
+                .await
+                .unwrap();
+            sqlx::query(
+                "INSERT INTO track (id, library_id, file_path, file_hash, file_size,
+                                    file_modified, title, primary_artist, duration_ms,
+                                    added_at, is_available, hlc_wall, hlc_logical,
+                                    rating_hlc_wall, rating_hlc_logical)
+                 VALUES (?, 1, ?, ?, 1, 0, 'T', ?, 300000, 0, 1, 0, 0, 0, 0)",
+            )
+            .bind(id)
+            .bind(format!("/c/{id}.flac"))
+            .bind(format!("c{id}"))
+            .bind(id)
+            .execute(&pool)
+            .await
+            .unwrap();
+            sqlx::query(
+                "INSERT INTO track_artist (track_id, artist_id, position) VALUES (?, ?, 0)",
+            )
+            .bind(id)
+            .bind(id)
+            .execute(&pool)
+            .await
+            .unwrap();
+        }
+
+        let listed = phantom_artists(&pool).await.unwrap();
+        let names: Vec<&str> = listed.iter().map(|p| p.name.as_str()).collect();
+        // The one with a fragment already in the library sorts first.
+        assert_eq!(names, vec!["蔡依林，周杰伦", "庄心妍、祁隆"]);
+        let fragments: Vec<&str> = listed[1]
+            .fragments
+            .iter()
+            .map(|f| f.name.as_str())
+            .collect();
+        assert_eq!(fragments, vec!["庄心妍", "祁隆"]);
+        assert_eq!(listed[0].fragments[0].artist_id, Some(3));
     }
 }
