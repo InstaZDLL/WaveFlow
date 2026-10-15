@@ -1319,7 +1319,7 @@ export function LibraryView({
       onContextMenuRow={trackContextMenu.open}
       onRowMenuKey={trackContextMenu.openFromKeyboard}
       isSelected={selection.isSelected}
-      selectionActive={selection.count > 0}
+      selectionActive={selection.checkboxMode}
       onToggleSelect={selection.toggleOne}
       onNavigateToRemoteAlbum={onNavigateToRemoteAlbum}
       onNavigateToRemoteArtist={onNavigateToRemoteArtist}

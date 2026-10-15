@@ -12,6 +12,14 @@ export interface MultiSelectState<T extends { id: number }> {
   selectAll: (items: readonly { id: number }[]) => void;
   clear: () => void;
   count: number;
+  /**
+   * Whether the rows show their checkboxes: something is selected, and
+   * the selection was asked for — a checkbox, a Ctrl or Shift click, or
+   * Ctrl+A. A plain click only highlights its row, as it did before the
+   * checkboxes; turning the whole list into boxes on the way to a
+   * double-click play is what #859 reported.
+   */
+  checkboxMode: boolean;
 }
 
 export function useMultiSelect<
@@ -19,6 +27,7 @@ export function useMultiSelect<
 >(): MultiSelectState<T> {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(() => new Set());
   const [anchorId, setAnchorId] = useState<number | null>(null);
+  const [deliberate, setDeliberate] = useState(false);
 
   const isSelected = useCallback(
     (id: number) => selectedIds.has(id),
@@ -33,11 +42,13 @@ export function useMultiSelect<
       return next;
     });
     setAnchorId(id);
+    setDeliberate(true);
   }, []);
 
   const setSingle = useCallback((id: number) => {
     setSelectedIds(new Set([id]));
     setAnchorId(id);
+    setDeliberate(false);
   }, []);
 
   const selectRange = useCallback(
@@ -62,6 +73,7 @@ export function useMultiSelect<
         }
         return next;
       });
+      setDeliberate(true);
     },
     [anchorId],
   );
@@ -69,11 +81,13 @@ export function useMultiSelect<
   const selectAll = useCallback((items: readonly { id: number }[]) => {
     setSelectedIds(new Set(items.map((item) => item.id)));
     setAnchorId(items[0]?.id ?? null);
+    setDeliberate(true);
   }, []);
 
   const clear = useCallback(() => {
     setSelectedIds(new Set());
     setAnchorId(null);
+    setDeliberate(false);
   }, []);
 
   return useMemo(
@@ -87,10 +101,12 @@ export function useMultiSelect<
       selectAll,
       clear,
       count: selectedIds.size,
+      checkboxMode: deliberate && selectedIds.size > 0,
     }),
     [
       selectedIds,
       anchorId,
+      deliberate,
       isSelected,
       toggleOne,
       selectRange,

@@ -589,7 +589,7 @@ export function AlbumDetailView({
           onRowMenuKey={trackContextMenu.openFromKeyboard}
           t={t}
           isSelected={selection.isSelected}
-          selectionActive={selection.count > 0}
+          selectionActive={selection.checkboxMode}
           onToggleSelect={selection.toggleOne}
           onRowSelect={(track, e) => {
             if (e.shiftKey) {

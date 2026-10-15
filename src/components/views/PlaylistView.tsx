@@ -1675,7 +1675,7 @@ export function PlaylistView({
           onRemoveAt={remote ? handleRemoveRemoteAt : undefined}
           busy={remoteBusy}
           isSelected={selection.isSelected}
-          selectionActive={selection.count > 0}
+          selectionActive={selection.checkboxMode}
           onToggleSelect={selection.toggleOne}
           onRowSelect={handleRowSelect}
           dragEnabled={isCustomOrder}
