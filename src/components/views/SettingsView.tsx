@@ -138,6 +138,7 @@ import {
 } from "../../lib/tauri/mpd";
 import { listen } from "@tauri-apps/api/event";
 import { useLibrary } from "../../hooks/useLibrary";
+import { useTasks } from "../../hooks/useTasks";
 import { useProfile } from "../../hooks/useProfile";
 import { useProfileScopedToggle } from "../../hooks/useProfileScopedToggle";
 import { useGeneratorAlbumMode } from "../../hooks/useGeneratorAlbumMode";
@@ -558,12 +559,18 @@ export function SettingsView({
       // localStorage unavailable — not worth surfacing.
     }
   }, []);
-  const [isAnalyzingLib, setIsAnalyzingLib] = useState(false);
-  const [analyzeProgress, setAnalyzeProgress] = useState<{
-    processed: number;
-    total: number;
-    failed: number;
-  } | null>(null);
+  // Whether a sweep is running, and how far it is, come from the task
+  // registry, which outlives this view: a flag of our own was lost on
+  // the way to another page and back, and a bar we cleared ourselves
+  // stayed full once the view that would have cleared it had gone.
+  // `isStartingAnalysis` only covers the moment between the click and
+  // the task registering.
+  const tasks = useTasks();
+  const analysisTask = tasks.find((task) => task.kind === "analysis");
+  const [isStartingAnalysis, setIsStartingAnalysis] = useState(false);
+  const isAnalyzingLib = isStartingAnalysis || analysisTask != null;
+  // Failures are not in the registry; the sweep's own event carries them.
+  const [analyzeFailed, setAnalyzeFailed] = useState(0);
   const [autoAnalyze, setAutoAnalyzeState] = useState(false);
 
   // Hydrate the auto-analyze flag once at mount. The setter below
@@ -813,10 +820,8 @@ export function SettingsView({
     }
   };
 
-  // Subscribe once to `analysis:progress` so the bar updates while
-  // the worker grinds through the library. The backend always emits
-  // a final event with `current_track_id = null` after the run, so
-  // we don't need a manual reset on success.
+  // `analysis:progress` for the failure count, which the task registry
+  // does not carry.
   useEffect(() => {
     let unlisten: (() => void) | null = null;
     listen<{
@@ -825,11 +830,7 @@ export function SettingsView({
       current_track_id: number | null;
       failed: number;
     }>("analysis:progress", (event) => {
-      setAnalyzeProgress({
-        processed: event.payload.processed,
-        total: event.payload.total,
-        failed: event.payload.failed,
-      });
+      setAnalyzeFailed(event.payload.failed);
     })
       .then((un) => {
         unlisten = un;
@@ -842,18 +843,15 @@ export function SettingsView({
 
   const handleAnalyzeLibrary = async () => {
     if (isAnalyzingLib) return;
-    setIsAnalyzingLib(true);
-    setAnalyzeProgress({ processed: 0, total: 0, failed: 0 });
+    setIsStartingAnalysis(true);
+    setAnalyzeFailed(0);
     try {
       const { analyzeLibrary } = await import("../../lib/tauri/analysis");
       await analyzeLibrary();
     } catch (err) {
       console.error("[SettingsView] analyze library failed", err);
     } finally {
-      setIsAnalyzingLib(false);
-      // Clear the progress card after a short delay so the user
-      // sees the final 100% state before it disappears.
-      window.setTimeout(() => setAnalyzeProgress(null), 1500);
+      setIsStartingAnalysis(false);
     }
   };
 
@@ -862,13 +860,9 @@ export function SettingsView({
       const { cancelLibraryAnalysis } =
         await import("../../lib/tauri/analysis");
       await cancelLibraryAnalysis();
-      // We deliberately DON'T flip `isAnalyzingLib` here — the
-      // backend exits at the next track boundary, and `analyzeLibrary`
-      // is still awaiting that exit. Its `finally` block clears the
-      // running flag once the awaited promise resolves with the
-      // cancelled summary, so the UI stays consistent with the
-      // worker's actual state without a tug-of-war between two
-      // sources of truth.
+      // Nothing to flip here: the backend exits at the next track
+      // boundary, and the task leaving the registry is what turns the
+      // button back, whichever view started the sweep.
     } catch (err) {
       console.error("[SettingsView] cancel analyze library failed", err);
     }
@@ -2355,18 +2349,19 @@ export function SettingsView({
                       label={t("settings.analyze.autoTitle")}
                     />
                   </div>
-                  {/* Progress strip — shown during a run + briefly after
-                completion so the user sees the final tally. */}
-                  {analyzeProgress && (
+                  {/* Progress strip — shown while the sweep runs, whoever
+                started it (this card, or the automatic analysis after a
+                scan). */}
+                  {analysisTask && (
                     <div className="mt-3 ml-9">
                       <div className="flex justify-between text-[11px] text-zinc-500 mb-1">
                         <span>
-                          {analyzeProgress.processed} / {analyzeProgress.total}
+                          {analysisTask.current} / {analysisTask.total}
                         </span>
-                        {analyzeProgress.failed > 0 && (
+                        {analyzeFailed > 0 && (
                           <span className="text-rose-500">
                             {t("settings.analyze.failed", {
-                              count: analyzeProgress.failed,
+                              count: analyzeFailed,
                             })}
                           </span>
                         )}
@@ -2376,10 +2371,10 @@ export function SettingsView({
                           className="h-full bg-emerald-500 transition-all duration-200"
                           style={{
                             width: `${
-                              analyzeProgress.total > 0
+                              analysisTask.total > 0
                                 ? Math.round(
-                                    (analyzeProgress.processed /
-                                      analyzeProgress.total) *
+                                    (analysisTask.current /
+                                      analysisTask.total) *
                                       100,
                                   )
                                 : 0

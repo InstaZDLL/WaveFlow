@@ -1,14 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { Loader2, X, ChevronDown, ChevronUp } from "lucide-react";
 import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
-import {
-  listTasks,
-  cancelTask,
-  TASKS_CHANGED,
-  type TaskSnapshot,
-} from "../../lib/tauri/tasks";
+import { useTasks } from "../../hooks/useTasks";
+import { cancelTask, type TaskSnapshot } from "../../lib/tauri/tasks";
 
 /**
  * One place that says what is running, and lets the user stop it
@@ -20,12 +15,8 @@ import {
  *
  * Three decisions worth keeping:
  *
- * - **Subscribe before snapshotting.** Tauri does not replay an event
- *   to a listener registered a moment too late, so the `listen()` is
- *   awaited before `listTasks()` runs. Fetching in parallel leaves a
- *   window where a task that starts and ends inside it is missed
- *   entirely — the same trap the "subscribe first, then snapshot"
- *   invariant was written for.
+ * - **Subscribe before snapshotting** — see [`useTasks`], which the
+ *   settings card reads too.
  * - **A task with no `cancellable` gets no button**, rather than a
  *   disabled one. A backup's only honest stopping point is "after the
  *   current profile", which for most people is the end; a greyed
@@ -37,46 +28,8 @@ import {
  */
 export function TaskStatusBar() {
   const { t } = useTranslation();
-  const [tasks, setTasks] = useState<TaskSnapshot[]>([]);
+  const tasks = useTasks();
   const [expanded, setExpanded] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    let unlisten: UnlistenFn | null = null;
-    // Subscribing first closes one window and opens another: an event
-    // can now land *while* `listTasks` is in flight, and the snapshot
-    // that comes back describes an older moment. Applying it would
-    // resurrect a task that has just finished, with a cancel button
-    // that does nothing. So the snapshot only paints if nothing newer
-    // arrived first.
-    let eventSeen = false;
-    (async () => {
-      try {
-        // Order matters — see the component docs.
-        const off = await listen<TaskSnapshot[]>(TASKS_CHANGED, (event) => {
-          eventSeen = true;
-          if (!cancelled) setTasks(event.payload);
-        });
-        // The component can unmount while `listen` is still in flight,
-        // and the cleanup below would then have nothing to call — the
-        // listener outlives the component that made it, for the life of
-        // the window. Detached here instead.
-        if (cancelled) {
-          off();
-          return;
-        }
-        unlisten = off;
-        const initial = await listTasks();
-        if (!cancelled && !eventSeen) setTasks(initial);
-      } catch (err) {
-        console.warn("[TaskStatusBar] subscribe failed", err);
-      }
-    })();
-    return () => {
-      cancelled = true;
-      unlisten?.();
-    };
-  }, []);
 
   const stop = useCallback((id: number) => {
     void cancelTask(id).catch((err) =>
