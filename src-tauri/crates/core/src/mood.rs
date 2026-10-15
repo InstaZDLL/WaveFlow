@@ -100,6 +100,14 @@ const W_ENERGY: f64 = 0.3;
 const W_LOUDNESS: f64 = 0.1;
 const W_GENRE: f64 = 0.1;
 
+/// The weights before analysis version 2, for a row that has neither a
+/// confidence nor an energy yet. Under the new weights its energy would
+/// be a flat 0.5 and its loudness — the only intensity signal it has —
+/// would count for a third of what it did, so a library halfway through
+/// its re-analysis would rank its unmeasured half on tempo alone.
+const V1_W_TEMPO: f64 = 0.6;
+const V1_W_LOUDNESS: f64 = 0.3;
+
 /// One track, as the ranking sees it.
 #[derive(Debug, Clone)]
 pub struct MoodCandidate {
@@ -222,9 +230,12 @@ pub fn fit_score(profile: &MoodProfile, candidate: &MoodCandidate) -> f64 {
         }
         None => measured,
     };
-    let energy = energy_score(profile, candidate.energy);
     let loudness = loudness_score(profile, candidate.loudness_lufs);
     let genre = genre_score(profile, candidate.genres.as_deref());
+    if candidate.bpm_confidence.is_none() && candidate.energy.is_none() {
+        return (V1_W_TEMPO * tempo + V1_W_LOUDNESS * loudness + W_GENRE * genre).clamp(0.0, 1.0);
+    }
+    let energy = energy_score(profile, candidate.energy);
     (W_TEMPO * tempo + W_ENERGY * energy + W_LOUDNESS * loudness + W_GENRE * genre).clamp(0.0, 1.0)
 }
 

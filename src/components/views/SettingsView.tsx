@@ -2356,7 +2356,9 @@ export function SettingsView({
                     <div className="mt-3 ml-9">
                       <div className="flex justify-between text-[11px] text-zinc-500 mb-1">
                         <span>
-                          {analysisTask.current} / {analysisTask.total}
+                          {analysisTask.total > 0
+                            ? `${analysisTask.current} / ${analysisTask.total}`
+                            : analysisTask.current}
                         </span>
                         {analyzeFailed > 0 && (
                           <span className="text-rose-500">
@@ -2367,19 +2369,26 @@ export function SettingsView({
                         )}
                       </div>
                       <div className="h-1.5 rounded-full bg-zinc-200 dark:bg-zinc-700 overflow-hidden">
+                        {/* Until the sweep has counted its queue the total
+                        is 0, "unknown": a pulsing third, as in the task
+                        bar, rather than an empty bar that reads as stuck. */}
                         <div
-                          className="h-full bg-emerald-500 transition-all duration-200"
-                          style={{
-                            width: `${
-                              analysisTask.total > 0
-                                ? Math.round(
+                          className={
+                            analysisTask.total > 0
+                              ? "h-full bg-emerald-500 transition-all duration-200"
+                              : "h-full w-1/3 bg-emerald-500 opacity-70 motion-safe:animate-pulse"
+                          }
+                          style={
+                            analysisTask.total > 0
+                              ? {
+                                  width: `${Math.round(
                                     (analysisTask.current /
                                       analysisTask.total) *
                                       100,
-                                  )
-                                : 0
-                            }%`,
-                          }}
+                                  )}%`,
+                                }
+                              : undefined
+                          }
                         />
                       </div>
                     </div>

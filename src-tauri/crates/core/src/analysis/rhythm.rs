@@ -176,13 +176,15 @@ impl OnsetDetector {
             power += p;
             weighted += p * bin as f64 * bin_hz;
         }
+        let level = (power / self.bins as f64).max(1e-12);
+        // The first frame only seeds `prev_db`: it has no rise to report,
+        // and its level is left out with it so `flux[i]` and
+        // `level_db[i]` keep describing the same frame.
         if self.has_prev {
             self.flux.push(rise / self.bins as f32);
+            self.level_db.push(10.0 * level.log10() as f32);
         }
         self.has_prev = true;
-
-        let level = (power / self.bins as f64).max(1e-12);
-        self.level_db.push(10.0 * level.log10() as f32);
         // The centroid of a silent frame is noise; only frames with
         // something in them count.
         if level > 1e-8 {

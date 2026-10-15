@@ -564,7 +564,11 @@ async fn mood_radio_by_album(pool: &SqlitePool, mood: Mood) -> AppResult<Vec<i64
                 COUNT(*)               AS track_count,
                 MIN(t.primary_artist)  AS primary_artist,
                 AVG(ta.bpm)            AS avg_bpm,
-                AVG(ta.bpm_confidence) AS avg_confidence,
+                -- Only when every tempo on the record carries one: AVG
+                -- skips NULLs, so a record half re-measured would pass
+                -- for trusted on its new half alone.
+                CASE WHEN COUNT(ta.bpm_confidence) = COUNT(ta.bpm)
+                     THEN AVG(ta.bpm_confidence) END AS avg_confidence,
                 AVG(ta.loudness_lufs)  AS avg_lufs,
                 AVG(ta.energy)         AS avg_energy
            FROM track t
