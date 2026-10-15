@@ -220,4 +220,4 @@ tempfile = "3"
 # Async test harness for the scanner passes that talk to SQLite
 # (`refresh_folder_covers`). Only the attribute macro + a current-thread
 # runtime are needed, so no "full".
-tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "io-util"] }

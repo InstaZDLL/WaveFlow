@@ -42,6 +42,11 @@ use crate::{
 /// TTL for cached Deezer entries: 30 days in milliseconds.
 const CACHE_TTL_MS: i64 = 30 * 24 * 60 * 60 * 1000;
 
+/// How long a row stands when the biography could not be asked for: an
+/// hour, so a refused key or a spent quota is retried soon without
+/// re-running the whole enrichment on every visit and every batch pass.
+const RETRY_AFTER_MS: i64 = 60 * 60 * 1000;
+
 fn now_ms() -> i64 {
     Utc::now().timestamp_millis()
 }
@@ -718,29 +723,33 @@ async fn enrich_artist_named(
         }
     };
 
-    // 5. Fetch the bio from the selected source (issue #295). Network
-    //    failures and missing matches are non-fatal — we still persist
-    //    the Deezer portion so the next refresh doesn't spam the
-    //    network. The source/language we used is stored alongside so a
-    //    later switch re-fetches instead of serving the wrong bio.
-    let (bio_short, bio_full) = match active_source {
+    // 5. Fetch the bio from the selected source (issue #295). A missing
+    //    match is an answer and is cached like one. A failure to ask —
+    //    the network, a refused key, a spent quota — is not: the row
+    //    keeps the biography it had and expires within the hour, so a
+    //    later visit asks again (see `upsert_artist_row`). The
+    //    source/language we used is stored alongside so a later switch
+    //    re-fetches instead of serving the wrong bio.
+    let (bio_short, bio_full, bio_reached) = match active_source {
         BioSource::Lastfm => match read_lastfm_api_key(&state).await? {
             Some(api_key) => {
                 let lastfm = LastfmClient::new();
                 match lastfm.artist_get_info(&artist_name, &api_key).await {
-                    Ok(Some(info)) => (info.bio_summary, info.bio_full),
-                    Ok(None) => (None, None),
+                    Ok(Some(info)) => (info.bio_summary, info.bio_full, true),
+                    Ok(None) => (None, None, true),
                     Err(err) => {
                         tracing::warn!(?err, "Last.fm artist_get_info failed");
-                        (None, None)
+                        (None, None, false)
                     }
                 }
             }
-            None => (None, None),
+            // Nothing was asked, so nothing failed: no key is a setting,
+            // and the row records it as an absence like before.
+            None => (None, None, true),
         },
         BioSource::TheAudioDb => match audiodb.as_ref() {
-            Some(info) => (info.bio_short.clone(), info.bio_full.clone()),
-            None => (None, None),
+            Some(info) => (info.bio_short.clone(), info.bio_full.clone(), true),
+            None => (None, None, audiodb_reached),
         },
     };
 
@@ -787,10 +796,123 @@ async fn enrich_artist_named(
     //    which provider produced the bio so a later switch invalidates
     //    it (see the cache-hit check above). Language is only meaningful
     //    for TheAudioDB, so Last.fm stores NULL.
-    let expires = now + CACHE_TTL_MS;
     let stored_lang: Option<&str> =
         matches!(active_source, BioSource::TheAudioDb).then_some(active_lang.as_str());
-    sqlx::query(
+    // What the row holds after the write, which is what to show: on a
+    // failure to ask, the biography it already had rather than nothing.
+    let (bio_short, bio_full) = upsert_artist_row(
+        &pool,
+        &ArtistRow {
+            deezer_id: hit.id,
+            name: &hit.name,
+            picture_url: picture_url.as_deref(),
+            picture_hash: picture_hash.as_deref(),
+            fans_count: hit.nb_fan,
+            bio: BioAnswer {
+                reached: bio_reached,
+                short: bio_short.as_deref(),
+                full: bio_full.as_deref(),
+                source: active_source.as_str(),
+                language: stored_lang,
+            },
+            background_url: background_url.as_deref(),
+            background_hash: background_hash.as_deref(),
+            // NULL when TheAudioDB could not be reached, so the row still
+            // reads as "never looked" rather than as "this artist has no
+            // fanart".
+            background_urls_json: background_urls_json.as_deref(),
+            // Stamped even when the lookup came back empty — that's the
+            // whole point of the column: "we asked, TheAudioDB has
+            // nothing". Left NULL when the API couldn't be reached at all,
+            // so that retries.
+            background_fetched_at: audiodb_reached.then_some(now),
+            now,
+        },
+    )
+    .await?;
+
+    Ok(DeezerArtistEnrichment {
+        deezer_id: Some(hit.id),
+        picture_url,
+        picture_path,
+        picture_path_1x,
+        picture_path_2x,
+        fans_count: hit.nb_fan,
+        bio_short,
+        bio_full,
+        background_url,
+        background_path,
+        artwork_path: None,
+        artwork_path_1x: None,
+        artwork_path_2x: None,
+    })
+}
+
+/// What the selected bio provider said, for one write of the cache row.
+struct BioAnswer<'a> {
+    /// Whether the provider answered at all. `false` is a failure to ask,
+    /// which must neither erase a cached biography nor be cached itself.
+    reached: bool,
+    short: Option<&'a str>,
+    full: Option<&'a str>,
+    source: &'a str,
+    language: Option<&'a str>,
+}
+
+/// One write of an artist's `app.metadata_artist` row.
+struct ArtistRow<'a> {
+    deezer_id: i64,
+    name: &'a str,
+    picture_url: Option<&'a str>,
+    picture_hash: Option<&'a str>,
+    fans_count: Option<i64>,
+    bio: BioAnswer<'a>,
+    background_url: Option<&'a str>,
+    background_hash: Option<&'a str>,
+    background_urls_json: Option<&'a str>,
+    background_fetched_at: Option<i64>,
+    now: i64,
+}
+
+/// Upsert the Deezer + bio cache row and return the biography it holds
+/// afterwards.
+///
+/// The unified `metadata_artist` table lives in app.db so every profile
+/// shares the same cache. `bio_source` / `bio_language` record which
+/// provider produced the bio so a later switch invalidates it (see the
+/// cache-hit check in `enrich_artist_deezer`). Language is only
+/// meaningful for TheAudioDB, so Last.fm stores NULL.
+///
+/// The bio columns follow the rule the background columns already did.
+/// When the provider answered, its answer replaces what was there, empty
+/// or not — an artist whose biography was removed upstream must lose it
+/// here too, so this tests whether the provider was reached rather than
+/// whether the new value is empty. When it was not reached, the row keeps
+/// the biography and the source it had, and **expires after
+/// `RETRY_AFTER_MS`**: the Deezer half was fetched and is stored, but the
+/// visit that failed to ask for a biography must not stand for thirty
+/// days — nor be repeated on every open while the key stays refused. A
+/// fresh row in that case records no source.
+async fn upsert_artist_row(
+    pool: &sqlx::SqlitePool,
+    row: &ArtistRow<'_>,
+) -> Result<(Option<String>, Option<String>), sqlx::Error> {
+    let expires = if row.bio.reached {
+        row.now + CACHE_TTL_MS
+    } else {
+        row.now + RETRY_AFTER_MS
+    };
+    let (source, language) = if row.bio.reached {
+        (Some(row.bio.source), row.bio.language)
+    } else {
+        (None, None)
+    };
+    let (short, full, stored_source, stored_language): (
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+    ) = sqlx::query_as(
         "INSERT INTO app.metadata_artist
             (deezer_id, name, picture_url, picture_hash, fans_count, bio_short, bio_full,
              bio_source, bio_language, background_url, background_hash, background_urls,
@@ -801,10 +923,10 @@ async fn enrich_artist_named(
            picture_url = excluded.picture_url,
            picture_hash = excluded.picture_hash,
            fans_count = excluded.fans_count,
-           bio_short = excluded.bio_short,
-           bio_full = excluded.bio_full,
-           bio_source = excluded.bio_source,
-           bio_language = excluded.bio_language,
+           bio_short = CASE WHEN ?16 THEN excluded.bio_short ELSE bio_short END,
+           bio_full = CASE WHEN ?16 THEN excluded.bio_full ELSE bio_full END,
+           bio_source = CASE WHEN ?16 THEN excluded.bio_source ELSE bio_source END,
+           bio_language = CASE WHEN ?16 THEN excluded.bio_language ELSE bio_language END,
            -- The three background columns are replaced only when
            -- TheAudioDB actually answered, which `background_fetched_at`
            -- records (it is NULL exactly when the API could not be
@@ -825,46 +947,38 @@ async fn enrich_artist_named(
                                   THEN background_urls ELSE excluded.background_urls END,
            background_fetched_at = excluded.background_fetched_at,
            fetched_at = excluded.fetched_at,
-           expires_at = excluded.expires_at",
+           expires_at = excluded.expires_at
+         RETURNING bio_short, bio_full, bio_source, bio_language",
     )
-    .bind(hit.id)
-    .bind(&hit.name)
-    .bind(picture_url.as_deref())
-    .bind(picture_hash.as_deref())
-    .bind(hit.nb_fan)
-    .bind(bio_short.as_deref())
-    .bind(bio_full.as_deref())
-    .bind(active_source.as_str())
-    .bind(stored_lang)
-    .bind(background_url.as_deref())
-    .bind(background_hash.as_deref())
-    // NULL when TheAudioDB could not be reached, so the row still reads
-    // as "never looked" rather than as "this artist has no fanart".
-    .bind(background_urls_json.as_deref())
-    // Stamped even when the lookup came back empty — that's the whole
-    // point of the column: "we asked, TheAudioDB has nothing". Left NULL
-    // when the API couldn't be reached at all, so that retries.
-    .bind(audiodb_reached.then_some(now))
-    .bind(now)
+    .bind(row.deezer_id)
+    .bind(row.name)
+    .bind(row.picture_url)
+    .bind(row.picture_hash)
+    .bind(row.fans_count)
+    .bind(row.bio.short)
+    .bind(row.bio.full)
+    .bind(source)
+    .bind(language)
+    .bind(row.background_url)
+    .bind(row.background_hash)
+    .bind(row.background_urls_json)
+    .bind(row.background_fetched_at)
+    .bind(row.now)
     .bind(expires)
-    .execute(&pool)
+    .bind(row.bio.reached)
+    .fetch_one(pool)
     .await?;
-
-    Ok(DeezerArtistEnrichment {
-        deezer_id: Some(hit.id),
-        picture_url,
-        picture_path,
-        picture_path_1x,
-        picture_path_2x,
-        fans_count: hit.nb_fan,
-        bio_short,
-        bio_full,
-        background_url,
-        background_path,
-        artwork_path: None,
-        artwork_path_1x: None,
-        artwork_path_2x: None,
-    })
+    // A biography kept through a failure was fetched under whatever source
+    // and language were selected then. Shown now, it would answer a
+    // question the user no longer asks — the cache-hit check refuses it for
+    // the same reason — so it stays in the row and is not returned.
+    let asked_for = stored_source.as_deref() == Some(row.bio.source)
+        && stored_language.as_deref() == row.bio.language;
+    if row.bio.reached || asked_for {
+        Ok((short, full))
+    } else {
+        Ok((None, None))
+    }
 }
 
 // ── Cover management ────────────────────────────────────────────────
@@ -1740,6 +1854,170 @@ mod tests {
             "https://[2001:db8::1]/x.jpg",
         ] {
             assert!(is_public_http_url(url), "should be allowed: {url}");
+        }
+    }
+
+    mod artist_row {
+        use super::super::{upsert_artist_row, ArtistRow, BioAnswer, CACHE_TTL_MS, RETRY_AFTER_MS};
+
+        /// A pool whose connections see the real `app` schema as `app`,
+        /// attached per connection the way the application attaches it
+        /// (see the harness in `lyrics.rs` for why each detail matters).
+        async fn pool_with_app_schema(dir: &std::path::Path) -> sqlx::SqlitePool {
+            use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
+            use std::str::FromStr;
+
+            let opts_for = |path: &std::path::Path| {
+                SqliteConnectOptions::from_str(&format!("sqlite://{}", path.display()))
+                    .unwrap()
+                    .create_if_missing(true)
+            };
+            let app_path = dir.join("app.db");
+            let app_pool = sqlx::SqlitePool::connect_with(opts_for(&app_path))
+                .await
+                .unwrap();
+            sqlx::migrate!("../../migrations/app")
+                .run(&app_pool)
+                .await
+                .unwrap();
+            app_pool.close().await;
+
+            let attach = format!(
+                "ATTACH DATABASE '{}' AS app",
+                app_path.display().to_string().replace('\'', "''")
+            );
+            SqlitePoolOptions::new()
+                .after_connect(move |conn, _meta| {
+                    let attach = attach.clone();
+                    Box::pin(async move {
+                        sqlx::query(sqlx::AssertSqlSafe(attach))
+                            .execute(&mut *conn)
+                            .await?;
+                        Ok(())
+                    })
+                })
+                .connect_with(opts_for(&dir.join("profile.db")))
+                .await
+                .unwrap()
+        }
+
+        fn row<'a>(now: i64, reached: bool, full: Option<&'a str>) -> ArtistRow<'a> {
+            ArtistRow {
+                deezer_id: 464,
+                name: "Björk",
+                picture_url: None,
+                picture_hash: None,
+                fans_count: Some(1),
+                bio: BioAnswer {
+                    reached,
+                    short: full,
+                    full,
+                    source: "lastfm",
+                    language: None,
+                },
+                background_url: None,
+                background_hash: None,
+                background_urls_json: None,
+                background_fetched_at: None,
+                now,
+            }
+        }
+
+        async fn stored(pool: &sqlx::SqlitePool) -> (Option<String>, Option<String>, i64) {
+            sqlx::query_as(
+                "SELECT bio_full, bio_source, expires_at FROM app.metadata_artist WHERE deezer_id = 464",
+            )
+            .fetch_one(pool)
+            .await
+            .unwrap()
+        }
+
+        /// A refused key or a network failure is not "this artist has no
+        /// biography": the one already cached stays, is what the caller
+        /// shows, and the row expires within the hour so a later visit
+        /// asks again — not for the TTL, and not on the very next open.
+        #[tokio::test]
+        async fn a_failure_to_ask_keeps_the_biography_and_is_retried_soon() {
+            let dir = tempfile::tempdir().unwrap();
+            let pool = pool_with_app_schema(dir.path()).await;
+            upsert_artist_row(&pool, &row(1_000, true, Some("Born in Reykjavík.")))
+                .await
+                .unwrap();
+
+            let (_, shown) = upsert_artist_row(&pool, &row(2_000, false, None))
+                .await
+                .unwrap();
+
+            assert_eq!(shown.as_deref(), Some("Born in Reykjavík."));
+            let (bio, source, expires_at) = stored(&pool).await;
+            assert_eq!(bio.as_deref(), Some("Born in Reykjavík."));
+            assert_eq!(source.as_deref(), Some("lastfm"));
+            assert_eq!(
+                expires_at,
+                2_000 + RETRY_AFTER_MS,
+                "a failure is retried after the window, not the TTL"
+            );
+        }
+
+        /// The other half of the rule, so it cannot be met with a
+        /// COALESCE: an answer that carries nothing still replaces the
+        /// biography, and is cached for the whole TTL.
+        #[tokio::test]
+        async fn an_empty_answer_still_replaces_the_biography() {
+            let dir = tempfile::tempdir().unwrap();
+            let pool = pool_with_app_schema(dir.path()).await;
+            upsert_artist_row(&pool, &row(1_000, true, Some("Born in Reykjavík.")))
+                .await
+                .unwrap();
+
+            let (_, shown) = upsert_artist_row(&pool, &row(2_000, true, None))
+                .await
+                .unwrap();
+
+            assert_eq!(shown, None);
+            let (bio, _, expires_at) = stored(&pool).await;
+            assert_eq!(bio, None);
+            assert_eq!(expires_at, 2_000 + CACHE_TTL_MS);
+        }
+
+        /// A first visit that failed to ask records no source, and is
+        /// retried after the same window.
+        #[tokio::test]
+        async fn a_first_failure_records_no_source() {
+            let dir = tempfile::tempdir().unwrap();
+            let pool = pool_with_app_schema(dir.path()).await;
+
+            upsert_artist_row(&pool, &row(1_000, false, None))
+                .await
+                .unwrap();
+
+            let (bio, source, expires_at) = stored(&pool).await;
+            assert_eq!(
+                (bio, source, expires_at),
+                (None, None, 1_000 + RETRY_AFTER_MS)
+            );
+        }
+
+        /// Kept through a failure is not the same as asked for: a biography
+        /// fetched under the source the user has since left stays in the
+        /// row, and is not shown as the answer to the new one.
+        #[tokio::test]
+        async fn a_kept_biography_from_another_source_is_not_shown() {
+            let dir = tempfile::tempdir().unwrap();
+            let pool = pool_with_app_schema(dir.path()).await;
+            let mut before = row(1_000, true, Some("Née à Reykjavík."));
+            before.bio.source = "theaudiodb";
+            before.bio.language = Some("fr");
+            upsert_artist_row(&pool, &before).await.unwrap();
+
+            let (_, shown) = upsert_artist_row(&pool, &row(2_000, false, None))
+                .await
+                .unwrap();
+
+            assert_eq!(shown, None);
+            let (bio, source, _) = stored(&pool).await;
+            assert_eq!(bio.as_deref(), Some("Née à Reykjavík."));
+            assert_eq!(source.as_deref(), Some("theaudiodb"));
         }
     }
 }

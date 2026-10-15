@@ -50,26 +50,69 @@ pub async fn set_lastfm_api_key(
     api_key: String,
 ) -> AppResult<()> {
     let trimmed = api_key.trim();
-    if trimmed.is_empty() {
-        sqlx::query("DELETE FROM app_setting WHERE key = ?")
-            .bind(LASTFM_KEY)
-            .execute(&state.app_db)
-            .await?;
+    let key = (!trimmed.is_empty()).then_some(trimmed);
+    store_lastfm_api_key(&state.app_db, key, now_ms()).await?;
+    Ok(())
+}
+
+/// Write or clear the Last.fm key, and expire every biography cached under
+/// Last.fm in the same transaction.
+///
+/// A row looked up without a key holds an empty biography stamped
+/// `lastfm`, and the cache-hit check in `enrich_artist_deezer` reuses it
+/// for its whole TTL: a key placed afterwards would not be asked anything
+/// for a month. The same holds the other way — a key removed or replaced
+/// leaves biographies fetched under the old one. Expiring the rows costs
+/// nothing up front; each artist is asked again the next time it is
+/// opened, and only then.
+///
+/// Saving the value already stored is a no-op: the Settings card and
+/// onboarding send the key on every save, changed or not, and each of
+/// those must not cost every Last.fm biography its cache.
+async fn store_lastfm_api_key(
+    pool: &sqlx::SqlitePool,
+    key: Option<&str>,
+    now: i64,
+) -> Result<(), sqlx::Error> {
+    let mut tx = pool.begin().await?;
+    let stored: Option<String> = sqlx::query_scalar("SELECT value FROM app_setting WHERE key = ?")
+        .bind(LASTFM_KEY)
+        .fetch_optional(&mut *tx)
+        .await?;
+    if stored.as_deref() == key {
         return Ok(());
     }
-
+    match key {
+        None => {
+            sqlx::query("DELETE FROM app_setting WHERE key = ?")
+                .bind(LASTFM_KEY)
+                .execute(&mut *tx)
+                .await?;
+        }
+        Some(key) => {
+            sqlx::query(
+                "INSERT INTO app_setting (key, value, value_type, updated_at)
+                 VALUES (?, ?, 'string', ?)
+                 ON CONFLICT(key) DO UPDATE
+                    SET value = excluded.value, updated_at = excluded.updated_at",
+            )
+            .bind(LASTFM_KEY)
+            .bind(key)
+            .bind(now)
+            .execute(&mut *tx)
+            .await?;
+        }
+    }
+    // `BioSource::parse` reads a NULL source as Last.fm, so a row written
+    // before the column existed is served as a Last.fm biography and owes
+    // the key the same.
     sqlx::query(
-        "INSERT INTO app_setting (key, value, value_type, updated_at)
-         VALUES (?, ?, 'string', ?)
-         ON CONFLICT(key) DO UPDATE
-            SET value = excluded.value, updated_at = excluded.updated_at",
+        "UPDATE metadata_artist SET expires_at = 0
+         WHERE bio_source = 'lastfm' OR bio_source IS NULL",
     )
-    .bind(LASTFM_KEY)
-    .bind(trimmed)
-    .bind(now_ms())
-    .execute(&state.app_db)
+    .execute(&mut *tx)
     .await?;
-    Ok(())
+    tx.commit().await
 }
 
 /// Internal helper used by `enrich_artist_deezer` to look up the key
@@ -612,5 +655,96 @@ pub async fn read_listenbrainz_credentials(
     match String::from_utf8(token) {
         Ok(token) if !token.is_empty() => Ok(Some((token, username.unwrap_or_default()))),
         _ => Ok(None),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::store_lastfm_api_key;
+
+    async fn app_pool(dir: &std::path::Path) -> sqlx::SqlitePool {
+        use sqlx::sqlite::SqliteConnectOptions;
+        use std::str::FromStr;
+
+        let options =
+            SqliteConnectOptions::from_str(&format!("sqlite://{}", dir.join("app.db").display()))
+                .unwrap()
+                .create_if_missing(true);
+        let pool = sqlx::SqlitePool::connect_with(options).await.unwrap();
+        sqlx::migrate!("../../migrations/app")
+            .run(&pool)
+            .await
+            .unwrap();
+        pool
+    }
+
+    async fn seed(pool: &sqlx::SqlitePool, deezer_id: i64, source: Option<&str>) {
+        sqlx::query(
+            "INSERT INTO metadata_artist (deezer_id, name, bio_source, fetched_at, expires_at)
+             VALUES (?, 'artist', ?, 1, 9999999999999)",
+        )
+        .bind(deezer_id)
+        .bind(source)
+        .execute(pool)
+        .await
+        .unwrap();
+    }
+
+    async fn expires_at(pool: &sqlx::SqlitePool, deezer_id: i64) -> i64 {
+        sqlx::query_scalar("SELECT expires_at FROM metadata_artist WHERE deezer_id = ?")
+            .bind(deezer_id)
+            .fetch_one(pool)
+            .await
+            .unwrap()
+    }
+
+    /// A biography cached while no key was set is empty and stamped
+    /// `lastfm`; placing a key must make it ask again rather than serve
+    /// that emptiness for the rest of the month. Biographies from another
+    /// source owe the key nothing and keep their TTL. A row with no source
+    /// predates the column and is read as Last.fm, so it expires too.
+    #[tokio::test]
+    async fn placing_or_clearing_the_key_expires_only_lastfm_biographies() {
+        for (before, after) in [
+            (None, Some("a-key-from-the-settings")),
+            (Some("a-key-from-the-settings"), Some("another-key")),
+            (Some("a-key-from-the-settings"), None),
+        ] {
+            assert_eq!(
+                save_over(before, after).await,
+                [0, KEPT, 0],
+                "{before:?} -> {after:?}"
+            );
+        }
+    }
+
+    /// The Settings card sends the key on every save, changed or not; a
+    /// save that changes nothing must not cost the biographies their cache.
+    #[tokio::test]
+    async fn saving_the_stored_key_again_expires_nothing() {
+        for key in [Some("a-key-from-the-settings"), None] {
+            assert_eq!(save_over(key, key).await, [KEPT; 3], "{key:?}");
+        }
+    }
+
+    const KEPT: i64 = 9_999_999_999_999;
+
+    /// Store `before`, seed a `lastfm`, a `theaudiodb` and a source-less
+    /// row, save `after`, and read the three expiries back.
+    async fn save_over(before: Option<&str>, after: Option<&str>) -> [i64; 3] {
+        let dir = tempfile::tempdir().unwrap();
+        let pool = app_pool(dir.path()).await;
+        store_lastfm_api_key(&pool, before, 1).await.unwrap();
+        seed(&pool, 1, Some("lastfm")).await;
+        seed(&pool, 2, Some("theaudiodb")).await;
+        seed(&pool, 3, None).await;
+
+        store_lastfm_api_key(&pool, after, 42).await.unwrap();
+
+        [
+            expires_at(&pool, 1).await,
+            expires_at(&pool, 2).await,
+            expires_at(&pool, 3).await,
+        ]
     }
 }
