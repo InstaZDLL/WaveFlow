@@ -848,7 +848,8 @@ pub struct StreamInfo {
     pub sample_rate: Option<i64>,
     pub channels: Option<i64>,
     pub bit_depth: Option<i64>,
-    /// The extension in capitals (`MP3`), the only codec name at hand.
+    /// The decoder's codec, as the format chip shows it (`MP3`, `PCM`):
+    /// what the stream is, not what the file is called.
     pub codec: Option<String>,
 }
 
@@ -893,9 +894,13 @@ pub fn probe_playable_stream(path: &Path) -> Option<StreamInfo> {
     let track_duration = track.duration;
     let num_frames = track.num_frames;
     let params = track.codec_params.as_ref()?.audio()?.clone();
-    let mut decoder = crate::audio_format::opus::codecs()
+    let registry = crate::audio_format::opus::codecs();
+    let mut decoder = registry
         .make_audio_decoder(&params, &AudioDecoderOptions::default())
         .ok()?;
+    let codec = registry
+        .get_audio_decoder(params.codec)
+        .map(|registered| codec_label(registered.codec.info.short_name));
 
     let mut summed = 0u64;
     let mut decoded = false;
@@ -943,8 +948,19 @@ pub fn probe_playable_stream(path: &Path) -> Option<StreamInfo> {
         sample_rate: sample_rate.map(i64::from),
         channels: params.channels.as_ref().map(|c| c.count() as i64),
         bit_depth: params.bits_per_sample.map(i64::from).filter(|b| *b > 0),
-        codec: ext.map(|e| e.to_ascii_uppercase()),
+        codec,
     })
+}
+
+/// A symphonia decoder's short name as the format chip spells codecs
+/// elsewhere ([`file_type_label`]): `mp3` → `MP3`, every `pcm_*` → `PCM`.
+fn codec_label(short_name: &str) -> String {
+    match short_name {
+        n if n.starts_with("pcm") => "PCM".into(),
+        "vorbis" => "Vorbis".into(),
+        "opus" => "Opus".into(),
+        n => n.to_ascii_uppercase(),
+    }
 }
 
 #[cfg(test)]
@@ -987,7 +1003,11 @@ mod tests {
         let info = probe_playable_stream(&tone).expect("the player can play it");
         assert_eq!(info.sample_rate, Some(44_100));
         assert!((900..=1100).contains(&info.duration_ms), "{info:?}");
-        assert_eq!(info.codec.as_deref(), Some("MP3"));
+        assert_eq!(
+            info.codec.as_deref(),
+            Some("PCM"),
+            "the stream's codec, not the `.mp3` the file is called"
+        );
 
         let noise = dir.path().join("noise.mp3");
         write_bytes(&noise, &[0x5a; 4096]);
