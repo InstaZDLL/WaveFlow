@@ -27,7 +27,8 @@ name: Build Cargo.lock for release-please PR
 
 "on":
   pull_request:
-    branches: [main]
+    # Maintenance branches get release PRs too (see release-please.yml).
+    branches: [main, "release/**"]
     types: [opened, synchronize, reopened]
 
 permissions:

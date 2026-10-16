@@ -886,6 +886,21 @@ html.mini-player-window #root {
   border-radius: 4px;
 }
 
+/* No ring on what the mouse focused (#866), whatever key comes next.
+ *
+ * The browser paints `:focus-visible` on a clicked element as soon as any
+ * key is pressed, so a desktop shortcut (Super+Q under Hyprland), a digit
+ * or an F-key left a ring on the last row clicked until the next click.
+ * `lib/inputModality.ts` marks an element focused by a pointer; keyboard
+ * focus (Tab, arrows) is unmarked and keeps its ring. Unlayered, so it
+ * also takes off Tailwind's `focus-visible:ring-*`, which lives in a
+ * layer. High contrast keeps every ring (its own rule is more specific). */
+[data-pointer-focus]:focus-visible {
+  outline: none;
+  --tw-ring-shadow: 0 0 #0000;
+  --tw-ring-offset-shadow: 0 0 #0000;
+}
+
 /* Glassy chrome, opted in by the surfaces that carry a translucent
    background *behind text* (issue #596).
  *

@@ -5,6 +5,8 @@ import { MiniPlayerApp } from "./MiniPlayerApp";
 import { DesktopLyricsApp } from "./DesktopLyricsApp";
 import { ReadySignal } from "./components/common/ReadySignal";
 import "./app.css";
+// Its listeners mark pointer focus, which `app.css` keeps ringless.
+import "./lib/inputModality";
 // Self-hosted fonts for the Editorial skin (Playfair Display + Lora).
 // Imported here so the @font-face declarations land at the top of the
 // bundled CSS — they need to precede any rules that consume them, and

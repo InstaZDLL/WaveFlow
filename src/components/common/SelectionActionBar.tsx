@@ -13,7 +13,6 @@ import {
 import { usePlaylist } from "../../hooks/usePlaylist";
 import { resolvePlaylistColor } from "../../lib/playlistVisuals";
 import { PlaylistIcon } from "../../lib/PlaylistIcon";
-import { blurPointerFocusOnRow } from "../../lib/inputModality";
 import { Tooltip } from "./Tooltip";
 
 export type SelectionContext =
@@ -52,12 +51,7 @@ export function SelectionActionBar({
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         if (isAddOpen) setIsAddOpen(false);
-        else {
-          onClear();
-          // The row the mouse picked still holds focus, and this key
-          // would paint its ring until the next click (#859).
-          blurPointerFocusOnRow();
-        }
+        else onClear();
       }
     };
     document.addEventListener("keydown", handleKey);

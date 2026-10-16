@@ -1,19 +1,43 @@
 /**
- * Whether the user's last gesture was a pointer or a key, for the few
- * places that must tell the two apart.
+ * Focus rings for keyboard focus only.
  *
- * The case it exists for (#859): a row clicked with the mouse holds focus
- * without a ring, until a key is pressed — then the browser switches to
- * keyboard mode and `:focus-visible` paints the ring on it. Escape, which
- * clears a selection, is such a key, so a mouse user saw a ring appear
- * from nowhere. Escape and bare modifiers do not count as keyboard use
- * here: they navigate nothing.
+ * A row or a button clicked with the mouse takes focus without a ring.
+ * But the browser paints `:focus-visible` on it the moment any key is
+ * pressed — it reads the key as keyboard navigation — and the ring then
+ * stays until the next click. Escape did it (#859), and so did every
+ * shortcut of the desktop around the app (#866): under Hyprland most of
+ * them go through the Super key, so Super+Q to open a terminal left a
+ * green frame on the last track clicked, and digits, letters and F-keys
+ * did the same.
+ *
+ * So the modality is decided when focus **arrives**: an element focused
+ * right after a pointer press is marked `data-pointer-focus`, and
+ * `app.css` takes the ring off a marked element whatever is pressed
+ * afterwards. Focus that arrives from the keyboard (Tab, the arrows of a
+ * list) carries no mark and keeps its ring, which is how a keyboard user
+ * knows where they are.
+ *
+ * Imported once, for its listeners, from `main.tsx`.
  */
-export type InputModality = "pointer" | "keyboard";
+type InputModality = "pointer" | "keyboard";
 
 let last: InputModality = "pointer";
 
-const IGNORED_KEYS = new Set(["Escape", "Shift", "Control", "Alt", "Meta"]);
+/** Keys that navigate nothing: modifiers, and Escape. */
+const IGNORED_KEYS = new Set([
+  "Escape",
+  "Shift",
+  "Control",
+  "Alt",
+  "AltGraph",
+  "Meta",
+  "OS",
+  "Super",
+  "Hyper",
+  "CapsLock",
+]);
+
+const MARK = "pointerFocus";
 
 if (typeof window !== "undefined") {
   window.addEventListener("pointerdown", () => (last = "pointer"), true);
@@ -24,25 +48,38 @@ if (typeof window !== "undefined") {
     },
     true,
   );
-}
-
-export function lastInputModality(): InputModality {
-  return last;
-}
-
-/**
- * Drop the focus a mouse click left on a selectable track row (or on its
- * checkbox), so a key press does not paint a ring on it. Focus reached
- * from the keyboard is kept: that ring is how a keyboard user knows where
- * they are. Anything else keeps its focus too — a button clicked outside
- * the list is where the next Tab starts from.
- */
-export function blurPointerFocusOnRow(): void {
-  if (last !== "pointer") return;
-  const active = document.activeElement;
-  if (!(active instanceof HTMLElement)) return;
-  const onRow =
-    active.matches("[data-row-select]") ||
-    active.querySelector(":scope [data-row-select]") !== null;
-  if (onRow) active.blur();
+  document.addEventListener(
+    "focusin",
+    (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      if (last === "pointer") {
+        target.dataset[MARK] = "";
+      } else if (event.relatedTarget !== null) {
+        // Focus moved here from another element by a key: a keyboard
+        // focus, ring and all. With no `relatedTarget` it came back from
+        // outside the page — the window was minimised or left — onto
+        // the element that had it, which keeps whatever mark it had: the
+        // last key pressed before leaving says nothing about how it was
+        // focused.
+        delete target.dataset[MARK];
+      }
+    },
+    true,
+  );
+  document.addEventListener(
+    "focusout",
+    (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      // Only once focus has really gone elsewhere in the page. When the
+      // whole window loses focus, the element stays the active one and
+      // gets it back on return; dropping the mark here is what put the
+      // ring on a clicked row after minimising and restoring (#866).
+      setTimeout(() => {
+        if (document.activeElement !== target) delete target.dataset[MARK];
+      }, 0);
+    },
+    true,
+  );
 }
