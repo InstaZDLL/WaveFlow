@@ -811,14 +811,33 @@ pub fn read_tagged_file(path: &Path) -> Result<lofty::file::TaggedFile, String> 
 
     let read = |mode: ParsingMode| -> Result<lofty::file::TaggedFile, String> {
         Probe::open(path)
-            .map_err(|e| e.to_string())?
+            .map_err(|e| error_chain(&e))?
             .options(ParseOptions::new().parsing_mode(mode))
             .guess_file_type()
-            .map_err(|e| e.to_string())?
+            .map_err(|e| error_chain(&e))?
             .read()
-            .map_err(|e| e.to_string())
+            .map_err(|e| error_chain(&e))
     };
     read(ParsingMode::BestAttempt).or_else(|first| read(ParsingMode::Relaxed).map_err(|_| first))
+}
+
+/// An error and every cause under it, `outer: inner: …`.
+///
+/// lofty's `FileParseError` prints only "failed to parse Mpeg file"; the
+/// reason — which frame, which tag — is its `source`, and a log that
+/// stops at the outer message gives nothing to diagnose (#873).
+fn error_chain(err: &dyn std::error::Error) -> String {
+    let mut out = err.to_string();
+    let mut source = err.source();
+    while let Some(cause) = source {
+        let text = cause.to_string();
+        if !out.ends_with(&text) {
+            out.push_str(": ");
+            out.push_str(&text);
+        }
+        source = cause.source();
+    }
+    out
 }
 
 /// What the player's decoder can tell about a file whose tags no reader
@@ -948,6 +967,13 @@ mod tests {
         );
         use lofty::file::TaggedFileExt;
         let file = read_tagged_file(&path).expect("read by content");
+        // And a file nothing can read reports why, not only that it failed.
+        let noise = dir.path().join("noise.mp3");
+        write_bytes(&noise, &[0x5a; 4096]);
+        match read_tagged_file(&noise) {
+            Ok(_) => panic!("noise is not audio"),
+            Err(err) => assert!(err.contains(": "), "the cause is kept: {err}"),
+        }
         assert_eq!(file.file_type(), FileType::Aiff);
     }
 
