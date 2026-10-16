@@ -795,10 +795,224 @@ pub fn extract_compilation_flag(tag: &Tag) -> bool {
     matches!(trimmed.parse::<i64>(), Ok(n) if n != 0)
 }
 
+/// Read a file's tags and properties with lofty, judging the format by
+/// what the file contains rather than what it is called (#873).
+///
+/// `lofty::read_from_path` trusts the extension: an AAC or M4A saved as
+/// `.mp3`, which download sites hand out, was parsed as MPEG and refused
+/// ("failed to parse Mpeg file"), so the scanner left out a file the
+/// player would have played. Sniffing the content reads it as what it
+/// is. A parse that still fails is retried once in `Relaxed` mode, which
+/// steps over malformed tag frames instead of giving up on the file; the
+/// first error is the one reported when both fail.
+pub fn read_tagged_file(path: &Path) -> Result<lofty::file::TaggedFile, String> {
+    use lofty::config::{ParseOptions, ParsingMode};
+    use lofty::probe::Probe;
+
+    let read = |mode: ParsingMode| -> Result<lofty::file::TaggedFile, String> {
+        Probe::open(path)
+            .map_err(|e| error_chain(&e))?
+            .options(ParseOptions::new().parsing_mode(mode))
+            .guess_file_type()
+            .map_err(|e| error_chain(&e))?
+            .read()
+            .map_err(|e| error_chain(&e))
+    };
+    read(ParsingMode::BestAttempt).or_else(|first| read(ParsingMode::Relaxed).map_err(|_| first))
+}
+
+/// An error and every cause under it, `outer: inner: …`.
+///
+/// lofty's `FileParseError` prints only "failed to parse Mpeg file"; the
+/// reason — which frame, which tag — is its `source`, and a log that
+/// stops at the outer message gives nothing to diagnose (#873).
+fn error_chain(err: &dyn std::error::Error) -> String {
+    let mut out = err.to_string();
+    let mut source = err.source();
+    while let Some(cause) = source {
+        let text = cause.to_string();
+        if !out.ends_with(&text) {
+            out.push_str(": ");
+            out.push_str(&text);
+        }
+        source = cause.source();
+    }
+    out
+}
+
+/// What the player's decoder can tell about a file whose tags no reader
+/// accepts: enough to list it and play it.
+#[derive(Debug, Clone, PartialEq)]
+pub struct StreamInfo {
+    pub duration_ms: i64,
+    pub sample_rate: Option<i64>,
+    pub channels: Option<i64>,
+    pub bit_depth: Option<i64>,
+    /// The decoder's codec, as the format chip shows it (`MP3`, `PCM`):
+    /// what the stream is, not what the file is called.
+    pub codec: Option<String>,
+}
+
+/// How many packets may fail to decode before the stream is judged
+/// unplayable. A few leading packets can be garbage left by a broken
+/// tag; a stream with none decodable in this many is not music.
+const PLAYABLE_PROBE_PACKETS: usize = 64;
+
+/// Whether the player could play this file, and what it would play, for
+/// a file lofty cannot read at all (#873).
+///
+/// Opened the way playback opens it — symphonia's probe, which judges
+/// by content, and the one codec registry
+/// ([`crate::audio_format::opus::codecs`]) — and accepted only once a
+/// packet actually decodes, so a file listed this way is one the player
+/// will play: the scanner and the decoder cannot disagree. `None` when
+/// any of that fails.
+pub fn probe_playable_stream(path: &Path) -> Option<StreamInfo> {
+    use symphonia::core::codecs::audio::AudioDecoderOptions;
+    use symphonia::core::formats::probe::Hint;
+    use symphonia::core::formats::{FormatOptions, TrackType};
+    use symphonia::core::io::MediaSourceStream;
+    use symphonia::core::meta::MetadataOptions;
+
+    let file = fs::File::open(path).ok()?;
+    let mut hint = Hint::new();
+    let ext = path.extension().and_then(|e| e.to_str());
+    if let Some(ext) = ext {
+        hint.with_extension(ext);
+    }
+    let mut format = symphonia::default::get_probe()
+        .probe(
+            &hint,
+            MediaSourceStream::new(Box::new(file), Default::default()),
+            FormatOptions::default(),
+            MetadataOptions::default(),
+        )
+        .ok()?;
+    let track = format.default_track(TrackType::Audio)?;
+    let track_id = track.id;
+    let time_base = track.time_base;
+    let track_duration = track.duration;
+    let num_frames = track.num_frames;
+    let params = track.codec_params.as_ref()?.audio()?.clone();
+    let registry = crate::audio_format::opus::codecs();
+    let mut decoder = registry
+        .make_audio_decoder(&params, &AudioDecoderOptions::default())
+        .ok()?;
+    let codec = registry
+        .get_audio_decoder(params.codec)
+        .map(|registered| codec_label(registered.codec.info.short_name));
+
+    let mut summed = 0u64;
+    let mut decoded = false;
+    let mut tried = 0usize;
+    while let Ok(Some(packet)) = format.next_packet() {
+        if packet.track_id != track_id {
+            continue;
+        }
+        summed = summed.saturating_add(packet.dur.get());
+        if !decoded {
+            tried += 1;
+            decoded = decoder.decode(&packet).is_ok();
+            if !decoded && tried >= PLAYABLE_PROBE_PACKETS {
+                return None;
+            }
+            // The container's own duration, when it has one, saves
+            // walking the rest of the file.
+            if decoded && (track_duration.is_some() || num_frames.is_some()) {
+                break;
+            }
+        }
+    }
+    if !decoded {
+        return None;
+    }
+
+    let sample_rate = params.sample_rate;
+    let to_ms = |d: symphonia::core::units::Duration| {
+        time_base
+            .and_then(|tb| tb.calc_duration(d))
+            .map(|t| (t.as_micros() / 1000) as i64)
+    };
+    let duration_ms = track_duration
+        .and_then(to_ms)
+        .or_else(|| {
+            num_frames
+                .zip(sample_rate.filter(|r| *r > 0))
+                .map(|(n, r)| (n.saturating_mul(1000) / u64::from(r)) as i64)
+        })
+        .or_else(|| to_ms(symphonia::core::units::Duration::from(summed)))
+        .unwrap_or(0);
+
+    Some(StreamInfo {
+        duration_ms,
+        sample_rate: sample_rate.map(i64::from),
+        channels: params.channels.as_ref().map(|c| c.count() as i64),
+        bit_depth: params.bits_per_sample.map(i64::from).filter(|b| *b > 0),
+        codec,
+    })
+}
+
+/// A symphonia decoder's short name as the format chip spells codecs
+/// elsewhere ([`file_type_label`]): `mp3` → `MP3`, every `pcm_*` → `PCM`.
+fn codec_label(short_name: &str) -> String {
+    match short_name {
+        n if n.starts_with("pcm") => "PCM".into(),
+        "vorbis" => "Vorbis".into(),
+        "opus" => "Opus".into(),
+        n => n.to_ascii_uppercase(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::scanner::canonical_name;
+
+    /// An AIFF saved as `.mp3` — the shape of an AAC a download site
+    /// renamed (#873) — is read as what it contains. By its extension
+    /// alone lofty refused it, and the scanner dropped a playable file.
+    #[test]
+    fn a_file_is_read_by_its_content_not_its_extension() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let path = dir.path().join("renamed.mp3");
+        write_bytes(&path, &tiny_aiff(256));
+
+        assert!(
+            lofty::read_from_path(&path).is_err(),
+            "the extension alone misleads lofty, which is the bug"
+        );
+        use lofty::file::TaggedFileExt;
+        let file = read_tagged_file(&path).expect("read by content");
+        // And a file nothing can read reports why, not only that it failed.
+        let noise = dir.path().join("noise.mp3");
+        write_bytes(&noise, &[0x5a; 4096]);
+        match read_tagged_file(&noise) {
+            Ok(_) => panic!("noise is not audio"),
+            Err(err) => assert!(err.contains(": "), "the cause is kept: {err}"),
+        }
+        assert_eq!(file.file_type(), FileType::Aiff);
+    }
+
+    /// The last resort judges by what playback can do: a stream the
+    /// player decodes is described, anything else is refused.
+    #[test]
+    fn a_playable_stream_is_described_and_noise_is_not() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let tone = dir.path().join("tone.mp3");
+        write_bytes(&tone, &tiny_aiff(44_100));
+        let info = probe_playable_stream(&tone).expect("the player can play it");
+        assert_eq!(info.sample_rate, Some(44_100));
+        assert!((900..=1100).contains(&info.duration_ms), "{info:?}");
+        assert_eq!(
+            info.codec.as_deref(),
+            Some("PCM"),
+            "the stream's codec, not the `.mp3` the file is called"
+        );
+
+        let noise = dir.path().join("noise.mp3");
+        write_bytes(&noise, &[0x5a; 4096]);
+        assert!(probe_playable_stream(&noise).is_none());
+    }
 
     fn write_bytes(path: &Path, bytes: &[u8]) {
         fs::write(path, bytes).expect("write fixture");
