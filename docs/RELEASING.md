@@ -139,7 +139,9 @@ against that branch, which:
 1. Parses the Conventional Commits since the last tag.
 2. Computes the next semver (`feat:` → minor, `fix:` → patch,
    `feat!:` / `BREAKING CHANGE:` → major, no relevant commits → no PR).
-3. Opens or refreshes a **chore(main): release X.Y.Z** PR that
+3. Opens or refreshes a release PR — **chore(main): release X.Y.Z** on
+   `main`, **chore(release/X.Y.x): release X.Y.Z+1** on a maintenance
+   branch — that
    bumps every version manifest in lockstep:
    - [`package.json`](../package.json) (canonical, owned by release-please)
    - [`src-tauri/crates/app/tauri.conf.json`](../src-tauri/crates/app/tauri.conf.json) (`$.version`)

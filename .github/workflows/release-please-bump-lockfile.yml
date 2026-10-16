@@ -109,6 +109,33 @@ jobs:
               return;
             }
 
+            // Bind the artifact to the run that built it: the PR it
+            // names must be one GitHub attached to that run, at the same
+            // branch and commit. Otherwise a run built for one PR could
+            // hand over a lockfile claiming to be another's. Release PRs
+            // come from this repository, so the list is never empty for
+            // them; an empty list fails like a mismatch.
+            const run = context.payload.workflow_run;
+            const linked = (run.pull_requests || []).find(
+              (p) => p.number === prNumber,
+            );
+            if (!linked) {
+              core.setFailed(
+                `artifact names PR #${prNumber}, which is not a PR of run ${run.id}`,
+              );
+              return;
+            }
+            if (
+              linked.head.ref !== branch ||
+              linked.head.sha !== artifactHeadSha ||
+              run.head_sha !== artifactHeadSha
+            ) {
+              core.setFailed(
+                `run ${run.id} built ${linked.head.ref}@${linked.head.sha}, artifact claims ${branch}@${artifactHeadSha}`,
+              );
+              return;
+            }
+
             // Verify the PR is still open, still authored by the
             // release-please bot, and its head ref still matches the
             // artifact's claim.
