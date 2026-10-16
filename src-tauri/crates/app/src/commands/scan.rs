@@ -418,6 +418,51 @@ struct ScanTimings {
     link_us: AtomicU64,
 }
 
+/// A playable file no tag reader accepts (#873), as the library lists it:
+/// titled after its file name, described by the decoder, covered by a
+/// folder image when there is one. Every tag field is empty, so a later
+/// rescan after the tags are repaired fills them in as for any file.
+fn untagged_file(
+    path: &Path,
+    artwork_dir: &Path,
+    size: i64,
+    modified_ms: i64,
+    hash: String,
+    stream: waveflow_core::scanner::extract::StreamInfo,
+) -> ExtractedFile {
+    ExtractedFile {
+        title_from_filename: true,
+        abs_path: path.to_string_lossy().to_string(),
+        size,
+        modified_ms,
+        hash,
+        title: path
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("Unknown")
+            .to_string(),
+        artist: None,
+        album: None,
+        album_artist: None,
+        is_compilation: false,
+        genres: Vec::new(),
+        year: None,
+        track_number: None,
+        disc_number: None,
+        duration_ms: stream.duration_ms,
+        bitrate: None,
+        sample_rate: stream.sample_rate,
+        channels: stream.channels,
+        bit_depth: stream.bit_depth,
+        codec: stream.codec,
+        musical_key: None,
+        cover_art: extract_folder_cover(path, artwork_dir),
+        rating: None,
+        replay_gain: ReplayGainTags::default(),
+        extra_tags: Default::default(),
+    }
+}
+
 fn extract_file(
     path: &Path,
     artwork_dir: &Path,
@@ -449,7 +494,34 @@ fn extract_file(
     }
 
     let t_tag = Instant::now();
-    let tagged = lofty::read_from_path(path).map_err(|e| format!("lofty: {e}"))?;
+    // By content, not extension, and leniently on a malformed tag
+    // (`read_tagged_file`). Should lofty still refuse the file, it is
+    // kept when the player can play it: listed by its file name, with
+    // what the decoder reports, rather than dropped from the library
+    // over tags nobody can read (#873).
+    let tagged = match waveflow_core::scanner::extract::read_tagged_file(path) {
+        Ok(tagged) => tagged,
+        Err(err) => {
+            let stream = waveflow_core::scanner::extract::probe_playable_stream(path)
+                .ok_or_else(|| format!("lofty: {err}"))?;
+            tracing::warn!(
+                path = %path.display(),
+                error = %err,
+                "tags unreadable; listing the file from its audio stream"
+            );
+            timings
+                .tag_us
+                .fetch_add(t_tag.elapsed().as_micros() as u64, Ordering::Relaxed);
+            return Ok(untagged_file(
+                path,
+                artwork_dir,
+                size,
+                modified_ms,
+                hash,
+                stream,
+            ));
+        }
+    };
     timings
         .tag_us
         .fetch_add(t_tag.elapsed().as_micros() as u64, Ordering::Relaxed);
