@@ -71,6 +71,12 @@ const SAME_TEMPO: f64 = 0.05;
 const OCTAVE_TIE: f64 = 0.9;
 /// Energy at or above which a tie goes to the faster octave.
 const FAST_ENERGY: f64 = 0.5;
+/// Added to every beat's date. Dated at its frame's centre, an attack
+/// reads 33 ms early: the flux peaks on the frame whose window first
+/// takes the attack in, before it reaches the centre. Measured on click
+/// tracks (the test below) and on the Ballroom annotations
+/// (`analysis_bench --beats`), which agree.
+const BEAT_OFFSET_SECS: f64 = 0.033;
 
 /// Streaming onset detector over the decimated mono signal.
 pub(crate) struct OnsetDetector {
@@ -209,7 +215,25 @@ impl OnsetDetector {
             }
         });
         let tempo = estimate_tempo(&onset, fps, energy.map(|e| e.value));
-        Rhythm { tempo, energy }
+        let beats = tempo.map_or_else(Vec::new, |t| {
+            super::beats::track(&onset, fps, t.bpm)
+                .into_iter()
+                .map(|i| self.frame_secs(i))
+                .collect()
+        });
+        Rhythm {
+            tempo,
+            energy,
+            beats,
+        }
+    }
+
+    /// When the attack read at `flux[i]` happened, in seconds. The flux
+    /// starts at the second frame (the first only seeds it), and a frame
+    /// is dated by the centre of its window, where the Hann weighting
+    /// puts most of what it hears.
+    fn frame_secs(&self, i: usize) -> f64 {
+        ((i + 1) * HOP + FRAME / 2) as f64 / self.rate + BEAT_OFFSET_SECS
     }
 }
 
@@ -218,6 +242,9 @@ impl OnsetDetector {
 pub struct Rhythm {
     pub tempo: Option<Tempo>,
     pub energy: Option<Energy>,
+    /// Where the beats fall, in seconds from the start, in order. Empty
+    /// without a tempo. See [`super::beats`].
+    pub beats: Vec<f64>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -670,6 +697,19 @@ mod tests {
             changing.stability < steady.stability,
             "{changing:?} vs {steady:?}"
         );
+    }
+
+    #[test]
+    fn beats_fall_on_the_clicks() {
+        for bpm in [96.0, 120.0, 150.0] {
+            let rhythm = analyse(&clicks(bpm, 40.0, 0.0));
+            let period = 60.0 / bpm;
+            assert!(rhythm.beats.len() as f64 > 0.9 * 40.0 / period, "{bpm}");
+            for b in &rhythm.beats {
+                let off = b / period - (b / period).round();
+                assert!((off * period).abs() < 0.012, "{bpm}: beat at {b}");
+            }
+        }
     }
 
     #[test]
