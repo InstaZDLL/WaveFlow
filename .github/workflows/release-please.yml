@@ -24,9 +24,15 @@ name: Release Please
 # workflow keeps gating correctly on `startsWith(head_ref,
 # 'release-please--')`.**
 
+# Also on maintenance branches (`release/1.9.x`, …): a patch release of a
+# shipped line is cut from there, so the features already on main stay
+# out of it. Each run targets the branch that was pushed
+# (`--target-branch`), and reads that branch's config and manifest.
+# A push to a branch runs that branch's copy of this file, so a
+# maintenance branch needs this version of it too.
 "on":
   push:
-    branches: [main]
+    branches: [main, "release/**"]
 
 permissions:
   contents: write
@@ -47,7 +53,29 @@ jobs:
         with:
           node-version: 20
 
-      # Phase A — open / update the release PR. Idempotent: re-runs
+      # Phase A — when the head commit IS the release PR's merge
+      # commit, cut the GitHub release + tag. No-op on every other
+      # push, so we can run both phases unconditionally.
+      #
+      # **First, not second.** Right after a release PR merges, the
+      # update below looks for the release of the version the manifest
+      # now names; when that release does not exist yet it walks back up
+      # to `commit-search-depth` (1500) commits, one API call each, and
+      # the job's timeout cut it before this step ever ran — no tag, and
+      # a manual rerun on every release (1.8.1, 1.9.0, 1.9.1). Tagged
+      # first, the update finds its starting point at once.
+      - name: Publish GitHub release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npx --yes release-please@17 github-release \
+            --token="${GITHUB_TOKEN}" \
+            --repo-url="${GITHUB_REPOSITORY}" \
+            --target-branch="${GITHUB_REF_NAME}" \
+            --config-file=release-please-config.json \
+            --manifest-file=.release-please-manifest.json
+
+      # Phase B — open / update the release PR. Idempotent: re-runs
       # on every push, only mutates GitHub when something changed.
       - name: Update release PR
         env:
@@ -56,18 +84,6 @@ jobs:
           npx --yes release-please@17 release-pr \
             --token="${GITHUB_TOKEN}" \
             --repo-url="${GITHUB_REPOSITORY}" \
-            --config-file=release-please-config.json \
-            --manifest-file=.release-please-manifest.json
-
-      # Phase B — when the head commit IS the release PR's merge
-      # commit, cut the GitHub release + tag. No-op on every other
-      # push, so we can run both phases unconditionally.
-      - name: Publish GitHub release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          npx --yes release-please@17 github-release \
-            --token="${GITHUB_TOKEN}" \
-            --repo-url="${GITHUB_REPOSITORY}" \
+            --target-branch="${GITHUB_REF_NAME}" \
             --config-file=release-please-config.json \
             --manifest-file=.release-please-manifest.json

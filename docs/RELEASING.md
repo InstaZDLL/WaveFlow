@@ -157,8 +157,19 @@ release-please tolerates both). The merge causes release-please to:
 - update [`.release-please-manifest.json`](../.release-please-manifest.json)
   to record the new version.
 
-The new tag triggers [`release.yml`](../.github/workflows/release.yml)
-exactly as before — no change needed downstream.
+The tag is created with the workflow's `GITHUB_TOKEN`, and a tag pushed
+that way **does not trigger** [`release.yml`](../.github/workflows/release.yml)
+(GitHub does not start workflows from events the token itself caused).
+Start it by hand once the tag exists:
+
+```bash
+gh workflow run release.yml -f tag_name=vX.Y.Z
+```
+
+The workflow tags first and updates the release PR second: in the other
+order, the update right after a release PR merged went looking for a
+release that did not exist yet, walked up to 1,500 commits one API call at
+a time, and the job's timeout cut it before the tag was ever made.
 
 ### 2. Watch the workflow
 
@@ -214,6 +225,35 @@ are enabled in the build, or the platform's log directory) for
 updater errors. Common causes: pubkey mismatch (private/public
 keys regenerated), endpoint 404, malformed `latest.json`,
 signature corrupted on upload.
+
+## Patch releases from a maintenance branch
+
+Once `main` carries features for the next minor or major, a fix for the
+version users have cannot be cut from it: release-please would bump to
+the next minor and ship those features with it. A patch is cut from a
+maintenance branch instead, `release/X.Y.x`, branched from the last tag
+of that line:
+
+1. **Create the branch** from the tag: `git push origin vX.Y.Z:refs/heads/release/X.Y.x`.
+2. **Bring the workflows** to it. A push runs the pushed branch's copy of
+   [`release-please.yml`](../.github/workflows/release-please.yml), and
+   a pull request runs its base's copy of
+   [`release-please-lockfile-build.yml`](../.github/workflows/release-please-lockfile-build.yml);
+   a tag older than their `release/**` support has neither. Cherry-pick
+   the commit that added it.
+3. **Cherry-pick each fix** from `main` (signed: `git cherry-pick -S`),
+   through a pull request into `release/X.Y.x` so CI runs on it.
+4. release-please, run on the branch with `--target-branch`, opens
+   `chore(release/X.Y.x): release X.Y.Z+1` against it; the Cargo.lock
+   pipeline fills it in as on `main`. Merge it, then start `release.yml`
+   for the new tag as above. Downstream (AUR, winget, COPR, apt) and the
+   updater manifest work the same, since everything starts from the tag.
+
+`main` keeps its own manifest, so its next release still counts from its
+last stable version; its changelog will list the cherry-picked fixes a
+second time, under the version that ships them on `main`. For a major,
+set `release-as` in [`release-please-config.json`](../release-please-config.json)
+before merging the release PR.
 
 ## Beta channel
 
