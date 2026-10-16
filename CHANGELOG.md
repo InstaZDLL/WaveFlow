@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.9.3](https://github.com/InstaZDLL/WaveFlow/compare/v1.9.2...v1.9.3) (2026-10-16)
+
+
+### Bug Fixes
+
+* **scan:** log why lofty refused a file, not only that it did ([f9b74af](https://github.com/InstaZDLL/WaveFlow/commit/f9b74af8a01a083efccfa82d1a629f069a713f13))
+* **scan:** name the fallback codec after the stream, not the extension ([a60a2a7](https://github.com/InstaZDLL/WaveFlow/commit/a60a2a77878f93eb7a25dea70efdefe02a5ed4a7))
+* **scan:** read a file by its content, and keep it when it plays ([b20183b](https://github.com/InstaZDLL/WaveFlow/commit/b20183b375f35b619b6d9da12741af4add4b15c6))
+
 ## [1.9.2](https://github.com/InstaZDLL/WaveFlow/compare/v1.9.1...v1.9.2) (2026-10-16)
 
 
