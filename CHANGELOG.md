@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.9.2](https://github.com/InstaZDLL/WaveFlow/compare/v1.9.1...v1.9.2) (2026-10-16)
+
+
+### Bug Fixes
+
+* **ui:** keep a clicked row ringless after leaving and coming back to the window ([b3d2964](https://github.com/InstaZDLL/WaveFlow/commit/b3d2964065c28a716d9611556904026121d09f19))
+* **ui:** no focus ring on what the mouse focused, and no checkbox on hover ([#868](https://github.com/InstaZDLL/WaveFlow/issues/868)) ([20808ec](https://github.com/InstaZDLL/WaveFlow/commit/20808ec8632e3fef09c1e457b25828a4578c397c))
+
 ## [1.9.1](https://github.com/InstaZDLL/WaveFlow/compare/v1.9.0...v1.9.1) (2026-10-15)
 
 
