@@ -157,7 +157,10 @@ fn main() {
                 only = Some(list.lines().map(|l| path_key(l.trim())).collect());
             }
             "--beats" => {
-                let dir = PathBuf::from(args.next().unwrap_or_default());
+                let Some(dir) = args.next().map(PathBuf::from) else {
+                    eprintln!("--beats needs a directory");
+                    std::process::exit(2);
+                };
                 std::fs::create_dir_all(&dir).expect("create --beats dir");
                 beats_dir = Some(dir);
             }
@@ -208,7 +211,11 @@ fn main() {
                         })
                         .collect();
                     let out = dir.join(format!("{}.beats", stem.to_string_lossy()));
-                    std::fs::write(out, lines).expect("write beats");
+                    // Reported, not fatal: a panic here would end this
+                    // worker and quietly drop its share of the queue.
+                    if let Err(e) = std::fs::write(&out, lines) {
+                        eprintln!("could not write {}: {e}", out.display());
+                    }
                 }
                 let t = result.rhythm.tempo;
                 let e = result.rhythm.energy;
