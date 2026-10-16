@@ -53,8 +53,17 @@ if (typeof window !== "undefined") {
     (event) => {
       const target = event.target;
       if (!(target instanceof HTMLElement)) return;
-      if (last === "pointer") target.dataset[MARK] = "";
-      else delete target.dataset[MARK];
+      if (last === "pointer") {
+        target.dataset[MARK] = "";
+      } else if (event.relatedTarget !== null) {
+        // Focus moved here from another element by a key: a keyboard
+        // focus, ring and all. With no `relatedTarget` it came back from
+        // outside the page — the window was minimised or left — onto
+        // the element that had it, which keeps whatever mark it had: the
+        // last key pressed before leaving says nothing about how it was
+        // focused.
+        delete target.dataset[MARK];
+      }
     },
     true,
   );
@@ -62,7 +71,14 @@ if (typeof window !== "undefined") {
     "focusout",
     (event) => {
       const target = event.target;
-      if (target instanceof HTMLElement) delete target.dataset[MARK];
+      if (!(target instanceof HTMLElement)) return;
+      // Only once focus has really gone elsewhere in the page. When the
+      // whole window loses focus, the element stays the active one and
+      // gets it back on return; dropping the mark here is what put the
+      // ring on a clicked row after minimising and restoring (#866).
+      setTimeout(() => {
+        if (document.activeElement !== target) delete target.dataset[MARK];
+      }, 0);
     },
     true,
   );
