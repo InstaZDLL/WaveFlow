@@ -1220,6 +1220,8 @@
     "bpm": "BPM",
     "bpmUncertain": "{{bpm}} (incertain)",
     "energy": "Énergie",
+    "analysedKey": "Tonalité (analyse)",
+    "keyUncertain": "{{key}} (incertain)",
     "loudness": "Volume sonore",
     "replayGain": "ReplayGain",
     "peak": "Crête",
@@ -3197,5 +3199,11 @@
     "empty": "Aucun changement fait à la main pour cette humeur.",
     "undo": "Annuler",
     "undoTrack": "Annuler le changement pour {{title}}"
+  },
+  "keyNames": {
+    "major": "{{note}} majeur",
+    "minor": "{{note}} mineur",
+    "majorNotes": "Do,Ré♭,Ré,Mi♭,Mi,Fa,Fa♯,Sol,La♭,La,Si♭,Si",
+    "minorNotes": "Do,Do♯,Ré,Mi♭,Mi,Fa,Fa♯,Sol,Sol♯,La,Si♭,Si"
   }
 }

@@ -452,9 +452,15 @@ pub fn run() {
                 .map(|v| v == "true" || v == "1")
                 .unwrap_or(false);
                 if !enabled {
+                    // No scan to wait for: rows measured by an older
+                    // analysis version are re-measured now, or a library
+                    // that gains no file would never reach the current
+                    // one (`maybe_auto_analyze` honours the toggle).
+                    commands::analysis::maybe_auto_analyze(&scan_handle);
                     return;
                 }
                 let Ok(profile_id) = state.require_profile_id().await else {
+                    commands::analysis::maybe_auto_analyze(&scan_handle);
                     return;
                 };
                 let artwork_dir = state.paths.profile_artwork_dir(profile_id);
@@ -466,6 +472,8 @@ pub fn run() {
                         Ok(rows) => rows,
                         Err(err) => {
                             tracing::warn!(%err, "scan-on-start: list folders failed");
+                            // The scan cannot run; the re-measure still can.
+                            commands::analysis::maybe_auto_analyze(&scan_handle);
                             return;
                         }
                     };
@@ -482,6 +490,10 @@ pub fn run() {
                         tracing::warn!(folder_id, %err, "scan-on-start: folder scan failed");
                     }
                 }
+                // After the walk, not before it: a sweep started during the
+                // scan would make this one a no-op (one sweep at a time), and
+                // a scan that added nothing triggers none of its own.
+                commands::analysis::maybe_auto_analyze(&scan_handle);
             });
 
             // OS media controls (SMTC / MPRIS / MediaRemote) via

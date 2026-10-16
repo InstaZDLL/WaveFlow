@@ -1177,6 +1177,8 @@
     "bpm": "BPM",
     "bpmUncertain": "{{bpm}}（不确定）",
     "energy": "能量",
+    "analysedKey": "调性（分析）",
+    "keyUncertain": "{{key}}（不确定）",
     "loudness": "响度",
     "replayGain": "ReplayGain",
     "peak": "峰值",
@@ -3097,5 +3099,11 @@
     "empty": "此心情没有手动更改。",
     "undo": "撤销",
     "undoTrack": "撤销对 {{title}} 的更改"
+  },
+  "keyNames": {
+    "major": "{{note}}大调",
+    "minor": "{{note}}小调",
+    "majorNotes": "C,降D,D,降E,E,F,升F,G,降A,A,降B,B",
+    "minorNotes": "C,升C,D,降E,E,F,升F,G,升G,A,降B,B"
   }
 }

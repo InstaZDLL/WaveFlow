@@ -135,6 +135,7 @@ pub async fn create_profile(
 /// so the next startup can restore it.
 #[tauri::command]
 pub async fn switch_profile(
+    app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
     engine: tauri::State<'_, Arc<AudioEngine>>,
     watcher: tauri::State<'_, Arc<crate::watcher::WatcherManager>>,
@@ -211,6 +212,9 @@ pub async fn switch_profile(
         if let Err(err) = watcher.restore_from_db(&pool).await {
             tracing::warn!(%err, "watcher restore after profile switch failed");
         }
+        // The profile just opened may hold rows from an older analysis
+        // version; nothing else re-measures them until a scan adds a file.
+        crate::commands::analysis::maybe_auto_analyze(&app);
     }
 
     let now = now_millis();

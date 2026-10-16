@@ -49,6 +49,9 @@ struct Row {
     centroid_hz: f64,
     dynamics_db: f64,
     lufs: Option<f64>,
+    key: Option<String>,
+    key_confidence: f64,
+    chroma: Option<[f64; 12]>,
 }
 
 #[derive(PartialEq, Clone, Copy)]
@@ -195,6 +198,9 @@ fn main() {
                     centroid_hz: e.map_or(0.0, |e| e.centroid_hz),
                     dynamics_db: e.map_or(0.0, |e| e.dynamics_db),
                     lufs: result.loudness_lufs,
+                    key: result.key.map(|k| k.name().to_string()),
+                    key_confidence: result.key.map_or(0.0, |k| k.confidence),
+                    chroma: result.chroma,
                 };
                 let mut rows = rows.lock().unwrap();
                 rows.push(row);
@@ -214,7 +220,7 @@ fn main() {
         let mut f = File::create(&out_path).expect("create output");
         writeln!(
             f,
-            "path\ttag\tbpm\toutcome\tconfidence\tsalience\toctave_margin\tstability\tenergy\tattack_db\tonset_rate\tcentroid_hz\tdynamics_db\tlufs"
+            "path\ttag\tbpm\toutcome\tconfidence\tsalience\toctave_margin\tstability\tenergy\tattack_db\tonset_rate\tcentroid_hz\tdynamics_db\tlufs\tkey\tkey_confidence\tchroma"
         )
         .unwrap();
         for r in &rows {
@@ -229,7 +235,7 @@ fn main() {
             let opt = |v: Option<f64>| v.map_or(String::new(), |v| format!("{v:.2}"));
             writeln!(
                 f,
-                "{}\t{}\t{}\t{o}\t{:.3}\t{:.3}\t{:.3}\t{:.3}\t{}\t{:.3}\t{:.3}\t{:.0}\t{:.2}\t{}",
+                "{}\t{}\t{}\t{o}\t{:.3}\t{:.3}\t{:.3}\t{:.3}\t{}\t{:.3}\t{:.3}\t{:.0}\t{:.2}\t{}\t{}\t{:.3}\t{}",
                 r.path.display(),
                 opt(r.tag),
                 opt(r.bpm),
@@ -243,6 +249,13 @@ fn main() {
                 r.centroid_hz,
                 r.dynamics_db,
                 opt(r.lufs),
+                r.key.as_deref().unwrap_or(""),
+                r.key_confidence,
+                r.chroma.map_or(String::new(), |c| c
+                    .iter()
+                    .map(|v| format!("{v:.5}"))
+                    .collect::<Vec<_>>()
+                    .join(",")),
             )
             .unwrap();
         }

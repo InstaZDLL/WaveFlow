@@ -1177,6 +1177,8 @@
     "bpm": "BPM",
     "bpmUncertain": "{{bpm}} (unsicher)",
     "energy": "Energie",
+    "analysedKey": "Tonart (Analyse)",
+    "keyUncertain": "{{key}} (unsicher)",
     "loudness": "Lautheit",
     "replayGain": "ReplayGain",
     "peak": "Peak",
@@ -3097,5 +3099,11 @@
     "empty": "Keine Änderungen von Hand für diese Stimmung.",
     "undo": "Rückgängig",
     "undoTrack": "Änderung für {{title}} rückgängig machen"
+  },
+  "keyNames": {
+    "major": "{{note}}-Dur",
+    "minor": "{{note}}-Moll",
+    "majorNotes": "C,Des,D,Es,E,F,Fis,G,As,A,B,H",
+    "minorNotes": "c,cis,d,es,e,f,fis,g,gis,a,b,h"
   }
 }

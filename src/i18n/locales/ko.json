@@ -1177,6 +1177,8 @@
     "bpm": "BPM",
     "bpmUncertain": "{{bpm}} (불확실)",
     "energy": "에너지",
+    "analysedKey": "조성 (분석)",
+    "keyUncertain": "{{key}} (불확실)",
     "loudness": "라우드니스",
     "replayGain": "ReplayGain",
     "peak": "피크",
@@ -3097,5 +3099,11 @@
     "empty": "이 분위기에는 직접 바꾼 내용이 없습니다.",
     "undo": "되돌리기",
     "undoTrack": "{{title}} 변경 되돌리기"
+  },
+  "keyNames": {
+    "major": "{{note}}장조",
+    "minor": "{{note}}단조",
+    "majorNotes": "다,내림라,라,내림마,마,바,올림바,사,내림가,가,내림나,나",
+    "minorNotes": "다,올림다,라,내림마,마,바,올림바,사,올림사,가,내림나,나"
   }
 }

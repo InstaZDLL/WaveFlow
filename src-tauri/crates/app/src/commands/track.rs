@@ -341,7 +341,7 @@ pub async fn search_tracks_advanced(
     let plan: Option<SearchPlan> = filters.query.as_deref().and_then(plan_search);
 
     let mut sql = String::with_capacity(1024);
-    sql.push_str(
+    sql.push_str(concat!(
         "SELECT t.id, t.library_id, t.title,\n\
                 t.album_id,\n\
                 al.title AS album_title,\n\
@@ -359,12 +359,14 @@ pub async fn search_tracks_advanced(
                 )) AS artist_ids,\n\
                 t.duration_ms, t.track_number, t.disc_number, t.year,\n\
                 t.bitrate, t.sample_rate, t.channels,\n\
-                t.bit_depth, t.codec, t.musical_key,\n\
+                t.bit_depth, t.codec, ",
+        waveflow_core::effective_musical_key_sql!(),
+        " AS musical_key,\n\
                 t.file_path, t.file_size, t.added_at,\n\
                 aw.hash   AS artwork_hash,\n\
                 aw.format AS artwork_format,\n\
                 t.rating  AS rating\n",
-    );
+    ));
 
     // Only the MATCH route needs the index table joined in; the LIKE
     // route reads the real columns, which the joins below already bring.

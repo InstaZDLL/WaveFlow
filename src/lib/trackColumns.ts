@@ -423,6 +423,8 @@ export function cellText(
     /** `track.added_at`, which the backend writes in milliseconds. */
     date: (epochMs: number) => string;
     tag: (row: LibraryTrackRow, key: string) => string | null;
+    /** A stored key (`Am`, `8A`, …) in the reader's language. */
+    musicalKey: (raw: string | null) => string;
   },
 ): string {
   const tag = tagKeyOf(id);
@@ -455,7 +457,7 @@ export function cellText(
     case "codec":
       return row.codec ?? "";
     case "musical_key":
-      return row.musical_key ?? "";
+      return fmt.musicalKey(row.musical_key);
     case "file_size":
       return row.file_size != null ? fmt.bytes(row.file_size) : "";
     case "added_at":

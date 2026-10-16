@@ -37,6 +37,7 @@ import { GENRE_PRESETS } from "../../lib/genrePresets";
 import { pickFile } from "../../lib/tauri/dialog";
 import { useTrackUpdated } from "../../hooks/useTrackUpdated";
 import { useModalA11y } from "../../hooks/useModalA11y";
+import { formatMusicalKey } from "../../lib/musicalKey";
 import {
   analyzeTrack,
   getTrackAnalysis,
@@ -734,7 +735,9 @@ export function TrackPropertiesModal({
             <Row label={t("trackProperties.bitrate")} value={bitrate} />
             <Row
               label={t("trackProperties.key")}
-              value={track.musical_key ?? "—"}
+              value={
+                track.musical_key ? formatMusicalKey(track.musical_key, t) : "—"
+              }
             />
           </Section>
 
@@ -771,6 +774,21 @@ export function TrackPropertiesModal({
                         bpm: Math.round(analysis.bpm),
                       })
                     : Math.round(analysis.bpm)
+              }
+            />
+            <Row
+              label={t("trackProperties.analysedKey")}
+              value={
+                analysis?.musical_key == null
+                  ? "—"
+                  : // Under 0.1 the reading is right about a third of
+                    // the time (measured; see `analysis/key.rs`).
+                    analysis.key_confidence != null &&
+                      analysis.key_confidence < 0.1
+                    ? t("trackProperties.keyUncertain", {
+                        key: formatMusicalKey(analysis.musical_key, t),
+                      })
+                    : formatMusicalKey(analysis.musical_key, t)
               }
             />
             <Row

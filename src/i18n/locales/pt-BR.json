@@ -1221,6 +1221,8 @@
     "bpm": "BPM",
     "bpmUncertain": "{{bpm}} (incerto)",
     "energy": "Energia",
+    "analysedKey": "Tonalidade (análise)",
+    "keyUncertain": "{{key}} (incerto)",
     "loudness": "Loudness",
     "replayGain": "ReplayGain",
     "peak": "Pico",
@@ -3198,5 +3200,11 @@
     "empty": "Nenhuma alteração manual para este humor.",
     "undo": "Desfazer",
     "undoTrack": "Desfazer a alteração de {{title}}"
+  },
+  "keyNames": {
+    "major": "{{note}} maior",
+    "minor": "{{note}} menor",
+    "majorNotes": "Dó,Ré♭,Ré,Mi♭,Mi,Fá,Fá♯,Sol,Lá♭,Lá,Si♭,Si",
+    "minorNotes": "Dó,Dó♯,Ré,Mi♭,Mi,Fá,Fá♯,Sol,Sol♯,Lá,Si♭,Si"
   }
 }
