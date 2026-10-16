@@ -130,9 +130,11 @@ gh secret set SIGNTOOL_PFX_PASSWORD            --body "<passphrase>"
 
 ### 1. Cut the release via release-please
 
-You do **not** hand-bump versions anymore. Every push to `main`
-runs [`.github/workflows/release-please.yml`](../.github/workflows/release-please.yml),
-which:
+You do **not** hand-bump versions anymore. Every push to `main` — or to
+a maintenance branch, see
+[Patch releases from a maintenance branch](#patch-releases-from-a-maintenance-branch) —
+runs [`.github/workflows/release-please.yml`](../.github/workflows/release-please.yml)
+against that branch, which:
 
 1. Parses the Conventional Commits since the last tag.
 2. Computes the next semver (`feat:` → minor, `fix:` → patch,
@@ -152,7 +154,8 @@ which:
 To ship, **review and merge the release PR** (squash or merge,
 release-please tolerates both). The merge causes release-please to:
 
-- create the `vX.Y.Z` tag on `main`,
+- create the `vX.Y.Z` tag on the branch it targets (`main`, or the
+  maintenance branch),
 - create the matching GitHub Release with the auto-generated notes,
 - update [`.release-please-manifest.json`](../.release-please-manifest.json)
   to record the new version.
@@ -173,7 +176,8 @@ a time, and the job's timeout cut it before the tag was ever made.
 
 ### 2. Watch the workflow
 
-Pushing the tag triggers `.github/workflows/release.yml`:
+`.github/workflows/release.yml`, started for the tag as above (a tag
+pushed by hand would start it on its own; release-please's does not):
 
 - Builds Linux on `ubuntu-latest` — produces an `.AppImage`
   (universal, also the updater payload), a `.deb` (Debian/Ubuntu),
@@ -242,7 +246,13 @@ of that line:
    a tag older than their `release/**` support has neither. Cherry-pick
    the commit that added it.
 3. **Cherry-pick each fix** from `main` (signed: `git cherry-pick -S`),
-   through a pull request into `release/X.Y.x` so CI runs on it.
+   through a pull request into `release/X.Y.x` so CI runs on it. The
+   **Maintenance branches** ruleset protects `release/**` the way `Main`
+   protects `main` — no deletion or force push, signed commits, a pull
+   request with one approval — without the CodeQL gate, since CodeQL only
+   analyses pull requests into `main`. A push to these branches runs their
+   own copy of the workflow with a write token, which is why they must not
+   take direct pushes.
 4. release-please, run on the branch with `--target-branch`, opens
    `chore(release/X.Y.x): release X.Y.Z+1` against it; the Cargo.lock
    pipeline fills it in as on `main`. Merge it, then start `release.yml`
