@@ -12,5 +12,10 @@
 pub mod dsd;
 // Opus decoding over libopus (#581). symphonia reads the containers
 // but ships no Opus decoder, so this one is registered into a custom
-// codec registry alongside the built-ins.
+// codec registry alongside the built-ins. Behind the `opus` feature
+// (default on): without it the same `codecs()` answers, minus Opus.
+#[cfg(feature = "opus")]
+pub mod opus;
+#[cfg(not(feature = "opus"))]
+#[path = "opus_off.rs"]
 pub mod opus;
