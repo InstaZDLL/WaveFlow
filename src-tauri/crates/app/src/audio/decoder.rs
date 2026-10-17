@@ -358,7 +358,7 @@ fn decoder_loop(
                 // Drain whatever's left of the previous track's
                 // samples from the rtrb ring so the new track doesn't
                 // start with the tail of the old one.
-                drain_ring_silently(producer, &shared);
+                unpause_and_drain_ring(producer, &shared);
                 // Reset position counters so the UI clock starts from 0
                 // (or from start_ms on a mid-track resume).
                 shared.restart_clock(start_ms, 0, false);
@@ -473,7 +473,7 @@ fn decoder_loop(
                 shared.clear_ab_loop();
                 transition_state(&shared, &app, PlayerState::Loading, Some(track_id));
 
-                drain_ring_silently(producer, &shared);
+                unpause_and_drain_ring(producer, &shared);
                 shared.restart_clock(start_ms, 0, false);
                 shared.current_track_id.store(track_id, Ordering::Release);
                 if let Err(err) = restore_pcm_output(&app, producer) {
@@ -634,7 +634,7 @@ fn decoder_loop(
                 shared.clear_ab_loop();
                 transition_state(&shared, &app, PlayerState::Loading, Some(track_id));
 
-                drain_ring_silently(producer, &shared);
+                unpause_and_drain_ring(producer, &shared);
                 shared.restart_clock(0, 0, false);
                 shared.current_track_id.store(track_id, Ordering::Release);
                 if let Err(err) = restore_pcm_output(&app, producer) {
@@ -832,27 +832,12 @@ fn decoder_loop(
     }
 }
 
-/// Empty the ring without letting what is in it reach the device.
-///
-/// Engages `drain_silent` on the output — it pops the ring AND writes
-/// zeros, so the tail of the previous audio never plays — and clears any
-/// lingering `paused_output` so the output actually runs (otherwise this
-/// would deadlock). Spin-waits until the ring is empty, bounded at
-/// 500 ms, then drops the drain flag before anything new is pushed.
-fn drain_ring_silently(producer: &Producer<f32>, shared: &SharedPlayback) {
+/// [`drain_ring_silent`] from the idle loop, where the output may still
+/// be paused: a lingering `paused_output` is cleared first, or the output
+/// would never pop the ring and the drain would only end at its timeout.
+fn unpause_and_drain_ring(producer: &Producer<f32>, shared: &SharedPlayback) {
     shared.paused_output.store(false, Ordering::Release);
-    if producer.slots() == super::output::RING_CAPACITY {
-        return;
-    }
-    shared.drain_silent.store(true, Ordering::Release);
-    let start = std::time::Instant::now();
-    while producer.slots() < super::output::RING_CAPACITY
-        && !producer.is_abandoned()
-        && start.elapsed() < Duration::from_millis(500)
-    {
-        std::thread::sleep(Duration::from_millis(1));
-    }
-    shared.drain_silent.store(false, Ordering::Release);
+    drain_ring_silent(producer, shared);
 }
 
 /// What the Settings card is told while the test tone plays.
@@ -908,7 +893,7 @@ fn play_test_tone(
     use super::test_tone;
 
     // A paused track's tail may still sit in the ring.
-    drain_ring_silently(producer, shared);
+    unpause_and_drain_ring(producer, shared);
     // A DoP output reads every ring value as a DSD word: PCM pushed into
     // it comes out as full-scale noise.
     if let Err(err) = restore_pcm_output(app, producer) {
@@ -1010,7 +995,7 @@ fn play_test_tone(
 
     // Cut short: what is left of the tone must not play under whatever
     // comes next.
-    drain_ring_silently(producer, shared);
+    unpause_and_drain_ring(producer, shared);
     shared.samples_played.store(clock, Ordering::Release);
     let _ = app.emit(EVENT_TEST_TONE, TestTonePayload::Interrupted);
     end
@@ -2124,8 +2109,7 @@ fn finished_from(stream: &ActiveStream) -> FinishedTrack {
 ///
 /// A ring whose consumer is gone never drains — the output thread drops
 /// a stuck stream and waits for the rebuild's `SwapProducer` — so this
-/// wait, and the three inline ones in `decoder_loop`, end there rather
-/// than at the timeout.
+/// wait ends there rather than at the timeout.
 fn drain_ring_silent(producer: &Producer<f32>, shared: &SharedPlayback) {
     if producer.slots() == super::output::RING_CAPACITY {
         return;
