@@ -117,9 +117,8 @@ export function SpectrumVisualizer({
   useEffect(() => {
     const now = performance.now();
     if (!isPlaying) {
+      // The shape holds where the music stopped, as it always has.
       if (pausedAtRef.current === null) pausedAtRef.current = now;
-      // Settle to a flat line rather than freeze mid-pose.
-      targetRef.current = null;
       return;
     }
     const pausedAt = pausedAtRef.current;
@@ -317,8 +316,8 @@ export function SpectrumVisualizer({
               : drawn[i] + (t - drawn[i]) * release;
         }
       } else if (drawnRef.current) {
-        // No incoming bands → settle to zero so the shape doesn't freeze
-        // mid-pose when playback pauses. A curve lands on a flat line.
+        // No frame has arrived yet: whatever is drawn settles onto a flat
+        // line. A pause does not land here; it keeps the last frame.
         const drawn = drawnRef.current;
         const decay = reducedMotion ? 0.92 : 0.85;
         let any = false;
