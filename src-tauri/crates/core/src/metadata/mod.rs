@@ -8,7 +8,8 @@
 //!
 //! The three enrichment clients — Last.fm, TheAudioDB and Deezer, the ones
 //! `waveflow-server` reads through — have two constructors (ListenBrainz,
-//! which only the desktop uses, has `new()` alone). `new()` builds its own HTTP client
+//! which only the desktop uses, has `new()` alone, built by
+//! [`default_http`] like the others' `new()`). `new()` builds its own HTTP client
 //! and aims at the provider's public address, which is what the desktop
 //! wants. `with_http` takes both from the caller, because a server has
 //! rules the desktop does not: it follows no redirect, and its tests
