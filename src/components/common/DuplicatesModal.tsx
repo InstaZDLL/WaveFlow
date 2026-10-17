@@ -7,6 +7,7 @@ import {
   findDuplicates,
   moveTracksToTrash,
   type DuplicateGroup,
+  type TrashGroup,
   type TrashReport,
 } from "../../lib/tauri/duplicates";
 import { formatDuration } from "../../lib/tauri/track";
@@ -42,23 +43,34 @@ export function DuplicatesModal({ isOpen, onClose }: DuplicatesModalProps) {
   const [keepIds, setKeepIds] = useState<Map<string, number>>(new Map());
   // The copies the user is being asked about, between the click and
   // the confirmation; and what the last move did.
-  const [pending, setPending] = useState<{ id: number; path: string }[] | null>(
-    null,
-  );
+  const [pending, setPending] = useState<{
+    copies: { id: number; path: string }[];
+    groups: TrashGroup[];
+  } | null>(null);
   const [report, setReport] = useState<TrashReport | null>(null);
   // The footer swaps buttons when the confirmation opens and closes;
   // without moving focus it would fall back to the document.
+  // After a confirm the trash button stays disabled through the move
+  // and the rescan, so the focus waits for it; if it never comes back
+  // (nothing left to trash), Close takes it.
   const cancelRef = useRef<HTMLButtonElement>(null);
   const trashRef = useRef<HTMLButtonElement>(null);
-  const wasPending = useRef(false);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const restoreFocus = useRef(false);
   useEffect(() => {
     if (pending) {
       cancelRef.current?.focus();
-    } else if (wasPending.current) {
-      trashRef.current?.focus();
+      restoreFocus.current = true;
+      return;
     }
-    wasPending.current = pending !== null;
-  }, [pending]);
+    if (!restoreFocus.current || isDeleting || isScanning) return;
+    restoreFocus.current = false;
+    if (trashRef.current && !trashRef.current.disabled) {
+      trashRef.current.focus();
+    } else {
+      closeRef.current?.focus();
+    }
+  }, [pending, isDeleting, isScanning]);
   // Two independent staleness tokens:
   //   - `scanSeqRef` is bumped by every `refresh()` invocation so two
   //     overlapping scans don't race on the setters.
@@ -128,22 +140,24 @@ export function DuplicatesModal({ isOpen, onClose }: DuplicatesModalProps) {
 
   const askToTrash = () => {
     const copies: { id: number; path: string }[] = [];
+    const trashGroups: TrashGroup[] = [];
     for (const g of groups) {
       const keep = keepIds.get(g.file_hash);
       if (keep == null) continue;
-      for (const t of g.tracks) {
-        if (t.id !== keep) copies.push({ id: t.id, path: t.file_path });
-      }
+      const others = g.tracks.filter((t) => t.id !== keep);
+      if (others.length === 0) continue;
+      for (const t of others) copies.push({ id: t.id, path: t.file_path });
+      trashGroups.push({ keep_id: keep, trash_ids: others.map((t) => t.id) });
     }
     if (copies.length === 0) return;
     setReport(null);
-    setPending(copies);
+    setPending({ copies, groups: trashGroups });
   };
 
   const handleDeleteOthers = async () => {
-    const toDelete = (pending ?? []).map((c) => c.id);
+    const toTrash = pending?.groups ?? [];
     setPending(null);
-    if (toDelete.length === 0) return;
+    if (toTrash.length === 0) return;
     // Snapshot the modal session — only the `!isOpen` reset bumps it,
     // so the guard remains valid across the embedded `refresh()` call
     // (which bumps a *different* token, `scanSeqRef`). That lets the
@@ -152,7 +166,7 @@ export function DuplicatesModal({ isOpen, onClose }: DuplicatesModalProps) {
     const session = sessionRef.current;
     setIsDeleting(true);
     try {
-      const result = await moveTracksToTrash(toDelete);
+      const result = await moveTracksToTrash(toTrash);
       if (session !== sessionRef.current) return;
       setReport(result);
       // Run the rescan with the spinner still on — clicking Delete
@@ -231,11 +245,13 @@ export function DuplicatesModal({ isOpen, onClose }: DuplicatesModalProps) {
                         {" — "}
                         {f.reason.kind === "playing"
                           ? t("duplicates.reasonPlaying")
-                          : f.reason.kind === "row_kept"
-                            ? t("duplicates.reasonRowKept", {
-                                message: f.reason.message,
-                              })
-                            : f.reason.message}
+                          : f.reason.kind === "kept_copy_gone"
+                            ? t("duplicates.reasonKeptCopyGone")
+                            : f.reason.kind === "row_kept"
+                              ? t("duplicates.reasonRowKept", {
+                                  message: f.reason.message,
+                                })
+                              : f.reason.message}
                       </li>
                     ))}
                   </ul>
@@ -252,7 +268,7 @@ export function DuplicatesModal({ isOpen, onClose }: DuplicatesModalProps) {
                 {t("duplicates.confirmBody")}
               </p>
               <ul className="rounded-xl border border-zinc-200 dark:border-zinc-800 divide-y divide-zinc-100 dark:divide-zinc-800 text-xs font-mono text-zinc-600 dark:text-zinc-300">
-                {pending.map((c) => (
+                {pending.copies.map((c) => (
                   <li key={c.id} className="px-4 py-2 break-all">
                     {c.path}
                   </li>
@@ -371,6 +387,7 @@ export function DuplicatesModal({ isOpen, onClose }: DuplicatesModalProps) {
             </button>
             <div className="flex items-center gap-2">
               <button
+                ref={closeRef}
                 type="button"
                 onClick={onClose}
                 className="px-4 py-2 rounded-full text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"

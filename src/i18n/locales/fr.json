@@ -1675,7 +1675,8 @@
     "trashed": "Mis à la corbeille : {{count}}",
     "notTrashed": "Non déplacés : {{count}}",
     "reasonPlaying": "en cours de lecture",
-    "reasonRowKept": "mis à la corbeille, mais encore listé jusqu'au prochain scan ({{message}})"
+    "reasonRowKept": "mis à la corbeille, mais encore listé jusqu'au prochain scan ({{message}})",
+    "reasonKeptCopyGone": "la copie gardée est introuvable ou n'est plus identique, celle-ci reste donc en place"
   },
   "dragDrop": {
     "dropHint": "Déposer pour importer",

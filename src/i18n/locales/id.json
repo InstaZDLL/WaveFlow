@@ -1503,7 +1503,8 @@
     "trashed": "Dipindahkan ke tempat sampah: {{count}}",
     "notTrashed": "Tidak dipindahkan: {{count}}",
     "reasonPlaying": "sedang diputar",
-    "reasonRowKept": "dipindahkan ke tempat sampah, tetapi masih tercantum hingga pemindaian berikutnya ({{message}})"
+    "reasonRowKept": "dipindahkan ke tempat sampah, tetapi masih tercantum hingga pemindaian berikutnya ({{message}})",
+    "reasonKeptCopyGone": "salinan yang Anda simpan hilang atau tidak lagi identik, jadi salinan ini tetap"
   },
   "dragDrop": {
     "dropHint": "Lepaskan untuk mengimpor",

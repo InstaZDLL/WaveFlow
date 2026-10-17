@@ -1503,7 +1503,8 @@
     "trashed": "In den Papierkorb verschoben: {{count}}",
     "notTrashed": "Nicht verschoben: {{count}}",
     "reasonPlaying": "wird gerade abgespielt",
-    "reasonRowKept": "in den Papierkorb verschoben, aber bis zum nächsten Scan noch aufgeführt ({{message}})"
+    "reasonRowKept": "in den Papierkorb verschoben, aber bis zum nächsten Scan noch aufgeführt ({{message}})",
+    "reasonKeptCopyGone": "die behaltene Kopie fehlt oder ist nicht mehr identisch, daher bleibt diese"
   },
   "dragDrop": {
     "dropHint": "Loslassen zum Importieren",

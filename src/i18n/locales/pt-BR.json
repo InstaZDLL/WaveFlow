@@ -1557,7 +1557,8 @@
     "trashed": "Movidos para a lixeira: {{count}}",
     "notTrashed": "Não movidos: {{count}}",
     "reasonPlaying": "está tocando",
-    "reasonRowKept": "movido para a lixeira, mas ainda listado até a próxima varredura ({{message}})"
+    "reasonRowKept": "movido para a lixeira, mas ainda listado até a próxima varredura ({{message}})",
+    "reasonKeptCopyGone": "a cópia mantida não existe ou não é mais idêntica, então esta fica"
   },
   "dragDrop": {
     "dropHint": "Soltar para importar",

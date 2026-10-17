@@ -20,32 +20,35 @@
 //! chose another mode, which a pooled thread that once served WASAPI may
 //! have.
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 /// What happened to one path.
 pub type Outcome = Result<(), String>;
 
-/// Move every path to the trash, one at a time, and say what became of
-/// each, in the same order. A file that is no longer in its folder counts
-/// as done: there is nothing left to move, and its row should go with it.
-/// A file whose *folder* is missing does not: that is a drive unplugged
-/// or a share down, where every file looks gone and none of them is.
-pub async fn move_all(paths: Vec<PathBuf>) -> Vec<Outcome> {
+/// Run `work` on a thread of its own and wait for it. Every
+/// [`move_one`] call goes through here, for the COM reason in the module
+/// documentation; the caller puts its own checks in `work`, so they run
+/// right before each move rather than before the wait.
+pub async fn on_trash_thread<R: Send + 'static>(
+    work: impl FnOnce() -> R + Send + 'static,
+) -> Result<R, String> {
     let (tx, rx) = tokio::sync::oneshot::channel();
-    let spawned = std::thread::Builder::new()
+    std::thread::Builder::new()
         .name("trash".into())
         .spawn(move || {
-            let outcomes = paths.iter().map(|p| move_one(p)).collect::<Vec<_>>();
-            let _ = tx.send(outcomes);
-        });
-    if let Err(e) = spawned {
-        return vec![Err(format!("could not start the trash thread: {e}"))];
-    }
-    rx.await
-        .unwrap_or_else(|_| vec![Err("the trash thread stopped".into())])
+            let _ = tx.send(work());
+        })
+        .map_err(|e| format!("could not start the trash thread: {e}"))?;
+    rx.await.map_err(|_| "the trash thread stopped".to_string())
 }
 
-fn move_one(path: &Path) -> Outcome {
+/// Move one file to the trash. Call it from [`on_trash_thread`].
+///
+/// A file that is no longer in its folder counts as done: there is
+/// nothing left to move, and its row should go with it. A file whose
+/// *folder* is missing does not: that is a drive unplugged or a share
+/// down, where every file looks gone and none of them is.
+pub fn move_one(path: &Path) -> Outcome {
     if std::fs::symlink_metadata(path).is_err_and(|e| e.kind() == std::io::ErrorKind::NotFound) {
         return if path.parent().is_some_and(Path::is_dir) {
             Ok(())
@@ -130,23 +133,32 @@ mod tests {
         let dir = tempfile::tempdir().expect("tempdir");
         let path = dir.path().join("copy.mp3");
         std::fs::write(&path, b"not really audio").expect("write");
-        let outcomes = move_all(vec![path.clone()]).await;
-        assert_eq!(outcomes, vec![Ok(())]);
+        let moved = path.clone();
+        let outcome = on_trash_thread(move || move_one(&moved))
+            .await
+            .expect("thread");
+        assert_eq!(outcome, Ok(()));
         assert!(!path.exists());
     }
 
     #[tokio::test]
     async fn a_missing_file_counts_as_moved() {
         let dir = tempfile::tempdir().expect("tempdir");
-        let outcomes = move_all(vec![dir.path().join("gone.mp3")]).await;
-        assert_eq!(outcomes, vec![Ok(())]);
+        let gone = dir.path().join("gone.mp3");
+        let outcome = on_trash_thread(move || move_one(&gone))
+            .await
+            .expect("thread");
+        assert_eq!(outcome, Ok(()));
     }
 
     /// An unplugged drive makes every file look gone: its rows must stay.
     #[tokio::test]
     async fn a_missing_folder_is_not_a_missing_file() {
         let dir = tempfile::tempdir().expect("tempdir");
-        let outcomes = move_all(vec![dir.path().join("unplugged").join("copy.mp3")]).await;
-        assert!(outcomes[0].is_err(), "{outcomes:?}");
+        let unplugged = dir.path().join("unplugged").join("copy.mp3");
+        let outcome = on_trash_thread(move || move_one(&unplugged))
+            .await
+            .expect("thread");
+        assert!(outcome.is_err(), "{outcome:?}");
     }
 }

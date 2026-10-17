@@ -1503,7 +1503,8 @@
     "trashed": "ゴミ箱に移動：{{count}}件",
     "notTrashed": "移動できませんでした：{{count}}件",
     "reasonPlaying": "再生中のため",
-    "reasonRowKept": "ゴミ箱に移動しましたが、次回のスキャンまで一覧に残ります（{{message}}）"
+    "reasonRowKept": "ゴミ箱に移動しましたが、次回のスキャンまで一覧に残ります（{{message}}）",
+    "reasonKeptCopyGone": "残すコピーが見つからないか同一ではなくなったため、このコピーは残します"
   },
   "dragDrop": {
     "dropHint": "ドロップしてインポート",

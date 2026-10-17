@@ -1503,7 +1503,8 @@
     "trashed": "Çöp kutusuna taşındı: {{count}}",
     "notTrashed": "Taşınamadı: {{count}}",
     "reasonPlaying": "şu anda çalıyor",
-    "reasonRowKept": "çöp kutusuna taşındı, ancak sonraki taramaya kadar listede kalıyor ({{message}})"
+    "reasonRowKept": "çöp kutusuna taşındı, ancak sonraki taramaya kadar listede kalıyor ({{message}})",
+    "reasonKeptCopyGone": "tuttuğunuz kopya yok ya da artık aynı değil, bu yüzden bu kopya kalıyor"
   },
   "dragDrop": {
     "dropHint": "İçe aktarmak için bırak",

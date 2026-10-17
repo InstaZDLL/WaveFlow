@@ -1556,7 +1556,8 @@
     "trashed": "Movidos a la papelera: {{count}}",
     "notTrashed": "No movidos: {{count}}",
     "reasonPlaying": "se está reproduciendo",
-    "reasonRowKept": "movido a la papelera, pero sigue en la lista hasta el próximo escaneo ({{message}})"
+    "reasonRowKept": "movido a la papelera, pero sigue en la lista hasta el próximo escaneo ({{message}})",
+    "reasonKeptCopyGone": "la copia que conservas falta o ya no es idéntica, así que esta se queda"
   },
   "dragDrop": {
     "dropHint": "Suelta para importar",

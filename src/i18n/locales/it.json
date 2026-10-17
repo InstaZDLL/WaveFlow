@@ -1556,7 +1556,8 @@
     "trashed": "Spostati nel cestino: {{count}}",
     "notTrashed": "Non spostati: {{count}}",
     "reasonPlaying": "è in riproduzione",
-    "reasonRowKept": "spostato nel cestino, ma ancora elencato fino alla prossima scansione ({{message}})"
+    "reasonRowKept": "spostato nel cestino, ma ancora elencato fino alla prossima scansione ({{message}})",
+    "reasonKeptCopyGone": "la copia tenuta manca o non è più identica, quindi questa resta"
   },
   "dragDrop": {
     "dropHint": "Rilascia per importare",

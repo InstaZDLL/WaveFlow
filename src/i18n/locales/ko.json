@@ -1503,7 +1503,8 @@
     "trashed": "휴지통으로 이동: {{count}}개",
     "notTrashed": "이동하지 못함: {{count}}개",
     "reasonPlaying": "재생 중",
-    "reasonRowKept": "휴지통으로 이동했지만 다음 스캔까지 목록에 남아 있습니다 ({{message}})"
+    "reasonRowKept": "휴지통으로 이동했지만 다음 스캔까지 목록에 남아 있습니다 ({{message}})",
+    "reasonKeptCopyGone": "남겨 둔 사본이 없거나 더 이상 같지 않아 이 사본은 그대로 둡니다"
   },
   "dragDrop": {
     "dropHint": "여기에 놓아 가져오기",

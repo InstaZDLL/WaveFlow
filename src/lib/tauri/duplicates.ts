@@ -27,6 +27,8 @@ export function findDuplicates(): Promise<DuplicateGroup[]> {
 export type TrashRefusal =
   | { kind: "playing" }
   | { kind: "failed"; message: string }
+  /** The copy kept for it is missing, changed, or the same file. */
+  | { kind: "kept_copy_gone" }
   /** In the trash, but its row could not be removed. */
   | { kind: "row_kept"; message: string };
 
@@ -48,6 +50,15 @@ export interface TrashReport {
  * Only a copy whose file actually left loses its row, so a rescan
  * cannot bring it back and a refusal leaves the library as it was.
  */
-export function moveTracksToTrash(trackIds: number[]): Promise<TrashReport> {
-  return invoke<TrashReport>("move_tracks_to_trash", { trackIds });
+export interface TrashGroup {
+  keep_id: number;
+  trash_ids: number[];
+}
+
+/**
+ * Each group names the copy that stays: the backend checks, right before
+ * moving a copy, that the kept one is still there and still identical.
+ */
+export function moveTracksToTrash(groups: TrashGroup[]): Promise<TrashReport> {
+  return invoke<TrashReport>("move_tracks_to_trash", { groups });
 }

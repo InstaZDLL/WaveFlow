@@ -1503,7 +1503,8 @@
     "trashed": "Naar de prullenbak verplaatst: {{count}}",
     "notTrashed": "Niet verplaatst: {{count}}",
     "reasonPlaying": "wordt afgespeeld",
-    "reasonRowKept": "naar de prullenbak verplaatst, maar nog vermeld tot de volgende scan ({{message}})"
+    "reasonRowKept": "naar de prullenbak verplaatst, maar nog vermeld tot de volgende scan ({{message}})",
+    "reasonKeptCopyGone": "de bewaarde kopie ontbreekt of is niet meer identiek, dus deze blijft"
   },
   "dragDrop": {
     "dropHint": "Loslaten om te importeren",
