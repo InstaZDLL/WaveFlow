@@ -1597,12 +1597,18 @@
     "empty": "Дубликатов нет",
     "emptyHint": "Ваша библиотека чиста.",
     "rescan": "Пересканировать",
-    "deleteOthers_zero": "Удалять нечего",
-    "deleteOthers_one": "Удалить {{count}} дубликат",
-    "deleteOthers_few": "Удалить {{count}} дубликата",
-    "deleteOthers_other": "Удалить {{count}} дубликатов",
+    "trashOthers_zero": "Перемещать нечего",
+    "trashOthers_one": "Переместить {{count}} дубликат в корзину",
+    "trashOthers_few": "Переместить {{count}} дубликата в корзину",
+    "trashOthers_other": "Переместить {{count}} дубликатов в корзину",
+    "trashOthers_many": "Переместить {{count}} дубликатов в корзину",
     "keepAria": "Сохранить {{title}}",
-    "deleteOthers_many": "Удалить {{count}} дубликатов"
+    "confirmTitle": "Переместить эти файлы в корзину?",
+    "confirmBody": "Эти копии попадут в системную корзину, откуда их ещё можно восстановить. Копия, оставленная в каждой группе, останется на месте.",
+    "confirmAction": "Переместить в корзину",
+    "trashed": "Перемещено в корзину: {{count}}",
+    "notTrashed": "Не перемещено: {{count}}",
+    "reasonPlaying": "сейчас воспроизводится"
   },
   "dragDrop": {
     "dropHint": "Отпустите, чтобы импортировать",

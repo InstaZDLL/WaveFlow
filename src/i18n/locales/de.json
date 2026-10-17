@@ -1493,10 +1493,16 @@
     "empty": "Keine Duplikate",
     "emptyHint": "Deine Bibliothek ist sauber.",
     "rescan": "Erneut scannen",
-    "deleteOthers_zero": "Nichts zu löschen",
-    "deleteOthers_one": "{{count}} Duplikat löschen",
-    "deleteOthers_other": "{{count}} Duplikate löschen",
-    "keepAria": "{{title}} behalten"
+    "trashOthers_zero": "Nichts zu verschieben",
+    "trashOthers_one": "{{count}} Duplikat in den Papierkorb verschieben",
+    "trashOthers_other": "{{count}} Duplikate in den Papierkorb verschieben",
+    "keepAria": "{{title}} behalten",
+    "confirmTitle": "Diese Dateien in den Papierkorb verschieben?",
+    "confirmBody": "Diese Kopien landen im Papierkorb Ihres Systems, aus dem Sie sie wiederherstellen können. Die in jeder Gruppe behaltene Kopie bleibt, wo sie ist.",
+    "confirmAction": "In den Papierkorb verschieben",
+    "trashed": "In den Papierkorb verschoben: {{count}}",
+    "notTrashed": "Nicht verschoben: {{count}}",
+    "reasonPlaying": "wird gerade abgespielt"
   },
   "dragDrop": {
     "dropHint": "Loslassen zum Importieren",

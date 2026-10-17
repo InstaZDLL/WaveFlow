@@ -6,7 +6,7 @@
 //! distinguishable from a legacy full digest, so the command prefilters
 //! candidates by byte SIZE — a format-stable field every duplicate
 //! shares — then re-verifies each candidate with a full-content hash
-//! before returning, since the UI lets the user delete from a group.
+//! before returning, since the UI lets the user trash copies from a group.
 //! Identity is content-only, so renames / re-tags still group correctly
 //! — but two re-encodes of the same source (e.g. CBR vs VBR rips) won't
 //! match because the bytes differ. That's a fingerprinting problem and
@@ -173,62 +173,144 @@ fn verify_groups_full_content(candidates: Vec<DuplicateTrack>) -> Vec<DuplicateG
     out
 }
 
-/// Remove a list of tracks from the database. The audio files on
-/// disk are NOT touched — the user can delete those manually if they
-/// want. Detaches every cascading row (track_artist, track_genre,
-/// playlist_track, play_event, etc.) via the schema's ON DELETE
-/// CASCADE constraints. Returns the count of rows actually deleted
-/// so the UI can render an honest toast.
+/// Why a copy stayed where it was.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "snake_case", tag = "kind", content = "message")]
+pub enum TrashRefusal {
+    /// It is the track playing: on Windows its file is held open, and
+    /// pulling it from under the player is never what was asked.
+    Playing,
+    /// The system would not move it (read-only, a share without a
+    /// trash, held open elsewhere), with its reason.
+    Failed(String),
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct TrashFailure {
+    pub track_id: i64,
+    pub file_path: String,
+    pub reason: TrashRefusal,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct TrashReport {
+    /// Copies moved to the trash, their rows removed with them.
+    pub trashed: i64,
+    /// Copies left in place, rows included.
+    pub failed: Vec<TrashFailure>,
+}
+
+/// Move duplicate copies to the system's trash, then remove their rows
+/// (#878).
+///
+/// Removing the rows alone, as this used to, undid itself: the scanner
+/// adds any audio file that has no row, so the next rescan (or the
+/// folder watcher) brought every copy back as a new track, without its
+/// playlists, likes or history. The files go first, and only a copy
+/// whose file is gone loses its row — the library never lists a file
+/// that is not there, nor forgets one that still is. The trash is the
+/// operating system's, so a wrong pick can be restored from there.
+///
+/// Cascading rows (`track_artist`, `playlist_track`, `play_event`, …)
+/// go through the schema's `ON DELETE CASCADE`. The folder watcher sees
+/// the files leave and rescans; whichever of it and this transaction
+/// runs first removes the rows, and the other finds them gone.
 #[tauri::command]
-pub async fn delete_tracks(
+pub async fn move_tracks_to_trash(
     app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
+    engine: tauri::State<'_, std::sync::Arc<crate::audio::AudioEngine>>,
     track_ids: Vec<i64>,
-) -> AppResult<i64> {
+) -> AppResult<TrashReport> {
     use tauri::Emitter;
+    let mut report = TrashReport {
+        trashed: 0,
+        failed: Vec::new(),
+    };
     if track_ids.is_empty() {
-        return Ok(0);
+        return Ok(report);
     }
     let pool = state.require_profile_pool().await?;
 
-    let mut deleted = 0i64;
-    let mut tx = pool.begin().await?;
+    let playing = engine
+        .shared()
+        .current_track_id
+        .load(std::sync::atomic::Ordering::Acquire);
+    let mut candidates: Vec<(i64, i64, String)> = Vec::with_capacity(track_ids.len());
     for id in track_ids {
-        // Phase 4.d.0.3: capture (library_id, file_path) BEFORE
-        // the DELETE so we can enqueue the matching sync op while
-        // the row still exists. Skipped silently when the row is
-        // already gone (a concurrent scan / second delete-tracks
-        // call could race us).
+        // A row already gone (a scan, a second click) has nothing left
+        // to move.
         let row: Option<(i64, String)> =
             sqlx::query_as("SELECT library_id, file_path FROM track WHERE id = ?")
                 .bind(id)
-                .fetch_optional(&mut *tx)
+                .fetch_optional(&*pool)
                 .await
                 .map_err(|e| AppError::Other(format!("lookup track {id}: {e}")))?;
-        let res = sqlx::query("DELETE FROM track WHERE id = ?")
-            .bind(id)
-            .execute(&mut *tx)
-            .await
-            .map_err(|e| AppError::Other(format!("delete track {id}: {e}")))?;
-        deleted += res.rows_affected() as i64;
-        if let Some((library_id, file_path)) = row {
-            // User-initiated delete (NOT a library / folder cascade
-            // — those replay on the server when the parent library
-            // op lands). The sync op stays in the same tx as the
-            // DELETE so the two either both land or both roll back.
-            crate::sync::track_emit::emit_track_delete_in_tx(&mut tx, library_id, &file_path)
-                .await?;
+        let Some((library_id, file_path)) = row else {
+            continue;
+        };
+        if id == playing {
+            report.failed.push(TrashFailure {
+                track_id: id,
+                file_path,
+                reason: TrashRefusal::Playing,
+            });
+        } else {
+            candidates.push((id, library_id, file_path));
+        }
+    }
+
+    let outcomes = crate::trash::move_all(
+        candidates
+            .iter()
+            .map(|(_, _, path)| std::path::PathBuf::from(path))
+            .collect(),
+    )
+    .await;
+
+    let mut tx = pool.begin().await?;
+    for (i, (id, library_id, file_path)) in candidates.into_iter().enumerate() {
+        match outcomes
+            .get(i)
+            .cloned()
+            .unwrap_or_else(|| Err("not attempted".into()))
+        {
+            Ok(()) => {
+                let res = sqlx::query("DELETE FROM track WHERE id = ?")
+                    .bind(id)
+                    .execute(&mut *tx)
+                    .await
+                    .map_err(|e| AppError::Other(format!("delete track {id}: {e}")))?;
+                if res.rows_affected() > 0 {
+                    // User-initiated delete (not a library / folder
+                    // cascade, which the server replays from the parent
+                    // op). In the same transaction as the DELETE, so
+                    // both land or neither does.
+                    crate::sync::track_emit::emit_track_delete_in_tx(
+                        &mut tx, library_id, &file_path,
+                    )
+                    .await?;
+                }
+                report.trashed += 1;
+            }
+            Err(message) => {
+                tracing::warn!(path = %file_path, error = %message, "could not move a duplicate to the trash");
+                report.failed.push(TrashFailure {
+                    track_id: id,
+                    file_path,
+                    reason: TrashRefusal::Failed(message),
+                });
+            }
         }
     }
     tx.commit().await?;
 
-    // Phase 4.d.0.3: nudge the drain so the per-track delete ops
-    // ship before the drain's idle poll wakes up. Matches the
-    // convention every other sync-emitting command follows.
+    // Ship the per-track delete ops now rather than at the drain's next
+    // idle poll, like every other sync-emitting command.
     state.drain.notify();
 
     let _ = app.emit("library:rescanned", ());
-    Ok(deleted)
+    Ok(report)
 }
 
 #[cfg(test)]

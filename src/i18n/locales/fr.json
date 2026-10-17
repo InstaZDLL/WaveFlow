@@ -1664,11 +1664,17 @@
     "empty": "Aucun doublon",
     "emptyHint": "Votre bibliothèque est propre.",
     "rescan": "Relancer",
-    "deleteOthers_zero": "Rien à supprimer",
-    "deleteOthers_one": "Supprimer {{count}} doublon",
-    "deleteOthers_other": "Supprimer {{count}} doublons",
-    "deleteOthers_many": "Supprimer {{count}} doublons",
-    "keepAria": "Conserver {{title}}"
+    "trashOthers_zero": "Rien à déplacer",
+    "trashOthers_one": "Mettre {{count}} doublon à la corbeille",
+    "trashOthers_other": "Mettre {{count}} doublons à la corbeille",
+    "trashOthers_many": "Mettre {{count}} doublons à la corbeille",
+    "keepAria": "Conserver {{title}}",
+    "confirmTitle": "Mettre ces fichiers à la corbeille ?",
+    "confirmBody": "Ces copies iront dans la corbeille de votre système, d'où vous pourrez encore les restaurer. La copie gardée dans chaque groupe ne bouge pas.",
+    "confirmAction": "Mettre à la corbeille",
+    "trashed": "Mis à la corbeille : {{count}}",
+    "notTrashed": "Non déplacés : {{count}}",
+    "reasonPlaying": "en cours de lecture"
   },
   "dragDrop": {
     "dropHint": "Déposer pour importer",

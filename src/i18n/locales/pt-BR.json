@@ -1546,11 +1546,17 @@
     "empty": "Nenhuma duplicata",
     "emptyHint": "Sua biblioteca está limpa.",
     "rescan": "Escanear novamente",
-    "deleteOthers_zero": "Nada para excluir",
-    "deleteOthers_one": "Excluir {{count}} duplicata",
-    "deleteOthers_other": "Excluir {{count}} duplicatas",
-    "deleteOthers_many": "Excluir {{count}} duplicatas",
-    "keepAria": "Manter {{title}}"
+    "trashOthers_zero": "Nada para mover",
+    "trashOthers_one": "Mover {{count}} duplicata para a lixeira",
+    "trashOthers_other": "Mover {{count}} duplicatas para a lixeira",
+    "trashOthers_many": "Mover {{count}} duplicatas para a lixeira",
+    "keepAria": "Manter {{title}}",
+    "confirmTitle": "Mover estes arquivos para a lixeira?",
+    "confirmBody": "Estas cópias irão para a lixeira do sistema, de onde você ainda pode restaurá-las. A cópia mantida em cada grupo fica onde está.",
+    "confirmAction": "Mover para a lixeira",
+    "trashed": "Movidos para a lixeira: {{count}}",
+    "notTrashed": "Não movidos: {{count}}",
+    "reasonPlaying": "está tocando"
   },
   "dragDrop": {
     "dropHint": "Soltar para importar",

@@ -56,6 +56,7 @@ mod tasks;
 #[path = "sync_stub.rs"]
 mod sync;
 mod thumbnails;
+mod trash;
 mod watcher;
 mod webview_memory;
 
@@ -826,7 +827,7 @@ pub fn run() {
             commands::library::count_folder_play_events,
             commands::library::import_paths,
             commands::duplicates::find_duplicates,
-            commands::duplicates::delete_tracks,
+            commands::duplicates::move_tracks_to_trash,
             commands::analysis::analyze_track,
             commands::analysis::analyze_library,
             commands::analysis::cancel_library_analysis,

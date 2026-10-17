@@ -1493,10 +1493,16 @@
     "empty": "कोई डुप्लिकेट नहीं",
     "emptyHint": "आपकी लाइब्रेरी साफ़ है।",
     "rescan": "फिर से स्कैन करें",
-    "deleteOthers_zero": "हटाने के लिए कुछ नहीं",
-    "deleteOthers_one": "{{count}} डुप्लिकेट हटाएँ",
-    "deleteOthers_other": "{{count}} डुप्लिकेट हटाएँ",
-    "keepAria": "{{title}} रखें"
+    "trashOthers_zero": "ले जाने के लिए कुछ नहीं",
+    "trashOthers_one": "{{count}} डुप्लिकेट रीसायकल बिन में ले जाएँ",
+    "trashOthers_other": "{{count}} डुप्लिकेट रीसायकल बिन में ले जाएँ",
+    "keepAria": "{{title}} रखें",
+    "confirmTitle": "इन फ़ाइलों को रीसायकल बिन में ले जाएँ?",
+    "confirmBody": "ये प्रतियाँ आपके सिस्टम के रीसायकल बिन में जाएँगी, जहाँ से आप इन्हें फिर से बहाल कर सकते हैं। हर समूह में रखी गई प्रति अपनी जगह रहेगी।",
+    "confirmAction": "रीसायकल बिन में ले जाएँ",
+    "trashed": "रीसायकल बिन में ले जाई गईं: {{count}}",
+    "notTrashed": "नहीं ले जाई गईं: {{count}}",
+    "reasonPlaying": "अभी चल रहा है"
   },
   "dragDrop": {
     "dropHint": "आयात करने के लिए छोड़ें",

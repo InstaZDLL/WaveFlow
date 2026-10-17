@@ -1493,10 +1493,16 @@
     "empty": "Tidak ada duplikat",
     "emptyHint": "Pustakamu bersih.",
     "rescan": "Pindai ulang",
-    "deleteOthers_zero": "Tidak ada yang dihapus",
-    "deleteOthers_one": "Hapus {{count}} duplikat",
-    "deleteOthers_other": "Hapus {{count}} duplikat",
-    "keepAria": "Pertahankan {{title}}"
+    "trashOthers_zero": "Tidak ada yang dipindahkan",
+    "trashOthers_one": "Pindahkan {{count}} duplikat ke tempat sampah",
+    "trashOthers_other": "Pindahkan {{count}} duplikat ke tempat sampah",
+    "keepAria": "Pertahankan {{title}}",
+    "confirmTitle": "Pindahkan file ini ke tempat sampah?",
+    "confirmBody": "Salinan ini akan masuk ke tempat sampah sistem, tempat Anda masih bisa memulihkannya. Salinan yang Anda simpan di tiap grup tetap di tempatnya.",
+    "confirmAction": "Pindahkan ke tempat sampah",
+    "trashed": "Dipindahkan ke tempat sampah: {{count}}",
+    "notTrashed": "Tidak dipindahkan: {{count}}",
+    "reasonPlaying": "sedang diputar"
   },
   "dragDrop": {
     "dropHint": "Lepaskan untuk mengimpor",

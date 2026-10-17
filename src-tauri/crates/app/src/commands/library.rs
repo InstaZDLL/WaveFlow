@@ -576,7 +576,7 @@ pub async fn remove_folder_from_library(
     // Phase 4.d.0 follow-up: capture `(library_id, file_path)` for
     // every track in the folder BEFORE the DELETE so we can enqueue
     // matching per-track sync ops inside the same transaction. Same
-    // pattern as `commands/duplicates.rs::delete_tracks`. Without
+    // pattern as `commands/duplicates.rs::move_tracks_to_trash`. Without
     // this loop, the server would keep ghost rows for the removed
     // tracks until the parent library is dropped — folder removal
     // isn't its own sync entity, so the desktop has to emit per-row
