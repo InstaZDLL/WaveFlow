@@ -235,8 +235,11 @@ export function useTrackContextMenu({
             onShowBatchEdit={handleShowBatchEdit}
           />
         )}
+        {/* The two keyed dialogs are siblings: each key carries its own
+            prefix, or both read "none" while closed and React warns on
+            every render of every track list. */}
         <TrackPropertiesModal
-          key={propertiesTrack?.id ?? "none"}
+          key={`properties-${propertiesTrack?.id ?? "none"}`}
           track={propertiesTrack}
           onClose={closeProperties}
         />
@@ -244,7 +247,7 @@ export function useTrackContextMenu({
         {/* Keyed so each opening starts from the picker, not the last
             dialog's outcome. */}
         <ReplaceFileModal
-          key={replaceTrack?.id ?? "none"}
+          key={`replace-${replaceTrack?.id ?? "none"}`}
           track={replaceTrack}
           onClose={closeReplace}
         />
