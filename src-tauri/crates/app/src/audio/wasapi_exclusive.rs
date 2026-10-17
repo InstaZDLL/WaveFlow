@@ -836,8 +836,13 @@ impl Drop for ComApartment {
 /// the scheduler lifts the thread into the real-time range while it has
 /// work and gives the time back when it waits. If the service refuses —
 /// it can be disabled — the thread falls back to time-critical, the
-/// priority cpal uses for shared mode. Reverted on drop, since a
-/// thread's MMCSS registration must be released by that same thread.
+/// priority cpal uses for shared mode. Neither is a condition of the
+/// stream: a thread left at normal priority still plays, as it always
+/// did, and refusing the open over it would cost the user exclusive mode.
+///
+/// The drop tries to revert the registration, on the thread that made
+/// it, which is the only one allowed to. A failed revert is logged and
+/// nothing more: the thread is ending.
 struct ProAudioThread(Option<windows::Win32::Foundation::HANDLE>);
 
 impl ProAudioThread {
