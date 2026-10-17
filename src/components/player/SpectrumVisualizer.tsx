@@ -1,12 +1,26 @@
 import { useEffect, useRef } from "react";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
+import { usePlayer } from "../../hooks/usePlayer";
 import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
 import type { VisualizerStyleId } from "../../hooks/useVisualizerStyle";
 
 interface SpectrumPayload {
   bands: number[];
+  /** How long until this frame's audio is played. */
+  delay_ms: number;
 }
+
+/** A frame waiting for its audio to reach the output. */
+interface QueuedFrame {
+  due: number;
+  /** When it arrived: only frames older than a pause wait it out. */
+  receivedAt: number;
+  bands: number[];
+}
+
+/** A few seconds of frames at most: the ring holds about one. */
+const MAX_QUEUED_FRAMES = 120;
 
 interface SpectrumVisualizerProps {
   /** Tailwind sizing classes for the canvas wrapper. */
@@ -66,6 +80,15 @@ const RAINBOW_AREA_ALPHA = 0.35;
  * edge is drawn by flipping a sign the helpers read, rather than by handing
  * them a fresh closure sixty times a second.
  *
+ * **Each frame is shown when its audio is heard.** The decoder computes it
+ * up to a ring's length (about a second) before the output plays it, so a
+ * frame drawn on arrival put every beat a second early. The backend says
+ * how far ahead each one is (`delay_ms`) and the frames wait in a queue
+ * until then. The queue holds still while playback is paused, since the
+ * ring does too, and a frame due sooner than those already waiting means
+ * the ring was emptied (a seek, a new track): the later ones describe
+ * audio that will never play and are dropped.
+ *
  * The component is always safe to mount: the backend short-circuits the FFT
  * entirely when the visualizer toggle is off, and this just renders an
  * empty canvas in that case.
@@ -88,12 +111,45 @@ export function SpectrumVisualizer({
   // Smoothed heights actually drawn this frame. Decays toward
   // `targetRef` each tick → fluid animation.
   const drawnRef = useRef<number[] | null>(null);
+  const queueRef = useRef<QueuedFrame[]>([]);
+  // When playback paused, `null` while it plays.
+  const pausedAtRef = useRef<number | null>(null);
+  const { isPlaying } = usePlayer();
+
+  useEffect(() => {
+    const now = performance.now();
+    if (!isPlaying) {
+      // The shape holds where the music stopped, as it always has.
+      if (pausedAtRef.current === null) pausedAtRef.current = now;
+      return;
+    }
+    const pausedAt = pausedAtRef.current;
+    if (pausedAt !== null) {
+      // The ring held its audio through the pause, so the frames queued
+      // before it wait as long. One that arrived during it was timed
+      // against an output already running again — a track change shows
+      // as "not playing" until React catches up — and keeps its time.
+      const shift = now - pausedAt;
+      for (const frame of queueRef.current) {
+        if (frame.receivedAt < pausedAt) frame.due += shift;
+      }
+      pausedAtRef.current = null;
+    }
+  }, [isPlaying]);
 
   useEffect(() => {
     let unlisten: UnlistenFn | null = null;
     let cancelled = false;
     listen<SpectrumPayload>("player:spectrum", (event) => {
-      targetRef.current = event.payload.bands;
+      const { bands, delay_ms } = event.payload;
+      const receivedAt = performance.now();
+      const due = receivedAt + (delay_ms ?? 0);
+      const queue = queueRef.current;
+      while (queue.length > 0 && queue[queue.length - 1].due > due) {
+        queue.pop();
+      }
+      queue.push({ due, receivedAt, bands });
+      if (queue.length > MAX_QUEUED_FRAMES) queue.shift();
     })
       .then((un) => {
         if (cancelled) un();
@@ -246,6 +302,14 @@ export function SpectrumVisualizer({
       const attack = reducedMotion ? 0.22 : 0.55;
       const release = reducedMotion ? 0.08 : 0.18;
 
+      if (pausedAtRef.current === null) {
+        const queue = queueRef.current;
+        const now = performance.now();
+        let due: QueuedFrame | undefined;
+        while (queue.length > 0 && queue[0].due <= now) due = queue.shift();
+        if (due) targetRef.current = due.bands;
+      }
+
       const target = targetRef.current;
       if (target && target.length > 0) {
         if (!drawnRef.current || drawnRef.current.length !== target.length) {
@@ -260,8 +324,8 @@ export function SpectrumVisualizer({
               : drawn[i] + (t - drawn[i]) * release;
         }
       } else if (drawnRef.current) {
-        // No incoming bands → settle to zero so the shape doesn't freeze
-        // mid-pose when playback pauses. A curve lands on a flat line.
+        // No frame has arrived yet: whatever is drawn settles onto a flat
+        // line. A pause does not land here; it keeps the last frame.
         const drawn = drawnRef.current;
         const decay = reducedMotion ? 0.92 : 0.85;
         let any = false;
