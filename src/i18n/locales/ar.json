@@ -706,6 +706,10 @@
         "phantom_artist": {
           "label": "فنانون للتقسيم",
           "help": "أسماء تبدو كعدة فنانين مفصولين بفواصل."
+        },
+        "probable_fake_lossless": {
+          "label": "ملفات lossless مزيفة على الأرجح",
+          "help": "ملفات بلا فقدان تتوقف تردداتها العالية كما في ملف MP3: على الأرجح مصنوعة من ملف مضغوط بفقدان."
         }
       },
       "summary_zero": "لا نقاط للتصحيح",
@@ -1357,7 +1361,11 @@
     "suggestions": {
       "library": "في مكتبتك",
       "presets": "أنواع شائعة"
-    }
+    },
+    "bandwidth": "الترددات العالية",
+    "bandwidthFull": "نطاق كامل",
+    "bandwidthCutoff": "تتوقف عند {{khz}} كيلوهرتز",
+    "bandwidthFake": "تتوقف عند {{khz}} كيلوهرتز — على الأرجح مصنوع من ملف مضغوط بفقدان"
   },
   "selection": {
     "toolbarLabel": "إجراءات التحديد",
@@ -1790,7 +1798,8 @@
       "playCountMax": "مرات التشغيل ≤",
       "playedInLastDays": "شُغِّل خلال",
       "tagPresent": "يحمل الوسم",
-      "tagContains": "يحتوي الوسم على"
+      "tagContains": "يحتوي الوسم على",
+      "fakeLossless": "على الأرجح ملف lossless مزيف"
     },
     "counting": "جارٍ الحساب…",
     "matchCountLimited": "تم الاحتفاظ بـ {{kept}} من أصل {{total}} نتيجة مطابقة",
@@ -3382,7 +3391,8 @@
       "addedInLastDays_two": "أُضيف خلال آخر يومين",
       "addedInLastDays_few": "أُضيف خلال آخر {{count}} أيام",
       "addedInLastDays_many": "أُضيف خلال آخر {{count}} يومًا",
-      "addedInLastDays_other": "أُضيف خلال آخر {{count}} يوم"
+      "addedInLastDays_other": "أُضيف خلال آخر {{count}} يوم",
+      "fakeLossless": "على الأرجح lossless مزيف"
     }
   },
   "tagFetch": {

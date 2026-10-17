@@ -800,6 +800,26 @@ export function TrackPropertiesModal({
               }
             />
             <Row
+              label={t("trackProperties.bandwidth")}
+              value={
+                !analysis?.bandwidth_measured
+                  ? "—"
+                  : analysis.cutoff_hz == null
+                    ? t("trackProperties.bandwidthFull")
+                    : t(
+                        analysis.probable_fake_lossless
+                          ? "trackProperties.bandwidthFake"
+                          : "trackProperties.bandwidthCutoff",
+                        {
+                          khz: new Intl.NumberFormat(i18n.resolvedLanguage, {
+                            minimumFractionDigits: 1,
+                            maximumFractionDigits: 1,
+                          }).format(analysis.cutoff_hz / 1000),
+                        },
+                      )
+              }
+            />
+            <Row
               label={t("trackProperties.loudness")}
               value={
                 analysis?.loudness_lufs != null

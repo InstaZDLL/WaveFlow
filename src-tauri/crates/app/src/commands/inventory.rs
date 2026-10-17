@@ -115,6 +115,17 @@ fn where_for(key: &str) -> Option<&'static str> {
         // in place — and this list is shorter than the issue assumed:
         // `.dsf` became writable, so only `.dff` remains.
         "untaggable" => "AND source = 'local' AND lower(file_path) LIKE '%.dff'",
+        // Lossless files whose highs stop at a lossy encoder's wall: a
+        // FLAC or WAV made from an MP3, AAC or Opus. `cutoff_hz` and the
+        // threshold: `waveflow_core::analysis::bandwidth`.
+        "probable_fake_lossless" => concat!(
+            "AND source = 'local' AND CAST(id AS INTEGER) IN (
+                 SELECT t.id FROM track t
+                   JOIN track_analysis ta ON ta.track_id = t.id
+                  WHERE ",
+            waveflow_core::probable_fake_lossless_sql!(),
+            ")"
+        ),
         // Albums whose tracks disagree about the year. Grouped on
         // `album.id`, which *is* `(canonical_title, album_artist_id)`.
         "album_year_conflict" => {
@@ -200,6 +211,7 @@ const CATEGORIES: &[&str] = &[
     "missing_track_number",
     "missing_cover",
     "untaggable",
+    "probable_fake_lossless",
     "album_year_conflict",
     "compilation_no_album_artist",
     "duplicate_track_number",

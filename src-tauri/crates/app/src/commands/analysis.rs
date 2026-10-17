@@ -170,6 +170,15 @@ pub struct TrackAnalysisRow {
     pub loudness_lufs: Option<f64>,
     pub replay_gain_db: Option<f64>,
     pub peak: Option<f64>,
+    /// Where the high frequencies stop, in hertz; `None` when they run
+    /// to the top or were never measured (see `bandwidth_measured`).
+    pub cutoff_hz: Option<f64>,
+    /// Whether the cutoff was measured at all: rows analysed before it
+    /// existed have none, and "no wall" must not read as "full band".
+    pub bandwidth_measured: bool,
+    /// A lossless file whose highs stop at a lossy encoder's wall —
+    /// `waveflow_core::probable_fake_lossless_sql!`.
+    pub probable_fake_lossless: bool,
     pub analyzed_at: i64,
 }
 
@@ -204,55 +213,59 @@ pub async fn get_track_analysis(
     track_id: i64,
 ) -> AppResult<Option<TrackAnalysisRow>> {
     let pool = state.require_profile_pool().await?;
-    // sqlx row tuple — kept anonymous because it's only used here.
-    #[allow(clippy::type_complexity)]
-    let row: Option<(
-        i64,
-        Option<f64>,
-        Option<f64>,
-        Option<f64>,
-        Option<String>,
-        Option<f64>,
-        Option<f64>,
-        Option<f64>,
-        Option<f64>,
-        i64,
-    )> = sqlx::query_as(
-        "SELECT track_id, bpm, bpm_confidence, energy, musical_key, key_confidence,
-                loudness_lufs, replay_gain_db, peak, analyzed_at
-           FROM track_analysis
-          WHERE track_id = ?",
-    )
-    .bind(track_id)
-    .fetch_optional(&*pool)
-    .await?;
-    Ok(row.map(
-        |(
-            track_id,
-            bpm,
-            bpm_confidence,
-            energy,
-            key,
-            key_confidence,
-            loudness,
-            replay,
-            peak,
-            analyzed_at,
-        )| {
-            TrackAnalysisRow {
-                track_id,
-                bpm,
-                bpm_confidence,
-                energy,
-                musical_key: key,
-                key_confidence,
-                loudness_lufs: loudness,
-                replay_gain_db: replay,
-                peak,
-                analyzed_at,
-            }
-        },
+    read_analysis(&pool, track_id).await
+}
+
+/// One track's stored analysis, as the Properties dialog reads it. The
+/// verdict on a fake lossless file needs the track's format as well as
+/// the measure, hence the join.
+async fn read_analysis(pool: &SqlitePool, track_id: i64) -> AppResult<Option<TrackAnalysisRow>> {
+    #[derive(sqlx::FromRow)]
+    struct Raw {
+        track_id: i64,
+        bpm: Option<f64>,
+        bpm_confidence: Option<f64>,
+        energy: Option<f64>,
+        musical_key: Option<String>,
+        key_confidence: Option<f64>,
+        loudness_lufs: Option<f64>,
+        replay_gain_db: Option<f64>,
+        peak: Option<f64>,
+        cutoff_hz: Option<f64>,
+        bandwidth_version: Option<i64>,
+        fake: bool,
+        analyzed_at: i64,
+    }
+    let row: Option<Raw> = sqlx::query_as(concat!(
+        "SELECT ta.track_id, ta.bpm, ta.bpm_confidence, ta.energy, ta.musical_key,
+                ta.key_confidence, ta.loudness_lufs, ta.replay_gain_db, ta.peak,
+                ta.cutoff_hz, ta.bandwidth_version,
+                ",
+        waveflow_core::probable_fake_lossless_sql!(),
+        " AS fake,
+                ta.analyzed_at
+           FROM track_analysis ta
+           JOIN track t ON t.id = ta.track_id
+          WHERE ta.track_id = ?"
     ))
+    .bind(track_id)
+    .fetch_optional(pool)
+    .await?;
+    Ok(row.map(|r| TrackAnalysisRow {
+        track_id: r.track_id,
+        bpm: r.bpm,
+        bpm_confidence: r.bpm_confidence,
+        energy: r.energy,
+        musical_key: r.musical_key,
+        key_confidence: r.key_confidence,
+        loudness_lufs: r.loudness_lufs,
+        replay_gain_db: r.replay_gain_db,
+        peak: r.peak,
+        cutoff_hz: r.cutoff_hz,
+        bandwidth_measured: r.bandwidth_version.is_some(),
+        probable_fake_lossless: r.fake,
+        analyzed_at: r.analyzed_at,
+    }))
 }
 
 /// Run the full analysis on one track (decoding the file end-to-end)
@@ -283,18 +296,11 @@ pub async fn analyze_track(
         upsert_analysis(&mut conn, track_id, &result, now).await?;
     }
 
-    Ok(TrackAnalysisRow {
-        track_id,
-        bpm: result.bpm,
-        bpm_confidence: result.bpm_confidence,
-        energy: result.energy,
-        musical_key: result.key.map(|k| k.name().to_string()),
-        key_confidence: result.key.map(|k| k.confidence),
-        loudness_lufs: result.loudness_lufs,
-        replay_gain_db: result.replay_gain_db,
-        peak: Some(result.peak),
-        analyzed_at: now,
-    })
+    // Read back rather than built here: the fake-lossless verdict needs
+    // the track's format, which lives on `track`.
+    read_analysis(&pool, track_id)
+        .await?
+        .ok_or_else(|| AppError::Other(format!("track {track_id} lost its analysis row")))
 }
 
 /// Walk every available track that hasn't been analyzed yet, run the
@@ -385,17 +391,24 @@ async fn run_reserved(app: &AppHandle, pool: &SqlitePool) -> AppResult<LibraryAn
     // downgrade the data. Playback stays safe in that case anyway —
     // `fetch_replay_gain` distrusts any version it doesn't recognise.
     // NULL needs its own arm because `NULL < ?` is NULL, not true.
-    let pending: Vec<(i64, String)> = sqlx::query_as(
+    let pending: Vec<(i64, String)> = sqlx::query_as(concat!(
         "SELECT t.id, t.file_path
            FROM track t
            LEFT JOIN track_analysis ta ON ta.track_id = t.id
           WHERE t.is_available = 1
             AND (ta.track_id IS NULL
                  OR ta.analysis_version IS NULL
-                 OR ta.analysis_version < ?)
+                 OR ta.analysis_version < ?
+                 -- A newer cutoff measure re-runs the lossless files
+                 -- alone: it is the only verdict that concerns them.
+                 OR (",
+        waveflow_core::lossless_track_sql!(),
+        "
+                     AND (ta.bandwidth_version IS NULL OR ta.bandwidth_version < ?)))
           ORDER BY t.id",
-    )
+    ))
     .bind(ANALYSIS_VERSION)
+    .bind(waveflow_core::analysis::bandwidth::BANDWIDTH_VERSION)
     .fetch_all(pool)
     .await?;
 
@@ -603,8 +616,9 @@ async fn upsert_analysis(
     sqlx::query(
         "INSERT INTO track_analysis
             (track_id, bpm, bpm_confidence, energy, musical_key, key_confidence,
-             beats, loudness_lufs, replay_gain_db, peak, analyzed_at, analysis_version)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             beats, cutoff_hz, bandwidth_version,
+             loudness_lufs, replay_gain_db, peak, analyzed_at, analysis_version)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(track_id) DO UPDATE SET
             bpm              = excluded.bpm,
             bpm_confidence   = excluded.bpm_confidence,
@@ -612,6 +626,8 @@ async fn upsert_analysis(
             musical_key      = excluded.musical_key,
             key_confidence   = excluded.key_confidence,
             beats            = excluded.beats,
+            cutoff_hz        = excluded.cutoff_hz,
+            bandwidth_version = excluded.bandwidth_version,
             loudness_lufs    = excluded.loudness_lufs,
             replay_gain_db   = excluded.replay_gain_db,
             peak             = excluded.peak,
@@ -625,6 +641,10 @@ async fn upsert_analysis(
     .bind(result.key.map(|k| k.name()))
     .bind(result.key.map(|k| k.confidence))
     .bind(waveflow_core::analysis::beats::encode(&result.beats))
+    .bind(result.bandwidth.and_then(|b| b.cutoff_hz))
+    // Stamped whenever this pass ran, measure or not: a file the meter
+    // found nothing in (silence) must not be swept again forever.
+    .bind(waveflow_core::analysis::bandwidth::BANDWIDTH_VERSION)
     .bind(result.loudness_lufs)
     .bind(result.replay_gain_db)
     .bind(result.peak)

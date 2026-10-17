@@ -22,6 +22,12 @@ export interface TrackAnalysis {
   loudness_lufs: number | null;
   replay_gain_db: number | null;
   peak: number | null;
+  /** Where the highs stop, in Hz; `null` when they run to the top. */
+  cutoff_hz: number | null;
+  /** Whether the cutoff was measured: older rows were not. */
+  bandwidth_measured: boolean;
+  /** A lossless file whose highs stop at a lossy encoder's wall. */
+  probable_fake_lossless: boolean;
   analyzed_at: number;
 }
 

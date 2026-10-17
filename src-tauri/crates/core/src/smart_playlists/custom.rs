@@ -123,6 +123,9 @@ pub enum Predicate {
     },
     /// Hi-Res = sample rate ≥ 88.2 kHz OR bit depth ≥ 24.
     HiRes,
+    /// A lossless file made from a lossy one: its highs stop at an
+    /// encoder's wall (`analysis::bandwidth`).
+    FakeLossless,
     Liked,
     /// Minimum POPM rating (0-255). Editor stores `Math.round(stars / 5 * 255)`.
     RatingMin {
@@ -583,6 +586,12 @@ fn build_predicate_sql(pred: &Predicate, binds: &mut Vec<BindValue>, now_ms: i64
         Predicate::Liked => {
             "EXISTS (SELECT 1 FROM liked_track lt WHERE lt.track_id = t.id)".to_string()
         }
+        Predicate::FakeLossless => concat!(
+            "EXISTS (SELECT 1 FROM track_analysis ta WHERE ta.track_id = t.id AND ",
+            crate::probable_fake_lossless_sql!(),
+            ")"
+        )
+        .to_string(),
         Predicate::RatingMin { value } => {
             binds.push(BindValue::Int((*value).clamp(1, 255)));
             "(t.rating IS NOT NULL AND t.rating >= ?)".to_string()
@@ -1127,6 +1136,69 @@ mod tests {
 
         async fn matched(pool: &sqlx::SqlitePool, tree: RuleNode) -> Vec<i64> {
             run_query_at(pool, &rules(tree), NOW).await.unwrap()
+        }
+
+        /// A fake lossless file is a lossless format with a wall: the same
+        /// cut in an MP3 is just what an MP3 is, and a lossless file the
+        /// measure found no wall in is genuine.
+        #[tokio::test]
+        async fn fake_lossless_needs_a_lossless_file_and_a_wall() {
+            let pool = fixture_pool(NOW).await;
+            sqlx::raw_sql(
+                "CREATE TABLE track_analysis (track_id INTEGER PRIMARY KEY, cutoff_hz REAL);
+                 UPDATE track SET codec = 'FLAC' WHERE id IN (1, 3);
+                 UPDATE track SET codec = 'MP3' WHERE id = 2;
+                 INSERT INTO track_analysis VALUES (1, 16000), (2, 16000), (3, 16000);",
+            )
+            .execute(&pool)
+            .await
+            .unwrap();
+            // 2 is an MP3, 3 is gone from disk.
+            assert_eq!(matched(&pool, leaf(Predicate::FakeLossless)).await, vec![1]);
+
+            sqlx::query("UPDATE track_analysis SET cutoff_hz = NULL WHERE track_id = 1")
+                .execute(&pool)
+                .await
+                .unwrap();
+            assert!(matched(&pool, leaf(Predicate::FakeLossless))
+                .await
+                .is_empty());
+
+            // A 32 kHz file: its converter's filter stands just under
+            // Nyquist (15.5 kHz here), under the fixed threshold but not a
+            // lossy encoder's cut.
+            sqlx::raw_sql(
+                "UPDATE track SET sample_rate = 32000 WHERE id = 1;
+                 UPDATE track_analysis SET cutoff_hz = 15500 WHERE track_id = 1;",
+            )
+            .execute(&pool)
+            .await
+            .unwrap();
+            assert!(matched(&pool, leaf(Predicate::FakeLossless))
+                .await
+                .is_empty());
+            // The verdict is a boolean even for a file of unknown format,
+            // which the Properties dialog selects as one.
+            sqlx::query("UPDATE track SET codec = NULL WHERE id = 2")
+                .execute(&pool)
+                .await
+                .unwrap();
+            let fake: Option<bool> = sqlx::query_scalar(concat!(
+                "SELECT ",
+                crate::probable_fake_lossless_sql!(),
+                " FROM track t, track_analysis ta WHERE t.id = 2 AND ta.track_id = 2"
+            ))
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+            assert_eq!(fake, Some(false));
+
+            // At 44.1 kHz the same wall is a lossy encoder's.
+            sqlx::query("UPDATE track SET sample_rate = 44100 WHERE id = 1")
+                .execute(&pool)
+                .await
+                .unwrap();
+            assert_eq!(matched(&pool, leaf(Predicate::FakeLossless)).await, vec![1]);
         }
 
         /// The new predicates, against a real SQLite.

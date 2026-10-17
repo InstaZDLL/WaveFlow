@@ -623,6 +623,10 @@
         "phantom_artist": {
           "label": "Artis untuk dipisah",
           "help": "Nama yang tampak seperti beberapa artis yang digabung dengan koma."
+        },
+        "probable_fake_lossless": {
+          "label": "Kemungkinan lossless palsu",
+          "help": "File lossless yang frekuensi tingginya berhenti seperti MP3: kemungkinan dibuat dari file lossy."
         }
       },
       "phantoms": {
@@ -1216,7 +1220,11 @@
     "suggestions": {
       "library": "Di pustakamu",
       "presets": "Genre umum"
-    }
+    },
+    "bandwidth": "Frekuensi tinggi",
+    "bandwidthFull": "Pita penuh",
+    "bandwidthCutoff": "Berhenti di {{khz}} kHz",
+    "bandwidthFake": "Berhenti di {{khz}} kHz — kemungkinan dibuat dari file lossy"
   },
   "selection": {
     "toolbarLabel": "Aksi pemilihan",
@@ -1609,7 +1617,8 @@
       "playCountMax": "Pemutaran ≤",
       "playedInLastDays": "Diputar dalam",
       "tagPresent": "Punya tag",
-      "tagContains": "Tag berisi"
+      "tagContains": "Tag berisi",
+      "fakeLossless": "Kemungkinan lossless palsu"
     },
     "counting": "Menghitung…",
     "matchCountLimited": "{{kept}} dari {{total}} yang cocok",
@@ -3049,7 +3058,8 @@
       "playedInLastDays_one": "diputar dalam {{count}} hari terakhir",
       "playedInLastDays_other": "diputar dalam {{count}} hari terakhir",
       "addedInLastDays_one": "ditambahkan dalam {{count}} hari terakhir",
-      "addedInLastDays_other": "ditambahkan dalam {{count}} hari terakhir"
+      "addedInLastDays_other": "ditambahkan dalam {{count}} hari terakhir",
+      "fakeLossless": "kemungkinan lossless palsu"
     }
   },
   "tagFetch": {

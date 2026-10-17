@@ -58,6 +58,8 @@ struct Row {
     key: Option<String>,
     key_confidence: f64,
     chroma: Option<[f64; 12]>,
+    cutoff_hz: Option<f64>,
+    wall_db: f64,
 }
 
 #[derive(PartialEq, Clone, Copy)]
@@ -236,6 +238,8 @@ fn main() {
                     key: result.key.map(|k| k.name().to_string()),
                     key_confidence: result.key.map_or(0.0, |k| k.confidence),
                     chroma: result.chroma,
+                    cutoff_hz: result.bandwidth.and_then(|b| b.cutoff_hz),
+                    wall_db: result.bandwidth.map_or(0.0, |b| b.wall_db),
                 };
                 let mut rows = rows.lock().unwrap();
                 rows.push(row);
@@ -255,7 +259,7 @@ fn main() {
         let mut f = File::create(&out_path).expect("create output");
         writeln!(
             f,
-            "path\ttag\tbpm\toutcome\tconfidence\tsalience\toctave_margin\tstability\tenergy\tattack_db\tonset_rate\tcentroid_hz\tdynamics_db\tlufs\tkey\tkey_confidence\tchroma"
+            "path\ttag\tbpm\toutcome\tconfidence\tsalience\toctave_margin\tstability\tenergy\tattack_db\tonset_rate\tcentroid_hz\tdynamics_db\tlufs\tkey\tkey_confidence\tchroma\tcutoff_hz\twall_db"
         )
         .unwrap();
         for r in &rows {
@@ -270,7 +274,7 @@ fn main() {
             let opt = |v: Option<f64>| v.map_or(String::new(), |v| format!("{v:.2}"));
             writeln!(
                 f,
-                "{}\t{}\t{}\t{o}\t{:.3}\t{:.3}\t{:.3}\t{:.3}\t{}\t{:.3}\t{:.3}\t{:.0}\t{:.2}\t{}\t{}\t{:.3}\t{}",
+                "{}\t{}\t{}\t{o}\t{:.3}\t{:.3}\t{:.3}\t{:.3}\t{}\t{:.3}\t{:.3}\t{:.0}\t{:.2}\t{}\t{}\t{:.3}\t{}\t{}\t{:.1}",
                 r.path.display(),
                 opt(r.tag),
                 opt(r.bpm),
@@ -291,6 +295,8 @@ fn main() {
                     .map(|v| format!("{v:.5}"))
                     .collect::<Vec<_>>()
                     .join(",")),
+                r.cutoff_hz.map_or(String::new(), |c| format!("{c:.0}")),
+                r.wall_db,
             )
             .unwrap();
         }

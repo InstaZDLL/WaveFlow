@@ -83,6 +83,23 @@ Measured with `analysis_bench --beats` against hand-annotated beats, scored as m
 
 The list is stored in `track_analysis.beats` by [`beats::encode`](../../src-tauri/crates/core/src/analysis/beats.rs): a format byte, the first beat in milliseconds, then each gap in milliseconds as a `u16` — about 1 KB for four minutes. Nothing reads it yet.
 
+### Fake lossless files
+
+[`analysis/bandwidth.rs`](../../src-tauri/crates/core/src/analysis/bandwidth.rs) tells a lossless file made from a lossy one. Every lossy encoder low-passes before it encodes — LAME around 16 kHz at 128 kbps and 20 kHz at 320, Opus at 20 kHz — and decoding the result into FLAC or WAV keeps the cut; a recording made lossless fades into the noise floor instead, or runs on to its converter's filter just under Nyquist. So the pass averages the power spectrum of the whole file **at the native rate** (the tempo and the key run on a decimated copy, which throws away exactly the highs this looks for) and **channel by channel** (a mono sum cancels highs in opposition between the channels and would draw a wall a genuine file does not have) and searches above 11 kHz for a **wall**: a fall of at least 20 dB across a few hundred hertz, above which nothing comes back to within 15 dB of the music. A slow fade, however low it ends, is not a wall — which is what keeps an old, dull recording from being taken for an MP3. A lossless file with a wall at or under 21 kHz is a probable fake — and at least 1 kHz under Nyquist, since a converter's own filter stands just under it: near 15.5 kHz for a 32 kHz file, which the fixed threshold alone would take for a 128 kbps MP3.
+
+Measured on averaged spectra with `analysis_bench` plus a sweep of the three settings: 41 genuine WAVs and 40 full-band FLACs, 240 fakes made from those FLACs, and 600 real MP3 and M4A files.
+
+| Set | Flagged |
+| --- | --- |
+| Genuine WAV / full-band FLAC | 0% / 0% |
+| Fakes through LAME 128 / 192 / 320 kbps | 95% / 87.5% / 87.5% |
+| Fakes through Opus 160 kbps | 80% |
+| Real MP3 / M4A (as a check of the wall itself) | 98% / 94% |
+
+At a 15 dB wall one genuine WAV was flagged, hence 20. What it misses are dark sources — lo-fi, sparse acoustic — whose highs sit so near the floor that the encoder's cut is a fall of 12–20 dB. It cannot see an encoder that does not low-pass: ffmpeg's own AAC encoder at 256 kbps keeps the full band, and so do most Vorbis files at q6 (0 and 17.5% caught) — no measure of where the highs stop can tell those apart, and the honest answer for them is "no wall". The comparison above the wall is against the music, not the floor: an MP3 decoded at 48 kHz leaves faint tones near Nyquist, 60 dB down yet well over the floor, and measuring against the floor vetoed 362 real MP3s.
+
+The cutoff is stored in `track_analysis.cutoff_hz` (NULL for no wall) with `bandwidth_version` beside it, NULL until measured — so "no wall" and "never measured" stay apart. A change to the detector bumps `BANDWIDTH_VERSION`, and the sweep then re-decodes the **lossless files alone** rather than the library. The verdict is computed where it is read, from one SQL definition ([`probable_fake_lossless_sql!`](../../src-tauri/crates/core/src/analysis/bandwidth.rs)): a lossless format (`FLAC`, `WAV`, `AIFF`, `PCM` — a WAV or AIFF listed from its stream when its tags were unreadable —, `APE`, `WavPack`, or ALAC — labelled `AAC` by the scanner and told apart by its bit depth, which no lossy codec reports) with a wall at or under 21 kHz and 1 kHz under its Nyquist. It shows in Track Properties (where the highs stop, and the verdict), as an inventory category, and as the `fake_lossless` rule. Not as a badge in the track lists: a dull recording flagged by mistake would carry the accusation on every row.
+
 ### Key (analysis version 3)
 
 [`analysis/key.rs`](../../src-tauri/crates/core/src/analysis/key.rs) reads the key from the same decimated mono signal as the tempo, with its own longer FFT (4096 samples, 2.7 Hz per bin: a semitone is 3 Hz wide in the bass). Each frame is **whitened** — every bin less the mean within about two semitones of it, which cancels broadband drums — and only the **peaks** that remain between 40 Hz and 1 kHz are folded onto the twelve pitch classes. The summed chromagram is correlated with **Shaath's key profile** (KeyFinder) rotated to all 24 keys; the best is the key, and its lead over the runner-up is the confidence.
@@ -267,7 +284,7 @@ An id of the form `tag:<key>` shows a frame from the user's files. Keys are offe
 
 ## "Needs attention" inventory
 
-[`commands/inventory.rs`](../../src-tauri/crates/app/src/commands/inventory.rs), surfaced as the library's last tab (#589). Thirteen counted categories you click into — six "missing field" checks, one for formats we cannot write tags into, four album-level inconsistencies, probable duplicates, and artists to split.
+[`commands/inventory.rs`](../../src-tauri/crates/app/src/commands/inventory.rs), surfaced as the library's last tab (#589). Fourteen counted categories you click into — six "missing field" checks, one for formats we cannot write tags into, probable fake lossless files ([above](#fake-lossless-files)), four album-level inconsistencies, probable duplicates, and artists to split.
 
 **It is an entry point, not a report.** Every category is an extra `WHERE` on `browse::library_tracks_sql_where`, the same query the Tracks tab and the folder browser render, so clicking one loads those tracks into the library's own table — same columns, same sort, same context menu, same properties modal. Fixing a track from the inventory is therefore the ordinary edit flow, not a second one.
 

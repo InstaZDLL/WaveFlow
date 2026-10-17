@@ -623,6 +623,10 @@
         "phantom_artist": {
           "label": "Ayrılacak sanatçılar",
           "help": "Virgülle birleştirilmiş birkaç sanatçıya benzeyen adlar."
+        },
+        "probable_fake_lossless": {
+          "label": "Muhtemelen sahte kayıpsız",
+          "help": "Tizleri bir MP3'ünkü gibi kesilen kayıpsız dosyalar: muhtemelen kayıplı bir dosyadan yapılmış."
         }
       },
       "phantoms": {
@@ -1216,7 +1220,11 @@
     "suggestions": {
       "library": "Kütüphanende",
       "presets": "Yaygın türler"
-    }
+    },
+    "bandwidth": "Yüksek frekanslar",
+    "bandwidthFull": "Tam bant",
+    "bandwidthCutoff": "{{khz}} kHz'de kesiliyor",
+    "bandwidthFake": "{{khz}} kHz'de kesiliyor — muhtemelen kayıplı bir dosyadan yapılmış"
   },
   "selection": {
     "toolbarLabel": "Seçim eylemleri",
@@ -1609,7 +1617,8 @@
       "playCountMax": "Oynatma sayısı ≤",
       "playedInLastDays": "Çalındı: son",
       "tagPresent": "Şu etikete sahip",
-      "tagContains": "Etiket şunu içerir"
+      "tagContains": "Etiket şunu içerir",
+      "fakeLossless": "Muhtemelen sahte kayıpsız"
     },
     "counting": "Sayılıyor…",
     "matchCountLimited": "{{total}} eşleşmeden {{kept}} tanesi tutuldu",
@@ -3049,7 +3058,8 @@
       "playedInLastDays_one": "son {{count}} günde çalındı",
       "playedInLastDays_other": "son {{count}} günde çalındı",
       "addedInLastDays_one": "son {{count}} günde eklendi",
-      "addedInLastDays_other": "son {{count}} günde eklendi"
+      "addedInLastDays_other": "son {{count}} günde eklendi",
+      "fakeLossless": "muhtemelen sahte kayıpsız"
     }
   },
   "tagFetch": {

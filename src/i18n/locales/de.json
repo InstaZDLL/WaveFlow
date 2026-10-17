@@ -623,6 +623,10 @@
         "phantom_artist": {
           "label": "Aufzuteilende Künstler",
           "help": "Namen, die wie mehrere durch Kommas verbundene Künstler aussehen."
+        },
+        "probable_fake_lossless": {
+          "label": "Vermutlich falsches Lossless",
+          "help": "Verlustfreie Dateien, deren Höhen wie bei einer MP3 enden: vermutlich aus einer verlustbehafteten Datei erstellt."
         }
       },
       "phantoms": {
@@ -1216,7 +1220,11 @@
     "suggestions": {
       "library": "In deiner Bibliothek",
       "presets": "Gängige Genres"
-    }
+    },
+    "bandwidth": "Hohe Frequenzen",
+    "bandwidthFull": "Volle Bandbreite",
+    "bandwidthCutoff": "Enden bei {{khz}} kHz",
+    "bandwidthFake": "Enden bei {{khz}} kHz — vermutlich aus einer verlustbehafteten Datei"
   },
   "selection": {
     "toolbarLabel": "Auswahlaktionen",
@@ -1609,7 +1617,8 @@
       "playCountMax": "Wiedergaben ≤",
       "playedInLastDays": "Gespielt in den letzten",
       "tagPresent": "Hat Tag",
-      "tagContains": "Tag enthält"
+      "tagContains": "Tag enthält",
+      "fakeLossless": "Vermutlich falsches Lossless"
     },
     "counting": "Wird gezählt…",
     "matchCountLimited": "{{kept}} von {{total}} Treffern übernommen",
@@ -3049,7 +3058,8 @@
       "playedInLastDays_one": "am letzten Tag gespielt",
       "playedInLastDays_other": "in den letzten {{count}} Tagen gespielt",
       "addedInLastDays_one": "am letzten Tag hinzugefügt",
-      "addedInLastDays_other": "in den letzten {{count}} Tagen hinzugefügt"
+      "addedInLastDays_other": "in den letzten {{count}} Tagen hinzugefügt",
+      "fakeLossless": "vermutlich falsches Lossless"
     }
   },
   "tagFetch": {

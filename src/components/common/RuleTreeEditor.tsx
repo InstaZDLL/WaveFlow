@@ -334,6 +334,7 @@ const PREDICATE_GROUPS: { key: string; options: PredicateOption[] }[] = [
     options: [
       { kind: "format", key: "format" },
       { kind: "hi_res", key: "hiRes" },
+      { kind: "fake_lossless", key: "fakeLossless" },
       { kind: "sample_rate_min", key: "sampleRateMin" },
       { kind: "bit_depth_min", key: "bitDepthMin" },
       { kind: "bpm_min", key: "bpmMin" },
@@ -433,6 +434,7 @@ function defaultPredicateFor(
     case "format":
       return { kind, value: "flac" };
     case "hi_res":
+    case "fake_lossless":
     case "liked":
       return { kind };
     case "rating_min":
@@ -780,6 +782,7 @@ function PredicateValue({
         </>
       );
     case "hi_res":
+    case "fake_lossless":
     case "liked":
       return null; // unit predicate — no value
     case "rating_min":

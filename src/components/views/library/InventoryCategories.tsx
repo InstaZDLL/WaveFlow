@@ -11,6 +11,7 @@ import {
   Split,
   TextCursorInput,
   Users,
+  AudioWaveform,
 } from "lucide-react";
 import type { InventoryCategory } from "../../../lib/tauri/inventory";
 
@@ -41,6 +42,7 @@ const ICONS: Record<string, typeof AlertTriangle> = {
   missing_track_number: Hash,
   missing_cover: ImageOff,
   untaggable: FileWarning,
+  probable_fake_lossless: AudioWaveform,
   album_year_conflict: CalendarX,
   compilation_no_album_artist: Users,
   duplicate_track_number: ListX,

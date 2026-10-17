@@ -623,6 +623,10 @@
         "phantom_artist": {
           "label": "Artists to split",
           "help": "Names that look like several artists joined by commas."
+        },
+        "probable_fake_lossless": {
+          "label": "Probable fake lossless",
+          "help": "Lossless files whose highs stop like an MP3's: probably made from a lossy file."
         }
       },
       "phantoms": {
@@ -1216,7 +1220,11 @@
     "suggestions": {
       "library": "In your library",
       "presets": "Common genres"
-    }
+    },
+    "bandwidth": "High frequencies",
+    "bandwidthFull": "Full band",
+    "bandwidthCutoff": "Stop at {{khz}} kHz",
+    "bandwidthFake": "Stop at {{khz}} kHz — likely made from a lossy file"
   },
   "selection": {
     "toolbarLabel": "Selection actions",
@@ -1609,7 +1617,8 @@
       "playCountMax": "Plays ≤",
       "playedInLastDays": "Played within",
       "tagPresent": "Has tag",
-      "tagContains": "Tag contains"
+      "tagContains": "Tag contains",
+      "fakeLossless": "Probably fake lossless"
     },
     "counting": "Counting…",
     "matchCountLimited": "{{kept}} kept of {{total}} matching",
@@ -3049,7 +3058,8 @@
       "playedInLastDays_one": "played in the last {{count}} day",
       "playedInLastDays_other": "played in the last {{count}} days",
       "addedInLastDays_one": "added in the last {{count}} day",
-      "addedInLastDays_other": "added in the last {{count}} days"
+      "addedInLastDays_other": "added in the last {{count}} days",
+      "fakeLossless": "probably fake lossless"
     }
   },
   "tagFetch": {

@@ -675,6 +675,10 @@
         "phantom_artist": {
           "label": "Исполнители для разделения",
           "help": "Имена, похожие на перечисление нескольких исполнителей через запятую."
+        },
+        "probable_fake_lossless": {
+          "label": "Вероятно, ложный lossless",
+          "help": "Файлы без потерь, у которых верхние частоты обрываются, как у MP3: вероятно, сделаны из файла с потерями."
         }
       },
       "summary_few": "{{count}} замечания",
@@ -1302,7 +1306,11 @@
     "suggestions": {
       "library": "В вашей библиотеке",
       "presets": "Распространённые жанры"
-    }
+    },
+    "bandwidth": "Высокие частоты",
+    "bandwidthFull": "Полная полоса",
+    "bandwidthCutoff": "Обрываются на {{khz}} кГц",
+    "bandwidthFake": "Обрываются на {{khz}} кГц — вероятно, сделан из файла с потерями"
   },
   "selection": {
     "toolbarLabel": "Действия с выбранным",
@@ -1719,7 +1727,8 @@
       "playCountMax": "Прослушиваний ≤",
       "playedInLastDays": "Прослушан за",
       "tagPresent": "Есть тег",
-      "tagContains": "Тег содержит"
+      "tagContains": "Тег содержит",
+      "fakeLossless": "Вероятно, ложный lossless"
     },
     "counting": "Подсчёт…",
     "matchCountLimited": "{{kept}} из {{total}} совпадений",
@@ -3237,7 +3246,8 @@
       "addedInLastDays_one": "добавлен за последний {{count}} день",
       "addedInLastDays_few": "добавлен за последние {{count}} дня",
       "addedInLastDays_many": "добавлен за последние {{count}} дней",
-      "addedInLastDays_other": "добавлен за последние {{count}} дней"
+      "addedInLastDays_other": "добавлен за последние {{count}} дней",
+      "fakeLossless": "вероятно, ложный lossless"
     }
   },
   "tagFetch": {
