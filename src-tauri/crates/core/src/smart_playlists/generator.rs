@@ -552,7 +552,9 @@ async fn artist_listening(pool: &SqlitePool, cutoff_ms: i64) -> CoreResult<Vec<S
           LEFT JOIN track_analysis ta ON ta.track_id = t.id
          WHERE t.is_available = 1
          GROUP BY a.id
-        HAVING listened_ms > 0
+        -- The aggregate, spelled out: `listened_ms` alone is also the CTE's
+        -- per-track column, which a HAVING may resolve to instead.
+        HAVING SUM(p.listened_ms) > 0
          ORDER BY listened_ms DESC
          LIMIT 60
         "#,
