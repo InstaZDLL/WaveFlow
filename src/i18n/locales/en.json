@@ -1146,7 +1146,8 @@
     "removeFromPlaylistNamed": "Remove from “{{name}}”",
     "moods": "Moods",
     "moodAddTo": "Add to",
-    "moodRemoveFrom": "Remove from"
+    "moodRemoveFrom": "Remove from",
+    "replaceFile": "Replace file…"
   },
   "batchTagEdit": {
     "title": "Batch edit tags",
@@ -3124,5 +3125,27 @@
     "minor": "{{note}} minor",
     "majorNotes": "C,D♭,D,E♭,E,F,F♯,G,A♭,A,B♭,B",
     "minorNotes": "C,C♯,D,E♭,E,F,F♯,G,G♯,A,B♭,B"
+  },
+  "replaceFile": {
+    "title": "Replace the file",
+    "pickTitle": "Choose the better copy",
+    "checking": "Checking the file…",
+    "current": "Current file",
+    "replacement": "New file",
+    "target": "Will be saved as",
+    "keeps": "The track keeps its plays, likes and playlists. The current file goes to your system's trash.",
+    "confirm": "Replace",
+    "replacing": "Replacing…",
+    "done": "Replaced. The old file is in the trash.",
+    "keptAside": "Replaced, but the old file could not go to the trash. It is kept at {{path}}.",
+    "bits": "{{value}}-bit",
+    "refusals": {
+      "playing": "This track is playing. Stop it first.",
+      "sameFile": "That is the track's own file.",
+      "notAudio": "This file is not audio the player can read.",
+      "durationMismatch": "The lengths differ ({{current}} against {{replacement}}): probably another recording or another edit.",
+      "targetTaken": "Another file already has the name {{path}}."
+    },
+    "adopts": "This file is already in the library as a track of its own. That entry is removed, with its short history, and this track takes its file."
   }
 }

@@ -316,6 +316,24 @@ This is **not** the same question as [duplicate detection](#duplicate-detection)
 
 UI: [`DuplicatesModal`](../../src/components/common/DuplicatesModal.tsx) launched from Settings → Library → Import and scanning → "Detect duplicates". Each group exposes a radio selector (defaults to oldest). The footer's "Move N duplicates to the trash" first lists every file it is about to move and asks; the outcome — how many moved, and each one that did not, with its reason — stays at the top of the window rather than in a toast that fades.
 
+## Replacing a file with a better copy
+
+A re-rip or a lossless copy dropped into the library arrives under a new path, so the scanner makes it a new track — and the old one keeps the plays, the likes and the playlists. **Replace file…** in a local track's context menu swaps the file under the existing row instead ([`commands/replace.rs`](../../src-tauri/crates/app/src/commands/replace.rs), [`ReplaceFileModal`](../../src/components/common/ReplaceFileModal.tsx)): the track id, and everything hanging off it, stays. It is the answer to a [fake lossless file](#fake-lossless-files) once the real one is found.
+
+The file picker opens first; the dialog then shows the current file against the chosen one — format, bit depth, rate, length — and where the new file will be saved: the old one's folder and name, with its own extension (`.mp3` → `.flac`). It is refused when the track is playing (its file is open, and swapping it under the player is never what was asked), when the chosen file is the track's own (by file identity, so a second path to it counts), when the player cannot decode it, when another file or row already holds the target name, and when the **lengths differ** by more than the larger of 1% of the current length and 2 s — encoder padding moves a length by tens of milliseconds, a different edit by seconds. The backend checks all of it again on confirm.
+
+The order makes every step but the last undoable:
+
+1. the new file is **copied** (the user's original is never moved) into the folder's reserved `.waveflow/` directory — same volume, so what follows are renames, and invisible to the scanner and the watcher;
+2. the old file moves aside, into `.waveflow/` as well;
+3. the row is pointed at the target **before** the copy is renamed into place, with `file_modified = 0` so the scan cannot skip it on a kept timestamp — a scan running meanwhile then finds a row for the new file, where the other order would let it add the file as a new track; a scan already running is waited out first;
+4. the folder is rescanned, which keys rows by path and so re-reads the new file's tags and format into the same row; once the row holds the new file, its analysis is dropped, since it described the old one (a fake-lossless verdict above all) — after the check rather than before, so a rollback keeps it;
+5. only then does the old file go to the [system's trash](#duplicate-detection).
+
+A failure before step 5 puts the old file and the row back and rescans, and says where a file is left if a step of the rollback fails too; a file that appeared at the target meanwhile is never overwritten nor removed. A trash that refuses (a share with none) leaves the old file under `.waveflow/replaced/` and says where. The new file's own tags win: the scan reads them as for any file.
+
+**The better copy is often in the library already** — a FLAC downloaded next to the MP3, scanned as a track of its own, under the very name the replacement would take. It is then **adopted where it is**, under its exact path (on a case-insensitive volume `Song.FLAC` and `Song.flac` are one file, and the row keeps the scanner's spelling): no copy, and its own row, with its few minutes of history, is deleted in the same transaction that points the track at it. It is refused while that row is the one playing. An undo leaves the user's file in place, and the rescan lists it again as the track it was.
+
 ## Cover picker
 
 [`commands/deezer.rs::set_album_artwork_from_deezer`](../../src-tauri/crates/app/src/commands/deezer.rs) and `set_album_artwork_from_file`. The file picker validates magic bytes (JPEG / PNG / WebP) before accepting upload, and `batch_fetch_missing_album_covers` walks all albums without an `artwork_id`, querying Deezer in parallel with a small concurrency cap.

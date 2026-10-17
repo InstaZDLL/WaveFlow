@@ -10,6 +10,7 @@ import {
 } from "../components/common/TrackContextMenu";
 import { TrackPropertiesModal } from "../components/common/TrackPropertiesModal";
 import { BatchTagEditModal } from "../components/common/BatchTagEditModal";
+import { ReplaceFileModal } from "../components/common/ReplaceFileModal";
 import type { Track } from "../lib/tauri/track";
 import { isContextMenuKey, menuAnchorForElement } from "../lib/contextMenuKeys";
 import { setTrackRating, toggleLikeTrack } from "../lib/tauri/track";
@@ -193,6 +194,12 @@ export function useTrackContextMenu({
     setPropertiesTrack(track);
   }, []);
 
+  const [replaceTrack, setReplaceTrack] = useState<Track | null>(null);
+  const handleReplaceFile = useCallback((track: Track) => {
+    setReplaceTrack(track);
+  }, []);
+  const closeReplace = useCallback(() => setReplaceTrack(null), []);
+
   const closeProperties = useCallback(() => setPropertiesTrack(null), []);
 
   const handleShowBatchEdit = useCallback((ids: number[]) => {
@@ -223,6 +230,7 @@ export function useTrackContextMenu({
             onNavigateToAlbum={onNavigateToAlbum}
             onNavigateToArtist={onNavigateToArtist}
             onShowProperties={handleShowProperties}
+            onReplaceFile={handleReplaceFile}
             batchEditIds={selectedTrackIds}
             onShowBatchEdit={handleShowBatchEdit}
           />
@@ -233,6 +241,13 @@ export function useTrackContextMenu({
           onClose={closeProperties}
         />
         <BatchTagEditModal trackIds={batchEditIds} onClose={closeBatchEdit} />
+        {/* Keyed so each opening starts from the picker, not the last
+            dialog's outcome. */}
+        <ReplaceFileModal
+          key={replaceTrack?.id ?? "none"}
+          track={replaceTrack}
+          onClose={closeReplace}
+        />
       </>
     );
   }, [
@@ -253,6 +268,9 @@ export function useTrackContextMenu({
     onNavigateToAlbum,
     onNavigateToArtist,
     handleShowProperties,
+    handleReplaceFile,
+    replaceTrack,
+    closeReplace,
     propertiesTrack,
     closeProperties,
     selectedTrackIds,

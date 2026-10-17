@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import {
   Disc3,
   ExternalLink,
+  FileAudio,
   Heart,
   Info,
   ListEnd,
@@ -53,6 +54,9 @@ export interface TrackContextMenuProps {
   onNavigateToAlbum?: (albumId: number) => void;
   onNavigateToArtist?: (artistId: number) => void;
   onShowProperties: (track: Track) => void;
+  /** Swap the track's file for a better copy, keeping the track. Local
+   *  tracks only; hidden when omitted. */
+  onReplaceFile?: (track: Track) => void;
   /** When set AND the right-clicked track is part of the selection AND
    * the selection has 2+ tracks, the menu adds an "Edit tags for N
    * tracks…" item that opens the batch tag editor with all selected
@@ -91,6 +95,7 @@ export function TrackContextMenu({
   onNavigateToAlbum,
   onNavigateToArtist,
   onShowProperties,
+  onReplaceFile,
   batchEditIds,
   onShowBatchEdit,
 }: TrackContextMenuProps) {
@@ -321,6 +326,13 @@ export function TrackContextMenu({
         label={t("trackActions.properties")}
         onSelect={closeAfter(() => onShowProperties(track))}
       />
+      {onReplaceFile && !isRemoteTrack(track) && (
+        <ContextMenuItem
+          icon={<FileAudio size={14} />}
+          label={t("trackActions.replaceFile")}
+          onSelect={closeAfter(() => onReplaceFile(track))}
+        />
+      )}
       {batchEditIds &&
         batchEditIds.length >= 2 &&
         batchEditIds.includes(track.id) &&
