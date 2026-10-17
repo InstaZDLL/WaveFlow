@@ -1146,7 +1146,8 @@
     "removeFromPlaylistNamed": "Aus „{{name}}“ entfernen",
     "moods": "Stimmungen",
     "moodAddTo": "Hinzufügen zu",
-    "moodRemoveFrom": "Entfernen aus"
+    "moodRemoveFrom": "Entfernen aus",
+    "replaceFile": "Datei ersetzen…"
   },
   "batchTagEdit": {
     "title": "Tags stapelweise bearbeiten",
@@ -3124,5 +3125,27 @@
     "minor": "{{note}}-Moll",
     "majorNotes": "C,Des,D,Es,E,F,Fis,G,As,A,B,H",
     "minorNotes": "c,cis,d,es,e,f,fis,g,gis,a,b,h"
+  },
+  "replaceFile": {
+    "title": "Datei ersetzen",
+    "pickTitle": "Bessere Kopie wählen",
+    "checking": "Datei wird geprüft…",
+    "current": "Aktuelle Datei",
+    "replacement": "Neue Datei",
+    "target": "Wird gespeichert als",
+    "keeps": "Der Titel behält seine Wiedergaben, Likes und Playlists. Die aktuelle Datei wandert in den Papierkorb des Systems.",
+    "confirm": "Ersetzen",
+    "replacing": "Wird ersetzt…",
+    "done": "Ersetzt. Die alte Datei liegt im Papierkorb.",
+    "keptAside": "Ersetzt, aber die alte Datei konnte nicht in den Papierkorb. Sie liegt unter {{path}}.",
+    "bits": "{{value}} Bit",
+    "refusals": {
+      "playing": "Dieser Titel wird gerade abgespielt. Stoppen Sie ihn zuerst.",
+      "sameFile": "Das ist die Datei des Titels selbst.",
+      "notAudio": "Diese Datei ist kein Audio, das der Player lesen kann.",
+      "durationMismatch": "Die Längen weichen ab ({{current}} gegenüber {{replacement}}): vermutlich eine andere Aufnahme oder Fassung.",
+      "targetTaken": "Eine andere Datei heißt bereits {{path}}."
+    },
+    "adopts": "Diese Datei ist bereits als eigener Titel in der Mediathek. Dieser Eintrag wird samt seinem kurzen Verlauf entfernt, und dieser Titel übernimmt seine Datei."
   }
 }

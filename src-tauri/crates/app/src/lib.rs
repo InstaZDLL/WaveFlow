@@ -828,6 +828,8 @@ pub fn run() {
             commands::library::import_paths,
             commands::duplicates::find_duplicates,
             commands::duplicates::move_tracks_to_trash,
+            commands::replace::check_track_replacement,
+            commands::replace::replace_track_file,
             commands::analysis::analyze_track,
             commands::analysis::analyze_library,
             commands::analysis::cancel_library_analysis,

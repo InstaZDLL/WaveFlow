@@ -1189,7 +1189,8 @@
     "removeFromPlaylistNamed": "Quitar de «{{name}}»",
     "moods": "Estados de ánimo",
     "moodAddTo": "Añadir a",
-    "moodRemoveFrom": "Quitar de"
+    "moodRemoveFrom": "Quitar de",
+    "replaceFile": "Reemplazar archivo…"
   },
   "batchTagEdit": {
     "title": "Editar etiquetas en lote",
@@ -3224,5 +3225,27 @@
     "minor": "{{note}} menor",
     "majorNotes": "Do,Re♭,Re,Mi♭,Mi,Fa,Fa♯,Sol,La♭,La,Si♭,Si",
     "minorNotes": "Do,Do♯,Re,Mi♭,Mi,Fa,Fa♯,Sol,Sol♯,La,Si♭,Si"
+  },
+  "replaceFile": {
+    "title": "Reemplazar el archivo",
+    "pickTitle": "Elige la mejor copia",
+    "checking": "Comprobando el archivo…",
+    "current": "Archivo actual",
+    "replacement": "Archivo nuevo",
+    "target": "Se guardará como",
+    "keeps": "La canción conserva sus reproducciones, me gusta y listas. El archivo actual va a la papelera del sistema.",
+    "confirm": "Reemplazar",
+    "replacing": "Reemplazando…",
+    "done": "Reemplazado. El archivo antiguo está en la papelera.",
+    "keptAside": "Reemplazado, pero el archivo antiguo no pudo ir a la papelera. Se conserva en {{path}}.",
+    "bits": "{{value}} bits",
+    "refusals": {
+      "playing": "Esta canción se está reproduciendo. Detenla primero.",
+      "sameFile": "Ese es el propio archivo de la canción.",
+      "notAudio": "Este archivo no es un audio que el reproductor pueda leer.",
+      "durationMismatch": "Las duraciones difieren ({{current}} frente a {{replacement}}): probablemente otra grabación u otra versión.",
+      "targetTaken": "Otro archivo ya se llama {{path}}."
+    },
+    "adopts": "Este archivo ya está en la biblioteca como una canción aparte. Esa entrada se elimina, con su breve historial, y esta canción toma su archivo."
   }
 }

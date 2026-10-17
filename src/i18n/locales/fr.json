@@ -1189,7 +1189,8 @@
     "removeFromPlaylistNamed": "Retirer de « {{name}} »",
     "moods": "Humeurs",
     "moodAddTo": "Ajouter à",
-    "moodRemoveFrom": "Retirer de"
+    "moodRemoveFrom": "Retirer de",
+    "replaceFile": "Remplacer le fichier…"
   },
   "batchTagEdit": {
     "title": "Modifier les tags en lot",
@@ -3224,5 +3225,27 @@
     "minor": "{{note}} mineur",
     "majorNotes": "Do,Ré♭,Ré,Mi♭,Mi,Fa,Fa♯,Sol,La♭,La,Si♭,Si",
     "minorNotes": "Do,Do♯,Ré,Mi♭,Mi,Fa,Fa♯,Sol,Sol♯,La,Si♭,Si"
+  },
+  "replaceFile": {
+    "title": "Remplacer le fichier",
+    "pickTitle": "Choisir la meilleure copie",
+    "checking": "Vérification du fichier…",
+    "current": "Fichier actuel",
+    "replacement": "Nouveau fichier",
+    "target": "Sera enregistré sous",
+    "keeps": "Le morceau garde ses écoutes, ses likes et ses playlists. Le fichier actuel part dans la corbeille du système.",
+    "confirm": "Remplacer",
+    "replacing": "Remplacement…",
+    "done": "Remplacé. L'ancien fichier est dans la corbeille.",
+    "keptAside": "Remplacé, mais l'ancien fichier n'a pas pu aller à la corbeille. Il est conservé ici : {{path}}.",
+    "bits": "{{value}} bits",
+    "refusals": {
+      "playing": "Ce morceau est en cours de lecture. Arrêtez-le d'abord.",
+      "sameFile": "C'est le fichier du morceau lui-même.",
+      "notAudio": "Ce fichier n'est pas un audio que le lecteur sait lire.",
+      "durationMismatch": "Les durées diffèrent ({{current}} contre {{replacement}}) : probablement un autre enregistrement ou une autre version.",
+      "targetTaken": "Un autre fichier porte déjà le nom {{path}}."
+    },
+    "adopts": "Ce fichier est déjà dans la bibliothèque comme un morceau à part. Cette entrée est supprimée, avec son court historique, et ce morceau-ci reprend son fichier."
   }
 }

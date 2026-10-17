@@ -1146,7 +1146,8 @@
     "removeFromPlaylistNamed": "Hapus dari \"{{name}}\"",
     "moods": "Mood",
     "moodAddTo": "Tambahkan ke",
-    "moodRemoveFrom": "Hapus dari"
+    "moodRemoveFrom": "Hapus dari",
+    "replaceFile": "Ganti file…"
   },
   "batchTagEdit": {
     "title": "Sunting tag massal",
@@ -3124,5 +3125,27 @@
     "minor": "{{note}} minor",
     "majorNotes": "C,D♭,D,E♭,E,F,F♯,G,A♭,A,B♭,B",
     "minorNotes": "C,C♯,D,E♭,E,F,F♯,G,G♯,A,B♭,B"
+  },
+  "replaceFile": {
+    "title": "Ganti file",
+    "pickTitle": "Pilih salinan yang lebih baik",
+    "checking": "Memeriksa file…",
+    "current": "File saat ini",
+    "replacement": "File baru",
+    "target": "Akan disimpan sebagai",
+    "keeps": "Lagu tetap menyimpan riwayat putar, suka, dan daftar putarnya. File saat ini dipindahkan ke tempat sampah sistem.",
+    "confirm": "Ganti",
+    "replacing": "Mengganti…",
+    "done": "Diganti. File lama ada di tempat sampah.",
+    "keptAside": "Diganti, tetapi file lama tidak bisa dipindahkan ke tempat sampah. File itu disimpan di {{path}}.",
+    "bits": "{{value}}-bit",
+    "refusals": {
+      "playing": "Lagu ini sedang diputar. Hentikan dulu.",
+      "sameFile": "Itu file milik lagu ini sendiri.",
+      "notAudio": "File ini bukan audio yang bisa dibaca pemutar.",
+      "durationMismatch": "Durasinya berbeda ({{current}} dan {{replacement}}): kemungkinan rekaman atau versi lain.",
+      "targetTaken": "File lain sudah bernama {{path}}."
+    },
+    "adopts": "File ini sudah ada di pustaka sebagai lagu tersendiri. Entri itu dihapus beserta riwayat singkatnya, dan lagu ini mengambil filenya."
   }
 }

@@ -1146,7 +1146,8 @@
     "removeFromPlaylistNamed": "“{{name}}”에서 제거",
     "moods": "분위기",
     "moodAddTo": "추가할 분위기",
-    "moodRemoveFrom": "제외할 분위기"
+    "moodRemoveFrom": "제외할 분위기",
+    "replaceFile": "파일 바꾸기…"
   },
   "batchTagEdit": {
     "title": "태그 일괄 편집",
@@ -3124,5 +3125,27 @@
     "minor": "{{note}}단조",
     "majorNotes": "다,내림라,라,내림마,마,바,올림바,사,내림가,가,내림나,나",
     "minorNotes": "다,올림다,라,내림마,마,바,올림바,사,올림사,가,내림나,나"
+  },
+  "replaceFile": {
+    "title": "파일 바꾸기",
+    "pickTitle": "더 좋은 사본 선택",
+    "checking": "파일 확인 중…",
+    "current": "현재 파일",
+    "replacement": "새 파일",
+    "target": "저장될 이름",
+    "keeps": "이 곡의 재생 기록, 좋아요, 플레이리스트는 그대로 유지됩니다. 현재 파일은 시스템 휴지통으로 이동합니다.",
+    "confirm": "바꾸기",
+    "replacing": "바꾸는 중…",
+    "done": "바꿨습니다. 이전 파일은 휴지통에 있습니다.",
+    "keptAside": "바꿨지만 이전 파일을 휴지통으로 옮기지 못했습니다. {{path}}에 보관되어 있습니다.",
+    "bits": "{{value}}비트",
+    "refusals": {
+      "playing": "이 곡이 재생 중입니다. 먼저 정지하세요.",
+      "sameFile": "이 곡 자신의 파일입니다.",
+      "notAudio": "플레이어가 읽을 수 있는 오디오 파일이 아닙니다.",
+      "durationMismatch": "길이가 다릅니다({{current}} 대 {{replacement}}). 다른 녹음이나 다른 버전으로 보입니다.",
+      "targetTaken": "다른 파일이 이미 {{path}} 이름을 쓰고 있습니다."
+    },
+    "adopts": "이 파일은 이미 라이브러리에 별도의 곡으로 있습니다. 그 항목은 짧은 기록과 함께 삭제되고, 이 곡이 그 파일을 이어받습니다."
   }
 }

@@ -1146,7 +1146,8 @@
     "removeFromPlaylistNamed": "從「{{name}}」移除",
     "moods": "心情",
     "moodAddTo": "加入至",
-    "moodRemoveFrom": "移出"
+    "moodRemoveFrom": "移出",
+    "replaceFile": "取代檔案…"
   },
   "batchTagEdit": {
     "title": "批次編輯標籤",
@@ -3124,5 +3125,27 @@
     "minor": "{{note}}小調",
     "majorNotes": "C,降D,D,降E,E,F,升F,G,降A,A,降B,B",
     "minorNotes": "C,升C,D,降E,E,F,升F,G,升G,A,降B,B"
+  },
+  "replaceFile": {
+    "title": "取代檔案",
+    "pickTitle": "選擇更好的副本",
+    "checking": "正在檢查檔案…",
+    "current": "目前的檔案",
+    "replacement": "新檔案",
+    "target": "將儲存為",
+    "keeps": "此曲目會保留播放紀錄、喜歡和播放清單。目前的檔案將移到系統的資源回收筒。",
+    "confirm": "取代",
+    "replacing": "正在取代…",
+    "done": "已取代。舊檔案在資源回收筒中。",
+    "keptAside": "已取代，但舊檔案無法移到資源回收筒，保存在 {{path}}。",
+    "bits": "{{value}} 位元",
+    "refusals": {
+      "playing": "此曲目正在播放，請先停止。",
+      "sameFile": "這就是此曲目自己的檔案。",
+      "notAudio": "此檔案不是播放器能讀取的音訊。",
+      "durationMismatch": "長度不同（{{current}} 對 {{replacement}}）：可能是另一個錄音或版本。",
+      "targetTaken": "已有另一個檔案名為 {{path}}。"
+    },
+    "adopts": "此檔案已作為單獨的曲目在音樂庫中。該項目及其簡短的歷史紀錄將被刪除，由這首曲目接手其檔案。"
   }
 }

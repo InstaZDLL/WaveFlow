@@ -1146,7 +1146,8 @@
     "removeFromPlaylistNamed": "“{{name}}” listesinden çıkar",
     "moods": "Ruh halleri",
     "moodAddTo": "Şuraya ekle",
-    "moodRemoveFrom": "Şuradan çıkar"
+    "moodRemoveFrom": "Şuradan çıkar",
+    "replaceFile": "Dosyayı değiştir…"
   },
   "batchTagEdit": {
     "title": "Etiketleri toplu düzenle",
@@ -3124,5 +3125,27 @@
     "minor": "{{note}} minör",
     "majorNotes": "Do,Re bemol,Re,Mi bemol,Mi,Fa,Fa diyez,Sol,La bemol,La,Si bemol,Si",
     "minorNotes": "Do,Do diyez,Re,Mi bemol,Mi,Fa,Fa diyez,Sol,Sol diyez,La,Si bemol,Si"
+  },
+  "replaceFile": {
+    "title": "Dosyayı değiştir",
+    "pickTitle": "Daha iyi kopyayı seçin",
+    "checking": "Dosya denetleniyor…",
+    "current": "Geçerli dosya",
+    "replacement": "Yeni dosya",
+    "target": "Şu adla kaydedilecek",
+    "keeps": "Parça dinlenmelerini, beğenilerini ve çalma listelerini korur. Geçerli dosya sistemin çöp kutusuna gider.",
+    "confirm": "Değiştir",
+    "replacing": "Değiştiriliyor…",
+    "done": "Değiştirildi. Eski dosya çöp kutusunda.",
+    "keptAside": "Değiştirildi, ancak eski dosya çöp kutusuna gönderilemedi. Şurada tutuluyor: {{path}}.",
+    "bits": "{{value}} bit",
+    "refusals": {
+      "playing": "Bu parça çalıyor. Önce durdurun.",
+      "sameFile": "Bu, parçanın kendi dosyası.",
+      "notAudio": "Bu dosya oynatıcının okuyabileceği bir ses değil.",
+      "durationMismatch": "Süreler farklı ({{current}} ile {{replacement}}): muhtemelen başka bir kayıt ya da sürüm.",
+      "targetTaken": "Başka bir dosya zaten {{path}} adını taşıyor."
+    },
+    "adopts": "Bu dosya kitaplıkta zaten ayrı bir parça olarak var. O kayıt kısa geçmişiyle birlikte kaldırılır ve bu parça dosyasını devralır."
   }
 }

@@ -1146,7 +1146,8 @@
     "removeFromPlaylistNamed": "「{{name}}」から削除",
     "moods": "ムード",
     "moodAddTo": "追加先",
-    "moodRemoveFrom": "除外元"
+    "moodRemoveFrom": "除外元",
+    "replaceFile": "ファイルを置き換え…"
   },
   "batchTagEdit": {
     "title": "タグの一括編集",
@@ -3124,5 +3125,27 @@
     "minor": "{{note}}短調",
     "majorNotes": "ハ,変ニ,ニ,変ホ,ホ,ヘ,嬰ヘ,ト,変イ,イ,変ロ,ロ",
     "minorNotes": "ハ,嬰ハ,ニ,変ホ,ホ,ヘ,嬰ヘ,ト,嬰ト,イ,変ロ,ロ"
+  },
+  "replaceFile": {
+    "title": "ファイルを置き換え",
+    "pickTitle": "より良いコピーを選択",
+    "checking": "ファイルを確認中…",
+    "current": "現在のファイル",
+    "replacement": "新しいファイル",
+    "target": "保存先",
+    "keeps": "再生回数・お気に入り・プレイリストはそのまま残ります。現在のファイルはシステムのゴミ箱に移動します。",
+    "confirm": "置き換え",
+    "replacing": "置き換え中…",
+    "done": "置き換えました。古いファイルはゴミ箱にあります。",
+    "keptAside": "置き換えましたが、古いファイルをゴミ箱に移動できませんでした。{{path}} に保管しています。",
+    "bits": "{{value}} ビット",
+    "refusals": {
+      "playing": "この曲は再生中です。先に停止してください。",
+      "sameFile": "それはこの曲自身のファイルです。",
+      "notAudio": "このファイルはプレーヤーが読める音声ではありません。",
+      "durationMismatch": "長さが異なります（{{current}} と {{replacement}}）。別の録音か別のバージョンと思われます。",
+      "targetTaken": "{{path}} という名前のファイルがすでにあります。"
+    },
+    "adopts": "このファイルはすでに別の曲としてライブラリにあります。その項目は短い履歴ごと削除され、この曲がそのファイルを引き継ぎます。"
   }
 }

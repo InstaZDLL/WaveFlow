@@ -1189,7 +1189,8 @@
     "removeFromPlaylistNamed": "Rimuovi da «{{name}}»",
     "moods": "Mood",
     "moodAddTo": "Aggiungi a",
-    "moodRemoveFrom": "Rimuovi da"
+    "moodRemoveFrom": "Rimuovi da",
+    "replaceFile": "Sostituisci file…"
   },
   "batchTagEdit": {
     "title": "Modifica i tag in blocco",
@@ -3224,5 +3225,27 @@
     "minor": "{{note}} minore",
     "majorNotes": "Do,Re♭,Re,Mi♭,Mi,Fa,Fa♯,Sol,La♭,La,Si♭,Si",
     "minorNotes": "Do,Do♯,Re,Mi♭,Mi,Fa,Fa♯,Sol,Sol♯,La,Si♭,Si"
+  },
+  "replaceFile": {
+    "title": "Sostituisci il file",
+    "pickTitle": "Scegli la copia migliore",
+    "checking": "Verifica del file…",
+    "current": "File attuale",
+    "replacement": "Nuovo file",
+    "target": "Verrà salvato come",
+    "keeps": "Il brano mantiene ascolti, mi piace e playlist. Il file attuale va nel cestino del sistema.",
+    "confirm": "Sostituisci",
+    "replacing": "Sostituzione…",
+    "done": "Sostituito. Il vecchio file è nel cestino.",
+    "keptAside": "Sostituito, ma il vecchio file non è potuto andare nel cestino. È conservato in {{path}}.",
+    "bits": "{{value}} bit",
+    "refusals": {
+      "playing": "Questo brano è in riproduzione. Fermalo prima.",
+      "sameFile": "È il file del brano stesso.",
+      "notAudio": "Questo file non è un audio che il lettore sa leggere.",
+      "durationMismatch": "Le durate differiscono ({{current}} contro {{replacement}}): probabilmente un'altra registrazione o versione.",
+      "targetTaken": "Un altro file si chiama già {{path}}."
+    },
+    "adopts": "Questo file è già nella libreria come brano a sé. Quella voce viene rimossa, con la sua breve cronologia, e questo brano ne prende il file."
   }
 }

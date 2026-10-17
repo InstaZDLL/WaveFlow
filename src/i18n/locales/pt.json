@@ -1190,7 +1190,8 @@
     "removeFromPlaylistNamed": "Remover de «{{name}}»",
     "moods": "Humores",
     "moodAddTo": "Adicionar a",
-    "moodRemoveFrom": "Remover de"
+    "moodRemoveFrom": "Remover de",
+    "replaceFile": "Substituir ficheiro…"
   },
   "batchTagEdit": {
     "title": "Editar etiquetas em lote",
@@ -3225,5 +3226,27 @@
     "minor": "{{note}} menor",
     "majorNotes": "Dó,Ré♭,Ré,Mi♭,Mi,Fá,Fá♯,Sol,Lá♭,Lá,Si♭,Si",
     "minorNotes": "Dó,Dó♯,Ré,Mi♭,Mi,Fá,Fá♯,Sol,Sol♯,Lá,Si♭,Si"
+  },
+  "replaceFile": {
+    "title": "Substituir o ficheiro",
+    "pickTitle": "Escolher a melhor cópia",
+    "checking": "A verificar o ficheiro…",
+    "current": "Ficheiro atual",
+    "replacement": "Novo ficheiro",
+    "target": "Será guardado como",
+    "keeps": "A faixa mantém as reproduções, os gostos e as listas. O ficheiro atual vai para o lixo do sistema.",
+    "confirm": "Substituir",
+    "replacing": "A substituir…",
+    "done": "Substituído. O ficheiro antigo está no lixo.",
+    "keptAside": "Substituído, mas o ficheiro antigo não pôde ir para o lixo. Está guardado em {{path}}.",
+    "bits": "{{value}} bits",
+    "refusals": {
+      "playing": "Esta faixa está a tocar. Pare-a primeiro.",
+      "sameFile": "É o próprio ficheiro da faixa.",
+      "notAudio": "Este ficheiro não é áudio que o leitor consiga ler.",
+      "durationMismatch": "As durações diferem ({{current}} contra {{replacement}}): provavelmente outra gravação ou versão.",
+      "targetTaken": "Outro ficheiro já se chama {{path}}."
+    },
+    "adopts": "Este ficheiro já está na biblioteca como uma faixa à parte. Essa entrada é removida, com o seu breve histórico, e esta faixa passa a usar o ficheiro."
   }
 }

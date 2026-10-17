@@ -1146,7 +1146,8 @@
     "removeFromPlaylistNamed": "Verwijderen uit ‘{{name}}’",
     "moods": "Stemmingen",
     "moodAddTo": "Toevoegen aan",
-    "moodRemoveFrom": "Verwijderen uit"
+    "moodRemoveFrom": "Verwijderen uit",
+    "replaceFile": "Bestand vervangen…"
   },
   "batchTagEdit": {
     "title": "Tags batchgewijs bewerken",
@@ -3124,5 +3125,27 @@
     "minor": "{{note}} mineur",
     "majorNotes": "C,Des,D,Es,E,F,Fis,G,As,A,Bes,B",
     "minorNotes": "c,cis,d,es,e,f,fis,g,gis,a,bes,b"
+  },
+  "replaceFile": {
+    "title": "Het bestand vervangen",
+    "pickTitle": "Kies de betere kopie",
+    "checking": "Bestand controleren…",
+    "current": "Huidig bestand",
+    "replacement": "Nieuw bestand",
+    "target": "Wordt opgeslagen als",
+    "keeps": "Het nummer houdt zijn afspeelbeurten, likes en playlists. Het huidige bestand gaat naar de prullenbak van het systeem.",
+    "confirm": "Vervangen",
+    "replacing": "Bezig met vervangen…",
+    "done": "Vervangen. Het oude bestand staat in de prullenbak.",
+    "keptAside": "Vervangen, maar het oude bestand kon niet naar de prullenbak. Het staat in {{path}}.",
+    "bits": "{{value}}-bit",
+    "refusals": {
+      "playing": "Dit nummer wordt afgespeeld. Stop het eerst.",
+      "sameFile": "Dat is het eigen bestand van het nummer.",
+      "notAudio": "Dit bestand is geen audio die de speler kan lezen.",
+      "durationMismatch": "De lengtes verschillen ({{current}} tegen {{replacement}}): waarschijnlijk een andere opname of versie.",
+      "targetTaken": "Een ander bestand heet al {{path}}."
+    },
+    "adopts": "Dit bestand staat al als apart nummer in de bibliotheek. Die vermelding wordt verwijderd, met haar korte geschiedenis, en dit nummer neemt het bestand over."
   }
 }
