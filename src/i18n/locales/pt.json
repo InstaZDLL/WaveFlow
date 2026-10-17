@@ -2741,6 +2741,34 @@
       "showNextLine": "Mostrar a linha seguinte",
       "showProgress": "Mostrar barra de progresso",
       "hideOnPause": "Ocultar em pausa"
+    },
+    "testTone": {
+      "title": "Testar a saída",
+      "subtitle": "Toca um bip à esquerda, depois à direita e depois dos dois lados, no formato real da saída. A faixa em curso é posta de lado e volta com Reproduzir.",
+      "play": "Tocar tom de teste",
+      "playing": "A tocar…",
+      "left": "Esquerda",
+      "right": "Direita",
+      "both": "Ambos",
+      "mono": "Mono",
+      "stereo": "Estéreo",
+      "channels": "{{count}} canais",
+      "exclusive": "Exclusivo",
+      "shared": "Partilhado",
+      "sharedNote": "No modo partilhado, o misturador do sistema converte depois este formato para o do dispositivo.",
+      "monoNote": "A saída mono está ativada: cada bip sai dos dois lados.",
+      "swapped": "O bip da esquerda saiu à direita? Os canais estão trocados: verifique a ligação ou a configuração dos altifalantes do sistema.",
+      "interrupted": "Teste interrompido.",
+      "failed": "Não foi possível tocar o tom de teste: {{message}}",
+      "format": {
+        "f32": "32 bits vírgula flutuante",
+        "s32": "32 bits",
+        "s24": "24 bits",
+        "s24In32": "24 bits (contentor de 32 bits)",
+        "s16": "16 bits",
+        "dop": "DoP",
+        "unknown": "formato desconhecido"
+      }
     }
   },
   "scanProgress": {

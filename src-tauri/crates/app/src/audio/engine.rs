@@ -225,6 +225,10 @@ pub enum AudioCmd {
     /// the new one. Always preceded by a `Stop` so the decoder picks
     /// it up from the top-level idle loop, not mid-`play_track`.
     SwapProducer(Producer<f32>),
+    /// Play the output test tone ([`super::test_tone`]) from the idle
+    /// loop. Not a load: it carries no intent, is never recorded as the
+    /// last load, and a rebuild never replays it.
+    PlayTestTone,
     Shutdown,
 }
 
@@ -288,6 +292,7 @@ impl std::fmt::Debug for AudioCmd {
                 )
             }
             AudioCmd::SwapProducer(_) => write!(f, "SwapProducer(<producer>)"),
+            AudioCmd::PlayTestTone => write!(f, "PlayTestTone"),
             AudioCmd::Shutdown => write!(f, "Shutdown"),
         }
     }
@@ -1654,6 +1659,25 @@ impl AudioEngine {
         // Its own intent, never a fresh one — see [`LastLoad`].
         let intent = load.intent;
         let _ = self.cmd_tx.send(load.into_command(intent, start_ms));
+    }
+
+    /// Play the output test tone.
+    ///
+    /// The tone needs the decoder, so a session in progress is parked
+    /// first, the way a rebuild parks a paused one (#611): stopped where
+    /// it was, shown as stopped, and picked back up there by Play. The
+    /// position is read before the `Stop`, which resets it.
+    pub fn play_test_tone(&self) -> AppResult<()> {
+        use super::state::PlayerState;
+        if matches!(
+            self.shared.state(),
+            PlayerState::Playing | PlayerState::Paused | PlayerState::Loading
+        ) {
+            let live = self.live_position();
+            self.send(AudioCmd::Stop)?;
+            self.park_session(live, live.track_id);
+        }
+        self.send(AudioCmd::PlayTestTone)
     }
 
     /// Park the session a rebuild interrupted instead of resuming it:

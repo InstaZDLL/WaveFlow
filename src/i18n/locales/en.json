@@ -2677,6 +2677,34 @@
       "showNextLine": "Show next line",
       "showProgress": "Show progress bar",
       "hideOnPause": "Hide while paused"
+    },
+    "testTone": {
+      "title": "Test the output",
+      "subtitle": "Plays a beep on the left, then on the right, then on both sides, at the output's real format. A track in progress is set aside and comes back with Play.",
+      "play": "Play test tone",
+      "playing": "Playing…",
+      "left": "Left",
+      "right": "Right",
+      "both": "Both",
+      "mono": "Mono",
+      "stereo": "Stereo",
+      "channels": "{{count}} channels",
+      "exclusive": "Exclusive",
+      "shared": "Shared",
+      "sharedNote": "In shared mode, the system mixer then converts this to the device's own format.",
+      "monoNote": "Mono output is on: every beep comes out of both sides.",
+      "swapped": "Did the left beep come out on the right? The channels are swapped: check the plug or the system's speaker setup.",
+      "interrupted": "Test interrupted.",
+      "failed": "Couldn't play the test tone: {{message}}",
+      "format": {
+        "f32": "32-bit float",
+        "s32": "32-bit",
+        "s24": "24-bit",
+        "s24In32": "24-bit (32-bit container)",
+        "s16": "16-bit",
+        "dop": "DoP",
+        "unknown": "unknown format"
+      }
     }
   },
   "scanProgress": {

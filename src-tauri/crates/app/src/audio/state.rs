@@ -17,6 +17,50 @@ use std::sync::Mutex;
 
 use super::engine::{AudioCmd, LastLoad};
 
+/// The sample format the output stream hands over: to the device itself
+/// in exclusive mode, to the system mixer in shared mode, which then
+/// converts to whatever the device runs at. Stored as `AtomicU8`; see
+/// [`OutputSampleFormat::from_u8`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[repr(u8)]
+pub enum OutputSampleFormat {
+    /// No stream has opened yet.
+    #[serde(rename = "unknown")]
+    Unknown = 0,
+    #[serde(rename = "f32")]
+    F32 = 1,
+    #[serde(rename = "s32")]
+    S32 = 2,
+    /// 24 bits, packed in three bytes.
+    #[serde(rename = "s24")]
+    S24 = 3,
+    /// 24 bits in a 32-bit container.
+    #[serde(rename = "s24-in-32")]
+    S24In32 = 4,
+    #[serde(rename = "s16")]
+    S16 = 5,
+    #[serde(rename = "u16")]
+    U16 = 6,
+    /// DSD words in 24-bit PCM frames (#495).
+    #[serde(rename = "dop")]
+    Dop = 7,
+}
+
+impl OutputSampleFormat {
+    pub fn from_u8(v: u8) -> Self {
+        match v {
+            1 => Self::F32,
+            2 => Self::S32,
+            3 => Self::S24,
+            4 => Self::S24In32,
+            5 => Self::S16,
+            6 => Self::U16,
+            7 => Self::Dop,
+            _ => Self::Unknown,
+        }
+    }
+}
+
 /// High-level player lifecycle. Stored as `AtomicU8` — see [`PlayerState::from_u8`]
 /// for the inverse of `as u8`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -86,6 +130,9 @@ pub struct SharedPlayback {
     pub samples_played: AtomicU64,
     pub sample_rate: AtomicU32,
     pub channels: AtomicU16,
+    /// [`OutputSampleFormat`] of the open stream, written next to
+    /// `sample_rate` by every backend.
+    pub sample_format: AtomicU8,
     pub volume_bits: AtomicU32,
     pub seek_generation: AtomicU64,
     /// Monotonic source of [`LoadIntent`](super::engine::LoadIntent)s
@@ -340,6 +387,7 @@ impl SharedPlayback {
             samples_played: AtomicU64::new(0),
             sample_rate: AtomicU32::new(0),
             channels: AtomicU16::new(0),
+            sample_format: AtomicU8::new(OutputSampleFormat::Unknown as u8),
             volume_bits: AtomicU32::new(1.0_f32.to_bits()),
             seek_generation: AtomicU64::new(0),
             load_intents: AtomicU64::new(0),
@@ -494,6 +542,14 @@ impl SharedPlayback {
 
     pub fn volume(&self) -> f32 {
         f32::from_bits(self.volume_bits.load(Ordering::Relaxed))
+    }
+
+    pub fn sample_format(&self) -> OutputSampleFormat {
+        OutputSampleFormat::from_u8(self.sample_format.load(Ordering::Acquire))
+    }
+
+    pub fn set_sample_format(&self, format: OutputSampleFormat) {
+        self.sample_format.store(format as u8, Ordering::Release);
     }
 
     pub fn set_volume(&self, v: f32) {

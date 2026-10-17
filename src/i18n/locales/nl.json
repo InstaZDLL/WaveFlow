@@ -2677,6 +2677,34 @@
       "showNextLine": "Volgende regel tonen",
       "showProgress": "Voortgangsbalk tonen",
       "hideOnPause": "Verbergen bij pauze"
+    },
+    "testTone": {
+      "title": "Uitvoer testen",
+      "subtitle": "Speelt een piep links, dan rechts, dan aan beide kanten, in het werkelijke formaat van de uitvoer. Een lopend nummer wordt opzijgezet en komt terug met Afspelen.",
+      "play": "Testtoon afspelen",
+      "playing": "Bezig met afspelen…",
+      "left": "Links",
+      "right": "Rechts",
+      "both": "Beide",
+      "mono": "Mono",
+      "stereo": "Stereo",
+      "channels": "{{count}} kanalen",
+      "exclusive": "Exclusief",
+      "shared": "Gedeeld",
+      "sharedNote": "In gedeelde modus zet de systeemmixer dit formaat daarna om naar dat van het apparaat.",
+      "monoNote": "Mono-uitvoer staat aan: elke piep klinkt aan beide kanten.",
+      "swapped": "Klonk de linkerpiep rechts? Dan zijn de kanalen omgewisseld: controleer de aansluiting of de luidsprekerinstellingen van het systeem.",
+      "interrupted": "Test onderbroken.",
+      "failed": "Kan de testtoon niet afspelen: {{message}}",
+      "format": {
+        "f32": "32-bit float",
+        "s32": "32-bit",
+        "s24": "24-bit",
+        "s24In32": "24-bit (32-bit container)",
+        "s16": "16-bit",
+        "dop": "DoP",
+        "unknown": "onbekend formaat"
+      }
     }
   },
   "scanProgress": {

@@ -47,6 +47,7 @@ pub mod resampler;
 pub mod spectrum;
 pub mod state;
 pub mod stream_cache;
+pub mod test_tone;
 #[cfg(target_os = "windows")]
 pub mod wasapi_exclusive;
 

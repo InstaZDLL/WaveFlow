@@ -2677,6 +2677,34 @@
       "showNextLine": "Sonraki satırı göster",
       "showProgress": "İlerleme çubuğunu göster",
       "hideOnPause": "Duraklatıldığında gizle"
+    },
+    "testTone": {
+      "title": "Çıkışı test et",
+      "subtitle": "Çıkışın gerçek biçiminde önce solda, sonra sağda, sonra her iki tarafta bir bip çalar. Çalan parça kenara alınır ve Oynat ile geri gelir.",
+      "play": "Test sesini çal",
+      "playing": "Çalıyor…",
+      "left": "Sol",
+      "right": "Sağ",
+      "both": "İkisi",
+      "mono": "Mono",
+      "stereo": "Stereo",
+      "channels": "{{count}} kanal",
+      "exclusive": "Özel",
+      "shared": "Paylaşımlı",
+      "sharedNote": "Paylaşımlı modda sistem karıştırıcısı bu biçimi ardından cihazın kendi biçimine dönüştürür.",
+      "monoNote": "Mono çıkış açık: her bip iki taraftan da gelir.",
+      "swapped": "Sol bip sağdan mı geldi? Kanallar ters: bağlantıyı veya sistemin hoparlör ayarlarını kontrol edin.",
+      "interrupted": "Test kesildi.",
+      "failed": "Test sesi çalınamadı: {{message}}",
+      "format": {
+        "f32": "32 bit kayan nokta",
+        "s32": "32 bit",
+        "s24": "24 bit",
+        "s24In32": "24 bit (32 bit kapsayıcı)",
+        "s16": "16 bit",
+        "dop": "DoP",
+        "unknown": "bilinmeyen biçim"
+      }
     }
   },
   "scanProgress": {

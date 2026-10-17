@@ -1272,6 +1272,12 @@ fn build_stream_inner(
     // position helper can compute timing without re-querying cpal.
     shared.sample_rate.store(sample_rate, Ordering::Release);
     shared.channels.store(channels, Ordering::Release);
+    shared.set_sample_format(match sample_format {
+        SampleFormat::F32 => super::state::OutputSampleFormat::F32,
+        SampleFormat::I16 => super::state::OutputSampleFormat::S16,
+        SampleFormat::U16 => super::state::OutputSampleFormat::U16,
+        _ => super::state::OutputSampleFormat::Unknown,
+    });
 
     tracing::info!(
         sample_rate,

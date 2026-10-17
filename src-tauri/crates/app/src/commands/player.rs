@@ -1381,6 +1381,15 @@ pub async fn player_stop(engine: tauri::State<'_, Arc<AudioEngine>>) -> AppResul
     engine.send(AudioCmd::Stop)
 }
 
+/// Play the output test tone from Settings: a beep on the left, on the
+/// right, then on both, at the output's own format. Progress arrives as
+/// `player:test-tone` events. A track in progress is set aside and picked
+/// back up by Play.
+#[tauri::command]
+pub async fn player_play_test_tone(engine: tauri::State<'_, Arc<AudioEngine>>) -> AppResult<()> {
+    engine.play_test_tone()
+}
+
 /// Seek the current track to an absolute position in milliseconds.
 #[tauri::command]
 pub async fn player_seek(

@@ -206,6 +206,7 @@ fn output_thread_main(
 
     shared.sample_rate.store(dop.sample_rate, Ordering::Release);
     shared.channels.store(dop.channels, Ordering::Release);
+    shared.set_sample_format(super::state::OutputSampleFormat::Dop);
     let _ = init_tx.send(Ok(()));
 
     tracing::info!(
@@ -719,6 +720,18 @@ impl AlsaSampleFormat {
         }
     }
 
+    /// What the rest of the engine calls this format.
+    fn sample_format(self) -> super::state::OutputSampleFormat {
+        use super::state::OutputSampleFormat as Out;
+        match self {
+            Self::F32 => Out::F32,
+            Self::S32 => Out::S32,
+            Self::S24Packed => Out::S24,
+            Self::S24In32 => Out::S24In32,
+            Self::S16 => Out::S16,
+        }
+    }
+
     /// Label for the diagnostics line, matching ALSA's own spelling so
     /// it can be grepped against `aplay --dump-hw-params`.
     fn label(self) -> &'static str {
@@ -1094,6 +1107,7 @@ fn pcm_output_thread_main(
 
     shared.sample_rate.store(sample_rate, Ordering::Release);
     shared.channels.store(channels, Ordering::Release);
+    shared.set_sample_format(format.sample_format());
     let _ = init_tx.send(Ok(()));
 
     let channels = channels as usize;
