@@ -2047,8 +2047,21 @@ export function SettingsView({
               // only for a category long enough to scroll, so switching
               // between a short and a long one jumped by 8 px (#884).
               const page = pageScroll?.current;
+              // In a narrow window the navigation sits above the panel,
+              // and the top of the page would show the list just clicked
+              // with the chosen category below the fold: scroll to the
+              // panel there instead.
+              const panel = panelRef.current;
+              const nav = panel?.previousElementSibling;
+              const stacked =
+                panel != null &&
+                nav != null &&
+                panel.getBoundingClientRect().top >=
+                  nav.getBoundingClientRect().bottom;
               if (group) {
                 target?.scrollIntoView({ block: "start" });
+              } else if (stacked) {
+                panel.scrollIntoView({ block: "start" });
               } else if (page) {
                 page.scrollTo({ top: 0 });
               } else {
