@@ -303,12 +303,12 @@ async fn handle_message(
                     .pending_next_same_album
                     .store(same_album, Ordering::Release);
 
-                // Dynamic crossfade hint: scale the fade by the BPM
+                // Dynamic crossfade hint: scale the fade by the tempo
                 // gap so similar-tempo transitions get the full window
                 // (clean blend) while large gaps snap quickly (no time
-                // for the rhythms to clash). When BPM is unknown on
-                // either side, we leave the override at 0 so the
-                // decoder falls back to the user-configured static
+                // for the rhythms to clash). When either tempo is
+                // unknown or not trusted, we leave the override at 0 so
+                // the decoder falls back to the user-configured static
                 // crossfade. Cleared right before SetNextTrack to
                 // avoid bleeding into a transition where dynamic was
                 // toggled off mid-flight.
@@ -316,42 +316,22 @@ async fn handle_message(
                 if shared.dynamic_crossfade_enabled.load(Ordering::Relaxed) && current_id > 0 {
                     let base_ms = shared.crossfade_ms.load(Ordering::Relaxed);
                     if base_ms > 0 {
-                        let curr_bpm: Option<f64> =
-                            sqlx::query_scalar("SELECT bpm FROM track_analysis WHERE track_id = ?")
-                                .bind(current_id)
-                                .fetch_optional(&*pool)
+                        let tempo = |id: i64| {
+                            let pool = &pool;
+                            async move {
+                                sqlx::query_as::<_, (Option<f64>, Option<f64>)>(
+                                    "SELECT bpm, bpm_confidence FROM track_analysis WHERE track_id = ?",
+                                )
+                                .bind(id)
+                                .fetch_optional(&**pool)
                                 .await
                                 .ok()
-                                .flatten();
-                        let next_bpm: Option<f64> =
-                            sqlx::query_scalar("SELECT bpm FROM track_analysis WHERE track_id = ?")
-                                .bind(track.id)
-                                .fetch_optional(&*pool)
-                                .await
-                                .ok()
-                                .flatten();
-                        if let (Some(a), Some(b)) = (curr_bpm, next_bpm) {
-                            if a > 0.0 && b > 0.0 {
-                                let diff = (a - b).abs();
-                                // Tiers chosen by ear — fade length
-                                // scales with how much the rhythms
-                                // would fight during the overlap. The
-                                // 1500 ms floor keeps it musical (not
-                                // a perceived cut) when the user has
-                                // a long base crossfade configured.
-                                let factor = if diff <= 8.0 {
-                                    1.0
-                                } else if diff <= 20.0 {
-                                    0.75
-                                } else if diff <= 40.0 {
-                                    0.5
-                                } else {
-                                    0.3
-                                };
-                                let scaled = (base_ms as f64 * factor).round() as u32;
-                                override_ms = scaled.max(1500.min(base_ms));
+                                .flatten()
                             }
-                        }
+                        };
+                        let current = tempo(current_id).await;
+                        let next = tempo(track.id).await;
+                        override_ms = dynamic_crossfade_ms(base_ms, current, next);
                     }
                 }
                 shared
@@ -409,6 +389,51 @@ async fn handle_message(
 
 /// Insert a row into `play_event`. Best-effort: errors are logged
 /// and swallowed so analytics never blocks playback.
+/// A tempo as `track_analysis` stores it: the BPM and how far to trust it.
+type StoredTempo = (Option<f64>, Option<f64>);
+
+/// The dynamic crossfade window for a transition, or 0 to keep the
+/// user's static one.
+///
+/// Both tempos must be trusted ([`waveflow_core::mood::is_trusted`]): a
+/// tempo read an octave out made a 170 BPM track look 85 BPM away from
+/// its 170 BPM neighbour and cut the fade to its shortest. Rows from
+/// before tempo confidence existed are not trusted either; the sweep
+/// re-measures them. The tiers themselves are unchanged.
+fn dynamic_crossfade_ms(
+    base_ms: u32,
+    current: Option<StoredTempo>,
+    next: Option<StoredTempo>,
+) -> u32 {
+    let trusted = |tempo: Option<StoredTempo>| match tempo {
+        Some((Some(bpm), confidence))
+            if bpm > 0.0 && waveflow_core::mood::is_trusted(confidence) =>
+        {
+            Some(bpm)
+        }
+        _ => None,
+    };
+    let (Some(a), Some(b)) = (trusted(current), trusted(next)) else {
+        return 0;
+    };
+    let diff = (a - b).abs();
+    // Tiers chosen by ear — fade length scales with how much the rhythms
+    // would fight during the overlap. The 1500 ms floor keeps it musical
+    // (not a perceived cut) when the user has a long base crossfade
+    // configured.
+    let factor = if diff <= 8.0 {
+        1.0
+    } else if diff <= 20.0 {
+        0.75
+    } else if diff <= 40.0 {
+        0.5
+    } else {
+        0.3
+    };
+    let scaled = (base_ms as f64 * factor).round() as u32;
+    scaled.max(1500.min(base_ms))
+}
+
 async fn insert_play_event(
     pool: &sqlx::SqlitePool,
     track_id: i64,
@@ -501,5 +526,65 @@ async fn insert_play_event(
                 tracing::warn!(?e, track_id, "failed to enqueue listen");
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod dynamic_crossfade_tests {
+    use super::dynamic_crossfade_ms;
+
+    const BASE: u32 = 8000;
+
+    #[test]
+    fn close_tempos_keep_the_whole_window() {
+        assert_eq!(
+            dynamic_crossfade_ms(
+                BASE,
+                Some((Some(120.0), Some(0.8))),
+                Some((Some(124.0), Some(0.7)))
+            ),
+            BASE
+        );
+    }
+
+    #[test]
+    fn a_wide_gap_shortens_the_fade() {
+        assert_eq!(
+            dynamic_crossfade_ms(
+                BASE,
+                Some((Some(90.0), Some(0.8))),
+                Some((Some(140.0), Some(0.8)))
+            ),
+            2400
+        );
+    }
+
+    /// An untrusted or unknown tempo on either side keeps the static
+    /// window rather than guessing.
+    #[test]
+    fn an_untrusted_tempo_keeps_the_static_window() {
+        let sure = Some((Some(120.0), Some(0.8)));
+        assert_eq!(
+            dynamic_crossfade_ms(BASE, sure, Some((Some(60.0), Some(0.1)))),
+            0
+        );
+        assert_eq!(
+            dynamic_crossfade_ms(BASE, sure, Some((Some(60.0), None))),
+            0
+        );
+        assert_eq!(dynamic_crossfade_ms(BASE, sure, Some((None, None))), 0);
+        assert_eq!(dynamic_crossfade_ms(BASE, sure, None), 0);
+    }
+
+    #[test]
+    fn the_floor_never_lengthens_a_short_base() {
+        assert_eq!(
+            dynamic_crossfade_ms(
+                1000,
+                Some((Some(90.0), Some(0.8))),
+                Some((Some(160.0), Some(0.8)))
+            ),
+            1000
+        );
     }
 }

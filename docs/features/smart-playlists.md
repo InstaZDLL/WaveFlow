@@ -1,6 +1,6 @@
 # Smart playlists
 
-Auto-generated playlists materialised from the user's listening history. Today: a 3-slot **Daily Mix** family bucketed by tempo, plus a single **On Repeat** playlist tracking the user's top played tracks over the last 30 days. Tomorrow: "Repeat Rewind", "Release Radar", per-mood mixes — the engine in [`smart_playlists/`](../../src-tauri/crates/core/src/smart_playlists) is built around a discriminated `SmartPlaylistRules` enum so new families plug in without touching the regen flow.
+Auto-generated playlists materialised from the user's listening history. Today: a 3-slot **Daily Mix** family bucketed by energy, plus a single **On Repeat** playlist tracking the user's top played tracks over the last 30 days. Tomorrow: "Repeat Rewind", "Release Radar", per-mood mixes — the engine in [`smart_playlists/`](../../src-tauri/crates/core/src/smart_playlists) is built around a discriminated `SmartPlaylistRules` enum so new families plug in without touching the regen flow.
 
 ## Storage
 
@@ -23,7 +23,8 @@ Implemented in [`generator.rs`](../../src-tauri/crates/core/src/smart_playlists/
 ```sql
 SELECT a.id,
        SUM(pe.listened_ms),
-       AVG(ta.bpm)
+       AVG(ta.bpm),
+       AVG(ta.energy)
   FROM play_event pe
   JOIN track t           ON t.id  = pe.track_id
   JOIN track_artist ta2  ON ta2.track_id = t.id AND ta2.position = 0
@@ -38,17 +39,17 @@ SELECT a.id,
 
 Lookback is **90 days** so a one-off binge doesn't dominate forever. Below `MIN_ARTISTS = 6` distinct artists the regenerator skips entirely (better empty than degenerate three-shuffles-of-the-same-thing).
 
-### 2. Tempo bucketing
+### 2. Energy bucketing
 
-Each artist is routed to **one** bucket based on the average BPM of their tracks:
+Each artist is routed to **one** bucket based on the average **energy** of their tracks (analysis version 2, 0 calm to 1 intense — [library.md](library.md#tempo-and-energy-analysis-version-2)):
 
-| Slot | Label                | BPM range   | Description                                     |
-| ---- | -------------------- | ----------- | ----------------------------------------------- |
-| 1    | Daily Mix 1 (Calm)   | `< 95`      | Lower-tempo / ambient                           |
-| 2    | Daily Mix 2 (Groove) | `[95, 130)` | Mid-tempo, where most pop / rock / hip-hop sits |
-| 3    | Daily Mix 3 (Energy) | `≥ 130`     | High-energy, dance, drum & bass                 |
+| Slot | Label                | Energy         | Tempo, for older rows |
+| ---- | -------------------- | -------------- | --------------------- |
+| 1    | Daily Mix 1 (Calm)   | `< 0.4`        | `< 95`                |
+| 2    | Daily Mix 2 (Groove) | `[0.4, 0.65)`  | `[95, 130)`           |
+| 3    | Daily Mix 3 (Energy) | `≥ 0.65`       | `≥ 130`               |
 
-Artists with **no** analysed BPM fall back to slot 2. Same for ties — a missing analysis doesn't black-hole an artist.
+The tempo was the only measure before, and a poor one here: a slow song can be intense and a fast one airy, and a tempo read an octave out moved an artist into the wrong mix outright. Measured on a real library (829 artists, `analysis_bench`), the tempo rule put 407 of 670 artists in Groove; the energy cuts are that library's per-artist tertiles (0.39 / 0.66, rounded), and give 266 / 278 / 285. An artist whose tracks were analysed before energy existed falls back to the tempo column until the sweep re-measures them, and one with **no** analysis at all goes to slot 2 — a missing analysis doesn't black-hole an artist.
 
 ### 3. Track picking
 
@@ -62,8 +63,9 @@ preference — someone who listens to albums wants albums from anything
 that builds them a session.
 
 A record belongs to a bucket when **most of what we have measured of
-it** sits inside that bucket's tempo window (60 %, over at least three
-analysed tracks). A fraction rather than a median: a median says
+it** sits inside that bucket's window (60 %, over at least three
+analysed tracks) — by each track's energy, or its tempo for a track
+analysed before energy existed, the artists' rule. A fraction rather than a median: a median says
 nothing about spread, so a record that is half ambient and half thrash
 lands in the middle and would be offered for a mood neither of its
 halves belongs to. Asking that most of it actually fits rejects that
@@ -133,7 +135,7 @@ Future per-track-art families (Release Radar, Recently Added) will resolve the _
 
 ## Genre and decade mixes
 
-[`smart_playlists/themed.rs`](../../src-tauri/crates/core/src/smart_playlists/themed.rs). The other families cut the library on tempo (Daily Mix) or on recency (On Repeat); these cut it along axes of their own: one mix per genre, and one per decade, the user listens to most. Both families work the same way and differ only in how a mix's tracks are found (`track_genre` for a genre, `track.year` between the decade's first and last year for a decade).
+[`smart_playlists/themed.rs`](../../src-tauri/crates/core/src/smart_playlists/themed.rs). The other families cut the library on energy (Daily Mix) or on recency (On Repeat); these cut it along axes of their own: one mix per genre, and one per decade, the user listens to most. Both families work the same way and differ only in how a mix's tracks are found (`track_genre` for a genre, `track.year` between the decade's first and last year for a decade).
 
 - **Seeds.** The three genres (decades) with the most `listened_ms` over the last 90 days, the largest in the library breaking ties — so a library with no history yet still gets mixes, of what it holds most of. A seed needs **25 available tracks by 4 artists** (`MIN_TRACKS`, `MIN_ARTISTS`): below that a "mix" is one album on repeat. The 25 are counted again as **songs** once copies are merged (below), before the per-artist cap; a seed that falls short gives its place to the next, since nine are read for three mixes. A year outside 1–9999 belongs to no decade, as in the Years tab.
 - **Tracks.** Every available track of the seed, scored `ln(1 + plays) + jitter`, the jitter in `[0, 1)` drawn from a seed of the family, the genre or decade, and **the day**. One play already outweighs most of the draw while a track never played can still beat one played once, so the mix leans on what the user plays and still brings back what they have not; and it changes from one day to the next without moving between two visits the same day. Play counts are all-time: the window ranks the seeds, but a track loved two years ago still belongs at the front of its genre's mix. **One copy per song** (`dedupe`): two files of the same track — same artist, same title under `canonical_name`, say an MP3 and its Hi-Res re-buy — count once, the best copy (bit depth, then sample rate) standing for it with the plays of both. **At most 3 tracks per artist** (`PER_ARTIST_CAP`), then 50 tracks, then shuffled from the same seed so the favourites are spread through the mix rather than played first.
