@@ -75,7 +75,7 @@ Write commands: [`set_artist_bio_override`](../../src-tauri/crates/app/src/comma
 
 **Last.fm** needs an API key and secret (`app_setting`, shared by every profile) and a session obtained with signed `auth.getMobileSession`, stored in the profile's `auth_credential`. Error `9` (invalid session) wipes the session and its queue and emits `lastfm:reauth-required` for the banner.
 
-**ListenBrainz** ([`waveflow_core::metadata::listenbrainz`](../../src-tauri/crates/core/src/metadata/listenbrainz.rs)) needs only the user token from the ListenBrainz profile page, sent as `Authorization: Token …`. It is checked with `validate-token` before it is kept (`auth_credential`, provider `listenbrainz`), so a mistyped token fails in Settings rather than silently in the worker. A `401` later drops the token and its queue — the Settings card then shows it as disconnected; a `400` drops the one listen; `429` and server errors are retried.
+**ListenBrainz** ([`waveflow_core::metadata::listenbrainz`](../../src-tauri/crates/core/src/metadata/listenbrainz.rs)) needs only the user token from the ListenBrainz profile page, sent as `Authorization: Token …`. It is checked with `validate-token` before it is kept (`auth_credential`, provider `listenbrainz`), so a mistyped token fails in Settings rather than silently in the worker. A `401` later drops the token and its queue — the Settings card then shows it as disconnected; a `400` drops the one listen; `429` and server errors are retried. Like the other credentialed clients, it follows a redirect only inside the origin it asked (the token rides every request) and reads every answer, error bodies included, through the module's 2 MiB ceiling (#880).
 
 ## Discord Rich Presence
 

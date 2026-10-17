@@ -9,9 +9,16 @@
 //! Network only. The caller decides when to call (offline mode, the
 //! settling delay before "playing now", the retry schedule) — the same
 //! split as [`super::lastfm`].
+//!
+//! It follows the module's two rules for a client that carries a
+//! credential (#880): redirects stay inside the origin first asked, since
+//! every request carries the user's token, and every answer — the error
+//! bodies included — is read through [`read_bounded`]'s ceiling.
 
 use serde::Deserialize;
 use serde_json::{json, Value};
+
+use super::{default_http, read_bounded, BodyError, MAX_RESPONSE_BYTES};
 
 const BASE_URL: &str = "https://api.listenbrainz.org/1";
 /// ListenBrainz asks submitting clients to identify themselves.
@@ -53,8 +60,16 @@ impl ListenType {
 
 #[derive(Debug, thiserror::Error)]
 pub enum ListenBrainzError {
+    /// Built through `From`, which strips the URL, as every transport
+    /// error in this module is.
     #[error("network: {0}")]
-    Http(#[from] reqwest::Error),
+    Http(reqwest::Error),
+    /// The answer outgrew [`MAX_RESPONSE_BYTES`] and was not read.
+    #[error("ListenBrainz's answer exceeds {limit} bytes")]
+    TooLarge { limit: usize },
+    /// The token check answered something that is not its JSON.
+    #[error("ListenBrainz's answer is not the expected JSON: {0}")]
+    Decode(#[from] serde_json::Error),
     /// The token is wrong or was revoked: every later call would fail the
     /// same way until the user pastes a new one.
     #[error("ListenBrainz rejected the token")]
@@ -66,6 +81,21 @@ pub enum ListenBrainzError {
     /// Rate limited or a server error: worth trying again later.
     #[error("ListenBrainz unavailable ({status}): {message}")]
     Unavailable { status: u16, message: String },
+}
+
+impl From<reqwest::Error> for ListenBrainzError {
+    fn from(err: reqwest::Error) -> Self {
+        ListenBrainzError::Http(err.without_url())
+    }
+}
+
+impl From<BodyError> for ListenBrainzError {
+    fn from(err: BodyError) -> Self {
+        match err {
+            BodyError::Http(err) => ListenBrainzError::Http(err),
+            BodyError::TooLarge { limit } => ListenBrainzError::TooLarge { limit },
+        }
+    }
 }
 
 impl ListenBrainzError {
@@ -89,6 +119,7 @@ struct ErrorBody {
 
 pub struct ListenBrainzClient {
     http: reqwest::Client,
+    base_url: String,
 }
 
 impl Default for ListenBrainzClient {
@@ -99,12 +130,19 @@ impl Default for ListenBrainzClient {
 
 impl ListenBrainzClient {
     pub fn new() -> Self {
-        let http = reqwest::Client::builder()
-            .user_agent(USER_AGENT)
-            .timeout(std::time::Duration::from_secs(TIMEOUT_SECS))
-            .build()
-            .expect("failed to build reqwest client");
-        Self { http }
+        Self {
+            http: default_http(USER_AGENT, TIMEOUT_SECS),
+            base_url: BASE_URL.to_owned(),
+        }
+    }
+
+    /// The desktop's client, aimed at a test's listener.
+    #[cfg(test)]
+    fn at(base_url: &str) -> Self {
+        Self {
+            http: default_http(USER_AGENT, TIMEOUT_SECS),
+            base_url: base_url.to_owned(),
+        }
     }
 
     /// The user the token belongs to, or `None` when ListenBrainz says the
@@ -112,7 +150,7 @@ impl ListenBrainzClient {
     pub async fn validate_token(&self, token: &str) -> Result<Option<String>, ListenBrainzError> {
         let resp = self
             .http
-            .get(format!("{BASE_URL}/validate-token"))
+            .get(format!("{}/validate-token", self.base_url))
             .header("Authorization", format!("Token {token}"))
             .send()
             .await?;
@@ -121,12 +159,10 @@ impl ListenBrainzClient {
             return Ok(None);
         }
         if !status.is_success() {
-            return Err(classify(
-                status.as_u16(),
-                resp.text().await.unwrap_or_default(),
-            ));
+            return Err(classify(status.as_u16(), error_body(resp).await));
         }
-        let body: ValidateTokenResponse = resp.json().await?;
+        let body: ValidateTokenResponse =
+            serde_json::from_slice(&read_bounded(resp, MAX_RESPONSE_BYTES).await?)?;
         Ok(body.valid.then_some(body.user_name).flatten())
     }
 
@@ -139,7 +175,7 @@ impl ListenBrainzClient {
     ) -> Result<(), ListenBrainzError> {
         let resp = self
             .http
-            .post(format!("{BASE_URL}/submit-listens"))
+            .post(format!("{}/submit-listens", self.base_url))
             .header("Authorization", format!("Token {token}"))
             .json(&submit_body(kind, listen))
             .send()
@@ -148,10 +184,17 @@ impl ListenBrainzClient {
         if status.is_success() {
             return Ok(());
         }
-        Err(classify(
-            status.as_u16(),
-            resp.text().await.unwrap_or_default(),
-        ))
+        Err(classify(status.as_u16(), error_body(resp).await))
+    }
+}
+
+/// A failure's body, for its message only: read through the same ceiling
+/// as an answer, and empty when it cannot be read — the status alone
+/// already says what to do.
+async fn error_body(resp: reqwest::Response) -> String {
+    match read_bounded(resp, MAX_RESPONSE_BYTES).await {
+        Ok(body) => String::from_utf8_lossy(&body).into_owned(),
+        Err(_) => String::new(),
     }
 }
 
@@ -272,5 +315,81 @@ mod tests {
             ListenBrainzError::Rejected { message, .. } => assert_eq!(message, "Missing key"),
             other => panic!("{other:?}"),
         }
+    }
+
+    use crate::metadata::test_server::{serve, serve_json, Reply};
+
+    /// The token rides every request, so a redirect out of the origin is
+    /// not followed: the other host is never contacted.
+    #[tokio::test]
+    async fn a_redirect_out_of_the_origin_is_not_followed() {
+        let elsewhere = serve_json(r#"{"valid":true,"user_name":"someone"}"#).await;
+        let location = format!("location: {}/validate-token", elsewhere.base_url);
+        let asked = serve(Reply {
+            status: "307 Temporary Redirect",
+            headers: &[&location],
+            body: "",
+            announce_length: true,
+        })
+        .await;
+
+        let result = ListenBrainzClient::at(&asked.base_url)
+            .validate_token("the-token")
+            .await;
+
+        assert!(result.is_err(), "{result:?}");
+        assert_eq!(elsewhere.hits(), 0, "the token was sent elsewhere");
+    }
+
+    /// An answer over the ceiling is refused, not read whole, even when it
+    /// announces no length.
+    #[tokio::test]
+    async fn an_oversized_answer_is_refused() {
+        let padding = "x".repeat(MAX_RESPONSE_BYTES);
+        let body = format!(r#"{{"valid":true,"user_name":"{padding}"}}"#);
+        let provider = serve(Reply {
+            status: "200 OK",
+            headers: &[],
+            body: &body,
+            announce_length: false,
+        })
+        .await;
+
+        let error = ListenBrainzClient::at(&provider.base_url)
+            .validate_token("the-token")
+            .await
+            .expect_err("an oversized answer must not be read whole");
+
+        assert!(
+            matches!(error, ListenBrainzError::TooLarge { .. }),
+            "{error:?}"
+        );
+    }
+
+    /// An error body is read through the ceiling too; past it the status
+    /// still decides, and the message is simply empty.
+    #[tokio::test]
+    async fn an_oversized_error_body_still_classifies_by_status() {
+        let body = "x".repeat(MAX_RESPONSE_BYTES + 1);
+        let provider = serve(Reply {
+            status: "503 Service Unavailable",
+            headers: &[],
+            body: &body,
+            announce_length: false,
+        })
+        .await;
+
+        let error = ListenBrainzClient::at(&provider.base_url)
+            .submit("the-token", ListenType::Single, &listen())
+            .await
+            .expect_err("a 503 is a failure");
+
+        assert!(
+            matches!(
+                &error,
+                ListenBrainzError::Unavailable { status: 503, message } if message.is_empty()
+            ),
+            "{error:?}"
+        );
     }
 }
