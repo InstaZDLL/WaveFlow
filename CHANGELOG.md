@@ -1,5 +1,64 @@
 # Changelog
 
+## [1.10.0](https://github.com/InstaZDLL/WaveFlow/compare/v1.9.1...v1.10.0) (2026-10-17)
+
+
+### Features
+
+* **analysis:** a tempo that knows when it is unsure, and an energy measure ([#864](https://github.com/InstaZDLL/WaveFlow/issues/864)) ([1d18423](https://github.com/InstaZDLL/WaveFlow/commit/1d18423fb6d6a4c2a7074caff3bd23463eb21019))
+* **analysis:** daily mix and wrapped read energy, and the dynamic crossfade ignores an untrusted tempo ([a5c6225](https://github.com/InstaZDLL/WaveFlow/commit/a5c622557c9f2dfe5620cd6bb5cbcc3e057518a7))
+* **analysis:** daily mix and wrapped read energy, and the dynamic crossfade ignores an untrusted tempo ([cc2cc8e](https://github.com/InstaZDLL/WaveFlow/commit/cc2cc8ee2ab41fe7bf1ebc3176c4370974c7b75d))
+* **analysis:** detect lossless files made from a lossy source ([3265a6b](https://github.com/InstaZDLL/WaveFlow/commit/3265a6b14d5a6e85f2c0eb637a90a37d0fa7b4f1))
+* **analysis:** detect lossless files made from a lossy source ([adbcc63](https://github.com/InstaZDLL/WaveFlow/commit/adbcc6389029cc5c8d7addfea0b9aa5560c7d530))
+* **analysis:** read the key from the audio when no tag gives one ([59ed4f5](https://github.com/InstaZDLL/WaveFlow/commit/59ed4f5fedb7ea0cac8ee4e225b81e96a753a5d7))
+* **analysis:** where the beats fall, from the onsets the tempo already reads ([90dfe52](https://github.com/InstaZDLL/WaveFlow/commit/90dfe526009f95b4b46c90f883fbcd654d85e271))
+* **audio:** play a test tone through the output at its real format ([43ef11b](https://github.com/InstaZDLL/WaveFlow/commit/43ef11bc6ae3bd0935a6a1715b183e81f3deddf6))
+* **audio:** play a test tone through the output at its real format ([6536ff2](https://github.com/InstaZDLL/WaveFlow/commit/6536ff238f7930a2658c32386c982e49fcd58972))
+* **library:** move duplicate copies to the trash instead of only forgetting them ([c22a2f0](https://github.com/InstaZDLL/WaveFlow/commit/c22a2f084cabaa139a29a212acb51cb33741a0ba))
+* **library:** move duplicate copies to the trash instead of only forgetting them ([3fcb26c](https://github.com/InstaZDLL/WaveFlow/commit/3fcb26cab04ffa92a9b8dd62eb3b416ef70104ec))
+* **library:** replace a track's file with a better copy, keeping the track ([72a838c](https://github.com/InstaZDLL/WaveFlow/commit/72a838ca921e782f29e9b2af451e1c88023bb91f))
+* **metadata:** the clients take a client, an address and a key from their caller ([#855](https://github.com/InstaZDLL/WaveFlow/issues/855)) ([bd8d360](https://github.com/InstaZDLL/WaveFlow/commit/bd8d360cf3db4da946fcd52ec14ed912169c25ec))
+
+
+### Bug Fixes
+
+* **analysis:** average an artist's measures over its tracks, and keep wrapped's mood slide when only energy is known ([15d13e8](https://github.com/InstaZDLL/WaveFlow/commit/15d13e8780bfce2aea6be94f23ac678781a25808))
+* **analysis:** filter daily mix artists on their summed listening, not a bare column ([1ac5c9b](https://github.com/InstaZDLL/WaveFlow/commit/1ac5c9b49987868a87f7be208eee78037face703))
+* **analysis:** keep an automatic run asked for while one is going ([26fd637](https://github.com/InstaZDLL/WaveFlow/commit/26fd6379bfc02cadd8e77496442636169f122cad))
+* **analysis:** re-measure older rows when a profile opens ([f533c79](https://github.com/InstaZDLL/WaveFlow/commit/f533c79cc859304459290a9ec72e8034fe2fa747))
+* **analysis:** refuse a bare --beats, and report a beats file that fails to write ([1639588](https://github.com/InstaZDLL/WaveFlow/commit/163958804a755565d5664128680a14b8f1e239e2))
+* **audio:** answer a test tone that a starting track preempts, and rearm the card's watchdog on start ([e3efd5f](https://github.com/InstaZDLL/WaveFlow/commit/e3efd5f006fdd60316fd9a78278c83d6fd77805e))
+* **audio:** publish idle when the test tone starts over a parked session ([bc5bd37](https://github.com/InstaZDLL/WaveFlow/commit/bc5bd377ec2947ec14b4c62a70324638f8e710f1))
+* **audio:** reopen the output once per track when matching its sample rate ([083aaa9](https://github.com/InstaZDLL/WaveFlow/commit/083aaa9daf05f6befb6ef8526fa6b8101bb7cb6e))
+* **audio:** reopen the output once per track when matching its sample rate ([dfc6090](https://github.com/InstaZDLL/WaveFlow/commit/dfc6090d6e3bbcc2116ee7e4407f6ebf7cc912a3))
+* **audio:** run the wasapi exclusive render thread as an mmcss pro audio task ([9aa489a](https://github.com/InstaZDLL/WaveFlow/commit/9aa489a0ac0c1e51c1b9e2a0655066c7ffd26525))
+* **audio:** run the wasapi exclusive render thread as an mmcss pro audio task ([e35a3c2](https://github.com/InstaZDLL/WaveFlow/commit/e35a3c24aa334fed5452c3767eac67c6fd76794d))
+* **audio:** show each spectrum frame when its audio is played, not when it is decoded ([f5939e8](https://github.com/InstaZDLL/WaveFlow/commit/f5939e84ff33f598e6a282db1b5311f9f4f03c3b))
+* **audio:** show each spectrum frame when its audio is played, not when it is decoded ([47058d2](https://github.com/InstaZDLL/WaveFlow/commit/47058d2d00dbfacbdbcf1b5b61b3e2dd6b41dd8f))
+* **audio:** start the spectrum window afresh after a seek ([cafc547](https://github.com/InstaZDLL/WaveFlow/commit/cafc547d3b5bdc0215bdbb1c53a6c64431856bfa))
+* **audio:** time the spectrum's first frame after a reset as one interval ([1780832](https://github.com/InstaZDLL/WaveFlow/commit/1780832b32403e2f703e2bd6ca06194b51cb5a5e))
+* **core:** give the ListenBrainz client the redirect policy and response cap the other clients have ([f2d177e](https://github.com/InstaZDLL/WaveFlow/commit/f2d177e48845fe15a8c6141c8d1b87e74bf889ef))
+* **core:** give the ListenBrainz client the redirect policy and response cap the other clients have ([5af92ab](https://github.com/InstaZDLL/WaveFlow/commit/5af92ab1d4b33f98ca7442cd925708c021e6d7d4))
+* **library:** check the kept copy and the playing track right before each copy moves ([53c9167](https://github.com/InstaZDLL/WaveFlow/commit/53c9167f82a3b3a9b684431e9356db1ff3d7e24e))
+* **library:** let the index check alone decide a replacement's rollback ([f4ebace](https://github.com/InstaZDLL/WaveFlow/commit/f4ebace552691a120d8a462d4132c1ee45274ed1))
+* **library:** never drop the row of a copy that was not moved, and tell one file under two paths ([23194ad](https://github.com/InstaZDLL/WaveFlow/commit/23194ad42c2731ee9531c36b63c1bab889d5b3d4))
+* **library:** read the kept copy again before every copy it vouches for ([940c006](https://github.com/InstaZDLL/WaveFlow/commit/940c006c831f307edb91b406abf2dde9f28268fa))
+* **library:** remove each trashed copy's row on its own, and keep focus in the confirmation ([8b127a1](https://github.com/InstaZDLL/WaveFlow/commit/8b127a125110be38ea7738b587d101dec0267f1b))
+* **scan:** log why lofty refused a file, not only that it did ([bf87aab](https://github.com/InstaZDLL/WaveFlow/commit/bf87aab2b3d5fcb9b9155dc3a56eab4ee8e47536)), refs [#873](https://github.com/InstaZDLL/WaveFlow/issues/873)
+* **scan:** name the fallback codec after the stream, not the extension ([f154205](https://github.com/InstaZDLL/WaveFlow/commit/f154205c596959d64e90677fe488066d921a7ed0)), refs [#873](https://github.com/InstaZDLL/WaveFlow/issues/873)
+* **scan:** read a file by its content, and keep it when it plays ([7b814d2](https://github.com/InstaZDLL/WaveFlow/commit/7b814d28aa20da3c9b368b4be7a6de0aa37911e0))
+* **scan:** read a file by its content, and keep it when it plays ([d36a6f8](https://github.com/InstaZDLL/WaveFlow/commit/d36a6f81fcd74cb2861d0ed76e638fc77d168c81)), refs [#873](https://github.com/InstaZDLL/WaveFlow/issues/873)
+* **ui:** give the track menu's two keyed dialogs distinct keys ([9321438](https://github.com/InstaZDLL/WaveFlow/commit/9321438480785c0a60c8dd3b95370c67e2634827))
+* **ui:** give the track menu's two keyed dialogs distinct keys ([63556ba](https://github.com/InstaZDLL/WaveFlow/commit/63556bad30c9142950a04a9e9a9f8860f727fda1))
+* **ui:** keep a clicked row ringless after leaving and coming back to the window ([#871](https://github.com/InstaZDLL/WaveFlow/issues/871)) ([1b030c5](https://github.com/InstaZDLL/WaveFlow/commit/1b030c5a268605e25fe4017adcb82a9738e9de55)), refs [#866](https://github.com/InstaZDLL/WaveFlow/issues/866)
+* **ui:** keep the spectrum's last shape on pause ([f383cfd](https://github.com/InstaZDLL/WaveFlow/commit/f383cfd0298c4b3552e9d96627a1da42656e7cb0))
+* **ui:** no focus ring on what the mouse focused, and no checkbox on hover ([#868](https://github.com/InstaZDLL/WaveFlow/issues/868)) ([5cdbcf1](https://github.com/InstaZDLL/WaveFlow/commit/5cdbcf14ee72b36a96cd8f9e79e13dc263240163)), refs [#866](https://github.com/InstaZDLL/WaveFlow/issues/866) [#867](https://github.com/InstaZDLL/WaveFlow/issues/867)
+* **ui:** only push back the spectrum frames that were queued before a pause ([66e749c](https://github.com/InstaZDLL/WaveFlow/commit/66e749cb6dadc1eb418c6377fa76f7556e1fe062))
+* **ui:** queue spectrum frames from the start so the visualizer opens in sync ([f7c878c](https://github.com/InstaZDLL/WaveFlow/commit/f7c878c5701daef100aba75cb0445d83ed4a9b2e))
+* **ui:** queue spectrum frames from the start so the visualizer opens in sync ([e33aa68](https://github.com/InstaZDLL/WaveFlow/commit/e33aa68c5ffcb35bb2b6d28d387417ee1f208ab7))
+* **ui:** scroll to the settings panel when the navigation is stacked above it ([2430625](https://github.com/InstaZDLL/WaveFlow/commit/2430625c58ea6cf91290708957c3e03064c40531))
+* **ui:** skin cards fill their frame, and settings categories no longer jump under studio ([13b8ec3](https://github.com/InstaZDLL/WaveFlow/commit/13b8ec34e2e2043167e4b1f756628c8d0a1dccfc))
+
 ## [1.9.1](https://github.com/InstaZDLL/WaveFlow/compare/v1.9.0...v1.9.1) (2026-10-15)
 
 
