@@ -1502,7 +1502,8 @@
     "confirmAction": "रीसायकल बिन में ले जाएँ",
     "trashed": "रीसायकल बिन में ले जाई गईं: {{count}}",
     "notTrashed": "नहीं ले जाई गईं: {{count}}",
-    "reasonPlaying": "अभी चल रहा है"
+    "reasonPlaying": "अभी चल रहा है",
+    "reasonRowKept": "रीसायकल बिन में ले जाया गया, पर अगले स्कैन तक सूची में रहेगा ({{message}})"
   },
   "dragDrop": {
     "dropHint": "आयात करने के लिए छोड़ें",

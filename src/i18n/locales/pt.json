@@ -1556,7 +1556,8 @@
     "confirmAction": "Mover para o lixo",
     "trashed": "Movidos para o lixo: {{count}}",
     "notTrashed": "Não movidos: {{count}}",
-    "reasonPlaying": "está a ser reproduzido"
+    "reasonPlaying": "está a ser reproduzido",
+    "reasonRowKept": "movido para o lixo, mas ainda listado até à próxima análise ({{message}})"
   },
   "dragDrop": {
     "dropHint": "Largar para importar",

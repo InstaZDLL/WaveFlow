@@ -25,7 +25,10 @@ export function findDuplicates(): Promise<DuplicateGroup[]> {
 
 /** Why a copy stayed where it was. */
 export type TrashRefusal =
-  { kind: "playing" } | { kind: "failed"; message: string };
+  | { kind: "playing" }
+  | { kind: "failed"; message: string }
+  /** In the trash, but its row could not be removed. */
+  | { kind: "row_kept"; message: string };
 
 export interface TrashFailure {
   track_id: number;

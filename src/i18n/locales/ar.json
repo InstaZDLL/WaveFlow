@@ -1676,7 +1676,8 @@
     "confirmAction": "نقل إلى سلة المهملات",
     "trashed": "نُقلت إلى سلة المهملات: {{count}}",
     "notTrashed": "لم تُنقل: {{count}}",
-    "reasonPlaying": "قيد التشغيل"
+    "reasonPlaying": "قيد التشغيل",
+    "reasonRowKept": "نُقل إلى سلة المهملات، لكنه يبقى في القائمة حتى الفحص التالي ({{message}})"
   },
   "dragDrop": {
     "dropHint": "أفلت للاستيراد",

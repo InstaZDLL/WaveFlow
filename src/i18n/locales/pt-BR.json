@@ -1556,7 +1556,8 @@
     "confirmAction": "Mover para a lixeira",
     "trashed": "Movidos para a lixeira: {{count}}",
     "notTrashed": "Não movidos: {{count}}",
-    "reasonPlaying": "está tocando"
+    "reasonPlaying": "está tocando",
+    "reasonRowKept": "movido para a lixeira, mas ainda listado até a próxima varredura ({{message}})"
   },
   "dragDrop": {
     "dropHint": "Soltar para importar",

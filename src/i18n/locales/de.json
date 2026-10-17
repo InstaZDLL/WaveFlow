@@ -1502,7 +1502,8 @@
     "confirmAction": "In den Papierkorb verschieben",
     "trashed": "In den Papierkorb verschoben: {{count}}",
     "notTrashed": "Nicht verschoben: {{count}}",
-    "reasonPlaying": "wird gerade abgespielt"
+    "reasonPlaying": "wird gerade abgespielt",
+    "reasonRowKept": "in den Papierkorb verschoben, aber bis zum nächsten Scan noch aufgeführt ({{message}})"
   },
   "dragDrop": {
     "dropHint": "Loslassen zum Importieren",

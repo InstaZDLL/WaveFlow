@@ -183,6 +183,10 @@ pub enum TrashRefusal {
     /// The system would not move it (read-only, a share without a
     /// trash, held open elsewhere), with its reason.
     Failed(String),
+    /// The file went to the trash but its row could not be removed, so
+    /// the library still lists it until a rescan of its folder notices.
+    /// Reported apart: the file is no longer where the row says.
+    RowKept(String),
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -268,31 +272,25 @@ pub async fn move_tracks_to_trash(
     )
     .await;
 
-    let mut tx = pool.begin().await?;
+    // One transaction per file: the files are already in the trash, so a
+    // row that cannot be removed must not take the others' with it.
     for (i, (id, library_id, file_path)) in candidates.into_iter().enumerate() {
         match outcomes
             .get(i)
             .cloned()
             .unwrap_or_else(|| Err("not attempted".into()))
         {
-            Ok(()) => {
-                let res = sqlx::query("DELETE FROM track WHERE id = ?")
-                    .bind(id)
-                    .execute(&mut *tx)
-                    .await
-                    .map_err(|e| AppError::Other(format!("delete track {id}: {e}")))?;
-                if res.rows_affected() > 0 {
-                    // User-initiated delete (not a library / folder
-                    // cascade, which the server replays from the parent
-                    // op). In the same transaction as the DELETE, so
-                    // both land or neither does.
-                    crate::sync::track_emit::emit_track_delete_in_tx(
-                        &mut tx, library_id, &file_path,
-                    )
-                    .await?;
+            Ok(()) => match remove_row(&pool, id, library_id, &file_path).await {
+                Ok(()) => report.trashed += 1,
+                Err(message) => {
+                    tracing::warn!(path = %file_path, error = %message, "a trashed duplicate kept its row");
+                    report.failed.push(TrashFailure {
+                        track_id: id,
+                        file_path,
+                        reason: TrashRefusal::RowKept(message),
+                    });
                 }
-                report.trashed += 1;
-            }
+            },
             Err(message) => {
                 tracing::warn!(path = %file_path, error = %message, "could not move a duplicate to the trash");
                 report.failed.push(TrashFailure {
@@ -303,14 +301,40 @@ pub async fn move_tracks_to_trash(
             }
         }
     }
-    tx.commit().await?;
 
-    // Ship the per-track delete ops now rather than at the drain's next
-    // idle poll, like every other sync-emitting command.
-    state.drain.notify();
-
-    let _ = app.emit("library:rescanned", ());
+    if report.trashed > 0 {
+        // Ship the per-track delete ops now rather than at the drain's
+        // next idle poll, like every other sync-emitting command.
+        state.drain.notify();
+        let _ = app.emit("library:rescanned", ());
+    }
     Ok(report)
+}
+
+/// Remove one trashed copy's row, with its sync op, in a transaction of
+/// its own. A row already gone (the watcher's rescan got there first)
+/// is not an error.
+async fn remove_row(
+    pool: &sqlx::SqlitePool,
+    id: i64,
+    library_id: i64,
+    file_path: &str,
+) -> Result<(), String> {
+    let mut tx = pool.begin().await.map_err(|e| e.to_string())?;
+    let res = sqlx::query("DELETE FROM track WHERE id = ?")
+        .bind(id)
+        .execute(&mut *tx)
+        .await
+        .map_err(|e| e.to_string())?;
+    if res.rows_affected() > 0 {
+        // User-initiated delete (not a library / folder cascade, which
+        // the server replays from the parent op). In the same
+        // transaction as the DELETE, so both land or neither does.
+        crate::sync::track_emit::emit_track_delete_in_tx(&mut tx, library_id, file_path)
+            .await
+            .map_err(|e| e.to_string())?;
+    }
+    tx.commit().await.map_err(|e| e.to_string())
 }
 
 #[cfg(test)]

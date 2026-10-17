@@ -1502,7 +1502,8 @@
     "confirmAction": "Çöp kutusuna taşı",
     "trashed": "Çöp kutusuna taşındı: {{count}}",
     "notTrashed": "Taşınamadı: {{count}}",
-    "reasonPlaying": "şu anda çalıyor"
+    "reasonPlaying": "şu anda çalıyor",
+    "reasonRowKept": "çöp kutusuna taşındı, ancak sonraki taramaya kadar listede kalıyor ({{message}})"
   },
   "dragDrop": {
     "dropHint": "İçe aktarmak için bırak",

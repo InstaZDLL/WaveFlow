@@ -1502,7 +1502,8 @@
     "confirmAction": "Move to the trash",
     "trashed": "Moved to the trash: {{count}}",
     "notTrashed": "Not moved: {{count}}",
-    "reasonPlaying": "it is playing"
+    "reasonPlaying": "it is playing",
+    "reasonRowKept": "moved to the trash, but still listed until the next scan ({{message}})"
   },
   "dragDrop": {
     "dropHint": "Drop to import",

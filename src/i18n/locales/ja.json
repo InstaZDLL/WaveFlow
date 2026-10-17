@@ -1502,7 +1502,8 @@
     "confirmAction": "ゴミ箱に移動",
     "trashed": "ゴミ箱に移動：{{count}}件",
     "notTrashed": "移動できませんでした：{{count}}件",
-    "reasonPlaying": "再生中のため"
+    "reasonPlaying": "再生中のため",
+    "reasonRowKept": "ゴミ箱に移動しましたが、次回のスキャンまで一覧に残ります（{{message}}）"
   },
   "dragDrop": {
     "dropHint": "ドロップしてインポート",

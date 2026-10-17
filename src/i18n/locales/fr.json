@@ -1674,7 +1674,8 @@
     "confirmAction": "Mettre à la corbeille",
     "trashed": "Mis à la corbeille : {{count}}",
     "notTrashed": "Non déplacés : {{count}}",
-    "reasonPlaying": "en cours de lecture"
+    "reasonPlaying": "en cours de lecture",
+    "reasonRowKept": "mis à la corbeille, mais encore listé jusqu'au prochain scan ({{message}})"
   },
   "dragDrop": {
     "dropHint": "Déposer pour importer",

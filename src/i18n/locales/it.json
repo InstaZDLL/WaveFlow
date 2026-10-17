@@ -1555,7 +1555,8 @@
     "confirmAction": "Sposta nel cestino",
     "trashed": "Spostati nel cestino: {{count}}",
     "notTrashed": "Non spostati: {{count}}",
-    "reasonPlaying": "è in riproduzione"
+    "reasonPlaying": "è in riproduzione",
+    "reasonRowKept": "spostato nel cestino, ma ancora elencato fino alla prossima scansione ({{message}})"
   },
   "dragDrop": {
     "dropHint": "Rilascia per importare",

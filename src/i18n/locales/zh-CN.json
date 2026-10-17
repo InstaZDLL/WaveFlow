@@ -1502,7 +1502,8 @@
     "confirmAction": "移到回收站",
     "trashed": "已移到回收站：{{count}}",
     "notTrashed": "未移动：{{count}}",
-    "reasonPlaying": "正在播放"
+    "reasonPlaying": "正在播放",
+    "reasonRowKept": "已移到回收站，但在下次扫描前仍会列出（{{message}}）"
   },
   "dragDrop": {
     "dropHint": "松开以导入",

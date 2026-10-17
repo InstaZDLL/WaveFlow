@@ -1502,7 +1502,8 @@
     "confirmAction": "Naar de prullenbak",
     "trashed": "Naar de prullenbak verplaatst: {{count}}",
     "notTrashed": "Niet verplaatst: {{count}}",
-    "reasonPlaying": "wordt afgespeeld"
+    "reasonPlaying": "wordt afgespeeld",
+    "reasonRowKept": "naar de prullenbak verplaatst, maar nog vermeld tot de volgende scan ({{message}})"
   },
   "dragDrop": {
     "dropHint": "Loslaten om te importeren",

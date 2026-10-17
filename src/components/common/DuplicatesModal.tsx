@@ -46,6 +46,19 @@ export function DuplicatesModal({ isOpen, onClose }: DuplicatesModalProps) {
     null,
   );
   const [report, setReport] = useState<TrashReport | null>(null);
+  // The footer swaps buttons when the confirmation opens and closes;
+  // without moving focus it would fall back to the document.
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  const trashRef = useRef<HTMLButtonElement>(null);
+  const wasPending = useRef(false);
+  useEffect(() => {
+    if (pending) {
+      cancelRef.current?.focus();
+    } else if (wasPending.current) {
+      trashRef.current?.focus();
+    }
+    wasPending.current = pending !== null;
+  }, [pending]);
   // Two independent staleness tokens:
   //   - `scanSeqRef` is bumped by every `refresh()` invocation so two
   //     overlapping scans don't race on the setters.
@@ -218,7 +231,11 @@ export function DuplicatesModal({ isOpen, onClose }: DuplicatesModalProps) {
                         {" — "}
                         {f.reason.kind === "playing"
                           ? t("duplicates.reasonPlaying")
-                          : f.reason.message}
+                          : f.reason.kind === "row_kept"
+                            ? t("duplicates.reasonRowKept", {
+                                message: f.reason.message,
+                              })
+                            : f.reason.message}
                       </li>
                     ))}
                   </ul>
@@ -326,6 +343,7 @@ export function DuplicatesModal({ isOpen, onClose }: DuplicatesModalProps) {
         {pending ? (
           <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-zinc-200 dark:border-zinc-800">
             <button
+              ref={cancelRef}
               type="button"
               onClick={() => setPending(null)}
               className="px-4 py-2 rounded-full text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
@@ -360,6 +378,7 @@ export function DuplicatesModal({ isOpen, onClose }: DuplicatesModalProps) {
                 {t("common.close")}
               </button>
               <button
+                ref={trashRef}
                 type="button"
                 onClick={askToTrash}
                 disabled={isDeleting || isScanning || groups.length === 0}

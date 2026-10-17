@@ -1502,7 +1502,8 @@
     "confirmAction": "移到資源回收筒",
     "trashed": "已移到資源回收筒：{{count}}",
     "notTrashed": "未移動：{{count}}",
-    "reasonPlaying": "正在播放"
+    "reasonPlaying": "正在播放",
+    "reasonRowKept": "已移到資源回收筒，但在下次掃描前仍會列出（{{message}}）"
   },
   "dragDrop": {
     "dropHint": "拖放至此以匯入",

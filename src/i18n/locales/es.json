@@ -1555,7 +1555,8 @@
     "confirmAction": "Mover a la papelera",
     "trashed": "Movidos a la papelera: {{count}}",
     "notTrashed": "No movidos: {{count}}",
-    "reasonPlaying": "se está reproduciendo"
+    "reasonPlaying": "se está reproduciendo",
+    "reasonRowKept": "movido a la papelera, pero sigue en la lista hasta el próximo escaneo ({{message}})"
   },
   "dragDrop": {
     "dropHint": "Suelta para importar",
