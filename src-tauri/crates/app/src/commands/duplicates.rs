@@ -218,9 +218,11 @@ pub struct TrashReport {
 /// adds any audio file that has no row, so the next rescan (or the
 /// folder watcher) brought every copy back as a new track, without its
 /// playlists, likes or history. The files go first, and only a copy
-/// whose file is gone loses its row — the library never lists a file
-/// that is not there, nor forgets one that still is. The trash is the
-/// operating system's, so a wrong pick can be restored from there.
+/// this command moved loses its row, so a copy still on disk never
+/// does. A row whose removal fails after its file moved stays listed
+/// until the next scan, and is reported as [`TrashRefusal::RowKept`].
+/// The trash is the operating system's, so a wrong pick can be restored
+/// from there.
 ///
 /// Cascading rows (`track_artist`, `playlist_track`, `play_event`, …)
 /// go through the schema's `ON DELETE CASCADE`. The folder watcher sees
@@ -270,12 +272,9 @@ pub async fn move_tracks_to_trash(
 
     let shared = std::sync::Arc::clone(engine.shared());
     let done = crate::trash::on_trash_thread(move || {
-        // A kept copy is hashed once, however many copies it vouches for.
-        let mut kept_hashes: std::collections::HashMap<String, Option<String>> =
-            std::collections::HashMap::new();
         jobs.into_iter()
             .map(|job| {
-                let outcome = trash_one(&job, &shared, &mut kept_hashes);
+                let outcome = trash_one(&job, &shared);
                 (job, outcome)
             })
             .collect::<Vec<_>>()
@@ -352,12 +351,13 @@ async fn lookup_track(pool: &sqlx::SqlitePool, id: i64) -> AppResult<Option<(i64
 ///
 /// - It is not the track playing now.
 /// - The copy kept for it is still there and still byte-identical, and
-///   is not the same file under another spelling of its path (a
-///   case-insensitive volume): otherwise this copy may be the last one.
+///   is not the same file reached by another path: otherwise this copy
+///   may be the last one. The kept copy is read again for every copy it
+///   vouches for, not once per group — in a group of three it can change
+///   between the first move and the second.
 fn trash_one(
     job: &TrashJob,
     shared: &crate::audio::state::SharedPlayback,
-    kept_hashes: &mut std::collections::HashMap<String, Option<String>>,
 ) -> Result<(), TrashRefusal> {
     use std::path::Path;
 
@@ -383,11 +383,7 @@ fn trash_one(
     if same_file::is_same_file(path, keep).unwrap_or(false) {
         return Err(TrashRefusal::KeptCopyGone);
     }
-    let kept = kept_hashes
-        .entry(keep.to_string())
-        .or_insert_with(|| waveflow_core::scanner::hash_file_full(Path::new(keep)).ok())
-        .clone();
-    let Some(kept) = kept else {
+    let Ok(kept) = waveflow_core::scanner::hash_file_full(Path::new(keep)) else {
         return Err(TrashRefusal::KeptCopyGone);
     };
     match waveflow_core::scanner::hash_file_full(path) {
@@ -476,7 +472,6 @@ mod tests {
     fn a_copy_moves_only_while_its_kept_twin_still_matches() {
         use super::{trash_one, TrashJob, TrashRefusal};
         use crate::audio::state::SharedPlayback;
-        use std::collections::HashMap;
 
         let dir = tempfile::tempdir().unwrap();
         let write = |name: &str, bytes: &[u8]| {
@@ -491,12 +486,11 @@ mod tests {
             keep_path,
         };
         let shared = SharedPlayback::new();
-        let mut cache = HashMap::new();
 
         // The kept copy's row is gone.
         let lone = write("lone.mp3", b"same");
         assert!(matches!(
-            trash_one(&job(1, lone.clone(), None), &shared, &mut cache),
+            trash_one(&job(1, lone.clone(), None), &shared),
             Err(TrashRefusal::KeptCopyGone)
         ));
         // The kept copy's file is gone.
@@ -506,22 +500,18 @@ mod tests {
             .to_string_lossy()
             .into_owned();
         assert!(matches!(
-            trash_one(&job(1, lone.clone(), Some(missing)), &shared, &mut cache),
+            trash_one(&job(1, lone.clone(), Some(missing)), &shared),
             Err(TrashRefusal::KeptCopyGone)
         ));
         // The kept copy changed since the scan.
         let changed = write("changed.mp3", b"retagged");
         assert!(matches!(
-            trash_one(&job(1, lone.clone(), Some(changed)), &shared, &mut cache),
+            trash_one(&job(1, lone.clone(), Some(changed)), &shared),
             Err(TrashRefusal::KeptCopyGone)
         ));
         // The "copy" is the kept file itself.
         assert!(matches!(
-            trash_one(
-                &job(1, lone.clone(), Some(lone.clone())),
-                &shared,
-                &mut cache
-            ),
+            trash_one(&job(1, lone.clone(), Some(lone.clone())), &shared),
             Err(TrashRefusal::KeptCopyGone)
         ));
         // It started playing after the click.
@@ -530,11 +520,7 @@ mod tests {
             .current_track_id
             .store(7, std::sync::atomic::Ordering::Release);
         assert!(matches!(
-            trash_one(
-                &job(7, lone.clone(), Some(twin.clone())),
-                &shared,
-                &mut cache
-            ),
+            trash_one(&job(7, lone.clone(), Some(twin.clone())), &shared),
             Err(TrashRefusal::Playing)
         ));
         assert!(std::path::Path::new(&lone).exists());
@@ -546,19 +532,47 @@ mod tests {
             .to_string_lossy()
             .into_owned();
         assert!(matches!(
-            trash_one(&job(1, vanished, Some(twin.clone())), &shared, &mut cache),
+            trash_one(&job(1, vanished, Some(twin.clone())), &shared),
             Err(TrashRefusal::Missing)
         ));
 
         // An identical twin still there: the copy goes.
-        assert!(trash_one(
-            &job(1, lone.clone(), Some(twin.clone())),
-            &shared,
-            &mut cache
-        )
-        .is_ok());
+        assert!(trash_one(&job(1, lone.clone(), Some(twin.clone())), &shared).is_ok());
         assert!(!std::path::Path::new(&lone).exists());
         assert!(std::path::Path::new(&twin).exists());
+    }
+
+    /// A group of three: the kept copy changes between the first move and
+    /// the second, and the second copy stays.
+    #[test]
+    fn the_kept_copy_is_read_again_before_every_move() {
+        use super::{trash_one, TrashJob, TrashRefusal};
+        use crate::audio::state::SharedPlayback;
+
+        let dir = tempfile::tempdir().unwrap();
+        let write = |name: &str, bytes: &[u8]| {
+            let p = dir.path().join(name);
+            std::fs::write(&p, bytes).unwrap();
+            p.to_string_lossy().into_owned()
+        };
+        let kept = write("kept.mp3", b"same");
+        let first = write("first.mp3", b"same");
+        let second = write("second.mp3", b"same");
+        let job = |id: i64, file_path: String| TrashJob {
+            id,
+            library_id: 1,
+            file_path,
+            keep_path: Some(kept.clone()),
+        };
+        let shared = SharedPlayback::new();
+
+        assert!(trash_one(&job(1, first.clone()), &shared).is_ok());
+        std::fs::write(&kept, b"retagged in between").unwrap();
+        assert!(matches!(
+            trash_one(&job(2, second.clone()), &shared),
+            Err(TrashRefusal::KeptCopyGone)
+        ));
+        assert!(std::path::Path::new(&second).exists());
     }
 
     #[test]
