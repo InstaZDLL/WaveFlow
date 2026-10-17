@@ -1617,6 +1617,7 @@ fn play_track(
                 secondary_at_eof = false;
                 stream.seek_ms(ms);
                 reset_clock(shared, ms);
+                spectrum_analyzer.discard_pending();
                 reset_resampler_for_seek(&mut stream, shared, dst_sample_rate, dst_channels);
                 stream.reset_decoder();
                 drain_ring_silent(producer, shared);
@@ -1656,6 +1657,7 @@ fn play_track(
                 if pos >= b_ms {
                     stream.seek_ms(a_ms);
                     reset_clock(shared, a_ms);
+                    spectrum_analyzer.discard_pending();
                     reset_resampler_for_seek(&mut stream, shared, dst_sample_rate, dst_channels);
                     stream.reset_decoder();
                     drain_ring_silent(producer, shared);
@@ -1865,6 +1867,7 @@ fn play_track(
                         secondary_resampled.clear();
                         stream.seek_ms(ms);
                         reset_clock(shared, ms);
+                        spectrum_analyzer.discard_pending();
                         reset_resampler_for_seek(
                             &mut stream,
                             shared,
@@ -2047,6 +2050,7 @@ fn play_track(
                     primary_at_eof = false;
                     stream.seek_ms(ms);
                     reset_clock(shared, ms);
+                    spectrum_analyzer.discard_pending();
                     reset_resampler_for_seek(&mut stream, shared, dst_sample_rate, dst_channels);
                     stream.reset_decoder();
                     drain_ring_silent(producer, shared);

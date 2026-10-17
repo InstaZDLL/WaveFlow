@@ -128,9 +128,19 @@ impl SpectrumAnalyzer {
         }
     }
 
-    /// Reset the rolling buffer. Called on track change so the
-    /// previous track's tail samples don't bleed into the first FFT
-    /// frame of the new track.
+    /// Drop the samples waiting for the next window, after a seek. The
+    /// ring has just been emptied, so the next frame must be built from
+    /// the new position alone; mixing in up to a window of the old one
+    /// would also put its middle before anything still to be played. The
+    /// level reference is kept: it is the same track, and resetting it
+    /// would flash the bars to full height.
+    pub fn discard_pending(&mut self) {
+        self.pending.clear();
+        self.since_emit = usize::MAX;
+    }
+
+    /// Reset the rolling buffer and the level reference, so a new
+    /// track's first frame owes nothing to the previous one.
     pub fn reset(&mut self) {
         self.pending.clear();
         // A new track starts from the floor, not from the last one's
