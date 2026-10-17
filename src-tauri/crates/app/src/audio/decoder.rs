@@ -903,6 +903,21 @@ fn play_test_tone(
 ) -> ToneEnd {
     use super::test_tone;
 
+    // The engine parked the session and published `Idle` before its
+    // `Stop` got here, and `play_track` returns from a `Stop` without
+    // publishing anything. A load that was still opening then announced
+    // `Playing` after the park, and a `Pause` queued ahead of the `Stop`
+    // announced `Paused`: either would stay on screen over a decoder that
+    // holds nothing, with a Play button the decoder ignores. Commands
+    // arrive in order, so by now the `Stop` is done and nothing is loaded.
+    if matches!(
+        shared.state(),
+        PlayerState::Playing | PlayerState::Paused | PlayerState::Loading
+    ) {
+        let track_id = shared.current_track_id.load(Ordering::Acquire);
+        transition_state(shared, app, PlayerState::Idle, Some(track_id));
+    }
+
     // A paused track's tail may still sit in the ring.
     unpause_and_drain_ring(producer, shared);
     // A DoP output reads every ring value as a DSD word: PCM pushed into
