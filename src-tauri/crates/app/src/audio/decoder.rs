@@ -1828,6 +1828,7 @@ fn play_track(
                     &mix_scratch,
                     dst_channels,
                     dst_sample_rate as f32,
+                    queued_samples(producer),
                     shared,
                     app,
                 );
@@ -2014,6 +2015,7 @@ fn play_track(
                 &primary_resampled,
                 dst_channels,
                 dst_sample_rate as f32,
+                queued_samples(producer),
                 shared,
                 app,
             );

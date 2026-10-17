@@ -6,7 +6,13 @@
 //! magnitudes into log-spaced bands suitable for a Spotify / Apple-
 //! Music-style bar visualizer.
 //!
-//! Throttled to ~30 Hz so the Tauri event loop and the renderer don't
+//! **Timed to the output, not to the decoder.** The decoder runs up to a
+//! ring's length — about a second — ahead of what is heard, so a frame
+//! emitted as soon as it is computed showed every beat a second early.
+//! Each frame carries `delay_ms`, how long until its window reaches the
+//! output, and the visualizer holds it until then.
+//!
+//! One frame per ~33 ms of audio (~30 Hz at normal speed), so the Tauri event loop and the renderer don't
 //! drown — the visualizer doesn't need full-rate spectra to look
 //! smooth (the React side does its own decay/peak hold). The FFT
 //! itself runs on the decoder thread, which can afford ~100 µs per
@@ -19,7 +25,7 @@
 
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use realfft::num_complex::Complex;
 use realfft::{RealFftPlanner, RealToComplex};
@@ -66,7 +72,7 @@ const MIN_HZ: f32 = 30.0;
 /// content above and the bands end up too sparse otherwise.
 const MAX_HZ: f32 = 16_000.0;
 
-/// Min interval between emitted spectrum frames (~30 Hz). The UI's
+/// Audio between two emitted spectrum frames (~30 Hz). The UI's
 /// `requestAnimationFrame` is the actual visual cadence; the backend
 /// just feeds it fast enough to keep the bars feeling alive.
 const EMIT_INTERVAL: Duration = Duration::from_millis(33);
@@ -92,7 +98,12 @@ pub struct SpectrumAnalyzer {
     raw: Vec<f32>,
     /// Running level reference the bands are scaled against (#715).
     level: f32,
-    last_emit: Instant,
+    /// Audio slid through the window since the last emitted frame, in
+    /// frames. Counted in audio rather than wall time: the decoder fills
+    /// the ring in a burst after every load and seek, and a wall-clock
+    /// throttle let two or three frames through for that whole first
+    /// second, which the output-timed display then showed as a stutter.
+    since_emit: usize,
 }
 
 impl SpectrumAnalyzer {
@@ -112,10 +123,8 @@ impl SpectrumAnalyzer {
             bands: vec![0.0; BAND_COUNT],
             raw: vec![0.0; BAND_COUNT],
             level: MIN_LEVEL,
-            // Start "long ago" so the first window emits immediately.
-            last_emit: Instant::now()
-                .checked_sub(EMIT_INTERVAL)
-                .unwrap_or_else(Instant::now),
+            // The first full window emits at once.
+            since_emit: usize::MAX,
         }
     }
 
@@ -128,16 +137,19 @@ impl SpectrumAnalyzer {
         // loudness: a quiet track after a loud one would otherwise stay
         // dim for seconds.
         self.level = MIN_LEVEL;
+        self.since_emit = usize::MAX;
     }
 
-    /// Feed interleaved samples produced by the decoder. No-ops fast
-    /// when the visualizer is disabled or when the throttle window
+    /// Feed interleaved samples produced by the decoder, about to be
+    /// pushed behind the `queued_samples` the ring already holds. No-ops
+    /// fast when the visualizer is disabled or when the throttle window
     /// hasn't elapsed yet.
     pub fn feed(
         &mut self,
         samples: &[f32],
         channels: usize,
         sample_rate: f32,
+        queued_samples: u64,
         shared: &SharedPlayback,
         app: &AppHandle,
     ) {
@@ -172,28 +184,33 @@ impl SpectrumAnalyzer {
         // Fire as many FFT frames as we have data for, but stop
         // emitting once the throttle says so — we still want to
         // consume the buffer to keep its length bounded.
+        let interval = ((sample_rate * EMIT_INTERVAL.as_secs_f32()) as usize).max(1);
         while self.pending.len() >= FFT_SIZE {
-            let now = Instant::now();
-            let due = now.duration_since(self.last_emit) >= EMIT_INTERVAL;
-            if due {
-                let elapsed = now
-                    .duration_since(self.last_emit)
-                    .min(Duration::from_secs(1));
+            if self.since_emit >= interval {
+                let elapsed =
+                    Duration::from_secs_f32((self.since_emit as f32 / sample_rate).min(1.0));
                 self.run_one_frame(sample_rate, elapsed);
                 let payload = SpectrumPayload {
                     bands: self.bands.clone(),
+                    delay_ms: delay_ms(
+                        queued_samples,
+                        samples.len(),
+                        self.pending.len(),
+                        channels,
+                        sample_rate,
+                    ),
                 };
                 let _ = app.emit(EVENT_NAME, payload);
-                self.last_emit = now;
+                // The remainder carries over, so frames average one per
+                // interval even though the window moves by whole hops.
+                self.since_emit = (self.since_emit - interval).min(interval);
             }
             // Slide the window by HOP, so consecutive passes overlap by
             // three quarters. Keeps the visualizer feeling continuous
             // rather than strobing.
-            if self.pending.len() > HOP {
-                self.pending.drain(..HOP);
-            } else {
-                self.pending.clear();
-            }
+            let slid = HOP.min(self.pending.len());
+            self.pending.drain(..slid);
+            self.since_emit = self.since_emit.saturating_add(slid);
         }
     }
 
@@ -224,6 +241,31 @@ impl SpectrumAnalyzer {
 #[derive(Clone, serde::Serialize)]
 struct SpectrumPayload {
     bands: Vec<f32>,
+    /// How long until the middle of this frame's window is played.
+    delay_ms: u32,
+}
+
+/// How long until the middle of the window in `pending[..FFT_SIZE]` is
+/// played, in milliseconds.
+///
+/// The newest mono sample in `pending` is the last frame of the buffer
+/// being fed, which is pushed after everything the ring already holds:
+/// it plays `queued + this buffer` frames from now. The window's middle
+/// sits `pending_len - FFT_SIZE / 2` frames before it. The device's own
+/// buffer comes on top and is not counted — tens of milliseconds, under
+/// what an eye can pair with a beat.
+fn delay_ms(
+    queued_samples: u64,
+    fed_samples: usize,
+    pending_len: usize,
+    channels: usize,
+    sample_rate: f32,
+) -> u32 {
+    let channels = channels.max(1) as u64;
+    let ahead = queued_samples / channels + (fed_samples as u64) / channels;
+    let behind = (pending_len as u64).saturating_sub(FFT_SIZE as u64 / 2);
+    let frames = ahead.saturating_sub(behind);
+    (frames as f64 * 1000.0 / f64::from(sample_rate.max(1.0))).round() as u32
 }
 
 fn hann_window(n: usize) -> Vec<f32> {
@@ -350,6 +392,19 @@ fn soft_limit(x: f32) -> f32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_delay_counts_the_ring_and_the_buffer_up_to_the_window_middle() {
+        // 1 s of stereo queued at 48 kHz, a 1024-frame buffer fed, and the
+        // window exactly full: its middle is FFT_SIZE / 2 frames before the
+        // buffer's end.
+        let ms = delay_ms(96_000, 2048, FFT_SIZE, 2, 48_000.0);
+        let frames = 48_000 + 1024 - FFT_SIZE as u64 / 2;
+        assert_eq!(u64::from(ms), (frames * 1000 + 24_000) / 48_000);
+        // Nothing queued and the window's middle already past the buffer:
+        // never negative.
+        assert_eq!(delay_ms(0, 0, FFT_SIZE * 4, 2, 48_000.0), 0);
+    }
 
     #[test]
     fn hann_window_is_symmetric_and_unit_peak() {
