@@ -871,6 +871,17 @@ enum TestTonePayload {
 
 const EVENT_TEST_TONE: &str = "player:test-tone";
 
+/// A tone asked for while a track holds the decoder.
+///
+/// The engine stops a session before asking for the tone, so this only
+/// happens when a load was already on its way and the player did not
+/// look busy yet. The track wins, and the card hears so at once rather
+/// than waiting out its watchdog.
+fn test_tone_yields(app: &AppHandle) {
+    tracing::debug!("test tone asked for while a track plays; the track wins");
+    let _ = app.emit(EVENT_TEST_TONE, TestTonePayload::Interrupted);
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ToneEnd {
     Done,
@@ -2398,9 +2409,7 @@ fn drain_commands(
                             return ControlFlow::LoadNext;
                         }
                         Ok(AudioCmd::Pause) => {}
-                        // The engine stops a paused session before it
-                        // asks for the tone, so the tone never lands here.
-                        Ok(AudioCmd::PlayTestTone) => {}
+                        Ok(AudioCmd::PlayTestTone) => test_tone_yields(app),
                         // The `Stop` the engine sends first should
                         // take us out of here before the swap arrives —
                         // a rebuild treats a paused session as one to
@@ -2425,6 +2434,7 @@ fn drain_commands(
             Ok(AudioCmd::SetVolume(v)) => shared.set_volume(v),
             Ok(AudioCmd::SetNormalize(on)) => shared.normalize_enabled.store(on, Ordering::Release),
             Ok(AudioCmd::SetMono(on)) => shared.mono_enabled.store(on, Ordering::Release),
+            Ok(AudioCmd::PlayTestTone) => test_tone_yields(app),
             // Named before the catch-all, which used to swallow it: a
             // swap that reaches a decoding track is the one command
             // this arm must not treat as "not meaningful here".

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Headphones } from "lucide-react";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
@@ -67,12 +67,21 @@ export function TestToneCard() {
   // cannot overwrite the output of a later one.
   const press = useRef(0);
 
-  const clearWatchdog = () => {
+  const clearWatchdog = useCallback(() => {
     if (watchdog.current !== null) {
       window.clearTimeout(watchdog.current);
       watchdog.current = null;
     }
-  };
+  }, []);
+
+  const armWatchdog = useCallback(() => {
+    clearWatchdog();
+    watchdog.current = window.setTimeout(() => {
+      watchdog.current = null;
+      setPhase(null);
+      setStatus("interrupted");
+    }, NO_ANSWER_MS);
+  }, [clearWatchdog]);
 
   useEffect(() => {
     let unlisten: UnlistenFn | null = null;
@@ -85,6 +94,12 @@ export function TestToneCard() {
           switch (payload.kind) {
             case "started": {
               const ticket = press.current;
+              // The output may have taken a while to come back (a DoP
+              // stream reopened as PCM): the tone starts now, whatever
+              // the watchdog decided in the meantime.
+              setStatus("playing");
+              setError(null);
+              armWatchdog();
               setOutput({
                 sampleRate: payload.sampleRate,
                 channels: payload.channels,
@@ -152,7 +167,7 @@ export function TestToneCard() {
       if (unlisten) unlisten();
       clearWatchdog();
     };
-  }, []);
+  }, [armWatchdog, clearWatchdog]);
 
   const play = async () => {
     press.current += 1;
@@ -160,12 +175,7 @@ export function TestToneCard() {
     setPhase(null);
     setOutput(null);
     setError(null);
-    clearWatchdog();
-    watchdog.current = window.setTimeout(() => {
-      watchdog.current = null;
-      setPhase(null);
-      setStatus("interrupted");
-    }, NO_ANSWER_MS);
+    armWatchdog();
     try {
       await playerPlayTestTone();
     } catch (err) {
