@@ -137,7 +137,11 @@ export function WrappedView({
     if (payload.top_artists.length > 0) list.push("topArtists");
     if (payload.top_albums.length > 0) list.push("topAlbums");
     if (payload.most_active_day) list.push("activeDay");
-    if (payload.mood.avg_bpm != null) list.push("mood");
+    // Energy and tempo are measured apart, so a year can carry one
+    // without the other.
+    if (payload.mood.avg_bpm != null || payload.mood.energy != null) {
+      list.push("mood");
+    }
     list.push("clock");
     if (payload.streak && payload.streak.days >= 2) list.push("streak");
     if (payload.first_listen) list.push("firstListen");
@@ -672,18 +676,22 @@ function SlideRenderer({
     }
 
     case "mood": {
-      const bpm = payload.mood.avg_bpm ?? 0;
+      const bpm = payload.mood.avg_bpm;
       const energy = payload.mood.energy ?? "warm";
       return (
         <Slide>
           <div className="text-center wrapped-fade-up">
-            <div className="uppercase tracking-[0.4em] text-xs text-white/60 mb-3">
-              {t("wrapped.mood.eyebrow")}
-            </div>
-            <div className="text-7xl font-extrabold leading-none mb-2 tabular-nums">
-              {Math.round(bpm)}
-              <span className="text-2xl ml-2 text-white/60">BPM</span>
-            </div>
+            {bpm != null && (
+              <>
+                <div className="uppercase tracking-[0.4em] text-xs text-white/60 mb-3">
+                  {t("wrapped.mood.eyebrow")}
+                </div>
+                <div className="text-7xl font-extrabold leading-none mb-2 tabular-nums">
+                  {Math.round(bpm)}
+                  <span className="text-2xl ml-2 text-white/60">BPM</span>
+                </div>
+              </>
+            )}
             <p className="text-xl text-white/70 mb-6">
               {t("wrapped.mood.subtitle")}
             </p>

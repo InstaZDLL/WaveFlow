@@ -21,21 +21,28 @@ Implemented in [`generator.rs`](../../src-tauri/crates/core/src/smart_playlists/
 ### 1. Top artists window
 
 ```sql
+WITH played AS (
+    SELECT track_id, SUM(listened_ms) AS listened_ms
+      FROM play_event
+     WHERE played_at >= now() - 90 days
+     GROUP BY track_id
+)
 SELECT a.id,
-       SUM(pe.listened_ms),
+       SUM(p.listened_ms),
        AVG(ta.bpm),
        AVG(ta.energy)
-  FROM play_event pe
-  JOIN track t           ON t.id  = pe.track_id
+  FROM played p
+  JOIN track t           ON t.id  = p.track_id
   JOIN track_artist ta2  ON ta2.track_id = t.id AND ta2.position = 0
   JOIN artist a          ON a.id  = ta2.artist_id
   LEFT JOIN track_analysis ta ON ta.track_id = t.id
- WHERE pe.played_at >= now() - 90 days
-   AND t.is_available = 1
+ WHERE t.is_available = 1
  GROUP BY a.id
- ORDER BY SUM(pe.listened_ms) DESC
+ ORDER BY SUM(p.listened_ms) DESC
  LIMIT 60
 ```
+
+The plays are summed **per track** before the join (`artist_listening`): joined straight to `play_event`, a track's measures repeated once per play, and the artist's mean tempo or energy became its most replayed song's — ten plays of a calm track and one of an intense one read as calm instead of the middle of the two.
 
 Lookback is **90 days** so a one-off binge doesn't dominate forever. Below `MIN_ARTISTS = 6` distinct artists the regenerator skips entirely (better empty than degenerate three-shuffles-of-the-same-thing).
 
