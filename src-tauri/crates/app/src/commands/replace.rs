@@ -411,7 +411,12 @@ pub async fn replace_track_file(
             )));
         }
     };
-    if scanned.is_err() || indexed.is_none() {
+    // The strict check above decides: a scan error elsewhere in the folder
+    // (another file it could not read) does not undo a file it did take.
+    if let Err(err) = &scanned {
+        tracing::warn!(track_id, %err, "rescan after replacement reported an error");
+    }
+    if indexed.is_none() {
         // Put everything back: the file, the row, and a scan to re-read it.
         // An adopted file stays where the user put it, and the scan lists
         // it again as the track of its own it was.
