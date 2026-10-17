@@ -1504,7 +1504,8 @@
     "notTrashed": "Taşınamadı: {{count}}",
     "reasonPlaying": "şu anda çalıyor",
     "reasonRowKept": "çöp kutusuna taşındı, ancak sonraki taramaya kadar listede kalıyor ({{message}})",
-    "reasonKeptCopyGone": "tuttuğunuz kopya yok ya da artık aynı değil, bu yüzden bu kopya kalıyor"
+    "reasonKeptCopyGone": "tuttuğunuz kopya yok ya da artık aynı değil, bu yüzden bu kopya kalıyor",
+    "reasonMissing": "dosya yerinde değil (silinmiş ya da bağlı olmayan bir sürücüde); sonraki tarama kitaplığı güncelleyecek"
   },
   "dragDrop": {
     "dropHint": "İçe aktarmak için bırak",

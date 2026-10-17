@@ -29,6 +29,8 @@ export type TrashRefusal =
   | { kind: "failed"; message: string }
   /** The copy kept for it is missing, changed, or the same file. */
   | { kind: "kept_copy_gone" }
+  /** Not on disk: deleted by hand or on an unplugged drive. */
+  | { kind: "missing" }
   /** In the trash, but its row could not be removed. */
   | { kind: "row_kept"; message: string };
 

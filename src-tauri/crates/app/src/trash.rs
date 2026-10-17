@@ -44,18 +44,13 @@ pub async fn on_trash_thread<R: Send + 'static>(
 
 /// Move one file to the trash. Call it from [`on_trash_thread`].
 ///
-/// A file that is no longer in its folder counts as done: there is
-/// nothing left to move, and its row should go with it. A file whose
-/// *folder* is missing does not: that is a drive unplugged or a share
-/// down, where every file looks gone and none of them is.
+/// `Ok` means this call moved the file, nothing less. A file that cannot
+/// be found is an error, not a success: from here a file deleted by hand
+/// and a drive unplugged look the same — even its folder can still be
+/// there, as the empty mount point of a library at a volume's root — and
+/// only the first would make its row safe to drop. The next scan of the
+/// folder, which can tell, settles it.
 pub fn move_one(path: &Path) -> Outcome {
-    if std::fs::symlink_metadata(path).is_err_and(|e| e.kind() == std::io::ErrorKind::NotFound) {
-        return if path.parent().is_some_and(Path::is_dir) {
-            Ok(())
-        } else {
-            Err("its folder is unavailable (an unplugged drive or a share that is down?)".into())
-        };
-    }
     #[cfg(target_os = "linux")]
     if in_flatpak() {
         return portal::trash_file(path);
@@ -141,20 +136,18 @@ mod tests {
         assert!(!path.exists());
     }
 
+    /// A file that cannot be found was not moved, even in a folder that
+    /// is there: the folder may be the empty mount point of an unplugged
+    /// drive (a library at the volume's root), so its row must stay.
     #[tokio::test]
-    async fn a_missing_file_counts_as_moved() {
+    async fn a_missing_file_is_not_reported_as_moved() {
         let dir = tempfile::tempdir().expect("tempdir");
         let gone = dir.path().join("gone.mp3");
         let outcome = on_trash_thread(move || move_one(&gone))
             .await
             .expect("thread");
-        assert_eq!(outcome, Ok(()));
-    }
+        assert!(outcome.is_err(), "{outcome:?}");
 
-    /// An unplugged drive makes every file look gone: its rows must stay.
-    #[tokio::test]
-    async fn a_missing_folder_is_not_a_missing_file() {
-        let dir = tempfile::tempdir().expect("tempdir");
         let unplugged = dir.path().join("unplugged").join("copy.mp3");
         let outcome = on_trash_thread(move || move_one(&unplugged))
             .await

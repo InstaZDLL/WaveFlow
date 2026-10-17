@@ -1676,7 +1676,8 @@
     "notTrashed": "Non déplacés : {{count}}",
     "reasonPlaying": "en cours de lecture",
     "reasonRowKept": "mis à la corbeille, mais encore listé jusqu'au prochain scan ({{message}})",
-    "reasonKeptCopyGone": "la copie gardée est introuvable ou n'est plus identique, celle-ci reste donc en place"
+    "reasonKeptCopyGone": "la copie gardée est introuvable ou n'est plus identique, celle-ci reste donc en place",
+    "reasonMissing": "le fichier est introuvable (supprimé, ou sur un disque non connecté) ; le prochain scan mettra la bibliothèque à jour"
   },
   "dragDrop": {
     "dropHint": "Déposer pour importer",

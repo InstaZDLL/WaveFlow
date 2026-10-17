@@ -245,13 +245,15 @@ export function DuplicatesModal({ isOpen, onClose }: DuplicatesModalProps) {
                         {" — "}
                         {f.reason.kind === "playing"
                           ? t("duplicates.reasonPlaying")
-                          : f.reason.kind === "kept_copy_gone"
-                            ? t("duplicates.reasonKeptCopyGone")
-                            : f.reason.kind === "row_kept"
-                              ? t("duplicates.reasonRowKept", {
-                                  message: f.reason.message,
-                                })
-                              : f.reason.message}
+                          : f.reason.kind === "missing"
+                            ? t("duplicates.reasonMissing")
+                            : f.reason.kind === "kept_copy_gone"
+                              ? t("duplicates.reasonKeptCopyGone")
+                              : f.reason.kind === "row_kept"
+                                ? t("duplicates.reasonRowKept", {
+                                    message: f.reason.message,
+                                  })
+                                : f.reason.message}
                       </li>
                     ))}
                   </ul>

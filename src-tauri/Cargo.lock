@@ -7775,6 +7775,7 @@ dependencies = [
  "rtrb",
  "rubato",
  "rustls",
+ "same-file",
  "semver",
  "serde",
  "serde_json",

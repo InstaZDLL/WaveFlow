@@ -1504,7 +1504,8 @@
     "notTrashed": "Niet verplaatst: {{count}}",
     "reasonPlaying": "wordt afgespeeld",
     "reasonRowKept": "naar de prullenbak verplaatst, maar nog vermeld tot de volgende scan ({{message}})",
-    "reasonKeptCopyGone": "de bewaarde kopie ontbreekt of is niet meer identiek, dus deze blijft"
+    "reasonKeptCopyGone": "de bewaarde kopie ontbreekt of is niet meer identiek, dus deze blijft",
+    "reasonMissing": "het bestand is er niet (verwijderd of op een niet-aangesloten schijf); de volgende scan werkt de bibliotheek bij"
   },
   "dragDrop": {
     "dropHint": "Loslaten om te importeren",

@@ -1504,7 +1504,8 @@
     "notTrashed": "未移動：{{count}}",
     "reasonPlaying": "正在播放",
     "reasonRowKept": "已移到資源回收筒，但在下次掃描前仍會列出（{{message}}）",
-    "reasonKeptCopyGone": "保留的副本已不存在或不再相同，因此這一份不會移動"
+    "reasonKeptCopyGone": "保留的副本已不存在或不再相同，因此這一份不會移動",
+    "reasonMissing": "檔案不在原處（已刪除，或位於未連接的磁碟機上）；下次掃描會更新音樂庫"
   },
   "dragDrop": {
     "dropHint": "拖放至此以匯入",

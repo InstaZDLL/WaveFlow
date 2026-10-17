@@ -1504,7 +1504,8 @@
     "notTrashed": "Nicht verschoben: {{count}}",
     "reasonPlaying": "wird gerade abgespielt",
     "reasonRowKept": "in den Papierkorb verschoben, aber bis zum nächsten Scan noch aufgeführt ({{message}})",
-    "reasonKeptCopyGone": "die behaltene Kopie fehlt oder ist nicht mehr identisch, daher bleibt diese"
+    "reasonKeptCopyGone": "die behaltene Kopie fehlt oder ist nicht mehr identisch, daher bleibt diese",
+    "reasonMissing": "die Datei ist nicht da (gelöscht oder auf einem nicht verbundenen Laufwerk); der nächste Scan aktualisiert die Mediathek"
   },
   "dragDrop": {
     "dropHint": "Loslassen zum Importieren",

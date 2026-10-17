@@ -186,6 +186,10 @@ pub enum TrashRefusal {
     /// The copy kept for it is missing, changed, or is this very file:
     /// moving this one could leave no copy at all.
     KeptCopyGone,
+    /// The file is not where its row says. Deleted by hand, or on a
+    /// drive that is not plugged in: from here the two look the same, so
+    /// the row stays and the next scan of its folder decides.
+    Missing,
     /// The file went to the trash but its row could not be removed, so
     /// the library still lists it until a rescan of its folder notices.
     /// Reported apart: the file is no longer where the row says.
@@ -365,29 +369,31 @@ fn trash_one(
         return Err(TrashRefusal::Playing);
     }
     let path = Path::new(&job.file_path);
-    // A copy already gone needs no proof of identity; `move_one` decides
-    // whether that is a file removed or a drive unplugged.
-    if path.exists() {
-        let Some(keep) = job.keep_path.as_deref() else {
-            return Err(TrashRefusal::KeptCopyGone);
-        };
-        if let (Ok(a), Ok(b)) = (std::fs::canonicalize(path), std::fs::canonicalize(keep)) {
-            if a == b {
-                return Err(TrashRefusal::KeptCopyGone);
-            }
-        }
-        let kept = kept_hashes
-            .entry(keep.to_string())
-            .or_insert_with(|| waveflow_core::scanner::hash_file_full(Path::new(keep)).ok())
-            .clone();
-        let Some(kept) = kept else {
-            return Err(TrashRefusal::KeptCopyGone);
-        };
-        match waveflow_core::scanner::hash_file_full(path) {
-            Ok(hash) if hash == kept => {}
-            Ok(_) => return Err(TrashRefusal::KeptCopyGone),
-            Err(e) => return Err(TrashRefusal::Failed(e.to_string())),
-        }
+    if std::fs::symlink_metadata(path).is_err_and(|e| e.kind() == std::io::ErrorKind::NotFound) {
+        return Err(TrashRefusal::Missing);
+    }
+    let Some(keep) = job.keep_path.as_deref() else {
+        return Err(TrashRefusal::KeptCopyGone);
+    };
+    // One file under two paths — a mapped drive and its UNC path, a bind
+    // mount, another case on a case-insensitive volume — is the kept copy
+    // itself. Compared by identity (volume and file index, device and
+    // inode); an error here means the kept copy cannot be opened, which
+    // the hash below refuses anyway.
+    if same_file::is_same_file(path, keep).unwrap_or(false) {
+        return Err(TrashRefusal::KeptCopyGone);
+    }
+    let kept = kept_hashes
+        .entry(keep.to_string())
+        .or_insert_with(|| waveflow_core::scanner::hash_file_full(Path::new(keep)).ok())
+        .clone();
+    let Some(kept) = kept else {
+        return Err(TrashRefusal::KeptCopyGone);
+    };
+    match waveflow_core::scanner::hash_file_full(path) {
+        Ok(hash) if hash == kept => {}
+        Ok(_) => return Err(TrashRefusal::KeptCopyGone),
+        Err(e) => return Err(TrashRefusal::Failed(e.to_string())),
     }
     crate::trash::move_one(path).map_err(TrashRefusal::Failed)
 }
@@ -532,6 +538,17 @@ mod tests {
             Err(TrashRefusal::Playing)
         ));
         assert!(std::path::Path::new(&lone).exists());
+
+        // A copy no longer on disk keeps its row.
+        let vanished = dir
+            .path()
+            .join("vanished.mp3")
+            .to_string_lossy()
+            .into_owned();
+        assert!(matches!(
+            trash_one(&job(1, vanished, Some(twin.clone())), &shared, &mut cache),
+            Err(TrashRefusal::Missing)
+        ));
 
         // An identical twin still there: the copy goes.
         assert!(trash_one(

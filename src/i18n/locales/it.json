@@ -1557,7 +1557,8 @@
     "notTrashed": "Non spostati: {{count}}",
     "reasonPlaying": "è in riproduzione",
     "reasonRowKept": "spostato nel cestino, ma ancora elencato fino alla prossima scansione ({{message}})",
-    "reasonKeptCopyGone": "la copia tenuta manca o non è più identica, quindi questa resta"
+    "reasonKeptCopyGone": "la copia tenuta manca o non è più identica, quindi questa resta",
+    "reasonMissing": "il file non c'è (eliminato o su un'unità non collegata); la prossima scansione aggiornerà la libreria"
   },
   "dragDrop": {
     "dropHint": "Rilascia per importare",

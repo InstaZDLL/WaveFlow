@@ -1558,7 +1558,8 @@
     "notTrashed": "Não movidos: {{count}}",
     "reasonPlaying": "está tocando",
     "reasonRowKept": "movido para a lixeira, mas ainda listado até a próxima varredura ({{message}})",
-    "reasonKeptCopyGone": "a cópia mantida não existe ou não é mais idêntica, então esta fica"
+    "reasonKeptCopyGone": "a cópia mantida não existe ou não é mais idêntica, então esta fica",
+    "reasonMissing": "o arquivo não existe (excluído ou em uma unidade não conectada); a próxima varredura atualiza a biblioteca"
   },
   "dragDrop": {
     "dropHint": "Soltar para importar",
