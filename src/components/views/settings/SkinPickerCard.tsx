@@ -124,7 +124,12 @@ export function SkinPickerCard() {
               tabIndex={isActive ? 0 : -1}
               onClick={() => setSkinId(preset.id)}
               onKeyDown={(e) => handleKeyDown(e, idx)}
-              className={`group relative text-left overflow-hidden transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
+              // A column flex, its preview `flex-1`: the cards of a row
+              // share the tallest one's height, and a button centres
+              // its content, so a card beside one with a two-line
+              // description showed its preview floating in the middle
+              // of an empty frame (#884).
+              className={`group relative flex flex-col text-left overflow-hidden transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
                 isActive
                   ? "ring-2 ring-emerald-500/40"
                   : "ring-1 ring-zinc-200 dark:ring-zinc-700 hover:ring-zinc-300 dark:hover:ring-zinc-600"
@@ -132,7 +137,7 @@ export function SkinPickerCard() {
               style={{ borderRadius: preset.radius.card }}
             >
               <div
-                className="px-4 py-5 bg-white dark:bg-zinc-900 relative"
+                className="flex-1 px-4 py-5 bg-white dark:bg-zinc-900 relative"
                 style={previewStyle}
               >
                 {/* Skin label rendered in its own display family —

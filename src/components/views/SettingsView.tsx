@@ -140,6 +140,7 @@ import { listen } from "@tauri-apps/api/event";
 import { useLibrary } from "../../hooks/useLibrary";
 import { useTasks } from "../../hooks/useTasks";
 import { useProfile } from "../../hooks/useProfile";
+import { usePageScroll } from "../../hooks/usePageScroll";
 import { useProfileScopedToggle } from "../../hooks/useProfileScopedToggle";
 import { useGeneratorAlbumMode } from "../../hooks/useGeneratorAlbumMode";
 import { invoke } from "@tauri-apps/api/core";
@@ -550,6 +551,7 @@ export function SettingsView({
     setTargetGroup(null);
   }, [initialCategory]);
   const panelRef = useRef<HTMLDivElement>(null);
+  const pageScroll = usePageScroll();
   const handleCategoryChange = useCallback((next: SettingsCategory) => {
     setActiveCategory(next);
     setTargetGroup(null);
@@ -2038,10 +2040,35 @@ export function SettingsView({
                   panelRef.current)
                 : panelRef.current;
               if (target instanceof HTMLDetailsElement) target.open = true;
-              const scrollTarget = group
-                ? target
-                : panelRef.current?.closest(".settings-view");
-              scrollTarget?.scrollIntoView({ block: "start" });
+              // A category goes back to the top of the page itself, not
+              // to `.settings-view` with its scroll margin: under a skin
+              // whose page padding exceeds that margin (Studio's 2rem
+              // against 1.5rem), the page scrolled the difference — but
+              // only for a category long enough to scroll, so switching
+              // between a short and a long one jumped by 8 px (#884).
+              const page = pageScroll?.current;
+              // In a narrow window the navigation sits above the panel,
+              // and the top of the page would show the list just clicked
+              // with the chosen category below the fold: scroll to the
+              // panel there instead.
+              const panel = panelRef.current;
+              const nav = panel?.previousElementSibling;
+              const stacked =
+                panel != null &&
+                nav != null &&
+                panel.getBoundingClientRect().top >=
+                  nav.getBoundingClientRect().bottom;
+              if (group) {
+                target?.scrollIntoView({ block: "start" });
+              } else if (stacked) {
+                panel.scrollIntoView({ block: "start" });
+              } else if (page) {
+                page.scrollTo({ top: 0 });
+              } else {
+                panelRef.current
+                  ?.closest(".settings-view")
+                  ?.scrollIntoView({ block: "start" });
+              }
               target?.focus({ preventScroll: true });
             });
           }}
