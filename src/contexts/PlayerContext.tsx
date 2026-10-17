@@ -49,6 +49,7 @@ import type { PluginFavorite } from "../lib/tauri/plugins";
 import { enrichArtistDeezer } from "../lib/tauri/detail";
 import { remoteArtwork } from "../lib/tauri/remoteServer";
 import { setPlayerPosition } from "../hooks/usePlayerPosition";
+import { startSpectrumFeed } from "../lib/spectrumFeed";
 import {
   isRadioTrack,
   isRemoteTrack,
@@ -453,6 +454,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const unlisten: UnlistenFn[] = [];
     let cancelled = false;
+
+    // The spectrum's queue fills from the start, so a visualizer opened
+    // mid-track has the frames that are due right away.
+    startSpectrumFeed();
 
     (async () => {
       try {
