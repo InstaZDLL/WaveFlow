@@ -187,8 +187,11 @@ impl SpectrumAnalyzer {
         let interval = ((sample_rate * EMIT_INTERVAL.as_secs_f32()) as usize).max(1);
         while self.pending.len() >= FFT_SIZE {
             if self.since_emit >= interval {
-                let elapsed =
-                    Duration::from_secs_f32((self.since_emit as f32 / sample_rate).min(1.0));
+                // The first frame after a reset has no previous one: it
+                // stands for one interval, and the count restarts from it.
+                let first = self.since_emit == usize::MAX;
+                let audio = if first { interval } else { self.since_emit };
+                let elapsed = Duration::from_secs_f32((audio as f32 / sample_rate).min(1.0));
                 self.run_one_frame(sample_rate, elapsed);
                 let payload = SpectrumPayload {
                     bands: self.bands.clone(),
@@ -203,7 +206,11 @@ impl SpectrumAnalyzer {
                 let _ = app.emit(EVENT_NAME, payload);
                 // The remainder carries over, so frames average one per
                 // interval even though the window moves by whole hops.
-                self.since_emit = (self.since_emit - interval).min(interval);
+                self.since_emit = if first {
+                    0
+                } else {
+                    (self.since_emit - interval).min(interval)
+                };
             }
             // Slide the window by HOP, so consecutive passes overlap by
             // three quarters. Keeps the visualizer feeling continuous
