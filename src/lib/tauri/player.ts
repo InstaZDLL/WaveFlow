@@ -120,6 +120,41 @@ export function playerStop(): Promise<void> {
   return invoke<void>("player_stop");
 }
 
+/** What the output stream hands over: to the device in exclusive mode,
+ *  to the system mixer in shared mode. */
+export type OutputSampleFormat =
+  "unknown" | "f32" | "s32" | "s24" | "s24-in-32" | "s16" | "u16" | "dop";
+
+export type TestTonePhase = "left" | "right" | "both";
+
+/** Payload of {@link TEST_TONE_EVENT}. */
+export type TestToneEvent =
+  | {
+      kind: "started";
+      sampleRate: number;
+      channels: number;
+      sampleFormat: OutputSampleFormat;
+      /** Mono output plays both beeps on both sides. */
+      mono: boolean;
+    }
+  /** A beep starts playing, counted at the output. */
+  | { kind: "phase"; phase: TestTonePhase }
+  | { kind: "finished" }
+  /** A track, a stop or a device change took the output. */
+  | { kind: "interrupted" }
+  | { kind: "failed"; message: string };
+
+export const TEST_TONE_EVENT = "player:test-tone";
+
+/**
+ * Play the output test tone: a beep on the left, on the right, then on
+ * both, at the output's own format. A track in progress is set aside and
+ * picked back up by Play. Progress arrives as {@link TEST_TONE_EVENT}.
+ */
+export function playerPlayTestTone(): Promise<void> {
+  return invoke<void>("player_play_test_tone");
+}
+
 export function playerSeek(ms: number): Promise<void> {
   return invoke<void>("player_seek", { ms: Math.max(0, Math.round(ms)) });
 }

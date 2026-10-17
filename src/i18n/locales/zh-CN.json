@@ -2677,6 +2677,34 @@
       "showNextLine": "显示下一行",
       "showProgress": "显示进度条",
       "hideOnPause": "暂停时隐藏"
+    },
+    "testTone": {
+      "title": "测试输出",
+      "subtitle": "以输出的实际格式，依次在左声道、右声道和双声道播放提示音。正在播放的曲目会先暂停，按播放即可从原位置继续。",
+      "play": "播放测试音",
+      "playing": "正在播放…",
+      "left": "左",
+      "right": "右",
+      "both": "双声道",
+      "mono": "单声道",
+      "stereo": "立体声",
+      "channels": "{{count}} 声道",
+      "exclusive": "独占",
+      "shared": "共享",
+      "sharedNote": "在共享模式下，系统混音器随后会把此格式转换为设备自身的格式。",
+      "monoNote": "单声道输出已开启：每个提示音都会从两侧同时发出。",
+      "swapped": "左侧提示音从右边发出？说明声道接反了：请检查插头或系统的扬声器设置。",
+      "interrupted": "测试已中断。",
+      "failed": "无法播放测试音：{{message}}",
+      "format": {
+        "f32": "32 位浮点",
+        "s32": "32 位",
+        "s24": "24 位",
+        "s24In32": "24 位（32 位容器）",
+        "s16": "16 位",
+        "dop": "DoP",
+        "unknown": "未知格式"
+      }
     }
   },
   "scanProgress": {

@@ -326,6 +326,7 @@ fn open_and_run(
 
     shared.sample_rate.store(dop.sample_rate, Ordering::Release);
     shared.channels.store(dop.channels, Ordering::Release);
+    shared.set_sample_format(super::state::OutputSampleFormat::Dop);
 
     audio_unit
         .start()
@@ -543,6 +544,9 @@ fn open_and_run_pcm(
         .sample_rate
         .store(sample_rate.round() as u32, Ordering::Release);
     shared.channels.store(channels as u16, Ordering::Release);
+    // What we hand the HAL; the device's own physical format sits behind
+    // the audio unit's converter.
+    shared.set_sample_format(super::state::OutputSampleFormat::F32);
 
     audio_unit
         .start()

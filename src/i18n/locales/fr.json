@@ -2740,6 +2740,34 @@
       "showNextLine": "Afficher la ligne suivante",
       "showProgress": "Afficher la progression",
       "hideOnPause": "Masquer pendant la pause"
+    },
+    "testTone": {
+      "title": "Tester la sortie",
+      "subtitle": "Joue un bip à gauche, puis à droite, puis des deux côtés, au format réel de la sortie. Un morceau en cours est mis de côté et reprend avec Lecture.",
+      "play": "Jouer le son de test",
+      "playing": "Lecture…",
+      "left": "Gauche",
+      "right": "Droite",
+      "both": "Les deux",
+      "mono": "Mono",
+      "stereo": "Stéréo",
+      "channels": "{{count}} canaux",
+      "exclusive": "Exclusif",
+      "shared": "Partagé",
+      "sharedNote": "En mode partagé, le mixeur du système convertit ensuite ce format en celui du périphérique.",
+      "monoNote": "La sortie mono est activée : chaque bip sort des deux côtés.",
+      "swapped": "Le bip de gauche est sorti à droite ? Les canaux sont inversés : vérifie le branchement ou la configuration des haut-parleurs du système.",
+      "interrupted": "Test interrompu.",
+      "failed": "Impossible de jouer le son de test : {{message}}",
+      "format": {
+        "f32": "32 bits flottant",
+        "s32": "32 bits",
+        "s24": "24 bits",
+        "s24In32": "24 bits (conteneur 32 bits)",
+        "s16": "16 bits",
+        "dop": "DoP",
+        "unknown": "format inconnu"
+      }
     }
   },
   "scanProgress": {

@@ -2677,6 +2677,34 @@
       "showNextLine": "Tampilkan baris berikutnya",
       "showProgress": "Tampilkan bilah progres",
       "hideOnPause": "Sembunyikan saat dijeda"
+    },
+    "testTone": {
+      "title": "Uji keluaran",
+      "subtitle": "Memutar bunyi bip di kiri, lalu di kanan, lalu di kedua sisi, dalam format keluaran yang sebenarnya. Lagu yang sedang diputar disisihkan dan kembali dengan Putar.",
+      "play": "Putar nada uji",
+      "playing": "Memutar…",
+      "left": "Kiri",
+      "right": "Kanan",
+      "both": "Keduanya",
+      "mono": "Mono",
+      "stereo": "Stereo",
+      "channels": "{{count}} kanal",
+      "exclusive": "Eksklusif",
+      "shared": "Bersama",
+      "sharedNote": "Dalam mode bersama, mixer sistem lalu mengubah format ini ke format perangkat.",
+      "monoNote": "Keluaran mono aktif: setiap bip keluar dari kedua sisi.",
+      "swapped": "Bip kiri terdengar di kanan? Kanal tertukar: periksa colokan atau pengaturan speaker sistem.",
+      "interrupted": "Uji dihentikan.",
+      "failed": "Tidak dapat memutar nada uji: {{message}}",
+      "format": {
+        "f32": "32-bit float",
+        "s32": "32-bit",
+        "s24": "24-bit",
+        "s24In32": "24-bit (wadah 32-bit)",
+        "s16": "16-bit",
+        "dop": "DoP",
+        "unknown": "format tidak dikenal"
+      }
     }
   },
   "scanProgress": {

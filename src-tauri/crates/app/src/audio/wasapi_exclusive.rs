@@ -287,6 +287,17 @@ impl ExclusiveSampleFormat {
         WaveFormat::new(bits, valid, &ty, sample_rate, channels, None)
     }
 
+    /// What the rest of the engine calls this format.
+    fn sample_format(self) -> super::state::OutputSampleFormat {
+        use super::state::OutputSampleFormat as Out;
+        match self {
+            Self::Float32 => Out::F32,
+            Self::Pcm24Packed => Out::S24,
+            Self::Pcm24Padded => Out::S24In32,
+            Self::Pcm16 => Out::S16,
+        }
+    }
+
     /// Short label for the diagnostics log line.
     fn label(self) -> &'static str {
         match self {
@@ -597,6 +608,11 @@ fn open_exclusive_session(
                     shared
                         .channels
                         .store(layout.channels as u16, Ordering::Release);
+                    shared.set_sample_format(if requested.is_some_and(|r| r.dop) {
+                        super::state::OutputSampleFormat::Dop
+                    } else {
+                        format.sample_format()
+                    });
                     return Ok(ExclusiveSession {
                         client,
                         render,

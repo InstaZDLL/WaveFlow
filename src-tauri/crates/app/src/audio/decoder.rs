@@ -358,31 +358,7 @@ fn decoder_loop(
                 // Drain whatever's left of the previous track's
                 // samples from the rtrb ring so the new track doesn't
                 // start with the tail of the old one.
-                //
-                // Strategy: engage `drain_silent` mode on the cpal
-                // callback — it pops the ring AND writes zeros, so
-                // the tail of the old track never reaches the
-                // device. Clear any lingering `paused_output` flag
-                // so the callback actually runs (otherwise we'd
-                // deadlock). Spin-wait on `producer.slots()` until
-                // the ring is empty (bounded at 500 ms), then drop
-                // the drain flag before we start pushing new samples.
-                if producer.slots() != super::output::RING_CAPACITY {
-                    shared.paused_output.store(false, Ordering::Release);
-                    shared.drain_silent.store(true, Ordering::Release);
-                    let start = std::time::Instant::now();
-                    while producer.slots() < super::output::RING_CAPACITY
-                        && !producer.is_abandoned()
-                        && start.elapsed() < Duration::from_millis(500)
-                    {
-                        std::thread::sleep(Duration::from_millis(1));
-                    }
-                    shared.drain_silent.store(false, Ordering::Release);
-                } else {
-                    // Ring already empty — just make sure we're not
-                    // stuck paused from a previous state.
-                    shared.paused_output.store(false, Ordering::Release);
-                }
+                unpause_and_drain_ring(producer, &shared);
                 // Reset position counters so the UI clock starts from 0
                 // (or from start_ms on a mid-track resume).
                 shared.restart_clock(start_ms, 0, false);
@@ -497,20 +473,7 @@ fn decoder_loop(
                 shared.clear_ab_loop();
                 transition_state(&shared, &app, PlayerState::Loading, Some(track_id));
 
-                if producer.slots() != super::output::RING_CAPACITY {
-                    shared.paused_output.store(false, Ordering::Release);
-                    shared.drain_silent.store(true, Ordering::Release);
-                    let start = std::time::Instant::now();
-                    while producer.slots() < super::output::RING_CAPACITY
-                        && !producer.is_abandoned()
-                        && start.elapsed() < Duration::from_millis(500)
-                    {
-                        std::thread::sleep(Duration::from_millis(1));
-                    }
-                    shared.drain_silent.store(false, Ordering::Release);
-                } else {
-                    shared.paused_output.store(false, Ordering::Release);
-                }
+                unpause_and_drain_ring(producer, &shared);
                 shared.restart_clock(start_ms, 0, false);
                 shared.current_track_id.store(track_id, Ordering::Release);
                 if let Err(err) = restore_pcm_output(&app, producer) {
@@ -671,20 +634,7 @@ fn decoder_loop(
                 shared.clear_ab_loop();
                 transition_state(&shared, &app, PlayerState::Loading, Some(track_id));
 
-                if producer.slots() != super::output::RING_CAPACITY {
-                    shared.paused_output.store(false, Ordering::Release);
-                    shared.drain_silent.store(true, Ordering::Release);
-                    let start = std::time::Instant::now();
-                    while producer.slots() < super::output::RING_CAPACITY
-                        && !producer.is_abandoned()
-                        && start.elapsed() < Duration::from_millis(500)
-                    {
-                        std::thread::sleep(Duration::from_millis(1));
-                    }
-                    shared.drain_silent.store(false, Ordering::Release);
-                } else {
-                    shared.paused_output.store(false, Ordering::Release);
-                }
+                unpause_and_drain_ring(producer, &shared);
                 shared.restart_clock(0, 0, false);
                 shared.current_track_id.store(track_id, Ordering::Release);
                 if let Err(err) = restore_pcm_output(&app, producer) {
@@ -867,12 +817,214 @@ fn decoder_loop(
                 *producer = new_producer;
                 tracing::info!("decoder picked up new ring producer");
             }
+            AudioCmd::PlayTestTone => {
+                if play_test_tone(producer, cmd_rx, &shared, &app, &mut pending_cmd)
+                    == ToneEnd::Shutdown
+                {
+                    return;
+                }
+            }
             AudioCmd::Shutdown => return,
             // All other commands are no-ops when no track is playing —
             // they're only meaningful inside `play_track`'s inner loop.
             _ => {}
         }
     }
+}
+
+/// [`drain_ring_silent`] from the idle loop, where the output may still
+/// be paused: a lingering `paused_output` is cleared first, or the output
+/// would never pop the ring and the drain would only end at its timeout.
+fn unpause_and_drain_ring(producer: &Producer<f32>, shared: &SharedPlayback) {
+    shared.paused_output.store(false, Ordering::Release);
+    drain_ring_silent(producer, shared);
+}
+
+/// What the Settings card is told while the test tone plays.
+#[derive(Debug, Clone, Serialize)]
+#[serde(
+    tag = "kind",
+    rename_all = "kebab-case",
+    rename_all_fields = "camelCase"
+)]
+enum TestTonePayload {
+    /// The format the tone is generated at, which is the stream's own.
+    Started {
+        sample_rate: u32,
+        channels: u16,
+        sample_format: super::state::OutputSampleFormat,
+        /// Mono output folds left and right together, so the card says
+        /// why both beeps sound alike.
+        mono: bool,
+    },
+    /// A beep starts playing — counted at the output, not when pushed.
+    Phase {
+        phase: super::test_tone::TonePhase,
+    },
+    Finished,
+    /// Something else took the decoder: a track, a stop, a shutdown.
+    Interrupted,
+    Failed {
+        message: String,
+    },
+}
+
+const EVENT_TEST_TONE: &str = "player:test-tone";
+
+/// A tone asked for while a track holds the decoder.
+///
+/// The engine stops a session before asking for the tone, so this only
+/// happens when a load was already on its way and the player did not
+/// look busy yet. The track wins, and the card hears so at once rather
+/// than waiting out its watchdog.
+fn test_tone_yields(app: &AppHandle) {
+    tracing::debug!("test tone asked for while a track plays; the track wins");
+    let _ = app.emit(EVENT_TEST_TONE, TestTonePayload::Interrupted);
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ToneEnd {
+    Done,
+    Shutdown,
+}
+
+/// Play [`super::test_tone`] through the open output.
+///
+/// Its own loop rather than [`play_track`]: there is no file, no track to
+/// credit, no position for the player bar, and nothing a rebuild should
+/// replay. Commands are polled between chunks; a load or a `Stop` ends
+/// the tone at once, and a load is handed back through `pending_cmd`.
+fn play_test_tone(
+    producer: &mut Producer<f32>,
+    cmd_rx: &Receiver<AudioCmd>,
+    shared: &SharedPlayback,
+    app: &AppHandle,
+    pending_cmd: &mut Option<AudioCmd>,
+) -> ToneEnd {
+    use super::test_tone;
+
+    // The engine parked the session and published `Idle` before its
+    // `Stop` got here, and `play_track` returns from a `Stop` without
+    // publishing anything. A load that was still opening then announced
+    // `Playing` after the park, and a `Pause` queued ahead of the `Stop`
+    // announced `Paused`: either would stay on screen over a decoder that
+    // holds nothing, with a Play button the decoder ignores. Commands
+    // arrive in order, so by now the `Stop` is done and nothing is loaded.
+    if matches!(
+        shared.state(),
+        PlayerState::Playing | PlayerState::Paused | PlayerState::Loading
+    ) {
+        let track_id = shared.current_track_id.load(Ordering::Acquire);
+        transition_state(shared, app, PlayerState::Idle, Some(track_id));
+    }
+
+    // A paused track's tail may still sit in the ring.
+    unpause_and_drain_ring(producer, shared);
+    // A DoP output reads every ring value as a DSD word: PCM pushed into
+    // it comes out as full-scale noise.
+    if let Err(err) = restore_pcm_output(app, producer) {
+        tracing::warn!(%err, "no output for the test tone");
+        let _ = app.emit(EVENT_TEST_TONE, TestTonePayload::Failed { message: err });
+        return ToneEnd::Done;
+    }
+    let rate = shared.sample_rate.load(Ordering::Acquire);
+    let channels = shared.channels.load(Ordering::Acquire);
+    if rate == 0 || channels == 0 {
+        let _ = app.emit(
+            EVENT_TEST_TONE,
+            TestTonePayload::Failed {
+                message: "no output stream is open".into(),
+            },
+        );
+        return ToneEnd::Done;
+    }
+    tracing::info!(
+        sample_rate = rate,
+        channels,
+        sample_format = ?shared.sample_format(),
+        "playing the output test tone"
+    );
+    let _ = app.emit(
+        EVENT_TEST_TONE,
+        TestTonePayload::Started {
+            sample_rate: rate,
+            channels,
+            sample_format: shared.sample_format(),
+            mono: shared.mono_enabled.load(Ordering::Acquire),
+        },
+    );
+
+    // The output counts what it plays into the position clock; the tone
+    // is nobody's position, so the clock is put back afterwards.
+    let clock = shared.samples_played.load(Ordering::Acquire);
+    let width = channels as usize;
+    let total = test_tone::total_frames(rate);
+    // 10 ms per push: fine enough for the phase to follow the output.
+    let mut chunk = vec![0.0_f32; (rate as usize / 100).max(1) * width];
+    let mut pushed: u64 = 0;
+    let mut shown: Option<test_tone::TonePhase> = None;
+
+    let end = loop {
+        match cmd_rx.try_recv() {
+            Ok(AudioCmd::Shutdown) | Err(TryRecvError::Disconnected) => break ToneEnd::Shutdown,
+            Ok(AudioCmd::Stop) => break ToneEnd::Done,
+            Ok(
+                cmd @ (AudioCmd::LoadAndPlay { .. }
+                | AudioCmd::LoadRemoteFileAndPlay { .. }
+                | AudioCmd::LoadUrlAndPlay { .. }),
+            ) => {
+                *pending_cmd = Some(cmd);
+                break ToneEnd::Done;
+            }
+            // The output it was written for is gone; the new one may
+            // run at another rate.
+            Ok(AudioCmd::SwapProducer(new_producer)) => {
+                *producer = new_producer;
+                break ToneEnd::Done;
+            }
+            Ok(AudioCmd::SetVolume(v)) => shared.set_volume(v),
+            Ok(AudioCmd::SetNormalize(on)) => shared.normalize_enabled.store(on, Ordering::Release),
+            Ok(AudioCmd::SetMono(on)) => shared.mono_enabled.store(on, Ordering::Release),
+            // Another press while this one plays, or a command that only
+            // means something to a track.
+            Ok(_) | Err(TryRecvError::Empty) => {}
+        }
+
+        // What the output has actually played: pushed, minus what still
+        // waits in the ring.
+        let queued = ((super::output::RING_CAPACITY - producer.slots()) / width) as u64;
+        let played = pushed.saturating_sub(queued);
+        let phase = test_tone::phase_at(played, rate);
+        if phase.is_some() && phase != shown {
+            shown = phase;
+            if let Some(phase) = phase {
+                let _ = app.emit(EVENT_TEST_TONE, TestTonePayload::Phase { phase });
+            }
+        }
+
+        if pushed >= total {
+            if queued == 0 || producer.is_abandoned() {
+                let _ = app.emit(EVENT_TEST_TONE, TestTonePayload::Finished);
+                shared.samples_played.store(clock, Ordering::Release);
+                return ToneEnd::Done;
+            }
+        } else if producer.slots() >= chunk.len() {
+            let frames = test_tone::fill(&mut chunk, pushed, rate, width);
+            if let Ok(slot) = producer.write_chunk_uninit(frames * width) {
+                slot.fill_from_iter(chunk[..frames * width].iter().copied());
+                pushed += frames as u64;
+            }
+            continue;
+        }
+        std::thread::sleep(Duration::from_millis(5));
+    };
+
+    // Cut short: what is left of the tone must not play under whatever
+    // comes next.
+    unpause_and_drain_ring(producer, shared);
+    shared.samples_played.store(clock, Ordering::Release);
+    let _ = app.emit(EVENT_TEST_TONE, TestTonePayload::Interrupted);
+    end
 }
 
 /// Result of [`push_samples`]. `Ok` means all samples were written;
@@ -1983,8 +2135,7 @@ fn finished_from(stream: &ActiveStream) -> FinishedTrack {
 ///
 /// A ring whose consumer is gone never drains — the output thread drops
 /// a stuck stream and waits for the rebuild's `SwapProducer` — so this
-/// wait, and the three inline ones in `decoder_loop`, end there rather
-/// than at the timeout.
+/// wait ends there rather than at the timeout.
 fn drain_ring_silent(producer: &Producer<f32>, shared: &SharedPlayback) {
     if producer.slots() == super::output::RING_CAPACITY {
         return;
@@ -2273,6 +2424,7 @@ fn drain_commands(
                             return ControlFlow::LoadNext;
                         }
                         Ok(AudioCmd::Pause) => {}
+                        Ok(AudioCmd::PlayTestTone) => test_tone_yields(app),
                         // The `Stop` the engine sends first should
                         // take us out of here before the swap arrives —
                         // a rebuild treats a paused session as one to
@@ -2297,6 +2449,7 @@ fn drain_commands(
             Ok(AudioCmd::SetVolume(v)) => shared.set_volume(v),
             Ok(AudioCmd::SetNormalize(on)) => shared.normalize_enabled.store(on, Ordering::Release),
             Ok(AudioCmd::SetMono(on)) => shared.mono_enabled.store(on, Ordering::Release),
+            Ok(AudioCmd::PlayTestTone) => test_tone_yields(app),
             // Named before the catch-all, which used to swallow it: a
             // swap that reaches a decoding track is the one command
             // this arm must not treat as "not meaningful here".

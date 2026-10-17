@@ -2677,6 +2677,34 @@
       "showNextLine": "Nächste Zeile anzeigen",
       "showProgress": "Fortschrittsbalken anzeigen",
       "hideOnPause": "Bei Pause ausblenden"
+    },
+    "testTone": {
+      "title": "Ausgabe testen",
+      "subtitle": "Spielt einen Piepton links, dann rechts, dann auf beiden Seiten, im tatsächlichen Format der Ausgabe. Ein laufender Titel wird beiseitegelegt und kommt mit Wiedergabe zurück.",
+      "play": "Testton abspielen",
+      "playing": "Wird abgespielt…",
+      "left": "Links",
+      "right": "Rechts",
+      "both": "Beide",
+      "mono": "Mono",
+      "stereo": "Stereo",
+      "channels": "{{count}} Kanäle",
+      "exclusive": "Exklusiv",
+      "shared": "Geteilt",
+      "sharedNote": "Im geteilten Modus wandelt der System-Mixer dieses Format anschließend in das des Geräts um.",
+      "monoNote": "Die Mono-Ausgabe ist aktiv: Jeder Piepton kommt aus beiden Seiten.",
+      "swapped": "Kam der linke Piepton von rechts? Dann sind die Kanäle vertauscht: Prüfe den Anschluss oder die Lautsprechereinstellungen des Systems.",
+      "interrupted": "Test unterbrochen.",
+      "failed": "Der Testton konnte nicht abgespielt werden: {{message}}",
+      "format": {
+        "f32": "32 Bit Gleitkomma",
+        "s32": "32 Bit",
+        "s24": "24 Bit",
+        "s24In32": "24 Bit (32-Bit-Container)",
+        "s16": "16 Bit",
+        "dop": "DoP",
+        "unknown": "unbekanntes Format"
+      }
     }
   },
   "scanProgress": {

@@ -2740,6 +2740,34 @@
       "showNextLine": "Mostrar la línea siguiente",
       "showProgress": "Mostrar barra de progreso",
       "hideOnPause": "Ocultar en pausa"
+    },
+    "testTone": {
+      "title": "Probar la salida",
+      "subtitle": "Reproduce un pitido a la izquierda, luego a la derecha y luego en ambos lados, en el formato real de la salida. La canción en curso se aparta y vuelve con Reproducir.",
+      "play": "Reproducir tono de prueba",
+      "playing": "Reproduciendo…",
+      "left": "Izquierda",
+      "right": "Derecha",
+      "both": "Ambos",
+      "mono": "Mono",
+      "stereo": "Estéreo",
+      "channels": "{{count}} canales",
+      "exclusive": "Exclusivo",
+      "shared": "Compartido",
+      "sharedNote": "En modo compartido, el mezclador del sistema convierte después este formato al del dispositivo.",
+      "monoNote": "La salida mono está activada: cada pitido suena en ambos lados.",
+      "swapped": "¿El pitido izquierdo sonó a la derecha? Los canales están invertidos: revisa la conexión o la configuración de altavoces del sistema.",
+      "interrupted": "Prueba interrumpida.",
+      "failed": "No se pudo reproducir el tono de prueba: {{message}}",
+      "format": {
+        "f32": "32 bits flotante",
+        "s32": "32 bits",
+        "s24": "24 bits",
+        "s24In32": "24 bits (contenedor de 32 bits)",
+        "s16": "16 bits",
+        "dop": "DoP",
+        "unknown": "formato desconocido"
+      }
     }
   },
   "scanProgress": {

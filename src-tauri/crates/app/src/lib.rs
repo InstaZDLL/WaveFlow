@@ -1184,6 +1184,7 @@ pub fn run() {
             commands::player::player_get_ab_loop,
             commands::player::player_resume,
             commands::player::player_stop,
+            commands::player::player_play_test_tone,
             commands::player::player_seek,
             commands::player::player_set_volume,
             commands::player::player_play_tracks,
