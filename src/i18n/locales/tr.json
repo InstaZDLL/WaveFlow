@@ -1493,10 +1493,19 @@
     "empty": "Yineleme yok",
     "emptyHint": "Kütüphanen temiz.",
     "rescan": "Yeniden tara",
-    "deleteOthers_zero": "Silinecek bir şey yok",
-    "deleteOthers_one": "{{count}} yinelemeyi sil",
-    "deleteOthers_other": "{{count}} yinelemeyi sil",
-    "keepAria": "{{title}} parçasını tut"
+    "trashOthers_zero": "Taşınacak bir şey yok",
+    "trashOthers_one": "{{count}} yinelemeyi çöp kutusuna taşı",
+    "trashOthers_other": "{{count}} yinelemeyi çöp kutusuna taşı",
+    "keepAria": "{{title}} parçasını tut",
+    "confirmTitle": "Bu dosyalar çöp kutusuna taşınsın mı?",
+    "confirmBody": "Bu kopyalar sisteminizin çöp kutusuna gidecek; oradan hâlâ geri yükleyebilirsiniz. Her grupta tuttuğunuz kopya yerinde kalır.",
+    "confirmAction": "Çöp kutusuna taşı",
+    "trashed": "Çöp kutusuna taşındı: {{count}}",
+    "notTrashed": "Taşınamadı: {{count}}",
+    "reasonPlaying": "şu anda çalıyor",
+    "reasonRowKept": "çöp kutusuna taşındı, ancak sonraki taramaya kadar listede kalıyor ({{message}})",
+    "reasonKeptCopyGone": "tuttuğunuz kopya yok ya da artık aynı değil, bu yüzden bu kopya kalıyor",
+    "reasonMissing": "dosya yerinde değil (silinmiş ya da bağlı olmayan bir sürücüde); sonraki tarama kitaplığı güncelleyecek"
   },
   "dragDrop": {
     "dropHint": "İçe aktarmak için bırak",

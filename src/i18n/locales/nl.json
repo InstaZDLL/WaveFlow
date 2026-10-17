@@ -1493,10 +1493,19 @@
     "empty": "Geen duplicaten",
     "emptyHint": "Je bibliotheek is netjes.",
     "rescan": "Opnieuw scannen",
-    "deleteOthers_zero": "Niets te verwijderen",
-    "deleteOthers_one": "{{count}} duplicaat verwijderen",
-    "deleteOthers_other": "{{count}} duplicaten verwijderen",
-    "keepAria": "{{title}} behouden"
+    "trashOthers_zero": "Niets te verplaatsen",
+    "trashOthers_one": "{{count}} duplicaat naar de prullenbak verplaatsen",
+    "trashOthers_other": "{{count}} duplicaten naar de prullenbak verplaatsen",
+    "keepAria": "{{title}} behouden",
+    "confirmTitle": "Deze bestanden naar de prullenbak verplaatsen?",
+    "confirmBody": "Deze kopieën gaan naar de prullenbak van je systeem, waar je ze nog kunt terugzetten. De kopie die je in elke groep houdt, blijft staan.",
+    "confirmAction": "Naar de prullenbak",
+    "trashed": "Naar de prullenbak verplaatst: {{count}}",
+    "notTrashed": "Niet verplaatst: {{count}}",
+    "reasonPlaying": "wordt afgespeeld",
+    "reasonRowKept": "naar de prullenbak verplaatst, maar nog vermeld tot de volgende scan ({{message}})",
+    "reasonKeptCopyGone": "de bewaarde kopie ontbreekt of is niet meer identiek, dus deze blijft",
+    "reasonMissing": "het bestand is er niet (verwijderd of op een niet-aangesloten schijf); de volgende scan werkt de bibliotheek bij"
   },
   "dragDrop": {
     "dropHint": "Loslaten om te importeren",

@@ -1493,10 +1493,19 @@
     "empty": "중복 없음",
     "emptyHint": "라이브러리에 중복 항목이 없습니다.",
     "rescan": "다시 스캔",
-    "deleteOthers_zero": "삭제할 항목 없음",
-    "deleteOthers_one": "{{count}}개 중복 삭제",
-    "deleteOthers_other": "{{count}}개 중복 삭제",
-    "keepAria": "{{title}} 유지"
+    "trashOthers_zero": "이동할 항목 없음",
+    "trashOthers_one": "중복 {{count}}개를 휴지통으로 이동",
+    "trashOthers_other": "중복 {{count}}개를 휴지통으로 이동",
+    "keepAria": "{{title}} 유지",
+    "confirmTitle": "이 파일들을 휴지통으로 이동할까요?",
+    "confirmBody": "이 사본들은 시스템 휴지통으로 이동하며, 거기서 다시 복원할 수 있습니다. 각 그룹에서 남겨 둔 사본은 그대로 있습니다.",
+    "confirmAction": "휴지통으로 이동",
+    "trashed": "휴지통으로 이동: {{count}}개",
+    "notTrashed": "이동하지 못함: {{count}}개",
+    "reasonPlaying": "재생 중",
+    "reasonRowKept": "휴지통으로 이동했지만 다음 스캔까지 목록에 남아 있습니다 ({{message}})",
+    "reasonKeptCopyGone": "남겨 둔 사본이 없거나 더 이상 같지 않아 이 사본은 그대로 둡니다",
+    "reasonMissing": "파일이 없습니다(삭제되었거나 연결되지 않은 드라이브에 있음). 다음 스캔에서 라이브러리가 업데이트됩니다"
   },
   "dragDrop": {
     "dropHint": "여기에 놓아 가져오기",

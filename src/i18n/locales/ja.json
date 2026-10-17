@@ -1493,10 +1493,19 @@
     "empty": "重複はありません",
     "emptyHint": "ライブラリはクリーンです。",
     "rescan": "再スキャン",
-    "deleteOthers_zero": "削除する項目はありません",
-    "deleteOthers_one": "{{count}}件の重複を削除",
-    "deleteOthers_other": "{{count}}件の重複を削除",
-    "keepAria": "{{title}} を保持"
+    "trashOthers_zero": "移動する項目はありません",
+    "trashOthers_one": "{{count}}件の重複をゴミ箱に移動",
+    "trashOthers_other": "{{count}}件の重複をゴミ箱に移動",
+    "keepAria": "{{title}} を保持",
+    "confirmTitle": "これらのファイルをゴミ箱に移動しますか？",
+    "confirmBody": "これらのコピーはシステムのゴミ箱に移動し、そこから復元できます。各グループで残すコピーはそのままです。",
+    "confirmAction": "ゴミ箱に移動",
+    "trashed": "ゴミ箱に移動：{{count}}件",
+    "notTrashed": "移動できませんでした：{{count}}件",
+    "reasonPlaying": "再生中のため",
+    "reasonRowKept": "ゴミ箱に移動しましたが、次回のスキャンまで一覧に残ります（{{message}}）",
+    "reasonKeptCopyGone": "残すコピーが見つからないか同一ではなくなったため、このコピーは残します",
+    "reasonMissing": "ファイルが見つかりません（削除済み、または接続されていないドライブ上）。次回のスキャンでライブラリが更新されます"
   },
   "dragDrop": {
     "dropHint": "ドロップしてインポート",

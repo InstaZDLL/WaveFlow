@@ -1493,10 +1493,19 @@
     "empty": "没有重复文件",
     "emptyHint": "你的音乐库没有重复文件。",
     "rescan": "重新扫描",
-    "deleteOthers_zero": "没有可删除的文件",
-    "deleteOthers_one": "删除 {{count}} 个重复文件",
-    "deleteOthers_other": "删除 {{count}} 个重复文件",
-    "keepAria": "保留 {{title}}"
+    "trashOthers_zero": "没有可移动的文件",
+    "trashOthers_one": "将 {{count}} 个重复文件移到回收站",
+    "trashOthers_other": "将 {{count}} 个重复文件移到回收站",
+    "keepAria": "保留 {{title}}",
+    "confirmTitle": "将这些文件移到回收站？",
+    "confirmBody": "这些副本将移到系统回收站，仍可从那里恢复。每组中保留的副本不会移动。",
+    "confirmAction": "移到回收站",
+    "trashed": "已移到回收站：{{count}}",
+    "notTrashed": "未移动：{{count}}",
+    "reasonPlaying": "正在播放",
+    "reasonRowKept": "已移到回收站，但在下次扫描前仍会列出（{{message}}）",
+    "reasonKeptCopyGone": "保留的副本已不存在或不再相同，因此这一份不会移动",
+    "reasonMissing": "文件不在原处（已删除，或位于未连接的驱动器上）；下次扫描会更新音乐库"
   },
   "dragDrop": {
     "dropHint": "松开以导入",

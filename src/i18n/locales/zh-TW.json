@@ -1493,10 +1493,19 @@
     "empty": "沒有重複檔案",
     "emptyHint": "你的音樂庫沒有重複檔案。",
     "rescan": "重新掃描",
-    "deleteOthers_zero": "沒有可刪除的檔案",
-    "deleteOthers_one": "刪除 {{count}} 個重複檔案",
-    "deleteOthers_other": "刪除 {{count}} 個重複檔案",
-    "keepAria": "保留 {{title}}"
+    "trashOthers_zero": "沒有可移動的檔案",
+    "trashOthers_one": "將 {{count}} 個重複檔案移到資源回收筒",
+    "trashOthers_other": "將 {{count}} 個重複檔案移到資源回收筒",
+    "keepAria": "保留 {{title}}",
+    "confirmTitle": "將這些檔案移到資源回收筒？",
+    "confirmBody": "這些副本將移到系統的資源回收筒，仍可從那裡還原。每組中保留的副本不會移動。",
+    "confirmAction": "移到資源回收筒",
+    "trashed": "已移到資源回收筒：{{count}}",
+    "notTrashed": "未移動：{{count}}",
+    "reasonPlaying": "正在播放",
+    "reasonRowKept": "已移到資源回收筒，但在下次掃描前仍會列出（{{message}}）",
+    "reasonKeptCopyGone": "保留的副本已不存在或不再相同，因此這一份不會移動",
+    "reasonMissing": "檔案不在原處（已刪除，或位於未連接的磁碟機上）；下次掃描會更新音樂庫"
   },
   "dragDrop": {
     "dropHint": "拖放至此以匯入",

@@ -280,6 +280,17 @@ zip = { version = "9", default-features = false, features = ["deflate", "time"] 
 # reconnects when Discord is restarted. Opt-in via the
 # `integrations.discord_rpc` profile setting.
 discord-rich-presence = "1"
+# Duplicate copies go to the system's trash rather than off the library
+# alone (#878): the Recycle Bin, the freedesktop trash, NSFileManager.
+# Its `windows` and `objc2` are the versions Tauri already pulls in.
+# `chrono` only serves the crate's listing API, which nothing here uses;
+# apartment-threaded COM is the default it ships with (see `trash.rs`).
+trash = { version = "5.2", default-features = false, features = ["coinit_apartmentthreaded"] }
+# Whether a copy and the copy kept for it are one file reached by two
+# paths (a mapped drive and its UNC path, a bind mount), which
+# `canonicalize` cannot tell: by volume and file index / device and inode.
+# Already in the tree through `walkdir`.
+same-file = "1"
 
 [dev-dependencies]
 # Sandboxed scratch directories for unit tests that touch the filesystem

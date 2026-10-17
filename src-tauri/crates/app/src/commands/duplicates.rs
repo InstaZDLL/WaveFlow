@@ -6,7 +6,7 @@
 //! distinguishable from a legacy full digest, so the command prefilters
 //! candidates by byte SIZE — a format-stable field every duplicate
 //! shares — then re-verifies each candidate with a full-content hash
-//! before returning, since the UI lets the user delete from a group.
+//! before returning, since the UI lets the user trash copies from a group.
 //! Identity is content-only, so renames / re-tags still group correctly
 //! — but two re-encodes of the same source (e.g. CBR vs VBR rips) won't
 //! match because the bytes differ. That's a fingerprinting problem and
@@ -173,62 +173,251 @@ fn verify_groups_full_content(candidates: Vec<DuplicateTrack>) -> Vec<DuplicateG
     out
 }
 
-/// Remove a list of tracks from the database. The audio files on
-/// disk are NOT touched — the user can delete those manually if they
-/// want. Detaches every cascading row (track_artist, track_genre,
-/// playlist_track, play_event, etc.) via the schema's ON DELETE
-/// CASCADE constraints. Returns the count of rows actually deleted
-/// so the UI can render an honest toast.
+/// Why a copy stayed where it was.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "snake_case", tag = "kind", content = "message")]
+pub enum TrashRefusal {
+    /// It is the track playing: on Windows its file is held open, and
+    /// pulling it from under the player is never what was asked.
+    Playing,
+    /// The system would not move it (read-only, a share without a
+    /// trash, held open elsewhere), with its reason.
+    Failed(String),
+    /// The copy kept for it is missing, changed, or is this very file:
+    /// moving this one could leave no copy at all.
+    KeptCopyGone,
+    /// The file is not where its row says. Deleted by hand, or on a
+    /// drive that is not plugged in: from here the two look the same, so
+    /// the row stays and the next scan of its folder decides.
+    Missing,
+    /// The file went to the trash but its row could not be removed, so
+    /// the library still lists it until a rescan of its folder notices.
+    /// Reported apart: the file is no longer where the row says.
+    RowKept(String),
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct TrashFailure {
+    pub track_id: i64,
+    pub file_path: String,
+    pub reason: TrashRefusal,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct TrashReport {
+    /// Copies moved to the trash, their rows removed with them.
+    pub trashed: i64,
+    /// Copies left in place, rows included.
+    pub failed: Vec<TrashFailure>,
+}
+
+/// Move duplicate copies to the system's trash, then remove their rows
+/// (#878).
+///
+/// Removing the rows alone, as this used to, undid itself: the scanner
+/// adds any audio file that has no row, so the next rescan (or the
+/// folder watcher) brought every copy back as a new track, without its
+/// playlists, likes or history. The files go first, and only a copy
+/// this command moved loses its row, so a copy still on disk never
+/// does. A row whose removal fails after its file moved stays listed
+/// until the next scan, and is reported as [`TrashRefusal::RowKept`].
+/// The trash is the operating system's, so a wrong pick can be restored
+/// from there.
+///
+/// Cascading rows (`track_artist`, `playlist_track`, `play_event`, …)
+/// go through the schema's `ON DELETE CASCADE`. The folder watcher sees
+/// the files leave and rescans; whichever of it and this transaction
+/// runs first removes the rows, and the other finds them gone.
 #[tauri::command]
-pub async fn delete_tracks(
+pub async fn move_tracks_to_trash(
     app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
-    track_ids: Vec<i64>,
-) -> AppResult<i64> {
+    engine: tauri::State<'_, std::sync::Arc<crate::audio::AudioEngine>>,
+    groups: Vec<TrashGroup>,
+) -> AppResult<TrashReport> {
     use tauri::Emitter;
-    if track_ids.is_empty() {
-        return Ok(0);
-    }
+    let mut report = TrashReport {
+        trashed: 0,
+        failed: Vec::new(),
+    };
     let pool = state.require_profile_pool().await?;
 
-    let mut deleted = 0i64;
-    let mut tx = pool.begin().await?;
-    for id in track_ids {
-        // Phase 4.d.0.3: capture (library_id, file_path) BEFORE
-        // the DELETE so we can enqueue the matching sync op while
-        // the row still exists. Skipped silently when the row is
-        // already gone (a concurrent scan / second delete-tracks
-        // call could race us).
-        let row: Option<(i64, String)> =
-            sqlx::query_as("SELECT library_id, file_path FROM track WHERE id = ?")
-                .bind(id)
-                .fetch_optional(&mut *tx)
-                .await
-                .map_err(|e| AppError::Other(format!("lookup track {id}: {e}")))?;
-        let res = sqlx::query("DELETE FROM track WHERE id = ?")
-            .bind(id)
-            .execute(&mut *tx)
-            .await
-            .map_err(|e| AppError::Other(format!("delete track {id}: {e}")))?;
-        deleted += res.rows_affected() as i64;
-        if let Some((library_id, file_path)) = row {
-            // User-initiated delete (NOT a library / folder cascade
-            // — those replay on the server when the parent library
-            // op lands). The sync op stays in the same tx as the
-            // DELETE so the two either both land or both roll back.
-            crate::sync::track_emit::emit_track_delete_in_tx(&mut tx, library_id, &file_path)
-                .await?;
+    let mut jobs: Vec<TrashJob> = Vec::new();
+    for group in groups {
+        // The kept copy's path, to check against right before each move:
+        // `None` when its row is gone, which refuses the whole group.
+        let keep_path = lookup_track(&pool, group.keep_id)
+            .await?
+            .map(|(_, path)| path);
+        for id in group.trash_ids {
+            if id == group.keep_id {
+                continue;
+            }
+            // A row already gone (a scan, a second click) has nothing
+            // left to move.
+            let Some((library_id, file_path)) = lookup_track(&pool, id).await? else {
+                continue;
+            };
+            jobs.push(TrashJob {
+                id,
+                library_id,
+                file_path,
+                keep_path: keep_path.clone(),
+            });
         }
     }
-    tx.commit().await?;
+    if jobs.is_empty() {
+        return Ok(report);
+    }
 
-    // Phase 4.d.0.3: nudge the drain so the per-track delete ops
-    // ship before the drain's idle poll wakes up. Matches the
-    // convention every other sync-emitting command follows.
-    state.drain.notify();
+    let shared = std::sync::Arc::clone(engine.shared());
+    let done = crate::trash::on_trash_thread(move || {
+        jobs.into_iter()
+            .map(|job| {
+                let outcome = trash_one(&job, &shared);
+                (job, outcome)
+            })
+            .collect::<Vec<_>>()
+    })
+    .await
+    .map_err(AppError::Other)?;
 
-    let _ = app.emit("library:rescanned", ());
-    Ok(deleted)
+    // One transaction per file: the files are already in the trash, so a
+    // row that cannot be removed must not take the others' with it.
+    for (job, outcome) in done {
+        let TrashJob {
+            id,
+            library_id,
+            file_path,
+            ..
+        } = job;
+        match outcome {
+            Ok(()) => match remove_row(&pool, id, library_id, &file_path).await {
+                Ok(()) => report.trashed += 1,
+                Err(message) => {
+                    tracing::warn!(path = %file_path, error = %message, "a trashed duplicate kept its row");
+                    report.failed.push(TrashFailure {
+                        track_id: id,
+                        file_path,
+                        reason: TrashRefusal::RowKept(message),
+                    });
+                }
+            },
+            Err(reason) => {
+                tracing::warn!(path = %file_path, ?reason, "a duplicate was not moved to the trash");
+                report.failed.push(TrashFailure {
+                    track_id: id,
+                    file_path,
+                    reason,
+                });
+            }
+        }
+    }
+
+    if report.trashed > 0 {
+        // Ship the per-track delete ops now rather than at the drain's
+        // next idle poll, like every other sync-emitting command.
+        state.drain.notify();
+        let _ = app.emit("library:rescanned", ());
+    }
+    Ok(report)
+}
+
+/// One copy the user chose to discard, and the copy that stays for it.
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct TrashGroup {
+    pub keep_id: i64,
+    pub trash_ids: Vec<i64>,
+}
+
+struct TrashJob {
+    id: i64,
+    library_id: i64,
+    file_path: String,
+    keep_path: Option<String>,
+}
+
+async fn lookup_track(pool: &sqlx::SqlitePool, id: i64) -> AppResult<Option<(i64, String)>> {
+    sqlx::query_as("SELECT library_id, file_path FROM track WHERE id = ?")
+        .bind(id)
+        .fetch_optional(pool)
+        .await
+        .map_err(|e| AppError::Other(format!("lookup track {id}: {e}")))
+}
+
+/// The checks that must hold at the moment a copy moves, not when the
+/// user clicked: seconds or minutes can pass in between, and the move
+/// is the only step that cannot be taken back from inside WaveFlow.
+///
+/// - It is not the track playing now.
+/// - The copy kept for it is still there and still byte-identical, and
+///   is not the same file reached by another path: otherwise this copy
+///   may be the last one. The kept copy is read again for every copy it
+///   vouches for, not once per group — in a group of three it can change
+///   between the first move and the second.
+fn trash_one(
+    job: &TrashJob,
+    shared: &crate::audio::state::SharedPlayback,
+) -> Result<(), TrashRefusal> {
+    use std::path::Path;
+
+    if shared
+        .current_track_id
+        .load(std::sync::atomic::Ordering::Acquire)
+        == job.id
+    {
+        return Err(TrashRefusal::Playing);
+    }
+    let path = Path::new(&job.file_path);
+    if std::fs::symlink_metadata(path).is_err_and(|e| e.kind() == std::io::ErrorKind::NotFound) {
+        return Err(TrashRefusal::Missing);
+    }
+    let Some(keep) = job.keep_path.as_deref() else {
+        return Err(TrashRefusal::KeptCopyGone);
+    };
+    // One file under two paths — a mapped drive and its UNC path, a bind
+    // mount, another case on a case-insensitive volume — is the kept copy
+    // itself. Compared by identity (volume and file index, device and
+    // inode); an error here means the kept copy cannot be opened, which
+    // the hash below refuses anyway.
+    if same_file::is_same_file(path, keep).unwrap_or(false) {
+        return Err(TrashRefusal::KeptCopyGone);
+    }
+    let Ok(kept) = waveflow_core::scanner::hash_file_full(Path::new(keep)) else {
+        return Err(TrashRefusal::KeptCopyGone);
+    };
+    match waveflow_core::scanner::hash_file_full(path) {
+        Ok(hash) if hash == kept => {}
+        Ok(_) => return Err(TrashRefusal::KeptCopyGone),
+        Err(e) => return Err(TrashRefusal::Failed(e.to_string())),
+    }
+    crate::trash::move_one(path).map_err(TrashRefusal::Failed)
+}
+
+/// Remove one trashed copy's row, with its sync op, in a transaction of
+/// its own. A row already gone (the watcher's rescan got there first)
+/// is not an error.
+async fn remove_row(
+    pool: &sqlx::SqlitePool,
+    id: i64,
+    library_id: i64,
+    file_path: &str,
+) -> Result<(), String> {
+    let mut tx = pool.begin().await.map_err(|e| e.to_string())?;
+    let res = sqlx::query("DELETE FROM track WHERE id = ?")
+        .bind(id)
+        .execute(&mut *tx)
+        .await
+        .map_err(|e| e.to_string())?;
+    if res.rows_affected() > 0 {
+        // User-initiated delete (not a library / folder cascade, which
+        // the server replays from the parent op). In the same
+        // transaction as the DELETE, so both land or neither does.
+        crate::sync::track_emit::emit_track_delete_in_tx(&mut tx, library_id, file_path)
+            .await
+            .map_err(|e| e.to_string())?;
+    }
+    tx.commit().await.map_err(|e| e.to_string())
 }
 
 #[cfg(test)]
@@ -275,6 +464,115 @@ mod tests {
         let mut ids: Vec<i64> = groups[0].tracks.iter().map(|t| t.id).collect();
         ids.sort();
         assert_eq!(ids, vec![1, 2]);
+    }
+
+    /// The checks made right before a move: each refusal keeps the file
+    /// where it is, and only a copy with an identical kept twin goes.
+    #[test]
+    fn a_copy_moves_only_while_its_kept_twin_still_matches() {
+        use super::{trash_one, TrashJob, TrashRefusal};
+        use crate::audio::state::SharedPlayback;
+
+        let dir = tempfile::tempdir().unwrap();
+        let write = |name: &str, bytes: &[u8]| {
+            let p = dir.path().join(name);
+            std::fs::write(&p, bytes).unwrap();
+            p.to_string_lossy().into_owned()
+        };
+        let job = |id: i64, file_path: String, keep_path: Option<String>| TrashJob {
+            id,
+            library_id: 1,
+            file_path,
+            keep_path,
+        };
+        let shared = SharedPlayback::new();
+
+        // The kept copy's row is gone.
+        let lone = write("lone.mp3", b"same");
+        assert!(matches!(
+            trash_one(&job(1, lone.clone(), None), &shared),
+            Err(TrashRefusal::KeptCopyGone)
+        ));
+        // The kept copy's file is gone.
+        let missing = dir
+            .path()
+            .join("missing.mp3")
+            .to_string_lossy()
+            .into_owned();
+        assert!(matches!(
+            trash_one(&job(1, lone.clone(), Some(missing)), &shared),
+            Err(TrashRefusal::KeptCopyGone)
+        ));
+        // The kept copy changed since the scan.
+        let changed = write("changed.mp3", b"retagged");
+        assert!(matches!(
+            trash_one(&job(1, lone.clone(), Some(changed)), &shared),
+            Err(TrashRefusal::KeptCopyGone)
+        ));
+        // The "copy" is the kept file itself.
+        assert!(matches!(
+            trash_one(&job(1, lone.clone(), Some(lone.clone())), &shared),
+            Err(TrashRefusal::KeptCopyGone)
+        ));
+        // It started playing after the click.
+        let twin = write("twin.mp3", b"same");
+        shared
+            .current_track_id
+            .store(7, std::sync::atomic::Ordering::Release);
+        assert!(matches!(
+            trash_one(&job(7, lone.clone(), Some(twin.clone())), &shared),
+            Err(TrashRefusal::Playing)
+        ));
+        assert!(std::path::Path::new(&lone).exists());
+
+        // A copy no longer on disk keeps its row.
+        let vanished = dir
+            .path()
+            .join("vanished.mp3")
+            .to_string_lossy()
+            .into_owned();
+        assert!(matches!(
+            trash_one(&job(1, vanished, Some(twin.clone())), &shared),
+            Err(TrashRefusal::Missing)
+        ));
+
+        // An identical twin still there: the copy goes.
+        assert!(trash_one(&job(1, lone.clone(), Some(twin.clone())), &shared).is_ok());
+        assert!(!std::path::Path::new(&lone).exists());
+        assert!(std::path::Path::new(&twin).exists());
+    }
+
+    /// A group of three: the kept copy changes between the first move and
+    /// the second, and the second copy stays.
+    #[test]
+    fn the_kept_copy_is_read_again_before_every_move() {
+        use super::{trash_one, TrashJob, TrashRefusal};
+        use crate::audio::state::SharedPlayback;
+
+        let dir = tempfile::tempdir().unwrap();
+        let write = |name: &str, bytes: &[u8]| {
+            let p = dir.path().join(name);
+            std::fs::write(&p, bytes).unwrap();
+            p.to_string_lossy().into_owned()
+        };
+        let kept = write("kept.mp3", b"same");
+        let first = write("first.mp3", b"same");
+        let second = write("second.mp3", b"same");
+        let job = |id: i64, file_path: String| TrashJob {
+            id,
+            library_id: 1,
+            file_path,
+            keep_path: Some(kept.clone()),
+        };
+        let shared = SharedPlayback::new();
+
+        assert!(trash_one(&job(1, first.clone()), &shared).is_ok());
+        std::fs::write(&kept, b"retagged in between").unwrap();
+        assert!(matches!(
+            trash_one(&job(2, second.clone()), &shared),
+            Err(TrashRefusal::KeptCopyGone)
+        ));
+        assert!(std::path::Path::new(&second).exists());
     }
 
     #[test]
