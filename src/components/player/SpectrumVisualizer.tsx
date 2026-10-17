@@ -1,26 +1,8 @@
 import { useEffect, useRef } from "react";
-import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
-import { usePlayer } from "../../hooks/usePlayer";
 import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
 import type { VisualizerStyleId } from "../../hooks/useVisualizerStyle";
-
-interface SpectrumPayload {
-  bands: number[];
-  /** How long until this frame's audio is played. */
-  delay_ms: number;
-}
-
-/** A frame waiting for its audio to reach the output. */
-interface QueuedFrame {
-  due: number;
-  /** When it arrived: only frames older than a pause wait it out. */
-  receivedAt: number;
-  bands: number[];
-}
-
-/** A few seconds of frames at most: the ring holds about one. */
-const MAX_QUEUED_FRAMES = 120;
+import { startSpectrumFeed, takeDueFrame } from "../../lib/spectrumFeed";
 
 interface SpectrumVisualizerProps {
   /** Tailwind sizing classes for the canvas wrapper. */
@@ -58,9 +40,9 @@ const HIGH_CONTRAST_AREA_ALPHA = 0.4;
 const RAINBOW_AREA_ALPHA = 0.35;
 
 /**
- * Real-time spectrum visualizer. Subscribes to the backend
- * `player:spectrum` event (emitted at ~30 Hz from the decoder thread, see
- * `audio/spectrum.rs`) and renders the 48 log-spaced bands on a `<canvas>`
+ * Real-time spectrum visualizer. Draws the backend's `player:spectrum`
+ * frames (~30 Hz from the decoder thread, see `audio/spectrum.rs`) as
+ * [`spectrumFeed`](../../lib/spectrumFeed.ts) hands them out, and renders the 48 log-spaced bands on a `<canvas>`
  * driven by `requestAnimationFrame`. Bands smoothly decay between frames so
  * the visual feels fluid even though the source cadence is below the screen
  * refresh rate.
@@ -111,56 +93,10 @@ export function SpectrumVisualizer({
   // Smoothed heights actually drawn this frame. Decays toward
   // `targetRef` each tick → fluid animation.
   const drawnRef = useRef<number[] | null>(null);
-  const queueRef = useRef<QueuedFrame[]>([]);
-  // When playback paused, `null` while it plays.
-  const pausedAtRef = useRef<number | null>(null);
-  const { isPlaying } = usePlayer();
 
-  useEffect(() => {
-    const now = performance.now();
-    if (!isPlaying) {
-      // The shape holds where the music stopped, as it always has.
-      if (pausedAtRef.current === null) pausedAtRef.current = now;
-      return;
-    }
-    const pausedAt = pausedAtRef.current;
-    if (pausedAt !== null) {
-      // The ring held its audio through the pause, so the frames queued
-      // before it wait as long. One that arrived during it was timed
-      // against an output already running again — a track change shows
-      // as "not playing" until React catches up — and keeps its time.
-      const shift = now - pausedAt;
-      for (const frame of queueRef.current) {
-        if (frame.receivedAt < pausedAt) frame.due += shift;
-      }
-      pausedAtRef.current = null;
-    }
-  }, [isPlaying]);
-
-  useEffect(() => {
-    let unlisten: UnlistenFn | null = null;
-    let cancelled = false;
-    listen<SpectrumPayload>("player:spectrum", (event) => {
-      const { bands, delay_ms } = event.payload;
-      const receivedAt = performance.now();
-      const due = receivedAt + (delay_ms ?? 0);
-      const queue = queueRef.current;
-      while (queue.length > 0 && queue[queue.length - 1].due > due) {
-        queue.pop();
-      }
-      queue.push({ due, receivedAt, bands });
-      if (queue.length > MAX_QUEUED_FRAMES) queue.shift();
-    })
-      .then((un) => {
-        if (cancelled) un();
-        else unlisten = un;
-      })
-      .catch((err) => console.error("[SpectrumVisualizer] listen failed", err));
-    return () => {
-      cancelled = true;
-      unlisten?.();
-    };
-  }, []);
+  // Already running from `PlayerProvider`; started here too so the
+  // visualizer never depends on that.
+  useEffect(() => startSpectrumFeed(), []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -302,13 +238,9 @@ export function SpectrumVisualizer({
       const attack = reducedMotion ? 0.22 : 0.55;
       const release = reducedMotion ? 0.08 : 0.18;
 
-      if (pausedAtRef.current === null) {
-        const queue = queueRef.current;
-        const now = performance.now();
-        let due: QueuedFrame | undefined;
-        while (queue.length > 0 && queue[0].due <= now) due = queue.shift();
-        if (due) targetRef.current = due.bands;
-      }
+      // Paused, nothing is due: the shape holds where the music stopped.
+      const due = takeDueFrame(performance.now());
+      if (due) targetRef.current = due;
 
       const target = targetRef.current;
       if (target && target.length > 0) {
