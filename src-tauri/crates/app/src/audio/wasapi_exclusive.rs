@@ -167,6 +167,9 @@ fn output_thread_main(
     // return below, which a busy device takes every time, never
     // balanced the init at all.
     let _com = ComApartment;
+    // Before the open, so the very first period is already served at
+    // the priority every later one gets.
+    let _priority = ProAudioThread::register();
 
     let session = match open_exclusive_session(&device_name, &shared, requested) {
         Ok(s) => s,
@@ -815,6 +818,74 @@ struct ComApartment;
 impl Drop for ComApartment {
     fn drop(&mut self) {
         wasapi::deinitialize();
+    }
+}
+
+/// The render thread's claim on the CPU, held for as long as it runs.
+///
+/// An exclusive stream has no system mixer and its buffer behind it: the
+/// device asks for one period, 10 ms on most hardware, and a period not
+/// written in time plays as a click. At normal priority the thread
+/// competes with everything else on the machine, and a burst of work
+/// elsewhere starves it — opening the immersive view, with its blur and
+/// its video, made every track crackle for about three seconds. Shared
+/// mode never did, because cpal raises its own render thread to
+/// time-critical and the system mixer adds its buffer on top.
+///
+/// MMCSS's "Pro Audio" task is what Windows provides for exactly this:
+/// the scheduler lifts the thread into the real-time range while it has
+/// work and gives the time back when it waits. If the service refuses —
+/// it can be disabled — the thread falls back to time-critical, the
+/// priority cpal uses for shared mode. Reverted on drop, since a
+/// thread's MMCSS registration must be released by that same thread.
+struct ProAudioThread(Option<windows::Win32::Foundation::HANDLE>);
+
+impl ProAudioThread {
+    fn register() -> Self {
+        use windows::Win32::System::Threading::{
+            AvSetMmThreadCharacteristicsW, GetCurrentThread, SetThreadPriority,
+            THREAD_PRIORITY_TIME_CRITICAL,
+        };
+        let mut task_index = 0u32;
+        // SAFETY: a static, NUL-terminated task name and a live
+        // out-pointer; the call only reads the one and writes the other.
+        match unsafe {
+            AvSetMmThreadCharacteristicsW(windows::core::w!("Pro Audio"), &mut task_index)
+        } {
+            Ok(handle) => {
+                tracing::info!(
+                    task_index,
+                    "exclusive render thread registered with MMCSS (Pro Audio)"
+                );
+                Self(Some(handle))
+            }
+            Err(err) => {
+                // SAFETY: the pseudo-handle of the calling thread, which
+                // is always valid and never needs closing.
+                let raised =
+                    unsafe { SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL) };
+                tracing::warn!(
+                    %err,
+                    time_critical = raised.is_ok(),
+                    "MMCSS refused the exclusive render thread; raising its priority instead"
+                );
+                Self(None)
+            }
+        }
+    }
+}
+
+impl Drop for ProAudioThread {
+    fn drop(&mut self) {
+        if let Some(handle) = self.0.take() {
+            // SAFETY: the handle MMCSS returned to this same thread, which
+            // is the thread dropping it, released once.
+            if let Err(err) = unsafe {
+                windows::Win32::System::Threading::AvRevertMmThreadCharacteristics(handle)
+            } {
+                tracing::debug!(%err, "MMCSS revert failed");
+            }
+        }
     }
 }
 
