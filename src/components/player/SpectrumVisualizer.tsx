@@ -14,6 +14,8 @@ interface SpectrumPayload {
 /** A frame waiting for its audio to reach the output. */
 interface QueuedFrame {
   due: number;
+  /** When it arrived: only frames older than a pause wait it out. */
+  receivedAt: number;
   bands: number[];
 }
 
@@ -123,9 +125,14 @@ export function SpectrumVisualizer({
     }
     const pausedAt = pausedAtRef.current;
     if (pausedAt !== null) {
-      // The ring held its audio through the pause; the frames wait as long.
+      // The ring held its audio through the pause, so the frames queued
+      // before it wait as long. One that arrived during it was timed
+      // against an output already running again — a track change shows
+      // as "not playing" until React catches up — and keeps its time.
       const shift = now - pausedAt;
-      for (const frame of queueRef.current) frame.due += shift;
+      for (const frame of queueRef.current) {
+        if (frame.receivedAt < pausedAt) frame.due += shift;
+      }
       pausedAtRef.current = null;
     }
   }, [isPlaying]);
@@ -135,12 +142,13 @@ export function SpectrumVisualizer({
     let cancelled = false;
     listen<SpectrumPayload>("player:spectrum", (event) => {
       const { bands, delay_ms } = event.payload;
-      const due = performance.now() + (delay_ms ?? 0);
+      const receivedAt = performance.now();
+      const due = receivedAt + (delay_ms ?? 0);
       const queue = queueRef.current;
       while (queue.length > 0 && queue[queue.length - 1].due > due) {
         queue.pop();
       }
-      queue.push({ due, bands });
+      queue.push({ due, receivedAt, bands });
       if (queue.length > MAX_QUEUED_FRAMES) queue.shift();
     })
       .then((un) => {
