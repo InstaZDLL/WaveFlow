@@ -61,6 +61,10 @@ struct ArtistListenRow {
     #[allow(dead_code)]
     listened_ms: i64,
     median_bpm: Option<f64>,
+    /// The mean energy of the artist's analysed tracks. What the mixes
+    /// are sorted by; the BPM only stands in for an artist whose tracks
+    /// were analysed before energy existed.
+    mean_energy: Option<f64>,
     picture_hash: Option<String>,
 }
 
@@ -76,8 +80,14 @@ struct TrackPickRow {
     play_count: i64,
 }
 
-/// Identifier for one tempo bucket. Ordering matches the slot numbers shown
+/// Identifier for one mix's mood. Ordering matches the slot numbers shown
 /// to the user (Daily Mix 1 = calm, 2 = groove, 3 = energy).
+///
+/// Sorted by **energy** (analysis version 2). The tempo was the only
+/// measure before, and a poor one for this: a slow song can be intense
+/// and a fast one airy, and a tempo read an octave out moved an artist
+/// into the wrong mix outright. A row without an energy — analysed by
+/// version 1 and not re-measured yet — falls back to the old tempo rule.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum Bucket {
     Calm,
@@ -108,12 +118,56 @@ impl Bucket {
         match self {
             Bucket::Calm => "Vibes apaisées tirées de tes écoutes récentes",
             Bucket::Groove => "Le cœur de tes playlists du moment",
-            Bucket::Energy => "Tempo élevé, énergie haute",
+            Bucket::Energy => "Énergie haute, de quoi bouger",
         }
     }
 
-    /// Inclusive lower / exclusive upper BPM bounds. Tracks with no BPM are
-    /// routed to `Groove` so missing analysis doesn't black-hole an artist.
+    /// Inclusive lower / exclusive upper energy bounds.
+    ///
+    /// The tertiles of the per-artist mean energy over a real library
+    /// (829 artists, `analysis_bench`): 0.39 and 0.66, rounded. They give
+    /// 266 / 278 / 285 artists, where the tempo rule below put 407 of
+    /// 670 in Groove.
+    fn matches_energy(self, energy: f64) -> bool {
+        match self {
+            Bucket::Calm => energy < 0.4,
+            Bucket::Groove => (0.4..0.65).contains(&energy),
+            Bucket::Energy => energy >= 0.65,
+        }
+    }
+
+    /// [`Self::matches_energy`] as a pair SQL can bind, like
+    /// [`Self::bounds`] for the tempo.
+    fn energy_bounds(self) -> (Option<f64>, Option<f64>) {
+        match self {
+            Bucket::Calm => (None, Some(0.4)),
+            Bucket::Groove => (Some(0.4), Some(0.65)),
+            Bucket::Energy => (Some(0.65), None),
+        }
+    }
+
+    /// Which mix an artist goes to: by energy when it was measured, by
+    /// tempo for one analysed before energy existed, and `Groove` when
+    /// nothing was measured, so missing analysis doesn't black-hole an
+    /// artist.
+    fn for_measures(energy: Option<f64>, bpm: Option<f64>) -> Bucket {
+        if let Some(energy) = energy.filter(|e| e.is_finite()) {
+            return Bucket::ALL
+                .into_iter()
+                .find(|b| b.matches_energy(energy))
+                .unwrap_or(Bucket::Groove);
+        }
+        match bpm.filter(|b| b.is_finite()) {
+            Some(bpm) => Bucket::ALL
+                .into_iter()
+                .find(|b| b.matches(bpm))
+                .unwrap_or(Bucket::Groove),
+            None => Bucket::Groove,
+        }
+    }
+
+    /// Inclusive lower / exclusive upper BPM bounds, for rows analysed
+    /// before energy existed.
     fn matches(self, bpm: f64) -> bool {
         match self {
             Bucket::Calm => bpm < 95.0,
@@ -170,19 +224,12 @@ pub async fn regenerate_daily_mixes(
         return Ok(vec![]);
     }
 
-    // Bucket the artists. Each artist lands in exactly one bucket; ties
-    // (e.g. an artist with no analysis whose tracks straddle two buckets)
-    // are resolved to Groove so the medium bucket stays well-populated.
+    // Bucket the artists. Each artist lands in exactly one bucket; one
+    // with no analysis goes to Groove so the medium bucket stays
+    // well-populated.
     let mut by_bucket: HashMap<Bucket, Vec<&ArtistListenRow>> = HashMap::new();
     for art in &artists {
-        let bucket = match art.median_bpm {
-            Some(bpm) if bpm.is_finite() => Bucket::ALL
-                .iter()
-                .copied()
-                .find(|b| b.matches(bpm))
-                .unwrap_or(Bucket::Groove),
-            _ => Bucket::Groove,
-        };
+        let bucket = Bucket::for_measures(art.mean_energy, art.median_bpm);
         by_bucket.entry(bucket).or_default().push(art);
     }
 
@@ -397,38 +444,7 @@ async fn top_artists_with_bpm(
 ) -> CoreResult<Vec<ArtistListenRow>> {
     // Step 1: aggregate listened_ms per artist + median BPM, all in the
     // profile DB (the cross-DB picture hash is added in step 2).
-    #[derive(FromRow)]
-    struct Step1 {
-        artist_id: i64,
-        listened_ms: i64,
-        median_bpm: Option<f64>,
-        deezer_id: Option<i64>,
-    }
-    let step1: Vec<Step1> = sqlx::query_as(
-        r#"
-        SELECT a.id                     AS artist_id,
-               SUM(pe.listened_ms)      AS listened_ms,
-               -- SQLite doesn't ship a true median; AVG over BPMs is good
-               -- enough for bucket assignment and avoids a window function
-               -- (compatibility with older builds).
-               AVG(ta.bpm)              AS median_bpm,
-               a.deezer_id              AS deezer_id
-          FROM play_event pe
-          JOIN track t           ON t.id  = pe.track_id
-          JOIN track_artist ta2  ON ta2.track_id = t.id AND ta2.position = 0
-          JOIN artist a          ON a.id  = ta2.artist_id
-          LEFT JOIN track_analysis ta ON ta.track_id = t.id
-         WHERE pe.played_at >= ?
-           AND t.is_available = 1
-         GROUP BY a.id
-        HAVING listened_ms > 0
-         ORDER BY listened_ms DESC
-         LIMIT 60
-        "#,
-    )
-    .bind(cutoff_ms)
-    .fetch_all(pool)
-    .await?;
+    let step1 = artist_listening(pool, cutoff_ms).await?;
 
     if step1.is_empty() {
         return Ok(vec![]);
@@ -487,9 +503,65 @@ async fn top_artists_with_bpm(
             artist_id: s.artist_id,
             listened_ms: s.listened_ms,
             median_bpm: s.median_bpm,
+            mean_energy: s.mean_energy,
             picture_hash: s.deezer_id.and_then(|id| pictures.get(&id).cloned()),
         })
         .collect())
+}
+
+/// One artist's listening over the window, before the picture lookup.
+#[derive(Debug, FromRow)]
+struct Step1 {
+    artist_id: i64,
+    listened_ms: i64,
+    median_bpm: Option<f64>,
+    mean_energy: Option<f64>,
+    deezer_id: Option<i64>,
+}
+
+/// The most listened artists over the window, with the mean tempo and
+/// energy of the tracks of theirs that were played.
+///
+/// The plays are summed per track first: joined straight to
+/// `play_event`, a track's measures would repeat once per play, and the
+/// artist's "mean energy" would be its most replayed song's — ten plays
+/// of a calm track and one of an intense one read as calm rather than
+/// as the middle of the two. Listening time still counts every play.
+async fn artist_listening(pool: &SqlitePool, cutoff_ms: i64) -> CoreResult<Vec<Step1>> {
+    Ok(sqlx::query_as(
+        r#"
+        WITH played AS (
+            SELECT pe.track_id        AS track_id,
+                   SUM(pe.listened_ms) AS listened_ms
+              FROM play_event pe
+             WHERE pe.played_at >= ?
+             GROUP BY pe.track_id
+        )
+        SELECT a.id                     AS artist_id,
+               SUM(p.listened_ms)       AS listened_ms,
+               -- SQLite doesn't ship a true median; AVG over BPMs is good
+               -- enough for bucket assignment and avoids a window function
+               -- (compatibility with older builds).
+               AVG(ta.bpm)              AS median_bpm,
+               AVG(ta.energy)           AS mean_energy,
+               a.deezer_id              AS deezer_id
+          FROM played p
+          JOIN track t           ON t.id  = p.track_id
+          JOIN track_artist ta2  ON ta2.track_id = t.id AND ta2.position = 0
+          JOIN artist a          ON a.id  = ta2.artist_id
+          LEFT JOIN track_analysis ta ON ta.track_id = t.id
+         WHERE t.is_available = 1
+         GROUP BY a.id
+        -- The aggregate, spelled out: `listened_ms` alone is also the CTE's
+        -- per-track column, which a HAVING may resolve to instead.
+        HAVING SUM(p.listened_ms) > 0
+         ORDER BY listened_ms DESC
+         LIMIT 60
+        "#,
+    )
+    .bind(cutoff_ms)
+    .fetch_all(pool)
+    .await?)
 }
 
 /// Resolve the on-disk artwork path for the first `take` tracks of the
@@ -627,12 +699,17 @@ async fn pick_albums_for_artists(
                     AND seed.album_id IS NOT NULL
                )
          GROUP BY t.album_id
-        HAVING SUM(CASE WHEN ta.bpm IS NOT NULL THEN 1 ELSE 0 END) >= ?
-           AND SUM(CASE WHEN ta.bpm IS NOT NULL
-                         AND (? IS NULL OR ta.bpm >= ?)
-                         AND (? IS NULL OR ta.bpm < ?)
-                        THEN 1 ELSE 0 END) * 1.0
-               / SUM(CASE WHEN ta.bpm IS NOT NULL THEN 1 ELSE 0 END) >= ?
+        -- A track counts by its energy, or by its tempo when it was
+        -- analysed before energy existed: the same rule as the artists'.
+        HAVING SUM(CASE WHEN ta.energy IS NOT NULL OR ta.bpm IS NOT NULL
+                        THEN 1 ELSE 0 END) >= ?
+           AND SUM(CASE WHEN ta.energy IS NOT NULL
+                        THEN (? IS NULL OR ta.energy >= ?) AND (? IS NULL OR ta.energy < ?)
+                        WHEN ta.bpm IS NOT NULL
+                        THEN (? IS NULL OR ta.bpm >= ?) AND (? IS NULL OR ta.bpm < ?)
+                        ELSE 0 END) * 1.0
+               / SUM(CASE WHEN ta.energy IS NOT NULL OR ta.bpm IS NOT NULL
+                          THEN 1 ELSE 0 END) >= ?
          -- Most-listened first, matching what `pick_tracks_for_artists`
          -- does on the track side: without it the cut took whichever
          -- 60 records SQLite happened to produce, so a deep cut was as
@@ -646,6 +723,7 @@ async fn pick_albums_for_artists(
          LIMIT 60
         "#,
     );
+    let (e_low, e_high) = bucket.energy_bounds();
     let (low, high) = bucket.bounds();
     let mut query = sqlx::query_as::<_, AlbumCandidate>(sqlx::AssertSqlSafe(sql));
     for id in artist_ids {
@@ -653,6 +731,10 @@ async fn pick_albums_for_artists(
     }
     query = query
         .bind(ALBUM_MIN_ANALYSED)
+        .bind(e_low)
+        .bind(e_low)
+        .bind(e_high)
+        .bind(e_high)
         .bind(low)
         .bind(low)
         .bind(high)
@@ -970,6 +1052,149 @@ mod tests {
         let mut c: Vec<i64> = (0..100).collect();
         shuffle_with_seed(&mut c, SHUFFLE_SEED ^ 2);
         assert_ne!(a, c);
+    }
+
+    /// The energy bounds are the SQL spelling of `matches_energy`, as
+    /// `bounds` is of `matches`.
+    #[test]
+    fn the_sql_energy_bounds_agree_with_the_rust_predicate() {
+        for bucket in Bucket::ALL {
+            let (low, high) = bucket.energy_bounds();
+            for energy in [0.0, 0.2, 0.399, 0.4, 0.401, 0.649, 0.65, 0.651, 1.0] {
+                let by_bounds = low.unwrap_or(f64::NEG_INFINITY) <= energy
+                    && energy < high.unwrap_or(f64::INFINITY);
+                assert_eq!(
+                    by_bounds,
+                    bucket.matches_energy(energy),
+                    "{bucket:?} disagrees with itself at energy {energy}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn every_energy_lands_in_exactly_one_bucket() {
+        for step in 0..=100 {
+            let energy = f64::from(step) / 100.0;
+            let n = Bucket::ALL
+                .iter()
+                .filter(|b| b.matches_energy(energy))
+                .count();
+            assert_eq!(n, 1, "energy {energy} matched {n} buckets");
+        }
+    }
+
+    /// The album query, run against SQLite: an album is placed by its
+    /// tracks' energy, and one analysed before energy existed by their
+    /// tempo — the same rule as the artists'.
+    #[tokio::test]
+    async fn albums_are_placed_by_energy_and_older_ones_by_tempo() {
+        let pool = sqlx::SqlitePool::connect("sqlite::memory:").await.unwrap();
+        sqlx::raw_sql(
+            "CREATE TABLE track (id INTEGER PRIMARY KEY, album_id INTEGER,
+                                 is_available INTEGER NOT NULL DEFAULT 1);
+             CREATE TABLE track_artist (track_id INTEGER, artist_id INTEGER,
+                                        position INTEGER);
+             CREATE TABLE play_event (id INTEGER PRIMARY KEY, track_id INTEGER);
+             CREATE TABLE track_analysis (track_id INTEGER PRIMARY KEY,
+                                          bpm REAL, energy REAL);
+             -- Album 1: slow but intense, measured for energy.
+             INSERT INTO track VALUES (1, 1, 1), (2, 1, 1), (3, 1, 1);
+             INSERT INTO track_analysis VALUES (1, 70, 0.8), (2, 72, 0.75), (3, 68, 0.9);
+             -- Album 2: fast, analysed before energy existed.
+             INSERT INTO track VALUES (4, 2, 1), (5, 2, 1), (6, 2, 1);
+             INSERT INTO track_analysis VALUES (4, 150, NULL), (5, 145, NULL), (6, 160, NULL);
+             INSERT INTO track_artist VALUES (1, 9, 0), (2, 9, 0), (3, 9, 0),
+                                             (4, 9, 0), (5, 9, 0), (6, 9, 0);",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let albums = |bucket| {
+            let pool = pool.clone();
+            async move {
+                let mut ids: Vec<i64> = pick_albums_for_artists(&pool, &[9], bucket)
+                    .await
+                    .unwrap()
+                    .into_iter()
+                    .map(|a| a.album_id)
+                    .collect();
+                ids.sort();
+                ids
+            }
+        };
+        assert_eq!(albums(Bucket::Energy).await, vec![1, 2]);
+        assert!(albums(Bucket::Calm).await.is_empty());
+        assert!(albums(Bucket::Groove).await.is_empty());
+    }
+
+    /// An artist's mean energy is over its tracks, not its plays: a calm
+    /// track replayed ten times does not outweigh an intense one played
+    /// once. Listening time still adds up every play.
+    #[tokio::test]
+    async fn an_artists_energy_is_the_mean_of_its_tracks_not_its_plays() {
+        let pool = sqlx::SqlitePool::connect("sqlite::memory:").await.unwrap();
+        sqlx::raw_sql(
+            "CREATE TABLE artist (id INTEGER PRIMARY KEY, deezer_id INTEGER);
+             CREATE TABLE track (id INTEGER PRIMARY KEY,
+                                 is_available INTEGER NOT NULL DEFAULT 1);
+             CREATE TABLE track_artist (track_id INTEGER, artist_id INTEGER,
+                                        position INTEGER);
+             CREATE TABLE play_event (id INTEGER PRIMARY KEY, track_id INTEGER,
+                                      played_at INTEGER, listened_ms INTEGER);
+             CREATE TABLE track_analysis (track_id INTEGER PRIMARY KEY,
+                                          bpm REAL, energy REAL);
+             INSERT INTO artist VALUES (1, NULL);
+             INSERT INTO track VALUES (1, 1), (2, 1);
+             INSERT INTO track_artist VALUES (1, 1, 0), (2, 1, 0);
+             INSERT INTO track_analysis VALUES (1, 80, 0.2), (2, 140, 0.8);",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        for i in 0..10 {
+            sqlx::query(
+                "INSERT INTO play_event (track_id, played_at, listened_ms) VALUES (1, ?, 1000)",
+            )
+            .bind(100 + i)
+            .execute(&pool)
+            .await
+            .unwrap();
+        }
+        sqlx::query(
+            "INSERT INTO play_event (track_id, played_at, listened_ms) VALUES (2, 200, 1000)",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let rows = artist_listening(&pool, 0).await.unwrap();
+        assert_eq!(rows.len(), 1);
+        let row = &rows[0];
+        assert_eq!(row.listened_ms, 11_000);
+        assert!((row.mean_energy.unwrap() - 0.5).abs() < 1e-9, "{row:?}");
+        assert!((row.median_bpm.unwrap() - 110.0).abs() < 1e-9, "{row:?}");
+        assert_eq!(
+            Bucket::for_measures(row.mean_energy, row.median_bpm),
+            Bucket::Groove
+        );
+    }
+
+    /// Energy decides when it was measured, whatever the tempo says; the
+    /// tempo stands in only for a row analysed before energy existed.
+    #[test]
+    fn energy_sorts_an_artist_and_the_tempo_only_stands_in() {
+        // A slow but intense artist: the tempo alone would say Calm.
+        assert_eq!(Bucket::for_measures(Some(0.8), Some(70.0)), Bucket::Energy);
+        // A fast but airy one: the tempo alone would say Energy.
+        assert_eq!(Bucket::for_measures(Some(0.2), Some(150.0)), Bucket::Calm);
+        assert_eq!(Bucket::for_measures(None, Some(150.0)), Bucket::Energy);
+        assert_eq!(Bucket::for_measures(None, None), Bucket::Groove);
+        assert_eq!(
+            Bucket::for_measures(Some(f64::NAN), Some(70.0)),
+            Bucket::Calm
+        );
     }
 
     #[test]

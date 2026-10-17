@@ -56,11 +56,15 @@ pub struct MoodProfile {
     /// Listening-weighted average BPM (NULL if no analysed track was
     /// played that year). Weight is `listened_ms`, so a single 4-min
     /// play of a fast track counts more than a 15 s skip of a slow one.
+    /// Over the tempos read with confidence when there are any: a tempo
+    /// read an octave out moves an average by half its value.
     pub avg_bpm: Option<f64>,
     /// Listening-weighted average integrated loudness (LUFS).
     pub avg_lufs: Option<f64>,
-    /// Coarse label derived from `avg_bpm`. Localised on the frontend
-    /// via a fixed mapping so we don't ship copy from the backend.
+    /// Coarse label from the listening-weighted average **energy**, or
+    /// from `avg_bpm` for a year whose tracks were analysed before
+    /// energy existed. Localised on the frontend via a fixed mapping so
+    /// we don't ship copy from the backend.
     pub energy: Option<String>,
 }
 
@@ -94,6 +98,20 @@ fn year_bounds_ms(year: i32) -> (i64, i64) {
         .map(|dt| dt.timestamp_millis())
         .unwrap_or(i64::MAX);
     (start, end)
+}
+
+/// The same five labels as [`energy_label_from_bpm`], from the energy
+/// measure (0 calm .. 1 intense). A year's average sits near the middle
+/// of a library's spread, so the bands are narrower around 0.5 than at
+/// the ends; `groove` is the one centred on it.
+fn energy_label_from_energy(energy: f64) -> &'static str {
+    match energy {
+        e if e < 0.3 => "chill",
+        e if e < 0.45 => "warm",
+        e if e < 0.6 => "groove",
+        e if e < 0.75 => "energetic",
+        _ => "fire",
+    }
 }
 
 fn energy_label_from_bpm(bpm: f64) -> &'static str {
@@ -248,23 +266,41 @@ pub async fn get_wrapped(
         listened_ms: ms,
     });
 
-    // ---- Mood profile (listening-weighted BPM + LUFS) ----
+    // ---- Mood profile (listening-weighted tempo, energy, LUFS) ----
     //
     // We weight by `listened_ms` so a 4 min play of a fast track
     // counts ~16× a 15 s skip of a slow one — otherwise a hate-skip
-    // collection would skew the average.
-    #[derive(FromRow)]
+    // collection would skew the average. Each measure is divided by the
+    // listening time of the plays that carry it: one shared weight let a
+    // play measured for loudness alone pull the BPM average down.
+    #[derive(Default, FromRow)]
     struct MoodRaw {
-        weighted_bpm: Option<f64>,
-        weighted_lufs: Option<f64>,
-        total_weight: Option<i64>,
+        bpm_sum: Option<f64>,
+        bpm_weight: Option<i64>,
+        trusted_bpm_sum: Option<f64>,
+        trusted_bpm_weight: Option<i64>,
+        energy_sum: Option<f64>,
+        energy_weight: Option<i64>,
+        lufs_sum: Option<f64>,
+        lufs_weight: Option<i64>,
     }
     let mood_raw: MoodRaw = sqlx::query_as(
         r#"
-        SELECT SUM(ta.bpm           * pe.listened_ms) AS weighted_bpm,
-               SUM(ta.loudness_lufs * pe.listened_ms) AS weighted_lufs,
-               SUM(CASE WHEN ta.bpm IS NOT NULL OR ta.loudness_lufs IS NOT NULL
-                        THEN pe.listened_ms ELSE 0 END) AS total_weight
+        SELECT SUM(ta.bpm * pe.listened_ms) AS bpm_sum,
+               SUM(CASE WHEN ta.bpm IS NOT NULL THEN pe.listened_ms ELSE 0 END)
+                                            AS bpm_weight,
+               SUM(CASE WHEN ta.bpm_confidence >= ?3
+                        THEN ta.bpm * pe.listened_ms END)
+                                            AS trusted_bpm_sum,
+               SUM(CASE WHEN ta.bpm IS NOT NULL AND ta.bpm_confidence >= ?3
+                        THEN pe.listened_ms ELSE 0 END)
+                                            AS trusted_bpm_weight,
+               SUM(ta.energy * pe.listened_ms) AS energy_sum,
+               SUM(CASE WHEN ta.energy IS NOT NULL THEN pe.listened_ms ELSE 0 END)
+                                            AS energy_weight,
+               SUM(ta.loudness_lufs * pe.listened_ms) AS lufs_sum,
+               SUM(CASE WHEN ta.loudness_lufs IS NOT NULL THEN pe.listened_ms ELSE 0 END)
+                                            AS lufs_weight
           FROM play_event pe
           JOIN track_analysis ta ON ta.track_id = pe.track_id
          WHERE pe.played_at >= ?1 AND pe.played_at < ?2
@@ -272,26 +308,26 @@ pub async fn get_wrapped(
     )
     .bind(since)
     .bind(until)
+    .bind(waveflow_core::mood::TRUSTED_TEMPO)
     .fetch_one(&*pool)
     .await
-    .unwrap_or(MoodRaw {
-        weighted_bpm: None,
-        weighted_lufs: None,
-        total_weight: None,
-    });
-    let weight = mood_raw.total_weight.unwrap_or(0);
-    let (avg_bpm, avg_lufs) = if weight > 0 {
-        (
-            mood_raw.weighted_bpm.map(|v| v / weight as f64),
-            mood_raw.weighted_lufs.map(|v| v / weight as f64),
-        )
-    } else {
-        (None, None)
+    .unwrap_or_default();
+    let average = |sum: Option<f64>, weight: Option<i64>| match (sum, weight) {
+        (Some(sum), Some(weight)) if weight > 0 => Some(sum / weight as f64),
+        _ => None,
     };
+    // Trusted tempos when there are any; a year analysed before tempo
+    // confidence existed has none, and keeps the plain average.
+    let avg_bpm = average(mood_raw.trusted_bpm_sum, mood_raw.trusted_bpm_weight)
+        .or_else(|| average(mood_raw.bpm_sum, mood_raw.bpm_weight));
+    let avg_energy = average(mood_raw.energy_sum, mood_raw.energy_weight);
     let mood = MoodProfile {
         avg_bpm,
-        avg_lufs,
-        energy: avg_bpm.map(|b| energy_label_from_bpm(b).to_string()),
+        avg_lufs: average(mood_raw.lufs_sum, mood_raw.lufs_weight),
+        energy: avg_energy
+            .map(energy_label_from_energy)
+            .or_else(|| avg_bpm.map(energy_label_from_bpm))
+            .map(str::to_string),
     };
 
     // ---- First listen of the year ----
@@ -689,5 +725,14 @@ mod tests {
         assert_eq!(energy_label_from_bpm(125.0), "groove");
         assert_eq!(energy_label_from_bpm(150.0), "energetic");
         assert_eq!(energy_label_from_bpm(170.0), "fire");
+    }
+
+    #[test]
+    fn energy_labels_cover_the_scale() {
+        assert_eq!(energy_label_from_energy(0.1), "chill");
+        assert_eq!(energy_label_from_energy(0.4), "warm");
+        assert_eq!(energy_label_from_energy(0.5), "groove");
+        assert_eq!(energy_label_from_energy(0.7), "energetic");
+        assert_eq!(energy_label_from_energy(0.9), "fire");
     }
 }
