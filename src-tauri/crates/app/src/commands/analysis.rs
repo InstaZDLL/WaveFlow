@@ -603,14 +603,15 @@ async fn upsert_analysis(
     sqlx::query(
         "INSERT INTO track_analysis
             (track_id, bpm, bpm_confidence, energy, musical_key, key_confidence,
-             loudness_lufs, replay_gain_db, peak, analyzed_at, analysis_version)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             beats, loudness_lufs, replay_gain_db, peak, analyzed_at, analysis_version)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(track_id) DO UPDATE SET
             bpm              = excluded.bpm,
             bpm_confidence   = excluded.bpm_confidence,
             energy           = excluded.energy,
             musical_key      = excluded.musical_key,
             key_confidence   = excluded.key_confidence,
+            beats            = excluded.beats,
             loudness_lufs    = excluded.loudness_lufs,
             replay_gain_db   = excluded.replay_gain_db,
             peak             = excluded.peak,
@@ -623,6 +624,7 @@ async fn upsert_analysis(
     .bind(result.energy)
     .bind(result.key.map(|k| k.name()))
     .bind(result.key.map(|k| k.confidence))
+    .bind(waveflow_core::analysis::beats::encode(&result.beats))
     .bind(result.loudness_lufs)
     .bind(result.replay_gain_db)
     .bind(result.peak)

@@ -1,8 +1,14 @@
 //! Measure the tempo and energy analysis against a real music folder.
 //!
 //! ```text
-//! cargo run --release -p waveflow-core --example analysis_bench -- <folder> [--limit N] [--out file.tsv] [--paths list.txt]
+//! cargo run --release -p waveflow-core --example analysis_bench -- <folder> [--limit N] [--out file.tsv] [--paths list.txt] [--beats dir]
 //! ```
+//!
+//! `--beats dir` writes each file's beats to `dir/<file stem>.beats`, one
+//! time in seconds per line, the layout of the Ballroom and GTZAN beat
+//! annotations, so they can be scored against them. Files sharing a
+//! stem overwrite each other there: fine for those datasets, whose names
+//! are unique, not for a library full of `01 Intro`.
 //!
 //! Every audio file under `<folder>` is analysed. Files with a BPM tag
 //! (`TBPM`, `BPM`, `tmpo`) are scored against it, the usual way tempo
@@ -139,6 +145,7 @@ fn main() {
     let mut limit = usize::MAX;
     let mut out_path: Option<String> = None;
     let mut only: Option<std::collections::HashSet<String>> = None;
+    let mut beats_dir: Option<PathBuf> = None;
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--limit" => limit = args.next().and_then(|v| v.parse().ok()).unwrap_or(limit),
@@ -148,6 +155,14 @@ fn main() {
                 let list = std::fs::read_to_string(args.next().unwrap_or_default())
                     .expect("read --paths file");
                 only = Some(list.lines().map(|l| path_key(l.trim())).collect());
+            }
+            "--beats" => {
+                let Some(dir) = args.next().map(PathBuf::from) else {
+                    eprintln!("--beats needs a directory");
+                    std::process::exit(2);
+                };
+                std::fs::create_dir_all(&dir).expect("create --beats dir");
+                beats_dir = Some(dir);
             }
             other => {
                 eprintln!("unknown argument {other}");
@@ -173,6 +188,7 @@ fn main() {
         .map(|_| {
             let queue = Arc::clone(&queue);
             let rows = Arc::clone(&rows);
+            let beats_dir = beats_dir.clone();
             std::thread::spawn(move || loop {
                 let Some(path) = queue.lock().unwrap().pop_front() else {
                     break;
@@ -182,6 +198,25 @@ fn main() {
                     eprintln!("skipped {}", path.display());
                     continue;
                 };
+                if let (Some(dir), Some(stem)) = (&beats_dir, path.file_stem()) {
+                    let lines: String = result
+                        .rhythm
+                        .beats
+                        .iter()
+                        .map(|b| {
+                            format!(
+                                "{b:.4}
+"
+                            )
+                        })
+                        .collect();
+                    let out = dir.join(format!("{}.beats", stem.to_string_lossy()));
+                    // Reported, not fatal: a panic here would end this
+                    // worker and quietly drop its share of the queue.
+                    if let Err(e) = std::fs::write(&out, lines) {
+                        eprintln!("could not write {}: {e}", out.display());
+                    }
+                }
                 let t = result.rhythm.tempo;
                 let e = result.rhythm.energy;
                 let row = Row {

@@ -18,6 +18,8 @@
 //! - **Tempo** and **energy**: from a spectral-flux onset detector
 //!   over a decimated mono sum, with a confidence for the tempo. See
 //!   [`rhythm`] for the algorithm and for what version 1 got wrong.
+//! - **Beats**: where each one falls, placed on the same onsets at that
+//!   tempo. See [`beats`].
 //!
 //! Designed to run inside `spawn_blocking` because symphonia decode
 //! is CPU-bound and we don't want the tokio runtime to stall.
@@ -33,6 +35,7 @@ use symphonia::core::formats::{FormatOptions, TrackType};
 use symphonia::core::io::MediaSourceStream;
 use symphonia::core::meta::MetadataOptions;
 
+pub mod beats;
 pub mod key;
 pub mod loudness;
 pub mod rhythm;
@@ -58,14 +61,17 @@ use rhythm::OnsetDetector;
 ///   detector over 40-240 BPM, with a confidence, and an energy measure
 ///   that loudness normalisation does not erase ([`rhythm`]). Loudness
 ///   and peak are measured as in `1`. Never shipped in a release.
-/// - `3` — the current pass: `2`, and the key with its confidence
-///   ([`key`]).
+/// - `3` — `2`, and the key with its confidence ([`key`]). Never shipped
+///   in a release.
+/// - `4` — the current pass: `3`, and where the beats fall ([`beats`]).
+///   Nothing else moves, but a row without its beats needs the decode
+///   again to get them.
 ///
 /// **Bump this whenever a change here would move a stored number**, and
 /// only then — the value exists so a sweep can find rows worth
 /// re-measuring, so bumping it for a refactor costs every user a full
 /// re-decode of their library.
-pub const ANALYSIS_VERSION: i64 = 3;
+pub const ANALYSIS_VERSION: i64 = 4;
 
 /// ReplayGain 2.0 reference level. A track measured at exactly this
 /// loudness gets a gain of 0 dB.
@@ -95,6 +101,9 @@ pub struct AnalysisResult {
     pub bpm_confidence: Option<f64>,
     /// How intense the track is, 0 (calm) to 1, independent of its level.
     pub energy: Option<f64>,
+    /// Where the beats fall, in seconds, in order; empty without a tempo.
+    /// Stored with [`beats::encode`].
+    pub beats: Vec<f64>,
     /// The tempo and energy with their parts, for tuning (the
     /// `analysis_bench` example). Nothing stores these.
     pub rhythm: rhythm::Rhythm,
@@ -256,6 +265,7 @@ pub fn analyze_file(path: &Path) -> Result<AnalysisResult, String> {
         bpm: rhythm.tempo.map(|t| t.bpm),
         bpm_confidence: rhythm.tempo.map(|t| t.confidence),
         energy: rhythm.energy.map(|e| e.value),
+        beats: rhythm.beats.clone(),
         rhythm,
         key,
         chroma,
