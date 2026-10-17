@@ -653,6 +653,10 @@
         "phantom_artist": {
           "label": "Artistas para separar",
           "help": "Nomes que parecem vários artistas unidos por vírgulas."
+        },
+        "probable_fake_lossless": {
+          "label": "Prováveis falsos lossless",
+          "help": "Arquivos sem perdas cujos agudos param como os de um MP3: provavelmente feitos a partir de um arquivo com perdas."
         }
       },
       "phantoms": {
@@ -1260,7 +1264,11 @@
     "suggestions": {
       "library": "Na sua biblioteca",
       "presets": "Gêneros comuns"
-    }
+    },
+    "bandwidth": "Frequências altas",
+    "bandwidthFull": "Banda completa",
+    "bandwidthCutoff": "Param em {{khz}} kHz",
+    "bandwidthFake": "Param em {{khz}} kHz — provavelmente feito a partir de um arquivo com perdas"
   },
   "selection": {
     "toolbarLabel": "Ações de seleção",
@@ -1665,7 +1673,8 @@
       "playCountMax": "Reproduções ≤",
       "playedInLastDays": "Reproduzida nos últimos",
       "tagPresent": "Tem a tag",
-      "tagContains": "A tag contém"
+      "tagContains": "A tag contém",
+      "fakeLossless": "Provável falso lossless"
     },
     "counting": "Contando…",
     "matchCountLimited": "{{kept}} de {{total}} faixas correspondentes mantidas",
@@ -3144,7 +3153,8 @@
       "playCountMin_many": "reproduzida pelo menos {{count}} vezes",
       "playCountMax_many": "reproduzida no máximo {{count}} vezes",
       "playedInLastDays_many": "reproduzida nos últimos {{count}} dias",
-      "addedInLastDays_many": "adicionada nos últimos {{count}} dias"
+      "addedInLastDays_many": "adicionada nos últimos {{count}} dias",
+      "fakeLossless": "provável falso lossless"
     }
   },
   "tagFetch": {

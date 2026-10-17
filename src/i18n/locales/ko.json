@@ -623,6 +623,10 @@
         "phantom_artist": {
           "label": "분리할 아티스트",
           "help": "여러 아티스트가 쉼표로 이어진 것처럼 보이는 이름입니다."
+        },
+        "probable_fake_lossless": {
+          "label": "가짜 무손실 의심",
+          "help": "고음이 MP3처럼 끊기는 무손실 파일: 손실 압축 파일로 만든 것으로 보입니다."
         }
       },
       "phantoms": {
@@ -1216,7 +1220,11 @@
     "suggestions": {
       "library": "라이브러리에 있음",
       "presets": "일반 장르"
-    }
+    },
+    "bandwidth": "고주파",
+    "bandwidthFull": "전체 대역",
+    "bandwidthCutoff": "{{khz}} kHz에서 끊김",
+    "bandwidthFake": "{{khz}} kHz에서 끊김 — 손실 압축 파일로 만든 것으로 보임"
   },
   "selection": {
     "toolbarLabel": "선택 작업",
@@ -1609,7 +1617,8 @@
       "playCountMax": "재생 횟수 ≤",
       "playedInLastDays": "재생: 최근",
       "tagPresent": "태그 있음",
-      "tagContains": "태그 포함"
+      "tagContains": "태그 포함",
+      "fakeLossless": "가짜 무손실 의심"
     },
     "counting": "계산 중…",
     "matchCountLimited": "일치하는 {{total}}곡 중 {{kept}}곡 유지",
@@ -3049,7 +3058,8 @@
       "playedInLastDays_one": "최근 {{count}}일 이내 재생",
       "playedInLastDays_other": "최근 {{count}}일 이내 재생",
       "addedInLastDays_one": "최근 {{count}}일 이내 추가",
-      "addedInLastDays_other": "최근 {{count}}일 이내 추가"
+      "addedInLastDays_other": "최근 {{count}}일 이내 추가",
+      "fakeLossless": "가짜 무손실 의심"
     }
   },
   "tagFetch": {

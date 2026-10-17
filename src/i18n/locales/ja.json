@@ -623,6 +623,10 @@
         "phantom_artist": {
           "label": "分割が必要なアーティスト",
           "help": "複数のアーティストがカンマで連結されているように見える名前です。"
+        },
+        "probable_fake_lossless": {
+          "label": "偽ロスレスの可能性",
+          "help": "高音域が MP3 のように途切れているロスレスファイル。非可逆ファイルから作られた可能性があります。"
         }
       },
       "phantoms": {
@@ -1216,7 +1220,11 @@
     "suggestions": {
       "library": "ライブラリ内",
       "presets": "一般的なジャンル"
-    }
+    },
+    "bandwidth": "高音域",
+    "bandwidthFull": "フルバンド",
+    "bandwidthCutoff": "{{khz}} kHz で途切れる",
+    "bandwidthFake": "{{khz}} kHz で途切れる — 非可逆ファイルから作られた可能性"
   },
   "selection": {
     "toolbarLabel": "選択中の操作",
@@ -1609,7 +1617,8 @@
       "playCountMax": "再生回数 ≤",
       "playedInLastDays": "再生：過去",
       "tagPresent": "タグあり",
-      "tagContains": "タグに次を含む"
+      "tagContains": "タグに次を含む",
+      "fakeLossless": "偽ロスレスの可能性"
     },
     "counting": "計算中…",
     "matchCountLimited": "該当 {{total}}件中 {{kept}}件を採用",
@@ -3049,7 +3058,8 @@
       "playedInLastDays_one": "過去 {{count}}日以内に再生",
       "playedInLastDays_other": "過去 {{count}}日以内に再生",
       "addedInLastDays_one": "過去 {{count}}日以内に追加",
-      "addedInLastDays_other": "過去 {{count}}日以内に追加"
+      "addedInLastDays_other": "過去 {{count}}日以内に追加",
+      "fakeLossless": "偽ロスレスの可能性"
     }
   },
   "tagFetch": {

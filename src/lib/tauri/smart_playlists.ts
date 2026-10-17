@@ -94,6 +94,7 @@ export type Predicate =
   | { kind: "duration_max_ms"; value: number }
   | { kind: "format"; value: string }
   | { kind: "hi_res" }
+  | { kind: "fake_lossless" }
   | { kind: "liked" }
   | { kind: "rating_min"; value: number }
   // One `play_event` row is one play, with no minimum listened time —

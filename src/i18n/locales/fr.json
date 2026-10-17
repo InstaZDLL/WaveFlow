@@ -652,6 +652,10 @@
         "phantom_artist": {
           "label": "Artistes à scinder",
           "help": "Des noms qui ressemblent à plusieurs artistes joints par des virgules."
+        },
+        "probable_fake_lossless": {
+          "label": "Faux lossless probables",
+          "help": "Fichiers lossless dont les aigus s'arrêtent comme ceux d'un MP3 : probablement issus d'un fichier compressé."
         }
       },
       "phantoms": {
@@ -1259,7 +1263,11 @@
     "suggestions": {
       "library": "Dans votre bibliothèque",
       "presets": "Genres courants"
-    }
+    },
+    "bandwidth": "Hautes fréquences",
+    "bandwidthFull": "Bande complète",
+    "bandwidthCutoff": "S'arrêtent à {{khz}} kHz",
+    "bandwidthFake": "S'arrêtent à {{khz}} kHz — probablement issu d'un fichier compressé"
   },
   "selection": {
     "toolbarLabel": "Actions de sélection",
@@ -1632,7 +1640,8 @@
       "playCountMax": "Écoutes ≤",
       "playedInLastDays": "Écouté depuis moins de",
       "tagPresent": "Possède le tag",
-      "tagContains": "Tag contient"
+      "tagContains": "Tag contient",
+      "fakeLossless": "Faux lossless probable"
     },
     "counting": "Calcul en cours…",
     "matchCountLimited": "Retenus : {{kept}} sur {{total}} correspondants",
@@ -3143,7 +3152,8 @@
       "playCountMin_many": "écouté au moins {{count}} fois",
       "playCountMax_many": "écouté au plus {{count}} fois",
       "playedInLastDays_many": "écouté il y a moins de {{count}} jours",
-      "addedInLastDays_many": "ajouté il y a moins de {{count}} jours"
+      "addedInLastDays_many": "ajouté il y a moins de {{count}} jours",
+      "fakeLossless": "faux lossless probable"
     }
   },
   "tagFetch": {

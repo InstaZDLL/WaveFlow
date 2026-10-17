@@ -35,11 +35,13 @@ use symphonia::core::formats::{FormatOptions, TrackType};
 use symphonia::core::io::MediaSourceStream;
 use symphonia::core::meta::MetadataOptions;
 
+pub mod bandwidth;
 pub mod beats;
 pub mod key;
 pub mod loudness;
 pub mod rhythm;
 
+use bandwidth::BandwidthMeter;
 use key::KeyDetector;
 use loudness::LoudnessMeter;
 use rhythm::OnsetDetector;
@@ -112,6 +114,8 @@ pub struct AnalysisResult {
     pub key: Option<key::Key>,
     /// The chromagram the key was read from, for tuning. Not stored.
     pub chroma: Option<[f64; 12]>,
+    /// Where the high frequencies stop. See [`bandwidth`].
+    pub bandwidth: Option<bandwidth::Bandwidth>,
 }
 
 /// Run the full analysis on a file. Returns the gathered metrics or
@@ -164,6 +168,9 @@ pub fn analyze_file(path: &Path) -> Result<AnalysisResult, String> {
     // first packet reveals the rate.
     let mut onsets: Option<OnsetDetector> = None;
     let mut keys: Option<KeyDetector> = None;
+    // At the native rate, unlike the two above: the highs it looks for
+    // are exactly what the decimation throws away.
+    let mut bandwidth: Option<BandwidthMeter> = None;
     let mut decimate_stride: usize = 1;
     let mut group_sum: f32 = 0.0;
     let mut group_len: usize = 0;
@@ -201,6 +208,7 @@ pub fn analyze_file(path: &Path) -> Result<AnalysisResult, String> {
             let rate = f64::from(src_rate) / decimate_stride as f64;
             onsets = Some(OnsetDetector::new(rate));
             keys = Some(KeyDetector::new(rate));
+            bandwidth = Some(BandwidthMeter::new(f64::from(src_rate), src_channels));
         }
         decoded.copy_to_vec_interleaved(&mut interleaved);
         let samples = &interleaved[..];
@@ -229,6 +237,9 @@ pub fn analyze_file(path: &Path) -> Result<AnalysisResult, String> {
                 }
             }
             let mono = sum / src_channels as f32;
+            if let Some(meter) = bandwidth.as_mut() {
+                meter.push_frame(&samples[base..base + src_channels]);
+            }
 
             group_sum += mono;
             group_len += 1;
@@ -269,6 +280,7 @@ pub fn analyze_file(path: &Path) -> Result<AnalysisResult, String> {
         rhythm,
         key,
         chroma,
+        bandwidth: bandwidth.and_then(BandwidthMeter::finish),
     })
 }
 

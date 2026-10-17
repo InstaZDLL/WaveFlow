@@ -623,6 +623,10 @@
         "phantom_artist": {
           "label": "अलग करने लायक कलाकार",
           "help": "ऐसे नाम जो कॉमा से जुड़े कई कलाकारों जैसे दिखते हैं।"
+        },
+        "probable_fake_lossless": {
+          "label": "शायद नकली लॉसलेस",
+          "help": "लॉसलेस फ़ाइलें जिनकी ऊँची आवृत्तियाँ MP3 की तरह रुकती हैं: शायद किसी लॉसी फ़ाइल से बनी।"
         }
       },
       "phantoms": {
@@ -1216,7 +1220,11 @@
     "suggestions": {
       "library": "आपकी लाइब्रेरी में",
       "presets": "आम शैलियाँ"
-    }
+    },
+    "bandwidth": "उच्च आवृत्तियाँ",
+    "bandwidthFull": "पूरा बैंड",
+    "bandwidthCutoff": "{{khz}} kHz पर रुकती हैं",
+    "bandwidthFake": "{{khz}} kHz पर रुकती हैं — शायद किसी लॉसी फ़ाइल से बनी"
   },
   "selection": {
     "toolbarLabel": "चयन क्रियाएँ",
@@ -1609,7 +1617,8 @@
       "playCountMax": "प्ले ≤",
       "playedInLastDays": "चलाया गया: पिछले",
       "tagPresent": "टैग मौजूद",
-      "tagContains": "टैग में शामिल"
+      "tagContains": "टैग में शामिल",
+      "fakeLossless": "शायद नकली लॉसलेस"
     },
     "counting": "गिना जा रहा है…",
     "matchCountLimited": "मेल खाने वाले {{total}} ट्रैक में से {{kept}} रखे गए",
@@ -3049,7 +3058,8 @@
       "playedInLastDays_one": "पिछले {{count}} दिन में चलाया",
       "playedInLastDays_other": "पिछले {{count}} दिनों में चलाया",
       "addedInLastDays_one": "पिछले {{count}} दिन में जोड़ा",
-      "addedInLastDays_other": "पिछले {{count}} दिनों में जोड़ा"
+      "addedInLastDays_other": "पिछले {{count}} दिनों में जोड़ा",
+      "fakeLossless": "शायद नकली लॉसलेस"
     }
   },
   "tagFetch": {

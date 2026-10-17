@@ -623,6 +623,10 @@
         "phantom_artist": {
           "label": "Artiesten om te splitsen",
           "help": "Namen die eruitzien als meerdere artiesten, gescheiden door komma's."
+        },
+        "probable_fake_lossless": {
+          "label": "Waarschijnlijk nep-lossless",
+          "help": "Lossless bestanden waarvan de hoge tonen stoppen zoals bij een MP3: waarschijnlijk gemaakt van een lossy bestand."
         }
       },
       "phantoms": {
@@ -1216,7 +1220,11 @@
     "suggestions": {
       "library": "In je bibliotheek",
       "presets": "Gangbare genres"
-    }
+    },
+    "bandwidth": "Hoge frequenties",
+    "bandwidthFull": "Volledige band",
+    "bandwidthCutoff": "Stoppen bij {{khz}} kHz",
+    "bandwidthFake": "Stoppen bij {{khz}} kHz — waarschijnlijk gemaakt van een lossy bestand"
   },
   "selection": {
     "toolbarLabel": "Selectieacties",
@@ -1609,7 +1617,8 @@
       "playCountMax": "Luisterbeurten ≤",
       "playedInLastDays": "Afgespeeld binnen",
       "tagPresent": "Heeft tag",
-      "tagContains": "Tag bevat"
+      "tagContains": "Tag bevat",
+      "fakeLossless": "Waarschijnlijk nep-lossless"
     },
     "counting": "Bezig met tellen…",
     "matchCountLimited": "{{kept}} van {{total}} treffers behouden",
@@ -3049,7 +3058,8 @@
       "playedInLastDays_one": "afgespeeld in de afgelopen dag",
       "playedInLastDays_other": "afgespeeld in de afgelopen {{count}} dagen",
       "addedInLastDays_one": "toegevoegd in de afgelopen dag",
-      "addedInLastDays_other": "toegevoegd in de afgelopen {{count}} dagen"
+      "addedInLastDays_other": "toegevoegd in de afgelopen {{count}} dagen",
+      "fakeLossless": "waarschijnlijk nep-lossless"
     }
   },
   "tagFetch": {

@@ -623,6 +623,10 @@
         "phantom_artist": {
           "label": "待拆分的藝人",
           "help": "看起來像是以逗號連接的多位藝人的名稱。"
+        },
+        "probable_fake_lossless": {
+          "label": "疑似假無損",
+          "help": "高頻像 MP3 一樣被截斷的無損檔案：可能由有損檔案轉換而來。"
         }
       },
       "phantoms": {
@@ -1216,7 +1220,11 @@
     "suggestions": {
       "library": "音樂庫中",
       "presets": "常用曲風"
-    }
+    },
+    "bandwidth": "高頻",
+    "bandwidthFull": "全頻段",
+    "bandwidthCutoff": "截止於 {{khz}} kHz",
+    "bandwidthFake": "截止於 {{khz}} kHz — 可能由有損檔案轉換而來"
   },
   "selection": {
     "toolbarLabel": "選取操作",
@@ -1609,7 +1617,8 @@
       "playCountMax": "播放次數 ≤",
       "playedInLastDays": "播放於最近",
       "tagPresent": "含有標籤",
-      "tagContains": "標籤包含"
+      "tagContains": "標籤包含",
+      "fakeLossless": "疑似假無損"
     },
     "counting": "正在統計…",
     "matchCountLimited": "符合 {{total}} 首，保留 {{kept}} 首",
@@ -3049,7 +3058,8 @@
       "playedInLastDays_one": "最近 {{count}} 天內播放",
       "playedInLastDays_other": "最近 {{count}} 天內播放",
       "addedInLastDays_one": "最近 {{count}} 天內加入",
-      "addedInLastDays_other": "最近 {{count}} 天內加入"
+      "addedInLastDays_other": "最近 {{count}} 天內加入",
+      "fakeLossless": "疑似假無損"
     }
   },
   "tagFetch": {

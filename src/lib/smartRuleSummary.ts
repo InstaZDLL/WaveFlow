@@ -141,6 +141,8 @@ function describePredicate(pred: Predicate, ctx: SummaryContext): string {
       return p("format", { value: pred.value.toUpperCase() });
     case "hi_res":
       return p("hiRes");
+    case "fake_lossless":
+      return p("fakeLossless");
     case "sample_rate_min":
       return p("sampleRateMin", { value: kilohertz(pred.value, ctx) });
     case "bit_depth_min":
