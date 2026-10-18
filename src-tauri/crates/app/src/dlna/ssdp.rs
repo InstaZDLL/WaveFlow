@@ -16,6 +16,16 @@
 //!    and reply with a unicast HTTP/1.1 200 OK pointing at our
 //!    `/description.xml`.
 //!
+//! ## One host, several interfaces
+//!
+//! A desktop routinely carries a VPN, WSL, Hyper-V or Docker adapter
+//! next to its real LAN, often listed first. The group is joined on
+//! every IPv4 interface, each NOTIFY batch goes out of each interface
+//! with that interface's own address in `LOCATION`, and an M-SEARCH
+//! reply names the address on the requester's subnet (the preferred
+//! one when none matches). An address the receiver cannot reach is
+//! never the only one it hears about.
+//!
 //! ## Search targets answered
 //!
 //! - `ssdp:all` — everything
@@ -32,7 +42,7 @@
 //! [`WorkerState`](super::WorkerState); a Stop or Reconfigure replaces
 //! the handle, terminating the previous announcer cleanly.
 
-use std::net::{IpAddr, Ipv4Addr, SocketAddr, SocketAddrV4};
+use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -40,7 +50,7 @@ use socket2::{Domain, Protocol, Socket, Type};
 use tokio::net::UdpSocket;
 use tokio::task::JoinHandle;
 
-use crate::dlna::description::device_uuid;
+use crate::dlna::{description::device_uuid, local_ip_for, LanAddr};
 
 /// Standard SSDP multicast endpoint. Same on every UPnP network.
 const SSDP_ADDR: SocketAddrV4 = SocketAddrV4::new(Ipv4Addr::new(239, 255, 255, 250), 1900);
@@ -64,25 +74,31 @@ impl Drop for SsdpHandle {
 
 /// Spawn the announcer + M-SEARCH responder tasks.
 ///
-/// `lan_ip` is the address advertised in `LOCATION:` headers — the
-/// caller has already resolved the host's primary LAN interface so
-/// controllers can reach `/description.xml`.
+/// `addrs` are the host's IPv4 addresses, best first (see
+/// [`lan_addrs`](super::lan_addrs)); each one is joined to the group
+/// and advertised on its own link.
 ///
 /// `port` is the HTTP port the description lives on (already bound
 /// by the [`http`](super::http) layer).
-pub fn spawn(server_name: String, lan_ip: String, port: u16) -> std::io::Result<SsdpHandle> {
+pub fn spawn(server_name: String, addrs: Vec<LanAddr>, port: u16) -> std::io::Result<SsdpHandle> {
+    if addrs.is_empty() {
+        // Nothing to advertise that a receiver could reach: say so
+        // rather than announce `0.0.0.0`.
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            "no IPv4 network interface",
+        ));
+    }
     let uuid = device_uuid(&server_name).to_string();
-    let location = format!("http://{lan_ip}:{port}/description.xml");
     let server_header = "WaveFlow/0.1 UPnP/1.0 WaveFlowMediaServer/1.0".to_string();
 
+    let mcast_socket = build_multicast_socket(&addrs)?;
     let shared = Arc::new(SsdpShared {
         uuid,
-        location,
+        addrs,
+        port,
         server: server_header,
     });
-
-    let bind_ip: Ipv4Addr = lan_ip.parse().unwrap_or(Ipv4Addr::UNSPECIFIED);
-    let mcast_socket = build_multicast_socket(bind_ip)?;
 
     let announcer = tokio::spawn(announce_loop(shared.clone()));
     let responder = tokio::spawn(respond_loop(shared, mcast_socket));
@@ -96,16 +112,31 @@ pub fn spawn(server_name: String, lan_ip: String, port: u16) -> std::io::Result<
 #[derive(Debug)]
 struct SsdpShared {
     uuid: String,
-    location: String,
+    addrs: Vec<LanAddr>,
+    port: u16,
     server: String,
 }
 
-/// Build a UDP socket joined to the SSDP multicast group. We use
-/// socket2 because tokio's `UdpSocket::join_multicast_v4` works but
-/// doesn't expose the `SO_REUSEADDR` / `SO_REUSEPORT` flags we need
-/// for the responder to coexist with other UPnP services running on
-/// the same machine (e.g. Windows Media Player).
-fn build_multicast_socket(interface: Ipv4Addr) -> std::io::Result<UdpSocket> {
+impl SsdpShared {
+    fn location(&self, ip: Ipv4Addr) -> String {
+        location_url(ip, self.port)
+    }
+}
+
+fn location_url(ip: Ipv4Addr, port: u16) -> String {
+    format!("http://{ip}:{port}/description.xml")
+}
+
+/// Build a UDP socket joined to the SSDP multicast group on every
+/// address in `addrs`. We use socket2 because tokio's
+/// `UdpSocket::join_multicast_v4` works but doesn't expose the
+/// `SO_REUSEADDR` / `SO_REUSEPORT` flags we need for the responder to
+/// coexist with other UPnP services running on the same machine (e.g.
+/// Windows Media Player).
+///
+/// An interface that refuses the membership (a link that is down, a
+/// tunnel without multicast) is skipped; only refusing them all fails.
+fn build_multicast_socket(addrs: &[LanAddr]) -> std::io::Result<UdpSocket> {
     let sock = Socket::new(Domain::IPV4, Type::DGRAM, Some(Protocol::UDP))?;
     // SO_REUSEADDR is enough for our use case: it lets the SSDP
     // socket coexist with other UPnP services already bound to
@@ -117,7 +148,20 @@ fn build_multicast_socket(interface: Ipv4Addr) -> std::io::Result<UdpSocket> {
     sock.set_nonblocking(true)?;
     let bind: SocketAddr = SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, 1900).into();
     sock.bind(&bind.into())?;
-    sock.join_multicast_v4(SSDP_ADDR.ip(), &interface)?;
+    let mut joined = 0;
+    let mut last_err = None;
+    for addr in addrs {
+        match sock.join_multicast_v4(SSDP_ADDR.ip(), &addr.ip) {
+            Ok(()) => joined += 1,
+            Err(err) => {
+                tracing::debug!(ip = %addr.ip, ?err, "SSDP join failed on interface");
+                last_err = Some(err);
+            }
+        }
+    }
+    if joined == 0 {
+        return Err(last_err.unwrap_or_else(|| std::io::ErrorKind::NotFound.into()));
+    }
     sock.set_multicast_loop_v4(false)?;
     sock.set_multicast_ttl_v4(4)?;
 
@@ -133,16 +177,35 @@ async fn announce_loop(shared: Arc<SsdpShared>) {
     // First batch goes out immediately so controllers learn about us
     // without waiting the full interval.
     loop {
-        if let Err(err) = send_alive_batch(&shared).await {
-            tracing::warn!(?err, "SSDP NOTIFY alive failed");
+        // One batch per interface: a multicast frame leaves through a
+        // single interface, so one batch would reach one link only.
+        let mut sent = false;
+        for addr in &shared.addrs {
+            match send_alive_batch(&shared, addr.ip).await {
+                Ok(()) => sent = true,
+                Err(err) => tracing::debug!(ip = %addr.ip, ?err, "SSDP NOTIFY failed on interface"),
+            }
+        }
+        if !sent {
+            tracing::warn!("SSDP NOTIFY alive failed on every interface");
         }
         tokio::time::sleep(interval).await;
     }
 }
 
-async fn send_alive_batch(shared: &SsdpShared) -> std::io::Result<()> {
-    let socket = UdpSocket::bind(SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0)).await?;
-    socket.set_multicast_ttl_v4(4)?;
+/// Send one NOTIFY batch out of the interface that owns `ip`,
+/// advertising `ip` itself.
+async fn send_alive_batch(shared: &SsdpShared, ip: Ipv4Addr) -> std::io::Result<()> {
+    let sock = Socket::new(Domain::IPV4, Type::DGRAM, Some(Protocol::UDP))?;
+    sock.set_nonblocking(true)?;
+    // Name the egress interface and bind its address too, so the frame
+    // leaves through that link and carries a source address on it.
+    let bind: SocketAddr = SocketAddrV4::new(ip, 0).into();
+    sock.bind(&bind.into())?;
+    sock.set_multicast_if_v4(&ip)?;
+    sock.set_multicast_ttl_v4(4)?;
+    let socket = UdpSocket::from_std(sock.into())?;
+    let location = shared.location(ip);
     for nt in NOTIFICATION_TARGETS {
         let nt_str = expand_target(nt, &shared.uuid);
         let usn = build_usn(&nt_str, &shared.uuid);
@@ -155,7 +218,6 @@ async fn send_alive_batch(shared: &SsdpShared) -> std::io::Result<()> {
              NTS: ssdp:alive\r\n\
              SERVER: {server}\r\n\
              USN: {usn}\r\n\r\n",
-            location = shared.location,
             server = shared.server,
         );
         socket.send_to(frame.as_bytes(), SSDP_ADDR).await?;
@@ -187,6 +249,12 @@ async fn respond_loop(shared: Arc<SsdpShared>, socket: UdpSocket) {
             Some(s) => s,
             None => continue,
         };
+        // The address on the requester's subnet is one it can reach;
+        // `spawn` refuses an empty list, so there is always a fallback.
+        let Some(ip) = local_ip_for(&shared.addrs, peer.ip()) else {
+            continue;
+        };
+        let location = shared.location(ip);
         let targets = matching_targets(&st, &shared.uuid);
         for target in targets {
             let usn = build_usn(&target, &shared.uuid);
@@ -198,7 +266,6 @@ async fn respond_loop(shared: Arc<SsdpShared>, socket: UdpSocket) {
                  SERVER: {server}\r\n\
                  ST: {target}\r\n\
                  USN: {usn}\r\n\r\n",
-                location = shared.location,
                 server = shared.server,
             );
             if let Err(err) = socket.send_to(reply.as_bytes(), peer).await {
@@ -306,6 +373,20 @@ mod tests {
     #[test]
     fn matching_targets_unknown_st_returns_empty() {
         assert!(matching_targets("urn:foo:bar", "abc").is_empty());
+    }
+
+    #[test]
+    fn location_names_the_interface_address() {
+        assert_eq!(
+            location_url(Ipv4Addr::new(192, 168, 1, 20), 8200),
+            "http://192.168.1.20:8200/description.xml"
+        );
+    }
+
+    #[test]
+    fn spawn_refuses_an_empty_interface_list() {
+        let err = spawn("WaveFlow".into(), Vec::new(), 8200).err();
+        assert_eq!(err.map(|e| e.kind()), Some(std::io::ErrorKind::NotFound));
     }
 
     #[test]

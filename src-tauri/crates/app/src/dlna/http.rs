@@ -11,19 +11,22 @@
 //!                                        shared metadata_artwork dir)
 //!   GET  /healthz                     — diag (always 200 "ok")
 
+use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::Arc;
 
 use axum::{
     body::Body,
-    extract::{Path, State},
+    extract::{connect_info::Connected, ConnectInfo, Path, State},
     http::{header, HeaderMap, HeaderValue, StatusCode},
     response::{IntoResponse, Response},
     routing::{get, post},
+    serve::IncomingStream,
     Router,
 };
 use sqlx::SqlitePool;
 use tokio::io::{AsyncSeekExt, SeekFrom};
+use tokio::net::TcpListener;
 use tokio_util::io::ReaderStream;
 
 use crate::dlna::{cds, description};
@@ -34,10 +37,45 @@ use crate::dlna::{cds, description};
 #[derive(Clone)]
 pub struct ServerCtx {
     pub server_name: String,
+    /// The preferred address, used only when a connection's own local
+    /// address is unknown (see [`ServerCtx::base_url_for`]).
     pub base_url: String,
     pub pool: SqlitePool,
     pub profile_artwork_dir: PathBuf,
     pub metadata_artwork_dir: PathBuf,
+}
+
+impl ServerCtx {
+    /// The base of every URL handed to the peer behind `conn`: the
+    /// address that peer reached us on. On a host with several
+    /// interfaces the preferred one may sit on a network the peer
+    /// cannot route to, while the one it connected to is reachable by
+    /// construction.
+    pub fn base_url_for(&self, conn: LocalAddr) -> String {
+        base_url(conn.0, &self.base_url)
+    }
+}
+
+/// The local end of an accepted connection, recorded by the server
+/// (`into_make_service_with_connect_info`) for [`ServerCtx::base_url_for`].
+#[derive(Debug, Clone, Copy)]
+pub struct LocalAddr(pub Option<SocketAddr>);
+
+impl Connected<IncomingStream<'_, TcpListener>> for LocalAddr {
+    fn connect_info(stream: IncomingStream<'_, TcpListener>) -> Self {
+        Self(stream.io().local_addr().ok())
+    }
+}
+
+fn base_url(local: Option<SocketAddr>, fallback: &str) -> String {
+    match local {
+        Some(addr) if !addr.ip().is_unspecified() => {
+            // A dual-stack socket reports an IPv4 peer as `::ffff:a.b.c.d`.
+            let addr = SocketAddr::new(addr.ip().to_canonical(), addr.port());
+            format!("http://{addr}")
+        }
+        _ => fallback.to_string(),
+    }
 }
 
 pub fn router(ctx: ServerCtx) -> Router {
@@ -84,8 +122,11 @@ pub fn router(ctx: ServerCtx) -> Router {
         .with_state(Arc::new(ctx))
 }
 
-async fn serve_description(State(ctx): State<Arc<ServerCtx>>) -> Response {
-    let body = description::device_descriptor(&ctx.server_name, &ctx.base_url);
+async fn serve_description(
+    State(ctx): State<Arc<ServerCtx>>,
+    ConnectInfo(conn): ConnectInfo<LocalAddr>,
+) -> Response {
+    let body = description::device_descriptor(&ctx.server_name, &ctx.base_url_for(conn));
     xml_response(body)
 }
 
@@ -280,6 +321,26 @@ fn mime_for_art(name: &str) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn base_url_names_the_address_the_peer_connected_to() {
+        let fallback = "http://192.168.1.20:8200";
+        let local = |s: &str| Some(s.parse::<SocketAddr>().unwrap());
+        assert_eq!(
+            base_url(local("172.20.0.1:8200"), fallback),
+            "http://172.20.0.1:8200"
+        );
+        assert_eq!(
+            base_url(local("[::ffff:10.0.0.2]:8200"), fallback),
+            "http://10.0.0.2:8200"
+        );
+        assert_eq!(
+            base_url(local("[fe80::1]:8200"), fallback),
+            "http://[fe80::1]:8200"
+        );
+        assert_eq!(base_url(local("0.0.0.0:8200"), fallback), fallback);
+        assert_eq!(base_url(None, fallback), fallback);
+    }
 
     #[test]
     fn parse_range_full_form() {

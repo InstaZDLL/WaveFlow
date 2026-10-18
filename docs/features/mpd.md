@@ -54,6 +54,8 @@ Persisted in the global `app_setting` table — the listener is process-wide, no
 
 The server binds every interface, matching [DLNA](dlna.md). Settled in #471 for two reasons.
 
+A client connects to us, so no address is advertised on the wire; the one in `MpdStatus.bound_address` is only what Settings displays. It is the DLNA server's preferred address ([which one](dlna.md#which-address-is-advertised)): a real LAN interface ahead of a VPN, WSL, Hyper-V or Docker adapter listed before it.
+
 **It matches what we already ship.** [`dlna/mod.rs`](../../src-tauri/crates/app/src/dlna/mod.rs) binds `0.0.0.0` and the DLNA HTTP layer has no authentication at all (UPnP has no such concept). WaveFlow therefore already exposes an opt-in, default-off, LAN-bound, zero-auth service — one that exposes strictly _more_ than MPD control does:
 
 |                              | DLNA | MPD               |

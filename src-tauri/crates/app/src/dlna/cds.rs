@@ -30,14 +30,17 @@
 use std::sync::Arc;
 
 use axum::{
-    extract::State,
+    extract::{ConnectInfo, State},
     http::{header, HeaderMap, StatusCode},
     response::{IntoResponse, Response},
 };
 use serde::Deserialize;
 use sqlx::SqlitePool;
 
-use crate::dlna::{description::xml_escape, http::ServerCtx};
+use crate::dlna::{
+    description::xml_escape,
+    http::{LocalAddr, ServerCtx},
+};
 
 /// Maximum rows we'll ever return in a single Browse call. Even when
 /// the controller asks for "all" (count = 0), we cap at this value to
@@ -104,14 +107,18 @@ fn track_parent_id(album_id: Option<i64>) -> String {
 
 /// SOAP control endpoint handler. Decodes the envelope, dispatches by
 /// action name, returns the appropriate SOAP response (or fault).
-pub async fn handle_control(State(ctx): State<Arc<ServerCtx>>, body: String) -> Response {
+pub async fn handle_control(
+    State(ctx): State<Arc<ServerCtx>>,
+    ConnectInfo(conn): ConnectInfo<LocalAddr>,
+    body: String,
+) -> Response {
     let action = match parse_soap_action(&body) {
         Some(a) => a,
         None => return soap_fault(401, "Invalid Action"),
     };
 
     match action {
-        SoapAction::Browse(req) => match browse(&ctx, &req).await {
+        SoapAction::Browse(req) => match browse(&ctx, &ctx.base_url_for(conn), &req).await {
             Ok(resp) => soap_response("Browse", &resp),
             Err(err) => {
                 tracing::warn!(?err, "Browse failed");
@@ -212,7 +219,13 @@ struct BrowseResult {
     total_matches: i64,
 }
 
-async fn browse(ctx: &ServerCtx, req: &BrowseRequest) -> Result<BrowseResult, sqlx::Error> {
+/// `base` prefixes the stream and artwork URLs: the address this
+/// request reached us on (see [`ServerCtx::base_url_for`]).
+async fn browse(
+    ctx: &ServerCtx,
+    base: &str,
+    req: &BrowseRequest,
+) -> Result<BrowseResult, sqlx::Error> {
     // Resolve effective limit + offset. RequestedCount = 0 means
     // "everything" per the spec — we cap at MAX_PAGE_SIZE.
     let count = if req.requested_count <= 0 {
@@ -223,7 +236,7 @@ async fn browse(ctx: &ServerCtx, req: &BrowseRequest) -> Result<BrowseResult, sq
     let offset = req.starting_index.max(0);
 
     if req.browse_flag == "BrowseMetadata" {
-        return browse_metadata(ctx, &req.object_id).await;
+        return browse_metadata(ctx, base, &req.object_id).await;
     }
 
     match ObjectId::parse(&req.object_id) {
@@ -231,7 +244,7 @@ async fn browse(ctx: &ServerCtx, req: &BrowseRequest) -> Result<BrowseResult, sq
         Some(ObjectId::Artists) => browse_artists(&ctx.pool, count, offset).await,
         Some(ObjectId::Artist(id)) => browse_artist_albums(&ctx.pool, id, count, offset).await,
         Some(ObjectId::Albums) => browse_albums(&ctx.pool, count, offset).await,
-        Some(ObjectId::Album(id)) => browse_album_tracks(ctx, id, count, offset).await,
+        Some(ObjectId::Album(id)) => browse_album_tracks(ctx, base, id, count, offset).await,
         // A track has no children, and an unknown id gets an empty
         // DIDL rather than a fault so controllers gracefully render
         // an empty folder.
@@ -431,6 +444,7 @@ struct TrackRow {
 
 async fn browse_album_tracks(
     ctx: &ServerCtx,
+    base: &str,
     album_id: i64,
     count: i64,
     offset: i64,
@@ -465,7 +479,7 @@ async fn browse_album_tracks(
     let parent = format!("0/albums/{album_id}");
     let mut body = String::new();
     for row in &rows {
-        body.push_str(&item_xml(ctx, row, &parent));
+        body.push_str(&item_xml(base, row, &parent));
     }
     Ok(BrowseResult {
         didl: didl_envelope(&body),
@@ -474,9 +488,13 @@ async fn browse_album_tracks(
     })
 }
 
-async fn browse_metadata(ctx: &ServerCtx, object_id: &str) -> Result<BrowseResult, sqlx::Error> {
+async fn browse_metadata(
+    ctx: &ServerCtx,
+    base: &str,
+    object_id: &str,
+) -> Result<BrowseResult, sqlx::Error> {
     let body = match ObjectId::parse(object_id) {
-        Some(ObjectId::Track(track_id)) => track_metadata(ctx, track_id).await?,
+        Some(ObjectId::Track(track_id)) => track_metadata(ctx, base, track_id).await?,
         Some(container) => container_metadata(&ctx.pool, container).await?,
         None => None,
     };
@@ -536,7 +554,11 @@ async fn container_metadata(
     })
 }
 
-async fn track_metadata(ctx: &ServerCtx, track_id: i64) -> Result<Option<String>, sqlx::Error> {
+async fn track_metadata(
+    ctx: &ServerCtx,
+    base: &str,
+    track_id: i64,
+) -> Result<Option<String>, sqlx::Error> {
     // Column aliases must match `TrackRow`: `ar.name AS artist_name`
     // (not `t.primary_artist`) and `t.bitrate AS bitrate` (the column
     // is `bitrate`, not `bit_rate` — the earlier shape would fail at
@@ -559,7 +581,7 @@ async fn track_metadata(ctx: &ServerCtx, track_id: i64) -> Result<Option<String>
     .bind(track_id)
     .fetch_optional(&ctx.pool)
     .await?;
-    Ok(row.map(|row| item_xml(ctx, &row, &track_parent_id(row.album_id))))
+    Ok(row.map(|row| item_xml(base, &row, &track_parent_id(row.album_id))))
 }
 
 /// Wrap inner content in the standard DIDL-Lite envelope. The four
@@ -580,9 +602,9 @@ fn container_xml(id: &str, parent: &str, title: &str, child_count: Option<i64>) 
     )
 }
 
-fn item_xml(ctx: &ServerCtx, t: &TrackRow, parent: &str) -> String {
+fn item_xml(base: &str, t: &TrackRow, parent: &str) -> String {
     let mime = mime_for_path(&t.file_path);
-    let stream_url = format!("{}/stream/{}", ctx.base_url, t.id);
+    let stream_url = format!("{base}/stream/{}", t.id);
     let duration = format_duration_hms(t.duration_ms);
     let size_attr = format!(r#" size="{}""#, t.file_size);
     let bitrate_attr = t
@@ -620,7 +642,6 @@ fn item_xml(ctx: &ServerCtx, t: &TrackRow, parent: &str) -> String {
             let ext = t.artwork_format.as_deref().unwrap_or("jpg");
             format!(
                 r#"<upnp:albumArtURI dlna:profileID="JPEG_TN" xmlns:dlna="urn:schemas-dlna-org:metadata-1-0/">{base}/art/{h}.{ext}</upnp:albumArtURI>"#,
-                base = ctx.base_url,
             )
         })
         .unwrap_or_default();

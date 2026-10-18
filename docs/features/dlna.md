@@ -79,6 +79,16 @@ The `transferMode.dlna.org: Streaming` and `contentFeatures.dlna.org` headers on
 
 The device UUID is `Uuid::new_v5(NAMESPACE, server_name)` so controllers see the same `uuid:` URN across launches even when the LAN IP changes — no on-disk persistence needed.
 
+## Which address is advertised
+
+A desktop often carries a VPN, WSL, Hyper-V or Docker adapter next to its real LAN, frequently listed first, and an address on one of those is one a receiver cannot reach. So nothing advertises a single address picked once:
+
+- **SSDP** joins the multicast group on **every** IPv4 interface (one that refuses the membership is skipped; only refusing them all fails). Each NOTIFY batch goes out of each interface with that interface's own address in `LOCATION`, and an M-SEARCH reply names the address on the requester's subnet — the preferred address when none matches.
+- **HTTP** — `URLBase` in `/description.xml`, and every stream and cover URL in a Browse result, is built from the local address the request arrived on (`http::LocalAddr`, recorded through axum's `ConnectInfo`). The address a controller connected to is reachable from it by construction, whichever interface that is.
+- **The preferred address** — the URL shown in Settings, and the fallback above — comes from [`lan_addrs`](../../src-tauri/crates/app/src/dlna/mod.rs), which ranks every non-loopback IPv4 address: a private address on a running, physical interface first; then a non-private one; then anything point-to-point, down, or named like a VPN / VM / container adapter (`vEthernet (…)`, `docker0`, `br-…`, `virbr0`, `tailscale0`, `wg0`, …); link-local (`169.254.x.x`) last. The name match is a heuristic, so it only demotes, never drops: a host whose only address looks virtual is still served on it. Within a rank the OS order holds.
+
+The interface list is read once when the server starts. After a network change (new Wi-Fi, a VPN coming up), toggle the server off and on to pick it up. There is no setting to pin an interface.
+
 ## Range streaming
 
 `/stream/<track_id>` parses the `Range:` header, replies with `206 Partial Content` + `Content-Range`, and pipes the file through `tokio_util::io::ReaderStream::with_capacity(64 KiB)`. `take(length)` caps the reader so we never overshoot the window even if the controller closes early.
@@ -88,7 +98,7 @@ The device UUID is `Uuid::new_v5(NAMESPACE, server_name)` so controllers see the
 Failures inside the worker are surfaced through `DlnaStatus.last_error` so the Settings UI can display them inline:
 
 - Bind failure (port in use, no privilege) → `"bind 0.0.0.0:1234: …"` and the server stays in the stopped state.
-- SSDP socket failure → HTTP keeps serving for controllers that already know the LOCATION; only auto-discovery breaks. Surfaced as `"SSDP: …"`.
+- SSDP socket failure → HTTP keeps serving for controllers that already know the LOCATION; only auto-discovery breaks. Surfaced as `"SSDP: …"` — including `"SSDP: no IPv4 network interface"` when the host has no address to advertise, rather than announcing `0.0.0.0`.
 
 ## Limitations / not implemented yet
 
