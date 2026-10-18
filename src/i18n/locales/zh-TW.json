@@ -1236,6 +1236,8 @@
     "save": "儲存",
     "saving": "儲存中…",
     "saveFailed": "儲存失敗：{{reason}}",
+    "fileChanged": "開啟此視窗後，檔案已被其他程式修改。請在儲存前重新載入其值，以免覆寫這些變更。",
+    "reloadFromFile": "從檔案重新載入",
     "fields": {
       "title": "標題",
       "artist": "藝人",

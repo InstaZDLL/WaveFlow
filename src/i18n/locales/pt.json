@@ -1282,6 +1282,8 @@
     "save": "Guardar",
     "saving": "A guardar…",
     "saveFailed": "Não foi possível guardar: {{reason}}",
+    "fileChanged": "O ficheiro foi alterado por outro programa desde que esta janela foi aberta. Recarregue os valores antes de guardar, para não substituir essas alterações.",
+    "reloadFromFile": "Recarregar do ficheiro",
     "fields": {
       "title": "Título",
       "artist": "Artista(s)",

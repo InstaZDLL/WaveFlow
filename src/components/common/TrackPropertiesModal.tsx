@@ -6,6 +6,7 @@ import {
   ExternalLink,
   ImageUp,
   Pencil,
+  RotateCcw,
   Save,
   Sparkles,
   TriangleAlert,
@@ -18,7 +19,10 @@ import {
   formatDuration,
   getTrack,
   getTrackArtists,
+  getTrackFileStamp,
   getTrackGenres,
+  isFileChangedOnDisk,
+  rereadTrackFolder,
   setTrackRating,
   updateTrackCover,
   updateTrackTags,
@@ -129,6 +133,16 @@ export function TrackPropertiesModal({
   // can't tag — and the dialog used to swallow all of them into a
   // console line while looking like nothing had happened.
   const [saveError, setSaveError] = useState<string | null>(null);
+  // The file's stamp (size + modification time) as of the values the
+  // dialog shows, handed back with the save. The form writes the title,
+  // numbers and year back whether or not they were touched, so a file
+  // another tagger rewrote while the dialog was open would lose that
+  // change; with the stamp, the backend refuses the save instead.
+  // `null` until loaded, and then the save goes unchecked.
+  const [fileStamp, setFileStamp] = useState<string | null>(null);
+  // Set when a save was refused for that reason: the error then offers
+  // to reload the values from the file instead of repeating the save.
+  const [fileChanged, setFileChanged] = useState(false);
   // Genres as they stand in the database, loaded alongside the track.
   // `null` means "not loaded yet", which is what gates the save below.
   const [genres, setGenres] = useState<string[] | null>(null);
@@ -183,6 +197,25 @@ export function TrackPropertiesModal({
       })
       .catch((err) =>
         console.error("[TrackProperties] get_track_analysis failed", err),
+      );
+    return () => {
+      cancelled = true;
+    };
+  }, [track]);
+
+  // Re-read with every refresh of the track, which is what the form is
+  // hydrated from: a save of our own, a rating or a new cover all
+  // rewrite the file and emit `track:updated`, and the stamp has to move
+  // with them or the next save would be refused by our own change.
+  useEffect(() => {
+    if (!track) return;
+    let cancelled = false;
+    getTrackFileStamp(track.id)
+      .then((stamp) => {
+        if (!cancelled) setFileStamp(stamp);
+      })
+      .catch((err) =>
+        console.error("[TrackProperties] get_track_file_stamp failed", err),
       );
     return () => {
       cancelled = true;
@@ -340,6 +373,7 @@ export function TrackPropertiesModal({
     if (!track || saving) return;
     setSaving(true);
     setSaveError(null);
+    setFileChanged(false);
     try {
       const edit: TrackEdit = {
         title: form.title,
@@ -384,7 +418,11 @@ export function TrackPropertiesModal({
       if (sendingArtist || album !== (track.album_title ?? "").trim()) {
         edit.album = album;
       }
-      await updateTrackTags(track.id, edit);
+      const stamp = await updateTrackTags(track.id, edit, fileStamp);
+      // Straight away rather than through the refresh `track:updated`
+      // triggers: a second save made before that lands must match the
+      // file this one left.
+      setFileStamp(stamp);
       // Only when we sent one — otherwise this would record a genre we
       // never wrote, and the *next* save would act on it.
       setGenreTouched(false);
@@ -421,6 +459,50 @@ export function TrackPropertiesModal({
       // surrounding views listen to and react to (re-fetch the row).
     } catch (err) {
       console.error("[TrackProperties] update_track_tags failed", err);
+      setFileChanged(isFileChangedOnDisk(err));
+      setSaveError(String(err));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // After a save refused because the file changed: rescan its folder so
+  // the library holds what the other program wrote, then refill the
+  // dialog from it. Reloading from the database alone would show the
+  // same stale values with a fresh stamp, and the next save would
+  // overwrite the change after all. The user's unsaved input is dropped,
+  // which is the point: it was typed over values that no longer exist.
+  const handleReload = async () => {
+    if (!track || saving) return;
+    setSaving(true);
+    try {
+      await rereadTrackFolder(track.id);
+      const [fresh, genreRows, artistRows] = await Promise.all([
+        getTrack(track.id),
+        getTrackGenres(track.id),
+        getTrackArtists(track.id),
+      ]);
+      setGenres(genreRows);
+      setGenreTouched(false);
+      setArtists(artistRows.length > 0 ? artistRows : null);
+      // The hydration below carries the genre over and reads the
+      // credits from their ref, so both are put in place here.
+      setForm((prev) => ({
+        ...prev,
+        genre: genreRows.join("; "),
+        artist:
+          artistRows.length > 0
+            ? artistRows.join("; ")
+            : (fresh?.artist_name ?? ""),
+      }));
+      // A new `track` re-runs the hydration (which also leaves edit
+      // mode) and the stamp fetch.
+      if (fresh) setTrack(fresh);
+      setSaveError(null);
+      setFileChanged(false);
+    } catch (err) {
+      console.error("[TrackProperties] reread_track_folder failed", err);
+      setFileChanged(false);
       setSaveError(String(err));
     } finally {
       setSaving(false);
@@ -437,6 +519,7 @@ export function TrackPropertiesModal({
       if (!path) return;
       setSaving(true);
       setSaveError(null);
+      setFileChanged(false);
       await updateTrackCover(track.id, path);
       // The backend's `track:updated` event triggers a refetch in the
       // surrounding views; the modal itself stays open on the same
@@ -861,9 +944,24 @@ export function TrackPropertiesModal({
             className="mx-6 mb-4 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300"
           >
             <TriangleAlert size={16} className="mt-0.5 shrink-0" />
-            <span className="min-w-0 break-words">
-              {t("trackProperties.saveFailed", { reason: saveError })}
-            </span>
+            <div className="min-w-0 flex-1">
+              <span className="break-words">
+                {fileChanged
+                  ? t("trackProperties.fileChanged")
+                  : t("trackProperties.saveFailed", { reason: saveError })}
+              </span>
+              {fileChanged && (
+                <button
+                  type="button"
+                  onClick={handleReload}
+                  disabled={saving}
+                  className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-red-300 bg-white px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-100 disabled:opacity-50 dark:border-red-800 dark:bg-red-950/60 dark:text-red-200 dark:hover:bg-red-900/50 transition-colors"
+                >
+                  <RotateCcw size={12} />
+                  <span>{t("trackProperties.reloadFromFile")}</span>
+                </button>
+              )}
+            </div>
           </div>
         )}
 

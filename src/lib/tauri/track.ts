@@ -277,7 +277,7 @@ export async function listLikedTracks(): Promise<Track[]> {
  * (not transmitted) means "leave this field untouched"; an empty
  * string means "clear this field" where the format allows it.
  *
- * `artist` accepts a comma-separated multi-artist string ("A, B"),
+ * `artist` accepts a `"; "`-separated multi-artist string ("A; B"),
  * which the backend splits via the same parser the scanner uses.
  */
 export interface TrackEdit {
@@ -290,12 +290,53 @@ export interface TrackEdit {
   genre?: string | null;
 }
 
-/** Persist the edited tags both to the audio file and to the database. */
+/**
+ * Persist the edited tags both to the audio file and to the database.
+ *
+ * `fileStamp` is what {@link getTrackFileStamp} returned when the editor
+ * opened: given, the backend refuses the write when the file changed
+ * since (see {@link isFileChangedOnDisk}). Resolves to the file's stamp
+ * after the write, for the editor's next save.
+ */
 export function updateTrackTags(
   trackId: number,
   edit: TrackEdit,
-): Promise<void> {
-  return invoke<void>("update_track_tags", { trackId, edit });
+  fileStamp?: string | null,
+): Promise<string | null> {
+  return invoke<string | null>("update_track_tags", {
+    trackId,
+    edit,
+    fileStamp: fileStamp ?? null,
+  });
+}
+
+/**
+ * An opaque fingerprint of the track's file (size + modification time),
+ * or `null` when the file cannot be reached. Only ever compared for
+ * equality, by the backend.
+ */
+export function getTrackFileStamp(trackId: number): Promise<string | null> {
+  return invoke<string | null>("get_track_file_stamp", { trackId });
+}
+
+/**
+ * Rescan the library folder holding the track, so the database catches
+ * up with a file another program changed. Unchanged files are skipped by
+ * the scanner's fast path.
+ */
+export function rereadTrackFolder(trackId: number): Promise<void> {
+  return invoke<void>("reread_track_folder", { trackId });
+}
+
+/**
+ * The backend's `AppError::FileChangedOnDisk` message: a save refused
+ * because another program wrote the file after the editor opened it.
+ */
+export const FILE_CHANGED_ON_DISK = "the file changed on disk";
+
+/** Whether `err` is a save refused by {@link FILE_CHANGED_ON_DISK}. */
+export function isFileChangedOnDisk(err: unknown): boolean {
+  return String(err).includes(FILE_CHANGED_ON_DISK);
 }
 
 /** Summary returned by `updateTracksBatch`. */

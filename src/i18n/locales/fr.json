@@ -1281,6 +1281,8 @@
     "save": "Enregistrer",
     "saving": "Enregistrement…",
     "saveFailed": "Échec de l'enregistrement : {{reason}}",
+    "fileChanged": "Le fichier a été modifié par un autre programme depuis l'ouverture de cette fenêtre. Rechargez ses valeurs avant d'enregistrer, pour ne pas écraser ces changements.",
+    "reloadFromFile": "Recharger depuis le fichier",
     "fields": {
       "title": "Titre",
       "artist": "Artiste(s)",

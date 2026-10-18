@@ -1236,6 +1236,8 @@
     "save": "保存",
     "saving": "保存中…",
     "saveFailed": "保存失败：{{reason}}",
+    "fileChanged": "打开此窗口后，文件已被其他程序修改。请在保存前重新加载其值，以免覆盖这些更改。",
+    "reloadFromFile": "从文件重新加载",
     "fields": {
       "title": "标题",
       "artist": "艺人",

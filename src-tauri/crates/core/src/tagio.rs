@@ -391,6 +391,73 @@ fn rename_over(from: &Path, to: &Path) -> io::Result<()> {
     }
 }
 
+/// A cheap fingerprint of `path` as it is on disk: its size and its
+/// modification time, to the precision the filesystem keeps.
+///
+/// What the tag editor reads when it opens and checks again before it
+/// writes. Its form shows the values the library holds, and a save
+/// writes them all back, so a file another tagger rewrote in between
+/// would quietly lose that program's change. The pair is the one the
+/// scanner's fast path trusts to say a file has not changed, and it
+/// costs a `stat` rather than a read of the file.
+///
+/// Opaque on purpose: it is only ever compared for equality, and a
+/// string carries nanoseconds intact through JSON, where a number would
+/// be rounded to what a double holds.
+pub fn file_stamp(path: &Path) -> io::Result<String> {
+    let meta = std::fs::metadata(path)?;
+    let modified = meta.modified()?;
+    let nanos = match modified.duration_since(std::time::UNIX_EPOCH) {
+        Ok(after) => after.as_nanos() as i128,
+        // A file dated before 1970 is unusual, not invalid.
+        Err(before) => -(before.duration().as_nanos() as i128),
+    };
+    Ok(format!("{}:{nanos}", meta.len()))
+}
+
+#[cfg(test)]
+mod stamp_tests {
+    use super::*;
+
+    #[test]
+    fn the_stamp_holds_while_the_file_does_not_change() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("a.flac");
+        std::fs::write(&path, b"fLaC").unwrap();
+        assert_eq!(file_stamp(&path).unwrap(), file_stamp(&path).unwrap());
+    }
+
+    #[test]
+    fn a_rewrite_changes_the_stamp() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("a.flac");
+        std::fs::write(&path, b"fLaC").unwrap();
+        let before = file_stamp(&path).unwrap();
+        std::fs::write(&path, b"fLaC with a longer tag").unwrap();
+        assert_ne!(file_stamp(&path).unwrap(), before);
+    }
+
+    /// Same size, new content: what a tagger editing one field in the
+    /// tag's padding produces. Only the time can tell it apart.
+    #[test]
+    fn a_same_size_rewrite_changes_it_through_the_time() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("a.flac");
+        std::fs::write(&path, b"fLaC").unwrap();
+        let before = file_stamp(&path).unwrap();
+        let file = std::fs::File::options().write(true).open(&path).unwrap();
+        let later = std::fs::metadata(&path).unwrap().modified().unwrap() + Duration::from_secs(5);
+        file.set_modified(later).unwrap();
+        assert_ne!(file_stamp(&path).unwrap(), before);
+    }
+
+    #[test]
+    fn a_missing_file_has_no_stamp() {
+        let dir = tempfile::tempdir().unwrap();
+        assert!(file_stamp(&dir.path().join("gone.flac")).is_err());
+    }
+}
+
 /// The ID3v2 tag already on disk, as a span of bytes at the head of the
 /// file (#590).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

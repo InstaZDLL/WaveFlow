@@ -883,6 +883,8 @@ pub fn run() {
             commands::track::search_tracks_advanced,
             commands::edit::update_track_tags,
             commands::edit::update_tracks_batch,
+            commands::edit::get_track_file_stamp,
+            commands::edit::reread_track_folder,
             commands::edit::update_track_cover,
             commands::track::toggle_like_track,
             commands::track::list_liked_track_ids,

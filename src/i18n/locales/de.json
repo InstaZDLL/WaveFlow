@@ -1238,6 +1238,8 @@
     "save": "Speichern",
     "saving": "Wird gespeichert…",
     "saveFailed": "Speichern fehlgeschlagen: {{reason}}",
+    "fileChanged": "Die Datei wurde seit dem Öffnen dieses Fensters von einem anderen Programm geändert. Lade ihre Werte neu, bevor du speicherst, damit diese Änderungen nicht überschrieben werden.",
+    "reloadFromFile": "Aus der Datei neu laden",
     "fields": {
       "title": "Titel",
       "artist": "Künstler",

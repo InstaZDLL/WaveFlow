@@ -1236,6 +1236,8 @@
     "save": "Simpan",
     "saving": "Menyimpan…",
     "saveFailed": "Gagal menyimpan: {{reason}}",
+    "fileChanged": "Berkas telah diubah oleh program lain sejak jendela ini dibuka. Muat ulang nilainya sebelum menyimpan agar perubahan tersebut tidak tertimpa.",
+    "reloadFromFile": "Muat ulang dari berkas",
     "fields": {
       "title": "Judul",
       "artist": "Artis",

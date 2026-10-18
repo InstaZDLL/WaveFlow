@@ -1281,6 +1281,8 @@
     "save": "Salva",
     "saving": "Salvataggio…",
     "saveFailed": "Salvataggio non riuscito: {{reason}}",
+    "fileChanged": "Il file è stato modificato da un altro programma dopo l'apertura di questa finestra. Ricarica i suoi valori prima di salvare, per non sovrascrivere quelle modifiche.",
+    "reloadFromFile": "Ricarica dal file",
     "fields": {
       "title": "Titolo",
       "artist": "Artista/i",
