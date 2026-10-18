@@ -101,7 +101,17 @@ export function HomeSuggestionCard({
   // and over for as long as the database refuses writes. With this one
   // handed back instead, the same track returns and nothing is written,
   // so the card keeps what it showed and the loop never starts.
-  const drawnRef = useRef<{ key: string; pin: PinnedSuggestion } | null>(null);
+  //
+  // `replaces` is the stored pin a draw was made in place of, when the
+  // backend found that pin's track gone. A rollback restores exactly that
+  // pin, and it must not win again: it would draw anew every time. Any
+  // other stored pin does win, so a draw stored by another mounted card
+  // is followed rather than overridden.
+  const drawnRef = useRef<{
+    key: string;
+    pin: PinnedSuggestion;
+    replaces: number | null;
+  } | null>(null);
 
   useEffect(() => {
     if (!draw.ready || profileId == null || foreignDraw) return;
@@ -109,13 +119,28 @@ export function HomeSuggestionCard({
     const request = ++requestRef.current;
     const stale = () => cancelled || request !== requestRef.current;
     const key = `${profileId}:${today}:${attempt}`;
-    const drawn = drawnRef.current?.key === key ? drawnRef.current.pin : null;
-    const pin = pinned ?? drawn;
+    const drawn = drawnRef.current?.key === key ? drawnRef.current : null;
+    const pin =
+      drawn && (pinned == null || pinned.trackId === drawn.replaces)
+        ? drawn.pin
+        : pinned;
     getHomeSuggestion(today, attempt, pin)
       .then((next) => {
         if (stale()) return;
         setLoaded({ profileId, day: today, suggestion: next });
-        if (next) drawnRef.current = { key, pin: pinSuggestion(next) };
+        if (next) {
+          drawnRef.current = {
+            key,
+            pin: pinSuggestion(next),
+            // A new track in place of the pin that was sent means that
+            // pin's track is gone; the same track back keeps what it
+            // already replaced.
+            replaces:
+              next.track.id !== pin?.trackId
+                ? (pin?.trackId ?? null)
+                : (drawn?.replaces ?? null),
+          };
+        }
         // Keep a new draw, so the same track comes back for the rest of
         // the day even once played (it would no longer qualify).
         if (next && next.track.id !== pin?.trackId) {
