@@ -352,6 +352,20 @@ Hovering the taskbar icon shows Previous / Play-Pause / Next under the window pr
 - **Tooltips** ride on the tray's label push (`set_tray_labels`) and reuse `player.controls.{play,pause}` plus the tray's previous / next strings, so no new keys.
 - Every COM and icon call stays on the window's thread; the `player:state` listener and the label command only update shared state and post a refresh message to the window.
 
+## Suggestion of the day
+
+Home suggests one track, over its blurred cover, with the reason it was picked ([`HomeSuggestionCard`](../../src/components/views/home/HomeSuggestionCard.tsx), [`get_home_suggestion`](../../src-tauri/crates/app/src/commands/home_suggestion.rs)). It replaced a "continue listening" card, which showed the track the player bar already showed right under it. There are three kinds, all read from the profile's own listening (`play_event`), and a play only counts when the track was played through or for 15 s, the recently-played list's rule:
+
+- **You used to love this** — played at least 3 times, and not once in the last 60 days. The most played come first. The reason line gives the count and the month of the last play.
+- **In your current groove** — a track by one of the 5 artists played most in the last 14 days, or by an artist the similar-artists cache lists for one of them, not played in the last 30 days. Ranked by distance to the energy and tempo of those 14 days, where a half or double tempo counts as the tempo itself, since the estimator reads some tracks an octave out. The reason line names the recent artist it comes from. The cache is only read, never fetched: the card makes no network call.
+- **Never played** — no play at all, one track per artist (the latest added), by the artists played most first and then the latest added, so a new library still gets a suggestion.
+
+The draw is made among the first 20 of a kind, at most 2 per artist, and is **stable for the day**: the same calendar day and the same number of **Another suggestion** clicks give the same track ([`waveflow_core::home_suggestion`](../../src-tauri/crates/core/src/home_suggestion.rs)), so Home does not change on every visit. The kind rotates from one day to the next and each click moves to the next kind; a kind with nothing to offer gives way to the next. The clicks are stored per profile (`profile_setting['home.suggestion_draw']`, the day and the count), and a new day starts over. The title and the reason line each have two or three wordings per kind in every locale (numbered keys under `home.suggestion`), chosen from the draw and the track, so a suggestion keeps its words for the day and the card does not read the same every time. The card is hidden when no kind has anything, an empty library.
+
+**Play** starts the track followed by tracks like it, through the same seeded radio as the track menu's **Start radio** (`start_radio`): a few tracks by the same artist, then tracks by similar artists. `start_radio` used to fail on a track with no primary artist (the column is `ON DELETE SET NULL`); such a seed now goes straight to the radio's fallback, the artists played most.
+
+The cover behind the card is the 64 px thumbnail blurred, which costs nothing to load; a track without artwork gets the plain dark ground.
+
 ## Statistics view
 
 [`StatisticsView.tsx`](../../src/components/views/StatisticsView.tsx) projects from `play_event`:

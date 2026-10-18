@@ -346,6 +346,34 @@
       "emptyTitle": "再生した曲はありません",
       "emptyDescription": "曲を再生するとここに表示されます。新しい曲を見つけるたびに、再生履歴が蓄積されていきます。"
     },
+    "suggestion": {
+      "label": "今日のおすすめ",
+      "kind": {
+        "forgotten1": "以前のお気に入り",
+        "forgotten2": "少し忘れていたお気に入り",
+        "forgotten3": "この曲、覚えていますか？",
+        "vibe1": "最近の傾向に近い曲",
+        "vibe2": "今の気分にぴったり",
+        "vibe3": "最近よく聴く音楽と同じ雰囲気",
+        "unplayed1": "まだ聴いていない曲",
+        "unplayed2": "ライブラリで待っている曲",
+        "unplayed3": "はじめて聴く一曲"
+      },
+      "reason": {
+        "forgotten1_other": "{{count}} 回再生 · 最後は {{date}}",
+        "forgotten2_other": "これまで {{count}} 回再生、最後は {{date}}",
+        "vibe1": "最近 {{artist}} をよく聴いているので",
+        "vibe2": "最近 {{artist}} が気に入っているなら、こちらもどうぞ",
+        "vibe3": "{{artist}} に通じる雰囲気",
+        "unplayedArtist1": "よく聴く {{artist}} の曲",
+        "unplayedArtist2": "{{artist}} は好きでも、この曲はまだ聴いていません",
+        "unplayedNew1": "{{date}} に追加、まだ再生していません",
+        "unplayedNew2": "{{date}} からライブラリにあり、まだ再生していません"
+      },
+      "play": "再生",
+      "playAria": "{{title}} を再生し、続けて似た曲を再生",
+      "another": "別の提案"
+    },
     "recentlyAdded": {
       "title": "最近追加された曲"
     },

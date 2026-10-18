@@ -16,6 +16,7 @@ pub mod artwork;
 pub mod audio_format;
 pub mod domain;
 pub mod error;
+pub mod home_suggestion;
 pub mod inventory;
 pub mod metadata;
 pub mod mood;

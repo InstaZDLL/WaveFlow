@@ -346,6 +346,36 @@
       "emptyTitle": "Noch nichts gespielt",
       "emptyDescription": "Spiele einen Titel, damit er hier erscheint. Dein Hörverlauf füllt sich, während du neue Musik entdeckst."
     },
+    "suggestion": {
+      "label": "Vorschlag des Tages",
+      "kind": {
+        "forgotten1": "Früher dein Favorit",
+        "forgotten2": "Ein fast vergessener Favorit",
+        "forgotten3": "Erinnerst du dich?",
+        "vibe1": "Passt zu dem, was du gerade hörst",
+        "vibe2": "Genau deine Stimmung",
+        "vibe3": "Ganz im Stil deiner letzten Tage",
+        "unplayed1": "Noch nie gehört",
+        "unplayed2": "Wartet in deiner Bibliothek",
+        "unplayed3": "Zum ersten Mal hören"
+      },
+      "reason": {
+        "forgotten1_one": "{{count}} Wiedergabe · zuletzt im {{date}}",
+        "forgotten1_other": "{{count}} Wiedergaben · zuletzt im {{date}}",
+        "forgotten2_one": "{{count}}-mal gehört, im {{date}}",
+        "forgotten2_other": "{{count}}-mal gehört, zuletzt im {{date}}",
+        "vibe1": "Weil du gerade {{artist}} hörst",
+        "vibe2": "Wenn dir {{artist}} gerade gefällt, probier das",
+        "vibe3": "Im Geist von {{artist}}",
+        "unplayedArtist1": "Von {{artist}}, oft von dir gehört",
+        "unplayedArtist2": "Du magst {{artist}}, aber diesen Titel hast du noch nicht gehört",
+        "unplayedNew1": "Am {{date}} hinzugefügt, noch nie gehört",
+        "unplayedNew2": "Seit dem {{date}} in deiner Bibliothek, noch ungehört"
+      },
+      "play": "Abspielen",
+      "playAria": "{{title}} abspielen, danach ähnliche Titel",
+      "another": "Anderer Vorschlag"
+    },
     "recentlyAdded": {
       "title": "Kürzlich hinzugefügt"
     },

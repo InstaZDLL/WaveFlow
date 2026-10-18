@@ -346,6 +346,34 @@
       "emptyTitle": "尚未聆聽任何歌曲",
       "emptyDescription": "播放一首曲目後它會出現在這裡。隨著你不斷探索，聆聽紀錄會逐漸累積。"
     },
+    "suggestion": {
+      "label": "今日推薦",
+      "kind": {
+        "forgotten1": "曾經的最愛",
+        "forgotten2": "有點被遺忘的心頭好",
+        "forgotten3": "還記得這首嗎？",
+        "vibe1": "貼近你最近的口味",
+        "vibe2": "正合你的心情",
+        "vibe3": "和你最近聽的風格相近",
+        "unplayed1": "從未播放",
+        "unplayed2": "在音樂庫裡等你",
+        "unplayed3": "第一次聆聽"
+      },
+      "reason": {
+        "forgotten1_other": "播放 {{count}} 次 · 上次播放於 {{date}}",
+        "forgotten2_other": "你聽過 {{count}} 次，最近一次在 {{date}}",
+        "vibe1": "因為你最近在聽 {{artist}}",
+        "vibe2": "如果你最近喜歡 {{artist}}，試試這首",
+        "vibe3": "延續 {{artist}} 的感覺",
+        "unplayedArtist1": "來自你常聽的 {{artist}}",
+        "unplayedArtist2": "你喜歡 {{artist}}，但還沒聽過這首",
+        "unplayedNew1": "{{date}} 新增，尚未播放",
+        "unplayedNew2": "自 {{date}} 起就在音樂庫中，仍未播放"
+      },
+      "play": "播放",
+      "playAria": "播放《{{title}}》，然後播放相似曲目",
+      "another": "換一首"
+    },
     "recentlyAdded": {
       "title": "最近新增"
     },
