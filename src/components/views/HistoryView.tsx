@@ -8,6 +8,8 @@ import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
 import { usePlayer } from "../../hooks/usePlayer";
 import { useTrackContextMenu } from "../../hooks/useTrackContextMenu";
 import { useTrackUpdated } from "../../hooks/useTrackUpdated";
+import { usePageScroll } from "../../hooks/usePageScroll";
+import { usePageVirtualizer } from "../../hooks/usePageVirtualizer";
 import {
   listPlayHistory,
   playHistoryMonths,
@@ -139,6 +141,7 @@ export function HistoryView({
   const [cursor, setCursor] = useState<number | null>(null);
 
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const pageScrollRef = usePageScroll();
 
   // ── Initial / refetch loaders ──────────────────────────────────
   const afterMs = useMemo(() => rangeStartMs(range), [range]);
@@ -229,7 +232,7 @@ export function HistoryView({
 
   // ── Group consecutive rows by day key ──────────────────────────
   const dayGroups = useMemo(() => {
-    const groups: { key: string; ts: number; rows: PlayHistoryRow[] }[] = [];
+    const groups: HistoryDay[] = [];
     for (const row of rows) {
       const key = dayKey(row.played_at);
       const last = groups[groups.length - 1];
@@ -274,9 +277,10 @@ export function HistoryView({
         setCursor(list.length > 0 ? list[list.length - 1].played_at : null);
         setHasMore(list.length === PAGE_SIZE);
         // Scroll the page to the top so the user lands at the start
-        // of the requested month rather than wherever they were.
+        // of the requested month rather than wherever they were. The
+        // page scroller, not the window — the window never scrolls.
         window.requestAnimationFrame(() => {
-          window.scrollTo({ top: 0, behavior: "smooth" });
+          pageScrollRef?.current?.scrollTo({ top: 0, behavior: "smooth" });
         });
       } catch (err) {
         console.error("[HistoryView] jump-to-month failed", err);
@@ -284,7 +288,7 @@ export function HistoryView({
         setIsLoading(false);
       }
     },
-    [afterMs],
+    [afterMs, pageScrollRef],
   );
 
   return (
@@ -338,34 +342,36 @@ export function HistoryView({
           />
         ) : (
           <div>
-            {dayGroups.map((group) => (
-              <DayGroup
-                key={group.key}
-                group={group}
-                locale={locale}
-                currentTrackId={currentTrack?.id ?? null}
-                onNavigateToArtist={onNavigateToArtist}
-                onContextMenu={(e, row) =>
-                  trackContextMenu.open(e, rowToTrack(row))
-                }
-                onRowMenuKey={(e, row) =>
-                  trackContextMenu.openFromKeyboard(e, rowToTrack(row))
-                }
-                onPlay={(row) =>
-                  // The clicked play, then the rest of the history as it
-                  // is listed — further back in time — so playback carries
-                  // on instead of stopping after one track. Each track
-                  // once: a song played ten times is one entry in the
-                  // queue, at its first place from here. Source type is
-                  // "manual" because the user clicked from a chronological
-                  // list, not a playlist or radio.
-                  playTracks(historyQueueFrom(rows, row), 0, {
-                    type: "manual",
-                    id: null,
-                  })
-                }
-              />
-            ))}
+            <HistoryDayList
+              dayGroups={dayGroups}
+              renderGroup={(group) => (
+                <DayGroup
+                  group={group}
+                  locale={locale}
+                  currentTrackId={currentTrack?.id ?? null}
+                  onNavigateToArtist={onNavigateToArtist}
+                  onContextMenu={(e, row) =>
+                    trackContextMenu.open(e, rowToTrack(row))
+                  }
+                  onRowMenuKey={(e, row) =>
+                    trackContextMenu.openFromKeyboard(e, rowToTrack(row))
+                  }
+                  onPlay={(row) =>
+                    // The clicked play, then the rest of the history as it
+                    // is listed — further back in time — so playback carries
+                    // on instead of stopping after one track. Each track
+                    // once: a song played ten times is one entry in the
+                    // queue, at its first place from here. Source type is
+                    // "manual" because the user clicked from a chronological
+                    // list, not a playlist or radio.
+                    playTracks(historyQueueFrom(rows, row), 0, {
+                      type: "manual",
+                      id: null,
+                    })
+                  }
+                />
+              )}
+            />
             {/* Infinite-scroll sentinel + spinner */}
             <div ref={sentinelRef} className="py-6 text-center">
               {isLoading && (
@@ -445,8 +451,82 @@ function timeLabel(ts: number, locale: string): string {
   }).format(new Date(ts));
 }
 
+/** One day of plays, as the list groups them. */
+interface HistoryDay {
+  key: string;
+  ts: number;
+  rows: PlayHistoryRow[];
+}
+
+/** First guesses for a day's height before it is measured: the sticky
+ *  header, then one row per play (40 px cover, its padding, the divider). */
+const DAY_HEADER_ESTIMATE = 29;
+const HISTORY_ROW_ESTIMATE = 57;
+
+/**
+ * The days, virtualized against the page scroller. Each page the infinite
+ * scroll appends stays mounted otherwise, so a long session back through
+ * the history kept every row it ever passed in the DOM.
+ *
+ * The unit is the day, not the row: a day is a `<section>` whose header
+ * sticks inside it, and keeping the section whole keeps that — each
+ * header still docks under the TopBar and is pushed off by the next day's,
+ * which a flat list of rows would have to rebuild by hand. A day is
+ * bounded by how much one person listens in a day, so mounting one whole
+ * is cheap. Days are measured, since their height is their play count.
+ * Positioned with `top`, not a transform, so nothing in the way of the
+ * sticky header is transformed.
+ */
+function HistoryDayList({
+  dayGroups,
+  renderGroup,
+}: {
+  dayGroups: HistoryDay[];
+  renderGroup: (group: HistoryDay) => React.ReactNode;
+}) {
+  "use no memo";
+  const { parentRef, virtualizer, scrollMargin } = usePageVirtualizer({
+    count: dayGroups.length,
+    estimateSize: (index) =>
+      DAY_HEADER_ESTIMATE +
+      (dayGroups[index]?.rows.length ?? 0) * HISTORY_ROW_ESTIMATE,
+    overscan: 2,
+    getItemKey: (index) => dayGroups[index]?.key ?? index,
+  });
+
+  return (
+    <div
+      ref={parentRef}
+      style={{
+        height: `${virtualizer.getTotalSize()}px`,
+        position: "relative",
+      }}
+    >
+      {virtualizer.getVirtualItems().map((item) => {
+        const group = dayGroups[item.index];
+        if (!group) return null;
+        return (
+          <div
+            key={group.key}
+            data-index={item.index}
+            ref={virtualizer.measureElement}
+            style={{
+              position: "absolute",
+              top: `${item.start - scrollMargin}px`,
+              left: 0,
+              width: "100%",
+            }}
+          >
+            {renderGroup(group)}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 interface DayGroupProps {
-  group: { key: string; ts: number; rows: PlayHistoryRow[] };
+  group: HistoryDay;
   locale: string;
   currentTrackId: number | null;
   onContextMenu: (e: React.MouseEvent, row: PlayHistoryRow) => void;
