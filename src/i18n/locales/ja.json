@@ -1430,7 +1430,8 @@
     "lyrics": {
       "empty": "この曲の歌詞はありません"
     },
-    "dragHandle": "ドラッグで移動 · ダブルクリックでサイズと位置を元に戻す"
+    "dragHandle": "ドラッグで移動 · ダブルクリックでサイズと位置を元に戻す",
+    "pinWayland": "常に手前に表示：Wayland では無視されます。設定 → 外観 → プレーヤーとウィンドウ で「XWayland 経由で実行」をオンにしてください。"
   },
   "window": {
     "minimize": "最小化",
@@ -2663,7 +2664,7 @@
     },
     "desktopLyrics": {
       "subtitle": "他のアプリの上に浮かび、歌われている行を表示するウィンドウです。",
-      "waylandNote": "Wayland（特に GNOME）では、ウィンドウは他のアプリの最前面や配置した位置に保たれません。最前面に保つには、GDK_BACKEND=x11 を指定して WaveFlow を起動してください。",
+      "waylandNote": "Wayland では、ウィンドウは他のアプリの手前にも、置いた場所にも留まりません。そのためには 設定 → 外観 → プレーヤーとウィンドウ で「XWayland 経由で実行」をオンにしてください。",
       "previewSung": "曲に合わせて",
       "previewUnsung": "流れる歌詞",
       "fontSize": "文字サイズ",
@@ -2705,6 +2706,13 @@
         "dop": "DoP",
         "unknown": "不明なフォーマット"
       }
+    },
+    "xwayland": {
+      "title": "XWayland 経由で実行",
+      "subtitle": "Wayland ではコンポジターが「常に手前に表示」を無視し、ウィンドウの位置も独自に決めます。XWayland 経由なら、ミニプレーヤーとデスクトップ歌詞は手前に、置いた場所に留まります。分数スケーリングでは文字がやや粗くなることがあります。",
+      "nextStart": "次回 WaveFlow を起動したときに反映されます。",
+      "active": "有効：WaveFlow は XWayland 経由で動作しています。",
+      "setByUser": "環境の GDK_BACKEND 変数で指定されています。"
     }
   },
   "scanProgress": {

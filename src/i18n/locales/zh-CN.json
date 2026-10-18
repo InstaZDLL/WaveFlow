@@ -1430,7 +1430,8 @@
     "lyrics": {
       "empty": "此曲目没有歌词"
     },
-    "dragHandle": "拖动以移动 · 双击恢复大小和位置"
+    "dragHandle": "拖动以移动 · 双击恢复大小和位置",
+    "pinWayland": "始终置顶：在 Wayland 下无效。请在 设置 → 外观 → 播放器与窗口 中开启“通过 XWayland 运行”。"
   },
   "window": {
     "minimize": "最小化",
@@ -2663,7 +2664,7 @@
     },
     "desktopLyrics": {
       "subtitle": "悬浮在其他应用之上、显示正在演唱歌词的窗口。",
-      "waylandNote": "在 Wayland（尤其是 GNOME）下，窗口不会保持在其他应用之上，也不会停留在你放置的位置。要让它保持置顶，请使用 GDK_BACKEND=x11 启动 WaveFlow。",
+      "waylandNote": "在 Wayland 下，窗口既不会置顶于其他应用之上，也不会停在你放置的位置。如需这样，请在 设置 → 外观 → 播放器与窗口 中开启“通过 XWayland 运行”。",
       "previewSung": "跟随歌曲的",
       "previewUnsung": "歌词",
       "fontSize": "文字大小",
@@ -2705,6 +2706,13 @@
         "dop": "DoP",
         "unknown": "未知格式"
       }
+    },
+    "xwayland": {
+      "title": "通过 XWayland 运行",
+      "subtitle": "在 Wayland 下，合成器会忽略“始终置顶”，并自行决定窗口位置。通过 XWayland 运行后，迷你播放器和桌面歌词会保持置顶并停在你放置的位置；使用分数缩放时文字可能略不清晰。",
+      "nextStart": "将在下次启动 WaveFlow 时生效。",
+      "active": "已启用：WaveFlow 正通过 XWayland 运行。",
+      "setByUser": "由你环境中的 GDK_BACKEND 变量决定。"
     }
   },
   "scanProgress": {

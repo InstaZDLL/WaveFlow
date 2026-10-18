@@ -69,6 +69,7 @@ import {
   syncWebviewMemory,
 } from "../../lib/tauri/preferences";
 import { resetMiniPlayerBounds } from "../../lib/miniPlayer";
+import { displayBackendStatus } from "../../lib/tauri/displayBackend";
 import {
   playerGetQueue,
   playerJumpToIndex,
@@ -422,6 +423,15 @@ export function MiniPlayer() {
   // ── Window controls (always-on-top toggle persisted; close ≠ exit
   //    — we just close the mini window, the main app keeps running) ─
   const [pinned, setPinned] = useState(true);
+  // On a native Wayland session the compositor ignores the pin (#894):
+  // the button says so, and where the fix lives, instead of seeming
+  // broken.
+  const [pinIgnored, setPinIgnored] = useState(false);
+  useEffect(() => {
+    displayBackendStatus()
+      .then((s) => setPinIgnored(s.available && !s.active))
+      .catch(() => {});
+  }, []);
   const handleTogglePin = async () => {
     try {
       const win = getCurrentWindow();
@@ -531,7 +541,7 @@ export function MiniPlayer() {
           type="button"
           onClick={handleTogglePin}
           aria-label={t("miniPlayer.pin")}
-          title={t("miniPlayer.pin")}
+          title={pinIgnored ? t("miniPlayer.pinWayland") : t("miniPlayer.pin")}
           className={`p-1 rounded-full transition-colors ${
             pinned
               ? "text-emerald-400 hover:bg-white/10"

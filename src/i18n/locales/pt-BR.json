@@ -1482,7 +1482,8 @@
     "lyrics": {
       "empty": "Sem letra para esta faixa"
     },
-    "dragHandle": "Arraste para mover · Clique duplo para restaurar tamanho e posição"
+    "dragHandle": "Arraste para mover · Clique duplo para restaurar tamanho e posição",
+    "pinWayland": "Sempre no topo: ignorado no Wayland. Ative \"Usar XWayland\" em Configurações → Aparência → Player e janela."
   },
   "window": {
     "minimize": "Minimizar",
@@ -2727,7 +2728,7 @@
     },
     "desktopLyrics": {
       "subtitle": "Uma janela flutuante acima dos outros aplicativos que mostra a linha sendo cantada.",
-      "waylandNote": "No Wayland (principalmente no GNOME), a janela não fica acima dos outros aplicativos nem onde você a coloca. Para mantê-la em primeiro plano, inicie o WaveFlow com GDK_BACKEND=x11.",
+      "waylandNote": "No Wayland, a janela não fica acima dos outros apps nem onde você a coloca. Para isso, ative \"Usar XWayland\" em Configurações → Aparência → Player e janela.",
       "previewSung": "Letra que acompanha",
       "previewUnsung": "a música",
       "fontSize": "Tamanho do texto",
@@ -2769,6 +2770,13 @@
         "dop": "DoP",
         "unknown": "formato desconhecido"
       }
+    },
+    "xwayland": {
+      "title": "Usar XWayland",
+      "subtitle": "No Wayland, o compositor ignora \"sempre no topo\" e decide sozinho onde ficam as janelas. Com XWayland, o mini player e a letra na área de trabalho ficam no topo e no lugar; o texto pode ficar um pouco menos nítido com escala fracionária.",
+      "nextStart": "Vale a partir da próxima vez que o WaveFlow abrir.",
+      "active": "Ativo: o WaveFlow está rodando pelo XWayland.",
+      "setByUser": "Definido pela variável GDK_BACKEND do seu ambiente."
     }
   },
   "scanProgress": {

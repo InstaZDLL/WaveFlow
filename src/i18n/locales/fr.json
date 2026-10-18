@@ -1481,7 +1481,8 @@
     "lyrics": {
       "empty": "Aucune parole pour ce titre"
     },
-    "dragHandle": "Glisser pour déplacer · Double-clic pour rétablir la taille et la position"
+    "dragHandle": "Glisser pour déplacer · Double-clic pour rétablir la taille et la position",
+    "pinWayland": "Toujours au-dessus : ignoré sous Wayland. Activez « Passer par XWayland » dans Paramètres → Apparence → Lecteur et fenêtre."
   },
   "window": {
     "minimize": "Réduire",
@@ -2726,7 +2727,7 @@
     },
     "desktopLyrics": {
       "subtitle": "Une fenêtre flottante au-dessus des autres applications, qui affiche la ligne chantée.",
-      "waylandNote": "Sous Wayland (GNOME notamment), la fenêtre n'est pas gardée au-dessus des autres applications ni à l'endroit où vous la placez. Pour la garder au premier plan, lancez WaveFlow avec GDK_BACKEND=x11.",
+      "waylandNote": "Sous Wayland, la fenêtre n'est gardée ni au-dessus des autres applications ni à l'endroit où vous la placez. Pour cela, activez « Passer par XWayland » dans Paramètres → Apparence → Lecteur et fenêtre.",
       "previewSung": "Des paroles qui suivent",
       "previewUnsung": "la chanson",
       "fontSize": "Taille du texte",
@@ -2768,6 +2769,13 @@
         "dop": "DoP",
         "unknown": "format inconnu"
       }
+    },
+    "xwayland": {
+      "title": "Passer par XWayland",
+      "subtitle": "Sous Wayland, le compositeur ignore « toujours au-dessus » et choisit seul où placer les fenêtres. Avec XWayland, le mini-lecteur et les paroles de bureau restent au-dessus et à leur place ; le texte peut être un peu moins net avec une mise à l'échelle fractionnaire.",
+      "nextStart": "Prend effet au prochain démarrage de WaveFlow.",
+      "active": "Actif : WaveFlow passe par XWayland.",
+      "setByUser": "Imposé par la variable GDK_BACKEND de votre environnement."
     }
   },
   "scanProgress": {

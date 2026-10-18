@@ -1430,7 +1430,8 @@
     "lyrics": {
       "empty": "Bu parça için şarkı sözü yok"
     },
-    "dragHandle": "Taşımak için sürükle · Boyutu ve konumu geri yüklemek için çift tıkla"
+    "dragHandle": "Taşımak için sürükle · Boyutu ve konumu geri yüklemek için çift tıkla",
+    "pinWayland": "Her zaman üstte: Wayland'de yok sayılır. Ayarlar → Görünüm → Oynatıcı ve pencere içinde \"XWayland üzerinden çalıştır\" seçeneğini açın."
   },
   "window": {
     "minimize": "Simge durumuna küçült",
@@ -2663,7 +2664,7 @@
     },
     "desktopLyrics": {
       "subtitle": "Diğer uygulamaların üzerinde, söylenen satırı gösteren yüzen bir pencere.",
-      "waylandNote": "Wayland'de (özellikle GNOME'da) pencere diğer uygulamaların üstünde veya yerleştirdiğin yerde tutulmaz. Üstte kalması için WaveFlow'u GDK_BACKEND=x11 ile başlat.",
+      "waylandNote": "Wayland'de pencere ne diğer uygulamaların üstünde ne de koyduğunuz yerde kalır. Bunun için Ayarlar → Görünüm → Oynatıcı ve pencere içinde \"XWayland üzerinden çalıştır\" seçeneğini açın.",
       "previewSung": "Şarkıyı izleyen",
       "previewUnsung": "sözler",
       "fontSize": "Metin boyutu",
@@ -2705,6 +2706,13 @@
         "dop": "DoP",
         "unknown": "bilinmeyen biçim"
       }
+    },
+    "xwayland": {
+      "title": "XWayland üzerinden çalıştır",
+      "subtitle": "Wayland'de bileşimci \"her zaman üstte\" isteğini yok sayar ve pencerelerin yerine kendisi karar verir. XWayland üzerinden mini oynatıcı ve masaüstü şarkı sözleri üstte ve yerinde kalır; kesirli ölçeklemede metin biraz daha az net olabilir.",
+      "nextStart": "WaveFlow bir sonraki açılışında geçerli olur.",
+      "active": "Açık: WaveFlow XWayland üzerinden çalışıyor.",
+      "setByUser": "Ortamınızdaki GDK_BACKEND değişkeni tarafından belirleniyor."
     }
   },
   "scanProgress": {

@@ -1481,7 +1481,8 @@
     "lyrics": {
       "empty": "Nessun testo per questo brano"
     },
-    "dragHandle": "Trascina per spostare · Doppio clic per ripristinare dimensioni e posizione"
+    "dragHandle": "Trascina per spostare · Doppio clic per ripristinare dimensioni e posizione",
+    "pinWayland": "Sempre in primo piano: ignorato su Wayland. Attiva «Usa XWayland» in Impostazioni → Aspetto → Lettore e finestra."
   },
   "window": {
     "minimize": "Riduci a icona",
@@ -2726,7 +2727,7 @@
     },
     "desktopLyrics": {
       "subtitle": "Una finestra mobile sopra le altre app che mostra la riga cantata.",
-      "waylandNote": "Su Wayland (in particolare GNOME) la finestra non resta sopra le altre app né dove la posizioni. Per tenerla in primo piano, avvia WaveFlow con GDK_BACKEND=x11.",
+      "waylandNote": "Su Wayland la finestra non resta né sopra le altre app né dove la posizioni. Per questo, attiva «Usa XWayland» in Impostazioni → Aspetto → Lettore e finestra.",
       "previewSung": "Testi che seguono",
       "previewUnsung": "la canzone",
       "fontSize": "Dimensione del testo",
@@ -2768,6 +2769,13 @@
         "dop": "DoP",
         "unknown": "formato sconosciuto"
       }
+    },
+    "xwayland": {
+      "title": "Usa XWayland",
+      "subtitle": "Su Wayland il compositor ignora «sempre in primo piano» e decide da solo dove mettere le finestre. Con XWayland, il mini-player e i testi sul desktop restano in primo piano e al loro posto; il testo può risultare un po' meno nitido con il ridimensionamento frazionario.",
+      "nextStart": "Ha effetto al prossimo avvio di WaveFlow.",
+      "active": "Attivo: WaveFlow passa per XWayland.",
+      "setByUser": "Imposto dalla variabile GDK_BACKEND del tuo ambiente."
     }
   },
   "scanProgress": {
