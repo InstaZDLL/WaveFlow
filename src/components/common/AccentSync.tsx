@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useAccentChoice } from "../../hooks/useAccentChoice";
 import { usePlayer } from "../../hooks/usePlayer";
+import { useProfile } from "../../hooks/useProfile";
 import { useTheme } from "../../hooks/useTheme";
 import {
   scaleFromCover,
@@ -34,6 +35,28 @@ export function AccentSync() {
   const { value: choice, ready } = useAccentChoice();
   const { setAccentOverride } = useTheme();
   const { currentTrack } = usePlayer();
+  const { activeProfile } = useProfile();
+
+  const [coverScale, setCoverScale] = useState<{
+    url: string;
+    scale: AccentScale | null;
+  } | null>(null);
+
+  // A profile switch drops the outgoing profile's accent at once. Holding
+  // it until the new choice has an answer would leave it up for good when
+  // that answer never comes: a cover accent with no track loaded. The
+  // first profile of the launch is not a switch, so the scale the
+  // bootstrap restored stays until the choice is read.
+  const profileId = activeProfile?.id ?? null;
+  const lastProfile = useRef(profileId);
+  useEffect(() => {
+    const previous = lastProfile.current;
+    lastProfile.current = profileId;
+    if (previous === null || previous === profileId) return;
+    setAccentOverride(null);
+    // The cover sampled for the outgoing profile must not carry over.
+    setCoverScale(null);
+  }, [profileId, setAccentOverride]);
 
   const coverUrl = useMemo(() => {
     if (!currentTrack) return null;
@@ -46,11 +69,6 @@ export function AccentSync() {
       "1x",
     );
   }, [currentTrack]);
-
-  const [coverScale, setCoverScale] = useState<{
-    url: string;
-    scale: AccentScale | null;
-  } | null>(null);
 
   const wantsCover = ready && choice.mode === "cover";
   useEffect(() => {

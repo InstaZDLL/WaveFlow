@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Check, Pipette, Paintbrush } from "lucide-react";
 
 import { useAccentChoice } from "../../../hooks/useAccentChoice";
+import { useProfile } from "../../../hooks/useProfile";
 import {
   ACCENT_SHADES,
   ACCENT_SWATCHES,
@@ -75,6 +76,24 @@ export function AccentCard() {
       if (color) void setValue({ mode: "custom", color: color.toLowerCase() });
     };
   }, [setValue]);
+
+  // A colour still settling belongs to the profile it was picked in: a
+  // switch drops it rather than let the timer write it into the next one.
+  // Declared after the effect above on purpose: on unmount React runs the
+  // cleanups in declaration order, so the pending colour is written there
+  // before this one would drop it.
+  const { activeProfile } = useProfile();
+  const profileId = activeProfile?.id ?? null;
+  useEffect(() => {
+    const timer = settle;
+    const queued = pending;
+    return () => {
+      if (timer.current !== null) window.clearTimeout(timer.current);
+      timer.current = null;
+      queued.current = null;
+      setDraft(null);
+    };
+  }, [profileId]);
 
   return (
     <div className="py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
