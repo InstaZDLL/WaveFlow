@@ -612,8 +612,18 @@ impl ParkedSession {
     /// The command that resumes it, under a **fresh** intent: unlike a
     /// rebuild's own resume, this one is a user action, and it has to
     /// outrank anything claimed before it.
+    ///
+    /// A park in the track's last two seconds starts it over, as the
+    /// persisted resume point does (#898). A stream carries no position
+    /// worth adjusting: its resume starts where the server is.
     pub(crate) fn into_command(self, intent: LoadIntent) -> AudioCmd {
-        let start_ms = self.start_ms;
+        let start_ms = match &self.load.source {
+            LastLoadSource::Local { duration_ms, .. }
+            | LastLoadSource::RemoteFile { duration_ms, .. } => {
+                crate::queue::resume_position(self.start_ms, *duration_ms)
+            }
+            LastLoadSource::Url { .. } => self.start_ms,
+        };
         self.load.into_command(intent, start_ms)
     }
 }
@@ -3796,6 +3806,29 @@ mod last_load_tests {
             snap.into_command(intent, 1_000).load_intent(),
             Some(LoadIntent::from_raw(9))
         );
+    }
+
+    #[test]
+    fn a_park_at_the_very_end_resumes_from_the_start() {
+        let park = |start_ms| {
+            let cmd = AudioCmd::LoadAndPlay {
+                intent: LoadIntent::from_raw(1),
+                path: PathBuf::from("/dev/null"),
+                start_ms: 0,
+                track_id: 42,
+                duration_ms: 200_000,
+                source_type: "album".into(),
+                source_id: Some(7),
+                replay_gain: TrackGain::default(),
+            };
+            let load = LastLoad::capture(&cmd).expect("a load is captured");
+            match (ParkedSession { load, start_ms }).into_command(LoadIntent::from_raw(2)) {
+                AudioCmd::LoadAndPlay { start_ms, .. } => start_ms,
+                _ => panic!("a library track resumes as LoadAndPlay"),
+            }
+        };
+        assert_eq!(park(199_000), 0);
+        assert_eq!(park(60_000), 60_000);
     }
 
     #[test]

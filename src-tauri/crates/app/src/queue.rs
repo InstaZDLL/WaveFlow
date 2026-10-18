@@ -1162,7 +1162,7 @@ const RESUME_TAIL_MS: u64 = 2_000;
 /// it would play a blip and end, or, for a file that cannot decode its
 /// tail, fail again within a millisecond on every press of Play. An
 /// unknown duration (0) leaves the position alone.
-fn resume_position(position_ms: u64, duration_ms: u64) -> u64 {
+pub(crate) fn resume_position(position_ms: u64, duration_ms: u64) -> u64 {
     if duration_ms > 0 && position_ms.saturating_add(RESUME_TAIL_MS) >= duration_ms {
         0
     } else {
