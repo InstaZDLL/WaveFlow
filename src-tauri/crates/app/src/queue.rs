@@ -1151,6 +1151,25 @@ pub async fn peek_next(pool: &SqlitePool, repeat: RepeatMode) -> AppResult<Optio
     track_at_position(pool, next_index).await
 }
 
+/// How close to the end a stored position has to be to count as "the
+/// track was over".
+const RESUME_TAIL_MS: u64 = 2_000;
+
+/// Where to resume a track from its stored position (#898).
+///
+/// A position in the last two seconds starts the track over. That is a
+/// track that was finished, or one that failed on its way out; resuming
+/// it would play a blip and end, or, for a file that cannot decode its
+/// tail, fail again within a millisecond on every press of Play. An
+/// unknown duration (0) leaves the position alone.
+pub(crate) fn resume_position(position_ms: u64, duration_ms: u64) -> u64 {
+    if duration_ms > 0 && position_ms.saturating_add(RESUME_TAIL_MS) >= duration_ms {
+        0
+    } else {
+        position_ms
+    }
+}
+
 /// Startup restore: return the track + position the UI should show at
 /// mount, without starting playback. Priority:
 ///
@@ -1197,6 +1216,7 @@ pub async fn restore_state(pool: &SqlitePool) -> AppResult<Option<(QueueTrack, u
                     .await?
                     .unwrap_or(0)
                     .max(0) as u64;
+                let pos = resume_position(pos, track.duration_ms.max(0) as u64);
                 return Ok(Some((track, pos)));
             }
         }
@@ -1706,6 +1726,16 @@ fn _type_check() -> Option<PlayerStateSnapshot> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_position_in_the_last_two_seconds_starts_the_track_over() {
+        use super::resume_position;
+        assert_eq!(resume_position(210_000, 211_000), 0);
+        assert_eq!(resume_position(211_000, 211_000), 0);
+        assert_eq!(resume_position(60_000, 211_000), 60_000);
+        // An unknown duration leaves the stored position alone.
+        assert_eq!(resume_position(60_000, 0), 60_000);
+    }
 
     // ------------------------------------------------------------------
     // Album shuffle (#618)
