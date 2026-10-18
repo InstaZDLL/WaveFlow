@@ -111,7 +111,12 @@ pub fn decide(root: &Path) {
     }
 }
 
-pub fn status() -> DisplayBackendStatus {
+/// `opened_x11`: whether GTK really opened the main window on X11, read
+/// from its handle by the caller. `GDK_BACKEND=x11,wayland` falls back to
+/// Wayland when X11 fails to open, so the variable alone can claim
+/// XWayland for a launch that is not using it; the variable is only the
+/// answer when no window exists to ask.
+pub fn status(opened_x11: Option<bool>) -> DisplayBackendStatus {
     let Some(launch) = LAUNCH.get() else {
         return DisplayBackendStatus {
             available: false,
@@ -123,7 +128,7 @@ pub fn status() -> DisplayBackendStatus {
     DisplayBackendStatus {
         available: launch.wayland_session && launch.xwayland_present,
         xwayland: read(&launch.path).xwayland,
-        active: launch.wayland_session && gdk_backend_is_x11(),
+        active: launch.wayland_session && opened_x11.unwrap_or_else(gdk_backend_is_x11),
         set_by_user: launch.set_by_user,
     }
 }
