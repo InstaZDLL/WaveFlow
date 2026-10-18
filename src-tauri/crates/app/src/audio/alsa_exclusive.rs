@@ -1216,7 +1216,7 @@ mod tests {
         assert!(!is_system_route("PCH"));
     }
 
-    use super::{pack_samples, AlsaSampleFormat};
+    use super::{pack_samples, pcm_scale, AlsaSampleFormat};
 
     #[test]
     fn an_unopened_engine_asks_for_stereo_not_mono() {
