@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-18T17:13:07.188Z",
+  "generatedAt": "2026-10-18T17:59:49.700Z",
   "stats": {
     "tracks": 1293,
     "albums": 1198,
@@ -997,22 +997,6 @@
         "#322f2d",
         "#af846d"
       ]
-    },
-    {
-      "trackId": 1494,
-      "title": "Track02",
-      "artist": "Artiste inconnu",
-      "albumId": null,
-      "album": null,
-      "durationMs": 176040,
-      "playedAt": 1792262984830,
-      "codec": "WAV",
-      "sampleRate": 44100,
-      "bitDepth": 16,
-      "bpm": null,
-      "energy": null,
-      "cover": null,
-      "palette": null
     },
     {
       "trackId": 1454,

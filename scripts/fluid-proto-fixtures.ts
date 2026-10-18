@@ -48,13 +48,36 @@ const fixturesOut = join(
 );
 
 // ── 1. Snapshot the DB so a live WAL is never opened in place ─────────
+// The three files are copied one after the other, so a checkpoint
+// landing in between leaves a triplet SQLite cannot open, or opens
+// with a stale WAL. Copy, probe, and copy again on failure — the app
+// is rarely writing twice in a row.
 const snap = join(tmpdir(), `waveflow-fluid-proto-${process.pid}`);
-mkdirSync(snap, { recursive: true });
-for (const f of ["data.db", "data.db-wal", "data.db-shm"]) {
-  const src = join(profileDir, f);
-  if (existsSync(src)) copyFileSync(src, join(snap, f));
+function snapshot(): Database {
+  let lastError: unknown = null;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    rmSync(snap, { recursive: true, force: true });
+    mkdirSync(snap, { recursive: true });
+    for (const f of ["data.db", "data.db-wal", "data.db-shm"]) {
+      const src = join(profileDir, f);
+      if (existsSync(src)) copyFileSync(src, join(snap, f));
+    }
+    try {
+      const candidate = new Database(join(snap, "data.db"), {
+        readonly: true,
+      });
+      candidate.query("SELECT COUNT(*) FROM track").get();
+      return candidate;
+    } catch (err) {
+      lastError = err;
+      console.warn(`snapshot attempt ${attempt} unusable, retrying…`);
+    }
+  }
+  throw new Error(
+    `${profileDir}: could not take a consistent copy of data.db (${String(lastError)}) — retry when the app is idle`,
+  );
 }
-const db = new Database(join(snap, "data.db"), { readonly: true });
+const db = snapshot();
 
 interface AlbumRow {
   id: number;
@@ -121,7 +144,7 @@ interface PlayRow {
   energy: number | null;
 }
 
-const recentPlays = db
+const recentPlaysRaw = db
   .query(
     `SELECT t.id AS track_id, t.title, ar.name AS artist, t.album_id, al.title AS album,
             t.duration_ms, MAX(pe.played_at) AS played_at, aw.hash, aw.format,
@@ -138,6 +161,9 @@ const recentPlays = db
       LIMIT 16`,
   )
   .all() as PlayRow[];
+// A play whose track has no album row cannot be composed into the page
+// (no cover, no album line); `fixtures.ts` applies the same filter.
+const recentPlays = recentPlaysRaw.filter((p) => p.album != null);
 
 const stats = {
   tracks: (

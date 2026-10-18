@@ -8,7 +8,7 @@ export function duration(ms: number): string {
 
 export function hours(ms: number, lang: Lang): string {
   const h = Math.round(ms / 3_600_000);
-  return new Intl.NumberFormat(lang).format(h) + (lang === "fr" ? " h" : " h");
+  return `${new Intl.NumberFormat(lang).format(h)} h`;
 }
 
 export function integer(n: number, lang: Lang): string {

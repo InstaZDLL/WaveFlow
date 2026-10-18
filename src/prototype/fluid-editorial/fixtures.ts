@@ -2,8 +2,8 @@
  * Typed view over `fixtures.generated.json`, produced by
  * `scripts/fluid-proto-fixtures.ts` from a real profile database.
  *
- * The covers it references live under `public/fluid-proto/covers/`,
- * which is gitignored (album art is the user's). Every consumer has a
+ * The covers it references live under `prototypes/fluid-editorial/covers/`,
+ * a gitignored folder (album art is the user's). Every consumer has a
  * palette to fall back on, so the page still composes on a machine
  * without the images — flatter, but laid out the same.
  */
@@ -112,6 +112,13 @@ function smartKind(rules: string | null): SmartKind | null {
 /** Drop a track that has no album row at all — it cannot be composed
  *  into anything on this page (the untitled WAV in the sample). */
 const plays = data.recentPlays.filter((p) => p.album != null);
+if (plays.length === 0) {
+  // The generator refuses to write such a file; a hand-edited one
+  // should fail here, not on `recentPlays[0].durationMs` in `state.tsx`.
+  throw new Error(
+    "fixtures.generated.json has no play with an album — regenerate it with scripts/fluid-proto-fixtures.ts",
+  );
+}
 
 export const fixtures = {
   stats: {

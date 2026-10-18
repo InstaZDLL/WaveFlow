@@ -577,6 +577,8 @@
   .fe-spectrum__wave svg {
     animation: none;
   }
+  .fe button,
+  .fe [role="button"],
   .fe-spectrum__seg,
   .fe-spectrum__detail,
   .fe-tile,
@@ -584,7 +586,11 @@
   .fe-link::after {
     transition: none;
   }
-  .fe-tile-hover:hover .fe-tile {
+  .fe-tile-hover:hover .fe-tile,
+  .fe-tile-hover:focus-visible .fe-tile,
+  .fe-press:active,
+  .fe-cta:hover,
+  .fe-cta:active {
     transform: none;
   }
 }
