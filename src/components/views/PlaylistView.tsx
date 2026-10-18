@@ -674,6 +674,18 @@ export function PlaylistView({
     [playTracks, playlistId, remotePlaylistId, isCustomOrder],
   );
 
+  // Playing a row clears the selection its own click made (#897): the
+  // first click of the double-click selects the row, and the blue
+  // selection then hides its green "now playing". A stable callback, as
+  // the handler it wraps, so the virtualised table is not re-rendered.
+  const handlePlayRow = useCallback(
+    (index: number) => {
+      handlePlayTrackByIndex(index);
+      clearSelection();
+    },
+    [handlePlayTrackByIndex, clearSelection],
+  );
+
   /** Remote only: drop the entry at `index`. The server keys entries by
    *  position, which is why this is offered in the curated order only. */
   const handleRemoveRemoteAt = useCallback(
@@ -1655,7 +1667,7 @@ export function PlaylistView({
           currentTrackId={currentTrack?.id ?? null}
           currentRemoteId={currentRemoteId}
           isPlaying={isPlaying}
-          onPlayTrack={handlePlayTrackByIndex}
+          onPlayTrack={handlePlayRow}
           likedIds={likedIds}
           onToggleLike={handleToggleLike}
           onNavigateToAlbum={onNavigateToAlbum}

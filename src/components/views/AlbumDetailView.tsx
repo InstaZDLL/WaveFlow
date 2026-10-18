@@ -583,7 +583,14 @@ export function AlbumDetailView({
           isPlaying={isPlaying}
           likedIds={likedIds}
           onToggleLike={handleToggleLike}
-          onPlayTrack={(index) => void playFrom(index)}
+          onPlayTrack={(index) => {
+            // Playing a row clears the selection its own click made
+            // (#897): the first click of the double-click selects the
+            // row, and the blue selection then hides its green "now
+            // playing".
+            void playFrom(index);
+            selection.clear();
+          }}
           onNavigateToArtist={onNavigateToArtist}
           onContextMenuRow={trackContextMenu.open}
           onRowMenuKey={trackContextMenu.openFromKeyboard}
