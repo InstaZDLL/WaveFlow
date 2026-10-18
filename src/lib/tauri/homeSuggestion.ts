@@ -60,6 +60,13 @@ export function localDayIndex(date: Date): number {
  * has been played and no longer qualifies.
  */
 export interface SuggestionDraw {
+  /**
+   * The profile the draw was made for. On a profile switch the setting
+   * hook still holds the outgoing profile's value for a render; the card
+   * must not hand that draw to the new profile's database, where its
+   * track id may name another track.
+   */
+  profileId: number | null;
   day: number;
   attempt: number;
   pinned: PinnedSuggestion | null;
@@ -67,6 +74,7 @@ export interface SuggestionDraw {
 
 export const SUGGESTION_DRAW_KEY = "home.suggestion_draw";
 export const DEFAULT_SUGGESTION_DRAW: SuggestionDraw = {
+  profileId: null,
   day: 0,
   attempt: 0,
   pinned: null,
@@ -110,6 +118,9 @@ export function parseSuggestionDraw(raw: string | null): SuggestionDraw {
       (value.attempt as number) >= 0
     ) {
       return {
+        profileId: Number.isInteger(value.profileId)
+          ? (value.profileId as number)
+          : null,
         day: value.day as number,
         attempt: value.attempt as number,
         pinned: parsePinned(value.pinned),

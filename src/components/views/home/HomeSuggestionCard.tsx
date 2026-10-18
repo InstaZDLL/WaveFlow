@@ -65,9 +65,14 @@ export function HomeSuggestionCard({
     return () => window.clearTimeout(timer);
   }, [today]);
 
-  // A draw from another day is spent: the day starts over at 0, with
-  // nothing pinned.
-  const sameDay = draw.value.day === today;
+  // A draw counts only for the profile it was made for: right after a
+  // profile switch the hook still holds the outgoing profile's value for
+  // a render, and its pinned track id may name another track in the new
+  // database. Such a draw waits for the hook's re-read; one from another
+  // day is spent, and the day starts over at 0 with nothing pinned.
+  const drawProfile = draw.value.profileId;
+  const foreignDraw = drawProfile != null && drawProfile !== profileId;
+  const sameDay = drawProfile === profileId && draw.value.day === today;
   const attempt = sameDay ? draw.value.attempt : 0;
   const pinned = sameDay ? draw.value.pinned : null;
 
@@ -90,7 +95,7 @@ export function HomeSuggestionCard({
   const requestRef = useRef(0);
 
   useEffect(() => {
-    if (!draw.ready || profileId == null) return;
+    if (!draw.ready || profileId == null || foreignDraw) return;
     let cancelled = false;
     const request = ++requestRef.current;
     const stale = () => cancelled || request !== requestRef.current;
@@ -101,7 +106,12 @@ export function HomeSuggestionCard({
         // Keep a new draw, so the same track comes back for the rest of
         // the day even once played (it would no longer qualify).
         if (next && next.track.id !== pinned?.trackId) {
-          void setDraw({ day: today, attempt, pinned: pinSuggestion(next) });
+          void setDraw({
+            profileId,
+            day: today,
+            attempt,
+            pinned: pinSuggestion(next),
+          });
         }
       })
       .catch((err) => {
@@ -111,7 +121,7 @@ export function HomeSuggestionCard({
     return () => {
       cancelled = true;
     };
-  }, [draw.ready, profileId, today, attempt, pinned, setDraw]);
+  }, [draw.ready, profileId, foreignDraw, today, attempt, pinned, setDraw]);
 
   const suggestion =
     loaded && loaded.profileId === profileId && loaded.day === today
@@ -134,7 +144,12 @@ export function HomeSuggestionCard({
 
   const handleAnother = () => {
     requestRef.current += 1;
-    void setDraw({ day: today, attempt: attempt + 1, pinned: null });
+    void setDraw({
+      profileId,
+      day: today,
+      attempt: attempt + 1,
+      pinned: null,
+    });
   };
 
   const monthYear = (ms: number) =>
