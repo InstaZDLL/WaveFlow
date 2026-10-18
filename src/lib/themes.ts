@@ -387,7 +387,7 @@ export function applyTheme(
   for (const [shade, value] of Object.entries(accent)) {
     root.style.setProperty(`--accent-${shade}`, value);
   }
-  writeCachedAccent(accent);
+  writeCachedAccent(accent, accentOverride !== null);
   root.style.setProperty(
     "--ambient-bg",
     theme.ambient ?? (theme.mode === "dark" ? "#121212" : "#ffffff"),

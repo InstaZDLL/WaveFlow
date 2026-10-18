@@ -123,9 +123,10 @@
           // first frame shows the stylesheet's green until React applies
           // the real one. Only plain `oklch(...)` values are let through:
           // this writes straight into the root's style.
-          var stops = JSON.parse(
+          var cachedAccent = JSON.parse(
             localStorage.getItem("waveflow.accent.scale") || "null",
           );
+          var stops = cachedAccent && cachedAccent.stops;
           var SHADES = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950];
           if (Array.isArray(stops) && stops.length === SHADES.length) {
             for (var i = 0; i < SHADES.length; i++) {

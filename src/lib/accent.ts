@@ -219,14 +219,21 @@ export const ACCENT_CACHE_KEY = "waveflow.accent.scale";
 
 const CACHED_STOP = /^oklch\([0-9. ]+\)$/;
 
-/** The scale the bootstrap painted, or `null` when there is none worth
- *  trusting. Same filter as the bootstrap's. */
+/**
+ * The override the bootstrap painted, or `null` when what it painted was
+ * a theme's own scale — or nothing worth trusting. A theme's scale must
+ * not come back as an override: if the profile's theme turns out to be
+ * another one, the old theme's accent would sit on the new theme until
+ * the choice is read. Same stop filter as the bootstrap's.
+ */
 export function readCachedAccent(): AccentScale | null {
   try {
-    const stops: unknown = JSON.parse(
+    const cached = JSON.parse(
       window.localStorage.getItem(ACCENT_CACHE_KEY) ?? "null",
-    );
+    ) as { override?: unknown; stops?: unknown } | null;
+    const stops = cached?.stops;
     if (
+      cached?.override !== true ||
       !Array.isArray(stops) ||
       stops.length !== ACCENT_SHADES.length ||
       !stops.every((s) => typeof s === "string" && CACHED_STOP.test(s))
@@ -243,11 +250,15 @@ export function readCachedAccent(): AccentScale | null {
   }
 }
 
-export function writeCachedAccent(scale: AccentScale): void {
+/** `override`: the scale is a custom or cover accent, not the theme's. */
+export function writeCachedAccent(scale: AccentScale, override: boolean): void {
   try {
     window.localStorage.setItem(
       ACCENT_CACHE_KEY,
-      JSON.stringify(ACCENT_SHADES.map((shade) => scale[shade])),
+      JSON.stringify({
+        override,
+        stops: ACCENT_SHADES.map((shade) => scale[shade]),
+      }),
     );
   } catch {
     // Private mode or storage off: the next launch flashes, nothing worse.
