@@ -294,10 +294,22 @@ async fn rearm_loop(
         if !present {
             continue;
         }
-        let (handle, scan) = match arm(&app, folder_id, library_id, &path) {
-            Ok(armed) => armed,
-            Err(err) => {
+        // On the blocking pool too: arming stats the folder and registers
+        // a recursive watch, one per directory under inotify, which on a
+        // large collection is not a runtime worker's job.
+        let armed = {
+            let app = app.clone();
+            let path = path.clone();
+            tokio::task::spawn_blocking(move || arm(&app, folder_id, library_id, &path)).await
+        };
+        let (handle, scan) = match armed {
+            Ok(Ok(armed)) => armed,
+            Ok(Err(err)) => {
                 tracing::debug!(folder_id, %err, "folder is back but could not be armed yet");
+                continue;
+            }
+            Err(err) => {
+                tracing::warn!(folder_id, %err, "arming the folder watcher panicked");
                 continue;
             }
         };
