@@ -19,7 +19,7 @@ pub fn display_backend_set_xwayland(enabled: bool) -> AppResult<DisplayBackendSt
         // Refused rather than stored: off a Wayland session the choice
         // does nothing, and a card claiming it did would be lying.
         return Err(AppError::Other(
-            "XWayland is only a choice on a Linux Wayland session".into(),
+            "XWayland is only a choice on a Linux Wayland session that runs it".into(),
         ));
     }
     display_backend::set_xwayland(enabled)

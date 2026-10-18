@@ -2,7 +2,8 @@ import { invoke } from "@tauri-apps/api/core";
 
 /** The XWayland choice on a Linux Wayland session (#894). */
 export interface DisplayBackendStatus {
-  /** Linux on a Wayland session: the only place the choice is offered. */
+  /** Linux on a Wayland session that runs XWayland: the only place the
+   *  choice is offered. */
   available: boolean;
   /** The stored choice, applied from the next start. */
   xwayland: boolean;

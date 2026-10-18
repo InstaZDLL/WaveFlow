@@ -39,6 +39,10 @@ struct Launch {
     path: PathBuf,
     /// A Wayland session, read before this module touched the environment.
     wayland_session: bool,
+    /// An X server to fall back to: XWayland exports `DISPLAY`. Without
+    /// one, asking GTK for X11 would leave it no display to open, and the
+    /// app would not start — with the switch that caused it out of reach.
+    xwayland_present: bool,
     /// `GDK_BACKEND` was already set when the app started: the user's
     /// own choice, which the stored one never overrides.
     set_by_user: bool,
@@ -49,8 +53,8 @@ static LAUNCH: OnceLock<Launch> = OnceLock::new();
 /// What the Settings card is told.
 #[derive(Debug, Clone, Copy, Serialize)]
 pub struct DisplayBackendStatus {
-    /// Linux on a Wayland session: the only place the choice means
-    /// anything, and the only place the card shows.
+    /// Linux on a Wayland session that runs XWayland: the only place the
+    /// choice means anything, and the only place the card shows.
     pub available: bool,
     /// The stored choice, which the next start applies.
     pub xwayland: bool,
@@ -86,18 +90,24 @@ pub fn decide(root: &Path) {
     let path = root.join(FILE);
     let wayland_session = cfg!(target_os = "linux") && wayland_session();
     let set_by_user = std::env::var_os("GDK_BACKEND").is_some();
+    let xwayland_present = std::env::var_os("DISPLAY").is_some();
     let _ = LAUNCH.set(Launch {
         path: path.clone(),
         wayland_session,
+        xwayland_present,
         set_by_user,
     });
-    if !wayland_session || set_by_user {
+    // Checked on every start, not only when the choice was stored: a
+    // session that ran XWayland yesterday may not today.
+    if !wayland_session || !xwayland_present || set_by_user {
         return;
     }
     if read(&path).xwayland {
         // Single-threaded here: the preflight runs before the logger,
-        // the runtime or any window exists.
-        std::env::set_var("GDK_BACKEND", "x11");
+        // the runtime or any window exists. `x11,wayland` rather than
+        // `x11`: should X11 fail to open after all, GTK falls back to
+        // Wayland instead of showing nothing.
+        std::env::set_var("GDK_BACKEND", "x11,wayland");
     }
 }
 
@@ -111,7 +121,7 @@ pub fn status() -> DisplayBackendStatus {
         };
     };
     DisplayBackendStatus {
-        available: launch.wayland_session,
+        available: launch.wayland_session && launch.xwayland_present,
         xwayland: read(&launch.path).xwayland,
         active: launch.wayland_session && gdk_backend_is_x11(),
         set_by_user: launch.set_by_user,

@@ -427,6 +427,9 @@ export function MiniPlayer() {
   // the button says so, and where the fix lives, instead of seeming
   // broken.
   const [pinIgnored, setPinIgnored] = useState(false);
+  const pinLabel = pinIgnored
+    ? t("miniPlayer.pinWayland")
+    : t("miniPlayer.pin");
   useEffect(() => {
     displayBackendStatus()
       .then((s) => setPinIgnored(s.available && !s.active))
@@ -540,8 +543,8 @@ export function MiniPlayer() {
         <button
           type="button"
           onClick={handleTogglePin}
-          aria-label={t("miniPlayer.pin")}
-          title={pinIgnored ? t("miniPlayer.pinWayland") : t("miniPlayer.pin")}
+          aria-label={pinLabel}
+          title={pinLabel}
           className={`p-1 rounded-full transition-colors ${
             pinned
               ? "text-emerald-400 hover:bg-white/10"
