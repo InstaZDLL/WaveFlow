@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.9.4](https://github.com/InstaZDLL/WaveFlow/compare/v1.9.3...v1.9.4) (2026-10-18)
+
+
+### Bug Fixes
+
+* **audio:** end a flac track on stray bytes past its last frame ([#899](https://github.com/InstaZDLL/WaveFlow/issues/899)) ([c2ce4f3](https://github.com/InstaZDLL/WaveFlow/commit/c2ce4f33a3b6c7b5b24cc00363004a6826ddf83f))
+* **audio:** reopen the output once per track when matching its sample rate ([#891](https://github.com/InstaZDLL/WaveFlow/issues/891)) ([8348c5f](https://github.com/InstaZDLL/WaveFlow/commit/8348c5ffee8cd278b1a93a657175d9f922e163f0))
+* **audio:** run the wasapi exclusive render thread as an mmcss pro audio task ([#889](https://github.com/InstaZDLL/WaveFlow/issues/889)) ([e608062](https://github.com/InstaZDLL/WaveFlow/commit/e608062fe760a86361510fb880f109504f2261c1))
+* backport the 1.9.4 fixes to release/1.9.x ([4f115cd](https://github.com/InstaZDLL/WaveFlow/commit/4f115cd395dd0dc4df54afbc598a5577e1fcb4f5))
+* **linux:** keep the xwayland gdk_backend from the programs the app starts ([#901](https://github.com/InstaZDLL/WaveFlow/issues/901)) ([d27aaf1](https://github.com/InstaZDLL/WaveFlow/commit/d27aaf1082da73395fccb930f7e4c1d7254b262d))
+* **linux:** offer xwayland so always-on-top and window positions hold under wayland ([#896](https://github.com/InstaZDLL/WaveFlow/issues/896)) ([8ddbf25](https://github.com/InstaZDLL/WaveFlow/commit/8ddbf25a5566071c4295ba4e884388169580c662))
+* **ui:** playing a row clears the selection its own click made ([#900](https://github.com/InstaZDLL/WaveFlow/issues/900)) ([9fcdf2d](https://github.com/InstaZDLL/WaveFlow/commit/9fcdf2d781ef797b2a85bad456f32cb3bc5aed53))
+
 ## [1.9.3](https://github.com/InstaZDLL/WaveFlow/compare/v1.9.2...v1.9.3) (2026-10-16)
 
 
