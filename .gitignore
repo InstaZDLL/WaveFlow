@@ -91,6 +91,7 @@ experiments/*
 docs/performance/*
 prototypes/*
 scripts/__pycache__/*
+design/*
 
 # jscpd copy-paste detector output
 report/
