@@ -44,9 +44,14 @@ use super::resampler::Resampler;
 /// declared end is the end of the track. Anywhere earlier it is still a
 /// truncated file, and still an error; with no declared length there is
 /// nothing to measure against, and it stays an error too.
+///
+/// Everything here is in the track's time base, the unit of a packet's
+/// `pts` and `dur`. That is the sample rate's reciprocal for FLAC, but not
+/// for every container (Matroska counts milliseconds), so lengths given
+/// in frames are converted on the way in.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct StreamExtent {
-    /// `start_ts + num_frames`, when the container declares a length.
+    /// `start_ts` plus the declared length, when the container gives one.
     declared_end: Option<i64>,
     /// End of the last packet read, or where a seek landed.
     decoded_to: i64,
@@ -56,13 +61,14 @@ pub struct StreamExtent {
 }
 
 impl StreamExtent {
-    fn new(start_ts: i64, num_frames: Option<u64>, max_frames_per_packet: Option<u64>) -> Self {
+    /// `declared_len` and `packet_len` in time-base ticks.
+    fn new(start_ts: i64, declared_len: Option<u64>, packet_len: Option<u64>) -> Self {
         Self {
-            declared_end: num_frames
+            declared_end: declared_len
                 .and_then(|n| i64::try_from(n).ok())
                 .map(|n| start_ts.saturating_add(n)),
             decoded_to: start_ts,
-            longest_packet: max_frames_per_packet.unwrap_or(0),
+            longest_packet: packet_len.unwrap_or(0),
         }
     }
 
@@ -85,6 +91,22 @@ impl StreamExtent {
             _ => false,
         }
     }
+}
+
+/// The packet length to measure with before any packet has been read
+/// (a seek straight into the tail), when the codec declares none, which
+/// symphonia's FLAC reader does not: 16 384 frames, the largest block the
+/// FLAC streamable subset allows, about 0.37 s at 44.1 kHz.
+const FALLBACK_PACKET_FRAMES: u64 = 16_384;
+
+/// `frames` of audio at `rate` Hz, in ticks of a `numer / denom` second
+/// time base: `frames / rate` seconds, divided by the tick length.
+fn frames_to_ticks(frames: u64, rate: u32, numer: u32, denom: u32) -> Option<u64> {
+    if rate == 0 || numer == 0 {
+        return None;
+    }
+    let ticks = u128::from(frames) * u128::from(denom) / (u128::from(rate) * u128::from(numer));
+    u64::try_from(ticks).ok()
 }
 
 pub enum StreamBackend {
@@ -413,10 +435,29 @@ impl ActiveStream {
         // params borrow it. `None` for a container that does not say —
         // AAC in MP4 only reveals its rate once decoding starts (#600).
         let declared_sample_rate = audio_params.sample_rate;
+        // Frames to time-base ticks, the unit packets are stamped in.
+        let to_ticks = |frames: u64| -> Option<u64> {
+            let base = track_symphonia.time_base?;
+            frames_to_ticks(
+                frames,
+                declared_sample_rate?,
+                base.numer.get(),
+                base.denom.get(),
+            )
+        };
+        // `duration` is already in ticks; `num_frames` is the fallback.
+        let declared_len = track_symphonia
+            .duration
+            .map(|d| d.get())
+            .or_else(|| track_symphonia.num_frames.and_then(to_ticks));
         let extent = StreamExtent::new(
             track_symphonia.start_ts.get(),
-            track_symphonia.num_frames,
-            audio_params.max_frames_per_packet,
+            declared_len,
+            to_ticks(
+                audio_params
+                    .max_frames_per_packet
+                    .unwrap_or(FALLBACK_PACKET_FRAMES),
+            ),
         );
         // The app's registry, not symphonia's: it is the one that
         // carries Opus (#581).
@@ -1024,7 +1065,26 @@ pub fn equal_power_gains(t: f32) -> (f32, f32) {
 
 #[cfg(test)]
 mod extent_tests {
-    use super::StreamExtent;
+    use super::{frames_to_ticks, StreamExtent};
+
+    #[test]
+    fn frames_convert_to_the_track_time_base() {
+        // FLAC: the time base is the sample rate's reciprocal.
+        assert_eq!(frames_to_ticks(4_608, 44_100, 1, 44_100), Some(4_608));
+        // A millisecond time base at 48 kHz: 4 608 frames are 96 ms.
+        assert_eq!(frames_to_ticks(4_608, 48_000, 1, 1_000), Some(96));
+        assert_eq!(frames_to_ticks(4_608, 0, 1, 1_000), None);
+    }
+
+    #[test]
+    fn a_millisecond_time_base_measures_in_milliseconds() {
+        // 2 s declared as 2 000 ms ticks, a lost 96 ms packet.
+        let mut extent = StreamExtent::new(0, Some(2_000), Some(96));
+        extent.read(1_808, 96);
+        assert!(extent.ends_within_last_packet());
+        extent.read(1_000, 96);
+        assert!(!extent.ends_within_last_packet());
+    }
 
     #[test]
     fn stray_bytes_after_the_last_frame_end_the_track() {
