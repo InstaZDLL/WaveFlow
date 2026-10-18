@@ -45,6 +45,18 @@ Object IDs are **string prefixes**, routed by [`cds.rs`](../../src-tauri/crates/
 0/track/<id>         Single-track BrowseMetadata payload
 ```
 
+Every id that a `BrowseDirectChildren` can return also answers `BrowseMetadata` with exactly one object: controllers read a folder's metadata before opening it, or before queueing it whole, and an empty answer shows as an empty folder. Every container carries a `childCount` (index-backed `COUNT` subqueries; an album counts only its available tracks, as its listing does). The `parentID` a `BrowseMetadata` reports:
+
+| Object                  | `parentID`      | Why                                                                                                                     |
+| ----------------------- | --------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `0`                     | `-1`            | The root, per the spec.                                                                                                 |
+| `0/artists`, `0/albums` | `0`             |                                                                                                                         |
+| `0/artists/<id>`        | `0/artists`     |                                                                                                                         |
+| `0/albums/<id>`         | `0/albums`      | Also listed under its artist, but its id lives under `0/albums`, which reaches it whatever the album's artist row says. |
+| `0/track/<id>`          | `0/albums/<id>` | Its album, the only container that lists it; `0` for a track without an album.                                          |
+
+An unknown id, or one whose row is gone, still answers an empty DIDL rather than a fault.
+
 Pagination via `StartingIndex` + `RequestedCount` → SQL `LIMIT/OFFSET`, capped at `MAX_PAGE_SIZE = 500`. `RequestedCount = 0` (the spec's "all") folds to the same cap so a misbehaving controller can't pull 50k tracks into one DIDL document.
 
 ## DIDL-Lite items
