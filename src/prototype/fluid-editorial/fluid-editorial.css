@@ -392,16 +392,13 @@
     rgb(11 11 14 / 0.72)
   );
 }
+/* A segment is a wrapper (the flex item that widens) holding the radio
+   button, which fills it, and — when selected — the start button beside
+   it. Two controls, two siblings. */
 .fe-spectrum__seg {
   position: relative;
   flex: 1 1 0;
   min-width: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  padding: 1rem 1.125rem 1rem;
-  text-align: left;
-  color: var(--fe-ink);
   transition:
     flex-grow 460ms var(--fe-ease),
     background-color 300ms var(--fe-ease);
@@ -412,13 +409,39 @@
 .fe-spectrum__seg:hover {
   background-color: rgb(255 255 255 / 0.04);
 }
-.fe-spectrum__seg[aria-checked="true"] {
+.fe-spectrum__seg[data-checked="true"] {
   flex-grow: 2.6;
   background-color: rgb(255 255 255 / 0.06);
 }
-.fe-spectrum__seg:disabled {
+.fe-spectrum__radio {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 1rem 1.125rem 1rem;
+  text-align: left;
+  color: var(--fe-ink);
+}
+.fe-spectrum__radio:focus-visible {
+  outline-offset: -3px;
+  border-radius: 0;
+}
+.fe-spectrum__radio:disabled {
   color: var(--fe-ink-3);
   cursor: not-allowed;
+}
+.fe-spectrum__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 2rem;
+  padding: 0 0.875rem 0 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #fff;
 }
 .fe-spectrum__wave {
   position: absolute;
@@ -430,7 +453,7 @@
   opacity: 0.55;
   transition: opacity 300ms var(--fe-ease);
 }
-.fe-spectrum__seg[aria-checked="true"] .fe-spectrum__wave {
+.fe-spectrum__seg[data-checked="true"] .fe-spectrum__wave {
   opacity: 1;
 }
 .fe-spectrum__wave svg {
@@ -438,7 +461,7 @@
   height: 100%;
   animation: fe-wave-drift var(--fe-wave-period, 9s) linear infinite;
 }
-.fe-spectrum__seg:disabled .fe-spectrum__wave svg {
+.fe-spectrum__seg[data-disabled] .fe-spectrum__wave svg {
   animation-play-state: paused;
 }
 @keyframes fe-wave-drift {
@@ -454,7 +477,7 @@
 .fe-spectrum__detail > div {
   overflow: hidden;
 }
-.fe-spectrum__seg[aria-checked="true"] .fe-spectrum__detail {
+.fe-spectrum__seg[data-checked="true"] .fe-spectrum__detail {
   grid-template-rows: 1fr;
 }
 /* The band's ruler: tempo in BPM along the bottom edge. */

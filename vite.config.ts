@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { fileURLToPath, URL } from "node:url";
 import { createReadStream, existsSync, statSync } from "node:fs";
-import { extname, join, normalize } from "node:path";
+import { extname, join, normalize, sep } from "node:path";
 import type { Plugin } from "vite";
 
 // @ts-expect-error process is a nodejs global
@@ -18,7 +18,9 @@ const host = process.env.TAURI_DEV_HOST;
  * production.
  */
 function prototypeAssets(): Plugin {
-  const root = fileURLToPath(new URL("./prototypes", import.meta.url));
+  const root = fileURLToPath(
+    new URL("./prototypes/fluid-editorial", import.meta.url),
+  );
   const types: Record<string, string> = {
     ".jpg": "image/jpeg",
     ".jpeg": "image/jpeg",
@@ -31,9 +33,11 @@ function prototypeAssets(): Plugin {
     configureServer(server) {
       server.middlewares.use("/fluid-proto", (req, res, next) => {
         const rel = decodeURIComponent((req.url ?? "/").split("?")[0]);
-        const file = normalize(join(root, "fluid-editorial", rel));
+        const file = normalize(join(root, rel));
+        // `root + sep`, not `root`: a sibling folder sharing the prefix
+        // (`fluid-editorial-private/`) would otherwise pass the check.
         if (
-          !file.startsWith(root) ||
+          !file.startsWith(root + sep) ||
           !existsSync(file) ||
           !statSync(file).isFile()
         ) {

@@ -53,13 +53,24 @@ function wavePath(cycles: number, amplitude: number): string {
  * button that starts it. The five moods stay named and clickable;
  * nothing here depends on reading the gradient.
  *
- * Keyboard: a radiogroup with roving focus (←/→, Home/End); Enter or
- * Space on the focused segment starts the radio.
+ * Keyboard: a radiogroup with roving focus over the moods that have
+ * tracks (←/→, Home/End); Enter or Space on the focused segment starts
+ * the radio, as does the start button beside it.
  */
 export function MoodSpectrum() {
   const { copy, lang, play, radioMood } = useFe();
   const counts = fixtures.moodCounts;
-  const [selected, setSelected] = useState<MoodId>(radioMood ?? "focus");
+  // Only a mood with tracks can be selected: the playing radio's mood
+  // if it has any, else Focus, else the first one that does.
+  const enabled = MOODS.filter((m) => counts[m.id] > 0);
+  const [selected, setSelected] = useState<MoodId | null>(() => {
+    const prefer = [radioMood, "focus" as MoodId];
+    return (
+      prefer.find((id) => id != null && counts[id] > 0) ??
+      enabled[0]?.id ??
+      null
+    );
+  });
   const [starting, setStarting] = useState<MoodId | null>(null);
   const refs = useRef<Record<string, HTMLButtonElement | null>>({});
   const paths = useMemo(
@@ -85,21 +96,24 @@ export function MoodSpectrum() {
     }, 420);
   };
 
-  const onKeyDown = (e: KeyboardEvent<HTMLButtonElement>, index: number) => {
+  // Arrow keys walk the enabled moods only, so focus never lands on a
+  // segment that cannot start a radio.
+  const onKeyDown = (e: KeyboardEvent<HTMLButtonElement>, mood: MoodDef) => {
+    const index = enabled.indexOf(mood);
     let to: number | null = null;
-    if (e.key === "ArrowRight") to = (index + 1) % MOODS.length;
+    if (e.key === "ArrowRight") to = (index + 1) % enabled.length;
     else if (e.key === "ArrowLeft")
-      to = (index - 1 + MOODS.length) % MOODS.length;
+      to = (index - 1 + enabled.length) % enabled.length;
     else if (e.key === "Home") to = 0;
-    else if (e.key === "End") to = MOODS.length - 1;
+    else if (e.key === "End") to = enabled.length - 1;
     else if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
-      start(MOODS[index]);
+      start(mood);
       return;
     }
-    if (to == null) return;
+    if (to == null || enabled.length === 0) return;
     e.preventDefault();
-    const m = MOODS[to];
+    const m = enabled[to];
     setSelected(m.id);
     refs.current[m.id]?.focus();
   };
@@ -120,98 +134,106 @@ export function MoodSpectrum() {
           {copy.mood.title}
         </span>
         <div className="fe-spectrum__band" aria-hidden="true" />
-        {MOODS.map((m, i) => {
+        {MOODS.map((m) => {
           const count = counts[m.id];
           const disabled = count === 0;
           const isSel = selected === m.id;
           const label = copy.mood.moods[m.id];
+          const ctaLabel =
+            starting === m.id ? copy.mood.starting : copy.mood.start;
           return (
-            <button
+            // The segment is a wrapper: the radio fills it, and the start
+            // button is its *sibling*, not its child — a control inside a
+            // control is invalid HTML and reads wrong to assistive tech.
+            <div
               key={m.id}
-              ref={(el) => {
-                refs.current[m.id] = el;
-              }}
-              type="button"
-              role="radio"
-              aria-checked={isSel}
-              aria-label={`${label.title}, ${m.bpm[0]}–${m.bpm[1]} ${copy.mood.bpm}, ${fill(copy.mood.tracks, { count })}`}
-              tabIndex={isSel ? 0 : -1}
-              disabled={disabled}
-              onClick={() => setSelected(m.id)}
-              onKeyDown={(e) => onKeyDown(e, i)}
               className="fe-spectrum__seg"
+              data-checked={isSel}
+              data-disabled={disabled || undefined}
               style={{ ["--fe-wave-period" as string]: `${m.period}s` }}
             >
-              <div className="fe-spectrum__wave" aria-hidden="true">
-                <svg viewBox="0 0 400 60" preserveAspectRatio="none">
-                  <path
-                    d={paths[m.id]}
-                    fill="none"
-                    stroke="rgb(255 255 255 / 0.85)"
-                    strokeWidth={isSel ? 1.6 : 1.2}
-                    vectorEffect="non-scaling-stroke"
-                  />
-                </svg>
-              </div>
-              <div className="relative">
-                <div className="flex items-baseline justify-between gap-3">
-                  <span
-                    className={`fe-title truncate ${isSel ? "text-[1.25rem]" : "text-[1rem]"}`}
-                  >
-                    {label.title}
-                  </span>
-                  <span className="fe-mono shrink-0 text-[0.6875rem] text-white/60">
-                    {m.bpm[0]}–{m.bpm[1]}
-                  </span>
+              <button
+                ref={(el) => {
+                  refs.current[m.id] = el;
+                }}
+                type="button"
+                role="radio"
+                aria-checked={isSel}
+                aria-label={`${label.title}, ${m.bpm[0]}–${m.bpm[1]} ${copy.mood.bpm}, ${fill(copy.mood.tracks, { count })}`}
+                tabIndex={isSel ? 0 : -1}
+                disabled={disabled}
+                onClick={() => setSelected(m.id)}
+                onKeyDown={(e) => onKeyDown(e, m)}
+                className="fe-spectrum__radio"
+              >
+                <div className="fe-spectrum__wave" aria-hidden="true">
+                  <svg viewBox="0 0 400 60" preserveAspectRatio="none">
+                    <path
+                      d={paths[m.id]}
+                      fill="none"
+                      stroke="rgb(255 255 255 / 0.85)"
+                      strokeWidth={isSel ? 1.6 : 1.2}
+                      vectorEffect="non-scaling-stroke"
+                    />
+                  </svg>
                 </div>
-                <div className="fe-spectrum__detail">
-                  <div>
-                    <p className="mt-1.5 max-w-[26ch] text-[0.8125rem] leading-snug text-white/75">
-                      {label.subtitle}
-                    </p>
-                    <div className="mt-3 flex items-center gap-4">
-                      <span
-                        role="button"
-                        tabIndex={isSel ? 0 : -1}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          start(m);
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            start(m);
-                          }
-                        }}
-                        className="fe-press inline-flex h-8 items-center gap-2 rounded-full bg-white/[0.14] pl-2.5 pr-3.5 text-[0.8125rem] font-medium text-white hover:bg-white/[0.22]"
-                      >
-                        <Play
-                          size={12}
-                          className="fill-current"
-                          strokeWidth={0}
-                        />
-                        {starting === m.id
-                          ? copy.mood.starting
-                          : copy.mood.start}
-                      </span>
-                      <span className="fe-mono text-[0.75rem] text-white/60">
-                        {fill(copy.mood.tracks, {
-                          count: integer(count, lang),
-                        })}
-                      </span>
+                <div className="relative">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span
+                      className={`fe-title truncate ${isSel ? "text-[1.25rem]" : "text-[1rem]"}`}
+                    >
+                      {label.title}
+                    </span>
+                    <span className="fe-mono shrink-0 text-[0.6875rem] text-white/60">
+                      {m.bpm[0]}–{m.bpm[1]}
+                    </span>
+                  </div>
+                  <div className="fe-spectrum__detail">
+                    <div>
+                      <p className="mt-1.5 max-w-[26ch] text-[0.8125rem] leading-snug text-white/75">
+                        {label.subtitle}
+                      </p>
+                      <div className="mt-3 flex items-center gap-4">
+                        {/* Reserves the start button's footprint; the
+                            button itself is drawn over it, below. */}
+                        <span
+                          className="fe-spectrum__cta invisible"
+                          aria-hidden="true"
+                        >
+                          <Play size={12} strokeWidth={0} />
+                          {ctaLabel}
+                        </span>
+                        <span className="fe-mono text-[0.75rem] text-white/60">
+                          {fill(copy.mood.tracks, {
+                            count: integer(count, lang),
+                          })}
+                        </span>
+                      </div>
                     </div>
                   </div>
+                  {!isSel && (
+                    <p className="fe-mono mt-1 text-[0.6875rem] text-white/55">
+                      {disabled
+                        ? copy.mood.empty
+                        : fill(copy.mood.tracks, {
+                            count: integer(count, lang),
+                          })}
+                    </p>
+                  )}
                 </div>
-                {!isSel && (
-                  <p className="fe-mono mt-1 text-[0.6875rem] text-white/55">
-                    {disabled
-                      ? copy.mood.empty
-                      : fill(copy.mood.tracks, { count: integer(count, lang) })}
-                  </p>
-                )}
-              </div>
-            </button>
+              </button>
+              {isSel && !disabled && (
+                <button
+                  type="button"
+                  onClick={() => start(m)}
+                  aria-label={`${copy.mood.start} — ${label.title}`}
+                  className="fe-spectrum__cta fe-press absolute bottom-4 left-[1.125rem] bg-white/[0.14] hover:bg-white/[0.22]"
+                >
+                  <Play size={12} className="fill-current" strokeWidth={0} />
+                  {ctaLabel}
+                </button>
+              )}
+            </div>
           );
         })}
       </div>

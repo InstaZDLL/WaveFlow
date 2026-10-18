@@ -22,8 +22,10 @@ export function Cover({
   className = "",
   decorative,
 }: CoverProps) {
-  const [failed, setFailed] = useState(false);
-  const show = src && !failed;
+  // Remembered per source: a tile that is recycled with a new `src`
+  // gets to try again instead of staying on the gradient.
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const show = src && failedSrc !== src;
   return (
     <div
       className={`fe-tile ${className}`}
@@ -37,7 +39,7 @@ export function Cover({
           alt={decorative ? "" : alt}
           loading="lazy"
           decoding="async"
-          onError={() => setFailed(true)}
+          onError={() => setFailedSrc(src)}
         />
       )}
     </div>

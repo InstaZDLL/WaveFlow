@@ -214,9 +214,22 @@ rmSync(coversOut, { recursive: true, force: true });
 mkdirSync(coversOut, { recursive: true });
 
 const palettes = new Map<string, string[]>();
-async function cover(hash: string | null, format: string | null) {
-  if (!hash || !format) return null;
+// The album lists overlap (a record can be both "top" and "last
+// played"), and they are mapped with `Promise.all`: without this, two
+// callers would resize the same file at once and compute its palette
+// twice. One promise per cover, whoever asks first.
+const coverJobs = new Map<string, Promise<string | null>>();
+function cover(hash: string | null, format: string | null) {
+  if (!hash || !format) return Promise.resolve<string | null>(null);
   const file = `${hash}.${format}`;
+  let job = coverJobs.get(file);
+  if (!job) {
+    job = coverOnce(hash, file);
+    coverJobs.set(file, job);
+  }
+  return job;
+}
+async function coverOnce(hash: string, file: string) {
   const src = join(profileDir, "artwork", file);
   if (!existsSync(src)) return null;
   // Resized on the way in: the originals are up to 1 MB each and the

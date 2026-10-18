@@ -68,8 +68,10 @@ export function FeStateProvider({
   const sampleSeq = useRef(0);
   useEffect(() => {
     const base = atmosphereFromPalette(current.palette);
-    if (!current.cover) return;
+    // Bumped before the early return too: a sample still in flight for
+    // the previous cover must not land on a track that has none.
     const seq = ++sampleSeq.current;
+    if (!current.cover) return;
     dominantColor(current.cover, "vibrant")
       .then((rgb) => {
         if (seq !== sampleSeq.current) return;
