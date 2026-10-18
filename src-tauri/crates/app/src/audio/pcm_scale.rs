@@ -24,6 +24,61 @@ pub fn to_i16(sample: f32) -> i16 {
     (sample * 32_768.0).round().clamp(-32_768.0, 32_767.0) as i16
 }
 
+/// TPDF dither for 16-bit output.
+///
+/// A sample the chain changed (volume, ReplayGain, the EQ, a fade) falls
+/// between two 16-bit steps, and rounding it alone leaves an error that
+/// follows the signal: at low level, on a fade-out, it is heard as
+/// distortion rather than noise. Adding triangular noise of one step peak
+/// before rounding turns that error into a steady, signal-independent hiss
+/// at about -96 dBFS.
+///
+/// A sample that is already a 16-bit value is passed through untouched:
+/// that is every sample of a 16-bit source nothing has altered, so the
+/// bit-perfect path stays bit-perfect. 24- and 32-bit output need no
+/// dither: their step sits below any converter's own noise.
+///
+/// The noise comes from a xorshift generator held by the render loop, so
+/// the hot path neither allocates nor locks.
+pub struct Dither16 {
+    state: u32,
+}
+
+impl Dither16 {
+    pub const fn new() -> Self {
+        Self { state: 0x9E37_79B9 }
+    }
+
+    /// Uniform in [0, 1), from the top 24 bits of a xorshift32 step.
+    #[inline]
+    fn unit(&mut self) -> f32 {
+        let mut x = self.state;
+        x ^= x << 13;
+        x ^= x >> 17;
+        x ^= x << 5;
+        self.state = x;
+        (x >> 8) as f32 / 16_777_216.0
+    }
+
+    /// A sample as 16-bit PCM, dithered unless it already is one.
+    #[inline]
+    pub fn quantize(&mut self, sample: f32) -> i16 {
+        let scaled = sample * 32_768.0;
+        if scaled == scaled.round() {
+            return to_i16(sample);
+        }
+        // The difference of two uniforms is triangular over (-1, 1) step.
+        let noise = self.unit() - self.unit();
+        (scaled + noise).round().clamp(-32_768.0, 32_767.0) as i16
+    }
+}
+
+impl Default for Dither16 {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// A sample as 24-bit PCM, in the low 24 bits of an `i32`.
 #[inline]
 pub fn to_i24(sample: f32) -> i32 {
@@ -83,6 +138,38 @@ mod tests {
         assert_eq!(to_i16(f32::NAN), 0);
         assert_eq!(to_i24(f32::NAN), 0);
         assert_eq!(to_i32(f32::NAN), 0);
+    }
+
+    /// Dither never touches a sample that is already a 16-bit value, so
+    /// an unaltered 16-bit stream still comes back bit for bit.
+    #[test]
+    fn dither_leaves_every_16_bit_sample_unchanged() {
+        let mut dither = Dither16::new();
+        for v in i16::MIN..=i16::MAX {
+            let decoded = f32::from_sample(v);
+            assert_eq!(dither.quantize(decoded), v, "i16 {v}");
+        }
+        assert_eq!(dither.quantize(0.0), 0);
+        assert_eq!(dither.quantize(3.0), i16::MAX);
+        assert_eq!(dither.quantize(f32::NAN), 0);
+    }
+
+    /// A sample between two steps lands on one of its neighbours, and on
+    /// average where it really is: the dither adds noise, not a bias.
+    #[test]
+    fn dither_is_bounded_and_unbiased() {
+        let mut dither = Dither16::new();
+        let target = 1000.3_f32;
+        let sample = target / 32_768.0;
+        let runs = 200_000;
+        let mut sum = 0.0_f64;
+        for _ in 0..runs {
+            let v = dither.quantize(sample);
+            assert!((999..=1002).contains(&v), "{v}");
+            sum += f64::from(v);
+        }
+        let mean = sum / f64::from(runs);
+        assert!((mean - f64::from(target)).abs() < 0.01, "mean {mean}");
     }
 
     /// The old scaling, kept as a witness of what this module fixes: it
