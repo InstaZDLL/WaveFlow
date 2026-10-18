@@ -345,7 +345,7 @@ function LikedTrackList({
                   onUnlike(track.id);
                 }}
                 aria-label={unlikeLabel}
-                className="p-1.5 rounded-full text-pink-500 hover:text-pink-600 hover:bg-pink-50 dark:hover:bg-pink-500/10 transition-colors opacity-0 group-hover:opacity-100"
+                className="p-1.5 rounded-full text-pink-500 hover:text-pink-600 hover:bg-pink-50 dark:hover:bg-pink-500/10 transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-500/60"
               >
                 <Heart size={16} className="fill-current" />
               </button>
