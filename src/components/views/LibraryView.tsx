@@ -1278,7 +1278,14 @@ export function LibraryView({
         setColumnPreview(null);
       }}
       tagValues={tagValues}
-      onPlayTrack={(index) => onPlayRow(index)}
+      onPlayTrack={(index) => {
+        // Playing a row clears the selection its own click made (#897): with
+        // double-click play the first click selects the row, and the blue
+        // selection then outranks the green "now playing" on that very
+        // row. Single-click play already did this.
+        onPlayRow(index);
+        selection.clear();
+      }}
       currentTrackId={currentTrack?.id ?? null}
       isPlaying={isPlaying}
       likedIds={likedIds}
