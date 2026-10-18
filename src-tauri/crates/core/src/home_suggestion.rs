@@ -24,7 +24,9 @@ use serde::{Deserialize, Serialize};
 
 /// Plays that count: played through, or for at least 15 s. The same rule
 /// as the recently-played list, so a track skipped after two seconds is
-/// not a favourite.
+/// not a favourite. It is for counting only: the freshness and "never
+/// played" filters leave a track out for any play, a skip included, since
+/// a track just skipped is the last one to suggest.
 pub const QUALIFIED_PLAY_MS: i64 = 15_000;
 /// A forgotten favourite has been played through at least this often…
 pub const FORGOTTEN_MIN_PLAYS: i64 = 3;
