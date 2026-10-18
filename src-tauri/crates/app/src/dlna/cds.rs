@@ -10,6 +10,17 @@
 //!   - `0/albums/<id>`      — Tracks for that album (items)
 //!   - `0/track/<id>`       — Single track item (used by BrowseMetadata)
 //!
+//! Every id above answers `BrowseMetadata` with the one object it
+//! names, and every container carries a `childCount`. Controllers
+//! read a folder's metadata before opening it, or before queueing it
+//! whole, and treat an empty answer as an empty folder.
+//!
+//! An album is listed under both `0/albums` and `0/artists/<id>`, but
+//! its own metadata names `0/albums` as the parent: that is the
+//! container its id lives under, and it is reachable from the root
+//! whatever the album's artist row says. A track names its album, the
+//! only container that lists it.
+//!
 //! # Pagination
 //!
 //! `StartingIndex` + `RequestedCount` map directly to SQL
@@ -19,14 +30,17 @@
 use std::sync::Arc;
 
 use axum::{
-    extract::State,
+    extract::{ConnectInfo, State},
     http::{header, HeaderMap, StatusCode},
     response::{IntoResponse, Response},
 };
 use serde::Deserialize;
 use sqlx::SqlitePool;
 
-use crate::dlna::{description::xml_escape, http::ServerCtx};
+use crate::dlna::{
+    description::xml_escape,
+    http::{LocalAddr, ServerCtx},
+};
 
 /// Maximum rows we'll ever return in a single Browse call. Even when
 /// the controller asks for "all" (count = 0), we cap at this value to
@@ -34,16 +48,77 @@ use crate::dlna::{description::xml_escape, http::ServerCtx};
 /// avoid serialising 50k tracks into one DIDL document.
 const MAX_PAGE_SIZE: i64 = 500;
 
+/// Titles of the two top-level folders. Shared by the root listing and
+/// by each folder's own `BrowseMetadata` so the two cannot drift.
+const ARTISTS_TITLE: &str = "Artists";
+const ALBUMS_TITLE: &str = "Albums";
+
+/// A ContentDirectory object id, parsed once so `BrowseDirectChildren`
+/// and `BrowseMetadata` agree on which ids exist.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ObjectId {
+    Root,
+    Artists,
+    Artist(i64),
+    Albums,
+    Album(i64),
+    Track(i64),
+}
+
+impl ObjectId {
+    /// `None` for anything the server never emits. An empty id is the
+    /// root: some controllers send `<ObjectID></ObjectID>` on first
+    /// contact.
+    fn parse(oid: &str) -> Option<Self> {
+        match oid {
+            "" | "0" => Some(Self::Root),
+            "0/artists" => Some(Self::Artists),
+            "0/albums" => Some(Self::Albums),
+            _ => {
+                let numbered = |prefix: &str| oid.strip_prefix(prefix)?.parse::<i64>().ok();
+                numbered("0/artists/")
+                    .map(Self::Artist)
+                    .or_else(|| numbered("0/albums/").map(Self::Album))
+                    .or_else(|| numbered("0/track/").map(Self::Track))
+            }
+        }
+    }
+
+    /// The parent a container's own metadata names. A track's parent
+    /// depends on its album row instead, see [`track_parent_id`].
+    fn container_parent(self) -> &'static str {
+        match self {
+            Self::Root => "-1",
+            Self::Artists | Self::Albums => "0",
+            Self::Artist(_) => "0/artists",
+            Self::Album(_) => "0/albums",
+            // Never asked: a track's metadata reads its album row.
+            Self::Track(_) => "0",
+        }
+    }
+}
+
+/// The container a track is listed under: its album, or the root for a
+/// track without one (no container lists it, and the root at least
+/// exists).
+fn track_parent_id(album_id: Option<i64>) -> String {
+    album_id.map_or_else(|| "0".to_string(), |id| format!("0/albums/{id}"))
+}
+
 /// SOAP control endpoint handler. Decodes the envelope, dispatches by
 /// action name, returns the appropriate SOAP response (or fault).
-pub async fn handle_control(State(ctx): State<Arc<ServerCtx>>, body: String) -> Response {
+pub async fn handle_control(
+    State(ctx): State<Arc<ServerCtx>>,
+    ConnectInfo(conn): ConnectInfo<LocalAddr>,
+    body: String,
+) -> Response {
     let action = match parse_soap_action(&body) {
         Some(a) => a,
         None => return soap_fault(401, "Invalid Action"),
     };
 
     match action {
-        SoapAction::Browse(req) => match browse(&ctx, &req).await {
+        SoapAction::Browse(req) => match browse(&ctx, &ctx.base_url_for(conn), &req).await {
             Ok(resp) => soap_response("Browse", &resp),
             Err(err) => {
                 tracing::warn!(?err, "Browse failed");
@@ -144,7 +219,13 @@ struct BrowseResult {
     total_matches: i64,
 }
 
-async fn browse(ctx: &ServerCtx, req: &BrowseRequest) -> Result<BrowseResult, sqlx::Error> {
+/// `base` prefixes the stream and artwork URLs: the address this
+/// request reached us on (see [`ServerCtx::base_url_for`]).
+async fn browse(
+    ctx: &ServerCtx,
+    base: &str,
+    req: &BrowseRequest,
+) -> Result<BrowseResult, sqlx::Error> {
     // Resolve effective limit + offset. RequestedCount = 0 means
     // "everything" per the spec — we cap at MAX_PAGE_SIZE.
     let count = if req.requested_count <= 0 {
@@ -155,50 +236,70 @@ async fn browse(ctx: &ServerCtx, req: &BrowseRequest) -> Result<BrowseResult, sq
     let offset = req.starting_index.max(0);
 
     if req.browse_flag == "BrowseMetadata" {
-        return browse_metadata(ctx, &req.object_id).await;
+        return browse_metadata(ctx, base, &req.object_id).await;
     }
 
-    let oid = req.object_id.as_str();
-    if oid.is_empty() || oid == "0" {
-        return Ok(browse_root());
+    match ObjectId::parse(&req.object_id) {
+        Some(ObjectId::Root) => browse_root(&ctx.pool).await,
+        Some(ObjectId::Artists) => browse_artists(&ctx.pool, count, offset).await,
+        Some(ObjectId::Artist(id)) => browse_artist_albums(&ctx.pool, id, count, offset).await,
+        Some(ObjectId::Albums) => browse_albums(&ctx.pool, count, offset).await,
+        Some(ObjectId::Album(id)) => browse_album_tracks(ctx, base, id, count, offset).await,
+        // A track has no children, and an unknown id gets an empty
+        // DIDL rather than a fault so controllers gracefully render
+        // an empty folder.
+        Some(ObjectId::Track(_)) | None => Ok(empty_result()),
     }
-    if oid == "0/artists" {
-        return browse_artists(&ctx.pool, count, offset).await;
-    }
-    if let Some(id_str) = oid.strip_prefix("0/artists/") {
-        if let Ok(artist_id) = id_str.parse::<i64>() {
-            return browse_artist_albums(&ctx.pool, artist_id, count, offset).await;
-        }
-    }
-    if oid == "0/albums" {
-        return browse_albums(&ctx.pool, count, offset).await;
-    }
-    if let Some(id_str) = oid.strip_prefix("0/albums/") {
-        if let Ok(album_id) = id_str.parse::<i64>() {
-            return browse_album_tracks(ctx, album_id, count, offset).await;
-        }
-    }
+}
 
-    // Unknown ID — return an empty DIDL rather than a fault so
-    // controllers gracefully render an empty folder.
-    Ok(BrowseResult {
+fn empty_result() -> BrowseResult {
+    BrowseResult {
         didl: didl_envelope(""),
         number_returned: 0,
         total_matches: 0,
-    })
+    }
 }
 
-fn browse_root() -> BrowseResult {
-    let mut body = String::new();
-    body.push_str(&container_xml(
-        "0/artists",
-        "0",
-        "Artists",
-        // childCount is informational; controllers query it for the
-        // folder badge but won't fail if it's wrong.
-        None,
-    ));
-    body.push_str(&container_xml("0/albums", "0", "Albums", None));
+/// Wrap a single DIDL object, or nothing when the id named no row.
+fn single_result(body: Option<String>) -> BrowseResult {
+    match body {
+        Some(body) => BrowseResult {
+            didl: didl_envelope(&body),
+            number_returned: 1,
+            total_matches: 1,
+        },
+        None => empty_result(),
+    }
+}
+
+/// Children of the two top-level folders, in the order
+/// `(artists, albums)`.
+async fn root_counts(pool: &SqlitePool) -> Result<(i64, i64), sqlx::Error> {
+    let artists: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM artist")
+        .fetch_one(pool)
+        .await?;
+    let albums: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM album")
+        .fetch_one(pool)
+        .await?;
+    Ok((artists, albums))
+}
+
+fn artists_container(child_count: i64) -> String {
+    container_xml("0/artists", "0", ARTISTS_TITLE, Some(child_count))
+}
+
+fn albums_container(child_count: i64) -> String {
+    container_xml("0/albums", "0", ALBUMS_TITLE, Some(child_count))
+}
+
+async fn browse_root(pool: &SqlitePool) -> Result<BrowseResult, sqlx::Error> {
+    let (artists, albums) = root_counts(pool).await?;
+    Ok(root_children(artists, albums))
+}
+
+fn root_children(artists: i64, albums: i64) -> BrowseResult {
+    let mut body = artists_container(artists);
+    body.push_str(&albums_container(albums));
     BrowseResult {
         didl: didl_envelope(&body),
         number_returned: 2,
@@ -214,19 +315,26 @@ async fn browse_artists(
     let total: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM artist")
         .fetch_one(pool)
         .await?;
-    let rows: Vec<(i64, String)> =
-        sqlx::query_as("SELECT id, name FROM artist ORDER BY canonical_name LIMIT ? OFFSET ?")
-            .bind(count)
-            .bind(offset)
-            .fetch_all(pool)
-            .await?;
+    // The per-row counts ride `idx_album_artist`, so a page of 500
+    // stays a page of index probes.
+    let rows: Vec<(i64, String, i64)> = sqlx::query_as(
+        "SELECT ar.id, ar.name,
+                (SELECT COUNT(*) FROM album al WHERE al.artist_id = ar.id)
+           FROM artist ar
+          ORDER BY ar.canonical_name
+          LIMIT ? OFFSET ?",
+    )
+    .bind(count)
+    .bind(offset)
+    .fetch_all(pool)
+    .await?;
     let mut body = String::new();
-    for (id, name) in &rows {
+    for (id, name, albums) in &rows {
         body.push_str(&container_xml(
             &format!("0/artists/{id}"),
             "0/artists",
             name,
-            None,
+            Some(*albums),
         ));
     }
     Ok(BrowseResult {
@@ -246,9 +354,12 @@ async fn browse_artist_albums(
         .bind(artist_id)
         .fetch_one(pool)
         .await?;
-    let rows: Vec<(i64, String)> = sqlx::query_as(
-        "SELECT id, title FROM album WHERE artist_id = ?
-          ORDER BY year, canonical_title
+    let rows: Vec<(i64, String, i64)> = sqlx::query_as(
+        "SELECT al.id, al.title,
+                (SELECT COUNT(*) FROM track t WHERE t.album_id = al.id AND t.is_available = 1)
+           FROM album al
+          WHERE al.artist_id = ?
+          ORDER BY al.year, al.canonical_title
           LIMIT ? OFFSET ?",
     )
     .bind(artist_id)
@@ -258,12 +369,12 @@ async fn browse_artist_albums(
     .await?;
     let parent = format!("0/artists/{artist_id}");
     let mut body = String::new();
-    for (id, title) in &rows {
+    for (id, title, tracks) in &rows {
         body.push_str(&container_xml(
             &format!("0/albums/{id}"),
             &parent,
             title,
-            None,
+            Some(*tracks),
         ));
     }
     Ok(BrowseResult {
@@ -281,19 +392,26 @@ async fn browse_albums(
     let total: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM album")
         .fetch_one(pool)
         .await?;
-    let rows: Vec<(i64, String)> =
-        sqlx::query_as("SELECT id, title FROM album ORDER BY canonical_title LIMIT ? OFFSET ?")
-            .bind(count)
-            .bind(offset)
-            .fetch_all(pool)
-            .await?;
+    // Only available tracks count, because `browse_album_tracks` lists
+    // only those; the per-row count rides `idx_track_album_available`.
+    let rows: Vec<(i64, String, i64)> = sqlx::query_as(
+        "SELECT al.id, al.title,
+                (SELECT COUNT(*) FROM track t WHERE t.album_id = al.id AND t.is_available = 1)
+           FROM album al
+          ORDER BY al.canonical_title
+          LIMIT ? OFFSET ?",
+    )
+    .bind(count)
+    .bind(offset)
+    .fetch_all(pool)
+    .await?;
     let mut body = String::new();
-    for (id, title) in &rows {
+    for (id, title, tracks) in &rows {
         body.push_str(&container_xml(
             &format!("0/albums/{id}"),
             "0/albums",
             title,
-            None,
+            Some(*tracks),
         ));
     }
     Ok(BrowseResult {
@@ -320,10 +438,13 @@ struct TrackRow {
     artwork_hash: Option<String>,
     artwork_format: Option<String>,
     album_title: Option<String>,
+    /// Names the track's parent container in its own metadata.
+    album_id: Option<i64>,
 }
 
 async fn browse_album_tracks(
     ctx: &ServerCtx,
+    base: &str,
     album_id: i64,
     count: i64,
     offset: i64,
@@ -340,7 +461,8 @@ async fn browse_album_tracks(
                 t.file_path,
                 aw.hash  AS artwork_hash,
                 aw.format AS artwork_format,
-                al.title AS album_title
+                al.title AS album_title,
+                t.album_id
            FROM track t
            LEFT JOIN album al   ON al.id = t.album_id
            LEFT JOIN artwork aw ON aw.id = al.artwork_id
@@ -357,7 +479,7 @@ async fn browse_album_tracks(
     let parent = format!("0/albums/{album_id}");
     let mut body = String::new();
     for row in &rows {
-        body.push_str(&item_xml(ctx, row, &parent));
+        body.push_str(&item_xml(base, row, &parent));
     }
     Ok(BrowseResult {
         didl: didl_envelope(&body),
@@ -366,54 +488,100 @@ async fn browse_album_tracks(
     })
 }
 
-async fn browse_metadata(ctx: &ServerCtx, object_id: &str) -> Result<BrowseResult, sqlx::Error> {
-    if object_id.is_empty() || object_id == "0" {
-        let body = r#"<container id="0" parentID="-1" restricted="1" childCount="2"><dc:title>WaveFlow</dc:title><upnp:class>object.container</upnp:class></container>"#.to_string();
-        return Ok(BrowseResult {
-            didl: didl_envelope(&body),
-            number_returned: 1,
-            total_matches: 1,
-        });
-    }
-    if let Some(id_str) = object_id.strip_prefix("0/track/") {
-        if let Ok(track_id) = id_str.parse::<i64>() {
-            // Column aliases must match `TrackRow`: `ar.name AS artist_name`
-            // (not `t.primary_artist`) and `t.bitrate AS bitrate` (the column
-            // is `bitrate`, not `bit_rate` — the earlier shape would fail at
-            // bind time on every BrowseMetadata request).
-            let row: Option<TrackRow> = sqlx::query_as(
-                "SELECT t.id, t.title,
-                        ar.name AS artist_name,
-                        t.duration_ms, t.file_size, t.bitrate, t.sample_rate, t.channels,
-                        t.file_path,
-                        aw.hash  AS artwork_hash,
-                        aw.format AS artwork_format,
-                        al.title AS album_title
-                   FROM track t
-                   LEFT JOIN album al   ON al.id = t.album_id
-                   LEFT JOIN artwork aw ON aw.id = al.artwork_id
-                   LEFT JOIN artist ar  ON ar.id = t.primary_artist
-                  WHERE t.id = ? AND t.is_available = 1",
+async fn browse_metadata(
+    ctx: &ServerCtx,
+    base: &str,
+    object_id: &str,
+) -> Result<BrowseResult, sqlx::Error> {
+    let body = match ObjectId::parse(object_id) {
+        Some(ObjectId::Track(track_id)) => track_metadata(ctx, base, track_id).await?,
+        Some(container) => container_metadata(&ctx.pool, container).await?,
+        None => None,
+    };
+    Ok(single_result(body))
+}
+
+/// The `<container>` an id names, or `None` when its row is gone.
+async fn container_metadata(
+    pool: &SqlitePool,
+    id: ObjectId,
+) -> Result<Option<String>, sqlx::Error> {
+    let parent = id.container_parent();
+    Ok(match id {
+        ObjectId::Root => Some(format!(
+            r#"<container id="0" parentID="{parent}" restricted="1" childCount="2"><dc:title>WaveFlow</dc:title><upnp:class>object.container</upnp:class></container>"#
+        )),
+        ObjectId::Artists => Some(artists_container(root_counts(pool).await?.0)),
+        ObjectId::Albums => Some(albums_container(root_counts(pool).await?.1)),
+        ObjectId::Artist(artist_id) => {
+            let row: Option<(String, i64)> = sqlx::query_as(
+                "SELECT ar.name, (SELECT COUNT(*) FROM album al WHERE al.artist_id = ar.id)
+                   FROM artist ar
+                  WHERE ar.id = ?",
             )
-            .bind(track_id)
-            .fetch_optional(&ctx.pool)
+            .bind(artist_id)
+            .fetch_optional(pool)
             .await?;
-            if let Some(row) = row {
-                let parent = "0";
-                let body = item_xml(ctx, &row, parent);
-                return Ok(BrowseResult {
-                    didl: didl_envelope(&body),
-                    number_returned: 1,
-                    total_matches: 1,
-                });
-            }
+            row.map(|(name, albums)| {
+                container_xml(
+                    &format!("0/artists/{artist_id}"),
+                    parent,
+                    &name,
+                    Some(albums),
+                )
+            })
         }
-    }
-    Ok(BrowseResult {
-        didl: didl_envelope(""),
-        number_returned: 0,
-        total_matches: 0,
+        ObjectId::Album(album_id) => {
+            let row: Option<(String, i64)> = sqlx::query_as(
+                "SELECT al.title,
+                        (SELECT COUNT(*) FROM track t WHERE t.album_id = al.id AND t.is_available = 1)
+                   FROM album al
+                  WHERE al.id = ?",
+            )
+            .bind(album_id)
+            .fetch_optional(pool)
+            .await?;
+            row.map(|(title, tracks)| {
+                container_xml(
+                    &format!("0/albums/{album_id}"),
+                    parent,
+                    &title,
+                    Some(tracks),
+                )
+            })
+        }
+        ObjectId::Track(_) => None,
     })
+}
+
+async fn track_metadata(
+    ctx: &ServerCtx,
+    base: &str,
+    track_id: i64,
+) -> Result<Option<String>, sqlx::Error> {
+    // Column aliases must match `TrackRow`: `ar.name AS artist_name`
+    // (not `t.primary_artist`) and `t.bitrate AS bitrate` (the column
+    // is `bitrate`, not `bit_rate` — the earlier shape would fail at
+    // bind time on every BrowseMetadata request).
+    let row: Option<TrackRow> = sqlx::query_as(
+        "SELECT t.id, t.title,
+                ar.name AS artist_name,
+                t.duration_ms, t.file_size, t.bitrate, t.sample_rate, t.channels,
+                t.file_path,
+                aw.hash  AS artwork_hash,
+                aw.format AS artwork_format,
+                al.title AS album_title,
+                t.album_id
+           FROM track t
+           LEFT JOIN album al   ON al.id = t.album_id
+           LEFT JOIN artwork aw ON aw.id = al.artwork_id
+           LEFT JOIN artist ar  ON ar.id = t.primary_artist
+          WHERE t.id = ? AND t.is_available = 1",
+    )
+    .bind(track_id)
+    .fetch_optional(&ctx.pool)
+    .await?;
+    Ok(row.map(|row| item_xml(base, &row, &track_parent_id(row.album_id))))
 }
 
 /// Wrap inner content in the standard DIDL-Lite envelope. The four
@@ -434,9 +602,9 @@ fn container_xml(id: &str, parent: &str, title: &str, child_count: Option<i64>) 
     )
 }
 
-fn item_xml(ctx: &ServerCtx, t: &TrackRow, parent: &str) -> String {
+fn item_xml(base: &str, t: &TrackRow, parent: &str) -> String {
     let mime = mime_for_path(&t.file_path);
-    let stream_url = format!("{}/stream/{}", ctx.base_url, t.id);
+    let stream_url = format!("{base}/stream/{}", t.id);
     let duration = format_duration_hms(t.duration_ms);
     let size_attr = format!(r#" size="{}""#, t.file_size);
     let bitrate_attr = t
@@ -474,7 +642,6 @@ fn item_xml(ctx: &ServerCtx, t: &TrackRow, parent: &str) -> String {
             let ext = t.artwork_format.as_deref().unwrap_or("jpg");
             format!(
                 r#"<upnp:albumArtURI dlna:profileID="JPEG_TN" xmlns:dlna="urn:schemas-dlna-org:metadata-1-0/">{base}/art/{h}.{ext}</upnp:albumArtURI>"#,
-                base = ctx.base_url,
             )
         })
         .unwrap_or_default();
@@ -621,9 +788,64 @@ mod tests {
 
     #[test]
     fn root_browse_lists_two_top_level_containers() {
-        let r = browse_root();
+        let r = root_children(3, 7);
         assert_eq!(r.number_returned, 2);
-        assert!(r.didl.contains("0/artists"));
-        assert!(r.didl.contains("0/albums"));
+        assert!(r
+            .didl
+            .contains(r#"id="0/artists" parentID="0" restricted="1" childCount="3""#));
+        assert!(r
+            .didl
+            .contains(r#"id="0/albums" parentID="0" restricted="1" childCount="7""#));
+    }
+
+    #[test]
+    fn object_id_parses_every_id_the_server_emits() {
+        assert_eq!(ObjectId::parse(""), Some(ObjectId::Root));
+        assert_eq!(ObjectId::parse("0"), Some(ObjectId::Root));
+        assert_eq!(ObjectId::parse("0/artists"), Some(ObjectId::Artists));
+        assert_eq!(ObjectId::parse("0/artists/12"), Some(ObjectId::Artist(12)));
+        assert_eq!(ObjectId::parse("0/albums"), Some(ObjectId::Albums));
+        assert_eq!(ObjectId::parse("0/albums/34"), Some(ObjectId::Album(34)));
+        assert_eq!(ObjectId::parse("0/track/56"), Some(ObjectId::Track(56)));
+    }
+
+    #[test]
+    fn object_id_rejects_what_the_server_never_emits() {
+        assert_eq!(ObjectId::parse("0/artists/"), None);
+        assert_eq!(ObjectId::parse("0/albums/abc"), None);
+        assert_eq!(ObjectId::parse("0/track"), None);
+        assert_eq!(ObjectId::parse("0/genres"), None);
+        assert_eq!(ObjectId::parse("1"), None);
+    }
+
+    #[test]
+    fn every_container_names_the_container_that_lists_it() {
+        assert_eq!(ObjectId::Root.container_parent(), "-1");
+        assert_eq!(ObjectId::Artists.container_parent(), "0");
+        assert_eq!(ObjectId::Albums.container_parent(), "0");
+        assert_eq!(ObjectId::Artist(1).container_parent(), "0/artists");
+        assert_eq!(ObjectId::Album(1).container_parent(), "0/albums");
+    }
+
+    #[test]
+    fn a_track_names_its_album_or_the_root() {
+        assert_eq!(track_parent_id(Some(9)), "0/albums/9");
+        assert_eq!(track_parent_id(None), "0");
+    }
+
+    #[test]
+    fn single_result_counts_one_object_or_none() {
+        let one = single_result(Some(container_xml(
+            "0/albums/1",
+            "0/albums",
+            "A & B",
+            Some(4),
+        )));
+        assert_eq!((one.number_returned, one.total_matches), (1, 1));
+        assert!(one
+            .didl
+            .contains(r#"childCount="4"><dc:title>A &amp; B</dc:title>"#));
+        let none = single_result(None);
+        assert_eq!((none.number_returned, none.total_matches), (0, 0));
     }
 }
