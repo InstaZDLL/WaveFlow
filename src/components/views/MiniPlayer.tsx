@@ -431,9 +431,15 @@ export function MiniPlayer() {
     ? t("miniPlayer.pinWayland")
     : t("miniPlayer.pin");
   useEffect(() => {
+    let cancelled = false;
     displayBackendStatus()
-      .then((s) => setPinIgnored(s.available && !s.active))
+      .then((s) => {
+        if (!cancelled) setPinIgnored(s.available && !s.active);
+      })
       .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
   }, []);
   const handleTogglePin = async () => {
     try {
