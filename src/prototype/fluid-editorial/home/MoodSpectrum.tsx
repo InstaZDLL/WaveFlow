@@ -89,7 +89,9 @@ export function MoodSpectrum() {
     const pick =
       fixtures.recentPlays.find(
         (t) => t.bpm != null && t.bpm >= mood.bpm[0] && t.bpm <= mood.bpm[1],
-      ) ?? fixtures.recentPlays[1];
+      ) ??
+      fixtures.recentPlays[1] ??
+      fixtures.recentPlays[0];
     window.setTimeout(() => {
       play(pick, { radio: mood.id });
       setStarting(null);

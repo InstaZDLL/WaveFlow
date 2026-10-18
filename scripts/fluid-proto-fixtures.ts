@@ -172,11 +172,11 @@ const stats = {
 const moodCounts = db
   .query(
     `SELECT
-       SUM(CASE WHEN bpm BETWEEN 60 AND 100 THEN 1 ELSE 0 END) AS focus,
-       SUM(CASE WHEN bpm BETWEEN 70 AND 110 THEN 1 ELSE 0 END) AS chill,
-       SUM(CASE WHEN bpm BETWEEN 120 AND 170 THEN 1 ELSE 0 END) AS workout,
-       SUM(CASE WHEN bpm BETWEEN 110 AND 135 THEN 1 ELSE 0 END) AS party,
-       SUM(CASE WHEN bpm < 80 AND (loudness_lufs IS NULL OR loudness_lufs < -14) THEN 1 ELSE 0 END) AS sleep
+       COALESCE(SUM(CASE WHEN bpm BETWEEN 60 AND 100 THEN 1 ELSE 0 END), 0) AS focus,
+       COALESCE(SUM(CASE WHEN bpm BETWEEN 70 AND 110 THEN 1 ELSE 0 END), 0) AS chill,
+       COALESCE(SUM(CASE WHEN bpm BETWEEN 120 AND 170 THEN 1 ELSE 0 END), 0) AS workout,
+       COALESCE(SUM(CASE WHEN bpm BETWEEN 110 AND 135 THEN 1 ELSE 0 END), 0) AS party,
+       COALESCE(SUM(CASE WHEN bpm < 80 AND (loudness_lufs IS NULL OR loudness_lufs < -14) THEN 1 ELSE 0 END), 0) AS sleep
      FROM track_analysis WHERE bpm IS NOT NULL`,
   )
   .get() as Record<string, number>;
