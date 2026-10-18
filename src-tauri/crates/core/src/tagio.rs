@@ -404,6 +404,12 @@ fn rename_over(from: &Path, to: &Path) -> io::Result<()> {
 /// Opaque on purpose: it is only ever compared for equality, and a
 /// string carries nanoseconds intact through JSON, where a number would
 /// be rounded to what a double holds.
+///
+/// What it does not catch: a rewrite that keeps both the size and the
+/// modification time, which a tagger has to do on purpose (restoring the
+/// time after a same-size edit). Comparing content would catch it, at the
+/// cost of reading the whole file twice per save; a dialog that guards
+/// against an ordinary second tagger does not need that.
 pub fn file_stamp(path: &Path) -> io::Result<String> {
     let meta = std::fs::metadata(path)?;
     let modified = meta.modified()?;

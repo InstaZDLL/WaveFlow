@@ -138,7 +138,10 @@ export function TrackPropertiesModal({
   // numbers and year back whether or not they were touched, so a file
   // another tagger rewrote while the dialog was open would lose that
   // change; with the stamp, the backend refuses the save instead.
-  // `null` until loaded, and then the save goes unchecked.
+  // `null` until loaded, and Save stays disabled until then: the stamp
+  // has to be the one read with the values the form shows. Taken at the
+  // click instead, it would already include the change it is meant to
+  // catch.
   const [fileStamp, setFileStamp] = useState<string | null>(null);
   // Set when a save was refused for that reason: the error then offers
   // to reload the values from the file instead of repeating the save.
@@ -214,9 +217,11 @@ export function TrackPropertiesModal({
       .then((stamp) => {
         if (!cancelled) setFileStamp(stamp);
       })
-      .catch((err) =>
-        console.error("[TrackProperties] get_track_file_stamp failed", err),
-      );
+      .catch((err) => {
+        console.error("[TrackProperties] get_track_file_stamp failed", err);
+        // Said, not just logged: it is why Save stays disabled.
+        if (!cancelled) setSaveError(String(err));
+      });
     return () => {
       cancelled = true;
     };
@@ -370,7 +375,7 @@ export function TrackPropertiesModal({
   };
 
   const handleSave = async () => {
-    if (!track || saving) return;
+    if (!track || saving || fileStamp == null) return;
     setSaving(true);
     setSaveError(null);
     setFileChanged(false);
@@ -502,7 +507,8 @@ export function TrackPropertiesModal({
       setFileChanged(false);
     } catch (err) {
       console.error("[TrackProperties] reread_track_folder failed", err);
-      setFileChanged(false);
+      // `fileChanged` stays set: the file is still the changed one, and
+      // the reload button has to stay there to be tried again.
       setSaveError(String(err));
     } finally {
       setSaving(false);
@@ -979,7 +985,7 @@ export function TrackPropertiesModal({
               <button
                 type="button"
                 onClick={handleSave}
-                disabled={saving}
+                disabled={saving || fileStamp == null}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-emerald-500 text-white hover:bg-emerald-600 transition-colors disabled:opacity-50"
               >
                 <Save size={14} />
