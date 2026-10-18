@@ -114,7 +114,7 @@ export function ForYouMosaic() {
                   <span className="text-[0.8125rem] font-medium text-[var(--fe-ink)]">
                     {p.name}
                   </span>
-                  <span className="fe-ink-3 fe-mono text-[0.6875rem]">
+                  <span className="fe-ink-3 fe-mono text-[0.75rem]">
                     {integer(p.trackCount, lang)}
                   </span>
                 </button>
@@ -148,7 +148,7 @@ function MixCard({ playlist }: { playlist: FePlaylist }) {
           <p className="fe-title mt-1 truncate text-[1.0625rem]">
             {playlist.name}
           </p>
-          <p className="fe-ink-3 fe-mono mt-0.5 text-[0.75rem]">
+          <p className="fe-ink-3 fe-mono mt-0.5 text-[0.8125rem]">
             {fill(copy.sidebar.trackCount, {
               count: integer(playlist.trackCount, lang),
             })}

@@ -82,7 +82,7 @@ export function FeTopBar({
         </button>
         <button
           type="button"
-          className="ml-1 grid h-8 w-8 place-items-center rounded-full text-[0.75rem] font-semibold"
+          className="ml-1 grid h-8 w-8 place-items-center rounded-full text-[0.8125rem] font-semibold"
           style={{
             backgroundColor: "var(--fe-accent)",
             color: "var(--fe-accent-ink)",

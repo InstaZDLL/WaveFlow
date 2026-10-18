@@ -83,13 +83,13 @@ export function WaveProgress() {
   })();
 
   return (
-    <div className="flex w-full items-center gap-3">
-      <span className="fe-ink-3 fe-mono w-10 text-right text-[0.6875rem]">
+    <div className="relative h-5 w-full px-16">
+      <span className="fe-ink-3 fe-mono absolute left-5 top-1/2 -translate-y-1/2 text-[0.75rem]">
         {duration(positionMs)}
       </span>
       <div
         ref={ref}
-        className="fe-progress flex-1"
+        className="fe-progress h-full"
         role="slider"
         tabIndex={0}
         aria-label={copy.player.seek}
@@ -115,7 +115,7 @@ export function WaveProgress() {
             y1="10"
             x2="1000"
             y2="10"
-            stroke="rgb(255 255 255 / 0.12)"
+            stroke="rgb(255 255 255 / 0.16)"
             strokeWidth="1.5"
             vectorEffect="non-scaling-stroke"
           />
@@ -142,7 +142,7 @@ export function WaveProgress() {
           />
         </svg>
       </div>
-      <span className="fe-ink-3 fe-mono w-10 text-[0.6875rem]">
+      <span className="fe-ink-3 fe-mono absolute right-5 top-1/2 -translate-y-1/2 text-[0.75rem]">
         {duration(total)}
       </span>
     </div>

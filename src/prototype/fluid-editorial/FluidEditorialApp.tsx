@@ -58,7 +58,7 @@ function Shell() {
             collapsed={collapsed}
             onToggleSidebar={() => setCollapsed((c) => !c)}
           />
-          <main className="relative flex-1 overflow-y-auto px-8 pb-8 pt-3 xl:px-12">
+          <main className="relative flex-1 overflow-y-auto px-8 pb-8 pt-3 xl:px-12 2xl:px-14">
             <FluidHome />
           </main>
         </div>

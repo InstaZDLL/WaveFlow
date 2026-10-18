@@ -48,6 +48,17 @@ export function ListeningCanvas() {
 
   return (
     <section className="fe-canvas pt-1" aria-labelledby="fe-canvas-title">
+      {/* The cover's own light, spread behind the title and the queue:
+          the artwork, blurred wide and masked, so the record lights the
+          whole canvas rather than sitting in its own rectangle. Keyed on
+          the cover for a cross-fade on track change. */}
+      <div
+        key={current.cover ?? "none"}
+        className="fe-canvas__aura"
+        aria-hidden="true"
+      >
+        {current.cover && <img src={current.cover} alt="" decoding="async" />}
+      </div>
       <div className="fe-canvas__text min-w-0">
         <p className="flex flex-wrap items-baseline text-[1.75rem] leading-none">
           <span className="fe-editorial text-[2rem]">
@@ -55,7 +66,7 @@ export function ListeningCanvas() {
           </span>
           <span className="fe-ink-2 text-[1.125rem] font-[450]">, Probu</span>
         </p>
-        <p className="fe-ink-3 fe-mono mt-3 flex flex-wrap gap-x-2 text-[0.75rem] tracking-[0.01em]">
+        <p className="fe-ink-3 fe-mono mt-3 flex flex-wrap gap-x-2 text-[0.8125rem] tracking-[0.01em]">
           <span>{sentence(longDate(lang))}</span>
           {[
             `${integer(stats.tracks, lang)} ${copy.stats.tracks}`,
@@ -112,7 +123,7 @@ export function ListeningCanvas() {
                 )}
               </span>
               <span>{isPlaying ? copy.canvas.pause : copy.canvas.resume}</span>
-              <span className="fe-mono text-[0.75rem] font-medium opacity-70">
+              <span className="fe-mono text-[0.8125rem] font-medium opacity-70">
                 {fill(copy.canvas.remaining, { time: duration(remaining) })}
               </span>
             </button>
@@ -167,11 +178,11 @@ export function ListeningCanvas() {
                     <span className="block truncate text-[0.8125rem] font-medium text-[var(--fe-ink)] group-hover:text-[var(--fe-accent)]">
                       {t.title}
                     </span>
-                    <span className="fe-ink-3 block truncate text-[0.6875rem]">
+                    <span className="fe-ink-3 block truncate text-[0.75rem]">
                       {t.artist}
                     </span>
                   </span>
-                  <span className="fe-ink-3 fe-mono text-[0.6875rem]">
+                  <span className="fe-ink-3 fe-mono text-[0.75rem]">
                     {duration(t.durationMs)}
                   </span>
                 </button>

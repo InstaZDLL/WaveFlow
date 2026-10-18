@@ -61,7 +61,7 @@ export function FeSidebar({ collapsed }: { collapsed: boolean }) {
           aria-label={copy.topbar.profile}
         >
           <span
-            className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-[0.75rem] font-semibold"
+            className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-[0.8125rem] font-semibold"
             style={{
               backgroundColor: "var(--fe-accent)",
               color: "var(--fe-accent-ink)",
@@ -74,7 +74,7 @@ export function FeSidebar({ collapsed }: { collapsed: boolean }) {
               <span className="block truncate text-[0.8125rem] font-medium text-[var(--fe-ink)]">
                 Probu
               </span>
-              <span className="fe-ink-3 fe-mono block text-[0.6875rem]">
+              <span className="fe-ink-3 fe-mono block text-[0.75rem]">
                 {integer(stats.tracks, lang)} {copy.stats.tracks}
               </span>
             </span>
@@ -233,7 +233,7 @@ function NavItem({
       <Icon size={17} strokeWidth={1.6} />
       {!collapsed && <span className="min-w-0 flex-1 truncate">{label}</span>}
       {!collapsed && count != null && lang && (
-        <span className="fe-ink-3 fe-mono text-[0.6875rem]">
+        <span className="fe-ink-3 fe-mono text-[0.75rem]">
           {integer(count, lang)}
         </span>
       )}
@@ -265,7 +265,7 @@ function ShelfRow({
           <span className="block truncate text-[0.8125rem] font-medium text-[var(--fe-ink)]">
             {label}
           </span>
-          <span className="fe-ink-3 fe-mono block truncate text-[0.6875rem]">
+          <span className="fe-ink-3 fe-mono block truncate text-[0.75rem]">
             {sub}
           </span>
         </span>

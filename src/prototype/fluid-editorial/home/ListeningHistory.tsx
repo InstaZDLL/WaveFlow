@@ -56,7 +56,7 @@ export function ListeningHistory() {
                       >
                         {t.title}
                       </span>
-                      <span className="fe-ink-3 block truncate text-[0.75rem]">
+                      <span className="fe-ink-3 block truncate text-[0.8125rem]">
                         {t.artist}
                         {t.album && t.album !== t.title && (
                           <>
@@ -66,7 +66,7 @@ export function ListeningHistory() {
                         )}
                       </span>
                     </span>
-                    <span className="fe-ink-3 fe-mono shrink-0 text-right text-[0.6875rem] leading-tight">
+                    <span className="fe-ink-3 fe-mono shrink-0 text-right text-[0.75rem] leading-tight">
                       <span className="block">
                         {relativeTime(t.playedAt, lang)}
                       </span>

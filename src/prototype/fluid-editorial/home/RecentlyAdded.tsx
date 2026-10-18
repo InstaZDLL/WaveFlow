@@ -1,6 +1,6 @@
 import { fixtures, trackFromAlbum, type FeAlbum } from "../fixtures";
 import { fill } from "../copy";
-import { integer } from "../format";
+import { integer, relativeTime } from "../format";
 import { useFe } from "../useFe";
 import { Cover } from "../ui/Cover";
 import { SectionHeader } from "../ui/SectionHeader";
@@ -56,13 +56,20 @@ function AlbumTile({ album, lead }: { album: FeAlbum; lead?: boolean }) {
         className="aspect-square w-full"
       />
       <div className={`min-w-0 ${lead ? "mt-4" : "mt-2.5"}`}>
+        {lead && (
+          <p className="fe-label mb-1.5">
+            {copy.recentlyAdded.leadKicker}
+            <span className="mx-1.5 opacity-50">·</span>
+            {relativeTime(album.addedAt, lang)}
+          </p>
+        )}
         <p
           className={`truncate font-medium text-[var(--fe-ink)] ${lead ? "fe-title text-[1.25rem]" : "text-[0.8125rem]"}`}
         >
           {album.title}
         </p>
         <p
-          className={`fe-ink-3 truncate ${lead ? "mt-1 text-[0.875rem]" : "text-[0.75rem]"}`}
+          className={`fe-ink-3 truncate ${lead ? "mt-1 text-[0.875rem]" : "text-[0.8125rem]"}`}
         >
           {album.artist}
           {lead && album.year && (
@@ -79,7 +86,7 @@ function AlbumTile({ album, lead }: { album: FeAlbum; lead?: boolean }) {
           )}
         </p>
         {lead && (
-          <p className="fe-ink-3 fe-mono mt-1 text-[0.75rem]">
+          <p className="fe-ink-3 fe-mono mt-1 text-[0.8125rem]">
             {fill(copy.sidebar.trackCount, {
               count: integer(album.trackCount, lang),
             })}

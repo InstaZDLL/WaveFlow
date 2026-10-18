@@ -186,7 +186,7 @@ export function MoodSpectrum() {
                     >
                       {label.title}
                     </span>
-                    <span className="fe-mono shrink-0 text-[0.6875rem] text-white/60">
+                    <span className="fe-mono shrink-0 text-[0.75rem] text-white/60">
                       {m.bpm[0]}–{m.bpm[1]}
                     </span>
                   </div>
@@ -205,7 +205,7 @@ export function MoodSpectrum() {
                           <Play size={12} strokeWidth={0} />
                           {ctaLabel}
                         </span>
-                        <span className="fe-mono text-[0.75rem] text-white/60">
+                        <span className="fe-mono text-[0.8125rem] text-white/60">
                           {fill(copy.mood.tracks, {
                             count: integer(count, lang),
                           })}
@@ -214,7 +214,7 @@ export function MoodSpectrum() {
                     </div>
                   </div>
                   {!isSel && (
-                    <p className="fe-mono mt-1 text-[0.6875rem] text-white/55">
+                    <p className="fe-mono mt-1 text-[0.75rem] text-white/55">
                       {disabled
                         ? copy.mood.empty
                         : fill(copy.mood.tracks, {
@@ -240,7 +240,7 @@ export function MoodSpectrum() {
         })}
       </div>
       <div
-        className="fe-spectrum__ruler fe-ink-3 fe-mono text-[0.625rem] tracking-[0.08em] uppercase"
+        className="fe-spectrum__ruler fe-ink-3 fe-mono text-[0.6875rem] tracking-[0.08em] uppercase"
         aria-hidden="true"
       >
         <span>40 {copy.mood.bpm}</span>

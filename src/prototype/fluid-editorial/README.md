@@ -50,6 +50,14 @@ paramètre : ouvrir les outils de développement et taper
 | Barre latérale : blocs remplis, libellés gras    | Même structure, chrome apaisé : pas de bordure, libellés 11 px médium espacés, état actif = barre d'accent de 2 px, compteurs à droite, **pochettes réelles** sur chaque playlist (2×2).                                                                                                                                                                                                                    |
 | Barre supérieure vitrée avec bordure             | Même ton que le contenu, 52 px, glyphes nus ; seule la recherche garde sa pilule.                                                                                                                                                                                                                                                                                                                           |
 
+### Itération 2 (retours de la première revue)
+
+- **Occupation de l'écran** : conteneur porté à 1 680 px et gouttières élargies au-delà de 1 536 px ; à 1 920 px le canvas tient en trois colonnes, titre · file · pochette.
+- **Aura de pochette** : la pochette en cours, floutée à 96 px, désaturée et masquée en ellipse, éclaire le titre et la file derrière le canvas (opacité 0,2). Un seul filtre statique, fondu à l'arrivée, coupé en `prefers-reduced-motion`.
+- **Lisibilité** : toutes les tailles secondaires montent d'un cran (0,625 → 0,6875, 0,6875 → 0,75, 0,75 → 0,8125 rem), l'encre tertiaire passe de `#7b7872` à `#8e8b83`, les libellés en capitales à 0,75 rem / 540.
+- **La grande tuile a une raison** : « Dernier ajout · il y a 24 heures » au-dessus de son titre — la mise en avant est le plus récent ajout, pas le premier élément par hasard.
+- **Barre de lecture** : la progression devient le bord supérieur de la barre, une onde sur toute la largeur avec les temps à ses deux extrémités (plus de course pour chercher, même hauteur à 2 px près : 88 px). Le centre ne garde que le transport.
+
 ### Système visuel
 
 - **Typographie** : DM Sans Variable (déjà embarquée pour Liquid, axe optique) pour tout ;

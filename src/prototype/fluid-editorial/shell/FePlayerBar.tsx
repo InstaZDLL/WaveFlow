@@ -54,7 +54,11 @@ export function FePlayerBar() {
           "linear-gradient(180deg, color-mix(in srgb, var(--fe-glow) 28%, transparent), transparent 55%)",
       }}
     >
-      <div className="fe-hairline-t grid h-[5.25rem] grid-cols-[minmax(0,1fr)_minmax(28rem,38rem)_minmax(0,1fr)] items-center gap-6 px-5">
+      {/* The progress is the bar's top edge: a full-width wave, elapsed
+          and total at its two ends. More travel for a seek, and the
+          bar's one line of chrome is the one that moves. */}
+      <WaveProgress />
+      <div className="grid h-[4.25rem] grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-6 px-5">
         {/* Identity */}
         <div className="flex min-w-0 items-center gap-3.5">
           <button
@@ -74,12 +78,12 @@ export function FePlayerBar() {
             <div className="truncate text-[0.9375rem] font-[540] leading-tight tracking-[-0.01em] text-[var(--fe-ink)]">
               {current.title}
             </div>
-            <div className="fe-ink-2 mt-0.5 truncate text-[0.75rem]">
+            <div className="fe-ink-2 mt-0.5 truncate text-[0.8125rem]">
               {moodLabel ? `${copy.canvas.radio} · ${moodLabel} · ` : ""}
               {current.artist}
             </div>
             {tag && (
-              <div className="fe-ink-3 fe-mono mt-0.5 text-[0.625rem] tracking-[0.04em]">
+              <div className="fe-ink-3 fe-mono mt-0.5 text-[0.6875rem] tracking-[0.04em]">
                 {tag}
                 {current.bitDepth === 24 && (
                   <span className="fe-accent ml-2 font-medium">
@@ -106,7 +110,7 @@ export function FePlayerBar() {
 
         {/* Transport */}
         <div className="flex flex-col items-center">
-          <div className="mb-1.5 flex items-center gap-4">
+          <div className="flex items-center gap-4">
             <button
               type="button"
               className="fe-icon-btn h-8 w-8"
@@ -164,7 +168,6 @@ export function FePlayerBar() {
               <Repeat size={16} strokeWidth={1.6} />
             </button>
           </div>
-          <WaveProgress />
         </div>
 
         {/* Panels + output */}

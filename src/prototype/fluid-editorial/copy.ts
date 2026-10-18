@@ -84,7 +84,7 @@ const FR = {
     },
   },
   // home.recentlyAdded.* / home.recentlyPlayed.* / home.seeAll
-  recentlyAdded: { title: "Récemment ajoutés" },
+  recentlyAdded: { title: "Récemment ajoutés", leadKicker: "Dernier ajout" },
   history: { title: "Récemment joués", listened: "écouté" },
   seeAll: "Tout voir",
   // sidebar.*
@@ -199,7 +199,7 @@ const EN: Copy = {
       decade_mix: "Decade mix",
     },
   },
-  recentlyAdded: { title: "Recently added" },
+  recentlyAdded: { title: "Recently added", leadKicker: "Latest addition" },
   history: { title: "Recently played", listened: "played" },
   seeAll: "See all",
   sidebar: {

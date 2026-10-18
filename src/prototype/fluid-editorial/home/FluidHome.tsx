@@ -15,7 +15,7 @@ const rise = (i: number): CSSProperties => ({ ["--i" as string]: i });
  */
 export function FluidHome() {
   return (
-    <div className="mx-auto max-w-[1400px] space-y-14 pb-10">
+    <div className="mx-auto max-w-[1680px] space-y-14 pb-10">
       <div className="fe-rise" style={rise(0)}>
         <ListeningCanvas />
       </div>

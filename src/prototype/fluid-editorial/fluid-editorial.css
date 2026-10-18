@@ -18,7 +18,7 @@
   --fe-surface-2: #17171d;
   --fe-ink: #f3f1ec;
   --fe-ink-2: #b5b2aa;
-  --fe-ink-3: #7b7872;
+  --fe-ink-3: #8e8b83;
   --fe-hairline: rgb(255 255 255 / 0.07);
   --fe-hairline-strong: rgb(255 255 255 / 0.12);
 
@@ -66,8 +66,8 @@
   letter-spacing: -0.01em;
 }
 .fe-label {
-  font-size: 0.6875rem;
-  font-weight: 520;
+  font-size: 0.75rem;
+  font-weight: 540;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--fe-ink-3);
@@ -250,7 +250,7 @@
   background:
     radial-gradient(
       ellipse 42% 38% at 72% 8%,
-      color-mix(in srgb, var(--fe-glow) 62%, transparent),
+      color-mix(in srgb, var(--fe-glow) 40%, transparent),
       transparent 70%
     ),
     radial-gradient(
@@ -300,10 +300,47 @@
    generated order. Two tiers: text over queue beside the artwork from
    1024 px; text · queue · artwork in one row from 1700 px. */
 .fe-canvas {
+  position: relative;
+  isolation: isolate;
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
   column-gap: 2rem;
   align-items: start;
+}
+/* The cover's light. A blurred copy of the artwork, oversized and
+   masked to an ellipse that favours the text column, under everything
+   in the canvas. One static filter on one element: nothing animates
+   but its fade-in. */
+.fe-canvas__aura {
+  position: absolute;
+  inset: -7rem -6rem -4rem -10rem;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0.2;
+  background: radial-gradient(
+    ellipse 50% 60% at 55% 45%,
+    color-mix(in srgb, var(--fe-glow) 70%, transparent),
+    transparent 70%
+  );
+  mask-image: radial-gradient(
+    ellipse 62% 70% at 52% 40%,
+    #000 20%,
+    transparent 70%
+  );
+  -webkit-mask-image: radial-gradient(
+    ellipse 62% 70% at 52% 40%,
+    #000 20%,
+    transparent 70%
+  );
+  animation: fe-pool-in 900ms var(--fe-ease) both;
+}
+.fe-canvas__aura img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: blur(96px) saturate(0.95);
+  transform: scale(1.12);
 }
 .fe-canvas__text,
 .fe-canvas__queue,
@@ -493,6 +530,10 @@
   height: 1.25rem;
   cursor: pointer;
 }
+.fe-progress:focus-visible {
+  outline-offset: -2px;
+  border-radius: 0.25rem;
+}
 .fe-progress svg {
   display: block;
   width: 100%;
@@ -571,7 +612,8 @@
 /* ── Reduced motion: no drift, no stagger, no lift ─────────── */
 @media (prefers-reduced-motion: reduce) {
   .fe-rise,
-  .fe-atmosphere__pool {
+  .fe-atmosphere__pool,
+  .fe-canvas__aura {
     animation: none;
   }
   .fe-spectrum__wave svg {
