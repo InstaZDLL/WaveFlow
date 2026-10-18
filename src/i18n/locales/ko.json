@@ -1430,7 +1430,8 @@
     "lyrics": {
       "empty": "이 곡의 가사가 없습니다"
     },
-    "dragHandle": "드래그하여 이동 · 두 번 클릭하면 크기와 위치 복원"
+    "dragHandle": "드래그하여 이동 · 두 번 클릭하면 크기와 위치 복원",
+    "pinWayland": "항상 위: Wayland에서는 무시됩니다. 설정 → 외관 → 플레이어 및 창에서 'XWayland로 실행'을 켜세요."
   },
   "window": {
     "minimize": "최소화",
@@ -2686,7 +2687,7 @@
     },
     "desktopLyrics": {
       "subtitle": "다른 앱 위에 떠서 현재 재생 중인 가사 줄을 보여주는 창입니다.",
-      "waylandNote": "Wayland(특히 GNOME)에서는 창이 다른 앱 위나 배치한 위치에 유지되지 않습니다. 맨 위에 유지하려면 GDK_BACKEND=x11로 WaveFlow를 실행하세요.",
+      "waylandNote": "Wayland에서는 창이 다른 앱 위에도, 놓은 자리에도 머물지 않습니다. 그러려면 설정 → 외관 → 플레이어 및 창에서 'XWayland로 실행'을 켜세요.",
       "previewSung": "노래를 따라가는",
       "previewUnsung": "가사",
       "fontSize": "글자 크기",
@@ -2728,6 +2729,13 @@
         "dop": "DoP",
         "unknown": "알 수 없는 포맷"
       }
+    },
+    "xwayland": {
+      "title": "XWayland로 실행",
+      "subtitle": "Wayland에서는 컴포지터가 '항상 위'를 무시하고 창 위치도 스스로 정합니다. XWayland로 실행하면 미니 플레이어와 데스크톱 가사가 위에, 놓은 자리에 그대로 머뭅니다. 분수 배율에서는 글자가 조금 덜 선명할 수 있습니다.",
+      "nextStart": "다음에 WaveFlow를 시작할 때 적용됩니다.",
+      "active": "켜짐: WaveFlow가 XWayland로 실행 중입니다.",
+      "setByUser": "환경의 GDK_BACKEND 변수로 지정되어 있습니다."
     }
   },
   "scanProgress": {

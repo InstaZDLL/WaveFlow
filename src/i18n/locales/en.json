@@ -1430,7 +1430,8 @@
     "lyrics": {
       "empty": "No lyrics for this track"
     },
-    "dragHandle": "Drag to move · Double-click to restore size and position"
+    "dragHandle": "Drag to move · Double-click to restore size and position",
+    "pinWayland": "Always on top: ignored on Wayland. Turn on \"Run through XWayland\" in Settings → Appearance → Player and window."
   },
   "window": {
     "minimize": "Minimise",
@@ -2686,7 +2687,7 @@
     },
     "desktopLyrics": {
       "subtitle": "A floating window above your other apps that shows the line being sung.",
-      "waylandNote": "On Wayland (GNOME in particular), the window is not kept above other apps or where you place it. To keep it on top, start WaveFlow with GDK_BACKEND=x11.",
+      "waylandNote": "On Wayland, the window is kept neither above other apps nor where you place it. For that, turn on \"Run through XWayland\" in Settings → Appearance → Player and window.",
       "previewSung": "Lyrics that follow",
       "previewUnsung": "the song",
       "fontSize": "Text size",
@@ -2728,6 +2729,13 @@
         "dop": "DoP",
         "unknown": "unknown format"
       }
+    },
+    "xwayland": {
+      "title": "Run through XWayland",
+      "subtitle": "On Wayland, the compositor ignores \"always on top\" and decides alone where windows go. Through XWayland, the mini-player and the desktop lyrics stay on top and where you put them; text can be slightly less crisp with fractional scaling.",
+      "nextStart": "Takes effect the next time WaveFlow starts.",
+      "active": "On: WaveFlow is running through XWayland.",
+      "setByUser": "Set by the GDK_BACKEND variable in your environment."
     }
   },
   "scanProgress": {

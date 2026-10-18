@@ -1430,7 +1430,8 @@
     "lyrics": {
       "empty": "Kein Songtext für diesen Titel"
     },
-    "dragHandle": "Ziehen zum Verschieben · Doppelklick setzt Größe und Position zurück"
+    "dragHandle": "Ziehen zum Verschieben · Doppelklick setzt Größe und Position zurück",
+    "pinWayland": "Immer im Vordergrund: unter Wayland ignoriert. Aktiviere „Über XWayland ausführen“ unter Einstellungen → Darstellung → Player und Fenster."
   },
   "window": {
     "minimize": "Minimieren",
@@ -2686,7 +2687,7 @@
     },
     "desktopLyrics": {
       "subtitle": "Ein schwebendes Fenster über deinen anderen Apps, das die gerade gesungene Zeile zeigt.",
-      "waylandNote": "Unter Wayland (vor allem GNOME) bleibt das Fenster weder über anderen Apps noch dort, wo du es platzierst. Damit es im Vordergrund bleibt, starte WaveFlow mit GDK_BACKEND=x11.",
+      "waylandNote": "Unter Wayland bleibt das Fenster weder über anderen Apps noch dort, wo du es platzierst. Dafür aktiviere „Über XWayland ausführen“ unter Einstellungen → Darstellung → Player und Fenster.",
       "previewSung": "Songtext, der dem Lied",
       "previewUnsung": "folgt",
       "fontSize": "Textgröße",
@@ -2728,6 +2729,13 @@
         "dop": "DoP",
         "unknown": "unbekanntes Format"
       }
+    },
+    "xwayland": {
+      "title": "Über XWayland ausführen",
+      "subtitle": "Unter Wayland ignoriert der Compositor „Immer im Vordergrund“ und entscheidet allein, wo Fenster liegen. Über XWayland bleiben Mini-Player und Desktop-Songtexte im Vordergrund und an ihrem Platz; Text kann bei gebrochener Skalierung etwas weniger scharf sein.",
+      "nextStart": "Wirkt beim nächsten Start von WaveFlow.",
+      "active": "Aktiv: WaveFlow läuft über XWayland.",
+      "setByUser": "Vorgegeben durch die Variable GDK_BACKEND in deiner Umgebung."
     }
   },
   "scanProgress": {
