@@ -39,7 +39,7 @@ pub struct HomeSuggestion {
     pub track: Track,
     /// Forgotten: qualified plays, all time.
     pub plays: Option<i64>,
-    /// Forgotten: the last qualified play, in ms.
+    /// Forgotten: the last play of any length, in ms.
     pub last_played_at: Option<i64>,
     /// Vibe: the recently played artist the pick comes from.
     pub anchor_artist: Option<String>,
@@ -145,17 +145,21 @@ pub async fn get_home_suggestion(
 }
 
 /// Played through at least [`FORGOTTEN_MIN_PLAYS`] times, and not at all
-/// for [`FORGOTTEN_IDLE_DAYS`]; the most played first.
+/// for [`FORGOTTEN_IDLE_DAYS`]; the most played first. Only qualified plays
+/// are counted, but any play, a skip included, makes the track recent: one
+/// skipped last week has not been forgotten.
 async fn forgotten(pool: &SqlitePool, now_ms: i64) -> AppResult<Vec<Candidate>> {
     let rows: Vec<(i64, Option<i64>, i64, i64)> = sqlx::query_as(
         r#"
-        SELECT pe.track_id, t.primary_artist, COUNT(*) AS plays, MAX(pe.played_at) AS last_played
+        SELECT pe.track_id, t.primary_artist,
+               SUM(CASE WHEN pe.completed = 1 OR pe.listened_ms >= ?1 THEN 1 ELSE 0 END)
+                   AS plays,
+               MAX(pe.played_at) AS last_played
           FROM play_event pe
           JOIN track t ON t.id = pe.track_id
          WHERE t.is_available = 1
-           AND (pe.completed = 1 OR pe.listened_ms >= ?1)
          GROUP BY pe.track_id
-        HAVING COUNT(*) >= ?2 AND MAX(pe.played_at) < ?3
+        HAVING plays >= ?2 AND last_played < ?3
          ORDER BY plays DESC, last_played ASC, pe.track_id
          LIMIT ?4
         "#,

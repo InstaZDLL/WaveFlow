@@ -9,7 +9,7 @@ export interface HomeSuggestion {
   track: Track;
   /** Forgotten: plays that counted, all time. */
   plays: number | null;
-  /** Forgotten: the last of them, in ms. */
+  /** Forgotten: the last play of any length, a skip included, in ms. */
   lastPlayedAt: number | null;
   /** Vibe: the recently played artist the pick comes from. */
   anchorArtist: string | null;
