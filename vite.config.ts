@@ -6,7 +6,6 @@ import { createReadStream, existsSync, statSync } from "node:fs";
 import { extname, join, normalize, sep } from "node:path";
 import type { Plugin } from "vite";
 
-// @ts-expect-error process is a nodejs global
 const host = process.env.TAURI_DEV_HOST;
 
 /**
@@ -49,7 +48,9 @@ function prototypeAssets(): Plugin {
           types[extname(file)] ?? "application/octet-stream",
         );
         res.setHeader("Cache-Control", "no-cache");
-        createReadStream(file).pipe(res);
+        // A read that fails mid-way (file replaced by a regeneration run)
+        // surfaces as a 500 through Vite rather than a hung response.
+        createReadStream(file).on("error", next).pipe(res);
       });
     },
   };

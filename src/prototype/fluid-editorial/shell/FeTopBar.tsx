@@ -44,6 +44,7 @@ export function FeTopBar({
           type="button"
           className="fe-icon-btn ml-1 h-8 w-8"
           aria-label={copy.topbar.sidebar}
+          aria-expanded={!collapsed}
           onClick={onToggleSidebar}
         >
           {collapsed ? (

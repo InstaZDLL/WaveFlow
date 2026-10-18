@@ -57,14 +57,23 @@ export function Mosaic({ covers, palette, className = "" }: MosaicProps) {
   const cells = [0, 1, 2, 3].map(
     (i) => covers[i] ?? covers[i % Math.max(covers.length, 1)] ?? null,
   );
+  // Same rule as `Cover`: a cell whose image fails shows the gradient.
+  const [failed, setFailed] = useState<Set<string>>(() => new Set());
   return (
     <div
       className={`fe-tile grid grid-cols-2 grid-rows-2 ${className}`}
       aria-hidden="true"
     >
       {cells.map((c, i) =>
-        c ? (
-          <img key={i} src={c} alt="" loading="lazy" decoding="async" />
+        c && !failed.has(c) ? (
+          <img
+            key={i}
+            src={c}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            onError={() => setFailed((f) => new Set(f).add(c))}
+          />
         ) : (
           <div key={i} style={{ backgroundImage: fallbackGradient(palette) }} />
         ),

@@ -354,6 +354,17 @@ const fixtures = {
   ),
 };
 
+// The page is composed around the last play and the most played
+// record: a profile with neither cannot drive it, and an empty JSON
+// would only move the failure to the first render.
+if (fixtures.recentPlays.length === 0 || fixtures.topAlbums.length === 0) {
+  db.close();
+  rmSync(snap, { recursive: true, force: true });
+  throw new Error(
+    `${profileDir}: no play history with artwork — pick a profile that has listened to something`,
+  );
+}
+
 await Bun.write(fixturesOut, JSON.stringify(fixtures, null, 2) + "\n");
 db.close();
 rmSync(snap, { recursive: true, force: true });
