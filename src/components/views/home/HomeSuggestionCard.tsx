@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 import { Loader2, Play, Shuffle } from "lucide-react";
 import { useProfile } from "../../../hooks/useProfile";
@@ -6,6 +6,7 @@ import { useSuggestionDraw } from "../../../hooks/useSuggestionDraw";
 import {
   getHomeSuggestion,
   localDayIndex,
+  pinSuggestion,
   type HomeSuggestion,
 } from "../../../lib/tauri/homeSuggestion";
 import { playerPlayTracks } from "../../../lib/tauri/player";
@@ -45,38 +46,77 @@ export function HomeSuggestionCard({
   const { activeProfile } = useProfile();
   const profileId = activeProfile?.id ?? null;
   const draw = useSuggestionDraw();
-  const today = localDayIndex(new Date());
-  // A draw from another day is spent: the day starts over at 0.
-  const attempt = draw.value.day === today ? draw.value.attempt : 0;
+  const setDraw = draw.setValue;
 
-  // Each result carries the profile it was asked for, and shows only while
-  // that profile is active: after a switch, the outgoing profile's track
-  // must not stay on screen while the new one loads, or for good if that
-  // load fails.
+  // The calendar day, moved on at local midnight so a Home left open
+  // overnight draws the new day's suggestion.
+  const [today, setToday] = useState(() => localDayIndex(new Date()));
+  useEffect(() => {
+    const now = new Date();
+    const midnight = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate() + 1,
+    );
+    const timer = window.setTimeout(
+      () => setToday(localDayIndex(new Date())),
+      midnight.getTime() - now.getTime() + 1_000,
+    );
+    return () => window.clearTimeout(timer);
+  }, [today]);
+
+  // A draw from another day is spent: the day starts over at 0, with
+  // nothing pinned.
+  const sameDay = draw.value.day === today;
+  const attempt = sameDay ? draw.value.attempt : 0;
+  const pinned = sameDay ? draw.value.pinned : null;
+
+  // Each result carries the profile and the day it was asked for, and
+  // shows only while both still hold: after a profile switch the outgoing
+  // profile's track must not stay on screen, nor yesterday's after
+  // midnight, while the new one loads (or for good if that load fails).
+  // A click on "Another suggestion" keeps the current card until the next
+  // arrives, rather than hiding it for the length of the call.
   const [loaded, setLoaded] = useState<{
     profileId: number;
+    day: number;
     suggestion: HomeSuggestion | null;
   } | null>(null);
   const [starting, setStarting] = useState(false);
+  // Bumped by each load and by "Another suggestion": a response that is
+  // not the latest request's is dropped at once. The effect's cleanup
+  // alone runs only after the next render, and a load landing in between
+  // would write its old draw back over the click.
+  const requestRef = useRef(0);
 
   useEffect(() => {
     if (!draw.ready || profileId == null) return;
     let cancelled = false;
-    getHomeSuggestion(today, attempt)
+    const request = ++requestRef.current;
+    const stale = () => cancelled || request !== requestRef.current;
+    getHomeSuggestion(today, attempt, pinned)
       .then((next) => {
-        if (!cancelled) setLoaded({ profileId, suggestion: next });
+        if (stale()) return;
+        setLoaded({ profileId, day: today, suggestion: next });
+        // Keep a new draw, so the same track comes back for the rest of
+        // the day even once played (it would no longer qualify).
+        if (next && next.track.id !== pinned?.trackId) {
+          void setDraw({ day: today, attempt, pinned: pinSuggestion(next) });
+        }
       })
       .catch((err) => {
         console.error("[HomeSuggestionCard] suggestion failed", err);
-        if (!cancelled) setLoaded({ profileId, suggestion: null });
+        if (!stale()) setLoaded({ profileId, day: today, suggestion: null });
       });
     return () => {
       cancelled = true;
     };
-  }, [draw.ready, profileId, today, attempt]);
+  }, [draw.ready, profileId, today, attempt, pinned, setDraw]);
 
   const suggestion =
-    loaded && loaded.profileId === profileId ? loaded.suggestion : null;
+    loaded && loaded.profileId === profileId && loaded.day === today
+      ? loaded.suggestion
+      : null;
   if (!suggestion) return null;
   const { track } = suggestion;
 
@@ -93,7 +133,8 @@ export function HomeSuggestionCard({
   };
 
   const handleAnother = () => {
-    void draw.setValue({ day: today, attempt: attempt + 1 });
+    requestRef.current += 1;
+    void setDraw({ day: today, attempt: attempt + 1, pinned: null });
   };
 
   const monthYear = (ms: number) =>

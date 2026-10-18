@@ -19,18 +19,31 @@ export interface HomeSuggestion {
   addedAt: number | null;
 }
 
+/** A suggestion as kept for its day: the track id instead of the track. */
+export type PinnedSuggestion = Omit<HomeSuggestion, "track"> & {
+  trackId: number;
+};
+
+export function pinSuggestion(suggestion: HomeSuggestion): PinnedSuggestion {
+  const { track, ...rest } = suggestion;
+  return { ...rest, trackId: track.id };
+}
+
 /**
  * Home's suggestion for `day` after `attempt` clicks on "Another
- * suggestion": the same pair always gives the same track. `null` when the
- * library has nothing to suggest.
+ * suggestion". `pinned`, the suggestion this pair already gave, comes back
+ * as long as its track is available; otherwise a new draw is made. `null`
+ * when the library has nothing to suggest.
  */
 export function getHomeSuggestion(
   day: number,
   attempt: number,
+  pinned: PinnedSuggestion | null,
 ): Promise<HomeSuggestion | null> {
   return invoke<HomeSuggestion | null>("get_home_suggestion", {
     day,
     attempt,
+    pinned,
   });
 }
 
@@ -41,25 +54,66 @@ export function localDayIndex(date: Date): number {
   );
 }
 
-/** Which draw Home is on: the day it was made and the clicks since. */
+/**
+ * Which draw Home is on: the day it was made, the clicks since, and the
+ * suggestion it gave, so the same track comes back all day even once it
+ * has been played and no longer qualifies.
+ */
 export interface SuggestionDraw {
   day: number;
   attempt: number;
+  pinned: PinnedSuggestion | null;
 }
 
 export const SUGGESTION_DRAW_KEY = "home.suggestion_draw";
-export const DEFAULT_SUGGESTION_DRAW: SuggestionDraw = { day: 0, attempt: 0 };
+export const DEFAULT_SUGGESTION_DRAW: SuggestionDraw = {
+  day: 0,
+  attempt: 0,
+  pinned: null,
+};
+
+const KINDS: readonly SuggestionKind[] = ["forgotten", "vibe", "unplayed"];
+
+function numberOrNull(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function parsePinned(value: unknown): PinnedSuggestion | null {
+  if (!value || typeof value !== "object") return null;
+  const v = value as Record<string, unknown>;
+  if (
+    !KINDS.includes(v.kind as SuggestionKind) ||
+    !Number.isInteger(v.trackId)
+  ) {
+    return null;
+  }
+  return {
+    kind: v.kind as SuggestionKind,
+    trackId: v.trackId as number,
+    plays: numberOrNull(v.plays),
+    lastPlayedAt: numberOrNull(v.lastPlayedAt),
+    anchorArtist: typeof v.anchorArtist === "string" ? v.anchorArtist : null,
+    artistPlays: numberOrNull(v.artistPlays),
+    addedAt: numberOrNull(v.addedAt),
+  };
+}
 
 export function parseSuggestionDraw(raw: string | null): SuggestionDraw {
   if (!raw) return DEFAULT_SUGGESTION_DRAW;
   try {
-    const value = JSON.parse(raw) as Partial<SuggestionDraw>;
+    const value = JSON.parse(raw) as Partial<
+      Record<keyof SuggestionDraw, unknown>
+    >;
     if (
       Number.isInteger(value.day) &&
       Number.isInteger(value.attempt) &&
       (value.attempt as number) >= 0
     ) {
-      return { day: value.day as number, attempt: value.attempt as number };
+      return {
+        day: value.day as number,
+        attempt: value.attempt as number,
+        pinned: parsePinned(value.pinned),
+      };
     }
   } catch {
     // A corrupt value is the default: the day's first suggestion.

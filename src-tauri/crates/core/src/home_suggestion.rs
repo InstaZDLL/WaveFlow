@@ -20,7 +20,7 @@
 //! artist cap, the distance to the recent listening — so it can be tested
 //! against values. The queries are the app's (`commands::home_suggestion`).
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 /// Plays that count: played through, or for at least 15 s. The same rule
 /// as the recently-played list, so a track skipped after two seconds is
@@ -45,7 +45,7 @@ pub const SHORTLIST_PER_ARTIST: usize = 2;
 
 pub const DAY_MS: i64 = 86_400_000;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum SuggestionKind {
     Forgotten,

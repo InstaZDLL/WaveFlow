@@ -8,7 +8,7 @@
 
 use std::collections::HashMap;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 use waveflow_core::{
     home_suggestion::{
@@ -49,6 +49,22 @@ pub struct HomeSuggestion {
     pub added_at: Option<i64>,
 }
 
+/// A suggestion already shown for this day and click count, kept by the
+/// frontend (`home.suggestion_draw`) and handed back so the same track
+/// comes back: once played, it no longer qualifies for its kind, and a
+/// fresh draw would replace it the next time Home opens.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PinnedSuggestion {
+    kind: SuggestionKind,
+    track_id: i64,
+    plays: Option<i64>,
+    last_played_at: Option<i64>,
+    anchor_artist: Option<String>,
+    artist_plays: Option<i64>,
+    added_at: Option<i64>,
+}
+
 /// What the shortlist query of a kind found for one track.
 #[derive(Debug, Clone, Default)]
 struct Candidate {
@@ -64,15 +80,43 @@ struct Candidate {
 /// Home's suggestion for `day` (days since the epoch in the user's time
 /// zone) after `attempt` clicks on "Another suggestion". `None` when no
 /// kind has anything to offer, an empty library for one.
+///
+/// `pinned` is the suggestion this day and click count already gave: it
+/// is returned again, with its reason as first drawn, as long as its
+/// track is still available. Only otherwise is a new draw made.
 #[tauri::command]
 pub async fn get_home_suggestion(
     state: tauri::State<'_, AppState>,
     day: i64,
     attempt: u32,
+    pinned: Option<PinnedSuggestion>,
 ) -> AppResult<Option<HomeSuggestion>> {
     let (pool, profile_id) = state.require_profile_pool_with_id(None).await?;
-    let now_ms = chrono::Utc::now().timestamp_millis();
+    let artwork_dir = state.paths.profile_artwork_dir(profile_id);
+    let repo = SqliteTrackRepository::new((*pool).clone());
 
+    if let Some(pin) = pinned {
+        let available: Option<i64> =
+            sqlx::query_scalar("SELECT 1 FROM track WHERE id = ? AND is_available = 1")
+                .bind(pin.track_id)
+                .fetch_optional(&*pool)
+                .await?;
+        if available.is_some() {
+            if let Some(row) = repo.get(pin.track_id).await? {
+                return Ok(Some(HomeSuggestion {
+                    kind: pin.kind,
+                    track: track_from_row(row, &artwork_dir),
+                    plays: pin.plays,
+                    last_played_at: pin.last_played_at,
+                    anchor_artist: pin.anchor_artist,
+                    artist_plays: pin.artist_plays,
+                    added_at: pin.added_at,
+                }));
+            }
+        }
+    }
+
+    let now_ms = chrono::Utc::now().timestamp_millis();
     for kind in kind_order(day, attempt) {
         let candidates = match kind {
             SuggestionKind::Forgotten => forgotten(&pool, now_ms).await?,
@@ -83,13 +127,10 @@ pub async fn get_home_suggestion(
             continue;
         }
         let pick = candidates[pick_index(candidates.len(), day, attempt, kind)].clone();
-        let Some(row) = SqliteTrackRepository::new((*pool).clone())
-            .get(pick.track_id)
-            .await?
-        else {
+        let Some(row) = repo.get(pick.track_id).await? else {
             continue;
         };
-        let track = track_from_row(row, &state.paths.profile_artwork_dir(profile_id));
+        let track = track_from_row(row, &artwork_dir);
         return Ok(Some(HomeSuggestion {
             kind,
             track,
