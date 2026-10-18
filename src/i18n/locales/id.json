@@ -1417,7 +1417,8 @@
     "lyrics": {
       "empty": "Tidak ada lirik untuk lagu ini"
     },
-    "dragHandle": "Seret untuk memindahkan · Klik dua kali untuk memulihkan ukuran dan posisi"
+    "dragHandle": "Seret untuk memindahkan · Klik dua kali untuk memulihkan ukuran dan posisi",
+    "pinWayland": "Selalu di atas: diabaikan di Wayland. Aktifkan \"Jalankan lewat XWayland\" di Pengaturan → Tampilan → Pemutar dan jendela."
   },
   "window": {
     "minimize": "Minimalkan",
@@ -2640,7 +2641,7 @@
     },
     "desktopLyrics": {
       "subtitle": "Jendela mengambang di atas aplikasi lain yang menampilkan baris yang sedang dinyanyikan.",
-      "waylandNote": "Di Wayland (terutama GNOME), jendela tidak dijaga tetap di atas aplikasi lain atau di tempat kamu meletakkannya. Agar tetap di atas, jalankan WaveFlow dengan GDK_BACKEND=x11.",
+      "waylandNote": "Di Wayland, jendela tidak tetap di atas aplikasi lain dan tidak tetap di tempat Anda meletakkannya. Untuk itu, aktifkan \"Jalankan lewat XWayland\" di Pengaturan → Tampilan → Pemutar dan jendela.",
       "previewSung": "Lirik yang mengikuti",
       "previewUnsung": "lagu",
       "fontSize": "Ukuran teks",
@@ -2654,6 +2655,13 @@
       "showNextLine": "Tampilkan baris berikutnya",
       "showProgress": "Tampilkan bilah progres",
       "hideOnPause": "Sembunyikan saat dijeda"
+    },
+    "xwayland": {
+      "title": "Jalankan lewat XWayland",
+      "subtitle": "Di Wayland, compositor mengabaikan \"selalu di atas\" dan menentukan sendiri letak jendela. Lewat XWayland, pemutar mini dan lirik desktop tetap di atas dan di tempatnya; teks bisa sedikit kurang tajam dengan penskalaan pecahan.",
+      "nextStart": "Berlaku saat WaveFlow dibuka berikutnya.",
+      "active": "Aktif: WaveFlow berjalan lewat XWayland.",
+      "setByUser": "Ditentukan oleh variabel GDK_BACKEND di lingkungan Anda."
     }
   },
   "scanProgress": {

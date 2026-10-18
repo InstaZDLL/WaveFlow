@@ -189,6 +189,7 @@ import { ScrollTitlesCard } from "./settings/ScrollTitlesCard";
 import { WindowBoundsCard } from "./settings/WindowBoundsCard";
 import { MiniPlayerBoundsCard } from "./settings/MiniPlayerBoundsCard";
 import { WindowChromeCard } from "./settings/WindowChromeCard";
+import { XwaylandCard } from "./settings/XwaylandCard";
 import { LyricsDestinationCard } from "./settings/LyricsDestinationCard";
 import { UpdateChannelCard } from "./settings/UpdateChannelCard";
 import { ListenBrainzCard } from "./settings/ListenBrainzCard";
@@ -3070,6 +3071,7 @@ export function SettingsView({
                 <WindowBoundsCard />
                 <MiniPlayerBoundsCard />
                 <WindowChromeCard />
+                <XwaylandCard />
               </SettingsGroup>
               <SettingsGroup
                 id="immersive"

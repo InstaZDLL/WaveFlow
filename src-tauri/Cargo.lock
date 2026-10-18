@@ -7744,6 +7744,7 @@ dependencies = [
  "objc2-core-audio",
  "objc2-core-audio-types",
  "quick-xml",
+ "raw-window-handle",
  "realfft",
  "regex",
  "reqwest 0.12.28",

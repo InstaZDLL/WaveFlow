@@ -1417,7 +1417,8 @@
     "lyrics": {
       "empty": "Geen songtekst voor dit nummer"
     },
-    "dragHandle": "Slepen om te verplaatsen · Dubbelklik om formaat en positie te herstellen"
+    "dragHandle": "Slepen om te verplaatsen · Dubbelklik om formaat en positie te herstellen",
+    "pinWayland": "Altijd bovenop: genegeerd onder Wayland. Zet 'Via XWayland draaien' aan in Instellingen → Weergave → Speler en venster."
   },
   "window": {
     "minimize": "Minimaliseren",
@@ -2640,7 +2641,7 @@
     },
     "desktopLyrics": {
       "subtitle": "Een zwevend venster boven je andere apps dat de regel toont die gezongen wordt.",
-      "waylandNote": "Onder Wayland (vooral GNOME) blijft het venster niet boven andere apps of op de plek waar je het neerzet. Start WaveFlow met GDK_BACKEND=x11 om het bovenaan te houden.",
+      "waylandNote": "Onder Wayland blijft het venster niet boven andere apps en niet waar je het neerzet. Zet daarvoor 'Via XWayland draaien' aan in Instellingen → Weergave → Speler en venster.",
       "previewSung": "Songtekst die het nummer",
       "previewUnsung": "volgt",
       "fontSize": "Tekstgrootte",
@@ -2654,6 +2655,13 @@
       "showNextLine": "Volgende regel tonen",
       "showProgress": "Voortgangsbalk tonen",
       "hideOnPause": "Verbergen bij pauze"
+    },
+    "xwayland": {
+      "title": "Via XWayland draaien",
+      "subtitle": "Onder Wayland negeert de compositor 'altijd bovenop' en bepaalt zelf waar vensters komen. Via XWayland blijven de minispeler en de bureaubladsongteksten bovenop en op hun plek; tekst kan bij fractionele schaling iets minder scherp zijn.",
+      "nextStart": "Gaat in bij de volgende start van WaveFlow.",
+      "active": "Aan: WaveFlow draait via XWayland.",
+      "setByUser": "Vastgelegd door de variabele GDK_BACKEND in je omgeving."
     }
   },
   "scanProgress": {

@@ -25,6 +25,7 @@ pub mod years;
 // the server account binding, so it carries the same gate — it used to
 // stay ungated because the Spotify handshake needed it in a build
 // without sync, and that consumer is gone.
+pub mod display_backend;
 #[cfg(feature = "sync_v2")]
 pub mod loopback;
 pub mod lyrics;

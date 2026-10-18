@@ -1417,7 +1417,8 @@
     "lyrics": {
       "empty": "此曲目沒有歌詞"
     },
-    "dragHandle": "拖曳以移動 · 按兩下還原大小和位置"
+    "dragHandle": "拖曳以移動 · 按兩下還原大小和位置",
+    "pinWayland": "永遠在最上層：在 Wayland 下無效。請在 設定 → 外觀 → 播放器與視窗 中開啟「透過 XWayland 執行」。"
   },
   "window": {
     "minimize": "最小化",
@@ -2640,7 +2641,7 @@
     },
     "desktopLyrics": {
       "subtitle": "懸浮在其他應用程式上方、顯示正在演唱歌詞的視窗。",
-      "waylandNote": "在 Wayland（尤其是 GNOME）下，視窗不會保持在其他應用程式之上，也不會停留在你放置的位置。若要讓它保持在最上層，請以 GDK_BACKEND=x11 啟動 WaveFlow。",
+      "waylandNote": "在 Wayland 下，視窗既不會停在其他應用程式之上，也不會停在你放置的位置。如需如此，請在 設定 → 外觀 → 播放器與視窗 中開啟「透過 XWayland 執行」。",
       "previewSung": "跟著歌曲的",
       "previewUnsung": "歌詞",
       "fontSize": "文字大小",
@@ -2654,6 +2655,13 @@
       "showNextLine": "顯示下一行",
       "showProgress": "顯示進度列",
       "hideOnPause": "暫停時隱藏"
+    },
+    "xwayland": {
+      "title": "透過 XWayland 執行",
+      "subtitle": "在 Wayland 下，合成器會忽略「永遠在最上層」，並自行決定視窗位置。透過 XWayland 執行後，迷你播放器和桌面歌詞會保持在最上層並停在你放置的位置；使用分數縮放時文字可能略不清晰。",
+      "nextStart": "將在下次啟動 WaveFlow 時生效。",
+      "active": "已啟用：WaveFlow 正透過 XWayland 執行。",
+      "setByUser": "由你環境中的 GDK_BACKEND 變數決定。"
     }
   },
   "scanProgress": {
