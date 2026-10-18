@@ -13,6 +13,7 @@
 pub mod album_playback;
 pub mod analysis;
 pub mod artwork;
+pub mod atomic_write;
 pub mod audio_format;
 pub mod domain;
 pub mod error;

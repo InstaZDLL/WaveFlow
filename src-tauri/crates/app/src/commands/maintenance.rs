@@ -474,7 +474,6 @@ async fn safety_backup_all_profiles(state: &AppState) -> Option<PathBuf> {
             "pre-reset-{}-{profile_id}-{stamp}.waveflow",
             sanitize_filename(&profile_name)
         ));
-        let tmp_target = final_target.with_extension("part");
         let snapshot_db = final_target.with_extension("dbtmp");
 
         // 1. Snapshot the db with `VACUUM INTO` instead of raw-copying the
@@ -511,16 +510,16 @@ async fn safety_backup_all_profiles(state: &AppState) -> Option<PathBuf> {
             exported_at: Utc::now().to_rfc3339(),
         };
 
-        // 2. Archive the SNAPSHOT (not the live db) + artwork into a temp
-        //    `.part` sibling, renamed to the final name only on success so
-        //    a failed/interrupted write never leaves a truncated file that
-        //    looks like a valid backup (same dir → atomic rename).
+        // 2. Archive the SNAPSHOT (not the live db) + artwork.
+        //    `write_archive` goes through a `.partial` sibling renamed to
+        //    the final name only on success, so a failed/interrupted write
+        //    never leaves a truncated file that looks like a valid backup.
         let write_res = tokio::task::spawn_blocking({
-            let tmp_target = tmp_target.clone();
+            let final_target = final_target.clone();
             let snapshot_db = snapshot_db.clone();
             move || {
                 write_archive(
-                    &tmp_target,
+                    &final_target,
                     &profile_dir,
                     &snapshot_db,
                     &artwork_dir,
@@ -535,22 +534,13 @@ async fn safety_backup_all_profiles(state: &AppState) -> Option<PathBuf> {
         let _ = std::fs::remove_file(&snapshot_db);
 
         match write_res {
-            Ok(Ok(())) => {
-                match std::fs::rename(&tmp_target, &final_target) {
-                    Ok(()) => written += 1,
-                    Err(err) => {
-                        tracing::warn!(?err, profile_id, "pre-reset safety backup: could not finalize archive; discarding partial");
-                        let _ = std::fs::remove_file(&tmp_target);
-                    }
-                }
-            }
+            Ok(Ok(())) => written += 1,
             Ok(Err(err)) => {
                 tracing::warn!(
                     ?err,
                     profile_id,
                     "pre-reset safety backup: archive failed for profile"
                 );
-                let _ = std::fs::remove_file(&tmp_target);
             }
             Err(err) => {
                 tracing::warn!(
@@ -558,7 +548,6 @@ async fn safety_backup_all_profiles(state: &AppState) -> Option<PathBuf> {
                     profile_id,
                     "pre-reset safety backup: task join failed for profile"
                 );
-                let _ = std::fs::remove_file(&tmp_target);
             }
         }
     }

@@ -353,6 +353,12 @@ async fn cleanup_partial_profile(state: &AppState, profile_id: i64) {
 // is bundled under `metadata_artwork/**` so a restore on another machine
 // doesn't have to re-fetch every cover. When `None`, the archive stays
 // lean and the cache will be rebuilt lazily after restore.
+//
+// Written to `<target>.partial` and renamed over `target` only once the
+// archive is complete. Writing in place truncated the destination first,
+// so an export over an existing archive that failed halfway destroyed
+// the copy the user already had, and an automatic backup cut short left
+// an archive-shaped file that retention then kept as the newest backup.
 pub(crate) fn write_archive(
     target: &Path,
     profile_dir: &Path,
@@ -361,10 +367,26 @@ pub(crate) fn write_archive(
     metadata_artwork_dir: Option<&Path>,
     manifest: &ArchiveManifest,
 ) -> AppResult<()> {
-    if let Some(parent) = target.parent() {
-        std::fs::create_dir_all(parent)?;
-    }
-    let file = File::create(target)?;
+    waveflow_core::atomic_write::write_with(target, |file| {
+        write_archive_into(
+            file,
+            profile_dir,
+            db_path,
+            artwork_dir,
+            metadata_artwork_dir,
+            manifest,
+        )
+    })
+}
+
+fn write_archive_into(
+    file: &mut File,
+    profile_dir: &Path,
+    db_path: &Path,
+    artwork_dir: &Path,
+    metadata_artwork_dir: Option<&Path>,
+    manifest: &ArchiveManifest,
+) -> AppResult<()> {
     let mut zip = ZipWriter::new(file);
 
     let opts: SimpleFileOptions = SimpleFileOptions::default()
