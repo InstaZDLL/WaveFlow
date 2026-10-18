@@ -7,6 +7,7 @@ import {
   getHomeSuggestion,
   localDayIndex,
   pinSuggestion,
+  type PinnedSuggestion,
   type HomeSuggestion,
 } from "../../../lib/tauri/homeSuggestion";
 import { playerPlayTracks } from "../../../lib/tauri/player";
@@ -93,19 +94,31 @@ export function HomeSuggestionCard({
   // alone runs only after the next render, and a load landing in between
   // would write its old draw back over the click.
   const requestRef = useRef(0);
+  // The suggestion this card drew for a profile, day and click count,
+  // kept here as well as in the setting. When storing it fails, the
+  // setting hook rolls the draw back; asking again with the stored pin
+  // alone would draw anew, try to store that, fail and roll back, over
+  // and over for as long as the database refuses writes. With this one
+  // handed back instead, the same track returns and nothing is written,
+  // so the card keeps what it showed and the loop never starts.
+  const drawnRef = useRef<{ key: string; pin: PinnedSuggestion } | null>(null);
 
   useEffect(() => {
     if (!draw.ready || profileId == null || foreignDraw) return;
     let cancelled = false;
     const request = ++requestRef.current;
     const stale = () => cancelled || request !== requestRef.current;
-    getHomeSuggestion(today, attempt, pinned)
+    const key = `${profileId}:${today}:${attempt}`;
+    const drawn = drawnRef.current?.key === key ? drawnRef.current.pin : null;
+    const pin = pinned ?? drawn;
+    getHomeSuggestion(today, attempt, pin)
       .then((next) => {
         if (stale()) return;
         setLoaded({ profileId, day: today, suggestion: next });
+        if (next) drawnRef.current = { key, pin: pinSuggestion(next) };
         // Keep a new draw, so the same track comes back for the rest of
         // the day even once played (it would no longer qualify).
-        if (next && next.track.id !== pinned?.trackId) {
+        if (next && next.track.id !== pin?.trackId) {
           void setDraw({
             profileId,
             day: today,
