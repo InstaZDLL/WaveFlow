@@ -2,13 +2,58 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { fileURLToPath, URL } from "node:url";
+import { createReadStream, existsSync, statSync } from "node:fs";
+import { extname, join, normalize } from "node:path";
+import type { Plugin } from "vite";
 
 // @ts-expect-error process is a nodejs global
 const host = process.env.TAURI_DEV_HOST;
 
+/**
+ * Serves `prototypes/fluid-editorial/` at `/fluid-proto/` during
+ * `vite dev` only. Design prototypes (`?proto=<name>`, see `src/main.tsx`)
+ * draw on the user's own album art, which must neither enter the
+ * repository nor a build: `prototypes/` is gitignored and sits outside
+ * `public/`, so `vite build` never copies it. Nothing here runs in
+ * production.
+ */
+function prototypeAssets(): Plugin {
+  const root = fileURLToPath(new URL("./prototypes", import.meta.url));
+  const types: Record<string, string> = {
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+    ".webp": "image/webp",
+  };
+  return {
+    name: "waveflow:prototype-assets",
+    apply: "serve",
+    configureServer(server) {
+      server.middlewares.use("/fluid-proto", (req, res, next) => {
+        const rel = decodeURIComponent((req.url ?? "/").split("?")[0]);
+        const file = normalize(join(root, "fluid-editorial", rel));
+        if (
+          !file.startsWith(root) ||
+          !existsSync(file) ||
+          !statSync(file).isFile()
+        ) {
+          next();
+          return;
+        }
+        res.setHeader(
+          "Content-Type",
+          types[extname(file)] ?? "application/octet-stream",
+        );
+        res.setHeader("Cache-Control", "no-cache");
+        createReadStream(file).pipe(res);
+      });
+    },
+  };
+}
+
 // https://vite.dev/config/
 export default defineConfig(async () => ({
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), prototypeAssets()],
 
   resolve: {
     alias: {

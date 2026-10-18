@@ -42,6 +42,14 @@ import "@fontsource-variable/dm-sans/opsz.css";
 import { i18nReady } from "./i18n";
 import { markBundleReady, markI18nReady } from "./lib/startupTiming";
 import { WINDOW_ROLE } from "./lib/windowRole";
+import { FluidEditorialPrototype } from "./prototype/fluid-editorial";
+
+// Design prototypes (`?proto=<name>`) — development builds only. Each one
+// is a lazy chunk mounted *instead of* the app, so the production tree
+// never imports it and `vite build` drops the branch entirely.
+const PROTO = import.meta.env.DEV
+  ? new URLSearchParams(window.location.search).get("proto")
+  : null;
 
 // First statement that runs once the entry module is executing: the
 // document and every static import above are in (#626).
@@ -84,7 +92,11 @@ i18nReady
     );
     root.render(
       <React.StrictMode>
-        {WINDOW_ROLE === "mini" ? (
+        {PROTO === "fluid-editorial" && FluidEditorialPrototype ? (
+          <React.Suspense fallback={null}>
+            <FluidEditorialPrototype />
+          </React.Suspense>
+        ) : WINDOW_ROLE === "mini" ? (
           <MiniPlayerApp />
         ) : WINDOW_ROLE === "lyrics" ? (
           <DesktopLyricsApp />
