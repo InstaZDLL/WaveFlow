@@ -56,8 +56,12 @@ pub struct StreamExtent {
     /// End of the last packet read, or where a seek landed.
     decoded_to: i64,
     /// The longest packet seen, seeded with the codec's declared maximum
-    /// so a seek straight to the tail still has a measure.
+    /// (or a fallback) so a seek straight to the tail still has a measure.
     longest_packet: u64,
+    /// Whether a packet has been read: until then `longest_packet` is the
+    /// seed, and the first real packet replaces it rather than letting a
+    /// generous fallback widen the window for the rest of the track.
+    measured: bool,
 }
 
 impl StreamExtent {
@@ -69,12 +73,18 @@ impl StreamExtent {
                 .map(|n| start_ts.saturating_add(n)),
             decoded_to: start_ts,
             longest_packet: packet_len.unwrap_or(0),
+            measured: false,
         }
     }
 
     fn read(&mut self, pts: i64, dur: u64) {
         self.decoded_to = pts.saturating_add(i64::try_from(dur).unwrap_or(i64::MAX));
-        self.longest_packet = self.longest_packet.max(dur);
+        self.longest_packet = if self.measured {
+            self.longest_packet.max(dur)
+        } else {
+            dur
+        };
+        self.measured = true;
     }
 
     fn seeked(&mut self, ts: i64) {
@@ -775,7 +785,6 @@ impl ActiveStream {
                 if packet.track_id != *symphonia_track_id {
                     continue;
                 }
-                extent.read(packet.pts.get(), packet.dur.get());
                 let decoded = match decoder.decode(&packet) {
                     Ok(d) => d,
                     Err(SymphoniaError::DecodeError(e)) => {
@@ -784,6 +793,9 @@ impl ActiveStream {
                     }
                     Err(e) => return Err(format!("decode fatal: {e}")),
                 };
+                // After the decode, not before: a packet skipped as
+                // undecodable is audio that did not play.
+                extent.read(packet.pts.get(), packet.dur.get());
                 if !*spec_captured {
                     let spec = decoded.spec();
                     self.src_channels = spec.channels().count();
@@ -1084,6 +1096,18 @@ mod extent_tests {
         assert!(extent.ends_within_last_packet());
         extent.read(1_000, 96);
         assert!(!extent.ends_within_last_packet());
+    }
+
+    #[test]
+    fn the_seed_gives_way_to_the_first_real_packet() {
+        // A 16 384-frame fallback, then 4 608-frame packets: the window is
+        // one real packet, not the fallback.
+        let mut extent = StreamExtent::new(0, Some(88_200), Some(16_384));
+        extent.read(0, 4_608);
+        extent.read(70_000, 4_608);
+        assert!(!extent.ends_within_last_packet());
+        extent.read(82_944, 4_608);
+        assert!(extent.ends_within_last_packet());
     }
 
     #[test]
