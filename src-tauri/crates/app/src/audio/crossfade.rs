@@ -92,11 +92,14 @@ impl StreamExtent {
     }
 
     /// Whether an unexpected end of file here is the end of the track.
+    ///
+    /// Within one packet either side: a container that declares less than
+    /// it holds and is cut further on is still a truncated file, not one
+    /// that ended past its end.
     fn ends_within_last_packet(&self) -> bool {
         match self.declared_end {
             Some(end) if self.longest_packet > 0 => {
-                end.saturating_sub(self.decoded_to)
-                    <= i64::try_from(self.longest_packet).unwrap_or(i64::MAX)
+                end.abs_diff(self.decoded_to) <= self.longest_packet
             }
             _ => false,
         }
@@ -1128,6 +1131,17 @@ mod extent_tests {
         let mut unknown = StreamExtent::new(0, None, Some(4_608));
         unknown.read(83_000, 4_608);
         assert!(!unknown.ends_within_last_packet());
+    }
+
+    #[test]
+    fn decoding_well_past_the_declared_end_is_not_its_end() {
+        // Declares 88 200 frames, holds more, and is cut at 200 000.
+        let mut extent = StreamExtent::new(0, Some(88_200), Some(4_608));
+        extent.read(195_392, 4_608);
+        assert!(!extent.ends_within_last_packet());
+        // Just past it, within a packet, still is.
+        extent.read(86_000, 4_608);
+        assert!(extent.ends_within_last_packet());
     }
 
     #[test]
