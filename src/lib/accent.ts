@@ -217,6 +217,32 @@ export function scaleFromCover(rgb: {
  */
 export const ACCENT_CACHE_KEY = "waveflow.accent.scale";
 
+const CACHED_STOP = /^oklch\([0-9. ]+\)$/;
+
+/** The scale the bootstrap painted, or `null` when there is none worth
+ *  trusting. Same filter as the bootstrap's. */
+export function readCachedAccent(): AccentScale | null {
+  try {
+    const stops: unknown = JSON.parse(
+      window.localStorage.getItem(ACCENT_CACHE_KEY) ?? "null",
+    );
+    if (
+      !Array.isArray(stops) ||
+      stops.length !== ACCENT_SHADES.length ||
+      !stops.every((s) => typeof s === "string" && CACHED_STOP.test(s))
+    ) {
+      return null;
+    }
+    const scale = {} as AccentScale;
+    ACCENT_SHADES.forEach((shade, i) => {
+      scale[shade] = stops[i] as string;
+    });
+    return scale;
+  } catch {
+    return null;
+  }
+}
+
 export function writeCachedAccent(scale: AccentScale): void {
   try {
     window.localStorage.setItem(

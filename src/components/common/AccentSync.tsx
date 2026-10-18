@@ -22,11 +22,13 @@ import { resolveArtwork } from "../../lib/tauri/artwork";
  *
  * - `custom`: the picked colour's scale.
  * - `cover`: the cover's dominant hue, sampled at the smallest size
- *   (64 px is all the sampler reads). The last cover's scale stays up
- *   while the next one is sampled, rather than flashing the theme's
- *   colour between tracks; a cover with no colour to give, or none at
- *   all, falls back to the theme.
- * - `theme`, or the choice not read yet: no override.
+ *   (64 px is all the sampler reads). The current accent stays up while
+ *   the next cover is sampled, and while no track is loaded, rather than
+ *   flashing the theme's colour in between; a cover with no colour to
+ *   give falls back to the theme.
+ * - `theme`: no override.
+ * - Not read yet: nothing is sent, so the scale the bootstrap restored
+ *   stays.
  */
 export function AccentSync() {
   const { value: choice, ready } = useAccentChoice();
@@ -69,23 +71,26 @@ export function AccentSync() {
     };
   }, [wantsCover, coverUrl]);
 
-  const override = useMemo((): AccentScale | null => {
-    if (!ready) return null;
+  // `undefined` is "no answer yet": what is painted stays, be it the
+  // scale the bootstrap restored or the previous cover's.
+  const override = useMemo((): AccentScale | null | undefined => {
+    if (!ready) return undefined;
     switch (choice.mode) {
       case "custom":
         return scaleFromHex(choice.color);
       case "cover":
-        if (!coverUrl) return null;
-        // Keep showing the previous cover's accent until this one is
-        // sampled; only a sampled answer for this cover replaces it.
-        return coverScale?.scale ?? null;
+        // No track yet (the queue is still being restored at startup),
+        // or this cover not sampled yet: keep the current accent rather
+        // than flash the theme's in between.
+        if (!coverUrl || coverScale?.url !== coverUrl) return undefined;
+        return coverScale.scale;
       default:
         return null;
     }
   }, [ready, choice, coverUrl, coverScale]);
 
   useEffect(() => {
-    setAccentOverride(override);
+    if (override !== undefined) setAccentOverride(override);
   }, [override, setAccentOverride]);
 
   return null;

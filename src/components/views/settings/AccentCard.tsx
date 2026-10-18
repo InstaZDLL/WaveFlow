@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Check, Pipette, Paintbrush } from "lucide-react";
 
@@ -37,6 +38,37 @@ export function AccentCard() {
   const pickColor = (color: string) => {
     void setValue({ mode: "custom", color: color.toLowerCase() });
   };
+
+  // Dragging in the native picker fires a change per step. The input
+  // follows the drag at once; the choice is written once it settles.
+  const [draft, setDraft] = useState<string | null>(null);
+  const settle = useRef<number | null>(null);
+  const pending = useRef<string | null>(null);
+  const flush = () => {
+    if (settle.current !== null) window.clearTimeout(settle.current);
+    settle.current = null;
+    const color = pending.current;
+    pending.current = null;
+    setDraft(null);
+    if (color) pickColor(color);
+  };
+  const dragColor = (color: string) => {
+    setDraft(color);
+    pending.current = color;
+    if (settle.current !== null) window.clearTimeout(settle.current);
+    settle.current = window.setTimeout(flush, 200);
+  };
+  // A choice still pending when the card goes away is written, not lost.
+  useEffect(() => {
+    const timer = settle;
+    const queued = pending;
+    return () => {
+      if (timer.current !== null) window.clearTimeout(timer.current);
+      const color = queued.current;
+      queued.current = null;
+      if (color) void setValue({ mode: "custom", color: color.toLowerCase() });
+    };
+  }, [setValue]);
 
   return (
     <div className="py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
@@ -137,8 +169,8 @@ export function AccentCard() {
               />
               <input
                 type="color"
-                value={choice.color}
-                onChange={(event) => pickColor(event.target.value)}
+                value={draft ?? choice.color}
+                onChange={(event) => dragColor(event.target.value)}
                 aria-label={t("settings.appearance.accent.other")}
                 className="absolute inset-0 opacity-0 cursor-pointer"
               />
