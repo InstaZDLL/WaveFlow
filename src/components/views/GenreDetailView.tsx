@@ -20,6 +20,7 @@ import { PlayingIndicator } from "../common/PlayingIndicator";
 import { usePlayer } from "../../hooks/usePlayer";
 import { useTrackContextMenu } from "../../hooks/useTrackContextMenu";
 import { useTrackUpdated } from "../../hooks/useTrackUpdated";
+import { usePageVirtualizer } from "../../hooks/usePageVirtualizer";
 import { getGenreDetail, type GenreDetail } from "../../lib/tauri/detail";
 import {
   formatDuration,
@@ -263,8 +264,14 @@ export function GenreDetailView({
 
 // ── Track table ─────────────────────────────────────────────────────
 
+/** Row pitch, border included — the 56 px the playlist and library rows
+ *  use, and what a 40 px cover with its padding needed in flow. */
+const DETAIL_ROW_HEIGHT = 56;
+
 /** The track table of a detail page that lists tracks across albums: a
- *  genre, a year. */
+ *  genre, a year. Virtualized against the page scroller, because unlike
+ *  an album neither is small by nature — a genre can be a third of the
+ *  library. */
 export function DetailTrackTable({
   tracks,
   isLoading,
@@ -294,7 +301,13 @@ export function DetailTrackTable({
   onRowMenuKey: (event: React.KeyboardEvent, track: Track) => boolean;
   t: (key: string, opts?: Record<string, unknown>) => string;
 }) {
+  "use no memo";
   const gridCols = "grid-cols-[3rem_2.75rem_1.5fr_1fr_1fr_5rem_2rem]";
+  const { parentRef, virtualizer, scrollMargin } =
+    usePageVirtualizer<HTMLUListElement>({
+      count: tracks.length,
+      estimateSize: () => DETAIL_ROW_HEIGHT,
+    });
   return (
     <div className="rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-800/40 overflow-hidden">
       <div
@@ -315,11 +328,17 @@ export function DetailTrackTable({
       </div>
 
       <ul
-        className={`divide-y divide-zinc-100 dark:divide-zinc-800/60 ${
-          isLoading ? "opacity-50" : ""
-        }`}
+        ref={parentRef}
+        className={isLoading ? "opacity-50" : ""}
+        style={{
+          height: `${virtualizer.getTotalSize()}px`,
+          position: "relative",
+        }}
       >
-        {tracks.map((track, index) => {
+        {virtualizer.getVirtualItems().map((virtualRow) => {
+          const index = virtualRow.index;
+          const track = tracks[index];
+          if (!track) return null;
           const isCurrent = track.id === currentTrackId;
           return (
             // Row can't be a <button> because it contains action
@@ -333,7 +352,7 @@ export function DetailTrackTable({
               onKeyDown={(e) => {
                 // Only play when the row itself is focused — see LibraryView.
                 if (e.target !== e.currentTarget) return;
-                if (onRowMenuKey(e, tracks[index])) return;
+                if (onRowMenuKey(e, track)) return;
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
                   onPlayTrack(index);
@@ -344,7 +363,19 @@ export function DetailTrackTable({
                 if (e.key === " ") e.preventDefault();
               }}
               onContextMenu={(e) => onContextMenuRow(e, track)}
-              className={`grid ${gridCols} gap-4 px-5 py-2 items-center select-none transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500 ${
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: `${virtualRow.size}px`,
+                transform: `translateY(${virtualRow.start - scrollMargin}px)`,
+              }}
+              className={`grid ${gridCols} gap-4 px-5 items-center select-none transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500 ${
+                index < tracks.length - 1
+                  ? "border-b border-zinc-100 dark:border-zinc-800/60"
+                  : ""
+              } ${
                 isCurrent
                   ? "bg-emerald-50 dark:bg-emerald-900/20"
                   : "hover:bg-zinc-50 dark:hover:bg-zinc-800/60"

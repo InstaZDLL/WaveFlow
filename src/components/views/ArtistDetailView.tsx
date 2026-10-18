@@ -27,6 +27,7 @@ import { ShareImageButton } from "../common/ShareImageButton";
 import { renderCollectionCard } from "../../lib/collectionCard";
 import { useTrackContextMenu } from "../../hooks/useTrackContextMenu";
 import { useTrackUpdated } from "../../hooks/useTrackUpdated";
+import { usePageVirtualizer } from "../../hooks/usePageVirtualizer";
 import { useArtistBioCollapsed } from "../../hooks/useArtistBioCollapsed";
 import { useArtistHero } from "../../hooks/useArtistHero";
 import {
@@ -922,6 +923,13 @@ export function ArtistDetailView({
 
 // ── Track table ─────────────────────────────────────────────────────
 
+/** Row pitch, border included — the 56 px the playlist and library rows
+ *  use, and what a 40 px cover with its padding needed in flow. */
+const ARTIST_ROW_HEIGHT = 56;
+
+/** Every track of the artist, virtualized against the page scroller: an
+ *  album is small by nature, a discography is not — a prolific composer
+ *  or a long-running act runs to hundreds of rows. */
 function ArtistTrackTable({
   tracks,
   isLoading,
@@ -947,7 +955,13 @@ function ArtistTrackTable({
   onRowMenuKey: (event: React.KeyboardEvent, track: Track) => boolean;
   t: (key: string, opts?: Record<string, unknown>) => string;
 }) {
+  "use no memo";
   const gridCols = "grid-cols-[3rem_2.75rem_1fr_1fr_5rem_2rem]";
+  const { parentRef, virtualizer, scrollMargin } =
+    usePageVirtualizer<HTMLUListElement>({
+      count: tracks.length,
+      estimateSize: () => ARTIST_ROW_HEIGHT,
+    });
   return (
     <div className="rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-800/40 overflow-hidden">
       <div
@@ -967,11 +981,17 @@ function ArtistTrackTable({
       </div>
 
       <ul
-        className={`divide-y divide-zinc-100 dark:divide-zinc-800/60 ${
-          isLoading ? "opacity-50" : ""
-        }`}
+        ref={parentRef}
+        className={isLoading ? "opacity-50" : ""}
+        style={{
+          height: `${virtualizer.getTotalSize()}px`,
+          position: "relative",
+        }}
       >
-        {tracks.map((track, index) => {
+        {virtualizer.getVirtualItems().map((virtualRow) => {
+          const index = virtualRow.index;
+          const track = tracks[index];
+          if (!track) return null;
           const isCurrent = track.id === currentTrackId;
           return (
             // Row can't be a <button> because it contains action
@@ -985,7 +1005,7 @@ function ArtistTrackTable({
               onKeyDown={(e) => {
                 // Only play when the row itself is focused — see LibraryView.
                 if (e.target !== e.currentTarget) return;
-                if (onRowMenuKey(e, tracks[index])) return;
+                if (onRowMenuKey(e, track)) return;
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
                   onPlayTrack(index);
@@ -996,7 +1016,19 @@ function ArtistTrackTable({
                 if (e.key === " ") e.preventDefault();
               }}
               onContextMenu={(e) => onContextMenuRow(e, track)}
-              className={`grid ${gridCols} gap-4 px-5 py-2 items-center select-none transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500 ${
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: `${virtualRow.size}px`,
+                transform: `translateY(${virtualRow.start - scrollMargin}px)`,
+              }}
+              className={`grid ${gridCols} gap-4 px-5 items-center select-none transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500 ${
+                index < tracks.length - 1
+                  ? "border-b border-zinc-100 dark:border-zinc-800/60"
+                  : ""
+              } ${
                 isCurrent
                   ? "bg-emerald-50 dark:bg-emerald-900/20"
                   : "hover:bg-zinc-50 dark:hover:bg-zinc-800/60"
