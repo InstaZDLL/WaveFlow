@@ -346,6 +346,36 @@
       "emptyTitle": "Henüz hiçbir şey çalınmadı",
       "emptyDescription": "Bir parça çal, burada görünsün. Yeni müzikler keşfettikçe dinleme geçmişin birikir."
     },
+    "suggestion": {
+      "label": "Günün önerisi",
+      "kind": {
+        "forgotten1": "Bir zamanlar favorindi",
+        "forgotten2": "Biraz unutulmuş bir favori",
+        "forgotten3": "Bunu hatırladın mı?",
+        "vibe1": "Son dinlediklerine uygun",
+        "vibe2": "Tam senin havanda",
+        "vibe3": "Şu sıralar dinlediklerinle uyumlu",
+        "unplayed1": "Hiç dinlenmedi",
+        "unplayed2": "Kitaplığında seni bekliyor",
+        "unplayed3": "İlk kez dinle"
+      },
+      "reason": {
+        "forgotten1_one": "{{count}} dinleme · en son {{date}}",
+        "forgotten1_other": "{{count}} dinleme · en son {{date}}",
+        "forgotten2_one": "{{count}} kez dinledin, en son {{date}}",
+        "forgotten2_other": "{{count}} kez dinledin, en son {{date}}",
+        "vibe1": "Son zamanlarda {{artist}} dinlediğin için",
+        "vibe2": "Bu aralar {{artist}} hoşuna gidiyorsa bunu dene",
+        "vibe3": "{{artist}} havasında",
+        "unplayedArtist1": "Sık dinlediğin sanatçı: {{artist}}",
+        "unplayedArtist2": "{{artist}} sevdiğin bir sanatçı ama bunu henüz dinlemedin",
+        "unplayedNew1": "{{date}} tarihinde eklendi, henüz dinlenmedi",
+        "unplayedNew2": "{{date}} tarihinden beri kitaplığında, hâlâ dinlenmedi"
+      },
+      "play": "Dinle",
+      "playAria": "{{title}} parçasını, ardından benzerlerini çal",
+      "another": "Başka öneri"
+    },
     "recentlyAdded": {
       "title": "Son eklenenler"
     },

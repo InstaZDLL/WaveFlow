@@ -355,6 +355,36 @@
       "emptyTitle": "Ancora nessun ascolto",
       "emptyDescription": "Riproduci un brano per farlo comparire qui. La cronologia di ascolto cresce man mano che scopri nuova musica."
     },
+    "suggestion": {
+      "label": "Suggerimento del giorno",
+      "kind": {
+        "forgotten1": "Lo adoravi",
+        "forgotten2": "Un preferito un po' dimenticato",
+        "forgotten3": "Te lo ricordi?",
+        "vibe1": "In linea con i tuoi ascolti",
+        "vibe2": "Proprio nel tuo mood",
+        "vibe3": "In sintonia con quello che ascolti ora",
+        "unplayed1": "Mai ascoltato",
+        "unplayed2": "Ti aspetta nella libreria",
+        "unplayed3": "Un primo ascolto"
+      },
+      "reason": {
+        "forgotten1_one": "{{count}} ascolto · l'ultimo a {{date}}",
+        "forgotten1_other": "{{count}} ascolti · l'ultimo a {{date}}",
+        "forgotten2_one": "Ascoltato {{count}} volta, a {{date}}",
+        "forgotten2_other": "Ascoltato {{count}} volte, l'ultima a {{date}}",
+        "vibe1": "Perché stai ascoltando {{artist}}",
+        "vibe2": "Se ti piace {{artist}} in questi giorni, prova questo",
+        "vibe3": "Nello spirito di {{artist}}",
+        "unplayedArtist1": "Di {{artist}}, che ascolti spesso",
+        "unplayedArtist2": "Ti piace {{artist}}, ma questo non l'hai ancora ascoltato",
+        "unplayedNew1": "Aggiunto il {{date}}, mai ascoltato",
+        "unplayedNew2": "Nella tua libreria dal {{date}}, ancora da ascoltare"
+      },
+      "play": "Ascolta",
+      "playAria": "Ascolta {{title}}, poi brani simili",
+      "another": "Un altro suggerimento"
+    },
     "recentlyAdded": {
       "title": "Aggiunti di recente"
     },

@@ -45,6 +45,7 @@ import {
 import type { Track } from "../../lib/tauri/track";
 import { MoodRadioGrid } from "./home/MoodRadioGrid";
 import { EditorialMasthead } from "./home/EditorialMasthead";
+import { HomeSuggestionCard } from "./home/HomeSuggestionCard";
 
 interface HomeViewProps {
   onNavigate: (view: ViewId) => void;
@@ -499,6 +500,11 @@ export function HomeView({
           />
         </div>
       </div>
+
+      {/* Suggestion of the day — one track and why: a forgotten
+          favourite, one in line with the recent listening, or one never
+          played. Hidden when the library has nothing to suggest. */}
+      <HomeSuggestionCard clipStyle={roundedClipMaskStyle} />
 
       {/* Wrapped year-in-review banner — gated by
           `useWrappedBannerVisibility`: hidden by default and auto-

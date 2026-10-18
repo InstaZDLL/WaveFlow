@@ -346,6 +346,34 @@
       "emptyTitle": "Belum ada yang diputar",
       "emptyDescription": "Putar sebuah lagu agar muncul di sini. Riwayat dengarmu akan terbentuk seiring kamu menjelajahi musik baru."
     },
+    "suggestion": {
+      "label": "Saran hari ini",
+      "kind": {
+        "forgotten1": "Dulu favoritmu",
+        "forgotten2": "Favorit yang sedikit terlupakan",
+        "forgotten3": "Masih ingat yang ini?",
+        "vibe1": "Sesuai yang sedang kamu dengarkan",
+        "vibe2": "Pas dengan suasanamu",
+        "vibe3": "Selaras dengan putaranmu belakangan ini",
+        "unplayed1": "Belum pernah diputar",
+        "unplayed2": "Menunggu di pustakamu",
+        "unplayed3": "Dengarkan untuk pertama kali"
+      },
+      "reason": {
+        "forgotten1_other": "{{count}} kali diputar · terakhir {{date}}",
+        "forgotten2_other": "Kamu memutarnya {{count}} kali, terakhir {{date}}",
+        "vibe1": "Karena kamu sedang mendengarkan {{artist}}",
+        "vibe2": "Kalau kamu sedang suka {{artist}}, coba ini",
+        "vibe3": "Senada dengan {{artist}}",
+        "unplayedArtist1": "Dari {{artist}}, yang sering kamu dengarkan",
+        "unplayedArtist2": "Kamu suka {{artist}}, tapi belum memutar yang ini",
+        "unplayedNew1": "Ditambahkan {{date}}, belum pernah diputar",
+        "unplayedNew2": "Ada di pustakamu sejak {{date}}, belum juga diputar"
+      },
+      "play": "Putar",
+      "playAria": "Putar {{title}}, lalu lagu serupa",
+      "another": "Saran lain"
+    },
     "recentlyAdded": {
       "title": "Baru ditambahkan"
     },

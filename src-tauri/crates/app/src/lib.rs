@@ -927,6 +927,7 @@ pub fn run() {
             #[cfg(feature = "sync_v2")]
             commands::similar::get_similar_artists_by_name,
             commands::radio::start_radio,
+            commands::home_suggestion::get_home_suggestion,
             commands::web_radio_catalogue::radio_catalogue_status,
             commands::web_radio_catalogue::set_radio_catalogue_local_first,
             commands::web_radio_catalogue::clear_radio_catalogue,

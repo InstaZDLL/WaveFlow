@@ -355,6 +355,36 @@
       "emptyTitle": "Aucun titre écouté",
       "emptyDescription": "Lancez un titre pour qu'il apparaisse ici. Votre historique d'écoute se construit au fil de vos découvertes."
     },
+    "suggestion": {
+      "label": "Suggestion du jour",
+      "kind": {
+        "forgotten1": "Vous l'adoriez",
+        "forgotten2": "Un favori un peu oublié",
+        "forgotten3": "Ça vous revient ?",
+        "vibe1": "Dans la lignée de vos écoutes",
+        "vibe2": "Pile dans votre humeur",
+        "vibe3": "Dans le ton du moment",
+        "unplayed1": "Jamais écouté",
+        "unplayed2": "Il vous attend dans la bibliothèque",
+        "unplayed3": "Une première écoute"
+      },
+      "reason": {
+        "forgotten1_one": "{{count}} écoute · dernière écoute en {{date}}",
+        "forgotten1_other": "{{count}} écoutes · dernière écoute en {{date}}",
+        "forgotten2_one": "Écouté {{count}} fois, la dernière en {{date}}",
+        "forgotten2_other": "Écouté {{count}} fois, la dernière en {{date}}",
+        "vibe1": "Parce que vous écoutez {{artist}} en ce moment",
+        "vibe2": "Si {{artist}} vous plaît en ce moment, essayez ceci",
+        "vibe3": "Dans l'esprit de {{artist}}",
+        "unplayedArtist1": "De {{artist}}, que vous écoutez souvent",
+        "unplayedArtist2": "Vous aimez {{artist}}, mais pas encore ce titre",
+        "unplayedNew1": "Ajouté le {{date}}, jamais lancé",
+        "unplayedNew2": "Dans votre bibliothèque depuis le {{date}}, toujours pas écouté"
+      },
+      "play": "Écouter",
+      "playAria": "Écouter {{title}}, puis des titres proches",
+      "another": "Autre suggestion"
+    },
     "recentlyAdded": {
       "title": "Récemment ajoutés"
     },

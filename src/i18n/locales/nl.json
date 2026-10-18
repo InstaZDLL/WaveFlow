@@ -346,6 +346,36 @@
       "emptyTitle": "Nog niets afgespeeld",
       "emptyDescription": "Speel een nummer af om het hier te laten verschijnen. Je luistergeschiedenis groeit naarmate je nieuwe muziek ontdekt."
     },
+    "suggestion": {
+      "label": "Suggestie van de dag",
+      "kind": {
+        "forgotten1": "Vroeger een favoriet",
+        "forgotten2": "Een bijna vergeten favoriet",
+        "forgotten3": "Weet je deze nog?",
+        "vibe1": "In lijn met wat je nu luistert",
+        "vibe2": "Precies jouw stemming",
+        "vibe3": "Past bij wat je nu draait",
+        "unplayed1": "Nog nooit beluisterd",
+        "unplayed2": "Wacht in je bibliotheek",
+        "unplayed3": "Een eerste luisterbeurt"
+      },
+      "reason": {
+        "forgotten1_one": "{{count}} keer beluisterd · laatst in {{date}}",
+        "forgotten1_other": "{{count}} keer beluisterd · laatst in {{date}}",
+        "forgotten2_one": "Je luisterde hem {{count}} keer, in {{date}}",
+        "forgotten2_other": "Je luisterde hem {{count}} keer, de laatste keer in {{date}}",
+        "vibe1": "Omdat je nu {{artist}} luistert",
+        "vibe2": "Als je {{artist}} nu leuk vindt, probeer dit",
+        "vibe3": "In de geest van {{artist}}",
+        "unplayedArtist1": "Van {{artist}}, die je vaak luistert",
+        "unplayedArtist2": "Je houdt van {{artist}}, maar deze heb je nog niet gehoord",
+        "unplayedNew1": "Toegevoegd op {{date}}, nog nooit beluisterd",
+        "unplayedNew2": "Sinds {{date}} in je bibliotheek, nog steeds niet beluisterd"
+      },
+      "play": "Afspelen",
+      "playAria": "{{title}} afspelen, daarna vergelijkbare nummers",
+      "another": "Andere suggestie"
+    },
     "recentlyAdded": {
       "title": "Recent toegevoegd"
     },

@@ -17,6 +17,7 @@ pub mod diagnostics;
 pub mod dlna;
 pub mod duplicates;
 pub mod edit;
+pub mod home_suggestion;
 pub mod integration;
 pub mod library;
 pub mod library_media;

@@ -355,6 +355,36 @@
       "emptyTitle": "Nenhuma faixa ouvida",
       "emptyDescription": "Reproduz uma faixa para que apareça aqui. O teu histórico de reprodução vai-se construindo à medida que fazes novas descobertas."
     },
+    "suggestion": {
+      "label": "Sugestão do dia",
+      "kind": {
+        "forgotten1": "Adoravas esta",
+        "forgotten2": "Uma favorita meio esquecida",
+        "forgotten3": "Lembras-te desta?",
+        "vibe1": "Na linha do que tens ouvido",
+        "vibe2": "Mesmo à tua medida",
+        "vibe3": "Em sintonia com o que ouves agora",
+        "unplayed1": "Ainda por ouvir",
+        "unplayed2": "À tua espera na biblioteca",
+        "unplayed3": "Uma primeira audição"
+      },
+      "reason": {
+        "forgotten1_one": "{{count}} reprodução · a última em {{date}}",
+        "forgotten1_other": "{{count}} reproduções · a última em {{date}}",
+        "forgotten2_one": "Ouviste-a {{count}} vez, em {{date}}",
+        "forgotten2_other": "Ouviste-a {{count}} vezes, a última em {{date}}",
+        "vibe1": "Porque tens ouvido {{artist}}",
+        "vibe2": "Se andas a gostar de {{artist}}, experimenta esta",
+        "vibe3": "No espírito de {{artist}}",
+        "unplayedArtist1": "De {{artist}}, que ouves muitas vezes",
+        "unplayedArtist2": "Gostas de {{artist}}, mas ainda não ouviste esta",
+        "unplayedNew1": "Adicionada a {{date}}, ainda por ouvir",
+        "unplayedNew2": "Na tua biblioteca desde {{date}}, ainda por ouvir"
+      },
+      "play": "Ouvir",
+      "playAria": "Ouvir {{title}} e depois faixas parecidas",
+      "another": "Outra sugestão"
+    },
     "recentlyAdded": {
       "title": "Adicionadas recentemente"
     },
