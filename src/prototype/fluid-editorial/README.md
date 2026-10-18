@@ -14,6 +14,11 @@ bun run dev                                # Vite seul, pas de coquille Tauri
 
 Puis ouvrir **http://localhost:1420/?proto=fluid-editorial** dans un navigateur.
 
+Dans la vraie coquille (`bun run tauri dev`), la fenêtre charge l'URL sans
+paramètre : ouvrir les outils de développement et taper
+`localStorage.setItem("waveflow.proto", "fluid-editorial")`, puis recharger
+(`localStorage.removeItem("waveflow.proto")` pour revenir à l'accueil normal).
+
 - Le script lit `%APPDATA%/app.waveflow/waveflow/profiles/2` par défaut
   (un autre dossier de profil se passe en argument). Il copie une soixantaine
   de pochettes redimensionnées dans `prototypes/fluid-editorial/covers/`

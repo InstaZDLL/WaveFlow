@@ -47,8 +47,13 @@ import { FluidEditorialPrototype } from "./prototype/fluid-editorial";
 // Design prototypes (`?proto=<name>`) — development builds only. Each one
 // is a lazy chunk mounted *instead of* the app, so the production tree
 // never imports it and `vite build` drops the branch entirely.
+// The Tauri window loads the dev URL without a query string, so the
+// flag can also be stored (`localStorage.setItem("waveflow.proto",
+// "fluid-editorial")` from the devtools, then reload; `removeItem` to
+// go back). Production builds never read either.
 const PROTO = import.meta.env.DEV
-  ? new URLSearchParams(window.location.search).get("proto")
+  ? (new URLSearchParams(window.location.search).get("proto") ??
+    localStorage.getItem("waveflow.proto"))
   : null;
 
 // First statement that runs once the entry module is executing: the
