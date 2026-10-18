@@ -3,6 +3,7 @@ import {
   useContext,
   type MouseEvent as ReactMouseEvent,
 } from "react";
+import type { AccentScale } from "../lib/accent";
 import type { ThemePreset } from "../lib/themes";
 
 interface ThemeContextValue {
@@ -21,6 +22,9 @@ interface ThemeContextValue {
    * Preserved for the existing theme-toggle button in the topbar.
    */
   toggleTheme: (event?: ReactMouseEvent) => void;
+  /** Replace the theme's accent scale (custom colour or cover), `null`
+   *  for the theme's own. Set by `AccentSync` only. */
+  setAccentOverride: (scale: AccentScale | null) => void;
 }
 
 export const ThemeContext = createContext<ThemeContextValue | null>(null);

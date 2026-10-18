@@ -2273,6 +2273,18 @@
           "label": "Liquid",
           "description": "Apple-style liquid glass — multi-layer translucent material, aurora backdrop, pill capsules, calm motion."
         }
+      },
+      "accent": {
+        "title": "Accent colour",
+        "subtitle": "The colour of buttons, sliders and selections. It sits on top of the chosen theme, which keeps its backgrounds and its mode.",
+        "mode": {
+          "theme": "From theme",
+          "custom": "Custom",
+          "cover": "Cover"
+        },
+        "swatch": "Colour {{color}}",
+        "other": "Other colour",
+        "coverNote": "The accent takes the dominant colour of the playing track's cover. With no cover, or a cover without colour, the theme's accent stays."
       }
     },
     "playerBarLayout": {

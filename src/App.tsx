@@ -7,6 +7,7 @@ import { LibraryProvider } from "./contexts/LibraryContext";
 import { PlaylistProvider } from "./contexts/PlaylistContext";
 import { RemoteSourceProvider } from "./contexts/RemoteSourceContext";
 import { AppLayout } from "./components/layout/AppLayout";
+import { AccentSync } from "./components/common/AccentSync";
 
 export default function App() {
   return (
@@ -39,6 +40,9 @@ export default function App() {
                     `waveflow:remote-changed` event fans out one refresh
                     to every consumer (sidebar, create-playlist modal). */}
                   <RemoteSourceProvider>
+                    {/* Under PlayerProvider: the cover accent follows
+                        the playing track. */}
+                    <AccentSync />
                     <AppLayout />
                   </RemoteSourceProvider>
                 </PlayerProvider>

@@ -117,6 +117,23 @@
               window.matchMedia &&
               window.matchMedia("(prefers-contrast: more)").matches);
           root.setAttribute("data-contrast", high ? "high" : "normal");
+
+          // Accent bootstrap -- the scale last applied, whether it came
+          // from the theme, a picked colour or a cover. Without it the
+          // first frame shows the stylesheet's green until React applies
+          // the real one. Only plain `oklch(...)` values are let through:
+          // this writes straight into the root's style.
+          var stops = JSON.parse(
+            localStorage.getItem("waveflow.accent.scale") || "null",
+          );
+          var SHADES = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950];
+          if (Array.isArray(stops) && stops.length === SHADES.length) {
+            for (var i = 0; i < SHADES.length; i++) {
+              if (/^oklch\([0-9. ]+\)$/.test(stops[i])) {
+                root.style.setProperty("--accent-" + SHADES[i], stops[i]);
+              }
+            }
+          }
         } catch (_) {
           // localStorage unavailable — fall through to :root defaults.
         }

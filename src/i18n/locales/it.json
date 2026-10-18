@@ -2335,6 +2335,18 @@
           "label": "Liquid",
           "description": "Vetro liquido in stile Apple — materiale traslucido multistrato, sfondo aurora, capsule, movimento fluido."
         }
+      },
+      "accent": {
+        "title": "Colore d'accento",
+        "subtitle": "Il colore di pulsanti, cursori e selezioni. Si applica sopra il tema scelto, che mantiene sfondi e modalità.",
+        "mode": {
+          "theme": "Dal tema",
+          "custom": "Personalizzato",
+          "cover": "Copertina"
+        },
+        "swatch": "Colore {{color}}",
+        "other": "Altro colore",
+        "coverNote": "L'accento prende il colore dominante della copertina del brano in riproduzione. Senza copertina, o con una copertina senza colore, resta l'accento del tema."
       }
     },
     "playerBarLayout": {

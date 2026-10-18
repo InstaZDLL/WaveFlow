@@ -15,6 +15,7 @@ import {
   type ThemePreset,
 } from "../lib/themes";
 import { getProfileSetting, setProfileSetting } from "../lib/tauri/profile";
+import type { AccentScale } from "../lib/accent";
 
 /// Profile-setting key holding the user's selected preset id. Read on
 /// every profile mount + switch; written on every `setThemeId`.
@@ -66,12 +67,20 @@ const writeCachedTheme = (id: string) => {
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<ThemePreset>(readCachedTheme);
+  // Custom or cover accent, laid over the theme's own scale. Owned here
+  // rather than applied by `AccentSync` directly: this provider's effect
+  // runs after its children's, so a theme change would otherwise paint
+  // the theme's scale over the override that was just set.
+  const [accentOverride, setAccentOverride] = useState<AccentScale | null>(
+    null,
+  );
   const { activeProfile } = useProfile();
 
-  // Apply on every theme change so CSS vars + dark class stay in sync.
+  // Apply on every theme or accent change so CSS vars + dark class stay
+  // in sync.
   useEffect(() => {
-    applyTheme(theme);
-  }, [theme]);
+    applyTheme(theme, accentOverride);
+  }, [theme, accentOverride]);
 
   // Source-of-truth read: pull the active profile's saved theme on
   // mount AND on every profile switch. The cache may be stale (last
@@ -206,7 +215,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const isDark = theme.mode === "dark";
 
   return (
-    <ThemeContext.Provider value={{ theme, setThemeId, isDark, toggleTheme }}>
+    <ThemeContext.Provider
+      value={{ theme, setThemeId, isDark, toggleTheme, setAccentOverride }}
+    >
       {children}
     </ThemeContext.Provider>
   );

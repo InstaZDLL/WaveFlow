@@ -2273,6 +2273,18 @@
           "label": "Liquid",
           "description": "Liquid Glass im Apple-Stil — mehrschichtiges transluzentes Material, Aurora-Hintergrund, Kapsel-Elemente, ruhige Bewegung."
         }
+      },
+      "accent": {
+        "title": "Akzentfarbe",
+        "subtitle": "Die Farbe von Schaltflächen, Reglern und Auswahlen. Sie liegt über dem gewählten Design, das seine Hintergründe und seinen Modus behält.",
+        "mode": {
+          "theme": "Vom Design",
+          "custom": "Eigene",
+          "cover": "Cover"
+        },
+        "swatch": "Farbe {{color}}",
+        "other": "Andere Farbe",
+        "coverNote": "Der Akzent übernimmt die vorherrschende Farbe des Covers des laufenden Titels. Ohne Cover oder bei einem Cover ohne Farbe bleibt der Akzent des Designs."
       }
     },
     "playerBarLayout": {

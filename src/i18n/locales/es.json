@@ -2335,6 +2335,18 @@
           "label": "Liquid",
           "description": "Vidrio líquido al estilo Apple — material translúcido multicapa, fondo aurora, cápsulas, movimiento sereno."
         }
+      },
+      "accent": {
+        "title": "Color de acento",
+        "subtitle": "El color de los botones, los controles deslizantes y las selecciones. Se aplica sobre el tema elegido, que conserva sus fondos y su modo.",
+        "mode": {
+          "theme": "Del tema",
+          "custom": "Personalizado",
+          "cover": "Portada"
+        },
+        "swatch": "Color {{color}}",
+        "other": "Otro color",
+        "coverNote": "El acento toma el color dominante de la portada de la canción en curso. Sin portada, o con una portada sin color, se mantiene el acento del tema."
       }
     },
     "playerBarLayout": {

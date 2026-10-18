@@ -168,6 +168,7 @@ import { RadioCatalogueCard } from "./settings/RadioCatalogueCard";
 import { EqualizerCard } from "./settings/EqualizerCard";
 import { ExclusiveModeCard } from "./settings/ExclusiveModeCard";
 import { TestToneCard } from "./settings/TestToneCard";
+import { AccentCard } from "./settings/AccentCard";
 import { PlayerBarLayoutCard } from "./settings/PlayerBarLayoutCard";
 import { ShortcutsCard } from "./settings/ShortcutsCard";
 import { WrappedBannerCard } from "./settings/WrappedBannerCard";
@@ -3043,6 +3044,7 @@ export function SettingsView({
                     })}
                   </div>
                 </div>
+                <AccentCard />
                 <SkinPickerCard />
                 <ContrastCard />
                 <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">

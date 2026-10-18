@@ -14,6 +14,8 @@
  * and the Settings picker picks it up automatically.
  */
 
+import { writeCachedAccent, type AccentScale } from "./accent";
+
 export type ThemeMode = "light" | "dark";
 
 export interface ThemePreset {
@@ -372,13 +374,20 @@ const DEFAULT_SURFACE_DARK_ELEVATED = "#181818";
 const DEFAULT_SURFACE_LIGHT = "#ffffff";
 const DEFAULT_SURFACE_LIGHT_ELEVATED = "#fafafa";
 
-export function applyTheme(theme: ThemePreset) {
+export function applyTheme(
+  theme: ThemePreset,
+  accentOverride: AccentScale | null = null,
+) {
   const root = document.documentElement;
   // Accent palette overrides — picked up by emerald-* utilities in
   // app.css, so every existing `bg-emerald-500` automatically retints.
-  for (const [shade, value] of Object.entries(theme.accent)) {
+  // A custom or cover accent replaces the theme's own scale here and
+  // nowhere else, so the theme stays the one writer of these variables.
+  const accent = accentOverride ?? theme.accent;
+  for (const [shade, value] of Object.entries(accent)) {
     root.style.setProperty(`--accent-${shade}`, value);
   }
+  writeCachedAccent(accent);
   root.style.setProperty(
     "--ambient-bg",
     theme.ambient ?? (theme.mode === "dark" ? "#121212" : "#ffffff"),
