@@ -28,6 +28,100 @@ use super::resampler::Resampler;
 /// Per-stream decoder backend. Symphonia handles the FLAC / MP3 /
 /// AAC / WAV / OGG / ALAC family; DSD is a native pipeline because
 /// symphonia doesn't decode it.
+/// How long the container says the track is, and how far decoding got
+/// (#898).
+///
+/// Some FLAC files carry a few stray bytes after their last frame. The
+/// FLAC reader has to find the next frame header to know where the last
+/// frame ends, so it reports an unexpected end of file instead of the
+/// end of the stream, and the last frame is lost with it — measured on
+/// the report's file: 87 552 of 88 200 declared frames decoded, then
+/// `UnexpectedEof`, against a clean `Ok(None)` at 88 200 without the
+/// tail. Treated as a failure, the whole song had played and the queue
+/// still did not move on.
+///
+/// So an unexpected end of file that lands within one packet of the
+/// declared end is the end of the track. Anywhere earlier it is still a
+/// truncated file, and still an error; with no declared length there is
+/// nothing to measure against, and it stays an error too.
+///
+/// Everything here is in the track's time base, the unit of a packet's
+/// `pts` and `dur`. That is the sample rate's reciprocal for FLAC, but not
+/// for every container (Matroska counts milliseconds), so lengths given
+/// in frames are converted on the way in.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct StreamExtent {
+    /// `start_ts` plus the declared length, when the container gives one.
+    declared_end: Option<i64>,
+    /// End of the last packet read, or where a seek landed.
+    decoded_to: i64,
+    /// The longest packet seen, seeded with the codec's declared maximum
+    /// (or a fallback) so a seek straight to the tail still has a measure.
+    longest_packet: u64,
+    /// Whether a packet has been read: until then `longest_packet` is the
+    /// seed, and the first real packet replaces it rather than letting a
+    /// generous fallback widen the window for the rest of the track.
+    measured: bool,
+}
+
+impl StreamExtent {
+    /// `declared_len` and `packet_len` in time-base ticks.
+    fn new(start_ts: i64, declared_len: Option<u64>, packet_len: Option<u64>) -> Self {
+        Self {
+            declared_end: declared_len
+                .and_then(|n| i64::try_from(n).ok())
+                .map(|n| start_ts.saturating_add(n)),
+            decoded_to: start_ts,
+            longest_packet: packet_len.unwrap_or(0),
+            measured: false,
+        }
+    }
+
+    fn read(&mut self, pts: i64, dur: u64) {
+        self.decoded_to = pts.saturating_add(i64::try_from(dur).unwrap_or(i64::MAX));
+        self.longest_packet = if self.measured {
+            self.longest_packet.max(dur)
+        } else {
+            dur
+        };
+        self.measured = true;
+    }
+
+    fn seeked(&mut self, ts: i64) {
+        self.decoded_to = ts;
+    }
+
+    /// Whether an unexpected end of file here is the end of the track.
+    ///
+    /// Within one packet either side: a container that declares less than
+    /// it holds and is cut further on is still a truncated file, not one
+    /// that ended past its end.
+    fn ends_within_last_packet(&self) -> bool {
+        match self.declared_end {
+            Some(end) if self.longest_packet > 0 => {
+                end.abs_diff(self.decoded_to) <= self.longest_packet
+            }
+            _ => false,
+        }
+    }
+}
+
+/// The packet length to measure with before any packet has been read
+/// (a seek straight into the tail), when the codec declares none, which
+/// symphonia's FLAC reader does not: 16 384 frames, the largest block the
+/// FLAC streamable subset allows, about 0.37 s at 44.1 kHz.
+const FALLBACK_PACKET_FRAMES: u64 = 16_384;
+
+/// `frames` of audio at `rate` Hz, in ticks of a `numer / denom` second
+/// time base: `frames / rate` seconds, divided by the tick length.
+fn frames_to_ticks(frames: u64, rate: u32, numer: u32, denom: u32) -> Option<u64> {
+    if rate == 0 || numer == 0 {
+        return None;
+    }
+    let ticks = u128::from(frames) * u128::from(denom) / (u128::from(rate) * u128::from(numer));
+    u64::try_from(ticks).ok()
+}
+
 pub enum StreamBackend {
     Symphonia {
         format: Box<dyn FormatReader>,
@@ -41,6 +135,7 @@ pub enum StreamBackend {
         decoded_interleaved: Vec<f32>,
         symphonia_track_id: u32,
         spec_captured: bool,
+        extent: StreamExtent,
     },
     Dsd {
         file: File,
@@ -353,6 +448,30 @@ impl ActiveStream {
         // params borrow it. `None` for a container that does not say —
         // AAC in MP4 only reveals its rate once decoding starts (#600).
         let declared_sample_rate = audio_params.sample_rate;
+        // Frames to time-base ticks, the unit packets are stamped in.
+        let to_ticks = |frames: u64| -> Option<u64> {
+            let base = track_symphonia.time_base?;
+            frames_to_ticks(
+                frames,
+                declared_sample_rate?,
+                base.numer.get(),
+                base.denom.get(),
+            )
+        };
+        // `duration` is already in ticks; `num_frames` is the fallback.
+        let declared_len = track_symphonia
+            .duration
+            .map(|d| d.get())
+            .or_else(|| track_symphonia.num_frames.and_then(to_ticks));
+        let extent = StreamExtent::new(
+            track_symphonia.start_ts.get(),
+            declared_len,
+            to_ticks(
+                audio_params
+                    .max_frames_per_packet
+                    .unwrap_or(FALLBACK_PACKET_FRAMES),
+            ),
+        );
         // The app's registry, not symphonia's: it is the one that
         // carries Opus (#581).
         let decoder = waveflow_core::audio_format::opus::codecs()
@@ -366,6 +485,7 @@ impl ActiveStream {
                 decoded_interleaved: Vec::new(),
                 symphonia_track_id,
                 spec_captured: false,
+                extent,
             },
             // Real resampler is built after the first packet (we need
             // the actual source rate, which AAC/M4A only reveals then).
@@ -549,6 +669,7 @@ impl ActiveStream {
             StreamBackend::Symphonia {
                 format,
                 symphonia_track_id,
+                extent,
                 ..
             } => {
                 // Symphonia 0.6 dropped `Time::from(Duration)` /
@@ -559,14 +680,15 @@ impl ActiveStream {
                 // input), so the option is always `Some`; we fall back
                 // to t=0 just to keep the call infallible.
                 let time = Time::try_from_secs_f64(ms as f64 / 1000.0).unwrap_or_default();
-                if let Err(err) = format.seek(
+                match format.seek(
                     SeekMode::Accurate,
                     SeekTo::Time {
                         time,
                         track_id: Some(*symphonia_track_id),
                     },
                 ) {
-                    tracing::warn!(?err, ms, "format seek failed");
+                    Ok(seeked) => extent.seeked(seeked.actual_ts.get()),
+                    Err(err) => tracing::warn!(?err, ms, "format seek failed"),
                 }
             }
             StreamBackend::Dsd {
@@ -644,11 +766,23 @@ impl ActiveStream {
                 decoded_interleaved,
                 symphonia_track_id,
                 spec_captured,
+                extent,
             } => loop {
                 let packet = match format.next_packet() {
                     Ok(Some(p)) => p,
                     Ok(None) => return Ok(true),
                     Err(SymphoniaError::ResetRequired) => return Ok(true),
+                    Err(SymphoniaError::IoError(e))
+                        if e.kind() == std::io::ErrorKind::UnexpectedEof
+                            && extent.ends_within_last_packet() =>
+                    {
+                        tracing::warn!(
+                            decoded_to = extent.decoded_to,
+                            declared_end = ?extent.declared_end,
+                            "stray bytes after the last frame; ending the track there"
+                        );
+                        return Ok(true);
+                    }
                     Err(e) => return Err(format!("next_packet: {e}")),
                 };
                 if packet.track_id != *symphonia_track_id {
@@ -662,6 +796,9 @@ impl ActiveStream {
                     }
                     Err(e) => return Err(format!("decode fatal: {e}")),
                 };
+                // After the decode, not before: a packet skipped as
+                // undecodable is audio that did not play.
+                extent.read(packet.pts.get(), packet.dur.get());
                 if !*spec_captured {
                     let spec = decoded.spec();
                     self.src_channels = spec.channels().count();
@@ -939,6 +1076,85 @@ pub fn equal_power_gains(t: f32) -> (f32, f32) {
     let t = t.clamp(0.0, 1.0);
     let angle = t * std::f32::consts::FRAC_PI_2;
     (angle.cos(), angle.sin())
+}
+
+#[cfg(test)]
+mod extent_tests {
+    use super::{frames_to_ticks, StreamExtent};
+
+    #[test]
+    fn frames_convert_to_the_track_time_base() {
+        // FLAC: the time base is the sample rate's reciprocal.
+        assert_eq!(frames_to_ticks(4_608, 44_100, 1, 44_100), Some(4_608));
+        // A millisecond time base at 48 kHz: 4 608 frames are 96 ms.
+        assert_eq!(frames_to_ticks(4_608, 48_000, 1, 1_000), Some(96));
+        assert_eq!(frames_to_ticks(4_608, 0, 1, 1_000), None);
+    }
+
+    #[test]
+    fn a_millisecond_time_base_measures_in_milliseconds() {
+        // 2 s declared as 2 000 ms ticks, a lost 96 ms packet.
+        let mut extent = StreamExtent::new(0, Some(2_000), Some(96));
+        extent.read(1_808, 96);
+        assert!(extent.ends_within_last_packet());
+        extent.read(1_000, 96);
+        assert!(!extent.ends_within_last_packet());
+    }
+
+    #[test]
+    fn the_seed_gives_way_to_the_first_real_packet() {
+        // A 16 384-frame fallback, then 4 608-frame packets: the window is
+        // one real packet, not the fallback.
+        let mut extent = StreamExtent::new(0, Some(88_200), Some(16_384));
+        extent.read(0, 4_608);
+        extent.read(70_000, 4_608);
+        assert!(!extent.ends_within_last_packet());
+        extent.read(82_944, 4_608);
+        assert!(extent.ends_within_last_packet());
+    }
+
+    #[test]
+    fn stray_bytes_after_the_last_frame_end_the_track() {
+        // The report's file: 88 200 frames declared, 4 608-frame packets,
+        // the last one lost to the trailing bytes.
+        let mut extent = StreamExtent::new(0, Some(88_200), Some(4_608));
+        extent.read(82_944, 4_608);
+        assert!(extent.ends_within_last_packet());
+    }
+
+    #[test]
+    fn a_file_cut_short_is_still_an_error() {
+        let mut extent = StreamExtent::new(0, Some(88_200), Some(4_608));
+        extent.read(40_000, 4_608);
+        assert!(!extent.ends_within_last_packet());
+        // Nothing declared, nothing to measure against.
+        let mut unknown = StreamExtent::new(0, None, Some(4_608));
+        unknown.read(83_000, 4_608);
+        assert!(!unknown.ends_within_last_packet());
+    }
+
+    #[test]
+    fn decoding_well_past_the_declared_end_is_not_its_end() {
+        // Declares 88 200 frames, holds more, and is cut at 200 000.
+        let mut extent = StreamExtent::new(0, Some(88_200), Some(4_608));
+        extent.read(195_392, 4_608);
+        assert!(!extent.ends_within_last_packet());
+        // Just past it, within a packet, still is.
+        extent.read(86_000, 4_608);
+        assert!(extent.ends_within_last_packet());
+    }
+
+    #[test]
+    fn a_seek_into_the_tail_counts_from_where_it_landed() {
+        // No packet read yet: the declared maximum is the measure.
+        let mut extent = StreamExtent::new(0, Some(88_200), Some(4_608));
+        extent.seeked(86_000);
+        assert!(extent.ends_within_last_packet());
+        // And with no measure at all, the error stands.
+        let mut blind = StreamExtent::new(0, Some(88_200), None);
+        blind.seeked(86_000);
+        assert!(!blind.ends_within_last_packet());
+    }
 }
 
 #[cfg(test)]
