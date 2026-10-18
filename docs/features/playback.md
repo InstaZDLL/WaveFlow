@@ -186,6 +186,12 @@ The total is bounded to [−30, +12] dB regardless, which is what stands between
 
 The scalar is recomputed **per decoded buffer** rather than baked into the stream at load time, so moving the pre-amp is audible immediately instead of at the next track. One `powf` per buffer, on the decoder thread — never in the cpal callback.
 
+## Equalizer
+
+[`audio/eq.rs`](../../src-tauri/crates/app/src/audio/eq.rs): six peaking biquads in series (60 / 150 / 400 / 1000 / 2400 / 15 000 Hz, Q 0.707, ±12 dB per band, RBJ cookbook), on the decoder thread next to ReplayGain. Gains are atomics the sliders write; the coefficients are recomputed on the decoder thread when a band moves or the sample rate changes. Off, the stage is skipped entirely.
+
+**Headroom.** A boost raises a loud master past full scale, and the decoder's last stage clamps the signal to ±1.0, so +12 dB of bass used to be heard as hard clipping. The chain is now preceded by an automatic preamp equal to the peak of its own response, measured on the cascade (1 024 log-spaced points from 20 Hz to 20 kHz, plus each band's centre) rather than taken from the largest slider: adjacent bands overlap and their boosts add up, so the Bass booster preset (+6 / +5 / +3 dB) peaks near +8 dB. A boosting setting also takes 1 dB more for transients: the response peak bounds a steady signal, and a sharp full-scale pattern through +12 dB at 15 kHz overshoots it by 0.9 dB (measured). The strict bound, the sum of the impulse response, would cost every boosting setting 2 to 4 dB more for patterns music does not contain, so the margin covers the measured worst case and the final clamp stays the backstop. Bass booster thus plays about 9 dB lower. A setting that only cuts, or a flat one, keeps a preamp of exactly 1.0. The cost is that a boosting setting plays quieter than before; that is the level at which it no longer distorts.
+
 ## Seek
 
 `format.seek()` + `decoder.reset()` + `resampler.flush()`. The cpal callback enters `drain_silent` mode, which (since 70c1968) drains the ring in **one bulk `while consumer.pop()` pass** instead of one sample per output slot — total perceived gap on seek dropped from ~270 ms (one full ring at 44.1 kHz × 8 ch) to ~10-15 ms (one cpal callback period).

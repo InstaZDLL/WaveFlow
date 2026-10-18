@@ -1,4 +1,4 @@
-//! 6-band peaking-EQ DSP, Spotify-style.
+//! 6-band peaking-EQ DSP.
 //!
 //! Six biquad peaking filters in series at fixed ISO-ish frequencies
 //! (60 / 150 / 400 / 1000 / 2400 / 15000 Hz). Gains are atomic so the
@@ -15,12 +15,21 @@
 //! biquad). Direct Form II Transposed for the per-sample loop —
 //! numerically stable enough for f32 at audio rates and one register
 //! shorter than DF1.
+//!
+//! **Headroom.** A boost raises the signal past full scale on a loud
+//! master, and the decoder's last stage clamps it to ±1.0: +12 dB of bass
+//! on a modern mastered track was heard as hard clipping. So the chain is
+//! preceded by a preamp equal to the peak of its own response, read off
+//! the cascade itself rather than the largest slider — adjacent bands
+//! overlap and their boosts add up — plus 1 dB for transients. A setting
+//! with no boost has a preamp of exactly 1.0 and leaves the signal
+//! untouched.
 
 use std::f32::consts::PI;
 use std::sync::atomic::{AtomicBool, AtomicI16, Ordering};
 
-/// Centre frequencies for each band, picked to match Spotify so the
-/// visual UI maps 1:1 with what users may already be familiar with.
+/// Centre frequencies for each band, the usual six-band consumer layout,
+/// so the sliders sit where users expect them.
 pub const BAND_FREQS: [f32; 6] = [60.0, 150.0, 400.0, 1000.0, 2400.0, 15000.0];
 
 /// Number of bands. Pulled into a const so the array sizes stay in
@@ -32,9 +41,9 @@ pub const BAND_COUNT: usize = BAND_FREQS.len();
 /// naturally, narrow enough that cuts/boosts feel surgical.
 const BAND_Q: f32 = 0.707;
 
-/// Maximum cap (absolute value) for each band's gain in dB. Mirrors
-/// Spotify's ±12 dB. The atomic stores tenths of dB (i16 range fits
-/// up to ±3276 dB so we have plenty of head-room).
+/// Maximum cap (absolute value) for each band's gain in dB, the usual
+/// ±12 dB of a consumer EQ. The atomic stores tenths of dB (i16 range
+/// fits up to ±3276 dB so we have plenty of head-room).
 pub const MAX_GAIN_DB: f32 = 12.0;
 
 /// Compute a peaking-EQ biquad coefficient set per the RBJ cookbook.
@@ -54,6 +63,70 @@ fn peaking_biquad(freq_hz: f32, sample_rate: f32, gain_db: f32, q: f32) -> [f32;
     let a1 = -2.0 * cos_w;
     let a2 = 1.0 - alpha / a;
     [b0 / a0, b1 / a0, b2 / a0, a1 / a0, a2 / a0]
+}
+
+/// Peak gain (linear) of the whole cascade, read over the audible band.
+///
+/// Each biquad's magnitude is evaluated on the unit circle and multiplied
+/// in, over 1024 log-spaced points from 20 Hz to 20 kHz (or just under
+/// Nyquist) plus every band's centre, where a lone boost peaks. In `f64`:
+/// this runs once per change of setting or sample rate, never per sample.
+fn cascade_peak(coeffs: &[[f32; 5]; BAND_COUNT], sample_rate: f32) -> f32 {
+    let rate = f64::from(sample_rate);
+    if rate <= 0.0 {
+        return 1.0;
+    }
+    let top = 20_000.0_f64.min(rate * 0.49);
+    let low = 20.0_f64.min(top);
+    const POINTS: usize = 1024;
+    let sweep = (0..POINTS).map(|i| low * (top / low).powf(i as f64 / (POINTS - 1) as f64));
+    let centres = BAND_FREQS
+        .iter()
+        .map(|&f| f64::from(f))
+        .filter(|&f| f < rate * 0.5);
+    let mut peak = 0.0_f64;
+    for freq in sweep.chain(centres) {
+        let w = 2.0 * std::f64::consts::PI * freq / rate;
+        let (c1, s1) = (w.cos(), w.sin());
+        let (c2, s2) = ((2.0 * w).cos(), (2.0 * w).sin());
+        let mut gain = 1.0_f64;
+        for c in coeffs {
+            let [b0, b1, b2, a1, a2] = c.map(f64::from);
+            let num_re = b0 + b1 * c1 + b2 * c2;
+            let num_im = -(b1 * s1 + b2 * s2);
+            let den_re = 1.0 + a1 * c1 + a2 * c2;
+            let den_im = -(a1 * s1 + a2 * s2);
+            gain *=
+                ((num_re * num_re + num_im * num_im) / (den_re * den_re + den_im * den_im)).sqrt();
+        }
+        peak = peak.max(gain);
+    }
+    peak as f32
+}
+
+/// Extra attenuation, as a linear factor (-1 dB), for a boosting setting.
+///
+/// The response peak bounds a steady signal, not a transient: a filter
+/// can overshoot on a sharp full-scale pattern. Measured with full-scale
+/// `[1, -1, -1, 1, …]` input, the worst case is +12 dB at 15 kHz, which
+/// overshoots its response peak by 0.9 dB. The strict bound (the sum of
+/// the impulse response) would cost every boosting setting 2 to 4 dB more
+/// for patterns music does not contain, so the margin covers the measured
+/// worst case instead, and the decoder's final clamp stays the backstop.
+const TRANSIENT_MARGIN: f32 = 0.891_250_9;
+
+/// The preamp that keeps the cascade at or under unity: `1 / peak`, less
+/// the transient margin, for a boosting setting; exactly 1.0 for one that
+/// only cuts or is flat.
+fn headroom_preamp(coeffs: &[[f32; 5]; BAND_COUNT], sample_rate: f32) -> f32 {
+    let peak = cascade_peak(coeffs, sample_rate);
+    // A flat chain computes a hair over 1.0 in floating point; anything
+    // within 0.01 dB of unity is no boost.
+    if peak > 1.001 {
+        TRANSIENT_MARGIN / peak
+    } else {
+        1.0
+    }
 }
 
 /// Per-channel, per-band biquad memory (Direct Form II Transposed).
@@ -157,6 +230,9 @@ pub struct EqProcessor {
     /// Tracked separately so a sample-rate change (track A 44.1 →
     /// track B 48) forces a recompute even when bands didn't move.
     cached_rate: f32,
+    /// Linear gain applied ahead of the filters so the cascade's peak
+    /// stays at or under unity; see the module's note on headroom.
+    preamp: f32,
 }
 
 impl EqProcessor {
@@ -165,6 +241,7 @@ impl EqProcessor {
             coeffs: [[1.0, 0.0, 0.0, 0.0, 0.0]; BAND_COUNT],
             states: Vec::new(),
             cached_rate: 0.0,
+            preamp: 1.0,
         }
     }
 
@@ -186,6 +263,7 @@ impl EqProcessor {
         for (i, &freq) in BAND_FREQS.iter().enumerate() {
             self.coeffs[i] = peaking_biquad(freq, sample_rate, bands[i], BAND_Q);
         }
+        self.preamp = headroom_preamp(&self.coeffs, sample_rate);
         self.cached_rate = sample_rate;
     }
 
@@ -211,10 +289,11 @@ impl EqProcessor {
             self.states.push([BiquadState::default(); BAND_COUNT]);
         }
         let frames = buf.len() / channels;
+        let preamp = self.preamp;
         for f in 0..frames {
             for ch in 0..channels {
                 let i = f * channels + ch;
-                let mut x = buf[i];
+                let mut x = buf[i] * preamp;
                 let chan_state = &mut self.states[ch];
                 for (b, biquad) in chan_state.iter_mut().enumerate().take(BAND_COUNT) {
                     x = biquad.process(x, &self.coeffs[b]);
@@ -225,10 +304,8 @@ impl EqProcessor {
     }
 }
 
-/// Built-in presets, gain in dB per band. Calibrated to feel close to
-/// Spotify's own selections without claiming to be byte-identical
-/// (Spotify doesn't publish the exact values — these are tuned by ear
-/// against typical tracks). Order matches `BAND_FREQS`.
+/// Built-in presets, gain in dB per band, tuned by ear against typical
+/// tracks. Order matches `BAND_FREQS`.
 pub const PRESETS: &[(&str, [f32; BAND_COUNT])] = &[
     ("flat", [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
     ("acoustic", [5.0, 4.5, 3.5, 1.0, 1.5, 3.0]),
@@ -255,4 +332,81 @@ pub const PRESETS: &[(&str, [f32; BAND_COUNT])] = &[
 /// Look up a preset by its lower-snake-case key.
 pub fn preset_gains(key: &str) -> Option<[f32; BAND_COUNT]> {
     PRESETS.iter().find(|(k, _)| *k == key).map(|(_, g)| *g)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const RATE: f32 = 44_100.0;
+
+    fn chain(gains: [f32; BAND_COUNT]) -> [[f32; 5]; BAND_COUNT] {
+        let mut coeffs = [[1.0, 0.0, 0.0, 0.0, 0.0]; BAND_COUNT];
+        for (i, &freq) in BAND_FREQS.iter().enumerate() {
+            coeffs[i] = peaking_biquad(freq, RATE, gains[i], BAND_Q);
+        }
+        coeffs
+    }
+
+    fn db(linear: f32) -> f32 {
+        20.0 * linear.log10()
+    }
+
+    #[test]
+    fn a_flat_or_cutting_setting_leaves_the_level_alone() {
+        assert_eq!(headroom_preamp(&chain([0.0; BAND_COUNT]), RATE), 1.0);
+        let cuts = preset_gains("bass_reducer").unwrap();
+        assert_eq!(headroom_preamp(&chain(cuts), RATE), 1.0);
+    }
+
+    #[test]
+    fn a_lone_boost_is_matched_by_the_preamp() {
+        let mut gains = [0.0; BAND_COUNT];
+        gains[3] = 6.0;
+        // The boost, plus the 1 dB transient margin.
+        let preamp = db(headroom_preamp(&chain(gains), RATE));
+        assert!((preamp + 7.0).abs() < 0.1, "{preamp} dB");
+    }
+
+    #[test]
+    fn overlapping_boosts_take_more_than_the_largest_slider() {
+        // Bass booster: +6 / +5 / +3 dB on the three lowest bands, which
+        // overlap; their sum peaks past the +6 dB slider.
+        let gains = preset_gains("bass_booster").unwrap();
+        let preamp = db(headroom_preamp(&chain(gains), RATE));
+        assert!(preamp < -7.5, "{preamp} dB");
+    }
+
+    /// The worst transient measured: a sharp full-scale pattern through
+    /// +12 dB at 15 kHz overshoots the response peak by 0.9 dB, which the
+    /// margin absorbs.
+    #[test]
+    fn a_sharp_full_scale_pattern_under_a_treble_boost_stays_under_unity() {
+        let shared = EqShared::new();
+        shared.set_enabled(true);
+        shared.set_band_db(BAND_COUNT - 1, MAX_GAIN_DB);
+        let mut eq = EqProcessor::new();
+        let mut buf: Vec<f32> = [1.0, -1.0, -1.0, 1.0, -1.0, -1.0, 1.0].repeat(3);
+        eq.process(&mut buf, 1, RATE, &shared);
+        let peak = buf.iter().fold(0.0_f32, |m, x| m.max(x.abs()));
+        assert!(peak <= 1.0, "peak {peak}");
+    }
+
+    #[test]
+    fn a_full_scale_tone_under_full_boost_stays_under_unity() {
+        let shared = EqShared::new();
+        shared.set_enabled(true);
+        shared.set_band_db(0, MAX_GAIN_DB);
+        let mut eq = EqProcessor::new();
+        // One second of a full-scale 60 Hz sine, mono.
+        let mut buf: Vec<f32> = (0..RATE as usize)
+            .map(|n| (2.0 * PI * 60.0 * n as f32 / RATE).sin())
+            .collect();
+        eq.process(&mut buf, 1, RATE, &shared);
+        // Past the filter's settling time, the output peaks just under
+        // full scale (the 1 dB margin) instead of +12 dB over it.
+        let settled = &buf[buf.len() / 2..];
+        let peak = settled.iter().fold(0.0_f32, |m, x| m.max(x.abs()));
+        assert!(peak <= 0.9 && peak > 0.85, "peak {peak}");
+    }
 }
