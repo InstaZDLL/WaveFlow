@@ -1,15 +1,22 @@
 //! Opening a folder or a link with the desktop's own handler.
 //!
 //! Everything goes through `tauri_plugin_opener`, except inside an
-//! AppImage. Its launcher points `LD_LIBRARY_PATH`, `GIO_MODULE_DIR`,
-//! `GTK_PATH`, `PATH`, `XDG_DATA_DIRS` and the rest into the image, so that
-//! the bundled WebKitGTK finds its own libraries — and every program we
-//! start inherits that. `xdg-open` then runs the host's `gio`, file
+//! AppImage, or when the app set a variable for itself at startup (see
+//! [`note_own_variable`]). An AppImage's launcher points
+//! `LD_LIBRARY_PATH`, `GIO_MODULE_DIR`, `GTK_PATH`, `PATH`,
+//! `XDG_DATA_DIRS` and the rest into the image, so that the bundled
+//! WebKitGTK finds its own libraries — and every program we start
+//! inherits that. `xdg-open` then runs the host's `gio`, file
 //! manager or browser against the image's libraries, and they die on the
 //! first missing symbol: on a Fedora laptop `gio` stopped at
 //! `undefined symbol: g_unix_mount_entry_get_options` and Firefox at
 //! `version NSS_3.126 not found`, so "Open log folder" did nothing. The
 //! launched program gets the host's environment back instead.
+//!
+//! The variables the app sets for itself are withheld the same way, in
+//! every package: `GDK_BACKEND=x11,wayland`, set when the user chose to run
+//! through XWayland, would otherwise start their browser under XWayland
+//! too.
 //!
 //! Revealing a file in its folder is not routed here: the plugin asks
 //! the file manager over D-Bus, which starts it with its own environment.
@@ -22,7 +29,7 @@ use crate::error::{AppError, AppResult};
 pub fn open_path(path: impl AsRef<Path>) -> AppResult<()> {
     let path = path.as_ref();
     #[cfg(target_os = "linux")]
-    if let Some(result) = appimage::open(path.as_os_str()) {
+    if let Some(result) = launch::open(path.as_os_str()) {
         return result;
     }
     tauri_plugin_opener::open_path(path, None::<&str>)
@@ -32,7 +39,7 @@ pub fn open_path(path: impl AsRef<Path>) -> AppResult<()> {
 /// Open a link in the user's browser, or a `mailto:` in their mail client.
 pub fn open_url(url: &str) -> AppResult<()> {
     #[cfg(target_os = "linux")]
-    if let Some(result) = appimage::open(std::ffi::OsStr::new(url)) {
+    if let Some(result) = launch::open(std::ffi::OsStr::new(url)) {
         return result;
     }
     tauri_plugin_opener::open_url(url, None::<&str>)
@@ -46,19 +53,22 @@ pub fn is_openable_url(url: &str) -> bool {
     url::Url::parse(url).is_ok_and(|parsed| matches!(parsed.scheme(), "http" | "https" | "mailto"))
 }
 
-/// Variables the app itself set at startup for the image's own benefit:
-/// the GStreamer registry and plugin paths, which go through a link in
-/// the cache directory and so never name the mount. A host program handed
-/// them would load the image's plugins — or share a registry written by
-/// another GStreamer — as surely as through `LD_LIBRARY_PATH`.
+/// Variables the app itself set at startup for its own benefit. Inside an
+/// AppImage, the GStreamer registry and plugin paths, which go through a
+/// link in the cache directory and so never name the mount: a host
+/// program handed them would load the image's plugins — or share a
+/// registry written by another GStreamer — as surely as through
+/// `LD_LIBRARY_PATH`. In any package, `GDK_BACKEND` when the app asked
+/// GTK for XWayland ([`crate::display_backend`]).
 #[cfg(target_os = "linux")]
-static SET_FOR_APPIMAGE: std::sync::Mutex<Vec<&'static str>> = std::sync::Mutex::new(Vec::new());
+static SET_FOR_SELF: std::sync::Mutex<Vec<&'static str>> = std::sync::Mutex::new(Vec::new());
 
-/// Record a variable set for the image, to be withheld from programs it
-/// starts. Called by the startup preflight, before any thread exists.
+/// Record a variable the app set for itself, to be withheld from the
+/// programs it starts. Called by the startup preflight, before any thread
+/// exists.
 #[cfg(target_os = "linux")]
-pub fn note_appimage_variable(key: &'static str) {
-    let mut keys = SET_FOR_APPIMAGE
+pub fn note_own_variable(key: &'static str) {
+    let mut keys = SET_FOR_SELF
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());
     if !keys.contains(&key) {
@@ -87,22 +97,32 @@ fn host_value(value: &str, appdir: &str, set_for_image: bool) -> Option<String> 
 }
 
 #[cfg(target_os = "linux")]
-mod appimage {
+mod launch {
     use std::ffi::OsStr;
     use std::process::{Command, Stdio};
 
     use crate::error::{AppError, AppResult};
 
-    /// `None` outside an AppImage, so the caller keeps the plugin's path.
+    /// `None` outside an AppImage when the app set nothing for itself, so
+    /// the caller keeps the plugin's path.
     pub(super) fn open(target: &OsStr) -> Option<AppResult<()>> {
-        std::env::var_os("APPIMAGE")?;
-        let appdir = std::env::var("APPDIR").ok().filter(|dir| !dir.is_empty())?;
-        let appdir = appdir.trim_end_matches('/');
-        Some(spawn_first(target, appdir))
+        let set_for_self = super::SET_FOR_SELF
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .clone();
+        let appdir = std::env::var_os("APPIMAGE")
+            .and_then(|_| std::env::var("APPDIR").ok())
+            .filter(|dir| !dir.is_empty());
+        if appdir.is_none() && set_for_self.is_empty() {
+            return None;
+        }
+        let appdir = appdir.as_deref().map(|dir| dir.trim_end_matches('/'));
+        Some(spawn_first(target, appdir, &set_for_self))
     }
 
     /// `xdg-open` first, then `gio open` — the opener plugin's order —
-    /// both with the host's environment.
+    /// both with the host's environment: the image's entries dropped when
+    /// there is an image (`appdir`), the app's own variables withheld.
     ///
     /// `gio open` takes over when `xdg-open` cannot be started, and also
     /// when it starts but reports that it found no tool (3) or that the
@@ -111,13 +131,9 @@ mod appimage {
     /// read off-thread: `xdg-open` can stay in the foreground for as long
     /// as the browser it started, so the caller only learns whether a
     /// launcher could be started at all.
-    fn spawn_first(target: &OsStr, appdir: &str) -> AppResult<()> {
-        let set_for_image = super::SET_FOR_APPIMAGE
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .clone();
-        let mut xdg = host_command(&["xdg-open"], target, appdir, &set_for_image);
-        let mut gio = host_command(&["gio", "open"], target, appdir, &set_for_image);
+    fn spawn_first(target: &OsStr, appdir: Option<&str>, set_for_self: &[&str]) -> AppResult<()> {
+        let mut xdg = host_command(&["xdg-open"], target, appdir, set_for_self);
+        let mut gio = host_command(&["gio", "open"], target, appdir, set_for_self);
         match xdg.spawn() {
             Ok(mut child) => {
                 std::thread::spawn(move || {
@@ -156,8 +172,8 @@ mod appimage {
     fn host_command(
         launcher: &[&str],
         target: &OsStr,
-        appdir: &str,
-        set_for_image: &[&str],
+        appdir: Option<&str>,
+        set_for_self: &[&str],
     ) -> Command {
         let mut cmd = Command::new(launcher[0]);
         cmd.args(&launcher[1..])
@@ -169,8 +185,13 @@ mod appimage {
             let Some(value) = value.to_str() else {
                 continue;
             };
-            let ours = key.to_str().is_some_and(|key| set_for_image.contains(&key));
-            match super::host_value(value, appdir, ours) {
+            let ours = key.to_str().is_some_and(|key| set_for_self.contains(&key));
+            let host = match appdir {
+                Some(appdir) => super::host_value(value, appdir, ours),
+                None if ours => None,
+                None => continue,
+            };
+            match host {
                 Some(host) if host == value => {}
                 Some(host) => {
                     cmd.env(&key, host);

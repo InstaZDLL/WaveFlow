@@ -11,6 +11,7 @@ mod commands;
 mod db;
 mod desktop_lyrics;
 mod discord_presence;
+mod display_backend;
 mod dlna;
 mod error;
 mod external_open;
@@ -783,6 +784,8 @@ pub fn run() {
             skin_recovery::record_skin,
             skin_recovery::complete_recovery,
             commands::renderer::renderer_status,
+            commands::display_backend::display_backend_status,
+            commands::display_backend::display_backend_set_xwayland,
             commands::renderer::renderer_retry_gpu,
             commands::app_info::get_app_info,
             commands::app_info::open_data_folder,
@@ -1512,6 +1515,9 @@ async fn restore_bounds_and_reveal(app: AppHandle) -> bool {
 fn preflight_render_mode(identifier: &str) {
     match paths::AppPaths::root_for_identifier(identifier) {
         Ok(root) => {
+            // Before anything builds a window, like the renderer: GTK
+            // reads `GDK_BACKEND` when it initialises (#894).
+            display_backend::decide(&root);
             render_mode::decide(root);
         }
         Err(err) => {
@@ -1554,7 +1560,7 @@ fn preflight_appimage_gstreamer(identifier: &str) {
         return;
     };
     std::env::set_var(KEY, dir.join("gstreamer-registry.bin"));
-    external_open::note_appimage_variable(KEY);
+    external_open::note_own_variable(KEY);
     if let Err(err) = link_appimage_gstreamer_plugins(&dir) {
         // Logging is not up yet. Without the link, video still plays; the
         // first one of each launch is just slow to start.
@@ -1596,7 +1602,7 @@ fn link_appimage_gstreamer_plugins(dir: &std::path::Path) -> std::io::Result<()>
     for key in ["GST_PLUGIN_SYSTEM_PATH_1_0", "GST_PLUGIN_PATH_1_0"] {
         if let Some(value) = std::env::var(key).ok().filter(|v| v.contains(plugins_str)) {
             std::env::set_var(key, value.replace(plugins_str, link_str));
-            external_open::note_appimage_variable(key);
+            external_open::note_own_variable(key);
         }
     }
     Ok(())

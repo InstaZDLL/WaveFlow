@@ -300,6 +300,9 @@ libc = "0.2"
 # (see `audio::device_reservation`). No new tree: the same zbus is
 # already pulled in on Linux by notify-rust and two Tauri plugins.
 zbus = "5"
+# Which backend GTK really opened the window on (#894): the X11 handle
+# kinds or the Wayland one. Already in the tree through Tauri.
+raw-window-handle = "0.6"
 
 # Windows-only: opt-in bit-perfect playback via WASAPI Exclusive Mode.
 # `wasapi` is a thin safe wrapper over the Win32 audio COM API — it

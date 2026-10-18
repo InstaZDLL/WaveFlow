@@ -83,6 +83,12 @@ Each rejection logs the full `(rate, channels, format, layout-origin)` at `debug
 
 Dependency footprint: the `wasapi` crate + a slim slice of `windows-rs` features (`Win32_Foundation`, `Win32_System_Com`, `Win32_System_Threading`) target-gated to `cfg(target_os = "windows")`. Adds ~5-10 MB to the NSIS / MSI Windows binary; the Linux + macOS bundles are untouched.
 
+### Windows: the render thread runs as a Pro Audio task
+
+An exclusive stream has no system mixer, and no mixer buffer, between us and the device. The device asks for one period, 480 frames (10 ms) on most hardware, and a period not written in time plays as a click. The render thread used to run at normal priority. Any burst of work elsewhere then starved it: opening the immersive view, with its blur and its video, made every track crackle for about three seconds. Shared mode never did, because cpal raises its own render thread to time-critical and the Windows audio engine adds its buffer on top.
+
+`ProAudioThread` registers the thread with MMCSS under the `Pro Audio` task (`AvSetMmThreadCharacteristicsW`) before the stream opens. The scheduler then lifts the thread into the real-time range while it has work, and gives the time back while it waits on the device event. If the service refuses (it can be disabled), the thread falls back to `THREAD_PRIORITY_TIME_CRITICAL`, the priority cpal uses for shared mode. Neither is a condition of the stream: a thread left at normal priority still plays, as it always did, and failing the open over it would cost the user exclusive mode. When the thread ends, it tries to revert the registration itself (only the registering thread may); a failed revert is logged and nothing more. The DoP loop runs on the same thread, so it gets the same priority.
+
 ### Linux: a raw `hw:` device, asked for rather than grabbed
 
 There is no plug layer under a `hw:` device — that is the whole point — so **every** conversion from the ring's `f32` is ours. `FORMAT_FALLBACK_CHAIN` walks the wire formats the hardware itself has to accept, best first:

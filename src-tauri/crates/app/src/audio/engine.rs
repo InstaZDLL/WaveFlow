@@ -19,7 +19,7 @@ use crate::error::{AppError, AppResult};
 
 use super::analytics::{analytics_task, AnalyticsMsg};
 use super::decoder::spawn_decoder_thread;
-use super::output::{spawn_output_with_mode, OutputHandle, RequestedFormat};
+use super::output::{spawn_output_with_mode, DopFormat, OutputHandle, RequestedFormat};
 use super::replay_gain::TrackGain;
 use super::state::SharedPlayback;
 
@@ -607,8 +607,18 @@ impl ParkedSession {
     /// The command that resumes it, under a **fresh** intent: unlike a
     /// rebuild's own resume, this one is a user action, and it has to
     /// outrank anything claimed before it.
+    ///
+    /// A park in the track's last two seconds starts it over, as the
+    /// persisted resume point does (#898). A stream carries no position
+    /// worth adjusting: its resume starts where the server is.
     pub(crate) fn into_command(self, intent: LoadIntent) -> AudioCmd {
-        let start_ms = self.start_ms;
+        let start_ms = match &self.load.source {
+            LastLoadSource::Local { duration_ms, .. }
+            | LastLoadSource::RemoteFile { duration_ms, .. } => {
+                crate::queue::resume_position(self.start_ms, *duration_ms)
+            }
+            LastLoadSource::Url { .. } => self.start_ms,
+        };
         self.load.into_command(intent, start_ms)
     }
 }
@@ -2262,17 +2272,15 @@ impl AudioEngine {
         let current_dop = guard.handle.as_ref().and_then(|h| h.dop);
         let want_dop = dop;
 
-        // The rate this open would ask for, compared against what the
-        // last one asked for — not against what it got (#600). A device
-        // that refused the track's rate has its own rate installed, and
-        // comparing against that would rebuild the output on every
-        // single track for as long as the preference stayed on.
-        let want_rate = requested.map_or(0, |r| r.sample_rate);
-        let rate_unchanged = self.last_requested_rate.load(Ordering::Relaxed) == want_rate;
-
         // Already in the right shape: nothing to do. An ordinary PCM track
         // following another PCM track lands here and pays nothing.
-        if has_output && current_dop == want_dop && rate_unchanged {
+        if !track_needs_reopen(
+            has_output,
+            current_dop,
+            want_dop,
+            self.last_requested_rate.load(Ordering::Relaxed),
+            requested.map(|r| r.sample_rate),
+        ) {
             return Ok((None, dop.is_some()));
         }
 
@@ -3087,6 +3095,36 @@ impl Drop for ResumeGuard<'_> {
 /// Releasing first is safe wherever it applies because
 /// [`spawn_output_with_mode`] falls back to shared mode on its own, so the
 /// caller still comes back holding a stream.
+/// Whether a track's request needs the output reopened.
+///
+/// Reopened when there is no stream, or when DoP has to start, stop or
+/// change shape. Otherwise only a request **for a rate** can call for
+/// it, and that rate is compared against what the last open *asked*
+/// for, never what it got (#600): a device that refused 96 kHz has its
+/// own rate installed, and comparing against that would rebuild the
+/// output on every single track for as long as the preference stayed on.
+///
+/// A request with no rate — the DoP check of an ordinary PCM track, a
+/// remote or HTTP load putting the output back on PCM, the test tone —
+/// is about DoP only and leaves the rate alone. It used to count as a
+/// request for "no rate in particular", which differs from any rate the
+/// last track matched: with "Match each track's sample rate" on, every
+/// track reopened the output twice, once to the device's default rate
+/// for the DoP check and once to its own rate, two gaps where the guard
+/// above promised none.
+fn track_needs_reopen(
+    has_output: bool,
+    current_dop: Option<DopFormat>,
+    want_dop: Option<DopFormat>,
+    last_requested_rate: u32,
+    requested_rate: Option<u32>,
+) -> bool {
+    if !has_output || current_dop != want_dop {
+        return true;
+    }
+    requested_rate.is_some_and(|rate| rate != last_requested_rate)
+}
+
 fn must_release_before_reopening(old_is_exclusive: Option<bool>, entering_exclusive: bool) -> bool {
     match old_is_exclusive {
         None => false,
@@ -3234,6 +3272,51 @@ fn rebuild_resume(state: super::state::PlayerState, paused_output: bool) -> Rebu
         }
         PlayerState::Playing | PlayerState::Paused | PlayerState::Loading => RebuildResume::Play,
         PlayerState::Idle | PlayerState::Ended => RebuildResume::Nothing,
+    }
+}
+
+#[cfg(test)]
+mod track_reopen_tests {
+    use super::{track_needs_reopen, DopFormat};
+
+    const DOP64: DopFormat = DopFormat {
+        sample_rate: 176_400,
+        channels: 2,
+    };
+
+    #[test]
+    fn a_pcm_track_after_a_matched_one_keeps_the_stream() {
+        // The DoP check asks for no rate: the 48 kHz the last track
+        // matched stays, and the rate match that follows finds it there.
+        assert!(!track_needs_reopen(true, None, None, 48_000, None));
+        assert!(!track_needs_reopen(true, None, None, 48_000, Some(48_000)));
+    }
+
+    #[test]
+    fn a_different_rate_reopens() {
+        assert!(track_needs_reopen(true, None, None, 48_000, Some(44_100)));
+        // The first match after an open that asked for nothing.
+        assert!(track_needs_reopen(true, None, None, 0, Some(48_000)));
+    }
+
+    #[test]
+    fn dop_starting_stopping_or_missing_output_reopens() {
+        assert!(track_needs_reopen(
+            true,
+            None,
+            Some(DOP64),
+            48_000,
+            Some(176_400)
+        ));
+        assert!(track_needs_reopen(true, Some(DOP64), None, 176_400, None));
+        assert!(track_needs_reopen(false, None, None, 0, None));
+        assert!(!track_needs_reopen(
+            true,
+            Some(DOP64),
+            Some(DOP64),
+            176_400,
+            Some(176_400)
+        ));
     }
 }
 
@@ -3699,6 +3782,29 @@ mod last_load_tests {
             snap.into_command(intent, 1_000).load_intent(),
             Some(LoadIntent::from_raw(9))
         );
+    }
+
+    #[test]
+    fn a_park_at_the_very_end_resumes_from_the_start() {
+        let park = |start_ms| {
+            let cmd = AudioCmd::LoadAndPlay {
+                intent: LoadIntent::from_raw(1),
+                path: PathBuf::from("/dev/null"),
+                start_ms: 0,
+                track_id: 42,
+                duration_ms: 200_000,
+                source_type: "album".into(),
+                source_id: Some(7),
+                replay_gain: TrackGain::default(),
+            };
+            let load = LastLoad::capture(&cmd).expect("a load is captured");
+            match (ParkedSession { load, start_ms }).into_command(LoadIntent::from_raw(2)) {
+                AudioCmd::LoadAndPlay { start_ms, .. } => start_ms,
+                _ => panic!("a library track resumes as LoadAndPlay"),
+            }
+        };
+        assert_eq!(park(199_000), 0);
+        assert_eq!(park(60_000), 60_000);
     }
 
     #[test]
