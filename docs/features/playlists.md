@@ -31,7 +31,7 @@ Drag-and-drop is implemented with `@dnd-kit` over a virtualised list (`@tanstack
 
 ## M3U import / export
 
-`export_playlist_m3u` writes a UTF-8 `.m3u8` with `#EXTINF:<duration>,<artist> - <title>` headers and absolute file paths, through a `.partial` sibling renamed over the destination once complete ([`atomic_write`](../../src-tauri/crates/core/src/atomic_write.rs)), so overwriting an existing playlist file that fails halfway leaves the old one intact rather than truncated. The importer accepts both `.m3u` and `.m3u8` (foobar2000, VLC, Rekordbox, hand-written sets) and matches against the active library:
+`export_playlist_m3u` writes a UTF-8 `.m3u8` with `#EXTINF:<duration>,<artist> - <title>` headers and absolute file paths, through a partial sibling of its own (created exclusively) renamed over the destination once complete ([`atomic_write`](../../src-tauri/crates/core/src/atomic_write.rs)), so overwriting an existing playlist file that fails halfway leaves the old one intact rather than truncated. The importer accepts both `.m3u` and `.m3u8` (foobar2000, VLC, Rekordbox, hand-written sets) and matches against the active library:
 
 1. **Canonical-path match** — strip Windows `\\?\` prefix, lowercase the drive letter, normalise separators.
 2. **Basename fallback** — if path-match fails, try the basename. This recovers playlists exported before a library reorganisation.

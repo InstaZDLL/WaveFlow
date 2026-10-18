@@ -453,10 +453,12 @@ pub async fn run_one_backup(
         // to make room for: pruning anyway deleted the oldest good
         // backup on every failed run, so a profile that kept failing
         // was slowly left with none.
-        if written {
-            if let Err(err) = prune_old_backups(&folder, &safe, config.retention as usize).await {
-                tracing::warn!(?err, "auto backup retention sweep failed");
-            }
+        //
+        // Unfinished archives left by a crash are swept either way: a
+        // profile that keeps failing is exactly the one that leaves them.
+        let keep = written.then_some(config.retention as usize);
+        if let Err(err) = prune_old_backups(&folder, &safe, keep).await {
+            tracing::warn!(?err, "auto backup retention sweep failed");
         }
 
         done += 1;
@@ -516,10 +518,13 @@ fn classify_backup_file(name: &str, prefix: &str) -> BackupFile {
     }
 }
 
+/// Sweep the backup folder for one profile: remove its stale unfinished
+/// archives, and when `keep` is given, every finished archive past the
+/// newest `keep`.
 async fn prune_old_backups(
     folder: &std::path::Path,
     name_prefix: &str,
-    keep: usize,
+    keep: Option<usize>,
 ) -> AppResult<()> {
     let prefix = format!("{name_prefix}-");
     let folder = folder.to_path_buf();
@@ -566,6 +571,9 @@ async fn prune_old_backups(
             }
             entries.push((path, mtime));
         }
+        let Some(keep) = keep else {
+            return Ok(0);
+        };
         entries.sort_by_key(|e| std::cmp::Reverse(e.1)); // newest first
         let mut removed = 0;
         for (path, _) in entries.into_iter().skip(keep) {
@@ -736,7 +744,7 @@ mod tests {
     #[test]
     fn an_unfinished_archive_is_not_a_backup() {
         assert_eq!(
-            classify_backup_file("Main-2026-10-19T10-00-00.waveflow.partial", "Main-"),
+            classify_backup_file("Main-2026-10-19T10-00-00.4242-1.waveflow.partial", "Main-"),
             BackupFile::Partial
         );
     }

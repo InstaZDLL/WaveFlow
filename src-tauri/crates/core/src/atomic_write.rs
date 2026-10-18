@@ -8,34 +8,87 @@
 //! week's archive, and an automatic backup cut short sits in the backup
 //! folder looking like the newest good one.
 //!
-//! Here the bytes go to `<name>.partial` beside the destination, reach
+//! Here the bytes go to a partial file beside the destination, reach
 //! the disk, and only then replace it in a single `rename`. Any failure
-//! removes the partial and leaves the destination as it was.
+//! removes the partial and leaves the destination as it was. Each write
+//! gets a partial of its own, created exclusively: two writes aimed at
+//! the same destination (an export run while a backup writes there)
+//! would otherwise truncate each other's half-written file.
 //!
 //! Not for audio files: those go through [`crate::tagio`], which has to
 //! keep the original's inode where it can and copies it before writing.
 
+use std::ffi::OsString;
 use std::fs::File;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 
 /// Appended to the destination's file name while it is being written.
 /// Anything that lists a folder for finished files (the backup
 /// retention, for one) must not take a name ending in it as one.
 pub const PARTIAL_SUFFIX: &str = ".partial";
 
-/// `<destination file name>.partial`, in the destination's directory.
+/// The partial for one write of `target`: `<stem>.<token>.<extension>`
+/// followed by [`PARTIAL_SUFFIX`], or `<name>.<token>` and the suffix for
+/// a name without an extension, in the destination's directory.
 ///
-/// Beside it, never in the system temp directory: `rename` is only
+/// The extension stays last before the suffix so a folder listing can
+/// still tell what the partial would have become: the backup retention
+/// knows `….waveflow.partial` as an unfinished archive. Beside the
+/// destination, never in the system temp directory: `rename` is only
 /// atomic within a filesystem, and an export folder is routinely on a
 /// different one than `/tmp`.
-pub fn partial_path(target: &Path) -> PathBuf {
-    let mut name = target
-        .file_name()
-        .map(|n| n.to_os_string())
-        .unwrap_or_default();
+pub fn partial_path(target: &Path, token: &str) -> PathBuf {
+    let mut name = OsString::new();
+    match (target.file_stem(), target.extension()) {
+        (Some(stem), Some(extension)) => {
+            name.push(stem);
+            name.push(".");
+            name.push(token);
+            name.push(".");
+            name.push(extension);
+        }
+        _ => {
+            name.push(target.file_name().unwrap_or_default());
+            name.push(".");
+            name.push(token);
+        }
+    }
     name.push(PARTIAL_SUFFIX);
     target.with_file_name(name)
+}
+
+/// A token no other write of this process, or of another process, uses:
+/// the process id and a counter.
+fn next_token() -> String {
+    static NEXT: AtomicU64 = AtomicU64::new(0);
+    format!(
+        "{}-{}",
+        std::process::id(),
+        NEXT.fetch_add(1, Ordering::Relaxed)
+    )
+}
+
+/// Create a partial no one else holds. A name already taken (a leftover
+/// from a crashed process that had the same id) moves on to the next
+/// token rather than writing over it.
+fn create_partial(target: &Path) -> io::Result<(PathBuf, File)> {
+    let mut last_err = None;
+    for _ in 0..16 {
+        let path = partial_path(target, &next_token());
+        match std::fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create_new(true)
+            .open(&path)
+        {
+            Ok(file) => return Ok((path, file)),
+            Err(err) if err.kind() == io::ErrorKind::AlreadyExists => last_err = Some(err),
+            Err(err) => return Err(err),
+        }
+    }
+    Err(last_err.unwrap_or_else(|| io::Error::other("no free partial name")))
 }
 
 /// Removes the partial unless it was renamed into place, so every early
@@ -74,21 +127,12 @@ where
         .unwrap_or_else(|| Path::new("."));
     std::fs::create_dir_all(directory).map_err(E::from)?;
 
+    let (path, mut file) = create_partial(target).map_err(E::from)?;
     let mut partial = Partial {
-        path: partial_path(target),
+        path,
         committed: false,
     };
-    // `create` rather than `create_new`: a partial already there is the
-    // leftover of a write that crashed before it could clean up, and the
-    // name is ours, so it is simply started over.
     let value = {
-        let mut file = std::fs::OpenOptions::new()
-            .read(true)
-            .write(true)
-            .create(true)
-            .truncate(true)
-            .open(&partial.path)
-            .map_err(E::from)?;
         let value = body(&mut file)?;
         file.flush().map_err(E::from)?;
         // Before the rename, not after: once renamed, the file is the
@@ -96,9 +140,10 @@ where
         // power cut over content that did not would be the very archive
         // this exists to prevent.
         file.sync_all().map_err(E::from)?;
-        value
-        // The handle closes here: Windows refuses to rename a file that
+        // Closed before the rename: Windows refuses to rename a file that
         // is still open.
+        drop(file);
+        value
     };
 
     std::fs::rename(&partial.path, target).map_err(E::from)?;
@@ -133,13 +178,30 @@ fn sync_directory(directory: &Path) -> io::Result<()> {
 mod tests {
     use super::*;
 
+    /// Partials left in `dir`, whatever their token.
+    fn partials(dir: &Path) -> usize {
+        std::fs::read_dir(dir)
+            .unwrap()
+            .flatten()
+            .filter(|e| e.file_name().to_string_lossy().ends_with(PARTIAL_SUFFIX))
+            .count()
+    }
+
     #[test]
-    fn the_partial_sits_beside_the_target() {
-        let target = Path::new("/backups/Main-2026.waveflow");
+    fn the_partial_sits_beside_the_target_and_keeps_its_extension_last() {
         assert_eq!(
-            partial_path(target),
-            Path::new("/backups/Main-2026.waveflow.partial")
+            partial_path(Path::new("/backups/Main-2026.waveflow"), "7-1"),
+            Path::new("/backups/Main-2026.7-1.waveflow.partial")
         );
+        assert_eq!(
+            partial_path(Path::new("/exports/list"), "7-2"),
+            Path::new("/exports/list.7-2.partial")
+        );
+    }
+
+    #[test]
+    fn every_write_gets_its_own_partial() {
+        assert_ne!(next_token(), next_token());
     }
 
     #[test]
@@ -151,7 +213,7 @@ mod tests {
         write_bytes(&target, b"new").unwrap();
 
         assert_eq!(std::fs::read(&target).unwrap(), b"new");
-        assert!(!partial_path(&target).exists());
+        assert_eq!(partials(dir.path()), 0);
     }
 
     /// The case this exists for: a write that fails halfway must not
@@ -169,7 +231,7 @@ mod tests {
 
         assert!(result.is_err());
         assert_eq!(std::fs::read(&target).unwrap(), b"last week's archive");
-        assert!(!partial_path(&target).exists());
+        assert_eq!(partials(dir.path()), 0);
     }
 
     /// And with nothing there before, a failure leaves nothing at all
@@ -186,18 +248,22 @@ mod tests {
 
         assert!(result.is_err());
         assert!(!target.exists());
-        assert!(!partial_path(&target).exists());
+        assert_eq!(partials(dir.path()), 0);
     }
 
+    /// A partial someone else holds is neither truncated nor removed: it
+    /// may be another write in progress.
     #[test]
-    fn a_leftover_partial_is_started_over() {
+    fn another_partial_of_the_same_target_is_left_alone() {
         let dir = tempfile::tempdir().unwrap();
         let target = dir.path().join("list.m3u8");
-        std::fs::write(partial_path(&target), b"crashed write, much longer").unwrap();
+        let other = partial_path(&target, "1-999");
+        std::fs::write(&other, b"someone else's write").unwrap();
 
         write_bytes(&target, b"fresh").unwrap();
 
         assert_eq!(std::fs::read(&target).unwrap(), b"fresh");
+        assert_eq!(std::fs::read(&other).unwrap(), b"someone else's write");
     }
 
     #[test]
