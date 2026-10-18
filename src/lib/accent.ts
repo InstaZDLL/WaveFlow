@@ -36,18 +36,19 @@ export type AccentChoice =
 export const ACCENT_SETTING_KEY = "appearance.accent";
 export const DEFAULT_ACCENT_CHOICE: AccentChoice = { mode: "theme" };
 
-/** A starting palette for the picker: one swatch per hue family. */
+/** A starting palette for the picker: one swatch per hue family, named
+ *  for screen readers (`settings.appearance.accent.colors.<name>`). */
 export const ACCENT_SWATCHES = [
-  "#ef4444",
-  "#f97316",
-  "#f59e0b",
-  "#84cc16",
-  "#22c55e",
-  "#14b8a6",
-  "#0ea5e9",
-  "#3b82f6",
-  "#8b5cf6",
-  "#ec4899",
+  { name: "red", hex: "#ef4444" },
+  { name: "orange", hex: "#f97316" },
+  { name: "amber", hex: "#f59e0b" },
+  { name: "lime", hex: "#84cc16" },
+  { name: "green", hex: "#22c55e" },
+  { name: "teal", hex: "#14b8a6" },
+  { name: "sky", hex: "#0ea5e9" },
+  { name: "blue", hex: "#3b82f6" },
+  { name: "violet", hex: "#8b5cf6" },
+  { name: "pink", hex: "#ec4899" },
 ] as const;
 
 const HEX = /^#[0-9a-f]{6}$/i;

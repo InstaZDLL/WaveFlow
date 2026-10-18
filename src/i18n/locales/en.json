@@ -2282,9 +2282,20 @@
           "custom": "Custom",
           "cover": "Cover"
         },
-        "swatch": "Colour {{color}}",
         "other": "Other colour",
-        "coverNote": "The accent takes the dominant colour of the playing track's cover. With no cover, or a cover without colour, the theme's accent stays."
+        "coverNote": "The accent takes the dominant colour of the playing track's cover. With no cover, or a cover without colour, the theme's accent stays.",
+        "colors": {
+          "red": "Red",
+          "orange": "Orange",
+          "amber": "Amber",
+          "lime": "Lime",
+          "green": "Green",
+          "teal": "Teal",
+          "sky": "Sky",
+          "blue": "Blue",
+          "violet": "Violet",
+          "pink": "Pink"
+        }
       }
     },
     "playerBarLayout": {

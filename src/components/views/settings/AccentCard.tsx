@@ -13,6 +13,13 @@ import {
 type Mode = AccentChoice["mode"];
 const MODES: Mode[] = ["theme", "custom", "cover"];
 
+// Each swatch shows the 500 stop it would produce, worked out once.
+const SWATCHES = ACCENT_SWATCHES.map((swatch) => ({
+  ...swatch,
+  fill: scaleFromHex(swatch.hex)[500],
+}));
+const DEFAULT_CUSTOM = ACCENT_SWATCHES[7].hex;
+
 /**
  * Accent colour, laid over the active theme (2.0): the theme's own, a
  * picked colour, or the playing track's cover.
@@ -28,8 +35,7 @@ export function AccentCard() {
 
   // Switching to "custom" starts from blue: the stored choice keeps no
   // colour while another mode is on.
-  const customColor =
-    choice.mode === "custom" ? choice.color : ACCENT_SWATCHES[7];
+  const customColor = choice.mode === "custom" ? choice.color : DEFAULT_CUSTOM;
 
   const pickMode = (mode: Mode) => {
     if (mode === choice.mode) return;
@@ -92,53 +98,56 @@ export function AccentCard() {
       </div>
 
       <div className="mt-4 ml-9 space-y-4">
+        {/* Native radios, visually hidden behind their labels: arrow
+            keys move between the modes, as in the other Settings
+            choices, without a hand-rolled roving focus. */}
         <div
           role="radiogroup"
           aria-labelledby="accent-card-title"
+          aria-busy={!ready}
           className="inline-flex rounded-xl border border-zinc-200 dark:border-zinc-700 p-1 gap-1"
         >
-          {MODES.map((mode) => {
-            const active = ready && choice.mode === mode;
-            return (
-              <button
-                key={mode}
-                type="button"
-                role="radio"
-                aria-checked={active}
+          {MODES.map((mode) => (
+            <label key={mode} className="relative">
+              <input
+                type="radio"
+                name="wf-accent-mode"
+                value={mode}
+                checked={ready && choice.mode === mode}
+                // Inert until the profile's choice is read, so a click
+                // cannot persist over a choice not loaded yet.
                 disabled={!ready}
-                onClick={() => pickMode(mode)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 ${
-                  active
-                    ? "bg-emerald-500 text-white"
-                    : "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
-                }`}
-              >
+                onChange={() => pickMode(mode)}
+                className="peer sr-only"
+              />
+              <span className="block px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-colors text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800 peer-checked:bg-emerald-500 peer-checked:text-white peer-checked:hover:bg-emerald-500 peer-focus-visible:ring-2 peer-focus-visible:ring-emerald-500 peer-disabled:opacity-50 peer-disabled:cursor-default">
                 {t(`settings.appearance.accent.mode.${mode}`)}
-              </button>
-            );
-          })}
+              </span>
+            </label>
+          ))}
         </div>
 
         {choice.mode === "custom" && (
           <div className="flex flex-wrap items-center gap-2">
-            {ACCENT_SWATCHES.map((swatch) => {
-              const selected = choice.color === swatch;
+            {SWATCHES.map((swatch) => {
+              const selected = choice.color === swatch.hex;
+              const name = t(
+                `settings.appearance.accent.colors.${swatch.name}`,
+              );
               return (
                 <button
-                  key={swatch}
+                  key={swatch.hex}
                   type="button"
-                  onClick={() => pickColor(swatch)}
+                  onClick={() => pickColor(swatch.hex)}
                   aria-pressed={selected}
-                  aria-label={t("settings.appearance.accent.swatch", {
-                    color: swatch,
-                  })}
-                  title={swatch}
-                  className={`w-7 h-7 rounded-full flex items-center justify-center transition-transform hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-zinc-400 dark:focus-visible:ring-offset-zinc-900 ${
+                  aria-label={name}
+                  title={name}
+                  className={`w-7 h-7 rounded-full flex items-center justify-center transition-transform motion-safe:hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-zinc-400 dark:focus-visible:ring-offset-zinc-900 ${
                     selected
                       ? "ring-2 ring-offset-2 ring-zinc-900 dark:ring-white dark:ring-offset-zinc-900"
                       : ""
                   }`}
-                  style={{ backgroundColor: scaleFromHex(swatch)[500] }}
+                  style={{ backgroundColor: swatch.fill }}
                 >
                   {selected && (
                     <Check
@@ -156,7 +165,7 @@ export function AccentCard() {
                 free. */}
             <label
               className={`relative w-7 h-7 rounded-full flex items-center justify-center border border-dashed border-zinc-300 dark:border-zinc-600 cursor-pointer hover:border-zinc-400 focus-within:ring-2 focus-within:ring-zinc-400 ${
-                (ACCENT_SWATCHES as readonly string[]).includes(choice.color)
+                SWATCHES.some((swatch) => swatch.hex === choice.color)
                   ? ""
                   : "ring-2 ring-offset-2 ring-zinc-900 dark:ring-white dark:ring-offset-zinc-900"
               }`}

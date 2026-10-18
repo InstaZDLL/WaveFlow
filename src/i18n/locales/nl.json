@@ -2282,9 +2282,20 @@
           "custom": "Aangepast",
           "cover": "Hoes"
         },
-        "swatch": "Kleur {{color}}",
         "other": "Andere kleur",
-        "coverNote": "Het accent neemt de overheersende kleur van de hoes van het huidige nummer over. Zonder hoes, of met een hoes zonder kleur, blijft het accent van het thema."
+        "coverNote": "Het accent neemt de overheersende kleur van de hoes van het huidige nummer over. Zonder hoes, of met een hoes zonder kleur, blijft het accent van het thema.",
+        "colors": {
+          "red": "Rood",
+          "orange": "Oranje",
+          "amber": "Amber",
+          "lime": "Limoen",
+          "green": "Groen",
+          "teal": "Blauwgroen",
+          "sky": "Hemelsblauw",
+          "blue": "Blauw",
+          "violet": "Violet",
+          "pink": "Roze"
+        }
       }
     },
     "playerBarLayout": {

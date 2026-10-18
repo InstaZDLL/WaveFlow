@@ -2282,9 +2282,20 @@
           "custom": "Eigene",
           "cover": "Cover"
         },
-        "swatch": "Farbe {{color}}",
         "other": "Andere Farbe",
-        "coverNote": "Der Akzent übernimmt die vorherrschende Farbe des Covers des laufenden Titels. Ohne Cover oder bei einem Cover ohne Farbe bleibt der Akzent des Designs."
+        "coverNote": "Der Akzent übernimmt die vorherrschende Farbe des Covers des laufenden Titels. Ohne Cover oder bei einem Cover ohne Farbe bleibt der Akzent des Designs.",
+        "colors": {
+          "red": "Rot",
+          "orange": "Orange",
+          "amber": "Bernstein",
+          "lime": "Limette",
+          "green": "Grün",
+          "teal": "Petrol",
+          "sky": "Himmelblau",
+          "blue": "Blau",
+          "violet": "Violett",
+          "pink": "Pink"
+        }
       }
     },
     "playerBarLayout": {

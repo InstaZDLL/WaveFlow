@@ -1906,9 +1906,20 @@
           "custom": "Personnalisée",
           "cover": "Pochette"
         },
-        "swatch": "Couleur {{color}}",
         "other": "Autre couleur",
-        "coverNote": "L'accent prend la couleur dominante de la pochette du morceau en cours. Sans pochette, ou avec une pochette sans couleur, l'accent du thème reste."
+        "coverNote": "L'accent prend la couleur dominante de la pochette du morceau en cours. Sans pochette, ou avec une pochette sans couleur, l'accent du thème reste.",
+        "colors": {
+          "red": "Rouge",
+          "orange": "Orange",
+          "amber": "Ambre",
+          "lime": "Citron vert",
+          "green": "Vert",
+          "teal": "Sarcelle",
+          "sky": "Ciel",
+          "blue": "Bleu",
+          "violet": "Violet",
+          "pink": "Rose"
+        }
       }
     },
     "shortcuts": {

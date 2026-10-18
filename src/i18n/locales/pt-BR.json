@@ -2345,9 +2345,20 @@
           "custom": "Personalizada",
           "cover": "Capa"
         },
-        "swatch": "Cor {{color}}",
         "other": "Outra cor",
-        "coverNote": "O destaque assume a cor dominante da capa da faixa tocando. Sem capa, ou com uma capa sem cor, o destaque do tema continua."
+        "coverNote": "O destaque assume a cor dominante da capa da faixa tocando. Sem capa, ou com uma capa sem cor, o destaque do tema continua.",
+        "colors": {
+          "red": "Vermelho",
+          "orange": "Laranja",
+          "amber": "Âmbar",
+          "lime": "Lima",
+          "green": "Verde",
+          "teal": "Verde-azulado",
+          "sky": "Azul-céu",
+          "blue": "Azul",
+          "violet": "Violeta",
+          "pink": "Rosa"
+        }
       }
     },
     "playerBarLayout": {

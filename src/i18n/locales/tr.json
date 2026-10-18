@@ -2282,9 +2282,20 @@
           "custom": "Özel",
           "cover": "Kapak"
         },
-        "swatch": "{{color}} rengi",
         "other": "Başka renk",
-        "coverNote": "Vurgu, çalan parçanın kapağındaki baskın rengi alır. Kapak yoksa veya kapakta renk yoksa temanın vurgusu kalır."
+        "coverNote": "Vurgu, çalan parçanın kapağındaki baskın rengi alır. Kapak yoksa veya kapakta renk yoksa temanın vurgusu kalır.",
+        "colors": {
+          "red": "Kırmızı",
+          "orange": "Turuncu",
+          "amber": "Kehribar",
+          "lime": "Limon yeşili",
+          "green": "Yeşil",
+          "teal": "Çamurcun",
+          "sky": "Gök mavisi",
+          "blue": "Mavi",
+          "violet": "Mor",
+          "pink": "Pembe"
+        }
       }
     },
     "playerBarLayout": {

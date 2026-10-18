@@ -2282,9 +2282,20 @@
           "custom": "Kustom",
           "cover": "Sampul"
         },
-        "swatch": "Warna {{color}}",
         "other": "Warna lain",
-        "coverNote": "Aksen mengambil warna dominan sampul lagu yang sedang diputar. Tanpa sampul, atau dengan sampul tanpa warna, aksen tema tetap dipakai."
+        "coverNote": "Aksen mengambil warna dominan sampul lagu yang sedang diputar. Tanpa sampul, atau dengan sampul tanpa warna, aksen tema tetap dipakai.",
+        "colors": {
+          "red": "Merah",
+          "orange": "Oranye",
+          "amber": "Kuning amber",
+          "lime": "Hijau limau",
+          "green": "Hijau",
+          "teal": "Hijau kebiruan",
+          "sky": "Biru langit",
+          "blue": "Biru",
+          "violet": "Ungu",
+          "pink": "Merah muda"
+        }
       }
     },
     "playerBarLayout": {

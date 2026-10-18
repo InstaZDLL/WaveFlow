@@ -2344,9 +2344,20 @@
           "custom": "Personalizado",
           "cover": "Portada"
         },
-        "swatch": "Color {{color}}",
         "other": "Otro color",
-        "coverNote": "El acento toma el color dominante de la portada de la canción en curso. Sin portada, o con una portada sin color, se mantiene el acento del tema."
+        "coverNote": "El acento toma el color dominante de la portada de la canción en curso. Sin portada, o con una portada sin color, se mantiene el acento del tema.",
+        "colors": {
+          "red": "Rojo",
+          "orange": "Naranja",
+          "amber": "Ámbar",
+          "lime": "Lima",
+          "green": "Verde",
+          "teal": "Verde azulado",
+          "sky": "Celeste",
+          "blue": "Azul",
+          "violet": "Violeta",
+          "pink": "Rosa"
+        }
       }
     },
     "playerBarLayout": {
