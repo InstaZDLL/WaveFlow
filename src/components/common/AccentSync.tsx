@@ -24,8 +24,8 @@ import { resolveArtwork } from "../../lib/tauri/artwork";
  * - `cover`: the cover's dominant hue, sampled at the smallest size
  *   (64 px is all the sampler reads). The current accent stays up while
  *   the next cover is sampled, and while no track is loaded, rather than
- *   flashing the theme's colour in between; a cover with no colour to
- *   give falls back to the theme.
+ *   flashing the theme's colour in between; a track with no cover, or a
+ *   cover with no colour to give, falls back to the theme.
  * - `theme`: no override.
  * - Not read yet: nothing is sent, so the scale the bootstrap restored
  *   stays.
@@ -79,15 +79,18 @@ export function AccentSync() {
       case "custom":
         return scaleFromHex(choice.color);
       case "cover":
-        // No track yet (the queue is still being restored at startup),
-        // or this cover not sampled yet: keep the current accent rather
-        // than flash the theme's in between.
-        if (!coverUrl || coverScale?.url !== coverUrl) return undefined;
+        // No track yet (the queue is still being restored at startup):
+        // keep the current accent rather than flash the theme's.
+        if (!currentTrack) return undefined;
+        // A track with no cover gives no colour, like a grey cover.
+        if (!coverUrl) return null;
+        // This cover not sampled yet: the previous accent stays.
+        if (coverScale?.url !== coverUrl) return undefined;
         return coverScale.scale;
       default:
         return null;
     }
-  }, [ready, choice, coverUrl, coverScale]);
+  }, [ready, choice, currentTrack, coverUrl, coverScale]);
 
   useEffect(() => {
     if (override !== undefined) setAccentOverride(override);
