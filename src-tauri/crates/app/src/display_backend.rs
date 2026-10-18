@@ -108,6 +108,10 @@ pub fn decide(root: &Path) {
         // `x11`: should X11 fail to open after all, GTK falls back to
         // Wayland instead of showing nothing.
         std::env::set_var("GDK_BACKEND", "x11,wayland");
+        // Ours, not the user's: a browser started for a link must not
+        // inherit it and open under XWayland too.
+        #[cfg(target_os = "linux")]
+        crate::external_open::note_own_variable("GDK_BACKEND");
     }
 }
 
