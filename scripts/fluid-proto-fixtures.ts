@@ -62,13 +62,14 @@ function snapshot(): Database {
       const src = join(profileDir, f);
       if (existsSync(src)) copyFileSync(src, join(snap, f));
     }
+    let candidate: Database | null = null;
     try {
-      const candidate = new Database(join(snap, "data.db"), {
-        readonly: true,
-      });
+      candidate = new Database(join(snap, "data.db"), { readonly: true });
       candidate.query("SELECT COUNT(*) FROM track").get();
       return candidate;
     } catch (err) {
+      // Release the handle before the files underneath it are replaced.
+      candidate?.close(true);
       lastError = err;
       console.warn(`snapshot attempt ${attempt} unusable, retrying…`);
     }
@@ -144,7 +145,10 @@ interface PlayRow {
   energy: number | null;
 }
 
-const recentPlaysRaw = db
+// A play whose track has no album row cannot be composed into the page
+// (no cover, no album line), so it is excluded before the limit: the
+// page gets sixteen usable plays, not sixteen minus the strays.
+const recentPlays = db
   .query(
     `SELECT t.id AS track_id, t.title, ar.name AS artist, t.album_id, al.title AS album,
             t.duration_ms, MAX(pe.played_at) AS played_at, aw.hash, aw.format,
@@ -155,15 +159,12 @@ const recentPlaysRaw = db
        LEFT JOIN album al ON al.id = t.album_id
        LEFT JOIN artwork aw ON aw.id = al.artwork_id
        LEFT JOIN track_analysis ta ON ta.track_id = t.id
-      WHERE t.is_available = 1
+      WHERE t.is_available = 1 AND al.id IS NOT NULL
       GROUP BY t.id
       ORDER BY played_at DESC
       LIMIT 16`,
   )
   .all() as PlayRow[];
-// A play whose track has no album row cannot be composed into the page
-// (no cover, no album line); `fixtures.ts` applies the same filter.
-const recentPlays = recentPlaysRaw.filter((p) => p.album != null);
 
 const stats = {
   tracks: (

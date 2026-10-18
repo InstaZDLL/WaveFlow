@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-18T17:59:49.700Z",
+  "generatedAt": "2026-10-18T18:13:26.861Z",
   "stats": {
     "tracks": 1293,
     "albums": 1198,
@@ -1036,6 +1036,26 @@
         "#a5493a",
         "#4a211a",
         "#a64a3a"
+      ]
+    },
+    {
+      "trackId": 908,
+      "title": "Taste",
+      "artist": "Sabrina Carpenter",
+      "albumId": 763,
+      "album": "Short n' Sweet",
+      "durationMs": 157322,
+      "playedAt": 1792262850801,
+      "codec": "AAC",
+      "sampleRate": 48000,
+      "bitDepth": null,
+      "bpm": 76.01351351351352,
+      "energy": null,
+      "cover": "/fluid-proto/covers/b70f04a2ff178579f25505e9a38f2f6e31448309407b4a4d4c1a0b31404791a4.jpg",
+      "palette": [
+        "#5c5364",
+        "#29252d",
+        "#5d576f"
       ]
     }
   ],
