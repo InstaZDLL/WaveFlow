@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useMemo,
   useState,
   type MouseEvent as ReactMouseEvent,
   type ReactNode,
@@ -15,6 +16,7 @@ import {
   type ThemePreset,
 } from "../lib/themes";
 import { getProfileSetting, setProfileSetting } from "../lib/tauri/profile";
+import { readCachedAccent, type AccentScale } from "../lib/accent";
 
 /// Profile-setting key holding the user's selected preset id. Read on
 /// every profile mount + switch; written on every `setThemeId`.
@@ -66,12 +68,26 @@ const writeCachedTheme = (id: string) => {
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<ThemePreset>(readCachedTheme);
+  // Custom or cover accent, laid over the theme's own scale. Owned here
+  // rather than applied by `AccentSync` directly: this provider's effect
+  // runs after its children's, so a theme change would otherwise paint
+  // the theme's scale over the override that was just set.
+  //
+  // Starts from the scale the bootstrap already painted. Starting from
+  // `null` would repaint the theme's accent on the first effect and then
+  // the custom one once the profile's choice is read: two flashes the
+  // cache is there to prevent. `AccentSync` replaces it only once it has
+  // an answer.
+  const [accentOverride, setAccentOverride] = useState<AccentScale | null>(
+    readCachedAccent,
+  );
   const { activeProfile } = useProfile();
 
-  // Apply on every theme change so CSS vars + dark class stay in sync.
+  // Apply on every theme or accent change so CSS vars + dark class stay
+  // in sync.
   useEffect(() => {
-    applyTheme(theme);
-  }, [theme]);
+    applyTheme(theme, accentOverride);
+  }, [theme, accentOverride]);
 
   // Source-of-truth read: pull the active profile's saved theme on
   // mount AND on every profile switch. The cache may be stale (last
@@ -205,10 +221,15 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const isDark = theme.mode === "dark";
 
+  // A cover accent changes with every track: without this, each change
+  // would re-render every `useTheme()` consumer for nothing.
+  const value = useMemo(
+    () => ({ theme, setThemeId, isDark, toggleTheme, setAccentOverride }),
+    [theme, setThemeId, isDark, toggleTheme],
+  );
+
   return (
-    <ThemeContext.Provider value={{ theme, setThemeId, isDark, toggleTheme }}>
-      {children}
-    </ThemeContext.Provider>
+    <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
   );
 }
 

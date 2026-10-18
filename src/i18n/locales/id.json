@@ -2273,6 +2273,29 @@
           "label": "Liquid",
           "description": "Kaca cair gaya Apple — material tembus pandang multilapis, latar aurora, kapsul, gerakan tenang."
         }
+      },
+      "accent": {
+        "title": "Warna aksen",
+        "subtitle": "Warna tombol, penggeser, dan pilihan. Warna ini diterapkan di atas tema yang dipilih, yang tetap memakai latar dan modenya.",
+        "mode": {
+          "theme": "Dari tema",
+          "custom": "Kustom",
+          "cover": "Sampul"
+        },
+        "other": "Warna lain",
+        "coverNote": "Aksen mengambil warna dominan sampul lagu yang sedang diputar. Tanpa sampul, atau dengan sampul tanpa warna, aksen tema tetap dipakai.",
+        "colors": {
+          "red": "Merah",
+          "orange": "Oranye",
+          "amber": "Kuning amber",
+          "lime": "Hijau limau",
+          "green": "Hijau",
+          "teal": "Hijau kebiruan",
+          "sky": "Biru langit",
+          "blue": "Biru",
+          "violet": "Ungu",
+          "pink": "Merah muda"
+        }
       }
     },
     "playerBarLayout": {

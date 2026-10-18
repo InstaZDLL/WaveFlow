@@ -2273,6 +2273,29 @@
           "label": "Liquid",
           "description": "Apple tarzı sıvı cam — çok katmanlı yarı şeffaf malzeme, aurora arka plan, kapsül etiketler, sakin hareket."
         }
+      },
+      "accent": {
+        "title": "Vurgu rengi",
+        "subtitle": "Düğmelerin, kaydırıcıların ve seçimlerin rengi. Seçili temanın üzerine uygulanır; tema arka planlarını ve modunu korur.",
+        "mode": {
+          "theme": "Temadan",
+          "custom": "Özel",
+          "cover": "Kapak"
+        },
+        "other": "Başka renk",
+        "coverNote": "Vurgu, çalan parçanın kapağındaki baskın rengi alır. Kapak yoksa veya kapakta renk yoksa temanın vurgusu kalır.",
+        "colors": {
+          "red": "Kırmızı",
+          "orange": "Turuncu",
+          "amber": "Kehribar",
+          "lime": "Limon yeşili",
+          "green": "Yeşil",
+          "teal": "Çamurcun",
+          "sky": "Gök mavisi",
+          "blue": "Mavi",
+          "violet": "Mor",
+          "pink": "Pembe"
+        }
       }
     },
     "playerBarLayout": {

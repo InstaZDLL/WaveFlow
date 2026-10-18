@@ -1897,6 +1897,29 @@
         "lavenderLight": "Lavande clair",
         "crimsonLight": "Cramoisi clair",
         "oceanLight": "Océan clair"
+      },
+      "accent": {
+        "title": "Couleur d'accent",
+        "subtitle": "Celle des boutons, des curseurs et des sélections. Elle se pose sur le thème choisi, qui garde ses fonds et son mode.",
+        "mode": {
+          "theme": "Du thème",
+          "custom": "Personnalisée",
+          "cover": "Pochette"
+        },
+        "other": "Autre couleur",
+        "coverNote": "L'accent prend la couleur dominante de la pochette du morceau en cours. Sans pochette, ou avec une pochette sans couleur, l'accent du thème reste.",
+        "colors": {
+          "red": "Rouge",
+          "orange": "Orange",
+          "amber": "Ambre",
+          "lime": "Citron vert",
+          "green": "Vert",
+          "teal": "Sarcelle",
+          "sky": "Ciel",
+          "blue": "Bleu",
+          "violet": "Violet",
+          "pink": "Rose"
+        }
       }
     },
     "shortcuts": {

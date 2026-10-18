@@ -644,6 +644,20 @@ A small inline script in [`index.html`](../../index.html) runs **before React mo
 
 Switching uses [View Transitions API](https://developer.mozilla.org/en-US/docs/Web/API/View_Transitions_API): a radial reveal from the click point on supported browsers, a plain crossfade on the rest. [`setThemeId`](../../src/contexts/ThemeContext.tsx) wraps `document.startViewTransition` in try/catch because some WebKitGTK builds throw synchronously — the fallback calls `setTheme(next)` directly so the persisted id never desyncs from the applied palette. The persisted id lives in `localStorage['waveflow.theme.id']`; the legacy `waveflow.theme.is_dark` boolean from v1.x is migrated on first read (written under the new key + removed) so a downgrade-then-upgrade cycle can't silently overwrite a custom preset.
 
+### Accent colour
+
+Settings → Appearance → **Accent colour** lays a colour over whichever preset is active. The theme keeps its surfaces and its mode; only the eleven `--accent-*` stops change. The choice is per profile (`profile_setting['appearance.accent']`, JSON, through [`useAccentChoice`](../../src/hooks/useAccentChoice.ts)) and has three modes:
+
+- **From theme**: the preset's own scale, as before.
+- **Custom**: ten starting swatches, one per hue family, plus the native colour picker for anything else.
+- **Cover**: the dominant hue of the playing track's artwork, sampled with `dominantColor(url, "vibrant")` at the smallest artwork size. A track with no cover, a cover with no colourful pixel, or a grey one (chroma under `COVER_MIN_CHROMA`), falls back to the theme's accent. While the next cover is being sampled, and while no track is loaded (the queue is still being restored at startup), the current accent stays, so changing track never flashes the theme colour in between.
+
+**Contrast is inherited, not re-checked.** [`scaleFromOklch`](../../src/lib/accent.ts) keeps the default palette's lightness at every stop and takes only the hue and the chroma of the chosen colour, spread along the default's chroma curve. Every skin was tuned against those lightnesses (white on a 500 button, a 400 ring on a dark surface, 600 text on a light one), so any hue reads as the default does. A yellow pick comes out deeper and more mustard for that reason. Each stop is held inside sRGB by a binary search on chroma, rather than left for the browser to clip, which would shift the hue. A grey pick gives a grey scale, on purpose.
+
+**One writer.** [`AccentSync`](../../src/components/common/AccentSync.tsx) works out the scale and hands it to `ThemeProvider`, and `applyTheme(theme, override)` stays the only code that writes the variables. A provider's effect runs after its children's, so an `AccentSync` writing the variables itself would be painted over by the theme's scale on every theme change. `AccentSync` is mounted under `PlayerProvider` in the main window and in the mini-player, each with its own document. The desktop lyrics overlay has no theme.
+
+**First paint.** `applyTheme` caches the applied scale in `localStorage['waveflow.accent.scale']`, and the `index.html` bootstrap stamps it, letting only `oklch(...)` values through, before React mounts. The cache records whether the scale was an override. `ThemeProvider` starts from it only when it was, since a theme's own scale restored as an override would sit on another theme until the choice is read. And `AccentSync` sends nothing until it has an answer: the profile's choice read, the cover sampled. Starting from `null` repainted the theme's accent, then the custom one: two flashes. A custom or cover accent, and any preset other than Émeraude, now paints right on the first frame instead of flashing the stylesheet's green.
+
 ## Onboarding
 
 [`OnboardingModal`](../../src/components/common/OnboardingModal.tsx) walks new profiles through a multi-step wizard. Steps in order:

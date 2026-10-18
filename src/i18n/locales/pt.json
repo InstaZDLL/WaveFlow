@@ -2336,6 +2336,29 @@
           "label": "Liquid",
           "description": "Vidro líquido ao estilo Apple — material translúcido multicamada, fundo aurora, cápsulas, animações suaves."
         }
+      },
+      "accent": {
+        "title": "Cor de destaque",
+        "subtitle": "A cor dos botões, controlos deslizantes e seleções. Aplica-se sobre o tema escolhido, que mantém os fundos e o modo.",
+        "mode": {
+          "theme": "Do tema",
+          "custom": "Personalizada",
+          "cover": "Capa"
+        },
+        "other": "Outra cor",
+        "coverNote": "O destaque assume a cor dominante da capa da faixa em reprodução. Sem capa, ou com uma capa sem cor, mantém-se o destaque do tema.",
+        "colors": {
+          "red": "Vermelho",
+          "orange": "Laranja",
+          "amber": "Âmbar",
+          "lime": "Lima",
+          "green": "Verde",
+          "teal": "Verde-azulado",
+          "sky": "Azul-céu",
+          "blue": "Azul",
+          "violet": "Violeta",
+          "pink": "Rosa"
+        }
       }
     },
     "playerBarLayout": {

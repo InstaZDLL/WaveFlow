@@ -1,4 +1,5 @@
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { AccentSync } from "./components/common/AccentSync";
 import { ContrastProvider } from "./contexts/ContrastContext";
 import { PlayerProvider } from "./contexts/PlayerContext";
 import { ProfileProvider } from "./contexts/ProfileContext";
@@ -29,6 +30,9 @@ export function MiniPlayerApp() {
             needs it in both windows. */}
         <ContrastProvider>
           <PlayerProvider>
+            {/* Its own document, so its own accent: a cover accent has
+                to follow the track here too. */}
+            <AccentSync />
             <MiniPlayer />
           </PlayerProvider>
         </ContrastProvider>
