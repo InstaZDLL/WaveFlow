@@ -487,10 +487,13 @@ pub async fn run_one_backup(
     })
 }
 
-/// How old an unfinished archive has to be before retention removes it.
-/// Far longer than any backup takes to write, so it is never one in
-/// progress — another pass can be running beside this one.
-const STALE_PARTIAL: Duration = Duration::from_secs(24 * 60 * 60);
+/// How old an unfinished archive has to be before retention removes it:
+/// the age the writer itself uses. Far longer than any backup takes to
+/// write, so it is never one in progress — another pass can be running
+/// beside this one. The writer only clears partials of the file it is
+/// writing, and every backup has a name of its own, so a backup cut
+/// short is left to this sweep.
+const STALE_PARTIAL: Duration = waveflow_core::atomic_write::STALE_PARTIAL_AGE;
 
 /// What a file in the backup folder is to the retention sweep of one
 /// profile.
