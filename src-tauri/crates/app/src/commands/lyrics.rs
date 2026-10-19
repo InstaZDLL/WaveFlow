@@ -1028,6 +1028,125 @@ async fn read_prefer_lrclib(pool: &sqlx::SqlitePool) -> AppResult<bool> {
     Ok(value.map(|v| v == "true" || v == "1").unwrap_or(false))
 }
 
+/// The sidecar beside the track or in its `Lyrics/` folder, read off the
+/// async runtime. Cheap (a couple of stat calls and at most two
+/// `read_dir` scans).
+async fn read_sidecar_of(meta: &TrackMeta) -> Option<String> {
+    let path = meta.file_path.clone();
+    tokio::task::spawn_blocking(move || read_sidecar_lyrics(Path::new(&path)))
+        .await
+        .ok()
+        .flatten()
+}
+
+fn sidecar_payload(track_id: i64, content: String) -> LyricsPayload {
+    LyricsPayload {
+        track_id,
+        format: detect_format(&content),
+        content,
+        source: LyricsSource::LrcFile,
+        provider: None,
+        tag_write_skipped: None,
+        sidecar_write_skipped: None,
+        associated: Vec::new(),
+    }
+}
+
+/// The sidecar tier on its own, cached when found.
+async fn try_sidecar_lyrics(
+    pool: &sqlx::SqlitePool,
+    track_id: i64,
+    meta: &TrackMeta,
+) -> AppResult<Option<LyricsPayload>> {
+    let Some(content) = read_sidecar_of(meta).await else {
+        return Ok(None);
+    };
+    let payload = sidecar_payload(track_id, content);
+    upsert_lyrics(
+        pool,
+        &meta.file_hash,
+        &payload.content,
+        &payload.format,
+        &payload.source,
+        None,
+    )
+    .await?;
+    Ok(Some(payload))
+}
+
+/// Write a sidecar's lyrics over a cached miss, and only over a miss: the
+/// row is checked again by the statement that writes it, so lyrics that a
+/// lookup or an edit stored since the miss was read are left as they are.
+/// `false` when the row no longer holds a miss.
+async fn replace_miss(
+    pool: &sqlx::SqlitePool,
+    file_hash: &str,
+    payload: &LyricsPayload,
+) -> AppResult<bool> {
+    let mut tx = pool.begin().await?;
+    let replaced = sqlx::query(
+        "UPDATE app.lyrics
+            SET content = ?, format = ?, source = ?, provider = NULL, language = NULL,
+                fetched_at = ?, retry_after = NULL
+          WHERE file_hash = ? AND content = ''",
+    )
+    .bind(&payload.content)
+    .bind(format_to_db(&payload.format))
+    .bind(source_to_db(&payload.source))
+    .bind(now_ms())
+    .bind(file_hash)
+    .execute(&mut *tx)
+    .await?
+    .rows_affected()
+        > 0;
+    if replaced {
+        // A miss carries no bundle, but a new primary ends any bundle,
+        // as in `upsert_lyrics_until`.
+        sqlx::query("DELETE FROM app.lyrics_associated WHERE file_hash = ?")
+            .bind(file_hash)
+            .execute(&mut *tx)
+            .await?;
+    }
+    tx.commit().await?;
+    Ok(replaced)
+}
+
+/// [`read_cached`], except that a cached miss is first checked against
+/// the track's sidecar.
+///
+/// The cache is keyed by the audio's hash, and a complete miss is kept
+/// for good, so a sidecar the reader could not see when the miss was
+/// written would stay hidden behind it forever: one added since, or one
+/// in an encoding read as UTF-8 only before #910. Fixing the reader alone
+/// would only have helped tracks nobody had opened yet. The sidecar is the
+/// one local source that can change without the hash changing (a tag edit
+/// changes it, and with it the cache key), and it outranks a miss in
+/// every order the waterfall runs, an instrumental verdict included. So a
+/// miss costs one directory listing per lookup, and only for tracks
+/// without lyrics. The sidecar replaces the miss only if the row still
+/// holds it ([`replace_miss`]); anything written in between is served
+/// instead.
+async fn read_cached_or_new_sidecar(
+    pool: &sqlx::SqlitePool,
+    track_id: i64,
+) -> AppResult<Option<LyricsPayload>> {
+    let cached = read_cached(pool, track_id).await?;
+    if !cached.as_ref().is_some_and(|row| row.content.is_empty()) {
+        return Ok(cached);
+    }
+    let Some(meta) = read_track_meta(pool, track_id).await? else {
+        return Ok(cached);
+    };
+    let Some(content) = read_sidecar_of(&meta).await else {
+        return Ok(cached);
+    };
+    let payload = sidecar_payload(track_id, content);
+    if replace_miss(pool, &meta.file_hash, &payload).await? {
+        return Ok(Some(payload));
+    }
+    read_cached(pool, track_id).await
+}
+
 /// Local tiers, in order: embedded lyrics tag → sidecar `.lrc`/`.txt`
 /// → the generic description field. Returns the first hit, already
 /// cached, or `None` when none is present. Shared by the default
@@ -1069,28 +1188,8 @@ async fn try_local_lyrics(
         }));
     }
 
-    // Local sidecar `.lrc` / `.txt`. Cheap (a couple of stat calls + at
-    // most two `read_dir` scans).
-    let path_for_sidecar = meta.file_path.clone();
-    let sidecar =
-        tokio::task::spawn_blocking(move || read_sidecar_lyrics(Path::new(&path_for_sidecar)))
-            .await
-            .ok()
-            .flatten();
-    if let Some(content) = sidecar {
-        let format = detect_format(&content);
-        let source = LyricsSource::LrcFile;
-        upsert_lyrics(pool, &meta.file_hash, &content, &format, &source, None).await?;
-        return Ok(Some(LyricsPayload {
-            track_id,
-            content,
-            format,
-            source,
-            provider: None,
-            tag_write_skipped: None,
-            sidecar_write_skipped: None,
-            associated: Vec::new(),
-        }));
+    if let Some(payload) = try_sidecar_lyrics(pool, track_id, meta).await? {
+        return Ok(Some(payload));
     }
 
     // Last: the generic description field, which is a guess about a
@@ -1438,8 +1537,8 @@ fn read_stem_match_in_dir(dir: &Path, stem: &str) -> Option<String> {
     for entry in entries.flatten() {
         let path = entry.path();
         // Skip directories early. Without this a directory named
-        // `Song.lrc` would be picked into `lrc_match`, `read_to_string`
-        // below would fail, and a legitimate `Song.txt` in the same
+        // `Song.lrc` would be picked into `lrc_match`, the read below
+        // would fail, and a legitimate `Song.txt` in the same
         // directory would be silently masked. `is_file` follows
         // symlinks, so a symlinked sidecar still works.
         if !path.is_file() {
@@ -1473,10 +1572,13 @@ fn read_stem_match_in_dir(dir: &Path, stem: &str) -> Option<String> {
 }
 
 /// Read a text file and return its trimmed contents, or `None` if
-/// the file is missing, unreadable, or contains only whitespace.
+/// the file is missing, unreadable, or contains only whitespace. The
+/// file need not be UTF-8: lyrics saved as GB18030, Big5, Shift_JIS or
+/// a Windows code page are decoded too (#910).
 fn read_non_empty_file(path: &Path) -> Option<String> {
-    let raw = std::fs::read_to_string(path).ok()?;
-    let trimmed = raw.trim();
+    let raw = std::fs::read(path).ok()?;
+    let text = waveflow_core::text_encoding::decode(&raw);
+    let trimmed = text.trim();
     if trimmed.is_empty() {
         None
     } else {
@@ -1818,7 +1920,7 @@ pub async fn get_lyrics(
     track_id: i64,
 ) -> AppResult<Option<LyricsPayload>> {
     let pool = state.require_profile_pool().await?;
-    read_cached(&pool, track_id).await
+    read_cached_or_new_sidecar(&pool, track_id).await
 }
 
 /// Multi-tier lookup: cache → embedded tag → sidecar → enhanced/API
@@ -2265,8 +2367,8 @@ async fn fetch_lyrics_honouring(
 ) -> AppResult<Option<LyricsPayload>> {
     let pool = state.require_profile_pool().await?;
 
-    // 1. Cache.
-    if let Some(cached) = read_cached(&pool, track_id).await? {
+    // 1. Cache. A cached miss is checked against the sidecar first.
+    if let Some(cached) = read_cached_or_new_sidecar(&pool, track_id).await? {
         return Ok(Some(cached));
     }
 
@@ -2683,10 +2785,13 @@ pub async fn import_lrc_file(
         .ok_or_else(|| AppError::Other(format!("track {track_id} not found")))?;
 
     let path = file_path.clone();
-    let content = tokio::task::spawn_blocking(move || std::fs::read_to_string(&path))
-        .await
-        .map_err(|e| AppError::Other(format!("lyrics file read panicked: {e}")))?
-        .map_err(|e| AppError::Other(format!("read {file_path}: {e}")))?;
+    // Decoded whatever its encoding, like a sidecar (#910).
+    let content = tokio::task::spawn_blocking(move || {
+        std::fs::read(&path).map(|raw| waveflow_core::text_encoding::decode(&raw).into_owned())
+    })
+    .await
+    .map_err(|e| AppError::Other(format!("lyrics file read panicked: {e}")))?
+    .map_err(|e| AppError::Other(format!("read {file_path}: {e}")))?;
     let trimmed = content.trim();
     if trimmed.is_empty() {
         return Err(AppError::Other("imported lyrics file is empty".into()));
@@ -4765,6 +4870,67 @@ mod tests {
         assert!(read_cached(&pool, 1).await.unwrap().is_some());
     }
 
+    /// #910: a GB18030 sidecar was unreadable, so the track got a miss
+    /// cached for good. Once the sidecar can be read, the miss must give
+    /// way to it, or the fix never reaches a track already opened.
+    #[tokio::test]
+    async fn a_cached_miss_gives_way_to_a_sidecar_readable_since() {
+        let dir = tempfile::tempdir().unwrap();
+        let pool = pool_with_app_schema(dir.path()).await;
+        let audio = dir.path().join("Song.flac");
+        std::fs::write(&audio, b"audio").unwrap();
+        seed_track(&pool, &audio, "h1").await;
+        cache_lyrics_miss(&pool, 1, &meta_for("h1"), false)
+            .await
+            .unwrap();
+
+        let still_a_miss = read_cached_or_new_sidecar(&pool, 1)
+            .await
+            .unwrap()
+            .expect("the miss is served while there is no sidecar");
+        assert!(still_a_miss.content.is_empty());
+
+        let lyrics = "[00:01.00]今天的天气很好，我们一起去公园散步吧";
+        let (bytes, _, _) = encoding_rs::GB18030.encode(lyrics);
+        std::fs::write(dir.path().join("Song.lrc"), &bytes).unwrap();
+
+        let found = read_cached_or_new_sidecar(&pool, 1)
+            .await
+            .unwrap()
+            .expect("the sidecar is found");
+        assert_eq!(found.content, lyrics);
+        let cached = read_cached(&pool, 1).await.unwrap().expect("now cached");
+        assert_eq!(cached.content, lyrics);
+        assert!(matches!(cached.source, LyricsSource::LrcFile));
+    }
+
+    /// The sidecar replaces a miss, never what was written over the miss
+    /// while the sidecar was being read.
+    #[tokio::test]
+    async fn a_sidecar_does_not_replace_lyrics_written_since_the_miss() {
+        let dir = tempfile::tempdir().unwrap();
+        let pool = pool_with_app_schema(dir.path()).await;
+        seed_track(&pool, &dir.path().join("Song.flac"), "h1").await;
+        cache_lyrics_miss(&pool, 1, &meta_for("h1"), false)
+            .await
+            .unwrap();
+        upsert_lyrics(
+            &pool,
+            "h1",
+            "[00:01.00]Found",
+            &LyricsFormat::Lrc,
+            &LyricsSource::Api,
+            Some("lrclib"),
+        )
+        .await
+        .unwrap();
+
+        let sidecar = sidecar_payload(1, "[00:01.00]Sidecar".into());
+        assert!(!replace_miss(&pool, "h1", &sidecar).await.unwrap());
+        let cached = read_cached(&pool, 1).await.unwrap().expect("cached");
+        assert_eq!(cached.content, "[00:01.00]Found");
+    }
+
     /// Lyrics found after a partial miss replace it for good. Were the
     /// expiry carried over, they would be thrown away a week later.
     #[tokio::test]
@@ -5423,6 +5589,21 @@ mod tests {
         std::fs::write(dir.path().join("Song.txt"), "fallback ok").unwrap();
         let content = read_sidecar_lyrics(&audio).expect("should fall back to txt");
         assert_eq!(content, "fallback ok");
+    }
+
+    /// #910: lyrics saved by a Chinese Windows tool are GB18030, and a
+    /// UTF-8-only read lost them without a word.
+    #[test]
+    fn sidecar_in_gb18030_is_read() {
+        let dir = tempfile::tempdir().unwrap();
+        let audio = dir.path().join("Song.flac");
+        std::fs::write(&audio, b"").unwrap();
+        let lyrics = "[00:01.00]今天的天气很好，我们一起去公园散步吧\n\
+             [00:05.50]阳光照在湖面上，风吹过树林的声音";
+        let (bytes, _, _) = encoding_rs::GB18030.encode(lyrics);
+        assert!(std::str::from_utf8(&bytes).is_err());
+        std::fs::write(dir.path().join("Song.lrc"), &bytes).unwrap();
+        assert_eq!(read_sidecar_lyrics(&audio).as_deref(), Some(lyrics));
     }
 
     #[test]

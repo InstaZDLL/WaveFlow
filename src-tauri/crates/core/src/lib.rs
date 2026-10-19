@@ -40,3 +40,4 @@ pub mod similar;
 pub mod smart_playlists;
 pub mod sync;
 pub mod tagio;
+pub mod text_encoding;

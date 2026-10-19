@@ -222,6 +222,13 @@ wasmtime = { version = "49", default-features = false, features = [
 wasmtime-wasi = { version = "49", default-features = false, optional = true }
 pinyin = { version = "0.11.0", default-features = false, features = ["plain"] }
 unicode-normalization = { version = "0.1.25", optional = true }
+# Text files the user brings (sidecar lyrics, an imported .lrc, a
+# playlist) are not all UTF-8: GB18030, Big5, Shift_JIS or a Windows
+# code page are common. `chardetng` guesses the encoding of what is
+# not UTF-8 and `encoding_rs` decodes it (`text_encoding`). Both by
+# the same author, `encoding_rs` already in the lockfile.
+chardetng = "1.0.0"
+encoding_rs = "0.8.42"
 
 # `ReplaceFileW`, so an atomic write keeps the replaced file's ACL the way
 # rewriting it in place did (`atomic_write`). Already in the lockfile
