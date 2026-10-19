@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.5](https://github.com/InstaZDLL/WaveFlow/compare/v1.9.4...v1.9.5) (2026-10-19)
+
+
+### Bug Fixes
+
+* **lyrics:** read sidecar lyrics and playlists that are not utf-8 ([#917](https://github.com/InstaZDLL/WaveFlow/issues/917)) ([3b0ca4d](https://github.com/InstaZDLL/WaveFlow/commit/3b0ca4d70ef97f3bb6dab97de85bbef46b569f32))
+
 ## [1.9.4](https://github.com/InstaZDLL/WaveFlow/compare/v1.9.3...v1.9.4) (2026-10-18)
 
 
