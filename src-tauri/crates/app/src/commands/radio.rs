@@ -68,8 +68,10 @@ pub async fn start_radio(
 ) -> AppResult<Vec<i64>> {
     let pool = state.require_profile_pool().await?;
 
-    // 1. Resolve the seed.
-    let row: Option<(i64, Option<f64>)> = sqlx::query_as(
+    // 1. Resolve the seed. Its artist can be missing (`primary_artist` is
+    //    `ON DELETE SET NULL`, and a file may name none): the radio then
+    //    has no artist to start from and goes straight to the fallback.
+    let row: Option<(Option<i64>, Option<f64>)> = sqlx::query_as(
         r#"
         SELECT t.primary_artist, ta.bpm
           FROM track t
@@ -89,13 +91,16 @@ pub async fn start_radio(
     //    (= 3-track radio for niche artists, looks like the click did
     //    nothing). Best-effort: errors are logged inside the helper
     //    and don't fail the radio.
-    let _ = crate::commands::similar::ensure_similar_cached(&state, seed_artist_id).await;
-    let similar_artist_ids = cached_similar_library_ids(&pool, seed_artist_id).await?;
-
-    // 3. Build the candidate pool. Seed artist always included so the
+    // 3. The candidate artists: the seed artist always included so the
     //    radio doesn't drift off-vibe even with zero similar matches.
-    let mut artist_ids: Vec<i64> = vec![seed_artist_id];
-    artist_ids.extend(similar_artist_ids.iter().copied().take(SIMILAR_ARTIST_CAP));
+    //    None without a seed artist, which leaves the pool to step 4b.
+    let mut artist_ids: Vec<i64> = Vec::new();
+    if let Some(seed_artist_id) = seed_artist_id {
+        let _ = crate::commands::similar::ensure_similar_cached(&state, seed_artist_id).await;
+        let similar_artist_ids = cached_similar_library_ids(&pool, seed_artist_id).await?;
+        artist_ids.push(seed_artist_id);
+        artist_ids.extend(similar_artist_ids.iter().copied().take(SIMILAR_ARTIST_CAP));
+    }
 
     // 4. Pull every available track by these artists, keeping the
     //    play-count signal for ordering. Capped at 200 to keep the
@@ -140,7 +145,7 @@ pub async fn start_radio(
     // 6. Partition into seed-artist vs others, then assemble.
     let (seed_artist_tracks, other_tracks): (Vec<_>, Vec<_>) = filtered
         .into_iter()
-        .partition(|c| c.primary_artist == seed_artist_id);
+        .partition(|c| Some(c.primary_artist) == seed_artist_id);
 
     let mut rng_state = seed_track_id as u64 ^ 0x9E37_79B9_7F4A_7C15;
     let mut seed_artist_shuffled = seed_artist_tracks;

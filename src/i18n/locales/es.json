@@ -355,6 +355,36 @@
       "emptyTitle": "Aún no se ha reproducido nada",
       "emptyDescription": "Reproduce una pista para que aparezca aquí. Tu historial de escucha se va construyendo a medida que descubres música."
     },
+    "suggestion": {
+      "label": "Sugerencia del día",
+      "kind": {
+        "forgotten1": "Te encantaba",
+        "forgotten2": "Un favorito algo olvidado",
+        "forgotten3": "¿Te acuerdas de esta?",
+        "vibe1": "En la línea de lo que escuchas",
+        "vibe2": "Justo en tu onda",
+        "vibe3": "A tono con lo que escuchas ahora",
+        "unplayed1": "Sin escuchar todavía",
+        "unplayed2": "Te espera en tu biblioteca",
+        "unplayed3": "Una primera escucha"
+      },
+      "reason": {
+        "forgotten1_one": "{{count}} reproducción · la última en {{date}}",
+        "forgotten1_other": "{{count}} reproducciones · la última en {{date}}",
+        "forgotten2_one": "La escuchaste {{count}} vez, en {{date}}",
+        "forgotten2_other": "La escuchaste {{count}} veces, la última en {{date}}",
+        "vibe1": "Porque estás escuchando a {{artist}}",
+        "vibe2": "Si {{artist}} te gusta estos días, prueba esta",
+        "vibe3": "Con el espíritu de {{artist}}",
+        "unplayedArtist1": "De {{artist}}, que escuchas a menudo",
+        "unplayedArtist2": "Te gusta {{artist}}, pero aún no has escuchado esta",
+        "unplayedNew1": "Añadida el {{date}}, aún sin escuchar",
+        "unplayedNew2": "En tu biblioteca desde el {{date}}, todavía sin escuchar"
+      },
+      "play": "Escuchar",
+      "playAria": "Escuchar {{title}} y después canciones parecidas",
+      "another": "Otra sugerencia"
+    },
     "recentlyAdded": {
       "title": "Añadido recientemente"
     },
@@ -1277,6 +1307,9 @@
     "save": "Guardar",
     "saving": "Guardando…",
     "saveFailed": "No se pudo guardar: {{reason}}",
+    "fileChanged": "Otro programa ha modificado el archivo desde que se abrió esta ventana. Vuelve a cargar sus valores antes de guardar para no sobrescribir esos cambios.",
+    "reloadFromFile": "Volver a cargar desde el archivo",
+    "stampUnavailable": "No se puede leer el archivo en el disco: puede que se haya movido, eliminado o que no sea accesible. Guardar seguirá desactivado hasta que se pueda leer.",
     "fields": {
       "title": "Título",
       "artist": "Artista(s)",

@@ -883,6 +883,8 @@ pub fn run() {
             commands::track::search_tracks_advanced,
             commands::edit::update_track_tags,
             commands::edit::update_tracks_batch,
+            commands::edit::get_track_file_stamp,
+            commands::edit::reread_track_folder,
             commands::edit::update_track_cover,
             commands::track::toggle_like_track,
             commands::track::list_liked_track_ids,
@@ -927,6 +929,7 @@ pub fn run() {
             #[cfg(feature = "sync_v2")]
             commands::similar::get_similar_artists_by_name,
             commands::radio::start_radio,
+            commands::home_suggestion::get_home_suggestion,
             commands::web_radio_catalogue::radio_catalogue_status,
             commands::web_radio_catalogue::set_radio_catalogue_local_first,
             commands::web_radio_catalogue::clear_radio_catalogue,

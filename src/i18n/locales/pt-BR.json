@@ -355,6 +355,36 @@
       "emptyTitle": "Nada foi reproduzido ainda",
       "emptyDescription": "Reproduza uma faixa para que ela apareça aqui. Seu histórico de reprodução é criado à medida que você descobre novas músicas."
     },
+    "suggestion": {
+      "label": "Sugestão do dia",
+      "kind": {
+        "forgotten1": "Você adorava esta",
+        "forgotten2": "Uma favorita meio esquecida",
+        "forgotten3": "Lembra desta?",
+        "vibe1": "Na linha do que você tem ouvido",
+        "vibe2": "Bem no seu clima",
+        "vibe3": "Em sintonia com o que você ouve agora",
+        "unplayed1": "Ainda não ouvida",
+        "unplayed2": "Esperando na sua biblioteca",
+        "unplayed3": "Uma primeira audição"
+      },
+      "reason": {
+        "forgotten1_one": "{{count}} reprodução · a última em {{date}}",
+        "forgotten1_other": "{{count}} reproduções · a última em {{date}}",
+        "forgotten2_one": "Você ouviu {{count}} vez, em {{date}}",
+        "forgotten2_other": "Você ouviu {{count}} vezes, a última em {{date}}",
+        "vibe1": "Porque você tem ouvido {{artist}}",
+        "vibe2": "Se você está curtindo {{artist}}, experimente esta",
+        "vibe3": "No espírito de {{artist}}",
+        "unplayedArtist1": "De {{artist}}, que você ouve com frequência",
+        "unplayedArtist2": "Você gosta de {{artist}}, mas ainda não ouviu esta",
+        "unplayedNew1": "Adicionada em {{date}}, ainda não ouvida",
+        "unplayedNew2": "Na sua biblioteca desde {{date}}, ainda não ouvida"
+      },
+      "play": "Ouvir",
+      "playAria": "Ouvir {{title}} e depois faixas parecidas",
+      "another": "Outra sugestão"
+    },
     "recentlyAdded": {
       "title": "Adicionadas recentemente"
     },
@@ -1278,6 +1308,9 @@
     "save": "Salvar",
     "saving": "Salvando…",
     "saveFailed": "Não foi possível salvar: {{reason}}",
+    "fileChanged": "O arquivo foi alterado por outro programa depois que esta janela foi aberta. Recarregue os valores antes de salvar para não sobrescrever essas alterações.",
+    "reloadFromFile": "Recarregar do arquivo",
+    "stampUnavailable": "Não é possível ler o arquivo no disco: ele pode ter sido movido, excluído ou ficado inacessível. Salvar fica desativado até que ele possa ser lido.",
     "fields": {
       "title": "Título",
       "artist": "Artista(s)",

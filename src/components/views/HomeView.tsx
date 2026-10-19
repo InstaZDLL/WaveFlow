@@ -44,6 +44,7 @@ import {
 } from "../../lib/tauri/browse";
 import { MoodRadioGrid } from "./home/MoodRadioGrid";
 import { EditorialMasthead } from "./home/EditorialMasthead";
+import { HomeSuggestionCard } from "./home/HomeSuggestionCard";
 import { FluidHome } from "./home/fluid/FluidHome";
 import { recentPlayToTrack } from "./home/recentPlayToTrack";
 
@@ -478,6 +479,11 @@ function ClassicHomeView({
           />
         </div>
       </div>
+
+      {/* Suggestion of the day — one track and why: a forgotten
+          favourite, one in line with the recent listening, or one never
+          played. Hidden when the library has nothing to suggest. */}
+      <HomeSuggestionCard clipStyle={roundedClipMaskStyle} />
 
       {/* Wrapped year-in-review banner — gated by
           `useWrappedBannerVisibility`: hidden by default and auto-

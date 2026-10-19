@@ -18,11 +18,17 @@
 //!   shutdown channel signals the debounce task to exit.
 //! - Profile switches must call [`WatcherManager::unwatch_all`] then
 //!   [`WatcherManager::restore_from_db`] with the new pool.
+//! - A folder that cannot be armed — usually a drive that is not plugged
+//!   in yet — is not given up on: [`WatcherManager::watch_or_wait`]
+//!   keeps a placeholder for it and tries again every
+//!   [`REARM_INTERVAL`], then scans it once it is back. The placeholder
+//!   is dropped exactly like a watcher, so unwatching or switching
+//!   profile stops the retries too.
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use notify::{Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use serde::Serialize;
@@ -40,6 +46,17 @@ use crate::state::AppState;
 /// events as the OS finalizes each file) yields a single scan.
 const DEBOUNCE: Duration = Duration::from_millis(1500);
 
+/// How often a watched folder that could not be armed is tried again.
+/// A drive plugged in after launch is picked up within this long;
+/// shorter would only spend more stat calls on a drive that is absent
+/// for days.
+const REARM_INTERVAL: Duration = Duration::from_secs(60);
+
+/// Shortest gap between two logged errors from one folder's watcher. An
+/// error can repeat for every event the backend fails to deliver, and a
+/// log flooded with the same line hides everything else in it.
+const ERROR_LOG_INTERVAL: Duration = Duration::from_secs(60);
+
 /// Tauri event fired after a watcher-driven rescan completes. The
 /// frontend should refetch `list_libraries` (which feeds the
 /// "library.updated_at" reactivity used by the views).
@@ -55,13 +72,15 @@ struct LibraryRescannedPayload {
 }
 
 /// Per-folder state held inside [`WatcherManager`]. Dropping this
-/// struct stops both the OS-level watcher and the debounce task.
+/// struct stops both the OS-level watcher and the debounce task — or,
+/// for a folder still waiting to be armed, its retry task.
 struct FolderHandle {
     /// Held only so the underlying notify thread stays alive — never
-    /// read after construction.
-    _watcher: RecommendedWatcher,
-    /// Signals the debounce task to exit. Sender is dropped on
-    /// removal; the task's `recv()` returns `Err(_)` and bails.
+    /// read after construction. `None` while the folder is waiting to
+    /// be armed (see [`WatcherManager::watch_or_wait`]).
+    _watcher: Option<RecommendedWatcher>,
+    /// Signals the debounce task (or the retry task) to exit. Sender is
+    /// dropped on removal; the task's receiver resolves and it bails.
     _shutdown: oneshot::Sender<()>,
 }
 
@@ -83,57 +102,7 @@ impl WatcherManager {
     /// Start watching `path` for `folder_id`. If a watcher already
     /// existed for this id (e.g. after a path edit) it's dropped first.
     pub fn watch(&self, folder_id: i64, library_id: i64, path: PathBuf) -> AppResult<()> {
-        if !path.is_dir() {
-            return Err(AppError::Other(format!(
-                "watch path is not a directory: {}",
-                path.display()
-            )));
-        }
-
-        // Bridge the sync notify callback into an async tokio channel.
-        // Bounded would risk dropping events under load — unbounded is
-        // fine because the debounce stage collapses bursts to a single
-        // scan anyway.
-        let (event_tx, event_rx) = mpsc::unbounded_channel::<()>();
-        let event_tx_for_cb = event_tx.clone();
-        let watcher_path = path.clone();
-        let reserved_root = path.clone();
-
-        let mut watcher = notify::recommended_watcher(move |res: notify::Result<Event>| {
-            let Ok(event) = res else { return };
-            if !is_relevant_event(&event) {
-                return;
-            }
-            if is_our_own_media(&reserved_root, &event) {
-                return;
-            }
-            // Best-effort send — the debounce task may be tearing down.
-            let _ = event_tx_for_cb.send(());
-        })
-        .map_err(|e| AppError::Other(format!("notify watcher init: {e}")))?;
-
-        watcher
-            .watch(&watcher_path, RecursiveMode::Recursive)
-            .map_err(|e| {
-                AppError::Other(format!("notify watch {}: {e}", watcher_path.display()))
-            })?;
-
-        let (shutdown_tx, shutdown_rx) = oneshot::channel::<()>();
-        let app = self.app.clone();
-        tauri::async_runtime::spawn(debounce_loop(
-            event_rx,
-            shutdown_rx,
-            app,
-            folder_id,
-            library_id,
-            event_tx,
-        ));
-
-        let handle = FolderHandle {
-            _watcher: watcher,
-            _shutdown: shutdown_tx,
-        };
-
+        let (handle, _scan) = arm(&self.app, folder_id, library_id, &path)?;
         let mut map = self.inner.lock().expect("watcher map poisoned");
         // Replacing drops the previous handle, which stops its watcher
         // and signals its debounce task — exactly what we want when
@@ -141,6 +110,46 @@ impl WatcherManager {
         map.insert(folder_id, handle);
         tracing::info!(folder_id, library_id, path = %path.display(), "folder watcher started");
         Ok(())
+    }
+
+    /// [`Self::watch`], and when the folder cannot be armed, keep trying.
+    ///
+    /// For the callers that act on the user's standing choice rather
+    /// than on a click: the folders restored at launch and the toggle.
+    /// The usual reason a watched folder cannot be armed is that it is
+    /// not there yet — an external drive plugged in after launch, a
+    /// share that mounts late — and giving up on it then meant it went
+    /// unwatched until the next restart, with nothing to say so.
+    pub fn watch_or_wait(&self, folder_id: i64, library_id: i64, path: PathBuf) {
+        let Err(err) = self.watch(folder_id, library_id, path.clone()) else {
+            return;
+        };
+        tracing::warn!(
+            folder_id,
+            path = %path.display(),
+            %err,
+            "folder watcher not armed; trying again every {}s",
+            REARM_INTERVAL.as_secs()
+        );
+        let (shutdown_tx, shutdown_rx) = oneshot::channel::<()>();
+        // In the map like an armed watcher, so `unwatch`, `unwatch_all`
+        // and a later `watch` of the same folder all end the retries the
+        // same way they stop a watcher: by dropping this handle.
+        self.inner.lock().expect("watcher map poisoned").insert(
+            folder_id,
+            FolderHandle {
+                _watcher: None,
+                _shutdown: shutdown_tx,
+            },
+        );
+        tauri::async_runtime::spawn(rearm_loop(
+            self.app.clone(),
+            Arc::clone(&self.inner),
+            shutdown_rx,
+            folder_id,
+            library_id,
+            path,
+        ));
     }
 
     /// Stop watching `folder_id`. No-op when the folder isn't watched.
@@ -162,9 +171,10 @@ impl WatcherManager {
     }
 
     /// Boot-time hydration: query every `is_watched=1` folder in the
-    /// active profile and arm a watcher for each one. Failures are
-    /// logged per-folder so a missing path on one folder doesn't
-    /// disable watching everywhere.
+    /// active profile and arm a watcher for each one. A folder that
+    /// cannot be armed is logged and retried on its own (see
+    /// [`Self::watch_or_wait`]), so a missing path on one folder neither
+    /// disables watching everywhere nor stays unwatched for the session.
     pub async fn restore_from_db(&self, pool: &SqlitePool) -> AppResult<()> {
         let rows: Vec<(i64, i64, String)> =
             sqlx::query_as("SELECT id, library_id, path FROM library_folder WHERE is_watched = 1")
@@ -172,22 +182,201 @@ impl WatcherManager {
                 .await?;
 
         for (folder_id, library_id, path) in rows {
-            if let Err(err) = self.watch(folder_id, library_id, PathBuf::from(&path)) {
-                tracing::warn!(folder_id, path, %err, "failed to restore watcher");
-            }
+            self.watch_or_wait(folder_id, library_id, PathBuf::from(&path));
         }
         Ok(())
+    }
+}
+
+/// Build the OS watcher for `path` and the debounce task behind it.
+///
+/// Returns the handle to keep in the map, and a sender that asks the
+/// debounce task for a scan exactly as an event would.
+fn arm(
+    app: &AppHandle,
+    folder_id: i64,
+    library_id: i64,
+    path: &Path,
+) -> AppResult<(FolderHandle, UnboundedSender<()>)> {
+    if !path.is_dir() {
+        return Err(AppError::Other(format!(
+            "watch path is not a directory: {}",
+            path.display()
+        )));
+    }
+
+    // Bridge the sync notify callback into an async tokio channel.
+    // Bounded would risk dropping events under load — unbounded is
+    // fine because the debounce stage collapses bursts to a single
+    // scan anyway.
+    let (event_tx, event_rx) = mpsc::unbounded_channel::<()>();
+    let event_tx_for_cb = event_tx.clone();
+    let reserved_root = path.to_path_buf();
+    let mut errors = ErrorThrottle::default();
+
+    let mut watcher = notify::recommended_watcher(move |res: notify::Result<Event>| {
+        let event = match res {
+            Ok(event) => event,
+            Err(err) => {
+                // Logged, not acted on: an error does not say which
+                // changes it cost, and lost events are reported as a
+                // rescan event instead (see `is_relevant_event`).
+                if let Some(suppressed) = errors.admit(Instant::now()) {
+                    tracing::warn!(folder_id, %err, suppressed, "folder watcher error");
+                }
+                return;
+            }
+        };
+        if !is_relevant_event(&event) {
+            return;
+        }
+        if is_our_own_media(&reserved_root, &event) {
+            return;
+        }
+        // Best-effort send — the debounce task may be tearing down.
+        let _ = event_tx_for_cb.send(());
+    })
+    .map_err(|e| AppError::Other(format!("notify watcher init: {e}")))?;
+
+    watcher
+        .watch(path, RecursiveMode::Recursive)
+        .map_err(|e| AppError::Other(format!("notify watch {}: {e}", path.display())))?;
+
+    let (shutdown_tx, shutdown_rx) = oneshot::channel::<()>();
+    tauri::async_runtime::spawn(debounce_loop(
+        event_rx,
+        shutdown_rx,
+        app.clone(),
+        folder_id,
+        library_id,
+        event_tx.clone(),
+    ));
+
+    Ok((
+        FolderHandle {
+            _watcher: Some(watcher),
+            _shutdown: shutdown_tx,
+        },
+        event_tx,
+    ))
+}
+
+/// Retry task for a watched folder that could not be armed.
+///
+/// Every [`REARM_INTERVAL`] it looks for the folder; once it is there
+/// and armed, the watcher takes the placeholder's place in the map and
+/// one scan is asked for. Changes made while the folder was away — the
+/// whole drive's worth, if it comes back with new music on it — never
+/// produced an event, so without that scan they would wait for the next
+/// one.
+///
+/// Ends when its placeholder is dropped: the folder was unwatched or
+/// removed, the profile switched, or a later `watch` replaced it.
+async fn rearm_loop(
+    app: AppHandle,
+    inner: Arc<Mutex<HashMap<i64, FolderHandle>>>,
+    mut shutdown_rx: oneshot::Receiver<()>,
+    folder_id: i64,
+    library_id: i64,
+    path: PathBuf,
+) {
+    loop {
+        tokio::select! {
+            biased;
+            _ = &mut shutdown_rx => return,
+            _ = tokio::time::sleep(REARM_INTERVAL) => {}
+        }
+        // Through tokio's blocking pool: a share that went away can take
+        // the filesystem's whole timeout to answer a stat.
+        let present = tokio::fs::metadata(&path)
+            .await
+            .is_ok_and(|meta| meta.is_dir());
+        if !present {
+            continue;
+        }
+        // On the blocking pool too: arming stats the folder and registers
+        // a recursive watch, one per directory under inotify, which on a
+        // large collection is not a runtime worker's job.
+        let armed = {
+            let app = app.clone();
+            let path = path.clone();
+            tokio::task::spawn_blocking(move || arm(&app, folder_id, library_id, &path)).await
+        };
+        let (handle, scan) = match armed {
+            Ok(Ok(armed)) => armed,
+            Ok(Err(err)) => {
+                tracing::debug!(folder_id, %err, "folder is back but could not be armed yet");
+                continue;
+            }
+            Err(err) => {
+                tracing::warn!(folder_id, %err, "arming the folder watcher panicked");
+                continue;
+            }
+        };
+        {
+            let mut map = inner.lock().expect("watcher map poisoned");
+            // Only if the placeholder is still ours. Every removal from
+            // the map happens under this lock and drops the sender with
+            // it, so a closed channel here means the folder was
+            // unwatched or replaced meanwhile — and the watcher just
+            // built is dropped rather than resurrecting it, possibly
+            // under another profile's folder of the same id.
+            if !matches!(
+                shutdown_rx.try_recv(),
+                Err(oneshot::error::TryRecvError::Empty)
+            ) {
+                return;
+            }
+            map.insert(folder_id, handle);
+        }
+        tracing::info!(folder_id, library_id, path = %path.display(), "watched folder is back; watching it again");
+        let _ = scan.send(());
+        return;
     }
 }
 
 /// Filter notify events down to the ones that can change the library.
 /// We ignore Access (read-only, never mutates content) and
 /// AccessKind metadata-only changes.
+///
+/// Plus the backend's own "events were lost, look again" signal: an
+/// inotify queue that overflowed, an FSEvents stream that says a
+/// subtree must be rescanned. It comes as `EventKind::Other` with the
+/// rescan flag, usually naming no path, and it is precisely what a large
+/// copy into the folder produces — dropping it meant that copy was never
+/// picked up. It asks for the same debounced scan of the whole folder
+/// any other event does.
 fn is_relevant_event(event: &Event) -> bool {
-    matches!(
-        event.kind,
-        EventKind::Create(_) | EventKind::Modify(_) | EventKind::Remove(_)
-    )
+    event.need_rescan()
+        || matches!(
+            event.kind,
+            EventKind::Create(_) | EventKind::Modify(_) | EventKind::Remove(_)
+        )
+}
+
+/// Rate limit for the errors one folder's watcher reports.
+#[derive(Default)]
+struct ErrorThrottle {
+    last_logged: Option<Instant>,
+    suppressed: u64,
+}
+
+impl ErrorThrottle {
+    /// `Some(n)` when the error arriving at `now` should be logged, `n`
+    /// being how many were swallowed since the last one that was, so
+    /// the log still says how often it happened.
+    fn admit(&mut self, now: Instant) -> Option<u64> {
+        match self.last_logged {
+            Some(last) if now.duration_since(last) < ERROR_LOG_INTERVAL => {
+                self.suppressed += 1;
+                None
+            }
+            _ => {
+                self.last_logged = Some(now);
+                Some(std::mem::take(&mut self.suppressed))
+            }
+        }
+    }
 }
 
 /// Whether every path this event names is media WaveFlow itself keeps in
@@ -336,11 +525,10 @@ pub async fn apply_toggle(
                 "library_folder {folder_id} not found"
             )));
         };
-        if let Err(err) = manager.watch(folder_id, library_id, PathBuf::from(&path)) {
-            // Surface the error but the DB flag below is still
-            // updated so the UI reflects the user's intent.
-            tracing::warn!(folder_id, path, %err, "watch start failed");
-        }
+        // A folder that cannot be armed right now is logged and retried
+        // until it can; the DB flag below is still updated so the UI
+        // reflects the user's intent.
+        manager.watch_or_wait(folder_id, library_id, PathBuf::from(&path));
     } else {
         manager.unwatch(folder_id);
     }
@@ -356,7 +544,7 @@ pub async fn apply_toggle(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use notify::event::CreateKind;
+    use notify::event::{AccessKind, CreateKind, Flag};
 
     fn event(paths: &[&str]) -> Event {
         let mut event = Event::new(EventKind::Create(CreateKind::Any));
@@ -392,5 +580,41 @@ mod tests {
     #[test]
     fn an_event_without_paths_is_kept() {
         assert!(!is_our_own_media(Path::new("/music"), &event(&[])));
+    }
+
+    /// The backend saying it lost events (inotify overflow, FSEvents
+    /// must-scan) is the one event that most needs a scan: it is what a
+    /// large copy produces.
+    #[test]
+    fn a_lost_events_signal_asks_for_a_scan() {
+        let rescan = Event::new(EventKind::Other).set_flag(Flag::Rescan);
+        assert!(is_relevant_event(&rescan));
+        assert!(!is_our_own_media(Path::new("/music"), &rescan));
+    }
+
+    #[test]
+    fn reads_and_unflagged_others_do_not() {
+        assert!(!is_relevant_event(&Event::new(EventKind::Access(
+            AccessKind::Any
+        ))));
+        assert!(!is_relevant_event(&Event::new(EventKind::Other)));
+        assert!(is_relevant_event(&event(&["/music/a.flac"])));
+    }
+
+    #[test]
+    fn errors_are_logged_once_a_minute_with_a_count() {
+        let mut throttle = ErrorThrottle::default();
+        let start = Instant::now();
+        assert_eq!(throttle.admit(start), Some(0));
+        assert_eq!(throttle.admit(start + Duration::from_secs(1)), None);
+        assert_eq!(throttle.admit(start + Duration::from_secs(30)), None);
+        assert_eq!(
+            throttle.admit(start + ERROR_LOG_INTERVAL + Duration::from_secs(1)),
+            Some(2)
+        );
+        assert_eq!(
+            throttle.admit(start + ERROR_LOG_INTERVAL + Duration::from_secs(2)),
+            None
+        );
     }
 }

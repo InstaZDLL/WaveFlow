@@ -346,6 +346,36 @@
       "emptyTitle": "Nothing played yet",
       "emptyDescription": "Play a track to have it appear here. Your listening history builds up as you discover new music."
     },
+    "suggestion": {
+      "label": "Suggestion of the day",
+      "kind": {
+        "forgotten1": "You used to love this",
+        "forgotten2": "A favourite you've drifted from",
+        "forgotten3": "Remember this one?",
+        "vibe1": "In your current groove",
+        "vibe2": "Right in your mood",
+        "vibe3": "In tune with what you play now",
+        "unplayed1": "Never played",
+        "unplayed2": "Waiting in your library",
+        "unplayed3": "A first listen"
+      },
+      "reason": {
+        "forgotten1_one": "{{count}} play · last played in {{date}}",
+        "forgotten1_other": "{{count}} plays · last played in {{date}}",
+        "forgotten2_one": "You played it {{count}} time, in {{date}}",
+        "forgotten2_other": "You played it {{count}} times, the last in {{date}}",
+        "vibe1": "Because you've been playing {{artist}}",
+        "vibe2": "If you're into {{artist}} lately, try this",
+        "vibe3": "In the spirit of {{artist}}",
+        "unplayedArtist1": "By {{artist}}, whom you play often",
+        "unplayedArtist2": "You love {{artist}}, but haven't played this one yet",
+        "unplayedNew1": "Added {{date}}, never played yet",
+        "unplayedNew2": "In your library since {{date}}, still unplayed"
+      },
+      "play": "Play",
+      "playAria": "Play {{title}}, then similar tracks",
+      "another": "Another suggestion"
+    },
     "recentlyAdded": {
       "title": "Recently added"
     },
@@ -1232,6 +1262,9 @@
     "save": "Save",
     "saving": "Saving…",
     "saveFailed": "Couldn't save: {{reason}}",
+    "fileChanged": "The file was changed by another program since this window opened. Reload its values before saving, so those changes are not overwritten.",
+    "reloadFromFile": "Reload from file",
+    "stampUnavailable": "The file can't be read on disk: it may have been moved, deleted or made inaccessible. Saving stays disabled until it can be read.",
     "fields": {
       "title": "Title",
       "artist": "Artist(s)",

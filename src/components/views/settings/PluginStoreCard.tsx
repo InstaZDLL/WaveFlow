@@ -20,6 +20,7 @@ import {
 } from "../../../lib/tauri/plugins";
 import { PLUGIN_AVAILABILITY_EVENT } from "../../../hooks/usePluginAvailability";
 import { useLocalizedText } from "../../../hooks/useLocalizedText";
+import { PluginWorldBadge } from "./PluginWorldBadge";
 
 /**
  * Settings → Plugins → Store (Phase 2). Browses the curated registry
@@ -217,7 +218,7 @@ function StoreRow({
             <span className="text-xs text-zinc-500 dark:text-zinc-400">
               v{entry.version}
             </span>
-            <WorldBadge world={entry.world} />
+            <PluginWorldBadge world={entry.world} />
             {entry.official && (
               <span className="flex items-center gap-1 text-[10px] uppercase tracking-wide font-medium px-1.5 py-0.5 rounded bg-sky-50 text-sky-700 dark:bg-sky-950/30 dark:text-sky-400">
                 <BadgeCheck size={11} aria-hidden="true" />
@@ -313,22 +314,6 @@ function InstallButton({
       )}
       <span>{label}</span>
     </button>
-  );
-}
-
-function WorldBadge({ world }: { world: string }) {
-  const { t } = useTranslation();
-  const label = world.startsWith("waveflow:source")
-    ? t("settings.plugins.worlds.source")
-    : world.startsWith("waveflow:metadata")
-      ? t("settings.plugins.worlds.metadata")
-      : world.startsWith("waveflow:ui")
-        ? t("settings.plugins.worlds.ui")
-        : world;
-  return (
-    <span className="text-[10px] uppercase tracking-wide font-medium px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400">
-      {label}
-    </span>
   );
 }
 

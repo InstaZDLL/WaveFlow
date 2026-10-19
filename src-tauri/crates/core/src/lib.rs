@@ -13,9 +13,11 @@
 pub mod album_playback;
 pub mod analysis;
 pub mod artwork;
+pub mod atomic_write;
 pub mod audio_format;
 pub mod domain;
 pub mod error;
+pub mod home_suggestion;
 pub mod inventory;
 pub mod metadata;
 pub mod mood;
@@ -38,3 +40,4 @@ pub mod similar;
 pub mod smart_playlists;
 pub mod sync;
 pub mod tagio;
+pub mod text_encoding;

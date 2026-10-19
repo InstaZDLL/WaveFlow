@@ -346,6 +346,34 @@
       "emptyTitle": "아직 재생한 곡이 없습니다",
       "emptyDescription": "곡을 재생하면 여기에 표시됩니다. 새로운 곡을 발견할 때마다 재생 기록이 쌓입니다."
     },
+    "suggestion": {
+      "label": "오늘의 추천",
+      "kind": {
+        "forgotten1": "예전에 즐겨 듣던 곡",
+        "forgotten2": "조금 잊혀진 애청곡",
+        "forgotten3": "이 곡 기억나세요?",
+        "vibe1": "요즘 듣는 음악과 비슷한 곡",
+        "vibe2": "지금 기분에 딱 맞는 곡",
+        "vibe3": "최근 감상과 같은 분위기",
+        "unplayed1": "아직 듣지 않은 곡",
+        "unplayed2": "보관함에서 기다리는 곡",
+        "unplayed3": "처음 듣는 곡"
+      },
+      "reason": {
+        "forgotten1_other": "{{count}}회 재생 · 마지막 재생 {{date}}",
+        "forgotten2_other": "지금까지 {{count}}회 재생, 마지막은 {{date}}",
+        "vibe1": "요즘 {{artist}}을(를) 듣고 있어서",
+        "vibe2": "요즘 {{artist}}이(가) 좋다면 이 곡도 들어 보세요",
+        "vibe3": "{{artist}}와(과) 비슷한 분위기",
+        "unplayedArtist1": "자주 듣는 {{artist}}의 곡",
+        "unplayedArtist2": "{{artist}}을(를) 좋아하지만 이 곡은 아직 안 들었어요",
+        "unplayedNew1": "{{date}}에 추가됨 · 아직 재생 안 함",
+        "unplayedNew2": "{{date}}부터 보관함에 있지만 아직 재생하지 않음"
+      },
+      "play": "재생",
+      "playAria": "{{title}} 재생 후 비슷한 곡 재생",
+      "another": "다른 추천"
+    },
     "recentlyAdded": {
       "title": "최근 추가됨"
     },
@@ -1232,6 +1260,9 @@
     "save": "저장",
     "saving": "저장 중…",
     "saveFailed": "저장하지 못했습니다: {{reason}}",
+    "fileChanged": "이 창을 연 뒤 다른 프로그램이 파일을 변경했습니다. 그 변경 사항을 덮어쓰지 않도록 저장하기 전에 값을 다시 불러오세요.",
+    "reloadFromFile": "파일에서 다시 불러오기",
+    "stampUnavailable": "디스크에서 파일을 읽을 수 없습니다. 이동되었거나 삭제되었거나 접근할 수 없게 되었을 수 있습니다. 읽을 수 있을 때까지 저장이 비활성화됩니다.",
     "fields": {
       "title": "제목",
       "artist": "아티스트",

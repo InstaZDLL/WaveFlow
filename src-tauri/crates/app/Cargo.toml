@@ -297,6 +297,8 @@ same-file = "1"
 # (artwork extraction, folder cover fallback, etc.). Auto-cleaned on
 # Drop so a panicked test doesn't leak fixtures across the temp dir.
 tempfile = "3"
+# Writes a lyrics sidecar in a legacy encoding for the decoding test.
+encoding_rs = "0.8.42"
 
 # Linux-only: direct ALSA enumeration so the output-device picker can
 # show human-readable descriptions ("HDA Intel PCH, ALC897 Analog
@@ -326,7 +328,7 @@ raw-window-handle = "0.6"
 # event-handle APIs from the exclusive-mode output thread without
 # going through `wasapi`'s less ergonomic wrappers.
 [target.'cfg(target_os = "windows")'.dependencies]
-wasapi = "0.25"
+wasapi = "0.26"
 windows = { version = "0.62", features = [
     "Win32_Foundation",
     "Win32_System_Com",

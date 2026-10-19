@@ -783,7 +783,9 @@ fn set_period_and_buffer(hwp: &HwParams<'_>) -> AppResult<()> {
 /// The integer formats go through [`super::pcm_scale`], which inverts the
 /// decoder's own float conversion exactly, so an untouched stream reaches
 /// the device bit for bit, and a sample past full scale saturates at the
-/// endpoint rather than wrapping. Gain (volume, normalize, the mono mix) is applied
+/// endpoint rather than wrapping. 16-bit output is dithered where the
+/// chain moved a sample off a 16-bit step, and only there
+/// ([`pcm_scale::Dither16`]). Gain (volume, normalize, the mono mix) is applied
 /// upstream in [`super::output::fill_pcm_period`], so a sample that clips
 /// here is one
 /// the chain genuinely pushed past 0 dBFS.
@@ -791,7 +793,12 @@ fn set_period_and_buffer(hwp: &HwParams<'_>) -> AppResult<()> {
 /// Every path is bounded by both slice lengths, so a short `samples`
 /// leaves the tail of `bytes` at whatever it held — the caller keeps one
 /// buffer for the life of the stream and rewrites it whole each period.
-fn pack_samples(format: AlsaSampleFormat, samples: &[f32], bytes: &mut [u8]) {
+fn pack_samples(
+    format: AlsaSampleFormat,
+    samples: &[f32],
+    bytes: &mut [u8],
+    dither: &mut pcm_scale::Dither16,
+) {
     match format {
         AlsaSampleFormat::F32 => {
             for (sample, chunk) in samples.iter().zip(bytes.chunks_exact_mut(4)) {
@@ -823,7 +830,7 @@ fn pack_samples(format: AlsaSampleFormat, samples: &[f32], bytes: &mut [u8]) {
         }
         AlsaSampleFormat::S16 => {
             for (sample, chunk) in samples.iter().zip(bytes.chunks_exact_mut(2)) {
-                let v = pcm_scale::to_i16(*sample);
+                let v = dither.quantize(*sample);
                 chunk.copy_from_slice(&v.to_le_bytes());
             }
         }
@@ -1129,6 +1136,7 @@ fn pcm_output_thread_main(
     // in all of them is an all-zero byte pattern — so one pre-zeroed
     // buffer serves the paused and drain paths whichever we landed on.
     let silence: Vec<u8> = vec![0u8; period_frames * frame_bytes];
+    let mut dither = pcm_scale::Dither16::new();
 
     let exit = 'run: loop {
         if shutdown_rx.try_recv().is_ok() {
@@ -1148,7 +1156,7 @@ fn pcm_output_thread_main(
         } else {
             let written =
                 super::output::fill_pcm_period(&shared, &mut consumer, &mut samples, channels);
-            pack_samples(format, &samples, &mut wire);
+            pack_samples(format, &samples, &mut wire, &mut dither);
             if written > 0 {
                 shared.samples_played.fetch_add(written, Ordering::Relaxed);
             }
@@ -1208,7 +1216,7 @@ mod tests {
         assert!(!is_system_route("PCH"));
     }
 
-    use super::{pack_samples, AlsaSampleFormat};
+    use super::{pack_samples, pcm_scale, AlsaSampleFormat};
 
     #[test]
     fn an_unopened_engine_asks_for_stereo_not_mono() {
@@ -1234,7 +1242,12 @@ mod tests {
     #[test]
     fn twenty_four_in_thirty_two_is_right_aligned_not_left() {
         let mut bytes = [0u8; 4];
-        pack_samples(AlsaSampleFormat::S24In32, &[1.0], &mut bytes);
+        pack_samples(
+            AlsaSampleFormat::S24In32,
+            &[1.0],
+            &mut bytes,
+            &mut pcm_scale::Dither16::new(),
+        );
         // 8_388_607 = 0x7F_FF_FF, little-endian, top byte untouched.
         assert_eq!(bytes, [0xFF, 0xFF, 0x7F, 0x00]);
         // The left-aligned layout would have been [0x00, 0xFF, 0xFF, 0x7F].
@@ -1244,7 +1257,12 @@ mod tests {
     #[test]
     fn a_negative_twenty_four_bit_sample_keeps_its_sign_extension() {
         let mut bytes = [0u8; 4];
-        pack_samples(AlsaSampleFormat::S24In32, &[-1.0], &mut bytes);
+        pack_samples(
+            AlsaSampleFormat::S24In32,
+            &[-1.0],
+            &mut bytes,
+            &mut pcm_scale::Dither16::new(),
+        );
         // -8_388_608 as i32 = 0xFF_80_00_00. The driver reads the low
         // three bytes; the 0xFF above them is the sign extension a plain
         // i32 store produces and is ignored.
@@ -1254,14 +1272,24 @@ mod tests {
     #[test]
     fn the_packed_form_spends_three_bytes_and_no_container() {
         let mut bytes = [0u8; 3];
-        pack_samples(AlsaSampleFormat::S24Packed, &[1.0], &mut bytes);
+        pack_samples(
+            AlsaSampleFormat::S24Packed,
+            &[1.0],
+            &mut bytes,
+            &mut pcm_scale::Dither16::new(),
+        );
         assert_eq!(bytes, [0xFF, 0xFF, 0x7F]);
     }
 
     #[test]
     fn sixteen_bit_full_scale_lands_on_the_endpoints() {
         let mut bytes = [0u8; 4];
-        pack_samples(AlsaSampleFormat::S16, &[1.0, -1.0], &mut bytes);
+        pack_samples(
+            AlsaSampleFormat::S16,
+            &[1.0, -1.0],
+            &mut bytes,
+            &mut pcm_scale::Dither16::new(),
+        );
         assert_eq!(i16::from_le_bytes([bytes[0], bytes[1]]), 32_767);
         assert_eq!(i16::from_le_bytes([bytes[2], bytes[3]]), -32_768);
     }
@@ -1272,16 +1300,31 @@ mod tests {
         // endpoint. Wrapping here would turn a loud passage
         // into a burst of full-scale noise of the opposite sign.
         let mut bytes = [0u8; 4];
-        pack_samples(AlsaSampleFormat::S32, &[9.0], &mut bytes);
+        pack_samples(
+            AlsaSampleFormat::S32,
+            &[9.0],
+            &mut bytes,
+            &mut pcm_scale::Dither16::new(),
+        );
         assert_eq!(i32::from_le_bytes(bytes), 2_147_483_647);
-        pack_samples(AlsaSampleFormat::S32, &[-9.0], &mut bytes);
+        pack_samples(
+            AlsaSampleFormat::S32,
+            &[-9.0],
+            &mut bytes,
+            &mut pcm_scale::Dither16::new(),
+        );
         assert_eq!(i32::from_le_bytes(bytes), -2_147_483_648);
     }
 
     #[test]
     fn float_output_is_a_byte_copy() {
         let mut bytes = [0u8; 4];
-        pack_samples(AlsaSampleFormat::F32, &[0.25], &mut bytes);
+        pack_samples(
+            AlsaSampleFormat::F32,
+            &[0.25],
+            &mut bytes,
+            &mut pcm_scale::Dither16::new(),
+        );
         assert_eq!(f32::from_le_bytes(bytes), 0.25);
     }
 

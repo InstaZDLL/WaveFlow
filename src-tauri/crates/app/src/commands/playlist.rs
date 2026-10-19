@@ -825,14 +825,21 @@ pub async fn export_playlist_m3u(
         out.push('\n');
     }
 
+    // Through a partial file renamed into place, so overwriting an
+    // existing playlist file that fails halfway (a full disk, a share
+    // that drops) leaves the old one intact rather than truncated. On
+    // the blocking pool: the destination is wherever the user picked,
+    // network shares included, and the parent may need creating.
     let dest = std::path::PathBuf::from(&dest_path);
-    if let Some(parent) = dest.parent() {
-        if !parent.as_os_str().is_empty() {
-            std::fs::create_dir_all(parent)
-                .map_err(|e| AppError::Other(format!("create parent dir: {e}")))?;
-        }
+    {
+        let dest = dest.clone();
+        tokio::task::spawn_blocking(move || {
+            waveflow_core::atomic_write::write_bytes(&dest, out.as_bytes())
+        })
+        .await
+        .map_err(|e| AppError::Other(format!("write m3u join: {e}")))?
+        .map_err(|e| AppError::Other(format!("write m3u file: {e}")))?;
     }
-    std::fs::write(&dest, out).map_err(|e| AppError::Other(format!("write m3u file: {e}")))?;
 
     tracing::info!(
         playlist_id,
@@ -857,12 +864,11 @@ pub async fn import_playlist_m3u(
     let src = std::path::PathBuf::from(&source_path);
 
     let raw = std::fs::read(&src).map_err(|e| AppError::Other(format!("read m3u file: {e}")))?;
-    // UTF-8 (.m3u8) first; fall back to byte→char lossy decode so legacy
-    // .m3u files in latin-1 / cp1252 still produce readable paths.
-    let text = match std::str::from_utf8(&raw) {
-        Ok(s) => s.to_string(),
-        Err(_) => raw.iter().map(|b| *b as char).collect::<String>(),
-    };
+    // A `.m3u8` is UTF-8; a legacy `.m3u` is in the code page of the
+    // machine that wrote it — Windows-1252, but just as often GBK, Big5
+    // or Shift_JIS, whose paths a byte-per-char read turned into
+    // nonsense that matched nothing.
+    let text = waveflow_core::text_encoding::decode(&raw);
 
     let parent = src.parent().unwrap_or_else(|| std::path::Path::new(""));
 

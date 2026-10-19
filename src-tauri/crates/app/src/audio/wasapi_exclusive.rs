@@ -1117,6 +1117,9 @@ fn run_event_loop(
     let mut samples: Vec<f32> = vec![0.0; need_samples];
     let mut bytes_scratch: Vec<u8> = vec![0u8; buffer_bytes];
     let silent_buf = vec![0u8; buffer_bytes];
+    // Noise source for 16-bit output, held here so the period loop
+    // neither allocates nor reseeds.
+    let mut dither = pcm_scale::Dither16::new();
 
     // 2 s timeout is generous — for a 10 ms device period the event
     // should fire every 10 ms. A timeout means the device went away
@@ -1170,7 +1173,7 @@ fn run_event_loop(
             // exclusive format expects (#174). Hot path: no
             // allocations, no branches inside the inner loop
             // beyond the format dispatch above.
-            pack_samples(format, &samples, &mut bytes_scratch);
+            pack_samples(format, &samples, &mut bytes_scratch, &mut dither);
             if written > 0 {
                 shared
                     .samples_played
@@ -1323,7 +1326,9 @@ fn run_dop_event_loop(
 ///
 /// The integer formats go through [`super::pcm_scale`], which inverts the
 /// decoder's own float conversion exactly, so an untouched stream reaches
-/// the device bit for bit. The decoder upstream applies
+/// the device bit for bit. 16-bit output is dithered where the chain
+/// moved a sample off a 16-bit step, and only there
+/// ([`pcm_scale::Dither16`]). The decoder upstream applies
 /// `volume * norm_gain` BEFORE this function, so the input is
 /// already at the final analogue amplitude; a clipped sample here
 /// means the upstream chain (EQ, ReplayGain, mono mix) pushed
@@ -1333,7 +1338,12 @@ fn run_dop_event_loop(
 /// `bytes.len()` so a mismatched slot count (`samples` short by
 /// one) leaves trailing bytes at their previous values (which the
 /// caller pre-cleared to zero). No panics in the hot path.
-fn pack_samples(format: ExclusiveSampleFormat, samples: &[f32], bytes: &mut [u8]) {
+fn pack_samples(
+    format: ExclusiveSampleFormat,
+    samples: &[f32],
+    bytes: &mut [u8],
+    dither: &mut pcm_scale::Dither16,
+) {
     match format {
         ExclusiveSampleFormat::Float32 => {
             for (sample, chunk) in samples.iter().zip(bytes.chunks_exact_mut(4)) {
@@ -1364,7 +1374,7 @@ fn pack_samples(format: ExclusiveSampleFormat, samples: &[f32], bytes: &mut [u8]
         }
         ExclusiveSampleFormat::Pcm16 => {
             for (sample, chunk) in samples.iter().zip(bytes.chunks_exact_mut(2)) {
-                let v = pcm_scale::to_i16(*sample);
+                let v = dither.quantize(*sample);
                 chunk.copy_from_slice(&v.to_le_bytes());
             }
         }
@@ -1567,7 +1577,12 @@ mod tests {
     fn pack_samples_float32_round_trips() {
         let samples = [0.0_f32, 1.0, -1.0, 0.5];
         let mut bytes = vec![0u8; samples.len() * 4];
-        pack_samples(ExclusiveSampleFormat::Float32, &samples, &mut bytes);
+        pack_samples(
+            ExclusiveSampleFormat::Float32,
+            &samples,
+            &mut bytes,
+            &mut pcm_scale::Dither16::new(),
+        );
         for (i, sample) in samples.iter().enumerate() {
             let round = f32::from_le_bytes(bytes[i * 4..i * 4 + 4].try_into().unwrap());
             assert_eq!(round, *sample);
@@ -1578,7 +1593,12 @@ mod tests {
     fn pack_samples_s16_saturates_and_round_trips() {
         let samples = [0.0_f32, 1.0, -1.0, 0.5, 2.0, -2.0];
         let mut bytes = vec![0u8; samples.len() * 2];
-        pack_samples(ExclusiveSampleFormat::Pcm16, &samples, &mut bytes);
+        pack_samples(
+            ExclusiveSampleFormat::Pcm16,
+            &samples,
+            &mut bytes,
+            &mut pcm_scale::Dither16::new(),
+        );
         let extract = |i: usize| i16::from_le_bytes(bytes[i * 2..i * 2 + 2].try_into().unwrap());
         assert_eq!(extract(0), 0);
         assert_eq!(extract(1), 32_767); // +1.0 has no 16-bit value: saturates
@@ -1592,7 +1612,12 @@ mod tests {
     fn pack_samples_s24_packed_three_bytes_per_sample() {
         let samples = [0.0_f32, 1.0, -1.0];
         let mut bytes = vec![0u8; samples.len() * 3];
-        pack_samples(ExclusiveSampleFormat::Pcm24Packed, &samples, &mut bytes);
+        pack_samples(
+            ExclusiveSampleFormat::Pcm24Packed,
+            &samples,
+            &mut bytes,
+            &mut pcm_scale::Dither16::new(),
+        );
         // 0.0 → 0
         assert_eq!(&bytes[0..3], &[0, 0, 0]);
         // 1.0 → 8_388_607 = 0x7F_FF_FF → LE [0xFF, 0xFF, 0x7F]
@@ -1606,7 +1631,12 @@ mod tests {
     fn pack_samples_s24_padded_is_left_aligned_in_the_container() {
         let samples = [1.0_f32, -1.0_f32, 0.0_f32];
         let mut bytes = vec![0u8; 12];
-        pack_samples(ExclusiveSampleFormat::Pcm24Padded, &samples, &mut bytes);
+        pack_samples(
+            ExclusiveSampleFormat::Pcm24Padded,
+            &samples,
+            &mut bytes,
+            &mut pcm_scale::Dither16::new(),
+        );
         // WAVEFORMATEXTENSIBLE: the 24 valid bits sit in the MOST significant
         // part of the 32-bit container, unused low bits zeroed.
         assert_eq!(&bytes[0..4], &(8_388_607_i32 << 8).to_le_bytes());

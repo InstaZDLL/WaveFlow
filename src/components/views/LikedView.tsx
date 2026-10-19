@@ -10,6 +10,7 @@ import { usePlayer } from "../../hooks/usePlayer";
 import { useTrackContextMenu } from "../../hooks/useTrackContextMenu";
 import { useTrackUpdated } from "../../hooks/useTrackUpdated";
 import { useLikedChanged } from "../../hooks/useLikedTracks";
+import { usePageVirtualizer } from "../../hooks/usePageVirtualizer";
 import {
   listLikedTracks,
   toggleLikeTrack,
@@ -153,107 +154,20 @@ export function LikedView({
             </span>
             <span aria-hidden="true" />
           </div>
-          <ul
-            className={`divide-y divide-zinc-100 dark:divide-zinc-800/60 ${
-              isLoading ? "opacity-50" : ""
-            }`}
-          >
-            {tracks.map((track, index) => {
-              const isCurrent = track.id === currentTrack?.id;
-              return (
-                // Row can't be a <button> because it contains action
-                // buttons; nested buttons are invalid HTML. Keyboard
-                // activation still works via tabIndex + onKeyDown.
-                <li
-                  key={track.id}
-                  tabIndex={0}
-                  role="button"
-                  onDoubleClick={() =>
-                    playTracks(tracks, index, { type: "liked", id: null })
-                  }
-                  onKeyDown={(e) => {
-                    // Only play when the row itself is focused — keys
-                    // fired from nested buttons / links would otherwise
-                    // bubble here and double-fire playback.
-                    if (e.target !== e.currentTarget) return;
-                    if (trackContextMenu.openFromKeyboard(e, track)) return;
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      playTracks(tracks, index, { type: "liked", id: null });
-                    }
-                  }}
-                  onKeyUp={(e) => {
-                    if (e.target !== e.currentTarget) return;
-                    if (e.key === " ") e.preventDefault();
-                  }}
-                  onContextMenu={(e) => trackContextMenu.open(e, track)}
-                  className={`group grid grid-cols-[3rem_2.75rem_1fr_1fr_1fr_5rem_2.5rem] gap-4 px-5 py-2 items-center select-none transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500 ${
-                    isCurrent
-                      ? "bg-emerald-50 dark:bg-emerald-900/20"
-                      : "hover:bg-zinc-50 dark:hover:bg-zinc-800/60"
-                  }`}
-                >
-                  <span
-                    className={`text-right text-sm tabular-nums ${
-                      isCurrent
-                        ? "text-emerald-500 font-semibold"
-                        : "text-zinc-400"
-                    }`}
-                  >
-                    {index + 1}
-                  </span>
-                  <Artwork
-                    path={track.artwork_path}
-                    className="w-10 h-10"
-                    iconSize={18}
-                    alt={track.album_title ?? track.title}
-                    rounded="md"
-                  />
-                  <span
-                    className={`text-sm truncate flex items-center gap-2 ${
-                      isCurrent
-                        ? "text-emerald-600 dark:text-emerald-400 font-semibold"
-                        : "text-zinc-800 dark:text-zinc-200"
-                    }`}
-                  >
-                    <span className="truncate">{track.title}</span>
-                    <HiResBadge
-                      bitDepth={track.bit_depth}
-                      sampleRate={track.sample_rate}
-                      codec={track.codec}
-                      variant="inline"
-                    />
-                  </span>
-                  <ArtistLink
-                    name={track.artist_name}
-                    artistIds={track.artist_ids}
-                    onNavigate={onNavigateToArtist}
-                    fallback={unknown}
-                    className="text-sm text-zinc-500 truncate"
-                  />
-                  <span className="text-sm text-zinc-500 truncate">
-                    {track.album_title ?? unknown}
-                  </span>
-                  <span className="text-sm tabular-nums text-zinc-400 text-right">
-                    {formatDuration(track.duration_ms)}
-                  </span>
-                  <div className="flex justify-center">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleUnlike(track.id);
-                      }}
-                      aria-label={t("liked.unlike")}
-                      className="p-1.5 rounded-full text-pink-500 hover:text-pink-600 hover:bg-pink-50 dark:hover:bg-pink-500/10 transition-colors opacity-0 group-hover:opacity-100"
-                    >
-                      <Heart size={16} className="fill-current" />
-                    </button>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+          <LikedTrackList
+            tracks={tracks}
+            isLoading={isLoading}
+            currentTrackId={currentTrack?.id ?? null}
+            onPlayTrack={(index) =>
+              playTracks(tracks, index, { type: "liked", id: null })
+            }
+            onUnlike={handleUnlike}
+            onNavigateToArtist={onNavigateToArtist}
+            onContextMenuRow={trackContextMenu.open}
+            onRowMenuKey={trackContextMenu.openFromKeyboard}
+            unknownLabel={unknown}
+            unlikeLabel={t("liked.unlike")}
+          />
         </div>
       ) : (
         <EmptyState
@@ -281,6 +195,165 @@ export function LikedView({
 
       {trackContextMenu.render()}
     </div>
+  );
+}
+
+/** Row pitch, border included — the 56 px the playlist and library rows
+ *  use, and what a 40 px cover with its padding needed in flow. */
+const LIKED_ROW_HEIGHT = 56;
+
+interface LikedTrackListProps {
+  tracks: Track[];
+  isLoading: boolean;
+  currentTrackId: number | null;
+  onPlayTrack: (index: number) => void;
+  onUnlike: (trackId: number) => void;
+  onNavigateToArtist: (artistId: number) => void;
+  onContextMenuRow: (event: React.MouseEvent, track: Track) => void;
+  /** Keyboard equivalent (Menu / Shift+F10). Returns `true` when it
+   *  opened the menu, so the row's own key handling can stand down. */
+  onRowMenuKey: (event: React.KeyboardEvent, track: Track) => boolean;
+  unknownLabel: string;
+  unlikeLabel: string;
+}
+
+/** The liked rows, virtualized against the page scroller: nothing bounds
+ *  how many tracks someone likes, and every row carries artwork. */
+function LikedTrackList({
+  tracks,
+  isLoading,
+  currentTrackId,
+  onPlayTrack,
+  onUnlike,
+  onNavigateToArtist,
+  onContextMenuRow,
+  onRowMenuKey,
+  unknownLabel,
+  unlikeLabel,
+}: LikedTrackListProps) {
+  "use no memo";
+  const { parentRef, virtualizer, scrollMargin } =
+    usePageVirtualizer<HTMLUListElement>({
+      count: tracks.length,
+      estimateSize: () => LIKED_ROW_HEIGHT,
+    });
+
+  return (
+    <ul
+      ref={parentRef}
+      className={isLoading ? "opacity-50" : ""}
+      style={{
+        height: `${virtualizer.getTotalSize()}px`,
+        position: "relative",
+      }}
+    >
+      {virtualizer.getVirtualItems().map((virtualRow) => {
+        const index = virtualRow.index;
+        const track = tracks[index];
+        if (!track) return null;
+        const isCurrent = track.id === currentTrackId;
+        return (
+          // Row can't be a <button> because it contains action
+          // buttons; nested buttons are invalid HTML. Keyboard
+          // activation still works via tabIndex + onKeyDown.
+          <li
+            key={track.id}
+            tabIndex={0}
+            role="button"
+            onDoubleClick={() => onPlayTrack(index)}
+            onKeyDown={(e) => {
+              // Only play when the row itself is focused — keys
+              // fired from nested buttons / links would otherwise
+              // bubble here and double-fire playback.
+              if (e.target !== e.currentTarget) return;
+              if (onRowMenuKey(e, track)) return;
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onPlayTrack(index);
+              }
+            }}
+            onKeyUp={(e) => {
+              if (e.target !== e.currentTarget) return;
+              if (e.key === " ") e.preventDefault();
+            }}
+            onContextMenu={(e) => onContextMenuRow(e, track)}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: `${virtualRow.size}px`,
+              transform: `translateY(${virtualRow.start - scrollMargin}px)`,
+            }}
+            className={`group grid grid-cols-[3rem_2.75rem_1fr_1fr_1fr_5rem_2.5rem] gap-4 px-5 items-center select-none transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500 ${
+              index < tracks.length - 1
+                ? "border-b border-zinc-100 dark:border-zinc-800/60"
+                : ""
+            } ${
+              isCurrent
+                ? "bg-emerald-50 dark:bg-emerald-900/20"
+                : "hover:bg-zinc-50 dark:hover:bg-zinc-800/60"
+            }`}
+          >
+            <span
+              className={`text-right text-sm tabular-nums ${
+                isCurrent ? "text-emerald-500 font-semibold" : "text-zinc-400"
+              }`}
+            >
+              {index + 1}
+            </span>
+            <Artwork
+              path={track.artwork_path}
+              className="w-10 h-10"
+              iconSize={18}
+              alt={track.album_title ?? track.title}
+              rounded="md"
+            />
+            <span
+              className={`text-sm truncate flex items-center gap-2 ${
+                isCurrent
+                  ? "text-emerald-600 dark:text-emerald-400 font-semibold"
+                  : "text-zinc-800 dark:text-zinc-200"
+              }`}
+            >
+              <span className="truncate">{track.title}</span>
+              <HiResBadge
+                bitDepth={track.bit_depth}
+                sampleRate={track.sample_rate}
+                codec={track.codec}
+                variant="inline"
+              />
+            </span>
+            <ArtistLink
+              name={track.artist_name}
+              artistIds={track.artist_ids}
+              onNavigate={onNavigateToArtist}
+              fallback={unknownLabel}
+              className="text-sm text-zinc-500 truncate"
+            />
+            <span className="text-sm text-zinc-500 truncate">
+              {track.album_title ?? unknownLabel}
+            </span>
+            <span className="text-sm tabular-nums text-zinc-400 text-right">
+              {formatDuration(track.duration_ms)}
+            </span>
+            <div className="flex justify-center">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onUnlike(track.id);
+                }}
+                aria-label={unlikeLabel}
+                className="p-1.5 rounded-full text-pink-500 hover:text-pink-600 hover:bg-pink-50 dark:hover:bg-pink-500/10 transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-500/60"
+              >
+                <Heart size={16} className="fill-current" />
+              </button>
+            </div>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
