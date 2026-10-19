@@ -39,6 +39,7 @@ import { isRadioTrack } from "../../../../lib/playerSources";
 import { recentPlayToTrack } from "../recentPlayToTrack";
 import { MoodRadioGrid } from "../MoodRadioGrid";
 import { ListeningCanvas, type StripAlbum } from "./ListeningCanvas";
+import { SuggestionOfTheDay } from "./SuggestionOfTheDay";
 import { ForYouMosaic } from "./ForYouMosaic";
 import { RecentlyAdded } from "./RecentlyAdded";
 import { ListeningHistory } from "./ListeningHistory";
@@ -61,9 +62,9 @@ const rise = (i: number): CSSProperties => ({ ["--i" as string]: i });
 
 /**
  * The Home page under the Fluid skin: what you were listening to, what
- * mood you are in, what we picked for you, what is new, what you played.
- * Five sections, five layout families — a split canvas, a band, a
- * mosaic, a shelf, a list. Same data sources as the classic Home, plus
+ * we suggest today, what mood you are in, what we picked for you, what
+ * is new, what you played. Six sections, five layout families — a split
+ * canvas, two bands, a mosaic, a shelf, a list. Same data sources as the classic Home, plus
  * the queue (for "up next"), the all-time top album (for the featured
  * tile) and the listening total (for the counters line).
  */
@@ -310,8 +311,17 @@ export function FluidHome({
         />
       </div>
 
+      {/* Suggestion of the day — one track and why. Renders nothing
+          while it loads and when the library has nothing to suggest, so
+          it carries its own stagger wrapper rather than leaving an
+          empty one in the stack. */}
+      <SuggestionOfTheDay
+        onNavigateToArtist={onNavigateToArtist}
+        style={rise(1)}
+      />
+
       {wrappedYears.length > 0 && wrappedBanner.shouldShow(wrappedYears[0]) && (
-        <div className="fe-rise" style={rise(1)}>
+        <div className="fe-rise" style={rise(2)}>
           <div className="relative flex items-center gap-5 rounded-[1.125rem] bg-[var(--fe-surface)] px-6 py-5">
             <Sparkles size={22} className="fe-accent shrink-0" />
             <button
@@ -341,11 +351,11 @@ export function FluidHome({
         </div>
       )}
 
-      <div className="fe-rise" style={rise(2)}>
+      <div className="fe-rise" style={rise(3)}>
         <MoodRadioGrid />
       </div>
 
-      <div className="fe-rise" style={rise(3)}>
+      <div className="fe-rise" style={rise(4)}>
         <ForYouMosaic
           featured={featured}
           smartPlaylists={smartPlaylists}
@@ -357,7 +367,7 @@ export function FluidHome({
       </div>
 
       {hasLibrary && (
-        <div className="fe-rise" style={rise(4)}>
+        <div className="fe-rise" style={rise(5)}>
           <RecentlyAdded
             albums={recentAlbums}
             loading={recentAlbumsLoading}
@@ -367,7 +377,7 @@ export function FluidHome({
         </div>
       )}
 
-      <div className="fe-rise" style={rise(5)}>
+      <div className="fe-rise" style={rise(6)}>
         <ListeningHistory
           plays={recentPlays}
           loading={recentPlaysLoading}

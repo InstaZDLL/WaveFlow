@@ -297,6 +297,30 @@
   }
 }
 
+/* ── Suggestion of the day ─────────────────────────────────── */
+/* The cover's light under the left half of the band: the same blurred
+   copy as the canvas aura, masked towards the cover and faded to the
+   surface before the actions. */
+:root[data-skin="fluid"] .fe-suggest__aura {
+  position: absolute;
+  inset: -4rem auto -4rem -4rem;
+  width: 55%;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0.22;
+  mask-image: linear-gradient(to right, #000 25%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, #000 25%, transparent 100%);
+  animation: fe-fade-in 900ms var(--fe-ease) both;
+}
+:root[data-skin="fluid"] .fe-suggest__aura img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: blur(72px) saturate(0.95);
+  transform: scale(1.2);
+}
+
 /* ── Listening Canvas grid ─────────────────────────────────── */
 /* Plain CSS rather than stacked Tailwind variants: the three-column
    tier starts at 1700 px, between `xl` and `2xl`. Two tiers: text over
@@ -916,7 +940,8 @@
 /* ── Reduced motion: no drift, no stagger, no lift ─────────── */
 @media (prefers-reduced-motion: reduce) {
   :root[data-skin="fluid"] .fe-rise,
-  :root[data-skin="fluid"] .fe-canvas__aura {
+  :root[data-skin="fluid"] .fe-canvas__aura,
+  :root[data-skin="fluid"] .fe-suggest__aura {
     animation: none;
   }
   :root[data-skin="fluid"] .fe-spectrum__wave svg {
@@ -947,6 +972,7 @@
   --fe-hairline-strong: rgb(255 255 255 / 0.3);
 }
 :root[data-skin="fluid"][data-contrast="high"] body::before,
-:root[data-skin="fluid"][data-contrast="high"] .fe-canvas__aura {
+:root[data-skin="fluid"][data-contrast="high"] .fe-canvas__aura,
+:root[data-skin="fluid"][data-contrast="high"] .fe-suggest__aura {
   display: none;
 }
