@@ -1028,49 +1028,87 @@ async fn read_prefer_lrclib(pool: &sqlx::SqlitePool) -> AppResult<bool> {
     Ok(value.map(|v| v == "true" || v == "1").unwrap_or(false))
 }
 
-/// Local tiers, in order: embedded lyrics tag → sidecar `.lrc`/`.txt`
-/// → the generic description field. Returns the first hit, already
-/// cached, or `None` when none is present. Shared by the default
-/// (local-first) order and the `lyrics.prefer_lrclib`
-/// (local-as-fallback) order so the two never drift on how a local hit
-/// is read + persisted.
-///
-/// The description comes last, and that ordering is the fix for a
-/// reported bug rather than a detail: it is the one tier that is a
-/// guess about a field meant for something else, and it used to sit
-/// inside the embedded tier ahead of the sidecar — so a `yt-dlp` rip
-/// showed its YouTube blurb and never read the `.lrc` sitting beside
-/// it.
-/// The sidecar tier on its own: a `.lrc` / `.txt` beside the track or in
-/// its `Lyrics/` folder, cached when found. Cheap (a couple of stat calls
-/// and at most two `read_dir` scans).
+/// The sidecar beside the track or in its `Lyrics/` folder, read off the
+/// async runtime. Cheap (a couple of stat calls and at most two
+/// `read_dir` scans).
+async fn read_sidecar_of(meta: &TrackMeta) -> Option<String> {
+    let path = meta.file_path.clone();
+    tokio::task::spawn_blocking(move || read_sidecar_lyrics(Path::new(&path)))
+        .await
+        .ok()
+        .flatten()
+}
+
+fn sidecar_payload(track_id: i64, content: String) -> LyricsPayload {
+    LyricsPayload {
+        track_id,
+        format: detect_format(&content),
+        content,
+        source: LyricsSource::LrcFile,
+        provider: None,
+        tag_write_skipped: None,
+        sidecar_write_skipped: None,
+        associated: Vec::new(),
+    }
+}
+
+/// The sidecar tier on its own, cached when found.
 async fn try_sidecar_lyrics(
     pool: &sqlx::SqlitePool,
     track_id: i64,
     meta: &TrackMeta,
 ) -> AppResult<Option<LyricsPayload>> {
-    let path_for_sidecar = meta.file_path.clone();
-    let sidecar =
-        tokio::task::spawn_blocking(move || read_sidecar_lyrics(Path::new(&path_for_sidecar)))
-            .await
-            .ok()
-            .flatten();
-    let Some(content) = sidecar else {
+    let Some(content) = read_sidecar_of(meta).await else {
         return Ok(None);
     };
-    let format = detect_format(&content);
-    let source = LyricsSource::LrcFile;
-    upsert_lyrics(pool, &meta.file_hash, &content, &format, &source, None).await?;
-    Ok(Some(LyricsPayload {
-        track_id,
-        content,
-        format,
-        source,
-        provider: None,
-        tag_write_skipped: None,
-        sidecar_write_skipped: None,
-        associated: Vec::new(),
-    }))
+    let payload = sidecar_payload(track_id, content);
+    upsert_lyrics(
+        pool,
+        &meta.file_hash,
+        &payload.content,
+        &payload.format,
+        &payload.source,
+        None,
+    )
+    .await?;
+    Ok(Some(payload))
+}
+
+/// Write a sidecar's lyrics over a cached miss, and only over a miss: the
+/// row is checked again by the statement that writes it, so lyrics that a
+/// lookup or an edit stored since the miss was read are left as they are.
+/// `false` when the row no longer holds a miss.
+async fn replace_miss(
+    pool: &sqlx::SqlitePool,
+    file_hash: &str,
+    payload: &LyricsPayload,
+) -> AppResult<bool> {
+    let mut tx = pool.begin().await?;
+    let replaced = sqlx::query(
+        "UPDATE app.lyrics
+            SET content = ?, format = ?, source = ?, provider = NULL, language = NULL,
+                fetched_at = ?, retry_after = NULL
+          WHERE file_hash = ? AND content = ''",
+    )
+    .bind(&payload.content)
+    .bind(format_to_db(&payload.format))
+    .bind(source_to_db(&payload.source))
+    .bind(now_ms())
+    .bind(file_hash)
+    .execute(&mut *tx)
+    .await?
+    .rows_affected()
+        > 0;
+    if replaced {
+        // A miss carries no bundle, but a new primary ends any bundle,
+        // as in `upsert_lyrics_until`.
+        sqlx::query("DELETE FROM app.lyrics_associated WHERE file_hash = ?")
+            .bind(file_hash)
+            .execute(&mut *tx)
+            .await?;
+    }
+    tx.commit().await?;
+    Ok(replaced)
 }
 
 /// [`read_cached`], except that a cached miss is first checked against
@@ -1085,22 +1123,43 @@ async fn try_sidecar_lyrics(
 /// changes it, and with it the cache key), and it outranks a miss in
 /// every order the waterfall runs, an instrumental verdict included. So a
 /// miss costs one directory listing per lookup, and only for tracks
-/// without lyrics.
+/// without lyrics. The sidecar replaces the miss only if the row still
+/// holds it ([`replace_miss`]); anything written in between is served
+/// instead.
 async fn read_cached_or_new_sidecar(
     pool: &sqlx::SqlitePool,
     track_id: i64,
 ) -> AppResult<Option<LyricsPayload>> {
     let cached = read_cached(pool, track_id).await?;
-    if cached.as_ref().is_some_and(|row| row.content.is_empty()) {
-        if let Some(meta) = read_track_meta(pool, track_id).await? {
-            if let Some(payload) = try_sidecar_lyrics(pool, track_id, &meta).await? {
-                return Ok(Some(payload));
-            }
-        }
+    if !cached.as_ref().is_some_and(|row| row.content.is_empty()) {
+        return Ok(cached);
     }
-    Ok(cached)
+    let Some(meta) = read_track_meta(pool, track_id).await? else {
+        return Ok(cached);
+    };
+    let Some(content) = read_sidecar_of(&meta).await else {
+        return Ok(cached);
+    };
+    let payload = sidecar_payload(track_id, content);
+    if replace_miss(pool, &meta.file_hash, &payload).await? {
+        return Ok(Some(payload));
+    }
+    read_cached(pool, track_id).await
 }
 
+/// Local tiers, in order: embedded lyrics tag → sidecar `.lrc`/`.txt`
+/// → the generic description field. Returns the first hit, already
+/// cached, or `None` when none is present. Shared by the default
+/// (local-first) order and the `lyrics.prefer_lrclib`
+/// (local-as-fallback) order so the two never drift on how a local hit
+/// is read + persisted.
+///
+/// The description comes last, and that ordering is the fix for a
+/// reported bug rather than a detail: it is the one tier that is a
+/// guess about a field meant for something else, and it used to sit
+/// inside the embedded tier ahead of the sidecar — so a `yt-dlp` rip
+/// showed its YouTube blurb and never read the `.lrc` sitting beside
+/// it.
 async fn try_local_lyrics(
     pool: &sqlx::SqlitePool,
     track_id: i64,
@@ -4843,6 +4902,33 @@ mod tests {
         let cached = read_cached(&pool, 1).await.unwrap().expect("now cached");
         assert_eq!(cached.content, lyrics);
         assert!(matches!(cached.source, LyricsSource::LrcFile));
+    }
+
+    /// The sidecar replaces a miss, never what was written over the miss
+    /// while the sidecar was being read.
+    #[tokio::test]
+    async fn a_sidecar_does_not_replace_lyrics_written_since_the_miss() {
+        let dir = tempfile::tempdir().unwrap();
+        let pool = pool_with_app_schema(dir.path()).await;
+        seed_track(&pool, &dir.path().join("Song.flac"), "h1").await;
+        cache_lyrics_miss(&pool, 1, &meta_for("h1"), false)
+            .await
+            .unwrap();
+        upsert_lyrics(
+            &pool,
+            "h1",
+            "[00:01.00]Found",
+            &LyricsFormat::Lrc,
+            &LyricsSource::Api,
+            Some("lrclib"),
+        )
+        .await
+        .unwrap();
+
+        let sidecar = sidecar_payload(1, "[00:01.00]Sidecar".into());
+        assert!(!replace_miss(&pool, "h1", &sidecar).await.unwrap());
+        let cached = read_cached(&pool, 1).await.unwrap().expect("cached");
+        assert_eq!(cached.content, "[00:01.00]Found");
     }
 
     /// Lyrics found after a partial miss replace it for good. Were the
