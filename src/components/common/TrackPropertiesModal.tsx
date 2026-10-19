@@ -154,6 +154,12 @@ export function TrackPropertiesModal({
   // fetch must hand this one back rather than read the file again, or a
   // write landing in between would be stamped over the older values.
   const reloadedStampRef = useRef<string | null>(null);
+  // Set once the file is known to differ from the form (a save refused,
+  // or a reload that saw the file move). Until a reload whose two stamps
+  // agree clears it, no stamp is restored, not by a fetch already in
+  // flight nor by one a later `track:updated` starts, since those would
+  // re-enable Save over the stale values.
+  const staleRef = useRef(false);
   // Set when a save was refused for that reason: the error then offers
   // to reload the values from the file instead of repeating the save.
   const [fileChanged, setFileChanged] = useState(false);
@@ -234,8 +240,8 @@ export function TrackPropertiesModal({
     getTrackFileStamp(track.id)
       .then((stamp) => {
         if (cancelled) return;
-        setFileStamp(stamp);
         setStampUnavailable(stamp == null);
+        setFileStamp(staleRef.current ? null : stamp);
       })
       .catch((err) => {
         console.error("[TrackProperties] get_track_file_stamp failed", err);
@@ -486,7 +492,12 @@ export function TrackPropertiesModal({
       // surrounding views listen to and react to (re-fetch the row).
     } catch (err) {
       console.error("[TrackProperties] update_track_tags failed", err);
-      setFileChanged(isFileChangedOnDisk(err));
+      const changed = isFileChangedOnDisk(err);
+      setFileChanged(changed);
+      if (changed) {
+        staleRef.current = true;
+        setFileStamp(null);
+      }
       setSaveError(String(err));
     } finally {
       setSaving(false);
@@ -520,6 +531,7 @@ export function TrackPropertiesModal({
       if (before == null || after == null || before !== after) {
         // Moved during the reload, or unreadable: no stamp, so no save,
         // until a reload that finds the file still.
+        staleRef.current = true;
         setFileStamp(null);
         if (after != null) {
           setFileChanged(true);
@@ -527,6 +539,7 @@ export function TrackPropertiesModal({
         }
         return;
       }
+      staleRef.current = false;
       setGenres(genreRows);
       setGenreTouched(false);
       setArtists(artistRows.length > 0 ? artistRows : null);
@@ -569,8 +582,12 @@ export function TrackPropertiesModal({
       );
       if (!path) return;
       setSaving(true);
-      setSaveError(null);
-      setFileChanged(false);
+      // While the form is known to be stale, its notice and Reload stay:
+      // they are the only way back to a Save that works.
+      if (!staleRef.current) {
+        setSaveError(null);
+        setFileChanged(false);
+      }
       await updateTrackCover(track.id, path);
       // The backend's `track:updated` event triggers a refetch in the
       // surrounding views; the modal itself stays open on the same
