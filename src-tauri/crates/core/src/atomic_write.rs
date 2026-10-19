@@ -170,12 +170,90 @@ where
         value
     };
 
-    std::fs::rename(&partial.path, target).map_err(E::from)?;
+    replace(&partial.path, target).map_err(E::from)?;
     partial.committed = true;
     // Durability on top of a replacement that has already happened, so
     // its failure is not reported as a failed write.
     let _ = sync_directory(directory);
     Ok(value)
+}
+
+/// Move the finished partial over `target`.
+///
+/// On Windows an existing destination is replaced with `ReplaceFileW`,
+/// which keeps its ACL and attributes the way rewriting it in place did.
+/// A plain rename would leave the partial's inherited ACL in their place,
+/// and an explicit one the user set would be gone. When they cannot be
+/// kept, the write fails rather than replacing the file without them. A
+/// destination that does not exist is renamed into place.
+///
+/// The replaced file goes to a backup name of ours during the swap. On
+/// one failure, `ERROR_UNABLE_TO_MOVE_REPLACEMENT_2`, Windows has already
+/// moved it there without putting the new file in its place: it is moved
+/// back, and if even that fails the error says where it is, so neither
+/// copy is lost to the cleanup. The backup is a partial by name, so a
+/// leftover is swept like one.
+#[cfg(windows)]
+fn replace(partial: &Path, target: &Path) -> io::Result<()> {
+    use std::os::windows::ffi::OsStrExt;
+    use windows_sys::Win32::Foundation::{
+        ERROR_FILE_NOT_FOUND, ERROR_UNABLE_TO_MOVE_REPLACEMENT_2,
+    };
+    use windows_sys::Win32::Storage::FileSystem::ReplaceFileW;
+
+    if std::fs::symlink_metadata(target).is_err() {
+        return std::fs::rename(partial, target);
+    }
+    let wide = |path: &Path| -> Vec<u16> {
+        path.as_os_str()
+            .encode_wide()
+            .chain(std::iter::once(0))
+            .collect()
+    };
+    let backup = partial_path(target, &format!("{}-replaced", next_token()));
+    let replaced = wide(target);
+    let replacement = wide(partial);
+    let backup_name = wide(&backup);
+    // SAFETY: the three paths are NUL-terminated UTF-16 buffers that
+    // outlive the call; the two reserved pointers are null and the flags
+    // 0, as the API documents.
+    let ok = unsafe {
+        ReplaceFileW(
+            replaced.as_ptr(),
+            replacement.as_ptr(),
+            backup_name.as_ptr(),
+            0,
+            std::ptr::null(),
+            std::ptr::null(),
+        )
+    };
+    if ok != 0 {
+        let _ = std::fs::remove_file(&backup);
+        return Ok(());
+    }
+    let err = io::Error::last_os_error();
+    match err.raw_os_error().map(|code| code as u32) {
+        // The destination went away between the check and the call.
+        Some(ERROR_FILE_NOT_FOUND) => std::fs::rename(partial, target),
+        // The old file is at `backup` and the new one is not in place.
+        Some(ERROR_UNABLE_TO_MOVE_REPLACEMENT_2) => match std::fs::rename(&backup, target) {
+            Ok(()) => Err(err),
+            Err(_) => Err(io::Error::other(format!(
+                "{err}; the previous file is at {}",
+                backup.display()
+            ))),
+        },
+        // Nothing was moved; a backup is only made once the swap starts.
+        _ => {
+            let _ = std::fs::remove_file(&backup);
+            Err(err)
+        }
+    }
+}
+
+#[cfg(not(windows))]
+fn replace(partial: &Path, target: &Path) -> io::Result<()> {
+    std::fs::rename(partial, target)
 }
 
 /// [`write_with`] for content already in memory.

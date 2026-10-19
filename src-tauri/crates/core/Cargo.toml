@@ -223,6 +223,12 @@ wasmtime-wasi = { version = "49", default-features = false, optional = true }
 pinyin = { version = "0.11.0", default-features = false, features = ["plain"] }
 unicode-normalization = { version = "0.1.25", optional = true }
 
+# `ReplaceFileW`, so an atomic write keeps the replaced file's ACL the way
+# rewriting it in place did (`atomic_write`). Already in the lockfile
+# through other crates.
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Storage_FileSystem"] }
+
 [dev-dependencies]
 # Sandboxed scratch directories for the smart-playlist cover render
 # tests. Same usage shape as the app crate's existing dev-dep.
