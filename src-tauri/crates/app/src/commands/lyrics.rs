@@ -1438,8 +1438,8 @@ fn read_stem_match_in_dir(dir: &Path, stem: &str) -> Option<String> {
     for entry in entries.flatten() {
         let path = entry.path();
         // Skip directories early. Without this a directory named
-        // `Song.lrc` would be picked into `lrc_match`, `read_to_string`
-        // below would fail, and a legitimate `Song.txt` in the same
+        // `Song.lrc` would be picked into `lrc_match`, the read below
+        // would fail, and a legitimate `Song.txt` in the same
         // directory would be silently masked. `is_file` follows
         // symlinks, so a symlinked sidecar still works.
         if !path.is_file() {
@@ -1473,10 +1473,13 @@ fn read_stem_match_in_dir(dir: &Path, stem: &str) -> Option<String> {
 }
 
 /// Read a text file and return its trimmed contents, or `None` if
-/// the file is missing, unreadable, or contains only whitespace.
+/// the file is missing, unreadable, or contains only whitespace. The
+/// file need not be UTF-8: lyrics saved as GB18030, Big5, Shift_JIS or
+/// a Windows code page are decoded too (#910).
 fn read_non_empty_file(path: &Path) -> Option<String> {
-    let raw = std::fs::read_to_string(path).ok()?;
-    let trimmed = raw.trim();
+    let raw = std::fs::read(path).ok()?;
+    let text = waveflow_core::text_encoding::decode(&raw);
+    let trimmed = text.trim();
     if trimmed.is_empty() {
         None
     } else {
@@ -2683,10 +2686,13 @@ pub async fn import_lrc_file(
         .ok_or_else(|| AppError::Other(format!("track {track_id} not found")))?;
 
     let path = file_path.clone();
-    let content = tokio::task::spawn_blocking(move || std::fs::read_to_string(&path))
-        .await
-        .map_err(|e| AppError::Other(format!("lyrics file read panicked: {e}")))?
-        .map_err(|e| AppError::Other(format!("read {file_path}: {e}")))?;
+    // Decoded whatever its encoding, like a sidecar (#910).
+    let content = tokio::task::spawn_blocking(move || {
+        std::fs::read(&path).map(|raw| waveflow_core::text_encoding::decode(&raw).into_owned())
+    })
+    .await
+    .map_err(|e| AppError::Other(format!("lyrics file read panicked: {e}")))?
+    .map_err(|e| AppError::Other(format!("read {file_path}: {e}")))?;
     let trimmed = content.trim();
     if trimmed.is_empty() {
         return Err(AppError::Other("imported lyrics file is empty".into()));
@@ -5423,6 +5429,21 @@ mod tests {
         std::fs::write(dir.path().join("Song.txt"), "fallback ok").unwrap();
         let content = read_sidecar_lyrics(&audio).expect("should fall back to txt");
         assert_eq!(content, "fallback ok");
+    }
+
+    /// #910: lyrics saved by a Chinese Windows tool are GB18030, and a
+    /// UTF-8-only read lost them without a word.
+    #[test]
+    fn sidecar_in_gb18030_is_read() {
+        let dir = tempfile::tempdir().unwrap();
+        let audio = dir.path().join("Song.flac");
+        std::fs::write(&audio, b"").unwrap();
+        let lyrics = "[00:01.00]今天的天气很好，我们一起去公园散步吧\n\
+             [00:05.50]阳光照在湖面上，风吹过树林的声音";
+        let (bytes, _, _) = encoding_rs::GB18030.encode(lyrics);
+        assert!(std::str::from_utf8(&bytes).is_err());
+        std::fs::write(dir.path().join("Song.lrc"), &bytes).unwrap();
+        assert_eq!(read_sidecar_lyrics(&audio).as_deref(), Some(lyrics));
     }
 
     #[test]
