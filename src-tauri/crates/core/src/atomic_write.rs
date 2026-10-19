@@ -15,6 +15,10 @@
 //! the same destination (an export run while a backup writes there)
 //! would otherwise truncate each other's half-written file.
 //!
+//! A write that never reaches its cleanup (a crash, a power cut, the app
+//! closed in the middle of an export) leaves its partial behind. The next
+//! write to the same destination removes those that are a day old.
+//!
 //! Not for audio files: those go through [`crate::tagio`], which has to
 //! keep the original's inode where it can and copies it before writing.
 
@@ -23,11 +27,17 @@ use std::fs::File;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::{Duration, SystemTime};
 
 /// Appended to the destination's file name while it is being written.
 /// Anything that lists a folder for finished files (the backup
 /// retention, for one) must not take a name ending in it as one.
 pub const PARTIAL_SUFFIX: &str = ".partial";
+
+/// How old a partial has to be before it is taken for one whose write
+/// will never finish. Far longer than any write takes, so it is never
+/// one in progress: a write touches its partial with every block.
+pub const STALE_PARTIAL_AGE: Duration = Duration::from_secs(24 * 60 * 60);
 
 /// The partial for one write of `target`: `<stem>.<token>.<extension>`
 /// followed by [`PARTIAL_SUFFIX`], or `<name>.<token>` and the suffix for
@@ -71,6 +81,65 @@ fn sibling_path(target: &Path, token: &str, suffix: &str) -> PathBuf {
     }
     name.push(suffix);
     target.with_file_name(name)
+}
+
+/// Whether `name` is the file name of a partial of `target`, left by any
+/// process: [`partial_path`] with a `<pid>-<n>` token. The token is
+/// matched whole, so a partial of another destination whose name starts
+/// the same way (`Main.old.waveflow` beside `Main.waveflow`) is never
+/// taken for one of this destination's.
+fn is_partial_of(target: &Path, name: &str) -> bool {
+    let (head, tail) = match (target.file_stem(), target.extension()) {
+        (Some(stem), Some(extension)) => match (stem.to_str(), extension.to_str()) {
+            (Some(stem), Some(extension)) => (stem, format!(".{extension}{PARTIAL_SUFFIX}")),
+            _ => return false,
+        },
+        _ => match target.file_name().and_then(|n| n.to_str()) {
+            Some(name) => (name, PARTIAL_SUFFIX.to_string()),
+            None => return false,
+        },
+    };
+    let Some(token) = name
+        .strip_prefix(head)
+        .and_then(|rest| rest.strip_prefix('.'))
+        .and_then(|rest| rest.strip_suffix(tail.as_str()))
+    else {
+        return false;
+    };
+    let number = |part: &str| !part.is_empty() && part.bytes().all(|b| b.is_ascii_digit());
+    token
+        .split_once('-')
+        .is_some_and(|(pid, n)| number(pid) && number(n))
+}
+
+/// Remove the partials of `target` that earlier writes left behind and
+/// that are older than [`STALE_PARTIAL_AGE`]. One another write is still
+/// filling is younger than that, and one whose age cannot be read is
+/// kept. Best effort: what cannot be listed or removed stays, and the
+/// write goes ahead.
+fn sweep_stale_partials(target: &Path, directory: &Path) {
+    let Ok(entries) = std::fs::read_dir(directory) else {
+        return;
+    };
+    let now = SystemTime::now();
+    for entry in entries.flatten() {
+        let name = entry.file_name();
+        let Some(name) = name.to_str() else {
+            continue;
+        };
+        if !is_partial_of(target, name) {
+            continue;
+        }
+        let stale = entry
+            .metadata()
+            .and_then(|meta| meta.modified())
+            .ok()
+            .and_then(|modified| now.duration_since(modified).ok())
+            .is_some_and(|age| age > STALE_PARTIAL_AGE);
+        if stale {
+            let _ = std::fs::remove_file(entry.path());
+        }
+    }
 }
 
 /// A token no other write of this process, or of another process, uses:
@@ -129,8 +198,10 @@ impl Drop for Partial {
 /// absent, or still holding what it held before — and the partial is
 /// gone.
 ///
-/// The parent directory is created if missing. Blocking: call it from a
-/// blocking thread, never an async worker.
+/// The parent directory is created if missing. Partials of `target` that
+/// earlier writes left there are removed once a day old, before this one
+/// starts, so the space they hold is free for it. Blocking: call it from
+/// a blocking thread, never an async worker.
 pub fn write_with<T, E>(target: &Path, body: impl FnOnce(&mut File) -> Result<T, E>) -> Result<T, E>
 where
     E: From<io::Error>,
@@ -140,6 +211,7 @@ where
         .filter(|p| !p.as_os_str().is_empty())
         .unwrap_or_else(|| Path::new("."));
     std::fs::create_dir_all(directory).map_err(E::from)?;
+    sweep_stale_partials(target, directory);
 
     let (path, mut file) = create_partial(target).map_err(E::from)?;
     let mut partial = Partial {
@@ -333,6 +405,61 @@ mod tests {
             Path::new("/backups/Main-2026.7-3.waveflow.replaced")
         );
         assert!(!backup.to_string_lossy().ends_with(PARTIAL_SUFFIX));
+    }
+
+    #[test]
+    fn a_partial_is_recognised_as_its_target_s_and_no_other_s() {
+        let target = Path::new("/exports/Main.waveflow");
+        let own = partial_path(target, "4242-7");
+        let own = own.file_name().unwrap().to_str().unwrap();
+        assert!(is_partial_of(target, own));
+
+        let bare = Path::new("/exports/list");
+        let own = partial_path(bare, "1-0");
+        assert!(is_partial_of(
+            bare,
+            own.file_name().unwrap().to_str().unwrap()
+        ));
+
+        for other in [
+            "Main.waveflow",
+            "Main.old.4242-7.waveflow.partial",
+            "Main.4242-7.waveflow.replaced",
+            "Main.notes-1.waveflow.partial",
+            "Main.4242-.waveflow.partial",
+            "Main.4242-7.m3u8.partial",
+        ] {
+            assert!(!is_partial_of(target, other), "{other}");
+        }
+    }
+
+    /// An export cut short (the app closed halfway) never reaches its
+    /// cleanup; the next write to the same file removes what it left,
+    /// and nothing that may still be in use.
+    #[test]
+    fn the_next_write_removes_a_stale_partial_of_its_target() {
+        let dir = tempfile::tempdir().unwrap();
+        let target = dir.path().join("Main.waveflow");
+        let old = SystemTime::now() - STALE_PARTIAL_AGE - Duration::from_secs(60);
+        let leave = |path: &Path, modified: SystemTime| {
+            std::fs::File::create(path)
+                .unwrap()
+                .set_modified(modified)
+                .unwrap();
+        };
+        let stale = partial_path(&target, "1-0");
+        leave(&stale, old);
+        let fresh = partial_path(&target, "1-1");
+        leave(&fresh, SystemTime::now());
+        let foreign = partial_path(&dir.path().join("Other.waveflow"), "1-0");
+        leave(&foreign, old);
+
+        write_bytes(&target, b"new").unwrap();
+
+        assert_eq!(std::fs::read(&target).unwrap(), b"new");
+        assert!(!stale.exists());
+        assert!(fresh.exists());
+        assert!(foreign.exists());
     }
 
     #[test]
