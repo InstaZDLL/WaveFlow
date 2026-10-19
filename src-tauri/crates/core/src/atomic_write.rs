@@ -40,6 +40,20 @@ pub const PARTIAL_SUFFIX: &str = ".partial";
 /// atomic within a filesystem, and an export folder is routinely on a
 /// different one than `/tmp`.
 pub fn partial_path(target: &Path, token: &str) -> PathBuf {
+    sibling_path(target, token, PARTIAL_SUFFIX)
+}
+
+/// Where the file a Windows replace moves out of the way goes for the
+/// length of the swap: like [`partial_path`], but with this suffix, which
+/// nothing sweeps. Should the swap fail in a way that leaves the old file
+/// there, it may be the only copy of it, and it must not be taken for an
+/// unfinished write and deleted a day later.
+#[cfg(any(windows, test))]
+pub const REPLACED_SUFFIX: &str = ".replaced";
+
+/// `<stem>.<token>.<extension><suffix>`, or `<name>.<token><suffix>` for
+/// a name without an extension, in the target's directory.
+fn sibling_path(target: &Path, token: &str, suffix: &str) -> PathBuf {
     let mut name = OsString::new();
     match (target.file_stem(), target.extension()) {
         (Some(stem), Some(extension)) => {
@@ -55,7 +69,7 @@ pub fn partial_path(target: &Path, token: &str) -> PathBuf {
             name.push(token);
         }
     }
-    name.push(PARTIAL_SUFFIX);
+    name.push(suffix);
     target.with_file_name(name)
 }
 
@@ -187,12 +201,13 @@ where
 /// kept, the write fails rather than replacing the file without them. A
 /// destination that does not exist is renamed into place.
 ///
-/// The replaced file goes to a backup name of ours during the swap. On
-/// one failure, `ERROR_UNABLE_TO_MOVE_REPLACEMENT_2`, Windows has already
-/// moved it there without putting the new file in its place: it is moved
-/// back, and if even that fails the error says where it is, so neither
-/// copy is lost to the cleanup. The backup is a partial by name, so a
-/// leftover is swept like one.
+/// The replaced file goes to a backup name of ours during the swap
+/// ([`REPLACED_SUFFIX`]). On one failure,
+/// `ERROR_UNABLE_TO_MOVE_REPLACEMENT_2`, Windows has already moved it
+/// there without putting the new file in its place: it is moved back, and
+/// if even that fails the error says where it is, so neither copy is lost
+/// to the cleanup. Nothing sweeps that name, since it may then hold the
+/// only copy of the old file.
 #[cfg(windows)]
 fn replace(partial: &Path, target: &Path) -> io::Result<()> {
     use std::os::windows::ffi::OsStrExt;
@@ -210,7 +225,7 @@ fn replace(partial: &Path, target: &Path) -> io::Result<()> {
             .chain(std::iter::once(0))
             .collect()
     };
-    let backup = partial_path(target, &format!("{}-replaced", next_token()));
+    let backup = sibling_path(target, &next_token(), REPLACED_SUFFIX);
     let replaced = wide(target);
     let replacement = wide(partial);
     let backup_name = wide(&backup);
@@ -280,12 +295,15 @@ fn sync_directory(directory: &Path) -> io::Result<()> {
 mod tests {
     use super::*;
 
-    /// Partials left in `dir`, whatever their token.
+    /// Partials, and a Windows replace's backups, left in `dir`.
     fn partials(dir: &Path) -> usize {
         std::fs::read_dir(dir)
             .unwrap()
             .flatten()
-            .filter(|e| e.file_name().to_string_lossy().ends_with(PARTIAL_SUFFIX))
+            .filter(|e| {
+                let name = e.file_name().to_string_lossy().into_owned();
+                name.ends_with(PARTIAL_SUFFIX) || name.ends_with(REPLACED_SUFFIX)
+            })
             .count()
     }
 
@@ -299,6 +317,22 @@ mod tests {
             partial_path(Path::new("/exports/list"), "7-2"),
             Path::new("/exports/list.7-2.partial")
         );
+    }
+
+    /// A Windows replace's backup must not be swept as an unfinished
+    /// write: it can hold the only copy of the old file.
+    #[test]
+    fn the_replaced_backup_is_not_a_partial() {
+        let backup = sibling_path(
+            Path::new("/backups/Main-2026.waveflow"),
+            "7-3",
+            REPLACED_SUFFIX,
+        );
+        assert_eq!(
+            backup,
+            Path::new("/backups/Main-2026.7-3.waveflow.replaced")
+        );
+        assert!(!backup.to_string_lossy().ends_with(PARTIAL_SUFFIX));
     }
 
     #[test]
