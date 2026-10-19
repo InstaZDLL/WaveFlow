@@ -149,6 +149,11 @@ export function TrackPropertiesModal({
   // retagged meanwhile, and a fresh stamp over the form's old values
   // would let the save overwrite that change after all.
   const [stampUnavailable, setStampUnavailable] = useState(false);
+  // The stamp a reload validated against the values it put in the form.
+  // The reload changes `track`, which re-runs the stamp fetch below; that
+  // fetch must hand this one back rather than read the file again, or a
+  // write landing in between would be stamped over the older values.
+  const reloadedStampRef = useRef<string | null>(null);
   // Set when a save was refused for that reason: the error then offers
   // to reload the values from the file instead of repeating the save.
   const [fileChanged, setFileChanged] = useState(false);
@@ -218,6 +223,13 @@ export function TrackPropertiesModal({
   // with them or the next save would be refused by our own change.
   useEffect(() => {
     if (!track) return;
+    const reloaded = reloadedStampRef.current;
+    if (reloaded != null) {
+      reloadedStampRef.current = null;
+      setFileStamp(reloaded);
+      setStampUnavailable(false);
+      return;
+    }
     let cancelled = false;
     getTrackFileStamp(track.id)
       .then((stamp) => {
@@ -491,12 +503,30 @@ export function TrackPropertiesModal({
     if (!track || saving) return;
     setSaving(true);
     try {
+      // Stamped on both sides of the reread, and the second time before
+      // anything is applied: a write landing while it runs would leave the
+      // form with values older than the file, and once `track` changes,
+      // its effect fetches a fresh stamp that would let Save overwrite
+      // that write. When the two differ, nothing of this reload is kept.
+      const before = await getTrackFileStamp(track.id).catch(() => null);
       await rereadTrackFolder(track.id);
       const [fresh, genreRows, artistRows] = await Promise.all([
         getTrack(track.id),
         getTrackGenres(track.id),
         getTrackArtists(track.id),
       ]);
+      const after = await getTrackFileStamp(track.id).catch(() => null);
+      setStampUnavailable(after == null);
+      if (before == null || after == null || before !== after) {
+        // Moved during the reload, or unreadable: no stamp, so no save,
+        // until a reload that finds the file still.
+        setFileStamp(null);
+        if (after != null) {
+          setFileChanged(true);
+          setSaveError(t("trackProperties.fileChanged"));
+        }
+        return;
+      }
       setGenres(genreRows);
       setGenreTouched(false);
       setArtists(artistRows.length > 0 ? artistRows : null);
@@ -511,14 +541,13 @@ export function TrackPropertiesModal({
             : (fresh?.artist_name ?? ""),
       }));
       // A new `track` re-runs the hydration (which also leaves edit
-      // mode) and the stamp fetch.
-      if (fresh) setTrack(fresh);
-      // Read again here as well: when the row comes back unchanged (or
-      // not at all), `track` does not move, and the warning would stay
-      // on the old answer.
-      const stamp = await getTrackFileStamp(track.id).catch(() => null);
-      setFileStamp(stamp);
-      setStampUnavailable(stamp == null);
+      // mode) and the stamp fetch; the stamp is set here as well, for a
+      // row that comes back unchanged and so does not move `track`.
+      if (fresh) {
+        reloadedStampRef.current = after;
+        setTrack(fresh);
+      }
+      setFileStamp(after);
       setSaveError(null);
       setFileChanged(false);
     } catch (err) {
