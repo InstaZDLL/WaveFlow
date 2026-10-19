@@ -1041,6 +1041,66 @@ async fn read_prefer_lrclib(pool: &sqlx::SqlitePool) -> AppResult<bool> {
 /// inside the embedded tier ahead of the sidecar — so a `yt-dlp` rip
 /// showed its YouTube blurb and never read the `.lrc` sitting beside
 /// it.
+/// The sidecar tier on its own: a `.lrc` / `.txt` beside the track or in
+/// its `Lyrics/` folder, cached when found. Cheap (a couple of stat calls
+/// and at most two `read_dir` scans).
+async fn try_sidecar_lyrics(
+    pool: &sqlx::SqlitePool,
+    track_id: i64,
+    meta: &TrackMeta,
+) -> AppResult<Option<LyricsPayload>> {
+    let path_for_sidecar = meta.file_path.clone();
+    let sidecar =
+        tokio::task::spawn_blocking(move || read_sidecar_lyrics(Path::new(&path_for_sidecar)))
+            .await
+            .ok()
+            .flatten();
+    let Some(content) = sidecar else {
+        return Ok(None);
+    };
+    let format = detect_format(&content);
+    let source = LyricsSource::LrcFile;
+    upsert_lyrics(pool, &meta.file_hash, &content, &format, &source, None).await?;
+    Ok(Some(LyricsPayload {
+        track_id,
+        content,
+        format,
+        source,
+        provider: None,
+        tag_write_skipped: None,
+        sidecar_write_skipped: None,
+        associated: Vec::new(),
+    }))
+}
+
+/// [`read_cached`], except that a cached miss is first checked against
+/// the track's sidecar.
+///
+/// The cache is keyed by the audio's hash, and a complete miss is kept
+/// for good, so a sidecar the reader could not see when the miss was
+/// written would stay hidden behind it forever: one added since, or one
+/// in an encoding read as UTF-8 only before #910. Fixing the reader alone
+/// would only have helped tracks nobody had opened yet. The sidecar is the
+/// one local source that can change without the hash changing (a tag edit
+/// changes it, and with it the cache key), and it outranks a miss in
+/// every order the waterfall runs, an instrumental verdict included. So a
+/// miss costs one directory listing per lookup, and only for tracks
+/// without lyrics.
+async fn read_cached_or_new_sidecar(
+    pool: &sqlx::SqlitePool,
+    track_id: i64,
+) -> AppResult<Option<LyricsPayload>> {
+    let cached = read_cached(pool, track_id).await?;
+    if cached.as_ref().is_some_and(|row| row.content.is_empty()) {
+        if let Some(meta) = read_track_meta(pool, track_id).await? {
+            if let Some(payload) = try_sidecar_lyrics(pool, track_id, &meta).await? {
+                return Ok(Some(payload));
+            }
+        }
+    }
+    Ok(cached)
+}
+
 async fn try_local_lyrics(
     pool: &sqlx::SqlitePool,
     track_id: i64,
@@ -1069,28 +1129,8 @@ async fn try_local_lyrics(
         }));
     }
 
-    // Local sidecar `.lrc` / `.txt`. Cheap (a couple of stat calls + at
-    // most two `read_dir` scans).
-    let path_for_sidecar = meta.file_path.clone();
-    let sidecar =
-        tokio::task::spawn_blocking(move || read_sidecar_lyrics(Path::new(&path_for_sidecar)))
-            .await
-            .ok()
-            .flatten();
-    if let Some(content) = sidecar {
-        let format = detect_format(&content);
-        let source = LyricsSource::LrcFile;
-        upsert_lyrics(pool, &meta.file_hash, &content, &format, &source, None).await?;
-        return Ok(Some(LyricsPayload {
-            track_id,
-            content,
-            format,
-            source,
-            provider: None,
-            tag_write_skipped: None,
-            sidecar_write_skipped: None,
-            associated: Vec::new(),
-        }));
+    if let Some(payload) = try_sidecar_lyrics(pool, track_id, meta).await? {
+        return Ok(Some(payload));
     }
 
     // Last: the generic description field, which is a guess about a
@@ -1821,7 +1861,7 @@ pub async fn get_lyrics(
     track_id: i64,
 ) -> AppResult<Option<LyricsPayload>> {
     let pool = state.require_profile_pool().await?;
-    read_cached(&pool, track_id).await
+    read_cached_or_new_sidecar(&pool, track_id).await
 }
 
 /// Multi-tier lookup: cache → embedded tag → sidecar → enhanced/API
@@ -2268,8 +2308,8 @@ async fn fetch_lyrics_honouring(
 ) -> AppResult<Option<LyricsPayload>> {
     let pool = state.require_profile_pool().await?;
 
-    // 1. Cache.
-    if let Some(cached) = read_cached(&pool, track_id).await? {
+    // 1. Cache. A cached miss is checked against the sidecar first.
+    if let Some(cached) = read_cached_or_new_sidecar(&pool, track_id).await? {
         return Ok(Some(cached));
     }
 
@@ -4769,6 +4809,40 @@ mod tests {
             .unwrap();
         assert_eq!(retry_after_of(&pool, "h1").await, None);
         assert!(read_cached(&pool, 1).await.unwrap().is_some());
+    }
+
+    /// #910: a GB18030 sidecar was unreadable, so the track got a miss
+    /// cached for good. Once the sidecar can be read, the miss must give
+    /// way to it, or the fix never reaches a track already opened.
+    #[tokio::test]
+    async fn a_cached_miss_gives_way_to_a_sidecar_readable_since() {
+        let dir = tempfile::tempdir().unwrap();
+        let pool = pool_with_app_schema(dir.path()).await;
+        let audio = dir.path().join("Song.flac");
+        std::fs::write(&audio, b"audio").unwrap();
+        seed_track(&pool, &audio, "h1").await;
+        cache_lyrics_miss(&pool, 1, &meta_for("h1"), false)
+            .await
+            .unwrap();
+
+        let still_a_miss = read_cached_or_new_sidecar(&pool, 1)
+            .await
+            .unwrap()
+            .expect("the miss is served while there is no sidecar");
+        assert!(still_a_miss.content.is_empty());
+
+        let lyrics = "[00:01.00]今天的天气很好，我们一起去公园散步吧";
+        let (bytes, _, _) = encoding_rs::GB18030.encode(lyrics);
+        std::fs::write(dir.path().join("Song.lrc"), &bytes).unwrap();
+
+        let found = read_cached_or_new_sidecar(&pool, 1)
+            .await
+            .unwrap()
+            .expect("the sidecar is found");
+        assert_eq!(found.content, lyrics);
+        let cached = read_cached(&pool, 1).await.unwrap().expect("now cached");
+        assert_eq!(cached.content, lyrics);
+        assert!(matches!(cached.source, LyricsSource::LrcFile));
     }
 
     /// Lyrics found after a partial miss replace it for good. Were the
