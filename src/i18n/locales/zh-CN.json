@@ -384,7 +384,31 @@
       "cta": "打开",
       "dismiss": "隐藏 Wrapped 横幅"
     },
-    "seeAll": "查看全部"
+    "seeAll": "查看全部",
+    "fluid": {
+      "resumeKicker": "从上次停下的地方继续",
+      "resume": "继续",
+      "pause": "暂停",
+      "play": "播放",
+      "openAlbum": "打开专辑",
+      "upNext": "接下来",
+      "recentStrip": "最近播放",
+      "remaining": "剩余 {{time}}",
+      "radio": "电台",
+      "hours": "已聆听 {{count}} 小时",
+      "moodStart": "开始电台",
+      "tempo": "节奏",
+      "featuredKicker": "你总是回到这张专辑",
+      "featuredCta": "再听一次",
+      "yourMixes": "你的混音",
+      "leadKicker": "最新添加",
+      "liked_zero": "0 首喜欢",
+      "liked_one": "{{count}} 首喜欢",
+      "liked_other": "{{count}} 首喜欢",
+      "plays_zero": "播放 0 次",
+      "plays_one": "播放 {{count}} 次",
+      "plays_other": "播放 {{count}} 次"
+    }
   },
   "library": {
     "header": {
@@ -2205,6 +2229,10 @@
         "liquid": {
           "label": "Liquid",
           "description": "Apple 风格液态玻璃——多层半透明材质，极光背景，胶囊标签，宁静动效。"
+        },
+        "fluid": {
+          "label": "Fluid",
+          "description": "电影感编辑风格 — 封面点亮页面，杂志式排版，波浪曲线，心情光谱。"
         }
       },
       "accent": {

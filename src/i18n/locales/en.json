@@ -384,7 +384,31 @@
       "cta": "Open",
       "dismiss": "Hide the Wrapped banner"
     },
-    "seeAll": "See all"
+    "seeAll": "See all",
+    "fluid": {
+      "resumeKicker": "Pick up where you left off",
+      "resume": "Resume",
+      "pause": "Pause",
+      "play": "Play",
+      "openAlbum": "Open the album",
+      "upNext": "Up next",
+      "recentStrip": "Last played",
+      "remaining": "{{time}} left",
+      "radio": "Radio",
+      "hours": "{{count}} h listened",
+      "moodStart": "Start the radio",
+      "tempo": "Tempo",
+      "featuredKicker": "You keep coming back to it",
+      "featuredCta": "Play again",
+      "yourMixes": "Your mixes",
+      "leadKicker": "Latest addition",
+      "liked_zero": "0 liked tracks",
+      "liked_one": "{{count}} liked track",
+      "liked_other": "{{count}} liked tracks",
+      "plays_zero": "0 plays",
+      "plays_one": "{{count}} play",
+      "plays_other": "{{count}} plays"
+    }
   },
   "library": {
     "header": {
@@ -2273,6 +2297,10 @@
         "liquid": {
           "label": "Liquid",
           "description": "Apple-style liquid glass — multi-layer translucent material, aurora backdrop, pill capsules, calm motion."
+        },
+        "fluid": {
+          "label": "Fluid",
+          "description": "Cinematic editorial — the cover lights the page, magazine typography, wave curves, a mood spectrum."
         }
       },
       "accent": {

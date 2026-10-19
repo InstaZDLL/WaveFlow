@@ -394,7 +394,33 @@
       "cta": "Abrir",
       "dismiss": "Ocultar o banner Wrapped"
     },
-    "seeAll": "Ver tudo"
+    "seeAll": "Ver tudo",
+    "fluid": {
+      "resumeKicker": "Continue de onde parou",
+      "resume": "Retomar",
+      "pause": "Pausar",
+      "play": "Reproduzir",
+      "openAlbum": "Abrir o álbum",
+      "upNext": "A seguir",
+      "recentStrip": "Últimas reproduções",
+      "remaining": "Faltam {{time}}",
+      "radio": "Rádio",
+      "hours": "{{count}} h ouvidas",
+      "moodStart": "Iniciar a rádio",
+      "tempo": "Tempo",
+      "featuredKicker": "Você sempre volta a este",
+      "featuredCta": "Ouvir de novo",
+      "yourMixes": "Seus mixes",
+      "leadKicker": "Última adição",
+      "liked_zero": "0 favoritos",
+      "liked_one": "{{count}} favorito",
+      "liked_other": "{{count}} favoritos",
+      "liked_many": "{{count}} favoritos",
+      "plays_zero": "0 reproduções",
+      "plays_one": "{{count}} reprodução",
+      "plays_other": "{{count}} reproduções",
+      "plays_many": "{{count}} reproduções"
+    }
   },
   "library": {
     "header": {
@@ -2336,6 +2362,10 @@
         "liquid": {
           "label": "Liquid",
           "description": "Vidro líquido estilo Apple — material translúcido em multicamadas, fundo aurora, cápsulas arredondadas, movimento calmo."
+        },
+        "fluid": {
+          "label": "Fluid",
+          "description": "Editorial cinematográfico — a capa ilumina a página, tipografia de revista, curvas de onda, espectro de humor."
         }
       },
       "accent": {

@@ -104,7 +104,7 @@ WaveFlow is a desktop music player for the audio files you already own. It scans
 
 ### 🎨 Interface · [docs](docs/features/ui.md)
 
-- 5 skins × 14 themes, dark mode, a high-contrast mode
+- 6 skins × 14 themes, dark mode, a high-contrast mode
 - Immersive now-playing with Canvas clips, animated covers and a cover slideshow
 - Always-on-top mini-player, system tray, Windows taskbar buttons
 - Statistics and **WaveFlow Wrapped**, all computed locally

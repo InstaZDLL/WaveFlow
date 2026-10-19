@@ -384,7 +384,31 @@
       "cta": "Öffnen",
       "dismiss": "Wrapped-Banner ausblenden"
     },
-    "seeAll": "Alles anzeigen"
+    "seeAll": "Alles anzeigen",
+    "fluid": {
+      "resumeKicker": "Weiterhören, wo du aufgehört hast",
+      "resume": "Fortsetzen",
+      "pause": "Pause",
+      "play": "Wiedergabe",
+      "openAlbum": "Album öffnen",
+      "upNext": "Als Nächstes",
+      "recentStrip": "Zuletzt gehört",
+      "remaining": "Noch {{time}}",
+      "radio": "Radio",
+      "hours": "{{count}} h gehört",
+      "moodStart": "Radio starten",
+      "tempo": "Tempo",
+      "featuredKicker": "Dazu kehrst du immer wieder zurück",
+      "featuredCta": "Noch einmal hören",
+      "yourMixes": "Deine Mixe",
+      "leadKicker": "Neuester Zugang",
+      "liked_zero": "0 Favoriten",
+      "liked_one": "{{count}} Favorit",
+      "liked_other": "{{count}} Favoriten",
+      "plays_zero": "0 Wiedergaben",
+      "plays_one": "{{count}} Wiedergabe",
+      "plays_other": "{{count}} Wiedergaben"
+    }
   },
   "library": {
     "header": {
@@ -2273,6 +2297,10 @@
         "liquid": {
           "label": "Liquid",
           "description": "Liquid Glass im Apple-Stil — mehrschichtiges transluzentes Material, Aurora-Hintergrund, Kapsel-Elemente, ruhige Bewegung."
+        },
+        "fluid": {
+          "label": "Fluid",
+          "description": "Kinematisch-editorial — das Cover beleuchtet die Seite, Magazin-Typografie, Wellenkurven, ein Stimmungsspektrum."
         }
       },
       "accent": {

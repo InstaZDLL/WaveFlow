@@ -7,7 +7,7 @@
    needed. Studio + Editorial stay theme-mode-driven (light or dark
    theme decides). The `data-skin` attribute is on documentElement
    so `[data-skin="lounge"] *` covers every element in the document. */
-@custom-variant dark (&:where(.dark, .dark *, :root[data-skin="lounge"] *, :root[data-skin="pulse"] *));
+@custom-variant dark (&:where(.dark, .dark *, :root[data-skin="lounge"] *, :root[data-skin="pulse"] *, :root[data-skin="fluid"] *));
 
 /* ============================================================
    Layer scale (issue #390)
@@ -144,7 +144,8 @@
 :root[data-contrast="high"]:where(
     .dark,
     [data-skin="lounge"],
-    [data-skin="pulse"]
+    [data-skin="pulse"],
+    [data-skin="fluid"]
   ) {
   --wf-zinc-300: oklch(95% 0.004 286.286);
   --wf-zinc-400: oklch(89% 0.006 286.067);
@@ -243,8 +244,17 @@
   --track-row-hover: rgb(255 45 121 / 0.12);
 }
 
+:root[data-skin="fluid"] {
+  --track-row-hover: rgb(255 255 255 / 0.045);
+}
+
 /* Override substring-based surface rules only for unselected, idle rows. */
-:root:is([data-skin="pulse"], [data-skin="liquid"], [data-skin="lounge"])
+:root:is(
+    [data-skin="pulse"],
+    [data-skin="liquid"],
+    [data-skin="lounge"],
+    [data-skin="fluid"]
+  )
   [data-track-table]
   [data-track-row]:not([class*="bg-blue-500"]):not(
     [class*="bg-emerald-50"]
@@ -252,7 +262,12 @@
   background-color: var(--track-row-hover) !important;
 }
 
-:root:is([data-skin="pulse"], [data-skin="liquid"], [data-skin="lounge"])
+:root:is(
+    [data-skin="pulse"],
+    [data-skin="liquid"],
+    [data-skin="lounge"],
+    [data-skin="fluid"]
+  )
   [data-playlist-card]
   [data-playlist-caption] {
   padding: 0 0.875rem 0.875rem;
@@ -405,6 +420,7 @@
 @import "./styles/skins/lounge.css";
 @import "./styles/skins/pulse.css";
 @import "./styles/skins/liquid.css";
+@import "./styles/skins/fluid.css";
 
 /* The desktop lyrics window (#582) is transparent at the OS level, and
    the document has to be too, or it paints an opaque box over the
@@ -793,13 +809,15 @@ html.mini-player-window #root {
    tone (dark thumb on a dark glass body) = invisible. */
 .dark ::-webkit-scrollbar-thumb,
 :root[data-skin="lounge"] ::-webkit-scrollbar-thumb,
-:root[data-skin="pulse"] ::-webkit-scrollbar-thumb {
+:root[data-skin="pulse"] ::-webkit-scrollbar-thumb,
+:root[data-skin="fluid"] ::-webkit-scrollbar-thumb {
   background-color: rgba(244, 244, 245, 0.12);
 }
 
 .dark ::-webkit-scrollbar-thumb:hover,
 :root[data-skin="lounge"] ::-webkit-scrollbar-thumb:hover,
-:root[data-skin="pulse"] ::-webkit-scrollbar-thumb:hover {
+:root[data-skin="pulse"] ::-webkit-scrollbar-thumb:hover,
+:root[data-skin="fluid"] ::-webkit-scrollbar-thumb:hover {
   background-color: rgba(244, 244, 245, 0.25);
 }
 
@@ -811,7 +829,8 @@ html.mini-player-window #root {
 
 .dark *,
 :root[data-skin="lounge"] *,
-:root[data-skin="pulse"] * {
+:root[data-skin="pulse"] *,
+:root[data-skin="fluid"] * {
   scrollbar-color: rgba(244, 244, 245, 0.12) transparent;
 }
 
@@ -925,7 +944,8 @@ html.mini-player-window #root {
 :root[data-contrast="high"]:where(
     .dark,
     [data-skin="lounge"],
-    [data-skin="pulse"]
+    [data-skin="pulse"],
+    [data-skin="fluid"]
   ),
 :root[data-webkitgtk-safe][data-skin="liquid"].dark {
   --wf-contrast-surface: var(--color-surface-dark);

@@ -384,7 +384,31 @@
       "cta": "開く",
       "dismiss": "Wrapped バナーを隠す"
     },
-    "seeAll": "すべて表示"
+    "seeAll": "すべて表示",
+    "fluid": {
+      "resumeKicker": "前回の続きから",
+      "resume": "再開",
+      "pause": "一時停止",
+      "play": "再生",
+      "openAlbum": "アルバムを開く",
+      "upNext": "次に再生",
+      "recentStrip": "最近聴いた",
+      "remaining": "残り {{time}}",
+      "radio": "ラジオ",
+      "hours": "{{count}} 時間再生",
+      "moodStart": "ラジオを開始",
+      "tempo": "テンポ",
+      "featuredKicker": "何度も聴き返している",
+      "featuredCta": "もう一度聴く",
+      "yourMixes": "あなたのミックス",
+      "leadKicker": "最新の追加",
+      "liked_zero": "お気に入り 0 曲",
+      "liked_one": "お気に入り {{count}} 曲",
+      "liked_other": "お気に入り {{count}} 曲",
+      "plays_zero": "再生 0 回",
+      "plays_one": "再生 {{count}} 回",
+      "plays_other": "再生 {{count}} 回"
+    }
   },
   "library": {
     "header": {
@@ -2205,6 +2229,10 @@
         "liquid": {
           "label": "Liquid",
           "description": "Apple スタイルのリキッドガラス — 多層半透明素材、オーロラ背景、カプセル型ボタン、穏やかなモーション。"
+        },
+        "fluid": {
+          "label": "Fluid",
+          "description": "シネマティックなエディトリアル — カバーがページを照らし、雑誌風のタイポグラフィ、波のカーブ、ムードのスペクトラム。"
         }
       },
       "accent": {

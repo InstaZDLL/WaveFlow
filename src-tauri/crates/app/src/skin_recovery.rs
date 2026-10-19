@@ -221,7 +221,7 @@ fn path() -> Result<&'static Path, String> {
 /// launches from older versions become guarded too.
 #[tauri::command]
 pub fn record_skin(skin_id: String) -> Result<(), String> {
-    if !["studio", "editorial", "lounge", "pulse", "liquid"].contains(&skin_id.as_str()) {
+    if !["studio", "editorial", "lounge", "pulse", "liquid", "fluid"].contains(&skin_id.as_str()) {
         return Err("unknown skin".into());
     }
     if !cfg!(target_os = "linux") {

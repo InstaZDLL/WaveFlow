@@ -1,0 +1,944 @@
+/* ============================================================
+   Fluid skin — cinematic editorial
+   ============================================================
+   Direction: music first. A near-black, slightly warm foundation;
+   one accent, the theme's (so the custom and cover accent modes of
+   #895 drive it); and the playing record's own light spread behind
+   the Home canvas. Typography is DM Sans Variable throughout, with
+   Playfair's italic in exactly one place — the greeting. The
+   recurring mark is a short flowing curve: under section titles,
+   as the player's progress, across the mood spectrum.
+
+   Depth comes from tone and spacing, never from borders: the chrome
+   is a set of surfaces one step apart, hairlines only where an edge
+   must be read (an input, a divider).
+
+   Three layers of rules:
+     1. tokens (`--fe-*`) and the body;
+     2. chrome by landmark (`aside`, `header`, `footer`, `main`),
+        the same selectors Lounge / Pulse / Liquid use;
+     3. the `fe-*` classes the Fluid Home, the mood spectrum and the
+        player's wave progress mount — scoped here so they exist only
+        under this skin.
+
+   Dark-only, like Lounge and Pulse: `app.css` lists it in the
+   extended `dark` variant, the scrollbar rules and the
+   high-contrast dark block. */
+
+:root[data-skin="fluid"] {
+  --fe-bg: #0b0b0e;
+  --fe-surface: #121216;
+  --fe-surface-2: #17171d;
+  --fe-ink: #f3f1ec;
+  --fe-ink-2: #b5b2aa;
+  --fe-ink-3: #8e8b83;
+  --fe-hairline: rgb(255 255 255 / 0.07);
+  --fe-hairline-strong: rgb(255 255 255 / 0.12);
+
+  /* The theme's accent (or the picked colour, or the cover's — the
+     accent mode decides upstream). 400 reads on the dark ground and
+     takes dark ink when filled. */
+  --fe-accent: var(--accent-400);
+  --fe-accent-ink: #0b0b0e;
+
+  /* The cover's light. Written on the Home root by `useCoverGlow`;
+     these defaults are the brand's green so the page is lit before
+     the first sample lands. */
+  --fe-glow: #1f5a48;
+  --fe-glow-deep: #0f2b22;
+
+  --fe-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --fe-font:
+    "DM Sans Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --fe-font-editorial: "Playfair Display", Georgia, serif;
+}
+
+:root[data-skin="fluid"],
+:root[data-skin="fluid"] body {
+  color: var(--fe-ink);
+  background-color: var(--fe-bg);
+  font-family: var(--fe-font);
+  font-optical-sizing: auto;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* The ambient wrapper and the centre column paint 50 % slabs over the
+   body; the atmosphere must run through them. */
+:root[data-skin="fluid"] [class*="bg-app-ambient"],
+:root[data-skin="fluid"] div:has(> header):has(> main) {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* Two soft pools of the cover's colour behind the content column,
+   plus a grain so the dark never reads as a flat digital slab. The
+   atmosphere is fixed, so nothing repaints on scroll. */
+:root[data-skin="fluid"] body::before {
+  content: "";
+  position: fixed;
+  inset: -20%;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      ellipse 42% 38% at 72% 8%,
+      color-mix(in srgb, var(--fe-glow) 40%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 36% 30% at 18% 92%,
+      color-mix(in srgb, var(--fe-glow-deep) 70%, transparent),
+      transparent 72%
+    );
+  transition: background 900ms var(--fe-ease);
+}
+:root[data-skin="fluid"] body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.045;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  background-size: 160px 160px;
+}
+/* Everything the app draws sits above the atmosphere. */
+:root[data-skin="fluid"] #root {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Typographic roles (shared by Home, spectrum, player) ──── */
+:root[data-skin="fluid"] .fe-display {
+  font-weight: 560;
+  letter-spacing: -0.035em;
+  line-height: 0.98;
+  text-wrap: balance;
+}
+:root[data-skin="fluid"] .fe-title {
+  font-weight: 540;
+  letter-spacing: -0.022em;
+  line-height: 1.1;
+}
+:root[data-skin="fluid"] .fe-editorial {
+  font-family: var(--fe-font-editorial);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+:root[data-skin="fluid"] .fe-label {
+  font-size: 0.75rem;
+  font-weight: 540;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fe-ink-3);
+}
+:root[data-skin="fluid"] .fe-mono {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+:root[data-skin="fluid"] .fe-ink {
+  color: var(--fe-ink);
+}
+:root[data-skin="fluid"] .fe-ink-2 {
+  color: var(--fe-ink-2);
+}
+:root[data-skin="fluid"] .fe-ink-3 {
+  color: var(--fe-ink-3);
+}
+:root[data-skin="fluid"] .fe-accent {
+  color: var(--fe-accent);
+}
+
+/* ── Interactive baseline ──────────────────────────────────── */
+:root[data-skin="fluid"] .fe-press:active {
+  transform: scale(0.985);
+}
+:root[data-skin="fluid"] .fe-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  height: 3rem;
+  padding: 0 1.25rem 0 1rem;
+  border-radius: 9999px;
+  background-color: var(--fe-accent);
+  color: var(--fe-accent-ink);
+  font-weight: 560;
+  font-size: 0.9375rem;
+  letter-spacing: -0.01em;
+  box-shadow: 0 18px 40px -18px
+    color-mix(in srgb, var(--fe-accent) 70%, transparent);
+  transition:
+    transform 320ms var(--fe-ease),
+    filter 180ms var(--fe-ease);
+}
+:root[data-skin="fluid"] .fe-cta:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+:root[data-skin="fluid"] .fe-cta:active {
+  transform: translateY(0) scale(0.985);
+}
+:root[data-skin="fluid"] .fe-cta__icon {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  background-color: rgb(0 0 0 / 0.14);
+}
+:root[data-skin="fluid"] .fe-link {
+  position: relative;
+  color: var(--fe-ink-2);
+  font-weight: 500;
+  transition: color 180ms var(--fe-ease);
+}
+:root[data-skin="fluid"] .fe-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 320ms var(--fe-ease);
+}
+:root[data-skin="fluid"] .fe-link:hover {
+  color: var(--fe-ink);
+}
+:root[data-skin="fluid"] .fe-link:hover::after {
+  transform: scaleX(1);
+}
+:root[data-skin="fluid"] .fe-icon-btn {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.625rem;
+  color: var(--fe-ink-3);
+  transition:
+    color 180ms var(--fe-ease),
+    background-color 180ms var(--fe-ease);
+}
+:root[data-skin="fluid"] .fe-icon-btn:hover {
+  color: var(--fe-ink);
+  background-color: rgb(255 255 255 / 0.06);
+}
+:root[data-skin="fluid"] .fe-icon-btn[aria-pressed="true"] {
+  color: var(--fe-accent);
+}
+
+/* ── Artwork tiles ─────────────────────────────────────────── */
+:root[data-skin="fluid"] .fe-tile {
+  position: relative;
+  border-radius: 0.875rem;
+  overflow: hidden;
+  background-color: var(--fe-surface-2);
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.04) inset,
+    0 10px 30px -18px rgb(0 0 0 / 0.9);
+  transition:
+    transform 420ms var(--fe-ease),
+    box-shadow 420ms var(--fe-ease);
+}
+:root[data-skin="fluid"] .fe-tile-hover:hover .fe-tile,
+:root[data-skin="fluid"] .fe-tile-hover:focus-visible .fe-tile {
+  transform: translateY(-3px);
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.06) inset,
+    0 26px 44px -22px color-mix(in srgb, var(--fe-glow) 60%, rgb(0 0 0 / 0.8));
+}
+:root[data-skin="fluid"] .fe-tile img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+:root[data-skin="fluid"] .fe-hero-cover {
+  border-radius: 1.25rem;
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.08) inset,
+    0 50px 90px -40px color-mix(in srgb, var(--fe-glow) 85%, transparent),
+    0 30px 60px -30px rgb(0 0 0 / 0.9);
+}
+
+/* ── Entry motion: a staggered rise, once, GPU-only ────────── */
+:root[data-skin="fluid"] .fe-rise {
+  animation: fe-rise 640ms var(--fe-ease) both;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+@keyframes fe-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+@keyframes fe-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ── Listening Canvas grid ─────────────────────────────────── */
+/* Plain CSS rather than stacked Tailwind variants: the three-column
+   tier starts at 1700 px, between `xl` and `2xl`. Two tiers: text over
+   queue beside the artwork from 1024 px; text · queue · artwork in one
+   row from 1700 px. */
+:root[data-skin="fluid"] .fe-canvas {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  column-gap: 2rem;
+  align-items: start;
+}
+/* The cover's light: a blurred, masked copy of the artwork under the
+   canvas, favouring the text column. One static filter on one element;
+   only its fade-in animates. */
+:root[data-skin="fluid"] .fe-canvas__aura {
+  position: absolute;
+  inset: -7rem -6rem -4rem -10rem;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0.2;
+  background: radial-gradient(
+    ellipse 50% 60% at 55% 45%,
+    color-mix(in srgb, var(--fe-glow) 70%, transparent),
+    transparent 70%
+  );
+  mask-image: radial-gradient(
+    ellipse 62% 70% at 52% 40%,
+    #000 20%,
+    transparent 70%
+  );
+  -webkit-mask-image: radial-gradient(
+    ellipse 62% 70% at 52% 40%,
+    #000 20%,
+    transparent 70%
+  );
+  animation: fe-fade-in 900ms var(--fe-ease) both;
+}
+:root[data-skin="fluid"] .fe-canvas__aura img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: blur(96px) saturate(0.95);
+  transform: scale(1.12);
+}
+:root[data-skin="fluid"] .fe-canvas__text,
+:root[data-skin="fluid"] .fe-canvas__queue,
+:root[data-skin="fluid"] .fe-canvas__art {
+  grid-column: span 12;
+}
+:root[data-skin="fluid"] .fe-canvas__resume {
+  margin-top: 1.75rem;
+}
+:root[data-skin="fluid"] .fe-canvas__queue {
+  margin-top: 2rem;
+}
+:root[data-skin="fluid"] .fe-canvas__art {
+  margin-top: 2.5rem;
+  justify-self: start;
+}
+@media (min-width: 1024px) {
+  :root[data-skin="fluid"] .fe-canvas__text,
+  :root[data-skin="fluid"] .fe-canvas__queue {
+    grid-column: span 7;
+  }
+  :root[data-skin="fluid"] .fe-canvas__art {
+    grid-column: 8 / span 5;
+    grid-row: 1 / span 2;
+    margin-top: 0;
+    justify-self: end;
+  }
+}
+@media (min-width: 1700px) {
+  :root[data-skin="fluid"] .fe-canvas {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 3.4fr) auto;
+    column-gap: 3.5rem;
+  }
+  :root[data-skin="fluid"] .fe-canvas__text {
+    grid-column: 1;
+  }
+  :root[data-skin="fluid"] .fe-canvas__resume {
+    margin-top: 2.5rem;
+  }
+  :root[data-skin="fluid"] .fe-canvas__queue {
+    grid-column: 2;
+    grid-row: 1;
+    margin-top: 0;
+    align-self: end;
+    padding-bottom: 0.25rem;
+  }
+  :root[data-skin="fluid"] .fe-canvas__art {
+    grid-column: 3;
+    grid-row: 1;
+  }
+}
+
+/* ── Mood spectrum ─────────────────────────────────────────── */
+:root[data-skin="fluid"] .fe-spectrum {
+  position: relative;
+  display: flex;
+  height: 10.5rem;
+  border-radius: 1.125rem;
+  overflow: hidden;
+  background-color: var(--fe-surface);
+  isolation: isolate;
+}
+/* One continuous tempo gradient behind the five segments. Muted on
+   purpose: the hue says "which mood", the artwork says everything
+   else on this page. The one place a colour is not the accent. */
+:root[data-skin="fluid"] .fe-spectrum__band {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    #3a3e78 0%,
+    #335f87 22%,
+    #3f8a7c 46%,
+    #a35a7a 70%,
+    #c0653f 100%
+  );
+  opacity: 0.55;
+}
+:root[data-skin="fluid"] .fe-spectrum__band::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgb(11 11 14 / 0.1),
+    rgb(11 11 14 / 0.72)
+  );
+}
+/* A segment is a wrapper (the flex item that widens) holding the radio
+   button, which fills it, and — when selected — the start button beside
+   it. Two controls, two siblings. */
+:root[data-skin="fluid"] .fe-spectrum__seg {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  transition:
+    flex-grow 460ms var(--fe-ease),
+    background-color 300ms var(--fe-ease);
+}
+:root[data-skin="fluid"] .fe-spectrum__seg + .fe-spectrum__seg {
+  box-shadow: inset 1px 0 0 rgb(255 255 255 / 0.08);
+}
+:root[data-skin="fluid"] .fe-spectrum__seg:hover {
+  background-color: rgb(255 255 255 / 0.04);
+}
+:root[data-skin="fluid"] .fe-spectrum__seg[data-checked="true"] {
+  flex-grow: 2.6;
+  background-color: rgb(255 255 255 / 0.06);
+}
+:root[data-skin="fluid"] .fe-spectrum__radio {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 1rem 1.125rem 1rem;
+  text-align: left;
+  color: var(--fe-ink);
+}
+:root[data-skin="fluid"] .fe-spectrum__radio:focus-visible {
+  outline: 2px solid var(--fe-accent);
+  outline-offset: -3px;
+}
+:root[data-skin="fluid"] .fe-spectrum__radio:disabled {
+  color: var(--fe-ink-3);
+  cursor: not-allowed;
+}
+:root[data-skin="fluid"] .fe-spectrum__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 2rem;
+  padding: 0 0.875rem 0 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #fff;
+  transition: background-color 180ms var(--fe-ease);
+}
+:root[data-skin="fluid"] .fe-spectrum__wave {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0.75rem;
+  height: 3.75rem;
+  overflow: hidden;
+  opacity: 0.55;
+  transition: opacity 300ms var(--fe-ease);
+}
+:root[data-skin="fluid"]
+  .fe-spectrum__seg[data-checked="true"]
+  .fe-spectrum__wave {
+  opacity: 1;
+}
+:root[data-skin="fluid"] .fe-spectrum__wave svg {
+  width: 200%;
+  height: 100%;
+  animation: fe-wave-drift var(--fe-wave-period, 9s) linear infinite;
+}
+:root[data-skin="fluid"]
+  .fe-spectrum__seg[data-disabled]
+  .fe-spectrum__wave
+  svg {
+  animation-play-state: paused;
+}
+@keyframes fe-wave-drift {
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+:root[data-skin="fluid"] .fe-spectrum__detail {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 420ms var(--fe-ease);
+}
+:root[data-skin="fluid"] .fe-spectrum__detail > div {
+  overflow: hidden;
+}
+:root[data-skin="fluid"]
+  .fe-spectrum__seg[data-checked="true"]
+  .fe-spectrum__detail {
+  grid-template-rows: 1fr;
+}
+:root[data-skin="fluid"] .fe-spectrum__ruler {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0.25rem 0;
+}
+
+/* ── Wave progress (player) ────────────────────────────────── */
+:root[data-skin="fluid"] .fe-progress {
+  position: relative;
+  height: 1.25rem;
+  cursor: pointer;
+}
+:root[data-skin="fluid"] .fe-progress svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+:root[data-skin="fluid"] .fe-progress__thumb {
+  opacity: 0;
+  transition: opacity 180ms var(--fe-ease);
+}
+:root[data-skin="fluid"] .fe-progress:hover .fe-progress__thumb,
+:root[data-skin="fluid"] .fe-progress:focus-visible .fe-progress__thumb {
+  opacity: 1;
+}
+:root[data-skin="fluid"] .fe-progress:focus-visible {
+  outline: 2px solid var(--fe-accent);
+  outline-offset: -2px;
+  border-radius: 0.25rem;
+}
+
+/* ============================================================
+   Chrome — sidebar, header, footer, main
+   ============================================================ */
+
+/* Sidebar: a tone, not a box. No border; the brand, the profile and
+   the sections all quieten; the active row earns a 2 px accent bar. */
+:root[data-skin="fluid"] .skin-sidebar-shell {
+  background-color: transparent !important;
+  border-right: 0;
+  box-shadow: none;
+}
+:root[data-skin="fluid"] .skin-sidebar-shell > aside {
+  margin: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  color: var(--fe-ink-2);
+  background-color: var(--fe-surface) !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+:root[data-skin="fluid"] .skin-sidebar-shell > aside > div:first-child {
+  padding: 1.25rem 1.25rem 0.75rem !important;
+}
+:root[data-skin="fluid"]
+  .skin-sidebar-shell
+  > aside
+  > div:first-child
+  > div:first-child {
+  font-size: 1.0625rem;
+  font-weight: 540;
+  letter-spacing: -0.022em;
+  margin-bottom: 1.25rem;
+}
+:root[data-skin="fluid"] .skin-sidebar-shell > aside > div:first-child button {
+  border: 0 !important;
+  border-radius: 0.75rem !important;
+  background-color: transparent !important;
+  padding: 0.375rem 0.25rem !important;
+  color: var(--fe-ink) !important;
+  transition: background-color 180ms var(--fe-ease);
+}
+:root[data-skin="fluid"]
+  .skin-sidebar-shell
+  > aside
+  > div:first-child
+  button:hover {
+  background-color: rgb(255 255 255 / 0.04) !important;
+}
+/* Section labels: 12 px, medium, wide tracking, tertiary ink. */
+:root[data-skin="fluid"]
+  .skin-sidebar-shell
+  > aside
+  [class*="uppercase"][class*="tracking"] {
+  color: var(--fe-ink-3) !important;
+  font-size: 0.75rem !important;
+  font-weight: 540 !important;
+  letter-spacing: 0.12em !important;
+  padding: 0 0.75rem !important;
+  margin-bottom: 0.375rem !important;
+}
+/* Nav rows (a button holding a `div.flex.flex-col`). */
+:root[data-skin="fluid"]
+  .skin-sidebar-shell
+  > aside
+  button:where(:has(> div.flex.flex-col)) {
+  position: relative;
+  height: 2.25rem;
+  padding: 0 0.75rem !important;
+  border-radius: 0.625rem !important;
+  color: var(--fe-ink-2) !important;
+  background-color: transparent !important;
+  font-size: 0.875rem;
+  font-weight: 480;
+  transition:
+    color 180ms var(--fe-ease),
+    background-color 180ms var(--fe-ease);
+}
+:root[data-skin="fluid"]
+  .skin-sidebar-shell
+  > aside
+  button:where(:has(> div.flex.flex-col)):hover {
+  color: var(--fe-ink) !important;
+  background-color: rgb(255 255 255 / 0.045) !important;
+}
+:root[data-skin="fluid"]
+  .skin-sidebar-shell
+  > aside
+  button:where(:has(> div.flex.flex-col))
+  > span {
+  color: var(--fe-ink-3);
+  transition: color 180ms var(--fe-ease);
+}
+:root[data-skin="fluid"]
+  .skin-sidebar-shell
+  > aside
+  button:where(:has(> div.flex.flex-col)):hover
+  > span,
+:root[data-skin="fluid"]
+  .skin-sidebar-shell
+  > aside
+  button[class*="bg-emerald-50"]
+  > span {
+  color: var(--fe-ink);
+}
+:root[data-skin="fluid"]
+  .skin-sidebar-shell
+  > aside
+  button[class*="bg-emerald-50"] {
+  color: var(--fe-ink) !important;
+  background-color: transparent !important;
+  font-weight: 540;
+}
+/* The active mark: the one place the accent appears in navigation. */
+:root[data-skin="fluid"]
+  .skin-sidebar-shell
+  > aside
+  button[class*="bg-emerald-50"]::before {
+  content: "";
+  position: absolute;
+  left: -1rem;
+  top: 0.625rem;
+  bottom: 0.625rem;
+  width: 2px;
+  border-radius: 2px;
+  background-color: var(--fe-accent);
+}
+:root[data-skin="fluid"]
+  .skin-sidebar-shell[data-collapsed]
+  > aside
+  button[class*="bg-emerald-50"]::before {
+  left: -0.5rem;
+}
+/* Playlist and pinned rows (no `div.flex.flex-col`). */
+:root[data-skin="fluid"]
+  .skin-sidebar-shell
+  > aside
+  button:where(:not(:has(> div.flex.flex-col))):where(:not(:first-child)) {
+  position: relative;
+  border-radius: 0.75rem !important;
+  background-color: transparent !important;
+  transition: background-color 180ms var(--fe-ease);
+}
+:root[data-skin="fluid"]
+  .skin-sidebar-shell
+  > aside
+  button:where(:not(:has(> div.flex.flex-col))):where(
+    :not(:first-child)
+  ):hover {
+  background-color: rgb(255 255 255 / 0.045) !important;
+}
+:root[data-skin="fluid"] .skin-sidebar-shell > aside img {
+  border-radius: 0.5rem;
+}
+
+/* Header: the first 52 px of the content column, on the same tone,
+   no glass and no border. Search keeps its pill. */
+:root[data-skin="fluid"] header[class*="sticky"] {
+  height: 3.25rem !important;
+  padding: 0 1.5rem !important;
+  color: var(--fe-ink);
+  background-color: transparent !important;
+  background-image: none !important;
+  border-bottom: 0 !important;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+}
+:root[data-skin="fluid"] header :where(button) {
+  border-radius: 0.625rem !important;
+  border: 0 !important;
+  background-color: transparent !important;
+  color: var(--fe-ink-3) !important;
+  box-shadow: none !important;
+  transition:
+    color 180ms var(--fe-ease),
+    background-color 180ms var(--fe-ease);
+}
+:root[data-skin="fluid"] header :where(button:hover) {
+  color: var(--fe-ink) !important;
+  background-color: rgb(255 255 255 / 0.06) !important;
+}
+:root[data-skin="fluid"] header [class*="rounded-full"]:has(input) {
+  border: 0 !important;
+  background-color: rgb(255 255 255 / 0.05) !important;
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.06) !important;
+}
+:root[data-skin="fluid"]
+  header
+  [class*="rounded-full"]:has(input):focus-within {
+  box-shadow: 0 0 0 1px var(--fe-accent) !important;
+}
+:root[data-skin="fluid"] header input {
+  color: var(--fe-ink) !important;
+  background-color: transparent !important;
+}
+:root[data-skin="fluid"] header input::placeholder {
+  color: var(--fe-ink-3) !important;
+}
+
+/* Footer: no border; a faint top gradient in the cover's colour says
+   "this surface belongs to what is playing". The wave at its top edge
+   is `ProgressBar`'s `edge` variant. */
+:root[data-skin="fluid"] footer {
+  color: var(--fe-ink-2);
+  background-color: var(--fe-surface) !important;
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--fe-glow) 28%, transparent),
+    transparent 55%
+  ) !important;
+  border-top: 0 !important;
+  box-shadow: none !important;
+}
+:root[data-skin="fluid"] footer > div[class*="h-24"] {
+  height: 4.25rem !important;
+}
+:root[data-skin="fluid"] footer img {
+  border-radius: 0.625rem;
+}
+:root[data-skin="fluid"] footer :where(button) {
+  transition:
+    color 180ms var(--fe-ease),
+    background-color 180ms var(--fe-ease),
+    transform 320ms var(--fe-ease);
+}
+
+/* Main: the editorial gutters; the Home brings its own container. */
+:root[data-skin="fluid"] main {
+  padding: 0.75rem 2rem 2rem !important;
+}
+@media (min-width: 1280px) {
+  :root[data-skin="fluid"] main {
+    padding: 0.75rem 3rem 2rem !important;
+  }
+}
+@media (min-width: 1536px) {
+  :root[data-skin="fluid"] main {
+    padding: 0.75rem 3.5rem 2rem !important;
+  }
+}
+
+/* Headings everywhere: DM Sans, settled weight, tight tracking. */
+:root[data-skin="fluid"] main h1,
+:root[data-skin="fluid"] main h2,
+:root[data-skin="fluid"] main h3 {
+  font-family: var(--fe-font) !important;
+  letter-spacing: -0.022em;
+}
+:root[data-skin="fluid"] main h1 {
+  font-weight: 560 !important;
+  letter-spacing: -0.03em;
+}
+/* Titles with a coloured underline (sections, the Settings h1): the
+   underline becomes the flow line. */
+:root[data-skin="fluid"] main :is(h1, h2)[class*="border-b-4"] {
+  position: relative;
+  border: 0 !important;
+  padding-bottom: 0.875rem !important;
+  font-weight: 540 !important;
+}
+:root[data-skin="fluid"] main :is(h1, h2)[class*="border-b-4"]::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 2.5rem;
+  height: 0.625rem;
+  background-color: var(--fe-accent);
+  mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 10' fill='none'><path d='M0.5 5 C 5 0.5, 9 0.5, 13.5 5 S 22 9.5, 26.5 5 S 35 0.5, 39.5 5' stroke='black' stroke-width='1.6' stroke-linecap='round'/></svg>")
+    no-repeat center / 100% 100%;
+  -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 10' fill='none'><path d='M0.5 5 C 5 0.5, 9 0.5, 13.5 5 S 22 9.5, 26.5 5 S 35 0.5, 39.5 5' stroke='black' stroke-width='1.6' stroke-linecap='round'/></svg>")
+    no-repeat center / 100% 100%;
+}
+
+/* The Settings title draws its accent as a short bar under the h1
+   (`div.w-8.h-1.bg-emerald-500`): the same flow line. */
+:root[data-skin="fluid"] main h1 + div[class*="bg-emerald-500"][class*="h-1"] {
+  width: 2.5rem !important;
+  height: 0.625rem !important;
+  border-radius: 0 !important;
+  background-color: var(--fe-accent) !important;
+  mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 10' fill='none'><path d='M0.5 5 C 5 0.5, 9 0.5, 13.5 5 S 22 9.5, 26.5 5 S 35 0.5, 39.5 5' stroke='black' stroke-width='1.6' stroke-linecap='round'/></svg>")
+    no-repeat center / 100% 100%;
+  -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 10' fill='none'><path d='M0.5 5 C 5 0.5, 9 0.5, 13.5 5 S 22 9.5, 26.5 5 S 35 0.5, 39.5 5' stroke='black' stroke-width='1.6' stroke-linecap='round'/></svg>")
+    no-repeat center / 100% 100%;
+}
+
+/* Cards and panels: depth through tone. Bordered, rounded containers
+   lose their outline and sit one step above the page; the artwork hit
+   targets and the track table keep their own treatment. */
+:root[data-skin="fluid"]
+  main
+  :where(
+    [class*="rounded-xl"],
+    [class*="rounded-2xl"],
+    [class*="rounded-3xl"]
+  ):where([class*="border"]):where(
+    :not(
+      button,
+      a,
+      input,
+      select,
+      textarea,
+      [data-artwork-hit-target],
+      [data-track-table],
+      [role="switch"],
+      [role="radio"]
+    )
+  ) {
+  border-color: transparent !important;
+  background-color: var(--fe-surface) !important;
+  background-image: none !important;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04) !important;
+}
+/* Settings groups are the one bordered container that is not a card:
+   a `details` with a summary; the same tone works. */
+:root[data-skin="fluid"] main details.settings-group {
+  border-color: transparent !important;
+  background-color: var(--fe-surface) !important;
+}
+/* Inputs keep an edge: a field needs one. */
+:root[data-skin="fluid"] :where(input, textarea, select):not(header input) {
+  background-color: var(--fe-surface-2) !important;
+  border-color: var(--fe-hairline-strong) !important;
+  color: var(--fe-ink) !important;
+}
+:root[data-skin="fluid"]
+  :where(input, textarea, select):not(header input):focus-visible {
+  border-color: var(--fe-accent) !important;
+  outline: 0;
+  box-shadow: 0 0 0 1px var(--fe-accent);
+}
+/* Dialogs and popovers: one step above the page, no outline. */
+:root[data-skin="fluid"] [role="dialog"]:not([data-immersive]),
+:root[data-skin="fluid"] [role="menu"],
+:root[data-skin="fluid"] [role="listbox"] {
+  background-color: var(--fe-surface-2) !important;
+  border-color: transparent !important;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.06),
+    0 30px 60px -24px rgb(0 0 0 / 0.9) !important;
+}
+/* Track table: tone-separated header, hover from `--track-row-hover`. */
+:root[data-skin="fluid"] [data-track-table] {
+  background-color: transparent !important;
+  border-color: transparent !important;
+}
+:root[data-skin="fluid"] [data-track-table] [data-track-header] {
+  background-color: var(--fe-surface) !important;
+  color: var(--fe-ink-3);
+}
+
+/* ── Reduced motion: no drift, no stagger, no lift ─────────── */
+@media (prefers-reduced-motion: reduce) {
+  :root[data-skin="fluid"] .fe-rise,
+  :root[data-skin="fluid"] .fe-canvas__aura {
+    animation: none;
+  }
+  :root[data-skin="fluid"] .fe-spectrum__wave svg {
+    animation: none;
+  }
+  :root[data-skin="fluid"] .fe-spectrum__seg,
+  :root[data-skin="fluid"] .fe-spectrum__detail,
+  :root[data-skin="fluid"] .fe-tile,
+  :root[data-skin="fluid"] .fe-cta,
+  :root[data-skin="fluid"] .fe-link::after,
+  :root[data-skin="fluid"] .fe-icon-btn {
+    transition: none;
+  }
+  :root[data-skin="fluid"] .fe-tile-hover:hover .fe-tile,
+  :root[data-skin="fluid"] .fe-tile-hover:focus-visible .fe-tile,
+  :root[data-skin="fluid"] .fe-press:active,
+  :root[data-skin="fluid"] .fe-cta:hover,
+  :root[data-skin="fluid"] .fe-cta:active {
+    transform: none;
+  }
+}
+
+/* ── High contrast (#596): brighter inks, no cover light ───── */
+:root[data-skin="fluid"][data-contrast="high"] {
+  --fe-ink-2: #e6e3dc;
+  --fe-ink-3: #c9c6bd;
+  --fe-hairline: rgb(255 255 255 / 0.18);
+  --fe-hairline-strong: rgb(255 255 255 / 0.3);
+}
+:root[data-skin="fluid"][data-contrast="high"] body::before,
+:root[data-skin="fluid"][data-contrast="high"] .fe-canvas__aura {
+  display: none;
+}

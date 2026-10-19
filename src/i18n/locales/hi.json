@@ -384,7 +384,31 @@
       "cta": "खोलें",
       "dismiss": "Wrapped बैनर छिपाएँ"
     },
-    "seeAll": "सभी देखें"
+    "seeAll": "सभी देखें",
+    "fluid": {
+      "resumeKicker": "जहाँ छोड़ा था वहीं से शुरू करें",
+      "resume": "फिर से शुरू करें",
+      "pause": "रोकें",
+      "play": "चलाएँ",
+      "openAlbum": "एल्बम खोलें",
+      "upNext": "अगला",
+      "recentStrip": "हाल में सुना",
+      "remaining": "{{time}} बाकी",
+      "radio": "रेडियो",
+      "hours": "{{count}} घंटे सुना",
+      "moodStart": "रेडियो शुरू करें",
+      "tempo": "टेम्पो",
+      "featuredKicker": "आप इस पर बार-बार लौटते हैं",
+      "featuredCta": "फिर से सुनें",
+      "yourMixes": "आपके मिक्स",
+      "leadKicker": "नवीनतम जोड़",
+      "liked_zero": "0 पसंदीदा",
+      "liked_one": "{{count}} पसंदीदा",
+      "liked_other": "{{count}} पसंदीदा",
+      "plays_zero": "0 बार सुना",
+      "plays_one": "{{count}} बार सुना",
+      "plays_other": "{{count}} बार सुना"
+    }
   },
   "library": {
     "header": {
@@ -2273,6 +2297,10 @@
         "liquid": {
           "label": "Liquid",
           "description": "Apple-शैली का तरल कांच — बहुस्तरीय पारभासी सामग्री, अरोरा पृष्ठभूमि, पिल कैप्सूल, शांत गति।"
+        },
+        "fluid": {
+          "label": "Fluid",
+          "description": "सिनेमाई संपादकीय — कवर पेज को रोशन करता है, पत्रिका जैसी टाइपोग्राफी, लहर वक्र, मूड स्पेक्ट्रम।"
         }
       },
       "accent": {

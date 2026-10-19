@@ -394,7 +394,33 @@
       "cta": "Abrir",
       "dismiss": "Ocultar el banner Wrapped"
     },
-    "seeAll": "Ver todo"
+    "seeAll": "Ver todo",
+    "fluid": {
+      "resumeKicker": "Continúa donde lo dejaste",
+      "resume": "Reanudar",
+      "pause": "Pausa",
+      "play": "Reproducir",
+      "openAlbum": "Ver el álbum",
+      "upNext": "A continuación",
+      "recentStrip": "Últimas escuchas",
+      "remaining": "Quedan {{time}}",
+      "radio": "Radio",
+      "hours": "{{count}} h escuchadas",
+      "moodStart": "Iniciar la radio",
+      "tempo": "Tempo",
+      "featuredKicker": "Siempre vuelves a él",
+      "featuredCta": "Volver a escuchar",
+      "yourMixes": "Tus mixes",
+      "leadKicker": "Último añadido",
+      "liked_zero": "0 favoritos",
+      "liked_one": "{{count}} favorito",
+      "liked_other": "{{count}} favoritos",
+      "liked_many": "{{count}} favoritos",
+      "plays_zero": "0 reproducciones",
+      "plays_one": "{{count}} reproducción",
+      "plays_other": "{{count}} reproducciones",
+      "plays_many": "{{count}} reproducciones"
+    }
   },
   "library": {
     "header": {
@@ -2335,6 +2361,10 @@
         "liquid": {
           "label": "Liquid",
           "description": "Vidrio líquido al estilo Apple — material translúcido multicapa, fondo aurora, cápsulas, movimiento sereno."
+        },
+        "fluid": {
+          "label": "Fluid",
+          "description": "Editorial cinematográfico — la carátula ilumina la página, tipografía de revista, curvas de onda, espectro de ánimo."
         }
       },
       "accent": {

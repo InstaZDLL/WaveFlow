@@ -394,7 +394,33 @@
       "cta": "Découvrir",
       "dismiss": "Masquer le bandeau Wrapped"
     },
-    "seeAll": "Tout voir"
+    "seeAll": "Tout voir",
+    "fluid": {
+      "resumeKicker": "Reprendre là où vous étiez",
+      "resume": "Reprendre",
+      "pause": "Pause",
+      "play": "Lire",
+      "openAlbum": "Voir l'album",
+      "upNext": "Ensuite",
+      "recentStrip": "Dernières écoutes",
+      "remaining": "{{time}} restantes",
+      "radio": "Radio",
+      "hours": "{{count}} h d'écoute",
+      "moodStart": "Lancer la radio",
+      "tempo": "Tempo",
+      "featuredKicker": "Vous y revenez sans cesse",
+      "featuredCta": "Réécouter",
+      "yourMixes": "Vos mixes",
+      "leadKicker": "Dernier ajout",
+      "liked_zero": "0 coup de cœur",
+      "liked_one": "{{count}} coup de cœur",
+      "liked_other": "{{count}} coups de cœur",
+      "liked_many": "{{count}} coups de cœur",
+      "plays_zero": "0 écoute",
+      "plays_one": "{{count}} écoute",
+      "plays_other": "{{count}} écoutes",
+      "plays_many": "{{count}} écoutes"
+    }
   },
   "library": {
     "header": {
@@ -1877,6 +1903,10 @@
         "liquid": {
           "label": "Liquid",
           "description": "Verre liquide façon Apple — matière translucide multicouche, fond aurore, capsules, transitions calmes."
+        },
+        "fluid": {
+          "label": "Fluid",
+          "description": "Éditorial cinématique — la pochette éclaire la page, typographie de magazine, courbes d'onde, spectre d'humeur."
         }
       },
       "mode": {

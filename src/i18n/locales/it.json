@@ -394,7 +394,33 @@
       "cta": "Apri",
       "dismiss": "Nascondi il banner Wrapped"
     },
-    "seeAll": "Vedi tutto"
+    "seeAll": "Vedi tutto",
+    "fluid": {
+      "resumeKicker": "Riprendi da dove eri rimasto",
+      "resume": "Riprendi",
+      "pause": "Pausa",
+      "play": "Riproduci",
+      "openAlbum": "Apri l'album",
+      "upNext": "A seguire",
+      "recentStrip": "Ultimi ascolti",
+      "remaining": "{{time}} rimanenti",
+      "radio": "Radio",
+      "hours": "{{count}} h di ascolto",
+      "moodStart": "Avvia la radio",
+      "tempo": "Tempo",
+      "featuredKicker": "Ci torni sempre",
+      "featuredCta": "Riascolta",
+      "yourMixes": "I tuoi mix",
+      "leadKicker": "Ultima aggiunta",
+      "liked_zero": "0 preferiti",
+      "liked_one": "{{count}} preferito",
+      "liked_other": "{{count}} preferiti",
+      "liked_many": "{{count}} preferiti",
+      "plays_zero": "0 ascolti",
+      "plays_one": "{{count}} ascolto",
+      "plays_other": "{{count}} ascolti",
+      "plays_many": "{{count}} ascolti"
+    }
   },
   "library": {
     "header": {
@@ -2335,6 +2361,10 @@
         "liquid": {
           "label": "Liquid",
           "description": "Vetro liquido in stile Apple — materiale traslucido multistrato, sfondo aurora, capsule, movimento fluido."
+        },
+        "fluid": {
+          "label": "Fluid",
+          "description": "Editoriale cinematografico — la copertina illumina la pagina, tipografia da rivista, curve d'onda, spettro dell'umore."
         }
       },
       "accent": {

@@ -1,9 +1,10 @@
 import type { ReactNode } from "react";
 
 /**
- * The recurring WaveFlow mark: a short flowing line, in the artwork's
- * accent, where the old Home drew a 4 px coloured underline. Drawn once
- * as a path so every section header shares the same curve.
+ * The Fluid skin's recurring mark: a short flowing line, in the accent,
+ * where the other skins draw a coloured underline. Drawn as one path so
+ * every section header shares the same curve (the stylesheet draws the
+ * same path under the generic `section h2` of the other views).
  */
 export function FlowLine({ className = "w-10 h-2.5" }: { className?: string }) {
   return (
@@ -27,7 +28,7 @@ export function FlowLine({ className = "w-10 h-2.5" }: { className?: string }) {
 interface SectionHeaderProps {
   title: string;
   /** One quiet sentence under the title; most sections do without. */
-  lede?: string;
+  lede?: ReactNode;
   action?: ReactNode;
   className?: string;
 }
@@ -41,11 +42,11 @@ export function SectionHeader({
   return (
     <header className={`flex items-end justify-between gap-6 ${className}`}>
       <div className="min-w-0">
-        <h2 className="fe-title text-[1.5rem]">{title}</h2>
+        <h2 className="fe-title fe-ink text-[1.5rem]">{title}</h2>
         <div className="mt-2 flex items-center gap-3">
           <FlowLine />
           {lede && (
-            <p className="fe-ink-3 text-[0.8125rem] leading-snug">{lede}</p>
+            <div className="fe-ink-3 text-[0.8125rem] leading-snug">{lede}</div>
           )}
         </div>
       </div>

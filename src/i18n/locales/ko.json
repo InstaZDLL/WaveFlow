@@ -384,7 +384,31 @@
       "cta": "열기",
       "dismiss": "Wrapped 배너 숨기기"
     },
-    "seeAll": "모두 보기"
+    "seeAll": "모두 보기",
+    "fluid": {
+      "resumeKicker": "멈춘 곳부터 이어 듣기",
+      "resume": "이어 듣기",
+      "pause": "일시 정지",
+      "play": "재생",
+      "openAlbum": "앨범 열기",
+      "upNext": "다음 곡",
+      "recentStrip": "최근 들은 곡",
+      "remaining": "{{time}} 남음",
+      "radio": "라디오",
+      "hours": "{{count}}시간 감상",
+      "moodStart": "라디오 시작",
+      "tempo": "템포",
+      "featuredKicker": "계속 다시 듣는 음악",
+      "featuredCta": "다시 듣기",
+      "yourMixes": "내 믹스",
+      "leadKicker": "최근 추가",
+      "liked_zero": "좋아요 0곡",
+      "liked_one": "좋아요 {{count}}곡",
+      "liked_other": "좋아요 {{count}}곡",
+      "plays_zero": "재생 0회",
+      "plays_one": "재생 {{count}}회",
+      "plays_other": "재생 {{count}}회"
+    }
   },
   "library": {
     "header": {
@@ -2273,6 +2297,10 @@
         "liquid": {
           "label": "Liquid",
           "description": "Apple 스타일 리퀴드 글래스 — 다층 반투명 소재, 오로라 배경, 캡슐형 디자인, 차분한 모션."
+        },
+        "fluid": {
+          "label": "Fluid",
+          "description": "시네마틱 에디토리얼 — 커버가 페이지를 밝히고, 잡지풍 타이포그래피, 물결 곡선, 무드 스펙트럼."
         }
       },
       "accent": {

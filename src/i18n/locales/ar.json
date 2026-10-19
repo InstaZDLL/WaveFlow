@@ -417,7 +417,37 @@
       "cta": "فتح",
       "dismiss": "إخفاء لافتة Wrapped"
     },
-    "seeAll": "عرض الكل"
+    "seeAll": "عرض الكل",
+    "fluid": {
+      "resumeKicker": "تابع من حيث توقفت",
+      "resume": "متابعة",
+      "pause": "إيقاف مؤقت",
+      "play": "تشغيل",
+      "openAlbum": "فتح الألبوم",
+      "upNext": "التالي",
+      "recentStrip": "آخر ما استمعت إليه",
+      "remaining": "متبقٍ {{time}}",
+      "radio": "راديو",
+      "hours": "{{count}} س من الاستماع",
+      "moodStart": "تشغيل الراديو",
+      "tempo": "الإيقاع",
+      "featuredKicker": "تعود إليه دائمًا",
+      "featuredCta": "استمع مجددًا",
+      "yourMixes": "مزيجاتك",
+      "leadKicker": "آخر إضافة",
+      "liked_zero": "لا مفضلات",
+      "liked_one": "مفضلة واحدة",
+      "liked_two": "مفضلتان",
+      "liked_few": "{{count}} مفضلات",
+      "liked_many": "{{count}} مفضلة",
+      "liked_other": "{{count}} مفضلة",
+      "plays_zero": "لا تشغيلات",
+      "plays_one": "تشغيل واحد",
+      "plays_two": "تشغيلان",
+      "plays_few": "{{count}} تشغيلات",
+      "plays_many": "{{count}} تشغيلًا",
+      "plays_other": "{{count}} تشغيل"
+    }
   },
   "library": {
     "header": {
@@ -2482,6 +2512,10 @@
         "liquid": {
           "label": "Liquid",
           "description": "زجاج سائل بأسلوب Apple — مادة شفافة متعددة الطبقات، خلفية شفقية، كبسولات قرصية، حركة هادئة."
+        },
+        "fluid": {
+          "label": "Fluid",
+          "description": "تحريري سينمائي — الغلاف يضيء الصفحة، طباعة بأسلوب المجلات، منحنيات موجية، طيف المزاج."
         }
       },
       "accent": {

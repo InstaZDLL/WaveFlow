@@ -384,7 +384,31 @@
       "cta": "Aç",
       "dismiss": "Wrapped afişini gizle"
     },
-    "seeAll": "Tümünü gör"
+    "seeAll": "Tümünü gör",
+    "fluid": {
+      "resumeKicker": "Kaldığın yerden devam et",
+      "resume": "Devam et",
+      "pause": "Duraklat",
+      "play": "Çal",
+      "openAlbum": "Albümü aç",
+      "upNext": "Sırada",
+      "recentStrip": "Son dinlenenler",
+      "remaining": "{{time}} kaldı",
+      "radio": "Radyo",
+      "hours": "{{count}} sa dinlendi",
+      "moodStart": "Radyoyu başlat",
+      "tempo": "Tempo",
+      "featuredKicker": "Hep buna dönüyorsun",
+      "featuredCta": "Yeniden dinle",
+      "yourMixes": "Mixlerin",
+      "leadKicker": "Son eklenen",
+      "liked_zero": "0 favori",
+      "liked_one": "{{count}} favori",
+      "liked_other": "{{count}} favori",
+      "plays_zero": "0 dinleme",
+      "plays_one": "{{count}} dinleme",
+      "plays_other": "{{count}} dinleme"
+    }
   },
   "library": {
     "header": {
@@ -2273,6 +2297,10 @@
         "liquid": {
           "label": "Liquid",
           "description": "Apple tarzı sıvı cam — çok katmanlı yarı şeffaf malzeme, aurora arka plan, kapsül etiketler, sakin hareket."
+        },
+        "fluid": {
+          "label": "Fluid",
+          "description": "Sinematik editoryal — kapak sayfayı aydınlatır, dergi tipografisi, dalga eğrileri, ruh hâli spektrumu."
         }
       },
       "accent": {

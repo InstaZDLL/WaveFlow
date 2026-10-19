@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useId,
   useRef,
   useState,
   type KeyboardEvent,
@@ -14,14 +15,37 @@ import { isRadioTrack } from "../../lib/playerSources";
 import { formatDuration } from "../../lib/tauri/track";
 import { playerGetAbLoop, type AbLoopSnapshot } from "../../lib/tauri/player";
 
+/* A wave of wavelength 24 units across a 1000-unit box: the Fluid
+   skin's progress. The SVG stretches to the bar; the amplitude is pinned
+   by the fixed height, so it reads as a line, not a chart. */
+const WAVE_PATH = (() => {
+  const parts: string[] = ["M0 10"];
+  const half = 12;
+  for (let x = 0; x < 1000; x += half * 2) {
+    parts.push(`q ${half / 2} -4 ${half} 0 t ${half} 0`);
+  }
+  return parts.join(" ");
+})();
+
+interface ProgressBarProps {
+  /**
+   * `bar`: the classic row (time · rail · time) inside the centre
+   * column. `edge`: the Fluid skin's full-width wave along the player
+   * bar's top edge, elapsed and total at its ends — same slider, same
+   * keyboard contract, three times the travel for a seek.
+   */
+  variant?: "bar" | "edge";
+}
+
 /**
  * Interactive progress bar. While the user is dragging, local state
  * owns the thumb position and we ignore incoming `player:position`
  * events (via `setSeeking`); on pointer-up we call `seek(ms)` to
  * commit the target to the backend.
  */
-export function ProgressBar() {
+export function ProgressBar({ variant = "bar" }: ProgressBarProps = {}) {
   const { t } = useTranslation();
+  const clipId = useId();
   const { durationMs, seek, setSeeking, currentTrack } = usePlayer();
   const positionMs = usePlayerPosition();
   const [dragMs, setDragMs] = useState<number | null>(null);
@@ -151,6 +175,105 @@ export function ProgressBar() {
   // timestamps are meaningless — hide the whole row. Placed after all
   // hooks so the Rules of Hooks hold.
   if (isRadioTrack(currentTrack)) return null;
+
+  if (variant === "edge") {
+    return (
+      <div className="relative h-5 w-full px-16">
+        <span className="fe-ink-3 fe-mono absolute left-5 top-1/2 -translate-y-1/2 text-[0.75rem]">
+          {formatDuration(clampedDisplay)}
+        </span>
+        <div
+          ref={trackRef}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          onKeyDown={handleKeyDown}
+          role="slider"
+          tabIndex={seekable ? 0 : -1}
+          aria-label={t("player.seek", "Position")}
+          aria-valuemin={0}
+          aria-valuemax={hasTrack ? durationMs : 0}
+          aria-valuenow={hasTrack ? clampedDisplay : 0}
+          aria-valuetext={`${formatDuration(clampedDisplay)} / ${formatDuration(durationMs)}`}
+          aria-disabled={!seekable}
+          className={`fe-progress h-full ${seekable ? "cursor-pointer" : "cursor-default"}`}
+        >
+          <svg
+            viewBox="0 0 1000 20"
+            preserveAspectRatio="none"
+            aria-hidden="true"
+          >
+            <defs>
+              <clipPath id={clipId}>
+                <rect x="0" y="0" width={percent * 10} height="20" />
+              </clipPath>
+            </defs>
+            <line
+              x1="0"
+              y1="10"
+              x2="1000"
+              y2="10"
+              stroke="rgb(255 255 255 / 0.16)"
+              strokeWidth="1.5"
+              vectorEffect="non-scaling-stroke"
+            />
+            <path
+              d={WAVE_PATH}
+              fill="none"
+              stroke="var(--fe-accent)"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              vectorEffect="non-scaling-stroke"
+              clipPath={`url(#${clipId})`}
+            />
+            {seekable && (
+              <circle
+                className="fe-progress__thumb"
+                cx={percent * 10}
+                cy="10"
+                r="5"
+                fill="var(--fe-ink)"
+                vectorEffect="non-scaling-stroke"
+                style={{
+                  transform: "scale(0.6, 1)",
+                  transformOrigin: `${percent * 10}px 10px`,
+                }}
+              />
+            )}
+          </svg>
+          {hasTrack && abLoop.a_ms != null && (
+            <AbMarker
+              ms={abLoop.a_ms}
+              durationMs={durationMs}
+              label="A"
+              colour="bg-amber-500"
+            />
+          )}
+          {hasTrack && abLoop.b_ms != null && (
+            <AbMarker
+              ms={abLoop.b_ms}
+              durationMs={durationMs}
+              label="B"
+              colour="bg-rose-500"
+            />
+          )}
+          {hasTrack && abLoop.a_ms != null && abLoop.b_ms != null && (
+            <div
+              className="absolute top-0 h-full bg-rose-500/25 pointer-events-none"
+              style={{
+                left: `${(abLoop.a_ms / durationMs) * 100}%`,
+                width: `${((abLoop.b_ms - abLoop.a_ms) / durationMs) * 100}%`,
+              }}
+            />
+          )}
+        </div>
+        <span className="fe-ink-3 fe-mono absolute right-5 top-1/2 -translate-y-1/2 text-[0.75rem]">
+          {formatDuration(hasTrack ? durationMs : 0)}
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full flex items-center space-x-3 text-xs text-zinc-400">

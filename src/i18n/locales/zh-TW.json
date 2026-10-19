@@ -384,7 +384,31 @@
       "cta": "開啟",
       "dismiss": "隱藏 Wrapped 橫幅"
     },
-    "seeAll": "查看全部"
+    "seeAll": "查看全部",
+    "fluid": {
+      "resumeKicker": "從上次停下的地方繼續",
+      "resume": "繼續",
+      "pause": "暫停",
+      "play": "播放",
+      "openAlbum": "開啟專輯",
+      "upNext": "接下來",
+      "recentStrip": "最近播放",
+      "remaining": "剩餘 {{time}}",
+      "radio": "電台",
+      "hours": "已聆聽 {{count}} 小時",
+      "moodStart": "開始電台",
+      "tempo": "節奏",
+      "featuredKicker": "你總是回到這張專輯",
+      "featuredCta": "再聽一次",
+      "yourMixes": "你的混音",
+      "leadKicker": "最新加入",
+      "liked_zero": "0 首喜歡",
+      "liked_one": "{{count}} 首喜歡",
+      "liked_other": "{{count}} 首喜歡",
+      "plays_zero": "播放 0 次",
+      "plays_one": "播放 {{count}} 次",
+      "plays_other": "播放 {{count}} 次"
+    }
   },
   "library": {
     "header": {
@@ -2205,6 +2229,10 @@
         "liquid": {
           "label": "Liquid",
           "description": "Apple 風格液態玻璃——多層半透明材質、極光背景、膠囊標籤與舒緩的動態效果。"
+        },
+        "fluid": {
+          "label": "Fluid",
+          "description": "電影感編輯風格 — 封面點亮頁面，雜誌式排版，波浪曲線，心情光譜。"
         }
       },
       "accent": {

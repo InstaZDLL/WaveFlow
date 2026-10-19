@@ -384,7 +384,31 @@
       "cta": "Buka",
       "dismiss": "Sembunyikan banner Wrapped"
     },
-    "seeAll": "Lihat semua"
+    "seeAll": "Lihat semua",
+    "fluid": {
+      "resumeKicker": "Lanjutkan dari terakhir kali",
+      "resume": "Lanjutkan",
+      "pause": "Jeda",
+      "play": "Putar",
+      "openAlbum": "Buka album",
+      "upNext": "Berikutnya",
+      "recentStrip": "Terakhir diputar",
+      "remaining": "{{time}} tersisa",
+      "radio": "Radio",
+      "hours": "{{count}} jam didengarkan",
+      "moodStart": "Mulai radio",
+      "tempo": "Tempo",
+      "featuredKicker": "Kamu terus kembali ke sini",
+      "featuredCta": "Putar lagi",
+      "yourMixes": "Mix kamu",
+      "leadKicker": "Tambahan terbaru",
+      "liked_zero": "0 favorit",
+      "liked_one": "{{count}} favorit",
+      "liked_other": "{{count}} favorit",
+      "plays_zero": "0 pemutaran",
+      "plays_one": "{{count}} pemutaran",
+      "plays_other": "{{count}} pemutaran"
+    }
   },
   "library": {
     "header": {
@@ -2273,6 +2297,10 @@
         "liquid": {
           "label": "Liquid",
           "description": "Kaca cair gaya Apple — material tembus pandang multilapis, latar aurora, kapsul, gerakan tenang."
+        },
+        "fluid": {
+          "label": "Fluid",
+          "description": "Editorial sinematik — sampul menerangi halaman, tipografi majalah, kurva gelombang, spektrum suasana."
         }
       },
       "accent": {

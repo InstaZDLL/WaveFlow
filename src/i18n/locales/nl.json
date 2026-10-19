@@ -384,7 +384,31 @@
       "cta": "Openen",
       "dismiss": "Wrapped-banner verbergen"
     },
-    "seeAll": "Alles bekijken"
+    "seeAll": "Alles bekijken",
+    "fluid": {
+      "resumeKicker": "Ga verder waar je gebleven was",
+      "resume": "Hervatten",
+      "pause": "Pauze",
+      "play": "Afspelen",
+      "openAlbum": "Album openen",
+      "upNext": "Hierna",
+      "recentStrip": "Laatst beluisterd",
+      "remaining": "Nog {{time}}",
+      "radio": "Radio",
+      "hours": "{{count}} u beluisterd",
+      "moodStart": "Radio starten",
+      "tempo": "Tempo",
+      "featuredKicker": "Hier kom je steeds op terug",
+      "featuredCta": "Opnieuw luisteren",
+      "yourMixes": "Je mixen",
+      "leadKicker": "Nieuwste toevoeging",
+      "liked_zero": "0 favorieten",
+      "liked_one": "{{count}} favoriet",
+      "liked_other": "{{count}} favorieten",
+      "plays_zero": "0 keer afgespeeld",
+      "plays_one": "{{count}} keer afgespeeld",
+      "plays_other": "{{count}} keer afgespeeld"
+    }
   },
   "library": {
     "header": {
@@ -2273,6 +2297,10 @@
         "liquid": {
           "label": "Liquid",
           "description": "Vloeibaar glas in Apple-stijl — meerlaags doorschijnend materiaal, aurora-achtergrond, capsules, kalme beweging."
+        },
+        "fluid": {
+          "label": "Fluid",
+          "description": "Cinematisch redactioneel — de hoes verlicht de pagina, magazinetypografie, golfcurven, een stemmingsspectrum."
         }
       },
       "accent": {
