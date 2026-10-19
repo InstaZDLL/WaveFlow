@@ -545,7 +545,7 @@ Skins are an **orthogonal axis to the 14 colour themes**: a skin re-skins surfac
 **Architecture** :
 
 - Token system + `SkinId` union live in [`src/lib/skins.ts`](../../src/lib/skins.ts); `applySkin()` writes `data-skin` on `<html>`.
-- Per-skin overrides live in `src/styles/skins/{editorial,lounge,pulse,liquid,fluid}.css` (Studio = no overrides, baseline). The five files are imported from `src/app.css`. Three of them also carry a high-contrast block (see above) — a skin that adds a glass surface has to add it there too, or that surface becomes unreadable in the mode.
+- Per-skin overrides live in `src/styles/skins/{editorial,lounge,pulse,liquid,fluid}.css` (Studio = no overrides, baseline). The five files are imported from `src/app.css`. Four of them also carry a high-contrast block (see above) — a skin that adds a glass surface has to add it there too, or that surface becomes unreadable in the mode.
 - [`src/app.css`](../../src/app.css) extends the Tailwind `dark` variant via `@custom-variant dark (.dark, .dark *, :root[data-skin="lounge"] *, :root[data-skin="pulse"] *, :root[data-skin="fluid"] *)` — Lounge/Pulse/Fluid fire `dark:*` utilities automatically because they're always "dark" by design (Liquid stays theme-aware).
 - **Local-first typography** — all skin fonts are bundled via `@fontsource` / `@fontsource-variable` (Playfair Display, Lora, Space Grotesk, Space Mono, DM Sans Variable) and imported at the top of [`src/main.tsx`](../../src/main.tsx). Zero network at runtime — no Google Fonts request.
 - **Motion** — each skin declares its own `MotionConfig` spring in `SkinMotionWrapper`. Skins with strong identity (Pulse, Editorial) override the spring; calmer skins (Studio, Lounge, Liquid, Fluid) inherit the soft default.

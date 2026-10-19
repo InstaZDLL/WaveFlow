@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef } from "react";
 import { dominantColor } from "../../../../lib/dominantColor";
 
 /**
@@ -8,12 +8,16 @@ import { dominantColor } from "../../../../lib/dominantColor";
  * lower pool). Sampled through the app's own extractor, the one the
  * cover accent mode uses.
  *
+ * Written on the document root, not on the Home: the atmosphere pools
+ * (`body::before`) and the player bar's top gradient read the variable
+ * from there. Cleared when the Home unmounts, so the other views fall
+ * back to the stylesheet's defaults.
+ *
  * The accent itself is not touched here: `AccentSync` owns it, and the
  * Fluid stylesheet reads `--accent-400`, so the user's accent choice
  * (theme, custom or cover) decides what the page is tinted with.
  */
-export function useCoverGlow(url: string | null): CSSProperties {
-  const [glow, setGlow] = useState<{ glow: string; deep: string } | null>(null);
+export function useCoverGlow(url: string | null): void {
   const seq = useRef(0);
 
   useEffect(() => {
@@ -22,18 +26,23 @@ export function useCoverGlow(url: string | null): CSSProperties {
     dominantColor(url, "average")
       .then(({ r, g, b }) => {
         if (mine !== seq.current) return;
-        setGlow({ glow: shade(r, g, b, 0.62), deep: shade(r, g, b, 0.3) });
+        const root = document.documentElement.style;
+        root.setProperty("--fe-glow", shade(r, g, b, 0.62));
+        root.setProperty("--fe-glow-deep", shade(r, g, b, 0.3));
       })
       .catch(() => {
         // A cover that cannot be sampled keeps the previous light.
       });
   }, [url]);
 
-  if (!glow) return {};
-  return {
-    ["--fe-glow" as string]: glow.glow,
-    ["--fe-glow-deep" as string]: glow.deep,
-  } as CSSProperties;
+  useEffect(
+    () => () => {
+      const root = document.documentElement.style;
+      root.removeProperty("--fe-glow");
+      root.removeProperty("--fe-glow-deep");
+    },
+    [],
+  );
 }
 
 /** Scale a colour towards black and clamp its lightness so a white

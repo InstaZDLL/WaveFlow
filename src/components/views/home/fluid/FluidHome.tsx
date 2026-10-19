@@ -235,7 +235,7 @@ export function FluidHome({
         ? recentPlayToTrack(lastPlayed)
         : (currentTrack ?? null);
   const isCurrent = currentTrack != null && canvasTrack === currentTrack;
-  const glow = useCoverGlow(canvasTrack ? coverUrl(canvasTrack) : null);
+  useCoverGlow(canvasTrack ? coverUrl(canvasTrack) : null);
 
   const playRecent = useCallback(
     async (index: number) => {
@@ -286,10 +286,7 @@ export function FluidHome({
     currentTrack && isRadioTrack(currentTrack) ? t("home.fluid.radio") : null;
 
   return (
-    <div
-      className="mx-auto max-w-[1680px] space-y-14 pb-10 animate-fade-in"
-      style={glow}
-    >
+    <div className="mx-auto max-w-[1680px] space-y-14 pb-10 animate-fade-in">
       <div className="fe-rise" style={rise(0)}>
         <ListeningCanvas
           profileName={activeProfile?.name ?? ""}

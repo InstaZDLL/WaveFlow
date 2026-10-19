@@ -85,6 +85,9 @@ export function ListeningHistory({
                       tabIndex={0}
                       onClick={() => onPlay(index)}
                       onKeyDown={(e) => {
+                        // The artist link inside is a button of its own:
+                        // its Enter stays its Enter.
+                        if (e.target !== e.currentTarget) return;
                         if (e.key === "Enter" || e.key === " ") {
                           e.preventDefault();
                           onPlay(index);
