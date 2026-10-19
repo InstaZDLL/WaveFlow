@@ -132,6 +132,30 @@ where
         path,
         committed: false,
     };
+    // Replacing a file must not change who can read it: an archive the
+    // user made private would otherwise come back with default rights
+    // after the rename. So the destination's mode goes on the partial
+    // before a byte is written, and the content is never more exposed
+    // than the file it replaces. A new destination keeps the defaults a
+    // plain create would have given it. Unix only: on Windows the partial
+    // takes the folder's inherited ACL, as the destination did, and the
+    // one mode bit there (read-only) would stop the write itself.
+    #[cfg(unix)]
+    if let Ok(meta) = std::fs::metadata(target) {
+        use std::os::unix::fs::{MetadataExt, PermissionsExt};
+        // Group bits only mean the same thing for the same group: a `640`
+        // archive of the "music" group, copied onto a partial owned by the
+        // user's own group, would let that other group read it. So the
+        // partial takes the destination's group first, and when that is
+        // refused (a group the user is not in), it keeps the owner's bits
+        // alone.
+        let same_group = std::os::unix::fs::fchown(&file, None, Some(meta.gid())).is_ok();
+        // Permission and special bits only, not the file type.
+        let mode = meta.permissions().mode() & 0o7777;
+        let mode = if same_group { mode } else { mode & 0o700 };
+        file.set_permissions(std::fs::Permissions::from_mode(mode))
+            .map_err(E::from)?;
+    }
     let value = {
         let value = body(&mut file)?;
         file.flush().map_err(E::from)?;
@@ -264,6 +288,23 @@ mod tests {
 
         assert_eq!(std::fs::read(&target).unwrap(), b"fresh");
         assert_eq!(std::fs::read(&other).unwrap(), b"someone else's write");
+    }
+
+    /// A replaced file keeps the permissions it had, so a private archive
+    /// does not come back readable by everyone.
+    #[cfg(unix)]
+    #[test]
+    fn a_replaced_file_keeps_its_permissions() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = tempfile::tempdir().unwrap();
+        let target = dir.path().join("private.waveflow");
+        std::fs::write(&target, b"old").unwrap();
+        std::fs::set_permissions(&target, std::fs::Permissions::from_mode(0o600)).unwrap();
+
+        write_bytes(&target, b"new").unwrap();
+
+        let mode = std::fs::metadata(&target).unwrap().permissions().mode() & 0o777;
+        assert_eq!(mode, 0o600);
     }
 
     #[test]
