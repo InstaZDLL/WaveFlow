@@ -154,6 +154,30 @@ mod tests {
         assert_eq!(dither.quantize(f32::NAN), 0);
     }
 
+    /// The same seed gives the same noise: two outputs started together
+    /// dither a given stream identically, which keeps a reopened stream's
+    /// output reproducible.
+    #[test]
+    fn two_dithers_from_new_agree() {
+        let mut a = Dither16::new();
+        let mut b = Dither16::new();
+        for n in 0..10_000 {
+            let sample = (n as f32 * 0.37).sin() * 0.3 + 1e-5;
+            assert_eq!(a.quantize(sample), b.quantize(sample));
+        }
+    }
+
+    /// xorshift32 never reaches zero from a non-zero seed (zero would be a
+    /// fixed point, and the noise would stop for good).
+    #[test]
+    fn the_noise_state_never_reaches_zero() {
+        let mut dither = Dither16::new();
+        for _ in 0..1_000_000 {
+            dither.unit();
+            assert_ne!(dither.state, 0);
+        }
+    }
+
     /// A sample between two steps lands on one of its neighbours, and on
     /// average where it really is: the dither adds noise, not a bias.
     #[test]
