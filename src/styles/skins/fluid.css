@@ -103,6 +103,14 @@
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
   background-size: 160px 160px;
 }
+/* The desktop lyrics overlay is a transparent window and the mini-player
+   paints its own cover gradient: neither wants the pools or the grain. */
+:root[data-skin="fluid"].desktop-lyrics-window body::before,
+:root[data-skin="fluid"].desktop-lyrics-window body::after,
+:root[data-skin="fluid"].mini-player-window body::before,
+:root[data-skin="fluid"].mini-player-window body::after {
+  display: none;
+}
 /* Everything the app draws sits above the atmosphere. */
 :root[data-skin="fluid"] #root {
   position: relative;
