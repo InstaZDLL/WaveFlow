@@ -130,6 +130,87 @@ fn validate_edit(edit: &TrackEdit) -> AppResult<()> {
     Ok(())
 }
 
+/// The file's stamp ([`waveflow_core::tagio::file_stamp`]) as the tag
+/// editor opens, for it to hand back with its save. `None` when the file
+/// cannot be reached, in which case the save is not checked against
+/// anything and fails on its own when it tries to write.
+#[tauri::command]
+pub async fn get_track_file_stamp(
+    state: tauri::State<'_, AppState>,
+    track_id: i64,
+) -> AppResult<Option<String>> {
+    let pool = state.require_profile_pool().await?;
+    let path: Option<String> = sqlx::query_scalar("SELECT file_path FROM track WHERE id = ?")
+        .bind(track_id)
+        .fetch_optional(&*pool)
+        .await?;
+    let path = path.ok_or_else(|| AppError::Other(format!("track {track_id} not found")))?;
+    tokio::task::spawn_blocking(move || {
+        waveflow_core::tagio::file_stamp(std::path::Path::new(&path)).ok()
+    })
+    .await
+    .map_err(|e| AppError::Other(format!("file stamp join: {e}")))
+}
+
+/// Refuse to write over a file that changed since the editor read it.
+///
+/// The dialog's form holds the values the library had when it opened,
+/// and its save writes the title, the numbers and the year back whether
+/// or not the user touched them — so if another tagger rewrote the file
+/// meanwhile, saving would undo that program's change without a word.
+fn ensure_unchanged(path: &std::path::Path, opened_at: &str) -> AppResult<()> {
+    if waveflow_core::tagio::file_stamp(path)? == opened_at {
+        Ok(())
+    } else {
+        Err(AppError::FileChangedOnDisk)
+    }
+}
+
+/// Re-read the folder holding `track_id`, so the library catches up with
+/// a file another program changed — what the tag editor's "reload"
+/// does after a save was refused by [`AppError::FileChangedOnDisk`].
+///
+/// The whole folder, through the ordinary scan, rather than a one-file
+/// path of its own: the scanner is the only code that turns a file into
+/// rows (albums, credits, genres, artwork), and its fast path skips every
+/// file whose size and time have not moved, so the cost is a walk of the
+/// folder plus the files that did change — the same scan the folder
+/// watcher would have run.
+#[tauri::command]
+pub async fn reread_track_folder(
+    state: tauri::State<'_, AppState>,
+    app: AppHandle,
+    track_id: i64,
+) -> AppResult<()> {
+    let pool = state.require_profile_pool().await?;
+    let profile_id = state.require_profile_id().await?;
+    let folder_id: Option<Option<i64>> =
+        sqlx::query_scalar("SELECT folder_id FROM track WHERE id = ?")
+            .bind(track_id)
+            .fetch_optional(&*pool)
+            .await?;
+    let folder_id = folder_id
+        .flatten()
+        .ok_or_else(|| AppError::Other(format!("track {track_id} is in no library folder")))?;
+    let artwork_dir = state.paths.profile_artwork_dir(profile_id);
+    crate::commands::scan::scan_folder_inner(&pool, &artwork_dir, folder_id, Some(&app), false)
+        .await?;
+    // Same follow-ups as a manual folder scan: ship the sync ops it
+    // queued, and let every view refetch.
+    state.drain.notify();
+    let _ = app.emit("track:updated", track_id);
+    let _ = app.emit("library:rescanned", ());
+    Ok(())
+}
+
+/// Write `edit` into the track's file, then bring the database in line.
+///
+/// `file_stamp` is what [`get_track_file_stamp`] returned when the
+/// editor opened. When given, the write is refused with
+/// [`AppError::FileChangedOnDisk`] if the file no longer matches it.
+/// Callers that send only the fields the user changed (the tag fetcher)
+/// leave it out. Returns the file's stamp after the write, so the editor
+/// can save again without being refused by its own change.
 #[tauri::command]
 pub async fn update_track_tags(
     state: tauri::State<'_, AppState>,
@@ -137,7 +218,8 @@ pub async fn update_track_tags(
     app: AppHandle,
     track_id: i64,
     edit: TrackEdit,
-) -> AppResult<()> {
+    file_stamp: Option<String>,
+) -> AppResult<Option<String>> {
     validate_edit(&edit)?;
     let pool = state.require_profile_pool().await?;
 
@@ -153,6 +235,15 @@ pub async fn update_track_tags(
     .await?;
     let row = row.ok_or_else(|| AppError::Other(format!("track {track_id} not found")))?;
     let path = std::path::PathBuf::from(&row.file_path);
+
+    // 1b. A save that will be refused should not pause the music first,
+    //     so the stamp is checked before step 2 as well as at the write.
+    if let Some(opened_at) = file_stamp.clone() {
+        let path = path.clone();
+        tokio::task::spawn_blocking(move || ensure_unchanged(&path, &opened_at))
+            .await
+            .map_err(|e| AppError::Other(format!("file stamp join: {e}")))??;
+    }
 
     // 2. If the engine is playing this track, pause before opening.
     //    Releases the read handle that would otherwise refuse our write
@@ -176,13 +267,22 @@ pub async fn update_track_tags(
     // On a blocking thread, not here: this reaches the disk, and on the
     // network share the whole of #590 is about it can take seconds. An
     // async worker parked on it is one fewer for every other command.
+    // The stamp is checked again here, as close to the write as it gets:
+    // the pause above can take its time, and a tagger saving during it
+    // is exactly the case being guarded.
     {
         let path = path.clone();
         let edit = edit.clone();
-        tokio::task::spawn_blocking(move || write_tags_to_file(&path, &edit))
-            .await
-            .map_err(|e| AppError::Other(format!("tag write join: {e}")))?
-            .map_err(|e| AppError::Other(format!("tag write failed: {e}")))?;
+        let file_stamp = file_stamp.clone();
+        tokio::task::spawn_blocking(move || -> AppResult<()> {
+            if let Some(opened_at) = &file_stamp {
+                ensure_unchanged(&path, opened_at)?;
+            }
+            write_tags_to_file(&path, &edit)
+                .map_err(|e| AppError::Other(format!("tag write failed: {e}")))
+        })
+        .await
+        .map_err(|e| AppError::Other(format!("tag write join: {e}")))??;
     }
 
     // 3b. The file has changed on disk; recompute its hash so the
@@ -211,7 +311,15 @@ pub async fn update_track_tags(
     let _ = app.emit("track:updated", track_id);
     let _ = app.emit("library:rescanned", ());
     let _ = app.emit("player:queue-changed", ());
-    Ok(())
+
+    // The file as this write left it, which is what the next save from
+    // the same dialog has to match. Best-effort: the tags are written
+    // and the database is in line, so failing the command here would
+    // report a save that happened as one that did not.
+    let stamp = tokio::task::spawn_blocking(move || waveflow_core::tagio::file_stamp(&path).ok())
+        .await
+        .unwrap_or(None);
+    Ok(stamp)
 }
 
 /// Per-track result of a batch update. Surfaced to the frontend so it

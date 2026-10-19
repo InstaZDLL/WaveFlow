@@ -1281,6 +1281,9 @@
     "save": "Salva",
     "saving": "Salvataggio…",
     "saveFailed": "Salvataggio non riuscito: {{reason}}",
+    "fileChanged": "Il file è stato modificato da un altro programma dopo l'apertura di questa finestra. Ricarica i suoi valori prima di salvare, per non sovrascrivere quelle modifiche.",
+    "reloadFromFile": "Ricarica dal file",
+    "stampUnavailable": "Impossibile leggere il file su disco: potrebbe essere stato spostato, eliminato o reso inaccessibile. Il salvataggio resta disattivato finché non è leggibile.",
     "fields": {
       "title": "Titolo",
       "artist": "Artista/i",

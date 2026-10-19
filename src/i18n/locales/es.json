@@ -1281,6 +1281,9 @@
     "save": "Guardar",
     "saving": "Guardando…",
     "saveFailed": "No se pudo guardar: {{reason}}",
+    "fileChanged": "Otro programa ha modificado el archivo desde que se abrió esta ventana. Vuelve a cargar sus valores antes de guardar para no sobrescribir esos cambios.",
+    "reloadFromFile": "Volver a cargar desde el archivo",
+    "stampUnavailable": "No se puede leer el archivo en el disco: puede que se haya movido, eliminado o que no sea accesible. Guardar seguirá desactivado hasta que se pueda leer.",
     "fields": {
       "title": "Título",
       "artist": "Artista(s)",

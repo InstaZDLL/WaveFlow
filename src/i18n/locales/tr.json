@@ -1238,6 +1238,9 @@
     "save": "Kaydet",
     "saving": "Kaydediliyor…",
     "saveFailed": "Kaydedilemedi: {{reason}}",
+    "fileChanged": "Bu pencere açıldıktan sonra dosya başka bir program tarafından değiştirildi. Bu değişikliklerin üzerine yazmamak için kaydetmeden önce değerleri yeniden yükleyin.",
+    "reloadFromFile": "Dosyadan yeniden yükle",
+    "stampUnavailable": "Dosya diskte okunamıyor: taşınmış, silinmiş ya da erişilemez hâle gelmiş olabilir. Okunabilir olana kadar kaydetme devre dışı kalır.",
     "fields": {
       "title": "Başlık",
       "artist": "Sanatçı(lar)",

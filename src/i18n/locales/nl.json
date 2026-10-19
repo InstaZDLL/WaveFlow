@@ -1238,6 +1238,9 @@
     "save": "Opslaan",
     "saving": "Opslaan…",
     "saveFailed": "Opslaan mislukt: {{reason}}",
+    "fileChanged": "Het bestand is door een ander programma gewijzigd sinds dit venster is geopend. Laad de waarden opnieuw voordat je opslaat, zodat die wijzigingen niet worden overschreven.",
+    "reloadFromFile": "Opnieuw laden uit bestand",
+    "stampUnavailable": "Het bestand kan niet van de schijf worden gelezen: het is mogelijk verplaatst, verwijderd of ontoegankelijk gemaakt. Opslaan blijft uitgeschakeld tot het leesbaar is.",
     "fields": {
       "title": "Titel",
       "artist": "Artiest(en)",

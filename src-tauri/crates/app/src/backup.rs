@@ -424,7 +424,7 @@ pub async fn run_one_backup(
         .await
         .map_err(|e| AppError::Other(format!("backup task join: {e}")))?;
 
-        match result {
+        let written = match result {
             Ok(()) => {
                 tracing::info!(profile_id, target = %target.display(), "auto backup ok");
                 created.push(target.to_string_lossy().to_string());
@@ -435,17 +435,29 @@ pub async fn run_one_backup(
                 if attempted_with_cache {
                     bundle_metadata_artwork = false;
                 }
+                true
             }
             Err(err) => {
                 tracing::warn!(profile_id, ?err, "auto backup failed");
                 failed += 1;
+                false
             }
-        }
+        };
 
         // Prune old archives for this profile. List `<safe>-*.waveflow`
         // in the folder, sort by mtime descending, keep the first
         // `retention` entries.
-        if let Err(err) = prune_old_backups(&folder, &safe, config.retention as usize).await {
+        //
+        // Only after an archive was written. Retention is "keep the
+        // newest N", and a pass that added nothing has no new archive
+        // to make room for: pruning anyway deleted the oldest good
+        // backup on every failed run, so a profile that kept failing
+        // was slowly left with none.
+        //
+        // Unfinished archives left by a crash are swept either way: a
+        // profile that keeps failing is exactly the one that leaves them.
+        let keep = written.then_some(config.retention as usize);
+        if let Err(err) = prune_old_backups(&folder, &safe, keep).await {
             tracing::warn!(?err, "auto backup retention sweep failed");
         }
 
@@ -475,10 +487,44 @@ pub async fn run_one_backup(
     })
 }
 
+/// How old an unfinished archive has to be before retention removes it.
+/// Far longer than any backup takes to write, so it is never one in
+/// progress — another pass can be running beside this one.
+const STALE_PARTIAL: Duration = Duration::from_secs(24 * 60 * 60);
+
+/// What a file in the backup folder is to the retention sweep of one
+/// profile.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum BackupFile {
+    /// A finished archive of this profile: counted, oldest pruned.
+    Archive,
+    /// An archive of this profile still being written, or one whose
+    /// write never finished. Never counted as a backup.
+    Partial,
+    /// Anything else, left alone.
+    Other,
+}
+
+fn classify_backup_file(name: &str, prefix: &str) -> BackupFile {
+    if !name.starts_with(prefix) {
+        return BackupFile::Other;
+    }
+    if name.ends_with(".waveflow") {
+        return BackupFile::Archive;
+    }
+    match name.strip_suffix(waveflow_core::atomic_write::PARTIAL_SUFFIX) {
+        Some(archive) if archive.ends_with(".waveflow") => BackupFile::Partial,
+        _ => BackupFile::Other,
+    }
+}
+
+/// Sweep the backup folder for one profile: remove its stale unfinished
+/// archives, and when `keep` is given, every finished archive past the
+/// newest `keep`.
 async fn prune_old_backups(
     folder: &std::path::Path,
     name_prefix: &str,
-    keep: usize,
+    keep: Option<usize>,
 ) -> AppResult<()> {
     let prefix = format!("{name_prefix}-");
     let folder = folder.to_path_buf();
@@ -494,22 +540,40 @@ async fn prune_old_backups(
             // nothing to prune. Not an error from the user's perspective.
             Err(_) => return Ok(0),
         };
+        let now = std::time::SystemTime::now();
         for entry in read_dir.flatten() {
             let path = entry.path();
-            let Some(stem) = path
-                .file_name()
-                .and_then(|s| s.to_str())
-                .filter(|s| s.starts_with(&prefix_owned) && s.ends_with(".waveflow"))
-            else {
+            let Some(name) = path.file_name().and_then(|s| s.to_str()) else {
                 continue;
             };
-            let _ = stem;
+            let kind = classify_backup_file(name, &prefix_owned);
+            if kind == BackupFile::Other {
+                continue;
+            }
             let mtime = entry
                 .metadata()
                 .and_then(|m| m.modified())
                 .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
+            if kind == BackupFile::Partial {
+                // Never counted as a backup: it is an archive that did
+                // not finish. One whose writer is gone (a crash, a
+                // power cut) would otherwise sit in the folder for good,
+                // at the size of a whole archive. A partial still being
+                // written is touched by every write, so it never looks
+                // this old.
+                let stale = now
+                    .duration_since(mtime)
+                    .is_ok_and(|age| age > STALE_PARTIAL);
+                if stale && std::fs::remove_file(&path).is_ok() {
+                    tracing::debug!(path = %path.display(), "removed an unfinished backup");
+                }
+                continue;
+            }
             entries.push((path, mtime));
         }
+        let Some(keep) = keep else {
+            return Ok(0);
+        };
         entries.sort_by_key(|e| std::cmp::Reverse(e.1)); // newest first
         let mut removed = 0;
         for (path, _) in entries.into_iter().skip(keep) {
@@ -661,4 +725,43 @@ pub fn spawn_backup_loop(handle: AppHandle, backup_handle: BackupHandle) {
             }
         }
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_finished_archive_of_the_profile_is_counted() {
+        assert_eq!(
+            classify_backup_file("Main-2026-10-19T10-00-00.waveflow", "Main-"),
+            BackupFile::Archive
+        );
+    }
+
+    /// An unfinished archive must never count toward retention: kept as
+    /// the newest, it pushed the oldest good backup out.
+    #[test]
+    fn an_unfinished_archive_is_not_a_backup() {
+        assert_eq!(
+            classify_backup_file("Main-2026-10-19T10-00-00.4242-1.waveflow.partial", "Main-"),
+            BackupFile::Partial
+        );
+    }
+
+    #[test]
+    fn other_files_are_left_alone() {
+        assert_eq!(
+            classify_backup_file("Other-2026-10-19T10-00-00.waveflow", "Main-"),
+            BackupFile::Other
+        );
+        assert_eq!(
+            classify_backup_file("Main-notes.txt.partial", "Main-"),
+            BackupFile::Other
+        );
+        assert_eq!(
+            classify_backup_file("Main-notes.txt", "Main-"),
+            BackupFile::Other
+        );
+    }
 }

@@ -1238,6 +1238,9 @@
     "save": "Speichern",
     "saving": "Wird gespeichert…",
     "saveFailed": "Speichern fehlgeschlagen: {{reason}}",
+    "fileChanged": "Die Datei wurde seit dem Öffnen dieses Fensters von einem anderen Programm geändert. Lade ihre Werte neu, bevor du speicherst, damit diese Änderungen nicht überschrieben werden.",
+    "reloadFromFile": "Aus der Datei neu laden",
+    "stampUnavailable": "Die Datei kann auf dem Datenträger nicht gelesen werden: Sie wurde möglicherweise verschoben, gelöscht oder ist nicht zugänglich. Speichern bleibt deaktiviert, bis sie lesbar ist.",
     "fields": {
       "title": "Titel",
       "artist": "Künstler",

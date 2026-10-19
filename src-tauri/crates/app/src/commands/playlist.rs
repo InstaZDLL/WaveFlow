@@ -825,14 +825,21 @@ pub async fn export_playlist_m3u(
         out.push('\n');
     }
 
+    // Through a partial file renamed into place, so overwriting an
+    // existing playlist file that fails halfway (a full disk, a share
+    // that drops) leaves the old one intact rather than truncated. On
+    // the blocking pool: the destination is wherever the user picked,
+    // network shares included, and the parent may need creating.
     let dest = std::path::PathBuf::from(&dest_path);
-    if let Some(parent) = dest.parent() {
-        if !parent.as_os_str().is_empty() {
-            std::fs::create_dir_all(parent)
-                .map_err(|e| AppError::Other(format!("create parent dir: {e}")))?;
-        }
+    {
+        let dest = dest.clone();
+        tokio::task::spawn_blocking(move || {
+            waveflow_core::atomic_write::write_bytes(&dest, out.as_bytes())
+        })
+        .await
+        .map_err(|e| AppError::Other(format!("write m3u join: {e}")))?
+        .map_err(|e| AppError::Other(format!("write m3u file: {e}")))?;
     }
-    std::fs::write(&dest, out).map_err(|e| AppError::Other(format!("write m3u file: {e}")))?;
 
     tracing::info!(
         playlist_id,

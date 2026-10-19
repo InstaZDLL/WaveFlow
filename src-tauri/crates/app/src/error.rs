@@ -112,6 +112,15 @@ pub enum AppError {
     #[error("zip error: {0}")]
     Zip(#[from] zip::result::ZipError),
 
+    /// The tag editor's save found the file no longer the one its dialog
+    /// read: another program wrote it in the meantime. Refused rather
+    /// than overwriting that change with the values the dialog showed.
+    /// The frontend recognises this message (`FILE_CHANGED_ON_DISK` in
+    /// `src/lib/tauri/track.ts`) and offers to reload, so the wording is
+    /// part of the contract.
+    #[error("the file changed on disk since the editor opened it")]
+    FileChangedOnDisk,
+
     #[error("{0}")]
     Other(String),
 }

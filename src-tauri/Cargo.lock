@@ -7858,6 +7858,7 @@ dependencies = [
  "wasmtime",
  "wasmtime-wasi",
  "waveflow-plugin-sdk",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
