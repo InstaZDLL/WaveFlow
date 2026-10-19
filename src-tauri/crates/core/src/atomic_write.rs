@@ -22,7 +22,7 @@
 //! Not for audio files: those go through [`crate::tagio`], which has to
 //! keep the original's inode where it can and copies it before writing.
 
-use std::ffi::OsString;
+use std::ffi::{OsStr, OsString};
 use std::fs::File;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
@@ -87,22 +87,28 @@ fn sibling_path(target: &Path, token: &str, suffix: &str) -> PathBuf {
 /// process: [`partial_path`] with a `<pid>-<n>` token. The token is
 /// matched whole, so a partial of another destination whose name starts
 /// the same way (`Main.old.waveflow` beside `Main.waveflow`) is never
-/// taken for one of this destination's.
-fn is_partial_of(target: &Path, name: &str) -> bool {
+/// taken for one of this destination's. Names are compared as they are
+/// on disk, so a destination whose name is not valid UTF-8 still has its
+/// partials found; only the token has to be text.
+fn is_partial_of(target: &Path, name: &OsStr) -> bool {
     let (head, tail) = match (target.file_stem(), target.extension()) {
-        (Some(stem), Some(extension)) => match (stem.to_str(), extension.to_str()) {
-            (Some(stem), Some(extension)) => (stem, format!(".{extension}{PARTIAL_SUFFIX}")),
-            _ => return false,
-        },
-        _ => match target.file_name().and_then(|n| n.to_str()) {
-            Some(name) => (name, PARTIAL_SUFFIX.to_string()),
+        (Some(stem), Some(extension)) => {
+            let mut tail = OsString::from(".");
+            tail.push(extension);
+            tail.push(PARTIAL_SUFFIX);
+            (stem, tail)
+        }
+        _ => match target.file_name() {
+            Some(name) => (name, OsString::from(PARTIAL_SUFFIX)),
             None => return false,
         },
     };
     let Some(token) = name
-        .strip_prefix(head)
-        .and_then(|rest| rest.strip_prefix('.'))
-        .and_then(|rest| rest.strip_suffix(tail.as_str()))
+        .as_encoded_bytes()
+        .strip_prefix(head.as_encoded_bytes())
+        .and_then(|rest| rest.strip_prefix(b"."))
+        .and_then(|rest| rest.strip_suffix(tail.as_encoded_bytes()))
+        .and_then(|token| std::str::from_utf8(token).ok())
     else {
         return false;
     };
@@ -123,11 +129,7 @@ fn sweep_stale_partials(target: &Path, directory: &Path) {
     };
     let now = SystemTime::now();
     for entry in entries.flatten() {
-        let name = entry.file_name();
-        let Some(name) = name.to_str() else {
-            continue;
-        };
-        if !is_partial_of(target, name) {
+        if !is_partial_of(target, &entry.file_name()) {
             continue;
         }
         let stale = entry
@@ -411,15 +413,11 @@ mod tests {
     fn a_partial_is_recognised_as_its_target_s_and_no_other_s() {
         let target = Path::new("/exports/Main.waveflow");
         let own = partial_path(target, "4242-7");
-        let own = own.file_name().unwrap().to_str().unwrap();
-        assert!(is_partial_of(target, own));
+        assert!(is_partial_of(target, own.file_name().unwrap()));
 
         let bare = Path::new("/exports/list");
         let own = partial_path(bare, "1-0");
-        assert!(is_partial_of(
-            bare,
-            own.file_name().unwrap().to_str().unwrap()
-        ));
+        assert!(is_partial_of(bare, own.file_name().unwrap()));
 
         for other in [
             "Main.waveflow",
@@ -429,8 +427,22 @@ mod tests {
             "Main.4242-.waveflow.partial",
             "Main.4242-7.m3u8.partial",
         ] {
-            assert!(!is_partial_of(target, other), "{other}");
+            assert!(!is_partial_of(target, OsStr::new(other)), "{other}");
         }
+    }
+
+    /// A Linux file name need not be UTF-8; its partials are still found.
+    #[cfg(unix)]
+    #[test]
+    fn a_partial_of_a_name_that_is_not_utf8_is_recognised() {
+        use std::os::unix::ffi::OsStrExt;
+        let target = Path::new("/exports").join(OsStr::from_bytes(b"Caf\xe9.waveflow"));
+        let own = partial_path(&target, "12-0");
+        assert!(is_partial_of(&target, own.file_name().unwrap()));
+        assert!(!is_partial_of(
+            &target,
+            OsStr::from_bytes(b"Caf\xe9.old.12-0.waveflow.partial")
+        ));
     }
 
     /// An export cut short (the app closed halfway) never reaches its
