@@ -1284,6 +1284,7 @@
     "saveFailed": "Não foi possível salvar: {{reason}}",
     "fileChanged": "O arquivo foi alterado por outro programa depois que esta janela foi aberta. Recarregue os valores antes de salvar para não sobrescrever essas alterações.",
     "reloadFromFile": "Recarregar do arquivo",
+    "stampUnavailable": "Não é possível ler o arquivo no disco: ele pode ter sido movido, excluído ou ficado inacessível. Salvar fica desativado até que ele possa ser lido.",
     "fields": {
       "title": "Título",
       "artist": "Artista(s)",

@@ -1240,6 +1240,7 @@
     "saveFailed": "Couldn't save: {{reason}}",
     "fileChanged": "The file was changed by another program since this window opened. Reload its values before saving, so those changes are not overwritten.",
     "reloadFromFile": "Reload from file",
+    "stampUnavailable": "The file can't be read on disk: it may have been moved, deleted or made inaccessible. Saving stays disabled until it can be read.",
     "fields": {
       "title": "Title",
       "artist": "Artist(s)",

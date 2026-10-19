@@ -1238,6 +1238,7 @@
     "saveFailed": "保存失败：{{reason}}",
     "fileChanged": "打开此窗口后，文件已被其他程序修改。请在保存前重新加载其值，以免覆盖这些更改。",
     "reloadFromFile": "从文件重新加载",
+    "stampUnavailable": "无法读取磁盘上的文件：它可能已被移动、删除或无法访问。在文件可读之前，保存将保持禁用。",
     "fields": {
       "title": "标题",
       "artist": "艺人",

@@ -143,6 +143,12 @@ export function TrackPropertiesModal({
   // click instead, it would already include the change it is meant to
   // catch.
   const [fileStamp, setFileStamp] = useState<string | null>(null);
+  // The stamp could not be read: the file is gone, moved or unreadable.
+  // Save stays disabled, and the dialog says why and offers to reload.
+  // Reload, not just re-stamp: a file that comes back may have been
+  // retagged meanwhile, and a fresh stamp over the form's old values
+  // would let the save overwrite that change after all.
+  const [stampUnavailable, setStampUnavailable] = useState(false);
   // Set when a save was refused for that reason: the error then offers
   // to reload the values from the file instead of repeating the save.
   const [fileChanged, setFileChanged] = useState(false);
@@ -215,12 +221,16 @@ export function TrackPropertiesModal({
     let cancelled = false;
     getTrackFileStamp(track.id)
       .then((stamp) => {
-        if (!cancelled) setFileStamp(stamp);
+        if (cancelled) return;
+        setFileStamp(stamp);
+        setStampUnavailable(stamp == null);
       })
       .catch((err) => {
         console.error("[TrackProperties] get_track_file_stamp failed", err);
-        // Said, not just logged: it is why Save stays disabled.
-        if (!cancelled) setSaveError(String(err));
+        if (!cancelled) {
+          setFileStamp(null);
+          setStampUnavailable(true);
+        }
       });
     return () => {
       cancelled = true;
@@ -503,6 +513,12 @@ export function TrackPropertiesModal({
       // A new `track` re-runs the hydration (which also leaves edit
       // mode) and the stamp fetch.
       if (fresh) setTrack(fresh);
+      // Read again here as well: when the row comes back unchanged (or
+      // not at all), `track` does not move, and the warning would stay
+      // on the old answer.
+      const stamp = await getTrackFileStamp(track.id).catch(() => null);
+      setFileStamp(stamp);
+      setStampUnavailable(stamp == null);
       setSaveError(null);
       setFileChanged(false);
     } catch (err) {
@@ -943,6 +959,29 @@ export function TrackPropertiesModal({
             />
           </Section>
         </div>
+
+        {editing && stampUnavailable && (
+          <div
+            role="status"
+            className="mx-6 mb-4 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200"
+          >
+            <TriangleAlert size={16} className="mt-0.5 shrink-0" />
+            <div className="min-w-0 flex-1">
+              <span className="break-words">
+                {t("trackProperties.stampUnavailable")}
+              </span>
+              <button
+                type="button"
+                onClick={handleReload}
+                disabled={saving}
+                className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-white px-2.5 py-1 text-xs font-medium text-amber-800 hover:bg-amber-100 disabled:opacity-50 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-200 dark:hover:bg-amber-900/50 transition-colors"
+              >
+                <RotateCcw size={12} />
+                <span>{t("trackProperties.reloadFromFile")}</span>
+              </button>
+            </div>
+          </div>
+        )}
 
         {saveError && (
           <div

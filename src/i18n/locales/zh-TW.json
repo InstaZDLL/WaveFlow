@@ -1238,6 +1238,7 @@
     "saveFailed": "儲存失敗：{{reason}}",
     "fileChanged": "開啟此視窗後，檔案已被其他程式修改。請在儲存前重新載入其值，以免覆寫這些變更。",
     "reloadFromFile": "從檔案重新載入",
+    "stampUnavailable": "無法讀取磁碟上的檔案：它可能已被移動、刪除或無法存取。在檔案可讀取之前，儲存將維持停用。",
     "fields": {
       "title": "標題",
       "artist": "藝人",

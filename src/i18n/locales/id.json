@@ -1238,6 +1238,7 @@
     "saveFailed": "Gagal menyimpan: {{reason}}",
     "fileChanged": "Berkas telah diubah oleh program lain sejak jendela ini dibuka. Muat ulang nilainya sebelum menyimpan agar perubahan tersebut tidak tertimpa.",
     "reloadFromFile": "Muat ulang dari berkas",
+    "stampUnavailable": "File tidak dapat dibaca di disk: mungkin telah dipindahkan, dihapus, atau tidak dapat diakses. Penyimpanan tetap nonaktif sampai file dapat dibaca.",
     "fields": {
       "title": "Judul",
       "artist": "Artis",
