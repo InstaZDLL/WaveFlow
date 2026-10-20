@@ -823,6 +823,11 @@ export function AppLayout() {
                 navigateToRemotePlaylist={navigateToRemotePlaylist}
                 activePluginId={activePluginId}
                 navigateToPluginUi={navigateToPluginUi}
+                navigateToExtensions={() => openSettingsAt("plugins")}
+                extensionsActive={
+                  currentEntry.id === "settings" &&
+                  currentEntry.settingsCategory === "plugins"
+                }
                 collapsed={sidebarMode === "icons"}
               />
             </motion.div>
