@@ -687,7 +687,8 @@
 /* C — the places: rows of one height, the open one on a tone with
    the accent's edge and its icon lit. */
 :root[data-skin="fluid"] [data-sidebar-nav] {
-  padding: 1rem 1rem 0.5rem !important;
+  /* The profile panel's gutter (1.25 rem), so the tiles line up with it. */
+  padding: 1rem 1.25rem 0.5rem !important;
 }
 :root[data-skin="fluid"] .skin-sidebar-shell[data-collapsed] [data-sidebar-nav] {
   padding: 0.75rem 0.75rem 0.5rem !important;
@@ -810,7 +811,7 @@
 
 /* Sections: a breath between them, the title in the label voice. */
 :root[data-skin="fluid"] [data-sidebar-scroll] {
-  padding: 0.25rem 1rem 1.5rem !important;
+  padding: 0.25rem 1.25rem 1.5rem !important;
 }
 :root[data-skin="fluid"] .skin-sidebar-shell[data-collapsed] [data-sidebar-scroll] {
   padding: 0.25rem 0.75rem 1.5rem !important;
