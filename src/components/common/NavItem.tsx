@@ -11,6 +11,10 @@ export function NavItem({
 }: NavItemProps) {
   return (
     <button
+      // Landmarks for the skins that recompose the sidebar: the item
+      // and its state, so a stylesheet never has to read a utility class.
+      data-nav-item
+      data-active={active ? "" : undefined}
       onClick={onClick}
       title={collapsed ? label : undefined}
       className={`w-full flex items-center py-2 rounded-xl transition-colors ${

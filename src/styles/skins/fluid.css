@@ -601,8 +601,14 @@
    Chrome — sidebar, header, footer, main
    ============================================================ */
 
-/* Sidebar: a tone, not a box. No border; the brand, the profile and
-   the sections all quieten; the active row earns a 2 px accent bar. */
+/* ── Sidebar: a navigation rail ────────────────────────────── */
+/* Not a box: a tone that falls off a little towards the foot, a
+   hairline for its edge, and blocks told apart by rhythm rather than
+   rules. The view marks them — brand, profile, primary nav, sections,
+   rows — with `data-sidebar-*`, so nothing here reads a utility class.
+   Four levels, in order: the product (the wordmark), the person (the
+   profile panel), the places (the navigation), the person's own music
+   (the pinned pair as tiles, then the playlists as rows). */
 :root[data-skin="fluid"] .skin-sidebar-shell {
   background-color: transparent !important;
   border-right: 0;
@@ -610,64 +616,87 @@
 }
 :root[data-skin="fluid"] .skin-sidebar-shell > aside {
   margin: 0 !important;
-  width: 100% !important;
+  width: 17rem !important;
   height: 100% !important;
   color: var(--fe-ink-2);
   background-color: var(--fe-surface) !important;
-  background-image: none !important;
+  background-image: linear-gradient(
+    180deg,
+    var(--fe-surface) 0%,
+    color-mix(in srgb, var(--fe-surface) 55%, var(--fe-bg)) 100%
+  ) !important;
   border: 0 !important;
   border-radius: 0 !important;
-  box-shadow: none !important;
+  box-shadow: 1px 0 0 var(--fe-hairline) !important;
+}
+:root[data-skin="fluid"] .skin-sidebar-shell[data-collapsed] > aside {
+  width: 5rem !important;
 }
 :root[data-skin="fluid"] .skin-sidebar-shell > aside > div:first-child {
-  padding: 1.25rem 1.25rem 0.75rem !important;
+  padding: 1.5rem 1.25rem 0.5rem !important;
 }
-:root[data-skin="fluid"]
-  .skin-sidebar-shell
-  > aside
-  > div:first-child
-  > div:first-child {
+:root[data-skin="fluid"] .skin-sidebar-shell[data-collapsed] > aside > div:first-child {
+  padding: 1.25rem 0.75rem 0.5rem !important;
+}
+
+/* A — the product: the wordmark, settled; the mark in the accent. */
+:root[data-skin="fluid"] [data-sidebar-brand] {
+  margin-bottom: 1.25rem !important;
   font-size: 1.0625rem;
   font-weight: 540;
   letter-spacing: -0.022em;
-  margin-bottom: 1.25rem;
+  color: var(--fe-ink);
 }
-:root[data-skin="fluid"] .skin-sidebar-shell > aside > div:first-child button {
+:root[data-skin="fluid"] [data-sidebar-brand] svg {
+  color: var(--fe-accent);
+}
+
+/* B — the person: a small panel, the avatar a step larger, the
+   library's size under the name. */
+:root[data-skin="fluid"] [data-sidebar-profile] {
   border: 0 !important;
-  border-radius: 0.75rem !important;
-  background-color: transparent !important;
-  padding: 0.375rem 0.25rem !important;
+  border-radius: 0.875rem !important;
+  padding: 0.625rem 0.75rem !important;
   color: var(--fe-ink) !important;
+  background-color: rgb(255 255 255 / 0.04) !important;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
   transition: background-color 180ms var(--fe-ease);
 }
-:root[data-skin="fluid"]
-  .skin-sidebar-shell
-  > aside
-  > div:first-child
-  button:hover {
-  background-color: rgb(255 255 255 / 0.04) !important;
+:root[data-skin="fluid"] [data-sidebar-profile]:hover {
+  background-color: rgb(255 255 255 / 0.07) !important;
 }
-/* Section labels: 12 px, medium, wide tracking, tertiary ink. */
-:root[data-skin="fluid"]
-  .skin-sidebar-shell
-  > aside
-  [class*="uppercase"][class*="tracking"] {
+:root[data-skin="fluid"] [data-sidebar-profile] > div > div:first-child {
+  width: 2rem;
+  height: 2rem;
+  font-size: 0.8125rem;
+}
+:root[data-skin="fluid"] [data-sidebar-profile] span[class*="text-sm"] {
+  font-size: 0.9375rem;
+  font-weight: 540;
+  letter-spacing: -0.01em;
+}
+:root[data-skin="fluid"] [data-sidebar-profile-sub] {
   color: var(--fe-ink-3) !important;
-  font-size: 0.75rem !important;
-  font-weight: 540 !important;
-  letter-spacing: 0.12em !important;
-  padding: 0 0.75rem !important;
-  margin-bottom: 0.375rem !important;
+  font-size: 0.6875rem !important;
+  letter-spacing: 0.02em;
 }
-/* Nav rows (a button holding a `div.flex.flex-col`). */
-:root[data-skin="fluid"]
-  .skin-sidebar-shell
-  > aside
-  button:where(:has(> div.flex.flex-col)) {
+:root[data-skin="fluid"] .skin-sidebar-shell[data-collapsed] [data-sidebar-profile] {
+  padding: 0.5rem !important;
+}
+
+/* C — the places: rows of one height, the open one on a tone with
+   the accent's edge and its icon lit. */
+:root[data-skin="fluid"] [data-sidebar-nav] {
+  padding: 1rem 1rem 0.5rem !important;
+}
+:root[data-skin="fluid"] .skin-sidebar-shell[data-collapsed] [data-sidebar-nav] {
+  padding: 0.75rem 0.75rem 0.5rem !important;
+}
+:root[data-skin="fluid"] [data-nav-item] {
   position: relative;
-  height: 2.25rem;
+  height: 2.5rem;
   padding: 0 0.75rem !important;
-  border-radius: 0.625rem !important;
+  border-radius: 0.75rem !important;
   color: var(--fe-ink-2) !important;
   background-color: transparent !important;
   font-size: 0.875rem;
@@ -676,81 +705,160 @@
     color 180ms var(--fe-ease),
     background-color 180ms var(--fe-ease);
 }
-:root[data-skin="fluid"]
-  .skin-sidebar-shell
-  > aside
-  button:where(:has(> div.flex.flex-col)):hover {
-  color: var(--fe-ink) !important;
-  background-color: rgb(255 255 255 / 0.045) !important;
-}
-:root[data-skin="fluid"]
-  .skin-sidebar-shell
-  > aside
-  button:where(:has(> div.flex.flex-col))
-  > span {
+:root[data-skin="fluid"] [data-nav-item] > span:first-child {
   color: var(--fe-ink-3);
   transition: color 180ms var(--fe-ease);
 }
-:root[data-skin="fluid"]
-  .skin-sidebar-shell
-  > aside
-  button:where(:has(> div.flex.flex-col)):hover
-  > span,
-:root[data-skin="fluid"]
-  .skin-sidebar-shell
-  > aside
-  button[class*="bg-emerald-50"]
-  > span {
+:root[data-skin="fluid"] [data-nav-item]:hover {
+  color: var(--fe-ink) !important;
+  background-color: rgb(255 255 255 / 0.045) !important;
+}
+:root[data-skin="fluid"] [data-nav-item]:hover > span:first-child {
   color: var(--fe-ink);
 }
-:root[data-skin="fluid"]
-  .skin-sidebar-shell
-  > aside
-  button[class*="bg-emerald-50"] {
+:root[data-skin="fluid"] [data-nav-item][data-active] {
   color: var(--fe-ink) !important;
-  background-color: transparent !important;
+  background-color: rgb(255 255 255 / 0.06) !important;
   font-weight: 540;
 }
-/* The active mark: the one place the accent appears in navigation. */
-:root[data-skin="fluid"]
-  .skin-sidebar-shell
-  > aside
-  button[class*="bg-emerald-50"]::before {
+:root[data-skin="fluid"] [data-nav-item][data-active] > span:first-child {
+  color: var(--fe-accent);
+}
+/* The signature mark: the accent's edge on the open row, with the
+   faintest glow — the same mark the Home's section titles carry. */
+:root[data-skin="fluid"] [data-nav-item][data-active]::before,
+:root[data-skin="fluid"] [data-sidebar-row="playlist"][data-active]::before {
   content: "";
   position: absolute;
-  left: -1rem;
+  left: 0;
   top: 0.625rem;
   bottom: 0.625rem;
   width: 2px;
   border-radius: 2px;
   background-color: var(--fe-accent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--fe-accent) 70%, transparent);
 }
-:root[data-skin="fluid"]
-  .skin-sidebar-shell[data-collapsed]
-  > aside
-  button[class*="bg-emerald-50"]::before {
-  left: -0.5rem;
+
+/* Sections: a breath between them, the title in the label voice. */
+:root[data-skin="fluid"] [data-sidebar-scroll] {
+  padding: 0.25rem 1rem 1.5rem !important;
 }
-/* Playlist and pinned rows (no `div.flex.flex-col`). */
-:root[data-skin="fluid"]
-  .skin-sidebar-shell
-  > aside
-  button:where(:not(:has(> div.flex.flex-col))):where(:not(:first-child)) {
+:root[data-skin="fluid"] .skin-sidebar-shell[data-collapsed] [data-sidebar-scroll] {
+  padding: 0.25rem 0.75rem 1.5rem !important;
+}
+:root[data-skin="fluid"] [data-sidebar-scroll] > * + * {
+  margin-top: 1.75rem !important;
+}
+:root[data-skin="fluid"] [data-sidebar-section-title] {
+  margin: 0 0 0.625rem !important;
+  padding: 0 0.75rem !important;
+  font-size: 0.6875rem !important;
+  font-weight: 540 !important;
+  letter-spacing: 0.12em !important;
+  color: var(--fe-ink-3) !important;
+}
+:root[data-skin="fluid"] [data-sidebar-section-title] button {
+  color: var(--fe-ink-3);
+  transition: color 180ms var(--fe-ease);
+}
+:root[data-skin="fluid"] [data-sidebar-section-title] button:hover {
+  color: var(--fe-ink) !important;
+}
+:root[data-skin="fluid"] .skin-sidebar-shell > aside [role="separator"] {
+  background-color: var(--fe-hairline) !important;
+}
+
+/* D — the person's own music. The pinned pair (liked, recently
+   played) as two tiles side by side; the playlists as rows with a
+   larger cover, parted by space, the open one marked like a nav row. */
+:root[data-skin="fluid"] [data-sidebar-playlists] {
+  display: grid;
+  /* `minmax(0, …)`: a tile's label must not widen its column. */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.5rem;
+}
+:root[data-skin="fluid"] [data-sidebar-row="pinned"] > div:last-child {
+  width: 100%;
+  min-width: 0;
+}
+:root[data-skin="fluid"] .skin-sidebar-shell[data-collapsed] [data-sidebar-playlists] {
+  grid-template-columns: 1fr;
+  gap: 0.25rem;
+}
+:root[data-skin="fluid"] [data-sidebar-playlists] > * {
+  margin: 0 !important;
+}
+:root[data-skin="fluid"] [data-sidebar-row="pinned"] {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.625rem;
+  padding: 0.75rem !important;
+  border-radius: 0.875rem !important;
+  background-color: rgb(255 255 255 / 0.04) !important;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
+  transition:
+    background-color 180ms var(--fe-ease),
+    box-shadow 180ms var(--fe-ease);
+}
+:root[data-skin="fluid"] [data-sidebar-row="pinned"] > * {
+  margin: 0 !important;
+}
+:root[data-skin="fluid"] [data-sidebar-row="pinned"]:hover {
+  background-color: rgb(255 255 255 / 0.07) !important;
+}
+:root[data-skin="fluid"] [data-sidebar-row="pinned"][data-active] {
+  background-color: rgb(255 255 255 / 0.08) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fe-accent) 45%, transparent);
+}
+:root[data-skin="fluid"] [data-sidebar-row="pinned"] > div:first-child > div {
+  border-radius: 0.625rem;
+}
+:root[data-skin="fluid"] [data-sidebar-row="pinned"] [class*="bg-pink"],
+:root[data-skin="fluid"] [data-sidebar-row="pinned"] [class*="bg-blue"] {
+  background-color: rgb(255 255 255 / 0.06) !important;
+}
+:root[data-skin="fluid"] [data-sidebar-row="pinned"] [class*="text-blue"] {
+  color: var(--fe-ink-2) !important;
+}
+:root[data-skin="fluid"] .skin-sidebar-shell[data-collapsed] [data-sidebar-row="pinned"] {
+  align-items: center;
+  padding: 0.5rem !important;
+}
+:root[data-skin="fluid"] [data-sidebar-row="playlist"] {
   position: relative;
+  grid-column: 1 / -1;
+  padding: 0.375rem 0.625rem !important;
   border-radius: 0.75rem !important;
   background-color: transparent !important;
   transition: background-color 180ms var(--fe-ease);
 }
-:root[data-skin="fluid"]
-  .skin-sidebar-shell
-  > aside
-  button:where(:not(:has(> div.flex.flex-col))):where(
-    :not(:first-child)
-  ):hover {
+:root[data-skin="fluid"] [data-sidebar-row="playlist"]:hover {
   background-color: rgb(255 255 255 / 0.045) !important;
 }
-:root[data-skin="fluid"] .skin-sidebar-shell > aside img {
-  border-radius: 0.5rem;
+:root[data-skin="fluid"] [data-sidebar-row="playlist"][data-active] {
+  background-color: rgb(255 255 255 / 0.06) !important;
+}
+:root[data-skin="fluid"] [data-sidebar-row="playlist"] > div:first-child > :is(img, div) {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.625rem;
+}
+:root[data-skin="fluid"] [data-sidebar-row] div[class*="text-sm"] {
+  color: var(--fe-ink-2) !important;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: color 180ms var(--fe-ease);
+}
+:root[data-skin="fluid"] [data-sidebar-row]:hover div[class*="text-sm"],
+:root[data-skin="fluid"] [data-sidebar-row][data-active] div[class*="text-sm"] {
+  color: var(--fe-ink) !important;
+}
+:root[data-skin="fluid"] [data-sidebar-row="pinned"] div[class*="text-sm"] {
+  font-weight: 540;
+}
+:root[data-skin="fluid"] [data-sidebar-row] div[class*="text-[11px]"] {
+  color: var(--fe-ink-3) !important;
+  font-size: 0.6875rem;
 }
 
 /* Header: the first 52 px of the content column, on the same tone,

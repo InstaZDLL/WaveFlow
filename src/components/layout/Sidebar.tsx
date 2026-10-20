@@ -22,6 +22,7 @@ import { WaveFlowLogo } from "../common/WaveFlowLogo";
 import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
 import { SmartPlaylistEditorModal } from "../common/SmartPlaylistEditorModal";
 import { useProfile } from "../../hooks/useProfile";
+import { useSkin } from "../../hooks/useSkin";
 import { useLibrary } from "../../hooks/useLibrary";
 import { usePlaylist } from "../../hooks/usePlaylist";
 import { usePluginAvailability } from "../../hooks/usePluginAvailability";
@@ -96,6 +97,11 @@ export function Sidebar({
   } = useLibrary();
   const { playlists, refresh: refreshPlaylists } = usePlaylist();
   const profileColor = getProfileColor(activeProfile?.color_id);
+  // The Fluid skin draws the profile block as a small panel, with the
+  // library's size under the name; the other skins keep the one line.
+  const { skin } = useSkin();
+  const fluid = skin.id === "fluid";
+  const totalTracks = libraries.reduce((sum, l) => sum + l.track_count, 0);
   const [isSmartEditorOpen, setIsSmartEditorOpen] = useState(false);
   const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] =
     useState(false);
@@ -291,6 +297,9 @@ export function Sidebar({
 
   return (
     <aside
+      // `data-sidebar-*` marks the blocks — brand, profile, primary nav,
+      // sections, rows — for the skins that recompose the column.
+      data-sidebar
       className={`${collapsed ? "w-20" : "w-64"} flex flex-col border-r h-full border-zinc-200 bg-surface-light dark:border-zinc-800 dark:bg-surface-dark`}
     >
       {/* Brand & Profile. The skins address these by position (the
@@ -298,6 +307,7 @@ export function Sidebar({
           hides the wordmark and the name rather than removing them. */}
       <div className={collapsed ? "px-2 pt-5 pb-2" : "p-6 pb-2"}>
         <div
+          data-sidebar-brand
           className={`flex items-center font-bold text-xl mb-6 ${
             // No `space-x` when narrow: it would keep a margin on the
             // logo for the hidden wordmark and push it off centre.
@@ -313,6 +323,7 @@ export function Sidebar({
         </div>
 
         <button
+          data-sidebar-profile
           // Its visible name is hidden when narrow, and absent with no
           // profile loaded: name it outright so it is never nameless.
           aria-label={activeProfile?.name || t("topbar.profile.user")}
@@ -333,9 +344,19 @@ export function Sidebar({
               {activeProfile ? profileInitial(activeProfile.name) : ""}
             </div>
             <span
-              className={`text-sm font-medium truncate ${collapsed ? "sr-only" : ""}`}
+              className={`min-w-0 flex flex-col text-left ${collapsed ? "sr-only" : ""}`}
             >
-              {activeProfile?.name ?? ""}
+              <span className="text-sm font-medium truncate">
+                {activeProfile?.name ?? ""}
+              </span>
+              {fluid && (
+                <span
+                  data-sidebar-profile-sub
+                  className="text-[11px] text-zinc-500 truncate"
+                >
+                  {t("sidebar.library.tracksCount", { count: totalTracks })}
+                </span>
+              )}
             </span>
           </div>
           {!collapsed && (
@@ -350,6 +371,7 @@ export function Sidebar({
           destinations the user wants at hand regardless of how deep
           into the playlist list they've scrolled. */}
       <div
+        data-sidebar-nav
         className={`${collapsed ? "px-2" : "px-4"} pt-4 pb-2 space-y-1 shrink-0`}
       >
         <NavItem
@@ -395,16 +417,20 @@ export function Sidebar({
           ~0 px because `shrink-0` on Ma musique pinned its full 5-row
           height. */}
       <div
+        data-sidebar-scroll
         className={`flex-1 min-h-0 overflow-y-auto overscroll-contain ${collapsed ? "px-2" : "px-4"} pb-4 space-y-4 scrollbar-hide`}
       >
         {/* ─── MA MUSIQUE ─── */}
-        <div className="space-y-1">
+        <div data-sidebar-section="library" className="space-y-1">
           {/* Narrow: a rule instead of the title and its actions, which
               have no room; the full sidebar is one click away. */}
           {collapsed ? (
             <SectionRule />
           ) : (
-            <div className="flex items-center justify-between text-[10px] font-bold tracking-widest text-zinc-400 mb-1 px-2 uppercase">
+            <div
+              data-sidebar-section-title
+              className="flex items-center justify-between text-[10px] font-bold tracking-widest text-zinc-400 mb-1 px-2 uppercase"
+            >
               <span>{t("sidebar.myMusic.title")}</span>
               <button
                 type="button"
@@ -474,11 +500,14 @@ export function Sidebar({
         </div>
 
         {/* ─── PLAYLISTS ─── */}
-        <div>
+        <div data-sidebar-section="playlists">
           {collapsed ? (
             <SectionRule />
           ) : (
-            <div className="flex items-center justify-between text-[10px] font-bold tracking-widest text-zinc-400 mb-1 px-2 uppercase">
+            <div
+              data-sidebar-section-title
+              className="flex items-center justify-between text-[10px] font-bold tracking-widest text-zinc-400 mb-1 px-2 uppercase"
+            >
               <span>{t("sidebar.playlistSection.title")}</span>
               <div className="flex items-center gap-1">
                 <button
@@ -511,7 +540,7 @@ export function Sidebar({
             </div>
           )}
 
-          <div className="space-y-1">
+          <div data-sidebar-playlists className="space-y-1">
             {/* Pinned: Liked + Recent */}
             {pinnedRows.map((row) => {
               // They are queries, not stored playlists, so the menu
@@ -525,6 +554,7 @@ export function Sidebar({
               return (
                 <SidebarRow
                   key={row.key}
+                  kind="pinned"
                   collapsed={collapsed}
                   icon={row.icon}
                   label={row.label}
@@ -629,7 +659,11 @@ function SidebarRow({
   onContextMenu,
   onKeyDown,
   collapsed,
+  kind,
 }: {
+  /** What the row stands for, for the skins that lay the two kinds out
+   *  differently (the pinned pair as tiles, the playlists as rows). */
+  kind: "pinned" | "playlist";
   icon: React.ReactNode;
   label: string;
   subtext?: string;
@@ -645,6 +679,8 @@ function SidebarRow({
   return (
     <button
       type="button"
+      data-sidebar-row={kind}
+      data-active={active ? "" : undefined}
       onClick={onClick}
       onContextMenu={onContextMenu}
       onKeyDown={onKeyDown}
@@ -718,6 +754,7 @@ function PlaylistSidebarRow({
   );
   return (
     <SidebarRow
+      kind="playlist"
       collapsed={collapsed}
       icon={tile}
       label={playlist.name}
