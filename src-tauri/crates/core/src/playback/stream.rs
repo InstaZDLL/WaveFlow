@@ -215,6 +215,16 @@ pub struct ActiveStream {
     /// built. Mirrored here so the decoder loop can skip rebuilds
     /// when nothing changed.
     pub playback_speed: f32,
+    /// How long the container says the track is, read at open. For a
+    /// player with no library to ask; the desktop app keeps the
+    /// `duration_ms` its library supplies. `None` when the container
+    /// does not say.
+    pub container_duration_ms: Option<u64>,
+    /// The codec as the format chip spells it (`FLAC`, `MP3`, `Opus`,
+    /// `PCM`, `DSD64`, …), `None` when the registry has no name for it.
+    pub codec: Option<String>,
+    /// The resampler's tail has gone out after the end of the stream.
+    tail_flushed: bool,
 }
 
 /// How many DSD bytes to pull from disk per `decode_next` cycle.
@@ -471,11 +481,27 @@ impl ActiveStream {
                     .unwrap_or(FALLBACK_PACKET_FRAMES),
             ),
         );
+        // The container's own length, read the way the scanner's probe
+        // reads it.
+        let container_duration_ms = track_symphonia
+            .duration
+            .and_then(|d| track_symphonia.time_base.and_then(|tb| tb.calc_duration(d)))
+            .map(|t| (t.as_micros() / 1000) as u64)
+            .or_else(|| {
+                track_symphonia
+                    .num_frames
+                    .zip(declared_sample_rate.filter(|r| *r > 0))
+                    .map(|(n, r)| n.saturating_mul(1000) / u64::from(r))
+            });
         // The app's registry, not symphonia's: it is the one that
         // carries Opus (#581).
-        let decoder = crate::audio_format::opus::codecs()
+        let registry = crate::audio_format::opus::codecs();
+        let decoder = registry
             .make_audio_decoder(audio_params, &AudioDecoderOptions::default())
             .map_err(|e| format!("codec init: {e}"))?;
+        let codec = registry
+            .get_audio_decoder(audio_params.codec)
+            .map(|registered| codec_label(registered.codec.info.short_name));
 
         Ok(Self {
             backend: StreamBackend::Symphonia {
@@ -498,6 +524,9 @@ impl ActiveStream {
             src_sample_rate: 0,
             declared_sample_rate,
             playback_speed: 1.0,
+            container_duration_ms,
+            codec,
+            tail_flushed: false,
         })
     }
 
@@ -530,6 +559,12 @@ impl ActiveStream {
         file.seek(SeekFrom::Start(layout.data_offset))
             .map_err(|e| format!("dsd seek to data: {e}"))?;
         let src_channels = layout.channels.count() as usize;
+        let container_duration_ms = Some(layout.duration_ms());
+        let codec = Some(
+            layout
+                .dsd_rate_multiple()
+                .map_or_else(|| "DSD".to_string(), |m| format!("DSD{m}")),
+        );
         // DoP path (#495): repackage the raw bitstream instead of
         // decoding it. The engine has already re-opened the output at
         // this stream's DoP rate; here we just build the encoder and
@@ -558,6 +593,9 @@ impl ActiveStream {
                 // another one on top would fight it.
                 declared_sample_rate: None,
                 playback_speed: 1.0,
+                container_duration_ms,
+                codec,
+                tail_flushed: false,
             });
         }
         let converter = Box::new(DsdToPcm::new_with_taps(&layout, dsd_taps));
@@ -590,6 +628,9 @@ impl ActiveStream {
             src_sample_rate: 0,
             declared_sample_rate,
             playback_speed: 1.0,
+            container_duration_ms,
+            codec,
+            tail_flushed: false,
         })
     }
 
@@ -664,6 +705,8 @@ impl ActiveStream {
     /// is past EOF — seeking a VBR file or beyond the DSD bitstream
     /// is best-effort.
     pub fn seek_ms(&mut self, ms: u64) {
+        // A seek back from the end makes the track's end come again.
+        self.tail_flushed = false;
         match &mut self.backend {
             StreamBackend::Symphonia {
                 format,
@@ -748,7 +791,30 @@ impl ActiveStream {
     ///
     /// `interleaved_scratch` is a caller-owned reusable buffer for the
     /// channel-conversion stage so we don't re-allocate per packet.
+    ///
+    /// At the end of the stream, what the resampler still holds is
+    /// appended once, cut to the track's length ([`Resampler::finish`]),
+    /// along with the `Ok(true)`: the caller plays what `out` holds
+    /// before it acts on the end.
     pub fn decode_next(
+        &mut self,
+        out: &mut Vec<f32>,
+        interleaved_scratch: &mut Vec<f32>,
+        dst_sample_rate: u32,
+        dst_channels: usize,
+    ) -> Result<bool, String> {
+        let at_end = self.decode_packet(out, interleaved_scratch, dst_sample_rate, dst_channels)?;
+        if at_end && !self.tail_flushed {
+            self.tail_flushed = true;
+            self.resampler
+                .finish(out)
+                .map_err(|e| format!("resampler tail: {e}"))?;
+        }
+        Ok(at_end)
+    }
+
+    /// One packet of [`Self::decode_next`], without the resampler's tail.
+    fn decode_packet(
         &mut self,
         out: &mut Vec<f32>,
         interleaved_scratch: &mut Vec<f32>,
@@ -1003,6 +1069,16 @@ impl ActiveStream {
 /// and every seek must land on a multiple of this, or the decoder starts
 /// attributing one channel's bytes to another.
 #[inline]
+/// A symphonia short name as the format chip spells it.
+fn codec_label(short_name: &str) -> String {
+    match short_name {
+        n if n.starts_with("pcm") => "PCM".into(),
+        "vorbis" => "Vorbis".into(),
+        "opus" => "Opus".into(),
+        n => n.to_ascii_uppercase(),
+    }
+}
+
 fn interleave_stride(layout: &DsdLayout) -> u64 {
     match layout.block_interleave {
         Some(block) => (block as u64) * (layout.channels.count() as u64),
@@ -1148,6 +1224,73 @@ mod extent_tests {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// One second of 44.1 kHz 16-bit stereo PCM, as a WAV file.
+    fn write_wav(path: &Path) {
+        let (rate, frames, channels) = (44_100_u32, 44_100_u32, 2_u16);
+        let data_len = frames * u32::from(channels) * 2;
+        let mut bytes = Vec::new();
+        bytes.extend(b"RIFF");
+        bytes.extend((36 + data_len).to_le_bytes());
+        bytes.extend(b"WAVEfmt ");
+        bytes.extend(16_u32.to_le_bytes());
+        bytes.extend(1_u16.to_le_bytes());
+        bytes.extend(channels.to_le_bytes());
+        bytes.extend(rate.to_le_bytes());
+        bytes.extend((rate * u32::from(channels) * 2).to_le_bytes());
+        bytes.extend((channels * 2).to_le_bytes());
+        bytes.extend(16_u16.to_le_bytes());
+        bytes.extend(b"data");
+        bytes.extend(data_len.to_le_bytes());
+        for i in 0..frames {
+            let sample = ((i % 100) as i16 - 50) * 300;
+            bytes.extend(sample.to_le_bytes());
+            bytes.extend(sample.to_le_bytes());
+        }
+        std::fs::write(path, bytes).unwrap();
+    }
+
+    /// Played to the end at another rate, a track comes out at its full
+    /// length: what the resampler held at the end is not lost.
+    #[test]
+    fn a_track_resampled_to_its_end_keeps_its_length() {
+        use rubato::Resampler as _;
+
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("tone.wav");
+        write_wav(&path);
+        let mut stream = ActiveStream::open(
+            &path,
+            0,
+            0,
+            String::new(),
+            None,
+            TrackGain::default(),
+            64,
+            false,
+        )
+        .unwrap();
+        assert_eq!(stream.container_duration_ms, Some(1_000));
+        assert_eq!(stream.codec.as_deref(), Some("PCM"));
+
+        let (mut out, mut scratch) = (Vec::new(), Vec::new());
+        while !stream
+            .decode_next(&mut out, &mut scratch, 48_000, 2)
+            .unwrap()
+        {}
+        // Asked again at the end, it adds nothing more.
+        let at_end = out.len();
+        assert!(stream
+            .decode_next(&mut out, &mut scratch, 48_000, 2)
+            .unwrap());
+        assert_eq!(out.len(), at_end);
+
+        let delay = match &stream.resampler {
+            Resampler::Fft { inner, .. } => inner.output_delay(),
+            Resampler::Passthrough => panic!("44.1 kHz to 48 kHz resamples"),
+        };
+        assert_eq!(out.len() / 2, delay + 48_000);
+    }
 
     #[test]
     fn network_path_heuristic() {
