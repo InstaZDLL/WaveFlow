@@ -1675,6 +1675,21 @@
   background-color: var(--fe-surface-2) !important;
 }
 
+/* ── Folder cards: a tone, a step up on hover, the tile in ink ── */
+:root[data-skin="fluid"] main [data-folder-card] {
+  background-color: var(--fe-surface) !important;
+  border-color: transparent !important;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04) !important;
+  transition: background-color 180ms var(--fe-ease);
+}
+:root[data-skin="fluid"] main [data-folder-card]:hover {
+  background-color: var(--fe-surface-2) !important;
+}
+:root[data-skin="fluid"] main [data-folder-card] > div:first-child > div:first-child {
+  background-color: rgb(255 255 255 / 0.06) !important;
+  color: var(--fe-ink-2) !important;
+}
+
 /* ── Small labels and pills ────────────────────────────────────── */
 /* 10 px uppercase labels (table headers, section eyebrows): one
    size up, settled weight, tertiary ink. White ones over artwork
