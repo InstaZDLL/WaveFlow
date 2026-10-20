@@ -616,7 +616,8 @@
 }
 :root[data-skin="fluid"] .skin-sidebar-shell > aside {
   margin: 0 !important;
-  width: 17rem !important;
+  /* The shell animates its own width (256 / 80 px): the rail fills it. */
+  width: 100% !important;
   height: 100% !important;
   color: var(--fe-ink-2);
   background-color: var(--fe-surface) !important;
@@ -628,9 +629,6 @@
   border: 0 !important;
   border-radius: 0 !important;
   box-shadow: 1px 0 0 var(--fe-hairline) !important;
-}
-:root[data-skin="fluid"] .skin-sidebar-shell[data-collapsed] > aside {
-  width: 5rem !important;
 }
 :root[data-skin="fluid"] .skin-sidebar-shell > aside > div:first-child {
   padding: 1.5rem 1.25rem 0.5rem !important;
@@ -925,6 +923,59 @@
 }
 :root[data-skin="fluid"] footer img {
   border-radius: 0.625rem;
+}
+/* The track segment as the foot of the rail: while the sidebar is at
+   its full width, the segment takes the rail's width and its end tone,
+   its edge continues the rail's hairline, and the cover sits on its
+   own light. Narrow or hidden, the bar is one surface again. */
+:root[data-skin="fluid"] [data-sidebar-mode="full"] footer [data-player-track] {
+  flex: 0 0 16rem;
+  width: 16rem !important;
+  height: 100%;
+  margin: 0 1rem 0 -1rem;
+  padding: 0 0.75rem 0 1.25rem;
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--fe-surface) 55%, var(--fe-bg)),
+    color-mix(in srgb, var(--fe-surface) 40%, var(--fe-bg))
+  );
+  box-shadow: 1px 0 0 var(--fe-hairline);
+}
+/* With the segment at the rail's width, the transport centres on the
+   content column rather than on the window, where it would sit left
+   of the column's middle. Wide windows only: narrower, the three
+   clusters need the flex layout to share the width. */
+@media (min-width: 1200px) {
+  :root[data-skin="fluid"] [data-sidebar-mode="full"] footer > div[class*="h-24"] {
+    position: relative;
+  }
+  :root[data-skin="fluid"] [data-sidebar-mode="full"] footer [data-player-track] + div {
+    position: absolute;
+    left: calc(16rem + (100% - 16rem) / 2);
+    top: 50%;
+    width: auto;
+    transform: translate(-50%, -50%);
+  }
+}
+:root[data-skin="fluid"] footer [data-player-track] img {
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.06) inset,
+    0 14px 30px -12px color-mix(in srgb, var(--fe-glow) 85%, rgb(0 0 0));
+}
+:root[data-skin="fluid"] footer [data-player-track] [class*="font-semibold"] {
+  color: var(--fe-ink) !important;
+  font-weight: 540 !important;
+  letter-spacing: -0.01em;
+}
+:root[data-skin="fluid"] footer [data-player-track] span[class*="text-[11px]"] {
+  color: var(--fe-ink-3) !important;
+  font-size: 0.75rem;
+}
+:root[data-skin="fluid"] footer [data-player-track] > button:last-child {
+  color: var(--fe-ink-3);
+}
+:root[data-skin="fluid"] footer [data-player-track] > button:last-child:hover {
+  color: var(--fe-ink);
 }
 :root[data-skin="fluid"] footer :where(button) {
   transition:

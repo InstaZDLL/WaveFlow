@@ -133,8 +133,12 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
       <footer className="flex flex-col z-50 border-t bg-white border-zinc-200 text-zinc-600 dark:bg-surface-dark-elevated dark:border-zinc-800 dark:text-zinc-300">
         {isFluid && <ProgressBar variant="edge" />}
         <div className="h-24 px-4 flex items-center justify-between">
-          {/* Left: Track Info */}
-          <div className="w-1/3 flex items-center space-x-3 min-w-0">
+          {/* Left: Track Info. `data-player-track` marks it for the skins
+              that treat it as the foot of the sidebar. */}
+          <div
+            data-player-track
+            className="w-1/3 flex items-center space-x-3 min-w-0"
+          >
             {/* Click the cover — action driven by `ui.cover_action`
               (immersive / now-playing panel / none). Disabled when
               no track is loaded OR the user opted out via Settings. */}
