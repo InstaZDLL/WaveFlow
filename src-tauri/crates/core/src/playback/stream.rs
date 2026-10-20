@@ -227,8 +227,8 @@ pub struct ActiveStream {
     tail_flushed: bool,
 }
 
-/// Packets one `decode_next` call may pass over (another track's, or
-/// undecodable) before it hands back with nothing, so a damaged file still
+/// Packets one `decode_next` call may pass over (another track's,
+/// undecodable, or a stream change) before it hands back with nothing, so a damaged file still
 /// lets the player's commands through: stop, seek, the next track.
 const MAX_SKIPPED_PACKETS: usize = 64;
 
@@ -851,6 +851,12 @@ impl ActiveStream {
                     // or layout may differ. Ending the track here stopped
                     // such a stream at its first song change.
                     Err(SymphoniaError::ResetRequired) => {
+                        // Chained streams can follow one another with no
+                        // audio between them: they count toward the bound.
+                        skipped += 1;
+                        if skipped >= MAX_SKIPPED_PACKETS {
+                            return Ok(false);
+                        }
                         let Some(track) = format.default_track(TrackType::Audio) else {
                             return Ok(true);
                         };
@@ -906,6 +912,10 @@ impl ActiveStream {
                     // change: take it again from the next packet.
                     Err(SymphoniaError::ResetRequired) => {
                         *spec_captured = false;
+                        skipped += 1;
+                        if skipped >= MAX_SKIPPED_PACKETS {
+                            return Ok(false);
+                        }
                         continue;
                     }
                     Err(e) => return Err(format!("decode fatal: {e}")),
