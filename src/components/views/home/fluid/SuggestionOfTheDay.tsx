@@ -48,7 +48,9 @@ export function SuggestionOfTheDay({
           path={track.artwork_path}
           path1x={track.artwork_path_1x}
           path2x={track.artwork_path_2x}
-          size="2x"
+          // One cover at 128 px over a 125 % display outgrows the 2×
+          // thumbnail; the full file costs nothing for a single tile.
+          size="full"
           alt=""
           className="fe-tile h-28 w-28 shrink-0 md:h-32 md:w-32"
           iconSize={32}

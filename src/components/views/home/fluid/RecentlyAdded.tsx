@@ -92,7 +92,10 @@ function AlbumTile({
         path={album.artwork_path}
         path1x={album.artwork_path_1x}
         path2x={album.artwork_path_2x}
-        size={lead ? "full" : "2x"}
+        // The full cover for every tile: the 2× thumbnail is 128 px and
+        // a secondary tile runs to 270 px on a wide window, where it
+        // read as out of focus beside the lead.
+        size="full"
         alt=""
         className="fe-tile aspect-square w-full"
         iconSize={lead ? 48 : 28}
