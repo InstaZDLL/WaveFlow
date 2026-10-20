@@ -4,6 +4,7 @@
 /// `dst_chans`-wide samples in `out`. Simple fixed rules:
 /// - Equal counts: copy verbatim
 /// - mono (1) → stereo (2): duplicate
+/// - mono (1) → more than two: front left and right, the rest silent
 /// - stereo (2) → mono (1): average
 /// - ≥3 → 2: ITU-R BS.775 Lo/Ro downmix ([`downmix_frame_to_stereo`])
 /// - anything else: take the first `min(src, dst)` channels, pad zeros
@@ -22,6 +23,17 @@ pub fn convert_channels(input: &[f32], src_chans: usize, dst_chans: usize, out: 
             for &s in input.iter().take(frames) {
                 out.push(s);
                 out.push(s);
+            }
+        }
+        // Mono onto a 5.1 or 7.1 output: the front pair, as on a stereo
+        // one. Through the fallback below it came out of front left
+        // alone.
+        (1, n) if n > 2 => {
+            out.reserve(frames * n);
+            for &s in input.iter().take(frames) {
+                out.push(s);
+                out.push(s);
+                out.resize(out.len() + n - 2, 0.0);
             }
         }
         (2, 1) => {
@@ -124,6 +136,20 @@ fn downmix_frame_to_stereo(frame: &[f32]) -> (f32, f32) {
 
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn mono_on_a_wide_output_plays_from_the_front_pair() {
+        let mut out = Vec::new();
+        super::convert_channels(&[0.5, -0.25], 1, 8, &mut out);
+        assert_eq!(
+            out,
+            [
+                0.5, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, //
+                -0.25, -0.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+            ]
+        );
+    }
+
     use super::{convert_channels, downmix_frame_to_stereo};
 
     const K: f32 = 0.707;

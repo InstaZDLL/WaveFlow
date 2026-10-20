@@ -227,6 +227,11 @@ pub struct ActiveStream {
     tail_flushed: bool,
 }
 
+/// Packets one `decode_next` call may pass over (another track's, or
+/// undecodable) before it hands back with nothing, so a damaged file still
+/// lets the player's commands through: stop, seek, the next track.
+const MAX_SKIPPED_PACKETS: usize = 64;
+
 /// How many DSD bytes to pull from disk per `decode_next` cycle.
 /// 64 KiB ≈ 23 ms of DSD64 stereo, comfortably below the SPSC ring
 /// capacity but large enough to amortise the FIR convolution cost.
@@ -685,7 +690,8 @@ impl ActiveStream {
     /// Reset internal decoder state after a seek. For symphonia this
     /// flushes the codec's frame buffer; for DSD it drops the FIR
     /// history (the high-frequency transient is below the cutoff and
-    /// inaudible).
+    /// inaudible). The resampler forgets its queue and its filter
+    /// history too ([`Resampler::reset`]).
     pub fn reset_decoder(&mut self) {
         match &mut self.backend {
             StreamBackend::Symphonia { decoder, .. } => decoder.reset(),
@@ -699,6 +705,8 @@ impl ActiveStream {
             }
             StreamBackend::Dop { encoder, .. } => encoder.reset(),
         }
+        // What the resampler holds is the old position too.
+        self.resampler.reset();
     }
 
     /// Seek to `ms` milliseconds. Returns `Ok` even when the offset
@@ -824,6 +832,7 @@ impl ActiveStream {
         // Snapshot fields used after `&mut backend` so the borrow
         // checker doesn't complain when we reach for `self.resampler`
         // or `self.src_channels` inside the match arms.
+        let mut skipped = 0usize;
         match &mut self.backend {
             StreamBackend::Symphonia {
                 format,
@@ -836,7 +845,33 @@ impl ActiveStream {
                 let packet = match format.next_packet() {
                     Ok(Some(p)) => p,
                     Ok(None) => return Ok(true),
-                    Err(SymphoniaError::ResetRequired) => return Ok(true),
+                    // A new logical stream, the way a chained Ogg radio
+                    // stream changes song. symphonia's contract: read the
+                    // track list again and build the decoder anew, its rate
+                    // or layout may differ. Ending the track here stopped
+                    // such a stream at its first song change.
+                    Err(SymphoniaError::ResetRequired) => {
+                        let Some(track) = format.default_track(TrackType::Audio) else {
+                            return Ok(true);
+                        };
+                        let Some(params) = track.codec_params.as_ref().and_then(|p| p.audio())
+                        else {
+                            return Ok(true);
+                        };
+                        let registry = crate::audio_format::opus::codecs();
+                        *decoder = registry
+                            .make_audio_decoder(params, &AudioDecoderOptions::default())
+                            .map_err(|e| format!("codec init after a new stream: {e}"))?;
+                        self.codec = registry.get_audio_decoder(params.codec).map(|registered| {
+                            crate::audio_format::codec_label(registered.codec.info.short_name)
+                        });
+                        *symphonia_track_id = track.id;
+                        // The first stream's declared end says nothing
+                        // about this one.
+                        *extent = StreamExtent::new(track.start_ts.get(), None, None);
+                        *spec_captured = false;
+                        continue;
+                    }
                     Err(SymphoniaError::IoError(e))
                         if e.kind() == std::io::ErrorKind::UnexpectedEof
                             && extent.ends_within_last_packet() =>
@@ -851,12 +886,26 @@ impl ActiveStream {
                     Err(e) => return Err(format!("next_packet: {e}")),
                 };
                 if packet.track_id != *symphonia_track_id {
+                    skipped += 1;
+                    if skipped >= MAX_SKIPPED_PACKETS {
+                        return Ok(false);
+                    }
                     continue;
                 }
                 let decoded = match decoder.decode(&packet) {
                     Ok(d) => d,
                     Err(SymphoniaError::DecodeError(e)) => {
                         tracing::warn!(error = %e, "decode error, skipping packet");
+                        skipped += 1;
+                        if skipped >= MAX_SKIPPED_PACKETS {
+                            return Ok(false);
+                        }
+                        continue;
+                    }
+                    // The decoded audio's rate or layout is about to
+                    // change: take it again from the next packet.
+                    Err(SymphoniaError::ResetRequired) => {
+                        *spec_captured = false;
                         continue;
                     }
                     Err(e) => return Err(format!("decode fatal: {e}")),
@@ -866,12 +915,23 @@ impl ActiveStream {
                 extent.read(packet.pts.get(), packet.dur.get());
                 if !*spec_captured {
                     let spec = decoded.spec();
-                    self.src_channels = spec.channels().count();
-                    self.src_sample_rate = spec.rate();
-                    let effective_rate =
-                        ((spec.rate() as f32) * self.playback_speed).max(1.0) as u32;
-                    self.resampler = Resampler::new(effective_rate, dst_sample_rate, dst_channels)
-                        .map_err(|e| format!("resampler init: {e}"))?;
+                    let (channels, rate) = (spec.channels().count(), spec.rate());
+                    // After a new logical stream the same rate and layout
+                    // keep the resampler, and what it holds.
+                    if channels != self.src_channels || rate != self.src_sample_rate {
+                        // What the replaced resampler holds is the end of
+                        // the stream before; it plays ahead of this one.
+                        // A no-op on a track's first packet (passthrough).
+                        self.resampler
+                            .finish(out)
+                            .map_err(|e| format!("resampler tail: {e}"))?;
+                        self.src_channels = channels;
+                        self.src_sample_rate = rate;
+                        let effective_rate = ((rate as f32) * self.playback_speed).max(1.0) as u32;
+                        self.resampler =
+                            Resampler::new(effective_rate, dst_sample_rate, dst_channels)
+                                .map_err(|e| format!("resampler init: {e}"))?;
+                    }
                     *spec_captured = true;
                 }
                 decoded.copy_to_vec_interleaved(decoded_interleaved);
