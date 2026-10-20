@@ -1426,7 +1426,13 @@
     },
     "restOfAlbum": "Rest des Albums",
     "moreTracks_one": "+{{count}} Titel",
-    "moreTracks_other": "+{{count}} Titel"
+    "moreTracks_other": "+{{count}} Titel",
+    "fluid": {
+      "details": "Details",
+      "fromAlbum": "Wiedergabe aus dem Album",
+      "artist": "Künstler",
+      "openLyrics": "Liedtext ansehen"
+    }
   },
   "playerBar": {
     "lyrics": "Songtext",

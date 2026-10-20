@@ -46,7 +46,13 @@ import { BackgroundVocals, InterludeDots } from "../player/LyricsVoiceParts";
  * Shares the w-80 right-edge slot with `QueuePanel` and
  * `NowPlayingPanel` via mutual exclusion in `PlayerContext`.
  */
-export function LyricsPanel() {
+export function LyricsPanel({
+  embedded = false,
+}: {
+  /** Inside the Fluid skin's tabbed shell: no frame, no title, no close;
+   *  the header keeps its actions as a row of their own. */
+  embedded?: boolean;
+} = {}) {
   const { t } = useTranslation();
   const { isLyricsOpen, toggleLyrics, currentTrack, openFullscreenLyrics } =
     usePlayer();
@@ -183,18 +189,21 @@ export function LyricsPanel() {
   }, [pickerOpen]);
 
   // ── Render ──────────────────────────────────────────────────────
-  return (
-    <motion.aside
-      key="lyrics"
-      initial={{ width: 0, opacity: 0 }}
-      animate={{ width: 320, opacity: 1 }}
-      exit={{ width: 0, opacity: 0 }}
-      transition={{ type: "spring", stiffness: 320, damping: 32, mass: 0.8 }}
-      className="h-full shrink-0 overflow-hidden border-l bg-surface-light border-zinc-200 text-zinc-800 dark:bg-surface-dark dark:border-zinc-800 dark:text-zinc-100"
+  const body = (
+    <div
+      className={
+        embedded ? "flex flex-col h-full" : "flex flex-col h-full w-80"
+      }
     >
-      <div className="flex flex-col h-full w-80">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 pb-4 border-b border-zinc-100 dark:border-zinc-800">
+      {/* Header — embedded, only its actions, right-aligned. */}
+      <div
+        className={
+          embedded
+            ? "flex items-center justify-end px-4 pb-1"
+            : "flex items-center justify-between p-6 pb-4 border-b border-zinc-100 dark:border-zinc-800"
+        }
+      >
+        {!embedded && (
           <div className="min-w-0">
             <h2 className="text-sm font-bold tracking-widest uppercase text-zinc-500 dark:text-zinc-400">
               {t("lyrics.title")}
@@ -205,59 +214,61 @@ export function LyricsPanel() {
               </p>
             )}
           </div>
-          <div className="flex items-center gap-1 shrink-0">
-            {/* Only when this document has something to show: a toggle
+        )}
+        <div className="flex items-center gap-1 shrink-0">
+          {/* Only when this document has something to show: a toggle
                 that cycles to the same state it left is worse than no
                 toggle, and most lyrics carry neither reading. */}
-            {localizations.any && (
-              <button
-                type="button"
-                onClick={() =>
-                  setLocalization(
-                    cycleLocalizationMode(localization, localizations),
-                  )
-                }
-                // Action AND state, in that order. Three states means
-                // there is no `aria-pressed` to carry the state, so
-                // neither half can be dropped: a name with only the
-                // mode leaves a screen-reader user unable to tell what
-                // pressing it does, and one with only the action leaves
-                // them unable to tell what they are looking at. The
-                // tooltip stays the state alone — a sighted user can
-                // see the button.
-                aria-label={`${t("lyrics.actions.cycleLocalization")}. ${t(
-                  `lyrics.localization.${localization}`,
-                )}`}
-                title={t(`lyrics.localization.${localization}`)}
-                className={`p-2 rounded-full transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800 ${
-                  localization !== "off"
-                    ? "text-emerald-600 dark:text-emerald-400"
-                    : ""
-                }`}
-              >
-                <Languages size={16} />
-              </button>
-            )}
+          {localizations.any && (
             <button
               type="button"
-              onClick={() => setIsEditing(true)}
-              aria-label={t("lyrics.actions.edit")}
-              title={t("lyrics.actions.edit")}
-              disabled={currentTrack == null || noLibraryRow}
-              className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              onClick={() =>
+                setLocalization(
+                  cycleLocalizationMode(localization, localizations),
+                )
+              }
+              // Action AND state, in that order. Three states means
+              // there is no `aria-pressed` to carry the state, so
+              // neither half can be dropped: a name with only the
+              // mode leaves a screen-reader user unable to tell what
+              // pressing it does, and one with only the action leaves
+              // them unable to tell what they are looking at. The
+              // tooltip stays the state alone — a sighted user can
+              // see the button.
+              aria-label={`${t("lyrics.actions.cycleLocalization")}. ${t(
+                `lyrics.localization.${localization}`,
+              )}`}
+              title={t(`lyrics.localization.${localization}`)}
+              className={`p-2 rounded-full transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800 ${
+                localization !== "off"
+                  ? "text-emerald-600 dark:text-emerald-400"
+                  : ""
+              }`}
             >
-              <Pencil size={16} />
+              <Languages size={16} />
             </button>
-            <button
-              type="button"
-              onClick={openFullscreenLyrics}
-              aria-label={t("lyrics.actions.fullscreen")}
-              title={t("lyrics.actions.fullscreen")}
-              disabled={currentTrack == null}
-              className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              <Maximize2 size={16} />
-            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setIsEditing(true)}
+            aria-label={t("lyrics.actions.edit")}
+            title={t("lyrics.actions.edit")}
+            disabled={currentTrack == null || noLibraryRow}
+            className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <Pencil size={16} />
+          </button>
+          <button
+            type="button"
+            onClick={openFullscreenLyrics}
+            aria-label={t("lyrics.actions.fullscreen")}
+            title={t("lyrics.actions.fullscreen")}
+            disabled={currentTrack == null}
+            className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <Maximize2 size={16} />
+          </button>
+          {!embedded && (
             <button
               type="button"
               onClick={toggleLyrics}
@@ -266,371 +277,380 @@ export function LyricsPanel() {
             >
               <X size={18} />
             </button>
-          </div>
+          )}
         </div>
+      </div>
 
-        {/* Body */}
-        <div ref={containerRef} className="flex-1 overflow-y-auto px-6 py-4">
-          {currentTrack == null ? (
-            <EmptyState
-              icon={<Music2 size={40} />}
-              text={t("lyrics.noTrack")}
-            />
-          ) : isFetching && !payload ? (
-            <EmptyState text={t("lyrics.loading")} />
-          ) : error ? (
-            // Transient error (network, DB, profile pool) — distinct
-            // from a cached empty miss so the user knows to retry via
-            // the refetch button below rather than reaching for Import.
-            // The raw error stays in console.error; the panel surfaces
-            // a localized, action-oriented message.
-            <EmptyState
-              icon={<AlertCircle size={40} />}
-              text={t("lyrics.fetchError")}
-            />
-          ) : !payload || payload.content.trim() === "" ? (
-            <EmptyState
-              icon={<Music2 size={40} />}
-              text={
-                excludedGenre
-                  ? t("lyrics.excludedGenre", { genre: excludedGenre })
-                  : t("lyrics.notFound")
-              }
-            />
-          ) : isSynced ? (
-            <ul className="space-y-3 py-32">
-              {activeInterlude?.afterIndex === -1 && (
-                <PanelInterlude progress={activeInterlude.progress} />
-              )}
-              {lrcLines.map((line, index) => {
-                // Through the interlude after it, a line is sung and done.
-                const beforeInterlude = activeInterlude?.afterIndex === index;
-                // The other voice of a duet, still holding its line, stays lit
-                // beside the active one.
-                const isOverlap = index === overlapIndex;
-                const isActive =
-                  (index === activeIndex && !beforeInterlude) || isOverlap;
-                const isPast =
-                  (index < activeIndex && !isOverlap) || beforeInterlude;
-                const lineWordIndex = isOverlap
-                  ? overlapWordIndex
-                  : activeWordIndex;
-                const lineBackgroundWordIndex = isOverlap
-                  ? overlapBackgroundWordIndex
-                  : activeBackgroundWordIndex;
-                const hasWords = isActive && (line.words?.length ?? 0) > 0;
-                // A duet's second voice answers from the other side.
-                const align = line.side === "end" ? "text-right" : "text-left";
-                return (
-                  <Fragment key={`${line.timeMs}-${index}`}>
-                    <li
-                      ref={(el) => {
-                        lineRefs.current[index] = el;
-                      }}
+      {/* Body */}
+      <div ref={containerRef} className="flex-1 overflow-y-auto px-6 py-4">
+        {currentTrack == null ? (
+          <EmptyState icon={<Music2 size={40} />} text={t("lyrics.noTrack")} />
+        ) : isFetching && !payload ? (
+          <EmptyState text={t("lyrics.loading")} />
+        ) : error ? (
+          // Transient error (network, DB, profile pool) — distinct
+          // from a cached empty miss so the user knows to retry via
+          // the refetch button below rather than reaching for Import.
+          // The raw error stays in console.error; the panel surfaces
+          // a localized, action-oriented message.
+          <EmptyState
+            icon={<AlertCircle size={40} />}
+            text={t("lyrics.fetchError")}
+          />
+        ) : !payload || payload.content.trim() === "" ? (
+          <EmptyState
+            icon={<Music2 size={40} />}
+            text={
+              excludedGenre
+                ? t("lyrics.excludedGenre", { genre: excludedGenre })
+                : t("lyrics.notFound")
+            }
+          />
+        ) : isSynced ? (
+          <ul className="space-y-3 py-32">
+            {activeInterlude?.afterIndex === -1 && (
+              <PanelInterlude progress={activeInterlude.progress} />
+            )}
+            {lrcLines.map((line, index) => {
+              // Through the interlude after it, a line is sung and done.
+              const beforeInterlude = activeInterlude?.afterIndex === index;
+              // The other voice of a duet, still holding its line, stays lit
+              // beside the active one.
+              const isOverlap = index === overlapIndex;
+              const isActive =
+                (index === activeIndex && !beforeInterlude) || isOverlap;
+              const isPast =
+                (index < activeIndex && !isOverlap) || beforeInterlude;
+              const lineWordIndex = isOverlap
+                ? overlapWordIndex
+                : activeWordIndex;
+              const lineBackgroundWordIndex = isOverlap
+                ? overlapBackgroundWordIndex
+                : activeBackgroundWordIndex;
+              const hasWords = isActive && (line.words?.length ?? 0) > 0;
+              // A duet's second voice answers from the other side.
+              const align = line.side === "end" ? "text-right" : "text-left";
+              return (
+                <Fragment key={`${line.timeMs}-${index}`}>
+                  <li
+                    ref={(el) => {
+                      lineRefs.current[index] = el;
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => handleSeekToLine(line)}
+                      className={`block w-full ${align} text-base leading-relaxed cursor-pointer transition-all select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded ${
+                        isActive
+                          ? "text-zinc-900 dark:text-white font-semibold scale-[1.02]"
+                          : isPast
+                            ? "text-zinc-300 dark:text-zinc-600"
+                            : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+                      }`}
                     >
-                      <button
-                        type="button"
-                        onClick={() => handleSeekToLine(line)}
-                        className={`block w-full ${align} text-base leading-relaxed cursor-pointer transition-all select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded ${
-                          isActive
-                            ? "text-zinc-900 dark:text-white font-semibold scale-[1.02]"
-                            : isPast
-                              ? "text-zinc-300 dark:text-zinc-600"
-                              : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
-                        }`}
-                      >
-                        {hasWords ? (
-                          <span>
-                            {line.words!.map((word, wi) => (
-                              // See FullscreenLyrics for the rationale:
-                              // `inline-block` strips the JSX whitespace
-                              // that would normally separate inline
-                              // siblings, and many Enhanced LRC sources
-                              // omit spaces between word stamps. A literal
-                              // `" "` text node restores the gap; if the
-                              // source did carry trailing whitespace in
-                              // `word.text`, `white-space: normal`
-                              // collapses the pair to one.
+                      {hasWords ? (
+                        <span>
+                          {line.words!.map((word, wi) => (
+                            // See FullscreenLyrics for the rationale:
+                            // `inline-block` strips the JSX whitespace
+                            // that would normally separate inline
+                            // siblings, and many Enhanced LRC sources
+                            // omit spaces between word stamps. A literal
+                            // `" "` text node restores the gap; if the
+                            // source did carry trailing whitespace in
+                            // `word.text`, `white-space: normal`
+                            // collapses the pair to one.
+                            <Fragment key={wi}>
+                              <span
+                                className={
+                                  wi === lineWordIndex
+                                    ? "text-pink-500 dark:text-pink-400"
+                                    : wi < lineWordIndex
+                                      ? ""
+                                      : "opacity-60"
+                                }
+                                style={{
+                                  display: "inline-block",
+                                  transform:
+                                    wi === lineWordIndex
+                                      ? "scale(1.04)"
+                                      : "scale(1)",
+                                  transition:
+                                    "color 150ms ease, opacity 150ms ease, transform 150ms ease",
+                                }}
+                              >
+                                {word.text}
+                              </span>
+                              {wi < line.words!.length - 1 && " "}
+                            </Fragment>
+                          ))}
+                        </span>
+                      ) : (
+                        line.text || " "
+                      )}
+                      {line.background && (
+                        <BackgroundVocals
+                          reading={line.background}
+                          active={isActive}
+                          activeWordIndex={lineBackgroundWordIndex}
+                          className="mt-0.5 text-sm font-normal"
+                        />
+                      )}
+                      {localization === "romanization" && line.romanization && (
+                        <span className="block mt-0.5 text-sm font-normal">
+                          {line.romanization.words ? (
+                            // Word for word with the line above, sharing
+                            // its bounds, so `lineWordIndex` addresses
+                            // both: a romanized word lights up with the
+                            // word it reads out.
+                            line.romanization.words.map((word, wi) => (
                               <Fragment key={wi}>
                                 <span
                                   className={
-                                    wi === lineWordIndex
+                                    isActive && wi === lineWordIndex
                                       ? "text-pink-500 dark:text-pink-400"
-                                      : wi < lineWordIndex
+                                      : isActive && wi < lineWordIndex
                                         ? ""
                                         : "opacity-60"
                                   }
-                                  style={{
-                                    display: "inline-block",
-                                    transform:
-                                      wi === lineWordIndex
-                                        ? "scale(1.04)"
-                                        : "scale(1)",
-                                    transition:
-                                      "color 150ms ease, opacity 150ms ease, transform 150ms ease",
-                                  }}
+                                  style={{ display: "inline-block" }}
                                 >
                                   {word.text}
                                 </span>
-                                {wi < line.words!.length - 1 && " "}
+                                {wi < line.romanization!.words!.length - 1 &&
+                                  " "}
                               </Fragment>
-                            ))}
-                          </span>
-                        ) : (
-                          line.text || " "
-                        )}
-                        {line.background && (
-                          <BackgroundVocals
-                            reading={line.background}
-                            active={isActive}
-                            activeWordIndex={lineBackgroundWordIndex}
-                            className="mt-0.5 text-sm font-normal"
-                          />
-                        )}
-                        {localization === "romanization" &&
-                          line.romanization && (
-                            <span className="block mt-0.5 text-sm font-normal">
-                              {line.romanization.words ? (
-                                // Word for word with the line above, sharing
-                                // its bounds, so `lineWordIndex` addresses
-                                // both: a romanized word lights up with the
-                                // word it reads out.
-                                line.romanization.words.map((word, wi) => (
-                                  <Fragment key={wi}>
-                                    <span
-                                      className={
-                                        isActive && wi === lineWordIndex
-                                          ? "text-pink-500 dark:text-pink-400"
-                                          : isActive && wi < lineWordIndex
-                                            ? ""
-                                            : "opacity-60"
-                                      }
-                                      style={{ display: "inline-block" }}
-                                    >
-                                      {word.text}
-                                    </span>
-                                    {wi <
-                                      line.romanization!.words!.length - 1 &&
-                                      " "}
-                                  </Fragment>
-                                ))
-                              ) : (
-                                // A line-timed document romanizes the line
-                                // and stops there. Nothing to highlight
-                                // inside it — which is just as true of the
-                                // line above.
-                                <span className="opacity-70">
-                                  {line.romanization.text}
-                                </span>
-                              )}
+                            ))
+                          ) : (
+                            // A line-timed document romanizes the line
+                            // and stops there. Nothing to highlight
+                            // inside it — which is just as true of the
+                            // line above.
+                            <span className="opacity-70">
+                              {line.romanization.text}
                             </span>
                           )}
-                        {/* Lines the file stamped with this one (#821):
+                        </span>
+                      )}
+                      {/* Lines the file stamped with this one (#821):
                             inside the button, so they take its colour and
                             light with it. Always shown — the file's author
                             wrote them; the toggle governs the TTML's own. */}
-                        {line.companions?.map((companion, ci) => (
-                          <span
-                            key={ci}
-                            dir="auto"
-                            className="block mt-0.5 text-sm font-normal opacity-80"
-                          >
-                            {companion}
-                          </span>
-                        ))}
-                        {localization === "translation" && line.translation && (
-                          <span className="block mt-0.5 text-sm font-normal italic opacity-70">
-                            {line.translation}
-                          </span>
-                        )}
-                      </button>
-                    </li>
-                    {beforeInterlude && (
-                      <PanelInterlude
-                        progress={activeInterlude.progress}
-                        align={align}
-                      />
-                    )}
-                  </Fragment>
-                );
-              })}
-            </ul>
-          ) : (
-            <p className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-200 whitespace-pre-line">
-              {isRadio ? radioPlainText : payload.content}
-            </p>
-          )}
-        </div>
+                      {line.companions?.map((companion, ci) => (
+                        <span
+                          key={ci}
+                          dir="auto"
+                          className="block mt-0.5 text-sm font-normal opacity-80"
+                        >
+                          {companion}
+                        </span>
+                      ))}
+                      {localization === "translation" && line.translation && (
+                        <span className="block mt-0.5 text-sm font-normal italic opacity-70">
+                          {line.translation}
+                        </span>
+                      )}
+                    </button>
+                  </li>
+                  {beforeInterlude && (
+                    <PanelInterlude
+                      progress={activeInterlude.progress}
+                      align={align}
+                    />
+                  )}
+                </Fragment>
+              );
+            })}
+          </ul>
+        ) : (
+          <p className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-200 whitespace-pre-line">
+            {isRadio ? radioPlainText : payload.content}
+          </p>
+        )}
+      </div>
 
-        {/* Editor modal — sibling so it floats above the panel. */}
-        <LyricsEditorModal
-          isOpen={isEditing}
-          onClose={() => setIsEditing(false)}
-          trackId={trackId}
-          trackTitle={currentTrack?.title ?? null}
-          trackFilePath={currentTrack?.file_path ?? null}
-          initial={payload}
-          onSaved={(next) => applyPayload(next)}
-        />
+      {/* Editor modal — sibling so it floats above the panel. */}
+      <LyricsEditorModal
+        isOpen={isEditing}
+        onClose={() => setIsEditing(false)}
+        trackId={trackId}
+        trackTitle={currentTrack?.title ?? null}
+        trackFilePath={currentTrack?.file_path ?? null}
+        initial={payload}
+        onSaved={(next) => applyPayload(next)}
+      />
 
-        {/* Footer actions */}
-        {currentTrack != null && (
-          <div className="flex items-center justify-between p-4 border-t border-zinc-100 dark:border-zinc-800 text-xs text-zinc-500 dark:text-zinc-400">
-            <span className="flex items-center gap-2 min-w-0">
-              {/* Source label is a chip-button whenever the track has a
+      {/* Footer actions */}
+      {currentTrack != null && (
+        <div className="flex items-center justify-between p-4 border-t border-zinc-100 dark:border-zinc-800 text-xs text-zinc-500 dark:text-zinc-400">
+          <span className="flex items-center gap-2 min-w-0">
+            {/* Source label is a chip-button whenever the track has a
                   library row, so the user can pop the provider picker and
                   ask one source about it — whatever answered before, if
                   anything did: embedded or sidecar lyrics may be worse
                   than what a plugin has, and a miss is exactly when one
                   wants to try another source. Radio and remote streams
                   have no row to cache against, so their label is text. */}
-              <span ref={pickerRef} className="relative inline-flex">
-                {!noLibraryRow ? (
-                  <button
-                    type="button"
-                    onClick={() => setPickerOpen((v) => !v)}
-                    disabled={isFetching}
-                    aria-haspopup="menu"
-                    aria-expanded={pickerOpen}
-                    title={t("lyrics.source.pickerHint")}
-                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50 truncate"
-                  >
-                    <span className="truncate">
-                      {payload
-                        ? sourceLabel(payload, t, pluginNames)
-                        : t("lyrics.source.pickerHint")}
-                    </span>
-                    <ChevronDown size={11} className="shrink-0" />
-                  </button>
-                ) : (
+            <span ref={pickerRef} className="relative inline-flex">
+              {!noLibraryRow ? (
+                <button
+                  type="button"
+                  onClick={() => setPickerOpen((v) => !v)}
+                  disabled={isFetching}
+                  aria-haspopup="menu"
+                  aria-expanded={pickerOpen}
+                  title={t("lyrics.source.pickerHint")}
+                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50 truncate"
+                >
                   <span className="truncate">
-                    {payload ? sourceLabel(payload, t, pluginNames) : ""}
+                    {payload
+                      ? sourceLabel(payload, t, pluginNames)
+                      : t("lyrics.source.pickerHint")}
                   </span>
-                )}
-                {pickerOpen && !noLibraryRow && (
-                  <div
-                    role="menu"
-                    aria-label={t("lyrics.source.pickerHint")}
-                    onKeyDown={(e) => {
-                      // Local Escape handler in addition to the
-                      // document-level one in the picker useEffect.
-                      // Redundant in practice (both fire on the same
-                      // event) but keeps the WAI-ARIA menu pattern
-                      // self-contained on the element itself + stops
-                      // the event from bubbling further into ancestor
-                      // panels that might also listen for Escape.
-                      if (e.key === "Escape") {
-                        e.stopPropagation();
-                        setPickerOpen(false);
-                      }
-                    }}
-                    className="absolute left-0 bottom-full mb-1 z-20 min-w-44 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-lg p-1"
-                  >
-                    {[
-                      ...LYRICS_PROVIDERS.map((p) => ({
-                        value: p as LyricsProvider | PluginLyricsProvider,
-                        label: t(`lyrics.provider.${p}`),
-                        plugin: false,
-                      })),
-                      // The enabled lyrics plugins, after the built-in
-                      // providers: picked here, one is asked about this
-                      // track alone, which is also how to tell whether it
-                      // answers at all.
-                      ...lyricsPlugins.map((plugin) => ({
-                        value:
-                          `${PLUGIN_PROVIDER_PREFIX}${plugin.id}` as PluginLyricsProvider,
-                        label: plugin.name,
-                        plugin: true,
-                      })),
-                    ].map((option, index, all) => {
-                      const isActive = payload?.provider === option.value;
-                      const firstPlugin =
-                        option.plugin && !all[index - 1]?.plugin;
-                      return (
-                        <button
-                          key={option.value}
-                          type="button"
-                          role="menuitemradio"
-                          aria-checked={isActive}
-                          onClick={() => handleRefetch(option.value)}
-                          className={`w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded text-xs hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-zinc-700 dark:text-zinc-200 ${
-                            firstPlugin
-                              ? "mt-1 border-t border-zinc-200 dark:border-zinc-700 rounded-t-none"
-                              : ""
-                          }`}
-                        >
-                          <span>{option.label}</span>
-                          {isActive && (
-                            <Check
-                              size={12}
-                              className="shrink-0 text-emerald-500"
-                            />
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </span>
-              {payload &&
-                (payload.format === "enhanced_lrc" ||
-                  payload.format === "ttml") && (
-                  <span
-                    className="shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider bg-pink-100 dark:bg-pink-950/40 text-pink-600 dark:text-pink-300"
-                    title={t(`lyrics.format.${payload.format}`)}
-                  >
-                    {payload.format === "ttml" ? "TTML" : "WORD"}
-                  </span>
-                )}
+                  <ChevronDown size={11} className="shrink-0" />
+                </button>
+              ) : (
+                <span className="truncate">
+                  {payload ? sourceLabel(payload, t, pluginNames) : ""}
+                </span>
+              )}
+              {pickerOpen && !noLibraryRow && (
+                <div
+                  role="menu"
+                  aria-label={t("lyrics.source.pickerHint")}
+                  onKeyDown={(e) => {
+                    // Local Escape handler in addition to the
+                    // document-level one in the picker useEffect.
+                    // Redundant in practice (both fire on the same
+                    // event) but keeps the WAI-ARIA menu pattern
+                    // self-contained on the element itself + stops
+                    // the event from bubbling further into ancestor
+                    // panels that might also listen for Escape.
+                    if (e.key === "Escape") {
+                      e.stopPropagation();
+                      setPickerOpen(false);
+                    }
+                  }}
+                  className="absolute left-0 bottom-full mb-1 z-20 min-w-44 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-lg p-1"
+                >
+                  {[
+                    ...LYRICS_PROVIDERS.map((p) => ({
+                      value: p as LyricsProvider | PluginLyricsProvider,
+                      label: t(`lyrics.provider.${p}`),
+                      plugin: false,
+                    })),
+                    // The enabled lyrics plugins, after the built-in
+                    // providers: picked here, one is asked about this
+                    // track alone, which is also how to tell whether it
+                    // answers at all.
+                    ...lyricsPlugins.map((plugin) => ({
+                      value:
+                        `${PLUGIN_PROVIDER_PREFIX}${plugin.id}` as PluginLyricsProvider,
+                      label: plugin.name,
+                      plugin: true,
+                    })),
+                  ].map((option, index, all) => {
+                    const isActive = payload?.provider === option.value;
+                    const firstPlugin =
+                      option.plugin && !all[index - 1]?.plugin;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        role="menuitemradio"
+                        aria-checked={isActive}
+                        onClick={() => handleRefetch(option.value)}
+                        className={`w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded text-xs hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-zinc-700 dark:text-zinc-200 ${
+                          firstPlugin
+                            ? "mt-1 border-t border-zinc-200 dark:border-zinc-700 rounded-t-none"
+                            : ""
+                        }`}
+                      >
+                        <span>{option.label}</span>
+                        {isActive && (
+                          <Check
+                            size={12}
+                            className="shrink-0 text-emerald-500"
+                          />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </span>
-            <div className="flex items-center space-x-1 shrink-0">
-              {/* Import / refetch / clear operate on a library row
+            {payload &&
+              (payload.format === "enhanced_lrc" ||
+                payload.format === "ttml") && (
+                <span
+                  className="shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider bg-pink-100 dark:bg-pink-950/40 text-pink-600 dark:text-pink-300"
+                  title={t(`lyrics.format.${payload.format}`)}
+                >
+                  {payload.format === "ttml" ? "TTML" : "WORD"}
+                </span>
+              )}
+          </span>
+          <div className="flex items-center space-x-1 shrink-0">
+            {/* Import / refetch / clear operate on a library row
                   (track_id / file_hash); a radio session has neither, so
                   they're hidden for radio — the lyrics auto-fetch by
                   artist + title and there's nothing to import-to or
                   clear-from. */}
-              {!noLibraryRow && (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => void importLyrics()}
-                    aria-label={t("lyrics.actions.import")}
-                    title={t("lyrics.actions.import")}
-                    className="p-1.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-                  >
-                    <Upload size={14} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleRefetch()}
-                    disabled={isFetching}
-                    aria-label={t("lyrics.actions.refetch")}
-                    title={t("lyrics.actions.refetch")}
-                    className="p-1.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50"
-                  >
-                    {isFetching ? (
-                      <Loader2 size={14} className="animate-spin" />
-                    ) : (
-                      <RefreshCcw size={14} />
-                    )}
-                  </button>
-                  {payload && (
-                    <button
-                      type="button"
-                      onClick={handleClear}
-                      aria-label={t("lyrics.actions.clear")}
-                      title={t("lyrics.actions.clear")}
-                      className="p-1.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-zinc-400 hover:text-red-500"
-                    >
-                      <Trash2 size={14} />
-                    </button>
+            {!noLibraryRow && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => void importLyrics()}
+                  aria-label={t("lyrics.actions.import")}
+                  title={t("lyrics.actions.import")}
+                  className="p-1.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                >
+                  <Upload size={14} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleRefetch()}
+                  disabled={isFetching}
+                  aria-label={t("lyrics.actions.refetch")}
+                  title={t("lyrics.actions.refetch")}
+                  className="p-1.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50"
+                >
+                  {isFetching ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <RefreshCcw size={14} />
                   )}
-                </>
-              )}
-            </div>
+                </button>
+                {payload && (
+                  <button
+                    type="button"
+                    onClick={handleClear}
+                    aria-label={t("lyrics.actions.clear")}
+                    title={t("lyrics.actions.clear")}
+                    className="p-1.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-zinc-400 hover:text-red-500"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                )}
+              </>
+            )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
+    </div>
+  );
+
+  if (embedded) return <div className="h-full">{body}</div>;
+  return (
+    <motion.aside
+      key="lyrics"
+      initial={{ width: 0, opacity: 0 }}
+      animate={{ width: 320, opacity: 1 }}
+      exit={{ width: 0, opacity: 0 }}
+      transition={{ type: "spring", stiffness: 320, damping: 32, mass: 0.8 }}
+      className="h-full shrink-0 overflow-hidden border-l bg-surface-light border-zinc-200 text-zinc-800 dark:bg-surface-dark dark:border-zinc-800 dark:text-zinc-100"
+    >
+      {body}
     </motion.aside>
   );
 }

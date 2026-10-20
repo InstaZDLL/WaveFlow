@@ -1479,7 +1479,13 @@
     "restOfAlbum": "Resto dell'album",
     "moreTracks_one": "+{{count}} brano",
     "moreTracks_other": "+{{count}} brani",
-    "moreTracks_many": "+{{count}} brani"
+    "moreTracks_many": "+{{count}} brani",
+    "fluid": {
+      "details": "Dettagli",
+      "fromAlbum": "In riproduzione dall'album",
+      "artist": "Artista",
+      "openLyrics": "Vedi il testo"
+    }
   },
   "playerBar": {
     "lyrics": "Testi",

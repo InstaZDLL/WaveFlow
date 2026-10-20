@@ -1424,7 +1424,13 @@
     },
     "restOfAlbum": "앨범의 남은 곡",
     "moreTracks_one": "+{{count}}곡",
-    "moreTracks_other": "+{{count}}곡"
+    "moreTracks_other": "+{{count}}곡",
+    "fluid": {
+      "details": "상세",
+      "fromAlbum": "앨범에서 재생 중",
+      "artist": "아티스트",
+      "openLyrics": "가사 보기"
+    }
   },
   "playerBar": {
     "lyrics": "가사",

@@ -1426,7 +1426,13 @@
     },
     "restOfAlbum": "एल्बम के बाकी गाने",
     "moreTracks_one": "+{{count}} ट्रैक",
-    "moreTracks_other": "+{{count}} ट्रैक"
+    "moreTracks_other": "+{{count}} ट्रैक",
+    "fluid": {
+      "details": "विवरण",
+      "fromAlbum": "एल्बम से चल रहा है",
+      "artist": "कलाकार",
+      "openLyrics": "बोल देखें"
+    }
   },
   "playerBar": {
     "lyrics": "गीत के बोल",

@@ -1424,7 +1424,13 @@
     },
     "restOfAlbum": "Sisa album",
     "moreTracks_one": "+{{count}} lagu",
-    "moreTracks_other": "+{{count}} lagu"
+    "moreTracks_other": "+{{count}} lagu",
+    "fluid": {
+      "details": "Detail",
+      "fromAlbum": "Diputar dari album",
+      "artist": "Artis",
+      "openLyrics": "Lihat lirik"
+    }
   },
   "playerBar": {
     "lyrics": "Lirik",

@@ -1424,7 +1424,13 @@
     },
     "restOfAlbum": "このアルバムの続き",
     "moreTracks_one": "+{{count}}曲",
-    "moreTracks_other": "+{{count}}曲"
+    "moreTracks_other": "+{{count}}曲",
+    "fluid": {
+      "details": "詳細",
+      "fromAlbum": "アルバムから再生中",
+      "artist": "アーティスト",
+      "openLyrics": "歌詞を見る"
+    }
   },
   "playerBar": {
     "lyrics": "歌詞",

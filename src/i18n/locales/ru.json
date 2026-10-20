@@ -1536,7 +1536,13 @@
     "moreTracks_one": "+{{count}} трек",
     "moreTracks_few": "+{{count}} трека",
     "moreTracks_other": "+{{count}} треков",
-    "moreTracks_many": "+{{count}} треков"
+    "moreTracks_many": "+{{count}} треков",
+    "fluid": {
+      "details": "Сведения",
+      "fromAlbum": "Воспроизведение из альбома",
+      "artist": "Исполнитель",
+      "openLyrics": "Открыть текст"
+    }
   },
   "playerBar": {
     "lyrics": "Текст",

@@ -1426,7 +1426,13 @@
     },
     "restOfAlbum": "Rest van het album",
     "moreTracks_one": "+{{count}} nummer",
-    "moreTracks_other": "+{{count}} nummers"
+    "moreTracks_other": "+{{count}} nummers",
+    "fluid": {
+      "details": "Details",
+      "fromAlbum": "Afspelen uit het album",
+      "artist": "Artiest",
+      "openLyrics": "Songtekst bekijken"
+    }
   },
   "playerBar": {
     "lyrics": "Songtekst",

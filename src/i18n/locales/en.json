@@ -1426,7 +1426,13 @@
     },
     "restOfAlbum": "Rest of the album",
     "moreTracks_one": "+{{count}} track",
-    "moreTracks_other": "+{{count}} tracks"
+    "moreTracks_other": "+{{count}} tracks",
+    "fluid": {
+      "details": "Details",
+      "fromAlbum": "Playing from the album",
+      "artist": "Artist",
+      "openLyrics": "See the lyrics"
+    }
   },
   "playerBar": {
     "lyrics": "Lyrics",

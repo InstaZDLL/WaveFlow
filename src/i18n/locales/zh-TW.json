@@ -1424,7 +1424,13 @@
     },
     "restOfAlbum": "專輯後續曲目",
     "moreTracks_one": "+{{count}} 首",
-    "moreTracks_other": "+{{count}} 首"
+    "moreTracks_other": "+{{count}} 首",
+    "fluid": {
+      "details": "詳情",
+      "fromAlbum": "正在播放專輯",
+      "artist": "藝人",
+      "openLyrics": "查看歌詞"
+    }
   },
   "playerBar": {
     "lyrics": "歌詞",

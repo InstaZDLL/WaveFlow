@@ -1426,7 +1426,13 @@
     },
     "restOfAlbum": "Albümün devamı",
     "moreTracks_one": "+{{count}} parça",
-    "moreTracks_other": "+{{count}} parça"
+    "moreTracks_other": "+{{count}} parça",
+    "fluid": {
+      "details": "Ayrıntılar",
+      "fromAlbum": "Albümden çalınıyor",
+      "artist": "Sanatçı",
+      "openLyrics": "Sözleri gör"
+    }
   },
   "playerBar": {
     "lyrics": "Sözler",

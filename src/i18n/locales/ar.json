@@ -1607,7 +1607,13 @@
     "moreTracks_zero": "+{{count}} مقطع",
     "moreTracks_two": "+{{count}} مقطع",
     "moreTracks_few": "+{{count}} مقاطع",
-    "moreTracks_many": "+{{count}} مقطعًا"
+    "moreTracks_many": "+{{count}} مقطعًا",
+    "fluid": {
+      "details": "التفاصيل",
+      "fromAlbum": "تشغيل من الألبوم",
+      "artist": "الفنان",
+      "openLyrics": "عرض الكلمات"
+    }
   },
   "playerBar": {
     "lyrics": "الكلمات",

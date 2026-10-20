@@ -1291,6 +1291,181 @@
   background-color: var(--fe-accent);
 }
 
+/* ============================================================
+   The right-edge panel — one shell, three tabs (`FluidSidePanel`),
+   hosting the embedded forms of NowPlayingPanel, LyricsPanel and
+   QueuePanel. Same tone as the sidebar, a hairline for its edge.
+   ============================================================ */
+:root[data-skin="fluid"] .fe-panel {
+  color: var(--fe-ink-2);
+  background-color: var(--fe-surface);
+  box-shadow: -1px 0 0 var(--fe-hairline);
+}
+:root[data-skin="fluid"] .fe-panel :is(h2, h3) {
+  font-family: var(--fe-font);
+  letter-spacing: -0.02em;
+}
+/* Tabs: text, the open one in full ink with the flow line under it. */
+:root[data-skin="fluid"] .fe-panel__tab {
+  position: relative;
+  height: 2.25rem;
+  padding: 0 0.75rem;
+  border-radius: 0.625rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--fe-ink-3);
+  transition:
+    color 180ms var(--fe-ease),
+    background-color 180ms var(--fe-ease);
+}
+:root[data-skin="fluid"] .fe-panel__tab:hover {
+  color: var(--fe-ink-2);
+  background-color: rgb(255 255 255 / 0.04);
+}
+:root[data-skin="fluid"] .fe-panel__tab.is-active {
+  color: var(--fe-ink);
+  font-weight: 540;
+}
+:root[data-skin="fluid"] .fe-panel__tab.is-active::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 1.75rem;
+  height: 0.5rem;
+  transform: translateX(-50%);
+  background-color: var(--fe-accent);
+  mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 10' fill='none'><path d='M0.5 5 C 5 0.5, 9 0.5, 13.5 5 S 22 9.5, 26.5 5 S 35 0.5, 39.5 5' stroke='black' stroke-width='1.6' stroke-linecap='round'/></svg>") no-repeat center / 100% 100%;
+  -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 10' fill='none'><path d='M0.5 5 C 5 0.5, 9 0.5, 13.5 5 S 22 9.5, 26.5 5 S 35 0.5, 39.5 5' stroke='black' stroke-width='1.6' stroke-linecap='round'/></svg>") no-repeat center / 100% 100%;
+}
+/* Hairlines inside the bodies. */
+:root[data-skin="fluid"] .fe-panel :is([class*="border-t"], [class*="border-b"]) {
+  border-color: var(--fe-hairline) !important;
+}
+/* Small labels. */
+:root[data-skin="fluid"]
+  .fe-panel
+  [class*="text-[10px]"][class*="uppercase"] {
+  font-size: 0.6875rem !important;
+  font-weight: 540 !important;
+  letter-spacing: 0.1em !important;
+  color: var(--fe-ink-3) !important;
+}
+/* Links in the accent (open queue, read more): ink, accent on hover. */
+:root[data-skin="fluid"] .fe-panel button[class*="text-emerald-600"] {
+  color: var(--fe-ink-2) !important;
+  text-decoration: none !important;
+}
+:root[data-skin="fluid"] .fe-panel button[class*="text-emerald-600"]:hover {
+  color: var(--fe-accent) !important;
+}
+/* Rows (queue items, the rest of the album): a tone on hover. */
+:root[data-skin="fluid"]
+  .fe-panel
+  :is([class*="hover:bg-zinc-50"], [class*="hover:bg-zinc-100"]):hover {
+  background-color: rgb(255 255 255 / 0.045) !important;
+}
+/* The queue's radio card: a tone, no coloured border. */
+:root[data-skin="fluid"] .fe-panel [class*="bg-emerald-50 "] {
+  background-color: rgb(255 255 255 / 0.05) !important;
+  border-color: transparent !important;
+}
+
+/* ── Details: the cover edge to edge, the identity over it ──── */
+:root[data-skin="fluid"] .fe-panel__hero,
+:root[data-skin="fluid"] .fe-panel__hero [class*="rounded"] {
+  border-radius: 0 !important;
+}
+:root[data-skin="fluid"] .fe-panel__hero [class*="shadow"] {
+  box-shadow: none !important;
+}
+/* The identity over the scrim: the display face, white ink. */
+:root[data-skin="fluid"] .fe-panel__hero [class*="text-xl"] {
+  font-size: 1.5rem !important;
+  font-weight: 560 !important;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  text-wrap: balance;
+}
+:root[data-skin="fluid"] .fe-panel__pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 2.625rem;
+  padding: 0 1rem;
+  border-radius: 9999px;
+  background-color: rgb(255 255 255 / 0.06);
+  color: var(--fe-ink-2);
+  font-size: 0.875rem;
+  font-weight: 520;
+  transition:
+    color 180ms var(--fe-ease),
+    background-color 180ms var(--fe-ease);
+}
+:root[data-skin="fluid"] .fe-panel__pill:hover:not(:disabled) {
+  background-color: rgb(255 255 255 / 0.1);
+  color: var(--fe-ink);
+}
+:root[data-skin="fluid"] .fe-panel__pill:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+/* The lyrics glimpse: a quiet card that opens the Lyrics tab. */
+:root[data-skin="fluid"] .fe-panel__lyrics {
+  padding: 1rem 1.125rem;
+  border-radius: 0.875rem;
+  background-color: rgb(255 255 255 / 0.05);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
+  transition: background-color 180ms var(--fe-ease);
+}
+:root[data-skin="fluid"] .fe-panel__lyrics:hover {
+  background-color: rgb(255 255 255 / 0.08);
+}
+
+/* ── Lyrics: the sung line sharp and large, the others fading
+      with their distance from it ─────────────────────────────── */
+:root[data-skin="fluid"] .fe-panel ul > li > button {
+  font-size: 1.125rem !important;
+  line-height: 1.35 !important;
+  font-weight: 500;
+  color: var(--fe-ink-2) !important;
+  opacity: 0.5;
+  filter: blur(1.2px);
+  transform: none !important;
+  transition:
+    opacity 320ms var(--fe-ease),
+    filter 320ms var(--fe-ease),
+    color 180ms var(--fe-ease);
+}
+:root[data-skin="fluid"] .fe-panel ul > li:has(> button[class*="scale-[1.02]"]) > button {
+  font-size: 1.3125rem !important;
+  font-weight: 560;
+  letter-spacing: -0.02em;
+  color: var(--fe-ink) !important;
+  opacity: 1;
+  filter: none;
+}
+:root[data-skin="fluid"] .fe-panel ul > li:has(> button[class*="scale-[1.02]"]) + li > button,
+:root[data-skin="fluid"] .fe-panel ul > li:has(+ li > button[class*="scale-[1.02]"]) > button {
+  opacity: 0.8;
+  filter: blur(0.3px);
+}
+:root[data-skin="fluid"] .fe-panel ul > li:has(> button[class*="scale-[1.02]"]) + li + li > button,
+:root[data-skin="fluid"] .fe-panel ul > li:has(+ li + li > button[class*="scale-[1.02]"]) > button {
+  opacity: 0.65;
+  filter: blur(0.7px);
+}
+:root[data-skin="fluid"] .fe-panel ul > li > button:hover,
+:root[data-skin="fluid"] .fe-panel ul > li > button:focus-visible {
+  opacity: 1;
+  filter: none;
+}
+/* Past lines keep their fade; the word being sung takes the accent. */
+:root[data-skin="fluid"] .fe-panel ul > li > button [class*="text-pink-500"] {
+  color: var(--fe-accent) !important;
+}
+
 /* ── Reduced motion: no drift, no stagger, no lift ─────────── */
 @media (prefers-reduced-motion: reduce) {
   :root[data-skin="fluid"] .fe-rise,
@@ -1306,7 +1481,8 @@
   :root[data-skin="fluid"] .fe-tile,
   :root[data-skin="fluid"] .fe-cta,
   :root[data-skin="fluid"] .fe-link::after,
-  :root[data-skin="fluid"] .fe-icon-btn {
+  :root[data-skin="fluid"] .fe-icon-btn,
+  :root[data-skin="fluid"] .fe-panel ul > li > button {
     transition: none;
   }
   :root[data-skin="fluid"] .fe-tile-hover:hover .fe-tile,
@@ -1330,4 +1506,9 @@
 :root[data-skin="fluid"][data-contrast="high"] .fe-canvas__aura,
 :root[data-skin="fluid"][data-contrast="high"] .fe-suggest__aura {
   display: none;
+}
+/* No fading of the lines around the sung one: every line stays legible. */
+:root[data-skin="fluid"][data-contrast="high"] .fe-panel ul > li > button {
+  opacity: 1;
+  filter: none;
 }
