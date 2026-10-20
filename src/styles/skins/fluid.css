@@ -687,8 +687,11 @@
 /* C — the places: rows of one height, the open one on a tone with
    the accent's edge and its icon lit. */
 :root[data-skin="fluid"] [data-sidebar-nav] {
-  /* The profile panel's gutter (1.25 rem), so the tiles line up with it. */
-  padding: 1rem 1.25rem 0.5rem !important;
+  /* The profile panel's gutter on the left; on the right, the gutter
+     plus the width the scrolling area keeps for its scrollbar, so the
+     tiles end where the pinned playlists' tiles do. A breath above,
+     off the profile panel. */
+  padding: 1.25rem 1.875rem 0.5rem 1.25rem !important;
 }
 :root[data-skin="fluid"] .skin-sidebar-shell[data-collapsed] [data-sidebar-nav] {
   padding: 0.75rem 0.75rem 0.5rem !important;
