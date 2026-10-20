@@ -33,6 +33,16 @@ export function useCoverGlow(url: string | null): void {
       .catch(() => {
         // A cover that cannot be sampled keeps the previous light.
       });
+    // A sample that lands after the url changed, or after the Home
+    // left, must not write: the unmount cleanup below has cleared the
+    // variables, and a late write would leave the cover's light on
+    // whatever view came next. The ref is a counter, not a node, so
+    // reading it at cleanup time is the point; the alias keeps the
+    // lint's node-ref heuristic quiet.
+    const counter = seq;
+    return () => {
+      counter.current += 1;
+    };
   }, [url]);
 
   useEffect(

@@ -77,21 +77,27 @@ export function PluginStoreCard({
     // body (`react-hooks/set-state-in-effect`), setState only inside the
     // promise callbacks, `cancelled` guards a late resolve post-unmount.
     let cancelled = false;
-    listPluginMarketplace().then(
-      (list) => {
-        if (cancelled) return;
-        setEntries(list);
-        setError(null);
-        setLoading(false);
-      },
-      (e: unknown) => {
-        if (cancelled) return;
-        setError(e instanceof Error ? e.message : String(e));
-        setLoading(false);
-      },
-    );
+    const load = () =>
+      listPluginMarketplace().then(
+        (list) => {
+          if (cancelled) return;
+          setEntries(list);
+          setError(null);
+          setLoading(false);
+        },
+        (e: unknown) => {
+          if (cancelled) return;
+          setError(e instanceof Error ? e.message : String(e));
+          setLoading(false);
+        },
+      );
+    load();
+    // An uninstall or a toggle in the installed list beside this store
+    // dispatches the event: re-read, so the entry comes back on offer.
+    window.addEventListener(PLUGIN_AVAILABILITY_EVENT, load);
     return () => {
       cancelled = true;
+      window.removeEventListener(PLUGIN_AVAILABILITY_EVENT, load);
     };
   }, []);
 
@@ -101,10 +107,10 @@ export function PluginStoreCard({
     try {
       await installPluginFromRegistry(entry.id);
       // Reflect the new on-disk state (installed / version / no-update)
-      // and let the sidebar + source views re-evaluate availability.
+      // and let the sidebar, the source views and the installed list
+      // beside this store re-evaluate availability; this store re-reads
+      // on the same event.
       window.dispatchEvent(new CustomEvent(PLUGIN_AVAILABILITY_EVENT));
-      const list = await listPluginMarketplace();
-      setEntries(list);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {

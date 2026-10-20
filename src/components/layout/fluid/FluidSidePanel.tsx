@@ -1,4 +1,4 @@
-import type { KeyboardEvent } from "react";
+import { useId, type KeyboardEvent } from "react";
 import { motion } from "framer-motion";
 import { X } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -29,6 +29,11 @@ export function FluidSidePanel({
 }: FluidSidePanelProps) {
   const { t } = useTranslation();
   const { activeRightPanel, openRightPanel, closeRightPanel } = usePlayer();
+  // One panel for the three tabs: the ids tie each tab to it, and it to
+  // the open tab, so a screen reader can walk from one to the other.
+  const baseId = useId();
+  const panelId = `${baseId}-panel`;
+  const tabId = (id: RightPanel) => `${baseId}-tab-${id}`;
   const labels: Record<RightPanel, string> = {
     nowPlaying: t("nowPlaying.fluid.details"),
     lyrics: t("lyrics.title"),
@@ -75,6 +80,8 @@ export function FluidSidePanel({
                   key={id}
                   type="button"
                   role="tab"
+                  id={tabId(id)}
+                  aria-controls={panelId}
                   aria-selected={active}
                   tabIndex={active ? 0 : -1}
                   onClick={() => openRightPanel(id)}
@@ -96,7 +103,14 @@ export function FluidSidePanel({
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-hidden">
+        <div
+          id={panelId}
+          role="tabpanel"
+          aria-labelledby={
+            activeRightPanel ? tabId(activeRightPanel) : undefined
+          }
+          className="min-h-0 flex-1 overflow-hidden"
+        >
           {activeRightPanel === "nowPlaying" && (
             <NowPlayingPanel
               embedded

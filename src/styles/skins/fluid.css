@@ -995,10 +995,14 @@
 /* Wide enough, the search sits on the bar's own middle rather than on
    the middle of what the two clusters leave, which drifted left as the
    right cluster is the wider one. */
-@media (min-width: 1200px) {
-  :root[data-skin="fluid"] header[class*="sticky"] {
-    position: sticky;
-  }
+/* On the header's own width, not the window's: with the sidebar and
+   the panel open the column can be half the window, and a field
+   centred on it would cover the right cluster. Below the threshold it
+   stays in flow between the clusters. */
+:root[data-skin="fluid"] header[class*="sticky"] {
+  container-type: inline-size;
+}
+@container (min-width: 56rem) {
   :root[data-skin="fluid"] [data-topbar-search] {
     position: absolute;
     left: 50%;
@@ -2125,7 +2129,7 @@
   :root[data-skin="fluid"] .fe-press:active,
   :root[data-skin="fluid"] .fe-cta:hover,
   :root[data-skin="fluid"] .fe-cta:active,
-  :root[data-skin="fluid"] main [data-page-hero] button:hover {
+  :root[data-skin="fluid"] main [data-page-hero] button:hover:not(:disabled) {
     transform: none;
   }
 }
