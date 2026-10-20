@@ -59,6 +59,13 @@ pub enum Resampler {
         /// Interleaved samples not yet handed to rubato. Drains in
         /// `input_frames_next()` increments on every `process` call.
         pending: Vec<f32>,
+        src_rate: u32,
+        dst_rate: u32,
+        /// Frames given to [`Resampler::process`] and frames it has
+        /// returned since the last flush: what [`Resampler::finish`]
+        /// measures the end of a track against.
+        frames_in: u64,
+        frames_out: u64,
     },
 }
 
@@ -96,6 +103,10 @@ impl Resampler {
             in_scratch,
             out_scratch,
             pending,
+            src_rate,
+            dst_rate,
+            frames_in: 0,
+            frames_out: 0,
         })
     }
 
@@ -116,6 +127,9 @@ impl Resampler {
                 in_scratch,
                 out_scratch,
                 pending,
+                frames_in,
+                frames_out,
+                ..
             } => {
                 let chans = *channels;
                 debug_assert!(
@@ -124,6 +138,7 @@ impl Resampler {
                 );
 
                 pending.extend_from_slice(input);
+                *frames_in += (input.len() / chans) as u64;
 
                 loop {
                     let frames_in = inner.input_frames_next();
@@ -160,20 +175,104 @@ impl Resampler {
                     };
 
                     out.extend_from_slice(&out_scratch[..n_out * chans]);
+                    *frames_out += n_out as u64;
                 }
                 Ok(())
             }
         }
     }
 
-    /// Drop any frames still buffered in the pending queue. MVP: we
-    /// just discard them, which truncates the tail by at most one
-    /// rubato chunk. Gapless playback would need
-    /// `process_into_buffer(..., partial_len = Some(remaining))` here
-    /// so rubato pads with silence instead of swallowing the tail.
+    /// At the end of a track, push out what is still inside: the input
+    /// short of a whole chunk, and the filter's delay. Without it those
+    /// frames were lost whenever the rates differ, up to a chunk plus the
+    /// delay (about 25 ms at 48 kHz).
+    ///
+    /// Zeros are fed until the output reaches its length, then the output
+    /// is cut there, so none of them comes out as silence between two
+    /// tracks played without a gap. That length is the input's at the
+    /// output rate plus the delay: the delay is not trimmed at the start
+    /// of a track, so the track's own output runs that much longer.
+    pub fn finish(&mut self, out: &mut Vec<f32>) -> Result<(), ResamplerError> {
+        let (target, chunk, max_passes) = match self {
+            Self::Passthrough => return Ok(()),
+            Self::Fft {
+                inner,
+                channels,
+                src_rate,
+                dst_rate,
+                frames_in,
+                ..
+            } => {
+                // Nothing given since it was built or flushed (a speed
+                // change right at the end): no tail, and pushing the
+                // delay out would only add silence.
+                if *frames_in == 0 {
+                    return Ok(());
+                }
+                let scaled = (u128::from(*frames_in) * u128::from(*dst_rate)
+                    + u128::from(*src_rate) / 2)
+                    / u128::from(*src_rate);
+                let target = inner.output_delay() as u64 + scaled as u64;
+                let chunk_frames = inner.input_frames_next().max(1);
+                // rubato answers nothing until its FFT window is full, and
+                // that window can be many of our chunks long at an odd rate
+                // (a speed change): a fixed count of passes fell short there
+                // and a short track came out empty. The delay in `target` is
+                // about half that window, so twice the target's length at
+                // the input rate covers the window and the rest. The bound
+                // only keeps a resampler that would never answer from
+                // looping for good.
+                let needed = u128::from(target) * u128::from(*src_rate) / u128::from(*dst_rate);
+                let max_passes = 2 * needed / chunk_frames as u128 + 8;
+                (
+                    target,
+                    chunk_frames * *channels,
+                    usize::try_from(max_passes).unwrap_or(usize::MAX),
+                )
+            }
+        };
+        let start = out.len();
+        let zeros = vec![0.0_f32; chunk];
+        for _ in 0..max_passes {
+            if self.frames_out() >= target {
+                break;
+            }
+            self.process(&zeros, out)?;
+        }
+        if let Self::Fft {
+            channels,
+            frames_out,
+            ..
+        } = self
+        {
+            let excess = frames_out.saturating_sub(target) as usize * *channels;
+            out.truncate(out.len().saturating_sub(excess).max(start));
+            *frames_out = (*frames_out).min(target);
+        }
+        Ok(())
+    }
+
+    fn frames_out(&self) -> u64 {
+        match self {
+            Self::Passthrough => 0,
+            Self::Fft { frames_out, .. } => *frames_out,
+        }
+    }
+
+    /// Drop any frames still buffered in the pending queue, and start
+    /// counting the track's length again. The end of a track goes
+    /// through [`Self::finish`] instead.
     pub fn flush(&mut self) {
-        if let Self::Fft { pending, .. } = self {
+        if let Self::Fft {
+            pending,
+            frames_in,
+            frames_out,
+            ..
+        } = self
+        {
             pending.clear();
+            *frames_in = 0;
+            *frames_out = 0;
         }
     }
 }
@@ -181,6 +280,106 @@ impl Resampler {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The end of a track comes out whole, and stops at the track's
+    /// length: what the resampler held is not lost, and the zeros that
+    /// pushed it out do not become a gap before the next track.
+    #[test]
+    fn finish_brings_the_output_to_the_track_length() {
+        let channels = 2;
+        let (src, dst) = (48_000_u32, 44_100_u32);
+        let mut r = Resampler::new(src, dst, channels).expect("ctor");
+        let delay = match &r {
+            Resampler::Fft { inner, .. } => inner.output_delay(),
+            Resampler::Passthrough => unreachable!(),
+        };
+        let mut out = Vec::new();
+        // One second of a steady level, in pieces that are not chunks.
+        for _ in 0..48 {
+            r.process(&vec![0.5_f32; 1_000 * channels], &mut out)
+                .expect("process");
+        }
+        let expected = delay + 44_100;
+        assert!(out.len() / channels < expected, "the tail is still inside");
+
+        r.finish(&mut out).expect("finish");
+
+        assert_eq!(out.len() / channels, expected);
+        // Well inside the signal's end, the level is still there.
+        let frame = (expected - 300) * channels;
+        assert!((out[frame] - 0.5).abs() < 0.05, "got {}", out[frame]);
+    }
+
+    /// At an odd rate rubato's FFT spans many of our chunks: a track a
+    /// chunk long (44.1 kHz at 1.125x is 49 612 Hz, to 48 kHz) must still
+    /// come out at its length rather than not at all.
+    #[test]
+    fn finish_reaches_the_length_when_the_fft_spans_many_chunks() {
+        let channels = 2;
+        let (src, dst) = (49_612_u32, 48_000_u32);
+        let mut r = Resampler::new(src, dst, channels).expect("ctor");
+        let delay = match &r {
+            Resampler::Fft { inner, .. } => inner.output_delay(),
+            Resampler::Passthrough => unreachable!(),
+        };
+        let mut out = Vec::new();
+        r.process(&vec![0.5_f32; 1_024 * channels], &mut out)
+            .expect("process");
+
+        r.finish(&mut out).expect("finish");
+
+        let length = (1_024_u64 * u64::from(dst) + u64::from(src) / 2) / u64::from(src);
+        assert_eq!(out.len() / channels, delay + length as usize);
+    }
+
+    /// The same, over the rates playback can ask for: three source
+    /// rates, speeds from 0.5x to 2x, two outputs, a track one chunk long
+    /// and one a second long.
+    #[test]
+    fn finish_reaches_the_length_at_every_playback_rate() {
+        let channels = 2;
+        for src in [44_100_u32, 48_000, 96_000] {
+            for speed in [0.5_f32, 0.75, 0.9, 1.125, 1.25, 1.5, 2.0] {
+                let effective = ((src as f32) * speed) as u32;
+                for dst in [44_100_u32, 48_000] {
+                    for frames in [1_024_usize, src as usize] {
+                        let mut r = Resampler::new(effective, dst, channels).expect("ctor");
+                        let delay = match &r {
+                            Resampler::Fft { inner, .. } => inner.output_delay(),
+                            Resampler::Passthrough => continue,
+                        };
+                        let mut out = Vec::new();
+                        r.process(&vec![0.25_f32; frames * channels], &mut out)
+                            .expect("process");
+                        r.finish(&mut out).expect("finish");
+                        let length = (frames as u64 * u64::from(dst) + u64::from(effective) / 2)
+                            / u64::from(effective);
+                        assert_eq!(
+                            out.len() / channels,
+                            delay + length as usize,
+                            "{effective} Hz to {dst} Hz, {frames} frames"
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn finish_with_nothing_given_adds_nothing() {
+        let mut r = Resampler::new(48_000, 44_100, 2).expect("ctor");
+        let mut out = Vec::new();
+        r.finish(&mut out).expect("finish");
+        assert!(out.is_empty());
+    }
+
+    #[test]
+    fn finish_on_passthrough_adds_nothing() {
+        let mut r = Resampler::new(44_100, 44_100, 2).expect("ctor");
+        let mut out = vec![0.1_f32, 0.2];
+        r.finish(&mut out).expect("finish");
+        assert_eq!(out, [0.1, 0.2]);
+    }
 
     #[test]
     fn passthrough_returns_input_unchanged() {

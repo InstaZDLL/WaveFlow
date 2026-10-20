@@ -900,7 +900,7 @@ pub fn probe_playable_stream(path: &Path) -> Option<StreamInfo> {
         .ok()?;
     let codec = registry
         .get_audio_decoder(params.codec)
-        .map(|registered| codec_label(registered.codec.info.short_name));
+        .map(|registered| crate::audio_format::codec_label(registered.codec.info.short_name));
 
     let mut summed = 0u64;
     let mut decoded = false;
@@ -950,17 +950,6 @@ pub fn probe_playable_stream(path: &Path) -> Option<StreamInfo> {
         bit_depth: params.bits_per_sample.map(i64::from).filter(|b| *b > 0),
         codec,
     })
-}
-
-/// A symphonia decoder's short name as the format chip spells codecs
-/// elsewhere ([`file_type_label`]): `mp3` → `MP3`, every `pcm_*` → `PCM`.
-fn codec_label(short_name: &str) -> String {
-    match short_name {
-        n if n.starts_with("pcm") => "PCM".into(),
-        "vorbis" => "Vorbis".into(),
-        "opus" => "Opus".into(),
-        n => n.to_ascii_uppercase(),
-    }
 }
 
 #[cfg(test)]

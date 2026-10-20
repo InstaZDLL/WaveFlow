@@ -4,8 +4,8 @@
 //! For now: the in-tree DSD (Direct Stream Digital) parser, PCM
 //! converter, and metadata reader. Symphonia doesn't decode DSD
 //! natively (1-bit @ 2.8 / 5.6 / 11.2 / 22.5 MHz), so the scanner
-//! ingests DSF / DFF tracks via this module and the desktop's
-//! crossfade engine streams them through the same PCM converter.
+//! ingests DSF / DFF tracks via this module and playback
+//! (`playback::stream`) streams them through the same PCM converter.
 //! The future `waveflow-server` will reuse the same code path when
 //! transcoding DSD uploads.
 
@@ -19,3 +19,30 @@ pub mod opus;
 #[cfg(not(feature = "opus"))]
 #[path = "opus_off.rs"]
 pub mod opus;
+
+/// A symphonia decoder's short name as the format chip spells codecs:
+/// `mp3` → `MP3`, every `pcm_*` → `PCM`, `vorbis` → `Vorbis`. One spelling
+/// for the scanner, which stores it on the track, and for playback, which
+/// reports it for the file being played.
+pub fn codec_label(short_name: &str) -> String {
+    match short_name {
+        n if n.starts_with("pcm") => "PCM".into(),
+        "vorbis" => "Vorbis".into(),
+        "opus" => "Opus".into(),
+        n => n.to_ascii_uppercase(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::codec_label;
+
+    #[test]
+    fn codecs_are_spelled_as_the_format_chip_spells_them() {
+        assert_eq!(codec_label("mp3"), "MP3");
+        assert_eq!(codec_label("flac"), "FLAC");
+        assert_eq!(codec_label("pcm_s16le"), "PCM");
+        assert_eq!(codec_label("vorbis"), "Vorbis");
+        assert_eq!(codec_label("opus"), "Opus");
+    }
+}
