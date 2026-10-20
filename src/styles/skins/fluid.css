@@ -739,6 +739,75 @@
   box-shadow: 0 0 12px color-mix(in srgb, var(--fe-accent) 70%, transparent);
 }
 
+/* The pinned group (Home, Web Radio, Release Radar, Extensions…) as
+   tiles two to a row, in the pinned playlists' drawing: the icon over
+   the name on a tone, the open one ringed in the accent. The rows in
+   the scrolling sections keep their shape. */
+:root[data-skin="fluid"] [data-sidebar-nav] {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+:root[data-skin="fluid"] [data-sidebar-nav] > * {
+  margin: 0 !important;
+}
+:root[data-skin="fluid"] [data-sidebar-nav] [data-nav-item] {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.625rem;
+  height: auto;
+  min-width: 0;
+  padding: 0.75rem !important;
+  border-radius: 0.875rem !important;
+  background-color: rgb(255 255 255 / 0.04) !important;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
+  transition:
+    color 180ms var(--fe-ease),
+    background-color 180ms var(--fe-ease),
+    box-shadow 180ms var(--fe-ease);
+}
+:root[data-skin="fluid"] [data-sidebar-nav] [data-nav-item] > * {
+  margin: 0 !important;
+}
+:root[data-skin="fluid"] [data-sidebar-nav] [data-nav-item] > span:first-child {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.625rem;
+  background-color: rgb(255 255 255 / 0.06);
+}
+:root[data-skin="fluid"] [data-sidebar-nav] [data-nav-item] > div {
+  max-width: 100%;
+}
+:root[data-skin="fluid"] [data-sidebar-nav] [data-nav-item] > div > span {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.8125rem;
+  font-weight: 540;
+}
+:root[data-skin="fluid"] [data-sidebar-nav] [data-nav-item]:hover {
+  background-color: rgb(255 255 255 / 0.07) !important;
+}
+:root[data-skin="fluid"] [data-sidebar-nav] [data-nav-item][data-active] {
+  background-color: rgb(255 255 255 / 0.08) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fe-accent) 45%, transparent);
+}
+:root[data-skin="fluid"] [data-sidebar-nav] [data-nav-item][data-active]::before {
+  display: none;
+}
+:root[data-skin="fluid"] .skin-sidebar-shell[data-collapsed] [data-sidebar-nav] {
+  grid-template-columns: 1fr;
+  gap: 0.25rem;
+}
+:root[data-skin="fluid"] .skin-sidebar-shell[data-collapsed] [data-sidebar-nav] [data-nav-item] {
+  align-items: center;
+  padding: 0.5rem !important;
+}
+
 /* Sections: a breath between them, the title in the label voice. */
 :root[data-skin="fluid"] [data-sidebar-scroll] {
   padding: 0.25rem 1rem 1.5rem !important;
