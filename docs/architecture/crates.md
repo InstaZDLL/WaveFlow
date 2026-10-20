@@ -17,6 +17,7 @@ src-tauri/
     │       ├── domain/                (Track, Album, Artist, Playlist, Profile, Library DTOs)
     │       ├── error.rs               (CoreError + CoreResult)
     │       ├── metadata/              (Deezer / Last.fm / LRCLIB HTTP clients)
+    │       ├── playback/              (track decoding, resampler, channel conversion, ReplayGain; `playback` feature)
     │       ├── repository/            (storage traits + sqlite implementations)
     │       │   ├── library.rs / playlist.rs / profile.rs / track.rs
     │       │   └── sqlite/            (Sqlite* impls of each trait)
@@ -63,7 +64,8 @@ Anything that could run inside an axum handler in the future `waveflow-server` (
 - **Scanner helpers** — every pure function the file-walker calls per track (`scanner/extract.rs` for the lofty / blake3 / cover-extraction side, `scanner/upserts.rs` for the SQL writes and the album-grouping policy). The Tauri-aware orchestrator (`scan_folder_inner` + the `scan:progress` emit) stays in `app/commands/scan.rs` until a future `ScannerEventSink` decoupling.
 - **Smart-playlist engine** — Daily Mix generator, On Repeat regen, custom rule evaluator, cover composer. The `PathsContext` struct decouples the engine from `AppPaths`; the app constructs one from its `state.paths`.
 - **Audio analysis** — per-track peak / loudness / ReplayGain / BPM (`analysis.rs`). Symphonia-based, no `cpal`.
-- **Audio format conversion** — DSD parser + decimating FIR (`audio_format/dsd/*`). The real-time playback pipeline still uses this from `app/src/audio/crossfade.rs`.
+- **Audio format conversion** — DSD parser + decimating FIR (`audio_format/dsd/*`), used by playback, analysis and the scanner.
+- **Decoding for playback** (`playback`, behind the feature of the same name) — `ActiveStream` (open a track, decode it packet by packet to interleaved `f32`, seek, DSD to PCM and DoP, the end-of-stream tolerance of #898, the network pre-load), the rubato resampler, channel conversion with the Lo/Ro downmix, and `TrackGain` / ReplayGain. Shared so a second player built on WaveFlow decodes exactly as the desktop app does. The real-time half stays in `app/src/audio/`: the decoder thread and its `LoadIntent` commands, the crossfade mix, the cpal and exclusive outputs, the EQ and the events.
 - **Artwork pipeline** — the shared blake3-keyed metadata cache + the SIMD thumbnail variants (`artwork/{metadata,thumbnails}.rs`).
 - **Error type** — `CoreError`. The desktop's `AppError` wraps it via `#[from] CoreError` so `?` flattens automatically across the boundary.
 
@@ -80,7 +82,7 @@ Lyrics providers that are query-based rather than exact metadata clients. The cr
 Anything tied to the Tauri runtime, the real-time audio engine, or the desktop OS:
 
 - **Every `#[tauri::command]`** — even when the body is a thin call into a core function. The IPC bridge contract is desktop-specific.
-- **Real-time audio engine** — `audio/{decoder,output,engine,crossfade,eq,resampler,spectrum,state,analytics}.rs` plus the per-OS exclusive backends `audio/{wasapi,alsa,coreaudio}_exclusive.rs`. The `cpal` callback and the exclusive output threads must not allocate / log / lock; the surrounding decoder + state machinery only makes sense alongside them.
+- **Real-time audio engine** — `audio/{decoder,output,engine,crossfade,eq,spectrum,state,analytics}.rs` plus the per-OS exclusive backends `audio/{wasapi,alsa,coreaudio}_exclusive.rs`. The `cpal` callback and the exclusive output threads must not allocate / log / lock; the surrounding decoder + state machinery only makes sense alongside them. What the decoder thread drives — opening and decoding a track, resampling, channel conversion, ReplayGain — is `waveflow_core::playback`.
 - **OS media controls** — souvlaki (`media_controls.rs`), Discord Rich Presence named-pipe client (`discord_presence.rs`), system notification plugin bridge (`notifications.rs`).
 - **DLNA / UPnP MediaServer** — `dlna/` is integrated as a worker thread driven by the Tauri runtime.
 - **Filesystem watcher** — `watcher.rs` wires `notify` events into `library:rescanned` Tauri events.
@@ -95,6 +97,7 @@ Several files in `crates/app/src/` are one-line re-exports of code that moved to
 - `app/src/thumbnails.rs` → `waveflow_core::artwork::thumbnails`
 - `app/src/metadata_artwork.rs` → `waveflow_core::artwork::metadata`
 - `app/src/analysis.rs` → `waveflow_core::analysis`
+- `app/src/audio/mod.rs` → `pub use waveflow_core::playback::replay_gain`, so `crate::audio::replay_gain::*` still resolves
 - `app/src/smart_playlists.rs` → `waveflow_core::smart_playlists::*` (submodules re-exported individually so the `cover` / `custom` / `generator` / `on_repeat` paths still work)
 
 Likewise the domain types in `commands/{track,playlist,library,profile}.rs` and `commands/scan.rs::canonical_name` stay reachable through `pub use waveflow_core::...` lines at the top of their original files.
@@ -114,8 +117,9 @@ Until then: anything `waveflow-server` would need lives at `waveflow_core::*` al
 | `sqlite`   | `sqlx`'s `sqlite` + `runtime-tokio` features (so `repository::sqlite::*` compiles), `scanner::upserts` and the smart-playlist materialisers in `smart_playlists::{custom,generator,on_repeat}` (all `SqlitePool`-bound), and the `sqlx::FromRow` derives on the domain types (via `cfg_attr`).                                                                   |
 | `postgres` | `sqlx`'s `postgres` + `runtime-tokio` features (so `repository::postgres::*` compiles), and the same `sqlx::FromRow` derives. Mirrors `sqlite` in scope but ships only the repository implementations — schema-aware surfaces like the scanner upserts and smart-playlist materialisers stay sqlite-only until the server grows a parallel ingest job.           |
 | `opus`     | **In the default set.** The libopus decoder (`opusic-sys`, built from vendored source, which needs cmake) behind `audio_format::opus::codecs()`. Without it the same function answers symphonia's registry alone, so playback, analysis and the scanner's probe still ask one registry and simply cannot decode Opus. `AUDIO_EXTENSIONS` admits Opus either way. |
+| `playback` | `playback::*`: the stream decoder, the resampler (`rubato`, the one dependency it adds), channel conversion and ReplayGain. The desktop crate turns it on; `waveflow-server` leaves it off, since it decodes through FFmpeg.                                                                                                                                     |
 
-The desktop crate opts in with `features = ["sqlite"]` and keeps the default set, so `opus` stays on. `waveflow-server` builds with `default-features = false`: it decodes through FFmpeg, so it compiles no libopus and needs no cmake. It enables no backend feature today either; its v2 keeps its own SQLite layer and takes the scanner and metadata helpers. The two backend features are mutually compatible — Cargo's feature unification means a downstream wanting both backends in one build (e.g. a future migration tool) gets a single `sqlx` build with both drivers. Trait definitions under `repository/` stay storage-agnostic; only the per-backend submodules live behind a feature flag.
+The desktop crate opts in with `features = ["sqlite", "plugins", "playback"]` and keeps the default set, so `opus` stays on. `waveflow-server` builds with `default-features = false`: it decodes through FFmpeg, so it compiles no libopus and needs no cmake. It enables no backend feature today either; its v2 keeps its own SQLite layer and takes the scanner and metadata helpers. The two backend features are mutually compatible — Cargo's feature unification means a downstream wanting both backends in one build (e.g. a future migration tool) gets a single `sqlx` build with both drivers. Trait definitions under `repository/` stay storage-agnostic; only the per-backend submodules live behind a feature flag.
 
 A small pure helper module (`scanner::canonical`) sits outside both feature gates so the postgres-only build can still consume `canonical_name` from `scanner::extract`. Backwards-compatible re-export from `scanner::upserts` so existing imports keep working.
 

@@ -50,7 +50,7 @@ serde_json = "1"
 # in the wasmtime + Cranelift + WASI host that powers
 # `commands/plugins.rs`; the server intentionally leaves this feature
 # off to keep its binary lean.
-waveflow-core = { path = "../core", features = ["sqlite", "plugins"] }
+waveflow-core = { path = "../core", features = ["sqlite", "plugins", "playback"] }
 waveflow-syncedlyrics = { path = "../syncedlyrics" }
 
 # `macos-private-api`: a transparent window on macOS goes through a
@@ -133,7 +133,8 @@ lofty = "0.25"
 id3 = "1"
 blake3 = "1"
 
-# Audio playback: symphonia decodes, cpal outputs, rubato resamples,
+# Audio playback: symphonia decodes, cpal outputs, rubato resamples (in
+# `waveflow_core::playback`),
 # rtrb is the SPSC ring between decoder thread and audio callback,
 # crossbeam-channel carries AudioCmd from tokio commands to the decoder.
 symphonia = { version = "0.6", default-features = false, features = [
@@ -156,7 +157,6 @@ symphonia = { version = "0.6", default-features = false, features = [
     "all-meta",
 ] }
 cpal = "0.17"
-rubato = "5.0"
 rtrb = "0.4"
 crossbeam-channel = "0.5"
 # FFT for the spectrum visualizer. realfft is a thin wrapper over

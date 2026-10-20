@@ -42,8 +42,9 @@ pub mod output;
 // every system.
 #[cfg(any(target_os = "windows", target_os = "linux", test))]
 pub mod pcm_scale;
-pub mod replay_gain;
-pub mod resampler;
+// Decoding, resampling and ReplayGain live in `waveflow_core::playback`;
+// `replay_gain` keeps its old path here for the many places that name it.
+pub use waveflow_core::playback::replay_gain;
 pub mod spectrum;
 pub mod state;
 pub mod stream_cache;

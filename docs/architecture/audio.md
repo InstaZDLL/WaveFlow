@@ -141,7 +141,7 @@ The bulk-pop in `drain_silent` (vs the previous one-pop-per-output-slot) is what
 
 When the user enables crossfade, the decoder maintains a `pending_next: Option<ActiveStream>` set by an `AudioCmd::SetNextTrack` from the command layer. On each iteration it tops up persistent `primary_resampled` and `secondary_resampled` buffers (one packet each), then mixes the minimum of both with `equal_power_gains(t)`. The window is clamped to `min(user_ms, primary.duration / 2)` so 30 s clips don't start mixing at 18 s.
 
-Per-stream ReplayGain is applied **before** the mix so the loudness of the two tracks doesn't drift mid-fade. Each `ActiveStream` carries the track's gain and peak as metadata rather than a baked-in scalar, and [`replay_gain::effective_linear`](../../src-tauri/crates/app/src/audio/replay_gain.rs) turns them into a multiplier once per decoded buffer — that is what lets the pre-amp and clipping settings take effect mid-track. Full behaviour in [playback](../features/playback.md#replaygain).
+Per-stream ReplayGain is applied **before** the mix so the loudness of the two tracks doesn't drift mid-fade. Each `ActiveStream` carries the track's gain and peak as metadata rather than a baked-in scalar, and [`replay_gain::effective_linear`](../../src-tauri/crates/core/src/playback/replay_gain.rs) turns them into a multiplier once per decoded buffer — that is what lets the pre-amp and clipping settings take effect mid-track. Full behaviour in [playback](../features/playback.md#replaygain).
 
 ## Why not async for the decoder?
 

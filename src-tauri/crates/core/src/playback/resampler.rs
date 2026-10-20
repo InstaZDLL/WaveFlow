@@ -14,7 +14,18 @@
 use rubato::audioadapter_buffers::direct::InterleavedSlice;
 use rubato::{Fft, FixedSync, Resampler as _, WindowFunction};
 
-use crate::error::{AppError, AppResult};
+/// A rubato failure, building the resampler or running a chunk through
+/// it. The message names the step that failed.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ResamplerError(pub String);
+
+impl std::fmt::Display for ResamplerError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+impl std::error::Error for ResamplerError {}
 
 /// Desired FFT chunk size in input frames per call. Rubato may round
 /// to the nearest GCD-aligned value of the (in_rate, out_rate) pair;
@@ -52,7 +63,7 @@ pub enum Resampler {
 }
 
 impl Resampler {
-    pub fn new(src_rate: u32, dst_rate: u32, channels: usize) -> AppResult<Self> {
+    pub fn new(src_rate: u32, dst_rate: u32, channels: usize) -> Result<Self, ResamplerError> {
         if src_rate == dst_rate {
             return Ok(Self::Passthrough);
         }
@@ -71,7 +82,7 @@ impl Resampler {
             WindowFunction::BlackmanHarris2,
             FixedSync::Input,
         )
-        .map_err(|e| AppError::Audio(format!("rubato init: {e}")))?;
+        .map_err(|e| ResamplerError(format!("rubato init: {e}")))?;
 
         let frames_in = inner.input_frames_next();
         let frames_out_max = inner.output_frames_max();
@@ -90,10 +101,10 @@ impl Resampler {
 
     /// Process an interleaved `f32` input buffer and append the
     /// resampled interleaved output into `out`. Returns `Ok(())` on
-    /// success; on rubato errors returns [`AppError::Audio`].
+    /// success; on rubato errors returns a [`ResamplerError`].
     ///
     /// When [`Self::Passthrough`], the input is appended verbatim.
-    pub fn process(&mut self, input: &[f32], out: &mut Vec<f32>) -> AppResult<()> {
+    pub fn process(&mut self, input: &[f32], out: &mut Vec<f32>) -> Result<(), ResamplerError> {
         match self {
             Self::Passthrough => {
                 out.extend_from_slice(input);
@@ -135,16 +146,16 @@ impl Resampler {
                     let n_out = {
                         let in_buf =
                             InterleavedSlice::new(&in_scratch[..in_samples], chans, frames_in)
-                                .map_err(|e| AppError::Audio(format!("rubato in adapter: {e}")))?;
+                                .map_err(|e| ResamplerError(format!("rubato in adapter: {e}")))?;
                         let mut out_buf = InterleavedSlice::new_mut(
                             &mut out_scratch[..frames_out_max * chans],
                             chans,
                             frames_out_max,
                         )
-                        .map_err(|e| AppError::Audio(format!("rubato out adapter: {e}")))?;
+                        .map_err(|e| ResamplerError(format!("rubato out adapter: {e}")))?;
                         let (_n_in, n_out) = inner
                             .process_into_buffer(&in_buf, &mut out_buf, None)
-                            .map_err(|e| AppError::Audio(format!("rubato process: {e}")))?;
+                            .map_err(|e| ResamplerError(format!("rubato process: {e}")))?;
                         n_out
                     };
 
