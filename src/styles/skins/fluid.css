@@ -298,26 +298,29 @@
 }
 
 /* ── Suggestion of the day ─────────────────────────────────── */
-/* The cover's light under the left half of the band: the same blurred
-   copy as the canvas aura, masked towards the cover and faded to the
-   surface before the actions. */
+/* The cover's light under the cover's end of the band: the same
+   blurred copy as the canvas aura, darkened before it is blurred so a
+   pale sleeve cannot lift the ground under the text, and faded out
+   where the text column begins. A light cover at a fifth of its
+   opacity raised the surface from 18 to 74 in luminance, too close to
+   the tertiary ink; at half brightness it stays under 45. */
 :root[data-skin="fluid"] .fe-suggest__aura {
   position: absolute;
   inset: -4rem auto -4rem -4rem;
-  width: 55%;
+  width: 42%;
   z-index: -1;
   overflow: hidden;
   pointer-events: none;
-  opacity: 0.22;
-  mask-image: linear-gradient(to right, #000 25%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to right, #000 25%, transparent 100%);
+  opacity: 0.2;
+  mask-image: linear-gradient(to right, #000 30%, transparent 92%);
+  -webkit-mask-image: linear-gradient(to right, #000 30%, transparent 92%);
   animation: fe-fade-in 900ms var(--fe-ease) both;
 }
 :root[data-skin="fluid"] .fe-suggest__aura img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  filter: blur(72px) saturate(0.95);
+  filter: brightness(0.5) saturate(1.1) blur(72px);
   transform: scale(1.2);
 }
 
@@ -361,11 +364,13 @@
   );
   animation: fe-fade-in 900ms var(--fe-ease) both;
 }
+/* Darkened before the blur for the same reason as the band's aura: a
+   white sleeve must not pale the ground under the counters line. */
 :root[data-skin="fluid"] .fe-canvas__aura img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  filter: blur(96px) saturate(0.95);
+  filter: brightness(0.7) saturate(1.05) blur(96px);
   transform: scale(1.12);
 }
 :root[data-skin="fluid"] .fe-canvas__text,
