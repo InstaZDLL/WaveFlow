@@ -13,7 +13,6 @@ import { useProfile } from "../../../../hooks/useProfile";
 import { useLibrary } from "../../../../hooks/useLibrary";
 import { usePlayer } from "../../../../hooks/usePlayer";
 import { usePlaylist } from "../../../../hooks/usePlaylist";
-import { usePlayerPosition } from "../../../../hooks/usePlayerPosition";
 import { useWrappedBannerVisibility } from "../../../../hooks/useWrappedBannerVisibility";
 import { regenerateAllSmartPlaylists } from "../../../../lib/tauri/smart_playlists";
 import { smartPlaylistKind } from "../../../../lib/tauri/playlist";
@@ -86,7 +85,6 @@ export function FluidHome({
     togglePlayback,
     playTracks,
   } = usePlayer();
-  const positionMs = usePlayerPosition();
   const { playlists, refresh: refreshPlaylists } = usePlaylist();
 
   const [recentPlays, setRecentPlays] = useState<RecentPlay[]>([]);
@@ -295,7 +293,7 @@ export function FluidHome({
           track={canvasTrack}
           isCurrent={isCurrent}
           isPlaying={isPlaying}
-          remainingMs={isCurrent ? Math.max(0, durationMs - positionMs) : null}
+          durationMs={durationMs}
           radioLabel={radioLabel}
           onResume={handleResume}
           onOpenAlbum={onNavigateToAlbum}

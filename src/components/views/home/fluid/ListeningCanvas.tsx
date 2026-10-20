@@ -1,5 +1,6 @@
 import { Pause, Play } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { usePlayerPosition } from "../../../../hooks/usePlayerPosition";
 import { Artwork } from "../../../common/Artwork";
 import { ArtistLink } from "../../../common/ArtistLink";
 import type { Track } from "../../../../lib/tauri/track";
@@ -12,6 +13,24 @@ function greetingKey(): "morning" | "afternoon" | "evening" | "night" {
   if (h >= 12 && h < 18) return "afternoon";
   if (h >= 18 && h < 23) return "evening";
   return "night";
+}
+
+/**
+ * The time left on the playing track. Its own component so the 4 Hz
+ * position tick re-renders this label alone, not the whole Home — the
+ * reason the position lives outside the player context in the first
+ * place (invariants § events).
+ */
+function RemainingTime({ durationMs }: { durationMs: number }) {
+  const { t } = useTranslation();
+  const positionMs = usePlayerPosition();
+  return (
+    <span className="fe-mono text-[0.8125rem] font-medium opacity-70">
+      {t("home.fluid.remaining", {
+        time: clock(Math.max(0, durationMs - positionMs)),
+      })}
+    </span>
+  );
 }
 
 export interface StripAlbum {
@@ -34,7 +53,8 @@ interface ListeningCanvasProps {
   /** Whether `track` is the player's current track (vs. the last played). */
   isCurrent: boolean;
   isPlaying: boolean;
-  remainingMs: number | null;
+  /** The current track's length, for the time left on the CTA. */
+  durationMs: number;
   radioLabel: string | null;
   onResume: () => void;
   onOpenAlbum: (albumId: number) => void;
@@ -59,7 +79,7 @@ export function ListeningCanvas({
   track,
   isCurrent,
   isPlaying,
-  remainingMs,
+  durationMs,
   radioLabel,
   onResume,
   onOpenAlbum,
@@ -162,11 +182,7 @@ export function ListeningCanvas({
                     ? t("home.fluid.resume")
                     : t("home.fluid.play")}
               </span>
-              {isCurrent && remainingMs != null && (
-                <span className="fe-mono text-[0.8125rem] font-medium opacity-70">
-                  {t("home.fluid.remaining", { time: clock(remainingMs) })}
-                </span>
-              )}
+              {isCurrent && <RemainingTime durationMs={durationMs} />}
             </button>
             {track?.album_id != null && (
               <button

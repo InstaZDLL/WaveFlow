@@ -4148,7 +4148,8 @@ interface FolderListProps {
 function folderLeaf(path: string): string {
   const trimmed = path.replace(/[\\/]+$/, "");
   const cut = Math.max(trimmed.lastIndexOf("\\"), trimmed.lastIndexOf("/"));
-  return cut >= 0 ? trimmed.slice(cut + 1) || trimmed : trimmed;
+  // A root such as "/" trims to nothing: the path itself is its name.
+  return (cut >= 0 ? trimmed.slice(cut + 1) : trimmed) || trimmed || path;
 }
 
 function FolderList({

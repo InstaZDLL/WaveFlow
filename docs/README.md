@@ -26,6 +26,12 @@ User-facing references and per-feature deep dives. The top-level [README](../REA
 | [Audio architecture](architecture/audio.md)            | 3-thread lock-free pipeline, ring buffer sizing, callback constraints                                                                                                                                                                                             |
 | [Database & paths](architecture/storage.md)            | `app.db` vs per-profile `data.db`, on-disk layout, migration policy                                                                                                                                                                                               |
 
+## Design
+
+| Doc                                          | Scope                                                                                                                                                                                               |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Fluid Editorial](design/fluid-editorial.md) | The visual direction since 2.0: principles, colour / type / shape / motion tokens, the wave mark, every component's shape, and how to carry it to the web app, the Android app and the landing site |
+
 ## RFCs
 
 Long-form design documents that lock in cross-cutting architectural decisions before implementation. New RFCs live under [`rfcs/`](rfcs/) and are numbered sequentially.

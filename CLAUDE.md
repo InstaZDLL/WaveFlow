@@ -12,6 +12,7 @@ This file is an **index, not a manual**. It carries the map plus the one-line fo
 | --------------------------------------- | -------------------------------------------------------------------- |
 | Why a rule exists / how not to break it | [`docs/architecture/invariants.md`](docs/architecture/invariants.md) |
 | How a feature actually works            | [`docs/features/`](docs/README.md#features)                          |
+| The visual direction (tokens, shapes)   | [`docs/design/fluid-editorial.md`](docs/design/fluid-editorial.md)   |
 | Crate split, audio topology, DB layout  | [`docs/architecture/`](docs/README.md#architecture)                  |
 | Design decisions not yet built          | [`docs/rfcs/`](docs/README.md#rfcs)                                  |
 | Release / packaging procedure           | [`docs/RELEASING.md`](docs/RELEASING.md)                             |

@@ -2667,7 +2667,7 @@
       "canReach": "Peut accéder à :",
       "installAria": "Installer {{name}}",
       "updateAria": "Mettre à jour {{name}}",
-      "allInstalled": "Tout le magasin est déjà installé."
+      "allInstalled": "Tout ce que propose le magasin est déjà installé."
     },
     "motionArtwork": {
       "title": "Pochettes animées",
