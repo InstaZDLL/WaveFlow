@@ -412,7 +412,31 @@
       "cta": "開啟",
       "dismiss": "隱藏 Wrapped 橫幅"
     },
-    "seeAll": "查看全部"
+    "seeAll": "查看全部",
+    "fluid": {
+      "resumeKicker": "從上次停下的地方繼續",
+      "resume": "繼續",
+      "pause": "暫停",
+      "play": "播放",
+      "openAlbum": "開啟專輯",
+      "upNext": "接下來",
+      "recentStrip": "最近播放",
+      "remaining": "剩餘 {{time}}",
+      "radio": "電台",
+      "hours": "已聆聽 {{count}} 小時",
+      "moodStart": "開始電台",
+      "tempo": "節奏",
+      "featuredKicker": "你總是回到這張專輯",
+      "featuredCta": "再聽一次",
+      "yourMixes": "你的混音",
+      "leadKicker": "最新加入",
+      "liked_zero": "0 首喜歡",
+      "liked_one": "{{count}} 首喜歡",
+      "liked_other": "{{count}} 首喜歡",
+      "plays_zero": "播放 0 次",
+      "plays_one": "播放 {{count}} 次",
+      "plays_other": "播放 {{count}} 次"
+    }
   },
   "library": {
     "header": {
@@ -1400,7 +1424,13 @@
     },
     "restOfAlbum": "專輯後續曲目",
     "moreTracks_one": "+{{count}} 首",
-    "moreTracks_other": "+{{count}} 首"
+    "moreTracks_other": "+{{count}} 首",
+    "fluid": {
+      "details": "詳情",
+      "fromAlbum": "正在播放專輯",
+      "artist": "藝人",
+      "openLyrics": "查看歌詞"
+    }
   },
   "playerBar": {
     "lyrics": "歌詞",
@@ -1804,7 +1834,8 @@
         "storageRead": "讀取儲存空間",
         "assets": "資源（{{count}}）",
         "none": "未請求任何權限",
-        "libraryReadArtists": "讀取你的藝人"
+        "libraryReadArtists": "讀取你的藝人",
+        "summary": "權限"
       },
       "bundled": "內建",
       "bundledHint": "隨 WaveFlow 提供——停用以隱藏。",
@@ -1817,7 +1848,7 @@
       "attention": {
         "authRequired": {
           "title": "{{name}}：登入遭拒",
-          "body": "已儲存的 Cookie 或權杖已過期或遭撤銷。請在「設定 → 擴充功能」中貼上新的值。"
+          "body": "已儲存的 Cookie 或權杖已過期或遭撤銷。請在「擴充功能」頁面中貼上新的值。"
         },
         "dismiss": "關閉"
       }
@@ -2236,6 +2267,10 @@
         "liquid": {
           "label": "Liquid",
           "description": "Apple 風格液態玻璃——多層半透明材質、極光背景、膠囊標籤與舒緩的動態效果。"
+        },
+        "fluid": {
+          "label": "Fluid",
+          "description": "電影感編輯風格 — 封面點亮頁面，雜誌式排版，波浪曲線，心情光譜。"
         }
       },
       "accent": {
@@ -2564,7 +2599,8 @@
       "official": "官方",
       "canReach": "可存取：",
       "installAria": "安裝 {{name}}",
-      "updateAria": "更新 {{name}}"
+      "updateAria": "更新 {{name}}",
+      "allInstalled": "商店中的所有外掛均已安裝。"
     },
     "motionArtwork": {
       "title": "動態封面",
@@ -2815,7 +2851,7 @@
     "live": "直播",
     "nowPlaying": "正在播放",
     "unavailableTitle": "Web Radio 已停用",
-    "unavailableHint": "在「設定 → 擴充功能」中啟用 Web Radio 外掛以瀏覽超過 30,000 個電台。",
+    "unavailableHint": "在「擴充功能」頁面中啟用 Web Radio 外掛以瀏覽超過 30,000 個電台。",
     "favorites": "收藏",
     "favoritesEmpty": "還沒有收藏的電台。按一下電台的星號即可儲存。",
     "addFavorite": "加入收藏",

@@ -1199,7 +1199,14 @@ export function PlaylistView({
   const totalDurationLabel = formatPlaylistDuration(totalDurationMs, t);
 
   return (
-    <div className="relative isolate -mx-8 -mt-8 px-8 pt-8 space-y-8 motion-safe:animate-fade-in pb-20">
+    <div
+      className="relative isolate -mx-8 -mt-8 px-8 pt-8 space-y-8 motion-safe:animate-fade-in pb-20"
+      // The accent as a plain colour for a skin that draws its own
+      // backdrop from it (Fluid), beside the gradients below.
+      style={{
+        ["--playlist-accent" as string]: `rgb(${accent.r} ${accent.g} ${accent.b})`,
+      }}
+    >
       {/* The backdrop, one per theme — the CSS picks, so neither needs to
           know which is on. Both let the colour carry on under the head of
           the list: the dark theme's rows are light on dark and the light
@@ -1234,7 +1241,10 @@ export function PlaylistView({
           : null;
         const isSmart = (playlist?.is_smart ?? 0) === 1;
         return (
-          <div className="flex flex-col gap-6 px-6 pt-10 pb-5 sm:px-8 lg:flex-row lg:items-end lg:justify-between lg:min-h-64">
+          <div
+            data-page-hero
+            className="flex flex-col gap-6 px-6 pt-10 pb-5 sm:px-8 lg:flex-row lg:items-end lg:justify-between lg:min-h-64"
+          >
             <div className="flex min-w-0 flex-col items-start gap-6 sm:flex-row sm:items-end">
               {remote && remoteCoverHashes.length >= 4 ? (
                 <div className="w-40 h-40 sm:w-48 sm:h-48 rounded-xl overflow-hidden shadow-xl shrink-0 grid grid-cols-2">

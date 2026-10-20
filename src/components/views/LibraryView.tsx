@@ -1396,7 +1396,7 @@ export function LibraryView({
   return (
     <div className="space-y-6 animate-fade-in pb-12">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div data-page-hero className="flex items-start justify-between">
         <div className="flex items-center space-x-5">
           <div className="w-20 h-20 rounded-2xl bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400 flex items-center justify-center shadow-sm">
             <Music2 size={40} />
@@ -4143,6 +4143,15 @@ interface FolderListProps {
   isAnyRescanActive: boolean;
 }
 
+/** The last segment of a root's path: the name a card leads with, the
+ *  full path staying underneath to tell two roots of one name apart. */
+function folderLeaf(path: string): string {
+  const trimmed = path.replace(/[\\/]+$/, "");
+  const cut = Math.max(trimmed.lastIndexOf("\\"), trimmed.lastIndexOf("/"));
+  // A root such as "/" trims to nothing: the path itself is its name.
+  return (cut >= 0 ? trimmed.slice(cut + 1) : trimmed) || trimmed || path;
+}
+
 function FolderList({
   folders,
   onOpen,
@@ -4224,7 +4233,7 @@ function FolderList({
   };
   return (
     <div
-      className={`rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-800/40 divide-y divide-zinc-100 dark:divide-zinc-800/60 ${
+      className={`grid grid-cols-[repeat(auto-fill,minmax(17rem,1fr))] gap-4 ${
         isLoading ? "opacity-50" : ""
       }`}
     >
@@ -4233,12 +4242,13 @@ function FolderList({
         return (
           <div
             key={folder.id}
-            // The whole row opens the folder (#733): only the path text
+            data-folder-card
+            // The whole card opens the folder (#733): only the path text
             // did, with nothing but an underline on hover to say so, and a
             // tester on 1.8.0-beta.1 never found the folder browser. A
-            // click that starts on one of the row's own controls — or in
+            // click that starts on one of the card's own controls — or in
             // the playlist popover rendered inside it — is theirs, not the
-            // row's. The path stays a button, for the keyboard.
+            // card's. The name stays a button, for the keyboard.
             onClick={(e) => {
               const target = e.target as HTMLElement;
               if (
@@ -4249,160 +4259,170 @@ function FolderList({
                 return;
               onOpen(folder.path);
             }}
-            className="group flex items-center space-x-4 p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 transition-colors relative cursor-pointer"
+            className="group relative flex flex-col gap-3 rounded-2xl border border-zinc-200 bg-white p-4 transition-colors cursor-pointer hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-800/40 dark:hover:bg-zinc-800/70"
           >
-            <div className="w-10 h-10 rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400 flex items-center justify-center shrink-0">
-              <Folder size={20} />
+            {/* The folder's tile on the left, its actions on the right:
+                shown on hover, the watch eye always when it is on. */}
+            <div className="flex items-start justify-between gap-2">
+              <div className="w-11 h-11 rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400 flex items-center justify-center shrink-0">
+                <Folder size={22} />
+              </div>
+              <div className="flex items-center gap-0.5 -mr-1.5 -mt-1.5">
+                <Tooltip
+                  label={
+                    folder.is_watched === 1
+                      ? t("library.folderList.watchOff")
+                      : t("library.folderList.watchOn")
+                  }
+                >
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleWatched(folder.id, folder.is_watched !== 1);
+                    }}
+                    aria-label={
+                      folder.is_watched === 1
+                        ? t("library.folderList.watchOff")
+                        : t("library.folderList.watchOn")
+                    }
+                    aria-pressed={folder.is_watched === 1}
+                    className={`p-1.5 rounded-full transition-colors ${
+                      folder.is_watched === 1
+                        ? "text-emerald-500 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-500/10"
+                        : "opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                    }`}
+                  >
+                    {folder.is_watched === 1 ? (
+                      <Eye size={16} />
+                    ) : (
+                      <EyeOff size={16} />
+                    )}
+                  </button>
+                </Tooltip>
+                <Tooltip label={t("library.folderList.deepRescan")}>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeepRescan(folder.id);
+                    }}
+                    disabled={isAnyRescanActive}
+                    aria-label={t("library.folderList.deepRescan")}
+                    aria-busy={deepRescanFolderId === folder.id}
+                    className={`p-1.5 rounded-full transition-colors text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-700 disabled:opacity-50 ${
+                      deepRescanFolderId === folder.id
+                        ? "opacity-100"
+                        : "opacity-0 group-hover:opacity-100"
+                    }`}
+                  >
+                    {deepRescanFolderId === folder.id ? (
+                      <Loader2 size={16} className="animate-spin" />
+                    ) : (
+                      <RefreshCcw size={16} />
+                    )}
+                  </button>
+                </Tooltip>
+                <Tooltip
+                  label={
+                    confirmDeleteId === folder.id
+                      ? confirmPlayCount?.folderId === folder.id &&
+                        confirmPlayCount.count > 0
+                        ? t("library.folderList.removeConfirmWithPlays", {
+                            count: confirmPlayCount.count,
+                          })
+                        : t("library.folderList.removeConfirm")
+                      : t("library.folderList.remove")
+                  }
+                >
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (confirmDeleteId === folder.id) {
+                        setConfirmDeleteId(null);
+                        onRemove(folder.id);
+                      } else {
+                        setConfirmDeleteId(folder.id);
+                      }
+                    }}
+                    aria-label={
+                      confirmDeleteId === folder.id
+                        ? t("library.folderList.removeConfirm")
+                        : t("library.folderList.remove")
+                    }
+                    className={`p-1.5 rounded-full transition-colors ${
+                      confirmDeleteId === folder.id
+                        ? "bg-red-500 text-white"
+                        : "opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10"
+                    }`}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </Tooltip>
+                <div className="relative">
+                  <button
+                    type="button"
+                    data-add-to-playlist-trigger
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOpenMenuFolderId(isMenuOpen ? null : folder.id);
+                    }}
+                    aria-label={t("trackActions.addToPlaylist")}
+                    className={`p-1.5 rounded-full transition-all ${
+                      isMenuOpen
+                        ? "opacity-100 bg-emerald-500 text-white"
+                        : "opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                    }`}
+                  >
+                    <Plus size={16} />
+                  </button>
+                  {isMenuOpen && (
+                    <AddToPlaylistPopover
+                      playlists={playlists}
+                      trackId={folder.id}
+                      onPick={(playlistId) => {
+                        onAddToPlaylist(playlistId, folder.id);
+                        setOpenMenuFolderId(null);
+                      }}
+                      onCreate={() => {
+                        setOpenMenuFolderId(null);
+                        onCreatePlaylist(folder.id);
+                      }}
+                      t={t}
+                    />
+                  )}
+                </div>{" "}
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
+            <div className="min-w-0">
               <button
                 type="button"
                 onClick={() => onOpen(folder.path)}
                 title={t("library.folderBrowser.open")}
-                className="block w-full text-left text-sm font-medium text-zinc-800 dark:text-zinc-200 truncate hover:underline focus-visible:underline focus-visible:outline-none"
+                className="block w-full text-left text-sm font-semibold text-zinc-900 dark:text-white truncate hover:underline focus-visible:underline focus-visible:outline-none"
+              >
+                {folderLeaf(folder.path)}
+              </button>
+              <div
+                className="text-[11px] text-zinc-500 truncate"
+                title={folder.path}
               >
                 {folder.path}
-              </button>
-              <div className="text-xs text-zinc-500">
+              </div>
+            </div>
+            <div className="flex items-center justify-between gap-2 text-xs text-zinc-500">
+              <span className="shrink-0">
                 {t("library.folderList.trackCount", {
                   count: folder.track_count,
                 })}
-                {" · "}
+              </span>
+              <span className="truncate">
                 {t("library.folderList.lastScanned", {
                   date: formatScannedAt(folder.last_scanned_at),
                 })}
-              </div>
+              </span>
             </div>
-            <Tooltip
-              label={
-                folder.is_watched === 1
-                  ? t("library.folderList.watchOff")
-                  : t("library.folderList.watchOn")
-              }
-            >
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onToggleWatched(folder.id, folder.is_watched !== 1);
-                }}
-                aria-label={
-                  folder.is_watched === 1
-                    ? t("library.folderList.watchOff")
-                    : t("library.folderList.watchOn")
-                }
-                aria-pressed={folder.is_watched === 1}
-                className={`p-1.5 rounded-full transition-colors ${
-                  folder.is_watched === 1
-                    ? "text-emerald-500 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-500/10"
-                    : "opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-700"
-                }`}
-              >
-                {folder.is_watched === 1 ? (
-                  <Eye size={16} />
-                ) : (
-                  <EyeOff size={16} />
-                )}
-              </button>
-            </Tooltip>
-            <Tooltip label={t("library.folderList.deepRescan")}>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDeepRescan(folder.id);
-                }}
-                disabled={isAnyRescanActive}
-                aria-label={t("library.folderList.deepRescan")}
-                aria-busy={deepRescanFolderId === folder.id}
-                className={`p-1.5 rounded-full transition-colors text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-700 disabled:opacity-50 ${
-                  deepRescanFolderId === folder.id
-                    ? "opacity-100"
-                    : "opacity-0 group-hover:opacity-100"
-                }`}
-              >
-                {deepRescanFolderId === folder.id ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : (
-                  <RefreshCcw size={16} />
-                )}
-              </button>
-            </Tooltip>
-            <Tooltip
-              label={
-                confirmDeleteId === folder.id
-                  ? confirmPlayCount?.folderId === folder.id &&
-                    confirmPlayCount.count > 0
-                    ? t("library.folderList.removeConfirmWithPlays", {
-                        count: confirmPlayCount.count,
-                      })
-                    : t("library.folderList.removeConfirm")
-                  : t("library.folderList.remove")
-              }
-            >
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (confirmDeleteId === folder.id) {
-                    setConfirmDeleteId(null);
-                    onRemove(folder.id);
-                  } else {
-                    setConfirmDeleteId(folder.id);
-                  }
-                }}
-                aria-label={
-                  confirmDeleteId === folder.id
-                    ? t("library.folderList.removeConfirm")
-                    : t("library.folderList.remove")
-                }
-                className={`p-1.5 rounded-full transition-colors ${
-                  confirmDeleteId === folder.id
-                    ? "bg-red-500 text-white"
-                    : "opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10"
-                }`}
-              >
-                <Trash2 size={16} />
-              </button>
-            </Tooltip>
-            <div className="relative">
-              <button
-                type="button"
-                data-add-to-playlist-trigger
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setOpenMenuFolderId(isMenuOpen ? null : folder.id);
-                }}
-                aria-label={t("trackActions.addToPlaylist")}
-                className={`p-1.5 rounded-full transition-all ${
-                  isMenuOpen
-                    ? "opacity-100 bg-emerald-500 text-white"
-                    : "opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-700"
-                }`}
-              >
-                <Plus size={16} />
-              </button>
-              {isMenuOpen && (
-                <AddToPlaylistPopover
-                  playlists={playlists}
-                  trackId={folder.id}
-                  onPick={(playlistId) => {
-                    onAddToPlaylist(playlistId, folder.id);
-                    setOpenMenuFolderId(null);
-                  }}
-                  onCreate={() => {
-                    setOpenMenuFolderId(null);
-                    onCreatePlaylist(folder.id);
-                  }}
-                  t={t}
-                />
-              )}
-            </div>
-            <ChevronRight
-              size={18}
-              aria-hidden="true"
-              className="shrink-0 text-zinc-400 group-hover:text-zinc-700 dark:group-hover:text-zinc-200 transition-colors"
-            />
           </div>
         );
       })}

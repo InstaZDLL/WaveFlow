@@ -51,7 +51,14 @@ function notifyAvailabilityChanged() {
  * row's button) rather than a modal — Settings is already a
  * focused surface, a modal would feel heavy for a per-row action.
  */
-export function PluginsCard() {
+export function PluginsCard({
+  variant = "card",
+}: {
+  /** The settings card it was born as, or a grid of tiles for the
+   *  Extensions page; a tile whose options are open takes the row. */
+  variant?: "card" | "grid";
+} = {}) {
+  const grid = variant === "grid";
   const { t } = useTranslation();
   // Plugin descriptions are authored in each plugin's manifest, not in
   // our i18next files — they carry their own language map.
@@ -75,21 +82,34 @@ export function PluginsCard() {
     // accepts. `cancelled` guards against a stale callback
     // landing setState after the component unmounted.
     let cancelled = false;
-    listInstalledPlugins().then(
-      (list) => {
-        if (cancelled) return;
-        setPlugins(list);
-        setError(null);
-        setLoading(false);
-      },
-      (e: unknown) => {
-        if (cancelled) return;
-        setError(e instanceof Error ? e.message : String(e));
-        setLoading(false);
-      },
-    );
+    // The event can fire twice in a row and the two reads answer in
+    // any order: only the latest one may write, or an older snapshot
+    // would land over a newer state.
+    let seq = 0;
+    const load = () => {
+      const mine = ++seq;
+      listInstalledPlugins().then(
+        (list) => {
+          if (cancelled || mine !== seq) return;
+          setPlugins(list);
+          setError(null);
+          setLoading(false);
+        },
+        (e: unknown) => {
+          if (cancelled || mine !== seq) return;
+          setError(e instanceof Error ? e.message : String(e));
+          setLoading(false);
+        },
+      );
+    };
+    load();
+    // The store beside this list dispatches the same event after an
+    // install (and this list after a toggle or an uninstall): re-read
+    // on it, so the two never show different sets of plugins.
+    window.addEventListener(PLUGIN_AVAILABILITY_EVENT, load);
     return () => {
       cancelled = true;
+      window.removeEventListener(PLUGIN_AVAILABILITY_EVENT, load);
     };
   }, []);
 
@@ -131,9 +151,19 @@ export function PluginsCard() {
   return (
     <section
       aria-labelledby="settings-plugins-heading"
-      className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden"
+      className={
+        grid
+          ? "space-y-3"
+          : "bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden"
+      }
     >
-      <header className="px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 flex items-start gap-3">
+      <header
+        className={
+          grid
+            ? "flex items-start gap-3 px-1"
+            : "px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 flex items-start gap-3"
+        }
+      >
         <Puzzle
           size={20}
           className="text-zinc-400 mt-0.5 shrink-0"
@@ -192,13 +222,26 @@ export function PluginsCard() {
           </button>
         </div>
       ) : (
-        <ul className="divide-y divide-zinc-200 dark:divide-zinc-800">
+        <ul
+          className={
+            grid
+              ? "grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3"
+              : "divide-y divide-zinc-200 dark:divide-zinc-800"
+          }
+        >
           {plugins.map((plugin) => {
             const isBusy = busyId === plugin.id;
             const isConfirming = confirmingUninstall === plugin.id;
             const description = localized(plugin.description);
             return (
-              <li key={plugin.id} className="px-4 py-3">
+              <li
+                key={plugin.id}
+                className={
+                  grid
+                    ? `flex flex-col rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900 ${optionsFor === plugin.id ? "md:col-span-2 xl:col-span-3" : ""}`
+                    : "px-4 py-3"
+                }
+              >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -217,7 +260,9 @@ export function PluginsCard() {
                       })}
                     </div>
                     {description && (
-                      <p className="text-xs text-zinc-600 dark:text-zinc-300 mt-1 leading-relaxed">
+                      <p
+                        className={`text-xs text-zinc-600 dark:text-zinc-300 mt-1 leading-relaxed ${grid ? "line-clamp-2" : ""}`}
+                      >
                         {description}
                       </p>
                     )}

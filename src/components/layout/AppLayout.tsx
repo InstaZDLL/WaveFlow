@@ -29,6 +29,8 @@ import { QueuePanel } from "./QueuePanel";
 import { NowPlayingPanel } from "./NowPlayingPanel";
 import { LyricsPanel } from "./LyricsPanel";
 import { NowPlayingChevronTab } from "./NowPlayingChevronTab";
+import { FluidSidePanel } from "./fluid/FluidSidePanel";
+import { useSkin } from "../../hooks/useSkin";
 import { DeviceMenu } from "./DeviceMenu";
 import { PlayerBar } from "../player/PlayerBar";
 import { ProfileSelectorModal } from "../common/ProfileSelectorModal";
@@ -66,6 +68,11 @@ const SettingsView = lazy(() =>
 const WebRadioView = lazy(() =>
   import("../views/WebRadioView").then((module) => ({
     default: module.WebRadioView,
+  })),
+);
+const ExtensionsView = lazy(() =>
+  import("../views/ExtensionsView").then((module) => ({
+    default: module.ExtensionsView,
   })),
 );
 const PluginUIView = lazy(() =>
@@ -147,6 +154,7 @@ type HistoryEntry =
   // and lands on whatever the user last had open.
   | { id: "settings"; settingsCategory?: SettingsCategory }
   | { id: "web-radio" }
+  | { id: "extensions" }
   | { id: "about" }
   | { id: "feedback" }
   | { id: "statistics" }
@@ -174,6 +182,10 @@ type HistoryEntry =
 export function AppLayout() {
   const { t } = useTranslation();
   const { activeRightPanel } = usePlayer();
+  // The Fluid skin shows the three right-edge panels as the tabs of
+  // one shell; every other skin mounts them one at a time, as before.
+  const { skin } = useSkin();
+  const fluidPanel = skin.id === "fluid";
   const dragDrop = useDragDropImport();
   // Global keyboard shortcuts. The hook itself attaches the keydown
   // listener and re-reads bindings whenever Settings emits the
@@ -613,6 +625,8 @@ export function AppLayout() {
         );
       case "web-radio":
         return <WebRadioView />;
+      case "extensions":
+        return <ExtensionsView />;
       case "plugin-ui":
         // `key` forces a fresh mount per plugin so switching between two
         // ui plugins reloads cleanly instead of reusing the last view.
@@ -891,14 +905,20 @@ export function AppLayout() {
               Wrapped in AnimatePresence so width/opacity exit animations
               play before unmount. */}
             <AnimatePresence initial={false}>
-              {activeRightPanel === "queue" && <QueuePanel />}
-              {activeRightPanel === "nowPlaying" && (
+              {fluidPanel && activeRightPanel != null && (
+                <FluidSidePanel
+                  onNavigateToArtist={navigateToArtist}
+                  onNavigateToRemoteArtist={navigateToRemoteArtist}
+                />
+              )}
+              {!fluidPanel && activeRightPanel === "queue" && <QueuePanel />}
+              {!fluidPanel && activeRightPanel === "nowPlaying" && (
                 <NowPlayingPanel
                   onNavigateToArtist={navigateToArtist}
                   onNavigateToRemoteArtist={navigateToRemoteArtist}
                 />
               )}
-              {activeRightPanel === "lyrics" && <LyricsPanel />}
+              {!fluidPanel && activeRightPanel === "lyrics" && <LyricsPanel />}
             </AnimatePresence>
           </div>
 

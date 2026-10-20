@@ -59,7 +59,12 @@ import { isRemoteTrack } from "../../lib/playerSources";
  * opens, and whenever a `player:queue-changed` event fires (the
  * backend emits this after fill_queue, advance, shuffle, etc).
  */
-export function QueuePanel() {
+export function QueuePanel({
+  embedded = false,
+}: {
+  /** Inside the Fluid skin's tabbed shell: no frame, no title, no close. */
+  embedded?: boolean;
+} = {}) {
   const { t, i18n } = useTranslation();
   const { isQueueOpen, toggleQueue, playbackState, currentTrack } = usePlayer();
   // A remote play session has its own in-memory queue, shown by a
@@ -213,6 +218,150 @@ export function QueuePanel() {
     [trackMenu],
   );
 
+  const body = (
+    <div
+      className={
+        embedded
+          ? "px-6 pb-6 pt-3 flex flex-col h-full"
+          : "p-6 flex flex-col h-full w-80"
+      }
+    >
+      {trackMenu.render()}
+      <div
+        className={`flex items-center justify-between ${embedded ? "mb-4" : "mb-6"}`}
+      >
+        <div>
+          {!embedded && (
+            <h2 className="text-xl font-bold">{t("queue.title")}</h2>
+          )}
+          <p className="text-xs text-zinc-500 mt-1">
+            {!isRemote && t("queue.count", { count: total })}
+            {!isActive && (
+              <span className="bg-zinc-200 dark:bg-zinc-700 text-[10px] px-2 py-0.5 rounded-full ml-2 font-medium">
+                {t("queue.inactive")}
+              </span>
+            )}
+          </p>
+        </div>
+        <div className="flex items-center gap-1">
+          {!isRemote && total > 0 && (
+            <button
+              type="button"
+              onClick={() => setIsSaveOpen(true)}
+              aria-label={t("queue.saveAsPlaylist")}
+              title={t("queue.saveAsPlaylist")}
+              className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors"
+            >
+              <Save size={18} />
+            </button>
+          )}
+          {!embedded && (
+            <button
+              type="button"
+              onClick={toggleQueue}
+              aria-label={t("common.close")}
+              className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors"
+            >
+              <X size={20} />
+            </button>
+          )}
+        </div>
+      </div>
+      <CreatePlaylistModal
+        isOpen={isSaveOpen}
+        onClose={() => setIsSaveOpen(false)}
+        initialName={t("queue.defaultPlaylistName", {
+          date: new Date().toLocaleDateString(i18n.language),
+        })}
+        onCreate={async (data) => {
+          const created = await createFromModal(data);
+          // Library rows only: a negative id is a sentinel for a row
+          // with no local track, which no playlist can hold.
+          const ids = items.map((item) => item.id).filter((id) => id > 0);
+          if (created?.id != null && ids.length > 0) {
+            try {
+              await addTracksToPlaylist(created.id, ids);
+            } catch (err) {
+              // The playlist exists; returning it keeps the modal from
+              // offering a retry that would create a duplicate.
+              console.error("[QueuePanel] save queue tracks failed", err);
+            }
+          }
+          return created;
+        }}
+      />
+
+      {isRemote ? (
+        <RemoteQueueView />
+      ) : total === 0 ? (
+        <div className="flex-1 flex flex-col items-center justify-center text-center">
+          <div className="w-24 h-24 bg-zinc-100 dark:bg-zinc-800 rounded-2xl flex items-center justify-center mb-6 shadow-inner">
+            <ListMusic
+              size={40}
+              className="text-zinc-300 dark:text-zinc-600"
+              aria-hidden="true"
+            />
+          </div>
+          <h3 className="font-semibold mb-2">{t("queue.emptyTitle")}</h3>
+          <p className="text-sm text-zinc-500 max-w-50">
+            {t("queue.emptyDescription")}
+          </p>
+        </div>
+      ) : (
+        <div className="flex-1 flex flex-col min-h-0 -mx-2 px-2 space-y-5">
+          {snapshot?.source_type === "radio" && items[0] && (
+            <div className="shrink-0 flex items-center gap-3 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-900/40">
+              <div className="shrink-0 w-9 h-9 rounded-full bg-emerald-500/15 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                <Radio size={18} />
+              </div>
+              <div className="min-w-0">
+                <div className="text-[10px] font-bold tracking-widest uppercase text-emerald-600 dark:text-emerald-400">
+                  {t("queue.radio.label")}
+                </div>
+                <div className="text-xs text-zinc-700 dark:text-zinc-200 truncate">
+                  {t("queue.radio.basedOn", { title: items[0].title })}
+                </div>
+              </div>
+            </div>
+          )}
+          {nowPlaying && (
+            <section className="shrink-0">
+              <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase mb-2 px-1">
+                {t("queue.nowPlaying")}
+              </div>
+              <QueueRow
+                item={nowPlaying}
+                isCurrent
+                onContextMenu={(e) => handleRowContextMenu(e, nowPlaying)}
+                onMenuKey={
+                  hasTrackMenu(nowPlaying)
+                    ? (e) => handleRowMenuKey(e, nowPlaying)
+                    : undefined
+                }
+              />
+            </section>
+          )}
+          {upNext.length > 0 && (
+            <section className="flex-1 flex flex-col min-h-0">
+              <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase mb-2 px-1">
+                {t("queue.upNext", { count: upNext.length })}
+              </div>
+              <SortableUpNext
+                items={upNext}
+                startIndex={currentIndex + 1}
+                onJump={handleJump}
+                onReorder={handleReorder}
+                onContextMenu={handleRowContextMenu}
+                onRowMenuKey={handleRowMenuKey}
+              />
+            </section>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
+  if (embedded) return <div className="h-full">{body}</div>;
   return (
     <motion.aside
       key="queue"
@@ -222,134 +371,7 @@ export function QueuePanel() {
       transition={{ type: "spring", stiffness: 320, damping: 32, mass: 0.8 }}
       className="h-full shrink-0 overflow-hidden border-l bg-surface-light border-zinc-200 text-zinc-800 dark:bg-surface-dark dark:border-zinc-800 dark:text-zinc-100"
     >
-      <div className="p-6 flex flex-col h-full w-80">
-        {trackMenu.render()}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-xl font-bold">{t("queue.title")}</h2>
-            <p className="text-xs text-zinc-500 mt-1">
-              {!isRemote && t("queue.count", { count: total })}
-              {!isActive && (
-                <span className="bg-zinc-200 dark:bg-zinc-700 text-[10px] px-2 py-0.5 rounded-full ml-2 font-medium">
-                  {t("queue.inactive")}
-                </span>
-              )}
-            </p>
-          </div>
-          <div className="flex items-center gap-1">
-            {!isRemote && total > 0 && (
-              <button
-                type="button"
-                onClick={() => setIsSaveOpen(true)}
-                aria-label={t("queue.saveAsPlaylist")}
-                title={t("queue.saveAsPlaylist")}
-                className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors"
-              >
-                <Save size={18} />
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={toggleQueue}
-              aria-label={t("common.close")}
-              className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors"
-            >
-              <X size={20} />
-            </button>
-          </div>
-        </div>
-        <CreatePlaylistModal
-          isOpen={isSaveOpen}
-          onClose={() => setIsSaveOpen(false)}
-          initialName={t("queue.defaultPlaylistName", {
-            date: new Date().toLocaleDateString(i18n.language),
-          })}
-          onCreate={async (data) => {
-            const created = await createFromModal(data);
-            // Library rows only: a negative id is a sentinel for a row
-            // with no local track, which no playlist can hold.
-            const ids = items.map((item) => item.id).filter((id) => id > 0);
-            if (created?.id != null && ids.length > 0) {
-              try {
-                await addTracksToPlaylist(created.id, ids);
-              } catch (err) {
-                // The playlist exists; returning it keeps the modal from
-                // offering a retry that would create a duplicate.
-                console.error("[QueuePanel] save queue tracks failed", err);
-              }
-            }
-            return created;
-          }}
-        />
-
-        {isRemote ? (
-          <RemoteQueueView />
-        ) : total === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center text-center">
-            <div className="w-24 h-24 bg-zinc-100 dark:bg-zinc-800 rounded-2xl flex items-center justify-center mb-6 shadow-inner">
-              <ListMusic
-                size={40}
-                className="text-zinc-300 dark:text-zinc-600"
-                aria-hidden="true"
-              />
-            </div>
-            <h3 className="font-semibold mb-2">{t("queue.emptyTitle")}</h3>
-            <p className="text-sm text-zinc-500 max-w-50">
-              {t("queue.emptyDescription")}
-            </p>
-          </div>
-        ) : (
-          <div className="flex-1 flex flex-col min-h-0 -mx-2 px-2 space-y-5">
-            {snapshot?.source_type === "radio" && items[0] && (
-              <div className="shrink-0 flex items-center gap-3 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-900/40">
-                <div className="shrink-0 w-9 h-9 rounded-full bg-emerald-500/15 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-                  <Radio size={18} />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-[10px] font-bold tracking-widest uppercase text-emerald-600 dark:text-emerald-400">
-                    {t("queue.radio.label")}
-                  </div>
-                  <div className="text-xs text-zinc-700 dark:text-zinc-200 truncate">
-                    {t("queue.radio.basedOn", { title: items[0].title })}
-                  </div>
-                </div>
-              </div>
-            )}
-            {nowPlaying && (
-              <section className="shrink-0">
-                <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase mb-2 px-1">
-                  {t("queue.nowPlaying")}
-                </div>
-                <QueueRow
-                  item={nowPlaying}
-                  isCurrent
-                  onContextMenu={(e) => handleRowContextMenu(e, nowPlaying)}
-                  onMenuKey={
-                    hasTrackMenu(nowPlaying)
-                      ? (e) => handleRowMenuKey(e, nowPlaying)
-                      : undefined
-                  }
-                />
-              </section>
-            )}
-            {upNext.length > 0 && (
-              <section className="flex-1 flex flex-col min-h-0">
-                <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase mb-2 px-1">
-                  {t("queue.upNext", { count: upNext.length })}
-                </div>
-                <SortableUpNext
-                  items={upNext}
-                  startIndex={currentIndex + 1}
-                  onJump={handleJump}
-                  onReorder={handleReorder}
-                  onContextMenu={handleRowContextMenu}
-                  onRowMenuKey={handleRowMenuKey}
-                />
-              </section>
-            )}
-          </div>
-        )}
-      </div>
+      {body}
     </motion.aside>
   );
 }

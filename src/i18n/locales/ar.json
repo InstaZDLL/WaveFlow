@@ -455,7 +455,37 @@
       "cta": "فتح",
       "dismiss": "إخفاء لافتة Wrapped"
     },
-    "seeAll": "عرض الكل"
+    "seeAll": "عرض الكل",
+    "fluid": {
+      "resumeKicker": "تابع من حيث توقفت",
+      "resume": "متابعة",
+      "pause": "إيقاف مؤقت",
+      "play": "تشغيل",
+      "openAlbum": "فتح الألبوم",
+      "upNext": "التالي",
+      "recentStrip": "آخر ما استمعت إليه",
+      "remaining": "متبقٍ {{time}}",
+      "radio": "راديو",
+      "hours": "{{count}} س من الاستماع",
+      "moodStart": "تشغيل الراديو",
+      "tempo": "الإيقاع",
+      "featuredKicker": "تعود إليه دائمًا",
+      "featuredCta": "استمع مجددًا",
+      "yourMixes": "مزيجاتك",
+      "leadKicker": "آخر إضافة",
+      "liked_zero": "لا مفضلات",
+      "liked_one": "مفضلة واحدة",
+      "liked_two": "مفضلتان",
+      "liked_few": "{{count}} مفضلات",
+      "liked_many": "{{count}} مفضلة",
+      "liked_other": "{{count}} مفضلة",
+      "plays_zero": "لا تشغيلات",
+      "plays_one": "تشغيل واحد",
+      "plays_two": "تشغيلان",
+      "plays_few": "{{count}} تشغيلات",
+      "plays_many": "{{count}} تشغيلًا",
+      "plays_other": "{{count}} تشغيل"
+    }
   },
   "library": {
     "header": {
@@ -1577,7 +1607,13 @@
     "moreTracks_zero": "+{{count}} مقطع",
     "moreTracks_two": "+{{count}} مقطع",
     "moreTracks_few": "+{{count}} مقاطع",
-    "moreTracks_many": "+{{count}} مقطعًا"
+    "moreTracks_many": "+{{count}} مقطعًا",
+    "fluid": {
+      "details": "التفاصيل",
+      "fromAlbum": "تشغيل من الألبوم",
+      "artist": "الفنان",
+      "openLyrics": "عرض الكلمات"
+    }
   },
   "playerBar": {
     "lyrics": "الكلمات",
@@ -1999,7 +2035,8 @@
         "storageRead": "قراءة التخزين",
         "assets": "الموارد ({{count}})",
         "none": "لا توجد أذونات مطلوبة",
-        "libraryReadArtists": "قراءة فنانيك"
+        "libraryReadArtists": "قراءة فنانيك",
+        "summary": "الأذونات"
       },
       "bundled": "مدمج",
       "bundledHint": "يأتي مع WaveFlow — عطّلها لإخفائها.",
@@ -2012,7 +2049,7 @@
       "attention": {
         "authRequired": {
           "title": "{{name}}: رُفض تسجيل الدخول",
-          "body": "انتهت صلاحية ملف تعريف الارتباط أو الرمز المحفوظ أو أُلغي. الصق رمزًا جديدًا في الإعدادات ← الإضافات."
+          "body": "انتهت صلاحية ملف تعريف الارتباط أو الرمز المحفوظ أو أُلغي. الصق رمزًا جديدًا في صفحة الإضافات."
         },
         "dismiss": "إغلاق"
       }
@@ -2523,6 +2560,10 @@
         "liquid": {
           "label": "Liquid",
           "description": "زجاج سائل بأسلوب Apple — مادة شفافة متعددة الطبقات، خلفية شفقية، كبسولات قرصية، حركة هادئة."
+        },
+        "fluid": {
+          "label": "Fluid",
+          "description": "تحريري سينمائي — الغلاف يضيء الصفحة، طباعة بأسلوب المجلات، منحنيات موجية، طيف المزاج."
         }
       },
       "accent": {
@@ -2787,7 +2828,8 @@
       "official": "رسمي",
       "canReach": "يمكنه الوصول إلى:",
       "installAria": "تثبيت {{name}}",
-      "updateAria": "تحديث {{name}}"
+      "updateAria": "تحديث {{name}}",
+      "allInstalled": "كل ما في المتجر مثبّت بالفعل."
     },
     "motionArtwork": {
       "title": "الأغلفة المتحركة",
@@ -3042,7 +3084,7 @@
     "live": "مباشر",
     "nowPlaying": "قيد التشغيل الآن",
     "unavailableTitle": "راديو الويب معطّل",
-    "unavailableHint": "فعّل إضافة «راديو الويب» من الإعدادات ← الإضافات لتصفح أكثر من 30,000 محطة.",
+    "unavailableHint": "فعّل إضافة «راديو الويب» من صفحة الإضافات لتصفح أكثر من 30,000 محطة.",
     "favorites": "المفضلة",
     "favoritesEmpty": "لا توجد محطات مفضلة بعد. انقر على نجمة المحطة لحفظها.",
     "addFavorite": "إضافة إلى المفضلة",

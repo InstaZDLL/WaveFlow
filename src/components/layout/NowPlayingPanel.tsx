@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
-import { X, Music2, Radio } from "lucide-react";
+import { X, Music2, Radio, User } from "lucide-react";
+import { LyricsPreviewCard } from "./fluid/LyricsPreviewCard";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { usePlayer } from "../../hooks/usePlayer";
 import { useArtistUpdated } from "../../hooks/useArtistUpdated";
@@ -46,6 +47,9 @@ interface NowPlayingPanelProps {
   /** Navigate to a remote artist (RFC-005) — used when the current track
    *  is a remote stream, whose artist has a server id, not a local one. */
   onNavigateToRemoteArtist: (artistId: string) => void;
+  /** Inside the Fluid skin's tabbed shell: no frame, no header, the
+   *  cover edge to edge with the title over it, the actions as pills. */
+  embedded?: boolean;
 }
 
 /**
@@ -62,10 +66,16 @@ interface NowPlayingPanelProps {
 export function NowPlayingPanel({
   onNavigateToArtist,
   onNavigateToRemoteArtist,
+  embedded = false,
 }: NowPlayingPanelProps) {
   const { t } = useTranslation();
-  const { toggleNowPlaying, toggleQueue, currentTrack, isNowPlayingOpen } =
-    usePlayer();
+  const {
+    toggleNowPlaying,
+    toggleQueue,
+    openRightPanel,
+    currentTrack,
+    isNowPlayingOpen,
+  } = usePlayer();
 
   // Enrichment (picture + bio) for the current artist. Re-fetched
   // whenever the primary artist_id changes.
@@ -346,7 +356,12 @@ export function NowPlayingPanel({
   // cropped one nobody looks at.
   const coverClass = canvasTall
     ? "w-full h-full shadow-lg"
-    : "w-full aspect-square shadow-lg";
+    : embedded
+      ? "w-full aspect-square"
+      : "w-full aspect-square shadow-lg";
+  // Embedded, the sections under the cover carry the panel's inset
+  // themselves: the cover is the one thing that runs edge to edge.
+  const inset = embedded ? "mx-6" : "";
 
   // Cover ↔ artist slideshow (issue #466) — the ambient fallback, one rung
   // below the motion cover (Canvas > motion > slideshow > cover).
@@ -375,7 +390,8 @@ export function NowPlayingPanel({
   // reference does it (#694). They differ only in the colours they can
   // afford: over a clip whose palette we cannot know, white on a scrim is
   // the only safe pair, so the panel's own zinc scale is out.
-  const identityTone = canvasTall
+  const identityOverCover = canvasTall || embedded;
+  const identityTone = identityOverCover
     ? {
         title: "text-white",
         artist: "text-white/85",
@@ -423,17 +439,16 @@ export function NowPlayingPanel({
     </div>
   ) : null;
 
-  return (
-    <motion.aside
-      key="nowPlaying"
-      initial={{ width: 0, opacity: 0 }}
-      animate={{ width: 320, opacity: 1 }}
-      exit={{ width: 0, opacity: 0 }}
-      transition={{ type: "spring", stiffness: 320, damping: 32, mass: 0.8 }}
-      className="h-full shrink-0 overflow-hidden border-l bg-surface-light border-zinc-200 text-zinc-800 dark:bg-surface-dark dark:border-zinc-800 dark:text-zinc-100"
+  const body = (
+    <div
+      className={
+        embedded
+          ? "flex flex-col h-full overflow-y-auto"
+          : "flex flex-col h-full overflow-y-auto w-80"
+      }
     >
-      <div className="flex flex-col h-full overflow-y-auto w-80">
-        {/* Header */}
+      {/* Header — the shell draws its own in the embedded form. */}
+      {!embedded && (
         <div className="flex items-center justify-between p-6 pb-4 sticky top-0 bg-surface-light dark:bg-surface-dark border-b border-zinc-100 dark:border-zinc-800 z-10">
           <h2 className="text-sm font-bold tracking-widest uppercase text-zinc-500 dark:text-zinc-400">
             {t("nowPlaying.title")}
@@ -461,56 +476,36 @@ export function NowPlayingPanel({
             </button>
           </div>
         </div>
+      )}
 
-        {currentTrack ? (
-          <div className="p-6 space-y-6">
-            {/* Large artwork — keyboard-accessible lightbox trigger. The
+      {currentTrack ? (
+        <div className={embedded ? "space-y-6 pb-6" : "p-6 space-y-6"}>
+          {/* Large artwork — keyboard-accessible lightbox trigger. The
                 Canvas overlay lives on a shared relative wrapper so it still
                 renders for a track that has a Canvas but no cover art. */}
-            {/* The frame takes the clip's shape while a tall Canvas plays,
+          {/* The frame takes the clip's shape while a tall Canvas plays,
                 and the cover's square back otherwise. `width` rather than a
                 height cap so the aspect ratio survives the clamp: a definite
                 width lets `aspect-ratio` derive the height, where a
                 `max-height` would just squash the box out of ratio. */}
-            <div
-              className={`relative mx-auto transition-[width,aspect-ratio] duration-500 ${canvasTall ? "" : "w-full"}`}
-              style={
-                canvasTall && clipAspect != null
-                  ? {
-                      aspectRatio: clipAspect,
-                      width: `min(100%, calc(56vh * ${clipAspect}))`,
-                    }
-                  : undefined
-              }
-            >
-              {currentTrack.artwork_path ? (
-                <button
-                  type="button"
-                  onClick={() => setIsLightboxOpen(true)}
-                  aria-label={t("common.viewArtwork")}
-                  className={`relative cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-2xl block w-full ${canvasTall ? "h-full" : ""}`}
-                >
-                  <Artwork
-                    path={currentTrack.artwork_path}
-                    path1x={currentTrack.artwork_path_1x}
-                    path2x={currentTrack.artwork_path_2x}
-                    size="full"
-                    alt={currentTrack.album_title ?? currentTrack.title}
-                    className={coverClass}
-                    iconSize={80}
-                    rounded="2xl"
-                  />
-                  {!canvasActive && (
-                    <MotionCoverOverlay
-                      artist={currentTrack.artist_name}
-                      album={currentTrack.album_title}
-                      albumId={currentTrack.album_id}
-                      rounded="2xl"
-                      className="shadow-lg"
-                    />
-                  )}
-                </button>
-              ) : (
+          <div
+            className={`relative mx-auto transition-[width,aspect-ratio] duration-500 ${canvasTall ? "" : "w-full"} ${embedded ? "fe-panel__hero" : ""}`}
+            style={
+              canvasTall && clipAspect != null
+                ? {
+                    aspectRatio: clipAspect,
+                    width: `min(100%, calc(56vh * ${clipAspect}))`,
+                  }
+                : undefined
+            }
+          >
+            {currentTrack.artwork_path ? (
+              <button
+                type="button"
+                onClick={() => setIsLightboxOpen(true)}
+                aria-label={t("common.viewArtwork")}
+                className={`relative cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-2xl block w-full ${canvasTall ? "h-full" : ""}`}
+              >
                 <Artwork
                   path={currentTrack.artwork_path}
                   path1x={currentTrack.artwork_path_1x}
@@ -521,36 +516,85 @@ export function NowPlayingPanel({
                   iconSize={80}
                   rounded="2xl"
                 />
-              )}
-              <CanvasStage
-                path={canvasPath}
-                enabled={canvasEnabled && !reducedMotion}
+                {!canvasActive && (
+                  <MotionCoverOverlay
+                    artist={currentTrack.artist_name}
+                    album={currentTrack.album_title}
+                    albumId={currentTrack.album_id}
+                    rounded="2xl"
+                    className="shadow-lg"
+                  />
+                )}
+              </button>
+            ) : (
+              <Artwork
+                path={currentTrack.artwork_path}
+                path1x={currentTrack.artwork_path_1x}
+                path2x={currentTrack.artwork_path_2x}
+                size="full"
+                alt={currentTrack.album_title ?? currentTrack.title}
+                className={coverClass}
+                iconSize={80}
                 rounded="2xl"
-                className="shadow-lg"
-                onAspect={(path, aspect) => setCanvasShape({ path, aspect })}
               />
-              <CoverSlideshow
-                artistSrc={slideshow.artistSrc}
-                enabled={slideshow.active}
-                rounded="2xl"
-                className="shadow-lg"
-              />
-              {/* Over the clip's lower part, the way the reference does it:
+            )}
+            <CanvasStage
+              path={canvasPath}
+              enabled={canvasEnabled && !reducedMotion}
+              rounded="2xl"
+              className="shadow-lg"
+              onAspect={(path, aspect) => setCanvasShape({ path, aspect })}
+            />
+            <CoverSlideshow
+              artistSrc={slideshow.artistSrc}
+              enabled={slideshow.active}
+              rounded="2xl"
+              className="shadow-lg"
+            />
+            {/* Over the clip's lower part, the way the reference does it:
                   with the square frame gone there is nothing else holding
                   that space, and the scrim is what makes white text safe
                   over colours we cannot know in advance. */}
-              {canvasTall && (
-                <div className="absolute inset-x-0 bottom-0 p-4 rounded-b-2xl bg-linear-to-t from-black/80 via-black/45 to-transparent">
-                  {trackIdentity}
-                </div>
-              )}
+            {identityOverCover && (
+              <div
+                className={`absolute inset-x-0 bottom-0 rounded-b-2xl bg-linear-to-t from-black/80 via-black/45 to-transparent ${embedded ? "px-6 pb-5 pt-16" : "p-4"}`}
+              >
+                {trackIdentity}
+              </div>
+            )}
+            {/* Embedded, the Canvas toggle sits on the cover's corner:
+                  the shell's bar has no room for a per-tab control. */}
+            {embedded && canvasAvailable && (
+              <CanvasToggleButton
+                enabled={canvasEnabled}
+                onToggle={() => setCanvasEnabled(!canvasEnabled)}
+                size={16}
+                className={`absolute right-3 top-3 z-10 rounded-full p-2 transition-colors ${
+                  canvasEnabled
+                    ? "bg-black/55 text-[var(--fe-accent)]"
+                    : "bg-black/45 text-white/80 hover:text-white"
+                }`}
+              />
+            )}
+          </div>
+
+          {/* Track info — under the cover, unless a tall Canvas took it
+                over the clip above (or the embedded form, always). */}
+          {!identityOverCover && trackIdentity}
+
+          {/* Embedded: where the track comes from, the two actions as
+                pills, and a glimpse of the lyrics that opens their tab. */}
+          {embedded && currentTrack.album_title && (
+            <div className={inset}>
+              <p className="fe-label">{t("nowPlaying.fluid.fromAlbum")}</p>
+              <p className="fe-ink mt-1 truncate text-[0.9375rem] font-[500]">
+                {currentTrack.album_title}
+              </p>
             </div>
+          )}
 
-            {/* Track info — under the cover, unless a tall Canvas took it
-                over the clip above. */}
-            {!canvasTall && trackIdentity}
-
-            {/* Quick actions — Spotify's "Start radio" lives here too */}
+          {/* Quick actions — Spotify's "Start radio" lives here too */}
+          <div className={`flex gap-2 ${inset}`}>
             <button
               type="button"
               onClick={async () => {
@@ -564,201 +608,244 @@ export function NowPlayingPanel({
                   console.error("[NowPlaying] start radio failed", err);
                 }
               }}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-full border border-zinc-200 dark:border-zinc-700 hover:border-emerald-500 hover:text-emerald-500 text-sm font-semibold text-zinc-700 dark:text-zinc-200 transition-colors"
+              className={
+                embedded
+                  ? "fe-panel__pill flex-1"
+                  : "w-full flex items-center justify-center gap-2 py-2.5 rounded-full border border-zinc-200 dark:border-zinc-700 hover:border-emerald-500 hover:text-emerald-500 text-sm font-semibold text-zinc-700 dark:text-zinc-200 transition-colors"
+              }
             >
               <Radio size={16} />
               {t("nowPlaying.startRadio")}
             </button>
+            {embedded && (
+              <button
+                type="button"
+                onClick={openCurrentArtist}
+                disabled={!canOpenArtist}
+                className="fe-panel__pill flex-1"
+              >
+                <User size={16} />
+                {t("nowPlaying.fluid.artist")}
+              </button>
+            )}
+          </div>
+          {embedded && (
+            <div className={inset}>
+              <LyricsPreviewCard onOpen={() => openRightPanel("lyrics")} />
+            </div>
+          )}
 
-            {/* What plays next. While the next tracks are the rest of the
+          {/* What plays next. While the next tracks are the rest of the
                 current record, the record: its title and every track still
                 to come, in the order they will play (#423). Otherwise the
                 one-track teaser. Above the artist, whose biography can run
                 long and used to push this out of view. */}
-            {albumRest.length > 0 ? (
-              <div className="space-y-3 pt-4 border-t border-zinc-100 dark:border-zinc-800">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h3 className="text-[10px] font-bold tracking-widest uppercase text-zinc-400">
-                      {t("nowPlaying.restOfAlbum")}
-                    </h3>
-                    {currentTrack.album_title && (
-                      <div className="mt-0.5 text-xs font-medium truncate text-zinc-600 dark:text-zinc-300">
-                        {currentTrack.album_title}
+          {albumRest.length > 0 ? (
+            <div
+              className={`space-y-3 pt-4 border-t border-zinc-100 dark:border-zinc-800 ${inset}`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h3 className="text-[10px] font-bold tracking-widest uppercase text-zinc-400">
+                    {t("nowPlaying.restOfAlbum")}
+                  </h3>
+                  {currentTrack.album_title && (
+                    <div className="mt-0.5 text-xs font-medium truncate text-zinc-600 dark:text-zinc-300">
+                      {currentTrack.album_title}
+                    </div>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    toggleNowPlaying();
+                    toggleQueue();
+                  }}
+                  className="shrink-0 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:underline"
+                >
+                  {t("nowPlaying.openQueue")}
+                </button>
+              </div>
+              <ol className="space-y-0.5">
+                {albumRest.slice(0, ALBUM_REST_SHOWN).map(({ item, index }) => (
+                  <li key={`${index}-${item.id}`}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        playerJumpToIndex(index).catch((err) =>
+                          console.error("[NowPlaying] jump failed", err),
+                        );
+                      }}
+                      className="w-full flex items-center gap-3 px-2 py-1.5 -mx-2 rounded-lg text-left hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-colors"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm truncate text-zinc-800 dark:text-zinc-200">
+                          {item.title}
+                        </div>
+                        {/* A compilation's tracks are not all the
+                              album artist's; say whose they are. */}
+                        {item.artist_name &&
+                          item.artist_name !== currentTrack.artist_name && (
+                            <div className="text-xs truncate text-zinc-500">
+                              {item.artist_name}
+                            </div>
+                          )}
                       </div>
-                    )}
-                  </div>
+                      <span className="shrink-0 text-xs tabular-nums text-zinc-400">
+                        {formatDuration(item.duration_ms)}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ol>
+              {albumRest.length > ALBUM_REST_SHOWN && (
+                <div className="text-[11px] text-zinc-400 tabular-nums">
+                  {t("nowPlaying.moreTracks", {
+                    count: albumRest.length - ALBUM_REST_SHOWN,
+                  })}
+                </div>
+              )}
+            </div>
+          ) : (
+            nextTrack && (
+              <div
+                className={`space-y-3 pt-4 border-t border-zinc-100 dark:border-zinc-800 ${inset}`}
+              >
+                <div className="flex items-center justify-between">
+                  <h3 className="text-[10px] font-bold tracking-widest uppercase text-zinc-400">
+                    {t("nowPlaying.nextInQueue")}
+                  </h3>
                   <button
                     type="button"
                     onClick={() => {
                       toggleNowPlaying();
                       toggleQueue();
                     }}
-                    className="shrink-0 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:underline"
+                    className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:underline"
                   >
                     {t("nowPlaying.openQueue")}
                   </button>
                 </div>
-                <ol className="space-y-0.5">
-                  {albumRest
-                    .slice(0, ALBUM_REST_SHOWN)
-                    .map(({ item, index }) => (
-                      <li key={`${index}-${item.id}`}>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            playerJumpToIndex(index).catch((err) =>
-                              console.error("[NowPlaying] jump failed", err),
-                            );
-                          }}
-                          className="w-full flex items-center gap-3 px-2 py-1.5 -mx-2 rounded-lg text-left hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-colors"
-                        >
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm truncate text-zinc-800 dark:text-zinc-200">
-                              {item.title}
-                            </div>
-                            {/* A compilation's tracks are not all the
-                              album artist's; say whose they are. */}
-                            {item.artist_name &&
-                              item.artist_name !== currentTrack.artist_name && (
-                                <div className="text-xs truncate text-zinc-500">
-                                  {item.artist_name}
-                                </div>
-                              )}
-                          </div>
-                          <span className="shrink-0 text-xs tabular-nums text-zinc-400">
-                            {formatDuration(item.duration_ms)}
-                          </span>
-                        </button>
-                      </li>
-                    ))}
-                </ol>
-                {albumRest.length > ALBUM_REST_SHOWN && (
-                  <div className="text-[11px] text-zinc-400 tabular-nums">
-                    {t("nowPlaying.moreTracks", {
-                      count: albumRest.length - ALBUM_REST_SHOWN,
-                    })}
+                <div className="flex items-center space-x-3">
+                  <Artwork
+                    path={nextTrack.artwork_path}
+                    path1x={nextTrack.artwork_path_1x}
+                    path2x={nextTrack.artwork_path_2x}
+                    size="1x"
+                    className="w-12 h-12 shrink-0"
+                    iconSize={20}
+                    alt={nextTrack.album_title ?? nextTrack.title}
+                    rounded="md"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium truncate text-zinc-800 dark:text-zinc-200">
+                      {nextTrack.title}
+                    </div>
+                    <div className="text-xs text-zinc-500 truncate">
+                      {nextTrack.artist_name ?? "—"}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )
+          )}
+
+          {/* About the artist */}
+          {primaryArtistName && (
+            <div
+              className={`space-y-3 pt-4 border-t border-zinc-100 dark:border-zinc-800 ${inset}`}
+            >
+              <h3 className="text-[10px] font-bold tracking-widest uppercase text-zinc-400">
+                {t("nowPlaying.aboutArtist")}
+              </h3>
+              <div className="flex items-center space-x-3">
+                {pictureSrc ? (
+                  <img
+                    src={pictureSrc}
+                    alt={primaryArtistName}
+                    loading="lazy"
+                    className="w-14 h-14 rounded-full object-cover shrink-0"
+                  />
+                ) : (
+                  <div className="w-14 h-14 rounded-full bg-linear-to-br from-violet-100 to-violet-200 dark:from-violet-900/40 dark:to-violet-800/30 flex items-center justify-center shrink-0">
+                    <span className="text-xl font-bold text-violet-500/70 dark:text-violet-400/60">
+                      {primaryArtistName.trim().charAt(0).toUpperCase() || "?"}
+                    </span>
                   </div>
                 )}
+                <button
+                  type="button"
+                  onClick={openCurrentArtist}
+                  disabled={!canOpenArtist}
+                  className="text-sm font-semibold text-zinc-800 dark:text-zinc-100 hover:underline hover:text-emerald-600 dark:hover:text-emerald-400 text-left truncate disabled:hover:no-underline disabled:hover:text-zinc-800 dark:disabled:hover:text-zinc-100 disabled:cursor-default"
+                >
+                  {primaryArtistName}
+                </button>
               </div>
-            ) : (
-              nextTrack && (
-                <div className="space-y-3 pt-4 border-t border-zinc-100 dark:border-zinc-800">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-[10px] font-bold tracking-widest uppercase text-zinc-400">
-                      {t("nowPlaying.nextInQueue")}
-                    </h3>
+              {displayedBio ? (
+                <div className="space-y-2">
+                  <p className="text-xs leading-relaxed text-zinc-600 dark:text-zinc-400 whitespace-pre-line">
+                    {displayedBio}
+                  </p>
+                  {canExpand && (
                     <button
                       type="button"
-                      onClick={() => {
-                        toggleNowPlaying();
-                        toggleQueue();
-                      }}
-                      className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:underline"
+                      onClick={() => setBioExpanded((p) => !p)}
+                      className="text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:underline"
                     >
-                      {t("nowPlaying.openQueue")}
+                      {bioExpanded
+                        ? t("nowPlaying.readLess")
+                        : t("nowPlaying.readMore")}
                     </button>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <Artwork
-                      path={nextTrack.artwork_path}
-                      path1x={nextTrack.artwork_path_1x}
-                      path2x={nextTrack.artwork_path_2x}
-                      size="1x"
-                      className="w-12 h-12 shrink-0"
-                      iconSize={20}
-                      alt={nextTrack.album_title ?? nextTrack.title}
-                      rounded="md"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium truncate text-zinc-800 dark:text-zinc-200">
-                        {nextTrack.title}
-                      </div>
-                      <div className="text-xs text-zinc-500 truncate">
-                        {nextTrack.artist_name ?? "—"}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )
-            )}
-
-            {/* About the artist */}
-            {primaryArtistName && (
-              <div className="space-y-3 pt-4 border-t border-zinc-100 dark:border-zinc-800">
-                <h3 className="text-[10px] font-bold tracking-widest uppercase text-zinc-400">
-                  {t("nowPlaying.aboutArtist")}
-                </h3>
-                <div className="flex items-center space-x-3">
-                  {pictureSrc ? (
-                    <img
-                      src={pictureSrc}
-                      alt={primaryArtistName}
-                      loading="lazy"
-                      className="w-14 h-14 rounded-full object-cover shrink-0"
-                    />
-                  ) : (
-                    <div className="w-14 h-14 rounded-full bg-linear-to-br from-violet-100 to-violet-200 dark:from-violet-900/40 dark:to-violet-800/30 flex items-center justify-center shrink-0">
-                      <span className="text-xl font-bold text-violet-500/70 dark:text-violet-400/60">
-                        {primaryArtistName.trim().charAt(0).toUpperCase() ||
-                          "?"}
-                      </span>
-                    </div>
                   )}
-                  <button
-                    type="button"
-                    onClick={openCurrentArtist}
-                    disabled={!canOpenArtist}
-                    className="text-sm font-semibold text-zinc-800 dark:text-zinc-100 hover:underline hover:text-emerald-600 dark:hover:text-emerald-400 text-left truncate disabled:hover:no-underline disabled:hover:text-zinc-800 dark:disabled:hover:text-zinc-100 disabled:cursor-default"
-                  >
-                    {primaryArtistName}
-                  </button>
                 </div>
-                {displayedBio ? (
-                  <div className="space-y-2">
-                    <p className="text-xs leading-relaxed text-zinc-600 dark:text-zinc-400 whitespace-pre-line">
-                      {displayedBio}
-                    </p>
-                    {canExpand && (
-                      <button
-                        type="button"
-                        onClick={() => setBioExpanded((p) => !p)}
-                        className="text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:underline"
-                      >
-                        {bioExpanded
-                          ? t("nowPlaying.readLess")
-                          : t("nowPlaying.readMore")}
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-xs italic text-zinc-400">
-                    {t("nowPlaying.noBio")}
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-center px-6 py-12 text-zinc-400">
-            <Music2 size={40} className="mb-3" />
-            <p className="text-sm">{t("nowPlaying.empty")}</p>
-          </div>
-        )}
-      </div>
+              ) : (
+                <p className="text-xs italic text-zinc-400">
+                  {t("nowPlaying.noBio")}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="flex-1 flex flex-col items-center justify-center text-center px-6 py-12 text-zinc-400">
+          <Music2 size={40} className="mb-3" />
+          <p className="text-sm">{t("nowPlaying.empty")}</p>
+        </div>
+      )}
+    </div>
+  );
+  const lightbox = (
+    <Lightbox
+      // resolveArtwork returns http / data URLs verbatim and only
+      // convertFileSrc's a real local path — a remote track's inlined
+      // `data:` cover would break under a bare convertFileSrc.
+      src={resolveArtwork({ full: currentTrack?.artwork_path ?? null }, "full")}
+      alt={currentTrack?.album_title ?? currentTrack?.title}
+      isOpen={isLightboxOpen}
+      onClose={() => setIsLightboxOpen(false)}
+    />
+  );
 
-      <Lightbox
-        // resolveArtwork returns http / data URLs verbatim and only
-        // convertFileSrc's a real local path — a remote track's inlined
-        // `data:` cover would break under a bare convertFileSrc.
-        src={resolveArtwork(
-          { full: currentTrack?.artwork_path ?? null },
-          "full",
-        )}
-        alt={currentTrack?.album_title ?? currentTrack?.title}
-        isOpen={isLightboxOpen}
-        onClose={() => setIsLightboxOpen(false)}
-      />
+  if (embedded) {
+    return (
+      <div className="h-full">
+        {body}
+        {lightbox}
+      </div>
+    );
+  }
+  return (
+    <motion.aside
+      key="nowPlaying"
+      initial={{ width: 0, opacity: 0 }}
+      animate={{ width: 320, opacity: 1 }}
+      exit={{ width: 0, opacity: 0 }}
+      transition={{ type: "spring", stiffness: 320, damping: 32, mass: 0.8 }}
+      className="h-full shrink-0 overflow-hidden border-l bg-surface-light border-zinc-200 text-zinc-800 dark:bg-surface-dark dark:border-zinc-800 dark:text-zinc-100"
+    >
+      {body}
+      {lightbox}
     </motion.aside>
   );
 }

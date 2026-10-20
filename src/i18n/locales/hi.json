@@ -414,7 +414,31 @@
       "cta": "खोलें",
       "dismiss": "Wrapped बैनर छिपाएँ"
     },
-    "seeAll": "सभी देखें"
+    "seeAll": "सभी देखें",
+    "fluid": {
+      "resumeKicker": "जहाँ छोड़ा था वहीं से शुरू करें",
+      "resume": "फिर से शुरू करें",
+      "pause": "रोकें",
+      "play": "चलाएँ",
+      "openAlbum": "एल्बम खोलें",
+      "upNext": "अगला",
+      "recentStrip": "हाल में सुना",
+      "remaining": "{{time}} बाकी",
+      "radio": "रेडियो",
+      "hours": "{{count}} घंटे सुना",
+      "moodStart": "रेडियो शुरू करें",
+      "tempo": "टेम्पो",
+      "featuredKicker": "आप इस पर बार-बार लौटते हैं",
+      "featuredCta": "फिर से सुनें",
+      "yourMixes": "आपके मिक्स",
+      "leadKicker": "नवीनतम जोड़",
+      "liked_zero": "0 पसंदीदा",
+      "liked_one": "{{count}} पसंदीदा",
+      "liked_other": "{{count}} पसंदीदा",
+      "plays_zero": "0 बार सुना",
+      "plays_one": "{{count}} बार सुना",
+      "plays_other": "{{count}} बार सुना"
+    }
   },
   "library": {
     "header": {
@@ -1402,7 +1426,13 @@
     },
     "restOfAlbum": "एल्बम के बाकी गाने",
     "moreTracks_one": "+{{count}} ट्रैक",
-    "moreTracks_other": "+{{count}} ट्रैक"
+    "moreTracks_other": "+{{count}} ट्रैक",
+    "fluid": {
+      "details": "विवरण",
+      "fromAlbum": "एल्बम से चल रहा है",
+      "artist": "कलाकार",
+      "openLyrics": "बोल देखें"
+    }
   },
   "playerBar": {
     "lyrics": "गीत के बोल",
@@ -1806,7 +1836,8 @@
         "storageRead": "संग्रहण पढ़ना",
         "assets": "एसेट ({{count}})",
         "none": "कोई अनुमति अनुरोधित नहीं",
-        "libraryReadArtists": "आपके कलाकारों को पढ़ता है"
+        "libraryReadArtists": "आपके कलाकारों को पढ़ता है",
+        "summary": "अनुमतियाँ"
       },
       "bundled": "अंतर्निहित",
       "bundledHint": "WaveFlow के साथ शामिल — छुपाने के लिए अक्षम करें।",
@@ -1819,7 +1850,7 @@
       "attention": {
         "authRequired": {
           "title": "{{name}}: साइन-इन अस्वीकार",
-          "body": "सहेजी गई कुकी या टोकन की अवधि समाप्त हो गई है या उसे रद्द कर दिया गया है। सेटिंग्स → एक्सटेंशन में नया पेस्ट करें।"
+          "body": "सहेजी गई कुकी या टोकन की अवधि समाप्त हो गई है या उसे रद्द कर दिया गया है। एक्सटेंशन पेज में नया पेस्ट करें।"
         },
         "dismiss": "बंद करें"
       }
@@ -2306,6 +2337,10 @@
         "liquid": {
           "label": "Liquid",
           "description": "Apple-शैली का तरल कांच — बहुस्तरीय पारभासी सामग्री, अरोरा पृष्ठभूमि, पिल कैप्सूल, शांत गति।"
+        },
+        "fluid": {
+          "label": "Fluid",
+          "description": "सिनेमाई संपादकीय — कवर पेज को रोशन करता है, पत्रिका जैसी टाइपोग्राफी, लहर वक्र, मूड स्पेक्ट्रम।"
         }
       },
       "accent": {
@@ -2566,7 +2601,8 @@
       "official": "आधिकारिक",
       "canReach": "पहुँच सकता है:",
       "installAria": "{{name}} इंस्टॉल करें",
-      "updateAria": "{{name}} अपडेट करें"
+      "updateAria": "{{name}} अपडेट करें",
+      "allInstalled": "स्टोर की सभी चीज़ें पहले से इंस्टॉल हैं।"
     },
     "motionArtwork": {
       "title": "एनिमेटेड आर्टवर्क",
@@ -2817,7 +2853,7 @@
     "live": "लाइव",
     "nowPlaying": "अभी चल रहा है",
     "unavailableTitle": "वेब रेडियो अक्षम है",
-    "unavailableHint": "30,000+ स्टेशन ब्राउज़ करने के लिए सेटिंग्स → एक्सटेंशन में Web Radio प्लगइन सक्षम करें।",
+    "unavailableHint": "30,000+ स्टेशन ब्राउज़ करने के लिए एक्सटेंशन पेज में Web Radio प्लगइन सक्षम करें।",
     "favorites": "पसंदीदा",
     "favoritesEmpty": "अभी तक कोई पसंदीदा स्टेशन नहीं। सहेजने के लिए किसी स्टेशन के तारे पर क्लिक करें।",
     "addFavorite": "पसंदीदा में जोड़ें",

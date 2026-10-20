@@ -412,7 +412,31 @@
       "cta": "Buka",
       "dismiss": "Sembunyikan banner Wrapped"
     },
-    "seeAll": "Lihat semua"
+    "seeAll": "Lihat semua",
+    "fluid": {
+      "resumeKicker": "Lanjutkan dari terakhir kali",
+      "resume": "Lanjutkan",
+      "pause": "Jeda",
+      "play": "Putar",
+      "openAlbum": "Buka album",
+      "upNext": "Berikutnya",
+      "recentStrip": "Terakhir diputar",
+      "remaining": "{{time}} tersisa",
+      "radio": "Radio",
+      "hours": "{{count}} jam didengarkan",
+      "moodStart": "Mulai radio",
+      "tempo": "Tempo",
+      "featuredKicker": "Kamu terus kembali ke sini",
+      "featuredCta": "Putar lagi",
+      "yourMixes": "Mix kamu",
+      "leadKicker": "Tambahan terbaru",
+      "liked_zero": "0 favorit",
+      "liked_one": "{{count}} favorit",
+      "liked_other": "{{count}} favorit",
+      "plays_zero": "0 pemutaran",
+      "plays_one": "{{count}} pemutaran",
+      "plays_other": "{{count}} pemutaran"
+    }
   },
   "library": {
     "header": {
@@ -1400,7 +1424,13 @@
     },
     "restOfAlbum": "Sisa album",
     "moreTracks_one": "+{{count}} lagu",
-    "moreTracks_other": "+{{count}} lagu"
+    "moreTracks_other": "+{{count}} lagu",
+    "fluid": {
+      "details": "Detail",
+      "fromAlbum": "Diputar dari album",
+      "artist": "Artis",
+      "openLyrics": "Lihat lirik"
+    }
   },
   "playerBar": {
     "lyrics": "Lirik",
@@ -1804,7 +1834,8 @@
         "storageRead": "Baca penyimpanan",
         "assets": "Aset ({{count}})",
         "none": "Tidak ada izin diminta",
-        "libraryReadArtists": "Membaca artismu"
+        "libraryReadArtists": "Membaca artismu",
+        "summary": "Izin"
       },
       "bundled": "Bawaan",
       "bundledHint": "Disertakan dengan WaveFlow — nonaktifkan untuk menyembunyikannya.",
@@ -1817,7 +1848,7 @@
       "attention": {
         "authRequired": {
           "title": "{{name}}: masuk ditolak",
-          "body": "Cookie atau token yang tersimpan telah kedaluwarsa atau dicabut. Tempel yang baru di Pengaturan → Ekstensi."
+          "body": "Cookie atau token yang tersimpan telah kedaluwarsa atau dicabut. Tempel yang baru di halaman Ekstensi."
         },
         "dismiss": "Tutup"
       }
@@ -2304,6 +2335,10 @@
         "liquid": {
           "label": "Liquid",
           "description": "Kaca cair gaya Apple — material tembus pandang multilapis, latar aurora, kapsul, gerakan tenang."
+        },
+        "fluid": {
+          "label": "Fluid",
+          "description": "Editorial sinematik — sampul menerangi halaman, tipografi majalah, kurva gelombang, spektrum suasana."
         }
       },
       "accent": {
@@ -2564,7 +2599,8 @@
       "official": "Resmi",
       "canReach": "Dapat mengakses:",
       "installAria": "Pasang {{name}}",
-      "updateAria": "Perbarui {{name}}"
+      "updateAria": "Perbarui {{name}}",
+      "allInstalled": "Semua yang ada di toko sudah terpasang."
     },
     "motionArtwork": {
       "title": "Sampul animasi",
@@ -2815,7 +2851,7 @@
     "live": "LANGSUNG",
     "nowPlaying": "Sedang diputar",
     "unavailableTitle": "Radio Web dinonaktifkan",
-    "unavailableHint": "Aktifkan plugin Web Radio di Pengaturan → Ekstensi untuk menjelajahi lebih dari 30.000 stasiun.",
+    "unavailableHint": "Aktifkan plugin Web Radio di halaman Ekstensi untuk menjelajahi lebih dari 30.000 stasiun.",
     "favorites": "Favorit",
     "favoritesEmpty": "Belum ada stasiun favorit. Klik bintang stasiun untuk menyimpannya.",
     "addFavorite": "Tambahkan ke favorit",

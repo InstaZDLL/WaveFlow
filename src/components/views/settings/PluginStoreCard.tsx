@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Store,
@@ -37,53 +37,67 @@ import { PluginWorldBadge } from "./PluginWorldBadge";
  * a retry affordance rather than an empty list, so "store unreachable"
  * never reads as "no plugins exist".
  */
-export function PluginStoreCard() {
+/** How the store lays itself out: the settings card it was born as,
+ *  or a grid of tiles for the Extensions page, where the entries that
+ *  are already installed are left to the installed list below. */
+export type PluginListVariant = "card" | "grid";
+
+export function PluginStoreCard({
+  variant = "card",
+}: {
+  variant?: PluginListVariant;
+} = {}) {
+  const grid = variant === "grid";
   const { t } = useTranslation();
   const [entries, setEntries] = useState<MarketplaceEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
-  // Manual (re)load — an event handler, so a synchronous `setLoading(true)`
-  // is fine here (unlike the mount effect below, which must not setState
-  // synchronously — see the `.then`-style guarded fetch in that effect).
-  const refresh = useCallback(() => {
-    setLoading(true);
+  // One read path for the mount, the availability event and the manual
+  // refresh, behind one sequence: whichever of them answers last cannot
+  // land an older snapshot over a newer state (an installed entry back
+  // on offer, say). The sequence also outlives the effect, so a read
+  // that answers after the unmount writes nothing.
+  const seqRef = useRef(0);
+  const load = useCallback(() => {
+    const mine = ++seqRef.current;
     listPluginMarketplace().then(
       (list) => {
+        if (mine !== seqRef.current) return;
         setEntries(list);
         setError(null);
         setLoading(false);
       },
       (e: unknown) => {
+        if (mine !== seqRef.current) return;
         setError(e instanceof Error ? e.message : String(e));
         setLoading(false);
       },
     );
   }, []);
 
+  // The manual button: an event handler, so a synchronous
+  // `setLoading(true)` is fine here (the mount effect below must not
+  // setState synchronously — `react-hooks/set-state-in-effect`).
+  const refresh = useCallback(() => {
+    setLoading(true);
+    load();
+  }, [load]);
+
   useEffect(() => {
-    // Same shape as PluginsCard: no synchronous setState in the effect
-    // body (`react-hooks/set-state-in-effect`), setState only inside the
-    // promise callbacks, `cancelled` guards a late resolve post-unmount.
-    let cancelled = false;
-    listPluginMarketplace().then(
-      (list) => {
-        if (cancelled) return;
-        setEntries(list);
-        setError(null);
-        setLoading(false);
-      },
-      (e: unknown) => {
-        if (cancelled) return;
-        setError(e instanceof Error ? e.message : String(e));
-        setLoading(false);
-      },
-    );
+    load();
+    // An uninstall or a toggle in the installed list beside this store
+    // dispatches the event: re-read, so the entry comes back on offer.
+    window.addEventListener(PLUGIN_AVAILABILITY_EVENT, load);
+    // The ref is a counter, not a node: advancing it at cleanup is the
+    // point, and the alias keeps the lint's node-ref heuristic quiet.
+    const counter = seqRef;
     return () => {
-      cancelled = true;
+      window.removeEventListener(PLUGIN_AVAILABILITY_EVENT, load);
+      counter.current += 1;
     };
-  }, []);
+  }, [load]);
 
   const onInstall = useCallback(async (entry: MarketplaceEntry) => {
     setBusyId(entry.id);
@@ -91,10 +105,10 @@ export function PluginStoreCard() {
     try {
       await installPluginFromRegistry(entry.id);
       // Reflect the new on-disk state (installed / version / no-update)
-      // and let the sidebar + source views re-evaluate availability.
+      // and let the sidebar, the source views and the installed list
+      // beside this store re-evaluate availability; this store re-reads
+      // on the same event.
       window.dispatchEvent(new CustomEvent(PLUGIN_AVAILABILITY_EVENT));
-      const list = await listPluginMarketplace();
-      setEntries(list);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -102,12 +116,28 @@ export function PluginStoreCard() {
     }
   }, []);
 
+  // On the page, an entry already on disk belongs to the installed list
+  // beneath; the store shows what is left to get, or to update.
+  const shown = grid
+    ? entries.filter((e) => !e.installed || e.updateAvailable)
+    : entries;
+
   return (
     <section
       aria-labelledby="settings-plugin-store-heading"
-      className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden mb-4"
+      className={
+        grid
+          ? "space-y-3"
+          : "bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden mb-4"
+      }
     >
-      <header className="px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 flex items-start gap-3">
+      <header
+        className={
+          grid
+            ? "flex items-start gap-3 px-1"
+            : "px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 flex items-start gap-3"
+        }
+      >
         <Store
           size={20}
           className="text-zinc-400 mt-0.5 shrink-0"
@@ -159,6 +189,10 @@ export function PluginStoreCard() {
         <div className="px-4 py-6 text-xs text-zinc-500 dark:text-zinc-400 text-center">
           {t("settings.pluginStore.loading")}
         </div>
+      ) : grid && shown.length === 0 && entries.length > 0 ? (
+        <p className="px-1 py-2 text-xs text-zinc-500 dark:text-zinc-400">
+          {t("settings.pluginStore.allInstalled")}
+        </p>
       ) : entries.length === 0 && !error ? (
         <div className="px-4 py-8 text-center">
           <Store
@@ -174,11 +208,18 @@ export function PluginStoreCard() {
           </p>
         </div>
       ) : (
-        <ul className="divide-y divide-zinc-200 dark:divide-zinc-800">
-          {entries.map((entry) => (
+        <ul
+          className={
+            grid
+              ? "grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3"
+              : "divide-y divide-zinc-200 dark:divide-zinc-800"
+          }
+        >
+          {shown.map((entry) => (
             <StoreRow
               key={entry.id}
               entry={entry}
+              tile={grid}
               busy={busyId === entry.id}
               anyBusy={busyId !== null}
               onInstall={() => void onInstall(entry)}
@@ -192,11 +233,15 @@ export function PluginStoreCard() {
 
 function StoreRow({
   entry,
+  tile,
   busy,
   anyBusy,
   onInstall,
 }: {
   entry: MarketplaceEntry;
+  /** A tile of the page's grid: framed, the description clamped, the
+   *  permissions folded behind a summary. */
+  tile: boolean;
   busy: boolean;
   anyBusy: boolean;
   onInstall: () => void;
@@ -208,7 +253,13 @@ function StoreRow({
   // rather than an empty one holding its margin.
   const description = useLocalizedText()(entry.description);
   return (
-    <li className="px-4 py-3">
+    <li
+      className={
+        tile
+          ? "flex flex-col rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900"
+          : "px-4 py-3"
+      }
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
@@ -230,11 +281,22 @@ function StoreRow({
             {t("settings.plugins.byAuthor", { author: entry.author })}
           </div>
           {description && (
-            <p className="text-xs text-zinc-600 dark:text-zinc-300 mt-1 leading-relaxed">
+            <p
+              className={`text-xs text-zinc-600 dark:text-zinc-300 mt-1 leading-relaxed ${tile ? "line-clamp-2" : ""}`}
+            >
               {description}
             </p>
           )}
-          <PermissionsPreview entry={entry} />
+          {tile ? (
+            <details className="mt-1.5">
+              <summary className="cursor-pointer select-none text-[11px] text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200">
+                {t("settings.plugins.permissions.summary")}
+              </summary>
+              <PermissionsPreview entry={entry} />
+            </details>
+          ) : (
+            <PermissionsPreview entry={entry} />
+          )}
         </div>
         <div className="shrink-0 pt-0.5">
           <InstallButton

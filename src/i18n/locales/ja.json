@@ -412,7 +412,31 @@
       "cta": "開く",
       "dismiss": "Wrapped バナーを隠す"
     },
-    "seeAll": "すべて表示"
+    "seeAll": "すべて表示",
+    "fluid": {
+      "resumeKicker": "前回の続きから",
+      "resume": "再開",
+      "pause": "一時停止",
+      "play": "再生",
+      "openAlbum": "アルバムを開く",
+      "upNext": "次に再生",
+      "recentStrip": "最近聴いた",
+      "remaining": "残り {{time}}",
+      "radio": "ラジオ",
+      "hours": "{{count}} 時間再生",
+      "moodStart": "ラジオを開始",
+      "tempo": "テンポ",
+      "featuredKicker": "何度も聴き返している",
+      "featuredCta": "もう一度聴く",
+      "yourMixes": "あなたのミックス",
+      "leadKicker": "最新の追加",
+      "liked_zero": "お気に入り 0 曲",
+      "liked_one": "お気に入り {{count}} 曲",
+      "liked_other": "お気に入り {{count}} 曲",
+      "plays_zero": "再生 0 回",
+      "plays_one": "再生 {{count}} 回",
+      "plays_other": "再生 {{count}} 回"
+    }
   },
   "library": {
     "header": {
@@ -1400,7 +1424,13 @@
     },
     "restOfAlbum": "このアルバムの続き",
     "moreTracks_one": "+{{count}}曲",
-    "moreTracks_other": "+{{count}}曲"
+    "moreTracks_other": "+{{count}}曲",
+    "fluid": {
+      "details": "詳細",
+      "fromAlbum": "アルバムから再生中",
+      "artist": "アーティスト",
+      "openLyrics": "歌詞を見る"
+    }
   },
   "playerBar": {
     "lyrics": "歌詞",
@@ -1804,7 +1834,8 @@
         "storageRead": "ストレージ読み取り",
         "assets": "アセット（{{count}}）",
         "none": "要求された権限はありません",
-        "libraryReadArtists": "アーティスト情報を読み取り"
+        "libraryReadArtists": "アーティスト情報を読み取り",
+        "summary": "権限"
       },
       "bundled": "組み込み",
       "bundledHint": "WaveFlow に同梱されています — 非表示にするには無効にしてください。",
@@ -1817,7 +1848,7 @@
       "attention": {
         "authRequired": {
           "title": "{{name}}: ログインが拒否されました",
-          "body": "保存されている Cookie またはトークンの有効期限が切れたか、取り消されました。設定 → 拡張機能で新しいものを貼り付けてください。"
+          "body": "保存されている Cookie またはトークンの有効期限が切れたか、取り消されました。「拡張機能」ページで新しいものを貼り付けてください。"
         },
         "dismiss": "閉じる"
       }
@@ -2236,6 +2267,10 @@
         "liquid": {
           "label": "Liquid",
           "description": "Apple スタイルのリキッドガラス — 多層半透明素材、オーロラ背景、カプセル型ボタン、穏やかなモーション。"
+        },
+        "fluid": {
+          "label": "Fluid",
+          "description": "シネマティックなエディトリアル — カバーがページを照らし、雑誌風のタイポグラフィ、波のカーブ、ムードのスペクトラム。"
         }
       },
       "accent": {
@@ -2564,7 +2599,8 @@
       "official": "公式",
       "canReach": "アクセス先：",
       "installAria": "{{name}} をインストール",
-      "updateAria": "{{name}} を更新"
+      "updateAria": "{{name}} を更新",
+      "allInstalled": "ストアのすべてがインストール済みです。"
     },
     "motionArtwork": {
       "title": "モーションカバー",
@@ -2815,7 +2851,7 @@
     "live": "ライブ",
     "nowPlaying": "再生中",
     "unavailableTitle": "ウェブラジオは無効です",
-    "unavailableHint": "30,000 以上の放送局を閲覧するには、設定 → 拡張機能 で Web Radio プラグインを有効にしてください。",
+    "unavailableHint": "30,000 以上の放送局を閲覧するには、「拡張機能」ページで Web Radio プラグインを有効にしてください。",
     "favorites": "お気に入り",
     "favoritesEmpty": "お気に入りの局はまだありません。局の星をクリックして保存できます。",
     "addFavorite": "お気に入りに追加",

@@ -417,7 +417,9 @@ export function TopBar({
           sidebar's right edge would be when visible — keeps muscle
           memory consistent. It cycles the three widths — full, icons
           only, hidden — and names the step it takes next. */}
-      <div className="flex space-x-2">
+      {/* `data-topbar-*` marks the zones — left, search, right, the
+          popovers — for the skins that recompose the bar. */}
+      <div data-topbar-left className="flex space-x-2">
         <button
           type="button"
           onClick={onCycleSidebar}
@@ -456,8 +458,15 @@ export function TopBar({
       </div>
 
       {/* Search Bar */}
-      <div className="flex-1 max-w-xl mx-8 relative" ref={searchRef}>
-        <div className="flex items-center px-4 py-2.5 rounded-full border transition-all focus-within:ring-2 ring-emerald-500/20 bg-white border-zinc-200 dark:bg-zinc-800/50 dark:border-zinc-700 dark:text-zinc-200">
+      <div
+        data-topbar-search
+        className="flex-1 max-w-xl mx-8 relative"
+        ref={searchRef}
+      >
+        <div
+          data-topbar-search-field
+          className="flex items-center px-4 py-2.5 rounded-full border transition-all focus-within:ring-2 ring-emerald-500/20 bg-white border-zinc-200 dark:bg-zinc-800/50 dark:border-zinc-700 dark:text-zinc-200"
+        >
           <Search size={18} className="text-zinc-400 mr-3" />
           <input
             ref={searchInputRef}
@@ -512,6 +521,7 @@ export function TopBar({
                 mass: 0.5,
               }}
               style={{ transformOrigin: "top center" }}
+              data-topbar-popover
               className="absolute top-full left-0 right-0 mt-2 z-50 rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated dark:shadow-black/40 p-5 max-h-[70vh] overflow-y-auto"
             >
               <div className="flex items-center justify-between mb-4">
@@ -674,6 +684,7 @@ export function TopBar({
                 mass: 0.5,
               }}
               style={{ transformOrigin: "top center" }}
+              data-topbar-popover
               className="absolute top-full left-0 right-0 mt-2 z-50 rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated dark:shadow-black/40 overflow-hidden"
             >
               {showingRecent ? (
@@ -842,10 +853,11 @@ export function TopBar({
       </div>
 
       {/* Right Actions */}
-      <div className="flex items-center space-x-4">
+      <div data-topbar-right className="flex items-center space-x-4">
         {/* Theme Toggle */}
         <button
           type="button"
+          data-topbar-theme
           onClick={(e) => toggleTheme(e)}
           aria-label={
             isDark
@@ -888,6 +900,8 @@ export function TopBar({
         {/* Profile Dropdown */}
         <div className="relative" ref={dropdownRef}>
           <button
+            data-topbar-profile
+            aria-expanded={isProfileOpen}
             onClick={() => setIsProfileOpen(!isProfileOpen)}
             className={`flex items-center space-x-2 px-3 py-1.5 rounded-full border transition-colors
               ${
@@ -922,6 +936,7 @@ export function TopBar({
                   mass: 0.45,
                 }}
                 style={{ transformOrigin: "top right" }}
+                data-topbar-popover
                 className="absolute top-full right-0 mt-2 w-56 rounded-xl shadow-lg border overflow-hidden z-50 bg-white border-zinc-200 dark:bg-zinc-800 dark:border-zinc-700"
               >
                 {/* Profile Header */}

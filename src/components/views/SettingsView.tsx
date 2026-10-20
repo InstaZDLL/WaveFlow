@@ -59,8 +59,6 @@ import { ReconciliationCard } from "./settings/ReconciliationCard";
 import { CatalogueMirrorCard } from "./settings/CatalogueMirrorCard";
 import { UploadToServerCard } from "./settings/UploadToServerCard";
 import { RemoteTranscodeCard } from "./settings/RemoteTranscodeCard";
-import { PluginStoreCard } from "./settings/PluginStoreCard";
-import { PluginsCard } from "./settings/PluginsCard";
 import { useTheme } from "../../hooks/useTheme";
 import { THEME_PRESETS } from "../../lib/themes";
 import { getProfileSetting, setProfileSetting } from "../../lib/tauri/profile";
@@ -2965,6 +2963,10 @@ export function SettingsView({
                 title={t("settings.organization.groups.theme")}
                 reveal={targetGroup === "theme"}
               >
+                {/* The skin first: it decides more of what the page looks
+                    like than the theme does, and it is what a new profile
+                    is most likely to come here for. */}
+                <SkinPickerCard />
                 <div className="px-4 py-3">
                   <div className="flex items-center space-x-4 mb-4">
                     <Palette
@@ -3046,7 +3048,6 @@ export function SettingsView({
                   </div>
                 </div>
                 <AccentCard />
-                <SkinPickerCard />
                 <ContrastCard />
                 <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
                   <div className="flex items-center space-x-4">
@@ -4031,22 +4032,6 @@ export function SettingsView({
                     </div>
                   </div>
                 </div>
-              </SettingsGroup>
-            </section>
-          )}
-          {activeCategory === "plugins" && (
-            <section
-              aria-labelledby="settings-heading-plugins"
-              className="space-y-7"
-            >
-              <SettingsCategoryHeader category="plugins" />
-              <SettingsGroup
-                id="extensions"
-                title={t("settings.organization.groups.extensions")}
-                reveal={targetGroup === "extensions"}
-              >
-                <PluginStoreCard />
-                <PluginsCard />
               </SettingsGroup>
             </section>
           )}

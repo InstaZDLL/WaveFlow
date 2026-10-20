@@ -144,7 +144,7 @@ export function GenreDetailView({
   return (
     <div className="space-y-8 animate-fade-in pb-20">
       {/* Header */}
-      <div className="flex items-center space-x-8">
+      <div data-page-hero className="flex items-center space-x-8">
         <div className="relative shrink-0 group">
           <Artwork
             path={genre.artwork_path}

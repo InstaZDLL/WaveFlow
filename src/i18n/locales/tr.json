@@ -414,7 +414,31 @@
       "cta": "Aç",
       "dismiss": "Wrapped afişini gizle"
     },
-    "seeAll": "Tümünü gör"
+    "seeAll": "Tümünü gör",
+    "fluid": {
+      "resumeKicker": "Kaldığın yerden devam et",
+      "resume": "Devam et",
+      "pause": "Duraklat",
+      "play": "Çal",
+      "openAlbum": "Albümü aç",
+      "upNext": "Sırada",
+      "recentStrip": "Son dinlenenler",
+      "remaining": "{{time}} kaldı",
+      "radio": "Radyo",
+      "hours": "{{count}} sa dinlendi",
+      "moodStart": "Radyoyu başlat",
+      "tempo": "Tempo",
+      "featuredKicker": "Hep buna dönüyorsun",
+      "featuredCta": "Yeniden dinle",
+      "yourMixes": "Mixlerin",
+      "leadKicker": "Son eklenen",
+      "liked_zero": "0 favori",
+      "liked_one": "{{count}} favori",
+      "liked_other": "{{count}} favori",
+      "plays_zero": "0 dinleme",
+      "plays_one": "{{count}} dinleme",
+      "plays_other": "{{count}} dinleme"
+    }
   },
   "library": {
     "header": {
@@ -1402,7 +1426,13 @@
     },
     "restOfAlbum": "Albümün devamı",
     "moreTracks_one": "+{{count}} parça",
-    "moreTracks_other": "+{{count}} parça"
+    "moreTracks_other": "+{{count}} parça",
+    "fluid": {
+      "details": "Ayrıntılar",
+      "fromAlbum": "Albümden çalınıyor",
+      "artist": "Sanatçı",
+      "openLyrics": "Sözleri gör"
+    }
   },
   "playerBar": {
     "lyrics": "Sözler",
@@ -1806,7 +1836,8 @@
         "storageRead": "Depolama okuma",
         "assets": "Varlıklar ({{count}})",
         "none": "İstenen izin yok",
-        "libraryReadArtists": "Sanatçılarını okur"
+        "libraryReadArtists": "Sanatçılarını okur",
+        "summary": "İzinler"
       },
       "bundled": "Yerleşik",
       "bundledHint": "WaveFlow ile birlikte gelir — gizlemek için devre dışı bırak.",
@@ -1819,7 +1850,7 @@
       "attention": {
         "authRequired": {
           "title": "{{name}}: oturum reddedildi",
-          "body": "Kaydedilen çerez veya belirtecin süresi doldu ya da iptal edildi. Ayarlar → Eklentiler bölümüne yenisini yapıştır."
+          "body": "Kaydedilen çerez veya belirtecin süresi doldu ya da iptal edildi. Eklentiler sayfasına yenisini yapıştır."
         },
         "dismiss": "Kapat"
       }
@@ -2306,6 +2337,10 @@
         "liquid": {
           "label": "Liquid",
           "description": "Apple tarzı sıvı cam — çok katmanlı yarı şeffaf malzeme, aurora arka plan, kapsül etiketler, sakin hareket."
+        },
+        "fluid": {
+          "label": "Fluid",
+          "description": "Sinematik editoryal — kapak sayfayı aydınlatır, dergi tipografisi, dalga eğrileri, ruh hâli spektrumu."
         }
       },
       "accent": {
@@ -2566,7 +2601,8 @@
       "official": "Resmî",
       "canReach": "Erişebileceği adresler:",
       "installAria": "{{name}} eklentisini yükle",
-      "updateAria": "{{name}} eklentisini güncelle"
+      "updateAria": "{{name}} eklentisini güncelle",
+      "allInstalled": "Mağazadaki her şey zaten yüklü."
     },
     "motionArtwork": {
       "title": "Animasyonlu kapaklar",
@@ -2817,7 +2853,7 @@
     "live": "CANLI",
     "nowPlaying": "Şimdi çalıyor",
     "unavailableTitle": "Web Radyo devre dışı",
-    "unavailableHint": "30.000'den fazla istasyona göz atmak için Ayarlar → Eklentiler bölümünden Web Radyo eklentisini etkinleştir.",
+    "unavailableHint": "30.000'den fazla istasyona göz atmak için Eklentiler sayfasından Web Radyo eklentisini etkinleştir.",
     "favorites": "Favoriler",
     "favoritesEmpty": "Henüz favori istasyon yok. Kaydetmek için bir istasyonun yıldızına tıkla.",
     "addFavorite": "Favorilere ekle",

@@ -36,17 +36,24 @@ export interface PlaybackAlert {
 /** Aggregate `state` field driven by backend `player:state` events. */
 export type PlaybackState = "idle" | "loading" | "playing" | "paused" | "ended";
 
+/** The three right-edge panels; one of them is up at most. */
+export type RightPanel = "queue" | "nowPlaying" | "lyrics";
+
 interface PlayerContextValue {
   // UI-only state (not persisted)
   /** Which right-edge panel is currently open. Mutually exclusive by
    *  construction — at most one panel is rendered at a time. */
-  activeRightPanel: "queue" | "nowPlaying" | "lyrics" | null;
+  activeRightPanel: RightPanel | null;
   isQueueOpen: boolean;
   toggleQueue: () => void;
   isNowPlayingOpen: boolean;
   toggleNowPlaying: () => void;
   isLyricsOpen: boolean;
   toggleLyrics: () => void;
+  /** Opens that panel whatever is up (a tab of the Fluid skin's shell). */
+  openRightPanel: (panel: RightPanel) => void;
+  /** Closes whichever panel is up. */
+  closeRightPanel: () => void;
   isDeviceMenuOpen: boolean;
   toggleDeviceMenu: () => void;
 

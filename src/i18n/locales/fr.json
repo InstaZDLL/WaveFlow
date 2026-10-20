@@ -424,7 +424,33 @@
       "cta": "Découvrir",
       "dismiss": "Masquer le bandeau Wrapped"
     },
-    "seeAll": "Tout voir"
+    "seeAll": "Tout voir",
+    "fluid": {
+      "resumeKicker": "Reprendre là où vous étiez",
+      "resume": "Reprendre",
+      "pause": "Pause",
+      "play": "Lire",
+      "openAlbum": "Voir l'album",
+      "upNext": "Ensuite",
+      "recentStrip": "Dernières écoutes",
+      "remaining": "{{time}} restantes",
+      "radio": "Radio",
+      "hours": "{{count}} h d'écoute",
+      "moodStart": "Lancer la radio",
+      "tempo": "Tempo",
+      "featuredKicker": "Vous y revenez sans cesse",
+      "featuredCta": "Réécouter",
+      "yourMixes": "Vos mixes",
+      "leadKicker": "Dernier ajout",
+      "liked_zero": "0 coup de cœur",
+      "liked_one": "{{count}} coup de cœur",
+      "liked_other": "{{count}} coups de cœur",
+      "liked_many": "{{count}} coups de cœur",
+      "plays_zero": "0 écoute",
+      "plays_one": "{{count}} écoute",
+      "plays_other": "{{count}} écoutes",
+      "plays_many": "{{count}} écoutes"
+    }
   },
   "library": {
     "header": {
@@ -1453,7 +1479,13 @@
     "restOfAlbum": "Suite de l'album",
     "moreTracks_one": "+{{count}} titre",
     "moreTracks_other": "+{{count}} titres",
-    "moreTracks_many": "+{{count}} titres"
+    "moreTracks_many": "+{{count}} titres",
+    "fluid": {
+      "details": "Détails",
+      "fromAlbum": "Lecture depuis l'album",
+      "artist": "Artiste",
+      "openLyrics": "Voir les paroles"
+    }
   },
   "playerBar": {
     "lyrics": "Paroles",
@@ -1862,7 +1894,8 @@
         "storageRead": "Lecture du stockage",
         "assets": "Ressources ({{count}})",
         "none": "Aucune permission demandée",
-        "libraryReadArtists": "Accès à vos artistes"
+        "libraryReadArtists": "Accès à vos artistes",
+        "summary": "Permissions"
       },
       "bundled": "Inclus",
       "bundledHint": "Livré avec WaveFlow — désactivez-le pour le masquer.",
@@ -1875,7 +1908,7 @@
       "attention": {
         "authRequired": {
           "title": "{{name}} : connexion refusée",
-          "body": "Le cookie ou le jeton enregistré a expiré ou a été révoqué. Collez-en un nouveau dans Paramètres → Extensions."
+          "body": "Le cookie ou le jeton enregistré a expiré ou a été révoqué. Collez-en un nouveau dans la page Extensions."
         },
         "dismiss": "Fermer"
       }
@@ -1910,6 +1943,10 @@
         "liquid": {
           "label": "Liquid",
           "description": "Verre liquide façon Apple — matière translucide multicouche, fond aurore, capsules, transitions calmes."
+        },
+        "fluid": {
+          "label": "Fluid",
+          "description": "Éditorial cinématique — la pochette éclaire la page, typographie de magazine, courbes d'onde, spectre d'humeur."
         }
       },
       "mode": {
@@ -2629,7 +2666,8 @@
       "official": "Officiel",
       "canReach": "Peut accéder à :",
       "installAria": "Installer {{name}}",
-      "updateAria": "Mettre à jour {{name}}"
+      "updateAria": "Mettre à jour {{name}}",
+      "allInstalled": "Tout ce que propose le magasin est déjà installé."
     },
     "motionArtwork": {
       "title": "Pochettes animées",
@@ -2881,7 +2919,7 @@
     "live": "EN DIRECT",
     "nowPlaying": "Lecture en cours",
     "unavailableTitle": "Web Radio désactivée",
-    "unavailableHint": "Activez le plugin Web Radio dans Paramètres → Extensions pour parcourir plus de 30 000 stations.",
+    "unavailableHint": "Activez le plugin Web Radio dans la page Extensions pour parcourir plus de 30 000 stations.",
     "favorites": "Favoris",
     "favoritesEmpty": "Aucune station en favori. Cliquez sur l'étoile d'une station pour l'ajouter.",
     "addFavorite": "Ajouter aux favoris",

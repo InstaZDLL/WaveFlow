@@ -18,6 +18,8 @@ import {
 import { playerPlayTracks } from "../../../lib/tauri/player";
 import { useSkin } from "../../../hooks/useSkin";
 import { MoodCurationModal } from "./MoodCurationModal";
+import { MoodSpectrum } from "./MoodSpectrum";
+import { SectionHeader } from "./fluid/SectionHeader";
 
 interface MoodTile {
   mood: Mood;
@@ -85,6 +87,7 @@ export function MoodRadioGrid() {
   const isEditorialSkin = skin.id === "editorial";
   const isPulseSkin = skin.id === "pulse";
   const isLiquidSkin = skin.id === "liquid";
+  const isFluidSkin = skin.id === "fluid";
 
   useEffect(() => {
     let cancelled = false;
@@ -136,6 +139,51 @@ export function MoodRadioGrid() {
   // is analysed the line has nothing to add.
   const partlyAnalysed =
     counts != null && counts.analysed_tracks < counts.total_tracks;
+
+  if (isFluidSkin) {
+    return (
+      <section aria-label={t("home.moodRadio.title")}>
+        <SectionHeader
+          title={t("home.moodRadio.title")}
+          className="mb-5"
+          lede={
+            <>
+              {t("home.moodRadio.subtitle")}
+              {partlyAnalysed && (
+                <>
+                  <span className="mx-1.5 opacity-50">·</span>
+                  {t("home.moodRadio.coverage", {
+                    count: counts.total_tracks,
+                    analysed: counts.analysed_tracks,
+                  })}
+                </>
+              )}
+            </>
+          }
+          action={
+            <button
+              type="button"
+              onClick={() => setCurating(true)}
+              title={t("moodCuration.open")}
+              aria-label={t("moodCuration.open")}
+              className="fe-icon-btn"
+            >
+              <SlidersHorizontal size={16} />
+            </button>
+          }
+        />
+        <MoodCurationModal
+          isOpen={curating}
+          onClose={() => setCurating(false)}
+        />
+        <MoodSpectrum
+          counts={counts}
+          loadingMood={loadingMood}
+          onStart={handleStart}
+        />
+      </section>
+    );
+  }
 
   return (
     <section

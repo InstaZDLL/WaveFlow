@@ -840,6 +840,14 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const toggleLyrics = useCallback(() => {
     setActiveRightPanel((p) => (p === "lyrics" ? null : "lyrics"));
   }, []);
+  // For a shell that shows the three as tabs (the Fluid skin's panel):
+  // a tab opens its panel whatever is up, and the shell's close button
+  // closes whichever it is.
+  const openRightPanel = useCallback(
+    (panel: "queue" | "nowPlaying" | "lyrics") => setActiveRightPanel(panel),
+    [],
+  );
+  const closeRightPanel = useCallback(() => setActiveRightPanel(null), []);
   const toggleDeviceMenu = useCallback(
     () => setIsDeviceMenuOpen((p) => !p),
     [],
@@ -912,6 +920,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         toggleNowPlaying,
         isLyricsOpen,
         toggleLyrics,
+        openRightPanel,
+        closeRightPanel,
         isDeviceMenuOpen,
         toggleDeviceMenu,
         immersiveOpen,

@@ -414,7 +414,31 @@
       "cta": "Open",
       "dismiss": "Hide the Wrapped banner"
     },
-    "seeAll": "See all"
+    "seeAll": "See all",
+    "fluid": {
+      "resumeKicker": "Pick up where you left off",
+      "resume": "Resume",
+      "pause": "Pause",
+      "play": "Play",
+      "openAlbum": "Open the album",
+      "upNext": "Up next",
+      "recentStrip": "Last played",
+      "remaining": "{{time}} left",
+      "radio": "Radio",
+      "hours": "{{count}} h listened",
+      "moodStart": "Start the radio",
+      "tempo": "Tempo",
+      "featuredKicker": "You keep coming back to it",
+      "featuredCta": "Play again",
+      "yourMixes": "Your mixes",
+      "leadKicker": "Latest addition",
+      "liked_zero": "0 liked tracks",
+      "liked_one": "{{count}} liked track",
+      "liked_other": "{{count}} liked tracks",
+      "plays_zero": "0 plays",
+      "plays_one": "{{count}} play",
+      "plays_other": "{{count}} plays"
+    }
   },
   "library": {
     "header": {
@@ -1402,7 +1426,13 @@
     },
     "restOfAlbum": "Rest of the album",
     "moreTracks_one": "+{{count}} track",
-    "moreTracks_other": "+{{count}} tracks"
+    "moreTracks_other": "+{{count}} tracks",
+    "fluid": {
+      "details": "Details",
+      "fromAlbum": "Playing from the album",
+      "artist": "Artist",
+      "openLyrics": "See the lyrics"
+    }
   },
   "playerBar": {
     "lyrics": "Lyrics",
@@ -1806,7 +1836,8 @@
         "storageRead": "Storage read",
         "assets": "Assets ({{count}})",
         "none": "No permission requested",
-        "libraryReadArtists": "Reads your artists"
+        "libraryReadArtists": "Reads your artists",
+        "summary": "Permissions"
       },
       "bundled": "Built-in",
       "bundledHint": "Ships with WaveFlow — disable it to hide it.",
@@ -1819,7 +1850,7 @@
       "attention": {
         "authRequired": {
           "title": "{{name}}: sign-in refused",
-          "body": "The saved cookie or token has expired or been revoked. Paste a new one in Settings → Extensions."
+          "body": "The saved cookie or token has expired or been revoked. Paste a new one in the Extensions page."
         },
         "dismiss": "Dismiss"
       }
@@ -2306,6 +2337,10 @@
         "liquid": {
           "label": "Liquid",
           "description": "Apple-style liquid glass — multi-layer translucent material, aurora backdrop, pill capsules, calm motion."
+        },
+        "fluid": {
+          "label": "Fluid",
+          "description": "Cinematic editorial — the cover lights the page, magazine typography, wave curves, a mood spectrum."
         }
       },
       "accent": {
@@ -2566,7 +2601,8 @@
       "official": "Official",
       "canReach": "Can reach:",
       "installAria": "Install {{name}}",
-      "updateAria": "Update {{name}}"
+      "updateAria": "Update {{name}}",
+      "allInstalled": "Everything in the store is already installed."
     },
     "motionArtwork": {
       "title": "Animated artwork",
@@ -2817,7 +2853,7 @@
     "live": "LIVE",
     "nowPlaying": "Now playing",
     "unavailableTitle": "Web Radio is disabled",
-    "unavailableHint": "Enable the Web Radio plugin in Settings → Extensions to browse 30,000+ stations.",
+    "unavailableHint": "Enable the Web Radio plugin in the Extensions page to browse 30,000+ stations.",
     "favorites": "Favourites",
     "favoritesEmpty": "No favourite stations yet. Click a station's star to save it.",
     "addFavorite": "Add to favourites",

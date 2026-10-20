@@ -24,7 +24,8 @@
  * baseline equivalents.
  */
 
-export type SkinId = "studio" | "editorial" | "lounge" | "pulse" | "liquid";
+export type SkinId =
+  "studio" | "editorial" | "lounge" | "pulse" | "liquid" | "fluid";
 
 export interface SkinPreset {
   /** Stable id used as the persisted value and the `data-skin` attribute. */
@@ -125,10 +126,64 @@ export interface SkinPreset {
   };
 }
 
-/** Stable id of the skin shipped before this module landed. */
-export const DEFAULT_SKIN_ID: SkinId = "studio";
+/** The skin a profile gets until it picks one: Fluid, since 2.0. */
+export const DEFAULT_SKIN_ID: SkinId = "fluid";
+/** The skin safe mode and the crash marker fall back to: Studio, the
+ *  one with no stylesheet of its own, so a skin that makes the webview
+ *  unusable can never be the one the recovery lands on. */
+export const RECOVERY_SKIN_ID: SkinId = "studio";
 
 export const SKIN_PRESETS: SkinPreset[] = [
+  {
+    id: "fluid",
+    labelKey: "settings.appearance.skins.fluid.label",
+    descriptionKey: "settings.appearance.skins.fluid.description",
+    density: {
+      // Editorial breathing room around the music, ordinary density
+      // where the user navigates: lists stay close to Studio.
+      navRow: 1.05,
+      topBar: 1.0,
+      listRow: 1.05,
+      cardPad: 1.2,
+    },
+    radius: {
+      // One scale: soft corners on surfaces, full pills on actions.
+      card: "0.875rem",
+      button: "9999px",
+      input: "0.625rem",
+      pill: "9999px",
+    },
+    surface: {
+      // Depth through tone, not borders: a hairline highlight on top
+      // and a long, dark, soft drop — never an outline.
+      shadowCard:
+        "inset 0 1px 0 rgb(255 255 255 / 0.04), 0 10px 30px -18px rgb(0 0 0 / 0.9)",
+      shadowElevated:
+        "inset 0 1px 0 rgb(255 255 255 / 0.06), 0 26px 44px -22px rgb(0 0 0 / 0.8)",
+      backdrop: "none",
+      divider: "rgb(255 255 255 / 0.07)",
+      grain: "",
+    },
+    typography: {
+      // DM Sans Variable for everything (the optical-size axis gives
+      // display-grade rendering at headline sizes); Playfair's italic
+      // appears in one place only — the greeting — and is referenced
+      // from fluid.css directly, as Pulse does with Space Mono.
+      display:
+        '"DM Sans Variable", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+      body: '"DM Sans Variable", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+      headingWeight: 560,
+      displayTracking: "-0.03em",
+    },
+    motion: {
+      // Settled, not springy: one ease-out for everything, a touch
+      // longer than Studio so a hover lift reads as weight.
+      duration: 0.32,
+      springStiffness: 200,
+      springDamping: 28,
+      ease: "cubic-bezier(0.22, 1, 0.36, 1)",
+    },
+  },
   {
     id: "studio",
     labelKey: "settings.appearance.skins.studio.label",
