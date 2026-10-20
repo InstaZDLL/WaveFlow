@@ -203,6 +203,12 @@ impl Resampler {
                 frames_in,
                 ..
             } => {
+                // Nothing given since it was built or flushed (a speed
+                // change right at the end): no tail, and pushing the
+                // delay out would only add silence.
+                if *frames_in == 0 {
+                    return Ok(());
+                }
                 let scaled = (u128::from(*frames_in) * u128::from(*dst_rate)
                     + u128::from(*src_rate) / 2)
                     / u128::from(*src_rate);
@@ -290,6 +296,14 @@ mod tests {
         // Well inside the signal's end, the level is still there.
         let frame = (expected - 300) * channels;
         assert!((out[frame] - 0.5).abs() < 0.05, "got {}", out[frame]);
+    }
+
+    #[test]
+    fn finish_with_nothing_given_adds_nothing() {
+        let mut r = Resampler::new(48_000, 44_100, 2).expect("ctor");
+        let mut out = Vec::new();
+        r.finish(&mut out).expect("finish");
+        assert!(out.is_empty());
     }
 
     #[test]

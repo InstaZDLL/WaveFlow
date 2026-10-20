@@ -501,7 +501,7 @@ impl ActiveStream {
             .map_err(|e| format!("codec init: {e}"))?;
         let codec = registry
             .get_audio_decoder(audio_params.codec)
-            .map(|registered| codec_label(registered.codec.info.short_name));
+            .map(|registered| crate::audio_format::codec_label(registered.codec.info.short_name));
 
         Ok(Self {
             backend: StreamBackend::Symphonia {
@@ -1069,16 +1069,6 @@ impl ActiveStream {
 /// and every seek must land on a multiple of this, or the decoder starts
 /// attributing one channel's bytes to another.
 #[inline]
-/// A symphonia short name as the format chip spells it.
-fn codec_label(short_name: &str) -> String {
-    match short_name {
-        n if n.starts_with("pcm") => "PCM".into(),
-        "vorbis" => "Vorbis".into(),
-        "opus" => "Opus".into(),
-        n => n.to_ascii_uppercase(),
-    }
-}
-
 fn interleave_stride(layout: &DsdLayout) -> u64 {
     match layout.block_interleave {
         Some(block) => (block as u64) * (layout.channels.count() as u64),
