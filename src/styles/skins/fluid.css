@@ -1039,7 +1039,9 @@
   button:where(
     [class*="bg-emerald-500"],
     [class*="bg-pink-500"],
-    [class*="rounded-full"][class*="text-white"]
+    [class*="rounded-full"][class*="text-white"]:not([class*="w-10"]):not(
+        [class*="absolute"]
+      )
   ) {
   height: 3rem;
   padding: 0 1.5rem 0 1.25rem !important;
@@ -1061,7 +1063,9 @@
   button:where(
     [class*="bg-emerald-500"],
     [class*="bg-pink-500"],
-    [class*="rounded-full"][class*="text-white"]
+    [class*="rounded-full"][class*="text-white"]:not([class*="w-10"]):not(
+        [class*="absolute"]
+      )
   ):hover:not(:disabled) {
   filter: brightness(1.06);
   transform: translateY(-1px);
