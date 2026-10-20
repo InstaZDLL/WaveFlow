@@ -259,6 +259,27 @@ impl Resampler {
         }
     }
 
+    /// After a seek, forget everything in flight: the queued input and
+    /// the filter's history, so nothing of the old position plays at the
+    /// new one. The track's length is counted again from here; the filter
+    /// delay comes back at the start of the output, which is what
+    /// [`Self::finish`] expects.
+    pub fn reset(&mut self) {
+        if let Self::Fft {
+            inner,
+            pending,
+            frames_in,
+            frames_out,
+            ..
+        } = self
+        {
+            inner.reset();
+            pending.clear();
+            *frames_in = 0;
+            *frames_out = 0;
+        }
+    }
+
     /// Drop any frames still buffered in the pending queue, and start
     /// counting the track's length again. The end of a track goes
     /// through [`Self::finish`] instead.
@@ -363,6 +384,26 @@ mod tests {
                 }
             }
         }
+    }
+
+    /// After a reset nothing of the old position comes out: a level fed
+    /// before it is gone from what follows.
+    #[test]
+    fn reset_forgets_the_old_position() {
+        let channels = 2;
+        let mut r = Resampler::new(48_000, 44_100, channels).expect("ctor");
+        let mut out = Vec::new();
+        r.process(&vec![0.5_f32; 4_000 * channels], &mut out)
+            .expect("process");
+
+        r.reset();
+        out.clear();
+        r.process(&vec![0.0_f32; 4_000 * channels], &mut out)
+            .expect("process");
+        r.finish(&mut out).expect("finish");
+
+        let loudest = out.iter().fold(0.0_f32, |m, s| m.max(s.abs()));
+        assert!(loudest < 1e-3, "the old level leaked through: {loudest}");
     }
 
     #[test]
