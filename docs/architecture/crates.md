@@ -82,7 +82,7 @@ Lyrics providers that are query-based rather than exact metadata clients. The cr
 Anything tied to the Tauri runtime, the real-time audio engine, or the desktop OS:
 
 - **Every `#[tauri::command]`** — even when the body is a thin call into a core function. The IPC bridge contract is desktop-specific.
-- **Real-time audio engine** — `audio/{decoder,output,engine,crossfade,eq,resampler,spectrum,state,analytics}.rs` plus the per-OS exclusive backends `audio/{wasapi,alsa,coreaudio}_exclusive.rs`. The `cpal` callback and the exclusive output threads must not allocate / log / lock; the surrounding decoder + state machinery only makes sense alongside them.
+- **Real-time audio engine** — `audio/{decoder,output,engine,crossfade,eq,spectrum,state,analytics}.rs` plus the per-OS exclusive backends `audio/{wasapi,alsa,coreaudio}_exclusive.rs`. The `cpal` callback and the exclusive output threads must not allocate / log / lock; the surrounding decoder + state machinery only makes sense alongside them. What the decoder thread drives — opening and decoding a track, resampling, channel conversion, ReplayGain — is `waveflow_core::playback`.
 - **OS media controls** — souvlaki (`media_controls.rs`), Discord Rich Presence named-pipe client (`discord_presence.rs`), system notification plugin bridge (`notifications.rs`).
 - **DLNA / UPnP MediaServer** — `dlna/` is integrated as a worker thread driven by the Tauri runtime.
 - **Filesystem watcher** — `watcher.rs` wires `notify` events into `library:rescanned` Tauri events.
@@ -97,6 +97,7 @@ Several files in `crates/app/src/` are one-line re-exports of code that moved to
 - `app/src/thumbnails.rs` → `waveflow_core::artwork::thumbnails`
 - `app/src/metadata_artwork.rs` → `waveflow_core::artwork::metadata`
 - `app/src/analysis.rs` → `waveflow_core::analysis`
+- `app/src/audio/mod.rs` → `pub use waveflow_core::playback::replay_gain`, so `crate::audio::replay_gain::*` still resolves
 - `app/src/smart_playlists.rs` → `waveflow_core::smart_playlists::*` (submodules re-exported individually so the `cover` / `custom` / `generator` / `on_repeat` paths still work)
 
 Likewise the domain types in `commands/{track,playlist,library,profile}.rs` and `commands/scan.rs::canonical_name` stay reachable through `pub use waveflow_core::...` lines at the top of their original files.
