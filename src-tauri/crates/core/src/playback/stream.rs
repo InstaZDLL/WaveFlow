@@ -851,12 +851,6 @@ impl ActiveStream {
                     // or layout may differ. Ending the track here stopped
                     // such a stream at its first song change.
                     Err(SymphoniaError::ResetRequired) => {
-                        // Chained streams can follow one another with no
-                        // audio between them: they count toward the bound.
-                        skipped += 1;
-                        if skipped >= MAX_SKIPPED_PACKETS {
-                            return Ok(false);
-                        }
                         let Some(track) = format.default_track(TrackType::Audio) else {
                             return Ok(true);
                         };
@@ -876,6 +870,14 @@ impl ActiveStream {
                         // about this one.
                         *extent = StreamExtent::new(track.start_ts.get(), None, None);
                         *spec_captured = false;
+                        // Chained streams can follow one another with no
+                        // audio between them: they count toward the bound.
+                        // Checked once the decoder is rebuilt, since the
+                        // reader is already past the change.
+                        skipped += 1;
+                        if skipped >= MAX_SKIPPED_PACKETS {
+                            return Ok(false);
+                        }
                         continue;
                     }
                     Err(SymphoniaError::IoError(e))
