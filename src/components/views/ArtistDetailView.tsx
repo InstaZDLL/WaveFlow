@@ -444,6 +444,7 @@ export function ArtistDetailView({
           the column edges; the padding puts the inset back for the
           content itself. */}
       <div
+        data-page-hero
         className={
           heroSrc
             ? "group/hero relative -mx-8 -mt-8 px-8 pt-12 pb-10 overflow-hidden"

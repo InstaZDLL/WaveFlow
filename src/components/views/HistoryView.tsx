@@ -295,7 +295,7 @@ export function HistoryView({
     <div className="flex gap-6 pb-20 animate-fade-in">
       <div className="flex-1 min-w-0 space-y-6">
         {/* Header */}
-        <div className="flex items-center space-x-6">
+        <div data-page-hero className="flex items-center space-x-6">
           <div className="w-24 h-24 rounded-2xl bg-blue-100 text-blue-500 flex items-center justify-center shadow-sm dark:bg-blue-950/60 dark:text-blue-400">
             <Clock size={48} />
           </div>

@@ -1396,7 +1396,7 @@ export function LibraryView({
   return (
     <div className="space-y-6 animate-fade-in pb-12">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div data-page-hero className="flex items-start justify-between">
         <div className="flex items-center space-x-5">
           <div className="w-20 h-20 rounded-2xl bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400 flex items-center justify-center shadow-sm">
             <Music2 size={40} />

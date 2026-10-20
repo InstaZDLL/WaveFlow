@@ -937,6 +937,346 @@
   color: var(--fe-ink-3);
 }
 
+/* ============================================================
+   Page heroes — library, album, artist, playlist, genre, year,
+   liked, history. Each view marks its header `data-page-hero`;
+   the rules below recompose it the way the Home's canvas reads:
+   kicker, display title, one quiet meta line, a pill CTA. The
+   markup is untouched, so the other skins keep their header.
+   ============================================================ */
+
+/* The coloured icon box (a note, a heart, a clock) goes: the kicker
+   and the title carry the page. Covers and photos stay. */
+:root[data-skin="fluid"]
+  main
+  [data-page-hero]
+  div[class*="rounded-2xl"]:has(> svg):not(:has(img)) {
+  display: none;
+}
+/* Kicker */
+:root[data-skin="fluid"]
+  main
+  [data-page-hero]
+  [class*="tracking-widest"][class*="uppercase"] {
+  font-size: 0.75rem !important;
+  font-weight: 540 !important;
+  letter-spacing: 0.12em !important;
+  color: var(--fe-ink-3) !important;
+  margin-bottom: 0.625rem !important;
+}
+/* Title: the display face, balanced over two lines at most. */
+:root[data-skin="fluid"] main [data-page-hero] h1 {
+  font-size: clamp(2.25rem, 3vw, 3.5rem) !important;
+  font-weight: 560 !important;
+  letter-spacing: -0.035em !important;
+  line-height: 0.98 !important;
+  text-wrap: balance;
+  color: var(--fe-ink) !important;
+  margin-bottom: 0.875rem !important;
+}
+/* Meta lines: secondary ink, the counts in tertiary. */
+:root[data-skin="fluid"] main [data-page-hero] :is(div, p)[class*="text-sm"] {
+  color: var(--fe-ink-2);
+  font-size: 0.9375rem;
+}
+:root[data-skin="fluid"]
+  main
+  [data-page-hero]
+  :is(div, p)[class*="text-sm"][class*="text-zinc-500"] {
+  color: var(--fe-ink-3);
+}
+/* The artist under an album title: ink, the accent only on hover. */
+:root[data-skin="fluid"] main [data-page-hero] button[class*="text-emerald-600"] {
+  color: var(--fe-ink) !important;
+  font-size: 1.125rem;
+  font-weight: 500;
+  text-decoration: none !important;
+  transition: color 180ms var(--fe-ease);
+}
+:root[data-skin="fluid"]
+  main
+  [data-page-hero]
+  button[class*="text-emerald-600"]:hover {
+  color: var(--fe-accent) !important;
+}
+/* Genre chips: a hairline, no fill. */
+:root[data-skin="fluid"]
+  main
+  [data-page-hero]
+  span[class*="rounded-full"][class*="bg-zinc-100"] {
+  background-color: transparent !important;
+  box-shadow: inset 0 0 0 1px var(--fe-hairline-strong);
+  color: var(--fe-ink-2) !important;
+}
+/* The cover: the Home's hero treatment. */
+:root[data-skin="fluid"]
+  main
+  [data-page-hero]
+  :is([class*="w-44"], [class*="w-48"], [class*="w-40"])[class*="rounded"] {
+  border-radius: 1.25rem !important;
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.06) inset,
+    0 30px 60px -28px rgb(0 0 0 / 0.95) !important;
+}
+/* The primary action: the pill CTA. */
+:root[data-skin="fluid"]
+  main
+  [data-page-hero]
+  button:where(
+    [class*="bg-emerald-500"],
+    [class*="bg-pink-500"],
+    [class*="rounded-full"][class*="text-white"]
+  ) {
+  height: 3rem;
+  padding: 0 1.5rem 0 1.25rem !important;
+  border-radius: 9999px !important;
+  background-color: var(--fe-accent) !important;
+  color: var(--fe-accent-ink) !important;
+  font-size: 0.9375rem !important;
+  font-weight: 560 !important;
+  letter-spacing: -0.01em;
+  box-shadow: 0 18px 40px -18px
+    color-mix(in srgb, var(--fe-accent) 70%, transparent) !important;
+  transition:
+    transform 320ms var(--fe-ease),
+    filter 180ms var(--fe-ease);
+}
+:root[data-skin="fluid"]
+  main
+  [data-page-hero]
+  button:where(
+    [class*="bg-emerald-500"],
+    [class*="bg-pink-500"],
+    [class*="rounded-full"][class*="text-white"]
+  ):hover:not(:disabled) {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+/* Secondary actions with a label: a ghost pill. */
+:root[data-skin="fluid"]
+  main
+  [data-page-hero]
+  button[class*="border"][class*="px-"] {
+  height: 3rem;
+  padding: 0 1.25rem !important;
+  border-color: transparent !important;
+  border-radius: 9999px !important;
+  background-color: rgb(255 255 255 / 0.06) !important;
+  color: var(--fe-ink-2) !important;
+  font-size: 0.9375rem !important;
+  font-weight: 500 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  transition:
+    color 180ms var(--fe-ease),
+    background-color 180ms var(--fe-ease);
+}
+:root[data-skin="fluid"]
+  main
+  [data-page-hero]
+  button[class*="border"][class*="px-"]:hover:not(:disabled) {
+  background-color: rgb(255 255 255 / 0.1) !important;
+  color: var(--fe-ink) !important;
+}
+/* Icon groups (shuffle, edit, export…): no box, quiet icons. */
+:root[data-skin="fluid"]
+  main
+  [data-page-hero]
+  div[class*="p-1"][class*="rounded-xl"][class*="border"] {
+  border-color: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  gap: 0.25rem;
+}
+:root[data-skin="fluid"]
+  main
+  [data-page-hero]
+  div[class*="p-1"][class*="rounded-xl"][class*="border"]
+  button {
+  width: 2.75rem;
+  height: 2.75rem;
+  display: grid;
+  place-items: center;
+  padding: 0 !important;
+  border-radius: 9999px !important;
+  color: var(--fe-ink-3) !important;
+  background-color: transparent !important;
+  transition:
+    color 180ms var(--fe-ease),
+    background-color 180ms var(--fe-ease);
+}
+:root[data-skin="fluid"]
+  main
+  [data-page-hero]
+  div[class*="p-1"][class*="rounded-xl"][class*="border"]
+  button:hover:not(:disabled) {
+  color: var(--fe-ink) !important;
+  background-color: rgb(255 255 255 / 0.06) !important;
+}
+
+/* The playlist backdrop: the view paints a sheet of its accent from
+   the top; here it becomes a pool of light in the hero's corner, the
+   way the Home's canvas carries the cover's colour. */
+:root[data-skin="fluid"] main [class*="--playlist-header"] {
+  background: radial-gradient(
+      ellipse 58% 62% at 16% 0%,
+      color-mix(in srgb, var(--playlist-accent, var(--fe-glow)) 34%, transparent),
+      transparent 70%
+    )
+    !important;
+}
+
+/* ── Library tabs: text, the active one marked by the flow line ── */
+:root[data-skin="fluid"] main button[class*="border-b-2"] {
+  position: relative;
+  border: 0 !important;
+  padding-bottom: 1.125rem !important;
+  color: var(--fe-ink-3) !important;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  transition: color 180ms var(--fe-ease);
+}
+:root[data-skin="fluid"] main button[class*="border-b-2"]:hover {
+  color: var(--fe-ink-2) !important;
+}
+:root[data-skin="fluid"] main button[class*="border-b-2"][class*="border-emerald-500"] {
+  color: var(--fe-ink) !important;
+  font-weight: 540;
+}
+:root[data-skin="fluid"]
+  main
+  button[class*="border-b-2"][class*="border-emerald-500"]::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0.25rem;
+  width: 2.5rem;
+  height: 0.625rem;
+  background-color: var(--fe-accent);
+  mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 10' fill='none'><path d='M0.5 5 C 5 0.5, 9 0.5, 13.5 5 S 22 9.5, 26.5 5 S 35 0.5, 39.5 5' stroke='black' stroke-width='1.6' stroke-linecap='round'/></svg>") no-repeat center / 100% 100%;
+  -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 10' fill='none'><path d='M0.5 5 C 5 0.5, 9 0.5, 13.5 5 S 22 9.5, 26.5 5 S 35 0.5, 39.5 5' stroke='black' stroke-width='1.6' stroke-linecap='round'/></svg>") no-repeat center / 100% 100%;
+}
+:root[data-skin="fluid"]
+  main
+  div[class*="border-b"]:has(> div > button[class*="border-b-2"]) {
+  border-color: var(--fe-hairline) !important;
+}
+:root[data-skin="fluid"] main header[class*="border-b"] {
+  border-color: var(--fe-hairline) !important;
+}
+
+/* ── Grids: artists without a photo, genre and year cards ──────── */
+:root[data-skin="fluid"] main [class*="from-violet"] {
+  background-image: none !important;
+  background-color: var(--fe-surface-2) !important;
+  border-color: transparent !important;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04) !important;
+}
+:root[data-skin="fluid"] main [class*="text-violet"] {
+  color: var(--fe-ink-3) !important;
+  font-weight: 500 !important;
+}
+:root[data-skin="fluid"]
+  main
+  button[class*="rounded-2xl"][class*="border"][class*="p-4"] {
+  border-color: transparent !important;
+  border-radius: 0.875rem !important;
+  background-color: var(--fe-surface) !important;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04) !important;
+  transition: background-color 180ms var(--fe-ease);
+}
+:root[data-skin="fluid"]
+  main
+  button[class*="rounded-2xl"][class*="border"][class*="p-4"]:hover {
+  background-color: var(--fe-surface-2) !important;
+}
+
+/* ── Small labels and pills ────────────────────────────────────── */
+/* 10 px uppercase labels (table headers, section eyebrows): one
+   size up, settled weight, tertiary ink. White ones over artwork
+   keep their colour. */
+:root[data-skin="fluid"]
+  main
+  [class*="text-[10px]"][class*="uppercase"]:not([class*="text-white"]) {
+  font-size: 0.6875rem !important;
+  font-weight: 540 !important;
+  letter-spacing: 0.1em !important;
+  color: var(--fe-ink-3) !important;
+}
+/* Filter pills (history ranges): the accent fills the chosen one
+   with dark ink; the others are a hairline. */
+:root[data-skin="fluid"]
+  main
+  button[class*="rounded-full"][class*="text-xs"][class*="bg-emerald-500"] {
+  background-color: var(--fe-accent) !important;
+  color: var(--fe-accent-ink) !important;
+  font-weight: 540 !important;
+}
+:root[data-skin="fluid"]
+  main
+  button[class*="rounded-full"][class*="text-xs"][class*="bg-zinc-100"] {
+  background-color: transparent !important;
+  box-shadow: inset 0 0 0 1px var(--fe-hairline-strong);
+  color: var(--fe-ink-2) !important;
+}
+:root[data-skin="fluid"]
+  main
+  button[class*="rounded-full"][class*="text-xs"][class*="bg-zinc-100"]:hover {
+  background-color: rgb(255 255 255 / 0.06) !important;
+  color: var(--fe-ink) !important;
+}
+/* The Hi-Res badge: no solid pill — a dark ground and the accent as
+   ink, over a cover or beside a title alike. */
+:root[data-skin="fluid"]
+  :is(span, div)[class*="bg-emerald-500"][class*="text-[10px]"][class*="rounded"] {
+  background-color: rgb(11 11 14 / 0.78) !important;
+  color: var(--fe-accent) !important;
+  font-weight: 540 !important;
+  letter-spacing: 0.06em;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fe-accent) 35%, transparent);
+}
+
+/* ── Menus and popovers (portalled: no `main` here) ───────────── */
+/* A row that would fill with the accent on hover takes a tone instead;
+   the accent is kept for the chosen item's ink. */
+:root[data-skin="fluid"] [class*="hover:bg-emerald-500"]:hover {
+  background-color: rgb(255 255 255 / 0.06) !important;
+  color: var(--fe-ink) !important;
+}
+:root[data-skin="fluid"] [class*="hover:bg-emerald-500"][class*="text-emerald-500"]:hover {
+  color: var(--fe-accent) !important;
+}
+/* Every accent-filled button carries the accent's own ink, as the
+   CTAs do: speed presets, timer presets, confirms, badges. */
+:root[data-skin="fluid"] button[class*="bg-emerald-500 "],
+:root[data-skin="fluid"] button[class*="bg-emerald-500"][class*="text-white"] {
+  background-color: var(--fe-accent) !important;
+  color: var(--fe-accent-ink) !important;
+}
+:root[data-skin="fluid"] button[class*="hover:bg-emerald-600"]:hover:not(:disabled) {
+  background-color: var(--fe-accent) !important;
+  filter: brightness(1.06);
+}
+/* The chosen row of a settings list or the settings navigation: a
+   tone and the accent bar, as in the sidebar. */
+:root[data-skin="fluid"] main button[class*="bg-emerald-50 "] {
+  position: relative;
+  background-color: rgb(255 255 255 / 0.05) !important;
+  color: var(--fe-ink) !important;
+}
+:root[data-skin="fluid"] main button[class*="bg-emerald-50 "]::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.5rem;
+  bottom: 0.5rem;
+  width: 2px;
+  border-radius: 2px;
+  background-color: var(--fe-accent);
+}
+
 /* ── Reduced motion: no drift, no stagger, no lift ─────────── */
 @media (prefers-reduced-motion: reduce) {
   :root[data-skin="fluid"] .fe-rise,
@@ -959,7 +1299,8 @@
   :root[data-skin="fluid"] .fe-tile-hover:focus-visible .fe-tile,
   :root[data-skin="fluid"] .fe-press:active,
   :root[data-skin="fluid"] .fe-cta:hover,
-  :root[data-skin="fluid"] .fe-cta:active {
+  :root[data-skin="fluid"] .fe-cta:active,
+  :root[data-skin="fluid"] main [data-page-hero] button:hover {
     transform: none;
   }
 }

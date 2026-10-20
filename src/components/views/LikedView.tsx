@@ -105,7 +105,7 @@ export function LikedView({
   return (
     <div className="space-y-8 animate-fade-in pb-20">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div data-page-hero className="flex items-start justify-between">
         <div className="flex items-center space-x-6">
           <div className="w-24 h-24 rounded-2xl bg-pink-100 text-pink-500 flex items-center justify-center shadow-sm dark:bg-pink-950/60 dark:text-pink-400">
             <Heart size={48} className="fill-current" />

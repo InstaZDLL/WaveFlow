@@ -410,7 +410,7 @@ export function AlbumDetailView({
           keeps the album visually anchored without dominating the
           viewport, title wraps to a second line instead of truncating
           when the side lyrics panel is open. */}
-      <div className="flex items-start space-x-6">
+      <div data-page-hero className="flex items-start space-x-6">
         {/* Album artwork. A server cover is resolved by hash through the cover
             cache and has no lightbox: the lightbox opens the original file,
             and there is no file here. */}

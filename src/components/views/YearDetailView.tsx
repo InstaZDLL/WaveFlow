@@ -145,7 +145,7 @@ export function YearDetailView({
 
   return (
     <div className="space-y-8 animate-fade-in pb-20">
-      <div className="flex items-center space-x-8">
+      <div data-page-hero className="flex items-center space-x-8">
         <Artwork
           path={detail.artwork_path}
           path1x={detail.artwork_path_1x}
