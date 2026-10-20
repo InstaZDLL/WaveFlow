@@ -21,6 +21,10 @@ pub mod home_suggestion;
 pub mod inventory;
 pub mod metadata;
 pub mod mood;
+// Decoding for playback; the server, which plays nothing, leaves it off.
+#[cfg(feature = "playback")]
+#[cfg_attr(docsrs, doc(cfg(feature = "playback")))]
+pub mod playback;
 // `plugin` carries the wasmtime + Cranelift + WASI stack (~5 MiB
 // of native codegen). Gated so `waveflow-server` (which never
 // executes guest WASM in v1) can opt out and stay lean. The

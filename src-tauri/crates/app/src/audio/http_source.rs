@@ -1,7 +1,7 @@
 //! HTTP `MediaSource` for live audio streams (Web Radio).
 //!
 //! Symphonia probes + decodes through any `Read + Seek + Send + Sync`
-//! source. Files are the obvious case (see [`crossfade::ActiveStream::open`]);
+//! source. Files are the obvious case (see [`ActiveStream::open`](waveflow_core::playback::stream::ActiveStream::open));
 //! this module is the network-side equivalent: we open a streaming
 //! `reqwest::blocking::Response`, pre-buffer enough bytes for the probe
 //! to lock onto the codec, then hand the wrapper to symphonia exactly

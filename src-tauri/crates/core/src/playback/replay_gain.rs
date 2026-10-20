@@ -82,9 +82,8 @@ impl GainMode {
     }
 
     /// The form the decoder thread reads, out of a plain integer
-    /// atomic. Private to this pairing — nothing but
-    /// [`SharedPlayback`](crate::audio::state::SharedPlayback) should
-    /// care what number a mode is.
+    /// atomic. Private to this pairing — nothing but the player's
+    /// shared playback state should care what number a mode is.
     pub fn as_bits(self) -> u8 {
         match self {
             Self::Auto => 0,

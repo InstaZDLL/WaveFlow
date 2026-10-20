@@ -40,6 +40,9 @@ postgres = ["sqlx/postgres", "sqlx/runtime-tokio"]
 # this; `waveflow-server` does not (the HTTP/WS surface doesn't run
 # guest WASM in v1, so the ~5 MiB Cranelift codegen tree would be
 # pure bloat).
+# Decoding for playback (`playback`): the resampler is the one dependency
+# it adds, and the server does not need it.
+playback = ["dep:rubato"]
 plugins = [
     "dep:wasmtime",
     "dep:wasmtime-wasi",
@@ -131,6 +134,9 @@ uuid = { version = "1", features = ["v4", "v5", "serde"] }
 # time, which every build environment already has. Optional: see the
 # `opus` feature.
 opusic-sys = { version = "0.7", features = ["bundled"], optional = true }
+
+# Resampling for playback (`playback` feature).
+rubato = { version = "5.0", optional = true }
 
 # FFT for the onset detector of the tempo and energy analysis (`analysis::rhythm`).
 realfft = "3"
@@ -231,8 +237,9 @@ chardetng = "1.0.0"
 encoding_rs = "0.8.42"
 
 # `ReplaceFileW`, so an atomic write keeps the replaced file's ACL the way
-# rewriting it in place did (`atomic_write`). Already in the lockfile
-# through other crates.
+# rewriting it in place did (`atomic_write`), and `GetDriveTypeW`, so
+# playback can tell a mapped network drive (`playback::stream`). Already in
+# the lockfile through other crates.
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Storage_FileSystem"] }
 
