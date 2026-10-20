@@ -82,20 +82,26 @@ export function PluginsCard({
     // accepts. `cancelled` guards against a stale callback
     // landing setState after the component unmounted.
     let cancelled = false;
-    const load = () =>
+    // The event can fire twice in a row and the two reads answer in
+    // any order: only the latest one may write, or an older snapshot
+    // would land over a newer state.
+    let seq = 0;
+    const load = () => {
+      const mine = ++seq;
       listInstalledPlugins().then(
         (list) => {
-          if (cancelled) return;
+          if (cancelled || mine !== seq) return;
           setPlugins(list);
           setError(null);
           setLoading(false);
         },
         (e: unknown) => {
-          if (cancelled) return;
+          if (cancelled || mine !== seq) return;
           setError(e instanceof Error ? e.message : String(e));
           setLoading(false);
         },
       );
+    };
     load();
     // The store beside this list dispatches the same event after an
     // install (and this list after a toggle or an uninstall): re-read

@@ -77,20 +77,26 @@ export function PluginStoreCard({
     // body (`react-hooks/set-state-in-effect`), setState only inside the
     // promise callbacks, `cancelled` guards a late resolve post-unmount.
     let cancelled = false;
-    const load = () =>
+    // The event can fire twice in a row and the two reads answer in
+    // any order: only the latest one may write, or an older snapshot
+    // would land over a newer state.
+    let seq = 0;
+    const load = () => {
+      const mine = ++seq;
       listPluginMarketplace().then(
         (list) => {
-          if (cancelled) return;
+          if (cancelled || mine !== seq) return;
           setEntries(list);
           setError(null);
           setLoading(false);
         },
         (e: unknown) => {
-          if (cancelled) return;
+          if (cancelled || mine !== seq) return;
           setError(e instanceof Error ? e.message : String(e));
           setLoading(false);
         },
       );
+    };
     load();
     // An uninstall or a toggle in the installed list beside this store
     // dispatches the event: re-read, so the entry comes back on offer.
