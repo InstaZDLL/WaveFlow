@@ -14,6 +14,7 @@ import { SpectrumVisualizer } from "./SpectrumVisualizer";
 import { VisualizerColorButton } from "./VisualizerColorButton";
 import { VisualizerStyleButton } from "./VisualizerStyleButton";
 import { usePlayer } from "../../hooks/usePlayer";
+import { useSkin } from "../../hooks/useSkin";
 import { useProfile } from "../../hooks/useProfile";
 import { useVisualizerColor } from "../../hooks/useVisualizerColor";
 import { useVisualizerStyle } from "../../hooks/useVisualizerStyle";
@@ -53,6 +54,8 @@ export function ImmersiveNowPlaying({
   onToggleLike,
 }: ImmersiveNowPlayingProps) {
   const { t } = useTranslation();
+  // The Fluid skin draws the progress as its wave, as in the player bar.
+  const { skin } = useSkin();
   const { currentTrack, currentRadioStation } = usePlayer();
   // Right-click the title to reach the same track menu the list views have
   // (Show in Explorer, Properties, queue ops…) — mail reporter request.
@@ -264,7 +267,7 @@ export function ImmersiveNowPlaying({
             styleId={visualizerStyleId}
             glow
           />
-          <ProgressBar />
+          <ProgressBar variant={skin.id === "fluid" ? "edge" : "bar"} />
           <div className="flex items-center justify-between gap-6 mt-2">
             {/* Left cluster — like / station favorite. Lives down here
                 (not in the hero) so the visualizer canvas above never

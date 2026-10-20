@@ -1466,6 +1466,157 @@
   color: var(--fe-accent) !important;
 }
 
+/* ============================================================
+   The immersive view — the same dark takeover, in this skin's voice:
+   the display face for the title, text tabs with the flow line, quiet
+   icon buttons, the progress as the wave, the lyrics fading with
+   their distance from the sung line.
+   ============================================================ */
+:root[data-skin="fluid"] [data-immersive] h1 {
+  font-family: var(--fe-font);
+  font-size: clamp(2rem, 2.4vw, 2.75rem) !important;
+  font-weight: 560 !important;
+  letter-spacing: -0.035em;
+  line-height: 1.02;
+}
+:root[data-skin="fluid"] [data-immersive] h1 + div {
+  font-size: 1.0625rem;
+  color: rgb(255 255 255 / 0.72);
+}
+/* Tabs: no pill; text, the open one in white with the flow line. */
+:root[data-skin="fluid"] [data-immersive] [role="tablist"] {
+  padding: 0 !important;
+  gap: 0.25rem !important;
+  background-color: transparent !important;
+}
+:root[data-skin="fluid"] [data-immersive] [role="tab"] {
+  position: relative;
+  padding: 0.5rem 0.75rem 0.875rem !important;
+  border-radius: 0.625rem !important;
+  background-color: transparent !important;
+  color: rgb(255 255 255 / 0.6) !important;
+  font-weight: 500;
+  transition: color 180ms var(--fe-ease);
+}
+:root[data-skin="fluid"] [data-immersive] [role="tab"]:hover {
+  color: rgb(255 255 255 / 0.85) !important;
+}
+:root[data-skin="fluid"] [data-immersive] [role="tab"][aria-selected="true"] {
+  color: #fff !important;
+  font-weight: 540;
+}
+:root[data-skin="fluid"] [data-immersive] [role="tab"][aria-selected="true"]::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 0.125rem;
+  width: 1.75rem;
+  height: 0.5rem;
+  transform: translateX(-50%);
+  background-color: var(--fe-accent);
+  mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 10' fill='none'><path d='M0.5 5 C 5 0.5, 9 0.5, 13.5 5 S 22 9.5, 26.5 5 S 35 0.5, 39.5 5' stroke='black' stroke-width='1.6' stroke-linecap='round'/></svg>") no-repeat center / 100% 100%;
+  -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 10' fill='none'><path d='M0.5 5 C 5 0.5, 9 0.5, 13.5 5 S 22 9.5, 26.5 5 S 35 0.5, 39.5 5' stroke='black' stroke-width='1.6' stroke-linecap='round'/></svg>") no-repeat center / 100% 100%;
+}
+/* Icon buttons: no disc behind them until hovered. */
+:root[data-skin="fluid"]
+  [data-immersive]
+  button[class*="p-2.5"][class*="rounded-full"] {
+  background-color: transparent !important;
+  color: rgb(255 255 255 / 0.7) !important;
+  transition:
+    color 180ms var(--fe-ease),
+    background-color 180ms var(--fe-ease);
+}
+:root[data-skin="fluid"]
+  [data-immersive]
+  button[class*="p-2.5"][class*="rounded-full"]:hover {
+  background-color: rgb(255 255 255 / 0.1) !important;
+  color: #fff !important;
+}
+:root[data-skin="fluid"]
+  [data-immersive]
+  button[class*="p-2.5"][class*="rounded-full"][class*="bg-white/25"] {
+  background-color: rgb(255 255 255 / 0.14) !important;
+  color: #fff !important;
+}
+/* Small labels in the queue tab. */
+:root[data-skin="fluid"]
+  [data-immersive]
+  [class*="text-[10px]"][class*="uppercase"] {
+  font-size: 0.6875rem !important;
+  font-weight: 540 !important;
+  letter-spacing: 0.1em !important;
+  color: rgb(255 255 255 / 0.55) !important;
+}
+/* The lyrics: settled weight, and a blur that grows with the distance
+   from the sung line (the column already fades them by opacity). */
+:root[data-skin="fluid"] [data-immersive] ul > li > button[class*="text-3xl"] {
+  font-family: var(--fe-font);
+  font-weight: 560 !important;
+  letter-spacing: -0.02em;
+  line-height: 1.2 !important;
+  filter: blur(1.4px);
+  transform: none !important;
+  transition:
+    filter 320ms var(--fe-ease),
+    color 180ms var(--fe-ease);
+}
+:root[data-skin="fluid"] [data-immersive] ul > li:has(> button[class*="scale-[1.04]"]) > button {
+  filter: none;
+}
+:root[data-skin="fluid"] [data-immersive] ul > li:has(> button[class*="scale-[1.04]"]) + li > button,
+:root[data-skin="fluid"] [data-immersive] ul > li:has(+ li > button[class*="scale-[1.04]"]) > button {
+  filter: blur(0.4px);
+}
+:root[data-skin="fluid"] [data-immersive] ul > li:has(> button[class*="scale-[1.04]"]) + li + li > button,
+:root[data-skin="fluid"] [data-immersive] ul > li:has(+ li + li > button[class*="scale-[1.04]"]) > button {
+  filter: blur(0.8px);
+}
+:root[data-skin="fluid"] [data-immersive] ul > li > button:hover,
+:root[data-skin="fluid"] [data-immersive] ul > li > button:focus-visible {
+  filter: none;
+}
+
+/* ── Track tables: a hairline under the header, rows parted by a
+      fainter one, the playing row marked by the accent's edge ──── */
+:root[data-skin="fluid"] [data-track-table] [class*="sticky"][class*="grid"] {
+  background-color: rgb(13 13 17) !important;
+  border-color: var(--fe-hairline) !important;
+}
+:root[data-skin="fluid"] [data-track-table] [data-track-header] {
+  background-color: transparent !important;
+  color: var(--fe-ink-3);
+}
+:root[data-skin="fluid"] [data-track-row] {
+  border-color: rgb(255 255 255 / 0.05) !important;
+}
+:root[data-skin="fluid"] [data-track-row][class*="bg-emerald-50 "] {
+  background-color: rgb(255 255 255 / 0.05) !important;
+  box-shadow: inset 2px 0 0 var(--fe-accent);
+}
+:root[data-skin="fluid"] [data-track-row][class*="bg-emerald-50 "]:hover {
+  background-color: rgb(255 255 255 / 0.075) !important;
+}
+
+/* ── Context menus: rounder, items as rows with their own corners ── */
+:root[data-skin="fluid"] [role="menu"] {
+  border-radius: 0.75rem !important;
+  padding: 0.375rem !important;
+}
+:root[data-skin="fluid"] [role="menu"] [role="menuitem"] {
+  border-radius: 0.5rem;
+  color: var(--fe-ink-2);
+}
+:root[data-skin="fluid"] [role="menu"] [role="menuitem"]:hover,
+:root[data-skin="fluid"] [role="menu"] [role="menuitem"]:focus-visible {
+  background-color: rgb(255 255 255 / 0.06) !important;
+  color: var(--fe-ink);
+}
+:root[data-skin="fluid"] [role="menu"] [role="separator"] {
+  margin: 0.375rem 0.5rem !important;
+  background-color: var(--fe-hairline) !important;
+}
+
 /* ── Reduced motion: no drift, no stagger, no lift ─────────── */
 @media (prefers-reduced-motion: reduce) {
   :root[data-skin="fluid"] .fe-rise,
@@ -1482,7 +1633,8 @@
   :root[data-skin="fluid"] .fe-cta,
   :root[data-skin="fluid"] .fe-link::after,
   :root[data-skin="fluid"] .fe-icon-btn,
-  :root[data-skin="fluid"] .fe-panel ul > li > button {
+  :root[data-skin="fluid"] .fe-panel ul > li > button,
+  :root[data-skin="fluid"] [data-immersive] ul > li > button[class*="text-3xl"] {
     transition: none;
   }
   :root[data-skin="fluid"] .fe-tile-hover:hover .fe-tile,
@@ -1508,7 +1660,8 @@
   display: none;
 }
 /* No fading of the lines around the sung one: every line stays legible. */
-:root[data-skin="fluid"][data-contrast="high"] .fe-panel ul > li > button {
+:root[data-skin="fluid"][data-contrast="high"] .fe-panel ul > li > button,
+:root[data-skin="fluid"][data-contrast="high"] [data-immersive] ul > li > button {
   opacity: 1;
   filter: none;
 }
