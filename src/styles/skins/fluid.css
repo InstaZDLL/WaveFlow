@@ -1142,6 +1142,117 @@
     !important;
 }
 
+/* ── The artist hero with a photo: a banner, not a header ─────────
+   The view breaks out of `main` with margins sized for the classic
+   `p-8`; this skin's gutters are 0.75 rem above and 2 / 3 / 3.5 rem at
+   the sides, so the same margins cut the top off (the backdrop button
+   with it) and stopped short of the edges. Here the banner takes the
+   column's full width from the top bar down, stands tall enough for
+   the photo to be seen, and keeps its name and actions at the foot,
+   where the scrim is. */
+:root[data-skin="fluid"] main [data-page-hero][class*="group/hero"][class*="-mx-8"] {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 22rem;
+  margin: -0.75rem -2rem 0 !important;
+  padding: 3.5rem 2rem 2rem !important;
+}
+@media (min-width: 1280px) {
+  :root[data-skin="fluid"] main [data-page-hero][class*="group/hero"][class*="-mx-8"] {
+    min-height: 25rem;
+    margin: -0.75rem -3rem 0 !important;
+    padding: 3.5rem 3rem 2rem !important;
+  }
+}
+@media (min-width: 1536px) {
+  :root[data-skin="fluid"] main [data-page-hero][class*="group/hero"][class*="-mx-8"] {
+    margin: -0.75rem -3.5rem 0 !important;
+    padding: 3.5rem 3.5rem 2rem !important;
+  }
+}
+/* The photo runs to the banner's foot; the scrim does the dissolving,
+   from nearly nothing at the top to the page's ground at the bottom. */
+:root[data-skin="fluid"]
+  main
+  [data-page-hero][class*="group/hero"]
+  > [aria-hidden="true"] {
+  mask-image: none !important;
+  -webkit-mask-image: none !important;
+}
+:root[data-skin="fluid"]
+  main
+  [data-page-hero][class*="group/hero"]
+  > [aria-hidden="true"]
+  > div[class*="bg-linear-to-t"] {
+  background: linear-gradient(
+      to top,
+      var(--fe-bg) 0%,
+      rgb(11 11 14 / 0.78) 22%,
+      rgb(11 11 14 / 0.35) 55%,
+      rgb(11 11 14 / 0.08) 100%
+    )
+    !important;
+}
+/* Name and portrait on one baseline at the foot. */
+:root[data-skin="fluid"]
+  main
+  [data-page-hero][class*="group/hero"]
+  > div[class*="items-center"] {
+  align-items: flex-end;
+}
+:root[data-skin="fluid"]
+  main
+  [data-page-hero][class*="group/hero"]
+  :is(img, div)[class*="w-48"] {
+  width: 8.5rem !important;
+  height: 8.5rem !important;
+}
+/* Over a photo the kicker and the counts take white, not the inks. */
+:root[data-skin="fluid"]
+  main
+  [data-page-hero][class*="group/hero"][class*="-mx-8"]
+  [class*="tracking-widest"][class*="uppercase"] {
+  color: rgb(255 255 255 / 0.72) !important;
+  text-shadow: 0 1px 8px rgb(0 0 0 / 0.5);
+}
+:root[data-skin="fluid"]
+  main
+  [data-page-hero][class*="group/hero"][class*="-mx-8"]
+  :is(div, p)[class*="text-sm"] {
+  color: rgb(255 255 255 / 0.8);
+  text-shadow: 0 1px 8px rgb(0 0 0 / 0.5);
+}
+:root[data-skin="fluid"] main [data-page-hero][class*="group/hero"] h1 {
+  font-size: clamp(3rem, 5vw, 5.25rem) !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.04em !important;
+  line-height: 0.95 !important;
+}
+/* Ghost pills over a photo need a touch more ground. */
+:root[data-skin="fluid"]
+  main
+  [data-page-hero][class*="group/hero"]
+  button[class*="border"][class*="px-"] {
+  background-color: rgb(255 255 255 / 0.14) !important;
+  color: rgb(255 255 255 / 0.9) !important;
+}
+:root[data-skin="fluid"]
+  main
+  [data-page-hero][class*="group/hero"]
+  button[class*="border"][class*="px-"]:hover:not(:disabled) {
+  background-color: rgb(255 255 255 / 0.22) !important;
+  color: #fff !important;
+}
+/* The backdrop's own button, in the banner's corner, clear of the bar. */
+:root[data-skin="fluid"]
+  main
+  [data-page-hero][class*="group/hero"]
+  > button[class*="absolute"][class*="top-3"] {
+  top: 1rem !important;
+  right: 1.25rem !important;
+}
+
 /* ── Library tabs: text, the active one marked by the flow line ── */
 :root[data-skin="fluid"] main button[class*="border-b-2"] {
   position: relative;
