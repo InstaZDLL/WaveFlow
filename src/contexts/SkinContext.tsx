@@ -11,6 +11,7 @@ import {
   applySkin,
   DEFAULT_SKIN_ID,
   findSkin,
+  RECOVERY_SKIN_ID,
   SKIN_PRESETS,
   type SkinPreset,
 } from "../lib/skins";
@@ -34,7 +35,7 @@ function clearSafeModeQuery() {
 }
 
 const readCachedSkin = (): SkinPreset => {
-  if (SAFE_MODE) return findSkin(DEFAULT_SKIN_ID);
+  if (SAFE_MODE) return findSkin(RECOVERY_SKIN_ID);
   if (typeof window === "undefined") return findSkin(DEFAULT_SKIN_ID);
   try {
     const stored = window.localStorage.getItem(SKIN_CACHE_KEY);
@@ -112,14 +113,14 @@ export function SkinProvider({ children }: { children: ReactNode }) {
             recoveryCompletion.current = (async () => {
               await setProfileSetting(
                 PROFILE_SETTING_KEY,
-                DEFAULT_SKIN_ID,
+                RECOVERY_SKIN_ID,
                 "string",
                 profileId,
               );
-              if (!writeCachedSkin(DEFAULT_SKIN_ID)) {
+              if (!writeCachedSkin(RECOVERY_SKIN_ID)) {
                 throw new Error("Could not update the first-paint skin cache");
               }
-              setSkin(findSkin(DEFAULT_SKIN_ID));
+              setSkin(findSkin(RECOVERY_SKIN_ID));
               // Only the first active profile is reset. The shared promise
               // survives React StrictMode's effect replay.
               recoverySaved.current = true;
@@ -220,7 +221,7 @@ export function SkinProvider({ children }: { children: ReactNode }) {
           throw new Error("Studio recovery has not saved the active profile");
         }
         if (!stillCurrent()) return;
-        if (next.id !== DEFAULT_SKIN_ID) await recordSkin(next.id);
+        if (next.id !== RECOVERY_SKIN_ID) await recordSkin(next.id);
         if (!stillCurrent()) return;
         await setProfileSetting(
           PROFILE_SETTING_KEY,
@@ -229,7 +230,7 @@ export function SkinProvider({ children }: { children: ReactNode }) {
           profileId,
         );
         if (!stillCurrent()) return;
-        if (next.id === DEFAULT_SKIN_ID) await recordSkin(next.id);
+        if (next.id === RECOVERY_SKIN_ID) await recordSkin(next.id);
         if (!stillCurrent()) return;
         writeCachedSkin(next.id);
         setSkin(next);

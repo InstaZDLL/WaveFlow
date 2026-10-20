@@ -96,7 +96,9 @@
             new URLSearchParams(location.search).get("safe-mode") === "1"
               ? "studio"
               : localStorage.getItem("waveflow.skin.id");
-          if (!skin || !VALID_SKINS[skin]) skin = "studio";
+          // Nothing cached (a first launch, a cleared store): the
+          // default skin, which the context will confirm from the profile.
+          if (!skin || !VALID_SKINS[skin]) skin = "fluid";
           root.setAttribute("data-skin", skin);
 
           // Contrast bootstrap (#596) — stamp `data-contrast` before
