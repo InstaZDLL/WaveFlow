@@ -393,6 +393,12 @@
   :root[data-skin="fluid"] .fe-canvas__queue {
     grid-column: span 7;
   }
+  /* The strip of recent records hangs 3.5 rem off the artwork's left
+     edge, 1.5 rem past the column gap: the queue's durations stop
+     short of it rather than sitting under it. */
+  :root[data-skin="fluid"] .fe-canvas__queue {
+    padding-right: 2rem;
+  }
   :root[data-skin="fluid"] .fe-canvas__art {
     grid-column: 8 / span 5;
     grid-row: 1 / span 2;
@@ -417,6 +423,9 @@
     margin-top: 0;
     align-self: end;
     padding-bottom: 0.25rem;
+    /* Here the gap equals the strip's overhang, so the strip starts
+       on the queue's edge: three rems keep the durations clear. */
+    padding-right: 3rem;
   }
   :root[data-skin="fluid"] .fe-canvas__art {
     grid-column: 3;
