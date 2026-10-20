@@ -1785,11 +1785,13 @@ fn play_track(
             // against (DSD files in particular: the data chunk is
             // block-aligned, not duration-aligned).
             let remaining_window = mix_frames_total.saturating_sub(mix_frames_written) as usize;
-            let mix_frames = if primary_at_eof {
-                secondary_frames.min(remaining_window)
-            } else {
-                primary_frames.min(secondary_frames)
-            };
+            let mix_frames = crossfade_mix_frames(
+                primary_frames,
+                secondary_frames,
+                primary_at_eof,
+                secondary_at_eof,
+                remaining_window,
+            );
             let denom = mix_frames_total.max(1) as f32;
 
             if mix_frames > 0 {
@@ -1807,7 +1809,13 @@ fn play_track(
                         } else {
                             0.0
                         };
-                        let s = secondary_resampled[f * dst_channels + ch] * g_in;
+                        // And 0 for the incoming track once it has run
+                        // out, when it is shorter than the window.
+                        let s = if f < secondary_frames {
+                            secondary_resampled[f * dst_channels + ch] * g_in
+                        } else {
+                            0.0
+                        };
                         mix_scratch.push(p + s);
                     }
                     mix_frames_written += 1;
@@ -1816,9 +1824,13 @@ fn play_track(
                 // i.e. clamp to the per-buffer length — the primary
                 // buffer may be empty in the EOF tail.
                 let primary_consumed = mix_frames.min(primary_frames);
+                let secondary_consumed = mix_frames.min(secondary_frames);
                 primary_resampled.drain(..primary_consumed * dst_channels);
-                secondary_resampled.drain(..mix_frames * dst_channels);
-                faded_track_ms += mix_frames as f64 * 1000.0 / f64::from(dst_sample_rate.max(1))
+                secondary_resampled.drain(..secondary_consumed * dst_channels);
+                // How far into the incoming track the fade has got: what
+                // was taken from it, not the silence after its end.
+                faded_track_ms += secondary_consumed as f64 * 1000.0
+                    / f64::from(dst_sample_rate.max(1))
                     * f64::from(shared.playback_speed());
 
                 eq_processor.process(
@@ -2657,6 +2669,66 @@ fn discard_unplayable(path: &std::path::Path, allowed: bool) {
     match std::fs::remove_file(path) {
         Ok(()) => tracing::info!(path = %path.display(), "dropped unplayable cached stream"),
         Err(err) => tracing::warn!(?err, path = %path.display(), "could not drop cached stream"),
+    }
+}
+
+/// How many frames a crossfade mixes in one pass.
+///
+/// A side that has reached its end counts as silence for the rest of the
+/// window, either way round. The outgoing track can end a little before
+/// the duration the fade was timed against (DSD in particular); the
+/// incoming one can be shorter than the window altogether, since the
+/// window is timed against the outgoing track (a jingle under a long
+/// fade). Before the second case was handled, an incoming track that had
+/// run out left nothing to mix and the loop waited for frames that never
+/// came, with the outgoing track still playing: playback stalled. Now the
+/// outgoing track finishes its fade, then the queue moves on.
+///
+/// While neither side has ended, only what both hold is mixed: the next
+/// pass decodes more of the shorter one.
+fn crossfade_mix_frames(
+    primary_frames: usize,
+    secondary_frames: usize,
+    primary_at_eof: bool,
+    secondary_at_eof: bool,
+    remaining_window: usize,
+) -> usize {
+    match (primary_at_eof, secondary_at_eof) {
+        (false, false) => primary_frames.min(secondary_frames),
+        (true, false) => secondary_frames.min(remaining_window),
+        (false, true) => primary_frames.min(remaining_window),
+        (true, true) => primary_frames.max(secondary_frames).min(remaining_window),
+    }
+}
+
+#[cfg(test)]
+mod crossfade_mix_tests {
+    use super::crossfade_mix_frames;
+
+    #[test]
+    fn both_playing_mixes_what_both_hold() {
+        assert_eq!(crossfade_mix_frames(1_000, 400, false, false, 5_000), 400);
+    }
+
+    #[test]
+    fn an_outgoing_track_that_ended_is_silence_for_the_rest_of_the_window() {
+        assert_eq!(crossfade_mix_frames(0, 800, true, false, 500), 500);
+        // The incoming track holds less than the window has left: mix
+        // that, and decode more of it next pass.
+        assert_eq!(crossfade_mix_frames(0, 200, true, false, 500), 200);
+    }
+
+    /// The case that stalled playback: the incoming track ran out first.
+    #[test]
+    fn an_incoming_track_that_ran_out_lets_the_outgoing_one_finish_its_fade() {
+        assert_eq!(crossfade_mix_frames(1_000, 0, false, true, 5_000), 1_000);
+        assert_eq!(crossfade_mix_frames(1_000, 0, false, true, 300), 300);
+    }
+
+    #[test]
+    fn both_ended_runs_out_what_is_left_then_nothing() {
+        assert_eq!(crossfade_mix_frames(300, 100, true, true, 5_000), 300);
+        assert_eq!(crossfade_mix_frames(0, 0, true, true, 5_000), 0);
     }
 }
 
