@@ -735,12 +735,7 @@ export function AppLayout() {
       <SkinAmbientBackdrop />
       <SkinPlayingState />
       <div className="flex flex-col h-screen font-sans">
-        <div
-          // The sidebar's width, for the chrome below it: a skin can line
-          // the player bar's track segment up with the rail.
-          data-sidebar-mode={sidebarMode}
-          className="flex flex-col h-screen bg-app-ambient text-zinc-600 dark:text-zinc-300 relative"
-        >
+        <div className="flex flex-col h-screen bg-app-ambient text-zinc-600 dark:text-zinc-300 relative">
           {/* Linux with the decorations turned off: the strip that
               replaces them. */}
           {windowChrome.draw === "titlebar" && <AppTitleBar />}
