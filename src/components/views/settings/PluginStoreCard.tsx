@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Store,
@@ -54,58 +54,50 @@ export function PluginStoreCard({
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
-  // Manual (re)load — an event handler, so a synchronous `setLoading(true)`
-  // is fine here (unlike the mount effect below, which must not setState
-  // synchronously — see the `.then`-style guarded fetch in that effect).
-  const refresh = useCallback(() => {
-    setLoading(true);
+  // One read path for the mount, the availability event and the manual
+  // refresh, behind one sequence: whichever of them answers last cannot
+  // land an older snapshot over a newer state (an installed entry back
+  // on offer, say). The sequence also outlives the effect, so a read
+  // that answers after the unmount writes nothing.
+  const seqRef = useRef(0);
+  const load = useCallback(() => {
+    const mine = ++seqRef.current;
     listPluginMarketplace().then(
       (list) => {
+        if (mine !== seqRef.current) return;
         setEntries(list);
         setError(null);
         setLoading(false);
       },
       (e: unknown) => {
+        if (mine !== seqRef.current) return;
         setError(e instanceof Error ? e.message : String(e));
         setLoading(false);
       },
     );
   }, []);
 
+  // The manual button: an event handler, so a synchronous
+  // `setLoading(true)` is fine here (the mount effect below must not
+  // setState synchronously — `react-hooks/set-state-in-effect`).
+  const refresh = useCallback(() => {
+    setLoading(true);
+    load();
+  }, [load]);
+
   useEffect(() => {
-    // Same shape as PluginsCard: no synchronous setState in the effect
-    // body (`react-hooks/set-state-in-effect`), setState only inside the
-    // promise callbacks, `cancelled` guards a late resolve post-unmount.
-    let cancelled = false;
-    // The event can fire twice in a row and the two reads answer in
-    // any order: only the latest one may write, or an older snapshot
-    // would land over a newer state.
-    let seq = 0;
-    const load = () => {
-      const mine = ++seq;
-      listPluginMarketplace().then(
-        (list) => {
-          if (cancelled || mine !== seq) return;
-          setEntries(list);
-          setError(null);
-          setLoading(false);
-        },
-        (e: unknown) => {
-          if (cancelled || mine !== seq) return;
-          setError(e instanceof Error ? e.message : String(e));
-          setLoading(false);
-        },
-      );
-    };
     load();
     // An uninstall or a toggle in the installed list beside this store
     // dispatches the event: re-read, so the entry comes back on offer.
     window.addEventListener(PLUGIN_AVAILABILITY_EVENT, load);
+    // The ref is a counter, not a node: advancing it at cleanup is the
+    // point, and the alias keeps the lint's node-ref heuristic quiet.
+    const counter = seqRef;
     return () => {
-      cancelled = true;
       window.removeEventListener(PLUGIN_AVAILABILITY_EVENT, load);
+      counter.current += 1;
     };
-  }, []);
+  }, [load]);
 
   const onInstall = useCallback(async (entry: MarketplaceEntry) => {
     setBusyId(entry.id);
