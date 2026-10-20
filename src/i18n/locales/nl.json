@@ -1836,7 +1836,8 @@
         "storageRead": "Opslag lezen",
         "assets": "Resources ({{count}})",
         "none": "Geen rechten gevraagd",
-        "libraryReadArtists": "Leest je artiesten"
+        "libraryReadArtists": "Leest je artiesten",
+        "summary": "Machtigingen"
       },
       "bundled": "Ingebouwd",
       "bundledHint": "Meegeleverd met WaveFlow — schakel hem uit om hem te verbergen.",
@@ -2600,7 +2601,8 @@
       "official": "Officieel",
       "canReach": "Heeft toegang tot:",
       "installAria": "{{name}} installeren",
-      "updateAria": "{{name}} bijwerken"
+      "updateAria": "{{name}} bijwerken",
+      "allInstalled": "Alles uit de winkel is al geïnstalleerd."
     },
     "motionArtwork": {
       "title": "Bewegende hoezen",

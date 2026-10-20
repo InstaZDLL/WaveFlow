@@ -1894,7 +1894,8 @@
         "storageRead": "Lettura archivio",
         "assets": "Risorse ({{count}})",
         "none": "Nessun permesso richiesto",
-        "libraryReadArtists": "Legge i tuoi artisti"
+        "libraryReadArtists": "Legge i tuoi artisti",
+        "summary": "Permessi"
       },
       "bundled": "Integrato",
       "bundledHint": "Incluso in WaveFlow — disattivalo per nasconderlo.",
@@ -2665,7 +2666,8 @@
       "official": "Ufficiale",
       "canReach": "Può accedere a:",
       "installAria": "Installa {{name}}",
-      "updateAria": "Aggiorna {{name}}"
+      "updateAria": "Aggiorna {{name}}",
+      "allInstalled": "Tutto il negozio è già installato."
     },
     "motionArtwork": {
       "title": "Copertine animate",

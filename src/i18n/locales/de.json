@@ -1836,7 +1836,8 @@
         "storageRead": "Lesezugriff auf Speicher",
         "assets": "Ressourcen ({{count}})",
         "none": "Keine Berechtigungen angefordert",
-        "libraryReadArtists": "Liest deine Künstler"
+        "libraryReadArtists": "Liest deine Künstler",
+        "summary": "Berechtigungen"
       },
       "bundled": "Mitgeliefert",
       "bundledHint": "Mit WaveFlow ausgeliefert — deaktiviere es, um es auszublenden.",
@@ -2600,7 +2601,8 @@
       "official": "Offiziell",
       "canReach": "Kann zugreifen auf:",
       "installAria": "{{name}} installieren",
-      "updateAria": "{{name}} aktualisieren"
+      "updateAria": "{{name}} aktualisieren",
+      "allInstalled": "Alles aus dem Store ist bereits installiert."
     },
     "motionArtwork": {
       "title": "Animierte Cover",

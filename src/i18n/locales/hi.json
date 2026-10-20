@@ -1836,7 +1836,8 @@
         "storageRead": "संग्रहण पढ़ना",
         "assets": "एसेट ({{count}})",
         "none": "कोई अनुमति अनुरोधित नहीं",
-        "libraryReadArtists": "आपके कलाकारों को पढ़ता है"
+        "libraryReadArtists": "आपके कलाकारों को पढ़ता है",
+        "summary": "अनुमतियाँ"
       },
       "bundled": "अंतर्निहित",
       "bundledHint": "WaveFlow के साथ शामिल — छुपाने के लिए अक्षम करें।",
@@ -2600,7 +2601,8 @@
       "official": "आधिकारिक",
       "canReach": "पहुँच सकता है:",
       "installAria": "{{name}} इंस्टॉल करें",
-      "updateAria": "{{name}} अपडेट करें"
+      "updateAria": "{{name}} अपडेट करें",
+      "allInstalled": "स्टोर की सभी चीज़ें पहले से इंस्टॉल हैं।"
     },
     "motionArtwork": {
       "title": "एनिमेटेड आर्टवर्क",

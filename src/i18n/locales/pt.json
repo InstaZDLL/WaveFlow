@@ -1895,7 +1895,8 @@
         "storageRead": "Leitura de armazenamento",
         "assets": "Recursos ({{count}})",
         "none": "Nenhuma permissão pedida",
-        "libraryReadArtists": "Lê os teus artistas"
+        "libraryReadArtists": "Lê os teus artistas",
+        "summary": "Permissões"
       },
       "bundled": "Integrado",
       "bundledHint": "Incluído no WaveFlow — desativa-o para o ocultar.",
@@ -2666,7 +2667,8 @@
       "official": "Oficial",
       "canReach": "Pode aceder a:",
       "installAria": "Instalar {{name}}",
-      "updateAria": "Atualizar {{name}}"
+      "updateAria": "Atualizar {{name}}",
+      "allInstalled": "Tudo o que há na loja já está instalado."
     },
     "motionArtwork": {
       "title": "Capas animadas",

@@ -1894,7 +1894,8 @@
         "storageRead": "Lectura de almacenamiento",
         "assets": "Recursos ({{count}})",
         "none": "Sin permisos solicitados",
-        "libraryReadArtists": "Lee tus artistas"
+        "libraryReadArtists": "Lee tus artistas",
+        "summary": "Permisos"
       },
       "bundled": "Integrado",
       "bundledHint": "Incluido con WaveFlow — desactívalo para ocultarlo.",
@@ -2665,7 +2666,8 @@
       "official": "Oficial",
       "canReach": "Puede acceder a:",
       "installAria": "Instalar {{name}}",
-      "updateAria": "Actualizar {{name}}"
+      "updateAria": "Actualizar {{name}}",
+      "allInstalled": "Todo lo que hay en la tienda ya está instalado."
     },
     "motionArtwork": {
       "title": "Portadas animadas",

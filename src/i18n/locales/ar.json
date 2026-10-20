@@ -2035,7 +2035,8 @@
         "storageRead": "قراءة التخزين",
         "assets": "الموارد ({{count}})",
         "none": "لا توجد أذونات مطلوبة",
-        "libraryReadArtists": "قراءة فنانيك"
+        "libraryReadArtists": "قراءة فنانيك",
+        "summary": "الأذونات"
       },
       "bundled": "مدمج",
       "bundledHint": "يأتي مع WaveFlow — عطّلها لإخفائها.",
@@ -2827,7 +2828,8 @@
       "official": "رسمي",
       "canReach": "يمكنه الوصول إلى:",
       "installAria": "تثبيت {{name}}",
-      "updateAria": "تحديث {{name}}"
+      "updateAria": "تحديث {{name}}",
+      "allInstalled": "كل ما في المتجر مثبّت بالفعل."
     },
     "motionArtwork": {
       "title": "الأغلفة المتحركة",

@@ -1894,7 +1894,8 @@
         "storageRead": "Lecture du stockage",
         "assets": "Ressources ({{count}})",
         "none": "Aucune permission demandée",
-        "libraryReadArtists": "Accès à vos artistes"
+        "libraryReadArtists": "Accès à vos artistes",
+        "summary": "Permissions"
       },
       "bundled": "Inclus",
       "bundledHint": "Livré avec WaveFlow — désactivez-le pour le masquer.",
@@ -2665,7 +2666,8 @@
       "official": "Officiel",
       "canReach": "Peut accéder à :",
       "installAria": "Installer {{name}}",
-      "updateAria": "Mettre à jour {{name}}"
+      "updateAria": "Mettre à jour {{name}}",
+      "allInstalled": "Tout le magasin est déjà installé."
     },
     "motionArtwork": {
       "title": "Pochettes animées",

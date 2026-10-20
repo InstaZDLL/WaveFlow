@@ -1834,7 +1834,8 @@
         "storageRead": "Baca penyimpanan",
         "assets": "Aset ({{count}})",
         "none": "Tidak ada izin diminta",
-        "libraryReadArtists": "Membaca artismu"
+        "libraryReadArtists": "Membaca artismu",
+        "summary": "Izin"
       },
       "bundled": "Bawaan",
       "bundledHint": "Disertakan dengan WaveFlow — nonaktifkan untuk menyembunyikannya.",
@@ -2598,7 +2599,8 @@
       "official": "Resmi",
       "canReach": "Dapat mengakses:",
       "installAria": "Pasang {{name}}",
-      "updateAria": "Perbarui {{name}}"
+      "updateAria": "Perbarui {{name}}",
+      "allInstalled": "Semua yang ada di toko sudah terpasang."
     },
     "motionArtwork": {
       "title": "Sampul animasi",

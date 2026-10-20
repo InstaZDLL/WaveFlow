@@ -1956,7 +1956,8 @@
         "storageRead": "Чтение хранилища",
         "assets": "Ресурсы ({{count}})",
         "none": "Права не запрошены",
-        "libraryReadArtists": "Доступ к вашим исполнителям"
+        "libraryReadArtists": "Доступ к вашим исполнителям",
+        "summary": "Разрешения"
       },
       "bundled": "Встроенный",
       "bundledHint": "Поставляется с WaveFlow — отключите, чтобы скрыть.",
@@ -2734,7 +2735,8 @@
       "official": "Официальный",
       "canReach": "Имеет доступ к:",
       "installAria": "Установить {{name}}",
-      "updateAria": "Обновить {{name}}"
+      "updateAria": "Обновить {{name}}",
+      "allInstalled": "Всё из магазина уже установлено."
     },
     "motionArtwork": {
       "title": "Анимированные обложки",

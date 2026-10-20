@@ -1834,7 +1834,8 @@
         "storageRead": "저장소 읽기",
         "assets": "리소스({{count}})",
         "none": "요청된 권한 없음",
-        "libraryReadArtists": "아티스트 목록 읽기"
+        "libraryReadArtists": "아티스트 목록 읽기",
+        "summary": "권한"
       },
       "bundled": "내장",
       "bundledHint": "WaveFlow에 포함되어 있습니다 — 숨기려면 비활성화하세요.",
@@ -2598,7 +2599,8 @@
       "official": "공식",
       "canReach": "접근 가능:",
       "installAria": "{{name}} 설치",
-      "updateAria": "{{name}} 업데이트"
+      "updateAria": "{{name}} 업데이트",
+      "allInstalled": "스토어의 모든 항목이 이미 설치되어 있습니다."
     },
     "motionArtwork": {
       "title": "모션 커버",

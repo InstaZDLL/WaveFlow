@@ -1836,7 +1836,8 @@
         "storageRead": "Depolama okuma",
         "assets": "Varlıklar ({{count}})",
         "none": "İstenen izin yok",
-        "libraryReadArtists": "Sanatçılarını okur"
+        "libraryReadArtists": "Sanatçılarını okur",
+        "summary": "İzinler"
       },
       "bundled": "Yerleşik",
       "bundledHint": "WaveFlow ile birlikte gelir — gizlemek için devre dışı bırak.",
@@ -2600,7 +2601,8 @@
       "official": "Resmî",
       "canReach": "Erişebileceği adresler:",
       "installAria": "{{name}} eklentisini yükle",
-      "updateAria": "{{name}} eklentisini güncelle"
+      "updateAria": "{{name}} eklentisini güncelle",
+      "allInstalled": "Mağazadaki her şey zaten yüklü."
     },
     "motionArtwork": {
       "title": "Animasyonlu kapaklar",

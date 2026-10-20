@@ -1834,7 +1834,8 @@
         "storageRead": "ストレージ読み取り",
         "assets": "アセット（{{count}}）",
         "none": "要求された権限はありません",
-        "libraryReadArtists": "アーティスト情報を読み取り"
+        "libraryReadArtists": "アーティスト情報を読み取り",
+        "summary": "権限"
       },
       "bundled": "組み込み",
       "bundledHint": "WaveFlow に同梱されています — 非表示にするには無効にしてください。",
@@ -2598,7 +2599,8 @@
       "official": "公式",
       "canReach": "アクセス先：",
       "installAria": "{{name}} をインストール",
-      "updateAria": "{{name}} を更新"
+      "updateAria": "{{name}} を更新",
+      "allInstalled": "ストアのすべてがインストール済みです。"
     },
     "motionArtwork": {
       "title": "モーションカバー",

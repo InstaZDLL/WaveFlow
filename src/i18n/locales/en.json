@@ -1836,7 +1836,8 @@
         "storageRead": "Storage read",
         "assets": "Assets ({{count}})",
         "none": "No permission requested",
-        "libraryReadArtists": "Reads your artists"
+        "libraryReadArtists": "Reads your artists",
+        "summary": "Permissions"
       },
       "bundled": "Built-in",
       "bundledHint": "Ships with WaveFlow — disable it to hide it.",
@@ -2600,7 +2601,8 @@
       "official": "Official",
       "canReach": "Can reach:",
       "installAria": "Install {{name}}",
-      "updateAria": "Update {{name}}"
+      "updateAria": "Update {{name}}",
+      "allInstalled": "Everything in the store is already installed."
     },
     "motionArtwork": {
       "title": "Animated artwork",

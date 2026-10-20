@@ -15,7 +15,7 @@ import { PluginsCard } from "./settings/PluginsCard";
 export function ExtensionsView() {
   const { t } = useTranslation();
   return (
-    <div className="space-y-8 animate-fade-in pb-20">
+    <div className="mx-auto max-w-[1440px] space-y-8 animate-fade-in pb-20">
       {/* Header — the same shape as the liked / history pages: a kicker,
           the title, one line. `data-page-hero` is the skins' hook. */}
       <div data-page-hero className="flex items-start justify-between">
@@ -37,9 +37,13 @@ export function ExtensionsView() {
         </div>
       </div>
 
-      <div className="max-w-5xl space-y-6">
-        <PluginStoreCard />
-        <PluginsCard />
+      {/* Two grids rather than two lists: the store with what is left
+          to get, then the installed plugins, each as tiles of a row of
+          two or three — a library of a dozen plugins fits a 1080p
+          window without a scroll, where the lists ran to three. */}
+      <div className="space-y-10">
+        <PluginStoreCard variant="grid" />
+        <PluginsCard variant="grid" />
       </div>
     </div>
   );
