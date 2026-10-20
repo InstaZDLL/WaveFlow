@@ -1849,7 +1849,7 @@
       "attention": {
         "authRequired": {
           "title": "{{name}}: Anmeldung abgelehnt",
-          "body": "Das gespeicherte Cookie oder Token ist abgelaufen oder wurde widerrufen. Füge in Einstellungen → Erweiterungen ein neues ein."
+          "body": "Das gespeicherte Cookie oder Token ist abgelaufen oder wurde widerrufen. Füge auf der Seite Erweiterungen ein neues ein."
         },
         "dismiss": "Schließen"
       }
@@ -2851,7 +2851,7 @@
     "live": "LIVE",
     "nowPlaying": "Läuft gerade",
     "unavailableTitle": "Web-Radio ist deaktiviert",
-    "unavailableHint": "Aktiviere das Web-Radio-Plugin in Einstellungen → Erweiterungen, um über 30.000 Sender zu durchsuchen.",
+    "unavailableHint": "Aktiviere das Web-Radio-Plugin auf der Seite Erweiterungen, um über 30.000 Sender zu durchsuchen.",
     "favorites": "Favoriten",
     "favoritesEmpty": "Noch keine Lieblingssender. Klicke auf den Stern eines Senders, um ihn zu speichern.",
     "addFavorite": "Zu Favoriten hinzufügen",

@@ -1847,7 +1847,7 @@
       "attention": {
         "authRequired": {
           "title": "{{name}}: masuk ditolak",
-          "body": "Cookie atau token yang tersimpan telah kedaluwarsa atau dicabut. Tempel yang baru di Pengaturan → Ekstensi."
+          "body": "Cookie atau token yang tersimpan telah kedaluwarsa atau dicabut. Tempel yang baru di halaman Ekstensi."
         },
         "dismiss": "Tutup"
       }
@@ -2849,7 +2849,7 @@
     "live": "LANGSUNG",
     "nowPlaying": "Sedang diputar",
     "unavailableTitle": "Radio Web dinonaktifkan",
-    "unavailableHint": "Aktifkan plugin Web Radio di Pengaturan → Ekstensi untuk menjelajahi lebih dari 30.000 stasiun.",
+    "unavailableHint": "Aktifkan plugin Web Radio di halaman Ekstensi untuk menjelajahi lebih dari 30.000 stasiun.",
     "favorites": "Favorit",
     "favoritesEmpty": "Belum ada stasiun favorit. Klik bintang stasiun untuk menyimpannya.",
     "addFavorite": "Tambahkan ke favorit",

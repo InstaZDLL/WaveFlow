@@ -1907,7 +1907,7 @@
       "attention": {
         "authRequired": {
           "title": "{{name}}: acceso rechazado",
-          "body": "La cookie o el token guardado ha caducado o ha sido revocado. Pega uno nuevo en Configuración → Extensiones."
+          "body": "La cookie o el token guardado ha caducado o ha sido revocado. Pega uno nuevo en la página Extensiones."
         },
         "dismiss": "Cerrar"
       }
@@ -2917,7 +2917,7 @@
     "live": "EN DIRECTO",
     "nowPlaying": "Reproduciendo ahora",
     "unavailableTitle": "Radio Web está desactivada",
-    "unavailableHint": "Activa el complemento de Radio Web en Configuración → Extensiones para explorar más de 30 000 emisoras.",
+    "unavailableHint": "Activa el complemento de Radio Web en la página Extensiones para explorar más de 30 000 emisoras.",
     "favorites": "Favoritos",
     "favoritesEmpty": "Aún no hay emisoras favoritas. Haz clic en la estrella de una emisora para guardarla.",
     "addFavorite": "Añadir a favoritos",

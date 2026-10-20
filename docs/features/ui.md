@@ -62,9 +62,10 @@ responds to its container, including space taken by the application's sidebar.
 Only the selected category is mounted. Existing category IDs remain valid for
 deep links and the remembered selection; a fresh visit defaults to General.
 
-The ten categories are General, Library, Playback and audio, Appearance,
-Images and lyrics, Connections, Extensions, Keyboard shortcuts, Storage and
-backups, and Maintenance. Library owns scanning, duplicates and music analysis;
+The nine categories are General, Library, Playback and audio, Appearance,
+Images and lyrics, Connections, Keyboard shortcuts, Storage and backups, and
+Maintenance. Extensions left Settings for a page of their own in the sidebar
+([plugins.md](plugins.md)): most never went that far into Settings. Library owns scanning, duplicates and music analysis;
 Storage and backups owns profile exports, caches and artwork maintenance.
 Images and lyrics brings artwork retrieval and lyrics preferences together.
 

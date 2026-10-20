@@ -70,6 +70,11 @@ const WebRadioView = lazy(() =>
     default: module.WebRadioView,
   })),
 );
+const ExtensionsView = lazy(() =>
+  import("../views/ExtensionsView").then((module) => ({
+    default: module.ExtensionsView,
+  })),
+);
 const PluginUIView = lazy(() =>
   import("../views/PluginUIView").then((module) => ({
     default: module.PluginUIView,
@@ -149,6 +154,7 @@ type HistoryEntry =
   // and lands on whatever the user last had open.
   | { id: "settings"; settingsCategory?: SettingsCategory }
   | { id: "web-radio" }
+  | { id: "extensions" }
   | { id: "about" }
   | { id: "feedback" }
   | { id: "statistics" }
@@ -619,6 +625,8 @@ export function AppLayout() {
         );
       case "web-radio":
         return <WebRadioView />;
+      case "extensions":
+        return <ExtensionsView />;
       case "plugin-ui":
         // `key` forces a fresh mount per plugin so switching between two
         // ui plugins reloads cleanly instead of reusing the last view.
@@ -823,11 +831,6 @@ export function AppLayout() {
                 navigateToRemotePlaylist={navigateToRemotePlaylist}
                 activePluginId={activePluginId}
                 navigateToPluginUi={navigateToPluginUi}
-                navigateToExtensions={() => openSettingsAt("plugins")}
-                extensionsActive={
-                  currentEntry.id === "settings" &&
-                  currentEntry.settingsCategory === "plugins"
-                }
                 collapsed={sidebarMode === "icons"}
               />
             </motion.div>

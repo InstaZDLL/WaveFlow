@@ -1847,7 +1847,7 @@
       "attention": {
         "authRequired": {
           "title": "{{name}}：登录被拒绝",
-          "body": "已保存的 Cookie 或令牌已过期或被撤销。请在“设置 → 扩展”中粘贴新的值。"
+          "body": "已保存的 Cookie 或令牌已过期或被撤销。请在“扩展”页面中粘贴新的值。"
         },
         "dismiss": "关闭"
       }
@@ -2849,7 +2849,7 @@
     "live": "直播",
     "nowPlaying": "正在播放",
     "unavailableTitle": "网络电台已禁用",
-    "unavailableHint": "在“设置 → 扩展”中启用 Web Radio 插件，即可浏览超过 30,000 个电台。",
+    "unavailableHint": "在“扩展”页面中启用 Web Radio 插件，即可浏览超过 30,000 个电台。",
     "favorites": "收藏",
     "favoritesEmpty": "还没有收藏的电台。点击电台的星标即可保存。",
     "addFavorite": "添加到收藏",

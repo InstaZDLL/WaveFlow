@@ -1849,7 +1849,7 @@
       "attention": {
         "authRequired": {
           "title": "{{name}}: oturum reddedildi",
-          "body": "Kaydedilen çerez veya belirtecin süresi doldu ya da iptal edildi. Ayarlar → Eklentiler bölümüne yenisini yapıştır."
+          "body": "Kaydedilen çerez veya belirtecin süresi doldu ya da iptal edildi. Eklentiler sayfasına yenisini yapıştır."
         },
         "dismiss": "Kapat"
       }
@@ -2851,7 +2851,7 @@
     "live": "CANLI",
     "nowPlaying": "Şimdi çalıyor",
     "unavailableTitle": "Web Radyo devre dışı",
-    "unavailableHint": "30.000'den fazla istasyona göz atmak için Ayarlar → Eklentiler bölümünden Web Radyo eklentisini etkinleştir.",
+    "unavailableHint": "30.000'den fazla istasyona göz atmak için Eklentiler sayfasından Web Radyo eklentisini etkinleştir.",
     "favorites": "Favoriler",
     "favoritesEmpty": "Henüz favori istasyon yok. Kaydetmek için bir istasyonun yıldızına tıkla.",
     "addFavorite": "Favorilere ekle",

@@ -1847,7 +1847,7 @@
       "attention": {
         "authRequired": {
           "title": "{{name}}：登入遭拒",
-          "body": "已儲存的 Cookie 或權杖已過期或遭撤銷。請在「設定 → 擴充功能」中貼上新的值。"
+          "body": "已儲存的 Cookie 或權杖已過期或遭撤銷。請在「擴充功能」頁面中貼上新的值。"
         },
         "dismiss": "關閉"
       }
@@ -2849,7 +2849,7 @@
     "live": "直播",
     "nowPlaying": "正在播放",
     "unavailableTitle": "Web Radio 已停用",
-    "unavailableHint": "在「設定 → 擴充功能」中啟用 Web Radio 外掛以瀏覽超過 30,000 個電台。",
+    "unavailableHint": "在「擴充功能」頁面中啟用 Web Radio 外掛以瀏覽超過 30,000 個電台。",
     "favorites": "收藏",
     "favoritesEmpty": "還沒有收藏的電台。按一下電台的星號即可儲存。",
     "addFavorite": "加入收藏",

@@ -1908,7 +1908,7 @@
       "attention": {
         "authRequired": {
           "title": "{{name}}: acesso recusado",
-          "body": "O cookie ou o token guardado expirou ou foi revogado. Cola um novo em Definições → Extensões."
+          "body": "O cookie ou o token guardado expirou ou foi revogado. Cola um novo na página Extensões."
         },
         "dismiss": "Fechar"
       }
@@ -2918,7 +2918,7 @@
     "live": "EM DIRETO",
     "nowPlaying": "A reproduzir",
     "unavailableTitle": "A Rádio Web está desativada",
-    "unavailableHint": "Ativa o plugin Web Radio em Definições → Extensões para explorar mais de 30 000 estações.",
+    "unavailableHint": "Ativa o plugin Web Radio na página Extensões para explorar mais de 30 000 estações.",
     "favorites": "Favoritos",
     "favoritesEmpty": "Ainda não há estações favoritas. Clica na estrela de uma estação para a guardar.",
     "addFavorite": "Adicionar aos favoritos",

@@ -1907,7 +1907,7 @@
       "attention": {
         "authRequired": {
           "title": "{{name}}: accesso rifiutato",
-          "body": "Il cookie o il token salvato è scaduto o è stato revocato. Incollane uno nuovo in Impostazioni → Estensioni."
+          "body": "Il cookie o il token salvato è scaduto o è stato revocato. Incollane uno nuovo nella pagina Estensioni."
         },
         "dismiss": "Chiudi"
       }
@@ -2917,7 +2917,7 @@
     "live": "LIVE",
     "nowPlaying": "In riproduzione",
     "unavailableTitle": "Web Radio è disattivata",
-    "unavailableHint": "Attiva il plugin Web Radio in Impostazioni → Estensioni per sfogliare oltre 30.000 stazioni.",
+    "unavailableHint": "Attiva il plugin Web Radio nella pagina Estensioni per sfogliare oltre 30.000 stazioni.",
     "favorites": "Preferiti",
     "favoritesEmpty": "Nessuna stazione preferita. Clicca sulla stella di una stazione per salvarla.",
     "addFavorite": "Aggiungi ai preferiti",

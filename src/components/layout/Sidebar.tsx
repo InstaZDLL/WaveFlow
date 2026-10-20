@@ -68,11 +68,6 @@ interface SidebarProps {
     initialPath: string,
     icon: string | null,
   ) => void;
-  /** Opens the plugin store (Settings → Extensions). Out here beside
-   *  the entries plugins add, because in Settings alone it went unseen. */
-  navigateToExtensions: () => void;
-  /** Whether that page is the one on screen. */
-  extensionsActive: boolean;
   /** Icons only, 80 px wide — one of the three widths the top bar's
    *  button cycles. */
   collapsed: boolean;
@@ -89,8 +84,6 @@ export function Sidebar({
   navigateToRemotePlaylist,
   activePluginId,
   navigateToPluginUi,
-  navigateToExtensions,
-  extensionsActive,
   collapsed,
 }: SidebarProps) {
   const { t } = useTranslation();
@@ -416,15 +409,15 @@ export function Sidebar({
             }
           />
         ))}
-        {/* The store, after the entries plugins add: the place to get
-            more of them, one click away rather than a trip through
-            Settings that most never make. */}
+        {/* The extensions page, after the entries plugins add: the
+            store and the installed plugins, one click away rather than
+            a trip through Settings that most never made. */}
         <NavItem
           collapsed={collapsed}
           icon={<Puzzle size={18} />}
           label={t("settings.organization.categories.plugins")}
-          active={extensionsActive}
-          onClick={navigateToExtensions}
+          active={activeView === "extensions"}
+          onClick={() => setActiveView("extensions")}
         />
       </div>
 

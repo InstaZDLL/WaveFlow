@@ -1849,7 +1849,7 @@
       "attention": {
         "authRequired": {
           "title": "{{name}}: sign-in refused",
-          "body": "The saved cookie or token has expired or been revoked. Paste a new one in Settings → Extensions."
+          "body": "The saved cookie or token has expired or been revoked. Paste a new one in the Extensions page."
         },
         "dismiss": "Dismiss"
       }
@@ -2851,7 +2851,7 @@
     "live": "LIVE",
     "nowPlaying": "Now playing",
     "unavailableTitle": "Web Radio is disabled",
-    "unavailableHint": "Enable the Web Radio plugin in Settings → Extensions to browse 30,000+ stations.",
+    "unavailableHint": "Enable the Web Radio plugin in the Extensions page to browse 30,000+ stations.",
     "favorites": "Favourites",
     "favoritesEmpty": "No favourite stations yet. Click a station's star to save it.",
     "addFavorite": "Add to favourites",

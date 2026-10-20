@@ -1849,7 +1849,7 @@
       "attention": {
         "authRequired": {
           "title": "{{name}}: aanmelding geweigerd",
-          "body": "De opgeslagen cookie of token is verlopen of ingetrokken. Plak een nieuwe in Instellingen → Extensies."
+          "body": "De opgeslagen cookie of token is verlopen of ingetrokken. Plak een nieuwe op de pagina Extensies."
         },
         "dismiss": "Sluiten"
       }
@@ -2851,7 +2851,7 @@
     "live": "LIVE",
     "nowPlaying": "Speelt nu",
     "unavailableTitle": "Web Radio is uitgeschakeld",
-    "unavailableHint": "Schakel de Web Radio-plug-in in via Instellingen → Extensies om meer dan 30.000 zenders te doorzoeken.",
+    "unavailableHint": "Schakel de Web Radio-plug-in in via de pagina Extensies om meer dan 30.000 zenders te doorzoeken.",
     "favorites": "Favorieten",
     "favoritesEmpty": "Nog geen favoriete zenders. Klik op de ster van een zender om hem op te slaan.",
     "addFavorite": "Aan favorieten toevoegen",

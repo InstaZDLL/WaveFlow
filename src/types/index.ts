@@ -16,6 +16,8 @@ export type ViewId =
   | "genre-detail"
   | "year-detail"
   | "web-radio"
+  // The plugin store and the installed plugins, a page of their own.
+  | "extensions"
   // A playlist that lives on the bound remote server (RFC-005 sync_v2).
   // The concrete playlist id is carried on the history entry, like the
   // local "playlist" view. Only reachable in a `sync_v2` build.
