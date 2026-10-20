@@ -193,7 +193,7 @@ impl Resampler {
     /// output rate plus the delay: the delay is not trimmed at the start
     /// of a track, so the track's own output runs that much longer.
     pub fn finish(&mut self, out: &mut Vec<f32>) -> Result<(), ResamplerError> {
-        let (target, chunk) = match self {
+        let (target, chunk, max_passes) = match self {
             Self::Passthrough => return Ok(()),
             Self::Fft {
                 inner,
@@ -212,16 +212,28 @@ impl Resampler {
                 let scaled = (u128::from(*frames_in) * u128::from(*dst_rate)
                     + u128::from(*src_rate) / 2)
                     / u128::from(*src_rate);
+                let target = inner.output_delay() as u64 + scaled as u64;
+                let chunk_frames = inner.input_frames_next().max(1);
+                // rubato answers nothing until its FFT window is full, and
+                // that window can be many of our chunks long at an odd rate
+                // (a speed change): a fixed count of passes fell short there
+                // and a short track came out empty. The delay in `target` is
+                // about half that window, so twice the target's length at
+                // the input rate covers the window and the rest. The bound
+                // only keeps a resampler that would never answer from
+                // looping for good.
+                let needed = u128::from(target) * u128::from(*src_rate) / u128::from(*dst_rate);
+                let max_passes = 2 * needed / chunk_frames as u128 + 8;
                 (
-                    inner.output_delay() as u64 + scaled as u64,
-                    inner.input_frames_next() * *channels,
+                    target,
+                    chunk_frames * *channels,
+                    usize::try_from(max_passes).unwrap_or(usize::MAX),
                 )
             }
         };
         let start = out.len();
         let zeros = vec![0.0_f32; chunk];
-        // The delay is shorter than a chunk, so two or three passes do.
-        for _ in 0..8 {
+        for _ in 0..max_passes {
             if self.frames_out() >= target {
                 break;
             }
@@ -296,6 +308,61 @@ mod tests {
         // Well inside the signal's end, the level is still there.
         let frame = (expected - 300) * channels;
         assert!((out[frame] - 0.5).abs() < 0.05, "got {}", out[frame]);
+    }
+
+    /// At an odd rate rubato's FFT spans many of our chunks: a track a
+    /// chunk long (44.1 kHz at 1.125x is 49 612 Hz, to 48 kHz) must still
+    /// come out at its length rather than not at all.
+    #[test]
+    fn finish_reaches_the_length_when_the_fft_spans_many_chunks() {
+        let channels = 2;
+        let (src, dst) = (49_612_u32, 48_000_u32);
+        let mut r = Resampler::new(src, dst, channels).expect("ctor");
+        let delay = match &r {
+            Resampler::Fft { inner, .. } => inner.output_delay(),
+            Resampler::Passthrough => unreachable!(),
+        };
+        let mut out = Vec::new();
+        r.process(&vec![0.5_f32; 1_024 * channels], &mut out)
+            .expect("process");
+
+        r.finish(&mut out).expect("finish");
+
+        let length = (1_024_u64 * u64::from(dst) + u64::from(src) / 2) / u64::from(src);
+        assert_eq!(out.len() / channels, delay + length as usize);
+    }
+
+    /// The same, over the rates playback can ask for: three source
+    /// rates, speeds from 0.5x to 2x, two outputs, a track one chunk long
+    /// and one a second long.
+    #[test]
+    fn finish_reaches_the_length_at_every_playback_rate() {
+        let channels = 2;
+        for src in [44_100_u32, 48_000, 96_000] {
+            for speed in [0.5_f32, 0.75, 0.9, 1.125, 1.25, 1.5, 2.0] {
+                let effective = ((src as f32) * speed) as u32;
+                for dst in [44_100_u32, 48_000] {
+                    for frames in [1_024_usize, src as usize] {
+                        let mut r = Resampler::new(effective, dst, channels).expect("ctor");
+                        let delay = match &r {
+                            Resampler::Fft { inner, .. } => inner.output_delay(),
+                            Resampler::Passthrough => continue,
+                        };
+                        let mut out = Vec::new();
+                        r.process(&vec![0.25_f32; frames * channels], &mut out)
+                            .expect("process");
+                        r.finish(&mut out).expect("finish");
+                        let length = (frames as u64 * u64::from(dst) + u64::from(effective) / 2)
+                            / u64::from(effective);
+                        assert_eq!(
+                            out.len() / channels,
+                            delay + length as usize,
+                            "{effective} Hz to {dst} Hz, {frames} frames"
+                        );
+                    }
+                }
+            }
+        }
     }
 
     #[test]
