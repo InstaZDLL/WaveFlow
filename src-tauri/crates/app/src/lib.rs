@@ -1386,6 +1386,12 @@ pub fn run() {
         .build(context)
         .expect("error while building tauri application")
         .run(|app, event| {
+            // macOS opens files by sending them to the running app rather
+            // than on its command line, at launch as well as later.
+            #[cfg(target_os = "macos")]
+            if let tauri::RunEvent::Opened { urls } = &event {
+                launch_args::play_when_ready(app, launch_args::paths_from_urls(urls));
+            }
             // Every way out lands here: the tray's "Quit" (which calls
             // `AppHandle::exit`), a window close that isn't close-to-tray, a
             // session logout. `WindowEvent::Destroyed` does not — `exit`

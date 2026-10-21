@@ -96,16 +96,17 @@
 
   <provides>
     <binary>waveflow</binary>
-    <mediatype>audio/flac</mediatype>
     <mediatype>audio/mpeg</mediatype>
-    <mediatype>audio/mp4</mediatype>
+    <mediatype>audio/flac</mediatype>
+    <mediatype>audio/wav</mediatype>
+    <mediatype>audio/aiff</mediatype>
+    <mediatype>audio/x-aiff</mediatype>
     <mediatype>audio/ogg</mediatype>
     <mediatype>audio/opus</mediatype>
-    <mediatype>audio/wav</mediatype>
-    <mediatype>audio/x-wavpack</mediatype>
-    <mediatype>audio/x-aiff</mediatype>
-    <mediatype>audio/x-dsd</mediatype>
-    <mediatype>audio/x-musepack</mediatype>
+    <mediatype>audio/mp4</mediatype>
+    <mediatype>audio/aac</mediatype>
+    <mediatype>audio/x-dsf</mediatype>
+    <mediatype>audio/x-dff</mediatype>
   </provides>
 
   <recommends>

@@ -8,12 +8,21 @@
 //! dropped. Both end in [`crate::external_playback::play_paths`].
 //!
 //! The Flatpak's desktop entry launches with `%U`, so files arrive there
-//! as `file://` URIs; everything else passes plain paths.
+//! as `file://` URIs; everything else passes plain paths. macOS passes no
+//! arguments at all: it sends `RunEvent::Opened` with file URLs, read by
+//! [`paths_from_urls`].
+//!
+//! Files that arrive together play together. Windows starts the program
+//! once per file when several are opened at once, so each comes through the
+//! single-instance plugin on its own, a moment after the last: played as
+//! they came, every one would replace the queue the one before had just
+//! started. They are gathered until none has arrived for a moment, then
+//! played as one queue.
 
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
-use std::time::Duration;
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 
 use tauri::{AppHandle, Manager};
 
@@ -70,12 +79,65 @@ fn normalize(path: &Path) -> PathBuf {
     out
 }
 
+/// The local files among the URLs macOS opens the app with. Anything else
+/// (a web link, a file gone in the meantime) is dropped.
+#[cfg(any(target_os = "macos", test))]
+pub fn paths_from_urls<'a>(urls: impl IntoIterator<Item = &'a url::Url>) -> Vec<PathBuf> {
+    urls.into_iter()
+        .filter_map(|url| url.to_file_path().ok())
+        .filter(|path| path.exists())
+        .collect()
+}
+
+/// How long the files of one open are waited for after the last one came:
+/// Windows starts the program again for each, and each hands its file over
+/// through the single-instance plugin a moment after the one before.
+const GATHER_QUIET: Duration = Duration::from_millis(400);
+
+/// The longest the gathering waits once the player is up, however steadily
+/// files keep coming.
+const GATHER_LIMIT: Duration = Duration::from_secs(3);
+
+/// Files waiting to play, and when the last of them arrived.
+struct Gathering {
+    paths: Vec<PathBuf>,
+    last: Instant,
+}
+
+/// The open being gathered, if one is. `None` when nothing is waiting.
+static GATHERING: Mutex<Option<Gathering>> = Mutex::new(None);
+
+/// Add `more` to `paths`, each file once, in the order they came.
+fn gather(paths: &mut Vec<PathBuf>, more: Vec<PathBuf>) {
+    for path in more {
+        if !paths.contains(&path) {
+            paths.push(path);
+        }
+    }
+}
+
 /// Play `paths` once the active profile is open, which is when a file can
 /// be told apart from a library track. At launch that is a moment after
-/// `setup` returns; from a second launch it already is.
+/// `setup` returns; from a second launch it already is. Files that arrive
+/// while some are already waiting join them (see the module comment).
 pub fn play_when_ready(app: &AppHandle, paths: Vec<PathBuf>) {
     if paths.is_empty() {
         return;
+    }
+    {
+        let mut gathering = GATHERING.lock().unwrap_or_else(|e| e.into_inner());
+        if let Some(waiting) = gathering.as_mut() {
+            // A task is already waiting to play; it takes these too.
+            gather(&mut waiting.paths, paths);
+            waiting.last = Instant::now();
+            return;
+        }
+        let mut first = Vec::new();
+        gather(&mut first, paths);
+        *gathering = Some(Gathering {
+            paths: first,
+            last: Instant::now(),
+        });
     }
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
@@ -96,6 +158,28 @@ pub fn play_when_ready(app: &AppHandle, paths: Vec<PathBuf>) {
             }
             tokio::time::sleep(Duration::from_millis(100)).await;
         }
+        // Then until the files stop coming. The wait for the player above
+        // gathers too, so a cold start opened with many files has them all.
+        let started = Instant::now();
+        loop {
+            let since_last = GATHERING
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .as_ref()
+                .map_or(GATHER_QUIET, |waiting| waiting.last.elapsed());
+            if since_last >= GATHER_QUIET || started.elapsed() >= GATHER_LIMIT {
+                break;
+            }
+            tokio::time::sleep(GATHER_QUIET - since_last).await;
+        }
+        // Taken on every way out, so the next open starts a gathering of
+        // its own.
+        let paths = GATHERING
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .take()
+            .map(|waiting| waiting.paths)
+            .unwrap_or_default();
         if !ready {
             tracing::warn!(
                 "the player never came up; not playing the files WaveFlow was opened with"
@@ -149,6 +233,30 @@ mod tests {
             paths_from_args(args, Some(&elsewhere)),
             [music.join("song.flac")]
         );
+    }
+
+    #[test]
+    fn files_that_arrive_together_are_gathered_once_each_in_order() {
+        let a = PathBuf::from("/m/a.flac");
+        let b = PathBuf::from("/m/b.flac");
+        let c = PathBuf::from("/m/c.flac");
+        let mut paths = Vec::new();
+        gather(&mut paths, vec![a.clone(), b.clone()]);
+        gather(&mut paths, vec![b.clone(), c.clone(), a.clone()]);
+        assert_eq!(paths, [a, b, c]);
+    }
+
+    #[test]
+    fn only_local_files_are_taken_from_opened_urls() {
+        let dir = tempfile::tempdir().unwrap();
+        let song = dir.path().join("my song.flac");
+        std::fs::write(&song, b"x").unwrap();
+        let urls = [
+            url::Url::from_file_path(&song).unwrap(),
+            url::Url::from_file_path(dir.path().join("gone.flac")).unwrap(),
+            url::Url::parse("https://waveflow.app/").unwrap(),
+        ];
+        assert_eq!(paths_from_urls(&urls), [song]);
     }
 
     #[test]
