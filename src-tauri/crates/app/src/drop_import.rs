@@ -27,6 +27,7 @@
 use std::path::{Path, PathBuf};
 
 use serde::Serialize;
+use waveflow_core::scanner::extract::FOLDER_COVER_EXTENSIONS;
 use waveflow_core::scanner::folders::{relation, FolderRelation};
 
 use crate::commands::scan::ScanSummary;
@@ -34,9 +35,10 @@ use crate::commands::scan::ScanSummary;
 /// The managed folder's name under the user's music folder.
 pub const MANAGED_FOLDER_NAME: &str = "WaveFlow";
 
-/// Files beside the audio that a dropped folder brings along: the app reads
-/// folder covers and lyrics sidecars from them.
-const SIDECAR_EXTENSIONS: &[&str] = &["jpg", "jpeg", "png", "webp", "lrc", "ttml"];
+/// Lyrics sidecars a dropped folder brings along beside its audio. Its
+/// cover images go too, by the scanner's own list
+/// ([`FOLDER_COVER_EXTENSIONS`]), so the two cannot drift.
+const LYRICS_EXTENSIONS: &[&str] = &["lrc", "ttml"];
 
 /// Most files one drop copies. Past it the drop is cut short and says so.
 const MAX_FILES: usize = 20_000;
@@ -235,8 +237,9 @@ fn is_sidecar(path: &Path) -> bool {
     path.extension()
         .and_then(|ext| ext.to_str())
         .is_some_and(|ext| {
-            SIDECAR_EXTENSIONS
+            FOLDER_COVER_EXTENSIONS
                 .iter()
+                .chain(LYRICS_EXTENSIONS)
                 .any(|s| ext.eq_ignore_ascii_case(s))
         })
 }
