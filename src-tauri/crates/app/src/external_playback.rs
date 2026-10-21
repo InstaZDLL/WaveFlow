@@ -273,7 +273,12 @@ async fn play_entries(
         .external_playback
         .set(DetachedQueue { entries, index });
     let played = play_current(app, intent).await;
-    if engine.load_intent_superseded(intent) && state.external_playback.clear_if(revision) {
+    // A start that did not reach the engine leaves no session behind to
+    // drive the next advance — but only the session as it installed it.
+    if played.is_err() {
+        let _ = engine.send(AudioCmd::Stop);
+        state.external_playback.clear_if(revision);
+    } else if engine.load_intent_superseded(intent) && state.external_playback.clear_if(revision) {
         tracing::debug!("file session superseded while starting; rolled it back");
     }
     played
