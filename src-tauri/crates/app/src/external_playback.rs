@@ -61,15 +61,21 @@ pub fn expand(paths: &[PathBuf]) -> Vec<PathBuf> {
             let walk = walkdir::WalkDir::new(path)
                 .sort_by(|a, b| a.file_name().cmp(b.file_name()))
                 .into_iter()
-                .filter_entry(|entry| entry.file_name() != ".waveflow");
+                .filter_entry(|entry| {
+                    entry.depth() == 0
+                        || !entry.file_type().is_dir()
+                        || !waveflow_core::scanner::is_reserved_dir_name(entry.file_name())
+                });
             for entry in walk.flatten() {
                 visited += 1;
                 if visited >= MAX_VISITED {
                     break;
                 }
-                if entry.file_type().is_file()
-                    && waveflow_core::scanner::extract::is_scannable_audio(entry.path())
-                {
+                // A link to a file counts as the file; a link to a folder
+                // is not followed, which keeps the walk out of loops.
+                let is_file = entry.file_type().is_file()
+                    || (entry.path_is_symlink() && entry.path().is_file());
+                if is_file && waveflow_core::scanner::extract::is_scannable_audio(entry.path()) {
                     files.push(entry.into_path());
                     if files.len() >= MAX_FILES {
                         break;
@@ -379,6 +385,21 @@ mod tests {
             })
             .collect();
         assert_eq!(names, ["CD2/c.flac", "a.mp3", "b.flac"]);
+    }
+
+    /// A link to an audio file plays as the file. Unix only: creating a
+    /// link on Windows needs a privilege the CI runner may not have.
+    #[cfg(unix)]
+    #[test]
+    fn a_link_to_an_audio_file_counts_as_the_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let target = dir.path().join("elsewhere.flac");
+        std::fs::write(&target, b"x").unwrap();
+        let folder = dir.path().join("album");
+        std::fs::create_dir(&folder).unwrap();
+        std::os::unix::fs::symlink(&target, folder.join("linked.flac")).unwrap();
+
+        assert_eq!(expand(&[folder.clone()]), [folder.join("linked.flac")]);
     }
 
     #[test]
