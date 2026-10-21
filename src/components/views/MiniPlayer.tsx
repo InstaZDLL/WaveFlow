@@ -46,6 +46,7 @@ import { useSlideshowLayer } from "../../hooks/useSlideshowLayer";
 import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
 import { useWebRadioFavorites } from "../../hooks/useWebRadioFavorites";
 import {
+  isFileTrack,
   isRadioTrack,
   isRemoteTrack,
   isStreamTrack,
@@ -75,11 +76,8 @@ import {
   playerJumpToIndex,
   type PlayerQueueSnapshot,
 } from "../../lib/tauri/player";
-import {
-  remoteGetPlayQueue,
-  remoteQueueJump,
-  type RemotePlayQueue,
-} from "../../lib/tauri/remoteServer";
+import { type RemotePlayQueue } from "../../lib/tauri/remoteServer";
+import { DETACHED_QUEUES } from "../../lib/detachedQueues";
 
 /**
  * Spotify-style always-on-top widget. Square cover floats centered
@@ -144,7 +142,14 @@ export function MiniPlayer() {
   // `RemoteQueueView`, and without it this list showed whatever local
   // queue happened to be sitting there while a remote track played
   // (#685). Only one is live at a time.
-  const isRemoteSession = isRemoteTrack(currentTrack);
+  // Files played without importing them have an in-memory queue of the
+  // same shape, read and jumped through their own commands.
+  const detachedSource = isRemoteTrack(currentTrack)
+    ? "remote"
+    : isFileTrack(currentTrack)
+      ? "file"
+      : null;
+  const isRemoteSession = detachedSource !== null;
 
   // Local: load once, refetch on `player:queue-changed`, guarded by a
   // seq counter so overlapping refetches (rapid Next) never resolve out
@@ -202,10 +207,12 @@ export function MiniPlayer() {
   // is a cleanup rather than a call in the body on purpose: this has to
   // happen on the way out of a session, not on every track change
   // inside one, which would blank the list on each advance.
+  // Keyed on the source, not just on there being one: going from a remote
+  // session straight to files (or back) ends a session too.
   useEffect(() => {
-    if (!isRemoteSession) return;
+    if (detachedSource === null) return;
     return () => setRemoteQueue(null);
-  }, [isRemoteSession]);
+  }, [detachedSource]);
 
   useEffect(() => {
     if (!isRemoteSession) return;
@@ -219,7 +226,8 @@ export function MiniPlayer() {
     // put the dead session's queue back.
     let ended = false;
     const seq = ++remoteSeqRef.current;
-    remoteGetPlayQueue()
+    DETACHED_QUEUES[detachedSource ?? "remote"]
+      .read()
       .then((q) => {
         if (!ended && seq === remoteSeqRef.current) setRemoteQueue(q);
       })
@@ -230,7 +238,7 @@ export function MiniPlayer() {
     return () => {
       ended = true;
     };
-  }, [isRemoteSession, currentTrackId]);
+  }, [isRemoteSession, detachedSource, currentTrackId]);
 
   const currentIndex = isRemoteSession
     ? (remoteQueue?.index ?? -1)
@@ -263,12 +271,12 @@ export function MiniPlayer() {
     (absoluteIndex: number) => {
       // The remote queue has its own cursor; `player_jump_to_index` acts
       // on the local one and would end the session on an unrelated track.
-      const jump = isRemoteSession
-        ? remoteQueueJump(absoluteIndex)
+      const jump = detachedSource
+        ? DETACHED_QUEUES[detachedSource].jump(absoluteIndex)
         : playerJumpToIndex(absoluteIndex);
       jump.catch((err) => console.error("[MiniPlayer] jump failed", err));
     },
-    [isRemoteSession],
+    [detachedSource],
   );
 
   // ── Canvas and motion cover (issue #717) ──────────────
@@ -693,7 +701,9 @@ export function MiniPlayer() {
               onNext={next}
               onCycleRepeat={cycleRepeatMode}
               onToggleShuffle={toggleShuffle}
-              shuffleDisabled={isRemoteTrack(currentTrack)}
+              shuffleDisabled={
+                isRemoteTrack(currentTrack) || isFileTrack(currentTrack)
+              }
               volume={volume}
               onSetVolume={setVolume}
               onToggleMute={toggleMute}

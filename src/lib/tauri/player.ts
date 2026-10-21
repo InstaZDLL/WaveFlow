@@ -305,6 +305,12 @@ export interface RadioMetadata {
    *  it is a negative sentinel minted per playback, meaningful only to this
    *  process. `null` for live radio, which has no server track. */
   remote_track_id: string | null;
+  /** `true` for a file the user opened without importing it: no library
+   *  row and no server, a finite and seekable track whose queue advances
+   *  like a remote one. */
+  is_file: boolean;
+  /** That file's path; `null` for every other source. */
+  file_path: string | null;
 }
 
 /**
@@ -771,4 +777,34 @@ export interface ExclusiveOutputState {
  */
 export function playerGetExclusiveOutputState(): Promise<ExclusiveOutputState> {
   return invoke<ExclusiveOutputState>("player_get_exclusive_output_state");
+}
+
+/**
+ * Play files or folders without importing them — or as library tracks when
+ * every file already is one. Folders play their audio files in name order.
+ */
+export function playerPlayPaths(paths: string[]): Promise<void> {
+  return invoke<void>("player_play_paths", { paths });
+}
+
+/** The queue of files played without importing them, in the remote
+ *  queue's shape (`id` is the file's path, `title` its name), or `null`
+ *  when no such queue is playing. */
+export function playerGetExternalQueue(): Promise<{
+  entries: {
+    id: string;
+    title: string | null;
+    artist: string | null;
+    artist_id: string | null;
+    artwork_hash: string | null;
+    duration_ms: number | null;
+  }[];
+  index: number;
+} | null> {
+  return invoke("player_get_external_queue");
+}
+
+/** Jump to a file of that queue and play it. */
+export function playerExternalJump(index: number): Promise<void> {
+  return invoke<void>("player_external_jump", { index });
 }

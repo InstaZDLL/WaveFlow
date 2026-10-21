@@ -103,14 +103,19 @@ pub enum AudioCmd {
         /// time so the decoder thread stays out of the SQLite path.
         replay_gain: TrackGain,
     },
-    /// Play a track from the active remote queue using its confirmed local
-    /// reconciliation link. The negative `track_id` deliberately preserves
-    /// the remote queue/UI semantics; `fallback_url`, when available, lets
-    /// the decoder fall back to the server if the local file can no longer
-    /// be opened between selection and playback.
+    /// Play a file that is not a library track under a negative
+    /// `track_id`: a track of the active remote queue through its confirmed
+    /// local reconciliation link, or a file the user opened without
+    /// importing it ([`DetachedOrigin`]). The negative id keeps the queue
+    /// and UI semantics of that session; `fallback_url`, when available,
+    /// lets the decoder fall back to the server if the local file can no
+    /// longer be opened between selection and playback.
     LoadRemoteFileAndPlay {
         /// Ordering token for this load — see [`LoadIntent`].
         intent: LoadIntent,
+        /// Whose session the file belongs to: what the decoder announces it
+        /// as, and which queue its end advances.
+        origin: DetachedOrigin,
         path: PathBuf,
         start_ms: u64,
         track_id: i64,
@@ -924,11 +929,23 @@ pub(crate) enum LastLoadSource {
         seekable_file: bool,
     },
     RemoteFile {
+        origin: DetachedOrigin,
         path: PathBuf,
         duration_ms: u64,
         fallback_url: Option<String>,
         replay_gain: TrackGain,
     },
+}
+
+/// Whose session a file played by [`AudioCmd::LoadRemoteFileAndPlay`]
+/// belongs to.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DetachedOrigin {
+    /// A track of the remote queue (RFC-005).
+    Remote,
+    /// A file the user opened without importing it
+    /// ([`crate::external_playback`]).
+    File,
 }
 
 impl LastLoad {
@@ -1000,6 +1017,7 @@ impl LastLoad {
             }),
             AudioCmd::LoadRemoteFileAndPlay {
                 intent,
+                origin,
                 path,
                 start_ms,
                 track_id,
@@ -1020,6 +1038,7 @@ impl LastLoad {
                 artist: artist.clone(),
                 artwork_url: artwork_url.clone(),
                 source: LastLoadSource::RemoteFile {
+                    origin: *origin,
                     path: path.clone(),
                     duration_ms: *duration_ms,
                     fallback_url: fallback_url.clone(),
@@ -1089,12 +1108,14 @@ impl LastLoad {
                 seekable_file,
             },
             LastLoadSource::RemoteFile {
+                origin,
                 path,
                 duration_ms,
                 fallback_url,
                 replay_gain,
             } => AudioCmd::LoadRemoteFileAndPlay {
                 intent,
+                origin,
                 // Never `true` on a resume. The flag authorises deleting the
                 // file when it will not decode, and that is a judgement about
                 // a copy we just fetched — not about one we are re-opening
@@ -3717,6 +3738,7 @@ mod last_load_tests {
     fn remote_local_cmd(fallback_url: Option<&str>, track_id: i64) -> AudioCmd {
         AudioCmd::LoadRemoteFileAndPlay {
             intent: LoadIntent::from_raw(1),
+            origin: DetachedOrigin::Remote,
             path: PathBuf::from("/dev/null"),
             start_ms: 0,
             track_id,

@@ -460,6 +460,7 @@ fn decoder_loop(
                 // Kept: the two repair paths below re-send under this same
                 // intent rather than claiming a newer one (#622).
                 intent,
+                origin,
                 path,
                 start_ms,
                 track_id,
@@ -484,7 +485,12 @@ fn decoder_loop(
                     continue;
                 }
 
-                let remote_meta = {
+                let is_file = origin == super::engine::DetachedOrigin::File;
+                // A file played without importing it has no server behind
+                // it: the remote session has nothing to say about it.
+                let remote_meta = if is_file {
+                    crate::remote_playback::RemoteStreamMeta::default()
+                } else {
                     let state = app.state::<crate::state::AppState>();
                     state.remote_playback.current_stream_meta()
                 };
@@ -499,10 +505,12 @@ fn decoder_loop(
                         station_name: title.clone(),
                         station_artist: artist.clone(),
                         station_artwork: artwork_url.clone(),
-                        is_remote: true,
+                        is_remote: !is_file,
                         duration_ms: remote_meta.duration_ms.or(Some(duration_ms as i64)),
                         artwork_hash: remote_meta.artwork_hash,
                         remote_track_id: remote_meta.remote_id,
+                        is_file,
+                        file_path: is_file.then(|| path.display().to_string()),
                     },
                 );
 
@@ -510,7 +518,7 @@ fn decoder_loop(
                     &path,
                     track_id,
                     duration_ms,
-                    "remote-local".to_string(),
+                    if is_file { "file" } else { "remote-local" }.to_string(),
                     None,
                     replay_gain,
                     shared.dsd_taps.load(Ordering::Acquire) as usize,
@@ -721,6 +729,8 @@ fn decoder_loop(
                         // it into a data URL for the PlayerBar.
                         artwork_hash: remote_meta.artwork_hash,
                         remote_track_id: remote_meta.remote_id,
+                        is_file: false,
+                        file_path: None,
                     },
                 );
 

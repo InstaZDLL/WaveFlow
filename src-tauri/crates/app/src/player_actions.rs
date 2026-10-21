@@ -326,6 +326,9 @@ pub async fn step(app: &AppHandle, direction: Direction, label: &str) -> Moved {
 
 /// Advance to the next queue entry.
 pub async fn next(app: &AppHandle, label: &str) -> Moved {
+    if let Some(moved) = try_external_advance(app, Direction::Next, label).await {
+        return moved;
+    }
     #[cfg(feature = "sync_v2")]
     if let Some(moved) = try_remote_advance(app, Direction::Next, label).await {
         return moved;
@@ -340,11 +343,31 @@ pub async fn previous(app: &AppHandle, label: &str) -> Moved {
         let _ = engine.send(AudioCmd::Seek(0));
         return Moved::Restarted;
     }
+    if let Some(moved) = try_external_advance(app, Direction::Previous, label).await {
+        return moved;
+    }
     #[cfg(feature = "sync_v2")]
     if let Some(moved) = try_remote_advance(app, Direction::Previous, label).await {
         return moved;
     }
     step(app, Direction::Previous, label).await
+}
+
+/// When files played without importing them are the queue, advance it
+/// instead of the local one. Same contract as [`try_remote_advance`].
+async fn try_external_advance(app: &AppHandle, direction: Direction, label: &str) -> Option<Moved> {
+    if !app.state::<AppState>().external_playback.is_active() {
+        return None;
+    }
+    let intent = app.state::<Arc<AudioEngine>>().next_load_intent();
+    match crate::external_playback::advance(app, direction, intent).await {
+        Ok(true) => Some(Moved::Track),
+        Ok(false) => Some(Moved::Nothing),
+        Err(err) => {
+            tracing::warn!(%err, surface = label, "file player action: advance failed");
+            Some(Moved::Nothing)
+        }
+    }
 }
 
 /// When a remote play queue is active, advance it instead of the local

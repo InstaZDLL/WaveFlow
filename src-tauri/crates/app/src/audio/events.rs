@@ -59,6 +59,14 @@ pub struct RadioMetadataPayload {
     /// it is a negative sentinel minted per playback, meaningful only to this
     /// process. `None` for live radio, which has no server track.
     pub remote_track_id: Option<String>,
+    /// `true` for a file the user opened without importing it
+    /// ([`crate::external_playback`]): a finite, seekable track with no
+    /// library row and no server behind it. Its queue advances like a
+    /// remote one; its cover is a file of ours on disk.
+    pub is_file: bool,
+    /// Where that file is, for the surfaces that act on it (add it to the
+    /// library, show it in its folder). `None` for every other source.
+    pub file_path: Option<String>,
 }
 
 /// Last emitted radio metadata, kept process-wide so a webview that

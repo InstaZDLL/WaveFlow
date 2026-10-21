@@ -320,6 +320,8 @@ pub struct AppState {
     /// track or a radio stream takes over. Always present — a stock build
     /// simply never populates it (the command that does is `sync_v2`-gated).
     pub remote_playback: crate::remote_playback::RemotePlayback,
+    /// Files played without importing them ([`crate::external_playback`]).
+    pub external_playback: crate::external_playback::ExternalPlayback,
 }
 
 /// Pick the profile to activate on startup.
@@ -492,6 +494,7 @@ impl AppState {
             plugins,
             plugin_locks: Arc::new(Mutex::new(HashMap::new())),
             remote_playback: crate::remote_playback::RemotePlayback::default(),
+            external_playback: crate::external_playback::ExternalPlayback::default(),
         };
 
         state.bootstrap().await?;
@@ -593,6 +596,9 @@ impl AppState {
             // profile lock, so the profile→remote_playback order is
             // consistent and deadlock-free.
             self.remote_playback.clear();
+            // The files' queue reads the profile's repeat mode and is
+            // checked against its library: it goes with the profile too.
+            self.external_playback.clear();
             previous
         };
         if let Some(previous) = previous {
@@ -614,6 +620,9 @@ impl AppState {
             // together; the clear only touches the `remote_playback` mutex,
             // never the profile lock, so the ordering stays deadlock-free.
             self.remote_playback.clear();
+            // The files' queue reads the profile's repeat mode and is
+            // checked against its library: it goes with the profile too.
+            self.external_playback.clear();
             previous
         };
         if let Some(previous) = previous {

@@ -46,13 +46,25 @@ export function isRemoteTrack(track: Track | null): boolean {
 }
 
 /**
- * Either kind of URL stream — radio or a remote-queue track. Neither has a
- * library row, so surfaces that gate a library affordance (♥ like, artist
- * slideshow, "go to album") on `!isRadioTrack` should use this instead, or
- * they light those up for remote tracks where they would fail. The
- * transport controls are the deliberate exception: a remote track advances,
- * so it checks the two apart.
+ * A file the user opened without importing it. It plays under the same
+ * negative sentinel id, and is the one such source with a `file_path`
+ * (`radioMetadataToTrack` leaves it empty for radio and remote tracks).
+ * Like a remote track it is one entry of a queue that advances: Previous /
+ * Next / Repeat stay on, Shuffle off.
+ */
+export function isFileTrack(track: Track | null): boolean {
+  if (track === null) return false;
+  return track.id < 0 && track.file_path !== "";
+}
+
+/**
+ * Any track with no library row — radio, a remote-queue track, a file
+ * played without importing it. Surfaces that gate a library affordance
+ * (♥ like, artist slideshow, "go to album", start radio) on
+ * `!isRadioTrack` should use this instead, or they light those up where
+ * they would fail. The transport controls are the deliberate exception:
+ * remote tracks and files advance, so they check the kinds apart.
  */
 export function isStreamTrack(track: Track | null): boolean {
-  return isRadioTrack(track) || isRemoteTrack(track);
+  return isRadioTrack(track) || isRemoteTrack(track) || isFileTrack(track);
 }

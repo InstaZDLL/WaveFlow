@@ -103,9 +103,15 @@ function radioMetadataToTrack(payload: RadioMetadata): Track {
     // the pipeline popover read: "Web Radio" gates next / previous off and
     // labels the source, "Remote server" keeps them on (a remote queue does
     // advance) and labels it as such. See `isRadioTrack` / `isRemoteTrack`.
-    codec: payload.is_remote ? "Remote server" : "Web Radio",
+    // A file played without importing it has no sentinel codec: it is told
+    // apart by its `file_path` instead (`isFileTrack`).
+    codec: payload.is_file
+      ? null
+      : payload.is_remote
+        ? "Remote server"
+        : "Web Radio",
     musical_key: null,
-    file_path: "",
+    file_path: payload.file_path ?? "",
     file_size: 0,
     added_at: 0,
     artwork_path: payload.artwork_url,
@@ -416,14 +422,17 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
               // A remote-queue track is not a favouritable station — its
               // URL is an expiring ticket, not a stable stream.
               setCurrentRadioStation(
-                radio.is_remote ? null : radioStationFromMetadata(radio),
+                radio.is_remote || radio.is_file
+                  ? null
+                  : radioStationFromMetadata(radio),
               );
               setDurationMs(radio.duration_ms ?? 0);
               // Upgrade the placeholder to the real cover: the remote hash
               // for a remote track, a Deezer lookup for a radio song.
+              // A file brings its own cover, read from it.
               if (radio.is_remote) {
                 fetchRemoteArtworkInto(radio.artwork_hash);
-              } else {
+              } else if (!radio.is_file) {
                 fetchRadioArtworkInto(radio.title, radio.artist);
               }
             }
@@ -564,16 +573,19 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
             // Remote-queue tracks aren't favouritable stations (expiring
             // ticket URL, not a stable stream) — leave the station null.
             setCurrentRadioStation(
-              e.payload.is_remote ? null : radioStationFromMetadata(e.payload),
+              e.payload.is_remote || e.payload.is_file
+                ? null
+                : radioStationFromMetadata(e.payload),
             );
             setDurationMs(e.payload.duration_ms ?? 0);
             setPlayerPosition(0);
             // A remote track has a real cover behind a Bearer endpoint;
             // radio only carries the station favicon, so fetch the song's
             // album cover from Deezer instead. Either swaps in async.
+            // A file brings its own cover, read from it.
             if (e.payload.is_remote) {
               fetchRemoteArtworkInto(e.payload.artwork_hash);
-            } else {
+            } else if (!e.payload.is_file) {
               fetchRadioArtworkInto(e.payload.title, e.payload.artist);
             }
           }),

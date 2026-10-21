@@ -66,6 +66,9 @@ pub async fn play_entries(
         return Ok(());
     }
 
+    // One detached queue at a time: the remote one now drives next /
+    // previous, not files played without importing them.
+    app.state::<AppState>().external_playback.clear();
     let revision = app
         .state::<AppState>()
         .remote_playback
@@ -249,6 +252,7 @@ async fn play_current(app: &AppHandle, intent: LoadIntent) -> AppResult<()> {
             }
         };
         engine.send(AudioCmd::LoadRemoteFileAndPlay {
+            origin: crate::audio::engine::DetachedOrigin::Remote,
             intent,
             path: local.path,
             start_ms: 0,
@@ -289,6 +293,7 @@ async fn play_current(app: &AppHandle, intent: LoadIntent) -> AppResult<()> {
         if let Some(path) = crate::remote::download::lookup(&mut conn, &entry.id).await {
             drop(conn);
             engine.send(AudioCmd::LoadRemoteFileAndPlay {
+                origin: crate::audio::engine::DetachedOrigin::Remote,
                 intent,
                 path,
                 start_ms: 0,
@@ -324,6 +329,7 @@ async fn play_current(app: &AppHandle, intent: LoadIntent) -> AppResult<()> {
                 .ok()
         };
         engine.send(AudioCmd::LoadRemoteFileAndPlay {
+            origin: crate::audio::engine::DetachedOrigin::Remote,
             intent,
             path,
             start_ms: 0,

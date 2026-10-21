@@ -133,6 +133,27 @@ async fn handle_message(
     // missing or momentarily-unavailable profile can't strand remote
     // auto-advance (a plain radio stream ending here is a no-op).
     if let AnalyticsMsg::RemoteTrackEnded { intent, .. } = msg {
+        // The sleep timer's "end of this track" holds here as it does for
+        // the library queue below: the track has ended, nothing follows.
+        // Consumed whatever the source, as the library branch consumes it.
+        let pause_after = app.try_state::<Arc<AudioEngine>>().is_some_and(|engine| {
+            engine
+                .shared()
+                .pause_after_current_track
+                .swap(false, Ordering::AcqRel)
+        });
+        if pause_after {
+            tracing::info!("sleep-timer end-of-track armed: skipping the auto-advance");
+            return Ok(());
+        }
+        // A file played without importing it: its own queue moves on.
+        if state.external_playback.is_active() {
+            if let Err(err) = crate::external_playback::advance(app, Direction::Next, *intent).await
+            {
+                tracing::warn!(%err, "file auto-advance failed");
+            }
+            return Ok(());
+        }
         #[cfg(feature = "sync_v2")]
         if state.remote_playback.is_active() {
             if let Err(err) = crate::remote::playback::advance(app, Direction::Next, *intent).await
@@ -258,6 +279,20 @@ async fn handle_message(
         // pool needed).
         AnalyticsMsg::RemoteTrackEnded { .. } | AnalyticsMsg::Flush(_) => {}
         AnalyticsMsg::PrefetchNext => {
+            // Only a library track hands over to the library queue. A
+            // remote track or a file played without importing it plays
+            // under a negative id and advances its own queue at its end;
+            // answering its prefetch from the library queue would fade or
+            // hand off into a track of that queue instead.
+            if app
+                .state::<Arc<AudioEngine>>()
+                .shared()
+                .current_track_id
+                .load(Ordering::Acquire)
+                <= 0
+            {
+                return Ok(());
+            }
             // Look up what would be played next without bumping the
             // cursor (the cursor is bumped only when the crossfade
             // actually starts, via CrossfadeStarted).
