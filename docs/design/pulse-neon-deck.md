@@ -35,7 +35,7 @@ Where Fluid stages the music and Liquid diffuses it, Pulse wires it: nothing is 
 | `ease`          | `cubic-bezier(0.34, 1.56, 0.64, 1)`, the layout's ease-out under reduced motion                                                                  | Every transition.                                                                                    |
 | `font` / `mono` | Space Grotesk (400–700, the layout's weights map onto 500 and 600) / Space Mono (400, 700)                                                       | Display and body / the utility voice.                                                                |
 
-The atmosphere: two static pools at the corners of the window — the accent at 14 % top-left, the glow at 55 % bottom-right — fading over 900 ms when the record changes. The canvas and the suggestion band keep the layout's blurred copy of the cover under the text.
+The atmosphere: two static pools at the corners of the window — the accent at 14 % top-left, the glow at 55 % bottom-right — fading over 900 ms when the record changes. Under the canvas text and the suggestion band, the layout's pool of the glow stays (at 0.45 and 0.35) but its blurred copy of the cover goes: on pure black a pale sleeve read as a grey smudge.
 
 ### States
 
