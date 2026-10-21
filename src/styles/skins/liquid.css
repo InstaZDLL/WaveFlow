@@ -1076,12 +1076,12 @@
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 0.875rem;
 }
-@media (max-width: 1100px) {
+@container (max-width: 56rem) {
   :root[data-skin="liquid"] .aq-capsules {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
-@media (max-width: 700px) {
+@container (max-width: 36rem) {
   :root[data-skin="liquid"] .aq-capsules {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

@@ -419,7 +419,7 @@
   margin-top: 2.5rem;
   justify-self: start;
 }
-@container (min-width: 47rem) {
+@container (min-width: 43rem) {
   :root[data-layout="fluid"] .fe-canvas__text,
   :root[data-layout="fluid"] .fe-canvas__queue {
     grid-column: span 7;
@@ -437,7 +437,7 @@
     justify-self: end;
   }
 }
-@container (min-width: 89rem) {
+@container (min-width: 82rem) {
   :root[data-layout="fluid"] .fe-canvas {
     grid-template-columns: minmax(0, 5fr) minmax(0, 3.4fr) auto;
     column-gap: 3.5rem;
@@ -2318,8 +2318,9 @@
 /* The canvas tiers above are container queries on the page, not media
    queries on the window: with the rail and the panel both open, a
    1280 px window leaves the column too narrow for the two-column tier,
-   and the cover would cover the text. 47 rem of page is a 1024 px
-   window with the rail alone; 89 rem, a 1700 px one. */
+   and the cover would cover the text. The query measures the page's
+   content box: 43 rem is a 1024 px window with the rail alone and the
+   2 rem gutters; 82 rem, a 1700 px one with the 3.5 rem gutters. */
 :root[data-layout="fluid"] main {
   container-type: inline-size;
 }
