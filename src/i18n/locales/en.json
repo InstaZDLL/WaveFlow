@@ -1582,7 +1582,6 @@
     "reasonMissing": "the file is not there (deleted, or on a drive that is not connected); the next scan updates the library"
   },
   "dragDrop": {
-    "importing": "Importing…",
     "play": {
       "title": "Play now",
       "hint": "Without adding it to the library"

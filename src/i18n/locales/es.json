@@ -1637,7 +1637,6 @@
     "reasonMissing": "el archivo no está (eliminado o en una unidad no conectada); el próximo escaneo actualizará la biblioteca"
   },
   "dragDrop": {
-    "importing": "Importando…",
     "play": {
       "title": "Reproducir ahora",
       "hint": "Sin añadirlo a la biblioteca"

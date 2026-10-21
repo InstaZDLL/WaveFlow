@@ -755,11 +755,10 @@ export function AppLayout() {
           )}
           {/* Drag-and-drop: two targets while files are dragged over the
             window — play them now without importing them, or add them to
-            the library — then an "importing…" state while the scan runs. */}
-          {(dragDrop.isDraggingOver || dragDrop.isImporting) && (
+            the library. An import's scan then reports in the status bar. */}
+          {dragDrop.isDraggingOver && (
             <DropTargetsOverlay
               hoveredTarget={dragDrop.hoveredTarget}
-              isImporting={dragDrop.isImporting}
               targetsRef={dragDrop.targetsRef}
             />
           )}

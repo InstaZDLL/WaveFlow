@@ -1637,7 +1637,6 @@
     "reasonMissing": "il file non c'è (eliminato o su un'unità non collegata); la prossima scansione aggiornerà la libreria"
   },
   "dragDrop": {
-    "importing": "Importazione…",
     "play": {
       "title": "Riproduci ora",
       "hint": "Senza aggiungerlo alla libreria"

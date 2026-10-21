@@ -18,7 +18,9 @@ interface DragPayload {
 export type DropTarget = "play" | "import";
 
 /** Where the two targets are on screen, filled in by the overlay. */
-export type DropTargetElements = Partial<Record<DropTarget, HTMLElement | null>>;
+export type DropTargetElements = Partial<
+  Record<DropTarget, HTMLElement | null>
+>;
 
 /**
  * The target under `point` (CSS pixels), or the nearer one when the point
@@ -67,7 +69,6 @@ function targetAt(
  */
 export function useDragDropImport(): {
   isDraggingOver: boolean;
-  isImporting: boolean;
   lastError: string | null;
   /** The target the pointer is over while dragging. */
   hoveredTarget: DropTarget | null;
@@ -82,14 +83,12 @@ export function useDragDropImport(): {
   } = useLibrary();
   const { t } = useTranslation();
   const [isDraggingOver, setIsDraggingOver] = useState(false);
-  const [isImporting, setIsImporting] = useState(false);
   const [lastError, setLastError] = useState<string | null>(null);
   const [hoveredTarget, setHoveredTarget] = useState<DropTarget | null>(null);
   const targetsRef = useRef<DropTargetElements>({});
 
   const handleImport = useCallback(
     async (paths: string[]) => {
-      setIsImporting(true);
       setLastError(null);
       try {
         // Resolve a target library — auto-create one if the profile
@@ -100,7 +99,9 @@ export function useDragDropImport(): {
             libId = libraries[0].id;
             selectLibrary(libId);
           } else {
-            const lib = await createLibrary({ name: t("onboarding.defaultLibraryName") });
+            const lib = await createLibrary({
+              name: t("onboarding.defaultLibraryName"),
+            });
             libId = lib.id;
             selectLibrary(libId);
           }
@@ -110,8 +111,6 @@ export function useDragDropImport(): {
       } catch (err) {
         console.error("[useDragDropImport] import failed", err);
         setLastError(String(err));
-      } finally {
-        setIsImporting(false);
       }
     },
     [libraries, selectedLibraryId, selectLibrary, createLibrary, refresh, t],
@@ -178,5 +177,5 @@ export function useDragDropImport(): {
     };
   }, [handleImport]);
 
-  return { isDraggingOver, isImporting, lastError, hoveredTarget, targetsRef };
+  return { isDraggingOver, lastError, hoveredTarget, targetsRef };
 }

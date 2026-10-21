@@ -1638,7 +1638,6 @@
     "reasonMissing": "o ficheiro não existe (eliminado ou numa unidade não ligada); a próxima análise atualiza a biblioteca"
   },
   "dragDrop": {
-    "importing": "A importar…",
     "play": {
       "title": "Reproduzir agora",
       "hint": "Sem o adicionar à biblioteca"

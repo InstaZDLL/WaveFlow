@@ -1582,7 +1582,6 @@
     "reasonMissing": "die Datei ist nicht da (gelöscht oder auf einem nicht verbundenen Laufwerk); der nächste Scan aktualisiert die Mediathek"
   },
   "dragDrop": {
-    "importing": "Wird importiert…",
     "play": {
       "title": "Jetzt abspielen",
       "hint": "Ohne es zur Bibliothek hinzuzufügen"

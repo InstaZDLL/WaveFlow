@@ -1582,7 +1582,6 @@
     "reasonMissing": "dosya yerinde değil (silinmiş ya da bağlı olmayan bir sürücüde); sonraki tarama kitaplığı güncelleyecek"
   },
   "dragDrop": {
-    "importing": "İçe aktarılıyor…",
     "play": {
       "title": "Şimdi çal",
       "hint": "Kitaplığa eklemeden"

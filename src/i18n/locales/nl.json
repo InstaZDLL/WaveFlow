@@ -1582,7 +1582,6 @@
     "reasonMissing": "het bestand is er niet (verwijderd of op een niet-aangesloten schijf); de volgende scan werkt de bibliotheek bij"
   },
   "dragDrop": {
-    "importing": "Importeren…",
     "play": {
       "title": "Nu afspelen",
       "hint": "Zonder het aan de bibliotheek toe te voegen"

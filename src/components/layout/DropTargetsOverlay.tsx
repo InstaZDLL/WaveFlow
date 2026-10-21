@@ -1,7 +1,7 @@
 import type { ReactNode, RefObject } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { FolderPlus, Loader2, Play } from "lucide-react";
+import { FolderPlus, Play } from "lucide-react";
 import type {
   DropTarget,
   DropTargetElements,
@@ -15,39 +15,21 @@ import type {
  *
  * Portalled to `document.body`, above every skin's stacking contexts.
  * Pointer-events are off so the drop still reaches Tauri's native handler
- * underneath. Base styling works in every skin; the Fluid skin recomposes
- * it through the `data-drop-*` landmarks.
+ * underneath. It goes away on the drop: an import's scan reports in the
+ * task status bar like any other, where it can be followed and stopped,
+ * rather than behind a screen that hides the app for as long as it runs.
+ *
+ * Base styling works in every skin; the fluid layout recomposes it through
+ * the `data-drop-*` landmarks.
  */
 export function DropTargetsOverlay({
   hoveredTarget,
-  isImporting,
   targetsRef,
 }: {
   hoveredTarget: DropTarget | null;
-  isImporting: boolean;
   targetsRef: RefObject<DropTargetElements>;
 }) {
   const { t } = useTranslation();
-
-  if (isImporting) {
-    return createPortal(
-      <div
-        data-drop-overlay
-        className="fixed inset-0 z-100 pointer-events-none flex items-center justify-center bg-black/30 backdrop-blur-sm animate-fade-in"
-      >
-        <div
-          data-drop-status
-          className="bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl px-8 py-6 flex items-center gap-4"
-        >
-          <Loader2 size={28} className="text-emerald-500 animate-spin" />
-          <div className="text-base font-semibold text-zinc-900 dark:text-white">
-            {t("dragDrop.importing")}
-          </div>
-        </div>
-      </div>,
-      document.body,
-    );
-  }
 
   return createPortal(
     <div

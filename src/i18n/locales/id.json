@@ -1580,7 +1580,6 @@
     "reasonMissing": "file tidak ada (dihapus, atau di drive yang tidak terhubung); pemindaian berikutnya memperbarui pustaka"
   },
   "dragDrop": {
-    "importing": "Mengimpor…",
     "play": {
       "title": "Putar sekarang",
       "hint": "Tanpa menambahkannya ke pustaka"

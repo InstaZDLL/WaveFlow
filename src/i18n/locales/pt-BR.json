@@ -1638,7 +1638,6 @@
     "reasonMissing": "o arquivo não existe (excluído ou em uma unidade não conectada); a próxima varredura atualiza a biblioteca"
   },
   "dragDrop": {
-    "importing": "Importando…",
     "play": {
       "title": "Tocar agora",
       "hint": "Sem adicioná-lo à biblioteca"

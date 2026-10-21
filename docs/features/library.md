@@ -249,7 +249,7 @@ Auto-creates a default library on the very first drop when the profile has none,
 
 **A drop has two targets.** While files are dragged over the window, [`DropTargetsOverlay`](../../src/components/layout/DropTargetsOverlay.tsx) shows **Play now** and **Add to the library** side by side; only the second imports. The first plays the files without importing them ([Playing files without importing them](playback.md#playing-files-without-importing-them)). Tauri reports the pointer in physical pixels from the webview's corner, so the hook divides by `devicePixelRatio` and tests the point against the targets' own boxes, which the overlay registers in a ref: a right-to-left layout that mirrors them needs no special case, and a point in the gap between them goes to the nearer one. The drop goes to the target under the pointer at the drop, else the last one hovered.
 
-The overlay has `pointer-events: none`, so the drop still reaches Tauri's native handler, and shows a spinner while an import's scan runs. Its base styling works in every skin; the Fluid skin recomposes it through `data-drop-*` landmarks (surface cards, the accent ring and the wave mark under the target being hovered).
+The overlay has `pointer-events: none`, so the drop still reaches Tauri's native handler, and goes away on the drop: an import's scan reports in the task status bar like any other scan, where it can be followed and stopped, instead of behind a screen that hid the app for as long as it ran — minutes for a whole music folder. Its base styling works in every skin; the skins on the fluid layout (Fluid, Liquid) recompose it through `data-drop-*` landmarks in their own material (surface cards, the accent ring and the wave mark under the target being hovered).
 
 ## Track-list columns
 

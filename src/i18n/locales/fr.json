@@ -1757,7 +1757,6 @@
     "reasonMissing": "le fichier est introuvable (supprimé, ou sur un disque non connecté) ; le prochain scan mettra la bibliothèque à jour"
   },
   "dragDrop": {
-    "importing": "Import en cours…",
     "play": {
       "title": "Lire maintenant",
       "hint": "Sans l'ajouter à la bibliothèque"
