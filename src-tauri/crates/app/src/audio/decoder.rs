@@ -1705,6 +1705,13 @@ fn play_track(
             if let Some((a_ms, b_ms)) = shared.ab_loop_armed() {
                 let pos = shared.current_position_ms();
                 if pos >= b_ms {
+                    // Cleared like the two seek arms: B can be reached
+                    // while the end of the track plays out, with the file
+                    // already at EOF, and keeping that flag ended the
+                    // track instead of looping it (#932).
+                    primary_resampled.clear();
+                    primary_at_eof = false;
+                    tail_drain = None;
                     stream.seek_ms(a_ms);
                     reset_clock(shared, a_ms);
                     spectrum_analyzer.discard_pending();
@@ -2308,33 +2315,45 @@ const TAIL_POLL: Duration = Duration::from_millis(10);
 /// a device that went away must not hold an end forever.
 const TAIL_STALL_LIMIT: Duration = Duration::from_millis(1500);
 
+/// A gap between two checks longer than this means the loop was elsewhere
+/// (blocked in `drain_commands` by a pause until Resume, or a slow command),
+/// not watching an output that took nothing: the stall clock starts over.
+const TAIL_MAX_POLL_GAP: Duration = Duration::from_millis(250);
+
 /// The end of a track, decoded and still in the ring, being played out
 /// before the end is declared (#932): what was queued at the last sign of
-/// progress, and when that was.
+/// progress, when that was, and when the ring was last looked at.
 #[derive(Debug)]
 struct TailDrain {
     queued: u64,
     progressed_at: Instant,
+    polled_at: Instant,
 }
 
 impl TailDrain {
     /// Whether the end of the track is still being played: something is
     /// queued, and the output is taking it or is paused. False once the
     /// ring is empty, or when it has not moved for [`TAIL_STALL_LIMIT`]
-    /// while playing.
+    /// of watching it play.
     fn still_playing(slot: &mut Option<Self>, queued: u64, paused: bool, now: Instant) -> bool {
         if queued == 0 {
             *slot = None;
             return false;
         }
         match slot {
-            Some(drain) if queued >= drain.queued && !paused => {
+            Some(drain)
+                if queued >= drain.queued
+                    && !paused
+                    && now.duration_since(drain.polled_at) <= TAIL_MAX_POLL_GAP =>
+            {
+                drain.polled_at = now;
                 now.duration_since(drain.progressed_at) < TAIL_STALL_LIMIT
             }
             _ => {
                 *slot = Some(Self {
                     queued,
                     progressed_at: now,
+                    polled_at: now,
                 });
                 true
             }
@@ -2866,7 +2885,19 @@ mod crossfade_mix_tests {
 mod tail_drain_tests {
     use std::time::{Duration, Instant};
 
-    use super::{TailDrain, TAIL_STALL_LIMIT};
+    use super::{TailDrain, TAIL_POLL, TAIL_STALL_LIMIT};
+
+    /// Poll every [`TAIL_POLL`] with nothing taken from the ring, from
+    /// `from` for `watched`; the answer at the last poll.
+    fn watch_stalled(slot: &mut Option<TailDrain>, from: Instant, watched: Duration) -> bool {
+        let mut t = from;
+        let mut playing = true;
+        while t.duration_since(from) < watched {
+            t += TAIL_POLL;
+            playing = TailDrain::still_playing(slot, 50_000, false, t);
+        }
+        playing
+    }
 
     #[test]
     fn an_empty_ring_ends_the_track() {
@@ -2903,30 +2934,51 @@ mod tail_drain_tests {
     }
 
     #[test]
-    fn a_pause_holds_the_end_and_a_stall_gives_it_up() {
+    fn a_stall_watched_for_the_limit_gives_the_end_up() {
+        // Playing, and the output takes nothing: a lost device.
         let start = Instant::now();
         let mut slot = None;
         assert!(TailDrain::still_playing(&mut slot, 50_000, false, start));
-        // Paused for a minute: the end waits for the user.
-        assert!(TailDrain::still_playing(
-            &mut slot,
-            50_000,
-            true,
-            start + Duration::from_secs(60)
-        ));
-        // Playing again, and the output takes nothing: a lost device.
+        assert!(watch_stalled(&mut slot, start, TAIL_STALL_LIMIT / 2));
+        let mut slot = None;
+        assert!(TailDrain::still_playing(&mut slot, 50_000, false, start));
+        assert!(!watch_stalled(&mut slot, start, TAIL_STALL_LIMIT));
+    }
+
+    #[test]
+    fn a_pause_holds_the_end() {
+        let start = Instant::now();
+        let mut slot = None;
+        assert!(TailDrain::still_playing(&mut slot, 50_000, false, start));
+        // Polled while paused: the end waits for the user, however long.
+        let mut t = start;
+        for _ in 0..1_000 {
+            t += TAIL_POLL * 10;
+            assert!(TailDrain::still_playing(&mut slot, 50_000, true, t));
+        }
+    }
+
+    #[test]
+    fn time_away_from_the_loop_is_not_a_stall() {
+        // A pause blocks the decoder in `drain_commands` until Resume: the
+        // ring is not looked at meanwhile, and that minute is not the
+        // output failing to take samples. Resumed, the end plays on.
+        let start = Instant::now();
+        let mut slot = None;
+        assert!(TailDrain::still_playing(&mut slot, 50_000, false, start));
         let resumed = start + Duration::from_secs(60);
+        assert!(TailDrain::still_playing(&mut slot, 50_000, false, resumed));
         assert!(TailDrain::still_playing(
             &mut slot,
-            50_000,
+            40_000,
             false,
-            resumed + TAIL_STALL_LIMIT / 2
+            resumed + TAIL_POLL
         ));
-        assert!(!TailDrain::still_playing(
+        // And a real stall after it is still caught.
+        assert!(!watch_stalled(
             &mut slot,
-            50_000,
-            false,
-            resumed + TAIL_STALL_LIMIT
+            resumed + TAIL_POLL,
+            TAIL_STALL_LIMIT
         ));
     }
 }
