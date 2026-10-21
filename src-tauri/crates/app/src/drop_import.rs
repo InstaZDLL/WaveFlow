@@ -29,6 +29,7 @@
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::sync::Mutex;
 
 use serde::Serialize;
 use waveflow_core::scanner::extract::FOLDER_COVER_EXTENSIONS;
@@ -267,8 +268,21 @@ fn has_extension(path: &Path, extensions: &[&str]) -> bool {
         .is_some_and(|ext| extensions.iter().any(|e| ext.eq_ignore_ascii_case(e)))
 }
 
+/// Held across one planned copy, from choosing its target name to the
+/// rename that completes it. Two drops running at once would otherwise both
+/// find a name free, write the same `.waveflow-part`, and the second rename
+/// would replace the first file. Copies are one at a time within a drop
+/// anyway, so this only makes two drops take turns, file by file.
+static COPY_LOCK: Mutex<()> = Mutex::new(());
+
 /// Make one planned copy, its lyrics after it, and count the outcome.
 pub fn apply(copy: &Copy, summary: &mut DropImportSummary) {
+    // A copy that panicked holding the lock left nothing half-reserved: its
+    // target is either renamed in place or still a `.waveflow-part`. So the
+    // lock is taken back rather than the import abandoned.
+    let _turn = COPY_LOCK
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
     let landed = match copy_one(&copy.from, &copy.to) {
         Ok(Copied::New(at)) => {
             summary.copied += 1;
