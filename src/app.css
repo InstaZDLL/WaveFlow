@@ -232,16 +232,18 @@
   box-shadow: none !important;
 }
 
-:root[data-skin="pulse"] {
-  --track-row-hover: color-mix(in srgb, var(--fe-accent) 8%, transparent);
-}
-
 :root[data-skin="lounge"] {
   --track-row-hover: rgb(255 45 121 / 0.12);
 }
 
 :root[data-layout="fluid"] {
   --track-row-hover: var(--fe-tone-1);
+}
+
+/* Pulse sits on the fluid layout: same specificity as the rule above,
+   so it has to come after it to win. */
+:root[data-skin="pulse"] {
+  --track-row-hover: color-mix(in srgb, var(--fe-accent) 8%, transparent);
 }
 
 /* Override substring-based surface rules only for unselected, idle rows. */
