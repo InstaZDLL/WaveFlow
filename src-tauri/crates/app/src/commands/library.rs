@@ -407,8 +407,10 @@ pub async fn rescan_library(
 /// Register an absolute filesystem path as a folder of an existing library.
 ///
 /// Returns the `library_folder.id` so the caller can immediately trigger a
-/// scan on it. A `(library_id, path)` collision is surfaced as an error so
-/// the UI can prompt the user to re-scan the existing folder instead.
+/// scan on it. A folder that overlaps one already in any library of the
+/// profile -- the same folder, one under it or one holding it -- is refused
+/// with [`AppError::FolderOverlap`]: both would claim the tracks they
+/// share, and removing either could delete tracks the other still shows.
 #[tauri::command]
 pub async fn add_folder_to_library(
     state: tauri::State<'_, AppState>,
@@ -428,7 +430,30 @@ pub async fn add_folder_to_library(
         )));
     }
 
+    let pool = state.require_profile_pool().await?;
+    let folders = all_folder_paths(&pool).await?;
+    if let Some((relation, existing)) = crate::drop_import::overlap(
+        std::path::Path::new(&path),
+        folders.iter().map(|(_, folder)| folder.as_path()),
+    ) {
+        return Err(AppError::FolderOverlap {
+            relation,
+            existing: existing.to_string_lossy().into_owned(),
+        });
+    }
+
     Ok(repo.insert_folder(library_id, &path).await?)
+}
+
+/// Every library folder of the profile, in every library.
+async fn all_folder_paths(pool: &sqlx::SqlitePool) -> AppResult<Vec<(i64, std::path::PathBuf)>> {
+    let rows: Vec<(i64, String)> = sqlx::query_as("SELECT id, path FROM library_folder")
+        .fetch_all(pool)
+        .await?;
+    Ok(rows
+        .into_iter()
+        .map(|(id, path)| (id, std::path::PathBuf::from(path)))
+        .collect())
 }
 
 /// List every folder for a library, with its watch flag. Returned
@@ -442,23 +467,30 @@ pub async fn list_library_folders(
     Ok(library_repo(&state).await?.list_folders(library_id).await?)
 }
 
-/// Import a list of arbitrary filesystem paths into a library.
-/// Used by the drag-and-drop handler — the user can drop a mix of
-/// folders and audio files; we resolve each into a folder path
-/// (file → its parent dir), dedupe, then add each as a
-/// `library_folder` (skipping duplicates via UNIQUE) and scan it.
+/// Add files dropped on the window to a library: copy them into the folder
+/// WaveFlow manages under the user's music, then scan it
+/// ([`crate::drop_import`] holds the rules). Never registers the folder
+/// they came from, which made dropping one file from `Music` add all of it.
 ///
-/// Aggregates every scan's stats into a single `ScanSummary` so the
-/// UI can show one toast with the total counts.
+/// The copy reports in the task status bar and can be stopped there; the
+/// scan that follows reports as any scan does.
 #[tauri::command]
-pub async fn import_paths(
+pub async fn import_dropped(
     app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
     library_id: i64,
     paths: Vec<String>,
-) -> AppResult<ScanSummary> {
+) -> AppResult<crate::drop_import::DropImportSummary> {
+    use crate::drop_import::{self, Copied, DropImportSummary};
+
+    let managed = drop_import::managed_folder()
+        .ok_or_else(|| AppError::Other("no music folder to copy into".into()))?;
+    let mut summary = DropImportSummary {
+        folder: managed.to_string_lossy().into_owned(),
+        ..Default::default()
+    };
     if paths.is_empty() {
-        return Ok(ScanSummary::default());
+        return Ok(summary);
     }
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await?;
@@ -471,84 +503,98 @@ pub async fn import_paths(
         )));
     }
 
-    // Resolve each input path into the folder we should add. Files
-    // contribute their parent directory; non-existent paths are
-    // skipped silently (the user may have dropped a stale shortcut).
-    let mut folder_paths: Vec<String> = Vec::new();
-    let mut seen = std::collections::HashSet::new();
-    for raw in paths {
-        let p = std::path::PathBuf::from(&raw);
-        let folder = match std::fs::metadata(&p) {
-            Ok(m) if m.is_dir() => p,
-            Ok(_) => match p.parent() {
-                Some(parent) => parent.to_path_buf(),
-                None => continue,
-            },
-            Err(err) => {
-                tracing::warn!(path = %raw, %err, "import_paths: stat failed");
-                continue;
+    // Settled before a byte is copied: a library folder inside the managed
+    // one is an overlap the drop cannot resolve, and copying first would
+    // leave files no folder indexes.
+    let folders = all_folder_paths(&pool).await?;
+    let indexing =
+        drop_import::indexing_folder(&managed, &folders).map_err(|(relation, existing)| {
+            AppError::FolderOverlap {
+                relation,
+                existing: existing.to_string_lossy().into_owned(),
             }
+        })?;
+
+    let dropped: Vec<std::path::PathBuf> = paths.into_iter().map(Into::into).collect();
+    let library: Vec<std::path::PathBuf> = folders.into_iter().map(|(_, path)| path).collect();
+    let copy_app = app.clone();
+    let copy_managed = managed.clone();
+    let report = tokio::task::spawn_blocking(move || {
+        let plan = drop_import::plan(&dropped, &copy_managed, &library);
+        let mut out = DropImportSummary {
+            in_library: plan.in_library,
+            refused: plan.refused,
+            truncated: plan.truncated,
+            ..Default::default()
         };
-        let canonical = folder.to_string_lossy().to_string();
-        if seen.insert(canonical.clone()) {
-            folder_paths.push(canonical);
+        if plan.copies.is_empty() {
+            return out;
         }
-    }
-
-    let mut total = ScanSummary::default();
-    for path in folder_paths {
-        let folder_id = repo.insert_or_get_folder(library_id, &path).await?;
-
-        match crate::commands::scan::scan_folder_inner(
-            &pool,
-            &artwork_dir,
-            folder_id,
-            Some(&app),
-            false,
-        )
-        .await
-        {
-            Ok(summary) => {
-                total.scanned += summary.scanned;
-                total.added += summary.added;
-                total.updated += summary.updated;
-                total.skipped += summary.skipped;
-                total.errors += summary.errors;
-                total.removed += summary.removed;
-                // Stopping one folder's scan stops the import (#601).
-                // Each folder registers its own task, so cancelling the
-                // one on screen leaves the next folder's flag clear and
-                // it would start immediately -- the user would press
-                // stop and watch the import carry on into a folder that
-                // had not begun. Reported too, so the caller's summary
-                // does not read as a completed import.
-                if summary.cancelled {
-                    total.cancelled = true;
-                    tracing::info!("import stopped by the user between folders");
-                    break;
+        // The registry's own flag stops the copy, as it does a scan.
+        let total = plan.copies.len() as u64;
+        let task = crate::tasks::start(
+            &copy_app,
+            crate::tasks::TaskKind::DropImport,
+            total,
+            crate::tasks::Cancellation::Flag,
+        );
+        for (done, copy) in plan.copies.iter().enumerate() {
+            if task.as_ref().is_some_and(|t| t.is_cancelling()) {
+                out.cancelled = true;
+                break;
+            }
+            if let Some(task) = &task {
+                task.progress(done as u64, total);
+                if let Some(name) = copy.from.file_name() {
+                    task.detail(name.to_string_lossy());
                 }
             }
-            Err(err) => {
-                tracing::warn!(folder_id, path = %path, %err, "import_paths: scan failed");
-                total.errors += 1;
+            match drop_import::copy_one(&copy.from, &copy.to) {
+                Ok(Copied::New(_)) => out.copied += 1,
+                Ok(Copied::AlreadyThere) => out.already_copied += 1,
+                Err(err) => {
+                    tracing::warn!(from = %copy.from.display(), %err, "drop import: copy failed");
+                    out.errors += 1;
+                }
             }
         }
+        out
+    })
+    .await
+    .map_err(|err| AppError::Other(format!("drop import: {err}")))?;
+    let folder = std::mem::take(&mut summary.folder);
+    summary = DropImportSummary { folder, ..report };
+
+    // Nothing in the managed folder, nothing to index. Files already there
+    // are scanned too: they may not be indexed (the folder was removed from
+    // the library, then the same files dropped again), and a scan passes
+    // over unchanged files cheaply. A stopped copy still scans: what it
+    // wrote is complete, and leaving it unindexed would hide files the user
+    // can see in the folder.
+    if summary.copied == 0 && summary.already_copied == 0 {
+        return Ok(summary);
     }
+    let folder_id = match indexing {
+        Some(id) => id,
+        None => {
+            repo.insert_or_get_folder(library_id, &summary.folder)
+                .await?
+        }
+    };
+    let scan = scan_folder_inner(&pool, &artwork_dir, folder_id, Some(&app), false).await?;
+    let fresh = scan.added > 0 && !scan.cancelled;
+    summary.scan = Some(scan);
 
     repo.touch_updated_at(library_id, now_millis()).await?;
-
-    // Phase 4.d.0.3: wake the sync drain so the freshly-imported
-    // tracks ship without waiting on the drain's idle poll.
+    // Wake the sync drain so the new tracks ship without waiting on its
+    // idle poll.
     state.drain.notify();
-
-    // Not after an import the user stopped. Some tracks did land, so
-    // `added` is positive -- but answering a stop by starting the
-    // library-wide analysis sweep is the opposite of what was asked,
-    // and that sweep is the longest job in the app.
-    if total.added > 0 && !total.cancelled {
+    // Not after a stop: answering one with the library-wide analysis
+    // sweep, the longest job in the app, is the opposite of what was asked.
+    if fresh && !summary.cancelled {
         crate::commands::analysis::maybe_auto_analyze(&app);
     }
-    Ok(total)
+    Ok(summary)
 }
 
 /// Remove a folder from a library. Detaches the in-memory watcher,

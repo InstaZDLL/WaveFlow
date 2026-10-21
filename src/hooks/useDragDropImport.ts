@@ -2,7 +2,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { useLibrary } from "./useLibrary";
-import { importPaths } from "../lib/tauri/library";
+import {
+  announceImport,
+  importDropped,
+  parseFolderOverlap,
+} from "../lib/tauri/library";
 import { playWithoutImporting } from "../lib/openToPlay";
 
 /** Subset of `tauri-apps`' DragDropEvent we actually consume. */
@@ -60,8 +64,9 @@ function targetAt(
 /**
  * Wires Tauri's window-level drag-drop signal to its two targets: play the
  * files now without importing them, or add them to the library through
- * `import_paths` (a mix of folders and audio files, files contributing
- * their parent directory).
+ * `import_dropped`, which copies them into the folder WaveFlow manages
+ * under the user's music and scans it. What it did is announced for the
+ * import toast.
  *
  * The overlay registers where the targets are in `targetsRef`; the hook
  * follows the pointer across them and reports the one under it, which is
@@ -106,10 +111,13 @@ export function useDragDropImport(): {
             selectLibrary(libId);
           }
         }
-        await importPaths(libId, paths);
+        const summary = await importDropped(libId, paths);
+        announceImport({ kind: "dropped", summary });
         await refresh();
       } catch (err) {
         console.error("[useDragDropImport] import failed", err);
+        const overlap = parseFolderOverlap(err);
+        if (overlap) announceImport({ kind: "overlap", overlap });
         setLastError(String(err));
       }
     },

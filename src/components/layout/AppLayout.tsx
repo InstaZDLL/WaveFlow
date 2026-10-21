@@ -38,6 +38,7 @@ import { SoftwareRenderingBanner } from "../common/SoftwareRenderingBanner";
 import { SkinRecoveryBanner } from "../common/SkinRecoveryBanner";
 import { UpdateBanner } from "../common/UpdateBanner";
 import { ScanProgressToast } from "../common/ScanProgressToast";
+import { ImportNoticeToast } from "../common/ImportNoticeToast";
 import { TaskStatusBar } from "./TaskStatusBar";
 import { PlaybackAlertToast } from "../common/PlaybackAlertToast";
 import { QueueToast } from "../common/QueueToast";
@@ -923,6 +924,7 @@ export function AppLayout() {
         <SkinRecoveryBanner />
         <UpdateBanner />
         <ScanProgressToast />
+        <ImportNoticeToast />
         <PlaybackAlertToast />
         <QueueToast />
         <PluginAttentionToast />

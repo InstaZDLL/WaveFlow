@@ -74,6 +74,9 @@ pub enum TaskKind {
     Upload,
     Backup,
     Thumbnails,
+    /// Files dropped on the window, copied into the folder WaveFlow
+    /// manages under the user's music ([`crate::drop_import`]).
+    DropImport,
 }
 
 impl TaskKind {
@@ -87,6 +90,7 @@ impl TaskKind {
             Self::Upload => "upload",
             Self::Backup => "backup",
             Self::Thumbnails => "thumbnails",
+            Self::DropImport => "drop_import",
         }
     }
 }
@@ -493,12 +497,13 @@ mod tests {
             TaskKind::Upload,
             TaskKind::Backup,
             TaskKind::Thumbnails,
+            TaskKind::DropImport,
         ];
         let mut seen = std::collections::HashSet::new();
         for kind in all {
             assert!(seen.insert(kind.slug()), "duplicate slug {}", kind.slug());
         }
-        assert_eq!(seen.len(), 8);
+        assert_eq!(seen.len(), 9);
         assert_eq!(TaskKind::LibraryScan.slug(), "library_scan");
         assert_eq!(TaskKind::CatalogueMirror.slug(), "catalogue_mirror");
     }

@@ -38,7 +38,7 @@ pub use waveflow_core::scanner::canonical_name;
 
 /// Process-wide count of in-flight library scans. Bumped for the whole
 /// body of [`scan_folder_inner`] — which every scan entry point routes
-/// through (`scan_folder`, `rescan_library`, `import_paths`, the
+/// through (`scan_folder`, `rescan_library`, `import_dropped`, the
 /// fs-watcher, the startup rescan in `lib.rs`).
 ///
 /// The background library analyzer reads this via [`scan_in_flight`]

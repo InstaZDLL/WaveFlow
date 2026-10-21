@@ -1588,7 +1588,7 @@
     },
     "import": {
       "title": "Zur Bibliothek hinzufügen",
-      "hint": "Ordner oder Audiodateien, eingelesen und danach überwacht"
+      "hint": "In den WaveFlow-Ordner deiner Musik kopiert"
     }
   },
   "abLoop": {
@@ -3147,7 +3147,8 @@
       "reconcile": "Abgleich",
       "upload": "Hochladen",
       "backup": "Sicherung",
-      "thumbnails": "Vorschaubilder"
+      "thumbnails": "Vorschaubilder",
+      "drop_import": "Kopieren in die Bibliothek"
     }
   },
   "smartRuleSummary": {
@@ -3290,5 +3291,24 @@
     "filesTitle": "Dateien zum Abspielen auswählen",
     "folderTitle": "Ordner zum Abspielen auswählen",
     "filterName": "Audiodateien"
+  },
+  "importNotice": {
+    "dropped": {
+      "title": "Zur Bibliothek hinzugefügt",
+      "titleNothing": "Nichts Neues hinzuzufügen",
+      "copied": "Kopierte Dateien: {{n}}",
+      "alreadyCopied": "Bereits früher kopiert: {{n}}",
+      "inLibrary": "Bereits in der Bibliothek, übersprungen: {{n}}",
+      "refused": "Abgelehnte Ordner, da sie einen Bibliotheksordner enthalten: {{n}}",
+      "errors": "Fehlgeschlagene Kopien: {{n}}",
+      "truncated": "Limit erreicht: Lege den Rest in mehreren Schritten ab.",
+      "cancelled": "Kopieren gestoppt; bereits Kopiertes wurde hinzugefügt."
+    },
+    "overlap": {
+      "title": "Ordner bereits erfasst",
+      "same": "Dieser Ordner ist bereits in der Bibliothek: {{folder}}",
+      "inside": "Dieser Ordner ist bereits in der Bibliothek, innerhalb von {{folder}}.",
+      "contains": "Dieser Ordner enthält {{folder}}, der bereits in der Bibliothek ist. Füge stattdessen seine anderen Unterordner hinzu."
+    }
   }
 }

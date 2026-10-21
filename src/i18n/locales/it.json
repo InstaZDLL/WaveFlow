@@ -1643,7 +1643,7 @@
     },
     "import": {
       "title": "Aggiungi alla libreria",
-      "hint": "Cartelle o file audio, analizzati e poi monitorati"
+      "hint": "Copiati nella cartella WaveFlow della tua musica"
     }
   },
   "abLoop": {
@@ -3239,7 +3239,8 @@
       "reconcile": "Riconciliazione",
       "upload": "Caricamento",
       "backup": "Backup",
-      "thumbnails": "Miniature"
+      "thumbnails": "Miniature",
+      "drop_import": "Copia nella libreria"
     }
   },
   "smartRuleSummary": {
@@ -3392,5 +3393,24 @@
     "filesTitle": "Scegli i file da riprodurre",
     "folderTitle": "Scegli la cartella da riprodurre",
     "filterName": "File audio"
+  },
+  "importNotice": {
+    "dropped": {
+      "title": "Aggiunto alla libreria",
+      "titleNothing": "Niente di nuovo da aggiungere",
+      "copied": "File copiati: {{n}}",
+      "alreadyCopied": "Già copiati in precedenza: {{n}}",
+      "inLibrary": "Già nella libreria, saltati: {{n}}",
+      "refused": "Cartelle rifiutate perché contengono una cartella della libreria: {{n}}",
+      "errors": "Copie non riuscite: {{n}}",
+      "truncated": "Limite raggiunto: rilascia il resto in più volte.",
+      "cancelled": "Copia interrotta; ciò che era già stato copiato è stato aggiunto."
+    },
+    "overlap": {
+      "title": "Cartella già inclusa",
+      "same": "Questa cartella è già nella libreria: {{folder}}",
+      "inside": "Questa cartella è già nella libreria, dentro {{folder}}.",
+      "contains": "Questa cartella contiene {{folder}}, che è già nella libreria. Aggiungi piuttosto le sue altre sottocartelle."
+    }
   }
 }

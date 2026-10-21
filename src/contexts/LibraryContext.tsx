@@ -11,9 +11,11 @@ import { LibraryContext } from "../hooks/useLibrary";
 import { useProfile } from "../hooks/useProfile";
 import {
   addFolderToLibrary,
+  announceImport,
   createLibrary as apiCreateLibrary,
   deleteLibrary as apiDeleteLibrary,
   listLibraries,
+  parseFolderOverlap,
   rescanLibrary as apiRescanLibrary,
   scanFolder,
   updateLibrary as apiUpdateLibrary,
@@ -163,7 +165,16 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
 
   const importFolder = useCallback(
     async (libraryId: number, path: string) => {
-      const folderId = await addFolderToLibrary(libraryId, path);
+      let folderId: number;
+      try {
+        folderId = await addFolderToLibrary(libraryId, path);
+      } catch (err) {
+        // Said here, once, rather than in each of the places that add a
+        // folder: they only log a failure.
+        const overlap = parseFolderOverlap(err);
+        if (overlap) announceImport({ kind: "overlap", overlap });
+        throw err;
+      }
       const summary = await scanFolder(folderId);
       await refresh();
       return summary;

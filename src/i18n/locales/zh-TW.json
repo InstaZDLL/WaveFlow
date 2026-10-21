@@ -1586,7 +1586,7 @@
     },
     "import": {
       "title": "加入音樂庫",
-      "hint": "資料夾或音訊檔，掃描後持續監看"
+      "hint": "複製到音樂中的 WaveFlow 資料夾"
     }
   },
   "abLoop": {
@@ -3145,7 +3145,8 @@
       "reconcile": "比對",
       "upload": "上傳",
       "backup": "備份",
-      "thumbnails": "縮圖"
+      "thumbnails": "縮圖",
+      "drop_import": "複製到音樂庫"
     }
   },
   "smartRuleSummary": {
@@ -3288,5 +3289,24 @@
     "filesTitle": "選擇要播放的檔案",
     "folderTitle": "選擇要播放的資料夾",
     "filterName": "音訊檔"
+  },
+  "importNotice": {
+    "dropped": {
+      "title": "已加入音樂庫",
+      "titleNothing": "沒有可加入的新內容",
+      "copied": "已複製檔案：{{n}}",
+      "alreadyCopied": "先前已複製：{{n}}",
+      "inLibrary": "已在音樂庫中，已略過：{{n}}",
+      "refused": "因包含音樂庫資料夾而被拒絕的資料夾：{{n}}",
+      "errors": "複製失敗：{{n}}",
+      "truncated": "已達上限：請分幾次拖放其餘檔案。",
+      "cancelled": "複製已停止；已複製的內容已加入。"
+    },
+    "overlap": {
+      "title": "資料夾已包含在內",
+      "same": "此資料夾已在音樂庫中：{{folder}}",
+      "inside": "此資料夾已在音樂庫中，位於 {{folder}} 內。",
+      "contains": "此資料夾包含已在音樂庫中的 {{folder}}。請改為加入它的其他子資料夾。"
+    }
   }
 }

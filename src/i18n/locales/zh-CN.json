@@ -1586,7 +1586,7 @@
     },
     "import": {
       "title": "添加到音乐库",
-      "hint": "文件夹或音频文件，扫描后持续监视"
+      "hint": "复制到音乐中的 WaveFlow 文件夹"
     }
   },
   "abLoop": {
@@ -3145,7 +3145,8 @@
       "reconcile": "比对",
       "upload": "上传",
       "backup": "备份",
-      "thumbnails": "缩略图"
+      "thumbnails": "缩略图",
+      "drop_import": "复制到音乐库"
     }
   },
   "smartRuleSummary": {
@@ -3288,5 +3289,24 @@
     "filesTitle": "选择要播放的文件",
     "folderTitle": "选择要播放的文件夹",
     "filterName": "音频文件"
+  },
+  "importNotice": {
+    "dropped": {
+      "title": "已添加到音乐库",
+      "titleNothing": "没有可添加的新内容",
+      "copied": "已复制文件：{{n}}",
+      "alreadyCopied": "之前已复制：{{n}}",
+      "inLibrary": "已在音乐库中，已跳过：{{n}}",
+      "refused": "因包含音乐库文件夹而被拒绝的文件夹：{{n}}",
+      "errors": "复制失败：{{n}}",
+      "truncated": "已达上限：请分几次拖放其余文件。",
+      "cancelled": "复制已停止；已复制的内容已添加。"
+    },
+    "overlap": {
+      "title": "文件夹已包含在内",
+      "same": "此文件夹已在音乐库中：{{folder}}",
+      "inside": "此文件夹已在音乐库中，位于 {{folder}} 内。",
+      "contains": "此文件夹包含已在音乐库中的 {{folder}}。请改为添加它的其他子文件夹。"
+    }
   }
 }

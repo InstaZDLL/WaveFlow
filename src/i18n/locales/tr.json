@@ -1588,7 +1588,7 @@
     },
     "import": {
       "title": "Kitaplığa ekle",
-      "hint": "Klasörler veya ses dosyaları; taranır, sonra izlenir"
+      "hint": "Müziğinizin WaveFlow klasörüne kopyalandı"
     }
   },
   "abLoop": {
@@ -3147,7 +3147,8 @@
       "reconcile": "Eşleştirme",
       "upload": "Yükleme",
       "backup": "Yedekleme",
-      "thumbnails": "Kapak önizlemeleri"
+      "thumbnails": "Kapak önizlemeleri",
+      "drop_import": "Kitaplığa kopyalama"
     }
   },
   "smartRuleSummary": {
@@ -3290,5 +3291,24 @@
     "filesTitle": "Çalınacak dosyaları seçin",
     "folderTitle": "Çalınacak klasörü seçin",
     "filterName": "Ses dosyaları"
+  },
+  "importNotice": {
+    "dropped": {
+      "title": "Kitaplığa eklendi",
+      "titleNothing": "Eklenecek yeni bir şey yok",
+      "copied": "Kopyalanan dosyalar: {{n}}",
+      "alreadyCopied": "Daha önce kopyalanmış: {{n}}",
+      "inLibrary": "Zaten kitaplıkta, atlandı: {{n}}",
+      "refused": "Bir kitaplık klasörü içerdiği için reddedilen klasörler: {{n}}",
+      "errors": "Başarısız kopyalar: {{n}}",
+      "truncated": "Sınıra ulaşıldı: kalanını birkaç seferde bırakın.",
+      "cancelled": "Kopyalama durduruldu; zaten kopyalananlar eklendi."
+    },
+    "overlap": {
+      "title": "Klasör zaten kapsanıyor",
+      "same": "Bu klasör zaten kitaplıkta: {{folder}}",
+      "inside": "Bu klasör zaten kitaplıkta, {{folder}} içinde.",
+      "contains": "Bu klasör, zaten kitaplıkta olan {{folder}} klasörünü içeriyor. Bunun yerine diğer alt klasörlerini ekleyin."
+    }
   }
 }

@@ -1588,7 +1588,7 @@
     },
     "import": {
       "title": "Add to the library",
-      "hint": "Folders or audio files, scanned and then watched"
+      "hint": "Copied into the WaveFlow folder of your music"
     }
   },
   "abLoop": {
@@ -3147,7 +3147,8 @@
       "reconcile": "Reconciliation",
       "upload": "Upload",
       "backup": "Backup",
-      "thumbnails": "Thumbnails"
+      "thumbnails": "Thumbnails",
+      "drop_import": "Copying to the library"
     }
   },
   "smartRuleSummary": {
@@ -3290,5 +3291,24 @@
     "filesTitle": "Choose the files to play",
     "folderTitle": "Choose the folder to play",
     "filterName": "Audio files"
+  },
+  "importNotice": {
+    "dropped": {
+      "title": "Added to the library",
+      "titleNothing": "Nothing new to add",
+      "copied": "Files copied: {{n}}",
+      "alreadyCopied": "Already copied before: {{n}}",
+      "inLibrary": "Already in the library, skipped: {{n}}",
+      "refused": "Folders refused because they contain a library folder: {{n}}",
+      "errors": "Failed copies: {{n}}",
+      "truncated": "Limit reached: drop the rest in several goes.",
+      "cancelled": "Copy stopped; what was already copied has been added."
+    },
+    "overlap": {
+      "title": "Folder already covered",
+      "same": "This folder is already in the library: {{folder}}",
+      "inside": "This folder is already in the library, inside {{folder}}.",
+      "contains": "This folder contains {{folder}}, which is already in the library. Add its other subfolders instead."
+    }
   }
 }

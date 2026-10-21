@@ -1588,7 +1588,7 @@
     },
     "import": {
       "title": "Aan de bibliotheek toevoegen",
-      "hint": "Mappen of audiobestanden, gescand en daarna gevolgd"
+      "hint": "Gekopieerd naar de WaveFlow-map van je muziek"
     }
   },
   "abLoop": {
@@ -3147,7 +3147,8 @@
       "reconcile": "Afstemming",
       "upload": "Uploaden",
       "backup": "Back-up",
-      "thumbnails": "Miniaturen"
+      "thumbnails": "Miniaturen",
+      "drop_import": "Kopiëren naar de bibliotheek"
     }
   },
   "smartRuleSummary": {
@@ -3290,5 +3291,24 @@
     "filesTitle": "Kies de bestanden om af te spelen",
     "folderTitle": "Kies de map om af te spelen",
     "filterName": "Audiobestanden"
+  },
+  "importNotice": {
+    "dropped": {
+      "title": "Toegevoegd aan de bibliotheek",
+      "titleNothing": "Niets nieuws om toe te voegen",
+      "copied": "Gekopieerde bestanden: {{n}}",
+      "alreadyCopied": "Eerder al gekopieerd: {{n}}",
+      "inLibrary": "Al in de bibliotheek, overgeslagen: {{n}}",
+      "refused": "Mappen geweigerd omdat ze een bibliotheekmap bevatten: {{n}}",
+      "errors": "Mislukte kopieën: {{n}}",
+      "truncated": "Limiet bereikt: zet de rest in meerdere keren neer.",
+      "cancelled": "Kopiëren gestopt; wat al gekopieerd was, is toegevoegd."
+    },
+    "overlap": {
+      "title": "Map al opgenomen",
+      "same": "Deze map staat al in de bibliotheek: {{folder}}",
+      "inside": "Deze map staat al in de bibliotheek, binnen {{folder}}.",
+      "contains": "Deze map bevat {{folder}}, die al in de bibliotheek staat. Voeg liever de andere submappen toe."
+    }
   }
 }

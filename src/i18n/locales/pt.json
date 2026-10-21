@@ -1644,7 +1644,7 @@
     },
     "import": {
       "title": "Adicionar à biblioteca",
-      "hint": "Pastas ou ficheiros de áudio, analisados e depois acompanhados"
+      "hint": "Copiados para a pasta WaveFlow da tua música"
     }
   },
   "abLoop": {
@@ -3240,7 +3240,8 @@
       "reconcile": "Reconciliação",
       "upload": "Envio",
       "backup": "Cópia de segurança",
-      "thumbnails": "Miniaturas"
+      "thumbnails": "Miniaturas",
+      "drop_import": "Cópia para a biblioteca"
     }
   },
   "smartRuleSummary": {
@@ -3390,8 +3391,27 @@
   "openToPlay": {
     "files": "Reproduzir ficheiros…",
     "folder": "Reproduzir uma pasta…",
-    "filesTitle": "Escolha os ficheiros a reproduzir",
-    "folderTitle": "Escolha a pasta a reproduzir",
+    "filesTitle": "Escolhe os ficheiros a reproduzir",
+    "folderTitle": "Escolhe a pasta a reproduzir",
     "filterName": "Ficheiros de áudio"
+  },
+  "importNotice": {
+    "dropped": {
+      "title": "Adicionado à biblioteca",
+      "titleNothing": "Nada de novo para adicionar",
+      "copied": "Ficheiros copiados: {{n}}",
+      "alreadyCopied": "Já copiados antes: {{n}}",
+      "inLibrary": "Já na biblioteca, ignorados: {{n}}",
+      "refused": "Pastas recusadas por conterem uma pasta da biblioteca: {{n}}",
+      "errors": "Cópias falhadas: {{n}}",
+      "truncated": "Limite atingido: larga o resto em várias vezes.",
+      "cancelled": "Cópia interrompida; o que já tinha sido copiado foi adicionado."
+    },
+    "overlap": {
+      "title": "Pasta já incluída",
+      "same": "Esta pasta já está na biblioteca: {{folder}}",
+      "inside": "Esta pasta já está na biblioteca, dentro de {{folder}}.",
+      "contains": "Esta pasta contém {{folder}}, que já está na biblioteca. Adiciona antes as outras subpastas."
+    }
   }
 }

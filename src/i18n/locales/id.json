@@ -1586,7 +1586,7 @@
     },
     "import": {
       "title": "Tambahkan ke pustaka",
-      "hint": "Folder atau file audio, dipindai lalu dipantau"
+      "hint": "Disalin ke folder WaveFlow di musik Anda"
     }
   },
   "abLoop": {
@@ -3145,7 +3145,8 @@
       "reconcile": "Rekonsiliasi",
       "upload": "Unggah",
       "backup": "Cadangan",
-      "thumbnails": "Gambar mini"
+      "thumbnails": "Gambar mini",
+      "drop_import": "Menyalin ke pustaka"
     }
   },
   "smartRuleSummary": {
@@ -3288,5 +3289,24 @@
     "filesTitle": "Pilih file yang akan diputar",
     "folderTitle": "Pilih folder yang akan diputar",
     "filterName": "File audio"
+  },
+  "importNotice": {
+    "dropped": {
+      "title": "Ditambahkan ke pustaka",
+      "titleNothing": "Tidak ada yang baru untuk ditambahkan",
+      "copied": "File disalin: {{n}}",
+      "alreadyCopied": "Sudah disalin sebelumnya: {{n}}",
+      "inLibrary": "Sudah ada di pustaka, dilewati: {{n}}",
+      "refused": "Folder ditolak karena berisi folder pustaka: {{n}}",
+      "errors": "Salinan gagal: {{n}}",
+      "truncated": "Batas tercapai: jatuhkan sisanya dalam beberapa kali.",
+      "cancelled": "Penyalinan dihentikan; yang sudah tersalin telah ditambahkan."
+    },
+    "overlap": {
+      "title": "Folder sudah tercakup",
+      "same": "Folder ini sudah ada di pustaka: {{folder}}",
+      "inside": "Folder ini sudah ada di pustaka, di dalam {{folder}}.",
+      "contains": "Folder ini berisi {{folder}}, yang sudah ada di pustaka. Tambahkan subfolder lainnya saja."
+    }
   }
 }

@@ -1586,7 +1586,7 @@
     },
     "import": {
       "title": "보관함에 추가",
-      "hint": "폴더 또는 오디오 파일, 스캔한 뒤 계속 확인합니다"
+      "hint": "음악의 WaveFlow 폴더로 복사됨"
     }
   },
   "abLoop": {
@@ -3145,7 +3145,8 @@
       "reconcile": "대조",
       "upload": "업로드",
       "backup": "백업",
-      "thumbnails": "썸네일"
+      "thumbnails": "썸네일",
+      "drop_import": "보관함으로 복사"
     }
   },
   "smartRuleSummary": {
@@ -3288,5 +3289,24 @@
     "filesTitle": "재생할 파일 선택",
     "folderTitle": "재생할 폴더 선택",
     "filterName": "오디오 파일"
+  },
+  "importNotice": {
+    "dropped": {
+      "title": "보관함에 추가됨",
+      "titleNothing": "새로 추가할 항목이 없습니다",
+      "copied": "복사한 파일: {{n}}",
+      "alreadyCopied": "이전에 이미 복사됨: {{n}}",
+      "inLibrary": "이미 보관함에 있어 건너뜀: {{n}}",
+      "refused": "보관함 폴더를 포함해 거부된 폴더: {{n}}",
+      "errors": "복사 실패: {{n}}",
+      "truncated": "한도에 도달했습니다: 나머지는 여러 번에 나눠 놓으세요.",
+      "cancelled": "복사가 중지되었습니다. 이미 복사된 항목은 추가되었습니다."
+    },
+    "overlap": {
+      "title": "이미 포함된 폴더",
+      "same": "이 폴더는 이미 보관함에 있습니다: {{folder}}",
+      "inside": "이 폴더는 이미 보관함의 {{folder}} 안에 있습니다.",
+      "contains": "이 폴더에는 이미 보관함에 있는 {{folder}}이(가) 들어 있습니다. 대신 다른 하위 폴더를 추가하세요."
+    }
   }
 }
