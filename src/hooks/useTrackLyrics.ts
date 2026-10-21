@@ -4,7 +4,11 @@ import { usePlayer } from "./usePlayer";
 import { usePlayerPosition } from "./usePlayerPosition";
 import { useEstimatedKaraoke } from "./useEstimatedKaraoke";
 import { estimateLineWords } from "../lib/lyricsWordEstimate";
-import { isRadioTrack, isRemoteTrack } from "../lib/playerSources";
+import {
+  isFileTrack,
+  isRadioTrack,
+  isRemoteTrack,
+} from "../lib/playerSources";
 import { pickFile } from "../lib/tauri/dialog";
 import { remoteGetPlayQueue } from "../lib/tauri/remoteServer";
 import {
@@ -78,6 +82,9 @@ export interface TrackLyrics {
    *  Synced lyrics still render (its position aligns), but the library-row
    *  mutations — import / refetch / clear / edit — don't apply. */
   isRemote: boolean;
+  /** True for a file played without importing it: synced, no library row,
+   *  so the same mutations don't apply. */
+  isFile: boolean;
   /** Active synced line index (`-1` when none / not synced). */
   activeIndex: number;
   /** Active word index inside the active line (`-1` when no word stamps). */
@@ -154,6 +161,13 @@ export function useTrackLyrics(): TrackLyrics {
   const remoteTitle = isRemote ? (currentTrack?.title ?? null) : null;
   const remoteDurationMs = isRemote ? (currentTrack?.duration_ms ?? 0) : 0;
 
+  // A file played without importing it: no library row either, so its
+  // lyrics are looked up by artist and title, and rendered synced since
+  // its position is known.
+  const isFile = isFileTrack(currentTrack);
+  const fileArtist = isFile ? (currentTrack?.artist_name ?? null) : null;
+  const fileTitle = isFile ? (currentTrack?.title ?? null) : null;
+
   // Live mirror of `trackId` so async handlers can detect when the user
   // switched tracks during an `await` — without it the closure carries
   // whatever `trackId` was current at call time and a stale
@@ -167,7 +181,7 @@ export function useTrackLyrics(): TrackLyrics {
   // Previous streaming state (radio OR remote) so the fetch effect can
   // tell a context switch — into, out of, or between streaming sources —
   // from a same-context library track change.
-  const isStream = isRadio || isRemote;
+  const isStream = isRadio || isRemote || isFile;
   const prevIsStreamRef = useRef(isStream);
 
   // ── Fetch when the focused track changes ─────────────────────────
@@ -228,7 +242,11 @@ export function useTrackLyrics(): TrackLyrics {
                 : null;
             })
           : Promise.resolve<LyricsPayload | null>(null)
-        : fetchLyrics(trackId);
+        : isFile
+          ? fileArtist && fileTitle
+            ? fetchRadioLyrics(fileArtist, fileTitle, trackId)
+            : Promise.resolve<LyricsPayload | null>(null)
+          : fetchLyrics(trackId);
     request
       .then((p) => {
         if (stale()) return;
@@ -268,6 +286,9 @@ export function useTrackLyrics(): TrackLyrics {
     remoteArtist,
     remoteTitle,
     remoteDurationMs,
+    isFile,
+    fileArtist,
+    fileTitle,
   ]);
 
   // ── Parse lyrics once per content change ─────────────────────────
@@ -529,6 +550,7 @@ export function useTrackLyrics(): TrackLyrics {
     radioPlainText,
     isRadio,
     isRemote,
+    isFile,
     activeIndex,
     activeWordIndex,
     activeLine,

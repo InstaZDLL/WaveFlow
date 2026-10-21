@@ -26,7 +26,7 @@ import { useCanvasEnabled } from "../../hooks/useCanvasEnabled";
 import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
 import { useAlbumMotionArtwork } from "../../hooks/useAlbumMotionArtwork";
 import { useSlideshowLayer } from "../../hooks/useSlideshowLayer";
-import { isRadioTrack, isStreamTrack } from "../../lib/playerSources";
+import { isStreamTrack } from "../../lib/playerSources";
 
 interface ImmersiveNowPlayingProps {
   /** Dismisses the immersive view (used after an artist navigation). */
@@ -64,7 +64,7 @@ export function ImmersiveNowPlaying({
   // actions can act on, so require a real `file_path`.
   const trackMenu = usePlayerTrackContextMenu();
   const menuTrack =
-    currentTrack && !isRadioTrack(currentTrack) && !!currentTrack.file_path
+    currentTrack && !isStreamTrack(currentTrack) && !!currentTrack.file_path
       ? currentTrack
       : null;
   // Live radio: favorite the STATION (★) instead of liking a track (♥) —

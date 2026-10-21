@@ -294,6 +294,7 @@ pub(crate) fn emit_track_changed(
     // builds a `QueueTrack` — so it never clears itself out from under.
     if let Some(state) = app.try_state::<AppState>() {
         state.remote_playback.clear();
+        state.external_playback.clear();
     }
     let payload = queue_track_to_payload_with_paths(paths, track.clone(), profile_id);
     let tooltip = match payload.artist_name.as_deref() {
@@ -2602,6 +2603,36 @@ pub async fn player_play_tracks(
     // the most preparation of any load path, so it is the one most likely
     // to finish after a Next the user pressed while waiting for it.
     let intent = engine.next_load_intent();
+    play_tracks_with_intent(
+        app,
+        state,
+        engine,
+        source_type,
+        source_id,
+        track_ids,
+        start_index,
+        album_ordered,
+        intent,
+    )
+    .await
+}
+
+/// [`player_play_tracks`] under an intent the caller claimed: a caller
+/// whose preparation started earlier (files opened from the system, which
+/// first walk and look them up) is ordered from that moment, not from
+/// this call (#622).
+#[allow(clippy::too_many_arguments)]
+pub(crate) async fn play_tracks_with_intent(
+    app: AppHandle,
+    state: tauri::State<'_, AppState>,
+    engine: tauri::State<'_, Arc<AudioEngine>>,
+    source_type: String,
+    source_id: Option<i64>,
+    track_ids: Vec<i64>,
+    start_index: usize,
+    album_ordered: Option<bool>,
+    intent: crate::audio::engine::LoadIntent,
+) -> AppResult<()> {
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await.ok();
 
@@ -2707,6 +2738,7 @@ pub async fn player_play_tracks(
             emit_track_changed(&app, &state.paths, &track, profile_id);
             return engine.send(AudioCmd::LoadRemoteFileAndPlay {
                 intent,
+                origin: crate::audio::engine::DetachedOrigin::Remote,
                 // The missing path on purpose: the decoder's repair path
                 // is exactly this situation, and reusing it keeps one
                 // implementation of "try the file, then the server".
@@ -2833,6 +2865,11 @@ pub async fn player_next(
     let intent = engine.next_load_intent();
     // A remote play queue takes over next/previous while it is active: its
     // tracks stream by URL and have no row in the local `queue_item` table.
+    // Files played without importing them, the same way.
+    if state.external_playback.is_active() {
+        crate::external_playback::advance(&app, Direction::Next, intent).await?;
+        return Ok(());
+    }
     #[cfg(feature = "sync_v2")]
     if state.remote_playback.is_active() {
         crate::remote::playback::advance(&app, Direction::Next, intent).await?;
@@ -2903,6 +2940,10 @@ pub async fn player_previous(
     // one: past 3 s, "previous" restarts the current track.
     if engine.shared().current_position_ms() > 3000 {
         return engine.send(AudioCmd::Seek(0));
+    }
+    if state.external_playback.is_active() {
+        crate::external_playback::advance(&app, Direction::Previous, intent).await?;
+        return Ok(());
     }
     #[cfg(feature = "sync_v2")]
     if state.remote_playback.is_active() {
@@ -3016,6 +3057,7 @@ pub async fn player_play_url(
     // the clear otherwise happens — clear it here explicitly.
     if let Some(state) = app.try_state::<AppState>() {
         state.remote_playback.clear();
+        state.external_playback.clear();
     }
 
     let track_id = next_radio_track_id();
@@ -3233,4 +3275,69 @@ mod album_ordering_tests {
             "which means the default, whichever way it points"
         );
     }
+}
+
+/// Play files or folders without importing them, or as library tracks when
+/// every file is one ([`crate::external_playback`]).
+#[tauri::command]
+pub async fn player_play_paths(app: AppHandle, paths: Vec<String>) -> AppResult<()> {
+    crate::external_playback::play_paths(
+        &app,
+        paths.into_iter().map(std::path::PathBuf::from).collect(),
+    )
+    .await
+}
+
+/// One file of the queue of files played without importing them, in the
+/// shape of a remote queue row so the queue views render either.
+#[derive(Debug, Serialize)]
+pub struct ExternalQueueEntry {
+    /// The file's path.
+    pub id: String,
+    /// The file's name without its extension: its tags are read only when
+    /// it plays.
+    pub title: String,
+    pub artist: Option<String>,
+    pub artist_id: Option<String>,
+    pub artwork_hash: Option<String>,
+    pub duration_ms: Option<i64>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ExternalQueuePayload {
+    pub entries: Vec<ExternalQueueEntry>,
+    pub index: usize,
+}
+
+/// The queue of files played without importing them, for the queue panel;
+/// `None` when no such queue is playing.
+#[tauri::command]
+pub fn player_get_external_queue(
+    state: tauri::State<'_, AppState>,
+) -> Option<ExternalQueuePayload> {
+    let (entries, index) = state.external_playback.snapshot()?;
+    Some(ExternalQueuePayload {
+        entries: entries
+            .into_iter()
+            .map(|entry| ExternalQueueEntry {
+                title: entry
+                    .path
+                    .file_stem()
+                    .map(|s| s.to_string_lossy().into_owned())
+                    .unwrap_or_default(),
+                id: entry.path.display().to_string(),
+                artist: None,
+                artist_id: None,
+                artwork_hash: None,
+                duration_ms: None,
+            })
+            .collect(),
+        index,
+    })
+}
+
+/// Jump to a file of that queue and play it.
+#[tauri::command]
+pub async fn player_external_jump(app: AppHandle, index: usize) -> AppResult<()> {
+    crate::external_playback::jump_to(&app, index).await
 }

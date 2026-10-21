@@ -554,6 +554,8 @@ impl HttpMediaSource {
                 artwork_hash: None,
                 // Live radio: there is no server track to name.
                 remote_track_id: None,
+                is_file: false,
+                file_path: None,
             },
         );
     }

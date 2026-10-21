@@ -11,7 +11,11 @@ import {
   Loader2,
 } from "lucide-react";
 import { usePlayer } from "../../hooks/usePlayer";
-import { isRadioTrack, isRemoteTrack } from "../../lib/playerSources";
+import {
+  isFileTrack,
+  isRadioTrack,
+  isRemoteTrack,
+} from "../../lib/playerSources";
 
 export function PlaybackControls() {
   const { t } = useTranslation();
@@ -42,7 +46,9 @@ export function PlaybackControls() {
   // A remote-queue track advances (Previous / Next / Repeat drive the
   // remote queue in the backend), so it is NOT gated like radio — only
   // Shuffle stays off, since the remote queue has no shuffle yet.
-  const isRemote = isRemoteTrack(currentTrack);
+  // A file played without importing it, the same: its queue advances,
+  // and has no shuffle.
+  const isRemote = isRemoteTrack(currentTrack) || isFileTrack(currentTrack);
   // State labels, like the repeat control next to it — with three
   // positions, "enable / disable" no longer says which one you are in.
   const shuffleLabel = t(

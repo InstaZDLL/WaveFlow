@@ -33,6 +33,8 @@ mod render_mode;
 // unconditionally so the always-present player control seams can probe
 // and clear it; the `sync_v2`-gated orchestration lives in
 // `remote::playback`.
+mod external_playback;
+mod launch_args;
 mod remote_playback;
 // Remote music source + user-data sync v2 (RFC-005). `mod sync` is now
 // permanently the no-op stub — the retired v1 protocol was removed in
@@ -156,7 +158,7 @@ pub fn run() {
         // Single-instance MUST be the first plugin so a second launch
         // exits cleanly before any heavy init (pool open, audio engine,
         // tray, watchers) runs in the duplicate process.
-        .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+        .plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
             // The launch that was just turned away armed the renderer
             // marker before this plugin could stop it — it runs from
             // inside `Builder`, and the marker has to be on disk before
@@ -172,6 +174,11 @@ pub fn run() {
                 let _ = window.set_focus();
                 webview_memory::sync(&window);
             }
+            // A file the turned-away launch was opened with plays here.
+            launch_args::play_when_ready(
+                app,
+                launch_args::paths_from_args(argv, Some(std::path::Path::new(&cwd))),
+            );
         }))
         // Autostart wiring. Pass `--minimized` so the OS-launched
         // instance shows up in the tray without grabbing focus — the
@@ -786,6 +793,15 @@ pub fn run() {
                 );
             });
 
+            // The files this launch was opened with, if any.
+            launch_args::play_when_ready(
+                app.handle(),
+                launch_args::paths_from_args(
+                    std::env::args_os(),
+                    std::env::current_dir().ok().as_deref(),
+                ),
+            );
+
             // Setup reached its end, so the marker stays armed until
             // something actually paints — which is what it is for.
             setup_guard.succeeded();
@@ -1195,6 +1211,9 @@ pub fn run() {
             commands::player::player_set_volume,
             commands::player::player_play_tracks,
             commands::player::player_play_url,
+            commands::player::player_play_paths,
+            commands::player::player_get_external_queue,
+            commands::player::player_external_jump,
             commands::player::get_current_radio_metadata,
             commands::player::player_add_to_queue,
             commands::player::player_play_next,

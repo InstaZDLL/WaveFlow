@@ -41,6 +41,14 @@
 //! the user has navigated inside, which is why every navigation takes a
 //! fresh revision too.
 //!
+//! ## Shared with the files played without importing them
+//!
+//! The session itself — a queue in memory, its cursor, the revisions that
+//! let a superseded start undo only its own install — is generic
+//! ([`DetachedSession`]). [`crate::external_playback`] runs the same
+//! session over files the user opened without adding them to the library,
+//! so the ordering rules above hold for both without two copies of them.
+//!
 //! This module holds only plain data (no dependency on the `sync_v2`-gated
 //! [`crate::remote`] tree) so it can be compiled unconditionally and read
 //! from the always-present control seams. The orchestration that mints
@@ -76,12 +84,15 @@ pub struct RemoteEntry {
     pub duration_ms: Option<i64>,
 }
 
-/// An ordered remote play queue and its cursor.
+/// An ordered play queue held in memory, and its cursor.
 #[derive(Debug, Clone)]
-pub struct RemoteQueue {
-    pub entries: Vec<RemoteEntry>,
+pub struct DetachedQueue<E> {
+    pub entries: Vec<E>,
     pub index: usize,
 }
+
+/// The remote play queue.
+pub type RemoteQueue = DetachedQueue<RemoteEntry>;
 
 /// A one-lock snapshot of what the decoder stamps on a remote track's
 /// `player:radio-metadata` emit. See [`RemotePlayback::current_stream_meta`].
@@ -98,14 +109,14 @@ pub struct RemoteStreamMeta {
     pub remote_id: Option<String>,
 }
 
-/// Process-wide handle on the active remote play queue, if any. Held on
-/// [`crate::state::AppState`]. A `std::sync::Mutex` (not tokio) so the
-/// synchronous control seams — `emit_track_changed`, the player commands
-/// — can clear or probe it without an await; the guard is never held
-/// across one.
-#[derive(Default)]
-pub struct RemotePlayback {
-    inner: Mutex<Option<RemoteQueue>>,
+/// Process-wide handle on a queue played outside the library queue, if
+/// any: the remote one ([`RemotePlayback`]) or files played without
+/// importing them. Held on [`crate::state::AppState`]. A `std::sync::Mutex`
+/// (not tokio) so the synchronous control seams — `emit_track_changed`,
+/// the player commands — can clear or probe it without an await; the guard
+/// is never held across one.
+pub struct DetachedSession<E> {
+    inner: Mutex<Option<DetachedQueue<E>>>,
     /// Names the current state of the session, so a caller can undo its
     /// own work and nobody else's — see [`Self::set`] and
     /// [`Self::clear_if`].
@@ -122,27 +133,39 @@ pub struct RemotePlayback {
     revisions: AtomicU64,
 }
 
-impl RemotePlayback {
-    /// Drop any active remote session. Called whenever a library track or
-    /// a radio stream becomes current, so the next advance can't act on a
+impl<E> Default for DetachedSession<E> {
+    fn default() -> Self {
+        Self {
+            inner: Mutex::new(None),
+            revisions: AtomicU64::new(0),
+        }
+    }
+}
+
+/// The remote play session.
+pub type RemotePlayback = DetachedSession<RemoteEntry>;
+
+impl<E: Clone> DetachedSession<E> {
+    /// Drop any active session. Called whenever a library track or a radio
+    /// stream becomes current, so the next advance can't act on a
     /// queue the user has moved on from. A no-op when none is active.
     pub fn clear(&self) {
-        *self.inner.lock().expect("remote_playback poisoned") = None;
+        *self.inner.lock().expect("detached session poisoned") = None;
     }
 
-    /// Whether a remote queue is currently driving playback.
+    /// Whether this session's queue is currently driving playback.
     pub fn is_active(&self) -> bool {
         self.inner
             .lock()
-            .expect("remote_playback poisoned")
+            .expect("detached session poisoned")
             .is_some()
     }
 
     /// Install a fresh queue, replacing any current one. Returns the
     /// revision naming the session it just installed, for
     /// [`Self::clear_if`].
-    pub fn set(&self, queue: RemoteQueue) -> u64 {
-        let mut guard = self.inner.lock().expect("remote_playback poisoned");
+    pub fn set(&self, queue: DetachedQueue<E>) -> u64 {
+        let mut guard = self.inner.lock().expect("detached session poisoned");
         let revision = self.revisions.fetch_add(1, Ordering::AcqRel) + 1;
         *guard = Some(queue);
         revision
@@ -158,7 +181,7 @@ impl RemotePlayback {
     /// inside, and dropping either would strand the queue they are
     /// actually listening to. Returns whether it cleared anything.
     pub fn clear_if(&self, revision: u64) -> bool {
-        let mut guard = self.inner.lock().expect("remote_playback poisoned");
+        let mut guard = self.inner.lock().expect("detached session poisoned");
         if self.revisions.load(Ordering::Acquire) != revision {
             return false;
         }
@@ -168,38 +191,21 @@ impl RemotePlayback {
     }
 
     /// The entry the cursor points at, cloned out of the lock.
-    pub fn current(&self) -> Option<RemoteEntry> {
-        let guard = self.inner.lock().expect("remote_playback poisoned");
+    pub fn current(&self) -> Option<E> {
+        let guard = self.inner.lock().expect("detached session poisoned");
         guard.as_ref().and_then(|q| q.entries.get(q.index).cloned())
     }
 
-    /// The facts the decoder stamps on a remote track's
-    /// `player:radio-metadata` emit — whether a session is active, and the
-    /// cursor entry's duration, artwork hash and server id — read under a
-    /// single lock. Separate calls could straddle a `clear()` and emit
-    /// `is_remote = true` with a `None` duration/artwork (or the reverse),
-    /// so they must come from one guard.
-    pub fn current_stream_meta(&self) -> RemoteStreamMeta {
-        let guard = self.inner.lock().expect("remote_playback poisoned");
-        let entry = guard.as_ref().and_then(|q| q.entries.get(q.index));
-        RemoteStreamMeta {
-            is_remote: guard.is_some(),
-            duration_ms: entry.and_then(|e| e.duration_ms),
-            artwork_hash: entry.and_then(|e| e.artwork_hash.clone()),
-            remote_id: entry.map(|e| e.id.clone()),
-        }
-    }
-
     /// A snapshot of the whole queue and its cursor, for the queue panel.
-    pub fn snapshot(&self) -> Option<(Vec<RemoteEntry>, usize)> {
-        let guard = self.inner.lock().expect("remote_playback poisoned");
+    pub fn snapshot(&self) -> Option<(Vec<E>, usize)> {
+        let guard = self.inner.lock().expect("detached session poisoned");
         guard.as_ref().map(|q| (q.entries.clone(), q.index))
     }
 
     /// Move the cursor to an absolute position (clamped) and return the
     /// entry there. Used when the user clicks a row in the queue panel.
-    pub fn seek_to(&self, index: usize) -> Option<RemoteEntry> {
-        let mut guard = self.inner.lock().expect("remote_playback poisoned");
+    pub fn seek_to(&self, index: usize) -> Option<E> {
+        let mut guard = self.inner.lock().expect("detached session poisoned");
         let queue = guard.as_mut()?;
         if queue.entries.is_empty() {
             return None;
@@ -215,8 +221,8 @@ impl RemotePlayback {
     /// `None` — and clears the session — when the step runs off the end
     /// with repeat off, matching [`crate::queue::advance`]'s semantics for
     /// the local queue.
-    pub fn step(&self, direction: Direction, repeat: RepeatMode) -> Option<RemoteEntry> {
-        let mut guard = self.inner.lock().expect("remote_playback poisoned");
+    pub fn step(&self, direction: Direction, repeat: RepeatMode) -> Option<E> {
+        let mut guard = self.inner.lock().expect("detached session poisoned");
         let queue = guard.as_mut()?;
         // Same as `seek_to`: stepping is a navigation, and the session that
         // comes out of it is no longer the one an earlier start installed.
@@ -230,6 +236,25 @@ impl RemotePlayback {
                 *guard = None;
                 None
             }
+        }
+    }
+}
+
+impl DetachedSession<RemoteEntry> {
+    /// The facts the decoder stamps on a remote track's
+    /// `player:radio-metadata` emit — whether a session is active, and the
+    /// cursor entry's duration, artwork hash and server id — read under a
+    /// single lock. Separate calls could straddle a `clear()` and emit
+    /// `is_remote = true` with a `None` duration/artwork (or the reverse),
+    /// so they must come from one guard.
+    pub fn current_stream_meta(&self) -> RemoteStreamMeta {
+        let guard = self.inner.lock().expect("detached session poisoned");
+        let entry = guard.as_ref().and_then(|q| q.entries.get(q.index));
+        RemoteStreamMeta {
+            is_remote: guard.is_some(),
+            duration_ms: entry.and_then(|e| e.duration_ms),
+            artwork_hash: entry.and_then(|e| e.artwork_hash.clone()),
+            remote_id: entry.map(|e| e.id.clone()),
         }
     }
 }

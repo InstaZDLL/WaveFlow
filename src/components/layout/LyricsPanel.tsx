@@ -70,6 +70,7 @@ export function LyricsPanel({
     radioPlainText,
     isRadio,
     isRemote,
+    isFile,
     activeIndex,
     activeWordIndex,
     activeBackgroundWordIndex,
@@ -121,7 +122,7 @@ export function LyricsPanel({
   // A radio session and a remote-source stream both lack a library row, so
   // the row-scoped actions (edit / import / refetch / clear / the provider
   // picker) apply to neither — they're keyed by track_id / file_hash.
-  const noLibraryRow = isRadio || isRemote;
+  const noLibraryRow = isRadio || isRemote || isFile;
 
   // ── Active-line auto-scroll (view-local) ─────────────────────────
   // The active index itself comes from the shared hook; only the

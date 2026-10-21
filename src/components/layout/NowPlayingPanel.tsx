@@ -14,7 +14,7 @@ import {
 import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
 import { useAlbumMotionArtwork } from "../../hooks/useAlbumMotionArtwork";
 import { useSlideshowLayer } from "../../hooks/useSlideshowLayer";
-import { isRemoteTrack } from "../../lib/playerSources";
+import { isRemoteTrack, isStreamTrack } from "../../lib/playerSources";
 import {
   remoteArtwork,
   remoteGetArtist,
@@ -597,6 +597,8 @@ export function NowPlayingPanel({
           <div className={`flex gap-2 ${inset}`}>
             <button
               type="button"
+              // A radio is built from a library track's neighbours.
+              disabled={!currentTrack || isStreamTrack(currentTrack)}
               onClick={async () => {
                 if (!currentTrack) return;
                 try {

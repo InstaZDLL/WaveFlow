@@ -1,0 +1,412 @@
+//! Files played without importing them.
+//!
+//! A file opened from the system (double-click, "Open with", the command
+//! line) or from the app's own open dialog plays without becoming a library
+//! track: nothing is written to the database, it counts in no history, no
+//! statistics and no scrobble, the way a radio stream does. Its queue lives
+//! in memory beside the library queue, on the same [`DetachedSession`] the
+//! remote queue uses, so it takes over next / previous and the end of a
+//! track while it is active, and the ordering rules of #622 hold for it.
+//!
+//! A file that already is a library track is played as one: opening it
+//! from the file manager should not lose its likes, its rating or its
+//! history. That holds when **every** file opened is in the library;
+//! a mix plays them all as files, rather than split one open across two
+//! queues.
+//!
+//! The tags of a file are read when it plays, not when it is queued:
+//! opening a folder of a thousand files reads one.
+
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
+
+use tauri::{AppHandle, Manager};
+use waveflow_core::playback::replay_gain::TrackGain;
+
+use crate::audio::engine::{DetachedOrigin, LoadIntent};
+use crate::audio::{AudioCmd, AudioEngine};
+use crate::error::{AppError, AppResult};
+use crate::queue::Direction;
+use crate::remote_playback::{DetachedQueue, DetachedSession};
+use crate::state::AppState;
+
+/// One file of the queue. Its tags are read when it plays.
+#[derive(Debug, Clone)]
+pub struct ExternalEntry {
+    pub path: PathBuf,
+}
+
+/// The session of files played without importing them.
+pub type ExternalPlayback = DetachedSession<ExternalEntry>;
+
+/// Most files one open queues.
+const MAX_FILES: usize = 5_000;
+
+/// Most entries one open walks, audio or not: a folder dropped by mistake
+/// on a whole drive should not walk it to the end, even one with no audio
+/// file to reach [`MAX_FILES`] with.
+const MAX_VISITED: usize = 200_000;
+
+/// The audio files `paths` name, in order: a file as it is, a folder as the
+/// audio files under it, sorted by name, its `.waveflow` branch skipped as
+/// the scanner skips it. Anything else is passed over. Blocking.
+pub fn expand(paths: &[PathBuf]) -> Vec<PathBuf> {
+    let mut files = Vec::new();
+    let mut visited = 0usize;
+    for path in paths {
+        if files.len() >= MAX_FILES || visited >= MAX_VISITED {
+            break;
+        }
+        if path.is_dir() {
+            let walk = walkdir::WalkDir::new(path)
+                .sort_by(|a, b| a.file_name().cmp(b.file_name()))
+                .into_iter()
+                .filter_entry(|entry| entry.file_name() != ".waveflow");
+            for entry in walk.flatten() {
+                visited += 1;
+                if visited >= MAX_VISITED {
+                    break;
+                }
+                if entry.file_type().is_file()
+                    && waveflow_core::scanner::extract::is_scannable_audio(entry.path())
+                {
+                    files.push(entry.into_path());
+                    if files.len() >= MAX_FILES {
+                        break;
+                    }
+                }
+            }
+        } else if path.is_file() && waveflow_core::scanner::extract::is_scannable_audio(path) {
+            files.push(path.clone());
+        }
+    }
+    files
+}
+
+/// What the player shows for a file, read from it.
+#[derive(Debug, Clone, PartialEq)]
+struct FileFacts {
+    title: String,
+    artist: Option<String>,
+    duration_ms: u64,
+    /// The cover, written into `artwork_dir` under its hash, the way the
+    /// scanner writes one.
+    cover: Option<PathBuf>,
+    replay_gain: TrackGain,
+}
+
+/// Read the tags, the length and the cover of `path`, without the
+/// database. The title falls back to the file's name, so a file with no
+/// tags still reads as something. Blocking.
+fn read_facts(path: &Path, artwork_dir: &Path) -> FileFacts {
+    use waveflow_core::scanner::extract;
+
+    let name = path
+        .file_stem()
+        .map(|s| s.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    let cover_path = |cover: extract::ExtractedCover| {
+        artwork_dir.join(format!("{}.{}", cover.hash, cover.format))
+    };
+    let folder_cover = || extract::extract_folder_cover(path, artwork_dir).map(cover_path);
+    let mut facts = FileFacts {
+        title: name,
+        artist: None,
+        duration_ms: 0,
+        cover: None,
+        replay_gain: TrackGain::default(),
+    };
+
+    let extension = path
+        .extension()
+        .and_then(|s| s.to_str())
+        .map(str::to_ascii_lowercase);
+    if let Some(container) = match extension.as_deref() {
+        Some("dsf") => Some(waveflow_core::audio_format::dsd::parser::DsdContainer::Dsf),
+        Some("dff") => Some(waveflow_core::audio_format::dsd::parser::DsdContainer::Dff),
+        _ => None,
+    } {
+        if let Ok(mut file) = std::fs::File::open(path) {
+            use waveflow_core::audio_format::dsd::{metadata, parser};
+            let layout = match container {
+                parser::DsdContainer::Dsf => parser::parse_dsf(&mut file),
+                parser::DsdContainer::Dff => parser::parse_dff(&mut file),
+            };
+            if let Ok(layout) = layout {
+                facts.duration_ms = layout.duration_ms();
+            }
+            if let Ok(tags) = metadata::read_metadata(&mut file, container) {
+                if let Some(title) = tags.title.filter(|t| !t.trim().is_empty()) {
+                    facts.title = title;
+                }
+                facts.artist = tags.artist;
+            }
+        }
+        facts.cover = folder_cover();
+        return facts;
+    }
+
+    match extract::read_tagged_file(path) {
+        Ok(tagged) => {
+            use lofty::file::TaggedFileExt;
+            use lofty::prelude::{Accessor, AudioFile};
+            facts.duration_ms = tagged.properties().duration().as_millis() as u64;
+            if let Some(tag) = tagged.primary_tag().or_else(|| tagged.first_tag()) {
+                if let Some(title) = tag.title().filter(|t| !t.trim().is_empty()) {
+                    facts.title = title.into_owned();
+                }
+                facts.artist = tag.artist().map(|a| a.into_owned());
+                facts.cover = extract::extract_cover(tag, artwork_dir).map(cover_path);
+                let gain = waveflow_core::scanner::replay_gain::extract_replay_gain(tag);
+                facts.replay_gain = TrackGain {
+                    gain_db: gain.track_gain_db,
+                    peak: gain.track_peak,
+                    album_gain_db: gain.album_gain_db,
+                    album_peak: gain.album_peak,
+                    ..TrackGain::default()
+                };
+            }
+            if facts.cover.is_none() {
+                facts.cover = folder_cover();
+            }
+        }
+        // Tags nobody can read do not stop a file the decoder can play.
+        Err(_) => {
+            if let Some(stream) = extract::probe_playable_stream(path) {
+                facts.duration_ms = stream.duration_ms.max(0) as u64;
+            }
+            facts.cover = folder_cover();
+        }
+    }
+    facts
+}
+
+/// The library ids of `files`, in order, when every one of them is an
+/// available library track; `None` as soon as one is not.
+async fn library_ids(pool: &sqlx::SqlitePool, files: &[PathBuf]) -> Option<Vec<i64>> {
+    let mut ids = Vec::with_capacity(files.len());
+    for file in files {
+        let id: Option<i64> = sqlx::query_scalar(
+            "SELECT id FROM track WHERE file_path = ? AND is_available = 1 LIMIT 1",
+        )
+        .bind(file.to_string_lossy().as_ref())
+        .fetch_optional(pool)
+        .await
+        .ok()
+        .flatten();
+        ids.push(id?);
+    }
+    Some(ids)
+}
+
+/// Play `paths` — files, folders, or both — from the first file they hold.
+/// Library tracks play as such when all of them are; otherwise they play
+/// as a queue of files.
+pub async fn play_paths(app: &AppHandle, paths: Vec<PathBuf>) -> AppResult<()> {
+    // Claimed before the walk and the lookups below (#622): a folder can
+    // take a while, and a track the user picks meanwhile must win.
+    let intent = app.state::<Arc<AudioEngine>>().next_load_intent();
+    let files = tokio::task::spawn_blocking(move || expand(&paths))
+        .await
+        .map_err(|e| AppError::Other(format!("listing the files to play: {e}")))?;
+    if files.is_empty() {
+        return Err(AppError::Other("no audio file to play".into()));
+    }
+
+    let state = app.state::<AppState>();
+    if let Ok(pool) = state.require_profile_pool().await {
+        if let Some(ids) = library_ids(&pool, &files).await {
+            // Under this open's own intent: it claims the dispatch itself,
+            // and gives up if the user picked something since.
+            return crate::commands::player::play_tracks_with_intent(
+                app.clone(),
+                app.state::<AppState>(),
+                app.state::<Arc<AudioEngine>>(),
+                "manual".into(),
+                None,
+                ids,
+                0,
+                None,
+                intent,
+            )
+            .await;
+        }
+    }
+
+    let entries = files
+        .into_iter()
+        .map(|path| ExternalEntry { path })
+        .collect();
+    play_entries(app, entries, 0, intent).await
+}
+
+/// Install `entries` as the session and start playing at `start_index`.
+/// The same guards as [`crate::remote::playback::play_entries`]: nothing
+/// is installed for a superseded intent, and an install the user overtook
+/// while it started is undone, but only if it is still ours.
+async fn play_entries(
+    app: &AppHandle,
+    entries: Vec<ExternalEntry>,
+    start_index: usize,
+    intent: LoadIntent,
+) -> AppResult<()> {
+    let index = start_index.min(entries.len().saturating_sub(1));
+    let engine = app.state::<Arc<AudioEngine>>();
+    // Claimed under the publish lock before the first side effect (#632).
+    // Reading a file is local and quick, so the lock is held across it,
+    // which the remote queue cannot afford over an HTTP round-trip.
+    let _publish = engine.lock_publish().await;
+    if !engine.claim_dispatch(intent) {
+        tracing::debug!("file session superseded before it started; not installing it");
+        return Ok(());
+    }
+    let state = app.state::<AppState>();
+    // One detached queue at a time: these files now drive next / previous.
+    state.remote_playback.clear();
+    let revision = state
+        .external_playback
+        .set(DetachedQueue { entries, index });
+    let played = play_current(app, intent).await;
+    if engine.load_intent_superseded(intent) && state.external_playback.clear_if(revision) {
+        tracing::debug!("file session superseded while starting; rolled it back");
+    }
+    played
+}
+
+/// Move the cursor to `index` and play it: the queue panel's click.
+pub async fn jump_to(app: &AppHandle, index: usize) -> AppResult<()> {
+    let engine = app.state::<Arc<AudioEngine>>();
+    let intent = engine.next_load_intent();
+    // The cursor moves only for a jump that still has its turn (#632).
+    let _publish = engine.lock_publish().await;
+    if !engine.claim_dispatch(intent) {
+        return Ok(());
+    }
+    match app.state::<AppState>().external_playback.seek_to(index) {
+        Some(_) => play_current(app, intent).await,
+        None => Ok(()),
+    }
+}
+
+/// Step the cursor and play what it lands on. `Ok(false)` when the queue
+/// ran off its end with repeat off: the session is cleared and the engine
+/// stopped. `intent` is the caller's, claimed where the step started (a key
+/// press, the end of a track), as for the remote queue (#622).
+pub async fn advance(app: &AppHandle, direction: Direction, intent: LoadIntent) -> AppResult<bool> {
+    let state = app.state::<AppState>();
+    let repeat = match state.require_profile_pool().await {
+        Ok(pool) => crate::queue::read_repeat_mode(&pool).await,
+        Err(_) => crate::queue::RepeatMode::Off,
+    };
+    let engine = app.state::<Arc<AudioEngine>>();
+    // A step overtaken by a newer pick moves nothing (#632): it would
+    // otherwise walk the cursor away from the file it never played.
+    let _publish = engine.lock_publish().await;
+    if !engine.claim_dispatch(intent) {
+        return Ok(false);
+    }
+    match state.external_playback.step(direction, repeat) {
+        Some(_) => {
+            if let Err(err) = play_current(app, intent).await {
+                let _ = engine.send(AudioCmd::Stop);
+                state.external_playback.clear();
+                return Err(err);
+            }
+            Ok(true)
+        }
+        None => {
+            let _ = engine.send(AudioCmd::Stop);
+            Ok(false)
+        }
+    }
+}
+
+/// Read the file under the cursor and hand it to the engine.
+async fn play_current(app: &AppHandle, intent: LoadIntent) -> AppResult<()> {
+    let state = app.state::<AppState>();
+    let Some(entry) = state.external_playback.current() else {
+        return Ok(());
+    };
+    let artwork_dir = state.paths.metadata_artwork_dir.clone();
+    let path = entry.path.clone();
+    let facts = tokio::task::spawn_blocking(move || read_facts(&path, &artwork_dir))
+        .await
+        .map_err(|e| AppError::Other(format!("reading {}: {e}", entry.path.display())))?;
+    let engine = app.state::<Arc<AudioEngine>>();
+    engine.send(AudioCmd::LoadRemoteFileAndPlay {
+        intent,
+        origin: DetachedOrigin::File,
+        path: entry.path,
+        start_ms: 0,
+        track_id: crate::commands::player::next_radio_track_id(),
+        duration_ms: facts.duration_ms,
+        title: Some(facts.title),
+        artist: facts.artist,
+        artwork_url: facts.cover.map(|p| p.display().to_string()),
+        fallback_url: None,
+        // The user's own file. Never ours to delete.
+        discard_on_failure: false,
+        replay_gain: facts.replay_gain,
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_folder_expands_to_its_audio_files_in_name_order() {
+        let dir = tempfile::tempdir().unwrap();
+        let disc = dir.path().join("CD2");
+        std::fs::create_dir(&disc).unwrap();
+        for name in ["b.flac", "a.mp3", "notes.txt", "cover.jpg"] {
+            std::fs::write(dir.path().join(name), b"x").unwrap();
+        }
+        std::fs::write(disc.join("c.flac"), b"x").unwrap();
+        let ours = dir.path().join(".waveflow");
+        std::fs::create_dir(&ours).unwrap();
+        std::fs::write(ours.join("clip.mp4"), b"x").unwrap();
+
+        let files = expand(&[dir.path().to_path_buf()]);
+
+        let names: Vec<_> = files
+            .iter()
+            .map(|p| {
+                p.strip_prefix(dir.path())
+                    .unwrap()
+                    .to_string_lossy()
+                    .replace('\\', "/")
+            })
+            .collect();
+        assert_eq!(names, ["CD2/c.flac", "a.mp3", "b.flac"]);
+    }
+
+    #[test]
+    fn files_keep_their_order_and_other_files_are_passed_over() {
+        let dir = tempfile::tempdir().unwrap();
+        let (b, a, txt) = (
+            dir.path().join("b.flac"),
+            dir.path().join("a.flac"),
+            dir.path().join("readme.txt"),
+        );
+        for path in [&b, &a, &txt] {
+            std::fs::write(path, b"x").unwrap();
+        }
+        let missing = dir.path().join("gone.flac");
+
+        assert_eq!(expand(&[b.clone(), txt, missing, a.clone()]), [b, a]);
+    }
+
+    #[test]
+    fn a_file_without_tags_reads_as_its_name() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("Track 07.flac");
+        std::fs::write(&path, b"not really a flac").unwrap();
+
+        let facts = read_facts(&path, dir.path());
+
+        assert_eq!(facts.title, "Track 07");
+        assert_eq!(facts.artist, None);
+        assert_eq!(facts.cover, None);
+    }
+}

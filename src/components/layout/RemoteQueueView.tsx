@@ -2,11 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { usePlayer } from "../../hooks/usePlayer";
-import {
-  remoteGetPlayQueue,
-  remoteQueueJump,
-  type RemotePlayQueue,
-} from "../../lib/tauri/remoteServer";
+import { type RemotePlayQueue } from "../../lib/tauri/remoteServer";
+import { DETACHED_QUEUES } from "../../lib/detachedQueues";
 import { formatDuration } from "../../lib/tauri/track";
 import { RemoteArtwork } from "../common/RemoteArtwork";
 
@@ -15,16 +12,22 @@ import { RemoteArtwork } from "../common/RemoteArtwork";
 const REMOTE_QUEUE_ROW_HEIGHT = 56;
 
 /**
- * Queue panel body for a remote play session (RFC-005). The remote queue
- * lives in memory on the backend, not in the local `queue_item` table, so
- * it gets its own view rather than being forced through `player_get_queue`
- * (whose jump / reorder act on the local queue). Now Playing + Up
- * Next, click a row to jump.
+ * Queue panel body for a queue that lives in memory on the backend rather
+ * than in the local `queue_item` table: a remote play session (RFC-005),
+ * or files played without importing them (`source="file"`). It gets its
+ * own view rather than being forced through `player_get_queue` (whose
+ * jump / reorder act on the local queue). Now Playing + Up Next, click a
+ * row to jump.
  *
  * Localized under the shared `remote.*` i18n namespace, like the rest of
  * the remote surface.
  */
-export function RemoteQueueView() {
+export function RemoteQueueView({
+  source = "remote",
+}: {
+  source?: keyof typeof DETACHED_QUEUES;
+}) {
+  const { read, jump } = DETACHED_QUEUES[source];
   const { t } = useTranslation();
   const { currentTrack } = usePlayer();
   const [queue, setQueue] = useState<RemotePlayQueue | null>(null);
@@ -36,14 +39,14 @@ export function RemoteQueueView() {
   const seqRef = useRef(0);
   const refresh = useCallback(() => {
     const seq = ++seqRef.current;
-    remoteGetPlayQueue()
+    read()
       .then((q) => {
         if (seq === seqRef.current) setQueue(q);
       })
       .catch(() => {
         if (seq === seqRef.current) setQueue(null);
       });
-  }, []);
+  }, [read]);
   useEffect(() => {
     // `currentId` is a dependency on purpose — it is the change signal
     // (an advance / jump moves the cursor and flips the sentinel id).
@@ -51,11 +54,14 @@ export function RemoteQueueView() {
     refresh();
   }, [refresh, currentId]);
 
-  const handleJump = useCallback((index: number) => {
-    remoteQueueJump(index).catch((err) =>
-      console.error("[RemoteQueueView] jump failed", err),
-    );
-  }, []);
+  const handleJump = useCallback(
+    (index: number) => {
+      jump(index).catch((err) =>
+        console.error("[RemoteQueueView] jump failed", err),
+      );
+    },
+    [jump],
+  );
 
   // Virtualize the Up Next list against its own scroll container (the
   // QueuePanel scrolls independently of the page). Hook runs
