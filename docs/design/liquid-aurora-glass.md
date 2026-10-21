@@ -30,7 +30,7 @@ Where Fluid is the music staged (cinematic, dark, artwork-led, editorial), Auror
 | `blush`    | `#f8c9d8` / deep `#d4668c`                | same rule                                   | Party.                                                            |
 | `glow`     | sampled from the cover; default `#9fb8ee` | default `#3b3f73`                           | Mixed into each pool, the soft shadows, the focus light's warmth. |
 | `accent`   | the theme's 600 stop, white ink           | the theme's 400 stop, dark ink              | Primary action, playing edge, focus light.                        |
-| `ink`      | `#1d1e2b` · `#4b4d63` · `#73758c`         | `#f4f4f8` · `#c9cbda` · `#9a9cb0`           | Title · body · label.                                             |
+| `ink`      | `#1d1e2b` · `#45475d` · `#666880`         | `#f4f4f8` · `#d3d5e2` · `#aaacc0`           | Title · body · label.                                             |
 
 The atmosphere: three pools, each a tint mixed with the glow (74 / 26 for lavender and ice, 70 / 30 for mint), placed top-left, top-right and bottom-left, drifting 36 s each way in alternation. The dark theme uses the same pools at about half the strength (0.46).
 
