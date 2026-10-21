@@ -293,8 +293,14 @@ pub async fn jump_to(app: &AppHandle, index: usize) -> AppResult<()> {
     if !engine.claim_dispatch(intent) {
         return Ok(());
     }
-    match app.state::<AppState>().external_playback.seek_to(index) {
-        Some(_) => play_current(app, intent).await,
+    let state = app.state::<AppState>();
+    match state.external_playback.seek_to(index) {
+        // As in `advance`: a jump that cannot play leaves no session
+        // pointing at a file nothing is playing.
+        Some(_) => play_current(app, intent).await.inspect_err(|_| {
+            let _ = engine.send(AudioCmd::Stop);
+            state.external_playback.clear();
+        }),
         None => Ok(()),
     }
 }
