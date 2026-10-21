@@ -1,44 +1,7 @@
-import { useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { Play } from "lucide-react";
 import type { Mood, MoodCounts } from "../../../lib/tauri/moodRadio";
-
-interface MoodDef {
-  id: Mood;
-  /** Tempo window, in BPM — the same gates `mood_radio` applies. */
-  bpm: [number, number];
-  /** Cycles of the inner light wave across one capsule width. */
-  cycles: number;
-  /** 0–1, how tall the wave is. */
-  amplitude: number;
-  /** Seconds for one drift of the wave; slower moods drift slower. */
-  period: number;
-}
-
-/** Ordered by tempo, left to right. */
-const MOODS: MoodDef[] = [
-  { id: "sleep", bpm: [40, 80], cycles: 1.5, amplitude: 0.3, period: 16 },
-  { id: "focus", bpm: [60, 100], cycles: 2.5, amplitude: 0.42, period: 12 },
-  { id: "chill", bpm: [70, 110], cycles: 3, amplitude: 0.52, period: 10 },
-  { id: "party", bpm: [110, 135], cycles: 5, amplitude: 0.72, period: 7 },
-  { id: "workout", bpm: [120, 170], cycles: 7, amplitude: 0.9, period: 5 },
-];
-
-/** A seamless sine over two capsule widths, so translating by −50 % loops. */
-function wavePath(cycles: number, amplitude: number): string {
-  const W = 400;
-  const H = 40;
-  const mid = H / 2;
-  const amp = (H / 2 - 3) * amplitude;
-  const steps = 96;
-  const pts: string[] = [];
-  for (let i = 0; i <= steps; i++) {
-    const x = (i / steps) * W;
-    const y = mid + Math.sin((x / (W / 2)) * cycles * Math.PI * 2) * amp;
-    pts.push(`${i === 0 ? "M" : "L"}${x.toFixed(1)} ${y.toFixed(2)}`);
-  }
-  return pts.join(" ");
-}
+import { MOODS, useMoodRadioGroup } from "./moodRadioGroup";
 
 interface MoodCapsulesProps {
   counts: MoodCounts | null;
@@ -53,11 +16,9 @@ interface MoodCapsulesProps {
  * object of light: a sheet in its pastel, a slow inner wave, the name,
  * the tempo window and how many tracks qualify. Choosing one brightens
  * it and reveals its subtitle and the start pill. The five stay named
- * and clickable; nothing depends on reading a colour.
- *
- * Keyboard: a radiogroup with roving focus over the moods that have
- * tracks (←/→, Home/End); Enter or Space on the focused capsule starts
- * the radio, as does the pill beside it.
+ * and clickable; nothing depends on reading a colour. Selection and
+ * the keyboard contract come from `useMoodRadioGroup`, shared with the
+ * spectrum.
  */
 export function MoodCapsules({
   counts,
@@ -65,42 +26,11 @@ export function MoodCapsules({
   onStart,
 }: MoodCapsulesProps) {
   const { t } = useTranslation();
-  const enabled = MOODS.filter((m) => (counts?.[m.id] ?? 0) > 0);
-  const [selected, setSelected] = useState<Mood | null>(null);
-  const refs = useRef<Record<string, HTMLButtonElement | null>>({});
-  const paths = useMemo(
-    () =>
-      Object.fromEntries(
-        MOODS.map((m) => [m.id, wavePath(m.cycles, m.amplitude)]),
-      ),
-    [],
+  const { current, setSelected, refs, paths, onKeyDown } = useMoodRadioGroup(
+    counts,
+    onStart,
+    40,
   );
-  const current =
-    selected && (counts?.[selected] ?? 0) > 0
-      ? selected
-      : (counts?.focus ?? 0) > 0
-        ? "focus"
-        : (enabled[0]?.id ?? null);
-
-  const onKeyDown = (e: KeyboardEvent<HTMLButtonElement>, mood: MoodDef) => {
-    const index = enabled.indexOf(mood);
-    let to: number | null = null;
-    if (e.key === "ArrowRight") to = (index + 1) % enabled.length;
-    else if (e.key === "ArrowLeft")
-      to = (index - 1 + enabled.length) % enabled.length;
-    else if (e.key === "Home") to = 0;
-    else if (e.key === "End") to = enabled.length - 1;
-    else if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      onStart(mood.id);
-      return;
-    }
-    if (to == null || enabled.length === 0) return;
-    e.preventDefault();
-    const m = enabled[to];
-    setSelected(m.id);
-    refs.current[m.id]?.focus();
-  };
 
   return (
     <div

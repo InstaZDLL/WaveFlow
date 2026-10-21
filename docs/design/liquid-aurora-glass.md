@@ -32,7 +32,7 @@ Where Fluid is the music staged (cinematic, dark, artwork-led, editorial), Auror
 | `accent`   | the theme's 600 stop, white ink           | the theme's 400 stop, dark ink              | Primary action, playing edge, focus light.                        |
 | `ink`      | `#1d1e2b` · `#5a5c70` · `#8b8da3`         | `#f4f4f8` · `#c0c2d2` · `#8c8ea2`           | Title · body · label.                                             |
 
-The atmosphere: three pools, each a tint mixed with the glow (60 / 40), placed top-left, top-right and bottom-left, drifting over 36 s in alternation. The dark theme uses the same pools at a fifth of the strength.
+The atmosphere: three pools, each a tint mixed with the glow (74 / 26 for lavender and ice, 70 / 30 for mint), placed top-left, top-right and bottom-left, drifting 36 s each way in alternation. The dark theme uses the same pools at about a third of the strength.
 
 ### Glass levels
 
@@ -81,7 +81,7 @@ Dark: the same levels as indigo-grey tints (`rgb(32 34 46)` at 62 % for a panel,
 
 ## What not to do
 
-No verre everywhere (two light sheets never stack); no dark borders; no hard grey shadows; no saturated tint on text; no gradient on a button; no bounce; no sheet so clear the text sits on the aurora. A pale theme that reads as "white with blur" has lost the tints — check the pools first.
+No glass everywhere (two light sheets never stack); no dark borders; no hard grey shadows; no saturated tint on text; no gradient on a button; no bounce; no sheet so clear the text sits on the aurora. A pale theme that reads as "white with blur" has lost the tints — check the pools first.
 
 ## Carrying it to another surface
 

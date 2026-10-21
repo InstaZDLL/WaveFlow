@@ -695,11 +695,34 @@
   ):hover:not(:disabled) {
   background-image: var(--aq-sheen) !important;
 }
-:root[data-skin="liquid"] .fe-cta:focus-visible,
 :root[data-skin="liquid"] .fe-link:focus-visible,
 :root[data-skin="liquid"] .fe-icon-btn:focus-visible {
   outline: 0;
   animation: aq-charge 480ms var(--fe-ease) both;
+}
+/* The accent-filled buttons carry a base shadow with `!important`, so
+   their focus light has to be declared the same way, on top of it. */
+:root[data-skin="liquid"] .fe-cta:focus-visible,
+:root[data-skin="liquid"] .aq-capsule__cta:focus-visible,
+:root[data-skin="liquid"]
+  main
+  [data-page-hero]
+  button:where(
+    [class*="bg-emerald-500"],
+    [class*="bg-pink-500"],
+    [class*="rounded-full"][class*="text-white"]:not([class*="w-10"]):not(
+        [class*="absolute"]
+      )
+  ):focus-visible,
+:root[data-skin="liquid"]
+  footer
+  button:where(
+    [class*="bg-emerald-500"],
+    [class*="bg-emerald-600"]
+  ):focus-visible {
+  outline: 0;
+  animation: none;
+  box-shadow: var(--aq-glow-accent), var(--aq-glow-focus) !important;
 }
 /* Ghost pills: subtle glass. */
 :root[data-skin="liquid"]
@@ -841,8 +864,9 @@
 }
 :root[data-skin="liquid"] .aq-capsule__radio:focus-visible {
   outline: 0;
-  border-radius: 1.25rem;
-  animation: aq-charge 480ms var(--fe-ease) both;
+}
+:root[data-skin="liquid"] .aq-capsule:has(> .aq-capsule__radio:focus-visible) {
+  box-shadow: var(--aq-panel), var(--aq-glow-focus);
 }
 /* The inner light: the mood's wave, in its deep tint, drifting. */
 :root[data-skin="liquid"] .aq-capsule__light {

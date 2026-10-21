@@ -95,16 +95,16 @@ The second material has its own page: [Liquid — Aurora Glass](./liquid-aurora-
 
 The structure above — the canvas, the band, the spectrum, the rail, the control bar, the panel, the heroes — is the 2.0 interface, and it is shared. A skin on it chooses a **material**: what the surfaces are made of, how the light behaves. Fluid's material is the one in the tables: tone over a near-black, no blur, hairlines. **Liquid** is the second: Apple's glass, translated for this structure.
 
-| Where Fluid says…         | Liquid says…                                                                                                                                                                      |
-| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| a surface is a tone       | a surface is a translucent tint that blurs and saturates what is behind it (`28 px` for the rail, the bar and the panel; `20 px` for cards; `44 px` and near-opaque for popovers) |
-| depth by tone             | depth by material weight: heavy (rail, bar, panel), light (cards, clusters, tiles are tones on them — two light sheets never stack), dense (menus, dialogs)                       |
-| a hairline at an edge     | the light a top edge catches: an inset rim, white at 10–18 % on dark, 70–95 % on a pale ground, and the eight-layer inset recipe that makes a translucent rectangle read as glass |
-| the cover lights the page | the cover lights the page **and** is what the glass refracts: three slow pools of its colour behind everything (a 72 s drift, off under reduced motion), pastel on a pale theme   |
-| dark only                 | light or dark, from the theme: black tones and white edges on `#e9e9ee`, the accent's 600 stop with white ink                                                                     |
-| the serif italic line     | the same line in the sans at a light weight: a serif over glass reads as a sticker                                                                                                |
-| rails and bars are flush  | the rail, the bar and the panel float: inset `0.75–1 rem` from the window, `1.5–1.75 rem` corners                                                                                 |
-| a hover is a tone         | a hover is a tone, and a press is instant — `scale(0.94–0.97)` on pointer-down, before anything else                                                                              |
+| Where Fluid says…         | Liquid says…                                                                                                                                                                                        |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| a surface is a tone       | a surface is a translucent tint that blurs and saturates what is behind it (`24 px` for the rail, the bar, the panel and cards; `32 px` for floating objects; `44 px` and near-opaque for popovers) |
+| depth by tone             | depth by material weight: heavy (rail, bar, panel), light (cards, clusters, tiles are tones on them — two light sheets never stack), dense (menus, dialogs)                                         |
+| a hairline at an edge     | the light a top edge catches: an inset rim, white at 10–18 % on dark, 70–95 % on a pale ground, and the eight-layer inset recipe that makes a translucent rectangle read as glass                   |
+| the cover lights the page | the cover lights the page **and** is what the glass refracts: three slow pools of its colour behind everything (a 36 s drift each way, off under reduced motion), pastel on a pale theme            |
+| dark only                 | light or dark, from the theme: black tones and white edges on `#e9e9ee`, the accent's 600 stop with white ink                                                                                       |
+| the serif italic line     | the same line in the sans at a light weight: a serif over glass reads as a sticker                                                                                                                  |
+| rails and bars are flush  | the rail, the bar and the panel float: inset `0.75–1 rem` from the window, `1.5–1.75 rem` corners                                                                                                   |
+| a hover is a tone         | a hover is a tone, and a press is instant — `scale(0.94–0.97)` on pointer-down, before anything else                                                                                                |
 
 What does not change between the two: the type, the mark, the accent rule, the rhythm, the ease. A third material (a paper, a neon) would be written the same way — the tokens redeclared, the few surface rules added, nothing moved.
 
