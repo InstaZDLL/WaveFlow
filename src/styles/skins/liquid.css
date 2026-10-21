@@ -62,8 +62,8 @@
   --fe-bg: #13141c;
   --fe-bg-rgb: 19 20 28;
   --fe-ink: #f4f4f8;
-  --fe-ink-2: #c9cbda;
-  --fe-ink-3: #9a9cb0;
+  --fe-ink-2: #d3d5e2;
+  --fe-ink-3: #aaacc0;
   --fe-hairline: rgb(255 255 255 / 0.08);
   --fe-hairline-strong: rgb(255 255 255 / 0.14);
   --fe-tone-1: rgb(255 255 255 / 0.05);
@@ -148,8 +148,8 @@
   --fe-bg: #eceef5;
   --fe-bg-rgb: 236 238 245;
   --fe-ink: #1d1e2b;
-  --fe-ink-2: #4b4d63;
-  --fe-ink-3: #73758c;
+  --fe-ink-2: #45475d;
+  --fe-ink-3: #666880;
   --fe-hairline: rgb(31 33 56 / 0.08);
   --fe-hairline-strong: rgb(31 33 56 / 0.14);
   --fe-tone-1: rgb(31 33 56 / 0.04);
@@ -1306,6 +1306,36 @@
 :root[data-skin="liquid"] [role="menu"] [role="menuitem"]:focus-visible {
   background-color: var(--fe-tone-2) !important;
   background-image: var(--glass-sheen);
+}
+
+/* ── The immersive lyrics: depth by opacity, the blur a whisper ── */
+:root[data-skin="liquid"] [data-immersive] ul > li > button[class*="text-3xl"] {
+  filter: blur(0.5px);
+}
+:root[data-skin="liquid"]
+  [data-immersive]
+  ul
+  > li:has(> button[class*="scale-[1.04]"])
+  + li
+  > button,
+:root[data-skin="liquid"]
+  [data-immersive]
+  ul
+  > li:has(+ li > button[class*="scale-[1.04]"])
+  > button,
+:root[data-skin="liquid"]
+  [data-immersive]
+  ul
+  > li:has(> button[class*="scale-[1.04]"])
+  + li
+  + li
+  > button,
+:root[data-skin="liquid"]
+  [data-immersive]
+  ul
+  > li:has(+ li + li > button[class*="scale-[1.04]"])
+  > button {
+  filter: none;
 }
 
 /* ── A pale ground under an artist's photo ─────────────────── */
