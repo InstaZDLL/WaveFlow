@@ -142,6 +142,24 @@
 :root[data-skin="pulse"] body::after {
   display: none;
 }
+/* The record's light under the canvas text and the band: the layout's
+   pool of the glow stays, its blurred copy of the cover goes — on pure
+   black a pale sleeve read as a grey smudge under the counters. */
+:root[data-skin="pulse"] .fe-canvas__aura img,
+:root[data-skin="pulse"] .fe-suggest__aura img {
+  display: none;
+}
+:root[data-skin="pulse"] .fe-canvas__aura {
+  opacity: 0.45;
+}
+:root[data-skin="pulse"] .fe-suggest__aura {
+  opacity: 0.35;
+  background: radial-gradient(
+    ellipse 70% 80% at 30% 50%,
+    color-mix(in srgb, var(--fe-glow) 70%, transparent),
+    transparent 70%
+  );
+}
 
 /* ── Type: the mono voice, the `///` marker ─────────────────── */
 :root[data-skin="pulse"] .fe-editorial {
