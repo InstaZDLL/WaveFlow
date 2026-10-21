@@ -2400,7 +2400,7 @@
         },
         "liquid": {
           "label": "Liquid",
-          "description": "Vidrio líquido al estilo Apple — material translúcido multicapa, fondo aurora, cápsulas, movimiento sereno."
+          "description": "Vidrio al estilo Apple sobre la interfaz 2.0 — material translúcido iluminado por la portada, cápsulas, tema claro u oscuro, movimiento sereno."
         },
         "fluid": {
           "label": "Fluid",

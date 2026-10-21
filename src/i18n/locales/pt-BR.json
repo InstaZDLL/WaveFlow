@@ -2401,7 +2401,7 @@
         },
         "liquid": {
           "label": "Liquid",
-          "description": "Vidro líquido estilo Apple — material translúcido em multicamadas, fundo aurora, cápsulas arredondadas, movimento calmo."
+          "description": "Vidro estilo Apple na interface 2.0 — material translúcido iluminado pela capa, cápsulas arredondadas, tema claro ou escuro, movimento calmo."
         },
         "fluid": {
           "label": "Fluid",

@@ -203,7 +203,7 @@ export function ListeningCanvas({
       {upNext.length > 0 && (
         <div className="fe-canvas__queue max-w-[30rem]">
           <p className="fe-label mb-2">{t("home.fluid.upNext")}</p>
-          <ol className="divide-y divide-white/[0.06]">
+          <ol className="divide-y divide-[var(--fe-tone-2)]">
             {upNext.slice(0, 3).map((q, i) => (
               <li key={`${q.id}-${i}`}>
                 <button

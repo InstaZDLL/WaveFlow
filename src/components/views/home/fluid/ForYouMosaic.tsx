@@ -136,7 +136,7 @@ export function ForYouMosaic({
                   <button
                     type="button"
                     onClick={() => onNavigateToPlaylist(p.id)}
-                    className="fe-press flex items-center gap-2.5 rounded-full py-1 pl-1 pr-3.5 ring-1 ring-white/[0.08] hover:bg-white/[0.05] hover:ring-white/[0.14]"
+                    className="fe-press flex items-center gap-2.5 rounded-full py-1 pl-1 pr-3.5 ring-1 ring-[var(--fe-hairline-strong)] hover:bg-[var(--fe-tone-1)] hover:ring-[var(--fe-hairline-strong)]"
                   >
                     {cover ? (
                       <img

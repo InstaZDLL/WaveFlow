@@ -2400,7 +2400,7 @@
         },
         "liquid": {
           "label": "Liquid",
-          "description": "Vetro liquido in stile Apple — materiale traslucido multistrato, sfondo aurora, capsule, movimento fluido."
+          "description": "Vetro in stile Apple sull'interfaccia 2.0 — materiale traslucido illuminato dalla copertina, capsule, tema chiaro o scuro, movimento calmo."
         },
         "fluid": {
           "label": "Fluid",

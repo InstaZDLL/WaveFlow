@@ -236,16 +236,12 @@
   --track-row-hover: rgb(var(--pulse-cyan-rgb) / 0.08);
 }
 
-:root[data-skin="liquid"] {
-  --track-row-hover: color-mix(in srgb, var(--liq-glass-tint) 12%, transparent);
-}
-
 :root[data-skin="lounge"] {
   --track-row-hover: rgb(255 45 121 / 0.12);
 }
 
-:root[data-skin="fluid"] {
-  --track-row-hover: rgb(255 255 255 / 0.045);
+:root[data-layout="fluid"] {
+  --track-row-hover: var(--fe-tone-1);
 }
 
 /* Override substring-based surface rules only for unselected, idle rows. */
@@ -419,8 +415,9 @@
 @import "./styles/skins/editorial.css";
 @import "./styles/skins/lounge.css";
 @import "./styles/skins/pulse.css";
-@import "./styles/skins/liquid.css";
 @import "./styles/skins/fluid.css";
+/* Liquid paints its material over the fluid layout, so it comes after. */
+@import "./styles/skins/liquid.css";
 
 /* The desktop lyrics window (#582) is transparent at the OS level, and
    the document has to be too, or it paints an opaque box over the

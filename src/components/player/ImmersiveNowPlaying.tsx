@@ -267,7 +267,7 @@ export function ImmersiveNowPlaying({
             styleId={visualizerStyleId}
             glow
           />
-          <ProgressBar variant={skin.id === "fluid" ? "edge" : "bar"} />
+          <ProgressBar variant={skin.layout === "fluid" ? "edge" : "bar"} />
           <div className="flex items-center justify-between gap-6 mt-2">
             {/* Left cluster — like / station favorite. Lives down here
                 (not in the hero) so the visualizer canvas above never

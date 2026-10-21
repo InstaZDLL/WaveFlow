@@ -52,11 +52,11 @@ export function RecentlyAdded({
           aria-label={t("home.recentlyAdded.title")}
           className="grid animate-pulse grid-cols-3 gap-x-4 gap-y-6 sm:grid-cols-4 lg:grid-cols-6"
         >
-          <div className="col-span-2 row-span-2 aspect-square rounded-[0.875rem] bg-white/[0.05]" />
+          <div className="col-span-2 row-span-2 aspect-square rounded-[0.875rem] bg-[var(--fe-tone-1)]" />
           {Array.from({ length: 8 }).map((_, i) => (
             <div
               key={i}
-              className="aspect-square rounded-[0.875rem] bg-white/[0.05]"
+              className="aspect-square rounded-[0.875rem] bg-[var(--fe-tone-1)]"
             />
           ))}
         </div>

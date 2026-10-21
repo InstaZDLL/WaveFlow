@@ -88,7 +88,7 @@ function getGreetingKey(): "morning" | "afternoon" | "evening" | "night" {
  */
 export function HomeView(props: HomeViewProps) {
   const { skin } = useSkin();
-  if (skin.id === "fluid") return <FluidHome {...props} />;
+  if (skin.layout === "fluid") return <FluidHome {...props} />;
   return <ClassicHomeView {...props} />;
 }
 

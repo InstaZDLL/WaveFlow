@@ -2334,7 +2334,7 @@
         },
         "liquid": {
           "label": "Liquid",
-          "description": "Apple 스타일 리퀴드 글래스 — 다층 반투명 소재, 오로라 배경, 캡슐형 디자인, 차분한 모션."
+          "description": "2.0 인터페이스 위의 Apple 스타일 글래스 — 커버 빛을 받는 반투명 소재, 캡슐형 디자인, 라이트 또는 다크 테마, 차분한 모션."
         },
         "fluid": {
           "label": "Fluid",

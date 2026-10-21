@@ -27,9 +27,24 @@
 export type SkinId =
   "studio" | "editorial" | "lounge" | "pulse" | "liquid" | "fluid";
 
+/**
+ * The interface a skin paints. `classic` is the layout the app shipped
+ * with until 1.x: the Home as a stack of sections, three right-edge
+ * panels, a bordered sidebar and bar. `fluid` is the 2.0 interface —
+ * the Home recomposed as a canvas, one tabbed right panel, the
+ * sidebar as a rail of tiles, the top bar as a control rail, the
+ * progress as the player bar's top edge. The views branch on this,
+ * never on a skin id; the structure's stylesheet (`fluid.css`) is
+ * keyed on the `data-layout` attribute, and a skin on that layout
+ * paints its own material over it in its own file.
+ */
+export type SkinLayout = "classic" | "fluid";
+
 export interface SkinPreset {
   /** Stable id used as the persisted value and the `data-skin` attribute. */
   id: SkinId;
+  /** Which interface the skin paints; see {@link SkinLayout}. */
+  layout: SkinLayout;
   /** i18n key suffix, e.g. `appearance.skins.editorial.label`. */
   labelKey: string;
   /**
@@ -136,6 +151,7 @@ export const RECOVERY_SKIN_ID: SkinId = "studio";
 export const SKIN_PRESETS: SkinPreset[] = [
   {
     id: "fluid",
+    layout: "fluid",
     labelKey: "settings.appearance.skins.fluid.label",
     descriptionKey: "settings.appearance.skins.fluid.description",
     density: {
@@ -186,6 +202,7 @@ export const SKIN_PRESETS: SkinPreset[] = [
   },
   {
     id: "studio",
+    layout: "classic",
     labelKey: "settings.appearance.skins.studio.label",
     descriptionKey: "settings.appearance.skins.studio.description",
     density: {
@@ -227,6 +244,7 @@ export const SKIN_PRESETS: SkinPreset[] = [
   },
   {
     id: "editorial",
+    layout: "classic",
     labelKey: "settings.appearance.skins.editorial.label",
     descriptionKey: "settings.appearance.skins.editorial.description",
     density: {
@@ -289,6 +307,7 @@ export const SKIN_PRESETS: SkinPreset[] = [
   },
   {
     id: "lounge",
+    layout: "classic",
     labelKey: "settings.appearance.skins.lounge.label",
     descriptionKey: "settings.appearance.skins.lounge.description",
     density: {
@@ -348,6 +367,7 @@ export const SKIN_PRESETS: SkinPreset[] = [
   },
   {
     id: "pulse",
+    layout: "classic",
     labelKey: "settings.appearance.skins.pulse.label",
     descriptionKey: "settings.appearance.skins.pulse.description",
     density: {
@@ -412,6 +432,7 @@ export const SKIN_PRESETS: SkinPreset[] = [
   },
   {
     id: "liquid",
+    layout: "fluid",
     labelKey: "settings.appearance.skins.liquid.label",
     descriptionKey: "settings.appearance.skins.liquid.description",
     density: {
@@ -532,4 +553,5 @@ export function applySkin(skin: SkinPreset) {
   root.style.setProperty("--skin-motion-ease", skin.motion.ease);
 
   root.setAttribute("data-skin", skin.id);
+  root.setAttribute("data-layout", skin.layout);
 }
