@@ -1,6 +1,6 @@
 # Liquid — Aurora Glass
 
-The second direction of WaveFlow 2.0, beside [Fluid Editorial](./fluid-editorial.md). Both sit on the same interface — the canvas, the rail, the control rail, the tabbed panel, the page heroes — and both are written down here so the web app, the Android app and the landing site can carry them. The desktop implementation is the `liquid` skin ([`src/styles/skins/liquid.css`](../../src/styles/skins/liquid.css) over [`fluid.css`](../../src/styles/skins/fluid.css), [`src/lib/skins.ts`](../../src/lib/skins.ts)); this page is the intent and the values.
+The second direction of WaveFlow 2.0, beside [Fluid Editorial](./fluid-editorial.md) (and, since, [Pulse — Neon Deck](./pulse-neon-deck.md)). Both sit on the same interface — the canvas, the rail, the control rail, the tabbed panel, the page heroes — and both are written down here so the web app, the Android app and the landing site can carry them. The desktop implementation is the `liquid` skin ([`src/styles/skins/liquid.css`](../../src/styles/skins/liquid.css) over [`fluid.css`](../../src/styles/skins/fluid.css), [`src/lib/skins.ts`](../../src/lib/skins.ts)); this page is the intent and the values.
 
 The one-line brief: **music as light and material — a luminous, airy glass, tinted by what is playing, with a light that answers the hand.**
 

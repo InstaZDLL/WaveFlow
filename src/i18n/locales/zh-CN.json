@@ -2262,7 +2262,7 @@
         },
         "pulse": {
           "label": "Pulse",
-          "description": "霓虹俱乐部——OLED 底色，活动元素周围的彩色光晕，单色胶囊标签，弹性动效。"
+          "description": "Neon Deck——OLED 纯黑，细线勾勒的界面，主题强调色化作霓虹点亮活动元素，等宽标签，弹性动效。"
         },
         "liquid": {
           "label": "Liquid",

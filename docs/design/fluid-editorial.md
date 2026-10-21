@@ -106,7 +106,7 @@ The structure above — the canvas, the band, the spectrum, the rail, the contro
 | rails and bars are flush  | the rail, the bar and the panel float: inset `0.75–1 rem` from the window, `1.5–1.75 rem` corners                                                                                                                                                          |
 | a hover is a tone         | a hover is a tone, and a press is instant — `scale(0.94–0.97)` on pointer-down, before anything else                                                                                                                                                       |
 
-What does not change between the two: the base type system (the serif italic line excepted, as the row above says), the mark, the accent rule, the rhythm, the ease. A third material (a paper, a neon) would be written the same way — the tokens redeclared, the few surface rules added, nothing moved.
+What does not change between the two: the base type system (the serif italic line excepted, as the row above says), the mark, the accent rule, the rhythm, the ease. A third material is written the same way — the tokens redeclared, the few surface rules added, nothing moved — and the neon one exists: [Pulse — Neon Deck](./pulse-neon-deck.md), OLED black, the chrome as hairlines, the accent lit on whatever is live, its own spring in place of the ease.
 
 ## Carrying it to another surface
 

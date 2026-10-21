@@ -26,7 +26,11 @@ import "@fontsource/lora/700.css";
 // the tech-track utility chrome (eyebrows, nav pills, time codes,
 // the `///` section markers). Loaded eagerly so the skin doesn't
 // FOUT when the user flips into it from Studio.
+// 500 and 600 serve the 2.0 layout's settled weights (480–600):
+// without them every title fell to 700.
 import "@fontsource/space-grotesk/400.css";
+import "@fontsource/space-grotesk/500.css";
+import "@fontsource/space-grotesk/600.css";
 import "@fontsource/space-grotesk/700.css";
 import "@fontsource/space-mono/400.css";
 import "@fontsource/space-mono/700.css";
