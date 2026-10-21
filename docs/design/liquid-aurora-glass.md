@@ -30,7 +30,7 @@ Where Fluid is the music staged (cinematic, dark, artwork-led, editorial), Auror
 | `blush`    | `#f8c9d8` / deep `#d4668c`                | same rule                                   | Party.                                                            |
 | `glow`     | sampled from the cover; default `#9fb8ee` | default `#3b3f73`                           | Mixed into each pool, the soft shadows, the focus light's warmth. |
 | `accent`   | the theme's 600 stop, white ink           | the theme's 400 stop, dark ink              | Primary action, playing edge, focus light.                        |
-| `ink`      | `#1d1e2b` · `#5a5c70` · `#8b8da3`         | `#f4f4f8` · `#c0c2d2` · `#8c8ea2`           | Title · body · label.                                             |
+| `ink`      | `#1d1e2b` · `#4b4d63` · `#73758c`         | `#f4f4f8` · `#c9cbda` · `#9a9cb0`           | Title · body · label.                                             |
 
 The atmosphere: three pools, each a tint mixed with the glow (74 / 26 for lavender and ice, 70 / 30 for mint), placed top-left, top-right and bottom-left, drifting 36 s each way in alternation. The dark theme uses the same pools at about a third of the strength.
 
@@ -40,7 +40,7 @@ The atmosphere: three pools, each a tint mixed with the glow (74 / 26 for lavend
 | ---------- | ------------ | ----- | ------------------ | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
 | `subtle`   | white 38 %   | 12 px | 55 %               | none                              | control-rail clusters, nav modules at rest, chips, table header                                                         |
 | `card`     | white 84 %   | 10 px | 85 % + top light   | a contour and a short grey shadow | cards on the page (extensions, folders, settings, biography): the calm level, near-opaque, so the real glass stands out |
-| `panel`    | white 56 %   | 24 px | 80 % + top light   | `glow-soft`                       | the rail, the player plate, the side panel, cards, mood capsules                                                        |
+| `panel`    | white 60 %   | 24 px | 85 % + top light   | `glow-soft`                       | the rail, the player plate, the side panel, cards, mood capsules                                                        |
 | `floating` | white 72 %   | 32 px | 90 % + top light   | `glow-soft`, lifted               | the search field, the cover object, the suggestion band                                                                 |
 | `overlay`  | white 88 %   | 44 px | 95 % + top light   | deep soft shadow                  | menus, popovers, dialogs                                                                                                |
 

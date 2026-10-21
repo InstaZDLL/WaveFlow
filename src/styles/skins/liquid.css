@@ -35,7 +35,7 @@
       (`MoodCapsules`), not Fluid's spectrum.
 
    Theme-aware: `:not(.dark)` is the direction's home; the dark theme is
-   the same material at dusk — indigo-grey sheets, the pools at a fifth
+   the same material at dusk — indigo-grey sheets, the pools at about a third
    of their strength. The Tailwind `dark` variant is NOT extended to
    this skin (`app.css`). Rules that must beat a `!important` in
    `fluid.css` carry one and win by source order. */
@@ -1202,6 +1202,7 @@
   :root[data-skin="liquid"] {
     --aq-subtle-bg: #23242f;
     --aq-panel-bg: #1f2029;
+    --aq-card-bg: #1e2029;
     --aq-floating-bg: #262734;
     --aq-overlay-bg: #2a2b38;
     --fe-surface-0: #1b1c25;
@@ -1209,6 +1210,7 @@
   :root[data-skin="liquid"]:not(.dark) {
     --aq-subtle-bg: #f2f3f8;
     --aq-panel-bg: #f7f8fc;
+    --aq-card-bg: #ffffff;
     --aq-floating-bg: #ffffff;
     --aq-overlay-bg: #ffffff;
     --fe-surface-0: #eef0f6;
@@ -1242,6 +1244,7 @@
 :root[data-skin="liquid"][data-contrast="high"] {
   --aq-subtle-bg: var(--wf-contrast-surface);
   --aq-panel-bg: var(--wf-contrast-surface);
+  --aq-card-bg: var(--wf-contrast-surface);
   --aq-floating-bg: var(--wf-contrast-surface);
   --aq-overlay-bg: var(--wf-contrast-surface);
   --fe-surface-0: var(--wf-contrast-surface);
