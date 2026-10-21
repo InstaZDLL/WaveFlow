@@ -139,18 +139,31 @@ pub fn play_when_ready(app: &AppHandle, paths: Vec<PathBuf>) {
             last: Instant::now(),
         });
     }
+    // Claimed here when the engine already exists, before the task is even
+    // scheduled; at a launch, as soon as it does (below).
+    let early = app
+        .try_state::<Arc<AudioEngine>>()
+        .map(|engine| engine.next_load_intent());
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
         // A second launch can arrive while this instance is still in
         // `setup`, before its state and engine exist: wait for them, then
         // for the profile. Bounded: with no profile at all (the first run,
         // before onboarding) the files still play, as files.
+        //
+        // The open's intent is claimed as soon as the engine exists (#622),
+        // not when the files finally play: a track the user picks while
+        // they are gathered, or while the profile opens, is the newer
+        // choice, and the files give way to it. Nothing can be picked
+        // before the engine exists, so nothing is lost by waiting for it.
+        let mut intent = early;
         let mut ready = false;
         for _ in 0..150 {
-            if let (Some(state), Some(_)) = (
+            if let (Some(state), Some(engine)) = (
                 app.try_state::<AppState>(),
                 app.try_state::<Arc<AudioEngine>>(),
             ) {
+                intent.get_or_insert_with(|| engine.next_load_intent());
                 ready = true;
                 if state.require_profile_pool().await.is_ok() {
                     break;
@@ -180,13 +193,17 @@ pub fn play_when_ready(app: &AppHandle, paths: Vec<PathBuf>) {
             .take()
             .map(|waiting| waiting.paths)
             .unwrap_or_default();
-        if !ready {
+        // Both the state and the engine, not the engine alone: playing
+        // reads the state.
+        let (true, Some(intent)) = (ready, intent) else {
             tracing::warn!(
                 "the player never came up; not playing the files WaveFlow was opened with"
             );
             return;
-        }
-        if let Err(err) = crate::external_playback::play_paths(&app, paths).await {
+        };
+        if let Err(err) =
+            crate::external_playback::play_paths_with_intent(&app, paths, intent).await
+        {
             tracing::warn!(%err, "could not play the files WaveFlow was opened with");
         }
     });

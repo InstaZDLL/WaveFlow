@@ -1390,7 +1390,19 @@ pub fn run() {
             // than on its command line, at launch as well as later.
             #[cfg(target_os = "macos")]
             if let tauri::RunEvent::Opened { urls } = &event {
-                launch_args::play_when_ready(app, launch_args::paths_from_urls(urls));
+                let paths = launch_args::paths_from_urls(urls);
+                if !paths.is_empty() {
+                    // Brought forward, as the single-instance callback does
+                    // on the other systems: a window hidden to the tray
+                    // would play the files out of sight. Not while the
+                    // splash still stands, at a launch: the handoff shows
+                    // the window once it has painted, and showing it before
+                    // would put an unfinished interface on screen.
+                    if app.get_webview_window("splashscreen").is_none() {
+                        show_main_window(app);
+                    }
+                    launch_args::play_when_ready(app, paths);
+                }
             }
             // Every way out lands here: the tray's "Quit" (which calls
             // `AppHandle::exit`), a window close that isn't close-to-tray, a
