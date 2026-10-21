@@ -2342,7 +2342,7 @@
         },
         "pulse": {
           "label": "Pulse",
-          "description": "Neon kulüp — OLED zemin, aktif öğeler etrafında renkli haleler, tek renkli etiketler, yaylı animasyonlar."
+          "description": "Neon Deck — OLED siyahı, ince çizgili krom, temanın vurgu rengi aktif öğelerde neon olarak, mono etiketler, yaylı animasyonlar."
         },
         "liquid": {
           "label": "Liquid",

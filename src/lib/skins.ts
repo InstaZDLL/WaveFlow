@@ -49,7 +49,8 @@ export interface SkinPreset {
    * How the fluid layout draws its two signature pieces; read only when
    * `layout` is `fluid`. Fluid's wave runs along the player bar's top
    * edge and its Mood Radio is one tempo band; Liquid's light line sits
-   * on the player plate and its moods are five glass capsules.
+   * on the player plate and its moods are five glass capsules; Pulse
+   * keeps Fluid's two shapes and paints them as neon (`pulse.css`).
    */
   fluid?: {
     progress: "edge" | "inline";
@@ -378,7 +379,12 @@ export const SKIN_PRESETS: SkinPreset[] = [
   },
   {
     id: "pulse",
-    layout: "classic",
+    // The 2.0 interface, as a neon deck: the wave along the player bar's
+    // edge glows, the mood band is a tempo deck. `pulse.css` is the
+    // material over `fluid.css`; the direction is written in
+    // `docs/design/pulse-neon-deck.md`.
+    layout: "fluid",
+    fluid: { progress: "edge", moodRadio: "spectrum" },
     labelKey: "settings.appearance.skins.pulse.label",
     descriptionKey: "settings.appearance.skins.pulse.description",
     density: {
@@ -400,31 +406,30 @@ export const SKIN_PRESETS: SkinPreset[] = [
       pill: "9999px",
     },
     surface: {
-      // Neon glow shadows — these are what make Pulse feel
-      // distinct. Each card carries a coloured halo via the
-      // accent palette so the cover art / accent ring around
-      // selected items pulses into the surrounding chrome.
+      // Neon halos — what makes Pulse distinct. The accent is the
+      // theme's (so the custom and cover accent modes of #895 drive
+      // it), and every active element wears it as a halo rather than
+      // a fill. The hairline is Pulse's edge: a 1 px rail on black.
       shadowCard:
-        "0 0 0 1px rgb(255 255 255 / 0.06), 0 0 24px -4px var(--accent-500)",
+        "inset 0 0 0 1px rgb(255 255 255 / 0.1), 0 0 24px -8px var(--accent-400)",
       shadowElevated:
-        "0 0 0 1px rgb(255 255 255 / 0.08), 0 0 48px -8px var(--accent-400)",
+        "inset 0 0 0 1px rgb(255 255 255 / 0.12), 0 0 48px -12px var(--accent-400)",
       backdrop: "none",
       // Subtle white divider — Pulse is dark-only so the lines
       // need to lift off the OLED base.
-      divider: "rgb(255 255 255 / 0.08)",
+      divider: "rgb(255 255 255 / 0.1)",
       grain: "",
     },
     typography: {
       // Space Grotesk for the body / display — a geometric sans
       // with mechanical character ticks that read as "tech /
       // club". Space Mono ALSO ships in main.tsx for the utility
-      // chrome (eyebrows, nav pills, time codes, `///` markers),
-      // but it is NOT exposed via this preset — pulse.css
-      // references `"Space Mono"` directly in its selectors. The
-      // preset only carries the two roles the SkinPreset shape
-      // declares (display + body), so the mono family lives at
-      // the CSS layer where it's used. Both families bundled via
-      // `@fontsource/*` in main.tsx.
+      // chrome (labels, time codes, the `///` markers), but it is
+      // NOT exposed via this preset — pulse.css points the layout's
+      // `--fe-font-editorial` at it. The preset only carries the
+      // two roles the SkinPreset shape declares (display + body),
+      // so the mono family lives at the CSS layer where it's used.
+      // Both families bundled via `@fontsource/*` in main.tsx.
       display:
         '"Space Grotesk", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
       body: '"Space Grotesk", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',

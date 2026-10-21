@@ -14,6 +14,7 @@ This file is an **index, not a manual**. It carries the map plus the one-line fo
 | How a feature actually works            | [`docs/features/`](docs/README.md#features)                                |
 | The visual direction (tokens, shapes)   | [`docs/design/fluid-editorial.md`](docs/design/fluid-editorial.md)         |
 | The second direction, Liquid's glass    | [`docs/design/liquid-aurora-glass.md`](docs/design/liquid-aurora-glass.md) |
+| The third material, Pulse's neon        | [`docs/design/pulse-neon-deck.md`](docs/design/pulse-neon-deck.md)         |
 | Crate split, audio topology, DB layout  | [`docs/architecture/`](docs/README.md#architecture)                        |
 | Design decisions not yet built          | [`docs/rfcs/`](docs/README.md#rfcs)                                        |
 | Release / packaging procedure           | [`docs/RELEASING.md`](docs/RELEASING.md)                                   |
@@ -48,7 +49,7 @@ React 19 + TypeScript. Entry: `src/main.tsx` → `src/App.tsx`.
 - **Hooks** wrap each context: `useTheme`, `usePlayer`, `useLibrary`, `usePlaylist`, `useProfile`, `usePageScroll`. The playback position is the exception: it ticks at 4 Hz, so it lives outside `PlayerContext` in [`usePlayerPosition`](src/hooks/usePlayerPosition.ts) ([why](docs/architecture/invariants.md#events)).
 - **Tauri wrappers** (`src/lib/tauri/`): one typed `invoke()` per backend command.
 - **Views**: `HomeView`, `LibraryView`, `PlaylistView`, `AlbumDetailView`, `ArtistDetailView`, `LikedView`, `HistoryView`, `StatisticsView`, `WrappedView`, `SettingsView`, …
-- **Layout**: a skin preset declares its `layout` (`classic` | `fluid`, the 2.0 interface) and the views branch on `skin.layout`, never on a skin id; the fluid layout's structure is [`fluid.css`](src/styles/skins/fluid.css), keyed on `data-layout`, and Liquid paints its glass over it. Classic: Apple-Music-style sidebar, TopBar with search, PlayerBar at the bottom, right-edge panels (`NowPlayingPanel` / `QueuePanel` / `LyricsPanel`) mutex'd via `PlayerContext`. A second `WebviewWindow` (label `mini`, `?mini=1`) ships the always-on-top mini-player — [`docs/features/ui.md`](docs/features/ui.md#mini-player) — and a third (label `lyrics`, `?lyrics=1`, created by the backend) the transparent desktop lyrics overlay — [`#desktop-lyrics`](docs/features/ui.md#desktop-lyrics).
+- **Layout**: a skin preset declares its `layout` (`classic` | `fluid`, the 2.0 interface) and the views branch on `skin.layout`, never on a skin id; the fluid layout's structure is [`fluid.css`](src/styles/skins/fluid.css), keyed on `data-layout`, and Liquid paints its glass over it, Pulse its neon. Classic: Apple-Music-style sidebar, TopBar with search, PlayerBar at the bottom, right-edge panels (`NowPlayingPanel` / `QueuePanel` / `LyricsPanel`) mutex'd via `PlayerContext`. A second `WebviewWindow` (label `mini`, `?mini=1`) ships the always-on-top mini-player — [`docs/features/ui.md`](docs/features/ui.md#mini-player) — and a third (label `lyrics`, `?lyrics=1`, created by the backend) the transparent desktop lyrics overlay — [`#desktop-lyrics`](docs/features/ui.md#desktop-lyrics).
 
 ### Backend (`src-tauri/`) — Cargo workspace, two members
 

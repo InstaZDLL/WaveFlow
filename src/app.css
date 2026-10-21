@@ -232,16 +232,18 @@
   box-shadow: none !important;
 }
 
-:root[data-skin="pulse"] {
-  --track-row-hover: rgb(var(--pulse-cyan-rgb) / 0.08);
-}
-
 :root[data-skin="lounge"] {
   --track-row-hover: rgb(255 45 121 / 0.12);
 }
 
 :root[data-layout="fluid"] {
   --track-row-hover: var(--fe-tone-1);
+}
+
+/* Pulse sits on the fluid layout: same specificity as the rule above,
+   so it has to come after it to win. */
+:root[data-skin="pulse"] {
+  --track-row-hover: color-mix(in srgb, var(--fe-accent) 8%, transparent);
 }
 
 /* Override substring-based surface rules only for unselected, idle rows. */
@@ -414,10 +416,11 @@
    iterations fragile. */
 @import "./styles/skins/editorial.css";
 @import "./styles/skins/lounge.css";
-@import "./styles/skins/pulse.css";
 @import "./styles/skins/fluid.css";
-/* Liquid paints its material over the fluid layout, so it comes after. */
+/* Liquid and Pulse paint their material over the fluid layout, so they
+   come after it. */
 @import "./styles/skins/liquid.css";
+@import "./styles/skins/pulse.css";
 
 /* The desktop lyrics window (#582) is transparent at the OS level, and
    the document has to be too, or it paints an opaque box over the
