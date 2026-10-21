@@ -651,6 +651,29 @@ impl SharedPlayback {
         (base + track_delta_ms).max(0) as u64
     }
 
+    /// Where the decoder is in the track: the position heard, plus the
+    /// `queued_samples` written to the ring ahead of it and not played yet.
+    /// The decoder runs up to a ring (about a second) ahead of the output,
+    /// so what is timed on the end of what it decodes (the gapless
+    /// prefetch, the crossfade) reads this, not [`Self::current_position_ms`],
+    /// which is a ring late (#932).
+    ///
+    /// Counted from the raw counters, not added to the heard position:
+    /// that one stops at 0 while the lead-in plays, so right after a gapless
+    /// swap, with the finished track's tail still queued, adding the queue
+    /// to it counted that tail as the new track's.
+    pub fn decoded_position_ms(&self, queued_samples: u64) -> u64 {
+        let sr = self.sample_rate.load(Ordering::Relaxed).max(1) as i64;
+        let ch = self.channels.load(Ordering::Relaxed).max(1) as i64;
+        let played = self.samples_played.load(Ordering::Relaxed) as i64;
+        let lead_in = self.clock_lead_in.load(Ordering::Relaxed) as i64;
+        let written = played + queued_samples as i64;
+        let wall_delta_ms = ((written - lead_in) * 1000) / (sr * ch);
+        let track_delta_ms = (wall_delta_ms as f32 * self.playback_speed()) as i64;
+        let base = self.base_offset_ms.load(Ordering::Relaxed) as i64;
+        (base + track_delta_ms).max(0) as u64
+    }
+
     /// Restart the position clock at `base_ms`, with `lead_in_samples`
     /// still queued in the ring ahead of that point. `lead_in_is_previous_track`
     /// says whose audio those samples are: the finished track's tail after
@@ -844,6 +867,49 @@ mod tests {
         assert_eq!(s.current_position_ms(), 6_000);
         // session counter ignores the base offset on purpose.
         assert_eq!(s.session_listened_ms(), 1_000);
+    }
+
+    #[test]
+    fn the_decoder_is_a_ring_ahead_of_what_was_heard() {
+        // 44.1 kHz stereo: 1 s heard, 1 s more queued in the ring. The
+        // decoder has reached 2 s; the triggers timed on the end of what
+        // it decodes must read that, not the 1 s heard (#932).
+        let s = SharedPlayback::new();
+        s.sample_rate.store(44_100, Ordering::Relaxed);
+        s.channels.store(2, Ordering::Relaxed);
+        s.samples_played.store(44_100 * 2, Ordering::Relaxed);
+        assert_eq!(s.current_position_ms(), 1_000);
+        assert_eq!(s.decoded_position_ms(44_100 * 2), 2_000);
+        assert_eq!(s.decoded_position_ms(0), 1_000);
+
+        // At double speed a second of output holds two of the track.
+        s.set_playback_speed(2.0);
+        assert_eq!(
+            s.decoded_position_ms(44_100 * 2) - s.current_position_ms(),
+            2_000
+        );
+    }
+
+    #[test]
+    fn the_finished_tracks_tail_is_not_the_new_tracks_after_a_gapless_swap() {
+        // A gapless swap with 1 s of the finished track still queued: the
+        // new track has decoded nothing yet, so the decoder is at 0, not at
+        // the 1 s the queue holds.
+        let s = SharedPlayback::new();
+        s.sample_rate.store(44_100, Ordering::Relaxed);
+        s.channels.store(2, Ordering::Relaxed);
+        let tail = 44_100 * 2;
+        s.restart_clock(0, tail, true);
+        assert_eq!(s.decoded_position_ms(tail), 0);
+
+        // Half a second of the new track written behind the tail.
+        assert_eq!(s.decoded_position_ms(tail + 22_050 * 2), 500);
+
+        // The output played the tail: still 500 ms decoded, now all of it
+        // the new track's, and none of it heard yet.
+        s.samples_played.store(tail, Ordering::Relaxed);
+        assert_eq!(s.decoded_position_ms(22_050 * 2), 500);
+        assert_eq!(s.current_position_ms(), 0);
     }
 
     #[test]
