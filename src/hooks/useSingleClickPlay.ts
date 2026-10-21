@@ -32,7 +32,7 @@ const NESTED_CONTROLS =
  * like button, an artist link, a drag handle), which does its own thing.
  */
 export function isPlayClick(
-  event: MouseEvent<HTMLElement>,
+  event: MouseEvent<Element>,
   singleClickPlay: boolean,
 ): boolean {
   if (!singleClickPlay) return false;
