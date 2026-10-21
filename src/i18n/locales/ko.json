@@ -2330,7 +2330,7 @@
         },
         "pulse": {
           "label": "Pulse",
-          "description": "네온 클럽 — OLED 기반, 활성 요소 주변의 컬러 헤일로, 단색 캡슐, 탄력 있는 모션."
+          "description": "Neon Deck — OLED 블랙, 가는 선의 크롬, 활성 요소에 네온으로 비추는 테마 강조색, 모노 라벨, 탄력 있는 모션."
         },
         "liquid": {
           "label": "Liquid",

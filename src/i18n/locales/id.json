@@ -2330,7 +2330,7 @@
         },
         "pulse": {
           "label": "Pulse",
-          "description": "Klub neon — basis OLED, halo warna di sekitar elemen aktif, kapsul mono, animasi lenting."
+          "description": "Neon Deck — hitam OLED, krom bergaris tipis, aksen tema sebagai neon pada yang aktif, label mono, animasi lenting."
         },
         "liquid": {
           "label": "Liquid",
