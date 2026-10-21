@@ -12,6 +12,7 @@
 pub mod canonical;
 pub mod extra_tags;
 pub mod extract;
+pub mod folders;
 pub mod replay_gain;
 pub mod reserved;
 

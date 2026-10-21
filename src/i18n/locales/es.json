@@ -233,7 +233,8 @@
       "artists": "Artistas",
       "genres": "Géneros",
       "years": "Años",
-      "folders": "Carpetas"
+      "folders": "Carpetas",
+      "playWithoutImportingAria": "Reproducir sin importar"
     },
     "playlistSection": {
       "title": "Listas de reproducción"
@@ -1036,7 +1037,9 @@
         "decoder-crashed": "El motor de audio se ha reiniciado",
         "decoder-stopped": "El motor de audio se detuvo tras varios errores",
         "offline": "El modo sin conexión está activado",
-        "unknown": "La reproducción ha fallado"
+        "unknown": "La reproducción ha fallado",
+        "files-failed": "No se pueden reproducir estos archivos",
+        "picker-failed": "No se puede abrir el selector de archivos"
       },
       "notice": {
         "exclusive-refused": "Este dispositivo rechaza el modo exclusivo: reproduciendo en modo compartido",
@@ -1636,9 +1639,14 @@
     "reasonMissing": "el archivo no está (eliminado o en una unidad no conectada); el próximo escaneo actualizará la biblioteca"
   },
   "dragDrop": {
-    "dropHint": "Suelta para importar",
-    "importing": "Importando…",
-    "subtitle": "Se aceptan carpetas o archivos de audio"
+    "play": {
+      "title": "Reproducir ahora",
+      "hint": "Sin añadirlo a la biblioteca"
+    },
+    "import": {
+      "title": "Añadir a la biblioteca",
+      "hint": "Copiados en la carpeta WaveFlow de tu música"
+    }
   },
   "abLoop": {
     "setA": "Bucle A-B: marcar punto A en la posición actual",
@@ -1933,7 +1941,9 @@
         "toggleLyrics": "Mostrar/ocultar panel de letras",
         "toggleLike": "Me gusta / Quitar Me gusta a la pista actual",
         "focusSearch": "Ir a la búsqueda",
-        "toggleFullscreen": "Pantalla completa"
+        "toggleFullscreen": "Pantalla completa",
+        "openFiles": "Reproducir archivos sin importarlos",
+        "openFolder": "Reproducir una carpeta sin importarla"
       }
     },
     "offlineMode": {
@@ -3231,7 +3241,8 @@
       "reconcile": "Reconciliación",
       "upload": "Subida",
       "backup": "Copia de seguridad",
-      "thumbnails": "Miniaturas"
+      "thumbnails": "Miniaturas",
+      "drop_import": "Copia a la biblioteca"
     }
   },
   "smartRuleSummary": {
@@ -3377,5 +3388,31 @@
       "targetTaken": "Otro archivo ya se llama {{path}}."
     },
     "adopts": "Este archivo ya está en la biblioteca como una canción aparte. Esa entrada se elimina, con su breve historial, y esta canción toma su archivo."
+  },
+  "openToPlay": {
+    "files": "Reproducir archivos…",
+    "folder": "Reproducir una carpeta…",
+    "filesTitle": "Elige los archivos que reproducir",
+    "folderTitle": "Elige la carpeta que reproducir",
+    "filterName": "Archivos de audio"
+  },
+  "importNotice": {
+    "dropped": {
+      "title": "Añadido a la biblioteca",
+      "titleNothing": "Nada nuevo que añadir",
+      "copied": "Archivos copiados: {{n}}",
+      "alreadyCopied": "Ya copiados antes: {{n}}",
+      "inLibrary": "Ya en la biblioteca, omitidos: {{n}}",
+      "refused": "Carpetas rechazadas porque contienen una carpeta de la biblioteca: {{n}}",
+      "errors": "Copias fallidas: {{n}}",
+      "truncated": "Límite alcanzado: suelta el resto en varias veces.",
+      "cancelled": "Copia detenida; lo que ya se había copiado se ha añadido."
+    },
+    "overlap": {
+      "title": "Carpeta ya incluida",
+      "same": "Esta carpeta ya está en la biblioteca: {{folder}}",
+      "inside": "Esta carpeta ya está en la biblioteca, dentro de {{folder}}.",
+      "contains": "Esta carpeta contiene {{folder}}, que ya está en la biblioteca. Añade mejor sus otras subcarpetas."
+    }
   }
 }

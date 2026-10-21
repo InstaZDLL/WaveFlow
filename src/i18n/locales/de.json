@@ -229,7 +229,8 @@
       "artists": "Künstler",
       "genres": "Genres",
       "years": "Jahre",
-      "folders": "Ordner"
+      "folders": "Ordner",
+      "playWithoutImportingAria": "Ohne Import abspielen"
     },
     "playlistSection": {
       "title": "Playlists"
@@ -996,7 +997,9 @@
         "decoder-crashed": "Die Audio-Engine wurde neu gestartet",
         "decoder-stopped": "Die Audio-Engine wurde nach wiederholten Fehlern gestoppt",
         "offline": "Der Offline-Modus ist aktiviert",
-        "unknown": "Die Wiedergabe ist fehlgeschlagen"
+        "unknown": "Die Wiedergabe ist fehlgeschlagen",
+        "files-failed": "Diese Dateien können nicht abgespielt werden",
+        "picker-failed": "Die Dateiauswahl lässt sich nicht öffnen"
       },
       "notice": {
         "exclusive-refused": "Dieses Gerät verweigert den Exklusivmodus: Wiedergabe im gemeinsamen Modus",
@@ -1581,9 +1584,14 @@
     "reasonMissing": "die Datei ist nicht da (gelöscht oder auf einem nicht verbundenen Laufwerk); der nächste Scan aktualisiert die Mediathek"
   },
   "dragDrop": {
-    "dropHint": "Loslassen zum Importieren",
-    "importing": "Wird importiert…",
-    "subtitle": "Ordner oder Audiodateien akzeptiert"
+    "play": {
+      "title": "Jetzt abspielen",
+      "hint": "Ohne es zur Bibliothek hinzuzufügen"
+    },
+    "import": {
+      "title": "Zur Bibliothek hinzufügen",
+      "hint": "In den WaveFlow-Ordner deiner Musik kopiert"
+    }
   },
   "abLoop": {
     "setA": "A-B-Schleife: Punkt A an aktueller Position setzen",
@@ -1875,7 +1883,9 @@
         "toggleLyrics": "Songtext-Panel umschalten",
         "toggleLike": "Aktuellen Titel zu Favoriten hinzufügen / entfernen",
         "focusSearch": "Zur Suche springen",
-        "toggleFullscreen": "Vollbild"
+        "toggleFullscreen": "Vollbild",
+        "openFiles": "Dateien ohne Import abspielen",
+        "openFolder": "Ordner ohne Import abspielen"
       }
     },
     "offlineMode": {
@@ -3139,7 +3149,8 @@
       "reconcile": "Abgleich",
       "upload": "Hochladen",
       "backup": "Sicherung",
-      "thumbnails": "Vorschaubilder"
+      "thumbnails": "Vorschaubilder",
+      "drop_import": "Kopieren in die Bibliothek"
     }
   },
   "smartRuleSummary": {
@@ -3275,5 +3286,31 @@
       "targetTaken": "Eine andere Datei heißt bereits {{path}}."
     },
     "adopts": "Diese Datei ist bereits als eigener Titel in der Mediathek. Dieser Eintrag wird samt seinem kurzen Verlauf entfernt, und dieser Titel übernimmt seine Datei."
+  },
+  "openToPlay": {
+    "files": "Dateien abspielen…",
+    "folder": "Ordner abspielen…",
+    "filesTitle": "Dateien zum Abspielen auswählen",
+    "folderTitle": "Ordner zum Abspielen auswählen",
+    "filterName": "Audiodateien"
+  },
+  "importNotice": {
+    "dropped": {
+      "title": "Zur Bibliothek hinzugefügt",
+      "titleNothing": "Nichts Neues hinzuzufügen",
+      "copied": "Kopierte Dateien: {{n}}",
+      "alreadyCopied": "Bereits früher kopiert: {{n}}",
+      "inLibrary": "Bereits in der Bibliothek, übersprungen: {{n}}",
+      "refused": "Abgelehnte Ordner, da sie einen Bibliotheksordner enthalten: {{n}}",
+      "errors": "Fehlgeschlagene Kopien: {{n}}",
+      "truncated": "Limit erreicht: Lege den Rest in mehreren Schritten ab.",
+      "cancelled": "Kopieren gestoppt; bereits Kopiertes wurde hinzugefügt."
+    },
+    "overlap": {
+      "title": "Ordner bereits erfasst",
+      "same": "Dieser Ordner ist bereits in der Bibliothek: {{folder}}",
+      "inside": "Dieser Ordner ist bereits in der Bibliothek, innerhalb von {{folder}}.",
+      "contains": "Dieser Ordner enthält {{folder}}, der bereits in der Bibliothek ist. Füge stattdessen seine anderen Unterordner hinzu."
+    }
   }
 }

@@ -229,7 +229,8 @@
       "artists": "アーティスト",
       "genres": "ジャンル",
       "years": "年",
-      "folders": "フォルダ"
+      "folders": "フォルダ",
+      "playWithoutImportingAria": "インポートせずに再生"
     },
     "playlistSection": {
       "title": "プレイリスト"
@@ -994,7 +995,9 @@
         "decoder-crashed": "オーディオエンジンを再起動しました",
         "decoder-stopped": "エラーが続いたためオーディオエンジンを停止しました",
         "offline": "オフラインモードが有効です",
-        "unknown": "再生に失敗しました"
+        "unknown": "再生に失敗しました",
+        "files-failed": "これらのファイルを再生できません",
+        "picker-failed": "ファイル選択ダイアログを開けません"
       },
       "notice": {
         "exclusive-refused": "このデバイスは排他モードを受け付けません。共有モードで再生します",
@@ -1579,9 +1582,14 @@
     "reasonMissing": "ファイルが見つかりません（削除済み、または接続されていないドライブ上）。次回のスキャンでライブラリが更新されます"
   },
   "dragDrop": {
-    "dropHint": "ドロップしてインポート",
-    "importing": "インポート中…",
-    "subtitle": "フォルダまたはオーディオファイルを受け付けます"
+    "play": {
+      "title": "今すぐ再生",
+      "hint": "ライブラリに追加せずに"
+    },
+    "import": {
+      "title": "ライブラリに追加",
+      "hint": "ミュージックの WaveFlow フォルダーにコピー"
+    }
   },
   "abLoop": {
     "setA": "A-Bループ：現在位置にA点を設定",
@@ -2317,7 +2325,9 @@
         "toggleLyrics": "歌詞を表示 / 非表示",
         "toggleLike": "いいね / 解除",
         "focusSearch": "検索に移動",
-        "toggleFullscreen": "全画面表示"
+        "toggleFullscreen": "全画面表示",
+        "openFiles": "ファイルをインポートせずに再生",
+        "openFolder": "フォルダーをインポートせずに再生"
       }
     },
     "offlineMode": {
@@ -3137,7 +3147,8 @@
       "reconcile": "照合",
       "upload": "アップロード",
       "backup": "バックアップ",
-      "thumbnails": "サムネイル"
+      "thumbnails": "サムネイル",
+      "drop_import": "ライブラリへのコピー"
     }
   },
   "smartRuleSummary": {
@@ -3273,5 +3284,31 @@
       "targetTaken": "{{path}} という名前のファイルがすでにあります。"
     },
     "adopts": "このファイルはすでに別の曲としてライブラリにあります。その項目は短い履歴ごと削除され、この曲がそのファイルを引き継ぎます。"
+  },
+  "openToPlay": {
+    "files": "ファイルを再生…",
+    "folder": "フォルダーを再生…",
+    "filesTitle": "再生するファイルを選択",
+    "folderTitle": "再生するフォルダーを選択",
+    "filterName": "オーディオファイル"
+  },
+  "importNotice": {
+    "dropped": {
+      "title": "ライブラリに追加しました",
+      "titleNothing": "追加する新しいものはありません",
+      "copied": "コピーしたファイル: {{n}}",
+      "alreadyCopied": "以前にコピー済み: {{n}}",
+      "inLibrary": "ライブラリに既にあるためスキップ: {{n}}",
+      "refused": "ライブラリのフォルダーを含むため拒否したフォルダー: {{n}}",
+      "errors": "コピーに失敗: {{n}}",
+      "truncated": "上限に達しました: 残りは何回かに分けてドロップしてください。",
+      "cancelled": "コピーを停止しました。コピー済みのものは追加されています。"
+    },
+    "overlap": {
+      "title": "フォルダーは既に含まれています",
+      "same": "このフォルダーは既にライブラリにあります: {{folder}}",
+      "inside": "このフォルダーは既にライブラリにあります({{folder}} の中)。",
+      "contains": "このフォルダーには、既にライブラリにある {{folder}} が含まれています。代わりに他のサブフォルダーを追加してください。"
+    }
   }
 }

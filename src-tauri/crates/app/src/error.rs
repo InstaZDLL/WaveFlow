@@ -121,8 +121,32 @@ pub enum AppError {
     #[error("the file changed on disk since the editor opened it")]
     FileChangedOnDisk,
 
+    /// A folder that overlaps a library folder: the same one, one under
+    /// it, or one holding it ([`waveflow_core::scanner::folders`]). Both
+    /// would claim the files they share. The frontend recognises the
+    /// message (`parseFolderOverlap` in `src/lib/tauri/library.ts`) to
+    /// say which folder is in the way, so the wording is part of the
+    /// contract.
+    #[error(
+        "the folder {} the library folder {existing}",
+        overlap_phrase(relation)
+    )]
+    FolderOverlap {
+        relation: waveflow_core::scanner::folders::FolderRelation,
+        existing: String,
+    },
+
     #[error("{0}")]
     Other(String),
+}
+
+fn overlap_phrase(relation: &waveflow_core::scanner::folders::FolderRelation) -> &'static str {
+    use waveflow_core::scanner::folders::FolderRelation;
+    match relation {
+        FolderRelation::Same => "is",
+        FolderRelation::Inside => "is inside",
+        FolderRelation::Contains => "contains",
+    }
 }
 
 impl Serialize for AppError {

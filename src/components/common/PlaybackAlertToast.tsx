@@ -17,6 +17,9 @@ const ERROR_KINDS = new Set([
   "decoder-crashed",
   "decoder-stopped",
   "offline",
+  // Raised by the frontend's own "play without importing" paths.
+  "files-failed",
+  "picker-failed",
 ]);
 const NOTICE_KINDS = new Set([
   "exclusive-refused",

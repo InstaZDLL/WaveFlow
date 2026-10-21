@@ -83,6 +83,12 @@ Both funnel into `resume_last`, which holds a one-at-a-time guard (`AudioEngine:
 
 Two rules that are easy to get wrong: the check is **rooted** (a library that itself lives under a directory of that name is still an ordinary library, and testing every component of an absolute path would empty it), and the walk never prunes **its own root** for the same reason. Writing anywhere else in a library folder needs the same treatment or it will be indexed — including by the watcher, which would otherwise answer our own writes with a rescan. Layout: [`storage.md`](storage.md#inside-the-users-library-issue-695).
 
+### Library folders never overlap
+
+No library folder is, lies under or holds another, in any library of the profile. A folder owns the tracks its scan finds (`track.folder_id`), and removing it deletes them. Two folders where one holds the other both claim the files they share: each scan reads them again, the last to run takes them, and removing either can take tracks the other still shows — with their likes, ratings and playlist places.
+
+`add_folder_to_library` refuses an overlap with `AppError::FolderOverlap`, and the drop never registers a folder at all: it copies into the one folder WaveFlow manages ([drag-and-drop import](../features/library.md#drag-and-drop-import)). Compare folders with [`scanner::folders::relation`](../../src-tauri/crates/core/src/scanner/folders.rs), never with a string prefix: `Music2` starts with the characters of `Music` and is not under it, and Windows and macOS ignore case.
+
 ### Never `DROP TABLE` a parent table in a migration
 
 The profile pool opens with `foreign_keys = ON` and SQLite's `DROP TABLE` fires an implicit `DELETE`, so `ON DELETE SET NULL` / `CASCADE` on children run — dropping `artwork` blanks every `album.artwork_id`, dropping `artist` empties `track_artist`. `PRAGMA foreign_keys` is a no-op inside the transaction sqlx wraps migrations in, so it cannot be turned off there. Use `ALTER TABLE … ADD COLUMN` (issue #401 took this route for exactly this reason).

@@ -408,7 +408,7 @@ const FOLDER_COVER_STEMS: &[&str] = &["cover", "folder", "front", "albumart", "a
 /// the `image` crate decodes via the features enabled in `Cargo.toml`, so
 /// every match downstream of this fn is guaranteed to be readable by the
 /// thumbnail pipeline.
-const FOLDER_COVER_EXTENSIONS: &[&str] = &["jpg", "jpeg", "png", "webp", "bmp", "gif", "tiff"];
+pub const FOLDER_COVER_EXTENSIONS: &[&str] = &["jpg", "jpeg", "png", "webp", "bmp", "gif", "tiff"];
 
 /// Look for a sidecar cover image (cover.jpg / folder.png / front.webp / ...)
 /// next to the track. Returns an `ExtractedCover` written to the shared

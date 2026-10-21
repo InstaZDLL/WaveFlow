@@ -229,7 +229,8 @@
       "artists": "Artiesten",
       "genres": "Genres",
       "years": "Jaren",
-      "folders": "Mappen"
+      "folders": "Mappen",
+      "playWithoutImportingAria": "Afspelen zonder importeren"
     },
     "playlistSection": {
       "title": "Afspeellijsten"
@@ -996,7 +997,9 @@
         "decoder-crashed": "De audio-engine is opnieuw gestart",
         "decoder-stopped": "De audio-engine is gestopt na herhaalde fouten",
         "offline": "Offlinemodus staat aan",
-        "unknown": "Afspelen is mislukt"
+        "unknown": "Afspelen is mislukt",
+        "files-failed": "Deze bestanden kunnen niet worden afgespeeld",
+        "picker-failed": "De bestandskiezer kan niet worden geopend"
       },
       "notice": {
         "exclusive-refused": "Dit apparaat weigert de exclusieve modus: afspelen in gedeelde modus",
@@ -1581,9 +1584,14 @@
     "reasonMissing": "het bestand is er niet (verwijderd of op een niet-aangesloten schijf); de volgende scan werkt de bibliotheek bij"
   },
   "dragDrop": {
-    "dropHint": "Loslaten om te importeren",
-    "importing": "Importeren…",
-    "subtitle": "Mappen of audiobestanden geaccepteerd"
+    "play": {
+      "title": "Nu afspelen",
+      "hint": "Zonder het aan de bibliotheek toe te voegen"
+    },
+    "import": {
+      "title": "Aan de bibliotheek toevoegen",
+      "hint": "Gekopieerd naar de WaveFlow-map van je muziek"
+    }
   },
   "abLoop": {
     "setA": "A-B-loop: punt A op huidige positie instellen",
@@ -1875,7 +1883,9 @@
         "toggleLyrics": "Songtekstpaneel in-/uitschakelen",
         "toggleLike": "Huidig nummer favoriet maken / verwijderen",
         "focusSearch": "Naar zoeken",
-        "toggleFullscreen": "Volledig scherm"
+        "toggleFullscreen": "Volledig scherm",
+        "openFiles": "Bestanden afspelen zonder ze te importeren",
+        "openFolder": "Een map afspelen zonder hem te importeren"
       }
     },
     "offlineMode": {
@@ -3139,7 +3149,8 @@
       "reconcile": "Afstemming",
       "upload": "Uploaden",
       "backup": "Back-up",
-      "thumbnails": "Miniaturen"
+      "thumbnails": "Miniaturen",
+      "drop_import": "Kopiëren naar de bibliotheek"
     }
   },
   "smartRuleSummary": {
@@ -3275,5 +3286,31 @@
       "targetTaken": "Een ander bestand heet al {{path}}."
     },
     "adopts": "Dit bestand staat al als apart nummer in de bibliotheek. Die vermelding wordt verwijderd, met haar korte geschiedenis, en dit nummer neemt het bestand over."
+  },
+  "openToPlay": {
+    "files": "Bestanden afspelen…",
+    "folder": "Een map afspelen…",
+    "filesTitle": "Kies de bestanden om af te spelen",
+    "folderTitle": "Kies de map om af te spelen",
+    "filterName": "Audiobestanden"
+  },
+  "importNotice": {
+    "dropped": {
+      "title": "Toegevoegd aan de bibliotheek",
+      "titleNothing": "Niets nieuws om toe te voegen",
+      "copied": "Gekopieerde bestanden: {{n}}",
+      "alreadyCopied": "Eerder al gekopieerd: {{n}}",
+      "inLibrary": "Al in de bibliotheek, overgeslagen: {{n}}",
+      "refused": "Mappen geweigerd omdat ze een bibliotheekmap bevatten: {{n}}",
+      "errors": "Mislukte kopieën: {{n}}",
+      "truncated": "Limiet bereikt: zet de rest in meerdere keren neer.",
+      "cancelled": "Kopiëren gestopt; wat al gekopieerd was, is toegevoegd."
+    },
+    "overlap": {
+      "title": "Map al opgenomen",
+      "same": "Deze map staat al in de bibliotheek: {{folder}}",
+      "inside": "Deze map staat al in de bibliotheek, binnen {{folder}}.",
+      "contains": "Deze map bevat {{folder}}, die al in de bibliotheek staat. Voeg liever de andere submappen toe."
+    }
   }
 }

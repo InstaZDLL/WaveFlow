@@ -33,6 +33,7 @@ mod render_mode;
 // unconditionally so the always-present player control seams can probe
 // and clear it; the `sync_v2`-gated orchestration lives in
 // `remote::playback`.
+mod drop_import;
 mod external_playback;
 mod launch_args;
 mod remote_playback;
@@ -844,7 +845,7 @@ pub fn run() {
             commands::library::set_folder_watched,
             commands::library::remove_folder_from_library,
             commands::library::count_folder_play_events,
-            commands::library::import_paths,
+            commands::library::import_dropped,
             commands::duplicates::find_duplicates,
             commands::duplicates::move_tracks_to_trash,
             commands::replace::check_track_replacement,

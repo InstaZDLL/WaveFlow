@@ -98,11 +98,63 @@ export function rescanLibrary(
   return invoke<RescanSummary>("rescan_library", { libraryId, deep });
 }
 
+/**
+ * Register a folder of a library. Refused with a `FolderOverlap` error
+ * (see {@link parseFolderOverlap}) when it is, holds or lies under a
+ * folder already in the library.
+ */
 export function addFolderToLibrary(
   libraryId: number,
   path: string,
 ): Promise<number> {
   return invoke<number>("add_folder_to_library", { libraryId, path });
+}
+
+/** How a folder lies relative to the library folder in its way. */
+export type FolderRelation = "same" | "inside" | "contains";
+
+export interface FolderOverlap {
+  relation: FolderRelation;
+  /** The library folder in the way. */
+  folder: string;
+}
+
+/**
+ * The library folder an add or a drop ran into, read from the backend's
+ * `AppError::FolderOverlap` message, whose wording is the contract; `null`
+ * for any other error.
+ */
+export function parseFolderOverlap(err: unknown): FolderOverlap | null {
+  const match =
+    /^the folder (is inside|is|contains) the library folder (.+)$/.exec(
+      String(err),
+    );
+  if (!match) return null;
+  const relation: FolderRelation =
+    match[1] === "is"
+      ? "same"
+      : match[1] === "is inside"
+        ? "inside"
+        : "contains";
+  return { relation, folder: match[2] };
+}
+
+/**
+ * Something the import surfaces should tell the user: a folder refused
+ * for overlapping one in the library, or what a drop copied. Dispatched on
+ * `window` as {@link IMPORT_NOTICE_EVENT}, so every place that adds a
+ * folder is covered by one toast without knowing about it.
+ */
+export type ImportNotice =
+  | { kind: "overlap"; overlap: FolderOverlap }
+  | { kind: "dropped"; summary: DropImportSummary };
+
+export const IMPORT_NOTICE_EVENT = "waveflow:import-notice";
+
+export function announceImport(notice: ImportNotice): void {
+  window.dispatchEvent(
+    new CustomEvent(IMPORT_NOTICE_EVENT, { detail: notice }),
+  );
 }
 
 /**
@@ -189,25 +241,34 @@ export function countFolderPlayEvents(folderId: number): Promise<number> {
   return invoke<number>("count_folder_play_events", { folderId });
 }
 
+/** What a drop added to the library: `import_dropped`'s summary. */
+export interface DropImportSummary {
+  /** The folder WaveFlow manages, where the files were copied. */
+  folder: string;
+  copied: number;
+  /** Already in the managed folder from an earlier drop. */
+  already_copied: number;
+  /** Dropped items already under a library folder, passed over. */
+  in_library: number;
+  /** Dropped folders holding a library folder, refused. */
+  refused: number;
+  errors: number;
+  /** The drop held more files than one drop copies. */
+  truncated: boolean;
+  cancelled: boolean;
+  scan: ScanSummary | null;
+}
+
 /**
- * Import a list of arbitrary filesystem paths into a library. Used
- * by the drag-and-drop handler — accepts a mix of folders and audio
- * files (files contribute their parent directory). Adds each as a
- * library_folder (skipping duplicates) and triggers a scan, then
- * returns a single aggregated summary.
+ * Add dropped files and folders to a library by copying them into the
+ * folder WaveFlow manages under the user's music (`Music/WaveFlow`), then
+ * scanning it. The folders they came from are never registered.
  */
-export function importPaths(
+export function importDropped(
   libraryId: number,
   paths: string[],
-): Promise<{
-  scanned: number;
-  added: number;
-  updated: number;
-  skipped: number;
-  errors: number;
-  removed: number;
-}> {
-  return invoke("import_paths", { libraryId, paths });
+): Promise<DropImportSummary> {
+  return invoke<DropImportSummary>("import_dropped", { libraryId, paths });
 }
 
 /**

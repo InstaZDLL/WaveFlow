@@ -229,7 +229,8 @@
       "artists": "Sanatçılar",
       "genres": "Türler",
       "years": "Yıllar",
-      "folders": "Klasörler"
+      "folders": "Klasörler",
+      "playWithoutImportingAria": "İçe aktarmadan çal"
     },
     "playlistSection": {
       "title": "Çalma listeleri"
@@ -996,7 +997,9 @@
         "decoder-crashed": "Ses motoru yeniden başlatıldı",
         "decoder-stopped": "Ses motoru tekrarlanan hatalardan sonra durdu",
         "offline": "Çevrimdışı mod açık",
-        "unknown": "Oynatma başarısız oldu"
+        "unknown": "Oynatma başarısız oldu",
+        "files-failed": "Bu dosyalar çalınamıyor",
+        "picker-failed": "Dosya seçici açılamıyor"
       },
       "notice": {
         "exclusive-refused": "Bu aygıt özel modu kabul etmiyor: paylaşımlı modda çalınıyor",
@@ -1581,9 +1584,14 @@
     "reasonMissing": "dosya yerinde değil (silinmiş ya da bağlı olmayan bir sürücüde); sonraki tarama kitaplığı güncelleyecek"
   },
   "dragDrop": {
-    "dropHint": "İçe aktarmak için bırak",
-    "importing": "İçe aktarılıyor…",
-    "subtitle": "Klasör veya ses dosyaları kabul edilir"
+    "play": {
+      "title": "Şimdi çal",
+      "hint": "Kitaplığa eklemeden"
+    },
+    "import": {
+      "title": "Kitaplığa ekle",
+      "hint": "Müziğinizin WaveFlow klasörüne kopyalandı"
+    }
   },
   "abLoop": {
     "setA": "A-B döngüsü: A noktasını mevcut konuma ayarla",
@@ -1875,7 +1883,9 @@
         "toggleLyrics": "Söz panelini aç/kapat",
         "toggleLike": "Mevcut parçayı beğen / beğenme",
         "focusSearch": "Aramaya git",
-        "toggleFullscreen": "Tam ekran"
+        "toggleFullscreen": "Tam ekran",
+        "openFiles": "Dosyaları içe aktarmadan çal",
+        "openFolder": "Bir klasörü içe aktarmadan çal"
       }
     },
     "offlineMode": {
@@ -3139,7 +3149,8 @@
       "reconcile": "Eşleştirme",
       "upload": "Yükleme",
       "backup": "Yedekleme",
-      "thumbnails": "Kapak önizlemeleri"
+      "thumbnails": "Kapak önizlemeleri",
+      "drop_import": "Kitaplığa kopyalama"
     }
   },
   "smartRuleSummary": {
@@ -3275,5 +3286,31 @@
       "targetTaken": "Başka bir dosya zaten {{path}} adını taşıyor."
     },
     "adopts": "Bu dosya kitaplıkta zaten ayrı bir parça olarak var. O kayıt kısa geçmişiyle birlikte kaldırılır ve bu parça dosyasını devralır."
+  },
+  "openToPlay": {
+    "files": "Dosyaları çal…",
+    "folder": "Bir klasörü çal…",
+    "filesTitle": "Çalınacak dosyaları seçin",
+    "folderTitle": "Çalınacak klasörü seçin",
+    "filterName": "Ses dosyaları"
+  },
+  "importNotice": {
+    "dropped": {
+      "title": "Kitaplığa eklendi",
+      "titleNothing": "Eklenecek yeni bir şey yok",
+      "copied": "Kopyalanan dosyalar: {{n}}",
+      "alreadyCopied": "Daha önce kopyalanmış: {{n}}",
+      "inLibrary": "Zaten kitaplıkta, atlandı: {{n}}",
+      "refused": "Bir kitaplık klasörü içerdiği için reddedilen klasörler: {{n}}",
+      "errors": "Başarısız kopyalar: {{n}}",
+      "truncated": "Sınıra ulaşıldı: kalanını birkaç seferde bırakın.",
+      "cancelled": "Kopyalama durduruldu; zaten kopyalananlar eklendi."
+    },
+    "overlap": {
+      "title": "Klasör zaten kapsanıyor",
+      "same": "Bu klasör zaten kitaplıkta: {{folder}}",
+      "inside": "Bu klasör zaten kitaplıkta, {{folder}} içinde.",
+      "contains": "Bu klasör, zaten kitaplıkta olan {{folder}} klasörünü içeriyor. Bunun yerine diğer alt klasörlerini ekleyin."
+    }
   }
 }

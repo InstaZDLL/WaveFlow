@@ -12,6 +12,8 @@ import {
   type ShortcutBindings,
 } from "../lib/shortcuts";
 import { toggleLikeTrack } from "../lib/tauri/track";
+import { openFilesToPlay, openFolderToPlay } from "../lib/openToPlay";
+import { isStreamTrack } from "../lib/playerSources";
 
 /**
  * Wires global keyboard shortcuts to PlayerContext actions. Mounted
@@ -76,7 +78,13 @@ export function useGlobalShortcuts() {
 
       // A held F11 auto-repeats: one press, one switch. After the field
       // check, so a binding that types in a field still repeats there.
-      if (event.repeat && action === "toggleFullscreen") {
+      // Same for the pickers: a held Ctrl+O would stack dialogs.
+      if (
+        event.repeat &&
+        (action === "toggleFullscreen" ||
+          action === "openFiles" ||
+          action === "openFolder")
+      ) {
         event.preventDefault();
         return;
       }
@@ -154,9 +162,17 @@ async function dispatch(
     case "toggleFullscreen":
       await toggleWindowFullscreen();
       break;
+    case "openFiles":
+      await openFilesToPlay();
+      break;
+    case "openFolder":
+      await openFolderToPlay();
+      break;
     case "toggleLike": {
       const track = player.currentTrack;
-      if (!track) return;
+      // A track with no library row has nothing to like, as its ♥ button
+      // is hidden.
+      if (!track || isStreamTrack(track)) return;
       try {
         await toggleLikeTrack(track.id);
       } catch (err) {

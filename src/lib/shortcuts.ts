@@ -22,7 +22,9 @@ export type ShortcutAction =
   | "toggleLyrics"
   | "toggleLike"
   | "focusSearch"
-  | "toggleFullscreen";
+  | "toggleFullscreen"
+  | "openFiles"
+  | "openFolder";
 
 export const SHORTCUT_ACTIONS: ShortcutAction[] = [
   "togglePlayback",
@@ -39,6 +41,8 @@ export const SHORTCUT_ACTIONS: ShortcutAction[] = [
   "toggleLike",
   "focusSearch",
   "toggleFullscreen",
+  "openFiles",
+  "openFolder",
 ];
 
 /**
@@ -49,7 +53,7 @@ export const SHORTCUT_ACTIONS: ShortcutAction[] = [
  * wanted.
  */
 export const SHORTCUTS_ALLOWED_IN_FIELDS: ReadonlySet<ShortcutAction> = new Set(
-  ["focusSearch", "toggleFullscreen"],
+  ["focusSearch", "toggleFullscreen", "openFiles", "openFolder"],
 );
 
 /** What a text field does with a combo itself: never taken from it. */
@@ -116,6 +120,8 @@ export const DEFAULT_BINDINGS: Record<ShortcutAction, string> = {
   toggleLike: "Shift+L",
   focusSearch: "Ctrl+K",
   toggleFullscreen: "F11",
+  openFiles: "Ctrl+O",
+  openFolder: "Ctrl+Shift+O",
 };
 
 const SETTING_KEY = "ui.shortcuts";

@@ -233,7 +233,8 @@
       "artists": "Artistes",
       "genres": "Genres",
       "years": "Années",
-      "folders": "Dossiers"
+      "folders": "Dossiers",
+      "playWithoutImportingAria": "Lire sans importer"
     },
     "playlistSection": {
       "title": "Playlists"
@@ -1036,7 +1037,9 @@
         "decoder-crashed": "Le moteur audio a redémarré",
         "decoder-stopped": "Le moteur audio s'est arrêté après plusieurs erreurs",
         "offline": "Le mode hors ligne est activé",
-        "unknown": "La lecture a échoué"
+        "unknown": "La lecture a échoué",
+        "files-failed": "Impossible de lire ces fichiers",
+        "picker-failed": "Impossible d'ouvrir le sélecteur de fichiers"
       },
       "notice": {
         "exclusive-refused": "Ce périphérique refuse le mode exclusif : lecture en mode partagé",
@@ -1756,9 +1759,14 @@
     "reasonMissing": "le fichier est introuvable (supprimé, ou sur un disque non connecté) ; le prochain scan mettra la bibliothèque à jour"
   },
   "dragDrop": {
-    "dropHint": "Déposer pour importer",
-    "importing": "Import en cours…",
-    "subtitle": "Dossiers ou fichiers audio acceptés"
+    "play": {
+      "title": "Lire maintenant",
+      "hint": "Sans l'ajouter à la bibliothèque"
+    },
+    "import": {
+      "title": "Ajouter à la bibliothèque",
+      "hint": "Copiés dans le dossier WaveFlow de votre musique"
+    }
   },
   "abLoop": {
     "setA": "Boucle A-B : définir le point A à la position actuelle",
@@ -2013,7 +2021,9 @@
         "toggleLyrics": "Afficher / masquer les paroles",
         "toggleLike": "Ajouter / Retirer des coups de cœur",
         "focusSearch": "Aller à la recherche",
-        "toggleFullscreen": "Plein écran"
+        "toggleFullscreen": "Plein écran",
+        "openFiles": "Lire des fichiers sans les importer",
+        "openFolder": "Lire un dossier sans l'importer"
       }
     },
     "offlineMode": {
@@ -3231,7 +3241,8 @@
       "reconcile": "Réconciliation",
       "upload": "Téléversement",
       "backup": "Sauvegarde",
-      "thumbnails": "Vignettes"
+      "thumbnails": "Vignettes",
+      "drop_import": "Copie vers la bibliothèque"
     }
   },
   "smartRuleSummary": {
@@ -3377,5 +3388,31 @@
       "targetTaken": "Un autre fichier porte déjà le nom {{path}}."
     },
     "adopts": "Ce fichier est déjà dans la bibliothèque comme un morceau à part. Cette entrée est supprimée, avec son court historique, et ce morceau-ci reprend son fichier."
+  },
+  "openToPlay": {
+    "files": "Lire des fichiers…",
+    "folder": "Lire un dossier…",
+    "filesTitle": "Choisir les fichiers à lire",
+    "folderTitle": "Choisir le dossier à lire",
+    "filterName": "Fichiers audio"
+  },
+  "importNotice": {
+    "dropped": {
+      "title": "Ajouté à la bibliothèque",
+      "titleNothing": "Rien de nouveau à ajouter",
+      "copied": "Fichiers copiés : {{n}}",
+      "alreadyCopied": "Déjà copiés auparavant : {{n}}",
+      "inLibrary": "Déjà dans la bibliothèque, ignorés : {{n}}",
+      "refused": "Dossiers refusés, car ils contiennent un dossier de la bibliothèque : {{n}}",
+      "errors": "Copies échouées : {{n}}",
+      "truncated": "Limite atteinte : déposez le reste en plusieurs fois.",
+      "cancelled": "Copie arrêtée ; ce qui était déjà copié a été ajouté."
+    },
+    "overlap": {
+      "title": "Dossier déjà couvert",
+      "same": "Ce dossier est déjà dans la bibliothèque : {{folder}}",
+      "inside": "Ce dossier est déjà dans la bibliothèque, à l'intérieur de {{folder}}.",
+      "contains": "Ce dossier contient {{folder}}, qui est déjà dans la bibliothèque. Ajoutez plutôt ses autres sous-dossiers."
+    }
   }
 }

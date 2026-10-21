@@ -229,7 +229,8 @@
       "artists": "아티스트",
       "genres": "장르",
       "years": "연도",
-      "folders": "폴더"
+      "folders": "폴더",
+      "playWithoutImportingAria": "가져오지 않고 재생"
     },
     "playlistSection": {
       "title": "재생 목록"
@@ -994,7 +995,9 @@
         "decoder-crashed": "오디오 엔진이 다시 시작되었습니다",
         "decoder-stopped": "오류가 반복되어 오디오 엔진이 중지되었습니다",
         "offline": "오프라인 모드가 켜져 있습니다",
-        "unknown": "재생에 실패했습니다"
+        "unknown": "재생에 실패했습니다",
+        "files-failed": "이 파일들을 재생할 수 없습니다",
+        "picker-failed": "파일 선택기를 열 수 없습니다"
       },
       "notice": {
         "exclusive-refused": "이 장치는 독점 모드를 허용하지 않습니다. 공유 모드로 재생합니다",
@@ -1579,9 +1582,14 @@
     "reasonMissing": "파일이 없습니다(삭제되었거나 연결되지 않은 드라이브에 있음). 다음 스캔에서 라이브러리가 업데이트됩니다"
   },
   "dragDrop": {
-    "dropHint": "여기에 놓아 가져오기",
-    "importing": "가져오는 중…",
-    "subtitle": "폴더와 오디오 파일을 가져올 수 있습니다"
+    "play": {
+      "title": "지금 재생",
+      "hint": "보관함에 추가하지 않고"
+    },
+    "import": {
+      "title": "보관함에 추가",
+      "hint": "음악의 WaveFlow 폴더로 복사됨"
+    }
   },
   "abLoop": {
     "setA": "A-B 루프: 현재 위치에 A 지점 설정",
@@ -1873,7 +1881,9 @@
         "toggleLyrics": "가사 표시 / 숨기기",
         "toggleLike": "좋아요 / 좋아요 취소",
         "focusSearch": "검색으로 이동",
-        "toggleFullscreen": "전체 화면"
+        "toggleFullscreen": "전체 화면",
+        "openFiles": "파일을 가져오지 않고 재생",
+        "openFolder": "폴더를 가져오지 않고 재생"
       }
     },
     "offlineMode": {
@@ -3137,7 +3147,8 @@
       "reconcile": "대조",
       "upload": "업로드",
       "backup": "백업",
-      "thumbnails": "썸네일"
+      "thumbnails": "썸네일",
+      "drop_import": "보관함으로 복사"
     }
   },
   "smartRuleSummary": {
@@ -3273,5 +3284,31 @@
       "targetTaken": "다른 파일이 이미 {{path}} 이름을 쓰고 있습니다."
     },
     "adopts": "이 파일은 이미 라이브러리에 별도의 곡으로 있습니다. 그 항목은 짧은 기록과 함께 삭제되고, 이 곡이 그 파일을 이어받습니다."
+  },
+  "openToPlay": {
+    "files": "파일 재생…",
+    "folder": "폴더 재생…",
+    "filesTitle": "재생할 파일 선택",
+    "folderTitle": "재생할 폴더 선택",
+    "filterName": "오디오 파일"
+  },
+  "importNotice": {
+    "dropped": {
+      "title": "보관함에 추가됨",
+      "titleNothing": "새로 추가할 항목이 없습니다",
+      "copied": "복사한 파일: {{n}}",
+      "alreadyCopied": "이전에 이미 복사됨: {{n}}",
+      "inLibrary": "이미 보관함에 있어 건너뜀: {{n}}",
+      "refused": "보관함 폴더를 포함해 거부된 폴더: {{n}}",
+      "errors": "복사 실패: {{n}}",
+      "truncated": "한도에 도달했습니다: 나머지는 여러 번에 나눠 놓으세요.",
+      "cancelled": "복사가 중지되었습니다. 이미 복사된 항목은 추가되었습니다."
+    },
+    "overlap": {
+      "title": "이미 포함된 폴더",
+      "same": "이 폴더는 이미 보관함에 있습니다: {{folder}}",
+      "inside": "이 폴더는 이미 보관함의 {{folder}} 안에 있습니다.",
+      "contains": "이 폴더에는 이미 보관함에 있는 {{folder}}이(가) 들어 있습니다. 대신 다른 하위 폴더를 추가하세요."
+    }
   }
 }
