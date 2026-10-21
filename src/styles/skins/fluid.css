@@ -471,7 +471,10 @@
   height: 10.5rem;
   border-radius: 1.125rem;
   overflow: hidden;
-  background-color: var(--fe-surface);
+  /* The band is always dark — its own gradient under a dark scrim — so
+     its ground and its ink are literals, not the skin's tokens, which a
+     light-ground skin turns dark. */
+  background-color: #121216;
   isolation: isolate;
 }
 /* One continuous tempo gradient behind the five segments. Muted on
@@ -530,14 +533,14 @@
   justify-content: flex-end;
   padding: 1rem 1.125rem 1rem;
   text-align: left;
-  color: var(--fe-ink);
+  color: #f3f1ec;
 }
 :root[data-layout="fluid"] .fe-spectrum__radio:focus-visible {
   outline: 2px solid var(--fe-accent);
   outline-offset: -3px;
 }
 :root[data-layout="fluid"] .fe-spectrum__radio:disabled {
-  color: var(--fe-ink-3);
+  color: rgb(255 255 255 / 0.55);
   cursor: not-allowed;
 }
 :root[data-layout="fluid"] .fe-spectrum__cta {

@@ -170,18 +170,18 @@
   inset: -25%;
   background:
     radial-gradient(
-      ellipse 34% 32% at 16% 14%,
-      color-mix(in srgb, var(--liq-pool-1) 72%, transparent),
+      ellipse 36% 34% at 16% 14%,
+      color-mix(in srgb, var(--liq-pool-1) 88%, transparent),
       transparent 70%
     ),
     radial-gradient(
-      ellipse 40% 34% at 84% 26%,
-      color-mix(in srgb, var(--liq-pool-2) 62%, transparent),
+      ellipse 42% 36% at 84% 26%,
+      color-mix(in srgb, var(--liq-pool-2) 74%, transparent),
       transparent 70%
     ),
     radial-gradient(
-      ellipse 46% 36% at 34% 104%,
-      color-mix(in srgb, var(--liq-pool-3) 78%, transparent),
+      ellipse 48% 38% at 34% 104%,
+      color-mix(in srgb, var(--liq-pool-3) 88%, transparent),
       transparent 72%
     );
   animation: liq-drift 36s ease-in-out infinite alternate;
