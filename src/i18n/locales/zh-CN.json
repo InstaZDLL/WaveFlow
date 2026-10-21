@@ -229,7 +229,8 @@
       "artists": "艺人",
       "genres": "流派",
       "years": "年份",
-      "folders": "文件夹"
+      "folders": "文件夹",
+      "playWithoutImportingAria": "不导入直接播放"
     },
     "playlistSection": {
       "title": "播放列表"
@@ -1579,9 +1580,15 @@
     "reasonMissing": "文件不在原处（已删除，或位于未连接的驱动器上）；下次扫描会更新音乐库"
   },
   "dragDrop": {
-    "dropHint": "松开以导入",
     "importing": "正在导入…",
-    "subtitle": "支持文件夹或音频文件"
+    "play": {
+      "title": "立即播放",
+      "hint": "不添加到音乐库"
+    },
+    "import": {
+      "title": "添加到音乐库",
+      "hint": "文件夹或音频文件，扫描后持续监视"
+    }
   },
   "abLoop": {
     "setA": "A-B 循环：在当前位置设置 A 点",
@@ -2317,7 +2324,9 @@
         "toggleLyrics": "显示/隐藏歌词",
         "toggleLike": "喜欢/取消喜欢",
         "focusSearch": "跳转到搜索",
-        "toggleFullscreen": "全屏"
+        "toggleFullscreen": "全屏",
+        "openFiles": "不导入直接播放文件",
+        "openFolder": "不导入直接播放文件夹"
       }
     },
     "offlineMode": {
@@ -3273,5 +3282,12 @@
       "targetTaken": "已有另一个文件名为 {{path}}。"
     },
     "adopts": "此文件已作为单独的曲目在音乐库中。该条目及其简短的历史记录将被删除，由这首曲目接管其文件。"
+  },
+  "openToPlay": {
+    "files": "播放文件…",
+    "folder": "播放文件夹…",
+    "filesTitle": "选择要播放的文件",
+    "folderTitle": "选择要播放的文件夹",
+    "filterName": "音频文件"
   }
 }

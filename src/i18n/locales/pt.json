@@ -233,7 +233,8 @@
       "artists": "Artistas",
       "genres": "Géneros",
       "years": "Anos",
-      "folders": "Pastas"
+      "folders": "Pastas",
+      "playWithoutImportingAria": "Reproduzir sem importar"
     },
     "playlistSection": {
       "title": "Listas de reprodução"
@@ -1637,9 +1638,15 @@
     "reasonMissing": "o ficheiro não existe (eliminado ou numa unidade não ligada); a próxima análise atualiza a biblioteca"
   },
   "dragDrop": {
-    "dropHint": "Largar para importar",
     "importing": "A importar…",
-    "subtitle": "Pastas ou ficheiros áudio aceites"
+    "play": {
+      "title": "Reproduzir agora",
+      "hint": "Sem o adicionar à biblioteca"
+    },
+    "import": {
+      "title": "Adicionar à biblioteca",
+      "hint": "Pastas ou ficheiros de áudio, analisados e depois acompanhados"
+    }
   },
   "abLoop": {
     "setA": "Ciclo A-B: definir o ponto A na posição atual",
@@ -1934,7 +1941,9 @@
         "toggleLyrics": "Mostrar / Ocultar letra",
         "toggleLike": "Adicionar / Remover dos favoritos",
         "focusSearch": "Ir para a pesquisa",
-        "toggleFullscreen": "Ecrã inteiro"
+        "toggleFullscreen": "Ecrã inteiro",
+        "openFiles": "Reproduzir ficheiros sem os importar",
+        "openFolder": "Reproduzir uma pasta sem a importar"
       }
     },
     "offlineMode": {
@@ -3378,5 +3387,12 @@
       "targetTaken": "Outro ficheiro já se chama {{path}}."
     },
     "adopts": "Este ficheiro já está na biblioteca como uma faixa à parte. Essa entrada é removida, com o seu breve histórico, e esta faixa passa a usar o ficheiro."
+  },
+  "openToPlay": {
+    "files": "Reproduzir ficheiros…",
+    "folder": "Reproduzir uma pasta…",
+    "filesTitle": "Escolha os ficheiros a reproduzir",
+    "folderTitle": "Escolha a pasta a reproduzir",
+    "filterName": "Ficheiros de áudio"
   }
 }

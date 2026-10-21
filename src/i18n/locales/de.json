@@ -229,7 +229,8 @@
       "artists": "Künstler",
       "genres": "Genres",
       "years": "Jahre",
-      "folders": "Ordner"
+      "folders": "Ordner",
+      "playWithoutImportingAria": "Ohne Import abspielen"
     },
     "playlistSection": {
       "title": "Playlists"
@@ -1581,9 +1582,15 @@
     "reasonMissing": "die Datei ist nicht da (gelöscht oder auf einem nicht verbundenen Laufwerk); der nächste Scan aktualisiert die Mediathek"
   },
   "dragDrop": {
-    "dropHint": "Loslassen zum Importieren",
     "importing": "Wird importiert…",
-    "subtitle": "Ordner oder Audiodateien akzeptiert"
+    "play": {
+      "title": "Jetzt abspielen",
+      "hint": "Ohne es zur Bibliothek hinzuzufügen"
+    },
+    "import": {
+      "title": "Zur Bibliothek hinzufügen",
+      "hint": "Ordner oder Audiodateien, eingelesen und danach überwacht"
+    }
   },
   "abLoop": {
     "setA": "A-B-Schleife: Punkt A an aktueller Position setzen",
@@ -1875,7 +1882,9 @@
         "toggleLyrics": "Songtext-Panel umschalten",
         "toggleLike": "Aktuellen Titel zu Favoriten hinzufügen / entfernen",
         "focusSearch": "Zur Suche springen",
-        "toggleFullscreen": "Vollbild"
+        "toggleFullscreen": "Vollbild",
+        "openFiles": "Dateien ohne Import abspielen",
+        "openFolder": "Ordner ohne Import abspielen"
       }
     },
     "offlineMode": {
@@ -3275,5 +3284,12 @@
       "targetTaken": "Eine andere Datei heißt bereits {{path}}."
     },
     "adopts": "Diese Datei ist bereits als eigener Titel in der Mediathek. Dieser Eintrag wird samt seinem kurzen Verlauf entfernt, und dieser Titel übernimmt seine Datei."
+  },
+  "openToPlay": {
+    "files": "Dateien abspielen…",
+    "folder": "Ordner abspielen…",
+    "filesTitle": "Dateien zum Abspielen auswählen",
+    "folderTitle": "Ordner zum Abspielen auswählen",
+    "filterName": "Audiodateien"
   }
 }

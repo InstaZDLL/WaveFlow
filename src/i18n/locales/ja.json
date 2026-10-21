@@ -229,7 +229,8 @@
       "artists": "アーティスト",
       "genres": "ジャンル",
       "years": "年",
-      "folders": "フォルダ"
+      "folders": "フォルダ",
+      "playWithoutImportingAria": "インポートせずに再生"
     },
     "playlistSection": {
       "title": "プレイリスト"
@@ -1579,9 +1580,15 @@
     "reasonMissing": "ファイルが見つかりません（削除済み、または接続されていないドライブ上）。次回のスキャンでライブラリが更新されます"
   },
   "dragDrop": {
-    "dropHint": "ドロップしてインポート",
     "importing": "インポート中…",
-    "subtitle": "フォルダまたはオーディオファイルを受け付けます"
+    "play": {
+      "title": "今すぐ再生",
+      "hint": "ライブラリに追加せずに"
+    },
+    "import": {
+      "title": "ライブラリに追加",
+      "hint": "フォルダーまたはオーディオファイル。スキャン後に監視します"
+    }
   },
   "abLoop": {
     "setA": "A-Bループ：現在位置にA点を設定",
@@ -2317,7 +2324,9 @@
         "toggleLyrics": "歌詞を表示 / 非表示",
         "toggleLike": "いいね / 解除",
         "focusSearch": "検索に移動",
-        "toggleFullscreen": "全画面表示"
+        "toggleFullscreen": "全画面表示",
+        "openFiles": "ファイルをインポートせずに再生",
+        "openFolder": "フォルダーをインポートせずに再生"
       }
     },
     "offlineMode": {
@@ -3273,5 +3282,12 @@
       "targetTaken": "{{path}} という名前のファイルがすでにあります。"
     },
     "adopts": "このファイルはすでに別の曲としてライブラリにあります。その項目は短い履歴ごと削除され、この曲がそのファイルを引き継ぎます。"
+  },
+  "openToPlay": {
+    "files": "ファイルを再生…",
+    "folder": "フォルダーを再生…",
+    "filesTitle": "再生するファイルを選択",
+    "folderTitle": "再生するフォルダーを選択",
+    "filterName": "オーディオファイル"
   }
 }

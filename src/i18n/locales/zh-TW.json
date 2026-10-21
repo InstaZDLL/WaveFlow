@@ -229,7 +229,8 @@
       "artists": "藝人",
       "genres": "曲風",
       "years": "年份",
-      "folders": "資料夾"
+      "folders": "資料夾",
+      "playWithoutImportingAria": "不匯入直接播放"
     },
     "playlistSection": {
       "title": "播放清單"
@@ -1579,9 +1580,15 @@
     "reasonMissing": "檔案不在原處（已刪除，或位於未連接的磁碟機上）；下次掃描會更新音樂庫"
   },
   "dragDrop": {
-    "dropHint": "拖放至此以匯入",
     "importing": "正在匯入…",
-    "subtitle": "接受資料夾或音訊檔案"
+    "play": {
+      "title": "立即播放",
+      "hint": "不加入音樂庫"
+    },
+    "import": {
+      "title": "加入音樂庫",
+      "hint": "資料夾或音訊檔，掃描後持續監看"
+    }
   },
   "abLoop": {
     "setA": "A-B 循環：在目前位置設定 A 點",
@@ -2317,7 +2324,9 @@
         "toggleLyrics": "顯示 / 隱藏歌詞",
         "toggleLike": "收藏 / 取消收藏",
         "focusSearch": "跳至搜尋",
-        "toggleFullscreen": "全螢幕"
+        "toggleFullscreen": "全螢幕",
+        "openFiles": "不匯入直接播放檔案",
+        "openFolder": "不匯入直接播放資料夾"
       }
     },
     "offlineMode": {
@@ -3273,5 +3282,12 @@
       "targetTaken": "已有另一個檔案名為 {{path}}。"
     },
     "adopts": "此檔案已作為單獨的曲目在音樂庫中。該項目及其簡短的歷史紀錄將被刪除，由這首曲目接手其檔案。"
+  },
+  "openToPlay": {
+    "files": "播放檔案…",
+    "folder": "播放資料夾…",
+    "filesTitle": "選擇要播放的檔案",
+    "folderTitle": "選擇要播放的資料夾",
+    "filterName": "音訊檔"
   }
 }

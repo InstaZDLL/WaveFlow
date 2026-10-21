@@ -233,7 +233,8 @@
       "artists": "Artistes",
       "genres": "Genres",
       "years": "Années",
-      "folders": "Dossiers"
+      "folders": "Dossiers",
+      "playWithoutImportingAria": "Lire sans importer"
     },
     "playlistSection": {
       "title": "Playlists"
@@ -1756,9 +1757,15 @@
     "reasonMissing": "le fichier est introuvable (supprimé, ou sur un disque non connecté) ; le prochain scan mettra la bibliothèque à jour"
   },
   "dragDrop": {
-    "dropHint": "Déposer pour importer",
     "importing": "Import en cours…",
-    "subtitle": "Dossiers ou fichiers audio acceptés"
+    "play": {
+      "title": "Lire maintenant",
+      "hint": "Sans l'ajouter à la bibliothèque"
+    },
+    "import": {
+      "title": "Ajouter à la bibliothèque",
+      "hint": "Dossiers ou fichiers audio, analysés puis suivis"
+    }
   },
   "abLoop": {
     "setA": "Boucle A-B : définir le point A à la position actuelle",
@@ -2013,7 +2020,9 @@
         "toggleLyrics": "Afficher / masquer les paroles",
         "toggleLike": "Ajouter / Retirer des coups de cœur",
         "focusSearch": "Aller à la recherche",
-        "toggleFullscreen": "Plein écran"
+        "toggleFullscreen": "Plein écran",
+        "openFiles": "Lire des fichiers sans les importer",
+        "openFolder": "Lire un dossier sans l'importer"
       }
     },
     "offlineMode": {
@@ -3377,5 +3386,12 @@
       "targetTaken": "Un autre fichier porte déjà le nom {{path}}."
     },
     "adopts": "Ce fichier est déjà dans la bibliothèque comme un morceau à part. Cette entrée est supprimée, avec son court historique, et ce morceau-ci reprend son fichier."
+  },
+  "openToPlay": {
+    "files": "Lire des fichiers…",
+    "folder": "Lire un dossier…",
+    "filesTitle": "Choisir les fichiers à lire",
+    "folderTitle": "Choisir le dossier à lire",
+    "filterName": "Fichiers audio"
   }
 }

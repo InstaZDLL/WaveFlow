@@ -229,7 +229,8 @@
       "artists": "아티스트",
       "genres": "장르",
       "years": "연도",
-      "folders": "폴더"
+      "folders": "폴더",
+      "playWithoutImportingAria": "가져오지 않고 재생"
     },
     "playlistSection": {
       "title": "재생 목록"
@@ -1579,9 +1580,15 @@
     "reasonMissing": "파일이 없습니다(삭제되었거나 연결되지 않은 드라이브에 있음). 다음 스캔에서 라이브러리가 업데이트됩니다"
   },
   "dragDrop": {
-    "dropHint": "여기에 놓아 가져오기",
     "importing": "가져오는 중…",
-    "subtitle": "폴더와 오디오 파일을 가져올 수 있습니다"
+    "play": {
+      "title": "지금 재생",
+      "hint": "보관함에 추가하지 않고"
+    },
+    "import": {
+      "title": "보관함에 추가",
+      "hint": "폴더 또는 오디오 파일, 스캔한 뒤 계속 확인합니다"
+    }
   },
   "abLoop": {
     "setA": "A-B 루프: 현재 위치에 A 지점 설정",
@@ -1873,7 +1880,9 @@
         "toggleLyrics": "가사 표시 / 숨기기",
         "toggleLike": "좋아요 / 좋아요 취소",
         "focusSearch": "검색으로 이동",
-        "toggleFullscreen": "전체 화면"
+        "toggleFullscreen": "전체 화면",
+        "openFiles": "파일을 가져오지 않고 재생",
+        "openFolder": "폴더를 가져오지 않고 재생"
       }
     },
     "offlineMode": {
@@ -3273,5 +3282,12 @@
       "targetTaken": "다른 파일이 이미 {{path}} 이름을 쓰고 있습니다."
     },
     "adopts": "이 파일은 이미 라이브러리에 별도의 곡으로 있습니다. 그 항목은 짧은 기록과 함께 삭제되고, 이 곡이 그 파일을 이어받습니다."
+  },
+  "openToPlay": {
+    "files": "파일 재생…",
+    "folder": "폴더 재생…",
+    "filesTitle": "재생할 파일 선택",
+    "folderTitle": "재생할 폴더 선택",
+    "filterName": "오디오 파일"
   }
 }

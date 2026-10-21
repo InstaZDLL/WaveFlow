@@ -16,13 +16,12 @@ import { SkinAmbientBackdrop } from "./SkinAmbientBackdrop";
 import { SkinPlayingState } from "./SkinPlayingState";
 import { SkinMotionWrapper } from "./SkinMotionWrapper";
 import { useDragDropImport } from "../../hooks/useDragDropImport";
+import { DropTargetsOverlay } from "./DropTargetsOverlay";
 import { useGlobalShortcuts } from "../../hooks/useGlobalShortcuts";
 import { useUiZoom } from "../../hooks/useUiZoom";
 import { useWindowChrome } from "../../hooks/useWindowChrome";
 import { AppTitleBar } from "./AppTitleBar";
 import { useMainWindowBounds } from "../../hooks/useMainWindowBounds";
-import { useTranslation } from "react-i18next";
-import { Loader2, Upload } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { TopBar } from "./TopBar";
 import { QueuePanel } from "./QueuePanel";
@@ -180,7 +179,6 @@ type HistoryEntry =
     };
 
 export function AppLayout() {
-  const { t } = useTranslation();
   const { activeRightPanel } = usePlayer();
   // The Fluid skin shows the three right-edge panels as the tabs of
   // one shell; every other skin mounts them one at a time, as before.
@@ -755,33 +753,15 @@ export function AppLayout() {
           {windowChrome.draw === "overlay" && (
             <div data-tauri-drag-region className="h-7 shrink-0" />
           )}
-          {/* Drag-and-drop overlay — fades in while the user is dragging
-            files over the window, and shows an "importing…" state while
-            the backend scan runs. Pointer-events disabled so the drop
-            still hits Tauri's native handler underneath. */}
+          {/* Drag-and-drop: two targets while files are dragged over the
+            window — play them now without importing them, or add them to
+            the library — then an "importing…" state while the scan runs. */}
           {(dragDrop.isDraggingOver || dragDrop.isImporting) && (
-            <div className="fixed inset-0 z-100 pointer-events-none flex items-center justify-center bg-emerald-500/10 backdrop-blur-sm border-4 border-dashed border-emerald-500/60 animate-fade-in">
-              <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl px-8 py-6 flex items-center gap-4">
-                {dragDrop.isImporting ? (
-                  <Loader2
-                    size={28}
-                    className="text-emerald-500 animate-spin"
-                  />
-                ) : (
-                  <Upload size={28} className="text-emerald-500" />
-                )}
-                <div>
-                  <div className="text-base font-semibold text-zinc-900 dark:text-white">
-                    {dragDrop.isImporting
-                      ? t("dragDrop.importing")
-                      : t("dragDrop.dropHint")}
-                  </div>
-                  <div className="text-xs text-zinc-500 dark:text-zinc-400">
-                    {t("dragDrop.subtitle")}
-                  </div>
-                </div>
-              </div>
-            </div>
+            <DropTargetsOverlay
+              hoveredTarget={dragDrop.hoveredTarget}
+              isImporting={dragDrop.isImporting}
+              targetsRef={dragDrop.targetsRef}
+            />
           )}
 
           {/* Main Container */}

@@ -247,7 +247,9 @@ UI: per-folder trash button in the Library → Folders tab, two-step confirm-on-
 
 Auto-creates a default library on the very first drop when the profile has none, mirroring the existing pickFolder import path.
 
-UI: emerald drop overlay in [`AppLayout`](../../src/components/layout/AppLayout.tsx) renders a fade-in border + drop hint while the user is dragging, then a spinner while the backend scan runs. `pointer-events: none` on the overlay so the drop still hits Tauri's native handler.
+**A drop has two targets.** While files are dragged over the window, [`DropTargetsOverlay`](../../src/components/layout/DropTargetsOverlay.tsx) shows **Play now** and **Add to the library** side by side; only the second imports. The first plays the files without importing them ([Playing files without importing them](playback.md#playing-files-without-importing-them)). Tauri reports the pointer in physical pixels from the webview's corner, so the hook divides by `devicePixelRatio` and tests the point against the targets' own boxes, which the overlay registers in a ref: a right-to-left layout that mirrors them needs no special case, and a point in the gap between them goes to the nearer one. The drop goes to the target under the pointer at the drop, else the last one hovered.
+
+The overlay has `pointer-events: none`, so the drop still reaches Tauri's native handler, and shows a spinner while an import's scan runs. Its base styling works in every skin; the Fluid skin recomposes it through `data-drop-*` landmarks (surface cards, the accent ring and the wave mark under the target being hovered).
 
 ## Track-list columns
 

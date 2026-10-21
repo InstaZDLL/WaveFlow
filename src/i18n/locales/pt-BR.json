@@ -233,7 +233,8 @@
       "artists": "Artistas",
       "genres": "Gêneros",
       "years": "Anos",
-      "folders": "Pastas"
+      "folders": "Pastas",
+      "playWithoutImportingAria": "Tocar sem importar"
     },
     "playlistSection": {
       "title": "Playlists"
@@ -1637,9 +1638,15 @@
     "reasonMissing": "o arquivo não existe (excluído ou em uma unidade não conectada); a próxima varredura atualiza a biblioteca"
   },
   "dragDrop": {
-    "dropHint": "Soltar para importar",
     "importing": "Importando…",
-    "subtitle": "Pastas ou arquivos de áudio aceitos"
+    "play": {
+      "title": "Tocar agora",
+      "hint": "Sem adicioná-lo à biblioteca"
+    },
+    "import": {
+      "title": "Adicionar à biblioteca",
+      "hint": "Pastas ou arquivos de áudio, analisados e depois monitorados"
+    }
   },
   "abLoop": {
     "setA": "Loop A-B: definir o ponto A na posição atual",
@@ -1934,7 +1941,9 @@
         "toggleLyrics": "Mostrar / Ocultar letra",
         "toggleLike": "Curtir / Remover curtida",
         "focusSearch": "Ir para a busca",
-        "toggleFullscreen": "Tela cheia"
+        "toggleFullscreen": "Tela cheia",
+        "openFiles": "Tocar arquivos sem importá-los",
+        "openFolder": "Tocar uma pasta sem importá-la"
       }
     },
     "offlineMode": {
@@ -3378,5 +3387,12 @@
       "targetTaken": "Outro arquivo já se chama {{path}}."
     },
     "adopts": "Este arquivo já está na biblioteca como uma faixa separada. Essa entrada é removida, com seu breve histórico, e esta faixa passa a usar o arquivo."
+  },
+  "openToPlay": {
+    "files": "Tocar arquivos…",
+    "folder": "Tocar uma pasta…",
+    "filesTitle": "Escolha os arquivos para tocar",
+    "folderTitle": "Escolha a pasta para tocar",
+    "filterName": "Arquivos de áudio"
   }
 }

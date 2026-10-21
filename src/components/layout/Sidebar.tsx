@@ -16,7 +16,17 @@ import {
   Sparkles,
   Radio,
   Puzzle,
+  PlayCircle,
+  FileAudio,
+  FolderOpen,
 } from "lucide-react";
+import {
+  ContextMenu,
+  ContextMenuItem,
+  type ContextMenuPoint,
+} from "../common/ContextMenu";
+import { openFilesToPlay, openFolderToPlay } from "../../lib/openToPlay";
+import { loadBindings, type ShortcutBindings } from "../../lib/shortcuts";
 import type { ViewId, LibraryTab } from "../../types";
 import { NavItem } from "../common/NavItem";
 import { WaveFlowLogo } from "../common/WaveFlowLogo";
@@ -178,6 +188,17 @@ export function Sidebar({
     // Re-fetch when the active profile changes so counters reflect
     // the new profile's data immediately (not just after a track swap).
   }, [refreshStats, activeProfile]);
+
+  // "Play without importing": a small menu under its button, files or a
+  // folder. The same two actions are bound to Ctrl+O / Ctrl+Shift+O.
+  const [openMenuPoint, setOpenMenuPoint] = useState<ContextMenuPoint | null>(
+    null,
+  );
+  // The bindings as the user set them, read when the menu opens so a
+  // rebound shortcut is the one shown.
+  const [openBindings, setOpenBindings] = useState<ShortcutBindings | null>(
+    null,
+  );
 
   // Import a folder: auto-create a library if none exists, then scan.
   const handleImportFolder = async () => {
@@ -443,15 +464,35 @@ export function Sidebar({
               className="flex items-center justify-between text-[10px] font-bold tracking-widest text-zinc-400 mb-1 px-2 uppercase"
             >
               <span>{t("sidebar.myMusic.title")}</span>
-              <button
-                type="button"
-                onClick={handleImportFolder}
-                disabled={isImporting}
-                aria-label={t("sidebar.myMusic.addFolderAria")}
-                className="p-0.5 rounded hover:text-emerald-500 transition-colors disabled:opacity-50"
-              >
-                <Folder size={14} />
-              </button>
+              <span className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    const box = e.currentTarget.getBoundingClientRect();
+                    setOpenMenuPoint({ x: box.left, y: box.bottom + 4 });
+                    loadBindings()
+                      .then(setOpenBindings)
+                      .catch(() => setOpenBindings(null));
+                  }}
+                  aria-label={t("sidebar.myMusic.playWithoutImportingAria")}
+                  title={t("sidebar.myMusic.playWithoutImportingAria")}
+                  aria-haspopup="menu"
+                  aria-expanded={openMenuPoint != null}
+                  className="p-0.5 rounded hover:text-emerald-500 transition-colors"
+                >
+                  <PlayCircle size={14} />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleImportFolder}
+                  disabled={isImporting}
+                  aria-label={t("sidebar.myMusic.addFolderAria")}
+                  title={t("sidebar.myMusic.addFolderAria")}
+                  className="p-0.5 rounded hover:text-emerald-500 transition-colors disabled:opacity-50"
+                >
+                  <Folder size={14} />
+                </button>
+              </span>
             </div>
           )}
           <NavItem
@@ -631,6 +672,33 @@ export function Sidebar({
       </div>
 
       {playlistMenu.render()}
+
+      {openMenuPoint && (
+        <ContextMenu
+          point={openMenuPoint}
+          onClose={() => setOpenMenuPoint(null)}
+          width={240}
+        >
+          <ContextMenuItem
+            icon={<FileAudio size={16} />}
+            label={t("openToPlay.files")}
+            shortcut={openBindings?.openFiles || undefined}
+            onSelect={() => {
+              setOpenMenuPoint(null);
+              void openFilesToPlay();
+            }}
+          />
+          <ContextMenuItem
+            icon={<FolderOpen size={16} />}
+            label={t("openToPlay.folder")}
+            shortcut={openBindings?.openFolder || undefined}
+            onSelect={() => {
+              setOpenMenuPoint(null);
+              void openFolderToPlay();
+            }}
+          />
+        </ContextMenu>
+      )}
 
       <CreatePlaylistModal
         isOpen={isCreatePlaylistModalOpen}

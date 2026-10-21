@@ -229,7 +229,8 @@
       "artists": "Artiesten",
       "genres": "Genres",
       "years": "Jaren",
-      "folders": "Mappen"
+      "folders": "Mappen",
+      "playWithoutImportingAria": "Afspelen zonder importeren"
     },
     "playlistSection": {
       "title": "Afspeellijsten"
@@ -1581,9 +1582,15 @@
     "reasonMissing": "het bestand is er niet (verwijderd of op een niet-aangesloten schijf); de volgende scan werkt de bibliotheek bij"
   },
   "dragDrop": {
-    "dropHint": "Loslaten om te importeren",
     "importing": "Importeren…",
-    "subtitle": "Mappen of audiobestanden geaccepteerd"
+    "play": {
+      "title": "Nu afspelen",
+      "hint": "Zonder het aan de bibliotheek toe te voegen"
+    },
+    "import": {
+      "title": "Aan de bibliotheek toevoegen",
+      "hint": "Mappen of audiobestanden, gescand en daarna gevolgd"
+    }
   },
   "abLoop": {
     "setA": "A-B-loop: punt A op huidige positie instellen",
@@ -1875,7 +1882,9 @@
         "toggleLyrics": "Songtekstpaneel in-/uitschakelen",
         "toggleLike": "Huidig nummer favoriet maken / verwijderen",
         "focusSearch": "Naar zoeken",
-        "toggleFullscreen": "Volledig scherm"
+        "toggleFullscreen": "Volledig scherm",
+        "openFiles": "Bestanden afspelen zonder ze te importeren",
+        "openFolder": "Een map afspelen zonder hem te importeren"
       }
     },
     "offlineMode": {
@@ -3275,5 +3284,12 @@
       "targetTaken": "Een ander bestand heet al {{path}}."
     },
     "adopts": "Dit bestand staat al als apart nummer in de bibliotheek. Die vermelding wordt verwijderd, met haar korte geschiedenis, en dit nummer neemt het bestand over."
+  },
+  "openToPlay": {
+    "files": "Bestanden afspelen…",
+    "folder": "Een map afspelen…",
+    "filesTitle": "Kies de bestanden om af te spelen",
+    "folderTitle": "Kies de map om af te spelen",
+    "filterName": "Audiobestanden"
   }
 }

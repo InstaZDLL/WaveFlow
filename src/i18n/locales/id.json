@@ -229,7 +229,8 @@
       "artists": "Artis",
       "genres": "Genre",
       "years": "Tahun",
-      "folders": "Folder"
+      "folders": "Folder",
+      "playWithoutImportingAria": "Putar tanpa mengimpor"
     },
     "playlistSection": {
       "title": "Daftar putar"
@@ -1579,9 +1580,15 @@
     "reasonMissing": "file tidak ada (dihapus, atau di drive yang tidak terhubung); pemindaian berikutnya memperbarui pustaka"
   },
   "dragDrop": {
-    "dropHint": "Lepaskan untuk mengimpor",
     "importing": "Mengimpor…",
-    "subtitle": "Menerima folder atau berkas audio"
+    "play": {
+      "title": "Putar sekarang",
+      "hint": "Tanpa menambahkannya ke pustaka"
+    },
+    "import": {
+      "title": "Tambahkan ke pustaka",
+      "hint": "Folder atau file audio, dipindai lalu dipantau"
+    }
   },
   "abLoop": {
     "setA": "Loop A-B: tandai titik A di posisi saat ini",
@@ -1873,7 +1880,9 @@
         "toggleLyrics": "Tampilkan/sembunyikan panel lirik",
         "toggleLike": "Sukai / Batalkan suka untuk lagu saat ini",
         "focusSearch": "Ke pencarian",
-        "toggleFullscreen": "Layar penuh"
+        "toggleFullscreen": "Layar penuh",
+        "openFiles": "Putar file tanpa mengimpornya",
+        "openFolder": "Putar folder tanpa mengimpornya"
       }
     },
     "offlineMode": {
@@ -3273,5 +3282,12 @@
       "targetTaken": "File lain sudah bernama {{path}}."
     },
     "adopts": "File ini sudah ada di pustaka sebagai lagu tersendiri. Entri itu dihapus beserta riwayat singkatnya, dan lagu ini mengambil filenya."
+  },
+  "openToPlay": {
+    "files": "Putar file…",
+    "folder": "Putar folder…",
+    "filesTitle": "Pilih file yang akan diputar",
+    "folderTitle": "Pilih folder yang akan diputar",
+    "filterName": "File audio"
   }
 }

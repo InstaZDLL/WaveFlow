@@ -229,7 +229,8 @@
       "artists": "Artists",
       "genres": "Genres",
       "years": "Years",
-      "folders": "Folders"
+      "folders": "Folders",
+      "playWithoutImportingAria": "Play without importing"
     },
     "playlistSection": {
       "title": "Playlists"
@@ -1581,9 +1582,15 @@
     "reasonMissing": "the file is not there (deleted, or on a drive that is not connected); the next scan updates the library"
   },
   "dragDrop": {
-    "dropHint": "Drop to import",
     "importing": "Importing…",
-    "subtitle": "Folders or audio files accepted"
+    "play": {
+      "title": "Play now",
+      "hint": "Without adding it to the library"
+    },
+    "import": {
+      "title": "Add to the library",
+      "hint": "Folders or audio files, scanned and then watched"
+    }
   },
   "abLoop": {
     "setA": "A-B loop: set point A at the current position",
@@ -1875,7 +1882,9 @@
         "toggleLyrics": "Toggle lyrics panel",
         "toggleLike": "Like / Unlike current track",
         "focusSearch": "Focus search",
-        "toggleFullscreen": "Full screen"
+        "toggleFullscreen": "Full screen",
+        "openFiles": "Play files without importing them",
+        "openFolder": "Play a folder without importing it"
       }
     },
     "offlineMode": {
@@ -3275,5 +3284,12 @@
       "targetTaken": "Another file already has the name {{path}}."
     },
     "adopts": "This file is already in the library as a track of its own. That entry is removed, with its short history, and this track takes its file."
+  },
+  "openToPlay": {
+    "files": "Play files…",
+    "folder": "Play a folder…",
+    "filesTitle": "Choose the files to play",
+    "folderTitle": "Choose the folder to play",
+    "filterName": "Audio files"
   }
 }
