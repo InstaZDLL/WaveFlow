@@ -104,7 +104,10 @@ import { AlphabetIndex } from "../common/AlphabetIndex";
 import { useSortIgnoreArticles } from "../../hooks/useSortIgnoreArticles";
 import { useSortMemory } from "../../hooks/useSortMemory";
 import { usePageScroll } from "../../hooks/usePageScroll";
-import { getProfileSetting } from "../../lib/tauri/profile";
+import {
+  isPlayClick,
+  useSingleClickPlay,
+} from "../../hooks/useSingleClickPlay";
 import { useLibrary } from "../../hooks/useLibrary";
 import { usePlayer } from "../../hooks/usePlayer";
 import { usePlaylist } from "../../hooks/usePlaylist";
@@ -445,19 +448,7 @@ export function LibraryView({
   // Single-click play. Coexists with multi-select: ctrl/shift always
   // takes precedence (selection), single-click triggers play only on a
   // bare click and only when the toggle is on.
-  const [singleClickPlay, setSingleClickPlay] = useState(false);
-  useEffect(() => {
-    let cancelled = false;
-    getProfileSetting("ui.single_click_play")
-      .then((v) => {
-        if (cancelled) return;
-        if (v === "true" || v === "1") setSingleClickPlay(true);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const { value: singleClickPlay } = useSingleClickPlay();
 
   // Scroll target for the AlphabetIndex (artists tab uses it).
   // Callback ref populated by the virtualized ArtistList so the
@@ -1376,11 +1367,9 @@ export function LibraryView({
           selection.toggleOne(track.id);
           return;
         }
-        if (singleClickPlay) {
-          // The second click of a double-click: the first one already
-          // started the track, and the row's `dblclick` stands down in
-          // this mode — one gesture, one play, not three.
-          if (e.detail > 1) return;
+        // The same test every list of tracks applies: a plain click on
+        // the row, so Alt+click does not play here either.
+        if (isPlayClick(e, singleClickPlay)) {
           const idx = rows.findIndex(
             (row) => row.source === "local" && Number(row.id) === track.id,
           );
@@ -1388,6 +1377,10 @@ export function LibraryView({
           selection.clear();
           return;
         }
+        // The second click of a double-click: the first one already
+        // started the track, and the row's `dblclick` stands down in
+        // this mode — one gesture, one play, not three.
+        if (singleClickPlay && e.detail > 1) return;
         selection.setSingle(track.id);
       }}
     />
@@ -2637,13 +2630,7 @@ function TrackTable({
                 // rather than as an unselectable one. Modifier clicks stay
                 // inert: they are selection gestures, and there is no
                 // selection here to extend.
-                if (
-                  singleClickPlay &&
-                  e.detail === 1 &&
-                  !e.shiftKey &&
-                  !e.ctrlKey &&
-                  !e.metaKey
-                ) {
+                if (e.detail === 1 && isPlayClick(e, singleClickPlay)) {
                   onPlayTrack(index);
                 }
               }}

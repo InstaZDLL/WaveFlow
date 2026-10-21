@@ -18,6 +18,10 @@ import { GenreImagePickerModal } from "../common/GenreImagePickerModal";
 import { HiResBadge } from "../common/HiResBadge";
 import { PlayingIndicator } from "../common/PlayingIndicator";
 import { usePlayer } from "../../hooks/usePlayer";
+import {
+  isPlayClick,
+  useSingleClickPlay,
+} from "../../hooks/useSingleClickPlay";
 import { useTrackContextMenu } from "../../hooks/useTrackContextMenu";
 import { useTrackUpdated } from "../../hooks/useTrackUpdated";
 import { usePageVirtualizer } from "../../hooks/usePageVirtualizer";
@@ -302,6 +306,7 @@ export function DetailTrackTable({
   t: (key: string, opts?: Record<string, unknown>) => string;
 }) {
   "use no memo";
+  const { value: singleClickPlay } = useSingleClickPlay();
   const gridCols = "grid-cols-[3rem_2.75rem_1.5fr_1fr_1fr_5rem_2rem]";
   const { parentRef, virtualizer, scrollMargin } =
     usePageVirtualizer<HTMLUListElement>({
@@ -348,7 +353,12 @@ export function DetailTrackTable({
               key={`${track.id}-${index}`}
               tabIndex={0}
               role="button"
-              onDoubleClick={() => onPlayTrack(index)}
+              onClick={(e) => {
+                if (isPlayClick(e, singleClickPlay)) onPlayTrack(index);
+              }}
+              onDoubleClick={() => {
+                if (!singleClickPlay) onPlayTrack(index);
+              }}
               onKeyDown={(e) => {
                 // Only play when the row itself is focused — see LibraryView.
                 if (e.target !== e.currentTarget) return;

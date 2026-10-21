@@ -7,6 +7,10 @@ import { ArtistLink } from "../common/ArtistLink";
 import { HiResBadge } from "../common/HiResBadge";
 import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
 import { usePlayer } from "../../hooks/usePlayer";
+import {
+  isPlayClick,
+  useSingleClickPlay,
+} from "../../hooks/useSingleClickPlay";
 import { useTrackContextMenu } from "../../hooks/useTrackContextMenu";
 import { useTrackUpdated } from "../../hooks/useTrackUpdated";
 import { useLikedChanged } from "../../hooks/useLikedTracks";
@@ -232,6 +236,7 @@ function LikedTrackList({
   unlikeLabel,
 }: LikedTrackListProps) {
   "use no memo";
+  const { value: singleClickPlay } = useSingleClickPlay();
   const { parentRef, virtualizer, scrollMargin } =
     usePageVirtualizer<HTMLUListElement>({
       count: tracks.length,
@@ -260,7 +265,12 @@ function LikedTrackList({
             key={track.id}
             tabIndex={0}
             role="button"
-            onDoubleClick={() => onPlayTrack(index)}
+            onClick={(e) => {
+              if (isPlayClick(e, singleClickPlay)) onPlayTrack(index);
+            }}
+            onDoubleClick={() => {
+              if (!singleClickPlay) onPlayTrack(index);
+            }}
             onKeyDown={(e) => {
               // Only play when the row itself is focused — keys
               // fired from nested buttons / links would otherwise

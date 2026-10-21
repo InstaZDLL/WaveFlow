@@ -30,6 +30,10 @@ import { SelectionActionBar } from "../common/SelectionActionBar";
 import { Lightbox } from "../common/Lightbox";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { usePlayer } from "../../hooks/usePlayer";
+import {
+  isPlayClick,
+  useSingleClickPlay,
+} from "../../hooks/useSingleClickPlay";
 import { useTrackContextMenu } from "../../hooks/useTrackContextMenu";
 import { useTrackUpdated } from "../../hooks/useTrackUpdated";
 import { useMultiSelect } from "../../hooks/useMultiSelect";
@@ -735,6 +739,7 @@ function AlbumTrackTable({
   onToggleSelect,
   onRowSelect,
 }: AlbumTrackTableProps) {
+  const { value: singleClickPlay } = useSingleClickPlay();
   const gridCols = "grid-cols-[3rem_1fr_1fr_5rem_2rem]";
 
   const renderTrackRow = (track: AlbumTrack, globalIndex: number) => {
@@ -755,9 +760,18 @@ function AlbumTrackTable({
         tabIndex={0}
         role="button"
         onClick={(e) => {
+          if (isPlayClick(e, singleClickPlay)) {
+            onPlayTrack(globalIndex);
+            return;
+          }
+          // The second click of a double-click: the first one already
+          // played the row (#897).
+          if (singleClickPlay && e.detail > 1) return;
           if (playable) onRowSelect(playable, e);
         }}
-        onDoubleClick={() => onPlayTrack(globalIndex)}
+        onDoubleClick={() => {
+          if (!singleClickPlay) onPlayTrack(globalIndex);
+        }}
         onKeyDown={(e) => {
           // Only play when the row itself is focused — see LibraryView.
           if (e.target !== e.currentTarget) return;

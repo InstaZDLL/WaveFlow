@@ -34,6 +34,10 @@ import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { CSS } from "@dnd-kit/utilities";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { usePlayer } from "../../hooks/usePlayer";
+import {
+  isPlayClick,
+  useSingleClickPlay,
+} from "../../hooks/useSingleClickPlay";
 import { usePlayerTrackContextMenu } from "../../hooks/usePlayerTrackContextMenu";
 import { queuePayloadToTrack } from "../../lib/queueTrack";
 import { Artwork } from "../common/Artwork";
@@ -484,6 +488,7 @@ function SortableUpNext({
   onRowMenuKey,
 }: SortableUpNextProps) {
   "use no memo";
+  const { value: singleClickPlay } = useSingleClickPlay();
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
   );
@@ -569,6 +574,7 @@ function SortableUpNext({
                 <SortableQueueRow
                   key={absoluteIndex}
                   id={String(absoluteIndex)}
+                  singleClickPlay={singleClickPlay}
                   absoluteIndex={absoluteIndex}
                   item={item}
                   top={virtualRow.start}
@@ -644,6 +650,7 @@ function QueueRowPreview({ item }: { item: QueueTrackPayload }) {
  */
 const SortableQueueRow = memo(function SortableQueueRow({
   id,
+  singleClickPlay,
   absoluteIndex,
   item,
   top,
@@ -653,6 +660,8 @@ const SortableQueueRow = memo(function SortableQueueRow({
   onRowMenuKey,
 }: {
   id: string;
+  /** Settings → single-click play, read once by the list. */
+  singleClickPlay: boolean;
   absoluteIndex: number;
   item: QueueTrackPayload;
   top: number;
@@ -701,7 +710,12 @@ const SortableQueueRow = memo(function SortableQueueRow({
           specific compound; keyboard activation still works via the
           tabIndex + role + onKeyDown wiring. */}
       <div
-        onDoubleClick={() => onJump(absoluteIndex)}
+        onClick={(e) => {
+          if (isPlayClick(e, singleClickPlay)) onJump(absoluteIndex);
+        }}
+        onDoubleClick={() => {
+          if (!singleClickPlay) onJump(absoluteIndex);
+        }}
         onContextMenu={(e) => onContextMenu(e, item)}
         tabIndex={0}
         role="button"

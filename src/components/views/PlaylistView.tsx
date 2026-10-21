@@ -52,6 +52,10 @@ import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { CSS } from "@dnd-kit/utilities";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { usePageScroll } from "../../hooks/usePageScroll";
+import {
+  isPlayClick,
+  useSingleClickPlay,
+} from "../../hooks/useSingleClickPlay";
 import { Artwork } from "../common/Artwork";
 import { AlbumLink } from "../common/AlbumLink";
 import { ArtistLink } from "../common/ArtistLink";
@@ -1893,6 +1897,7 @@ function PlaylistTrackTable({
   dragEnabled,
 }: PlaylistTrackTableProps) {
   "use no memo";
+  const { value: singleClickPlay } = useSingleClickPlay();
   // A remote table carries a trailing remove column; the local one puts
   // that in the context menu. Same template otherwise, so the two read
   // alike column for column.
@@ -2021,6 +2026,7 @@ function PlaylistTrackTable({
                 <SortablePlaylistRow
                   key={track.id}
                   track={track}
+                  singleClickPlay={singleClickPlay}
                   index={virtualRow.index}
                   rowHeight={PLAYLIST_ROW_HEIGHT}
                   top={virtualRow.start - scrollMargin}
@@ -2130,6 +2136,8 @@ function PlaylistRowPreview({
 
 interface SortablePlaylistRowProps {
   track: PlaylistTrack;
+  /** Settings → single-click play, read once by the table. */
+  singleClickPlay: boolean;
   index: number;
   /** Pixel offset from the virtualizer for this row's slot. */
   top: number;
@@ -2177,6 +2185,7 @@ interface SortablePlaylistRowProps {
 
 const SortablePlaylistRow = memo(function SortablePlaylistRow({
   track,
+  singleClickPlay,
   index,
   top,
   rowHeight,
@@ -2252,8 +2261,20 @@ const SortablePlaylistRow = memo(function SortablePlaylistRow({
       style={style}
       tabIndex={0}
       role="button"
-      onClick={(e) => onRowSelect(track, e)}
-      onDoubleClick={() => onPlayTrack(index)}
+      onClick={(e) => {
+        if (isPlayClick(e, singleClickPlay)) {
+          onPlayTrack(index);
+          return;
+        }
+        // The second click of a double-click: the first one already
+        // played the row, and selecting it now would paint the selection
+        // over the track it started (#897).
+        if (singleClickPlay && e.detail > 1) return;
+        onRowSelect(track, e);
+      }}
+      onDoubleClick={() => {
+        if (!singleClickPlay) onPlayTrack(index);
+      }}
       onKeyDown={(e) => {
         // Only play when the row itself is focused — see LibraryView.
         if (e.target !== e.currentTarget) return;
