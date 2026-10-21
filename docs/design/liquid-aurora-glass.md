@@ -36,37 +36,39 @@ The atmosphere: three pools, each a tint mixed with the glow (74 / 26 for lavend
 
 ### Glass levels
 
-| Level      | Tint (light) | Blur  | Rim (inset, white) | Shadow                            | Used by                                                                                                                 |
-| ---------- | ------------ | ----- | ------------------ | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `subtle`   | white 38 %   | 12 px | 55 %               | none                              | control-rail clusters, nav modules at rest, chips, table header                                                         |
-| `card`     | white 84 %   | 10 px | 85 % + top light   | a contour and a short grey shadow | cards on the page (extensions, folders, settings, biography): the calm level, near-opaque, so the real glass stands out |
-| `panel`    | white 60 %   | 24 px | 85 % + top light   | `glow-soft`                       | the rail, the player plate, the side panel, cards, mood capsules                                                        |
-| `floating` | white 72 %   | 32 px | 90 % + top light   | `glow-soft`, lifted               | the search field, the cover object, the suggestion band                                                                 |
-| `overlay`  | white 88 %   | 44 px | 95 % + top light   | deep soft shadow                  | menus, popovers, dialogs                                                                                                |
+Four levels, as semantic tokens in `liquid.css` (`--glass-<level>-bg`, `-edge`, and the recipe `--glass-<level>`). Only the structural and floating levels blur what is behind them: they never scroll. Everything on the page scrolls, so it is canvas or elevated, and reads as glass through its edge, not its blur.
 
-Dark: the same levels as indigo-grey tints (`rgb(32 34 46)` at 64 % for a panel, 86 % for a card, 92 % for an overlay) with rims at 8–20 % white. From the panel level up, a sheet has a **thick edge**: the white rim, a darker line just inside it (the refraction), a shade along its foot, and a one-pixel contour just outside — this is what makes a translucent rectangle read as glass, more than the blur does. Panel sheets and above also carry the **opal**: a faint sweep of lavender, aqua and mint across the sheet (22 / 14 / 16 % in light, 10 / 7 / 8 % at dusk). Radii: sheets 1.25 rem, floating objects and the rail 1.5 rem, the player plate 1.75 rem, pills full. The rail, the player and the panel float, inset 0.75–1 rem from the window.
+| Level        | Tint (light)                | Blur                                      | Edge                                                                                   | Shadow                                | Used by                                                                                                          |
+| ------------ | --------------------------- | ----------------------------------------- | -------------------------------------------------------------------------------------- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `canvas`     | white 90 %                  | none                                      | a white rim, the top light, a contour                                                  | a short grey shadow                   | cards and content regions on the page (extensions, folders, settings, biography), quiet                          |
+| `structural` | white 58 % with a cool cast | 24 px                                     | the thick edge: rim, inner reflection, foot shade, contour; a reflection along the top | `glass-shadow`, coloured by the cover | the rail, the player plate, the side panel                                                                       |
+| `elevated`   | white 74 %                  | none                                      | the thick edge plus the top light                                                      | `glass-shadow`                        | the suggestion band, the mood capsules, the profile panel, a card on hover                                       |
+| `floating`   | white 78 % (overlays 90 %)  | 32 px (44 px for overlays)                | the thick edge plus the top light                                                      | `glass-shadow` and the lift           | the search, the hero cover's bezel, inputs; menus, popovers and dialogs in the dense form                        |
+| `tone`       | white 42 %                  | 12 px on the control rail's capsules only | a rim                                                                                  | none                                  | a module on the rail, a cluster on the control rail, a pill, a chip — never a sheet on a sheet of its own weight |
+
+Dusk: the same levels as blue-graphite tints (`rgb(28 30 42)` at 68 % for structural, 82 % elevated, 88 % canvas, 94 % overlays) with white edges at 10–22 %. The thick edge is what makes a translucent rectangle read as glass, more than the blur does: the white rim (`--glass-<level>-edge`), a darker line just inside it (`--glass-inner-reflection`), a shade along the foot (`--glass-bottom-shade`), a one-pixel contour outside (`--glass-contour`), a specular spot in the top-left corner (`--glass-specular`), and across the structural and floating sheets the opal (`--glass-ambient-tint`): lavender, aqua and mint at 24 / 15 / 17 % in light, 10 / 7 / 8 % at dusk. The structural sheets also carry a reflection along their top edge, brightest in the middle and gone at the corners. Radii: sheets 1.25 rem, the rail and the panel 1.5 rem, the player plate 1.75 rem, pills full. The rail, the player and the panel float, inset 0.75–1 rem from the window.
 
 ### Light
 
-| Token          | Value                                                                                                                                        | Where                                          |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| `top light`    | `inset 0 1px 0 white 90 %` (dark: 12 %)                                                                                                      | every panel-level sheet and above              |
-| `glow-soft`    | `0 24px 60px -28px` of the glow at 55 %                                                                                                      | the shadow under a sheet: coloured, never grey |
-| `glow-focus`   | `0 0 0 4px` accent 18 % + `0 10px 32px -10px` accent 40 %, charged over 480 ms                                                               | focus, the search on focus                     |
-| `glow-accent`  | `0 16px 36px -14px` accent 60 %                                                                                                              | under the primary action                       |
-| `sheen`        | a top gradient, white 35 % to nothing by 45 %, on hover; animated across the playing row over 6 s                                            | hover, the playing item                        |
-| `light ribbon` | the player's progress: a frosted track, an aqua → lavender → mint fill that shimmers across over 9 s, a halo, a bright dot under the pointer | the player plate — its signature               |
+| Token               | Value                                                                                                                                                                                                | Where                                              |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| `edge highlight`    | `--glass-edge-highlight`: white (dark: 32 %), as the top light of a sheet and as the reflection along a structural sheet's top edge                                                                  | every sheet from elevated up                       |
+| `glass-shadow`      | `0 24px 60px -28px` of the glow at 55 % (a lift of `0 32px 80px -36px` for floating)                                                                                                                 | the shadow under a sheet: coloured, never grey     |
+| `glass-focus-ring`  | `0 0 0 4px` accent 22 % + `0 10px 32px -10px` accent 45 %, charged once over 480 ms (`aq-charge`)                                                                                                    | focus, the search on focus                         |
+| `glass-accent-glow` | `0 16px 36px -14px` accent 60 %, with a top light inside                                                                                                                                             | under the primary action                           |
+| `glass-sheen`       | a top gradient, white 40 % to nothing by 45 %, on hover — one transition, never a loop                                                                                                               | hover on modules, pills, cards, the primary action |
+| `light line`        | the player's progress: a frosted track, an aqua → lavender → mint fill, a luminous leading edge that marks where the music is; brighter while seeking. Static: the line moves because the music does | the player plate — its signature                   |
 
 ### States
 
-| State    | Treatment                                                                           |
-| -------- | ----------------------------------------------------------------------------------- |
-| idle     | the level's tint and rim                                                            |
-| hover    | sheen on top, rim one step brighter, 1 px lift on sheets                            |
-| active   | `scale(0.97)` on pointer-down, 100 ms                                               |
-| selected | a whiter sheet (+16 %), an inner glow of the accent at 10 %, the icon in the accent |
-| focused  | `glow-focus`, charged                                                               |
-| playing  | the accent's edge, the slow sheen                                                   |
+| State    | Treatment                                                                                       |
+| -------- | ----------------------------------------------------------------------------------------------- |
+| idle     | the level's tint and rim                                                                        |
+| hover    | sheen on top, rim one step brighter, 1 px lift on sheets; a mood capsule's wave gains amplitude |
+| active   | `scale(0.97)` on pointer-down, 100 ms                                                           |
+| selected | a whiter sheet (+16 %), an inner glow of the accent at 10 %, the icon in the accent             |
+| focused  | `glow-focus`, charged                                                                           |
+| playing  | the accent's edge and its light, inset; the current record's thumbnail ringed in the accent     |
 
 ## Components
 
@@ -82,7 +84,7 @@ Dark: the same levels as indigo-grey tints (`rgb(32 34 46)` at 64 % for a panel,
 
 ## What not to do
 
-No glass everywhere (two light sheets never stack); no dark borders; no hard grey shadows; no saturated tint on text; no gradient on a button; no bounce; no sheet so clear the text sits on the aurora. A pale theme that reads as "white with blur" has lost the tints — check the pools first.
+Nothing runs forever except the aurora's drift and the chosen mood capsule's wave (both off under reduced motion): the playing row, the progress line and the other capsules are still. No blur on anything that scrolls. No glass everywhere (two light sheets never stack); no dark borders; no hard grey shadows; no saturated tint on text; no gradient on a button; no bounce; no sheet so clear the text sits on the aurora. A pale theme that reads as "white with blur" has lost the tints — check the pools first.
 
 ## Carrying it to another surface
 

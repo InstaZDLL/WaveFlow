@@ -4,47 +4,50 @@
    The direction is written in `docs/design/liquid-aurora-glass.md`;
    this file is its material on the 2.0 interface (`fluid.css`, keyed
    on `data-layout="fluid"`, imported before this one). One line: music
-   as light and material — a luminous, airy glass tinted by what is
-   playing, with a light that answers the hand. Where Fluid stages the
-   music (dark, cinematic, artwork-led), Aurora Glass diffuses it.
+   as light and material — a luminous glass tinted by what is playing,
+   with a light that answers the hand. Where Fluid stages the music
+   (dark, cinematic, artwork-led), Aurora Glass diffuses it.
 
    What this file decides, in order of weight:
 
    1. The atmosphere. Three pools of pastel light are always behind the
       page — lavender, ice, mint, each mixed with the cover's colour
       (`--fe-glow`, written on the root by `useCoverGlow`) — so the
-      ground is never grey and never white, and a record's hue reaches
-      every sheet of glass. The canvas no longer carries a blurred copy
-      of the cover: the atmosphere is the cover's light.
+      ground is never grey and never white. The cover's colour itself is
+      let loose in three places only: under the canvas art, at the
+      record's end of the player plate, from the top of the side panel.
 
-   2. Four glass levels (`--aq-subtle`, `--aq-panel`, `--aq-floating`,
-      `--aq-overlay`), each a tint, a blur, a white rim and a coloured
-      shadow. Two sheets of the same level never stack: a module on the
-      rail is a tone on the rail's sheet, a card on the page is a sheet
-      on the atmosphere, a menu is the dense one over everything.
+   2. Four material levels, as semantic tokens (`--glass-canvas`,
+      `--glass-structural`, `--glass-elevated`, `--glass-floating`),
+      each a background, an edge and a shadow — and only the structural
+      and floating levels blur what is behind them, because they never
+      scroll. A card on the page is canvas-level: near-opaque, quiet, so
+      the real glass stands out. Two sheets of one level never stack.
 
-   3. Light instead of lines. A sheet is bounded by the light its top
-      edge catches and by the glow under its foot. Hover catches light
-      (a sheen); focus charges the sheet with the accent; the playing
-      item carries a slow sheen; the active item is luminous (whiter,
-      an inner glow), never filled with a colour.
+   3. What makes a sheet read as glass is its edge, not its blur: a
+      reflection along the top (`--glass-edge-highlight`, brighter
+      towards the middle), a line of refraction just inside the rim
+      (`--glass-inner-reflection`), a shade along the foot, a contour
+      just outside, a specular spot in the top-left corner, and the
+      opal (`--glass-ambient-tint`): lavender, aqua and mint caught in
+      the sheet.
 
-   4. Two pieces are its own, through the preset's `fluid` field: the
-      progress as a luminous line on the player plate (the layout's
-      `inline` form), and Mood Radio as five capsules of tinted glass
-      (`MoodCapsules`), not Fluid's spectrum.
+   4. Light answers the hand, cheaply: hover brightens the edge and
+      catches a sheen (one transition, not a loop); pressed is instant
+      and small; focus charges the sheet with the accent once
+      (`--glass-focus-ring`); the active module is luminous rather than
+      filled; the playing row carries the accent's edge and its light.
+      Nothing runs forever except the aurora's slow drift and the one
+      wave in the chosen mood capsule, both off under reduced motion.
 
-   Theme-aware: `:not(.dark)` is the direction's home; the dark theme is
-   the same material at dusk — indigo-grey sheets, the pools at about a third
-   of their strength. The Tailwind `dark` variant is NOT extended to
-   this skin (`app.css`). Rules that must beat a `!important` in
-   `fluid.css` carry one and win by source order. */
+   Theme-aware: the light theme is the opaline material, the dark theme
+   the same material at dusk — deep blue-graphite sheets with violet and
+   aqua undertones. The Tailwind `dark` variant is NOT extended to this
+   skin (`app.css`). Rules that must beat a `!important` in `fluid.css`
+   carry one and win by source order. */
 
 /* ── Tokens — dusk (the dark theme) ─────────────────────────── */
 :root[data-skin="liquid"] {
-  /* The five tints, as light values; the dark theme sinks them into
-     the ground below. The deep forms are for the mark and the light
-     progress, where a pastel would vanish. */
   --aq-lavender: #cfc3fa;
   --aq-ice: #c4dcfb;
   --aq-aqua: #b2e6e6;
@@ -56,8 +59,8 @@
   --aq-mint-deep: #c0ecd5;
   --aq-blush-deep: #f8c9d8;
 
-  --fe-bg: #15161d;
-  --fe-bg-rgb: 21 22 29;
+  --fe-bg: #13141c;
+  --fe-bg-rgb: 19 20 28;
   --fe-ink: #f4f4f8;
   --fe-ink-2: #c9cbda;
   --fe-ink-3: #9a9cb0;
@@ -75,33 +78,36 @@
   --fe-glow-deep: #2a2d52;
   --fe-font-editorial: var(--fe-font);
 
-  /* The four levels: tint, blur, rim. */
-  --aq-subtle-bg: rgb(255 255 255 / 0.05);
-  --aq-subtle-blur: 12px;
-  --aq-subtle-rim: rgb(255 255 255 / 0.08);
-  --aq-panel-bg: rgb(32 34 46 / 0.64);
-  --aq-panel-blur: 24px;
-  --aq-panel-rim: rgb(255 255 255 / 0.14);
-  /* The calm level: a card on the page, near-opaque, so the real
-     glass (the rail, the plate, the panel, the capsules) stands out. */
-  --aq-card-bg: rgb(30 32 44 / 0.86);
-  --aq-card-blur: 10px;
-  --aq-floating-bg: rgb(40 42 58 / 0.72);
-  --aq-floating-blur: 32px;
-  --aq-floating-rim: rgb(255 255 255 / 0.16);
-  --aq-overlay-bg: rgb(38 40 54 / 0.92);
-  --aq-overlay-blur: 44px;
-  --aq-overlay-rim: rgb(255 255 255 / 0.2);
-  --aq-top-light: rgb(255 255 255 / 0.14);
-  /* What makes a sheet read as thick glass: a darker line just inside
-     the rim (the refraction), a shade along the foot, a contour just
-     outside. */
-  --aq-rim-shade: rgb(255 255 255 / 0.03);
-  --aq-bottom-shade: rgb(0 0 0 / 0.3);
-  --aq-contour: rgb(0 0 0 / 0.35);
-  --aq-sat: 150%;
-  /* The opalescence: lavender, aqua and mint caught in the sheet. */
-  --aq-opal: linear-gradient(
+  /* Level 0 — canvas: cards and content regions, near-opaque. */
+  --glass-canvas-bg: rgb(30 32 44 / 0.88);
+  --glass-canvas-edge: rgb(255 255 255 / 0.1);
+  /* Level 1 — structural: the rail, the panel, the player. */
+  --glass-structural-bg: rgb(28 30 42 / 0.68);
+  --glass-structural-blur: 24px;
+  --glass-structural-edge: rgb(255 255 255 / 0.16);
+  /* Level 2 — elevated: the band, the capsules, a card on hover. */
+  --glass-elevated-bg: rgb(40 42 58 / 0.82);
+  --glass-elevated-edge: rgb(255 255 255 / 0.18);
+  /* Level 3 — floating: the search, menus, popovers, dialogs. */
+  --glass-floating-bg: rgb(44 46 62 / 0.8);
+  --glass-floating-blur: 32px;
+  --glass-floating-edge: rgb(255 255 255 / 0.22);
+  --glass-overlay-bg: rgb(40 42 56 / 0.94);
+  --glass-overlay-blur: 44px;
+  /* A tone on a sheet (a module on the rail, a cluster on the bar). */
+  --glass-tone-bg: rgb(255 255 255 / 0.05);
+  --glass-tone-edge: rgb(255 255 255 / 0.08);
+  /* The light on the glass. */
+  --glass-edge-highlight: rgb(255 255 255 / 0.32);
+  --glass-inner-reflection: rgb(255 255 255 / 0.03);
+  --glass-bottom-shade: rgb(0 0 0 / 0.32);
+  --glass-contour: rgb(0 0 0 / 0.38);
+  --glass-specular: radial-gradient(
+    ellipse 60% 42% at 18% 0%,
+    rgb(255 255 255 / 0.07),
+    transparent 60%
+  );
+  --glass-ambient-tint: linear-gradient(
     118deg,
     color-mix(in srgb, var(--aq-lavender) 10%, transparent) 0%,
     transparent 32%,
@@ -109,30 +115,29 @@
     transparent 72%,
     color-mix(in srgb, var(--aq-mint) 8%, transparent) 100%
   );
-
-  /* The light. */
-  --aq-glow-soft: 0 24px 60px -28px
+  --glass-shadow: 0 24px 60px -28px
     color-mix(in srgb, var(--fe-glow) 70%, rgb(0 0 0 / 0.6));
-  --aq-glow-lift: 0 32px 80px -36px rgb(0 0 0 / 0.7);
-  --aq-glow-focus:
+  --glass-shadow-lift: 0 32px 80px -36px rgb(0 0 0 / 0.7);
+  --glass-focus-ring:
     0 0 0 4px color-mix(in srgb, var(--fe-accent) 22%, transparent),
     0 10px 32px -10px color-mix(in srgb, var(--fe-accent) 45%, transparent);
-  --aq-glow-accent: 0 16px 36px -14px
+  --glass-accent-glow: 0 16px 36px -14px
     color-mix(in srgb, var(--fe-accent) 60%, transparent);
-  --aq-sheen: linear-gradient(
+  --glass-sheen: linear-gradient(
     180deg,
     rgb(255 255 255 / 0.1),
     rgb(255 255 255 / 0) 45%
   );
-  --aq-pool-strength: 0.34;
+  --glass-sat: 150%;
+  --aq-pool-strength: 0.46;
 
   /* The layout's surface tokens, in this material's words. */
-  --fe-surface: var(--aq-panel-bg);
-  --fe-surface-2: var(--aq-overlay-bg);
-  --fe-surface-0: rgb(28 29 40 / 0.94);
+  --fe-surface: var(--glass-structural-bg);
+  --fe-surface-2: var(--glass-overlay-bg);
+  --fe-surface-0: rgb(26 27 38 / 0.94);
 }
 
-/* ── Tokens — the light theme, the direction's home ────────── */
+/* ── Tokens — the light theme, the opaline material ──────────── */
 :root[data-skin="liquid"]:not(.dark) {
   --aq-lavender-deep: #7c6ad6;
   --aq-ice-deep: #5f8fd6;
@@ -140,8 +145,8 @@
   --aq-mint-deep: #3fae7a;
   --aq-blush-deep: #d4668c;
 
-  --fe-bg: #eef0f6;
-  --fe-bg-rgb: 238 240 246;
+  --fe-bg: #eceef5;
+  --fe-bg-rgb: 236 238 245;
   --fe-ink: #1d1e2b;
   --fe-ink-2: #4b4d63;
   --fe-ink-3: #73758c;
@@ -158,65 +163,77 @@
   --fe-glow: #9fb8ee;
   --fe-glow-deep: #c9bdf6;
 
-  --aq-subtle-bg: rgb(255 255 255 / 0.38);
-  --aq-subtle-rim: rgb(255 255 255 / 0.55);
-  --aq-panel-bg: rgb(255 255 255 / 0.6);
-  --aq-panel-rim: rgb(255 255 255 / 0.85);
-  --aq-card-bg: rgb(255 255 255 / 0.84);
-  --aq-floating-bg: rgb(255 255 255 / 0.72);
-  --aq-floating-rim: rgb(255 255 255 / 0.9);
-  --aq-overlay-bg: rgb(255 255 255 / 0.88);
-  --aq-overlay-rim: rgb(255 255 255 / 0.95);
-  --aq-top-light: rgb(255 255 255 / 0.95);
-  --aq-rim-shade: rgb(31 33 56 / 0.04);
-  --aq-bottom-shade: rgb(31 33 56 / 0.06);
-  --aq-contour: rgb(31 33 56 / 0.07);
-  --aq-sat: 140%;
-  --aq-opal: linear-gradient(
-    118deg,
-    color-mix(in srgb, var(--aq-lavender) 22%, transparent) 0%,
-    transparent 32%,
-    color-mix(in srgb, var(--aq-aqua) 14%, transparent) 55%,
-    transparent 72%,
-    color-mix(in srgb, var(--aq-mint) 16%, transparent) 100%
+  /* The structural sheets carry a cool cast, the canvas cards are
+     pure white: the two never merge into one layer. */
+  --glass-canvas-bg: rgb(255 255 255 / 0.9);
+  --glass-canvas-edge: rgb(255 255 255 / 0.95);
+  --glass-structural-bg: color-mix(in srgb, #ffffff 58%, transparent);
+  --glass-structural-edge: rgb(255 255 255 / 0.9);
+  --glass-elevated-bg: rgb(255 255 255 / 0.74);
+  --glass-elevated-edge: rgb(255 255 255 / 0.95);
+  --glass-floating-bg: rgb(255 255 255 / 0.78);
+  --glass-floating-edge: rgb(255 255 255 / 1);
+  --glass-overlay-bg: rgb(255 255 255 / 0.9);
+  --glass-tone-bg: rgb(255 255 255 / 0.42);
+  --glass-tone-edge: rgb(255 255 255 / 0.6);
+  --glass-edge-highlight: rgb(255 255 255 / 1);
+  --glass-inner-reflection: rgb(31 33 56 / 0.04);
+  --glass-bottom-shade: rgb(31 33 56 / 0.07);
+  --glass-contour: rgb(31 33 56 / 0.08);
+  --glass-specular: radial-gradient(
+    ellipse 60% 42% at 18% 0%,
+    rgb(255 255 255 / 0.55),
+    transparent 60%
   );
-
-  --aq-glow-soft: 0 24px 60px -28px
+  --glass-ambient-tint: linear-gradient(
+    118deg,
+    color-mix(in srgb, var(--aq-lavender) 24%, transparent) 0%,
+    transparent 32%,
+    color-mix(in srgb, var(--aq-aqua) 15%, transparent) 55%,
+    transparent 72%,
+    color-mix(in srgb, var(--aq-mint) 17%, transparent) 100%
+  );
+  --glass-shadow: 0 24px 60px -28px
     color-mix(in srgb, var(--fe-glow) 55%, transparent);
-  --aq-glow-lift: 0 32px 80px -36px
+  --glass-shadow-lift: 0 32px 80px -36px
     color-mix(in srgb, var(--fe-glow) 45%, rgb(31 33 56 / 0.25));
-  --aq-sheen: linear-gradient(
+  --glass-sheen: linear-gradient(
     180deg,
-    rgb(255 255 255 / 0.35),
+    rgb(255 255 255 / 0.4),
     rgb(255 255 255 / 0) 45%
   );
+  --glass-sat: 140%;
   --aq-pool-strength: 1;
 
-  --fe-surface: var(--aq-panel-bg);
-  --fe-surface-2: var(--aq-overlay-bg);
+  --fe-surface: var(--glass-structural-bg);
+  --fe-surface-2: var(--glass-overlay-bg);
   --fe-surface-0: rgb(244 245 250 / 0.94);
 }
 
-/* The four levels as reusable declarations: a background, a blur, a
-   rim with the top light, a shadow. Applied through custom properties
-   so a rule below names a level, not a recipe. */
+/* The levels as box-shadow recipes: a rule below names a level. */
 :root[data-skin="liquid"] {
-  --aq-subtle: inset 0 0 0 1px var(--aq-subtle-rim);
-  --aq-card:
-    inset 0 0 0 1px var(--aq-panel-rim), inset 0 1px 0 var(--aq-top-light),
-    0 0 0 1px var(--aq-contour), 0 10px 30px -22px rgb(31 33 56 / 0.3);
-  --aq-panel:
-    inset 0 0 0 1px var(--aq-panel-rim), inset 0 0 0 2px var(--aq-rim-shade),
-    inset 0 1.5px 0 var(--aq-top-light), inset 0 -1px 0 var(--aq-bottom-shade),
-    0 0 0 1px var(--aq-contour), var(--aq-glow-soft);
-  --aq-floating:
-    inset 0 0 0 1px var(--aq-floating-rim), inset 0 0 0 2px var(--aq-rim-shade),
-    inset 0 1.5px 0 var(--aq-top-light), inset 0 -1px 0 var(--aq-bottom-shade),
-    0 0 0 1px var(--aq-contour), var(--aq-glow-soft), var(--aq-glow-lift);
-  --aq-overlay:
-    inset 0 0 0 1px var(--aq-overlay-rim), inset 0 0 0 2px var(--aq-rim-shade),
-    inset 0 1.5px 0 var(--aq-top-light), inset 0 -1px 0 var(--aq-bottom-shade),
-    0 0 0 1px var(--aq-contour), var(--aq-glow-lift);
+  --glass-tone: inset 0 0 0 1px var(--glass-tone-edge);
+  --glass-canvas:
+    inset 0 0 0 1px var(--glass-canvas-edge),
+    inset 0 1px 0 var(--glass-edge-highlight), 0 0 0 1px var(--glass-contour),
+    0 10px 30px -22px rgb(31 33 56 / 0.3);
+  --glass-structural:
+    inset 0 0 0 1px var(--glass-structural-edge),
+    inset 0 0 0 2px var(--glass-inner-reflection),
+    inset 0 -1px 0 var(--glass-bottom-shade), 0 0 0 1px var(--glass-contour),
+    var(--glass-shadow);
+  --glass-elevated:
+    inset 0 0 0 1px var(--glass-elevated-edge),
+    inset 0 0 0 2px var(--glass-inner-reflection),
+    inset 0 1.5px 0 var(--glass-edge-highlight),
+    inset 0 -1px 0 var(--glass-bottom-shade), 0 0 0 1px var(--glass-contour),
+    var(--glass-shadow);
+  --glass-floating:
+    inset 0 0 0 1px var(--glass-floating-edge),
+    inset 0 0 0 2px var(--glass-inner-reflection),
+    inset 0 1.5px 0 var(--glass-edge-highlight),
+    inset 0 -1px 0 var(--glass-bottom-shade), 0 0 0 1px var(--glass-contour),
+    var(--glass-shadow), var(--glass-shadow-lift);
 }
 
 /* ── The atmosphere: three pools of pastel light, the cover in each ── */
@@ -266,7 +283,7 @@
   display: none;
 }
 
-/* ── Type: the editorial voice in sans, light ──────────────── */
+/* ── Type ────────────────────────────────────────────────────── */
 :root[data-skin="liquid"] .fe-editorial {
   font-style: normal;
   font-weight: 380;
@@ -300,65 +317,72 @@
 }
 
 /* ── Light answers the hand ────────────────────────────────── */
-/* Focus charges the sheet with the accent's light, over 480 ms. */
+/* Focus charges the sheet with the accent's light, once, over 480 ms. */
 @keyframes aq-charge {
   from {
     box-shadow: 0 0 0 0 color-mix(in srgb, var(--fe-accent) 0%, transparent);
   }
   to {
-    box-shadow: var(--aq-glow-focus);
+    box-shadow: var(--glass-focus-ring);
   }
 }
-/* The playing item's sheen: a band of light crossing it slowly. */
-@keyframes aq-sheen {
-  from {
-    background-position: -200% 0;
-  }
-  to {
-    background-position: 200% 0;
-  }
+/* The reflection along a structural sheet's top edge: brightest in the
+   middle, gone at the corners, drawn once as a pseudo-element. */
+:root[data-skin="liquid"] .skin-sidebar-shell > aside,
+:root[data-skin="liquid"] footer,
+:root[data-skin="liquid"] .fe-panel {
+  position: relative;
+}
+:root[data-skin="liquid"] .skin-sidebar-shell > aside::before,
+:root[data-skin="liquid"] footer::before,
+:root[data-skin="liquid"] .fe-panel::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 1.5rem;
+  right: 1.5rem;
+  height: 1px;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--glass-edge-highlight) 30%,
+    var(--glass-edge-highlight) 70%,
+    transparent
+  );
 }
 
-/* ── The rail: a sheet of panel glass, modules of light on it ── */
+/* ── The rail: structural glass, modules of light on it ─────── */
 /* The shell is 16 rem wide (an animated width, `overflow: hidden`) and
-   the layout gives the rail 17 rem, which the flush rail can afford:
-   its right gutter is what gets clipped. A floating sheet cannot: its
-   rounded edge and its foot must fit inside the shell, so the sheet is
-   the shell minus the inset, on both axes, and the gutters go back to
-   the profile panel's. */
+   the layout gives the rail 17 rem, which the flush rail can afford: a
+   floating sheet cannot, so it is the shell minus the inset, on both
+   axes, and the gutters are the profile panel's. */
 :root[data-skin="liquid"] .skin-sidebar-shell {
   padding: 0.75rem 0 0.75rem 0.75rem;
 }
 :root[data-skin="liquid"] .skin-sidebar-shell > aside {
   width: calc(16rem - 0.75rem) !important;
   height: calc(100% - 1.5rem) !important;
-  background-color: var(--aq-panel-bg) !important;
-  background-image: var(--aq-opal) !important;
+  background-color: var(--glass-structural-bg) !important;
+  background-image: var(--glass-specular), var(--glass-ambient-tint) !important;
   border-radius: 1.5rem !important;
-  backdrop-filter: blur(var(--aq-panel-blur)) saturate(var(--aq-sat));
-  -webkit-backdrop-filter: blur(var(--aq-panel-blur)) saturate(var(--aq-sat));
-  box-shadow: var(--aq-panel) !important;
+  backdrop-filter: blur(var(--glass-structural-blur)) saturate(var(--glass-sat));
+  -webkit-backdrop-filter: blur(var(--glass-structural-blur))
+    saturate(var(--glass-sat));
+  box-shadow: var(--glass-structural) !important;
 }
 :root[data-skin="liquid"] .skin-sidebar-shell[data-collapsed] > aside {
   width: calc(5rem - 0.75rem) !important;
+}
+:root[data-skin="liquid"] .skin-sidebar-shell > aside > div:first-child {
+  padding: 1.5rem 1rem 0.5rem !important;
 }
 :root[data-skin="liquid"] [data-sidebar-nav] {
   padding: 1.25rem 1rem 0.5rem !important;
 }
 :root[data-skin="liquid"] [data-sidebar-scroll] {
   padding: 0.25rem 1rem 1.5rem !important;
-}
-/* Narrower modules than the layout's: the label gives a little, so
-   "Release Radar" keeps its last letters. */
-:root[data-skin="liquid"] [data-sidebar-nav] [data-nav-item] {
-  padding: 0.75rem 0.625rem !important;
-}
-:root[data-skin="liquid"] [data-sidebar-nav] [data-nav-item] > div > span {
-  font-size: 0.78rem;
-  letter-spacing: -0.012em;
-}
-:root[data-skin="liquid"] .skin-sidebar-shell > aside > div:first-child {
-  padding: 1.5rem 1rem 0.5rem !important;
 }
 :root[data-skin="liquid"]
   .skin-sidebar-shell[data-collapsed]
@@ -370,32 +394,60 @@
   [data-sidebar-scroll] {
   padding: 0.25rem 0.5rem 1.5rem !important;
 }
-/* The modules: a tone on the sheet with a white rim; the open one is
-   luminous — whiter, an inner glow of the accent, its icon in the
-   accent — rather than ringed. */
+/* Narrower modules than the layout's: the label gives a little. */
+:root[data-skin="liquid"] [data-sidebar-nav] [data-nav-item] {
+  padding: 0.75rem 0.625rem !important;
+}
+:root[data-skin="liquid"] [data-sidebar-nav] [data-nav-item] > div > span {
+  font-size: 0.78rem;
+  letter-spacing: -0.012em;
+}
+/* The modules: a tone on the sheet with its own edge; hover brightens
+   the edge and catches a sheen; the open one is luminous — whiter, an
+   inner glow of the accent, its icon in the accent — never filled. */
 :root[data-skin="liquid"] [data-sidebar-nav] [data-nav-item],
-:root[data-skin="liquid"] [data-sidebar-row="pinned"],
-:root[data-skin="liquid"] [data-sidebar-profile] {
+:root[data-skin="liquid"] [data-sidebar-row="pinned"] {
   border-radius: 1rem !important;
-  background-color: var(--aq-subtle-bg) !important;
+  background-color: var(--glass-tone-bg) !important;
   background-image: none;
-  box-shadow: var(--aq-subtle);
+  box-shadow: var(--glass-tone);
   transition:
     color 180ms var(--fe-ease),
     background-color 180ms var(--fe-ease),
     box-shadow 180ms var(--fe-ease),
     transform 100ms var(--fe-ease);
 }
+/* The profile: a step up from the modules, the person before the places. */
+:root[data-skin="liquid"] [data-sidebar-profile] {
+  border-radius: 1rem !important;
+  background-color: var(--glass-elevated-bg) !important;
+  background-image: var(--glass-sheen);
+  box-shadow:
+    inset 0 0 0 1px var(--glass-elevated-edge),
+    inset 0 1px 0 var(--glass-edge-highlight),
+    0 0 0 1px var(--glass-contour);
+  transition:
+    background-color 180ms var(--fe-ease),
+    box-shadow 180ms var(--fe-ease);
+}
 :root[data-skin="liquid"] [data-sidebar-nav] [data-nav-item]:hover,
-:root[data-skin="liquid"] [data-sidebar-row="pinned"]:hover,
-:root[data-skin="liquid"] [data-sidebar-profile]:hover {
+:root[data-skin="liquid"] [data-sidebar-row="pinned"]:hover {
   background-color: color-mix(
     in srgb,
-    var(--aq-subtle-bg),
+    var(--glass-tone-bg),
     var(--fe-edge) 25%
   ) !important;
-  background-image: var(--aq-sheen);
-  box-shadow: inset 0 0 0 1px var(--aq-panel-rim);
+  background-image: var(--glass-sheen);
+  box-shadow:
+    inset 0 0 0 1px var(--glass-structural-edge),
+    inset 0 1px 0 var(--glass-edge-highlight);
+}
+:root[data-skin="liquid"] [data-sidebar-profile]:hover {
+  box-shadow:
+    inset 0 0 0 1px var(--glass-floating-edge),
+    inset 0 1px 0 var(--glass-edge-highlight),
+    0 0 0 1px var(--glass-contour),
+    var(--glass-shadow);
 }
 :root[data-skin="liquid"] [data-sidebar-nav] [data-nav-item]:active,
 :root[data-skin="liquid"] [data-sidebar-row="pinned"]:active {
@@ -403,15 +455,18 @@
 }
 :root[data-skin="liquid"] [data-sidebar-nav] [data-nav-item][data-active],
 :root[data-skin="liquid"] [data-sidebar-row="pinned"][data-active] {
+  color: var(--fe-ink) !important;
   background-color: color-mix(
     in srgb,
-    var(--aq-floating-bg),
+    var(--glass-elevated-bg),
     var(--fe-edge) 20%
   ) !important;
+  background-image: var(--glass-sheen);
   box-shadow:
-    inset 0 0 0 1px var(--aq-floating-rim),
-    inset 0 1px 0 var(--aq-top-light),
+    inset 0 0 0 1px var(--glass-floating-edge),
+    inset 0 1px 0 var(--glass-edge-highlight),
     inset 0 0 24px color-mix(in srgb, var(--fe-accent) 10%, transparent),
+    0 0 0 1px var(--glass-contour),
     0 10px 24px -14px color-mix(in srgb, var(--fe-accent) 35%, transparent);
 }
 :root[data-skin="liquid"]
@@ -437,16 +492,27 @@
 :root[data-skin="liquid"] [data-sidebar-row="playlist"][data-active]::before {
   box-shadow: 0 0 16px color-mix(in srgb, var(--fe-accent) 80%, transparent);
 }
+/* Playlist covers in the rail: a rim and a short shadow, small objects. */
+:root[data-skin="liquid"]
+  [data-sidebar-row="playlist"]
+  > div:first-child
+  > :is(img, div) {
+  box-shadow:
+    0 0 0 1px var(--glass-structural-edge),
+    0 4px 10px -4px rgb(0 0 0 / 0.5);
+}
 
-/* ── The control rail: subtle capsules, an opalescent search ── */
+/* ── The control rail: tone capsules, a floating search ─────── */
 :root[data-skin="liquid"] [data-topbar-left],
 :root[data-skin="liquid"] [data-topbar-right] {
   padding: 0.25rem;
   border-radius: 9999px;
-  background-color: var(--aq-subtle-bg);
-  backdrop-filter: blur(var(--aq-subtle-blur)) saturate(var(--aq-sat));
-  -webkit-backdrop-filter: blur(var(--aq-subtle-blur)) saturate(var(--aq-sat));
-  box-shadow: var(--aq-subtle);
+  background-color: var(--glass-tone-bg);
+  backdrop-filter: blur(12px) saturate(var(--glass-sat));
+  -webkit-backdrop-filter: blur(12px) saturate(var(--glass-sat));
+  box-shadow:
+    var(--glass-tone),
+    inset 0 1px 0 var(--glass-edge-highlight);
 }
 :root[data-skin="liquid"] [data-topbar-left] {
   gap: 0;
@@ -454,14 +520,13 @@
 :root[data-skin="liquid"] [data-topbar-left] button {
   border-radius: 9999px !important;
 }
-/* The search: a floating sheet whose interior sweeps through the
-   tints, faintly; on focus the accent's light charges it. */
 :root[data-skin="liquid"] [data-topbar-search-field] {
-  background-color: var(--aq-floating-bg) !important;
-  background-image: var(--aq-opal);
-  backdrop-filter: blur(var(--aq-floating-blur)) saturate(var(--aq-sat));
-  -webkit-backdrop-filter: blur(var(--aq-floating-blur)) saturate(var(--aq-sat));
-  box-shadow: var(--aq-floating) !important;
+  background-color: var(--glass-floating-bg) !important;
+  background-image: var(--glass-specular), var(--glass-ambient-tint);
+  backdrop-filter: blur(var(--glass-floating-blur)) saturate(var(--glass-sat));
+  -webkit-backdrop-filter: blur(var(--glass-floating-blur))
+    saturate(var(--glass-sat));
+  box-shadow: var(--glass-floating) !important;
   transition:
     background-color 180ms var(--fe-ease),
     box-shadow 480ms var(--fe-ease);
@@ -469,13 +534,16 @@
 :root[data-skin="liquid"] [data-topbar-search-field]:hover {
   background-color: color-mix(
     in srgb,
-    var(--aq-floating-bg),
+    var(--glass-floating-bg),
     var(--fe-edge) 20%
   ) !important;
 }
 :root[data-skin="liquid"] [data-topbar-search-field]:focus-within {
-  background-color: var(--aq-floating-bg) !important;
-  box-shadow: var(--aq-floating), var(--aq-glow-focus) !important;
+  background-color: var(--glass-floating-bg) !important;
+  box-shadow:
+    var(--glass-floating),
+    inset 0 0 0 1px color-mix(in srgb, var(--fe-accent) 55%, transparent),
+    var(--glass-focus-ring) !important;
 }
 :root[data-skin="liquid"] [data-topbar-theme] {
   background-color: var(--fe-tone-3) !important;
@@ -488,42 +556,51 @@
   transform: scale(0.94);
 }
 
-/* ── The player plate: panel glass, the progress as a line of light ── */
+/* ── The player plate: structural glass, the signature piece ── */
+/* The cover's light at the record's end, a lens behind the transport,
+   the specular and the opal across; the reflection along its top edge
+   comes from the shared pseudo-element above. */
 :root[data-skin="liquid"] footer {
   margin: 0 1rem 1rem;
   border-radius: 1.75rem !important;
-  background-color: var(--aq-panel-bg) !important;
+  background-color: var(--glass-structural-bg) !important;
   background-image:
     radial-gradient(
       ellipse 34% 160% at 4% 50%,
       color-mix(in srgb, var(--fe-glow) 42%, transparent),
       transparent 70%
     ),
-    var(--aq-opal) !important;
-  backdrop-filter: blur(var(--aq-panel-blur)) saturate(var(--aq-sat));
-  -webkit-backdrop-filter: blur(var(--aq-panel-blur)) saturate(var(--aq-sat));
-  box-shadow: var(--aq-panel) !important;
+    radial-gradient(
+      ellipse 26% 90% at 50% 100%,
+      color-mix(in srgb, var(--glass-edge-highlight) 22%, transparent),
+      transparent 70%
+    ),
+    var(--glass-specular), var(--glass-ambient-tint) !important;
+  backdrop-filter: blur(var(--glass-structural-blur)) saturate(var(--glass-sat));
+  -webkit-backdrop-filter: blur(var(--glass-structural-blur))
+    saturate(var(--glass-sat));
+  box-shadow: var(--glass-structural) !important;
 }
-/* The classic height: the line sits under the transport on the plate. */
 :root[data-skin="liquid"] footer > div[class*="h-24"] {
   height: 6rem !important;
 }
 :root[data-skin="liquid"] footer img {
   border-radius: 0.875rem;
   box-shadow:
-    0 0 0 3px var(--aq-floating-rim),
-    var(--aq-glow-soft);
+    0 0 0 1px var(--glass-floating-edge),
+    0 0 0 2px var(--glass-contour),
+    var(--glass-shadow);
 }
-/* The ribbon of light: a frosted track, an aqua → lavender → mint fill
-   that shimmers slowly, a halo, a bright dot under the pointer. The
-   signature of the plate: the music as a line of light. */
+/* The light line: a frosted track, an aqua → lavender → mint fill, and
+   a luminous leading edge that marks where the music is. Static: the
+   line moves because the music does. Seeking brightens it. */
 :root[data-skin="liquid"] footer [role="slider"] {
   height: 0.375rem !important;
   border-radius: 9999px !important;
   background-color: var(--fe-tone-4) !important;
   box-shadow:
-    inset 0 0 0 1px var(--aq-subtle-rim),
-    inset 0 1px 2px var(--aq-bottom-shade);
+    inset 0 0 0 1px var(--glass-tone-edge),
+    inset 0 1px 2px var(--glass-bottom-shade);
   overflow: visible;
   transition: height 180ms var(--fe-ease);
 }
@@ -531,28 +608,38 @@
   height: 0.5rem !important;
 }
 :root[data-skin="liquid"] footer [role="slider"] > div:first-child {
+  position: relative;
   border-radius: 9999px !important;
   background-color: transparent !important;
   background-image: linear-gradient(
     90deg,
     var(--aq-aqua-deep),
-    var(--aq-lavender-deep) 50%,
-    var(--aq-mint-deep) 80%,
-    var(--aq-aqua-deep)
+    var(--aq-lavender-deep) 60%,
+    var(--aq-mint-deep)
   ) !important;
-  background-size: 300% 100%;
-  animation: aq-ribbon 9s linear infinite;
   box-shadow:
     inset 0 1px 0 rgb(255 255 255 / 0.5),
-    0 0 16px color-mix(in srgb, var(--aq-lavender-deep) 60%, transparent);
+    0 0 14px color-mix(in srgb, var(--aq-lavender-deep) 55%, transparent);
+  transition: box-shadow 180ms var(--fe-ease);
 }
-@keyframes aq-ribbon {
-  from {
-    background-position: 0% 0;
-  }
-  to {
-    background-position: 300% 0;
-  }
+:root[data-skin="liquid"] footer [role="slider"] > div:first-child::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: -0.1875rem;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  translate: 0 -50%;
+  background-color: #fff;
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--aq-lavender-deep) 35%, transparent),
+    0 0 12px color-mix(in srgb, var(--aq-lavender-deep) 85%, transparent);
+}
+:root[data-skin="liquid"] footer [role="slider"]:hover > div:first-child {
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.6),
+    0 0 22px color-mix(in srgb, var(--aq-lavender-deep) 80%, transparent);
 }
 :root[data-skin="liquid"] footer [role="slider"] > div[class*="bg-white"] {
   width: 0.875rem !important;
@@ -579,97 +666,103 @@
 :root[data-skin="liquid"] footer :where(button:active) {
   transform: scale(0.94);
 }
-/* The play button: the accent, with its light under it. */
 :root[data-skin="liquid"]
   footer
   button:where([class*="bg-emerald-500"], [class*="bg-emerald-600"]) {
   background-color: var(--fe-accent) !important;
   color: var(--fe-accent-ink) !important;
-  box-shadow: var(--aq-glow-accent) !important;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.35),
+    var(--glass-accent-glow) !important;
 }
 :root[data-skin="liquid"] footer :where(button:focus-visible) {
   outline: 0;
   animation: aq-charge 480ms var(--fe-ease) both;
 }
-/* The strip of audio facts follows the plate's corners. */
+/* The strip of audio facts follows the plate's corners; its figures are
+   features, not decoration: body ink. */
 :root[data-skin="liquid"] footer > div:last-child[class*="border-t"] {
   border-color: var(--fe-hairline) !important;
   border-bottom-left-radius: 1.75rem;
   border-bottom-right-radius: 1.75rem;
+  color: var(--fe-ink-2) !important;
 }
 
-/* ── The side panel: the same sheet, beside the page ────────── */
+/* ── The side panel: structural glass beside the page ────────── */
 :root[data-skin="liquid"] .fe-panel {
   height: calc(100% - 1.5rem);
   margin: 0.75rem 0.75rem 0.75rem 0;
   border-radius: 1.5rem;
-  background-color: var(--aq-panel-bg);
+  background-color: var(--glass-structural-bg);
   background-image:
     linear-gradient(
       180deg,
       color-mix(in srgb, var(--fe-glow) 26%, transparent),
       transparent 42%
     ),
-    var(--aq-opal);
-  backdrop-filter: blur(var(--aq-panel-blur)) saturate(var(--aq-sat));
-  -webkit-backdrop-filter: blur(var(--aq-panel-blur)) saturate(var(--aq-sat));
-  box-shadow: var(--aq-panel);
+    var(--glass-specular), var(--glass-ambient-tint);
+  backdrop-filter: blur(var(--glass-structural-blur)) saturate(var(--glass-sat));
+  -webkit-backdrop-filter: blur(var(--glass-structural-blur))
+    saturate(var(--glass-sat));
+  box-shadow: var(--glass-structural);
 }
-/* The lyrics: readable at rest, sharp when sung. The layout fades and
-   blurs the other lines by their distance; here less of both, and the
-   sung line in full ink with the light under it. */
-:root[data-skin="liquid"] .fe-panel ul > li > button {
-  color: var(--fe-ink-2) !important;
-  opacity: 0.78;
-  filter: blur(0.45px);
-}
-:root[data-skin="liquid"]
-  .fe-panel
-  ul
-  > li:has(> button[class*="scale-[1.02]"])
-  + li
-  > button,
-:root[data-skin="liquid"]
-  .fe-panel
-  ul
-  > li:has(+ li > button[class*="scale-[1.02]"])
-  > button {
-  opacity: 0.92;
-  filter: none;
-}
-:root[data-skin="liquid"]
-  .fe-panel
-  ul
-  > li:has(> button[class*="scale-[1.02]"])
-  > button {
-  color: var(--fe-ink) !important;
-  opacity: 1;
-  filter: none;
-  text-shadow: 0 0 24px color-mix(in srgb, var(--fe-glow) 70%, transparent);
+/* The tab row parted from the body by a hairline. */
+:root[data-skin="liquid"] .fe-panel > div > div:first-child {
+  box-shadow: inset 0 -1px 0 var(--fe-hairline);
 }
 :root[data-skin="liquid"] .fe-panel__tab.is-active {
   color: var(--fe-ink);
 }
 :root[data-skin="liquid"] .fe-panel__pill {
-  background-color: var(--aq-subtle-bg);
-  box-shadow: var(--aq-subtle);
+  background-color: var(--glass-tone-bg);
+  box-shadow:
+    var(--glass-tone),
+    inset 0 1px 0 var(--glass-edge-highlight);
   color: var(--fe-ink-2);
+  transition:
+    color 180ms var(--fe-ease),
+    background-color 180ms var(--fe-ease),
+    box-shadow 180ms var(--fe-ease),
+    transform 100ms var(--fe-ease);
 }
 :root[data-skin="liquid"] .fe-panel__pill:hover:not(:disabled) {
-  background-color: color-mix(in srgb, var(--aq-subtle-bg), var(--fe-edge) 25%);
-  background-image: var(--aq-sheen);
+  background-color: color-mix(
+    in srgb,
+    var(--glass-tone-bg),
+    var(--fe-edge) 25%
+  );
+  background-image: var(--glass-sheen);
+  box-shadow:
+    inset 0 0 0 1px var(--glass-structural-edge),
+    inset 0 1px 0 var(--glass-edge-highlight);
   color: var(--fe-ink);
+}
+:root[data-skin="liquid"] .fe-panel__pill:active:not(:disabled) {
+  transform: scale(0.96);
 }
 :root[data-skin="liquid"] .fe-panel__lyrics {
   border-radius: 1rem;
-  background-color: var(--aq-subtle-bg);
-  box-shadow: var(--aq-subtle);
+  background-color: var(--glass-tone-bg);
+  box-shadow:
+    var(--glass-tone),
+    inset 0 1px 0 var(--glass-edge-highlight);
+  transition:
+    background-color 180ms var(--fe-ease),
+    box-shadow 180ms var(--fe-ease);
 }
 :root[data-skin="liquid"] .fe-panel__lyrics:hover {
-  background-color: color-mix(in srgb, var(--aq-subtle-bg), var(--fe-edge) 25%);
-  background-image: var(--aq-sheen);
+  background-color: color-mix(
+    in srgb,
+    var(--glass-tone-bg),
+    var(--fe-edge) 25%
+  );
+  background-image: var(--glass-sheen);
+  box-shadow:
+    inset 0 0 0 1px var(--glass-structural-edge),
+    inset 0 1px 0 var(--glass-edge-highlight);
 }
-/* A pale cover under white type: the scrim does more of the work. */
+/* A pale cover under white type: the scrim does more of the work, and
+   the identity is full white with a shadow. */
 :root[data-skin="liquid"] .fe-panel__hero > div[class*="bg-linear-to-t"] {
   background: linear-gradient(
     to top,
@@ -678,8 +771,6 @@
     transparent
   ) !important;
 }
-/* And the identity itself in full white with a shadow: the Canvas clip
-   under it can be pale from edge to edge. */
 :root[data-skin="liquid"]
   .fe-panel__hero
   > div[class*="bg-linear-to-t"]
@@ -693,10 +784,53 @@
   :is(p, span)[class*="text-white/"] {
   opacity: 0.92;
 }
+/* The lyrics: readable at rest, sharp when sung — by tone and opacity
+   only, never a blur on a column of text. */
+:root[data-skin="liquid"] .fe-panel ul > li > button {
+  color: var(--fe-ink-2) !important;
+  opacity: 0.72;
+  filter: none;
+}
+:root[data-skin="liquid"]
+  .fe-panel
+  ul
+  > li:has(> button[class*="scale-[1.02]"])
+  + li
+  > button,
+:root[data-skin="liquid"]
+  .fe-panel
+  ul
+  > li:has(+ li > button[class*="scale-[1.02]"])
+  > button {
+  opacity: 0.9;
+  filter: none;
+}
+:root[data-skin="liquid"]
+  .fe-panel
+  ul
+  > li:has(> button[class*="scale-[1.02]"])
+  > button {
+  color: var(--fe-ink) !important;
+  opacity: 1;
+  filter: none;
+  text-shadow: 0 0 24px color-mix(in srgb, var(--fe-glow) 70%, transparent);
+}
+/* The queue's playing row: the accent's edge and its light. */
+:root[data-skin="liquid"] .fe-panel [class*="bg-emerald-50 "] {
+  background-color: color-mix(
+    in srgb,
+    var(--fe-accent) 8%,
+    transparent
+  ) !important;
+  box-shadow:
+    inset 2px 0 0 var(--fe-accent),
+    inset 0 1px 0 var(--glass-edge-highlight);
+}
 
-/* ── The page: sheets that catch light ─────────────────────── */
+/* ── The page: canvas cards, elevated on hover ──────────────── */
 /* Bordered containers (cards, settings groups), the folder and
-   extension cards, the genre and year tiles: panel glass. */
+   extension cards, the genre and year tiles: canvas level, no blur —
+   they scroll. */
 :root[data-skin="liquid"]
   main
   :where(
@@ -722,10 +856,8 @@
   main
   button[class*="rounded-2xl"][class*="border"][class*="p-4"] {
   border-radius: 1.25rem !important;
-  background-color: var(--aq-card-bg) !important;
-  backdrop-filter: blur(var(--aq-card-blur));
-  -webkit-backdrop-filter: blur(var(--aq-card-blur));
-  box-shadow: var(--aq-card) !important;
+  background-color: var(--glass-canvas-bg) !important;
+  box-shadow: var(--glass-canvas) !important;
   transition:
     background-color 180ms var(--fe-ease),
     box-shadow 180ms var(--fe-ease),
@@ -735,56 +867,54 @@
 :root[data-skin="liquid"]
   main
   button[class*="rounded-2xl"][class*="border"][class*="p-4"]:hover {
-  background-color: color-mix(
-    in srgb,
-    var(--aq-card-bg),
-    var(--fe-edge) 20%
-  ) !important;
-  background-image: var(--aq-sheen) !important;
-  box-shadow: var(--aq-card), var(--aq-glow-soft) !important;
+  background-color: var(--glass-elevated-bg) !important;
+  background-image: var(--glass-sheen) !important;
+  box-shadow: var(--glass-elevated) !important;
   transform: translateY(-1px);
 }
-/* Artwork: a white rim and the glow under it; the hero cover is a
-   floating object with the sheen across its top. */
+:root[data-skin="liquid"] main [data-folder-card]:focus-within {
+  box-shadow: var(--glass-elevated), var(--glass-focus-ring) !important;
+}
+/* The suggestion band: elevated, the opal across it. */
+:root[data-skin="liquid"] .fe-suggest__aura + * {
+  position: relative;
+}
+:root[data-skin="liquid"] main section:has(> .fe-suggest__aura),
+:root[data-skin="liquid"] main div:has(> .fe-suggest__aura) {
+  background-color: var(--glass-elevated-bg) !important;
+  background-image: var(--glass-ambient-tint);
+  box-shadow: var(--glass-elevated);
+}
+/* Artwork: a rim and the glow under it; the hero cover suspended on its
+   own light, with a thin glass bezel rather than a white frame. */
 :root[data-skin="liquid"] .fe-tile {
   border-radius: 1rem;
   box-shadow:
-    0 0 0 1px var(--aq-panel-rim),
-    var(--aq-glow-soft);
+    0 0 0 1px var(--glass-structural-edge),
+    var(--glass-shadow);
 }
 :root[data-skin="liquid"] .fe-tile-hover:hover .fe-tile,
 :root[data-skin="liquid"] .fe-tile-hover:focus-visible .fe-tile {
   box-shadow:
-    0 0 0 1px var(--aq-floating-rim),
-    var(--aq-glow-soft),
-    var(--aq-glow-lift);
+    0 0 0 1px var(--glass-floating-edge),
+    var(--glass-shadow),
+    var(--glass-shadow-lift);
+}
+:root[data-skin="liquid"] .fe-tile-hover[aria-current="true"] .fe-tile {
+  box-shadow:
+    0 0 0 2px var(--fe-accent),
+    0 0 18px color-mix(in srgb, var(--fe-accent) 45%, transparent),
+    var(--glass-shadow);
 }
 :root[data-skin="liquid"] .fe-hero-cover {
   border-radius: 1.5rem;
   box-shadow:
-    0 0 0 6px color-mix(in srgb, var(--aq-floating-bg), transparent 30%),
-    0 0 0 7px var(--aq-floating-rim),
-    0 0 0 8px var(--aq-contour),
-    var(--aq-glow-soft),
-    var(--aq-glow-lift),
+    0 0 0 3px color-mix(in srgb, var(--glass-floating-bg), transparent 35%),
+    0 0 0 4px var(--glass-floating-edge),
+    0 0 0 5px var(--glass-contour),
+    var(--glass-shadow),
+    var(--glass-shadow-lift),
     0 50px 140px -40px color-mix(in srgb, var(--fe-glow) 90%, transparent);
-}
-/* The record's own light pooled under the canvas art, where the music
-   is: the one place on the page the cover's colour is let loose. */
-:root[data-skin="liquid"] .fe-canvas__art::before {
-  content: "";
-  position: absolute;
-  inset: -22% -18% -26% -18%;
-  z-index: -1;
-  pointer-events: none;
-  background: radial-gradient(
-    ellipse 55% 55% at 50% 52%,
-    color-mix(in srgb, var(--fe-glow) 70%, transparent),
-    transparent 70%
-  );
-  opacity: 0.75;
-  filter: blur(8px);
-  animation: fe-fade-in 900ms var(--fe-ease) both;
 }
 :root[data-skin="liquid"] .fe-hero-cover::after {
   content: "";
@@ -793,29 +923,43 @@
   pointer-events: none;
   background: linear-gradient(
     168deg,
-    rgb(255 255 255 / 0.32),
+    rgb(255 255 255 / 0.3),
     rgb(255 255 255 / 0.06) 38%,
     transparent 55%
   );
 }
-/* The suggestion band: a floating sheet. */
-:root[data-skin="liquid"] .fe-suggest__aura + * {
-  position: relative;
+/* The record's own light pooled under the canvas art. */
+:root[data-skin="liquid"] .fe-canvas__art::before {
+  content: "";
+  position: absolute;
+  inset: -24% -20% -28% -20%;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 55% 55% at 50% 52%,
+    color-mix(in srgb, var(--fe-glow) 72%, transparent),
+    transparent 70%
+  );
+  opacity: 0.8;
+  filter: blur(8px);
+  animation: fe-fade-in 900ms var(--fe-ease) both;
 }
-/* Inputs: a floating sheet with the rim, charged on focus. */
+/* Inputs: floating, charged on focus. */
 :root[data-skin="liquid"] :where(input, textarea, select):not(header input) {
-  background-color: var(--aq-floating-bg) !important;
+  background-color: var(--glass-floating-bg) !important;
   border-color: transparent !important;
-  box-shadow: inset 0 0 0 1px var(--aq-floating-rim);
+  box-shadow:
+    inset 0 0 0 1px var(--glass-floating-edge),
+    inset 0 1px 0 var(--glass-edge-highlight);
   transition: box-shadow 480ms var(--fe-ease);
 }
 :root[data-skin="liquid"]
   :where(input, textarea, select):not(header input):focus-visible {
   box-shadow:
-    inset 0 0 0 1px var(--aq-floating-rim),
-    var(--aq-glow-focus);
+    inset 0 0 0 1px var(--glass-floating-edge),
+    var(--glass-focus-ring);
 }
-/* The primary action: the accent, its light under it, a sheen on hover. */
+/* The primary action: the accent, a top light, its glow under it. */
 :root[data-skin="liquid"] .fe-cta,
 :root[data-skin="liquid"]
   main
@@ -827,7 +971,9 @@
         [class*="absolute"]
       )
   ) {
-  box-shadow: var(--aq-glow-accent) !important;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.35),
+    var(--glass-accent-glow) !important;
 }
 :root[data-skin="liquid"] .fe-cta:hover,
 :root[data-skin="liquid"]
@@ -840,7 +986,7 @@
         [class*="absolute"]
       )
   ):hover:not(:disabled) {
-  background-image: var(--aq-sheen) !important;
+  background-image: var(--glass-sheen) !important;
 }
 :root[data-skin="liquid"] .fe-link:focus-visible,
 :root[data-skin="liquid"] .fe-icon-btn:focus-visible {
@@ -869,15 +1015,23 @@
   ):focus-visible {
   outline: 0;
   animation: none;
-  box-shadow: var(--aq-glow-accent), var(--aq-glow-focus) !important;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.35),
+    var(--glass-accent-glow),
+    var(--glass-focus-ring) !important;
 }
-/* Ghost pills: subtle glass. */
+/* Ghost pills and chips: a tone with an edge. */
 :root[data-skin="liquid"]
   main
   [data-page-hero]
-  button[class*="border"][class*="px-"] {
-  background-color: var(--aq-subtle-bg) !important;
-  box-shadow: var(--aq-subtle) !important;
+  button[class*="border"][class*="px-"],
+:root[data-skin="liquid"]
+  main
+  button[class*="rounded-full"][class*="text-xs"][class*="bg-zinc-100"] {
+  background-color: var(--glass-tone-bg) !important;
+  box-shadow:
+    var(--glass-tone),
+    inset 0 1px 0 var(--glass-edge-highlight) !important;
 }
 :root[data-skin="liquid"]
   main
@@ -885,42 +1039,38 @@
   button[class*="border"][class*="px-"]:hover:not(:disabled) {
   background-color: color-mix(
     in srgb,
-    var(--aq-subtle-bg),
+    var(--glass-tone-bg),
     var(--fe-edge) 25%
   ) !important;
-  background-image: var(--aq-sheen) !important;
-}
-/* Filter pills and chips. */
-:root[data-skin="liquid"]
-  main
-  button[class*="rounded-full"][class*="text-xs"][class*="bg-zinc-100"] {
-  background-color: var(--aq-subtle-bg) !important;
-  box-shadow: var(--aq-subtle);
+  background-image: var(--glass-sheen) !important;
 }
 
-/* ── Track tables: a subtle header, the playing row's sheen ── */
+/* ── Track tables: a subtle header, light on the playing row ── */
 :root[data-skin="liquid"] [data-track-table] [class*="sticky"][class*="grid"] {
   background-color: var(--fe-surface-0) !important;
-  backdrop-filter: blur(var(--aq-subtle-blur));
-  -webkit-backdrop-filter: blur(var(--aq-subtle-blur));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: inset 0 -1px 0 var(--fe-hairline);
+}
+:root[data-skin="liquid"] [data-track-row] {
+  transition: background-color 120ms var(--fe-ease);
 }
 :root[data-skin="liquid"] [data-track-row][class*="bg-emerald-50 "] {
   background-color: color-mix(
     in srgb,
-    var(--fe-accent) 7%,
+    var(--fe-accent) 8%,
     transparent
   ) !important;
-  background-image: linear-gradient(
-    100deg,
-    transparent 30%,
-    rgb(255 255 255 / 0.22) 50%,
-    transparent 70%
-  );
-  background-size: 300% 100%;
-  animation: aq-sheen 6s linear infinite;
+  box-shadow:
+    inset 2px 0 0 var(--fe-accent),
+    inset 0 1px 0 var(--glass-edge-highlight),
+    inset 12px 0 24px -12px
+      color-mix(in srgb, var(--fe-accent) 25%, transparent);
 }
 
-/* ── Mood Radio: five capsules of tinted glass ─────────────── */
+/* ── Mood Radio: five capsules of tinted glass, elevated ────── */
+/* No blur: they scroll with the page. The tint, the edge and the inner
+   light are what make them glass; only the chosen one's wave moves. */
 :root[data-skin="liquid"] .aq-capsules {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -942,16 +1092,16 @@
   position: relative;
   min-height: 9.5rem;
   border-radius: 1.25rem;
-  background-color: var(--aq-panel-bg);
-  background-image: linear-gradient(
-    160deg,
-    color-mix(in srgb, var(--aq-tint) 55%, transparent),
-    color-mix(in srgb, var(--aq-tint) 18%, transparent) 60%,
-    transparent
-  );
-  backdrop-filter: blur(var(--aq-panel-blur)) saturate(var(--aq-sat));
-  -webkit-backdrop-filter: blur(var(--aq-panel-blur)) saturate(var(--aq-sat));
-  box-shadow: var(--aq-panel);
+  background-color: var(--glass-elevated-bg);
+  background-image:
+    linear-gradient(
+      160deg,
+      color-mix(in srgb, var(--aq-tint) 55%, transparent),
+      color-mix(in srgb, var(--aq-tint) 18%, transparent) 60%,
+      transparent
+    ),
+    var(--glass-specular);
+  box-shadow: var(--glass-elevated);
   overflow: hidden;
   transition:
     background-color 240ms var(--fe-ease),
@@ -979,17 +1129,21 @@
   --aq-tint-deep: var(--aq-aqua-deep);
 }
 :root[data-skin="liquid"] .aq-capsule:hover {
-  background-color: color-mix(in srgb, var(--aq-panel-bg), var(--fe-edge) 20%);
+  background-color: color-mix(
+    in srgb,
+    var(--glass-elevated-bg),
+    var(--fe-edge) 20%
+  );
   transform: translateY(-1px);
 }
 :root[data-skin="liquid"] .aq-capsule[data-checked="true"] {
   background-color: color-mix(
     in srgb,
-    var(--aq-floating-bg),
+    var(--glass-floating-bg),
     var(--fe-edge) 15%
   );
   box-shadow:
-    var(--aq-floating),
+    var(--glass-floating),
     0 18px 44px -20px color-mix(in srgb, var(--aq-tint-deep) 55%, transparent);
 }
 :root[data-skin="liquid"] .aq-capsule[data-disabled] {
@@ -1013,9 +1167,10 @@
   outline: 0;
 }
 :root[data-skin="liquid"] .aq-capsule:has(> .aq-capsule__radio:focus-visible) {
-  box-shadow: var(--aq-panel), var(--aq-glow-focus);
+  box-shadow: var(--glass-elevated), var(--glass-focus-ring);
 }
-/* The inner light: the mood's wave, in its deep tint, drifting. */
+/* The inner light: the mood's wave in its deep tint. At rest it is
+   still; hovered it gains a little amplitude; chosen, it drifts. */
 :root[data-skin="liquid"] .aq-capsule__light {
   display: block;
   width: 100%;
@@ -1023,22 +1178,31 @@
   margin-bottom: 0.75rem;
   overflow: hidden;
   color: var(--aq-tint-deep);
-  opacity: 0.55;
-  transition: opacity 240ms var(--fe-ease);
+  opacity: 0.6;
+  transform-origin: 50% 50%;
+  transition:
+    opacity 240ms var(--fe-ease),
+    transform 320ms var(--fe-ease);
+}
+:root[data-skin="liquid"] .aq-capsule:hover .aq-capsule__light {
+  opacity: 0.85;
+  transform: scaleY(1.14);
 }
 :root[data-skin="liquid"] .aq-capsule[data-checked="true"] .aq-capsule__light {
-  opacity: 0.95;
+  opacity: 1;
 }
 :root[data-skin="liquid"] .aq-capsule__light svg {
   width: 200%;
   height: 100%;
-  animation: aq-wave-drift var(--aq-wave-period, 9s) linear infinite;
   filter: drop-shadow(
     0 0 6px color-mix(in srgb, var(--aq-tint-deep) 60%, transparent)
   );
 }
-:root[data-skin="liquid"] .aq-capsule[data-disabled] .aq-capsule__light svg {
-  animation-play-state: paused;
+:root[data-skin="liquid"]
+  .aq-capsule[data-checked="true"]:not([data-disabled])
+  .aq-capsule__light
+  svg {
+  animation: aq-wave-drift var(--aq-wave-period, 9s) linear infinite;
 }
 @keyframes aq-wave-drift {
   to {
@@ -1065,8 +1229,6 @@
   font-size: 0.75rem;
   color: var(--fe-ink-3);
 }
-/* The subtitle opens with the capsule; the start pill takes its place
-   at the foot. */
 :root[data-skin="liquid"] .aq-capsule__detail {
   display: grid;
   grid-template-rows: 0fr;
@@ -1104,25 +1266,34 @@
   font-weight: 540;
   color: var(--fe-accent-ink);
   background-color: var(--fe-accent);
-  box-shadow: var(--aq-glow-accent);
-  transition: filter 180ms var(--fe-ease);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.35),
+    var(--glass-accent-glow);
+  transition:
+    filter 180ms var(--fe-ease),
+    transform 100ms var(--fe-ease);
 }
 :root[data-skin="liquid"] .aq-capsule__cta:hover:not(:disabled) {
   filter: brightness(1.06);
+}
+:root[data-skin="liquid"] .aq-capsule__cta:active:not(:disabled) {
+  transform: scale(0.96);
 }
 :root[data-skin="liquid"] .aq-capsule__cta:disabled {
   opacity: 0.6;
 }
 
-/* ── Menus, popovers, dialogs: the overlay level ────────────── */
+/* ── Menus, popovers, dialogs: floating, the dense form ──────── */
 :root[data-skin="liquid"] [role="dialog"]:not([data-immersive]),
 :root[data-skin="liquid"] [role="menu"],
 :root[data-skin="liquid"] [role="listbox"],
 :root[data-skin="liquid"] [data-topbar-popover] {
-  background-color: var(--aq-overlay-bg) !important;
-  backdrop-filter: blur(var(--aq-overlay-blur)) saturate(var(--aq-sat));
-  -webkit-backdrop-filter: blur(var(--aq-overlay-blur)) saturate(var(--aq-sat));
-  box-shadow: var(--aq-overlay) !important;
+  background-color: var(--glass-overlay-bg) !important;
+  background-image: var(--glass-specular);
+  backdrop-filter: blur(var(--glass-overlay-blur)) saturate(var(--glass-sat));
+  -webkit-backdrop-filter: blur(var(--glass-overlay-blur))
+    saturate(var(--glass-sat));
+  box-shadow: var(--glass-floating) !important;
 }
 :root[data-skin="liquid"] [role="dialog"]:not([data-immersive]),
 :root[data-skin="liquid"] [data-topbar-popover] {
@@ -1134,7 +1305,7 @@
 :root[data-skin="liquid"] [role="menu"] [role="menuitem"]:hover,
 :root[data-skin="liquid"] [role="menu"] [role="menuitem"]:focus-visible {
   background-color: var(--fe-tone-2) !important;
-  background-image: var(--aq-sheen);
+  background-image: var(--glass-sheen);
 }
 
 /* ── A pale ground under an artist's photo ─────────────────── */
@@ -1153,17 +1324,16 @@
   main
   [data-page-hero][class*="group/hero"]
   button[class*="border"][class*="px-"] {
-  background-color: var(--aq-floating-bg) !important;
+  background-color: var(--glass-floating-bg) !important;
   color: var(--fe-ink) !important;
-  box-shadow: var(--aq-floating) !important;
+  box-shadow: var(--glass-floating) !important;
 }
 
 /* ── Reduced motion, reduced transparency, Linux, high contrast ── */
 @media (prefers-reduced-motion: reduce) {
   :root[data-skin="liquid"] body::before,
   :root[data-skin="liquid"] .aq-capsule__light svg,
-  :root[data-skin="liquid"] [data-track-row][class*="bg-emerald-50 "],
-  :root[data-skin="liquid"] footer [role="slider"] > div:first-child {
+  :root[data-skin="liquid"] .fe-canvas__art::before {
     animation: none;
   }
   :root[data-skin="liquid"]
@@ -1177,14 +1347,17 @@
       select
     ):focus-visible {
     animation: none;
-    box-shadow: var(--aq-glow-focus);
+    box-shadow: var(--glass-focus-ring);
   }
   :root[data-skin="liquid"] [data-sidebar-nav] [data-nav-item]:active,
   :root[data-skin="liquid"] [data-sidebar-row="pinned"]:active,
   :root[data-skin="liquid"] [data-topbar-left] button:active:not(:disabled),
   :root[data-skin="liquid"] [data-topbar-profile]:active,
   :root[data-skin="liquid"] footer :where(button:active),
+  :root[data-skin="liquid"] .fe-panel__pill:active:not(:disabled),
+  :root[data-skin="liquid"] .aq-capsule__cta:active:not(:disabled),
   :root[data-skin="liquid"] .aq-capsule:hover,
+  :root[data-skin="liquid"] .aq-capsule:hover .aq-capsule__light,
   :root[data-skin="liquid"] main [data-folder-card]:hover,
   :root[data-skin="liquid"]
     main
@@ -1200,19 +1373,21 @@
    inks the layout's own contrast block sets. */
 @media (prefers-reduced-transparency: reduce) {
   :root[data-skin="liquid"] {
-    --aq-subtle-bg: #23242f;
-    --aq-panel-bg: #1f2029;
-    --aq-card-bg: #1e2029;
-    --aq-floating-bg: #262734;
-    --aq-overlay-bg: #2a2b38;
+    --glass-tone-bg: #23242f;
+    --glass-canvas-bg: #1e2029;
+    --glass-structural-bg: #1f2029;
+    --glass-elevated-bg: #262734;
+    --glass-floating-bg: #2a2b38;
+    --glass-overlay-bg: #2a2b38;
     --fe-surface-0: #1b1c25;
   }
   :root[data-skin="liquid"]:not(.dark) {
-    --aq-subtle-bg: #f2f3f8;
-    --aq-panel-bg: #f7f8fc;
-    --aq-card-bg: #ffffff;
-    --aq-floating-bg: #ffffff;
-    --aq-overlay-bg: #ffffff;
+    --glass-tone-bg: #f2f3f8;
+    --glass-canvas-bg: #ffffff;
+    --glass-structural-bg: #f7f8fc;
+    --glass-elevated-bg: #ffffff;
+    --glass-floating-bg: #ffffff;
+    --glass-overlay-bg: #ffffff;
     --fe-surface-0: #eef0f6;
   }
   :root[data-skin="liquid"] .skin-sidebar-shell > aside,
@@ -1221,16 +1396,6 @@
   :root[data-skin="liquid"] [data-topbar-left],
   :root[data-skin="liquid"] [data-topbar-right],
   :root[data-skin="liquid"] [data-topbar-search-field],
-  :root[data-skin="liquid"]
-    main
-    :where(
-      [class*="rounded-xl"],
-      [class*="rounded-2xl"],
-      [class*="rounded-3xl"]
-    ),
-  :root[data-skin="liquid"] main details.settings-group,
-  :root[data-skin="liquid"] main [data-folder-card],
-  :root[data-skin="liquid"] .aq-capsule,
   :root[data-skin="liquid"] [data-track-table] [class*="sticky"][class*="grid"],
   :root[data-skin="liquid"] [role="dialog"],
   :root[data-skin="liquid"] [role="menu"],
@@ -1242,14 +1407,16 @@
 }
 :root[data-skin="liquid"][data-webkitgtk-safe],
 :root[data-skin="liquid"][data-contrast="high"] {
-  --aq-subtle-bg: var(--wf-contrast-surface);
-  --aq-panel-bg: var(--wf-contrast-surface);
-  --aq-card-bg: var(--wf-contrast-surface);
-  --aq-floating-bg: var(--wf-contrast-surface);
-  --aq-overlay-bg: var(--wf-contrast-surface);
+  --glass-tone-bg: var(--wf-contrast-surface);
+  --glass-canvas-bg: var(--wf-contrast-surface);
+  --glass-structural-bg: var(--wf-contrast-surface);
+  --glass-elevated-bg: var(--wf-contrast-surface);
+  --glass-floating-bg: var(--wf-contrast-surface);
+  --glass-overlay-bg: var(--wf-contrast-surface);
   --fe-surface-0: var(--wf-contrast-surface);
 }
-:root[data-skin="liquid"][data-contrast="high"] body::before {
+:root[data-skin="liquid"][data-contrast="high"] body::before,
+:root[data-skin="liquid"][data-contrast="high"] .fe-canvas__art::before {
   display: none;
 }
 :root[data-skin="liquid"]:not(.dark)[data-contrast="high"] {
