@@ -1037,7 +1037,9 @@
         "decoder-crashed": "El motor de audio se ha reiniciado",
         "decoder-stopped": "El motor de audio se detuvo tras varios errores",
         "offline": "El modo sin conexión está activado",
-        "unknown": "La reproducción ha fallado"
+        "unknown": "La reproducción ha fallado",
+        "files-failed": "No se pueden reproducir estos archivos",
+        "picker-failed": "No se puede abrir el selector de archivos"
       },
       "notice": {
         "exclusive-refused": "Este dispositivo rechaza el modo exclusivo: reproduciendo en modo compartido",

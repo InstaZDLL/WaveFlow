@@ -995,7 +995,9 @@
         "decoder-crashed": "오디오 엔진이 다시 시작되었습니다",
         "decoder-stopped": "오류가 반복되어 오디오 엔진이 중지되었습니다",
         "offline": "오프라인 모드가 켜져 있습니다",
-        "unknown": "재생에 실패했습니다"
+        "unknown": "재생에 실패했습니다",
+        "files-failed": "이 파일들을 재생할 수 없습니다",
+        "picker-failed": "파일 선택기를 열 수 없습니다"
       },
       "notice": {
         "exclusive-refused": "이 장치는 독점 모드를 허용하지 않습니다. 공유 모드로 재생합니다",

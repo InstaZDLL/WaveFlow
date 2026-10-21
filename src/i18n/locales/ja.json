@@ -995,7 +995,9 @@
         "decoder-crashed": "オーディオエンジンを再起動しました",
         "decoder-stopped": "エラーが続いたためオーディオエンジンを停止しました",
         "offline": "オフラインモードが有効です",
-        "unknown": "再生に失敗しました"
+        "unknown": "再生に失敗しました",
+        "files-failed": "これらのファイルを再生できません",
+        "picker-failed": "ファイル選択ダイアログを開けません"
       },
       "notice": {
         "exclusive-refused": "このデバイスは排他モードを受け付けません。共有モードで再生します",

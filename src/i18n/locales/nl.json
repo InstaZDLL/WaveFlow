@@ -997,7 +997,9 @@
         "decoder-crashed": "De audio-engine is opnieuw gestart",
         "decoder-stopped": "De audio-engine is gestopt na herhaalde fouten",
         "offline": "Offlinemodus staat aan",
-        "unknown": "Afspelen is mislukt"
+        "unknown": "Afspelen is mislukt",
+        "files-failed": "Deze bestanden kunnen niet worden afgespeeld",
+        "picker-failed": "De bestandskiezer kan niet worden geopend"
       },
       "notice": {
         "exclusive-refused": "Dit apparaat weigert de exclusieve modus: afspelen in gedeelde modus",

@@ -1037,7 +1037,9 @@
         "decoder-crashed": "Il motore audio è stato riavviato",
         "decoder-stopped": "Il motore audio si è fermato dopo ripetuti errori",
         "offline": "La modalità offline è attiva",
-        "unknown": "Riproduzione non riuscita"
+        "unknown": "Riproduzione non riuscita",
+        "files-failed": "Impossibile riprodurre questi file",
+        "picker-failed": "Impossibile aprire il selettore di file"
       },
       "notice": {
         "exclusive-refused": "Questo dispositivo rifiuta la modalità esclusiva: riproduzione in modalità condivisa",

@@ -995,7 +995,9 @@
         "decoder-crashed": "音訊引擎已重新啟動",
         "decoder-stopped": "多次錯誤後音訊引擎已停止",
         "offline": "離線模式已開啟",
-        "unknown": "播放失敗"
+        "unknown": "播放失敗",
+        "files-failed": "無法播放這些檔案",
+        "picker-failed": "無法開啟檔案選擇器"
       },
       "notice": {
         "exclusive-refused": "此裝置不接受獨佔模式：以共用模式播放",

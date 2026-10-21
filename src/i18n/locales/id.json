@@ -995,7 +995,9 @@
         "decoder-crashed": "Mesin audio dimulai ulang",
         "decoder-stopped": "Mesin audio berhenti setelah beberapa kesalahan",
         "offline": "Mode luring aktif",
-        "unknown": "Pemutaran gagal"
+        "unknown": "Pemutaran gagal",
+        "files-failed": "Tidak dapat memutar file ini",
+        "picker-failed": "Tidak dapat membuka pemilih file"
       },
       "notice": {
         "exclusive-refused": "Perangkat ini menolak mode eksklusif: memutar dalam mode bersama",

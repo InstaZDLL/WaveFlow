@@ -997,7 +997,9 @@
         "decoder-crashed": "The audio engine restarted",
         "decoder-stopped": "The audio engine stopped after repeated errors",
         "offline": "Offline mode is on",
-        "unknown": "Playback failed"
+        "unknown": "Playback failed",
+        "files-failed": "Could not play these files",
+        "picker-failed": "Could not open the file picker"
       },
       "notice": {
         "exclusive-refused": "This device refuses exclusive mode: playing in shared mode",

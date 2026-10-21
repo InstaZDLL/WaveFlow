@@ -432,7 +432,7 @@ pub async fn add_folder_to_library(
 
     let pool = state.require_profile_pool().await?;
     let folders = all_folder_paths(&pool).await?;
-    if let Some((relation, existing)) = crate::drop_import::overlap(
+    if let Some((relation, existing)) = waveflow_core::scanner::folders::overlap(
         std::path::Path::new(&path),
         folders.iter().map(|(_, folder)| folder.as_path()),
     ) {
@@ -481,7 +481,7 @@ pub async fn import_dropped(
     library_id: i64,
     paths: Vec<String>,
 ) -> AppResult<crate::drop_import::DropImportSummary> {
-    use crate::drop_import::{self, Copied, DropImportSummary};
+    use crate::drop_import::{self, DropImportSummary};
 
     let managed = drop_import::managed_folder()
         .ok_or_else(|| AppError::Other("no music folder to copy into".into()))?;
@@ -507,39 +507,44 @@ pub async fn import_dropped(
     // one is an overlap the drop cannot resolve, and copying first would
     // leave files no folder indexes.
     let folders = all_folder_paths(&pool).await?;
-    let indexing =
-        drop_import::indexing_folder(&managed, &folders).map_err(|(relation, existing)| {
-            AppError::FolderOverlap {
-                relation,
-                existing: existing.to_string_lossy().into_owned(),
-            }
-        })?;
+    let indexing = waveflow_core::scanner::folders::indexing_folder(&managed, &folders).map_err(
+        |(relation, existing)| AppError::FolderOverlap {
+            relation,
+            existing: existing.to_string_lossy().into_owned(),
+        },
+    )?;
 
     let dropped: Vec<std::path::PathBuf> = paths.into_iter().map(Into::into).collect();
     let library: Vec<std::path::PathBuf> = folders.into_iter().map(|(_, path)| path).collect();
     let copy_app = app.clone();
     let copy_managed = managed.clone();
     let report = tokio::task::spawn_blocking(move || {
-        let plan = drop_import::plan(&dropped, &copy_managed, &library);
-        let mut out = DropImportSummary {
-            in_library: plan.in_library,
-            refused: plan.refused,
-            truncated: plan.truncated,
-            ..Default::default()
-        };
-        if plan.copies.is_empty() {
-            return out;
-        }
-        // The registry's own flag stops the copy, as it does a scan.
-        let total = plan.copies.len() as u64;
+        // Announced before the walk, which can take a while on a large
+        // folder: with no row the status bar showed nothing, and nothing
+        // could stop it. The registry's own flag stops the walk and the
+        // copy, as it does a scan; the total is known once the walk is done.
         let task = crate::tasks::start(
             &copy_app,
             crate::tasks::TaskKind::DropImport,
-            total,
+            0,
             crate::tasks::Cancellation::Flag,
         );
+        let should_stop = || task.as_ref().is_some_and(|t| t.is_cancelling());
+        let plan = drop_import::plan(&dropped, &copy_managed, &library, &should_stop);
+        let mut out = DropImportSummary {
+            in_library: plan.in_library,
+            refused: plan.refused,
+            errors: plan.read_errors,
+            truncated: plan.truncated,
+            cancelled: plan.stopped,
+            ..Default::default()
+        };
+        if out.cancelled || plan.copies.is_empty() {
+            return out;
+        }
+        let total = plan.copies.len() as u64;
         for (done, copy) in plan.copies.iter().enumerate() {
-            if task.as_ref().is_some_and(|t| t.is_cancelling()) {
+            if should_stop() {
                 out.cancelled = true;
                 break;
             }
@@ -549,14 +554,7 @@ pub async fn import_dropped(
                     task.detail(name.to_string_lossy());
                 }
             }
-            match drop_import::copy_one(&copy.from, &copy.to) {
-                Ok(Copied::New(_)) => out.copied += 1,
-                Ok(Copied::AlreadyThere) => out.already_copied += 1,
-                Err(err) => {
-                    tracing::warn!(from = %copy.from.display(), %err, "drop import: copy failed");
-                    out.errors += 1;
-                }
-            }
+            drop_import::apply(copy, &mut out);
         }
         out
     })

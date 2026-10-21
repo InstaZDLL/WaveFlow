@@ -997,7 +997,9 @@
         "decoder-crashed": "Ses motoru yeniden başlatıldı",
         "decoder-stopped": "Ses motoru tekrarlanan hatalardan sonra durdu",
         "offline": "Çevrimdışı mod açık",
-        "unknown": "Oynatma başarısız oldu"
+        "unknown": "Oynatma başarısız oldu",
+        "files-failed": "Bu dosyalar çalınamıyor",
+        "picker-failed": "Dosya seçici açılamıyor"
       },
       "notice": {
         "exclusive-refused": "Bu aygıt özel modu kabul etmiyor: paylaşımlı modda çalınıyor",

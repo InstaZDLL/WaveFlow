@@ -1037,7 +1037,9 @@
         "decoder-crashed": "Le moteur audio a redémarré",
         "decoder-stopped": "Le moteur audio s'est arrêté après plusieurs erreurs",
         "offline": "Le mode hors ligne est activé",
-        "unknown": "La lecture a échoué"
+        "unknown": "La lecture a échoué",
+        "files-failed": "Impossible de lire ces fichiers",
+        "picker-failed": "Impossible d'ouvrir le sélecteur de fichiers"
       },
       "notice": {
         "exclusive-refused": "Ce périphérique refuse le mode exclusif : lecture en mode partagé",

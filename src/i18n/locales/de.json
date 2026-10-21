@@ -997,7 +997,9 @@
         "decoder-crashed": "Die Audio-Engine wurde neu gestartet",
         "decoder-stopped": "Die Audio-Engine wurde nach wiederholten Fehlern gestoppt",
         "offline": "Der Offline-Modus ist aktiviert",
-        "unknown": "Die Wiedergabe ist fehlgeschlagen"
+        "unknown": "Die Wiedergabe ist fehlgeschlagen",
+        "files-failed": "Diese Dateien können nicht abgespielt werden",
+        "picker-failed": "Die Dateiauswahl lässt sich nicht öffnen"
       },
       "notice": {
         "exclusive-refused": "Dieses Gerät verweigert den Exklusivmodus: Wiedergabe im gemeinsamen Modus",
