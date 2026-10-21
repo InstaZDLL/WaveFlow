@@ -59,8 +59,8 @@
   --fe-bg: #15161d;
   --fe-bg-rgb: 21 22 29;
   --fe-ink: #f4f4f8;
-  --fe-ink-2: #c0c2d2;
-  --fe-ink-3: #8c8ea2;
+  --fe-ink-2: #c9cbda;
+  --fe-ink-3: #9a9cb0;
   --fe-hairline: rgb(255 255 255 / 0.08);
   --fe-hairline-strong: rgb(255 255 255 / 0.14);
   --fe-tone-1: rgb(255 255 255 / 0.05);
@@ -79,17 +79,36 @@
   --aq-subtle-bg: rgb(255 255 255 / 0.05);
   --aq-subtle-blur: 12px;
   --aq-subtle-rim: rgb(255 255 255 / 0.08);
-  --aq-panel-bg: rgb(32 34 46 / 0.62);
+  --aq-panel-bg: rgb(32 34 46 / 0.64);
   --aq-panel-blur: 24px;
-  --aq-panel-rim: rgb(255 255 255 / 0.12);
+  --aq-panel-rim: rgb(255 255 255 / 0.14);
+  /* The calm level: a card on the page, near-opaque, so the real
+     glass (the rail, the plate, the panel, the capsules) stands out. */
+  --aq-card-bg: rgb(30 32 44 / 0.86);
+  --aq-card-blur: 10px;
   --aq-floating-bg: rgb(40 42 58 / 0.72);
   --aq-floating-blur: 32px;
   --aq-floating-rim: rgb(255 255 255 / 0.16);
   --aq-overlay-bg: rgb(38 40 54 / 0.92);
   --aq-overlay-blur: 44px;
   --aq-overlay-rim: rgb(255 255 255 / 0.2);
-  --aq-top-light: rgb(255 255 255 / 0.12);
+  --aq-top-light: rgb(255 255 255 / 0.14);
+  /* What makes a sheet read as thick glass: a darker line just inside
+     the rim (the refraction), a shade along the foot, a contour just
+     outside. */
+  --aq-rim-shade: rgb(255 255 255 / 0.03);
+  --aq-bottom-shade: rgb(0 0 0 / 0.3);
+  --aq-contour: rgb(0 0 0 / 0.35);
   --aq-sat: 150%;
+  /* The opalescence: lavender, aqua and mint caught in the sheet. */
+  --aq-opal: linear-gradient(
+    118deg,
+    color-mix(in srgb, var(--aq-lavender) 10%, transparent) 0%,
+    transparent 32%,
+    color-mix(in srgb, var(--aq-aqua) 7%, transparent) 55%,
+    transparent 72%,
+    color-mix(in srgb, var(--aq-mint) 8%, transparent) 100%
+  );
 
   /* The light. */
   --aq-glow-soft: 0 24px 60px -28px
@@ -124,8 +143,8 @@
   --fe-bg: #eef0f6;
   --fe-bg-rgb: 238 240 246;
   --fe-ink: #1d1e2b;
-  --fe-ink-2: #5a5c70;
-  --fe-ink-3: #8b8da3;
+  --fe-ink-2: #4b4d63;
+  --fe-ink-3: #73758c;
   --fe-hairline: rgb(31 33 56 / 0.08);
   --fe-hairline-strong: rgb(31 33 56 / 0.14);
   --fe-tone-1: rgb(31 33 56 / 0.04);
@@ -141,14 +160,26 @@
 
   --aq-subtle-bg: rgb(255 255 255 / 0.38);
   --aq-subtle-rim: rgb(255 255 255 / 0.55);
-  --aq-panel-bg: rgb(255 255 255 / 0.56);
-  --aq-panel-rim: rgb(255 255 255 / 0.8);
+  --aq-panel-bg: rgb(255 255 255 / 0.6);
+  --aq-panel-rim: rgb(255 255 255 / 0.85);
+  --aq-card-bg: rgb(255 255 255 / 0.84);
   --aq-floating-bg: rgb(255 255 255 / 0.72);
   --aq-floating-rim: rgb(255 255 255 / 0.9);
   --aq-overlay-bg: rgb(255 255 255 / 0.88);
   --aq-overlay-rim: rgb(255 255 255 / 0.95);
-  --aq-top-light: rgb(255 255 255 / 0.9);
+  --aq-top-light: rgb(255 255 255 / 0.95);
+  --aq-rim-shade: rgb(31 33 56 / 0.04);
+  --aq-bottom-shade: rgb(31 33 56 / 0.06);
+  --aq-contour: rgb(31 33 56 / 0.07);
   --aq-sat: 140%;
+  --aq-opal: linear-gradient(
+    118deg,
+    color-mix(in srgb, var(--aq-lavender) 22%, transparent) 0%,
+    transparent 32%,
+    color-mix(in srgb, var(--aq-aqua) 14%, transparent) 55%,
+    transparent 72%,
+    color-mix(in srgb, var(--aq-mint) 16%, transparent) 100%
+  );
 
   --aq-glow-soft: 0 24px 60px -28px
     color-mix(in srgb, var(--fe-glow) 55%, transparent);
@@ -171,15 +202,21 @@
    so a rule below names a level, not a recipe. */
 :root[data-skin="liquid"] {
   --aq-subtle: inset 0 0 0 1px var(--aq-subtle-rim);
-  --aq-panel:
+  --aq-card:
     inset 0 0 0 1px var(--aq-panel-rim), inset 0 1px 0 var(--aq-top-light),
-    var(--aq-glow-soft);
+    0 0 0 1px var(--aq-contour), 0 10px 30px -22px rgb(31 33 56 / 0.3);
+  --aq-panel:
+    inset 0 0 0 1px var(--aq-panel-rim), inset 0 0 0 2px var(--aq-rim-shade),
+    inset 0 1.5px 0 var(--aq-top-light), inset 0 -1px 0 var(--aq-bottom-shade),
+    0 0 0 1px var(--aq-contour), var(--aq-glow-soft);
   --aq-floating:
-    inset 0 0 0 1px var(--aq-floating-rim), inset 0 1px 0 var(--aq-top-light),
-    var(--aq-glow-soft), var(--aq-glow-lift);
+    inset 0 0 0 1px var(--aq-floating-rim), inset 0 0 0 2px var(--aq-rim-shade),
+    inset 0 1.5px 0 var(--aq-top-light), inset 0 -1px 0 var(--aq-bottom-shade),
+    0 0 0 1px var(--aq-contour), var(--aq-glow-soft), var(--aq-glow-lift);
   --aq-overlay:
-    inset 0 0 0 1px var(--aq-overlay-rim), inset 0 1px 0 var(--aq-top-light),
-    var(--aq-glow-lift);
+    inset 0 0 0 1px var(--aq-overlay-rim), inset 0 0 0 2px var(--aq-rim-shade),
+    inset 0 1.5px 0 var(--aq-top-light), inset 0 -1px 0 var(--aq-bottom-shade),
+    0 0 0 1px var(--aq-contour), var(--aq-glow-lift);
 }
 
 /* ── The atmosphere: three pools of pastel light, the cover in each ── */
@@ -283,16 +320,55 @@
 }
 
 /* ── The rail: a sheet of panel glass, modules of light on it ── */
+/* The shell is 16 rem wide (an animated width, `overflow: hidden`) and
+   the layout gives the rail 17 rem, which the flush rail can afford:
+   its right gutter is what gets clipped. A floating sheet cannot: its
+   rounded edge and its foot must fit inside the shell, so the sheet is
+   the shell minus the inset, on both axes, and the gutters go back to
+   the profile panel's. */
 :root[data-skin="liquid"] .skin-sidebar-shell {
   padding: 0.75rem 0 0.75rem 0.75rem;
 }
 :root[data-skin="liquid"] .skin-sidebar-shell > aside {
+  width: calc(16rem - 0.75rem) !important;
+  height: calc(100% - 1.5rem) !important;
   background-color: var(--aq-panel-bg) !important;
-  background-image: none !important;
+  background-image: var(--aq-opal) !important;
   border-radius: 1.5rem !important;
   backdrop-filter: blur(var(--aq-panel-blur)) saturate(var(--aq-sat));
   -webkit-backdrop-filter: blur(var(--aq-panel-blur)) saturate(var(--aq-sat));
   box-shadow: var(--aq-panel) !important;
+}
+:root[data-skin="liquid"] .skin-sidebar-shell[data-collapsed] > aside {
+  width: calc(5rem - 0.75rem) !important;
+}
+:root[data-skin="liquid"] [data-sidebar-nav] {
+  padding: 1.25rem 1rem 0.5rem !important;
+}
+:root[data-skin="liquid"] [data-sidebar-scroll] {
+  padding: 0.25rem 1rem 1.5rem !important;
+}
+/* Narrower modules than the layout's: the label gives a little, so
+   "Release Radar" keeps its last letters. */
+:root[data-skin="liquid"] [data-sidebar-nav] [data-nav-item] {
+  padding: 0.75rem 0.625rem !important;
+}
+:root[data-skin="liquid"] [data-sidebar-nav] [data-nav-item] > div > span {
+  font-size: 0.78rem;
+  letter-spacing: -0.012em;
+}
+:root[data-skin="liquid"] .skin-sidebar-shell > aside > div:first-child {
+  padding: 1.5rem 1rem 0.5rem !important;
+}
+:root[data-skin="liquid"]
+  .skin-sidebar-shell[data-collapsed]
+  [data-sidebar-nav] {
+  padding: 0.75rem 0.5rem 0.5rem !important;
+}
+:root[data-skin="liquid"]
+  .skin-sidebar-shell[data-collapsed]
+  [data-sidebar-scroll] {
+  padding: 0.25rem 0.5rem 1.5rem !important;
 }
 /* The modules: a tone on the sheet with a white rim; the open one is
    luminous — whiter, an inner glow of the accent, its icon in the
@@ -382,12 +458,7 @@
    tints, faintly; on focus the accent's light charges it. */
 :root[data-skin="liquid"] [data-topbar-search-field] {
   background-color: var(--aq-floating-bg) !important;
-  background-image: linear-gradient(
-    110deg,
-    color-mix(in srgb, var(--aq-lavender) 22%, transparent),
-    color-mix(in srgb, var(--aq-ice) 16%, transparent) 50%,
-    color-mix(in srgb, var(--aq-mint) 14%, transparent)
-  );
+  background-image: var(--aq-opal);
   backdrop-filter: blur(var(--aq-floating-blur)) saturate(var(--aq-sat));
   -webkit-backdrop-filter: blur(var(--aq-floating-blur)) saturate(var(--aq-sat));
   box-shadow: var(--aq-floating) !important;
@@ -422,11 +493,13 @@
   margin: 0 1rem 1rem;
   border-radius: 1.75rem !important;
   background-color: var(--aq-panel-bg) !important;
-  background-image: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--aq-pool-2) 26%, transparent),
-    transparent 60%
-  ) !important;
+  background-image:
+    radial-gradient(
+      ellipse 34% 160% at 4% 50%,
+      color-mix(in srgb, var(--fe-glow) 42%, transparent),
+      transparent 70%
+    ),
+    var(--aq-opal) !important;
   backdrop-filter: blur(var(--aq-panel-blur)) saturate(var(--aq-sat));
   -webkit-backdrop-filter: blur(var(--aq-panel-blur)) saturate(var(--aq-sat));
   box-shadow: var(--aq-panel) !important;
@@ -441,18 +514,21 @@
     0 0 0 3px var(--aq-floating-rim),
     var(--aq-glow-soft);
 }
-/* The light line: a frosted track, an aqua → lavender fill with its
-   halo, a bright dot that appears under the pointer. */
+/* The ribbon of light: a frosted track, an aqua → lavender → mint fill
+   that shimmers slowly, a halo, a bright dot under the pointer. The
+   signature of the plate: the music as a line of light. */
 :root[data-skin="liquid"] footer [role="slider"] {
-  height: 0.3125rem !important;
+  height: 0.375rem !important;
   border-radius: 9999px !important;
   background-color: var(--fe-tone-4) !important;
-  box-shadow: inset 0 0 0 1px var(--aq-subtle-rim);
+  box-shadow:
+    inset 0 0 0 1px var(--aq-subtle-rim),
+    inset 0 1px 2px var(--aq-bottom-shade);
   overflow: visible;
   transition: height 180ms var(--fe-ease);
 }
 :root[data-skin="liquid"] footer [role="slider"]:hover {
-  height: 0.4375rem !important;
+  height: 0.5rem !important;
 }
 :root[data-skin="liquid"] footer [role="slider"] > div:first-child {
   border-radius: 9999px !important;
@@ -460,10 +536,23 @@
   background-image: linear-gradient(
     90deg,
     var(--aq-aqua-deep),
-    var(--aq-lavender-deep)
+    var(--aq-lavender-deep) 50%,
+    var(--aq-mint-deep) 80%,
+    var(--aq-aqua-deep)
   ) !important;
-  box-shadow: 0 0 12px
-    color-mix(in srgb, var(--aq-lavender-deep) 55%, transparent);
+  background-size: 300% 100%;
+  animation: aq-ribbon 9s linear infinite;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.5),
+    0 0 16px color-mix(in srgb, var(--aq-lavender-deep) 60%, transparent);
+}
+@keyframes aq-ribbon {
+  from {
+    background-position: 0% 0;
+  }
+  to {
+    background-position: 300% 0;
+  }
 }
 :root[data-skin="liquid"] footer [role="slider"] > div[class*="bg-white"] {
   width: 0.875rem !important;
@@ -475,7 +564,7 @@
     0 0 14px color-mix(in srgb, var(--aq-lavender-deep) 70%, transparent) !important;
 }
 :root[data-skin="liquid"] footer [class*="tabular"] {
-  color: var(--fe-ink-3) !important;
+  color: var(--fe-ink-2) !important;
 }
 :root[data-skin="liquid"] footer :where(button) {
   color: var(--fe-ink-2) !important;
@@ -515,9 +604,48 @@
   margin: 0.75rem 0.75rem 0.75rem 0;
   border-radius: 1.5rem;
   background-color: var(--aq-panel-bg);
+  background-image:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--fe-glow) 26%, transparent),
+      transparent 42%
+    ),
+    var(--aq-opal);
   backdrop-filter: blur(var(--aq-panel-blur)) saturate(var(--aq-sat));
   -webkit-backdrop-filter: blur(var(--aq-panel-blur)) saturate(var(--aq-sat));
   box-shadow: var(--aq-panel);
+}
+/* The lyrics: readable at rest, sharp when sung. The layout fades and
+   blurs the other lines by their distance; here less of both, and the
+   sung line in full ink with the light under it. */
+:root[data-skin="liquid"] .fe-panel ul > li > button {
+  color: var(--fe-ink-2) !important;
+  opacity: 0.78;
+  filter: blur(0.45px);
+}
+:root[data-skin="liquid"]
+  .fe-panel
+  ul
+  > li:has(> button[class*="scale-[1.02]"])
+  + li
+  > button,
+:root[data-skin="liquid"]
+  .fe-panel
+  ul
+  > li:has(+ li > button[class*="scale-[1.02]"])
+  > button {
+  opacity: 0.92;
+  filter: none;
+}
+:root[data-skin="liquid"]
+  .fe-panel
+  ul
+  > li:has(> button[class*="scale-[1.02]"])
+  > button {
+  color: var(--fe-ink) !important;
+  opacity: 1;
+  filter: none;
+  text-shadow: 0 0 24px color-mix(in srgb, var(--fe-glow) 70%, transparent);
 }
 :root[data-skin="liquid"] .fe-panel__tab.is-active {
   color: var(--fe-ink);
@@ -594,10 +722,10 @@
   main
   button[class*="rounded-2xl"][class*="border"][class*="p-4"] {
   border-radius: 1.25rem !important;
-  background-color: var(--aq-panel-bg) !important;
-  backdrop-filter: blur(var(--aq-panel-blur)) saturate(var(--aq-sat));
-  -webkit-backdrop-filter: blur(var(--aq-panel-blur)) saturate(var(--aq-sat));
-  box-shadow: var(--aq-panel) !important;
+  background-color: var(--aq-card-bg) !important;
+  backdrop-filter: blur(var(--aq-card-blur));
+  -webkit-backdrop-filter: blur(var(--aq-card-blur));
+  box-shadow: var(--aq-card) !important;
   transition:
     background-color 180ms var(--fe-ease),
     box-shadow 180ms var(--fe-ease),
@@ -609,11 +737,11 @@
   button[class*="rounded-2xl"][class*="border"][class*="p-4"]:hover {
   background-color: color-mix(
     in srgb,
-    var(--aq-panel-bg),
+    var(--aq-card-bg),
     var(--fe-edge) 20%
   ) !important;
   background-image: var(--aq-sheen) !important;
-  box-shadow: var(--aq-floating) !important;
+  box-shadow: var(--aq-card), var(--aq-glow-soft) !important;
   transform: translateY(-1px);
 }
 /* Artwork: a white rim and the glow under it; the hero cover is a
@@ -636,8 +764,27 @@
   box-shadow:
     0 0 0 6px color-mix(in srgb, var(--aq-floating-bg), transparent 30%),
     0 0 0 7px var(--aq-floating-rim),
+    0 0 0 8px var(--aq-contour),
     var(--aq-glow-soft),
-    var(--aq-glow-lift);
+    var(--aq-glow-lift),
+    0 50px 140px -40px color-mix(in srgb, var(--fe-glow) 90%, transparent);
+}
+/* The record's own light pooled under the canvas art, where the music
+   is: the one place on the page the cover's colour is let loose. */
+:root[data-skin="liquid"] .fe-canvas__art::before {
+  content: "";
+  position: absolute;
+  inset: -22% -18% -26% -18%;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 55% 55% at 50% 52%,
+    color-mix(in srgb, var(--fe-glow) 70%, transparent),
+    transparent 70%
+  );
+  opacity: 0.75;
+  filter: blur(8px);
+  animation: fe-fade-in 900ms var(--fe-ease) both;
 }
 :root[data-skin="liquid"] .fe-hero-cover::after {
   content: "";
@@ -1015,7 +1162,8 @@
 @media (prefers-reduced-motion: reduce) {
   :root[data-skin="liquid"] body::before,
   :root[data-skin="liquid"] .aq-capsule__light svg,
-  :root[data-skin="liquid"] [data-track-row][class*="bg-emerald-50 "] {
+  :root[data-skin="liquid"] [data-track-row][class*="bg-emerald-50 "],
+  :root[data-skin="liquid"] footer [role="slider"] > div:first-child {
     animation: none;
   }
   :root[data-skin="liquid"]
