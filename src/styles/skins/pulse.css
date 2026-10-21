@@ -506,6 +506,20 @@
   outline: 0;
   box-shadow: var(--pu-ring-accent), var(--pu-halo);
 }
+/* The play button's resting halo is `!important`, so its focus light
+   has to be declared the same way, on top of it — as the CTA's is. */
+:root[data-skin="pulse"]
+  footer
+  button:where(
+    [class*="bg-emerald-500"],
+    [class*="bg-emerald-600"]
+  ):focus-visible {
+  outline: 0;
+  box-shadow:
+    0 0 0 2px var(--fe-bg),
+    0 0 0 3px var(--fe-accent),
+    var(--pu-halo-accent-fill) !important;
+}
 
 /* ── The side panel: black, a hairline edge, ringed pills ───── */
 :root[data-skin="pulse"] .fe-panel {
