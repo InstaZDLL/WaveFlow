@@ -23,6 +23,7 @@ use crate::audio_format::dsd::dop::DsdToDop;
 use crate::audio_format::dsd::parser::{parse_dff, parse_dsf, DsdLayout};
 use crate::audio_format::dsd::pcm::DsdToPcm;
 
+use super::read_ahead::ReadAhead;
 use super::replay_gain::TrackGain;
 use super::resampler::Resampler;
 
@@ -302,46 +303,40 @@ fn is_network_path(path: &Path) -> bool {
     false
 }
 
-/// Read the whole file into RAM and wrap it in a seekable in-memory
-/// [`MediaSource`]. Returns `None` (→ caller streams instead) when the
-/// file is missing, unreadable, or larger than [`MAX_PRELOAD_BYTES`].
-fn read_into_memory(path: &Path) -> Option<Box<dyn MediaSource>> {
-    use std::io::Read;
-
-    let file = match std::fs::File::open(path) {
+/// Start pulling a network file into RAM in the background
+/// ([`ReadAhead`]). `None` (→ the caller streams it) when the file cannot
+/// be opened, its size is unknown, or it is larger than
+/// [`MAX_PRELOAD_BYTES`].
+fn read_ahead(path: &Path) -> Option<ReadAhead> {
+    let file = match File::open(path) {
         Ok(f) => f,
         Err(e) => {
             tracing::warn!(path = %path.display(), error = %e, "network pre-load open failed");
             return None;
         }
     };
-    let known_len = file.metadata().ok().map(|m| m.len());
-    // Early exit when the file is already known to exceed the cap — avoids
-    // pulling CAP + 1 bytes off the network just to reject it.
-    if known_len.is_some_and(|len| len > MAX_PRELOAD_BYTES) {
+    let len = file.metadata().ok()?.len();
+    if len > MAX_PRELOAD_BYTES {
         tracing::debug!(
             path = %path.display(),
             "network file exceeds pre-load cap — streaming instead"
         );
         return None;
     }
-    // Reserve only when we trust the size; the bounded read below remains
-    // the real cap, covering an unknown or post-stat-grown size (no
-    // TOCTOU). Read at most CAP + 1 bytes — pulling that many means the
-    // file is over the cap regardless of what the stat claimed.
-    let mut buf = Vec::with_capacity(known_len.unwrap_or(0) as usize);
-    if let Err(e) = file.take(MAX_PRELOAD_BYTES + 1).read_to_end(&mut buf) {
-        tracing::warn!(path = %path.display(), error = %e, "network pre-load read failed");
-        return None;
+    // A second handle for reads far ahead of the transfer; without one
+    // they wait for it.
+    let direct = File::open(path)
+        .ok()
+        .map(|f| Box::new(f) as Box<dyn super::read_ahead::RandomAccess>);
+    // Exactly the length announced as the source's, even if the file
+    // grows meanwhile.
+    match ReadAhead::spawn(file.take(len), direct, len) {
+        Ok(source) => Some(source),
+        Err(e) => {
+            tracing::warn!(path = %path.display(), error = %e, "network pre-load thread failed");
+            None
+        }
     }
-    if buf.len() as u64 > MAX_PRELOAD_BYTES {
-        tracing::debug!(
-            path = %path.display(),
-            "network file exceeds pre-load cap — streaming instead"
-        );
-        return None;
-    }
-    Some(Box::new(std::io::Cursor::new(buf)))
 }
 
 impl ActiveStream {
@@ -384,15 +379,16 @@ impl ActiveStream {
 
         // Files on a network share (SMB / NFS / mapped drive / gvfs)
         // stutter when symphonia issues many small reads + seeks over a
-        // high-latency link mid-playback. Pre-load the whole file into
-        // RAM once (under a size cap) and decode from an in-memory
-        // cursor instead. Best-effort: any failure / oversize falls
-        // through to ordinary streaming.
+        // high-latency link mid-playback. Pull the whole file into RAM
+        // (under a size cap) in large sequential reads, on a thread of its
+        // own so this call returns once the header is in, and decode from
+        // that buffer as it fills. Best-effort: any failure / oversize
+        // falls through to ordinary streaming.
         if is_network_path(path) {
-            if let Some(source) = read_into_memory(path) {
-                tracing::debug!(path = %path.display(), "network path — pre-loaded into RAM");
+            if let Some(source) = read_ahead(path) {
+                tracing::debug!(path = %path.display(), "network path — reading ahead into RAM");
                 return Self::open_from_source(
-                    source,
+                    Box::new(source),
                     ext.as_deref(),
                     track_id,
                     duration_ms,
@@ -1352,6 +1348,52 @@ mod tests {
             Resampler::Passthrough => panic!("44.1 kHz to 48 kHz resamples"),
         };
         assert_eq!(out.len() / 2, delay + 48_000);
+    }
+
+    /// Read ahead in the background, a track decodes to exactly what the
+    /// file gives read directly.
+    #[test]
+    fn a_track_read_ahead_decodes_like_the_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("tone.wav");
+        write_wav(&path);
+        let decode_all = |mut stream: ActiveStream| {
+            let (mut out, mut scratch) = (Vec::new(), Vec::new());
+            while !stream
+                .decode_next(&mut out, &mut scratch, 44_100, 2)
+                .unwrap()
+            {}
+            out
+        };
+        let direct = decode_all(
+            ActiveStream::open(
+                &path,
+                0,
+                0,
+                String::new(),
+                None,
+                TrackGain::default(),
+                256,
+                false,
+            )
+            .unwrap(),
+        );
+        let len = std::fs::metadata(&path).unwrap().len();
+        let source = ReadAhead::spawn(File::open(&path).unwrap(), None, len).unwrap();
+        let read_ahead = decode_all(
+            ActiveStream::open_from_source(
+                Box::new(source),
+                Some("wav"),
+                0,
+                0,
+                String::new(),
+                None,
+                TrackGain::default(),
+            )
+            .unwrap(),
+        );
+        assert_eq!(read_ahead.len(), 44_100 * 2);
+        assert_eq!(read_ahead, direct);
     }
 
     #[test]

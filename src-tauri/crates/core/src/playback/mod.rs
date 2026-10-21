@@ -9,6 +9,7 @@
 //! never plays audio (the server) does not compile the resampler.
 
 pub mod channels;
+pub mod read_ahead;
 pub mod replay_gain;
 pub mod resampler;
 pub mod stream;
