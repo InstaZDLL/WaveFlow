@@ -1455,3 +1455,42 @@
   --fe-hairline: rgb(0 0 0 / 0.22);
   --fe-hairline-strong: rgb(0 0 0 / 0.34);
 }
+
+/* The two declarations the tokens do not reach: the playing row's tint
+   and the immersive lyrics' whisper of blur. Solid and sharp in the
+   three fallbacks, as the rest of the material is. */
+@media (prefers-reduced-transparency: reduce) {
+  :root[data-skin="liquid"] [data-track-row][class*="bg-emerald-50 "],
+  :root[data-skin="liquid"] .fe-panel [class*="bg-emerald-50 "] {
+    background-color: color-mix(
+      in srgb,
+      var(--fe-accent) 10%,
+      var(--glass-canvas-bg)
+    ) !important;
+  }
+  :root[data-skin="liquid"]
+    [data-immersive]
+    ul
+    > li
+    > button[class*="text-3xl"] {
+    filter: none !important;
+  }
+}
+:root[data-skin="liquid"]:is([data-webkitgtk-safe], [data-contrast="high"])
+  [data-track-row][class*="bg-emerald-50 "],
+:root[data-skin="liquid"]:is([data-webkitgtk-safe], [data-contrast="high"])
+  .fe-panel
+  [class*="bg-emerald-50 "] {
+  background-color: color-mix(
+    in srgb,
+    var(--fe-accent) 10%,
+    var(--glass-canvas-bg)
+  ) !important;
+}
+:root[data-skin="liquid"]:is([data-webkitgtk-safe], [data-contrast="high"])
+  [data-immersive]
+  ul
+  > li
+  > button[class*="text-3xl"] {
+  filter: none !important;
+}

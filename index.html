@@ -101,7 +101,10 @@
               : localStorage.getItem("waveflow.skin.id");
           // Nothing cached (a first launch, a cleared store): the
           // default skin, which the context will confirm from the profile.
-          if (!skin || !VALID_SKINS[skin]) skin = "fluid";
+          // An own property only: a cached "constructor" would otherwise
+          // pass and stamp a function as the layout.
+          if (!skin || !Object.prototype.hasOwnProperty.call(VALID_SKINS, skin))
+            skin = "fluid";
           root.setAttribute("data-skin", skin);
           root.setAttribute("data-layout", VALID_SKINS[skin]);
 
