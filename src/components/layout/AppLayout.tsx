@@ -185,7 +185,7 @@ export function AppLayout() {
   // The Fluid skin shows the three right-edge panels as the tabs of
   // one shell; every other skin mounts them one at a time, as before.
   const { skin } = useSkin();
-  const fluidPanel = skin.id === "fluid";
+  const fluidPanel = skin.layout === "fluid";
   const dragDrop = useDragDropImport();
   // Global keyboard shortcuts. The hook itself attaches the keydown
   // listener and re-reads bindings whenever Settings emits the

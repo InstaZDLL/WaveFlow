@@ -63,10 +63,10 @@ export function ListeningHistory({
         >
           {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="flex items-center gap-3.5 py-2.5">
-              <div className="h-10 w-10 rounded-md bg-white/[0.05]" />
+              <div className="h-10 w-10 rounded-md bg-[var(--fe-tone-1)]" />
               <div className="flex-1 space-y-2">
-                <div className="h-3 w-2/3 rounded bg-white/[0.05]" />
-                <div className="h-2.5 w-1/3 rounded bg-white/[0.05]" />
+                <div className="h-3 w-2/3 rounded bg-[var(--fe-tone-1)]" />
+                <div className="h-2.5 w-1/3 rounded bg-[var(--fe-tone-1)]" />
               </div>
             </div>
           ))}
@@ -74,7 +74,7 @@ export function ListeningHistory({
       ) : (
         <div className="grid gap-x-12 md:grid-cols-2">
           {columns.map((col, ci) => (
-            <ol key={ci} className="divide-y divide-white/[0.06]">
+            <ol key={ci} className="divide-y divide-[var(--fe-tone-2)]">
               {col.map((p, i) => {
                 const index = ci * half + i;
                 const active = p.track_id === currentTrackId;

@@ -1,31 +1,48 @@
 /* ============================================================
-   Fluid skin — cinematic editorial
+   Fluid — the 2.0 interface, and its default material
    ============================================================
-   Direction: music first. A near-black, slightly warm foundation;
-   one accent, the theme's (so the custom and cover accent modes of
-   #895 drive it); and the playing record's own light spread behind
-   the Home canvas. Typography is DM Sans Variable throughout, with
-   Playfair's italic in exactly one place — the greeting. The
-   recurring mark is a short flowing curve: under section titles,
-   as the player's progress, across the mood spectrum.
+   Two things live here, and the selector says which:
 
-   Depth comes from tone and spacing, never from borders: the chrome
-   is a set of surfaces one step apart, hairlines only where an edge
-   must be read (an input, a divider).
+   `:root[data-layout="fluid"]` keys every rule — this file is the
+   STRUCTURE of the 2.0 interface (the Home as a canvas, the sidebar as
+   a rail of tiles, the top bar as a control rail, one tabbed right
+   panel, the progress as the player bar's edge, the page heroes, the
+   immersive view), shared by every skin whose preset says
+   `layout: "fluid"` (`src/lib/skins.ts`). The views branch on the
+   same field, never on a skin id.
+
+   The token values declared at the top are the Fluid skin's own
+   material — cinematic, dark, music first: a near-black, slightly warm
+   foundation; one accent, the theme's (so the custom and cover accent
+   modes of #895 drive it); the playing record's own light spread
+   behind the Home canvas; DM Sans Variable throughout, with Playfair's
+   italic in exactly one place — the greeting. The recurring mark is a
+   short flowing curve: under section titles, as the player's progress,
+   across the mood spectrum. Depth comes from tone and spacing, never
+   from borders: the chrome is a set of surfaces one step apart,
+   hairlines only where an edge must be read.
+
+   Another skin on this layout (Liquid, `liquid.css`, imported after
+   this file) redeclares the `--fe-*` tokens on its own `data-skin`
+   and adds its material — glass, light — over the same structure.
+   That is why no rule below hard-codes a tone: surfaces are
+   `--fe-surface*`, tones over them `--fe-tone-*`, the light caught by
+   a top edge `--fe-edge*`. The literals that remain are white over
+   artwork or over the always-dark immersive view, where no ground
+   changes under them.
 
    Three layers of rules:
-     1. tokens (`--fe-*`) and the body;
-     2. chrome by landmark (`aside`, `header`, `footer`, `main`),
-        the same selectors Lounge / Pulse / Liquid use;
-     3. the `fe-*` classes the Fluid Home, the mood spectrum and the
-        player's wave progress mount — scoped here so they exist only
-        under this skin.
+     1. the tokens and the body;
+     2. chrome by landmark (`aside`, `header`, `footer`, `main`) and by
+        the `data-*` marks the views carry;
+     3. the `fe-*` classes the Fluid Home, the mood spectrum, the side
+        panel and the player's wave progress mount.
 
-   Dark-only, like Lounge and Pulse: `app.css` lists it in the
-   extended `dark` variant, the scrollbar rules and the
-   high-contrast dark block. */
+   Fluid itself is dark-only, like Lounge and Pulse: `app.css` lists it
+   in the extended `dark` variant, the scrollbar rules and the
+   high-contrast dark block. Liquid follows the theme. */
 
-:root[data-skin="fluid"] {
+:root[data-layout="fluid"] {
   --fe-bg: #0b0b0e;
   --fe-surface: #121216;
   --fe-surface-2: #17171d;
@@ -34,6 +51,20 @@
   --fe-ink-3: #8e8b83;
   --fe-hairline: rgb(255 255 255 / 0.07);
   --fe-hairline-strong: rgb(255 255 255 / 0.12);
+
+  /* Tones over a surface — rest, hover, active, strong — and the light
+     a top edge catches. White here; a skin on a light ground turns the
+     tones to black and keeps the edges white. */
+  --fe-tone-1: rgb(255 255 255 / 0.04);
+  --fe-tone-2: rgb(255 255 255 / 0.06);
+  --fe-tone-3: rgb(255 255 255 / 0.08);
+  --fe-tone-4: rgb(255 255 255 / 0.1);
+  --fe-edge: rgb(255 255 255 / 0.04);
+  --fe-edge-strong: rgb(255 255 255 / 0.06);
+  /* The page's own tone, opaque, for what scrolls under a sticky
+     header; and the page as a triplet for the scrims that fade into it. */
+  --fe-surface-0: #0d0d11;
+  --fe-bg-rgb: 11 11 14;
 
   /* The theme's accent (or the picked colour, or the cover's — the
      accent mode decides upstream). 400 reads on the dark ground and
@@ -53,8 +84,8 @@
   --fe-font-editorial: "Playfair Display", Georgia, serif;
 }
 
-:root[data-skin="fluid"],
-:root[data-skin="fluid"] body {
+:root[data-layout="fluid"],
+:root[data-layout="fluid"] body {
   color: var(--fe-ink);
   background-color: var(--fe-bg);
   font-family: var(--fe-font);
@@ -64,8 +95,8 @@
 
 /* The ambient wrapper and the centre column paint 50 % slabs over the
    body; the atmosphere must run through them. */
-:root[data-skin="fluid"] [class*="bg-app-ambient"],
-:root[data-skin="fluid"] div:has(> header):has(> main) {
+:root[data-layout="fluid"] [class*="bg-app-ambient"],
+:root[data-layout="fluid"] div:has(> header):has(> main) {
   background-color: transparent !important;
   background-image: none !important;
 }
@@ -73,7 +104,7 @@
 /* Two soft pools of the cover's colour behind the content column,
    plus a grain so the dark never reads as a flat digital slab. The
    atmosphere is fixed, so nothing repaints on scroll. */
-:root[data-skin="fluid"] body::before {
+:root[data-layout="fluid"] body::before {
   content: "";
   position: fixed;
   inset: -20%;
@@ -92,7 +123,7 @@
     );
   transition: background 900ms var(--fe-ease);
 }
-:root[data-skin="fluid"] body::after {
+:root[data-layout="fluid"] body::after {
   content: "";
   position: fixed;
   inset: 0;
@@ -105,65 +136,65 @@
 }
 /* The desktop lyrics overlay is a transparent window and the mini-player
    paints its own cover gradient: neither wants the pools or the grain. */
-:root[data-skin="fluid"].desktop-lyrics-window body::before,
-:root[data-skin="fluid"].desktop-lyrics-window body::after,
-:root[data-skin="fluid"].mini-player-window body::before,
-:root[data-skin="fluid"].mini-player-window body::after {
+:root[data-layout="fluid"].desktop-lyrics-window body::before,
+:root[data-layout="fluid"].desktop-lyrics-window body::after,
+:root[data-layout="fluid"].mini-player-window body::before,
+:root[data-layout="fluid"].mini-player-window body::after {
   display: none;
 }
 /* Everything the app draws sits above the atmosphere. */
-:root[data-skin="fluid"] #root {
+:root[data-layout="fluid"] #root {
   position: relative;
   z-index: 1;
 }
 
 /* ── Typographic roles (shared by Home, spectrum, player) ──── */
-:root[data-skin="fluid"] .fe-display {
+:root[data-layout="fluid"] .fe-display {
   font-weight: 560;
   letter-spacing: -0.035em;
   line-height: 0.98;
   text-wrap: balance;
 }
-:root[data-skin="fluid"] .fe-title {
+:root[data-layout="fluid"] .fe-title {
   font-weight: 540;
   letter-spacing: -0.022em;
   line-height: 1.1;
 }
-:root[data-skin="fluid"] .fe-editorial {
+:root[data-layout="fluid"] .fe-editorial {
   font-family: var(--fe-font-editorial);
   font-style: italic;
   font-weight: 400;
   letter-spacing: -0.01em;
 }
-:root[data-skin="fluid"] .fe-label {
+:root[data-layout="fluid"] .fe-label {
   font-size: 0.75rem;
   font-weight: 540;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--fe-ink-3);
 }
-:root[data-skin="fluid"] .fe-mono {
+:root[data-layout="fluid"] .fe-mono {
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum" 1;
 }
-:root[data-skin="fluid"] .fe-ink {
+:root[data-layout="fluid"] .fe-ink {
   color: var(--fe-ink);
 }
-:root[data-skin="fluid"] .fe-ink-2 {
+:root[data-layout="fluid"] .fe-ink-2 {
   color: var(--fe-ink-2);
 }
-:root[data-skin="fluid"] .fe-ink-3 {
+:root[data-layout="fluid"] .fe-ink-3 {
   color: var(--fe-ink-3);
 }
-:root[data-skin="fluid"] .fe-accent {
+:root[data-layout="fluid"] .fe-accent {
   color: var(--fe-accent);
 }
 
 /* ── Interactive baseline ──────────────────────────────────── */
-:root[data-skin="fluid"] .fe-press:active {
+:root[data-layout="fluid"] .fe-press:active {
   transform: scale(0.985);
 }
-:root[data-skin="fluid"] .fe-cta {
+:root[data-layout="fluid"] .fe-cta {
   display: inline-flex;
   align-items: center;
   gap: 0.75rem;
@@ -181,14 +212,14 @@
     transform 320ms var(--fe-ease),
     filter 180ms var(--fe-ease);
 }
-:root[data-skin="fluid"] .fe-cta:hover {
+:root[data-layout="fluid"] .fe-cta:hover {
   filter: brightness(1.06);
   transform: translateY(-1px);
 }
-:root[data-skin="fluid"] .fe-cta:active {
+:root[data-layout="fluid"] .fe-cta:active {
   transform: translateY(0) scale(0.985);
 }
-:root[data-skin="fluid"] .fe-cta__icon {
+:root[data-layout="fluid"] .fe-cta__icon {
   display: grid;
   place-items: center;
   width: 2rem;
@@ -196,13 +227,13 @@
   border-radius: 9999px;
   background-color: rgb(0 0 0 / 0.14);
 }
-:root[data-skin="fluid"] .fe-link {
+:root[data-layout="fluid"] .fe-link {
   position: relative;
   color: var(--fe-ink-2);
   font-weight: 500;
   transition: color 180ms var(--fe-ease);
 }
-:root[data-skin="fluid"] .fe-link::after {
+:root[data-layout="fluid"] .fe-link::after {
   content: "";
   position: absolute;
   left: 0;
@@ -214,13 +245,13 @@
   transform-origin: left;
   transition: transform 320ms var(--fe-ease);
 }
-:root[data-skin="fluid"] .fe-link:hover {
+:root[data-layout="fluid"] .fe-link:hover {
   color: var(--fe-ink);
 }
-:root[data-skin="fluid"] .fe-link:hover::after {
+:root[data-layout="fluid"] .fe-link:hover::after {
   transform: scaleX(1);
 }
-:root[data-skin="fluid"] .fe-icon-btn {
+:root[data-layout="fluid"] .fe-icon-btn {
   display: grid;
   place-items: center;
   width: 2.25rem;
@@ -231,50 +262,50 @@
     color 180ms var(--fe-ease),
     background-color 180ms var(--fe-ease);
 }
-:root[data-skin="fluid"] .fe-icon-btn:hover {
+:root[data-layout="fluid"] .fe-icon-btn:hover {
   color: var(--fe-ink);
-  background-color: rgb(255 255 255 / 0.06);
+  background-color: var(--fe-tone-2);
 }
-:root[data-skin="fluid"] .fe-icon-btn[aria-pressed="true"] {
+:root[data-layout="fluid"] .fe-icon-btn[aria-pressed="true"] {
   color: var(--fe-accent);
 }
 
 /* ── Artwork tiles ─────────────────────────────────────────── */
-:root[data-skin="fluid"] .fe-tile {
+:root[data-layout="fluid"] .fe-tile {
   position: relative;
   border-radius: 0.875rem;
   overflow: hidden;
   background-color: var(--fe-surface-2);
   box-shadow:
-    0 1px 0 rgb(255 255 255 / 0.04) inset,
+    0 1px 0 var(--fe-edge) inset,
     0 10px 30px -18px rgb(0 0 0 / 0.9);
   transition:
     transform 420ms var(--fe-ease),
     box-shadow 420ms var(--fe-ease);
 }
-:root[data-skin="fluid"] .fe-tile-hover:hover .fe-tile,
-:root[data-skin="fluid"] .fe-tile-hover:focus-visible .fe-tile {
+:root[data-layout="fluid"] .fe-tile-hover:hover .fe-tile,
+:root[data-layout="fluid"] .fe-tile-hover:focus-visible .fe-tile {
   transform: translateY(-3px);
   box-shadow:
-    0 1px 0 rgb(255 255 255 / 0.06) inset,
+    0 1px 0 var(--fe-edge-strong) inset,
     0 26px 44px -22px color-mix(in srgb, var(--fe-glow) 60%, rgb(0 0 0 / 0.8));
 }
-:root[data-skin="fluid"] .fe-tile img {
+:root[data-layout="fluid"] .fe-tile img {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
-:root[data-skin="fluid"] .fe-hero-cover {
+:root[data-layout="fluid"] .fe-hero-cover {
   border-radius: 1.25rem;
   box-shadow:
-    0 1px 0 rgb(255 255 255 / 0.08) inset,
+    0 1px 0 var(--fe-edge-strong) inset,
     0 50px 90px -40px color-mix(in srgb, var(--fe-glow) 85%, transparent),
     0 30px 60px -30px rgb(0 0 0 / 0.9);
 }
 
 /* ── Entry motion: a staggered rise, once, GPU-only ────────── */
-:root[data-skin="fluid"] .fe-rise {
+:root[data-layout="fluid"] .fe-rise {
   animation: fe-rise 640ms var(--fe-ease) both;
   animation-delay: calc(var(--i, 0) * 70ms);
 }
@@ -304,7 +335,7 @@
    where the text column begins. A light cover at a fifth of its
    opacity raised the surface from 18 to 74 in luminance, too close to
    the tertiary ink; at half brightness it stays under 45. */
-:root[data-skin="fluid"] .fe-suggest__aura {
+:root[data-layout="fluid"] .fe-suggest__aura {
   position: absolute;
   inset: -4rem auto -4rem -4rem;
   width: 42%;
@@ -316,7 +347,7 @@
   -webkit-mask-image: linear-gradient(to right, #000 30%, transparent 92%);
   animation: fe-fade-in 900ms var(--fe-ease) both;
 }
-:root[data-skin="fluid"] .fe-suggest__aura img {
+:root[data-layout="fluid"] .fe-suggest__aura img {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -329,7 +360,7 @@
    tier starts at 1700 px, between `xl` and `2xl`. Two tiers: text over
    queue beside the artwork from 1024 px; text · queue · artwork in one
    row from 1700 px. */
-:root[data-skin="fluid"] .fe-canvas {
+:root[data-layout="fluid"] .fe-canvas {
   position: relative;
   isolation: isolate;
   display: grid;
@@ -340,7 +371,7 @@
 /* The cover's light: a blurred, masked copy of the artwork under the
    canvas, favouring the text column. One static filter on one element;
    only its fade-in animates. */
-:root[data-skin="fluid"] .fe-canvas__aura {
+:root[data-layout="fluid"] .fe-canvas__aura {
   position: absolute;
   inset: -7rem -6rem -4rem -10rem;
   z-index: -1;
@@ -366,58 +397,58 @@
 }
 /* Darkened before the blur for the same reason as the band's aura: a
    white sleeve must not pale the ground under the counters line. */
-:root[data-skin="fluid"] .fe-canvas__aura img {
+:root[data-layout="fluid"] .fe-canvas__aura img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   filter: brightness(0.7) saturate(1.05) blur(96px);
   transform: scale(1.12);
 }
-:root[data-skin="fluid"] .fe-canvas__text,
-:root[data-skin="fluid"] .fe-canvas__queue,
-:root[data-skin="fluid"] .fe-canvas__art {
+:root[data-layout="fluid"] .fe-canvas__text,
+:root[data-layout="fluid"] .fe-canvas__queue,
+:root[data-layout="fluid"] .fe-canvas__art {
   grid-column: span 12;
 }
-:root[data-skin="fluid"] .fe-canvas__resume {
+:root[data-layout="fluid"] .fe-canvas__resume {
   margin-top: 1.75rem;
 }
-:root[data-skin="fluid"] .fe-canvas__queue {
+:root[data-layout="fluid"] .fe-canvas__queue {
   margin-top: 2rem;
 }
-:root[data-skin="fluid"] .fe-canvas__art {
+:root[data-layout="fluid"] .fe-canvas__art {
   margin-top: 2.5rem;
   justify-self: start;
 }
-@media (min-width: 1024px) {
-  :root[data-skin="fluid"] .fe-canvas__text,
-  :root[data-skin="fluid"] .fe-canvas__queue {
+@container (min-width: 43rem) {
+  :root[data-layout="fluid"] .fe-canvas__text,
+  :root[data-layout="fluid"] .fe-canvas__queue {
     grid-column: span 7;
   }
   /* The strip of recent records hangs 3.5 rem off the artwork's left
      edge, 1.5 rem past the column gap: the queue's durations stop
      short of it rather than sitting under it. */
-  :root[data-skin="fluid"] .fe-canvas__queue {
+  :root[data-layout="fluid"] .fe-canvas__queue {
     padding-right: 2rem;
   }
-  :root[data-skin="fluid"] .fe-canvas__art {
+  :root[data-layout="fluid"] .fe-canvas__art {
     grid-column: 8 / span 5;
     grid-row: 1 / span 2;
     margin-top: 0;
     justify-self: end;
   }
 }
-@media (min-width: 1700px) {
-  :root[data-skin="fluid"] .fe-canvas {
+@container (min-width: 82rem) {
+  :root[data-layout="fluid"] .fe-canvas {
     grid-template-columns: minmax(0, 5fr) minmax(0, 3.4fr) auto;
     column-gap: 3.5rem;
   }
-  :root[data-skin="fluid"] .fe-canvas__text {
+  :root[data-layout="fluid"] .fe-canvas__text {
     grid-column: 1;
   }
-  :root[data-skin="fluid"] .fe-canvas__resume {
+  :root[data-layout="fluid"] .fe-canvas__resume {
     margin-top: 2.5rem;
   }
-  :root[data-skin="fluid"] .fe-canvas__queue {
+  :root[data-layout="fluid"] .fe-canvas__queue {
     grid-column: 2;
     grid-row: 1;
     margin-top: 0;
@@ -427,26 +458,29 @@
        on the queue's edge: three rems keep the durations clear. */
     padding-right: 3rem;
   }
-  :root[data-skin="fluid"] .fe-canvas__art {
+  :root[data-layout="fluid"] .fe-canvas__art {
     grid-column: 3;
     grid-row: 1;
   }
 }
 
 /* ── Mood spectrum ─────────────────────────────────────────── */
-:root[data-skin="fluid"] .fe-spectrum {
+:root[data-layout="fluid"] .fe-spectrum {
   position: relative;
   display: flex;
   height: 10.5rem;
   border-radius: 1.125rem;
   overflow: hidden;
-  background-color: var(--fe-surface);
+  /* The band is always dark — its own gradient under a dark scrim — so
+     its ground and its ink are literals, not the skin's tokens, which a
+     light-ground skin turns dark. */
+  background-color: #121216;
   isolation: isolate;
 }
 /* One continuous tempo gradient behind the five segments. Muted on
    purpose: the hue says "which mood", the artwork says everything
    else on this page. The one place a colour is not the accent. */
-:root[data-skin="fluid"] .fe-spectrum__band {
+:root[data-layout="fluid"] .fe-spectrum__band {
   position: absolute;
   inset: 0;
   background: linear-gradient(
@@ -459,7 +493,7 @@
   );
   opacity: 0.55;
 }
-:root[data-skin="fluid"] .fe-spectrum__band::after {
+:root[data-layout="fluid"] .fe-spectrum__band::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -472,7 +506,7 @@
 /* A segment is a wrapper (the flex item that widens) holding the radio
    button, which fills it, and — when selected — the start button beside
    it. Two controls, two siblings. */
-:root[data-skin="fluid"] .fe-spectrum__seg {
+:root[data-layout="fluid"] .fe-spectrum__seg {
   position: relative;
   flex: 1 1 0;
   min-width: 0;
@@ -480,17 +514,17 @@
     flex-grow 460ms var(--fe-ease),
     background-color 300ms var(--fe-ease);
 }
-:root[data-skin="fluid"] .fe-spectrum__seg + .fe-spectrum__seg {
+:root[data-layout="fluid"] .fe-spectrum__seg + .fe-spectrum__seg {
   box-shadow: inset 1px 0 0 rgb(255 255 255 / 0.08);
 }
-:root[data-skin="fluid"] .fe-spectrum__seg:hover {
-  background-color: rgb(255 255 255 / 0.04);
+:root[data-layout="fluid"] .fe-spectrum__seg:hover {
+  background-color: var(--fe-tone-1);
 }
-:root[data-skin="fluid"] .fe-spectrum__seg[data-checked="true"] {
+:root[data-layout="fluid"] .fe-spectrum__seg[data-checked="true"] {
   flex-grow: 2.6;
-  background-color: rgb(255 255 255 / 0.06);
+  background-color: var(--fe-tone-2);
 }
-:root[data-skin="fluid"] .fe-spectrum__radio {
+:root[data-layout="fluid"] .fe-spectrum__radio {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -499,17 +533,17 @@
   justify-content: flex-end;
   padding: 1rem 1.125rem 1rem;
   text-align: left;
-  color: var(--fe-ink);
+  color: #f3f1ec;
 }
-:root[data-skin="fluid"] .fe-spectrum__radio:focus-visible {
+:root[data-layout="fluid"] .fe-spectrum__radio:focus-visible {
   outline: 2px solid var(--fe-accent);
   outline-offset: -3px;
 }
-:root[data-skin="fluid"] .fe-spectrum__radio:disabled {
-  color: var(--fe-ink-3);
+:root[data-layout="fluid"] .fe-spectrum__radio:disabled {
+  color: rgb(255 255 255 / 0.55);
   cursor: not-allowed;
 }
-:root[data-skin="fluid"] .fe-spectrum__cta {
+:root[data-layout="fluid"] .fe-spectrum__cta {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
@@ -521,7 +555,7 @@
   color: #fff;
   transition: background-color 180ms var(--fe-ease);
 }
-:root[data-skin="fluid"] .fe-spectrum__wave {
+:root[data-layout="fluid"] .fe-spectrum__wave {
   position: absolute;
   left: 0;
   right: 0;
@@ -531,17 +565,17 @@
   opacity: 0.55;
   transition: opacity 300ms var(--fe-ease);
 }
-:root[data-skin="fluid"]
+:root[data-layout="fluid"]
   .fe-spectrum__seg[data-checked="true"]
   .fe-spectrum__wave {
   opacity: 1;
 }
-:root[data-skin="fluid"] .fe-spectrum__wave svg {
+:root[data-layout="fluid"] .fe-spectrum__wave svg {
   width: 200%;
   height: 100%;
   animation: fe-wave-drift var(--fe-wave-period, 9s) linear infinite;
 }
-:root[data-skin="fluid"]
+:root[data-layout="fluid"]
   .fe-spectrum__seg[data-disabled]
   .fe-spectrum__wave
   svg {
@@ -552,46 +586,46 @@
     transform: translate3d(-50%, 0, 0);
   }
 }
-:root[data-skin="fluid"] .fe-spectrum__detail {
+:root[data-layout="fluid"] .fe-spectrum__detail {
   display: grid;
   grid-template-rows: 0fr;
   transition: grid-template-rows 420ms var(--fe-ease);
 }
-:root[data-skin="fluid"] .fe-spectrum__detail > div {
+:root[data-layout="fluid"] .fe-spectrum__detail > div {
   overflow: hidden;
 }
-:root[data-skin="fluid"]
+:root[data-layout="fluid"]
   .fe-spectrum__seg[data-checked="true"]
   .fe-spectrum__detail {
   grid-template-rows: 1fr;
 }
-:root[data-skin="fluid"] .fe-spectrum__ruler {
+:root[data-layout="fluid"] .fe-spectrum__ruler {
   display: flex;
   justify-content: space-between;
   padding: 0.5rem 0.25rem 0;
 }
 
 /* ── Wave progress (player) ────────────────────────────────── */
-:root[data-skin="fluid"] .fe-progress {
+:root[data-layout="fluid"] .fe-progress {
   position: relative;
   height: 1.25rem;
   cursor: pointer;
 }
-:root[data-skin="fluid"] .fe-progress svg {
+:root[data-layout="fluid"] .fe-progress svg {
   display: block;
   width: 100%;
   height: 100%;
   overflow: visible;
 }
-:root[data-skin="fluid"] .fe-progress__thumb {
+:root[data-layout="fluid"] .fe-progress__thumb {
   opacity: 0;
   transition: opacity 180ms var(--fe-ease);
 }
-:root[data-skin="fluid"] .fe-progress:hover .fe-progress__thumb,
-:root[data-skin="fluid"] .fe-progress:focus-visible .fe-progress__thumb {
+:root[data-layout="fluid"] .fe-progress:hover .fe-progress__thumb,
+:root[data-layout="fluid"] .fe-progress:focus-visible .fe-progress__thumb {
   opacity: 1;
 }
-:root[data-skin="fluid"] .fe-progress:focus-visible {
+:root[data-layout="fluid"] .fe-progress:focus-visible {
   outline: 2px solid var(--fe-accent);
   outline-offset: -2px;
   border-radius: 0.25rem;
@@ -609,12 +643,12 @@
    Four levels, in order: the product (the wordmark), the person (the
    profile panel), the places (the navigation), the person's own music
    (the pinned pair as tiles, then the playlists as rows). */
-:root[data-skin="fluid"] .skin-sidebar-shell {
+:root[data-layout="fluid"] .skin-sidebar-shell {
   background-color: transparent !important;
   border-right: 0;
   box-shadow: none;
 }
-:root[data-skin="fluid"] .skin-sidebar-shell > aside {
+:root[data-layout="fluid"] .skin-sidebar-shell > aside {
   margin: 0 !important;
   width: 17rem !important;
   height: 100% !important;
@@ -629,74 +663,81 @@
   border-radius: 0 !important;
   box-shadow: 1px 0 0 var(--fe-hairline) !important;
 }
-:root[data-skin="fluid"] .skin-sidebar-shell[data-collapsed] > aside {
+:root[data-layout="fluid"] .skin-sidebar-shell[data-collapsed] > aside {
   width: 5rem !important;
 }
-:root[data-skin="fluid"] .skin-sidebar-shell > aside > div:first-child {
+:root[data-layout="fluid"] .skin-sidebar-shell > aside > div:first-child {
   padding: 1.5rem 1.25rem 0.5rem !important;
 }
-:root[data-skin="fluid"] .skin-sidebar-shell[data-collapsed] > aside > div:first-child {
+:root[data-layout="fluid"]
+  .skin-sidebar-shell[data-collapsed]
+  > aside
+  > div:first-child {
   padding: 1.25rem 0.75rem 0.5rem !important;
 }
 
 /* A — the product: the wordmark, settled; the mark in the accent. */
-:root[data-skin="fluid"] [data-sidebar-brand] {
+:root[data-layout="fluid"] [data-sidebar-brand] {
   margin-bottom: 1.25rem !important;
   font-size: 1.0625rem;
   font-weight: 540;
   letter-spacing: -0.022em;
   color: var(--fe-ink);
 }
-:root[data-skin="fluid"] [data-sidebar-brand] svg {
+:root[data-layout="fluid"] [data-sidebar-brand] svg {
   color: var(--fe-accent);
 }
 
 /* B — the person: a small panel, the avatar a step larger, the
    library's size under the name. */
-:root[data-skin="fluid"] [data-sidebar-profile] {
+:root[data-layout="fluid"] [data-sidebar-profile] {
   border: 0 !important;
   border-radius: 0.875rem !important;
   padding: 0.625rem 0.75rem !important;
   color: var(--fe-ink) !important;
-  background-color: rgb(255 255 255 / 0.04) !important;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
+  background-color: var(--fe-tone-1) !important;
+  box-shadow: inset 0 1px 0 var(--fe-edge);
   transition: background-color 180ms var(--fe-ease);
 }
-:root[data-skin="fluid"] [data-sidebar-profile]:hover {
-  background-color: rgb(255 255 255 / 0.07) !important;
+:root[data-layout="fluid"] [data-sidebar-profile]:hover {
+  background-color: var(--fe-tone-2) !important;
 }
-:root[data-skin="fluid"] [data-sidebar-profile] > div > div:first-child {
+:root[data-layout="fluid"] [data-sidebar-profile] > div > div:first-child {
   width: 2rem;
   height: 2rem;
   font-size: 0.8125rem;
 }
-:root[data-skin="fluid"] [data-sidebar-profile] span[class*="text-sm"] {
+:root[data-layout="fluid"] [data-sidebar-profile] span[class*="text-sm"] {
   font-size: 0.9375rem;
   font-weight: 540;
   letter-spacing: -0.01em;
 }
-:root[data-skin="fluid"] [data-sidebar-profile-sub] {
+:root[data-layout="fluid"] [data-sidebar-profile-sub] {
   color: var(--fe-ink-3) !important;
   font-size: 0.6875rem !important;
   letter-spacing: 0.02em;
 }
-:root[data-skin="fluid"] .skin-sidebar-shell[data-collapsed] [data-sidebar-profile] {
+:root[data-layout="fluid"]
+  .skin-sidebar-shell[data-collapsed]
+  [data-sidebar-profile] {
   padding: 0.5rem !important;
 }
 
 /* C — the places: rows of one height, the open one on a tone with
    the accent's edge and its icon lit. */
-:root[data-skin="fluid"] [data-sidebar-nav] {
+:root[data-layout="fluid"] [data-sidebar-nav] {
   /* The profile panel's gutter on the left; on the right, the gutter
      plus the width the scrolling area keeps for its scrollbar, so the
      tiles end where the pinned playlists' tiles do. A breath above,
      off the profile panel. */
   padding: 1.25rem 1.875rem 0.5rem 1.25rem !important;
 }
-:root[data-skin="fluid"] .skin-sidebar-shell[data-collapsed] [data-sidebar-nav] {
+:root[data-layout="fluid"]
+  .skin-sidebar-shell[data-collapsed]
+  [data-sidebar-nav] {
   padding: 0.75rem 0.75rem 0.5rem !important;
 }
-:root[data-skin="fluid"] [data-nav-item] {
+:root[data-layout="fluid"] [data-nav-item] {
   position: relative;
   height: 2.5rem;
   padding: 0 0.75rem !important;
@@ -709,29 +750,29 @@
     color 180ms var(--fe-ease),
     background-color 180ms var(--fe-ease);
 }
-:root[data-skin="fluid"] [data-nav-item] > span:first-child {
+:root[data-layout="fluid"] [data-nav-item] > span:first-child {
   color: var(--fe-ink-3);
   transition: color 180ms var(--fe-ease);
 }
-:root[data-skin="fluid"] [data-nav-item]:hover {
+:root[data-layout="fluid"] [data-nav-item]:hover {
   color: var(--fe-ink) !important;
-  background-color: rgb(255 255 255 / 0.045) !important;
+  background-color: var(--fe-tone-1) !important;
 }
-:root[data-skin="fluid"] [data-nav-item]:hover > span:first-child {
+:root[data-layout="fluid"] [data-nav-item]:hover > span:first-child {
   color: var(--fe-ink);
 }
-:root[data-skin="fluid"] [data-nav-item][data-active] {
+:root[data-layout="fluid"] [data-nav-item][data-active] {
   color: var(--fe-ink) !important;
-  background-color: rgb(255 255 255 / 0.06) !important;
+  background-color: var(--fe-tone-2) !important;
   font-weight: 540;
 }
-:root[data-skin="fluid"] [data-nav-item][data-active] > span:first-child {
+:root[data-layout="fluid"] [data-nav-item][data-active] > span:first-child {
   color: var(--fe-accent);
 }
 /* The signature mark: the accent's edge on the open row, with the
    faintest glow — the same mark the Home's section titles carry. */
-:root[data-skin="fluid"] [data-nav-item][data-active]::before,
-:root[data-skin="fluid"] [data-sidebar-row="playlist"][data-active]::before {
+:root[data-layout="fluid"] [data-nav-item][data-active]::before,
+:root[data-layout="fluid"] [data-sidebar-row="playlist"][data-active]::before {
   content: "";
   position: absolute;
   left: 0;
@@ -747,15 +788,15 @@
    tiles two to a row, in the pinned playlists' drawing: the icon over
    the name on a tone, the open one ringed in the accent. The rows in
    the scrolling sections keep their shape. */
-:root[data-skin="fluid"] [data-sidebar-nav] {
+:root[data-layout="fluid"] [data-sidebar-nav] {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.5rem;
 }
-:root[data-skin="fluid"] [data-sidebar-nav] > * {
+:root[data-layout="fluid"] [data-sidebar-nav] > * {
   margin: 0 !important;
 }
-:root[data-skin="fluid"] [data-sidebar-nav] [data-nav-item] {
+:root[data-layout="fluid"] [data-sidebar-nav] [data-nav-item] {
   flex-direction: column;
   align-items: flex-start;
   gap: 0.625rem;
@@ -763,28 +804,31 @@
   min-width: 0;
   padding: 0.75rem !important;
   border-radius: 0.875rem !important;
-  background-color: rgb(255 255 255 / 0.04) !important;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
+  background-color: var(--fe-tone-1) !important;
+  box-shadow: inset 0 1px 0 var(--fe-edge);
   transition:
     color 180ms var(--fe-ease),
     background-color 180ms var(--fe-ease),
     box-shadow 180ms var(--fe-ease);
 }
-:root[data-skin="fluid"] [data-sidebar-nav] [data-nav-item] > * {
+:root[data-layout="fluid"] [data-sidebar-nav] [data-nav-item] > * {
   margin: 0 !important;
 }
-:root[data-skin="fluid"] [data-sidebar-nav] [data-nav-item] > span:first-child {
+:root[data-layout="fluid"]
+  [data-sidebar-nav]
+  [data-nav-item]
+  > span:first-child {
   display: grid;
   place-items: center;
   width: 2rem;
   height: 2rem;
   border-radius: 0.625rem;
-  background-color: rgb(255 255 255 / 0.06);
+  background-color: var(--fe-tone-2);
 }
-:root[data-skin="fluid"] [data-sidebar-nav] [data-nav-item] > div {
+:root[data-layout="fluid"] [data-sidebar-nav] [data-nav-item] > div {
   max-width: 100%;
 }
-:root[data-skin="fluid"] [data-sidebar-nav] [data-nav-item] > div > span {
+:root[data-layout="fluid"] [data-sidebar-nav] [data-nav-item] > div > span {
   display: block;
   max-width: 100%;
   overflow: hidden;
@@ -793,36 +837,46 @@
   font-size: 0.8125rem;
   font-weight: 540;
 }
-:root[data-skin="fluid"] [data-sidebar-nav] [data-nav-item]:hover {
-  background-color: rgb(255 255 255 / 0.07) !important;
+:root[data-layout="fluid"] [data-sidebar-nav] [data-nav-item]:hover {
+  background-color: var(--fe-tone-2) !important;
 }
-:root[data-skin="fluid"] [data-sidebar-nav] [data-nav-item][data-active] {
-  background-color: rgb(255 255 255 / 0.08) !important;
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fe-accent) 45%, transparent);
+:root[data-layout="fluid"] [data-sidebar-nav] [data-nav-item][data-active] {
+  background-color: var(--fe-tone-3) !important;
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--fe-accent) 45%, transparent);
 }
-:root[data-skin="fluid"] [data-sidebar-nav] [data-nav-item][data-active]::before {
+:root[data-layout="fluid"]
+  [data-sidebar-nav]
+  [data-nav-item][data-active]::before {
   display: none;
 }
-:root[data-skin="fluid"] .skin-sidebar-shell[data-collapsed] [data-sidebar-nav] {
+:root[data-layout="fluid"]
+  .skin-sidebar-shell[data-collapsed]
+  [data-sidebar-nav] {
   grid-template-columns: 1fr;
   gap: 0.25rem;
 }
-:root[data-skin="fluid"] .skin-sidebar-shell[data-collapsed] [data-sidebar-nav] [data-nav-item] {
+:root[data-layout="fluid"]
+  .skin-sidebar-shell[data-collapsed]
+  [data-sidebar-nav]
+  [data-nav-item] {
   align-items: center;
   padding: 0.5rem !important;
 }
 
 /* Sections: a breath between them, the title in the label voice. */
-:root[data-skin="fluid"] [data-sidebar-scroll] {
+:root[data-layout="fluid"] [data-sidebar-scroll] {
   padding: 0.25rem 1.25rem 1.5rem !important;
 }
-:root[data-skin="fluid"] .skin-sidebar-shell[data-collapsed] [data-sidebar-scroll] {
+:root[data-layout="fluid"]
+  .skin-sidebar-shell[data-collapsed]
+  [data-sidebar-scroll] {
   padding: 0.25rem 0.75rem 1.5rem !important;
 }
-:root[data-skin="fluid"] [data-sidebar-scroll] > * + * {
+:root[data-layout="fluid"] [data-sidebar-scroll] > * + * {
   margin-top: 1.75rem !important;
 }
-:root[data-skin="fluid"] [data-sidebar-section-title] {
+:root[data-layout="fluid"] [data-sidebar-section-title] {
   margin: 0 0 0.625rem !important;
   padding: 0 0.75rem !important;
   font-size: 0.6875rem !important;
@@ -830,74 +884,79 @@
   letter-spacing: 0.12em !important;
   color: var(--fe-ink-3) !important;
 }
-:root[data-skin="fluid"] [data-sidebar-section-title] button {
+:root[data-layout="fluid"] [data-sidebar-section-title] button {
   color: var(--fe-ink-3);
   transition: color 180ms var(--fe-ease);
 }
-:root[data-skin="fluid"] [data-sidebar-section-title] button:hover {
+:root[data-layout="fluid"] [data-sidebar-section-title] button:hover {
   color: var(--fe-ink) !important;
 }
-:root[data-skin="fluid"] .skin-sidebar-shell > aside [role="separator"] {
+:root[data-layout="fluid"] .skin-sidebar-shell > aside [role="separator"] {
   background-color: var(--fe-hairline) !important;
 }
 
 /* D — the person's own music. The pinned pair (liked, recently
    played) as two tiles side by side; the playlists as rows with a
    larger cover, parted by space, the open one marked like a nav row. */
-:root[data-skin="fluid"] [data-sidebar-playlists] {
+:root[data-layout="fluid"] [data-sidebar-playlists] {
   display: grid;
   /* `minmax(0, …)`: a tile's label must not widen its column. */
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 0.5rem;
 }
-:root[data-skin="fluid"] [data-sidebar-row="pinned"] > div:last-child {
+:root[data-layout="fluid"] [data-sidebar-row="pinned"] > div:last-child {
   width: 100%;
   min-width: 0;
 }
-:root[data-skin="fluid"] .skin-sidebar-shell[data-collapsed] [data-sidebar-playlists] {
+:root[data-layout="fluid"]
+  .skin-sidebar-shell[data-collapsed]
+  [data-sidebar-playlists] {
   grid-template-columns: 1fr;
   gap: 0.25rem;
 }
-:root[data-skin="fluid"] [data-sidebar-playlists] > * {
+:root[data-layout="fluid"] [data-sidebar-playlists] > * {
   margin: 0 !important;
 }
-:root[data-skin="fluid"] [data-sidebar-row="pinned"] {
+:root[data-layout="fluid"] [data-sidebar-row="pinned"] {
   flex-direction: column;
   align-items: flex-start;
   gap: 0.625rem;
   padding: 0.75rem !important;
   border-radius: 0.875rem !important;
-  background-color: rgb(255 255 255 / 0.04) !important;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
+  background-color: var(--fe-tone-1) !important;
+  box-shadow: inset 0 1px 0 var(--fe-edge);
   transition:
     background-color 180ms var(--fe-ease),
     box-shadow 180ms var(--fe-ease);
 }
-:root[data-skin="fluid"] [data-sidebar-row="pinned"] > * {
+:root[data-layout="fluid"] [data-sidebar-row="pinned"] > * {
   margin: 0 !important;
 }
-:root[data-skin="fluid"] [data-sidebar-row="pinned"]:hover {
-  background-color: rgb(255 255 255 / 0.07) !important;
+:root[data-layout="fluid"] [data-sidebar-row="pinned"]:hover {
+  background-color: var(--fe-tone-2) !important;
 }
-:root[data-skin="fluid"] [data-sidebar-row="pinned"][data-active] {
-  background-color: rgb(255 255 255 / 0.08) !important;
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fe-accent) 45%, transparent);
+:root[data-layout="fluid"] [data-sidebar-row="pinned"][data-active] {
+  background-color: var(--fe-tone-3) !important;
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--fe-accent) 45%, transparent);
 }
-:root[data-skin="fluid"] [data-sidebar-row="pinned"] > div:first-child > div {
+:root[data-layout="fluid"] [data-sidebar-row="pinned"] > div:first-child > div {
   border-radius: 0.625rem;
 }
-:root[data-skin="fluid"] [data-sidebar-row="pinned"] [class*="bg-pink"],
-:root[data-skin="fluid"] [data-sidebar-row="pinned"] [class*="bg-blue"] {
-  background-color: rgb(255 255 255 / 0.06) !important;
+:root[data-layout="fluid"] [data-sidebar-row="pinned"] [class*="bg-pink"],
+:root[data-layout="fluid"] [data-sidebar-row="pinned"] [class*="bg-blue"] {
+  background-color: var(--fe-tone-2) !important;
 }
-:root[data-skin="fluid"] [data-sidebar-row="pinned"] [class*="text-blue"] {
+:root[data-layout="fluid"] [data-sidebar-row="pinned"] [class*="text-blue"] {
   color: var(--fe-ink-2) !important;
 }
-:root[data-skin="fluid"] .skin-sidebar-shell[data-collapsed] [data-sidebar-row="pinned"] {
+:root[data-layout="fluid"]
+  .skin-sidebar-shell[data-collapsed]
+  [data-sidebar-row="pinned"] {
   align-items: center;
   padding: 0.5rem !important;
 }
-:root[data-skin="fluid"] [data-sidebar-row="playlist"] {
+:root[data-layout="fluid"] [data-sidebar-row="playlist"] {
   position: relative;
   grid-column: 1 / -1;
   padding: 0.375rem 0.625rem !important;
@@ -905,31 +964,36 @@
   background-color: transparent !important;
   transition: background-color 180ms var(--fe-ease);
 }
-:root[data-skin="fluid"] [data-sidebar-row="playlist"]:hover {
-  background-color: rgb(255 255 255 / 0.045) !important;
+:root[data-layout="fluid"] [data-sidebar-row="playlist"]:hover {
+  background-color: var(--fe-tone-1) !important;
 }
-:root[data-skin="fluid"] [data-sidebar-row="playlist"][data-active] {
-  background-color: rgb(255 255 255 / 0.06) !important;
+:root[data-layout="fluid"] [data-sidebar-row="playlist"][data-active] {
+  background-color: var(--fe-tone-2) !important;
 }
-:root[data-skin="fluid"] [data-sidebar-row="playlist"] > div:first-child > :is(img, div) {
+:root[data-layout="fluid"]
+  [data-sidebar-row="playlist"]
+  > div:first-child
+  > :is(img, div) {
   width: 2.5rem;
   height: 2.5rem;
   border-radius: 0.625rem;
 }
-:root[data-skin="fluid"] [data-sidebar-row] div[class*="text-sm"] {
+:root[data-layout="fluid"] [data-sidebar-row] div[class*="text-sm"] {
   color: var(--fe-ink-2) !important;
   font-size: 0.875rem;
   font-weight: 500;
   transition: color 180ms var(--fe-ease);
 }
-:root[data-skin="fluid"] [data-sidebar-row]:hover div[class*="text-sm"],
-:root[data-skin="fluid"] [data-sidebar-row][data-active] div[class*="text-sm"] {
+:root[data-layout="fluid"] [data-sidebar-row]:hover div[class*="text-sm"],
+:root[data-layout="fluid"]
+  [data-sidebar-row][data-active]
+  div[class*="text-sm"] {
   color: var(--fe-ink) !important;
 }
-:root[data-skin="fluid"] [data-sidebar-row="pinned"] div[class*="text-sm"] {
+:root[data-layout="fluid"] [data-sidebar-row="pinned"] div[class*="text-sm"] {
   font-weight: 540;
 }
-:root[data-skin="fluid"] [data-sidebar-row] div[class*="text-[11px]"] {
+:root[data-layout="fluid"] [data-sidebar-row] div[class*="text-[11px]"] {
   color: var(--fe-ink-3) !important;
   font-size: 0.6875rem;
 }
@@ -942,7 +1006,7 @@
    and the cover's light appear up here; the theme switch and the
    profile as one cluster on the right, so nothing sits alone in a
    corner. */
-:root[data-skin="fluid"] header[class*="sticky"] {
+:root[data-layout="fluid"] header[class*="sticky"] {
   height: 3.5rem !important;
   padding: 0 1.5rem !important;
   gap: 1.5rem;
@@ -956,13 +1020,13 @@
 }
 
 /* Left: squares, no discs, no borders. */
-:root[data-skin="fluid"] [data-topbar-left] {
+:root[data-layout="fluid"] [data-topbar-left] {
   gap: 0.125rem;
 }
-:root[data-skin="fluid"] [data-topbar-left] > * {
+:root[data-layout="fluid"] [data-topbar-left] > * {
   margin: 0 !important;
 }
-:root[data-skin="fluid"] [data-topbar-left] button {
+:root[data-layout="fluid"] [data-topbar-left] button {
   display: grid;
   place-items: center;
   width: 2.125rem;
@@ -977,18 +1041,18 @@
     color 180ms var(--fe-ease),
     background-color 180ms var(--fe-ease);
 }
-:root[data-skin="fluid"] [data-topbar-left] button:hover:not(:disabled) {
+:root[data-layout="fluid"] [data-topbar-left] button:hover:not(:disabled) {
   color: var(--fe-ink) !important;
-  background-color: rgb(255 255 255 / 0.06) !important;
+  background-color: var(--fe-tone-2) !important;
 }
-:root[data-skin="fluid"] [data-topbar-left] button:disabled {
+:root[data-layout="fluid"] [data-topbar-left] button:disabled {
   opacity: 0.35;
 }
 
 /* Centre: the search. Shorter than the column it sits in, a tone with
    a hairline; on focus the hairline takes the accent, a soft ring
    spreads from it and the cover's light pools underneath. */
-:root[data-skin="fluid"] [data-topbar-search] {
+:root[data-layout="fluid"] [data-topbar-search] {
   max-width: 26rem !important;
   margin: 0 auto !important;
 }
@@ -999,11 +1063,11 @@
    the panel open the column can be half the window, and a field
    centred on it would cover the right cluster. Below the threshold it
    stays in flow between the clusters. */
-:root[data-skin="fluid"] header[class*="sticky"] {
+:root[data-layout="fluid"] header[class*="sticky"] {
   container-type: inline-size;
 }
 @container (min-width: 56rem) {
-  :root[data-skin="fluid"] [data-topbar-search] {
+  :root[data-layout="fluid"] [data-topbar-search] {
     position: absolute;
     left: 50%;
     top: 50%;
@@ -1012,43 +1076,43 @@
     margin: 0 !important;
   }
 }
-:root[data-skin="fluid"] [data-topbar-search-field] {
+:root[data-layout="fluid"] [data-topbar-search-field] {
   height: 2.25rem;
   padding: 0 0.375rem 0 0.875rem !important;
   border: 0 !important;
   border-radius: 9999px !important;
-  background-color: rgb(255 255 255 / 0.05) !important;
+  background-color: var(--fe-tone-1) !important;
   color: var(--fe-ink) !important;
   box-shadow: inset 0 0 0 1px var(--fe-hairline) !important;
   transition:
     background-color 180ms var(--fe-ease),
     box-shadow 240ms var(--fe-ease);
 }
-:root[data-skin="fluid"] [data-topbar-search-field]:hover {
-  background-color: rgb(255 255 255 / 0.07) !important;
+:root[data-layout="fluid"] [data-topbar-search-field]:hover {
+  background-color: var(--fe-tone-2) !important;
 }
-:root[data-skin="fluid"] [data-topbar-search-field]:focus-within {
-  background-color: rgb(255 255 255 / 0.06) !important;
+:root[data-layout="fluid"] [data-topbar-search-field]:focus-within {
+  background-color: var(--fe-tone-2) !important;
   box-shadow:
     inset 0 0 0 1px color-mix(in srgb, var(--fe-accent) 60%, transparent),
     0 0 0 4px color-mix(in srgb, var(--fe-accent) 10%, transparent),
     0 18px 40px -22px color-mix(in srgb, var(--fe-glow) 90%, rgb(0 0 0)) !important;
 }
-:root[data-skin="fluid"] [data-topbar-search-field] > svg:first-child {
+:root[data-layout="fluid"] [data-topbar-search-field] > svg:first-child {
   width: 1rem;
   height: 1rem;
   margin-right: 0.625rem !important;
   color: var(--fe-ink-3);
 }
-:root[data-skin="fluid"] [data-topbar-search-field] input {
+:root[data-layout="fluid"] [data-topbar-search-field] input {
   font-size: 0.875rem;
   color: var(--fe-ink) !important;
   background-color: transparent !important;
 }
-:root[data-skin="fluid"] [data-topbar-search-field] input::placeholder {
+:root[data-layout="fluid"] [data-topbar-search-field] input::placeholder {
   color: var(--fe-ink-3) !important;
 }
-:root[data-skin="fluid"] [data-topbar-search-field] > button {
+:root[data-layout="fluid"] [data-topbar-search-field] > button {
   display: grid;
   place-items: center;
   width: 1.75rem;
@@ -1062,34 +1126,38 @@
     color 180ms var(--fe-ease),
     background-color 180ms var(--fe-ease);
 }
-:root[data-skin="fluid"] [data-topbar-search-field] > button:hover,
-:root[data-skin="fluid"] [data-topbar-search-field] > button[class*="bg-emerald-500/15"] {
+:root[data-layout="fluid"] [data-topbar-search-field] > button:hover,
+:root[data-layout="fluid"]
+  [data-topbar-search-field]
+  > button[class*="bg-emerald-500/15"] {
   color: var(--fe-ink) !important;
-  background-color: rgb(255 255 255 / 0.08) !important;
+  background-color: var(--fe-tone-3) !important;
 }
-:root[data-skin="fluid"] [data-topbar-search-field] > button[class*="bg-emerald-500/15"] {
+:root[data-layout="fluid"]
+  [data-topbar-search-field]
+  > button[class*="bg-emerald-500/15"] {
   color: var(--fe-accent) !important;
 }
 
 /* Right: one cluster on a tone — the theme switch and the profile. */
-:root[data-skin="fluid"] [data-topbar-right] {
+:root[data-layout="fluid"] [data-topbar-right] {
   gap: 0.25rem;
   padding: 0.25rem;
   border-radius: 9999px;
-  background-color: rgb(255 255 255 / 0.04);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
+  background-color: var(--fe-tone-1);
+  box-shadow: inset 0 1px 0 var(--fe-edge);
 }
-:root[data-skin="fluid"] [data-topbar-right] > * {
+:root[data-layout="fluid"] [data-topbar-right] > * {
   margin: 0 !important;
 }
-:root[data-skin="fluid"] [data-topbar-theme] {
+:root[data-layout="fluid"] [data-topbar-theme] {
   width: 2.75rem !important;
   height: 1.625rem !important;
   margin: 0 0.25rem !important;
   border: 0 !important;
-  background-color: rgb(255 255 255 / 0.08) !important;
+  background-color: var(--fe-tone-3) !important;
 }
-:root[data-skin="fluid"] [data-topbar-theme] > div {
+:root[data-layout="fluid"] [data-topbar-theme] > div {
   top: 0.1875rem !important;
   left: 0.1875rem !important;
   width: 1.25rem !important;
@@ -1097,14 +1165,17 @@
   background-color: var(--fe-ink) !important;
   color: var(--fe-bg) !important;
 }
-:root[data-skin="fluid"] [data-topbar-theme] > div[class*="translate-x-6"] {
-  transform: translateX(1.125rem) !important;
+/* Tailwind v4 moves the knob with the `translate` property, not with
+   `transform`: override the same property, or the knob travels twice
+   and lands outside the track. */
+:root[data-layout="fluid"] [data-topbar-theme] > div[class*="translate-x-6"] {
+  translate: 1.125rem 0 !important;
 }
-:root[data-skin="fluid"] [data-topbar-theme] > div svg {
+:root[data-layout="fluid"] [data-topbar-theme] > div svg {
   width: 0.75rem;
   height: 0.75rem;
 }
-:root[data-skin="fluid"] [data-topbar-profile] {
+:root[data-layout="fluid"] [data-topbar-profile] {
   height: 2.125rem;
   gap: 0.5rem;
   padding: 0 0.75rem 0 0.25rem !important;
@@ -1116,49 +1187,49 @@
     color 180ms var(--fe-ease),
     background-color 180ms var(--fe-ease);
 }
-:root[data-skin="fluid"] [data-topbar-profile] > * {
+:root[data-layout="fluid"] [data-topbar-profile] > * {
   margin: 0 !important;
 }
-:root[data-skin="fluid"] [data-topbar-profile]:hover,
-:root[data-skin="fluid"] [data-topbar-profile][aria-expanded="true"] {
+:root[data-layout="fluid"] [data-topbar-profile]:hover,
+:root[data-layout="fluid"] [data-topbar-profile][aria-expanded="true"] {
   color: var(--fe-ink) !important;
-  background-color: rgb(255 255 255 / 0.07) !important;
+  background-color: var(--fe-tone-2) !important;
 }
-:root[data-skin="fluid"] [data-topbar-profile] > div:first-child {
+:root[data-layout="fluid"] [data-topbar-profile] > div:first-child {
   width: 1.625rem;
   height: 1.625rem;
   font-size: 0.6875rem;
 }
-:root[data-skin="fluid"] [data-topbar-profile] > span {
+:root[data-layout="fluid"] [data-topbar-profile] > span {
   font-size: 0.875rem;
   font-weight: 520;
   letter-spacing: -0.01em;
 }
-:root[data-skin="fluid"] [data-topbar-profile] > svg {
+:root[data-layout="fluid"] [data-topbar-profile] > svg {
   color: var(--fe-ink-3);
 }
 
 /* The bar's popovers (results, filters, the profile menu): the panel
    tone, no border, rows on a tone when hovered. */
-:root[data-skin="fluid"] [data-topbar-popover] {
+:root[data-layout="fluid"] [data-topbar-popover] {
   border-color: transparent !important;
   border-radius: 0.875rem !important;
   background-color: var(--fe-surface-2) !important;
   color: var(--fe-ink-2);
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.06),
+    inset 0 1px 0 var(--fe-edge-strong),
     0 30px 60px -24px rgb(0 0 0 / 0.9) !important;
 }
-:root[data-skin="fluid"]
+:root[data-layout="fluid"]
   [data-topbar-popover]
   :is([class*="hover:bg-zinc-50"], [class*="hover:bg-zinc-100"]):hover {
-  background-color: rgb(255 255 255 / 0.045) !important;
+  background-color: var(--fe-tone-1) !important;
 }
 
 /* Footer: no border; a faint top gradient in the cover's colour says
    "this surface belongs to what is playing". The wave at its top edge
    is `ProgressBar`'s `edge` variant. */
-:root[data-skin="fluid"] footer {
+:root[data-layout="fluid"] footer {
   color: var(--fe-ink-2);
   background-color: var(--fe-surface) !important;
   background-image: linear-gradient(
@@ -1169,13 +1240,13 @@
   border-top: 0 !important;
   box-shadow: none !important;
 }
-:root[data-skin="fluid"] footer > div[class*="h-24"] {
+:root[data-layout="fluid"] footer > div[class*="h-24"] {
   height: 4.25rem !important;
 }
-:root[data-skin="fluid"] footer img {
+:root[data-layout="fluid"] footer img {
   border-radius: 0.625rem;
 }
-:root[data-skin="fluid"] footer :where(button) {
+:root[data-layout="fluid"] footer :where(button) {
   transition:
     color 180ms var(--fe-ease),
     background-color 180ms var(--fe-ease),
@@ -1183,40 +1254,40 @@
 }
 
 /* Main: the editorial gutters; the Home brings its own container. */
-:root[data-skin="fluid"] main {
+:root[data-layout="fluid"] main {
   padding: 0.75rem 2rem 2rem !important;
 }
 @media (min-width: 1280px) {
-  :root[data-skin="fluid"] main {
+  :root[data-layout="fluid"] main {
     padding: 0.75rem 3rem 2rem !important;
   }
 }
 @media (min-width: 1536px) {
-  :root[data-skin="fluid"] main {
+  :root[data-layout="fluid"] main {
     padding: 0.75rem 3.5rem 2rem !important;
   }
 }
 
 /* Headings everywhere: DM Sans, settled weight, tight tracking. */
-:root[data-skin="fluid"] main h1,
-:root[data-skin="fluid"] main h2,
-:root[data-skin="fluid"] main h3 {
+:root[data-layout="fluid"] main h1,
+:root[data-layout="fluid"] main h2,
+:root[data-layout="fluid"] main h3 {
   font-family: var(--fe-font) !important;
   letter-spacing: -0.022em;
 }
-:root[data-skin="fluid"] main h1 {
+:root[data-layout="fluid"] main h1 {
   font-weight: 560 !important;
   letter-spacing: -0.03em;
 }
 /* Titles with a coloured underline (sections, the Settings h1): the
    underline becomes the flow line. */
-:root[data-skin="fluid"] main :is(h1, h2)[class*="border-b-4"] {
+:root[data-layout="fluid"] main :is(h1, h2)[class*="border-b-4"] {
   position: relative;
   border: 0 !important;
   padding-bottom: 0.875rem !important;
   font-weight: 540 !important;
 }
-:root[data-skin="fluid"] main :is(h1, h2)[class*="border-b-4"]::after {
+:root[data-layout="fluid"] main :is(h1, h2)[class*="border-b-4"]::after {
   content: "";
   position: absolute;
   left: 0;
@@ -1232,7 +1303,10 @@
 
 /* The Settings title draws its accent as a short bar under the h1
    (`div.w-8.h-1.bg-emerald-500`): the same flow line. */
-:root[data-skin="fluid"] main h1 + div[class*="bg-emerald-500"][class*="h-1"] {
+:root[data-layout="fluid"]
+  main
+  h1
+  + div[class*="bg-emerald-500"][class*="h-1"] {
   width: 2.5rem !important;
   height: 0.625rem !important;
   border-radius: 0 !important;
@@ -1246,7 +1320,7 @@
 /* Cards and panels: depth through tone. Bordered, rounded containers
    lose their outline and sit one step above the page; the artwork hit
    targets and the track table keep their own treatment. */
-:root[data-skin="fluid"]
+:root[data-layout="fluid"]
   main
   :where(
     [class*="rounded-xl"],
@@ -1268,42 +1342,42 @@
   border-color: transparent !important;
   background-color: var(--fe-surface) !important;
   background-image: none !important;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04) !important;
+  box-shadow: inset 0 1px 0 var(--fe-edge) !important;
 }
 /* Settings groups are the one bordered container that is not a card:
    a `details` with a summary; the same tone works. */
-:root[data-skin="fluid"] main details.settings-group {
+:root[data-layout="fluid"] main details.settings-group {
   border-color: transparent !important;
   background-color: var(--fe-surface) !important;
 }
 /* Inputs keep an edge: a field needs one. */
-:root[data-skin="fluid"] :where(input, textarea, select):not(header input) {
+:root[data-layout="fluid"] :where(input, textarea, select):not(header input) {
   background-color: var(--fe-surface-2) !important;
   border-color: var(--fe-hairline-strong) !important;
   color: var(--fe-ink) !important;
 }
-:root[data-skin="fluid"]
+:root[data-layout="fluid"]
   :where(input, textarea, select):not(header input):focus-visible {
   border-color: var(--fe-accent) !important;
   outline: 0;
   box-shadow: 0 0 0 1px var(--fe-accent);
 }
 /* Dialogs and popovers: one step above the page, no outline. */
-:root[data-skin="fluid"] [role="dialog"]:not([data-immersive]),
-:root[data-skin="fluid"] [role="menu"],
-:root[data-skin="fluid"] [role="listbox"] {
+:root[data-layout="fluid"] [role="dialog"]:not([data-immersive]),
+:root[data-layout="fluid"] [role="menu"],
+:root[data-layout="fluid"] [role="listbox"] {
   background-color: var(--fe-surface-2) !important;
   border-color: transparent !important;
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.06),
+    inset 0 1px 0 var(--fe-edge-strong),
     0 30px 60px -24px rgb(0 0 0 / 0.9) !important;
 }
 /* Track table: tone-separated header, hover from `--track-row-hover`. */
-:root[data-skin="fluid"] [data-track-table] {
+:root[data-layout="fluid"] [data-track-table] {
   background-color: transparent !important;
   border-color: transparent !important;
 }
-:root[data-skin="fluid"] [data-track-table] [data-track-header] {
+:root[data-layout="fluid"] [data-track-table] [data-track-header] {
   background-color: var(--fe-surface) !important;
   color: var(--fe-ink-3);
 }
@@ -1318,14 +1392,14 @@
 
 /* The coloured icon box (a note, a heart, a clock) goes: the kicker
    and the title carry the page. Covers and photos stay. */
-:root[data-skin="fluid"]
+:root[data-layout="fluid"]
   main
   [data-page-hero]
   div[class*="rounded-2xl"]:has(> svg):not(:has(img)) {
   display: none;
 }
 /* Kicker */
-:root[data-skin="fluid"]
+:root[data-layout="fluid"]
   main
   [data-page-hero]
   [class*="tracking-widest"][class*="uppercase"] {
@@ -1336,7 +1410,7 @@
   margin-bottom: 0.625rem !important;
 }
 /* Title: the display face, balanced over two lines at most. */
-:root[data-skin="fluid"] main [data-page-hero] h1 {
+:root[data-layout="fluid"] main [data-page-hero] h1 {
   font-size: clamp(2.25rem, 3vw, 3.5rem) !important;
   font-weight: 560 !important;
   letter-spacing: -0.035em !important;
@@ -1346,32 +1420,35 @@
   margin-bottom: 0.875rem !important;
 }
 /* Meta lines: secondary ink, the counts in tertiary. */
-:root[data-skin="fluid"] main [data-page-hero] :is(div, p)[class*="text-sm"] {
+:root[data-layout="fluid"] main [data-page-hero] :is(div, p)[class*="text-sm"] {
   color: var(--fe-ink-2);
   font-size: 0.9375rem;
 }
-:root[data-skin="fluid"]
+:root[data-layout="fluid"]
   main
   [data-page-hero]
   :is(div, p)[class*="text-sm"][class*="text-zinc-500"] {
   color: var(--fe-ink-3);
 }
 /* The artist under an album title: ink, the accent only on hover. */
-:root[data-skin="fluid"] main [data-page-hero] button[class*="text-emerald-600"] {
+:root[data-layout="fluid"]
+  main
+  [data-page-hero]
+  button[class*="text-emerald-600"] {
   color: var(--fe-ink) !important;
   font-size: 1.125rem;
   font-weight: 500;
   text-decoration: none !important;
   transition: color 180ms var(--fe-ease);
 }
-:root[data-skin="fluid"]
+:root[data-layout="fluid"]
   main
   [data-page-hero]
   button[class*="text-emerald-600"]:hover {
   color: var(--fe-accent) !important;
 }
 /* Genre chips: a hairline, no fill. */
-:root[data-skin="fluid"]
+:root[data-layout="fluid"]
   main
   [data-page-hero]
   span[class*="rounded-full"][class*="bg-zinc-100"] {
@@ -1380,17 +1457,17 @@
   color: var(--fe-ink-2) !important;
 }
 /* The cover: the Home's hero treatment. */
-:root[data-skin="fluid"]
+:root[data-layout="fluid"]
   main
   [data-page-hero]
   :is([class*="w-44"], [class*="w-48"], [class*="w-40"])[class*="rounded"] {
   border-radius: 1.25rem !important;
   box-shadow:
-    0 1px 0 rgb(255 255 255 / 0.06) inset,
+    0 1px 0 var(--fe-edge-strong) inset,
     0 30px 60px -28px rgb(0 0 0 / 0.95) !important;
 }
 /* The primary action: the pill CTA. */
-:root[data-skin="fluid"]
+:root[data-layout="fluid"]
   main
   [data-page-hero]
   button:where(
@@ -1414,7 +1491,7 @@
     transform 320ms var(--fe-ease),
     filter 180ms var(--fe-ease);
 }
-:root[data-skin="fluid"]
+:root[data-layout="fluid"]
   main
   [data-page-hero]
   button:where(
@@ -1428,7 +1505,7 @@
   transform: translateY(-1px);
 }
 /* Secondary actions with a label: a ghost pill. */
-:root[data-skin="fluid"]
+:root[data-layout="fluid"]
   main
   [data-page-hero]
   button[class*="border"][class*="px-"] {
@@ -1436,7 +1513,7 @@
   padding: 0 1.25rem !important;
   border-color: transparent !important;
   border-radius: 9999px !important;
-  background-color: rgb(255 255 255 / 0.06) !important;
+  background-color: var(--fe-tone-2) !important;
   color: var(--fe-ink-2) !important;
   font-size: 0.9375rem !important;
   font-weight: 500 !important;
@@ -1447,15 +1524,15 @@
     color 180ms var(--fe-ease),
     background-color 180ms var(--fe-ease);
 }
-:root[data-skin="fluid"]
+:root[data-layout="fluid"]
   main
   [data-page-hero]
   button[class*="border"][class*="px-"]:hover:not(:disabled) {
-  background-color: rgb(255 255 255 / 0.1) !important;
+  background-color: var(--fe-tone-4) !important;
   color: var(--fe-ink) !important;
 }
 /* Icon groups (shuffle, edit, export…): no box, quiet icons. */
-:root[data-skin="fluid"]
+:root[data-layout="fluid"]
   main
   [data-page-hero]
   div[class*="p-1"][class*="rounded-xl"][class*="border"] {
@@ -1465,7 +1542,7 @@
   padding: 0 !important;
   gap: 0.25rem;
 }
-:root[data-skin="fluid"]
+:root[data-layout="fluid"]
   main
   [data-page-hero]
   div[class*="p-1"][class*="rounded-xl"][class*="border"]
@@ -1482,25 +1559,24 @@
     color 180ms var(--fe-ease),
     background-color 180ms var(--fe-ease);
 }
-:root[data-skin="fluid"]
+:root[data-layout="fluid"]
   main
   [data-page-hero]
   div[class*="p-1"][class*="rounded-xl"][class*="border"]
   button:hover:not(:disabled) {
   color: var(--fe-ink) !important;
-  background-color: rgb(255 255 255 / 0.06) !important;
+  background-color: var(--fe-tone-2) !important;
 }
 
 /* The playlist backdrop: the view paints a sheet of its accent from
    the top; here it becomes a pool of light in the hero's corner, the
    way the Home's canvas carries the cover's colour. */
-:root[data-skin="fluid"] main [class*="--playlist-header"] {
+:root[data-layout="fluid"] main [class*="--playlist-header"] {
   background: radial-gradient(
-      ellipse 58% 62% at 16% 0%,
-      color-mix(in srgb, var(--playlist-accent, var(--fe-glow)) 34%, transparent),
-      transparent 70%
-    )
-    !important;
+    ellipse 58% 62% at 16% 0%,
+    color-mix(in srgb, var(--playlist-accent, var(--fe-glow)) 34%, transparent),
+    transparent 70%
+  ) !important;
 }
 
 /* ── The artist hero with a photo: a banner, not a header ─────────
@@ -1511,7 +1587,9 @@
    column's full width from the top bar down, stands tall enough for
    the photo to be seen, and keeps its name and actions at the foot,
    where the scrim is. */
-:root[data-skin="fluid"] main [data-page-hero][class*="group/hero"][class*="-mx-8"] {
+:root[data-layout="fluid"]
+  main
+  [data-page-hero][class*="group/hero"][class*="-mx-8"] {
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -1520,49 +1598,52 @@
   padding: 3.5rem 2rem 2rem !important;
 }
 @media (min-width: 1280px) {
-  :root[data-skin="fluid"] main [data-page-hero][class*="group/hero"][class*="-mx-8"] {
+  :root[data-layout="fluid"]
+    main
+    [data-page-hero][class*="group/hero"][class*="-mx-8"] {
     min-height: 25rem;
     margin: -0.75rem -3rem 0 !important;
     padding: 3.5rem 3rem 2rem !important;
   }
 }
 @media (min-width: 1536px) {
-  :root[data-skin="fluid"] main [data-page-hero][class*="group/hero"][class*="-mx-8"] {
+  :root[data-layout="fluid"]
+    main
+    [data-page-hero][class*="group/hero"][class*="-mx-8"] {
     margin: -0.75rem -3.5rem 0 !important;
     padding: 3.5rem 3.5rem 2rem !important;
   }
 }
 /* The photo runs to the banner's foot; the scrim does the dissolving,
    from nearly nothing at the top to the page's ground at the bottom. */
-:root[data-skin="fluid"]
+:root[data-layout="fluid"]
   main
   [data-page-hero][class*="group/hero"]
   > [aria-hidden="true"] {
   mask-image: none !important;
   -webkit-mask-image: none !important;
 }
-:root[data-skin="fluid"]
+:root[data-layout="fluid"]
   main
   [data-page-hero][class*="group/hero"]
   > [aria-hidden="true"]
   > div[class*="bg-linear-to-t"] {
   background: linear-gradient(
-      to top,
-      var(--fe-bg) 0%,
-      rgb(11 11 14 / 0.78) 22%,
-      rgb(11 11 14 / 0.35) 55%,
-      rgb(11 11 14 / 0.08) 100%
-    )
-    !important;
+    to top,
+    var(--fe-bg) 0%,
+    rgb(var(--fe-bg-rgb) / 0.78) 22%,
+    rgb(var(--fe-bg-rgb) / 0.35) 55%,
+    rgb(var(--fe-bg-rgb) / 0.08) 100%
+  ) !important;
 }
 /* Name and portrait on one baseline at the foot. */
-:root[data-skin="fluid"]
+:root[data-layout="fluid"]
   main
   [data-page-hero][class*="group/hero"]
   > div[class*="items-center"] {
   align-items: flex-end;
 }
-:root[data-skin="fluid"]
+:root[data-layout="fluid"]
   main
   [data-page-hero][class*="group/hero"]
   :is(img, div)[class*="w-48"] {
@@ -1570,35 +1651,35 @@
   height: 8.5rem !important;
 }
 /* Over a photo the kicker and the counts take white, not the inks. */
-:root[data-skin="fluid"]
+:root[data-layout="fluid"]
   main
   [data-page-hero][class*="group/hero"][class*="-mx-8"]
   [class*="tracking-widest"][class*="uppercase"] {
   color: rgb(255 255 255 / 0.72) !important;
   text-shadow: 0 1px 8px rgb(0 0 0 / 0.5);
 }
-:root[data-skin="fluid"]
+:root[data-layout="fluid"]
   main
   [data-page-hero][class*="group/hero"][class*="-mx-8"]
   :is(div, p)[class*="text-sm"] {
   color: rgb(255 255 255 / 0.8);
   text-shadow: 0 1px 8px rgb(0 0 0 / 0.5);
 }
-:root[data-skin="fluid"] main [data-page-hero][class*="group/hero"] h1 {
+:root[data-layout="fluid"] main [data-page-hero][class*="group/hero"] h1 {
   font-size: clamp(3rem, 5vw, 5.25rem) !important;
   font-weight: 600 !important;
   letter-spacing: -0.04em !important;
   line-height: 0.95 !important;
 }
 /* Ghost pills over a photo need a touch more ground. */
-:root[data-skin="fluid"]
+:root[data-layout="fluid"]
   main
   [data-page-hero][class*="group/hero"]
   button[class*="border"][class*="px-"] {
   background-color: rgb(255 255 255 / 0.14) !important;
   color: rgb(255 255 255 / 0.9) !important;
 }
-:root[data-skin="fluid"]
+:root[data-layout="fluid"]
   main
   [data-page-hero][class*="group/hero"]
   button[class*="border"][class*="px-"]:hover:not(:disabled) {
@@ -1606,7 +1687,7 @@
   color: #fff !important;
 }
 /* The backdrop's own button, in the banner's corner, clear of the bar. */
-:root[data-skin="fluid"]
+:root[data-layout="fluid"]
   main
   [data-page-hero][class*="group/hero"]
   > button[class*="absolute"][class*="top-3"] {
@@ -1615,7 +1696,7 @@
 }
 
 /* ── Library tabs: text, the active one marked by the flow line ── */
-:root[data-skin="fluid"] main button[class*="border-b-2"] {
+:root[data-layout="fluid"] main button[class*="border-b-2"] {
   position: relative;
   border: 0 !important;
   padding-bottom: 1.125rem !important;
@@ -1624,14 +1705,16 @@
   font-weight: 500;
   transition: color 180ms var(--fe-ease);
 }
-:root[data-skin="fluid"] main button[class*="border-b-2"]:hover {
+:root[data-layout="fluid"] main button[class*="border-b-2"]:hover {
   color: var(--fe-ink-2) !important;
 }
-:root[data-skin="fluid"] main button[class*="border-b-2"][class*="border-emerald-500"] {
+:root[data-layout="fluid"]
+  main
+  button[class*="border-b-2"][class*="border-emerald-500"] {
   color: var(--fe-ink) !important;
   font-weight: 540;
 }
-:root[data-skin="fluid"]
+:root[data-layout="fluid"]
   main
   button[class*="border-b-2"][class*="border-emerald-500"]::after {
   content: "";
@@ -1641,56 +1724,62 @@
   width: 2.5rem;
   height: 0.625rem;
   background-color: var(--fe-accent);
-  mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 10' fill='none'><path d='M0.5 5 C 5 0.5, 9 0.5, 13.5 5 S 22 9.5, 26.5 5 S 35 0.5, 39.5 5' stroke='black' stroke-width='1.6' stroke-linecap='round'/></svg>") no-repeat center / 100% 100%;
-  -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 10' fill='none'><path d='M0.5 5 C 5 0.5, 9 0.5, 13.5 5 S 22 9.5, 26.5 5 S 35 0.5, 39.5 5' stroke='black' stroke-width='1.6' stroke-linecap='round'/></svg>") no-repeat center / 100% 100%;
+  mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 10' fill='none'><path d='M0.5 5 C 5 0.5, 9 0.5, 13.5 5 S 22 9.5, 26.5 5 S 35 0.5, 39.5 5' stroke='black' stroke-width='1.6' stroke-linecap='round'/></svg>")
+    no-repeat center / 100% 100%;
+  -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 10' fill='none'><path d='M0.5 5 C 5 0.5, 9 0.5, 13.5 5 S 22 9.5, 26.5 5 S 35 0.5, 39.5 5' stroke='black' stroke-width='1.6' stroke-linecap='round'/></svg>")
+    no-repeat center / 100% 100%;
 }
-:root[data-skin="fluid"]
+:root[data-layout="fluid"]
   main
   div[class*="border-b"]:has(> div > button[class*="border-b-2"]) {
   border-color: var(--fe-hairline) !important;
 }
-:root[data-skin="fluid"] main header[class*="border-b"] {
+:root[data-layout="fluid"] main header[class*="border-b"] {
   border-color: var(--fe-hairline) !important;
 }
 
 /* ── Grids: artists without a photo, genre and year cards ──────── */
-:root[data-skin="fluid"] main [class*="from-violet"] {
+:root[data-layout="fluid"] main [class*="from-violet"] {
   background-image: none !important;
   background-color: var(--fe-surface-2) !important;
   border-color: transparent !important;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04) !important;
+  box-shadow: inset 0 1px 0 var(--fe-edge) !important;
 }
-:root[data-skin="fluid"] main [class*="text-violet"] {
+:root[data-layout="fluid"] main [class*="text-violet"] {
   color: var(--fe-ink-3) !important;
   font-weight: 500 !important;
 }
-:root[data-skin="fluid"]
+:root[data-layout="fluid"]
   main
   button[class*="rounded-2xl"][class*="border"][class*="p-4"] {
   border-color: transparent !important;
   border-radius: 0.875rem !important;
   background-color: var(--fe-surface) !important;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04) !important;
+  box-shadow: inset 0 1px 0 var(--fe-edge) !important;
   transition: background-color 180ms var(--fe-ease);
 }
-:root[data-skin="fluid"]
+:root[data-layout="fluid"]
   main
   button[class*="rounded-2xl"][class*="border"][class*="p-4"]:hover {
   background-color: var(--fe-surface-2) !important;
 }
 
 /* ── Folder cards: a tone, a step up on hover, the tile in ink ── */
-:root[data-skin="fluid"] main [data-folder-card] {
+:root[data-layout="fluid"] main [data-folder-card] {
   background-color: var(--fe-surface) !important;
   border-color: transparent !important;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04) !important;
+  box-shadow: inset 0 1px 0 var(--fe-edge) !important;
   transition: background-color 180ms var(--fe-ease);
 }
-:root[data-skin="fluid"] main [data-folder-card]:hover {
+:root[data-layout="fluid"] main [data-folder-card]:hover {
   background-color: var(--fe-surface-2) !important;
 }
-:root[data-skin="fluid"] main [data-folder-card] > div:first-child > div:first-child {
-  background-color: rgb(255 255 255 / 0.06) !important;
+:root[data-layout="fluid"]
+  main
+  [data-folder-card]
+  > div:first-child
+  > div:first-child {
+  background-color: var(--fe-tone-2) !important;
   color: var(--fe-ink-2) !important;
 }
 
@@ -1698,7 +1787,7 @@
 /* 10 px uppercase labels (table headers, section eyebrows): one
    size up, settled weight, tertiary ink. White ones over artwork
    keep their colour. */
-:root[data-skin="fluid"]
+:root[data-layout="fluid"]
   main
   [class*="text-[10px]"][class*="uppercase"]:not([class*="text-white"]) {
   font-size: 0.6875rem !important;
@@ -1708,66 +1797,73 @@
 }
 /* Filter pills (history ranges): the accent fills the chosen one
    with dark ink; the others are a hairline. */
-:root[data-skin="fluid"]
+:root[data-layout="fluid"]
   main
   button[class*="rounded-full"][class*="text-xs"][class*="bg-emerald-500"] {
   background-color: var(--fe-accent) !important;
   color: var(--fe-accent-ink) !important;
   font-weight: 540 !important;
 }
-:root[data-skin="fluid"]
+:root[data-layout="fluid"]
   main
   button[class*="rounded-full"][class*="text-xs"][class*="bg-zinc-100"] {
   background-color: transparent !important;
   box-shadow: inset 0 0 0 1px var(--fe-hairline-strong);
   color: var(--fe-ink-2) !important;
 }
-:root[data-skin="fluid"]
+:root[data-layout="fluid"]
   main
   button[class*="rounded-full"][class*="text-xs"][class*="bg-zinc-100"]:hover {
-  background-color: rgb(255 255 255 / 0.06) !important;
+  background-color: var(--fe-tone-2) !important;
   color: var(--fe-ink) !important;
 }
 /* The Hi-Res badge: no solid pill — a dark ground and the accent as
    ink, over a cover or beside a title alike. */
-:root[data-skin="fluid"]
-  :is(span, div)[class*="bg-emerald-500"][class*="text-[10px]"][class*="rounded"] {
+:root[data-layout="fluid"]
+  :is(
+    span,
+    div
+  )[class*="bg-emerald-500"][class*="text-[10px]"][class*="rounded"] {
   background-color: rgb(11 11 14 / 0.78) !important;
   color: var(--fe-accent) !important;
   font-weight: 540 !important;
   letter-spacing: 0.06em;
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fe-accent) 35%, transparent);
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--fe-accent) 35%, transparent);
 }
 
 /* ── Menus and popovers (portalled: no `main` here) ───────────── */
 /* A row that would fill with the accent on hover takes a tone instead;
    the accent is kept for the chosen item's ink. */
-:root[data-skin="fluid"] [class*="hover:bg-emerald-500"]:hover {
-  background-color: rgb(255 255 255 / 0.06) !important;
+:root[data-layout="fluid"] [class*="hover:bg-emerald-500"]:hover {
+  background-color: var(--fe-tone-2) !important;
   color: var(--fe-ink) !important;
 }
-:root[data-skin="fluid"] [class*="hover:bg-emerald-500"][class*="text-emerald-500"]:hover {
+:root[data-layout="fluid"]
+  [class*="hover:bg-emerald-500"][class*="text-emerald-500"]:hover {
   color: var(--fe-accent) !important;
 }
 /* Every accent-filled button carries the accent's own ink, as the
    CTAs do: speed presets, timer presets, confirms, badges. */
-:root[data-skin="fluid"] button[class*="bg-emerald-500 "],
-:root[data-skin="fluid"] button[class*="bg-emerald-500"][class*="text-white"] {
+:root[data-layout="fluid"] button[class*="bg-emerald-500 "],
+:root[data-layout="fluid"]
+  button[class*="bg-emerald-500"][class*="text-white"] {
   background-color: var(--fe-accent) !important;
   color: var(--fe-accent-ink) !important;
 }
-:root[data-skin="fluid"] button[class*="hover:bg-emerald-600"]:hover:not(:disabled) {
+:root[data-layout="fluid"]
+  button[class*="hover:bg-emerald-600"]:hover:not(:disabled) {
   background-color: var(--fe-accent) !important;
   filter: brightness(1.06);
 }
 /* The chosen row of a settings list or the settings navigation: a
    tone and the accent bar, as in the sidebar. */
-:root[data-skin="fluid"] main button[class*="bg-emerald-50 "] {
+:root[data-layout="fluid"] main button[class*="bg-emerald-50 "] {
   position: relative;
-  background-color: rgb(255 255 255 / 0.05) !important;
+  background-color: var(--fe-tone-1) !important;
   color: var(--fe-ink) !important;
 }
-:root[data-skin="fluid"] main button[class*="bg-emerald-50 "]::before {
+:root[data-layout="fluid"] main button[class*="bg-emerald-50 "]::before {
   content: "";
   position: absolute;
   left: 0;
@@ -1783,17 +1879,17 @@
    hosting the embedded forms of NowPlayingPanel, LyricsPanel and
    QueuePanel. Same tone as the sidebar, a hairline for its edge.
    ============================================================ */
-:root[data-skin="fluid"] .fe-panel {
+:root[data-layout="fluid"] .fe-panel {
   color: var(--fe-ink-2);
   background-color: var(--fe-surface);
   box-shadow: -1px 0 0 var(--fe-hairline);
 }
-:root[data-skin="fluid"] .fe-panel :is(h2, h3) {
+:root[data-layout="fluid"] .fe-panel :is(h2, h3) {
   font-family: var(--fe-font);
   letter-spacing: -0.02em;
 }
 /* Tabs: text, the open one in full ink with the flow line under it. */
-:root[data-skin="fluid"] .fe-panel__tab {
+:root[data-layout="fluid"] .fe-panel__tab {
   position: relative;
   height: 2.25rem;
   padding: 0 0.75rem;
@@ -1805,15 +1901,15 @@
     color 180ms var(--fe-ease),
     background-color 180ms var(--fe-ease);
 }
-:root[data-skin="fluid"] .fe-panel__tab:hover {
+:root[data-layout="fluid"] .fe-panel__tab:hover {
   color: var(--fe-ink-2);
-  background-color: rgb(255 255 255 / 0.04);
+  background-color: var(--fe-tone-1);
 }
-:root[data-skin="fluid"] .fe-panel__tab.is-active {
+:root[data-layout="fluid"] .fe-panel__tab.is-active {
   color: var(--fe-ink);
   font-weight: 540;
 }
-:root[data-skin="fluid"] .fe-panel__tab.is-active::after {
+:root[data-layout="fluid"] .fe-panel__tab.is-active::after {
   content: "";
   position: absolute;
   left: 50%;
@@ -1822,15 +1918,19 @@
   height: 0.5rem;
   transform: translateX(-50%);
   background-color: var(--fe-accent);
-  mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 10' fill='none'><path d='M0.5 5 C 5 0.5, 9 0.5, 13.5 5 S 22 9.5, 26.5 5 S 35 0.5, 39.5 5' stroke='black' stroke-width='1.6' stroke-linecap='round'/></svg>") no-repeat center / 100% 100%;
-  -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 10' fill='none'><path d='M0.5 5 C 5 0.5, 9 0.5, 13.5 5 S 22 9.5, 26.5 5 S 35 0.5, 39.5 5' stroke='black' stroke-width='1.6' stroke-linecap='round'/></svg>") no-repeat center / 100% 100%;
+  mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 10' fill='none'><path d='M0.5 5 C 5 0.5, 9 0.5, 13.5 5 S 22 9.5, 26.5 5 S 35 0.5, 39.5 5' stroke='black' stroke-width='1.6' stroke-linecap='round'/></svg>")
+    no-repeat center / 100% 100%;
+  -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 10' fill='none'><path d='M0.5 5 C 5 0.5, 9 0.5, 13.5 5 S 22 9.5, 26.5 5 S 35 0.5, 39.5 5' stroke='black' stroke-width='1.6' stroke-linecap='round'/></svg>")
+    no-repeat center / 100% 100%;
 }
 /* Hairlines inside the bodies. */
-:root[data-skin="fluid"] .fe-panel :is([class*="border-t"], [class*="border-b"]) {
+:root[data-layout="fluid"]
+  .fe-panel
+  :is([class*="border-t"], [class*="border-b"]) {
   border-color: var(--fe-hairline) !important;
 }
 /* Small labels. */
-:root[data-skin="fluid"]
+:root[data-layout="fluid"]
   .fe-panel
   [class*="text-[10px]"][class*="uppercase"] {
   font-size: 0.6875rem !important;
@@ -1839,42 +1939,42 @@
   color: var(--fe-ink-3) !important;
 }
 /* Links in the accent (open queue, read more): ink, accent on hover. */
-:root[data-skin="fluid"] .fe-panel button[class*="text-emerald-600"] {
+:root[data-layout="fluid"] .fe-panel button[class*="text-emerald-600"] {
   color: var(--fe-ink-2) !important;
   text-decoration: none !important;
 }
-:root[data-skin="fluid"] .fe-panel button[class*="text-emerald-600"]:hover {
+:root[data-layout="fluid"] .fe-panel button[class*="text-emerald-600"]:hover {
   color: var(--fe-accent) !important;
 }
 /* Rows (queue items, the rest of the album): a tone on hover. */
-:root[data-skin="fluid"]
+:root[data-layout="fluid"]
   .fe-panel
   :is([class*="hover:bg-zinc-50"], [class*="hover:bg-zinc-100"]):hover {
-  background-color: rgb(255 255 255 / 0.045) !important;
+  background-color: var(--fe-tone-1) !important;
 }
 /* The queue's radio card: a tone, no coloured border. */
-:root[data-skin="fluid"] .fe-panel [class*="bg-emerald-50 "] {
-  background-color: rgb(255 255 255 / 0.05) !important;
+:root[data-layout="fluid"] .fe-panel [class*="bg-emerald-50 "] {
+  background-color: var(--fe-tone-1) !important;
   border-color: transparent !important;
 }
 
 /* ── Details: the cover edge to edge, the identity over it ──── */
-:root[data-skin="fluid"] .fe-panel__hero,
-:root[data-skin="fluid"] .fe-panel__hero [class*="rounded"] {
+:root[data-layout="fluid"] .fe-panel__hero,
+:root[data-layout="fluid"] .fe-panel__hero [class*="rounded"] {
   border-radius: 0 !important;
 }
-:root[data-skin="fluid"] .fe-panel__hero [class*="shadow"] {
+:root[data-layout="fluid"] .fe-panel__hero [class*="shadow"] {
   box-shadow: none !important;
 }
 /* The identity over the scrim: the display face, white ink. */
-:root[data-skin="fluid"] .fe-panel__hero [class*="text-xl"] {
+:root[data-layout="fluid"] .fe-panel__hero [class*="text-xl"] {
   font-size: 1.5rem !important;
   font-weight: 560 !important;
   letter-spacing: -0.03em;
   line-height: 1.05;
   text-wrap: balance;
 }
-:root[data-skin="fluid"] .fe-panel__pill {
+:root[data-layout="fluid"] .fe-panel__pill {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1882,7 +1982,7 @@
   height: 2.625rem;
   padding: 0 1rem;
   border-radius: 9999px;
-  background-color: rgb(255 255 255 / 0.06);
+  background-color: var(--fe-tone-2);
   color: var(--fe-ink-2);
   font-size: 0.875rem;
   font-weight: 520;
@@ -1890,29 +1990,29 @@
     color 180ms var(--fe-ease),
     background-color 180ms var(--fe-ease);
 }
-:root[data-skin="fluid"] .fe-panel__pill:hover:not(:disabled) {
-  background-color: rgb(255 255 255 / 0.1);
+:root[data-layout="fluid"] .fe-panel__pill:hover:not(:disabled) {
+  background-color: var(--fe-tone-4);
   color: var(--fe-ink);
 }
-:root[data-skin="fluid"] .fe-panel__pill:disabled {
+:root[data-layout="fluid"] .fe-panel__pill:disabled {
   opacity: 0.4;
   cursor: default;
 }
 /* The lyrics glimpse: a quiet card that opens the Lyrics tab. */
-:root[data-skin="fluid"] .fe-panel__lyrics {
+:root[data-layout="fluid"] .fe-panel__lyrics {
   padding: 1rem 1.125rem;
   border-radius: 0.875rem;
-  background-color: rgb(255 255 255 / 0.05);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
+  background-color: var(--fe-tone-1);
+  box-shadow: inset 0 1px 0 var(--fe-edge);
   transition: background-color 180ms var(--fe-ease);
 }
-:root[data-skin="fluid"] .fe-panel__lyrics:hover {
-  background-color: rgb(255 255 255 / 0.08);
+:root[data-layout="fluid"] .fe-panel__lyrics:hover {
+  background-color: var(--fe-tone-3);
 }
 
 /* ── Lyrics: the sung line sharp and large, the others fading
       with their distance from it ─────────────────────────────── */
-:root[data-skin="fluid"] .fe-panel ul > li > button {
+:root[data-layout="fluid"] .fe-panel ul > li > button {
   font-size: 1.125rem !important;
   line-height: 1.35 !important;
   font-weight: 500;
@@ -1925,7 +2025,11 @@
     filter 320ms var(--fe-ease),
     color 180ms var(--fe-ease);
 }
-:root[data-skin="fluid"] .fe-panel ul > li:has(> button[class*="scale-[1.02]"]) > button {
+:root[data-layout="fluid"]
+  .fe-panel
+  ul
+  > li:has(> button[class*="scale-[1.02]"])
+  > button {
   font-size: 1.3125rem !important;
   font-weight: 560;
   letter-spacing: -0.02em;
@@ -1933,23 +2037,42 @@
   opacity: 1;
   filter: none;
 }
-:root[data-skin="fluid"] .fe-panel ul > li:has(> button[class*="scale-[1.02]"]) + li > button,
-:root[data-skin="fluid"] .fe-panel ul > li:has(+ li > button[class*="scale-[1.02]"]) > button {
+:root[data-layout="fluid"]
+  .fe-panel
+  ul
+  > li:has(> button[class*="scale-[1.02]"])
+  + li
+  > button,
+:root[data-layout="fluid"]
+  .fe-panel
+  ul
+  > li:has(+ li > button[class*="scale-[1.02]"])
+  > button {
   opacity: 0.8;
   filter: blur(0.3px);
 }
-:root[data-skin="fluid"] .fe-panel ul > li:has(> button[class*="scale-[1.02]"]) + li + li > button,
-:root[data-skin="fluid"] .fe-panel ul > li:has(+ li + li > button[class*="scale-[1.02]"]) > button {
+:root[data-layout="fluid"]
+  .fe-panel
+  ul
+  > li:has(> button[class*="scale-[1.02]"])
+  + li
+  + li
+  > button,
+:root[data-layout="fluid"]
+  .fe-panel
+  ul
+  > li:has(+ li + li > button[class*="scale-[1.02]"])
+  > button {
   opacity: 0.65;
   filter: blur(0.7px);
 }
-:root[data-skin="fluid"] .fe-panel ul > li > button:hover,
-:root[data-skin="fluid"] .fe-panel ul > li > button:focus-visible {
+:root[data-layout="fluid"] .fe-panel ul > li > button:hover,
+:root[data-layout="fluid"] .fe-panel ul > li > button:focus-visible {
   opacity: 1;
   filter: none;
 }
 /* Past lines keep their fade; the word being sung takes the accent. */
-:root[data-skin="fluid"] .fe-panel ul > li > button [class*="text-pink-500"] {
+:root[data-layout="fluid"] .fe-panel ul > li > button [class*="text-pink-500"] {
   color: var(--fe-accent) !important;
 }
 
@@ -1959,24 +2082,24 @@
    icon buttons, the progress as the wave, the lyrics fading with
    their distance from the sung line.
    ============================================================ */
-:root[data-skin="fluid"] [data-immersive] h1 {
+:root[data-layout="fluid"] [data-immersive] h1 {
   font-family: var(--fe-font);
   font-size: clamp(2rem, 2.4vw, 2.75rem) !important;
   font-weight: 560 !important;
   letter-spacing: -0.035em;
   line-height: 1.02;
 }
-:root[data-skin="fluid"] [data-immersive] h1 + div {
+:root[data-layout="fluid"] [data-immersive] h1 + div {
   font-size: 1.0625rem;
   color: rgb(255 255 255 / 0.72);
 }
 /* Tabs: no pill; text, the open one in white with the flow line. */
-:root[data-skin="fluid"] [data-immersive] [role="tablist"] {
+:root[data-layout="fluid"] [data-immersive] [role="tablist"] {
   padding: 0 !important;
   gap: 0.25rem !important;
   background-color: transparent !important;
 }
-:root[data-skin="fluid"] [data-immersive] [role="tab"] {
+:root[data-layout="fluid"] [data-immersive] [role="tab"] {
   position: relative;
   padding: 0.5rem 0.75rem 0.875rem !important;
   border-radius: 0.625rem !important;
@@ -1985,14 +2108,16 @@
   font-weight: 500;
   transition: color 180ms var(--fe-ease);
 }
-:root[data-skin="fluid"] [data-immersive] [role="tab"]:hover {
+:root[data-layout="fluid"] [data-immersive] [role="tab"]:hover {
   color: rgb(255 255 255 / 0.85) !important;
 }
-:root[data-skin="fluid"] [data-immersive] [role="tab"][aria-selected="true"] {
+:root[data-layout="fluid"] [data-immersive] [role="tab"][aria-selected="true"] {
   color: #fff !important;
   font-weight: 540;
 }
-:root[data-skin="fluid"] [data-immersive] [role="tab"][aria-selected="true"]::after {
+:root[data-layout="fluid"]
+  [data-immersive]
+  [role="tab"][aria-selected="true"]::after {
   content: "";
   position: absolute;
   left: 50%;
@@ -2001,11 +2126,13 @@
   height: 0.5rem;
   transform: translateX(-50%);
   background-color: var(--fe-accent);
-  mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 10' fill='none'><path d='M0.5 5 C 5 0.5, 9 0.5, 13.5 5 S 22 9.5, 26.5 5 S 35 0.5, 39.5 5' stroke='black' stroke-width='1.6' stroke-linecap='round'/></svg>") no-repeat center / 100% 100%;
-  -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 10' fill='none'><path d='M0.5 5 C 5 0.5, 9 0.5, 13.5 5 S 22 9.5, 26.5 5 S 35 0.5, 39.5 5' stroke='black' stroke-width='1.6' stroke-linecap='round'/></svg>") no-repeat center / 100% 100%;
+  mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 10' fill='none'><path d='M0.5 5 C 5 0.5, 9 0.5, 13.5 5 S 22 9.5, 26.5 5 S 35 0.5, 39.5 5' stroke='black' stroke-width='1.6' stroke-linecap='round'/></svg>")
+    no-repeat center / 100% 100%;
+  -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 10' fill='none'><path d='M0.5 5 C 5 0.5, 9 0.5, 13.5 5 S 22 9.5, 26.5 5 S 35 0.5, 39.5 5' stroke='black' stroke-width='1.6' stroke-linecap='round'/></svg>")
+    no-repeat center / 100% 100%;
 }
 /* Icon buttons: no disc behind them until hovered. */
-:root[data-skin="fluid"]
+:root[data-layout="fluid"]
   [data-immersive]
   button[class*="p-2.5"][class*="rounded-full"] {
   background-color: transparent !important;
@@ -2014,20 +2141,20 @@
     color 180ms var(--fe-ease),
     background-color 180ms var(--fe-ease);
 }
-:root[data-skin="fluid"]
+:root[data-layout="fluid"]
   [data-immersive]
   button[class*="p-2.5"][class*="rounded-full"]:hover {
   background-color: rgb(255 255 255 / 0.1) !important;
   color: #fff !important;
 }
-:root[data-skin="fluid"]
+:root[data-layout="fluid"]
   [data-immersive]
   button[class*="p-2.5"][class*="rounded-full"][class*="bg-white/25"] {
   background-color: rgb(255 255 255 / 0.14) !important;
   color: #fff !important;
 }
 /* Small labels in the queue tab. */
-:root[data-skin="fluid"]
+:root[data-layout="fluid"]
   [data-immersive]
   [class*="text-[10px]"][class*="uppercase"] {
   font-size: 0.6875rem !important;
@@ -2037,7 +2164,11 @@
 }
 /* The lyrics: settled weight, and a blur that grows with the distance
    from the sung line (the column already fades them by opacity). */
-:root[data-skin="fluid"] [data-immersive] ul > li > button[class*="text-3xl"] {
+:root[data-layout="fluid"]
+  [data-immersive]
+  ul
+  > li
+  > button[class*="text-3xl"] {
   font-family: var(--fe-font);
   font-weight: 560 !important;
   letter-spacing: -0.02em;
@@ -2048,107 +2179,148 @@
     filter 320ms var(--fe-ease),
     color 180ms var(--fe-ease);
 }
-:root[data-skin="fluid"] [data-immersive] ul > li:has(> button[class*="scale-[1.04]"]) > button {
+:root[data-layout="fluid"]
+  [data-immersive]
+  ul
+  > li:has(> button[class*="scale-[1.04]"])
+  > button {
   filter: none;
 }
-:root[data-skin="fluid"] [data-immersive] ul > li:has(> button[class*="scale-[1.04]"]) + li > button,
-:root[data-skin="fluid"] [data-immersive] ul > li:has(+ li > button[class*="scale-[1.04]"]) > button {
+:root[data-layout="fluid"]
+  [data-immersive]
+  ul
+  > li:has(> button[class*="scale-[1.04]"])
+  + li
+  > button,
+:root[data-layout="fluid"]
+  [data-immersive]
+  ul
+  > li:has(+ li > button[class*="scale-[1.04]"])
+  > button {
   filter: blur(0.4px);
 }
-:root[data-skin="fluid"] [data-immersive] ul > li:has(> button[class*="scale-[1.04]"]) + li + li > button,
-:root[data-skin="fluid"] [data-immersive] ul > li:has(+ li + li > button[class*="scale-[1.04]"]) > button {
+:root[data-layout="fluid"]
+  [data-immersive]
+  ul
+  > li:has(> button[class*="scale-[1.04]"])
+  + li
+  + li
+  > button,
+:root[data-layout="fluid"]
+  [data-immersive]
+  ul
+  > li:has(+ li + li > button[class*="scale-[1.04]"])
+  > button {
   filter: blur(0.8px);
 }
-:root[data-skin="fluid"] [data-immersive] ul > li > button:hover,
-:root[data-skin="fluid"] [data-immersive] ul > li > button:focus-visible {
+:root[data-layout="fluid"] [data-immersive] ul > li > button:hover,
+:root[data-layout="fluid"] [data-immersive] ul > li > button:focus-visible {
   filter: none;
 }
 
 /* ── Track tables: a hairline under the header, rows parted by a
       fainter one, the playing row marked by the accent's edge ──── */
-:root[data-skin="fluid"] [data-track-table] [class*="sticky"][class*="grid"] {
-  background-color: rgb(13 13 17) !important;
+:root[data-layout="fluid"] [data-track-table] [class*="sticky"][class*="grid"] {
+  background-color: var(--fe-surface-0) !important;
   border-color: var(--fe-hairline) !important;
 }
-:root[data-skin="fluid"] [data-track-table] [data-track-header] {
+:root[data-layout="fluid"] [data-track-table] [data-track-header] {
   background-color: transparent !important;
   color: var(--fe-ink-3);
 }
-:root[data-skin="fluid"] [data-track-row] {
-  border-color: rgb(255 255 255 / 0.05) !important;
+:root[data-layout="fluid"] [data-track-row] {
+  border-color: var(--fe-tone-1) !important;
 }
-:root[data-skin="fluid"] [data-track-row][class*="bg-emerald-50 "] {
-  background-color: rgb(255 255 255 / 0.05) !important;
+:root[data-layout="fluid"] [data-track-row][class*="bg-emerald-50 "] {
+  background-color: var(--fe-tone-1) !important;
   box-shadow: inset 2px 0 0 var(--fe-accent);
 }
-:root[data-skin="fluid"] [data-track-row][class*="bg-emerald-50 "]:hover {
-  background-color: rgb(255 255 255 / 0.075) !important;
+:root[data-layout="fluid"] [data-track-row][class*="bg-emerald-50 "]:hover {
+  background-color: var(--fe-tone-3) !important;
 }
 
 /* ── Context menus: rounder, items as rows with their own corners ── */
-:root[data-skin="fluid"] [role="menu"] {
+:root[data-layout="fluid"] [role="menu"] {
   border-radius: 0.75rem !important;
   padding: 0.375rem !important;
 }
-:root[data-skin="fluid"] [role="menu"] [role="menuitem"] {
+:root[data-layout="fluid"] [role="menu"] [role="menuitem"] {
   border-radius: 0.5rem;
   color: var(--fe-ink-2);
 }
-:root[data-skin="fluid"] [role="menu"] [role="menuitem"]:hover,
-:root[data-skin="fluid"] [role="menu"] [role="menuitem"]:focus-visible {
-  background-color: rgb(255 255 255 / 0.06) !important;
+:root[data-layout="fluid"] [role="menu"] [role="menuitem"]:hover,
+:root[data-layout="fluid"] [role="menu"] [role="menuitem"]:focus-visible {
+  background-color: var(--fe-tone-2) !important;
   color: var(--fe-ink);
 }
-:root[data-skin="fluid"] [role="menu"] [role="separator"] {
+:root[data-layout="fluid"] [role="menu"] [role="separator"] {
   margin: 0.375rem 0.5rem !important;
   background-color: var(--fe-hairline) !important;
 }
 
 /* ── Reduced motion: no drift, no stagger, no lift ─────────── */
 @media (prefers-reduced-motion: reduce) {
-  :root[data-skin="fluid"] .fe-rise,
-  :root[data-skin="fluid"] .fe-canvas__aura,
-  :root[data-skin="fluid"] .fe-suggest__aura {
+  :root[data-layout="fluid"] .fe-rise,
+  :root[data-layout="fluid"] .fe-canvas__aura,
+  :root[data-layout="fluid"] .fe-suggest__aura {
     animation: none;
   }
-  :root[data-skin="fluid"] .fe-spectrum__wave svg {
+  :root[data-layout="fluid"] .fe-spectrum__wave svg {
     animation: none;
   }
-  :root[data-skin="fluid"] .fe-spectrum__seg,
-  :root[data-skin="fluid"] .fe-spectrum__detail,
-  :root[data-skin="fluid"] .fe-tile,
-  :root[data-skin="fluid"] .fe-cta,
-  :root[data-skin="fluid"] .fe-link::after,
-  :root[data-skin="fluid"] .fe-icon-btn,
-  :root[data-skin="fluid"] .fe-panel ul > li > button,
-  :root[data-skin="fluid"] [data-immersive] ul > li > button[class*="text-3xl"] {
+  :root[data-layout="fluid"] .fe-spectrum__seg,
+  :root[data-layout="fluid"] .fe-spectrum__detail,
+  :root[data-layout="fluid"] .fe-tile,
+  :root[data-layout="fluid"] .fe-cta,
+  :root[data-layout="fluid"] .fe-link::after,
+  :root[data-layout="fluid"] .fe-icon-btn,
+  :root[data-layout="fluid"] .fe-panel ul > li > button,
+  :root[data-layout="fluid"]
+    [data-immersive]
+    ul
+    > li
+    > button[class*="text-3xl"] {
     transition: none;
   }
-  :root[data-skin="fluid"] .fe-tile-hover:hover .fe-tile,
-  :root[data-skin="fluid"] .fe-tile-hover:focus-visible .fe-tile,
-  :root[data-skin="fluid"] .fe-press:active,
-  :root[data-skin="fluid"] .fe-cta:hover,
-  :root[data-skin="fluid"] .fe-cta:active,
-  :root[data-skin="fluid"] main [data-page-hero] button:hover:not(:disabled) {
+  :root[data-layout="fluid"] .fe-tile-hover:hover .fe-tile,
+  :root[data-layout="fluid"] .fe-tile-hover:focus-visible .fe-tile,
+  :root[data-layout="fluid"] .fe-press:active,
+  :root[data-layout="fluid"] .fe-cta:hover,
+  :root[data-layout="fluid"] .fe-cta:active,
+  :root[data-layout="fluid"] main [data-page-hero] button:hover:not(:disabled) {
     transform: none;
   }
 }
 
 /* ── High contrast (#596): brighter inks, no cover light ───── */
-:root[data-skin="fluid"][data-contrast="high"] {
+:root[data-layout="fluid"][data-contrast="high"] {
   --fe-ink-2: #e6e3dc;
   --fe-ink-3: #c9c6bd;
   --fe-hairline: rgb(255 255 255 / 0.18);
   --fe-hairline-strong: rgb(255 255 255 / 0.3);
 }
-:root[data-skin="fluid"][data-contrast="high"] body::before,
-:root[data-skin="fluid"][data-contrast="high"] .fe-canvas__aura,
-:root[data-skin="fluid"][data-contrast="high"] .fe-suggest__aura {
+:root[data-layout="fluid"][data-contrast="high"] body::before,
+:root[data-layout="fluid"][data-contrast="high"] .fe-canvas__aura,
+:root[data-layout="fluid"][data-contrast="high"] .fe-suggest__aura {
   display: none;
 }
 /* No fading of the lines around the sung one: every line stays legible. */
-:root[data-skin="fluid"][data-contrast="high"] .fe-panel ul > li > button,
-:root[data-skin="fluid"][data-contrast="high"] [data-immersive] ul > li > button {
+:root[data-layout="fluid"][data-contrast="high"] .fe-panel ul > li > button,
+:root[data-layout="fluid"][data-contrast="high"]
+  [data-immersive]
+  ul
+  > li
+  > button {
   opacity: 1;
   filter: none;
+}
+
+/* The canvas tiers above are container queries on the page, not media
+   queries on the window: with the rail and the panel both open, a
+   1280 px window leaves the column too narrow for the two-column tier,
+   and the cover would cover the text. The query measures the page's
+   content box: 43 rem is a 1024 px window with the rail alone and the
+   2 rem gutters; 82 rem, a 1700 px one with the 3.5 rem gutters. */
+:root[data-layout="fluid"] main {
+  container-type: inline-size;
 }

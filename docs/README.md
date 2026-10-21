@@ -28,9 +28,10 @@ User-facing references and per-feature deep dives. The top-level [README](../REA
 
 ## Design
 
-| Doc                                          | Scope                                                                                                                                                                                               |
-| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [Fluid Editorial](design/fluid-editorial.md) | The visual direction since 2.0: principles, colour / type / shape / motion tokens, the wave mark, every component's shape, and how to carry it to the web app, the Android app and the landing site |
+| Doc                                                    | Scope                                                                                                                                                                                                         |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Fluid Editorial](design/fluid-editorial.md)           | The visual direction since 2.0: principles, colour / type / shape / motion tokens, the wave mark, every component's shape, and how to carry it to the web app, the Android app and the landing site           |
+| [Liquid — Aurora Glass](design/liquid-aurora-glass.md) | The second direction on the same interface: music as light and material — pastel pools tinted by the cover, four glass levels, separation by light, states as light, the mood capsules and the light progress |
 
 ## RFCs
 

@@ -89,6 +89,25 @@ A short flowing line — one sine-like path, `M0.5 5 C 5 0.5, 9 0.5, 13.5 5 S 22
 - **Menus and popovers**: `surface-2`, 14 px radius, no border, an inset top highlight and a deep soft shadow; rows with their own 8 px radius that take a tone on hover.
 - **Player bar**: one surface, a top gradient from the glow, the wave as its top edge; the transport centred on the window.
 
+## Two materials on one structure
+
+The second material has its own page: [Liquid — Aurora Glass](./liquid-aurora-glass.md). The table below is the short form of the difference.
+
+The structure above — the canvas, the band, the spectrum, the rail, the control bar, the panel, the heroes — is the 2.0 interface, and it is shared. A skin on it chooses a **material**: what the surfaces are made of, how the light behaves. Fluid's material is the one in the tables: tone over a near-black, no blur, hairlines. **Liquid** is the second: Apple's glass, translated for this structure.
+
+| Where Fluid says…         | Liquid says…                                                                                                                                                                                                                                               |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| a surface is a tone       | a surface is a sheet of glass: the rail, the bar and the panel blur what is behind them (`24 px`; `32 px` for floating objects, `44 px` and near-opaque for popovers); cards on the page are canvas-level, near-opaque and never blur, because they scroll |
+| depth by tone             | depth by material level: canvas (cards, quiet), structural (rail, bar, panel), elevated (the band, the capsules, a card on hover), floating (search, menus, dialogs) — and a tone for what sits on a sheet, since two sheets of one level never stack      |
+| a hairline at an edge     | the light a top edge catches: an inset rim, white at 10–22 % at dusk, 70–100 % on a pale ground, with a line of refraction inside it, a shade along the foot and a contour outside — what makes a translucent rectangle read as glass                      |
+| the cover lights the page | the cover lights the page **and** is what the glass refracts: three slow pools of its colour behind everything (a 36 s drift each way, off under reduced motion), pastel on a pale theme                                                                   |
+| dark only                 | light or dark, from the theme: the opaline material on `#eceef5` with black tones, white edges and the accent's 600 stop under white ink; at dusk, blue-graphite sheets on `#13141c` with white tones and the 400 stop under dark ink                      |
+| the serif italic line     | the same line in the sans at a light weight: a serif over glass reads as a sticker                                                                                                                                                                         |
+| rails and bars are flush  | the rail, the bar and the panel float: inset `0.75–1 rem` from the window, `1.5–1.75 rem` corners                                                                                                                                                          |
+| a hover is a tone         | a hover is a tone, and a press is instant — `scale(0.94–0.97)` on pointer-down, before anything else                                                                                                                                                       |
+
+What does not change between the two: the base type system (the serif italic line excepted, as the row above says), the mark, the accent rule, the rhythm, the ease. A third material (a paper, a neon) would be written the same way — the tokens redeclared, the few surface rules added, nothing moved.
+
 ## Carrying it to another surface
 
 - **Web (waveflow-server)**: the colour and shape tokens map one to one onto CSS variables; the two faces ship as webfonts; the mark is one inline SVG path reused as a mask. Keep the dark-only rule; the server's light theme, if it has one, is a different direction and should not borrow these inks.

@@ -101,7 +101,7 @@ export function Sidebar({
   // The Fluid skin draws the profile block as a small panel, with the
   // library's size under the name; the other skins keep the one line.
   const { skin } = useSkin();
-  const fluid = skin.id === "fluid";
+  const fluid = skin.layout === "fluid";
   const totalTracks = libraries.reduce((sum, l) => sum + l.track_count, 0);
   const [isSmartEditorOpen, setIsSmartEditorOpen] = useState(false);
   const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] =
