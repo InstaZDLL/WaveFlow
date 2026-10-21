@@ -404,7 +404,10 @@ mod tests {
         std::fs::create_dir(&folder).unwrap();
         std::os::unix::fs::symlink(&target, folder.join("linked.flac")).unwrap();
 
-        assert_eq!(expand(std::slice::from_ref(&folder)), [folder.join("linked.flac")]);
+        assert_eq!(
+            expand(std::slice::from_ref(&folder)),
+            [folder.join("linked.flac")]
+        );
     }
 
     #[test]
