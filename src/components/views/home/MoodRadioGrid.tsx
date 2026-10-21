@@ -20,6 +20,7 @@ import { useSkin } from "../../../hooks/useSkin";
 import { MoodCurationModal } from "./MoodCurationModal";
 import { MoodSpectrum } from "./MoodSpectrum";
 import { SectionHeader } from "./fluid/SectionHeader";
+import { MoodCapsules } from "./MoodCapsules";
 
 interface MoodTile {
   mood: Mood;
@@ -175,11 +176,19 @@ export function MoodRadioGrid() {
           isOpen={curating}
           onClose={() => setCurating(false)}
         />
-        <MoodSpectrum
-          counts={counts}
-          loadingMood={loadingMood}
-          onStart={handleStart}
-        />
+        {skin.fluid?.moodRadio === "capsules" ? (
+          <MoodCapsules
+            counts={counts}
+            loadingMood={loadingMood}
+            onStart={handleStart}
+          />
+        ) : (
+          <MoodSpectrum
+            counts={counts}
+            loadingMood={loadingMood}
+            onStart={handleStart}
+          />
+        )}
       </section>
     );
   }

@@ -91,6 +91,8 @@ A short flowing line — one sine-like path, `M0.5 5 C 5 0.5, 9 0.5, 13.5 5 S 22
 
 ## Two materials on one structure
 
+The second material has its own page: [Liquid — Aurora Glass](./liquid-aurora-glass.md). The table below is the short form of the difference.
+
 The structure above — the canvas, the band, the spectrum, the rail, the control bar, the panel, the heroes — is the 2.0 interface, and it is shared. A skin on it chooses a **material**: what the surfaces are made of, how the light behaves. Fluid's material is the one in the tables: tone over a near-black, no blur, hairlines. **Liquid** is the second: Apple's glass, translated for this structure.
 
 | Where Fluid says…         | Liquid says…                                                                                                                                                                      |

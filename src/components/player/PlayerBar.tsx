@@ -71,7 +71,7 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
   // with the times at its ends — and keeps only the transport in the
   // centre column. Every control stays; only the progress moves.
   const { skin } = useSkin();
-  const isFluid = skin.layout === "fluid";
+  const isFluid = skin.layout === "fluid" && skin.fluid?.progress === "edge";
 
   // Subscribe to the backend's track-ended event so the sleep timer
   // in "end of track" mode triggers when the current track finishes

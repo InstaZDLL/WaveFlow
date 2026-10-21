@@ -1,195 +1,218 @@
 /* ============================================================
-   Liquid — glass on the 2.0 interface
+   Liquid — Aurora Glass
    ============================================================
-   The 2.0 interface (`fluid.css`, keyed on `data-layout="fluid"`) gives
-   this skin its structure: the Home as a canvas, the rail of tiles,
-   the control rail, one tabbed panel, the wave as the player's edge.
-   This file is only the MATERIAL — what Apple's platforms call a
-   material: a translucent layer that blurs and saturates whatever
-   scrolls behind it, catches light on its top edge, and drops a soft
-   shadow under its foot. Nothing here changes a shape or a position
-   the layout decided; it repaints.
+   The direction is written in `docs/design/liquid-aurora-glass.md`;
+   this file is its material on the 2.0 interface (`fluid.css`, keyed
+   on `data-layout="fluid"`, imported before this one). One line: music
+   as light and material — a luminous, airy glass tinted by what is
+   playing, with a light that answers the hand. Where Fluid stages the
+   music (dark, cinematic, artwork-led), Aurora Glass diffuses it.
 
-   Three ideas, in order of weight:
+   What this file decides, in order of weight:
 
-   1. The cover is the light, as in Fluid — but here it is also what
-      the glass refracts. `body::before` pools the cover's colour
-      (`--fe-glow`, written on the root by `useCoverGlow`) in three
-      slow-drifting pools, and every chrome surface is a tint over
-      that light rather than a tone over black. A pale theme pools
-      the same colour mixed with white.
+   1. The atmosphere. Three pools of pastel light are always behind the
+      page — lavender, ice, mint, each mixed with the cover's colour
+      (`--fe-glow`, written on the root by `useCoverGlow`) — so the
+      ground is never grey and never white, and a record's hue reaches
+      every sheet of glass. The canvas no longer carries a blurred copy
+      of the cover: the atmosphere is the cover's light.
 
-   2. Material weight says hierarchy. The rail, the player bar and the
-      panel are the heavy material (`--liq-material`: the eight-layer
-      inset recipe that reads as glass rather than as a translucent
-      rectangle, plus 28 px of blur). Cards, tiles and clusters are
-      the light one (`--liq-material-soft`, 20 px). Popovers, menus
-      and dialogs are dense — a near-opaque slab lifted off the page,
-      as content-heavy panels have to be to stay legible over a
-      cover. Two light materials never stack: a tile on the rail is a
-      tone, not another sheet of glass.
+   2. Four glass levels (`--aq-subtle`, `--aq-panel`, `--aq-floating`,
+      `--aq-overlay`), each a tint, a blur, a white rim and a coloured
+      shadow. Two sheets of the same level never stack: a module on the
+      rail is a tone on the rail's sheet, a card on the page is a sheet
+      on the atmosphere, a menu is the dense one over everything.
 
-   3. One accent, the theme's. The dark theme takes its 400 stop with
-      dark ink, as Fluid does; the light theme takes the 600 stop with
-      white ink, because 400 vanishes on white glass. There is no
-      second colour: the aurora is the cover's, the pills are tones.
+   3. Light instead of lines. A sheet is bounded by the light its top
+      edge catches and by the glow under its foot. Hover catches light
+      (a sheen); focus charges the sheet with the accent; the playing
+      item carries a slow sheen; the active item is luminous (whiter,
+      an inner glow), never filled with a colour.
 
-   Theme-aware, unlike Fluid: `:not(.dark)` redeclares the tokens for
-   a light ground — black tones, white edges, pastel pools. The
-   Tailwind `dark` variant is NOT extended to this skin for that
-   reason (see `app.css`).
+   4. Two pieces are its own, through the preset's `fluid` field: the
+      progress as a luminous line on the player plate (the layout's
+      `inline` form), and Mood Radio as five capsules of tinted glass
+      (`MoodCapsules`), not Fluid's spectrum.
 
-   Every `--fe-*` token the layout reads is redeclared here; a rule
-   below exists only where the material needs something the tokens
-   cannot say (a blur, the inset recipe, a radius, an inset margin).
-   Rules that must beat a `!important` in `fluid.css` carry one too,
-   and win by source order (`app.css` imports this file after it). */
+   Theme-aware: `:not(.dark)` is the direction's home; the dark theme is
+   the same material at dusk — indigo-grey sheets, the pools at a fifth
+   of their strength. The Tailwind `dark` variant is NOT extended to
+   this skin (`app.css`). Rules that must beat a `!important` in
+   `fluid.css` carry one and win by source order. */
 
-/* ── Tokens — the dark theme ───────────────────────────────── */
+/* ── Tokens — dusk (the dark theme) ─────────────────────────── */
 :root[data-skin="liquid"] {
-  /* The dark material's tint, as a triplet, so one triplet makes the
-     surfaces at three densities. */
-  --liq-glass: 30 30 35;
-  --fe-bg: #131316;
-  --fe-bg-rgb: 19 19 22;
-  --fe-surface: rgb(var(--liq-glass) / 0.58);
-  --fe-surface-2: rgb(46 46 53 / 0.92);
-  --fe-surface-0: rgb(24 24 28 / 0.94);
-  --fe-ink: #f5f5f7;
-  --fe-ink-2: #c4c4ca;
-  --fe-ink-3: #8f8f96;
-  --fe-hairline: rgb(255 255 255 / 0.09);
-  --fe-hairline-strong: rgb(255 255 255 / 0.16);
-  /* Tones a step louder than Fluid's: a tone on glass competes with
-     the light behind it. */
+  /* The five tints, as light values; the dark theme sinks them into
+     the ground below. The deep forms are for the mark and the light
+     progress, where a pastel would vanish. */
+  --aq-lavender: #cfc3fa;
+  --aq-ice: #c4dcfb;
+  --aq-aqua: #b2e6e6;
+  --aq-mint: #c0ecd5;
+  --aq-blush: #f8c9d8;
+  --aq-lavender-deep: #cfc3fa;
+  --aq-ice-deep: #c4dcfb;
+  --aq-aqua-deep: #b2e6e6;
+  --aq-mint-deep: #c0ecd5;
+  --aq-blush-deep: #f8c9d8;
+
+  --fe-bg: #15161d;
+  --fe-bg-rgb: 21 22 29;
+  --fe-ink: #f4f4f8;
+  --fe-ink-2: #c0c2d2;
+  --fe-ink-3: #8c8ea2;
+  --fe-hairline: rgb(255 255 255 / 0.08);
+  --fe-hairline-strong: rgb(255 255 255 / 0.14);
   --fe-tone-1: rgb(255 255 255 / 0.05);
   --fe-tone-2: rgb(255 255 255 / 0.08);
   --fe-tone-3: rgb(255 255 255 / 0.11);
   --fe-tone-4: rgb(255 255 255 / 0.15);
-  /* The light caught by a top edge — the rim that makes glass read as
-     glass. Brighter than a tone on purpose. */
   --fe-edge: rgb(255 255 255 / 0.1);
-  --fe-edge-strong: rgb(255 255 255 / 0.18);
+  --fe-edge-strong: rgb(255 255 255 / 0.16);
   --fe-accent: var(--accent-400);
   --fe-accent-ink: #0b0b0e;
-  --fe-glow: #2a6b58;
-  --fe-glow-deep: #163a30;
-  /* The greeting and the suggestion's kind: sans, not serif. This is
-     the one place the language bends for the material — a serif
-     italic over glass reads as a sticker. */
+  --fe-glow: #3b3f73;
+  --fe-glow-deep: #2a2d52;
   --fe-font-editorial: var(--fe-font);
 
-  --liq-blur: 28px;
-  --liq-blur-soft: 20px;
-  --liq-blur-dense: 44px;
-  --liq-sat: 160%;
-  /* Reflex strength: the white inset highlights are plenty visible on
-     a dark ground at 0.3 (louder, every nested rounded child turns
-     into a pill outline), the dark insets double to deepen the edge.
-     The light theme balances both at 1. */
-  --liq-reflex-light: 0.3;
-  --liq-reflex-dark: 2;
+  /* The four levels: tint, blur, rim. */
+  --aq-subtle-bg: rgb(255 255 255 / 0.05);
+  --aq-subtle-blur: 12px;
+  --aq-subtle-rim: rgb(255 255 255 / 0.08);
+  --aq-panel-bg: rgb(32 34 46 / 0.62);
+  --aq-panel-blur: 24px;
+  --aq-panel-rim: rgb(255 255 255 / 0.12);
+  --aq-floating-bg: rgb(40 42 58 / 0.72);
+  --aq-floating-blur: 32px;
+  --aq-floating-rim: rgb(255 255 255 / 0.16);
+  --aq-overlay-bg: rgb(38 40 54 / 0.92);
+  --aq-overlay-blur: 44px;
+  --aq-overlay-rim: rgb(255 255 255 / 0.2);
+  --aq-top-light: rgb(255 255 255 / 0.12);
+  --aq-sat: 150%;
 
-  /* The heavy material — eight stacked insets. The top three are
-     highlights (light bouncing off the glass top), the next three
-     darken the interior (light refracting through), the last two are
-     the drop shadow under the foot. */
-  --liq-material:
-    inset 0 0 0 1px rgb(255 255 255 / calc(var(--liq-reflex-light) * 0.1)),
-    inset 1.8px 3px 0 -2px
-      rgb(255 255 255 / calc(var(--liq-reflex-light) * 0.9)),
-    inset -2px -2px 0 -2px
-      rgb(255 255 255 / calc(var(--liq-reflex-light) * 0.8)),
-    inset -3px -8px 1px -6px
-      rgb(255 255 255 / calc(var(--liq-reflex-light) * 0.6)),
-    inset -0.3px -1px 4px 0 rgb(0 0 0 / calc(var(--liq-reflex-dark) * 0.12)),
-    inset -1.5px 2.5px 0 -2px rgb(0 0 0 / calc(var(--liq-reflex-dark) * 0.2)),
-    inset 0 3px 4px -2px rgb(0 0 0 / calc(var(--liq-reflex-dark) * 0.2)),
-    inset 2px -6.5px 1px -4px rgb(0 0 0 / calc(var(--liq-reflex-dark) * 0.1)),
-    0 1px 5px 0 rgb(0 0 0 / calc(var(--liq-reflex-dark) * 0.1)),
-    0 6px 16px 0 rgb(0 0 0 / calc(var(--liq-reflex-dark) * 0.08));
-  /* The light material, for what sits on the page rather than beside
-     it: a rim and one interior shade. */
-  --liq-material-soft:
-    inset 0 0 0 1px rgb(255 255 255 / calc(var(--liq-reflex-light) * 0.06)),
-    inset 1px 1.5px 0 -1px
-      rgb(255 255 255 / calc(var(--liq-reflex-light) * 0.5)),
-    inset -1px -1px 0 -1px
-      rgb(255 255 255 / calc(var(--liq-reflex-light) * 0.4)),
-    inset 0 2px 3px -2px rgb(0 0 0 / calc(var(--liq-reflex-dark) * 0.12));
-  /* The dense material's lift, for popovers and dialogs. */
-  --liq-lift:
-    inset 0 1px 0 var(--fe-edge-strong), 0 24px 60px -20px rgb(0 0 0 / 0.75);
+  /* The light. */
+  --aq-glow-soft: 0 24px 60px -28px
+    color-mix(in srgb, var(--fe-glow) 70%, rgb(0 0 0 / 0.6));
+  --aq-glow-lift: 0 32px 80px -36px rgb(0 0 0 / 0.7);
+  --aq-glow-focus:
+    0 0 0 4px color-mix(in srgb, var(--fe-accent) 22%, transparent),
+    0 10px 32px -10px color-mix(in srgb, var(--fe-accent) 45%, transparent);
+  --aq-glow-accent: 0 16px 36px -14px
+    color-mix(in srgb, var(--fe-accent) 60%, transparent);
+  --aq-sheen: linear-gradient(
+    180deg,
+    rgb(255 255 255 / 0.1),
+    rgb(255 255 255 / 0) 45%
+  );
+  --aq-pool-strength: 0.34;
+
+  /* The layout's surface tokens, in this material's words. */
+  --fe-surface: var(--aq-panel-bg);
+  --fe-surface-2: var(--aq-overlay-bg);
+  --fe-surface-0: rgb(28 29 40 / 0.94);
 }
 
-/* ── Tokens — the light theme ──────────────────────────────── */
+/* ── Tokens — the light theme, the direction's home ────────── */
 :root[data-skin="liquid"]:not(.dark) {
-  --liq-glass: 255 255 255;
-  --fe-bg: #e9e9ee;
-  --fe-bg-rgb: 233 233 238;
-  --fe-surface: rgb(255 255 255 / 0.52);
-  --fe-surface-2: rgb(255 255 255 / 0.9);
-  --fe-surface-0: rgb(242 242 246 / 0.94);
-  --fe-ink: #1c1c1e;
-  --fe-ink-2: #56565d;
-  --fe-ink-3: #86868b;
-  --fe-hairline: rgb(0 0 0 / 0.08);
-  --fe-hairline-strong: rgb(0 0 0 / 0.14);
-  --fe-tone-1: rgb(0 0 0 / 0.04);
-  --fe-tone-2: rgb(0 0 0 / 0.06);
-  --fe-tone-3: rgb(0 0 0 / 0.08);
-  --fe-tone-4: rgb(0 0 0 / 0.11);
-  --fe-edge: rgb(255 255 255 / 0.7);
+  --aq-lavender-deep: #7c6ad6;
+  --aq-ice-deep: #5f8fd6;
+  --aq-aqua-deep: #3fa9ad;
+  --aq-mint-deep: #3fae7a;
+  --aq-blush-deep: #d4668c;
+
+  --fe-bg: #eef0f6;
+  --fe-bg-rgb: 238 240 246;
+  --fe-ink: #1d1e2b;
+  --fe-ink-2: #5a5c70;
+  --fe-ink-3: #8b8da3;
+  --fe-hairline: rgb(31 33 56 / 0.08);
+  --fe-hairline-strong: rgb(31 33 56 / 0.14);
+  --fe-tone-1: rgb(31 33 56 / 0.04);
+  --fe-tone-2: rgb(31 33 56 / 0.06);
+  --fe-tone-3: rgb(31 33 56 / 0.08);
+  --fe-tone-4: rgb(31 33 56 / 0.11);
+  --fe-edge: rgb(255 255 255 / 0.8);
   --fe-edge-strong: rgb(255 255 255 / 0.95);
   --fe-accent: var(--accent-600);
   --fe-accent-ink: #ffffff;
-  --fe-glow: #6fbfa2;
-  --fe-glow-deep: #a3d9c6;
-  --liq-reflex-light: 1;
-  --liq-reflex-dark: 1;
-  --liq-lift:
-    inset 0 1px 0 var(--fe-edge-strong), 0 24px 60px -24px rgb(0 0 0 / 0.35);
+  --fe-glow: #9fb8ee;
+  --fe-glow-deep: #c9bdf6;
+
+  --aq-subtle-bg: rgb(255 255 255 / 0.38);
+  --aq-subtle-rim: rgb(255 255 255 / 0.55);
+  --aq-panel-bg: rgb(255 255 255 / 0.56);
+  --aq-panel-rim: rgb(255 255 255 / 0.8);
+  --aq-floating-bg: rgb(255 255 255 / 0.72);
+  --aq-floating-rim: rgb(255 255 255 / 0.9);
+  --aq-overlay-bg: rgb(255 255 255 / 0.88);
+  --aq-overlay-rim: rgb(255 255 255 / 0.95);
+  --aq-top-light: rgb(255 255 255 / 0.9);
+  --aq-sat: 140%;
+
+  --aq-glow-soft: 0 24px 60px -28px
+    color-mix(in srgb, var(--fe-glow) 55%, transparent);
+  --aq-glow-lift: 0 32px 80px -36px
+    color-mix(in srgb, var(--fe-glow) 45%, rgb(31 33 56 / 0.25));
+  --aq-sheen: linear-gradient(
+    180deg,
+    rgb(255 255 255 / 0.35),
+    rgb(255 255 255 / 0) 45%
+  );
+  --aq-pool-strength: 1;
+
+  --fe-surface: var(--aq-panel-bg);
+  --fe-surface-2: var(--aq-overlay-bg);
+  --fe-surface-0: rgb(244 245 250 / 0.94);
 }
 
-/* ── The atmosphere: the cover's light, drifting ───────────── */
-/* Three pools of the cover's colour behind everything, moving slowly
-   enough (one cycle in 72 s) to stay under the threshold where a
-   looping background reads as motion. The grain Fluid lays over its
-   dark is wrong under glass and goes. */
+/* The four levels as reusable declarations: a background, a blur, a
+   rim with the top light, a shadow. Applied through custom properties
+   so a rule below names a level, not a recipe. */
 :root[data-skin="liquid"] {
-  --liq-pool-1: var(--fe-glow);
-  --liq-pool-2: color-mix(in srgb, var(--fe-glow) 55%, var(--fe-glow-deep));
-  --liq-pool-3: var(--fe-glow-deep);
+  --aq-subtle: inset 0 0 0 1px var(--aq-subtle-rim);
+  --aq-panel:
+    inset 0 0 0 1px var(--aq-panel-rim), inset 0 1px 0 var(--aq-top-light),
+    var(--aq-glow-soft);
+  --aq-floating:
+    inset 0 0 0 1px var(--aq-floating-rim), inset 0 1px 0 var(--aq-top-light),
+    var(--aq-glow-soft), var(--aq-glow-lift);
+  --aq-overlay:
+    inset 0 0 0 1px var(--aq-overlay-rim), inset 0 1px 0 var(--aq-top-light),
+    var(--aq-glow-lift);
 }
-:root[data-skin="liquid"]:not(.dark) {
-  --liq-pool-1: color-mix(in srgb, var(--fe-glow) 58%, white);
-  --liq-pool-2: color-mix(in srgb, var(--fe-glow) 40%, white);
-  --liq-pool-3: color-mix(in srgb, var(--fe-glow-deep) 45%, white);
+
+/* ── The atmosphere: three pools of pastel light, the cover in each ── */
+:root[data-skin="liquid"] {
+  --aq-pool-1: color-mix(in srgb, var(--aq-lavender) 74%, var(--fe-glow));
+  --aq-pool-2: color-mix(in srgb, var(--aq-ice) 74%, var(--fe-glow));
+  --aq-pool-3: color-mix(in srgb, var(--aq-mint) 70%, var(--fe-glow));
 }
 :root[data-skin="liquid"] body::before {
   inset: -25%;
+  opacity: var(--aq-pool-strength);
   background:
     radial-gradient(
-      ellipse 36% 34% at 16% 14%,
-      color-mix(in srgb, var(--liq-pool-1) 88%, transparent),
+      ellipse 46% 42% at 12% 10%,
+      var(--aq-pool-1),
       transparent 70%
     ),
     radial-gradient(
-      ellipse 42% 36% at 84% 26%,
-      color-mix(in srgb, var(--liq-pool-2) 74%, transparent),
+      ellipse 48% 44% at 88% 24%,
+      var(--aq-pool-2),
       transparent 70%
     ),
     radial-gradient(
-      ellipse 48% 38% at 34% 104%,
-      color-mix(in srgb, var(--liq-pool-3) 88%, transparent),
+      ellipse 54% 46% at 38% 106%,
+      var(--aq-pool-3),
       transparent 72%
     );
-  animation: liq-drift 36s ease-in-out infinite alternate;
+  animation: aq-drift 36s ease-in-out infinite alternate;
 }
 :root[data-skin="liquid"] body::after {
   display: none;
 }
-@keyframes liq-drift {
+@keyframes aq-drift {
   from {
     transform: translate3d(0, 0, 0) scale(1);
   }
@@ -200,71 +223,154 @@
     transform: translate3d(-1.5%, 1.2%, 0) scale(0.98);
   }
 }
-
-/* The canvas and the band keep the cover's blurred copy under the
-   text; on a pale ground it is lifted rather than darkened, or it
-   reads as a smudge. */
-:root[data-skin="liquid"]:not(.dark) .fe-canvas__aura,
-:root[data-skin="liquid"]:not(.dark) .fe-suggest__aura {
-  opacity: 0.24;
-}
-:root[data-skin="liquid"]:not(.dark) .fe-canvas__aura img,
-:root[data-skin="liquid"]:not(.dark) .fe-suggest__aura img {
-  filter: brightness(1.12) saturate(1.15) blur(96px);
+/* The atmosphere is the cover's light: no blurred copy under the text. */
+:root[data-skin="liquid"] .fe-canvas__aura,
+:root[data-skin="liquid"] .fe-suggest__aura {
+  display: none;
 }
 
-/* ── Type: the editorial voice, in sans ────────────────────── */
+/* ── Type: the editorial voice in sans, light ──────────────── */
 :root[data-skin="liquid"] .fe-editorial {
   font-style: normal;
-  font-weight: 400;
+  font-weight: 380;
   letter-spacing: -0.028em;
 }
+:root[data-skin="liquid"] .fe-label {
+  letter-spacing: 0.14em;
+}
 
-/* ── The rail: a floating slab of the heavy material ───────── */
+/* ── The mark: the flow line in the tints, not the accent ──── */
+:root[data-skin="liquid"] .fe-accent,
+:root[data-skin="liquid"] [data-nav-item][data-active] > span:first-child,
+:root[data-skin="liquid"] .fe-icon-btn[aria-pressed="true"] {
+  color: var(--fe-accent);
+}
+:root[data-skin="liquid"] main :is(h1, h2)[class*="border-b-4"]::after,
+:root[data-skin="liquid"] main h1 + div[class*="bg-emerald-500"][class*="h-1"],
+:root[data-skin="liquid"]
+  main
+  button[class*="border-b-2"][class*="border-emerald-500"]::after,
+:root[data-skin="liquid"] .fe-panel__tab.is-active::after,
+:root[data-skin="liquid"]
+  [data-immersive]
+  [role="tab"][aria-selected="true"]::after {
+  background-color: transparent !important;
+  background-image: linear-gradient(
+    90deg,
+    var(--aq-aqua-deep),
+    var(--aq-lavender-deep)
+  ) !important;
+}
+
+/* ── Light answers the hand ────────────────────────────────── */
+/* Focus charges the sheet with the accent's light, over 480 ms. */
+@keyframes aq-charge {
+  from {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--fe-accent) 0%, transparent);
+  }
+  to {
+    box-shadow: var(--aq-glow-focus);
+  }
+}
+/* The playing item's sheen: a band of light crossing it slowly. */
+@keyframes aq-sheen {
+  from {
+    background-position: -200% 0;
+  }
+  to {
+    background-position: 200% 0;
+  }
+}
+
+/* ── The rail: a sheet of panel glass, modules of light on it ── */
 :root[data-skin="liquid"] .skin-sidebar-shell {
   padding: 0.75rem 0 0.75rem 0.75rem;
 }
 :root[data-skin="liquid"] .skin-sidebar-shell > aside {
-  background-color: var(--fe-surface) !important;
+  background-color: var(--aq-panel-bg) !important;
   background-image: none !important;
   border-radius: 1.5rem !important;
-  backdrop-filter: blur(var(--liq-blur)) saturate(var(--liq-sat));
-  -webkit-backdrop-filter: blur(var(--liq-blur)) saturate(var(--liq-sat));
-  box-shadow: var(--liq-material) !important;
+  backdrop-filter: blur(var(--aq-panel-blur)) saturate(var(--aq-sat));
+  -webkit-backdrop-filter: blur(var(--aq-panel-blur)) saturate(var(--aq-sat));
+  box-shadow: var(--aq-panel) !important;
 }
-/* Tiles on the rail are tones, not glass (two light materials never
-   stack); the rim they get is the edge token. The open one keeps its
-   accent ring, with the lift on press that every tile has here. */
+/* The modules: a tone on the sheet with a white rim; the open one is
+   luminous — whiter, an inner glow of the accent, its icon in the
+   accent — rather than ringed. */
 :root[data-skin="liquid"] [data-sidebar-nav] [data-nav-item],
 :root[data-skin="liquid"] [data-sidebar-row="pinned"],
 :root[data-skin="liquid"] [data-sidebar-profile] {
   border-radius: 1rem !important;
+  background-color: var(--aq-subtle-bg) !important;
+  background-image: none;
+  box-shadow: var(--aq-subtle);
   transition:
     color 180ms var(--fe-ease),
     background-color 180ms var(--fe-ease),
     box-shadow 180ms var(--fe-ease),
     transform 100ms var(--fe-ease);
 }
+:root[data-skin="liquid"] [data-sidebar-nav] [data-nav-item]:hover,
+:root[data-skin="liquid"] [data-sidebar-row="pinned"]:hover,
+:root[data-skin="liquid"] [data-sidebar-profile]:hover {
+  background-color: color-mix(
+    in srgb,
+    var(--aq-subtle-bg),
+    var(--fe-edge) 25%
+  ) !important;
+  background-image: var(--aq-sheen);
+  box-shadow: inset 0 0 0 1px var(--aq-panel-rim);
+}
 :root[data-skin="liquid"] [data-sidebar-nav] [data-nav-item]:active,
 :root[data-skin="liquid"] [data-sidebar-row="pinned"]:active {
   transform: scale(0.97);
+}
+:root[data-skin="liquid"] [data-sidebar-nav] [data-nav-item][data-active],
+:root[data-skin="liquid"] [data-sidebar-row="pinned"][data-active] {
+  background-color: color-mix(
+    in srgb,
+    var(--aq-floating-bg),
+    var(--fe-edge) 20%
+  ) !important;
+  box-shadow:
+    inset 0 0 0 1px var(--aq-floating-rim),
+    inset 0 1px 0 var(--aq-top-light),
+    inset 0 0 24px color-mix(in srgb, var(--fe-accent) 10%, transparent),
+    0 10px 24px -14px color-mix(in srgb, var(--fe-accent) 35%, transparent);
 }
 :root[data-skin="liquid"]
   [data-sidebar-nav]
   [data-nav-item]
   > span:first-child {
   border-radius: 0.75rem;
+  background-color: var(--fe-tone-1);
+}
+:root[data-skin="liquid"]
+  [data-sidebar-nav]
+  [data-nav-item][data-active]
+  > span:first-child {
+  background-color: color-mix(in srgb, var(--fe-accent) 12%, transparent);
+}
+:root[data-skin="liquid"] [data-nav-item]:focus-visible,
+:root[data-skin="liquid"] [data-sidebar-row]:focus-visible {
+  outline: 0;
+  animation: aq-charge 480ms var(--fe-ease) both;
+}
+/* The open row's edge: the accent's light, not a bar. */
+:root[data-skin="liquid"] [data-nav-item][data-active]::before,
+:root[data-skin="liquid"] [data-sidebar-row="playlist"][data-active]::before {
+  box-shadow: 0 0 16px color-mix(in srgb, var(--fe-accent) 80%, transparent);
 }
 
-/* ── The control rail: three glass capsules on a clear bar ─── */
+/* ── The control rail: subtle capsules, an opalescent search ── */
 :root[data-skin="liquid"] [data-topbar-left],
 :root[data-skin="liquid"] [data-topbar-right] {
   padding: 0.25rem;
   border-radius: 9999px;
-  background-color: var(--fe-surface);
-  backdrop-filter: blur(var(--liq-blur-soft)) saturate(var(--liq-sat));
-  -webkit-backdrop-filter: blur(var(--liq-blur-soft)) saturate(var(--liq-sat));
-  box-shadow: var(--liq-material-soft);
+  background-color: var(--aq-subtle-bg);
+  backdrop-filter: blur(var(--aq-subtle-blur)) saturate(var(--aq-sat));
+  -webkit-backdrop-filter: blur(var(--aq-subtle-blur)) saturate(var(--aq-sat));
+  box-shadow: var(--aq-subtle);
 }
 :root[data-skin="liquid"] [data-topbar-left] {
   gap: 0;
@@ -272,82 +378,197 @@
 :root[data-skin="liquid"] [data-topbar-left] button {
   border-radius: 9999px !important;
 }
+/* The search: a floating sheet whose interior sweeps through the
+   tints, faintly; on focus the accent's light charges it. */
 :root[data-skin="liquid"] [data-topbar-search-field] {
-  background-color: var(--fe-surface) !important;
-  backdrop-filter: blur(var(--liq-blur-soft)) saturate(var(--liq-sat));
-  -webkit-backdrop-filter: blur(var(--liq-blur-soft)) saturate(var(--liq-sat));
-  box-shadow: var(--liq-material-soft) !important;
+  background-color: var(--aq-floating-bg) !important;
+  background-image: linear-gradient(
+    110deg,
+    color-mix(in srgb, var(--aq-lavender) 22%, transparent),
+    color-mix(in srgb, var(--aq-ice) 16%, transparent) 50%,
+    color-mix(in srgb, var(--aq-mint) 14%, transparent)
+  );
+  backdrop-filter: blur(var(--aq-floating-blur)) saturate(var(--aq-sat));
+  -webkit-backdrop-filter: blur(var(--aq-floating-blur)) saturate(var(--aq-sat));
+  box-shadow: var(--aq-floating) !important;
+  transition:
+    background-color 180ms var(--fe-ease),
+    box-shadow 480ms var(--fe-ease);
 }
 :root[data-skin="liquid"] [data-topbar-search-field]:hover {
   background-color: color-mix(
     in srgb,
-    var(--fe-surface),
-    var(--fe-tone-2)
+    var(--aq-floating-bg),
+    var(--fe-edge) 20%
   ) !important;
 }
 :root[data-skin="liquid"] [data-topbar-search-field]:focus-within {
-  background-color: var(--fe-surface) !important;
-  box-shadow:
-    var(--liq-material-soft),
-    inset 0 0 0 1px color-mix(in srgb, var(--fe-accent) 70%, transparent),
-    0 0 0 4px color-mix(in srgb, var(--fe-accent) 14%, transparent) !important;
+  background-color: var(--aq-floating-bg) !important;
+  box-shadow: var(--aq-floating), var(--aq-glow-focus) !important;
 }
 :root[data-skin="liquid"] [data-topbar-theme] {
   background-color: var(--fe-tone-3) !important;
 }
+:root[data-skin="liquid"] [data-topbar-theme] > div {
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.2);
+}
+:root[data-skin="liquid"] [data-topbar-left] button:active:not(:disabled),
+:root[data-skin="liquid"] [data-topbar-profile]:active {
+  transform: scale(0.94);
+}
 
-/* ── The player bar: a floating slab, the wave along its top ─ */
+/* ── The player plate: panel glass, the progress as a line of light ── */
 :root[data-skin="liquid"] footer {
   margin: 0 1rem 1rem;
   border-radius: 1.75rem !important;
-  background-color: var(--fe-surface) !important;
+  background-color: var(--aq-panel-bg) !important;
   background-image: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--fe-glow) 22%, transparent),
+    color-mix(in srgb, var(--aq-pool-2) 26%, transparent),
     transparent 60%
   ) !important;
-  backdrop-filter: blur(var(--liq-blur)) saturate(var(--liq-sat));
-  -webkit-backdrop-filter: blur(var(--liq-blur)) saturate(var(--liq-sat));
-  box-shadow: var(--liq-material) !important;
+  backdrop-filter: blur(var(--aq-panel-blur)) saturate(var(--aq-sat));
+  -webkit-backdrop-filter: blur(var(--aq-panel-blur)) saturate(var(--aq-sat));
+  box-shadow: var(--aq-panel) !important;
 }
-/* The wave starts past the corner's curve, so its flat ends never
-   poke out of the slab. */
-:root[data-skin="liquid"] footer > .fe-progress {
-  margin: 0 1.75rem;
+/* The classic height: the line sits under the transport on the plate. */
+:root[data-skin="liquid"] footer > div[class*="h-24"] {
+  height: 6rem !important;
 }
 :root[data-skin="liquid"] footer img {
-  border-radius: 0.75rem;
+  border-radius: 0.875rem;
+  box-shadow:
+    0 0 0 3px var(--aq-floating-rim),
+    var(--aq-glow-soft);
 }
-/* The strip of audio facts under the bar follows the slab's corners. */
+/* The light line: a frosted track, an aqua → lavender fill with its
+   halo, a bright dot that appears under the pointer. */
+:root[data-skin="liquid"] footer [role="slider"] {
+  height: 0.3125rem !important;
+  border-radius: 9999px !important;
+  background-color: var(--fe-tone-4) !important;
+  box-shadow: inset 0 0 0 1px var(--aq-subtle-rim);
+  overflow: visible;
+  transition: height 180ms var(--fe-ease);
+}
+:root[data-skin="liquid"] footer [role="slider"]:hover {
+  height: 0.4375rem !important;
+}
+:root[data-skin="liquid"] footer [role="slider"] > div:first-child {
+  border-radius: 9999px !important;
+  background-color: transparent !important;
+  background-image: linear-gradient(
+    90deg,
+    var(--aq-aqua-deep),
+    var(--aq-lavender-deep)
+  ) !important;
+  box-shadow: 0 0 12px
+    color-mix(in srgb, var(--aq-lavender-deep) 55%, transparent);
+}
+:root[data-skin="liquid"] footer [role="slider"] > div[class*="bg-white"] {
+  width: 0.875rem !important;
+  height: 0.875rem !important;
+  border: 0 !important;
+  background-color: #fff !important;
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--aq-lavender-deep) 30%, transparent),
+    0 0 14px color-mix(in srgb, var(--aq-lavender-deep) 70%, transparent) !important;
+}
+:root[data-skin="liquid"] footer [class*="tabular"] {
+  color: var(--fe-ink-3) !important;
+}
+:root[data-skin="liquid"] footer :where(button) {
+  color: var(--fe-ink-2) !important;
+  transition:
+    color 180ms var(--fe-ease),
+    background-color 180ms var(--fe-ease),
+    transform 100ms var(--fe-ease);
+}
+:root[data-skin="liquid"] footer :where(button:hover) {
+  color: var(--fe-ink) !important;
+}
+:root[data-skin="liquid"] footer :where(button:active) {
+  transform: scale(0.94);
+}
+/* The play button: the accent, with its light under it. */
+:root[data-skin="liquid"]
+  footer
+  button:where([class*="bg-emerald-500"], [class*="bg-emerald-600"]) {
+  background-color: var(--fe-accent) !important;
+  color: var(--fe-accent-ink) !important;
+  box-shadow: var(--aq-glow-accent) !important;
+}
+:root[data-skin="liquid"] footer :where(button:focus-visible) {
+  outline: 0;
+  animation: aq-charge 480ms var(--fe-ease) both;
+}
+/* The strip of audio facts follows the plate's corners. */
 :root[data-skin="liquid"] footer > div:last-child[class*="border-t"] {
   border-color: var(--fe-hairline) !important;
   border-bottom-left-radius: 1.75rem;
   border-bottom-right-radius: 1.75rem;
 }
 
-/* ── The side panel: the same slab, beside the page ────────── */
+/* ── The side panel: the same sheet, beside the page ────────── */
 :root[data-skin="liquid"] .fe-panel {
   height: calc(100% - 1.5rem);
   margin: 0.75rem 0.75rem 0.75rem 0;
   border-radius: 1.5rem;
-  background-color: var(--fe-surface);
-  backdrop-filter: blur(var(--liq-blur)) saturate(var(--liq-sat));
-  -webkit-backdrop-filter: blur(var(--liq-blur)) saturate(var(--liq-sat));
-  box-shadow: var(--liq-material);
+  background-color: var(--aq-panel-bg);
+  backdrop-filter: blur(var(--aq-panel-blur)) saturate(var(--aq-sat));
+  -webkit-backdrop-filter: blur(var(--aq-panel-blur)) saturate(var(--aq-sat));
+  box-shadow: var(--aq-panel);
 }
-:root[data-skin="liquid"] .fe-panel__lyrics,
+:root[data-skin="liquid"] .fe-panel__tab.is-active {
+  color: var(--fe-ink);
+}
 :root[data-skin="liquid"] .fe-panel__pill {
+  background-color: var(--aq-subtle-bg);
+  box-shadow: var(--aq-subtle);
+  color: var(--fe-ink-2);
+}
+:root[data-skin="liquid"] .fe-panel__pill:hover:not(:disabled) {
+  background-color: color-mix(in srgb, var(--aq-subtle-bg), var(--fe-edge) 25%);
+  background-image: var(--aq-sheen);
+  color: var(--fe-ink);
+}
+:root[data-skin="liquid"] .fe-panel__lyrics {
   border-radius: 1rem;
+  background-color: var(--aq-subtle-bg);
+  box-shadow: var(--aq-subtle);
 }
-:root[data-skin="liquid"] .fe-panel__pill {
-  border-radius: 9999px;
+:root[data-skin="liquid"] .fe-panel__lyrics:hover {
+  background-color: color-mix(in srgb, var(--aq-subtle-bg), var(--fe-edge) 25%);
+  background-image: var(--aq-sheen);
+}
+/* A pale cover under white type: the scrim does more of the work. */
+:root[data-skin="liquid"] .fe-panel__hero > div[class*="bg-linear-to-t"] {
+  background: linear-gradient(
+    to top,
+    rgb(0 0 0 / 0.9),
+    rgb(0 0 0 / 0.7) 55%,
+    transparent
+  ) !important;
+}
+/* And the identity itself in full white with a shadow: the Canvas clip
+   under it can be pale from edge to edge. */
+:root[data-skin="liquid"]
+  .fe-panel__hero
+  > div[class*="bg-linear-to-t"]
+  :is(p, span, button, a) {
+  color: #fff !important;
+  text-shadow: 0 1px 8px rgb(0 0 0 / 0.55);
+}
+:root[data-skin="liquid"]
+  .fe-panel__hero
+  > div[class*="bg-linear-to-t"]
+  :is(p, span)[class*="text-white/"] {
+  opacity: 0.92;
 }
 
-/* ── The page: the light material for what sits on it ──────── */
+/* ── The page: sheets that catch light ─────────────────────── */
 /* Bordered containers (cards, settings groups), the folder and
-   extension cards, the genre and year tiles, the lyrics glimpse. The
-   layout already gave them the surface token; here they get the
-   blur, the rim and a rounder corner. */
+   extension cards, the genre and year tiles: panel glass. */
 :root[data-skin="liquid"]
   main
   :where(
@@ -371,14 +592,15 @@
 :root[data-skin="liquid"] main [data-folder-card],
 :root[data-skin="liquid"]
   main
-  button[class*="rounded-2xl"][class*="border"][class*="p-4"],
-:root[data-skin="liquid"] .fe-panel__lyrics {
+  button[class*="rounded-2xl"][class*="border"][class*="p-4"] {
   border-radius: 1.25rem !important;
-  backdrop-filter: blur(var(--liq-blur-soft)) saturate(var(--liq-sat));
-  -webkit-backdrop-filter: blur(var(--liq-blur-soft)) saturate(var(--liq-sat));
-  box-shadow: var(--liq-material-soft) !important;
+  background-color: var(--aq-panel-bg) !important;
+  backdrop-filter: blur(var(--aq-panel-blur)) saturate(var(--aq-sat));
+  -webkit-backdrop-filter: blur(var(--aq-panel-blur)) saturate(var(--aq-sat));
+  box-shadow: var(--aq-panel) !important;
   transition:
     background-color 180ms var(--fe-ease),
+    box-shadow 180ms var(--fe-ease),
     transform 320ms var(--fe-ease);
 }
 :root[data-skin="liquid"] main [data-folder-card]:hover,
@@ -387,45 +609,349 @@
   button[class*="rounded-2xl"][class*="border"][class*="p-4"]:hover {
   background-color: color-mix(
     in srgb,
-    var(--fe-surface),
-    var(--fe-tone-2)
+    var(--aq-panel-bg),
+    var(--fe-edge) 20%
   ) !important;
+  background-image: var(--aq-sheen) !important;
+  box-shadow: var(--aq-floating) !important;
   transform: translateY(-1px);
 }
-/* Artwork tiles and the hero cover: a touch rounder, the rim as the
-   edge token. */
+/* Artwork: a white rim and the glow under it; the hero cover is a
+   floating object with the sheen across its top. */
 :root[data-skin="liquid"] .fe-tile {
   border-radius: 1rem;
+  box-shadow:
+    0 0 0 1px var(--aq-panel-rim),
+    var(--aq-glow-soft);
+}
+:root[data-skin="liquid"] .fe-tile-hover:hover .fe-tile,
+:root[data-skin="liquid"] .fe-tile-hover:focus-visible .fe-tile {
+  box-shadow:
+    0 0 0 1px var(--aq-floating-rim),
+    var(--aq-glow-soft),
+    var(--aq-glow-lift);
 }
 :root[data-skin="liquid"] .fe-hero-cover {
   border-radius: 1.5rem;
+  box-shadow:
+    0 0 0 6px color-mix(in srgb, var(--aq-floating-bg), transparent 30%),
+    0 0 0 7px var(--aq-floating-rim),
+    var(--aq-glow-soft),
+    var(--aq-glow-lift);
 }
-:root[data-skin="liquid"] .fe-spectrum {
-  border-radius: 1.25rem;
-  box-shadow: var(--liq-material-soft);
+:root[data-skin="liquid"] .fe-hero-cover::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    168deg,
+    rgb(255 255 255 / 0.32),
+    rgb(255 255 255 / 0.06) 38%,
+    transparent 55%
+  );
 }
-/* Inputs: the soft rim rather than a border. */
+/* The suggestion band: a floating sheet. */
+:root[data-skin="liquid"] .fe-suggest__aura + * {
+  position: relative;
+}
+/* Inputs: a floating sheet with the rim, charged on focus. */
 :root[data-skin="liquid"] :where(input, textarea, select):not(header input) {
+  background-color: var(--aq-floating-bg) !important;
   border-color: transparent !important;
-  box-shadow: var(--liq-material-soft);
+  box-shadow: inset 0 0 0 1px var(--aq-floating-rim);
+  transition: box-shadow 480ms var(--fe-ease);
 }
 :root[data-skin="liquid"]
   :where(input, textarea, select):not(header input):focus-visible {
   box-shadow:
-    var(--liq-material-soft),
-    0 0 0 1px var(--fe-accent),
-    0 0 0 4px color-mix(in srgb, var(--fe-accent) 14%, transparent);
+    inset 0 0 0 1px var(--aq-floating-rim),
+    var(--aq-glow-focus);
+}
+/* The primary action: the accent, its light under it, a sheen on hover. */
+:root[data-skin="liquid"] .fe-cta,
+:root[data-skin="liquid"]
+  main
+  [data-page-hero]
+  button:where(
+    [class*="bg-emerald-500"],
+    [class*="bg-pink-500"],
+    [class*="rounded-full"][class*="text-white"]:not([class*="w-10"]):not(
+        [class*="absolute"]
+      )
+  ) {
+  box-shadow: var(--aq-glow-accent) !important;
+}
+:root[data-skin="liquid"] .fe-cta:hover,
+:root[data-skin="liquid"]
+  main
+  [data-page-hero]
+  button:where(
+    [class*="bg-emerald-500"],
+    [class*="bg-pink-500"],
+    [class*="rounded-full"][class*="text-white"]:not([class*="w-10"]):not(
+        [class*="absolute"]
+      )
+  ):hover:not(:disabled) {
+  background-image: var(--aq-sheen) !important;
+}
+:root[data-skin="liquid"] .fe-cta:focus-visible,
+:root[data-skin="liquid"] .fe-link:focus-visible,
+:root[data-skin="liquid"] .fe-icon-btn:focus-visible {
+  outline: 0;
+  animation: aq-charge 480ms var(--fe-ease) both;
+}
+/* Ghost pills: subtle glass. */
+:root[data-skin="liquid"]
+  main
+  [data-page-hero]
+  button[class*="border"][class*="px-"] {
+  background-color: var(--aq-subtle-bg) !important;
+  box-shadow: var(--aq-subtle) !important;
+}
+:root[data-skin="liquid"]
+  main
+  [data-page-hero]
+  button[class*="border"][class*="px-"]:hover:not(:disabled) {
+  background-color: color-mix(
+    in srgb,
+    var(--aq-subtle-bg),
+    var(--fe-edge) 25%
+  ) !important;
+  background-image: var(--aq-sheen) !important;
+}
+/* Filter pills and chips. */
+:root[data-skin="liquid"]
+  main
+  button[class*="rounded-full"][class*="text-xs"][class*="bg-zinc-100"] {
+  background-color: var(--aq-subtle-bg) !important;
+  box-shadow: var(--aq-subtle);
 }
 
-/* ── Popovers, menus, dialogs: the dense material ───────────── */
+/* ── Track tables: a subtle header, the playing row's sheen ── */
+:root[data-skin="liquid"] [data-track-table] [class*="sticky"][class*="grid"] {
+  background-color: var(--fe-surface-0) !important;
+  backdrop-filter: blur(var(--aq-subtle-blur));
+  -webkit-backdrop-filter: blur(var(--aq-subtle-blur));
+}
+:root[data-skin="liquid"] [data-track-row][class*="bg-emerald-50 "] {
+  background-color: color-mix(
+    in srgb,
+    var(--fe-accent) 7%,
+    transparent
+  ) !important;
+  background-image: linear-gradient(
+    100deg,
+    transparent 30%,
+    rgb(255 255 255 / 0.22) 50%,
+    transparent 70%
+  );
+  background-size: 300% 100%;
+  animation: aq-sheen 6s linear infinite;
+}
+
+/* ── Mood Radio: five capsules of tinted glass ─────────────── */
+:root[data-skin="liquid"] .aq-capsules {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.875rem;
+}
+@media (max-width: 1100px) {
+  :root[data-skin="liquid"] .aq-capsules {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (max-width: 700px) {
+  :root[data-skin="liquid"] .aq-capsules {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+:root[data-skin="liquid"] .aq-capsule {
+  --aq-tint: var(--aq-ice);
+  --aq-tint-deep: var(--aq-ice-deep);
+  position: relative;
+  min-height: 9.5rem;
+  border-radius: 1.25rem;
+  background-color: var(--aq-panel-bg);
+  background-image: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--aq-tint) 55%, transparent),
+    color-mix(in srgb, var(--aq-tint) 18%, transparent) 60%,
+    transparent
+  );
+  backdrop-filter: blur(var(--aq-panel-blur)) saturate(var(--aq-sat));
+  -webkit-backdrop-filter: blur(var(--aq-panel-blur)) saturate(var(--aq-sat));
+  box-shadow: var(--aq-panel);
+  overflow: hidden;
+  transition:
+    background-color 240ms var(--fe-ease),
+    box-shadow 240ms var(--fe-ease),
+    transform 320ms var(--fe-ease);
+}
+:root[data-skin="liquid"] .aq-capsule[data-mood="sleep"] {
+  --aq-tint: var(--aq-lavender);
+  --aq-tint-deep: var(--aq-lavender-deep);
+}
+:root[data-skin="liquid"] .aq-capsule[data-mood="focus"] {
+  --aq-tint: var(--aq-ice);
+  --aq-tint-deep: var(--aq-ice-deep);
+}
+:root[data-skin="liquid"] .aq-capsule[data-mood="chill"] {
+  --aq-tint: var(--aq-mint);
+  --aq-tint-deep: var(--aq-mint-deep);
+}
+:root[data-skin="liquid"] .aq-capsule[data-mood="party"] {
+  --aq-tint: var(--aq-blush);
+  --aq-tint-deep: var(--aq-blush-deep);
+}
+:root[data-skin="liquid"] .aq-capsule[data-mood="workout"] {
+  --aq-tint: var(--aq-aqua);
+  --aq-tint-deep: var(--aq-aqua-deep);
+}
+:root[data-skin="liquid"] .aq-capsule:hover {
+  background-color: color-mix(in srgb, var(--aq-panel-bg), var(--fe-edge) 20%);
+  transform: translateY(-1px);
+}
+:root[data-skin="liquid"] .aq-capsule[data-checked="true"] {
+  background-color: color-mix(
+    in srgb,
+    var(--aq-floating-bg),
+    var(--fe-edge) 15%
+  );
+  box-shadow:
+    var(--aq-floating),
+    0 18px 44px -20px color-mix(in srgb, var(--aq-tint-deep) 55%, transparent);
+}
+:root[data-skin="liquid"] .aq-capsule[data-disabled] {
+  opacity: 0.55;
+}
+:root[data-skin="liquid"] .aq-capsule__radio {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  min-height: 9.5rem;
+  padding: 1rem 1.125rem 1.125rem;
+  text-align: left;
+  color: var(--fe-ink);
+  cursor: pointer;
+}
+:root[data-skin="liquid"] .aq-capsule__radio:disabled {
+  cursor: not-allowed;
+}
+:root[data-skin="liquid"] .aq-capsule__radio:focus-visible {
+  outline: 0;
+  border-radius: 1.25rem;
+  animation: aq-charge 480ms var(--fe-ease) both;
+}
+/* The inner light: the mood's wave, in its deep tint, drifting. */
+:root[data-skin="liquid"] .aq-capsule__light {
+  display: block;
+  width: 100%;
+  height: 2.25rem;
+  margin-bottom: 0.75rem;
+  overflow: hidden;
+  color: var(--aq-tint-deep);
+  opacity: 0.55;
+  transition: opacity 240ms var(--fe-ease);
+}
+:root[data-skin="liquid"] .aq-capsule[data-checked="true"] .aq-capsule__light {
+  opacity: 0.95;
+}
+:root[data-skin="liquid"] .aq-capsule__light svg {
+  width: 200%;
+  height: 100%;
+  animation: aq-wave-drift var(--aq-wave-period, 9s) linear infinite;
+  filter: drop-shadow(
+    0 0 6px color-mix(in srgb, var(--aq-tint-deep) 60%, transparent)
+  );
+}
+:root[data-skin="liquid"] .aq-capsule[data-disabled] .aq-capsule__light svg {
+  animation-play-state: paused;
+}
+@keyframes aq-wave-drift {
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+:root[data-skin="liquid"] .aq-capsule__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+}
+:root[data-skin="liquid"] .aq-capsule__name {
+  font-size: 1.0625rem;
+}
+:root[data-skin="liquid"] .aq-capsule__bpm {
+  flex-shrink: 0;
+  font-size: 0.6875rem;
+  color: var(--fe-ink-3);
+}
+:root[data-skin="liquid"] .aq-capsule__count {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--fe-ink-3);
+}
+/* The subtitle opens with the capsule; the start pill takes its place
+   at the foot. */
+:root[data-skin="liquid"] .aq-capsule__detail {
+  display: grid;
+  grid-template-rows: 0fr;
+  width: 100%;
+  transition: grid-template-rows 320ms var(--fe-ease);
+}
+:root[data-skin="liquid"] .aq-capsule__detail > span {
+  display: block;
+  overflow: hidden;
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  color: var(--fe-ink-2);
+}
+:root[data-skin="liquid"] .aq-capsule[data-checked="true"] .aq-capsule__detail {
+  grid-template-rows: 1fr;
+}
+:root[data-skin="liquid"]
+  .aq-capsule[data-checked="true"]
+  .aq-capsule__detail
+  > span {
+  padding-top: 0.5rem;
+  padding-bottom: 2.75rem;
+}
+:root[data-skin="liquid"] .aq-capsule__cta {
+  position: absolute;
+  left: 1.125rem;
+  bottom: 1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 2rem;
+  padding: 0 0.875rem 0 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.8125rem;
+  font-weight: 540;
+  color: var(--fe-accent-ink);
+  background-color: var(--fe-accent);
+  box-shadow: var(--aq-glow-accent);
+  transition: filter 180ms var(--fe-ease);
+}
+:root[data-skin="liquid"] .aq-capsule__cta:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+:root[data-skin="liquid"] .aq-capsule__cta:disabled {
+  opacity: 0.6;
+}
+
+/* ── Menus, popovers, dialogs: the overlay level ────────────── */
 :root[data-skin="liquid"] [role="dialog"]:not([data-immersive]),
 :root[data-skin="liquid"] [role="menu"],
 :root[data-skin="liquid"] [role="listbox"],
 :root[data-skin="liquid"] [data-topbar-popover] {
-  background-color: var(--fe-surface-2) !important;
-  backdrop-filter: blur(var(--liq-blur-dense)) saturate(var(--liq-sat));
-  -webkit-backdrop-filter: blur(var(--liq-blur-dense)) saturate(var(--liq-sat));
-  box-shadow: var(--liq-lift), var(--liq-material-soft) !important;
+  background-color: var(--aq-overlay-bg) !important;
+  backdrop-filter: blur(var(--aq-overlay-blur)) saturate(var(--aq-sat));
+  -webkit-backdrop-filter: blur(var(--aq-overlay-blur)) saturate(var(--aq-sat));
+  box-shadow: var(--aq-overlay) !important;
 }
 :root[data-skin="liquid"] [role="dialog"]:not([data-immersive]),
 :root[data-skin="liquid"] [data-topbar-popover] {
@@ -434,11 +960,13 @@
 :root[data-skin="liquid"] [role="menu"] {
   border-radius: 1rem !important;
 }
+:root[data-skin="liquid"] [role="menu"] [role="menuitem"]:hover,
+:root[data-skin="liquid"] [role="menu"] [role="menuitem"]:focus-visible {
+  background-color: var(--fe-tone-2) !important;
+  background-image: var(--aq-sheen);
+}
 
 /* ── A pale ground under an artist's photo ─────────────────── */
-/* The banner's scrim fades into the page, so on a light theme its foot
-   is pale: the kicker and the counts take the inks there, without the
-   shadow a white word needs over a photo. */
 :root[data-skin="liquid"]:not(.dark)
   main
   [data-page-hero][class*="group/hero"][class*="-mx-8"]
@@ -454,44 +982,37 @@
   main
   [data-page-hero][class*="group/hero"]
   button[class*="border"][class*="px-"] {
-  background-color: rgb(255 255 255 / 0.6) !important;
+  background-color: var(--aq-floating-bg) !important;
   color: var(--fe-ink) !important;
-}
-:root[data-skin="liquid"]:not(.dark)
-  main
-  [data-page-hero][class*="group/hero"]
-  button[class*="border"][class*="px-"]:hover:not(:disabled) {
-  background-color: rgb(255 255 255 / 0.85) !important;
+  box-shadow: var(--aq-floating) !important;
 }
 
-/* ── Press feedback: on the pointer going down, instantly ──── */
-:root[data-skin="liquid"] .fe-cta,
-:root[data-skin="liquid"] .fe-icon-btn,
-:root[data-skin="liquid"] .fe-panel__pill,
-:root[data-skin="liquid"] [data-topbar-left] button,
-:root[data-skin="liquid"] [data-topbar-profile] {
-  transition-property: color, background-color, box-shadow, filter, transform;
-  transition-duration: 180ms, 180ms, 180ms, 180ms, 100ms;
-  transition-timing-function: var(--fe-ease);
-}
-:root[data-skin="liquid"] .fe-icon-btn:active,
-:root[data-skin="liquid"] .fe-panel__pill:active:not(:disabled),
-:root[data-skin="liquid"] [data-topbar-left] button:active:not(:disabled),
-:root[data-skin="liquid"] [data-topbar-profile]:active {
-  transform: scale(0.94);
-}
-
-/* ── Reduced motion and transparency, Linux, high contrast ── */
+/* ── Reduced motion, reduced transparency, Linux, high contrast ── */
 @media (prefers-reduced-motion: reduce) {
-  :root[data-skin="liquid"] body::before {
+  :root[data-skin="liquid"] body::before,
+  :root[data-skin="liquid"] .aq-capsule__light svg,
+  :root[data-skin="liquid"] [data-track-row][class*="bg-emerald-50 "] {
     animation: none;
+  }
+  :root[data-skin="liquid"]
+    :is(
+      button,
+      [role="radio"],
+      [data-nav-item],
+      [data-sidebar-row],
+      input,
+      textarea,
+      select
+    ):focus-visible {
+    animation: none;
+    box-shadow: var(--aq-glow-focus);
   }
   :root[data-skin="liquid"] [data-sidebar-nav] [data-nav-item]:active,
   :root[data-skin="liquid"] [data-sidebar-row="pinned"]:active,
-  :root[data-skin="liquid"] .fe-icon-btn:active,
-  :root[data-skin="liquid"] .fe-panel__pill:active:not(:disabled),
   :root[data-skin="liquid"] [data-topbar-left] button:active:not(:disabled),
   :root[data-skin="liquid"] [data-topbar-profile]:active,
+  :root[data-skin="liquid"] footer :where(button:active),
+  :root[data-skin="liquid"] .aq-capsule:hover,
   :root[data-skin="liquid"] main [data-folder-card]:hover,
   :root[data-skin="liquid"]
     main
@@ -500,21 +1021,25 @@
   }
 }
 
-/* Without blur, a tint is not a surface: every material becomes an
-   opaque panel. The same list serves the user's preference, the Linux
-   WebKitGTK safeguard (`app.css` drops the blur there) and high
-   contrast, which also brings the inks up — the light theme has to
-   undo the dark-ground inks the layout's own contrast block sets. */
+/* Without blur, a tint is not a sheet: every level turns solid. The
+   same list serves the user's preference, the Linux WebKitGTK
+   safeguard (`app.css` drops the blur there) and high contrast, which
+   also brings the inks up — the light theme has to undo the dark-ground
+   inks the layout's own contrast block sets. */
 @media (prefers-reduced-transparency: reduce) {
   :root[data-skin="liquid"] {
-    --fe-surface: #1d1d22;
-    --fe-surface-2: #2a2a30;
-    --fe-surface-0: #18181c;
+    --aq-subtle-bg: #23242f;
+    --aq-panel-bg: #1f2029;
+    --aq-floating-bg: #262734;
+    --aq-overlay-bg: #2a2b38;
+    --fe-surface-0: #1b1c25;
   }
   :root[data-skin="liquid"]:not(.dark) {
-    --fe-surface: #f6f6f8;
-    --fe-surface-2: #ffffff;
-    --fe-surface-0: #f0f0f3;
+    --aq-subtle-bg: #f2f3f8;
+    --aq-panel-bg: #f7f8fc;
+    --aq-floating-bg: #ffffff;
+    --aq-overlay-bg: #ffffff;
+    --fe-surface-0: #eef0f6;
   }
   :root[data-skin="liquid"] .skin-sidebar-shell > aside,
   :root[data-skin="liquid"] footer,
@@ -531,7 +1056,8 @@
     ),
   :root[data-skin="liquid"] main details.settings-group,
   :root[data-skin="liquid"] main [data-folder-card],
-  :root[data-skin="liquid"] .fe-panel__lyrics,
+  :root[data-skin="liquid"] .aq-capsule,
+  :root[data-skin="liquid"] [data-track-table] [class*="sticky"][class*="grid"],
   :root[data-skin="liquid"] [role="dialog"],
   :root[data-skin="liquid"] [role="menu"],
   :root[data-skin="liquid"] [role="listbox"],
@@ -542,8 +1068,10 @@
 }
 :root[data-skin="liquid"][data-webkitgtk-safe],
 :root[data-skin="liquid"][data-contrast="high"] {
-  --fe-surface: var(--wf-contrast-surface);
-  --fe-surface-2: var(--wf-contrast-surface);
+  --aq-subtle-bg: var(--wf-contrast-surface);
+  --aq-panel-bg: var(--wf-contrast-surface);
+  --aq-floating-bg: var(--wf-contrast-surface);
+  --aq-overlay-bg: var(--wf-contrast-surface);
   --fe-surface-0: var(--wf-contrast-surface);
 }
 :root[data-skin="liquid"][data-contrast="high"] body::before {

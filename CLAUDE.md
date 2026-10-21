@@ -8,14 +8,15 @@ WaveFlow is a local music player desktop app built with **Tauri 2 + React 19 + T
 
 This file is an **index, not a manual**. It carries the map plus the one-line form of each invariant. The reasoning, algorithms, schema and flow diagrams live under [`docs/`](docs/README.md) — that's the source of truth, and new detail belongs there, not here.
 
-| Need                                    | Read                                                                 |
-| --------------------------------------- | -------------------------------------------------------------------- |
-| Why a rule exists / how not to break it | [`docs/architecture/invariants.md`](docs/architecture/invariants.md) |
-| How a feature actually works            | [`docs/features/`](docs/README.md#features)                          |
-| The visual direction (tokens, shapes)   | [`docs/design/fluid-editorial.md`](docs/design/fluid-editorial.md)   |
-| Crate split, audio topology, DB layout  | [`docs/architecture/`](docs/README.md#architecture)                  |
-| Design decisions not yet built          | [`docs/rfcs/`](docs/README.md#rfcs)                                  |
-| Release / packaging procedure           | [`docs/RELEASING.md`](docs/RELEASING.md)                             |
+| Need                                    | Read                                                                       |
+| --------------------------------------- | -------------------------------------------------------------------------- |
+| Why a rule exists / how not to break it | [`docs/architecture/invariants.md`](docs/architecture/invariants.md)       |
+| How a feature actually works            | [`docs/features/`](docs/README.md#features)                                |
+| The visual direction (tokens, shapes)   | [`docs/design/fluid-editorial.md`](docs/design/fluid-editorial.md)         |
+| The second direction, Liquid's glass    | [`docs/design/liquid-aurora-glass.md`](docs/design/liquid-aurora-glass.md) |
+| Crate split, audio topology, DB layout  | [`docs/architecture/`](docs/README.md#architecture)                        |
+| Design decisions not yet built          | [`docs/rfcs/`](docs/README.md#rfcs)                                        |
+| Release / packaging procedure           | [`docs/RELEASING.md`](docs/RELEASING.md)                                   |
 
 ## Development Commands
 

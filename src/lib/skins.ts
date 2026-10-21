@@ -45,6 +45,16 @@ export interface SkinPreset {
   id: SkinId;
   /** Which interface the skin paints; see {@link SkinLayout}. */
   layout: SkinLayout;
+  /**
+   * How the fluid layout draws its two signature pieces; read only when
+   * `layout` is `fluid`. Fluid's wave runs along the player bar's top
+   * edge and its Mood Radio is one tempo band; Liquid's light line sits
+   * on the player plate and its moods are five glass capsules.
+   */
+  fluid?: {
+    progress: "edge" | "inline";
+    moodRadio: "spectrum" | "capsules";
+  };
   /** i18n key suffix, e.g. `appearance.skins.editorial.label`. */
   labelKey: string;
   /**
@@ -152,6 +162,7 @@ export const SKIN_PRESETS: SkinPreset[] = [
   {
     id: "fluid",
     layout: "fluid",
+    fluid: { progress: "edge", moodRadio: "spectrum" },
     labelKey: "settings.appearance.skins.fluid.label",
     descriptionKey: "settings.appearance.skins.fluid.description",
     density: {
@@ -433,6 +444,7 @@ export const SKIN_PRESETS: SkinPreset[] = [
   {
     id: "liquid",
     layout: "fluid",
+    fluid: { progress: "inline", moodRadio: "capsules" },
     labelKey: "settings.appearance.skins.liquid.label",
     descriptionKey: "settings.appearance.skins.liquid.description",
     density: {
