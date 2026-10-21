@@ -62,6 +62,7 @@ import { RemoteTranscodeCard } from "./settings/RemoteTranscodeCard";
 import { useTheme } from "../../hooks/useTheme";
 import { THEME_PRESETS } from "../../lib/themes";
 import { getProfileSetting, setProfileSetting } from "../../lib/tauri/profile";
+import { useSingleClickPlay } from "../../hooks/useSingleClickPlay";
 import type { ViewId } from "../../types";
 import {
   SUPPORTED_LANGUAGES,
@@ -617,7 +618,8 @@ export function SettingsView({
   // window-level event the `useUiZoom` hook broadcasts.
   const [uiZoom, setUiZoom] = useState(1);
   const [scanOnStart, setScanOnStart] = useState(false);
-  const [singleClickPlay, setSingleClickPlay] = useState(false);
+  const { value: singleClickPlay, setValue: setSingleClickPlay } =
+    useSingleClickPlay();
   const [isDuplicatesOpen, setIsDuplicatesOpen] = useState(false);
   const [isResetOpen, setIsResetOpen] = useState(false);
   // Status of the last "Copy logs" click — null when idle, "ok" or
@@ -650,12 +652,6 @@ export function SettingsView({
       .then((v) => {
         if (cancelled) return;
         if (v != null) setScanOnStart(v === "true" || v === "1");
-      })
-      .catch(() => {});
-    getProfileSetting("ui.single_click_play")
-      .then((v) => {
-        if (cancelled) return;
-        if (v === "true" || v === "1") setSingleClickPlay(true);
       })
       .catch(() => {});
     // Sleep timer / A-B loop / audio-quality-footer visibility now
@@ -718,18 +714,11 @@ export function SettingsView({
     });
   }, []);
 
+  // Through the shared hook, which broadcasts the write: the lists already
+  // on screen pick it up without being remounted.
   const handleToggleSingleClickPlay = useCallback(() => {
-    const next = !singleClickPlay;
-    setSingleClickPlay(next);
-    setProfileSetting(
-      "ui.single_click_play",
-      next ? "true" : "false",
-      "bool",
-    ).catch((err) => {
-      console.error("[Settings] set single_click_play failed", err);
-      setSingleClickPlay(!next);
-    });
-  }, [singleClickPlay]);
+    void setSingleClickPlay((previous) => !previous);
+  }, [setSingleClickPlay]);
 
   const handleToggleAutoStart = useCallback(() => {
     const next = !autoStart;

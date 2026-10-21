@@ -104,7 +104,7 @@ import { AlphabetIndex } from "../common/AlphabetIndex";
 import { useSortIgnoreArticles } from "../../hooks/useSortIgnoreArticles";
 import { useSortMemory } from "../../hooks/useSortMemory";
 import { usePageScroll } from "../../hooks/usePageScroll";
-import { getProfileSetting } from "../../lib/tauri/profile";
+import { useSingleClickPlay } from "../../hooks/useSingleClickPlay";
 import { useLibrary } from "../../hooks/useLibrary";
 import { usePlayer } from "../../hooks/usePlayer";
 import { usePlaylist } from "../../hooks/usePlaylist";
@@ -445,19 +445,7 @@ export function LibraryView({
   // Single-click play. Coexists with multi-select: ctrl/shift always
   // takes precedence (selection), single-click triggers play only on a
   // bare click and only when the toggle is on.
-  const [singleClickPlay, setSingleClickPlay] = useState(false);
-  useEffect(() => {
-    let cancelled = false;
-    getProfileSetting("ui.single_click_play")
-      .then((v) => {
-        if (cancelled) return;
-        if (v === "true" || v === "1") setSingleClickPlay(true);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const { value: singleClickPlay } = useSingleClickPlay();
 
   // Scroll target for the AlphabetIndex (artists tab uses it).
   // Callback ref populated by the virtualized ArtistList so the

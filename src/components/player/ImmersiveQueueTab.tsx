@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import {
+  isPlayClick,
+  useSingleClickPlay,
+} from "../../hooks/useSingleClickPlay";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { ListMusic, Radio } from "lucide-react";
 import { Artwork } from "../common/Artwork";
@@ -21,6 +25,7 @@ import {
  */
 export function ImmersiveQueueTab() {
   const { t } = useTranslation();
+  const { value: singleClickPlay } = useSingleClickPlay();
   const [snapshot, setSnapshot] = useState<PlayerQueueSnapshot | null>(null);
 
   // Seq guard so overlapping refetches (rapid Next clicks fire many
@@ -131,6 +136,7 @@ export function ImmersiveQueueTab() {
                 <ImmersiveQueueRow
                   key={absoluteIndex}
                   item={item}
+                  singleClickPlay={singleClickPlay}
                   onJump={() => handleJump(absoluteIndex)}
                 />
               );
@@ -145,16 +151,24 @@ export function ImmersiveQueueTab() {
 function ImmersiveQueueRow({
   item,
   isCurrent = false,
+  singleClickPlay = false,
   onJump,
 }: {
   item: QueueTrackPayload;
   isCurrent?: boolean;
+  /** Settings → single-click play, read once by the tab. */
+  singleClickPlay?: boolean;
   onJump?: () => void;
 }) {
   const interactive = !isCurrent && onJump != null;
   return (
     <div
-      onDoubleClick={onJump}
+      onClick={(e) => {
+        if (onJump && isPlayClick(e, singleClickPlay)) onJump();
+      }}
+      onDoubleClick={() => {
+        if (!singleClickPlay) onJump?.();
+      }}
       tabIndex={interactive ? 0 : undefined}
       role={interactive ? "button" : undefined}
       onKeyDown={

@@ -6,6 +6,10 @@ import { Artwork } from "../common/Artwork";
 import { ArtistLink } from "../common/ArtistLink";
 import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
 import { usePlayer } from "../../hooks/usePlayer";
+import {
+  isPlayClick,
+  useSingleClickPlay,
+} from "../../hooks/useSingleClickPlay";
 import { useTrackContextMenu } from "../../hooks/useTrackContextMenu";
 import { useTrackUpdated } from "../../hooks/useTrackUpdated";
 import { usePageScroll } from "../../hooks/usePageScroll";
@@ -123,6 +127,7 @@ export function HistoryView({
   onNavigateToAlbum,
   onNavigateToArtist,
 }: HistoryViewProps) {
+  const { value: singleClickPlay } = useSingleClickPlay();
   const { t, i18n } = useTranslation();
   const createFromModal = useCreatePlaylistFromModal();
   const locale = i18n.language;
@@ -348,6 +353,7 @@ export function HistoryView({
                 <DayGroup
                   group={group}
                   locale={locale}
+                  singleClickPlay={singleClickPlay}
                   currentTrackId={currentTrack?.id ?? null}
                   onNavigateToArtist={onNavigateToArtist}
                   onContextMenu={(e, row) =>
@@ -535,11 +541,14 @@ interface DayGroupProps {
   onRowMenuKey: (e: React.KeyboardEvent, row: PlayHistoryRow) => boolean;
   onPlay: (row: PlayHistoryRow) => void;
   onNavigateToArtist: (artistId: number) => void;
+  /** Settings → single-click play, read once by the view. */
+  singleClickPlay: boolean;
 }
 
 function DayGroup({
   group,
   locale,
+  singleClickPlay,
   currentTrackId,
   onContextMenu,
   onRowMenuKey,
@@ -581,7 +590,12 @@ function DayGroup({
               tabIndex={0}
               aria-haspopup="menu"
               onContextMenu={(e) => onContextMenu(e, row)}
-              onDoubleClick={() => onPlay(row)}
+              onClick={(e) => {
+                if (isPlayClick(e, singleClickPlay)) onPlay(row);
+              }}
+              onDoubleClick={() => {
+                if (!singleClickPlay) onPlay(row);
+              }}
               onKeyDown={(e) => {
                 // Only act when the row itself is focused — nested
                 // links (artist / album) handle their own keys.
