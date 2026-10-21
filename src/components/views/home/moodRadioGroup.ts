@@ -5,7 +5,11 @@ export interface MoodDef {
   id: Mood;
   /** Tempo window, in BPM — the same gates `mood_radio` applies. */
   bpm: [number, number];
-  /** Cycles of the abstract wave across one segment width. */
+  /**
+   * Cycles of the abstract wave across one segment width. A whole
+   * number: the drift translates the drawing by one segment width, and
+   * only a whole number of periods lands on itself.
+   */
   cycles: number;
   /** 0–1, how tall the wave is. */
   amplitude: number;
@@ -15,8 +19,8 @@ export interface MoodDef {
 
 /** The five moods, ordered by tempo, which is what left-to-right means. */
 export const MOODS: MoodDef[] = [
-  { id: "sleep", bpm: [40, 80], cycles: 1.5, amplitude: 0.22, period: 16 },
-  { id: "focus", bpm: [60, 100], cycles: 2.5, amplitude: 0.36, period: 12 },
+  { id: "sleep", bpm: [40, 80], cycles: 1, amplitude: 0.22, period: 16 },
+  { id: "focus", bpm: [60, 100], cycles: 2, amplitude: 0.36, period: 12 },
   { id: "chill", bpm: [70, 110], cycles: 3, amplitude: 0.48, period: 10 },
   { id: "party", bpm: [110, 135], cycles: 5, amplitude: 0.72, period: 7 },
   { id: "workout", bpm: [120, 170], cycles: 7, amplitude: 0.9, period: 5 },
