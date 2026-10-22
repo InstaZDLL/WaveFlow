@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.9.6](https://github.com/InstaZDLL/WaveFlow/compare/v1.9.5...v1.9.6) (2026-10-22)
+
+
+### Bug Fixes
+
+* **player:** keep the end of a track through a pause and an a-b jump ([#933](https://github.com/InstaZDLL/WaveFlow/issues/933)) ([d4bf39c](https://github.com/InstaZDLL/WaveFlow/commit/d4bf39c9bb2724d973ce281585e36d9ef10d879f))
+* **player:** play the end of a track out of the ring before the next one starts ([#933](https://github.com/InstaZDLL/WaveFlow/issues/933)) ([b7f962e](https://github.com/InstaZDLL/WaveFlow/commit/b7f962ee88b111fd974501ab4f5789713be34c02))
+
 ## [1.9.5](https://github.com/InstaZDLL/WaveFlow/compare/v1.9.4...v1.9.5) (2026-10-19)
 
 
