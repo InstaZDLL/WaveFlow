@@ -1,0 +1,76 @@
+{
+  "bundle": {
+    "fileAssociations": [
+      {
+        "ext": ["mp3"],
+        "name": "MP3 Audio",
+        "mimeType": "audio/mpeg",
+        "role": "Viewer",
+        "rank": "Alternate"
+      },
+      {
+        "ext": ["flac"],
+        "name": "FLAC Audio",
+        "mimeType": "audio/flac",
+        "role": "Viewer",
+        "rank": "Alternate"
+      },
+      {
+        "ext": ["wav"],
+        "name": "WAV Audio",
+        "mimeType": "audio/wav",
+        "role": "Viewer",
+        "rank": "Alternate"
+      },
+      {
+        "ext": ["aiff", "aif"],
+        "name": "AIFF Audio",
+        "mimeType": "audio/aiff",
+        "role": "Viewer",
+        "rank": "Alternate"
+      },
+      {
+        "ext": ["ogg", "oga"],
+        "name": "Ogg Vorbis Audio",
+        "mimeType": "audio/ogg",
+        "role": "Viewer",
+        "rank": "Alternate"
+      },
+      {
+        "ext": ["opus"],
+        "name": "Opus Audio",
+        "mimeType": "audio/opus",
+        "role": "Viewer",
+        "rank": "Alternate"
+      },
+      {
+        "ext": ["m4a"],
+        "name": "MPEG-4 Audio",
+        "mimeType": "audio/mp4",
+        "role": "Viewer",
+        "rank": "Alternate"
+      },
+      {
+        "ext": ["aac"],
+        "name": "AAC Audio",
+        "mimeType": "audio/aac",
+        "role": "Viewer",
+        "rank": "Alternate"
+      },
+      {
+        "ext": ["dsf"],
+        "name": "DSD Audio (DSF)",
+        "mimeType": "audio/x-dsf",
+        "role": "Viewer",
+        "rank": "Alternate"
+      },
+      {
+        "ext": ["dff"],
+        "name": "DSD Audio (DFF)",
+        "mimeType": "audio/x-dff",
+        "role": "Viewer",
+        "rank": "Alternate"
+      }
+    ]
+  }
+}

@@ -212,6 +212,18 @@ pub async fn play_paths(app: &AppHandle, paths: Vec<PathBuf>) -> AppResult<()> {
     // Claimed before the walk and the lookups below (#622): a folder can
     // take a while, and a track the user picks meanwhile must win.
     let intent = app.state::<Arc<AudioEngine>>().next_load_intent();
+    play_paths_with_intent(app, paths, intent).await
+}
+
+/// [`play_paths`] under an intent the caller claimed earlier: the files a
+/// launch hands over are waited for before they play
+/// ([`crate::launch_args::play_when_ready`]), and a track the user picks
+/// during that wait is the newer choice.
+pub async fn play_paths_with_intent(
+    app: &AppHandle,
+    paths: Vec<PathBuf>,
+    intent: LoadIntent,
+) -> AppResult<()> {
     let files = tokio::task::spawn_blocking(move || expand(&paths))
         .await
         .map_err(|e| AppError::Other(format!("listing the files to play: {e}")))?;

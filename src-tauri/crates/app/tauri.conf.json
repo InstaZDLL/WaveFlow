@@ -81,9 +81,24 @@
     "macOS": {
       "entitlements": "waveflow.entitlements"
     },
+    "windows": {
+      "nsis": {
+        "installerHooks": "windows/open-with.nsh"
+      },
+      "wix": {
+        "fragmentPaths": ["windows/open-with.wxs"],
+        "componentRefs": ["WaveFlowOpenWith"]
+      }
+    },
     "linux": {
       "appimage": {
         "bundleMediaFramework": true
+      },
+      "deb": {
+        "desktopTemplate": "linux/waveflow.desktop"
+      },
+      "rpm": {
+        "desktopTemplate": "linux/waveflow.desktop"
       }
     }
   },

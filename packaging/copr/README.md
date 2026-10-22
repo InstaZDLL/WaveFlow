@@ -51,7 +51,7 @@ adds for a Linux-side respin. So instead the spec:
 - in `%install`, runs `rpm2cpio | cpio -idmv` to extract the binary
   blob directly into the buildroot.
 
-This is the same pattern used by Spotify, Discord, and other binary
+This is the usual pattern for binary-only
 Linux apps that ship to COPR. The Fedora project itself wouldn't
 accept this in `Fedora/`, but COPR is for user-hosted repos and
 explicitly allows it.

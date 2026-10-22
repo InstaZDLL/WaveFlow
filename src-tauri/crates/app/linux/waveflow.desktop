@@ -1,0 +1,33 @@
+{{!--
+  The desktop entry the .deb, the .rpm and the AppImage install (the AUR and
+  COPR packages repackage the first two). It is Tauri's own template with two
+  changes:
+
+  - `Exec` takes `%F`. Without a field code the file manager starts WaveFlow
+    with no file at all, so "Open with WaveFlow" opened an empty window.
+    `%F` hands over local paths, mounting a remote file through GIO first;
+    `launch_args` reads them, and a second launch passes them on to the
+    running window.
+  - `MimeType` lists the formats WaveFlow plays, with the legacy aliases
+    (`audio/x-flac`, ...) older shared-mime-info databases still report.
+    It is written here rather than taken from `bundle.fileAssociations`:
+    those are declared for macOS only (tauri.macos.conf.json), since in the
+    base config Windows would make them every format's default, and the
+    `--config` overlay scripts/tauri.mjs passes undoes a platform file's
+    attempt to remove them.
+
+  Keep the formats in step with tauri.macos.conf.json, the Windows
+  `open-with` hooks and the Flatpak desktop entry.
+--~}}
+[Desktop Entry]
+Categories={{categories}}
+{{#if comment}}
+Comment={{comment}}
+{{/if}}
+Exec={{exec}} %F
+StartupWMClass={{exec}}
+Icon={{icon}}
+Name={{name}}
+Terminal=false
+Type=Application
+MimeType=audio/mpeg;audio/flac;audio/x-flac;audio/wav;audio/x-wav;audio/aiff;audio/x-aiff;audio/ogg;audio/x-vorbis+ogg;audio/opus;audio/x-opus+ogg;audio/mp4;audio/x-m4a;audio/aac;audio/x-dsf;audio/x-dff;

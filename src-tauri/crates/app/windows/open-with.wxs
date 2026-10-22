@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  "Open with WaveFlow" for the MSI: what windows/open-with.nsh does for the
+  NSIS installer, so read the reasons there. In short, WaveFlow is offered for
+  each audio format it plays and made the default for none: Tauri's own
+  `bundle.fileAssociations` would advertise each extension's default class,
+  and is declared for macOS only, in tauri.macos.conf.json.
+
+  The MSI installs per machine, so everything goes under HKLM. Windows
+  Installer removes these values on uninstall and leaves the keys other
+  players share. `[!Path]` is the main executable (`File Id="Path"` in
+  Tauri's main.wxs), and the fragment is compiled on its own, so it defines
+  Win64 the way main.wxs does.
+
+  WiX compiles this file as it is: unlike main.wxs, a fragment does not go
+  through the bundler's template, so the names are written out. They are the
+  product name, the publisher (`bundle.publisher`, the manufacturer) and the
+  main binary, `waveflow.exe` (the Cargo binary, not the product name); a
+  change to any of them in tauri.conf.json has to be made here too.
+
+  Keep the formats in step with tauri.macos.conf.json, open-with.nsh, the
+  Linux desktop template and the Flatpak desktop entry.
+-->
+<?if $(sys.BUILDARCH)="x86"?>
+    <?define Win64 = "no" ?>
+<?else?>
+    <?define Win64 = "yes" ?>
+<?endif?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+    <Fragment>
+        <DirectoryRef Id="INSTALLDIR">
+            <Component Id="WaveFlowOpenWith" Guid="2F2019C7-509E-46A2-A516-8821B51384AE" Win64="$(var.Win64)">
+                <RegistryKey Root="HKLM" Key="Software\Classes\WaveFlow.Audio">
+                    <RegistryValue Type="string" Value="WaveFlow audio file" KeyPath="yes" />
+                    <RegistryValue Key="DefaultIcon" Type="string" Value="&quot;[!Path]&quot;,0" />
+                    <RegistryValue Key="shell\open\command" Type="string" Value="&quot;[!Path]&quot; &quot;%1&quot;" />
+                </RegistryKey>
+                <RegistryKey Root="HKLM" Key="Software\Classes\Applications\waveflow.exe">
+                    <RegistryValue Name="FriendlyAppName" Type="string" Value="WaveFlow" />
+                    <RegistryValue Key="DefaultIcon" Type="string" Value="&quot;[!Path]&quot;,0" />
+                    <RegistryValue Key="shell\open\command" Type="string" Value="&quot;[!Path]&quot; &quot;%1&quot;" />
+                    <RegistryValue Key="SupportedTypes" Name=".mp3" Type="string" Value="" />
+                    <RegistryValue Key="SupportedTypes" Name=".flac" Type="string" Value="" />
+                    <RegistryValue Key="SupportedTypes" Name=".wav" Type="string" Value="" />
+                    <RegistryValue Key="SupportedTypes" Name=".aiff" Type="string" Value="" />
+                    <RegistryValue Key="SupportedTypes" Name=".aif" Type="string" Value="" />
+                    <RegistryValue Key="SupportedTypes" Name=".ogg" Type="string" Value="" />
+                    <RegistryValue Key="SupportedTypes" Name=".oga" Type="string" Value="" />
+                    <RegistryValue Key="SupportedTypes" Name=".opus" Type="string" Value="" />
+                    <RegistryValue Key="SupportedTypes" Name=".m4a" Type="string" Value="" />
+                    <RegistryValue Key="SupportedTypes" Name=".aac" Type="string" Value="" />
+                    <RegistryValue Key="SupportedTypes" Name=".dsf" Type="string" Value="" />
+                    <RegistryValue Key="SupportedTypes" Name=".dff" Type="string" Value="" />
+                </RegistryKey>
+                <RegistryKey Root="HKLM" Key="Software\InstaZDLL\WaveFlow\Capabilities">
+                    <RegistryValue Name="ApplicationName" Type="string" Value="WaveFlow" />
+                    <RegistryValue Name="ApplicationDescription" Type="string" Value="Local-first music player" />
+                    <RegistryValue Key="FileAssociations" Name=".mp3" Type="string" Value="WaveFlow.Audio" />
+                    <RegistryValue Key="FileAssociations" Name=".flac" Type="string" Value="WaveFlow.Audio" />
+                    <RegistryValue Key="FileAssociations" Name=".wav" Type="string" Value="WaveFlow.Audio" />
+                    <RegistryValue Key="FileAssociations" Name=".aiff" Type="string" Value="WaveFlow.Audio" />
+                    <RegistryValue Key="FileAssociations" Name=".aif" Type="string" Value="WaveFlow.Audio" />
+                    <RegistryValue Key="FileAssociations" Name=".ogg" Type="string" Value="WaveFlow.Audio" />
+                    <RegistryValue Key="FileAssociations" Name=".oga" Type="string" Value="WaveFlow.Audio" />
+                    <RegistryValue Key="FileAssociations" Name=".opus" Type="string" Value="WaveFlow.Audio" />
+                    <RegistryValue Key="FileAssociations" Name=".m4a" Type="string" Value="WaveFlow.Audio" />
+                    <RegistryValue Key="FileAssociations" Name=".aac" Type="string" Value="WaveFlow.Audio" />
+                    <RegistryValue Key="FileAssociations" Name=".dsf" Type="string" Value="WaveFlow.Audio" />
+                    <RegistryValue Key="FileAssociations" Name=".dff" Type="string" Value="WaveFlow.Audio" />
+                </RegistryKey>
+                <RegistryValue Root="HKLM" Key="Software\RegisteredApplications" Name="WaveFlow" Type="string" Value="Software\InstaZDLL\WaveFlow\Capabilities" />
+                <RegistryValue Root="HKLM" Key="Software\Classes\.mp3\OpenWithProgids" Name="WaveFlow.Audio" Type="string" Value="" />
+                <RegistryValue Root="HKLM" Key="Software\Classes\.flac\OpenWithProgids" Name="WaveFlow.Audio" Type="string" Value="" />
+                <RegistryValue Root="HKLM" Key="Software\Classes\.wav\OpenWithProgids" Name="WaveFlow.Audio" Type="string" Value="" />
+                <RegistryValue Root="HKLM" Key="Software\Classes\.aiff\OpenWithProgids" Name="WaveFlow.Audio" Type="string" Value="" />
+                <RegistryValue Root="HKLM" Key="Software\Classes\.aif\OpenWithProgids" Name="WaveFlow.Audio" Type="string" Value="" />
+                <RegistryValue Root="HKLM" Key="Software\Classes\.ogg\OpenWithProgids" Name="WaveFlow.Audio" Type="string" Value="" />
+                <RegistryValue Root="HKLM" Key="Software\Classes\.oga\OpenWithProgids" Name="WaveFlow.Audio" Type="string" Value="" />
+                <RegistryValue Root="HKLM" Key="Software\Classes\.opus\OpenWithProgids" Name="WaveFlow.Audio" Type="string" Value="" />
+                <RegistryValue Root="HKLM" Key="Software\Classes\.m4a\OpenWithProgids" Name="WaveFlow.Audio" Type="string" Value="" />
+                <RegistryValue Root="HKLM" Key="Software\Classes\.aac\OpenWithProgids" Name="WaveFlow.Audio" Type="string" Value="" />
+                <RegistryValue Root="HKLM" Key="Software\Classes\.dsf\OpenWithProgids" Name="WaveFlow.Audio" Type="string" Value="" />
+                <RegistryValue Root="HKLM" Key="Software\Classes\.dff\OpenWithProgids" Name="WaveFlow.Audio" Type="string" Value="" />
+            </Component>
+        </DirectoryRef>
+    </Fragment>
+</Wix>
