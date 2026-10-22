@@ -1198,6 +1198,10 @@ fn play_dop_track(
     let mut ring_scratch: Vec<f32> = Vec::with_capacity(16 * 1024);
     let mut last_position_emit = Instant::now();
     let mut ended_naturally = false;
+    // The file is read to its end and its last words are being played out
+    // of the ring (#932), as in [`play_track`].
+    let mut dop_at_eof = false;
+    let mut tail_drain: Option<TailDrain> = None;
 
     transition_state(shared, app, PlayerState::Playing, Some(stream.track_id));
 
@@ -1228,6 +1232,8 @@ fn play_dop_track(
                 stream.reset_decoder();
                 reset_clock(shared, ms);
                 drain_ring_silent(producer, shared);
+                dop_at_eof = false;
+                tail_drain = None;
                 let _ = app.emit(EVENT_POSITION, PositionPayload { ms });
                 last_position_emit = Instant::now();
                 continue;
@@ -1246,17 +1252,46 @@ fn play_dop_track(
                 stream.reset_decoder();
                 reset_clock(shared, a_ms);
                 drain_ring_silent(producer, shared);
+                dop_at_eof = false;
+                tail_drain = None;
                 let _ = app.emit(EVENT_POSITION, PositionPayload { ms: a_ms });
                 last_position_emit = Instant::now();
                 continue;
             }
         }
 
+        // The end reached: the track ends once the output has played what
+        // the ring still holds of it, not as soon as the file is read.
+        if dop_at_eof {
+            if TailDrain::still_playing(
+                &mut tail_drain,
+                queued_samples(producer),
+                shared.paused_output.load(Ordering::Relaxed),
+                Instant::now(),
+            ) {
+                if last_position_emit.elapsed() >= POSITION_EMIT_INTERVAL
+                    && shared.state() == PlayerState::Playing
+                {
+                    let _ = app.emit(
+                        EVENT_POSITION,
+                        PositionPayload {
+                            ms: shared.current_position_ms(),
+                        },
+                    );
+                    last_position_emit = Instant::now();
+                }
+                std::thread::sleep(TAIL_POLL);
+                continue;
+            }
+            ended_naturally = true;
+            break 'pkt;
+        }
+
         dop_words.clear();
         match stream.decode_dop_block(&mut dop_words) {
             Ok(true) => {
-                ended_naturally = true;
-                break 'pkt;
+                dop_at_eof = true;
+                continue;
             }
             Ok(false) => {}
             Err(err) => {
@@ -1301,6 +1336,8 @@ fn play_dop_track(
                 stream.reset_decoder();
                 reset_clock(shared, ms);
                 drain_ring_silent(producer, shared);
+                dop_at_eof = false;
+                tail_drain = None;
                 let _ = app.emit(EVENT_POSITION, PositionPayload { ms });
                 last_position_emit = Instant::now();
                 continue;
@@ -1420,6 +1457,8 @@ fn play_track(
     transition_state(shared, app, PlayerState::Playing, Some(stream.track_id));
 
     let mut ended_naturally = false;
+    // The end of the track being played out of the ring (#932).
+    let mut tail_drain: Option<TailDrain> = None;
 
     'pkt: loop {
         match drain_commands(
@@ -1502,6 +1541,13 @@ fn play_track(
             if let Some((a_ms, b_ms)) = shared.ab_loop_armed() {
                 let pos = shared.current_position_ms();
                 if pos >= b_ms {
+                    // Cleared like the two seek arms: B can be reached
+                    // while the end of the track plays out, with the file
+                    // already at EOF, and keeping that flag ended the
+                    // track instead of looping it (#932).
+                    primary_resampled.clear();
+                    primary_at_eof = false;
+                    tail_drain = None;
                     stream.seek_ms(a_ms);
                     reset_clock(shared, a_ms);
                     reset_resampler_for_seek(&mut stream, shared, dst_sample_rate, dst_channels);
@@ -1543,7 +1589,11 @@ fn play_track(
                 // track, so a 30 s clip with crossfade=12 s doesn't
                 // start mixing at the 18 s mark.
                 let effective_ms = cf_ms.min(stream.duration_ms / 2);
-                let pos = shared.current_position_ms();
+                // Timed on what the decoder has reached, not on what was
+                // heard (#932): the mix written now is heard a ring later,
+                // so on the heard clock the fade started that much late
+                // and a fade shorter than the ring never started at all.
+                let pos = shared.decoded_position_ms(queued_samples(producer));
                 let remaining = stream.duration_ms.saturating_sub(pos);
 
                 // Pre-fetch ~500 ms before the window starts so the
@@ -1578,7 +1628,12 @@ fn play_track(
                 // happens in the EOF branch below — no fade, no overlap,
                 // just an immediate baton hand-off the moment the
                 // primary buffer drains.
-                let pos = shared.current_position_ms();
+                //
+                // On the decoder's clock (#932). On the heard one, a ring
+                // behind, 500 ms before the end was reached only after the
+                // decoder had hit EOF: the hand-off never ran, and the
+                // advance that replaced it cut the last second.
+                let pos = shared.decoded_position_ms(queued_samples(producer));
                 let remaining = stream.duration_ms.saturating_sub(pos);
                 if !next_requested && pending_next.is_none() && remaining <= 500 {
                     let _ = analytics_tx.send(AnalyticsMsg::PrefetchNext);
@@ -1849,9 +1904,39 @@ fn play_track(
                     last_position_emit = Instant::now();
                     continue;
                 }
+                // A natural end, and the ring still holds up to a second
+                // of the track (#932). Declared now, the end let the
+                // advance that follows drain it unheard: every track lost
+                // its last second. Wait for the output to play it. The top
+                // of the loop keeps serving commands meanwhile (a pause, a
+                // seek, another track) and the gapless trigger, whose next
+                // track can still arrive and take over in the swap above.
+                if TailDrain::still_playing(
+                    &mut tail_drain,
+                    queued_samples(producer),
+                    shared.paused_output.load(Ordering::Relaxed),
+                    Instant::now(),
+                ) {
+                    if last_position_emit.elapsed() >= POSITION_EMIT_INTERVAL
+                        && shared.state() == PlayerState::Playing
+                    {
+                        let _ = app.emit(
+                            EVENT_POSITION,
+                            PositionPayload {
+                                ms: shared.current_position_ms(),
+                            },
+                        );
+                        last_position_emit = Instant::now();
+                    }
+                    std::thread::sleep(TAIL_POLL);
+                    continue;
+                }
                 ended_naturally = true;
                 break 'pkt;
             }
+            // Producing audio again: whatever end was being waited for
+            // (before a seek) is no longer the one in the ring.
+            tail_drain = None;
             eq_processor.process(
                 &mut primary_resampled,
                 dst_channels,
@@ -2040,6 +2125,60 @@ fn reset_clock(shared: &SharedPlayback, ms: u64) {
 /// Samples written to the ring that the output has not played yet.
 fn queued_samples(producer: &Producer<f32>) -> u64 {
     (producer.buffer().capacity() - producer.slots()) as u64
+}
+
+/// How often the end of a track is checked while the output plays it out.
+const TAIL_POLL: Duration = Duration::from_millis(10);
+
+/// How long the end of a track may sit in the ring with the output taking
+/// none of it, while not paused, before the track is declared over anyway:
+/// a device that went away must not hold an end forever.
+const TAIL_STALL_LIMIT: Duration = Duration::from_millis(1500);
+
+/// A gap between two checks longer than this means the loop was elsewhere
+/// (blocked in `drain_commands` by a pause until Resume, or a slow command),
+/// not watching an output that took nothing: the stall clock starts over.
+const TAIL_MAX_POLL_GAP: Duration = Duration::from_millis(250);
+
+/// The end of a track, decoded and still in the ring, being played out
+/// before the end is declared (#932): what was queued at the last sign of
+/// progress, when that was, and when the ring was last looked at.
+#[derive(Debug)]
+struct TailDrain {
+    queued: u64,
+    progressed_at: Instant,
+    polled_at: Instant,
+}
+
+impl TailDrain {
+    /// Whether the end of the track is still being played: something is
+    /// queued, and the output is taking it or is paused. False once the
+    /// ring is empty, or when it has not moved for [`TAIL_STALL_LIMIT`]
+    /// of watching it play.
+    fn still_playing(slot: &mut Option<Self>, queued: u64, paused: bool, now: Instant) -> bool {
+        if queued == 0 {
+            *slot = None;
+            return false;
+        }
+        match slot {
+            Some(drain)
+                if queued >= drain.queued
+                    && !paused
+                    && now.duration_since(drain.polled_at) <= TAIL_MAX_POLL_GAP =>
+            {
+                drain.polled_at = now;
+                now.duration_since(drain.progressed_at) < TAIL_STALL_LIMIT
+            }
+            _ => {
+                *slot = Some(Self {
+                    queued,
+                    progressed_at: now,
+                    polled_at: now,
+                });
+                true
+            }
+        }
+    }
 }
 
 enum ControlFlow {
@@ -2717,6 +2856,108 @@ mod tests {
         approx(ro, 2.0 + K * (0.4 + 0.8 + 0.2 + 0.07));
     }
 }
+#[cfg(test)]
+mod tail_drain_tests {
+    use std::time::{Duration, Instant};
+
+    use super::{TailDrain, TAIL_POLL, TAIL_STALL_LIMIT};
+
+    /// Poll every [`TAIL_POLL`] with nothing taken from the ring, from
+    /// `from` for `watched`; the answer at the last poll.
+    fn watch_stalled(slot: &mut Option<TailDrain>, from: Instant, watched: Duration) -> bool {
+        let mut t = from;
+        let mut playing = true;
+        while t.duration_since(from) < watched {
+            t += TAIL_POLL;
+            playing = TailDrain::still_playing(slot, 50_000, false, t);
+        }
+        playing
+    }
+
+    #[test]
+    fn an_empty_ring_ends_the_track() {
+        let mut slot = None;
+        assert!(!TailDrain::still_playing(
+            &mut slot,
+            0,
+            false,
+            Instant::now()
+        ));
+        assert!(slot.is_none());
+    }
+
+    #[test]
+    fn the_end_plays_out_while_the_output_takes_it() {
+        let start = Instant::now();
+        let mut slot = None;
+        assert!(TailDrain::still_playing(&mut slot, 96_000, false, start));
+        // Progress, however long it takes in all: still the end playing.
+        let later = start + TAIL_STALL_LIMIT * 2;
+        assert!(TailDrain::still_playing(&mut slot, 40_000, false, later));
+        assert!(TailDrain::still_playing(
+            &mut slot,
+            1_000,
+            false,
+            later + TAIL_STALL_LIMIT / 2
+        ));
+        assert!(!TailDrain::still_playing(
+            &mut slot,
+            0,
+            false,
+            later + TAIL_STALL_LIMIT
+        ));
+    }
+
+    #[test]
+    fn a_stall_watched_for_the_limit_gives_the_end_up() {
+        // Playing, and the output takes nothing: a lost device.
+        let start = Instant::now();
+        let mut slot = None;
+        assert!(TailDrain::still_playing(&mut slot, 50_000, false, start));
+        assert!(watch_stalled(&mut slot, start, TAIL_STALL_LIMIT / 2));
+        let mut slot = None;
+        assert!(TailDrain::still_playing(&mut slot, 50_000, false, start));
+        assert!(!watch_stalled(&mut slot, start, TAIL_STALL_LIMIT));
+    }
+
+    #[test]
+    fn a_pause_holds_the_end() {
+        let start = Instant::now();
+        let mut slot = None;
+        assert!(TailDrain::still_playing(&mut slot, 50_000, false, start));
+        // Polled while paused: the end waits for the user, however long.
+        let mut t = start;
+        for _ in 0..1_000 {
+            t += TAIL_POLL * 10;
+            assert!(TailDrain::still_playing(&mut slot, 50_000, true, t));
+        }
+    }
+
+    #[test]
+    fn time_away_from_the_loop_is_not_a_stall() {
+        // A pause blocks the decoder in `drain_commands` until Resume: the
+        // ring is not looked at meanwhile, and that minute is not the
+        // output failing to take samples. Resumed, the end plays on.
+        let start = Instant::now();
+        let mut slot = None;
+        assert!(TailDrain::still_playing(&mut slot, 50_000, false, start));
+        let resumed = start + Duration::from_secs(60);
+        assert!(TailDrain::still_playing(&mut slot, 50_000, false, resumed));
+        assert!(TailDrain::still_playing(
+            &mut slot,
+            40_000,
+            false,
+            resumed + TAIL_POLL
+        ));
+        // And a real stall after it is still caught.
+        assert!(!watch_stalled(
+            &mut slot,
+            resumed + TAIL_POLL,
+            TAIL_STALL_LIMIT
+        ));
+    }
+}
+
 #[cfg(test)]
 mod load_ordering_tests {
     use std::path::PathBuf;
