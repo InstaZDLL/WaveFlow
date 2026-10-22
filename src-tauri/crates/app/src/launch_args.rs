@@ -17,7 +17,8 @@
 //! single-instance plugin on its own, a moment after the last: played as
 //! they came, every one would replace the queue the one before had just
 //! started. They are gathered until none has arrived for a moment, then
-//! played as one queue.
+//! played as one queue: in path order when several launches brought them,
+//! since those arrive in no reliable order ([`play_order`]).
 
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
@@ -98,10 +99,12 @@ const GATHER_QUIET: Duration = Duration::from_millis(400);
 /// files keep coming.
 const GATHER_LIMIT: Duration = Duration::from_secs(3);
 
-/// Files waiting to play, and when the last of them arrived.
+/// Files waiting to play, when the last of them arrived, and how many
+/// launches brought them.
 struct Gathering {
     paths: Vec<PathBuf>,
     last: Instant,
+    arrivals: usize,
 }
 
 /// The open being gathered, if one is. `None` when nothing is waiting.
@@ -114,6 +117,19 @@ fn gather(paths: &mut Vec<PathBuf>, more: Vec<PathBuf>) {
             paths.push(path);
         }
     }
+}
+
+/// The order a gathered open plays in. One launch keeps the order it named
+/// its files in (`waveflow b.flac a.flac` plays b first). Files from several
+/// launches are put in path order: the launches reach the running window in
+/// no reliable order (measured: Explorer's three files arrived third,
+/// second, first, the first launch's own arguments read last, after its
+/// setup), so their arrival order means nothing.
+fn play_order(mut paths: Vec<PathBuf>, arrivals: usize) -> Vec<PathBuf> {
+    if arrivals > 1 {
+        paths.sort_by_cached_key(|path| path.to_string_lossy().to_lowercase());
+    }
+    paths
 }
 
 /// Play `paths` once the active profile is open, which is when a file can
@@ -130,6 +146,7 @@ pub fn play_when_ready(app: &AppHandle, paths: Vec<PathBuf>) {
             // A task is already waiting to play; it takes these too.
             gather(&mut waiting.paths, paths);
             waiting.last = Instant::now();
+            waiting.arrivals += 1;
             return;
         }
         let mut first = Vec::new();
@@ -137,6 +154,7 @@ pub fn play_when_ready(app: &AppHandle, paths: Vec<PathBuf>) {
         *gathering = Some(Gathering {
             paths: first,
             last: Instant::now(),
+            arrivals: 1,
         });
     }
     // Claimed here when the engine already exists, before the task is even
@@ -191,7 +209,7 @@ pub fn play_when_ready(app: &AppHandle, paths: Vec<PathBuf>) {
             .lock()
             .unwrap_or_else(|e| e.into_inner())
             .take()
-            .map(|waiting| waiting.paths)
+            .map(|waiting| play_order(waiting.paths, waiting.arrivals))
             .unwrap_or_default();
         // Both the state and the engine, not the engine alone: playing
         // reads the state.
@@ -261,6 +279,23 @@ mod tests {
         gather(&mut paths, vec![a.clone(), b.clone()]);
         gather(&mut paths, vec![b.clone(), c.clone(), a.clone()]);
         assert_eq!(paths, [a, b, c]);
+    }
+
+    #[test]
+    fn one_launch_keeps_its_order_and_several_play_in_path_order() {
+        let a = PathBuf::from("/m/Album/01 First.flac");
+        let b = PathBuf::from("/m/Album/02 second.flac");
+        let c = PathBuf::from("/m/Album/03 Third.flac");
+        // `waveflow 03 01`: the order it was given.
+        assert_eq!(
+            play_order(vec![c.clone(), a.clone()], 1),
+            [c.clone(), a.clone()]
+        );
+        // Three launches that reached the window third, second, first.
+        assert_eq!(
+            play_order(vec![c.clone(), b.clone(), a.clone()], 3),
+            [a, b, c]
+        );
     }
 
     #[test]
