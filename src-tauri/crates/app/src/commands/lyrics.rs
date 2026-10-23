@@ -1010,6 +1010,31 @@ async fn resolve_after_lrclib_miss(
     }
 }
 
+/// Resolve a track while LRCLIB cannot be reached (a timeout, DNS, a
+/// refused connection, or the cooldown that follows one). The other
+/// providers are still asked, then, under `lyrics.prefer_lrclib`, the
+/// deferred local tiers: one host being down should not cost lyrics the
+/// others have. When none of them has any, `reason` is returned as an
+/// error and nothing is cached: LRCLIB never gave its verdict, so this is
+/// not a miss, and the UI offers a retry.
+async fn resolve_while_lrclib_unreachable(
+    pool: &sqlx::SqlitePool,
+    track_id: i64,
+    meta: &TrackMeta,
+    prefer_lrclib: bool,
+    reason: String,
+) -> AppResult<Option<LyricsPayload>> {
+    if let FallbackOutcome::Found(payload) = try_external_fallback(pool, track_id, meta).await? {
+        return Ok(Some(payload));
+    }
+    if prefer_lrclib {
+        if let Some(payload) = try_local_lyrics(pool, track_id, meta).await? {
+            return Ok(Some(payload));
+        }
+    }
+    Err(AppError::Other(reason))
+}
+
 /// `profile_setting` key: prefer the online providers (LRCLIB / Musixmatch
 /// / fallback chain) over the track's own embedded + sidecar lyrics.
 /// Default off — the local tiers win, as they historically have.
@@ -2522,18 +2547,25 @@ async fn fetch_after_plugins(
     };
     let primary_artist = artist_name.split("; ").next().unwrap_or(artist_name);
     let duration_seconds = (meta.duration_ms.max(0) as u64).div_ceil(1000);
-    let client = LrclibClient::new();
-    let resp = match client
-        .get(
-            primary_artist,
-            &meta.title,
-            meta.album_title.as_deref(),
-            duration_seconds,
+    // LRCLIB sitting out a cooldown after a failed request (#720) is not
+    // asked again: it would cost its connect timeout on every track.
+    let lookup = if lyrics_providers::is_cooling_down(Provider::Lrclib) {
+        None
+    } else {
+        Some(
+            LrclibClient::new()
+                .get(
+                    primary_artist,
+                    &meta.title,
+                    meta.album_title.as_deref(),
+                    duration_seconds,
+                )
+                .await,
         )
-        .await
-    {
-        Ok(Some(r)) => r,
-        Ok(None) => {
+    };
+    let resp = match lookup {
+        Some(Ok(Some(r))) => r,
+        Some(Ok(None)) => {
             // LRCLIB 404 — try the broader provider chain (and, under
             // prefer-LRCLIB, the deferred local tiers) before caching a
             // miss. These sources are query-based and less strict than
@@ -2542,14 +2574,26 @@ async fn fetch_after_plugins(
             // error-handling contract (provider Err is non-fatal here).
             return resolve_after_lrclib_miss(pool, track_id, meta, prefer_lrclib).await;
         }
-        Err(err) => {
-            // Surface transient network failures (timeout, DNS, refused
-            // connection…) as an error so the UI can prompt the user to
-            // retry — silently returning None made it look like LRCLIB
-            // didn't have the track when in reality the request never
-            // completed. A real 404 is already mapped to Ok(None) above.
+        Some(Err(err)) => {
             tracing::warn!(?err, "LRCLIB fetch failed");
-            return Err(AppError::Other(format!("LRCLIB request failed: {err}")));
+            return resolve_while_lrclib_unreachable(
+                pool,
+                track_id,
+                meta,
+                prefer_lrclib,
+                format!("LRCLIB request failed: {err}"),
+            )
+            .await;
+        }
+        None => {
+            return resolve_while_lrclib_unreachable(
+                pool,
+                track_id,
+                meta,
+                prefer_lrclib,
+                "LRCLIB is unreachable; it is tried again in a few minutes".into(),
+            )
+            .await;
         }
     };
 
