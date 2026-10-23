@@ -4,8 +4,10 @@ import { useTranslation } from "react-i18next";
 /**
  * Real broadsheet masthead for the Editorial skin: edition info
  * row, big Didone title, italic subtitle quote between two
- * rules. Mounted by HomeView only when the active skin is
- * Editorial — other skins never pay for it.
+ * rules. Mounted by `FluidHome` over the listening canvas when the
+ * preset's `fluid.greeting` is `"masthead"` — a piece of the preset,
+ * never of a skin id; the other skins never pay for it. Its print
+ * typography lives in `editorial.css`.
  *
  * The date renders in the user's active i18n locale via
  * `Intl.DateTimeFormat`, so users get "Jeudi 18 juin 2026" /

@@ -1,35 +1,81 @@
 /* ============================================================
-   Editorial skin — WaveFlow Gazette
+   Editorial — Broadsheet
    ============================================================
-   A real broadsheet, not a UI with a serif font glued on top.
-   Direction: warm cream paper, ink-black type, true Didone
-   masthead (Playfair Display 900), Lora body with drop caps,
-   double rules, dashed dividers, Fig captions, ruler-tick
-   progress bar. Print idiom throughout — no shadows, no
-   gradients on chrome, no rounded corners on cards.
+   The direction is written in `docs/design/editorial-broadsheet.md`;
+   this file is its material on the 2.0 interface (`fluid.css`, keyed on
+   `data-layout="fluid"`, imported before this one). One line: a
+   broadsheet — cream paper with its grain, ink for everything, rules
+   where the other materials put tone, and the music as a halftone
+   plate. Where Fluid stages the music, Liquid diffuses it and Pulse
+   wires it, Editorial prints it.
 
-   The hero is the **masthead**: an actual newspaper top with
-   the date in column rules. The signature element is the
-   ruler-tick progress bar in the player — print engineers
-   measured galleys with picas, the player measures playback
-   with picas.
+   The decision, first: Editorial moves from the classic layout to
+   `layout: "fluid"`, with `fluid: { progress: "inline", moodRadio:
+   "spectrum", greeting: "masthead" }` (`src/lib/skins.ts`). The 2.0
+   structure gives it the canvas, the rail, the control rail, the
+   tabbed panel and the page heroes; its signature pieces are the
+   masthead over the Home (the one piece the 1.x Editorial keeps as a
+   component, mounted by `FluidHome` when the preset asks for it), the
+   progress as a ruler in picas on the player's inline row, the mood
+   band as an engraving — five columns parted by rules, the chosen one
+   set in solid ink — the halftone plates, the "Fig." caption under the
+   canvas cover, the page numbers on the rail. Nothing is moved: every
+   rule below is a tone, a rule, a face or a plate over the structure,
+   as `liquid.css` does for its glass and `pulse.css` for its neon.
 
-   Selectors stay scoped to landmarks (`aside`, `header`,
-   `footer`, `main`) + explicit `editorial-*` classes mounted
-   by HomeView, MoodRadioGrid, and EditorialMasthead. No
-   substring matching on Tailwind utility classes — that
-   pattern was the source of every cascade fight in the v1+v2
-   stack that lived here before. */
+   What this file decides, in order of weight:
 
-/* Playfair Display + Lora are bundled via `@fontsource/*` in
-   `src/main.tsx` — no network @import here. Loading them from
-   the JS entrypoint keeps the @font-face declarations at the
-   top of the CSS bundle (CSS spec requires `@import` to precede
-   all other statements; declaring them mid-stream as we'd be
-   forced to here breaks the spec and triggers a PostCSS
-   warning). The bundled woff2 also makes the skin work fully
-   offline, which a Tauri desktop app needs. */
+   1. Paper, in both themes. The ground is `#f0ebd8` with the grain
+      multiplied over it, the inks are near-black, and the dark theme
+      changes nothing: a newspaper is not printed on black. `app.css`
+      keeps Editorial out of the extended `dark` variant, and the block
+      at the end of this file folds the `dark:` utilities that still
+      fire under the dark theme back onto the inks and the paper — the
+      1.x behaviour, kept.
 
+   2. No light. Print has no glow: the pools of the cover's colour, the
+      blurred copies of the cover under the canvas and the band, the
+      gradient on the player bar and the panel all go; `--fe-glow`
+      stays declared, as a warm grey, so the few shadows the structure
+      mixes it into read as a print shadow. Depth is a rule, never a
+      shadow — except the one offset hard shadow under a floating
+      sheet (a menu, a dialog), which is how a pasted-up proof casts it.
+
+   3. One accent, the theme's, as the rubric colour. The 1.x Editorial
+      owned a press red (`#b03020`); the 2.0 rule is one accent and it
+      is the theme's (`--accent-600`, the stop that holds on paper, so
+      the custom and cover accent modes of #895 drive it — a warm theme
+      or a picked red gives the gazette its red back). It is spent as a
+      rubric: the kickers and section labels, the open item's edge, the
+      sung word, the played part of the ruler, the focus ring. The
+      primary action is NOT the accent: it is set in ink, paper type on
+      a black field, the way a broadsheet sets its one box.
+
+   4. Two faces. Lora carries the body (`--fe-font`), Playfair Display
+      the display: the greeting (the layout's editorial slot, italic),
+      the masthead, every display and section title at 900, the page
+      heroes. Labels are Lora at 700, tracked and in capitals.
+
+   5. Rules, not tone. A section title sits on a double rule, a table
+      header on a rule, rows on dotted rules, the rail and the panel
+      are parted from the page by a 2 px rule, the player bar by the
+      masthead's 3 + 1 rule inverted. Cards are a 1 px frame; the
+      "light" a top edge catches (`--fe-edge*`) is a thin ink rule.
+      Corners are square everywhere the structure rounds them.
+
+   6. The halftone plate. The canvas cover, the strip under it, the
+      record on the player bar, the covers on the rail and the hero of
+      the panel are grayscale under a dot screen; the library's grids
+      keep their colour — they are the catalogue, not the illustration.
+
+   7. Paper is slow. One ease, `cubic-bezier(0.4, 0, 0.2, 1)`, nothing
+      loops (reduced motion has nothing of this file's to stop beyond
+      the lifts), and the one-shot rise of the structure stays.
+
+   Rules that must beat a `!important` in `fluid.css` carry one and win
+   by source order. */
+
+/* ── Tokens ─────────────────────────────────────────────────── */
 :root[data-skin="editorial"] {
   --ed-paper: #f0ebd8;
   --ed-paper-warm: #e8e2ce;
@@ -40,296 +86,323 @@
   --ed-rule: rgb(26 26 26 / 0.28);
   --ed-rule-soft: rgb(26 26 26 / 0.14);
   --ed-rule-ink: rgb(26 26 26 / 0.78);
-  --ed-press: #b03020;
-  --ed-press-soft: rgb(176 48 32 / 0.1);
+  --ed-display: "Playfair Display", "Source Serif Pro", Georgia, serif;
   --ed-grain: url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.07'/></svg>");
+  /* The dot screen over a halftone plate. */
+  --ed-screen: radial-gradient(
+    circle at center,
+    rgb(26 26 26 / 0.22) 0 0.6px,
+    transparent 0.9px
+  );
+  /* The proof's shadow: offset, hard, ink at 12 %. */
+  --ed-proof-shadow: 6px 6px 0 rgb(26 26 26 / 0.12);
+
+  --fe-bg: var(--ed-paper);
+  --fe-bg-rgb: 240 235 216;
+  --fe-surface: var(--ed-paper);
+  --fe-surface-2: var(--ed-paper-warm);
+  --fe-surface-0: var(--ed-paper);
+  --fe-ink: var(--ed-ink);
+  --fe-ink-2: var(--ed-ink-soft);
+  --fe-ink-3: var(--ed-muted);
+  --fe-hairline: var(--ed-rule);
+  --fe-hairline-strong: var(--ed-rule-ink);
+  --fe-tone-1: rgb(26 26 26 / 0.04);
+  --fe-tone-2: rgb(26 26 26 / 0.06);
+  --fe-tone-3: rgb(26 26 26 / 0.08);
+  --fe-tone-4: rgb(26 26 26 / 0.11);
+  /* The light a top edge catches, in ink: a thin rule along the top. */
+  --fe-edge: rgb(26 26 26 / 0.14);
+  --fe-edge-strong: rgb(26 26 26 / 0.28);
+  --fe-accent: var(--accent-600);
+  --fe-accent-ink: #ffffff;
+  /* No light on paper; a warm grey where the structure mixes it. */
+  --fe-glow: #8a7f6a;
+  --fe-glow-deep: #6a6258;
+  --fe-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --fe-font: "Lora", Georgia, "Times New Roman", serif;
+  --fe-font-editorial: var(--ed-display);
 }
 
-/* Body sheet: cream paper with the SVG grain overlay tiled at
-   200×200. The vertical column rule the v1 stack overlaid is
-   gone — it conflicted with the masthead's columns. Print
-   pages don't have a constant column rule; the columns are
-   drawn locally. */
+/* ── The paper ──────────────────────────────────────────────── */
 :root[data-skin="editorial"],
 :root[data-skin="editorial"] body {
-  color: var(--ed-ink);
-  background-color: var(--ed-paper);
-  background-image: var(--ed-grain);
-  background-repeat: repeat;
-  font-family: "Lora", Georgia, serif;
   font-feature-settings:
     "kern" 1,
     "liga" 1,
     "onum" 1;
 }
-
-/* Bleed the paper through every wrapper between the body and
-   `main`. The center-column wrapper (`<div bg-zinc-50/50
-   dark:bg-zinc-900/50>`) would otherwise paint a 50% slab over
-   the cream. Match it structurally by its children. */
-:root[data-skin="editorial"] [class*="bg-app-ambient"],
-:root[data-skin="editorial"] div:has(> header):has(> main) {
-  background-color: var(--ed-paper) !important;
-  background-image: var(--ed-grain) !important;
+/* No pools of light; the grain multiplied over the paper. */
+:root[data-skin="editorial"] body::before {
+  display: none;
+}
+:root[data-skin="editorial"] body::after {
+  opacity: 1;
+  mix-blend-mode: multiply;
+  background-image: var(--ed-grain);
+  background-size: 200px 200px;
+}
+/* No blurred copy of the cover under the canvas or the band. */
+:root[data-skin="editorial"] .fe-canvas__aura,
+:root[data-skin="editorial"] .fe-suggest__aura {
+  display: none;
 }
 
-/* ============================================================
-   App TopBar — collapse to a thin "edition info" strip
-   ============================================================
-   The TopBar still carries nav + search + profile (the app
-   needs them) but its visual job becomes the "ÉDITION DU MATIN
-   | JEUDI 18 JUIN 2026 | PRIX : INCLUS" rule that sits above a
-   real broadsheet masthead. We don't add fake date text via
-   ::before — the date lives in `EditorialMasthead` so it can
-   format with the user's locale via `Intl.DateTimeFormat`. */
-:root[data-skin="editorial"] header[class*="sticky"] {
-  height: 3.25rem !important;
-  margin: 0;
-  padding: 0 1.5rem !important;
-  color: var(--ed-ink);
-  background-color: var(--ed-paper) !important;
-  background-image: none !important;
-  border-bottom: 2px solid var(--ed-ink) !important;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  box-shadow: none;
-}
-
-:root[data-skin="editorial"] header :where(button, [class*="rounded-full"]) {
-  border-radius: 0 !important;
-  border: 1px solid var(--ed-ink) !important;
-  background-color: transparent !important;
-  color: var(--ed-ink) !important;
-  box-shadow: none !important;
-  transition:
-    background-color 160ms ease,
-    color 160ms ease;
-}
-
-:root[data-skin="editorial"]
-  header
-  :where(button:hover, [class*="rounded-full"]:hover) {
-  color: var(--ed-paper) !important;
-  background-color: var(--ed-ink) !important;
-}
-
-:root[data-skin="editorial"] header input {
-  color: var(--ed-ink) !important;
-  background-color: transparent !important;
-  font-family: "Lora", Georgia, serif;
-  font-style: italic;
-}
-
-:root[data-skin="editorial"] header input::placeholder {
-  color: var(--ed-muted) !important;
-  font-style: italic;
-}
-
-/* The search "input shell" Tailwind container is a rounded
-   pill — flatten it to a print field with a 1px ink underline. */
-:root[data-skin="editorial"] header [class*="rounded-full"]:has(input) {
-  border-radius: 0 !important;
-  border: 0 !important;
-  border-bottom: 1px solid var(--ed-ink) !important;
-  background-color: transparent !important;
-}
-
-/* ============================================================
-   Sidebar — "Sommaire" column
-   ============================================================
-   Wraps the existing aside (kept structurally — Lounge uses the
-   same shell pattern) and reframes it as the newspaper's index
-   column. The brand block at the top gets replaced visually
-   with a SOMMAIRE label via ::before on the shell. */
-:root[data-skin="editorial"] .skin-sidebar-shell {
-  background-color: transparent !important;
-  border-right: 2px solid var(--ed-ink);
-  box-shadow: none;
-}
-
-:root[data-skin="editorial"] .skin-sidebar-shell > aside {
-  margin: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-  padding-top: 1.25rem;
-  color: var(--ed-ink);
-  background-color: transparent !important;
-  background-image: none !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  counter-reset: ed-nav 1;
-}
-
-/* Hide the brand row (WaveFlow logo + word) — the masthead
-   carries the brand below. Hide the profile pill too — it'll
-   re-emerge styled as a print byline. */
-:root[data-skin="editorial"] .skin-sidebar-shell > aside > div:first-child {
-  padding: 0 1.5rem 1rem !important;
-  border-bottom: 1px solid var(--ed-rule);
-  position: relative;
-}
-
-:root[data-skin="editorial"]
-  .skin-sidebar-shell
-  > aside
-  > div:first-child::before {
-  content: "Sommaire";
-  display: block;
-  margin-bottom: 0.5rem;
-  color: var(--ed-ink);
-  font-family: "Playfair Display", Georgia, serif;
-  font-size: 1.6rem;
-  font-weight: 900;
-  line-height: 1;
+/* ── Type: Playfair for the display, Lora for the rest ──────── */
+:root[data-skin="editorial"] .fe-display,
+:root[data-skin="editorial"] .fe-title,
+:root[data-skin="editorial"] main h1,
+:root[data-skin="editorial"] main h2,
+:root[data-skin="editorial"] main h3,
+:root[data-skin="editorial"] main [data-page-hero] h1,
+:root[data-skin="editorial"] .fe-panel :is(h2, h3),
+:root[data-skin="editorial"] .fe-panel__hero [class*="text-xl"],
+:root[data-skin="editorial"] [data-immersive] h1,
+:root[data-skin="editorial"] [data-drop-title] {
+  font-family: var(--ed-display) !important;
+  font-weight: 900 !important;
   letter-spacing: -0.02em;
 }
-
-/* Brand block: hide the original logo+text row, keep the
-   profile pill but flatten it to print typography. */
-:root[data-skin="editorial"]
-  .skin-sidebar-shell
-  > aside
-  > div:first-child
-  > div:first-child {
-  display: none !important;
+:root[data-skin="editorial"] .fe-display,
+:root[data-skin="editorial"] main [data-page-hero] h1 {
+  letter-spacing: -0.03em !important;
+  line-height: 0.95 !important;
 }
-
-:root[data-skin="editorial"]
-  .skin-sidebar-shell
-  > aside
-  > div:first-child
-  button {
-  border: 1px solid var(--ed-ink) !important;
-  border-radius: 0 !important;
-  background-color: transparent !important;
-  font-family: "Lora", Georgia, serif !important;
+:root[data-skin="editorial"] .fe-title {
+  line-height: 1.05;
 }
-
-/* Section group headings ("MY MUSIC", "PLAYLISTS"): print
-   eyebrow style. Reset the tiny tracking-widest stack to a
-   real masthead label. */
-:root[data-skin="editorial"]
-  .skin-sidebar-shell
-  > aside
-  [class*="uppercase"][class*="tracking"] {
-  color: var(--ed-press) !important;
-  font-family: "Playfair Display", Georgia, serif !important;
-  font-size: 0.78rem !important;
-  font-weight: 900 !important;
-  letter-spacing: 0.14em !important;
-  border-bottom: 1px solid var(--ed-ink);
-  padding-bottom: 0.35rem;
-  margin-bottom: 0.5rem !important;
-}
-
-/* NavItem buttons: flat row + page-number on the right via
-   CSS counter. The counter resets at the aside root and
-   increments per button — same trick as printed indexes. */
-:root[data-skin="editorial"]
-  .skin-sidebar-shell
-  > aside
-  button:where(:has(> div.flex.flex-col)) {
-  counter-increment: ed-nav;
-  padding: 0.55rem 0.75rem !important;
-  margin: 0 !important;
-  border-radius: 0 !important;
-  background-color: transparent !important;
-  color: var(--ed-ink-soft) !important;
-  font-family: "Lora", Georgia, serif !important;
-  font-weight: 500;
-  border-bottom: 1px dotted var(--ed-rule);
-  transition:
-    background-color 160ms ease,
-    color 160ms ease;
-}
-
-:root[data-skin="editorial"]
-  .skin-sidebar-shell
-  > aside
-  button:where(:has(> div.flex.flex-col))::after {
-  content: "P. " counter(ed-nav);
-  margin-left: auto;
-  padding-left: 1rem;
-  color: var(--ed-muted);
-  font-family: "Lora", Georgia, serif;
-  font-style: italic;
-  font-size: 0.78rem;
-  font-variant-numeric: tabular-nums;
-}
-
-:root[data-skin="editorial"]
-  .skin-sidebar-shell
-  > aside
-  button:where(:has(> div.flex.flex-col)):hover {
-  color: var(--ed-ink) !important;
-  background-color: var(--ed-press-soft) !important;
-}
-
-:root[data-skin="editorial"]
-  .skin-sidebar-shell
-  > aside
-  button[class*="bg-emerald"],
-:root[data-skin="editorial"]
-  .skin-sidebar-shell
-  > aside
-  button[aria-pressed="true"] {
-  color: var(--ed-press) !important;
-  background-color: transparent !important;
-  font-style: italic;
+/* The greeting: the display face in italic, as the 1.x lead was set. */
+:root[data-skin="editorial"] .fe-editorial {
   font-weight: 700;
-  border-left: 3px solid var(--ed-press);
-  padding-left: 0.5rem !important;
+  letter-spacing: -0.015em;
 }
-
-/* Nav icons: print line-art, no fill. */
-:root[data-skin="editorial"] .skin-sidebar-shell > aside button svg {
-  color: var(--ed-ink-soft);
-  stroke-width: 1.5;
-}
-
-/* Playlist cover thumbnails in the sidebar: grayscale +
-   contrast bump so they read as printed halftones. */
-:root[data-skin="editorial"] .skin-sidebar-shell > aside img {
-  filter: grayscale(1) contrast(1.2);
-  border: 1px solid var(--ed-rule);
-  border-radius: 0 !important;
-}
-
-/* ============================================================
-   Main + body cards
-   ============================================================ */
-:root[data-skin="editorial"] main {
-  padding: 1rem 2.5rem 3rem !important;
-}
-
+/* Labels and kickers: Lora at 700, capitals, tracked wide. */
+:root[data-skin="editorial"] .fe-label,
+:root[data-skin="editorial"] [data-sidebar-section-title],
 :root[data-skin="editorial"]
   main
-  :where(
-    [class*="rounded-xl"],
-    [class*="rounded-2xl"],
-    [class*="rounded-3xl"]
-  ) {
+  [data-page-hero]
+  [class*="tracking-widest"][class*="uppercase"],
+:root[data-skin="editorial"]
+  main
+  [class*="text-[10px]"][class*="uppercase"]:not([class*="text-white"]),
+:root[data-skin="editorial"]
+  .fe-panel
+  [class*="text-[10px]"][class*="uppercase"],
+:root[data-skin="editorial"] .fe-panel__tab,
+:root[data-skin="editorial"] .fe-spectrum__ruler {
+  font-family: var(--fe-font) !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.16em !important;
+}
+/* The kickers that open a block take the rubric colour. */
+:root[data-skin="editorial"] .fe-label,
+:root[data-skin="editorial"] [data-sidebar-section-title],
+:root[data-skin="editorial"]
+  main
+  [data-page-hero]:not([class*="group/hero"])
+  [class*="tracking-widest"][class*="uppercase"] {
+  color: var(--fe-accent) !important;
+}
+/* Figures: old-style in running text, lining and tabular in columns. */
+:root[data-skin="editorial"] .fe-mono,
+:root[data-skin="editorial"] [data-track-table],
+:root[data-skin="editorial"] footer {
+  font-feature-settings:
+    "kern" 1,
+    "lnum" 1,
+    "tnum" 1;
+}
+
+/* ── The mark: a rule, not a wave ───────────────────────────── */
+/* The flow line under the section titles and the labels goes; the
+   title sits on a double rule instead, the way a broadsheet parts its
+   sections. The Settings h1's bar and the library tabs' marker become
+   a short ink rule. */
+:root[data-skin="editorial"] main section > header svg.fe-accent,
+:root[data-skin="editorial"] .fe-suggest svg.fe-accent {
+  display: none;
+}
+:root[data-skin="editorial"] main section > header h2.fe-title {
+  display: inline-block;
+  padding-bottom: 0.35rem;
+  border-bottom: 3px double var(--ed-ink);
+}
+:root[data-skin="editorial"] main :is(h1, h2)[class*="border-b-4"] {
+  padding-bottom: 0.35rem !important;
+  border-bottom: 3px double var(--ed-ink) !important;
+}
+:root[data-skin="editorial"] main :is(h1, h2)[class*="border-b-4"]::after,
+:root[data-skin="editorial"] .fe-panel__tab.is-active::after,
+:root[data-skin="editorial"]
+  [data-immersive]
+  [role="tab"][aria-selected="true"]::after,
+:root[data-skin="editorial"] [data-drop-title]::after {
+  mask: none;
+  -webkit-mask: none;
+  height: 2px;
+  width: 100%;
+  background-color: var(--ed-ink);
+}
+:root[data-skin="editorial"] main :is(h1, h2)[class*="border-b-4"]::after {
+  display: none;
+}
+:root[data-skin="editorial"]
+  main
+  h1
+  + div[class*="bg-emerald-500"][class*="h-1"] {
+  width: 3rem !important;
+  height: 3px !important;
+  mask: none;
+  -webkit-mask: none;
+  background-color: var(--ed-ink) !important;
+}
+:root[data-skin="editorial"]
+  main
+  button[class*="border-b-2"][class*="border-emerald-500"]::after {
+  mask: none;
+  -webkit-mask: none;
+  width: 100%;
+  height: 2px;
+  bottom: 0;
+  background-color: var(--ed-ink);
+}
+/* The marker of the open rail row and the chosen settings row: a solid
+   ink bar, no glow. */
+:root[data-skin="editorial"] [data-nav-item][data-active]::before,
+:root[data-skin="editorial"] [data-sidebar-row="playlist"][data-active]::before,
+:root[data-skin="editorial"] main button[class*="bg-emerald-50 "]::before {
+  width: 3px;
+  border-radius: 0;
+  background-color: var(--fe-accent);
+  box-shadow: none;
+}
+
+/* ── Square corners: paper has none ─────────────────────────── */
+:root[data-skin="editorial"] .fe-cta,
+:root[data-skin="editorial"] .fe-cta__icon,
+:root[data-skin="editorial"] .fe-icon-btn,
+:root[data-skin="editorial"] .fe-tile,
+:root[data-skin="editorial"] .fe-hero-cover,
+:root[data-skin="editorial"] .fe-spectrum,
+:root[data-skin="editorial"] .fe-spectrum__cta,
+:root[data-skin="editorial"] .fe-suggest,
+:root[data-skin="editorial"] .fe-panel__pill,
+:root[data-skin="editorial"] .fe-panel__lyrics,
+:root[data-skin="editorial"] .fe-panel__tab,
+:root[data-skin="editorial"] .fe-progress:focus-visible,
+:root[data-skin="editorial"] main [class*="rounded-[1.125rem]"],
+:root[data-skin="editorial"] main [class*="rounded-xl"],
+:root[data-skin="editorial"] main [class*="rounded-2xl"],
+:root[data-skin="editorial"] main [class*="rounded-3xl"],
+:root[data-skin="editorial"]
+  main
+  [data-page-hero]
+  button[class*="rounded-full"],
+:root[data-skin="editorial"]
+  main
+  button[class*="rounded-full"][class*="text-xs"],
+:root[data-skin="editorial"] main [data-page-hero] span[class*="rounded-full"],
+:root[data-skin="editorial"] [data-sidebar-profile],
+:root[data-skin="editorial"] [data-sidebar-profile] > div > div:first-child,
+:root[data-skin="editorial"] [data-nav-item],
+:root[data-skin="editorial"] [data-nav-item] > span:first-child,
+:root[data-skin="editorial"] [data-sidebar-row],
+:root[data-skin="editorial"]
+  [data-sidebar-row]
+  > div:first-child
+  > :is(img, div),
+:root[data-skin="editorial"] [data-topbar-left] button,
+:root[data-skin="editorial"] [data-topbar-right],
+:root[data-skin="editorial"] [data-topbar-profile],
+:root[data-skin="editorial"] [data-topbar-profile] > div:first-child,
+:root[data-skin="editorial"] [data-topbar-theme],
+:root[data-skin="editorial"] [data-topbar-theme] > div,
+:root[data-skin="editorial"] [data-topbar-search-field],
+:root[data-skin="editorial"] [data-topbar-search-field] > button,
+:root[data-skin="editorial"] [data-topbar-popover],
+:root[data-skin="editorial"] footer img,
+:root[data-skin="editorial"] footer :where(button),
+:root[data-skin="editorial"] footer [role="slider"],
+:root[data-skin="editorial"] footer [role="slider"] > div,
+:root[data-skin="editorial"] [role="dialog"]:not([data-immersive]),
+:root[data-skin="editorial"]
+  [role="dialog"]:not([data-immersive])
+  :is([class*="rounded-xl"], [class*="rounded-2xl"], [class*="rounded-lg"]),
+:root[data-skin="editorial"] [role="menu"],
+:root[data-skin="editorial"] [role="menu"] [role="menuitem"],
+:root[data-skin="editorial"] [role="listbox"],
+:root[data-skin="editorial"] [data-drop-target],
+:root[data-skin="editorial"] :where(input, textarea, select):not(header input),
+:root[data-skin="editorial"] ::-webkit-scrollbar-thumb {
   border-radius: 0 !important;
-  border: 1px solid var(--ed-rule) !important;
-  background-color: transparent !important;
-  background-image: none !important;
-  box-shadow: none !important;
-  backdrop-filter: none;
+}
+/* The avatars and the switch's knob stay round: a portrait is a vignette. */
+:root[data-skin="editorial"] [data-sidebar-profile] > div > div:first-child,
+:root[data-skin="editorial"] [data-topbar-profile] > div:first-child,
+:root[data-skin="editorial"] [data-topbar-theme],
+:root[data-skin="editorial"] [data-topbar-theme] > div {
+  border-radius: 9999px !important;
 }
 
-/* ============================================================
-   EditorialMasthead — mounted by HomeView
-   ============================================================
-   Real broadsheet top: edition info row, big Didone title,
-   subtitle quote between two rules. The component renders
-   the structure; the CSS gives it the print typography. */
+/* ── The halftone plate ─────────────────────────────────────── */
+:root[data-skin="editorial"] .fe-hero-cover img,
+:root[data-skin="editorial"] .fe-canvas__art .fe-tile img,
+:root[data-skin="editorial"] footer img,
+:root[data-skin="editorial"] [data-sidebar-row="playlist"] img,
+:root[data-skin="editorial"] .fe-panel__hero :is(img, video) {
+  filter: grayscale(1) contrast(1.25);
+}
+/* The dot screen over the canvas plate and the record on the bar; the
+   plate's frame is 2 px of ink, as the 1.x lead art's was. */
+:root[data-skin="editorial"] .fe-canvas__art figure::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: var(--ed-screen);
+  background-size: 3px 3px;
+  mix-blend-mode: multiply;
+  opacity: 0.55;
+}
+:root[data-skin="editorial"] .fe-hero-cover {
+  box-shadow: 0 0 0 2px var(--ed-ink);
+}
+:root[data-skin="editorial"] .fe-tile {
+  box-shadow: 0 0 0 1px var(--ed-rule);
+}
+:root[data-skin="editorial"] .fe-tile-hover:hover .fe-tile,
+:root[data-skin="editorial"] .fe-tile-hover:focus-visible .fe-tile {
+  transform: none;
+  box-shadow: 0 0 0 1px var(--ed-ink);
+}
+:root[data-skin="editorial"] .fe-tile-hover[aria-current="true"] .fe-tile {
+  box-shadow: 0 0 0 2px var(--fe-accent);
+}
+:root[data-skin="editorial"]
+  main
+  [data-page-hero]
+  :is([class*="w-44"], [class*="w-48"], [class*="w-40"])[class*="rounded"] {
+  box-shadow: 0 0 0 1px var(--ed-ink) !important;
+}
+/* The "Fig." caption under the canvas plate. */
+/* Below the strip of recent records, which hangs 2.25 rem under the
+   plate; the caption is right-aligned and would otherwise run under it. */
+:root[data-skin="editorial"] .fe-canvas__caption {
+  margin-top: 3.25rem;
+  color: var(--fe-ink-3);
+  font-style: italic;
+  font-size: 0.8125rem;
+  text-align: right;
+}
+
+/* ── The masthead (`EditorialMasthead`, over the canvas) ─────── */
+/* The edition strip, the title in the display face, the 4 + 1 rule, the
+   subtitle quoted between two rules: the 1.x top of the page, kept. */
 :root[data-skin="editorial"] .editorial-masthead {
-  margin-bottom: 2rem;
+  margin-bottom: 3rem;
   text-align: center;
-  font-family: "Playfair Display", Georgia, serif;
 }
-
 :root[data-skin="editorial"] .editorial-masthead__strip {
   display: flex;
   justify-content: space-between;
@@ -337,24 +410,21 @@
   padding-bottom: 0.5rem;
   border-bottom: 1px solid var(--ed-ink);
   color: var(--ed-ink);
-  font-family: "Lora", Georgia, serif;
-  font-size: 0.72rem;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
 }
-
 :root[data-skin="editorial"] .editorial-masthead__title {
   margin: 1rem 0 0.25rem;
   color: var(--ed-ink);
-  font-family: "Playfair Display", Georgia, serif;
-  font-size: clamp(3.5rem, 7vw, 6.5rem);
+  font-family: var(--ed-display);
+  font-size: clamp(3.25rem, 6.5vw, 6rem);
   font-weight: 900;
   line-height: 0.9;
   letter-spacing: -0.04em;
   text-transform: uppercase;
 }
-
 :root[data-skin="editorial"] .editorial-masthead__title-suffix {
   display: block;
   margin-top: 0.25rem;
@@ -364,586 +434,940 @@
   letter-spacing: 0;
   text-transform: none;
 }
-
 :root[data-skin="editorial"] .editorial-masthead__rule {
+  height: 6px;
   margin: 0.5rem 0 0.75rem;
   border: 0;
   border-top: 4px solid var(--ed-ink);
   border-bottom: 1px solid var(--ed-ink);
-  height: 6px;
 }
-
 :root[data-skin="editorial"] .editorial-masthead__subtitle {
   max-width: 42rem;
   margin: 0 auto;
   padding: 0.5rem 0;
   border-top: 1px solid var(--ed-ink);
   border-bottom: 1px solid var(--ed-ink);
-  color: var(--ed-ink-soft);
-  font-family: "Lora", Georgia, serif;
-  font-size: 1.05rem;
+  color: var(--fe-ink-2);
+  font-size: 1rem;
   font-style: italic;
   line-height: 1.4;
 }
 
-/* ============================================================
-   HomeView front-page layout
-   ============================================================ */
-:root[data-skin="editorial"] .editorial-home {
-  max-width: 80rem;
-  margin-inline: auto;
-}
-
-:root[data-skin="editorial"] .editorial-front-page {
-  padding: 0;
-  border-bottom: 4px solid var(--ed-ink);
-  /* Wipe the v1 ::before/::after that injected a fake masthead —
-     the real one comes from <EditorialMasthead> now. */
-}
-
-:root[data-skin="editorial"] .editorial-front-page::before,
-:root[data-skin="editorial"] .editorial-front-page::after {
-  display: none !important;
-}
-
-:root[data-skin="editorial"] .editorial-front-page > * {
-  margin-top: 0;
-}
-
-/* Hero column: a real article. Drop the rounded gradient card,
-   drop the emerald glow halos (they sit inside as div siblings),
-   keep the content. */
-:root[data-skin="editorial"] .editorial-hero {
-  display: block !important;
-  min-height: 0 !important;
-  padding: 1.5rem 2rem !important;
-  color: var(--ed-ink);
-  background-color: transparent !important;
-  background-image: none !important;
-  border: 0 !important;
-  border-right: 1px solid var(--ed-ink) !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-}
-
-@media (max-width: 1279px) {
-  :root[data-skin="editorial"] .editorial-hero {
-    border-right: 0 !important;
-    border-bottom: 1px solid var(--ed-ink) !important;
-  }
-}
-
-/* Kill the emerald glow halos. */
-:root[data-skin="editorial"] .editorial-hero > [aria-hidden="true"] {
-  display: none !important;
-}
-
-:root[data-skin="editorial"] .editorial-hero .inline-flex {
-  margin-bottom: 1rem;
-  padding: 0 !important;
-  color: var(--ed-press) !important;
-  /* `background: transparent` shorthand is enough — it resets
-     background-color + background-image + every other bg sub-
-     property in one go, so a separate `background-color:
-     transparent` was redundant. */
-  background: transparent !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  font-family: "Lora", Georgia, serif;
-  font-size: 0.72rem;
-  font-style: normal;
-  font-weight: 800;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-}
-
-:root[data-skin="editorial"] .editorial-hero .inline-flex > div {
-  display: none;
-}
-
-:root[data-skin="editorial"] .editorial-hero .inline-flex::before {
-  content: "●";
-  margin-right: 0.5rem;
-  color: var(--ed-press);
-  font-size: 0.6rem;
-  animation: ed-pulse 2s ease-in-out infinite;
-}
-
-@keyframes ed-pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.4;
-  }
-}
-
-:root[data-skin="editorial"] .editorial-hero h1 {
-  max-width: 14ch;
-  margin-bottom: 1rem;
-  color: var(--ed-ink) !important;
-  font-family: "Playfair Display", Georgia, serif !important;
-  font-size: clamp(2.75rem, 4.5vw, 4.25rem) !important;
-  font-weight: 900;
-  line-height: 0.92;
-  letter-spacing: -0.03em;
-}
-
-/* Cover image fig block. The outer `<figure>` carries no
-   visual border — it's just the layout shell. The framed
-   halftone image lives in `__frame` (border + overflow:hidden
-   so the cover doesn't bleed past the inked rectangle), and
-   the dynamic `<figcaption>` sits as a sibling so it renders
-   OUTSIDE the frame's overflow box (which would otherwise
-   clip a pseudo-element caption — the bug in the previous
-   ::after implementation). */
-:root[data-skin="editorial"] .editorial-lead-art {
-  margin: 1rem 0 0.4rem;
-}
-
-:root[data-skin="editorial"] .editorial-lead-art__frame {
-  width: 100%;
-  height: clamp(11rem, 22vw, 17rem);
-  overflow: hidden;
-  border: 2px solid var(--ed-ink);
-  background-color: var(--ed-ink);
-}
-
-:root[data-skin="editorial"] .editorial-lead-art__frame :where(img, picture) {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  filter: grayscale(1) contrast(1.3);
-  mix-blend-mode: luminosity;
-}
-
-:root[data-skin="editorial"] .editorial-lead-art-fallback {
-  display: grid;
-  place-items: center;
-  width: 100%;
-  height: 100%;
-  background:
-    radial-gradient(circle, rgb(240 235 216 / 0.16) 0 2px, transparent 2px) 0
-      0 / 14px 14px,
-    var(--ed-ink);
-  color: var(--ed-paper);
-}
-
-:root[data-skin="editorial"] .editorial-lead-art__caption {
-  display: block;
-  margin-top: 0.35rem;
-  color: var(--ed-muted);
-  font-family: "Lora", Georgia, serif;
-  font-size: 0.78rem;
-  font-style: italic;
-  text-align: right;
-}
-
-/* Lede paragraph with drop cap. The hero <p> Tailwind class
-   chain gets fully overridden. */
-:root[data-skin="editorial"] .editorial-hero p {
-  max-width: 38rem;
-  margin: 1.25rem 0 1.5rem;
-  color: var(--ed-ink-soft) !important;
-  font-family: "Lora", Georgia, serif !important;
-  font-size: 1.1rem;
-  line-height: 1.65;
-  text-align: justify;
-  hyphens: auto;
-}
-
-:root[data-skin="editorial"] .editorial-hero p::first-letter {
-  float: left;
-  margin: 0.3rem 0.55rem 0 0;
-  color: var(--ed-ink);
-  font-family: "Playfair Display", Georgia, serif;
-  font-size: 4.6rem;
-  font-weight: 900;
-  line-height: 0.8;
-}
-
-/* CTA row. */
-:root[data-skin="editorial"] .editorial-hero [class*="gap-6"] {
-  gap: 1.5rem;
-  padding-top: 0.5rem;
-  border-top: 1px solid var(--ed-rule);
-}
-
-:root[data-skin="editorial"] .editorial-hero [class*="gap-6"] button {
-  padding: 0.5rem 1rem;
-  border: 2px solid var(--ed-ink) !important;
-  border-radius: 0 !important;
-  background-color: transparent !important;
-  color: var(--ed-ink) !important;
-  font-family: "Lora", Georgia, serif !important;
-  font-weight: 700;
-  font-size: 0.85rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  transition:
-    background-color 160ms ease,
-    color 160ms ease;
-}
-
-:root[data-skin="editorial"] .editorial-hero [class*="gap-6"] button:hover {
+/* ── The primary action: ink, a square ──────────────────────── */
+/* The layout fills every `bg-emerald-500 … text-white` button with the
+   accent through a two-attribute selector, `!important`. The page hero's
+   primary and the player's play button carry those classes, so their
+   ink here has to outweigh it: the root is matched on the skin AND the
+   layout, and the play button with `:is`, not `:where`. */
+:root[data-skin="editorial"] .fe-cta,
+:root[data-skin="editorial"] .fe-spectrum__cta,
+:root[data-skin="editorial"][data-layout="fluid"]
+  main
+  [data-page-hero]
+  button:where(
+    [class*="bg-emerald-500"],
+    [class*="bg-pink-500"],
+    [class*="rounded-full"][class*="text-white"]:not([class*="w-10"]):not(
+        [class*="absolute"]
+      )
+  ),
+:root[data-skin="editorial"][data-layout="fluid"]
+  footer
+  button:is([class*="bg-emerald-500"], [class*="bg-emerald-600"]) {
   background-color: var(--ed-ink) !important;
   color: var(--ed-paper) !important;
-}
-
-/* ============================================================
-   Stats column (right side of front-page grid)
-   ============================================================ */
-:root[data-skin="editorial"] .editorial-stats {
-  padding: 0;
-  border-top: 0;
-  border-bottom: 0;
-}
-
-:root[data-skin="editorial"] .editorial-stats > * {
-  min-height: 0 !important;
-  padding: 0.85rem 1rem !important;
-  border: 0 !important;
-  border-bottom: 1px solid var(--ed-rule) !important;
-  background-color: transparent !important;
-  border-radius: 0 !important;
-}
-
-:root[data-skin="editorial"] .editorial-stats > *:last-child {
-  border-bottom: 0 !important;
-}
-
-:root[data-skin="editorial"] .editorial-stats [class*="w-12"] {
-  width: 2.5rem !important;
-  height: 2.5rem !important;
-  color: var(--ed-press) !important;
-  background-color: var(--ed-press-soft) !important;
-  border: 1px solid var(--ed-press) !important;
-  border-radius: 0 !important;
-}
-
-:root[data-skin="editorial"] .editorial-stats [class*="text-xl"] {
-  color: var(--ed-ink) !important;
-  font-family: "Playfair Display", Georgia, serif !important;
-  font-size: 1.85rem !important;
-  font-weight: 900;
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-}
-
-/* ============================================================
-   Section headings
-   ============================================================ */
-:root[data-skin="editorial"] section h2 {
-  color: var(--ed-ink) !important;
-  font-family: "Playfair Display", Georgia, serif !important;
-  font-size: 1.7rem !important;
-  font-weight: 900;
-  line-height: 1;
-  border: 0 !important;
-  border-bottom: 3px double var(--ed-ink) !important;
-  padding-bottom: 0.3rem;
-  margin-bottom: 1.5rem;
-}
-
-/* ============================================================
-   Mood radio — newspaper rubric grid
-   ============================================================ */
-:root[data-skin="editorial"] .editorial-mood-section {
-  margin-top: 2rem;
-}
-
-:root[data-skin="editorial"] .editorial-mood-section > div:first-child span {
-  color: var(--ed-muted) !important;
-  font-family: "Lora", Georgia, serif;
-  font-style: italic;
-}
-
-:root[data-skin="editorial"] .editorial-mood-grid {
-  border-top: 2px solid var(--ed-ink);
-  border-left: 2px solid var(--ed-ink);
-}
-
-:root[data-skin="editorial"] .editorial-mood-tile {
-  min-height: 9rem;
-  padding: 1.2rem !important;
-  color: var(--ed-ink) !important;
-  background: transparent !important;
-  background-image: none !important;
-  border: 0 !important;
-  border-right: 2px solid var(--ed-ink) !important;
-  border-bottom: 2px solid var(--ed-ink) !important;
-  border-radius: 0 !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.06em;
   box-shadow: none !important;
   transition:
-    background-color 200ms ease,
-    color 200ms ease;
+    background-color 180ms var(--fe-ease),
+    color 180ms var(--fe-ease);
 }
-
-:root[data-skin="editorial"] .editorial-mood-tile:hover {
-  color: var(--ed-paper) !important;
-  background-color: var(--ed-ink) !important;
+:root[data-skin="editorial"] .fe-cta {
+  height: 2.75rem;
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+}
+:root[data-skin="editorial"] .fe-cta__icon {
+  background-color: rgb(240 235 216 / 0.16);
+}
+:root[data-skin="editorial"] .fe-cta:hover,
+:root[data-skin="editorial"] .fe-spectrum__cta:hover:not(:disabled),
+:root[data-skin="editorial"][data-layout="fluid"]
+  main
+  [data-page-hero]
+  button:where(
+    [class*="bg-emerald-500"],
+    [class*="bg-pink-500"],
+    [class*="rounded-full"][class*="text-white"]:not([class*="w-10"]):not(
+        [class*="absolute"]
+      )
+  ):hover:not(:disabled),
+:root[data-skin="editorial"][data-layout="fluid"]
+  footer
+  button:is([class*="bg-emerald-500"], [class*="bg-emerald-600"]):hover:not(
+    :disabled
+  ) {
+  filter: none;
   transform: none;
+  background-color: var(--fe-accent) !important;
+  color: var(--fe-accent-ink) !important;
 }
-
-:root[data-skin="editorial"] .editorial-mood-tile:hover * {
-  color: var(--ed-paper) !important;
-  border-color: var(--ed-paper) !important;
+/* Their resting shadow is `!important`, so the focus ring is too. */
+:root[data-skin="editorial"] .fe-cta:focus-visible,
+:root[data-skin="editorial"] .fe-spectrum__cta:focus-visible,
+:root[data-skin="editorial"][data-layout="fluid"]
+  main
+  [data-page-hero]
+  button:where(
+    [class*="bg-emerald-500"],
+    [class*="bg-pink-500"],
+    [class*="rounded-full"][class*="text-white"]:not([class*="w-10"]):not(
+        [class*="absolute"]
+      )
+  ):focus-visible,
+:root[data-skin="editorial"][data-layout="fluid"]
+  footer
+  button:is(
+    [class*="bg-emerald-500"],
+    [class*="bg-emerald-600"]
+  ):focus-visible {
+  outline: 0;
+  box-shadow:
+    0 0 0 2px var(--ed-paper),
+    0 0 0 4px var(--fe-accent) !important;
 }
-
-:root[data-skin="editorial"] .editorial-mood-icon {
-  width: 2.25rem !important;
-  height: 2.25rem !important;
-  color: var(--ed-press) !important;
-  background-color: transparent !important;
-  border: 1px solid var(--ed-press) !important;
-  border-radius: 0 !important;
-}
-
-:root[data-skin="editorial"] .editorial-mood-tile > div:nth-child(2) {
-  font-family: "Playfair Display", Georgia, serif !important;
-  font-size: 1.25rem !important;
-  font-weight: 900;
-  letter-spacing: -0.01em;
-}
-
-:root[data-skin="editorial"] .editorial-mood-tile > div:nth-child(3) {
-  color: var(--ed-ink-soft) !important;
-  font-family: "Lora", Georgia, serif;
+/* Links: ink, underlined in the running-text way. */
+:root[data-skin="editorial"] .fe-link {
   font-style: italic;
-  font-size: 0.88rem;
-  line-height: 1.4;
 }
-
-:root[data-skin="editorial"] .editorial-mood-tile > div:last-child {
-  margin-top: auto;
-  padding-top: 0.6rem;
-  border-top: 1px dashed var(--ed-ink);
+:root[data-skin="editorial"] .fe-link:hover {
+  color: var(--fe-accent);
+}
+:root[data-skin="editorial"] .fe-icon-btn:hover {
+  color: var(--ed-ink);
+  background-color: transparent;
+  box-shadow: inset 0 0 0 1px var(--ed-ink);
+}
+/* Ghost pills and chips: a 1 px frame on paper, ink on hover. */
+:root[data-skin="editorial"]
+  main
+  [data-page-hero]
+  button[class*="border"][class*="px-"],
+:root[data-skin="editorial"]
+  main
+  button[class*="rounded-full"][class*="text-xs"][class*="bg-zinc-100"],
+:root[data-skin="editorial"]
+  main
+  [data-page-hero]
+  span[class*="rounded-full"][class*="bg-zinc-100"] {
+  background-color: transparent !important;
   color: var(--ed-ink) !important;
-  font-family: "Lora", Georgia, serif;
-  font-size: 0.72rem !important;
-  font-weight: 800;
-  letter-spacing: 0.08em;
+  box-shadow: inset 0 0 0 1px var(--ed-ink) !important;
+  transition:
+    color 180ms var(--fe-ease),
+    background-color 180ms var(--fe-ease);
+}
+:root[data-skin="editorial"]
+  main
+  [data-page-hero]
+  button[class*="border"][class*="px-"] {
+  height: 2.75rem;
+  font-size: 0.8125rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+:root[data-skin="editorial"]
+  main
+  [data-page-hero]
+  button[class*="border"][class*="px-"]:hover:not(:disabled),
+:root[data-skin="editorial"]
+  main
+  button[class*="rounded-full"][class*="text-xs"][class*="bg-zinc-100"]:hover {
+  background-color: var(--ed-ink) !important;
+  color: var(--ed-paper) !important;
+}
+:root[data-skin="editorial"]
+  main
+  button[class*="rounded-full"][class*="text-xs"][class*="bg-emerald-500"] {
+  background-color: var(--ed-ink) !important;
+  color: var(--ed-paper) !important;
+}
+/* Icon actions in a hero: a frame on hover. */
+:root[data-skin="editorial"]
+  main
+  [data-page-hero]
+  div[class*="p-1"][class*="rounded-xl"][class*="border"]
+  button:hover:not(:disabled) {
+  background-color: transparent !important;
+  box-shadow: inset 0 0 0 1px var(--ed-ink);
+}
+/* The page hero's primary action and ghost pills keep their shape. */
+:root[data-skin="editorial"][data-layout="fluid"]
+  main
+  [data-page-hero]
+  button:where(
+    [class*="bg-emerald-500"],
+    [class*="bg-pink-500"],
+    [class*="rounded-full"][class*="text-white"]:not([class*="w-10"]):not(
+        [class*="absolute"]
+      )
+  ) {
+  height: 2.75rem;
+  font-size: 0.8125rem !important;
   text-transform: uppercase;
 }
 
-/* Hover overrides — placed AFTER the per-row rules so equal
-   specificity (`> div` matches the same shape as `> div:nth-
-   child(n)`) gets resolved by source order. The earlier
-   `:hover *` rule loses against `> div:nth-child(n)` because
-   the universal `*` counts 0 — a (0,3,0) hover beats nothing
-   against a (0,3,2) per-row rule. These restate the targets
-   with the same `> div` shape + the hover pseudo so the cream
-   colour wins on the title, subtitle, AND count row. */
-:root[data-skin="editorial"] .editorial-mood-tile:hover > div {
-  color: var(--ed-paper) !important;
-  border-color: var(--ed-paper) !important;
-}
-
-:root[data-skin="editorial"] .editorial-mood-tile:hover > div:last-child {
-  border-top-color: var(--ed-paper) !important;
-}
-
-/* ============================================================
-   PlayerBar — newspaper footer with ruler-tick progress bar
-   ============================================================ */
-:root[data-skin="editorial"] footer {
-  margin: 0;
-  padding: 0.5rem 1.5rem;
-  color: var(--ed-ink);
+/* ── The rail: the index column ─────────────────────────────── */
+/* Paper, a 2 px rule on its right; the wordmark in the display face;
+   the modules framed; the open one in ink; a page number on each. */
+:root[data-skin="editorial"] .skin-sidebar-shell > aside {
+  color: var(--fe-ink-2);
   background-color: var(--ed-paper) !important;
-  background-image: var(--ed-grain) !important;
-  border-top: 4px solid var(--ed-ink) !important;
-  border-radius: 0 !important;
-  box-shadow: none;
-  overflow: visible;
-  position: relative;
+  background-image: none !important;
+  box-shadow: 2px 0 0 var(--ed-ink) !important;
+  counter-reset: ed-page;
 }
-
-/* The "rule below the masthead" trick — a 1px line just under
-   the 4px border, like newspaper top mastheads. */
-:root[data-skin="editorial"] footer::before {
-  content: "";
+:root[data-skin="editorial"] [data-sidebar-brand] {
+  font-family: var(--ed-display);
+  font-size: 1.375rem;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  color: var(--ed-ink);
+}
+:root[data-skin="editorial"] [data-sidebar-brand] svg {
+  color: var(--ed-ink);
+}
+:root[data-skin="editorial"] [data-sidebar-profile] {
+  background-color: transparent !important;
+  box-shadow: inset 0 0 0 1px var(--ed-ink);
+  transition: background-color 180ms var(--fe-ease);
+}
+:root[data-skin="editorial"] [data-sidebar-profile]:hover {
+  background-color: var(--fe-tone-1) !important;
+}
+:root[data-skin="editorial"] [data-sidebar-profile] > div > div:first-child {
+  background-image: none !important;
+  background-color: var(--ed-ink) !important;
+  color: var(--ed-paper) !important;
+  font-family: var(--ed-display);
+  font-weight: 900;
+}
+:root[data-skin="editorial"] [data-sidebar-nav] [data-nav-item],
+:root[data-skin="editorial"] [data-sidebar-row="pinned"] {
+  position: relative;
+  counter-increment: ed-page;
+  background-color: transparent !important;
+  box-shadow: inset 0 0 0 1px var(--ed-rule);
+  transition:
+    color 180ms var(--fe-ease),
+    background-color 180ms var(--fe-ease),
+    box-shadow 180ms var(--fe-ease);
+}
+/* The page number, in the corner of each module. */
+:root[data-skin="editorial"] [data-sidebar-nav] [data-nav-item]::after,
+:root[data-skin="editorial"] [data-sidebar-row="pinned"]::after {
+  content: "P. " counter(ed-page);
   position: absolute;
-  inset: 6px 0 auto;
-  height: 1px;
-  background: var(--ed-ink);
+  top: 0.625rem;
+  right: 0.75rem;
+  color: var(--fe-ink-3);
+  font-size: 0.6875rem;
+  font-style: italic;
+  font-variant-numeric: tabular-nums;
   pointer-events: none;
 }
-
-:root[data-skin="editorial"] footer :where(button) {
-  border: 1px solid var(--ed-ink) !important;
-  border-radius: 0 !important;
-  background-color: transparent !important;
-  color: var(--ed-ink) !important;
-  box-shadow: none !important;
+:root[data-skin="editorial"]
+  .skin-sidebar-shell[data-collapsed]
+  [data-nav-item]::after,
+:root[data-skin="editorial"]
+  .skin-sidebar-shell[data-collapsed]
+  [data-sidebar-row="pinned"]::after {
+  display: none;
 }
-
-:root[data-skin="editorial"] footer :where(button:hover) {
+:root[data-skin="editorial"]
+  [data-sidebar-nav]
+  [data-nav-item]
+  > span:first-child {
+  background-color: transparent;
+  box-shadow: inset 0 0 0 1px var(--ed-rule);
+  transition:
+    color 180ms var(--fe-ease),
+    background-color 180ms var(--fe-ease),
+    box-shadow 180ms var(--fe-ease);
+}
+:root[data-skin="editorial"] [data-sidebar-nav] [data-nav-item] > div > span {
+  font-weight: 600;
+}
+:root[data-skin="editorial"] [data-sidebar-nav] [data-nav-item]:hover,
+:root[data-skin="editorial"] [data-sidebar-row="pinned"]:hover {
+  background-color: var(--fe-tone-1) !important;
+  box-shadow: inset 0 0 0 1px var(--ed-ink);
+}
+:root[data-skin="editorial"] [data-sidebar-nav] [data-nav-item][data-active],
+:root[data-skin="editorial"] [data-sidebar-row="pinned"][data-active] {
   color: var(--ed-paper) !important;
   background-color: var(--ed-ink) !important;
+  box-shadow: inset 0 0 0 1px var(--ed-ink);
+}
+:root[data-skin="editorial"]
+  [data-sidebar-nav]
+  [data-nav-item][data-active]
+  > span:first-child {
+  color: var(--ed-paper);
+  background-color: transparent;
+  box-shadow: inset 0 0 0 1px rgb(240 235 216 / 0.5);
+}
+:root[data-skin="editorial"]
+  [data-sidebar-nav]
+  [data-nav-item][data-active]::after,
+:root[data-skin="editorial"] [data-sidebar-row="pinned"][data-active]::after {
+  color: rgb(240 235 216 / 0.7);
+}
+:root[data-skin="editorial"]
+  [data-sidebar-row="pinned"][data-active]
+  div[class*="text-sm"],
+:root[data-skin="editorial"]
+  [data-sidebar-row="pinned"][data-active]
+  div[class*="text-[11px]"] {
+  color: var(--ed-paper) !important;
+}
+:root[data-skin="editorial"]
+  [data-sidebar-row="pinned"][data-active]
+  > div:first-child
+  > div {
+  background-color: transparent !important;
+  color: var(--ed-paper) !important;
+  box-shadow: inset 0 0 0 1px rgb(240 235 216 / 0.5);
+}
+:root[data-skin="editorial"] [data-sidebar-row="pinned"] [class*="bg-pink"],
+:root[data-skin="editorial"] [data-sidebar-row="pinned"] [class*="bg-blue"] {
+  background-color: transparent !important;
+  box-shadow: inset 0 0 0 1px var(--ed-rule);
+}
+/* Section titles: the rubric colour on a rule. */
+:root[data-skin="editorial"] [data-sidebar-section-title] {
+  padding-bottom: 0.35rem !important;
+  border-bottom: 1px solid var(--ed-ink);
+}
+/* Playlist rows: parted by dotted rules, the open one on a tone. */
+:root[data-skin="editorial"] [data-sidebar-row="playlist"] {
+  border-bottom: 1px dotted var(--ed-rule);
+}
+:root[data-skin="editorial"] [data-sidebar-row="playlist"][data-active] {
+  background-color: var(--fe-tone-2) !important;
+}
+:root[data-skin="editorial"]
+  [data-sidebar-row="playlist"]
+  > div:first-child
+  > :is(img, div) {
+  box-shadow: 0 0 0 1px var(--ed-rule);
+}
+:root[data-skin="editorial"] [data-nav-item]:focus-visible,
+:root[data-skin="editorial"] [data-sidebar-row]:focus-visible {
+  outline: 2px solid var(--fe-accent);
+  outline-offset: -2px;
+}
+:root[data-skin="editorial"] .skin-sidebar-shell > aside [role="separator"] {
+  background-color: var(--ed-rule) !important;
 }
 
-:root[data-skin="editorial"] footer img {
-  filter: grayscale(1) contrast(1.25);
-  border: 1px solid var(--ed-ink);
-  border-radius: 0 !important;
+/* ── The control rail: a field with an underline ────────────── */
+:root[data-skin="editorial"] [data-topbar-left] button:hover:not(:disabled) {
+  background-color: transparent !important;
+  box-shadow: inset 0 0 0 1px var(--ed-ink) !important;
+}
+:root[data-skin="editorial"] [data-topbar-search-field] {
+  background-color: transparent !important;
+  box-shadow: inset 0 -1px 0 var(--ed-ink) !important;
+}
+:root[data-skin="editorial"] [data-topbar-search-field]:hover {
+  background-color: var(--fe-tone-1) !important;
+}
+:root[data-skin="editorial"] [data-topbar-search-field]:focus-within {
+  background-color: var(--fe-tone-1) !important;
+  box-shadow: inset 0 -2px 0 var(--fe-accent) !important;
+}
+:root[data-skin="editorial"] [data-topbar-search-field] input {
+  font-style: italic;
+}
+:root[data-skin="editorial"] [data-topbar-search-field] input::placeholder {
+  font-style: italic;
+}
+:root[data-skin="editorial"] [data-topbar-right] {
+  background-color: transparent;
+  box-shadow: inset 0 0 0 1px var(--ed-rule);
+}
+:root[data-skin="editorial"] [data-topbar-theme] {
+  background-color: var(--fe-tone-3) !important;
+  box-shadow: inset 0 0 0 1px var(--ed-rule);
+}
+:root[data-skin="editorial"] [data-topbar-theme] > div {
+  background-color: var(--ed-ink) !important;
+  color: var(--ed-paper) !important;
+}
+:root[data-skin="editorial"] [data-topbar-profile]:hover,
+:root[data-skin="editorial"] [data-topbar-profile][aria-expanded="true"] {
+  background-color: var(--fe-tone-2) !important;
+}
+:root[data-skin="editorial"] [data-topbar-profile] > div:first-child {
+  background-image: none !important;
+  background-color: var(--ed-ink) !important;
+  color: var(--ed-paper) !important;
 }
 
-/* Signature element: ruler-tick progress bar. We paint two
-   layers behind the slider thumb — a 1-pixel tick every 5% as
-   the major rule and a thicker tick every 25%. The slider's
-   native track is overridden via the wrapper container so the
-   ticks live behind the filled portion. */
-:root[data-skin="editorial"] footer [role="slider"] {
-  --ed-progress: var(--ed-ink);
+/* ── Floating sheets: menus, popovers, dialogs ──────────────── */
+/* Paper, a 1 px ink frame, the proof's hard shadow. */
+:root[data-skin="editorial"] [data-topbar-popover],
+:root[data-skin="editorial"] [role="dialog"]:not([data-immersive]),
+:root[data-skin="editorial"] [role="menu"],
+:root[data-skin="editorial"] [role="listbox"] {
+  background-color: var(--ed-paper) !important;
+  background-image: var(--ed-grain);
+  box-shadow:
+    inset 0 0 0 1px var(--ed-ink),
+    var(--ed-proof-shadow) !important;
+}
+:root[data-skin="editorial"] [role="menu"] [role="menuitem"]:hover,
+:root[data-skin="editorial"] [role="menu"] [role="menuitem"]:focus-visible,
+:root[data-skin="editorial"]
+  [data-topbar-popover]
+  :is([class*="hover:bg-zinc-50"], [class*="hover:bg-zinc-100"]):hover,
+:root[data-skin="editorial"] [class*="hover:bg-emerald-500"]:hover {
+  background-color: var(--ed-ink) !important;
+  color: var(--ed-paper) !important;
+}
+:root[data-skin="editorial"] [role="menu"] [role="separator"] {
+  background-color: var(--ed-rule) !important;
+}
+
+/* ── The player bar: the foot of the page, the ruler ────────── */
+/* The masthead's rule inverted — 3 px of ink and a 1 px rule under it
+   — parts the bar from the page; no gradient, no light. */
+:root[data-skin="editorial"] footer {
   position: relative;
+  color: var(--fe-ink);
+  background-color: var(--ed-paper) !important;
+  background-image: none !important;
+  box-shadow:
+    0 -3px 0 var(--ed-ink),
+    0 -5px 0 var(--ed-paper),
+    0 -6px 0 var(--ed-ink) !important;
+}
+:root[data-skin="editorial"] footer > div:last-child[class*="border-t"] {
+  border-color: var(--ed-rule) !important;
+  font-style: italic;
+}
+:root[data-skin="editorial"] footer img {
+  box-shadow: 0 0 0 1px var(--ed-ink);
+}
+:root[data-skin="editorial"] footer :where(button) {
+  transition:
+    color 180ms var(--fe-ease),
+    background-color 180ms var(--fe-ease),
+    box-shadow 180ms var(--fe-ease);
+}
+:root[data-skin="editorial"] footer :where(button:hover:not(:disabled)) {
+  color: var(--ed-ink) !important;
+}
+:root[data-skin="editorial"] footer :where(button:focus-visible) {
+  outline: 2px solid var(--fe-accent);
+  outline-offset: 1px;
+}
+:root[data-skin="editorial"] footer [class*="tabular"] {
+  color: var(--fe-ink-2) !important;
+}
+/* The signature: the progress as a ruler in picas. Minor ticks every
+   5 %, major ticks every 25 %, drawn behind the played part, which is
+   the rubric colour; the thumb a square of ink. The structure's
+   `inline` progress is the classic row, so this is the slider the
+   other skins round into a line. */
+:root[data-skin="editorial"] footer [role="slider"] {
   height: 0.875rem !important;
   background-color: transparent !important;
   background-image:
-    /* Major ticks every 25% (5% above baseline) */
     repeating-linear-gradient(90deg, var(--ed-ink) 0 1px, transparent 1px 25%),
-    /* Minor ticks every 5% */
     repeating-linear-gradient(90deg, var(--ed-rule) 0 1px, transparent 1px 5%) !important;
   background-position:
     0 bottom,
     0 bottom;
   background-size:
-    100% 0.4rem,
-    100% 0.25rem;
+    100% 0.5rem,
+    100% 0.3rem;
   background-repeat: no-repeat;
-  border: 1px solid var(--ed-ink) !important;
-  border-radius: 0 !important;
+  box-shadow: inset 0 0 0 1px var(--ed-ink);
+  overflow: visible;
 }
-
-/* The fill bar — child of the slider. Use the existing
-   nested div via aria role. */
-:root[data-skin="editorial"] footer [role="slider"] > div {
-  background-color: var(--ed-ink) !important;
+:root[data-skin="editorial"] footer [role="slider"] > div:first-child {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 0.5rem !important;
+  background-color: var(--fe-accent) !important;
   background-image: none !important;
-  border-radius: 0 !important;
-  height: 0.4rem !important;
-  align-self: end !important;
+  opacity: 0.85;
 }
-
-/* Hi-Res badge: turn it into a print stamp. */
-:root[data-skin="editorial"] footer [class*="text-[10px]"][class*="uppercase"] {
-  padding: 0.15rem 0.4rem !important;
-  border: 1px solid var(--ed-ink) !important;
+:root[data-skin="editorial"] footer [role="slider"] > div[class*="bg-white"] {
+  width: 0.5rem !important;
+  height: 1.125rem !important;
+  border: 0 !important;
+  background-color: var(--ed-ink) !important;
+  box-shadow: none !important;
+}
+/* The Hi-Res badge: an ink stamp. */
+:root[data-skin="editorial"]
+  :is(
+    span,
+    div
+  )[class*="bg-emerald-500"][class*="text-[10px]"][class*="rounded"] {
   border-radius: 0 !important;
   background-color: var(--ed-ink) !important;
   color: var(--ed-paper) !important;
-  font-family: "Lora", Georgia, serif !important;
-  font-weight: 900;
+  font-weight: 700 !important;
   letter-spacing: 0.1em;
+  box-shadow: none;
 }
 
-/* Time codes: tabular figures, no fancy color. */
-:root[data-skin="editorial"] footer [class*="text-xs"][class*="tabular"] {
-  font-family: "Lora", Georgia, serif !important;
-  font-variant-numeric: tabular-nums;
-  color: var(--ed-ink) !important;
+/* ── The side panel: the facing page ────────────────────────── */
+:root[data-skin="editorial"] .fe-panel {
+  background-color: var(--ed-paper);
+  background-image: none;
+  box-shadow: -2px 0 0 var(--ed-ink);
 }
-
-/* ============================================================
-   Modals + tooltips + popovers
-   ============================================================ */
-:root[data-skin="editorial"]
-  :where([role="dialog"], [role="tooltip"], [class*="shadow-lg"]):not(
-    [data-immersive]
-  ):not([data-immersive] *) {
+:root[data-skin="editorial"] .fe-panel > div > div:first-child {
+  box-shadow: inset 0 -1px 0 var(--ed-ink);
+}
+:root[data-skin="editorial"] .fe-panel__tab {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+}
+:root[data-skin="editorial"] .fe-panel__tab:hover {
+  background-color: transparent;
   color: var(--ed-ink);
-  background-color: var(--ed-paper) !important;
-  background-image: var(--ed-grain) !important;
-  border: 1px solid var(--ed-ink) !important;
-  border-radius: 0 !important;
-  box-shadow: 8px 8px 0 rgb(26 26 26 / 0.12) !important;
 }
-
-/* ============================================================
-   Type colour overrides — paint everything in ink
-   ============================================================ */
-:root[data-skin="editorial"]
-  :where(
-    .text-zinc-900,
-    .text-zinc-800,
-    .dark\:text-white,
-    .dark\:text-zinc-100,
-    .dark\:text-zinc-200
-  ):not([data-immersive] *) {
-  color: var(--ed-ink) !important;
+:root[data-skin="editorial"] .fe-panel__tab.is-active::after {
+  bottom: -1px;
+  width: 100%;
+  transform: none;
+  left: 0;
+  height: 3px;
 }
-
-:root[data-skin="editorial"]
-  :where(.text-zinc-700, .text-zinc-600, .dark\:text-zinc-300):not(
-    [data-immersive] *
-  ) {
-  color: var(--ed-ink-soft) !important;
-}
-
-:root[data-skin="editorial"]
-  :where(
-    .text-zinc-500,
-    .text-zinc-400,
-    .dark\:text-zinc-400,
-    .dark\:text-zinc-600
-  ):not([data-immersive] *) {
-  color: var(--ed-muted) !important;
-}
-
-:root[data-skin="editorial"]
-  :where(
-    .text-emerald-400,
-    .text-emerald-500,
-    .text-emerald-600,
-    .dark\:text-emerald-400
-  ):not([data-immersive] *) {
-  color: var(--ed-press) !important;
-}
-
-/* Inputs + form fields. */
-:root[data-skin="editorial"] :where(input, textarea, select):not(header input) {
+:root[data-skin="editorial"] .fe-panel__pill {
+  background-color: transparent;
   color: var(--ed-ink);
+  padding: 0 0.75rem;
+  font-weight: 700;
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  box-shadow: inset 0 0 0 1px var(--ed-ink);
+  transition:
+    color 180ms var(--fe-ease),
+    background-color 180ms var(--fe-ease);
+}
+:root[data-skin="editorial"] .fe-panel__pill:hover:not(:disabled) {
+  background-color: var(--ed-ink);
+  color: var(--ed-paper);
+}
+:root[data-skin="editorial"] .fe-panel__lyrics {
+  background-color: transparent;
+  box-shadow: inset 0 0 0 1px var(--ed-rule);
+  font-style: italic;
+  transition:
+    background-color 180ms var(--fe-ease),
+    box-shadow 180ms var(--fe-ease);
+}
+:root[data-skin="editorial"] .fe-panel__lyrics:hover {
+  background-color: var(--fe-tone-1);
+  box-shadow: inset 0 0 0 1px var(--ed-ink);
+}
+/* The hero: the plate under a stronger scrim, the identity in white
+   with a shadow — a pale plate under white type needs both. */
+:root[data-skin="editorial"] .fe-panel__hero {
+  box-shadow: inset 0 -2px 0 var(--ed-ink);
+}
+:root[data-skin="editorial"] .fe-panel__hero > div[class*="bg-linear-to-t"] {
+  background: linear-gradient(
+    to top,
+    rgb(26 26 26 / 0.92),
+    rgb(26 26 26 / 0.7) 55%,
+    transparent
+  ) !important;
+}
+:root[data-skin="editorial"]
+  .fe-panel__hero
+  > div[class*="bg-linear-to-t"]
+  :is(p, span, button, a) {
+  color: #fff !important;
+  text-shadow: 0 1px 8px rgb(0 0 0 / 0.55);
+}
+/* The lyrics: Lora, no blur — ink does not blur; the sung line in the
+   display face. */
+:root[data-skin="editorial"] .fe-panel ul > li > button {
+  filter: none;
+  opacity: 0.55;
+}
+:root[data-skin="editorial"]
+  .fe-panel
+  ul
+  > li:has(> button[class*="scale-[1.02]"])
+  + li
+  > button,
+:root[data-skin="editorial"]
+  .fe-panel
+  ul
+  > li:has(+ li > button[class*="scale-[1.02]"])
+  > button {
+  filter: none;
+  opacity: 0.8;
+}
+:root[data-skin="editorial"]
+  .fe-panel
+  ul
+  > li:has(> button[class*="scale-[1.02]"])
+  > button {
+  font-family: var(--ed-display);
+  font-weight: 900;
+  opacity: 1;
+}
+/* The queue's playing row: a tone and the rubric's edge. */
+:root[data-skin="editorial"] .fe-panel [class*="bg-emerald-50 "] {
+  background-color: var(--fe-tone-2) !important;
+  box-shadow: inset 3px 0 0 var(--fe-accent);
+}
+:root[data-skin="editorial"]
+  .fe-panel
+  :is([class*="hover:bg-zinc-50"], [class*="hover:bg-zinc-100"]):hover {
+  background-color: var(--fe-tone-2) !important;
+}
+
+/* ── The page: framed cards, ruled tables ───────────────────── */
+:root[data-skin="editorial"]
+  main
+  :where(
+    [class*="rounded-xl"],
+    [class*="rounded-2xl"],
+    [class*="rounded-3xl"]
+  ):where([class*="border"]):where(
+    :not(
+      button,
+      a,
+      input,
+      select,
+      textarea,
+      [data-artwork-hit-target],
+      [data-track-table],
+      [role="switch"],
+      [role="radio"]
+    )
+  ),
+:root[data-skin="editorial"] main details.settings-group,
+:root[data-skin="editorial"] main [data-folder-card],
+:root[data-skin="editorial"] main [class*="from-violet"],
+:root[data-skin="editorial"]
+  main
+  button[class*="rounded-2xl"][class*="border"][class*="p-4"] {
+  background-color: transparent !important;
+  box-shadow: inset 0 0 0 1px var(--ed-rule) !important;
+  transition:
+    background-color 180ms var(--fe-ease),
+    box-shadow 180ms var(--fe-ease);
+}
+:root[data-skin="editorial"] main [data-folder-card]:hover,
+:root[data-skin="editorial"]
+  main
+  button[class*="rounded-2xl"][class*="border"][class*="p-4"]:hover {
+  background-color: var(--fe-tone-1) !important;
+  box-shadow: inset 0 0 0 1px var(--ed-ink) !important;
+}
+:root[data-skin="editorial"] main [data-folder-card]:focus-within {
+  box-shadow: inset 0 0 0 2px var(--fe-accent) !important;
+}
+:root[data-skin="editorial"]
+  main
+  [data-folder-card]
+  > div:first-child
+  > div:first-child {
+  background-color: transparent !important;
+  color: var(--ed-ink) !important;
+  box-shadow: inset 0 0 0 1px var(--ed-ink);
+}
+/* The suggestion band and the Wrapped band: a frame, a tone. */
+:root[data-skin="editorial"] .fe-suggest,
+:root[data-skin="editorial"] main [class*="bg-[var(--fe-surface)]"] {
   background-color: var(--ed-paper-warm) !important;
-  border: 1px solid var(--ed-ink) !important;
-  border-radius: 0 !important;
-  font-family: "Lora", Georgia, serif;
+  box-shadow: inset 0 0 0 1px var(--ed-ink);
 }
-
+/* The drop cap: the artist's biography is the one block of running
+   text on a page. */
+:root[data-skin="editorial"]
+  main
+  div[class*="rounded-2xl"][class*="border"]
+  > p[class*="leading-relaxed"][class*="whitespace-pre-line"] {
+  font-size: 0.9375rem;
+  line-height: 1.7;
+  text-align: justify;
+}
+:root[data-skin="editorial"]
+  main
+  div[class*="rounded-2xl"][class*="border"]
+  > p[class*="leading-relaxed"][class*="whitespace-pre-line"]::first-letter {
+  float: left;
+  margin: 0.25rem 0.5rem 0 0;
+  color: var(--ed-ink);
+  font-family: var(--ed-display);
+  font-size: 3.6rem;
+  font-weight: 900;
+  line-height: 0.8;
+}
+/* White slabs and pale sub-cards (a sort button, a preview card, a
+   settings sub-card) become paper; a bordered one takes the ink frame.
+   Anchored on the class's start or on a space so a `hover:` variant is
+   never matched. */
+:root[data-skin="editorial"]
+  :is(main, [role="dialog"])
+  :is(
+    [class^="bg-white"],
+    [class*=" bg-white"],
+    [class^="bg-zinc-50"],
+    [class*=" bg-zinc-50"],
+    [class^="bg-zinc-100"],
+    [class*=" bg-zinc-100"]
+  ):not([data-immersive] *) {
+  background-color: var(--ed-paper-warm) !important;
+}
+:root[data-skin="editorial"]
+  main
+  button:is([class^="bg-white"], [class*=" bg-white"])[class*="border"] {
+  background-color: var(--ed-paper-warm) !important;
+  border-color: var(--ed-ink) !important;
+  border-radius: 0 !important;
+  color: var(--ed-ink) !important;
+}
+/* Inputs: paper, a 1 px frame, the rubric on focus. */
+:root[data-skin="editorial"] :where(input, textarea, select):not(header input) {
+  background-color: var(--ed-paper-warm) !important;
+  border-color: var(--ed-ink) !important;
+  transition:
+    border-color 180ms var(--fe-ease),
+    box-shadow 180ms var(--fe-ease);
+}
 :root[data-skin="editorial"] :where(input, textarea)::placeholder {
-  color: var(--ed-muted);
   font-style: italic;
 }
-
-/* ============================================================
-   Global surface neutralization
-   ============================================================
-   Tailwind bg utilities that paint stark-white or neutral-dark
-   sneak past every other rule because they don't go through
-   `rounded-xl` and don't live inside `main`. Catches:
-   - HistoryView day-section sticky headers (`bg-white dark:bg-
-     surface-dark`)
-   - Dropdown / popover bodies that aren't `shadow-lg`
-   - Modal preview cards (`bg-white border-zinc-200`)
-   - Onboarding + Settings sub-cards (`bg-zinc-50`)
-   `[class*="bg-X"]` is intentionally substring-broad — the
-   explicit `editorial-*` rules above carry `!important` so
-   they keep winning on their own elements. */
+/* The chosen row of a settings list: a tone, the rubric's bar. */
+:root[data-skin="editorial"] main button[class*="bg-emerald-50 "] {
+  background-color: var(--fe-tone-2) !important;
+}
+/* Genre chips in a hero. */
 :root[data-skin="editorial"]
-  :where(
-    [class*="bg-white"],
-    [class*="bg-zinc-50"],
-    [class*="bg-zinc-100"],
-    [class*="bg-zinc-200"],
-    [class*="bg-surface-light"]
-  ):not(header):not(footer):not([role="slider"]):not([role="slider"] *):not(
-    [data-immersive]
-  ):not([data-immersive] *) {
+  main
+  [data-page-hero]
+  span[class*="rounded-full"][class*="bg-zinc-100"] {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+/* The playlist backdrop: no pool of light. */
+:root[data-skin="editorial"] main [class*="--playlist-header"] {
+  background: none !important;
+}
+/* The artist banner: the scrim fades into the paper. */
+:root[data-skin="editorial"]
+  main
+  [data-page-hero][class*="group/hero"]
+  > [aria-hidden="true"]
+  > div[class*="bg-linear-to-t"] {
+  background: linear-gradient(
+    to top,
+    var(--ed-paper) 0%,
+    rgb(240 235 216 / 0.82) 24%,
+    rgb(240 235 216 / 0.3) 58%,
+    rgb(240 235 216 / 0.05) 100%
+  ) !important;
+}
+:root[data-skin="editorial"]
+  main
+  [data-page-hero][class*="group/hero"][class*="-mx-8"]
+  [class*="tracking-widest"][class*="uppercase"],
+:root[data-skin="editorial"]
+  main
+  [data-page-hero][class*="group/hero"][class*="-mx-8"]
+  :is(div, p)[class*="text-sm"] {
+  color: var(--fe-ink-2) !important;
+  text-shadow: none;
+}
+:root[data-skin="editorial"]
+  main
+  [data-page-hero][class*="group/hero"]
+  button[class*="border"][class*="px-"] {
   background-color: var(--ed-paper) !important;
-  background-image: var(--ed-grain) !important;
+  color: var(--ed-ink) !important;
+}
+:root[data-skin="editorial"]
+  main
+  [data-page-hero][class*="group/hero"]
+  button[class*="border"][class*="px-"]:hover:not(:disabled) {
+  background-color: var(--ed-ink) !important;
+  color: var(--ed-paper) !important;
 }
 
+/* ── Track tables: a rule under the header, dotted rows ─────── */
 :root[data-skin="editorial"]
+  [data-track-table]
+  [class*="sticky"][class*="grid"] {
+  background-color: var(--ed-paper) !important;
+  background-image: var(--ed-grain);
+  border-color: var(--ed-ink) !important;
+  box-shadow: inset 0 -1px 0 var(--ed-ink);
+}
+:root[data-skin="editorial"] [data-track-header] {
+  color: var(--ed-ink);
+}
+:root[data-skin="editorial"] [data-track-row] {
+  border-color: transparent !important;
+  background-image: linear-gradient(
+    90deg,
+    var(--ed-rule) 0 2px,
+    transparent 2px 5px
+  );
+  background-size: 5px 1px;
+  background-position: 0 100%;
+  background-repeat: repeat-x;
+}
+:root[data-skin="editorial"] [data-track-row][class*="bg-emerald-50 "] {
+  background-color: var(--fe-tone-2) !important;
+  box-shadow: inset 3px 0 0 var(--fe-accent);
+}
+:root[data-skin="editorial"] [data-track-row][class*="bg-emerald-50 "]:hover {
+  background-color: var(--fe-tone-3) !important;
+}
+
+/* ── Mood Radio: the engraving ──────────────────────────────── */
+/* Paper, five columns parted by rules, the waves in ink; the chosen
+   column set solid, paper type on ink. The band's gradient goes: no
+   colour but the rubric on a printed page. */
+:root[data-skin="editorial"] .fe-spectrum {
+  background-color: var(--ed-paper);
+  box-shadow: inset 0 0 0 1px var(--ed-ink);
+}
+:root[data-skin="editorial"] .fe-spectrum__band {
+  display: none;
+}
+:root[data-skin="editorial"] .fe-spectrum__seg + .fe-spectrum__seg {
+  box-shadow: inset 1px 0 0 var(--ed-ink);
+}
+:root[data-skin="editorial"] .fe-spectrum__seg:hover {
+  background-color: var(--fe-tone-1);
+}
+:root[data-skin="editorial"] .fe-spectrum__seg[data-checked="true"] {
+  background-color: var(--ed-ink);
+}
+:root[data-skin="editorial"] .fe-spectrum__radio {
+  color: var(--ed-ink);
+}
+:root[data-skin="editorial"] .fe-spectrum__radio:disabled {
+  color: var(--fe-ink-3);
+}
+:root[data-skin="editorial"]
+  .fe-spectrum__seg[data-checked="true"]
+  .fe-spectrum__radio {
+  color: var(--ed-paper);
+}
+:root[data-skin="editorial"] .fe-spectrum__radio [class*="text-white/"] {
+  color: inherit !important;
+  opacity: 0.7;
+}
+:root[data-skin="editorial"] .fe-spectrum__wave {
+  opacity: 0.7;
+}
+:root[data-skin="editorial"] .fe-spectrum__wave svg path {
+  stroke: currentColor;
+}
+:root[data-skin="editorial"] .fe-spectrum__radio:focus-visible {
+  outline-color: var(--fe-accent);
+}
+:root[data-skin="editorial"] .fe-spectrum__cta {
+  background-color: var(--ed-paper) !important;
+  color: var(--ed-ink) !important;
+  text-transform: uppercase;
+  font-size: 0.6875rem;
+}
+:root[data-skin="editorial"] .fe-spectrum__ruler {
+  color: var(--fe-ink-3);
+  border-top: 1px solid var(--ed-rule);
+  padding-top: 0.5rem;
+}
+
+/* ── The drop targets ───────────────────────────────────────── */
+:root[data-skin="editorial"] [data-drop-overlay] {
+  backdrop-filter: none;
+  background-color: rgb(240 235 216 / 0.85);
+}
+:root[data-skin="editorial"] [data-drop-target] {
+  background-color: var(--ed-paper);
+  box-shadow: inset 0 0 0 1px var(--ed-ink);
+}
+:root[data-skin="editorial"] [data-drop-target][data-active] {
+  background-color: var(--ed-paper-warm);
+  box-shadow:
+    inset 0 0 0 2px var(--fe-accent),
+    var(--ed-proof-shadow);
+  transform: none;
+}
+
+/* ── Scrollbars, selection: print ───────────────────────────── */
+:root[data-skin="editorial"] ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+:root[data-skin="editorial"] ::-webkit-scrollbar-track {
+  background: var(--ed-paper);
+  border-left: 1px solid var(--ed-rule);
+}
+html:root[data-skin="editorial"] ::-webkit-scrollbar-thumb {
+  background-color: var(--ed-ink);
+}
+html:root[data-skin="editorial"] ::-webkit-scrollbar-thumb:hover {
+  background-color: var(--fe-accent);
+}
+:root[data-skin="editorial"] * {
+  scrollbar-color: var(--ed-ink) transparent;
+}
+:root[data-skin="editorial"] ::selection {
+  background-color: var(--ed-ink);
+  color: var(--ed-paper);
+}
+
+/* ── The dark theme: still paper ────────────────────────────── */
+/* Editorial is not in the extended `dark` variant, but the dark THEME
+   puts `.dark` on the root and the `dark:` utilities of every
+   component fire. The structure paints most surfaces from the tokens;
+   what it does not reach — white type, zinc slabs, the dark hover of a
+   list — is folded back onto the inks and the paper here, as the 1.x
+   Editorial did. The immersive view is excluded: it is always dark. */
+:root[data-skin="editorial"].dark
+  :where(.dark\:text-white, .dark\:text-zinc-100, .dark\:text-zinc-200):not(
+    [data-immersive] *
+  ) {
+  color: var(--ed-ink) !important;
+}
+:root[data-skin="editorial"].dark
+  :where(.dark\:text-zinc-300):not([data-immersive] *) {
+  color: var(--ed-ink-soft) !important;
+}
+:root[data-skin="editorial"].dark
+  :where(.dark\:text-zinc-400, .dark\:text-zinc-500):not([data-immersive] *) {
+  color: var(--ed-muted) !important;
+}
+:root[data-skin="editorial"].dark
+  :where(.dark\:text-emerald-400):not([data-immersive] *) {
+  color: var(--fe-accent) !important;
+}
+:root[data-skin="editorial"].dark
   :where(
     [class*="dark:bg-zinc-700"],
     [class*="dark:bg-zinc-800"],
@@ -953,109 +1377,65 @@
     [data-immersive]
   ):not([data-immersive] *) {
   background-color: var(--ed-paper) !important;
-  background-image: var(--ed-grain) !important;
 }
-
-/* Sticky day-section headers: paint warm paper + a 1-px ink
-   rule underneath so they read as section masthead, not "white
-   bar over content". `[class*="sticky"]` catches the HistoryView
-   header (and any future sticky chrome) without us hand-listing
-   every component. */
-:root[data-skin="editorial"]
-  [class*="sticky"]:where(
-    [class*="bg-white"],
-    [class*="bg-zinc"],
-    [class*="bg-surface"],
-    [class*="dark:bg-"]
-  ) {
-  background-color: var(--ed-paper-warm) !important;
-  background-image: var(--ed-grain) !important;
-  border-bottom: 1px solid var(--ed-ink) !important;
-}
-
-/* Hover rows in menus + lists: stop flashing white-on-cream or
-   dark-on-cream. Soft press-tint matches the rest of the skin
-   and reads as "ink starts to settle here". */
-:root[data-skin="editorial"]
+:root[data-skin="editorial"].dark
   :where(
-    [class*="hover:bg-zinc-50"],
-    [class*="hover:bg-zinc-100"],
     [class*="dark:hover:bg-zinc-700"],
     [class*="dark:hover:bg-zinc-800"]
-  ):hover {
-  color: var(--ed-ink) !important;
-  background-color: var(--ed-press-soft) !important;
+  ):not([data-immersive] *):hover {
+  background-color: var(--fe-tone-2) !important;
+}
+:root[data-skin="editorial"].dark
+  :where([class*="dark:border-zinc-700"], [class*="dark:border-zinc-800"]):not(
+    [data-immersive] *
+  ) {
+  border-color: var(--ed-rule) !important;
 }
 
-/* Active row state on dropdown items + nav: solid ink press,
-   not the `bg-emerald-50` light tint that the rest of WaveFlow
-   uses. */
-:root[data-skin="editorial"]
-  :where([class*="bg-emerald-50"]):not(.editorial-mood-tile *) {
-  background-color: var(--ed-press-soft) !important;
-  color: var(--ed-press) !important;
-}
-
-/* ============================================================
-   Page-load: ink-bloom reveal on the front page
-   ============================================================
-   Subtle: paper rises 6px and fades in over 360 ms. Print
-   doesn't bounce or spring — `ease-out` with paper timing. */
-:root[data-skin="editorial"] main > * {
-  animation: ed-rise 0.36s cubic-bezier(0.4, 0, 0.2, 1) backwards;
-}
-
-@keyframes ed-rise {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
+/* ── Reduced motion: no lift, no transition of this file's ──── */
 @media (prefers-reduced-motion: reduce) {
-  :root[data-skin="editorial"] main > *,
-  :root[data-skin="editorial"] .editorial-hero .inline-flex::before {
-    animation: none !important;
+  :root[data-skin="editorial"] .fe-cta,
+  :root[data-skin="editorial"] .fe-spectrum__seg,
+  :root[data-skin="editorial"] [data-sidebar-nav] [data-nav-item],
+  :root[data-skin="editorial"] [data-sidebar-row="pinned"],
+  :root[data-skin="editorial"] [data-sidebar-profile],
+  :root[data-skin="editorial"] .fe-panel__pill,
+  :root[data-skin="editorial"] .fe-panel__lyrics,
+  :root[data-skin="editorial"] main [data-folder-card],
+  :root[data-skin="editorial"] footer :where(button) {
+    transition: none;
   }
 }
 
-/* ============================================================
-   Print-style scrollbars
-   ============================================================ */
-:root[data-skin="editorial"] ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+/* ── Reduced transparency, Linux, high contrast ─────────────── */
+/* Nothing here is translucent and nothing blurs, so the first two need
+   only the surface token the shared chrome reads. High contrast: the
+   layout's block brightens the inks for its dark ground; paper takes
+   them back down, and the rules go to full ink. */
+:root[data-skin="editorial"]:is([data-webkitgtk-safe], [data-contrast="high"]) {
+  --wf-contrast-surface: var(--ed-paper);
 }
-
-:root[data-skin="editorial"] ::-webkit-scrollbar-track {
-  background: var(--ed-paper);
-  border-left: 1px solid var(--ed-ink);
+:root[data-skin="editorial"][data-contrast="high"] {
+  --fe-ink-2: #262220;
+  --fe-ink-3: #3d3732;
+  --fe-hairline: rgb(26 26 26 / 0.55);
+  --fe-hairline-strong: rgb(26 26 26 / 0.85);
+  --ed-rule: rgb(26 26 26 / 0.55);
+  --ed-rule-soft: rgb(26 26 26 / 0.3);
+  --ed-muted: #3d3732;
+  --ed-ink-soft: #262220;
+  /* `app.css` lightens these for a dark ground when the theme is dark;
+     on paper they stay the light-ground values. */
+  --wf-zinc-400: oklch(38% 0.008 286.067);
+  --wf-zinc-500: oklch(31% 0.008 285.938);
+  --wf-zinc-600: oklch(26% 0.008 285.786);
 }
-
-:root[data-skin="editorial"] ::-webkit-scrollbar-thumb {
-  background-color: var(--ed-ink);
-  border-radius: 0;
-}
-
-:root[data-skin="editorial"] ::-webkit-scrollbar-thumb:hover {
-  background-color: var(--ed-press);
-}
-
-/* Icons only (80 px): no room for the heading or the print margins. */
-:root[data-skin="editorial"]
-  .skin-sidebar-shell[data-collapsed]
-  > aside
-  > div:first-child {
-  padding: 0 0.5rem 1rem !important;
-}
-
-:root[data-skin="editorial"]
-  .skin-sidebar-shell[data-collapsed]
-  > aside
-  > div:first-child::before {
+:root[data-skin="editorial"][data-contrast="high"] body::after,
+:root[data-skin="editorial"][data-contrast="high"]
+  .fe-canvas__art
+  figure::after {
   display: none;
+}
+:root[data-skin="editorial"][data-contrast="high"] .fe-spectrum__wave {
+  opacity: 1;
 }

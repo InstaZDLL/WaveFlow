@@ -85,7 +85,6 @@ export function MoodRadioGrid() {
     return () => window.removeEventListener(MOOD_OVERRIDES_EVENT, bump);
   }, []);
   const isLoungeSkin = skin.id === "lounge";
-  const isEditorialSkin = skin.id === "editorial";
   const isFluidLayout = skin.layout === "fluid";
 
   useEffect(() => {
@@ -193,15 +192,7 @@ export function MoodRadioGrid() {
   }
 
   return (
-    <section
-      className={
-        isLoungeSkin
-          ? "lounge-mood-section"
-          : isEditorialSkin
-            ? "editorial-mood-section"
-            : undefined
-      }
-    >
+    <section className={isLoungeSkin ? "lounge-mood-section" : undefined}>
       <div className="flex items-end justify-between gap-4 mb-6">
         <h2 className="text-2xl font-bold inline-block border-b-4 border-rose-500 pb-1 text-zinc-900 dark:text-white">
           {t("home.moodRadio.title")}
@@ -239,9 +230,7 @@ export function MoodRadioGrid() {
         className={
           isLoungeSkin
             ? "lounge-mood-grid grid grid-cols-1 sm:grid-cols-6 gap-4 auto-rows-[10.75rem]"
-            : isEditorialSkin
-              ? "editorial-mood-grid grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-0 auto-rows-[9.75rem]"
-              : "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4"
+            : "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4"
         }
       >
         {TILES.map(({ mood, icon: Icon, cardClass, iconClass }, index) => {
@@ -254,8 +243,6 @@ export function MoodRadioGrid() {
               : index === 4
                 ? "sm:col-span-2"
                 : "sm:col-span-2";
-          const editorialSpan =
-            index === 0 ? "md:col-span-2 xl:col-span-1" : "xl:col-span-1";
           return (
             <button
               key={mood}
@@ -265,28 +252,20 @@ export function MoodRadioGrid() {
               className={`relative overflow-hidden rounded-2xl p-5 text-left text-white shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-sm ${
                 isLoungeSkin
                   ? `lounge-mood-tile lounge-mood-${mood} flex flex-col ${loungeSpan}`
-                  : isEditorialSkin
-                    ? `editorial-mood-tile editorial-mood-${mood} flex flex-col ${editorialSpan}`
-                    : cardClass
+                  : cardClass
               }`}
               aria-label={t(`home.moodRadio.${mood}.title`)}
             >
               <div
                 className={`inline-flex items-center justify-center w-10 h-10 rounded-xl mb-3 ${
-                  isLoungeSkin
-                    ? "bg-white/10 text-rose-100"
-                    : isEditorialSkin
-                      ? "editorial-mood-icon"
-                      : iconClass
+                  isLoungeSkin ? "bg-white/10 text-rose-100" : iconClass
                 }`}
               >
                 <Icon size={20} />
               </div>
               <div
                 className={`font-semibold mb-1 ${
-                  (isLoungeSkin || isEditorialSkin) && index === 0
-                    ? "text-xl"
-                    : "text-base"
+                  isLoungeSkin && index === 0 ? "text-xl" : "text-base"
                 }`}
               >
                 {t(`home.moodRadio.${mood}.title`)}
@@ -296,7 +275,7 @@ export function MoodRadioGrid() {
               </div>
               <div
                 className={`text-[11px] font-medium text-white/70 ${
-                  isLoungeSkin || isEditorialSkin ? "mt-auto pt-4" : "mt-3"
+                  isLoungeSkin ? "mt-auto pt-4" : "mt-3"
                 }`}
               >
                 {disabled
