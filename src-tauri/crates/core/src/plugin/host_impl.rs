@@ -454,7 +454,7 @@ impl wit_host::http::Host for HostCtx {
         }
         let resp = match builder.send() {
             Ok(r) => r,
-            Err(e) => return Ok(Err(describe_error(&e))),
+            Err(e) => return Ok(Err(describe_error(&e.without_url()))),
         };
         let status = resp.status().as_u16();
         let headers = resp

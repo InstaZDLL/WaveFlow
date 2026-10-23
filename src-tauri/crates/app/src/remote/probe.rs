@@ -131,19 +131,19 @@ pub async fn detect(base_url: &str) -> AppResult<ServerFlavour> {
         .build()
         .map_err(|err| AppError::Other(format!("http client init: {err}")))?;
 
-    let response = http
-        .get(url)
-        .send()
-        .await
-        .map_err(|err| AppError::Other(format!("could not reach the server: {err}")))?;
+    let response = http.get(url).send().await.map_err(|err| {
+        AppError::Other(format!("could not reach the server: {}", err.without_url()))
+    })?;
 
     // Deliberately not checking the status — see the module docs. An
     // unauthenticated ping answers 400 or 401 and still identifies the
     // server.
-    let body = response
-        .text()
-        .await
-        .map_err(|err| AppError::Other(format!("could not read the server's reply: {err}")))?;
+    let body = response.text().await.map_err(|err| {
+        AppError::Other(format!(
+            "could not read the server's reply: {}",
+            err.without_url()
+        ))
+    })?;
 
     classify_ping_body(&body)
 }

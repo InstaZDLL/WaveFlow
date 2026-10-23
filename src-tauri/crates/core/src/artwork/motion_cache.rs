@@ -111,7 +111,8 @@ fn is_internal_v4(v4: std::net::Ipv4Addr) -> bool {
 /// host and path but drop any userinfo, query and fragment. Those can carry
 /// credentials or signed tokens on a CDN URL, and every failure string here is
 /// logged. Not a validator — purely cosmetic redaction for the error text.
-fn redact_url(url: &str) -> String {
+/// Shared with [`super::metadata`], whose download failures are logged too.
+pub(super) fn redact_url(url: &str) -> String {
     let no_query = url.split(['?', '#']).next().unwrap_or(url);
     match no_query.split_once("://") {
         Some((scheme, rest)) => {
@@ -238,10 +239,13 @@ pub async fn cache_mp4(dir: &Path, url: &str, max_cache_bytes: u64) -> Result<Pa
         // rejection, not an ordinary failure the caller may stream past.
         Err(e) if e.is_redirect() => return Err(CacheError::UnsafeUrl),
         Err(e) => {
+            // `without_url`: reqwest's Display appends the full URL, which
+            // would put back the query `redact_url` just took off.
             return Err(CacheError::Other(format!(
-                "download {}: {e}",
-                redact_url(url)
-            )))
+                "download {}: {}",
+                redact_url(url),
+                e.without_url()
+            )));
         }
     };
     if !resp.status().is_success() {
@@ -262,7 +266,7 @@ pub async fn cache_mp4(dir: &Path, url: &str, max_cache_bytes: u64) -> Result<Pa
     while let Some(chunk) = resp
         .chunk()
         .await
-        .map_err(|e| CacheError::Other(format!("read motion mp4 body: {e}")))?
+        .map_err(|e| CacheError::Other(format!("read motion mp4 body: {}", e.without_url())))?
     {
         if bytes.len() as u64 + chunk.len() as u64 > MAX_MP4_BYTES {
             return Err(CacheError::Other(format!(

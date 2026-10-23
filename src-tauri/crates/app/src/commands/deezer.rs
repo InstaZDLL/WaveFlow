@@ -1760,7 +1760,7 @@ async fn download_image_bytes(url: &str) -> AppResult<Vec<u8>> {
         .get(url)
         .send()
         .await
-        .map_err(|err| AppError::Other(format!("download failed: {err}")))?;
+        .map_err(|err| AppError::Other(format!("download failed: {}", err.without_url())))?;
     if !resp.status().is_success() {
         return Err(AppError::Other(format!(
             "download status {}",
@@ -1787,7 +1787,7 @@ async fn download_image_bytes(url: &str) -> AppResult<Vec<u8>> {
     while let Some(chunk) = resp
         .chunk()
         .await
-        .map_err(|err| AppError::Other(format!("read failed: {err}")))?
+        .map_err(|err| AppError::Other(format!("read failed: {}", err.without_url())))?
     {
         if bytes.len() + chunk.len() > MAX_IMAGE_BYTES {
             return Err(AppError::Other(format!(

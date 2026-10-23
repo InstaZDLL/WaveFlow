@@ -198,10 +198,10 @@ async fn fetch_registry() -> AppResult<Registry> {
                         reg.schema_version
                     )));
                 }
-                Err(e) => last_err = format!("{url}: decode failed: {e}"),
+                Err(e) => last_err = format!("{url}: decode failed: {}", e.without_url()),
             },
             Ok(resp) => last_err = format!("{url}: HTTP {}", resp.status()),
-            Err(e) => last_err = format!("{url}: {e}"),
+            Err(e) => last_err = format!("{url}: {}", e.without_url()),
         }
     }
     Err(AppError::Other(last_err))
@@ -556,7 +556,7 @@ pub async fn install_plugin_from_registry(
         .get(&url)
         .send()
         .await
-        .map_err(|e| AppError::Other(format!("download {url}: {e}")))?;
+        .map_err(|e| AppError::Other(format!("download {url}: {}", e.without_url())))?;
     if !resp.status().is_success() {
         return Err(AppError::Other(format!(
             "download {url}: HTTP {}",
@@ -578,7 +578,7 @@ pub async fn install_plugin_from_registry(
     while let Some(chunk) = resp
         .chunk()
         .await
-        .map_err(|e| AppError::Other(format!("read release body: {e}")))?
+        .map_err(|e| AppError::Other(format!("read release body: {}", e.without_url())))?
     {
         if bytes.len() as u64 + chunk.len() as u64 > MAX_DOWNLOAD_BYTES {
             return Err(AppError::Other(format!(

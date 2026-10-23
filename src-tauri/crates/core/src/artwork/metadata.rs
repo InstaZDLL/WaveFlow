@@ -12,6 +12,8 @@
 
 use std::path::{Path, PathBuf};
 
+use super::motion_cache::redact_url;
+
 const ARTWORK_EXT: &str = "jpg";
 const DOWNLOAD_TIMEOUT_SECS: u64 = 10;
 const USER_AGENT: &str = "WaveFlow/0.1";
@@ -116,23 +118,23 @@ async fn download_and_cache_inner(
     let resp = match client.get(url).send().await {
         Ok(r) => r,
         Err(err) => {
-            tracing::warn!(%url, ?err, "metadata artwork download failed");
+            tracing::warn!(url = %redact_url(url), err = %err.without_url(), "metadata artwork download failed");
             return None;
         }
     };
     if !resp.status().is_success() {
-        tracing::warn!(%url, status = %resp.status(), "metadata artwork unexpected status");
+        tracing::warn!(url = %redact_url(url), status = %resp.status(), "metadata artwork unexpected status");
         return None;
     }
     let bytes = match resp.bytes().await {
         Ok(b) => b,
         Err(err) => {
-            tracing::warn!(%url, ?err, "metadata artwork read failed");
+            tracing::warn!(url = %redact_url(url), err = %err.without_url(), "metadata artwork read failed");
             return None;
         }
     };
     if bytes.is_empty() || bytes.len() > MAX_BYTES {
-        tracing::warn!(%url, len = bytes.len(), "metadata artwork rejected (size)");
+        tracing::warn!(url = %redact_url(url), len = bytes.len(), "metadata artwork rejected (size)");
         return None;
     }
 

@@ -158,7 +158,7 @@ impl RemoteFailure {
             kind: FailureKind::Transient,
             status: None,
             code: None,
-            message: error.to_string(),
+            message: error.without_url().to_string(),
         }
     }
 
@@ -403,7 +403,7 @@ impl<'a> RemoteClient<'a> {
             kind: FailureKind::Permanent,
             status: None,
             code: None,
-            message: format!("malformed response body: {err}"),
+            message: format!("malformed response body: {}", err.without_url()),
         })
     }
 
@@ -554,7 +554,7 @@ pub async fn refresh(
         .json(&serde_json::json!({ "refresh_token": known.refresh_token }))
         .send()
         .await
-        .map_err(|err| AppError::Other(format!("token refresh failed: {err}")))?;
+        .map_err(|err| AppError::Other(format!("token refresh failed: {}", err.without_url())))?;
 
     let status = response.status().as_u16();
     if classify_status(status).is_some() {
@@ -563,10 +563,9 @@ pub async fn refresh(
         )));
     }
 
-    let fresh: AuthTokensResponse = response
-        .json()
-        .await
-        .map_err(|err| AppError::Other(format!("malformed refresh response: {err}")))?;
+    let fresh: AuthTokensResponse = response.json().await.map_err(|err| {
+        AppError::Other(format!("malformed refresh response: {}", err.without_url()))
+    })?;
 
     let pair = TokenPair {
         access_token: fresh.access_token,

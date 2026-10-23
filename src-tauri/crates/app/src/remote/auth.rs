@@ -331,7 +331,7 @@ async fn exchange_code(
         }))
         .send()
         .await
-        .map_err(|err| AppError::Other(format!("could not reach the server: {err}")))?;
+        .map_err(|err| AppError::Other(format!("could not reach the server: {}", err.without_url())))?;
 
     let status = response.status();
     if !status.is_success() {
@@ -343,7 +343,7 @@ async fn exchange_code(
     response
         .json::<AuthTokensResponse>()
         .await
-        .map_err(|err| AppError::Other(format!("unexpected sign-in reply: {err}")))
+        .map_err(|err| AppError::Other(format!("unexpected sign-in reply: {}", err.without_url())))
 }
 
 /// Store the session, and decide what the previous one leaves behind.

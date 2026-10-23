@@ -403,7 +403,7 @@ async fn download_dump(url: &str) -> AppResult<Vec<u8>> {
         .header("Accept", "application/json")
         .send()
         .await
-        .map_err(|e| AppError::Other(format!("catalogue download failed: {e}")))?;
+        .map_err(|e| AppError::Other(format!("catalogue download failed: {}", e.without_url())))?;
     if !resp.status().is_success() {
         return Err(AppError::Other(format!(
             "catalogue download status {}",
@@ -421,7 +421,7 @@ async fn download_dump(url: &str) -> AppResult<Vec<u8>> {
     while let Some(chunk) = resp
         .chunk()
         .await
-        .map_err(|e| AppError::Other(format!("catalogue read failed: {e}")))?
+        .map_err(|e| AppError::Other(format!("catalogue read failed: {}", e.without_url())))?
     {
         if bytes.len() + chunk.len() > MAX_DUMP_BYTES {
             return Err(AppError::Other(format!(
