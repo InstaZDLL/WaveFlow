@@ -28,7 +28,7 @@ Same reasoning applies to re-resolving the pool inside a loop: a batch that read
 
 ### Persistence of settings
 
-Per-profile settings live in `profile_setting` (typed key-value); app-wide settings live in `app_setting` with the same shape. Write pattern is `INSERT ... ON CONFLICT DO UPDATE`.
+Per-profile settings live in `profile_setting` (typed key-value); app-wide settings live in `app_setting` with the same shape. Write pattern is `INSERT ... ON CONFLICT DO UPDATE`, naming all four columns: `value_type` and `updated_at` are `NOT NULL` with no default, and SQLite checks them on the row the upsert _would_ insert before it looks for the conflict — so a write that leaves them out fails every time, for a key that already exists as much as for a new one. That is how the DLNA settings went unsaved.
 
 **A React preference hook does NOT hand-roll this** (issue #485). Build it on [`useProfileSetting`](../../src/hooks/useProfileSetting.ts) (or its `useProfileBooleanSetting` shorthand), which owns:
 
