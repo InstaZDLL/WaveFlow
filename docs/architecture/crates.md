@@ -16,6 +16,7 @@ src-tauri/
     │       ├── audio_format/dsd/      (DSF + DFF parsing, 1-bit → 24-bit PCM)
     │       ├── domain/                (Track, Album, Artist, Playlist, Profile, Library DTOs)
     │       ├── error.rs               (CoreError + CoreResult)
+    │       ├── handoff.rs             (the playback another player hands over: `--handoff <file>`)
     │       ├── metadata/              (Deezer / Last.fm / LRCLIB HTTP clients)
     │       ├── playback/              (track decoding, resampler, channel conversion, ReplayGain; `playback` feature)
     │       ├── repository/            (storage traits + sqlite implementations)
@@ -66,6 +67,7 @@ Anything that could run inside an axum handler in the future `waveflow-server` (
 - **Audio analysis** — per-track peak / loudness / ReplayGain / BPM (`analysis.rs`). Symphonia-based, no `cpal`.
 - **Audio format conversion** — DSD parser + decimating FIR (`audio_format/dsd/*`), used by playback, analysis and the scanner.
 - **Decoding for playback** (`playback`, behind the feature of the same name) — `ActiveStream` (open a track, decode it packet by packet to interleaved `f32`, seek, DSD to PCM and DoP, the end-of-stream tolerance of #898, the network pre-load), the rubato resampler, channel conversion with the Lo/Ro downmix, and `TrackGain` / ReplayGain. Shared so a second player built on WaveFlow decodes exactly as the desktop app does. The real-time half stays in `app/src/audio/`: the decoder thread and its `LoadIntent` commands, the crossfade mix, the cpal and exclusive outputs, the EQ and the events.
+- **The handoff contract** (`handoff.rs`) — what another player built on WaveFlow (QuickPlay) writes to hand its playback over, and what the desktop app reads: the queue, the track, the position, playing or paused, versioned. Here so the sender and the receiver cannot drift apart. The app's half, waiting for the player and taking over, is in `launch_args.rs` and `external_playback.rs`.
 - **Artwork pipeline** — the shared blake3-keyed metadata cache + the SIMD thumbnail variants (`artwork/{metadata,thumbnails}.rs`).
 - **Error type** — `CoreError`. The desktop's `AppError` wraps it via `#[from] CoreError` so `?` flattens automatically across the boundary.
 
