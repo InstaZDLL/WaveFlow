@@ -854,6 +854,12 @@ fn decoder_loop(
 ///
 /// For the loops that have no track to apply them to (the idle loop, the
 /// test tone): there they used to fall into the catch-all and be lost.
+///
+/// The speed is the one store that differs. With no stream decoding there
+/// is no clock to rebase and no resampler to rebuild, so it is written the
+/// way the boot-time restore writes it, without `set_playback_speed`'s
+/// rebase, seek generation and dirty flag; the next track's stream takes
+/// the speed when it opens.
 fn apply_setting(cmd: &AudioCmd, shared: &SharedPlayback) -> bool {
     match *cmd {
         AudioCmd::SetVolume(v) => shared.set_volume(v),
@@ -862,7 +868,13 @@ fn apply_setting(cmd: &AudioCmd, shared: &SharedPlayback) -> bool {
         AudioCmd::SetCrossfade(ms) => shared.crossfade_ms.store(ms, Ordering::Release),
         AudioCmd::SetReplayGain(on) => shared.replaygain_enabled.store(on, Ordering::Release),
         AudioCmd::SetGapless(on) => shared.gapless_enabled.store(on, Ordering::Release),
-        AudioCmd::SetSpeed(v) => shared.set_playback_speed(v),
+        AudioCmd::SetSpeed(v) => {
+            if v.is_finite() {
+                shared
+                    .playback_speed_bits
+                    .store(v.clamp(0.5, 2.0).to_bits(), Ordering::Release);
+            }
+        }
         _ => return false,
     }
     true
@@ -3050,6 +3062,20 @@ mod apply_setting_tests {
         assert!(apply_setting(&AudioCmd::SetMono(true), &shared));
         assert!(apply_setting(&AudioCmd::SetMono(false), &shared));
         assert!(!shared.mono_enabled.load(Ordering::Acquire));
+    }
+
+    #[test]
+    fn an_idle_speed_change_leaves_the_clock_alone() {
+        // Nothing decodes: no rebase, no rebuild requested, and the speed
+        // still clamped to what the resampler supports.
+        let shared = SharedPlayback::new();
+        let generation = shared.seek_generation.load(Ordering::Acquire);
+        assert!(apply_setting(&AudioCmd::SetSpeed(3.0), &shared));
+        assert!((shared.playback_speed() - 2.0).abs() < f32::EPSILON);
+        assert!(!shared.speed_dirty.load(Ordering::Acquire));
+        assert_eq!(shared.seek_generation.load(Ordering::Acquire), generation);
+        assert!(apply_setting(&AudioCmd::SetSpeed(f32::NAN), &shared));
+        assert!((shared.playback_speed() - 2.0).abs() < f32::EPSILON);
     }
 
     #[test]
