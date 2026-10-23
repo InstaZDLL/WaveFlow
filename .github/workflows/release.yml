@@ -56,7 +56,13 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
+          # Pinned, never `ubuntu-latest`: the binary needs at least the
+          # glibc it was linked against, so the runner sets the oldest
+          # distribution WaveFlow starts on. `ubuntu-latest` moving to
+          # 26.04 raised that floor to glibc 2.43 and 1.9.6 stopped
+          # starting on Ubuntu 24.04, Debian 13 and Mint. Raise it on purpose,
+          # with GLIBC_FLOOR below.
+          - os: ubuntu-24.04
             platform: linux
             tauri_bundles: appimage,deb,rpm
             tauri_target: ""
@@ -425,6 +431,49 @@ jobs:
         # "no update information" and the in-app beta channel stays the
         # only path.
         run: bash scripts/appimage-update-info.sh
+
+      - name: Check the glibc floor (Linux)
+        if: matrix.platform == 'linux'
+        shell: bash
+        env:
+          # The newest glibc symbol version a shipped file may need: Ubuntu
+          # 24.04's. A newer one means the runner image moved under us.
+          GLIBC_FLOOR: "2.39"
+        # After the two steps above, so it reads the AppImage that ships.
+        # The binary is the one the .deb and .rpm carry; the AppImage adds
+        # the runner's own libraries (WebKitGTK, GStreamer, …), each of
+        # which can raise the floor on its own.
+        run: |
+          set -euo pipefail
+          img=$(ls src-tauri/target/release/bundle/appimage/*.AppImage | head -n 1)
+          work=$(mktemp -d)
+          trap 'rm -rf "$work"' EXIT
+          ( cd "$work" && "$OLDPWD/$img" --appimage-extract >/dev/null )
+          # Empty for an ELF with no glibc symbols (a static one).
+          newest_of() {
+            { objdump -T "$1" 2>/dev/null || true; } \
+              | { grep -o 'GLIBC_[0-9.]*' || true; } | sed 's/GLIBC_//' | sort -uV | tail -n 1
+          }
+          above() { [ "$(printf '%s\n%s\n' "$1" "$GLIBC_FLOOR" | sort -V | tail -n 1)" != "$GLIBC_FLOOR" ]; }
+          binary=$(newest_of src-tauri/target/release/waveflow)
+          echo "waveflow needs glibc $binary (floor $GLIBC_FLOOR)."
+          if [ -z "$binary" ] || above "$binary"; then
+            echo "::error::waveflow needs glibc ${binary:-?}, newer than $GLIBC_FLOOR: it would not start on older distributions."
+            exit 1
+          fi
+          failed=0
+          checked=0
+          while IFS= read -r -d '' f; do
+            [ "$(head -c 4 "$f" | od -An -c | tr -d ' ')" = '177ELF' ] || continue
+            checked=$((checked + 1))
+            v=$(newest_of "$f")
+            if [ -n "$v" ] && above "$v"; then
+              echo "::error::${f#"$work"/} needs glibc $v, newer than $GLIBC_FLOOR"
+              failed=1
+            fi
+          done < <(find "$work/squashfs-root" -type f -print0)
+          echo "Checked $checked ELF files in the AppImage."
+          exit "$failed"
 
       - name: Scrub Authenticode secrets (Windows)
         if: always() && matrix.platform == 'windows'

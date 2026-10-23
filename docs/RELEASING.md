@@ -181,9 +181,17 @@ a time, and the job's timeout cut it before the tag was ever made.
 `.github/workflows/release.yml`, started for the tag as above (a tag
 pushed by hand would start it on its own; release-please's does not):
 
-- Builds Linux on `ubuntu-latest` — produces an `.AppImage`
+- Builds Linux on `ubuntu-24.04` — produces an `.AppImage`
   (universal, also the updater payload), a `.deb` (Debian/Ubuntu),
-  and an `.rpm` (Fedora/RHEL).
+  and an `.rpm` (Fedora/RHEL). The runner is pinned, never
+  `ubuntu-latest`: a binary needs at least the glibc it was linked
+  against, so the runner's glibc is the oldest one WaveFlow starts
+  on. When `ubuntu-latest` moved to 26.04, the 1.9.6 binaries
+  needed glibc 2.43 and stopped starting on Ubuntu 24.04, Debian 13 and
+  Mint. A step after the AppImage is final fails the release if the
+  binary, or any library the AppImage bundles from the runner, needs a
+  glibc newer than `GLIBC_FLOOR` (2.39); raise both together, on
+  purpose.
 - Builds Windows on `windows-latest`, signs every artefact with
   the Authenticode PFX — produces a `*-setup.exe` (NSIS, per-user
   under `%LOCALAPPDATA%`, also the updater payload) and a `.msi`
