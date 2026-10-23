@@ -188,8 +188,9 @@ pushed by hand would start it on its own; release-please's does not):
   against, so the runner's glibc is the oldest one WaveFlow starts
   on. When `ubuntu-latest` moved to 26.04, the 1.9.6 binaries
   needed glibc 2.43 and stopped starting on Ubuntu 24.04, Debian 13 and
-  Mint. A step after the build fails the release if the binary needs
-  a glibc newer than `GLIBC_FLOOR` (2.39); raise both together, on
+  Mint. A step after the AppImage is final fails the release if the
+  binary, or any library the AppImage bundles from the runner, needs a
+  glibc newer than `GLIBC_FLOOR` (2.39); raise both together, on
   purpose.
 - Builds Windows on `windows-latest`, signs every artefact with
   the Authenticode PFX — produces a `*-setup.exe` (NSIS, per-user
