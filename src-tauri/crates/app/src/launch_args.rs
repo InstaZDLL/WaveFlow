@@ -19,6 +19,11 @@
 //! started. They are gathered until none has arrived for a moment, then
 //! played as one queue: in path order when several launches brought them,
 //! since those arrive in no reliable order ([`play_order`]).
+//!
+//! A launch can also carry `--handoff <file>`: another player (QuickPlay)
+//! handing over what it was playing ([`waveflow_core::handoff`]). That one
+//! is not gathered: it names its whole queue, and plays as soon as the
+//! player is up ([`take_over_when_ready`]).
 
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
@@ -27,6 +32,7 @@ use std::time::{Duration, Instant};
 
 use tauri::{AppHandle, Manager};
 
+use crate::audio::engine::LoadIntent;
 use crate::audio::AudioEngine;
 use crate::state::AppState;
 
@@ -132,6 +138,89 @@ fn play_order(mut paths: Vec<PathBuf>, arrivals: usize) -> Vec<PathBuf> {
     paths
 }
 
+/// Act on what a launch was started with: a handoff when it names one,
+/// otherwise the files it names. `args` starts with the program's path.
+pub fn open_when_ready<I>(app: &AppHandle, args: I, cwd: Option<&Path>)
+where
+    I: IntoIterator,
+    I::Item: Into<OsString>,
+{
+    let args: Vec<OsString> = args.into_iter().map(Into::into).collect();
+    match waveflow_core::handoff::file_from_args(args.iter().cloned(), cwd) {
+        Some(file) => take_over_when_ready(app, file),
+        None => play_when_ready(app, paths_from_args(args, cwd)),
+    }
+}
+
+/// Wait until a file can play: the state and the engine exist and, within
+/// a bound, the active profile is open, so a file can be told apart from a
+/// library track. With no profile at all (the first run, before
+/// onboarding) the files still play, as files. Returns the intent the
+/// files play under, `early` when the caller claimed one already; `None`
+/// when the player never came up.
+///
+/// The intent is claimed as soon as the engine exists (#622), not when the
+/// files finally play: a track the user picks while they wait is the newer
+/// choice, and the files give way to it. Nothing can be picked before the
+/// engine exists, so nothing is lost by waiting for it.
+async fn player_ready(app: &AppHandle, early: Option<LoadIntent>) -> Option<LoadIntent> {
+    let mut intent = early;
+    let mut ready = false;
+    for _ in 0..150 {
+        if let (Some(state), Some(engine)) = (
+            app.try_state::<AppState>(),
+            app.try_state::<Arc<AudioEngine>>(),
+        ) {
+            intent.get_or_insert_with(|| engine.next_load_intent());
+            ready = true;
+            if state.require_profile_pool().await.is_ok() {
+                break;
+            }
+        }
+        tokio::time::sleep(Duration::from_millis(100)).await;
+    }
+    // Both the state and the engine, not the engine alone: playing reads
+    // the state.
+    intent.filter(|_| ready)
+}
+
+/// Carry on the playback handed over in `file` once the player is up, and
+/// remove the file if the sender wrote it there for us.
+fn take_over_when_ready(app: &AppHandle, file: PathBuf) {
+    let early = app
+        .try_state::<Arc<AudioEngine>>()
+        .map(|engine| engine.next_load_intent());
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        let read = tokio::task::spawn_blocking(move || {
+            let handoff = waveflow_core::handoff::Handoff::read(&file);
+            if waveflow_core::handoff::is_handoff_file(&file) {
+                let _ = std::fs::remove_file(&file);
+            }
+            handoff
+        })
+        .await;
+        let handoff = match read {
+            Ok(Ok(handoff)) => handoff,
+            Ok(Err(err)) => {
+                tracing::warn!(%err, "could not read the playback handed over");
+                return;
+            }
+            Err(err) => {
+                tracing::warn!(%err, "reading the playback handed over did not finish");
+                return;
+            }
+        };
+        let Some(intent) = player_ready(&app, early).await else {
+            tracing::warn!("the player never came up; not taking over the playback handed over");
+            return;
+        };
+        if let Err(err) = crate::external_playback::take_over(&app, handoff, intent).await {
+            tracing::warn!(%err, "could not take over the playback handed over");
+        }
+    });
+}
+
 /// Play `paths` once the active profile is open, which is when a file can
 /// be told apart from a library track. At launch that is a moment after
 /// `setup` returns; from a second launch it already is. Files that arrive
@@ -166,29 +255,8 @@ pub fn play_when_ready(app: &AppHandle, paths: Vec<PathBuf>) {
     tauri::async_runtime::spawn(async move {
         // A second launch can arrive while this instance is still in
         // `setup`, before its state and engine exist: wait for them, then
-        // for the profile. Bounded: with no profile at all (the first run,
-        // before onboarding) the files still play, as files.
-        //
-        // The open's intent is claimed as soon as the engine exists (#622),
-        // not when the files finally play: a track the user picks while
-        // they are gathered, or while the profile opens, is the newer
-        // choice, and the files give way to it. Nothing can be picked
-        // before the engine exists, so nothing is lost by waiting for it.
-        let mut intent = early;
-        let mut ready = false;
-        for _ in 0..150 {
-            if let (Some(state), Some(engine)) = (
-                app.try_state::<AppState>(),
-                app.try_state::<Arc<AudioEngine>>(),
-            ) {
-                intent.get_or_insert_with(|| engine.next_load_intent());
-                ready = true;
-                if state.require_profile_pool().await.is_ok() {
-                    break;
-                }
-            }
-            tokio::time::sleep(Duration::from_millis(100)).await;
-        }
+        // for the profile.
+        let intent = player_ready(&app, early).await;
         // Then until the files stop coming. The wait for the player above
         // gathers too, so a cold start opened with many files has them all.
         let started = Instant::now();
@@ -211,9 +279,7 @@ pub fn play_when_ready(app: &AppHandle, paths: Vec<PathBuf>) {
             .take()
             .map(|waiting| play_order(waiting.paths, waiting.arrivals))
             .unwrap_or_default();
-        // Both the state and the engine, not the engine alone: playing
-        // reads the state.
-        let (true, Some(intent)) = (ready, intent) else {
+        let Some(intent) = intent else {
             tracing::warn!(
                 "the player never came up; not playing the files WaveFlow was opened with"
             );

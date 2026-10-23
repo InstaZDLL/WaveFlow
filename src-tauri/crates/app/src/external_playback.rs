@@ -255,17 +255,117 @@ pub async fn play_paths_with_intent(
         .into_iter()
         .map(|path| ExternalEntry { path })
         .collect();
-    play_entries(app, entries, 0, intent).await
+    play_entries(app, entries, 0, 0, intent).await
 }
 
-/// Install `entries` as the session and start playing at `start_index`.
-/// The same guards as [`crate::remote::playback::play_entries`]: nothing
-/// is installed for a superseded intent, and an install the user overtook
-/// while it started is undone, but only if it is still ours.
+/// The queue a handoff names, without what is no longer there to play, and
+/// where its current entry lands in what is left: the entry itself when it
+/// is still there, otherwise the next one that is. `None` when nothing is
+/// left. Blocking.
+fn handed_over_queue(paths: &[PathBuf], index: usize) -> Option<(Vec<PathBuf>, usize)> {
+    let mut kept = Vec::with_capacity(paths.len());
+    let mut start = None;
+    for (i, path) in paths.iter().enumerate() {
+        if !(path.is_file() && waveflow_core::scanner::extract::is_scannable_audio(path)) {
+            continue;
+        }
+        if i >= index && start.is_none() {
+            start = Some(kept.len());
+        }
+        kept.push(path.clone());
+    }
+    let last = kept.len().checked_sub(1)?;
+    Some((kept, start.unwrap_or(last)))
+}
+
+/// Carry on what another player handed over ([`waveflow_core::handoff`]):
+/// its queue, from the track it was on, at the same position, playing or
+/// paused as it was. As with [`play_paths`], library tracks play as such
+/// when every file is one. The position holds only when the track it
+/// belongs to is still there.
+pub async fn take_over(
+    app: &AppHandle,
+    handoff: waveflow_core::handoff::Handoff,
+    intent: LoadIntent,
+) -> AppResult<()> {
+    let playing = handoff.playing;
+    let (files, index, position_ms) = tokio::task::spawn_blocking(move || {
+        let queue = handed_over_queue(&handoff.paths, handoff.index);
+        queue.map(|(files, index)| {
+            let same_track = files.get(index) == handoff.paths.get(handoff.index);
+            let position_ms = if same_track { handoff.position_ms } else { 0 };
+            (files, index, position_ms)
+        })
+    })
+    .await
+    .map_err(|e| AppError::Other(format!("listing the handed-over files: {e}")))?
+    .ok_or_else(|| AppError::Other("no handed-over file is left to play".into()))?;
+
+    let state = app.state::<AppState>();
+    let library = match state.require_profile_pool().await {
+        Ok(pool) => library_ids(&pool, &files).await,
+        Err(_) => None,
+    };
+    match library {
+        Some(ids) => {
+            crate::commands::player::play_tracks_with_intent(
+                app.clone(),
+                app.state::<AppState>(),
+                app.state::<Arc<AudioEngine>>(),
+                "manual".into(),
+                None,
+                ids,
+                index,
+                None,
+                intent,
+            )
+            .await?;
+            // The library load starts at the top; the position follows it
+            // down the same channel, before the first sample is decoded.
+            if position_ms > 0 {
+                settle(app, intent, AudioCmd::Seek(position_ms)).await?;
+            }
+        }
+        None => {
+            let entries = files
+                .into_iter()
+                .map(|path| ExternalEntry { path })
+                .collect();
+            play_entries(app, entries, index, position_ms, intent).await?;
+        }
+    }
+    // Sent right behind the load, so the decoder takes it before it plays
+    // anything: a paused handoff stays silent.
+    if !playing {
+        settle(app, intent, AudioCmd::Pause).await?;
+    }
+    Ok(())
+}
+
+/// Send `cmd` for the load under `intent`, unless the user has picked
+/// something since: the seek or the pause of a handoff belongs to its own
+/// track, not to the one that overtook it. Checked and sent under the
+/// publish lock (#632), which every load is published under, so no newer
+/// load can slip in between and receive it.
+async fn settle(app: &AppHandle, intent: LoadIntent, cmd: AudioCmd) -> AppResult<()> {
+    let engine = app.state::<Arc<AudioEngine>>();
+    let _publish = engine.lock_publish().await;
+    if engine.load_intent_superseded(intent) {
+        return Ok(());
+    }
+    engine.send(cmd)
+}
+
+/// Install `entries` as the session and start playing at `start_index`,
+/// `start_ms` into it. The same guards as
+/// [`crate::remote::playback::play_entries`]: nothing is installed for a
+/// superseded intent, and an install the user overtook while it started is
+/// undone, but only if it is still ours.
 async fn play_entries(
     app: &AppHandle,
     entries: Vec<ExternalEntry>,
     start_index: usize,
+    start_ms: u64,
     intent: LoadIntent,
 ) -> AppResult<()> {
     let index = start_index.min(entries.len().saturating_sub(1));
@@ -284,7 +384,7 @@ async fn play_entries(
     let revision = state
         .external_playback
         .set(DetachedQueue { entries, index });
-    let played = play_current(app, intent).await;
+    let played = play_current(app, start_ms, intent).await;
     // A start that did not reach the engine leaves no session behind to
     // drive the next advance — but only the session as it installed it.
     if played.is_err() {
@@ -309,7 +409,7 @@ pub async fn jump_to(app: &AppHandle, index: usize) -> AppResult<()> {
     match state.external_playback.seek_to(index) {
         // As in `advance`: a jump that cannot play leaves no session
         // pointing at a file nothing is playing.
-        Some(_) => play_current(app, intent).await.inspect_err(|_| {
+        Some(_) => play_current(app, 0, intent).await.inspect_err(|_| {
             let _ = engine.send(AudioCmd::Stop);
             state.external_playback.clear();
         }),
@@ -336,7 +436,7 @@ pub async fn advance(app: &AppHandle, direction: Direction, intent: LoadIntent) 
     }
     match state.external_playback.step(direction, repeat) {
         Some(_) => {
-            if let Err(err) = play_current(app, intent).await {
+            if let Err(err) = play_current(app, 0, intent).await {
                 let _ = engine.send(AudioCmd::Stop);
                 state.external_playback.clear();
                 return Err(err);
@@ -350,8 +450,9 @@ pub async fn advance(app: &AppHandle, direction: Direction, intent: LoadIntent) 
     }
 }
 
-/// Read the file under the cursor and hand it to the engine.
-async fn play_current(app: &AppHandle, intent: LoadIntent) -> AppResult<()> {
+/// Read the file under the cursor and hand it to the engine, to play from
+/// `start_ms`.
+async fn play_current(app: &AppHandle, start_ms: u64, intent: LoadIntent) -> AppResult<()> {
     let state = app.state::<AppState>();
     let Some(entry) = state.external_playback.current() else {
         return Ok(());
@@ -366,7 +467,7 @@ async fn play_current(app: &AppHandle, intent: LoadIntent) -> AppResult<()> {
         intent,
         origin: DetachedOrigin::File,
         path: entry.path,
-        start_ms: 0,
+        start_ms,
         track_id: crate::commands::player::next_radio_track_id(),
         duration_ms: facts.duration_ms,
         title: Some(facts.title),
@@ -442,6 +543,32 @@ mod tests {
         let missing = dir.path().join("gone.flac");
 
         assert_eq!(expand(&[b.clone(), txt, missing, a.clone()]), [b, a]);
+    }
+
+    #[test]
+    fn a_handoff_keeps_its_place_when_files_are_gone() {
+        let dir = tempfile::tempdir().unwrap();
+        let [a, b, c, d] = ["a.flac", "b.flac", "c.flac", "d.flac"].map(|n| dir.path().join(n));
+        for path in [&a, &c, &d] {
+            std::fs::write(path, b"x").unwrap();
+        }
+        let notes = dir.path().join("notes.txt");
+        std::fs::write(&notes, b"x").unwrap();
+        let queue = [a.clone(), b.clone(), notes, c.clone(), d.clone()];
+
+        // The current file is still there: it keeps its place.
+        assert_eq!(
+            handed_over_queue(&queue, 3),
+            Some((vec![a.clone(), c.clone(), d.clone()], 1))
+        );
+        // It is gone: the next one that is there.
+        assert_eq!(
+            handed_over_queue(&queue, 1),
+            Some((vec![a.clone(), c.clone(), d.clone()], 1))
+        );
+        // Out of range: the last one.
+        assert_eq!(handed_over_queue(&queue, 9), Some((vec![a, c, d], 2)));
+        assert_eq!(handed_over_queue(&[b], 0), None);
     }
 
     #[test]

@@ -17,6 +17,7 @@ pub mod atomic_write;
 pub mod audio_format;
 pub mod domain;
 pub mod error;
+pub mod handoff;
 pub mod home_suggestion;
 pub mod inventory;
 pub mod metadata;

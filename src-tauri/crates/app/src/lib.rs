@@ -175,11 +175,9 @@ pub fn run() {
                 let _ = window.set_focus();
                 webview_memory::sync(&window);
             }
-            // A file the turned-away launch was opened with plays here.
-            launch_args::play_when_ready(
-                app,
-                launch_args::paths_from_args(argv, Some(std::path::Path::new(&cwd))),
-            );
+            // A file the turned-away launch was opened with plays here, and
+            // a handoff it carried is taken over here.
+            launch_args::open_when_ready(app, argv, Some(std::path::Path::new(&cwd)));
         }))
         // Autostart wiring. Pass `--minimized` so the OS-launched
         // instance shows up in the tray without grabbing focus — the
@@ -794,13 +792,12 @@ pub fn run() {
                 );
             });
 
-            // The files this launch was opened with, if any.
-            launch_args::play_when_ready(
+            // The files this launch was opened with, or the playback it was
+            // handed, if any.
+            launch_args::open_when_ready(
                 app.handle(),
-                launch_args::paths_from_args(
-                    std::env::args_os(),
-                    std::env::current_dir().ok().as_deref(),
-                ),
+                std::env::args_os(),
+                std::env::current_dir().ok().as_deref(),
             );
 
             // Setup reached its end, so the marker stays armed until
