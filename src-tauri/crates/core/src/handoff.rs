@@ -124,10 +124,27 @@ impl Handoff {
     /// Read a handoff file. A newer format than [`VERSION`] is refused, and
     /// a queue longer than [`MAX_PATHS`] is cut there.
     pub fn read(file: &Path) -> Result<Self, HandoffError> {
-        if std::fs::metadata(file)?.len() > MAX_BYTES {
+        use std::io::Read;
+        // One handle for the checks and the read, and the read itself
+        // bounded: a path swapped between a check and a second open could
+        // otherwise be read without limit.
+        let opened = std::fs::File::open(file)?;
+        let meta = opened.metadata()?;
+        if !meta.is_file() {
+            return Err(HandoffError::Io(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "not a regular file",
+            )));
+        }
+        if meta.len() > MAX_BYTES {
             return Err(HandoffError::TooLarge);
         }
-        let mut handoff: Self = serde_json::from_slice(&std::fs::read(file)?)?;
+        let mut bytes = Vec::new();
+        opened.take(MAX_BYTES + 1).read_to_end(&mut bytes)?;
+        if bytes.len() as u64 > MAX_BYTES {
+            return Err(HandoffError::TooLarge);
+        }
+        let mut handoff: Self = serde_json::from_slice(&bytes)?;
         if handoff.version > VERSION {
             return Err(HandoffError::Newer(handoff.version));
         }
