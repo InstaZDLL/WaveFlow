@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.9.7](https://github.com/InstaZDLL/WaveFlow/compare/v1.9.6...v1.9.7) (2026-10-23)
+
+
+### Bug Fixes
+
+* **release:** build linux on ubuntu 24.04 and check the glibc floor ([9a61f80](https://github.com/InstaZDLL/WaveFlow/commit/9a61f80e9670e8ef7119621588689d6263b32e7f))
+* **release:** build linux on ubuntu 24.04 and check the glibc floor ([ef22289](https://github.com/InstaZDLL/WaveFlow/commit/ef22289f360a7f71fa27585333c3ee1302dc33f1))
+
 ## [1.9.6](https://github.com/InstaZDLL/WaveFlow/compare/v1.9.5...v1.9.6) (2026-10-22)
 
 
