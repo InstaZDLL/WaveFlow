@@ -360,7 +360,7 @@ async fn serve_art(
             return match tokio::fs::read(&candidate).await {
                 Ok(bytes) => (
                     StatusCode::OK,
-                    [(header::CONTENT_TYPE, mime_for_art(&hash_with_ext))],
+                    [(header::CONTENT_TYPE, mime_for_art(&hash_with_ext, &bytes))],
                     bytes,
                 )
                     .into_response(),
@@ -376,8 +376,10 @@ async fn serve_art(
 
 /// The extensions a stored cover can carry — what the scanner, the tag
 /// editor and the metadata downloads write — and so the only ones `/art`
-/// will serve.
-const ART_EXTENSIONS: &[&str] = &["jpg", "jpeg", "png", "webp", "gif", "bmp", "tiff"];
+/// will serve. `bin` is the scanner's name for an embedded picture whose
+/// MIME type lofty could not map, most often a WebP tagged with an empty or
+/// non-standard type; Browse links to it like any other cover.
+const ART_EXTENSIONS: &[&str] = &["jpg", "jpeg", "png", "webp", "gif", "bmp", "tiff", "bin"];
 
 /// Whether `name` is `<hex hash>.<image extension>`, the name of every cover
 /// Browse links to. Hex digits and a known extension leave no character a
@@ -393,12 +395,21 @@ fn is_art_file_name(name: &str) -> bool {
             .any(|known| known.eq_ignore_ascii_case(ext))
 }
 
-fn mime_for_art(name: &str) -> &'static str {
+/// The `Content-Type` for a cover named `name`. A `.bin` says nothing about
+/// what it holds, so its bytes decide; one the sniffer does not recognise
+/// goes out as `application/octet-stream` rather than a guessed image type.
+fn mime_for_art(name: &str, bytes: &[u8]) -> &'static str {
     let ext = std::path::Path::new(name)
         .extension()
         .and_then(|s| s.to_str())
         .map(|s| s.to_ascii_lowercase());
     match ext.as_deref() {
+        Some("bin") => match crate::commands::deezer::detect_image_format(bytes) {
+            Some("jpg") => "image/jpeg",
+            Some("png") => "image/png",
+            Some("webp") => "image/webp",
+            _ => "application/octet-stream",
+        },
         Some("png") => "image/png",
         Some("webp") => "image/webp",
         Some("gif") => "image/gif",
@@ -522,7 +533,9 @@ mod tests {
     #[test]
     fn art_names_are_a_hex_hash_and_an_image_extension() {
         let hash = "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262";
-        for ext in ["jpg", "jpeg", "png", "webp", "gif", "bmp", "tiff", "JPG"] {
+        for ext in [
+            "jpg", "jpeg", "png", "webp", "gif", "bmp", "tiff", "bin", "JPG",
+        ] {
             assert!(is_art_file_name(&format!("{hash}.{ext}")), "{ext}");
         }
         for name in [
@@ -539,12 +552,59 @@ mod tests {
             ".jpg",
             "af13",
             "af13.txt",
-            "af13.bin",
             "af13.jpg.exe",
             "af13.",
         ] {
             assert!(!is_art_file_name(name), "{name} must be refused");
         }
+    }
+
+    /// A `.bin` cover — what the scanner writes for an embedded picture whose
+    /// MIME type it could not map, typically a WebP — is served through the
+    /// real handler, typed by its bytes rather than refused.
+    #[tokio::test]
+    async fn a_bin_cover_is_served_with_the_type_of_its_bytes() {
+        let dir = tempfile::tempdir().unwrap();
+        let profile_artwork_dir = dir.path().join("artwork");
+        std::fs::create_dir_all(&profile_artwork_dir).unwrap();
+        let webp = b"RIFF\x24\x00\x00\x00WEBPVP8 ".to_vec();
+        std::fs::write(profile_artwork_dir.join("af13.bin"), &webp).unwrap();
+        std::fs::write(profile_artwork_dir.join("be57.bin"), b"not an image").unwrap();
+
+        let ctx = Arc::new(ServerCtx {
+            server_name: "WaveFlow".into(),
+            base_url: "http://127.0.0.1:0".into(),
+            pool: SqlitePool::connect_lazy("sqlite::memory:").unwrap(),
+            profile_artwork_dir,
+            metadata_artwork_dir: dir.path().join("metadata_artwork"),
+        });
+
+        let response = serve_art(State(ctx.clone()), Path("af13.bin".into())).await;
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(
+            response.headers().get(header::CONTENT_TYPE).unwrap(),
+            "image/webp"
+        );
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        assert_eq!(&body[..], &webp[..]);
+
+        // Bytes nothing recognises: still served, but not passed off as JPEG.
+        let response = serve_art(State(ctx), Path("be57.bin".into())).await;
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(
+            response.headers().get(header::CONTENT_TYPE).unwrap(),
+            "application/octet-stream"
+        );
+    }
+
+    #[test]
+    fn mime_for_art_trusts_the_extension_except_for_bin() {
+        assert_eq!(mime_for_art("a.png", b""), "image/png");
+        assert_eq!(mime_for_art("a.jpg", b""), "image/jpeg");
+        assert_eq!(mime_for_art("a.bin", b"\xFF\xD8\xFF\xE0"), "image/jpeg");
+        assert_eq!(mime_for_art("a.bin", b"\x89PNG\r\n\x1a\n"), "image/png");
     }
 
     /// Whatever the platform's path rules, an accepted name stays a child

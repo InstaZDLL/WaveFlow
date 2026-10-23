@@ -105,7 +105,9 @@ An empty file always gets a plain `200` with `Content-Length: 0`. [`media_loopba
 
 ## Artwork
 
-`/art/<name>` serves only a name of the shape `<hex hash>.<image extension>` (`jpg`, `jpeg`, `png`, `webp`, `gif`, `bmp`, `tiff`) — the shape Browse links to. Anything else is a `400` before the filesystem is touched; that includes a cover kept as `.bin` (an embedded picture whose type could not be named), for which the controller shows its placeholder.
+`/art/<name>` serves only a name of the shape `<hex hash>.<extension>` (`jpg`, `jpeg`, `png`, `webp`, `gif`, `bmp`, `tiff`, `bin`) — the shape Browse links to. Anything else is a `400` before the filesystem is touched.
+
+`bin` is what the scanner names an embedded picture whose MIME type lofty could not map — most often a WebP tagged with an empty or non-standard type. Its `Content-Type` comes from its bytes (`detect_image_format`), and one the sniffer does not recognise goes out as `application/octet-stream` rather than as a guessed JPEG.
 
 A deny-list of `/`, `\` and `..` is not enough on Windows: a name with a drive prefix and no root, like `D:secret.txt`, _replaces_ the base in `PathBuf::join` instead of extending it, so the lookup would leave the artwork dir and read a file on that drive — from any peer on the LAN, with no authentication. An allow-list of the one shape the route has to serve leaves nothing to escape with.
 
