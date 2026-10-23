@@ -1124,23 +1124,32 @@
 }
 /* White slabs and pale sub-cards (a sort button, a preview card, a
    settings sub-card) become paper; a bordered one takes the ink frame.
-   Anchored on the class's start or on a space so a `hover:` variant is
-   never matched. */
+   Matched on the whole class token — start or a space before, end or a
+   space after — so a `hover:` variant, an opacity variant (`bg-white/10`
+   is a veil over a dark card, Wrapped's) or `bg-zinc-500` is never
+   caught. */
 :root[data-skin="editorial"]
   :is(main, [role="dialog"])
   :is(
-    [class^="bg-white"],
-    [class*=" bg-white"],
-    [class^="bg-zinc-50"],
-    [class*=" bg-zinc-50"],
-    [class^="bg-zinc-100"],
-    [class*=" bg-zinc-100"]
+    [class^="bg-white "],
+    [class*=" bg-white "],
+    [class$=" bg-white"],
+    [class^="bg-zinc-50 "],
+    [class*=" bg-zinc-50 "],
+    [class$=" bg-zinc-50"],
+    [class^="bg-zinc-100 "],
+    [class*=" bg-zinc-100 "],
+    [class$=" bg-zinc-100"]
   ):not([data-immersive] *) {
   background-color: var(--ed-paper-warm) !important;
 }
 :root[data-skin="editorial"]
   main
-  button:is([class^="bg-white"], [class*=" bg-white"])[class*="border"] {
+  button:is(
+    [class^="bg-white "],
+    [class*=" bg-white "],
+    [class$=" bg-white"]
+  )[class*="border"] {
   background-color: var(--ed-paper-warm) !important;
   border-color: var(--ed-ink) !important;
   border-radius: 0 !important;
