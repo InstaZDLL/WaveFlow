@@ -106,7 +106,14 @@ impl Handoff {
             }
             match options.open(&path) {
                 Ok(mut file) => {
-                    file.write_all(&json)?;
+                    if let Err(err) = file.write_all(&json) {
+                        // The caller never learns this path, so a partial
+                        // file is removed here. Closed first: Windows
+                        // refuses to delete a file that is still open.
+                        drop(file);
+                        let _ = std::fs::remove_file(&path);
+                        return Err(err);
+                    }
                     return Ok(path);
                 }
                 Err(err) if err.kind() == std::io::ErrorKind::AlreadyExists && attempt < 16 => {}
