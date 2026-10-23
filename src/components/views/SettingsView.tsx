@@ -7,6 +7,11 @@ import {
   type SettingsCategory,
 } from "./settings/settingsCatalog";
 import "./settings/settings.css";
+import {
+  dopPlatformSupported as isDopPlatform,
+  SettingsResetScope,
+} from "./settings/settingsReset";
+import { SETTINGS } from "../../lib/settingsRegistry";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { useSortIgnoreArticles } from "../../hooks/useSortIgnoreArticles";
@@ -518,7 +523,48 @@ function LanguageDropdown({ currentCode, onSelect }: LanguageDropdownProps) {
   );
 }
 
-export function SettingsView({
+/**
+ * Settings, remounted whole after a category is reset to its defaults.
+ *
+ * Much of what a page shows is state read once from a command when the
+ * view mounts: the audio engine's switches, the DLNA and MPD configs, the
+ * cards that keep a value of their own. A reset writes through those same
+ * commands, and a fresh mount is the one refresh that reaches all of them;
+ * the preferences that live in a hook or a provider are told through their
+ * own events and never depended on this.
+ *
+ * The page the reset happened on is the one the fresh mount opens, not
+ * whatever `initialCategory` last asked for.
+ */
+export function SettingsView(props: SettingsViewProps) {
+  const [generation, setGeneration] = useState(0);
+  const [resetCategory, setResetCategory] = useState<SettingsCategory | null>(
+    null,
+  );
+  // A new request from outside wins over the page a reset left open.
+  const [lastInitialCategory, setLastInitialCategory] = useState(
+    props.initialCategory,
+  );
+  if (lastInitialCategory !== props.initialCategory) {
+    setLastInitialCategory(props.initialCategory);
+    setResetCategory(null);
+  }
+  const handleCategoryReset = useCallback((category: SettingsCategory) => {
+    setResetCategory(category);
+    setGeneration((g) => g + 1);
+  }, []);
+  return (
+    <SettingsResetScope.Provider value={handleCategoryReset}>
+      <SettingsViewContent
+        key={generation}
+        {...props}
+        initialCategory={resetCategory ?? props.initialCategory}
+      />
+    </SettingsResetScope.Provider>
+  );
+}
+
+function SettingsViewContent({
   onNavigate,
   initialCategory,
 }: SettingsViewProps) {
@@ -575,7 +621,9 @@ export function SettingsView({
   const isAnalyzingLib = isStartingAnalysis || analysisTask != null;
   // Failures are not in the registry; the sweep's own event carries them.
   const [analyzeFailed, setAnalyzeFailed] = useState(0);
-  const [autoAnalyze, setAutoAnalyzeState] = useState(false);
+  const [autoAnalyze, setAutoAnalyzeState] = useState<boolean>(
+    SETTINGS["audio.auto_analyze"].defaultValue,
+  );
 
   // Hydrate the auto-analyze flag once at mount. The setter below
   // handles flips optimistically + rollback on failure so the toggle
@@ -611,13 +659,21 @@ export function SettingsView({
   }, [autoAnalyze]);
   const { activeProfile, refresh: refreshProfiles } = useProfile();
   const [isRescanning, setIsRescanning] = useState(false);
-  const [autoStart, setAutoStart] = useState(false);
-  const [minimizeToTray, setMinimizeToTray] = useState(true);
+  const [autoStart, setAutoStart] = useState<boolean>(
+    SETTINGS["app.auto_start"].defaultValue,
+  );
+  const [minimizeToTray, setMinimizeToTray] = useState<boolean>(
+    SETTINGS["app.minimize_to_tray"].defaultValue,
+  );
   // UI zoom slider value. Hydrated from `app_setting` and kept in
   // sync with the `Ctrl+=` / `Ctrl+-` / `Ctrl+0` shortcuts via the
   // window-level event the `useUiZoom` hook broadcasts.
-  const [uiZoom, setUiZoom] = useState(1);
-  const [scanOnStart, setScanOnStart] = useState(false);
+  const [uiZoom, setUiZoom] = useState<number>(
+    SETTINGS["ui.zoom_level"].defaultValue,
+  );
+  const [scanOnStart, setScanOnStart] = useState<boolean>(
+    SETTINGS["library.scan_on_start"].defaultValue,
+  );
   const { value: singleClickPlay, setValue: setSingleClickPlay } =
     useSingleClickPlay();
   const [isDuplicatesOpen, setIsDuplicatesOpen] = useState(false);
@@ -985,7 +1041,9 @@ export function SettingsView({
   // stay in sync with `SUPPORTED_TRANSLATION_LANGS` in
   // `commands/lyrics.rs`; we propagate the same set + an "off"
   // sentinel here.
-  const [translationLang, setTranslationLang] = useState<string | null>(null);
+  const [translationLang, setTranslationLang] = useState<string | null>(
+    SETTINGS["lyrics.translation_lang"].defaultValue,
+  );
   const [translationLangBusy, setTranslationLangBusy] = useState(false);
 
   useEffect(() => {
@@ -1023,7 +1081,9 @@ export function SettingsView({
   // lyrics — issue #378. `false` = local-first (default). The flag is
   // per-profile, so the loader re-runs on profile switch and the toggle
   // stays busy (disabled) until the new profile's value has hydrated.
-  const [preferLrclib, setPreferLrclib] = useState(false);
+  const [preferLrclib, setPreferLrclib] = useState<boolean>(
+    SETTINGS["lyrics.prefer_lrclib"].defaultValue,
+  );
   const [preferLrclibBusy, setPreferLrclibBusy] = useState(true);
 
   useEffect(() => {
@@ -1033,7 +1093,7 @@ export function SettingsView({
       // loads so a stale value never shows and can't be toggled
       // mid-hydration. Inside the async IIFE (not the effect body) to
       // satisfy `react-hooks/set-state-in-effect`.
-      setPreferLrclib(false);
+      setPreferLrclib(SETTINGS["lyrics.prefer_lrclib"].defaultValue);
       setPreferLrclibBusy(true);
       try {
         const { getPreferLrclib } = await import("../../lib/tauri/lyrics");
@@ -1224,13 +1284,21 @@ export function SettingsView({
   }, [isPruningCovers, t, i18n.language, i18n.resolvedLanguage]);
 
   // Audio settings — hydrated from backend at mount.
-  const [normalize, setNormalize] = useState(false);
-  const [mono, setMono] = useState(false);
+  const [normalize, setNormalize] = useState<boolean>(
+    SETTINGS["audio.normalize"].defaultValue,
+  );
+  const [mono, setMono] = useState<boolean>(
+    SETTINGS["audio.mono"].defaultValue,
+  );
   // #617. Mirrors the engine's own default, so the row does not flip
   // under the user between the first paint and the read below.
-  const [pauseOnDeviceLoss, setPauseOnDeviceLoss] = useState(true);
+  const [pauseOnDeviceLoss, setPauseOnDeviceLoss] = useState<boolean>(
+    SETTINGS["audio.pause_on_device_loss"].defaultValue,
+  );
   // Keep the machine awake while playing; the backend's default too.
-  const [keepAwake, setKeepAwake] = useState(true);
+  const [keepAwake, setKeepAwake] = useState<boolean>(
+    SETTINGS["playback.keep_awake"].defaultValue,
+  );
   // Which of these two the user has touched since the audio-settings
   // read in flight started. That read is an IPC round trip, and a toggle
   // during it would otherwise be painted over by the value it just
@@ -1245,37 +1313,49 @@ export function SettingsView({
   const [audioSettingsNonce, setAudioSettingsNonce] = useState(0);
   // #600. Off, like the engine: a reopen costs an audible gap, so this
   // is a trade rather than an improvement.
-  const [matchSourceRate, setMatchSourceRate] = useState(false);
-  const [crossfadeSec, setCrossfadeSec] = useState(0);
-  const [replayGain, setReplayGain] = useState(false);
-  const [replayGainPreamp, setReplayGainPreamp] = useState(0);
-  const [replayGainFallback, setReplayGainFallback] = useState(0);
+  const [matchSourceRate, setMatchSourceRate] = useState<boolean>(
+    SETTINGS["audio.match_source_rate"].defaultValue,
+  );
+  const [crossfadeSec, setCrossfadeSec] = useState<number>(
+    SETTINGS["audio.crossfade_ms"].defaultValue / 1000,
+  );
+  const [replayGain, setReplayGain] = useState<boolean>(
+    SETTINGS["audio.replaygain"].defaultValue,
+  );
+  const [replayGainPreamp, setReplayGainPreamp] = useState<number>(
+    SETTINGS["audio.replaygain_preamp"].defaultValue,
+  );
+  const [replayGainFallback, setReplayGainFallback] = useState<number>(
+    SETTINGS["audio.replaygain_fallback"].defaultValue,
+  );
   const {
     enabled: generatorAlbumMode,
     resolved: generatorAlbumModeResolved,
     setEnabled: setGeneratorAlbumMode,
   } = useGeneratorAlbumMode();
-  const [replayGainMode, setReplayGainMode] = useState<ReplayGainMode>("auto");
+  const [replayGainMode, setReplayGainMode] = useState<ReplayGainMode>(
+    SETTINGS["audio.replaygain_mode"].defaultValue,
+  );
   const [replayGainPreventClipping, setReplayGainPreventClipping] =
-    useState(true);
+    useState<boolean>(
+      SETTINGS["audio.replaygain_prevent_clipping"].defaultValue,
+    );
   const replayGainOptionsDebounce = useRef<number | null>(null);
-  const [gapless, setGapless] = useState(true);
-  const [dsdTaps, setDsdTaps] = useState<DsdPrecisionTaps>(256);
-  const [dsdDop, setDsdDop] = useState(false);
+  const [gapless, setGapless] = useState<boolean>(
+    SETTINGS["audio.gapless"].defaultValue,
+  );
+  const [dsdTaps, setDsdTaps] = useState<DsdPrecisionTaps>(
+    SETTINGS["audio.dsd_precision"].defaultValue,
+  );
+  const [dsdDop, setDsdDop] = useState<boolean>(
+    SETTINGS["audio.dsd_dop"].defaultValue,
+  );
   // DoP needs exclusive device access, which WaveFlow has on every
   // desktop OS: WASAPI Exclusive (Windows), raw ALSA `hw:` (Linux),
   // CoreAudio hog mode (macOS). Hidden on mobile (#495 / #497). UA sniff
-  // like the ExclusiveModeCard; the WebView is platform-pinned.
-  const dopPlatformSupported = (() => {
-    if (typeof navigator === "undefined") return false;
-    const ua = navigator.userAgent.toLowerCase();
-    return (
-      ua.includes("windows") ||
-      ua.includes("macintosh") ||
-      // Exclude Android, whose UA also contains "linux".
-      (ua.includes("linux") && !ua.includes("android"))
-    );
-  })();
+  // like the ExclusiveModeCard; the WebView is platform-pinned. Shared
+  // with the page's modified count, which must skip what is not shown.
+  const dopPlatformSupported = isDopPlatform();
 
   // Integrations
   const [lastfmKey, setLastfmKey] = useState("");
@@ -1292,16 +1372,22 @@ export function SettingsView({
   const [lastfmLoggingIn, setLastfmLoggingIn] = useState(false);
   const [lastfmLoginError, setLastfmLoginError] = useState<string | null>(null);
 
-  // Discord Rich Presence opt-in. Hydrated once at mount, flipped
+  // Discord Rich Presence. Hydrated once at mount, flipped
   // optimistically with rollback on failure.
-  const [discordRpc, setDiscordRpc] = useState(false);
+  const [discordRpc, setDiscordRpc] = useState<boolean>(
+    SETTINGS["integrations.discord_rpc"].defaultValue,
+  );
   // Native OS track-change toast — opt-in (default OFF). Persisted
   // app-wide in `app_setting['notifications.track_change']`.
-  const [trackChangeNotif, setTrackChangeNotif] = useState(false);
+  const [trackChangeNotif, setTrackChangeNotif] = useState<boolean>(
+    SETTINGS["notifications.track_change"].defaultValue,
+  );
 
   // Global offline-mode flag. Persisted in app_setting (process-wide,
   // not per-profile), hydrated at mount.
-  const [offlineMode, setOfflineModeState] = useState(false);
+  const [offlineMode, setOfflineModeState] = useState<boolean>(
+    SETTINGS["network.offline_mode"].defaultValue,
+  );
 
   useEffect(() => {
     getOfflineMode()
@@ -1405,9 +1491,9 @@ export function SettingsView({
   // settings (name, port, enabled flag); `dlnaStatus` is the live
   // worker-thread snapshot (running, bound URL, last error).
   const [dlnaConfig, setDlnaConfig] = useState<DlnaConfig>({
-    enabled: false,
-    server_name: "WaveFlow",
-    port: 0,
+    enabled: SETTINGS["dlna.enabled"].defaultValue,
+    server_name: SETTINGS["dlna.server_name"].defaultValue,
+    port: SETTINGS["dlna.port"].defaultValue,
   });
   const [dlnaStatus, setDlnaStatus] = useState<DlnaStatus | null>(null);
   const [dlnaUrlCopied, setDlnaUrlCopied] = useState(false);
@@ -1417,8 +1503,8 @@ export function SettingsView({
   // actually bound — they differ when the configured port was taken and
   // the server scanned forward.
   const [mpdConfig, setMpdConfig] = useState<MpdConfig>({
-    enabled: false,
-    port: 6600,
+    enabled: SETTINGS["mpd.enabled"].defaultValue,
+    port: SETTINGS["mpd.port"].defaultValue,
     password: "",
   });
   const [mpdStatus, setMpdStatus] = useState<MpdStatus | null>(null);
@@ -1673,7 +1759,7 @@ export function SettingsView({
         setDsdTaps(
           (DSD_PRECISION_TAPS as readonly number[]).includes(s.dsd_taps)
             ? (s.dsd_taps as DsdPrecisionTaps)
-            : 256,
+            : SETTINGS["audio.dsd_precision"].defaultValue,
         );
         setDsdDop(s.dsd_dop);
       })
@@ -1854,6 +1940,7 @@ export function SettingsView({
     toggle: handleToggleSmartCrossfade,
   } = useProfileScopedToggle(getSmartCrossfade, setSmartCrossfade, {
     label: "SettingsView smart crossfade",
+    fallback: SETTINGS["audio.smart_crossfade"].defaultValue,
   });
 
   const {
@@ -1862,6 +1949,7 @@ export function SettingsView({
     toggle: handleToggleDynamicCrossfade,
   } = useProfileScopedToggle(getDynamicCrossfade, setDynamicCrossfade, {
     label: "SettingsView dynamic crossfade",
+    fallback: SETTINGS["audio.dynamic_crossfade"].defaultValue,
   });
 
   // Persisted backend-side and pushed live to the decoder thread, so
@@ -1872,6 +1960,7 @@ export function SettingsView({
     toggle: handleToggleVisualizer,
   } = useProfileScopedToggle(getVisualizerEnabled, setVisualizerEnabled, {
     label: "SettingsView visualizer",
+    fallback: SETTINGS["ui.visualizer"].defaultValue,
   });
 
   const handleToggleGapless = useCallback(() => {

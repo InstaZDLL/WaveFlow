@@ -2815,6 +2815,22 @@
       "nextStart": "Gaat in bij de volgende start van WaveFlow.",
       "active": "Aan: WaveFlow draait via XWayland.",
       "setByUser": "Vastgelegd door de variabele GDK_BACKEND in je omgeving."
+    },
+    "modified": {
+      "count_one": "{{count}} gewijzigd",
+      "count_other": "{{count}} gewijzigd",
+      "reset": "Resetten",
+      "resetAria": "Gewijzigde instellingen resetten: {{category}}",
+      "dialog": {
+        "title": "‘{{category}}’ resetten?",
+        "body_one": "Deze instelling krijgt weer de standaardwaarde:",
+        "body_other": "Deze {{count}} instellingen krijgen weer hun standaardwaarde:",
+        "untouched": "Accounts, bibliotheekmappen, extensies en back-ups blijven ongewijzigd.",
+        "cancel": "Annuleren",
+        "confirm": "Resetten",
+        "failed_one": "{{count}} instelling kon niet worden gereset.",
+        "failed_other": "{{count}} instellingen konden niet worden gereset."
+      }
     }
   },
   "scanProgress": {

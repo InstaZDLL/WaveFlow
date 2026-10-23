@@ -2881,6 +2881,25 @@
       "nextStart": "Tem efeito no próximo arranque do WaveFlow.",
       "active": "Ativo: o WaveFlow passa pelo XWayland.",
       "setByUser": "Imposto pela variável GDK_BACKEND do seu ambiente."
+    },
+    "modified": {
+      "count_one": "{{count}} alterada",
+      "count_many": "{{count}} alteradas",
+      "count_other": "{{count}} alteradas",
+      "reset": "Repor",
+      "resetAria": "Repor as definições alteradas: {{category}}",
+      "dialog": {
+        "title": "Repor «{{category}}»?",
+        "body_one": "Esta definição volta ao valor predefinido:",
+        "body_many": "Estas {{count}} definições voltam ao valor predefinido:",
+        "body_other": "Estas {{count}} definições voltam ao valor predefinido:",
+        "untouched": "As contas, as pastas da biblioteca, as extensões e as cópias de segurança não são alteradas.",
+        "cancel": "Cancelar",
+        "confirm": "Repor",
+        "failed_one": "Não foi possível repor {{count}} definição.",
+        "failed_many": "Não foi possível repor {{count}} definições.",
+        "failed_other": "Não foi possível repor {{count}} definições."
+      }
     }
   },
   "scanProgress": {

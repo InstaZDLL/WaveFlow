@@ -1,4 +1,5 @@
 import { useProfileBooleanSetting } from "./useProfileSetting";
+import { SETTINGS } from "../lib/settingsRegistry";
 
 const KEY = "ui.motion_covers";
 
@@ -6,7 +7,7 @@ const KEY = "ui.motion_covers";
  *  Settings card + each now-playing surface) re-reads in one go. */
 export const MOTION_COVERS_EVENT = "waveflow:motion-covers";
 
-const DEFAULT_ENABLED = true;
+const DEFAULT_ENABLED = SETTINGS[KEY].defaultValue;
 
 export interface MotionCovers {
   enabled: boolean;

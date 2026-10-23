@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 
 import { useProfileSetting } from "./useProfileSetting";
+import { SETTINGS } from "../lib/settingsRegistry";
 
 /**
  * How the floating desktop lyrics window draws its text (issue #582).
@@ -37,17 +38,8 @@ export const FONT_SIZE_MAX = 72;
 export const BACKGROUND_OPACITY_MAX = 80;
 export const OUTLINE_WIDTH_MAX = 6;
 
-export const DEFAULT_DESKTOP_LYRICS_STYLE: DesktopLyricsStyle = {
-  fontSize: 36,
-  textColor: "#ffffff",
-  highlightColor: "#34d399",
-  outlineWidth: 2,
-  backgroundOpacity: 0,
-  showTranslation: true,
-  showNextLine: true,
-  hideOnPause: false,
-  showProgress: false,
-};
+export const DEFAULT_DESKTOP_LYRICS_STYLE: DesktopLyricsStyle =
+  SETTINGS["ui.desktop_lyrics_style"].defaultValue;
 
 /**
  * The outline, as text shadows rather than `-webkit-text-stroke`. A
@@ -88,7 +80,8 @@ export function desktopLyricsLinePadding(outlineWidth: number): string {
 const KEY = "ui.desktop_lyrics_style";
 
 /** Window event `useProfileSetting` re-reads on, within one webview. */
-const WINDOW_EVENT = "waveflow:desktop-lyrics-style-changed";
+export const DESKTOP_LYRICS_STYLE_EVENT =
+  "waveflow:desktop-lyrics-style-changed";
 
 const HEX = /^#[0-9a-f]{6}$/i;
 
@@ -100,7 +93,7 @@ function clamp(n: unknown, min: number, max: number, fallback: number) {
 
 /** Field by field, so one bad value (a hand-edited row, a future build's
  *  shape) costs that field its default rather than the whole style. */
-function parseStyle(raw: string | null): DesktopLyricsStyle {
+export function parseStyle(raw: string | null): DesktopLyricsStyle {
   const d = DEFAULT_DESKTOP_LYRICS_STYLE;
   if (raw == null) return d;
   let parsed: Record<string, unknown>;
@@ -117,8 +110,7 @@ function parseStyle(raw: string | null): DesktopLyricsStyle {
     typeof v === "boolean" ? v : fallback;
   // Before #814 the outline was an on/off `outline` flag; a style saved
   // then keeps its choice, off as no outline and on as the default width.
-  const legacyOutline =
-    parsed.outline === false ? 0 : d.outlineWidth;
+  const legacyOutline = parsed.outline === false ? 0 : d.outlineWidth;
   return {
     fontSize: clamp(parsed.fontSize, FONT_SIZE_MIN, FONT_SIZE_MAX, d.fontSize),
     textColor: color(parsed.textColor, d.textColor),
@@ -155,7 +147,7 @@ export function useDesktopLyricsStyle() {
     parse: parseStyle,
     serialize: (style) => JSON.stringify(style),
     valueType: "json",
-    event: WINDOW_EVENT,
+    event: DESKTOP_LYRICS_STYLE_EVENT,
     label: "useDesktopLyricsStyle",
   });
 

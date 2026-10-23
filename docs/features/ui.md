@@ -89,6 +89,56 @@ wrap their control under the label when the content column (a named
 [`SettingsCategoryHeader`](../../src/components/views/settings/SettingsCategoryHeader.tsx)
 renders each category's title and description from its catalog entry.
 
+### Modified settings and reset
+
+Each category's header also says how many of its settings differ from their
+default ("3 modified") and offers **Reset** beside it; nothing shows while the
+page is at its defaults. Reset opens a dialog (`useModalA11y`, portalled through
+`AnimatedModalShell`) that lists what differs by the names the rows show — a
+setting shown as several controls (the player-bar buttons, the desktop-lyrics
+style, the shortcuts) counts each control — and says what is never touched.
+There is one reset per page: no per-setting reset and no "reset everything".
+
+- **One registry of defaults.** [`settingsRegistry.ts`](../../src/lib/settingsRegistry.ts)
+  holds every preference the view shows: its storage key, category, scope
+  (`profile`, `app`, or `device` for the OS autostart entry and
+  `display-backend.json`), value type, default and label. The preference hooks
+  and the Settings view read their defaults from it, so the count and the
+  screen cannot disagree about what "default" means. The Rust fallbacks cannot
+  import it; each entry agrees with its Rust counterpart, which is the
+  _effective_ default (Discord presence and the visualizer are on).
+- **Counted on the effective value, not on a row.** The theme and the skin
+  write their row on first load, migrations seed `app.minimize_to_tray`, and a
+  few switches store "off" by deleting their row — so "modified" means the value
+  in force differs from the default, read through the same getter the page
+  uses. A setting this machine never shows (the window frame off Linux and
+  macOS, XWayland off a Wayland session or when `GDK_BACKEND` decides, DoP on
+  mobile, remote transcoding without a signed-in server) is not counted.
+- **Reset takes the control's own path.** [`settingsReset.ts`](../../src/components/views/settings/settingsReset.ts)
+  maps every registry key to an accessor (the map is typed over the registry,
+  so a new entry without one does not compile): a `profile_setting` row is
+  written as its hook writes it and the hook's window event fires; an engine
+  switch goes through its `player_set_*` command, the theme and skin through
+  their providers, DLNA and MPD through their config commands (enabled first,
+  so the server stops before its name or port moves), the shortcuts through
+  `saveBindings`. Never a bare `DELETE`. Afterwards the Settings view mounts
+  its content afresh, which re-reads every value the view and its cards hold
+  in local state.
+- **Kept live.** The header re-inspects (debounced) on `profile-setting:changed`,
+  `player:eq`, the zoom event, and `waveflow:setting-written` — which the
+  wrappers of the commands that write their own row
+  ([`settingWrites.ts`](../../src/lib/settingWrites.ts)) dispatch after a
+  successful write, since those commands emit nothing.
+- **Not preferences, never counted or reset:** accounts and credentials
+  (Last.fm, ListenBrainz, the remote server, the MPD password), library
+  folders, installed plugins, caches and where they live, backups and their
+  configuration, the profile's name and avatar, window positions, and the
+  interface language (chosen at onboarding; its only default is the system's).
+
+A new preference gets a registry entry and an accessor, and the wrapper of a
+command that writes it without going through `set_profile_setting` announces
+itself through `announceSettingWrite`.
+
 ## Panels
 
 - [`NowPlayingPanel`](../../src/components/layout/NowPlayingPanel.tsx) — large artwork, clickable artists, what plays next, then "About the artist" populated from the Deezer + Last.fm caches — **last**, because a long biography used to push what plays next out of view (#423). While the queue goes on with the current record, "what plays next" is **the rest of the album**: its title and every remaining track in the order they will play (up to 12, then a count), each one a jump to that queue position. It is read from the queue — the run of items after the current one that share its `album_id` — rather than from the queue's source label, so an album-mode Daily Mix or mood radio gets it too and it stops where the record does; only while the queue's current row is the playing track, so a lagging snapshot cannot list the wrong record. Otherwise it is the one-track "Next in queue" teaser. Both carry an "Open queue" link that hands the right slot off to `QueuePanel`. Lightbox on cover click.

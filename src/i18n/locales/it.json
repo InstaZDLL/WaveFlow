@@ -2880,6 +2880,25 @@
       "nextStart": "Ha effetto al prossimo avvio di WaveFlow.",
       "active": "Attivo: WaveFlow passa per XWayland.",
       "setByUser": "Imposto dalla variabile GDK_BACKEND del tuo ambiente."
+    },
+    "modified": {
+      "count_one": "{{count}} modificata",
+      "count_many": "{{count}} modificate",
+      "count_other": "{{count}} modificate",
+      "reset": "Ripristina",
+      "resetAria": "Ripristina le impostazioni modificate: {{category}}",
+      "dialog": {
+        "title": "Ripristinare «{{category}}»?",
+        "body_one": "Questa impostazione torna al valore predefinito:",
+        "body_many": "Queste {{count}} impostazioni tornano al valore predefinito:",
+        "body_other": "Queste {{count}} impostazioni tornano al valore predefinito:",
+        "untouched": "Account, cartelle della libreria, estensioni e backup restano invariati.",
+        "cancel": "Annulla",
+        "confirm": "Ripristina",
+        "failed_one": "Impossibile ripristinare {{count}} impostazione.",
+        "failed_many": "Impossibile ripristinare {{count}} impostazioni.",
+        "failed_other": "Impossibile ripristinare {{count}} impostazioni."
+      }
     }
   },
   "scanProgress": {

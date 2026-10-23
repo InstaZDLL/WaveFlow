@@ -4,6 +4,7 @@ import {
   setUpdateChannel,
   type UpdateChannel,
 } from "../lib/tauri/updater";
+import { SETTINGS } from "../lib/settingsRegistry";
 
 export interface UpdateChannelState {
   channel: UpdateChannel;
@@ -20,7 +21,9 @@ export interface UpdateChannelState {
  * backend read lands.
  */
 export function useUpdateChannel(): UpdateChannelState {
-  const [channel, setChannelState] = useState<UpdateChannel>("stable");
+  const [channel, setChannelState] = useState<UpdateChannel>(
+    SETTINGS["updater.channel"].defaultValue,
+  );
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {

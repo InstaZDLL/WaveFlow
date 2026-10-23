@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import { useProfileSetting } from "./useProfileSetting";
+import { SETTINGS } from "../lib/settingsRegistry";
 
 const FORMAT_KEY = "remote.transcode.format";
 const BITRATE_KEY = "remote.transcode.bitrate";
@@ -17,7 +18,7 @@ export const REMOTE_TRANSCODE_EVENT = "waveflow:remote-transcode";
  */
 export type RemoteTranscodeFormat = "off" | "mp3" | "opus";
 
-const DEFAULT_FORMAT: RemoteTranscodeFormat = "off";
+const DEFAULT_FORMAT: RemoteTranscodeFormat = SETTINGS[FORMAT_KEY].defaultValue;
 
 /** The server's own defaults, mirrored so the picker opens on the value the
  *  server would have chosen rather than on an arbitrary one. */
@@ -136,7 +137,7 @@ export function useRemoteTranscode(): RemoteTranscode {
  * server accepts because it sits below the minimum one. Needed because the
  * default rate depends on the chosen codec, which this parser cannot see.
  */
-const UNSET = 0;
+const UNSET = SETTINGS[BITRATE_KEY].defaultValue;
 
 /** Clamped rather than rejected: a row outside the server's range would
  *  otherwise turn into a 400 on every remote track. */

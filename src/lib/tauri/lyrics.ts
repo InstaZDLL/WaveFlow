@@ -1,5 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 
+import { announceSettingWrite } from "../settingWrites";
+
 export type LyricsFormat = "plain" | "lrc" | "enhanced_lrc" | "ttml";
 export type LyricsSource = "embedded" | "lrc_file" | "api" | "manual";
 
@@ -268,7 +270,9 @@ export function getLyricsTranslationLang(): Promise<string | null> {
 export function setLyricsTranslationLang(
   lang: string | null,
 ): Promise<string | null> {
-  return invoke<string | null>("set_lyrics_translation_lang", { lang });
+  return announceSettingWrite(
+    invoke<string | null>("set_lyrics_translation_lang", { lang }),
+  );
 }
 
 /**
@@ -286,7 +290,7 @@ export function getPreferLrclib(): Promise<boolean> {
  * and restores the local-first default.
  */
 export function setPreferLrclib(enabled: boolean): Promise<void> {
-  return invoke<void>("set_prefer_lrclib", { enabled });
+  return announceSettingWrite(invoke<void>("set_prefer_lrclib", { enabled }));
 }
 
 /**
@@ -340,9 +344,11 @@ export function getLyricsDefaultDestination(): Promise<LyricsDestination> {
 export function setLyricsDefaultDestination(
   destination: LyricsDestination,
 ): Promise<LyricsDestination> {
-  return invoke<LyricsDestination>("set_lyrics_default_destination", {
-    destination,
-  });
+  return announceSettingWrite(
+    invoke<LyricsDestination>("set_lyrics_default_destination", {
+      destination,
+    }),
+  );
 }
 
 /**

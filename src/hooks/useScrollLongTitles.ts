@@ -1,4 +1,5 @@
 import { useProfileBooleanSetting } from "./useProfileSetting";
+import { SETTINGS } from "../lib/settingsRegistry";
 
 const KEY = "ui.scroll_long_titles";
 
@@ -6,7 +7,7 @@ const KEY = "ui.scroll_long_titles";
  *  Settings card + each `MarqueeText`) re-reads in one go. */
 export const SCROLL_LONG_TITLES_EVENT = "waveflow:scroll-long-titles";
 
-const DEFAULT_ENABLED = true;
+const DEFAULT_ENABLED = SETTINGS[KEY].defaultValue;
 
 export interface ScrollLongTitles {
   enabled: boolean;

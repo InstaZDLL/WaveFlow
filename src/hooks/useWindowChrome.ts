@@ -6,9 +6,10 @@ import {
   WINDOW_CHROME_EVENT,
   type WindowChromeState,
 } from "../lib/tauri/preferences";
+import { SETTINGS } from "../lib/settingsRegistry";
 
 const FALLBACK: WindowChromeState = {
-  chrome: "system",
+  chrome: SETTINGS["ui.window_chrome"].defaultValue,
   draw: "none",
   supported: false,
 };
@@ -66,6 +67,24 @@ function writeCached(state: WindowChromeState) {
   } catch {
     // Same bargain as above.
   }
+}
+
+/**
+ * Apply and store a frame, then tell every consumer (the layout draws the
+ * bar). Module-level so the reset of a Settings page takes the same path
+ * as the card's choice. Rejects when the backend refuses the change.
+ */
+export async function applyWindowChrome(
+  next: "system" | "app",
+): Promise<WindowChromeState> {
+  const applied = await setWindowChrome(next);
+  writeCached(applied);
+  window.dispatchEvent(
+    new CustomEvent<WindowChromeState>(WINDOW_CHROME_EVENT, {
+      detail: applied,
+    }),
+  );
+  return applied;
 }
 
 export interface WindowChromePreference extends WindowChromeState {
@@ -174,14 +193,7 @@ export function useWindowChrome(): WindowChromePreference {
     // bar for a window that kept its decorations would be two frames, and
     // a failed write now returns an error rather than reporting success.
     try {
-      const applied = await setWindowChrome(next);
-      setState(applied);
-      writeCached(applied);
-      window.dispatchEvent(
-        new CustomEvent<WindowChromeState>(WINDOW_CHROME_EVENT, {
-          detail: applied,
-        }),
-      );
+      setState(await applyWindowChrome(next));
     } catch (err) {
       console.error("[useWindowChrome] write failed", err);
     } finally {

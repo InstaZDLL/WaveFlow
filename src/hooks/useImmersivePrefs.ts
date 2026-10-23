@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { getProfileSetting } from "../lib/tauri/profile";
 import { useProfile } from "./useProfile";
+import { SETTINGS, type SettingKey } from "../lib/settingsRegistry";
 
 /**
  * Per-profile preferences for the immersive view (issue #328).
@@ -40,19 +41,19 @@ const DEFAULTS: ImmersivePrefs = {
   // left for the few who find the setting; the classic single view is one
   // switch away in Settings. `useNativeFullscreen` stays opt-in so the
   // view keeps to its window and a second monitor stays usable.
-  mergedLyrics: true,
-  useNativeFullscreen: false,
-  hideEmptyLyrics: false,
+  mergedLyrics: SETTINGS["immersive.merged_lyrics"].defaultValue,
+  useNativeFullscreen: SETTINGS["immersive.use_native_fullscreen"].defaultValue,
+  hideEmptyLyrics: SETTINGS["immersive.hide_empty_lyrics"].defaultValue,
   loaded: false,
 };
 
 type StoredPrefs = Omit<ImmersivePrefs, "loaded">;
 
-export const IMMERSIVE_PREF_KEYS: Record<keyof StoredPrefs, string> = {
+export const IMMERSIVE_PREF_KEYS = {
   mergedLyrics: "immersive.merged_lyrics",
   useNativeFullscreen: "immersive.use_native_fullscreen",
   hideEmptyLyrics: "immersive.hide_empty_lyrics",
-};
+} as const satisfies Record<keyof StoredPrefs, SettingKey>;
 
 const STORED_DEFAULTS: StoredPrefs = {
   mergedLyrics: DEFAULTS.mergedLyrics,

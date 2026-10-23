@@ -1,4 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
+
+import { announceSettingWrite } from "../settingWrites";
 import type { PluginTrack } from "./plugins";
 
 /**
@@ -31,7 +33,9 @@ export function radioCatalogueStatus(): Promise<RadioCatalogueStatus> {
 }
 
 export function setRadioCatalogueLocalFirst(enabled: boolean): Promise<void> {
-  return invoke<void>("set_radio_catalogue_local_first", { enabled });
+  return announceSettingWrite(
+    invoke<void>("set_radio_catalogue_local_first", { enabled }),
+  );
 }
 
 export function clearRadioCatalogue(): Promise<void> {

@@ -1,4 +1,5 @@
 import { useProfileBooleanSetting } from "./useProfileSetting";
+import { SETTINGS } from "../lib/settingsRegistry";
 
 const KEY = "ui.cover_slideshow";
 
@@ -6,7 +7,7 @@ const KEY = "ui.cover_slideshow";
  *  Settings card + each now-playing surface) re-reads in one go. */
 export const COVER_SLIDESHOW_EVENT = "waveflow:cover-slideshow";
 
-const DEFAULT_ENABLED = false;
+const DEFAULT_ENABLED = SETTINGS[KEY].defaultValue;
 
 export interface CoverSlideshow {
   enabled: boolean;

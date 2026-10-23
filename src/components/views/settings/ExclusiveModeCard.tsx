@@ -8,6 +8,7 @@ import {
   playerSetExclusiveOutput,
   type ExclusiveOutputState,
 } from "../../../lib/tauri/player";
+import { SETTINGS } from "../../../lib/settingsRegistry";
 import { ToggleSwitch } from "../../common/ToggleSwitch";
 
 /**
@@ -43,7 +44,11 @@ export function ExclusiveModeCard() {
       .then(setState)
       .catch((err) => {
         console.error("[ExclusiveModeCard] get failed", err);
-        setState({ requested: false, engaged: false, refusal: null });
+        setState({
+          requested: SETTINGS["audio.exclusive_output"].defaultValue,
+          engaged: false,
+          refusal: null,
+        });
       });
   }, []);
 

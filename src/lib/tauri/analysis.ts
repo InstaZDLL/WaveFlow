@@ -1,5 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 
+import { announceSettingWrite } from "../settingWrites";
+
 /**
  * Cached analysis row for a single track. Mirrors the Rust
  * `TrackAnalysisRow`. `loudness_lufs` finally means what it says: the
@@ -92,5 +94,5 @@ export function getAutoAnalyze(): Promise<boolean> {
 }
 
 export function setAutoAnalyze(enable: boolean): Promise<void> {
-  return invoke<void>("set_auto_analyze", { enable });
+  return announceSettingWrite(invoke<void>("set_auto_analyze", { enable }));
 }

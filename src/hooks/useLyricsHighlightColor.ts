@@ -1,12 +1,13 @@
 import { useCallback } from "react";
 import { useProfileSetting } from "./useProfileSetting";
+import { SETTINGS } from "../lib/settingsRegistry";
 
 const KEY = "ui.lyrics_highlight_color";
 
 /** Window event `useProfileSetting` re-reads on, within one webview. The
  *  other windows — the mini-player above all — hear about a write through
  *  the cross-window bridge (#741). */
-const EVENT = "waveflow:lyrics-highlight-color";
+export const LYRICS_HIGHLIGHT_COLOR_EVENT = "waveflow:lyrics-highlight-color";
 
 /**
  * The pastels on offer, in hue order — which is also the order `rainbow`
@@ -42,7 +43,7 @@ export const LYRICS_HIGHLIGHT_ORDER: LyricsHighlightId[] = [
 /** `null` is "no colour of my own": each view keeps its own white. An
  *  unknown value — a `#rrggbb` from the free picker this replaced, which
  *  only ever lived in a pre-release build — reads as that same `null`. */
-function parseId(raw: string | null): LyricsHighlightId | null {
+export function parseId(raw: string | null): LyricsHighlightId | null {
   return raw != null && (LYRICS_HIGHLIGHT_ORDER as string[]).includes(raw)
     ? (raw as LyricsHighlightId)
     : null;
@@ -90,11 +91,11 @@ export function useLyricsHighlightColor(): LyricsHighlightColor {
   const { value, ready, setValue } =
     useProfileSetting<LyricsHighlightId | null>({
       key: KEY,
-      defaultValue: null,
+      defaultValue: SETTINGS[KEY].defaultValue,
       parse: parseId,
       serialize: (value) => value ?? "",
       valueType: "string",
-      event: EVENT,
+      event: LYRICS_HIGHLIGHT_COLOR_EVENT,
       label: "useLyricsHighlightColor",
     });
 

@@ -7,6 +7,7 @@ import {
   setLyricsDefaultDestination,
   type LyricsDestination,
 } from "../../../lib/tauri/lyrics";
+import { SETTINGS } from "../../../lib/settingsRegistry";
 
 const OPTIONS: ReadonlyArray<{
   id: LyricsDestination;
@@ -29,7 +30,9 @@ const OPTIONS: ReadonlyArray<{
  */
 export function LyricsDestinationCard() {
   const { t } = useTranslation();
-  const [value, setValue] = useState<LyricsDestination>("tag");
+  const [value, setValue] = useState<LyricsDestination>(
+    SETTINGS["lyrics.default_destination"].defaultValue,
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // True once the user clicked a tile. Lets the initial fetch's

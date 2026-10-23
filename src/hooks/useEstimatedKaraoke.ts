@@ -1,4 +1,5 @@
 import { useProfileBooleanSetting } from "./useProfileSetting";
+import { SETTINGS } from "../lib/settingsRegistry";
 
 /** Broadcast after a write, so every mounted lyrics view re-reads. */
 export const ESTIMATED_KARAOKE_EVENT = "waveflow:lyrics-estimate-words-changed";
@@ -12,7 +13,7 @@ export const ESTIMATED_KARAOKE_EVENT = "waveflow:lyrics-estimate-words-changed";
 export function useEstimatedKaraokeSetting() {
   return useProfileBooleanSetting({
     key: "lyrics.estimate_words",
-    defaultValue: false,
+    defaultValue: SETTINGS["lyrics.estimate_words"].defaultValue,
     event: ESTIMATED_KARAOKE_EVENT,
     label: "useEstimatedKaraokeSetting",
   });

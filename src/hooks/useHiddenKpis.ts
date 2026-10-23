@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from "react";
 import { useProfileSetting } from "./useProfileSetting";
+import { SETTINGS } from "../lib/settingsRegistry";
 
 /**
  * Stable identifiers for the KPI cards on the Statistics view. Adding
@@ -26,14 +27,14 @@ export const HIDDEN_KPIS_EVENT = "waveflow:stats-hidden-kpis-changed";
 
 /** Nothing hidden. Module-level so its identity is stable — the shared
  *  hook resets to this object on every profile switch. */
-const DEFAULT_HIDDEN: StatsKpiId[] = [];
+const DEFAULT_HIDDEN: StatsKpiId[] = [...SETTINGS[KEY].defaultValue];
 
 /**
  * Parse the persisted JSON array, tolerating junk. Unknown ids are
  * dropped so a stale setting from a future build never hides a card
  * that no longer maps to it.
  */
-function parseHidden(raw: string | null): StatsKpiId[] {
+export function parseHidden(raw: string | null): StatsKpiId[] {
   if (raw == null) return DEFAULT_HIDDEN;
   try {
     const parsed: unknown = JSON.parse(raw);

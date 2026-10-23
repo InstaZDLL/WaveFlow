@@ -1,5 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 
+import { announceSettingWrite } from "../settingWrites";
+
 /// Mirrors `dlna::config::DlnaConfig`.
 export interface DlnaConfig {
   enabled: boolean;
@@ -23,7 +25,7 @@ export function dlnaGetConfig(): Promise<DlnaConfig> {
 }
 
 export function dlnaSetConfig(cfg: DlnaConfig): Promise<DlnaStatus> {
-  return invoke<DlnaStatus>("dlna_set_config", { cfg });
+  return announceSettingWrite(invoke<DlnaStatus>("dlna_set_config", { cfg }));
 }
 
 export function dlnaGetStatus(): Promise<DlnaStatus> {

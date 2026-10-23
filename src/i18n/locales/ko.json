@@ -2813,6 +2813,22 @@
       "nextStart": "다음에 WaveFlow를 시작할 때 적용됩니다.",
       "active": "켜짐: WaveFlow가 XWayland로 실행 중입니다.",
       "setByUser": "환경의 GDK_BACKEND 변수로 지정되어 있습니다."
+    },
+    "modified": {
+      "count_one": "{{count}}개 변경됨",
+      "count_other": "{{count}}개 변경됨",
+      "reset": "초기화",
+      "resetAria": "변경된 설정 초기화: {{category}}",
+      "dialog": {
+        "title": "‘{{category}}’을(를) 초기화할까요?",
+        "body_one": "이 설정이 기본값으로 돌아갑니다:",
+        "body_other": "다음 {{count}}개 설정이 기본값으로 돌아갑니다:",
+        "untouched": "계정, 라이브러리 폴더, 확장 기능, 백업은 변경되지 않습니다.",
+        "cancel": "취소",
+        "confirm": "초기화",
+        "failed_one": "설정 {{count}}개를 초기화하지 못했습니다.",
+        "failed_other": "설정 {{count}}개를 초기화하지 못했습니다."
+      }
     }
   },
   "scanProgress": {

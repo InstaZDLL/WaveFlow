@@ -11,6 +11,7 @@ import {
   type BioSource,
   type BioLanguage,
 } from "../../../lib/tauri/integration";
+import { SETTINGS } from "../../../lib/settingsRegistry";
 
 const SOURCES: ReadonlyArray<{ id: BioSource; name: string; hintKey: string }> =
   [
@@ -43,8 +44,12 @@ function languageLabel(uiLang: string, code: string): string {
  */
 export function ArtistBioSourceCard() {
   const { t, i18n } = useTranslation();
-  const [source, setSource] = useState<BioSource>("lastfm");
-  const [language, setLanguage] = useState<BioLanguage>("en");
+  const [source, setSource] = useState<BioSource>(
+    SETTINGS["metadata.bio_source"].defaultValue,
+  );
+  const [language, setLanguage] = useState<BioLanguage>(
+    SETTINGS["metadata.bio_language"].defaultValue,
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const userTouchedRef = useRef(false);

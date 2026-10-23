@@ -1,11 +1,15 @@
 import { invoke } from "@tauri-apps/api/core";
 
+import { announceSettingWrite } from "../settingWrites";
+
 export function getMinimizeToTray(): Promise<boolean> {
   return invoke<boolean>("get_minimize_to_tray");
 }
 
 export function setMinimizeToTray(enabled: boolean): Promise<void> {
-  return invoke<void>("set_minimize_to_tray", { enabled });
+  return announceSettingWrite(
+    invoke<void>("set_minimize_to_tray", { enabled }),
+  );
 }
 
 export function getAutoStart(): Promise<boolean> {
@@ -13,7 +17,7 @@ export function getAutoStart(): Promise<boolean> {
 }
 
 export function setAutoStart(enabled: boolean): Promise<void> {
-  return invoke<void>("set_auto_start", { enabled });
+  return announceSettingWrite(invoke<void>("set_auto_start", { enabled }));
 }
 
 /** UI zoom level. Backend stores it in `app_setting` clamped to
@@ -29,7 +33,7 @@ export function getUiZoom(): Promise<number> {
 }
 
 export function setUiZoom(zoom: number): Promise<void> {
-  return invoke<void>("set_ui_zoom", { zoom });
+  return announceSettingWrite(invoke<void>("set_ui_zoom", { zoom }));
 }
 
 /**
@@ -57,7 +61,9 @@ export function getWindowChrome(): Promise<WindowChromeState> {
 export function setWindowChrome(
   chrome: "system" | "app",
 ): Promise<WindowChromeState> {
-  return invoke<WindowChromeState>("set_window_chrome", { chrome });
+  return announceSettingWrite(
+    invoke<WindowChromeState>("set_window_chrome", { chrome }),
+  );
 }
 
 /** Broadcast after a successful write so the layout (which draws the bar)
@@ -130,5 +136,7 @@ export function getSortIgnoreArticles(): Promise<boolean> {
 }
 
 export function setSortIgnoreArticles(enabled: boolean): Promise<void> {
-  return invoke<void>("set_sort_ignore_articles", { enabled });
+  return announceSettingWrite(
+    invoke<void>("set_sort_ignore_articles", { enabled }),
+  );
 }

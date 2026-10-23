@@ -2813,6 +2813,22 @@
       "nextStart": "Berlaku saat WaveFlow dibuka berikutnya.",
       "active": "Aktif: WaveFlow berjalan lewat XWayland.",
       "setByUser": "Ditentukan oleh variabel GDK_BACKEND di lingkungan Anda."
+    },
+    "modified": {
+      "count_one": "{{count}} diubah",
+      "count_other": "{{count}} diubah",
+      "reset": "Atur ulang",
+      "resetAria": "Atur ulang pengaturan yang diubah: {{category}}",
+      "dialog": {
+        "title": "Atur ulang “{{category}}”?",
+        "body_one": "Pengaturan ini kembali ke nilai bawaannya:",
+        "body_other": "{{count}} pengaturan ini kembali ke nilai bawaannya:",
+        "untouched": "Akun, folder pustaka, ekstensi, dan cadangan tidak berubah.",
+        "cancel": "Batal",
+        "confirm": "Atur ulang",
+        "failed_one": "{{count}} pengaturan tidak dapat diatur ulang.",
+        "failed_other": "{{count}} pengaturan tidak dapat diatur ulang."
+      }
     }
   },
   "scanProgress": {

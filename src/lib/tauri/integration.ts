@@ -1,5 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 
+import { announceSettingWrite } from "../settingWrites";
+
 /**
  * Read the stored Last.fm API key from `app_setting`. Returns `null`
  * when the user has never configured one (or cleared it).
@@ -41,7 +43,7 @@ export function getBioSource(): Promise<BioSource> {
 }
 
 export function setBioSource(source: BioSource): Promise<void> {
-  return invoke<void>("set_bio_source", { source });
+  return announceSettingWrite(invoke<void>("set_bio_source", { source }));
 }
 
 export function getBioLanguage(): Promise<BioLanguage> {
@@ -51,7 +53,7 @@ export function getBioLanguage(): Promise<BioLanguage> {
 }
 
 export function setBioLanguage(language: BioLanguage): Promise<void> {
-  return invoke<void>("set_bio_language", { language });
+  return announceSettingWrite(invoke<void>("set_bio_language", { language }));
 }
 
 export function getLastfmApiSecret(): Promise<string | null> {
@@ -108,7 +110,9 @@ export function getDiscordRpcEnabled(): Promise<boolean> {
  * Discord activity card appears or disappears immediately.
  */
 export function setDiscordRpcEnabled(enabled: boolean): Promise<void> {
-  return invoke<void>("set_discord_rpc_enabled", { enabled });
+  return announceSettingWrite(
+    invoke<void>("set_discord_rpc_enabled", { enabled }),
+  );
 }
 
 /**
@@ -126,7 +130,9 @@ export function getNotificationsTrackChange(): Promise<boolean> {
  * avoid spamming the user right after the flip.
  */
 export function setNotificationsTrackChange(enabled: boolean): Promise<void> {
-  return invoke<void>("set_notifications_track_change", { enabled });
+  return announceSettingWrite(
+    invoke<void>("set_notifications_track_change", { enabled }),
+  );
 }
 
 /** The active profile's ListenBrainz linkage. Per profile, like Last.fm. */

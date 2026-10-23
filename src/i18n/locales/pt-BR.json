@@ -2881,6 +2881,25 @@
       "nextStart": "Vale a partir da próxima vez que o WaveFlow abrir.",
       "active": "Ativo: o WaveFlow está rodando pelo XWayland.",
       "setByUser": "Definido pela variável GDK_BACKEND do seu ambiente."
+    },
+    "modified": {
+      "count_one": "{{count}} alterada",
+      "count_many": "{{count}} alteradas",
+      "count_other": "{{count}} alteradas",
+      "reset": "Redefinir",
+      "resetAria": "Redefinir as configurações alteradas: {{category}}",
+      "dialog": {
+        "title": "Redefinir “{{category}}”?",
+        "body_one": "Esta configuração volta ao valor padrão:",
+        "body_many": "Estas {{count}} configurações voltam ao valor padrão:",
+        "body_other": "Estas {{count}} configurações voltam ao valor padrão:",
+        "untouched": "Contas, pastas da biblioteca, extensões e backups não são alterados.",
+        "cancel": "Cancelar",
+        "confirm": "Redefinir",
+        "failed_one": "Não foi possível redefinir {{count}} configuração.",
+        "failed_many": "Não foi possível redefinir {{count}} configurações.",
+        "failed_other": "Não foi possível redefinir {{count}} configurações."
+      }
     }
   },
   "scanProgress": {

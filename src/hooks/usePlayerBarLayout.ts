@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getProfileSetting } from "../lib/tauri/profile";
+import { SETTINGS, type SettingKey } from "../lib/settingsRegistry";
 
 /**
  * What clicking the small cover thumbnail on the left side of the
@@ -33,26 +34,13 @@ export interface PlayerBarLayout {
 
 type BoolKey = Exclude<keyof PlayerBarLayout, "coverAction">;
 
-const DEFAULTS: PlayerBarLayout = {
-  showLyrics: true,
-  showQueue: true,
-  showDevice: true,
-  showMiniPlayer: true,
-  showImmersive: true,
-  showEqPreset: false,
-  showSleepTimer: false,
-  showAbLoop: false,
-  showAudioQualityFooter: false,
-  coverAction: "immersive",
-};
-
 /**
  * Setting keys. Names re-use the existing `ui.show_*` pattern
  * established for sleep-timer / A-B loop pins so legacy code (and
  * any in-flight migrations) keeps working. The cover action lives
  * under its own non-`show_` key because it isn't a boolean.
  */
-export const PLAYER_BAR_LAYOUT_KEYS: Record<BoolKey, string> = {
+export const PLAYER_BAR_LAYOUT_KEYS = {
   showLyrics: "ui.show_lyrics",
   showQueue: "ui.show_queue",
   showDevice: "ui.show_device",
@@ -62,9 +50,20 @@ export const PLAYER_BAR_LAYOUT_KEYS: Record<BoolKey, string> = {
   showSleepTimer: "ui.show_sleep_timer",
   showAbLoop: "ui.show_ab_loop",
   showAudioQualityFooter: "ui.show_audio_quality_footer",
-};
+} as const satisfies Record<BoolKey, SettingKey>;
 
 export const COVER_ACTION_KEY = "ui.cover_action";
+
+// From the settings registry, which holds every default once.
+const DEFAULTS: PlayerBarLayout = {
+  ...(Object.fromEntries(
+    Object.entries(PLAYER_BAR_LAYOUT_KEYS).map(([prop, key]) => [
+      prop,
+      SETTINGS[key].defaultValue,
+    ]),
+  ) as Record<BoolKey, boolean>),
+  coverAction: SETTINGS[COVER_ACTION_KEY].defaultValue,
+};
 
 /**
  * Unified window event the Settings panel dispatches after any

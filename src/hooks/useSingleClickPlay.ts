@@ -1,5 +1,6 @@
 import type { MouseEvent } from "react";
 import { useProfileBooleanSetting } from "./useProfileSetting";
+import { SETTINGS } from "../lib/settingsRegistry";
 
 /** Broadcast after the preference is written, so every list re-reads it. */
 export const SINGLE_CLICK_PLAY_EVENT = "waveflow:single-click-play-changed";
@@ -14,7 +15,7 @@ export const SINGLE_CLICK_PLAY_EVENT = "waveflow:single-click-play-changed";
 export function useSingleClickPlay() {
   return useProfileBooleanSetting({
     key: "ui.single_click_play",
-    defaultValue: false,
+    defaultValue: SETTINGS["ui.single_click_play"].defaultValue,
     event: SINGLE_CLICK_PLAY_EVENT,
     label: "useSingleClickPlay",
   });

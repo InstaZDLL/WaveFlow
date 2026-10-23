@@ -2815,6 +2815,22 @@
       "nextStart": "WaveFlow bir sonraki açılışında geçerli olur.",
       "active": "Açık: WaveFlow XWayland üzerinden çalışıyor.",
       "setByUser": "Ortamınızdaki GDK_BACKEND değişkeni tarafından belirleniyor."
+    },
+    "modified": {
+      "count_one": "{{count}} değiştirildi",
+      "count_other": "{{count}} değiştirildi",
+      "reset": "Sıfırla",
+      "resetAria": "Değiştirilen ayarları sıfırla: {{category}}",
+      "dialog": {
+        "title": "“{{category}}” sıfırlansın mı?",
+        "body_one": "Bu ayar varsayılan değerine döner:",
+        "body_other": "Bu {{count}} ayar varsayılan değerlerine döner:",
+        "untouched": "Hesaplar, kitaplık klasörleri, eklentiler ve yedekler değişmez.",
+        "cancel": "İptal",
+        "confirm": "Sıfırla",
+        "failed_one": "{{count}} ayar sıfırlanamadı.",
+        "failed_other": "{{count}} ayar sıfırlanamadı."
+      }
     }
   },
   "scanProgress": {
