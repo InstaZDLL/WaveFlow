@@ -56,7 +56,13 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
+          # Pinned, never `ubuntu-latest`: the binary needs at least the
+          # glibc it was linked against, so the runner sets the oldest
+          # distribution WaveFlow starts on. `ubuntu-latest` moving to
+          # 26.04 raised that floor to glibc 2.43 and 1.9.6 stopped
+          # starting on Ubuntu 24.04, Debian 13 and Mint. Raise it on purpose,
+          # with GLIBC_FLOOR below.
+          - os: ubuntu-24.04
             platform: linux
             tauri_bundles: appimage,deb,rpm
             tauri_target: ""
@@ -391,6 +397,23 @@ jobs:
             bun run tauri build --target "$TARGET" --bundles "$BUNDLES"
           else
             bun run tauri build --bundles "$BUNDLES"
+          fi
+
+      - name: Check the glibc floor (Linux)
+        if: matrix.platform == 'linux'
+        shell: bash
+        env:
+          # The newest glibc symbol version the binary may need: Ubuntu
+          # 24.04's. A newer one means the runner image moved under us.
+          GLIBC_FLOOR: "2.39"
+        run: |
+          needed=$(objdump -T src-tauri/target/release/waveflow \
+            | grep -o 'GLIBC_[0-9.]*' | sed 's/GLIBC_//' | sort -uV | tail -n 1)
+          echo "The binary needs glibc $needed (floor $GLIBC_FLOOR)."
+          newest=$(printf '%s\n%s\n' "$needed" "$GLIBC_FLOOR" | sort -V | tail -n 1)
+          if [ -z "$needed" ] || [ "$newest" != "$GLIBC_FLOOR" ]; then
+            echo "::error::The binary needs glibc $needed, newer than $GLIBC_FLOOR: it would not start on older distributions."
+            exit 1
           fi
 
       - name: Unbundle libwayland-client from the AppImage (Linux)
