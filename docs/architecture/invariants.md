@@ -283,6 +283,10 @@ Default it into the overflow ("⋯") menu via [`MoreActionsMenu`](../../src/comp
 
 Every outbound HTTP path (Deezer, Last.fm, similar, LRCLIB, the plugin registry) checks `offline::is_offline()` first and short-circuits to an empty payload or the cache. Persisted in `app_setting['network.offline_mode']`. **Treat new HTTP code paths the same way.**
 
+### No secret reaches the log
+
+The log file is what a user attaches to a bug report, so nothing in it may let a reader act as them. A URL is logged through [`redact_url`](../../src-tauri/crates/app/src/audio/http_source.rs) — which drops userinfo, query and fragment, and masks the bearer ticket a remote server's stream URL carries in its path (`/api/v2/stream/<ticket>`) — and a `reqwest::Error` through `without_url()` before it is formatted, because reqwest prints the full request URL in both `Display` and `Debug`. That holds for an error that is only _returned_, too: every caller logs what it gets, and some show it in the UI. The metadata providers do the same ([`metadata::redact`](../../src-tauri/crates/core/src/metadata/mod.rs)).
+
 ### Remote user data never lands in the local tables
 
 [RFC-005](../rfcs/RFC-005-remote-source-and-sync-v2.md). Synchronized state describes the **server's** playlists, favourites, ratings, history, queue and shares, and those reference the **server's** tracks — which have no local counterpart. Writing them into `playlist` / `liked_track` / `track.rating` would leave two options, both wrong: fabricate local track rows for content that only exists on the server, or silently drop every entry. The first corrupts the library, the second makes sync look broken while reporting success.

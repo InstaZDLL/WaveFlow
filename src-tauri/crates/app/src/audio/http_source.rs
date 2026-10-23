@@ -52,6 +52,10 @@ use super::events::{emit_radio_metadata, RadioMetadataPayload};
 /// tracing layer would leak the secret into the rolling log file the
 /// user could later attach to a bug report.
 ///
+/// A remote server's stream URL keeps its secret in the *path* instead:
+/// `/api/v2/stream/<ticket>` is a bearer ticket good for about an hour,
+/// so that segment is masked too (see [`mask_stream_ticket`]).
+///
 /// Falls back to the literal string on parse failure so we never
 /// accidentally swallow a malformed URL — an unparseable URL is its
 /// own diagnostic signal.
@@ -68,11 +72,32 @@ pub fn redact_url(raw: &str) -> String {
                 Some(p) => format!(":{p}"),
                 None => String::new(),
             };
-            let path = parsed.path();
+            let path = mask_stream_ticket(parsed.path());
             format!("{scheme}://{host}{port}{path}")
         }
         Err(_) => raw.to_string(),
     }
+}
+
+/// Where a remote server's stream ticket sits in its URL. Matched anywhere
+/// in the path, not only at its start, so a server mounted under a prefix
+/// (`https://host/music/api/v2/stream/<ticket>`) is masked as well.
+const STREAM_TICKET_PREFIX: &str = "/api/v2/stream/";
+
+/// Replace the segment after [`STREAM_TICKET_PREFIX`] with `<ticket>`.
+/// Anyone holding that segment can fetch the track until it expires, so it
+/// must never reach the log; the rest of the path stays, since it is what
+/// tells a reader which kind of URL failed.
+fn mask_stream_ticket(path: &str) -> String {
+    let Some(at) = path.find(STREAM_TICKET_PREFIX) else {
+        return path.to_string();
+    };
+    let start = at + STREAM_TICKET_PREFIX.len();
+    let end = path[start..].find('/').map_or(path.len(), |i| start + i);
+    if start == end {
+        return path.to_string();
+    }
+    format!("{}<ticket>{}", &path[..start], &path[end..])
 }
 
 /// Connect timeout for the initial HTTP GET. Radio streams can take a
@@ -269,7 +294,10 @@ impl HttpMediaSource {
             .header(reqwest::header::ACCEPT, "audio/*,*/*;q=0.8")
             .header("Icy-MetaData", if want_icy { "1" } else { "0" })
             .send()
-            .map_err(|e| format!("http get: {e}"))?;
+            // `without_url`: reqwest prints the request URL in its error,
+            // which would hand the caller's log the ticket, the userinfo and
+            // the `?key=` that `redact_url` exists to keep out of it.
+            .map_err(|e| format!("http get: {}", e.without_url()))?;
 
         let status = response.status();
         if !status.is_success() {
@@ -607,7 +635,9 @@ impl Seek for HttpMediaSource {
             .header(reqwest::header::ACCEPT, "audio/*,*/*;q=0.8")
             .header(reqwest::header::RANGE, format!("bytes={target}-"))
             .send()
-            .map_err(|e| io::Error::other(format!("range get: {e}")))?;
+            // Without the URL, for the same reason as the first GET: this
+            // error travels up through symphonia into a logged seek failure.
+            .map_err(|e| io::Error::other(format!("range get: {}", e.without_url())))?;
         // 206 = ranged answer; a 200 means the server ignored the range and
         // is streaming from 0, which would silently corrupt the position —
         // refuse it rather than play the wrong bytes.
@@ -731,6 +761,93 @@ mod tests {
         );
         // Unparseable input round-trips so the diagnostic isn't lost.
         assert_eq!(redact_url("not a url"), "not a url");
+    }
+
+    /// A remote server's stream ticket rides in the path, where stripping
+    /// the query alone leaves it whole — and it plays the track for an hour.
+    #[test]
+    fn redact_url_masks_a_stream_ticket() {
+        assert_eq!(
+            redact_url("https://music.example:8443/api/v2/stream/tk_9f8e7d6c?format=opus"),
+            "https://music.example:8443/api/v2/stream/<ticket>"
+        );
+        // Mounted under a prefix, and with a trailing segment after it.
+        assert_eq!(
+            redact_url("https://host.example/music/api/v2/stream/tk_9f8e7d6c/extra"),
+            "https://host.example/music/api/v2/stream/<ticket>/extra"
+        );
+        // Nothing after the prefix: nothing to mask, nothing invented.
+        assert_eq!(
+            redact_url("https://host.example/api/v2/stream/"),
+            "https://host.example/api/v2/stream/"
+        );
+    }
+
+    /// A Web Radio mount with credentials in both places a station puts them.
+    #[test]
+    fn redact_url_drops_a_radio_key() {
+        let redacted = redact_url("http://listener:hunter2@radio.example/live.mp3?key=s3cr3t");
+        assert_eq!(redacted, "http://radio.example/live.mp3");
+    }
+
+    /// An address nothing listens on: bound, then released.
+    fn refused_addr() -> std::net::SocketAddr {
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").expect("bind");
+        listener.local_addr().expect("addr")
+    }
+
+    /// The open error reaches the log and the player's error toast; reqwest
+    /// would print the full URL in it, ticket and key included.
+    #[test]
+    fn a_failed_open_does_not_echo_the_url() {
+        let addr = refused_addr();
+        for url in [
+            format!("http://{addr}/api/v2/stream/tk_9f8e7d6c?format=opus"),
+            format!("http://listener:hunter2@{addr}/live.mp3?key=s3cr3t"),
+        ] {
+            let err = match HttpMediaSource::open_seekable(&url) {
+                Ok(_) => panic!("nothing listens on {addr}"),
+                Err(err) => err,
+            };
+            for secret in ["tk_9f8e7d6c", "hunter2", "s3cr3t"] {
+                assert!(!err.contains(secret), "{secret} leaked into: {err}");
+            }
+        }
+    }
+
+    /// The seek path's ranged reopen fails the same way once the server is
+    /// gone, and its error travels up into a logged seek failure.
+    #[test]
+    fn a_failed_range_reopen_does_not_echo_the_url() {
+        use std::io::Write;
+
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").expect("bind");
+        let url = format!(
+            "http://{}/api/v2/stream/tk_9f8e7d6c?key=s3cr3t",
+            listener.local_addr().expect("addr")
+        );
+        // Answer the open on a connection that closes, then drop the
+        // listener: the reopen can neither reuse a pooled connection nor
+        // find anyone listening, so it is refused.
+        let handle = std::thread::spawn(move || {
+            let (mut stream, _) = listener.accept().expect("accept");
+            let mut request = [0u8; 2048];
+            let _ = stream.read(&mut request);
+            let _ = stream.write_all(
+                b"HTTP/1.1 200 OK\r\nContent-Length: 10\r\nAccept-Ranges: bytes\r\n\
+                  Connection: close\r\n\r\n0123456789",
+            );
+        });
+        let mut source = HttpMediaSource::open_seekable(&url).expect("open");
+        handle.join().expect("server thread");
+
+        let err = source
+            .seek(SeekFrom::Start(4))
+            .expect_err("the server is gone");
+        let text = format!("{err} {err:?}");
+        for secret in ["tk_9f8e7d6c", "s3cr3t"] {
+            assert!(!text.contains(secret), "{secret} leaked into: {text}");
+        }
     }
 
     #[test]

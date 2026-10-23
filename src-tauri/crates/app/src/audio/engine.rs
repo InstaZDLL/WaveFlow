@@ -284,9 +284,9 @@ impl std::fmt::Debug for AudioCmd {
                 intent,
                 ..
             } => {
-                // Redacted, not printed raw: a remote-queue URL is an
-                // HMAC-signed streaming ticket and the signature rides in
-                // its query string. This `Debug` is what every `?cmd` /
+                // Redacted, not printed raw: a remote-queue URL carries a
+                // bearer stream ticket in its path, and a radio URL may
+                // carry userinfo or a `?key=`. This `Debug` is what every `?cmd` /
                 // `?err` logger reaches, so the redaction belongs here
                 // rather than at each call site.
                 write!(

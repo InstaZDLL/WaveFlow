@@ -372,7 +372,9 @@ pub(super) async fn stream_to_file(
         .get(url)
         .send()
         .await
-        .map_err(|err| AppError::Other(format!("download: {err}")))?;
+        // `without_url`: the URL is a stream ticket, and this error is
+        // logged by every caller.
+        .map_err(|err| AppError::Other(format!("download: {}", err.without_url())))?;
     if !response.status().is_success() {
         return Err(AppError::Other(format!(
             "download refused: HTTP {}",
@@ -388,7 +390,7 @@ pub(super) async fn stream_to_file(
     while let Some(chunk) = response
         .chunk()
         .await
-        .map_err(|err| AppError::Other(format!("download: {err}")))?
+        .map_err(|err| AppError::Other(format!("download: {}", err.without_url())))?
     {
         file.write_all(&chunk)?;
         hasher.update(&chunk);

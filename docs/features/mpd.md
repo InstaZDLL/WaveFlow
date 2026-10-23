@@ -72,6 +72,12 @@ A client connects to us, so no address is advertised on the wire; the one in `Mp
 
 Binding `0.0.0.0` triggers a firewall prompt on Windows/macOS the first time. DLNA already does this, so the behaviour is not new to users.
 
+## Lines that are not MPD
+
+Every MPD command begins with a lowercase ASCII letter, so a line that begins with anything else — after leading whitespace, and leaving blank lines aside, which are skipped — closes the connection without an answer ([`connection::is_foreign_line`](../../src-tauri/crates/app/src/mpd/connection.rs)), inside a command list as well. MPD does the same.
+
+The case this is for is a web page. A browser lets any site send a cross-origin `POST` to `http://<lan-address>:6600/` without asking anyone, and the request's body arrives on the socket as lines. Skipping what it could not parse, the server would have answered `POST / HTTP/1.1` and every header with an `ACK` and then run whatever commands the body held — `play`, `clear`, `setvol 100` — with no password set, which is the default. The request line now ends the connection before the first header is read.
+
 ## Supported commands
 
 Control and queue inspection. Advertised through `commands`, so clients hide UI for the rest.

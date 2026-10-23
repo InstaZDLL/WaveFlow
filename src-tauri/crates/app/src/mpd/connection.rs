@@ -60,6 +60,7 @@ pub async fn handle(ctx: Ctx, stream: TcpStream, cancel: CancellationToken) -> s
         }
 
         let trimmed = line.trim_end_matches(['\r', '\n']);
+        refuse_foreign_line(trimmed)?;
 
         match trimmed {
             "command_list_begin" => {
@@ -131,6 +132,35 @@ pub async fn handle(ctx: Ctx, stream: TcpStream, cancel: CancellationToken) -> s
             return Ok(());
         }
     }
+}
+
+/// Whether `line` comes from something that is not an MPD client.
+///
+/// Every MPD command begins with a lowercase ASCII letter. A line that
+/// begins with anything else — `GET / HTTP/1.1`, `POST / HTTP/1.1`,
+/// `Host: …` — is a browser or another protocol that reached the port, and
+/// MPD itself closes the connection on it. Reading on is how a web page
+/// would drive playback with no password set: its request line and headers
+/// would each earn an ACK, and the commands in its body would then run.
+///
+/// A blank line is not foreign; it is skipped, as before.
+fn is_foreign_line(line: &str) -> bool {
+    line.trim_start()
+        .bytes()
+        .next()
+        .is_some_and(|first| !first.is_ascii_lowercase())
+}
+
+/// Turn a foreign line into the error that closes the connection, before
+/// anything on it is parsed or answered.
+fn refuse_foreign_line(line: &str) -> std::io::Result<()> {
+    if is_foreign_line(line) {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "not an MPD command; closing the connection",
+        ));
+    }
+    Ok(())
 }
 
 /// Read one line, refusing anything past [`MAX_LINE_BYTES`].
@@ -225,6 +255,7 @@ where
             return Ok(());
         }
         let trimmed = line.trim_end_matches(['\r', '\n']);
+        refuse_foreign_line(trimmed)?;
         if trimmed == "command_list_end" {
             break;
         }
@@ -487,5 +518,45 @@ mod tests {
         })
         .await;
         assert_eq!(out, "changed: player\nOK\n");
+    }
+
+    /// What a browser sends when a web page posts to the port: the request
+    /// line ends the connection before any header or body line is read.
+    #[test]
+    fn an_http_request_is_a_foreign_line() {
+        for line in [
+            "GET / HTTP/1.1",
+            "POST / HTTP/1.1",
+            "OPTIONS * HTTP/1.1",
+            "PRI * HTTP/2.0",
+            "Host: 192.168.1.42:6600",
+            "Content-Type: text/plain",
+            "  POST / HTTP/1.1",
+            "1",
+            "\"play\"",
+        ] {
+            assert!(is_foreign_line(line), "{line:?} must close the connection");
+            assert!(refuse_foreign_line(line).is_err());
+        }
+    }
+
+    /// Every real command starts lowercase, list markers included; a blank
+    /// line stays skipped rather than closing.
+    #[test]
+    fn mpd_commands_are_not_foreign() {
+        for line in [
+            "status",
+            "play 3",
+            "setvol 100",
+            "password \"Hunter2\"",
+            "command_list_ok_begin",
+            "command_list_end",
+            "  status",
+            "",
+            "   ",
+        ] {
+            assert!(!is_foreign_line(line), "{line:?} must be served");
+            assert!(refuse_foreign_line(line).is_ok());
+        }
     }
 }

@@ -180,12 +180,10 @@ async fn serve_stream(
     let mime = mime_for_path(&path);
 
     let range = headers.get(header::RANGE).and_then(|v| v.to_str().ok());
-    let (status, start, end) = match range.and_then(|r| parse_range(r, total)) {
-        Some((s, e)) => (StatusCode::PARTIAL_CONTENT, s, e),
-        None => (StatusCode::OK, 0, total.saturating_sub(1)),
+    let Some((status, start, length)) = parse_range(range, total).window(total) else {
+        return range_not_satisfiable(total);
     };
 
-    let length = end.saturating_sub(start) + 1;
     let body = match build_range_body(file, start, length).await {
         Ok(b) => b,
         Err(err) => {
@@ -202,6 +200,7 @@ async fn serve_stream(
         HeaderValue::from_str(&length.to_string()).unwrap(),
     );
     if status == StatusCode::PARTIAL_CONTENT {
+        let end = start + length - 1;
         let cr = format!("bytes {start}-{end}/{total}");
         headers.insert(header::CONTENT_RANGE, HeaderValue::from_str(&cr).unwrap());
     }
@@ -232,22 +231,93 @@ pub(crate) async fn build_range_body(
     Ok(Body::from_stream(stream))
 }
 
-pub(crate) fn parse_range(raw: &str, total: u64) -> Option<(u64, u64)> {
-    let raw = raw.strip_prefix("bytes=")?.trim();
-    let (start_s, end_s) = raw.split_once('-')?;
-    let start: u64 = start_s.trim().parse().ok()?;
-    let end: u64 = if end_s.trim().is_empty() {
-        total.saturating_sub(1)
-    } else {
-        end_s.trim().parse().ok()?
-    };
-    if start > end || end >= total {
-        // `end >= total` includes the open-ended `bytes=0-` form
-        // when the file is empty (unusual but possible) — fold to a
-        // simple 200 response by returning None.
-        return None;
+/// How to answer a GET for a `total`-byte file, given its `Range` header.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum RangeReply {
+    /// `200` with the whole file: no range, or one this server ignores.
+    Full,
+    /// `206` with bytes `start..=end`.
+    Partial { start: u64, end: u64 },
+    /// `416`: the range names no byte of the file.
+    Unsatisfiable,
+}
+
+impl RangeReply {
+    /// The status, first byte and byte count to send, or `None` for a 416.
+    pub(crate) fn window(self, total: u64) -> Option<(StatusCode, u64, u64)> {
+        match self {
+            RangeReply::Full => Some((StatusCode::OK, 0, total)),
+            RangeReply::Partial { start, end } => {
+                Some((StatusCode::PARTIAL_CONTENT, start, end - start + 1))
+            }
+            RangeReply::Unsatisfiable => None,
+        }
     }
-    Some((start, end))
+}
+
+/// Read a `Range` header the way RFC 9110 §14 asks.
+///
+/// - `bytes=S-E`, `bytes=S-` and the suffix form `bytes=-N` (the last `N`
+///   bytes) are served as a `206`; an `E` past the end is clamped to the
+///   last byte, which the RFC counts as satisfiable.
+/// - A first byte at or past the end, or `bytes=-0`, names no byte at all:
+///   `416`, which a controller probing past the end of a file expects.
+/// - Anything the server may ignore — no header, another unit, a malformed
+///   spec, several ranges at once — gets the whole file.
+///
+/// An empty file is always served whole: no range can name a byte of it,
+/// and a `200` with nothing in it is the answer every client takes.
+pub(crate) fn parse_range(raw: Option<&str>, total: u64) -> RangeReply {
+    let Some(spec) = raw.and_then(|r| r.trim().strip_prefix("bytes=")) else {
+        return RangeReply::Full;
+    };
+    if total == 0 || spec.contains(',') {
+        return RangeReply::Full;
+    }
+    let Some((start_s, end_s)) = spec.trim().split_once('-') else {
+        return RangeReply::Full;
+    };
+    let (start_s, end_s) = (start_s.trim(), end_s.trim());
+    let last = total - 1;
+    if start_s.is_empty() {
+        // Suffix form: the last `N` bytes, all of them when `N` is larger.
+        return match end_s.parse::<u64>() {
+            Ok(0) => RangeReply::Unsatisfiable,
+            Ok(n) => RangeReply::Partial {
+                start: total.saturating_sub(n),
+                end: last,
+            },
+            Err(_) => RangeReply::Full,
+        };
+    }
+    let Ok(start) = start_s.parse::<u64>() else {
+        return RangeReply::Full;
+    };
+    let end = if end_s.is_empty() {
+        last
+    } else {
+        match end_s.parse::<u64>() {
+            Ok(end) if end >= start => end.min(last),
+            // `S-E` with `E < S` is not a valid range-spec: ignore it.
+            _ => return RangeReply::Full,
+        }
+    };
+    if start > last {
+        return RangeReply::Unsatisfiable;
+    }
+    RangeReply::Partial { start, end }
+}
+
+/// The `416` for a range that names no byte of a `total`-byte file. Its
+/// `Content-Range: bytes */<len>` is what tells the client the real length.
+pub(crate) fn range_not_satisfiable(total: u64) -> Response {
+    let mut headers = HeaderMap::new();
+    headers.insert(header::ACCEPT_RANGES, HeaderValue::from_static("bytes"));
+    headers.insert(
+        header::CONTENT_RANGE,
+        HeaderValue::from_str(&format!("bytes */{total}")).unwrap(),
+    );
+    (StatusCode::RANGE_NOT_SATISFIABLE, headers).into_response()
 }
 
 fn mime_for_path(path: &str) -> &'static str {
@@ -277,10 +347,11 @@ async fn serve_art(
     State(ctx): State<Arc<ServerCtx>>,
     Path(hash_with_ext): Path<String>,
 ) -> Response {
-    // Reject path traversal up-front. Both `/` and `\\` are checked so a
-    // Windows-flavoured payload like `..\\..\\secret.jpg` can't escape the
-    // artwork dir on a host whose Path parser accepts backslashes.
-    if hash_with_ext.contains('/') || hash_with_ext.contains('\\') || hash_with_ext.contains("..") {
+    // Only the one shape this route serves goes near the filesystem. A
+    // deny-list of `/`, `\` and `..` is not enough: on Windows a name with a
+    // drive prefix and no root (`D:secret.txt`) *replaces* the base in
+    // `PathBuf::join`, so the lookup below would read any file on that drive.
+    if !is_art_file_name(&hash_with_ext) {
         return (StatusCode::BAD_REQUEST, "bad hash").into_response();
     }
     for dir in [&ctx.profile_artwork_dir, &ctx.metadata_artwork_dir] {
@@ -301,6 +372,25 @@ async fn serve_art(
         }
     }
     (StatusCode::NOT_FOUND, "art missing").into_response()
+}
+
+/// The extensions a stored cover can carry — what the scanner, the tag
+/// editor and the metadata downloads write — and so the only ones `/art`
+/// will serve.
+const ART_EXTENSIONS: &[&str] = &["jpg", "jpeg", "png", "webp", "gif", "bmp", "tiff"];
+
+/// Whether `name` is `<hex hash>.<image extension>`, the name of every cover
+/// Browse links to. Hex digits and a known extension leave no character a
+/// path could be built from: no separator, no `..`, no drive prefix.
+fn is_art_file_name(name: &str) -> bool {
+    let Some((hash, ext)) = name.split_once('.') else {
+        return false;
+    };
+    (1..=128).contains(&hash.len())
+        && hash.bytes().all(|b| b.is_ascii_hexdigit())
+        && ART_EXTENSIONS
+            .iter()
+            .any(|known| known.eq_ignore_ascii_case(ext))
 }
 
 fn mime_for_art(name: &str) -> &'static str {
@@ -342,23 +432,131 @@ mod tests {
         assert_eq!(base_url(None, fallback), fallback);
     }
 
+    fn partial(start: u64, end: u64) -> RangeReply {
+        RangeReply::Partial { start, end }
+    }
+
     #[test]
     fn parse_range_full_form() {
-        assert_eq!(parse_range("bytes=0-99", 1000), Some((0, 99)));
-        assert_eq!(parse_range("bytes=500-999", 1000), Some((500, 999)));
+        assert_eq!(parse_range(Some("bytes=0-99"), 1000), partial(0, 99));
+        assert_eq!(parse_range(Some("bytes=500-999"), 1000), partial(500, 999));
     }
 
     #[test]
     fn parse_range_open_ended() {
         // `bytes=START-` means "from START to EOF". Common from VLC.
-        assert_eq!(parse_range("bytes=500-", 1000), Some((500, 999)));
+        assert_eq!(parse_range(Some("bytes=500-"), 1000), partial(500, 999));
+    }
+
+    /// `bytes=-N` is the last `N` bytes. It used to fail the start-byte
+    /// parse and fall back to the whole file.
+    #[test]
+    fn parse_range_serves_a_suffix() {
+        assert_eq!(parse_range(Some("bytes=-100"), 1000), partial(900, 999));
+        // Longer than the file: all of it, still as a 206.
+        assert_eq!(parse_range(Some("bytes=-5000"), 1000), partial(0, 999));
+        assert_eq!(
+            parse_range(Some("bytes=-0"), 1000),
+            RangeReply::Unsatisfiable
+        );
+    }
+
+    /// An end past the last byte is clamped (RFC 9110 counts it as
+    /// satisfiable); a start past it names nothing and is a 416.
+    #[test]
+    fn parse_range_clamps_the_end_and_refuses_a_start_past_it() {
+        assert_eq!(parse_range(Some("bytes=0-9999"), 1000), partial(0, 999));
+        assert_eq!(
+            parse_range(Some("bytes=1000-"), 1000),
+            RangeReply::Unsatisfiable
+        );
+        assert_eq!(
+            parse_range(Some("bytes=5000-6000"), 1000),
+            RangeReply::Unsatisfiable
+        );
+    }
+
+    /// What the server may ignore is ignored: the whole file, as a 200.
+    #[test]
+    fn parse_range_ignores_what_it_does_not_serve() {
+        assert_eq!(parse_range(None, 1000), RangeReply::Full);
+        assert_eq!(parse_range(Some("xyz=0-10"), 1000), RangeReply::Full);
+        assert_eq!(parse_range(Some("bytes=900-100"), 1000), RangeReply::Full);
+        assert_eq!(parse_range(Some("bytes=a-b"), 1000), RangeReply::Full);
+        assert_eq!(parse_range(Some("bytes=0-1,5-9"), 1000), RangeReply::Full);
+    }
+
+    /// An empty file is a 200 with nothing in it — not `Content-Length: 1`
+    /// and no body, which is what the old arithmetic sent.
+    #[test]
+    fn an_empty_file_is_served_whole_with_no_bytes() {
+        for range in [None, Some("bytes=0-"), Some("bytes=-1"), Some("bytes=0-0")] {
+            assert_eq!(parse_range(range, 0), RangeReply::Full, "{range:?}");
+        }
+        assert_eq!(RangeReply::Full.window(0), Some((StatusCode::OK, 0, 0)));
     }
 
     #[test]
-    fn parse_range_rejects_inverted_or_oob() {
-        assert!(parse_range("bytes=900-100", 1000).is_none());
-        assert!(parse_range("bytes=0-9999", 1000).is_none());
-        assert!(parse_range("xyz=0-10", 1000).is_none());
+    fn range_window_counts_inclusive_bytes() {
+        assert_eq!(
+            partial(900, 999).window(1000),
+            Some((StatusCode::PARTIAL_CONTENT, 900, 100))
+        );
+        assert_eq!(
+            RangeReply::Full.window(1000),
+            Some((StatusCode::OK, 0, 1000))
+        );
+        assert_eq!(RangeReply::Unsatisfiable.window(1000), None);
+    }
+
+    #[test]
+    fn a_416_names_the_real_length() {
+        let response = range_not_satisfiable(1000);
+        assert_eq!(response.status(), StatusCode::RANGE_NOT_SATISFIABLE);
+        assert_eq!(
+            response.headers().get(header::CONTENT_RANGE).unwrap(),
+            "bytes */1000"
+        );
+    }
+
+    #[test]
+    fn art_names_are_a_hex_hash_and_an_image_extension() {
+        let hash = "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262";
+        for ext in ["jpg", "jpeg", "png", "webp", "gif", "bmp", "tiff", "JPG"] {
+            assert!(is_art_file_name(&format!("{hash}.{ext}")), "{ext}");
+        }
+        for name in [
+            // A drive prefix with no root: `join` would replace the base.
+            "D:secret.txt",
+            "C:secret.jpg",
+            "D:af13.jpg",
+            // What the old deny-list already caught.
+            "../secret.jpg",
+            "..\\secret.jpg",
+            "a/b.jpg",
+            // Not a hash, or not an image.
+            "secret.jpg",
+            ".jpg",
+            "af13",
+            "af13.txt",
+            "af13.bin",
+            "af13.jpg.exe",
+            "af13.",
+        ] {
+            assert!(!is_art_file_name(name), "{name} must be refused");
+        }
+    }
+
+    /// Whatever the platform's path rules, an accepted name stays a child
+    /// of the artwork dir once joined — the property the route relies on.
+    #[test]
+    fn an_accepted_art_name_never_leaves_the_dir() {
+        let dir = std::env::temp_dir().join("artwork");
+        for name in ["af13.jpg", "AF13.PNG", "0.webp"] {
+            assert!(is_art_file_name(name));
+            let joined = dir.join(name);
+            assert_eq!(joined.parent(), Some(dir.as_path()), "{name}");
+        }
     }
 
     #[test]

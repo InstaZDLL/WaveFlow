@@ -29,7 +29,7 @@ use tauri::{AppHandle, Manager};
 use tokio::sync::OnceCell;
 use waveflow_core::artwork::{motion_cache, mp4_defrag};
 
-use crate::dlna::http::{build_range_body, parse_range};
+use crate::dlna::http::{build_range_body, parse_range, range_not_satisfiable};
 use crate::state::AppState;
 
 static BASE_URL: OnceCell<Option<String>> = OnceCell::const_new();
@@ -123,14 +123,8 @@ async fn serve(State(ctx): State<Ctx>, RawQuery(query): RawQuery, headers: Heade
         Err(_) => return StatusCode::INTERNAL_SERVER_ERROR.into_response(),
     };
     let range = headers.get(header::RANGE).and_then(|v| v.to_str().ok());
-    let (status, start, end) = match range.and_then(|r| parse_range(r, total)) {
-        Some((start, end)) => (StatusCode::PARTIAL_CONTENT, start, end),
-        None => (StatusCode::OK, 0, total.saturating_sub(1)),
-    };
-    let length = if total == 0 {
-        0
-    } else {
-        end.saturating_sub(start) + 1
+    let Some((status, start, length)) = parse_range(range, total).window(total) else {
+        return range_not_satisfiable(total);
     };
     let body = match build_range_body(file, start, length).await {
         Ok(body) => body,
@@ -145,6 +139,7 @@ async fn serve(State(ctx): State<Ctx>, RawQuery(query): RawQuery, headers: Heade
     out.insert(header::ACCEPT_RANGES, HeaderValue::from_static("bytes"));
     out.insert(header::CONTENT_LENGTH, HeaderValue::from(length));
     if status == StatusCode::PARTIAL_CONTENT {
+        let end = start + length - 1;
         if let Ok(value) = HeaderValue::from_str(&format!("bytes {start}-{end}/{total}")) {
             out.insert(header::CONTENT_RANGE, value);
         }

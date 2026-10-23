@@ -737,8 +737,8 @@ fn decoder_loop(
                 // Snapshot the redacted URL once for both log sites
                 // below + the outcome handler — `redact_url` is a
                 // small string clone, cheap, and avoids per-log re-
-                // parses while keeping any userinfo / query out of
-                // the rolling log file.
+                // parses while keeping any userinfo / query / stream
+                // ticket out of the rolling log file.
                 let redacted = super::http_source::redact_url(&url);
 
                 // A remote-queue track is a finite file: open it seekable

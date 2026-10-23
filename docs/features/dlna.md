@@ -65,7 +65,7 @@ Each track DIDL item carries:
 
 - `dc:title`, `dc:creator`, `upnp:artist`, `upnp:album`
 - `upnp:class = object.item.audioItem.musicTrack`
-- `upnp:albumArtURI` pointing at `/art/<blake3>.<ext>` (probes both the per-profile `artwork/` dir and the shared `metadata_artwork/` dir)
+- `upnp:albumArtURI` pointing at `/art/<blake3>.<ext>` (probes both the per-profile `artwork/` dir and the shared `metadata_artwork/` dir; see [Artwork](#artwork) for what the route accepts)
 - `<res protocolInfo="http-get:*:<mime>:DLNA.ORG_OP=01;DLNA.ORG_FLAGS=01700000…">` plus `duration` (`H:MM:SS.000`, padded for Sonos S2), `size`, `bitrate` (in DLNA bytes/s), `sampleFrequency`, `nrAudioChannels`.
 
 The `transferMode.dlna.org: Streaming` and `contentFeatures.dlna.org` headers on `/stream/<id>` are mandatory for DLNA controllers to expose a scrubber.
@@ -92,6 +92,22 @@ The interface list is read once when the server starts. After a network change (
 ## Range streaming
 
 `/stream/<track_id>` parses the `Range:` header, replies with `206 Partial Content` + `Content-Range`, and pipes the file through `tokio_util::io::ReaderStream::with_capacity(64 KiB)`. `take(length)` caps the reader so we never overshoot the window even if the controller closes early.
+
+[`parse_range`](../../src-tauri/crates/app/src/dlna/http.rs) answers one of three ways, following RFC 9110:
+
+| `Range:`                                                      | Answer                                                       |
+| ------------------------------------------------------------- | ------------------------------------------------------------ |
+| `bytes=S-E`, `bytes=S-`, `bytes=-N` naming a byte of the file | `206`; an `E` past the end is clamped to the last byte       |
+| a first byte at or past the end, or `bytes=-0`                | `416 Range Not Satisfiable` + `Content-Range: bytes */<len>` |
+| absent, malformed, another unit, several ranges               | `200` with the whole file — the header is ignored            |
+
+An empty file always gets a plain `200` with `Content-Length: 0`. [`media_loopback`](../../src-tauri/crates/app/src/media_loopback.rs), which serves video to WebKitGTK, shares the same helper, so it answers the same way.
+
+## Artwork
+
+`/art/<name>` serves only a name of the shape `<hex hash>.<image extension>` (`jpg`, `jpeg`, `png`, `webp`, `gif`, `bmp`, `tiff`) — the shape Browse links to. Anything else is a `400` before the filesystem is touched; that includes a cover kept as `.bin` (an embedded picture whose type could not be named), for which the controller shows its placeholder.
+
+A deny-list of `/`, `\` and `..` is not enough on Windows: a name with a drive prefix and no root, like `D:secret.txt`, _replaces_ the base in `PathBuf::join` instead of extending it, so the lookup would leave the artwork dir and read a file on that drive — from any peer on the LAN, with no authentication. An allow-list of the one shape the route has to serve leaves nothing to escape with.
 
 ## Error handling
 
