@@ -229,7 +229,7 @@ pub async fn excluded_genre_of(
 
 /// How long a provider that could not be reached is left out of the
 /// automatic lookups before it is tried again.
-const COOLDOWN: Duration = Duration::from_secs(10 * 60);
+pub(crate) const COOLDOWN: Duration = Duration::from_secs(10 * 60);
 
 #[derive(Default, Clone, Copy)]
 struct Health {

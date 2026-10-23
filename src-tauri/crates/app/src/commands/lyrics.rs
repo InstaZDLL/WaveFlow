@@ -53,8 +53,8 @@
 
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, OnceLock};
-use std::time::Duration;
+use std::sync::{Arc, Mutex, OnceLock};
+use std::time::{Duration, Instant};
 
 use chrono::Utc;
 use lofty::file::{FileType, TaggedFileExt};
@@ -1007,6 +1007,61 @@ async fn resolve_after_lrclib_miss(
         FallbackOutcome::Unavailable => Ok(None),
         // Handled above.
         FallbackOutcome::Found(_) => unreachable!("Found returns early"),
+    }
+}
+
+/// Resolve a track while LRCLIB cannot be reached (a timeout, DNS, a
+/// refused connection, or the cooldown that follows one). The other
+/// providers are still asked, then, under `lyrics.prefer_lrclib`, the
+/// deferred local tiers: one host being down should not cost lyrics the
+/// others have. When none of them has any, `reason` is returned as an
+/// error and nothing is cached: LRCLIB never gave its verdict, so this is
+/// not a miss, and the UI offers a retry.
+async fn resolve_while_lrclib_unreachable(
+    pool: &sqlx::SqlitePool,
+    track_id: i64,
+    meta: &TrackMeta,
+    prefer_lrclib: bool,
+    reason: String,
+) -> AppResult<Option<LyricsPayload>> {
+    if let FallbackOutcome::Found(payload) = try_external_fallback(pool, track_id, meta).await? {
+        return Ok(Some(payload));
+    }
+    if prefer_lrclib {
+        if let Some(payload) = try_local_lyrics(pool, track_id, meta).await? {
+            return Ok(Some(payload));
+        }
+    }
+    Err(AppError::Other(reason))
+}
+
+/// Until when LRCLIB's exact lookup (`/api/get`) sits out after it could
+/// not be reached. Its own record, apart from the providers' (#720): the
+/// chain's `/api/search` on the same host keeps its own, so a search that
+/// answers neither lifts this one nor is held back by it.
+static LRCLIB_GET_DOWN_UNTIL: Mutex<Option<Instant>> = Mutex::new(None);
+
+fn lrclib_get_cooling_down() -> bool {
+    LRCLIB_GET_DOWN_UNTIL
+        .lock()
+        .map(|until| until.is_some_and(|until| Instant::now() < until))
+        .unwrap_or(false)
+}
+
+/// Record how LRCLIB's exact lookup went: a failure to reach it (no
+/// connection, a timeout, an error status) starts its cooldown, the way a
+/// provider's does; an answer ends it. A response it could not read is
+/// neither.
+fn record_lrclib_get<T>(result: &reqwest::Result<T>) {
+    let Ok(mut until) = LRCLIB_GET_DOWN_UNTIL.lock() else {
+        return;
+    };
+    match result {
+        Ok(_) => *until = None,
+        Err(err) if err.is_connect() || err.is_timeout() || err.is_request() || err.is_status() => {
+            *until = Some(Instant::now() + lyrics_providers::COOLDOWN);
+        }
+        Err(_) => {}
     }
 }
 
@@ -2522,18 +2577,25 @@ async fn fetch_after_plugins(
     };
     let primary_artist = artist_name.split("; ").next().unwrap_or(artist_name);
     let duration_seconds = (meta.duration_ms.max(0) as u64).div_ceil(1000);
-    let client = LrclibClient::new();
-    let resp = match client
-        .get(
-            primary_artist,
-            &meta.title,
-            meta.album_title.as_deref(),
-            duration_seconds,
-        )
-        .await
-    {
-        Ok(Some(r)) => r,
-        Ok(None) => {
+    // The exact lookup sitting out its cooldown is not asked again: it
+    // would cost its connect timeout on every track.
+    let lookup = if lrclib_get_cooling_down() {
+        None
+    } else {
+        let result = LrclibClient::new()
+            .get(
+                primary_artist,
+                &meta.title,
+                meta.album_title.as_deref(),
+                duration_seconds,
+            )
+            .await;
+        record_lrclib_get(&result);
+        Some(result)
+    };
+    let resp = match lookup {
+        Some(Ok(Some(r))) => r,
+        Some(Ok(None)) => {
             // LRCLIB 404 — try the broader provider chain (and, under
             // prefer-LRCLIB, the deferred local tiers) before caching a
             // miss. These sources are query-based and less strict than
@@ -2542,14 +2604,26 @@ async fn fetch_after_plugins(
             // error-handling contract (provider Err is non-fatal here).
             return resolve_after_lrclib_miss(pool, track_id, meta, prefer_lrclib).await;
         }
-        Err(err) => {
-            // Surface transient network failures (timeout, DNS, refused
-            // connection…) as an error so the UI can prompt the user to
-            // retry — silently returning None made it look like LRCLIB
-            // didn't have the track when in reality the request never
-            // completed. A real 404 is already mapped to Ok(None) above.
+        Some(Err(err)) => {
             tracing::warn!(?err, "LRCLIB fetch failed");
-            return Err(AppError::Other(format!("LRCLIB request failed: {err}")));
+            return resolve_while_lrclib_unreachable(
+                pool,
+                track_id,
+                meta,
+                prefer_lrclib,
+                format!("LRCLIB request failed: {err}"),
+            )
+            .await;
+        }
+        None => {
+            return resolve_while_lrclib_unreachable(
+                pool,
+                track_id,
+                meta,
+                prefer_lrclib,
+                "LRCLIB is unreachable; it is tried again in a few minutes".into(),
+            )
+            .await;
         }
     };
 
