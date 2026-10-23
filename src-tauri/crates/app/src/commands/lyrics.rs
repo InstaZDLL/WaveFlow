@@ -53,8 +53,8 @@
 
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, OnceLock};
-use std::time::Duration;
+use std::sync::{Arc, Mutex, OnceLock};
+use std::time::{Duration, Instant};
 
 use chrono::Utc;
 use lofty::file::{FileType, TaggedFileExt};
@@ -1033,6 +1033,36 @@ async fn resolve_while_lrclib_unreachable(
         }
     }
     Err(AppError::Other(reason))
+}
+
+/// Until when LRCLIB's exact lookup (`/api/get`) sits out after it could
+/// not be reached. Its own record, apart from the providers' (#720): the
+/// chain's `/api/search` on the same host keeps its own, so a search that
+/// answers neither lifts this one nor is held back by it.
+static LRCLIB_GET_DOWN_UNTIL: Mutex<Option<Instant>> = Mutex::new(None);
+
+fn lrclib_get_cooling_down() -> bool {
+    LRCLIB_GET_DOWN_UNTIL
+        .lock()
+        .map(|until| until.is_some_and(|until| Instant::now() < until))
+        .unwrap_or(false)
+}
+
+/// Record how LRCLIB's exact lookup went: a failure to reach it (no
+/// connection, a timeout, an error status) starts its cooldown, the way a
+/// provider's does; an answer ends it. A response it could not read is
+/// neither.
+fn record_lrclib_get<T>(result: &reqwest::Result<T>) {
+    let Ok(mut until) = LRCLIB_GET_DOWN_UNTIL.lock() else {
+        return;
+    };
+    match result {
+        Ok(_) => *until = None,
+        Err(err) if err.is_connect() || err.is_timeout() || err.is_request() || err.is_status() => {
+            *until = Some(Instant::now() + lyrics_providers::COOLDOWN);
+        }
+        Err(_) => {}
+    }
 }
 
 /// `profile_setting` key: prefer the online providers (LRCLIB / Musixmatch
@@ -2547,21 +2577,21 @@ async fn fetch_after_plugins(
     };
     let primary_artist = artist_name.split("; ").next().unwrap_or(artist_name);
     let duration_seconds = (meta.duration_ms.max(0) as u64).div_ceil(1000);
-    // LRCLIB sitting out a cooldown after a failed request (#720) is not
-    // asked again: it would cost its connect timeout on every track.
-    let lookup = if lyrics_providers::is_cooling_down(Provider::Lrclib) {
+    // The exact lookup sitting out its cooldown is not asked again: it
+    // would cost its connect timeout on every track.
+    let lookup = if lrclib_get_cooling_down() {
         None
     } else {
-        Some(
-            LrclibClient::new()
-                .get(
-                    primary_artist,
-                    &meta.title,
-                    meta.album_title.as_deref(),
-                    duration_seconds,
-                )
-                .await,
-        )
+        let result = LrclibClient::new()
+            .get(
+                primary_artist,
+                &meta.title,
+                meta.album_title.as_deref(),
+                duration_seconds,
+            )
+            .await;
+        record_lrclib_get(&result);
+        Some(result)
     };
     let resp = match lookup {
         Some(Ok(Some(r))) => r,
