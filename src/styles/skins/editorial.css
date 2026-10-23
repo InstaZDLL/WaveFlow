@@ -1284,6 +1284,10 @@
 :root[data-skin="editorial"] .fe-spectrum__wave {
   opacity: 0.7;
 }
+/* An engraving does not move: the layout's drift of the waves is off. */
+:root[data-skin="editorial"] .fe-spectrum__wave svg {
+  animation: none;
+}
 :root[data-skin="editorial"] .fe-spectrum__wave svg path {
   stroke: currentColor;
 }
