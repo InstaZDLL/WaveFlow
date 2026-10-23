@@ -334,7 +334,7 @@ pub struct AppState {
 /// A free function rather than a method because two callers ask this
 /// question and only one of them has an `AppState`: the startup
 /// pre-flight ([`crate::db::schema_guard::preflight`]) runs before the
-/// event loop, holding nothing but a read-only handle on `app.db`. If
+/// event loop, holding nothing but its own handle on `app.db`. If
 /// the two ever disagreed, the pre-flight would vet one profile's
 /// database and the app would open another.
 pub(crate) async fn resolve_target_profile(app_db: &SqlitePool) -> AppResult<Option<i64>> {

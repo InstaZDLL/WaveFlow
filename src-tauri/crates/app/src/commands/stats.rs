@@ -679,11 +679,15 @@ pub async fn export_stats_json(
 
     // Write via `spawn_blocking` so the tokio runtime isn't held
     // hostage on a slow disk. The payload is tiny relative to a
-    // profile export so we don't bother streaming.
+    // profile export so we don't bother streaming. Through a partial
+    // renamed into place, like the profile archive, so a write cut
+    // short leaves an earlier export at that path whole.
     let target = std::path::PathBuf::from(target_path);
-    tokio::task::spawn_blocking(move || std::fs::write(&target, json))
-        .await
-        .map_err(|e| crate::error::AppError::Other(format!("stats write task: {e}")))?
-        .map_err(|e| crate::error::AppError::Other(format!("stats file write: {e}")))?;
+    tokio::task::spawn_blocking(move || {
+        waveflow_core::atomic_write::write_bytes(&target, json.as_bytes())
+    })
+    .await
+    .map_err(|e| crate::error::AppError::Other(format!("stats write task: {e}")))?
+    .map_err(|e| crate::error::AppError::Other(format!("stats file write: {e}")))?;
     Ok(())
 }

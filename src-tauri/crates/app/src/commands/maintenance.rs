@@ -650,6 +650,13 @@ fn regen_in_dir(dir: &Path, stop: Option<&AtomicBool>) -> AppResult<u32> {
         if !path.is_file() {
             continue;
         }
+        // A cache write still in progress, or one a crash cut short.
+        if path
+            .to_string_lossy()
+            .ends_with(waveflow_core::atomic_write::PARTIAL_SUFFIX)
+        {
+            continue;
+        }
         let Some(stem) = path.file_stem().and_then(|s| s.to_str()) else {
             continue;
         };

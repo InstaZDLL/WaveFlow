@@ -1046,9 +1046,7 @@ pub async fn set_album_artwork_from_deezer(
     let hash = blake3::hash(&bytes).to_hex().to_string();
     let format = "jpg";
     let target = profile_artwork_dir.join(format!("{hash}.{format}"));
-    if !target.exists() {
-        std::fs::write(&target, &bytes)?;
-    }
+    waveflow_core::atomic_write::store_content_addressed(&target, &bytes)?;
     crate::thumbnails::spawn_thumbnail_job(target, profile_artwork_dir.clone(), hash.clone());
 
     // One transaction so the artwork row and the album link land
@@ -1091,9 +1089,7 @@ pub async fn set_album_artwork_from_file(
 
     let hash = blake3::hash(&bytes).to_hex().to_string();
     let target = profile_artwork_dir.join(format!("{hash}.{format}"));
-    if !target.exists() {
-        std::fs::write(&target, &bytes)?;
-    }
+    waveflow_core::atomic_write::store_content_addressed(&target, &bytes)?;
     crate::thumbnails::spawn_thumbnail_job(target, profile_artwork_dir.clone(), hash.clone());
 
     // One transaction so the artwork row and the album link land
@@ -1240,9 +1236,7 @@ pub async fn set_artist_artwork_from_deezer(
     let hash = blake3::hash(&bytes).to_hex().to_string();
     let format = "jpg";
     let target = profile_artwork_dir.join(format!("{hash}.{format}"));
-    if !target.exists() {
-        std::fs::write(&target, &bytes)?;
-    }
+    waveflow_core::atomic_write::store_content_addressed(&target, &bytes)?;
     crate::thumbnails::spawn_thumbnail_job(target, profile_artwork_dir.clone(), hash.clone());
 
     // Same transaction discipline as the album paths above. The
@@ -1294,9 +1288,7 @@ pub async fn set_artist_artwork_from_file(
 
     let hash = blake3::hash(&bytes).to_hex().to_string();
     let target = profile_artwork_dir.join(format!("{hash}.{format}"));
-    if !target.exists() {
-        std::fs::write(&target, &bytes)?;
-    }
+    waveflow_core::atomic_write::store_content_addressed(&target, &bytes)?;
     crate::thumbnails::spawn_thumbnail_job(target, profile_artwork_dir.clone(), hash.clone());
 
     // Same transaction discipline as the album paths above. The
@@ -1449,9 +1441,7 @@ pub async fn set_artist_background_from_url(
         .ok_or_else(|| AppError::Other("unsupported image format".into()))?;
     let hash = blake3::hash(&bytes).to_hex().to_string();
     let target = profile_artwork_dir.join(format!("{hash}.{format}"));
-    if !target.exists() {
-        std::fs::write(&target, &bytes)?;
-    }
+    waveflow_core::atomic_write::store_content_addressed(&target, &bytes)?;
 
     // A suggestion the user picked is a manual pick, whichever provider
     // offered it. This wrote "theaudiodb", a value `artwork.source`'s
@@ -1490,9 +1480,7 @@ pub async fn set_artist_background_from_file(
     })?;
     let hash = blake3::hash(&bytes).to_hex().to_string();
     let target = profile_artwork_dir.join(format!("{hash}.{format}"));
-    if !target.exists() {
-        std::fs::write(&target, &bytes)?;
-    }
+    waveflow_core::atomic_write::store_content_addressed(&target, &bytes)?;
 
     set_artist_background_artwork(&pool, artist_id, &hash, format, ArtworkSource::Manual).await?;
     let _ = app.emit("artist:updated", artist_id);

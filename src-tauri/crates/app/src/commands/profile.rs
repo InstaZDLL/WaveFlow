@@ -163,7 +163,17 @@ pub async fn switch_profile(
     // their next scan can't race a stale pool reference.
     watcher.unwatch_all();
 
-    state.activate_profile(profile_id).await?;
+    if let Err(err) = state.activate_profile(profile_id).await {
+        // Nothing was swapped: the profile being left is still the
+        // active one (a pre-migration copy the user would not go without
+        // is one way here), and its folders are watched again.
+        if let Ok(pool) = state.require_profile_pool().await {
+            if let Err(restore_err) = watcher.restore_from_db(&pool).await {
+                tracing::warn!(%restore_err, "watcher restore after a failed profile switch failed");
+            }
+        }
+        return Err(err);
+    }
 
     // Refresh the DLNA worker for the new profile if it's currently
     // serving — otherwise it keeps exposing the previous profile's

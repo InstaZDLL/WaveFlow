@@ -69,6 +69,19 @@ pub enum AppError {
         version: i64,
     },
 
+    /// A database with migrations pending had no copy to go back to,
+    /// and the user chose — or nobody was there to be asked — not to
+    /// migrate it without one. Nothing was changed. Raised by
+    /// [`crate::db::pre_migration_backup::ensure_backed_up`].
+    #[error(
+        "{} was not updated: no backup of it could be made first, so it was left as it was",
+        scope.label()
+    )]
+    PreMigrationBackupDeclined {
+        /// Which database stayed un-migrated.
+        scope: crate::db::schema_guard::DbScope,
+    },
+
     #[error("io error: {0}")]
     Io(#[from] std::io::Error),
 

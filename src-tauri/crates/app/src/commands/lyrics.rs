@@ -1819,6 +1819,12 @@ async fn export_fetched_sidecar(
                 }
             };
             if let Err(err) = std::io::Write::write_all(&mut file, content.as_bytes()) {
+                // The file is ours — `create_new` made it — and what is
+                // in it is cut short. Left there, the local tier would
+                // read it as the track's lyrics and this export, which
+                // never overwrites, would never put it right.
+                drop(file);
+                let _ = std::fs::remove_file(&sidecar);
                 tracing::debug!(
                     %err,
                     path = %sidecar.display(),
@@ -3575,7 +3581,9 @@ pub async fn save_lyrics(
 fn write_lyrics_sidecar(audio_path: &Path, content: &str, plain: bool) -> AppResult<()> {
     let sidecar = sidecar_path(audio_path, plain)
         .ok_or_else(|| AppError::Other("audio file has no stem or parent dir".to_string()))?;
-    std::fs::write(&sidecar, content)
+    // Through a partial renamed into place: re-saving lyrics the user
+    // already had must not leave a truncated `.lrc` if it fails halfway.
+    waveflow_core::atomic_write::write_bytes(&sidecar, content.as_bytes())
         .map_err(|e| AppError::Other(format!("write {}: {e}", sidecar.display())))?;
     Ok(())
 }
@@ -4456,10 +4464,14 @@ pub async fn export_lyrics_to_path(
             parent.display()
         )));
     }
-    tokio::task::spawn_blocking(move || std::fs::write(&path, content.as_bytes()))
-        .await
-        .map_err(|e| AppError::Other(format!("export_lyrics_to_path write panicked: {e}")))?
-        .map_err(|e| AppError::Other(format!("export_lyrics_to_path write failed: {e}")))?;
+    // Through a partial renamed into place, so an export over an
+    // earlier file that fails halfway leaves that file whole.
+    tokio::task::spawn_blocking(move || {
+        waveflow_core::atomic_write::write_bytes(&path, content.as_bytes())
+    })
+    .await
+    .map_err(|e| AppError::Other(format!("export_lyrics_to_path write panicked: {e}")))?
+    .map_err(|e| AppError::Other(format!("export_lyrics_to_path write failed: {e}")))?;
     Ok(())
 }
 

@@ -380,11 +380,9 @@ pub fn extract_cover(tag: &Tag, artwork_dir: &Path) -> Option<ExtractedCover> {
     let hash = blake3::hash(bytes).to_hex().to_string();
     let format = extension_for_mime(picture.mime_type()).to_string();
     let out_path = artwork_dir.join(format!("{}.{}", hash, format));
-    if !out_path.exists() {
-        if let Err(err) = fs::write(&out_path, bytes) {
-            tracing::warn!(path = %out_path.display(), error = %err, "failed to write artwork");
-            return None;
-        }
+    if let Err(err) = crate::atomic_write::store_content_addressed(&out_path, bytes) {
+        tracing::warn!(path = %out_path.display(), error = %err, "failed to write artwork");
+        return None;
     }
     crate::artwork::thumbnails::spawn_thumbnail_job(
         out_path,
@@ -471,11 +469,9 @@ pub fn extract_folder_cover(track_path: &Path, artwork_dir: &Path) -> Option<Ext
     };
 
     let out_path = artwork_dir.join(format!("{}.{}", hash, format));
-    if !out_path.exists() {
-        if let Err(err) = fs::write(&out_path, &bytes) {
-            tracing::warn!(path = %out_path.display(), error = %err, "failed to write folder cover");
-            return None;
-        }
+    if let Err(err) = crate::atomic_write::store_content_addressed(&out_path, &bytes) {
+        tracing::warn!(path = %out_path.display(), error = %err, "failed to write folder cover");
+        return None;
     }
     crate::artwork::thumbnails::spawn_thumbnail_job(
         out_path,
@@ -670,15 +666,13 @@ pub fn write_artist_image(picked: &Path, artwork_dir: &Path) -> Option<Extracted
     };
 
     let out_path = artwork_dir.join(format!("{}.{}", hash, format));
-    if !out_path.exists() {
-        if let Err(err) = fs::write(&out_path, &bytes) {
-            tracing::warn!(
-                path = %out_path.display(),
-                error = %err,
-                "failed to write artist image",
-            );
-            return None;
-        }
+    if let Err(err) = crate::atomic_write::store_content_addressed(&out_path, &bytes) {
+        tracing::warn!(
+            path = %out_path.display(),
+            error = %err,
+            "failed to write artist image",
+        );
+        return None;
     }
     crate::artwork::thumbnails::spawn_thumbnail_job(
         out_path,

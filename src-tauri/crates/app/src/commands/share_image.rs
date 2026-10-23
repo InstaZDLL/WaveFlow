@@ -16,11 +16,13 @@ use crate::error::{AppError, AppResult};
 /// after base64 — for clip-bound writes the binary detour is worth it.
 ///
 /// File I/O runs on `spawn_blocking` so a slow disk (USB drive,
-/// network share) can't stall the tokio runtime.
+/// network share) can't stall the tokio runtime, and through a partial
+/// renamed into place ([`waveflow_core::atomic_write`]), so a write cut
+/// short never leaves a truncated PNG over the one that was there.
 #[tauri::command]
 pub async fn save_share_image(bytes: Vec<u8>, target_path: String) -> AppResult<()> {
     let target = std::path::PathBuf::from(target_path);
-    tokio::task::spawn_blocking(move || std::fs::write(&target, bytes))
+    tokio::task::spawn_blocking(move || waveflow_core::atomic_write::write_bytes(&target, &bytes))
         .await
         .map_err(|e| AppError::Other(format!("share image task: {e}")))?
         .map_err(|e| AppError::Other(format!("share image write: {e}")))?;

@@ -1805,9 +1805,7 @@ pub async fn set_genre_artwork_from_file(
 
         let hash = blake3::hash(&bytes).to_hex().to_string();
         let target = dir_for_blocking.join(format!("{hash}.{format}"));
-        if !target.exists() {
-            std::fs::write(&target, &bytes)?;
-        }
+        waveflow_core::atomic_write::store_content_addressed(&target, &bytes)?;
         Ok::<_, AppError>((hash, format))
     })
     .await
