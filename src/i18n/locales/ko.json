@@ -2898,7 +2898,30 @@
     "localStations": "지역 방송국",
     "browseByCountry": "국가별 보기",
     "localCatalogue": "로컬 카탈로그",
-    "localCatalogueHint": "다운로드한 카탈로그를 탐색하고 검색합니다."
+    "localCatalogueHint": "다운로드한 카탈로그를 탐색하고 검색합니다.",
+    "addStation": {
+      "button": "방송국 추가",
+      "title": "방송국 추가",
+      "renameTitle": "방송국 이름 바꾸기",
+      "rename": "{{name}} 이름 바꾸기",
+      "help": "스트림 주소나 .m3u / .pls 재생 목록 주소를 붙여 넣거나, 그런 파일을 여세요. 방송국은 즐겨찾기에 추가됩니다.",
+      "urlLabel": "스트림 주소",
+      "openFile": ".m3u / .pls 파일 열기",
+      "nameLabel": "이름",
+      "namePlaceholder": "비워 두면 방송국 이름",
+      "checking": "확인 중…",
+      "add": "추가",
+      "save": "저장",
+      "errors": {
+        "notHttp": "http:// 및 https:// 주소만 사용할 수 있습니다.",
+        "offline": "오프라인 모드가 켜져 있습니다.",
+        "unreachable": "이 주소에서 방송국이 응답하지 않습니다.",
+        "notAudio": "이 주소는 오디오 스트림으로 연결되지 않습니다.",
+        "hls": "HLS 재생 목록입니다. 연속 스트림만 지원합니다.",
+        "noStream": "재생 목록에 http:// 또는 https:// 스트림이 없습니다.",
+        "notSaved": "즐겨찾기를 아직 불러오지 못했습니다. 잠시 후 다시 시도하세요."
+      }
+    }
   },
   "artistMetadataEditor": {
     "title": "메타데이터 편집",

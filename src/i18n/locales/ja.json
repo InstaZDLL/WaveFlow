@@ -2898,7 +2898,30 @@
     "localStations": "地域の放送局",
     "browseByCountry": "国別に見る",
     "localCatalogue": "ローカルカタログ",
-    "localCatalogueHint": "ダウンロードしたカタログを閲覧・検索しています。"
+    "localCatalogueHint": "ダウンロードしたカタログを閲覧・検索しています。",
+    "addStation": {
+      "button": "局を追加",
+      "title": "局を追加",
+      "renameTitle": "局の名前を変更",
+      "rename": "{{name}} の名前を変更",
+      "help": "ストリームのアドレス、または .m3u / .pls プレイリストのアドレスを貼り付けるか、そのファイルを開いてください。局はお気に入りに追加されます。",
+      "urlLabel": "ストリームのアドレス",
+      "openFile": ".m3u / .pls ファイルを開く",
+      "nameLabel": "名前",
+      "namePlaceholder": "空欄なら局の名前",
+      "checking": "確認中…",
+      "add": "追加",
+      "save": "保存",
+      "errors": {
+        "notHttp": "http:// と https:// のアドレスのみ使えます。",
+        "offline": "オフラインモードがオンです。",
+        "unreachable": "このアドレスで局が応答しません。",
+        "notAudio": "このアドレスはオーディオストリームにつながっていません。",
+        "hls": "HLS プレイリストです。連続ストリームのみ対応しています。",
+        "noStream": "プレイリストに http:// または https:// のストリームがありません。",
+        "notSaved": "お気に入りがまだ読み込まれていません。少し待ってからもう一度お試しください。"
+      }
+    }
   },
   "artistMetadataEditor": {
     "title": "メタデータを編集",

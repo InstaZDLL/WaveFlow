@@ -2969,7 +2969,30 @@
     "localStations": "Emisoras locales",
     "browseByCountry": "Explorar por país",
     "localCatalogue": "Catálogo local",
-    "localCatalogueHint": "Explorando y buscando en el catálogo descargado."
+    "localCatalogueHint": "Explorando y buscando en el catálogo descargado.",
+    "addStation": {
+      "button": "Añadir una emisora",
+      "title": "Añadir una emisora",
+      "renameTitle": "Renombrar la emisora",
+      "rename": "Renombrar {{name}}",
+      "help": "Pega la dirección del flujo, o la de una lista .m3u / .pls, o abre ese archivo. La emisora se añade a tus favoritos.",
+      "urlLabel": "Dirección del flujo",
+      "openFile": "Abrir un archivo .m3u / .pls",
+      "nameLabel": "Nombre",
+      "namePlaceholder": "El de la emisora, si lo dejas vacío",
+      "checking": "Comprobando…",
+      "add": "Añadir",
+      "save": "Guardar",
+      "errors": {
+        "notHttp": "Solo se aceptan direcciones http:// y https://.",
+        "offline": "El modo sin conexión está activado.",
+        "unreachable": "La emisora no responde en esta dirección.",
+        "notAudio": "Esta dirección no lleva a un flujo de audio.",
+        "hls": "Es una lista HLS: solo se admiten flujos continuos.",
+        "noStream": "La lista no contiene ningún flujo http:// o https://.",
+        "notSaved": "Tus favoritos aún no se han cargado; inténtalo de nuevo en un momento."
+      }
+    }
   },
   "artistMetadataEditor": {
     "title": "Editar metadatos",

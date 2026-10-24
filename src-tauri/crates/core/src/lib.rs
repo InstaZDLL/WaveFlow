@@ -38,6 +38,7 @@ pub mod playback;
 #[cfg(feature = "plugins")]
 #[cfg_attr(docsrs, doc(cfg(feature = "plugins")))]
 pub mod plugin;
+pub mod radio_playlist;
 pub mod repository;
 pub mod scanner;
 pub mod search;

@@ -2898,7 +2898,30 @@
     "localStations": "當地電台",
     "browseByCountry": "依國家/地區瀏覽",
     "localCatalogue": "本機目錄",
-    "localCatalogueHint": "正在瀏覽和搜尋已下載的目錄。"
+    "localCatalogueHint": "正在瀏覽和搜尋已下載的目錄。",
+    "addStation": {
+      "button": "新增電台",
+      "title": "新增電台",
+      "renameTitle": "重新命名電台",
+      "rename": "重新命名 {{name}}",
+      "help": "貼上串流位址或 .m3u / .pls 播放清單的位址，或開啟此類檔案。電台會加入你的收藏。",
+      "urlLabel": "串流位址",
+      "openFile": "開啟 .m3u / .pls 檔案",
+      "nameLabel": "名稱",
+      "namePlaceholder": "留空則使用電台自己的名稱",
+      "checking": "正在檢查…",
+      "add": "新增",
+      "save": "儲存",
+      "errors": {
+        "notHttp": "只接受 http:// 和 https:// 位址。",
+        "offline": "離線模式已開啟。",
+        "unreachable": "此位址上的電台沒有回應。",
+        "notAudio": "此位址不指向音訊串流。",
+        "hls": "這是 HLS 播放清單：只支援連續的串流。",
+        "noStream": "播放清單中沒有 http:// 或 https:// 串流。",
+        "notSaved": "收藏尚未載入，請稍後再試。"
+      }
+    }
   },
   "artistMetadataEditor": {
     "title": "編輯中繼資料",

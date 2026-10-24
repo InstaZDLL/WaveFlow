@@ -2969,7 +2969,30 @@
     "localStations": "Stazioni locali",
     "browseByCountry": "Esplora per paese",
     "localCatalogue": "Catalogo locale",
-    "localCatalogueHint": "Esplorazione e ricerca nel catalogo scaricato."
+    "localCatalogueHint": "Esplorazione e ricerca nel catalogo scaricato.",
+    "addStation": {
+      "button": "Aggiungi una stazione",
+      "title": "Aggiungi una stazione",
+      "renameTitle": "Rinomina la stazione",
+      "rename": "Rinomina {{name}}",
+      "help": "Incolla l'indirizzo del flusso, o di una playlist .m3u / .pls, oppure apri un file simile. La stazione si aggiunge ai tuoi preferiti.",
+      "urlLabel": "Indirizzo del flusso",
+      "openFile": "Apri un file .m3u / .pls",
+      "nameLabel": "Nome",
+      "namePlaceholder": "Quello della stazione, se vuoto",
+      "checking": "Verifica…",
+      "add": "Aggiungi",
+      "save": "Salva",
+      "errors": {
+        "notHttp": "Sono accettati solo indirizzi http:// e https://.",
+        "offline": "La modalità offline è attiva.",
+        "unreachable": "La stazione non risponde a questo indirizzo.",
+        "notAudio": "Questo indirizzo non porta a un flusso audio.",
+        "hls": "È una playlist HLS: sono supportati solo flussi continui.",
+        "noStream": "La playlist non contiene alcun flusso http:// o https://.",
+        "notSaved": "I preferiti non sono ancora caricati; riprova tra un momento."
+      }
+    }
   },
   "artistMetadataEditor": {
     "title": "Modifica metadati",

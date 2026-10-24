@@ -2898,7 +2898,30 @@
     "localStations": "Stasiun lokal",
     "browseByCountry": "Telusuri berdasarkan negara",
     "localCatalogue": "Katalog lokal",
-    "localCatalogueHint": "Menjelajahi dan mencari katalog yang diunduh."
+    "localCatalogueHint": "Menjelajahi dan mencari katalog yang diunduh.",
+    "addStation": {
+      "button": "Tambah stasiun",
+      "title": "Tambah stasiun",
+      "renameTitle": "Ganti nama stasiun",
+      "rename": "Ganti nama {{name}}",
+      "help": "Tempel alamat stream, atau alamat playlist .m3u / .pls, atau buka file semacam itu. Stasiun masuk ke favorit Anda.",
+      "urlLabel": "Alamat stream",
+      "openFile": "Buka file .m3u / .pls",
+      "nameLabel": "Nama",
+      "namePlaceholder": "Nama stasiun, jika dikosongkan",
+      "checking": "Memeriksa…",
+      "add": "Tambah",
+      "save": "Simpan",
+      "errors": {
+        "notHttp": "Hanya alamat http:// dan https:// yang diterima.",
+        "offline": "Mode offline aktif.",
+        "unreachable": "Stasiun tidak merespons di alamat ini.",
+        "notAudio": "Alamat ini tidak mengarah ke stream audio.",
+        "hls": "Ini playlist HLS: hanya stream berkelanjutan yang didukung.",
+        "noStream": "Playlist tidak berisi stream http:// atau https://.",
+        "notSaved": "Favorit Anda belum dimuat; coba lagi sebentar lagi."
+      }
+    }
   },
   "artistMetadataEditor": {
     "title": "Sunting metadata",
