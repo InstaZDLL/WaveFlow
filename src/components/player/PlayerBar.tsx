@@ -69,9 +69,13 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
   const layout = usePlayerBarLayout();
   // Fluid draws the progress as the bar's top edge — a full-width wave
   // with the times at its ends — and keeps only the transport in the
-  // centre column. Every control stays; only the progress moves.
+  // centre column; Lounge's line of light (`horizon`) sits in the same
+  // place. Every control stays; only the progress moves.
   const { skin } = useSkin();
-  const isFluid = skin.layout === "fluid" && skin.fluid?.progress === "edge";
+  const topProgress =
+    skin.layout === "fluid" && skin.fluid?.progress !== "inline"
+      ? (skin.fluid?.progress ?? null)
+      : null;
 
   // Subscribe to the backend's track-ended event so the sleep timer
   // in "end of track" mode triggers when the current track finishes
@@ -131,7 +135,7 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
   return (
     <>
       <footer className="flex flex-col z-50 border-t bg-white border-zinc-200 text-zinc-600 dark:bg-surface-dark-elevated dark:border-zinc-800 dark:text-zinc-300">
-        {isFluid && <ProgressBar variant="edge" />}
+        {topProgress && <ProgressBar variant={topProgress} />}
         <div className="h-24 px-4 flex items-center justify-between">
           {/* Left: Track Info */}
           <div className="w-1/3 flex items-center space-x-3 min-w-0">
@@ -254,7 +258,7 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
           {/* Center: Controls */}
           <div className="w-1/3 flex flex-col items-center max-w-md">
             <PlaybackControls />
-            {!isFluid && <ProgressBar />}
+            {!topProgress && <ProgressBar />}
           </div>
 
           {/* Right: Extra Controls */}

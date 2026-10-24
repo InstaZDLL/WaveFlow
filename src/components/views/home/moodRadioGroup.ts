@@ -50,8 +50,8 @@ export function wavePath(
 }
 
 /**
- * The radiogroup behind both drawings of Mood Radio on the fluid layout
- * (the spectrum, the capsules): which mood is current, roving focus over
+ * The radiogroup behind the drawings of Mood Radio on the fluid layout
+ * (the spectrum, the capsules, the tuner): which mood is current, roving focus over
  * the moods that have tracks (←/→, Home/End), Enter or Space starting
  * the radio. The components keep only their markup.
  */

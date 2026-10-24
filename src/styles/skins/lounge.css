@@ -1,562 +1,562 @@
 /* ============================================================
-   Lounge skin — Listening Room
+   Lounge — Listening Room
    ============================================================
-   Mental model: you are IN a room lit by the album cover, not
-   looking at a photo through translucent UI. Warm light fills
-   a room — walls don't turn gray, they take on the light's
-   colour temperature. Every chrome surface here is a piece of
-   frosted glass tinted by ambient light.
+   The direction is written in `docs/design/lounge-listening-room.md`;
+   this file is its material on the 2.0 interface (`fluid.css`, keyed on
+   `data-layout="fluid"`, imported before this one). One line: a
+   listening room lit by the record — the cover is the light of the
+   whole window, the chrome is smoked wine glass standing in it, and
+   the music fills the room as it plays. Where Fluid stages the music,
+   Liquid diffuses it, Pulse wires it and Editorial prints it, Lounge
+   lets it light the room you sit in.
 
-   Chrome panels use a warm burgundy glass layer. A neutral white
-   wash reads gray over pale cover art and drops text contrast; a
-   wine-tinted material keeps the skin in a red/rose lounge register
-   while preserving the album-cover ambience underneath.
+   The decision, first: Lounge moves from the classic layout to
+   `layout: "fluid"`, with `fluid: { progress: "horizon", moodRadio:
+   "tuner", atmosphere: "room" }` (`src/lib/skins.ts`). The 2.0
+   structure gives it the canvas, the rail, the control rail, the
+   tabbed panel and the page heroes; its three pieces are its own, read
+   from the preset, never from the skin id:
 
-   Selectors target STABLE LANDMARKS (`aside`, `header`,
-   `footer`, `main`) plus a handful of ARIA roles
-   (`role="tooltip"`, `role="dialog"`). No class-name substring
-   matching — that proved fragile (would catch `bg-zinc-900`
-   inside an inverted-tooltip and turn it transparent). */
+   - the room (`atmosphere: "room"`): the playing record's cover,
+     blurred to a colour field over the whole window — the 1.x Lounge's
+     backdrop, now an atmosphere of the layout, mounted by
+     `SkinAmbientBackdrop`. It replaces the layout's two pools.
+   - the horizon (`progress: "horizon"`): the progress as a straight
+     line along the player bar's top edge whose played part spills its
+     light down into the bar, so the bar fills with light as the record
+     plays (`ProgressBar`, structure in `fluid.css`).
+   - the tuner (`moodRadio: "tuner"`): Mood Radio as a receiver's
+     tuning dial — graduations, the five moods as stations, a needle
+     swung onto the chosen one, a readout beside it (`MoodTuner`,
+     structure in `fluid.css`).
 
+   Nothing is moved: every rule below is a tone, a sheet, a light or a
+   face over the structure, as the other three materials do.
+
+   What this file decides, in order of weight:
+
+   1. The record is the light. The room is the cover, blurred once per
+      record into a small canvas and stretched to the window (not a
+      140 px CSS blur re-run under every frame, as the 1.x backdrop
+      was), saturated, then dimmed under a wine veil (`.skin-room::after`)
+      so a pale sleeve tints the room without lighting it white. With no
+      record — or where the room is off — the window falls back to a
+      static wine light (`body::before`).
+
+   2. Smoked wine glass, and nothing blurs. The rail, the panel and the
+      player bar float in the room as sheets of dark burgundy glass, a
+      warm top light and a rosé hairline for their edge, 1.5 rem
+      corners. None of them carries a `backdrop-filter`: what is behind
+      them is already a blurred field, and blurring it again buys
+      nothing but the cost. Menus and dialogs are the same glass, near
+      opaque.
+
+   3. One accent, the theme's. The 1.x Lounge spent a rosé of its own
+      (`#ff2d79`) on every hover and active state, and an emerald of its
+      own on the accent text. The 2.0 rule is one accent and it is the
+      theme's (`--accent-400`, so the custom and cover accent modes of
+      #895 drive it — the cover mode makes the whole room the record's).
+      The rosé stays as a tint of the material only: the glass is wine,
+      its edges catch a rosé light, the inks are warm. No state, no
+      action, no focus is drawn in it.
+
+   4. A quiet voice. The structure's DM Sans, set lighter (the display
+      at 440, the titles at 460) and the greeting in the layout's serif
+      italic: a lounge does not raise its voice. Inks warm, rosé-white
+      to dusty rose.
+
+   5. Slow. One ease-out, longer than Fluid's; the needle swings, the
+      light glides along the horizon, the room cross-fades between
+      records. Nothing loops. Reduced motion turns every one of them
+      into a cut.
+
+   Dark-only: the room is a night room. `app.css` lists it in the
+   extended `dark` variant, the scrollbar rules and the high-contrast
+   dark block. Rules that must beat a `!important` in `fluid.css` carry
+   one and win by source order. */
+
+/* ── Tokens ─────────────────────────────────────────────────── */
 :root[data-skin="lounge"] {
-  --lounge-ink: rgb(255 248 250);
-  --lounge-muted: rgb(226 205 215);
-  --lounge-subtle: rgb(197 169 184);
-  --lounge-glass: rgb(34 7 17 / 0.62);
-  --lounge-glass-soft: rgb(56 13 27 / 0.48);
-  --lounge-glass-strong: rgb(28 5 14 / 0.76);
-  --lounge-canvas: rgb(24 4 12 / 0.46);
-  --lounge-border: rgb(255 156 188 / 0.22);
-  --lounge-border-soft: rgb(255 214 225 / 0.12);
-  --lounge-accent: rgb(255 45 121);
-  --lounge-shadow: 0 22px 60px -28px rgb(8 0 5 / 0.85);
+  --fe-bg: #14070c;
+  --fe-bg-rgb: 20 7 12;
+  --fe-surface: #1f0b13;
+  --fe-surface-2: #29101a;
+  --fe-surface-0: #190910;
+  --fe-ink: #fbf1f4;
+  --fe-ink-2: #dccbd3;
+  --fe-ink-3: #bda5b2;
+  --fe-hairline: rgb(255 156 188 / 0.12);
+  --fe-hairline-strong: rgb(255 156 188 / 0.2);
+  --fe-tone-1: rgb(255 214 225 / 0.045);
+  --fe-tone-2: rgb(255 214 225 / 0.07);
+  --fe-tone-3: rgb(255 214 225 / 0.095);
+  --fe-tone-4: rgb(255 214 225 / 0.12);
+  --fe-edge: rgb(255 214 225 / 0.07);
+  --fe-edge-strong: rgb(255 214 225 / 0.11);
+  --fe-accent: var(--accent-400);
+  --fe-accent-ink: #14070c;
+  /* The cover's light before the first sample lands: a wine. */
+  --fe-glow: #6b1f3a;
+  --fe-glow-deep: #2c0b18;
+  --fe-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Lounge's own: the smoked glass at its three densities, the warm
+     light its top catches, its edge and the drop under a sheet. */
+  --lg-glass: rgb(32 9 18 / 0.64);
+  --lg-glass-card: rgb(36 11 21 / 0.5);
+  --lg-glass-dense: rgb(28 8 16 / 0.96);
+  --lg-lamp: radial-gradient(
+    ellipse 90% 60% at 50% 0%,
+    rgb(255 176 196 / 0.07),
+    transparent 70%
+  );
+  --lg-rim:
+    inset 0 1px 0 var(--fe-edge-strong), inset 0 0 0 1px var(--fe-hairline);
+  /* Short on purpose: a 60 px drop under the three floating sheets cost
+     the album grid's scroll ten frames over 20 ms in five hundred
+     (measured, see the design page); this one costs none. */
+  --lg-drop: 0 8px 18px -10px rgb(6 0 3 / 0.8);
+  --lg-radius: 1.5rem;
 }
 
-/* Body wrapper — tint the album ambience instead of leaving a pale
-   gray fallback to show through when the cover blur is low-saturation. */
-:root[data-skin="lounge"] [class*="bg-app-ambient"] {
-  background-color: var(--lounge-canvas) !important;
-  background-image:
-    radial-gradient(
-      circle at 18% 12%,
-      rgb(159 28 68 / 0.26),
-      transparent 34rem
-    ),
-    radial-gradient(
-      circle at 78% 38%,
-      rgb(255 45 121 / 0.12),
-      transparent 36rem
-    ),
-    linear-gradient(135deg, rgb(28 5 14 / 0.58), rgb(16 5 11 / 0.4));
-}
-:root[data-skin="lounge"],
-:root[data-skin="lounge"] body {
-  color: var(--lounge-ink);
-  /* No separate `background-color` fallback — the linear-gradient
-     stops below are all solid (`rgb(31 5 14)` → `rgb(12 6 11)` →
-     `rgb(36 7 18)`), and `background:` shorthand would zero-out a
-     prior `background-color` declaration anyway. Tauri WebView2/
-     WKWebView ship gradients support out of the box, so no IE
-     fallback to worry about. */
+/* ── The room ───────────────────────────────────────────────── */
+/* Under the room, and in its place where it is off: a static wine
+   light — two warm pools and a slow diagonal — instead of the layout's
+   pools of the cover's colour. The grain stays: it keeps a smooth
+   field from banding. */
+:root[data-skin="lounge"] body::before {
+  inset: 0;
   background:
     radial-gradient(circle at 12% 8%, rgb(137 24 58 / 0.34), transparent 34rem),
     radial-gradient(
       circle at 88% 18%,
-      rgb(255 45 121 / 0.18),
+      color-mix(in srgb, var(--fe-glow) 45%, transparent),
       transparent 32rem
     ),
-    linear-gradient(135deg, rgb(31 5 14), rgb(12 6 11) 56%, rgb(36 7 18));
+    linear-gradient(135deg, #1f050e, #0c060b 56%, #24070f);
 }
-
-/* AppLayout's center-column wrapper paints `dark:bg-zinc-900/50`
-   which the extended `dark` variant activates under Lounge,
-   covering the SkinAmbientBackdrop with a uniform 50% gray
-   slab — defeats the whole skin. Match the wrapper structurally
-   by its children (TopBar `<header>` + view `<main>`) so we
-   don't depend on class-name substring matching. */
-:root[data-skin="lounge"] div:has(> header):has(> main) {
-  background-color: rgb(20 5 12 / 0.18) !important;
-  background-image:
-    radial-gradient(
-      circle at 46% 22%,
-      rgb(143 32 72 / 0.22),
-      transparent 28rem
-    ),
-    linear-gradient(180deg, rgb(24 5 13 / 0.2), rgb(10 4 8 / 0.34));
-}
-
-/* Sidebar — burgundy glass with enough density to keep labels
-   readable over light or low-saturation covers. */
-:root[data-skin="lounge"] .lounge-sidebar-shell {
-  color: var(--lounge-muted);
-  background-color: transparent !important;
-  background-image: none;
-  backdrop-filter: blur(34px) saturate(145%);
-  -webkit-backdrop-filter: blur(34px) saturate(145%);
-  box-shadow: 18px 0 48px -34px rgb(255 45 121 / 0.55);
-}
-
-:root[data-skin="lounge"] .lounge-sidebar-shell > aside {
-  width: calc(100% - 1.25rem) !important;
-  height: calc(100% - 1.5rem);
-  margin: 0.75rem 0.5rem 0.75rem 0.75rem;
-  color: var(--lounge-muted);
-  background-color: rgb(34 7 17 / 0.78) !important;
-  background-image:
-    radial-gradient(
-      circle at top left,
-      rgb(255 45 121 / 0.2),
-      transparent 18rem
-    ),
-    radial-gradient(circle at 80% 90%, rgb(123 24 58 / 0.2), transparent 16rem),
-    linear-gradient(180deg, rgb(62 11 29 / 0.78), rgb(18 5 12 / 0.88));
-  border: 1px solid var(--lounge-border);
-  border-radius: 1.5rem;
-  overflow: hidden;
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.08),
-    0 24px 70px -42px rgb(255 45 121 / 0.72);
-}
-
-:root[data-skin="lounge"]
-  .lounge-sidebar-shell
-  > aside
-  :where(button, [class*="bg-zinc"]) {
-  background-color: rgb(24 5 13 / 0.34) !important;
-}
-
-:root[data-skin="lounge"] .lounge-sidebar-shell > aside :where(button:hover) {
-  background-color: rgb(255 45 121 / 0.13) !important;
-}
-
-:root[data-skin="lounge"]
-  .lounge-sidebar-shell
-  > aside
-  :where(button[class*="bg-emerald"], button[aria-pressed="true"]) {
-  background-color: rgb(255 45 121 / 0.18) !important;
-}
-
-:root[data-skin="lounge"] main aside {
-  color: var(--lounge-muted);
-  background-color: transparent !important;
-  background-image: none !important;
-  border-right: 0;
-  box-shadow: none;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-}
-
-:root[data-skin="lounge"] main aside > div {
-  color: var(--lounge-subtle) !important;
-}
-
-:root[data-skin="lounge"] main aside button {
-  background-color: rgb(52 10 25 / 0.48) !important;
-  border: 1px solid var(--lounge-border-soft);
-}
-
-:root[data-skin="lounge"] main aside button:hover {
-  background-color: rgb(255 45 121 / 0.16) !important;
-}
-
-/* TopBar — denser than before so search placeholder text and
-   icon buttons do not disappear on pale artwork. */
-:root[data-skin="lounge"] header[class*="sticky"] {
-  height: 3.75rem;
-  margin: 0.75rem 1.5rem 0;
-  border-radius: 9999px;
-  color: var(--lounge-muted);
-  background-color: rgb(19 5 12 / 0.72) !important;
-  background-image: linear-gradient(
-    90deg,
-    rgb(71 13 31 / 0.36),
-    rgb(14 7 12 / 0.64)
-  );
-  backdrop-filter: blur(30px) saturate(135%);
-  -webkit-backdrop-filter: blur(30px) saturate(135%);
-  border-bottom: 1px solid var(--lounge-border-soft);
-  box-shadow: 0 14px 40px -30px rgb(255 45 121 / 0.55);
-}
-
-:root[data-skin="lounge"] main {
-  padding-top: 1.25rem !important;
-}
-
-/* PlayerBar — thickest glass in the trio because it carries
-   the smallest text (time codes, track meta) and needs the
-   highest legibility floor. */
-:root[data-skin="lounge"] footer {
-  margin: 0 0.75rem 0.75rem;
-  border-radius: 1.25rem;
-  overflow: visible;
-  color: var(--lounge-muted);
-  background-color: var(--lounge-glass-strong) !important;
-  background-image:
-    radial-gradient(
-      circle at 12% 0%,
-      rgb(255 45 121 / 0.18),
-      transparent 18rem
-    ),
-    linear-gradient(180deg, rgb(58 12 28 / 0.54), rgb(15 4 10 / 0.72));
-  backdrop-filter: blur(38px) saturate(145%);
-  -webkit-backdrop-filter: blur(38px) saturate(145%);
-  border-top: 1px solid var(--lounge-border) !important;
-  box-shadow: 0 -22px 56px -34px rgb(255 45 121 / 0.62);
-}
-
-:root[data-skin="lounge"] footer [role="dialog"] {
-  z-index: 120;
-}
-
-/* Body cards inside main — same recipe, slightly more white
-   so list rows + stat blocks stay readable when the cover
-   underneath is dark. `!important` on `background-color` so
-   we beat per-card `bg-zinc-900` / `dark:bg-zinc-900/X`
-   Tailwind utilities (specificity 0,1,0 — a `:where()` can
-   never reach it). Component GRADIENTS (Mood Radio tiles,
-   Welcome Banner) paint on `background-image:
-   linear-gradient(...)` — a different property — so they
-   keep their identity untouched. */
-:root[data-skin="lounge"]
-  main
-  :where(
-    [class*="rounded-xl"],
-    [class*="rounded-2xl"],
-    [class*="rounded-3xl"]
-  ):where(:not([data-artwork-hit-target])) {
-  background-color: var(--lounge-glass-soft) !important;
-  border-color: var(--lounge-border-soft) !important;
-  box-shadow: var(--lounge-shadow);
-  backdrop-filter: blur(22px) saturate(135%);
-  -webkit-backdrop-filter: blur(22px) saturate(135%);
-}
-
-:root[data-skin="lounge"] main > div {
-  text-shadow: 0 1px 18px rgb(0 0 0 / 0.22);
-}
-
-:root[data-skin="lounge"]
-  :where(
-    h1,
-    h2,
-    h3,
-    .text-zinc-900,
-    .text-zinc-800,
-    .dark\:text-white,
-    .dark\:text-zinc-100,
-    .dark\:text-zinc-200
-  ) {
-  color: var(--lounge-ink) !important;
-}
-
-:root[data-skin="lounge"]
-  :where(
-    .text-zinc-500,
-    .dark\:text-zinc-400,
-    .placeholder-zinc-400
-  )::placeholder {
-  color: var(--lounge-subtle) !important;
-}
-
-:root[data-skin="lounge"]
-  :where(
-    .text-zinc-500,
-    .text-zinc-400,
-    .dark\:text-zinc-400,
-    .dark\:text-zinc-600
-  ) {
-  color: var(--lounge-subtle) !important;
-}
-
-:root[data-skin="lounge"]
-  :where(.text-zinc-600, .text-zinc-700, .dark\:text-zinc-300) {
-  color: var(--lounge-muted) !important;
-}
-
-:root[data-skin="lounge"] :where(button, a, input) {
-  transition:
-    background-color 0.22s ease,
-    border-color 0.22s ease,
-    color 0.22s ease,
-    transform 0.22s ease,
-    box-shadow 0.22s ease;
-}
-
-:root[data-skin="lounge"] :where(button:hover, a:hover) {
-  color: var(--lounge-ink) !important;
-}
-
-:root[data-skin="lounge"] :where(button:active, a:active) {
-  transform: translateY(1px);
-}
-
-:root[data-skin="lounge"]
-  :where(
-    input,
-    [class*="bg-white"],
-    [class*="dark:bg-zinc-800"],
-    [class*="bg-zinc-50"],
-    [class*="bg-zinc-100"]
-  ):not([role="separator"]):not([data-track-row]) {
-  background-color: rgb(20 6 13 / 0.56) !important;
-  border-color: var(--lounge-border-soft) !important;
-}
-
-:root[data-skin="lounge"] header input {
-  background-color: transparent !important;
-}
-
-:root[data-skin="lounge"]
-  :where([class*="hover:bg-zinc"], [class*="dark:hover:bg-zinc"]):hover {
-  background-color: rgb(255 45 121 / 0.12) !important;
-}
-
-:root[data-skin="lounge"]
-  :where(
-    [class*="bg-emerald-50"],
-    [class*="dark:bg-zinc-800"],
-    [class*="dark:bg-emerald"]
-  ):not([role="separator"]):not([data-track-row]) {
-  background-color: rgb(255 45 121 / 0.14) !important;
-}
-
-:root[data-skin="lounge"]
-  :where(
-    .text-emerald-400,
-    .text-emerald-500,
-    .text-emerald-600,
-    .dark\:text-emerald-400
-  ) {
-  color: rgb(0 229 177) !important;
-}
-
-:root[data-skin="lounge"]
-  :where(
-    .border-emerald-100\/50,
-    .dark\:border-zinc-800,
-    .border-zinc-100,
-    .dark\:border-zinc-700\/50
-  ) {
-  border-color: var(--lounge-border-soft) !important;
-}
-
-:root[data-skin="lounge"] main :where(section h2) {
-  border-bottom-color: var(--lounge-accent) !important;
-}
-
-:root[data-skin="lounge"]
-  :where([role="dialog"], [role="tooltip"], [class*="shadow-lg"]):not(
-    [data-immersive]
-  ):not([data-immersive] *) {
-  background-color: rgb(24 6 14 / 0.92) !important;
-  border-color: var(--lounge-border) !important;
-}
-
-:root[data-skin="lounge"] [role="tooltip"] {
-  color: var(--lounge-ink) !important;
-  background-color: rgb(28 5 14 / 0.96) !important;
-  border: 1px solid var(--lounge-border-soft);
-  box-shadow: 0 14px 36px -20px rgb(255 45 121 / 0.58);
-}
-
-:root[data-skin="lounge"] .lounge-home {
-  max-width: 92rem;
-  margin-inline: auto;
-}
-
-:root[data-skin="lounge"] .lounge-home > .grid:first-child {
-  align-items: stretch;
-}
-
-:root[data-skin="lounge"] .lounge-home > .grid:first-child > div:first-child {
-  background-color: rgb(61 14 30 / 0.74) !important;
-  background-image:
-    radial-gradient(
-      circle at 20% 28%,
-      rgb(255 45 121 / 0.22),
-      transparent 20rem
-    ),
-    radial-gradient(
-      circle at 82% 72%,
-      rgb(168 35 79 / 0.34),
-      transparent 26rem
-    ),
-    linear-gradient(145deg, rgb(78 18 39 / 0.84), rgb(30 8 18 / 0.92)) !important;
-}
-
-:root[data-skin="lounge"]
-  .lounge-home
-  > .grid:first-child
-  > div:last-child
-  > * {
-  background-color: rgb(83 24 47 / 0.72) !important;
-  background-image: linear-gradient(
-    135deg,
-    rgb(116 38 66 / 0.52),
-    rgb(48 12 28 / 0.68)
-  );
-}
-
-:root[data-skin="lounge"] .lounge-home h1 {
-  text-wrap: balance;
-}
-
-:root[data-skin="lounge"] .lounge-mood-section {
-  position: relative;
-}
-
-:root[data-skin="lounge"] .lounge-mood-grid {
-  isolation: isolate;
-}
-
-:root[data-skin="lounge"] .lounge-mood-tile {
-  min-height: 10.75rem;
-  border: 1px solid var(--lounge-border-soft);
-  background-color: rgb(40 8 20 / 0.74) !important;
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.08),
-    0 24px 60px -34px rgb(255 45 121 / 0.72);
-}
-
-:root[data-skin="lounge"] .lounge-mood-tile::before {
+/* The veil: wine, darker towards the edges and the foot, where the
+   chrome sits. What keeps a white sleeve from lighting the room white:
+   the canvas is already darkened when it is drawn, the veil does the
+   rest. */
+:root[data-skin="lounge"] .skin-room::after {
   content: "";
   position: absolute;
   inset: 0;
-  z-index: -1;
   background:
     radial-gradient(
-      circle at 18% 12%,
-      rgb(255 255 255 / 0.13),
-      transparent 8rem
+      ellipse 80% 70% at 50% 35%,
+      transparent 40%,
+      rgb(12 3 7 / 0.5) 100%
     ),
-    linear-gradient(145deg, rgb(95 16 42 / 0.86), rgb(20 5 13 / 0.94));
+    linear-gradient(180deg, rgb(20 6 12 / 0.1), rgb(14 4 9 / 0.45));
+  background-color: rgb(20 5 11 / 0.4);
+}
+/* The canvas's blurred copy of the cover would be the room again,
+   smaller: the room already is the record. */
+:root[data-skin="lounge"] .fe-canvas__aura {
+  display: none;
 }
 
-:root[data-skin="lounge"] .lounge-mood-tile::after {
-  content: "";
-  position: absolute;
-  inset: auto 1rem 1rem;
-  height: 1px;
+/* ── Type: a quiet voice ────────────────────────────────────── */
+:root[data-skin="lounge"] .fe-display {
+  font-weight: 440;
+  letter-spacing: -0.035em;
+}
+:root[data-skin="lounge"] .fe-title {
+  font-weight: 460;
+}
+:root[data-skin="lounge"] main :is(h1, h2) {
+  font-weight: 460;
+}
+
+/* ── The rail: a sheet of smoked glass in the room ─────────── */
+/* The shell is 16 rem wide (an animated width, `overflow: hidden`): a
+   floating sheet is the shell minus the inset on both axes. */
+:root[data-skin="lounge"] .skin-sidebar-shell {
+  padding: 0.75rem 0 0.75rem 0.75rem;
+}
+:root[data-skin="lounge"] .skin-sidebar-shell > aside {
+  width: calc(16rem - 0.75rem) !important;
+  height: calc(100% - 1.5rem) !important;
+  background-color: var(--lg-glass) !important;
+  background-image: var(--lg-lamp) !important;
+  border-radius: var(--lg-radius) !important;
+  box-shadow: var(--lg-rim), var(--lg-drop) !important;
+}
+:root[data-skin="lounge"] .skin-sidebar-shell[data-collapsed] > aside {
+  width: calc(5rem - 0.75rem) !important;
+}
+:root[data-skin="lounge"] .skin-sidebar-shell > aside > div:first-child {
+  padding: 1.5rem 1rem 0.5rem !important;
+}
+:root[data-skin="lounge"] [data-sidebar-nav] {
+  padding: 1.25rem 1rem 0.5rem !important;
+}
+:root[data-skin="lounge"] [data-sidebar-scroll] {
+  padding: 0.25rem 1rem 1.5rem !important;
+}
+:root[data-skin="lounge"]
+  .skin-sidebar-shell[data-collapsed]
+  [data-sidebar-nav] {
+  padding: 0.75rem 0.5rem 0.5rem !important;
+}
+:root[data-skin="lounge"]
+  .skin-sidebar-shell[data-collapsed]
+  [data-sidebar-scroll] {
+  padding: 0.25rem 0.5rem 1.5rem !important;
+}
+:root[data-skin="lounge"] [data-sidebar-nav] [data-nav-item] {
+  padding: 0.75rem 0.625rem !important;
+}
+:root[data-skin="lounge"] [data-sidebar-nav] [data-nav-item] > div > span {
+  font-size: 0.78rem;
+}
+/* The modules: a warm tone on the glass with its own edge; hover a step
+   up; the open one lit from inside by the accent, never filled. */
+:root[data-skin="lounge"] [data-sidebar-nav] [data-nav-item],
+:root[data-skin="lounge"] [data-sidebar-row="pinned"],
+:root[data-skin="lounge"] [data-sidebar-profile] {
+  border-radius: 1rem !important;
+  background-color: var(--fe-tone-1) !important;
+  box-shadow: inset 0 1px 0 var(--fe-edge);
+  transition:
+    color 220ms var(--fe-ease),
+    background-color 220ms var(--fe-ease),
+    box-shadow 220ms var(--fe-ease);
+}
+:root[data-skin="lounge"] [data-sidebar-nav] [data-nav-item]:hover,
+:root[data-skin="lounge"] [data-sidebar-row="pinned"]:hover,
+:root[data-skin="lounge"] [data-sidebar-profile]:hover {
+  background-color: var(--fe-tone-3) !important;
+}
+:root[data-skin="lounge"] [data-sidebar-nav] [data-nav-item][data-active],
+:root[data-skin="lounge"] [data-sidebar-row="pinned"][data-active] {
+  background-color: var(--fe-tone-2) !important;
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--fe-accent) 55%, transparent),
+    inset 0 -18px 30px -18px
+      color-mix(in srgb, var(--fe-accent) 28%, transparent);
+}
+:root[data-skin="lounge"]
+  [data-sidebar-nav]
+  [data-nav-item]
+  > span:first-child {
+  background-color: var(--fe-tone-2);
+}
+:root[data-skin="lounge"]
+  [data-sidebar-row="playlist"]
+  > div:first-child
+  > :is(img, div) {
+  box-shadow: 0 0 0 1px var(--fe-hairline);
+}
+
+/* ── The control rail: a smoked search, warm clusters ───────── */
+:root[data-skin="lounge"] [data-topbar-search-field] {
+  background-color: rgb(32 9 18 / 0.55) !important;
+  box-shadow: var(--lg-rim) !important;
+  transition:
+    background-color 220ms var(--fe-ease),
+    box-shadow 220ms var(--fe-ease);
+}
+:root[data-skin="lounge"] [data-topbar-search-field]:hover {
+  background-color: rgb(40 12 23 / 0.62) !important;
+}
+:root[data-skin="lounge"] [data-topbar-search-field]:focus-within {
+  background-color: rgb(32 9 18 / 0.72) !important;
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--fe-accent) 70%, transparent),
+    0 0 0 4px color-mix(in srgb, var(--fe-accent) 14%, transparent),
+    0 18px 40px -22px rgb(6 0 3 / 0.9) !important;
+}
+:root[data-skin="lounge"] [data-topbar-right],
+:root[data-skin="lounge"] [data-topbar-left] {
+  background-color: rgb(32 9 18 / 0.45);
+  box-shadow: var(--lg-rim);
+  border-radius: 9999px;
+}
+:root[data-skin="lounge"] [data-topbar-popover] {
+  background-color: var(--lg-glass-dense) !important;
+  box-shadow: var(--lg-rim), var(--lg-drop) !important;
+}
+
+/* ── The player bar: a sheet at the foot, the horizon on top ── */
+/* The line of light runs along its top edge; the spill under the
+   played part is `fluid.css`'s structure, warmed here. */
+:root[data-skin="lounge"] footer {
+  margin: 0 0.75rem 0.75rem;
+  border-radius: var(--lg-radius) !important;
+  background-color: var(--lg-glass) !important;
+  background-image: var(--lg-lamp) !important;
+  box-shadow: var(--lg-rim), var(--lg-drop) !important;
+}
+:root[data-skin="lounge"] footer .fe-horizon {
+  margin-top: 0.375rem;
+}
+:root[data-skin="lounge"] .fe-horizon__fill {
+  box-shadow: 0 0 10px color-mix(in srgb, var(--fe-accent) 70%, transparent);
+}
+:root[data-skin="lounge"] .fe-horizon__spill {
   background: linear-gradient(
-    90deg,
-    transparent,
-    rgb(255 158 190 / 0.45),
+    180deg,
+    color-mix(in srgb, var(--fe-accent) 30%, transparent),
+    color-mix(in srgb, var(--fe-accent) 9%, transparent) 45%,
     transparent
   );
-  opacity: 0;
-  transition: opacity 0.22s ease;
+}
+:root[data-skin="lounge"] .fe-horizon__thumb {
+  background-color: var(--fe-ink);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--fe-accent) 80%, transparent);
+}
+:root[data-skin="lounge"] footer img {
+  border-radius: 0.75rem;
+  box-shadow:
+    0 0 0 1px var(--fe-hairline),
+    0 12px 24px -12px rgb(6 0 3 / 0.9);
+}
+:root[data-skin="lounge"] footer > div:last-child[class*="border-t"] {
+  border-color: var(--fe-hairline) !important;
+  border-bottom-left-radius: var(--lg-radius);
+  border-bottom-right-radius: var(--lg-radius);
 }
 
-:root[data-skin="lounge"] .lounge-mood-tile:hover::after {
-  opacity: 1;
+/* ── The side panel: the same glass, beside the page ────────── */
+:root[data-skin="lounge"] .fe-panel {
+  height: calc(100% - 1.5rem);
+  margin: 0.75rem 0.75rem 0.75rem 0;
+  border-radius: var(--lg-radius);
+  overflow: hidden;
+  background-color: var(--lg-glass);
+  background-image: var(--lg-lamp);
+  box-shadow: var(--lg-rim), var(--lg-drop);
+}
+:root[data-skin="lounge"] .fe-panel__pill {
+  background-color: var(--fe-tone-2);
+  box-shadow: inset 0 1px 0 var(--fe-edge);
+}
+:root[data-skin="lounge"] .fe-panel__pill:hover:not(:disabled) {
+  background-color: var(--fe-tone-4);
+}
+:root[data-skin="lounge"] .fe-panel__lyrics {
+  background-color: var(--fe-tone-1);
+  box-shadow: inset 0 1px 0 var(--fe-edge);
+}
+/* The sung line in the room's light. */
+:root[data-skin="lounge"]
+  .fe-panel
+  ul
+  > li:has(> button[class*="scale-[1.02]"])
+  > button {
+  text-shadow: 0 0 24px color-mix(in srgb, var(--fe-accent) 35%, transparent);
 }
 
-:root[data-skin="lounge"] .lounge-mood-focus::before {
-  background:
-    radial-gradient(
-      circle at 24% 18%,
-      rgb(175 69 255 / 0.34),
-      transparent 10rem
-    ),
-    linear-gradient(145deg, rgb(76 18 73 / 0.94), rgb(24 5 16 / 0.96));
-}
-
-:root[data-skin="lounge"] .lounge-mood-chill::before {
-  background:
-    radial-gradient(
-      circle at 20% 15%,
-      rgb(255 176 75 / 0.36),
-      transparent 9rem
-    ),
-    linear-gradient(145deg, rgb(101 35 16 / 0.9), rgb(34 6 13 / 0.96));
-}
-
-:root[data-skin="lounge"] .lounge-mood-workout::before {
-  background:
-    radial-gradient(
-      circle at 20% 15%,
-      rgb(255 45 121 / 0.38),
-      transparent 9rem
-    ),
-    linear-gradient(145deg, rgb(118 11 46 / 0.94), rgb(31 5 14 / 0.96));
-}
-
-:root[data-skin="lounge"] .lounge-mood-party::before {
-  background:
-    radial-gradient(
-      circle at 20% 15%,
-      rgb(236 72 153 / 0.36),
-      transparent 9rem
-    ),
-    linear-gradient(145deg, rgb(90 20 86 / 0.94), rgb(28 5 20 / 0.96));
-}
-
-:root[data-skin="lounge"] .lounge-mood-sleep::before {
-  background:
-    radial-gradient(
-      circle at 20% 15%,
-      rgb(56 189 248 / 0.26),
-      transparent 9rem
-    ),
-    linear-gradient(145deg, rgb(14 50 76 / 0.88), rgb(10 8 19 / 0.96));
-}
-
-/* Backdrop crossfade keyframe. */
-@keyframes loungeBackdropFadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-/* ============================================================
-   High contrast (issue #596)
-   ============================================================
-
-   Same shape as Pulse: the sidebar shell is `transparent` and the
-   header sits at 72% opacity, both leaning on the blur. Lounge paints
-   `body` with a gradient rather than a flat colour, so there is no
-   token to reuse — this is the darkest of its three stops, which keeps
-   the chrome in the skin's own family instead of dropping a neutral
-   grey into it. */
-:root[data-skin="lounge"]:is([data-contrast="high"], [data-webkitgtk-safe]) {
-  --wf-contrast-surface: rgb(12 6 11);
-}
-
-/* Both: the shell carries the blur and is `transparent` by the skin's
-   own rule, so with the blur off it would let the page through the
-   gutter around the panel; the `aside` inside it is the translucent
-   surface the labels actually sit on. Liquid forces the same pair. */
-:root[data-skin="lounge"]:is([data-contrast="high"], [data-webkitgtk-safe])
-  .lounge-sidebar-shell,
-:root[data-skin="lounge"]:is([data-contrast="high"], [data-webkitgtk-safe])
-  .lounge-sidebar-shell
-  > aside,
-:root[data-skin="lounge"]:is([data-contrast="high"], [data-webkitgtk-safe])
-  header[class*="sticky"],
-:root[data-skin="lounge"]:is([data-contrast="high"], [data-webkitgtk-safe])
-  footer,
-:root[data-skin="lounge"]:is([data-contrast="high"], [data-webkitgtk-safe])
+/* ── The page: cards as glass, lit from the top ─────────────── */
+:root[data-skin="lounge"]
   main
   :where(
     [class*="rounded-xl"],
     [class*="rounded-2xl"],
     [class*="rounded-3xl"]
-  ):where(:not([data-artwork-hit-target])) {
-  background-color: var(--wf-contrast-surface) !important;
-  /* The opaque colour alone does not get there: this skin's TopBar and
-     PlayerBar each carry a `background-image` gradient, which paints
-     over whatever `background-color` is underneath. Lounge is the only
-     one of the five that needs saying -- Pulse and Liquid already set
-     `background-image: none` on their own chrome. */
-  background-image: none !important;
+  ):where([class*="border"]):where(
+    :not(
+      button,
+      a,
+      input,
+      select,
+      textarea,
+      [data-artwork-hit-target],
+      [data-track-table],
+      [role="switch"],
+      [role="radio"]
+    )
+  ),
+:root[data-skin="lounge"] main details.settings-group,
+:root[data-skin="lounge"] main [data-folder-card],
+:root[data-skin="lounge"]
+  main
+  button[class*="rounded-2xl"][class*="border"][class*="p-4"],
+:root[data-skin="lounge"] .fe-suggest {
+  border-radius: 1.25rem !important;
+  background-color: var(--lg-glass-card) !important;
+  background-image: var(--lg-lamp);
+  box-shadow: var(--lg-rim) !important;
+  transition:
+    background-color 220ms var(--fe-ease),
+    box-shadow 220ms var(--fe-ease);
+}
+:root[data-skin="lounge"] main [data-folder-card]:hover,
+:root[data-skin="lounge"]
+  main
+  button[class*="rounded-2xl"][class*="border"][class*="p-4"]:hover {
+  background-color: rgb(46 14 27 / 0.6) !important;
+  box-shadow:
+    inset 0 1px 0 var(--fe-edge-strong),
+    inset 0 0 0 1px var(--fe-hairline-strong) !important;
+}
+/* Artwork: a rosé hairline, a deep warm drop; the hero cover stands in
+   the room on its own shadow. */
+:root[data-skin="lounge"] .fe-tile {
+  box-shadow:
+    0 0 0 1px var(--fe-hairline),
+    0 14px 34px -20px rgb(6 0 3 / 0.95);
+}
+:root[data-skin="lounge"] .fe-hero-cover {
+  box-shadow:
+    0 0 0 1px var(--fe-hairline-strong),
+    0 50px 90px -40px rgb(6 0 3 / 0.95),
+    0 0 80px -30px color-mix(in srgb, var(--fe-accent) 30%, transparent);
+}
+/* Inputs: the smoked glass, the accent's ring on focus. */
+:root[data-skin="lounge"] :where(input, textarea, select):not(header input) {
+  background-color: rgb(24 7 14 / 0.7) !important;
+  border-color: var(--fe-hairline-strong) !important;
 }
 
-/* Icons only (80 px): tighter outer margins, or the inset card leaves
-   the playlist tiles no room. */
-:root[data-skin="lounge"] .lounge-sidebar-shell[data-collapsed] > aside {
-  width: calc(100% - 0.875rem) !important;
-  margin: 0.75rem 0.375rem 0.75rem 0.5rem;
+/* An artist's photo dissolves into the room rather than into the
+   layout's ground colour, which the room is not: the photo fades out
+   at its foot and its sides, the scrim is a veil, not a fill. */
+:root[data-skin="lounge"]
+  main
+  [data-page-hero][class*="group/hero"]
+  > [aria-hidden="true"] {
+  mask-image:
+    linear-gradient(to bottom, transparent, #000 14%, #000 45%, transparent),
+    linear-gradient(to right, transparent, #000 8%, #000 92%, transparent) !important;
+  -webkit-mask-image:
+    linear-gradient(to bottom, transparent, #000 14%, #000 45%, transparent),
+    linear-gradient(to right, transparent, #000 8%, #000 92%, transparent) !important;
+  mask-composite: intersect;
+  -webkit-mask-composite: source-in;
+}
+:root[data-skin="lounge"]
+  main
+  [data-page-hero][class*="group/hero"]
+  > [aria-hidden="true"]
+  > div[class*="bg-linear-to-t"] {
+  background: linear-gradient(
+    to top,
+    rgb(14 4 9 / 0.72) 0%,
+    rgb(14 4 9 / 0.4) 45%,
+    rgb(14 4 9 / 0.08) 100%
+  ) !important;
+}
+
+/* ── Track tables: the header as the dense glass ─────────────── */
+/* Rows scroll under it, so it stays near opaque; the wine of the glass
+   rather than the layout's black keeps it in the room. */
+:root[data-skin="lounge"] [data-track-table] [class*="sticky"][class*="grid"] {
+  background-color: var(--lg-glass-dense) !important;
+  background-image: var(--lg-lamp);
+}
+
+/* ── Mood Radio: the tuner, a dial lit from behind ──────────── */
+/* The dial's glass is backlit: a warm light behind the needle moves
+   with it, the needle a lit filament, the chosen station in full ink.
+   The readout is a sheet of the same glass. */
+:root[data-skin="lounge"] .fe-tuner__dial,
+:root[data-skin="lounge"] .fe-tuner__readout {
+  background-color: var(--lg-glass-card);
+  background-image: var(--lg-lamp);
+  box-shadow: var(--lg-rim);
+}
+:root[data-skin="lounge"] .fe-tuner__dial {
+  background-image:
+    linear-gradient(180deg, rgb(255 176 196 / 0.05), transparent 45%),
+    var(--lg-lamp);
+}
+:root[data-skin="lounge"] .fe-tuner__needle::before {
+  box-shadow:
+    0 0 8px color-mix(in srgb, var(--fe-accent) 85%, transparent),
+    0 0 22px color-mix(in srgb, var(--fe-accent) 45%, transparent);
+}
+:root[data-skin="lounge"] .fe-tuner__needle::after {
+  content: "";
+  position: absolute;
+  top: -1rem;
+  bottom: -3rem;
+  left: -4rem;
+  width: 8rem;
+  z-index: -1;
+  background: radial-gradient(
+    ellipse 50% 55% at 50% 45%,
+    color-mix(in srgb, var(--fe-accent) 20%, transparent),
+    transparent 70%
+  );
+}
+:root[data-skin="lounge"] .fe-tuner__station[data-checked="true"] {
+  text-shadow: 0 0 18px color-mix(in srgb, var(--fe-accent) 45%, transparent);
+}
+:root[data-skin="lounge"] .fe-tuner__wave {
+  filter: drop-shadow(
+    0 0 4px color-mix(in srgb, var(--fe-accent) 60%, transparent)
+  );
+}
+:root[data-skin="lounge"] .fe-tuner__cta {
+  box-shadow: 0 10px 24px -12px
+    color-mix(in srgb, var(--fe-accent) 70%, transparent);
+}
+
+/* ── Menus, popovers, dialogs: the glass, near opaque ───────── */
+:root[data-skin="lounge"] [role="dialog"]:not([data-immersive]),
+:root[data-skin="lounge"] [role="menu"],
+:root[data-skin="lounge"] [role="listbox"] {
+  background-color: var(--lg-glass-dense) !important;
+  background-image: var(--lg-lamp) !important;
+  box-shadow: var(--lg-rim), var(--lg-drop) !important;
+}
+:root[data-skin="lounge"] [role="dialog"]:not([data-immersive]) {
+  border-radius: 1.25rem !important;
+}
+:root[data-skin="lounge"] [role="menu"] {
+  border-radius: 1rem !important;
+}
+
+/* ── Selection ──────────────────────────────────────────────── */
+:root[data-skin="lounge"] ::selection {
+  background-color: color-mix(in srgb, var(--fe-accent) 40%, transparent);
+  color: var(--fe-ink);
+}
+
+/* ── Reduced motion: the needle and the light jump ──────────── */
+/* `fluid.css` cuts the needle's swing and the horizon's glide; the room
+   cross-fade is cut by `SkinAmbientBackdrop`. Nothing of this file's
+   moves beyond its colour transitions, which stay. */
+
+/* ── Reduced transparency, Linux, high contrast: solid glass ── */
+/* Without translucency the glass turns solid wine and the room goes:
+   the static wine light (`body::before`) stands in for it. The same
+   list serves the WebKitGTK safeguard (#820: no backdrop layer and no
+   full-window cover there — `app.css` drops every backdrop filter,
+   `SkinAmbientBackdrop` does not mount) and high contrast, which also
+   drops the pools (`fluid.css`). */
+@media (prefers-reduced-transparency: reduce) {
+  :root[data-skin="lounge"] {
+    --lg-glass: var(--fe-surface);
+    --lg-glass-card: var(--fe-surface);
+    --lg-glass-dense: var(--fe-surface);
+  }
+  :root[data-skin="lounge"] .skin-room {
+    display: none;
+  }
+}
+/* One `html` more than the light fallback `app.css` declares for the
+   safeguard after this file is imported: Lounge keeps wine chrome there,
+   not white. */
+html:root[data-skin="lounge"]:is(
+    [data-webkitgtk-safe],
+    [data-contrast="high"]
+  ) {
+  --wf-contrast-surface: #160810;
+  --lg-glass: var(--wf-contrast-surface);
+  --lg-glass-card: var(--wf-contrast-surface);
+  --lg-glass-dense: var(--wf-contrast-surface);
+}
+:root[data-skin="lounge"][data-contrast="high"] .skin-room {
+  display: none;
+}
+:root[data-skin="lounge"][data-contrast="high"] {
+  --fe-ink-2: #f0e4e9;
+  --fe-ink-3: #dac7d0;
+  --fe-hairline: rgb(255 156 188 / 0.3);
+  --fe-hairline-strong: rgb(255 156 188 / 0.45);
 }

@@ -32,9 +32,11 @@ interface ProgressBarProps {
    * `bar`: the classic row (time · rail · time) inside the centre
    * column. `edge`: the Fluid skin's full-width wave along the player
    * bar's top edge, elapsed and total at its ends — same slider, same
-   * keyboard contract, three times the travel for a seek.
+   * keyboard contract, three times the travel for a seek. `horizon`:
+   * the same place and the same slider, drawn as Lounge's line of
+   * light — a straight line whose played part lights the bar below it.
    */
-  variant?: "bar" | "edge";
+  variant?: "bar" | "edge" | "horizon";
 }
 
 /**
@@ -175,6 +177,81 @@ export function ProgressBar({ variant = "bar" }: ProgressBarProps = {}) {
   // timestamps are meaningless — hide the whole row. Placed after all
   // hooks so the Rules of Hooks hold.
   if (isRadioTrack(currentTrack)) return null;
+
+  if (variant === "horizon") {
+    // Moved by transforms only (`--fe-progress` is a 0–1 factor), so a
+    // position tick recomposites the line and its light, never lays
+    // them out again.
+    const factor = percent / 100;
+    return (
+      <div className="fe-horizon relative h-5 w-full px-16">
+        <span className="fe-ink-3 fe-mono absolute left-5 top-1/2 -translate-y-1/2 text-[0.75rem]">
+          {formatDuration(clampedDisplay)}
+        </span>
+        <div
+          ref={trackRef}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          onKeyDown={handleKeyDown}
+          role="slider"
+          tabIndex={seekable ? 0 : -1}
+          aria-label={t("player.seek", "Position")}
+          aria-valuemin={0}
+          aria-valuemax={hasTrack ? durationMs : 0}
+          aria-valuenow={hasTrack ? clampedDisplay : 0}
+          aria-valuetext={`${formatDuration(clampedDisplay)} / ${formatDuration(durationMs)}`}
+          aria-disabled={!seekable}
+          data-seeking={dragMs != null || undefined}
+          className={`fe-horizon__track h-full ${seekable ? "cursor-pointer" : "cursor-default"}`}
+          style={{ ["--fe-progress" as string]: factor }}
+        >
+          <span className="fe-horizon__spill" aria-hidden="true" />
+          <span className="fe-horizon__line" aria-hidden="true" />
+          <span className="fe-horizon__fill" aria-hidden="true" />
+          {seekable && (
+            // The head is a full-width layer moved by its own width: the
+            // rail clips it, or at the end of a track it would hang a
+            // window's width past the bar and scroll the document.
+            <span className="fe-horizon__rail" aria-hidden="true">
+              <span className="fe-horizon__head">
+                <span className="fe-horizon__thumb" />
+              </span>
+            </span>
+          )}
+          {hasTrack && abLoop.a_ms != null && (
+            <AbMarker
+              ms={abLoop.a_ms}
+              durationMs={durationMs}
+              label="A"
+              colour="bg-amber-500"
+            />
+          )}
+          {hasTrack && abLoop.b_ms != null && (
+            <AbMarker
+              ms={abLoop.b_ms}
+              durationMs={durationMs}
+              label="B"
+              colour="bg-rose-500"
+            />
+          )}
+          {hasTrack && abLoop.a_ms != null && abLoop.b_ms != null && (
+            <div
+              className="absolute top-0 h-full bg-rose-500/25 pointer-events-none"
+              style={{
+                left: `${(abLoop.a_ms / durationMs) * 100}%`,
+                width: `${((abLoop.b_ms - abLoop.a_ms) / durationMs) * 100}%`,
+              }}
+            />
+          )}
+        </div>
+        <span className="fe-ink-3 fe-mono absolute right-5 top-1/2 -translate-y-1/2 text-[0.75rem]">
+          {formatDuration(hasTrack ? durationMs : 0)}
+        </span>
+      </div>
+    );
+  }
 
   if (variant === "edge") {
     return (

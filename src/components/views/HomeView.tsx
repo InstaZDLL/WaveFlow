@@ -100,7 +100,6 @@ function ClassicHomeView({
   onNavigateToWrapped,
 }: HomeViewProps) {
   const { t } = useTranslation();
-  const { skin } = useSkin();
   const { activeProfile } = useProfile();
   const {
     libraries,
@@ -190,7 +189,6 @@ function ClassicHomeView({
     [libraries],
   );
   const hasLibrary = libraries.length > 0;
-  const isLoungeSkin = skin.id === "lounge";
 
   // Wrapped years — refresh whenever the profile changes; the list is
   // cheap (one DISTINCT over play_event) so we don't bother caching
@@ -297,32 +295,8 @@ function ClassicHomeView({
     await playTracks(tracks, index, { type: "library", id: null });
   };
 
-  // Extracted from nested ternaries on the JSX — each branch is
-  // a per-skin layout token (Lounge widens columns, baseline
-  // stacks vertically). Keeping them named here makes the
-  // matrix obvious instead of buried in the JSX className= props.
-  let containerClasses: string;
-  if (isLoungeSkin) {
-    containerClasses = "lounge-home space-y-10 animate-fade-in pb-24";
-  } else {
-    containerClasses = "space-y-8 animate-fade-in pb-20";
-  }
-
-  let gridClasses: string;
-  if (isLoungeSkin) {
-    gridClasses =
-      "grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_22rem] gap-5 items-stretch";
-  } else {
-    gridClasses = "space-y-8";
-  }
-
-  let bannerSkinClasses: string;
-  if (isLoungeSkin) {
-    bannerSkinClasses = "min-h-80 p-10 xl:p-12 flex items-end";
-  } else {
-    bannerSkinClasses = "p-10";
-  }
-  const bannerClasses = `relative overflow-hidden rounded-3xl bg-linear-to-br from-emerald-50 to-white shadow-sm border border-emerald-100/50 dark:from-emerald-900/40 dark:to-zinc-800/40 dark:border-zinc-800 dark:shadow-none ${bannerSkinClasses}`;
+  const bannerClasses =
+    "relative overflow-hidden rounded-3xl bg-linear-to-br from-emerald-50 to-white shadow-sm border border-emerald-100/50 dark:from-emerald-900/40 dark:to-zinc-800/40 dark:border-zinc-800 dark:shadow-none p-10";
   // Safari (issue #414) fails to clip a `filter: blur()` child to its
   // `overflow-hidden` + `rounded-3xl` parent's corners — the blur's
   // expanded paint bounds leak past the rounded edge as square glow
@@ -335,8 +309,8 @@ function ClassicHomeView({
   };
 
   return (
-    <div className={containerClasses}>
-      <div className={gridClasses}>
+    <div className="space-y-8 animate-fade-in pb-20">
+      <div className="space-y-8">
         {/* Welcome Banner */}
         <div className={bannerClasses} style={roundedClipMaskStyle}>
           <div
@@ -354,11 +328,7 @@ function ClassicHomeView({
               <span>{t("home.banner.badge")}</span>
             </div>
 
-            <h1
-              className={`font-bold mb-2 text-zinc-900 dark:text-white ${
-                isLoungeSkin ? "text-5xl leading-tight" : "text-4xl"
-              }`}
-            >
+            <h1 className="font-bold mb-2 text-zinc-900 dark:text-white text-4xl">
               {t(`home.greeting.${getGreetingKey()}`)}
               {greetingName && `, ${greetingName}`}
             </h1>
@@ -389,13 +359,7 @@ function ClassicHomeView({
         </div>
 
         {/* Stats Cards */}
-        <div
-          className={
-            isLoungeSkin
-              ? "grid grid-cols-2 xl:grid-cols-1 gap-4"
-              : "grid grid-cols-1 md:grid-cols-4 gap-4"
-          }
-        >
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <StatCard
             icon={<Library />}
             accent="emerald"
@@ -502,13 +466,7 @@ function ClassicHomeView({
           backend returns an empty list and skips re-generation in that
           case); the regen button stays available so the section
           re-appears as soon as enough listening data piles up. */}
-      <div
-        className={
-          isLoungeSkin
-            ? "grid grid-cols-1 xl:grid-cols-2 gap-8 items-start"
-            : "space-y-8"
-        }
-      >
+      <div className="space-y-8">
         <section>
           <div className="flex items-end justify-between mb-6">
             <h2 className="text-2xl font-bold inline-block border-b-4 border-violet-500 pb-1 text-zinc-900 dark:text-white">

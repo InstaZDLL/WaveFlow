@@ -36,7 +36,10 @@
      2. chrome by landmark (`aside`, `header`, `footer`, `main`) and by
         the `data-*` marks the views carry;
      3. the `fe-*` classes the Fluid Home, the mood spectrum, the side
-        panel and the player's wave progress mount.
+        panel and the player's wave progress mount — and the structure
+        of the shapes another preset can ask for through its `fluid`
+        field (the tuner, the horizon), so a skin paints them without
+        owning them.
 
    Fluid itself is dark-only, like Lounge and Pulse: `app.css` lists it
    in the extended `dark` variant, the scrollbar rules and the
@@ -629,6 +632,300 @@
   outline: 2px solid var(--fe-accent);
   outline-offset: -2px;
   border-radius: 0.25rem;
+}
+
+/* ── Horizon progress (player): a line of light ────────────── */
+/* `ProgressBar`'s `horizon` variant, for a preset whose
+   `fluid.progress` asks for it (Lounge): the edge's place and slider, a
+   straight line instead of the wave, and under the played part a
+   light that spills down into the bar. Everything moves by transform
+   from one factor (`--fe-progress`, 0–1), so a position tick only
+   recomposites. The spill sits under the bar's content: the footer is
+   its stacking context, the spill at `z-index: -1` inside it. */
+:root[data-layout="fluid"] footer:has(.fe-horizon) {
+  position: relative;
+  isolation: isolate;
+}
+:root[data-layout="fluid"] .fe-horizon__track {
+  position: relative;
+  display: block;
+}
+:root[data-layout="fluid"] .fe-horizon__line,
+:root[data-layout="fluid"] .fe-horizon__fill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  pointer-events: none;
+}
+:root[data-layout="fluid"] .fe-horizon__line {
+  height: 1px;
+  background-color: var(--fe-hairline-strong);
+}
+:root[data-layout="fluid"] .fe-horizon__fill {
+  height: 2px;
+  margin-top: -0.5px;
+  border-radius: 1px;
+  background-color: var(--fe-accent);
+  transform-origin: left center;
+  transform: scaleX(var(--fe-progress, 0));
+}
+:root[data-layout="fluid"] .fe-horizon__spill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  z-index: -1;
+  height: 5.5rem;
+  pointer-events: none;
+  transform-origin: left top;
+  transform: scaleX(var(--fe-progress, 0));
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--fe-accent) 14%, transparent),
+    transparent
+  );
+}
+/* The 4 Hz ticks glide rather than step; a drag follows the hand. */
+:root[data-layout="fluid"] .fe-horizon__fill,
+:root[data-layout="fluid"] .fe-horizon__spill,
+:root[data-layout="fluid"] .fe-horizon__head {
+  transition: transform 250ms linear;
+}
+:root[data-layout="fluid"] .fe-horizon__track[data-seeking] > * {
+  transition: none;
+}
+/* The head travels by its own width: clipped to the track (with room
+   for the thumb at either end), so it never adds scrollable overflow. */
+:root[data-layout="fluid"] .fe-horizon__rail {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: clip;
+  overflow-clip-margin: 0.5rem;
+}
+:root[data-layout="fluid"] .fe-horizon__head {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transform: translateX(calc(var(--fe-progress, 0) * 100%));
+}
+:root[data-layout="fluid"] .fe-horizon__thumb {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 0.625rem;
+  height: 0.625rem;
+  margin: -0.3125rem 0 0 -0.3125rem;
+  border-radius: 9999px;
+  background-color: var(--fe-ink);
+  opacity: 0;
+  transition: opacity 180ms var(--fe-ease);
+}
+:root[data-layout="fluid"] .fe-horizon__track:hover .fe-horizon__thumb,
+:root[data-layout="fluid"] .fe-horizon__track:focus-visible .fe-horizon__thumb,
+:root[data-layout="fluid"] .fe-horizon__track[data-seeking] .fe-horizon__thumb {
+  opacity: 1;
+}
+:root[data-layout="fluid"] .fe-horizon__track:focus-visible {
+  outline: 2px solid var(--fe-accent);
+  outline-offset: 2px;
+  border-radius: 0.25rem;
+}
+
+/* ── Mood tuner: a receiver's dial ─────────────────────────── */
+/* `MoodTuner`, for a preset whose `fluid.moodRadio` is `tuner`
+   (Lounge). The dial: graduations along its top, the five moods as
+   stations in five equal columns under them, a needle on the chosen
+   one; the readout beside it from the two-column tier, under it below.
+   The needle and the stations share the dial's 1 rem inset, so the
+   needle lands on a station's centre. The skin paints the glass. */
+:root[data-layout="fluid"] .fe-tuner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "dial" "ruler" "readout";
+  column-gap: 1.25rem;
+}
+@container (min-width: 43rem) {
+  :root[data-layout="fluid"] .fe-tuner {
+    grid-template-columns: minmax(0, 1fr) 18rem;
+    grid-template-areas: "dial readout" "ruler readout";
+  }
+}
+:root[data-layout="fluid"] .fe-tuner__dial {
+  grid-area: dial;
+  position: relative;
+  height: 8.5rem;
+  border-radius: 1.125rem;
+  overflow: hidden;
+  isolation: isolate;
+  background-color: var(--fe-surface);
+  box-shadow:
+    inset 0 1px 0 var(--fe-edge),
+    inset 0 0 0 1px var(--fe-hairline);
+}
+/* Forty minor graduations, and a major one over each station. */
+:root[data-layout="fluid"] .fe-tuner__scale {
+  position: absolute;
+  left: 1rem;
+  right: 1rem;
+  top: 0.875rem;
+  height: 1.125rem;
+  pointer-events: none;
+  background:
+    linear-gradient(
+        90deg,
+        transparent calc(50% - 0.5px),
+        var(--fe-ink-3) calc(50% - 0.5px) calc(50% + 0.5px),
+        transparent calc(50% + 0.5px)
+      )
+      0 0 / 20% 100% repeat-x,
+    linear-gradient(90deg, var(--fe-hairline-strong) 0 1px, transparent 1px) 0
+      0 / 2.5% 0.5rem repeat-x;
+}
+:root[data-layout="fluid"] .fe-tuner__needle {
+  position: absolute;
+  left: 1rem;
+  right: 1rem;
+  top: 0.5rem;
+  bottom: 2.875rem;
+  z-index: 1;
+  pointer-events: none;
+  transform: translateX(calc(var(--fe-tuner-pos, 0.5) * 100%));
+  transition:
+    transform 620ms var(--fe-ease),
+    opacity 300ms var(--fe-ease);
+}
+:root[data-layout="fluid"] .fe-tuner__needle:not([data-tuned]) {
+  opacity: 0;
+}
+:root[data-layout="fluid"] .fe-tuner__needle::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -1px;
+  width: 2px;
+  border-radius: 1px;
+  background-color: var(--fe-accent);
+}
+:root[data-layout="fluid"] .fe-tuner__stations {
+  position: absolute;
+  inset: 0 1rem;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+:root[data-layout="fluid"] .fe-tuner__station {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 0.375rem 1rem;
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.2;
+  text-align: center;
+  text-wrap: balance;
+  color: var(--fe-ink-3);
+  transition: color 180ms var(--fe-ease);
+}
+:root[data-layout="fluid"] .fe-tuner__station:hover:not(:disabled) {
+  color: var(--fe-ink-2);
+}
+:root[data-layout="fluid"] .fe-tuner__station[data-checked="true"] {
+  color: var(--fe-ink);
+}
+:root[data-layout="fluid"] .fe-tuner__station:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+:root[data-layout="fluid"] .fe-tuner__station:focus-visible {
+  outline: 2px solid var(--fe-accent);
+  outline-offset: -3px;
+}
+:root[data-layout="fluid"] .fe-tuner__ruler {
+  grid-area: ruler;
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 1rem 0;
+}
+:root[data-layout="fluid"] .fe-tuner__readout {
+  grid-area: readout;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 8.5rem;
+  margin-top: 1rem;
+  padding: 1rem 1.125rem;
+  border-radius: 1.125rem;
+  overflow: hidden;
+  background-color: var(--fe-surface);
+  box-shadow:
+    inset 0 1px 0 var(--fe-edge),
+    inset 0 0 0 1px var(--fe-hairline);
+}
+@container (min-width: 43rem) {
+  :root[data-layout="fluid"] .fe-tuner__readout {
+    margin-top: 0;
+    align-self: start;
+    height: 8.5rem;
+  }
+}
+:root[data-layout="fluid"] .fe-tuner__wave {
+  position: absolute;
+  top: 1rem;
+  right: 1.125rem;
+  width: 5.5rem;
+  height: 1.25rem;
+  color: var(--fe-accent);
+}
+:root[data-layout="fluid"] .fe-tuner__title {
+  margin-top: 0.25rem;
+  font-size: 1.25rem;
+  color: var(--fe-ink);
+}
+:root[data-layout="fluid"] .fe-tuner__sub {
+  margin-top: 0.125rem;
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  color: var(--fe-ink-2);
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+:root[data-layout="fluid"] .fe-tuner__foot {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  margin-top: auto;
+}
+:root[data-layout="fluid"] .fe-tuner__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 2rem;
+  padding: 0 0.875rem 0 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--fe-accent-ink);
+  background-color: var(--fe-accent);
+  transition: filter 180ms var(--fe-ease);
+}
+:root[data-layout="fluid"] .fe-tuner__cta:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+:root[data-layout="fluid"] .fe-tuner__cta:disabled {
+  opacity: 0.6;
+}
+:root[data-layout="fluid"] .fe-tuner__cta:focus-visible {
+  outline: 2px solid var(--fe-accent);
+  outline-offset: 2px;
+}
+:root[data-layout="fluid"] .fe-tuner__count {
+  font-size: 0.75rem;
+  color: var(--fe-ink-3);
 }
 
 /* ============================================================
@@ -2340,7 +2637,9 @@
   -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 10' fill='none'><path d='M0.5 5 C 5 0.5, 9 0.5, 13.5 5 S 22 9.5, 26.5 5 S 35 0.5, 39.5 5' stroke='black' stroke-width='1.6' stroke-linecap='round'/></svg>")
     no-repeat center / 100% 100%;
 }
-:root[data-layout="fluid"] [data-drop-target][data-active] [data-drop-title]::after {
+:root[data-layout="fluid"]
+  [data-drop-target][data-active]
+  [data-drop-title]::after {
   opacity: 1;
 }
 :root[data-layout="fluid"] [data-drop-hint] {
@@ -2358,6 +2657,11 @@
   :root[data-layout="fluid"] .fe-spectrum__wave svg {
     animation: none;
   }
+  :root[data-layout="fluid"] .fe-horizon__fill,
+  :root[data-layout="fluid"] .fe-horizon__spill,
+  :root[data-layout="fluid"] .fe-horizon__head,
+  :root[data-layout="fluid"] .fe-tuner__needle,
+  :root[data-layout="fluid"] .fe-tuner__station,
   :root[data-layout="fluid"] .fe-spectrum__seg,
   :root[data-layout="fluid"] .fe-spectrum__detail,
   :root[data-layout="fluid"] .fe-tile,

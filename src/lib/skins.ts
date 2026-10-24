@@ -52,11 +52,28 @@ export interface SkinPreset {
    * on the player plate and its moods are five glass capsules; Pulse
    * keeps Fluid's two shapes and paints them as neon (`pulse.css`);
    * Editorial takes the inline row for its ruler, the band as an
-   * engraving, and opens the Home with its masthead (`editorial.css`).
+   * engraving, and opens the Home with its masthead (`editorial.css`);
+   * Lounge draws the progress as a line of light that fills the player
+   * bar from below (`horizon`), its Mood Radio as a receiver's tuning
+   * dial (`tuner`), and lights the whole window with the record
+   * (`atmosphere: "room"`, `lounge.css`).
    */
   fluid?: {
-    progress: "edge" | "inline";
-    moodRadio: "spectrum" | "capsules";
+    /**
+     * `edge`: the wave along the player bar's top edge. `inline`: the
+     * classic row in the bar's centre column, painted by the skin.
+     * `horizon`: a straight line along the top edge whose played part
+     * spills its light down into the bar (`ProgressBar`'s `horizon`
+     * variant).
+     */
+    progress: "edge" | "inline" | "horizon";
+    /**
+     * `spectrum`: one tempo band. `capsules`: five glass sheets (their
+     * structure lives in `liquid.css`). `tuner`: a tuning dial, the
+     * moods as stations and a needle on the chosen one, with a readout
+     * beside it (`MoodTuner`, structure in `fluid.css`).
+     */
+    moodRadio: "spectrum" | "capsules" | "tuner";
     /**
      * What opens the Home above the listening canvas: the greeting line
      * alone (`line`, the default), or the broadsheet masthead
@@ -65,6 +82,14 @@ export interface SkinPreset {
      * never the skin id.
      */
     greeting?: "line" | "masthead";
+    /**
+     * What lights the window behind everything: the layout's two pools
+     * of the cover's colour (`pools`, the default, `body::before` in
+     * `fluid.css`), or the playing record itself, blurred to a colour
+     * field over the whole window (`room`, `SkinAmbientBackdrop`).
+     * `SkinAmbientBackdrop` reads this, never the skin id.
+     */
+    atmosphere?: "pools" | "room";
   };
   /** i18n key suffix, e.g. `appearance.skins.editorial.label`. */
   labelKey: string;
@@ -336,53 +361,50 @@ export const SKIN_PRESETS: SkinPreset[] = [
   },
   {
     id: "lounge",
-    layout: "classic",
+    // The 2.0 interface, as a listening room: the record lights the
+    // whole window (`atmosphere: "room"`), the progress is a line of
+    // light filling the bar from below, Mood Radio a tuning dial.
+    // `lounge.css` is the material over `fluid.css`; the direction is
+    // written in `docs/design/lounge-listening-room.md`.
+    layout: "fluid",
+    fluid: { progress: "horizon", moodRadio: "tuner", atmosphere: "room" },
     labelKey: "settings.appearance.skins.lounge.label",
     descriptionKey: "settings.appearance.skins.lounge.description",
     density: {
-      // The hero of Lounge is breathing room — everything sits
-      // further apart so the cover-art backdrop has space to
-      // breathe through panels.
-      navRow: 1.45,
-      topBar: 1.4,
-      listRow: 1.3,
-      cardPad: 1.5,
+      // A touch more air than Fluid around the music; lists stay
+      // close to it, the room is not a reason to scroll further.
+      navRow: 1.15,
+      topBar: 1.05,
+      listRow: 1.1,
+      cardPad: 1.35,
     },
     radius: {
-      // Soft, rounded pill-card territory. The radii reinforce
-      // the "ambient hi-fi" mood — nothing sharp.
-      card: "1.5rem",
-      button: "1.5rem",
-      input: "1rem",
+      // Soft, rounded — nothing sharp in a lounge.
+      card: "1.25rem",
+      button: "9999px",
+      input: "0.875rem",
       pill: "9999px",
     },
     surface: {
-      // No flat shadows — glass diffuses light differently. The
-      // illusion comes from the backdrop blur + a very subtle
-      // inner-rim highlight via the elevated shadow.
-      shadowCard: "0 8px 32px -8px rgb(0 0 0 / 0.18)",
+      // Smoked glass: a warm top light and a long, soft, dark drop.
+      shadowCard:
+        "inset 0 1px 0 rgb(255 214 225 / 0.06), 0 18px 44px -24px rgb(8 0 4 / 0.85)",
       shadowElevated:
-        "inset 0 1px 0 rgb(255 255 255 / 0.15), 0 12px 48px -12px rgb(0 0 0 / 0.35)",
-      // Aggressive backdrop blur paints the glass-panel illusion
-      // over whatever lives behind (the SkinAmbientBackdrop
-      // component renders the current track's cover at full
-      // viewport scale, blurred + dimmed).
-      backdrop: "blur(28px) saturate(130%)",
-      // Translucent ink-light divider so hairlines don't fight
-      // the glass surfaces.
-      divider: "rgb(255 255 255 / 0.10)",
+        "inset 0 1px 0 rgb(255 214 225 / 0.09), 0 28px 60px -28px rgb(8 0 4 / 0.9)",
+      // No backdrop blur on the chrome: the room behind it is already
+      // a blurred colour field, so blurring it again buys nothing.
+      backdrop: "none",
+      divider: "rgb(255 156 188 / 0.14)",
       grain: "",
     },
     typography: {
-      // Stay on the sans-serif baseline (Inter) — the skin's
-      // personality is in the surface material, not the type.
-      // Heavier display weight + tighter tracking lands the
-      // "premium hi-fi" feel.
+      // The structure's DM Sans, set lighter: the lounge voice is
+      // quiet. The greeting keeps the layout's serif italic.
       display:
-        '"Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-      body: '"Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-      headingWeight: 500,
-      displayTracking: "-0.02em",
+        '"DM Sans Variable", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+      body: '"DM Sans Variable", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+      headingWeight: 460,
+      displayTracking: "-0.03em",
     },
     motion: {
       // Slow + smooth — every transition feels like a fade-in.

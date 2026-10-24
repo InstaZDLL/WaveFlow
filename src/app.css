@@ -234,10 +234,6 @@
   box-shadow: none !important;
 }
 
-:root[data-skin="lounge"] {
-  --track-row-hover: rgb(255 45 121 / 0.12);
-}
-
 :root[data-layout="fluid"] {
   --track-row-hover: var(--fe-tone-1);
 }
@@ -252,8 +248,8 @@
 }
 
 /* Override substring-based surface rules only for unselected, idle rows.
-   Every skin on the fluid layout, and Lounge. */
-:root:is([data-layout="fluid"], [data-skin="lounge"])
+   Every skin on the fluid layout. */
+:root[data-layout="fluid"]
   [data-track-table]
   [data-track-row]:not([class*="bg-blue-500"]):not(
     [class*="bg-emerald-50"]
@@ -261,9 +257,7 @@
   background-color: var(--track-row-hover) !important;
 }
 
-:root:is([data-layout="fluid"], [data-skin="lounge"])
-  [data-playlist-card]
-  [data-playlist-caption] {
+:root[data-layout="fluid"] [data-playlist-card] [data-playlist-caption] {
   padding: 0 0.875rem 0.875rem;
 }
 
@@ -410,18 +404,18 @@
    them keeps each skin's intent self-contained and avoids the
    specificity / substring-collision dance that made earlier
    iterations fragile. */
-@import "./styles/skins/lounge.css";
 @import "./styles/skins/fluid.css";
-/* Liquid, Pulse and Editorial paint their material over the fluid
-   layout, so they come after it. */
+/* Liquid, Pulse, Editorial and Lounge paint their material over the
+   fluid layout, so they come after it. */
 @import "./styles/skins/liquid.css";
 @import "./styles/skins/pulse.css";
 @import "./styles/skins/editorial.css";
+@import "./styles/skins/lounge.css";
 
 /* The desktop lyrics window (#582) is transparent at the OS level, and
    the document has to be too, or it paints an opaque box over the
    desktop. `index.html` stamps `data-skin` in every window, and the
-   skins above paint `body` from it (`:root[data-skin="lounge"] body`),
+   skins above paint `body` from it (`:root[data-layout="fluid"] body`),
    so this has to outrank them. `main.tsx` adds the class before the
    first render, so there is no opaque first frame either. */
 html.desktop-lyrics-window,
@@ -945,12 +939,6 @@ html.mini-player-window #root {
   ),
 :root[data-webkitgtk-safe][data-skin="liquid"].dark {
   --wf-contrast-surface: var(--color-surface-dark);
-}
-
-/* Same specificity as the Linux light fallback above; keep Lounge's
-   burgundy surfaces instead of painting white chrome on a dark skin. */
-:root[data-webkitgtk-safe][data-skin="lounge"] {
-  --wf-contrast-surface: rgb(12 6 11);
 }
 
 :root[data-contrast="high"] .wf-glass,

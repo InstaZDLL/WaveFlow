@@ -1,92 +1,170 @@
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { usePlayer } from "../../hooks/usePlayer";
 import { useSkin } from "../../hooks/useSkin";
 
 /**
- * Fullscreen ambient backdrop — reads the currently playing
- * track's cover art and paints it as a blurred, dimmed
- * background behind the entire app layout. Only renders when
- * the active skin opts into the ambient layer (Lounge); other
- * skins return `null` so they pay zero render cost.
+ * The room — the playing record's cover, blurred to a colour field over
+ * the whole window, behind everything. Mounted only when the active
+ * skin's preset asks for it (`fluid.atmosphere: "room"`, Lounge); every
+ * other skin returns `null` and pays nothing.
  *
- * Cross-fade strategy: each cover URL renders inside an
- * element that's `key`ed by URL, so React mounts a new element
- * (and unmounts the old) on every cover change. The fresh
- * element runs a CSS keyframe (`loungeBackdropFadeIn` in
- * `app.css`) to fade up over the active skin's motion
- * duration. No state machine needed — React's reconciliation
- * does the cross-fade for free.
+ * The blur is computed once per record, not once per frame: the cover is
+ * drawn into a small canvas (160 px wide) through the 2D context's own
+ * `filter`, and the canvas is stretched to the window. Upscaling a field
+ * that is already blurred loses nothing, and the compositor then moves a
+ * static texture instead of re-running a 140 px blur over the whole
+ * window under every frame of a scroll (the 1.x Lounge did, as a CSS
+ * filter on a full-window element). An engine without `ctx.filter`
+ * draws the cover unfiltered and the CSS filter does the blur instead —
+ * the old cost, on the old engines only.
  *
- * Mounted as a sibling at the AppLayout root with
- * `position: fixed` + `z-index: -10` so it tracks the viewport
- * and never re-flows; the rest of the UI floats above without
- * needing to re-paint the backdrop.
+ * Cross-fade: each record's canvas is `key`ed by its URL and fades in
+ * over the previous one, which stays underneath until the next record
+ * replaces it; under reduced motion the swap is a cut. The layer is
+ * `position: fixed` behind the app (`-z-10`), so nothing re-flows it.
+ * The tint over it — what keeps a pale sleeve from lighting the room
+ * white — is the skin's (`.skin-room::after` in `lounge.css`).
+ *
+ * Off under the WebKitGTK safeguard: the skin's static gradient stands
+ * in for the room there.
  */
 export function SkinAmbientBackdrop() {
   const { skin } = useSkin();
   const { currentTrack } = usePlayer();
 
-  // The fullscreen 140px blur is especially costly in WebKitGTK. The
-  // Linux skin safeguard uses Lounge's static body gradient instead.
   const enabled =
-    skin.id === "lounge" &&
+    skin.layout === "fluid" &&
+    skin.fluid?.atmosphere === "room" &&
     !document.documentElement.hasAttribute("data-webkitgtk-safe");
+
+  const artworkPath = enabled ? (currentTrack?.artwork_path ?? null) : null;
+  // Tauri's asset protocol — the path lives under the per-profile data
+  // dir and isn't a regular http URL.
+  const src = artworkPath ? convertFileSrc(artworkPath) : null;
+  const layers = useRoomLayers(src);
+
   if (!enabled) return null;
 
-  const artworkPath = currentTrack?.artwork_path ?? null;
-  // Tauri's asset protocol — the path lives under the
-  // per-profile data dir and isn't a regular http URL.
-  const resolved = artworkPath ? convertFileSrc(artworkPath) : null;
-
-  // Respect the OS-level reduced-motion preference (WCAG 2.3.3).
-  // The check is synchronous + non-reactive: the media query is
-  // sampled once per render, and switching the preference is
-  // rare enough that we don't need a `useEffect` + listener
-  // dance for the next cover swap to pick it up. `matchMedia`
-  // is missing in SSR/non-browser hosts (tests) — guard with
-  // `typeof`.
+  // Respect the OS-level reduced-motion preference (WCAG 2.3.3), sampled
+  // once per render: switching the preference is rare enough that the
+  // next cover swap picking it up is fine. `matchMedia` is missing in
+  // non-browser hosts (tests) — guard with `typeof`.
   const reduceMotion =
     typeof window !== "undefined" &&
     typeof window.matchMedia === "function" &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const visible = src ? layers : [];
 
   return (
     <div
       aria-hidden="true"
-      className="fixed inset-0 -z-10 overflow-hidden pointer-events-none bg-black"
+      className="skin-room fixed inset-0 -z-10 overflow-hidden pointer-events-none"
+      data-lit={visible.length > 0 || undefined}
     >
-      {resolved && (
-        <div
-          key={resolved}
-          className="absolute inset-0 bg-center bg-cover"
-          style={{
-            backgroundImage: `url("${resolved}")`,
-            // Pure colour-field treatment: blur high enough
-            // (140px) that no image structure survives — just
-            // smooth fields of the cover's dominant hues. The
-            // saturate(280%) pumps those hues; brightness is
-            // left at 1.0 because >1.0 clips highlights into
-            // washed-out cream that reads as gray. Detail
-            // belongs on the album thumbnail in the player
-            // bar; the backdrop's job is mood, not photo.
-            filter: "blur(140px) saturate(280%)",
-            transform: "scale(1.6)",
-            // Skip the cross-fade keyframe when the user opted
-            // out of motion — the cover swap becomes an instant
-            // cut, which is the conventional reduced-motion
-            // affordance.
-            animation: reduceMotion
-              ? undefined
-              : `loungeBackdropFadeIn ${skin.motion.duration}s ${skin.motion.ease} forwards`,
-          }}
+      {visible.map((layer, i) => (
+        <RoomLayer
+          key={layer.src}
+          image={layer.image}
+          animation={
+            i > 0 && !reduceMotion
+              ? `fe-fade-in ${skin.motion.duration * 2}s ${skin.motion.ease} both`
+              : undefined
+          }
         />
-      )}
-      {/* Featherweight vignette — only darkens the very top +
-          bottom edges where the chrome (header + footer) sit,
-          so their text stays legible. The body section in the
-          middle stays untouched so the cover's colour can
-          dominate. */}
-      <div className="absolute inset-0 bg-linear-to-b from-black/0 via-transparent to-black/5" />
+      ))}
     </div>
+  );
+}
+
+interface RoomImage {
+  src: string;
+  image: HTMLImageElement;
+}
+
+/** The decoded covers on screen: the current one last, the one it fades
+ *  over before it. A cover that fails to load leaves the previous light. */
+function useRoomLayers(src: string | null): RoomImage[] {
+  const [layers, setLayers] = useState<RoomImage[]>([]);
+  useEffect(() => {
+    if (!src) return;
+    let cancelled = false;
+    const image = new Image();
+    image.decoding = "async";
+    image.onload = () => {
+      if (cancelled) return;
+      setLayers((prev) => [
+        ...prev.filter((l) => l.src !== src).slice(-1),
+        { src, image },
+      ]);
+    };
+    image.src = src;
+    return () => {
+      cancelled = true;
+    };
+  }, [src]);
+  return layers;
+}
+
+/** Width of the canvas the cover is blurred into; the height follows the
+ *  window's aspect. Small on purpose: the field has no detail to keep. */
+const ROOM_WIDTH = 160;
+
+let canvasFilter: boolean | null = null;
+function supportsCanvasFilter(): boolean {
+  if (canvasFilter == null) {
+    const ctx = document.createElement("canvas").getContext("2d");
+    canvasFilter = ctx != null && "filter" in ctx;
+  }
+  return canvasFilter;
+}
+
+function RoomLayer({
+  image,
+  animation,
+}: {
+  image: HTMLImageElement;
+  animation: string | undefined;
+}) {
+  const ref = useRef<HTMLCanvasElement | null>(null);
+  const filtered = supportsCanvasFilter();
+
+  useLayoutEffect(() => {
+    const canvas = ref.current;
+    const ctx = canvas?.getContext("2d");
+    if (!canvas || !ctx || image.naturalWidth === 0) return;
+    const w = ROOM_WIDTH;
+    const h = Math.max(
+      1,
+      Math.round((w * window.innerHeight) / window.innerWidth),
+    );
+    canvas.width = w;
+    canvas.height = h;
+    // Cover-fit, then 1.6× past the edges, as the 1.x backdrop did: the
+    // blur pulls the middle of the sleeve out to the window's corners.
+    const scale =
+      Math.max(w / image.naturalWidth, h / image.naturalHeight) * 1.6;
+    const dw = image.naturalWidth * scale;
+    const dh = image.naturalHeight * scale;
+    // 140 px on a 1600 px window, in the canvas's own pixels; saturation
+    // pumps the sleeve's hues so the room takes its colour, not its grey,
+    // and the darkening keeps a white sleeve from lighting it white.
+    if (filtered)
+      ctx.filter = `blur(${Math.round(w * 0.085)}px) saturate(2.6) brightness(0.62)`;
+    ctx.drawImage(image, (w - dw) / 2, (h - dh) / 2, dw, dh);
+  }, [image, filtered]);
+
+  return (
+    <canvas
+      ref={ref}
+      className="absolute inset-0 h-full w-full"
+      style={{
+        filter: filtered
+          ? undefined
+          : "blur(140px) saturate(260%) brightness(0.62)",
+        transform: filtered ? undefined : "scale(1.1)",
+        animation,
+      }}
+    />
   );
 }
