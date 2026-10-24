@@ -93,7 +93,12 @@ pub fn album_completeness(tracks: &[NumberedTrack]) -> AlbumCompleteness {
     let mut discs: BTreeMap<i64, Disc> = BTreeMap::new();
     let mut disc_total: Option<i64> = None;
     for track in tracks {
-        let disc_no = track.disc_number.filter(|d| *d > 0).unwrap_or(1);
+        // Out of range reads as no disc number: a tag can claim disc
+        // four billion, and the missing-disc range below must stay small.
+        let disc_no = track
+            .disc_number
+            .filter(|d| (1..=MAX_POSITION).contains(d))
+            .unwrap_or(1);
         let disc = discs.entry(disc_no).or_default();
         match track
             .track_number
@@ -156,9 +161,11 @@ pub fn album_completeness(tracks: &[NumberedTrack]) -> AlbumCompleteness {
     let present: BTreeSet<i64> = discs.keys().copied().collect();
     if let (true, Some(&highest)) = (judgeable, present.last()) {
         let end = disc_total.map_or(highest, |t| t.max(highest));
-        let missing: Vec<i64> = (1..=end).filter(|d| !present.contains(d)).collect();
-        if missing.len() <= present.len() {
-            out.missing_discs = missing;
+        // Counted before anything is collected: every present disc lies
+        // in 1..=end, so this is exactly how many are missing.
+        let missing_count = end as usize - present.len();
+        if missing_count <= present.len() {
+            out.missing_discs = (1..=end).filter(|d| !present.contains(d)).collect();
         }
     }
     out
@@ -303,6 +310,17 @@ mod tests {
     #[test]
     fn a_total_below_the_numbers_is_not_trusted() {
         let album: Vec<_> = (1..=12).map(|n| of_total(None, n, 10)).collect();
+        assert!(album_completeness(&album).is_complete());
+    }
+
+    /// A disc number no release has — the range of missing discs would
+    /// otherwise run to it.
+    #[test]
+    fn an_absurd_disc_number_reads_as_none() {
+        let album = [
+            t(Some(4_000_000_000), Some(1)),
+            t(Some(4_000_000_000), Some(2)),
+        ];
         assert!(album_completeness(&album).is_complete());
     }
 
