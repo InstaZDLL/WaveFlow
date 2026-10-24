@@ -585,6 +585,135 @@ function lineEndMs(line: LyricsLine): number {
 /** Backwards-compatible alias used across the panel + fullscreen views. */
 export type LrcLine = LyricsLine;
 
+/**
+ * Scripts written without spaces between words: Han ideographs (with
+ * their radicals and extensions), kana, CJK symbols and punctuation, and
+ * the full- and half-width forms. Hangul is not among them — Korean puts
+ * a space between its words.
+ */
+const UNSPACED_SCRIPT =
+  /[\u2e80-\u2fdf\u3000-\u30ff\u31f0-\u31ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\ufe30-\ufe4f\uff00-\uffef\u{20000}-\u{3134f}]/u;
+
+/** Punctuation written against the word before it: `,` `.` `!` `)` `\u00bb`\u2026 */
+const CLOSING_PUNCTUATION = /[\p{Pe}\p{Pf},.!?;:%\u2026]/u;
+
+/** Punctuation written against the word after it: `(` `\u00ab` `\u00bf`\u2026 */
+const OPENING_PUNCTUATION = /[\p{Ps}\p{Pi}\u00bf\u00a1]/u;
+
+/**
+ * Whitespace that collapses when drawn: an ordinary space, a tab, a line
+ * break. A wide or non-breaking space (U+3000, U+00A0) does not: it is
+ * part of the text it sits in, drawn at its own width inside the word.
+ */
+const COLLAPSIBLE_SPACE = /[ \t\n\r]/u;
+
+/**
+ * A gap between two words that have something to show, with what lies in
+ * it: the last character of the first, the first of the second, and any
+ * words of nothing but spaces between them. A word of spaces is never a
+ * word of its own: before the first word or after the last (a stamp
+ * closing the line) it borders no gap.
+ */
+interface WordGap {
+  /** The word before the gap. */
+  from: number;
+  /** The word after it. */
+  to: number;
+  edges: string;
+}
+
+function wordGaps(words: readonly LyricsWord[]): WordGap[] {
+  const gaps: WordGap[] = [];
+  let previous = -1;
+  words.forEach((word, i) => {
+    if (word.text.trim() === "") return;
+    if (previous >= 0) {
+      const between = words
+        .slice(previous + 1, i)
+        .map((w) => w.text)
+        .join("");
+      gaps.push({
+        from: previous,
+        to: i,
+        edges: `${words[previous].text.slice(-1)}${between}${word.text.slice(0, 1)}`,
+      });
+    }
+    previous = i;
+  });
+  return gaps;
+}
+
+/**
+ * What goes between each timed word and the next, for every surface that
+ * draws a line word by word — `""` or `" "`, one entry per word. {@link
+ * joinWords} builds a line's text from the same rule, so a line reads the
+ * same whether it is drawn word by word (the line being sung) or as text
+ * (every other line).
+ *
+ * The source decides. Two words with an ordinary space between them —
+ * at the end of the first, the start of the second, or in a word of
+ * nothing but spaces between them — are separated by one space: that is
+ * how a TTML document's whitespace between spans arrives (indentation
+ * collapses to one space), and how Enhanced LRC writes `Hello <…>world`.
+ * The separator goes just before the second word, after any word of
+ * spaces, which draws as an empty box, so the gap stays one space. A wide
+ * or non-breaking space is already drawn inside its word, so it gets no
+ * second one. Two words with nothing between them are one word sung in
+ * parts (`Hel` + `lo`) or two characters of a script that does not space
+ * its words, and stay joined. The one source that leaves its spaces out,
+ * Enhanced LRC, has them filled in when it is parsed
+ * ({@link spaceUnspacedLine}).
+ */
+export function wordSeparators(words: readonly LyricsWord[]): string[] {
+  const separators = words.map(() => "");
+  for (const gap of wordGaps(words)) {
+    if (COLLAPSIBLE_SPACE.test(gap.edges)) separators[gap.to - 1] = " ";
+  }
+  return separators;
+}
+
+/**
+ * Give an Enhanced LRC line the spaces its source left out, in the words
+ * themselves, so every reader of them sees the same thing.
+ *
+ * Some Enhanced LRC sources write `<…>Hello<…>world`, with no space
+ * anywhere in the line; a Chinese or Japanese line timed per character
+ * has none either, and wants none. A line with any space between its
+ * words has said where they go and is left as it is. Only a line with
+ * none is spaced by script: a space between two words, except where
+ * either side is Han or kana, which are not spaced in writing, and
+ * around punctuation timed as a word of its own, which sticks to its
+ * neighbour (`Hello` + `,` + `world` is `Hello, world`). TTML is never
+ * guessed at: a document writes the whitespace between its spans, so two
+ * spans with none between them are one word (`Hel` + `lo`).
+ */
+function spaceUnspacedLine(words: LyricsWord[]): void {
+  const gaps = wordGaps(words);
+  if (gaps.some((gap) => /\s/u.test(gap.edges))) return;
+  for (const gap of gaps) {
+    const before = Array.from(words[gap.from].text).pop() ?? "";
+    const after = Array.from(words[gap.to].text)[0] ?? "";
+    if (
+      !UNSPACED_SCRIPT.test(before) &&
+      !UNSPACED_SCRIPT.test(after) &&
+      !OPENING_PUNCTUATION.test(before) &&
+      !CLOSING_PUNCTUATION.test(after)
+    ) {
+      words[gap.from].text += " ";
+    }
+  }
+}
+
+/** A word-timed line's text, spaced by {@link wordSeparators}. */
+export function joinWords(words: readonly LyricsWord[]): string {
+  const separators = wordSeparators(words);
+  return words
+    .map((word, i) => word.text + separators[i])
+    .join("")
+    .replace(/[ \t\n\r]+/gu, " ")
+    .trim();
+}
+
 const LRC_LINE_STAMP_RE = /\[(\d{1,3}):(\d{1,2})(?:[.:](\d{1,3}))?\]/g;
 const LRC_WORD_STAMP_RE = /<(\d{1,3}):(\d{1,2})(?:[.:](\d{1,3}))?>/g;
 
@@ -700,10 +829,8 @@ export function parseEnhancedLrc(content: string): LyricsLine[] {
     // Drop trailing empty segments without timing (artefact of a
     // trailing space after the last stamp).
     const words = built.filter((w) => w.text.length > 0 || w.timeMs >= 0);
-    const text = words
-      .map((w) => w.text)
-      .join("")
-      .trim();
+    spaceUnspacedLine(words);
+    const text = joinWords(words);
 
     // Deep-clone the words array per line entry so `fillEndTimestamps`
     // can mutate each independently. For prefix-bearing lines, the
@@ -805,12 +932,14 @@ function ttmlWords(el: Element): LyricsWord[] | undefined {
     // replaced by a fixed space: the usual case is XML indentation,
     // which collapses to exactly that anyway, but a document that puts
     // punctuation between the spans instead of inside them would
-    // otherwise lose it.
-    const raw = (child.textContent ?? "").replace(/\s+/g, " ");
+    // otherwise lose it. Only XML's own whitespace collapses: a wide
+    // (U+3000) or no-break space is a character of the line and keeps
+    // its width.
+    const raw = (child.textContent ?? "").replace(/[ \t\n\r]+/g, " ");
     const next = child.nextSibling;
     const trailing =
       next?.nodeType === Node.TEXT_NODE
-        ? (next.textContent ?? "").replace(/\s+/g, " ")
+        ? (next.textContent ?? "").replace(/[ \t\n\r]+/g, " ")
         : "";
     words.push({
       timeMs: begin,
@@ -924,10 +1053,7 @@ function readTtmlLocalizations(doc: Document): ParsedLocalizations {
       // such a document.
       const words = ttmlWords(entry);
       const text = words
-        ? words
-            .map((word) => word.text)
-            .join("")
-            .trim()
+        ? joinWords(words)
         : (entry.textContent ?? "").replace(/\s+/g, " ").trim();
       if (text && !romanizationByKey.has(key)) {
         romanizationByKey.set(key, { text, words });
@@ -1031,33 +1157,26 @@ function ttmlBackground(spans: Element[]): LyricsReading | undefined {
   let text: string;
   if (timed) {
     // Every word timed: they are sorted themselves, since two spans can
-    // overlap, and the active-word lookup walks them in time order. The
-    // text is written from that same list, with a space where one span
-    // hands over to another.
+    // overlap, and the active-word lookup walks them in time order. Where
+    // one span hands over to another, the word before the handover takes
+    // a trailing space: two parts are never one word, and a word that
+    // carries its space is drawn spaced everywhere (`wordSeparators`).
     const tagged = parts
       .flatMap((part, span) => part.words!.map((word) => ({ word, span })))
       .sort((a, b) => a.word.timeMs - b.word.timeMs);
+    tagged.forEach((entry, i) => {
+      const next = tagged[i + 1];
+      if (next && next.span !== entry.span && !/\s$/.test(entry.word.text)) {
+        entry.word.text += " ";
+      }
+    });
     words = tagged.map((entry) => entry.word);
-    text = tagged
-      .map((entry, i) => {
-        const previous = tagged[i - 1];
-        const joins =
-          previous &&
-          previous.span !== entry.span &&
-          !/\s$/.test(previous.word.text);
-        return (joins ? " " : "") + entry.word.text;
-      })
-      .join("")
-      .replace(/\s+/g, " ")
-      .trim();
+    text = joinWords(words);
   } else {
     text = parts
       .map((part) =>
         part.words
-          ? part.words
-              .map((word) => word.text)
-              .join("")
-              .trim()
+          ? joinWords(part.words)
           : (part.span.textContent ?? "").replace(/\s+/g, " ").trim(),
       )
       .filter(Boolean)
@@ -1179,12 +1298,7 @@ export function parseTtml(content: string): LyricsLine[] {
     const words = ttmlWords(p);
     const backgroundSpans = Array.from(p.children).filter(isBackgroundSpan);
     const text =
-      words !== undefined
-        ? words
-            .map((w) => w.text)
-            .join("")
-            .trim()
-        : textOutside(p, backgroundSpans);
+      words !== undefined ? joinWords(words) : textOutside(p, backgroundSpans);
     const background =
       backgroundSpans.length > 0 ? ttmlBackground(backgroundSpans) : undefined;
 

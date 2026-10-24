@@ -65,6 +65,7 @@ import { useAlbumMotionArtwork } from "../../hooks/useAlbumMotionArtwork";
 import { resolveArtwork } from "../../lib/tauri/artwork";
 import { dominantColor, darken, rgb } from "../../lib/dominantColor";
 import { formatDuration } from "../../lib/tauri/track";
+import { wordSeparators } from "../../lib/tauri/lyrics";
 import {
   setMiniPlayerBounds,
   syncWebviewMemory,
@@ -1124,6 +1125,7 @@ function MiniLyricsStage({ artworkUrl }: { artworkUrl: string | null }) {
               const lineFillRef = isOverlap ? overlapFillRef : wordFillRef;
               const lineColor = isOverlap ? overlapColor : highlightColor;
               const hasWords = isActive && (line.words?.length ?? 0) > 0;
+              const separators = hasWords ? wordSeparators(line.words!) : [];
               return (
                 <Fragment key={`${line.timeMs}-${index}`}>
                   <li
@@ -1149,9 +1151,10 @@ function MiniLyricsStage({ artworkUrl }: { artworkUrl: string | null }) {
                         <span>
                           {line.words!.map((word, wi) => {
                             const isActiveWord = wi === lineWordIndex;
-                            // A literal space between boxes: `inline-block`
-                            // strips the JSX whitespace, and many Enhanced
-                            // LRC sources omit spaces between word stamps.
+                            // The gap between boxes is a text node outside
+                            // them (`inline-block` drops its own trailing
+                            // space): the one the source has, a space or
+                            // nothing — see `wordSeparators`.
                             return (
                               <Fragment key={wi}>
                                 <span className="karaoke-word">
@@ -1186,7 +1189,7 @@ function MiniLyricsStage({ artworkUrl }: { artworkUrl: string | null }) {
                                     </span>
                                   )}
                                 </span>
-                                {wi < line.words!.length - 1 && " "}
+                                {separators[wi]}
                               </Fragment>
                             );
                           })}

@@ -18,11 +18,12 @@ import type { LyricsLine, LyricsWord } from "./tauri/lyrics";
  * - **A pause after punctuation.** A comma or a full stop is where a
  *   singer breathes; the pause is dead time between two words, not time
  *   one of them holds.
- * - **Whole phrases for scripts without spaces.** Every lyric view puts a
- *   space between two words, so splitting a Chinese or Japanese line per
- *   character would write spaces into it. Those lines step through their
- *   space-separated phrases instead, weighted one syllable per character;
- *   Korean keeps its spaces, one syllable per block.
+ * - **Whole phrases for scripts without spaces.** A Chinese or Japanese
+ *   line steps through its space-separated phrases rather than its
+ *   characters, weighted one syllable per character; Korean keeps its
+ *   spaces, one syllable per block. Each unit but the last keeps the
+ *   whitespace that followed it in the line, so the views draw the line
+ *   spaced as it is written (`wordSeparators`).
  * - **The sung span is capped.** A line followed by a long instrumental
  *   is not sung across the whole gap until the next line; the estimate
  *   ends where a plausible delivery would.
@@ -60,9 +61,12 @@ const HANGUL = /[\uac00-\ud7af]/gu;
 const VOWEL_GROUPS =
   /[aeiouyàáâãäåæèéêëìíîïòóôõöøœùúûüýÿаеёиоуыэюяіїєαεηιουωάέήίόύώ]+/giu;
 
-/** Split a line into the units the highlight steps through. */
+/**
+ * Split a line into the units the highlight steps through, each with the
+ * whitespace that follows it in the line (a wide space stays wide).
+ */
 function tokenize(text: string): string[] {
-  return text.split(/\s+/u).filter(Boolean);
+  return text.match(/\S+\s*/gu) ?? [];
 }
 
 /** How many syllables a unit is sung over — at least one. */
@@ -96,9 +100,9 @@ export function estimateLineWords(
   const units = tokenize(line.text);
   if (units.length === 0) return [];
 
-  const weights = units.map(syllables);
+  const weights = units.map((u) => syllables(u.trim()));
   const pauses = units.map((u, i) =>
-    i < units.length - 1 ? pauseAfter(u) : 0,
+    i < units.length - 1 ? pauseAfter(u.trim()) : 0,
   );
   const total =
     weights.reduce((a, b) => a + b, 0) + pauses.reduce((a, b) => a + b, 0);
@@ -131,7 +135,7 @@ export function estimateLineWords(
     const word: LyricsWord = {
       timeMs: Math.round(cursor),
       endMs: Math.round(end),
-      text,
+      text: last ? text.trimEnd() : text,
     };
     if (last && sungEnd < end) word.fillEndMs = Math.round(sungEnd);
     words.push(word);

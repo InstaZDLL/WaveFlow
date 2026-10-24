@@ -25,7 +25,7 @@ import {
   closeDesktopLyrics,
   setDesktopLyricsBounds,
 } from "../../lib/tauri/desktopLyrics";
-import type { LyricsLine } from "../../lib/tauri/lyrics";
+import { type LyricsLine, wordSeparators } from "../../lib/tauri/lyrics";
 
 /** The API declares this type but does not export it. */
 type ResizeDirection = Parameters<
@@ -447,6 +447,7 @@ function renderLine(
   wordFillRef: (el: HTMLElement | null) => void,
 ) {
   if (!line.words || line.words.length === 0) return line.text || " ";
+  const separators = wordSeparators(line.words);
   return line.words.map((word, wi) => {
     const sung = wi < activeWordIndex;
     const active = wi === activeWordIndex;
@@ -467,7 +468,7 @@ function renderLine(
             </span>
           )}
         </span>
-        {wi < line.words!.length - 1 && " "}
+        {separators[wi]}
       </Fragment>
     );
   });

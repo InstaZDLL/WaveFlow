@@ -415,24 +415,33 @@ async fn richsync(
         // Safe to expect: `validate_rows` already proved every row
         // has a finite non-negative `ts`.
         let ts = row.get("ts").and_then(Value::as_f64).expect("validated");
-        out.push_str(&format!("[{}] ", utils::format_time(ts)));
-        if let Some(letters) = row["l"].as_array() {
-            for letter in letters {
-                let offset = letter
-                    .get("o")
-                    .and_then(Value::as_f64)
-                    .filter(|f| f.is_finite() && *f >= 0.0)
-                    .unwrap_or(0.0);
-                let c = letter["c"].as_str().unwrap_or_default();
-                out.push_str(&format!("<{}> {} ", utils::format_time(ts + offset), c));
-            }
-        }
+        out.push_str(&richsync_line(ts, row["l"].as_array().map(Vec::as_slice)));
         out.push('\n');
     }
     Ok((!out.trim().is_empty()).then_some(Candidate {
         synced: Some(out),
         unsynced: None,
     }))
+}
+
+/// One richsync row as an Enhanced LRC line: the row's stamp, then each
+/// segment of `l` behind its own stamp, written exactly as Musixmatch
+/// cuts it. The spaces between words are segments of their own, so a
+/// segment is never padded: padding read as the document's own spacing,
+/// and a line cut per character (Chinese, Japanese) was drawn one
+/// character per word.
+fn richsync_line(ts: f64, segments: Option<&[Value]>) -> String {
+    let mut line = format!("[{}]", utils::format_time(ts));
+    for segment in segments.unwrap_or_default() {
+        let offset = segment
+            .get("o")
+            .and_then(Value::as_f64)
+            .filter(|f| f.is_finite() && *f >= 0.0)
+            .unwrap_or(0.0);
+        let c = segment["c"].as_str().unwrap_or_default();
+        line.push_str(&format!("<{}>{}", utils::format_time(ts + offset), c));
+    }
+    line
 }
 
 fn timestamp_ms() -> String {
@@ -451,8 +460,30 @@ mod richsync_tests {
     //! against a single source of truth — when the production path
     //! evolves, the tests follow automatically.
 
-    use super::validate_rows;
+    use super::{richsync_line, validate_rows};
     use serde_json::json;
+
+    #[test]
+    fn segments_are_written_unpadded() {
+        // Invented text. The space between two words is a segment of its
+        // own; nothing is added around a segment.
+        let words = [
+            json!({"c": "Hel", "o": 0.0}),
+            json!({"c": "lo", "o": 0.25}),
+            json!({"c": " ", "o": 0.5}),
+            json!({"c": "you", "o": 0.5}),
+        ];
+        assert_eq!(
+            richsync_line(1.0, Some(&words)),
+            "[00:01.00]<00:01.00>Hel<00:01.25>lo<00:01.50> <00:01.50>you"
+        );
+        let characters = [json!({"c": "一", "o": 0.0}), json!({"c": "二", "o": 0.4})];
+        assert_eq!(
+            richsync_line(2.0, Some(&characters)),
+            "[00:02.00]<00:02.00>一<00:02.40>二"
+        );
+        assert_eq!(richsync_line(3.0, None), "[00:03.00]");
+    }
 
     #[test]
     fn rejects_all_zero_timestamps() {
