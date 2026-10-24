@@ -809,8 +809,13 @@ mod tests {
                 Ok(_) => panic!("nothing listens on {addr}"),
                 Err(err) => err,
             };
-            for secret in ["tk_9f8e7d6c", "hunter2", "s3cr3t"] {
-                assert!(!err.contains(secret), "{secret} leaked into: {err}");
+            // The message names the fixture by index only: echoing it, or the
+            // error that would hold it, is the very leak under test.
+            for (i, fixture) in ["tk_9f8e7d6c", "hunter2", "s3cr3t"].iter().enumerate() {
+                assert!(
+                    !err.contains(fixture),
+                    "fixture credential #{i} leaked into the error"
+                );
             }
         }
     }
@@ -845,8 +850,11 @@ mod tests {
             .seek(SeekFrom::Start(4))
             .expect_err("the server is gone");
         let text = format!("{err} {err:?}");
-        for secret in ["tk_9f8e7d6c", "s3cr3t"] {
-            assert!(!text.contains(secret), "{secret} leaked into: {text}");
+        for (i, fixture) in ["tk_9f8e7d6c", "s3cr3t"].iter().enumerate() {
+            assert!(
+                !text.contains(fixture),
+                "fixture credential #{i} leaked into the error"
+            );
         }
     }
 

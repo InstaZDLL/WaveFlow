@@ -544,7 +544,7 @@ mod tests {
     /// line stays skipped rather than closing.
     #[test]
     fn mpd_commands_are_not_foreign() {
-        for line in [
+        for (i, line) in [
             "status",
             "play 3",
             "setvol 100",
@@ -554,8 +554,12 @@ mod tests {
             "  status",
             "",
             "   ",
-        ] {
-            assert!(!is_foreign_line(line), "{line:?} must be served");
+        ]
+        .iter()
+        .enumerate()
+        {
+            // Named by index: one of these lines carries a fixture password.
+            assert!(!is_foreign_line(line), "command #{i} must be served");
             assert!(refuse_foreign_line(line).is_ok());
         }
     }
