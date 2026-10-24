@@ -79,6 +79,7 @@ export function WaveFlowLogo({
       return;
     }
     let raf = 0;
+    let timer = 0;
     let start = 0;
     let last = 0;
     let lastSkinCheck = -Infinity;
@@ -117,13 +118,22 @@ export function WaveFlowLogo({
         path.setAttribute("d", wavePath(...next));
       }
       atRest = settled;
-      // Still and not playing: stop asking for frames. Playing in a skin
-      // that holds the mark still keeps a cheap watch, in case the skin
-      // changes.
-      if (!settled || animated) raf = requestAnimationFrame(tick);
+      if (!settled) {
+        raf = requestAnimationFrame(tick);
+      } else if (animated) {
+        // Playing in a skin that holds the mark still: no frames, just a
+        // look once a second in case the skin changes.
+        timer = window.setTimeout(() => {
+          raf = requestAnimationFrame(tick);
+        }, SKIN_CHECK_MS);
+      }
+      // Still and not playing: nothing left to ask for.
     };
     raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.clearTimeout(timer);
+    };
   }, [animated, reducedMotion]);
 
   return (
