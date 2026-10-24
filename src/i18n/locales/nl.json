@@ -682,6 +682,10 @@
         "probable_fake_lossless": {
           "label": "Waarschijnlijk nep-lossless",
           "help": "Lossless bestanden waarvan de hoge tonen stoppen zoals bij een MP3: waarschijnlijk gemaakt van een lossy bestand."
+        },
+        "album_missing_tracks": {
+          "label": "Eerste of laatste nummers ontbreken",
+          "help": "Een schijf mist het eerste of laatste nummer, of er ontbreekt een hele schijf, volgens de nummering en de totalen in de bestanden."
         }
       },
       "phantoms": {
@@ -1314,7 +1318,10 @@
     "emptyTracksTitle": "Geen nummers",
     "emptyTracksDescription": "Dit album bevat geen beschikbare nummers.",
     "setMotionCover": "Bewegende hoes",
-    "fetchTags": "Tags ophalen"
+    "fetchTags": "Tags ophalen",
+    "missingTracks": "Ontbrekende nummers: {{list}}",
+    "missingDiscTracks": "Schijf {{disc}} — ontbrekende nummers: {{list}}",
+    "missingDiscs": "Ontbrekende schijven: {{list}}"
   },
   "artistDetail": {
     "badge": "Artiest",

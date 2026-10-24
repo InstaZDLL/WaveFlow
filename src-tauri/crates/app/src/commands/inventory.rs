@@ -40,6 +40,7 @@
 use serde::Serialize;
 use sqlx::Row;
 
+use waveflow_core::album_completeness::{album_completeness, AlbumCompleteness, NumberedTrack};
 use waveflow_core::inventory::{chain_by_duration, DURATION_TOLERANCE_MS};
 use waveflow_core::metadata::name_match::normalize_name;
 
@@ -174,9 +175,9 @@ fn where_for(key: &str) -> Option<&'static str> {
         //
         // The cost is that a missing *first* or *last* track is
         // invisible here — numbering alone cannot tell a nine-track
-        // album from a ten-track album missing its opener. That needs
-        // `album.total_tracks`, which most files do not carry, so it is
-        // left out rather than half-implemented.
+        // album from a ten-track album missing its opener. That is the
+        // category after this one, computed in Rust
+        // ([`albums_missing_ends_ids`]) from the totals the files carry.
         //
         // Distinct numbers rather than rows, so a disc with two tracks
         // claiming slot 8 is reported by the category above and not
@@ -216,12 +217,97 @@ const CATEGORIES: &[&str] = &[
     "compilation_no_album_artist",
     "duplicate_track_number",
     "track_number_gap",
+    MISSING_ENDS,
     "probable_duplicate",
     PHANTOM,
 ];
 
 /// The key whose members are computed in Rust rather than in SQL.
 const PROBABLE: &str = "probable_duplicate";
+
+/// Albums missing a first or last track, or a whole disc: computed in
+/// Rust too, by [`waveflow_core::album_completeness`].
+const MISSING_ENDS: &str = "album_missing_tracks";
+
+/// The members of a category computed in Rust, `None` for the others.
+async fn computed_ids(pool: &sqlx::SqlitePool, key: &str) -> AppResult<Option<Vec<i64>>> {
+    Ok(match key {
+        PROBABLE => Some(probable_duplicate_ids(pool).await?),
+        MISSING_ENDS => Some(albums_missing_ends_ids(pool).await?),
+        _ => None,
+    })
+}
+
+/// The numbering of an album's available tracks, as the completeness
+/// check reads it. One row per track; `album_id` first so a caller
+/// reading every album can group a single ordered pass.
+const NUMBERING_COLUMNS: &str = "album_id, disc_number, track_number, track_total, disc_total, id";
+
+fn numbered(row: &sqlx::sqlite::SqliteRow) -> Result<NumberedTrack, sqlx::Error> {
+    Ok(NumberedTrack {
+        disc_number: row.try_get("disc_number")?,
+        track_number: row.try_get("track_number")?,
+        track_total: row.try_get("track_total")?,
+        disc_total: row.try_get("disc_total")?,
+    })
+}
+
+/// What one album is missing — the album page's indication.
+pub(crate) async fn album_completeness_of(
+    pool: &sqlx::SqlitePool,
+    album_id: i64,
+) -> AppResult<AlbumCompleteness> {
+    let sql =
+        format!("SELECT {NUMBERING_COLUMNS} FROM track WHERE album_id = ? AND is_available = 1");
+    let rows = sqlx::query(sqlx::AssertSqlSafe(sql))
+        .bind(album_id)
+        .fetch_all(pool)
+        .await?;
+    let tracks = rows.iter().map(numbered).collect::<Result<Vec<_>, _>>()?;
+    Ok(album_completeness(&tracks))
+}
+
+/// The tracks of every album missing a first or last track or a disc.
+///
+/// One query over the library, grouped here in a single pass — not a
+/// query per album. Holes in the middle are left to `track_number_gap`,
+/// which already lists them; an album with both is in both, as it should
+/// be, since each names a different fix.
+async fn albums_missing_ends_ids(pool: &sqlx::SqlitePool) -> AppResult<Vec<i64>> {
+    let sql = format!(
+        "SELECT {NUMBERING_COLUMNS} FROM track
+          WHERE album_id IS NOT NULL AND is_available = 1
+          ORDER BY album_id"
+    );
+    let rows = sqlx::query(sqlx::AssertSqlSafe(sql))
+        .fetch_all(pool)
+        .await?;
+
+    let mut ids = Vec::new();
+    let mut album: Option<i64> = None;
+    let mut tracks: Vec<NumberedTrack> = Vec::new();
+    let mut members: Vec<i64> = Vec::new();
+    let mut flush = |tracks: &mut Vec<NumberedTrack>, members: &mut Vec<i64>| {
+        if album_completeness(tracks).missing_at_the_ends() {
+            ids.append(members);
+        }
+        tracks.clear();
+        members.clear();
+    };
+    for row in &rows {
+        let album_id: i64 = row.try_get("album_id")?;
+        if album != Some(album_id) {
+            flush(&mut tracks, &mut members);
+            album = Some(album_id);
+        }
+        tracks.push(numbered(row)?);
+        members.push(row.try_get("id")?);
+    }
+    flush(&mut tracks, &mut members);
+    // Sorted for the same reason as the duplicates: a stable `IN` list.
+    ids.sort_unstable();
+    Ok(ids)
+}
 
 /// The one category made of artists rather than tracks (#719): names that
 /// look like several artists joined by commas. Listed by
@@ -442,8 +528,8 @@ pub async fn inventory_summary(
     // place for those semantics to drift, and this file already paid
     // for that once. Tracked separately instead.
     for key in CATEGORIES {
-        let count = if *key == PROBABLE {
-            probable_duplicate_ids(&pool).await?.len() as i64
+        let count = if let Some(ids) = computed_ids(&pool, key).await? {
+            ids.len() as i64
         } else if *key == PHANTOM {
             phantom_artists(&pool).await?.len() as i64
         } else {
@@ -485,8 +571,7 @@ pub async fn inventory_tracks(
     let order_clause = library_track_order_clause(order_by.as_deref(), direction.as_deref());
 
     let owned;
-    let clause: &str = if category == PROBABLE {
-        let ids = probable_duplicate_ids(&pool).await?;
+    let clause: &str = if let Some(ids) = computed_ids(&pool, &category).await? {
         if ids.is_empty() {
             // `IN ()` is a syntax error in SQLite, and `IN (NULL)` would
             // quietly match nothing *and* read as a mistake. Say it.
@@ -652,6 +737,77 @@ mod tests {
         // Album 2's disc only. A disc starting at 20 is complete, and a
         // disc whose only fault is a repeated number is not a hole.
         assert_eq!(ids_for(&pool, "track_number_gap").await, vec![6, 7, 8]);
+    }
+
+    /// The ends the gap rule cannot see, on top of the shared seed:
+    ///
+    /// - album 4, numbered 2-5: its opener is missing;
+    /// - album 5, numbered 1-3 of a declared 4: its closer is missing;
+    /// - album 6, numbered 1-3 of a declared 3: complete.
+    ///
+    /// From the seed, album 2 (1, 2, 4) is a hole and stays out — it is
+    /// the gap category's — album 3 (two tracks claiming 8) is one number
+    /// and is not judged, and album 1 is in: discs 1 and 3, so disc 2 is
+    /// missing.
+    #[tokio::test]
+    async fn missing_ends_are_found_by_the_numbers_and_the_totals() {
+        let pool = pool().await;
+        seed(&pool).await;
+        for statement in [
+            "INSERT INTO album (id, title, canonical_title, artist_id, year, is_compilation)
+             VALUES (4, 'No Opener', 'no opener', 1, 2002, 0)",
+            "INSERT INTO album (id, title, canonical_title, artist_id, year, is_compilation)
+             VALUES (5, 'No Closer', 'no closer', 1, 2003, 0)",
+            "INSERT INTO album (id, title, canonical_title, artist_id, year, is_compilation)
+             VALUES (6, 'Whole', 'whole', 1, 2004, 0)",
+        ] {
+            sqlx::raw_sql(statement).execute(&pool).await.unwrap();
+        }
+        for (id, album, number, total) in [
+            (20i64, 4i64, 2i64, None::<i64>),
+            (21, 4, 3, None),
+            (22, 4, 4, None),
+            (23, 4, 5, None),
+            (24, 5, 1, Some(4)),
+            (25, 5, 2, Some(4)),
+            (26, 5, 3, Some(4)),
+            (27, 6, 1, Some(3)),
+            (28, 6, 2, Some(3)),
+            (29, 6, 3, Some(3)),
+        ] {
+            sqlx::query(
+                "INSERT INTO track (id, library_id, file_path, file_hash, file_size,
+                                    file_modified, title, album_id, track_number,
+                                    track_total, primary_artist, duration_ms, added_at,
+                                    is_available, hlc_wall, hlc_logical, rating_hlc_wall,
+                                    rating_hlc_logical)
+                 VALUES (?, 1, ?, ?, 1, 0, ?, ?, ?, ?, 1, 300000, 0, 1, 0, 0, 0, 0)",
+            )
+            .bind(id)
+            .bind(format!("/m/{id}.flac"))
+            .bind(format!("h{id}"))
+            .bind(format!("T{id}"))
+            .bind(album)
+            .bind(number)
+            .bind(total)
+            .execute(&pool)
+            .await
+            .unwrap();
+        }
+        assert_eq!(
+            albums_missing_ends_ids(&pool).await.unwrap(),
+            vec![1, 2, 3, 4, 5, 20, 21, 22, 23, 24, 25, 26]
+        );
+
+        // The album page's reading of the same rows.
+        let opener = album_completeness_of(&pool, 4).await.unwrap();
+        assert_eq!(opener.discs[0].tracks, [1]);
+        let closer = album_completeness_of(&pool, 5).await.unwrap();
+        assert_eq!(closer.discs[0].tracks, [4]);
+        assert!(album_completeness_of(&pool, 6).await.unwrap().is_complete());
+        let gap = album_completeness_of(&pool, 2).await.unwrap();
+        assert_eq!(gap.discs[0].tracks, [3]);
+        assert!(!gap.missing_at_the_ends());
     }
 
     /// The SQL half of the probable-duplicate rule: what lands in a

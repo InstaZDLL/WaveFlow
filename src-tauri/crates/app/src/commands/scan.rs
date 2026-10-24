@@ -294,6 +294,10 @@ fn extract_dsd_file(
         year: meta.year,
         track_number: meta.track_number,
         disc_number: meta.disc_number,
+        // The DSD reader does not surface the totals; the completeness
+        // check judges these albums on their numbers alone.
+        track_total: None,
+        disc_total: None,
         duration_ms: layout.duration_ms() as i64,
         // No bitrate concept for DSD — leave None rather than
         // computing rate * channels (would mislead the Hi-Res badge).
@@ -449,6 +453,8 @@ fn untagged_file(
         year: None,
         track_number: None,
         disc_number: None,
+        track_total: None,
+        disc_total: None,
         duration_ms: stream.duration_ms,
         bitrate: None,
         sample_rate: stream.sample_rate,
@@ -547,6 +553,8 @@ fn extract_file(
         year,
         track_number,
         disc_number,
+        track_total,
+        disc_total,
         cover_art,
         rating,
         musical_key,
@@ -566,6 +574,8 @@ fn extract_file(
             tag.date().map(|d| d.year as i64),
             tag.track().map(|n| n as i64),
             tag.disk().map(|n| n as i64),
+            tag.track_total().map(|n| n as i64),
+            tag.disk_total().map(|n| n as i64),
             extract_cover(tag, artwork_dir),
             extract_rating(tag),
             extract_musical_key(tag),
@@ -578,6 +588,8 @@ fn extract_file(
             None,
             false,
             Vec::new(),
+            None,
+            None,
             None,
             None,
             None,
@@ -631,6 +643,8 @@ fn extract_file(
         year,
         track_number,
         disc_number,
+        track_total,
+        disc_total,
         duration_ms,
         bitrate,
         sample_rate,
@@ -1395,6 +1409,8 @@ pub(crate) async fn scan_folder_inner(
                             rg_track_peak       = ?,
                             rg_album_gain_db    = ?,
                             rg_album_peak       = ?,
+                            track_total         = ?,
+                            disc_total          = ?,
                             is_available        = 1
                       WHERE id = ?",
                 )
@@ -1422,6 +1438,12 @@ pub(crate) async fn scan_folder_inner(
                 .bind(extracted.replay_gain.track_peak)
                 .bind(extracted.replay_gain.album_gain_db)
                 .bind(extracted.replay_gain.album_peak)
+                // Assigned too, and for the same two reasons: this is the
+                // only branch a library scanned before the columns existed
+                // reaches (on a deep rescan), and a tagger may have removed
+                // a total.
+                .bind(extracted.track_total)
+                .bind(extracted.disc_total)
                 .bind(existing_track_id)
                 .execute(&mut *tx)
                 .await?;
@@ -1604,6 +1626,7 @@ pub(crate) async fn scan_folder_inner(
                         file_hash = ?, file_size = ?, file_modified = ?,
                         title = ?, title_from_filename = ?, album_id = ?, primary_artist = ?,
                         track_number = ?, disc_number = ?, year = ?,
+                        track_total = ?, disc_total = ?,
                         duration_ms = ?, bitrate = ?, sample_rate = ?, channels = ?,
                         bit_depth = ?, codec = ?,
                         musical_key = ?,
@@ -1629,6 +1652,8 @@ pub(crate) async fn scan_folder_inner(
                 .bind(extracted.track_number)
                 .bind(extracted.disc_number)
                 .bind(extracted.year)
+                .bind(extracted.track_total)
+                .bind(extracted.disc_total)
                 .bind(extracted.duration_ms)
                 .bind(extracted.bitrate)
                 .bind(extracted.sample_rate)
@@ -1788,14 +1813,14 @@ pub(crate) async fn scan_folder_inner(
                 "INSERT INTO track (
                     library_id, folder_id, file_path, file_hash, file_size, file_modified,
                     title, title_from_filename, album_id, primary_artist,
-                    track_number, disc_number, year,
+                    track_number, disc_number, year, track_total, disc_total,
                     duration_ms, bitrate, sample_rate, channels,
                     bit_depth, codec, musical_key,
                     rating,
                     rg_track_gain_db, rg_track_peak, rg_album_gain_db, rg_album_peak,
                     added_at, pinyin, is_available
                  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                           ?, ?, ?, ?, ?, ?, ?, 1)",
+                           ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)",
             )
             .bind(library_id)
             .bind(folder_id)
@@ -1810,6 +1835,8 @@ pub(crate) async fn scan_folder_inner(
             .bind(extracted.track_number)
             .bind(extracted.disc_number)
             .bind(extracted.year)
+            .bind(extracted.track_total)
+            .bind(extracted.disc_total)
             .bind(extracted.duration_ms)
             .bind(extracted.bitrate)
             .bind(extracted.sample_rate)

@@ -682,6 +682,10 @@
         "probable_fake_lossless": {
           "label": "Probable fake lossless",
           "help": "Lossless files whose highs stop like an MP3's: probably made from a lossy file."
+        },
+        "album_missing_tracks": {
+          "label": "Missing first or last tracks",
+          "help": "A disc is missing its first or last track, or a whole disc is missing, going by the numbering and the totals the files carry."
         }
       },
       "phantoms": {
@@ -1314,7 +1318,10 @@
     "emptyTracksTitle": "No tracks",
     "emptyTracksDescription": "This album does not contain any available tracks.",
     "setMotionCover": "Motion cover",
-    "fetchTags": "Fetch tags"
+    "fetchTags": "Fetch tags",
+    "missingTracks": "Missing tracks: {{list}}",
+    "missingDiscTracks": "Disc {{disc}} — missing tracks: {{list}}",
+    "missingDiscs": "Missing discs: {{list}}"
   },
   "artistDetail": {
     "badge": "Artist",

@@ -680,6 +680,10 @@
         "probable_fake_lossless": {
           "label": "Kemungkinan lossless palsu",
           "help": "File lossless yang frekuensi tingginya berhenti seperti MP3: kemungkinan dibuat dari file lossy."
+        },
+        "album_missing_tracks": {
+          "label": "Lagu pertama atau terakhir hilang",
+          "help": "Sebuah disk kehilangan lagu pertama atau terakhirnya, atau satu disk utuh hilang, menurut penomoran dan total yang tercantum di file."
         }
       },
       "phantoms": {
@@ -1312,7 +1316,10 @@
     "emptyTracksTitle": "Tidak ada lagu",
     "emptyTracksDescription": "Album ini tidak berisi lagu yang tersedia.",
     "setMotionCover": "Sampul animasi",
-    "fetchTags": "Ambil tag"
+    "fetchTags": "Ambil tag",
+    "missingTracks": "Lagu yang hilang: {{list}}",
+    "missingDiscTracks": "Disk {{disc}} — lagu yang hilang: {{list}}",
+    "missingDiscs": "Disk yang hilang: {{list}}"
   },
   "artistDetail": {
     "badge": "Artis",

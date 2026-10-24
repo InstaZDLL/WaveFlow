@@ -682,6 +682,10 @@
         "probable_fake_lossless": {
           "label": "Muhtemelen sahte kayıpsız",
           "help": "Tizleri bir MP3'ünkü gibi kesilen kayıpsız dosyalar: muhtemelen kayıplı bir dosyadan yapılmış."
+        },
+        "album_missing_tracks": {
+          "label": "İlk veya son parçalar eksik",
+          "help": "Dosyalardaki numaralandırmaya ve toplamlara göre bir diskin ilk ya da son parçası veya diskin tamamı eksik."
         }
       },
       "phantoms": {
@@ -1314,7 +1318,10 @@
     "emptyTracksTitle": "Parça yok",
     "emptyTracksDescription": "Bu albümde kullanılabilir parça yok.",
     "setMotionCover": "Hareketli kapak",
-    "fetchTags": "Etiketleri getir"
+    "fetchTags": "Etiketleri getir",
+    "missingTracks": "Eksik parçalar: {{list}}",
+    "missingDiscTracks": "Disk {{disc}} — eksik parçalar: {{list}}",
+    "missingDiscs": "Eksik diskler: {{list}}"
   },
   "artistDetail": {
     "badge": "Sanatçı",

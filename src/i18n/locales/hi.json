@@ -682,6 +682,10 @@
         "probable_fake_lossless": {
           "label": "शायद नकली लॉसलेस",
           "help": "लॉसलेस फ़ाइलें जिनकी ऊँची आवृत्तियाँ MP3 की तरह रुकती हैं: शायद किसी लॉसी फ़ाइल से बनी।"
+        },
+        "album_missing_tracks": {
+          "label": "पहले या आख़िरी ट्रैक गायब",
+          "help": "फ़ाइलों में दर्ज क्रमांक और कुल संख्या के अनुसार किसी डिस्क का पहला या आख़िरी ट्रैक, या पूरी डिस्क, गायब है।"
         }
       },
       "phantoms": {
@@ -1314,7 +1318,10 @@
     "emptyTracksTitle": "कोई ट्रैक नहीं",
     "emptyTracksDescription": "इस एल्बम में कोई ट्रैक नहीं हैं।",
     "setMotionCover": "मोशन कवर",
-    "fetchTags": "टैग लाएँ"
+    "fetchTags": "टैग लाएँ",
+    "missingTracks": "गायब ट्रैक: {{list}}",
+    "missingDiscTracks": "डिस्क {{disc}} — गायब ट्रैक: {{list}}",
+    "missingDiscs": "गायब डिस्क: {{list}}"
   },
   "artistDetail": {
     "badge": "कलाकार",

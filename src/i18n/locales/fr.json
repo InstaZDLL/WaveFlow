@@ -713,6 +713,10 @@
         "probable_fake_lossless": {
           "label": "Faux lossless probables",
           "help": "Fichiers lossless dont les aigus s'arrêtent comme ceux d'un MP3 : probablement issus d'un fichier compressé."
+        },
+        "album_missing_tracks": {
+          "label": "Premières ou dernières pistes manquantes",
+          "help": "Il manque la première ou la dernière piste d'un disque, ou un disque entier, d'après la numérotation et le total que portent les fichiers."
         }
       },
       "phantoms": {
@@ -1361,7 +1365,10 @@
     "emptyTracksTitle": "Aucun titre",
     "emptyTracksDescription": "Cet album ne contient aucun titre disponible.",
     "setMotionCover": "Pochette animée",
-    "fetchTags": "Récupérer les tags"
+    "fetchTags": "Récupérer les tags",
+    "missingTracks": "Pistes manquantes : {{list}}",
+    "missingDiscTracks": "Disque {{disc}} — pistes manquantes : {{list}}",
+    "missingDiscs": "Disques manquants : {{list}}"
   },
   "artistDetail": {
     "badge": "Artiste",
