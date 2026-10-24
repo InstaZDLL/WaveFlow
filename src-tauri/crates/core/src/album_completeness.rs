@@ -27,7 +27,8 @@
 //! 4. **Where it ends.** At the highest of the numbers present and the
 //!    track total the files carry. A total *below* the highest number is
 //!    a contradiction (a per-disc total on a continuously numbered set),
-//!    so it is ignored rather than trusted. On an album of several discs,
+//!    so it is ignored rather than trusted, and so are totals the tracks of
+//!    one disc disagree on. On an album of several discs,
 //!    a total that is the album's rather than the disc's is ignored too:
 //!    one above every number on the album, or equal to the count of
 //!    tracks across all of its discs.
@@ -95,6 +96,9 @@ pub fn album_completeness(tracks: &[NumberedTrack]) -> AlbumCompleteness {
         numbers: BTreeSet<i64>,
         unnumbered: bool,
         total: Option<i64>,
+        /// Two tracks of the disc declare different totals: neither is
+        /// a bound anyone can trust.
+        total_conflict: bool,
     }
 
     let mut discs: BTreeMap<i64, Disc> = BTreeMap::new();
@@ -117,7 +121,14 @@ pub fn album_completeness(tracks: &[NumberedTrack]) -> AlbumCompleteness {
             None => disc.unnumbered = true,
         }
         if let Some(total) = track.track_total.filter(|t| (1..=MAX_POSITION).contains(t)) {
-            disc.total = Some(disc.total.map_or(total, |t: i64| t.max(total)));
+            match disc.total {
+                Some(previous) if previous != total => {
+                    disc.total = None;
+                    disc.total_conflict = true;
+                }
+                _ if !disc.total_conflict => disc.total = Some(total),
+                _ => {}
+            }
         }
         if let Some(total) = track.disc_total.filter(|t| (1..=MAX_POSITION).contains(t)) {
             disc_total = Some(disc_total.map_or(total, |t: i64| t.max(total)));
@@ -402,6 +413,15 @@ mod tests {
             t(Some(4_000_000_000), Some(1)),
             t(Some(4_000_000_000), Some(2)),
         ];
+        assert!(album_completeness(&album).is_complete());
+    }
+
+    /// Tracks 1-10, half saying "of 10" and half "of 12": no bound.
+    #[test]
+    fn totals_a_disc_disagrees_on_are_ignored() {
+        let album: Vec<_> = (1..=10)
+            .map(|n| of_total(None, n, if n % 2 == 0 { 12 } else { 10 }))
+            .collect();
         assert!(album_completeness(&album).is_complete());
     }
 
