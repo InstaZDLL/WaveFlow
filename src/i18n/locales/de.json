@@ -682,6 +682,10 @@
         "probable_fake_lossless": {
           "label": "Vermutlich falsches Lossless",
           "help": "Verlustfreie Dateien, deren Höhen wie bei einer MP3 enden: vermutlich aus einer verlustbehafteten Datei erstellt."
+        },
+        "album_missing_tracks": {
+          "label": "Erste oder letzte Titel fehlen",
+          "help": "Einer Disc fehlt der erste oder letzte Titel, oder eine ganze Disc fehlt – gemessen an der Nummerierung und den Gesamtzahlen in den Dateien."
         }
       },
       "phantoms": {
@@ -1215,13 +1219,17 @@
       "artist": "Künstler",
       "album": "Album",
       "year": "Jahr",
-      "genre": "Genre"
+      "genre": "Genre",
+      "albumArtist": "Albumkünstler",
+      "composer": "Komponist"
     },
     "placeholders": {
       "artist": "z. B. Daft Punk, Justice",
       "album": "Albumname",
       "year": "z. B. 2026",
-      "genre": "z. B. Electronic; Ambient"
+      "genre": "z. B. Electronic; Ambient",
+      "albumArtist": "z. B. Daft Punk",
+      "composer": "z. B. Maurice Ravel"
     },
     "result": {
       "updated": "{{count}} Titel aktualisiert",
@@ -1275,7 +1283,9 @@
       "trackNumber": "Titelnr.",
       "discNumber": "Disc-Nr.",
       "genre": "Genre",
-      "genrePlaceholder": "Pop; Rock; Jazz…"
+      "genrePlaceholder": "Pop; Rock; Jazz…",
+      "albumArtist": "Albumkünstler",
+      "composer": "Komponist"
     },
     "changeCover": "Cover ändern",
     "suggestions": {
@@ -1314,7 +1324,10 @@
     "emptyTracksTitle": "Keine Titel",
     "emptyTracksDescription": "Dieses Album enthält keine verfügbaren Titel.",
     "setMotionCover": "Animiertes Cover",
-    "fetchTags": "Tags abrufen"
+    "fetchTags": "Tags abrufen",
+    "missingTracks": "Fehlende Titel: {{list}}",
+    "missingDiscTracks": "Disc {{disc}} — fehlende Titel: {{list}}",
+    "missingDiscs": "Fehlende Discs: {{list}}"
   },
   "artistDetail": {
     "badge": "Künstler",
@@ -2887,7 +2900,30 @@
     "localStations": "Lokale Sender",
     "browseByCountry": "Nach Land durchsuchen",
     "localCatalogue": "Lokaler Katalog",
-    "localCatalogueHint": "Durchsuchen des heruntergeladenen Katalogs."
+    "localCatalogueHint": "Durchsuchen des heruntergeladenen Katalogs.",
+    "addStation": {
+      "button": "Sender hinzufügen",
+      "title": "Sender hinzufügen",
+      "renameTitle": "Sender umbenennen",
+      "rename": "{{name}} umbenennen",
+      "help": "Füge die Adresse des Streams oder einer .m3u-/.pls-Playlist ein oder öffne eine solche Datei. Der Sender landet in deinen Favoriten.",
+      "urlLabel": "Stream-Adresse",
+      "openFile": ".m3u-/.pls-Datei öffnen",
+      "nameLabel": "Name",
+      "namePlaceholder": "Leer lassen für den Namen des Senders",
+      "checking": "Wird geprüft…",
+      "add": "Hinzufügen",
+      "save": "Speichern",
+      "errors": {
+        "notHttp": "Nur http://- und https://-Adressen werden akzeptiert.",
+        "offline": "Der Offline-Modus ist aktiv.",
+        "unreachable": "Der Sender antwortet unter dieser Adresse nicht.",
+        "notAudio": "Diese Adresse führt zu keinem Audiostream.",
+        "hls": "Das ist eine HLS-Playlist: Nur durchgehende Streams werden unterstützt.",
+        "noStream": "Die Playlist enthält keinen http://- oder https://-Stream.",
+        "notSaved": "Deine Favoriten sind noch nicht geladen; versuche es gleich noch einmal."
+      }
+    }
   },
   "artistMetadataEditor": {
     "title": "Metadaten bearbeiten",

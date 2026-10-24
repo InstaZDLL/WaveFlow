@@ -1,6 +1,7 @@
 import type { LibrarySource } from "./browse";
 import { invoke } from "@tauri-apps/api/core";
 import type { Track } from "./track";
+import type { AlbumCompleteness } from "../albumCompleteness";
 
 // ── Album detail ────────────────────────────────────────────────────
 
@@ -66,6 +67,9 @@ export interface AlbumDetail {
   release_date: string | null;
   genres: string[];
   tracks: AlbumTrack[];
+  /** The tracks and discs a local album is missing; absent on a server
+   *  album, which is not judged. */
+  completeness?: AlbumCompleteness | null;
 }
 
 export function getAlbumDetail(albumId: number): Promise<AlbumDetail> {

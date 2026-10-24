@@ -222,6 +222,21 @@ export function getTrackArtists(trackId: number): Promise<string[]> {
   return invoke<string[]>("get_track_artists", { trackId });
 }
 
+/** The two credits the properties dialog edits beyond the `Track` row. */
+export interface TrackCredits {
+  /** The album's Album Artist; `null` when it has none of its own. */
+  album_artist: string | null;
+  composer: string | null;
+}
+
+/**
+ * The Album Artist and composer of a track, to pre-fill the editor with —
+ * a field that opened empty would otherwise be saved as "clear it".
+ */
+export function getTrackCredits(trackId: number): Promise<TrackCredits> {
+  return invoke<TrackCredits>("get_track_credits", { trackId });
+}
+
 /**
  * Multi-criteria filters layered on top of the FTS5 search. Every field
  * is optional — `query` itself can be omitted to run a pure-filter
@@ -288,6 +303,12 @@ export interface TrackEdit {
   track_number?: number | null;
   disc_number?: number | null;
   genre?: string | null;
+  /**
+   * The Album Artist, kept whole (never split). It decides which album
+   * the track is grouped into, so changing it moves the track.
+   */
+  album_artist?: string | null;
+  composer?: string | null;
 }
 
 /**

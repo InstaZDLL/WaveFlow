@@ -680,6 +680,10 @@
         "probable_fake_lossless": {
           "label": "疑似假无损",
           "help": "高频像 MP3 一样被截断的无损文件：可能由有损文件转换而来。"
+        },
+        "album_missing_tracks": {
+          "label": "缺少首尾曲目",
+          "help": "根据文件中的编号和总数，某张碟片缺少第一首或最后一首曲目，或缺少整张碟片。"
         }
       },
       "phantoms": {
@@ -1213,13 +1217,17 @@
       "artist": "艺人",
       "album": "专辑",
       "year": "年份",
-      "genre": "流派"
+      "genre": "流派",
+      "albumArtist": "专辑艺人",
+      "composer": "作曲"
     },
     "placeholders": {
       "artist": "如 Daft Punk, Justice",
       "album": "专辑名称",
       "year": "如 2026",
-      "genre": "如 Electronic; Ambient"
+      "genre": "如 Electronic; Ambient",
+      "albumArtist": "如 Daft Punk",
+      "composer": "如 Maurice Ravel"
     },
     "result": {
       "updated": "已更新 {{count}} 首",
@@ -1273,7 +1281,9 @@
       "trackNumber": "音轨号",
       "discNumber": "碟片号",
       "genre": "流派",
-      "genrePlaceholder": "流行; 摇滚; 爵士…"
+      "genrePlaceholder": "流行; 摇滚; 爵士…",
+      "albumArtist": "专辑艺人",
+      "composer": "作曲"
     },
     "changeCover": "更换封面",
     "suggestions": {
@@ -1312,7 +1322,10 @@
     "emptyTracksTitle": "没有曲目",
     "emptyTracksDescription": "该专辑中没有可用的曲目。",
     "setMotionCover": "动态封面",
-    "fetchTags": "获取标签"
+    "fetchTags": "获取标签",
+    "missingTracks": "缺少的曲目：{{list}}",
+    "missingDiscTracks": "碟片 {{disc}} — 缺少的曲目：{{list}}",
+    "missingDiscs": "缺少的碟片：{{list}}"
   },
   "artistDetail": {
     "badge": "艺人",
@@ -2885,7 +2898,30 @@
     "localStations": "本地电台",
     "browseByCountry": "按国家/地区浏览",
     "localCatalogue": "本地目录",
-    "localCatalogueHint": "正在浏览和搜索已下载的目录。"
+    "localCatalogueHint": "正在浏览和搜索已下载的目录。",
+    "addStation": {
+      "button": "添加电台",
+      "title": "添加电台",
+      "renameTitle": "重命名电台",
+      "rename": "重命名 {{name}}",
+      "help": "粘贴流地址或 .m3u / .pls 播放列表的地址，或打开此类文件。电台会加入你的收藏。",
+      "urlLabel": "流地址",
+      "openFile": "打开 .m3u / .pls 文件",
+      "nameLabel": "名称",
+      "namePlaceholder": "留空则使用电台自己的名称",
+      "checking": "正在检查…",
+      "add": "添加",
+      "save": "保存",
+      "errors": {
+        "notHttp": "只接受 http:// 和 https:// 地址。",
+        "offline": "离线模式已开启。",
+        "unreachable": "该地址上的电台没有响应。",
+        "notAudio": "该地址不指向音频流。",
+        "hls": "这是 HLS 播放列表：仅支持连续的流。",
+        "noStream": "播放列表中没有 http:// 或 https:// 流。",
+        "notSaved": "收藏尚未加载，请稍后再试。"
+      }
+    }
   },
   "artistMetadataEditor": {
     "title": "编辑元数据",

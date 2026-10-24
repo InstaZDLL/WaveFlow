@@ -779,6 +779,10 @@
         "probable_fake_lossless": {
           "label": "ملفات lossless مزيفة على الأرجح",
           "help": "ملفات بلا فقدان تتوقف تردداتها العالية كما في ملف MP3: على الأرجح مصنوعة من ملف مضغوط بفقدان."
+        },
+        "album_missing_tracks": {
+          "label": "نقص المقاطع الأولى أو الأخيرة",
+          "help": "ينقص قرصًا مقطعُه الأول أو الأخير، أو ينقص قرص كامل، بحسب الترقيم والمجاميع المدوّنة في الملفات."
         }
       },
       "summary_zero": "لا نقاط للتصحيح",
@@ -1370,13 +1374,17 @@
       "artist": "الفنان",
       "album": "الألبوم",
       "year": "السنة",
-      "genre": "النوع"
+      "genre": "النوع",
+      "albumArtist": "فنان الألبوم",
+      "composer": "الملحن"
     },
     "placeholders": {
       "artist": "مثال: Daft Punk، Justice",
       "album": "اسم الألبوم",
       "year": "مثال: 2026",
-      "genre": "مثال: إلكتروني; أمبينت"
+      "genre": "مثال: إلكتروني; أمبينت",
+      "albumArtist": "مثال: Daft Punk",
+      "composer": "مثال: Maurice Ravel"
     },
     "result": {
       "updated": "عدد المقاطع المحدّثة: {{count}}",
@@ -1430,7 +1438,9 @@
       "trackNumber": "رقم المقطع",
       "discNumber": "رقم القرص",
       "genre": "النوع",
-      "genrePlaceholder": "بوب; روك; جاز…"
+      "genrePlaceholder": "بوب; روك; جاز…",
+      "albumArtist": "فنان الألبوم",
+      "composer": "الملحن"
     },
     "changeCover": "تغيير الغلاف",
     "suggestions": {
@@ -1475,7 +1485,10 @@
     "trackCount_two": "مقطعان",
     "trackCount_few": "{{count}} مقاطع",
     "trackCount_many": "{{count}} مقطعًا",
-    "fetchTags": "جلب الوسوم"
+    "fetchTags": "جلب الوسوم",
+    "missingTracks": "المقاطع الناقصة: {{list}}",
+    "missingDiscTracks": "القرص {{disc}} — المقاطع الناقصة: {{list}}",
+    "missingDiscs": "الأقراص الناقصة: {{list}}"
   },
   "artistDetail": {
     "badge": "الفنان",
@@ -3130,7 +3143,30 @@
     "localStations": "المحطات المحلية",
     "browseByCountry": "التصفح حسب البلد",
     "localCatalogue": "الكتالوج المحلي",
-    "localCatalogueHint": "تصفح الكتالوج الذي تم تنزيله والبحث فيه."
+    "localCatalogueHint": "تصفح الكتالوج الذي تم تنزيله والبحث فيه.",
+    "addStation": {
+      "button": "إضافة محطة",
+      "title": "إضافة محطة",
+      "renameTitle": "إعادة تسمية المحطة",
+      "rename": "إعادة تسمية {{name}}",
+      "help": "الصق عنوان البث أو عنوان قائمة .m3u / .pls، أو افتح ملفًا كهذا. تنضم المحطة إلى مفضلتك.",
+      "urlLabel": "عنوان البث",
+      "openFile": "فتح ملف .m3u / .pls",
+      "nameLabel": "الاسم",
+      "namePlaceholder": "اسم المحطة إن تُرك فارغًا",
+      "checking": "جارٍ التحقق…",
+      "add": "إضافة",
+      "save": "حفظ",
+      "errors": {
+        "notHttp": "لا تُقبل إلا عناوين http:// و https://.",
+        "offline": "وضع عدم الاتصال مفعّل.",
+        "unreachable": "لا تستجيب المحطة على هذا العنوان.",
+        "notAudio": "لا يقود هذا العنوان إلى بث صوتي.",
+        "hls": "هذه قائمة HLS: لا تُدعم إلا البثوث المتواصلة.",
+        "noStream": "لا تحتوي القائمة على بث http:// أو https://.",
+        "notSaved": "لم تُحمَّل مفضلتك بعد؛ حاول مجددًا بعد لحظة."
+      }
+    }
   },
   "artistMetadataEditor": {
     "title": "تعديل البيانات الوصفية",

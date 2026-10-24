@@ -682,6 +682,10 @@
         "probable_fake_lossless": {
           "label": "शायद नकली लॉसलेस",
           "help": "लॉसलेस फ़ाइलें जिनकी ऊँची आवृत्तियाँ MP3 की तरह रुकती हैं: शायद किसी लॉसी फ़ाइल से बनी।"
+        },
+        "album_missing_tracks": {
+          "label": "पहले या आख़िरी ट्रैक गायब",
+          "help": "फ़ाइलों में दर्ज क्रमांक और कुल संख्या के अनुसार किसी डिस्क का पहला या आख़िरी ट्रैक, या पूरी डिस्क, गायब है।"
         }
       },
       "phantoms": {
@@ -1215,13 +1219,17 @@
       "artist": "कलाकार",
       "album": "एल्बम",
       "year": "वर्ष",
-      "genre": "शैली"
+      "genre": "शैली",
+      "albumArtist": "एल्बम कलाकार",
+      "composer": "संगीतकार"
     },
     "placeholders": {
       "artist": "जैसे Daft Punk, Justice",
       "album": "एल्बम का नाम",
       "year": "जैसे 2026",
-      "genre": "जैसे Electronic; Ambient"
+      "genre": "जैसे Electronic; Ambient",
+      "albumArtist": "जैसे Daft Punk",
+      "composer": "जैसे Maurice Ravel"
     },
     "result": {
       "updated": "{{count}} ट्रैक अपडेट हुए",
@@ -1275,7 +1283,9 @@
       "trackNumber": "ट्रैक नं.",
       "discNumber": "डिस्क नं.",
       "genre": "शैली",
-      "genrePlaceholder": "पॉप; रॉक; जैज़…"
+      "genrePlaceholder": "पॉप; रॉक; जैज़…",
+      "albumArtist": "एल्बम कलाकार",
+      "composer": "संगीतकार"
     },
     "changeCover": "कवर बदलें",
     "suggestions": {
@@ -1314,7 +1324,10 @@
     "emptyTracksTitle": "कोई ट्रैक नहीं",
     "emptyTracksDescription": "इस एल्बम में कोई ट्रैक नहीं हैं।",
     "setMotionCover": "मोशन कवर",
-    "fetchTags": "टैग लाएँ"
+    "fetchTags": "टैग लाएँ",
+    "missingTracks": "गायब ट्रैक: {{list}}",
+    "missingDiscTracks": "डिस्क {{disc}} — गायब ट्रैक: {{list}}",
+    "missingDiscs": "गायब डिस्क: {{list}}"
   },
   "artistDetail": {
     "badge": "कलाकार",
@@ -2887,7 +2900,30 @@
     "localStations": "स्थानीय स्टेशन",
     "browseByCountry": "देश के अनुसार ब्राउज़ करें",
     "localCatalogue": "स्थानीय कैटलॉग",
-    "localCatalogueHint": "डाउनलोड किया गया कैटलॉग ब्राउज़ और खोजा जा रहा है।"
+    "localCatalogueHint": "डाउनलोड किया गया कैटलॉग ब्राउज़ और खोजा जा रहा है।",
+    "addStation": {
+      "button": "स्टेशन जोड़ें",
+      "title": "स्टेशन जोड़ें",
+      "renameTitle": "स्टेशन का नाम बदलें",
+      "rename": "{{name}} का नाम बदलें",
+      "help": "स्ट्रीम का पता, या किसी .m3u / .pls प्लेलिस्ट का पता चिपकाएँ, या ऐसी फ़ाइल खोलें। स्टेशन आपके पसंदीदा में जुड़ जाएगा।",
+      "urlLabel": "स्ट्रीम का पता",
+      "openFile": ".m3u / .pls फ़ाइल खोलें",
+      "nameLabel": "नाम",
+      "namePlaceholder": "ख़ाली छोड़ें तो स्टेशन का अपना नाम",
+      "checking": "जाँच हो रही है…",
+      "add": "जोड़ें",
+      "save": "सहेजें",
+      "errors": {
+        "notHttp": "केवल http:// और https:// पते स्वीकार हैं।",
+        "offline": "ऑफ़लाइन मोड चालू है।",
+        "unreachable": "इस पते पर स्टेशन जवाब नहीं दे रहा।",
+        "notAudio": "यह पता किसी ऑडियो स्ट्रीम तक नहीं ले जाता।",
+        "hls": "यह HLS प्लेलिस्ट है: केवल लगातार स्ट्रीम समर्थित हैं।",
+        "noStream": "प्लेलिस्ट में कोई http:// या https:// स्ट्रीम नहीं है।",
+        "notSaved": "आपके पसंदीदा अभी लोड नहीं हुए हैं; थोड़ी देर में फिर कोशिश करें।"
+      }
+    }
   },
   "artistMetadataEditor": {
     "title": "मेटाडेटा संपादित करें",

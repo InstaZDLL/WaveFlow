@@ -742,6 +742,10 @@
         "probable_fake_lossless": {
           "label": "Вероятно, ложный lossless",
           "help": "Файлы без потерь, у которых верхние частоты обрываются, как у MP3: вероятно, сделаны из файла с потерями."
+        },
+        "album_missing_tracks": {
+          "label": "Нет первых или последних треков",
+          "help": "На диске нет первого или последнего трека либо не хватает целого диска — судя по нумерации и общему числу, указанному в файлах."
         }
       },
       "summary_few": "{{count}} замечания",
@@ -1309,13 +1313,17 @@
       "artist": "Исполнитель",
       "album": "Альбом",
       "year": "Год",
-      "genre": "Жанр"
+      "genre": "Жанр",
+      "albumArtist": "Исполнитель альбома",
+      "composer": "Композитор"
     },
     "placeholders": {
       "artist": "напр. Daft Punk, Justice",
       "album": "Название альбома",
       "year": "напр. 2026",
-      "genre": "напр. Electronic; Ambient"
+      "genre": "напр. Electronic; Ambient",
+      "albumArtist": "напр. Daft Punk",
+      "composer": "напр. Maurice Ravel"
     },
     "result": {
       "updated": "Обновлено треков: {{count}}",
@@ -1369,7 +1377,9 @@
       "trackNumber": "№ трека",
       "discNumber": "№ диска",
       "genre": "Жанр",
-      "genrePlaceholder": "Pop; Rock; Jazz…"
+      "genrePlaceholder": "Pop; Rock; Jazz…",
+      "albumArtist": "Исполнитель альбома",
+      "composer": "Композитор"
     },
     "changeCover": "Сменить обложку",
     "suggestions": {
@@ -1412,7 +1422,10 @@
     "emptyTracksDescription": "В этом альбоме нет доступных треков.",
     "setMotionCover": "Анимированная обложка",
     "trackCount_many": "{{count}} треков",
-    "fetchTags": "Загрузить теги"
+    "fetchTags": "Загрузить теги",
+    "missingTracks": "Отсутствующие треки: {{list}}",
+    "missingDiscTracks": "Диск {{disc}} — отсутствующие треки: {{list}}",
+    "missingDiscs": "Отсутствующие диски: {{list}}"
   },
   "artistDetail": {
     "badge": "Исполнитель",
@@ -3029,7 +3042,30 @@
     "localStations": "Местные станции",
     "browseByCountry": "По странам",
     "localCatalogue": "Локальный каталог",
-    "localCatalogueHint": "Просмотр и поиск в загруженном каталоге."
+    "localCatalogueHint": "Просмотр и поиск в загруженном каталоге.",
+    "addStation": {
+      "button": "Добавить станцию",
+      "title": "Добавить станцию",
+      "renameTitle": "Переименовать станцию",
+      "rename": "Переименовать {{name}}",
+      "help": "Вставьте адрес потока или плейлиста .m3u / .pls либо откройте такой файл. Станция появится в избранном.",
+      "urlLabel": "Адрес потока",
+      "openFile": "Открыть файл .m3u / .pls",
+      "nameLabel": "Название",
+      "namePlaceholder": "Если пусто — название станции",
+      "checking": "Проверка…",
+      "add": "Добавить",
+      "save": "Сохранить",
+      "errors": {
+        "notHttp": "Принимаются только адреса http:// и https://.",
+        "offline": "Включён автономный режим.",
+        "unreachable": "Станция не отвечает по этому адресу.",
+        "notAudio": "По этому адресу нет аудиопотока.",
+        "hls": "Это плейлист HLS: поддерживаются только непрерывные потоки.",
+        "noStream": "В плейлисте нет потока http:// или https://.",
+        "notSaved": "Избранное ещё не загружено; повторите попытку чуть позже."
+      }
+    }
   },
   "artistMetadataEditor": {
     "title": "Изменить метаданные",

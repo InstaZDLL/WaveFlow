@@ -680,6 +680,10 @@
         "probable_fake_lossless": {
           "label": "가짜 무손실 의심",
           "help": "고음이 MP3처럼 끊기는 무손실 파일: 손실 압축 파일로 만든 것으로 보입니다."
+        },
+        "album_missing_tracks": {
+          "label": "첫 트랙 또는 마지막 트랙 누락",
+          "help": "파일의 트랙 번호와 총 개수로 보아 디스크의 첫 트랙이나 마지막 트랙, 또는 디스크 전체가 없습니다."
         }
       },
       "phantoms": {
@@ -1213,13 +1217,17 @@
       "artist": "아티스트",
       "album": "앨범",
       "year": "연도",
-      "genre": "장르"
+      "genre": "장르",
+      "albumArtist": "앨범 아티스트",
+      "composer": "작곡가"
     },
     "placeholders": {
       "artist": "예: Daft Punk, Justice",
       "album": "앨범 이름",
       "year": "예: 2026",
-      "genre": "예: Electronic; Ambient"
+      "genre": "예: Electronic; Ambient",
+      "albumArtist": "예: Daft Punk",
+      "composer": "예: Maurice Ravel"
     },
     "result": {
       "updated": "{{count}}곡 업데이트됨",
@@ -1273,7 +1281,9 @@
       "trackNumber": "트랙 번호",
       "discNumber": "디스크 번호",
       "genre": "장르",
-      "genrePlaceholder": "팝; 록; 재즈…"
+      "genrePlaceholder": "팝; 록; 재즈…",
+      "albumArtist": "앨범 아티스트",
+      "composer": "작곡가"
     },
     "changeCover": "커버 변경",
     "suggestions": {
@@ -1312,7 +1322,10 @@
     "emptyTracksTitle": "곡 없음",
     "emptyTracksDescription": "이 앨범에는 수록된 곡이 없습니다.",
     "setMotionCover": "모션 커버",
-    "fetchTags": "태그 가져오기"
+    "fetchTags": "태그 가져오기",
+    "missingTracks": "누락된 트랙: {{list}}",
+    "missingDiscTracks": "디스크 {{disc}} — 누락된 트랙: {{list}}",
+    "missingDiscs": "누락된 디스크: {{list}}"
   },
   "artistDetail": {
     "badge": "아티스트",
@@ -2885,7 +2898,30 @@
     "localStations": "지역 방송국",
     "browseByCountry": "국가별 보기",
     "localCatalogue": "로컬 카탈로그",
-    "localCatalogueHint": "다운로드한 카탈로그를 탐색하고 검색합니다."
+    "localCatalogueHint": "다운로드한 카탈로그를 탐색하고 검색합니다.",
+    "addStation": {
+      "button": "방송국 추가",
+      "title": "방송국 추가",
+      "renameTitle": "방송국 이름 바꾸기",
+      "rename": "{{name}} 이름 바꾸기",
+      "help": "스트림 주소나 .m3u / .pls 재생 목록 주소를 붙여 넣거나, 그런 파일을 여세요. 방송국은 즐겨찾기에 추가됩니다.",
+      "urlLabel": "스트림 주소",
+      "openFile": ".m3u / .pls 파일 열기",
+      "nameLabel": "이름",
+      "namePlaceholder": "비워 두면 방송국 이름",
+      "checking": "확인 중…",
+      "add": "추가",
+      "save": "저장",
+      "errors": {
+        "notHttp": "http:// 및 https:// 주소만 사용할 수 있습니다.",
+        "offline": "오프라인 모드가 켜져 있습니다.",
+        "unreachable": "이 주소에서 방송국이 응답하지 않습니다.",
+        "notAudio": "이 주소는 오디오 스트림으로 연결되지 않습니다.",
+        "hls": "HLS 재생 목록입니다. 연속 스트림만 지원합니다.",
+        "noStream": "재생 목록에 http:// 또는 https:// 스트림이 없습니다.",
+        "notSaved": "즐겨찾기를 아직 불러오지 못했습니다. 잠시 후 다시 시도하세요."
+      }
+    }
   },
   "artistMetadataEditor": {
     "title": "메타데이터 편집",

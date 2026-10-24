@@ -713,6 +713,10 @@
         "probable_fake_lossless": {
           "label": "Probables falsos lossless",
           "help": "Archivos sin pérdida cuyos agudos se cortan como los de un MP3: probablemente creados a partir de un archivo con pérdida."
+        },
+        "album_missing_tracks": {
+          "label": "Faltan las primeras o últimas pistas",
+          "help": "A un disco le falta la primera o la última pista, o falta un disco entero, según la numeración y los totales que llevan los archivos."
         }
       },
       "phantoms": {
@@ -1260,13 +1264,17 @@
       "artist": "Artista",
       "album": "Álbum",
       "year": "Año",
-      "genre": "Género"
+      "genre": "Género",
+      "albumArtist": "Artista del álbum",
+      "composer": "Compositor"
     },
     "placeholders": {
       "artist": "p. ej. Daft Punk, Justice",
       "album": "Nombre del álbum",
       "year": "p. ej. 2026",
-      "genre": "p. ej. Electrónica; Ambient"
+      "genre": "p. ej. Electrónica; Ambient",
+      "albumArtist": "p. ej. Daft Punk",
+      "composer": "p. ej. Maurice Ravel"
     },
     "result": {
       "updated": "{{count}} pista(s) actualizada(s)",
@@ -1320,7 +1328,9 @@
       "trackNumber": "N.º de pista",
       "discNumber": "N.º de disco",
       "genre": "Género",
-      "genrePlaceholder": "Pop; Rock; Jazz…"
+      "genrePlaceholder": "Pop; Rock; Jazz…",
+      "albumArtist": "Artista del álbum",
+      "composer": "Compositor"
     },
     "changeCover": "Cambiar portada",
     "suggestions": {
@@ -1361,7 +1371,10 @@
     "emptyTracksTitle": "Sin pistas",
     "emptyTracksDescription": "Este álbum no contiene pistas disponibles.",
     "setMotionCover": "Portada animada",
-    "fetchTags": "Obtener etiquetas"
+    "fetchTags": "Obtener etiquetas",
+    "missingTracks": "Pistas que faltan: {{list}}",
+    "missingDiscTracks": "Disco {{disc}} — pistas que faltan: {{list}}",
+    "missingDiscs": "Discos que faltan: {{list}}"
   },
   "artistDetail": {
     "badge": "Artista",
@@ -2956,7 +2969,30 @@
     "localStations": "Emisoras locales",
     "browseByCountry": "Explorar por país",
     "localCatalogue": "Catálogo local",
-    "localCatalogueHint": "Explorando y buscando en el catálogo descargado."
+    "localCatalogueHint": "Explorando y buscando en el catálogo descargado.",
+    "addStation": {
+      "button": "Añadir una emisora",
+      "title": "Añadir una emisora",
+      "renameTitle": "Renombrar la emisora",
+      "rename": "Renombrar {{name}}",
+      "help": "Pega la dirección del flujo, o la de una lista .m3u / .pls, o abre ese archivo. La emisora se añade a tus favoritos.",
+      "urlLabel": "Dirección del flujo",
+      "openFile": "Abrir un archivo .m3u / .pls",
+      "nameLabel": "Nombre",
+      "namePlaceholder": "El de la emisora, si lo dejas vacío",
+      "checking": "Comprobando…",
+      "add": "Añadir",
+      "save": "Guardar",
+      "errors": {
+        "notHttp": "Solo se aceptan direcciones http:// y https://.",
+        "offline": "El modo sin conexión está activado.",
+        "unreachable": "La emisora no responde en esta dirección.",
+        "notAudio": "Esta dirección no lleva a un flujo de audio.",
+        "hls": "Es una lista HLS: solo se admiten flujos continuos.",
+        "noStream": "La lista no contiene ningún flujo http:// o https://.",
+        "notSaved": "Tus favoritos aún no se han cargado; inténtalo de nuevo en un momento."
+      }
+    }
   },
   "artistMetadataEditor": {
     "title": "Editar metadatos",

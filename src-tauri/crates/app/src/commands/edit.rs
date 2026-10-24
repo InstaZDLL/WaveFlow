@@ -35,6 +35,7 @@ use serde::Deserialize;
 use sqlx::SqlitePool;
 use tauri::{AppHandle, Emitter};
 
+use waveflow_core::scanner::extra_tags::{stored_value, COMPOSER_KEY};
 use waveflow_core::scanner::{
     canonical_name, split_artist_name, split_genres, upsert_album, upsert_artist, upsert_artwork,
     upsert_genre, ArtworkSource,
@@ -108,6 +109,16 @@ pub struct TrackEdit {
     /// `split_genres` so the file and the database read it the same way
     /// (#729). Empty clears them.
     pub genre: Option<String>,
+    /// The Album Artist (`TPE2` / `ALBUMARTIST` / `aART`). Kept whole,
+    /// as the scanner keeps it — `resolve_album_artist` upserts the name
+    /// verbatim — because it names the album's artist, not a list of
+    /// credits. It decides which album the track is grouped into, so a
+    /// change moves the track (see [`sync_db`]). Empty clears it.
+    pub album_artist: Option<String>,
+    /// The composer (`TCOM` / `COMPOSER` / `©wrt`), stored in `track_tag`
+    /// under [`COMPOSER_KEY`] — the row the scanner fills from the same
+    /// frame. Empty clears it.
+    pub composer: Option<String>,
 }
 
 /// Refuse an edit the file and the database could not agree on.
@@ -703,6 +714,20 @@ fn apply_patch(tag: &mut lofty::tag::Tag, patch: &TagPatch<'_>) {
             ));
         }
     }
+    // Removed first in both cases, so a second value another tagger left
+    // under the same key cannot outlive the one the user replaced.
+    if let Some(aa) = edit.album_artist.as_ref() {
+        tag.remove_key(ItemKey::AlbumArtist);
+        if !aa.trim().is_empty() {
+            tag.insert_text(ItemKey::AlbumArtist, aa.trim().to_string());
+        }
+    }
+    if let Some(c) = edit.composer.as_ref() {
+        tag.remove_key(ItemKey::Composer);
+        if !c.trim().is_empty() {
+            tag.insert_text(ItemKey::Composer, c.trim().to_string());
+        }
+    }
 }
 
 /// Write the rating into an ID3v2 tag as the frame it is.
@@ -889,6 +914,20 @@ fn apply_patch_id3(tag: &mut id3::Tag, patch: &TagPatch<'_>) {
         } else {
             // One TCON, its values NUL-separated, as the lofty side writes.
             tag.set_text_values("TCON", names);
+        }
+    }
+    if let Some(aa) = edit.album_artist.as_ref() {
+        if aa.trim().is_empty() {
+            tag.remove_album_artist();
+        } else {
+            tag.set_album_artist(aa.trim());
+        }
+    }
+    if let Some(c) = edit.composer.as_ref() {
+        if c.trim().is_empty() {
+            tag.remove("TCOM");
+        } else {
+            tag.set_text("TCOM", c.trim());
         }
     }
 }
@@ -1368,8 +1407,33 @@ async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) -> AppResul
     // Resolve album similarly. Needs the (possibly new) primary
     // artist; falls back to the existing one when the user didn't
     // edit the artist field.
-    let new_album_id: Option<Option<i64>> = if let Some(album_title) = edit.album.as_ref() {
-        let title = album_title.trim();
+    //
+    // The album the track is in now: its title, Album Artist and
+    // compilation flag, which a relink carries over unless the edit
+    // replaces them.
+    let current_album: Option<(String, Option<String>, i64)> = sqlx::query_as(
+        "SELECT al.title, al.album_artist, al.is_compilation
+           FROM track t
+           JOIN album al ON al.id = t.album_id
+          WHERE t.id = ?",
+    )
+    .bind(track_id)
+    .fetch_optional(&mut *tx)
+    .await?;
+    // An edited Album Artist relinks the track even with the title left
+    // alone: albums are keyed on `(canonical_title, album artist)`, so a
+    // new album artist is a different album — the one a rescan of the
+    // file it now tags would put it in. The title is then the current
+    // album's; a track in no album has nothing to regroup, and the
+    // value lives in the file alone.
+    let album_title: Option<String> = match edit.album.as_ref() {
+        Some(title) => Some(title.trim().to_string()),
+        None if edit.album_artist.is_some() => {
+            current_album.as_ref().map(|(title, _, _)| title.clone())
+        }
+        None => None,
+    };
+    let new_album_id: Option<Option<i64>> = if let Some(title) = album_title {
         if title.is_empty() {
             Some(None)
         } else {
@@ -1393,32 +1457,73 @@ async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) -> AppResul
             // upsert_album would fall back to the track's primary
             // artist for grouping, re-introducing the v1.0 split-on-
             // featuring bug for the renamed row.
-            let (carried_album_artist, carried_is_compilation) =
-                sqlx::query_as::<_, (Option<String>, i64)>(
-                    "SELECT al.album_artist, al.is_compilation
-                   FROM track t
-                   LEFT JOIN album al ON al.id = t.album_id
-                  WHERE t.id = ?",
-                )
-                .bind(track_id)
-                .fetch_optional(&mut *tx)
-                .await?
-                .map(|(aa, cmp)| (aa, cmp == 1))
+            //
+            // An Album Artist the edit names replaces the carried one,
+            // and an emptied one leaves the grouping to the same
+            // fallback the scanner uses: the compilation flag, then the
+            // track's first artist.
+            //
+            // The flag is carried only when the edit names no Album
+            // Artist. It may be the left album's own — a TCMP, or a
+            // `merge_implicit_compilations` verdict on tracks that had no
+            // Album Artist — and is sticky wherever it lands, so carried
+            // onto "Queen" it would make (greatest hits, Queen) a
+            // compilation for good: a state no scan of the retagged files
+            // builds, and one the scanner's "existing compilation of this
+            // title" fallback would then hand other artists' tracks. A
+            // file that does carry TCMP gets it back on its next scan.
+            let (carried_album_artist, carried_is_compilation) = current_album
+                .as_ref()
+                .map(|(_, aa, cmp)| (aa.clone(), *cmp == 1))
                 .unwrap_or((None, false));
+            let named_album_artist = edit
+                .album_artist
+                .as_deref()
+                .map(str::trim)
+                .filter(|v| !v.is_empty());
+            let (album_artist, is_compilation) = match edit.album_artist.as_ref() {
+                Some(_) => (
+                    named_album_artist,
+                    carried_is_compilation && named_album_artist.is_none(),
+                ),
+                None => (carried_album_artist.as_deref(), carried_is_compilation),
+            };
             // upsert_album now takes &mut SqliteConnection, so we
             // can call it directly inside the open transaction —
             // no commit/reopen dance needed.
             let aid = upsert_album(
                 &mut tx,
-                title,
-                carried_album_artist.as_deref(),
-                carried_is_compilation,
+                &title,
+                album_artist,
+                is_compilation,
                 aid,
                 edit.year,
             )
             .await?;
             if let Some(id) = aid {
-                respell(&mut tx, Respell::Album, id, title).await?;
+                if edit.album.is_some() {
+                    respell(&mut tx, Respell::Album, id, &title).await?;
+                }
+                // The spelling typed, on the album and on its artist —
+                // the respell every other edited name gets. The album's
+                // own `COALESCE` keeps the first spelling it saw, so
+                // without this "the beatles" typed over "The Beatles"
+                // reached the file and nothing on screen.
+                if let Some(name) = named_album_artist {
+                    sqlx::query("UPDATE album SET album_artist = ? WHERE id = ?")
+                        .bind(name)
+                        .bind(id)
+                        .execute(&mut *tx)
+                        .await?;
+                    let artist_id: Option<i64> =
+                        sqlx::query_scalar("SELECT artist_id FROM album WHERE id = ?")
+                            .bind(id)
+                            .fetch_one(&mut *tx)
+                            .await?;
+                    if let Some(artist_id) = artist_id {
+                        respell(&mut tx, Respell::Artist, artist_id, name).await?;
+                    }
+                }
             }
             Some(aid)
         }
@@ -1482,6 +1587,36 @@ async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) -> AppResul
         q.execute(&mut *tx).await?;
     }
 
+    // A track moved by its Album Artist alone into an album this edit
+    // created takes the cover of the one it left: same title, same
+    // record. The new row starts without artwork, and the file's embedded
+    // picture only reaches it on the next scan — so fixing the Album
+    // Artist of a whole record left it coverless until then. Only into an
+    // album holding no other track and no cover of its own: an existing
+    // album keeps what it has. Never on a rename, where the album left is
+    // another record — its cover, and a `manual` source no scan
+    // overrides, would stick to the wrong album.
+    let moved_by_album_artist = edit.album.is_none() && edit.album_artist.is_some();
+    if let (true, Some(Some(new_id)), Some(old_id)) =
+        (moved_by_album_artist, new_album_id, old_album_id)
+    {
+        if new_id != old_id {
+            sqlx::query(
+                "UPDATE album
+                    SET artwork_id = (SELECT artwork_id FROM album WHERE id = ?1),
+                        artwork_source = (SELECT artwork_source FROM album WHERE id = ?1)
+                  WHERE id = ?2
+                    AND artwork_id IS NULL
+                    AND NOT EXISTS (SELECT 1 FROM track WHERE album_id = ?2 AND id <> ?3)",
+            )
+            .bind(old_id)
+            .bind(new_id)
+            .bind(track_id)
+            .execute(&mut *tx)
+            .await?;
+        }
+    }
+
     // Replace track_artist links when the user touched the artist
     // field. Empty list → no rows (the track stays available, just
     // with no linked artists which the UI will render as "—").
@@ -1519,6 +1654,25 @@ async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) -> AppResul
                     .execute(&mut *tx)
                     .await?;
             }
+        }
+    }
+
+    // The composer lives beside the track, in the row the scanner fills
+    // from the same frame, under the same key and cut to the same length
+    // — so the next scan of the file finds what this wrote.
+    if let Some(c) = edit.composer.as_ref() {
+        sqlx::query("DELETE FROM track_tag WHERE track_id = ? AND key = ?")
+            .bind(track_id)
+            .bind(COMPOSER_KEY)
+            .execute(&mut *tx)
+            .await?;
+        if let Some(value) = stored_value(c) {
+            sqlx::query("INSERT INTO track_tag (track_id, key, value) VALUES (?, ?, ?)")
+                .bind(track_id)
+                .bind(COMPOSER_KEY)
+                .bind(value)
+                .execute(&mut *tx)
+                .await?;
         }
     }
 
@@ -1757,6 +1911,8 @@ mod patch_agreement_tests {
             track_number: Some(4),
             disc_number: Some(2),
             genre: Some(" Jazz ; Trip Hop".into()),
+            album_artist: Some("  The Album Artist ".into()),
+            composer: Some(" A Composer".into()),
         }
     }
 
@@ -1770,6 +1926,8 @@ mod patch_agreement_tests {
             track_number: Some(0),
             disc_number: Some(0),
             genre: Some("  ".into()),
+            album_artist: Some(" ".into()),
+            composer: Some(String::new()),
         }
     }
 
@@ -1783,6 +1941,8 @@ mod patch_agreement_tests {
         track: Option<u32>,
         disc: Option<u32>,
         genres: Vec<String>,
+        album_artist: Option<String>,
+        composer: Option<String>,
     }
 
     fn through_lofty(edit: &TrackEdit) -> Fields {
@@ -1800,6 +1960,12 @@ mod patch_agreement_tests {
                 .get_strings(lofty::tag::ItemKey::Genre)
                 .map(str::to_string)
                 .collect(),
+            album_artist: tag
+                .get_string(lofty::tag::ItemKey::AlbumArtist)
+                .map(str::to_string),
+            composer: tag
+                .get_string(lofty::tag::ItemKey::Composer)
+                .map(str::to_string),
         }
     }
 
@@ -1820,6 +1986,11 @@ mod patch_agreement_tests {
                 .into_iter()
                 .map(str::to_string)
                 .collect(),
+            album_artist: tag.album_artist().map(str::to_string),
+            composer: tag
+                .get("TCOM")
+                .and_then(|f| f.content().text())
+                .map(str::to_string),
         }
     }
 
@@ -1834,6 +2005,8 @@ mod patch_agreement_tests {
         assert_eq!(written, through_id3(&edit));
         // Two genres, each its own value, trimmed (#729).
         assert_eq!(written.genres, ["Jazz", "Trip Hop"]);
+        assert_eq!(written.album_artist.as_deref(), Some("The Album Artist"));
+        assert_eq!(written.composer.as_deref(), Some("A Composer"));
     }
 
     #[test]
@@ -1848,6 +2021,8 @@ mod patch_agreement_tests {
         assert_eq!(cleared.year, None);
         assert_eq!(cleared.track, None);
         assert!(cleared.genres.is_empty());
+        assert_eq!(cleared.album_artist, None);
+        assert_eq!(cleared.composer, None);
     }
 
     #[test]
@@ -2332,6 +2507,133 @@ mod patch_agreement_tests {
     }
 }
 
+/// The Album Artist and the composer, written into real files of the three
+/// families the scanner reads them from, and read back the way the scan
+/// reads them. Every test works on a copy in a temporary directory.
+#[cfg(test)]
+mod album_artist_and_composer_files {
+    use super::*;
+    use std::path::{Path, PathBuf};
+
+    fn copy_fixture(name: &str) -> (tempfile::TempDir, PathBuf) {
+        let source = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("tests/fixtures/tags")
+            .join(name);
+        let dir = tempfile::tempdir().expect("tempdir");
+        let path = dir.path().join(name);
+        std::fs::copy(&source, &path).expect("copy fixture");
+        (dir, path)
+    }
+
+    /// `(album artist, composer)` as the next scan of `path` would store
+    /// them: the first through the scanner's own extractor, the second
+    /// through the custom-tag reader that fills `track_tag`.
+    fn scanned(path: &Path) -> (Option<String>, Option<String>) {
+        use lofty::file::TaggedFileExt;
+        let tagged = lofty::read_from_path(path).expect("read back");
+        let album_artist = tagged
+            .primary_tag()
+            .or_else(|| tagged.first_tag())
+            .and_then(waveflow_core::scanner::extract_album_artist);
+        let composer = waveflow_core::scanner::extra_tags::read_extra_tags(path)
+            .expect("custom tags")
+            .into_iter()
+            .find(|(key, _)| key == COMPOSER_KEY)
+            .map(|(_, value)| value);
+        (album_artist, composer)
+    }
+
+    fn round_trip(name: &str) {
+        let (_dir, path) = copy_fixture(name);
+        let set = TrackEdit {
+            title: Some("Bolero".into()),
+            album_artist: Some("  Orchestre National; de Lyon ".into()),
+            composer: Some(" Maurice Ravel ".into()),
+            ..Default::default()
+        };
+        write_tags_to_file(&path, &set).expect("write");
+        assert_eq!(
+            scanned(&path),
+            (
+                // Whole, not split: it names the album's artist.
+                Some("Orchestre National; de Lyon".to_string()),
+                Some("Maurice Ravel".to_string())
+            ),
+            "{name}: what was written is what the scan reads"
+        );
+
+        // A save that names neither leaves both alone.
+        let title_only = TrackEdit {
+            title: Some("Boléro".into()),
+            ..Default::default()
+        };
+        write_tags_to_file(&path, &title_only).expect("write");
+        assert_eq!(
+            scanned(&path).0.as_deref(),
+            Some("Orchestre National; de Lyon"),
+            "{name}: a title-only save kept the album artist"
+        );
+
+        let cleared = TrackEdit {
+            album_artist: Some("   ".into()),
+            composer: Some(String::new()),
+            ..Default::default()
+        };
+        write_tags_to_file(&path, &cleared).expect("write");
+        assert_eq!(scanned(&path), (None, None), "{name}: both cleared");
+    }
+
+    #[test]
+    fn an_id3v2_file_round_trips_both_fields() {
+        round_trip("silence.mp3");
+    }
+
+    #[test]
+    fn a_flac_file_round_trips_both_fields() {
+        round_trip("silence.flac");
+    }
+
+    #[test]
+    fn an_mp4_file_round_trips_both_fields() {
+        round_trip("silence.m4a");
+    }
+
+    /// The comments the concrete-tag route exists to keep: an edit of the
+    /// two new fields must not take a custom one with it.
+    #[test]
+    fn a_flac_custom_comment_survives_the_edit() {
+        let (_dir, path) = copy_fixture("silence.flac");
+        {
+            // Seeded through the comments' own writer, which leaves the
+            // rest of the file alone.
+            use lofty::config::{ParseOptions, WriteOptions};
+            use lofty::file::AudioFile;
+            use lofty::tag::TagExt;
+            let mut file = std::fs::File::open(&path).unwrap();
+            let flac = lofty::flac::FlacFile::read_from(&mut file, ParseOptions::new()).unwrap();
+            drop(file);
+            let mut comments = flac.vorbis_comments().cloned().unwrap_or_default();
+            comments.push("CATALOGNUMBER".into(), "WF-001".into());
+            comments
+                .save_to_path(&path, WriteOptions::default())
+                .unwrap();
+        }
+        let edit = TrackEdit {
+            album_artist: Some("Someone".into()),
+            composer: Some("Someone Else".into()),
+            ..Default::default()
+        };
+        write_tags_to_file(&path, &edit).expect("write");
+        let extra = waveflow_core::scanner::extra_tags::read_extra_tags(&path).unwrap();
+        assert!(
+            extra
+                .iter()
+                .any(|(k, v)| k == "CATALOGNUMBER" && v == "WF-001"),
+            "custom comment lost: {extra:?}"
+        );
+    }
+}
+
 #[cfg(test)]
 mod sync_db_tests {
     use super::*;
@@ -2386,7 +2688,308 @@ mod sync_db_tests {
             track_number: None,
             disc_number: None,
             genre: None,
+            album_artist: None,
+            composer: None,
         }
+    }
+
+    /// `(album id, album artist id, album_artist text, is_compilation)`
+    /// of the album track `id` sits in.
+    async fn album_of(pool: &SqlitePool, id: i64) -> (i64, Option<i64>, Option<String>, i64) {
+        sqlx::query_as(
+            "SELECT al.id, al.artist_id, al.album_artist, al.is_compilation
+               FROM track t JOIN album al ON al.id = t.album_id
+              WHERE t.id = ?",
+        )
+        .bind(id)
+        .fetch_one(pool)
+        .await
+        .unwrap()
+    }
+
+    /// A second track of "the wall", and a cover on the album.
+    async fn with_a_second_track_and_a_cover(pool: &SqlitePool) {
+        for statement in [
+            "INSERT INTO artwork (id, hash, format, source, created_at)
+             VALUES (1, 'cover', 'jpg', 'embedded', 0)",
+            "UPDATE album SET artwork_id = 1, artwork_source = 'embedded' WHERE id = 1",
+            "INSERT INTO track (id, library_id, file_path, file_hash, file_size, file_modified,
+                                title, album_id, duration_ms, added_at, is_available, year,
+                                track_number, hlc_wall, hlc_logical, rating_hlc_wall,
+                                rating_hlc_logical)
+             VALUES (2, 1, '/m/2.flac', 'h2', 1, 0, 'The Thin Ice', 1, 1000, 0, 1, 1979, 2,
+                     0, 0, 0, 0)",
+            "UPDATE track SET primary_artist = 1 WHERE id = 2",
+            "INSERT INTO track_artist (track_id, artist_id, position) VALUES (2, 1, 0)",
+        ] {
+            sqlx::raw_sql(statement).execute(pool).await.unwrap();
+        }
+    }
+
+    /// An Album Artist is part of what an album is, so setting one moves
+    /// the track — into the album a rescan of the file would build, and the
+    /// rest of the record follows it there rather than into a second one.
+    #[tokio::test]
+    async fn an_album_artist_moves_the_track_to_that_album() {
+        let pool = pool().await;
+        with_a_second_track_and_a_cover(&pool).await;
+        let fix = TrackEdit {
+            album_artist: Some("Roger Waters".into()),
+            ..edit()
+        };
+
+        sync_db(&pool, 1, &fix).await.unwrap();
+        let (moved, artist_id, text, _) = album_of(&pool, 1).await;
+        assert_ne!(moved, 1, "a new album artist is a new album");
+        let name: String = sqlx::query_scalar("SELECT name FROM artist WHERE id = ?")
+            .bind(artist_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(name, "Roger Waters");
+        assert_eq!(text.as_deref(), Some("Roger Waters"));
+        assert_eq!(album_of(&pool, 2).await.0, 1, "the other track stays");
+        let (title, cover, year): (String, Option<i64>, Option<i64>) =
+            sqlx::query_as("SELECT title, artwork_id, year FROM album WHERE id = ?")
+                .bind(moved)
+                .fetch_one(&pool)
+                .await
+                .unwrap();
+        assert_eq!(title, "the wall", "the title is the album's own");
+        assert_eq!(cover, Some(1), "the new album took the old one's cover");
+        assert_eq!(year, Some(1979));
+
+        sync_db(&pool, 2, &fix).await.unwrap();
+        assert_eq!(album_of(&pool, 2).await.0, moved, "one album, not two");
+
+        // The same album a scan of the retagged file resolves.
+        let mut conn = pool.acquire().await.unwrap();
+        let scanned = upsert_album(
+            &mut conn,
+            "the wall",
+            Some("Roger Waters"),
+            false,
+            Some(1),
+            None,
+        )
+        .await
+        .unwrap();
+        assert_eq!(scanned, Some(moved));
+    }
+
+    /// Emptied, the grouping falls back as the scanner's does: back to the
+    /// track's first artist — the album it came from.
+    #[tokio::test]
+    async fn clearing_the_album_artist_falls_back_to_the_first_artist() {
+        let pool = pool().await;
+        sync_db(
+            &pool,
+            1,
+            &TrackEdit {
+                album_artist: Some("Roger Waters".into()),
+                ..edit()
+            },
+        )
+        .await
+        .unwrap();
+        assert_ne!(album_of(&pool, 1).await.0, 1);
+
+        sync_db(
+            &pool,
+            1,
+            &TrackEdit {
+                album_artist: Some("  ".into()),
+                ..edit()
+            },
+        )
+        .await
+        .unwrap();
+        assert_eq!(album_of(&pool, 1).await, (1, Some(1), None, 0));
+    }
+
+    /// A named Album Artist does not inherit the compilation flag of the
+    /// album the track left — no scan of the retagged file would set it,
+    /// and it is sticky wherever it lands.
+    #[tokio::test]
+    async fn a_named_album_artist_leaves_the_compilation_flag_behind() {
+        let pool = pool().await;
+        sqlx::raw_sql("UPDATE album SET is_compilation = 1 WHERE id = 1")
+            .execute(&pool)
+            .await
+            .unwrap();
+        sync_db(
+            &pool,
+            1,
+            &TrackEdit {
+                album_artist: Some("Various".into()),
+                ..edit()
+            },
+        )
+        .await
+        .unwrap();
+        let (id, _, text, compilation) = album_of(&pool, 1).await;
+        assert_ne!(id, 1);
+        assert_eq!(text.as_deref(), Some("Various"));
+        assert_eq!(compilation, 0);
+        let left: i64 = sqlx::query_scalar("SELECT is_compilation FROM album WHERE id = 1")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(left, 1, "the album left keeps its own flag");
+    }
+
+    /// A rename moves the track into another record, whose cover is not
+    /// the one of the album it left.
+    #[tokio::test]
+    async fn a_rename_does_not_carry_the_cover() {
+        let pool = pool().await;
+        with_a_second_track_and_a_cover(&pool).await;
+        sync_db(
+            &pool,
+            1,
+            &TrackEdit {
+                album: Some("Animals".into()),
+                ..edit()
+            },
+        )
+        .await
+        .unwrap();
+        let (moved, ..) = album_of(&pool, 1).await;
+        assert_ne!(moved, 1);
+        let cover: Option<i64> = sqlx::query_scalar("SELECT artwork_id FROM album WHERE id = ?")
+            .bind(moved)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(cover, None);
+    }
+
+    /// Renaming the album and setting its artist in one save lands on the
+    /// album both name, and an existing cover is never overwritten.
+    #[tokio::test]
+    async fn a_rename_and_an_album_artist_in_one_save() {
+        let pool = pool().await;
+        with_a_second_track_and_a_cover(&pool).await;
+        sqlx::raw_sql(
+            "INSERT INTO artwork (id, hash, format, source, created_at)
+             VALUES (2, 'other', 'jpg', 'embedded', 0);
+             INSERT INTO artist (id, name, canonical_name) VALUES (2, 'Roger Waters', 'roger waters');
+             INSERT INTO album (id, title, canonical_title, artist_id, album_artist,
+                                is_compilation, artwork_id)
+             VALUES (2, 'The Wall Live', 'the wall live', 2, 'Roger Waters', 0, 2);",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        sync_db(
+            &pool,
+            1,
+            &TrackEdit {
+                album: Some("The Wall (Live)".into()),
+                album_artist: Some("roger waters".into()),
+                ..edit()
+            },
+        )
+        .await
+        .unwrap();
+        let (id, artist_id, text, _) = album_of(&pool, 1).await;
+        assert_eq!(
+            (id, artist_id),
+            (2, Some(2)),
+            "the existing album both name"
+        );
+        // The spelling typed reaches the album and its artist.
+        assert_eq!(text.as_deref(), Some("roger waters"));
+        let cover: Option<i64> = sqlx::query_scalar("SELECT artwork_id FROM album WHERE id = 2")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(cover, Some(2), "an existing album keeps its cover");
+    }
+
+    /// A track in no album has nothing to regroup: the value is the file's.
+    #[tokio::test]
+    async fn an_album_artist_on_a_track_without_an_album_moves_nothing() {
+        let pool = pool().await;
+        sqlx::raw_sql("UPDATE track SET album_id = NULL WHERE id = 1")
+            .execute(&pool)
+            .await
+            .unwrap();
+        sync_db(
+            &pool,
+            1,
+            &TrackEdit {
+                album_artist: Some("Roger Waters".into()),
+                ..edit()
+            },
+        )
+        .await
+        .unwrap();
+        let album: Option<i64> = sqlx::query_scalar("SELECT album_id FROM track WHERE id = 1")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(album, None);
+        let albums: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM album")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(albums, 1, "no album was created for it");
+    }
+
+    /// The composer lands in the row the scanner fills, whatever case an
+    /// earlier scan stored its key in, and clearing it removes the row.
+    #[tokio::test]
+    async fn the_composer_reaches_the_scanned_row() {
+        let pool = pool().await;
+        sqlx::raw_sql(
+            "INSERT INTO track_tag (track_id, key, value) VALUES (1, 'Composer', 'old');
+             INSERT INTO track_tag (track_id, key, value) VALUES (1, 'ISRC', 'GBN9Y1100088');",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        let tags = |pool: SqlitePool| async move {
+            sqlx::query_as::<_, (String, String)>(
+                "SELECT key, value FROM track_tag WHERE track_id = 1 ORDER BY key",
+            )
+            .fetch_all(&pool)
+            .await
+            .unwrap()
+        };
+
+        sync_db(
+            &pool,
+            1,
+            &TrackEdit {
+                composer: Some("  Roger Waters ".into()),
+                ..edit()
+            },
+        )
+        .await
+        .unwrap();
+        assert_eq!(
+            tags(pool.clone()).await,
+            [
+                ("COMPOSER".to_string(), "Roger Waters".to_string()),
+                ("ISRC".to_string(), "GBN9Y1100088".to_string()),
+            ]
+        );
+
+        sync_db(
+            &pool,
+            1,
+            &TrackEdit {
+                composer: Some(" ".into()),
+                ..edit()
+            },
+        )
+        .await
+        .unwrap();
+        assert_eq!(
+            tags(pool.clone()).await,
+            [("ISRC".to_string(), "GBN9Y1100088".to_string())]
+        );
     }
 
     /// Case and punctuation fixes resolve to the same rows through the

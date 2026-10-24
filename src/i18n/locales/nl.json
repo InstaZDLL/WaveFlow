@@ -682,6 +682,10 @@
         "probable_fake_lossless": {
           "label": "Waarschijnlijk nep-lossless",
           "help": "Lossless bestanden waarvan de hoge tonen stoppen zoals bij een MP3: waarschijnlijk gemaakt van een lossy bestand."
+        },
+        "album_missing_tracks": {
+          "label": "Eerste of laatste nummers ontbreken",
+          "help": "Een schijf mist het eerste of laatste nummer, of er ontbreekt een hele schijf, volgens de nummering en de totalen in de bestanden."
         }
       },
       "phantoms": {
@@ -1215,13 +1219,17 @@
       "artist": "Artiest",
       "album": "Album",
       "year": "Jaar",
-      "genre": "Genre"
+      "genre": "Genre",
+      "albumArtist": "Albumartiest",
+      "composer": "Componist"
     },
     "placeholders": {
       "artist": "bv. Daft Punk, Justice",
       "album": "Naam van het album",
       "year": "bv. 2026",
-      "genre": "bv. Electronic; Ambient"
+      "genre": "bv. Electronic; Ambient",
+      "albumArtist": "bv. Daft Punk",
+      "composer": "bv. Maurice Ravel"
     },
     "result": {
       "updated": "{{count}} nummer(s) bijgewerkt",
@@ -1275,7 +1283,9 @@
       "trackNumber": "Tracknr.",
       "discNumber": "Discnr.",
       "genre": "Genre",
-      "genrePlaceholder": "Pop; Rock; Jazz…"
+      "genrePlaceholder": "Pop; Rock; Jazz…",
+      "albumArtist": "Albumartiest",
+      "composer": "Componist"
     },
     "changeCover": "Albumhoes wijzigen",
     "suggestions": {
@@ -1314,7 +1324,10 @@
     "emptyTracksTitle": "Geen nummers",
     "emptyTracksDescription": "Dit album bevat geen beschikbare nummers.",
     "setMotionCover": "Bewegende hoes",
-    "fetchTags": "Tags ophalen"
+    "fetchTags": "Tags ophalen",
+    "missingTracks": "Ontbrekende nummers: {{list}}",
+    "missingDiscTracks": "Schijf {{disc}} — ontbrekende nummers: {{list}}",
+    "missingDiscs": "Ontbrekende schijven: {{list}}"
   },
   "artistDetail": {
     "badge": "Artiest",
@@ -2887,7 +2900,30 @@
     "localStations": "Lokale zenders",
     "browseByCountry": "Bladeren per land",
     "localCatalogue": "Lokale catalogus",
-    "localCatalogueHint": "Bladeren en zoeken in de gedownloade catalogus."
+    "localCatalogueHint": "Bladeren en zoeken in de gedownloade catalogus.",
+    "addStation": {
+      "button": "Zender toevoegen",
+      "title": "Zender toevoegen",
+      "renameTitle": "Zender hernoemen",
+      "rename": "{{name}} hernoemen",
+      "help": "Plak het adres van de stream of van een .m3u-/.pls-playlist, of open zo'n bestand. De zender komt bij je favorieten.",
+      "urlLabel": "Streamadres",
+      "openFile": ".m3u-/.pls-bestand openen",
+      "nameLabel": "Naam",
+      "namePlaceholder": "Die van de zender, als je dit leeg laat",
+      "checking": "Controleren…",
+      "add": "Toevoegen",
+      "save": "Opslaan",
+      "errors": {
+        "notHttp": "Alleen http://- en https://-adressen worden geaccepteerd.",
+        "offline": "De offlinemodus staat aan.",
+        "unreachable": "De zender reageert niet op dit adres.",
+        "notAudio": "Dit adres leidt niet naar een audiostream.",
+        "hls": "Dit is een HLS-playlist: alleen doorlopende streams worden ondersteund.",
+        "noStream": "De playlist bevat geen http://- of https://-stream.",
+        "notSaved": "Je favorieten zijn nog niet geladen; probeer het zo opnieuw."
+      }
+    }
   },
   "artistMetadataEditor": {
     "title": "Metadata bewerken",

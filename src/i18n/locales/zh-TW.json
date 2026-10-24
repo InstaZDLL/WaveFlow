@@ -680,6 +680,10 @@
         "probable_fake_lossless": {
           "label": "疑似假無損",
           "help": "高頻像 MP3 一樣被截斷的無損檔案：可能由有損檔案轉換而來。"
+        },
+        "album_missing_tracks": {
+          "label": "缺少首尾曲目",
+          "help": "根據檔案中的編號和總數，某張碟片缺少第一首或最後一首曲目，或缺少整張碟片。"
         }
       },
       "phantoms": {
@@ -1213,13 +1217,17 @@
       "artist": "藝人",
       "album": "專輯",
       "year": "年份",
-      "genre": "曲風"
+      "genre": "曲風",
+      "albumArtist": "專輯藝人",
+      "composer": "作曲"
     },
     "placeholders": {
       "artist": "如 Daft Punk, Justice",
       "album": "專輯名稱",
       "year": "如 2026",
-      "genre": "如 Electronic; Ambient"
+      "genre": "如 Electronic; Ambient",
+      "albumArtist": "如 Daft Punk",
+      "composer": "如 Maurice Ravel"
     },
     "result": {
       "updated": "已更新 {{count}} 首",
@@ -1273,7 +1281,9 @@
       "trackNumber": "曲目編號",
       "discNumber": "碟片編號",
       "genre": "曲風",
-      "genrePlaceholder": "流行; 搖滾; 爵士…"
+      "genrePlaceholder": "流行; 搖滾; 爵士…",
+      "albumArtist": "專輯藝人",
+      "composer": "作曲"
     },
     "changeCover": "更換封面",
     "suggestions": {
@@ -1312,7 +1322,10 @@
     "emptyTracksTitle": "沒有任何曲目",
     "emptyTracksDescription": "這張專輯中沒有任何可供聆聽的曲目。",
     "setMotionCover": "動態封面",
-    "fetchTags": "取得標籤"
+    "fetchTags": "取得標籤",
+    "missingTracks": "缺少的曲目：{{list}}",
+    "missingDiscTracks": "碟片 {{disc}} — 缺少的曲目：{{list}}",
+    "missingDiscs": "缺少的碟片：{{list}}"
   },
   "artistDetail": {
     "badge": "藝人",
@@ -2885,7 +2898,30 @@
     "localStations": "當地電台",
     "browseByCountry": "依國家/地區瀏覽",
     "localCatalogue": "本機目錄",
-    "localCatalogueHint": "正在瀏覽和搜尋已下載的目錄。"
+    "localCatalogueHint": "正在瀏覽和搜尋已下載的目錄。",
+    "addStation": {
+      "button": "新增電台",
+      "title": "新增電台",
+      "renameTitle": "重新命名電台",
+      "rename": "重新命名 {{name}}",
+      "help": "貼上串流位址或 .m3u / .pls 播放清單的位址，或開啟此類檔案。電台會加入你的收藏。",
+      "urlLabel": "串流位址",
+      "openFile": "開啟 .m3u / .pls 檔案",
+      "nameLabel": "名稱",
+      "namePlaceholder": "留空則使用電台自己的名稱",
+      "checking": "正在檢查…",
+      "add": "新增",
+      "save": "儲存",
+      "errors": {
+        "notHttp": "只接受 http:// 和 https:// 位址。",
+        "offline": "離線模式已開啟。",
+        "unreachable": "此位址上的電台沒有回應。",
+        "notAudio": "此位址不指向音訊串流。",
+        "hls": "這是 HLS 播放清單：只支援連續的串流。",
+        "noStream": "播放清單中沒有 http:// 或 https:// 串流。",
+        "notSaved": "收藏尚未載入，請稍後再試。"
+      }
+    }
   },
   "artistMetadataEditor": {
     "title": "編輯中繼資料",

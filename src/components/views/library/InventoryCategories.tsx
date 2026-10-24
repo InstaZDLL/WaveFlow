@@ -6,6 +6,7 @@ import {
   FileWarning,
   Hash,
   ImageOff,
+  ListEnd,
   ListX,
   Mic2Icon,
   Split,
@@ -47,6 +48,7 @@ const ICONS: Record<string, typeof AlertTriangle> = {
   compilation_no_album_artist: Users,
   duplicate_track_number: ListX,
   track_number_gap: ListX,
+  album_missing_tracks: ListEnd,
   probable_duplicate: CopyCheck,
   phantom_artist: Split,
 };

@@ -1662,7 +1662,7 @@ pub async fn batch_fetch_missing_album_covers(
 /// earlier without making it sound, since DNS can answer differently at
 /// connect time. The redirect policy applies the same rule to each hop,
 /// which is where a public host would otherwise send us.
-fn is_public_http_url(url: &str) -> bool {
+pub(crate) fn is_public_http_url(url: &str) -> bool {
     let Ok(parsed) = reqwest::Url::parse(url) else {
         return false;
     };
@@ -1672,12 +1672,33 @@ fn is_public_http_url(url: &str) -> bool {
     match parsed.host() {
         Some(url::Host::Domain(name)) => {
             let name = name.trim_end_matches('.').to_ascii_lowercase();
-            name != "localhost" && !name.ends_with(".localhost") && !name.ends_with(".local")
+            // A name with no dot (`router`, `nas`) is resolved on the
+            // local network by definition, and so are the suffixes home
+            // routers and companies hand out — recognisable without DNS,
+            // like `.local`.
+            name.contains('.')
+                && name != "localhost"
+                && ![
+                    ".localhost",
+                    ".local",
+                    ".lan",
+                    ".home",
+                    ".home.arpa",
+                    ".internal",
+                    ".intranet",
+                    ".localdomain",
+                    ".corp",
+                ]
+                .iter()
+                .any(|suffix| name.ends_with(suffix))
         }
-        Some(url::Host::Ipv4(ip)) => {
-            !(ip.is_loopback() || ip.is_private() || ip.is_link_local() || ip.is_unspecified())
-        }
+        Some(url::Host::Ipv4(ip)) => is_public_ipv4(ip),
         Some(url::Host::Ipv6(ip)) => {
+            // `::ffff:192.168.1.1` is the LAN address in IPv6 clothing:
+            // judged as the IPv4 address it carries.
+            if let Some(v4) = ip.to_ipv4_mapped() {
+                return is_public_ipv4(v4);
+            }
             // `is_unique_local` / `is_unicast_link_local` are unstable,
             // so the two ranges are matched by prefix: fc00::/7 and
             // fe80::/10.
@@ -1689,6 +1710,21 @@ fn is_public_http_url(url: &str) -> bool {
         }
         None => false,
     }
+}
+
+/// The IPv4 half of [`is_public_http_url`]: not loopback, private,
+/// link-local, unspecified or broadcast, and outside `0.0.0.0/8` ("this
+/// network") and the `100.64.0.0/10` carrier-grade NAT range, which sit
+/// inside a provider's network rather than on the internet.
+fn is_public_ipv4(ip: std::net::Ipv4Addr) -> bool {
+    let [a, b, ..] = ip.octets();
+    !(ip.is_loopback()
+        || ip.is_private()
+        || ip.is_link_local()
+        || ip.is_unspecified()
+        || ip.is_broadcast()
+        || a == 0
+        || (a == 100 && (b & 0xc0) == 64))
 }
 
 /// Hard cap on a single image download. Deezer's `picture_xl` /

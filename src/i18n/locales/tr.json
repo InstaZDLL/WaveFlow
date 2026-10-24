@@ -682,6 +682,10 @@
         "probable_fake_lossless": {
           "label": "Muhtemelen sahte kayıpsız",
           "help": "Tizleri bir MP3'ünkü gibi kesilen kayıpsız dosyalar: muhtemelen kayıplı bir dosyadan yapılmış."
+        },
+        "album_missing_tracks": {
+          "label": "İlk veya son parçalar eksik",
+          "help": "Dosyalardaki numaralandırmaya ve toplamlara göre bir diskin ilk ya da son parçası veya diskin tamamı eksik."
         }
       },
       "phantoms": {
@@ -1215,13 +1219,17 @@
       "artist": "Sanatçı",
       "album": "Albüm",
       "year": "Yıl",
-      "genre": "Tür"
+      "genre": "Tür",
+      "albumArtist": "Albüm sanatçısı",
+      "composer": "Besteci"
     },
     "placeholders": {
       "artist": "Örn. Daft Punk, Justice",
       "album": "Albüm adı",
       "year": "Örn. 2026",
-      "genre": "Örn. Elektronik; Ambient"
+      "genre": "Örn. Elektronik; Ambient",
+      "albumArtist": "Örn. Daft Punk",
+      "composer": "Örn. Maurice Ravel"
     },
     "result": {
       "updated": "{{count}} parça güncellendi",
@@ -1275,7 +1283,9 @@
       "trackNumber": "Parça #",
       "discNumber": "Disk #",
       "genre": "Tür",
-      "genrePlaceholder": "Pop; Rock; Jazz…"
+      "genrePlaceholder": "Pop; Rock; Jazz…",
+      "albumArtist": "Albüm sanatçısı",
+      "composer": "Besteci"
     },
     "changeCover": "Kapağı değiştir",
     "suggestions": {
@@ -1314,7 +1324,10 @@
     "emptyTracksTitle": "Parça yok",
     "emptyTracksDescription": "Bu albümde kullanılabilir parça yok.",
     "setMotionCover": "Hareketli kapak",
-    "fetchTags": "Etiketleri getir"
+    "fetchTags": "Etiketleri getir",
+    "missingTracks": "Eksik parçalar: {{list}}",
+    "missingDiscTracks": "Disk {{disc}} — eksik parçalar: {{list}}",
+    "missingDiscs": "Eksik diskler: {{list}}"
   },
   "artistDetail": {
     "badge": "Sanatçı",
@@ -2887,7 +2900,30 @@
     "localStations": "Yerel istasyonlar",
     "browseByCountry": "Ülkeye göre göz at",
     "localCatalogue": "Yerel katalog",
-    "localCatalogueHint": "İndirilen katalogda göz atma ve arama."
+    "localCatalogueHint": "İndirilen katalogda göz atma ve arama.",
+    "addStation": {
+      "button": "İstasyon ekle",
+      "title": "İstasyon ekle",
+      "renameTitle": "İstasyonu yeniden adlandır",
+      "rename": "{{name}} adını değiştir",
+      "help": "Yayının ya da bir .m3u / .pls listesinin adresini yapıştırın veya böyle bir dosya açın. İstasyon favorilerinize eklenir.",
+      "urlLabel": "Yayın adresi",
+      "openFile": ".m3u / .pls dosyası aç",
+      "nameLabel": "Ad",
+      "namePlaceholder": "Boş bırakılırsa istasyonun kendi adı",
+      "checking": "Denetleniyor…",
+      "add": "Ekle",
+      "save": "Kaydet",
+      "errors": {
+        "notHttp": "Yalnızca http:// ve https:// adresleri kabul edilir.",
+        "offline": "Çevrimdışı mod açık.",
+        "unreachable": "İstasyon bu adreste yanıt vermiyor.",
+        "notAudio": "Bu adres bir ses yayınına çıkmıyor.",
+        "hls": "Bu bir HLS listesi: yalnızca kesintisiz yayınlar desteklenir.",
+        "noStream": "Listede http:// ya da https:// yayını yok.",
+        "notSaved": "Favorileriniz henüz yüklenmedi; birazdan yeniden deneyin."
+      }
+    }
   },
   "artistMetadataEditor": {
     "title": "Üst verileri düzenle",

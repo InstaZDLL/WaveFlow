@@ -680,6 +680,10 @@
         "probable_fake_lossless": {
           "label": "偽ロスレスの可能性",
           "help": "高音域が MP3 のように途切れているロスレスファイル。非可逆ファイルから作られた可能性があります。"
+        },
+        "album_missing_tracks": {
+          "label": "最初または最後のトラックが欠けている",
+          "help": "ファイルの番号と総数から見て、ディスクの最初または最後のトラック、あるいはディスクそのものが欠けています。"
         }
       },
       "phantoms": {
@@ -1213,13 +1217,17 @@
       "artist": "アーティスト",
       "album": "アルバム",
       "year": "年",
-      "genre": "ジャンル"
+      "genre": "ジャンル",
+      "albumArtist": "アルバムアーティスト",
+      "composer": "作曲者"
     },
     "placeholders": {
       "artist": "例：Daft Punk, Justice",
       "album": "アルバム名",
       "year": "例：2026",
-      "genre": "例：Electronic; Ambient"
+      "genre": "例：Electronic; Ambient",
+      "albumArtist": "例：Daft Punk",
+      "composer": "例：Maurice Ravel"
     },
     "result": {
       "updated": "{{count}}曲を更新しました",
@@ -1273,7 +1281,9 @@
       "trackNumber": "トラック番号",
       "discNumber": "ディスク番号",
       "genre": "ジャンル",
-      "genrePlaceholder": "ポップ; ロック; ジャズ…"
+      "genrePlaceholder": "ポップ; ロック; ジャズ…",
+      "albumArtist": "アルバムアーティスト",
+      "composer": "作曲者"
     },
     "changeCover": "ジャケットを変更",
     "suggestions": {
@@ -1312,7 +1322,10 @@
     "emptyTracksTitle": "曲なし",
     "emptyTracksDescription": "このアルバムには収録曲が1曲もありません。",
     "setMotionCover": "モーションカバー",
-    "fetchTags": "タグを取得"
+    "fetchTags": "タグを取得",
+    "missingTracks": "欠けているトラック：{{list}}",
+    "missingDiscTracks": "ディスク {{disc}} — 欠けているトラック：{{list}}",
+    "missingDiscs": "欠けているディスク：{{list}}"
   },
   "artistDetail": {
     "badge": "アーティスト",
@@ -2885,7 +2898,30 @@
     "localStations": "地域の放送局",
     "browseByCountry": "国別に見る",
     "localCatalogue": "ローカルカタログ",
-    "localCatalogueHint": "ダウンロードしたカタログを閲覧・検索しています。"
+    "localCatalogueHint": "ダウンロードしたカタログを閲覧・検索しています。",
+    "addStation": {
+      "button": "局を追加",
+      "title": "局を追加",
+      "renameTitle": "局の名前を変更",
+      "rename": "{{name}} の名前を変更",
+      "help": "ストリームのアドレス、または .m3u / .pls プレイリストのアドレスを貼り付けるか、そのファイルを開いてください。局はお気に入りに追加されます。",
+      "urlLabel": "ストリームのアドレス",
+      "openFile": ".m3u / .pls ファイルを開く",
+      "nameLabel": "名前",
+      "namePlaceholder": "空欄なら局の名前",
+      "checking": "確認中…",
+      "add": "追加",
+      "save": "保存",
+      "errors": {
+        "notHttp": "http:// と https:// のアドレスのみ使えます。",
+        "offline": "オフラインモードがオンです。",
+        "unreachable": "このアドレスで局が応答しません。",
+        "notAudio": "このアドレスはオーディオストリームにつながっていません。",
+        "hls": "HLS プレイリストです。連続ストリームのみ対応しています。",
+        "noStream": "プレイリストに http:// または https:// のストリームがありません。",
+        "notSaved": "お気に入りがまだ読み込まれていません。少し待ってからもう一度お試しください。"
+      }
+    }
   },
   "artistMetadataEditor": {
     "title": "メタデータを編集",

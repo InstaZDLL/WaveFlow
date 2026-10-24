@@ -10,6 +10,7 @@
 //! the Tauri runtime or to the real-time `cpal` audio engine stays in
 //! `crates/app`.
 
+pub mod album_completeness;
 pub mod album_playback;
 pub mod analysis;
 pub mod artwork;
@@ -37,6 +38,7 @@ pub mod playback;
 #[cfg(feature = "plugins")]
 #[cfg_attr(docsrs, doc(cfg(feature = "plugins")))]
 pub mod plugin;
+pub mod radio_playlist;
 pub mod repository;
 pub mod scanner;
 pub mod search;

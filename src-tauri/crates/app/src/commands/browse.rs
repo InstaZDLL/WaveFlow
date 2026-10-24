@@ -2354,6 +2354,10 @@ pub struct AlbumDetail {
     pub release_date: Option<String>,
     pub genres: Vec<String>,
     pub tracks: Vec<AlbumTrack>,
+    /// The tracks and discs the album is missing, by
+    /// [`waveflow_core::album_completeness`]: empty when it is complete
+    /// or cannot be judged.
+    pub completeness: waveflow_core::album_completeness::AlbumCompleteness,
 }
 
 #[derive(FromRow)]
@@ -2601,6 +2605,7 @@ pub async fn get_album_detail(
 
     let track_count = tracks.len() as i64;
     let total_duration_ms = tracks.iter().map(|t| t.duration_ms).sum();
+    let completeness = super::inventory::album_completeness_of(&pool, album_id).await?;
 
     Ok(AlbumDetail {
         id: header.id,
@@ -2617,6 +2622,7 @@ pub async fn get_album_detail(
         release_date: header.release_date,
         genres,
         tracks,
+        completeness,
     })
 }
 
