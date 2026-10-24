@@ -131,6 +131,8 @@ import { GENERATOR_ALBUM_MODE_EVENT } from "../../../hooks/useGeneratorAlbumMode
 import { CONTRAST_EVENT } from "../../../hooks/useContrastMode";
 import { ACCENT_EVENT } from "../../../hooks/useAccentChoice";
 import { parseContrastMode } from "../../../lib/contrast";
+import { findSkin } from "../../../lib/skins";
+import { findTheme } from "../../../lib/themes";
 import { parseAccentChoice, serializeAccentChoice } from "../../../lib/accent";
 import {
   COVER_ACTION_KEY,
@@ -639,12 +641,19 @@ const ACCESSORS: Record<SettingKey, SettingAccessor> = {
   },
 
   // ---- Appearance ------------------------------------------------------
+  // Both read from their row, like the engine switches: the theme swaps
+  // on screen before its write, so after a refused write the screen shows
+  // a theme the next launch will not. The row is what it will load; the
+  // one on screen stands in only while no row exists yet.
   "appearance.theme.id": {
-    inspect: async (ctx) =>
-      labelIf(
-        ctx.themeId !== SETTINGS["appearance.theme.id"].defaultValue,
+    inspect: async (ctx) => {
+      const raw = await getProfileSetting("appearance.theme.id", ctx.profileId);
+      return labelIf(
+        (raw ? findTheme(raw).id : ctx.themeId) !==
+          SETTINGS["appearance.theme.id"].defaultValue,
         "appearance.theme.id",
-      ),
+      );
+    },
     reset: async (ctx) =>
       ctx.setThemeId(SETTINGS["appearance.theme.id"].defaultValue),
   },
@@ -656,11 +665,14 @@ const ACCESSORS: Record<SettingKey, SettingAccessor> = {
     (a, b) => near(a, b, 0.001),
   ),
   "appearance.skin.id": {
-    inspect: async (ctx) =>
-      labelIf(
-        ctx.skinId !== SETTINGS["appearance.skin.id"].defaultValue,
+    inspect: async (ctx) => {
+      const raw = await getProfileSetting("appearance.skin.id", ctx.profileId);
+      return labelIf(
+        (raw ? findSkin(raw).id : ctx.skinId) !==
+          SETTINGS["appearance.skin.id"].defaultValue,
         "appearance.skin.id",
-      ),
+      );
+    },
     reset: async (ctx) =>
       ctx.setSkinId(SETTINGS["appearance.skin.id"].defaultValue),
   },
