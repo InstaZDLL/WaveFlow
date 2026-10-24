@@ -120,6 +120,8 @@ Provenance is a property of the **link**, not of the bytes, so `album.artwork_so
 
 The pool is therefore handed out **leased**. `require_profile_pool` / `require_profile_snapshot` return a `ProfilePool` that holds a refcount on the epoch it came from; the close path (`ActiveProfile::close_when_idle`) waits for that count to reach zero before calling `pool.close()`. Because the swap happens first, no new lease can be issued against the outgoing epoch, so the drain always terminates.
 
+**One switch at a time.** The swap is atomic, but a switch is more than the swap: `switch_profile` stops the watchers, swaps the pool, then restores watchers and audio settings from whichever profile is active by then, and the pre-migration question ([below](#migration-policy)) can hold it open for as long as the user takes. `AppState::profile_switch_lock` is held from its first step to its last, on success and on failure, and by the other commands that change or depend on which profile is active — `deactivate_profile`, `delete_profile` (whose "not the active profile" check must still hold when its sweep runs) and `reset_app`. Creating or importing a profile opens its database without activating it, and does not take it.
+
 Three properties worth keeping in mind when writing commands:
 
 - **The lease releases on drop**, including via `?`. Keep the handle bound for as long as you query — `let _ = state.require_profile_pool().await?;` releases it on the spot.

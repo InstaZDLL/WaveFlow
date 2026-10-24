@@ -141,6 +141,10 @@ pub async fn switch_profile(
     watcher: tauri::State<'_, Arc<crate::watcher::WatcherManager>>,
     profile_id: i64,
 ) -> AppResult<Profile> {
+    // One switch at a time, from the first step to the last, on success
+    // and on failure alike. See [`AppState::profile_switch_lock`].
+    let _switching = state.profile_switch_lock.clone().lock_owned().await;
+
     let repo = profile_repo(&state);
     let profile = repo
         .get(profile_id)
@@ -280,6 +284,9 @@ pub async fn deactivate_profile(
     state: tauri::State<'_, AppState>,
     watcher: tauri::State<'_, Arc<crate::watcher::WatcherManager>>,
 ) -> AppResult<()> {
+    // Not in the middle of a switch, which would re-arm watchers on a
+    // profile this closes.
+    let _switching = state.profile_switch_lock.clone().lock_owned().await;
     watcher.unwatch_all();
     state.deactivate_profile().await;
     Ok(())
@@ -296,6 +303,9 @@ pub async fn deactivate_profile(
 /// the next startup falls back to the most-recently-used remaining profile.
 #[tauri::command]
 pub async fn delete_profile(state: tauri::State<'_, AppState>, profile_id: i64) -> AppResult<()> {
+    // Held to the end, so a switch cannot make this profile the active
+    // one between the check below and the directory sweep.
+    let _switching = state.profile_switch_lock.clone().lock_owned().await;
     let active_id = {
         let guard = state.profile.read().await;
         guard.as_ref().map(|p| p.profile_id)

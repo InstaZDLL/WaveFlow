@@ -335,6 +335,8 @@ pub async fn reset_app(
     // because listing the profiles needs `app.db`.
     let cache_roots = super::storage::wipe_targets_outside_root(&state).await;
 
+    // No switch may reopen a profile pool while the tree is wiped.
+    let _switching = state.profile_switch_lock.clone().lock_owned().await;
     state.deactivate_profile().await;
     state.app_db.close().await;
 
