@@ -21,6 +21,7 @@ import { MoodCurationModal } from "./MoodCurationModal";
 import { MoodSpectrum } from "./MoodSpectrum";
 import { SectionHeader } from "./fluid/SectionHeader";
 import { MoodCapsules } from "./MoodCapsules";
+import { MoodTuner } from "./MoodTuner";
 
 interface MoodTile {
   mood: Mood;
@@ -84,7 +85,6 @@ export function MoodRadioGrid() {
     window.addEventListener(MOOD_OVERRIDES_EVENT, bump);
     return () => window.removeEventListener(MOOD_OVERRIDES_EVENT, bump);
   }, []);
-  const isLoungeSkin = skin.id === "lounge";
   const isFluidLayout = skin.layout === "fluid";
 
   useEffect(() => {
@@ -180,6 +180,12 @@ export function MoodRadioGrid() {
             loadingMood={loadingMood}
             onStart={handleStart}
           />
+        ) : skin.fluid?.moodRadio === "tuner" ? (
+          <MoodTuner
+            counts={counts}
+            loadingMood={loadingMood}
+            onStart={handleStart}
+          />
         ) : (
           <MoodSpectrum
             counts={counts}
@@ -192,7 +198,7 @@ export function MoodRadioGrid() {
   }
 
   return (
-    <section className={isLoungeSkin ? "lounge-mood-section" : undefined}>
+    <section>
       <div className="flex items-end justify-between gap-4 mb-6">
         <h2 className="text-2xl font-bold inline-block border-b-4 border-rose-500 pb-1 text-zinc-900 dark:text-white">
           {t("home.moodRadio.title")}
@@ -226,58 +232,32 @@ export function MoodRadioGrid() {
         </div>
       </div>
       <MoodCurationModal isOpen={curating} onClose={() => setCurating(false)} />
-      <div
-        className={
-          isLoungeSkin
-            ? "lounge-mood-grid grid grid-cols-1 sm:grid-cols-6 gap-4 auto-rows-[10.75rem]"
-            : "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4"
-        }
-      >
-        {TILES.map(({ mood, icon: Icon, cardClass, iconClass }, index) => {
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        {TILES.map(({ mood, icon: Icon, cardClass, iconClass }) => {
           const count = counts?.[mood] ?? 0;
           const disabled = counts != null && count === 0;
           const isLoading = loadingMood === mood;
-          const loungeSpan =
-            index === 0
-              ? "sm:col-span-2 sm:row-span-2"
-              : index === 4
-                ? "sm:col-span-2"
-                : "sm:col-span-2";
           return (
             <button
               key={mood}
               type="button"
               onClick={() => handleStart(mood)}
               disabled={disabled || isLoading}
-              className={`relative overflow-hidden rounded-2xl p-5 text-left text-white shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-sm ${
-                isLoungeSkin
-                  ? `lounge-mood-tile lounge-mood-${mood} flex flex-col ${loungeSpan}`
-                  : cardClass
-              }`}
+              className={`relative overflow-hidden rounded-2xl p-5 text-left text-white shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-sm ${cardClass}`}
               aria-label={t(`home.moodRadio.${mood}.title`)}
             >
               <div
-                className={`inline-flex items-center justify-center w-10 h-10 rounded-xl mb-3 ${
-                  isLoungeSkin ? "bg-white/10 text-rose-100" : iconClass
-                }`}
+                className={`inline-flex items-center justify-center w-10 h-10 rounded-xl mb-3 ${iconClass}`}
               >
                 <Icon size={20} />
               </div>
-              <div
-                className={`font-semibold mb-1 ${
-                  isLoungeSkin && index === 0 ? "text-xl" : "text-base"
-                }`}
-              >
+              <div className="font-semibold mb-1 text-base">
                 {t(`home.moodRadio.${mood}.title`)}
               </div>
               <div className="text-xs text-white/80 line-clamp-2 min-h-8">
                 {t(`home.moodRadio.${mood}.subtitle`)}
               </div>
-              <div
-                className={`text-[11px] font-medium text-white/70 ${
-                  isLoungeSkin ? "mt-auto pt-4" : "mt-3"
-                }`}
-              >
+              <div className="text-[11px] font-medium text-white/70 mt-3">
                 {disabled
                   ? t("home.moodRadio.empty")
                   : isLoading

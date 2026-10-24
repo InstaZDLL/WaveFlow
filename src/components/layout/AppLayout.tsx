@@ -793,7 +793,7 @@ export function AppLayout() {
                 width: isSidebarHidden ? 0 : sidebarMode === "icons" ? 80 : 256,
               }}
               transition={{ duration: 0.22, ease: "easeOut" }}
-              className="skin-sidebar-shell lounge-sidebar-shell shrink-0 overflow-hidden"
+              className="skin-sidebar-shell shrink-0 overflow-hidden"
               // The skins narrow their padding on it: theirs is sized for
               // 256 px and would leave the icons no room at 80.
               data-collapsed={sidebarMode === "icons" ? "" : undefined}
