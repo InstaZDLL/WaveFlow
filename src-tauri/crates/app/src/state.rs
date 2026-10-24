@@ -285,6 +285,16 @@ pub struct AppState {
     /// caveat as `drain_lock` in stub builds.
     #[allow(dead_code)]
     pub backfill_lock: Arc<tokio::sync::Mutex<()>>,
+    /// Held for the whole of a profile switch — watchers stopped, pool
+    /// swapped, watchers and audio settings restored — and by every
+    /// other command that changes or relies on which profile is active
+    /// (`deactivate_profile`, `delete_profile`, `reset_app`). The steps
+    /// of one switch read the active profile between awaits, and the
+    /// pre-migration dialog can keep a switch open for as long as the
+    /// user takes: a second switch landing in between replaced the
+    /// profile while the first one restored the watchers of the one it
+    /// was leaving.
+    pub profile_switch_lock: Arc<tokio::sync::Mutex<()>>,
     /// Wake handle for the sync WebSocket subscriber (Phase
     /// 1.f.desktop.4b). The `server_account` commands fire it after
     /// the user signs in / signs out / changes mode so the
@@ -334,7 +344,7 @@ pub struct AppState {
 /// A free function rather than a method because two callers ask this
 /// question and only one of them has an `AppState`: the startup
 /// pre-flight ([`crate::db::schema_guard::preflight`]) runs before the
-/// event loop, holding nothing but a read-only handle on `app.db`. If
+/// event loop, holding nothing but its own handle on `app.db`. If
 /// the two ever disagreed, the pre-flight would vet one profile's
 /// database and the app would open another.
 pub(crate) async fn resolve_target_profile(app_db: &SqlitePool) -> AppResult<Option<i64>> {
@@ -490,6 +500,7 @@ impl AppState {
             drain: Arc::new(crate::sync::drain::DrainHandle),
             drain_lock: Arc::new(tokio::sync::Mutex::new(())),
             backfill_lock: Arc::new(tokio::sync::Mutex::new(())),
+            profile_switch_lock: Arc::new(tokio::sync::Mutex::new(())),
             ws: Arc::new(crate::sync::ws::SubscribeHandle),
             plugins,
             plugin_locks: Arc::new(Mutex::new(HashMap::new())),

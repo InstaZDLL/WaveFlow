@@ -141,6 +141,10 @@ pub async fn switch_profile(
     watcher: tauri::State<'_, Arc<crate::watcher::WatcherManager>>,
     profile_id: i64,
 ) -> AppResult<Profile> {
+    // One switch at a time, from the first step to the last, on success
+    // and on failure alike. See [`AppState::profile_switch_lock`].
+    let _switching = state.profile_switch_lock.clone().lock_owned().await;
+
     let repo = profile_repo(&state);
     let profile = repo
         .get(profile_id)
@@ -163,7 +167,17 @@ pub async fn switch_profile(
     // their next scan can't race a stale pool reference.
     watcher.unwatch_all();
 
-    state.activate_profile(profile_id).await?;
+    if let Err(err) = state.activate_profile(profile_id).await {
+        // Nothing was swapped: the profile being left is still the
+        // active one (a pre-migration copy the user would not go without
+        // is one way here), and its folders are watched again.
+        if let Ok(pool) = state.require_profile_pool().await {
+            if let Err(restore_err) = watcher.restore_from_db(&pool).await {
+                tracing::warn!(%restore_err, "watcher restore after a failed profile switch failed");
+            }
+        }
+        return Err(err);
+    }
 
     // Refresh the DLNA worker for the new profile if it's currently
     // serving — otherwise it keeps exposing the previous profile's
@@ -270,6 +284,9 @@ pub async fn deactivate_profile(
     state: tauri::State<'_, AppState>,
     watcher: tauri::State<'_, Arc<crate::watcher::WatcherManager>>,
 ) -> AppResult<()> {
+    // Not in the middle of a switch, which would re-arm watchers on a
+    // profile this closes.
+    let _switching = state.profile_switch_lock.clone().lock_owned().await;
     watcher.unwatch_all();
     state.deactivate_profile().await;
     Ok(())
@@ -286,6 +303,9 @@ pub async fn deactivate_profile(
 /// the next startup falls back to the most-recently-used remaining profile.
 #[tauri::command]
 pub async fn delete_profile(state: tauri::State<'_, AppState>, profile_id: i64) -> AppResult<()> {
+    // Held to the end, so a switch cannot make this profile the active
+    // one between the check below and the directory sweep.
+    let _switching = state.profile_switch_lock.clone().lock_owned().await;
     let active_id = {
         let guard = state.profile.read().await;
         guard.as_ref().map(|p| p.profile_id)

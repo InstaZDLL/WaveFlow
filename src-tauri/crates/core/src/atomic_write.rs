@@ -19,6 +19,10 @@
 //! closed in the middle of an export) leaves its partial behind. The next
 //! write to the same destination removes those that are a day old.
 //!
+//! Caches named by the hash of their content (the artwork folders) go
+//! through [`store_content_addressed`], the same partial-and-rename
+//! without the flushes to disk.
+//!
 //! Not for audio files: those go through [`crate::tagio`], which has to
 //! keep the original's inode where it can and copies it before writing.
 
@@ -214,7 +218,29 @@ where
         .unwrap_or_else(|| Path::new("."));
     std::fs::create_dir_all(directory).map_err(E::from)?;
     sweep_stale_partials(target, directory);
+    write_through_partial(target, directory, Durability::Synced, body)
+}
 
+/// Whether a write waits for its bytes to reach the disk.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Durability {
+    /// Flushed before the rename, and the rename made durable after it.
+    Synced,
+    /// Left to the OS: for a cache the next write repairs.
+    Cached,
+}
+
+/// The partial, the body, the rename: [`write_with`] once its directory
+/// exists and its stale partials are gone.
+fn write_through_partial<T, E>(
+    target: &Path,
+    directory: &Path,
+    durability: Durability,
+    body: impl FnOnce(&mut File) -> Result<T, E>,
+) -> Result<T, E>
+where
+    E: From<io::Error>,
+{
     let (path, mut file) = create_partial(target).map_err(E::from)?;
     let mut partial = Partial {
         path,
@@ -251,7 +277,9 @@ where
         // one the user will restore from, and a rename that survives a
         // power cut over content that did not would be the very archive
         // this exists to prevent.
-        file.sync_all().map_err(E::from)?;
+        if durability == Durability::Synced {
+            file.sync_all().map_err(E::from)?;
+        }
         // Closed before the rename: Windows refuses to rename a file that
         // is still open.
         drop(file);
@@ -262,7 +290,9 @@ where
     partial.committed = true;
     // Durability on top of a replacement that has already happened, so
     // its failure is not reported as a failed write.
-    let _ = sync_directory(directory);
+    if durability == Durability::Synced {
+        let _ = sync_directory(directory);
+    }
     Ok(value)
 }
 
@@ -348,6 +378,47 @@ fn replace(partial: &Path, target: &Path) -> io::Result<()> {
 /// [`write_with`] for content already in memory.
 pub fn write_bytes(target: &Path, bytes: &[u8]) -> io::Result<()> {
     write_with(target, |file| file.write_all(bytes))
+}
+
+/// Store `bytes` at `target` in a cache whose file names are the hash of
+/// their content (the artwork caches), unless it already holds them.
+/// Returns whether it wrote.
+///
+/// A name stands for one content there, so a file already at `target` is
+/// kept when its length is that of `bytes`, and written again when it is
+/// not: a copy cut short before writes went through a partial, or one a
+/// power cut emptied, is shorter than its name says, and an `exists()`
+/// check kept it forever. The write itself goes through a partial and a
+/// rename like [`write_bytes`], so a cut-short one never shows under the
+/// final name, but without the flushes to disk: what a crash costs here
+/// is a cache entry the next write puts back, and a scan storing one
+/// cover per album should not wait on the disk for each. Nor does it
+/// sweep the folder for stale partials, which would list a folder of
+/// thousands of covers on every write.
+///
+/// When the rename fails but `target` meanwhile holds the right length —
+/// another writer stored the same image first, and Windows refuses to
+/// replace a file a reader has open — the content is there and that is
+/// a success. Blocking.
+pub fn store_content_addressed(target: &Path, bytes: &[u8]) -> io::Result<bool> {
+    let complete = |path: &Path| {
+        std::fs::metadata(path).is_ok_and(|meta| meta.is_file() && meta.len() == bytes.len() as u64)
+    };
+    if complete(target) {
+        return Ok(false);
+    }
+    let directory = target
+        .parent()
+        .filter(|p| !p.as_os_str().is_empty())
+        .unwrap_or_else(|| Path::new("."));
+    std::fs::create_dir_all(directory)?;
+    match write_through_partial(target, directory, Durability::Cached, |file: &mut File| {
+        file.write_all(bytes)
+    }) {
+        Ok(()) => Ok(true),
+        Err(_) if complete(target) => Ok(false),
+        Err(err) => Err(err),
+    }
 }
 
 /// Make the rename durable on Unix, where it is a separate write to the
@@ -566,5 +637,42 @@ mod tests {
         write_bytes(&target, b"x").unwrap();
 
         assert_eq!(std::fs::read(&target).unwrap(), b"x");
+    }
+
+    #[test]
+    fn a_cached_file_is_stored_once() {
+        let dir = tempfile::tempdir().unwrap();
+        let target = dir.path().join("artwork").join("abc.jpg");
+        assert!(store_content_addressed(&target, b"cover").unwrap());
+        assert_eq!(std::fs::read(&target).unwrap(), b"cover");
+        assert!(!store_content_addressed(&target, b"cover").unwrap());
+        assert_eq!(partials(target.parent().unwrap()), 0);
+    }
+
+    /// The bug the length check is for: a cover cut short under its
+    /// final name used to be kept for good, since the name existed.
+    #[test]
+    fn a_truncated_cached_file_is_written_again() {
+        let dir = tempfile::tempdir().unwrap();
+        let target = dir.path().join("abc.jpg");
+        std::fs::write(&target, b"cov").unwrap();
+        assert!(store_content_addressed(&target, b"cover").unwrap());
+        assert_eq!(std::fs::read(&target).unwrap(), b"cover");
+
+        std::fs::write(&target, b"").unwrap();
+        assert!(store_content_addressed(&target, b"cover").unwrap());
+        assert_eq!(std::fs::read(&target).unwrap(), b"cover");
+        assert_eq!(partials(dir.path()), 0);
+    }
+
+    #[test]
+    fn a_cached_write_that_fails_leaves_no_partial() {
+        let dir = tempfile::tempdir().unwrap();
+        // A directory where the file would go: the rename fails on
+        // every platform, and nothing of the attempt stays behind.
+        let target = dir.path().join("abc.jpg");
+        std::fs::create_dir(&target).unwrap();
+        assert!(store_content_addressed(&target, b"cover").is_err());
+        assert_eq!(partials(dir.path()), 0);
     }
 }

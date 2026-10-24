@@ -315,6 +315,12 @@ pub async fn reset_app(
         );
     }
 
+    // Held from here to the restart, the safety backup included: a
+    // switch landing between that backup and the wipe would reopen a
+    // pool, or change the active profile, the backup no longer covers.
+    // Nothing below takes it again (the Mutex is not reentrant).
+    let _switching = state.profile_switch_lock.clone().lock_owned().await;
+
     // Guard against irreversible data loss (issue #367): snapshot every
     // profile to a wipe-surviving folder BEFORE tearing anything down, so
     // a user who resets can re-import their playlists + listening history
@@ -648,6 +654,13 @@ fn regen_in_dir(dir: &Path, stop: Option<&AtomicBool>) -> AppResult<u32> {
         };
         let path = entry.path();
         if !path.is_file() {
+            continue;
+        }
+        // A cache write still in progress, or one a crash cut short.
+        if path
+            .to_string_lossy()
+            .ends_with(waveflow_core::atomic_write::PARTIAL_SUFFIX)
+        {
             continue;
         }
         let Some(stem) = path.file_stem().and_then(|s| s.to_str()) else {

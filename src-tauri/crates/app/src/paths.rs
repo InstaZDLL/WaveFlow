@@ -129,8 +129,9 @@ impl AppPaths {
     /// lookup, which needs a live app. The startup pre-flight
     /// ([`crate::db::schema_guard::preflight`]) runs *before* the Tauri
     /// event loop exists — there is no `AppHandle` to resolve against
-    /// yet — and it only ever reads databases, so it takes this
-    /// constructor and leaves `bundled_plugins_dir` at `None`.
+    /// yet — and it touches nothing but the databases (and their
+    /// pre-migration copies beside them), so it takes this constructor
+    /// and leaves `bundled_plugins_dir` at `None`.
     ///
     /// Creates nothing on disk, same as [`Self::from_handle`].
     pub fn from_root(root: PathBuf, bundled_plugins_dir: Option<PathBuf>) -> Self {

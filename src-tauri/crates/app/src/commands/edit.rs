@@ -1666,10 +1666,8 @@ pub async fn update_track_cover(
     // makes "same image, different file" deduplicate naturally.
     let hash = blake3::hash(&bytes).to_hex().to_string();
     let out_path = artwork_dir.join(format!("{hash}.{ext}"));
-    if !out_path.exists() {
-        std::fs::write(&out_path, &bytes)
-            .map_err(|e| AppError::Other(format!("artwork cache write failed: {e}")))?;
-    }
+    waveflow_core::atomic_write::store_content_addressed(&out_path, &bytes)
+        .map_err(|e| AppError::Other(format!("artwork cache write failed: {e}")))?;
     crate::thumbnails::spawn_thumbnail_job(out_path.clone(), artwork_dir.clone(), hash.clone());
 
     // One transaction rather than two pooled connections: the artwork

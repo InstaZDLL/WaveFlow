@@ -547,16 +547,21 @@ fn extract_archive(
 /// bundled into the running binary. Called on a freshly extracted
 /// `data.db` before the sqlx migrator runs.
 ///
-/// Two failure modes the caller surfaces verbatim:
+/// Three failure modes the caller surfaces verbatim:
 ///   - Local migrator missing a version present in the archive
 ///     → the archive is from a *newer* build than the one importing it,
 ///     and we genuinely can't roll the schema forward.
+///   - A version both sides have whose stored checksum is not that of
+///     our SQL, in either line-ending form → the archive's build applied
+///     different SQL under the same migration (one amended before a
+///     release, a fork), and its schema is not the one ours expects.
 ///   - Anything else → propagated as a generic `Other` error.
 ///
-/// Same-version + same-content but different-checksum is treated as
-/// benign byte-level drift (line endings, BOM) and silently fixed: the
-/// "migrations are immutable once merged" rule means a version that
-/// exists in both sides represents the same DDL by construction.
+/// Only the line-ending case is rewritten, the one
+/// [`crate::db::migration_heal`] repairs on every open: the same SQL,
+/// checked out with CRLF by an older Windows build. Every row is checked
+/// before the first is rewritten, so a refused archive is left as it
+/// came.
 async fn normalise_migration_checksums(db_path: &Path) -> AppResult<()> {
     let migrator = sqlx::migrate!("../../migrations/profile");
 
@@ -586,19 +591,40 @@ async fn normalise_migration_checksums(db_path: &Path) -> AppResult<()> {
             .fetch_all(&mut conn)
             .await?;
 
+    let mut drifted = Vec::new();
+    let mut refusal = None;
     for (version, stored_checksum) in stored {
         let local = migrator.iter().find(|m| m.version == version);
         let Some(local) = local else {
-            return Err(AppError::Other(format!(
+            refusal = Some(format!(
                 "archive contains migration {version} not present in this build — \
                  export was produced by a newer WaveFlow version"
-            )));
+            ));
+            break;
         };
         if local.checksum.as_ref() == stored_checksum.as_slice() {
             continue;
         }
+        if !crate::db::migration_heal::is_line_ending_drift(local.sql.as_str(), &stored_checksum) {
+            refusal = Some(format!(
+                "archive was not imported: its migration {version} ({}) was applied with \
+                 different SQL than the one this build ships — export was produced by a \
+                 different WaveFlow build",
+                local.description
+            ));
+            break;
+        }
+        drifted.push((version, local.checksum.as_ref()));
+    }
+    // Closed before the caller removes the extracted profile: on Windows
+    // an open `data.db` would keep its folder from going.
+    if let Some(refusal) = refusal {
+        conn.close().await?;
+        return Err(AppError::Other(refusal));
+    }
+    for (version, checksum) in drifted {
         sqlx::query("UPDATE _sqlx_migrations SET checksum = ? WHERE version = ?")
-            .bind(local.checksum.as_ref())
+            .bind(checksum)
             .bind(version)
             .execute(&mut conn)
             .await?;
@@ -617,4 +643,119 @@ pub(crate) async fn checkpoint_wal(pool: &SqlitePool) -> AppResult<()> {
         .execute(pool)
         .await?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sha2::{Digest, Sha384};
+    use sqlx::sqlite::SqlitePoolOptions;
+
+    /// An extracted archive's `data.db`, migrated by this build.
+    async fn extracted(dir: &Path) -> std::path::PathBuf {
+        let path = dir.join("data.db");
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect_with(
+                SqliteConnectOptions::new()
+                    .filename(&path)
+                    .create_if_missing(true),
+            )
+            .await
+            .unwrap();
+        sqlx::migrate!("../../migrations/profile")
+            .run(&pool)
+            .await
+            .unwrap();
+        pool.close().await;
+        path
+    }
+
+    /// Store `checksum` for `version`, as the archive's build would have.
+    async fn forge(path: &Path, version: i64, checksum: &[u8]) {
+        let mut conn = SqliteConnectOptions::new()
+            .filename(path)
+            .connect()
+            .await
+            .unwrap();
+        sqlx::query("UPDATE _sqlx_migrations SET checksum = ? WHERE version = ?")
+            .bind(checksum)
+            .bind(version)
+            .execute(&mut conn)
+            .await
+            .unwrap();
+        conn.close().await.unwrap();
+    }
+
+    async fn stored(path: &Path, version: i64) -> Vec<u8> {
+        let mut conn = SqliteConnectOptions::new()
+            .filename(path)
+            .connect()
+            .await
+            .unwrap();
+        let checksum =
+            sqlx::query_scalar("SELECT checksum FROM _sqlx_migrations WHERE version = ?")
+                .bind(version)
+                .fetch_one(&mut conn)
+                .await
+                .unwrap();
+        conn.close().await.unwrap();
+        checksum
+    }
+
+    fn sha384(bytes: &[u8]) -> Vec<u8> {
+        Sha384::digest(bytes).to_vec()
+    }
+
+    #[tokio::test]
+    async fn a_migration_checked_out_with_crlf_is_rewritten() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = extracted(dir.path()).await;
+        let migrator = sqlx::migrate!("../../migrations/profile");
+        let first = migrator.iter().next().unwrap();
+        let crlf = first
+            .sql
+            .as_str()
+            .replace("\r\n", "\n")
+            .replace('\n', "\r\n");
+        forge(&path, first.version, &sha384(crlf.as_bytes())).await;
+
+        normalise_migration_checksums(&path).await.unwrap();
+        assert_eq!(stored(&path, first.version).await, first.checksum.as_ref());
+    }
+
+    #[tokio::test]
+    async fn a_migration_whose_sql_changed_refuses_the_import() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = extracted(dir.path()).await;
+        let migrator = sqlx::migrate!("../../migrations/profile");
+        let mut versions = migrator.iter();
+        let drifted = versions.next().unwrap();
+        let changed = versions.next().unwrap();
+        let crlf = drifted
+            .sql
+            .as_str()
+            .replace("\r\n", "\n")
+            .replace('\n', "\r\n");
+        forge(&path, drifted.version, &sha384(crlf.as_bytes())).await;
+        let edited = format!(
+            "{}\nALTER TABLE track ADD COLUMN extra TEXT;\n",
+            changed.sql.as_str()
+        );
+        let forged = sha384(edited.as_bytes());
+        forge(&path, changed.version, &forged).await;
+
+        let err = normalise_migration_checksums(&path)
+            .await
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains(&changed.version.to_string()), "{err}");
+        assert!(err.contains(changed.description.as_ref()), "{err}");
+        // Nothing rewritten, the line-ending row included.
+        assert_eq!(stored(&path, changed.version).await, forged);
+        assert_eq!(
+            stored(&path, drifted.version).await,
+            sha384(crlf.as_bytes())
+        );
+    }
 }

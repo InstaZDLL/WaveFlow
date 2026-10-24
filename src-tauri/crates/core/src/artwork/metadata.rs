@@ -138,11 +138,9 @@ async fn download_and_cache_inner(
 
     let hash = blake3::hash(&bytes).to_hex().to_string();
     let out = path_for_hash(dir, &hash);
-    if !out.exists() {
-        if let Err(err) = std::fs::write(&out, &bytes) {
-            tracing::warn!(path = %out.display(), ?err, "metadata artwork write failed");
-            return None;
-        }
+    if let Err(err) = crate::atomic_write::store_content_addressed(&out, &bytes) {
+        tracing::warn!(path = %out.display(), ?err, "metadata artwork write failed");
+        return None;
     }
     if generate_thumbnails {
         crate::artwork::thumbnails::spawn_thumbnail_job(out, dir.to_path_buf(), hash.clone());

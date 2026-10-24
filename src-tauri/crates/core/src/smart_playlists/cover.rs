@@ -90,10 +90,8 @@ pub fn build_composite_cover(image_paths: &[PathBuf], metadata_dir: &Path) -> Co
     let bytes = encode_jpeg(&canvas)?;
     let hash = blake3::hash(&bytes).to_hex().to_string();
     let out = metadata_artwork::path_for_hash(metadata_dir, &hash);
-    if !out.exists() {
-        std::fs::write(&out, &bytes)
-            .map_err(|e| CoreError::Audio(format!("smart cover write: {e}")))?;
-    }
+    crate::atomic_write::store_content_addressed(&out, &bytes)
+        .map_err(|e| CoreError::Audio(format!("smart cover write: {e}")))?;
     Ok(hash)
 }
 
@@ -120,10 +118,8 @@ pub fn build_on_repeat_cover(metadata_dir: &Path) -> CoreResult<String> {
     let bytes = encode_jpeg(&canvas)?;
     let hash = blake3::hash(&bytes).to_hex().to_string();
     let out = metadata_artwork::path_for_hash(metadata_dir, &hash);
-    if !out.exists() {
-        std::fs::write(&out, &bytes)
-            .map_err(|e| CoreError::Audio(format!("smart cover write: {e}")))?;
-    }
+    crate::atomic_write::store_content_addressed(&out, &bytes)
+        .map_err(|e| CoreError::Audio(format!("smart cover write: {e}")))?;
     Ok(hash)
 }
 

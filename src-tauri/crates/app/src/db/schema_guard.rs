@@ -44,6 +44,7 @@ use sqlx::{
     SqlitePool,
 };
 
+use super::pre_migration_backup;
 use crate::error::{AppError, AppResult};
 use crate::paths::AppPaths;
 
@@ -218,17 +219,29 @@ pub async fn ensure_no_foreign_migration(
 /// picks. Not every profile on disk: one profile left behind by a newer
 /// build is no reason to refuse a launch that won't touch it.
 ///
-/// Creates nothing. Missing files are the fresh-install case and are
-/// left for the real open to create.
-pub async fn preflight(paths: &AppPaths) -> Option<AppError> {
+/// Creates no database. Missing files are the fresh-install case and
+/// are left for the real open to create.
+///
+/// A database it lets through that has migrations pending is copied
+/// here too ([`pre_migration_backup::ensure_backed_up`]), because a copy
+/// that fails needs the user's answer and this is where a dialog can
+/// ask: `ask` is that dialog. A refusal comes back as
+/// [`AppError::PreMigrationBackupDeclined`].
+pub async fn preflight(
+    paths: &AppPaths,
+    ask: &pre_migration_backup::Prompt<'_>,
+) -> Option<AppError> {
     let app_pool = open_existing(&paths.app_db).await?;
 
     let app_migrator = sqlx::migrate!("../../migrations/app");
-    let mut verdict = vet(&app_pool, &app_migrator, DbScope::App).await;
+    let mut verdict = match vet(&app_pool, &app_migrator, DbScope::App).await {
+        Ok(()) => back_up(&app_pool, &app_migrator, &paths.app_db, DbScope::App, ask).await,
+        Err(refusal) => refusal,
+    };
 
     if verdict.is_none() {
         verdict = match crate::state::resolve_target_profile(&app_pool).await {
-            Ok(Some(profile_id)) => vet_profile(paths, profile_id).await,
+            Ok(Some(profile_id)) => vet_profile(paths, profile_id, ask).await,
             Ok(None) => None,
             Err(err) => {
                 tracing::warn!(%err, "startup pre-flight: could not resolve the target profile");
@@ -241,13 +254,36 @@ pub async fn preflight(paths: &AppPaths) -> Option<AppError> {
     verdict
 }
 
-/// Vet one profile's `data.db`.
-async fn vet_profile(paths: &AppPaths, profile_id: i64) -> Option<AppError> {
-    let pool = open_existing(&paths.profile_db(profile_id)).await?;
+/// Vet one profile's `data.db`, then copy it if it is about to migrate.
+async fn vet_profile(
+    paths: &AppPaths,
+    profile_id: i64,
+    ask: &pre_migration_backup::Prompt<'_>,
+) -> Option<AppError> {
+    let path = paths.profile_db(profile_id);
+    let pool = open_existing(&path).await?;
     let migrator = sqlx::migrate!("../../migrations/profile");
-    let verdict = vet(&pool, &migrator, DbScope::Profile).await;
+    let verdict = match vet(&pool, &migrator, DbScope::Profile).await {
+        Ok(()) => back_up(&pool, &migrator, &path, DbScope::Profile, ask).await,
+        Err(refusal) => refusal,
+    };
     pool.close().await;
     verdict
+}
+
+/// [`pre_migration_backup::settle_before_launch`]: the user's refusal is
+/// the one answer to report, and the open downstream will not ask again
+/// for a database settled here.
+async fn back_up(
+    pool: &SqlitePool,
+    migrator: &Migrator,
+    path: &Path,
+    scope: DbScope,
+    ask: &pre_migration_backup::Prompt<'_>,
+) -> Option<AppError> {
+    pre_migration_backup::settle_before_launch(pool, migrator, path, scope, ask)
+        .await
+        .err()
 }
 
 /// [`ensure_not_from_the_future`] reduced to the one answer the
@@ -255,7 +291,16 @@ async fn vet_profile(paths: &AppPaths, profile_id: i64) -> Option<AppError> {
 /// which is not the same as "it's fine" — but it is the same *decision*,
 /// because the downstream guard will be asked again with the pool that
 /// actually matters.
-async fn vet(pool: &SqlitePool, migrator: &Migrator, scope: DbScope) -> Option<AppError> {
+///
+/// `Ok` when the database is clear to open, `Err(Some(_))` for a refusal
+/// and `Err(None)` when it could not tell. Only a clear database is
+/// copied here: one this pass could not read is left, copy and all, to
+/// the open downstream.
+async fn vet(
+    pool: &SqlitePool,
+    migrator: &Migrator,
+    scope: DbScope,
+) -> Result<(), Option<AppError>> {
     // Ordered the way the accident reads: "newer build" names how far
     // ahead the database is and is the more actionable of the two, so
     // it gets to answer first when a database is both ahead *and*
@@ -265,13 +310,13 @@ async fn vet(pool: &SqlitePool, migrator: &Migrator, scope: DbScope) -> Option<A
         ahead => ahead,
     };
     match verdict {
-        Ok(()) => None,
+        Ok(()) => Ok(()),
         Err(
             err @ (AppError::SchemaFromTheFuture { .. } | AppError::SchemaWrittenElsewhere { .. }),
-        ) => Some(err),
+        ) => Err(Some(err)),
         Err(err) => {
             tracing::warn!(%err, ?scope, "startup pre-flight: inconclusive, deferring to startup");
-            None
+            Err(None)
         }
     }
 }
@@ -294,7 +339,9 @@ async fn open_existing(path: &Path) -> Option<SqlitePool> {
     // permanent for a created database, and moving into or out of it
     // takes an exclusive lock `sqlite3_busy_timeout()` cannot wait on.
     // Asking for WAL here was a real write, and a non-negotiable lock,
-    // from the one pass whose whole job is to look without touching.
+    // from a pass whose job is to look before anything changes the
+    // database — the pre-migration copy it may take reads it, and
+    // writes only the file beside it.
     // Startup's own open still sets it.
     //
     // Not `read_only` either, for the opposite reason: a database left
@@ -576,7 +623,7 @@ mod tests {
     // pool can get wrong.
 
     use crate::paths::AppPaths;
-    use std::path::Path;
+    use std::path::{Path, PathBuf};
 
     /// Open (creating) a database file, the way startup would.
     async fn file_pool(path: &Path) -> SqlitePool {
@@ -662,7 +709,7 @@ mod tests {
         let root = tmp.path().join("waveflow");
         let paths = AppPaths::from_root(root.clone(), None);
 
-        assert!(preflight(&paths).await.is_none());
+        assert!(preflight(&paths, &never_asked).await.is_none());
         assert!(
             !root.exists(),
             "pre-flight must not create the app-data tree"
@@ -675,7 +722,7 @@ mod tests {
         let paths = seed_tree(&tmp.path().join("waveflow"), &[1]).await;
 
         assert!(
-            preflight(&paths).await.is_none(),
+            preflight(&paths, &never_asked).await.is_none(),
             "our own migrations must not read as newer",
         );
     }
@@ -686,7 +733,7 @@ mod tests {
         let paths = seed_tree(&tmp.path().join("waveflow"), &[1]).await;
         poison(&paths.app_db, 29990101000000).await;
 
-        match preflight(&paths).await {
+        match preflight(&paths, &never_asked).await {
             Some(AppError::SchemaFromTheFuture { scope, version, .. }) => {
                 assert_eq!(scope, DbScope::App);
                 assert_eq!(version, 29990101000000);
@@ -701,7 +748,7 @@ mod tests {
         let paths = seed_tree(&tmp.path().join("waveflow"), &[1]).await;
         poison(&paths.profile_db(1), 29990101000000).await;
 
-        match preflight(&paths).await {
+        match preflight(&paths, &never_asked).await {
             Some(AppError::SchemaFromTheFuture { scope, version, .. }) => {
                 assert_eq!(scope, DbScope::Profile);
                 assert_eq!(version, 29990101000000);
@@ -722,12 +769,12 @@ mod tests {
         poison(&paths.profile_db(1), 29990101000000).await;
 
         assert!(
-            preflight(&paths).await.is_none(),
+            preflight(&paths, &never_asked).await.is_none(),
             "a profile we are not opening must not ground the launch",
         );
 
         poison(&paths.profile_db(2), 29990202000000).await;
-        match preflight(&paths).await {
+        match preflight(&paths, &never_asked).await {
             Some(AppError::SchemaFromTheFuture { version, .. }) => {
                 assert_eq!(version, 29990202000000);
             }
@@ -747,6 +794,91 @@ mod tests {
         paths.ensure_dirs().unwrap();
         std::fs::write(&paths.app_db, b"not a database").unwrap();
 
-        assert!(preflight(&paths).await.is_none());
+        assert!(preflight(&paths, &never_asked).await.is_none());
+    }
+
+    /// The pre-flight's dialog, for trees where no copy can fail.
+    fn never_asked(
+        _: DbScope,
+        _: &pre_migration_backup::SnapshotFailure,
+    ) -> pre_migration_backup::Choice {
+        panic!("the pre-flight asked about a copy it should not have needed")
+    }
+
+    /// Put profile 1 of a seeded tree one migration behind this build,
+    /// and return where its pre-migration copy will go.
+    async fn profile_one_behind(paths: &AppPaths) -> PathBuf {
+        let pool = file_pool(&paths.profile_db(1)).await;
+        let newest = sqlx::migrate!("../../migrations/profile")
+            .iter()
+            .map(|m| m.version)
+            .max()
+            .unwrap();
+        sqlx::query("DELETE FROM _sqlx_migrations WHERE version = ?")
+            .bind(newest)
+            .execute(&pool)
+            .await
+            .unwrap();
+        pool.close().await;
+        let name = format!("data.db.pre-{newest}.bak");
+        paths.profile_db(1).with_file_name(name)
+    }
+
+    #[tokio::test]
+    async fn preflight_copies_the_profile_it_is_about_to_migrate() {
+        let tmp = tempfile::tempdir().unwrap();
+        let paths = seed_tree(&tmp.path().join("waveflow"), &[1]).await;
+        let copy = profile_one_behind(&paths).await;
+
+        assert!(preflight(&paths, &never_asked).await.is_none());
+        assert!(copy.is_file(), "a verified copy before the migration");
+    }
+
+    #[tokio::test]
+    async fn preflight_reports_a_copy_the_user_would_not_go_without() {
+        let tmp = tempfile::tempdir().unwrap();
+        let paths = seed_tree(&tmp.path().join("waveflow"), &[1]).await;
+        let copy = profile_one_behind(&paths).await;
+        // Something in the way of the copy, as a full disk would be.
+        std::fs::create_dir(&copy).unwrap();
+
+        let quit = |scope: DbScope, failure: &pre_migration_backup::SnapshotFailure| {
+            assert_eq!(scope, DbScope::Profile);
+            assert_eq!(failure.db, paths.profile_db(1));
+            pre_migration_backup::Choice::Quit
+        };
+        match preflight(&paths, &quit).await {
+            Some(AppError::PreMigrationBackupDeclined { scope }) => {
+                assert_eq!(scope, DbScope::Profile);
+            }
+            other => panic!("expected the refusal, got {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn continuing_at_preflight_carries_to_the_open_that_follows() {
+        let tmp = tempfile::tempdir().unwrap();
+        let paths = seed_tree(&tmp.path().join("waveflow"), &[1]).await;
+        let copy = profile_one_behind(&paths).await;
+        std::fs::create_dir(&copy).unwrap();
+
+        let go_on = |_: DbScope, _: &pre_migration_backup::SnapshotFailure| {
+            pre_migration_backup::Choice::Continue
+        };
+        assert!(preflight(&paths, &go_on).await.is_none());
+
+        // What `profile_db::open` asks from inside `setup`, where the
+        // installed dialog is none and a question would be a refusal:
+        // the answer given before the event loop stands in for it.
+        let pool = file_pool(&paths.profile_db(1)).await;
+        pre_migration_backup::ensure_backed_up(
+            &pool,
+            &sqlx::migrate!("../../migrations/profile"),
+            &paths.profile_db(1),
+            DbScope::Profile,
+            &pre_migration_backup::installed_prompt,
+        )
+        .await
+        .unwrap();
     }
 }

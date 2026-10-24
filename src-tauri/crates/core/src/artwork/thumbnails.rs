@@ -54,7 +54,12 @@ pub fn generate_thumbnails(source_path: &Path, base_dir: &Path, hash: &str) -> R
             .ok_or_else(|| anyhow::anyhow!("rgba_img build failed"))?;
         let dyn_img = image::DynamicImage::ImageRgba8(rgba_img);
         let rgb = dyn_img.to_rgb8();
-        rgb.save_with_format(&out, image::ImageFormat::Jpeg)?;
+        // Encoded in memory and stored through a partial, so a write cut
+        // short never sits under the final name, where the `exists()`
+        // check above would keep it for good.
+        let mut jpeg = std::io::Cursor::new(Vec::new());
+        rgb.write_to(&mut jpeg, image::ImageFormat::Jpeg)?;
+        crate::atomic_write::store_content_addressed(&out, jpeg.get_ref())?;
     }
     Ok(())
 }
@@ -84,4 +89,35 @@ pub fn thumbnail_paths_for(base_dir: &Path, hash: &str) -> (Option<String>, Opti
         None
     };
     (s1, s2)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn thumbnails_land_whole_and_leave_no_partial() {
+        let dir = tempfile::tempdir().unwrap();
+        let source = dir.path().join("abc.png");
+        image::RgbaImage::from_pixel(300, 200, image::Rgba([200, 40, 90, 255]))
+            .save(&source)
+            .unwrap();
+
+        generate_thumbnails(&source, dir.path(), "abc").unwrap();
+
+        for size in [THUMB_SMALL, THUMB_MEDIUM] {
+            let thumb = image::open(thumbnail_path(dir.path(), "abc", size)).unwrap();
+            assert_eq!((thumb.width(), thumb.height()), (size, size));
+        }
+        let partials = std::fs::read_dir(dir.path())
+            .unwrap()
+            .flatten()
+            .filter(|e| {
+                e.file_name()
+                    .to_string_lossy()
+                    .ends_with(crate::atomic_write::PARTIAL_SUFFIX)
+            })
+            .count();
+        assert_eq!(partials, 0);
+    }
 }

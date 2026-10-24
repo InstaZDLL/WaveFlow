@@ -7,6 +7,7 @@
 mod analysis;
 mod audio;
 mod backup;
+mod backup_prompt;
 mod commands;
 mod db;
 mod desktop_lyrics;
@@ -89,6 +90,11 @@ const TRAY_ID: &str = "waveflow";
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // A copy of this binary started only to ask whether to migrate
+    // without a backup shows that dialog and exits here, before it can
+    // touch a file or a toolkit (see `backup_prompt`).
+    backup_prompt::answer_if_asked();
+
     // Initialize structured logging. `RUST_LOG` overrides the default
     // filter. The returned value must be held until the process exits —
     // dropping it flushes and closes the file early, losing the tail of
@@ -124,7 +130,9 @@ pub fn run() {
     // exists. This is the only startup failure with a remedy the user
     // can act on, and the only place it can be *said* on all three
     // platforms — see `report_fatal_and_exit` for why "inside `setup`"
-    // is not that place (issues #526, #529).
+    // is not that place (issues #526, #529). The same pass takes the
+    // pre-migration copies, for the same reason: when one fails, the
+    // user is asked whether to go on without it.
     preflight_schema_guard(&context.config().identifier);
 
     let safe_mode = std::env::args_os().any(|arg| arg == "--safe-mode");
@@ -247,10 +255,16 @@ pub fn run() {
                         // Everything else keeps propagating into Tauri's
                         // "Failed to setup app" panic, which is the
                         // right shape for a bug.
+                        //
+                        // A database with no pre-migration copy lands
+                        // here the same way: the pre-flight settles the
+                        // two it opens, and anything left needs a
+                        // question this hook cannot ask.
                         if matches!(
                             err,
                             AppError::SchemaFromTheFuture { .. }
                                 | AppError::SchemaWrittenElsewhere { .. }
+                                | AppError::PreMigrationBackupDeclined { .. }
                         ) {
                             tracing::error!(%err, "fatal startup error, exiting");
                             // Stopping on purpose is not a launch that
@@ -304,6 +318,13 @@ pub fn run() {
             app.manage(tasks::TaskRegistry::new(app.handle().clone()));
 
             app.manage(state);
+
+            // From here on a database that cannot be copied before it
+            // migrates is asked about through the dialog plugin. Not
+            // earlier: `setup` runs on the event loop, which drains
+            // nothing until it returns, so the plugin's dialog asked from
+            // `AppState::init` would wait on it forever.
+            backup_prompt::install_running(app.handle().clone());
 
             // Plugin SDK epoch ticker. Wasmtime's epoch-interruption
             // deadline only fires when something is bumping the
@@ -1663,7 +1684,9 @@ fn link_appimage_gstreamer_plugins(dir: &std::path::Path) -> std::io::Result<()>
 }
 
 /// Vet the databases startup is about to open, and stop with an
-/// explanation if one of them came from a newer build.
+/// explanation if one of them came from a newer build — or, when one is
+/// about to migrate and could not be copied first, ask the user whether
+/// to go on, and stop if they say no.
 ///
 /// Runs from [`run`] before `tauri::Builder` is even constructed, so a
 /// refusal costs the user a dialog instead of a mystery. The detection
@@ -1683,9 +1706,24 @@ fn preflight_schema_guard(identifier: &str) {
     };
 
     let paths = paths::AppPaths::from_root(root, None);
-    if let Some(err) = tauri::async_runtime::block_on(db::schema_guard::preflight(&paths)) {
-        report_fatal_and_exit(&err);
+    match tauri::async_runtime::block_on(db::schema_guard::preflight(
+        &paths,
+        &backup_prompt::ask_at_launch,
+    )) {
+        None => {}
+        // The user was just asked and chose to stop: no second dialog.
+        Some(AppError::PreMigrationBackupDeclined { .. }) => exit_on_request(),
+        Some(err) => report_fatal_and_exit(&err),
     }
+}
+
+/// Stop because the user said so, before anything was built.
+fn exit_on_request() -> ! {
+    tracing::info!("quitting at the user's request, before any database was migrated");
+    render_mode::disarm_for_deliberate_exit();
+    skin_recovery::graceful_exit();
+    logging::flush();
+    std::process::exit(0);
 }
 
 /// Tell the user why WaveFlow is stopping, then stop.
