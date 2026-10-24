@@ -2815,6 +2815,22 @@
       "nextStart": "Wirkt beim nächsten Start von WaveFlow.",
       "active": "Aktiv: WaveFlow läuft über XWayland.",
       "setByUser": "Vorgegeben durch die Variable GDK_BACKEND in deiner Umgebung."
+    },
+    "modified": {
+      "count_one": "{{count}} geändert",
+      "count_other": "{{count}} geändert",
+      "reset": "Zurücksetzen",
+      "resetAria": "Geänderte Einstellungen zurücksetzen: {{category}}",
+      "dialog": {
+        "title": "„{{category}}“ zurücksetzen?",
+        "body_one": "Diese Einstellung kehrt zu ihrem Standardwert zurück:",
+        "body_other": "Diese {{count}} Einstellungen kehren zu ihren Standardwerten zurück:",
+        "untouched": "Konten, Bibliotheksordner, Erweiterungen und Sicherungen bleiben unverändert.",
+        "cancel": "Abbrechen",
+        "confirm": "Zurücksetzen",
+        "failed_one": "{{count}} Einstellung konnte nicht zurückgesetzt werden.",
+        "failed_other": "{{count}} Einstellungen konnten nicht zurückgesetzt werden."
+      }
     }
   },
   "scanProgress": {

@@ -1,4 +1,5 @@
 import { useProfileBooleanSetting } from "./useProfileSetting";
+import { SETTINGS } from "../lib/settingsRegistry";
 
 const KEY = "ui.artist_hero";
 
@@ -9,7 +10,7 @@ export const ARTIST_HERO_EVENT = "waveflow:artist-hero";
 /** Default ON — the hero is the baseline look of the artist page (a
  *  static backdrop, not extra motion), so it ships enabled and the
  *  toggle is there for users who prefer the flat header. */
-const DEFAULT_ENABLED = true;
+const DEFAULT_ENABLED = SETTINGS[KEY].defaultValue;
 
 export interface ArtistHero {
   enabled: boolean;

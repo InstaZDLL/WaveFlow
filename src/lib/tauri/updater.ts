@@ -1,5 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 
+import { announceSettingWrite } from "../settingWrites";
+
 /**
  * Release channel the in-app updater follows. `beta` opts the user
  * into pre-release builds served from the rolling `beta-channel`
@@ -36,7 +38,7 @@ export function getUpdateChannel(): Promise<UpdateChannel> {
 }
 
 export function setUpdateChannel(channel: UpdateChannel): Promise<void> {
-  return invoke<void>("set_update_channel", { channel });
+  return announceSettingWrite(invoke<void>("set_update_channel", { channel }));
 }
 
 /**

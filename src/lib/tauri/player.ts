@@ -1,5 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 
+import { announceSettingWrite } from "../settingWrites";
+
 /**
  * Subset of a track sent back by `player_get_state`. Matches the
  * fields needed by the PlayerBar (not the full `Track` row).
@@ -496,11 +498,13 @@ export function playerGetAudioSettings(): Promise<AudioSettingsSnapshot> {
 }
 
 export function playerSetNormalize(enabled: boolean): Promise<void> {
-  return invoke<void>("player_set_normalize", { enabled });
+  return announceSettingWrite(
+    invoke<void>("player_set_normalize", { enabled }),
+  );
 }
 
 export function playerSetMono(enabled: boolean): Promise<void> {
-  return invoke<void>("player_set_mono", { enabled });
+  return announceSettingWrite(invoke<void>("player_set_mono", { enabled }));
 }
 
 /**
@@ -517,7 +521,9 @@ export function playerSetMono(enabled: boolean): Promise<void> {
  * music. Takes effect on the next track.
  */
 export function playerSetMatchSourceRate(enabled: boolean): Promise<void> {
-  return invoke<void>("player_set_match_source_rate", { enabled });
+  return announceSettingWrite(
+    invoke<void>("player_set_match_source_rate", { enabled }),
+  );
 }
 
 /**
@@ -529,7 +535,9 @@ export function playerSetMatchSourceRate(enabled: boolean): Promise<void> {
  * fallback onto a different endpoint parks the session.
  */
 export function playerSetPauseOnDeviceLoss(enabled: boolean): Promise<void> {
-  return invoke<void>("player_set_pause_on_device_loss", { enabled });
+  return announceSettingWrite(
+    invoke<void>("player_set_pause_on_device_loss", { enabled }),
+  );
 }
 
 /**
@@ -540,15 +548,21 @@ export function playerSetKeepAwake(
   enabled: boolean,
   expectedProfileId: number | null = null,
 ): Promise<void> {
-  return invoke<void>("player_set_keep_awake", { enabled, expectedProfileId });
+  return announceSettingWrite(
+    invoke<void>("player_set_keep_awake", { enabled, expectedProfileId }),
+  );
 }
 
 export function playerSetCrossfade(seconds: number): Promise<void> {
-  return invoke<void>("player_set_crossfade", { seconds });
+  return announceSettingWrite(
+    invoke<void>("player_set_crossfade", { seconds }),
+  );
 }
 
 export function playerSetReplayGain(enabled: boolean): Promise<void> {
-  return invoke<void>("player_set_replaygain", { enabled });
+  return announceSettingWrite(
+    invoke<void>("player_set_replaygain", { enabled }),
+  );
 }
 
 /**
@@ -567,11 +581,13 @@ export interface ReplayGainOptions {
 export function playerSetReplayGainOptions(
   options: ReplayGainOptions,
 ): Promise<void> {
-  return invoke<void>("player_set_replaygain_options", {
-    preampDb: options.preampDb,
-    fallbackDb: options.fallbackDb,
-    preventClipping: options.preventClipping,
-  });
+  return announceSettingWrite(
+    invoke<void>("player_set_replaygain_options", {
+      preampDb: options.preampDb,
+      fallbackDb: options.fallbackDb,
+      preventClipping: options.preventClipping,
+    }),
+  );
 }
 
 /**
@@ -593,11 +609,13 @@ export const REPLAYGAIN_MODES: readonly ReplayGainMode[] = [
 ];
 
 export function playerSetReplayGainMode(mode: ReplayGainMode): Promise<void> {
-  return invoke<void>("player_set_replaygain_mode", { mode });
+  return announceSettingWrite(
+    invoke<void>("player_set_replaygain_mode", { mode }),
+  );
 }
 
 export function playerSetGapless(enabled: boolean): Promise<void> {
-  return invoke<void>("player_set_gapless", { enabled });
+  return announceSettingWrite(invoke<void>("player_set_gapless", { enabled }));
 }
 
 /**
@@ -607,7 +625,9 @@ export function playerSetGapless(enabled: boolean): Promise<void> {
  * backend. Persisted in `profile_setting['audio.dsd_precision']`.
  */
 export function playerSetDsdPrecision(taps: DsdPrecisionTaps): Promise<void> {
-  return invoke<void>("player_set_dsd_precision", { taps });
+  return announceSettingWrite(
+    invoke<void>("player_set_dsd_precision", { taps }),
+  );
 }
 
 /**
@@ -621,7 +641,7 @@ export function playerSetDsdPrecision(taps: DsdPrecisionTaps): Promise<void> {
  * `profile_setting['audio.dsd_dop']`.
  */
 export function playerSetDsdDop(enabled: boolean): Promise<void> {
-  return invoke<void>("player_set_dsd_dop", { enabled });
+  return announceSettingWrite(invoke<void>("player_set_dsd_dop", { enabled }));
 }
 
 /**
@@ -747,7 +767,9 @@ export function playerReopenOutputDevice(): Promise<void> {
  * busy, no supported format).
  */
 export function playerSetExclusiveOutput(enabled: boolean): Promise<void> {
-  return invoke<void>("player_set_exclusive_output", { enabled });
+  return announceSettingWrite(
+    invoke<void>("player_set_exclusive_output", { enabled }),
+  );
 }
 
 /**

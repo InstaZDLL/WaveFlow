@@ -2813,6 +2813,22 @@
       "nextStart": "将在下次启动 WaveFlow 时生效。",
       "active": "已启用：WaveFlow 正通过 XWayland 运行。",
       "setByUser": "由你环境中的 GDK_BACKEND 变量决定。"
+    },
+    "modified": {
+      "count_one": "已修改 {{count}} 项",
+      "count_other": "已修改 {{count}} 项",
+      "reset": "重置",
+      "resetAria": "重置已修改的设置：{{category}}",
+      "dialog": {
+        "title": "重置“{{category}}”？",
+        "body_one": "以下设置将恢复为默认值：",
+        "body_other": "以下 {{count}} 项设置将恢复为默认值：",
+        "untouched": "账户、音乐库文件夹、扩展和备份不受影响。",
+        "cancel": "取消",
+        "confirm": "重置",
+        "failed_one": "有 {{count}} 项设置无法重置。",
+        "failed_other": "有 {{count}} 项设置无法重置。"
+      }
     }
   },
   "scanProgress": {

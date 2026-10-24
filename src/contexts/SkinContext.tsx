@@ -190,57 +190,73 @@ export function SkinProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeProfile?.id]);
 
-  const setSkinId = useCallback((id: string) => {
-    const next = findSkin(id);
-    const profileId = activeProfileIdRef.current;
-    const version = ++selectionVersion.current;
-    // Serialize rapid picker changes so an older IPC call cannot leave the
-    // recovery marker pointing at a skin different from the one on screen.
-    selectionQueue.current = selectionQueue.current
-      .catch(() => undefined)
-      .then(async () => {
-        const stillCurrent = () =>
-          version === selectionVersion.current &&
-          profileId === activeProfileIdRef.current;
-        if (!stillCurrent()) return;
-        if (recoveryCompletion.current) {
-          try {
-            await recoveryCompletion.current;
-          } catch (err) {
-            if (!recoverySaved.current) throw err;
-            recoveryNeedsCompletion.current = true;
-          }
-        }
-        if (recoveryNeedsCompletion.current) {
-          await completeSkinRecovery();
-          recoveryNeedsCompletion.current = false;
-          recoveryCompletion.current = Promise.resolve();
-          clearSafeModeQuery();
-        }
-        if (SAFE_MODE && !recoverySaved.current) {
-          throw new Error("Studio recovery has not saved the active profile");
-        }
-        if (!stillCurrent()) return;
-        if (next.id !== RECOVERY_SKIN_ID) await recordSkin(next.id);
-        if (!stillCurrent()) return;
-        await setProfileSetting(
-          PROFILE_SETTING_KEY,
-          next.id,
-          "string",
-          profileId,
+  const setSkinId = useCallback(
+    (id: string, expectedProfileId?: number | null) => {
+      if (
+        expectedProfileId != null &&
+        expectedProfileId !== activeProfileIdRef.current
+      ) {
+        return Promise.reject(
+          new Error("the active profile changed before the skin was set"),
         );
-        if (!stillCurrent()) return;
-        if (next.id === RECOVERY_SKIN_ID) await recordSkin(next.id);
-        if (!stillCurrent()) return;
-        writeCachedSkin(next.id);
-        setSkin(next);
-        setSkinError(false);
-      })
-      .catch((err) => {
+      }
+      const next = findSkin(id);
+      // The pinned profile when there is one; the queue below re-checks it
+      // before each step, and the backend once more on the write.
+      const profileId = expectedProfileId ?? activeProfileIdRef.current;
+      const version = ++selectionVersion.current;
+      // Serialize rapid picker changes so an older IPC call cannot leave the
+      // recovery marker pointing at a skin different from the one on screen.
+      const change = selectionQueue.current
+        .catch(() => undefined)
+        .then(async () => {
+          const stillCurrent = () =>
+            version === selectionVersion.current &&
+            profileId === activeProfileIdRef.current;
+          if (!stillCurrent()) return;
+          if (recoveryCompletion.current) {
+            try {
+              await recoveryCompletion.current;
+            } catch (err) {
+              if (!recoverySaved.current) throw err;
+              recoveryNeedsCompletion.current = true;
+            }
+          }
+          if (recoveryNeedsCompletion.current) {
+            await completeSkinRecovery();
+            recoveryNeedsCompletion.current = false;
+            recoveryCompletion.current = Promise.resolve();
+            clearSafeModeQuery();
+          }
+          if (SAFE_MODE && !recoverySaved.current) {
+            throw new Error("Studio recovery has not saved the active profile");
+          }
+          if (!stillCurrent()) return;
+          if (next.id !== RECOVERY_SKIN_ID) await recordSkin(next.id);
+          if (!stillCurrent()) return;
+          await setProfileSetting(
+            PROFILE_SETTING_KEY,
+            next.id,
+            "string",
+            profileId,
+          );
+          if (!stillCurrent()) return;
+          if (next.id === RECOVERY_SKIN_ID) await recordSkin(next.id);
+          if (!stillCurrent()) return;
+          writeCachedSkin(next.id);
+          setSkin(next);
+          setSkinError(false);
+        });
+      // The queue swallows the failure so the next change still runs; the
+      // caller gets it, so a Settings page reset can count it.
+      selectionQueue.current = change.catch((err) => {
         setSkinError(true);
         console.warn("[SkinContext] skin change failed", err);
       });
-  }, []);
+      return change;
+    },
+    [],
+  );
 
   return (
     <SkinContext.Provider value={{ skin, setSkinId, skinError }}>

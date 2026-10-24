@@ -1,5 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 
+import { announceSettingWrite } from "../settingWrites";
+
 /// Mirrors `mpd::config::MpdConfig`.
 export interface MpdConfig {
   enabled: boolean;
@@ -27,7 +29,7 @@ export function mpdGetConfig(): Promise<MpdConfig> {
 }
 
 export function mpdSetConfig(cfg: MpdConfig): Promise<MpdStatus> {
-  return invoke<MpdStatus>("mpd_set_config", { cfg });
+  return announceSettingWrite(invoke<MpdStatus>("mpd_set_config", { cfg }));
 }
 
 export function mpdGetStatus(): Promise<MpdStatus> {

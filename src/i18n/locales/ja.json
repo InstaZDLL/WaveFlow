@@ -2813,6 +2813,22 @@
       "nextStart": "次回 WaveFlow を起動したときに反映されます。",
       "active": "有効：WaveFlow は XWayland 経由で動作しています。",
       "setByUser": "環境の GDK_BACKEND 変数で指定されています。"
+    },
+    "modified": {
+      "count_one": "{{count}} 件変更",
+      "count_other": "{{count}} 件変更",
+      "reset": "リセット",
+      "resetAria": "変更した設定をリセット：{{category}}",
+      "dialog": {
+        "title": "「{{category}}」をリセットしますか？",
+        "body_one": "次の設定が既定値に戻ります：",
+        "body_other": "次の {{count}} 件の設定が既定値に戻ります：",
+        "untouched": "アカウント、ライブラリのフォルダー、拡張機能、バックアップは変更されません。",
+        "cancel": "キャンセル",
+        "confirm": "リセット",
+        "failed_one": "{{count}} 件の設定をリセットできませんでした。",
+        "failed_other": "{{count}} 件の設定をリセットできませんでした。"
+      }
     }
   },
   "scanProgress": {

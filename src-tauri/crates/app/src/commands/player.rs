@@ -694,6 +694,66 @@ async fn read_setting(pool: &sqlx::SqlitePool, key: &str) -> Option<String> {
     }
 }
 
+/// The markers the `value_type` CHECK of `profile_setting` and
+/// `app_setting` accepts — and the only ones [`persist_setting`] can
+/// write, so a marker the table refuses no longer compiles.
+#[derive(Clone, Copy, Debug)]
+enum SettingType {
+    Bool,
+    Int,
+    /// Anything else, decimals included: the table has no marker for
+    /// them, and every reader parses the text back.
+    Text,
+    Json,
+}
+
+impl SettingType {
+    fn as_marker(self) -> &'static str {
+        match self {
+            Self::Bool => "bool",
+            Self::Int => "int",
+            Self::Text => "string",
+            Self::Json => "json",
+        }
+    }
+}
+
+/// Upsert one `profile_setting` row, and report a failure to the caller.
+///
+/// The commands call it **before** they hand the value to the engine, and
+/// return its error: a value the database refuses then never reaches the
+/// engine, and the control that asked rolls back to what both still hold.
+/// It used to run after, with its error dropped — the pre-amp, the fallback
+/// gain and the playback speed were written with a marker the table's
+/// CHECK refuses, every write failed, and the switch, the engine and a
+/// page reset all reported a success the next launch undid.
+async fn persist_setting(
+    pool: &sqlx::SqlitePool,
+    key: &str,
+    value: impl AsRef<str>,
+    value_type: SettingType,
+) -> AppResult<()> {
+    let result = sqlx::query(
+        "INSERT INTO profile_setting (key, value, value_type, updated_at)
+         VALUES (?, ?, ?, ?)
+         ON CONFLICT(key) DO UPDATE SET
+            value = excluded.value,
+            value_type = excluded.value_type,
+            updated_at = excluded.updated_at",
+    )
+    .bind(key)
+    .bind(value.as_ref())
+    .bind(value_type.as_marker())
+    .bind(chrono::Utc::now().timestamp_millis())
+    .execute(pool)
+    .await;
+    if let Err(err) = &result {
+        tracing::warn!(key, %err, "profile setting not saved");
+    }
+    result?;
+    Ok(())
+}
+
 /// Read a boolean `profile_setting`. `"true"` / `"1"` read as true and
 /// `"false"` / `"0"` as false; a row that is missing, unreadable or
 /// holds anything else resolves to `default`.
@@ -1446,7 +1506,7 @@ pub async fn player_set_volume(
     if let Ok(pool) = state.require_profile_pool().await {
         let as_int = (clamped * 100.0).round() as i64;
         let now = chrono::Utc::now().timestamp_millis();
-        let _ = sqlx::query(
+        if let Err(err) = sqlx::query(
             "UPDATE profile_setting
                 SET value = ?, updated_at = ?
               WHERE key = 'player.volume'",
@@ -1454,7 +1514,10 @@ pub async fn player_set_volume(
         .bind(as_int.to_string())
         .bind(now)
         .execute(&*pool)
-        .await;
+        .await
+        {
+            tracing::warn!(%err, "player.volume not saved");
+        }
     }
 
     Ok(())
@@ -1468,19 +1531,16 @@ pub async fn player_set_normalize(
     engine: tauri::State<'_, Arc<AudioEngine>>,
     enabled: bool,
 ) -> AppResult<()> {
-    engine.send(AudioCmd::SetNormalize(enabled))?;
     if let Ok(pool) = state.require_profile_pool().await {
-        let now = chrono::Utc::now().timestamp_millis();
-        let _ = sqlx::query(
-            "INSERT INTO profile_setting (key, value, value_type, updated_at)
-             VALUES ('audio.normalize', ?, 'bool', ?)
-             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+        persist_setting(
+            &pool,
+            "audio.normalize",
+            if enabled { "true" } else { "false" },
+            SettingType::Bool,
         )
-        .bind(if enabled { "true" } else { "false" })
-        .bind(now)
-        .execute(&*pool)
-        .await;
+        .await?;
     }
+    engine.send(AudioCmd::SetNormalize(enabled))?;
     Ok(())
 }
 
@@ -1507,22 +1567,19 @@ pub async fn player_set_dsd_precision(
     } else {
         256
     };
+    if let Ok(pool) = state.require_profile_pool().await {
+        persist_setting(
+            &pool,
+            "audio.dsd_precision",
+            taps.to_string(),
+            SettingType::Int,
+        )
+        .await?;
+    }
     engine
         .shared()
         .dsd_taps
         .store(taps, std::sync::atomic::Ordering::Release);
-    if let Ok(pool) = state.require_profile_pool().await {
-        let now = chrono::Utc::now().timestamp_millis();
-        let _ = sqlx::query(
-            "INSERT INTO profile_setting (key, value, value_type, updated_at)
-             VALUES ('audio.dsd_precision', ?, 'int', ?)
-             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
-        )
-        .bind(taps.to_string())
-        .bind(now)
-        .execute(&*pool)
-        .await;
-    }
     Ok(())
 }
 
@@ -1541,22 +1598,19 @@ pub async fn player_set_dsd_dop(
     engine: tauri::State<'_, Arc<AudioEngine>>,
     enabled: bool,
 ) -> AppResult<()> {
+    if let Ok(pool) = state.require_profile_pool().await {
+        persist_setting(
+            &pool,
+            "audio.dsd_dop",
+            if enabled { "true" } else { "false" },
+            SettingType::Bool,
+        )
+        .await?;
+    }
     engine
         .shared()
         .dsd_dop_enabled
         .store(enabled, std::sync::atomic::Ordering::Release);
-    if let Ok(pool) = state.require_profile_pool().await {
-        let now = chrono::Utc::now().timestamp_millis();
-        let _ = sqlx::query(
-            "INSERT INTO profile_setting (key, value, value_type, updated_at)
-             VALUES ('audio.dsd_dop', ?, 'bool', ?)
-             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
-        )
-        .bind(if enabled { "true" } else { "false" })
-        .bind(now)
-        .execute(&*pool)
-        .await;
-    }
     Ok(())
 }
 
@@ -1569,19 +1623,16 @@ pub async fn player_set_replaygain(
     engine: tauri::State<'_, Arc<AudioEngine>>,
     enabled: bool,
 ) -> AppResult<()> {
-    engine.send(AudioCmd::SetReplayGain(enabled))?;
     if let Ok(pool) = state.require_profile_pool().await {
-        let now = chrono::Utc::now().timestamp_millis();
-        let _ = sqlx::query(
-            "INSERT INTO profile_setting (key, value, value_type, updated_at)
-             VALUES ('audio.replaygain', ?, 'bool', ?)
-             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+        persist_setting(
+            &pool,
+            "audio.replaygain",
+            if enabled { "true" } else { "false" },
+            SettingType::Bool,
         )
-        .bind(if enabled { "true" } else { "false" })
-        .bind(now)
-        .execute(&*pool)
-        .await;
+        .await?;
     }
+    engine.send(AudioCmd::SetReplayGain(enabled))?;
     Ok(())
 }
 
@@ -1612,6 +1663,32 @@ pub async fn player_set_replaygain_options(
     let preamp = clamp_replaygain_adjust(preamp_db);
     let fallback = clamp_replaygain_adjust(fallback_db);
 
+    if let Ok(pool) = state.require_profile_pool().await {
+        // The two gains are decimals, which the table has no marker for:
+        // stored as text like `ui.zoom_level`, and parsed back on restore.
+        // They were written as `'float'`, which the CHECK refuses, so
+        // neither ever survived a restart.
+        for (key, value, value_type) in [
+            (
+                "audio.replaygain_preamp",
+                preamp.to_string(),
+                SettingType::Text,
+            ),
+            (
+                "audio.replaygain_fallback",
+                fallback.to_string(),
+                SettingType::Text,
+            ),
+            (
+                "audio.replaygain_prevent_clipping",
+                prevent_clipping.to_string(),
+                SettingType::Bool,
+            ),
+        ] {
+            persist_setting(&pool, key, value, value_type).await?;
+        }
+    }
+
     let shared = engine.shared();
     shared
         .replaygain_preamp_db_bits
@@ -1622,31 +1699,6 @@ pub async fn player_set_replaygain_options(
     shared
         .replaygain_prevent_clipping
         .store(prevent_clipping, std::sync::atomic::Ordering::Relaxed);
-
-    if let Ok(pool) = state.require_profile_pool().await {
-        let now = chrono::Utc::now().timestamp_millis();
-        for (key, value, value_type) in [
-            ("audio.replaygain_preamp", preamp.to_string(), "float"),
-            ("audio.replaygain_fallback", fallback.to_string(), "float"),
-            (
-                "audio.replaygain_prevent_clipping",
-                prevent_clipping.to_string(),
-                "bool",
-            ),
-        ] {
-            let _ = sqlx::query(
-                "INSERT INTO profile_setting (key, value, value_type, updated_at)
-                 VALUES (?, ?, ?, ?)
-                 ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
-            )
-            .bind(key)
-            .bind(value)
-            .bind(value_type)
-            .bind(now)
-            .execute(&*pool)
-            .await;
-        }
-    }
     Ok(())
 }
 
@@ -1670,23 +1722,20 @@ pub async fn player_set_replaygain_mode(
     mode: String,
 ) -> AppResult<()> {
     let mode = GainMode::from_setting(&mode);
+    if let Ok(pool) = state.require_profile_pool().await {
+        persist_setting(
+            &pool,
+            "audio.replaygain_mode",
+            mode.as_setting(),
+            SettingType::Text,
+        )
+        .await?;
+    }
     engine
         .shared()
         .replaygain_mode_bits
         .store(mode.as_bits(), std::sync::atomic::Ordering::Relaxed);
 
-    if let Ok(pool) = state.require_profile_pool().await {
-        let now = chrono::Utc::now().timestamp_millis();
-        let _ = sqlx::query(
-            "INSERT INTO profile_setting (key, value, value_type, updated_at)
-             VALUES ('audio.replaygain_mode', ?, 'string', ?)
-             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
-        )
-        .bind(mode.as_setting())
-        .bind(now)
-        .execute(&*pool)
-        .await;
-    }
     Ok(())
 }
 
@@ -1708,19 +1757,16 @@ pub async fn player_set_mono(
     engine: tauri::State<'_, Arc<AudioEngine>>,
     enabled: bool,
 ) -> AppResult<()> {
-    engine.send(AudioCmd::SetMono(enabled))?;
     if let Ok(pool) = state.require_profile_pool().await {
-        let now = chrono::Utc::now().timestamp_millis();
-        let _ = sqlx::query(
-            "INSERT INTO profile_setting (key, value, value_type, updated_at)
-             VALUES ('audio.mono', ?, 'bool', ?)
-             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+        persist_setting(
+            &pool,
+            "audio.mono",
+            if enabled { "true" } else { "false" },
+            SettingType::Bool,
         )
-        .bind(if enabled { "true" } else { "false" })
-        .bind(now)
-        .execute(&*pool)
-        .await;
+        .await?;
     }
+    engine.send(AudioCmd::SetMono(enabled))?;
     Ok(())
 }
 
@@ -1735,22 +1781,19 @@ pub async fn player_set_smart_crossfade(
     engine: tauri::State<'_, Arc<AudioEngine>>,
     enabled: bool,
 ) -> AppResult<()> {
+    if let Ok(pool) = state.require_profile_pool().await {
+        persist_setting(
+            &pool,
+            "audio.smart_crossfade",
+            if enabled { "true" } else { "false" },
+            SettingType::Bool,
+        )
+        .await?;
+    }
     engine
         .shared()
         .smart_crossfade_enabled
         .store(enabled, std::sync::atomic::Ordering::Release);
-    if let Ok(pool) = state.require_profile_pool().await {
-        let now = chrono::Utc::now().timestamp_millis();
-        let _ = sqlx::query(
-            "INSERT INTO profile_setting (key, value, value_type, updated_at)
-             VALUES ('audio.smart_crossfade', ?, 'bool', ?)
-             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
-        )
-        .bind(if enabled { "true" } else { "false" })
-        .bind(now)
-        .execute(&*pool)
-        .await;
-    }
     Ok(())
 }
 
@@ -1777,6 +1820,15 @@ pub async fn player_set_dynamic_crossfade(
     engine: tauri::State<'_, Arc<AudioEngine>>,
     enabled: bool,
 ) -> AppResult<()> {
+    if let Ok(pool) = state.require_profile_pool().await {
+        persist_setting(
+            &pool,
+            "audio.dynamic_crossfade",
+            if enabled { "true" } else { "false" },
+            SettingType::Bool,
+        )
+        .await?;
+    }
     engine
         .shared()
         .dynamic_crossfade_enabled
@@ -1788,18 +1840,6 @@ pub async fn player_set_dynamic_crossfade(
             .shared()
             .pending_next_crossfade_ms
             .store(0, std::sync::atomic::Ordering::Release);
-    }
-    if let Ok(pool) = state.require_profile_pool().await {
-        let now = chrono::Utc::now().timestamp_millis();
-        let _ = sqlx::query(
-            "INSERT INTO profile_setting (key, value, value_type, updated_at)
-             VALUES ('audio.dynamic_crossfade', ?, 'bool', ?)
-             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
-        )
-        .bind(if enabled { "true" } else { "false" })
-        .bind(now)
-        .execute(&*pool)
-        .await;
     }
     Ok(())
 }
@@ -1824,22 +1864,19 @@ pub async fn player_set_visualizer(
     engine: tauri::State<'_, Arc<AudioEngine>>,
     enabled: bool,
 ) -> AppResult<()> {
+    if let Ok(pool) = state.require_profile_pool().await {
+        persist_setting(
+            &pool,
+            "ui.visualizer",
+            if enabled { "true" } else { "false" },
+            SettingType::Bool,
+        )
+        .await?;
+    }
     engine
         .shared()
         .visualizer_enabled
         .store(enabled, std::sync::atomic::Ordering::Release);
-    if let Ok(pool) = state.require_profile_pool().await {
-        let now = chrono::Utc::now().timestamp_millis();
-        let _ = sqlx::query(
-            "INSERT INTO profile_setting (key, value, value_type, updated_at)
-             VALUES ('ui.visualizer', ?, 'bool', ?)
-             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
-        )
-        .bind(if enabled { "true" } else { "false" })
-        .bind(now)
-        .execute(&*pool)
-        .await;
-    }
     Ok(())
 }
 
@@ -1868,20 +1905,17 @@ pub async fn player_set_speed(
     engine: tauri::State<'_, Arc<AudioEngine>>,
     value: f32,
 ) -> AppResult<()> {
-    engine.send(AudioCmd::SetSpeed(value))?;
     if let Ok(pool) = state.require_profile_pool().await {
         let clamped = value.clamp(0.5, 2.0);
-        let now = chrono::Utc::now().timestamp_millis();
-        let _ = sqlx::query(
-            "INSERT INTO profile_setting (key, value, value_type, updated_at)
-             VALUES ('audio.playback_speed', ?, 'float', ?)
-             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+        persist_setting(
+            &pool,
+            "audio.playback_speed",
+            clamped.to_string(),
+            SettingType::Text,
         )
-        .bind(clamped.to_string())
-        .bind(now)
-        .execute(&*pool)
-        .await;
+        .await?;
     }
+    engine.send(AudioCmd::SetSpeed(value))?;
     Ok(())
 }
 
@@ -1898,19 +1932,16 @@ pub async fn player_set_gapless(
     engine: tauri::State<'_, Arc<AudioEngine>>,
     enabled: bool,
 ) -> AppResult<()> {
-    engine.send(AudioCmd::SetGapless(enabled))?;
     if let Ok(pool) = state.require_profile_pool().await {
-        let now = chrono::Utc::now().timestamp_millis();
-        let _ = sqlx::query(
-            "INSERT INTO profile_setting (key, value, value_type, updated_at)
-             VALUES ('audio.gapless', ?, 'bool', ?)
-             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+        persist_setting(
+            &pool,
+            "audio.gapless",
+            if enabled { "true" } else { "false" },
+            SettingType::Bool,
         )
-        .bind(if enabled { "true" } else { "false" })
-        .bind(now)
-        .execute(&*pool)
-        .await;
+        .await?;
     }
+    engine.send(AudioCmd::SetGapless(enabled))?;
     Ok(())
 }
 
@@ -1978,10 +2009,9 @@ pub async fn player_set_eq_enabled(
     engine: tauri::State<'_, Arc<AudioEngine>>,
     enabled: bool,
 ) -> AppResult<()> {
+    let previous = EqState::capture(engine.shared());
     engine.shared().eq.set_enabled(enabled);
-    persist_eq(&state, engine.shared()).await;
-    emit_eq(&app, &engine);
-    Ok(())
+    commit_eq(&app, &state, &engine, previous).await
 }
 
 #[tauri::command]
@@ -1992,10 +2022,9 @@ pub async fn player_set_eq_band(
     index: usize,
     gain_db: f32,
 ) -> AppResult<()> {
+    let previous = EqState::capture(engine.shared());
     engine.shared().eq.set_band_db(index, gain_db);
-    persist_eq(&state, engine.shared()).await;
-    emit_eq(&app, &engine);
-    Ok(())
+    commit_eq(&app, &state, &engine, previous).await
 }
 
 #[tauri::command]
@@ -2008,42 +2037,70 @@ pub async fn player_set_eq_preset(
     let Some(gains) = crate::audio::eq::preset_gains(&preset_key) else {
         return Err(AppError::Other(format!("unknown EQ preset: {preset_key}")));
     };
+    let previous = EqState::capture(engine.shared());
     engine.shared().eq.set_all_bands_db(&gains);
-    persist_eq(&state, engine.shared()).await;
-    emit_eq(&app, &engine);
-    Ok(())
+    commit_eq(&app, &state, &engine, previous).await
+}
+
+/// The EQ as it was before a change, to put back if the change cannot
+/// be saved.
+struct EqState {
+    enabled: bool,
+    bands: Vec<f32>,
+}
+
+impl EqState {
+    fn capture(shared: &crate::audio::state::SharedPlayback) -> Self {
+        Self {
+            enabled: shared.eq.is_enabled(),
+            bands: shared.eq.read_bands_db().to_vec(),
+        }
+    }
+}
+
+/// Save an EQ change the engine has just applied, then tell every EQ
+/// surface. The engine goes first here, unlike the other settings, because
+/// it is what turns a preset into its six gains; so a change the database
+/// refuses is undone in the engine instead, and the `player:eq` that
+/// follows brings the controls back to it along with the error.
+async fn commit_eq(
+    app: &AppHandle,
+    state: &AppState,
+    engine: &AudioEngine,
+    previous: EqState,
+) -> AppResult<()> {
+    let saved = persist_eq(state, engine.shared()).await;
+    if saved.is_err() {
+        let eq = &engine.shared().eq;
+        eq.set_all_bands_db(&previous.bands);
+        eq.set_enabled(previous.enabled);
+    }
+    emit_eq(app, engine);
+    saved
 }
 
 /// Persist the EQ snapshot under two keys: `audio.eq_enabled` (bool)
 /// and `audio.eq_bands` (JSON array of f32). Splitting the bypass
 /// from the bands lets the user toggle the EQ off without losing
 /// their custom curve.
-async fn persist_eq(state: &AppState, shared: &crate::audio::state::SharedPlayback) {
+async fn persist_eq(
+    state: &AppState,
+    shared: &crate::audio::state::SharedPlayback,
+) -> AppResult<()> {
     let Ok(pool) = state.require_profile_pool().await else {
-        return;
+        return Ok(());
     };
-    let now = chrono::Utc::now().timestamp_millis();
     let enabled = shared.eq.is_enabled();
     let bands = shared.eq.read_bands_db();
     let bands_json = serde_json::to_string(&bands.to_vec()).unwrap_or_else(|_| "[]".into());
-    let _ = sqlx::query(
-        "INSERT INTO profile_setting (key, value, value_type, updated_at)
-         VALUES ('audio.eq_enabled', ?, 'bool', ?)
-         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+    persist_setting(
+        &pool,
+        "audio.eq_enabled",
+        if enabled { "true" } else { "false" },
+        SettingType::Bool,
     )
-    .bind(if enabled { "true" } else { "false" })
-    .bind(now)
-    .execute(&*pool)
-    .await;
-    let _ = sqlx::query(
-        "INSERT INTO profile_setting (key, value, value_type, updated_at)
-         VALUES ('audio.eq_bands', ?, 'json', ?)
-         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
-    )
-    .bind(&bands_json)
-    .bind(now)
-    .execute(&*pool)
-    .await;
+    .await?;
+    persist_setting(&pool, "audio.eq_bands", &bands_json, SettingType::Json).await
 }
 
 /// Update the crossfade duration. Pushes the new value live to the
@@ -2056,19 +2113,16 @@ pub async fn player_set_crossfade(
     seconds: f64,
 ) -> AppResult<()> {
     let ms = (seconds.max(0.0) * 1000.0).round() as i64;
-    engine.send(AudioCmd::SetCrossfade(ms.max(0) as u32))?;
     if let Ok(pool) = state.require_profile_pool().await {
-        let now = chrono::Utc::now().timestamp_millis();
-        let _ = sqlx::query(
-            "INSERT INTO profile_setting (key, value, value_type, updated_at)
-             VALUES ('audio.crossfade_ms', ?, 'int', ?)
-             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+        persist_setting(
+            &pool,
+            "audio.crossfade_ms",
+            ms.to_string(),
+            SettingType::Int,
         )
-        .bind(ms.to_string())
-        .bind(now)
-        .execute(&*pool)
-        .await;
+        .await?;
     }
+    engine.send(AudioCmd::SetCrossfade(ms.max(0) as u32))?;
     Ok(())
 }
 
@@ -2289,19 +2343,14 @@ pub async fn player_set_output_device(
         .await
         .map_err(|e| AppError::Audio(format!("set output device task: {e}")))??;
     if let Ok(pool) = state.require_profile_pool().await {
-        let now = chrono::Utc::now().timestamp_millis();
         // Empty string represents "default" so the column stays
         // NOT NULL — the load path translates back to None.
         let stored = device_id.unwrap_or_default();
-        let _ = sqlx::query(
-            "INSERT INTO profile_setting (key, value, value_type, updated_at)
-             VALUES ('audio.output_device', ?, 'string', ?)
-             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
-        )
-        .bind(stored)
-        .bind(now)
-        .execute(&*pool)
-        .await;
+        // After the switch, not before: opening the device is what tells a
+        // usable choice from one that is not, and only a usable one should
+        // be tried again at the next launch. A failure here leaves the
+        // session on the device it switched to and says so.
+        persist_setting(&pool, "audio.output_device", stored, SettingType::Text).await?;
     }
     Ok(())
 }
@@ -2357,25 +2406,19 @@ pub async fn player_set_exclusive_output(
     engine: tauri::State<'_, Arc<AudioEngine>>,
     enabled: bool,
 ) -> AppResult<()> {
+    // The preference first: it is what the card shows, whether or not the
+    // device then engages, and a preference the database refused must not
+    // be acted on.
+    if let Ok(pool) = state.require_profile_pool().await {
+        let stored = if enabled { "1" } else { "0" };
+        persist_setting(&pool, "audio.exclusive_output", stored, SettingType::Bool).await?;
+    }
     let engine_clone: Arc<AudioEngine> = engine.inner().clone();
     // Same rationale as `player_set_output_device`: opening / tearing
     // down a WASAPI stream blocks for a few hundred ms.
     tokio::task::spawn_blocking(move || engine_clone.set_exclusive_output(enabled))
         .await
         .map_err(|e| AppError::Audio(format!("set exclusive output task: {e}")))??;
-    if let Ok(pool) = state.require_profile_pool().await {
-        let now = chrono::Utc::now().timestamp_millis();
-        let stored = if enabled { "1" } else { "0" };
-        let _ = sqlx::query(
-            "INSERT INTO profile_setting (key, value, value_type, updated_at)
-             VALUES ('audio.exclusive_output', ?, 'bool', ?)
-             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
-        )
-        .bind(stored)
-        .bind(now)
-        .execute(&*pool)
-        .await;
-    }
     Ok(())
 }
 
@@ -3151,7 +3194,9 @@ async fn server_stand_in(
 
 #[cfg(test)]
 mod album_ordering_tests {
-    use super::{queue_is_album_ordered, read_bool_setting};
+    use super::{
+        persist_setting, queue_is_album_ordered, read_bool_setting, read_setting, SettingType,
+    };
     use sqlx::SqlitePool;
 
     /// The real profile schema. `queue_is_album_ordered` reads
@@ -3231,6 +3276,81 @@ mod album_ordering_tests {
             assert!(!queue_is_album_ordered(&pool, source, Some(1), None).await);
         }
     }
+    /// The decimals the engine persists (the two ReplayGain gains, the
+    /// playback speed) go through the table's CHECK and read back as the
+    /// restore parses them. They were written as `'float'`, which the
+    /// CHECK refuses — the first assertion is that refusal, kept so the
+    /// reason for `SettingType::Text` stays on record.
+    #[tokio::test]
+    async fn a_decimal_setting_is_stored_and_read_back() {
+        let pool = migrated_pool().await;
+
+        let refused = sqlx::query(
+            "INSERT INTO profile_setting (key, value, value_type, updated_at)
+             VALUES ('audio.playback_speed', '1.25', 'float', 0)",
+        )
+        .execute(&pool)
+        .await;
+        assert!(refused.is_err(), "the CHECK accepts no 'float' marker");
+
+        for (key, value) in [
+            ("audio.replaygain_preamp", -3.5_f32),
+            ("audio.replaygain_fallback", 2.0),
+            ("audio.playback_speed", 1.25),
+        ] {
+            persist_setting(&pool, key, value.to_string(), SettingType::Text)
+                .await
+                .unwrap();
+            let read = read_setting(&pool, key)
+                .await
+                .and_then(|v| v.parse::<f32>().ok());
+            assert_eq!(read, Some(value), "{key} did not survive the round trip");
+        }
+
+        // A second write replaces the value rather than adding a row.
+        persist_setting(&pool, "audio.playback_speed", "0.75", SettingType::Text)
+            .await
+            .unwrap();
+        assert_eq!(
+            read_setting(&pool, "audio.playback_speed").await.as_deref(),
+            Some("0.75")
+        );
+    }
+
+    /// A write that fails is reported, not swallowed: the commands return
+    /// this error before touching the engine, and the control rolls back.
+    #[tokio::test]
+    async fn a_failed_write_is_reported() {
+        let pool = migrated_pool().await;
+        pool.close().await;
+        let result = persist_setting(&pool, "audio.mono", "true", SettingType::Bool).await;
+        assert!(result.is_err(), "a write to a closed database succeeded");
+    }
+
+    /// Every marker `persist_setting` can write is one the table accepts.
+    #[tokio::test]
+    async fn every_setting_type_passes_the_check() {
+        let pool = migrated_pool().await;
+        for (key, value, value_type) in [
+            ("test.bool", "true", SettingType::Bool),
+            ("test.int", "256", SettingType::Int),
+            ("test.text", "auto", SettingType::Text),
+            ("test.json", "[0,0,0]", SettingType::Json),
+        ] {
+            persist_setting(&pool, key, value, value_type)
+                .await
+                .unwrap();
+            assert_eq!(read_setting(&pool, key).await.as_deref(), Some(value));
+            let marker: String =
+                sqlx::query_scalar("SELECT value_type FROM profile_setting WHERE key = ?")
+                    .bind(key)
+                    .fetch_one(&pool)
+                    .await
+                    .unwrap();
+            assert_eq!(marker, value_type.as_marker());
+        }
+    }
+
     /// A profile that never wrote a setting must read as the default,
     /// not as whatever the previous profile left behind (#698). The
     /// same holds for a row that says something else entirely.

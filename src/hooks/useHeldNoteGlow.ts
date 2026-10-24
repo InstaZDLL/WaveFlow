@@ -1,4 +1,5 @@
 import { useProfileBooleanSetting } from "./useProfileSetting";
+import { SETTINGS } from "../lib/settingsRegistry";
 
 /** Broadcast after a write, so every mounted lyrics view re-reads. */
 export const HELD_NOTE_GLOW_EVENT = "waveflow:lyrics-held-notes-changed";
@@ -12,7 +13,7 @@ export const HELD_NOTE_GLOW_EVENT = "waveflow:lyrics-held-notes-changed";
 export function useHeldNoteGlowSetting() {
   return useProfileBooleanSetting({
     key: "lyrics.held_notes",
-    defaultValue: true,
+    defaultValue: SETTINGS["lyrics.held_notes"].defaultValue,
     event: HELD_NOTE_GLOW_EVENT,
     label: "useHeldNoteGlowSetting",
   });

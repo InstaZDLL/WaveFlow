@@ -14,17 +14,19 @@ import {
 import { setProfileSetting } from "../../../lib/tauri/profile";
 import { ToggleSwitch } from "../../common/ToggleSwitch";
 
-/** The two writable toggles (excludes the derived `loaded` flag). */
+/** The three writable toggles (excludes the derived `loaded` flag). */
 type ImmersiveToggleKey = keyof typeof IMMERSIVE_PREF_KEYS;
 
 /**
- * Settings → Appearance card for the immersive view (issue #328). Two
+ * Settings → Appearance card for the immersive view (issue #328). Three
  * independent per-profile toggles:
- *  - merged lyrics column (vs the legacy single-view-with-toggle)
- *  - native OS fullscreen on open (vs an in-window overlay)
+ *  - merged lyrics column (vs the legacy single-view-with-toggle), ON by
+ *    default so the lyrics column is shown to everyone
+ *  - hide that column for a track without lyrics (#794), OFF
+ *  - native OS fullscreen on open (vs an in-window overlay), OFF so the
+ *    view keeps to its window
  *
- * Both default OFF so the immersive view stays the pre-#328 experience
- * out of the box; each is opt-in. Writes flow through
+ * The defaults are in the settings registry. Writes flow through
  * `setProfileSetting` then a single
  * `waveflow:immersive-prefs-changed` event so every mounted consumer
  * (the hook in `ImmersiveView`) re-reads in one go.

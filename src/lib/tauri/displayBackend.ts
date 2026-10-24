@@ -1,5 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 
+import { announceSettingWrite } from "../settingWrites";
+
 /** The XWayland choice on a Linux Wayland session (#894). */
 export interface DisplayBackendStatus {
   /** Linux on a Wayland session that runs XWayland: the only place the
@@ -22,7 +24,9 @@ export function displayBackendStatus(): Promise<DisplayBackendStatus> {
 export function displayBackendSetXwayland(
   enabled: boolean,
 ): Promise<DisplayBackendStatus> {
-  return invoke<DisplayBackendStatus>("display_backend_set_xwayland", {
-    enabled,
-  });
+  return announceSettingWrite(
+    invoke<DisplayBackendStatus>("display_backend_set_xwayland", {
+      enabled,
+    }),
+  );
 }

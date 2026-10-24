@@ -1873,6 +1873,25 @@
   border-radius: 2px;
   background-color: var(--fe-accent);
 }
+/* A settings page's "n modified · Reset": the count is a label in the
+   third ink with tabular figures, the reset a ghost pill — a secondary
+   action, so no accent. */
+:root[data-layout="fluid"] main .settings-modified-count,
+:root[data-layout="fluid"] main .settings-modified-dot {
+  color: var(--fe-ink-3) !important;
+  font-feature-settings: "tnum" 1;
+}
+:root[data-layout="fluid"] main button.settings-modified-reset {
+  background-color: var(--fe-tone-2) !important;
+  color: var(--fe-ink-2) !important;
+  transition:
+    color 180ms var(--fe-ease),
+    background-color 180ms var(--fe-ease);
+}
+:root[data-layout="fluid"] main button.settings-modified-reset:hover {
+  background-color: var(--fe-tone-4) !important;
+  color: var(--fe-ink) !important;
+}
 
 /* ============================================================
    The right-edge panel — one shell, three tabs (`FluidSidePanel`),

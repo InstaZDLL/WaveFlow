@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import type { LyricsProvider } from "../lib/tauri/lyrics";
 import { useProfileSetting } from "./useProfileSetting";
+import { SETTINGS } from "../lib/settingsRegistry";
 
 /**
  * The online lyrics providers the user can switch off (#722), in the
@@ -16,13 +17,19 @@ export const SWITCHABLE_LYRICS_PROVIDERS: readonly LyricsProvider[] = [
 
 /** Mirrors `DEFAULT_DISABLED` in `lyrics_providers.rs`: Genius answers a
  *  normal install with a 403, and only ever with unsynced text. */
-const DEFAULT_DISABLED: LyricsProvider[] = ["genius"];
+const DEFAULT_DISABLED: LyricsProvider[] = [
+  ...SETTINGS["lyrics.disabled_providers"].defaultValue,
+];
 
 /** Mirrors `DEFAULT_EXCLUDED_GENRES` in `lyrics_providers.rs`. */
-export const DEFAULT_EXCLUDED_GENRES: string[] = ["Instrumental", "Lo-fi"];
+export const DEFAULT_EXCLUDED_GENRES: string[] = [
+  ...SETTINGS["lyrics.excluded_genres"].defaultValue,
+];
 
-const DISABLED_EVENT = "waveflow:lyrics-disabled-providers-changed";
-const GENRES_EVENT = "waveflow:lyrics-excluded-genres-changed";
+export const LYRICS_DISABLED_PROVIDERS_EVENT =
+  "waveflow:lyrics-disabled-providers-changed";
+export const LYRICS_EXCLUDED_GENRES_EVENT =
+  "waveflow:lyrics-excluded-genres-changed";
 
 /**
  * Parse a stored JSON array of strings. Junk falls back to `fallback`,
@@ -40,14 +47,14 @@ function parseStringList(raw: string | null, fallback: string[]): string[] {
   }
 }
 
-function parseDisabled(raw: string | null): LyricsProvider[] {
+export function parseDisabled(raw: string | null): LyricsProvider[] {
   return parseStringList(raw, DEFAULT_DISABLED).filter(
     (id): id is LyricsProvider =>
       SWITCHABLE_LYRICS_PROVIDERS.includes(id as LyricsProvider),
   );
 }
 
-function parseGenres(raw: string | null): string[] {
+export function parseGenres(raw: string | null): string[] {
   return parseStringList(raw, DEFAULT_EXCLUDED_GENRES);
 }
 
@@ -67,7 +74,7 @@ export function useDisabledLyricsProviders() {
         SWITCHABLE_LYRICS_PROVIDERS.filter((p) => ids.includes(p)),
       ),
     valueType: "json",
-    event: DISABLED_EVENT,
+    event: LYRICS_DISABLED_PROVIDERS_EVENT,
     label: "useDisabledLyricsProviders",
   });
 
@@ -113,7 +120,7 @@ export function useExcludedLyricsGenres() {
     parse: parseGenres,
     serialize: (genres) => JSON.stringify(genres),
     valueType: "json",
-    event: GENRES_EVENT,
+    event: LYRICS_EXCLUDED_GENRES_EVENT,
     label: "useExcludedLyricsGenres",
   });
 

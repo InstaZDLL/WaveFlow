@@ -9,8 +9,19 @@ import type { ThemePreset } from "../lib/themes";
 interface ThemeContextValue {
   /** Currently active preset (one of `THEME_PRESETS`). */
   theme: ThemePreset;
-  /** Switch to a preset by id. Persists across launches. */
-  setThemeId: (id: string, event?: ReactMouseEvent) => void;
+  /** Switch to a preset by id. Persists across launches. Resolves once
+   *  the profile's row is written and rejects if it is not; the swap on
+   *  screen does not wait for it. A caller may ignore the promise — its
+   *  failure is already logged. A caller acting for a profile it captured earlier — a
+   *  Settings page reset — passes it as `expectedProfileId`: the change is
+   *  refused when another profile is active by then, and the backend
+   *  refuses a write that a switch overtakes on the way, so one profile's
+   *  choice never lands in another's. */
+  setThemeId: (
+    id: string,
+    event?: ReactMouseEvent,
+    expectedProfileId?: number | null,
+  ) => Promise<void>;
   /**
    * Backward-compat: derived from `theme.mode === "dark"`. New code
    * should prefer reading `theme` directly so it can adapt to the

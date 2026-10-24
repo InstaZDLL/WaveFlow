@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from "react";
 import { useProfileSetting } from "./useProfileSetting";
+import { SETTINGS } from "../lib/settingsRegistry";
 
 /**
  * How the Wrapped banner on the Home view decides to show itself.
@@ -38,7 +39,7 @@ export const WRAPPED_BANNER_EVENT = "waveflow:wrapped-banner-changed";
 export const WRAPPED_DISMISSED_YEAR_EVENT =
   "waveflow:wrapped-dismissed-year-changed";
 
-const DEFAULT_MODE: WrappedBannerMode = "auto";
+const DEFAULT_MODE: WrappedBannerMode = SETTINGS[MODE_KEY].defaultValue;
 
 /**
  * Auto-show window in local time — December 1 through January 31
@@ -52,7 +53,7 @@ export function isInWrappedSeason(today: Date = new Date()): boolean {
   return month === 11 || month === 0; // December or January
 }
 
-function parseMode(raw: string | null): WrappedBannerMode {
+export function parseMode(raw: string | null): WrappedBannerMode {
   if (raw === "always" || raw === "never" || raw === "auto") return raw;
   return DEFAULT_MODE;
 }

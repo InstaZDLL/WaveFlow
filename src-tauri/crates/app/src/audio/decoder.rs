@@ -836,11 +836,48 @@ fn decoder_loop(
                 }
             }
             AudioCmd::Shutdown => return,
+            // A setting still lands while nothing plays: it is what the
+            // next track starts with. Dropping it here left the engine on
+            // the old value until the next launch restored the row, while
+            // the database and the switch on screen said otherwise.
+            cmd if apply_setting(&cmd, &shared) => {}
             // All other commands are no-ops when no track is playing —
             // they're only meaningful inside `play_track`'s inner loop.
             _ => {}
         }
     }
+}
+
+/// Apply a command that only changes a setting the decoder reads — the
+/// same stores the arms of [`drain_commands`] make while a track plays.
+/// Returns whether `cmd` was one.
+///
+/// For the loops that have no track to apply them to (the idle loop, the
+/// test tone): there they used to fall into the catch-all and be lost.
+///
+/// The speed is the one store that differs. With no stream decoding there
+/// is no clock to rebase and no resampler to rebuild, so it is written the
+/// way the boot-time restore writes it, without `set_playback_speed`'s
+/// rebase, seek generation and dirty flag; the next track's stream takes
+/// the speed when it opens.
+fn apply_setting(cmd: &AudioCmd, shared: &SharedPlayback) -> bool {
+    match *cmd {
+        AudioCmd::SetVolume(v) => shared.set_volume(v),
+        AudioCmd::SetNormalize(on) => shared.normalize_enabled.store(on, Ordering::Release),
+        AudioCmd::SetMono(on) => shared.mono_enabled.store(on, Ordering::Release),
+        AudioCmd::SetCrossfade(ms) => shared.crossfade_ms.store(ms, Ordering::Release),
+        AudioCmd::SetReplayGain(on) => shared.replaygain_enabled.store(on, Ordering::Release),
+        AudioCmd::SetGapless(on) => shared.gapless_enabled.store(on, Ordering::Release),
+        AudioCmd::SetSpeed(v) => {
+            if v.is_finite() {
+                shared
+                    .playback_speed_bits
+                    .store(v.clamp(0.5, 2.0).to_bits(), Ordering::Release);
+            }
+        }
+        _ => return false,
+    }
+    true
 }
 
 /// [`drain_ring_silent`] from the idle loop, where the output may still
@@ -993,9 +1030,10 @@ fn play_test_tone(
                 *producer = new_producer;
                 break ToneEnd::Done;
             }
-            Ok(AudioCmd::SetVolume(v)) => shared.set_volume(v),
-            Ok(AudioCmd::SetNormalize(on)) => shared.normalize_enabled.store(on, Ordering::Release),
-            Ok(AudioCmd::SetMono(on)) => shared.mono_enabled.store(on, Ordering::Release),
+            // Every setting, not only the three this loop used to know:
+            // the others were lost, and the track after the tone started
+            // on the value before them.
+            Ok(cmd) if apply_setting(&cmd, shared) => {}
             // Another press while this one plays, or a command that only
             // means something to a track.
             Ok(_) | Err(TryRecvError::Empty) => {}
@@ -2980,6 +3018,72 @@ mod tail_drain_tests {
             resumed + TAIL_POLL,
             TAIL_STALL_LIMIT
         ));
+    }
+}
+
+#[cfg(test)]
+mod apply_setting_tests {
+    use std::sync::atomic::Ordering;
+
+    use super::apply_setting;
+    use crate::audio::engine::AudioCmd;
+    use crate::audio::state::SharedPlayback;
+
+    #[test]
+    fn every_setting_lands_without_a_track() {
+        // The idle loop and the test tone take these through
+        // `apply_setting`; each used to be dropped there.
+        let shared = SharedPlayback::new();
+        for cmd in [
+            AudioCmd::SetVolume(0.25),
+            AudioCmd::SetNormalize(true),
+            AudioCmd::SetMono(true),
+            AudioCmd::SetCrossfade(4_000),
+            AudioCmd::SetReplayGain(true),
+            AudioCmd::SetGapless(false),
+            AudioCmd::SetSpeed(1.5),
+        ] {
+            assert!(apply_setting(&cmd, &shared), "{cmd:?} not applied");
+        }
+        assert!((shared.volume() - 0.25).abs() < f32::EPSILON);
+        assert!(shared.normalize_enabled.load(Ordering::Acquire));
+        assert!(shared.mono_enabled.load(Ordering::Acquire));
+        assert_eq!(shared.crossfade_ms.load(Ordering::Acquire), 4_000);
+        assert!(shared.replaygain_enabled.load(Ordering::Acquire));
+        assert!(!shared.gapless_enabled.load(Ordering::Acquire));
+        assert!((shared.playback_speed() - 1.5).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn a_setting_switched_back_follows_the_last_command() {
+        // A reset sends the default after the user's own value; the
+        // engine must end on the second, as the row does.
+        let shared = SharedPlayback::new();
+        assert!(apply_setting(&AudioCmd::SetMono(true), &shared));
+        assert!(apply_setting(&AudioCmd::SetMono(false), &shared));
+        assert!(!shared.mono_enabled.load(Ordering::Acquire));
+    }
+
+    #[test]
+    fn an_idle_speed_change_leaves_the_clock_alone() {
+        // Nothing decodes: no rebase, no rebuild requested, and the speed
+        // still clamped to what the resampler supports.
+        let shared = SharedPlayback::new();
+        let generation = shared.seek_generation.load(Ordering::Acquire);
+        assert!(apply_setting(&AudioCmd::SetSpeed(3.0), &shared));
+        assert!((shared.playback_speed() - 2.0).abs() < f32::EPSILON);
+        assert!(!shared.speed_dirty.load(Ordering::Acquire));
+        assert_eq!(shared.seek_generation.load(Ordering::Acquire), generation);
+        assert!(apply_setting(&AudioCmd::SetSpeed(f32::NAN), &shared));
+        assert!((shared.playback_speed() - 2.0).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn a_command_that_is_not_a_setting_is_left_to_the_caller() {
+        let shared = SharedPlayback::new();
+        assert!(!apply_setting(&AudioCmd::Pause, &shared));
+        assert!(!apply_setting(&AudioCmd::Stop, &shared));
+        assert!(!apply_setting(&AudioCmd::Seek(1_000), &shared));
     }
 }
 

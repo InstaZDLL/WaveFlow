@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type MouseEvent as ReactMouseEvent,
   type ReactNode,
@@ -82,6 +83,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     readCachedAccent,
   );
   const { activeProfile } = useProfile();
+  // Read by `setThemeId` to refuse a change pinned to a profile that is
+  // no longer the active one.
+  const activeProfileIdRef = useRef(activeProfile?.id ?? null);
+  useEffect(() => {
+    activeProfileIdRef.current = activeProfile?.id ?? null;
+  }, [activeProfile?.id]);
 
   // Apply on every theme or accent change so CSS vars + dark class stay
   // in sync.
@@ -137,70 +144,96 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeProfile?.id]);
 
-  const setThemeId = useCallback((id: string, event?: ReactMouseEvent) => {
-    const next = findTheme(id);
+  const setThemeId = useCallback(
+    (
+      id: string,
+      event?: ReactMouseEvent,
+      expectedProfileId?: number | null,
+    ) => {
+      if (
+        expectedProfileId != null &&
+        expectedProfileId !== activeProfileIdRef.current
+      ) {
+        // Neither the swap nor the write: both would apply one profile's
+        // choice to another.
+        return Promise.reject(
+          new Error("the active profile changed before the theme was set"),
+        );
+      }
+      const next = findTheme(id);
 
-    // Persist BEFORE triggering any animation. Some Linux WebKitGTK
-    // builds crash the webview during startViewTransition on certain
-    // GPU/Wayland stacks (issue #34) — writing first guarantees the
-    // next launch picks up the new theme even if this transition kills
-    // the process.
-    writeCachedTheme(next.id);
-    // DB write is best-effort: a failure logs but doesn't block the
-    // visual swap. localStorage still carries the choice forward.
-    void setProfileSetting(PROFILE_SETTING_KEY, next.id, "string").catch(
-      (err) => console.warn("[ThemeContext] profile-setting write failed", err),
-    );
-
-    // Fallback: no View Transitions API support → instant swap.
-    if (typeof document === "undefined" || !document.startViewTransition) {
-      setTheme(next);
-      return;
-    }
-
-    // `startViewTransition` itself can throw synchronously on some
-    // WebKitGTK builds (same family of bugs as the comment above). If
-    // it does, swap the theme without animation so we don't leave the
-    // app desynced (theme id persisted but `setTheme` never called).
-    let transition: ViewTransition;
-    try {
-      transition = document.startViewTransition(() => setTheme(next));
-    } catch {
-      setTheme(next);
-      return;
-    }
-
-    // Radial reveal from the click point if a mouse event was provided
-    // (e.g. clicking a theme card in Settings). Falls back to the
-    // default cross-fade if no event is available.
-    if (event) {
-      const x = event.clientX;
-      const y = event.clientY;
-      const endRadius = Math.hypot(
-        Math.max(x, window.innerWidth - x),
-        Math.max(y, window.innerHeight - y),
+      // Persist BEFORE triggering any animation. Some Linux WebKitGTK
+      // builds crash the webview during startViewTransition on certain
+      // GPU/Wayland stacks (issue #34) — writing first guarantees the
+      // next launch picks up the new theme even if this transition kills
+      // the process.
+      writeCachedTheme(next.id);
+      // The DB write doesn't block the visual swap: a failure logs, and
+      // localStorage still carries the choice forward on this machine. It
+      // is still handed back, so a caller that must know — a Settings page
+      // reset — can wait for it and count a refusal as a failure.
+      const saved = setProfileSetting(
+        PROFILE_SETTING_KEY,
+        next.id,
+        "string",
+        expectedProfileId,
       );
-      transition.ready
-        .then(() => {
-          document.documentElement.animate(
-            {
-              clipPath: [
-                `circle(0px at ${x}px ${y}px)`,
-                `circle(${endRadius}px at ${x}px ${y}px)`,
-              ],
-            },
-            {
-              duration: 600,
-              easing: "ease-in-out",
-              pseudoElement: "::view-transition-new(root)",
-            },
-          );
-        })
-        .catch(() => {
-          // Animation failed — theme has still swapped via setTheme()
-        });
-    }
-  }, []);
+      saved.catch((err) =>
+        console.warn("[ThemeContext] profile-setting write failed", err),
+      );
+
+      // Fallback: no View Transitions API support → instant swap.
+      if (typeof document === "undefined" || !document.startViewTransition) {
+        setTheme(next);
+        return saved;
+      }
+
+      // `startViewTransition` itself can throw synchronously on some
+      // WebKitGTK builds (same family of bugs as the comment above). If
+      // it does, swap the theme without animation so we don't leave the
+      // app desynced (theme id persisted but `setTheme` never called).
+      let transition: ViewTransition;
+      try {
+        transition = document.startViewTransition(() => setTheme(next));
+      } catch {
+        setTheme(next);
+        return saved;
+      }
+
+      // Radial reveal from the click point if a mouse event was provided
+      // (e.g. clicking a theme card in Settings). Falls back to the
+      // default cross-fade if no event is available.
+      if (event) {
+        const x = event.clientX;
+        const y = event.clientY;
+        const endRadius = Math.hypot(
+          Math.max(x, window.innerWidth - x),
+          Math.max(y, window.innerHeight - y),
+        );
+        transition.ready
+          .then(() => {
+            document.documentElement.animate(
+              {
+                clipPath: [
+                  `circle(0px at ${x}px ${y}px)`,
+                  `circle(${endRadius}px at ${x}px ${y}px)`,
+                ],
+              },
+              {
+                duration: 600,
+                easing: "ease-in-out",
+                pseudoElement: "::view-transition-new(root)",
+              },
+            );
+          })
+          .catch(() => {
+            // Animation failed — theme has still swapped via setTheme()
+          });
+      }
+      return saved;
+    },
+    [],
+  );
 
   const toggleTheme = useCallback(
     (event?: ReactMouseEvent) => {

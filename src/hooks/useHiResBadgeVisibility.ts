@@ -1,5 +1,6 @@
 import { useCallback, useSyncExternalStore } from "react";
 import { getProfileSetting, setProfileSetting } from "../lib/tauri/profile";
+import { SETTINGS } from "../lib/settingsRegistry";
 
 /** Per-profile `profile_setting` key gating every Hi-Res / DSD pill. */
 const KEY = "ui.show_hi_res_badge";
@@ -12,7 +13,7 @@ const KEY = "ui.show_hi_res_badge";
  */
 export const HI_RES_BADGE_EVENT = "waveflow:hi-res-badge-visibility";
 
-const DEFAULT_VISIBLE = true;
+const DEFAULT_VISIBLE = SETTINGS[KEY].defaultValue;
 
 function parseVisible(raw: string | null): boolean {
   if (raw == null) return DEFAULT_VISIBLE;

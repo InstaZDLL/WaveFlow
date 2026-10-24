@@ -2815,6 +2815,22 @@
       "nextStart": "WaveFlow के अगली बार शुरू होने पर लागू होगा।",
       "active": "चालू: WaveFlow XWayland के ज़रिए चल रहा है।",
       "setByUser": "आपके परिवेश के GDK_BACKEND वेरिएबल से तय है।"
+    },
+    "modified": {
+      "count_one": "{{count}} बदली गई",
+      "count_other": "{{count}} बदली गईं",
+      "reset": "रीसेट करें",
+      "resetAria": "बदली गई सेटिंग्स रीसेट करें: {{category}}",
+      "dialog": {
+        "title": "“{{category}}” रीसेट करें?",
+        "body_one": "यह सेटिंग अपने डिफ़ॉल्ट मान पर लौट जाएगी:",
+        "body_other": "ये {{count}} सेटिंग्स अपने डिफ़ॉल्ट मानों पर लौट जाएँगी:",
+        "untouched": "खाते, लाइब्रेरी फ़ोल्डर, एक्सटेंशन और बैकअप नहीं बदलते।",
+        "cancel": "रद्द करें",
+        "confirm": "रीसेट करें",
+        "failed_one": "{{count}} सेटिंग रीसेट नहीं हो सकी।",
+        "failed_other": "{{count}} सेटिंग्स रीसेट नहीं हो सकीं।"
+      }
     }
   },
   "scanProgress": {

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { getProfileSetting, setProfileSetting } from "../lib/tauri/profile";
 import { useProfile } from "./useProfile";
+import { SETTINGS } from "../lib/settingsRegistry";
 
 const KEY = "lyrics.fullscreen_sync_centered";
 
@@ -12,7 +13,7 @@ const KEY = "lyrics.fullscreen_sync_centered";
 export const FULLSCREEN_LYRICS_CENTERING_EVENT =
   "waveflow:fullscreen-lyrics-centering";
 
-const DEFAULT_CENTERED = false;
+const DEFAULT_CENTERED = SETTINGS[KEY].defaultValue;
 
 function parseCentered(raw: string | null): boolean {
   if (raw == null) return DEFAULT_CENTERED;

@@ -17,6 +17,7 @@ import {
   playerSetEqPreset,
   type EqPresetEntry,
 } from "../../../lib/tauri/eq";
+import { SETTINGS } from "../../../lib/settingsRegistry";
 
 /**
  * Spotify-style 6-band equaliser card. Renders a draggable curve over
@@ -32,8 +33,12 @@ import {
 export function EqualizerCard() {
   const { t } = useTranslation();
 
-  const [enabled, setEnabled] = useState(false);
-  const [bands, setBands] = useState<number[]>([0, 0, 0, 0, 0, 0]);
+  const [enabled, setEnabled] = useState<boolean>(
+    SETTINGS["audio.eq_enabled"].defaultValue,
+  );
+  const [bands, setBands] = useState<number[]>([
+    ...SETTINGS["audio.eq_bands"].defaultValue,
+  ]);
   const [freqs, setFreqs] = useState<number[]>([
     60, 150, 400, 1000, 2400, 15000,
   ]);

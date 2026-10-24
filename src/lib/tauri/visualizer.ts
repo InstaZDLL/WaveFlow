@@ -1,9 +1,13 @@
 import { invoke } from "@tauri-apps/api/core";
 
+import { announceSettingWrite } from "../settingWrites";
+
 export function getVisualizerEnabled(): Promise<boolean> {
   return invoke<boolean>("player_get_visualizer");
 }
 
 export function setVisualizerEnabled(enabled: boolean): Promise<void> {
-  return invoke<void>("player_set_visualizer", { enabled });
+  return announceSettingWrite(
+    invoke<void>("player_set_visualizer", { enabled }),
+  );
 }

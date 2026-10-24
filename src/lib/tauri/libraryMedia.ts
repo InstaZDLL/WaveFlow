@@ -1,5 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 
+import { announceSettingWrite } from "../settingWrites";
+
 /**
  * Keep hand-set Canvas clips and animated covers next to the music
  * (issue #695), in the folder the scanner reserves inside each library
@@ -15,5 +17,7 @@ export function getClipsInLibrary(): Promise<boolean> {
 }
 
 export function setClipsInLibrary(enabled: boolean): Promise<void> {
-  return invoke<void>("set_clips_in_library", { enabled });
+  return announceSettingWrite(
+    invoke<void>("set_clips_in_library", { enabled }),
+  );
 }

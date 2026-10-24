@@ -1,4 +1,5 @@
 import { useProfileBooleanSetting } from "./useProfileSetting";
+import { SETTINGS } from "../lib/settingsRegistry";
 
 const KEY = "playback.generator_album_mode";
 
@@ -8,7 +9,7 @@ export const GENERATOR_ALBUM_MODE_EVENT = "waveflow:generator-album-mode";
 
 /** Default OFF. It changes what Mood Radio and the Daily Mix produce,
  *  so it should only ever happen because somebody asked for it. */
-const DEFAULT_ENABLED = false;
+const DEFAULT_ENABLED = SETTINGS[KEY].defaultValue;
 
 export interface GeneratorAlbumMode {
   enabled: boolean;

@@ -6,6 +6,7 @@ import {
   getClipsInLibrary,
   setClipsInLibrary,
 } from "../../../lib/tauri/libraryMedia";
+import { SETTINGS } from "../../../lib/settingsRegistry";
 import { ToggleSwitch } from "../../common/ToggleSwitch";
 
 /**
@@ -25,7 +26,9 @@ import { ToggleSwitch } from "../../common/ToggleSwitch";
  */
 export function ClipsInLibraryCard() {
   const { t } = useTranslation();
-  const [enabled, setEnabled] = useState(false);
+  const [enabled, setEnabled] = useState<boolean>(
+    SETTINGS["media.clips_in_library"].defaultValue,
+  );
   const [busy, setBusy] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   // Guards the initial read against a click that beats it — the same
