@@ -1127,32 +1127,17 @@
 }
 /* White slabs and pale sub-cards (a sort button, a preview card, a
    settings sub-card) become paper; a bordered one takes the ink frame.
-   Matched on the whole class token — start or a space before, end or a
-   space after — so a `hover:` variant, an opacity variant (`bg-white/10`
-   is a veil over a dark card, Wrapped's) or `bg-zinc-500` is never
-   caught. */
+   Matched on the whole class token (`~=`), so a `hover:` variant, an
+   opacity variant (`bg-white/10` is a veil over a dark card, Wrapped's)
+   or `bg-zinc-500` is never caught. */
 :root[data-skin="editorial"]
   :is(main, [role="dialog"])
-  :is(
-    [class^="bg-white "],
-    [class*=" bg-white "],
-    [class$=" bg-white"],
-    [class^="bg-zinc-50 "],
-    [class*=" bg-zinc-50 "],
-    [class$=" bg-zinc-50"],
-    [class^="bg-zinc-100 "],
-    [class*=" bg-zinc-100 "],
-    [class$=" bg-zinc-100"]
-  ):not([data-immersive] *) {
+  :is([class~="bg-white"], [class~="bg-zinc-50"], [class~="bg-zinc-100"]):not(
+    [data-immersive] *
+  ) {
   background-color: var(--ed-paper-warm) !important;
 }
-:root[data-skin="editorial"]
-  main
-  button:is(
-    [class^="bg-white "],
-    [class*=" bg-white "],
-    [class$=" bg-white"]
-  )[class*="border"] {
+:root[data-skin="editorial"] main button[class~="bg-white"][class*="border"] {
   background-color: var(--ed-paper-warm) !important;
   border-color: var(--ed-ink) !important;
   border-radius: 0 !important;
@@ -1361,17 +1346,13 @@ html:root[data-skin="editorial"] ::-webkit-scrollbar-thumb:hover {
 /* ── Accent type from the components: the rubric's stop ─────── */
 /* The components write their accent text as `text-emerald-500/600`,
    which reads the 500 / 600 stop: too light for small type on paper.
-   Matched on the whole class token, so a `hover:` variant keeps its own
-   behaviour; the immersive view is always dark and keeps its colours. */
+   Matched on the whole class token (`~=`), so a `hover:` variant keeps
+   its own behaviour; the immersive view is always dark and keeps its
+   colours. */
 :root[data-skin="editorial"]
-  :is(
-    [class^="text-emerald-500 "],
-    [class*=" text-emerald-500 "],
-    [class$=" text-emerald-500"],
-    [class^="text-emerald-600 "],
-    [class*=" text-emerald-600 "],
-    [class$=" text-emerald-600"]
-  ):not([data-immersive] *) {
+  :is([class~="text-emerald-500"], [class~="text-emerald-600"]):not(
+    [data-immersive] *
+  ) {
   color: var(--fe-accent);
 }
 
