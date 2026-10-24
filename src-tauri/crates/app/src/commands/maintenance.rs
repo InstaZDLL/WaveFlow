@@ -315,6 +315,12 @@ pub async fn reset_app(
         );
     }
 
+    // Held from here to the restart, the safety backup included: a
+    // switch landing between that backup and the wipe would reopen a
+    // pool, or change the active profile, the backup no longer covers.
+    // Nothing below takes it again (the Mutex is not reentrant).
+    let _switching = state.profile_switch_lock.clone().lock_owned().await;
+
     // Guard against irreversible data loss (issue #367): snapshot every
     // profile to a wipe-surviving folder BEFORE tearing anything down, so
     // a user who resets can re-import their playlists + listening history
@@ -335,8 +341,6 @@ pub async fn reset_app(
     // because listing the profiles needs `app.db`.
     let cache_roots = super::storage::wipe_targets_outside_root(&state).await;
 
-    // No switch may reopen a profile pool while the tree is wiped.
-    let _switching = state.profile_switch_lock.clone().lock_owned().await;
     state.deactivate_profile().await;
     state.app_db.close().await;
 
