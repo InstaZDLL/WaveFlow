@@ -1213,13 +1213,17 @@
       "artist": "艺人",
       "album": "专辑",
       "year": "年份",
-      "genre": "流派"
+      "genre": "流派",
+      "albumArtist": "专辑艺人",
+      "composer": "作曲"
     },
     "placeholders": {
       "artist": "如 Daft Punk, Justice",
       "album": "专辑名称",
       "year": "如 2026",
-      "genre": "如 Electronic; Ambient"
+      "genre": "如 Electronic; Ambient",
+      "albumArtist": "如 Daft Punk",
+      "composer": "如 Maurice Ravel"
     },
     "result": {
       "updated": "已更新 {{count}} 首",
@@ -1273,7 +1277,9 @@
       "trackNumber": "音轨号",
       "discNumber": "碟片号",
       "genre": "流派",
-      "genrePlaceholder": "流行; 摇滚; 爵士…"
+      "genrePlaceholder": "流行; 摇滚; 爵士…",
+      "albumArtist": "专辑艺人",
+      "composer": "作曲"
     },
     "changeCover": "更换封面",
     "suggestions": {

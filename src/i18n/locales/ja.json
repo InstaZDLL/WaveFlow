@@ -1213,13 +1213,17 @@
       "artist": "アーティスト",
       "album": "アルバム",
       "year": "年",
-      "genre": "ジャンル"
+      "genre": "ジャンル",
+      "albumArtist": "アルバムアーティスト",
+      "composer": "作曲者"
     },
     "placeholders": {
       "artist": "例：Daft Punk, Justice",
       "album": "アルバム名",
       "year": "例：2026",
-      "genre": "例：Electronic; Ambient"
+      "genre": "例：Electronic; Ambient",
+      "albumArtist": "例：Daft Punk",
+      "composer": "例：Maurice Ravel"
     },
     "result": {
       "updated": "{{count}}曲を更新しました",
@@ -1273,7 +1277,9 @@
       "trackNumber": "トラック番号",
       "discNumber": "ディスク番号",
       "genre": "ジャンル",
-      "genrePlaceholder": "ポップ; ロック; ジャズ…"
+      "genrePlaceholder": "ポップ; ロック; ジャズ…",
+      "albumArtist": "アルバムアーティスト",
+      "composer": "作曲者"
     },
     "changeCover": "ジャケットを変更",
     "suggestions": {

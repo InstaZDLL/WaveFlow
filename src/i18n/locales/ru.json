@@ -1309,13 +1309,17 @@
       "artist": "Исполнитель",
       "album": "Альбом",
       "year": "Год",
-      "genre": "Жанр"
+      "genre": "Жанр",
+      "albumArtist": "Исполнитель альбома",
+      "composer": "Композитор"
     },
     "placeholders": {
       "artist": "напр. Daft Punk, Justice",
       "album": "Название альбома",
       "year": "напр. 2026",
-      "genre": "напр. Electronic; Ambient"
+      "genre": "напр. Electronic; Ambient",
+      "albumArtist": "напр. Daft Punk",
+      "composer": "напр. Maurice Ravel"
     },
     "result": {
       "updated": "Обновлено треков: {{count}}",
@@ -1369,7 +1373,9 @@
       "trackNumber": "№ трека",
       "discNumber": "№ диска",
       "genre": "Жанр",
-      "genrePlaceholder": "Pop; Rock; Jazz…"
+      "genrePlaceholder": "Pop; Rock; Jazz…",
+      "albumArtist": "Исполнитель альбома",
+      "composer": "Композитор"
     },
     "changeCover": "Сменить обложку",
     "suggestions": {

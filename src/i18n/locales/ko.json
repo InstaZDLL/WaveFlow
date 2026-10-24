@@ -1213,13 +1213,17 @@
       "artist": "아티스트",
       "album": "앨범",
       "year": "연도",
-      "genre": "장르"
+      "genre": "장르",
+      "albumArtist": "앨범 아티스트",
+      "composer": "작곡가"
     },
     "placeholders": {
       "artist": "예: Daft Punk, Justice",
       "album": "앨범 이름",
       "year": "예: 2026",
-      "genre": "예: Electronic; Ambient"
+      "genre": "예: Electronic; Ambient",
+      "albumArtist": "예: Daft Punk",
+      "composer": "예: Maurice Ravel"
     },
     "result": {
       "updated": "{{count}}곡 업데이트됨",
@@ -1273,7 +1277,9 @@
       "trackNumber": "트랙 번호",
       "discNumber": "디스크 번호",
       "genre": "장르",
-      "genrePlaceholder": "팝; 록; 재즈…"
+      "genrePlaceholder": "팝; 록; 재즈…",
+      "albumArtist": "앨범 아티스트",
+      "composer": "작곡가"
     },
     "changeCover": "커버 변경",
     "suggestions": {

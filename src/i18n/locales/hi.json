@@ -1215,13 +1215,17 @@
       "artist": "कलाकार",
       "album": "एल्बम",
       "year": "वर्ष",
-      "genre": "शैली"
+      "genre": "शैली",
+      "albumArtist": "एल्बम कलाकार",
+      "composer": "संगीतकार"
     },
     "placeholders": {
       "artist": "जैसे Daft Punk, Justice",
       "album": "एल्बम का नाम",
       "year": "जैसे 2026",
-      "genre": "जैसे Electronic; Ambient"
+      "genre": "जैसे Electronic; Ambient",
+      "albumArtist": "जैसे Daft Punk",
+      "composer": "जैसे Maurice Ravel"
     },
     "result": {
       "updated": "{{count}} ट्रैक अपडेट हुए",
@@ -1275,7 +1279,9 @@
       "trackNumber": "ट्रैक नं.",
       "discNumber": "डिस्क नं.",
       "genre": "शैली",
-      "genrePlaceholder": "पॉप; रॉक; जैज़…"
+      "genrePlaceholder": "पॉप; रॉक; जैज़…",
+      "albumArtist": "एल्बम कलाकार",
+      "composer": "संगीतकार"
     },
     "changeCover": "कवर बदलें",
     "suggestions": {

@@ -1215,13 +1215,17 @@
       "artist": "Sanatçı",
       "album": "Albüm",
       "year": "Yıl",
-      "genre": "Tür"
+      "genre": "Tür",
+      "albumArtist": "Albüm sanatçısı",
+      "composer": "Besteci"
     },
     "placeholders": {
       "artist": "Örn. Daft Punk, Justice",
       "album": "Albüm adı",
       "year": "Örn. 2026",
-      "genre": "Örn. Elektronik; Ambient"
+      "genre": "Örn. Elektronik; Ambient",
+      "albumArtist": "Örn. Daft Punk",
+      "composer": "Örn. Maurice Ravel"
     },
     "result": {
       "updated": "{{count}} parça güncellendi",
@@ -1275,7 +1279,9 @@
       "trackNumber": "Parça #",
       "discNumber": "Disk #",
       "genre": "Tür",
-      "genrePlaceholder": "Pop; Rock; Jazz…"
+      "genrePlaceholder": "Pop; Rock; Jazz…",
+      "albumArtist": "Albüm sanatçısı",
+      "composer": "Besteci"
     },
     "changeCover": "Kapağı değiştir",
     "suggestions": {

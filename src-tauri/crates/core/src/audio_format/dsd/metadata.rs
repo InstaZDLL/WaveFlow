@@ -30,6 +30,14 @@ pub struct DsdMetadata {
     pub track_number: Option<i64>,
     pub disc_number: Option<i64>,
     pub genre: Option<String>,
+    /// `TPE2`. Read so an Album Artist the tag editor wrote into a DSF
+    /// groups the track the same way after the next scan; without it
+    /// the rescan regrouped the track under its first artist and undid
+    /// the edit.
+    pub album_artist: Option<String>,
+    /// `TCOM`, for the same reason: the editor writes it, so the scan
+    /// has to read it back.
+    pub composer: Option<String>,
 }
 
 impl DsdMetadata {
@@ -41,6 +49,8 @@ impl DsdMetadata {
             && self.track_number.is_none()
             && self.disc_number.is_none()
             && self.genre.is_none()
+            && self.album_artist.is_none()
+            && self.composer.is_none()
     }
 }
 
@@ -218,7 +228,16 @@ fn parse_id3v2_blob<R: Read + Seek>(reader: &mut R) -> DsdMetadata {
         // ID3v1 codes like "(13)" or free-text). The scanner already
         // canonicalises genres downstream so we forward as-is.
         genre: tag.genre().map(|s| s.to_string()),
+        album_artist: non_empty(tag.album_artist()),
+        composer: non_empty(tag.get("TCOM").and_then(|f| f.content().text())),
     }
+}
+
+/// A text frame's value, trimmed, or `None` when it holds nothing — the
+/// scanner treats a blank Album Artist as no Album Artist.
+fn non_empty(value: Option<&str>) -> Option<String> {
+    let value = value?.trim();
+    (!value.is_empty()).then(|| value.to_string())
 }
 
 impl DsdMetadata {
@@ -247,6 +266,12 @@ impl DsdMetadata {
         }
         if other.genre.is_some() {
             self.genre = other.genre;
+        }
+        if other.album_artist.is_some() {
+            self.album_artist = other.album_artist;
+        }
+        if other.composer.is_some() {
+            self.composer = other.composer;
         }
     }
 }
@@ -289,6 +314,30 @@ mod tests {
         let (_tmp, mut file) = write_tempfile(&bytes);
         let meta = read_dsf_metadata(&mut file).unwrap();
         assert!(meta.is_empty());
+    }
+
+    /// The two fields the tag editor writes into a DSF and the scan has
+    /// to read back, or the next scan undoes the edit.
+    #[test]
+    fn dsf_reads_the_album_artist_and_the_composer() {
+        use id3::TagLike;
+        let mut tag = id3::Tag::new();
+        tag.set_title("Bolero");
+        tag.set_album_artist("  Orchestre National  ");
+        tag.set_text("TCOM", "Maurice Ravel");
+        let mut blob = Vec::new();
+        tag.write_to(&mut blob, id3::Version::Id3v24).unwrap();
+
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(b"DSD ");
+        bytes.extend_from_slice(&28u64.to_le_bytes());
+        bytes.extend_from_slice(&((28 + blob.len()) as u64).to_le_bytes());
+        bytes.extend_from_slice(&28u64.to_le_bytes()); // metadata right after the header
+        bytes.extend_from_slice(&blob);
+        let (_tmp, mut file) = write_tempfile(&bytes);
+        let meta = read_dsf_metadata(&mut file).unwrap();
+        assert_eq!(meta.album_artist.as_deref(), Some("Orchestre National"));
+        assert_eq!(meta.composer.as_deref(), Some("Maurice Ravel"));
     }
 
     #[test]
