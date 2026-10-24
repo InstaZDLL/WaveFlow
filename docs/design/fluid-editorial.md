@@ -74,7 +74,7 @@ Fallbacks: `system-ui, -apple-system, "Segoe UI", sans-serif` and `Georgia, seri
 
 A short flowing line — one sine-like path, `M0.5 5 C 5 0.5, 9 0.5, 13.5 5 S 22 9.5, 26.5 5 S 35 0.5, 39.5 5` in a 40 × 10 box — drawn in the accent at 1.6 px. It is the underline of a section title, the marker of the open tab, the progress of the player (the played part of the line becomes a wave, the rest stays straight), the shape of the mood spectrum's bands. It is the one ornament the language allows, and it is always functional: it marks, it measures, it never fills.
 
-The product's symbol is the same wave closed into a letter: the W of the name, one and a half periods of a sine in a single monoline stroke ([Brand mark](../features/ui.md#brand-mark)). It stands on the rail before the wordmark, in the accent, flat. The two never swap: the W is never used as an underline or a progress, and the ornament never stands in for the product.
+The product's symbol is the same wave closed into a letter: the W of the name, one and a half periods of a sine in a single monoline stroke ([Brand mark](../features/ui.md#brand-mark)). It stands on the rail before the wordmark, in the accent, flat, and swells while music plays. The two never swap: the W is never used as an underline or a progress, and the ornament never stands in for the product.
 
 ## Components
 

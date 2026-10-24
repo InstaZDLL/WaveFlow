@@ -59,7 +59,7 @@ Where Fluid stages the music, Liquid diffuses it and Pulse wires it, Editorial p
 
 ## What not to do
 
-No light: no pool of the cover's colour, no blurred cover, no glow under anything, no gradient on a surface. No shadow but the proof's. No rounded corner but a portrait. No fill in the accent on the primary action — ink, always. No colour in the mood band: the engraving is ink on paper. No halftone on the library's grids: the covers there are the catalogue. Nothing loops.
+No light: no pool of the cover's colour, no blurred cover, no glow under anything, no gradient on a surface. No shadow but the proof's. No rounded corner but a portrait. No fill in the accent on the primary action — ink, always. No colour in the mood band: the engraving is ink on paper. No halftone on the library's grids: the covers there are the catalogue. Nothing loops, the rail's W included: it stays still while music plays.
 
 ## Carrying it to another surface
 
