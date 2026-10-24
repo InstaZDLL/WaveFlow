@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useId, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
@@ -56,6 +56,8 @@ export function RadioStationModal({
   // anew for every target, so the initial state is the one to edit.
   const [name, setName] = useState(renaming?.title ?? "");
   const [busy, setBusy] = useState(false);
+  const urlId = useId();
+  const nameId = useId();
   // Not while the station is being checked: the check would still land
   // and save a station the user had walked away from.
   const close = useCallback(() => {
@@ -194,10 +196,15 @@ export function RadioStationModal({
               <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-3">
                 {t("webRadio.addStation.help")}
               </p>
-              <label className="block text-xs font-semibold tracking-wider uppercase text-zinc-500 mb-1">
+              <label
+                htmlFor={urlId}
+                className="block text-xs font-semibold tracking-wider uppercase text-zinc-500 mb-1"
+              >
                 {t("webRadio.addStation.urlLabel")}
               </label>
               <input
+                id={urlId}
+                name="url"
                 type="url"
                 value={url}
                 onChange={(e) => setUrl(e.currentTarget.value)}
@@ -218,10 +225,15 @@ export function RadioStationModal({
             </>
           )}
 
-          <label className="block text-xs font-semibold tracking-wider uppercase text-zinc-500 mt-4 mb-1">
+          <label
+            htmlFor={nameId}
+            className="block text-xs font-semibold tracking-wider uppercase text-zinc-500 mt-4 mb-1"
+          >
             {t("webRadio.addStation.nameLabel")}
           </label>
           <input
+            id={nameId}
+            name="name"
             type="text"
             value={name}
             onChange={(e) => setName(e.currentTarget.value)}
