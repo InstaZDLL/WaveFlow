@@ -274,6 +274,20 @@ export const SETTINGS = {
     false,
     "settings.mono.title",
   ),
+  "audio.balance": setting(
+    "playback",
+    "profile",
+    "int",
+    0,
+    "settings.stereoImage.balance.title",
+  ),
+  "audio.stereo_width": setting(
+    "playback",
+    "profile",
+    "int",
+    100,
+    "settings.stereoImage.width.title",
+  ),
   "audio.dsd_precision": setting<DsdPrecisionTaps>(
     "playback",
     "profile",

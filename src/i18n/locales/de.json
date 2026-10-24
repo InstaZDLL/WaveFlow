@@ -1473,7 +1473,9 @@
         "mono": "Mono",
         "speed": "Geschwindigkeit {{value}}×",
         "dopNative": "Natives DSD",
-        "volume": "Lautstärke {{value}} %"
+        "volume": "Lautstärke {{value}} %",
+        "balance": "Balance",
+        "width": "Breite {{value}} %"
       }
     },
     "outputMode": {
@@ -2761,7 +2763,8 @@
         "updates": "Updates",
         "diagnostics": "Diagnose",
         "reset": "Anwendung zurücksetzen",
-        "desktopLyrics": "Desktop-Songtext"
+        "desktopLyrics": "Desktop-Songtext",
+        "stereo": "Stereobild"
       }
     },
     "desktopLyrics": {
@@ -2830,6 +2833,23 @@
         "confirm": "Zurücksetzen",
         "failed_one": "{{count}} Einstellung konnte nicht zurückgesetzt werden.",
         "failed_other": "{{count}} Einstellungen konnten nicht zurückgesetzt werden."
+      }
+    },
+    "stereoImage": {
+      "balance": {
+        "title": "Balance",
+        "subtitle": "Senkt den gegenüberliegenden Kanal; die Seite, zu der Sie schieben, wird nie verstärkt",
+        "center": "Mitte",
+        "left": "L {{value}} %",
+        "right": "R {{value}} %",
+        "reset": "Balance zentrieren"
+      },
+      "width": {
+        "title": "Stereobreite",
+        "subtitle": "Von Mono (0 %) bis verbreitert (200 %); 100 % lässt den Klang unverändert",
+        "mono": "Mono",
+        "value": "{{value}} %",
+        "reset": "Breite auf 100 % zurücksetzen"
       }
     }
   },

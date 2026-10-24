@@ -1526,7 +1526,9 @@
         "mono": "Mono",
         "speed": "Velocità {{value}}×",
         "dopNative": "DSD nativo",
-        "volume": "Volume {{value}} %"
+        "volume": "Volume {{value}} %",
+        "balance": "Bilanciamento",
+        "width": "Ampiezza {{value}}%"
       }
     },
     "outputMode": {
@@ -2826,7 +2828,8 @@
         "updates": "Aggiornamenti",
         "diagnostics": "Diagnostica",
         "reset": "Ripristino dell'applicazione",
-        "desktopLyrics": "Testi sul desktop"
+        "desktopLyrics": "Testi sul desktop",
+        "stereo": "Immagine stereo"
       }
     },
     "desktopLyrics": {
@@ -2898,6 +2901,23 @@
         "failed_one": "Impossibile ripristinare {{count}} impostazione.",
         "failed_many": "Impossibile ripristinare {{count}} impostazioni.",
         "failed_other": "Impossibile ripristinare {{count}} impostazioni."
+      }
+    },
+    "stereoImage": {
+      "balance": {
+        "title": "Bilanciamento",
+        "subtitle": "Abbassa il canale opposto; il lato verso cui si sposta non viene mai amplificato",
+        "center": "Centro",
+        "left": "S {{value}}%",
+        "right": "D {{value}}%",
+        "reset": "Centra il bilanciamento"
+      },
+      "width": {
+        "title": "Ampiezza stereo",
+        "subtitle": "Da mono (0%) ad allargato (200%); 100% lascia il suono com'è",
+        "mono": "Mono",
+        "value": "{{value}}%",
+        "reset": "Riporta l'ampiezza al 100%"
       }
     }
   },

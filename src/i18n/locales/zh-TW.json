@@ -1471,7 +1471,9 @@
         "mono": "單聲道",
         "speed": "速度 {{value}}×",
         "dopNative": "原生 DSD",
-        "volume": "音量 {{value}}%"
+        "volume": "音量 {{value}}%",
+        "balance": "平衡",
+        "width": "寬度 {{value}}%"
       }
     },
     "outputMode": {
@@ -2759,7 +2761,8 @@
         "updates": "更新",
         "diagnostics": "診斷",
         "reset": "重設應用程式",
-        "desktopLyrics": "桌面歌詞"
+        "desktopLyrics": "桌面歌詞",
+        "stereo": "立體聲聲像"
       }
     },
     "desktopLyrics": {
@@ -2828,6 +2831,23 @@
         "confirm": "重設",
         "failed_one": "有 {{count}} 項設定無法重設。",
         "failed_other": "有 {{count}} 項設定無法重設。"
+      }
+    },
+    "stereoImage": {
+      "balance": {
+        "title": "聲道平衡",
+        "subtitle": "降低另一側聲道；偏向的一側絕不會被放大",
+        "center": "置中",
+        "left": "左 {{value}}%",
+        "right": "右 {{value}}%",
+        "reset": "將平衡置中"
+      },
+      "width": {
+        "title": "立體聲寬度",
+        "subtitle": "從單聲道 (0%) 到加寬 (200%)；100% 保持原樣",
+        "mono": "單聲道",
+        "value": "{{value}}%",
+        "reset": "將寬度重設為 100%"
       }
     }
   },

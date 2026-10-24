@@ -900,58 +900,40 @@ pub(super) fn schedule_default_device_follow(app: &AppHandle) {
 }
 
 /// Drain one period out of the ring into `samples`, applying the same
-/// per-sample chain the cpal callback applies: volume, the normalize
-/// attenuation, and the optional mono downmix. Shared by all three
-/// exclusive backends.
+/// per-sample chain the cpal callback applies: volume and the normalize
+/// attenuation. Shared by all three exclusive backends. The mono fold is
+/// not here: it is done on the decoder thread (`audio::stereo`), before
+/// the balance, which it has to precede.
 ///
 /// Returns how many samples were actually pulled. Silence written
 /// because the ring ran dry is deliberately NOT counted — every backend
 /// agrees on that, because `samples_played` is the only clock the
 /// progress bar, the lyrics sync and play-event crediting have, and
 /// crediting an underrun would make the track run ahead of itself.
+///
+/// `_channels` is the frame width the backend negotiated. Nothing here
+/// needs it since the mono fold left; it stays so the three backends'
+/// calls, two of which only compile on their own OS, did not have to move.
 pub(super) fn fill_pcm_period(
     shared: &SharedPlayback,
     consumer: &mut Consumer<f32>,
     samples: &mut [f32],
-    channels: usize,
+    _channels: usize,
 ) -> u64 {
     let volume = shared.volume();
     let normalize = shared.normalize_enabled.load(Ordering::Relaxed);
-    let mono = shared.mono_enabled.load(Ordering::Relaxed);
     // Normalization applies a -3 dB reduction to leave headroom.
     let norm_gain: f32 = if normalize { 0.707 } else { 1.0 };
     let mut written: u64 = 0;
 
-    if mono && channels >= 2 {
-        for frame in samples.chunks_mut(channels) {
-            let mut sum = 0.0_f32;
-            let mut got = 0usize;
-            for _ in 0..frame.len() {
-                if let Ok(s) = consumer.pop() {
-                    sum += s;
-                    got += 1;
-                }
+    for slot in samples.iter_mut() {
+        *slot = match consumer.pop() {
+            Ok(s) => {
+                written += 1;
+                s * volume * norm_gain
             }
-            let value = if got > 0 {
-                written += got as u64;
-                (sum / channels as f32) * volume * norm_gain
-            } else {
-                0.0
-            };
-            for slot in frame.iter_mut() {
-                *slot = value;
-            }
-        }
-    } else {
-        for slot in samples.iter_mut() {
-            *slot = match consumer.pop() {
-                Ok(s) => {
-                    written += 1;
-                    s * volume * norm_gain
-                }
-                Err(_) => 0.0,
-            };
-        }
+            Err(_) => 0.0,
+        };
     }
 
     written
@@ -1484,57 +1466,25 @@ where
                 }
 
                 // Read atomic flags once per buffer — cheap relaxed
-                // loads that avoid ~5k redundant ops per callback.
+                // loads that avoid ~5k redundant ops per callback. Mono
+                // is folded on the decoder thread, before the balance.
                 let volume = shared.volume();
                 let normalize = shared.normalize_enabled.load(Ordering::Relaxed);
-                let mono = shared.mono_enabled.load(Ordering::Relaxed);
-                let channels = shared.channels.load(Ordering::Relaxed).max(1) as usize;
                 // Normalization applies a −3 dB gain reduction (× 0.707)
                 // to prevent clipping on loud source material.
                 let norm_gain: f32 = if normalize { 0.707 } else { 1.0 };
 
                 let mut written: u64 = 0;
 
-                if mono && channels >= 2 {
-                    // Mono downmix: read `channels` samples at a time,
-                    // average them, and write the same value to every
-                    // output channel. This loop processes one frame (all
-                    // channels) per iteration. If the ring underruns
-                    // mid-frame we still write silence for the remaining
-                    // channels so the device buffer stays aligned.
-                    for frame in out.chunks_mut(channels) {
-                        let mut sum: f32 = 0.0;
-                        let mut got: usize = 0;
-                        for _ in 0..channels {
-                            if let Ok(s) = consumer.pop() {
-                                sum += s;
-                                got += 1;
-                            }
+                for slot in out.iter_mut() {
+                    let sample = match consumer.pop() {
+                        Ok(s) => {
+                            written += 1;
+                            s
                         }
-                        if got > 0 {
-                            written += got as u64;
-                            let mono_sample = (sum / channels as f32) * volume * norm_gain;
-                            for slot in frame.iter_mut() {
-                                *slot = T::from_sample(mono_sample);
-                            }
-                        } else {
-                            for slot in frame.iter_mut() {
-                                *slot = T::from_sample(0.0_f32);
-                            }
-                        }
-                    }
-                } else {
-                    // Normal stereo/multi-channel path.
-                    for slot in out.iter_mut() {
-                        let sample = match consumer.pop() {
-                            Ok(s) => {
-                                written += 1;
-                                s
-                            }
-                            Err(_) => 0.0,
-                        };
-                        *slot = T::from_sample(sample * volume * norm_gain);
-                    }
+                        Err(_) => 0.0,
+                    };
+                    *slot = T::from_sample(sample * volume * norm_gain);
                 }
 
                 if written > 0 {
@@ -1720,19 +1670,20 @@ mod tests {
     }
 
     #[test]
-    fn the_mono_downmix_averages_the_frame_across_every_channel() {
+    fn the_mono_switch_is_not_the_output_s_job() {
+        // Folded on the decoder thread, before the balance; folding again
+        // here would average a balanced frame back over both speakers.
         let shared = SharedPlayback::new();
         shared
             .mono_enabled
             .store(true, std::sync::atomic::Ordering::Relaxed);
         let (mut producer, mut consumer) = RingBuffer::<f32>::new(8);
-        // One stereo frame, hard-panned left.
-        producer.push(1.0).expect("ring has room");
         producer.push(0.0).expect("ring has room");
-        let mut samples = [0.0_f32; 2];
+        producer.push(1.0).expect("ring has room");
+        let mut samples = [0.5_f32; 2];
         let written = fill_pcm_period(&shared, &mut consumer, &mut samples, 2);
         assert_eq!(written, 2);
-        assert_eq!(samples, [0.5, 0.5]);
+        assert_eq!(samples, [0.0, 1.0]);
     }
 }
 

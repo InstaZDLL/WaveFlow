@@ -868,6 +868,8 @@ fn apply_setting(cmd: &AudioCmd, shared: &SharedPlayback) -> bool {
         AudioCmd::SetCrossfade(ms) => shared.crossfade_ms.store(ms, Ordering::Release),
         AudioCmd::SetReplayGain(on) => shared.replaygain_enabled.store(on, Ordering::Release),
         AudioCmd::SetGapless(on) => shared.gapless_enabled.store(on, Ordering::Release),
+        AudioCmd::SetBalance(pct) => shared.stereo.set_balance(pct),
+        AudioCmd::SetStereoWidth(pct) => shared.stereo.set_width(pct),
         AudioCmd::SetSpeed(v) => {
             if v.is_finite() {
                 shared
@@ -1059,6 +1061,12 @@ fn play_test_tone(
             }
         } else if producer.slots() >= chunk.len() {
             let frames = test_tone::fill(&mut chunk, pushed, rate, width);
+            // Mono is folded on this thread now, not in the output; the
+            // tone gets it the way a track does, so the card's warning
+            // still describes what is heard.
+            if shared.mono_enabled.load(Ordering::Relaxed) {
+                super::stereo::mono_fold(&mut chunk[..frames * width], width);
+            }
             if let Ok(slot) = producer.write_chunk_uninit(frames * width) {
                 slot.fill_from_iter(chunk[..frames * width].iter().copied());
                 pushed += frames as u64;
@@ -1645,6 +1653,9 @@ fn play_track(
     // construct (no heap until the first packet) so creating it per
     // play_track is fine.
     let mut eq_processor = super::eq::EqProcessor::new();
+    // Balance and stereo width, after the EQ. Keeps the gains the last
+    // buffer ended on so a moved slider ramps instead of stepping.
+    let mut stereo_processor = super::stereo::StereoProcessor::new();
     // Spectrum analyzer (FFT for the visualizer). Lives across both
     // the single-stream and crossfade-mix push paths; we feed it the
     // post-EQ buffer that's about to land in the ring. Cheap when the
@@ -1863,6 +1874,8 @@ fn play_track(
             let secondary = pending_next
                 .as_mut()
                 .expect("mix_active requires pending_next");
+            // Only a mix of two mono tracks has no side to widen.
+            let mix_mono_source = stream.src_channels == 1 && secondary.src_channels == 1;
             while !secondary_at_eof
                 && secondary_resampled.len() / dst_channels < CROSSFADE_MIN_FRAMES
             {
@@ -1941,6 +1954,14 @@ fn play_track(
                     dst_channels,
                     dst_sample_rate as f32,
                     &shared.eq,
+                );
+
+                stereo_processor.process(
+                    &mut mix_scratch,
+                    dst_channels,
+                    &shared.stereo,
+                    shared.mono_enabled.load(Ordering::Relaxed),
+                    mix_mono_source,
                 );
                 spectrum_analyzer.feed(
                     &mix_scratch,
@@ -2159,6 +2180,13 @@ fn play_track(
                 dst_channels,
                 dst_sample_rate as f32,
                 &shared.eq,
+            );
+            stereo_processor.process(
+                &mut primary_resampled,
+                dst_channels,
+                &shared.stereo,
+                shared.mono_enabled.load(Ordering::Relaxed),
+                stream.src_channels == 1,
             );
             spectrum_analyzer.feed(
                 &primary_resampled,
@@ -2560,6 +2588,8 @@ fn drain_commands(
                 shared.replaygain_enabled.store(on, Ordering::Release)
             }
             Ok(AudioCmd::SetGapless(on)) => shared.gapless_enabled.store(on, Ordering::Release),
+            Ok(AudioCmd::SetBalance(pct)) => shared.stereo.set_balance(pct),
+            Ok(AudioCmd::SetStereoWidth(pct)) => shared.stereo.set_width(pct),
             Ok(AudioCmd::SetSpeed(v)) => shared.set_playback_speed(v),
             Ok(AudioCmd::Pause) => {
                 transition_state(shared, app, PlayerState::Paused, Some(track_id));
@@ -2612,6 +2642,8 @@ fn drain_commands(
                         Ok(AudioCmd::SetGapless(on)) => {
                             shared.gapless_enabled.store(on, Ordering::Release)
                         }
+                        Ok(AudioCmd::SetBalance(pct)) => shared.stereo.set_balance(pct),
+                        Ok(AudioCmd::SetStereoWidth(pct)) => shared.stereo.set_width(pct),
                         Ok(AudioCmd::SetSpeed(v)) => shared.set_playback_speed(v),
                         // Same three-in-one arm as above. A stale load
                         // found while paused is skipped without clearing
@@ -3042,9 +3074,13 @@ mod apply_setting_tests {
             AudioCmd::SetReplayGain(true),
             AudioCmd::SetGapless(false),
             AudioCmd::SetSpeed(1.5),
+            AudioCmd::SetBalance(-40),
+            AudioCmd::SetStereoWidth(150),
         ] {
             assert!(apply_setting(&cmd, &shared), "{cmd:?} not applied");
         }
+        assert_eq!(shared.stereo.balance(), -40);
+        assert_eq!(shared.stereo.width(), 150);
         assert!((shared.volume() - 0.25).abs() < f32::EPSILON);
         assert!(shared.normalize_enabled.load(Ordering::Acquire));
         assert!(shared.mono_enabled.load(Ordering::Acquire));

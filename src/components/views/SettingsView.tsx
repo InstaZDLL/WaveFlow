@@ -171,6 +171,7 @@ import { ResetAppModal } from "../common/ResetAppModal";
 import { BackupCard } from "./settings/BackupCard";
 import { RadioCatalogueCard } from "./settings/RadioCatalogueCard";
 import { EqualizerCard } from "./settings/EqualizerCard";
+import { StereoImageCard } from "./settings/StereoImageCard";
 import { ExclusiveModeCard } from "./settings/ExclusiveModeCard";
 import { TestToneCard } from "./settings/TestToneCard";
 import { AccentCard } from "./settings/AccentCard";
@@ -2915,6 +2916,13 @@ function SettingsViewContent({
                 <div className="px-4">
                   <EqualizerCard />
                 </div>
+              </SettingsGroup>
+              <SettingsGroup
+                id="stereo"
+                title={t("settings.organization.groups.stereo")}
+                reveal={targetGroup === "stereo"}
+              >
+                <StereoImageCard />
               </SettingsGroup>
               <SettingsGroup
                 id="output"

@@ -136,6 +136,16 @@ export const SETTINGS_CATEGORIES = [
         ],
       },
       {
+        id: "stereo",
+        labelKey: "settings.organization.groups.stereo",
+        searchKeys: [
+          "settings.stereoImage.balance.title",
+          "settings.stereoImage.balance.subtitle",
+          "settings.stereoImage.width.title",
+          "settings.stereoImage.width.subtitle",
+        ],
+      },
+      {
         id: "output",
         labelKey: "settings.organization.groups.output",
         searchKeys: [

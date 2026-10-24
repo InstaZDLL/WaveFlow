@@ -47,6 +47,7 @@ pub mod pcm_scale;
 pub use waveflow_core::playback::replay_gain;
 pub mod spectrum;
 pub mod state;
+pub mod stereo;
 pub mod stream_cache;
 pub mod test_tone;
 #[cfg(target_os = "windows")]

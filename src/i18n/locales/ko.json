@@ -1471,7 +1471,9 @@
         "mono": "모노",
         "speed": "속도 {{value}}×",
         "dopNative": "네이티브 DSD",
-        "volume": "볼륨 {{value}}%"
+        "volume": "볼륨 {{value}}%",
+        "balance": "밸런스",
+        "width": "폭 {{value}}%"
       }
     },
     "outputMode": {
@@ -2759,7 +2761,8 @@
         "updates": "업데이트",
         "diagnostics": "진단",
         "reset": "앱 초기화",
-        "desktopLyrics": "데스크톱 가사"
+        "desktopLyrics": "데스크톱 가사",
+        "stereo": "스테레오 이미지"
       }
     },
     "desktopLyrics": {
@@ -2828,6 +2831,23 @@
         "confirm": "초기화",
         "failed_one": "설정 {{count}}개를 초기화하지 못했습니다.",
         "failed_other": "설정 {{count}}개를 초기화하지 못했습니다."
+      }
+    },
+    "stereoImage": {
+      "balance": {
+        "title": "밸런스",
+        "subtitle": "반대쪽 채널을 낮춥니다. 이동한 쪽은 절대 증폭되지 않습니다",
+        "center": "중앙",
+        "left": "좌 {{value}}%",
+        "right": "우 {{value}}%",
+        "reset": "밸런스를 중앙으로"
+      },
+      "width": {
+        "title": "스테레오 폭",
+        "subtitle": "모노(0%)부터 확장(200%)까지, 100%는 원래 소리 그대로입니다",
+        "mono": "모노",
+        "value": "{{value}}%",
+        "reset": "폭을 100%로 재설정"
       }
     }
   },

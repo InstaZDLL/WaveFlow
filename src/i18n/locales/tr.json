@@ -1473,7 +1473,9 @@
         "mono": "Mono",
         "speed": "Hız {{value}}×",
         "dopNative": "Doğrudan DSD",
-        "volume": "Ses %{{value}}"
+        "volume": "Ses %{{value}}",
+        "balance": "Denge",
+        "width": "Genişlik %{{value}}"
       }
     },
     "outputMode": {
@@ -2761,7 +2763,8 @@
         "updates": "Güncellemeler",
         "diagnostics": "Tanılama",
         "reset": "Uygulamayı sıfırla",
-        "desktopLyrics": "Masaüstü şarkı sözleri"
+        "desktopLyrics": "Masaüstü şarkı sözleri",
+        "stereo": "Stereo görüntü"
       }
     },
     "desktopLyrics": {
@@ -2830,6 +2833,23 @@
         "confirm": "Sıfırla",
         "failed_one": "{{count}} ayar sıfırlanamadı.",
         "failed_other": "{{count}} ayar sıfırlanamadı."
+      }
+    },
+    "stereoImage": {
+      "balance": {
+        "title": "Denge",
+        "subtitle": "Karşı kanalı kısar; kaydırdığınız taraf asla yükseltilmez",
+        "center": "Orta",
+        "left": "S %{{value}}",
+        "right": "Sğ %{{value}}",
+        "reset": "Dengeyi ortala"
+      },
+      "width": {
+        "title": "Stereo genişlik",
+        "subtitle": "Monodan (%0) genişletilmişe (%200); %100 sesi olduğu gibi bırakır",
+        "mono": "Mono",
+        "value": "%{{value}}",
+        "reset": "Genişliği %100'e sıfırla"
       }
     }
   },
