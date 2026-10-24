@@ -154,6 +154,12 @@ pub enum AudioCmd {
     /// decoder rebuilds the active stream's resampler against the
     /// new effective source rate (`actual_rate * speed`).
     SetSpeed(f32),
+    /// Left / right balance in percent, `-100` (left) to `100` (right).
+    /// Clamped on the way in.
+    SetBalance(i32),
+    /// Stereo width in percent, `0` (mono) to `200`; `100` is the
+    /// source as it is. Clamped on the way in.
+    SetStereoWidth(i32),
     /// Hand the decoder thread the next track to prefetch for
     /// crossfade. Sent by the analytics task in response to a
     /// `PrefetchNext` request from the decoder.
@@ -275,6 +281,8 @@ impl std::fmt::Debug for AudioCmd {
             AudioCmd::SetReplayGain(v) => write!(f, "SetReplayGain({v})"),
             AudioCmd::SetGapless(v) => write!(f, "SetGapless({v})"),
             AudioCmd::SetSpeed(v) => write!(f, "SetSpeed({v})"),
+            AudioCmd::SetBalance(v) => write!(f, "SetBalance({v})"),
+            AudioCmd::SetStereoWidth(v) => write!(f, "SetStereoWidth({v})"),
             AudioCmd::SetNextTrack { track_id, .. } => {
                 write!(f, "SetNextTrack {{ track_id: {track_id} }}")
             }

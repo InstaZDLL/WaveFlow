@@ -1486,7 +1486,9 @@
         "mono": "Mono",
         "speed": "Geschwindigkeit {{value}}×",
         "dopNative": "Natives DSD",
-        "volume": "Lautstärke {{value}} %"
+        "volume": "Lautstärke {{value}} %",
+        "balance": "Balance",
+        "width": "Breite {{value}} %"
       }
     },
     "outputMode": {
@@ -1570,8 +1572,7 @@
       "plain": "Nicht synchronisiert"
     },
     "toast": {
-      "tagWriteSkipped": "TTML nur in der Datenbank gespeichert (nicht in den Audio-Tag geschrieben)",
-      "sidecarWriteSkipped": "Songtext in der Datenbank gespeichert, aber TTML kann nicht in eine .lrc/.txt-Sidecar-Datei geschrieben werden."
+      "tagWriteSkipped": "TTML nur in der Datenbank gespeichert (nicht in den Audio-Tag geschrieben)"
     },
     "excludedGenre": "Für das Genre {{genre}} werden keine Songtexte online gesucht (Einstellungen → Bilder und Songtexte). Du kannst eine .lrc-Datei importieren oder trotzdem suchen."
   },
@@ -1768,7 +1769,7 @@
       },
       "sidecar": {
         "label": "Sidecar-Datei",
-        "hint": "Schreibt eine .lrc / .txt neben der Audiodatei. Tags bleiben unberührt."
+        "hint": "Schreibt eine .lrc / .txt / .ttml neben der Audiodatei. Tags bleiben unberührt."
       },
       "db_only": {
         "label": "Nur WaveFlow-Datenbank",
@@ -2774,7 +2775,8 @@
         "updates": "Updates",
         "diagnostics": "Diagnose",
         "reset": "Anwendung zurücksetzen",
-        "desktopLyrics": "Desktop-Songtext"
+        "desktopLyrics": "Desktop-Songtext",
+        "stereo": "Stereobild"
       }
     },
     "desktopLyrics": {
@@ -2843,6 +2845,27 @@
         "confirm": "Zurücksetzen",
         "failed_one": "{{count}} Einstellung konnte nicht zurückgesetzt werden.",
         "failed_other": "{{count}} Einstellungen konnten nicht zurückgesetzt werden."
+      }
+    },
+    "autoplay": {
+      "title": "Autoplay",
+      "subtitle": "Wenn die Warteschlange ohne Wiederholung endet, ähnliche Titel aus deiner Mediathek hinzufügen und weiterspielen"
+    },
+    "stereoImage": {
+      "balance": {
+        "title": "Balance",
+        "subtitle": "Senkt den gegenüberliegenden Kanal; die Seite, zu der Sie schieben, wird nie verstärkt",
+        "center": "Mitte",
+        "left": "L {{value}} %",
+        "right": "R {{value}} %",
+        "reset": "Balance zentrieren"
+      },
+      "width": {
+        "title": "Stereobreite",
+        "subtitle": "Von Mono (0 %) bis verbreitert (200 %); 100 % lässt den Klang unverändert",
+        "mono": "Mono",
+        "value": "{{value}} %",
+        "reset": "Breite auf 100 % zurücksetzen"
       }
     }
   },

@@ -1074,8 +1074,8 @@ fn pick_device(device_name: &Option<String>) -> AppResult<Device> {
 /// CPU while idle.
 ///
 /// Mirrors the cpal callback's logic for `paused_output`,
-/// `drain_silent`, `volume`, `normalize_enabled`, and `mono_enabled`
-/// so the user-facing behaviour is identical regardless of backend.
+/// `drain_silent`, `volume` and `normalize_enabled` so the user-facing
+/// behaviour is identical regardless of backend.
 ///
 /// Returns why the loop stopped so the caller can decide whether a
 /// recovery is warranted — see [`ExitReason`].
@@ -1111,7 +1111,7 @@ fn run_event_loop(
     let buffer_bytes = need_frames * frame_bytes;
 
     // Two reusable scratch buffers: one for the f32 samples we apply
-    // gain/mono/normalize to, one for the little-endian byte image
+    // gain/normalize to, one for the little-endian byte image
     // we hand to WASAPI. Pre-allocated so the hot path never touches
     // the allocator.
     let mut samples: Vec<f32> = vec![0.0; need_samples];
@@ -1163,8 +1163,7 @@ fn run_event_loop(
             &silent_buf
         } else {
             // Same fill every backend uses: volume, the normalize
-            // attenuation, the optional mono downmix, and an underrun
-            // left uncredited. It lives in `output` so the three
+            // attenuation, and an underrun left uncredited. It lives in `output` so the three
             // exclusive paths and the cpal callback can't drift apart.
             let written =
                 super::output::fill_pcm_period(shared, &mut consumer, &mut samples, channels);

@@ -1486,7 +1486,9 @@
         "mono": "Mono",
         "speed": "Hız {{value}}×",
         "dopNative": "Doğrudan DSD",
-        "volume": "Ses %{{value}}"
+        "volume": "Ses %{{value}}",
+        "balance": "Denge",
+        "width": "Genişlik %{{value}}"
       }
     },
     "outputMode": {
@@ -1570,8 +1572,7 @@
       "plain": "Senkronize değil"
     },
     "toast": {
-      "tagWriteSkipped": "TTML yalnızca veritabanına kaydedildi (ses etiketine yazılmadı)",
-      "sidecarWriteSkipped": "Şarkı sözleri veritabanına kaydedildi, ancak TTML bir .lrc/.txt yan dosyasına yazılamaz."
+      "tagWriteSkipped": "TTML yalnızca veritabanına kaydedildi (ses etiketine yazılmadı)"
     },
     "excludedGenre": "{{genre}} türü için şarkı sözleri çevrimiçi aranmıyor (Ayarlar → Görseller ve şarkı sözleri). Bir .lrc dosyası içe aktarabilir ya da yine de arayabilirsin."
   },
@@ -1768,7 +1769,7 @@
       },
       "sidecar": {
         "label": "Yan dosya",
-        "hint": "Ses dosyasının yanına .lrc / .txt yazar. Dosya etiketlerine dokunulmaz."
+        "hint": "Ses dosyasının yanına .lrc / .txt / .ttml yazar. Dosya etiketlerine dokunulmaz."
       },
       "db_only": {
         "label": "Yalnızca WaveFlow veritabanı",
@@ -2774,7 +2775,8 @@
         "updates": "Güncellemeler",
         "diagnostics": "Tanılama",
         "reset": "Uygulamayı sıfırla",
-        "desktopLyrics": "Masaüstü şarkı sözleri"
+        "desktopLyrics": "Masaüstü şarkı sözleri",
+        "stereo": "Stereo görüntü"
       }
     },
     "desktopLyrics": {
@@ -2843,6 +2845,27 @@
         "confirm": "Sıfırla",
         "failed_one": "{{count}} ayar sıfırlanamadı.",
         "failed_other": "{{count}} ayar sıfırlanamadı."
+      }
+    },
+    "autoplay": {
+      "title": "Otomatik oynatma",
+      "subtitle": "Sıra tekrar kapalıyken bittiğinde kitaplığınızdan benzer parçalar ekleyip çalmaya devam eder"
+    },
+    "stereoImage": {
+      "balance": {
+        "title": "Denge",
+        "subtitle": "Karşı kanalı kısar; kaydırdığınız taraf asla yükseltilmez",
+        "center": "Orta",
+        "left": "S %{{value}}",
+        "right": "Sğ %{{value}}",
+        "reset": "Dengeyi ortala"
+      },
+      "width": {
+        "title": "Stereo genişlik",
+        "subtitle": "Monodan (%0) genişletilmişe (%200); %100 sesi olduğu gibi bırakır",
+        "mono": "Mono",
+        "value": "%{{value}}",
+        "reset": "Genişliği %100'e sıfırla"
       }
     }
   },

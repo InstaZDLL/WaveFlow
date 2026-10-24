@@ -53,12 +53,14 @@ import {
   playerSetGapless,
   playerSetKeepAwake,
   playerSetMatchSourceRate,
+  playerSetBalance,
   playerSetMono,
   playerSetNormalize,
   playerSetPauseOnDeviceLoss,
   playerSetReplayGain,
   playerSetReplayGainMode,
   playerSetReplayGainOptions,
+  playerSetStereoWidth,
   type AudioSettingsSnapshot,
 } from "../../../lib/tauri/player";
 import {
@@ -127,6 +129,7 @@ import { applyUiZoom } from "../../../hooks/useUiZoom";
 import { setSortIgnoreArticles } from "../../../hooks/useSortIgnoreArticles";
 import { applyWindowChrome } from "../../../hooks/useWindowChrome";
 import { SINGLE_CLICK_PLAY_EVENT } from "../../../hooks/useSingleClickPlay";
+import { AUTOPLAY_EVENT } from "../../../hooks/useAutoplay";
 import { GENERATOR_ALBUM_MODE_EVENT } from "../../../hooks/useGeneratorAlbumMode";
 import { CONTRAST_EVENT } from "../../../hooks/useContrastMode";
 import { ACCENT_EVENT } from "../../../hooks/useAccentChoice";
@@ -603,6 +606,7 @@ const ACCESSORS: Record<SettingKey, SettingAccessor> = {
     "ui.single_click_play",
     SINGLE_CLICK_PLAY_EVENT,
   ),
+  "playback.autoplay": profileBool("playback.autoplay", AUTOPLAY_EVENT),
   "playback.generator_album_mode": profileBool(
     "playback.generator_album_mode",
     GENERATOR_ALBUM_MODE_EVENT,
@@ -668,6 +672,16 @@ const ACCESSORS: Record<SettingKey, SettingAccessor> = {
     playerSetMatchSourceRate,
   ),
   "audio.mono": engineSwitch("audio.mono", playerSetMono),
+  "audio.balance": command(
+    "audio.balance",
+    async (reads) => (await reads.audio()).balance,
+    playerSetBalance,
+  ),
+  "audio.stereo_width": command(
+    "audio.stereo_width",
+    async (reads) => (await reads.audio()).stereo_width,
+    playerSetStereoWidth,
+  ),
   "audio.dsd_precision": command(
     "audio.dsd_precision",
     async (reads) =>

@@ -1484,7 +1484,9 @@
         "mono": "单声道",
         "speed": "速度 {{value}}×",
         "dopNative": "原生 DSD",
-        "volume": "音量 {{value}}%"
+        "volume": "音量 {{value}}%",
+        "balance": "平衡",
+        "width": "宽度 {{value}}%"
       }
     },
     "outputMode": {
@@ -1568,8 +1570,7 @@
       "plain": "非同步歌词"
     },
     "toast": {
-      "tagWriteSkipped": "TTML 仅保留在数据库中（未写入音频标签）",
-      "sidecarWriteSkipped": "歌词已保存到数据库，但 TTML 格式无法保存为 .lrc/.txt 外挂文件。"
+      "tagWriteSkipped": "TTML 仅保留在数据库中（未写入音频标签）"
     },
     "excludedGenre": "不会在线搜索 {{genre}} 流派的歌词（设置 → 图片与歌词）。你可以导入 .lrc 文件，或选择仍然搜索。"
   },
@@ -1766,7 +1767,7 @@
       },
       "sidecar": {
         "label": "外挂歌词文件",
-        "hint": "在音频文件同目录下生成 .lrc / .txt 文件。文件标签不受影响。"
+        "hint": "在音频文件同目录下生成 .lrc / .txt / .ttml 文件。文件标签不受影响。"
       },
       "db_only": {
         "label": "仅 WaveFlow 数据库",
@@ -2772,7 +2773,8 @@
         "updates": "更新",
         "diagnostics": "诊断",
         "reset": "重置应用",
-        "desktopLyrics": "桌面歌词"
+        "desktopLyrics": "桌面歌词",
+        "stereo": "立体声声像"
       }
     },
     "desktopLyrics": {
@@ -2841,6 +2843,27 @@
         "confirm": "重置",
         "failed_one": "有 {{count}} 项设置无法重置。",
         "failed_other": "有 {{count}} 项设置无法重置。"
+      }
+    },
+    "autoplay": {
+      "title": "自动播放",
+      "subtitle": "队列在未开启循环时播完后，从你的资料库添加相关曲目并继续播放"
+    },
+    "stereoImage": {
+      "balance": {
+        "title": "声道平衡",
+        "subtitle": "降低另一侧声道；偏向的一侧绝不会被放大",
+        "center": "居中",
+        "left": "左 {{value}}%",
+        "right": "右 {{value}}%",
+        "reset": "将平衡居中"
+      },
+      "width": {
+        "title": "立体声宽度",
+        "subtitle": "从单声道 (0%) 到加宽 (200%)；100% 保持原样",
+        "mono": "单声道",
+        "value": "{{value}}%",
+        "reset": "将宽度重置为 100%"
       }
     }
   },

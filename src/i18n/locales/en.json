@@ -1486,7 +1486,9 @@
         "mono": "Mono",
         "speed": "Speed {{value}}×",
         "dopNative": "Native DSD",
-        "volume": "Volume {{value}}%"
+        "volume": "Volume {{value}}%",
+        "balance": "Balance",
+        "width": "Width {{value}}%"
       }
     },
     "outputMode": {
@@ -1570,8 +1572,7 @@
       "plain": "Unsynchronised"
     },
     "toast": {
-      "tagWriteSkipped": "TTML kept in the database only (not written to the audio tag)",
-      "sidecarWriteSkipped": "Lyrics saved to the database, but TTML can't ride a .lrc/.txt sidecar."
+      "tagWriteSkipped": "TTML kept in the database only (not written to the audio tag)"
     },
     "excludedGenre": "Lyrics aren't searched online for the {{genre}} genre (Settings → Images and lyrics). You can import a .lrc file or search anyway."
   },
@@ -1768,7 +1769,7 @@
       },
       "sidecar": {
         "label": "Sidecar file",
-        "hint": "Writes a .lrc / .txt next to the audio file. Audio file tags untouched."
+        "hint": "Writes a .lrc / .txt / .ttml next to the audio file. Audio file tags untouched."
       },
       "db_only": {
         "label": "WaveFlow database only",
@@ -2774,7 +2775,8 @@
         "updates": "Updates",
         "diagnostics": "Diagnostics",
         "reset": "Reset application",
-        "desktopLyrics": "Desktop lyrics"
+        "desktopLyrics": "Desktop lyrics",
+        "stereo": "Stereo image"
       }
     },
     "desktopLyrics": {
@@ -2843,6 +2845,27 @@
         "confirm": "Reset",
         "failed_one": "{{count}} setting could not be reset.",
         "failed_other": "{{count}} settings could not be reset."
+      }
+    },
+    "autoplay": {
+      "title": "Autoplay",
+      "subtitle": "When the queue ends with repeat off, add related tracks from your library and keep playing"
+    },
+    "stereoImage": {
+      "balance": {
+        "title": "Balance",
+        "subtitle": "Turns the opposite channel down; the side you move towards is never boosted",
+        "center": "Centre",
+        "left": "L {{value}}%",
+        "right": "R {{value}}%",
+        "reset": "Centre the balance"
+      },
+      "width": {
+        "title": "Stereo width",
+        "subtitle": "From mono (0%) to widened (200%); 100% leaves the sound as it is",
+        "mono": "Mono",
+        "value": "{{value}}%",
+        "reset": "Reset the width to 100%"
       }
     }
   },

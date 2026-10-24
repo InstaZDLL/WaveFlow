@@ -304,20 +304,34 @@ pub async fn step(app: &AppHandle, direction: Direction, label: &str) -> Moved {
     // past `load_and_play`, so the index cannot be committed onto a queue
     // somebody else replaced in between.
     let _publish = engine.lock_publish().await;
+    // Autoplay, as `player_next` does it: only a step forward grows the
+    // queue, and a step that gives up — lost claim or failed read or
+    // write — takes the batch back out.
+    let topped_up = if matches!(direction, Direction::Next) {
+        crate::autoplay::top_up_or_log(&pool, repeat, label).await
+    } else {
+        None
+    };
     let (index, track) = match queue::peek_step(&pool, direction, repeat).await {
         Ok(Some(pair)) => pair,
-        Ok(None) => return Moved::Nothing,
+        Ok(None) => {
+            crate::autoplay::undo_if_added(topped_up, &pool).await;
+            return Moved::Nothing;
+        }
         Err(err) => {
             tracing::warn!(%err, surface = label, "player action: advance failed");
+            crate::autoplay::undo_if_added(topped_up, &pool).await;
             return Moved::Nothing;
         }
     };
     if !engine.claim_dispatch(intent) {
         tracing::debug!(surface = label, "step superseded by a newer selection");
+        crate::autoplay::undo_if_added(topped_up, &pool).await;
         return Moved::Nothing;
     }
     if let Err(err) = queue::commit_index(&pool, index).await {
         tracing::warn!(%err, surface = label, "player action: cursor write failed");
+        crate::autoplay::undo_if_added(topped_up, &pool).await;
         return Moved::Nothing;
     }
     load_and_play(app, &pool, track, Some(profile_id), intent).await;

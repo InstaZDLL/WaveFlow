@@ -1540,7 +1540,9 @@
         "mono": "Mono",
         "speed": "Velocidade {{value}}×",
         "dopNative": "DSD nativo",
-        "volume": "Volume {{value}} %"
+        "volume": "Volume {{value}} %",
+        "balance": "Balanço",
+        "width": "Largura {{value}}%"
       }
     },
     "outputMode": {
@@ -1625,8 +1627,7 @@
       "plain": "Não sincronizado"
     },
     "toast": {
-      "tagWriteSkipped": "TTML guardado apenas na base de dados (não escrito nas etiquetas do ficheiro de áudio)",
-      "sidecarWriteSkipped": "Letras guardadas na base de dados, mas o TTML não pode ser guardado num ficheiro auxiliar .lrc/.txt."
+      "tagWriteSkipped": "TTML guardado apenas na base de dados (não escrito nas etiquetas do ficheiro de áudio)"
     },
     "excludedGenre": "As letras não são procuradas online para o género {{genre}} (Definições → Imagens e letras). Podes importar um ficheiro .lrc ou procurar na mesma."
   },
@@ -1827,7 +1828,7 @@
       },
       "sidecar": {
         "label": "Ficheiro auxiliar",
-        "hint": "Escreve um .lrc / .txt junto do ficheiro de áudio. Etiquetas intactas."
+        "hint": "Escreve um .lrc / .txt / .ttml junto do ficheiro de áudio. Etiquetas intactas."
       },
       "db_only": {
         "label": "Apenas base de dados WaveFlow",
@@ -2840,7 +2841,8 @@
         "updates": "Atualizações",
         "diagnostics": "Diagnóstico",
         "reset": "Repor a aplicação",
-        "desktopLyrics": "Letra no ambiente de trabalho"
+        "desktopLyrics": "Letra no ambiente de trabalho",
+        "stereo": "Imagem estéreo"
       }
     },
     "desktopLyrics": {
@@ -2912,6 +2914,27 @@
         "failed_one": "Não foi possível repor {{count}} definição.",
         "failed_many": "Não foi possível repor {{count}} definições.",
         "failed_other": "Não foi possível repor {{count}} definições."
+      }
+    },
+    "autoplay": {
+      "title": "Reprodução automática",
+      "subtitle": "Quando a fila termina sem repetição, adiciona faixas relacionadas da sua biblioteca e continua"
+    },
+    "stereoImage": {
+      "balance": {
+        "title": "Balanço",
+        "subtitle": "Baixa o canal oposto; o lado para onde se desloca nunca é amplificado",
+        "center": "Centro",
+        "left": "E {{value}}%",
+        "right": "D {{value}}%",
+        "reset": "Centrar o balanço"
+      },
+      "width": {
+        "title": "Largura estéreo",
+        "subtitle": "De mono (0%) a alargado (200%); 100% deixa o som como está",
+        "mono": "Mono",
+        "value": "{{value}}%",
+        "reset": "Repor a largura em 100%"
       }
     }
   },

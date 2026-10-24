@@ -1539,7 +1539,9 @@
         "mono": "Mono",
         "speed": "Velocidad {{value}}×",
         "dopNative": "DSD nativo",
-        "volume": "Volumen {{value}} %"
+        "volume": "Volumen {{value}} %",
+        "balance": "Balance",
+        "width": "Amplitud {{value}} %"
       }
     },
     "outputMode": {
@@ -1624,8 +1626,7 @@
       "plain": "Sin sincronizar"
     },
     "toast": {
-      "tagWriteSkipped": "TTML guardado solo en la base de datos (no se escribe en la etiqueta de audio)",
-      "sidecarWriteSkipped": "Letras guardadas en la base de datos, pero el formato TTML no es compatible con archivos auxiliares .lrc/.txt."
+      "tagWriteSkipped": "TTML guardado solo en la base de datos (no se escribe en la etiqueta de audio)"
     },
     "excludedGenre": "Las letras no se buscan en línea para el género {{genre}} (Configuración → Imágenes y letras). Puedes importar un archivo .lrc o buscar de todos modos."
   },
@@ -1826,7 +1827,7 @@
       },
       "sidecar": {
         "label": "Archivo auxiliar",
-        "hint": "Escribe un .lrc / .txt junto al archivo de audio. Las etiquetas no se modifican."
+        "hint": "Escribe un .lrc / .txt / .ttml junto al archivo de audio. Las etiquetas no se modifican."
       },
       "db_only": {
         "label": "Solo base de datos de WaveFlow",
@@ -2839,7 +2840,8 @@
         "updates": "Actualizaciones",
         "diagnostics": "Diagnóstico",
         "reset": "Restablecer la aplicación",
-        "desktopLyrics": "Letras en el escritorio"
+        "desktopLyrics": "Letras en el escritorio",
+        "stereo": "Imagen estéreo"
       }
     },
     "desktopLyrics": {
@@ -2911,6 +2913,27 @@
         "failed_one": "No se pudo restablecer {{count}} ajuste.",
         "failed_many": "No se pudieron restablecer {{count}} ajustes.",
         "failed_other": "No se pudieron restablecer {{count}} ajustes."
+      }
+    },
+    "autoplay": {
+      "title": "Reproducción automática",
+      "subtitle": "Cuando la cola termina sin repetición, añade canciones afines de tu biblioteca y sigue reproduciendo"
+    },
+    "stereoImage": {
+      "balance": {
+        "title": "Balance",
+        "subtitle": "Baja el canal opuesto; el lado hacia el que se mueve nunca se amplifica",
+        "center": "Centro",
+        "left": "I {{value}} %",
+        "right": "D {{value}} %",
+        "reset": "Centrar el balance"
+      },
+      "width": {
+        "title": "Amplitud estéreo",
+        "subtitle": "De mono (0 %) a ampliado (200 %); 100 % deja el sonido como está",
+        "mono": "Mono",
+        "value": "{{value}} %",
+        "reset": "Restablecer la amplitud al 100 %"
       }
     }
   },

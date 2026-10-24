@@ -1484,7 +1484,9 @@
         "mono": "モノラル",
         "speed": "速度 {{value}}×",
         "dopNative": "ネイティブ DSD",
-        "volume": "音量 {{value}}%"
+        "volume": "音量 {{value}}%",
+        "balance": "バランス",
+        "width": "幅 {{value}}%"
       }
     },
     "outputMode": {
@@ -1568,8 +1570,7 @@
       "plain": "時間同期なし"
     },
     "toast": {
-      "tagWriteSkipped": "TTML はデータベースにのみ保存されました（オーディオタグには書き込まれていません）",
-      "sidecarWriteSkipped": "データベースには保存されましたが、TTMLは .lrc/.txt サイドカーファイルに書き込めません。"
+      "tagWriteSkipped": "TTML はデータベースにのみ保存されました（オーディオタグには書き込まれていません）"
     },
     "excludedGenre": "ジャンル「{{genre}}」の歌詞はオンラインで検索されません（設定 → 画像と歌詞）。.lrcファイルをインポートするか、このまま検索できます。"
   },
@@ -1766,7 +1767,7 @@
       },
       "sidecar": {
         "label": "サイドカーファイル",
-        "hint": "オーディオファイルの隣に .lrc / .txt を書き込みます。タグはそのまま。"
+        "hint": "オーディオファイルの隣に .lrc / .txt / .ttml を書き込みます。タグはそのまま。"
       },
       "db_only": {
         "label": "WaveFlow のデータベースのみ",
@@ -2772,7 +2773,8 @@
         "updates": "更新",
         "diagnostics": "診断",
         "reset": "アプリのリセット",
-        "desktopLyrics": "デスクトップ歌詞"
+        "desktopLyrics": "デスクトップ歌詞",
+        "stereo": "ステレオイメージ"
       }
     },
     "desktopLyrics": {
@@ -2841,6 +2843,27 @@
         "confirm": "リセット",
         "failed_one": "{{count}} 件の設定をリセットできませんでした。",
         "failed_other": "{{count}} 件の設定をリセットできませんでした。"
+      }
+    },
+    "autoplay": {
+      "title": "自動再生",
+      "subtitle": "リピートなしでキューが終わったら、ライブラリから関連する曲を追加して再生を続けます"
+    },
+    "stereoImage": {
+      "balance": {
+        "title": "バランス",
+        "subtitle": "反対側のチャンネルを下げます。寄せた側が増幅されることはありません",
+        "center": "中央",
+        "left": "左 {{value}}%",
+        "right": "右 {{value}}%",
+        "reset": "バランスを中央に戻す"
+      },
+      "width": {
+        "title": "ステレオ幅",
+        "subtitle": "モノラル (0%) から拡張 (200%) まで。100% で元の音のまま",
+        "mono": "モノラル",
+        "value": "{{value}}%",
+        "reset": "幅を 100% に戻す"
       }
     }
   },

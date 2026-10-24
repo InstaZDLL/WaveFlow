@@ -1484,7 +1484,9 @@
         "mono": "單聲道",
         "speed": "速度 {{value}}×",
         "dopNative": "原生 DSD",
-        "volume": "音量 {{value}}%"
+        "volume": "音量 {{value}}%",
+        "balance": "平衡",
+        "width": "寬度 {{value}}%"
       }
     },
     "outputMode": {
@@ -1568,8 +1570,7 @@
       "plain": "未同步"
     },
     "toast": {
-      "tagWriteSkipped": "TTML 僅保留在資料庫中（未寫入音訊標籤）",
-      "sidecarWriteSkipped": "歌詞已儲存至資料庫，但 TTML 無法寫入 .lrc/.txt 外部檔案。"
+      "tagWriteSkipped": "TTML 僅保留在資料庫中（未寫入音訊標籤）"
     },
     "excludedGenre": "不會在線上搜尋 {{genre}} 曲風的歌詞（設定 → 圖片與歌詞）。你可以匯入 .lrc 檔案，或仍然搜尋。"
   },
@@ -1766,7 +1767,7 @@
       },
       "sidecar": {
         "label": "外部歌詞檔",
-        "hint": "在音訊檔旁建立 .lrc / .txt，音訊檔標籤保持不變。"
+        "hint": "在音訊檔旁建立 .lrc / .txt / .ttml，音訊檔標籤保持不變。"
       },
       "db_only": {
         "label": "僅 WaveFlow 資料庫",
@@ -2772,7 +2773,8 @@
         "updates": "更新",
         "diagnostics": "診斷",
         "reset": "重設應用程式",
-        "desktopLyrics": "桌面歌詞"
+        "desktopLyrics": "桌面歌詞",
+        "stereo": "立體聲聲像"
       }
     },
     "desktopLyrics": {
@@ -2841,6 +2843,27 @@
         "confirm": "重設",
         "failed_one": "有 {{count}} 項設定無法重設。",
         "failed_other": "有 {{count}} 項設定無法重設。"
+      }
+    },
+    "autoplay": {
+      "title": "自動播放",
+      "subtitle": "佇列在未開啟重複時播完後，從你的資料庫加入相關曲目並繼續播放"
+    },
+    "stereoImage": {
+      "balance": {
+        "title": "聲道平衡",
+        "subtitle": "降低另一側聲道；偏向的一側絕不會被放大",
+        "center": "置中",
+        "left": "左 {{value}}%",
+        "right": "右 {{value}}%",
+        "reset": "將平衡置中"
+      },
+      "width": {
+        "title": "立體聲寬度",
+        "subtitle": "從單聲道 (0%) 到加寬 (200%)；100% 保持原樣",
+        "mono": "單聲道",
+        "value": "{{value}}%",
+        "reset": "將寬度重設為 100%"
       }
     }
   },

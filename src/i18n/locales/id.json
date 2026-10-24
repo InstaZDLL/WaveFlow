@@ -1484,7 +1484,9 @@
         "mono": "Mono",
         "speed": "Kecepatan {{value}}×",
         "dopNative": "DSD asli",
-        "volume": "Volume {{value}}%"
+        "volume": "Volume {{value}}%",
+        "balance": "Keseimbangan",
+        "width": "Lebar {{value}}%"
       }
     },
     "outputMode": {
@@ -1568,8 +1570,7 @@
       "plain": "Tidak tersinkronisasi"
     },
     "toast": {
-      "tagWriteSkipped": "TTML disimpan di database saja (tidak ditulis ke tag audio)",
-      "sidecarWriteSkipped": "Lirik disimpan ke database, tetapi TTML tidak dapat disimpan dalam berkas pendamping .lrc/.txt."
+      "tagWriteSkipped": "TTML disimpan di database saja (tidak ditulis ke tag audio)"
     },
     "excludedGenre": "Lirik tidak dicari secara daring untuk genre {{genre}} (Pengaturan → Gambar dan lirik). Kamu bisa mengimpor berkas .lrc atau tetap mencari."
   },
@@ -1766,7 +1767,7 @@
       },
       "sidecar": {
         "label": "Berkas pendamping",
-        "hint": "Menulis .lrc / .txt di samping berkas audio. Tag berkas tidak disentuh."
+        "hint": "Menulis .lrc / .txt / .ttml di samping berkas audio. Tag berkas tidak disentuh."
       },
       "db_only": {
         "label": "Hanya database WaveFlow",
@@ -2772,7 +2773,8 @@
         "updates": "Pembaruan",
         "diagnostics": "Diagnostik",
         "reset": "Atur ulang aplikasi",
-        "desktopLyrics": "Lirik desktop"
+        "desktopLyrics": "Lirik desktop",
+        "stereo": "Citra stereo"
       }
     },
     "desktopLyrics": {
@@ -2841,6 +2843,27 @@
         "confirm": "Atur ulang",
         "failed_one": "{{count}} pengaturan tidak dapat diatur ulang.",
         "failed_other": "{{count}} pengaturan tidak dapat diatur ulang."
+      }
+    },
+    "autoplay": {
+      "title": "Putar otomatis",
+      "subtitle": "Saat antrean habis tanpa pengulangan, tambahkan lagu serupa dari pustaka Anda dan terus putar"
+    },
+    "stereoImage": {
+      "balance": {
+        "title": "Keseimbangan",
+        "subtitle": "Mengecilkan kanal seberang; sisi yang Anda tuju tidak pernah dikuatkan",
+        "center": "Tengah",
+        "left": "Ki {{value}}%",
+        "right": "Ka {{value}}%",
+        "reset": "Ketengahkan keseimbangan"
+      },
+      "width": {
+        "title": "Lebar stereo",
+        "subtitle": "Dari mono (0%) hingga diperlebar (200%); 100% membiarkan suara apa adanya",
+        "mono": "Mono",
+        "value": "{{value}}%",
+        "reset": "Setel ulang lebar ke 100%"
       }
     }
   },

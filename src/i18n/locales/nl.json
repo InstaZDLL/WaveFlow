@@ -1486,7 +1486,9 @@
         "mono": "Mono",
         "speed": "Snelheid {{value}}×",
         "dopNative": "Native DSD",
-        "volume": "Volume {{value}} %"
+        "volume": "Volume {{value}} %",
+        "balance": "Balans",
+        "width": "Breedte {{value}}%"
       }
     },
     "outputMode": {
@@ -1570,8 +1572,7 @@
       "plain": "Niet gesynchroniseerd"
     },
     "toast": {
-      "tagWriteSkipped": "TTML alleen in de database bewaard (niet naar de audiotag geschreven)",
-      "sidecarWriteSkipped": "Songtekst opgeslagen in de database, maar TTML kan niet worden opgeslagen als .lrc/.txt-sidecar."
+      "tagWriteSkipped": "TTML alleen in de database bewaard (niet naar de audiotag geschreven)"
     },
     "excludedGenre": "Voor het genre {{genre}} worden songteksten niet online gezocht (Instellingen → Afbeeldingen en songteksten). Je kunt een .lrc-bestand importeren of toch zoeken."
   },
@@ -1768,7 +1769,7 @@
       },
       "sidecar": {
         "label": "Sidecarbestand",
-        "hint": "Schrijft een .lrc / .txt naast het audiobestand. Tags blijven onaangeroerd."
+        "hint": "Schrijft een .lrc / .txt / .ttml naast het audiobestand. Tags blijven onaangeroerd."
       },
       "db_only": {
         "label": "Alleen WaveFlow-database",
@@ -2774,7 +2775,8 @@
         "updates": "Updates",
         "diagnostics": "Diagnostiek",
         "reset": "App resetten",
-        "desktopLyrics": "Songtekst op bureaublad"
+        "desktopLyrics": "Songtekst op bureaublad",
+        "stereo": "Stereobeeld"
       }
     },
     "desktopLyrics": {
@@ -2843,6 +2845,27 @@
         "confirm": "Resetten",
         "failed_one": "{{count}} instelling kon niet worden gereset.",
         "failed_other": "{{count}} instellingen konden niet worden gereset."
+      }
+    },
+    "autoplay": {
+      "title": "Automatisch afspelen",
+      "subtitle": "Als de wachtrij zonder herhalen afloopt, verwante nummers uit je bibliotheek toevoegen en doorspelen"
+    },
+    "stereoImage": {
+      "balance": {
+        "title": "Balans",
+        "subtitle": "Zet het tegenoverliggende kanaal zachter; de kant waarheen u schuift wordt nooit versterkt",
+        "center": "Midden",
+        "left": "L {{value}}%",
+        "right": "R {{value}}%",
+        "reset": "Balans centreren"
+      },
+      "width": {
+        "title": "Stereobreedte",
+        "subtitle": "Van mono (0%) tot verbreed (200%); 100% laat het geluid zoals het is",
+        "mono": "Mono",
+        "value": "{{value}}%",
+        "reset": "Breedte terugzetten op 100%"
       }
     }
   },

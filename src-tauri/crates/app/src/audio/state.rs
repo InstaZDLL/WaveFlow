@@ -207,9 +207,10 @@ pub struct SharedPlayback {
     /// (× 0.707) to all samples to prevent clipping on loud tracks.
     /// Toggled from the Settings "Normalize volume" switch.
     pub normalize_enabled: AtomicBool,
-    /// When `true`, the cpal callback averages L+R channels so that
-    /// every output channel receives the same mono signal. Useful
-    /// for single-speaker setups or users with hearing impairment.
+    /// When `true`, the decoder thread averages every channel of a frame
+    /// so that each output channel receives the same mono signal, before
+    /// the balance (`audio::stereo`). Useful for single-speaker setups or
+    /// users with hearing impairment.
     pub mono_enabled: AtomicBool,
     /// Crossfade duration in milliseconds (0 = disabled). The decoder
     /// thread reads this each packet to decide when to prefetch the
@@ -281,6 +282,10 @@ pub struct SharedPlayback {
     /// through a command queue); the per-channel filter state lives
     /// on the decoder thread inside `EqProcessor`.
     pub eq: super::eq::EqShared,
+    /// Balance and stereo width, in whole percents. Written through
+    /// `AudioCmd::SetBalance` / `SetStereoWidth`; applied on the decoder
+    /// thread by `StereoProcessor`, after the EQ.
+    pub stereo: super::stereo::StereoShared,
     /// When `true`, the analytics worker skips the auto-advance step
     /// after the current track ends naturally. Used by the sleep
     /// timer's "end of current track" mode: the frontend arms this
@@ -411,6 +416,7 @@ impl SharedPlayback {
             album_ordered_queue: AtomicBool::new(false),
             gapless_enabled: AtomicBool::new(true),
             eq: super::eq::EqShared::new(),
+            stereo: super::stereo::StereoShared::new(),
             pause_after_current_track: AtomicBool::new(false),
             loop_a_ms: AtomicU64::new(0),
             loop_b_ms: AtomicU64::new(0),

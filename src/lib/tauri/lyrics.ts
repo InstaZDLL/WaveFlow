@@ -101,14 +101,6 @@ export interface LyricsPayload {
    * provider answered last time.
    */
   associated?: AssociatedLyrics[];
-  /**
-   * Set by `save_lyrics` when the user picked destination = `"sidecar"`
-   * but the chosen format can't ride a `.lrc` / `.txt` companion
-   * (TTML — neither extension carries the XML markup the reader
-   * expects). DB cache is still updated. Absent on every other return
-   * path.
-   */
-  sidecar_write_skipped?: boolean;
 }
 
 /** Cache-only lookup. Returns null when no row exists yet. */

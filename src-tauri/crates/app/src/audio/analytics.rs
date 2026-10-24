@@ -227,20 +227,41 @@ async fn handle_message(
                 // the user is picking something else must not leave the
                 // queue pointing at its successor.
                 let _publish = engine.lock_publish().await;
-                let next = queue::peek_step(&pool, Direction::Next, repeat)
-                    .await
-                    .map_err(|e| format!("advance: {e}"))?;
+                // A track that ends the queue: autoplay grows it here, as
+                // the Next button would, so playback goes on into it. Taken
+                // back out if this advance loses its claim.
+                let topped_up = crate::autoplay::top_up_or_log(&pool, repeat, "auto-advance").await;
+                // Any return below that gives up takes the batch back out.
+                let next = match queue::peek_step(&pool, Direction::Next, repeat).await {
+                    Ok(next) => next,
+                    Err(e) => {
+                        crate::autoplay::undo_if_added(topped_up, &pool).await;
+                        return Err(format!("advance: {e}"));
+                    }
+                };
                 if let Some((index, track)) = next {
                     let profile_id = state.require_profile_id().await.ok();
                     let replay_gain =
                         crate::commands::player::fetch_replay_gain(&pool, track.id).await;
                     if !engine.claim_dispatch(*intent) {
                         tracing::debug!("auto-advance superseded by a newer selection");
+                        crate::autoplay::undo_if_added(topped_up, &pool).await;
                         return Ok(());
                     }
-                    queue::commit_index(&pool, index)
-                        .await
-                        .map_err(|e| format!("cursor: {e}"))?;
+                    // Into the picks autoplay added, a track plays as the
+                    // Next button and the prefetch load it, not as part of
+                    // the session that just ended.
+                    let (source_type, source_id) = if topped_up.is_some_and(|b| b.covers(index))
+                        || crate::autoplay::reaches_picks(&pool, index, source_type).await
+                    {
+                        ("manual".to_string(), None)
+                    } else {
+                        (source_type.clone(), *source_id)
+                    };
+                    if let Err(e) = queue::commit_index(&pool, index).await {
+                        crate::autoplay::undo_if_added(topped_up, &pool).await;
+                        return Err(format!("cursor: {e}"));
+                    }
                     emit_track_changed(app, &state.paths, &track, profile_id);
                     emit_queue_changed(app);
                     let _ = cmd_tx.send(AudioCmd::LoadAndPlay {
@@ -249,10 +270,12 @@ async fn handle_message(
                         start_ms: 0,
                         track_id: track.id,
                         duration_ms: track.duration_ms.max(0) as u64,
-                        source_type: source_type.clone(),
-                        source_id: *source_id,
+                        source_type,
+                        source_id,
                         replay_gain,
                     });
+                } else {
+                    crate::autoplay::undo_if_added(topped_up, &pool).await;
                 }
             }
         }
@@ -297,6 +320,23 @@ async fn handle_message(
             // cursor (the cursor is bumped only when the crossfade
             // actually starts, via CrossfadeStarted).
             let repeat = queue::read_repeat_mode(&pool).await;
+            // The last track of the queue is playing: with autoplay on,
+            // grow the queue now rather than at its end, so the gapless
+            // hand-off or the crossfade reaches the first added track.
+            // Under the publish lock, like every other writer of the
+            // queue a producer may be replacing.
+            {
+                let engine = app.state::<Arc<AudioEngine>>();
+                let _publish = engine.lock_publish().await;
+                // No dispatch is claimed here, so there is nothing to lose
+                // and the batch is announced at once.
+                if crate::autoplay::top_up_or_log(&pool, repeat, "prefetch")
+                    .await
+                    .is_some()
+                {
+                    emit_queue_changed(app);
+                }
+            }
             let next: Option<QueueTrack> = queue::peek_next(&pool, repeat)
                 .await
                 .map_err(|e| format!("peek_next: {e}"))?;
@@ -377,9 +417,9 @@ async fn handle_message(
                     path: track.as_path(),
                     track_id: track.id,
                     duration_ms: track.duration_ms.max(0) as u64,
-                    // The next track inherits the same source as the
-                    // current one for analytics — auto-advance never
-                    // crosses a source boundary in this app.
+                    // Handed over as `manual`, whatever its queue row
+                    // says — the source autoplay's picks are loaded under
+                    // from every surface, the end of a track included.
                     source_type: "manual".into(),
                     source_id: None,
                     replay_gain,

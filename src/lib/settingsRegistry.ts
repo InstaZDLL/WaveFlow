@@ -175,6 +175,13 @@ export const SETTINGS = {
     false,
     "settings.singleClickPlay.title",
   ),
+  "playback.autoplay": setting(
+    "playback",
+    "profile",
+    "bool",
+    false,
+    "settings.autoplay.title",
+  ),
   "playback.generator_album_mode": setting(
     "playback",
     "profile",
@@ -273,6 +280,20 @@ export const SETTINGS = {
     "bool",
     false,
     "settings.mono.title",
+  ),
+  "audio.balance": setting(
+    "playback",
+    "profile",
+    "int",
+    0,
+    "settings.stereoImage.balance.title",
+  ),
+  "audio.stereo_width": setting(
+    "playback",
+    "profile",
+    "int",
+    100,
+    "settings.stereoImage.width.title",
   ),
   "audio.dsd_precision": setting<DsdPrecisionTaps>(
     "playback",

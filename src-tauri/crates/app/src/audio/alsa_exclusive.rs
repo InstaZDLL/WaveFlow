@@ -785,7 +785,7 @@ fn set_period_and_buffer(hwp: &HwParams<'_>) -> AppResult<()> {
 /// the device bit for bit, and a sample past full scale saturates at the
 /// endpoint rather than wrapping. 16-bit output is dithered where the
 /// chain moved a sample off a 16-bit step, and only there
-/// ([`pcm_scale::Dither16`]). Gain (volume, normalize, the mono mix) is applied
+/// ([`pcm_scale::Dither16`]). Gain (volume, normalize) is applied
 /// upstream in [`super::output::fill_pcm_period`], so a sample that clips
 /// here is one
 /// the chain genuinely pushed past 0 dBFS.

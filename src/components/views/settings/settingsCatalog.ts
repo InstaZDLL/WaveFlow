@@ -99,6 +99,8 @@ export const SETTINGS_CATEGORIES = [
         searchKeys: [
           "settings.singleClickPlay.title",
           "settings.singleClickPlay.subtitle",
+          "settings.autoplay.title",
+          "settings.autoplay.subtitle",
           "settings.generatorAlbumMode.title",
           "settings.generatorAlbumMode.subtitle",
           "settings.pauseOnDeviceLoss.title",
@@ -133,6 +135,16 @@ export const SETTINGS_CATEGORIES = [
           "settings.equalizer.presets",
           "settings.equalizer.preset.custom",
           "settings.equalizer.reset",
+        ],
+      },
+      {
+        id: "stereo",
+        labelKey: "settings.organization.groups.stereo",
+        searchKeys: [
+          "settings.stereoImage.balance.title",
+          "settings.stereoImage.balance.subtitle",
+          "settings.stereoImage.width.title",
+          "settings.stereoImage.width.subtitle",
         ],
       },
       {

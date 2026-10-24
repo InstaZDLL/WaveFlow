@@ -824,6 +824,19 @@ pub(crate) async fn restore_profile_audio_settings(pool: &sqlx::SqlitePool, engi
             .mono_enabled
             .store(mono, std::sync::atomic::Ordering::Release);
 
+        // Balance and width: the centre and 100 % when the row is
+        // missing or unparseable, clamped by the setters either way.
+        let balance = read_setting(pool, "audio.balance")
+            .await
+            .and_then(|v| v.parse::<i32>().ok())
+            .unwrap_or(0);
+        engine.shared().stereo.set_balance(balance);
+        let width = read_setting(pool, "audio.stereo_width")
+            .await
+            .and_then(|v| v.parse::<i32>().ok())
+            .unwrap_or(i32::from(crate::audio::stereo::WIDTH_NEUTRAL));
+        engine.shared().stereo.set_width(width);
+
         let crossfade_ms = read_setting(pool, "audio.crossfade_ms")
             .await
             .and_then(|v| v.parse::<u32>().ok())
@@ -1770,6 +1783,55 @@ pub async fn player_set_mono(
     Ok(())
 }
 
+/// Set the left / right balance, in percent: `-100` is hard left, `100`
+/// hard right, `0` the centre. Saved first, then applied; a value the
+/// database refuses never reaches the engine. Persisted in
+/// `profile_setting['audio.balance']` as an int.
+#[tauri::command]
+pub async fn player_set_balance(
+    state: tauri::State<'_, AppState>,
+    engine: tauri::State<'_, Arc<AudioEngine>>,
+    value: i32,
+) -> AppResult<()> {
+    let limit = i32::from(crate::audio::stereo::BALANCE_LIMIT);
+    let clamped = value.clamp(-limit, limit);
+    if let Ok(pool) = state.require_profile_pool().await {
+        persist_setting(
+            &pool,
+            "audio.balance",
+            clamped.to_string(),
+            SettingType::Int,
+        )
+        .await?;
+    }
+    engine.send(AudioCmd::SetBalance(clamped))?;
+    Ok(())
+}
+
+/// Set the stereo width, in percent: `0` is mono, `100` the source as it
+/// is, `200` the side doubled. Saved first, then applied, like the
+/// balance. Persisted in `profile_setting['audio.stereo_width']` as an
+/// int.
+#[tauri::command]
+pub async fn player_set_stereo_width(
+    state: tauri::State<'_, AppState>,
+    engine: tauri::State<'_, Arc<AudioEngine>>,
+    value: i32,
+) -> AppResult<()> {
+    let clamped = value.clamp(0, i32::from(crate::audio::stereo::WIDTH_MAX));
+    if let Ok(pool) = state.require_profile_pool().await {
+        persist_setting(
+            &pool,
+            "audio.stereo_width",
+            clamped.to_string(),
+            SettingType::Int,
+        )
+        .await?;
+    }
+    engine.send(AudioCmd::SetStereoWidth(clamped))?;
+    Ok(())
+}
+
 /// Toggle smart crossfade. When ON, same-album transitions skip
 /// the fade and fall through to the gapless hand-off so concept
 /// albums / live records aren't smeared by an equal-power mix.
@@ -2175,6 +2237,8 @@ pub async fn player_get_audio_settings(
     Ok(AudioSettingsSnapshot {
         normalize,
         mono,
+        balance: shared.stereo.balance(),
+        stereo_width: shared.stereo.width(),
         crossfade_ms,
         replaygain,
         replaygain_preamp_db: replay_gain_settings.preamp_db as f32,
@@ -2194,6 +2258,10 @@ pub async fn player_get_audio_settings(
 pub struct AudioSettingsSnapshot {
     pub normalize: bool,
     pub mono: bool,
+    /// Left / right balance in percent, `-100` to `100`.
+    pub balance: i16,
+    /// Stereo width in percent, `0` (mono) to `200`; `100` is neutral.
+    pub stereo_width: i16,
     pub crossfade_ms: i64,
     pub replaygain: bool,
     /// Pre-amp added to every track's ReplayGain, in dB.
@@ -2926,8 +2994,25 @@ pub async fn player_next(
     // now, and committing it after another producer replaced that queue
     // would put the cursor on a track this load never resolved.
     let _publish = engine.lock_publish().await;
-    let queue_len = queue::queue_length(&pool).await?;
-    let next_opt = queue::peek_step(&pool, Direction::Next, repeat).await?;
+    // At the end of the queue with autoplay on, the queue grows first and
+    // this step lands on what was added — the same call every other
+    // producer makes, so every surface lands on the same track. Taken
+    // back out below if the step loses its claim; announced by the
+    // queue change this step emits once it has claimed.
+    let topped_up = crate::autoplay::top_up_or_log(&pool, repeat, "next").await;
+    // Any return below that gives up takes the batch back out.
+    let read = async {
+        let queue_len = queue::queue_length(&pool).await?;
+        let next_opt = queue::peek_step(&pool, Direction::Next, repeat).await?;
+        AppResult::Ok((queue_len, next_opt))
+    };
+    let (queue_len, next_opt) = match read.await {
+        Ok(pair) => pair,
+        Err(err) => {
+            crate::autoplay::undo_if_added(topped_up, &pool).await;
+            return Err(err);
+        }
+    };
     match &next_opt {
         Some((_, track)) => tracing::info!(
             next_track_id = track.id,
@@ -2939,6 +3024,7 @@ pub async fn player_next(
         None => tracing::info!(queue_len, ?repeat, "player_next: queue exhausted, no-op"),
     }
     let Some((index, track)) = next_opt else {
+        crate::autoplay::undo_if_added(topped_up, &pool).await;
         return Ok(());
     };
     let replay_gain = fetch_replay_gain(&pool, track.id).await;
@@ -2949,9 +3035,13 @@ pub async fn player_next(
     // happen, or none of them does.
     if !engine.claim_dispatch(intent) {
         tracing::debug!("next superseded by a newer selection; leaving the queue alone");
+        crate::autoplay::undo_if_added(topped_up, &pool).await;
         return Ok(());
     }
-    queue::commit_index(&pool, index).await?;
+    if let Err(err) = queue::commit_index(&pool, index).await {
+        crate::autoplay::undo_if_added(topped_up, &pool).await;
+        return Err(err);
+    }
     emit_track_changed(&app, &state.paths, &track, profile_id);
     emit_queue_changed(&app);
     engine.send(AudioCmd::LoadAndPlay {

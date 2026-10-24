@@ -596,11 +596,6 @@ export function LyricsEditorModal({
         // Keep the modal open with a warning so the user knows the
         // file itself wasn't touched — DB cache still updated.
         setWarning(t("lyrics.toast.tagWriteSkipped"));
-      } else if (next.sidecar_write_skipped) {
-        // Mirror the tag-skip pathway: TTML can't ride a .lrc/.txt
-        // sidecar, so the DB still saved but the sibling file did
-        // not appear. User gets to choose what to do next.
-        setWarning(t("lyrics.toast.sidecarWriteSkipped"));
       } else {
         onClose();
       }

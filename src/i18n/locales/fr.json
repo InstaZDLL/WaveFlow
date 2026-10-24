@@ -1539,7 +1539,9 @@
         "mono": "Mono",
         "speed": "Vitesse {{value}}×",
         "dopNative": "DSD natif",
-        "volume": "Volume {{value}} %"
+        "volume": "Volume {{value}} %",
+        "balance": "Balance",
+        "width": "Largeur {{value}} %"
       }
     },
     "outputMode": {
@@ -1624,8 +1626,7 @@
       "plain": "Non synchronisé"
     },
     "toast": {
-      "tagWriteSkipped": "TTML conservé en base (non écrit dans le tag audio)",
-      "sidecarWriteSkipped": "Paroles enregistrées dans la base, mais le format TTML ne tient pas dans un fichier .lrc/.txt."
+      "tagWriteSkipped": "TTML conservé en base (non écrit dans le tag audio)"
     },
     "excludedGenre": "Les paroles ne sont pas cherchées en ligne pour le genre {{genre}} (Paramètres → Images et paroles). Vous pouvez importer un fichier .lrc ou chercher quand même."
   },
@@ -1826,7 +1827,7 @@
       },
       "sidecar": {
         "label": "Fichier sidecar",
-        "hint": "Écrit un .lrc / .txt à côté du fichier audio. Tags du fichier intacts."
+        "hint": "Écrit un .lrc / .txt / .ttml à côté du fichier audio. Tags du fichier intacts."
       },
       "db_only": {
         "label": "Base WaveFlow uniquement",
@@ -2839,7 +2840,8 @@
         "updates": "Mises à jour",
         "diagnostics": "Diagnostics",
         "reset": "Réinitialisation de l'application",
-        "desktopLyrics": "Paroles sur le bureau"
+        "desktopLyrics": "Paroles sur le bureau",
+        "stereo": "Image stéréo"
       }
     },
     "desktopLyrics": {
@@ -2911,6 +2913,27 @@
         "failed_one": "{{count}} réglage n’a pas pu être réinitialisé.",
         "failed_many": "{{count}} réglages n’ont pas pu être réinitialisés.",
         "failed_other": "{{count}} réglages n’ont pas pu être réinitialisés."
+      }
+    },
+    "autoplay": {
+      "title": "Lecture automatique",
+      "subtitle": "Quand la file se termine sans répétition, ajoute des titres proches de votre bibliothèque et continue"
+    },
+    "stereoImage": {
+      "balance": {
+        "title": "Balance",
+        "subtitle": "Atténue le canal opposé ; le côté vers lequel vous allez n'est jamais amplifié",
+        "center": "Centre",
+        "left": "G {{value}} %",
+        "right": "D {{value}} %",
+        "reset": "Recentrer la balance"
+      },
+      "width": {
+        "title": "Largeur stéréo",
+        "subtitle": "De mono (0 %) à élargi (200 %) ; 100 % laisse le son tel quel",
+        "mono": "Mono",
+        "value": "{{value}} %",
+        "reset": "Remettre la largeur à 100 %"
       }
     }
   },
