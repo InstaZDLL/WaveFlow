@@ -718,20 +718,21 @@ impl SettingType {
     }
 }
 
-/// Upsert one `profile_setting` row for a command that carries on when the
-/// write fails: the engine has already taken the value, and a toggle has
-/// nothing useful to tell the user about a database it cannot reach.
+/// Upsert one `profile_setting` row, and report a failure to the caller.
 ///
-/// The failure is logged rather than dropped. The pre-amp, the fallback
+/// The commands call it **before** they hand the value to the engine, and
+/// return its error: a value the database refuses then never reaches the
+/// engine, and the control that asked rolls back to what both still hold.
+/// It used to run after, with its error dropped — the pre-amp, the fallback
 /// gain and the playback speed were written with a marker the table's
-/// CHECK refuses, and nobody knew: every write failed, silently, and the
-/// three reverted on each launch.
+/// CHECK refuses, every write failed, and the switch, the engine and a
+/// page reset all reported a success the next launch undid.
 async fn persist_setting(
     pool: &sqlx::SqlitePool,
     key: &str,
     value: impl AsRef<str>,
     value_type: SettingType,
-) {
+) -> AppResult<()> {
     let result = sqlx::query(
         "INSERT INTO profile_setting (key, value, value_type, updated_at)
          VALUES (?, ?, ?, ?)
@@ -746,9 +747,11 @@ async fn persist_setting(
     .bind(chrono::Utc::now().timestamp_millis())
     .execute(pool)
     .await;
-    if let Err(err) = result {
+    if let Err(err) = &result {
         tracing::warn!(key, %err, "profile setting not saved");
     }
+    result?;
+    Ok(())
 }
 
 /// Read a boolean `profile_setting`. `"true"` / `"1"` read as true and
@@ -1528,7 +1531,6 @@ pub async fn player_set_normalize(
     engine: tauri::State<'_, Arc<AudioEngine>>,
     enabled: bool,
 ) -> AppResult<()> {
-    engine.send(AudioCmd::SetNormalize(enabled))?;
     if let Ok(pool) = state.require_profile_pool().await {
         persist_setting(
             &pool,
@@ -1536,8 +1538,9 @@ pub async fn player_set_normalize(
             if enabled { "true" } else { "false" },
             SettingType::Bool,
         )
-        .await;
+        .await?;
     }
+    engine.send(AudioCmd::SetNormalize(enabled))?;
     Ok(())
 }
 
@@ -1564,10 +1567,6 @@ pub async fn player_set_dsd_precision(
     } else {
         256
     };
-    engine
-        .shared()
-        .dsd_taps
-        .store(taps, std::sync::atomic::Ordering::Release);
     if let Ok(pool) = state.require_profile_pool().await {
         persist_setting(
             &pool,
@@ -1575,8 +1574,12 @@ pub async fn player_set_dsd_precision(
             taps.to_string(),
             SettingType::Int,
         )
-        .await;
+        .await?;
     }
+    engine
+        .shared()
+        .dsd_taps
+        .store(taps, std::sync::atomic::Ordering::Release);
     Ok(())
 }
 
@@ -1595,10 +1598,6 @@ pub async fn player_set_dsd_dop(
     engine: tauri::State<'_, Arc<AudioEngine>>,
     enabled: bool,
 ) -> AppResult<()> {
-    engine
-        .shared()
-        .dsd_dop_enabled
-        .store(enabled, std::sync::atomic::Ordering::Release);
     if let Ok(pool) = state.require_profile_pool().await {
         persist_setting(
             &pool,
@@ -1606,8 +1605,12 @@ pub async fn player_set_dsd_dop(
             if enabled { "true" } else { "false" },
             SettingType::Bool,
         )
-        .await;
+        .await?;
     }
+    engine
+        .shared()
+        .dsd_dop_enabled
+        .store(enabled, std::sync::atomic::Ordering::Release);
     Ok(())
 }
 
@@ -1620,7 +1623,6 @@ pub async fn player_set_replaygain(
     engine: tauri::State<'_, Arc<AudioEngine>>,
     enabled: bool,
 ) -> AppResult<()> {
-    engine.send(AudioCmd::SetReplayGain(enabled))?;
     if let Ok(pool) = state.require_profile_pool().await {
         persist_setting(
             &pool,
@@ -1628,8 +1630,9 @@ pub async fn player_set_replaygain(
             if enabled { "true" } else { "false" },
             SettingType::Bool,
         )
-        .await;
+        .await?;
     }
+    engine.send(AudioCmd::SetReplayGain(enabled))?;
     Ok(())
 }
 
@@ -1660,17 +1663,6 @@ pub async fn player_set_replaygain_options(
     let preamp = clamp_replaygain_adjust(preamp_db);
     let fallback = clamp_replaygain_adjust(fallback_db);
 
-    let shared = engine.shared();
-    shared
-        .replaygain_preamp_db_bits
-        .store(preamp.to_bits(), std::sync::atomic::Ordering::Relaxed);
-    shared
-        .replaygain_fallback_db_bits
-        .store(fallback.to_bits(), std::sync::atomic::Ordering::Relaxed);
-    shared
-        .replaygain_prevent_clipping
-        .store(prevent_clipping, std::sync::atomic::Ordering::Relaxed);
-
     if let Ok(pool) = state.require_profile_pool().await {
         // The two gains are decimals, which the table has no marker for:
         // stored as text like `ui.zoom_level`, and parsed back on restore.
@@ -1693,9 +1685,20 @@ pub async fn player_set_replaygain_options(
                 SettingType::Bool,
             ),
         ] {
-            persist_setting(&pool, key, value, value_type).await;
+            persist_setting(&pool, key, value, value_type).await?;
         }
     }
+
+    let shared = engine.shared();
+    shared
+        .replaygain_preamp_db_bits
+        .store(preamp.to_bits(), std::sync::atomic::Ordering::Relaxed);
+    shared
+        .replaygain_fallback_db_bits
+        .store(fallback.to_bits(), std::sync::atomic::Ordering::Relaxed);
+    shared
+        .replaygain_prevent_clipping
+        .store(prevent_clipping, std::sync::atomic::Ordering::Relaxed);
     Ok(())
 }
 
@@ -1719,11 +1722,6 @@ pub async fn player_set_replaygain_mode(
     mode: String,
 ) -> AppResult<()> {
     let mode = GainMode::from_setting(&mode);
-    engine
-        .shared()
-        .replaygain_mode_bits
-        .store(mode.as_bits(), std::sync::atomic::Ordering::Relaxed);
-
     if let Ok(pool) = state.require_profile_pool().await {
         persist_setting(
             &pool,
@@ -1731,8 +1729,13 @@ pub async fn player_set_replaygain_mode(
             mode.as_setting(),
             SettingType::Text,
         )
-        .await;
+        .await?;
     }
+    engine
+        .shared()
+        .replaygain_mode_bits
+        .store(mode.as_bits(), std::sync::atomic::Ordering::Relaxed);
+
     Ok(())
 }
 
@@ -1754,7 +1757,6 @@ pub async fn player_set_mono(
     engine: tauri::State<'_, Arc<AudioEngine>>,
     enabled: bool,
 ) -> AppResult<()> {
-    engine.send(AudioCmd::SetMono(enabled))?;
     if let Ok(pool) = state.require_profile_pool().await {
         persist_setting(
             &pool,
@@ -1762,8 +1764,9 @@ pub async fn player_set_mono(
             if enabled { "true" } else { "false" },
             SettingType::Bool,
         )
-        .await;
+        .await?;
     }
+    engine.send(AudioCmd::SetMono(enabled))?;
     Ok(())
 }
 
@@ -1778,10 +1781,6 @@ pub async fn player_set_smart_crossfade(
     engine: tauri::State<'_, Arc<AudioEngine>>,
     enabled: bool,
 ) -> AppResult<()> {
-    engine
-        .shared()
-        .smart_crossfade_enabled
-        .store(enabled, std::sync::atomic::Ordering::Release);
     if let Ok(pool) = state.require_profile_pool().await {
         persist_setting(
             &pool,
@@ -1789,8 +1788,12 @@ pub async fn player_set_smart_crossfade(
             if enabled { "true" } else { "false" },
             SettingType::Bool,
         )
-        .await;
+        .await?;
     }
+    engine
+        .shared()
+        .smart_crossfade_enabled
+        .store(enabled, std::sync::atomic::Ordering::Release);
     Ok(())
 }
 
@@ -1817,6 +1820,15 @@ pub async fn player_set_dynamic_crossfade(
     engine: tauri::State<'_, Arc<AudioEngine>>,
     enabled: bool,
 ) -> AppResult<()> {
+    if let Ok(pool) = state.require_profile_pool().await {
+        persist_setting(
+            &pool,
+            "audio.dynamic_crossfade",
+            if enabled { "true" } else { "false" },
+            SettingType::Bool,
+        )
+        .await?;
+    }
     engine
         .shared()
         .dynamic_crossfade_enabled
@@ -1828,15 +1840,6 @@ pub async fn player_set_dynamic_crossfade(
             .shared()
             .pending_next_crossfade_ms
             .store(0, std::sync::atomic::Ordering::Release);
-    }
-    if let Ok(pool) = state.require_profile_pool().await {
-        persist_setting(
-            &pool,
-            "audio.dynamic_crossfade",
-            if enabled { "true" } else { "false" },
-            SettingType::Bool,
-        )
-        .await;
     }
     Ok(())
 }
@@ -1861,10 +1864,6 @@ pub async fn player_set_visualizer(
     engine: tauri::State<'_, Arc<AudioEngine>>,
     enabled: bool,
 ) -> AppResult<()> {
-    engine
-        .shared()
-        .visualizer_enabled
-        .store(enabled, std::sync::atomic::Ordering::Release);
     if let Ok(pool) = state.require_profile_pool().await {
         persist_setting(
             &pool,
@@ -1872,8 +1871,12 @@ pub async fn player_set_visualizer(
             if enabled { "true" } else { "false" },
             SettingType::Bool,
         )
-        .await;
+        .await?;
     }
+    engine
+        .shared()
+        .visualizer_enabled
+        .store(enabled, std::sync::atomic::Ordering::Release);
     Ok(())
 }
 
@@ -1902,7 +1905,6 @@ pub async fn player_set_speed(
     engine: tauri::State<'_, Arc<AudioEngine>>,
     value: f32,
 ) -> AppResult<()> {
-    engine.send(AudioCmd::SetSpeed(value))?;
     if let Ok(pool) = state.require_profile_pool().await {
         let clamped = value.clamp(0.5, 2.0);
         persist_setting(
@@ -1911,8 +1913,9 @@ pub async fn player_set_speed(
             clamped.to_string(),
             SettingType::Text,
         )
-        .await;
+        .await?;
     }
+    engine.send(AudioCmd::SetSpeed(value))?;
     Ok(())
 }
 
@@ -1929,7 +1932,6 @@ pub async fn player_set_gapless(
     engine: tauri::State<'_, Arc<AudioEngine>>,
     enabled: bool,
 ) -> AppResult<()> {
-    engine.send(AudioCmd::SetGapless(enabled))?;
     if let Ok(pool) = state.require_profile_pool().await {
         persist_setting(
             &pool,
@@ -1937,8 +1939,9 @@ pub async fn player_set_gapless(
             if enabled { "true" } else { "false" },
             SettingType::Bool,
         )
-        .await;
+        .await?;
     }
+    engine.send(AudioCmd::SetGapless(enabled))?;
     Ok(())
 }
 
@@ -2006,10 +2009,9 @@ pub async fn player_set_eq_enabled(
     engine: tauri::State<'_, Arc<AudioEngine>>,
     enabled: bool,
 ) -> AppResult<()> {
+    let previous = EqState::capture(engine.shared());
     engine.shared().eq.set_enabled(enabled);
-    persist_eq(&state, engine.shared()).await;
-    emit_eq(&app, &engine);
-    Ok(())
+    commit_eq(&app, &state, &engine, previous).await
 }
 
 #[tauri::command]
@@ -2020,10 +2022,9 @@ pub async fn player_set_eq_band(
     index: usize,
     gain_db: f32,
 ) -> AppResult<()> {
+    let previous = EqState::capture(engine.shared());
     engine.shared().eq.set_band_db(index, gain_db);
-    persist_eq(&state, engine.shared()).await;
-    emit_eq(&app, &engine);
-    Ok(())
+    commit_eq(&app, &state, &engine, previous).await
 }
 
 #[tauri::command]
@@ -2036,19 +2037,58 @@ pub async fn player_set_eq_preset(
     let Some(gains) = crate::audio::eq::preset_gains(&preset_key) else {
         return Err(AppError::Other(format!("unknown EQ preset: {preset_key}")));
     };
+    let previous = EqState::capture(engine.shared());
     engine.shared().eq.set_all_bands_db(&gains);
-    persist_eq(&state, engine.shared()).await;
-    emit_eq(&app, &engine);
-    Ok(())
+    commit_eq(&app, &state, &engine, previous).await
+}
+
+/// The EQ as it was before a change, to put back if the change cannot
+/// be saved.
+struct EqState {
+    enabled: bool,
+    bands: Vec<f32>,
+}
+
+impl EqState {
+    fn capture(shared: &crate::audio::state::SharedPlayback) -> Self {
+        Self {
+            enabled: shared.eq.is_enabled(),
+            bands: shared.eq.read_bands_db().to_vec(),
+        }
+    }
+}
+
+/// Save an EQ change the engine has just applied, then tell every EQ
+/// surface. The engine goes first here, unlike the other settings, because
+/// it is what turns a preset into its six gains; so a change the database
+/// refuses is undone in the engine instead, and the `player:eq` that
+/// follows brings the controls back to it along with the error.
+async fn commit_eq(
+    app: &AppHandle,
+    state: &AppState,
+    engine: &AudioEngine,
+    previous: EqState,
+) -> AppResult<()> {
+    let saved = persist_eq(state, engine.shared()).await;
+    if saved.is_err() {
+        let eq = &engine.shared().eq;
+        eq.set_all_bands_db(&previous.bands);
+        eq.set_enabled(previous.enabled);
+    }
+    emit_eq(app, engine);
+    saved
 }
 
 /// Persist the EQ snapshot under two keys: `audio.eq_enabled` (bool)
 /// and `audio.eq_bands` (JSON array of f32). Splitting the bypass
 /// from the bands lets the user toggle the EQ off without losing
 /// their custom curve.
-async fn persist_eq(state: &AppState, shared: &crate::audio::state::SharedPlayback) {
+async fn persist_eq(
+    state: &AppState,
+    shared: &crate::audio::state::SharedPlayback,
+) -> AppResult<()> {
     let Ok(pool) = state.require_profile_pool().await else {
-        return;
+        return Ok(());
     };
     let enabled = shared.eq.is_enabled();
     let bands = shared.eq.read_bands_db();
@@ -2059,8 +2099,8 @@ async fn persist_eq(state: &AppState, shared: &crate::audio::state::SharedPlayba
         if enabled { "true" } else { "false" },
         SettingType::Bool,
     )
-    .await;
-    persist_setting(&pool, "audio.eq_bands", &bands_json, SettingType::Json).await;
+    .await?;
+    persist_setting(&pool, "audio.eq_bands", &bands_json, SettingType::Json).await
 }
 
 /// Update the crossfade duration. Pushes the new value live to the
@@ -2073,7 +2113,6 @@ pub async fn player_set_crossfade(
     seconds: f64,
 ) -> AppResult<()> {
     let ms = (seconds.max(0.0) * 1000.0).round() as i64;
-    engine.send(AudioCmd::SetCrossfade(ms.max(0) as u32))?;
     if let Ok(pool) = state.require_profile_pool().await {
         persist_setting(
             &pool,
@@ -2081,8 +2120,9 @@ pub async fn player_set_crossfade(
             ms.to_string(),
             SettingType::Int,
         )
-        .await;
+        .await?;
     }
+    engine.send(AudioCmd::SetCrossfade(ms.max(0) as u32))?;
     Ok(())
 }
 
@@ -2306,7 +2346,11 @@ pub async fn player_set_output_device(
         // Empty string represents "default" so the column stays
         // NOT NULL — the load path translates back to None.
         let stored = device_id.unwrap_or_default();
-        persist_setting(&pool, "audio.output_device", stored, SettingType::Text).await;
+        // After the switch, not before: opening the device is what tells a
+        // usable choice from one that is not, and only a usable one should
+        // be tried again at the next launch. A failure here leaves the
+        // session on the device it switched to and says so.
+        persist_setting(&pool, "audio.output_device", stored, SettingType::Text).await?;
     }
     Ok(())
 }
@@ -2362,16 +2406,19 @@ pub async fn player_set_exclusive_output(
     engine: tauri::State<'_, Arc<AudioEngine>>,
     enabled: bool,
 ) -> AppResult<()> {
+    // The preference first: it is what the card shows, whether or not the
+    // device then engages, and a preference the database refused must not
+    // be acted on.
+    if let Ok(pool) = state.require_profile_pool().await {
+        let stored = if enabled { "1" } else { "0" };
+        persist_setting(&pool, "audio.exclusive_output", stored, SettingType::Bool).await?;
+    }
     let engine_clone: Arc<AudioEngine> = engine.inner().clone();
     // Same rationale as `player_set_output_device`: opening / tearing
     // down a WASAPI stream blocks for a few hundred ms.
     tokio::task::spawn_blocking(move || engine_clone.set_exclusive_output(enabled))
         .await
         .map_err(|e| AppError::Audio(format!("set exclusive output task: {e}")))??;
-    if let Ok(pool) = state.require_profile_pool().await {
-        let stored = if enabled { "1" } else { "0" };
-        persist_setting(&pool, "audio.exclusive_output", stored, SettingType::Bool).await;
-    }
     Ok(())
 }
 
@@ -3251,7 +3298,9 @@ mod album_ordering_tests {
             ("audio.replaygain_fallback", 2.0),
             ("audio.playback_speed", 1.25),
         ] {
-            persist_setting(&pool, key, value.to_string(), SettingType::Text).await;
+            persist_setting(&pool, key, value.to_string(), SettingType::Text)
+                .await
+                .unwrap();
             let read = read_setting(&pool, key)
                 .await
                 .and_then(|v| v.parse::<f32>().ok());
@@ -3259,11 +3308,23 @@ mod album_ordering_tests {
         }
 
         // A second write replaces the value rather than adding a row.
-        persist_setting(&pool, "audio.playback_speed", "0.75", SettingType::Text).await;
+        persist_setting(&pool, "audio.playback_speed", "0.75", SettingType::Text)
+            .await
+            .unwrap();
         assert_eq!(
             read_setting(&pool, "audio.playback_speed").await.as_deref(),
             Some("0.75")
         );
+    }
+
+    /// A write that fails is reported, not swallowed: the commands return
+    /// this error before touching the engine, and the control rolls back.
+    #[tokio::test]
+    async fn a_failed_write_is_reported() {
+        let pool = migrated_pool().await;
+        pool.close().await;
+        let result = persist_setting(&pool, "audio.mono", "true", SettingType::Bool).await;
+        assert!(result.is_err(), "a write to a closed database succeeded");
     }
 
     /// Every marker `persist_setting` can write is one the table accepts.
@@ -3276,7 +3337,9 @@ mod album_ordering_tests {
             ("test.text", "auto", SettingType::Text),
             ("test.json", "[0,0,0]", SettingType::Json),
         ] {
-            persist_setting(&pool, key, value, value_type).await;
+            persist_setting(&pool, key, value, value_type)
+                .await
+                .unwrap();
             assert_eq!(read_setting(&pool, key).await.as_deref(), Some(value));
             let marker: String =
                 sqlx::query_scalar("SELECT value_type FROM profile_setting WHERE key = ?")

@@ -1817,6 +1817,9 @@ function SettingsViewContent({
           preventClipping,
         }).catch((err) => {
           console.error("[Settings] set replaygain options failed", err);
+          // Not saved, so not applied either: show what the engine
+          // still holds instead of the slider's position.
+          setAudioSettingsNonce((n) => n + 1);
         });
       }, 250);
     },
@@ -2077,9 +2080,11 @@ function SettingsViewContent({
       window.clearTimeout(crossfadeTimerRef.current);
     }
     crossfadeTimerRef.current = window.setTimeout(() => {
-      playerSetCrossfade(sec).catch((err) =>
-        console.error("[Settings] set crossfade failed", err),
-      );
+      playerSetCrossfade(sec).catch((err) => {
+        console.error("[Settings] set crossfade failed", err);
+        // Same as the ReplayGain sliders: re-read what is in force.
+        setAudioSettingsNonce((n) => n + 1);
+      });
     }, 300);
   }, []);
 
