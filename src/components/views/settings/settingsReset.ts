@@ -185,9 +185,10 @@ import {
 export interface SettingsResetContext {
   profileId: number | null;
   themeId: string;
-  setThemeId: (id: string) => void;
+  /** Resolve once the row is written, reject when it is not. */
+  setThemeId: (id: string) => Promise<void>;
   skinId: string;
-  setSkinId: (id: string) => void;
+  setSkinId: (id: string) => Promise<void>;
 }
 
 /**

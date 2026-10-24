@@ -196,7 +196,7 @@ export function SkinProvider({ children }: { children: ReactNode }) {
     const version = ++selectionVersion.current;
     // Serialize rapid picker changes so an older IPC call cannot leave the
     // recovery marker pointing at a skin different from the one on screen.
-    selectionQueue.current = selectionQueue.current
+    const change = selectionQueue.current
       .catch(() => undefined)
       .then(async () => {
         const stillCurrent = () =>
@@ -235,11 +235,14 @@ export function SkinProvider({ children }: { children: ReactNode }) {
         writeCachedSkin(next.id);
         setSkin(next);
         setSkinError(false);
-      })
-      .catch((err) => {
-        setSkinError(true);
-        console.warn("[SkinContext] skin change failed", err);
       });
+    // The queue swallows the failure so the next change still runs; the
+    // caller gets it, so a Settings page reset can count it.
+    selectionQueue.current = change.catch((err) => {
+      setSkinError(true);
+      console.warn("[SkinContext] skin change failed", err);
+    });
+    return change;
   }, []);
 
   return (

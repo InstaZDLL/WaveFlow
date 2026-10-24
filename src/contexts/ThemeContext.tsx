@@ -146,16 +146,19 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     // next launch picks up the new theme even if this transition kills
     // the process.
     writeCachedTheme(next.id);
-    // DB write is best-effort: a failure logs but doesn't block the
-    // visual swap. localStorage still carries the choice forward.
-    void setProfileSetting(PROFILE_SETTING_KEY, next.id, "string").catch(
-      (err) => console.warn("[ThemeContext] profile-setting write failed", err),
+    // The DB write doesn't block the visual swap: a failure logs, and
+    // localStorage still carries the choice forward on this machine. It
+    // is still handed back, so a caller that must know — a Settings page
+    // reset — can wait for it and count a refusal as a failure.
+    const saved = setProfileSetting(PROFILE_SETTING_KEY, next.id, "string");
+    saved.catch((err) =>
+      console.warn("[ThemeContext] profile-setting write failed", err),
     );
 
     // Fallback: no View Transitions API support → instant swap.
     if (typeof document === "undefined" || !document.startViewTransition) {
       setTheme(next);
-      return;
+      return saved;
     }
 
     // `startViewTransition` itself can throw synchronously on some
@@ -167,7 +170,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       transition = document.startViewTransition(() => setTheme(next));
     } catch {
       setTheme(next);
-      return;
+      return saved;
     }
 
     // Radial reveal from the click point if a mouse event was provided
@@ -200,6 +203,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
           // Animation failed — theme has still swapped via setTheme()
         });
     }
+    return saved;
   }, []);
 
   const toggleTheme = useCallback(
