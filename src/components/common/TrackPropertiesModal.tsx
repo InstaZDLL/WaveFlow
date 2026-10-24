@@ -500,7 +500,10 @@ export function TrackPropertiesModal({
         credits != null && composer !== (credits.composer ?? "").trim();
       if (sendingAlbumArtist) edit.album_artist = albumArtist;
       if (sendingComposer) edit.composer = composer;
-      const sendingCredits = sendingAlbumArtist || sendingComposer;
+      // A new artist or album moves the track too, into an album that
+      // may have an Album Artist of its own: re-read after those as well.
+      const sendingCredits =
+        sendingAlbumArtist || sendingComposer || edit.album !== undefined;
       const stamp = await updateTrackTags(track.id, edit, fileStamp);
       // Straight away rather than through the refresh `track:updated`
       // triggers: a second save made before that lands must match the

@@ -1461,15 +1461,32 @@ async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) -> AppResul
             // An Album Artist the edit names replaces the carried one,
             // and an emptied one leaves the grouping to the same
             // fallback the scanner uses: the compilation flag, then the
-            // track's first artist. The flag itself is carried either
-            // way — it is sticky, and the edit does not touch the file's.
+            // track's first artist.
+            //
+            // The flag is carried only when the edit names no Album
+            // Artist. It may be the left album's own — a TCMP, or a
+            // `merge_implicit_compilations` verdict on tracks that had no
+            // Album Artist — and is sticky wherever it lands, so carried
+            // onto "Queen" it would make (greatest hits, Queen) a
+            // compilation for good: a state no scan of the retagged files
+            // builds, and one the scanner's "existing compilation of this
+            // title" fallback would then hand other artists' tracks. A
+            // file that does carry TCMP gets it back on its next scan.
             let (carried_album_artist, carried_is_compilation) = current_album
                 .as_ref()
                 .map(|(_, aa, cmp)| (aa.clone(), *cmp == 1))
                 .unwrap_or((None, false));
-            let album_artist = match edit.album_artist.as_ref() {
-                Some(typed) => Some(typed.trim()).filter(|v| !v.is_empty()),
-                None => carried_album_artist.as_deref(),
+            let named_album_artist = edit
+                .album_artist
+                .as_deref()
+                .map(str::trim)
+                .filter(|v| !v.is_empty());
+            let (album_artist, is_compilation) = match edit.album_artist.as_ref() {
+                Some(_) => (
+                    named_album_artist,
+                    carried_is_compilation && named_album_artist.is_none(),
+                ),
+                None => (carried_album_artist.as_deref(), carried_is_compilation),
             };
             // upsert_album now takes &mut SqliteConnection, so we
             // can call it directly inside the open transaction —
@@ -1478,7 +1495,7 @@ async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) -> AppResul
                 &mut tx,
                 &title,
                 album_artist,
-                carried_is_compilation,
+                is_compilation,
                 aid,
                 edit.year,
             )
@@ -1492,12 +1509,7 @@ async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) -> AppResul
                 // own `COALESCE` keeps the first spelling it saw, so
                 // without this "the beatles" typed over "The Beatles"
                 // reached the file and nothing on screen.
-                if let Some(name) = edit
-                    .album_artist
-                    .as_deref()
-                    .map(str::trim)
-                    .filter(|v| !v.is_empty())
-                {
+                if let Some(name) = named_album_artist {
                     sqlx::query("UPDATE album SET album_artist = ? WHERE id = ?")
                         .bind(name)
                         .bind(id)
@@ -1575,13 +1587,19 @@ async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) -> AppResul
         q.execute(&mut *tx).await?;
     }
 
-    // A track moved into an album this edit created takes the cover of
-    // the one it left. The new row starts without artwork, and the file's
-    // embedded picture only reaches it on the next scan — so fixing the
-    // Album Artist of a whole record left it coverless until then. Only
-    // into an album holding no other track and no cover of its own: an
-    // existing album keeps what it has.
-    if let (Some(Some(new_id)), Some(old_id)) = (new_album_id, old_album_id) {
+    // A track moved by its Album Artist alone into an album this edit
+    // created takes the cover of the one it left: same title, same
+    // record. The new row starts without artwork, and the file's embedded
+    // picture only reaches it on the next scan — so fixing the Album
+    // Artist of a whole record left it coverless until then. Only into an
+    // album holding no other track and no cover of its own: an existing
+    // album keeps what it has. Never on a rename, where the album left is
+    // another record — its cover, and a `manual` source no scan
+    // overrides, would stick to the wrong album.
+    let moved_by_album_artist = edit.album.is_none() && edit.album_artist.is_some();
+    if let (true, Some(Some(new_id)), Some(old_id)) =
+        (moved_by_album_artist, new_album_id, old_album_id)
+    {
         if new_id != old_id {
             sqlx::query(
                 "UPDATE album
@@ -2789,10 +2807,11 @@ mod sync_db_tests {
         assert_eq!(album_of(&pool, 1).await, (1, Some(1), None, 0));
     }
 
-    /// The compilation flag is sticky: renaming the album artist of a
-    /// compilation leaves a compilation.
+    /// A named Album Artist does not inherit the compilation flag of the
+    /// album the track left — no scan of the retagged file would set it,
+    /// and it is sticky wherever it lands.
     #[tokio::test]
-    async fn a_compilation_stays_one_under_a_new_album_artist() {
+    async fn a_named_album_artist_leaves_the_compilation_flag_behind() {
         let pool = pool().await;
         sqlx::raw_sql("UPDATE album SET is_compilation = 1 WHERE id = 1")
             .execute(&pool)
@@ -2811,7 +2830,38 @@ mod sync_db_tests {
         let (id, _, text, compilation) = album_of(&pool, 1).await;
         assert_ne!(id, 1);
         assert_eq!(text.as_deref(), Some("Various"));
-        assert_eq!(compilation, 1);
+        assert_eq!(compilation, 0);
+        let left: i64 = sqlx::query_scalar("SELECT is_compilation FROM album WHERE id = 1")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(left, 1, "the album left keeps its own flag");
+    }
+
+    /// A rename moves the track into another record, whose cover is not
+    /// the one of the album it left.
+    #[tokio::test]
+    async fn a_rename_does_not_carry_the_cover() {
+        let pool = pool().await;
+        with_a_second_track_and_a_cover(&pool).await;
+        sync_db(
+            &pool,
+            1,
+            &TrackEdit {
+                album: Some("Animals".into()),
+                ..edit()
+            },
+        )
+        .await
+        .unwrap();
+        let (moved, ..) = album_of(&pool, 1).await;
+        assert_ne!(moved, 1);
+        let cover: Option<i64> = sqlx::query_scalar("SELECT artwork_id FROM album WHERE id = ?")
+            .bind(moved)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(cover, None);
     }
 
     /// Renaming the album and setting its artist in one save lands on the

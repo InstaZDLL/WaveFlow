@@ -310,9 +310,9 @@ fn extract_dsd_file(
         // takes over via extract_folder_cover (called below).
         cover_art: extract_folder_cover(path, artwork_dir),
         rating: None,
-        // Same limitation as `album_artist` above: the DSF ID3v2 blob
-        // can carry ReplayGain frames, but our DSD reader doesn't
-        // surface arbitrary tag items. A DSD track falls back to the
+        // The DSF ID3v2 blob can carry ReplayGain frames, but our DSD
+        // reader surfaces only the fields it models, not arbitrary tag
+        // items. A DSD track falls back to the
         // analysis pass like it did before.
         replay_gain: ReplayGainTags::default(),
         // Same limitation again: the DSD reader surfaces the handful of
