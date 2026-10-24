@@ -2586,19 +2586,19 @@ mod album_artist_and_composer_files {
     fn a_flac_custom_comment_survives_the_edit() {
         let (_dir, path) = copy_fixture("silence.flac");
         {
+            // Seeded through the comments' own writer, which leaves the
+            // rest of the file alone.
             use lofty::config::{ParseOptions, WriteOptions};
             use lofty::file::AudioFile;
-            let mut file = std::fs::OpenOptions::new()
-                .read(true)
-                .write(true)
-                .open(&path)
-                .unwrap();
-            let mut flac =
-                lofty::flac::FlacFile::read_from(&mut file, ParseOptions::new()).unwrap();
+            use lofty::tag::TagExt;
+            let mut file = std::fs::File::open(&path).unwrap();
+            let flac = lofty::flac::FlacFile::read_from(&mut file, ParseOptions::new()).unwrap();
+            drop(file);
             let mut comments = flac.vorbis_comments().cloned().unwrap_or_default();
             comments.push("CATALOGNUMBER".into(), "WF-001".into());
-            flac.set_vorbis_comments(comments);
-            flac.save_to(&mut file, WriteOptions::default()).unwrap();
+            comments
+                .save_to_path(&path, WriteOptions::default())
+                .unwrap();
         }
         let edit = TrackEdit {
             album_artist: Some("Someone".into()),
