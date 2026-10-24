@@ -2346,7 +2346,7 @@
         },
         "editorial": {
           "label": "Editorial",
-          "description": "종이 매거진 — 에디토리얼 세리프, 가는 선, 은은한 그레인, 여유로운 여백."
+          "description": "대판 신문 — 크림색 종이와 잉크, Playfair 제호, 괘선 단, 망점 커버, 조판 자로 표시하는 재생 위치."
         },
         "lounge": {
           "label": "Lounge",

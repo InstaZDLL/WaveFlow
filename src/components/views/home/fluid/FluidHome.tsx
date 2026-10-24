@@ -14,6 +14,7 @@ import { useLibrary } from "../../../../hooks/useLibrary";
 import { usePlayer } from "../../../../hooks/usePlayer";
 import { usePlaylist } from "../../../../hooks/usePlaylist";
 import { useWrappedBannerVisibility } from "../../../../hooks/useWrappedBannerVisibility";
+import { useSkin } from "../../../../hooks/useSkin";
 import { regenerateAllSmartPlaylists } from "../../../../lib/tauri/smart_playlists";
 import { smartPlaylistKind } from "../../../../lib/tauri/playlist";
 import { availableWrappedYears } from "../../../../lib/tauri/wrapped";
@@ -37,6 +38,7 @@ import {
 import { isRadioTrack } from "../../../../lib/playerSources";
 import { recentPlayToTrack } from "../recentPlayToTrack";
 import { MoodRadioGrid } from "../MoodRadioGrid";
+import { EditorialMasthead } from "../EditorialMasthead";
 import { ListeningCanvas, type StripAlbum } from "./ListeningCanvas";
 import { SuggestionOfTheDay } from "./SuggestionOfTheDay";
 import { ForYouMosaic } from "./ForYouMosaic";
@@ -75,6 +77,7 @@ export function FluidHome({
   onNavigateToWrapped,
 }: FluidHomeProps) {
   const { t } = useTranslation();
+  const { skin } = useSkin();
   const { activeProfile } = useProfile();
   const { libraries } = useLibrary();
   const {
@@ -284,12 +287,19 @@ export function FluidHome({
   const radioLabel =
     currentTrack && isRadioTrack(currentTrack) ? t("home.fluid.radio") : null;
 
+  // The broadsheet masthead over the canvas: a piece of the preset, not
+  // of a skin id — the date moves up into its strip and the canvas
+  // cover gets its "Fig." caption.
+  const masthead = skin.fluid?.greeting === "masthead";
+
   return (
     <div className="mx-auto max-w-[1680px] space-y-14 pb-10 animate-fade-in">
       <div className="fe-rise" style={rise(0)}>
+        {masthead && <EditorialMasthead />}
         <ListeningCanvas
           profileName={activeProfile?.name ?? ""}
           statsLine={statsLine}
+          masthead={masthead}
           track={canvasTrack}
           isCurrent={isCurrent}
           isPlaying={isPlaying}

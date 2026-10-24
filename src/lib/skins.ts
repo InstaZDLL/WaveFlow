@@ -46,15 +46,25 @@ export interface SkinPreset {
   /** Which interface the skin paints; see {@link SkinLayout}. */
   layout: SkinLayout;
   /**
-   * How the fluid layout draws its two signature pieces; read only when
+   * How the fluid layout draws its signature pieces; read only when
    * `layout` is `fluid`. Fluid's wave runs along the player bar's top
    * edge and its Mood Radio is one tempo band; Liquid's light line sits
    * on the player plate and its moods are five glass capsules; Pulse
-   * keeps Fluid's two shapes and paints them as neon (`pulse.css`).
+   * keeps Fluid's two shapes and paints them as neon (`pulse.css`);
+   * Editorial takes the inline row for its ruler, the band as an
+   * engraving, and opens the Home with its masthead (`editorial.css`).
    */
   fluid?: {
     progress: "edge" | "inline";
     moodRadio: "spectrum" | "capsules";
+    /**
+     * What opens the Home above the listening canvas: the greeting line
+     * alone (`line`, the default), or the broadsheet masthead
+     * (`EditorialMasthead`) over it, with the date moved up there and a
+     * "Fig." caption under the canvas cover. `FluidHome` reads this,
+     * never the skin id.
+     */
+    greeting?: "line" | "masthead";
   };
   /** i18n key suffix, e.g. `appearance.skins.editorial.label`. */
   labelKey: string;
@@ -256,7 +266,12 @@ export const SKIN_PRESETS: SkinPreset[] = [
   },
   {
     id: "editorial",
-    layout: "classic",
+    // The 2.0 interface, printed: the progress as a ruler on the inline
+    // row, the mood band as an engraving, the masthead over the Home.
+    // `editorial.css` is the material over `fluid.css`; the direction is
+    // written in `docs/design/editorial-broadsheet.md`.
+    layout: "fluid",
+    fluid: { progress: "inline", moodRadio: "spectrum", greeting: "masthead" },
     labelKey: "settings.appearance.skins.editorial.label",
     descriptionKey: "settings.appearance.skins.editorial.description",
     density: {
@@ -298,6 +313,8 @@ export const SKIN_PRESETS: SkinPreset[] = [
       // offline) — `editorial.css` does NOT pull them from the
       // network, and v1's `@import url(google fonts)` was
       // removed because it broke the offline-first contract.
+      // `editorial.css` points the layout's `--fe-font` at Lora and
+      // its editorial slot (`--fe-font-editorial`) at Playfair.
       display:
         '"Playfair Display", "Source Serif Pro", Georgia, "Times New Roman", serif',
       body: '"Lora", Georgia, "Times New Roman", serif',

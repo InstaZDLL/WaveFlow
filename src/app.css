@@ -4,8 +4,10 @@
    active skin is a dark-only skin (Lounge / Pulse) so the existing
    `dark:bg-X` / `dark:text-Y` utilities every component ships with
    light up automatically — no per-skin manual bg/text overrides
-   needed. Studio + Editorial stay theme-mode-driven (light or dark
-   theme decides). The `data-skin` attribute is on documentElement
+   needed. Studio stays theme-mode-driven (light or dark theme decides);
+   Editorial is paper in both themes and folds the `dark:` utilities
+   back onto its inks itself (`editorial.css`). The `data-skin`
+   attribute is on documentElement
    so `[data-skin="lounge"] *` covers every element in the document. */
 @custom-variant dark (&:where(.dark, .dark *, :root[data-skin="lounge"] *, :root[data-skin="pulse"] *, :root[data-skin="fluid"] *));
 
@@ -240,19 +242,18 @@
   --track-row-hover: var(--fe-tone-1);
 }
 
-/* Pulse sits on the fluid layout: same specificity as the rule above,
-   so it has to come after it to win. */
+/* Pulse and Editorial sit on the fluid layout: same specificity as the
+   rule above, so they have to come after it to win. */
 :root[data-skin="pulse"] {
   --track-row-hover: color-mix(in srgb, var(--fe-accent) 8%, transparent);
 }
+:root[data-skin="editorial"] {
+  --track-row-hover: var(--fe-tone-2);
+}
 
-/* Override substring-based surface rules only for unselected, idle rows. */
-:root:is(
-    [data-skin="pulse"],
-    [data-skin="liquid"],
-    [data-skin="lounge"],
-    [data-skin="fluid"]
-  )
+/* Override substring-based surface rules only for unselected, idle rows.
+   Every skin on the fluid layout, and Lounge. */
+:root:is([data-layout="fluid"], [data-skin="lounge"])
   [data-track-table]
   [data-track-row]:not([class*="bg-blue-500"]):not(
     [class*="bg-emerald-50"]
@@ -260,12 +261,7 @@
   background-color: var(--track-row-hover) !important;
 }
 
-:root:is(
-    [data-skin="pulse"],
-    [data-skin="liquid"],
-    [data-skin="lounge"],
-    [data-skin="fluid"]
-  )
+:root:is([data-layout="fluid"], [data-skin="lounge"])
   [data-playlist-card]
   [data-playlist-caption] {
   padding: 0 0.875rem 0.875rem;
@@ -414,13 +410,13 @@
    them keeps each skin's intent self-contained and avoids the
    specificity / substring-collision dance that made earlier
    iterations fragile. */
-@import "./styles/skins/editorial.css";
 @import "./styles/skins/lounge.css";
 @import "./styles/skins/fluid.css";
-/* Liquid and Pulse paint their material over the fluid layout, so they
-   come after it. */
+/* Liquid, Pulse and Editorial paint their material over the fluid
+   layout, so they come after it. */
 @import "./styles/skins/liquid.css";
 @import "./styles/skins/pulse.css";
+@import "./styles/skins/editorial.css";
 
 /* The desktop lyrics window (#582) is transparent at the OS level, and
    the document has to be too, or it paints an opaque box over the

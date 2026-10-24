@@ -63,6 +63,12 @@ interface ListeningCanvasProps {
   onPlayQueueItem: (index: number) => void;
   strip: StripAlbum[];
   onPlayStrip: (playIndex: number) => void;
+  /**
+   * A masthead sits above the canvas (`fluid.greeting: "masthead"`): the
+   * date is in its strip, so the counters line drops it, and the cover
+   * takes a figure caption under it.
+   */
+  masthead?: boolean;
 }
 
 /**
@@ -88,10 +94,21 @@ export function ListeningCanvas({
   onPlayQueueItem,
   strip,
   onPlayStrip,
+  masthead = false,
 }: ListeningCanvasProps) {
   const { t, i18n } = useTranslation();
   const art = track ? coverUrl(track) : null;
   const showPause = isCurrent && isPlaying;
+  const caption = !masthead
+    ? null
+    : track?.album_title && track?.artist_name
+      ? t("editorial.lead.caption", {
+          album: track.album_title,
+          artist: track.artist_name,
+        })
+      : track?.artist_name
+        ? t("editorial.lead.captionArtistOnly", { artist: track.artist_name })
+        : t("editorial.lead.captionFallback");
 
   return (
     <section className="fe-canvas pt-1" aria-labelledby="fe-canvas-title">
@@ -113,10 +130,12 @@ export function ListeningCanvas({
           )}
         </p>
         <p className="fe-ink-3 fe-mono mt-3 flex flex-wrap gap-x-2 text-[0.8125rem] tracking-[0.01em]">
-          <span>{longDate(i18n.language)}</span>
-          {statsLine.map((item) => (
+          {!masthead && <span>{longDate(i18n.language)}</span>}
+          {statsLine.map((item, i) => (
             <span key={item} className="whitespace-nowrap">
-              <span className="mr-2 opacity-50">·</span>
+              {(i > 0 || !masthead) && (
+                <span className="mr-2 opacity-50">·</span>
+              )}
               {item}
             </span>
           ))}
@@ -293,6 +312,10 @@ export function ListeningCanvas({
             </ul>
           )}
         </figure>
+        {/* The "Fig." caption, under the strip rather than inside the
+            figure: the strip is anchored to the figure's foot and would
+            follow a caption placed there. */}
+        {caption && <p className="fe-canvas__caption">{caption}</p>}
       </div>
     </section>
   );

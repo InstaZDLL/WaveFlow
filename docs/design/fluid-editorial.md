@@ -89,9 +89,9 @@ A short flowing line — one sine-like path, `M0.5 5 C 5 0.5, 9 0.5, 13.5 5 S 22
 - **Menus and popovers**: `surface-2`, 14 px radius, no border, an inset top highlight and a deep soft shadow; rows with their own 8 px radius that take a tone on hover.
 - **Player bar**: one surface, a top gradient from the glow, the wave as its top edge; the transport centred on the window.
 
-## Two materials on one structure
+## Four materials on one structure
 
-The second material has its own page: [Liquid — Aurora Glass](./liquid-aurora-glass.md). The table below is the short form of the difference.
+Each other material has its own page: [Liquid — Aurora Glass](./liquid-aurora-glass.md), [Pulse — Neon Deck](./pulse-neon-deck.md), [Editorial — Broadsheet](./editorial-broadsheet.md). The table below is the short form of the first difference, Liquid's; the two paragraphs after it place the other two.
 
 The structure above — the canvas, the band, the spectrum, the rail, the control bar, the panel, the heroes — is the 2.0 interface, and it is shared. A skin on it chooses a **material**: what the surfaces are made of, how the light behaves. Fluid's material is the one in the tables: tone over a near-black, no blur, hairlines. **Liquid** is the second: Apple's glass, translated for this structure.
 
@@ -107,6 +107,8 @@ The structure above — the canvas, the band, the spectrum, the rail, the contro
 | a hover is a tone         | a hover is a tone, and a press is instant — `scale(0.94–0.97)` on pointer-down, before anything else                                                                                                                                                       |
 
 What does not change between the two: the base type system (the serif italic line excepted, as the row above says), the mark, the accent rule, the rhythm, the ease. A third material is written the same way — the tokens redeclared, the few surface rules added, nothing moved — and the neon one exists: [Pulse — Neon Deck](./pulse-neon-deck.md), OLED black, the chrome as hairlines, the accent lit on whatever is live, its own spring in place of the ease.
+
+The fourth, [Editorial — Broadsheet](./editorial-broadsheet.md), is the one that leaves the dark: cream paper with its grain, in both themes; no light at all (no pools, no blurred cover); rules where the others put tone — double rules under titles, dotted rules between rows, frames around cards, square corners; the primary action in ink rather than the accent, the accent kept as the rubric colour; Playfair Display for the display and Lora for the body; the music as a halftone plate; and three pieces of its own through the preset's `fluid` field — the masthead over the canvas, the progress as a ruler in picas, the mood band as an engraving. The mark becomes a rule.
 
 ## Carrying it to another surface
 

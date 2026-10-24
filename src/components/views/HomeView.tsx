@@ -43,7 +43,6 @@ import {
   type RecentPlay,
 } from "../../lib/tauri/browse";
 import { MoodRadioGrid } from "./home/MoodRadioGrid";
-import { EditorialMasthead } from "./home/EditorialMasthead";
 import { HomeSuggestionCard } from "./home/HomeSuggestionCard";
 import { FluidHome } from "./home/fluid/FluidHome";
 import { recentPlayToTrack } from "./home/recentPlayToTrack";
@@ -192,7 +191,6 @@ function ClassicHomeView({
   );
   const hasLibrary = libraries.length > 0;
   const isLoungeSkin = skin.id === "lounge";
-  const isEditorialSkin = skin.id === "editorial";
 
   // Wrapped years — refresh whenever the profile changes; the list is
   // cheap (one DISTINCT over play_event) so we don't bother caching
@@ -300,16 +298,12 @@ function ClassicHomeView({
   };
 
   // Extracted from nested ternaries on the JSX — each branch is
-  // a per-skin layout token (Lounge widens columns, Editorial
-  // swaps in the front-page grid + hero modifier, baseline
+  // a per-skin layout token (Lounge widens columns, baseline
   // stacks vertically). Keeping them named here makes the
-  // matrix obvious instead of buried in three 4-level deep
-  // ternaries inside the JSX className= props.
+  // matrix obvious instead of buried in the JSX className= props.
   let containerClasses: string;
   if (isLoungeSkin) {
     containerClasses = "lounge-home space-y-10 animate-fade-in pb-24";
-  } else if (isEditorialSkin) {
-    containerClasses = "editorial-home space-y-12 animate-fade-in pb-28";
   } else {
     containerClasses = "space-y-8 animate-fade-in pb-20";
   }
@@ -318,9 +312,6 @@ function ClassicHomeView({
   if (isLoungeSkin) {
     gridClasses =
       "grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_22rem] gap-5 items-stretch";
-  } else if (isEditorialSkin) {
-    gridClasses =
-      "editorial-front-page grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_20rem] gap-8 items-stretch";
   } else {
     gridClasses = "space-y-8";
   }
@@ -328,9 +319,6 @@ function ClassicHomeView({
   let bannerSkinClasses: string;
   if (isLoungeSkin) {
     bannerSkinClasses = "min-h-80 p-10 xl:p-12 flex items-end";
-  } else if (isEditorialSkin) {
-    bannerSkinClasses =
-      "editorial-hero min-h-[23rem] p-8 sm:p-10 xl:p-12 flex items-end";
   } else {
     bannerSkinClasses = "p-10";
   }
@@ -348,7 +336,6 @@ function ClassicHomeView({
 
   return (
     <div className={containerClasses}>
-      {isEditorialSkin && <EditorialMasthead />}
       <div className={gridClasses}>
         {/* Welcome Banner */}
         <div className={bannerClasses} style={roundedClipMaskStyle}>
@@ -369,50 +356,12 @@ function ClassicHomeView({
 
             <h1
               className={`font-bold mb-2 text-zinc-900 dark:text-white ${
-                isLoungeSkin
-                  ? "text-5xl leading-tight"
-                  : isEditorialSkin
-                    ? "text-5xl md:text-6xl leading-[0.95]"
-                    : "text-4xl"
+                isLoungeSkin ? "text-5xl leading-tight" : "text-4xl"
               }`}
             >
               {t(`home.greeting.${getGreetingKey()}`)}
               {greetingName && `, ${greetingName}`}
             </h1>
-            {isEditorialSkin && (
-              <figure className="editorial-lead-art" aria-hidden="true">
-                <div className="editorial-lead-art__frame">
-                  {currentTrack ? (
-                    <Artwork
-                      path={currentTrack.artwork_path}
-                      path1x={currentTrack.artwork_path_1x}
-                      path2x={currentTrack.artwork_path_2x}
-                      size="full"
-                      alt=""
-                      className="w-full h-full"
-                      iconSize={42}
-                      rounded="md"
-                    />
-                  ) : (
-                    <div className="editorial-lead-art-fallback">
-                      <Music2 size={60} />
-                    </div>
-                  )}
-                </div>
-                <figcaption className="editorial-lead-art__caption">
-                  {currentTrack?.album_title && currentTrack?.artist_name
-                    ? t("editorial.lead.caption", {
-                        album: currentTrack.album_title,
-                        artist: currentTrack.artist_name,
-                      })
-                    : currentTrack?.artist_name
-                      ? t("editorial.lead.captionArtistOnly", {
-                          artist: currentTrack.artist_name,
-                        })
-                      : t("editorial.lead.captionFallback")}
-                </figcaption>
-              </figure>
-            )}
             <p className="text-zinc-500 dark:text-zinc-400 mb-8 max-w-2xl">
               {t("home.banner.subtitle")}
             </p>
@@ -444,9 +393,7 @@ function ClassicHomeView({
           className={
             isLoungeSkin
               ? "grid grid-cols-2 xl:grid-cols-1 gap-4"
-              : isEditorialSkin
-                ? "editorial-stats grid grid-cols-2 xl:grid-cols-1 gap-0"
-                : "grid grid-cols-1 md:grid-cols-4 gap-4"
+              : "grid grid-cols-1 md:grid-cols-4 gap-4"
           }
         >
           <StatCard
@@ -559,9 +506,7 @@ function ClassicHomeView({
         className={
           isLoungeSkin
             ? "grid grid-cols-1 xl:grid-cols-2 gap-8 items-start"
-            : isEditorialSkin
-              ? "editorial-feature-grid grid grid-cols-1 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] gap-10 items-start"
-              : "space-y-8"
+            : "space-y-8"
         }
       >
         <section>
