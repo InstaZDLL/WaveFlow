@@ -1702,13 +1702,24 @@ fn ttml_has_a_line(content: &str) -> bool {
                 }
             }
             // quick-xml hands references over unresolved. A character
-            // reference to a legal character or one of XML's five
-            // predefined entities is text; any other reference (an
-            // undefined name, `&#xZZ;`, `&#0;`) makes `DOMParser` reject
-            // the document whole, wherever it appears.
+            // reference to a character XML allows (its `Char` production)
+            // or one of XML's five predefined entities is text; any other
+            // reference (an undefined name, `&#xZZ;`, `&#0;`, `&#1;`)
+            // makes `DOMParser` reject the document whole, wherever it
+            // appears.
             Ok(Event::GeneralRef(r)) => {
                 let predefined = matches!(&*r, "lt" | "gt" | "amp" | "apos" | "quot");
-                let legal_char = matches!(r.resolve_char_ref(), Ok(Some(_)));
+                let legal_char = matches!(
+                    r.resolve_char_ref(),
+                    Ok(Some(
+                        '\u{9}'
+                        | '\u{A}'
+                        | '\u{D}'
+                        | '\u{20}'..='\u{D7FF}'
+                        | '\u{E000}'..='\u{FFFD}'
+                        | '\u{10000}'..,
+                    ))
+                );
                 if !predefined && !legal_char {
                     return false;
                 }
@@ -5700,6 +5711,10 @@ mod tests {
         assert!(!ttml_has_a_line(bad_number));
         let nul = r#"<tt xmlns="http://www.w3.org/ns/ttml"><body><div><p begin="1s">a&#0;</p></div></body></tt>"#;
         assert!(!ttml_has_a_line(nul));
+        let control = r#"<tt xmlns="http://www.w3.org/ns/ttml"><body><div><p begin="1s">a&#1;</p></div></body></tt>"#;
+        assert!(!ttml_has_a_line(control));
+        let tab = r#"<tt xmlns="http://www.w3.org/ns/ttml"><body><div><p begin="1s">a&#9;b</p></div></body></tt>"#;
+        assert!(ttml_has_a_line(tab));
     }
 
     #[test]
