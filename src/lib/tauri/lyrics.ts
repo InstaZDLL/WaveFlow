@@ -610,6 +610,42 @@ const UNSPACED_SCRIPT =
 const COLLAPSIBLE_SPACE = /[ \t\n\r]/u;
 
 /**
+ * A gap between two words that have something to show, with what lies in
+ * it: the last character of the first, the first of the second, and any
+ * words of nothing but spaces between them. A word of spaces is never a
+ * word of its own: before the first word or after the last (a stamp
+ * closing the line) it borders no gap.
+ */
+interface WordGap {
+  /** The word before the gap. */
+  from: number;
+  /** The word after it. */
+  to: number;
+  edges: string;
+}
+
+function wordGaps(words: readonly LyricsWord[]): WordGap[] {
+  const gaps: WordGap[] = [];
+  let previous = -1;
+  words.forEach((word, i) => {
+    if (word.text.trim() === "") return;
+    if (previous >= 0) {
+      const between = words
+        .slice(previous + 1, i)
+        .map((w) => w.text)
+        .join("");
+      gaps.push({
+        from: previous,
+        to: i,
+        edges: `${words[previous].text.slice(-1)}${between}${word.text.slice(0, 1)}`,
+      });
+    }
+    previous = i;
+  });
+  return gaps;
+}
+
+/**
  * What goes between each timed word and the next, for every surface that
  * draws a line word by word — `""` or `" "`, one entry per word. {@link
  * joinWords} builds a line's text from the same rule, so a line reads the
@@ -621,57 +657,46 @@ const COLLAPSIBLE_SPACE = /[ \t\n\r]/u;
  * nothing but spaces between them — are separated by one space: that is
  * how a TTML document's whitespace between spans arrives (indentation
  * collapses to one space), and how Enhanced LRC writes `Hello <…>world`.
- * A wide or non-breaking space is already drawn inside its word, so it
- * gets no second one. Two words with nothing between them in such a line
- * are one word sung in parts (`Hel` + `lo`) or two characters of a script
- * that does not space its words, and stay joined. A word of nothing but
- * spaces is never a word: before the first word or after the last (a
- * stamp closing the line) it says nothing about the gaps.
- *
- * A line that has no space between any of its words says nothing either
- * way: some Enhanced LRC sources write `<…>Hello<…>world`, while a
- * Chinese or Japanese line timed per character has no space to carry.
- * Only there does the script decide: a space between two words, except
- * where either side is Han or kana, which are not spaced in writing.
+ * The separator goes just before the second word, after any word of
+ * spaces, which draws as an empty box, so the gap stays one space. A wide
+ * or non-breaking space is already drawn inside its word, so it gets no
+ * second one. Two words with nothing between them are one word sung in
+ * parts (`Hel` + `lo`) or two characters of a script that does not space
+ * its words, and stay joined. The one source that leaves its spaces out,
+ * Enhanced LRC, has them filled in when it is parsed
+ * ({@link spaceUnspacedLine}).
  */
 export function wordSeparators(words: readonly LyricsWord[]): string[] {
   const separators = words.map(() => "");
-  // The gaps the source leaves silent, settled by script at the end.
-  const silent: Array<{ at: number; before: string; after: string }> = [];
-  let sourceSpaces = false;
-  let previous = -1;
-  words.forEach((word, i) => {
-    if (word.text.trim() === "") return;
-    if (previous >= 0) {
-      const before = words[previous].text;
-      const between = words
-        .slice(previous + 1, i)
-        .map((w) => w.text)
-        .join("");
-      const edges = `${before.slice(-1)}${between}${word.text.slice(0, 1)}`;
-      // The separator goes just before the second word, after any word of
-      // spaces: those draw as empty boxes, so the gap stays one space.
-      const gap = { at: i - 1, before, after: word.text };
-      if (COLLAPSIBLE_SPACE.test(edges)) {
-        separators[gap.at] = " ";
-        sourceSpaces = true;
-      } else if (/\s/u.test(edges)) {
-        sourceSpaces = true;
-      } else {
-        silent.push(gap);
-      }
-    }
-    previous = i;
-  });
-  if (!sourceSpaces) {
-    for (const gap of silent) {
-      const before = Array.from(gap.before).pop() ?? "";
-      const after = Array.from(gap.after)[0] ?? "";
-      separators[gap.at] =
-        UNSPACED_SCRIPT.test(before) || UNSPACED_SCRIPT.test(after) ? "" : " ";
-    }
+  for (const gap of wordGaps(words)) {
+    if (COLLAPSIBLE_SPACE.test(gap.edges)) separators[gap.to - 1] = " ";
   }
   return separators;
+}
+
+/**
+ * Give an Enhanced LRC line the spaces its source left out, in the words
+ * themselves, so every reader of them sees the same thing.
+ *
+ * Some Enhanced LRC sources write `<…>Hello<…>world`, with no space
+ * anywhere in the line; a Chinese or Japanese line timed per character
+ * has none either, and wants none. A line with any space between its
+ * words has said where they go and is left as it is. Only a line with
+ * none is spaced by script: a space between two words, except where
+ * either side is Han or kana, which are not spaced in writing. TTML is
+ * never guessed at: a document writes the whitespace between its spans,
+ * so two spans with none between them are one word (`Hel` + `lo`).
+ */
+function spaceUnspacedLine(words: LyricsWord[]): void {
+  const gaps = wordGaps(words);
+  if (gaps.some((gap) => /\s/u.test(gap.edges))) return;
+  for (const gap of gaps) {
+    const before = Array.from(words[gap.from].text).pop() ?? "";
+    const after = Array.from(words[gap.to].text)[0] ?? "";
+    if (!UNSPACED_SCRIPT.test(before) && !UNSPACED_SCRIPT.test(after)) {
+      words[gap.from].text += " ";
+    }
+  }
 }
 
 /** A word-timed line's text, spaced by {@link wordSeparators}. */
@@ -799,6 +824,7 @@ export function parseEnhancedLrc(content: string): LyricsLine[] {
     // Drop trailing empty segments without timing (artefact of a
     // trailing space after the last stamp).
     const words = built.filter((w) => w.text.length > 0 || w.timeMs >= 0);
+    spaceUnspacedLine(words);
     const text = joinWords(words);
 
     // Deep-clone the words array per line entry so `fillEndTimestamps`
