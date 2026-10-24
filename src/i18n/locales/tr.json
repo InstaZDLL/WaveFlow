@@ -1559,8 +1559,7 @@
       "plain": "Senkronize değil"
     },
     "toast": {
-      "tagWriteSkipped": "TTML yalnızca veritabanına kaydedildi (ses etiketine yazılmadı)",
-      "sidecarWriteSkipped": "Şarkı sözleri veritabanına kaydedildi, ancak TTML bir .lrc/.txt yan dosyasına yazılamaz."
+      "tagWriteSkipped": "TTML yalnızca veritabanına kaydedildi (ses etiketine yazılmadı)"
     },
     "excludedGenre": "{{genre}} türü için şarkı sözleri çevrimiçi aranmıyor (Ayarlar → Görseller ve şarkı sözleri). Bir .lrc dosyası içe aktarabilir ya da yine de arayabilirsin."
   },
@@ -1757,7 +1756,7 @@
       },
       "sidecar": {
         "label": "Yan dosya",
-        "hint": "Ses dosyasının yanına .lrc / .txt yazar. Dosya etiketlerine dokunulmaz."
+        "hint": "Ses dosyasının yanına .lrc / .txt / .ttml yazar. Dosya etiketlerine dokunulmaz."
       },
       "db_only": {
         "label": "Yalnızca WaveFlow veritabanı",

@@ -1559,8 +1559,7 @@
       "plain": "Niet gesynchroniseerd"
     },
     "toast": {
-      "tagWriteSkipped": "TTML alleen in de database bewaard (niet naar de audiotag geschreven)",
-      "sidecarWriteSkipped": "Songtekst opgeslagen in de database, maar TTML kan niet worden opgeslagen als .lrc/.txt-sidecar."
+      "tagWriteSkipped": "TTML alleen in de database bewaard (niet naar de audiotag geschreven)"
     },
     "excludedGenre": "Voor het genre {{genre}} worden songteksten niet online gezocht (Instellingen → Afbeeldingen en songteksten). Je kunt een .lrc-bestand importeren of toch zoeken."
   },
@@ -1757,7 +1756,7 @@
       },
       "sidecar": {
         "label": "Sidecarbestand",
-        "hint": "Schrijft een .lrc / .txt naast het audiobestand. Tags blijven onaangeroerd."
+        "hint": "Schrijft een .lrc / .txt / .ttml naast het audiobestand. Tags blijven onaangeroerd."
       },
       "db_only": {
         "label": "Alleen WaveFlow-database",

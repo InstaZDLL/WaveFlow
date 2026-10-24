@@ -1614,8 +1614,7 @@
       "plain": "Não sincronizado"
     },
     "toast": {
-      "tagWriteSkipped": "TTML mantido apenas no banco de dados (não gravado na tag de áudio)",
-      "sidecarWriteSkipped": "A letra foi salva no banco de dados, mas o TTML não é compatível com arquivos sidecar .lrc/.txt."
+      "tagWriteSkipped": "TTML mantido apenas no banco de dados (não gravado na tag de áudio)"
     },
     "excludedGenre": "As letras não são buscadas online para o gênero {{genre}} (Configurações → Imagens e letras). Você pode importar um arquivo .lrc ou buscar mesmo assim."
   },
@@ -1816,7 +1815,7 @@
       },
       "sidecar": {
         "label": "Arquivo sidecar",
-        "hint": "Escreve um .lrc / .txt ao lado do arquivo de áudio. Tags intactas."
+        "hint": "Escreve um .lrc / .txt / .ttml ao lado do arquivo de áudio. Tags intactas."
       },
       "db_only": {
         "label": "Apenas banco WaveFlow",

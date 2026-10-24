@@ -1613,8 +1613,7 @@
       "plain": "Non sincronizzati"
     },
     "toast": {
-      "tagWriteSkipped": "TTML salvato solo nel database (non scritto nel tag audio)",
-      "sidecarWriteSkipped": "Testi salvati nel database, ma il formato TTML non è supportato nei file sidecar .lrc/.txt."
+      "tagWriteSkipped": "TTML salvato solo nel database (non scritto nel tag audio)"
     },
     "excludedGenre": "I testi non vengono cercati online per il genere {{genre}} (Impostazioni → Immagini e testi). Puoi importare un file .lrc o cercare comunque."
   },
@@ -1815,7 +1814,7 @@
       },
       "sidecar": {
         "label": "File sidecar",
-        "hint": "Scrive un .lrc / .txt accanto al file audio. Tag intatti."
+        "hint": "Scrive un .lrc / .txt / .ttml accanto al file audio. Tag intatti."
       },
       "db_only": {
         "label": "Solo database WaveFlow",

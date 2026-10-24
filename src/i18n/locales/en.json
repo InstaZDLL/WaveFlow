@@ -1559,8 +1559,7 @@
       "plain": "Unsynchronised"
     },
     "toast": {
-      "tagWriteSkipped": "TTML kept in the database only (not written to the audio tag)",
-      "sidecarWriteSkipped": "Lyrics saved to the database, but TTML can't ride a .lrc/.txt sidecar."
+      "tagWriteSkipped": "TTML kept in the database only (not written to the audio tag)"
     },
     "excludedGenre": "Lyrics aren't searched online for the {{genre}} genre (Settings → Images and lyrics). You can import a .lrc file or search anyway."
   },
@@ -1757,7 +1756,7 @@
       },
       "sidecar": {
         "label": "Sidecar file",
-        "hint": "Writes a .lrc / .txt next to the audio file. Audio file tags untouched."
+        "hint": "Writes a .lrc / .txt / .ttml next to the audio file. Audio file tags untouched."
       },
       "db_only": {
         "label": "WaveFlow database only",

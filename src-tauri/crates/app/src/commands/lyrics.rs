@@ -4,9 +4,10 @@
 //!   1. Local DB cache (`lyrics` table, keyed by `track_id`)
 //!   2. Embedded lyrics tag inside the audio file (via lofty), preferring
 //!      a synced `SYNCEDLYRICS` tag over the plain `USLT` / `LYRICS` ones
-//!   3. Local sidecar file — `{stem}.lrc` / `{stem}.txt` next to the
-//!      audio file, or inside a `Lyrics/` (case-insensitive) subfolder
-//!      next to it. `.lrc` wins over `.txt` (timing info).
+//!   3. Local sidecar file — `{stem}.ttml` / `{stem}.lrc` / `{stem}.txt`
+//!      next to the audio file, or inside a `Lyrics/` (case-insensitive)
+//!      subfolder next to it. The richest wins (synced, then word-timed,
+//!      then the newest file, then `.ttml` > `.lrc` > `.txt`).
 //!   4. The generic `description` field — last of the local tiers,
 //!      because it is the only one that is a guess about a field meant
 //!      for something else
@@ -182,13 +183,6 @@ pub struct LyricsPayload {
     /// touched. Absent on every other return path.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub tag_write_skipped: Option<bool>,
-    /// Set by `save_lyrics` when destination = `sidecar` was requested
-    /// but the chosen format can't ride a `.lrc` / `.txt` companion
-    /// (TTML today — neither extension carries the XML markup the
-    /// reader expects). DB cache is still updated. Absent on every
-    /// other return path.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub sidecar_write_skipped: Option<bool>,
     /// Translations and pronunciations that came with `content`, as the
     /// provider served them (issue #585). Empty for every source that
     /// only yields one document, which is all of them except a
@@ -598,7 +592,6 @@ async fn cache_external_lyrics(
         source,
         provider: Some(provider.to_string()),
         tag_write_skipped: None,
-        sidecar_write_skipped: None,
         associated: Vec::new(),
     })
 }
@@ -845,7 +838,6 @@ async fn cache_lyrics_bundle(
         source: LyricsSource::Api,
         provider: Some(provider_id),
         tag_write_skipped: None,
-        sidecar_write_skipped: None,
         associated: accepted,
     }))
 }
@@ -963,7 +955,6 @@ async fn cache_lyrics_miss(
         source: LyricsSource::Api,
         provider: None,
         tag_write_skipped: None,
-        sidecar_write_skipped: None,
         associated: Vec::new(),
     })
 }
@@ -1102,7 +1093,6 @@ fn sidecar_payload(track_id: i64, content: String) -> LyricsPayload {
         source: LyricsSource::LrcFile,
         provider: None,
         tag_write_skipped: None,
-        sidecar_write_skipped: None,
         associated: Vec::new(),
     }
 }
@@ -1202,8 +1192,8 @@ async fn read_cached_or_new_sidecar(
     read_cached(pool, track_id).await
 }
 
-/// Local tiers, in order: embedded lyrics tag → sidecar `.lrc`/`.txt`
-/// → the generic description field. Returns the first hit, already
+/// Local tiers, in order: embedded lyrics tag → sidecar `.ttml`/`.lrc`/
+/// `.txt` → the generic description field. Returns the first hit, already
 /// cached, or `None` when none is present. Shared by the default
 /// (local-first) order and the `lyrics.prefer_lrclib`
 /// (local-as-fallback) order so the two never drift on how a local hit
@@ -1238,7 +1228,6 @@ async fn try_local_lyrics(
             source,
             provider: None,
             tag_write_skipped: None,
-            sidecar_write_skipped: None,
             associated: Vec::new(),
         }));
     }
@@ -1268,7 +1257,6 @@ async fn try_local_lyrics(
             source,
             provider: None,
             tag_write_skipped: None,
-            sidecar_write_skipped: None,
             associated: Vec::new(),
         }));
     }
@@ -1531,19 +1519,24 @@ fn resolve_embedded_lyrics(candidates: [Option<String>; 3]) -> Option<String> {
 
 /// Match a sidecar lyrics file on disk for an audio track.
 ///
-/// Looks for `{stem}.lrc` / `{stem}.txt` (case-insensitive on both
-/// the stem and the extension) either next to the audio file or inside
-/// a sibling `Lyrics/` directory. Returns the file contents and which
-/// flavour matched so the caller can pick a sensible format default.
+/// Looks for `{stem}.ttml` / `{stem}.lrc` / `{stem}.txt` (case-insensitive
+/// on both the stem and the extension) either next to the audio file or
+/// inside a sibling `Lyrics/` directory. Returns the file contents; the
+/// caller sniffs the format from them.
 ///
 /// Common K-Pop / J-Pop rip layouts ship synced lyrics as sidecars
 /// rather than embedded tags, and the user may also keep them in a
 /// `Lyrics/` subfolder to declutter the listing. Both layouts are
 /// supported here.
 ///
-/// Preference order at every directory we probe:
-///   1. `.lrc` (carries line-level timing)
-///   2. `.txt` (plain text fallback)
+/// When a directory holds more than one, the richest wins
+/// ([`sidecar_richness`]): synced lyrics over unsynced, word timing over
+/// line timing; between two as rich, the one written last, and only then
+/// `.ttml` over `.lrc` over `.txt`. Judged on the contents rather than the
+/// extension, so an Apple-style `.ttml` with no timing does not hide a
+/// synced `.lrc`, a `.txt` that holds LRC counts as the LRC it is, and an
+/// edit the editor saves as `.lrc` beside an exported `.ttml` of the same
+/// richness is the one read back.
 ///
 /// Same-folder hits always beat `Lyrics/` hits because users who
 /// duplicate lyrics in both spots almost certainly want the same-
@@ -1582,17 +1575,17 @@ fn read_sidecar_lyrics(audio_path: &Path) -> Option<String> {
     None
 }
 
-/// Inner helper for [`read_sidecar_lyrics`]: scan `dir` once, prefer
-/// `.lrc` over `.txt`. Stem matching is case-insensitive so a Windows
-/// rip with `Song.MP3` still finds `song.lrc` cleanly on Linux.
+/// Inner helper for [`read_sidecar_lyrics`]: scan `dir` once, read every
+/// candidate, keep the richest. Stem matching is case-insensitive so a
+/// Windows rip with `Song.MP3` still finds `song.lrc` cleanly on Linux.
 fn read_stem_match_in_dir(dir: &Path, stem: &str) -> Option<String> {
     let entries = std::fs::read_dir(dir).ok()?;
-    let mut lrc_match: Option<std::path::PathBuf> = None;
-    let mut txt_match: Option<std::path::PathBuf> = None;
+    // Indexed by the extension's rank, the last tie-breaker.
+    let mut matches: [Option<std::path::PathBuf>; 3] = [None, None, None];
     for entry in entries.flatten() {
         let path = entry.path();
         // Skip directories early. Without this a directory named
-        // `Song.lrc` would be picked into `lrc_match`, the read below
+        // `Song.lrc` would be picked as the `.lrc`, the read below
         // would fail, and a legitimate `Song.txt` in the same
         // directory would be silently masked. `is_file` follows
         // symlinks, so a symlinked sidecar still works.
@@ -1605,26 +1598,115 @@ fn read_stem_match_in_dir(dir: &Path, stem: &str) -> Option<String> {
         if !file_stem.eq_ignore_ascii_case(stem) {
             continue;
         }
-        match path
+        let rank = match path
             .extension()
             .and_then(|e| e.to_str())
             .map(|e| e.to_ascii_lowercase())
+            .as_deref()
         {
-            Some(ref ext) if ext == "lrc" => lrc_match = Some(path),
-            Some(ref ext) if ext == "txt" => txt_match = Some(path),
+            Some("txt") => 0,
+            Some("lrc") => 1,
+            Some("ttml") => 2,
+            _ => continue,
+        };
+        matches[rank] = Some(path);
+    }
+    // An empty or whitespace-only file is not a candidate: a stub `Song.lrc`
+    // (common in low-quality rips) must not mask a valid `Song.txt`. Nor is
+    // a TTML the renderer could not show a line of.
+    matches
+        .iter()
+        .enumerate()
+        .filter_map(|(rank, path)| {
+            let path = path.as_deref()?;
+            let content = read_non_empty_file(path)?;
+            let modified = std::fs::metadata(path).and_then(|m| m.modified()).ok();
+            Some((rank, modified, content))
+        })
+        .filter_map(|(rank, modified, content)| {
+            let (synced, words) = sidecar_richness(&content)?;
+            Some(((synced, words, modified, rank), content))
+        })
+        .max_by(|(a, _), (b, _)| a.cmp(b))
+        .map(|(_, content)| content)
+}
+
+/// How much a sidecar's lyrics carry, judged the way the renderer will:
+/// whether they are synced at all ([`lyrics_are_synced`]), and whether
+/// they are timed word by word (Enhanced LRC, or TTML with a timed
+/// `<span>`). `None` for a TTML document the renderer could not show a
+/// line of — malformed, or with no `<p>` that holds text — which is no
+/// better than no file, and must not outrank a readable `.txt`.
+fn sidecar_richness(content: &str) -> Option<(bool, bool)> {
+    let format = detect_format(content);
+    if matches!(format, LyricsFormat::Ttml) && !ttml_has_a_line(content) {
+        return None;
+    }
+    let synced = lyrics_are_synced(&format, content);
+    let words = synced
+        && match format {
+            LyricsFormat::EnhancedLrc => true,
+            LyricsFormat::Ttml => TTML_TIMED_SPAN.is_match(content),
+            LyricsFormat::Lrc | LyricsFormat::Plain => false,
+        };
+    Some((synced, words))
+}
+
+/// Whether a TTML document is well formed (its attributes included), rooted
+/// at `<tt>`, and holds a
+/// `<p>` with text in it: what the renderer needs to show anything, timed
+/// or not.
+fn ttml_has_a_line(content: &str) -> bool {
+    use quick_xml::events::Event;
+
+    let mut reader = quick_xml::Reader::from_str(content);
+    let mut stack: Vec<String> = Vec::new();
+    let mut root_is_tt = None;
+    let mut line_with_text = false;
+    loop {
+        match reader.read_event() {
+            // A malformed attribute (a duplicate, a missing quote) makes
+            // `DOMParser` reject the whole document, as in
+            // `ttml_has_timed_line`; quick-xml only reports it when the
+            // attributes are read.
+            Ok(Event::Start(e)) => {
+                if e.attributes().any(|a| a.is_err()) {
+                    return false;
+                }
+                let name = e.local_name().into_inner().to_owned();
+                root_is_tt.get_or_insert(name == "tt");
+                stack.push(name);
+            }
+            Ok(Event::Empty(e)) => {
+                if e.attributes().any(|a| a.is_err()) {
+                    return false;
+                }
+                root_is_tt.get_or_insert(e.local_name().into_inner() == "tt");
+            }
+            Ok(Event::End(_)) => {
+                if stack.pop().is_none() {
+                    return false;
+                }
+            }
+            Ok(Event::Text(t)) => {
+                let inside_line = stack.iter().any(|name| name == "p");
+                if inside_line && !t.trim().is_empty() {
+                    line_with_text = true;
+                }
+            }
+            Ok(Event::Eof) => {
+                return root_is_tt == Some(true) && stack.is_empty() && line_with_text
+            }
+            Err(_) => return false,
             _ => {}
         }
     }
-    // Try .lrc first (synced wins), then .txt — but skip whichever
-    // candidate turns out to be empty / whitespace-only on disk.
-    // Without this fallback an empty `Song.lrc` (common in low-quality
-    // rips that ship a stub file) would silently mask a valid
-    // `Song.txt` next to it.
-    lrc_match
-        .as_deref()
-        .and_then(read_non_empty_file)
-        .or_else(|| txt_match.as_deref().and_then(read_non_empty_file))
 }
+
+/// A `<span>` carrying a `begin`: TTML timed below the line.
+static TTML_TIMED_SPAN: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
+    regex::Regex::new(r"<(?:[A-Za-z_][\w.-]*:)?span\b[^>]*\bbegin\s*=").expect("static pattern")
+});
 
 /// Read a text file and return its trimmed contents, or `None` if
 /// the file is missing, unreadable, or contains only whitespace. The
@@ -1747,11 +1829,6 @@ async fn export_fetched_sidecar(
     if content.trim().is_empty() {
         return;
     }
-    // TTML's XML rides neither extension the waterfall reader accepts,
-    // the same reason `save_lyrics` reports a skip for it.
-    if matches!(format, LyricsFormat::Ttml) {
-        return;
-    }
     match read_default_destination(pool).await {
         Ok(LyricsDestination::Sidecar) => {}
         Ok(_) => return,
@@ -1778,12 +1855,12 @@ async fn export_fetched_sidecar(
             }
         };
 
-    let plain = matches!(format, LyricsFormat::Plain);
     for path in paths {
         let content = content.to_string();
+        let format = *format;
         let _ = tokio::task::spawn_blocking(move || {
             let audio = Path::new(&path);
-            let Some(sidecar) = sidecar_path(audio, plain) else {
+            let Some(sidecar) = sidecar_path(audio, &format) else {
                 return;
             };
             // Ask the reader the waterfall itself uses, rather than probing
@@ -1928,7 +2005,6 @@ async fn read_cached(pool: &sqlx::SqlitePool, track_id: i64) -> AppResult<Option
         source: parse_source(&src),
         provider,
         tag_write_skipped: None,
-        sidecar_write_skipped: None,
         associated,
     }))
 }
@@ -2664,7 +2740,6 @@ async fn fetch_after_plugins(
             source: LyricsSource::Api,
             provider: Some(Provider::Lrclib.as_str().to_string()),
             tag_write_skipped: None,
-            sidecar_write_skipped: None,
             associated: Vec::new(),
         }));
     }
@@ -2702,7 +2777,6 @@ async fn fetch_after_plugins(
         source,
         provider: Some(provider.to_string()),
         tag_write_skipped: None,
-        sidecar_write_skipped: None,
         associated: Vec::new(),
     }))
 }
@@ -2840,7 +2914,6 @@ pub async fn refetch_lyrics(
                 source: LyricsSource::Api,
                 provider: Some(provider_id.to_string()),
                 tag_write_skipped: None,
-                sidecar_write_skipped: None,
                 associated: Vec::new(),
             }))
         }
@@ -2886,7 +2959,6 @@ pub async fn import_lrc_file(
         source,
         provider: None,
         tag_write_skipped: None,
-        sidecar_write_skipped: None,
         associated: Vec::new(),
     })
 }
@@ -3120,7 +3192,7 @@ async fn run_prefetch(
             continue;
         }
 
-        // 2. Local sidecar `.lrc` / `.txt`. Cheap; runs before the
+        // 2. Local sidecar `.ttml` / `.lrc` / `.txt`. Cheap; runs before the
         //    network so a user prefetching with bundled lyrics never
         //    hits LRCLIB unnecessarily.
         let path_for_sidecar = file_path.clone();
@@ -3383,8 +3455,9 @@ pub enum LyricsDestination {
     /// (current default — keeps round-trip with foobar2000 / MusicBee
     /// / iTunes).
     Tag,
-    /// Write a sibling `.lrc` (synced) or `.txt` (plain) next to the
-    /// audio file. The waterfall reader picks it up at next play.
+    /// Write a sibling `.ttml` (TTML), `.lrc` (other synced formats) or
+    /// `.txt` (plain) next to the audio file. The waterfall reader picks
+    /// it up at next play.
     /// Audio file tags are left untouched — issue #201 use case.
     Sidecar,
     /// DB cache only. The audio file is untouched and no sidecar is
@@ -3473,7 +3546,6 @@ pub async fn save_lyrics(
     };
 
     let mut tag_write_skipped = false;
-    let mut sidecar_write_skipped = false;
     match payload.destination {
         LyricsDestination::Tag => {
             let active = engine
@@ -3525,23 +3597,17 @@ pub async fn save_lyrics(
             }
         }
         LyricsDestination::Sidecar => {
-            // The sidecar reader supports .lrc + .txt only — TTML's
-            // XML payload doesn't ride either extension cleanly, so we
-            // surface the skip the same way the tag path does and let
-            // the DB cache carry the edit forward.
-            if matches!(format, LyricsFormat::Ttml) {
-                sidecar_write_skipped = true;
-            } else {
-                let path = std::path::PathBuf::from(&file_path);
-                let content_for_write = trimmed.clone();
-                let plain = matches!(format, LyricsFormat::Plain);
-                tokio::task::spawn_blocking(move || {
-                    write_lyrics_sidecar(&path, &content_for_write, plain)
-                })
-                .await
-                .map_err(|e| AppError::Other(format!("sidecar write panicked: {e}")))?
-                .map_err(|e| AppError::Other(format!("sidecar write failed: {e}")))?;
-            }
+            // TTML goes to `{stem}.ttml`, which the sidecar reader takes
+            // as it takes `.lrc` and `.txt`.
+            let path = std::path::PathBuf::from(&file_path);
+            let content_for_write = trimmed.clone();
+            let sidecar_format = format;
+            tokio::task::spawn_blocking(move || {
+                write_lyrics_sidecar(&path, &content_for_write, &sidecar_format)
+            })
+            .await
+            .map_err(|e| AppError::Other(format!("sidecar write panicked: {e}")))?
+            .map_err(|e| AppError::Other(format!("sidecar write failed: {e}")))?;
         }
         LyricsDestination::DbOnly => {
             // Nothing on disk. The DB upsert below is the whole job.
@@ -3559,27 +3625,24 @@ pub async fn save_lyrics(
         source,
         provider: None,
         tag_write_skipped: if tag_write_skipped { Some(true) } else { None },
-        sidecar_write_skipped: if sidecar_write_skipped {
-            Some(true)
-        } else {
-            None
-        },
         associated: Vec::new(),
     })
 }
 
-/// Write a sibling `.lrc` (synced output) or `.txt` (plain) next to
+/// Write a sibling `.ttml`, `.lrc` or `.txt` ([`sidecar_path`]) next to
 /// the audio file, replacing any existing matching-extension sidecar.
 ///
-/// We deliberately don't try to drop the OPPOSITE extension: if the
-/// user had a hand-rolled `Song.txt` and is now saving synced LRC,
-/// the `.txt` linger is intentional (the waterfall reader prefers
-/// `.lrc` over `.txt` so the new file wins anyway, and silently
-/// deleting an unrelated user-managed sidecar is more surprising
-/// than the lingering file). UTF-8 without BOM matches the format
-/// every LRC reader expects.
-fn write_lyrics_sidecar(audio_path: &Path, content: &str, plain: bool) -> AppResult<()> {
-    let sidecar = sidecar_path(audio_path, plain)
+/// We deliberately don't try to drop the OTHER extensions: silently
+/// deleting a user-managed sidecar is more surprising than the lingering
+/// file. The reader prefers the richer file and, between two as rich, the
+/// one written last, so what is saved here is read back unless a richer
+/// sidecar of another extension sits beside it — a word-timed `.ttml`
+/// beside an edit saved line by line. The cache row keeps the edit either
+/// way; only a cleared cache would bring the other file back.
+/// UTF-8 without BOM matches the format every LRC and TTML reader
+/// expects.
+fn write_lyrics_sidecar(audio_path: &Path, content: &str, format: &LyricsFormat) -> AppResult<()> {
+    let sidecar = sidecar_path(audio_path, format)
         .ok_or_else(|| AppError::Other("audio file has no stem or parent dir".to_string()))?;
     // Through a partial renamed into place: re-saving lyrics the user
     // already had must not leave a truncated `.lrc` if it fails halfway.
@@ -3588,18 +3651,23 @@ fn write_lyrics_sidecar(audio_path: &Path, content: &str, plain: bool) -> AppRes
     Ok(())
 }
 
-/// Where a track's sidecar goes: `{stem}.lrc` for synced output,
-/// `{stem}.txt` for plain, in the track's own directory. `None` for a
-/// path with no stem or no parent, which is not a file we can sit beside.
+/// Where a track's sidecar goes: `{stem}.ttml` for TTML, `{stem}.txt` for
+/// plain text and `{stem}.lrc` for every other synced format, in the
+/// track's own directory. `None` for a path with no stem or no parent,
+/// which is not a file we can sit beside.
 ///
 /// Shared by the editor's write and the export of fetched lyrics (#695),
 /// so the two cannot drift into disagreeing about where a sidecar lives —
 /// the export checks for an existing one at exactly the path the editor
 /// would have written.
-fn sidecar_path(audio_path: &Path, plain: bool) -> Option<std::path::PathBuf> {
+fn sidecar_path(audio_path: &Path, format: &LyricsFormat) -> Option<std::path::PathBuf> {
     let stem = audio_path.file_stem().and_then(|s| s.to_str())?;
     let parent = audio_path.parent()?;
-    let ext = if plain { "txt" } else { "lrc" };
+    let ext = match format {
+        LyricsFormat::Ttml => "ttml",
+        LyricsFormat::Plain => "txt",
+        LyricsFormat::Lrc | LyricsFormat::EnhancedLrc => "lrc",
+    };
     Some(parent.join(format!("{stem}.{ext}")))
 }
 
@@ -4075,7 +4143,6 @@ pub async fn fetch_radio_lyrics(
             source: parse_source(&src),
             provider,
             tag_write_skipped: None,
-            sidecar_write_skipped: None,
             associated: Vec::new(),
         }));
     }
@@ -4126,7 +4193,6 @@ pub async fn fetch_radio_lyrics(
                 source: LyricsSource::Api,
                 provider: Some(provider.to_string()),
                 tag_write_skipped: None,
-                sidecar_write_skipped: None,
                 associated: Vec::new(),
             }))
         }
@@ -4186,7 +4252,6 @@ pub async fn fetch_remote_lyrics(
             // The server itself, not one of the query providers.
             provider: None,
             tag_write_skipped: None,
-            sidecar_write_skipped: None,
             associated: Vec::new(),
         }));
     }
@@ -4224,7 +4289,6 @@ pub async fn fetch_remote_lyrics(
                 source: LyricsSource::Api,
                 provider: Some(provider),
                 tag_write_skipped: None,
-                sidecar_write_skipped: None,
                 associated: Vec::new(),
             }))
         }
@@ -4713,6 +4777,113 @@ mod tests {
             std::fs::read_to_string(&sidecar).unwrap(),
             "[00:12.00]Hello"
         );
+    }
+
+    /// Invented TTML: two lines, the first timed word by word.
+    const WORD_TTML: &str = r#"<tt xmlns="http://www.w3.org/ns/ttml"><body><div><p begin="1s" end="2s"><span begin="1s" end="1.5s">la</span> <span begin="1.5s" end="2s">lu</span></p><p begin="2s" end="3s">li lo</p></div></body></tt>"#;
+    /// Invented TTML timed by line only.
+    const LINE_TTML: &str = r#"<tt xmlns="http://www.w3.org/ns/ttml"><body><div><p begin="1s" end="2s">la lu</p><p begin="2s" end="3s">li lo</p></div></body></tt>"#;
+    /// Invented TTML with no timing at all, as Apple serves unsynced lyrics.
+    const UNTIMED_TTML: &str = r#"<tt xmlns="http://www.w3.org/ns/ttml" xmlns:itunes="http://music.apple.com/lyric-ttml-internal" itunes:timing="None"><body><div><p>la lu</p><p>li lo</p></div></body></tt>"#;
+
+    /// A fetch that comes back as TTML lands as `{stem}.ttml`: it used to
+    /// be skipped, because the reader took neither extension it could ride.
+    #[tokio::test]
+    async fn fetched_ttml_lands_next_to_the_music_as_ttml() {
+        let dir = tempfile::tempdir().unwrap();
+        let pool = pool_with_app_schema(dir.path()).await;
+        let audio = dir.path().join("Song.flac");
+        std::fs::write(&audio, b"audio").unwrap();
+        seed_track(&pool, &audio, "h1").await;
+        set_destination(&pool, "sidecar").await;
+
+        upsert_lyrics(
+            &pool,
+            "h1",
+            WORD_TTML,
+            &LyricsFormat::Ttml,
+            &LyricsSource::Api,
+            Some("plugin"),
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(
+            std::fs::read_to_string(dir.path().join("Song.ttml")).unwrap(),
+            WORD_TTML
+        );
+        assert!(!dir.path().join("Song.lrc").exists());
+        // And the reader takes it back.
+        assert_eq!(read_sidecar_lyrics(&audio).as_deref(), Some(WORD_TTML));
+    }
+
+    /// The export never writes over a sidecar of another extension: a
+    /// `.lrc` the user keeps beside the track already answers for it.
+    #[tokio::test]
+    async fn fetched_ttml_does_not_join_an_existing_lrc() {
+        let dir = tempfile::tempdir().unwrap();
+        let pool = pool_with_app_schema(dir.path()).await;
+        let audio = dir.path().join("Song.flac");
+        std::fs::write(&audio, b"audio").unwrap();
+        std::fs::write(dir.path().join("song.LRC"), "[00:01.00]la").unwrap();
+        seed_track(&pool, &audio, "h1").await;
+        set_destination(&pool, "sidecar").await;
+
+        upsert_lyrics(
+            &pool,
+            "h1",
+            WORD_TTML,
+            &LyricsFormat::Ttml,
+            &LyricsSource::Api,
+            Some("plugin"),
+        )
+        .await
+        .unwrap();
+
+        assert!(!dir.path().join("Song.ttml").exists());
+    }
+
+    /// The editor's sidecar write takes TTML too, to `{stem}.ttml`.
+    #[test]
+    fn the_editor_writes_ttml_to_a_ttml_sidecar() {
+        let dir = tempfile::tempdir().unwrap();
+        let audio = dir.path().join("Song.flac");
+        std::fs::write(&audio, b"audio").unwrap();
+        write_lyrics_sidecar(&audio, LINE_TTML, &LyricsFormat::Ttml).unwrap();
+        assert_eq!(
+            std::fs::read_to_string(dir.path().join("Song.ttml")).unwrap(),
+            LINE_TTML
+        );
+        write_lyrics_sidecar(&audio, "la lu", &LyricsFormat::Plain).unwrap();
+        write_lyrics_sidecar(&audio, "[00:01.00]la", &LyricsFormat::Lrc).unwrap();
+        assert!(dir.path().join("Song.txt").exists());
+        assert!(dir.path().join("Song.lrc").exists());
+    }
+
+    /// A `.ttml` added after a miss was cached is found the way a `.lrc`
+    /// is: the folder's watcher rescans, and the next read checks the miss
+    /// against the sidecar.
+    #[tokio::test]
+    async fn a_cached_miss_gives_way_to_a_ttml_added_since() {
+        let dir = tempfile::tempdir().unwrap();
+        let pool = pool_with_app_schema(dir.path()).await;
+        let audio = dir.path().join("Song.flac");
+        std::fs::write(&audio, b"audio").unwrap();
+        seed_track(&pool, &audio, "h1").await;
+        cache_lyrics_miss(&pool, 1, &meta_for("h1"), false)
+            .await
+            .unwrap();
+
+        std::fs::write(dir.path().join("Song.ttml"), LINE_TTML).unwrap();
+        let found = read_cached_or_new_sidecar(&pool, 1)
+            .await
+            .unwrap()
+            .expect("the sidecar is found");
+        assert_eq!(found.format, LyricsFormat::Ttml);
+        assert_eq!(found.content, LINE_TTML);
+        let cached = read_cached(&pool, 1).await.unwrap().expect("now cached");
+        assert!(matches!(cached.source, LyricsSource::LrcFile));
+        assert_eq!(cached.format, LyricsFormat::Ttml);
     }
 
     /// The refusal that matters most: `tag` must NOT make a background
@@ -5690,6 +5861,119 @@ mod tests {
         assert!(std::str::from_utf8(&bytes).is_err());
         std::fs::write(dir.path().join("Song.lrc"), &bytes).unwrap();
         assert_eq!(read_sidecar_lyrics(&audio).as_deref(), Some(lyrics));
+    }
+
+    /// Write the named sidecars beside an empty `Song.flac`, all with the
+    /// same modification time, and return what the reader picks.
+    fn pick_among(files: &[(&str, &str)]) -> Option<String> {
+        let dated: Vec<(&str, &str, u64)> = files.iter().map(|&(n, c)| (n, c, 0)).collect();
+        pick_among_dated(&dated)
+    }
+
+    /// [`pick_among`] with each file's modification time, in seconds after
+    /// an arbitrary fixed date.
+    fn pick_among_dated(files: &[(&str, &str, u64)]) -> Option<String> {
+        let dir = tempfile::tempdir().unwrap();
+        let audio = dir.path().join("Song.flac");
+        std::fs::write(&audio, b"").unwrap();
+        let base = std::time::UNIX_EPOCH + std::time::Duration::from_secs(1_700_000_000);
+        for (name, content, offset) in files {
+            let path = dir.path().join(name);
+            std::fs::write(&path, content).unwrap();
+            std::fs::File::options()
+                .write(true)
+                .open(&path)
+                .unwrap()
+                .set_modified(base + std::time::Duration::from_secs(*offset))
+                .unwrap();
+        }
+        read_sidecar_lyrics(&audio)
+    }
+
+    #[test]
+    fn sidecar_as_rich_and_newer_wins_over_the_extension() {
+        // An export left a word-timed `.ttml`; the editor then saved a
+        // word-timed `.lrc`. The edit is what reads back.
+        let enhanced = "[00:01.00]<00:01.00>la <00:01.50>lu\n[00:02.00]<00:02.00>li <00:02.50>lo";
+        let picked = pick_among_dated(&[("Song.ttml", WORD_TTML, 0), ("Song.lrc", enhanced, 60)]);
+        assert_eq!(picked.as_deref(), Some(enhanced));
+        let picked = pick_among_dated(&[("Song.ttml", WORD_TTML, 60), ("Song.lrc", enhanced, 0)]);
+        assert_eq!(picked.as_deref(), Some(WORD_TTML));
+    }
+
+    #[test]
+    fn sidecar_a_ttml_that_cannot_be_shown_is_no_candidate() {
+        let cut_short = r#"<tt xmlns="http://www.w3.org/ns/ttml"><body><div><p>la lu"#;
+        let picked = pick_among(&[("Song.ttml", cut_short), ("Song.txt", "la lu")]);
+        assert_eq!(picked.as_deref(), Some("la lu"));
+        let no_line =
+            r#"<tt xmlns="http://www.w3.org/ns/ttml"><body><div><p> </p></div></body></tt>"#;
+        let picked = pick_among(&[("Song.ttml", no_line), ("Song.lrc", "la lu")]);
+        assert_eq!(picked.as_deref(), Some("la lu"));
+        assert_eq!(pick_among(&[("Song.ttml", cut_short)]), None);
+        let duplicate = r#"<tt xmlns="http://www.w3.org/ns/ttml"><body><div><p begin="1s" begin="2s">la lu</p></div></body></tt>"#;
+        let picked = pick_among(&[("Song.ttml", duplicate), ("Song.txt", "la lu")]);
+        assert_eq!(picked.as_deref(), Some("la lu"));
+    }
+
+    #[test]
+    fn sidecar_reads_a_ttml_alone() {
+        assert_eq!(
+            pick_among(&[("Song.TTML", LINE_TTML)]).as_deref(),
+            Some(LINE_TTML)
+        );
+    }
+
+    #[test]
+    fn sidecar_word_timed_ttml_beats_line_timed_lrc() {
+        let picked = pick_among(&[("Song.lrc", "[00:01.00]la lu"), ("Song.ttml", WORD_TTML)]);
+        assert_eq!(picked.as_deref(), Some(WORD_TTML));
+    }
+
+    #[test]
+    fn sidecar_untimed_ttml_does_not_hide_a_synced_lrc() {
+        let picked = pick_among(&[("Song.ttml", UNTIMED_TTML), ("Song.lrc", "[00:01.00]la lu")]);
+        assert_eq!(picked.as_deref(), Some("[00:01.00]la lu"));
+    }
+
+    #[test]
+    fn sidecar_word_timed_lrc_beats_line_timed_ttml() {
+        let enhanced = "[00:01.00]<00:01.00>la <00:01.50>lu\n[00:02.00]<00:02.00>li <00:02.50>lo";
+        let picked = pick_among(&[("Song.ttml", LINE_TTML), ("Song.lrc", enhanced)]);
+        assert_eq!(picked.as_deref(), Some(enhanced));
+    }
+
+    #[test]
+    fn sidecar_equal_timing_goes_to_ttml_then_lrc_then_txt() {
+        let lrc = "[00:01.00]la lu\n[00:02.00]li lo";
+        let picked = pick_among(&[("Song.lrc", lrc), ("Song.ttml", LINE_TTML)]);
+        assert_eq!(picked.as_deref(), Some(LINE_TTML));
+        let picked = pick_among(&[("Song.txt", "la lu"), ("Song.ttml", UNTIMED_TTML)]);
+        assert_eq!(picked.as_deref(), Some(UNTIMED_TTML));
+    }
+
+    #[test]
+    fn sidecar_txt_holding_synced_lrc_beats_an_unsynced_lrc() {
+        let synced = "[00:01.00]la lu\n[00:02.00]li lo";
+        let picked = pick_among(&[("Song.lrc", "la lu"), ("Song.txt", synced)]);
+        assert_eq!(picked.as_deref(), Some(synced));
+    }
+
+    #[test]
+    fn sidecar_empty_ttml_falls_back_to_lrc() {
+        let picked = pick_among(&[("Song.ttml", "   "), ("Song.lrc", "[00:01.00]la")]);
+        assert_eq!(picked.as_deref(), Some("[00:01.00]la"));
+    }
+
+    #[test]
+    fn sidecar_finds_a_ttml_in_the_lyrics_subfolder() {
+        let dir = tempfile::tempdir().unwrap();
+        let audio = dir.path().join("Track.mp3");
+        std::fs::write(&audio, b"").unwrap();
+        let sub = dir.path().join("Lyrics");
+        std::fs::create_dir(&sub).unwrap();
+        std::fs::write(sub.join("Track.ttml"), LINE_TTML).unwrap();
+        assert_eq!(read_sidecar_lyrics(&audio).as_deref(), Some(LINE_TTML));
     }
 
     #[test]

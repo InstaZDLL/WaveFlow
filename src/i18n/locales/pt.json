@@ -1614,8 +1614,7 @@
       "plain": "Não sincronizado"
     },
     "toast": {
-      "tagWriteSkipped": "TTML guardado apenas na base de dados (não escrito nas etiquetas do ficheiro de áudio)",
-      "sidecarWriteSkipped": "Letras guardadas na base de dados, mas o TTML não pode ser guardado num ficheiro auxiliar .lrc/.txt."
+      "tagWriteSkipped": "TTML guardado apenas na base de dados (não escrito nas etiquetas do ficheiro de áudio)"
     },
     "excludedGenre": "As letras não são procuradas online para o género {{genre}} (Definições → Imagens e letras). Podes importar um ficheiro .lrc ou procurar na mesma."
   },
@@ -1816,7 +1815,7 @@
       },
       "sidecar": {
         "label": "Ficheiro auxiliar",
-        "hint": "Escreve um .lrc / .txt junto do ficheiro de áudio. Etiquetas intactas."
+        "hint": "Escreve um .lrc / .txt / .ttml junto do ficheiro de áudio. Etiquetas intactas."
       },
       "db_only": {
         "label": "Apenas base de dados WaveFlow",
