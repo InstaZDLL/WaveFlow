@@ -54,6 +54,12 @@ export function StereoImageCard() {
     balance: null,
     width: null,
   });
+  // The profile each pending value was set under: a write lands in that
+  // profile or nowhere, never in the one active when its timer fires.
+  const pendingProfile = useRef<Record<Knob, number | undefined>>({
+    balance: undefined,
+    width: undefined,
+  });
   const timers = useRef<Record<Knob, number | null>>({
     balance: null,
     width: null,
@@ -77,6 +83,13 @@ export function StereoImageCard() {
     if (hydratedProfile.current !== activeProfile?.id) {
       hydratedProfile.current = activeProfile?.id;
       touched.current = new Set();
+      // A move made under the previous profile is not this one's to save.
+      for (const knob of ["balance", "width"] as const) {
+        const timer = timers.current[knob];
+        if (timer != null) window.clearTimeout(timer);
+        timers.current[knob] = null;
+        pending.current[knob] = null;
+      }
     }
     playerGetAudioSettings()
       .then((s) => {
@@ -99,7 +112,7 @@ export function StereoImageCard() {
     const value = pending.current[knob];
     pending.current[knob] = null;
     if (value == null) return;
-    const profileId = profileIdRef.current;
+    const profileId = pendingProfile.current[knob];
     queued.current[knob] += 1;
     chain.current = chain.current.then(async () => {
       try {
@@ -129,6 +142,7 @@ export function StereoImageCard() {
       touched.current.add(knob);
       setValues((prev) => ({ ...prev, [knob]: value }));
       pending.current[knob] = value;
+      pendingProfile.current[knob] = profileIdRef.current;
       const timer = timers.current[knob];
       if (timer != null) window.clearTimeout(timer);
       if (immediate) {
