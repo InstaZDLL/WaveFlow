@@ -1702,12 +1702,14 @@ fn ttml_has_a_line(content: &str) -> bool {
                 }
             }
             // quick-xml hands references over unresolved. A character
-            // reference or one of XML's five predefined entities is text;
-            // any other name is undefined in a TTML document, which
-            // `DOMParser` rejects whole, wherever it appears.
+            // reference to a legal character or one of XML's five
+            // predefined entities is text; any other reference (an
+            // undefined name, `&#xZZ;`, `&#0;`) makes `DOMParser` reject
+            // the document whole, wherever it appears.
             Ok(Event::GeneralRef(r)) => {
                 let predefined = matches!(&*r, "lt" | "gt" | "amp" | "apos" | "quot");
-                if !predefined && !r.is_char_ref() {
+                let legal_char = matches!(r.resolve_char_ref(), Ok(Some(_)));
+                if !predefined && !legal_char {
                     return false;
                 }
                 if stack.iter().any(|name| name == "p") {
@@ -5694,6 +5696,10 @@ mod tests {
         assert!(!ttml_has_a_line(in_line));
         let elsewhere = r#"<tt xmlns="http://www.w3.org/ns/ttml"><head><title>&nbsp;</title></head><body><div><p begin="1s">line</p></div></body></tt>"#;
         assert!(!ttml_has_a_line(elsewhere));
+        let bad_number = r#"<tt xmlns="http://www.w3.org/ns/ttml"><body><div><p begin="1s">&#xZZ;</p></div></body></tt>"#;
+        assert!(!ttml_has_a_line(bad_number));
+        let nul = r#"<tt xmlns="http://www.w3.org/ns/ttml"><body><div><p begin="1s">a&#0;</p></div></body></tt>"#;
+        assert!(!ttml_has_a_line(nul));
     }
 
     #[test]
