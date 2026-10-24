@@ -95,7 +95,7 @@ export function SettingsCategoryHeader({
           ref={headingRef}
           id={`settings-heading-${category}`}
           tabIndex={-1}
-          className="text-xl font-semibold text-zinc-900 focus:outline-none dark:text-white"
+          className="rounded-sm text-xl font-semibold text-zinc-900 outline-offset-4 focus:outline-none focus-visible:outline-2 focus-visible:outline-emerald-500 dark:text-white"
         >
           {label}
         </h2>
