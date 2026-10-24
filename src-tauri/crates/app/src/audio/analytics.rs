@@ -231,18 +231,21 @@ async fn handle_message(
                 // the Next button would, so playback goes on into it. Taken
                 // back out if this advance loses its claim.
                 let topped_up = crate::autoplay::top_up_or_log(&pool, repeat, "auto-advance").await;
-                let next = queue::peek_step(&pool, Direction::Next, repeat)
-                    .await
-                    .map_err(|e| format!("advance: {e}"))?;
+                // Any return below that gives up takes the batch back out.
+                let next = match queue::peek_step(&pool, Direction::Next, repeat).await {
+                    Ok(next) => next,
+                    Err(e) => {
+                        crate::autoplay::undo_if_added(topped_up, &pool).await;
+                        return Err(format!("advance: {e}"));
+                    }
+                };
                 if let Some((index, track)) = next {
                     let profile_id = state.require_profile_id().await.ok();
                     let replay_gain =
                         crate::commands::player::fetch_replay_gain(&pool, track.id).await;
                     if !engine.claim_dispatch(*intent) {
                         tracing::debug!("auto-advance superseded by a newer selection");
-                        if let Some(batch) = topped_up {
-                            batch.undo(&pool).await;
-                        }
+                        crate::autoplay::undo_if_added(topped_up, &pool).await;
                         return Ok(());
                     }
                     // Into the picks autoplay added, a track plays as the
@@ -255,9 +258,10 @@ async fn handle_message(
                     } else {
                         (source_type.clone(), *source_id)
                     };
-                    queue::commit_index(&pool, index)
-                        .await
-                        .map_err(|e| format!("cursor: {e}"))?;
+                    if let Err(e) = queue::commit_index(&pool, index).await {
+                        crate::autoplay::undo_if_added(topped_up, &pool).await;
+                        return Err(format!("cursor: {e}"));
+                    }
                     emit_track_changed(app, &state.paths, &track, profile_id);
                     emit_queue_changed(app);
                     let _ = cmd_tx.send(AudioCmd::LoadAndPlay {
@@ -270,6 +274,8 @@ async fn handle_message(
                         source_id,
                         replay_gain,
                     });
+                } else {
+                    crate::autoplay::undo_if_added(topped_up, &pool).await;
                 }
             }
         }

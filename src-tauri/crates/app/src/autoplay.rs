@@ -87,6 +87,15 @@ impl TopUp {
     }
 }
 
+/// [`TopUp::undo`] for a step that gives up, whether or not it added a
+/// batch: every early return past [`top_up`] goes through here, so none
+/// of them leaves the batch behind.
+pub async fn undo_if_added(batch: Option<TopUp>, pool: &SqlitePool) {
+    if let Some(batch) = batch {
+        batch.undo(pool).await;
+    }
+}
+
 /// Append a batch to a queue whose cursor is on its last entry, when
 /// autoplay is on and repeat is off. Returns what was added, if anything.
 ///
@@ -199,9 +208,12 @@ async fn pick(pool: &SqlitePool, seed: i64, n: usize, now: i64) -> AppResult<Vec
         }
     }
     // The rest of the library keeps the seed artist's cap: only when
-    // nothing else is left does a batch take more of that artist.
+    // nothing else is left does a batch take more of that artist. The
+    // three-hour rule gives way last: more of the seed artist comes
+    // before a track the user has just heard.
     for (recent, skip_artist) in [
         (Some(recent_since), seed_artist),
+        (Some(recent_since), None),
         (None, seed_artist),
         (None, None),
     ] {
@@ -589,6 +601,37 @@ mod tests {
         let mut picked = pick(&pool, 1, BATCH, 0).await.unwrap();
         picked.sort_unstable();
         assert_eq!(picked, vec![2, 3, 4, 5]);
+    }
+
+    #[tokio::test]
+    async fn more_of_the_seed_artist_comes_before_a_track_just_heard() {
+        let dir = tempfile::tempdir().unwrap();
+        let pool = pool(dir.path()).await;
+        library(&pool).await;
+        // Artist 2 and half of artist 3 are queued; the other half of
+        // artist 3 (21-30) was played a minute ago. Only the seed artist
+        // has tracks left that were not heard lately, one past its cap.
+        let queued_ids: Vec<i64> = (1..=1).chain(6..=20).collect();
+        at_end(&pool, &queued_ids).await;
+        let now = 10 * 60 * 60 * 1000_i64;
+        for track in 21..=30_i64 {
+            sqlx::query(
+                "INSERT INTO play_event (track_id, played_at, listened_ms) VALUES (?, ?, 1000)",
+            )
+            .bind(track)
+            .bind(now - 60_000)
+            .execute(&pool)
+            .await
+            .unwrap();
+        }
+        let picked = pick(&pool, 1, BATCH, now).await.unwrap();
+        for id in 2..=5 {
+            assert!(
+                picked.contains(&id),
+                "{id} was not heard lately: {picked:?}"
+            );
+        }
+        assert_eq!(picked.len(), BATCH);
     }
 
     #[tokio::test]

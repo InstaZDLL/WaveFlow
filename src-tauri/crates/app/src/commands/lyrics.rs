@@ -1694,6 +1694,26 @@ fn ttml_has_a_line(content: &str) -> bool {
                     line_with_text = true;
                 }
             }
+            // A CDATA section is text, as `DOMParser` reads it.
+            Ok(Event::CData(c)) => {
+                let inside_line = stack.iter().any(|name| name == "p");
+                if inside_line && !c.into_inner().trim().is_empty() {
+                    line_with_text = true;
+                }
+            }
+            // quick-xml hands references over unresolved. A character
+            // reference or one of XML's five predefined entities is text;
+            // any other name is undefined in a TTML document, which
+            // `DOMParser` rejects whole, wherever it appears.
+            Ok(Event::GeneralRef(r)) => {
+                let predefined = matches!(&*r, "lt" | "gt" | "amp" | "apos" | "quot");
+                if !predefined && !r.is_char_ref() {
+                    return false;
+                }
+                if stack.iter().any(|name| name == "p") {
+                    line_with_text = true;
+                }
+            }
             Ok(Event::Eof) => {
                 return root_is_tt == Some(true) && stack.is_empty() && line_with_text
             }
@@ -5652,6 +5672,28 @@ mod tests {
         assert!(!lyrics_are_synced(&LyricsFormat::Ttml, duplicate));
         let elsewhere = r#"<tt xmlns="http://www.w3.org/ns/ttml"><body><div lang="en" lang="fr"><p begin="1s">line</p></div></body></tt>"#;
         assert!(!lyrics_are_synced(&LyricsFormat::Ttml, elsewhere));
+    }
+
+    #[test]
+    fn a_ttml_line_held_by_cdata_or_a_reference_is_a_line() {
+        let wrap = |p: &str| {
+            format!(
+                r#"<tt xmlns="http://www.w3.org/ns/ttml"><body><div><p begin="1s">{p}</p></div></body></tt>"#
+            )
+        };
+        assert!(ttml_has_a_line(&wrap("<![CDATA[line]]>")));
+        assert!(!ttml_has_a_line(&wrap("<![CDATA[  ]]>")));
+        assert!(ttml_has_a_line(&wrap("&amp;")));
+        assert!(ttml_has_a_line(&wrap("&#x4E2D;")));
+    }
+
+    #[test]
+    fn a_ttml_document_with_an_undefined_entity_shows_no_line() {
+        // `DOMParser` rejects it whole, even outside the lines.
+        let in_line = r#"<tt xmlns="http://www.w3.org/ns/ttml"><body><div><p begin="1s">a&nbsp;b</p></div></body></tt>"#;
+        assert!(!ttml_has_a_line(in_line));
+        let elsewhere = r#"<tt xmlns="http://www.w3.org/ns/ttml"><head><title>&nbsp;</title></head><body><div><p begin="1s">line</p></div></body></tt>"#;
+        assert!(!ttml_has_a_line(elsewhere));
     }
 
     #[test]

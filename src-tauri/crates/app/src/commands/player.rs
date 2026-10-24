@@ -3000,8 +3000,19 @@ pub async fn player_next(
     // back out below if the step loses its claim; announced by the
     // queue change this step emits once it has claimed.
     let topped_up = crate::autoplay::top_up_or_log(&pool, repeat, "next").await;
-    let queue_len = queue::queue_length(&pool).await?;
-    let next_opt = queue::peek_step(&pool, Direction::Next, repeat).await?;
+    // Any return below that gives up takes the batch back out.
+    let read = async {
+        let queue_len = queue::queue_length(&pool).await?;
+        let next_opt = queue::peek_step(&pool, Direction::Next, repeat).await?;
+        AppResult::Ok((queue_len, next_opt))
+    };
+    let (queue_len, next_opt) = match read.await {
+        Ok(pair) => pair,
+        Err(err) => {
+            crate::autoplay::undo_if_added(topped_up, &pool).await;
+            return Err(err);
+        }
+    };
     match &next_opt {
         Some((_, track)) => tracing::info!(
             next_track_id = track.id,
@@ -3013,6 +3024,7 @@ pub async fn player_next(
         None => tracing::info!(queue_len, ?repeat, "player_next: queue exhausted, no-op"),
     }
     let Some((index, track)) = next_opt else {
+        crate::autoplay::undo_if_added(topped_up, &pool).await;
         return Ok(());
     };
     let replay_gain = fetch_replay_gain(&pool, track.id).await;
@@ -3023,12 +3035,13 @@ pub async fn player_next(
     // happen, or none of them does.
     if !engine.claim_dispatch(intent) {
         tracing::debug!("next superseded by a newer selection; leaving the queue alone");
-        if let Some(batch) = topped_up {
-            batch.undo(&pool).await;
-        }
+        crate::autoplay::undo_if_added(topped_up, &pool).await;
         return Ok(());
     }
-    queue::commit_index(&pool, index).await?;
+    if let Err(err) = queue::commit_index(&pool, index).await {
+        crate::autoplay::undo_if_added(topped_up, &pool).await;
+        return Err(err);
+    }
     emit_track_changed(&app, &state.paths, &track, profile_id);
     emit_queue_changed(&app);
     engine.send(AudioCmd::LoadAndPlay {
