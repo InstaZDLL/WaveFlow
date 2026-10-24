@@ -404,7 +404,7 @@ fn mime_for_art(name: &str, bytes: &[u8]) -> &'static str {
         .and_then(|s| s.to_str())
         .map(|s| s.to_ascii_lowercase());
     match ext.as_deref() {
-        Some("bin") => match crate::commands::deezer::detect_image_format(bytes) {
+        Some("bin") => match waveflow_core::artwork::image_format::detect_image_format(bytes) {
             Some("jpg") => "image/jpeg",
             Some("png") => "image/png",
             Some("webp") => "image/webp",
