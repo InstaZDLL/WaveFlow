@@ -1527,7 +1527,9 @@
         "mono": "Mono",
         "speed": "Velocidade {{value}}×",
         "dopNative": "DSD nativo",
-        "volume": "Volume {{value}} %"
+        "volume": "Volume {{value}} %",
+        "balance": "Balanço",
+        "width": "Largura {{value}}%"
       }
     },
     "outputMode": {
@@ -2827,7 +2829,8 @@
         "updates": "Atualizações",
         "diagnostics": "Diagnóstico",
         "reset": "Repor a aplicação",
-        "desktopLyrics": "Letra no ambiente de trabalho"
+        "desktopLyrics": "Letra no ambiente de trabalho",
+        "stereo": "Imagem estéreo"
       }
     },
     "desktopLyrics": {
@@ -2899,6 +2902,23 @@
         "failed_one": "Não foi possível repor {{count}} definição.",
         "failed_many": "Não foi possível repor {{count}} definições.",
         "failed_other": "Não foi possível repor {{count}} definições."
+      }
+    },
+    "stereoImage": {
+      "balance": {
+        "title": "Balanço",
+        "subtitle": "Baixa o canal oposto; o lado para onde se desloca nunca é amplificado",
+        "center": "Centro",
+        "left": "E {{value}}%",
+        "right": "D {{value}}%",
+        "reset": "Centrar o balanço"
+      },
+      "width": {
+        "title": "Largura estéreo",
+        "subtitle": "De mono (0%) a alargado (200%); 100% deixa o som como está",
+        "mono": "Mono",
+        "value": "{{value}}%",
+        "reset": "Repor a largura em 100%"
       }
     }
   },

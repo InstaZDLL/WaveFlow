@@ -22,6 +22,10 @@ interface PipelineSnapshot {
   normalize: boolean;
   replaygain: boolean;
   mono: boolean;
+  /** Left / right balance in percent; 0 is the centre. */
+  balance: number;
+  /** Stereo width in percent; 100 is the source as it is. */
+  stereoWidth: number;
   /** Native DSD via DoP actually engaged for the current track (#495). */
   dopActive: boolean;
   /** The output really owns the device (WASAPI Exclusive today). */
@@ -155,6 +159,8 @@ export function AudioPipelinePopover({ track }: AudioPipelinePopoverProps) {
           normalize: audioSettings.normalize,
           replaygain: audioSettings.replaygain,
           mono: audioSettings.mono,
+          balance: audioSettings.balance,
+          stereoWidth: audioSettings.stereo_width,
           dopActive: stateSnap.dop_active,
           exclusiveActive: stateSnap.exclusive_active,
           forTrackId: trackId,
@@ -240,14 +246,26 @@ export function AudioPipelinePopover({ track }: AudioPipelinePopoverProps) {
     snap.outputChannels < track.channels;
   // Every DSP stage below is bypassed on the DoP path — the decoder
   // pushes the 24-bit words straight to the ring, so EQ / normalize /
-  // ReplayGain / mono / speed are all inert whatever the preference
-  // says. Reading the raw preferences here would badge the stream with
-  // effects that aren't running, and cancel the bit-perfect pill.
+  // ReplayGain / mono / balance / width / speed are all inert whatever
+  // the preference says. Reading the raw preferences here would badge the
+  // stream with effects that aren't running, and cancel the bit-perfect
+  // pill.
   const isSpeedShifted = !isDopNative && Math.abs(playbackSpeed - 1.0) > 0.001;
   const isEq = !isDopNative && (snap?.eqEnabled ?? false);
   const isNormalize = !isDopNative && (snap?.normalize ?? false);
   const isReplayGain = !isDopNative && (snap?.replaygain ?? false);
   const isMono = !isDopNative && (snap?.mono ?? false);
+  // Balance and width act on the front pair, so a single-channel output
+  // has nothing for them to change. The width is also skipped for a mono
+  // track and once the mono switch has folded the side away.
+  const hasPair = (snap?.outputChannels ?? 0) >= 2;
+  const isBalanced = !isDopNative && hasPair && (snap?.balance ?? 0) !== 0;
+  const isWidened =
+    !isDopNative &&
+    hasPair &&
+    !isMono &&
+    track.channels !== 1 &&
+    (snap?.stereoWidth ?? 100) !== 100;
   // The volume is a gain like any other: below 100 % every sample is
   // scaled before it reaches the device, exclusive mode included (a
   // device we own has no mixer to do it for us). DoP carries DSD and
@@ -288,6 +306,8 @@ export function AudioPipelinePopover({ track }: AudioPipelinePopoverProps) {
     !isNormalize &&
     !isReplayGain &&
     !isMono &&
+    !isBalanced &&
+    !isWidened &&
     !isAttenuated;
   // …but bit-perfect also means nothing *downstream* touches them, and
   // that only holds when the stream owns the device. A shared-mode
@@ -354,6 +374,20 @@ export function AudioPipelinePopover({ track }: AudioPipelinePopoverProps) {
     chips.push({
       key: "mono",
       label: t("playerBar.pipeline.chip.mono"),
+      tone: "dsp",
+    });
+  if (isBalanced)
+    chips.push({
+      key: "balance",
+      label: t("playerBar.pipeline.chip.balance"),
+      tone: "dsp",
+    });
+  if (isWidened)
+    chips.push({
+      key: "width",
+      label: t("playerBar.pipeline.chip.width", {
+        value: snap?.stereoWidth ?? 100,
+      }),
       tone: "dsp",
     });
   if (isAttenuated)

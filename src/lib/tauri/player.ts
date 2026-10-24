@@ -466,6 +466,10 @@ export function playerJumpToIndex(position: number): Promise<void> {
 export interface AudioSettingsSnapshot {
   normalize: boolean;
   mono: boolean;
+  /** Left / right balance in percent, -100 (left) to 100 (right). */
+  balance: number;
+  /** Stereo width in percent, 0 (mono) to 200; 100 is the source as is. */
+  stereo_width: number;
   crossfade_ms: number;
   replaygain: boolean;
   /** Pre-amp added to every track's ReplayGain, in dB. */
@@ -505,6 +509,32 @@ export function playerSetNormalize(enabled: boolean): Promise<void> {
 
 export function playerSetMono(enabled: boolean): Promise<void> {
   return announceSettingWrite(invoke<void>("player_set_mono", { enabled }));
+}
+
+/** Balance end stop, in percent either side of the centre. */
+export const BALANCE_LIMIT = 100;
+/** Widest stereo width offered, in percent (the side doubled). */
+export const STEREO_WIDTH_MAX = 200;
+
+/**
+ * Left / right balance in whole percents, -100 to 100. The far channel
+ * is attenuated, the near one never raised. Saved before it is applied:
+ * a refused write rejects and leaves the engine where it was.
+ */
+export function playerSetBalance(value: number): Promise<void> {
+  return announceSettingWrite(
+    invoke<void>("player_set_balance", { value: Math.round(value) }),
+  );
+}
+
+/**
+ * Stereo width in whole percents: 0 is mono, 100 the source as it is,
+ * 200 the side doubled. Saved before it is applied, like the balance.
+ */
+export function playerSetStereoWidth(value: number): Promise<void> {
+  return announceSettingWrite(
+    invoke<void>("player_set_stereo_width", { value: Math.round(value) }),
+  );
 }
 
 /**

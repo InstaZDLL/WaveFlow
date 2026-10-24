@@ -6,8 +6,9 @@
 ┌─ Tauri commands (tokio)        ┌─ Decoder thread (std)               ┌─ cpal callback (real-time)
 │  player_play, pause, seek      │  symphonia FormatReader +           │  pop f32 from SPSC ring
 │  → crossbeam::Sender ─────────►│  Decoder + rubato Resampler         │  × volume × normalization
-│                                │  push f32 → rtrb::Producer ────────►│  mono downmix (if enabled)
-│                                │  emit position/state events         │  → device native format
+│                                │  ReplayGain → EQ → mono → balance / │  → device native format
+│                                │  width → clamp, push f32 → rtrb ───►│
+│                                │  emit position/state events         │
 └────────────────────────────────┴─────────────────────────────────────┴──────────────────────────
 ```
 
@@ -18,7 +19,7 @@
 | **Tokio runtime**                                  | Tauri                                                             | Command dispatch. `player_*` commands send `AudioCmd` enum variants over a `crossbeam::Sender` to the decoder.                                                                                                                                                |
 | **`waveflow-audio-decoder`**                       | `audio::decoder::spawn_decoder_thread`                            | Owns the `rtrb::Producer<f32>` and the active `ActiveStream` (symphonia + rubato). Polls commands between packets so pause / stop / seek feel responsive.                                                                                                     |
 | **`waveflow-audio-output`**                        | `audio::output::spawn_output_thread`                              | Owns the `cpal::Stream` (which is `!Send` on Windows because WASAPI / COM handles can't cross threads). Parks on a shutdown channel for the engine's lifetime.                                                                                                |
-| **cpal callback**                                  | cpal-managed (WASAPI / ALSA / CoreAudio worker)                   | Pops samples from `rtrb::Consumer`, applies volume / normalization / mono downmix, writes to the device buffer.                                                                                                                                               |
+| **cpal callback**                                  | cpal-managed (WASAPI / ALSA / CoreAudio worker)                   | Pops samples from `rtrb::Consumer`, applies volume / normalization, writes to the device buffer.                                                                                                                                                              |
 | **`waveflow-{wasapi,alsa,coreaudio}-exclusive`** ¹ | `audio::{wasapi,alsa,coreaudio}_exclusive::spawn_*_output_thread` | The per-OS alternate output backend (opt-in). Owns the device outright — the WASAPI `IAudioClient` + event handle, the raw ALSA `hw:` PCM, or the hogged CoreAudio `AudioUnit`. Drives the same `rtrb::Consumer<f32>` as the cpal thread does in shared mode. |
 
 ¹ Mutually exclusive with the cpal output thread **and with each other** — exactly one output thread runs at a time, picked by `output::spawn_output_with_mode` from the persisted `audio.exclusive_output` setting (plus whether the track needs DoP).
@@ -27,16 +28,17 @@
 
 [`SharedPlayback`](../../src-tauri/crates/app/src/audio/state.rs) — an `Arc<...>` of atomics plus the rtrb consumer half. Read on the hot path; mutated by the decoder and the command layer. No locks anywhere in the pipeline.
 
-| Atomic                                        | Owner writes                                 | Hot-path reads               |
-| --------------------------------------------- | -------------------------------------------- | ---------------------------- |
-| `samples_played`                              | cpal callback                                | UI for position display      |
-| `base_offset_ms`                              | decoder (on seek / new track / speed change) | UI                           |
-| `volume`, `normalize_enabled`, `mono_enabled` | command layer                                | cpal callback                |
-| `paused_output`, `drain_silent`               | command layer / decoder                      | cpal callback                |
-| `crossfade_ms`, `replaygain_enabled`          | command layer                                | decoder                      |
-| ReplayGain pre-amp / fallback / clipping      | command layer                                | decoder (re-read per buffer) |
-| `playback_speed_bits`, `speed_dirty`          | command layer / decoder                      | decoder + UI position math   |
-| `current_track_id`, `seek_generation`         | decoder                                      | UI                           |
+| Atomic                                    | Owner writes                                                | Hot-path reads               |
+| ----------------------------------------- | ----------------------------------------------------------- | ---------------------------- |
+| `samples_played`                          | cpal callback                                               | UI for position display      |
+| `base_offset_ms`                          | decoder (on seek / new track / speed change)                | UI                           |
+| `volume`, `normalize_enabled`             | command layer                                               | cpal callback                |
+| `paused_output`, `drain_silent`           | command layer / decoder                                     | cpal callback                |
+| `crossfade_ms`, `replaygain_enabled`      | command layer                                               | decoder                      |
+| ReplayGain pre-amp / fallback / clipping  | command layer                                               | decoder (re-read per buffer) |
+| `mono_enabled`, `stereo` (balance, width) | decoder (`AudioCmd::Set*`), command layer (profile restore) | decoder (re-read per buffer) |
+| `playback_speed_bits`, `speed_dirty`      | command layer / decoder                                     | decoder + UI position math   |
+| `current_track_id`, `seek_generation`     | decoder                                                     | UI                           |
 
 `playback_speed_bits` is read on every position computation (UI 4 Hz + analytics) — see [`current_position_ms`](../../src-tauri/crates/app/src/audio/state.rs) and [playback / Playback speed](../features/playback.md#playback-speed-05--2). `speed_dirty` is a one-shot flag the decoder consumes once per `'pkt` loop iteration to trigger a resampler rebuild.
 
@@ -119,7 +121,7 @@ The period has its own, quieter effect: one period is drained from the ring in a
 - **One app at a time.** While exclusive is engaged, system sounds (notifications, Discord, browser audio) are silenced. By design.
 - **The mode survives device hot-swaps.** `engine::set_output_device` reuses the same `spawn_output_with_mode` dispatch, so picking a new output keeps the chosen mode.
 - **The negotiated layout is authoritative downstream.** Each backend stores what the device actually accepted into `SharedPlayback.{sample_rate,channels}` before init is reported to the caller, so the decoder thread — spawned only after that — resamples and downmixes to that, not to what any mix format claimed.
-- **The period fill is one function.** [`output::fill_pcm_period`](../../src-tauri/crates/app/src/audio/output.rs) pops the ring and applies volume / normalization / mono downmix, and it lives in `output.rs` rather than in each backend — the three have no business disagreeing about whether an underrun counts toward the play clock. Its tests run on every platform instead of only where one backend compiles.
+- **The period fill is one function.** [`output::fill_pcm_period`](../../src-tauri/crates/app/src/audio/output.rs) pops the ring and applies volume / normalization, and it lives in `output.rs` rather than in each backend — the three have no business disagreeing about whether an underrun counts toward the play clock. Its tests run on every platform instead of only where one backend compiles.
 - **Failure is fail-soft but not silent.** A backend that can't open logs a `warn`; the engine reports what actually engaged through `PlayerStateSnapshot.exclusive_active`, which is what the Settings card and the pipeline pill read (the toggle can be on while the mode is off).
 
 ## Ring buffer sizing

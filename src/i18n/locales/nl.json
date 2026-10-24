@@ -1473,7 +1473,9 @@
         "mono": "Mono",
         "speed": "Snelheid {{value}}×",
         "dopNative": "Native DSD",
-        "volume": "Volume {{value}} %"
+        "volume": "Volume {{value}} %",
+        "balance": "Balans",
+        "width": "Breedte {{value}}%"
       }
     },
     "outputMode": {
@@ -2761,7 +2763,8 @@
         "updates": "Updates",
         "diagnostics": "Diagnostiek",
         "reset": "App resetten",
-        "desktopLyrics": "Songtekst op bureaublad"
+        "desktopLyrics": "Songtekst op bureaublad",
+        "stereo": "Stereobeeld"
       }
     },
     "desktopLyrics": {
@@ -2830,6 +2833,23 @@
         "confirm": "Resetten",
         "failed_one": "{{count}} instelling kon niet worden gereset.",
         "failed_other": "{{count}} instellingen konden niet worden gereset."
+      }
+    },
+    "stereoImage": {
+      "balance": {
+        "title": "Balans",
+        "subtitle": "Zet het tegenoverliggende kanaal zachter; de kant waarheen u schuift wordt nooit versterkt",
+        "center": "Midden",
+        "left": "L {{value}}%",
+        "right": "R {{value}}%",
+        "reset": "Balans centreren"
+      },
+      "width": {
+        "title": "Stereobreedte",
+        "subtitle": "Van mono (0%) tot verbreed (200%); 100% laat het geluid zoals het is",
+        "mono": "Mono",
+        "value": "{{value}}%",
+        "reset": "Breedte terugzetten op 100%"
       }
     }
   },

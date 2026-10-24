@@ -1247,6 +1247,8 @@ pub fn run() {
             commands::player::player_jump_to_index,
             commands::player::player_set_normalize,
             commands::player::player_set_mono,
+            commands::player::player_set_balance,
+            commands::player::player_set_stereo_width,
             commands::player::player_set_crossfade,
             commands::player::player_set_gapless,
             commands::player::player_set_speed,

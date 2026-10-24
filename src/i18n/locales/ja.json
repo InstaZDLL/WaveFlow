@@ -1471,7 +1471,9 @@
         "mono": "モノラル",
         "speed": "速度 {{value}}×",
         "dopNative": "ネイティブ DSD",
-        "volume": "音量 {{value}}%"
+        "volume": "音量 {{value}}%",
+        "balance": "バランス",
+        "width": "幅 {{value}}%"
       }
     },
     "outputMode": {
@@ -2759,7 +2761,8 @@
         "updates": "更新",
         "diagnostics": "診断",
         "reset": "アプリのリセット",
-        "desktopLyrics": "デスクトップ歌詞"
+        "desktopLyrics": "デスクトップ歌詞",
+        "stereo": "ステレオイメージ"
       }
     },
     "desktopLyrics": {
@@ -2828,6 +2831,23 @@
         "confirm": "リセット",
         "failed_one": "{{count}} 件の設定をリセットできませんでした。",
         "failed_other": "{{count}} 件の設定をリセットできませんでした。"
+      }
+    },
+    "stereoImage": {
+      "balance": {
+        "title": "バランス",
+        "subtitle": "反対側のチャンネルを下げます。寄せた側が増幅されることはありません",
+        "center": "中央",
+        "left": "左 {{value}}%",
+        "right": "右 {{value}}%",
+        "reset": "バランスを中央に戻す"
+      },
+      "width": {
+        "title": "ステレオ幅",
+        "subtitle": "モノラル (0%) から拡張 (200%) まで。100% で元の音のまま",
+        "mono": "モノラル",
+        "value": "{{value}}%",
+        "reset": "幅を 100% に戻す"
       }
     }
   },

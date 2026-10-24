@@ -78,7 +78,7 @@ WaveFlow is a desktop music player for the audio files you already own. It scans
 - MP3, FLAC, WAV, AIFF, Ogg Vorbis, **Opus**, AAC, ALAC and **DSD**
 - Gapless playback and a real two-decoder crossfade
 - **Exclusive output** on Windows, Linux and macOS, and **DSD over PCM (DoP)**, which sends DSD untouched to a compatible DAC (opt-in)
-- ReplayGain, 6-band EQ with presets, speed 0.5×–2×, A-B repeat, sleep timer
+- ReplayGain, 6-band EQ with presets, balance and stereo width, speed 0.5×–2×, A-B repeat, sleep timer
 - Seed and mood radio, album shuffle, OS media controls, a queue that survives a restart
 
 ### 🎤 Lyrics · [docs](docs/features/integrations.md)

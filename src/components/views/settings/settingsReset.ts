@@ -53,12 +53,14 @@ import {
   playerSetGapless,
   playerSetKeepAwake,
   playerSetMatchSourceRate,
+  playerSetBalance,
   playerSetMono,
   playerSetNormalize,
   playerSetPauseOnDeviceLoss,
   playerSetReplayGain,
   playerSetReplayGainMode,
   playerSetReplayGainOptions,
+  playerSetStereoWidth,
   type AudioSettingsSnapshot,
 } from "../../../lib/tauri/player";
 import {
@@ -668,6 +670,16 @@ const ACCESSORS: Record<SettingKey, SettingAccessor> = {
     playerSetMatchSourceRate,
   ),
   "audio.mono": engineSwitch("audio.mono", playerSetMono),
+  "audio.balance": command(
+    "audio.balance",
+    async (reads) => (await reads.audio()).balance,
+    playerSetBalance,
+  ),
+  "audio.stereo_width": command(
+    "audio.stereo_width",
+    async (reads) => (await reads.audio()).stereo_width,
+    playerSetStereoWidth,
+  ),
   "audio.dsd_precision": command(
     "audio.dsd_precision",
     async (reads) =>
