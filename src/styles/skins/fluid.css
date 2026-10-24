@@ -692,7 +692,9 @@
 :root[data-layout="fluid"] .fe-horizon__head {
   transition: transform 250ms linear;
 }
-:root[data-layout="fluid"] .fe-horizon__track[data-seeking] > * {
+:root[data-layout="fluid"]
+  .fe-horizon__track[data-seeking]
+  :is(.fe-horizon__fill, .fe-horizon__spill, .fe-horizon__head) {
   transition: none;
 }
 /* The head travels by its own width: clipped to the track (with room
