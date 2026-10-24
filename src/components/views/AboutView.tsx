@@ -271,7 +271,7 @@ export function AboutView({ onNavigate }: AboutViewProps) {
         </div>
         <div className="relative z-10">
           <div className="flex items-center space-x-2 mb-2">
-            <WaveFlowLogo className="w-8 h-8" />
+            <WaveFlowLogo className="w-8 h-8 text-emerald-500 dark:text-emerald-400" />
             <h2 className="text-3xl font-black">
               Wave
               <span className="text-emerald-600 dark:text-emerald-400">

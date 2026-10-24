@@ -32,6 +32,7 @@ import { NavItem } from "../common/NavItem";
 import { WaveFlowLogo } from "../common/WaveFlowLogo";
 import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
 import { SmartPlaylistEditorModal } from "../common/SmartPlaylistEditorModal";
+import { usePlayer } from "../../hooks/usePlayer";
 import { useProfile } from "../../hooks/useProfile";
 import { useSkin } from "../../hooks/useSkin";
 import { useLibrary } from "../../hooks/useLibrary";
@@ -336,7 +337,7 @@ export function Sidebar({
             collapsed ? "justify-center" : "space-x-2"
           }`}
         >
-          <WaveFlowLogo className="w-7 h-7 shrink-0" />
+          <RailMark />
           <span
             className={`text-zinc-800 dark:text-white ${collapsed ? "sr-only" : ""}`}
           >
@@ -716,6 +717,20 @@ export function Sidebar({
         }}
       />
     </aside>
+  );
+}
+
+/**
+ * The product's mark, swelling while music plays. Its own component so
+ * the player state re-renders the mark alone, not the whole column.
+ */
+function RailMark() {
+  const { isPlaying } = usePlayer();
+  return (
+    <WaveFlowLogo
+      animated={isPlaying}
+      className="w-7 h-7 shrink-0 text-emerald-500 dark:text-emerald-400"
+    />
   );
 }
 

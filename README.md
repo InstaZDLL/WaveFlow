@@ -1,8 +1,9 @@
-<p align="center">
-  <img src="assets/logo.svg" width="80" alt="WaveFlow logo" />
-</p>
-
-<h1 align="center">WaveFlow</h1>
+<h1 align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/logo-dark.svg" />
+    <img src="assets/logo.svg" width="280" alt="WaveFlow" />
+  </picture>
+</h1>
 
 <p align="center">
   <strong>Local music player for desktop — built with Tauri 2, React 19 & Rust</strong>
