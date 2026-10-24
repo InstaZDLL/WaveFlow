@@ -113,7 +113,12 @@ There is one reset per page: no per-setting reset and no "reset everything".
   in force differs from the default, read through the same getter the page
   uses. A setting this machine never shows (the window frame off Linux and
   macOS, XWayland off a Wayland session or when `GDK_BACKEND` decides, DoP on
-  mobile, remote transcoding without a signed-in server) is not counted.
+  mobile, remote transcoding without a signed-in server) is not counted, nor
+  is one its page hides behind another control (the ReplayGain knobs while
+  ReplayGain is off, the DLNA name and port and the MPD port while their
+  server is off, the biography language unless the source is TheAudioDB,
+  the local-first radio switch before a catalogue is downloaded): a reset
+  touches only what is counted.
 - **Reset takes the control's own path.** [`settingsReset.ts`](../../src/components/views/settings/settingsReset.ts)
   maps every registry key to an accessor (the map is typed over the registry,
   so a new entry without one does not compile): a `profile_setting` row is

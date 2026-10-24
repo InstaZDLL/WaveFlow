@@ -390,6 +390,32 @@ function engineSwitch(
   };
 }
 
+/**
+ * `accessor`, counted only while its control is on the page — the same
+ * condition the page renders it under. A value behind a closed switch
+ * (the ReplayGain knobs while ReplayGain is off, the DLNA name while the
+ * server is off) is not shown, so it is neither counted nor reset: the
+ * header must point at something the user can see, and a reset must not
+ * change what they cannot.
+ */
+function shownWhen(
+  accessor: SettingAccessor,
+  shown: (ctx: SettingsResetContext, reads: SharedReads) => Promise<boolean>,
+): SettingAccessor {
+  return {
+    inspect: async (ctx, reads) =>
+      (await shown(ctx, reads)) ? accessor.inspect(ctx, reads) : [],
+    reset: accessor.reset,
+  };
+}
+
+/** The Settings view shows the three ReplayGain knobs and the mode under
+ *  the switch, only while it reads ReplayGain as on. */
+const whileReplayGainOn = async (
+  _ctx: SettingsResetContext,
+  reads: SharedReads,
+) => (await reads.audio()).replaygain;
+
 /** Only where the UI offers DoP: every desktop OS, never on mobile. */
 export function dopPlatformSupported(): boolean {
   if (typeof navigator === "undefined") return false;
@@ -450,8 +476,9 @@ function replayGainOption(
 }
 
 /** One field of the DLNA config, which is written whole. Enabled comes
- *  first in the registry, so a page reset stops the server before it
- *  touches the name or the port and nothing restarts on the way. */
+ *  first in the registry, so a page reset that turns the server off does
+ *  it before the name or the port moves, and nothing restarts on the
+ *  way. */
 function dlnaField<F extends keyof DlnaConfig>(
   key: "dlna.enabled" | "dlna.server_name" | "dlna.port",
   field: F,
@@ -539,10 +566,14 @@ const ACCESSORS: Record<SettingKey, SettingAccessor> = {
     getAutoAnalyze,
     setAutoAnalyze,
   ),
-  "radio.catalogue.local_first": command(
-    "radio.catalogue.local_first",
-    async (reads) => (await reads.radio()).localFirst,
-    setRadioCatalogueLocalFirst,
+  // The card offers it once a catalogue has been downloaded.
+  "radio.catalogue.local_first": shownWhen(
+    command(
+      "radio.catalogue.local_first",
+      async (reads) => (await reads.radio()).localFirst,
+      setRadioCatalogueLocalFirst,
+    ),
+    async (_ctx, reads) => (await reads.radio()).count > 0,
   ),
 
   // ---- Playback and audio ----------------------------------------------
@@ -583,15 +614,25 @@ const ACCESSORS: Record<SettingKey, SettingAccessor> = {
   ),
   "audio.normalize": engineSwitch("audio.normalize", playerSetNormalize),
   "audio.replaygain": engineSwitch("audio.replaygain", playerSetReplayGain),
-  "audio.replaygain_preamp": replayGainOption("audio.replaygain_preamp"),
-  "audio.replaygain_fallback": replayGainOption("audio.replaygain_fallback"),
-  "audio.replaygain_mode": command(
-    "audio.replaygain_mode",
-    async (reads) => (await reads.audio()).replaygain_mode,
-    playerSetReplayGainMode,
+  "audio.replaygain_preamp": shownWhen(
+    replayGainOption("audio.replaygain_preamp"),
+    whileReplayGainOn,
   ),
-  "audio.replaygain_prevent_clipping": replayGainOption(
-    "audio.replaygain_prevent_clipping",
+  "audio.replaygain_fallback": shownWhen(
+    replayGainOption("audio.replaygain_fallback"),
+    whileReplayGainOn,
+  ),
+  "audio.replaygain_mode": shownWhen(
+    command(
+      "audio.replaygain_mode",
+      async (reads) => (await reads.audio()).replaygain_mode,
+      playerSetReplayGainMode,
+    ),
+    whileReplayGainOn,
+  ),
+  "audio.replaygain_prevent_clipping": shownWhen(
+    replayGainOption("audio.replaygain_prevent_clipping"),
+    whileReplayGainOn,
   ),
   "audio.eq_enabled": command(
     "audio.eq_enabled",
@@ -812,10 +853,10 @@ const ACCESSORS: Record<SettingKey, SettingAccessor> = {
     getBioSource,
     setBioSource,
   ),
-  "metadata.bio_language": command(
-    "metadata.bio_language",
-    getBioLanguage,
-    setBioLanguage,
+  // Asked only for TheAudioDB, the one source that serves several.
+  "metadata.bio_language": shownWhen(
+    command("metadata.bio_language", getBioLanguage, setBioLanguage),
+    async () => (await getBioSource()) === "theaudiodb",
   ),
   "lyrics.translation_lang": command(
     "lyrics.translation_lang",
@@ -921,10 +962,20 @@ const ACCESSORS: Record<SettingKey, SettingAccessor> = {
     },
   },
   "dlna.enabled": dlnaField("dlna.enabled", "enabled"),
-  "dlna.server_name": dlnaField("dlna.server_name", "server_name"),
-  "dlna.port": dlnaField("dlna.port", "port"),
+  // The name and the ports are shown only while their server is on.
+  "dlna.server_name": shownWhen(
+    dlnaField("dlna.server_name", "server_name"),
+    async (_ctx, reads) => (await reads.dlna()).enabled,
+  ),
+  "dlna.port": shownWhen(
+    dlnaField("dlna.port", "port"),
+    async (_ctx, reads) => (await reads.dlna()).enabled,
+  ),
   "mpd.enabled": mpdField("mpd.enabled", "enabled"),
-  "mpd.port": mpdField("mpd.port", "port"),
+  "mpd.port": shownWhen(
+    mpdField("mpd.port", "port"),
+    async (_ctx, reads) => (await reads.mpd()).enabled,
+  ),
 
   // ---- Keyboard shortcuts ----------------------------------------------
   "ui.shortcuts": {
