@@ -35,6 +35,11 @@ const SKINS = arg("skins", "studio,fluid,liquid,pulse,editorial,lounge").split(
   ",",
 );
 const SOAK_MIN = Number(arg("soak", "0"));
+// However the run ends, an error included, the app does not stay open on
+// the desktop.
+process.on("exit", () => {
+  Bun.spawnSync(["bash", join(HERE, "run-app.sh"), "stop"]);
+});
 mkdirSync(join(OUT, "shots"), { recursive: true });
 
 const sh = (cmd: string[]) => {
@@ -415,4 +420,3 @@ rows.push(
 writeFileSync(join(OUT, "report.md"), rows.join("\n") + "\n");
 console.log(rows.join("\n"));
 page.close();
-sh(["bash", join(HERE, "run-app.sh"), "stop"]);

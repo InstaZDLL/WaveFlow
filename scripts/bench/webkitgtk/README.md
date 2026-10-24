@@ -8,7 +8,7 @@ It exists because WebKitGTK is where WaveFlow's visual effects have gone wrong b
 
 1. `gen-library.sh` writes a fixture library — 240 albums, 480 tracks, 60 artists — with folder covers (pale, dark and saturated, the three cases the cover-lit backgrounds have to survive), artist photos, synced `.lrc` lyrics, and a beat at a known tempo per album so Mood Radio has moods to show. Nobody's music is needed.
 2. `run-app.sh` launches the built binary on the machine's desktop from an SSH shell, with a throwaway `XDG_DATA_HOME` (no real profile is touched, logs included), WebKit's remote inspector on a local port (`WEBKIT_INSPECTOR_HTTP_SERVER`), and `WAVEFLOW_RENDERER=gpu|software`.
-3. `bench.ts` connects to the inspector, injects `page.js` (helpers that read the views' `data-*` landmarks and the React fibres, never a label), sets the fixture library up on first run, and for each skin plays a track at volume 0 and runs the scenarios:
+3. `bench.ts` connects to the inspector, injects `page.js` (helpers that set the skin through the React fibres, reach the views by their English labels — the first run switches the interface to English — and the player's buttons by their `aria-label`; one that cannot find its target throws), sets the fixture library up on first run, and for each skin plays a track at volume 0 and runs the scenarios:
    - **home** — the Home at rest for 8 s, the record playing: every always-running animation (the wave, the vinyl, the horizon, the aurora);
    - **albums** — the album grid scrolled for 6 s with the Lyrics panel open, the protocol #928 used for Liquid;
    - **tracks** — the track table scrolled for 6 s;

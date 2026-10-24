@@ -33,6 +33,13 @@ export class Inspector {
 
   async connect(socket: string) {
     this.ws = new WebSocket(socket);
+    // The app gone (a crash mid-scenario) closes the socket: every pending
+    // command fails rather than waiting for ever.
+    this.ws.onclose = () => {
+      for (const cb of this.pending.values())
+        cb({ error: { message: "inspector socket closed" } });
+      this.pending.clear();
+    };
     this.ready = new Promise((resolve, reject) => {
       this.ws.onerror = (e) => reject(e);
       this.ws.onmessage = (ev) => {
@@ -52,7 +59,11 @@ export class Inspector {
         }
       };
     });
-    await new Promise<void>((r) => (this.ws.onopen = () => r()));
+    // An error before the socket opens rejects `ready`: race the two.
+    await Promise.race([
+      new Promise<void>((r) => (this.ws.onopen = () => r())),
+      this.ready,
+    ]);
     await this.ready;
   }
 

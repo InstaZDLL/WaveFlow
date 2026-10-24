@@ -1,8 +1,10 @@
 // Injected into the app's page by the bench (`bench.ts`): the helpers the
 // scenarios call through the inspector. Nothing here ships with the app.
-// Every helper reads the DOM landmarks the views carry (`data-nav-item`,
-// `data-sidebar-*`, `.fe-panel`…) and the React fibres, never a label, so
-// the bench runs whatever the interface language.
+// The skin is set through the React fibres; the views are reached by
+// their English labels (the bench switches the interface to English on
+// its first run) and the player's buttons by their `aria-label`. A helper
+// that cannot find its target throws, so the bench stops rather than
+// measuring the wrong view.
 (() => {
   if (window.__wfb) return "already";
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -19,7 +21,6 @@
       if (!f) continue;
       const v = f.memoizedProps && f.memoizedProps.value;
       if (v && typeof v[key] === "function") return v;
-      if (v && v.i18n && key === "changeLanguage") return v.i18n;
       if (f.child) stack.push(f.child);
       if (f.sibling) stack.push(f.sibling);
     }
@@ -64,26 +65,17 @@
     };
   }
 
-  /** The sidebar's places, in order: the pinned group, then the library's
-   *  facets. Index 0 is Home. */
-  function navItems() {
-    return [...document.querySelectorAll("aside [data-nav-item]")];
-  }
-
   window.__wfb = {
     async setSkin(id) {
       const ctx = findContext("setSkinId");
-      if (!ctx) return "no skin context";
+      if (!ctx) throw new Error("no skin context");
       ctx.setSkinId(id);
       await sleep(1500);
-      return document.documentElement.getAttribute("data-skin");
+      const now = document.documentElement.getAttribute("data-skin");
+      if (now !== id) throw new Error(`skin is ${now}, not ${id}`);
+      return now;
     },
-    async english() {
-      const i18n = findContext("changeLanguage");
-      if (i18n) await i18n.changeLanguage("en");
-      return i18n ? i18n.language : "no i18n";
-    },
-    /** Navigate by the visible label (English after `english()`). */
+    /** Navigate by the visible label. */
     async nav(label) {
       const norm = (s) => (s || "").replace(/\s+/g, " ").trim().toLowerCase();
       const all = [
@@ -94,12 +86,11 @@
           norm(el.textContent).startsWith(norm(label)) ||
           norm(el.getAttribute("aria-label")) === norm(label),
       );
-      if (!hit) return `no nav ${label}`;
+      if (!hit) throw new Error(`no nav ${label}`);
       hit.click();
       await sleep(1500);
       return `nav ${label}`;
     },
-    navItems: () => navItems().map((b) => b.textContent.trim()),
     /** Ids of the library's first tracks (the first track of each album
      *  carries synced lyrics). */
     async trackIds(n) {
@@ -150,9 +141,10 @@
       const tab = [...document.querySelectorAll(".fe-panel [role=tab]")][
         tabIndex
       ];
-      if (tab) tab.click();
+      if (!tab) throw new Error(`no panel tab ${tabIndex}`);
+      tab.click();
       await sleep(800);
-      return !!document.querySelector(".fe-panel");
+      return true;
     },
     async closePanel() {
       const b = [...document.querySelectorAll(".fe-panel button")].find((x) =>
@@ -166,7 +158,7 @@
       const b = [...document.querySelectorAll("footer button")].find((x) =>
         /immersive|plein/i.test(x.getAttribute("aria-label") || ""),
       );
-      if (!b) return { error: "no immersive button" };
+      if (!b) throw new Error("no immersive button");
       b.click();
       await sleep(1500);
       const r = stats(await frames(ms));
@@ -174,7 +166,7 @@
         new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
       );
       await sleep(1200);
-      return { ...r, open: !document.querySelector("[data-immersive]") };
+      return { ...r, closed: !document.querySelector("[data-immersive]") };
     },
     state() {
       const d = document.documentElement;

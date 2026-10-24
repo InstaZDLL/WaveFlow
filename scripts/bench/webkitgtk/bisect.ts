@@ -18,6 +18,11 @@ const SKIN = arg("skin", "fluid");
 const VIEW = arg("view", "Home");
 const MS = Number(arg("ms", "5000"));
 const PORT = arg("port", "9222");
+// However the run ends, an error included, the app does not stay open on
+// the desktop.
+process.on("exit", () => {
+  Bun.spawnSync(["bash", join(HERE, "run-app.sh"), "stop"]);
+});
 
 /** One piece per entry, by the selectors that draw it; the last three switch off a whole kind. */
 const PIECES: Record<string, string> = {
@@ -94,4 +99,3 @@ await run("nothing (baseline)", "");
 for (const [label, css] of Object.entries(PIECES)) await run(label, css);
 await run("nothing (baseline, again)", "");
 page.close();
-Bun.spawnSync(["bash", join(HERE, "run-app.sh"), "stop"]);

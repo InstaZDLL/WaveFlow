@@ -21,6 +21,9 @@ SANDBOX="${2:?sandbox dir}"
 RENDERER="${3:-gpu}"
 PORT="${4:-9222}"
 
+# A run that stopped on an error leaves its app in the unit: stop that
+# first, so the check below only finds an instance that is not ours.
+systemctl --user stop "$UNIT" 2>/dev/null || true
 if pgrep -x waveflow >/dev/null; then
   echo "an instance of waveflow is already running; the single-instance lock would hand the bench over to it" >&2
   exit 1
@@ -46,7 +49,6 @@ while IFS= read -r line; do
 done < <(tr '\0' '\n' < "/proc/$envfrom/environ")
 
 mkdir -p "$SANDBOX/data"
-systemctl --user stop "$UNIT" 2>/dev/null || true
 # The bench stops the app with a signal, which the skin-recovery marker
 # reads as a crash under a non-Studio skin: the next launch would start in
 # safe mode. The sandbox is ours, so the marker goes before each launch.
