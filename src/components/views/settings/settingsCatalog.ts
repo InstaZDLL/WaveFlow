@@ -99,6 +99,8 @@ export const SETTINGS_CATEGORIES = [
         searchKeys: [
           "settings.singleClickPlay.title",
           "settings.singleClickPlay.subtitle",
+          "settings.autoplay.title",
+          "settings.autoplay.subtitle",
           "settings.generatorAlbumMode.title",
           "settings.generatorAlbumMode.subtitle",
           "settings.pauseOnDeviceLoss.title",

@@ -58,6 +58,7 @@ import {
   ZoomIn,
   Palette,
   Disc3,
+  ListPlus,
   ArrowDownAZ,
 } from "lucide-react";
 import { RemoteServerCard } from "./settings/RemoteServerCard";
@@ -147,6 +148,7 @@ import { useTasks } from "../../hooks/useTasks";
 import { useProfile } from "../../hooks/useProfile";
 import { usePageScroll } from "../../hooks/usePageScroll";
 import { useProfileScopedToggle } from "../../hooks/useProfileScopedToggle";
+import { useAutoplay } from "../../hooks/useAutoplay";
 import { useGeneratorAlbumMode } from "../../hooks/useGeneratorAlbumMode";
 import { invoke } from "@tauri-apps/api/core";
 import {
@@ -1346,6 +1348,11 @@ function SettingsViewContent({
     resolved: generatorAlbumModeResolved,
     setEnabled: setGeneratorAlbumMode,
   } = useGeneratorAlbumMode();
+  const {
+    enabled: autoplay,
+    resolved: autoplayResolved,
+    setEnabled: setAutoplay,
+  } = useAutoplay();
   const [replayGainMode, setReplayGainMode] = useState<ReplayGainMode>(
     SETTINGS["audio.replaygain_mode"].defaultValue,
   );
@@ -2671,6 +2678,29 @@ function SettingsViewContent({
                     enabled={singleClickPlay}
                     onToggle={handleToggleSingleClickPlay}
                     label={t("settings.singleClickPlay.title")}
+                  />
+                </div>
+                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                  <div className="flex items-center space-x-4 flex-1 min-w-0">
+                    <ListPlus
+                      size={20}
+                      className="text-zinc-400 shrink-0"
+                      aria-hidden="true"
+                    />
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.autoplay.title")}
+                      </div>
+                      <div className="text-xs settings-description">
+                        {t("settings.autoplay.subtitle")}
+                      </div>
+                    </div>
+                  </div>
+                  <ToggleSwitch
+                    enabled={autoplay}
+                    onToggle={() => void setAutoplay(!autoplay)}
+                    disabled={!autoplayResolved}
+                    label={t("settings.autoplay.title")}
                   />
                 </div>
                 <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">

@@ -2904,6 +2904,10 @@
         "failed_other": "Não foi possível redefinir {{count}} configurações."
       }
     },
+    "autoplay": {
+      "title": "Reprodução automática",
+      "subtitle": "Quando a fila termina sem repetição, adiciona faixas relacionadas da sua biblioteca e continua tocando"
+    },
     "stereoImage": {
       "balance": {
         "title": "Balanço",

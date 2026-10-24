@@ -2833,6 +2833,10 @@
         "failed_other": "{{count}} 件の設定をリセットできませんでした。"
       }
     },
+    "autoplay": {
+      "title": "自動再生",
+      "subtitle": "リピートなしでキューが終わったら、ライブラリから関連する曲を追加して再生を続けます"
+    },
     "stereoImage": {
       "balance": {
         "title": "バランス",

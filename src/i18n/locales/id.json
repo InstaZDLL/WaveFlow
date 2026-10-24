@@ -2833,6 +2833,10 @@
         "failed_other": "{{count}} pengaturan tidak dapat diatur ulang."
       }
     },
+    "autoplay": {
+      "title": "Putar otomatis",
+      "subtitle": "Saat antrean habis tanpa pengulangan, tambahkan lagu serupa dari pustaka Anda dan terus putar"
+    },
     "stereoImage": {
       "balance": {
         "title": "Keseimbangan",

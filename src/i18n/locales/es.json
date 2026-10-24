@@ -2903,6 +2903,10 @@
         "failed_other": "No se pudieron restablecer {{count}} ajustes."
       }
     },
+    "autoplay": {
+      "title": "Reproducción automática",
+      "subtitle": "Cuando la cola termina sin repetición, añade canciones afines de tu biblioteca y sigue reproduciendo"
+    },
     "stereoImage": {
       "balance": {
         "title": "Balance",

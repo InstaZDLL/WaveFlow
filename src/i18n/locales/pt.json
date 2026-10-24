@@ -2904,6 +2904,10 @@
         "failed_other": "Não foi possível repor {{count}} definições."
       }
     },
+    "autoplay": {
+      "title": "Reprodução automática",
+      "subtitle": "Quando a fila termina sem repetição, adiciona faixas relacionadas da sua biblioteca e continua"
+    },
     "stereoImage": {
       "balance": {
         "title": "Balanço",

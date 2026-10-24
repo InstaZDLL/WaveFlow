@@ -2835,6 +2835,10 @@
         "failed_other": "{{count}} ayar sıfırlanamadı."
       }
     },
+    "autoplay": {
+      "title": "Otomatik oynatma",
+      "subtitle": "Sıra tekrar kapalıyken bittiğinde kitaplığınızdan benzer parçalar ekleyip çalmaya devam eder"
+    },
     "stereoImage": {
       "balance": {
         "title": "Denge",
