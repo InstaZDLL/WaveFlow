@@ -358,12 +358,12 @@ function profileBool(key: BooleanSettingKey, event?: string): SettingAccessor {
 }
 
 /**
- * An engine switch whose command reaches the engine through the decoder
- * thread. Read from its row, not from the engine's flag: an idle decoder
- * does not take these commands, so while nothing plays the flag keeps the
- * value it had and only the row says what the user chose. Booleans are
- * read as the backend reads them on restore — `"1"` / `"0"` are the older
- * spelling, anything else is no answer.
+ * An engine switch, read from its row rather than from the engine's flag.
+ * The row is what `restore_profile_audio_settings` reads back at the next
+ * launch and on a profile switch, so it is what the setting will be; the
+ * flag is only what this session holds. Booleans are read the way that
+ * restore reads them — `"1"` / `"0"` are the older spelling, anything else
+ * is no answer.
  */
 function engineSwitch(
   key: "audio.normalize" | "audio.mono" | "audio.gapless" | "audio.replaygain",
@@ -1018,7 +1018,7 @@ async function inspectCategory(
 export async function resetCategory(
   category: SettingsCategory,
   ctx: SettingsResetContext,
-): Promise<{ failed: SettingKey[] }> {
+): Promise<{ attempted: number; failed: SettingKey[] }> {
   const { keys } = await inspectCategory(category, ctx);
   const failed: SettingKey[] = [];
   for (const key of keys) {
@@ -1029,7 +1029,7 @@ export async function resetCategory(
       failed.push(key);
     }
   }
-  return { failed };
+  return { attempted: keys.length, failed };
 }
 
 /** The context the accessors need, from the providers that own it. */
@@ -1136,13 +1136,37 @@ export function useCategoryModifications(
   };
 }
 
-/**
- * Called once a category has been reset. The Settings view answers by
- * mounting its content afresh: much of what a page shows is state the
- * view and its cards read once from their commands (the audio engine's
- * switches, the DLNA and MPD configs, the cards that own a value), and a
- * fresh mount is the one refresh that reaches every one of them.
- */
-export const SettingsResetScope = createContext<
-  (category: SettingsCategory) => void
->(() => {});
+/** A reset the Settings view has just remounted for. */
+export interface CompletedReset {
+  category: SettingsCategory;
+  /** How many of its settings could not be put back. */
+  failed: number;
+}
+
+export interface SettingsResetScopeValue {
+  /**
+   * Called once a reset has put back at least one setting of
+   * `category`, whether or not others failed. The Settings view answers
+   * by mounting its content afresh: much of what a page shows is state
+   * the view and its cards read once from their commands (the audio
+   * engine's switches, the DLNA and MPD configs, the cards that own a
+   * value), and a fresh mount is the one refresh that reaches every one
+   * of them. Skipping it after a partial failure left those controls on
+   * values the database no longer held.
+   */
+  onCategoryReset: (category: SettingsCategory, failed: number) => void;
+  /**
+   * The reset the current mount follows, kept above the remount so the
+   * fresh header can put the focus back and, after a partial failure,
+   * reopen its dialog on what is left. `null` once taken.
+   */
+  completed: CompletedReset | null;
+  /** Mark `completed` as taken. */
+  consume: () => void;
+}
+
+export const SettingsResetScope = createContext<SettingsResetScopeValue>({
+  onCategoryReset: () => {},
+  completed: null,
+  consume: () => {},
+});

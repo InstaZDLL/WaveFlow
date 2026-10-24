@@ -20,6 +20,9 @@ interface SettingsResetModalProps {
   /** Runs the reset. Resolves with how many settings could not be put
    *  back; zero closes the dialog. */
   onConfirm: () => Promise<number>;
+  /** Failures to show from the start: the dialog reopened after a reset
+   *  that put the rest back and remounted the page. */
+  initialFailed?: number;
 }
 
 /**
@@ -36,6 +39,7 @@ export function SettingsResetModal({
   total,
   onClose,
   onConfirm,
+  initialFailed = 0,
 }: SettingsResetModalProps) {
   const { t } = useTranslation();
   const [submitting, setSubmitting] = useState(false);
@@ -48,14 +52,12 @@ export function SettingsResetModal({
   const bodyId = useId();
 
   // Start every opening clean: a failure from the last attempt is not
-  // news about this one.
+  // news about this one — unless the dialog opens to report it.
   const [lastIsOpen, setLastIsOpen] = useState(isOpen);
   if (lastIsOpen !== isOpen) {
     setLastIsOpen(isOpen);
-    if (!isOpen) {
-      setSubmitting(false);
-      setFailed(0);
-    }
+    setSubmitting(false);
+    setFailed(isOpen ? initialFailed : 0);
   }
 
   const handleConfirm = async () => {

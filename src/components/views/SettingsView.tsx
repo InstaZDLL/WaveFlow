@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SettingsNavigation } from "./settings/SettingsNavigation";
 import { SettingsGroup } from "./settings/SettingsGroup";
 import { SettingsCategoryHeader } from "./settings/SettingsCategoryHeader";
@@ -10,6 +10,7 @@ import "./settings/settings.css";
 import {
   dopPlatformSupported as isDopPlatform,
   SettingsResetScope,
+  type CompletedReset,
 } from "./settings/settingsReset";
 import { SETTINGS } from "../../lib/settingsRegistry";
 import { createPortal } from "react-dom";
@@ -549,12 +550,23 @@ export function SettingsView(props: SettingsViewProps) {
     setLastInitialCategory(props.initialCategory);
     setResetCategory(null);
   }
-  const handleCategoryReset = useCallback((category: SettingsCategory) => {
-    setResetCategory(category);
-    setGeneration((g) => g + 1);
-  }, []);
+  // Above the remount, so the fresh header learns what it follows.
+  const [completed, setCompleted] = useState<CompletedReset | null>(null);
+  const handleCategoryReset = useCallback(
+    (category: SettingsCategory, failed: number) => {
+      setResetCategory(category);
+      setCompleted({ category, failed });
+      setGeneration((g) => g + 1);
+    },
+    [],
+  );
+  const consume = useCallback(() => setCompleted(null), []);
+  const scope = useMemo(
+    () => ({ onCategoryReset: handleCategoryReset, completed, consume }),
+    [handleCategoryReset, completed, consume],
+  );
   return (
-    <SettingsResetScope.Provider value={handleCategoryReset}>
+    <SettingsResetScope.Provider value={scope}>
       <SettingsViewContent
         key={generation}
         {...props}

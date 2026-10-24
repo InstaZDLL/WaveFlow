@@ -1,4 +1,4 @@
-import { useCallback, useContext, useState } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { RotateCcw } from "lucide-react";
 
@@ -29,25 +29,60 @@ export function SettingsCategoryHeader({
   const { t } = useTranslation();
   const ctx = useSettingsResetContext();
   const { modifications, refresh } = useCategoryModifications(category, ctx);
-  const onCategoryReset = useContext(SettingsResetScope);
+  const { onCategoryReset, completed, consume } =
+    useContext(SettingsResetScope);
+  const headingRef = useRef<HTMLHeadingElement>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  // The failures a reopened dialog starts by showing (see below).
+  const [reportedFailed, setReportedFailed] = useState(0);
+  // Set when this mount follows a reset that left something behind: the
+  // dialog opens again once the page has been read, its list then being
+  // exactly what is left.
+  const [reopenPending, setReopenPending] = useState(false);
+
+  // The button that opened the dialog went with the remount, so the focus
+  // goes to the page's title instead of falling to the body. Taken before
+  // a reopened dialog captures the focus, so closing it lands here too.
+  useEffect(() => {
+    if (completed?.category !== category) return;
+    headingRef.current?.focus();
+    if (completed.failed > 0) {
+      /* eslint-disable react-hooks/set-state-in-effect */
+      setReportedFailed(completed.failed);
+      setReopenPending(true);
+      /* eslint-enable react-hooks/set-state-in-effect */
+    }
+    consume();
+  }, [completed, category, consume]);
 
   const handleConfirm = useCallback(async () => {
-    const { failed } = await resetCategory(category, ctx);
-    if (failed.length === 0) {
+    const { attempted, failed } = await resetCategory(category, ctx);
+    if (failed.length < attempted) {
+      // At least one setting moved: remount, so every control the view
+      // read once shows what the database now holds. The failures, if
+      // any, travel above the remount and reopen the dialog.
       setDialogOpen(false);
-      onCategoryReset(category);
+      onCategoryReset(category, failed.length);
     } else {
-      // Keep the dialog on what is still left; the list re-reads.
+      // Nothing moved; keep the dialog on what is left, re-read.
       refresh();
     }
     return failed.length;
   }, [category, ctx, onCategoryReset, refresh]);
 
   const total = modifications?.total ?? 0;
+  if (reopenPending && modifications) {
+    setReopenPending(false);
+    if (total > 0) setDialogOpen(true);
+  }
   // Close once nothing is left to reset: what was counted may have been
   // put back from elsewhere while the dialog was open.
   if (dialogOpen && modifications && total === 0) setDialogOpen(false);
+
+  const closeDialog = () => {
+    setDialogOpen(false);
+    setReportedFailed(0);
+  };
 
   const entry = SETTINGS_CATEGORIES.find((c) => c.id === category);
   if (!entry) return null;
@@ -57,8 +92,10 @@ export function SettingsCategoryHeader({
     <header className="settings-category-header flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
       <div className="min-w-0">
         <h2
+          ref={headingRef}
           id={`settings-heading-${category}`}
-          className="text-xl font-semibold text-zinc-900 dark:text-white"
+          tabIndex={-1}
+          className="text-xl font-semibold text-zinc-900 focus:outline-none dark:text-white"
         >
           {label}
         </h2>
@@ -81,7 +118,11 @@ export function SettingsCategoryHeader({
             </span>
             <button
               type="button"
-              onClick={() => setDialogOpen(true)}
+              onClick={() => {
+                // Opened by hand: no earlier failure to report.
+                setReportedFailed(0);
+                setDialogOpen(true);
+              }}
               aria-haspopup="dialog"
               aria-label={t("settings.modified.resetAria", {
                 category: label,
@@ -99,8 +140,9 @@ export function SettingsCategoryHeader({
         categoryLabel={label}
         items={modifications?.items ?? []}
         total={total}
-        onClose={() => setDialogOpen(false)}
+        onClose={closeDialog}
         onConfirm={handleConfirm}
+        initialFailed={reportedFailed}
       />
     </header>
   );
