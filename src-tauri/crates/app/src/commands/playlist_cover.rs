@@ -20,32 +20,12 @@ use std::io::Read;
 use std::path::PathBuf;
 
 use sqlx::{FromRow, SqlitePool};
+use waveflow_core::artwork::image_format::detect_image_format;
 
 use crate::error::{AppError, AppResult};
 use crate::paths::AppPaths;
 use crate::smart_playlists::cover;
 use crate::state::AppState;
-
-/// Magic-byte validator copied from the album-cover upload path. Kept here
-/// to avoid a cross-module import on a 20-line helper that the two callers
-/// can comfortably duplicate.
-fn detect_image_format(bytes: &[u8]) -> Option<&'static str> {
-    if bytes.len() >= 3 && bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF {
-        return Some("jpg");
-    }
-    if bytes.len() >= 8
-        && bytes[0] == 0x89
-        && bytes[1] == 0x50
-        && bytes[2] == 0x4E
-        && bytes[3] == 0x47
-    {
-        return Some("png");
-    }
-    if bytes.len() >= 12 && &bytes[0..4] == b"RIFF" && &bytes[8..12] == b"WEBP" {
-        return Some("webp");
-    }
-    None
-}
 
 /// Hard cap on a single uploaded image. Big enough for an unprocessed 4K
 /// JPEG (~5 MB) plus headroom; small enough to stop a rogue file from

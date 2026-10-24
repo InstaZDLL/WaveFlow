@@ -27,6 +27,7 @@ use waveflow_core::plugin::is_bundled_plugin;
 use waveflow_core::plugin::manifest::{LocalizedString, Manifest};
 use waveflow_core::plugin::PluginPaths;
 
+use crate::audio::http_source::redact_url;
 use crate::error::{AppError, AppResult};
 use crate::offline;
 use crate::state::AppState;
@@ -198,10 +199,12 @@ async fn fetch_registry() -> AppResult<Registry> {
                         reg.schema_version
                     )));
                 }
-                Err(e) => last_err = format!("{url}: decode failed: {e}"),
+                Err(e) => {
+                    last_err = format!("{}: decode failed: {}", redact_url(url), e.without_url())
+                }
             },
-            Ok(resp) => last_err = format!("{url}: HTTP {}", resp.status()),
-            Err(e) => last_err = format!("{url}: {e}"),
+            Ok(resp) => last_err = format!("{}: HTTP {}", redact_url(url), resp.status()),
+            Err(e) => last_err = format!("{}: {}", redact_url(url), e.without_url()),
         }
     }
     Err(AppError::Other(last_err))
@@ -552,14 +555,19 @@ pub async fn install_plugin_from_registry(
         }))
         .build()
         .map_err(|e| AppError::Other(format!("http client: {e}")))?;
-    let mut resp = client
-        .get(&url)
-        .send()
-        .await
-        .map_err(|e| AppError::Other(format!("download {url}: {e}")))?;
+    let mut resp = client.get(&url).send().await.map_err(|e| {
+        AppError::Other(format!(
+            "download {}: {}",
+            redact_url(&url),
+            e.without_url()
+        ))
+    })?;
     if !resp.status().is_success() {
+        // The asset URL comes from the registry and may carry a signed
+        // query; these messages are logged and shown, so it is redacted.
         return Err(AppError::Other(format!(
-            "download {url}: HTTP {}",
+            "download {}: HTTP {}",
+            redact_url(&url),
             resp.status()
         )));
     }
@@ -578,7 +586,7 @@ pub async fn install_plugin_from_registry(
     while let Some(chunk) = resp
         .chunk()
         .await
-        .map_err(|e| AppError::Other(format!("read release body: {e}")))?
+        .map_err(|e| AppError::Other(format!("read release body: {}", e.without_url())))?
     {
         if bytes.len() as u64 + chunk.len() as u64 > MAX_DOWNLOAD_BYTES {
             return Err(AppError::Other(format!(

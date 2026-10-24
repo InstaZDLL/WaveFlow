@@ -3,6 +3,7 @@
 //! grid render. No Tauri, no DB; designed to plug straight into the
 //! future `waveflow-server` axum handlers as well.
 
+pub mod image_format;
 pub mod metadata;
 pub mod motion_cache;
 pub mod mp4_defrag;

@@ -28,7 +28,7 @@ Same reasoning applies to re-resolving the pool inside a loop: a batch that read
 
 ### Persistence of settings
 
-Per-profile settings live in `profile_setting` (typed key-value); app-wide settings live in `app_setting` with the same shape. Write pattern is `INSERT ... ON CONFLICT DO UPDATE`.
+Per-profile settings live in `profile_setting` (typed key-value); app-wide settings live in `app_setting` with the same shape. Write pattern is `INSERT ... ON CONFLICT DO UPDATE`, naming all four columns: `value_type` and `updated_at` are `NOT NULL` with no default, and SQLite checks them on the row the upsert _would_ insert before it looks for the conflict — so a write that leaves them out fails every time, for a key that already exists as much as for a new one. That is how the DLNA settings went unsaved.
 
 **A React preference hook does NOT hand-roll this** (issue #485). Build it on [`useProfileSetting`](../../src/hooks/useProfileSetting.ts) (or its `useProfileBooleanSetting` shorthand), which owns:
 
@@ -282,6 +282,10 @@ Default it into the overflow ("⋯") menu via [`MoreActionsMenu`](../../src/comp
 ### Process-wide offline mode
 
 Every outbound HTTP path (Deezer, Last.fm, similar, LRCLIB, the plugin registry) checks `offline::is_offline()` first and short-circuits to an empty payload or the cache. Persisted in `app_setting['network.offline_mode']`. **Treat new HTTP code paths the same way.**
+
+### No secret reaches the log
+
+The log file is what a user attaches to a bug report, so nothing in it may let a reader act as them. A URL is logged through [`redact_url`](../../src-tauri/crates/app/src/audio/http_source.rs) — which drops userinfo, query and fragment, and masks the bearer ticket a remote server's stream URL carries in its path (`/api/v2/stream/<ticket>`) — and a `reqwest::Error` through `without_url()` before it is formatted, because reqwest prints the full request URL in both `Display` and `Debug`. That holds for an error that is only _returned_, too: every caller logs what it gets, and some show it in the UI. The metadata providers do the same ([`metadata::redact`](../../src-tauri/crates/core/src/metadata/mod.rs)).
 
 ### Remote user data never lands in the local tables
 

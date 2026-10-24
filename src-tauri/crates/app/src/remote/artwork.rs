@@ -132,7 +132,7 @@ pub async fn cached_path(state: &AppState, hash: &str) -> AppResult<PathBuf> {
         .get(&format!("/api/v2/artwork/{hash}"))
         .send()
         .await
-        .map_err(|err| AppError::Other(format!("artwork fetch: {err}")))?;
+        .map_err(|err| AppError::Other(format!("artwork fetch: {}", err.without_url())))?;
     if !response.status().is_success() {
         return Err(AppError::Other(format!(
             "artwork fetch: HTTP {}",
@@ -149,7 +149,7 @@ pub async fn cached_path(state: &AppState, hash: &str) -> AppResult<PathBuf> {
     let bytes = response
         .bytes()
         .await
-        .map_err(|err| AppError::Other(format!("artwork body: {err}")))?;
+        .map_err(|err| AppError::Other(format!("artwork body: {}", err.without_url())))?;
 
     let path = dir.join(format!("{hash}.{extension}"));
     write_atomically(&dir, &path, &bytes).await?;

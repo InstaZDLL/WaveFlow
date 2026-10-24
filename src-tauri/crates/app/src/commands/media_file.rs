@@ -20,7 +20,7 @@ static TMP_SEQ: AtomicU64 = AtomicU64::new(0);
 /// First box of an ISO base media file (mp4/mov) is required to be `ftyp`
 /// when present, which in practice means always for a real-world mp4 — the
 /// "check the magic bytes, don't fully parse" approach `detect_image_format`
-/// (`deezer.rs`) uses for jpg/png/webp.
+/// (`waveflow_core::artwork::image_format`) uses for jpg/png/webp.
 fn is_mp4(bytes: &[u8]) -> bool {
     bytes.len() >= 8 && &bytes[4..8] == b"ftyp"
 }

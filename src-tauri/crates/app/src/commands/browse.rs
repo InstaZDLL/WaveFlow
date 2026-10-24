@@ -1799,9 +1799,10 @@ pub async fn set_genre_artwork_from_file(
                 )
             )));
         }
-        let format = crate::commands::deezer::detect_image_format(&bytes).ok_or_else(|| {
-            AppError::Other("unsupported image format (expected jpg/png/webp)".into())
-        })?;
+        let format =
+            waveflow_core::artwork::image_format::detect_image_format(&bytes).ok_or_else(|| {
+                AppError::Other("unsupported image format (expected jpg/png/webp)".into())
+            })?;
 
         let hash = blake3::hash(&bytes).to_hex().to_string();
         let target = dir_for_blocking.join(format!("{hash}.{format}"));
