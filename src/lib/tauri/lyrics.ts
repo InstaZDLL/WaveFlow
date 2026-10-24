@@ -603,42 +603,75 @@ const UNSPACED_SCRIPT =
   /[\u2e80-\u2fdf\u3000-\u30ff\u31f0-\u31ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\ufe30-\ufe4f\uff00-\uffef\u{20000}-\u{3134f}]/u;
 
 /**
+ * Whitespace that collapses when drawn: an ordinary space, a tab, a line
+ * break. A wide or non-breaking space (U+3000, U+00A0) does not: it is
+ * part of the text it sits in, drawn at its own width inside the word.
+ */
+const COLLAPSIBLE_SPACE = /[ \t\n\r]/u;
+
+/**
  * What goes between each timed word and the next, for every surface that
- * draws a line word by word — `""` or `" "`, one entry per word, the last
- * always `""`. {@link joinWords} builds a line's text from the same rule,
- * so a line reads the same whether it is drawn word by word (the line
- * being sung) or as text (every other line).
+ * draws a line word by word — `""` or `" "`, one entry per word. {@link
+ * joinWords} builds a line's text from the same rule, so a line reads the
+ * same whether it is drawn word by word (the line being sung) or as text
+ * (every other line).
  *
- * The source decides. A word whose text ends with a space, or is followed
- * by one that starts with one, is separated from the next — that is how
- * a TTML document's whitespace between its spans arrives (indentation
+ * The source decides. Two words with an ordinary space between them —
+ * at the end of the first, the start of the second, or in a word of
+ * nothing but spaces between them — are separated by one space: that is
+ * how a TTML document's whitespace between spans arrives (indentation
  * collapses to one space), and how Enhanced LRC writes `Hello <…>world`.
- * Two words with nothing between them in such a line are one word sung in
- * parts (`Hel` + `lo`) or two characters of a script that does not space
- * its words, and stay joined.
+ * A wide or non-breaking space is already drawn inside its word, so it
+ * gets no second one. Two words with nothing between them in such a line
+ * are one word sung in parts (`Hel` + `lo`) or two characters of a script
+ * that does not space its words, and stay joined. A word of nothing but
+ * spaces is never a word: before the first word or after the last (a
+ * stamp closing the line) it says nothing about the gaps.
  *
- * A line whose words carry no space at all says nothing either way: some
- * Enhanced LRC sources write `<…>Hello<…>world`, while a Chinese or
- * Japanese line timed per character has no space to carry. Only there
- * does the script decide: a space between two words, except where either
- * side is Han or kana, which are not spaced in writing.
+ * A line that has no space between any of its words says nothing either
+ * way: some Enhanced LRC sources write `<…>Hello<…>world`, while a
+ * Chinese or Japanese line timed per character has no space to carry.
+ * Only there does the script decide: a space between two words, except
+ * where either side is Han or kana, which are not spaced in writing.
  */
 export function wordSeparators(words: readonly LyricsWord[]): string[] {
-  const spacedAt = (i: number) =>
-    /\s$/u.test(words[i].text) || /^\s/u.test(words[i + 1].text);
-  const sourceSpaces = words.some(
-    (_, i) => i < words.length - 1 && spacedAt(i),
-  );
-  return words.map((word, i) => {
-    if (i === words.length - 1) return "";
-    if (spacedAt(i)) return " ";
-    if (sourceSpaces) return "";
-    const before = Array.from(word.text).pop() ?? "";
-    const after = Array.from(words[i + 1].text)[0] ?? "";
-    return UNSPACED_SCRIPT.test(before) || UNSPACED_SCRIPT.test(after)
-      ? ""
-      : " ";
+  const separators = words.map(() => "");
+  // The gaps the source leaves silent, settled by script at the end.
+  const silent: Array<{ at: number; before: string; after: string }> = [];
+  let sourceSpaces = false;
+  let previous = -1;
+  words.forEach((word, i) => {
+    if (word.text.trim() === "") return;
+    if (previous >= 0) {
+      const before = words[previous].text;
+      const between = words
+        .slice(previous + 1, i)
+        .map((w) => w.text)
+        .join("");
+      const edges = `${before.slice(-1)}${between}${word.text.slice(0, 1)}`;
+      // The separator goes just before the second word, after any word of
+      // spaces: those draw as empty boxes, so the gap stays one space.
+      const gap = { at: i - 1, before, after: word.text };
+      if (COLLAPSIBLE_SPACE.test(edges)) {
+        separators[gap.at] = " ";
+        sourceSpaces = true;
+      } else if (/\s/u.test(edges)) {
+        sourceSpaces = true;
+      } else {
+        silent.push(gap);
+      }
+    }
+    previous = i;
   });
+  if (!sourceSpaces) {
+    for (const gap of silent) {
+      const before = Array.from(gap.before).pop() ?? "";
+      const after = Array.from(gap.after)[0] ?? "";
+      separators[gap.at] =
+        UNSPACED_SCRIPT.test(before) || UNSPACED_SCRIPT.test(after) ? "" : " ";
+    }
+  }
+  return separators;
 }
 
 /** A word-timed line's text, spaced by {@link wordSeparators}. */
@@ -647,7 +680,7 @@ export function joinWords(words: readonly LyricsWord[]): string {
   return words
     .map((word, i) => word.text + separators[i])
     .join("")
-    .replace(/\s+/gu, " ")
+    .replace(/[ \t\n\r]+/gu, " ")
     .trim();
 }
 
