@@ -423,6 +423,8 @@ It deliberately does **not** regenerate-and-diff: the generator runs `npm instal
 
 > **Toolchain split.** The app builds from `bun.lock`, but the Flatpak sandbox runs `npm ci --offline` against a **separate npm lockfile** (`flatpak-node-generator` can't read `bun.lock`). A dependency pin that must hold for shipped builds therefore belongs in `package.json` — e.g. an `overrides` entry — not in `bun.lock` alone.
 
+> **The manifest's own paths go stale the same way.** No CI job runs `flatpak-builder`, and `check-sources.py` only reads the lockfiles, so nothing checks the repository paths the [manifest](../packaging/flatpak/app.waveflow.WaveFlow.yaml)'s `build-commands` install from — the binary, the icons, the desktop entry. The icon step kept reading `src-tauri/icons/` long after the workspace split moved them under `src-tauri/crates/app/icons/`. Moving or renaming anything under `src-tauri/crates/app/` means grepping the manifest for it.
+
 ## macOS signing and the TCC prompt
 
 Signing the macOS bundle is not only about Gatekeeper. It is what stops macOS from asking for folder permission **on every single launch**.
