@@ -1652,7 +1652,8 @@ fn sidecar_richness(content: &str) -> Option<(bool, bool)> {
     Some((synced, words))
 }
 
-/// Whether a TTML document is well formed, rooted at `<tt>`, and holds a
+/// Whether a TTML document is well formed (its attributes included), rooted
+/// at `<tt>`, and holds a
 /// `<p>` with text in it: what the renderer needs to show anything, timed
 /// or not.
 fn ttml_has_a_line(content: &str) -> bool {
@@ -1664,12 +1665,22 @@ fn ttml_has_a_line(content: &str) -> bool {
     let mut line_with_text = false;
     loop {
         match reader.read_event() {
+            // A malformed attribute (a duplicate, a missing quote) makes
+            // `DOMParser` reject the whole document, as in
+            // `ttml_has_timed_line`; quick-xml only reports it when the
+            // attributes are read.
             Ok(Event::Start(e)) => {
+                if e.attributes().any(|a| a.is_err()) {
+                    return false;
+                }
                 let name = e.local_name().into_inner().to_owned();
                 root_is_tt.get_or_insert(name == "tt");
                 stack.push(name);
             }
             Ok(Event::Empty(e)) => {
+                if e.attributes().any(|a| a.is_err()) {
+                    return false;
+                }
                 root_is_tt.get_or_insert(e.local_name().into_inner() == "tt");
             }
             Ok(Event::End(_)) => {
@@ -5900,6 +5911,9 @@ mod tests {
         let picked = pick_among(&[("Song.ttml", no_line), ("Song.lrc", "la lu")]);
         assert_eq!(picked.as_deref(), Some("la lu"));
         assert_eq!(pick_among(&[("Song.ttml", cut_short)]), None);
+        let duplicate = r#"<tt xmlns="http://www.w3.org/ns/ttml"><body><div><p begin="1s" begin="2s">la lu</p></div></body></tt>"#;
+        let picked = pick_among(&[("Song.ttml", duplicate), ("Song.txt", "la lu")]);
+        assert_eq!(picked.as_deref(), Some("la lu"));
     }
 
     #[test]
