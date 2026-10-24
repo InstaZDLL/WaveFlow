@@ -185,12 +185,17 @@ import {
  * id the next launch reads).
  */
 export interface SettingsResetContext {
+  /** The profile the page was read for, which every write is pinned to. */
   profileId: number | null;
+  /** The profile active right now, read live: a reset stops at the first
+   *  setting it would write after a switch. */
+  activeProfileId: () => number | null;
   themeId: string;
-  /** Resolve once the row is written, reject when it is not. */
-  setThemeId: (id: string) => Promise<void>;
+  /** Resolve once the row is written, reject when it is not — or when
+   *  `profileId` is no longer the active profile. */
+  setThemeId: (id: string, profileId: number | null) => Promise<void>;
   skinId: string;
-  setSkinId: (id: string) => Promise<void>;
+  setSkinId: (id: string, profileId: number | null) => Promise<void>;
 }
 
 /**
@@ -696,7 +701,10 @@ const ACCESSORS: Record<SettingKey, SettingAccessor> = {
       );
     },
     reset: async (ctx) =>
-      ctx.setThemeId(SETTINGS["appearance.theme.id"].defaultValue),
+      ctx.setThemeId(
+        SETTINGS["appearance.theme.id"].defaultValue,
+        ctx.profileId,
+      ),
   },
   "ui.zoom_level": command(
     "ui.zoom_level",
@@ -715,7 +723,7 @@ const ACCESSORS: Record<SettingKey, SettingAccessor> = {
       );
     },
     reset: async (ctx) =>
-      ctx.setSkinId(SETTINGS["appearance.skin.id"].defaultValue),
+      ctx.setSkinId(SETTINGS["appearance.skin.id"].defaultValue, ctx.profileId),
   },
   "appearance.contrast": profileRow("appearance.contrast", {
     parse: parseContrastMode,
@@ -1085,7 +1093,15 @@ export async function resetCategory(
 ): Promise<{ attempted: number; failed: SettingKey[] }> {
   const { keys } = await inspectCategory(category, ctx);
   const failed: SettingKey[] = [];
-  for (const key of keys) {
+  for (const [i, key] of keys.entries()) {
+    // Most engine commands write into whichever profile is active, with
+    // no profile of their own to check against; past a switch, the rest
+    // of this reset would put the old profile's page into the new one.
+    // What is left counts as failed and stays as it was.
+    if (ctx.activeProfileId() !== ctx.profileId) {
+      failed.push(...keys.slice(i));
+      break;
+    }
     try {
       await ACCESSORS[key].reset(ctx);
     } catch (err) {
@@ -1102,11 +1118,17 @@ export function useSettingsResetContext(): SettingsResetContext {
   const { theme, setThemeId } = useTheme();
   const { skin, setSkinId } = useSkin();
   const profileId = activeProfile?.id ?? null;
+  const activeProfileIdRef = useRef(profileId);
+  useEffect(() => {
+    activeProfileIdRef.current = profileId;
+  }, [profileId]);
   return useMemo(
     () => ({
       profileId,
+      activeProfileId: () => activeProfileIdRef.current,
       themeId: theme.id,
-      setThemeId: (id: string) => setThemeId(id),
+      setThemeId: (id: string, pinned: number | null) =>
+        setThemeId(id, undefined, pinned),
       skinId: skin.id,
       setSkinId,
     }),

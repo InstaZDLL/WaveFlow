@@ -126,7 +126,10 @@ There is one reset per page: no per-setting reset and no "reset everything".
   switch goes through its `player_set_*` command, the theme and skin through
   their providers, DLNA and MPD through their config commands (enabled first,
   so the server stops before its name or port moves), the shortcuts through
-  `saveBindings`. Never a bare `DELETE`. Once at least one setting is back —
+  `saveBindings`. Never a bare `DELETE`. A reset is pinned to the profile its
+  page was read for: the theme and the skin refuse to apply to another one,
+  every row write carries that profile, and a switch midway stops the reset,
+  what is left counting as failed. Once at least one setting is back —
   even when others failed — the Settings view mounts its content afresh,
   which re-reads every value the view and its cards hold in local state; a
   partial failure is kept above that remount, and the dialog opens again on
