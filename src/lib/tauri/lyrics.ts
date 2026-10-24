@@ -602,6 +602,12 @@ export type LrcLine = LyricsLine;
 const UNSPACED_SCRIPT =
   /[\u2e80-\u2fdf\u3000-\u30ff\u31f0-\u31ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\ufe30-\ufe4f\uff00-\uffef\u{20000}-\u{3134f}]/u;
 
+/** Punctuation written against the word before it: `,` `.` `!` `)` `\u00bb`\u2026 */
+const CLOSING_PUNCTUATION = /[\p{Pe}\p{Pf},.!?;:%\u2026]/u;
+
+/** Punctuation written against the word after it: `(` `\u00ab` `\u00bf`\u2026 */
+const OPENING_PUNCTUATION = /[\p{Ps}\p{Pi}\u00bf\u00a1]/u;
+
 /**
  * Whitespace that collapses when drawn: an ordinary space, a tab, a line
  * break. A wide or non-breaking space (U+3000, U+00A0) does not: it is
@@ -683,9 +689,11 @@ export function wordSeparators(words: readonly LyricsWord[]): string[] {
  * has none either, and wants none. A line with any space between its
  * words has said where they go and is left as it is. Only a line with
  * none is spaced by script: a space between two words, except where
- * either side is Han or kana, which are not spaced in writing. TTML is
- * never guessed at: a document writes the whitespace between its spans,
- * so two spans with none between them are one word (`Hel` + `lo`).
+ * either side is Han or kana, which are not spaced in writing, and
+ * around punctuation timed as a word of its own, which sticks to its
+ * neighbour (`Hello` + `,` + `world` is `Hello, world`). TTML is never
+ * guessed at: a document writes the whitespace between its spans, so two
+ * spans with none between them are one word (`Hel` + `lo`).
  */
 function spaceUnspacedLine(words: LyricsWord[]): void {
   const gaps = wordGaps(words);
@@ -693,7 +701,12 @@ function spaceUnspacedLine(words: LyricsWord[]): void {
   for (const gap of gaps) {
     const before = Array.from(words[gap.from].text).pop() ?? "";
     const after = Array.from(words[gap.to].text)[0] ?? "";
-    if (!UNSPACED_SCRIPT.test(before) && !UNSPACED_SCRIPT.test(after)) {
+    if (
+      !UNSPACED_SCRIPT.test(before) &&
+      !UNSPACED_SCRIPT.test(after) &&
+      !OPENING_PUNCTUATION.test(before) &&
+      !CLOSING_PUNCTUATION.test(after)
+    ) {
       words[gap.from].text += " ";
     }
   }
@@ -927,12 +940,14 @@ function ttmlWords(el: Element): LyricsWord[] | undefined {
     // replaced by a fixed space: the usual case is XML indentation,
     // which collapses to exactly that anyway, but a document that puts
     // punctuation between the spans instead of inside them would
-    // otherwise lose it.
-    const raw = (child.textContent ?? "").replace(/\s+/g, " ");
+    // otherwise lose it. Only XML's own whitespace collapses: a wide
+    // (U+3000) or no-break space is a character of the line and keeps
+    // its width.
+    const raw = (child.textContent ?? "").replace(/[ \t\n\r]+/g, " ");
     const next = child.nextSibling;
     const trailing =
       next?.nodeType === Node.TEXT_NODE
-        ? (next.textContent ?? "").replace(/\s+/g, " ")
+        ? (next.textContent ?? "").replace(/[ \t\n\r]+/g, " ")
         : "";
     words.push({
       timeMs: begin,
