@@ -168,10 +168,10 @@ modules:
       # Icons
       - |
         for size in 32 64 128; do
-          install -Dm644 src-tauri/icons/${size}x${size}.png \
+          install -Dm644 src-tauri/crates/app/icons/${size}x${size}.png \
             /app/share/icons/hicolor/${size}x${size}/apps/app.waveflow.WaveFlow.png
         done
-        install -Dm644 src-tauri/icons/128x128@2x.png \
+        install -Dm644 src-tauri/crates/app/icons/128x128@2x.png \
           /app/share/icons/hicolor/256x256/apps/app.waveflow.WaveFlow.png
 
       # Desktop entry + AppStream metainfo
@@ -200,7 +200,7 @@ modules:
           - dist
           - target
           - src-tauri/target
-          - src-tauri/gen
+          - src-tauri/crates/app/gen
           - .git
           - .flatpak-builder
           - packaging/flatpak/.cache
