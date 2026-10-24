@@ -105,21 +105,28 @@ pub async fn web_radio_read_playlist_file(path: String) -> AppResult<Vec<Playlis
 }
 
 fn read_playlist_file(path: &std::path::Path) -> AppResult<Vec<PlaylistEntry>> {
-    // The path comes from the webview: only a file named like a playlist
-    // is opened, so the command cannot hand back the URL lines of any
-    // other file (a credentials store is one http(s) URL per line).
-    let named_like_playlist = path
-        .file_name()
-        .is_some_and(|name| has_playlist_extension(&name.to_string_lossy()));
-    if !named_like_playlist {
+    // The path comes from the webview: only a regular file named like a
+    // playlist is opened, so the command cannot hand back the URL lines of
+    // any other file (a credentials store is one http(s) URL per line).
+    // The test is on the file a link resolves to, not on the link's own
+    // name, and a pipe or a device is refused before `open`, which would
+    // block on a pipe with no writer.
+    let named_like_playlist = |p: &std::path::Path| {
+        p.file_name()
+            .is_some_and(|name| has_playlist_extension(&name.to_string_lossy()))
+    };
+    let target = std::fs::canonicalize(path)?;
+    if !named_like_playlist(path)
+        || !named_like_playlist(&target)
+        || !std::fs::metadata(&target)?.is_file()
+    {
         return Err(AppError::Other(format!(
             "{ERR_NO_STREAM}: not a station playlist file"
         )));
     }
-    // Bounded by the read itself, not by the reported length, which is 0
-    // for a device or a pipe that never ends.
+    // Bounded by the read itself, not by the reported length.
     let mut bytes = Vec::new();
-    std::fs::File::open(path)?
+    std::fs::File::open(&target)?
         .take(MAX_PLAYLIST_FILE_BYTES + 1)
         .read_to_end(&mut bytes)?;
     if bytes.len() as u64 > MAX_PLAYLIST_FILE_BYTES {
@@ -556,6 +563,30 @@ mod tests {
         let err = read_playlist_file(&path).unwrap_err().to_string();
         assert!(err.contains(ERR_NO_STREAM), "{err}");
         assert!(!err.contains("secret"), "{err}");
+
+        // A link named like a playlist is judged by what it points at.
+        #[cfg(unix)]
+        {
+            let link = dir.path().join("station.m3u");
+            std::os::unix::fs::symlink(&path, &link).unwrap();
+            let err = read_playlist_file(&link).unwrap_err().to_string();
+            assert!(err.contains(ERR_NO_STREAM), "{err}");
+            assert!(!err.contains("secret"), "{err}");
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_pipe_named_like_a_playlist_is_refused_without_blocking() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("station.m3u");
+        let status = std::process::Command::new("mkfifo")
+            .arg(&path)
+            .status()
+            .unwrap();
+        assert!(status.success());
+        let err = read_playlist_file(&path).unwrap_err().to_string();
+        assert!(err.contains(ERR_NO_STREAM), "{err}");
     }
 
     #[test]
