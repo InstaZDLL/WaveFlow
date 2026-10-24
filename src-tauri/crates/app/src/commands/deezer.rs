@@ -1672,7 +1672,25 @@ pub(crate) fn is_public_http_url(url: &str) -> bool {
     match parsed.host() {
         Some(url::Host::Domain(name)) => {
             let name = name.trim_end_matches('.').to_ascii_lowercase();
-            name != "localhost" && !name.ends_with(".localhost") && !name.ends_with(".local")
+            // A name with no dot (`router`, `nas`) is resolved on the
+            // local network by definition, and so are the suffixes home
+            // routers and companies hand out — recognisable without DNS,
+            // like `.local`.
+            name.contains('.')
+                && name != "localhost"
+                && ![
+                    ".localhost",
+                    ".local",
+                    ".lan",
+                    ".home",
+                    ".home.arpa",
+                    ".internal",
+                    ".intranet",
+                    ".localdomain",
+                    ".corp",
+                ]
+                .iter()
+                .any(|suffix| name.ends_with(suffix))
         }
         Some(url::Host::Ipv4(ip)) => is_public_ipv4(ip),
         Some(url::Host::Ipv6(ip)) => {

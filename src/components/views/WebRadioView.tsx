@@ -967,7 +967,9 @@ export function WebRadioView() {
         target={stationTarget}
         onClose={() => setStationTarget(null)}
         onAdd={(station) => {
-          if (saveFavorite(station)) openFavorites();
+          const saved = saveFavorite(station);
+          if (saved) openFavorites();
+          return saved;
         }}
         onRename={renameFavorite}
       />

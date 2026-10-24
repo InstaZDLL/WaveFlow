@@ -2976,7 +2976,8 @@
         "unreachable": "La stazione non risponde a questo indirizzo.",
         "notAudio": "Questo indirizzo non porta a un flusso audio.",
         "hls": "È una playlist HLS: sono supportati solo flussi continui.",
-        "noStream": "La playlist non contiene alcun flusso http:// o https://."
+        "noStream": "La playlist non contiene alcun flusso http:// o https://.",
+        "notSaved": "I preferiti non sono ancora caricati; riprova tra un momento."
       }
     }
   },

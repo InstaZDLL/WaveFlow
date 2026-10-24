@@ -85,7 +85,7 @@ fn parse_m3u(text: &str) -> Result<Vec<PlaylistEntry>, PlaylistError> {
         if line.is_empty() {
             continue;
         }
-        if line.len() >= 7 && line[..7].eq_ignore_ascii_case("#EXT-X-") {
+        if strip_prefix_ignore_case(line, "#EXT-X-").is_some() {
             return Err(PlaylistError::Hls);
         }
         if let Some(info) = strip_prefix_ignore_case(line, "#EXTINF:") {
@@ -176,6 +176,15 @@ mod tests {
             entries[1].title, None,
             "a title belongs to the next line only"
         );
+    }
+
+    /// A comment in another script: the prefix test must not cut a
+    /// character in half.
+    #[test]
+    fn a_non_ascii_line_is_read_not_split() {
+        let text = "#EXTM3U\n# Радио Рекорд\n# 日本のラジオ\nhttp://a.example/live\n";
+        let entries = parse_playlist(text).unwrap();
+        assert_eq!(urls(&entries), ["http://a.example/live"]);
     }
 
     #[test]

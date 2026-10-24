@@ -2905,7 +2905,8 @@
         "unreachable": "Stasiun tidak merespons di alamat ini.",
         "notAudio": "Alamat ini tidak mengarah ke stream audio.",
         "hls": "Ini playlist HLS: hanya stream berkelanjutan yang didukung.",
-        "noStream": "Playlist tidak berisi stream http:// atau https://."
+        "noStream": "Playlist tidak berisi stream http:// atau https://.",
+        "notSaved": "Favorit Anda belum dimuat; coba lagi sebentar lagi."
       }
     }
   },

@@ -2907,7 +2907,8 @@
         "unreachable": "İstasyon bu adreste yanıt vermiyor.",
         "notAudio": "Bu adres bir ses yayınına çıkmıyor.",
         "hls": "Bu bir HLS listesi: yalnızca kesintisiz yayınlar desteklenir.",
-        "noStream": "Listede http:// ya da https:// yayını yok."
+        "noStream": "Listede http:// ya da https:// yayını yok.",
+        "notSaved": "Favorileriniz henüz yüklenmedi; birazdan yeniden deneyin."
       }
     }
   },

@@ -2907,7 +2907,8 @@
         "unreachable": "Der Sender antwortet unter dieser Adresse nicht.",
         "notAudio": "Diese Adresse führt zu keinem Audiostream.",
         "hls": "Das ist eine HLS-Playlist: Nur durchgehende Streams werden unterstützt.",
-        "noStream": "Die Playlist enthält keinen http://- oder https://-Stream."
+        "noStream": "Die Playlist enthält keinen http://- oder https://-Stream.",
+        "notSaved": "Deine Favoriten sind noch nicht geladen; versuche es gleich noch einmal."
       }
     }
   },

@@ -2907,7 +2907,8 @@
         "unreachable": "The station does not answer at this address.",
         "notAudio": "This address does not lead to an audio stream.",
         "hls": "This is an HLS playlist: only continuous streams are supported.",
-        "noStream": "The playlist holds no http:// or https:// stream."
+        "noStream": "The playlist holds no http:// or https:// stream.",
+        "notSaved": "Your favorites have not loaded yet; try again in a moment."
       }
     }
   },

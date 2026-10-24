@@ -2905,7 +2905,8 @@
         "unreachable": "此位址上的電台沒有回應。",
         "notAudio": "此位址不指向音訊串流。",
         "hls": "這是 HLS 播放清單：只支援連續的串流。",
-        "noStream": "播放清單中沒有 http:// 或 https:// 串流。"
+        "noStream": "播放清單中沒有 http:// 或 https:// 串流。",
+        "notSaved": "收藏尚未載入，請稍後再試。"
       }
     }
   },

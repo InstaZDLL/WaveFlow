@@ -2907,7 +2907,8 @@
         "unreachable": "De zender reageert niet op dit adres.",
         "notAudio": "Dit adres leidt niet naar een audiostream.",
         "hls": "Dit is een HLS-playlist: alleen doorlopende streams worden ondersteund.",
-        "noStream": "De playlist bevat geen http://- of https://-stream."
+        "noStream": "De playlist bevat geen http://- of https://-stream.",
+        "notSaved": "Je favorieten zijn nog niet geladen; probeer het zo opnieuw."
       }
     }
   },

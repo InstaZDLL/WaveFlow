@@ -332,8 +332,12 @@ fn classify(headers: &HeaderMap, path: &str) -> Kind {
     }
 }
 
+/// `icy-name`, read from its bytes: `to_str` refuses anything outside
+/// visible ASCII, and a station called "Radio Fréquence" would lose its
+/// name to its host.
 fn icy_name(headers: &HeaderMap) -> Option<String> {
-    let name = headers.get("icy-name")?.to_str().ok()?.trim();
+    let raw = String::from_utf8_lossy(headers.get("icy-name")?.as_bytes()).into_owned();
+    let name = raw.trim();
     (!name.is_empty()).then(|| clip_name(name.to_string()))
 }
 
@@ -408,6 +412,16 @@ mod tests {
             "HTTP/1.1 200 OK\r\nContent-Type: {content_type}\r\nContent-Length: {}\r\n\r\n{body}",
             body.len()
         )
+    }
+
+    #[test]
+    fn an_accented_station_name_is_kept() {
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "icy-name",
+            reqwest::header::HeaderValue::from_bytes("Radio Fréquence".as_bytes()).unwrap(),
+        );
+        assert_eq!(icy_name(&headers).as_deref(), Some("Radio Fréquence"));
     }
 
     #[tokio::test]
@@ -491,6 +505,10 @@ mod tests {
         // carrier-grade NAT range.
         assert!(!may_open(true, "http://[::ffff:192.168.1.1]/admin"));
         assert!(!may_open(true, "http://100.64.0.1/"));
+        // Names that only resolve on the local network.
+        assert!(!may_open(true, "http://router/cgi-bin/"));
+        assert!(!may_open(true, "http://nas.home.arpa:5000/"));
+        assert!(!may_open(true, "http://nas.lan:8000/live"));
         assert!(may_open(false, "http://192.168.1.10:8000/live"));
         assert!(!may_open(false, "file:///etc/passwd"));
     }

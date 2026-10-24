@@ -17,9 +17,10 @@ interface RadioStationModalProps {
    *  keeps the modal closed. */
   target: "add" | PluginFavorite | null;
   onClose: () => void;
-  /** A new station, checked and ready to be saved as a favorite. */
-  onAdd: (station: PluginFavorite) => void;
-  onRename: (id: string, title: string) => void;
+  /** A new station, checked and ready to be saved as a favorite.
+   *  `false` when it could not be (the favorites have not loaded). */
+  onAdd: (station: PluginFavorite) => boolean;
+  onRename: (id: string, title: string) => boolean;
 }
 
 /** The host of a stream URL, credentials left out — the subtitle a
@@ -50,12 +51,17 @@ export function RadioStationModal({
   const { t } = useTranslation();
   const isOpen = target != null;
   const renaming = target != null && target !== "add" ? target : null;
-  const dialogRef = useModalA11y<HTMLDivElement>(isOpen, onClose);
   const [url, setUrl] = useState("");
   // Seeded from the station being renamed: the parent mounts this dialog
   // anew for every target, so the initial state is the one to edit.
   const [name, setName] = useState(renaming?.title ?? "");
   const [busy, setBusy] = useState(false);
+  // Not while the station is being checked: the check would still land
+  // and save a station the user had walked away from.
+  const close = useCallback(() => {
+    if (!busy) onClose();
+  }, [busy, onClose]);
+  const dialogRef = useModalA11y<HTMLDivElement>(isOpen, close);
   const [error, setError] = useState<string | null>(null);
 
   const showError = useCallback(
@@ -88,8 +94,11 @@ export function RadioStationModal({
     if (renaming) {
       const title = name.trim();
       if (title === "") return;
-      onRename(renaming.id, title);
-      onClose();
+      if (onRename(renaming.id, title)) {
+        onClose();
+      } else {
+        setError(t("webRadio.addStation.errors.notSaved"));
+      }
       return;
     }
     if (url.trim() === "") return;
@@ -97,7 +106,7 @@ export function RadioStationModal({
     setError(null);
     try {
       const station = await probeRadioStation(url.trim());
-      onAdd({
+      const saved = onAdd({
         // The id the plugin plays without the network, and the one the
         // player bar's star builds from a playing stream — so the star
         // lights up on this station like on any other.
@@ -108,13 +117,17 @@ export function RadioStationModal({
         album: null,
         artworkUrl: null,
       });
-      onClose();
+      if (saved) {
+        onClose();
+      } else {
+        setError(t("webRadio.addStation.errors.notSaved"));
+      }
     } catch (err) {
       showError(err);
     } finally {
       setBusy(false);
     }
-  }, [busy, name, onAdd, onClose, onRename, renaming, showError, url]);
+  }, [busy, name, onAdd, onClose, onRename, renaming, showError, t, url]);
 
   if (!isOpen) return null;
 
@@ -129,7 +142,7 @@ export function RadioStationModal({
       animate={{ opacity: 1 }}
       transition={{ duration: 0.18, ease: "easeOut" }}
       className="fixed inset-0 z-100 bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
-      onClick={() => !busy && onClose()}
+      onClick={close}
     >
       <motion.div
         ref={dialogRef}
@@ -142,7 +155,10 @@ export function RadioStationModal({
         className="relative w-full max-w-md rounded-3xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-surface-dark-elevated"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* `noValidate`: a URL without a scheme is refused by the backend
+            with a translated reason, not by the webview's own bubble. */}
         <form
+          noValidate
           onSubmit={(e) => {
             e.preventDefault();
             void handleSubmit();
@@ -164,7 +180,7 @@ export function RadioStationModal({
             </div>
             <button
               type="button"
-              onClick={onClose}
+              onClick={close}
               disabled={busy}
               aria-label={t("common.close")}
               className="p-2 rounded-full text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
@@ -228,7 +244,7 @@ export function RadioStationModal({
           <div className="flex items-center justify-end gap-2 mt-5">
             <button
               type="button"
-              onClick={onClose}
+              onClick={close}
               disabled={busy}
               className="px-4 py-2 rounded-xl text-sm font-medium text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors disabled:opacity-50"
             >

@@ -2976,7 +2976,8 @@
         "unreachable": "La emisora no responde en esta dirección.",
         "notAudio": "Esta dirección no lleva a un flujo de audio.",
         "hls": "Es una lista HLS: solo se admiten flujos continuos.",
-        "noStream": "La lista no contiene ningún flujo http:// o https://."
+        "noStream": "La lista no contiene ningún flujo http:// o https://.",
+        "notSaved": "Tus favoritos aún no se han cargado; inténtalo de nuevo en un momento."
       }
     }
   },
