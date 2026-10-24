@@ -144,19 +144,42 @@ fn keep(out: &mut Vec<(String, String)>, key: &str, value: &str) {
         // joining would make a cell that is right for nobody.
         return;
     }
-    let value = if value.len() > MAX_VALUE {
-        // Cut on a character boundary, not a byte one.
-        let end = value
-            .char_indices()
-            .map(|(i, _)| i)
-            .take_while(|i| *i <= MAX_VALUE)
-            .last()
-            .unwrap_or(0);
-        &value[..end]
+    out.push((key.to_string(), clip_value(value).to_string()));
+}
+
+/// The key the composer is stored under — the name [`generic_into`]
+/// gives `ItemKey::Composer`, whatever container it came from. The tag
+/// editor writes the same row, so an edit and the next scan agree on
+/// one column rather than offering two.
+pub const COMPOSER_KEY: &str = "COMPOSER";
+
+/// A value as it is stored: trimmed, and cut to [`MAX_VALUE`] on a
+/// character boundary. `None` when nothing is left — a key with an
+/// empty value is no row at all, the rule [`keep`] applies.
+///
+/// Public for the tag editor, which writes the composer straight into
+/// the table and has to store what a rescan of the file would.
+pub fn stored_value(value: &str) -> Option<&str> {
+    let value = value.trim();
+    if value.is_empty() {
+        None
     } else {
-        value
-    };
-    out.push((key.to_string(), value.to_string()));
+        Some(clip_value(value))
+    }
+}
+
+fn clip_value(value: &str) -> &str {
+    if value.len() <= MAX_VALUE {
+        return value;
+    }
+    // Cut on a character boundary, not a byte one.
+    let end = value
+        .char_indices()
+        .map(|(i, _)| i)
+        .take_while(|i| *i <= MAX_VALUE)
+        .last()
+        .unwrap_or(0);
+    &value[..end]
 }
 
 /// Read the custom tags of one file.

@@ -258,6 +258,44 @@ pub async fn get_track_artists(
     Ok(names)
 }
 
+/// The two credits the properties dialog edits that the `Track` row does
+/// not carry.
+#[derive(Debug, Serialize)]
+pub struct TrackCredits {
+    /// The album's Album Artist, as `album.album_artist` holds it — the
+    /// tag that keyed its grouping. `None` when the album took its artist
+    /// from a track's first artist, which is no Album Artist at all.
+    pub album_artist: Option<String>,
+    /// The composer, from the `track_tag` row the scanner fills.
+    pub composer: Option<String>,
+}
+
+/// The Album Artist and the composer of a track, to pre-fill the
+/// properties dialog with. Like the genres and the credits, a field that
+/// opened empty would be sent back as "clear it" — so the dialog gets the
+/// stored values and sends a field only when it changed.
+#[tauri::command]
+pub async fn get_track_credits(
+    state: tauri::State<'_, AppState>,
+    track_id: i64,
+) -> AppResult<TrackCredits> {
+    let pool = state.require_profile_pool().await?;
+    let (album_artist, composer) = sqlx::query_as::<_, (Option<String>, Option<String>)>(
+        "SELECT (SELECT al.album_artist
+                   FROM track t JOIN album al ON al.id = t.album_id
+                  WHERE t.id = ?1),
+                (SELECT value FROM track_tag WHERE track_id = ?1 AND key = ?2)",
+    )
+    .bind(track_id)
+    .bind(waveflow_core::scanner::extra_tags::COMPOSER_KEY)
+    .fetch_one(&*pool)
+    .await?;
+    Ok(TrackCredits {
+        album_artist,
+        composer,
+    })
+}
+
 /// Text search over title / album / artist, up to 50 tracks.
 ///
 /// The shape of the query — which route it takes, how each term is

@@ -1213,13 +1213,17 @@
       "artist": "Artis",
       "album": "Album",
       "year": "Tahun",
-      "genre": "Genre"
+      "genre": "Genre",
+      "albumArtist": "Artis album",
+      "composer": "Komposer"
     },
     "placeholders": {
       "artist": "mis. Daft Punk, Justice",
       "album": "Nama album",
       "year": "mis. 2026",
-      "genre": "mis. Electronic; Ambient"
+      "genre": "mis. Electronic; Ambient",
+      "albumArtist": "mis. Daft Punk",
+      "composer": "mis. Maurice Ravel"
     },
     "result": {
       "updated": "{{count}} lagu diperbarui",
@@ -1273,7 +1277,9 @@
       "trackNumber": "No. lagu",
       "discNumber": "No. disk",
       "genre": "Genre",
-      "genrePlaceholder": "Pop; Rock; Jazz…"
+      "genrePlaceholder": "Pop; Rock; Jazz…",
+      "albumArtist": "Artis album",
+      "composer": "Komposer"
     },
     "changeCover": "Ganti sampul",
     "suggestions": {

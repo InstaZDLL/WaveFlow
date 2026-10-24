@@ -1370,13 +1370,17 @@
       "artist": "الفنان",
       "album": "الألبوم",
       "year": "السنة",
-      "genre": "النوع"
+      "genre": "النوع",
+      "albumArtist": "فنان الألبوم",
+      "composer": "الملحن"
     },
     "placeholders": {
       "artist": "مثال: Daft Punk، Justice",
       "album": "اسم الألبوم",
       "year": "مثال: 2026",
-      "genre": "مثال: إلكتروني; أمبينت"
+      "genre": "مثال: إلكتروني; أمبينت",
+      "albumArtist": "مثال: Daft Punk",
+      "composer": "مثال: Maurice Ravel"
     },
     "result": {
       "updated": "عدد المقاطع المحدّثة: {{count}}",
@@ -1430,7 +1434,9 @@
       "trackNumber": "رقم المقطع",
       "discNumber": "رقم القرص",
       "genre": "النوع",
-      "genrePlaceholder": "بوب; روك; جاز…"
+      "genrePlaceholder": "بوب; روك; جاز…",
+      "albumArtist": "فنان الألبوم",
+      "composer": "الملحن"
     },
     "changeCover": "تغيير الغلاف",
     "suggestions": {

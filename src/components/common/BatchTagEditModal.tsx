@@ -27,7 +27,13 @@ interface BatchTagEditModalProps {
  * only enabled fields to the backend, and the backend treats the
  * remaining fields as `None` (= leave untouched).
  */
-type FieldId = "artist" | "album" | "year" | "genre";
+type FieldId =
+  | "artist"
+  | "album"
+  | "albumArtist"
+  | "composer"
+  | "year"
+  | "genre";
 
 interface FieldState {
   enabled: boolean;
@@ -37,6 +43,8 @@ interface FieldState {
 const FIELD_CONFIG: { id: FieldId; type: "text" | "number" }[] = [
   { id: "artist", type: "text" },
   { id: "album", type: "text" },
+  { id: "albumArtist", type: "text" },
+  { id: "composer", type: "text" },
   { id: "year", type: "number" },
   { id: "genre", type: "text" },
 ];
@@ -45,6 +53,8 @@ function blank(): Record<FieldId, FieldState> {
   return {
     artist: { enabled: false, value: "" },
     album: { enabled: false, value: "" },
+    albumArtist: { enabled: false, value: "" },
+    composer: { enabled: false, value: "" },
     year: { enabled: false, value: "" },
     genre: { enabled: false, value: "" },
   };
@@ -95,6 +105,12 @@ export function BatchTagEditModal({
       const edit: TrackEdit = {};
       if (fields.artist.enabled) edit.artist = fields.artist.value.trim();
       if (fields.album.enabled) edit.album = fields.album.value.trim();
+      // The Album Artist is the field a selection is most often fixed
+      // for: set on every track of a record, it moves them into one album.
+      if (fields.albumArtist.enabled) {
+        edit.album_artist = fields.albumArtist.value.trim();
+      }
+      if (fields.composer.enabled) edit.composer = fields.composer.value.trim();
       if (fields.year.enabled) {
         const parsed = parseInt(fields.year.value, 10);
         edit.year = Number.isFinite(parsed) ? parsed : 0;

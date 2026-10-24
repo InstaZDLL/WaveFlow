@@ -1260,13 +1260,17 @@
       "artist": "Artista",
       "album": "Album",
       "year": "Anno",
-      "genre": "Genere"
+      "genre": "Genere",
+      "albumArtist": "Artista dell'album",
+      "composer": "Compositore"
     },
     "placeholders": {
       "artist": "es. Daft Punk, Justice",
       "album": "Nome dell'album",
       "year": "es. 2026",
-      "genre": "es. Electronic; Ambient"
+      "genre": "es. Electronic; Ambient",
+      "albumArtist": "es. Daft Punk",
+      "composer": "es. Maurice Ravel"
     },
     "result": {
       "updated": "Brani aggiornati: {{count}}",
@@ -1320,7 +1324,9 @@
       "trackNumber": "N. traccia",
       "discNumber": "N. disco",
       "genre": "Genere",
-      "genrePlaceholder": "Pop; Rock; Jazz…"
+      "genrePlaceholder": "Pop; Rock; Jazz…",
+      "albumArtist": "Artista dell'album",
+      "composer": "Compositore"
     },
     "changeCover": "Cambia copertina",
     "suggestions": {

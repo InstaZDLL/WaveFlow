@@ -281,12 +281,12 @@ fn extract_dsd_file(
         title,
         artist: meta.artist,
         album: meta.album,
-        // The DSF ID3v2 blob / DFF DIIN chunks could carry these but
-        // our reader doesn't surface them today; the album grouping
-        // falls back to the per-track Artist exactly like before for
-        // DSD files. Tagging DSD rips is niche enough that this is
-        // OK as a v1 limitation.
-        album_artist: None,
+        // The Album Artist is read (`TPE2` in a DSF, or in a DFF's ID3
+        // chunk), because the tag editor writes it there and a scan that
+        // ignored it regrouped the track under its first artist. The
+        // compilation flag still is not: the reader does not surface it,
+        // and the album grouping falls back as it always has.
+        album_artist: meta.album_artist,
         is_compilation: false,
         // The id3 crate hands TCON back whole: an ID3v2.4 multi-value
         // frame keeps its NUL separators, which `split_genres` splits.
@@ -310,18 +310,31 @@ fn extract_dsd_file(
         // takes over via extract_folder_cover (called below).
         cover_art: extract_folder_cover(path, artwork_dir),
         rating: None,
-        // Same limitation as `album_artist` above: the DSF ID3v2 blob
-        // can carry ReplayGain frames, but our DSD reader doesn't
-        // surface arbitrary tag items. A DSD track falls back to the
+        // The DSF ID3v2 blob can carry ReplayGain frames, but our DSD
+        // reader surfaces only the fields it models, not arbitrary tag
+        // items. A DSD track falls back to the
         // analysis pass like it did before.
         replay_gain: ReplayGainTags::default(),
         // Same limitation again: the DSD reader surfaces the handful of
         // fields it models and nothing else, so there is no remainder
-        // to offer as a custom column (#588). `Some(empty)` and not
-        // `None`: this is "read, and there are none", which is true --
+        // to offer as a custom column (#588) -- bar the composer, which
+        // the tag editor writes and so has to come back under the key
+        // every other container gives it. Always `Some` and never
+        // `None`: this is "read, and these are all", which is true --
         // `None` would mean "could not read", and would stop the
         // scanner from ever clearing a stale row.
-        extra_tags: Some(Vec::new()),
+        extra_tags: Some(
+            meta.composer
+                .as_deref()
+                .and_then(waveflow_core::scanner::extra_tags::stored_value)
+                .map(|composer| {
+                    vec![(
+                        waveflow_core::scanner::extra_tags::COMPOSER_KEY.to_string(),
+                        composer.to_string(),
+                    )]
+                })
+                .unwrap_or_default(),
+        ),
     })
 }
 

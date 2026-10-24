@@ -19,6 +19,7 @@ import {
   formatDuration,
   getTrack,
   getTrackArtists,
+  getTrackCredits,
   getTrackFileStamp,
   getTrackGenres,
   isFileChangedOnDisk,
@@ -27,6 +28,7 @@ import {
   updateTrackCover,
   updateTrackTags,
   type Track,
+  type TrackCredits,
   type TrackEdit,
 } from "../../lib/tauri/track";
 import { StarRating } from "./StarRating";
@@ -174,6 +176,10 @@ export function TrackPropertiesModal({
   const [genreTouched, setGenreTouched] = useState(false);
   // The credited artists, from their own fetch: see `getTrackArtists`.
   const [artists, setArtists] = useState<string[] | null>(null);
+  // Album Artist and composer, from their own fetch too: neither is on
+  // the `Track` row. `null` until it lands, which keeps both fields
+  // locked and out of the payload, for the reason the genre is.
+  const [credits, setCredits] = useState<TrackCredits | null>(null);
   // The track as it is now, for the credits fetch: a refresh can land
   // while it is in flight, and the display form to replace is the new one.
   const trackRef = useRef(track);
@@ -194,6 +200,8 @@ export function TrackPropertiesModal({
     track_number: string;
     disc_number: string;
     genre: string;
+    album_artist: string;
+    composer: string;
   }>({
     title: "",
     artist: "",
@@ -202,6 +210,8 @@ export function TrackPropertiesModal({
     track_number: "",
     disc_number: "",
     genre: "",
+    album_artist: "",
+    composer: "",
   });
 
   // Fetch the cached analysis whenever the dialog opens on a new
@@ -296,6 +306,11 @@ export function TrackPropertiesModal({
     (q) => searchAlbums(q, null, SUGGESTION_LIMIT),
     (a) => a.title,
   );
+  const albumArtistHits = useSearchHits(
+    editing ? form.album_artist : "",
+    (q) => searchArtists(q, null, SUGGESTION_LIMIT),
+    (a) => a.name,
+  );
 
   const inLibrary = t("trackProperties.suggestions.library");
   const genreGroups: SuggestionGroup[] = [
@@ -307,6 +322,9 @@ export function TrackPropertiesModal({
   ];
   const albumGroups: SuggestionGroup[] = [
     { label: inLibrary, values: albumHits, matched: true },
+  ];
+  const albumArtistGroups: SuggestionGroup[] = [
+    { label: inLibrary, values: albumArtistHits, matched: true },
   ];
 
   // The genre isn't on the `Track` row (it lives in `track_genre`), so
@@ -349,6 +367,23 @@ export function TrackPropertiesModal({
       .catch((err) =>
         console.error("[TrackProperties] get_track_artists failed", err),
       );
+    getTrackCredits(trackId)
+      .then((row) => {
+        if (cancelled) return;
+        setCredits(row);
+        // Same rule as the genre: a value already typed is the user's.
+        setForm((prev) => ({
+          ...prev,
+          album_artist:
+            prev.album_artist === ""
+              ? (row.album_artist ?? "")
+              : prev.album_artist,
+          composer: prev.composer === "" ? (row.composer ?? "") : prev.composer,
+        }));
+      })
+      .catch((err) =>
+        console.error("[TrackProperties] get_track_credits failed", err),
+      );
     return () => {
       cancelled = true;
     };
@@ -381,6 +416,9 @@ export function TrackPropertiesModal({
         // empty and the save omits the field entirely, rather than
         // sending an empty string the backend reads as "clear it".
         genre: prev.genre,
+        // Likewise from their own fetch.
+        album_artist: prev.album_artist,
+        composer: prev.composer,
       }));
       setEditing(false);
     }, 0);
@@ -451,6 +489,21 @@ export function TrackPropertiesModal({
       if (sendingArtist || album !== (track.album_title ?? "").trim()) {
         edit.album = album;
       }
+      // Album Artist and composer, only once their fetch landed and only
+      // when changed. The Album Artist moves the track into another
+      // album, so a save for the title alone must never send it.
+      const albumArtist = form.album_artist.trim();
+      const composer = form.composer.trim();
+      const sendingAlbumArtist =
+        credits != null && albumArtist !== (credits.album_artist ?? "").trim();
+      const sendingComposer =
+        credits != null && composer !== (credits.composer ?? "").trim();
+      if (sendingAlbumArtist) edit.album_artist = albumArtist;
+      if (sendingComposer) edit.composer = composer;
+      // A new artist or album moves the track too, into an album that
+      // may have an Album Artist of its own: re-read after those as well.
+      const sendingCredits =
+        sendingAlbumArtist || sendingComposer || edit.album !== undefined;
       const stamp = await updateTrackTags(track.id, edit, fileStamp);
       // Straight away rather than through the refresh `track:updated`
       // triggers: a second save made before that lands must match the
@@ -469,6 +522,22 @@ export function TrackPropertiesModal({
         } catch (err) {
           console.error("[TrackProperties] get_track_genres failed", err);
           setGenres(null);
+        }
+      }
+      if (sendingCredits) {
+        // Re-read: the album the track landed in may already have had an
+        // Album Artist, which is the one it now shows.
+        try {
+          const row = await getTrackCredits(track.id);
+          setCredits(row);
+          setForm((prev) => ({
+            ...prev,
+            album_artist: row.album_artist ?? "",
+            composer: row.composer ?? "",
+          }));
+        } catch (err) {
+          console.error("[TrackProperties] get_track_credits failed", err);
+          setCredits(null);
         }
       }
       if (sendingArtist) {
@@ -521,10 +590,11 @@ export function TrackPropertiesModal({
       // that write. When the two differ, nothing of this reload is kept.
       const before = await getTrackFileStamp(track.id).catch(() => null);
       await rereadTrackFolder(track.id);
-      const [fresh, genreRows, artistRows] = await Promise.all([
+      const [fresh, genreRows, artistRows, creditRow] = await Promise.all([
         getTrack(track.id),
         getTrackGenres(track.id),
         getTrackArtists(track.id),
+        getTrackCredits(track.id),
       ]);
       const after = await getTrackFileStamp(track.id).catch(() => null);
       setStampUnavailable(after == null);
@@ -543,11 +613,15 @@ export function TrackPropertiesModal({
       setGenres(genreRows);
       setGenreTouched(false);
       setArtists(artistRows.length > 0 ? artistRows : null);
-      // The hydration below carries the genre over and reads the
-      // credits from their ref, so both are put in place here.
+      setCredits(creditRow);
+      // The hydration below carries the genre, the Album Artist and the
+      // composer over and reads the credits from their ref, so all of
+      // them are put in place here.
       setForm((prev) => ({
         ...prev,
         genre: genreRows.join("; "),
+        album_artist: creditRow.album_artist ?? "",
+        composer: creditRow.composer ?? "",
         artist:
           artistRows.length > 0
             ? artistRows.join("; ")
@@ -823,6 +897,28 @@ export function TrackPropertiesModal({
                     inputClassName="w-full px-2 py-1 rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 disabled:cursor-not-allowed disabled:opacity-60"
                   />
                 </div>
+                <div className="flex items-center gap-4 px-3 py-2 text-sm">
+                  <span className="w-32 shrink-0 text-zinc-500 dark:text-zinc-400">
+                    {t("trackProperties.fields.albumArtist")}
+                  </span>
+                  <TagCombobox
+                    value={form.album_artist}
+                    onChange={(v) => setForm((p) => ({ ...p, album_artist: v }))}
+                    groups={albumArtistGroups}
+                    placeholder={t("trackProperties.fields.albumArtist")}
+                    ariaLabel={t("trackProperties.fields.albumArtist")}
+                    // Locked until the stored value is known, like the genre.
+                    disabled={credits == null || saving}
+                    inputClassName="w-full px-2 py-1 rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 disabled:cursor-not-allowed disabled:opacity-60"
+                  />
+                </div>
+                <EditRow
+                  label={t("trackProperties.fields.composer")}
+                  value={form.composer}
+                  onChange={(v) => setForm((p) => ({ ...p, composer: v }))}
+                  placeholder={t("trackProperties.fields.composer")}
+                  disabled={credits == null || saving}
+                />
                 <Row
                   label={t("trackProperties.duration")}
                   value={formatDuration(track.duration_ms)}
@@ -849,6 +945,14 @@ export function TrackPropertiesModal({
                       ? "—"
                       : genres.join("; ")
                   }
+                />
+                <Row
+                  label={t("trackProperties.fields.albumArtist")}
+                  value={credits?.album_artist || "—"}
+                />
+                <Row
+                  label={t("trackProperties.fields.composer")}
+                  value={credits?.composer || "—"}
                 />
                 <Row
                   label={t("trackProperties.duration")}
