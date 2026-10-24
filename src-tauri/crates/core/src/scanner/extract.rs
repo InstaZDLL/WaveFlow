@@ -233,6 +233,13 @@ pub struct ExtractedFile {
     pub year: Option<i64>,
     pub track_number: Option<i64>,
     pub disc_number: Option<i64>,
+    /// The track total the tag carries (`TRCK` "4/12", `TRACKTOTAL`,
+    /// `trkn`) — the size of the track's disc. Read for the album
+    /// completeness check, which cannot see a missing last track without
+    /// it.
+    pub track_total: Option<i64>,
+    /// The disc total (`TPOS` "1/2", `DISCTOTAL`, `disk`).
+    pub disc_total: Option<i64>,
     pub duration_ms: i64,
     pub bitrate: Option<i64>,
     pub sample_rate: Option<i64>,

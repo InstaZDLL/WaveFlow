@@ -680,6 +680,10 @@
         "probable_fake_lossless": {
           "label": "가짜 무손실 의심",
           "help": "고음이 MP3처럼 끊기는 무손실 파일: 손실 압축 파일로 만든 것으로 보입니다."
+        },
+        "album_missing_tracks": {
+          "label": "첫 트랙 또는 마지막 트랙 누락",
+          "help": "파일의 트랙 번호와 총 개수로 보아 디스크의 첫 트랙이나 마지막 트랙, 또는 디스크 전체가 없습니다."
         }
       },
       "phantoms": {
@@ -1318,7 +1322,10 @@
     "emptyTracksTitle": "곡 없음",
     "emptyTracksDescription": "이 앨범에는 수록된 곡이 없습니다.",
     "setMotionCover": "모션 커버",
-    "fetchTags": "태그 가져오기"
+    "fetchTags": "태그 가져오기",
+    "missingTracks": "누락된 트랙: {{list}}",
+    "missingDiscTracks": "디스크 {{disc}} — 누락된 트랙: {{list}}",
+    "missingDiscs": "누락된 디스크: {{list}}"
   },
   "artistDetail": {
     "badge": "아티스트",

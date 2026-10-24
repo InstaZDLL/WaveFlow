@@ -9,7 +9,9 @@ import {
   ImageIcon,
   DownloadCloud,
   Film,
+  TriangleAlert,
 } from "lucide-react";
+import { formatNumberList } from "../../lib/albumCompleteness";
 import {
   remoteGetAlbum,
   remotePlayTracks,
@@ -408,6 +410,29 @@ export function AlbumDetailView({
   ].sort((a, b) => a - b);
   const isMultiDisc = discNumbers.length > 1;
 
+  // What the album is missing, one line per disc that misses tracks plus
+  // one for the discs missing whole. A single-disc album drops the disc
+  // number: "Missing tracks: 1, 12".
+  const completeness = album.completeness;
+  const missingLines: string[] = [];
+  if (completeness) {
+    for (const disc of completeness.discs) {
+      const list = formatNumberList(disc.tracks);
+      missingLines.push(
+        isMultiDisc || completeness.missing_discs.length > 0
+          ? t("albumDetail.missingDiscTracks", { disc: disc.disc, list })
+          : t("albumDetail.missingTracks", { list }),
+      );
+    }
+    if (completeness.missing_discs.length > 0) {
+      missingLines.push(
+        t("albumDetail.missingDiscs", {
+          list: formatNumberList(completeness.missing_discs),
+        }),
+      );
+    }
+  }
+
   return (
     <div className="space-y-6 animate-fade-in pb-12">
       {/* Header. Sized for 1080p / 125 % DPI: cover at 11rem (176 px)
@@ -495,6 +520,27 @@ export function AlbumDetailView({
             <span>·</span>
             <span>{formatDuration(album.total_duration_ms)}</span>
           </div>
+
+          {/* Missing tracks — the album completeness check. Amber, not
+              red: it describes the files the library holds, it is not
+              an error. */}
+          {missingLines.length > 0 && (
+            <div
+              data-album-missing
+              className="flex items-start gap-1.5 text-xs text-amber-600 dark:text-amber-400 mb-3"
+            >
+              <TriangleAlert
+                size={14}
+                className="shrink-0 mt-px"
+                aria-hidden="true"
+              />
+              <div>
+                {missingLines.map((line) => (
+                  <div key={line}>{line}</div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Genres */}
           {album.genres.length > 0 && (

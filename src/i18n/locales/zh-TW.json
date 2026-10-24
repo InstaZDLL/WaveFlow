@@ -680,6 +680,10 @@
         "probable_fake_lossless": {
           "label": "疑似假無損",
           "help": "高頻像 MP3 一樣被截斷的無損檔案：可能由有損檔案轉換而來。"
+        },
+        "album_missing_tracks": {
+          "label": "缺少首尾曲目",
+          "help": "根據檔案中的編號和總數，某張碟片缺少第一首或最後一首曲目，或缺少整張碟片。"
         }
       },
       "phantoms": {
@@ -1318,7 +1322,10 @@
     "emptyTracksTitle": "沒有任何曲目",
     "emptyTracksDescription": "這張專輯中沒有任何可供聆聽的曲目。",
     "setMotionCover": "動態封面",
-    "fetchTags": "取得標籤"
+    "fetchTags": "取得標籤",
+    "missingTracks": "缺少的曲目：{{list}}",
+    "missingDiscTracks": "碟片 {{disc}} — 缺少的曲目：{{list}}",
+    "missingDiscs": "缺少的碟片：{{list}}"
   },
   "artistDetail": {
     "badge": "藝人",

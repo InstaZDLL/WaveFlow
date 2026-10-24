@@ -714,6 +714,10 @@
         "probable_fake_lossless": {
           "label": "Prováveis falsos lossless",
           "help": "Arquivos sem perdas cujos agudos param como os de um MP3: provavelmente feitos a partir de um arquivo com perdas."
+        },
+        "album_missing_tracks": {
+          "label": "Faltam as primeiras ou últimas faixas",
+          "help": "Falta a primeira ou a última faixa de um disco, ou um disco inteiro, segundo a numeração e os totais que os arquivos indicam."
         }
       },
       "phantoms": {
@@ -1368,7 +1372,10 @@
     "emptyTracksTitle": "Nenhuma faixa",
     "emptyTracksDescription": "Este álbum não contém nenhuma faixa disponível.",
     "setMotionCover": "Capa animada",
-    "fetchTags": "Buscar tags"
+    "fetchTags": "Buscar tags",
+    "missingTracks": "Faixas faltando: {{list}}",
+    "missingDiscTracks": "Disco {{disc}} — faixas faltando: {{list}}",
+    "missingDiscs": "Discos faltando: {{list}}"
   },
   "artistDetail": {
     "badge": "Artista",

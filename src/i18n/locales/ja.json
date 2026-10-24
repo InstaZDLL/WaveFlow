@@ -680,6 +680,10 @@
         "probable_fake_lossless": {
           "label": "偽ロスレスの可能性",
           "help": "高音域が MP3 のように途切れているロスレスファイル。非可逆ファイルから作られた可能性があります。"
+        },
+        "album_missing_tracks": {
+          "label": "最初または最後のトラックが欠けている",
+          "help": "ファイルの番号と総数から見て、ディスクの最初または最後のトラック、あるいはディスクそのものが欠けています。"
         }
       },
       "phantoms": {
@@ -1318,7 +1322,10 @@
     "emptyTracksTitle": "曲なし",
     "emptyTracksDescription": "このアルバムには収録曲が1曲もありません。",
     "setMotionCover": "モーションカバー",
-    "fetchTags": "タグを取得"
+    "fetchTags": "タグを取得",
+    "missingTracks": "欠けているトラック：{{list}}",
+    "missingDiscTracks": "ディスク {{disc}} — 欠けているトラック：{{list}}",
+    "missingDiscs": "欠けているディスク：{{list}}"
   },
   "artistDetail": {
     "badge": "アーティスト",

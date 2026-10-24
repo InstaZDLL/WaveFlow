@@ -713,6 +713,10 @@
         "probable_fake_lossless": {
           "label": "Probables falsos lossless",
           "help": "Archivos sin pérdida cuyos agudos se cortan como los de un MP3: probablemente creados a partir de un archivo con pérdida."
+        },
+        "album_missing_tracks": {
+          "label": "Faltan las primeras o últimas pistas",
+          "help": "A un disco le falta la primera o la última pista, o falta un disco entero, según la numeración y los totales que llevan los archivos."
         }
       },
       "phantoms": {
@@ -1367,7 +1371,10 @@
     "emptyTracksTitle": "Sin pistas",
     "emptyTracksDescription": "Este álbum no contiene pistas disponibles.",
     "setMotionCover": "Portada animada",
-    "fetchTags": "Obtener etiquetas"
+    "fetchTags": "Obtener etiquetas",
+    "missingTracks": "Pistas que faltan: {{list}}",
+    "missingDiscTracks": "Disco {{disc}} — pistas que faltan: {{list}}",
+    "missingDiscs": "Discos que faltan: {{list}}"
   },
   "artistDetail": {
     "badge": "Artista",

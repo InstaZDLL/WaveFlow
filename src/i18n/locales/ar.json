@@ -779,6 +779,10 @@
         "probable_fake_lossless": {
           "label": "ملفات lossless مزيفة على الأرجح",
           "help": "ملفات بلا فقدان تتوقف تردداتها العالية كما في ملف MP3: على الأرجح مصنوعة من ملف مضغوط بفقدان."
+        },
+        "album_missing_tracks": {
+          "label": "نقص المقاطع الأولى أو الأخيرة",
+          "help": "ينقص قرصًا مقطعُه الأول أو الأخير، أو ينقص قرص كامل، بحسب الترقيم والمجاميع المدوّنة في الملفات."
         }
       },
       "summary_zero": "لا نقاط للتصحيح",
@@ -1481,7 +1485,10 @@
     "trackCount_two": "مقطعان",
     "trackCount_few": "{{count}} مقاطع",
     "trackCount_many": "{{count}} مقطعًا",
-    "fetchTags": "جلب الوسوم"
+    "fetchTags": "جلب الوسوم",
+    "missingTracks": "المقاطع الناقصة: {{list}}",
+    "missingDiscTracks": "القرص {{disc}} — المقاطع الناقصة: {{list}}",
+    "missingDiscs": "الأقراص الناقصة: {{list}}"
   },
   "artistDetail": {
     "badge": "الفنان",

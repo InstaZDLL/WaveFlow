@@ -294,6 +294,10 @@ fn extract_dsd_file(
         year: meta.year,
         track_number: meta.track_number,
         disc_number: meta.disc_number,
+        // The DSD reader does not surface the totals; the completeness
+        // check judges these albums on their numbers alone.
+        track_total: None,
+        disc_total: None,
         duration_ms: layout.duration_ms() as i64,
         // No bitrate concept for DSD — leave None rather than
         // computing rate * channels (would mislead the Hi-Res badge).
@@ -462,6 +466,8 @@ fn untagged_file(
         year: None,
         track_number: None,
         disc_number: None,
+        track_total: None,
+        disc_total: None,
         duration_ms: stream.duration_ms,
         bitrate: None,
         sample_rate: stream.sample_rate,
@@ -560,6 +566,8 @@ fn extract_file(
         year,
         track_number,
         disc_number,
+        track_total,
+        disc_total,
         cover_art,
         rating,
         musical_key,
@@ -579,6 +587,8 @@ fn extract_file(
             tag.date().map(|d| d.year as i64),
             tag.track().map(|n| n as i64),
             tag.disk().map(|n| n as i64),
+            tag.track_total().map(|n| n as i64),
+            tag.disk_total().map(|n| n as i64),
             extract_cover(tag, artwork_dir),
             extract_rating(tag),
             extract_musical_key(tag),
@@ -591,6 +601,8 @@ fn extract_file(
             None,
             false,
             Vec::new(),
+            None,
+            None,
             None,
             None,
             None,
@@ -644,6 +656,8 @@ fn extract_file(
         year,
         track_number,
         disc_number,
+        track_total,
+        disc_total,
         duration_ms,
         bitrate,
         sample_rate,
@@ -1008,6 +1022,19 @@ pub(crate) async fn scan_folder_inner(
         0
     };
 
+    // The track and disc totals (album completeness) are read since a
+    // library already holds rows without them, and the fast path never
+    // reopens an unchanged file: one forced pass per folder fills them,
+    // with the genre pass's marker and retry budget.
+    let totals_backfill_key = format!("scan.totals_backfill_done.{folder_id}");
+    let totals_backfill_pending = marker_absent(pool, &totals_backfill_key, folder_id).await;
+    let totals_backfill_attempt_key = format!("scan.totals_backfill_attempts.{folder_id}");
+    let totals_backfill_attempts = if totals_backfill_pending {
+        read_counter(pool, &totals_backfill_attempt_key, folder_id).await
+    } else {
+        0
+    };
+
     let meta_load_ms = t_scan.elapsed().as_millis();
 
     let total_files = audio_files.len();
@@ -1089,6 +1116,7 @@ pub(crate) async fn scan_folder_inner(
                         && !needs_rg_backfill
                         && !tag_backfill_pending
                         && !genre_backfill_pending
+                        && !totals_backfill_pending
                     {
                         summary.skipped += 1;
                         maybe_emit_progress(
@@ -1250,6 +1278,7 @@ pub(crate) async fn scan_folder_inner(
     // runs twice.
     let mut tag_backfill_failed = false;
     let mut genre_backfill_failed = false;
+    let mut totals_backfill_failed = false;
 
     while let Some((path, result)) = extraction_stream.next().await {
         if cancelled() {
@@ -1303,6 +1332,7 @@ pub(crate) async fn scan_folder_inner(
                 // extraction succeeded and only the tag read failed,
                 // which nothing else reports and nothing else retries.
                 genre_backfill_failed |= genre_backfill_pending;
+                totals_backfill_failed |= totals_backfill_pending;
                 summary.errors += 1;
                 emit_tick(processed, &summary, &path);
                 continue;
@@ -1313,6 +1343,7 @@ pub(crate) async fn scan_folder_inner(
                     rg_backfill_failed = true;
                 }
                 genre_backfill_failed |= genre_backfill_pending;
+                totals_backfill_failed |= totals_backfill_pending;
                 summary.errors += 1;
                 emit_tick(processed, &summary, &path);
                 continue;
@@ -1408,6 +1439,8 @@ pub(crate) async fn scan_folder_inner(
                             rg_track_peak       = ?,
                             rg_album_gain_db    = ?,
                             rg_album_peak       = ?,
+                            track_total         = ?,
+                            disc_total          = ?,
                             is_available        = 1
                       WHERE id = ?",
                 )
@@ -1435,6 +1468,12 @@ pub(crate) async fn scan_folder_inner(
                 .bind(extracted.replay_gain.track_peak)
                 .bind(extracted.replay_gain.album_gain_db)
                 .bind(extracted.replay_gain.album_peak)
+                // Assigned too, and for the same two reasons: this is the
+                // only branch a library scanned before the columns existed
+                // reaches (on a deep rescan), and a tagger may have removed
+                // a total.
+                .bind(extracted.track_total)
+                .bind(extracted.disc_total)
                 .bind(existing_track_id)
                 .execute(&mut *tx)
                 .await?;
@@ -1617,6 +1656,7 @@ pub(crate) async fn scan_folder_inner(
                         file_hash = ?, file_size = ?, file_modified = ?,
                         title = ?, title_from_filename = ?, album_id = ?, primary_artist = ?,
                         track_number = ?, disc_number = ?, year = ?,
+                        track_total = ?, disc_total = ?,
                         duration_ms = ?, bitrate = ?, sample_rate = ?, channels = ?,
                         bit_depth = ?, codec = ?,
                         musical_key = ?,
@@ -1642,6 +1682,8 @@ pub(crate) async fn scan_folder_inner(
                 .bind(extracted.track_number)
                 .bind(extracted.disc_number)
                 .bind(extracted.year)
+                .bind(extracted.track_total)
+                .bind(extracted.disc_total)
                 .bind(extracted.duration_ms)
                 .bind(extracted.bitrate)
                 .bind(extracted.sample_rate)
@@ -1801,14 +1843,14 @@ pub(crate) async fn scan_folder_inner(
                 "INSERT INTO track (
                     library_id, folder_id, file_path, file_hash, file_size, file_modified,
                     title, title_from_filename, album_id, primary_artist,
-                    track_number, disc_number, year,
+                    track_number, disc_number, year, track_total, disc_total,
                     duration_ms, bitrate, sample_rate, channels,
                     bit_depth, codec, musical_key,
                     rating,
                     rg_track_gain_db, rg_track_peak, rg_album_gain_db, rg_album_peak,
                     added_at, pinyin, is_available
                  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                           ?, ?, ?, ?, ?, ?, ?, 1)",
+                           ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)",
             )
             .bind(library_id)
             .bind(folder_id)
@@ -1823,6 +1865,8 @@ pub(crate) async fn scan_folder_inner(
             .bind(extracted.track_number)
             .bind(extracted.disc_number)
             .bind(extracted.year)
+            .bind(extracted.track_total)
+            .bind(extracted.disc_total)
             .bind(extracted.duration_ms)
             .bind(extracted.bitrate)
             .bind(extracted.sample_rate)
@@ -2085,6 +2129,43 @@ pub(crate) async fn scan_folder_inner(
                 folder_id,
                 key = %genre_backfill_key,
                 "could not persist the genre backfill marker (non-fatal); \
+                 the next scan will run the pass again"
+            );
+        }
+    }
+
+    // The totals pass, settled exactly like the genre pass above.
+    let totals_spent = if totals_backfill_pending && !summary.cancelled && totals_backfill_failed {
+        let spent = totals_backfill_attempts + 1;
+        if let Err(err) = write_counter(pool, &totals_backfill_attempt_key, spent).await {
+            tracing::warn!(
+                ?err,
+                folder_id,
+                "could not record a totals-backfill attempt"
+            );
+        }
+        spent
+    } else {
+        totals_backfill_attempts
+    };
+    let totals_give_up = totals_backfill_failed && totals_spent >= TAG_BACKFILL_MAX_ATTEMPTS;
+    if totals_backfill_pending && !summary.cancelled && (!totals_backfill_failed || totals_give_up)
+    {
+        if let Err(err) = sqlx::query(
+            "INSERT INTO profile_setting (key, value, value_type, updated_at)
+             VALUES (?, 'true', 'bool', ?)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+        )
+        .bind(&totals_backfill_key)
+        .bind(now_millis())
+        .execute(pool)
+        .await
+        {
+            tracing::warn!(
+                ?err,
+                folder_id,
+                key = %totals_backfill_key,
+                "could not persist the totals backfill marker (non-fatal); \
                  the next scan will run the pass again"
             );
         }
