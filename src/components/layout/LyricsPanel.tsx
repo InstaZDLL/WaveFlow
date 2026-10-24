@@ -31,6 +31,7 @@ import {
   type LyricsProvider,
   PLUGIN_PROVIDER_PREFIX,
   type PluginLyricsProvider,
+  wordSeparators,
 } from "../../lib/tauri/lyrics";
 import { LyricsEditorModal } from "../common/LyricsEditorModal";
 import { BackgroundVocals, InterludeDots } from "../player/LyricsVoiceParts";
@@ -329,6 +330,10 @@ export function LyricsPanel({
                 ? overlapBackgroundWordIndex
                 : activeBackgroundWordIndex;
               const hasWords = isActive && (line.words?.length ?? 0) > 0;
+              const separators = hasWords ? wordSeparators(line.words!) : [];
+              const romanizationSeparators = line.romanization?.words
+                ? wordSeparators(line.romanization.words)
+                : [];
               // A duet's second voice answers from the other side.
               const align = line.side === "end" ? "text-right" : "text-left";
               return (
@@ -352,15 +357,12 @@ export function LyricsPanel({
                       {hasWords ? (
                         <span>
                           {line.words!.map((word, wi) => (
-                            // See FullscreenLyrics for the rationale:
-                            // `inline-block` strips the JSX whitespace
-                            // that would normally separate inline
-                            // siblings, and many Enhanced LRC sources
-                            // omit spaces between word stamps. A literal
-                            // `" "` text node restores the gap; if the
-                            // source did carry trailing whitespace in
-                            // `word.text`, `white-space: normal`
-                            // collapses the pair to one.
+                            // `inline-block` drops a space at the end of
+                            // its own text, so the gap between two words
+                            // is a text node outside the box: the one
+                            // `wordSeparators` says the source has, a
+                            // space or nothing (a Chinese line timed per
+                            // character).
                             <Fragment key={wi}>
                               <span
                                 className={
@@ -382,7 +384,7 @@ export function LyricsPanel({
                               >
                                 {word.text}
                               </span>
-                              {wi < line.words!.length - 1 && " "}
+                              {separators[wi]}
                             </Fragment>
                           ))}
                         </span>
@@ -418,8 +420,7 @@ export function LyricsPanel({
                                 >
                                   {word.text}
                                 </span>
-                                {wi < line.romanization!.words!.length - 1 &&
-                                  " "}
+                                {romanizationSeparators[wi]}
                               </Fragment>
                             ))
                           ) : (

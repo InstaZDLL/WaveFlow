@@ -3,7 +3,11 @@ import { useTranslation } from "react-i18next";
 import { Music2, AlertCircle, Upload, RefreshCcw, Loader2 } from "lucide-react";
 import { Artwork } from "../common/Artwork";
 import type { Track } from "../../lib/tauri/track";
-import type { LyricsLine, LyricsPayload } from "../../lib/tauri/lyrics";
+import {
+  type LyricsLine,
+  type LyricsPayload,
+  wordSeparators,
+} from "../../lib/tauri/lyrics";
 import { useFullscreenLyricsCentering } from "../../hooks/useFullscreenLyricsCentering";
 import type { ActiveInterlude } from "../../hooks/useTrackLyrics";
 import { BackgroundVocals, InterludeDots } from "./LyricsVoiceParts";
@@ -276,6 +280,10 @@ export function ImmersiveLyricsColumn({
                   ? 1
                   : Math.max(0.18, 0.7 - distance * 0.08);
                 const hasWords = isActive && (line.words?.length ?? 0) > 0;
+                const separators = hasWords ? wordSeparators(line.words!) : [];
+                const romanizationSeparators = line.romanization?.words
+                  ? wordSeparators(line.romanization.words)
+                  : [];
                 return (
                   <Fragment key={`${line.timeMs}-${index}`}>
                     <li
@@ -316,10 +324,11 @@ export function ImmersiveLyricsColumn({
                               // gets a wave through its letters.
                               const isHeld =
                                 heldNotes && isActiveWord && isHeldNote(word);
-                              // Render a literal space between adjacent word
-                              // boxes — `inline-block` strips the JSX
-                              // whitespace and many Enhanced LRC sources omit
-                              // spaces between word stamps.
+                              // The gap between adjacent word boxes is a
+                              // text node outside them (`inline-block`
+                              // drops its own trailing space): the one the
+                              // source has, a space or nothing — see
+                              // `wordSeparators`.
                               return (
                                 <Fragment key={wi}>
                                   <span
@@ -378,7 +387,7 @@ export function ImmersiveLyricsColumn({
                                       </span>
                                     )}
                                   </span>
-                                  {wi < line.words!.length - 1 && " "}
+                                  {separators[wi]}
                                 </Fragment>
                               );
                             })}
@@ -428,9 +437,7 @@ export function ImmersiveLyricsColumn({
                                     >
                                       {word.text}
                                     </span>
-                                    {wi <
-                                      line.romanization!.words!.length - 1 &&
-                                      " "}
+                                    {romanizationSeparators[wi]}
                                   </Fragment>
                                 ))
                               ) : (

@@ -593,6 +593,64 @@ function lineEndMs(line: LyricsLine): number {
 /** Backwards-compatible alias used across the panel + fullscreen views. */
 export type LrcLine = LyricsLine;
 
+/**
+ * Scripts written without spaces between words: Han ideographs (with
+ * their radicals and extensions), kana, CJK symbols and punctuation, and
+ * the full- and half-width forms. Hangul is not among them — Korean puts
+ * a space between its words.
+ */
+const UNSPACED_SCRIPT =
+  /[\u2e80-\u2fdf\u3000-\u30ff\u31f0-\u31ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\ufe30-\ufe4f\uff00-\uffef\u{20000}-\u{3134f}]/u;
+
+/**
+ * What goes between each timed word and the next, for every surface that
+ * draws a line word by word — `""` or `" "`, one entry per word, the last
+ * always `""`. {@link joinWords} builds a line's text from the same rule,
+ * so a line reads the same whether it is drawn word by word (the line
+ * being sung) or as text (every other line).
+ *
+ * The source decides. A word whose text ends with a space, or is followed
+ * by one that starts with one, is separated from the next — that is how
+ * a TTML document's whitespace between its spans arrives (indentation
+ * collapses to one space), and how Enhanced LRC writes `Hello <…>world`.
+ * Two words with nothing between them in such a line are one word sung in
+ * parts (`Hel` + `lo`) or two characters of a script that does not space
+ * its words, and stay joined.
+ *
+ * A line whose words carry no space at all says nothing either way: some
+ * Enhanced LRC sources write `<…>Hello<…>world`, while a Chinese or
+ * Japanese line timed per character has no space to carry. Only there
+ * does the script decide: a space between two words, except where either
+ * side is Han or kana, which are not spaced in writing.
+ */
+export function wordSeparators(words: readonly LyricsWord[]): string[] {
+  const spacedAt = (i: number) =>
+    /\s$/u.test(words[i].text) || /^\s/u.test(words[i + 1].text);
+  const sourceSpaces = words.some(
+    (_, i) => i < words.length - 1 && spacedAt(i),
+  );
+  return words.map((word, i) => {
+    if (i === words.length - 1) return "";
+    if (spacedAt(i)) return " ";
+    if (sourceSpaces) return "";
+    const before = Array.from(word.text).pop() ?? "";
+    const after = Array.from(words[i + 1].text)[0] ?? "";
+    return UNSPACED_SCRIPT.test(before) || UNSPACED_SCRIPT.test(after)
+      ? ""
+      : " ";
+  });
+}
+
+/** A word-timed line's text, spaced by {@link wordSeparators}. */
+export function joinWords(words: readonly LyricsWord[]): string {
+  const separators = wordSeparators(words);
+  return words
+    .map((word, i) => word.text + separators[i])
+    .join("")
+    .replace(/\s+/gu, " ")
+    .trim();
+}
+
 const LRC_LINE_STAMP_RE = /\[(\d{1,3}):(\d{1,2})(?:[.:](\d{1,3}))?\]/g;
 const LRC_WORD_STAMP_RE = /<(\d{1,3}):(\d{1,2})(?:[.:](\d{1,3}))?>/g;
 
@@ -708,10 +766,7 @@ export function parseEnhancedLrc(content: string): LyricsLine[] {
     // Drop trailing empty segments without timing (artefact of a
     // trailing space after the last stamp).
     const words = built.filter((w) => w.text.length > 0 || w.timeMs >= 0);
-    const text = words
-      .map((w) => w.text)
-      .join("")
-      .trim();
+    const text = joinWords(words);
 
     // Deep-clone the words array per line entry so `fillEndTimestamps`
     // can mutate each independently. For prefix-bearing lines, the
@@ -932,10 +987,7 @@ function readTtmlLocalizations(doc: Document): ParsedLocalizations {
       // such a document.
       const words = ttmlWords(entry);
       const text = words
-        ? words
-            .map((word) => word.text)
-            .join("")
-            .trim()
+        ? joinWords(words)
         : (entry.textContent ?? "").replace(/\s+/g, " ").trim();
       if (text && !romanizationByKey.has(key)) {
         romanizationByKey.set(key, { text, words });
@@ -1039,33 +1091,26 @@ function ttmlBackground(spans: Element[]): LyricsReading | undefined {
   let text: string;
   if (timed) {
     // Every word timed: they are sorted themselves, since two spans can
-    // overlap, and the active-word lookup walks them in time order. The
-    // text is written from that same list, with a space where one span
-    // hands over to another.
+    // overlap, and the active-word lookup walks them in time order. Where
+    // one span hands over to another, the word before the handover takes
+    // a trailing space: two parts are never one word, and a word that
+    // carries its space is drawn spaced everywhere (`wordSeparators`).
     const tagged = parts
       .flatMap((part, span) => part.words!.map((word) => ({ word, span })))
       .sort((a, b) => a.word.timeMs - b.word.timeMs);
+    tagged.forEach((entry, i) => {
+      const next = tagged[i + 1];
+      if (next && next.span !== entry.span && !/\s$/.test(entry.word.text)) {
+        entry.word.text += " ";
+      }
+    });
     words = tagged.map((entry) => entry.word);
-    text = tagged
-      .map((entry, i) => {
-        const previous = tagged[i - 1];
-        const joins =
-          previous &&
-          previous.span !== entry.span &&
-          !/\s$/.test(previous.word.text);
-        return (joins ? " " : "") + entry.word.text;
-      })
-      .join("")
-      .replace(/\s+/g, " ")
-      .trim();
+    text = joinWords(words);
   } else {
     text = parts
       .map((part) =>
         part.words
-          ? part.words
-              .map((word) => word.text)
-              .join("")
-              .trim()
+          ? joinWords(part.words)
           : (part.span.textContent ?? "").replace(/\s+/g, " ").trim(),
       )
       .filter(Boolean)
@@ -1187,12 +1232,7 @@ export function parseTtml(content: string): LyricsLine[] {
     const words = ttmlWords(p);
     const backgroundSpans = Array.from(p.children).filter(isBackgroundSpan);
     const text =
-      words !== undefined
-        ? words
-            .map((w) => w.text)
-            .join("")
-            .trim()
-        : textOutside(p, backgroundSpans);
+      words !== undefined ? joinWords(words) : textOutside(p, backgroundSpans);
     const background =
       backgroundSpans.length > 0 ? ttmlBackground(backgroundSpans) : undefined;
 

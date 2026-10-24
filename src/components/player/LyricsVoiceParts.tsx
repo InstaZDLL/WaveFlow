@@ -1,6 +1,6 @@
 import { Fragment } from "react";
 
-import type { LyricsReading } from "../../lib/tauri/lyrics";
+import { type LyricsReading, wordSeparators } from "../../lib/tauri/lyrics";
 
 /**
  * The background vocals of a line (TTML `x-bg`), drawn smaller under
@@ -31,6 +31,7 @@ export function BackgroundVocals({
     );
   }
   const words = reading.words;
+  const separators = wordSeparators(words);
   return (
     <span className={`block ${className}`}>
       {words.map((word, wi) => (
@@ -44,7 +45,7 @@ export function BackgroundVocals({
           >
             {word.text}
           </span>
-          {wi < words.length - 1 && " "}
+          {separators[wi]}
         </Fragment>
       ))}
     </span>
