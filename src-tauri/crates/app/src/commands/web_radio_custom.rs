@@ -23,7 +23,10 @@
 //!   (a redirect, a playlist entry) must be public too
 //!   ([`is_public_http_url`], the downloader's rule): otherwise any
 //!   website's playlist could make this probe the machines of the user's
-//!   network.
+//!   network. Like the downloader, the rule reads the address as written
+//!   and does not resolve host names: a public name answering with a
+//!   private address is not caught here — nor by the playback itself,
+//!   which streams whatever a favourite names.
 //! - **Offline mode is honoured** before a socket is opened.
 //! - **No secret reaches the log or an error.** A station URL may carry
 //!   credentials (`user:pass@`, `?key=`): every URL logged goes through
@@ -484,6 +487,10 @@ mod tests {
         assert!(!may_open(true, "http://192.168.1.1/admin"));
         assert!(!may_open(true, "http://localhost:8000/live"));
         assert!(!may_open(true, "file:///etc/passwd"));
+        // The same LAN address, spelled as IPv4-mapped IPv6, and the
+        // carrier-grade NAT range.
+        assert!(!may_open(true, "http://[::ffff:192.168.1.1]/admin"));
+        assert!(!may_open(true, "http://100.64.0.1/"));
         assert!(may_open(false, "http://192.168.1.10:8000/live"));
         assert!(!may_open(false, "file:///etc/passwd"));
     }
