@@ -641,6 +641,8 @@
 }
 :root[data-skin="editorial"] [data-sidebar-brand] svg {
   color: var(--ed-ink);
+  /* An engraving does not move: the mark stays still while music plays. */
+  --wf-mark-motion: none;
 }
 :root[data-skin="editorial"] [data-sidebar-profile] {
   background-color: transparent !important;
