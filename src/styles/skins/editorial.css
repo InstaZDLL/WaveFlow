@@ -43,9 +43,12 @@
 
    3. One accent, the theme's, as the rubric colour. The 1.x Editorial
       owned a press red (`#b03020`); the 2.0 rule is one accent and it
-      is the theme's (`--accent-600`, the stop that holds on paper, so
-      the custom and cover accent modes of #895 drive it — a warm theme
-      or a picked red gives the gazette its red back). It is spent as a
+      is the theme's (`--accent-800`, so the custom and cover accent
+      modes of #895 drive it — a warm theme or a picked red gives the
+      gazette its red back). The 800 stop because the accent is set as
+      small type on paper: the 600 stop falls to 2.7–3.9:1 there for
+      five of the seven scales, the 800 stop holds 5.5:1 at least on the
+      warm paper and 7:1 under white type. It is spent as a
       rubric: the kickers and section labels, the open item's edge, the
       sung word, the played part of the ruler, the focus ring. The
       primary action is NOT the accent: it is set in ink, paper type on
@@ -114,7 +117,7 @@
   /* The light a top edge catches, in ink: a thin rule along the top. */
   --fe-edge: rgb(26 26 26 / 0.14);
   --fe-edge-strong: rgb(26 26 26 / 0.28);
-  --fe-accent: var(--accent-600);
+  --fe-accent: var(--accent-800);
   --fe-accent-ink: #ffffff;
   /* No light on paper; a warm grey where the structure mixes it. */
   --fe-glow: #8a7f6a;
@@ -1353,6 +1356,23 @@ html:root[data-skin="editorial"] ::-webkit-scrollbar-thumb:hover {
 :root[data-skin="editorial"] ::selection {
   background-color: var(--ed-ink);
   color: var(--ed-paper);
+}
+
+/* ── Accent type from the components: the rubric's stop ─────── */
+/* The components write their accent text as `text-emerald-500/600`,
+   which reads the 500 / 600 stop: too light for small type on paper.
+   Matched on the whole class token, so a `hover:` variant keeps its own
+   behaviour; the immersive view is always dark and keeps its colours. */
+:root[data-skin="editorial"]
+  :is(
+    [class^="text-emerald-500 "],
+    [class*=" text-emerald-500 "],
+    [class$=" text-emerald-500"],
+    [class^="text-emerald-600 "],
+    [class*=" text-emerald-600 "],
+    [class$=" text-emerald-600"]
+  ):not([data-immersive] *) {
+  color: var(--fe-accent);
 }
 
 /* ── The dark theme: still paper ────────────────────────────── */
