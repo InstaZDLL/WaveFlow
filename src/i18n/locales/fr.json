@@ -1611,8 +1611,7 @@
       "plain": "Non synchronisé"
     },
     "toast": {
-      "tagWriteSkipped": "TTML conservé en base (non écrit dans le tag audio)",
-      "sidecarWriteSkipped": "Paroles enregistrées dans la base, mais le format TTML ne tient pas dans un fichier .lrc/.txt."
+      "tagWriteSkipped": "TTML conservé en base (non écrit dans le tag audio)"
     },
     "excludedGenre": "Les paroles ne sont pas cherchées en ligne pour le genre {{genre}} (Paramètres → Images et paroles). Vous pouvez importer un fichier .lrc ou chercher quand même."
   },
@@ -1813,7 +1812,7 @@
       },
       "sidecar": {
         "label": "Fichier sidecar",
-        "hint": "Écrit un .lrc / .txt à côté du fichier audio. Tags du fichier intacts."
+        "hint": "Écrit un .lrc / .txt / .ttml à côté du fichier audio. Tags du fichier intacts."
       },
       "db_only": {
         "label": "Base WaveFlow uniquement",

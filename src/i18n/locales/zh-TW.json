@@ -1555,8 +1555,7 @@
       "plain": "未同步"
     },
     "toast": {
-      "tagWriteSkipped": "TTML 僅保留在資料庫中（未寫入音訊標籤）",
-      "sidecarWriteSkipped": "歌詞已儲存至資料庫，但 TTML 無法寫入 .lrc/.txt 外部檔案。"
+      "tagWriteSkipped": "TTML 僅保留在資料庫中（未寫入音訊標籤）"
     },
     "excludedGenre": "不會在線上搜尋 {{genre}} 曲風的歌詞（設定 → 圖片與歌詞）。你可以匯入 .lrc 檔案，或仍然搜尋。"
   },
@@ -1753,7 +1752,7 @@
       },
       "sidecar": {
         "label": "外部歌詞檔",
-        "hint": "在音訊檔旁建立 .lrc / .txt，音訊檔標籤保持不變。"
+        "hint": "在音訊檔旁建立 .lrc / .txt / .ttml，音訊檔標籤保持不變。"
       },
       "db_only": {
         "label": "僅 WaveFlow 資料庫",

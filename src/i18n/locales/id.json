@@ -1555,8 +1555,7 @@
       "plain": "Tidak tersinkronisasi"
     },
     "toast": {
-      "tagWriteSkipped": "TTML disimpan di database saja (tidak ditulis ke tag audio)",
-      "sidecarWriteSkipped": "Lirik disimpan ke database, tetapi TTML tidak dapat disimpan dalam berkas pendamping .lrc/.txt."
+      "tagWriteSkipped": "TTML disimpan di database saja (tidak ditulis ke tag audio)"
     },
     "excludedGenre": "Lirik tidak dicari secara daring untuk genre {{genre}} (Pengaturan → Gambar dan lirik). Kamu bisa mengimpor berkas .lrc atau tetap mencari."
   },
@@ -1753,7 +1752,7 @@
       },
       "sidecar": {
         "label": "Berkas pendamping",
-        "hint": "Menulis .lrc / .txt di samping berkas audio. Tag berkas tidak disentuh."
+        "hint": "Menulis .lrc / .txt / .ttml di samping berkas audio. Tag berkas tidak disentuh."
       },
       "db_only": {
         "label": "Hanya database WaveFlow",
