@@ -336,7 +336,7 @@ export function Sidebar({
             collapsed ? "justify-center" : "space-x-2"
           }`}
         >
-          <WaveFlowLogo className="w-7 h-7 shrink-0" />
+          <WaveFlowLogo className="w-7 h-7 shrink-0 text-emerald-500 dark:text-emerald-400" />
           <span
             className={`text-zinc-800 dark:text-white ${collapsed ? "sr-only" : ""}`}
           >
