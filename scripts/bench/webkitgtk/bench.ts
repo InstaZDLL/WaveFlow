@@ -88,7 +88,18 @@ async function waitFor(page: Inspector, cond: string, ms: number) {
  *  library scanned and analysed. Returns whether it reloaded the page. */
 async function setUp(page: Inspector): Promise<boolean> {
   const libs = await page.run("window.__wfb.invoke('list_libraries')");
-  if (libs.length > 0) return false;
+  if (libs.length > 0) {
+    // The views are reached by their English labels, whatever the
+    // sandbox was last left in.
+    if (
+      (await page.value("localStorage.getItem('waveflow-language')")) === "en"
+    )
+      return false;
+    await page.value(
+      "localStorage.setItem('waveflow-language', 'en'); location.reload(); 0",
+    );
+    return true;
+  }
   await page.run("window.__wfb.invoke('set_offline_mode', { enabled: true })");
   await page.run(
     "window.__wfb.invoke('set_profile_setting', { key: 'onboarding.dismissed', value: 'true', valueType: 'bool', expectedProfileId: null })",

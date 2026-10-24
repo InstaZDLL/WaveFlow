@@ -33,15 +33,17 @@ export class Inspector {
 
   async connect(socket: string) {
     this.ws = new WebSocket(socket);
-    // The app gone (a crash mid-scenario) closes the socket: every pending
-    // command fails rather than waiting for ever.
-    this.ws.onclose = () => {
-      for (const cb of this.pending.values())
-        cb({ error: { message: "inspector socket closed" } });
-      this.pending.clear();
-    };
     this.ready = new Promise((resolve, reject) => {
       this.ws.onerror = (e) => reject(e);
+      // The app gone (a crash mid-scenario, or before the page announced
+      // itself) closes the socket: the connection and every pending
+      // command fail rather than waiting for ever.
+      this.ws.onclose = () => {
+        reject(new Error("inspector socket closed"));
+        for (const cb of this.pending.values())
+          cb({ error: { message: "inspector socket closed" } });
+        this.pending.clear();
+      };
       this.ws.onmessage = (ev) => {
         const msg = JSON.parse(String(ev.data));
         if (
