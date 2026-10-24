@@ -17,6 +17,13 @@
 //! Three rules ride along:
 //!
 //! - **`http` / `https` only**, the two schemes the engine streams.
+//! - **A private address is the user's to name, not a third party's.**
+//!   The URL typed in may point anywhere — a station on the local
+//!   network is a real case. But when it is public, what it hands back
+//!   (a redirect, a playlist entry) must be public too
+//!   ([`is_public_http_url`], the downloader's rule): otherwise any
+//!   website's playlist could make this probe the machines of the user's
+//!   network.
 //! - **Offline mode is honoured** before a socket is opened.
 //! - **No secret reaches the log or an error.** A station URL may carry
 //!   credentials (`user:pass@`, `?key=`): every URL logged goes through
@@ -33,6 +40,7 @@ use waveflow_core::radio_playlist::{
 };
 
 use crate::audio::http_source::redact_url;
+use crate::commands::deezer::is_public_http_url;
 use crate::error::{AppError, AppResult};
 
 /// How long a station gets to accept the connection.
@@ -122,9 +130,20 @@ pub(crate) async fn probe(raw: &str) -> AppResult<ProbedStation> {
     if crate::offline::is_offline() {
         return Err(AppError::Other(ERR_OFFLINE.into()));
     }
+    // Decided once, from the URL the user typed: see the module doc.
+    let public = is_public_http_url(url.as_str());
     let client = reqwest::Client::builder()
         .user_agent(USER_AGENT)
         .connect_timeout(CONNECT_TIMEOUT)
+        .redirect(reqwest::redirect::Policy::custom(move |attempt| {
+            if attempt.previous().len() >= MAX_REDIRECTS {
+                attempt.error("too many redirects")
+            } else if may_open(public, attempt.url().as_str()) {
+                attempt.follow()
+            } else {
+                attempt.stop()
+            }
+        }))
         .build()
         .map_err(|e| AppError::Other(format!("http client build: {}", e.without_url())))?;
 
@@ -144,7 +163,7 @@ pub(crate) async fn probe(raw: &str) -> AppResult<ProbedStation> {
                 .iter()
                 .find_map(|e| {
                     let resolved = base.join(e.url.trim()).ok()?;
-                    matches!(resolved.scheme(), "http" | "https").then_some((e, resolved))
+                    may_open(public, resolved.as_str()).then_some((e, resolved))
                 })
                 .ok_or_else(|| {
                     AppError::Other(format!(
@@ -180,6 +199,19 @@ pub(crate) async fn probe(raw: &str) -> AppResult<ProbedStation> {
         "web radio station probed"
     );
     Ok(station)
+}
+
+/// How many redirects a probe follows.
+const MAX_REDIRECTS: usize = 10;
+
+/// Whether a URL a station handed back may be opened: `http(s)`, and
+/// public unless the URL the user typed was not.
+fn may_open(user_url_is_public: bool, url: &str) -> bool {
+    if user_url_is_public {
+        is_public_http_url(url)
+    } else {
+        is_http_url(url)
+    }
 }
 
 fn parse_station_url(raw: &str) -> AppResult<url::Url> {
@@ -442,6 +474,18 @@ mod tests {
         .to_string();
         assert!(err.starts_with(ERR_UNREACHABLE), "{err}");
         assert!(!err.contains("hunter2") && !err.contains("s3cret"), "{err}");
+    }
+
+    /// A public station may not point the probe into the local network;
+    /// one the user put there themselves may.
+    #[test]
+    fn a_private_address_is_opened_only_on_the_user_s_say_so() {
+        assert!(may_open(true, "https://cdn.example/live"));
+        assert!(!may_open(true, "http://192.168.1.1/admin"));
+        assert!(!may_open(true, "http://localhost:8000/live"));
+        assert!(!may_open(true, "file:///etc/passwd"));
+        assert!(may_open(false, "http://192.168.1.10:8000/live"));
+        assert!(!may_open(false, "file:///etc/passwd"));
     }
 
     #[test]

@@ -2887,7 +2887,29 @@
     "localStations": "Yerel istasyonlar",
     "browseByCountry": "Ülkeye göre göz at",
     "localCatalogue": "Yerel katalog",
-    "localCatalogueHint": "İndirilen katalogda göz atma ve arama."
+    "localCatalogueHint": "İndirilen katalogda göz atma ve arama.",
+    "addStation": {
+      "button": "İstasyon ekle",
+      "title": "İstasyon ekle",
+      "renameTitle": "İstasyonu yeniden adlandır",
+      "rename": "{{name}} adını değiştir",
+      "help": "Yayının ya da bir .m3u / .pls listesinin adresini yapıştırın veya böyle bir dosya açın. İstasyon favorilerinize eklenir.",
+      "urlLabel": "Yayın adresi",
+      "openFile": ".m3u / .pls dosyası aç",
+      "nameLabel": "Ad",
+      "namePlaceholder": "Boş bırakılırsa istasyonun kendi adı",
+      "checking": "Denetleniyor…",
+      "add": "Ekle",
+      "save": "Kaydet",
+      "errors": {
+        "notHttp": "Yalnızca http:// ve https:// adresleri kabul edilir.",
+        "offline": "Çevrimdışı mod açık.",
+        "unreachable": "İstasyon bu adreste yanıt vermiyor.",
+        "notAudio": "Bu adres bir ses yayınına çıkmıyor.",
+        "hls": "Bu bir HLS listesi: yalnızca kesintisiz yayınlar desteklenir.",
+        "noStream": "Listede http:// ya da https:// yayını yok."
+      }
+    }
   },
   "artistMetadataEditor": {
     "title": "Üst verileri düzenle",

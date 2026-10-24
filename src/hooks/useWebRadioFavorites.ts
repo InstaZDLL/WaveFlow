@@ -126,18 +126,19 @@ export function useWebRadioFavorites() {
     [favorites],
   );
 
-  const toggleFavorite = useCallback(
-    (fav: PluginFavorite) => {
-      // Ignore toggles until the current profile's list has loaded — a
+  // Every change goes through here: compute the next list from the
+  // latest one, apply it optimistically, then queue the write behind the
+  // previous ones. `compute` returning `null` means "nothing to change".
+  const commit = useCallback(
+    (compute: (current: PluginFavorite[]) => PluginFavorite[] | null) => {
+      // Ignore changes until the current profile's list has loaded — a
       // full-array write computed from the not-yet-loaded (empty) ref
       // would wipe the stored favorites. The window is sub-second (mount
       // / profile switch); after that this is always true.
-      if (!loadedRef.current) return;
+      if (!loadedRef.current) return false;
+      const next = compute(favoritesRef.current);
+      if (next == null) return false;
       const seq = ++favoriteSeqRef.current;
-      const current = favoritesRef.current;
-      const next = current.some((f) => f.id === fav.id)
-        ? current.filter((f) => f.id !== fav.id)
-        : [...current, fav];
       applyFavorites(next);
       const profileAtToggle = profileIdRef.current;
       pendingWritesRef.current += 1;
@@ -169,9 +170,53 @@ export function useWebRadioFavorites() {
             window.dispatchEvent(new Event(FAVORITES_CHANGED_EVENT));
           }
         });
+      return true;
     },
     [applyFavorites],
   );
 
-  return { favorites, isFavorite, toggleFavorite };
+  const toggleFavorite = useCallback(
+    (fav: PluginFavorite) => {
+      commit((current) =>
+        current.some((f) => f.id === fav.id)
+          ? current.filter((f) => f.id !== fav.id)
+          : [...current, fav],
+      );
+    },
+    [commit],
+  );
+
+  /**
+   * Add a station, or replace the one with the same id where it stands —
+   * what adding a station by its URL does, so adding one twice keeps a
+   * single row. `false` when the list has not loaded yet.
+   */
+  const saveFavorite = useCallback(
+    (fav: PluginFavorite) =>
+      commit((current) =>
+        current.some((f) => f.id === fav.id)
+          ? current.map((f) => (f.id === fav.id ? fav : f))
+          : [...current, fav],
+      ),
+    [commit],
+  );
+
+  /** Give a saved station another name. */
+  const renameFavorite = useCallback(
+    (id: string, title: string) =>
+      commit((current) =>
+        current.some((f) => f.id === id)
+          ? current.map((f) => (f.id === id ? { ...f, title } : f))
+          : null,
+      ),
+    [commit],
+  );
+
+  return {
+    favorites,
+    isFavorite,
+    toggleFavorite,
+    saveFavorite,
+    renameFavorite,
+  };
 }

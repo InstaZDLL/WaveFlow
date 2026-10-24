@@ -2887,7 +2887,29 @@
     "localStations": "Lokale zenders",
     "browseByCountry": "Bladeren per land",
     "localCatalogue": "Lokale catalogus",
-    "localCatalogueHint": "Bladeren en zoeken in de gedownloade catalogus."
+    "localCatalogueHint": "Bladeren en zoeken in de gedownloade catalogus.",
+    "addStation": {
+      "button": "Zender toevoegen",
+      "title": "Zender toevoegen",
+      "renameTitle": "Zender hernoemen",
+      "rename": "{{name}} hernoemen",
+      "help": "Plak het adres van de stream of van een .m3u-/.pls-playlist, of open zo'n bestand. De zender komt bij je favorieten.",
+      "urlLabel": "Streamadres",
+      "openFile": ".m3u-/.pls-bestand openen",
+      "nameLabel": "Naam",
+      "namePlaceholder": "Die van de zender, als je dit leeg laat",
+      "checking": "Controleren…",
+      "add": "Toevoegen",
+      "save": "Opslaan",
+      "errors": {
+        "notHttp": "Alleen http://- en https://-adressen worden geaccepteerd.",
+        "offline": "De offlinemodus staat aan.",
+        "unreachable": "De zender reageert niet op dit adres.",
+        "notAudio": "Dit adres leidt niet naar een audiostream.",
+        "hls": "Dit is een HLS-playlist: alleen doorlopende streams worden ondersteund.",
+        "noStream": "De playlist bevat geen http://- of https://-stream."
+      }
+    }
   },
   "artistMetadataEditor": {
     "title": "Metadata bewerken",

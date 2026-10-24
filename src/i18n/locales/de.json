@@ -2887,7 +2887,29 @@
     "localStations": "Lokale Sender",
     "browseByCountry": "Nach Land durchsuchen",
     "localCatalogue": "Lokaler Katalog",
-    "localCatalogueHint": "Durchsuchen des heruntergeladenen Katalogs."
+    "localCatalogueHint": "Durchsuchen des heruntergeladenen Katalogs.",
+    "addStation": {
+      "button": "Sender hinzufügen",
+      "title": "Sender hinzufügen",
+      "renameTitle": "Sender umbenennen",
+      "rename": "{{name}} umbenennen",
+      "help": "Füge die Adresse des Streams oder einer .m3u-/.pls-Playlist ein oder öffne eine solche Datei. Der Sender landet in deinen Favoriten.",
+      "urlLabel": "Stream-Adresse",
+      "openFile": ".m3u-/.pls-Datei öffnen",
+      "nameLabel": "Name",
+      "namePlaceholder": "Leer lassen für den Namen des Senders",
+      "checking": "Wird geprüft…",
+      "add": "Hinzufügen",
+      "save": "Speichern",
+      "errors": {
+        "notHttp": "Nur http://- und https://-Adressen werden akzeptiert.",
+        "offline": "Der Offline-Modus ist aktiv.",
+        "unreachable": "Der Sender antwortet unter dieser Adresse nicht.",
+        "notAudio": "Diese Adresse führt zu keinem Audiostream.",
+        "hls": "Das ist eine HLS-Playlist: Nur durchgehende Streams werden unterstützt.",
+        "noStream": "Die Playlist enthält keinen http://- oder https://-Stream."
+      }
+    }
   },
   "artistMetadataEditor": {
     "title": "Metadaten bearbeiten",

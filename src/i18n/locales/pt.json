@@ -2957,7 +2957,29 @@
     "localStations": "Estações locais",
     "browseByCountry": "Explorar por país",
     "localCatalogue": "Catálogo local",
-    "localCatalogueHint": "A explorar e a pesquisar no catálogo descarregado."
+    "localCatalogueHint": "A explorar e a pesquisar no catálogo descarregado.",
+    "addStation": {
+      "button": "Adicionar uma estação",
+      "title": "Adicionar uma estação",
+      "renameTitle": "Mudar o nome da estação",
+      "rename": "Mudar o nome de {{name}}",
+      "help": "Cole o endereço do fluxo, ou de uma lista .m3u / .pls, ou abra um ficheiro desses. A estação junta-se aos seus favoritos.",
+      "urlLabel": "Endereço do fluxo",
+      "openFile": "Abrir um ficheiro .m3u / .pls",
+      "nameLabel": "Nome",
+      "namePlaceholder": "O da estação, se ficar vazio",
+      "checking": "A verificar…",
+      "add": "Adicionar",
+      "save": "Guardar",
+      "errors": {
+        "notHttp": "Só são aceites endereços http:// e https://.",
+        "offline": "O modo offline está ativo.",
+        "unreachable": "A estação não responde neste endereço.",
+        "notAudio": "Este endereço não leva a um fluxo de áudio.",
+        "hls": "É uma lista HLS: só são suportados fluxos contínuos.",
+        "noStream": "A lista não contém nenhum fluxo http:// ou https://."
+      }
+    }
   },
   "artistMetadataEditor": {
     "title": "Editar metadados",

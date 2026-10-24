@@ -13,6 +13,8 @@ import {
   Globe,
   MapPin,
   Database,
+  Pencil,
+  Plus,
 } from "lucide-react";
 
 import { playerPlayUrl, playerStop } from "../../lib/tauri/player";
@@ -21,6 +23,7 @@ import {
   pluginResolve,
   pluginStreamUrl,
   type PluginEntry,
+  type PluginFavorite,
   type PluginTrack,
 } from "../../lib/tauri/plugins";
 import { usePluginAvailability } from "../../hooks/usePluginAvailability";
@@ -29,6 +32,7 @@ import {
   WEB_RADIO_PLUGIN_ID,
 } from "../../hooks/useWebRadioFavorites";
 import { WEB_RADIO_COUNTRY_CODES } from "../../lib/webRadioCountries";
+import { RadioStationModal } from "../common/RadioStationModal";
 import { getOfflineMode } from "../../lib/tauri/offline";
 import {
   radioCatalogueStatus,
@@ -202,8 +206,19 @@ export function WebRadioView() {
   // so this view, the PlayerBar and the mini-player favorite-station
   // star never drift. The "Favorites" pseudo-category replays them with
   // zero network (the stream URL rides inside `track.id` as `url:…`).
-  const { favorites, isFavorite, toggleFavorite } = useWebRadioFavorites();
+  const {
+    favorites,
+    isFavorite,
+    toggleFavorite,
+    saveFavorite,
+    renameFavorite,
+  } = useWebRadioFavorites();
   const [favoritesActive, setFavoritesActive] = useState(false);
+  // The add-a-station / rename dialog: "add", the station being renamed,
+  // or closed.
+  const [stationTarget, setStationTarget] = useState<
+    "add" | PluginFavorite | null
+  >(null);
   // "Local stations" shortcut country. Seeded from the webview locale on
   // first load and overridden by the user's saved preference, so someone
   // on an EN-US Windows who is not in the US only has to pick their country
@@ -651,6 +666,17 @@ export function WebRadioView() {
           </button>
         )}
         <div className="flex-1" />
+        {/* A station the directory does not list, by its URL or a
+            playlist file. It is saved as a favorite, so it lands in the
+            Favorites view, which is opened once it is added. */}
+        <button
+          type="button"
+          onClick={() => setStationTarget("add")}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white border border-zinc-200 dark:border-zinc-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+        >
+          <Plus size={14} aria-hidden="true" />
+          <span>{t("webRadio.addStation.button")}</span>
+        </button>
         {/* Country picker — selecting one funnels through `openCountry`
             → the plugin's `country:<ISO2>` token. Value is pinned to ""
             so it acts as an action trigger and is reusable after a
@@ -883,6 +909,22 @@ export function WebRadioView() {
                         : `${Math.round(track.durationMs / 1000)}s`}
                     </span>
                   </button>
+                  {favoritesActive && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const saved = favorites.find((f) => f.id === track.id);
+                        if (saved) setStationTarget(saved);
+                      }}
+                      aria-label={t("webRadio.addStation.rename", {
+                        name: track.title,
+                      })}
+                      title={t("webRadio.addStation.renameTitle")}
+                      className="shrink-0 w-9 h-9 rounded flex items-center justify-center text-zinc-400 hover:text-emerald-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 transition-colors"
+                    >
+                      <Pencil size={15} aria-hidden="true" />
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => toggleFavoriteTrack(track)}
@@ -912,6 +954,23 @@ export function WebRadioView() {
           </ul>
         )}
       </div>
+      {/* Keyed on the target so each opening starts from its own
+          values (the station's name when renaming, blank when adding). */}
+      <RadioStationModal
+        key={
+          stationTarget == null
+            ? "closed"
+            : stationTarget === "add"
+              ? "add"
+              : stationTarget.id
+        }
+        target={stationTarget}
+        onClose={() => setStationTarget(null)}
+        onAdd={(station) => {
+          if (saveFavorite(station)) openFavorites();
+        }}
+        onRename={renameFavorite}
+      />
     </div>
   );
 }

@@ -1662,7 +1662,7 @@ pub async fn batch_fetch_missing_album_covers(
 /// earlier without making it sound, since DNS can answer differently at
 /// connect time. The redirect policy applies the same rule to each hop,
 /// which is where a public host would otherwise send us.
-fn is_public_http_url(url: &str) -> bool {
+pub(crate) fn is_public_http_url(url: &str) -> bool {
     let Ok(parsed) = reqwest::Url::parse(url) else {
         return false;
     };

@@ -2887,7 +2887,29 @@
     "localStations": "Local stations",
     "browseByCountry": "Browse by country",
     "localCatalogue": "Local catalogue",
-    "localCatalogueHint": "Browsing and searching the downloaded catalogue."
+    "localCatalogueHint": "Browsing and searching the downloaded catalogue.",
+    "addStation": {
+      "button": "Add a station",
+      "title": "Add a station",
+      "renameTitle": "Rename station",
+      "rename": "Rename {{name}}",
+      "help": "Paste the stream's address, or a .m3u / .pls playlist's, or open such a file. The station joins your favorites.",
+      "urlLabel": "Stream address",
+      "openFile": "Open a .m3u / .pls file",
+      "nameLabel": "Name",
+      "namePlaceholder": "The station's own, if left empty",
+      "checking": "Checking…",
+      "add": "Add",
+      "save": "Save",
+      "errors": {
+        "notHttp": "Only http:// and https:// addresses are accepted.",
+        "offline": "Offline mode is on.",
+        "unreachable": "The station does not answer at this address.",
+        "notAudio": "This address does not lead to an audio stream.",
+        "hls": "This is an HLS playlist: only continuous streams are supported.",
+        "noStream": "The playlist holds no http:// or https:// stream."
+      }
+    }
   },
   "artistMetadataEditor": {
     "title": "Edit metadata",

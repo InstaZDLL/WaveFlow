@@ -2956,7 +2956,29 @@
     "localStations": "Stations locales",
     "browseByCountry": "Parcourir par pays",
     "localCatalogue": "Catalogue local",
-    "localCatalogueHint": "Navigation et recherche depuis le catalogue téléchargé."
+    "localCatalogueHint": "Navigation et recherche depuis le catalogue téléchargé.",
+    "addStation": {
+      "button": "Ajouter une station",
+      "title": "Ajouter une station",
+      "renameTitle": "Renommer la station",
+      "rename": "Renommer {{name}}",
+      "help": "Collez l'adresse du flux, ou d'une liste .m3u / .pls, ou ouvrez un tel fichier. La station rejoint vos favoris.",
+      "urlLabel": "Adresse du flux",
+      "openFile": "Ouvrir un fichier .m3u / .pls",
+      "nameLabel": "Nom",
+      "namePlaceholder": "Celui que donne la station, sinon",
+      "checking": "Vérification…",
+      "add": "Ajouter",
+      "save": "Enregistrer",
+      "errors": {
+        "notHttp": "Seules les adresses http:// et https:// sont acceptées.",
+        "offline": "Le mode hors ligne est activé.",
+        "unreachable": "La station ne répond pas à cette adresse.",
+        "notAudio": "Cette adresse ne mène pas à un flux audio.",
+        "hls": "C'est une liste HLS : seuls les flux continus sont pris en charge.",
+        "noStream": "La liste ne contient aucun flux http:// ou https://."
+      }
+    }
   },
   "artistMetadataEditor": {
     "title": "Modifier les métadonnées",
