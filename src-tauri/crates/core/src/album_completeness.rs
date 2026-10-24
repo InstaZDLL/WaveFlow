@@ -19,12 +19,18 @@
 //!    from an album, not a broken album.
 //! 3. **Where the disc starts.** At 1 — unless the album numbers its
 //!    discs continuously (a box set whose disc 2 runs 11-20 after a disc
-//!    1 of 1-10), which is recognised by the disc starting right after
-//!    the highest number of the disc before it.
+//!    1 of 1-10), recognised by the disc numbering on past the highest
+//!    number of the disc before it: it then starts right after that one.
+//!    A disc whose previous disc is absent is not judged at its start —
+//!    under continuous numbering its first numbers belong to the missing
+//!    disc, which is reported as such.
 //! 4. **Where it ends.** At the highest of the numbers present and the
 //!    track total the files carry. A total *below* the highest number is
 //!    a contradiction (a per-disc total on a continuously numbered set),
-//!    so it is ignored rather than trusted.
+//!    so it is ignored rather than trusted. On an album of several discs,
+//!    a total that is the album's rather than the disc's is ignored too:
+//!    one above every number on the album, or equal to the count of
+//!    tracks across all of its discs.
 //! 5. **At least half of it present.** A disc missing more tracks than it
 //!    holds is not judged: that is a handful of songs kept from a long
 //!    album, or numbers that are not positions at all ("101" for disc 1,
@@ -32,7 +38,8 @@
 //!
 //! Missing discs follow the same shape one level up: discs 1 to the
 //! highest of the disc numbers and the disc total, minus the discs
-//! present, judged only when at least half of them are there.
+//! present, judged only when at least half of them are there and at
+//! least one disc passed rules 1, 2 and 5.
 //!
 //! An album with no numbers at all is never judged, and neither is one
 //! whose only disc fails rule 1, 2 or 5: "not judged" means "nothing
@@ -117,34 +124,66 @@ pub fn album_completeness(tracks: &[NumberedTrack]) -> AlbumCompleteness {
         }
     }
 
+    // What an album-wide total would look like (rule 4), on an album of
+    // several discs.
+    let several_discs = discs.len() > 1;
+    let album_max = discs
+        .values()
+        .filter_map(|d| d.numbers.last().copied())
+        .max()
+        .unwrap_or(0);
+    let album_count: usize = discs.values().map(|d| d.numbers.len()).sum();
+
     let mut out = AlbumCompleteness::default();
-    let mut previous_max: Option<i64> = None;
+    let mut judged_a_disc = false;
+    // The highest number of the disc just before, when it is present.
+    let mut previous: Option<(i64, i64)> = None;
     for (&disc_no, disc) in &discs {
         let (Some(&first), Some(&last)) = (disc.numbers.first(), disc.numbers.last()) else {
-            previous_max = None;
+            previous = None;
             continue;
         };
-        // Rule 3: continuous numbering across discs.
-        let start = match previous_max {
-            Some(prev) if first > prev => prev + 1,
+        // Rule 3: continuous numbering across discs, and no verdict on
+        // the start of a disc whose previous disc is absent.
+        let start = match previous {
+            Some((prev_disc, prev_max)) if prev_disc + 1 == disc_no && first > prev_max => {
+                prev_max + 1
+            }
+            Some((prev_disc, _)) if prev_disc + 1 == disc_no => 1,
+            _ if disc_no > 1 => first,
             _ => 1,
         };
-        previous_max = Some(last);
+        previous = Some((disc_no, last));
         if disc.unnumbered || disc.numbers.len() < 2 {
             continue;
         }
-        // Rule 4: a total that contradicts the numbers is not trusted.
+        // Rule 4: a total that contradicts the numbers, or that counts
+        // the whole album, is not trusted.
         let end = match disc.total {
-            Some(total) if total >= last => total,
+            Some(total)
+                if total >= last
+                    && !(several_discs
+                        && total > last
+                        && (total > album_max || total as usize == album_count)) =>
+            {
+                total
+            }
             _ => last,
         };
+        // Rule 5, counted before anything is collected.
+        let span = (end - start + 1).max(0) as usize;
+        let in_span = disc.numbers.range(start..=end).count();
+        let missing_count = span - in_span;
+        if missing_count > disc.numbers.len() {
+            continue;
+        }
+        judged_a_disc = true;
+        if missing_count == 0 {
+            continue;
+        }
         let missing: Vec<i64> = (start..=end)
             .filter(|n| !disc.numbers.contains(n))
             .collect();
-        // Rule 5.
-        if missing.is_empty() || missing.len() > disc.numbers.len() {
-            continue;
-        }
         let at_the_ends = missing.first() == Some(&start) || missing.last() == Some(&end);
         out.discs.push(MissingOnDisc {
             disc: disc_no,
@@ -153,13 +192,11 @@ pub fn album_completeness(tracks: &[NumberedTrack]) -> AlbumCompleteness {
         });
     }
 
-    // Missing discs, judged only on an album with a disc that could be
-    // judged itself: a lone track from disc 2 says nothing about disc 1.
-    let judgeable = discs
-        .values()
-        .any(|d| !d.unnumbered && d.numbers.len() >= 2);
+    // Missing discs, judged only on an album with a disc that was judged
+    // itself: a lone track from disc 2 — or two songs kept from it — say
+    // nothing about disc 1.
     let present: BTreeSet<i64> = discs.keys().copied().collect();
-    if let (true, Some(&highest)) = (judgeable, present.last()) {
+    if let (true, Some(&highest)) = (judged_a_disc, present.last()) {
         let end = disc_total.map_or(highest, |t| t.max(highest));
         // Counted before anything is collected: every present disc lies
         // in 1..=end, so this is exactly how many are missing.
@@ -311,6 +348,50 @@ mod tests {
     fn a_total_below_the_numbers_is_not_trusted() {
         let album: Vec<_> = (1..=12).map(|n| of_total(None, n, 10)).collect();
         assert!(album_completeness(&album).is_complete());
+    }
+
+    /// A box set whose files carry the album's total on every track, with
+    /// continuous numbering or per-disc numbering alike: complete.
+    #[test]
+    fn an_album_wide_total_is_not_a_disc_total() {
+        let mut continuous: Vec<_> = (1..=10).map(|n| of_total(Some(1), n, 20)).collect();
+        continuous.extend((11..=20).map(|n| of_total(Some(2), n, 20)));
+        assert!(album_completeness(&continuous).is_complete());
+        let mut per_disc: Vec<_> = (1..=10).map(|n| of_total(Some(1), n, 20)).collect();
+        per_disc.extend((1..=10).map(|n| of_total(Some(2), n, 20)));
+        assert!(album_completeness(&per_disc).is_complete());
+        // While a per-disc total still finds a missing closer.
+        let mut short: Vec<_> = (1..=9).map(|n| of_total(Some(1), n, 10)).collect();
+        short.extend((1..=10).map(|n| of_total(Some(2), n, 10)));
+        assert_eq!(missing(&album_completeness(&short)), [(1, vec![10])]);
+    }
+
+    /// Two songs kept from disc 2 of a double album do not make disc 1
+    /// "missing".
+    #[test]
+    fn a_disc_that_fails_rule_five_does_not_judge_the_discs() {
+        let mut a = of_total(Some(2), 3, 12);
+        a.disc_total = Some(2);
+        let mut b = of_total(Some(2), 7, 12);
+        b.disc_total = Some(2);
+        assert!(album_completeness(&[a, b]).is_complete());
+    }
+
+    /// Continuous numbering with the disc before absent: its numbers are
+    /// that disc's, reported as the missing disc and nothing else.
+    #[test]
+    fn a_disc_after_a_missing_one_is_not_judged_at_its_start() {
+        let mut album: Vec<_> = (11..=20).map(|n| t(Some(2), Some(n))).collect();
+        album.extend((21..=30).map(|n| t(Some(3), Some(n))));
+        let c = album_completeness(&album);
+        assert!(c.discs.is_empty(), "{c:?}");
+        assert_eq!(c.missing_discs, [1]);
+
+        let mut album: Vec<_> = (1..=10).map(|n| t(Some(1), Some(n))).collect();
+        album.extend((21..=30).map(|n| t(Some(3), Some(n))));
+        let c = album_completeness(&album);
+        assert!(c.discs.is_empty(), "{c:?}");
+        assert_eq!(c.missing_discs, [2]);
     }
 
     /// A disc number no release has — the range of missing discs would

@@ -9,7 +9,7 @@
 -- and one album-level column would keep the larger and report the
 -- shorter disc as incomplete.
 --
--- Additive, NULL by default: a library scanned before this fills in as
--- each folder is scanned again (a deep rescan reaches unchanged files).
+-- Additive, NULL by default: a library scanned before this fills in on
+-- the next scan of each folder, through the scanner's one-off totals pass.
 ALTER TABLE track ADD COLUMN track_total INTEGER;
 ALTER TABLE track ADD COLUMN disc_total INTEGER;

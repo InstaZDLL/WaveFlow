@@ -1009,6 +1009,19 @@ pub(crate) async fn scan_folder_inner(
         0
     };
 
+    // The track and disc totals (album completeness) are read since a
+    // library already holds rows without them, and the fast path never
+    // reopens an unchanged file: one forced pass per folder fills them,
+    // with the genre pass's marker and retry budget.
+    let totals_backfill_key = format!("scan.totals_backfill_done.{folder_id}");
+    let totals_backfill_pending = marker_absent(pool, &totals_backfill_key, folder_id).await;
+    let totals_backfill_attempt_key = format!("scan.totals_backfill_attempts.{folder_id}");
+    let totals_backfill_attempts = if totals_backfill_pending {
+        read_counter(pool, &totals_backfill_attempt_key, folder_id).await
+    } else {
+        0
+    };
+
     let meta_load_ms = t_scan.elapsed().as_millis();
 
     let total_files = audio_files.len();
@@ -1090,6 +1103,7 @@ pub(crate) async fn scan_folder_inner(
                         && !needs_rg_backfill
                         && !tag_backfill_pending
                         && !genre_backfill_pending
+                        && !totals_backfill_pending
                     {
                         summary.skipped += 1;
                         maybe_emit_progress(
@@ -1251,6 +1265,7 @@ pub(crate) async fn scan_folder_inner(
     // runs twice.
     let mut tag_backfill_failed = false;
     let mut genre_backfill_failed = false;
+    let mut totals_backfill_failed = false;
 
     while let Some((path, result)) = extraction_stream.next().await {
         if cancelled() {
@@ -1304,6 +1319,7 @@ pub(crate) async fn scan_folder_inner(
                 // extraction succeeded and only the tag read failed,
                 // which nothing else reports and nothing else retries.
                 genre_backfill_failed |= genre_backfill_pending;
+                totals_backfill_failed |= totals_backfill_pending;
                 summary.errors += 1;
                 emit_tick(processed, &summary, &path);
                 continue;
@@ -1314,6 +1330,7 @@ pub(crate) async fn scan_folder_inner(
                     rg_backfill_failed = true;
                 }
                 genre_backfill_failed |= genre_backfill_pending;
+                totals_backfill_failed |= totals_backfill_pending;
                 summary.errors += 1;
                 emit_tick(processed, &summary, &path);
                 continue;
@@ -2099,6 +2116,43 @@ pub(crate) async fn scan_folder_inner(
                 folder_id,
                 key = %genre_backfill_key,
                 "could not persist the genre backfill marker (non-fatal); \
+                 the next scan will run the pass again"
+            );
+        }
+    }
+
+    // The totals pass, settled exactly like the genre pass above.
+    let totals_spent = if totals_backfill_pending && !summary.cancelled && totals_backfill_failed {
+        let spent = totals_backfill_attempts + 1;
+        if let Err(err) = write_counter(pool, &totals_backfill_attempt_key, spent).await {
+            tracing::warn!(
+                ?err,
+                folder_id,
+                "could not record a totals-backfill attempt"
+            );
+        }
+        spent
+    } else {
+        totals_backfill_attempts
+    };
+    let totals_give_up = totals_backfill_failed && totals_spent >= TAG_BACKFILL_MAX_ATTEMPTS;
+    if totals_backfill_pending && !summary.cancelled && (!totals_backfill_failed || totals_give_up)
+    {
+        if let Err(err) = sqlx::query(
+            "INSERT INTO profile_setting (key, value, value_type, updated_at)
+             VALUES (?, 'true', 'bool', ?)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+        )
+        .bind(&totals_backfill_key)
+        .bind(now_millis())
+        .execute(pool)
+        .await
+        {
+            tracing::warn!(
+                ?err,
+                folder_id,
+                key = %totals_backfill_key,
+                "could not persist the totals backfill marker (non-fatal); \
                  the next scan will run the pass again"
             );
         }
