@@ -142,25 +142,47 @@ function RoomLayer({
     const canvas = ref.current;
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx || image.naturalWidth === 0) return;
-    const w = ROOM_WIDTH;
-    const h = Math.max(
-      1,
-      Math.round((w * window.innerHeight) / window.innerWidth),
-    );
-    canvas.width = w;
-    canvas.height = h;
-    // Cover-fit, then 1.6× past the edges, as the 1.x backdrop did: the
-    // blur pulls the middle of the sleeve out to the window's corners.
-    const scale =
-      Math.max(w / image.naturalWidth, h / image.naturalHeight) * 1.6;
-    const dw = image.naturalWidth * scale;
-    const dh = image.naturalHeight * scale;
-    // 140 px on a 1600 px window, in the canvas's own pixels; saturation
-    // pumps the sleeve's hues so the room takes its colour, not its grey,
-    // and the darkening keeps a white sleeve from lighting it white.
-    if (filtered)
-      ctx.filter = `blur(${Math.round(w * 0.085)}px) saturate(2.6) brightness(0.62)`;
-    ctx.drawImage(image, (w - dw) / 2, (h - dh) / 2, dw, dh);
+    // The canvas takes the window's aspect, so a resize draws it again
+    // (once per frame at most): a field drawn for a narrow window and
+    // stretched over a wide one would smear the sleeve sideways.
+    const draw = () => {
+      const w = ROOM_WIDTH;
+      const h = Math.max(
+        1,
+        Math.round((w * window.innerHeight) / window.innerWidth),
+      );
+      if (canvas.width === w && canvas.height === h && drawn) return;
+      // Setting the size resets the context, its filter included: the
+      // filter is set after it, every time.
+      canvas.width = w;
+      canvas.height = h;
+      // Cover-fit, then 1.6× past the edges, as the 1.x backdrop did: the
+      // blur pulls the middle of the sleeve out to the window's corners.
+      const scale =
+        Math.max(w / image.naturalWidth, h / image.naturalHeight) * 1.6;
+      const dw = image.naturalWidth * scale;
+      const dh = image.naturalHeight * scale;
+      // 140 px on a 1600 px window, in the canvas's own pixels; saturation
+      // pumps the sleeve's hues so the room takes its colour, not its
+      // grey, and the darkening keeps a white sleeve from lighting it
+      // white.
+      if (filtered)
+        ctx.filter = `blur(${Math.round(w * 0.085)}px) saturate(2.6) brightness(0.62)`;
+      ctx.drawImage(image, (w - dw) / 2, (h - dh) / 2, dw, dh);
+      drawn = true;
+    };
+    let drawn = false;
+    let frame = 0;
+    const onResize = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(draw);
+    };
+    draw();
+    window.addEventListener("resize", onResize);
+    return () => {
+      window.removeEventListener("resize", onResize);
+      cancelAnimationFrame(frame);
+    };
   }, [image, filtered]);
 
   return (
