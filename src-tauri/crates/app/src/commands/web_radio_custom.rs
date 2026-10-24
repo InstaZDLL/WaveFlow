@@ -34,6 +34,7 @@
 //!   the error strings are shown in the dialog, and the dialog is
 //!   screenshotted into bug reports.
 
+use std::io::Read;
 use std::time::Duration;
 
 use reqwest::header::{HeaderMap, CONTENT_TYPE};
@@ -104,13 +105,28 @@ pub async fn web_radio_read_playlist_file(path: String) -> AppResult<Vec<Playlis
 }
 
 fn read_playlist_file(path: &std::path::Path) -> AppResult<Vec<PlaylistEntry>> {
-    let len = std::fs::metadata(path)?.len();
-    if len > MAX_PLAYLIST_FILE_BYTES {
+    // The path comes from the webview: only a file named like a playlist
+    // is opened, so the command cannot hand back the URL lines of any
+    // other file (a credentials store is one http(s) URL per line).
+    let named_like_playlist = path
+        .file_name()
+        .is_some_and(|name| has_playlist_extension(&name.to_string_lossy()));
+    if !named_like_playlist {
         return Err(AppError::Other(format!(
-            "{ERR_NO_STREAM}: the file is too large to be a station playlist ({len} bytes)"
+            "{ERR_NO_STREAM}: not a station playlist file"
         )));
     }
-    let bytes = std::fs::read(path)?;
+    // Bounded by the read itself, not by the reported length, which is 0
+    // for a device or a pipe that never ends.
+    let mut bytes = Vec::new();
+    std::fs::File::open(path)?
+        .take(MAX_PLAYLIST_FILE_BYTES + 1)
+        .read_to_end(&mut bytes)?;
+    if bytes.len() as u64 > MAX_PLAYLIST_FILE_BYTES {
+        return Err(AppError::Other(format!(
+            "{ERR_NO_STREAM}: the file is too large to be a station playlist"
+        )));
+    }
     let entries = parse_playlist(&String::from_utf8_lossy(&bytes)).map_err(playlist_error)?;
     let entries: Vec<PlaylistEntry> = entries
         .into_iter()
@@ -530,5 +546,26 @@ mod tests {
         std::fs::write(&path, "#EXTM3U\nrelative.mp3\n").unwrap();
         let err = read_playlist_file(&path).unwrap_err().to_string();
         assert!(err.contains(ERR_NO_STREAM), "{err}");
+    }
+
+    #[test]
+    fn a_file_not_named_like_a_playlist_is_not_read() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join(".git-credentials");
+        std::fs::write(&path, "https://user:secret@a.example\n").unwrap();
+        let err = read_playlist_file(&path).unwrap_err().to_string();
+        assert!(err.contains(ERR_NO_STREAM), "{err}");
+        assert!(!err.contains("secret"), "{err}");
+    }
+
+    #[test]
+    fn a_playlist_file_over_the_cap_is_refused() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("big.m3u");
+        let mut body = String::from("https://a.example/live\n");
+        body.push_str(&"#".repeat(MAX_PLAYLIST_FILE_BYTES as usize));
+        std::fs::write(&path, body).unwrap();
+        let err = read_playlist_file(&path).unwrap_err().to_string();
+        assert!(err.contains("too large"), "{err}");
     }
 }
