@@ -83,9 +83,18 @@ interface RoomImage {
 }
 
 /** The decoded covers on screen: the current one last, the one it fades
- *  over before it. A cover that fails to load leaves the previous light. */
+ *  over before it. A cover that fails to load leaves the previous light;
+ *  a track with no cover clears it, so an older sleeve never comes back
+ *  under the next one while that one loads. */
 function useRoomLayers(src: string | null): RoomImage[] {
   const [layers, setLayers] = useState<RoomImage[]>([]);
+  // Reset during render rather than in an effect: the cleared room is
+  // what this very render paints.
+  const [lastSrc, setLastSrc] = useState(src);
+  if (src !== lastSrc) {
+    setLastSrc(src);
+    if (!src) setLayers([]);
+  }
   useEffect(() => {
     if (!src) return;
     let cancelled = false;

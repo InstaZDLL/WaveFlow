@@ -406,8 +406,21 @@
     0 50px 90px -40px rgb(6 0 3 / 0.95),
     0 0 80px -30px color-mix(in srgb, var(--fe-accent) 30%, transparent);
 }
-/* Inputs: the smoked glass, the accent's ring on focus. */
-:root[data-skin="lounge"] :where(input, textarea, select):not(header input) {
+/* Fields: the smoked glass. Not the controls that are inputs only by
+   markup — a box, a dot, a slider, a swatch, a file picker draw their
+   own ground. */
+:root[data-skin="lounge"]
+  :where(
+    input:not(
+      [type="checkbox" i],
+      [type="radio" i],
+      [type="range" i],
+      [type="color" i],
+      [type="file" i]
+    ),
+    textarea,
+    select
+  ):not(header input) {
   background-color: rgb(24 7 14 / 0.7) !important;
   border-color: var(--fe-hairline-strong) !important;
 }
