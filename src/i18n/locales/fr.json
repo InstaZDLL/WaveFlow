@@ -2899,6 +2899,10 @@
         "failed_many": "{{count}} réglages n’ont pas pu être réinitialisés.",
         "failed_other": "{{count}} réglages n’ont pas pu être réinitialisés."
       }
+    },
+    "autoplay": {
+      "title": "Lecture automatique",
+      "subtitle": "Quand la file se termine sans répétition, ajoute des titres proches de votre bibliothèque et continue"
     }
   },
   "scanProgress": {

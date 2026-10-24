@@ -6,6 +6,7 @@
 
 mod analysis;
 mod audio;
+mod autoplay;
 mod backup;
 mod backup_prompt;
 mod commands;

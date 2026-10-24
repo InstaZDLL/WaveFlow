@@ -2829,6 +2829,10 @@
         "failed_one": "{{count}} pengaturan tidak dapat diatur ulang.",
         "failed_other": "{{count}} pengaturan tidak dapat diatur ulang."
       }
+    },
+    "autoplay": {
+      "title": "Putar otomatis",
+      "subtitle": "Saat antrean habis tanpa pengulangan, tambahkan lagu serupa dari pustaka Anda dan terus putar"
     }
   },
   "scanProgress": {

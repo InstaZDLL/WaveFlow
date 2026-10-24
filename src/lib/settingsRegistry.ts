@@ -175,6 +175,13 @@ export const SETTINGS = {
     false,
     "settings.singleClickPlay.title",
   ),
+  "playback.autoplay": setting(
+    "playback",
+    "profile",
+    "bool",
+    false,
+    "settings.autoplay.title",
+  ),
   "playback.generator_album_mode": setting(
     "playback",
     "profile",

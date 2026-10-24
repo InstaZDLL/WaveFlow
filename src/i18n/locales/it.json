@@ -2899,6 +2899,10 @@
         "failed_many": "Impossibile ripristinare {{count}} impostazioni.",
         "failed_other": "Impossibile ripristinare {{count}} impostazioni."
       }
+    },
+    "autoplay": {
+      "title": "Riproduzione automatica",
+      "subtitle": "Quando la coda finisce senza ripetizione, aggiunge brani affini dalla tua libreria e continua"
     }
   },
   "scanProgress": {

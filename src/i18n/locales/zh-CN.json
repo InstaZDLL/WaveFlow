@@ -2829,6 +2829,10 @@
         "failed_one": "有 {{count}} 项设置无法重置。",
         "failed_other": "有 {{count}} 项设置无法重置。"
       }
+    },
+    "autoplay": {
+      "title": "自动播放",
+      "subtitle": "队列在未开启循环时播完后，从你的资料库添加相关曲目并继续播放"
     }
   },
   "scanProgress": {

@@ -2831,6 +2831,10 @@
         "failed_one": "{{count}} Einstellung konnte nicht zurückgesetzt werden.",
         "failed_other": "{{count}} Einstellungen konnten nicht zurückgesetzt werden."
       }
+    },
+    "autoplay": {
+      "title": "Autoplay",
+      "subtitle": "Wenn die Warteschlange ohne Wiederholung endet, ähnliche Titel aus deiner Mediathek hinzufügen und weiterspielen"
     }
   },
   "scanProgress": {

@@ -2831,6 +2831,10 @@
         "failed_one": "{{count}} instelling kon niet worden gereset.",
         "failed_other": "{{count}} instellingen konden niet worden gereset."
       }
+    },
+    "autoplay": {
+      "title": "Automatisch afspelen",
+      "subtitle": "Als de wachtrij zonder herhalen afloopt, verwante nummers uit je bibliotheek toevoegen en doorspelen"
     }
   },
   "scanProgress": {

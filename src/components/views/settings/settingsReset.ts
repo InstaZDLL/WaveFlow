@@ -127,6 +127,7 @@ import { applyUiZoom } from "../../../hooks/useUiZoom";
 import { setSortIgnoreArticles } from "../../../hooks/useSortIgnoreArticles";
 import { applyWindowChrome } from "../../../hooks/useWindowChrome";
 import { SINGLE_CLICK_PLAY_EVENT } from "../../../hooks/useSingleClickPlay";
+import { AUTOPLAY_EVENT } from "../../../hooks/useAutoplay";
 import { GENERATOR_ALBUM_MODE_EVENT } from "../../../hooks/useGeneratorAlbumMode";
 import { CONTRAST_EVENT } from "../../../hooks/useContrastMode";
 import { ACCENT_EVENT } from "../../../hooks/useAccentChoice";
@@ -603,6 +604,7 @@ const ACCESSORS: Record<SettingKey, SettingAccessor> = {
     "ui.single_click_play",
     SINGLE_CLICK_PLAY_EVENT,
   ),
+  "playback.autoplay": profileBool("playback.autoplay", AUTOPLAY_EVENT),
   "playback.generator_album_mode": profileBool(
     "playback.generator_album_mode",
     GENERATOR_ALBUM_MODE_EVENT,

@@ -2829,6 +2829,10 @@
         "failed_one": "有 {{count}} 項設定無法重設。",
         "failed_other": "有 {{count}} 項設定無法重設。"
       }
+    },
+    "autoplay": {
+      "title": "自動播放",
+      "subtitle": "佇列在未開啟重複時播完後，從你的資料庫加入相關曲目並繼續播放"
     }
   },
   "scanProgress": {

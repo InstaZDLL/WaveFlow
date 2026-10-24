@@ -2831,6 +2831,10 @@
         "failed_one": "{{count}} setting could not be reset.",
         "failed_other": "{{count}} settings could not be reset."
       }
+    },
+    "autoplay": {
+      "title": "Autoplay",
+      "subtitle": "When the queue ends with repeat off, add related tracks from your library and keep playing"
     }
   },
   "scanProgress": {

@@ -2926,6 +2926,12 @@ pub async fn player_next(
     // now, and committing it after another producer replaced that queue
     // would put the cursor on a track this load never resolved.
     let _publish = engine.lock_publish().await;
+    // At the end of the queue with autoplay on, the queue grows first and
+    // this step lands on what was added — the same call every other
+    // producer makes, so every surface lands on the same track. Taken
+    // back out below if the step loses its claim; announced by the
+    // queue change this step emits once it has claimed.
+    let topped_up = crate::autoplay::top_up_or_log(&pool, repeat, "next").await;
     let queue_len = queue::queue_length(&pool).await?;
     let next_opt = queue::peek_step(&pool, Direction::Next, repeat).await?;
     match &next_opt {
@@ -2949,6 +2955,9 @@ pub async fn player_next(
     // happen, or none of them does.
     if !engine.claim_dispatch(intent) {
         tracing::debug!("next superseded by a newer selection; leaving the queue alone");
+        if let Some(batch) = topped_up {
+            batch.undo(&pool).await;
+        }
         return Ok(());
     }
     queue::commit_index(&pool, index).await?;
