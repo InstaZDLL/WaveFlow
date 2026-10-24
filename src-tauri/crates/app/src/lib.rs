@@ -972,6 +972,8 @@ pub fn run() {
             commands::web_radio_catalogue::resolve_radio_catalogue,
             commands::web_radio_catalogue::get_radio_preferred_country,
             commands::web_radio_catalogue::set_radio_preferred_country,
+            commands::web_radio_custom::web_radio_probe_url,
+            commands::web_radio_custom::web_radio_read_playlist_file,
             commands::mood_radio::start_mood_radio,
             commands::mood_radio::mood_radio_counts,
             commands::mood_radio::track_mood_overrides,
