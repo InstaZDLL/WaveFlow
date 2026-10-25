@@ -2653,6 +2653,10 @@
           "label": "系统",
           "hint": "你的桌面为所有应用绘制的边框。"
         },
+        "adwaita": {
+          "label": "GNOME",
+          "hint": "桌面的边框，采用新版 GNOME 应用的样式和 WaveFlow 的配色。"
+        },
         "app": {
           "label": "WaveFlow",
           "hint": "由 WaveFlow 绘制，窗口按钮位于应用自己的标题栏中。"

@@ -2655,6 +2655,10 @@
           "label": "System",
           "hint": "Der Rahmen, den dein Desktop für jede App zeichnet."
         },
+        "adwaita": {
+          "label": "GNOME",
+          "hint": "Der Rahmen deines Desktops, im Stil aktueller GNOME-Apps und in den Farben von WaveFlow."
+        },
         "app": {
           "label": "WaveFlow",
           "hint": "WaveFlow zeichnet ihn, und die Fensterknöpfe sitzen in seiner eigenen Leiste."

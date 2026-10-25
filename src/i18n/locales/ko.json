@@ -2653,6 +2653,10 @@
           "label": "시스템",
           "hint": "데스크톱이 모든 앱에 그리는 테두리입니다."
         },
+        "adwaita": {
+          "label": "GNOME",
+          "hint": "데스크톱의 테두리를 최신 GNOME 앱 스타일과 WaveFlow의 색으로 보여 줍니다."
+        },
         "app": {
           "label": "WaveFlow",
           "hint": "WaveFlow가 직접 그리며, 창 버튼이 WaveFlow의 막대 안에 놓입니다."

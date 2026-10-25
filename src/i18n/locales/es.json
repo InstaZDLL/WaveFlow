@@ -2720,6 +2720,10 @@
           "label": "Sistema",
           "hint": "El marco que tu escritorio dibuja para todas las aplicaciones."
         },
+        "adwaita": {
+          "label": "GNOME",
+          "hint": "El marco de tu escritorio, con el estilo de las aplicaciones GNOME actuales y los colores de WaveFlow."
+        },
         "app": {
           "label": "WaveFlow",
           "hint": "Lo dibuja WaveFlow, y los botones de la ventana se sitúan en su propia barra."

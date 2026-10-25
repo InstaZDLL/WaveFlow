@@ -2720,6 +2720,10 @@
           "label": "Sistema",
           "hint": "La cornice che il tuo desktop disegna per ogni app."
         },
+        "adwaita": {
+          "label": "GNOME",
+          "hint": "La cornice del tuo desktop, nello stile delle app GNOME recenti e nei colori di WaveFlow."
+        },
         "app": {
           "label": "WaveFlow",
           "hint": "La disegna WaveFlow, e i pulsanti della finestra stanno nella sua barra."

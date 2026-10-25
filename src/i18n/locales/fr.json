@@ -2720,6 +2720,10 @@
           "label": "Système",
           "hint": "Le cadre que votre bureau dessine pour toutes les applications."
         },
+        "adwaita": {
+          "label": "GNOME",
+          "hint": "Le cadre de votre bureau, au style des applications GNOME récentes et aux couleurs de WaveFlow."
+        },
         "app": {
           "label": "WaveFlow",
           "hint": "WaveFlow le dessine, et les boutons de la fenêtre se posent dans sa propre barre."

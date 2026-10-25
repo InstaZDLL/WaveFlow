@@ -2655,6 +2655,10 @@
           "label": "System",
           "hint": "The frame your desktop draws for every app."
         },
+        "adwaita": {
+          "label": "GNOME",
+          "hint": "Your desktop's frame, styled like current GNOME apps and in WaveFlow's colours."
+        },
         "app": {
           "label": "WaveFlow",
           "hint": "WaveFlow draws it, and the window buttons sit in its own bar."

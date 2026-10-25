@@ -20,6 +20,7 @@ import { DropTargetsOverlay } from "./DropTargetsOverlay";
 import { useGlobalShortcuts } from "../../hooks/useGlobalShortcuts";
 import { useUiZoom } from "../../hooks/useUiZoom";
 import { useWindowChrome } from "../../hooks/useWindowChrome";
+import { useWindowFrameColors } from "../../hooks/useWindowFrameColors";
 import { AppTitleBar } from "./AppTitleBar";
 import { useMainWindowBounds } from "../../hooks/useMainWindowBounds";
 import { AnimatePresence, motion } from "framer-motion";
@@ -198,6 +199,7 @@ export function AppLayout() {
   // stored choice for this platform already, so there is one instruction to
   // follow here rather than a platform test.
   const windowChrome = useWindowChrome();
+  useWindowFrameColors(windowChrome.chrome);
   // Main-window size + position persistence. Saves on every move/resize
   // (debounced 300 ms); restoration is done by the Rust boot path before
   // the window is revealed so there is no visible jump.

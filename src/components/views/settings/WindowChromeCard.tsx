@@ -1,15 +1,14 @@
 import { useTranslation } from "react-i18next";
-import { AppWindow, PanelTop } from "lucide-react";
+import { AppWindow, AppWindowMac, PanelTop } from "lucide-react";
 
 import { useWindowChrome } from "../../../hooks/useWindowChrome";
+import type { WindowChrome } from "../../../lib/tauri/preferences";
 
-const OPTIONS: ReadonlyArray<{
-  id: "system" | "app";
-  Icon: typeof AppWindow;
-}> = [
-  { id: "system", Icon: AppWindow },
-  { id: "app", Icon: PanelTop },
-];
+const ICONS: Record<WindowChrome, typeof AppWindow> = {
+  system: AppWindow,
+  adwaita: AppWindowMac,
+  app: PanelTop,
+};
 
 /**
  * Settings → Appearance row picking who draws the window's frame
@@ -19,11 +18,13 @@ const OPTIONS: ReadonlyArray<{
  * Windows, where a frame we drew ourselves would lose Snap Layouts and the
  * system menu — a worse Windows than the one the user has. The platform
  * rule lives in `commands/preferences.rs`, not here; this card only asks
- * whether there is a choice to show.
+ * whether there is a choice to show, and which: `adwaita` is offered only
+ * where GTK draws the frame (Linux on its Wayland backend).
  */
 export function WindowChromeCard() {
   const { t } = useTranslation();
-  const { chrome, supported, ready, busy, choose } = useWindowChrome();
+  const { chrome, supported, options, ready, busy, choose } =
+    useWindowChrome();
 
   if (!ready || !supported) return null;
 
@@ -54,9 +55,12 @@ export function WindowChromeCard() {
       <div
         role="radiogroup"
         aria-labelledby="settings-window-chrome-heading"
-        className="grid grid-cols-1 sm:grid-cols-2 gap-2"
+        className={`grid grid-cols-1 gap-2 ${
+          options.length > 2 ? "sm:grid-cols-3" : "sm:grid-cols-2"
+        }`}
       >
-        {OPTIONS.map(({ id, Icon }) => {
+        {options.map((id) => {
+          const Icon = ICONS[id];
           const selected = chrome === id;
           return (
             <button

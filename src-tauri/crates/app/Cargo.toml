@@ -316,6 +316,10 @@ zbus = "5"
 # Which backend GTK really opened the window on (#894): the X11 handle
 # kinds or the Wayland one. Already in the tree through Tauri.
 raw-window-handle = "0.6"
+# The stylesheet that dresses GTK's own window frame as a libadwaita
+# header bar (`adwaita_frame`). The same 0.18 tao and wry link, so no new
+# crate and no Flatpak source regeneration.
+gtk = "0.18"
 
 # Windows-only: opt-in bit-perfect playback via WASAPI Exclusive Mode.
 # `wasapi` is a thin safe wrapper over the Win32 audio COM API — it
