@@ -14,6 +14,7 @@ import {
   Check,
   Languages,
   Loader2,
+  Share2,
 } from "lucide-react";
 import { usePlayer } from "../../hooks/usePlayer";
 import { useTrackLyrics } from "../../hooks/useTrackLyrics";
@@ -34,6 +35,8 @@ import {
   wordSeparators,
 } from "../../lib/tauri/lyrics";
 import { LyricsEditorModal } from "../common/LyricsEditorModal";
+import { useLyricsShare } from "../../hooks/useLyricsShare";
+import { shareableLyricLines } from "../../lib/lyricsCard";
 import { BackgroundVocals, InterludeDots } from "../player/LyricsVoiceParts";
 
 /**
@@ -105,6 +108,16 @@ export function LyricsPanel({
   const lyricsPlugins = useLyricsPlugins();
 
   const [isEditing, setIsEditing] = useState(false);
+  // The excerpt picker, opened on the line playing.
+  const lyricsShare = useLyricsShare();
+  const shareLines = shareableLyricLines({
+    isSynced,
+    lrcLines,
+    isRadio,
+    radioPlainText,
+    payload,
+  });
+  const canShare = shareLines.some((line) => line.trim() !== "");
   // Provider picker dropdown — opens on click of the source label so the
   // user can re-query a specific source when the auto-waterfall cached a
   // low-quality hit. Closed by an outside click + by `handleRefetch`
@@ -259,6 +272,19 @@ export function LyricsPanel({
             className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <Pencil size={16} />
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              currentTrack &&
+              lyricsShare.open(currentTrack, shareLines, activeIndex)
+            }
+            aria-label={t("lyrics.share.open")}
+            title={t("lyrics.share.open")}
+            disabled={currentTrack == null || !canShare}
+            className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <Share2 size={16} />
           </button>
           <button
             type="button"
@@ -481,6 +507,7 @@ export function LyricsPanel({
         initial={payload}
         onSaved={(next) => applyPayload(next)}
       />
+      {lyricsShare.render()}
 
       {/* Footer actions */}
       {currentTrack != null && (

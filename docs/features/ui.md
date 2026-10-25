@@ -546,6 +546,19 @@ The same card, for a playlist or an artist. A **Share** button in the playlist h
 
 The save / copy flow, the filename sanitising and the spinner state are one hook, [`useShareImage`](../../src/hooks/useShareImage.ts), used by all three buttons; the drawing helpers the two square cards share live in [`lib/cardCanvas.ts`](../../src/lib/cardCanvas.ts). Every string comes from keys that already existed (`nowPlaying.share.*`, the two headers' badges).
 
+## Lyrics excerpt share card
+
+A few lines of the playing track's lyrics, as an image. The **Share an excerpt** button in the lyrics panel's header (classic right panel and Fluid's side panel alike) and a third entry in the immersive view's Share menu open [`LyricsShareModal`](../../src/components/common/LyricsShareModal.tsx): the lyric's lines as buttons to toggle, a live preview of the card beside them, and Save / Copy through `useShareImage`. The line playing is selected to start with. The lines are the ones the panel shows ([`shareableLyricLines`](../../src/lib/lyricsCard.ts)): the synced lines' text, or the plain text split at its breaks — a radio's with its stamps stripped — blank lines skipped. [`useLyricsShare`](../../src/hooks/useLyricsShare.tsx) takes the track and its lines when the dialog opens and holds them until it closes, so a track change under an open dialog cannot point the selection at another song's lines.
+
+[`lib/lyricsCard.ts`](../../src/lib/lyricsCard.ts) draws a 1080×1080 PNG of the same family as the cards above — blurred cover behind, accent strip, footer — with the excerpt large in the middle and the cover, title and artist beneath it.
+
+- **At most six lines** (`MAX_LYRIC_LINES`); the others are disabled once six are picked. A card is a quote, not the song, and past six the type would shrink below what reads on a phone.
+- **Any script fits.** A line wider than the card wraps at the breaks [`Intl.Segmenter`](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Intl/Segmenter) finds — which is where Japanese, Chinese or Thai may break without spaces — with punctuation kept on the row before it; a word wider than a row breaks between graphemes. The type then shrinks from 64 to 34 px until the excerpt fits its block; at the floor, a line keeps four rows at most (so one cannot crowd out the rest), rows past the block are dropped and the last one kept ends in an ellipsis.
+- **Right to left.** An excerpt whose first line begins in an RTL script (Arabic, Hebrew, Syriac, Thaana, N'Ko) is right-aligned and mirrors the cover row; each line is drawn with its own direction, so a Latin line inside an Arabic excerpt still reads left to right.
+- **The backdrop is blurred once** through `drawBlurred` ([`precomputedBlur.ts`](../../src/lib/precomputedBlur.ts)) into a small canvas and stretched, not through `ctx.filter`, which WebKitGTK and macOS WebKit ignore — the two older cards still use the filter, and come out with a sharp backdrop there.
+
+The type comes from `ES2022.Intl`, added to `tsconfig.json`'s `lib`; the code still checks `Intl.Segmenter` exists and falls back to spaces and code points.
+
 ## Width & containers
 
 Music browsing views (Home, Library, Playlist, Album, Artist, Liked, Recent, Statistics) render **full width** inside the center column — no `max-w-*` cap. The `p-8` gutter on the page scroller ([`AppLayout.tsx`](../../src/components/layout/AppLayout.tsx)) is the only horizontal breathing room. On a 2.5K display the table area gains ~800 px over the previous `max-w-6xl mx-auto` constraint.

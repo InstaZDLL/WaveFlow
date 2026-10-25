@@ -19,6 +19,7 @@ import { ImmersiveNowPlaying } from "./ImmersiveNowPlaying";
 import { ImmersiveSidePanel, type ImmersiveTab } from "./ImmersiveSidePanel";
 import { ImmersiveLyricsColumn } from "./ImmersiveLyricsColumn";
 import { ImmersiveShareButton } from "./ImmersiveShareButton";
+import { shareableLyricLines } from "../../lib/lyricsCard";
 import { CanvasToggleButton } from "./CanvasToggleButton";
 import { CanvasPickerModal } from "../common/CanvasPickerModal";
 import { LINUX } from "../../hooks/usePlayableVideo";
@@ -428,7 +429,13 @@ export function ImmersiveView({
               <MoreHorizontal size={22} />
             </button>
           )}
-          {currentTrack && <ImmersiveShareButton track={currentTrack} />}
+          {currentTrack && (
+            <ImmersiveShareButton
+              track={currentTrack}
+              lyricLines={shareableLyricLines(lyrics)}
+              activeLyricIndex={lyrics.activeIndex}
+            />
+          )}
           <button
             type="button"
             onClick={onClose}
