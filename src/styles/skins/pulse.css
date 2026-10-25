@@ -981,7 +981,7 @@ html:root[data-skin="pulse"] ::-webkit-scrollbar-thumb:hover {
   }
 }
 
-/* ── Reduced transparency, Linux, high contrast: solid chrome ── */
+/* ── Reduced transparency, Linux, reduced effects, contrast ── */
 /* The blurred pill and the translucent rail, panel and field turn
    solid; the halos go with the blur under high contrast, where a glow
    is noise around the edge it is meant to mark. */
@@ -996,16 +996,79 @@ html:root[data-skin="pulse"] ::-webkit-scrollbar-thumb:hover {
     -webkit-backdrop-filter: none;
   }
 }
-:root[data-skin="pulse"]:is([data-webkitgtk-safe], [data-contrast="high"]) {
+:root[data-skin="pulse"]:is(
+    [data-webkitgtk-safe],
+    [data-effects="reduced"],
+    [data-contrast="high"]
+  ) {
   --wf-contrast-surface: var(--fe-surface);
   --pu-bar-bg: var(--fe-surface);
   --pu-chrome-bg: var(--fe-surface);
   --pu-field-bg: var(--fe-bg);
 }
-:root[data-skin="pulse"]:is([data-webkitgtk-safe], [data-contrast="high"])
+:root[data-skin="pulse"]:is(
+    [data-webkitgtk-safe],
+    [data-effects="reduced"],
+    [data-contrast="high"]
+  )
   footer {
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
+}
+/* Reduced effects: the halos and the neon line are blurred shadows and
+   filters drawn wherever the accent is (the Home at 14 fps, 42 without
+   the filters), so they go as under high contrast; the record stops
+   turning, the mood waves stop drifting and lose their glow. The rings
+   stay: an edge in the accent is the material, a glow around it is the
+   effect. */
+:root[data-skin="pulse"][data-effects="reduced"] {
+  --pu-halo: 0 0 0 0 transparent;
+  --pu-halo-strong: 0 0 0 0 transparent;
+  --pu-halo-accent-fill: 0 0 0 0 transparent;
+  --pu-halo-glow: 0 0 0 0 transparent;
+  --pu-neon-line: none;
+}
+:root[data-skin="pulse"][data-effects="reduced"] footer img {
+  animation: none;
+}
+/* The bar keeps its ring; the rows and badges keep their accent edge;
+   the glows under them and on a hovered action go. */
+:root[data-skin="pulse"][data-effects="reduced"] footer {
+  box-shadow: var(--pu-ring) !important;
+}
+:root[data-skin="pulse"][data-effects="reduced"]
+  :is(
+    [data-track-row][class*="bg-emerald-50 "],
+    .fe-panel [class*="bg-emerald-50 "]
+  ) {
+  box-shadow: inset 2px 0 0 var(--fe-accent) !important;
+}
+:root[data-skin="pulse"][data-effects="reduced"]
+  :is(
+    span,
+    div
+  )[class*="bg-emerald-500"][class*="text-[10px]"][class*="rounded"] {
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--fe-accent) 60%, transparent) !important;
+}
+:root[data-skin="pulse"][data-effects="reduced"]
+  .fe-spectrum__seg[data-checked="true"] {
+  box-shadow: var(--pu-ring-accent) !important;
+}
+:root[data-skin="pulse"][data-effects="reduced"]
+  main
+  button[class*="bg-emerald-50 "]::before,
+:root[data-skin="pulse"][data-effects="reduced"] .fe-cta:hover,
+:root[data-skin="pulse"][data-effects="reduced"]
+  main
+  [data-page-hero]
+  button:hover,
+:root[data-skin="pulse"][data-effects="reduced"] footer button:hover {
+  box-shadow: none !important;
+}
+:root[data-skin="pulse"][data-effects="reduced"] .fe-spectrum__wave svg,
+:root[data-skin="pulse"][data-effects="reduced"] .fe-progress__thumb {
+  filter: none !important;
 }
 :root[data-skin="pulse"][data-contrast="high"] {
   --pu-halo: 0 0 0 0 transparent;

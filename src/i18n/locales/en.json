@@ -2704,6 +2704,25 @@
         }
       }
     },
+    "effects": {
+      "title": "Visual effects",
+      "subtitle": "Blurs, glass, glows and ambient animations. Reduced, every surface is drawn flat, so the interface stays smooth on a machine without graphics acceleration.",
+      "modes": {
+        "auto": {
+          "label": "Automatic",
+          "full": "Full on this machine; reduced when the interface is drawn without a GPU.",
+          "reduced": "Reduced on this machine: the interface is drawn without a GPU here."
+        },
+        "full": {
+          "label": "Full",
+          "description": "Every effect of the skin, even without a GPU."
+        },
+        "reduced": {
+          "label": "Reduced",
+          "description": "No blur, glass, glow or ambient animation; the layout and the colours stay."
+        }
+      }
+    },
     "cacheLocation": {
       "title": "Cache location",
       "subtitle": "Artwork, animated covers and Canvas clips. All of it is rebuildable, so moving it loses nothing. Databases and the files you picked by hand stay where they are.",

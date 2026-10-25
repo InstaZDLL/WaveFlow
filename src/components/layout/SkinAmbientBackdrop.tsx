@@ -3,6 +3,7 @@ import { convertFileSrc } from "@tauri-apps/api/core";
 import { PrecomputedBlur } from "../common/PrecomputedBlur";
 import { loadBlurSource } from "../../lib/precomputedBlur";
 import { usePlayer } from "../../hooks/usePlayer";
+import { useReducedEffects } from "../../hooks/useEffectsLevel";
 import { useSkin } from "../../hooks/useSkin";
 
 /**
@@ -24,16 +25,18 @@ import { useSkin } from "../../hooks/useSkin";
  * The tint over it — what keeps a pale sleeve from lighting the room
  * white — is the skin's (`.skin-room::after` in `lounge.css`).
  *
- * Off under the WebKitGTK safeguard: the skin's static gradient stands
- * in for the room there.
+ * Off under the WebKitGTK safeguard and under reduced effects: the
+ * skin's static gradient stands in for the room there.
  */
 export function SkinAmbientBackdrop() {
   const { skin } = useSkin();
   const { currentTrack } = usePlayer();
+  const reduced = useReducedEffects();
 
   const enabled =
     skin.layout === "fluid" &&
     skin.fluid?.atmosphere === "room" &&
+    !reduced &&
     !document.documentElement.hasAttribute("data-webkitgtk-safe");
 
   const artworkPath = enabled ? (currentTrack?.artwork_path ?? null) : null;

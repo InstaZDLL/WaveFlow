@@ -2704,6 +2704,25 @@
         }
       }
     },
+    "effects": {
+      "title": "Görsel efektler",
+      "subtitle": "Bulanıklık, cam, parıltı ve ortam animasyonları. Azaltılmış modda her yüzey düz çizilir; arayüz grafik hızlandırması olmayan bir bilgisayarda da akıcı kalır.",
+      "modes": {
+        "auto": {
+          "label": "Otomatik",
+          "full": "Bu bilgisayarda tam; arayüz GPU olmadan çizildiğinde azaltılmış.",
+          "reduced": "Bu bilgisayarda azaltılmış: arayüz burada GPU olmadan çiziliyor."
+        },
+        "full": {
+          "label": "Tam",
+          "description": "Görünümün tüm efektleri, GPU olmasa bile."
+        },
+        "reduced": {
+          "label": "Azaltılmış",
+          "description": "Bulanıklık, cam, parıltı ya da ortam animasyonu yok; düzen ve renkler kalır."
+        }
+      }
+    },
     "cacheLocation": {
       "title": "Önbellek konumu",
       "subtitle": "Kapak görselleri, hareketli kapaklar ve Canvas klipleri. Hepsi yeniden oluşturulabilir, bu yüzden taşımak hiçbir şey kaybettirmez. Veritabanları ve elle seçtiğin dosyalar yerinde kalır.",

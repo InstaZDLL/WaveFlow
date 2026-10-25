@@ -148,7 +148,21 @@ pub fn run() {
             }
         }
     };
+    // What the first paint has to know before any script can ask: the
+    // skin recovery, and whether this launch draws without the GPU, which
+    // the interface's automatic effects level reads to draw its surfaces
+    // flat (`src/lib/effects.ts`).
+    let software =
+        render_mode::current().is_some_and(|d| d.mode == render_mode::RenderMode::Software);
+    let mut query = Vec::new();
     if skin_recovery.is_active() {
+        query.push("safe-mode=1");
+        tracing::warn!(reason = ?skin_recovery, "Studio skin recovery selected");
+    }
+    if software {
+        query.push("renderer=software");
+    }
+    if !query.is_empty() {
         if let Some(main) = context
             .config_mut()
             .app
@@ -156,9 +170,8 @@ pub fn run() {
             .iter_mut()
             .find(|w| w.label == "main")
         {
-            main.url = WebviewUrl::App("index.html?safe-mode=1".into());
+            main.url = WebviewUrl::App(format!("index.html?{}", query.join("&")).into());
         }
-        tracing::warn!(reason = ?skin_recovery, "Studio skin recovery selected");
     }
 
     // `mut` is only consumed when the updater plugin is wired in (release

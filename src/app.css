@@ -201,6 +201,39 @@
   backdrop-filter: none !important;
 }
 
+/* Reduced effects (`data-effects="reduced"`, `src/lib/effects.ts`): what
+   the WebKitGTK bench found costing the frames under the software
+   renderer, where every frame repaints what it covers. Blurred shadows
+   first -- the album grid scrolls at 4 fps with the covers' `shadow-sm`,
+   23 without it -- then backdrop blurs, then the ambient animations
+   each skin lists in its own stylesheet. Tailwind's shadows go through
+   their variables, so its rings (selection, focus) stay: a ring has no
+   blur and is not an effect. The surfaces that relied on a blur turn
+   opaque, as under high contrast (rules further down). */
+:root[data-effects="reduced"] *,
+:root[data-effects="reduced"] *::before,
+:root[data-effects="reduced"] *::after {
+  --tw-shadow: 0 0 #0000 !important;
+  --tw-inset-shadow: 0 0 #0000 !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+/* The glows that breathe behind an empty state or a profile's avatar are
+   blurred discs under an infinite animation: gone, not frozen. A held
+   note keeps its swell and loses its halo, an animated text-shadow. */
+:root[data-effects="reduced"] .animate-breathing {
+  display: none;
+}
+:root[data-effects="reduced"] .wf-held-letter--glow {
+  animation-name: wf-held-swell;
+}
+/* The mini-player's lyrics sit over a blurred copy of the cover, which
+   the karaoke repaints every frame: under reduced effects the dark sheet
+   stays and the copy goes, as under high contrast. */
+:root[data-effects="reduced"] .wf-mini-lyrics-wash {
+  display: none;
+}
+
 /* WebKitGTK briefly tears down and recreates the composited opacity layer
    used by the album grid's add button. It flashes twice on entry and lingers
    on the previous cover on exit (#817), so switch it without a transition. */
@@ -946,11 +979,12 @@ html.mini-player-window #root {
  * on a dark gradient is already past the contrast floor, and forcing it
  * opaque would flatten the hero for no legibility gain. */
 :root[data-contrast="high"],
+:root[data-effects="reduced"],
 :root[data-webkitgtk-safe]:is([data-skin="lounge"], [data-skin="liquid"]) {
   --wf-contrast-surface: var(--color-surface-light);
 }
 
-:root[data-contrast="high"]:where(
+:root:is([data-contrast="high"], [data-effects="reduced"]):where(
     .dark,
     [data-skin="lounge"],
     [data-skin="pulse"],
@@ -961,6 +995,7 @@ html.mini-player-window #root {
 }
 
 :root[data-contrast="high"] .wf-glass,
+:root[data-effects="reduced"] .wf-glass,
 :root[data-webkitgtk-safe]:is([data-skin="lounge"], [data-skin="liquid"])
   .wf-glass {
   background-color: var(--wf-contrast-surface);

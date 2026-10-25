@@ -2769,6 +2769,25 @@
         }
       }
     },
+    "effects": {
+      "title": "Effetti visivi",
+      "subtitle": "Sfocature, vetro, aloni e animazioni d'atmosfera. In modalità ridotta ogni superficie è disegnata piatta e l'interfaccia resta fluida su un computer senza accelerazione grafica.",
+      "modes": {
+        "auto": {
+          "label": "Automatico",
+          "full": "Completi su questo computer; ridotti quando l'interfaccia è disegnata senza GPU.",
+          "reduced": "Ridotti su questo computer: qui l'interfaccia è disegnata senza GPU."
+        },
+        "full": {
+          "label": "Completi",
+          "description": "Tutti gli effetti della skin, anche senza GPU."
+        },
+        "reduced": {
+          "label": "Ridotti",
+          "description": "Niente sfocatura, vetro, aloni o animazioni d'atmosfera; layout e colori restano."
+        }
+      }
+    },
     "cacheLocation": {
       "title": "Posizione della cache",
       "subtitle": "Copertine, copertine animate e clip Canvas. Questi dati sono tutti ricostruibili, quindi spostarli non comporta alcuna perdita. I database e i file scelti a mano restano dove sono.",

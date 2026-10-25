@@ -13,6 +13,7 @@ import {
   getMiniPlayerBounds,
   type MiniPlayerBounds,
 } from "./tauri/preferences";
+import { launchedInSoftware } from "./effects";
 
 const MINI_LABEL = "mini";
 const DEFAULT_WIDTH = 280;
@@ -198,7 +199,12 @@ export async function openMiniPlayer(): Promise<void> {
     }
 
     const win = new WebviewWindow(MINI_LABEL, {
-      url: "index.html?mini=1",
+      // The renderer is the process's, so the main window's launch hint
+      // holds here too: the bootstrap stamps the effects level for the
+      // mini-player's first paint as it did for the main window's.
+      url: launchedInSoftware()
+        ? "index.html?mini=1&renderer=software"
+        : "index.html?mini=1",
       title: "WaveFlow",
       width,
       height,

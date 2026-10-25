@@ -610,6 +610,23 @@ What the mode changes:
 
 The first paint is handled by the bootstrap script in `index.html` alongside the theme and skin stamps; [`ContrastProvider`](../../src/contexts/ContrastContext.tsx) re-stamps it from the profile row a few ms later, and is mounted in the mini-player's tree too — that window has its own document, so it needs its own stamp.
 
+## Visual effects
+
+A fourth axis beside theme, skin and contrast: **Automatic / Full / Reduced**, per profile, in Settings → Appearance → Theme and readability. With a GPU the blurs, the glass, the glows and the ambient animations cost little; without one — the software renderer the fallback of [#595](#surviving-a-renderer-that-cannot-paint-595) puts a machine on, a virtual machine, a driver that rasterises on the CPU — each costs the whole frame it repaints in. **Reduced** keeps the layout, the colours and the content and draws every surface flat. [`applyEffects()`](../../src/lib/effects.ts) writes the _resolved_ state (`full` or `reduced`) to `data-effects` on `<html>`, like the contrast.
+
+**What Automatic knows.** It reduces when the interface is drawn without a GPU, and only then: the native side adds `renderer=software` to the main window's URL when this launch draws in software (forced by `WAVEFLOW_RENDERER` or the fallback), so the bootstrap in `index.html` stamps the very first paint, and the main window hands it on in the mini-player's URL; every window also asks `renderer_status` at once; and a WebGL context that names a software rasteriser (llvmpipe, SwiftShader, Microsoft's Basic Render Driver) counts as no GPU too. That probe runs once per window, after the first paint, and its answer is cached for the next launch's bootstrap. Under Automatic the row says what it resolved to on this machine.
+
+**What Reduced switches off** is what the WebKitGTK bench (`scripts/bench/webkitgtk`) found costing the frames under the software renderer, one piece at a time:
+
+- **Blurred shadows.** Scrolling repaints every shadow on screen each frame: the album grid scrolled at 4 fps under Studio with the covers' `shadow-sm`, 23 without. Tailwind's shadows are cut through their variables (`--tw-shadow`, `--tw-inset-shadow`), so its rings — a selection, a focus — stay: a ring has no blur and is not an effect. The materials' own drops (Fluid's tiles and hero cover, Liquid's `--glass-shadow*`, Lounge's `--lg-drop`, Pulse's halos) go through their tokens.
+- **Backdrop blurs**, with every surface that relied on one made opaque in the same breath — the `.wf-glass` chrome and each material's fallback block, the same lists high contrast and the WebKitGTK safeguard use.
+- **Filters on what repaints**: the blurred lyric lines around the sung one (they keep their fade, and the sung line loses its halo), Pulse's neon line, the mood waves' glow, and the mini-player's blurred cover behind its lyrics (the dark sheet stays).
+- **The atmosphere** behind the page — the pools, Liquid's aurora, Lounge's wine light and the sheets' lamp, the grain: a compositor keeps a fixed layer still, but without one every frame of a scroll repaints it under the whole page (Lounge's album grid at 8 fps with it, 18 without). The ground is drawn in its material's own colour.
+- **Ambient animations**: Liquid's aurora went with the atmosphere (its drift alone held the Home at 12 fps, 57 without it), the mood waves stop drifting, Pulse's record stops turning, the breathing glows behind an empty state go, a held note keeps its swell without its halo. Hover feedback, transitions and the entry motion stay: they run once, on a gesture.
+- **Lounge's room** is not mounted (`useReducedEffects`).
+
+The **WebKitGTK safeguard** is separate and stays: `data-webkitgtk-safe` carries the engine's own workarounds (the album grid's rows positioned by `top`, #817; no backdrop layer under Lounge and Liquid, #820) on every WebKitGTK launch, whatever the level.
+
 ## Skins
 
 Skins are an **orthogonal axis to the 14 colour themes**: a skin re-skins surfaces, typography, motion and signature elements (e.g. Editorial's drop caps, Pulse's vinyl-spin cover); the theme picks the OKLCH accent. Every skin × theme combination is valid → **6 × 14 = 84 visual identities**.

@@ -2704,6 +2704,25 @@
         }
       }
     },
+    "effects": {
+      "title": "Visuelle Effekte",
+      "subtitle": "Unschärfe, Glas, Leuchten und Ambient-Animationen. Reduziert wird jede Fläche flach gezeichnet, damit die Oberfläche auch ohne Grafikbeschleunigung flüssig bleibt.",
+      "modes": {
+        "auto": {
+          "label": "Automatisch",
+          "full": "Vollständig auf diesem Gerät; reduziert, wenn die Oberfläche ohne GPU gezeichnet wird.",
+          "reduced": "Reduziert auf diesem Gerät: Die Oberfläche wird hier ohne GPU gezeichnet."
+        },
+        "full": {
+          "label": "Vollständig",
+          "description": "Alle Effekte des Skins, auch ohne GPU."
+        },
+        "reduced": {
+          "label": "Reduziert",
+          "description": "Ohne Unschärfe, Glas, Leuchten oder Ambient-Animation; Layout und Farben bleiben."
+        }
+      }
+    },
     "cacheLocation": {
       "title": "Speicherort des Caches",
       "subtitle": "Cover, animierte Cover und Canvas-Clips. Alles davon lässt sich neu aufbauen, beim Verschieben geht also nichts verloren. Datenbanken und selbst ausgewählte Dateien bleiben, wo sie sind.",

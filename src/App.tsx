@@ -1,5 +1,6 @@
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { ContrastProvider } from "./contexts/ContrastContext";
+import { EffectsProvider } from "./contexts/EffectsContext";
 import { SkinProvider } from "./contexts/SkinContext";
 import { PlayerProvider } from "./contexts/PlayerContext";
 import { ProfileProvider } from "./contexts/ProfileContext";
@@ -26,29 +27,33 @@ export default function App() {
             because the high-contrast palette differs by mode, so the
             `dark` class has to be settled before it is read. */}
         <ContrastProvider>
-          {/* SkinProvider sits inside ThemeProvider so a future
+          {/* The effects level stamps `data-effects`, which no other
+              provider writes either. */}
+          <EffectsProvider>
+            {/* SkinProvider sits inside ThemeProvider so a future
             theme-aware skin (e.g. a skin that adjusts surface
             contrast for the active theme's mode) can read
             `useTheme()` from inside. Skins themselves don't
             currently depend on themes, but the nesting is the
             cheap-to-keep-right option. */}
-          <SkinProvider>
-            <LibraryProvider>
-              <PlaylistProvider>
-                <PlayerProvider>
-                  {/* One owner of the remote-source state so a single
+            <SkinProvider>
+              <LibraryProvider>
+                <PlaylistProvider>
+                  <PlayerProvider>
+                    {/* One owner of the remote-source state so a single
                     `waveflow:remote-changed` event fans out one refresh
                     to every consumer (sidebar, create-playlist modal). */}
-                  <RemoteSourceProvider>
-                    {/* Under PlayerProvider: the cover accent follows
+                    <RemoteSourceProvider>
+                      {/* Under PlayerProvider: the cover accent follows
                         the playing track. */}
-                    <AccentSync />
-                    <AppLayout />
-                  </RemoteSourceProvider>
-                </PlayerProvider>
-              </PlaylistProvider>
-            </LibraryProvider>
-          </SkinProvider>
+                      <AccentSync />
+                      <AppLayout />
+                    </RemoteSourceProvider>
+                  </PlayerProvider>
+                </PlaylistProvider>
+              </LibraryProvider>
+            </SkinProvider>
+          </EffectsProvider>
         </ContrastProvider>
       </ThemeProvider>
     </ProfileProvider>

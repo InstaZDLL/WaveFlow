@@ -114,6 +114,8 @@ The fourth, [Editorial — Broadsheet](./editorial-broadsheet.md), is the one th
 
 The fifth, [Lounge — Listening Room](./lounge-listening-room.md), takes "the cover lights the page" to its end: the playing cover, blurred once per record, is the light of the whole window (`fluid.atmosphere: "room"`), and the chrome is smoked wine glass floating in it — none of it blurring, since what is behind it is already a blurred field. Its other two pieces are its own: the progress as a straight line along the bar's edge whose played part spills its light into the bar (`fluid.progress: "horizon"`), and Mood Radio as a receiver's tuning dial with a needle and a readout (`fluid.moodRadio: "tuner"`). The rosé of the 1.x Lounge stays in the material; the accent is the theme's.
 
+Every material also has a **flat form**, for a machine without a GPU (Settings → Visual effects, [`ui.md`](../features/ui.md#visual-effects)): no atmosphere behind the page, no blurred shadow, no backdrop blur, no ambient animation, no glow; the tones, the edges, the type and the layout stay. A new material writes its flat form with its tokens — its shadows, halos and atmosphere as tokens a `[data-effects="reduced"]` block can zero — rather than as literals no fallback can reach.
+
 ## Carrying it to another surface
 
 - **Web (waveflow-server)**: the colour and shape tokens map one to one onto CSS variables; the two faces ship as webfonts; the mark is one inline SVG path reused as a mask. Keep the dark-only rule; the server's light theme, if it has one, is a different direction and should not borrow these inks.

@@ -189,6 +189,8 @@ export const SETTINGS_CATEGORIES = [
           "settings.appearance.skin.subtitle",
           "settings.contrast.title",
           "settings.contrast.subtitle",
+          "settings.effects.title",
+          "settings.effects.subtitle",
         ],
       },
       {

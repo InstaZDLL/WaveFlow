@@ -2702,6 +2702,25 @@
         }
       }
     },
+    "effects": {
+      "title": "Efek visual",
+      "subtitle": "Blur, kaca, cahaya, dan animasi suasana. Saat dikurangi, setiap permukaan digambar datar sehingga antarmuka tetap mulus di komputer tanpa akselerasi grafis.",
+      "modes": {
+        "auto": {
+          "label": "Otomatis",
+          "full": "Lengkap di komputer ini; dikurangi saat antarmuka digambar tanpa GPU.",
+          "reduced": "Dikurangi di komputer ini: antarmuka di sini digambar tanpa GPU."
+        },
+        "full": {
+          "label": "Lengkap",
+          "description": "Semua efek tampilan, bahkan tanpa GPU."
+        },
+        "reduced": {
+          "label": "Dikurangi",
+          "description": "Tanpa blur, kaca, cahaya, atau animasi suasana; tata letak dan warna tetap."
+        }
+      }
+    },
     "cacheLocation": {
       "title": "Lokasi cache",
       "subtitle": "Sampul, sampul animasi, dan klip Canvas. Semuanya bisa dibangun ulang, jadi memindahkannya tidak menghilangkan apa pun. Basis data dan berkas yang kamu pilih sendiri tetap di tempatnya.",
