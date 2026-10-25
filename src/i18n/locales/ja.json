@@ -2803,7 +2803,8 @@
         "skin": "スキン",
         "display": "読みやすさ",
         "window": "ウィンドウ",
-        "lyricsDisplay": "歌詞の表示"
+        "lyricsDisplay": "歌詞の表示",
+        "globalShortcuts": "グローバルショートカット"
       },
       "navHints": {
         "general": "言語、起動、再生",
@@ -2851,7 +2852,8 @@
         "cleanup": "キャッシュ済みのサムネイルとジャケット",
         "updates": "安定版またはベータ版",
         "diagnostics": "ログと描画",
-        "reset": "アプリを初期状態からやり直す"
+        "reset": "アプリを初期状態からやり直す",
+        "globalShortcuts": "どのアプリからでも"
       }
     },
     "desktopLyrics": {
@@ -2950,6 +2952,30 @@
         "label": "共有出力",
         "hint": "他のアプリの音と一緒に、システムミキサーを経由して再生します。普段使いに最適です。"
       }
+    },
+    "globalShortcuts": {
+      "subtitle": "WaveFlow がバックグラウンドにあっても、どのアプリからでも再生を操作できます。設定するまで有効なものはありません。",
+      "captureHelp": "Ctrl、Alt、または Windows / Cmd キーを別のキーと組み合わせるか、F13〜F24 を単独で使います。組み合わせを押しても何も起きない場合は、別のアプリがすでに使っています。",
+      "clearAll": "すべて解除",
+      "backend": {
+        "portal": "Wayland では、デスクトップが変更ごとに独自のウィンドウで確認を求め、別の組み合わせを割り当てることがあります。割り当てられた組み合わせは操作の下に表示されます。",
+        "unavailable": "この Wayland セッションでは利用できません。デスクトップがグローバルショートカットのポータルを提供していません。キーボードのメディアキーは引き続き使えます。"
+      },
+      "states": {
+        "taken": "別のアプリがすでに使っています。",
+        "refused": "システムがこの組み合わせを拒否しました（予約済みか使用中）。",
+        "dismissed": "デスクトップのウィンドウで確認されませんでした。",
+        "unavailable": "このセッションでは利用できません。",
+        "invalid": {
+          "empty": "修飾キーと一緒に別のキーを押してください。",
+          "unsupportedKey": "このキーはグローバルショートカットに使えません。",
+          "needsModifier": "Ctrl、Alt、または Windows / Cmd キーを加えてください。単独で使えるのは F13〜F24 だけです。"
+        }
+      },
+      "rejected": "{{combo}} は保存されませんでした：{{reason}}",
+      "assigned": "デスクトップによる割り当て：{{trigger}}",
+      "waitingForDesktop": "デスクトップで確認してください…",
+      "registering": "登録中…"
     }
   },
   "scanProgress": {

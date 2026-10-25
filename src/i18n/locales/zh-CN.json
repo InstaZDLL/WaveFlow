@@ -2803,7 +2803,8 @@
         "skin": "界面风格",
         "display": "可读性",
         "window": "窗口",
-        "lyricsDisplay": "歌词显示"
+        "lyricsDisplay": "歌词显示",
+        "globalShortcuts": "全局快捷键"
       },
       "navHints": {
         "general": "语言、启动、播放",
@@ -2851,7 +2852,8 @@
         "cleanup": "已缓存的缩略图和封面",
         "updates": "稳定版或测试版",
         "diagnostics": "日志与图形渲染",
-        "reset": "将应用恢复到全新状态"
+        "reset": "将应用恢复到全新状态",
+        "globalShortcuts": "在任何应用中"
       }
     },
     "desktopLyrics": {
@@ -2950,6 +2952,30 @@
         "label": "共享输出",
         "hint": "声音与其他应用的声音一起经过系统混音器。适合日常使用。"
       }
+    },
+    "globalShortcuts": {
+      "subtitle": "即使 WaveFlow 在后台，也能在任何应用中控制播放。在你设置之前，任何快捷键都不会生效。",
+      "captureHelp": "将 Ctrl、Alt 或 Windows / Cmd 键与另一个键组合，或单独使用 F13 至 F24。如果按下组合键后没有反应，说明它已被其他应用占用。",
+      "clearAll": "全部清除",
+      "backend": {
+        "portal": "在 Wayland 下，桌面会在自己的窗口中确认每次更改，并可能分配不同的组合键：它所选的组合键显示在操作下方。",
+        "unavailable": "此 Wayland 会话中不可用：桌面未提供全局快捷键门户。键盘上的媒体键仍可使用。"
+      },
+      "states": {
+        "taken": "已被其他应用占用。",
+        "refused": "系统拒绝了此组合键（已保留或已被占用）。",
+        "dismissed": "未在桌面窗口中确认。",
+        "unavailable": "此会话中不可用。",
+        "invalid": {
+          "empty": "请在修饰键之外再按一个键。",
+          "unsupportedKey": "此键不能用作全局快捷键。",
+          "needsModifier": "请加上 Ctrl、Alt 或 Windows / Cmd 键：只有 F13 至 F24 可以单独使用。"
+        }
+      },
+      "rejected": "{{combo}} 未保存：{{reason}}",
+      "assigned": "由桌面分配：{{trigger}}",
+      "waitingForDesktop": "请在桌面上确认…",
+      "registering": "正在注册…"
     }
   },
   "scanProgress": {

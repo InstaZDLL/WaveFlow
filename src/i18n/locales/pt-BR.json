@@ -2871,7 +2871,8 @@
         "skin": "Estilo",
         "display": "Legibilidade",
         "window": "Janelas",
-        "lyricsDisplay": "Exibição das letras"
+        "lyricsDisplay": "Exibição das letras",
+        "globalShortcuts": "Atalhos globais"
       },
       "navHints": {
         "general": "Idioma, inicialização, reprodução",
@@ -2919,7 +2920,8 @@
         "cleanup": "Miniaturas e capas em cache",
         "updates": "Versões estáveis ou beta",
         "diagnostics": "Registros e renderização gráfica",
-        "reset": "Recomeçar com um aplicativo novo"
+        "reset": "Recomeçar com um aplicativo novo",
+        "globalShortcuts": "De qualquer aplicativo"
       }
     },
     "desktopLyrics": {
@@ -3021,6 +3023,30 @@
         "label": "Saída compartilhada",
         "hint": "O som passa pelo mixer do sistema, junto com o dos outros aplicativos. Ideal para o dia a dia."
       }
+    },
+    "globalShortcuts": {
+      "subtitle": "Controle a reprodução de qualquer aplicativo, mesmo com o WaveFlow em segundo plano. Nenhum fica ativo até você definir um.",
+      "captureHelp": "Combine Ctrl, Alt ou a tecla Windows / Cmd com uma tecla, ou use F13 a F24 sozinhas. Se nada acontecer ao pressionar uma combinação, outro aplicativo já está usando ela.",
+      "clearAll": "Limpar tudo",
+      "backend": {
+        "portal": "No Wayland, seu ambiente de trabalho confirma cada mudança em uma janela própria e pode atribuir outra combinação: a escolhida aparece embaixo da ação.",
+        "unavailable": "Indisponível nesta sessão Wayland: o ambiente de trabalho não oferece o portal de atalhos globais. As teclas de mídia do teclado continuam funcionando."
+      },
+      "states": {
+        "taken": "Já usada por outro aplicativo.",
+        "refused": "O sistema recusou esta combinação (reservada ou já ocupada).",
+        "dismissed": "Não confirmada na janela do ambiente de trabalho.",
+        "unavailable": "Indisponível nesta sessão.",
+        "invalid": {
+          "empty": "Pressione uma tecla além dos modificadores.",
+          "unsupportedKey": "Esta tecla não pode ser usada em um atalho global.",
+          "needsModifier": "Adicione Ctrl, Alt ou a tecla Windows / Cmd: só F13 a F24 funcionam sozinhas."
+        }
+      },
+      "rejected": "{{combo}} não foi salva: {{reason}}",
+      "assigned": "Atribuído pelo ambiente de trabalho: {{trigger}}",
+      "waitingForDesktop": "Confirme no ambiente de trabalho…",
+      "registering": "Registrando…"
     }
   },
   "scanProgress": {

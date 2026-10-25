@@ -183,6 +183,7 @@ import { TestToneCard } from "./settings/TestToneCard";
 import { AccentCard } from "./settings/AccentCard";
 import { PlayerBarLayoutCard } from "./settings/PlayerBarLayoutCard";
 import { ShortcutsCard } from "./settings/ShortcutsCard";
+import { GlobalShortcutsCard } from "./settings/GlobalShortcutsCard";
 import { WrappedBannerCard } from "./settings/WrappedBannerCard";
 import { HiResBadgeCard } from "./settings/HiResBadgeCard";
 import { StatsKpiVisibilityCard } from "./settings/StatsKpiVisibilityCard";
@@ -4041,6 +4042,13 @@ function SettingsViewContent({
                 reveal={targetGroup === "keyboard"}
               >
                 <ShortcutsCard />
+              </SettingsGroup>
+              <SettingsGroup
+                id="globalShortcuts"
+                bare
+                reveal={targetGroup === "globalShortcuts"}
+              >
+                <GlobalShortcutsCard />
               </SettingsGroup>
             </section>
           )}

@@ -2803,7 +2803,8 @@
         "skin": "Gaya antarmuka",
         "display": "Keterbacaan",
         "window": "Jendela",
-        "lyricsDisplay": "Tampilan lirik"
+        "lyricsDisplay": "Tampilan lirik",
+        "globalShortcuts": "Pintasan global"
       },
       "navHints": {
         "general": "Bahasa, mulai, pemutaran",
@@ -2851,7 +2852,8 @@
         "cleanup": "Gambar mini dan sampul dalam cache",
         "updates": "Versi stabil atau beta",
         "diagnostics": "Log dan rendering grafis",
-        "reset": "Mulai lagi dengan aplikasi yang bersih"
+        "reset": "Mulai lagi dengan aplikasi yang bersih",
+        "globalShortcuts": "Dari aplikasi mana pun"
       }
     },
     "desktopLyrics": {
@@ -2950,6 +2952,30 @@
         "label": "Keluaran bersama",
         "hint": "Suara melewati mixer sistem, bersama suara aplikasi lain. Ideal untuk sehari-hari."
       }
+    },
+    "globalShortcuts": {
+      "subtitle": "Kendalikan pemutaran dari aplikasi mana pun, bahkan saat WaveFlow berjalan di latar belakang. Tidak ada yang aktif sampai Anda menetapkannya.",
+      "captureHelp": "Gabungkan Ctrl, Alt, atau tombol Windows / Cmd dengan sebuah tombol, atau gunakan F13 hingga F24 saja. Jika tidak terjadi apa-apa saat menekan sebuah kombinasi, aplikasi lain sudah memakainya.",
+      "clearAll": "Hapus semua",
+      "backend": {
+        "portal": "Di Wayland, desktop Anda mengonfirmasi setiap perubahan di jendelanya sendiri dan bisa menetapkan kombinasi lain: kombinasi pilihannya ditampilkan di bawah tindakan.",
+        "unavailable": "Tidak tersedia di sesi Wayland ini: desktop tidak menyediakan portal pintasan global. Tombol media keyboard Anda tetap berfungsi."
+      },
+      "states": {
+        "taken": "Sudah dipakai aplikasi lain.",
+        "refused": "Sistem menolak kombinasi ini (dicadangkan atau sudah dipakai).",
+        "dismissed": "Tidak dikonfirmasi di jendela desktop Anda.",
+        "unavailable": "Tidak tersedia di sesi ini.",
+        "invalid": {
+          "empty": "Tekan sebuah tombol bersama tombol pengubah.",
+          "unsupportedKey": "Tombol ini tidak bisa dipakai untuk pintasan global.",
+          "needsModifier": "Tambahkan Ctrl, Alt, atau tombol Windows / Cmd: hanya F13 hingga F24 yang berfungsi sendiri."
+        }
+      },
+      "rejected": "{{combo}} tidak disimpan: {{reason}}",
+      "assigned": "Ditetapkan oleh desktop Anda: {{trigger}}",
+      "waitingForDesktop": "Konfirmasi di desktop…",
+      "registering": "Mendaftarkan…"
     }
   },
   "scanProgress": {

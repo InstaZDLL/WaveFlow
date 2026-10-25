@@ -2870,7 +2870,8 @@
         "skin": "Skin",
         "display": "Leggibilità",
         "window": "Finestre",
-        "lyricsDisplay": "Visualizzazione dei testi"
+        "lyricsDisplay": "Visualizzazione dei testi",
+        "globalShortcuts": "Scorciatoie globali"
       },
       "navHints": {
         "general": "Lingua, avvio, riproduzione",
@@ -2918,7 +2919,8 @@
         "cleanup": "Miniature e copertine in cache",
         "updates": "Versioni stabili o beta",
         "diagnostics": "Log e rendering grafico",
-        "reset": "Ricominciare con un'app nuova"
+        "reset": "Ricominciare con un'app nuova",
+        "globalShortcuts": "Da qualsiasi applicazione"
       }
     },
     "desktopLyrics": {
@@ -3020,6 +3022,30 @@
         "label": "Uscita condivisa",
         "hint": "Il suono passa per il mixer di sistema, insieme a quello delle altre app. Ideale per l'uso quotidiano."
       }
+    },
+    "globalShortcuts": {
+      "subtitle": "Controlla la riproduzione da qualsiasi applicazione, anche con WaveFlow in background. Nessuna è attiva finché non ne imposti una.",
+      "captureHelp": "Combina Ctrl, Alt o il tasto Windows / Cmd con un tasto, oppure usa da F13 a F24 da soli. Se premendo una combinazione non succede nulla, un'altra applicazione la sta già usando.",
+      "clearAll": "Cancella tutto",
+      "backend": {
+        "portal": "Su Wayland, il desktop conferma ogni modifica in una sua finestra e può assegnare un'altra combinazione: quella scelta viene mostrata sotto l'azione.",
+        "unavailable": "Non disponibile in questa sessione Wayland: il desktop non offre il portale delle scorciatoie globali. I tasti multimediali della tastiera funzionano comunque."
+      },
+      "states": {
+        "taken": "Già usata da un'altra applicazione.",
+        "refused": "Il sistema ha rifiutato questa combinazione (riservata o già occupata).",
+        "dismissed": "Non confermata nella finestra del desktop.",
+        "unavailable": "Non disponibile in questa sessione.",
+        "invalid": {
+          "empty": "Premi un tasto oltre ai modificatori.",
+          "unsupportedKey": "Questo tasto non può essere usato per una scorciatoia globale.",
+          "needsModifier": "Aggiungi Ctrl, Alt o il tasto Windows / Cmd: solo da F13 a F24 funzionano da soli."
+        }
+      },
+      "rejected": "{{combo}} non è stata salvata: {{reason}}",
+      "assigned": "Assegnata dal desktop: {{trigger}}",
+      "waitingForDesktop": "Conferma sul desktop…",
+      "registering": "Registrazione…"
     }
   },
   "scanProgress": {

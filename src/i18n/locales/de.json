@@ -2805,7 +2805,8 @@
         "skin": "Oberflächenstil",
         "display": "Lesbarkeit",
         "window": "Fenster",
-        "lyricsDisplay": "Songtextanzeige"
+        "lyricsDisplay": "Songtextanzeige",
+        "globalShortcuts": "Globale Tastenkürzel"
       },
       "navHints": {
         "general": "Sprache, Start, Wiedergabe",
@@ -2853,7 +2854,8 @@
         "cleanup": "Zwischengespeicherte Vorschaubilder und Cover",
         "updates": "Stabile oder Beta-Versionen",
         "diagnostics": "Logs und Grafik-Rendering",
-        "reset": "Mit einer frischen App neu beginnen"
+        "reset": "Mit einer frischen App neu beginnen",
+        "globalShortcuts": "Aus jeder Anwendung"
       }
     },
     "desktopLyrics": {
@@ -2952,6 +2954,30 @@
         "label": "Gemeinsame Ausgabe",
         "hint": "Der Klang läuft über den System-Mixer, zusammen mit dem anderer Apps. Ideal für den Alltag."
       }
+    },
+    "globalShortcuts": {
+      "subtitle": "Steuere die Wiedergabe aus jeder Anwendung, auch wenn WaveFlow im Hintergrund läuft. Keines ist aktiv, bis du eines festlegst.",
+      "captureHelp": "Kombiniere Strg, Alt oder die Windows-/Cmd-Taste mit einer Taste, oder nutze F13 bis F24 allein. Passiert beim Drücken einer Kombination nichts, belegt sie bereits eine andere Anwendung.",
+      "clearAll": "Alle entfernen",
+      "backend": {
+        "portal": "Unter Wayland bestätigt deine Desktopumgebung jede Änderung in einem eigenen Fenster und kann eine andere Kombination zuweisen: Die gewählte wird unter der Aktion angezeigt.",
+        "unavailable": "In dieser Wayland-Sitzung nicht verfügbar: Die Desktopumgebung bietet das Portal für globale Tastenkürzel nicht an. Die Medientasten deiner Tastatur funktionieren weiterhin."
+      },
+      "states": {
+        "taken": "Wird bereits von einer anderen Anwendung verwendet.",
+        "refused": "Das System hat diese Kombination abgelehnt (reserviert oder bereits belegt).",
+        "dismissed": "Im Fenster deiner Desktopumgebung nicht bestätigt.",
+        "unavailable": "In dieser Sitzung nicht verfügbar.",
+        "invalid": {
+          "empty": "Drücke zusätzlich zu den Modifikatortasten eine Taste.",
+          "unsupportedKey": "Diese Taste kann nicht für ein globales Tastenkürzel verwendet werden.",
+          "needsModifier": "Füge Strg, Alt oder die Windows-/Cmd-Taste hinzu: Nur F13 bis F24 funktionieren allein."
+        }
+      },
+      "rejected": "{{combo}} wurde nicht übernommen: {{reason}}",
+      "assigned": "Von deiner Desktopumgebung zugewiesen: {{trigger}}",
+      "waitingForDesktop": "Auf dem Desktop bestätigen…",
+      "registering": "Wird registriert…"
     }
   },
   "scanProgress": {

@@ -2805,7 +2805,8 @@
         "skin": "Skin",
         "display": "Readability",
         "window": "Windows",
-        "lyricsDisplay": "Showing lyrics"
+        "lyricsDisplay": "Showing lyrics",
+        "globalShortcuts": "Global shortcuts"
       },
       "navHints": {
         "general": "Language, startup, playback",
@@ -2853,7 +2854,8 @@
         "cleanup": "Cached thumbnails and covers",
         "updates": "Stable or beta releases",
         "diagnostics": "Logs and rendering",
-        "reset": "Start over with a fresh app"
+        "reset": "Start over with a fresh app",
+        "globalShortcuts": "From any application"
       }
     },
     "desktopLyrics": {
@@ -2952,6 +2954,30 @@
         "label": "Shared output",
         "hint": "Sound goes through the system mixer, alongside other apps. Best for everyday listening."
       }
+    },
+    "globalShortcuts": {
+      "subtitle": "Control playback from any application, even while WaveFlow is in the background. None is active until you set one.",
+      "captureHelp": "Combine Ctrl, Alt or the Windows / Cmd key with a key, or use F13 to F24 on their own. If nothing happens when you press a combination, another application already holds it.",
+      "clearAll": "Clear all",
+      "backend": {
+        "portal": "On Wayland, your desktop confirms each change in a window of its own and may assign a different combination: the one it chose is shown under the action.",
+        "unavailable": "Not available in this Wayland session: the desktop does not offer the global shortcuts portal. Your keyboard's media keys still work."
+      },
+      "states": {
+        "taken": "Already used by another application.",
+        "refused": "The system refused this combination (reserved or already taken).",
+        "dismissed": "Not confirmed in your desktop's window.",
+        "unavailable": "Not available in this session.",
+        "invalid": {
+          "empty": "Press a key along with the modifiers.",
+          "unsupportedKey": "This key cannot be used for a global shortcut.",
+          "needsModifier": "Add Ctrl, Alt or the Windows / Cmd key: only F13 to F24 work on their own."
+        }
+      },
+      "rejected": "{{combo}} was not kept: {{reason}}",
+      "assigned": "Assigned by your desktop: {{trigger}}",
+      "waitingForDesktop": "Confirm on your desktop…",
+      "registering": "Registering…"
     }
   },
   "scanProgress": {
