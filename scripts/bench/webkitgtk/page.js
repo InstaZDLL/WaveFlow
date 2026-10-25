@@ -131,6 +131,10 @@
       return { ...stats(t), scrolledPx: reached };
     },
     async openPanel(tabIndex) {
+      // The classic layout has no tabbed panel: its views are measured
+      // without one, as the first run did.
+      if (document.documentElement.getAttribute("data-layout") !== "fluid")
+        return false;
       if (!document.querySelector(".fe-panel")) {
         const b = [...document.querySelectorAll("footer button")].find((x) =>
           /queue|file d/i.test(x.getAttribute("aria-label") || ""),
