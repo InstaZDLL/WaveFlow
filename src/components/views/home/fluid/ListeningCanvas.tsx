@@ -3,9 +3,10 @@ import { useTranslation } from "react-i18next";
 import { usePlayerPosition } from "../../../../hooks/usePlayerPosition";
 import { Artwork } from "../../../common/Artwork";
 import { ArtistLink } from "../../../common/ArtistLink";
+import { PrecomputedBlur } from "../../../common/PrecomputedBlur";
 import type { Track } from "../../../../lib/tauri/track";
 import type { QueueTrackPayload } from "../../../../lib/tauri/player";
-import { clock, coverUrl, longDate } from "./format";
+import { blurSourceUrl, clock, longDate } from "./format";
 
 function greetingKey(): "morning" | "afternoon" | "evening" | "night" {
   const h = new Date().getHours();
@@ -97,7 +98,7 @@ export function ListeningCanvas({
   masthead = false,
 }: ListeningCanvasProps) {
   const { t, i18n } = useTranslation();
-  const art = track ? coverUrl(track) : null;
+  const blurSrc = track ? blurSourceUrl(track) : null;
   const showPause = isCurrent && isPlaying;
   const caption = !masthead
     ? null
@@ -113,9 +114,23 @@ export function ListeningCanvas({
   return (
     <section className="fe-canvas pt-1" aria-labelledby="fe-canvas-title">
       {/* The cover's own light, spread behind the title and the queue.
-          Keyed on the URL for a cross-fade on track change. */}
-      <div key={art ?? "none"} className="fe-canvas__aura" aria-hidden="true">
-        {art && <img src={art} alt="" decoding="async" />}
+          Keyed on the URL for a cross-fade on track change. Darkened
+          before the blur so a white sleeve cannot pale the ground under
+          the counters line; blurred once, not once per frame. */}
+      <div
+        key={blurSrc ?? "none"}
+        className="fe-canvas__aura"
+        aria-hidden="true"
+      >
+        {blurSrc && (
+          <PrecomputedBlur
+            src={blurSrc}
+            blur={96}
+            brightness={0.7}
+            saturate={1.05}
+            scale={1.12}
+          />
+        )}
       </div>
 
       <div className="fe-canvas__text min-w-0">

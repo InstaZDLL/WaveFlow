@@ -3,9 +3,10 @@ import { Loader2, Play, Shuffle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Artwork } from "../../../common/Artwork";
 import { ArtistLink } from "../../../common/ArtistLink";
+import { PrecomputedBlur } from "../../../common/PrecomputedBlur";
 import { useHomeSuggestion } from "../useHomeSuggestion";
 import { FlowLine } from "./SectionHeader";
-import { coverUrl } from "./format";
+import { blurSourceUrl } from "./format";
 
 interface SuggestionOfTheDayProps {
   onNavigateToArtist: (artistId: number) => void;
@@ -29,7 +30,7 @@ export function SuggestionOfTheDay({
   const view = useHomeSuggestion();
   if (!view) return null;
   const { track, kindLabel, reason, starting, play, another } = view;
-  const art = coverUrl(track);
+  const blurSrc = blurSourceUrl(track);
 
   return (
     <section
@@ -38,9 +39,24 @@ export function SuggestionOfTheDay({
       style={style}
     >
       {/* The cover's light, under the left half of the band. Keyed on the
-          URL so another suggestion cross-fades in. */}
-      <div key={art ?? "none"} className="fe-suggest__aura" aria-hidden="true">
-        {art && <img src={art} alt="" decoding="async" />}
+          URL so another suggestion cross-fades in. Darkened to half before
+          the blur: a light cover at a fifth of its opacity raised the
+          surface from 18 to 74 in luminance, too close to the tertiary
+          ink; at half brightness it stays under 45. */}
+      <div
+        key={blurSrc ?? "none"}
+        className="fe-suggest__aura"
+        aria-hidden="true"
+      >
+        {blurSrc && (
+          <PrecomputedBlur
+            src={blurSrc}
+            blur={72}
+            brightness={0.5}
+            saturate={1.1}
+            scale={1.2}
+          />
+        )}
       </div>
 
       <div className="relative flex flex-wrap items-center gap-x-7 gap-y-5 px-6 py-5 md:px-7 md:py-6">

@@ -1,5 +1,7 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { convertFileSrc } from "@tauri-apps/api/core";
+import { PrecomputedBlur } from "../common/PrecomputedBlur";
+import { loadBlurSource } from "../../lib/precomputedBlur";
 import { usePlayer } from "../../hooks/usePlayer";
 import { useSkin } from "../../hooks/useSkin";
 
@@ -9,15 +11,11 @@ import { useSkin } from "../../hooks/useSkin";
  * skin's preset asks for it (`fluid.atmosphere: "room"`, Lounge); every
  * other skin returns `null` and pays nothing.
  *
- * The blur is computed once per record, not once per frame: the cover is
- * drawn into a small canvas (160 px wide) through the 2D context's own
- * `filter`, and the canvas is stretched to the window. Upscaling a field
- * that is already blurred loses nothing, and the compositor then moves a
- * static texture instead of re-running a 140 px blur over the whole
- * window under every frame of a scroll (the 1.x Lounge did, as a CSS
- * filter on a full-window element). An engine without `ctx.filter`
- * draws the cover unfiltered and the CSS filter does the blur instead —
- * the old cost, on the old engines only.
+ * The blur is computed once per record, not once per frame
+ * (`PrecomputedBlur`): the compositor moves a static texture instead of
+ * re-running a 140 px blur over the whole window under every frame of a
+ * scroll, as the 1.x Lounge did with a CSS filter on a full-window
+ * element.
  *
  * Cross-fade: each record's canvas is `key`ed by its URL and fades in
  * over the previous one, which stays underneath until the next record
@@ -63,14 +61,25 @@ export function SkinAmbientBackdrop() {
       data-lit={visible.length > 0 || undefined}
     >
       {visible.map((layer, i) => (
-        <RoomLayer
+        // 136 px on a 1600 px window; saturation pumps the sleeve's hues so
+        // the room takes its colour, not its grey, and the darkening keeps
+        // a white sleeve from lighting it white. Cover-fit, then 1.6× past
+        // the edges: the blur pulls the middle of the sleeve out to the
+        // window's corners.
+        <PrecomputedBlur
           key={layer.src}
           image={layer.image}
-          animation={
-            i > 0 && !reduceMotion
-              ? `fe-fade-in ${skin.motion.duration * 2}s ${skin.motion.ease} both`
-              : undefined
-          }
+          blur={136}
+          saturate={2.6}
+          brightness={0.62}
+          scale={1.6}
+          className="absolute inset-0"
+          style={{
+            animation:
+              i > 0 && !reduceMotion
+                ? `fe-fade-in ${skin.motion.duration * 2}s ${skin.motion.ease} both`
+                : undefined,
+          }}
         />
       ))}
     </div>
@@ -98,104 +107,20 @@ function useRoomLayers(src: string | null): RoomImage[] {
   useEffect(() => {
     if (!src) return;
     let cancelled = false;
-    const image = new Image();
-    image.decoding = "async";
-    image.onload = () => {
-      if (cancelled) return;
-      setLayers((prev) => [
-        ...prev.filter((l) => l.src !== src).slice(-1),
-        { src, image },
-      ]);
-    };
-    image.src = src;
+    loadBlurSource(src)
+      .then((image) => {
+        if (cancelled) return;
+        setLayers((prev) => [
+          ...prev.filter((l) => l.src !== src).slice(-1),
+          { src, image },
+        ]);
+      })
+      .catch(() => {
+        // A cover that fails to load leaves the previous light.
+      });
     return () => {
       cancelled = true;
     };
   }, [src]);
   return layers;
-}
-
-/** Width of the canvas the cover is blurred into; the height follows the
- *  window's aspect. Small on purpose: the field has no detail to keep. */
-const ROOM_WIDTH = 160;
-
-let canvasFilter: boolean | null = null;
-function supportsCanvasFilter(): boolean {
-  if (canvasFilter == null) {
-    const ctx = document.createElement("canvas").getContext("2d");
-    canvasFilter = ctx != null && "filter" in ctx;
-  }
-  return canvasFilter;
-}
-
-function RoomLayer({
-  image,
-  animation,
-}: {
-  image: HTMLImageElement;
-  animation: string | undefined;
-}) {
-  const ref = useRef<HTMLCanvasElement | null>(null);
-  const filtered = supportsCanvasFilter();
-
-  useLayoutEffect(() => {
-    const canvas = ref.current;
-    const ctx = canvas?.getContext("2d");
-    if (!canvas || !ctx || image.naturalWidth === 0) return;
-    // The canvas takes the window's aspect, so a resize draws it again
-    // (once per frame at most): a field drawn for a narrow window and
-    // stretched over a wide one would smear the sleeve sideways.
-    const draw = () => {
-      const w = ROOM_WIDTH;
-      const h = Math.max(
-        1,
-        Math.round((w * window.innerHeight) / window.innerWidth),
-      );
-      if (canvas.width === w && canvas.height === h && drawn) return;
-      // Setting the size resets the context, its filter included: the
-      // filter is set after it, every time.
-      canvas.width = w;
-      canvas.height = h;
-      // Cover-fit, then 1.6× past the edges, as the 1.x backdrop did: the
-      // blur pulls the middle of the sleeve out to the window's corners.
-      const scale =
-        Math.max(w / image.naturalWidth, h / image.naturalHeight) * 1.6;
-      const dw = image.naturalWidth * scale;
-      const dh = image.naturalHeight * scale;
-      // 140 px on a 1600 px window, in the canvas's own pixels; saturation
-      // pumps the sleeve's hues so the room takes its colour, not its
-      // grey, and the darkening keeps a white sleeve from lighting it
-      // white.
-      if (filtered)
-        ctx.filter = `blur(${Math.round(w * 0.085)}px) saturate(2.6) brightness(0.62)`;
-      ctx.drawImage(image, (w - dw) / 2, (h - dh) / 2, dw, dh);
-      drawn = true;
-    };
-    let drawn = false;
-    let frame = 0;
-    const onResize = () => {
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(draw);
-    };
-    draw();
-    window.addEventListener("resize", onResize);
-    return () => {
-      window.removeEventListener("resize", onResize);
-      cancelAnimationFrame(frame);
-    };
-  }, [image, filtered]);
-
-  return (
-    <canvas
-      ref={ref}
-      className="absolute inset-0 h-full w-full"
-      style={{
-        filter: filtered
-          ? undefined
-          : "blur(140px) saturate(260%) brightness(0.62)",
-        transform: filtered ? undefined : "scale(1.1)",
-        animation,
-      }}
-    />
-  );
 }

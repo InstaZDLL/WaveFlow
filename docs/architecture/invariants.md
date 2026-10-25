@@ -269,6 +269,12 @@ Anything at z-100+ — context menus, dropdown popovers, **and any dialog that p
 
 The documented layer scale (in-panel sticky `z-10` → content sticky headers `z-20` → TopBar `z-30` → PlayerBar `z-50` → overlays `z-100`/`z-101`) lives at the top of [`src/app.css`](../../src/app.css) — extend it there, don't invent a bigger number locally.
 
+### A blurred cover is blurred once, not once per frame
+
+A CSS `filter: blur()` is recomputed every time the region it sits in repaints, and anything animating nearby repaints it every frame: a progress line, a wave, a pulsing dot, the lyrics. With a GPU that goes unnoticed. Without one — WebKitGTK's software renderer, where the renderer fallback (#595) and virtual machines put the app — it costs the whole frame: measured with [`scripts/bench/webkitgtk`](../../scripts/bench/webkitgtk/README.md), the Fluid Home drew one frame every 620 ms, and 48 frames a second with its CSS filters switched off; Studio's Home held 12 until either its animation or its blurred glows went.
+
+So a blurred cover goes through [`PrecomputedBlur`](../../src/components/common/PrecomputedBlur.tsx): the image is drawn once into a small canvas through the 2D context's own `filter` and stretched over its box, redrawn only when the box changes size; the props are the values the CSS filter would have said (`blur` in CSS pixels, `saturate`, `brightness`, `scale`). The canvas aura and the suggestion band of the fluid Home, the immersive view's backdrop, the classic suggestion card and Lounge's room use it. A soft glow that is not an image is a gradient, not a blurred shape — the classic Home's banners draw their glows as `.home-orb` radial gradients with the blurred disc's own profile. A `filter: blur()` stays acceptable on something small that never repaints, and as the fallback `PrecomputedBlur` renders on an engine without `ctx.filter`.
+
 ### Right panels are flex siblings, not overlays
 
 `NowPlayingPanel` / `QueuePanel` / `LyricsPanel` are mounted as flex children of the outer row in `AppLayout`. The center column has `min-w-0` so wide tables collapse instead of pushing the panel off-screen.

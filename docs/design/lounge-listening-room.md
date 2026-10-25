@@ -16,21 +16,21 @@ Where Fluid stages the music, Liquid diffuses it, Pulse wires it and Editorial p
 
 ## Tokens
 
-| Token      | Value                                                                                         | Role                                                                     |
-| ---------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| `bg`       | `#14070c`                                                                                     | Under the room; what high contrast leaves.                               |
-| `surface`  | `#1f0b13` · `#29101a` · `#190910`                                                             | The solid glass of the fallbacks; the second step.                       |
-| `glass`    | `rgb(32 9 18 / 0.64)` · card `rgb(36 11 21 / 0.5)` · dense `rgb(28 8 16 / 0.96)`              | Rail, panel, bar · cards on the page · menus, dialogs, the table header. |
-| `lamp`     | a radial of `rgb(255 176 196 / 0.07)` from the top centre                                     | The warm light a sheet's top catches.                                    |
-| `rim`      | `inset 0 1px 0` rosé-white 11 % + `inset 0 0 0 1px` rosé 12 %                                 | A sheet's edge.                                                          |
-| `drop`     | `0 8px 18px -10px rgb(6 0 3 / 0.8)`                                                           | Under a floating sheet. Short on purpose — see the cost below.           |
-| `ink`      | `#fbf1f4` · `#dccbd3` · `#bda5b2`                                                             | Title · body · label.                                                    |
-| `hairline` | rosé `rgb(255 156 188)` at 12 % · 20 %                                                        | Dividers, rings.                                                         |
-| `tone`     | rosé-white `rgb(255 214 225)` at 4.5 / 7 / 9.5 / 12 %                                         | Hover, the open row, a module on the glass.                              |
-| `accent`   | the theme's 400 stop, dark ink                                                                | Primary action, open item, played part, needle, focus.                   |
-| `room`     | the cover drawn into a 160 px canvas, `blur(8.5 %) saturate(2.6) brightness(0.62)`, stretched | The whole window's light.                                                |
-| `veil`     | wine `rgb(20 5 11)` at 40 %, a vignette to 50 % at the edges, a foot gradient to 45 %         | Over the room: keeps the ground dark under any sleeve.                   |
-| `ease`     | `cubic-bezier(0.22, 1, 0.36, 1)`, 450 ms                                                      | Every transition.                                                        |
+| Token      | Value                                                                                                                                                      | Role                                                                     |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `bg`       | `#14070c`                                                                                                                                                  | Under the room; what high contrast leaves.                               |
+| `surface`  | `#1f0b13` · `#29101a` · `#190910`                                                                                                                          | The solid glass of the fallbacks; the second step.                       |
+| `glass`    | `rgb(32 9 18 / 0.64)` · card `rgb(36 11 21 / 0.5)` · dense `rgb(28 8 16 / 0.96)`                                                                           | Rail, panel, bar · cards on the page · menus, dialogs, the table header. |
+| `lamp`     | a radial of `rgb(255 176 196 / 0.07)` from the top centre                                                                                                  | The warm light a sheet's top catches.                                    |
+| `rim`      | `inset 0 1px 0` rosé-white 11 % + `inset 0 0 0 1px` rosé 12 %                                                                                              | A sheet's edge.                                                          |
+| `drop`     | `0 8px 18px -10px rgb(6 0 3 / 0.8)`                                                                                                                        | Under a floating sheet. Short on purpose — see the cost below.           |
+| `ink`      | `#fbf1f4` · `#dccbd3` · `#bda5b2`                                                                                                                          | Title · body · label.                                                    |
+| `hairline` | rosé `rgb(255 156 188)` at 12 % · 20 %                                                                                                                     | Dividers, rings.                                                         |
+| `tone`     | rosé-white `rgb(255 214 225)` at 4.5 / 7 / 9.5 / 12 %                                                                                                      | Hover, the open row, a module on the glass.                              |
+| `accent`   | the theme's 400 stop, dark ink                                                                                                                             | Primary action, open item, played part, needle, focus.                   |
+| `room`     | the cover drawn into a canvas at most 192 px wide (`PrecomputedBlur`), `blur(136px) saturate(2.6) brightness(0.62)` measured against the window, stretched | The whole window's light.                                                |
+| `veil`     | wine `rgb(20 5 11)` at 40 %, a vignette to 50 % at the edges, a foot gradient to 45 %                                                                      | Over the room: keeps the ground dark under any sleeve.                   |
+| `ease`     | `cubic-bezier(0.22, 1, 0.36, 1)`, 450 ms                                                                                                                   | Every transition.                                                        |
 
 ## Components
 

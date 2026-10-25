@@ -1,7 +1,8 @@
-import type { CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 import { Loader2, Play, Shuffle } from "lucide-react";
 import { Artwork } from "../../common/Artwork";
+import { PrecomputedBlur } from "../../common/PrecomputedBlur";
+import { resolveArtwork } from "../../../lib/tauri/artwork";
 import { useHomeSuggestion } from "./useHomeSuggestion";
 
 /**
@@ -12,19 +13,20 @@ import { useHomeSuggestion } from "./useHomeSuggestion";
  * [`useHomeSuggestion`](./useHomeSuggestion.ts), shared with the Fluid
  * skin's card.
  */
-export function HomeSuggestionCard({
-  clipStyle,
-}: {
-  /** The rounded-corner mask Home gives its blurred banners (Safari). */
-  clipStyle: CSSProperties;
-}) {
+export function HomeSuggestionCard() {
   const { t } = useTranslation();
   const view = useHomeSuggestion();
   if (!view) return null;
   const { track, kindLabel, reason, starting, play, another } = view;
 
-  const hasArtwork = Boolean(
-    track.artwork_path || track.artwork_path_1x || track.artwork_path_2x,
+  // The blur keeps no detail: the 64 px thumbnail is enough.
+  const blurSrc = resolveArtwork(
+    {
+      full: track.artwork_path,
+      x1: track.artwork_path_1x ?? null,
+      x2: track.artwork_path_2x ?? null,
+    },
+    "1x",
   );
   const subtitle = [track.artist_name, track.album_title]
     .filter(Boolean)
@@ -34,21 +36,14 @@ export function HomeSuggestionCard({
     <section
       aria-label={t("home.suggestion.label")}
       className="relative overflow-hidden rounded-3xl bg-zinc-900 text-white"
-      style={clipStyle}
     >
-      {hasArtwork && (
+      {/* The cover, blurred once rather than once per frame. */}
+      {blurSrc && (
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 scale-125 blur-2xl opacity-70"
+          className="pointer-events-none absolute inset-0 opacity-70"
         >
-          <Artwork
-            path={track.artwork_path}
-            path1x={track.artwork_path_1x}
-            path2x={track.artwork_path_2x}
-            size="1x"
-            alt=""
-            className="w-full h-full"
-          />
+          <PrecomputedBlur key={blurSrc} src={blurSrc} blur={40} scale={1.25} />
         </div>
       )}
       <div

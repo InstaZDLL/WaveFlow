@@ -145,8 +145,8 @@
 /* The record's light under the canvas text and the band: the layout's
    pool of the glow stays, its blurred copy of the cover goes — on pure
    black a pale sleeve read as a grey smudge under the counters. */
-:root[data-skin="pulse"] .fe-canvas__aura img,
-:root[data-skin="pulse"] .fe-suggest__aura img {
+:root[data-skin="pulse"] .fe-canvas__aura > :is(img, canvas),
+:root[data-skin="pulse"] .fe-suggest__aura > :is(img, canvas) {
   display: none;
 }
 :root[data-skin="pulse"] .fe-canvas__aura {

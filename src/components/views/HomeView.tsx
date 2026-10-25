@@ -1,10 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  type CSSProperties,
-} from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Folder,
@@ -297,29 +291,23 @@ function ClassicHomeView({
 
   const bannerClasses =
     "relative overflow-hidden rounded-3xl bg-linear-to-br from-emerald-50 to-white shadow-sm border border-emerald-100/50 dark:from-emerald-900/40 dark:to-zinc-800/40 dark:border-zinc-800 dark:shadow-none p-10";
-  // Safari (issue #414) fails to clip a `filter: blur()` child to its
-  // `overflow-hidden` + `rounded-3xl` parent's corners — the blur's
-  // expanded paint bounds leak past the rounded edge as square glow
-  // patches. `overflow: hidden` alone doesn't trigger Safari's correct
-  // clip path there; a mask does. Applied to every banner below that
-  // has an absolutely-positioned `blur-3xl` decorative orb.
-  const roundedClipMaskStyle: CSSProperties = {
-    WebkitMaskImage: "-webkit-radial-gradient(white, black)",
-    maskImage: "radial-gradient(white, black)",
-  };
-
   return (
     <div className="space-y-8 animate-fade-in pb-20">
       <div className="space-y-8">
         {/* Welcome Banner */}
-        <div className={bannerClasses} style={roundedClipMaskStyle}>
+        <div className={bannerClasses}>
+          {/* The two glows: radial gradients, the shape a blurred disc
+              has, sized to the disc plus its blur. They were discs under
+              `blur-3xl`, which the "ready to listen" dot's pulse made
+              WebKitGTK recompute every frame — 12 frames a second without
+              a GPU (`home-orb` in app.css). */}
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute -top-24 -left-16 w-80 h-80 rounded-full bg-emerald-300/30 dark:bg-emerald-400/25 blur-3xl"
+            className="home-orb absolute -top-56 -left-48 w-[36rem] h-[36rem] [--orb:var(--color-emerald-300)] [--orb-alpha:30%] dark:[--orb:var(--color-emerald-400)] dark:[--orb-alpha:25%]"
           />
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute -bottom-32 right-0 w-md h-112 rounded-full bg-emerald-400/20 dark:bg-emerald-500/20 blur-3xl"
+            className="home-orb absolute -bottom-64 -right-32 w-[44rem] h-[44rem] [--orb:var(--color-emerald-400)] [--orb-alpha:20%] dark:[--orb:var(--color-emerald-500)]"
           />
 
           <div className="relative max-w-3xl">
@@ -394,7 +382,7 @@ function ClassicHomeView({
       {/* Suggestion of the day — one track and why: a forgotten
           favourite, one in line with the recent listening, or one never
           played. Hidden when the library has nothing to suggest. */}
-      <HomeSuggestionCard clipStyle={roundedClipMaskStyle} />
+      <HomeSuggestionCard />
 
       {/* Wrapped year-in-review banner — gated by
           `useWrappedBannerVisibility`: hidden by default and auto-
@@ -407,16 +395,15 @@ function ClassicHomeView({
           style={{
             background:
               "linear-gradient(135deg,#1d0e3a 0%,#3a1052 50%,#7c2d12 100%)",
-            ...roundedClipMaskStyle,
           }}
         >
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute -top-24 -right-16 w-80 h-80 rounded-full bg-fuchsia-400/30 blur-3xl"
+            className="home-orb absolute -top-56 -right-48 w-[36rem] h-[36rem] [--orb:var(--color-fuchsia-400)] [--orb-alpha:30%]"
           />
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute -bottom-32 -left-16 w-96 h-96 rounded-full bg-orange-400/25 blur-3xl"
+            className="home-orb absolute -bottom-64 -left-48 w-[40rem] h-[40rem] [--orb:var(--color-orange-400)] [--orb-alpha:25%]"
           />
           {/* Dismiss button — persists the year so the banner stays
               hidden until the next recap year is available. Sits in
