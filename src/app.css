@@ -210,6 +210,25 @@
   transition: none;
 }
 
+/* A soft glow on the classic Home's banners: the shape a disc blurred by
+   64 px has, drawn as a gradient so nothing is blurred at paint time.
+   The box is the disc plus twice the blur on every side; the stops are
+   the blurred disc's own profile — full up to the disc's radius less
+   twice the blur (11 % of the box), half at the disc's edge (56 %),
+   nothing at the box's edge. `--orb` is the colour, `--orb-alpha` its
+   strength. */
+.home-orb {
+  pointer-events: none;
+  border-radius: 9999px;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in srgb, var(--orb) var(--orb-alpha, 30%), transparent) 11%,
+    color-mix(in srgb, var(--orb) calc(var(--orb-alpha, 30%) / 2), transparent)
+      56%,
+    transparent
+  );
+}
+
 /* Round the painted children without clipping sticky headers or menus. */
 [data-track-table] > .sticky {
   border-start-start-radius: inherit;

@@ -44,6 +44,24 @@ export function qualityTag(
   return codec;
 }
 
+/** The cover a blurred copy is drawn from: the 128 px thumbnail when
+ *  there is one — a blur keeps no detail, and it decodes faster than the
+ *  full file. */
+export function blurSourceUrl(row: {
+  artwork_path: string | null;
+  artwork_path_1x?: string | null;
+  artwork_path_2x?: string | null;
+}): string | null {
+  return resolveArtwork(
+    {
+      full: row.artwork_path,
+      x1: row.artwork_path_1x ?? null,
+      x2: row.artwork_path_2x ?? null,
+    },
+    "2x",
+  );
+}
+
 /** The full-size cover URL of anything that carries the three paths. */
 export function coverUrl(row: {
   artwork_path: string | null;

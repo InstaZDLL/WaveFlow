@@ -13,7 +13,8 @@ import {
 import { isRemoteCanvasUrl } from "../../lib/tauri/canvas";
 import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
 import { isRadioTrack, isStreamTrack } from "../../lib/playerSources";
-import { Artwork } from "../common/Artwork";
+import { PrecomputedBlur } from "../common/PrecomputedBlur";
+import { resolveArtwork } from "../../lib/tauri/artwork";
 import { ImmersiveNowPlaying } from "./ImmersiveNowPlaying";
 import { ImmersiveSidePanel, type ImmersiveTab } from "./ImmersiveSidePanel";
 import { ImmersiveLyricsColumn } from "./ImmersiveLyricsColumn";
@@ -306,8 +307,8 @@ export function ImmersiveView({
           Linux) lives here so the opaque `bg-zinc-950` above paints solid
           from frame 1.
 
-          Deliberately a pre-resized variant, and **only** one: behind
-          `blur-3xl` at 150% scale a 128 px source is indistinguishable,
+          Deliberately a pre-resized variant, and **only** one: behind a
+          64 px blur at 150% scale a 128 px source is indistinguishable,
           and the thumbnails the artwork pipeline generates are
           single-frame. An animated cover — what "Change cover → Local
           file" accepts, since it takes webp and refuses video — was
@@ -321,17 +322,26 @@ export function ImmersiveView({
           an album the thumbnail worker has not caught up with. No static
           variant means the gradient, not the animation. It still plays,
           once, on the foreground cover. A stream's `path` is the one
-          exception — see `streamBackdrop`. */}
+          exception — see `streamBackdrop`.
+
+          Blurred once, not once per frame (`PrecomputedBlur`): a CSS blur
+          over the whole screen is recomputed under every frame the lyrics
+          or the visualizer repaint, which held the view to 4–9 frames a
+          second under WebKitGTK's software renderer. */}
       <div className={`absolute inset-0 overflow-hidden${FADE_IN}`}>
         {staticBackdrop ? (
-          <Artwork
-            path={streamBackdrop}
-            path1x={currentTrack?.artwork_path_1x}
-            path2x={currentTrack?.artwork_path_2x}
-            size="2x"
-            className="w-full h-full scale-150 blur-3xl"
-            alt=""
-            rounded="md"
+          <PrecomputedBlur
+            key={staticBackdrop}
+            src={resolveArtwork(
+              {
+                full: streamBackdrop,
+                x1: currentTrack?.artwork_path_1x ?? null,
+                x2: currentTrack?.artwork_path_2x ?? null,
+              },
+              "2x",
+            )}
+            blur={64}
+            scale={1.5}
           />
         ) : (
           <div className="w-full h-full bg-linear-to-br from-zinc-800 to-zinc-950" />
