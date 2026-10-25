@@ -4,7 +4,7 @@
 //
 //   bun bisect.ts --renderer software --skin fluid [--view Home] [--ms 5000]
 import { dirname, join } from "node:path";
-import { Inspector } from "./inspector";
+import { Inspector, jsString } from "./inspector";
 
 const HERE = dirname(new URL(import.meta.url).pathname);
 const REPO = join(HERE, "..", "..", "..");
@@ -77,13 +77,19 @@ for (
 await page.value(await Bun.file(join(HERE, "page.js")).text());
 await page.run(`window.__wfb.setSkin(${JSON.stringify(SKIN)})`);
 const ids = await page.run("window.__wfb.trackIds(40)");
+// The library is set up by `bench.ts` on its first run in this sandbox;
+// without it there is nothing to play and nothing to measure.
+if (!ids.length)
+  throw new Error(
+    "the sandbox has no library: run bench.ts once first (it scans ~/.wf-bench/library)",
+  );
 await page.run(`window.__wfb.play(${JSON.stringify(ids)})`);
 await page.run(`window.__wfb.nav(${JSON.stringify(VIEW)})`);
 await Bun.sleep(3000);
 
 const inject = (css: string) =>
   page.value(
-    `(() => { let s = document.getElementById('wf-bisect'); if (!s) { s = document.createElement('style'); s.id = 'wf-bisect'; document.head.appendChild(s); } s.textContent = ${JSON.stringify(css)}; return 1; })()`,
+    `(() => { let s = document.getElementById('wf-bisect'); if (!s) { s = document.createElement('style'); s.id = 'wf-bisect'; document.head.appendChild(s); } s.textContent = ${jsString(css)}; return 1; })()`,
   );
 const run = async (label: string, css: string) => {
   await inject(css);

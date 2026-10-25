@@ -79,6 +79,10 @@ export class Inspector {
   }
 
   send(method: string, params: Record<string, unknown> = {}): Promise<any> {
+    // A closed socket neither throws on `send` nor ever answers: refused
+    // here, or a command sent after the app died would wait for ever.
+    if (this.ws?.readyState !== WebSocket.OPEN)
+      return Promise.reject(new Error(`${method}: inspector socket closed`));
     const id = ++this.id;
     return new Promise((resolve, reject) => {
       this.pending.set(id, (m) =>
@@ -149,4 +153,14 @@ export class Inspector {
   close() {
     this.ws.close();
   }
+}
+
+/** `value` as a JavaScript string literal safe to splice into an
+ *  expression the page evaluates: JSON's quoting, plus the characters a
+ *  script context reads differently (`<`, `>`, the line separators). */
+export function jsString(value: string): string {
+  return JSON.stringify(value).replace(
+    /[<>\u2028\u2029]/g,
+    (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, "0")}`,
+  );
 }

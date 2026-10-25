@@ -177,7 +177,11 @@
         new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
       );
       await sleep(1200);
-      return { ...r, closed: !document.querySelector("[data-immersive]") };
+      // Still open (#791's flicker can swallow the key): what follows
+      // would be measured under the overlay.
+      if (document.querySelector("[data-immersive]"))
+        throw new Error("the immersive view did not close");
+      return { ...r, closed: true };
     },
     state() {
       const d = document.documentElement;

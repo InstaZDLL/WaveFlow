@@ -8,7 +8,7 @@
 //                [--bin <path>] [--sandbox <dir>] [--library <dir>] [--port 9222]
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { PNG } from "pngjs";
+import sharp from "sharp";
 import { Inspector } from "./inspector";
 import { byRole, sampleTree, TICKS_PER_SECOND, type TreeSample } from "./proc";
 
@@ -197,17 +197,22 @@ function cost(root: number, a: TreeSample, b: TreeSample): Cost {
   };
 }
 
-/** A capture that is one flat colour is a view that did not paint. */
-function blank(png: Buffer): { blank: boolean; distinct: number } {
-  const img = PNG.sync.read(png);
+/** A capture that is one flat colour is a view that did not paint.
+ *  Decoded with `sharp`, a declared dev dependency of the app. */
+async function blank(
+  png: Buffer,
+): Promise<{ blank: boolean; distinct: number }> {
+  const { data, info } = await sharp(png)
+    .removeAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
   const seen = new Set<number>();
-  const step = Math.max(1, Math.floor((img.width * img.height) / 4000));
-  for (let i = 0; i < img.width * img.height; i += step) {
-    const o = i * 4;
+  const pixels = info.width * info.height;
+  const step = Math.max(1, Math.floor(pixels / 4000));
+  for (let i = 0; i < pixels; i += step) {
+    const o = i * info.channels;
     seen.add(
-      ((img.data[o] >> 3) << 10) |
-        ((img.data[o + 1] >> 3) << 5) |
-        (img.data[o + 2] >> 3),
+      ((data[o] >> 3) << 10) | ((data[o + 1] >> 3) << 5) | (data[o + 2] >> 3),
     );
   }
   return { blank: seen.size <= 2, distinct: seen.size };
