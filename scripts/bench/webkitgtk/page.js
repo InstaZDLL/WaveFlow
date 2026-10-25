@@ -112,6 +112,13 @@
       await sleep(1500);
       return document.documentElement.getAttribute("data-is-playing");
     },
+    /** Stamp the effects level, as `EffectsProvider` would. */
+    setEffects(level) {
+      if (level !== "full" && level !== "reduced")
+        throw new Error(`effects: ${level}`);
+      document.documentElement.setAttribute("data-effects", level);
+      return level;
+    },
     async idle(ms) {
       return stats(await frames(ms));
     },
@@ -178,6 +185,7 @@
         skin: d.getAttribute("data-skin"),
         layout: d.getAttribute("data-layout"),
         safe: d.hasAttribute("data-webkitgtk-safe"),
+        effects: d.getAttribute("data-effects"),
         playing: d.getAttribute("data-is-playing"),
         vw: innerWidth,
         vh: innerHeight,

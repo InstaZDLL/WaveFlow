@@ -34,6 +34,8 @@ bun scripts/bench/webkitgtk/bench.ts --renderer gpu --soak 5 --out ~/.wf-bench/r
 bun scripts/bench/webkitgtk/bisect.ts --renderer software --skin fluid --view Home
 ```
 
+`--effects full|reduced` stamps the interface's effects level over the one the app resolved (Automatic reduces under the software renderer), to compare the two on the same machine.
+
 Each run writes `report.json`, `report.md` and the screenshots in its `--out` directory. The window opens on the machine's screen and must stay unobscured (WebKitGTK throttles a hidden window); the track plays at volume 0.
 
 ## Limits

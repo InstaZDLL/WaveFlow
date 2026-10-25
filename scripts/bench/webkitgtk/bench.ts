@@ -4,6 +4,7 @@
 //
 //   bun bench.ts --renderer gpu|software --out <dir>
 //                [--skins fluid,liquid,...] [--soak <minutes per skin>]
+//                [--effects full|reduced]
 //                [--bin <path>] [--sandbox <dir>] [--library <dir>] [--port 9222]
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -35,6 +36,10 @@ const SKINS = arg("skins", "studio,fluid,liquid,pulse,editorial,lounge").split(
   ",",
 );
 const SOAK_MIN = Number(arg("soak", "0"));
+// The interface's effects level, stamped over whatever the app resolved
+// (`data-effects`; Automatic reduces under the software renderer). Empty:
+// left as the app decided.
+const EFFECTS = arg("effects", "");
 // However the run ends, an error included, the app does not stay open on
 // the desktop.
 process.on("exit", () => {
@@ -245,6 +250,8 @@ if (await setUp(page)) {
   await page.value(await Bun.file(join(HERE, "page.js")).text());
 }
 await analyse(page);
+if (EFFECTS)
+  await page.run(`window.__wfb.setEffects(${JSON.stringify(EFFECTS)})`);
 const env = {
   renderer: RENDERER,
   state: await page.run("window.__wfb.state()"),
@@ -390,7 +397,7 @@ writeFileSync(join(OUT, "report.json"), JSON.stringify(report, null, 2));
 const rows: string[] = [];
 rows.push(`# WebKitGTK bench — ${RENDERER}`, "");
 rows.push(
-  `WebKitGTK ${env.webkit} · kernel ${env.kernel} · ${env.gpu} · session ${env.session} · ${env.state.vw}×${env.state.vh} @${env.state.dpr} · commit ${env.commit}`,
+  `WebKitGTK ${env.webkit} · kernel ${env.kernel} · ${env.gpu} · session ${env.session} · ${env.state.vw}×${env.state.vh} @${env.state.dpr} · effects ${env.state.effects ?? "(none)"} · commit ${env.commit}`,
   "",
 );
 rows.push(

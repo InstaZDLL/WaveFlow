@@ -16,7 +16,10 @@ export class Inspector {
   private pending = new Map<number, Pending>();
   private ready!: Promise<void>;
 
-  /** The page whose URL ends `url` (the main window is `tauri://localhost`). */
+  /** The main window's page: `url` itself, or under it with a query the
+   *  native side adds for the first paint (`index.html?renderer=software`,
+   *  `?safe-mode=1`). The mini-player and the lyrics overlay carry their
+   *  own query and are not it. */
   static async socketFor(
     host: string,
     url = "tauri://localhost",
@@ -26,7 +29,13 @@ export class Inspector {
     for (const row of rows) {
       const u = row.match(/class="targeturl">([^<]*)</)?.[1];
       const s = row.match(/(\/socket\/\d+\/\d+\/WebPage)/)?.[1];
-      if (u === url && s) return `ws://${host}${s}`;
+      if (
+        u &&
+        s &&
+        (u === url || u.startsWith(`${url}/`)) &&
+        !/[?&](mini|lyrics)=1/.test(u)
+      )
+        return `ws://${host}${s}`;
     }
     throw new Error(`no inspectable target at ${url}`);
   }
