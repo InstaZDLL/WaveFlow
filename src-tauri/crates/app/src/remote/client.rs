@@ -33,6 +33,7 @@ use std::time::Duration;
 
 use serde::Deserialize;
 use tokio::sync::Mutex;
+use waveflow_core::error::describe_http_error;
 
 use crate::{
     error::{AppError, AppResult},
@@ -158,7 +159,7 @@ impl RemoteFailure {
             kind: FailureKind::Transient,
             status: None,
             code: None,
-            message: error.without_url().to_string(),
+            message: describe_http_error(&error),
         }
     }
 
@@ -403,7 +404,7 @@ impl<'a> RemoteClient<'a> {
             kind: FailureKind::Permanent,
             status: None,
             code: None,
-            message: format!("malformed response body: {}", err.without_url()),
+            message: format!("malformed response body: {}", describe_http_error(&err)),
         })
     }
 
@@ -554,7 +555,12 @@ pub async fn refresh(
         .json(&serde_json::json!({ "refresh_token": known.refresh_token }))
         .send()
         .await
-        .map_err(|err| AppError::Other(format!("token refresh failed: {}", err.without_url())))?;
+        .map_err(|err| {
+            AppError::Other(format!(
+                "token refresh failed: {}",
+                describe_http_error(&err)
+            ))
+        })?;
 
     let status = response.status().as_u16();
     if classify_status(status).is_some() {
@@ -564,7 +570,10 @@ pub async fn refresh(
     }
 
     let fresh: AuthTokensResponse = response.json().await.map_err(|err| {
-        AppError::Other(format!("malformed refresh response: {}", err.without_url()))
+        AppError::Other(format!(
+            "malformed refresh response: {}",
+            describe_http_error(&err)
+        ))
     })?;
 
     let pair = TokenPair {

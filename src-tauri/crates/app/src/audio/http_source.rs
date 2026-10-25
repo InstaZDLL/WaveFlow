@@ -43,6 +43,7 @@ use std::time::Duration;
 use reqwest::blocking::{Client, Response};
 use symphonia::core::io::MediaSource;
 use tauri::AppHandle;
+use waveflow_core::error::describe_http_error;
 
 use super::events::{emit_radio_metadata, RadioMetadataPayload};
 
@@ -294,10 +295,11 @@ impl HttpMediaSource {
             .header(reqwest::header::ACCEPT, "audio/*,*/*;q=0.8")
             .header("Icy-MetaData", if want_icy { "1" } else { "0" })
             .send()
-            // `without_url`: reqwest prints the request URL in its error,
-            // which would hand the caller's log the ticket, the userinfo and
-            // the `?key=` that `redact_url` exists to keep out of it.
-            .map_err(|e| format!("http get: {}", e.without_url()))?;
+            // `describe_http_error`: reqwest prints the request URL in its
+            // error, which would hand the caller's log the ticket, the
+            // userinfo and the `?key=` that `redact_url` exists to keep out
+            // of it; the cause (refused, DNS, timeout) is kept.
+            .map_err(|e| format!("http get: {}", describe_http_error(&e)))?;
 
         let status = response.status();
         if !status.is_success() {
@@ -637,7 +639,7 @@ impl Seek for HttpMediaSource {
             .send()
             // Without the URL, for the same reason as the first GET: this
             // error travels up through symphonia into a logged seek failure.
-            .map_err(|e| io::Error::other(format!("range get: {}", e.without_url())))?;
+            .map_err(|e| io::Error::other(format!("range get: {}", describe_http_error(&e))))?;
         // 206 = ranged answer; a 200 means the server ignored the range and
         // is streaming from 0, which would silently corrupt the position —
         // refuse it rather than play the wrong bytes.

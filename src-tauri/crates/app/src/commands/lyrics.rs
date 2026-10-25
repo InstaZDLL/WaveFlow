@@ -64,6 +64,7 @@ use lofty::tag::ItemKey;
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter};
 
+use waveflow_core::error::describe_error;
 use waveflow_core::metadata::lrclib::LrclibClient;
 use waveflow_core::plugin::runtime::{
     AssociatedKind as PluginAssociatedKind, LyricsBundle as PluginLyricsBundle,
@@ -488,7 +489,7 @@ async fn external_lyrics_search(
         Some(failure) => Err(AppError::Other(format!(
             "external lyrics search failed: {}: {}",
             failure.provider.as_str(),
-            failure.error
+            describe_error(&failure.error)
         ))),
         None => Ok(SearchOutcome::Unavailable),
     }

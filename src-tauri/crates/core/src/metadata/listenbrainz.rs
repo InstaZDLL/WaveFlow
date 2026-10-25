@@ -62,7 +62,9 @@ impl ListenType {
 pub enum ListenBrainzError {
     /// Built through `From`, which strips the URL, as every transport
     /// error in this module is.
-    #[error("network: {0}")]
+    /// Its message carries the cause chain — the refusal, the DNS
+    /// failure, the timeout — see [`crate::error::describe_http_error`].
+    #[error("network: {}", crate::error::describe_http_error(.0))]
     Http(reqwest::Error),
     /// The answer outgrew [`MAX_RESPONSE_BYTES`] and was not read.
     #[error("ListenBrainz's answer exceeds {limit} bytes")]

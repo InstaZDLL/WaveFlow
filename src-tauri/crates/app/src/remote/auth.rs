@@ -48,6 +48,7 @@ use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 use tiny_http::{Response, Server};
+use waveflow_core::error::describe_http_error;
 
 use crate::{
     commands::loopback::html_response,
@@ -331,7 +332,7 @@ async fn exchange_code(
         }))
         .send()
         .await
-        .map_err(|err| AppError::Other(format!("could not reach the server: {}", err.without_url())))?;
+        .map_err(|err| AppError::Other(format!("could not reach the server: {}", describe_http_error(&err))))?;
 
     let status = response.status();
     if !status.is_success() {
@@ -340,10 +341,12 @@ async fn exchange_code(
         )));
     }
 
-    response
-        .json::<AuthTokensResponse>()
-        .await
-        .map_err(|err| AppError::Other(format!("unexpected sign-in reply: {}", err.without_url())))
+    response.json::<AuthTokensResponse>().await.map_err(|err| {
+        AppError::Other(format!(
+            "unexpected sign-in reply: {}",
+            describe_http_error(&err)
+        ))
+    })
 }
 
 /// Store the session, and decide what the previous one leaves behind.

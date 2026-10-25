@@ -29,6 +29,8 @@ const ROOT: &str = "https://apic-desktop.musixmatch.com/ws/1.1";
 ///    [`Error::Transport`] message so the operator still gets the
 ///    `host + path` for diagnostics, just without the credential —
 ///    and the host still learns the provider could not be reached.
+/// 4. Keeps the stripped error as that variant's `source`, so a caller
+///    that walks the chain still reads why (refused, DNS, timeout).
 async fn redacted_get(
     http: &reqwest::Client,
     url: String,
@@ -45,18 +47,14 @@ async fn redacted_get(
         None => redact_url(&url),
     };
 
-    let response = request.send().await.map_err(|err| {
-        Error::Transport(format!(
-            "{context} request failed at {redacted}: {}",
-            err.without_url(),
-        ))
+    let response = request.send().await.map_err(|err| Error::Transport {
+        message: format!("{context} request failed at {redacted}"),
+        source: Some(err.without_url()),
     })?;
 
-    response.error_for_status().map_err(|err| {
-        Error::Transport(format!(
-            "{context} returned non-2xx at {redacted}: {}",
-            err.without_url(),
-        ))
+    response.error_for_status().map_err(|err| Error::Transport {
+        message: format!("{context} returned non-2xx at {redacted}"),
+        source: Some(err.without_url()),
     })
 }
 
@@ -623,6 +621,28 @@ mod redact_tests {
         assert!(
             rendered.contains("/track.search"),
             "redacted path context missing: {rendered}",
+        );
+    }
+
+    /// The cause survives the redaction: a caller walking `source()`
+    /// reaches the DNS failure, and no layer of it carries the token.
+    #[tokio::test]
+    async fn send_failure_keeps_its_cause_in_the_chain() {
+        let url = "https://musixmatch-token-redact-test.invalid/track.search".to_string();
+        let err = redacted_get(&client(), url, &[("usertoken", SECRET)], "test endpoint")
+            .await
+            .expect_err("DNS for .invalid must fail");
+        let mut chain = Vec::new();
+        let mut layer: Option<&dyn std::error::Error> = Some(&err);
+        while let Some(current) = layer {
+            chain.push(current.to_string());
+            layer = current.source();
+        }
+        let chain = chain.join(": ");
+        assert!(chain.contains("dns error"), "cause lost: {chain}");
+        assert!(
+            !chain.contains(SECRET),
+            "token leaked into the chain: {chain}"
         );
     }
 
