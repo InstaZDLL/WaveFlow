@@ -165,7 +165,7 @@
     },
     "lyrics": {
       "title": "Where should lyrics live?",
-      "description": "Where should lyrics go — the ones you write and the ones WaveFlow finds for you? You can change this anytime from Settings → Images and lyrics.",
+      "description": "Where should lyrics go — the ones you write and the ones WaveFlow finds for you? You can change this anytime from Settings → Lyrics.",
       "hint": "Pick “Sidecar file” to keep your audio files untouched — what foobar2000 and friends do."
     }
   },
@@ -1512,7 +1512,7 @@
       "empty": "No lyrics for this track"
     },
     "dragHandle": "Drag to move · Double-click to restore size and position",
-    "pinWayland": "Always on top: ignored on Wayland. Turn on \"Run through XWayland\" in Settings → Appearance → Player and window."
+    "pinWayland": "Always on top: ignored on Wayland. Turn on \"Run through XWayland\" in Settings → Appearance → Windows."
   },
   "window": {
     "minimize": "Minimise",
@@ -1574,7 +1574,7 @@
     "toast": {
       "tagWriteSkipped": "TTML kept in the database only (not written to the audio tag)"
     },
-    "excludedGenre": "Lyrics aren't searched online for the {{genre}} genre (Settings → Images and lyrics). You can import a .lrc file or search anyway."
+    "excludedGenre": "Lyrics aren't searched online for the {{genre}} genre (Settings → Lyrics). You can import a .lrc file or search anyway."
   },
   "duplicates": {
     "title": "Duplicates detected",
@@ -2570,7 +2570,8 @@
       "subtitle": "Sharpness of the DSD → PCM conversion filter. Only affects DSD files (.dsf / .dff); more taps = sharper transition band at a higher CPU cost.",
       "standard": "Standard",
       "high": "High",
-      "max": "Maximum"
+      "max": "Maximum",
+      "tapsValue": "Taps: {{value}}"
     },
     "statsKpis": {
       "title": "Statistics indicators",
@@ -2743,9 +2744,9 @@
       "categories": {
         "general": "General",
         "library": "Library",
-        "playback": "Playback and audio",
+        "playback": "Audio",
         "appearance": "Appearance",
-        "media": "Images and lyrics",
+        "media": "Lyrics",
         "integrations": "Connections",
         "plugins": "Extensions",
         "shortcuts": "Keyboard shortcuts",
@@ -2753,11 +2754,11 @@
         "diagnostics": "Maintenance"
       },
       "descriptions": {
-        "general": "Language, startup and application behaviour.",
-        "library": "Keep your music library organised and up to date.",
-        "playback": "Track transitions, volume and audio output.",
-        "appearance": "Customise the interface and your listening views.",
-        "media": "Artwork, artist information and lyrics sources.",
+        "general": "Language, startup and how playback behaves.",
+        "library": "Scanning, music analysis, artwork, biographies and radio.",
+        "playback": "Audio output, track transitions, volume and equaliser.",
+        "appearance": "Skin, theme, readability and windows.",
+        "media": "Where lyrics come from, how they show, and on the desktop.",
         "integrations": "Connect your services, server and network devices.",
         "plugins": "Discover extensions and manage their settings.",
         "shortcuts": "Choose keyboard shortcuts for your everyday actions.",
@@ -2774,14 +2775,14 @@
         "listening": "Listening behaviour",
         "volume": "Volume",
         "equalizer": "Equaliser",
-        "output": "Advanced audio settings",
-        "theme": "Theme and readability",
-        "player": "Player and window",
+        "output": "Audio output",
+        "theme": "Theme and colours",
+        "player": "Player bar",
         "immersive": "Immersive view",
         "pages": "Library pages",
         "artwork": "Covers and artist images",
         "biographies": "Artist biographies",
-        "lyrics": "Lyrics",
+        "lyrics": "Finding lyrics",
         "connectivity": "Connectivity",
         "services": "Connected services",
         "remote": "Remote server",
@@ -2795,12 +2796,65 @@
         "diagnostics": "Diagnostics",
         "reset": "Reset application",
         "desktopLyrics": "Desktop lyrics",
-        "stereo": "Stereo image"
+        "stereo": "Stereo image",
+        "outputAdvanced": "Advanced output",
+        "skin": "Skin",
+        "display": "Readability",
+        "window": "Windows",
+        "lyricsDisplay": "Showing lyrics"
+      },
+      "navHints": {
+        "general": "Language, startup, playback",
+        "appearance": "Skin, theme, windows",
+        "playback": "Output, volume, equaliser",
+        "media": "Sources, display, desktop",
+        "library": "Scanning, analysis, artwork",
+        "integrations": "Services, server, network",
+        "shortcuts": "Keyboard and media keys",
+        "data": "Backups, folders, caches",
+        "diagnostics": "Updates, logs, reset"
+      },
+      "groupHints": {
+        "language": "Applies right away, no restart",
+        "startup": "What happens when WaveFlow opens and closes",
+        "listening": "How tracks start and what plays next",
+        "skin": "The layout and material of the interface",
+        "theme": "Interface colours and the accent",
+        "display": "Contrast, visual effects and interface size",
+        "player": "Buttons and badges of the bottom bar",
+        "window": "Size, position and frame of the windows",
+        "immersive": "Full-screen cover art, with lyrics",
+        "pages": "What the artist, statistics and home pages show",
+        "output": "How the sound reaches the device",
+        "transitions": "Between two tracks: gapless or crossfaded",
+        "volume": "Even loudness from one track to the next",
+        "equalizer": "Shape the frequency response",
+        "stereo": "Balance and width of the stereo image",
+        "outputAdvanced": "Sample rate and mono",
+        "lyrics": "Sources, translation and where they are saved",
+        "lyricsDisplay": "Karaoke, centring and the colour of the sung line",
+        "desktopLyrics": "A line of lyrics over your windows",
+        "scanning": "Find new files and duplicates",
+        "analysis": "BPM, loudness and peak of each track",
+        "artwork": "Missing album covers and artist photos",
+        "biographies": "Where artist texts come from",
+        "radio": "The station catalogue, offline",
+        "connectivity": "Cut off all internet access",
+        "services": "Last.fm, ListenBrainz and Discord",
+        "remote": "Your WaveFlow server and its library",
+        "network": "DLNA and MPD on your local network",
+        "keyboard": "Shortcuts for everyday actions",
+        "backups": "Export, import and back up your profiles",
+        "storage": "Where WaveFlow keeps its data and caches",
+        "cleanup": "Cached thumbnails and covers",
+        "updates": "Stable or beta releases",
+        "diagnostics": "Logs and rendering",
+        "reset": "Start over with a fresh app"
       }
     },
     "desktopLyrics": {
       "subtitle": "A floating window above your other apps that shows the line being sung.",
-      "waylandNote": "On Wayland, the window is kept neither above other apps nor where you place it. For that, turn on \"Run through XWayland\" in Settings → Appearance → Player and window.",
+      "waylandNote": "On Wayland, the window is kept neither above other apps nor where you place it. For that, turn on \"Run through XWayland\" in Settings → Appearance → Windows.",
       "previewSung": "Lyrics that follow",
       "previewUnsung": "the song",
       "fontSize": "Text size",
@@ -2885,6 +2939,14 @@
         "mono": "Mono",
         "value": "{{value}}%",
         "reset": "Reset the width to 100%"
+      }
+    },
+    "outputMode": {
+      "title": "Output mode",
+      "subtitle": "Share the device with the system, or keep it for WaveFlow.",
+      "shared": {
+        "label": "Shared output",
+        "hint": "Sound goes through the system mixer, alongside other apps. Best for everyday listening."
       }
     }
   },

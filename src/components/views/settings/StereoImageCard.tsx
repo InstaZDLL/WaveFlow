@@ -35,7 +35,7 @@ const DEFAULTS: Record<Knob, number> = {
 const WRITE_DELAY_MS = 150;
 
 /**
- * Settings → Playback and audio: the left / right balance and the stereo
+ * Settings → Audio → Stereo image: the left / right balance and the stereo
  * width, two sliders with a button each that puts them back on their
  * neutral value (a double-click on the slider does the same).
  *
@@ -189,7 +189,13 @@ export function StereoImageCard() {
     <>
       <StereoSlider
         id="stereo-balance"
-        icon={<SlidersHorizontal size={20} aria-hidden="true" />}
+        icon={
+          <SlidersHorizontal
+            size={16}
+            className="settings-row-icon"
+            aria-hidden="true"
+          />
+        }
         title={t("settings.stereoImage.balance.title")}
         subtitle={t("settings.stereoImage.balance.subtitle")}
         min={-BALANCE_LIMIT}
@@ -202,7 +208,13 @@ export function StereoImageCard() {
       />
       <StereoSlider
         id="stereo-width"
-        icon={<MoveHorizontal size={20} aria-hidden="true" />}
+        icon={
+          <MoveHorizontal
+            size={16}
+            className="settings-row-icon"
+            aria-hidden="true"
+          />
+        }
         title={t("settings.stereoImage.width.title")}
         subtitle={t("settings.stereoImage.width.subtitle")}
         min={0}
@@ -246,10 +258,10 @@ function StereoSlider({
 }: StereoSliderProps) {
   const atNeutral = value === neutral;
   return (
-    <div className="settings-block py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+    <div className="settings-block">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center space-x-4 min-w-0">
-          <span className="text-zinc-400 shrink-0">{icon}</span>
+          <span className="flex shrink-0">{icon}</span>
           <div className="min-w-0">
             <label
               htmlFor={id}

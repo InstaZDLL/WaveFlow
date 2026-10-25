@@ -43,12 +43,8 @@ export function LyricsHighlightColorCard() {
       aria-label={t("settings.lyricsHighlightColor.title")}
       className="px-4 py-3"
     >
-      <div className="flex items-start gap-3">
-        <Palette
-          size={20}
-          className="text-zinc-400 mt-0.5 shrink-0"
-          aria-hidden="true"
-        />
+      <div className="flex items-start gap-4">
+        <Palette size={16} className="settings-row-icon" aria-hidden="true" />
         <div className="min-w-0 flex-1">
           <span
             className="block text-sm font-medium text-zinc-900 dark:text-white"

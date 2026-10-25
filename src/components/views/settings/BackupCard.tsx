@@ -155,14 +155,10 @@ export function BackupCard({ language }: BackupCardProps) {
       : t("settings.backup.neverRun");
 
   return (
-    <div className="py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+    <div className="settings-block">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center space-x-4 min-w-0">
-          <Archive
-            size={20}
-            className="text-zinc-400 shrink-0"
-            aria-hidden="true"
-          />
+          <Archive size={16} className="settings-row-icon" aria-hidden="true" />
           <div className="min-w-0">
             <div className="text-sm font-medium text-zinc-900 dark:text-white">
               {t("settings.backup.title")}

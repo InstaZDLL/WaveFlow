@@ -130,9 +130,9 @@ export function RemoteServerCard() {
   const signedIn = status?.signed_in ?? false;
 
   return (
-    <div className="py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+    <div className="settings-block">
       <div className="flex items-start space-x-4">
-        <Server size={20} className="text-zinc-400 mt-0.5" aria-hidden="true" />
+        <Server size={16} className="settings-row-icon" aria-hidden="true" />
         <div className="flex-1 min-w-0 space-y-4">
           <div>
             <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">

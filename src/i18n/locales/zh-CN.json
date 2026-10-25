@@ -165,7 +165,7 @@
     },
     "lyrics": {
       "title": "歌词保存在哪里？",
-      "description": "歌词应该保存到何处？你编辑的歌词和 WaveFlow 为你找到的歌词都适用。可随时在“设置 → 图片与歌词”中更改。",
+      "description": "歌词应该保存到何处？你编辑的歌词和 WaveFlow 为你找到的歌词都适用。可随时在“设置 → 歌词”中更改。",
       "hint": "选择“外挂歌词文件”可让音频文件保持不变——foobar2000 等播放器就是这样做的。"
     }
   },
@@ -1510,7 +1510,7 @@
       "empty": "此曲目没有歌词"
     },
     "dragHandle": "拖动以移动 · 双击恢复大小和位置",
-    "pinWayland": "始终置顶：在 Wayland 下无效。请在 设置 → 外观 → 播放器与窗口 中开启“通过 XWayland 运行”。"
+    "pinWayland": "始终置顶：在 Wayland 下无效。请在 设置 → 外观 → 窗口 中开启“通过 XWayland 运行”。"
   },
   "window": {
     "minimize": "最小化",
@@ -1572,7 +1572,7 @@
     "toast": {
       "tagWriteSkipped": "TTML 仅保留在数据库中（未写入音频标签）"
     },
-    "excludedGenre": "不会在线搜索 {{genre}} 流派的歌词（设置 → 图片与歌词）。你可以导入 .lrc 文件，或选择仍然搜索。"
+    "excludedGenre": "不会在线搜索 {{genre}} 流派的歌词（设置 → 歌词）。你可以导入 .lrc 文件，或选择仍然搜索。"
   },
   "duplicates": {
     "title": "检测到重复文件",
@@ -2568,7 +2568,8 @@
       "subtitle": "DSD → PCM 转换滤波器的锐度。仅影响 DSD 文件（.dsf / .dff）；抽头越多，过渡带越锐利，但 CPU 开销更高。",
       "standard": "标准",
       "high": "高",
-      "max": "最高"
+      "max": "最高",
+      "tapsValue": "抽头数：{{value}}"
     },
     "statsKpis": {
       "title": "统计指标",
@@ -2741,9 +2742,9 @@
       "categories": {
         "general": "常规",
         "library": "音乐库",
-        "playback": "播放与音频",
+        "playback": "音频",
         "appearance": "外观",
-        "media": "图片与歌词",
+        "media": "歌词",
         "integrations": "连接",
         "plugins": "扩展",
         "shortcuts": "键盘快捷键",
@@ -2751,11 +2752,11 @@
         "diagnostics": "维护"
       },
       "descriptions": {
-        "general": "设置语言、启动方式和应用行为。",
-        "library": "整理和更新音乐库。",
-        "playback": "设置曲目过渡、音量和音频输出。",
-        "appearance": "自定义界面和播放视图。",
-        "media": "管理封面、艺人信息和歌词来源。",
+        "general": "设置语言、启动方式和播放行为。",
+        "library": "设置扫描、音乐分析、封面、艺人简介和电台。",
+        "playback": "设置音频输出、曲目过渡、音量和均衡器。",
+        "appearance": "设置界面风格、主题、可读性和窗口。",
+        "media": "设置歌词来源、显示方式和桌面歌词。",
         "integrations": "连接服务、服务器和网络设备。",
         "plugins": "发现扩展并管理其设置。",
         "shortcuts": "选择日常操作的键盘快捷键。",
@@ -2772,14 +2773,14 @@
         "listening": "播放行为",
         "volume": "音量",
         "equalizer": "均衡器",
-        "output": "高级音频设置",
-        "theme": "主题与可读性",
-        "player": "播放器与窗口",
+        "output": "音频输出",
+        "theme": "主题与颜色",
+        "player": "播放栏",
         "immersive": "沉浸式视图",
         "pages": "音乐库页面",
         "artwork": "封面与艺人图片",
         "biographies": "艺人简介",
-        "lyrics": "歌词",
+        "lyrics": "歌词搜索",
         "connectivity": "网络连接",
         "services": "已连接的服务",
         "remote": "远程服务器",
@@ -2793,12 +2794,65 @@
         "diagnostics": "诊断",
         "reset": "重置应用",
         "desktopLyrics": "桌面歌词",
-        "stereo": "立体声声像"
+        "stereo": "立体声声像",
+        "outputAdvanced": "高级输出",
+        "skin": "界面风格",
+        "display": "可读性",
+        "window": "窗口",
+        "lyricsDisplay": "歌词显示"
+      },
+      "navHints": {
+        "general": "语言、启动、播放",
+        "appearance": "风格、主题、窗口",
+        "playback": "输出、音量、均衡器",
+        "media": "来源、显示、桌面",
+        "library": "扫描、分析、封面",
+        "integrations": "服务、服务器、网络",
+        "shortcuts": "键盘与媒体键",
+        "data": "备份、文件夹、缓存",
+        "diagnostics": "更新、日志、重置"
+      },
+      "groupHints": {
+        "language": "立即生效，无需重启",
+        "startup": "WaveFlow 打开和关闭时的行为",
+        "listening": "曲目如何开始播放以及接下来播放什么",
+        "skin": "界面的布局与质感",
+        "theme": "界面颜色与强调色",
+        "display": "对比度、视觉效果与界面大小",
+        "player": "底部栏的按钮与标识",
+        "window": "窗口的大小、位置与边框",
+        "immersive": "全屏封面，搭配歌词",
+        "pages": "艺人页、统计页和主页显示的内容",
+        "output": "声音如何到达设备",
+        "transitions": "两首曲目之间：无缝或交叉淡化",
+        "volume": "让每首曲目的音量保持一致",
+        "equalizer": "调整频率响应曲线",
+        "stereo": "立体声声像的平衡与宽度",
+        "outputAdvanced": "采样率与单声道",
+        "lyrics": "来源、翻译与保存位置",
+        "lyricsDisplay": "卡拉OK、居中与当前演唱行的颜色",
+        "desktopLyrics": "在窗口上方显示一行歌词",
+        "scanning": "查找新文件和重复项",
+        "analysis": "每首曲目的 BPM、响度和峰值",
+        "artwork": "缺失的专辑封面和艺人照片",
+        "biographies": "艺人介绍文字的来源",
+        "radio": "电台目录，离线可用",
+        "connectivity": "切断所有互联网访问",
+        "services": "Last.fm、ListenBrainz 和 Discord",
+        "remote": "你的 WaveFlow 服务器及其音乐库",
+        "network": "本地网络中的 DLNA 和 MPD",
+        "keyboard": "常用操作的快捷键",
+        "backups": "导出、导入和备份你的个人资料",
+        "storage": "WaveFlow 存放数据和缓存的位置",
+        "cleanup": "已缓存的缩略图和封面",
+        "updates": "稳定版或测试版",
+        "diagnostics": "日志与图形渲染",
+        "reset": "将应用恢复到全新状态"
       }
     },
     "desktopLyrics": {
       "subtitle": "悬浮在其他应用之上、显示正在演唱歌词的窗口。",
-      "waylandNote": "在 Wayland 下，窗口既不会置顶于其他应用之上，也不会停在你放置的位置。如需这样，请在 设置 → 外观 → 播放器与窗口 中开启“通过 XWayland 运行”。",
+      "waylandNote": "在 Wayland 下，窗口既不会置顶于其他应用之上，也不会停在你放置的位置。如需这样，请在 设置 → 外观 → 窗口 中开启“通过 XWayland 运行”。",
       "previewSung": "跟随歌曲的",
       "previewUnsung": "歌词",
       "fontSize": "文字大小",
@@ -2883,6 +2937,14 @@
         "mono": "单声道",
         "value": "{{value}}%",
         "reset": "将宽度重置为 100%"
+      }
+    },
+    "outputMode": {
+      "title": "输出模式",
+      "subtitle": "与系统共享设备，或让 WaveFlow 独占。",
+      "shared": {
+        "label": "共享输出",
+        "hint": "声音与其他应用的声音一起经过系统混音器。适合日常使用。"
       }
     }
   },

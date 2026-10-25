@@ -56,11 +56,7 @@ export function MediaCachesCard({ language }: { language: string }) {
   return (
     <section className="py-5 px-4 rounded-xl">
       <div className="flex items-start space-x-4">
-        <Film
-          size={20}
-          className="text-zinc-400 mt-0.5 shrink-0"
-          aria-hidden="true"
-        />
+        <Film size={16} className="settings-row-icon" aria-hidden="true" />
         <div className="min-w-0 flex-1 space-y-5">
           <LocalCacheOption
             i18nPrefix="settings.motionArtwork"

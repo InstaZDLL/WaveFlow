@@ -144,12 +144,12 @@ export function RadioCatalogueCard({ language }: RadioCatalogueCardProps) {
       : null;
 
   return (
-    <div className="py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+    <div className="settings-block">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center space-x-4 min-w-0">
           <Database
-            size={20}
-            className="text-zinc-400 shrink-0"
+            size={16}
+            className="settings-row-icon"
             aria-hidden="true"
           />
           <div className="min-w-0">

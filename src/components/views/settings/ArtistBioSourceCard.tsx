@@ -116,12 +116,8 @@ export function ArtistBioSourceCard() {
       aria-labelledby="settings-artist-bio-heading"
       className="px-4 py-3"
     >
-      <header className="flex items-start gap-3 mb-3">
-        <BookOpen
-          size={20}
-          className="text-zinc-400 mt-0.5 shrink-0"
-          aria-hidden="true"
-        />
+      <header className="flex items-start gap-4 mb-3">
+        <BookOpen size={16} className="settings-row-icon" aria-hidden="true" />
         <div className="min-w-0">
           <h3
             id="settings-artist-bio-heading"

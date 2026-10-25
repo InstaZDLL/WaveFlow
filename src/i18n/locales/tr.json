@@ -165,7 +165,7 @@
     },
     "lyrics": {
       "title": "Şarkı sözleri nereye gitsin?",
-      "description": "Şarkı sözleri nereye gitsin — hem düzenlediklerin hem de WaveFlow'un senin için buldukları? Ayarlar → Görseller ve şarkı sözleri bölümünden değiştirebilirsin.",
+      "description": "Şarkı sözleri nereye gitsin — hem düzenlediklerin hem de WaveFlow'un senin için buldukları? Ayarlar → Şarkı sözleri bölümünden değiştirebilirsin.",
       "hint": "Ses dosyalarını bozulmadan tutmak için “Yan dosya” seç — foobar2000 ve benzerleri böyle yapar."
     }
   },
@@ -1512,7 +1512,7 @@
       "empty": "Bu parça için şarkı sözü yok"
     },
     "dragHandle": "Taşımak için sürükle · Boyutu ve konumu geri yüklemek için çift tıkla",
-    "pinWayland": "Her zaman üstte: Wayland'de yok sayılır. Ayarlar → Görünüm → Oynatıcı ve pencere içinde \"XWayland üzerinden çalıştır\" seçeneğini açın."
+    "pinWayland": "Her zaman üstte: Wayland'de yok sayılır. Ayarlar → Görünüm → Pencereler içinde \"XWayland üzerinden çalıştır\" seçeneğini açın."
   },
   "window": {
     "minimize": "Simge durumuna küçült",
@@ -1574,7 +1574,7 @@
     "toast": {
       "tagWriteSkipped": "TTML yalnızca veritabanına kaydedildi (ses etiketine yazılmadı)"
     },
-    "excludedGenre": "{{genre}} türü için şarkı sözleri çevrimiçi aranmıyor (Ayarlar → Görseller ve şarkı sözleri). Bir .lrc dosyası içe aktarabilir ya da yine de arayabilirsin."
+    "excludedGenre": "{{genre}} türü için şarkı sözleri çevrimiçi aranmıyor (Ayarlar → Şarkı sözleri). Bir .lrc dosyası içe aktarabilir ya da yine de arayabilirsin."
   },
   "duplicates": {
     "title": "Yinelenenler algılandı",
@@ -2570,7 +2570,8 @@
       "subtitle": "DSD → PCM dönüştürme filtresinin keskinliği. Yalnızca DSD dosyalarını (.dsf / .dff) etkiler; daha fazla katsayı = daha yüksek CPU maliyetiyle daha keskin geçiş bandı.",
       "standard": "Standart",
       "high": "Yüksek",
-      "max": "Maksimum"
+      "max": "Maksimum",
+      "tapsValue": "Katsayı: {{value}}"
     },
     "statsKpis": {
       "title": "İstatistik göstergeleri",
@@ -2743,9 +2744,9 @@
       "categories": {
         "general": "Genel",
         "library": "Kütüphane",
-        "playback": "Oynatma ve ses",
+        "playback": "Ses",
         "appearance": "Görünüm",
-        "media": "Görseller ve şarkı sözleri",
+        "media": "Şarkı sözleri",
         "integrations": "Bağlantılar",
         "plugins": "Eklentiler",
         "shortcuts": "Klavye kısayolları",
@@ -2753,11 +2754,11 @@
         "diagnostics": "Bakım"
       },
       "descriptions": {
-        "general": "Dil, başlangıç ve uygulama davranışı.",
-        "library": "Müzik kütüphaneni düzenle ve güncel tut.",
-        "playback": "Parça geçişleri, ses düzeyi ve ses çıkışı.",
-        "appearance": "Arayüzü ve dinleme görünümlerini özelleştir.",
-        "media": "Kapaklar, sanatçı bilgileri ve şarkı sözü kaynakları.",
+        "general": "Dil, başlangıç ve oynatma davranışı.",
+        "library": "Tarama, müzik analizi, kapaklar, biyografiler ve radyo.",
+        "playback": "Ses çıkışı, parça geçişleri, ses düzeyi ve ekolayzer.",
+        "appearance": "Arayüz stili, tema, okunabilirlik ve pencereler.",
+        "media": "Şarkı sözlerinin kaynağı, görünümü ve masaüstünde gösterimi.",
         "integrations": "Hizmetlerini, sunucunu ve ağ cihazlarını bağla.",
         "plugins": "Eklentileri keşfet ve ayarlarını yönet.",
         "shortcuts": "Günlük işlemler için klavye kısayolları seç.",
@@ -2774,14 +2775,14 @@
         "listening": "Oynatma davranışı",
         "volume": "Ses düzeyi",
         "equalizer": "Ekolayzer",
-        "output": "Gelişmiş ses ayarları",
-        "theme": "Tema ve okunabilirlik",
-        "player": "Oynatıcı ve pencere",
+        "output": "Ses çıkışı",
+        "theme": "Tema ve renkler",
+        "player": "Çalar çubuğu",
         "immersive": "Sürükleyici görünüm",
         "pages": "Kütüphane sayfaları",
         "artwork": "Kapaklar ve sanatçı görselleri",
         "biographies": "Sanatçı biyografileri",
-        "lyrics": "Şarkı sözleri",
+        "lyrics": "Şarkı sözü arama",
         "connectivity": "Bağlanabilirlik",
         "services": "Bağlı hizmetler",
         "remote": "Uzak sunucu",
@@ -2795,12 +2796,65 @@
         "diagnostics": "Tanılama",
         "reset": "Uygulamayı sıfırla",
         "desktopLyrics": "Masaüstü şarkı sözleri",
-        "stereo": "Stereo görüntü"
+        "stereo": "Stereo görüntü",
+        "outputAdvanced": "Gelişmiş çıkış",
+        "skin": "Arayüz stili",
+        "display": "Okunabilirlik",
+        "window": "Pencereler",
+        "lyricsDisplay": "Şarkı sözü görünümü"
+      },
+      "navHints": {
+        "general": "Dil, başlangıç, oynatma",
+        "appearance": "Stil, tema, pencereler",
+        "playback": "Çıkış, ses düzeyi, ekolayzer",
+        "media": "Kaynaklar, görünüm, masaüstü",
+        "library": "Tarama, analiz, kapaklar",
+        "integrations": "Hizmetler, sunucu, ağ",
+        "shortcuts": "Klavye ve medya tuşları",
+        "data": "Yedekler, klasörler, önbellekler",
+        "diagnostics": "Güncellemeler, günlükler, sıfırlama"
+      },
+      "groupHints": {
+        "language": "Yeniden başlatmadan hemen uygulanır",
+        "startup": "WaveFlow açılırken ve kapanırken olanlar",
+        "listening": "Parçaların nasıl başladığı ve sırada ne çalacağı",
+        "skin": "Arayüzün düzeni ve malzemesi",
+        "theme": "Arayüz renkleri ve vurgu rengi",
+        "display": "Karşıtlık, görsel efektler ve arayüz boyutu",
+        "player": "Alt çubuğun düğmeleri ve rozetleri",
+        "window": "Pencerelerin boyutu, konumu ve çerçevesi",
+        "immersive": "Tam ekran kapak, şarkı sözleriyle",
+        "pages": "Sanatçı, istatistik ve ana sayfaların gösterdikleri",
+        "output": "Sesin aygıta nasıl ulaştığı",
+        "transitions": "İki parça arasında: aralıksız ya da çapraz geçişle",
+        "volume": "Parçadan parçaya eşit ses düzeyi",
+        "equalizer": "Frekans eğrisini şekillendir",
+        "stereo": "Stereo görüntünün dengesi ve genişliği",
+        "outputAdvanced": "Örnekleme hızı ve mono",
+        "lyrics": "Kaynaklar, çeviri ve kayıt yeri",
+        "lyricsDisplay": "Karaoke, ortalama ve söylenen satırın rengi",
+        "desktopLyrics": "Pencerelerinin üzerinde bir satır şarkı sözü",
+        "scanning": "Yeni dosyaları ve yinelenenleri bul",
+        "analysis": "Her parçanın BPM, ses yüksekliği ve tepe değeri",
+        "artwork": "Eksik albüm kapakları ve sanatçı fotoğrafları",
+        "biographies": "Sanatçı metinlerinin kaynağı",
+        "radio": "İstasyon kataloğu, çevrimdışı",
+        "connectivity": "Tüm internet erişimini kes",
+        "services": "Last.fm, ListenBrainz ve Discord",
+        "remote": "WaveFlow sunucun ve kütüphanesi",
+        "network": "Yerel ağında DLNA ve MPD",
+        "keyboard": "Günlük işlemler için kısayollar",
+        "backups": "Profillerini dışa aktar, içe aktar ve yedekle",
+        "storage": "WaveFlow'un verilerini ve önbelleklerini tuttuğu yer",
+        "cleanup": "Önbellekteki küçük resimler ve kapaklar",
+        "updates": "Kararlı veya beta sürümler",
+        "diagnostics": "Günlükler ve grafik işleme",
+        "reset": "Uygulamayı sıfırdan başlat"
       }
     },
     "desktopLyrics": {
       "subtitle": "Diğer uygulamaların üzerinde, söylenen satırı gösteren yüzen bir pencere.",
-      "waylandNote": "Wayland'de pencere ne diğer uygulamaların üstünde ne de koyduğunuz yerde kalır. Bunun için Ayarlar → Görünüm → Oynatıcı ve pencere içinde \"XWayland üzerinden çalıştır\" seçeneğini açın.",
+      "waylandNote": "Wayland'de pencere ne diğer uygulamaların üstünde ne de koyduğunuz yerde kalır. Bunun için Ayarlar → Görünüm → Pencereler içinde \"XWayland üzerinden çalıştır\" seçeneğini açın.",
       "previewSung": "Şarkıyı izleyen",
       "previewUnsung": "sözler",
       "fontSize": "Metin boyutu",
@@ -2885,6 +2939,14 @@
         "mono": "Mono",
         "value": "%{{value}}",
         "reset": "Genişliği %100'e sıfırla"
+      }
+    },
+    "outputMode": {
+      "title": "Çıkış modu",
+      "subtitle": "Aygıtı sistemle paylaş ya da yalnızca WaveFlow'a ayır.",
+      "shared": {
+        "label": "Paylaşımlı çıkış",
+        "hint": "Ses, diğer uygulamaların sesiyle birlikte sistem karıştırıcısından geçer. Günlük kullanım için ideal."
       }
     }
   },

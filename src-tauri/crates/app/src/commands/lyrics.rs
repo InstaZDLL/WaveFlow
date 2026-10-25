@@ -4469,7 +4469,7 @@ async fn read_default_destination(pool: &sqlx::SqlitePool) -> AppResult<LyricsDe
 /// Read the app-wide default. Missing row falls back to `Tag` so
 /// existing installs keep the pre-#201 behaviour until the user opts
 /// into the new flow (either from the onboarding step or the
-/// Settings → Images and lyrics card).
+/// Settings → Lyrics card).
 #[tauri::command]
 pub async fn get_lyrics_default_destination(
     state: tauri::State<'_, AppState>,
