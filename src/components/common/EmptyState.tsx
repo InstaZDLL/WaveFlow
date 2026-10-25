@@ -15,10 +15,12 @@ interface EmptyStateProps {
   className?: string;
 }
 
+// The glow's colour and strength, read by `.soft-glow` (app.css).
 const GLOW_CLASSES: Record<EmptyStateAccent, string> = {
-  emerald: "bg-emerald-400/30 dark:bg-emerald-500/25",
-  pink: "bg-pink-400/30 dark:bg-pink-500/25",
-  blue: "bg-blue-400/30 dark:bg-blue-500/25",
+  emerald:
+    "[--orb:var(--color-emerald-400)] [--orb-alpha:30%] dark:[--orb:var(--color-emerald-500)] dark:[--orb-alpha:25%]",
+  pink: "[--orb:var(--color-pink-400)] [--orb-alpha:30%] dark:[--orb:var(--color-pink-500)] dark:[--orb-alpha:25%]",
+  blue: "[--orb:var(--color-blue-400)] [--orb-alpha:30%] dark:[--orb:var(--color-blue-500)] dark:[--orb-alpha:25%]",
 };
 
 const ICON_CONTAINER_CLASSES: Record<EmptyStateAccent, string> = {
@@ -61,9 +63,13 @@ export function EmptyState({
       className={`flex flex-col items-center justify-center text-center ${className}`}
     >
       <div className={`relative ${sizes.wrapper}`}>
+        {/* A gradient with a blurred disc's profile (`.soft-glow`), not a
+            disc under `blur-3xl`: its breathing made the blur run again
+            every frame, a whole frame's cost without a GPU. The box is
+            the old disc (2.5 rem past the icon) plus twice the blur. */}
         <div
           aria-hidden="true"
-          className={`pointer-events-none absolute inset-0 -m-10 rounded-full blur-3xl animate-breathing ${GLOW_CLASSES[accent]}`}
+          className={`soft-glow absolute -inset-[10.5rem] animate-breathing ${GLOW_CLASSES[accent]}`}
         />
         <div
           className={`relative ${sizes.icon} ${shapeClass} flex items-center justify-center shadow-sm ${ICON_CONTAINER_CLASSES[accent]}`}

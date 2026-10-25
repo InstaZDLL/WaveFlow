@@ -1366,6 +1366,14 @@
   :root[data-skin="liquid"] .fe-canvas__art::before {
     animation: none;
   }
+  /* The checked capsule's wave is started by a longer selector than the
+     one above: matched here as specifically, or it keeps drifting. */
+  :root[data-skin="liquid"]
+    .aq-capsule[data-checked="true"]:not([data-disabled])
+    .aq-capsule__light
+    svg {
+    animation: none;
+  }
   :root[data-skin="liquid"]
     :is(
       button,
