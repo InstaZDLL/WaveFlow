@@ -10,7 +10,13 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import sharp from "sharp";
 import { Inspector } from "./inspector";
-import { byRole, sampleTree, TICKS_PER_SECOND, type TreeSample } from "./proc";
+import {
+  byRole,
+  gpuRenderDeltaNs,
+  sampleTree,
+  TICKS_PER_SECOND,
+  type TreeSample,
+} from "./proc";
 
 const HERE = dirname(new URL(import.meta.url).pathname);
 const REPO = join(HERE, "..", "..", "..");
@@ -173,12 +179,9 @@ function cost(root: number, a: TreeSample, b: TreeSample): Cost {
     wb = rb.web ?? z;
   const gpuA = (ra.ui?.gpuResidentKiB ?? 0) + (ra.web?.gpuResidentKiB ?? 0);
   const gpuB = (rb.ui?.gpuResidentKiB ?? 0) + (rb.web?.gpuResidentKiB ?? 0);
-  // Floored at zero: a DRM client closed between the two samples takes
-  // its counter with it, which would read as negative GPU time.
-  const renderNs = Math.max(
-    0,
-    ub.gpuRenderNs + wb.gpuRenderNs - (ua.gpuRenderNs + wa.gpuRenderNs),
-  );
+  // Per DRM client (`proc.ts`): a client closed between the samples
+  // cannot cancel another's work.
+  const renderNs = gpuRenderDeltaNs(a, b);
   const mib = (k: number) => +(k / 1024).toFixed(1);
   return {
     seconds: +s.toFixed(1),

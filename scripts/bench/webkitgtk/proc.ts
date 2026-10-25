@@ -15,6 +15,9 @@ export interface ProcSample {
   cpuTicks: number;
   gpuResidentKiB: number;
   gpuRenderNs: number;
+  /** Render-engine time per DRM client (`drm-client-id`), for deltas
+   *  that a client closing between two samples cannot skew. */
+  gpuRenderByClient: Record<string, number>;
 }
 
 const CLK_TCK = 100;
@@ -78,18 +81,27 @@ function drmKiB(value: string): number {
 /** GPU memory resident for this process and its render-engine time.
  *  One client may appear on several fds (dup'd): `drm-client-id`
  *  dedupes them. */
-function gpu(pid: number): { residentKiB: number; renderNs: number } {
+function gpu(pid: number): {
+  residentKiB: number;
+  renderNs: number;
+  byClient: Record<string, number>;
+} {
   let fds: string[] = [];
   try {
     fds = readdirSync(`/proc/${pid}/fdinfo`);
   } catch {
-    return { residentKiB: 0, renderNs: 0 };
+    return { residentKiB: 0, renderNs: 0, byClient: {} };
   }
   const clients = new Map<string, { residentKiB: number; renderNs: number }>();
   for (const fd of fds) {
     const t = read(`/proc/${pid}/fdinfo/${fd}`);
     if (!t || !t.includes("drm-driver:")) continue;
-    const id = t.match(/^drm-client-id:\s+(\d+)/m)?.[1] ?? `fd${fd}`;
+    // A client id is unique per device (`drm-pdev`), so the device is
+    // part of the key. Without an id (an old kernel), the file stands
+    // for its client: per process, since fd numbers repeat across them.
+    const pdev = t.match(/^drm-pdev:\s+(\S+)/m)?.[1] ?? "";
+    const client = t.match(/^drm-client-id:\s+(\d+)/m)?.[1];
+    const id = client != null ? `${pdev}:${client}` : `${pid}:fd${fd}`;
     let residentKiB = 0;
     let renderNs = 0;
     for (const line of t.split("\n")) {
@@ -103,11 +115,13 @@ function gpu(pid: number): { residentKiB: number; renderNs: number } {
   }
   let residentKiB = 0;
   let renderNs = 0;
-  for (const c of clients.values()) {
+  const byClient: Record<string, number> = {};
+  for (const [id, c] of clients) {
     residentKiB += c.residentKiB;
     renderNs += c.renderNs;
+    byClient[id] = c.renderNs;
   }
-  return { residentKiB, renderNs };
+  return { residentKiB, renderNs, byClient };
 }
 
 export function sample(pid: number): ProcSample | null {
@@ -127,6 +141,7 @@ export function sample(pid: number): ProcSample | null {
     cpuTicks,
     gpuResidentKiB: g.residentKiB,
     gpuRenderNs: g.renderNs,
+    gpuRenderByClient: g.byClient,
   };
 }
 
@@ -179,6 +194,28 @@ export function byRole(s: TreeSample, root: number) {
     o.gpuRenderNs += p.gpuRenderNs;
   }
   return out;
+}
+
+/**
+ * Render-engine time the app's DRM clients spent between two samples:
+ * each client's own increase, summed. A client that closed in between
+ * takes its counter with it, and a difference of totals would let that
+ * loss cancel another client's work; a client opened in between counts
+ * from zero. A client shared by two processes is counted once.
+ */
+export function gpuRenderDeltaNs(a: TreeSample, b: TreeSample): number {
+  const merge = (s: TreeSample) => {
+    const m = new Map<string, number>();
+    for (const p of s.procs)
+      for (const [id, ns] of Object.entries(p.gpuRenderByClient))
+        m.set(id, Math.max(m.get(id) ?? 0, ns));
+    return m;
+  };
+  const before = merge(a);
+  let total = 0;
+  for (const [id, ns] of merge(b))
+    total += Math.max(0, ns - (before.get(id) ?? 0));
+  return total;
 }
 
 export const TICKS_PER_SECOND = CLK_TCK;
