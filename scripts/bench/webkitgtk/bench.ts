@@ -173,8 +173,12 @@ function cost(root: number, a: TreeSample, b: TreeSample): Cost {
     wb = rb.web ?? z;
   const gpuA = (ra.ui?.gpuResidentKiB ?? 0) + (ra.web?.gpuResidentKiB ?? 0);
   const gpuB = (rb.ui?.gpuResidentKiB ?? 0) + (rb.web?.gpuResidentKiB ?? 0);
-  const renderNs =
-    ub.gpuRenderNs + wb.gpuRenderNs - (ua.gpuRenderNs + wa.gpuRenderNs);
+  // Floored at zero: a DRM client closed between the two samples takes
+  // its counter with it, which would read as negative GPU time.
+  const renderNs = Math.max(
+    0,
+    ub.gpuRenderNs + wb.gpuRenderNs - (ua.gpuRenderNs + wa.gpuRenderNs),
+  );
   const mib = (k: number) => +(k / 1024).toFixed(1);
   return {
     seconds: +s.toFixed(1),
