@@ -71,6 +71,11 @@ export const SETTINGS_CATEGORIES = [
         searchKeys: [
           "settings.appearance.theme.title",
           "settings.appearance.theme.subtitle",
+          "settings.appearance.accent.title",
+          "settings.appearance.accent.subtitle",
+          "settings.appearance.accent.mode.theme",
+          "settings.appearance.accent.mode.custom",
+          "settings.appearance.accent.mode.cover",
         ],
       },
       {
@@ -122,6 +127,8 @@ export const SETTINGS_CATEGORIES = [
           "settings.windowChrome.options.system.hint",
           "settings.windowChrome.options.app.label",
           "settings.windowChrome.options.app.hint",
+          "settings.xwayland.title",
+          "settings.xwayland.subtitle",
         ],
       },
       {
@@ -135,6 +142,8 @@ export const SETTINGS_CATEGORIES = [
           "settings.immersiveView.mergedLyrics.subtitle",
           "settings.immersiveView.nativeFullscreen.title",
           "settings.immersiveView.nativeFullscreen.subtitle",
+          "settings.immersiveView.hideEmptyLyrics.title",
+          "settings.immersiveView.hideEmptyLyrics.subtitle",
           "settings.immersiveView.title",
           "settings.coverSlideshow.title",
           "settings.coverSlideshow.subtitle",

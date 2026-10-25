@@ -98,7 +98,9 @@ export function SettingsChoiceCards<T extends string | number>({
     if (busy) return;
     const target = order.find((i) => !choices[i].disabled);
     if (target === undefined) return;
-    onChange(choices[target].value);
+    // Home or End on the chosen card only moves the focus: a second
+    // change to the same value would re-run what applies it.
+    if (choices[target].value !== value) onChange(choices[target].value);
     refs.current[target]?.focus();
   };
 
