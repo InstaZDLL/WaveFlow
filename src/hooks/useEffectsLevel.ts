@@ -66,7 +66,9 @@ function settle() {
   window.setTimeout(() => {
     const probe = probeSoftwareGl();
     if (probe !== null) writeCachedProbe(probe);
-    softwareGl = probe ?? false;
+    // No answer (no WebGL, an unnamed renderer) proves nothing: the
+    // last answer stands.
+    softwareGl = probe ?? softwareGl;
     set(software || softwareGl);
   }, 1500);
 }
