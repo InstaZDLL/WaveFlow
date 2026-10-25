@@ -16,10 +16,11 @@ export class Inspector {
   private pending = new Map<number, Pending>();
   private ready!: Promise<void>;
 
-  /** The main window's page: `url` itself, or under it with a query the
-   *  native side adds for the first paint (`index.html?renderer=software`,
-   *  `?safe-mode=1`). The mini-player and the lyrics overlay carry their
-   *  own query and are not it. */
+  /** The main window's page: `url` itself or its `index.html`, with the
+   *  query the native side may add for the first paint
+   *  (`index.html?renderer=software`, `?safe-mode=1`). The splash screen
+   *  (`splash.html`) is another document; the mini-player and the lyrics
+   *  overlay carry their own query. None of them is it. */
   static async socketFor(
     host: string,
     url = "tauri://localhost",
@@ -29,11 +30,11 @@ export class Inspector {
     for (const row of rows) {
       const u = row.match(/class="targeturl">([^<]*)</)?.[1];
       const s = row.match(/(\/socket\/\d+\/\d+\/WebPage)/)?.[1];
+      if (!u || !s || !u.startsWith(url)) continue;
+      const rest = u.slice(url.length);
       if (
-        u &&
-        s &&
-        (u === url || u.startsWith(`${url}/`)) &&
-        !/[?&](mini|lyrics)=1/.test(u)
+        /^(\/(index\.html)?)?(\?.*)?$/.test(rest) &&
+        !/[?&](mini|lyrics)=1/.test(rest)
       )
         return `ws://${host}${s}`;
     }

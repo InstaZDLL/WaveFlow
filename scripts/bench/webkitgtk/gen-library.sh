@@ -51,7 +51,9 @@ for n in $(seq 1 "$ALBUMS"); do
   artist=$(printf 'Artist %02d' "$a")
   album=$(printf 'Album %03d' "$n")
   dir="$DEST/$artist/$album"
-  [ -f "$dir/02 Second $n.flac" ] && continue
+  # Reused only once every file of it was written: a run stopped halfway
+  # through an album rewrites that album.
+  [ -f "$dir/.complete" ] && continue
   mkdir -p "$dir"
   case $((n % 3)) in 0) kind=pale ;; 1) kind=dark ;; *) kind=vivid ;; esac
   cover "$dir/cover.jpg" "$n" "$kind"
@@ -70,5 +72,6 @@ for n in $(seq 1 "$ALBUMS"); do
       -metadata track="$t/2" "$file"
   done
   lrc "$dir/01 First $n.lrc" "First $n"
+  touch "$dir/.complete"
 done
 echo "library: $ALBUMS albums, $((ALBUMS * 2)) tracks, $ARTISTS artists in $DEST"
