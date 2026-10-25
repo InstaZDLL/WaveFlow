@@ -347,6 +347,323 @@ async fn cleanup_partial_profile(state: &AppState, profile_id: i64) {
         .await;
 }
 
+// ── preview ────────────────────────────────────────────────────────
+
+/// Prefix of the error a preview returns when the file is not a readable
+/// WaveFlow archive — not a zip, no manifest, no database, a database that
+/// fails its integrity check. Stable so the dialog can translate it instead
+/// of showing the technical message that follows.
+pub(crate) const ERR_UNREADABLE: &str = "archive: unreadable";
+
+/// What a `.waveflow` archive holds, read before anything is imported.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ArchivePreview {
+    pub profile_name: String,
+    /// The WaveFlow version that wrote the archive.
+    pub app_version: String,
+    pub exported_at: String,
+    pub archive_version: u32,
+    /// The newest migration recorded in the archive's database, `None` when
+    /// it records none (or was not read, see `contents`).
+    pub schema_version: Option<i64>,
+    /// The newest migration this build ships, to set `schema_version`
+    /// against.
+    pub local_schema_version: i64,
+    pub compatibility: ArchiveCompatibility,
+    /// `None` when the archive's layout is not one this build reads
+    /// (`compatibility` says which): its database is then left unopened.
+    pub contents: Option<ArchiveContents>,
+    pub artwork_files: u64,
+    pub metadata_artwork_files: u64,
+    pub size_bytes: u64,
+}
+
+/// Whether [`import_profile`] would take the archive, and if not, why.
+#[derive(Debug, Serialize, PartialEq, Eq)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum ArchiveCompatibility {
+    Compatible,
+    /// Written in an archive layout newer than this build knows.
+    NewerArchive,
+    /// Written in an archive layout this build no longer reads.
+    UnsupportedArchive,
+    /// Its database went through a migration this build does not have.
+    NewerSchema {
+        version: i64,
+    },
+    /// Its build applied other SQL under a migration this build has.
+    DifferentBuild {
+        version: i64,
+    },
+}
+
+/// Row counts of the archive's database. A table the archive's schema does
+/// not have yet counts as empty.
+#[derive(Debug, Default, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ArchiveContents {
+    pub tracks: i64,
+    pub playlists: i64,
+    pub smart_playlists: i64,
+    pub liked_tracks: i64,
+    pub plays: i64,
+    pub library_folders: i64,
+    pub settings: i64,
+}
+
+/// Read a `.waveflow` archive without importing it: its manifest, the
+/// number of things its database holds, and whether this build would
+/// import it.
+///
+/// Read-only. The database is copied to a scratch file in the system's
+/// temporary directory — SQLite cannot read it inside the zip — opened
+/// read-only, and deleted on the way out; no profile is created and
+/// nothing in the app's data directory is touched.
+#[tauri::command]
+pub async fn preview_profile_archive(source_path: String) -> AppResult<ArchivePreview> {
+    preview_archive(Path::new(&source_path))
+        .await
+        .inspect_err(|e| tracing::warn!(error = %e, "profile archive preview failed"))
+}
+
+async fn preview_archive(source: &Path) -> AppResult<ArchivePreview> {
+    let scratch = ScratchFile::new("db");
+    let inventory = tokio::task::spawn_blocking({
+        let source = source.to_path_buf();
+        let db = scratch.path.clone();
+        move || inspect_archive(&source, &db)
+    })
+    .await
+    .map_err(|e| AppError::Other(format!("preview inspect join: {e}")))??;
+    let manifest = inventory.manifest;
+
+    let migrator = sqlx::migrate!("../../migrations/profile");
+    let local_schema_version = migrator.iter().map(|m| m.version).max().unwrap_or(0);
+
+    let layout = match manifest.archive_version {
+        ARCHIVE_VERSION => None,
+        newer if newer > ARCHIVE_VERSION => Some(ArchiveCompatibility::NewerArchive),
+        _ => Some(ArchiveCompatibility::UnsupportedArchive),
+    };
+    let (compatibility, contents, schema_version) = match layout {
+        Some(refusal) => (refusal, None, None),
+        None => {
+            let read = read_archive_db(&scratch.path).await?;
+            let compatibility = match judge_migrations(&migrator, &read.migrations) {
+                MigrationVerdict::Compatible { .. } => ArchiveCompatibility::Compatible,
+                MigrationVerdict::NewerBuild { version } => {
+                    ArchiveCompatibility::NewerSchema { version }
+                }
+                MigrationVerdict::DifferentSql { version, .. } => {
+                    ArchiveCompatibility::DifferentBuild { version }
+                }
+            };
+            let schema_version = read.migrations.iter().map(|(v, _)| *v).max();
+            (compatibility, Some(read.contents), schema_version)
+        }
+    };
+
+    Ok(ArchivePreview {
+        profile_name: manifest.profile_name,
+        app_version: manifest.app_version,
+        exported_at: manifest.exported_at,
+        archive_version: manifest.archive_version,
+        schema_version,
+        local_schema_version,
+        compatibility,
+        contents,
+        artwork_files: inventory.artwork_files,
+        metadata_artwork_files: inventory.metadata_artwork_files,
+        size_bytes: inventory.size_bytes,
+    })
+}
+
+fn unreadable(detail: impl std::fmt::Display) -> AppError {
+    AppError::Other(format!("{ERR_UNREADABLE}: {detail}"))
+}
+
+/// A file in the system's temporary directory that is removed when this
+/// goes out of scope, whichever way the preview ends.
+struct ScratchFile {
+    path: PathBuf,
+}
+
+impl ScratchFile {
+    fn new(extension: &str) -> Self {
+        let name = format!("waveflow-preview-{}.{extension}", uuid::Uuid::new_v4());
+        Self {
+            path: std::env::temp_dir().join(name),
+        }
+    }
+}
+
+impl Drop for ScratchFile {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_file(&self.path);
+    }
+}
+
+/// What the zip itself says, before its database is opened.
+struct ArchiveInventory {
+    manifest: ArchiveManifest,
+    artwork_files: u64,
+    metadata_artwork_files: u64,
+    size_bytes: u64,
+}
+
+/// Read the manifest, count the artwork entries and copy `data.db` to
+/// `db_out`. Any of those failing is the archive being unreadable.
+fn inspect_archive(source: &Path, db_out: &Path) -> AppResult<ArchiveInventory> {
+    let file = File::open(source)?;
+    let size_bytes = file.metadata()?.len();
+    let mut archive = ZipArchive::new(file).map_err(|e| unreadable(format!("not a zip: {e}")))?;
+
+    let manifest: ArchiveManifest = {
+        let mut entry = archive
+            .by_name(MANIFEST_FILENAME)
+            .map_err(|e| unreadable(format!("no manifest.json: {e}")))?;
+        let mut buf = String::new();
+        entry
+            .read_to_string(&mut buf)
+            .map_err(|e| unreadable(format!("read manifest: {e}")))?;
+        serde_json::from_str(&buf).map_err(|e| unreadable(format!("decode manifest: {e}")))?
+    };
+
+    let mut artwork_files = 0;
+    let mut metadata_artwork_files = 0;
+    let mut has_db = false;
+    for i in 0..archive.len() {
+        let mut entry = archive
+            .by_index(i)
+            .map_err(|e| unreadable(format!("entry {i}: {e}")))?;
+        if entry.is_dir() {
+            continue;
+        }
+        let name = entry
+            .name()
+            .map_err(|e| unreadable(format!("entry {i}: {e}")))?
+            .replace('\\', "/");
+        if name.starts_with("artwork/") {
+            artwork_files += 1;
+        } else if name.starts_with("metadata_artwork/") {
+            metadata_artwork_files += 1;
+        } else if name == "data.db" {
+            let mut out = File::create(db_out)?;
+            std::io::copy(&mut entry, &mut out).map_err(|e| unreadable(format!("data.db: {e}")))?;
+            has_db = true;
+        }
+    }
+    if !has_db {
+        return Err(unreadable("no data.db"));
+    }
+    Ok(ArchiveInventory {
+        manifest,
+        artwork_files,
+        metadata_artwork_files,
+        size_bytes,
+    })
+}
+
+/// The archive's database, as far as a preview needs it.
+struct ArchiveDb {
+    contents: ArchiveContents,
+    migrations: Vec<(i64, Vec<u8>)>,
+}
+
+/// Open the copied database read-only, check it, and count what it holds.
+async fn read_archive_db(path: &Path) -> AppResult<ArchiveDb> {
+    let mut conn = SqliteConnectOptions::new()
+        .filename(path)
+        .create_if_missing(false)
+        .read_only(true)
+        .disable_statement_logging()
+        .connect()
+        .await
+        .map_err(|e| unreadable(format!("open data.db: {e}")))?;
+    let read = read_archive_db_on(&mut conn).await;
+    // Closed before the scratch file is removed: Windows keeps an open file.
+    let _ = conn.close().await;
+    read
+}
+
+async fn read_archive_db_on(conn: &mut sqlx::SqliteConnection) -> AppResult<ArchiveDb> {
+    // A file that is not a database, or one cut short, fails here rather
+    // than producing counts from whatever pages survived.
+    let check: String = sqlx::query_scalar("PRAGMA quick_check(1)")
+        .fetch_one(&mut *conn)
+        .await
+        .map_err(|e| unreadable(format!("data.db: {e}")))?;
+    if check != "ok" {
+        return Err(unreadable(format!(
+            "data.db fails its integrity check: {check}"
+        )));
+    }
+
+    let tables: Vec<String> =
+        sqlx::query_scalar("SELECT name FROM sqlite_master WHERE type = 'table'")
+            .fetch_all(&mut *conn)
+            .await
+            .map_err(|e| unreadable(format!("data.db: {e}")))?;
+    let has = |table: &str| tables.iter().any(|t| t == table);
+
+    let mut contents = ArchiveContents::default();
+    for (table, query, slot) in [
+        ("track", "SELECT count(*) FROM track", &mut contents.tracks),
+        (
+            "playlist",
+            "SELECT count(*) FROM playlist WHERE is_smart = 0",
+            &mut contents.playlists,
+        ),
+        (
+            "playlist",
+            "SELECT count(*) FROM playlist WHERE is_smart <> 0",
+            &mut contents.smart_playlists,
+        ),
+        (
+            "liked_track",
+            "SELECT count(*) FROM liked_track",
+            &mut contents.liked_tracks,
+        ),
+        (
+            "play_event",
+            "SELECT count(*) FROM play_event",
+            &mut contents.plays,
+        ),
+        (
+            "library_folder",
+            "SELECT count(*) FROM library_folder",
+            &mut contents.library_folders,
+        ),
+        (
+            "profile_setting",
+            "SELECT count(*) FROM profile_setting",
+            &mut contents.settings,
+        ),
+    ] {
+        if !has(table) {
+            continue;
+        }
+        *slot = sqlx::query_scalar(query)
+            .fetch_one(&mut *conn)
+            .await
+            .map_err(|e| unreadable(format!("count {table}: {e}")))?;
+    }
+
+    let migrations = if has("_sqlx_migrations") {
+        sqlx::query_as("SELECT version, checksum FROM _sqlx_migrations")
+            .fetch_all(&mut *conn)
+            .await
+            .map_err(|e| unreadable(format!("data.db migrations: {e}")))?
+    } else {
+        Vec::new()
+    };
+    Ok(ArchiveDb {
+        contents,
+        migrations,
+    })
+}
+
 // ── zip plumbing ────────────────────────────────────────────────────
 
 // `metadata_artwork_dir`: when `Some`, the shared Deezer artwork cache
@@ -591,37 +908,30 @@ async fn normalise_migration_checksums(db_path: &Path) -> AppResult<()> {
             .fetch_all(&mut conn)
             .await?;
 
-    let mut drifted = Vec::new();
-    let mut refusal = None;
-    for (version, stored_checksum) in stored {
-        let local = migrator.iter().find(|m| m.version == version);
-        let Some(local) = local else {
-            refusal = Some(format!(
-                "archive contains migration {version} not present in this build — \
-                 export was produced by a newer WaveFlow version"
-            ));
-            break;
-        };
-        if local.checksum.as_ref() == stored_checksum.as_slice() {
-            continue;
-        }
-        if !crate::db::migration_heal::is_line_ending_drift(local.sql.as_str(), &stored_checksum) {
-            refusal = Some(format!(
-                "archive was not imported: its migration {version} ({}) was applied with \
-                 different SQL than the one this build ships — export was produced by a \
-                 different WaveFlow build",
-                local.description
-            ));
-            break;
-        }
-        drifted.push((version, local.checksum.as_ref()));
-    }
+    let verdict = judge_migrations(&migrator, &stored);
     // Closed before the caller removes the extracted profile: on Windows
     // an open `data.db` would keep its folder from going.
-    if let Some(refusal) = refusal {
-        conn.close().await?;
-        return Err(AppError::Other(refusal));
-    }
+    let drifted = match verdict {
+        MigrationVerdict::Compatible { drifted } => drifted,
+        MigrationVerdict::NewerBuild { version } => {
+            conn.close().await?;
+            return Err(AppError::Other(format!(
+                "archive contains migration {version} not present in this build — \
+                 export was produced by a newer WaveFlow version"
+            )));
+        }
+        MigrationVerdict::DifferentSql {
+            version,
+            description,
+        } => {
+            conn.close().await?;
+            return Err(AppError::Other(format!(
+                "archive was not imported: its migration {version} ({description}) was applied \
+                 with different SQL than the one this build ships — export was produced by a \
+                 different WaveFlow build"
+            )));
+        }
+    };
     for (version, checksum) in drifted {
         sqlx::query("UPDATE _sqlx_migrations SET checksum = ? WHERE version = ?")
             .bind(checksum)
@@ -632,6 +942,45 @@ async fn normalise_migration_checksums(db_path: &Path) -> AppResult<()> {
 
     conn.close().await?;
     Ok(())
+}
+
+/// What this build makes of the migrations an archive's `data.db` records.
+///
+/// One judgement for the import and its preview, so the preview never
+/// promises an import the import then refuses.
+enum MigrationVerdict {
+    /// Every recorded migration is one this build ships, with the same SQL.
+    /// `drifted` lists the ones recorded under a CRLF checkout of that SQL,
+    /// with the checksum the import rewrites them to.
+    Compatible { drifted: Vec<(i64, Vec<u8>)> },
+    /// The archive's build applied a migration this one does not have.
+    NewerBuild { version: i64 },
+    /// Both have the migration, but the archive's build applied other SQL
+    /// under it (one amended before a release, a fork).
+    DifferentSql { version: i64, description: String },
+}
+
+fn judge_migrations(
+    migrator: &sqlx::migrate::Migrator,
+    stored: &[(i64, Vec<u8>)],
+) -> MigrationVerdict {
+    let mut drifted = Vec::new();
+    for (version, stored_checksum) in stored {
+        let Some(local) = migrator.iter().find(|m| m.version == *version) else {
+            return MigrationVerdict::NewerBuild { version: *version };
+        };
+        if local.checksum.as_ref() == stored_checksum.as_slice() {
+            continue;
+        }
+        if !crate::db::migration_heal::is_line_ending_drift(local.sql.as_str(), stored_checksum) {
+            return MigrationVerdict::DifferentSql {
+                version: *version,
+                description: local.description.to_string(),
+            };
+        }
+        drifted.push((*version, local.checksum.to_vec()));
+    }
+    MigrationVerdict::Compatible { drifted }
 }
 
 /// Force a full WAL checkpoint so the archive captures every committed
@@ -757,5 +1106,220 @@ mod tests {
             stored(&path, drifted.version).await,
             sha384(crlf.as_bytes())
         );
+    }
+
+    // ── preview ────────────────────────────────────────────────────
+
+    async fn exec(path: &Path, sql: &'static str) {
+        let mut conn = SqliteConnectOptions::new()
+            .filename(path)
+            .connect()
+            .await
+            .unwrap();
+        sqlx::raw_sql(sql).execute(&mut conn).await.unwrap();
+        conn.close().await.unwrap();
+    }
+
+    async fn count(path: &Path, sql: &'static str) -> i64 {
+        let mut conn = SqliteConnectOptions::new()
+            .filename(path)
+            .connect()
+            .await
+            .unwrap();
+        let n = sqlx::query_scalar(sql).fetch_one(&mut conn).await.unwrap();
+        conn.close().await.unwrap();
+        n
+    }
+
+    fn manifest(archive_version: u32) -> ArchiveManifest {
+        ArchiveManifest {
+            archive_version,
+            app_version: "9.9.9".into(),
+            profile_name: "Weekend".into(),
+            source_profile_id: 3,
+            exported_at: "2026-10-25T12:00:00+00:00".into(),
+        }
+    }
+
+    /// A profile directory with a migrated `data.db` holding two playlists,
+    /// one smart playlist and one cover, archived the way an export does.
+    async fn profile_archive(dir: &Path, archive_version: u32) -> (PathBuf, PathBuf) {
+        let profile = dir.join("profile");
+        std::fs::create_dir_all(profile.join("artwork")).unwrap();
+        std::fs::write(profile.join("artwork").join("cover.jpg"), b"jpeg").unwrap();
+        let db = extracted(&profile).await;
+        exec(
+            &db,
+            "INSERT INTO playlist (name, is_smart, created_at, updated_at) VALUES
+                ('A', 0, 1, 1), ('B', 0, 1, 1), ('Smart', 1, 1, 1);",
+        )
+        .await;
+        let target = dir.join("weekend.waveflow");
+        write_archive(
+            &target,
+            &profile,
+            &db,
+            &profile.join("artwork"),
+            None,
+            &manifest(archive_version),
+        )
+        .unwrap();
+        (target, db)
+    }
+
+    #[tokio::test]
+    async fn a_preview_says_what_an_archive_holds() {
+        let dir = tempfile::tempdir().unwrap();
+        let (archive, db) = profile_archive(dir.path(), ARCHIVE_VERSION).await;
+
+        let preview = preview_archive(&archive).await.unwrap();
+        assert_eq!(preview.compatibility, ArchiveCompatibility::Compatible);
+        assert_eq!(preview.profile_name, "Weekend");
+        assert_eq!(preview.app_version, "9.9.9");
+        assert_eq!(preview.artwork_files, 1);
+        assert_eq!(preview.metadata_artwork_files, 0);
+        assert_eq!(preview.schema_version, Some(preview.local_schema_version));
+        assert!(preview.size_bytes > 0);
+        let contents = preview.contents.unwrap();
+        assert_eq!(contents.playlists, 2);
+        assert_eq!(contents.smart_playlists, 1);
+        assert_eq!(contents.tracks, 0);
+        assert_eq!(
+            contents.settings,
+            count(&db, "SELECT count(*) FROM profile_setting").await
+        );
+    }
+
+    /// The preview refuses what the import refuses, for the same reason.
+    #[tokio::test]
+    async fn a_preview_flags_an_archive_from_a_newer_build() {
+        let dir = tempfile::tempdir().unwrap();
+        let profile = dir.path().join("profile");
+        std::fs::create_dir_all(&profile).unwrap();
+        let db = extracted(&profile).await;
+        exec(
+            &db,
+            "INSERT INTO _sqlx_migrations
+                (version, description, installed_on, success, checksum, execution_time)
+             VALUES (99991231235959, 'from the future', '2099-01-01', 1, x'00', 0);",
+        )
+        .await;
+        let archive = dir.path().join("future.waveflow");
+        write_archive(
+            &archive,
+            &profile,
+            &db,
+            &profile.join("artwork"),
+            None,
+            &manifest(ARCHIVE_VERSION),
+        )
+        .unwrap();
+
+        let preview = preview_archive(&archive).await.unwrap();
+        assert_eq!(
+            preview.compatibility,
+            ArchiveCompatibility::NewerSchema {
+                version: 99991231235959
+            }
+        );
+        assert_eq!(preview.schema_version, Some(99991231235959));
+        assert!(preview.contents.is_some(), "the counts are still shown");
+    }
+
+    #[tokio::test]
+    async fn a_preview_flags_an_archive_from_a_different_build() {
+        let dir = tempfile::tempdir().unwrap();
+        let profile = dir.path().join("profile");
+        std::fs::create_dir_all(&profile).unwrap();
+        let db = extracted(&profile).await;
+        let migrator = sqlx::migrate!("../../migrations/profile");
+        let changed = migrator.iter().nth(1).unwrap();
+        forge(&db, changed.version, &sha384(b"other sql")).await;
+        let archive = dir.path().join("fork.waveflow");
+        write_archive(
+            &archive,
+            &profile,
+            &db,
+            &profile.join("artwork"),
+            None,
+            &manifest(ARCHIVE_VERSION),
+        )
+        .unwrap();
+
+        let preview = preview_archive(&archive).await.unwrap();
+        assert_eq!(
+            preview.compatibility,
+            ArchiveCompatibility::DifferentBuild {
+                version: changed.version
+            }
+        );
+        // And the import, handed the same database, refuses it too.
+        assert!(normalise_migration_checksums(&db).await.is_err());
+    }
+
+    #[tokio::test]
+    async fn a_preview_does_not_open_a_newer_archive_layout() {
+        let dir = tempfile::tempdir().unwrap();
+        let (archive, _) = profile_archive(dir.path(), ARCHIVE_VERSION + 1).await;
+        let preview = preview_archive(&archive).await.unwrap();
+        assert_eq!(preview.compatibility, ArchiveCompatibility::NewerArchive);
+        assert!(preview.contents.is_none());
+        assert_eq!(preview.profile_name, "Weekend");
+    }
+
+    fn assert_unreadable(result: AppResult<ArchivePreview>) {
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains(ERR_UNREADABLE), "{err}");
+    }
+
+    #[tokio::test]
+    async fn a_file_that_is_not_an_archive_is_unreadable() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("photo.waveflow");
+        std::fs::write(&path, b"\xff\xd8\xff not a zip at all").unwrap();
+        assert_unreadable(preview_archive(&path).await);
+    }
+
+    #[tokio::test]
+    async fn a_truncated_archive_is_unreadable() {
+        let dir = tempfile::tempdir().unwrap();
+        let (archive, _) = profile_archive(dir.path(), ARCHIVE_VERSION).await;
+        let bytes = std::fs::read(&archive).unwrap();
+        std::fs::write(&archive, &bytes[..bytes.len() / 2]).unwrap();
+        assert_unreadable(preview_archive(&archive).await);
+    }
+
+    #[tokio::test]
+    async fn an_archive_whose_database_is_damaged_is_unreadable() {
+        let dir = tempfile::tempdir().unwrap();
+        let profile = dir.path().join("profile");
+        std::fs::create_dir_all(&profile).unwrap();
+        let db = extracted(&profile).await;
+        // Keep the header, so SQLite opens it, and break the pages after it.
+        let mut bytes = std::fs::read(&db).unwrap();
+        for byte in bytes.iter_mut().skip(100) {
+            *byte = 0xA5;
+        }
+        std::fs::write(&db, &bytes).unwrap();
+        let archive = dir.path().join("damaged.waveflow");
+        write_archive(
+            &archive,
+            &profile,
+            &db,
+            &profile.join("artwork"),
+            None,
+            &manifest(ARCHIVE_VERSION),
+        )
+        .unwrap();
+        assert_unreadable(preview_archive(&archive).await);
+    }
+
+    #[test]
+    fn a_scratch_file_is_removed_when_dropped() {
+        let scratch = ScratchFile::new("db");
+        std::fs::write(&scratch.path, b"x").unwrap();
+        let path = scratch.path.clone();
+        drop(scratch);
+        assert!(!path.exists());
     }
 }

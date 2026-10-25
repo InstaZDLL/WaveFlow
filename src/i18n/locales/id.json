@@ -2104,6 +2104,34 @@
         "done": "Profil diimpor sebagai “{{name}}”. Beralih ke sana dari pemilih profil.",
         "busy": "Mengimpor… Pustaka besar bisa memakan waktu beberapa menit.",
         "failed": "Impor gagal. Berkas mungkin rusak atau tidak kompatibel."
+      },
+      "preview": {
+        "title": "Impor “{{name}}”?",
+        "titleUnknown": "Impor profil",
+        "origin": "Diekspor pada {{date}} dengan WaveFlow {{version}}.",
+        "loading": "Membaca arsip…",
+        "unreadable": "File ini tidak dapat dibaca: rusak atau bukan arsip profil WaveFlow.",
+        "failed": "Arsip tidak dapat dibaca. Lihat log untuk detailnya.",
+        "newer": "Arsip ini berasal dari versi WaveFlow yang lebih baru. Perbarui WaveFlow untuk mengimpornya.",
+        "differentBuild": "Arsip ini berasal dari versi WaveFlow lain yang basis datanya berbeda dari versi ini: tidak dapat diimpor.",
+        "unsupported": "Format arsip ini tidak lagi didukung.",
+        "schema": "Versi basis data: {{archive}} (aplikasi ini: {{local}}).",
+        "schemaUnknown": "Versi basis data tidak diketahui (aplikasi ini: {{local}}).",
+        "asNewProfile": "Arsip diimpor sebagai profil baru: profil Anda yang ada tidak diubah.",
+        "cancel": "Batal",
+        "import": "Impor",
+        "rows": {
+          "tracks": "Lagu",
+          "playlists": "Playlist",
+          "smartPlaylists": "Playlist pintar",
+          "likedTracks": "Lagu yang disukai",
+          "plays": "Pemutaran",
+          "libraryFolders": "Folder pustaka",
+          "settings": "Pengaturan",
+          "covers": "Sampul kustom",
+          "coverCache": "Sampul dalam cache",
+          "size": "Ukuran"
+        }
       }
     },
     "clipsInLibrary": {

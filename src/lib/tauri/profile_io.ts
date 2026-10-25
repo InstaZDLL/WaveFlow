@@ -36,3 +36,55 @@ export function importProfile(
     name: name ?? null,
   });
 }
+
+/** Mirrors `profile_io::ArchiveCompatibility`: whether `importProfile`
+ * would take the archive, and if not, why. */
+export type ArchiveCompatibility =
+  | { kind: "compatible" }
+  | { kind: "newerArchive" }
+  | { kind: "unsupportedArchive" }
+  | { kind: "newerSchema"; version: number }
+  | { kind: "differentBuild"; version: number };
+
+/** Row counts of the archive's database. */
+export interface ArchiveContents {
+  tracks: number;
+  playlists: number;
+  smartPlaylists: number;
+  likedTracks: number;
+  plays: number;
+  libraryFolders: number;
+  settings: number;
+}
+
+/** Mirrors `profile_io::ArchivePreview`. */
+export interface ArchivePreview {
+  profileName: string;
+  appVersion: string;
+  /** RFC 3339. */
+  exportedAt: string;
+  archiveVersion: number;
+  schemaVersion: number | null;
+  localSchemaVersion: number;
+  compatibility: ArchiveCompatibility;
+  /** `null` when the archive's layout is one this build does not read. */
+  contents: ArchiveContents | null;
+  artworkFiles: number;
+  metadataArtworkFiles: number;
+  sizeBytes: number;
+}
+
+/** Prefix of the error a preview throws for a file that is not a readable
+ * archive (not a zip, no manifest or database, a damaged database). */
+export const ARCHIVE_UNREADABLE = "archive: unreadable";
+
+/**
+ * Read what a `.waveflow` archive holds without importing it. Read-only:
+ * nothing is created or changed. Throws `ARCHIVE_UNREADABLE…` for a file
+ * that is not a readable archive.
+ */
+export function previewProfileArchive(
+  sourcePath: string,
+): Promise<ArchivePreview> {
+  return invoke<ArchivePreview>("preview_profile_archive", { sourcePath });
+}

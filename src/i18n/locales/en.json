@@ -2106,6 +2106,34 @@
         "done": "Profile imported as “{{name}}”. Switch to it from the profile selector.",
         "busy": "Importing… A large library can take a few minutes.",
         "failed": "Import failed. The file may be corrupt or incompatible."
+      },
+      "preview": {
+        "title": "Import “{{name}}”?",
+        "titleUnknown": "Import a profile",
+        "origin": "Exported on {{date}} with WaveFlow {{version}}.",
+        "loading": "Reading the archive…",
+        "unreadable": "This file can't be read: it's damaged or isn't a WaveFlow profile archive.",
+        "failed": "The archive couldn't be read. See the logs for details.",
+        "newer": "This archive comes from a newer version of WaveFlow. Update WaveFlow to import it.",
+        "differentBuild": "This archive comes from another version of WaveFlow whose database differs from this one: it can't be imported.",
+        "unsupported": "This archive's format is no longer supported.",
+        "schema": "Database version: {{archive}} (this app: {{local}}).",
+        "schemaUnknown": "Database version unknown (this app: {{local}}).",
+        "asNewProfile": "It's imported as a new profile: your current profiles are left as they are.",
+        "cancel": "Cancel",
+        "import": "Import",
+        "rows": {
+          "tracks": "Tracks",
+          "playlists": "Playlists",
+          "smartPlaylists": "Smart playlists",
+          "likedTracks": "Liked tracks",
+          "plays": "Plays",
+          "libraryFolders": "Library folders",
+          "settings": "Settings",
+          "covers": "Custom covers",
+          "coverCache": "Cached covers",
+          "size": "Size"
+        }
       }
     },
     "clipsInLibrary": {

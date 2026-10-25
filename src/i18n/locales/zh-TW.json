@@ -2364,6 +2364,34 @@
         "done": "個人檔案已匯入為「{{name}}」。請從個人檔案選單切換到它。",
         "busy": "正在匯入… 音樂庫較大時可能需要幾分鐘。",
         "failed": "匯入失敗。檔案可能損毀或不相容。"
+      },
+      "preview": {
+        "title": "匯入「{{name}}」？",
+        "titleUnknown": "匯入設定檔",
+        "origin": "於 {{date}} 使用 WaveFlow {{version}} 匯出。",
+        "loading": "正在讀取封存檔…",
+        "unreadable": "無法讀取此檔案：檔案已損毀，或不是 WaveFlow 設定檔封存檔。",
+        "failed": "無法讀取封存檔。詳情請查看記錄。",
+        "newer": "此封存檔來自較新版本的 WaveFlow。請更新 WaveFlow 後再匯入。",
+        "differentBuild": "此封存檔來自另一個版本的 WaveFlow，其資料庫與目前版本不同，無法匯入。",
+        "unsupported": "已不再支援此封存檔的格式。",
+        "schema": "資料庫版本：{{archive}}（本應用程式：{{local}}）。",
+        "schemaUnknown": "資料庫版本不明（本應用程式：{{local}}）。",
+        "asNewProfile": "將以新的設定檔匯入：現有設定檔維持不變。",
+        "cancel": "取消",
+        "import": "匯入",
+        "rows": {
+          "tracks": "曲目",
+          "playlists": "播放清單",
+          "smartPlaylists": "智慧播放清單",
+          "likedTracks": "喜愛的曲目",
+          "plays": "播放次數",
+          "libraryFolders": "資料庫資料夾",
+          "settings": "設定",
+          "covers": "自訂封面",
+          "coverCache": "快取的封面",
+          "size": "大小"
+        }
       }
     },
     "visualizer": {
