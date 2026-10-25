@@ -146,6 +146,7 @@ import {
   type MpdConfig,
   type MpdStatus,
 } from "../../lib/tauri/mpd";
+import { generatePassword } from "../../lib/password";
 import { listen } from "@tauri-apps/api/event";
 import { useLibrary } from "../../hooks/useLibrary";
 import { useTasks } from "../../hooks/useTasks";
@@ -1537,6 +1538,20 @@ function SettingsViewContent({
   // disabled and the user can't edit placeholder defaults before the real
   // config arrives (a failed load still unlocks them, on the defaults).
   const [mpdHydrated, setMpdHydrated] = useState(false);
+  // The password field shows its text once asked to, or once a generated
+  // password was put in it: the user has to read it to type it into their
+  // client.
+  const [mpdPasswordVisible, setMpdPasswordVisible] = useState(false);
+  // "Not now" on the suggestion to set a password. Session-only, and
+  // cleared by the next switch-on: the suggestion is made on activation.
+  const [mpdSuggestDismissed, setMpdSuggestDismissed] = useState(false);
+  // A generated password that was saved, so the card can say where it
+  // goes. Cleared by any later edit of the field.
+  const [mpdPasswordGenerated, setMpdPasswordGenerated] = useState(false);
+  // The last save was refused: the card says so instead of leaving the
+  // rolled-back value to speak for itself.
+  const [mpdSaveFailed, setMpdSaveFailed] = useState(false);
+  const mpdPasswordInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     getDiscordRpcEnabled()
@@ -1636,23 +1651,47 @@ function SettingsViewContent({
     const run = mpdWriteChainRef.current.then(async () => {
       try {
         const status = await mpdSetConfig(next);
-        if (seq !== mpdWriteSeqRef.current) return;
+        if (seq !== mpdWriteSeqRef.current) return false;
         mpdConfirmedRef.current = next;
         setMpdStatus(status);
+        setMpdSaveFailed(false);
+        return true;
       } catch (err) {
+        // The error is the backend's; the config — password included — is
+        // never logged.
         console.error("[SettingsView] mpd set", err);
-        if (seq !== mpdWriteSeqRef.current) return;
+        if (seq !== mpdWriteSeqRef.current) return false;
         // Restore the last backend-confirmed config so a failed set doesn't
         // leave the optimistic value displayed as if it took.
         if (mpdConfirmedRef.current) setMpdConfig(mpdConfirmedRef.current);
+        setMpdSaveFailed(true);
+        return false;
       }
     });
-    mpdWriteChainRef.current = run.catch(() => undefined);
-    await run;
+    mpdWriteChainRef.current = run.then(
+      () => undefined,
+      () => undefined,
+    );
+    return run;
   }, []);
 
   const handleToggleMpd = useCallback(() => {
+    // Switching on is when the server starts answering the whole network,
+    // so that is when a missing password is pointed out again.
+    if (!mpdConfig.enabled) setMpdSuggestDismissed(false);
     persistMpd({ ...mpdConfig, enabled: !mpdConfig.enabled });
+  }, [mpdConfig, persistMpd]);
+
+  // Saved first, through the same path as a typed password: shown and
+  // announced only once the backend confirmed it, rolled back otherwise.
+  const handleGenerateMpdPassword = useCallback(async () => {
+    const saved = await persistMpd({
+      ...mpdConfig,
+      password: generatePassword(),
+    });
+    if (!saved) return;
+    setMpdPasswordVisible(true);
+    setMpdPasswordGenerated(true);
   }, [mpdConfig, persistMpd]);
 
   const handleMpdCopyAddress = useCallback(() => {
@@ -3899,6 +3938,63 @@ function SettingsViewContent({
                               : t("settings.integrations.mpd.lanWarning")}
                           </div>
 
+                          {/* No password on a server that answers the whole
+                          network: offer one right where it is turned on,
+                          generated or typed. Gated on the hydrated config so
+                          it never flashes over a password still loading. */}
+                          {mpdHydrated &&
+                            !mpdConfig.password &&
+                            !mpdSuggestDismissed && (
+                              <div
+                                role="group"
+                                aria-labelledby="mpd-suggest-title"
+                                className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 space-y-2"
+                              >
+                                <div
+                                  id="mpd-suggest-title"
+                                  className="text-xs font-medium text-zinc-900 dark:text-white"
+                                >
+                                  {t("settings.integrations.mpd.suggestTitle")}
+                                </div>
+                                <div className="text-xs settings-description">
+                                  {t("settings.integrations.mpd.suggestBody")}
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      void handleGenerateMpdPassword()
+                                    }
+                                    className="px-3 py-1 text-xs rounded-lg bg-emerald-500 text-white hover:bg-emerald-600"
+                                  >
+                                    {t(
+                                      "settings.integrations.mpd.suggestGenerate",
+                                    )}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      mpdPasswordInputRef.current?.focus()
+                                    }
+                                    className="px-3 py-1 text-xs rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                                  >
+                                    {t(
+                                      "settings.integrations.mpd.suggestChoose",
+                                    )}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setMpdSuggestDismissed(true)}
+                                    className="px-3 py-1 text-xs rounded-lg text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
+                                  >
+                                    {t(
+                                      "settings.integrations.mpd.suggestDismiss",
+                                    )}
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+
                           <div className="flex items-center space-x-2">
                             <label
                               htmlFor="mpd-port"
@@ -3955,27 +4051,55 @@ function SettingsViewContent({
                             >
                               {t("settings.integrations.mpd.password")}
                             </label>
-                            <input
-                              id="mpd-password"
-                              type="password"
-                              autoComplete="new-password"
-                              disabled={!mpdHydrated}
-                              value={mpdConfig.password}
-                              placeholder={t(
-                                "settings.integrations.mpd.passwordPlaceholder",
-                              )}
-                              onChange={(e) =>
-                                setMpdConfig({
-                                  ...mpdConfig,
-                                  password: e.target.value,
-                                })
-                              }
-                              onBlur={() => persistMpd(mpdConfig)}
-                              className="flex-1 min-w-0 px-2 py-1 text-xs rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-transparent focus:border-emerald-500 focus:outline-none text-zinc-900 dark:text-white"
-                            />
+                            <div className="relative flex-1 min-w-0">
+                              <input
+                                id="mpd-password"
+                                ref={mpdPasswordInputRef}
+                                type={mpdPasswordVisible ? "text" : "password"}
+                                autoComplete="new-password"
+                                spellCheck={false}
+                                disabled={!mpdHydrated}
+                                value={mpdConfig.password}
+                                placeholder={t(
+                                  "settings.integrations.mpd.passwordPlaceholder",
+                                )}
+                                onChange={(e) => {
+                                  setMpdPasswordGenerated(false);
+                                  setMpdConfig({
+                                    ...mpdConfig,
+                                    password: e.target.value,
+                                  });
+                                }}
+                                onBlur={() => persistMpd(mpdConfig)}
+                                className="w-full pl-2 pr-8 py-1 text-xs rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-transparent focus:border-emerald-500 focus:outline-none text-zinc-900 dark:text-white"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setMpdPasswordVisible((v) => !v)}
+                                aria-label={
+                                  mpdPasswordVisible
+                                    ? t(
+                                        "settings.integrations.mpd.hidePassword",
+                                      )
+                                    : t(
+                                        "settings.integrations.mpd.showPassword",
+                                      )
+                                }
+                                aria-pressed={mpdPasswordVisible}
+                                className="absolute inset-y-0 right-0 px-2 flex items-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+                              >
+                                {mpdPasswordVisible ? (
+                                  <EyeOff size={14} />
+                                ) : (
+                                  <Eye size={14} />
+                                )}
+                              </button>
+                            </div>
                           </div>
                           <div className="text-xs settings-description">
-                            {t("settings.integrations.mpd.passwordHint")}
+                            {mpdPasswordGenerated && mpdConfig.password
+                              ? t("settings.integrations.mpd.generatedHint")
+                              : t("settings.integrations.mpd.passwordHint")}
                           </div>
 
                           {/* Status */}
@@ -4019,6 +4143,14 @@ function SettingsViewContent({
                           {mpdStatus?.last_error && (
                             <div className="text-xs text-rose-500 break-words">
                               {mpdStatus.last_error}
+                            </div>
+                          )}
+                          {mpdSaveFailed && (
+                            <div
+                              role="alert"
+                              className="text-xs text-rose-500 break-words"
+                            >
+                              {t("settings.integrations.mpd.saveFailed")}
                             </div>
                           )}
                         </div>

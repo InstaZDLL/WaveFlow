@@ -50,6 +50,8 @@ Persisted in the global `app_setting` table — the listener is process-wide, no
 | `mpd.port`     | `6600`  | The MPD standard, which every client probes first. Scans up to 10 ports forward (e.g. `6600`–`6609`) when taken. |
 | `mpd.password` | `""`    | Empty = no authentication.                                                                                       |
 
+**Settings suggests a password when the server is on without one.** Turning the server on (or opening the card while it runs unprotected) shows, right under the LAN warning, an offer to set one: **Generate a password** draws 16 characters from the platform's CSPRNG ([`generatePassword`](../../src/lib/password.ts) — letters and digits only, minus the look-alikes `0 O 1 l I`, nothing a client would have to quote) and saves it through the same `mpd_set_config` path as a typed one, then reveals the field so it can be copied into the client; **Choose my own** focuses the field; **Not now** hides the offer until the next switch-on. A generated password is shown only once the backend confirmed the save. A refused save rolls the card back to the last confirmed config and says so, instead of leaving the old value to speak for itself. The password is never logged — the config is not, on either side.
+
 ## Bind address: `0.0.0.0`
 
 The server binds every interface, matching [DLNA](dlna.md). Settled in #471 for two reasons.

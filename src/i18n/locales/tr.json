@@ -1950,7 +1950,16 @@
         "lanWarningAuth": "Tüm yerel ağından erişilebilir, ancak oynatma kontrolü belirlediğin şifreyi gerektirir.",
         "statusRunning": "Çalışıyor",
         "statusStopped": "Durduruldu",
-        "copyAddress": "Adresi kopyala"
+        "copyAddress": "Adresi kopyala",
+        "suggestTitle": "Sunucu bir parolayla korunsun mu?",
+        "suggestBody": "Parola olmadan ağdaki herhangi bir cihaz çalmayı duraklatabilir, parça atlayabilir veya sesi değiştirebilir.",
+        "suggestGenerate": "Parola oluştur",
+        "suggestChoose": "Kendim seçeyim",
+        "suggestDismiss": "Şimdi değil",
+        "generatedHint": "Parola kaydedildi: MPD istemcinize girin.",
+        "showPassword": "Parolayı göster",
+        "hidePassword": "Parolayı gizle",
+        "saveFailed": "MPD sunucusu ayarları kaydedilemedi: hiçbir şey değiştirilmedi."
       },
       "notifications": {
         "title": "Parça değişimi bildirimleri",

@@ -2008,7 +2008,16 @@
         "lanWarningAuth": "Accesible desde toda tu red local, pero el control de la reproducción requiere la contraseña que has definido.",
         "statusRunning": "En ejecución",
         "statusStopped": "Detenido",
-        "copyAddress": "Copiar dirección"
+        "copyAddress": "Copiar dirección",
+        "suggestTitle": "¿Proteger el servidor con una contraseña?",
+        "suggestBody": "Sin ella, cualquier dispositivo de tu red puede pausar, saltar una canción o cambiar el volumen.",
+        "suggestGenerate": "Generar una contraseña",
+        "suggestChoose": "Elegir la mía",
+        "suggestDismiss": "Ahora no",
+        "generatedHint": "Contraseña guardada: introdúcela en tu cliente MPD.",
+        "showPassword": "Mostrar contraseña",
+        "hidePassword": "Ocultar contraseña",
+        "saveFailed": "No se pudieron guardar los ajustes del servidor MPD: no se ha cambiado nada."
       },
       "notifications": {
         "title": "Notificaciones al cambiar de pista",

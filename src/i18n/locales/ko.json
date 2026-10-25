@@ -1948,7 +1948,16 @@
         "lanWarningAuth": "로컬 네트워크 전체에서 접근할 수 있지만 재생 제어에는 설정한 비밀번호가 필요합니다.",
         "statusRunning": "실행 중",
         "statusStopped": "중지됨",
-        "copyAddress": "주소 복사"
+        "copyAddress": "주소 복사",
+        "suggestTitle": "서버를 비밀번호로 보호할까요?",
+        "suggestBody": "비밀번호가 없으면 네트워크의 어떤 기기든 일시 정지, 곡 건너뛰기, 볼륨 변경을 할 수 있습니다.",
+        "suggestGenerate": "비밀번호 생성",
+        "suggestChoose": "직접 정하기",
+        "suggestDismiss": "나중에",
+        "generatedHint": "비밀번호가 저장되었습니다. MPD 클라이언트에 입력하세요.",
+        "showPassword": "비밀번호 표시",
+        "hidePassword": "비밀번호 숨기기",
+        "saveFailed": "MPD 서버 설정을 저장하지 못했습니다. 아무것도 변경되지 않았습니다."
       },
       "notifications": {
         "title": "곡 변경 알림",

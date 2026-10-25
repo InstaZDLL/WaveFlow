@@ -2009,7 +2009,16 @@
         "lanWarningAuth": "Acessível a partir de toda a sua rede local, mas o controle da reprodução exige a senha que você definiu.",
         "statusRunning": "Em execução",
         "statusStopped": "Parado",
-        "copyAddress": "Copiar endereço"
+        "copyAddress": "Copiar endereço",
+        "suggestTitle": "Proteger o servidor com uma senha?",
+        "suggestBody": "Sem ela, qualquer dispositivo da rede pode pausar, pular uma faixa ou mudar o volume.",
+        "suggestGenerate": "Gerar uma senha",
+        "suggestChoose": "Escolher a minha",
+        "suggestDismiss": "Agora não",
+        "generatedHint": "Senha salva: digite-a no seu cliente MPD.",
+        "showPassword": "Mostrar senha",
+        "hidePassword": "Ocultar senha",
+        "saveFailed": "Não foi possível salvar as configurações do servidor MPD: nada foi alterado."
       },
       "notifications": {
         "title": "Notificações de mudança de faixa",

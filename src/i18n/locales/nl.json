@@ -1950,7 +1950,16 @@
         "lanWarningAuth": "Bereikbaar vanaf je hele lokale netwerk, maar afspeelbediening vereist het wachtwoord dat je hebt ingesteld.",
         "statusRunning": "Actief",
         "statusStopped": "Gestopt",
-        "copyAddress": "Adres kopiëren"
+        "copyAddress": "Adres kopiëren",
+        "suggestTitle": "De server met een wachtwoord beveiligen?",
+        "suggestBody": "Zonder wachtwoord kan elk apparaat op je netwerk pauzeren, een nummer overslaan of het volume wijzigen.",
+        "suggestGenerate": "Wachtwoord genereren",
+        "suggestChoose": "Zelf kiezen",
+        "suggestDismiss": "Niet nu",
+        "generatedHint": "Wachtwoord opgeslagen: voer het in je MPD-client in.",
+        "showPassword": "Wachtwoord tonen",
+        "hidePassword": "Wachtwoord verbergen",
+        "saveFailed": "De instellingen van de MPD-server konden niet worden opgeslagen: er is niets gewijzigd."
       },
       "notifications": {
         "title": "Meldingen bij nummerwissel",
