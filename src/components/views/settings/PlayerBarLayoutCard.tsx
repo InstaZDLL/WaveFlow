@@ -169,7 +169,7 @@ export function PlayerBarLayoutCard() {
       aria-label={t("settings.playerBarLayout.title")}
       className="space-y-4"
     >
-      <header className="px-4">
+      <header>
         <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">
           {t("settings.playerBarLayout.title")}
         </h3>
@@ -184,7 +184,7 @@ export function PlayerBarLayoutCard() {
         rather than inside the right cluster, so it's intentionally
         excluded from this preview row — the toggle is still in the
         grid below. */}
-      <div className="mx-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/40 px-4 py-3">
+      <div className="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/40 px-4 py-3">
         <div className="text-[10px] font-bold tracking-widest uppercase text-zinc-400 mb-2">
           {t("settings.playerBarLayout.preview")}
         </div>
@@ -211,7 +211,7 @@ export function PlayerBarLayoutCard() {
       </div>
 
       {/* Toggle grid */}
-      <ul className="mx-4 grid grid-cols-1 sm:grid-cols-2 gap-1">
+      <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1">
         {buttonRows.map(({ prop, settingKey, icon: Icon, labelKey }) => {
           const checked = layout[prop];
           const isBusy = busyKey === settingKey;
@@ -245,7 +245,7 @@ export function PlayerBarLayoutCard() {
       </ul>
 
       {/* Cover action — radio group */}
-      <fieldset className="mx-4 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+      <fieldset className="pt-4 border-t border-zinc-100 dark:border-zinc-800">
         <legend className="text-xs font-medium text-zinc-700 dark:text-zinc-200 mb-2">
           {t("settings.playerBarLayout.coverAction.title")}
         </legend>

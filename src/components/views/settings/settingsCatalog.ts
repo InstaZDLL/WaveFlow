@@ -1,18 +1,28 @@
-// Stable category IDs preserve existing links and remembered selections.
+// Stable category IDs preserve existing links and remembered selections:
+// a category keeps its ID when its label or contents change (`playback` is
+// the Audio page, `media` the Lyrics page).
+//
+// Every category and group carries a one-line hint besides its label: the
+// navigation shows the category's under its name, and each group shows its
+// own beside its title, so a page reads as titled blocks rather than a run
+// of rows.
 export const SETTINGS_CATEGORIES = [
   {
     id: "general",
     labelKey: "settings.organization.categories.general",
     descriptionKey: "settings.organization.descriptions.general",
+    hintKey: "settings.organization.navHints.general",
     groups: [
       {
         id: "language",
         labelKey: "settings.organization.groups.language",
+        hintKey: "settings.organization.groupHints.language",
         searchKeys: ["settings.language.title", "settings.language.subtitle"],
       },
       {
         id: "startup",
         labelKey: "settings.organization.groups.startup",
+        hintKey: "settings.organization.groupHints.startup",
         searchKeys: [
           "settings.autoStart.title",
           "settings.autoStart.subtitle",
@@ -22,80 +32,10 @@ export const SETTINGS_CATEGORIES = [
           "settings.integrations.notifications.subtitle",
         ],
       },
-    ],
-  },
-  {
-    id: "library",
-    labelKey: "settings.organization.categories.library",
-    descriptionKey: "settings.organization.descriptions.library",
-    groups: [
-      {
-        id: "scanning",
-        labelKey: "settings.organization.groups.scanning",
-        searchKeys: [
-          "settings.scanOnStart.title",
-          "settings.scanOnStart.subtitle",
-          "settings.sortIgnoreArticles.title",
-          "settings.sortIgnoreArticles.subtitle",
-          "settings.rescan.title",
-          "settings.rescan.subtitle",
-          "settings.rescan.action",
-          "settings.duplicates.title",
-          "settings.duplicates.subtitle",
-          "settings.duplicates.action",
-        ],
-      },
-      {
-        id: "analysis",
-        labelKey: "settings.organization.groups.analysis",
-        searchKeys: [
-          "settings.analyze.title",
-          "settings.analyze.subtitle",
-          "settings.analyze.action",
-          "settings.analyze.autoTitle",
-          "settings.analyze.autoSubtitle",
-        ],
-      },
-      {
-        id: "radio",
-        labelKey: "settings.organization.groups.radio",
-        searchKeys: [
-          "settings.radioCatalogue.neverSynced",
-          "settings.radioCatalogue.title",
-          "settings.radioCatalogue.subtitle",
-          "settings.radioCatalogue.clear",
-          "settings.radioCatalogue.offlineHint",
-          "settings.radioCatalogue.downloading",
-          "settings.radioCatalogue.refresh",
-          "settings.radioCatalogue.download",
-          "settings.radioCatalogue.localFirst",
-          "settings.radioCatalogue.localFirstHint",
-        ],
-      },
-    ],
-  },
-  {
-    id: "playback",
-    labelKey: "settings.organization.categories.playback",
-    descriptionKey: "settings.organization.descriptions.playback",
-    groups: [
-      {
-        id: "transitions",
-        labelKey: "settings.organization.groups.transitions",
-        searchKeys: [
-          "settings.gapless.title",
-          "settings.gapless.subtitle",
-          "settings.crossfade.title",
-          "settings.crossfade.subtitle",
-          "settings.smartCrossfade.title",
-          "settings.smartCrossfade.subtitle",
-          "settings.dynamicCrossfade.title",
-          "settings.dynamicCrossfade.subtitle",
-        ],
-      },
       {
         id: "listening",
         labelKey: "settings.organization.groups.listening",
+        hintKey: "settings.organization.groupHints.listening",
         searchKeys: [
           "settings.singleClickPlay.title",
           "settings.singleClickPlay.subtitle",
@@ -103,68 +43,8 @@ export const SETTINGS_CATEGORIES = [
           "settings.autoplay.subtitle",
           "settings.generatorAlbumMode.title",
           "settings.generatorAlbumMode.subtitle",
-          "settings.pauseOnDeviceLoss.title",
-          "settings.pauseOnDeviceLoss.subtitle",
           "settings.keepAwake.title",
           "settings.keepAwake.subtitle",
-        ],
-      },
-      {
-        id: "volume",
-        labelKey: "settings.organization.groups.volume",
-        searchKeys: [
-          "settings.normalize.title",
-          "settings.normalize.subtitle",
-          "settings.replayGain.title",
-          "settings.replayGain.subtitle",
-          "settings.replayGain.preamp.title",
-          "settings.replayGain.preamp.subtitle",
-          "settings.replayGain.fallback.title",
-          "settings.replayGain.fallback.subtitle",
-          "settings.replayGain.mode.title",
-          "settings.replayGain.preventClipping.title",
-          "settings.replayGain.preventClipping.subtitle",
-        ],
-      },
-      {
-        id: "equalizer",
-        labelKey: "settings.organization.groups.equalizer",
-        searchKeys: [
-          "settings.equalizer.title",
-          "settings.equalizer.subtitle",
-          "settings.equalizer.presets",
-          "settings.equalizer.preset.custom",
-          "settings.equalizer.reset",
-        ],
-      },
-      {
-        id: "stereo",
-        labelKey: "settings.organization.groups.stereo",
-        searchKeys: [
-          "settings.stereoImage.balance.title",
-          "settings.stereoImage.balance.subtitle",
-          "settings.stereoImage.width.title",
-          "settings.stereoImage.width.subtitle",
-        ],
-      },
-      {
-        id: "output",
-        labelKey: "settings.organization.groups.output",
-        searchKeys: [
-          "settings.matchSourceRate.title",
-          "settings.matchSourceRate.subtitle",
-          "settings.mono.title",
-          "settings.mono.subtitle",
-          "settings.dsdPrecision.title",
-          "settings.dsdPrecision.subtitle",
-          "settings.dsdPrecision.standard",
-          "settings.dsdPrecision.high",
-          "settings.dsdPrecision.max",
-          "settings.dsdDop.title",
-          "settings.dsdDop.subtitle",
-          "settings.exclusive.fallback",
-          "settings.exclusive.title",
-          "settings.exclusive.subtitle",
         ],
       },
     ],
@@ -173,20 +53,36 @@ export const SETTINGS_CATEGORIES = [
     id: "appearance",
     labelKey: "settings.organization.categories.appearance",
     descriptionKey: "settings.organization.descriptions.appearance",
+    hintKey: "settings.organization.navHints.appearance",
     groups: [
+      {
+        id: "skin",
+        labelKey: "settings.organization.groups.skin",
+        hintKey: "settings.organization.groupHints.skin",
+        searchKeys: [
+          "settings.appearance.skin.title",
+          "settings.appearance.skin.subtitle",
+        ],
+      },
       {
         id: "theme",
         labelKey: "settings.organization.groups.theme",
+        hintKey: "settings.organization.groupHints.theme",
         searchKeys: [
           "settings.appearance.theme.title",
           "settings.appearance.theme.subtitle",
+        ],
+      },
+      {
+        id: "display",
+        labelKey: "settings.organization.groups.display",
+        hintKey: "settings.organization.groupHints.display",
+        searchKeys: [
           "settings.uiZoom.title",
           "settings.uiZoom.subtitle",
           "settings.uiZoom.decreaseAria",
           "settings.uiZoom.resetAria",
           "settings.uiZoom.increaseAria",
-          "settings.appearance.skin.title",
-          "settings.appearance.skin.subtitle",
           "settings.contrast.title",
           "settings.contrast.subtitle",
           "settings.effects.title",
@@ -196,6 +92,7 @@ export const SETTINGS_CATEGORIES = [
       {
         id: "player",
         labelKey: "settings.organization.groups.player",
+        hintKey: "settings.organization.groupHints.player",
         searchKeys: [
           "settings.playerBarLayout.title",
           "settings.playerBarLayout.subtitle",
@@ -206,6 +103,13 @@ export const SETTINGS_CATEGORIES = [
           "settings.hiResBadge.subtitle",
           "settings.scrollTitles.title",
           "settings.scrollTitles.subtitle",
+        ],
+      },
+      {
+        id: "window",
+        labelKey: "settings.organization.groups.window",
+        hintKey: "settings.organization.groupHints.window",
+        searchKeys: [
           "settings.windowBounds.title",
           "settings.windowBounds.subtitle",
           "settings.windowBounds.done",
@@ -223,6 +127,7 @@ export const SETTINGS_CATEGORIES = [
       {
         id: "immersive",
         labelKey: "settings.organization.groups.immersive",
+        hintKey: "settings.organization.groupHints.immersive",
         searchKeys: [
           "settings.visualizer.title",
           "settings.visualizer.subtitle",
@@ -238,27 +143,9 @@ export const SETTINGS_CATEGORIES = [
         ],
       },
       {
-        id: "desktopLyrics",
-        labelKey: "settings.organization.groups.desktopLyrics",
-        searchKeys: [
-          "desktopLyrics.title",
-          "desktopLyrics.lock",
-          "desktopLyrics.lockHint",
-          "settings.desktopLyrics.subtitle",
-          "settings.desktopLyrics.fontSize",
-          "settings.desktopLyrics.textColor",
-          "settings.desktopLyrics.highlightColor",
-          "settings.desktopLyrics.outline",
-          "settings.desktopLyrics.background",
-          "settings.desktopLyrics.showTranslation",
-          "settings.desktopLyrics.showNextLine",
-          "settings.desktopLyrics.showProgress",
-          "settings.desktopLyrics.hideOnPause",
-        ],
-      },
-      {
         id: "pages",
         labelKey: "settings.organization.groups.pages",
+        hintKey: "settings.organization.groupHints.pages",
         searchKeys: [
           "settings.artistHero.title",
           "settings.artistHero.subtitle",
@@ -275,35 +162,109 @@ export const SETTINGS_CATEGORIES = [
     ],
   },
   {
+    id: "playback",
+    labelKey: "settings.organization.categories.playback",
+    descriptionKey: "settings.organization.descriptions.playback",
+    hintKey: "settings.organization.navHints.playback",
+    groups: [
+      {
+        id: "output",
+        labelKey: "settings.organization.groups.output",
+        hintKey: "settings.organization.groupHints.output",
+        searchKeys: [
+          "settings.dsdPrecision.title",
+          "settings.dsdPrecision.subtitle",
+          "settings.dsdPrecision.standard",
+          "settings.dsdPrecision.high",
+          "settings.dsdPrecision.max",
+          "settings.dsdDop.title",
+          "settings.dsdDop.subtitle",
+          "settings.exclusive.fallback",
+          "settings.exclusive.title",
+          "settings.exclusive.subtitle",
+          "settings.pauseOnDeviceLoss.title",
+          "settings.pauseOnDeviceLoss.subtitle",
+        ],
+      },
+      {
+        id: "transitions",
+        labelKey: "settings.organization.groups.transitions",
+        hintKey: "settings.organization.groupHints.transitions",
+        searchKeys: [
+          "settings.gapless.title",
+          "settings.gapless.subtitle",
+          "settings.crossfade.title",
+          "settings.crossfade.subtitle",
+          "settings.smartCrossfade.title",
+          "settings.smartCrossfade.subtitle",
+          "settings.dynamicCrossfade.title",
+          "settings.dynamicCrossfade.subtitle",
+        ],
+      },
+      {
+        id: "volume",
+        labelKey: "settings.organization.groups.volume",
+        hintKey: "settings.organization.groupHints.volume",
+        searchKeys: [
+          "settings.normalize.title",
+          "settings.normalize.subtitle",
+          "settings.replayGain.title",
+          "settings.replayGain.subtitle",
+          "settings.replayGain.preamp.title",
+          "settings.replayGain.preamp.subtitle",
+          "settings.replayGain.fallback.title",
+          "settings.replayGain.fallback.subtitle",
+          "settings.replayGain.mode.title",
+          "settings.replayGain.preventClipping.title",
+          "settings.replayGain.preventClipping.subtitle",
+        ],
+      },
+      {
+        id: "equalizer",
+        labelKey: "settings.organization.groups.equalizer",
+        hintKey: "settings.organization.groupHints.equalizer",
+        searchKeys: [
+          "settings.equalizer.title",
+          "settings.equalizer.subtitle",
+          "settings.equalizer.presets",
+          "settings.equalizer.preset.custom",
+          "settings.equalizer.reset",
+        ],
+      },
+      {
+        id: "stereo",
+        labelKey: "settings.organization.groups.stereo",
+        hintKey: "settings.organization.groupHints.stereo",
+        searchKeys: [
+          "settings.stereoImage.balance.title",
+          "settings.stereoImage.balance.subtitle",
+          "settings.stereoImage.width.title",
+          "settings.stereoImage.width.subtitle",
+        ],
+      },
+      {
+        id: "outputAdvanced",
+        labelKey: "settings.organization.groups.outputAdvanced",
+        hintKey: "settings.organization.groupHints.outputAdvanced",
+        searchKeys: [
+          "settings.matchSourceRate.title",
+          "settings.matchSourceRate.subtitle",
+          "settings.mono.title",
+          "settings.mono.subtitle",
+        ],
+      },
+    ],
+  },
+  {
     id: "media",
     labelKey: "settings.organization.categories.media",
     descriptionKey: "settings.organization.descriptions.media",
+    hintKey: "settings.organization.navHints.media",
     groups: [
-      {
-        id: "artwork",
-        labelKey: "settings.organization.groups.artwork",
-        searchKeys: [
-          "settings.localArtistImages.title",
-          "settings.localArtistImages.subtitle",
-          "settings.localArtistImages.action",
-          "settings.artistImages.title",
-          "settings.artistImages.subtitle",
-          "settings.artistImages.action",
-          "library.fetchMissingCovers",
-        ],
-      },
-      {
-        id: "biographies",
-        labelKey: "settings.organization.groups.biographies",
-        searchKeys: [
-          "settings.artistBio.title",
-          "settings.artistBio.subtitle",
-          "settings.artistBio.languageLabel",
-        ],
-      },
       {
         id: "lyrics",
         labelKey: "settings.organization.groups.lyrics",
+        hintKey: "settings.organization.groupHints.lyrics",
         searchKeys: [
           "settings.lyricsPrefetch.title",
           "settings.lyricsPrefetch.subtitle",
@@ -319,6 +280,13 @@ export const SETTINGS_CATEGORIES = [
           "settings.lyricsExcludedGenres.subtitle",
           "settings.lyricsDestination.title",
           "settings.lyricsDestination.subtitle",
+        ],
+      },
+      {
+        id: "lyricsDisplay",
+        labelKey: "settings.organization.groups.lyricsDisplay",
+        hintKey: "settings.organization.groupHints.lyricsDisplay",
+        searchKeys: [
           "settings.fullscreenLyricsCentering.title",
           "settings.fullscreenLyricsCentering.subtitle",
           "settings.lyricsEstimateWords.title",
@@ -326,6 +294,106 @@ export const SETTINGS_CATEGORIES = [
           "settings.lyricsHighlightColor.title",
           "settings.lyricsHighlightColor.subtitle",
           "settings.lyricsHighlightColor.colors.rainbow",
+          "settings.lyricsHeldNotes.title",
+          "settings.lyricsHeldNotes.subtitle",
+        ],
+      },
+      {
+        id: "desktopLyrics",
+        labelKey: "settings.organization.groups.desktopLyrics",
+        hintKey: "settings.organization.groupHints.desktopLyrics",
+        searchKeys: [
+          "desktopLyrics.title",
+          "desktopLyrics.lock",
+          "desktopLyrics.lockHint",
+          "settings.desktopLyrics.subtitle",
+          "settings.desktopLyrics.fontSize",
+          "settings.desktopLyrics.textColor",
+          "settings.desktopLyrics.highlightColor",
+          "settings.desktopLyrics.outline",
+          "settings.desktopLyrics.background",
+          "settings.desktopLyrics.showTranslation",
+          "settings.desktopLyrics.showNextLine",
+          "settings.desktopLyrics.showProgress",
+          "settings.desktopLyrics.hideOnPause",
+        ],
+      },
+    ],
+  },
+  {
+    id: "library",
+    labelKey: "settings.organization.categories.library",
+    descriptionKey: "settings.organization.descriptions.library",
+    hintKey: "settings.organization.navHints.library",
+    groups: [
+      {
+        id: "scanning",
+        labelKey: "settings.organization.groups.scanning",
+        hintKey: "settings.organization.groupHints.scanning",
+        searchKeys: [
+          "settings.scanOnStart.title",
+          "settings.scanOnStart.subtitle",
+          "settings.sortIgnoreArticles.title",
+          "settings.sortIgnoreArticles.subtitle",
+          "settings.rescan.title",
+          "settings.rescan.subtitle",
+          "settings.rescan.action",
+          "settings.duplicates.title",
+          "settings.duplicates.subtitle",
+          "settings.duplicates.action",
+        ],
+      },
+      {
+        id: "analysis",
+        labelKey: "settings.organization.groups.analysis",
+        hintKey: "settings.organization.groupHints.analysis",
+        searchKeys: [
+          "settings.analyze.title",
+          "settings.analyze.subtitle",
+          "settings.analyze.action",
+          "settings.analyze.autoTitle",
+          "settings.analyze.autoSubtitle",
+        ],
+      },
+      {
+        id: "artwork",
+        labelKey: "settings.organization.groups.artwork",
+        hintKey: "settings.organization.groupHints.artwork",
+        searchKeys: [
+          "settings.localArtistImages.title",
+          "settings.localArtistImages.subtitle",
+          "settings.localArtistImages.action",
+          "settings.artistImages.title",
+          "settings.artistImages.subtitle",
+          "settings.artistImages.action",
+          "library.fetchMissingCovers",
+        ],
+      },
+      {
+        id: "biographies",
+        labelKey: "settings.organization.groups.biographies",
+        hintKey: "settings.organization.groupHints.biographies",
+        searchKeys: [
+          "settings.artistBio.title",
+          "settings.artistBio.subtitle",
+          "settings.artistBio.languageLabel",
+        ],
+      },
+      {
+        id: "radio",
+        labelKey: "settings.organization.groups.radio",
+        hintKey: "settings.organization.groupHints.radio",
+        searchKeys: [
+          "settings.radioCatalogue.neverSynced",
+          "settings.radioCatalogue.title",
+          "settings.radioCatalogue.subtitle",
+          "settings.radioCatalogue.clear",
+          "settings.radioCatalogue.offlineHint",
+          "settings.radioCatalogue.downloading",
+          "settings.radioCatalogue.refresh",
+          "settings.radioCatalogue.download",
+          "settings.radioCatalogue.localFirst",
+          "settings.radioCatalogue.localFirstHint",
         ],
       },
     ],
@@ -334,10 +402,12 @@ export const SETTINGS_CATEGORIES = [
     id: "integrations",
     labelKey: "settings.organization.categories.integrations",
     descriptionKey: "settings.organization.descriptions.integrations",
+    hintKey: "settings.organization.navHints.integrations",
     groups: [
       {
         id: "connectivity",
         labelKey: "settings.organization.groups.connectivity",
+        hintKey: "settings.organization.groupHints.connectivity",
         searchKeys: [
           "settings.offlineMode.title",
           "settings.offlineMode.subtitle",
@@ -346,6 +416,7 @@ export const SETTINGS_CATEGORIES = [
       {
         id: "services",
         labelKey: "settings.organization.groups.services",
+        hintKey: "settings.organization.groupHints.services",
         searchKeys: [
           "settings.integrations.lastfm.title",
           "settings.integrations.lastfm.subtitle",
@@ -366,6 +437,7 @@ export const SETTINGS_CATEGORIES = [
       {
         id: "remote",
         labelKey: "settings.organization.groups.remote",
+        hintKey: "settings.organization.groupHints.remote",
         searchKeys: [
           "remote.server.title",
           "remote.server.subtitle",
@@ -444,6 +516,7 @@ export const SETTINGS_CATEGORIES = [
       {
         id: "network",
         labelKey: "settings.organization.groups.network",
+        hintKey: "settings.organization.groupHints.network",
         searchKeys: [
           "settings.integrations.dlna.title",
           "settings.integrations.dlna.subtitle",
@@ -469,10 +542,12 @@ export const SETTINGS_CATEGORIES = [
     id: "shortcuts",
     labelKey: "settings.organization.categories.shortcuts",
     descriptionKey: "settings.organization.descriptions.shortcuts",
+    hintKey: "settings.organization.navHints.shortcuts",
     groups: [
       {
         id: "keyboard",
         labelKey: "settings.organization.groups.keyboard",
+        hintKey: "settings.organization.groupHints.keyboard",
         searchKeys: [
           "settings.shortcuts.subtitle",
           "settings.shortcuts.reset",
@@ -487,10 +562,12 @@ export const SETTINGS_CATEGORIES = [
     id: "data",
     labelKey: "settings.organization.categories.data",
     descriptionKey: "settings.organization.descriptions.data",
+    hintKey: "settings.organization.navHints.data",
     groups: [
       {
         id: "backups",
         labelKey: "settings.organization.groups.backups",
+        hintKey: "settings.organization.groupHints.backups",
         searchKeys: [
           "settings.profileIo.title",
           "settings.profileIo.subtitle",
@@ -511,6 +588,7 @@ export const SETTINGS_CATEGORIES = [
       {
         id: "storage",
         labelKey: "settings.organization.groups.storage",
+        hintKey: "settings.organization.groupHints.storage",
         searchKeys: [
           "settings.clipsInLibrary.title",
           "settings.clipsInLibrary.subtitle",
@@ -531,6 +609,7 @@ export const SETTINGS_CATEGORIES = [
       {
         id: "cleanup",
         labelKey: "settings.organization.groups.cleanup",
+        hintKey: "settings.organization.groupHints.cleanup",
         searchKeys: [
           "settings.regenerateThumbnails",
           "settings.regenerateThumbnailsSubtitle",
@@ -546,10 +625,12 @@ export const SETTINGS_CATEGORIES = [
     id: "diagnostics",
     labelKey: "settings.organization.categories.diagnostics",
     descriptionKey: "settings.organization.descriptions.diagnostics",
+    hintKey: "settings.organization.navHints.diagnostics",
     groups: [
       {
         id: "updates",
         labelKey: "settings.organization.groups.updates",
+        hintKey: "settings.organization.groupHints.updates",
         searchKeys: [
           "settings.updateChannel.title",
           "settings.updateChannel.subtitle",
@@ -558,6 +639,7 @@ export const SETTINGS_CATEGORIES = [
       {
         id: "diagnostics",
         labelKey: "settings.organization.groups.diagnostics",
+        hintKey: "settings.organization.groupHints.diagnostics",
         searchKeys: [
           "settings.diagnostics.title",
           "settings.diagnostics.subtitle",
@@ -571,6 +653,7 @@ export const SETTINGS_CATEGORIES = [
       {
         id: "reset",
         labelKey: "settings.organization.groups.reset",
+        hintKey: "settings.organization.groupHints.reset",
         searchKeys: [
           "settings.reset.title",
           "settings.reset.subtitle",
@@ -582,3 +665,17 @@ export const SETTINGS_CATEGORIES = [
 ] as const;
 
 export type SettingsCategory = (typeof SETTINGS_CATEGORIES)[number]["id"];
+
+export type SettingsGroupId =
+  (typeof SETTINGS_CATEGORIES)[number]["groups"][number]["id"];
+
+/** The catalog entry of a group, looked up by its ID (unique across
+ *  categories). */
+export function findSettingsGroup(id: SettingsGroupId) {
+  for (const category of SETTINGS_CATEGORIES) {
+    for (const group of category.groups) {
+      if (group.id === id) return group;
+    }
+  }
+  return undefined;
+}

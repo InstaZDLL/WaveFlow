@@ -28,12 +28,8 @@ export function StatsKpiVisibilityCard() {
 
   return (
     <section aria-label={t("settings.statsKpis.title")} className="space-y-3">
-      <header className="px-4 flex items-start gap-3">
-        <BarChart2
-          size={20}
-          className="text-zinc-400 mt-0.5 shrink-0"
-          aria-hidden="true"
-        />
+      <header className="flex items-start gap-4">
+        <BarChart2 size={16} className="settings-row-icon" aria-hidden="true" />
         <div className="min-w-0">
           <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">
             {t("settings.statsKpis.title")}
@@ -44,7 +40,7 @@ export function StatsKpiVisibilityCard() {
         </div>
       </header>
 
-      <fieldset className="mx-4">
+      <fieldset>
         <legend className="sr-only">{t("settings.statsKpis.legend")}</legend>
         <div className="space-y-1">
           {STATS_KPI_IDS.map((id) => {

@@ -32,10 +32,10 @@ export function DesktopLyricsCard() {
       className="px-4 py-3 space-y-4"
     >
       <div className="flex items-start justify-between gap-3">
-        <span className="flex items-start gap-3 min-w-0">
+        <span className="flex items-start gap-4 min-w-0">
           <MessageSquareQuote
-            size={20}
-            className="text-zinc-400 mt-0.5 shrink-0"
+            size={16}
+            className="settings-row-icon"
             aria-hidden="true"
           />
           <span className="min-w-0">
@@ -55,12 +55,8 @@ export function DesktopLyricsCard() {
       </div>
 
       <div className="flex items-start justify-between gap-3">
-        <span className="flex items-start gap-3 min-w-0">
-          <Lock
-            size={20}
-            className="text-zinc-400 mt-0.5 shrink-0"
-            aria-hidden="true"
-          />
+        <span className="flex items-start gap-4 min-w-0">
+          <Lock size={16} className="settings-row-icon" aria-hidden="true" />
           <span className="min-w-0">
             <span className="block text-sm font-medium text-zinc-900 dark:text-white">
               {t("desktopLyrics.lock")}

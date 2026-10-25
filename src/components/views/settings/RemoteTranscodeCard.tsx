@@ -104,10 +104,10 @@ export function RemoteTranscodeCard() {
       aria-labelledby="settings-remote-transcode-heading"
       className="px-4 py-3"
     >
-      <header className="flex items-start gap-3 mb-3">
+      <header className="flex items-start gap-4 mb-3">
         <AudioLines
-          size={20}
-          className="text-zinc-400 mt-0.5 shrink-0"
+          size={16}
+          className="settings-row-icon"
           aria-hidden="true"
         />
         <div className="min-w-0">

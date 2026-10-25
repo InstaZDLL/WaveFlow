@@ -2568,7 +2568,8 @@
       "subtitle": "DSD → PCM 変換フィルターの鋭さ。DSD ファイル（.dsf / .dff）のみに影響します。タップ数が多いほど遷移帯域は鋭くなりますが、CPU 負荷が高くなります。",
       "standard": "標準",
       "high": "高精度",
-      "max": "最高精度"
+      "max": "最高精度",
+      "tapsValue": "タップ数: {{value}}"
     },
     "statsKpis": {
       "title": "統計指標",
@@ -2741,9 +2742,9 @@
       "categories": {
         "general": "一般",
         "library": "ライブラリ",
-        "playback": "再生とオーディオ",
+        "playback": "オーディオ",
         "appearance": "外観",
-        "media": "画像と歌詞",
+        "media": "歌詞",
         "integrations": "接続",
         "plugins": "拡張機能",
         "shortcuts": "キーボードショートカット",
@@ -2751,11 +2752,11 @@
         "diagnostics": "メンテナンス"
       },
       "descriptions": {
-        "general": "言語、起動、アプリの動作を設定します。",
-        "library": "音楽ライブラリを整理して最新の状態に保ちます。",
-        "playback": "曲のつなぎ、音量、オーディオ出力を設定します。",
-        "appearance": "インターフェースや再生画面をカスタマイズします。",
-        "media": "アートワーク、アーティスト情報、歌詞の取得元を設定します。",
+        "general": "言語、起動、再生の動作を設定します。",
+        "library": "スキャン、音楽の解析、ジャケット、バイオグラフィー、ラジオを設定します。",
+        "playback": "オーディオ出力、曲のつなぎ、音量、イコライザーを設定します。",
+        "appearance": "スキン、テーマ、読みやすさ、ウィンドウを設定します。",
+        "media": "歌詞の取得元、表示方法、デスクトップ表示を設定します。",
         "integrations": "サービス、サーバー、ネットワーク機器に接続します。",
         "plugins": "拡張機能を探して設定を管理します。",
         "shortcuts": "日常の操作に使うキーボードショートカットを選びます。",
@@ -2772,14 +2773,14 @@
         "listening": "再生時の動作",
         "volume": "音量",
         "equalizer": "イコライザー",
-        "output": "オーディオの詳細設定",
-        "theme": "テーマと読みやすさ",
-        "player": "プレーヤーとウィンドウ",
+        "output": "オーディオ出力",
+        "theme": "テーマとカラー",
+        "player": "プレーヤーバー",
         "immersive": "没入ビュー",
         "pages": "ライブラリのページ",
         "artwork": "ジャケットとアーティスト画像",
         "biographies": "アーティストのバイオグラフィー",
-        "lyrics": "歌詞",
+        "lyrics": "歌詞の検索",
         "connectivity": "ネットワーク接続",
         "services": "接続済みサービス",
         "remote": "リモートサーバー",
@@ -2793,7 +2794,60 @@
         "diagnostics": "診断",
         "reset": "アプリのリセット",
         "desktopLyrics": "デスクトップ歌詞",
-        "stereo": "ステレオイメージ"
+        "stereo": "ステレオイメージ",
+        "outputAdvanced": "出力の詳細設定",
+        "skin": "スキン",
+        "display": "読みやすさ",
+        "window": "ウィンドウ",
+        "lyricsDisplay": "歌詞の表示"
+      },
+      "navHints": {
+        "general": "言語、起動、再生",
+        "appearance": "スキン、テーマ、ウィンドウ",
+        "playback": "出力、音量、イコライザー",
+        "media": "取得元、表示、デスクトップ",
+        "library": "スキャン、解析、ジャケット",
+        "integrations": "サービス、サーバー、ネットワーク",
+        "shortcuts": "キーボードとメディアキー",
+        "data": "バックアップ、フォルダ、キャッシュ",
+        "diagnostics": "更新、ログ、リセット"
+      },
+      "groupHints": {
+        "language": "再起動なしですぐに反映",
+        "startup": "WaveFlow の起動時と終了時の動作",
+        "listening": "曲の始まり方と次に流れる曲",
+        "skin": "インターフェースのレイアウトと質感",
+        "theme": "インターフェースの配色とアクセントカラー",
+        "display": "コントラスト、視覚効果、インターフェースのサイズ",
+        "player": "下部バーのボタンと表示",
+        "window": "ウィンドウのサイズ、位置、枠",
+        "immersive": "ジャケットを全画面で、歌詞とともに",
+        "pages": "アーティスト、統計、ホームの各ページに表示する内容",
+        "output": "音がデバイスに届くまで",
+        "transitions": "曲と曲の間：ギャップレスかクロスフェードか",
+        "volume": "曲ごとの音量を揃える",
+        "equalizer": "周波数特性を調整",
+        "stereo": "ステレオイメージのバランスと幅",
+        "outputAdvanced": "サンプリングレートとモノラル",
+        "lyrics": "取得元、翻訳、保存先",
+        "lyricsDisplay": "カラオケ、中央揃え、歌唱中の行の色",
+        "desktopLyrics": "ウィンドウの上に歌詞を 1 行表示",
+        "scanning": "新しいファイルと重複を検出",
+        "analysis": "各曲の BPM、ラウドネス、ピーク",
+        "artwork": "不足しているアルバムジャケットとアーティスト写真",
+        "biographies": "アーティスト紹介文の取得元",
+        "radio": "ラジオ局のカタログ（オフライン）",
+        "connectivity": "インターネットへのアクセスをすべて遮断",
+        "services": "Last.fm、ListenBrainz、Discord",
+        "remote": "WaveFlow サーバーとそのライブラリ",
+        "network": "ローカルネットワーク上の DLNA と MPD",
+        "keyboard": "よく使う操作のショートカット",
+        "backups": "プロフィールのエクスポート、インポート、バックアップ",
+        "storage": "WaveFlow のデータとキャッシュの保存場所",
+        "cleanup": "キャッシュ済みのサムネイルとジャケット",
+        "updates": "安定版またはベータ版",
+        "diagnostics": "ログと描画",
+        "reset": "アプリを初期状態からやり直す"
       }
     },
     "desktopLyrics": {
@@ -2883,6 +2937,14 @@
         "mono": "モノラル",
         "value": "{{value}}%",
         "reset": "幅を 100% に戻す"
+      }
+    },
+    "outputMode": {
+      "title": "出力モード",
+      "subtitle": "デバイスをシステムと共有するか、WaveFlow 専用にします。",
+      "shared": {
+        "label": "共有出力",
+        "hint": "他のアプリの音と一緒に、システムミキサーを経由して再生します。普段使いに最適です。"
       }
     }
   },

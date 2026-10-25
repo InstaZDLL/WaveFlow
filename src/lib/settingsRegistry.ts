@@ -109,6 +109,34 @@ export const SETTINGS = {
     false,
     "settings.integrations.notifications.title",
   ),
+  "ui.single_click_play": setting(
+    "general",
+    "profile",
+    "bool",
+    false,
+    "settings.singleClickPlay.title",
+  ),
+  "playback.autoplay": setting(
+    "general",
+    "profile",
+    "bool",
+    false,
+    "settings.autoplay.title",
+  ),
+  "playback.generator_album_mode": setting(
+    "general",
+    "profile",
+    "bool",
+    false,
+    "settings.generatorAlbumMode.title",
+  ),
+  "playback.keep_awake": setting(
+    "general",
+    "profile",
+    "bool",
+    true,
+    "settings.keepAwake.title",
+  ),
 
   // ---- Library ---------------------------------------------------------
   "library.scan_on_start": setting(
@@ -132,6 +160,20 @@ export const SETTINGS = {
     false,
     "settings.analyze.autoTitle",
   ),
+  "metadata.bio_source": setting<BioSource>(
+    "library",
+    "app",
+    "string",
+    "lastfm",
+    "settings.artistBio.title",
+  ),
+  "metadata.bio_language": setting<BioLanguage>(
+    "library",
+    "app",
+    "string",
+    "en",
+    "settings.artistBio.languageLabel",
+  ),
   "radio.catalogue.local_first": setting(
     "library",
     "app",
@@ -140,7 +182,7 @@ export const SETTINGS = {
     "settings.radioCatalogue.localFirst",
   ),
 
-  // ---- Playback and audio ----------------------------------------------
+  // ---- Audio ---------------------------------------------------------
   "audio.gapless": setting(
     "playback",
     "profile",
@@ -169,40 +211,12 @@ export const SETTINGS = {
     false,
     "settings.dynamicCrossfade.title",
   ),
-  "ui.single_click_play": setting(
-    "playback",
-    "profile",
-    "bool",
-    false,
-    "settings.singleClickPlay.title",
-  ),
-  "playback.autoplay": setting(
-    "playback",
-    "profile",
-    "bool",
-    false,
-    "settings.autoplay.title",
-  ),
-  "playback.generator_album_mode": setting(
-    "playback",
-    "profile",
-    "bool",
-    false,
-    "settings.generatorAlbumMode.title",
-  ),
   "audio.pause_on_device_loss": setting(
     "playback",
     "profile",
     "bool",
     true,
     "settings.pauseOnDeviceLoss.title",
-  ),
-  "playback.keep_awake": setting(
-    "playback",
-    "profile",
-    "bool",
-    true,
-    "settings.keepAwake.title",
   ),
   "audio.normalize": setting(
     "playback",
@@ -499,24 +513,6 @@ export const SETTINGS = {
     true,
     "settings.motionCovers.title",
   ),
-  /** One JSON row, nine controls; each control that differs counts. */
-  "ui.desktop_lyrics_style": setting<DesktopLyricsStyle>(
-    "appearance",
-    "profile",
-    "json",
-    {
-      fontSize: 36,
-      textColor: "#ffffff",
-      highlightColor: "#34d399",
-      outlineWidth: 2,
-      backgroundOpacity: 0,
-      showTranslation: true,
-      showNextLine: true,
-      hideOnPause: false,
-      showProgress: false,
-    },
-    "desktopLyrics.title",
-  ),
   "ui.artist_hero": setting(
     "appearance",
     "profile",
@@ -539,21 +535,7 @@ export const SETTINGS = {
     "settings.wrappedBanner.title",
   ),
 
-  // ---- Images and lyrics -----------------------------------------------
-  "metadata.bio_source": setting<BioSource>(
-    "media",
-    "app",
-    "string",
-    "lastfm",
-    "settings.artistBio.title",
-  ),
-  "metadata.bio_language": setting<BioLanguage>(
-    "media",
-    "app",
-    "string",
-    "en",
-    "settings.artistBio.languageLabel",
-  ),
+  // ---- Lyrics --------------------------------------------------------
   /** `null` is "no translation"; the backend deletes the row for it. */
   "lyrics.translation_lang": setting<string | null>(
     "media",
@@ -618,6 +600,24 @@ export const SETTINGS = {
     "string",
     null,
     "settings.lyricsHighlightColor.title",
+  ),
+  /** One JSON row, nine controls; each control that differs counts. */
+  "ui.desktop_lyrics_style": setting<DesktopLyricsStyle>(
+    "media",
+    "profile",
+    "json",
+    {
+      fontSize: 36,
+      textColor: "#ffffff",
+      highlightColor: "#34d399",
+      outlineWidth: 2,
+      backgroundOpacity: 0,
+      showTranslation: true,
+      showNextLine: true,
+      hideOnPause: false,
+      showProgress: false,
+    },
+    "desktopLyrics.title",
   ),
 
   // ---- Connections -----------------------------------------------------

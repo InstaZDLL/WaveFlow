@@ -9,7 +9,8 @@ import {
   type ExclusiveOutputState,
 } from "../../../lib/tauri/player";
 import { SETTINGS } from "../../../lib/settingsRegistry";
-import { ToggleSwitch } from "../../common/ToggleSwitch";
+import { SettingsChoiceCards } from "./SettingsChoiceCards";
+import { OutputPathPreview } from "./settingsPreviews";
 
 /**
  * Exclusive output card — the audiophile path where the app owns the
@@ -20,16 +21,18 @@ import { ToggleSwitch } from "../../common/ToggleSwitch";
  * Linux, hog mode on macOS. The card used to sniff the user agent to
  * hide itself where the toggle did nothing.
  *
- * The toggle calls the backend which:
+ * Two cards, shared and exclusive, each drawing the path the sound takes
+ * (through the system mixer beside the other applications, or straight
+ * to the device). Choosing one calls the backend, which:
  *   1. Persists the preference in `profile_setting`.
  *   2. Re-opens the audio output stream in exclusive event-driven mode.
  *   3. Falls back to cpal shared mode if exclusive init fails.
  *
- * The switch shows the **preference**, and a note says when it did not
- * engage. It used to show only what engaged, so after a refusal it read
- * "off" while exclusive stayed requested — every rebuild tried the device
- * again, and switching it "on" changed nothing, the preference being on
- * already. While it is engaged, a second note says the system volume no
+ * The cards show the **preference**, and a note says when it did not
+ * engage. The switch they replace used to show only what engaged, so
+ * after a refusal it read "off" while exclusive stayed requested — every
+ * rebuild tried the device again, and switching it "on" changed nothing,
+ * the preference being on already. While it is engaged, a second note says the system volume no
  * longer applies: the device plays at its own hardware level, which is
  * wherever the sound server last left it and can be close to silent.
  */
@@ -125,38 +128,52 @@ export function ExclusiveModeCard() {
   };
 
   return (
-    <div className="py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4 min-w-0">
-          <Lock
-            size={20}
-            className="shrink-0 text-zinc-500 dark:text-zinc-400"
-            aria-hidden="true"
-          />
-          <div className="min-w-0">
-            <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
-              {t("settings.exclusive.title")}
-            </p>
-            <p className="text-xs mt-0.5 settings-description">
-              {t("settings.exclusive.subtitle")}
-            </p>
-          </div>
+    <div className="settings-block">
+      <div className="flex items-center space-x-4 min-w-0">
+        <Lock size={16} className="settings-row-icon" aria-hidden="true" />
+        <div className="min-w-0">
+          <p
+            id="settings-output-mode-label"
+            className="text-sm font-medium text-zinc-800 dark:text-zinc-200"
+          >
+            {t("settings.outputMode.title")}
+          </p>
+          <p className="text-xs mt-0.5 settings-description">
+            {t("settings.outputMode.subtitle")}
+          </p>
         </div>
-        <ToggleSwitch
-          enabled={state?.requested === true}
-          onToggle={() => {
-            if (busy || state === null) return;
-            void toggle(!state.requested);
-          }}
-          label={t("settings.exclusive.title")}
+      </div>
+      <div className="mt-4">
+        <SettingsChoiceCards
+          labelledBy="settings-output-mode-label"
+          minWidth={13}
+          disabled={busy || state === null}
+          value={
+            state === null ? null : state.requested ? "exclusive" : "shared"
+          }
+          onChange={(mode) => void toggle(mode === "exclusive")}
+          choices={[
+            {
+              value: "shared",
+              label: t("settings.outputMode.shared.label"),
+              hint: t("settings.outputMode.shared.hint"),
+              preview: <OutputPathPreview exclusive={false} />,
+            },
+            {
+              value: "exclusive",
+              label: t("settings.exclusive.title"),
+              hint: t("settings.exclusive.subtitle"),
+              preview: <OutputPathPreview exclusive />,
+            },
+          ]}
         />
       </div>
       {error ? (
-        <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 ml-9">
+        <p className="text-xs text-amber-600 dark:text-amber-400 mt-3">
           {error}
         </p>
       ) : state?.requested && !state.engaged ? (
-        <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 ml-9">
+        <p className="text-xs text-amber-600 dark:text-amber-400 mt-3">
           {t(
             state.refusal === "busy"
               ? "settings.exclusive.fallbackBusy"
@@ -168,7 +185,7 @@ export function ExclusiveModeCard() {
           )}
         </p>
       ) : state?.engaged ? (
-        <p className="text-xs settings-description mt-2 ml-9">
+        <p className="text-xs settings-description mt-3">
           {t("settings.exclusive.hardwareVolume")}
         </p>
       ) : null}

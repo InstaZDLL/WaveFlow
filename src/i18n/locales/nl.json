@@ -2570,7 +2570,8 @@
       "subtitle": "Scherpte van het DSD → PCM-conversiefilter. Heeft alleen invloed op DSD-bestanden (.dsf / .dff); meer coëfficiënten = scherpere overgangsband bij hoger CPU-gebruik.",
       "standard": "Standaard",
       "high": "Hoog",
-      "max": "Maximaal"
+      "max": "Maximaal",
+      "tapsValue": "Coëfficiënten: {{value}}"
     },
     "statsKpis": {
       "title": "Statistiekindicatoren",
@@ -2743,9 +2744,9 @@
       "categories": {
         "general": "Algemeen",
         "library": "Bibliotheek",
-        "playback": "Afspelen en audio",
+        "playback": "Audio",
         "appearance": "Weergave",
-        "media": "Afbeeldingen en songteksten",
+        "media": "Songteksten",
         "integrations": "Verbindingen",
         "plugins": "Extensies",
         "shortcuts": "Sneltoetsen",
@@ -2753,11 +2754,11 @@
         "diagnostics": "Onderhoud"
       },
       "descriptions": {
-        "general": "Taal, opstarten en gedrag van de toepassing.",
-        "library": "Organiseer en actualiseer je muziekbibliotheek.",
-        "playback": "Overgangen tussen nummers, volume en audio-uitvoer.",
-        "appearance": "Pas de interface en luisterweergaven aan.",
-        "media": "Hoezen, artiestinformatie en bronnen voor songteksten.",
+        "general": "Taal, opstarten en hoe het afspelen zich gedraagt.",
+        "library": "Scannen, muziekanalyse, hoezen, biografieën en radio.",
+        "playback": "Audio-uitvoer, overgangen tussen nummers, volume en equalizer.",
+        "appearance": "Skin, thema, leesbaarheid en vensters.",
+        "media": "Waar songteksten vandaan komen, hoe ze verschijnen, en op het bureaublad.",
         "integrations": "Verbind je diensten, server en netwerkapparaten.",
         "plugins": "Ontdek extensies en beheer hun instellingen.",
         "shortcuts": "Kies sneltoetsen voor dagelijkse acties.",
@@ -2774,14 +2775,14 @@
         "listening": "Afspeelgedrag",
         "volume": "Volume",
         "equalizer": "Equalizer",
-        "output": "Geavanceerde audio-instellingen",
-        "theme": "Thema en leesbaarheid",
-        "player": "Speler en venster",
+        "output": "Audio-uitvoer",
+        "theme": "Thema en kleuren",
+        "player": "Afspeelbalk",
         "immersive": "Meeslepende weergave",
         "pages": "Bibliotheekpagina's",
         "artwork": "Hoezen en artiestafbeeldingen",
         "biographies": "Artiestbiografieën",
-        "lyrics": "Songteksten",
+        "lyrics": "Songteksten zoeken",
         "connectivity": "Connectiviteit",
         "services": "Verbonden diensten",
         "remote": "Externe server",
@@ -2795,7 +2796,60 @@
         "diagnostics": "Diagnostiek",
         "reset": "App resetten",
         "desktopLyrics": "Songtekst op bureaublad",
-        "stereo": "Stereobeeld"
+        "stereo": "Stereobeeld",
+        "outputAdvanced": "Geavanceerde uitvoer",
+        "skin": "Skin",
+        "display": "Leesbaarheid",
+        "window": "Vensters",
+        "lyricsDisplay": "Weergave van songteksten"
+      },
+      "navHints": {
+        "general": "Taal, opstarten, afspelen",
+        "appearance": "Skin, thema, vensters",
+        "playback": "Uitvoer, volume, equalizer",
+        "media": "Bronnen, weergave, bureaublad",
+        "library": "Scannen, analyse, hoezen",
+        "integrations": "Diensten, server, netwerk",
+        "shortcuts": "Toetsenbord en mediatoetsen",
+        "data": "Back-ups, mappen, caches",
+        "diagnostics": "Updates, logs, resetten"
+      },
+      "groupHints": {
+        "language": "Direct toegepast, zonder herstart",
+        "startup": "Wat er gebeurt als WaveFlow opent en sluit",
+        "listening": "Hoe nummers starten en wat er daarna speelt",
+        "skin": "De indeling en het materiaal van de interface",
+        "theme": "Kleuren van de interface en de accentkleur",
+        "display": "Contrast, visuele effecten en grootte van de interface",
+        "player": "Knoppen en labels van de onderste balk",
+        "window": "Grootte, positie en rand van de vensters",
+        "immersive": "De hoes schermvullend, met songtekst",
+        "pages": "Wat de artiest-, statistiek- en startpagina tonen",
+        "output": "Hoe het geluid het apparaat bereikt",
+        "transitions": "Tussen twee nummers: naadloos of met crossfade",
+        "volume": "Gelijk volume van nummer tot nummer",
+        "equalizer": "Vorm de frequentiecurve",
+        "stereo": "Balans en breedte van het stereobeeld",
+        "outputAdvanced": "Samplefrequentie en mono",
+        "lyrics": "Bronnen, vertaling en opslag",
+        "lyricsDisplay": "Karaoke, centrering en kleur van de gezongen regel",
+        "desktopLyrics": "Een regel songtekst boven je vensters",
+        "scanning": "Nieuwe bestanden en duplicaten vinden",
+        "analysis": "BPM, luidheid en piek van elk nummer",
+        "artwork": "Ontbrekende albumhoezen en artiestfoto's",
+        "biographies": "Waar de teksten over artiesten vandaan komen",
+        "radio": "De zendercatalogus, offline",
+        "connectivity": "Alle internettoegang afsluiten",
+        "services": "Last.fm, ListenBrainz en Discord",
+        "remote": "Je WaveFlow-server en zijn bibliotheek",
+        "network": "DLNA en MPD op je lokale netwerk",
+        "keyboard": "Sneltoetsen voor dagelijkse acties",
+        "backups": "Je profielen exporteren, importeren en back-uppen",
+        "storage": "Waar WaveFlow zijn gegevens en caches bewaart",
+        "cleanup": "Gecachete miniaturen en hoezen",
+        "updates": "Stabiele of bètaversies",
+        "diagnostics": "Logs en grafische weergave",
+        "reset": "Opnieuw beginnen met een verse app"
       }
     },
     "desktopLyrics": {
@@ -2885,6 +2939,14 @@
         "mono": "Mono",
         "value": "{{value}}%",
         "reset": "Breedte terugzetten op 100%"
+      }
+    },
+    "outputMode": {
+      "title": "Uitvoermodus",
+      "subtitle": "Deel het apparaat met het systeem, of reserveer het voor WaveFlow.",
+      "shared": {
+        "label": "Gedeelde uitvoer",
+        "hint": "Het geluid gaat via de systeemmixer, samen met dat van andere apps. Ideaal voor dagelijks gebruik."
       }
     }
   },

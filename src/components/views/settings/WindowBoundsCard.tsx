@@ -45,10 +45,10 @@ export function WindowBoundsCard() {
       className="px-4 py-3"
     >
       <div className="flex items-start justify-between gap-3">
-        <span className="flex items-start gap-3 min-w-0">
+        <span className="flex items-start gap-4 min-w-0">
           <Maximize2
-            size={20}
-            className="text-zinc-400 mt-0.5 shrink-0"
+            size={16}
+            className="settings-row-icon"
             aria-hidden="true"
           />
           <span className="min-w-0">

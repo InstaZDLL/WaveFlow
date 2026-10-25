@@ -13,6 +13,13 @@ import {
   type CompletedReset,
 } from "./settings/settingsReset";
 import { SETTINGS } from "../../lib/settingsRegistry";
+import { SettingsChoiceCards } from "./settings/SettingsChoiceCards";
+import {
+  CrossfadePreview,
+  PrecisionBars,
+  ReplayGainPreview,
+} from "./settings/settingsPreviews";
+import { ThemePickerCard } from "./settings/ThemePickerCard";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { useSortIgnoreArticles } from "../../hooks/useSortIgnoreArticles";
@@ -56,7 +63,6 @@ import {
   Activity,
   Gauge,
   ZoomIn,
-  Palette,
   Disc3,
   ListPlus,
   ArrowDownAZ,
@@ -66,8 +72,6 @@ import { ReconciliationCard } from "./settings/ReconciliationCard";
 import { CatalogueMirrorCard } from "./settings/CatalogueMirrorCard";
 import { UploadToServerCard } from "./settings/UploadToServerCard";
 import { RemoteTranscodeCard } from "./settings/RemoteTranscodeCard";
-import { useTheme } from "../../hooks/useTheme";
-import { THEME_PRESETS } from "../../lib/themes";
 import { getProfileSetting, setProfileSetting } from "../../lib/tauri/profile";
 import { useSingleClickPlay } from "../../hooks/useSingleClickPlay";
 import type { ViewId } from "../../types";
@@ -585,7 +589,6 @@ function SettingsViewContent({
   initialCategory,
 }: SettingsViewProps) {
   const { t, i18n } = useTranslation();
-  const { theme, setThemeId } = useTheme();
   const { libraries, rescanLibrary } = useLibrary();
   // Category tab the user is currently viewing. Persisted to
   // localStorage so re-entering Settings lands them on the same tab
@@ -2186,19 +2189,15 @@ function SettingsViewContent({
           {activeCategory === "general" && (
             <section
               aria-labelledby="settings-heading-general"
-              className="space-y-7"
+              className="settings-category"
             >
               <SettingsCategoryHeader category="general" />
-              <SettingsGroup
-                id="language"
-                title={t("settings.organization.groups.language")}
-                reveal={targetGroup === "language"}
-              >
-                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+              <SettingsGroup id="language" reveal={targetGroup === "language"}>
+                <div className="settings-row flex items-center justify-between">
                   <div className="flex items-center space-x-4">
                     <Globe
-                      size={20}
-                      className="text-zinc-400"
+                      size={16}
+                      className="settings-row-icon"
                       aria-hidden="true"
                     />
                     <div>
@@ -2218,16 +2217,12 @@ function SettingsViewContent({
                   />
                 </div>
               </SettingsGroup>
-              <SettingsGroup
-                id="startup"
-                title={t("settings.organization.groups.startup")}
-                reveal={targetGroup === "startup"}
-              >
-                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+              <SettingsGroup id="startup" reveal={targetGroup === "startup"}>
+                <div className="settings-row flex items-center justify-between">
                   <div className="flex items-center space-x-4">
                     <Power
-                      size={20}
-                      className="text-zinc-400"
+                      size={16}
+                      className="settings-row-icon"
                       aria-hidden="true"
                     />
                     <div>
@@ -2245,11 +2240,11 @@ function SettingsViewContent({
                     label={t("settings.autoStart.title")}
                   />
                 </div>
-                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                <div className="settings-row flex items-center justify-between">
                   <div className="flex items-center space-x-4">
                     <Minimize2
-                      size={20}
-                      className="text-zinc-400"
+                      size={16}
+                      className="settings-row-icon"
                       aria-hidden="true"
                     />
                     <div>
@@ -2267,11 +2262,11 @@ function SettingsViewContent({
                     label={t("settings.minimizeToTray.title")}
                   />
                 </div>
-                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                <div className="settings-row flex items-center justify-between">
                   <div className="flex items-center space-x-4">
                     <Bell
-                      size={20}
-                      className="text-zinc-400"
+                      size={16}
+                      className="settings-row-icon"
                       aria-hidden="true"
                     />
                     <div>
@@ -2290,24 +2285,815 @@ function SettingsViewContent({
                   />
                 </div>
               </SettingsGroup>
+              <SettingsGroup
+                id="listening"
+                reveal={targetGroup === "listening"}
+              >
+                <div className="settings-row flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <MousePointerClick
+                      size={16}
+                      className="settings-row-icon"
+                      aria-hidden="true"
+                    />
+                    <div>
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.singleClickPlay.title")}
+                      </div>
+                      <div className="text-xs settings-description">
+                        {t("settings.singleClickPlay.subtitle")}
+                      </div>
+                    </div>
+                  </div>
+                  <ToggleSwitch
+                    enabled={singleClickPlay}
+                    onToggle={handleToggleSingleClickPlay}
+                    label={t("settings.singleClickPlay.title")}
+                  />
+                </div>
+                <div className="settings-row flex items-center justify-between">
+                  <div className="flex items-center space-x-4 flex-1 min-w-0">
+                    <ListPlus
+                      size={16}
+                      className="settings-row-icon"
+                      aria-hidden="true"
+                    />
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.autoplay.title")}
+                      </div>
+                      <div className="text-xs settings-description">
+                        {t("settings.autoplay.subtitle")}
+                      </div>
+                    </div>
+                  </div>
+                  <ToggleSwitch
+                    enabled={autoplay}
+                    onToggle={() => void setAutoplay(!autoplay)}
+                    disabled={!autoplayResolved}
+                    label={t("settings.autoplay.title")}
+                  />
+                </div>
+                <div className="settings-row flex items-center justify-between">
+                  <div className="flex items-center space-x-4 flex-1 min-w-0">
+                    <Disc3
+                      size={16}
+                      className="settings-row-icon"
+                      aria-hidden="true"
+                    />
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.generatorAlbumMode.title")}
+                      </div>
+                      <div className="text-xs settings-description">
+                        {t("settings.generatorAlbumMode.subtitle")}
+                      </div>
+                    </div>
+                  </div>
+                  <ToggleSwitch
+                    enabled={generatorAlbumMode}
+                    onToggle={() =>
+                      void setGeneratorAlbumMode(!generatorAlbumMode)
+                    }
+                    disabled={!generatorAlbumModeResolved}
+                    label={t("settings.generatorAlbumMode.title")}
+                  />
+                </div>
+                <div className="settings-row flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <Coffee
+                      size={16}
+                      className="settings-row-icon"
+                      aria-hidden="true"
+                    />
+                    <div>
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.keepAwake.title")}
+                      </div>
+                      <div className="text-xs settings-description">
+                        {t("settings.keepAwake.subtitle")}
+                      </div>
+                    </div>
+                  </div>
+                  <ToggleSwitch
+                    enabled={keepAwake}
+                    onToggle={handleToggleKeepAwake}
+                    label={t("settings.keepAwake.title")}
+                  />
+                </div>
+              </SettingsGroup>
+            </section>
+          )}
+          {activeCategory === "appearance" && (
+            <section
+              aria-labelledby="settings-heading-appearance"
+              className="settings-category"
+            >
+              <SettingsCategoryHeader category="appearance" />
+              <SettingsGroup id="skin" reveal={targetGroup === "skin"}>
+                <SkinPickerCard />
+              </SettingsGroup>
+              <SettingsGroup id="theme" reveal={targetGroup === "theme"}>
+                <ThemePickerCard />
+                <AccentCard />
+              </SettingsGroup>
+              <SettingsGroup id="display" reveal={targetGroup === "display"}>
+                <ContrastCard />
+                <EffectsCard />
+                <div className="settings-row flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <ZoomIn
+                      size={16}
+                      className="settings-row-icon"
+                      aria-hidden="true"
+                    />
+                    <div>
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.uiZoom.title")}
+                      </div>
+                      <div className="text-xs settings-description">
+                        {t("settings.uiZoom.subtitle")}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      type="button"
+                      onClick={() => handleZoomDelta(-UI_ZOOM_STEP)}
+                      disabled={uiZoom <= UI_ZOOM_MIN + 1e-3}
+                      aria-label={t("settings.uiZoom.decreaseAria")}
+                      className="w-8 h-8 flex items-center justify-center rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed text-lg leading-none"
+                    >
+                      −
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleZoomReset}
+                      aria-label={t("settings.uiZoom.resetAria")}
+                      title={t("settings.uiZoom.resetAria")}
+                      className="min-w-14 px-2 h-8 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-sm font-mono tabular-nums"
+                    >
+                      {Math.round(uiZoom * 100)} %
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleZoomDelta(UI_ZOOM_STEP)}
+                      disabled={uiZoom >= UI_ZOOM_MAX - 1e-3}
+                      aria-label={t("settings.uiZoom.increaseAria")}
+                      className="w-8 h-8 flex items-center justify-center rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed text-lg leading-none"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              </SettingsGroup>
+              <SettingsGroup id="player" reveal={targetGroup === "player"}>
+                <PlayerBarLayoutCard />
+                <HiResBadgeCard />
+                <ScrollTitlesCard />
+              </SettingsGroup>
+              <SettingsGroup id="window" reveal={targetGroup === "window"}>
+                <WindowBoundsCard />
+                <MiniPlayerBoundsCard />
+                <WindowChromeCard />
+                <XwaylandCard />
+              </SettingsGroup>
+              <SettingsGroup
+                id="immersive"
+                reveal={targetGroup === "immersive"}
+              >
+                <ImmersiveViewCard />
+                <CoverSlideshowCard />
+                <MotionCoversCard />
+                <div className="settings-row flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <Activity
+                      size={16}
+                      className="settings-row-icon"
+                      aria-hidden="true"
+                    />
+                    <div>
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.visualizer.title")}
+                      </div>
+                      <div className="text-xs settings-description">
+                        {t("settings.visualizer.subtitle")}
+                      </div>
+                    </div>
+                  </div>
+                  <ToggleSwitch
+                    enabled={visualizer}
+                    onToggle={handleToggleVisualizer}
+                    disabled={!visualizerHydrated}
+                    label={t("settings.visualizer.title")}
+                  />
+                </div>
+              </SettingsGroup>
+              <SettingsGroup id="pages" reveal={targetGroup === "pages"}>
+                <ArtistHeroCard />
+                <StatsKpiVisibilityCard />
+                <WrappedBannerCard />
+              </SettingsGroup>
+            </section>
+          )}
+          {activeCategory === "playback" && (
+            <section
+              aria-labelledby="settings-heading-playback"
+              className="settings-category"
+            >
+              <SettingsCategoryHeader category="playback" />
+              <SettingsGroup id="output" reveal={targetGroup === "output"}>
+                <ExclusiveModeCard />
+                {dopPlatformSupported && (
+                  <div className="settings-row flex items-center justify-between">
+                    <div className="flex items-center space-x-4 min-w-0">
+                      <AudioWaveform
+                        size={16}
+                        className="settings-row-icon"
+                        aria-hidden="true"
+                      />
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                          {t("settings.dsdDop.title")}
+                        </div>
+                        <div className="text-xs settings-description">
+                          {t("settings.dsdDop.subtitle")}
+                        </div>
+                      </div>
+                    </div>
+                    <ToggleSwitch
+                      enabled={dsdDop}
+                      onToggle={handleToggleDsdDop}
+                      label={t("settings.dsdDop.title")}
+                    />
+                  </div>
+                )}
+                <div className="settings-block">
+                  <div className="flex items-center space-x-4 min-w-0">
+                    <AudioWaveform
+                      size={16}
+                      className="settings-row-icon"
+                      aria-hidden="true"
+                    />
+                    <div className="min-w-0">
+                      <div
+                        id="settings-dsd-precision-label"
+                        className="text-sm font-medium text-zinc-900 dark:text-white"
+                      >
+                        {t("settings.dsdPrecision.title")}
+                      </div>
+                      <div className="text-xs settings-description">
+                        {t("settings.dsdPrecision.subtitle")}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <SettingsChoiceCards
+                      compact
+                      minWidth={8}
+                      labelledBy="settings-dsd-precision-label"
+                      value={dsdTaps}
+                      onChange={(taps) => handleSetDsdPrecision(taps)}
+                      choices={DSD_PRECISION_TAPS.map((taps, index) => ({
+                        value: taps,
+                        label:
+                          taps === 256
+                            ? t("settings.dsdPrecision.standard")
+                            : taps === 1024
+                              ? t("settings.dsdPrecision.high")
+                              : t("settings.dsdPrecision.max"),
+                        // "Taps: 1024" rather than "1024 taps": no plural to agree.
+                        hint: t("settings.dsdPrecision.tapsValue", {
+                          value: taps,
+                        }),
+                        preview: (
+                          <PrecisionBars
+                            level={index + 2}
+                            of={DSD_PRECISION_TAPS.length + 1}
+                          />
+                        ),
+                      }))}
+                    />
+                  </div>
+                </div>
+                <div className="settings-row flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <Unplug
+                      size={16}
+                      className="settings-row-icon"
+                      aria-hidden="true"
+                    />
+                    <div>
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.pauseOnDeviceLoss.title")}
+                      </div>
+                      <div className="text-xs settings-description">
+                        {t("settings.pauseOnDeviceLoss.subtitle")}
+                      </div>
+                    </div>
+                  </div>
+                  <ToggleSwitch
+                    enabled={pauseOnDeviceLoss}
+                    onToggle={handleTogglePauseOnDeviceLoss}
+                    label={t("settings.pauseOnDeviceLoss.title")}
+                  />
+                </div>
+                <TestToneCard />
+              </SettingsGroup>
+              <SettingsGroup
+                id="transitions"
+                reveal={targetGroup === "transitions"}
+              >
+                <div className="settings-row flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <ChevronsRight
+                      size={16}
+                      className="settings-row-icon"
+                      aria-hidden="true"
+                    />
+                    <div>
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.gapless.title")}
+                      </div>
+                      <div className="text-xs settings-description">
+                        {t("settings.gapless.subtitle")}
+                      </div>
+                    </div>
+                  </div>
+                  <ToggleSwitch
+                    enabled={gapless}
+                    onToggle={handleToggleGapless}
+                    label={t("settings.gapless.title")}
+                  />
+                </div>
+                <div className="settings-row flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <Shuffle
+                      size={16}
+                      className="settings-row-icon"
+                      aria-hidden="true"
+                    />
+                    <div>
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.crossfade.title")}
+                      </div>
+                      <div className="text-xs settings-description">
+                        {t("settings.crossfade.subtitle")}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <CrossfadePreview seconds={crossfadeSec} max={12} />
+                    <input
+                      type="range"
+                      min={0}
+                      max={12}
+                      step={1}
+                      value={crossfadeSec}
+                      onChange={(e) =>
+                        handleCrossfadeChange(Number(e.target.value))
+                      }
+                      className="w-32 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-emerald-500 cursor-pointer"
+                      aria-label={t("settings.crossfade.title")}
+                    />
+                    <span className="text-sm font-medium text-zinc-500 w-10 text-right tabular-nums">
+                      {crossfadeSec} s
+                    </span>
+                  </div>
+                </div>
+                <div className="settings-dependent">
+                  <div className="settings-row flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                      <Sparkles
+                        size={16}
+                        className="settings-row-icon"
+                        aria-hidden="true"
+                      />
+                      <div>
+                        <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                          {t("settings.smartCrossfade.title")}
+                        </div>
+                        <div className="text-xs settings-description">
+                          {t("settings.smartCrossfade.subtitle")}
+                        </div>
+                      </div>
+                    </div>
+                    <ToggleSwitch
+                      enabled={smartCrossfade}
+                      onToggle={handleToggleSmartCrossfade}
+                      disabled={!smartCrossfadeHydrated}
+                      label={t("settings.smartCrossfade.title")}
+                    />
+                  </div>
+                  <div className="settings-row flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                      <Gauge
+                        size={16}
+                        className="settings-row-icon"
+                        aria-hidden="true"
+                      />
+                      <div>
+                        <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                          {t("settings.dynamicCrossfade.title")}
+                        </div>
+                        <div className="text-xs settings-description">
+                          {t("settings.dynamicCrossfade.subtitle")}
+                        </div>
+                      </div>
+                    </div>
+                    <ToggleSwitch
+                      enabled={dynamicCrossfade}
+                      onToggle={handleToggleDynamicCrossfade}
+                      disabled={!dynamicCrossfadeHydrated}
+                      label={t("settings.dynamicCrossfade.title")}
+                    />
+                  </div>
+                </div>
+              </SettingsGroup>
+              <SettingsGroup id="volume" reveal={targetGroup === "volume"}>
+                <div className="settings-row flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <Volume2
+                      size={16}
+                      className="settings-row-icon"
+                      aria-hidden="true"
+                    />
+                    <div>
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.normalize.title")}
+                      </div>
+                      <div className="text-xs settings-description">
+                        {t("settings.normalize.subtitle")}
+                      </div>
+                    </div>
+                  </div>
+                  <ToggleSwitch
+                    enabled={normalize}
+                    onToggle={handleToggleNormalize}
+                    label={t("settings.normalize.title")}
+                  />
+                </div>
+                <div className="settings-row flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <Volume2
+                      size={16}
+                      className="settings-row-icon"
+                      aria-hidden="true"
+                    />
+                    <div>
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.replayGain.title")}
+                      </div>
+                      <div className="text-xs settings-description">
+                        {t("settings.replayGain.subtitle")}
+                      </div>
+                    </div>
+                  </div>
+                  <ToggleSwitch
+                    enabled={replayGain}
+                    onToggle={handleToggleReplayGain}
+                    label={t("settings.replayGain.title")}
+                  />
+                </div>
+                {replayGain && (
+                  <div className="settings-dependent">
+                    {/* Pre-amp */}
+                    <div className="settings-row flex items-center justify-between">
+                      <div>
+                        <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                          {t("settings.replayGain.preamp.title")}
+                        </div>
+                        <div className="text-xs settings-description">
+                          {t("settings.replayGain.preamp.subtitle")}
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <input
+                          type="range"
+                          min={-REPLAYGAIN_ADJUST_LIMIT_DB}
+                          max={REPLAYGAIN_ADJUST_LIMIT_DB}
+                          step={0.5}
+                          value={replayGainPreamp}
+                          onChange={(e) =>
+                            handleReplayGainPreampChange(Number(e.target.value))
+                          }
+                          className="w-32 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-emerald-500 cursor-pointer"
+                          aria-label={t("settings.replayGain.preamp.title")}
+                        />
+                        <span className="text-sm font-medium text-zinc-500 w-16 text-right tabular-nums">
+                          {t("settings.replayGain.decibels", {
+                            value: replayGainPreamp.toFixed(1),
+                          })}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Fallback gain for untagged, unanalysed tracks */}
+                    <div className="settings-row flex items-center justify-between">
+                      <div>
+                        <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                          {t("settings.replayGain.fallback.title")}
+                        </div>
+                        <div className="text-xs settings-description">
+                          {t("settings.replayGain.fallback.subtitle")}
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <input
+                          type="range"
+                          min={-REPLAYGAIN_ADJUST_LIMIT_DB}
+                          max={REPLAYGAIN_ADJUST_LIMIT_DB}
+                          step={0.5}
+                          value={replayGainFallback}
+                          onChange={(e) =>
+                            handleReplayGainFallbackChange(
+                              Number(e.target.value),
+                            )
+                          }
+                          className="w-32 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-emerald-500 cursor-pointer"
+                          aria-label={t("settings.replayGain.fallback.title")}
+                        />
+                        <span className="text-sm font-medium text-zinc-500 w-16 text-right tabular-nums">
+                          {t("settings.replayGain.decibels", {
+                            value: replayGainFallback.toFixed(1),
+                          })}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Track gain vs album gain (#587) */}
+                    <div className="settings-block">
+                      <div
+                        id="settings-replaygain-mode-label"
+                        className="text-sm font-medium text-zinc-900 dark:text-white"
+                      >
+                        {t("settings.replayGain.mode.title")}
+                      </div>
+                      <div className="mt-3">
+                        <SettingsChoiceCards
+                          compact
+                          minWidth={9}
+                          labelledBy="settings-replaygain-mode-label"
+                          value={replayGainMode}
+                          onChange={(mode) => handleReplayGainModeChange(mode)}
+                          choices={REPLAYGAIN_MODES.map((mode) => ({
+                            value: mode,
+                            label: t(`settings.replayGain.mode.${mode}`),
+                            hint: t(`settings.replayGain.mode.${mode}Hint`),
+                            preview: <ReplayGainPreview mode={mode} />,
+                          }))}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Clipping prevention */}
+                    <div className="settings-row flex items-center justify-between">
+                      <div>
+                        <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                          {t("settings.replayGain.preventClipping.title")}
+                        </div>
+                        <div className="text-xs settings-description">
+                          {t("settings.replayGain.preventClipping.subtitle")}
+                        </div>
+                      </div>
+                      <ToggleSwitch
+                        enabled={replayGainPreventClipping}
+                        onToggle={handleToggleReplayGainPreventClipping}
+                        label={t("settings.replayGain.preventClipping.title")}
+                      />
+                    </div>
+                  </div>
+                )}
+              </SettingsGroup>
+              <SettingsGroup
+                id="equalizer"
+                bare
+                reveal={targetGroup === "equalizer"}
+              >
+                <EqualizerCard />
+              </SettingsGroup>
+              <SettingsGroup id="stereo" reveal={targetGroup === "stereo"}>
+                <StereoImageCard />
+              </SettingsGroup>
+              <SettingsGroup
+                id="outputAdvanced"
+                advanced
+                reveal={targetGroup === "outputAdvanced"}
+              >
+                <div className="settings-row flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <Gauge
+                      size={16}
+                      className="settings-row-icon"
+                      aria-hidden="true"
+                    />
+                    <div>
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.matchSourceRate.title")}
+                      </div>
+                      <div className="text-xs settings-description">
+                        {t("settings.matchSourceRate.subtitle")}
+                      </div>
+                    </div>
+                  </div>
+                  <ToggleSwitch
+                    enabled={matchSourceRate}
+                    onToggle={handleToggleMatchSourceRate}
+                    label={t("settings.matchSourceRate.title")}
+                  />
+                </div>
+                <div className="settings-row flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <Headphones
+                      size={16}
+                      className="settings-row-icon"
+                      aria-hidden="true"
+                    />
+                    <div>
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.mono.title")}
+                      </div>
+                      <div className="text-xs settings-description">
+                        {t("settings.mono.subtitle")}
+                      </div>
+                    </div>
+                  </div>
+                  <ToggleSwitch
+                    enabled={mono}
+                    onToggle={handleToggleMono}
+                    label={t("settings.mono.title")}
+                  />
+                </div>
+              </SettingsGroup>
+            </section>
+          )}
+          {activeCategory === "media" && (
+            <section
+              aria-labelledby="settings-heading-media"
+              className="settings-category"
+            >
+              <SettingsCategoryHeader category="media" />
+              <SettingsGroup id="lyrics" reveal={targetGroup === "lyrics"}>
+                <LyricsDestinationCard />
+                <div className="settings-row flex items-center justify-between">
+                  <div className="flex items-center space-x-4 flex-1 min-w-0">
+                    <Mic2
+                      size={16}
+                      className="settings-row-icon"
+                      aria-hidden="true"
+                    />
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.lyricsPrefetch.title")}
+                      </div>
+                      {lyricsPrefetchProgress && isPrefetchingLyrics ? (
+                        <div className="text-xs text-zinc-500 mt-1 truncate">
+                          {t("settings.lyricsPrefetch.progress", {
+                            current: lyricsPrefetchProgress.processed,
+                            total: lyricsPrefetchProgress.total,
+                            hits: lyricsPrefetchProgress.hits,
+                          })}
+                          {lyricsPrefetchProgress.currentTitle
+                            ? ` — ${lyricsPrefetchProgress.currentTitle}`
+                            : ""}
+                        </div>
+                      ) : lyricsResultMsg ? (
+                        <div className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 truncate">
+                          {lyricsResultMsg}
+                        </div>
+                      ) : (
+                        <div className="text-xs settings-description">
+                          {t("settings.lyricsPrefetch.subtitle")}
+                        </div>
+                      )}
+                      {lyricsPrefetchProgress &&
+                        lyricsPrefetchProgress.total > 0 && (
+                          <div className="mt-2 h-1.5 w-full max-w-xs rounded-full bg-zinc-200 dark:bg-zinc-700 overflow-hidden">
+                            <div
+                              className="h-full bg-emerald-500 transition-all"
+                              style={{
+                                width: `${Math.min(100, (lyricsPrefetchProgress.processed / lyricsPrefetchProgress.total) * 100)}%`,
+                              }}
+                            />
+                          </div>
+                        )}
+                    </div>
+                  </div>
+                  {isPrefetchingLyrics ? (
+                    <button
+                      type="button"
+                      onClick={handleCancelPrefetchLyrics}
+                      className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                    >
+                      <span>{t("common.cancel")}</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handlePrefetchLyrics}
+                      className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Mic2 size={14} aria-hidden="true" />
+                      <span>{t("settings.lyricsPrefetch.action")}</span>
+                    </button>
+                  )}
+                </div>
+                <div className="settings-row flex items-center justify-between">
+                  <div className="flex items-center space-x-4 flex-1 min-w-0">
+                    <Mic2
+                      size={16}
+                      className="settings-row-icon"
+                      aria-hidden="true"
+                    />
+                    <div className="min-w-0">
+                      <label
+                        htmlFor="lyrics-translation-lang-select"
+                        className="text-sm font-medium text-zinc-900 dark:text-white"
+                      >
+                        {t("settings.lyricsTranslation.title")}
+                      </label>
+                      <div className="text-xs settings-description">
+                        {t("settings.lyricsTranslation.subtitle")}
+                      </div>
+                    </div>
+                  </div>
+                  <select
+                    id="lyrics-translation-lang-select"
+                    value={translationLang ?? ""}
+                    disabled={translationLangBusy}
+                    onChange={(e) =>
+                      void handleTranslationLangChange(e.target.value)
+                    }
+                    className="shrink-0 px-3 py-2 rounded-xl border border-zinc-200 bg-white text-sm text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {TRANSLATION_LANG_OPTIONS.map((opt) =>
+                      opt.value === "" ? (
+                        <option key="off" value="">
+                          {t("settings.lyricsTranslation.off")}
+                        </option>
+                      ) : (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ),
+                    )}
+                  </select>
+                </div>
+                <div className="settings-row flex items-center justify-between">
+                  <div className="flex items-center space-x-4 flex-1 min-w-0">
+                    <Globe
+                      size={16}
+                      className="settings-row-icon"
+                      aria-hidden="true"
+                    />
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                        {t("settings.lyricsPreferLrclib.title")}
+                      </div>
+                      <div className="text-xs settings-description">
+                        {t("settings.lyricsPreferLrclib.subtitle")}
+                      </div>
+                    </div>
+                  </div>
+                  <ToggleSwitch
+                    enabled={preferLrclib}
+                    onToggle={() => void handlePreferLrclibToggle()}
+                    disabled={preferLrclibBusy}
+                    label={t("settings.lyricsPreferLrclib.title")}
+                  />
+                </div>
+                <LyricsProvidersCard />
+                <LyricsExcludedGenresCard />
+              </SettingsGroup>
+              <SettingsGroup
+                id="lyricsDisplay"
+                reveal={targetGroup === "lyricsDisplay"}
+              >
+                <FullscreenLyricsCenteringCard />
+                <EstimatedKaraokeCard />
+                <HeldNoteGlowCard />
+                <LyricsHighlightColorCard />
+              </SettingsGroup>
+              <SettingsGroup
+                id="desktopLyrics"
+                reveal={targetGroup === "desktopLyrics"}
+              >
+                <DesktopLyricsCard />
+              </SettingsGroup>
             </section>
           )}
           {activeCategory === "library" && (
             <section
               aria-labelledby="settings-heading-library"
-              className="space-y-7"
+              className="settings-category"
             >
               <SettingsCategoryHeader category="library" />
-              <SettingsGroup
-                id="scanning"
-                title={t("settings.organization.groups.scanning")}
-                reveal={targetGroup === "scanning"}
-              >
-                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+              <SettingsGroup id="scanning" reveal={targetGroup === "scanning"}>
+                <div className="settings-row flex items-center justify-between">
                   <div className="flex items-center space-x-4">
                     <ScanLine
-                      size={20}
-                      className="text-zinc-400"
+                      size={16}
+                      className="settings-row-icon"
                       aria-hidden="true"
                     />
                     <div>
@@ -2325,11 +3111,11 @@ function SettingsViewContent({
                     label={t("settings.scanOnStart.title")}
                   />
                 </div>
-                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                <div className="settings-row flex items-center justify-between">
                   <div className="flex items-center space-x-4">
                     <ArrowDownAZ
-                      size={20}
-                      className="text-zinc-400"
+                      size={16}
+                      className="settings-row-icon"
                       aria-hidden="true"
                     />
                     <div>
@@ -2348,11 +3134,11 @@ function SettingsViewContent({
                     disabled={savingIgnoreArticles}
                   />
                 </div>
-                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                <div className="settings-row flex items-center justify-between">
                   <div className="flex items-center space-x-4">
                     <RefreshCcw
-                      size={20}
-                      className="text-zinc-400"
+                      size={16}
+                      className="settings-row-icon"
                       aria-hidden="true"
                     />
                     <div>
@@ -2382,11 +3168,11 @@ function SettingsViewContent({
                     <span>{t("settings.rescan.action")}</span>
                   </button>
                 </div>
-                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                <div className="settings-row flex items-center justify-between">
                   <div className="flex items-center space-x-4">
                     <Copy
-                      size={20}
-                      className="text-zinc-400"
+                      size={16}
+                      className="settings-row-icon"
                       aria-hidden="true"
                     />
                     <div>
@@ -2408,17 +3194,13 @@ function SettingsViewContent({
                   </button>
                 </div>
               </SettingsGroup>
-              <SettingsGroup
-                id="analysis"
-                title={t("settings.organization.groups.analysis")}
-                reveal={targetGroup === "analysis"}
-              >
-                <div className="settings-block py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+              <SettingsGroup id="analysis" reveal={targetGroup === "analysis"}>
+                <div className="settings-block">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
                       <Sparkles
-                        size={20}
-                        className="text-zinc-400"
+                        size={16}
+                        className="settings-row-icon"
                         aria-hidden="true"
                       />
                       <div>
@@ -2527,789 +3309,12 @@ function SettingsViewContent({
                   )}
                 </div>
               </SettingsGroup>
-              <SettingsGroup
-                id="radio"
-                title={t("settings.organization.groups.radio")}
-                reveal={targetGroup === "radio"}
-              >
-                <RadioCatalogueCard
-                  language={i18n.resolvedLanguage ?? i18n.language}
-                />
-              </SettingsGroup>
-            </section>
-          )}
-          {activeCategory === "playback" && (
-            <section
-              aria-labelledby="settings-heading-playback"
-              className="space-y-7"
-            >
-              <SettingsCategoryHeader category="playback" />
-              <SettingsGroup
-                id="transitions"
-                title={t("settings.organization.groups.transitions")}
-                reveal={targetGroup === "transitions"}
-              >
-                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-                  <div className="flex items-center space-x-4">
-                    <ChevronsRight
-                      size={20}
-                      className="text-zinc-400"
-                      aria-hidden="true"
-                    />
-                    <div>
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.gapless.title")}
-                      </div>
-                      <div className="text-xs settings-description">
-                        {t("settings.gapless.subtitle")}
-                      </div>
-                    </div>
-                  </div>
-                  <ToggleSwitch
-                    enabled={gapless}
-                    onToggle={handleToggleGapless}
-                    label={t("settings.gapless.title")}
-                  />
-                </div>
-                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-                  <div className="flex items-center space-x-4">
-                    <Shuffle
-                      size={20}
-                      className="text-zinc-400"
-                      aria-hidden="true"
-                    />
-                    <div>
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.crossfade.title")}
-                      </div>
-                      <div className="text-xs settings-description">
-                        {t("settings.crossfade.subtitle")}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <input
-                      type="range"
-                      min={0}
-                      max={12}
-                      step={1}
-                      value={crossfadeSec}
-                      onChange={(e) =>
-                        handleCrossfadeChange(Number(e.target.value))
-                      }
-                      className="w-32 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-emerald-500 cursor-pointer"
-                      aria-label={t("settings.crossfade.title")}
-                    />
-                    <span className="text-sm font-medium text-zinc-500 w-10 text-right tabular-nums">
-                      {crossfadeSec} s
-                    </span>
-                  </div>
-                </div>
-                <div className="settings-dependent ms-4 border-s border-zinc-200 ps-3 dark:border-zinc-800">
-                  <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-                    <div className="flex items-center space-x-4">
-                      <Sparkles
-                        size={20}
-                        className="text-zinc-400"
-                        aria-hidden="true"
-                      />
-                      <div>
-                        <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                          {t("settings.smartCrossfade.title")}
-                        </div>
-                        <div className="text-xs settings-description">
-                          {t("settings.smartCrossfade.subtitle")}
-                        </div>
-                      </div>
-                    </div>
-                    <ToggleSwitch
-                      enabled={smartCrossfade}
-                      onToggle={handleToggleSmartCrossfade}
-                      disabled={!smartCrossfadeHydrated}
-                      label={t("settings.smartCrossfade.title")}
-                    />
-                  </div>
-                  <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-                    <div className="flex items-center space-x-4">
-                      <Gauge
-                        size={20}
-                        className="text-zinc-400"
-                        aria-hidden="true"
-                      />
-                      <div>
-                        <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                          {t("settings.dynamicCrossfade.title")}
-                        </div>
-                        <div className="text-xs settings-description">
-                          {t("settings.dynamicCrossfade.subtitle")}
-                        </div>
-                      </div>
-                    </div>
-                    <ToggleSwitch
-                      enabled={dynamicCrossfade}
-                      onToggle={handleToggleDynamicCrossfade}
-                      disabled={!dynamicCrossfadeHydrated}
-                      label={t("settings.dynamicCrossfade.title")}
-                    />
-                  </div>
-                </div>
-              </SettingsGroup>
-              <SettingsGroup
-                id="listening"
-                title={t("settings.organization.groups.listening")}
-                reveal={targetGroup === "listening"}
-              >
-                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-                  <div className="flex items-center space-x-4">
-                    <MousePointerClick
-                      size={20}
-                      className="text-zinc-400"
-                      aria-hidden="true"
-                    />
-                    <div>
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.singleClickPlay.title")}
-                      </div>
-                      <div className="text-xs settings-description">
-                        {t("settings.singleClickPlay.subtitle")}
-                      </div>
-                    </div>
-                  </div>
-                  <ToggleSwitch
-                    enabled={singleClickPlay}
-                    onToggle={handleToggleSingleClickPlay}
-                    label={t("settings.singleClickPlay.title")}
-                  />
-                </div>
-                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-                  <div className="flex items-center space-x-4 flex-1 min-w-0">
-                    <ListPlus
-                      size={20}
-                      className="text-zinc-400 shrink-0"
-                      aria-hidden="true"
-                    />
-                    <div className="min-w-0">
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.autoplay.title")}
-                      </div>
-                      <div className="text-xs settings-description">
-                        {t("settings.autoplay.subtitle")}
-                      </div>
-                    </div>
-                  </div>
-                  <ToggleSwitch
-                    enabled={autoplay}
-                    onToggle={() => void setAutoplay(!autoplay)}
-                    disabled={!autoplayResolved}
-                    label={t("settings.autoplay.title")}
-                  />
-                </div>
-                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-                  <div className="flex items-center space-x-4 flex-1 min-w-0">
-                    <Disc3
-                      size={20}
-                      className="text-zinc-400 shrink-0"
-                      aria-hidden="true"
-                    />
-                    <div className="min-w-0">
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.generatorAlbumMode.title")}
-                      </div>
-                      <div className="text-xs settings-description">
-                        {t("settings.generatorAlbumMode.subtitle")}
-                      </div>
-                    </div>
-                  </div>
-                  <ToggleSwitch
-                    enabled={generatorAlbumMode}
-                    onToggle={() =>
-                      void setGeneratorAlbumMode(!generatorAlbumMode)
-                    }
-                    disabled={!generatorAlbumModeResolved}
-                    label={t("settings.generatorAlbumMode.title")}
-                  />
-                </div>
-                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-                  <div className="flex items-center space-x-4">
-                    <Unplug
-                      size={20}
-                      className="text-zinc-400"
-                      aria-hidden="true"
-                    />
-                    <div>
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.pauseOnDeviceLoss.title")}
-                      </div>
-                      <div className="text-xs settings-description">
-                        {t("settings.pauseOnDeviceLoss.subtitle")}
-                      </div>
-                    </div>
-                  </div>
-                  <ToggleSwitch
-                    enabled={pauseOnDeviceLoss}
-                    onToggle={handleTogglePauseOnDeviceLoss}
-                    label={t("settings.pauseOnDeviceLoss.title")}
-                  />
-                </div>
-                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-                  <div className="flex items-center space-x-4">
-                    <Coffee
-                      size={20}
-                      className="text-zinc-400"
-                      aria-hidden="true"
-                    />
-                    <div>
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.keepAwake.title")}
-                      </div>
-                      <div className="text-xs settings-description">
-                        {t("settings.keepAwake.subtitle")}
-                      </div>
-                    </div>
-                  </div>
-                  <ToggleSwitch
-                    enabled={keepAwake}
-                    onToggle={handleToggleKeepAwake}
-                    label={t("settings.keepAwake.title")}
-                  />
-                </div>
-              </SettingsGroup>
-              <SettingsGroup
-                id="volume"
-                title={t("settings.organization.groups.volume")}
-                reveal={targetGroup === "volume"}
-              >
-                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-                  <div className="flex items-center space-x-4">
-                    <Volume2
-                      size={20}
-                      className="text-zinc-400"
-                      aria-hidden="true"
-                    />
-                    <div>
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.normalize.title")}
-                      </div>
-                      <div className="text-xs settings-description">
-                        {t("settings.normalize.subtitle")}
-                      </div>
-                    </div>
-                  </div>
-                  <ToggleSwitch
-                    enabled={normalize}
-                    onToggle={handleToggleNormalize}
-                    label={t("settings.normalize.title")}
-                  />
-                </div>
-                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-                  <div className="flex items-center space-x-4">
-                    <Volume2
-                      size={20}
-                      className="text-zinc-400"
-                      aria-hidden="true"
-                    />
-                    <div>
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.replayGain.title")}
-                      </div>
-                      <div className="text-xs settings-description">
-                        {t("settings.replayGain.subtitle")}
-                      </div>
-                    </div>
-                  </div>
-                  <ToggleSwitch
-                    enabled={replayGain}
-                    onToggle={handleToggleReplayGain}
-                    label={t("settings.replayGain.title")}
-                  />
-                </div>
-                {replayGain && (
-                  <div className="ml-9 pl-5 border-l border-zinc-200 dark:border-zinc-700/60">
-                    {/* Pre-amp */}
-                    <div className="flex items-center justify-between py-4 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-                      <div>
-                        <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                          {t("settings.replayGain.preamp.title")}
-                        </div>
-                        <div className="text-xs settings-description">
-                          {t("settings.replayGain.preamp.subtitle")}
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-3">
-                        <input
-                          type="range"
-                          min={-REPLAYGAIN_ADJUST_LIMIT_DB}
-                          max={REPLAYGAIN_ADJUST_LIMIT_DB}
-                          step={0.5}
-                          value={replayGainPreamp}
-                          onChange={(e) =>
-                            handleReplayGainPreampChange(Number(e.target.value))
-                          }
-                          className="w-32 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-emerald-500 cursor-pointer"
-                          aria-label={t("settings.replayGain.preamp.title")}
-                        />
-                        <span className="text-sm font-medium text-zinc-500 w-16 text-right tabular-nums">
-                          {t("settings.replayGain.decibels", {
-                            value: replayGainPreamp.toFixed(1),
-                          })}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Fallback gain for untagged, unanalysed tracks */}
-                    <div className="flex items-center justify-between py-4 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-                      <div>
-                        <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                          {t("settings.replayGain.fallback.title")}
-                        </div>
-                        <div className="text-xs settings-description">
-                          {t("settings.replayGain.fallback.subtitle")}
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-3">
-                        <input
-                          type="range"
-                          min={-REPLAYGAIN_ADJUST_LIMIT_DB}
-                          max={REPLAYGAIN_ADJUST_LIMIT_DB}
-                          step={0.5}
-                          value={replayGainFallback}
-                          onChange={(e) =>
-                            handleReplayGainFallbackChange(
-                              Number(e.target.value),
-                            )
-                          }
-                          className="w-32 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-emerald-500 cursor-pointer"
-                          aria-label={t("settings.replayGain.fallback.title")}
-                        />
-                        <span className="text-sm font-medium text-zinc-500 w-16 text-right tabular-nums">
-                          {t("settings.replayGain.decibels", {
-                            value: replayGainFallback.toFixed(1),
-                          })}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Track gain vs album gain (#587) */}
-                    <div className="flex items-center justify-between py-4 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-                      <div className="min-w-0">
-                        <label
-                          htmlFor="replaygain-mode-select"
-                          className="text-sm font-medium text-zinc-900 dark:text-white"
-                        >
-                          {t("settings.replayGain.mode.title")}
-                        </label>
-                        <div className="text-xs settings-description">
-                          {t(`settings.replayGain.mode.${replayGainMode}Hint`)}
-                        </div>
-                      </div>
-                      <select
-                        id="replaygain-mode-select"
-                        value={replayGainMode}
-                        onChange={(e) =>
-                          handleReplayGainModeChange(
-                            e.target.value as ReplayGainMode,
-                          )
-                        }
-                        className="shrink-0 px-3 py-2 rounded-xl border border-zinc-200 bg-white text-sm text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
-                      >
-                        {REPLAYGAIN_MODES.map((mode) => (
-                          <option key={mode} value={mode}>
-                            {t(`settings.replayGain.mode.${mode}`)}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Clipping prevention */}
-                    <div className="flex items-center justify-between py-4 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-                      <div>
-                        <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                          {t("settings.replayGain.preventClipping.title")}
-                        </div>
-                        <div className="text-xs settings-description">
-                          {t("settings.replayGain.preventClipping.subtitle")}
-                        </div>
-                      </div>
-                      <ToggleSwitch
-                        enabled={replayGainPreventClipping}
-                        onToggle={handleToggleReplayGainPreventClipping}
-                        label={t("settings.replayGain.preventClipping.title")}
-                      />
-                    </div>
-                  </div>
-                )}
-              </SettingsGroup>
-              <SettingsGroup
-                id="equalizer"
-                title={t("settings.organization.groups.equalizer")}
-                reveal={targetGroup === "equalizer"}
-              >
-                <div className="px-4">
-                  <EqualizerCard />
-                </div>
-              </SettingsGroup>
-              <SettingsGroup
-                id="stereo"
-                title={t("settings.organization.groups.stereo")}
-                reveal={targetGroup === "stereo"}
-              >
-                <StereoImageCard />
-              </SettingsGroup>
-              <SettingsGroup
-                id="output"
-                title={t("settings.organization.groups.output")}
-                advanced
-                reveal={targetGroup === "output"}
-              >
-                <ExclusiveModeCard />
-                <TestToneCard />
-                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-                  <div className="flex items-center space-x-4">
-                    <Gauge
-                      size={20}
-                      className="text-zinc-400"
-                      aria-hidden="true"
-                    />
-                    <div>
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.matchSourceRate.title")}
-                      </div>
-                      <div className="text-xs settings-description">
-                        {t("settings.matchSourceRate.subtitle")}
-                      </div>
-                    </div>
-                  </div>
-                  <ToggleSwitch
-                    enabled={matchSourceRate}
-                    onToggle={handleToggleMatchSourceRate}
-                    label={t("settings.matchSourceRate.title")}
-                  />
-                </div>
-                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-                  <div className="flex items-center space-x-4">
-                    <Headphones
-                      size={20}
-                      className="text-zinc-400"
-                      aria-hidden="true"
-                    />
-                    <div>
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.mono.title")}
-                      </div>
-                      <div className="text-xs settings-description">
-                        {t("settings.mono.subtitle")}
-                      </div>
-                    </div>
-                  </div>
-                  <ToggleSwitch
-                    enabled={mono}
-                    onToggle={handleToggleMono}
-                    label={t("settings.mono.title")}
-                  />
-                </div>
-                <div className="settings-block py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-center space-x-4 min-w-0">
-                      <AudioWaveform
-                        size={20}
-                        className="text-zinc-400 shrink-0"
-                        aria-hidden="true"
-                      />
-                      <div className="min-w-0">
-                        <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                          {t("settings.dsdPrecision.title")}
-                        </div>
-                        <div className="text-xs settings-description">
-                          {t("settings.dsdPrecision.subtitle")}
-                        </div>
-                      </div>
-                    </div>
-                    <div
-                      className="flex items-center rounded-lg bg-zinc-100 dark:bg-zinc-800 p-0.5 shrink-0"
-                      role="group"
-                      aria-label={t("settings.dsdPrecision.title")}
-                    >
-                      {DSD_PRECISION_TAPS.map((taps) => {
-                        const active = dsdTaps === taps;
-                        const label =
-                          taps === 256
-                            ? t("settings.dsdPrecision.standard")
-                            : taps === 1024
-                              ? t("settings.dsdPrecision.high")
-                              : t("settings.dsdPrecision.max");
-                        return (
-                          <button
-                            key={taps}
-                            type="button"
-                            onClick={() => handleSetDsdPrecision(taps)}
-                            aria-pressed={active}
-                            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                              active
-                                ? "bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm"
-                                : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
-                            }`}
-                          >
-                            {label}
-                            <span className="ml-1 text-[10px] tabular-nums opacity-60">
-                              {taps}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-                {dopPlatformSupported && (
-                  <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-                    <div className="flex items-center space-x-4 min-w-0">
-                      <AudioWaveform
-                        size={20}
-                        className="text-zinc-400 shrink-0"
-                        aria-hidden="true"
-                      />
-                      <div className="min-w-0">
-                        <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                          {t("settings.dsdDop.title")}
-                        </div>
-                        <div className="text-xs settings-description">
-                          {t("settings.dsdDop.subtitle")}
-                        </div>
-                      </div>
-                    </div>
-                    <ToggleSwitch
-                      enabled={dsdDop}
-                      onToggle={handleToggleDsdDop}
-                      label={t("settings.dsdDop.title")}
-                    />
-                  </div>
-                )}
-              </SettingsGroup>
-            </section>
-          )}
-          {activeCategory === "appearance" && (
-            <section
-              aria-labelledby="settings-heading-appearance"
-              className="space-y-7"
-            >
-              <SettingsCategoryHeader category="appearance" />
-              <SettingsGroup
-                id="theme"
-                title={t("settings.organization.groups.theme")}
-                reveal={targetGroup === "theme"}
-              >
-                {/* The skin first: it decides more of what the page looks
-                    like than the theme does, and it is what a new profile
-                    is most likely to come here for. */}
-                <SkinPickerCard />
-                <div className="px-4 py-3">
-                  <div className="flex items-center space-x-4 mb-4">
-                    <Palette
-                      size={20}
-                      className="text-zinc-400"
-                      aria-hidden="true"
-                    />
-                    <div>
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.appearance.theme.title")}
-                      </div>
-                      <div className="text-xs settings-description">
-                        {t("settings.appearance.theme.subtitle")}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-                    {THEME_PRESETS.map((preset) => {
-                      const isActive = preset.id === theme.id;
-                      return (
-                        <button
-                          key={preset.id}
-                          type="button"
-                          onClick={(event) => setThemeId(preset.id, event)}
-                          aria-pressed={isActive}
-                          className={`group relative rounded-xl border overflow-hidden transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
-                            isActive
-                              ? "border-emerald-500 ring-2 ring-emerald-500/30"
-                              : "border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600"
-                          }`}
-                        >
-                          <div
-                            className="h-16 flex items-center justify-between px-3 relative"
-                            style={{
-                              backgroundColor:
-                                preset.ambient ??
-                                (preset.mode === "dark"
-                                  ? "#121212"
-                                  : "#ffffff"),
-                            }}
-                          >
-                            <div className="flex space-x-1">
-                              <div
-                                className="w-3 h-3 rounded-full"
-                                style={{ backgroundColor: preset.accent[400] }}
-                              />
-                              <div
-                                className="w-3 h-3 rounded-full"
-                                style={{ backgroundColor: preset.accent[500] }}
-                              />
-                              <div
-                                className="w-3 h-3 rounded-full"
-                                style={{ backgroundColor: preset.accent[600] }}
-                              />
-                            </div>
-                            {isActive && (
-                              <span
-                                className="flex items-center justify-center w-5 h-5 rounded-full shadow-sm"
-                                style={{
-                                  backgroundColor: preset.accent[500],
-                                  color: "#fff",
-                                }}
-                              >
-                                <Check size={12} strokeWidth={3} />
-                              </span>
-                            )}
-                          </div>
-                          <div className="px-3 py-2 bg-white dark:bg-zinc-900 text-left">
-                            <div className="text-xs font-semibold text-zinc-800 dark:text-zinc-100 truncate">
-                              {t(preset.labelKey)}
-                            </div>
-                            <div className="text-[10px] text-zinc-400 capitalize">
-                              {t(`settings.appearance.mode.${preset.mode}`)}
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-                <AccentCard />
-                <ContrastCard />
-                <EffectsCard />
-                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-                  <div className="flex items-center space-x-4">
-                    <ZoomIn
-                      size={20}
-                      className="text-zinc-400"
-                      aria-hidden="true"
-                    />
-                    <div>
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.uiZoom.title")}
-                      </div>
-                      <div className="text-xs settings-description">
-                        {t("settings.uiZoom.subtitle")}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <button
-                      type="button"
-                      onClick={() => handleZoomDelta(-UI_ZOOM_STEP)}
-                      disabled={uiZoom <= UI_ZOOM_MIN + 1e-3}
-                      aria-label={t("settings.uiZoom.decreaseAria")}
-                      className="w-8 h-8 flex items-center justify-center rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed text-lg leading-none"
-                    >
-                      −
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleZoomReset}
-                      aria-label={t("settings.uiZoom.resetAria")}
-                      title={t("settings.uiZoom.resetAria")}
-                      className="min-w-14 px-2 h-8 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-sm font-mono tabular-nums"
-                    >
-                      {Math.round(uiZoom * 100)} %
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleZoomDelta(UI_ZOOM_STEP)}
-                      disabled={uiZoom >= UI_ZOOM_MAX - 1e-3}
-                      aria-label={t("settings.uiZoom.increaseAria")}
-                      className="w-8 h-8 flex items-center justify-center rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed text-lg leading-none"
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-              </SettingsGroup>
-              <SettingsGroup
-                id="player"
-                title={t("settings.organization.groups.player")}
-                reveal={targetGroup === "player"}
-              >
-                <PlayerBarLayoutCard />
-                <HiResBadgeCard />
-                <ScrollTitlesCard />
-                <WindowBoundsCard />
-                <MiniPlayerBoundsCard />
-                <WindowChromeCard />
-                <XwaylandCard />
-              </SettingsGroup>
-              <SettingsGroup
-                id="immersive"
-                title={t("settings.organization.groups.immersive")}
-                reveal={targetGroup === "immersive"}
-              >
-                <ImmersiveViewCard />
-                <CoverSlideshowCard />
-                <MotionCoversCard />
-                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-                  <div className="flex items-center space-x-4">
-                    <Activity
-                      size={20}
-                      className="text-zinc-400"
-                      aria-hidden="true"
-                    />
-                    <div>
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.visualizer.title")}
-                      </div>
-                      <div className="text-xs settings-description">
-                        {t("settings.visualizer.subtitle")}
-                      </div>
-                    </div>
-                  </div>
-                  <ToggleSwitch
-                    enabled={visualizer}
-                    onToggle={handleToggleVisualizer}
-                    disabled={!visualizerHydrated}
-                    label={t("settings.visualizer.title")}
-                  />
-                </div>
-              </SettingsGroup>
-              <SettingsGroup
-                id="desktopLyrics"
-                title={t("settings.organization.groups.desktopLyrics")}
-                reveal={targetGroup === "desktopLyrics"}
-              >
-                <DesktopLyricsCard />
-              </SettingsGroup>
-              <SettingsGroup
-                id="pages"
-                title={t("settings.organization.groups.pages")}
-                reveal={targetGroup === "pages"}
-              >
-                <ArtistHeroCard />
-                <StatsKpiVisibilityCard />
-                <WrappedBannerCard />
-              </SettingsGroup>
-            </section>
-          )}
-          {activeCategory === "media" && (
-            <section
-              aria-labelledby="settings-heading-media"
-              className="space-y-7"
-            >
-              <SettingsCategoryHeader category="media" />
-              <SettingsGroup
-                id="artwork"
-                title={t("settings.organization.groups.artwork")}
-                reveal={targetGroup === "artwork"}
-              >
-                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+              <SettingsGroup id="artwork" reveal={targetGroup === "artwork"}>
+                <div className="settings-row flex items-center justify-between">
                   <div className="flex items-center space-x-4 flex-1 min-w-0">
                     <ImageIcon
-                      size={20}
-                      className="text-zinc-400 shrink-0"
+                      size={16}
+                      className="settings-row-icon"
                       aria-hidden="true"
                     />
                     <div className="min-w-0">
@@ -3338,11 +3343,11 @@ function SettingsViewContent({
                     <span>{t("settings.localArtistImages.action")}</span>
                   </button>
                 </div>
-                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                <div className="settings-row flex items-center justify-between">
                   <div className="flex items-center space-x-4 flex-1 min-w-0">
                     <ImageIcon
-                      size={20}
-                      className="text-zinc-400 shrink-0"
+                      size={16}
+                      className="settings-row-icon"
                       aria-hidden="true"
                     />
                     <div className="min-w-0">
@@ -3390,11 +3395,11 @@ function SettingsViewContent({
                     <span>{t("settings.artistImages.action")}</span>
                   </button>
                 </div>
-                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                <div className="settings-row flex items-center justify-between">
                   <div className="flex items-center space-x-4 flex-1 min-w-0">
                     <ImageIcon
-                      size={20}
-                      className="text-zinc-400 shrink-0"
+                      size={16}
+                      className="settings-row-icon"
                       aria-hidden="true"
                     />
                     <div className="min-w-0">
@@ -3449,169 +3454,32 @@ function SettingsViewContent({
               </SettingsGroup>
               <SettingsGroup
                 id="biographies"
-                title={t("settings.organization.groups.biographies")}
                 reveal={targetGroup === "biographies"}
               >
                 <ArtistBioSourceCard />
               </SettingsGroup>
-              <SettingsGroup
-                id="lyrics"
-                title={t("settings.organization.groups.lyrics")}
-                reveal={targetGroup === "lyrics"}
-              >
-                <LyricsDestinationCard />
-                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-                  <div className="flex items-center space-x-4 flex-1 min-w-0">
-                    <Mic2
-                      size={20}
-                      className="text-zinc-400 shrink-0"
-                      aria-hidden="true"
-                    />
-                    <div className="min-w-0">
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.lyricsPrefetch.title")}
-                      </div>
-                      {lyricsPrefetchProgress && isPrefetchingLyrics ? (
-                        <div className="text-xs text-zinc-500 mt-1 truncate">
-                          {t("settings.lyricsPrefetch.progress", {
-                            current: lyricsPrefetchProgress.processed,
-                            total: lyricsPrefetchProgress.total,
-                            hits: lyricsPrefetchProgress.hits,
-                          })}
-                          {lyricsPrefetchProgress.currentTitle
-                            ? ` — ${lyricsPrefetchProgress.currentTitle}`
-                            : ""}
-                        </div>
-                      ) : lyricsResultMsg ? (
-                        <div className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 truncate">
-                          {lyricsResultMsg}
-                        </div>
-                      ) : (
-                        <div className="text-xs settings-description">
-                          {t("settings.lyricsPrefetch.subtitle")}
-                        </div>
-                      )}
-                      {lyricsPrefetchProgress &&
-                        lyricsPrefetchProgress.total > 0 && (
-                          <div className="mt-2 h-1.5 w-full max-w-xs rounded-full bg-zinc-200 dark:bg-zinc-700 overflow-hidden">
-                            <div
-                              className="h-full bg-emerald-500 transition-all"
-                              style={{
-                                width: `${Math.min(100, (lyricsPrefetchProgress.processed / lyricsPrefetchProgress.total) * 100)}%`,
-                              }}
-                            />
-                          </div>
-                        )}
-                    </div>
-                  </div>
-                  {isPrefetchingLyrics ? (
-                    <button
-                      type="button"
-                      onClick={handleCancelPrefetchLyrics}
-                      className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
-                    >
-                      <span>{t("common.cancel")}</span>
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={handlePrefetchLyrics}
-                      className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <Mic2 size={14} aria-hidden="true" />
-                      <span>{t("settings.lyricsPrefetch.action")}</span>
-                    </button>
-                  )}
-                </div>
-                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-                  <div className="flex items-center space-x-4 flex-1 min-w-0">
-                    <Mic2
-                      size={20}
-                      className="text-zinc-400 shrink-0"
-                      aria-hidden="true"
-                    />
-                    <div className="min-w-0">
-                      <label
-                        htmlFor="lyrics-translation-lang-select"
-                        className="text-sm font-medium text-zinc-900 dark:text-white"
-                      >
-                        {t("settings.lyricsTranslation.title")}
-                      </label>
-                      <div className="text-xs settings-description">
-                        {t("settings.lyricsTranslation.subtitle")}
-                      </div>
-                    </div>
-                  </div>
-                  <select
-                    id="lyrics-translation-lang-select"
-                    value={translationLang ?? ""}
-                    disabled={translationLangBusy}
-                    onChange={(e) =>
-                      void handleTranslationLangChange(e.target.value)
-                    }
-                    className="shrink-0 px-3 py-2 rounded-xl border border-zinc-200 bg-white text-sm text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {TRANSLATION_LANG_OPTIONS.map((opt) =>
-                      opt.value === "" ? (
-                        <option key="off" value="">
-                          {t("settings.lyricsTranslation.off")}
-                        </option>
-                      ) : (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ),
-                    )}
-                  </select>
-                </div>
-                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-                  <div className="flex items-center space-x-4 flex-1 min-w-0">
-                    <Globe
-                      size={20}
-                      className="text-zinc-400 shrink-0"
-                      aria-hidden="true"
-                    />
-                    <div className="min-w-0">
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.lyricsPreferLrclib.title")}
-                      </div>
-                      <div className="text-xs settings-description">
-                        {t("settings.lyricsPreferLrclib.subtitle")}
-                      </div>
-                    </div>
-                  </div>
-                  <ToggleSwitch
-                    enabled={preferLrclib}
-                    onToggle={() => void handlePreferLrclibToggle()}
-                    disabled={preferLrclibBusy}
-                    label={t("settings.lyricsPreferLrclib.title")}
-                  />
-                </div>
-                <LyricsProvidersCard />
-                <LyricsExcludedGenresCard />
-                <FullscreenLyricsCenteringCard />
-                <EstimatedKaraokeCard />
-                <HeldNoteGlowCard />
-                <LyricsHighlightColorCard />
+              <SettingsGroup id="radio" reveal={targetGroup === "radio"}>
+                <RadioCatalogueCard
+                  language={i18n.resolvedLanguage ?? i18n.language}
+                />
               </SettingsGroup>
             </section>
           )}
           {activeCategory === "integrations" && (
             <section
               aria-labelledby="settings-heading-integrations"
-              className="space-y-7"
+              className="settings-category"
             >
               <SettingsCategoryHeader category="integrations" />
               <SettingsGroup
                 id="connectivity"
-                title={t("settings.organization.groups.connectivity")}
                 reveal={targetGroup === "connectivity"}
               >
-                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                <div className="settings-row flex items-center justify-between">
                   <div className="flex items-center space-x-4">
                     <WifiOff
-                      size={20}
-                      className="text-zinc-400"
+                      size={16}
+                      className="settings-row-icon"
                       aria-hidden="true"
                     />
                     <div>
@@ -3630,16 +3498,12 @@ function SettingsViewContent({
                   />
                 </div>
               </SettingsGroup>
-              <SettingsGroup
-                id="services"
-                title={t("settings.organization.groups.services")}
-                reveal={targetGroup === "services"}
-              >
-                <div className="settings-block py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+              <SettingsGroup id="services" reveal={targetGroup === "services"}>
+                <div className="settings-block">
                   <div className="flex items-start space-x-4">
                     <Radio
-                      size={20}
-                      className="text-zinc-400 mt-0.5"
+                      size={16}
+                      className="settings-row-icon"
                       aria-hidden="true"
                     />
                     <div className="flex-1 min-w-0">
@@ -3828,11 +3692,11 @@ function SettingsViewContent({
                     the last one's status, half-typed token or error must
                     not show under the next. */}
                 <ListenBrainzCard key={activeProfile?.id ?? "none"} />
-                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                <div className="settings-row flex items-center justify-between">
                   <div className="flex items-center space-x-4">
                     <Gamepad2
-                      size={20}
-                      className="text-zinc-400"
+                      size={16}
+                      className="settings-row-icon"
                       aria-hidden="true"
                     />
                     <div>
@@ -3851,11 +3715,7 @@ function SettingsViewContent({
                   />
                 </div>
               </SettingsGroup>
-              <SettingsGroup
-                id="remote"
-                title={t("settings.organization.groups.remote")}
-                reveal={targetGroup === "remote"}
-              >
+              <SettingsGroup id="remote" reveal={targetGroup === "remote"}>
                 <RemoteServerCard />
                 <RemoteTranscodeCard />
                 <CatalogueMirrorCard />
@@ -3864,15 +3724,14 @@ function SettingsViewContent({
               </SettingsGroup>
               <SettingsGroup
                 id="network"
-                title={t("settings.organization.groups.network")}
                 advanced
                 reveal={targetGroup === "network"}
               >
-                <div className="settings-block py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                <div className="settings-block">
                   <div className="flex items-start space-x-4">
                     <Server
-                      size={20}
-                      className="text-zinc-400 mt-0.5"
+                      size={16}
+                      className="settings-row-icon"
                       aria-hidden="true"
                     />
                     <div className="flex-1 min-w-0">
@@ -4000,11 +3859,11 @@ function SettingsViewContent({
                     </div>
                   </div>
                 </div>
-                <div className="settings-block py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                <div className="settings-block">
                   <div className="flex items-start space-x-4">
                     <Network
-                      size={20}
-                      className="text-zinc-400 mt-0.5"
+                      size={16}
+                      className="settings-row-icon"
                       aria-hidden="true"
                     />
                     <div className="flex-1 min-w-0">
@@ -4173,12 +4032,12 @@ function SettingsViewContent({
           {activeCategory === "shortcuts" && (
             <section
               aria-labelledby="settings-heading-shortcuts"
-              className="space-y-7"
+              className="settings-category"
             >
               <SettingsCategoryHeader category="shortcuts" />
               <SettingsGroup
                 id="keyboard"
-                title={t("settings.organization.groups.keyboard")}
+                bare
                 reveal={targetGroup === "keyboard"}
               >
                 <ShortcutsCard />
@@ -4188,20 +4047,16 @@ function SettingsViewContent({
           {activeCategory === "data" && (
             <section
               aria-labelledby="settings-heading-data"
-              className="space-y-7"
+              className="settings-category"
             >
               <SettingsCategoryHeader category="data" />
-              <SettingsGroup
-                id="backups"
-                title={t("settings.organization.groups.backups")}
-                reveal={targetGroup === "backups"}
-              >
-                <div className="settings-block py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+              <SettingsGroup id="backups" reveal={targetGroup === "backups"}>
+                <div className="settings-block">
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex items-center space-x-4 min-w-0">
                       <Download
-                        size={20}
-                        className="text-zinc-400 shrink-0"
+                        size={16}
+                        className="settings-row-icon"
                         aria-hidden="true"
                       />
                       <div className="min-w-0">
@@ -4271,11 +4126,7 @@ function SettingsViewContent({
                 </div>
                 <BackupCard language={i18n.resolvedLanguage ?? i18n.language} />
               </SettingsGroup>
-              <SettingsGroup
-                id="storage"
-                title={t("settings.organization.groups.storage")}
-                reveal={targetGroup === "storage"}
-              >
+              <SettingsGroup id="storage" reveal={targetGroup === "storage"}>
                 <CacheLocationCard
                   language={i18n.resolvedLanguage ?? i18n.language}
                 />
@@ -4283,11 +4134,11 @@ function SettingsViewContent({
                   language={i18n.resolvedLanguage ?? i18n.language}
                 />
                 <ClipsInLibraryCard />
-                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                <div className="settings-row flex items-center justify-between">
                   <div className="flex items-center space-x-4">
                     <FolderOpen
-                      size={20}
-                      className="text-zinc-400"
+                      size={16}
+                      className="settings-row-icon"
                       aria-hidden="true"
                     />
                     <div>
@@ -4312,15 +4163,14 @@ function SettingsViewContent({
               </SettingsGroup>
               <SettingsGroup
                 id="cleanup"
-                title={t("settings.organization.groups.cleanup")}
                 advanced
                 reveal={targetGroup === "cleanup"}
               >
-                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                <div className="settings-row flex items-center justify-between">
                   <div className="flex items-center space-x-4 flex-1 min-w-0">
                     <ImageIcon
-                      size={20}
-                      className="text-zinc-400 shrink-0"
+                      size={16}
+                      className="settings-row-icon"
                       aria-hidden="true"
                     />
                     <div className="min-w-0">
@@ -4356,11 +4206,11 @@ function SettingsViewContent({
                     <span>{t("settings.regenerateThumbnailsAction")}</span>
                   </button>
                 </div>
-                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                <div className="settings-row flex items-center justify-between">
                   <div className="flex items-center space-x-4 flex-1 min-w-0">
                     <ImageIcon
-                      size={20}
-                      className="text-zinc-400 shrink-0"
+                      size={16}
+                      className="settings-row-icon"
                       aria-hidden="true"
                     />
                     <div className="min-w-0">
@@ -4410,28 +4260,23 @@ function SettingsViewContent({
           {activeCategory === "diagnostics" && (
             <section
               aria-labelledby="settings-heading-diagnostics"
-              className="space-y-7"
+              className="settings-category"
             >
               <SettingsCategoryHeader category="diagnostics" />
-              <SettingsGroup
-                id="updates"
-                title={t("settings.organization.groups.updates")}
-                reveal={targetGroup === "updates"}
-              >
+              <SettingsGroup id="updates" reveal={targetGroup === "updates"}>
                 <UpdateChannelCard />
               </SettingsGroup>
               <SettingsGroup
                 id="diagnostics"
-                title={t("settings.organization.groups.diagnostics")}
                 reveal={targetGroup === "diagnostics"}
               >
                 <RenderingCard />
-                <div className="settings-block py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                <div className="settings-block">
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex items-center space-x-4 min-w-0">
                       <FileText
-                        size={20}
-                        className="text-zinc-400 shrink-0"
+                        size={16}
+                        className="settings-row-icon"
                         aria-hidden="true"
                       />
                       <div className="min-w-0">
@@ -4480,15 +4325,14 @@ function SettingsViewContent({
               </SettingsGroup>
               <SettingsGroup
                 id="reset"
-                title={t("settings.organization.groups.reset")}
                 advanced
                 reveal={targetGroup === "reset"}
               >
-                <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+                <div className="settings-row flex items-center justify-between">
                   <div className="flex items-center space-x-4">
                     <Trash2
-                      size={20}
-                      className="text-zinc-400"
+                      size={16}
+                      className="settings-row-icon"
                       aria-hidden="true"
                     />
                     <div>

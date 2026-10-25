@@ -2570,7 +2570,8 @@
       "subtitle": "Schärfe des DSD → PCM-Konvertierungsfilters. Betrifft nur DSD-Dateien (.dsf / .dff); mehr Koeffizienten = schärferer Übergangsbereich bei höherer CPU-Last.",
       "standard": "Standard",
       "high": "Hoch",
-      "max": "Maximal"
+      "max": "Maximal",
+      "tapsValue": "Koeffizienten: {{value}}"
     },
     "statsKpis": {
       "title": "Statistik-Kennzahlen",
@@ -2743,9 +2744,9 @@
       "categories": {
         "general": "Allgemein",
         "library": "Bibliothek",
-        "playback": "Wiedergabe und Audio",
+        "playback": "Audio",
         "appearance": "Darstellung",
-        "media": "Bilder und Songtexte",
+        "media": "Songtexte",
         "integrations": "Verbindungen",
         "plugins": "Erweiterungen",
         "shortcuts": "Tastenkürzel",
@@ -2753,11 +2754,11 @@
         "diagnostics": "Wartung"
       },
       "descriptions": {
-        "general": "Sprache, Start und Verhalten der Anwendung.",
-        "library": "Organisiere und aktualisiere deine Musikbibliothek.",
-        "playback": "Titelübergänge, Lautstärke und Audioausgabe.",
-        "appearance": "Passe die Oberfläche und deine Wiedergabeansichten an.",
-        "media": "Cover, Künstlerinformationen und Songtextquellen.",
+        "general": "Sprache, Start und Verhalten der Wiedergabe.",
+        "library": "Scan, Musikanalyse, Cover, Biografien und Radio.",
+        "playback": "Audioausgabe, Titelübergänge, Lautstärke und Equalizer.",
+        "appearance": "Oberflächenstil, Design, Lesbarkeit und Fenster.",
+        "media": "Woher Songtexte kommen, wie sie erscheinen, und auf dem Desktop.",
         "integrations": "Verbinde deine Dienste, Server und Netzwerkgeräte.",
         "plugins": "Entdecke Erweiterungen und verwalte ihre Einstellungen.",
         "shortcuts": "Wähle Tastenkürzel für alltägliche Aktionen.",
@@ -2774,14 +2775,14 @@
         "listening": "Wiedergabeverhalten",
         "volume": "Lautstärke",
         "equalizer": "Equalizer",
-        "output": "Erweiterte Audioeinstellungen",
-        "theme": "Design und Lesbarkeit",
-        "player": "Player und Fenster",
+        "output": "Audioausgabe",
+        "theme": "Design und Farben",
+        "player": "Wiedergabeleiste",
         "immersive": "Immersive Ansicht",
         "pages": "Bibliotheksseiten",
         "artwork": "Cover und Künstlerbilder",
         "biographies": "Künstlerbiografien",
-        "lyrics": "Songtexte",
+        "lyrics": "Songtextsuche",
         "connectivity": "Verbindung",
         "services": "Verbundene Dienste",
         "remote": "Remote-Server",
@@ -2795,7 +2796,60 @@
         "diagnostics": "Diagnose",
         "reset": "Anwendung zurücksetzen",
         "desktopLyrics": "Desktop-Songtext",
-        "stereo": "Stereobild"
+        "stereo": "Stereobild",
+        "outputAdvanced": "Erweiterte Ausgabe",
+        "skin": "Oberflächenstil",
+        "display": "Lesbarkeit",
+        "window": "Fenster",
+        "lyricsDisplay": "Songtextanzeige"
+      },
+      "navHints": {
+        "general": "Sprache, Start, Wiedergabe",
+        "appearance": "Stil, Design, Fenster",
+        "playback": "Ausgabe, Lautstärke, Equalizer",
+        "media": "Quellen, Anzeige, Desktop",
+        "library": "Scan, Analyse, Cover",
+        "integrations": "Dienste, Server, Netzwerk",
+        "shortcuts": "Tastatur und Medientasten",
+        "data": "Sicherungen, Ordner, Caches",
+        "diagnostics": "Updates, Logs, Zurücksetzen"
+      },
+      "groupHints": {
+        "language": "Gilt sofort, ohne Neustart",
+        "startup": "Was beim Öffnen und Schließen von WaveFlow passiert",
+        "listening": "Wie Titel starten und was danach läuft",
+        "skin": "Layout und Material der Oberfläche",
+        "theme": "Farben der Oberfläche und Akzentfarbe",
+        "display": "Kontrast, visuelle Effekte und Größe der Oberfläche",
+        "player": "Schaltflächen und Hinweise der unteren Leiste",
+        "window": "Größe, Position und Rahmen der Fenster",
+        "immersive": "Das Cover im Vollbild, mit Songtext",
+        "pages": "Was Künstler-, Statistik- und Startseite zeigen",
+        "output": "Wie der Klang zum Gerät gelangt",
+        "transitions": "Zwischen zwei Titeln: lückenlos oder mit Crossfade",
+        "volume": "Gleiche Lautstärke von Titel zu Titel",
+        "equalizer": "Forme den Frequenzgang",
+        "stereo": "Balance und Breite des Stereobilds",
+        "outputAdvanced": "Abtastrate und Mono",
+        "lyrics": "Quellen, Übersetzung und Speicherort",
+        "lyricsDisplay": "Karaoke, Zentrierung und Farbe der gesungenen Zeile",
+        "desktopLyrics": "Eine Songtextzeile über deinen Fenstern",
+        "scanning": "Neue Dateien und Duplikate finden",
+        "analysis": "BPM, Lautheit und Peak jedes Titels",
+        "artwork": "Fehlende Albumcover und Künstlerfotos",
+        "biographies": "Woher die Künstlertexte stammen",
+        "radio": "Der Senderkatalog, offline",
+        "connectivity": "Jeden Internetzugriff sperren",
+        "services": "Last.fm, ListenBrainz und Discord",
+        "remote": "Dein WaveFlow-Server und seine Bibliothek",
+        "network": "DLNA und MPD in deinem lokalen Netzwerk",
+        "keyboard": "Tastenkürzel für alltägliche Aktionen",
+        "backups": "Profile exportieren, importieren und sichern",
+        "storage": "Wo WaveFlow seine Daten und Caches ablegt",
+        "cleanup": "Zwischengespeicherte Vorschaubilder und Cover",
+        "updates": "Stabile oder Beta-Versionen",
+        "diagnostics": "Logs und Grafik-Rendering",
+        "reset": "Mit einer frischen App neu beginnen"
       }
     },
     "desktopLyrics": {
@@ -2885,6 +2939,14 @@
         "mono": "Mono",
         "value": "{{value}} %",
         "reset": "Breite auf 100 % zurücksetzen"
+      }
+    },
+    "outputMode": {
+      "title": "Ausgabemodus",
+      "subtitle": "Das Gerät mit dem System teilen oder für WaveFlow reservieren.",
+      "shared": {
+        "label": "Gemeinsame Ausgabe",
+        "hint": "Der Klang läuft über den System-Mixer, zusammen mit dem anderer Apps. Ideal für den Alltag."
       }
     }
   },

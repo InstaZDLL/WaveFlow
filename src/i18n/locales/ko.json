@@ -2568,7 +2568,8 @@
       "subtitle": "DSD → PCM 변환 필터의 선명도. DSD 파일(.dsf / .dff)에만 적용됩니다. 탭이 많을수록 전이 대역이 선명해지지만 CPU 부하가 커집니다.",
       "standard": "표준",
       "high": "높음",
-      "max": "최대"
+      "max": "최대",
+      "tapsValue": "탭 수: {{value}}"
     },
     "statsKpis": {
       "title": "통계 지표",
@@ -2741,9 +2742,9 @@
       "categories": {
         "general": "일반",
         "library": "라이브러리",
-        "playback": "재생 및 오디오",
+        "playback": "오디오",
         "appearance": "외관",
-        "media": "이미지 및 가사",
+        "media": "가사",
         "integrations": "연결",
         "plugins": "확장 기능",
         "shortcuts": "키보드 단축키",
@@ -2751,11 +2752,11 @@
         "diagnostics": "유지 관리"
       },
       "descriptions": {
-        "general": "언어, 시작 및 앱 동작을 설정합니다.",
-        "library": "음악 라이브러리를 정리하고 최신 상태로 유지합니다.",
-        "playback": "곡 전환, 음량 및 오디오 출력을 설정합니다.",
-        "appearance": "인터페이스와 감상 화면을 꾸밉니다.",
-        "media": "커버, 아티스트 정보 및 가사 출처를 설정합니다.",
+        "general": "언어, 시작 및 재생 동작을 설정합니다.",
+        "library": "스캔, 음악 분석, 커버, 아티스트 소개 및 라디오를 설정합니다.",
+        "playback": "오디오 출력, 곡 전환, 음량 및 이퀄라이저를 설정합니다.",
+        "appearance": "스킨, 테마, 가독성 및 창을 설정합니다.",
+        "media": "가사를 가져올 곳, 표시 방식, 데스크톱 표시를 설정합니다.",
         "integrations": "서비스, 서버 및 네트워크 기기를 연결합니다.",
         "plugins": "확장 기능을 찾고 설정을 관리합니다.",
         "shortcuts": "자주 사용하는 작업의 키보드 단축키를 선택합니다.",
@@ -2772,14 +2773,14 @@
         "listening": "재생 동작",
         "volume": "음량",
         "equalizer": "이퀄라이저",
-        "output": "고급 오디오 설정",
-        "theme": "테마 및 가독성",
-        "player": "플레이어 및 창",
+        "output": "오디오 출력",
+        "theme": "테마 및 색상",
+        "player": "플레이어 바",
         "immersive": "몰입형 보기",
         "pages": "라이브러리 페이지",
         "artwork": "커버 및 아티스트 이미지",
         "biographies": "아티스트 소개",
-        "lyrics": "가사",
+        "lyrics": "가사 찾기",
         "connectivity": "네트워크 연결",
         "services": "연결된 서비스",
         "remote": "원격 서버",
@@ -2793,7 +2794,60 @@
         "diagnostics": "진단",
         "reset": "앱 초기화",
         "desktopLyrics": "데스크톱 가사",
-        "stereo": "스테레오 이미지"
+        "stereo": "스테레오 이미지",
+        "outputAdvanced": "고급 출력",
+        "skin": "스킨",
+        "display": "가독성",
+        "window": "창",
+        "lyricsDisplay": "가사 표시"
+      },
+      "navHints": {
+        "general": "언어, 시작, 재생",
+        "appearance": "스킨, 테마, 창",
+        "playback": "출력, 음량, 이퀄라이저",
+        "media": "출처, 표시, 데스크톱",
+        "library": "스캔, 분석, 커버",
+        "integrations": "서비스, 서버, 네트워크",
+        "shortcuts": "키보드 및 미디어 키",
+        "data": "백업, 폴더, 캐시",
+        "diagnostics": "업데이트, 로그, 초기화"
+      },
+      "groupHints": {
+        "language": "다시 시작하지 않아도 바로 적용",
+        "startup": "WaveFlow를 열고 닫을 때의 동작",
+        "listening": "곡이 시작되는 방식과 다음에 재생될 곡",
+        "skin": "인터페이스의 레이아웃과 질감",
+        "theme": "인터페이스 색상과 강조 색상",
+        "display": "대비, 시각 효과 및 인터페이스 크기",
+        "player": "하단 바의 버튼과 배지",
+        "window": "창의 크기, 위치 및 프레임",
+        "immersive": "가사와 함께 보는 전체 화면 커버",
+        "pages": "아티스트, 통계, 홈 페이지에 표시할 내용",
+        "output": "소리가 장치에 전달되는 방식",
+        "transitions": "두 곡 사이: 갭리스 또는 크로스페이드",
+        "volume": "곡마다 고른 음량",
+        "equalizer": "주파수 응답 곡선 조정",
+        "stereo": "스테레오 이미지의 밸런스와 폭",
+        "outputAdvanced": "샘플 레이트 및 모노",
+        "lyrics": "출처, 번역 및 저장 위치",
+        "lyricsDisplay": "가라오케, 가운데 정렬 및 부르는 줄의 색상",
+        "desktopLyrics": "창 위에 띄우는 가사 한 줄",
+        "scanning": "새 파일과 중복 항목 찾기",
+        "analysis": "곡별 BPM, 라우드니스 및 피크",
+        "artwork": "빠진 앨범 커버와 아티스트 사진",
+        "biographies": "아티스트 소개 글의 출처",
+        "radio": "방송국 카탈로그, 오프라인",
+        "connectivity": "모든 인터넷 연결 차단",
+        "services": "Last.fm, ListenBrainz 및 Discord",
+        "remote": "내 WaveFlow 서버와 라이브러리",
+        "network": "로컬 네트워크의 DLNA 및 MPD",
+        "keyboard": "자주 쓰는 작업의 단축키",
+        "backups": "프로필 내보내기, 가져오기 및 백업",
+        "storage": "WaveFlow가 데이터와 캐시를 보관하는 위치",
+        "cleanup": "캐시된 썸네일과 커버",
+        "updates": "안정 버전 또는 베타 버전",
+        "diagnostics": "로그 및 그래픽 렌더링",
+        "reset": "처음 설치한 상태로 다시 시작"
       }
     },
     "desktopLyrics": {
@@ -2883,6 +2937,14 @@
         "mono": "모노",
         "value": "{{value}}%",
         "reset": "폭을 100%로 재설정"
+      }
+    },
+    "outputMode": {
+      "title": "출력 모드",
+      "subtitle": "장치를 시스템과 공유하거나 WaveFlow 전용으로 사용합니다.",
+      "shared": {
+        "label": "공유 출력",
+        "hint": "다른 앱의 소리와 함께 시스템 믹서를 거쳐 재생됩니다. 일상적인 감상에 적합합니다."
       }
     }
   },

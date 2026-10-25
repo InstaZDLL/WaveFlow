@@ -1,11 +1,11 @@
 import { useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  AudioLines,
   Database,
-  Disc3,
-  ImageIcon,
   Keyboard,
   Library,
+  MicVocal,
   Palette,
   Search,
   Settings2,
@@ -19,9 +19,9 @@ import { SETTINGS_CATEGORIES, type SettingsCategory } from "./settingsCatalog";
 const ICONS = {
   general: Settings2,
   library: Library,
-  playback: Disc3,
+  playback: AudioLines,
   appearance: Palette,
-  media: ImageIcon,
+  media: MicVocal,
   integrations: Zap,
   shortcuts: Keyboard,
   data: Database,
@@ -54,6 +54,7 @@ export function SettingsNavigation({
               [
                 t(category.labelKey),
                 t(group.labelKey),
+                t(group.hintKey),
                 ...group.searchKeys.map((key) => t(key)),
               ].join(" "),
             );
@@ -152,9 +153,9 @@ export function SettingsNavigation({
           </div>
           <nav
             aria-label={t("settings.categoryNavLabel")}
-            className="hidden space-y-1 @4xl:block"
+            className="hidden space-y-0.5 @4xl:block"
           >
-            {SETTINGS_CATEGORIES.map(({ id, labelKey }) => {
+            {SETTINGS_CATEGORIES.map(({ id, labelKey, hintKey }) => {
               const Icon = ICONS[id];
               const active = id === activeCategory;
               return (
@@ -162,11 +163,19 @@ export function SettingsNavigation({
                   key={id}
                   type="button"
                   aria-current={active ? "page" : undefined}
+                  data-active={active || undefined}
                   onClick={() => onSelect(id)}
-                  className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-start text-sm font-medium transition-colors focus-visible:outline-emerald-500 ${active ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300" : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"}`}
+                  className="settings-nav-item"
                 >
-                  <Icon size={17} aria-hidden="true" className="shrink-0" />
-                  {t(labelKey)}
+                  <Icon
+                    size={17}
+                    aria-hidden="true"
+                    className="settings-nav-icon"
+                  />
+                  <span className="min-w-0">
+                    <span className="settings-nav-label">{t(labelKey)}</span>
+                    <span className="settings-nav-hint">{t(hintKey)}</span>
+                  </span>
                 </button>
               );
             })}

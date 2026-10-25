@@ -2635,7 +2635,8 @@
       "subtitle": "Nitidez del filtro de conversión DSD → PCM. Solo afecta a los archivos DSD (.dsf / .dff); más coeficientes = banda de transición más nítida con mayor coste de CPU.",
       "standard": "Estándar",
       "high": "Alta",
-      "max": "Máxima"
+      "max": "Máxima",
+      "tapsValue": "Coeficientes: {{value}}"
     },
     "statsKpis": {
       "title": "Indicadores de estadísticas",
@@ -2808,9 +2809,9 @@
       "categories": {
         "general": "General",
         "library": "Biblioteca",
-        "playback": "Reproducción y audio",
+        "playback": "Audio",
         "appearance": "Apariencia",
-        "media": "Imágenes y letras",
+        "media": "Letras",
         "integrations": "Conexiones",
         "plugins": "Extensiones",
         "shortcuts": "Atajos de teclado",
@@ -2818,11 +2819,11 @@
         "diagnostics": "Mantenimiento"
       },
       "descriptions": {
-        "general": "Idioma, inicio y comportamiento de la aplicación.",
-        "library": "Organiza y actualiza tu biblioteca musical.",
-        "playback": "Transiciones entre pistas, volumen y salida de audio.",
-        "appearance": "Personaliza la interfaz y las vistas de reproducción.",
-        "media": "Portadas, información de artistas y fuentes de letras.",
+        "general": "Idioma, inicio y comportamiento de la reproducción.",
+        "library": "Escaneo, análisis musical, portadas, biografías y radio.",
+        "playback": "Salida de audio, transiciones entre pistas, volumen y ecualizador.",
+        "appearance": "Estilo, tema, legibilidad y ventanas.",
+        "media": "De dónde salen las letras, cómo se muestran y en el escritorio.",
         "integrations": "Conecta tus servicios, servidor y dispositivos de red.",
         "plugins": "Descubre extensiones y gestiona sus ajustes.",
         "shortcuts": "Elige atajos de teclado para las acciones habituales.",
@@ -2839,14 +2840,14 @@
         "listening": "Comportamiento de reproducción",
         "volume": "Volumen",
         "equalizer": "Ecualizador",
-        "output": "Ajustes avanzados de audio",
-        "theme": "Tema y legibilidad",
-        "player": "Reproductor y ventana",
+        "output": "Salida de audio",
+        "theme": "Tema y colores",
+        "player": "Barra de reproducción",
         "immersive": "Vista inmersiva",
         "pages": "Páginas de la biblioteca",
         "artwork": "Portadas e imágenes de artistas",
         "biographies": "Biografías de artistas",
-        "lyrics": "Letras",
+        "lyrics": "Búsqueda de letras",
         "connectivity": "Conectividad",
         "services": "Servicios conectados",
         "remote": "Servidor remoto",
@@ -2860,7 +2861,60 @@
         "diagnostics": "Diagnóstico",
         "reset": "Restablecer la aplicación",
         "desktopLyrics": "Letras en el escritorio",
-        "stereo": "Imagen estéreo"
+        "stereo": "Imagen estéreo",
+        "outputAdvanced": "Salida avanzada",
+        "skin": "Estilo",
+        "display": "Legibilidad",
+        "window": "Ventanas",
+        "lyricsDisplay": "Visualización de letras"
+      },
+      "navHints": {
+        "general": "Idioma, inicio, reproducción",
+        "appearance": "Estilo, tema, ventanas",
+        "playback": "Salida, volumen, ecualizador",
+        "media": "Fuentes, vista, escritorio",
+        "library": "Escaneo, análisis, portadas",
+        "integrations": "Servicios, servidor, red",
+        "shortcuts": "Teclado y teclas multimedia",
+        "data": "Copias, carpetas, cachés",
+        "diagnostics": "Actualizaciones, registros, restablecer"
+      },
+      "groupHints": {
+        "language": "Se aplica al instante, sin reiniciar",
+        "startup": "Lo que ocurre al abrir y cerrar WaveFlow",
+        "listening": "Cómo empiezan las pistas y qué suena después",
+        "skin": "El diseño y el material de la interfaz",
+        "theme": "Colores de la interfaz y color de acento",
+        "display": "Contraste, efectos visuales y tamaño de la interfaz",
+        "player": "Botones e indicadores de la barra inferior",
+        "window": "Tamaño, posición y marco de las ventanas",
+        "immersive": "La portada a pantalla completa, con las letras",
+        "pages": "Lo que muestran las páginas de artista, estadísticas e inicio",
+        "output": "Cómo llega el sonido al dispositivo",
+        "transitions": "Entre dos pistas: sin pausas o con crossfade",
+        "volume": "Un volumen uniforme de una pista a otra",
+        "equalizer": "Ajusta la curva de frecuencias",
+        "stereo": "Balance y amplitud de la imagen estéreo",
+        "outputAdvanced": "Frecuencia de muestreo y mono",
+        "lyrics": "Fuentes, traducción y dónde se guardan",
+        "lyricsDisplay": "Karaoke, centrado y color de la línea cantada",
+        "desktopLyrics": "Una línea de letra sobre tus ventanas",
+        "scanning": "Encontrar archivos nuevos y duplicados",
+        "analysis": "BPM, sonoridad y pico de cada pista",
+        "artwork": "Portadas de álbumes y fotos de artistas que faltan",
+        "biographies": "De dónde vienen los textos sobre los artistas",
+        "radio": "El catálogo de emisoras, sin conexión",
+        "connectivity": "Cortar todo acceso a Internet",
+        "services": "Last.fm, ListenBrainz y Discord",
+        "remote": "Tu servidor WaveFlow y su biblioteca",
+        "network": "DLNA y MPD en tu red local",
+        "keyboard": "Atajos para las acciones habituales",
+        "backups": "Exportar, importar y respaldar tus perfiles",
+        "storage": "Dónde guarda WaveFlow sus datos y cachés",
+        "cleanup": "Miniaturas y portadas en caché",
+        "updates": "Versiones estables o beta",
+        "diagnostics": "Registros y renderizado gráfico",
+        "reset": "Volver a empezar con la aplicación como nueva"
       }
     },
     "desktopLyrics": {
@@ -2953,6 +3007,14 @@
         "mono": "Mono",
         "value": "{{value}} %",
         "reset": "Restablecer la amplitud al 100 %"
+      }
+    },
+    "outputMode": {
+      "title": "Modo de salida",
+      "subtitle": "Compartir el dispositivo con el sistema o reservarlo para WaveFlow.",
+      "shared": {
+        "label": "Salida compartida",
+        "hint": "El sonido pasa por el mezclador del sistema, junto con el de las demás aplicaciones. Ideal para el día a día."
       }
     }
   },

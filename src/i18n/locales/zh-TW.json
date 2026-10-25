@@ -2568,7 +2568,8 @@
       "subtitle": "DSD → PCM 轉換濾波器的銳利度。僅影響 DSD 檔案（.dsf / .dff）；抽頭越多，過渡帶越銳利，但 CPU 開銷更高。",
       "standard": "標準",
       "high": "高",
-      "max": "最高"
+      "max": "最高",
+      "tapsValue": "抽頭數：{{value}}"
     },
     "statsKpis": {
       "title": "統計指標",
@@ -2741,9 +2742,9 @@
       "categories": {
         "general": "一般",
         "library": "音樂庫",
-        "playback": "播放與音訊",
+        "playback": "音訊",
         "appearance": "外觀",
-        "media": "圖片與歌詞",
+        "media": "歌詞",
         "integrations": "連線",
         "plugins": "擴充功能",
         "shortcuts": "鍵盤快速鍵",
@@ -2751,11 +2752,11 @@
         "diagnostics": "維護"
       },
       "descriptions": {
-        "general": "設定語言、啟動方式和應用程式行為。",
-        "library": "整理和更新音樂庫。",
-        "playback": "設定曲目轉場、音量和音訊輸出。",
-        "appearance": "自訂介面和聆聽檢視。",
-        "media": "管理封面、藝人資訊和歌詞來源。",
+        "general": "設定語言、啟動方式和播放行為。",
+        "library": "設定掃描、音樂分析、封面、藝人簡介和電台。",
+        "playback": "設定音訊輸出、曲目轉場、音量和等化器。",
+        "appearance": "設定介面風格、主題、可讀性和視窗。",
+        "media": "設定歌詞來源、顯示方式和桌面歌詞。",
         "integrations": "連接服務、伺服器和網路裝置。",
         "plugins": "探索擴充功能並管理其設定。",
         "shortcuts": "選擇日常操作的鍵盤快速鍵。",
@@ -2772,14 +2773,14 @@
         "listening": "播放行為",
         "volume": "音量",
         "equalizer": "等化器",
-        "output": "進階音訊設定",
-        "theme": "主題與可讀性",
-        "player": "播放器與視窗",
+        "output": "音訊輸出",
+        "theme": "主題與色彩",
+        "player": "播放列",
         "immersive": "沉浸式檢視",
         "pages": "音樂庫頁面",
         "artwork": "封面與藝人圖片",
         "biographies": "藝人簡介",
-        "lyrics": "歌詞",
+        "lyrics": "歌詞搜尋",
         "connectivity": "網路連線",
         "services": "已連接的服務",
         "remote": "遠端伺服器",
@@ -2793,7 +2794,60 @@
         "diagnostics": "診斷",
         "reset": "重設應用程式",
         "desktopLyrics": "桌面歌詞",
-        "stereo": "立體聲聲像"
+        "stereo": "立體聲聲像",
+        "outputAdvanced": "進階輸出",
+        "skin": "介面風格",
+        "display": "可讀性",
+        "window": "視窗",
+        "lyricsDisplay": "歌詞顯示"
+      },
+      "navHints": {
+        "general": "語言、啟動、播放",
+        "appearance": "風格、主題、視窗",
+        "playback": "輸出、音量、等化器",
+        "media": "來源、顯示、桌面",
+        "library": "掃描、分析、封面",
+        "integrations": "服務、伺服器、網路",
+        "shortcuts": "鍵盤與媒體鍵",
+        "data": "備份、資料夾、快取",
+        "diagnostics": "更新、記錄檔、重設"
+      },
+      "groupHints": {
+        "language": "立即生效，無需重新啟動",
+        "startup": "WaveFlow 開啟和關閉時的行為",
+        "listening": "曲目如何開始播放，以及接著播放什麼",
+        "skin": "介面的版面配置與質感",
+        "theme": "介面色彩與強調色",
+        "display": "對比、視覺效果與介面大小",
+        "player": "底部列的按鈕與標示",
+        "window": "視窗的大小、位置與外框",
+        "immersive": "全螢幕封面，搭配歌詞",
+        "pages": "藝人頁、統計頁和首頁顯示的內容",
+        "output": "聲音如何傳到裝置",
+        "transitions": "兩首曲目之間：無縫或交叉淡入淡出",
+        "volume": "讓每首曲目的音量保持一致",
+        "equalizer": "調整頻率響應曲線",
+        "stereo": "立體聲聲像的平衡與寬度",
+        "outputAdvanced": "取樣率與單聲道",
+        "lyrics": "來源、翻譯與儲存位置",
+        "lyricsDisplay": "卡拉 OK、置中與正在演唱那一行的顏色",
+        "desktopLyrics": "在視窗上方顯示一行歌詞",
+        "scanning": "尋找新檔案和重複項目",
+        "analysis": "每首曲目的 BPM、響度和峰值",
+        "artwork": "缺少的專輯封面和藝人相片",
+        "biographies": "藝人介紹文字的來源",
+        "radio": "電台目錄，離線可用",
+        "connectivity": "切斷所有網際網路存取",
+        "services": "Last.fm、ListenBrainz 和 Discord",
+        "remote": "你的 WaveFlow 伺服器及其音樂庫",
+        "network": "區域網路中的 DLNA 和 MPD",
+        "keyboard": "常用操作的快速鍵",
+        "backups": "匯出、匯入及備份你的個人檔案",
+        "storage": "WaveFlow 存放資料和快取的位置",
+        "cleanup": "已快取的縮圖和封面",
+        "updates": "穩定版或測試版",
+        "diagnostics": "記錄檔與圖形算繪",
+        "reset": "將應用程式還原為全新狀態"
       }
     },
     "desktopLyrics": {
@@ -2883,6 +2937,14 @@
         "mono": "單聲道",
         "value": "{{value}}%",
         "reset": "將寬度重設為 100%"
+      }
+    },
+    "outputMode": {
+      "title": "輸出模式",
+      "subtitle": "與系統共用裝置，或讓 WaveFlow 獨佔。",
+      "shared": {
+        "label": "共用輸出",
+        "hint": "聲音會與其他應用程式的聲音一起經過系統混音器。適合日常使用。"
       }
     }
   },
