@@ -2625,7 +2625,10 @@
       "canReach": "Dapat mengakses:",
       "installAria": "Pasang {{name}}",
       "updateAria": "Perbarui {{name}}",
-      "allInstalled": "Semua yang ada di toko sudah terpasang."
+      "allInstalled": "Semua yang ada di toko sudah terpasang.",
+      "search": "Cari plugin",
+      "clearSearch": "Hapus pencarian",
+      "noMatch": "Tidak ada plugin yang cocok dengan “{{query}}”."
     },
     "motionArtwork": {
       "title": "Sampul animasi",

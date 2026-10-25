@@ -2761,7 +2761,10 @@
       "canReach": "Имеет доступ к:",
       "installAria": "Установить {{name}}",
       "updateAria": "Обновить {{name}}",
-      "allInstalled": "Всё из магазина уже установлено."
+      "allInstalled": "Всё из магазина уже установлено.",
+      "search": "Поиск плагинов",
+      "clearSearch": "Очистить поиск",
+      "noMatch": "Нет плагинов по запросу «{{query}}»."
     },
     "motionArtwork": {
       "title": "Анимированные обложки",

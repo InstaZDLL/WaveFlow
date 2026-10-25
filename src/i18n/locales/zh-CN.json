@@ -2625,7 +2625,10 @@
       "canReach": "可访问：",
       "installAria": "安装 {{name}}",
       "updateAria": "更新 {{name}}",
-      "allInstalled": "商店中的所有插件均已安装。"
+      "allInstalled": "商店中的所有插件均已安装。",
+      "search": "搜索插件",
+      "clearSearch": "清除搜索",
+      "noMatch": "没有与“{{query}}”匹配的插件。"
     },
     "motionArtwork": {
       "title": "动态封面",

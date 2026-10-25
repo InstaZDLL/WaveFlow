@@ -2693,7 +2693,10 @@
       "canReach": "Pode acessar:",
       "installAria": "Instalar {{name}}",
       "updateAria": "Atualizar {{name}}",
-      "allInstalled": "Tudo o que há na loja já está instalado."
+      "allInstalled": "Tudo o que há na loja já está instalado.",
+      "search": "Buscar plugins",
+      "clearSearch": "Limpar a busca",
+      "noMatch": "Nenhum plugin corresponde a “{{query}}”."
     },
     "motionArtwork": {
       "title": "Capas animadas",

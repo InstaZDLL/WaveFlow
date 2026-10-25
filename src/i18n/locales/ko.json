@@ -2625,7 +2625,10 @@
       "canReach": "접근 가능:",
       "installAria": "{{name}} 설치",
       "updateAria": "{{name}} 업데이트",
-      "allInstalled": "스토어의 모든 항목이 이미 설치되어 있습니다."
+      "allInstalled": "스토어의 모든 항목이 이미 설치되어 있습니다.",
+      "search": "플러그인 검색",
+      "clearSearch": "검색 지우기",
+      "noMatch": "“{{query}}”와(과) 일치하는 플러그인이 없습니다."
     },
     "motionArtwork": {
       "title": "모션 커버",

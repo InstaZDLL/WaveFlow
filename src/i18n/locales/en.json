@@ -2627,7 +2627,10 @@
       "canReach": "Can reach:",
       "installAria": "Install {{name}}",
       "updateAria": "Update {{name}}",
-      "allInstalled": "Everything in the store is already installed."
+      "allInstalled": "Everything in the store is already installed.",
+      "search": "Search plugins",
+      "clearSearch": "Clear search",
+      "noMatch": "No plugin matches “{{query}}”."
     },
     "motionArtwork": {
       "title": "Animated artwork",

@@ -2854,7 +2854,10 @@
       "canReach": "يمكنه الوصول إلى:",
       "installAria": "تثبيت {{name}}",
       "updateAria": "تحديث {{name}}",
-      "allInstalled": "كل ما في المتجر مثبّت بالفعل."
+      "allInstalled": "كل ما في المتجر مثبّت بالفعل.",
+      "search": "البحث في الإضافات",
+      "clearSearch": "مسح البحث",
+      "noMatch": "لا توجد إضافة تطابق «{{query}}»."
     },
     "motionArtwork": {
       "title": "الأغلفة المتحركة",
