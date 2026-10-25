@@ -7,6 +7,7 @@ import type { StatsKpiId } from "../hooks/useHiddenKpis";
 import type { WrappedBannerMode } from "../hooks/useWrappedBannerVisibility";
 import { DEFAULT_ACCENT_CHOICE, type AccentChoice } from "./accent";
 import { DEFAULT_CONTRAST_MODE, type ContrastMode } from "./contrast";
+import { DEFAULT_EFFECTS_LEVEL, type EffectsLevel } from "./effects";
 import { DEFAULT_SKIN_ID, type SkinId } from "./skins";
 import { DEFAULT_THEME_ID } from "./themes";
 import type { BioLanguage, BioSource } from "./tauri/integration";
@@ -338,6 +339,13 @@ export const SETTINGS = {
     "string",
     DEFAULT_CONTRAST_MODE,
     "settings.contrast.title",
+  ),
+  "appearance.effects": setting<EffectsLevel>(
+    "appearance",
+    "profile",
+    "string",
+    DEFAULT_EFFECTS_LEVEL,
+    "settings.effects.title",
   ),
   "appearance.accent": setting<AccentChoice>(
     "appearance",

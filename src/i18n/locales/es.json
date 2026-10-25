@@ -2769,6 +2769,25 @@
         }
       }
     },
+    "effects": {
+      "title": "Efectos visuales",
+      "subtitle": "Desenfoques, cristal, halos y animaciones de ambiente. En modo reducido, cada superficie se dibuja plana y la interfaz sigue fluida en un equipo sin aceleración gráfica.",
+      "modes": {
+        "auto": {
+          "label": "Automático",
+          "full": "Completos en este equipo; reducidos cuando la interfaz se dibuja sin GPU.",
+          "reduced": "Reducidos en este equipo: aquí la interfaz se dibuja sin GPU."
+        },
+        "full": {
+          "label": "Completos",
+          "description": "Todos los efectos de la apariencia, incluso sin GPU."
+        },
+        "reduced": {
+          "label": "Reducidos",
+          "description": "Sin desenfoque, cristal, halo ni animación de ambiente; el diseño y los colores se mantienen."
+        }
+      }
+    },
     "cacheLocation": {
       "title": "Ubicación de la caché",
       "subtitle": "Imágenes, portadas animadas y clips de Canvas. Todo es reconstruible, así que moverlo no pierde nada. Las bases de datos y los archivos que elegiste a mano se quedan donde están.",

@@ -535,13 +535,13 @@
    cross-fade is cut by `SkinAmbientBackdrop`. Nothing of this file's
    moves beyond its colour transitions, which stay. */
 
-/* ── Reduced transparency, Linux, high contrast: solid glass ── */
+/* ── Reduced transparency, Linux, reduced effects, contrast ── */
 /* Without translucency the glass turns solid wine and the room goes:
    the static wine light (`body::before`) stands in for it. The same
-   list serves the WebKitGTK safeguard (#820: no backdrop layer and no
-   full-window cover there — `app.css` drops every backdrop filter,
-   `SkinAmbientBackdrop` does not mount) and high contrast, which also
-   drops the pools (`fluid.css`). */
+   list serves reduced effects, the WebKitGTK safeguard (#820: no
+   backdrop layer and no full-window cover there — `app.css` drops
+   every backdrop filter, `SkinAmbientBackdrop` does not mount) and high
+   contrast, which also drops the pools (`fluid.css`). */
 @media (prefers-reduced-transparency: reduce) {
   :root[data-skin="lounge"] {
     --lg-glass: var(--fe-surface);
@@ -557,12 +557,31 @@
    not white. */
 html:root[data-skin="lounge"]:is(
     [data-webkitgtk-safe],
+    [data-effects="reduced"],
     [data-contrast="high"]
   ) {
   --wf-contrast-surface: #160810;
   --lg-glass: var(--wf-contrast-surface);
   --lg-glass-card: var(--wf-contrast-surface);
   --lg-glass-dense: var(--wf-contrast-surface);
+}
+/* Reduced effects: the glass is solid (above), the room is not mounted
+   (`SkinAmbientBackdrop`) and the wine light goes with the rest of the
+   atmosphere (`fluid.css`); the sheets lose their lamp and their drop,
+   the tuner its glows. */
+:root[data-skin="lounge"][data-effects="reduced"] {
+  --lg-drop: 0 0 #0000;
+  --lg-lamp: none;
+}
+:root[data-skin="lounge"][data-effects="reduced"] .fe-tuner__wave {
+  filter: none;
+}
+:root[data-skin="lounge"][data-effects="reduced"] .fe-tuner__needle::before {
+  box-shadow: none;
+}
+:root[data-skin="lounge"][data-effects="reduced"]
+  .fe-tuner__station[data-checked="true"] {
+  text-shadow: none;
 }
 :root[data-skin="lounge"][data-contrast="high"] .skin-room {
   display: none;

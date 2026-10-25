@@ -129,6 +129,24 @@
               window.matchMedia("(prefers-contrast: more)").matches);
           root.setAttribute("data-contrast", high ? "high" : "normal");
 
+          // Effects bootstrap -- `data-effects` before React mounts, so
+          // a machine drawing without a GPU never paints a frame of the
+          // blurs it cannot afford. Resolved here as `lib/effects.ts`
+          // does: `auto` (the default) reduces when this launch draws in
+          // software (the native side says so in the URL) or when the
+          // last probe found a software rasteriser.
+          var effects = localStorage.getItem("waveflow.effects");
+          var noGpu =
+            new URLSearchParams(location.search).get("renderer") ===
+              "software" ||
+            localStorage.getItem("waveflow.effects.software-gl") === "1";
+          root.setAttribute(
+            "data-effects",
+            effects === "reduced" || (effects !== "full" && noGpu)
+              ? "reduced"
+              : "full",
+          );
+
           // Accent bootstrap -- the scale last applied, whether it came
           // from the theme, a picked colour or a cover. Without it the
           // first frame shows the stylesheet's green until React applies

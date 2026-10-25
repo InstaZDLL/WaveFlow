@@ -1423,12 +1423,16 @@ html:root[data-skin="editorial"] ::-webkit-scrollbar-thumb:hover {
   }
 }
 
-/* ── Reduced transparency, Linux, high contrast ─────────────── */
-/* Nothing here is translucent and nothing blurs, so the first two need
+/* ── Reduced transparency, Linux, reduced effects, contrast ── */
+/* Nothing here is translucent and nothing blurs, so the first three need
    only the surface token the shared chrome reads. High contrast: the
    layout's block brightens the inks for its dark ground; paper takes
    them back down, and the rules go to full ink. */
-:root[data-skin="editorial"]:is([data-webkitgtk-safe], [data-contrast="high"]) {
+:root[data-skin="editorial"]:is(
+    [data-webkitgtk-safe],
+    [data-effects="reduced"],
+    [data-contrast="high"]
+  ) {
   --wf-contrast-surface: var(--ed-paper);
 }
 :root[data-skin="editorial"][data-contrast="high"] {

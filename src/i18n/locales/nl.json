@@ -2704,6 +2704,25 @@
         }
       }
     },
+    "effects": {
+      "title": "Visuele effecten",
+      "subtitle": "Vervaging, glas, gloed en sfeeranimaties. Beperkt wordt elk vlak plat getekend, zodat de interface soepel blijft op een computer zonder grafische versnelling.",
+      "modes": {
+        "auto": {
+          "label": "Automatisch",
+          "full": "Volledig op deze computer; beperkt wanneer de interface zonder GPU wordt getekend.",
+          "reduced": "Beperkt op deze computer: de interface wordt hier zonder GPU getekend."
+        },
+        "full": {
+          "label": "Volledig",
+          "description": "Alle effecten van de skin, ook zonder GPU."
+        },
+        "reduced": {
+          "label": "Beperkt",
+          "description": "Geen vervaging, glas, gloed of sfeeranimatie; de indeling en de kleuren blijven."
+        }
+      }
+    },
     "cacheLocation": {
       "title": "Cachelocatie",
       "subtitle": "Hoesafbeeldingen, bewegende hoezen en Canvas-clips. Alles is opnieuw op te bouwen, dus verplaatsen kost niets. Databases en zelf gekozen bestanden blijven waar ze zijn.",

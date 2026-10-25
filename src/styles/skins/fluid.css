@@ -2699,6 +2699,71 @@
   filter: none;
 }
 
+/* ── Reduced effects (`data-effects="reduced"`) ─────────────── */
+/* The lines around the sung one keep their fade and lose their blur: a
+   filter on text the karaoke repaints every frame is what a machine
+   without a GPU cannot afford. The mood band's waves stop drifting, and
+   the covers keep their edge without the long drop under them. */
+:root[data-layout="fluid"][data-effects="reduced"] .fe-panel ul > li > button,
+:root[data-layout="fluid"][data-effects="reduced"]
+  [data-immersive]
+  ul
+  > li
+  > button {
+  filter: none !important;
+  text-shadow: none !important;
+}
+/* The atmosphere — the pools, the aurora, the wine light, the grain —
+   is fixed behind the page, which a compositor keeps still; without one
+   every frame of a scroll repaints it under the whole page (Lounge's
+   album grid at 8 fps with it, 18 without). The ground is drawn in its
+   own colour. */
+:root[data-layout="fluid"][data-effects="reduced"] body::before,
+:root[data-layout="fluid"][data-effects="reduced"] body::after {
+  display: none;
+}
+:root[data-layout="fluid"][data-effects="reduced"] .fe-spectrum__wave svg {
+  animation: none;
+}
+/* The horizon steps with the 4 Hz ticks instead of gliding between them:
+   the glide kept its three layers, the spill a gradient as tall as the
+   bar, moving every frame. */
+:root[data-layout="fluid"][data-effects="reduced"]
+  :is(.fe-horizon__fill, .fe-horizon__spill, .fe-horizon__head) {
+  transition: none;
+}
+/* Where the page repaints as it scrolls and the bar under its moving
+   progress, a shadow keeps its edge and loses its blur: a cover keeps
+   its material's hairline and the playing one its accent ring; the
+   primary actions, the open row's mark and the bar's light lose their
+   glow. */
+:root[data-layout="fluid"][data-effects="reduced"] .fe-tile,
+:root[data-layout="fluid"][data-effects="reduced"] .fe-hero-cover,
+:root[data-layout="fluid"][data-effects="reduced"] footer img,
+:root[data-layout="fluid"][data-effects="reduced"]
+  main
+  [data-page-hero]
+  :is([class*="w-44"], [class*="w-48"], [class*="w-40"])[class*="rounded"] {
+  box-shadow: 0 0 0 1px var(--fe-hairline) !important;
+}
+:root[data-layout="fluid"][data-effects="reduced"]
+  .fe-tile-hover[aria-current="true"]
+  .fe-tile {
+  box-shadow: 0 0 0 2px var(--fe-accent) !important;
+}
+:root[data-layout="fluid"][data-effects="reduced"]
+  :is(.fe-cta, .fe-tuner__cta, .aq-capsule__cta),
+:root[data-layout="fluid"][data-effects="reduced"] main [data-page-hero] button,
+:root[data-layout="fluid"][data-effects="reduced"]
+  footer
+  :is(.fe-horizon__fill, .fe-horizon__thumb),
+:root[data-layout="fluid"][data-effects="reduced"]
+  [data-nav-item][data-active]::before,
+:root[data-layout="fluid"][data-effects="reduced"]
+  [data-sidebar-row="playlist"][data-active]::before {
+  box-shadow: none !important;
+}
+
 /* The canvas tiers above are container queries on the page, not media
    queries on the window: with the rail and the panel both open, a
    1280 px window leaves the column too narrow for the two-column tier,

@@ -59,7 +59,7 @@ Two things carried the cost, and both are gone: the per-frame blur of the room (
 
 ## Fallbacks
 
-Reduced transparency: the glass turns solid wine and the room goes, the static wine light stands in. The WebKitGTK safeguard (#820): no room at all (the component does not mount), no backdrop layer anywhere, solid glass. High contrast: no room, no pools, solid glass, brighter inks and hairlines. Reduced motion: the needle, the horizon and the room's cross-fade become cuts.
+Reduced transparency: the glass turns solid wine and the room goes, the static wine light stands in. The WebKitGTK safeguard (#820): no room at all (the component does not mount), no backdrop layer anywhere, solid glass. Reduced effects (`data-effects="reduced"`): solid glass on the flat wine ground — no room, no wine light, no lamp on the sheets, no drop under them, no glow on the tuner. High contrast: no room, no pools, solid glass, brighter inks and hairlines. Reduced motion: the needle, the horizon and the room's cross-fade become cuts.
 
 ## What not to do
 

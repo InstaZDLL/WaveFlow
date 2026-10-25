@@ -2770,6 +2770,25 @@
         }
       }
     },
+    "effects": {
+      "title": "Efeitos visuais",
+      "subtitle": "Desfoques, vidro, brilhos e animações de ambiente. No modo reduzido, cada superfície é desenhada plana e a interface continua fluida em um computador sem aceleração gráfica.",
+      "modes": {
+        "auto": {
+          "label": "Automático",
+          "full": "Completos neste computador; reduzidos quando a interface é desenhada sem GPU.",
+          "reduced": "Reduzidos neste computador: aqui a interface é desenhada sem GPU."
+        },
+        "full": {
+          "label": "Completos",
+          "description": "Todos os efeitos do tema, mesmo sem GPU."
+        },
+        "reduced": {
+          "label": "Reduzidos",
+          "description": "Sem desfoque, vidro, brilho nem animação de ambiente; o layout e as cores continuam."
+        }
+      }
+    },
     "cacheLocation": {
       "title": "Local do cache",
       "subtitle": "Imagens, capas animadas e clipes do Canvas. Tudo pode ser recriado, então nada se perde ao mover o cache. Os bancos de dados e os arquivos escolhidos manualmente permanecem onde estão.",

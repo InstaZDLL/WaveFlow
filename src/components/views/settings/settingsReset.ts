@@ -132,8 +132,10 @@ import { SINGLE_CLICK_PLAY_EVENT } from "../../../hooks/useSingleClickPlay";
 import { AUTOPLAY_EVENT } from "../../../hooks/useAutoplay";
 import { GENERATOR_ALBUM_MODE_EVENT } from "../../../hooks/useGeneratorAlbumMode";
 import { CONTRAST_EVENT } from "../../../hooks/useContrastMode";
+import { EFFECTS_EVENT } from "../../../hooks/useEffectsLevel";
 import { ACCENT_EVENT } from "../../../hooks/useAccentChoice";
 import { parseContrastMode } from "../../../lib/contrast";
+import { parseEffectsLevel } from "../../../lib/effects";
 import { findSkin } from "../../../lib/skins";
 import { findTheme } from "../../../lib/themes";
 import { parseAccentChoice, serializeAccentChoice } from "../../../lib/accent";
@@ -744,6 +746,12 @@ const ACCESSORS: Record<SettingKey, SettingAccessor> = {
     serialize: (value) => value,
     valueType: "string",
     event: CONTRAST_EVENT,
+  }),
+  "appearance.effects": profileRow("appearance.effects", {
+    parse: parseEffectsLevel,
+    serialize: (value) => value,
+    valueType: "string",
+    event: EFFECTS_EVENT,
   }),
   "appearance.accent": profileRow("appearance.accent", {
     parse: parseAccentChoice,

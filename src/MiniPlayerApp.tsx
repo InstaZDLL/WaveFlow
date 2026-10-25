@@ -1,6 +1,7 @@
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { AccentSync } from "./components/common/AccentSync";
 import { ContrastProvider } from "./contexts/ContrastContext";
+import { EffectsProvider } from "./contexts/EffectsContext";
 import { PlayerProvider } from "./contexts/PlayerContext";
 import { ProfileProvider } from "./contexts/ProfileContext";
 import { MiniPlayer } from "./components/views/MiniPlayer";
@@ -29,12 +30,15 @@ export function MiniPlayerApp() {
             attribute is not shared. Someone who needs high contrast
             needs it in both windows. */}
         <ContrastProvider>
-          <PlayerProvider>
-            {/* Its own document, so its own accent: a cover accent has
+          {/* Its own document again: the effects level too. */}
+          <EffectsProvider>
+            <PlayerProvider>
+              {/* Its own document, so its own accent: a cover accent has
                 to follow the track here too. */}
-            <AccentSync />
-            <MiniPlayer />
-          </PlayerProvider>
+              <AccentSync />
+              <MiniPlayer />
+            </PlayerProvider>
+          </EffectsProvider>
         </ContrastProvider>
       </ThemeProvider>
     </ProfileProvider>

@@ -2769,6 +2769,25 @@
         }
       }
     },
+    "effects": {
+      "title": "Effets visuels",
+      "subtitle": "Flous, verre, halos et animations d'ambiance. Allégés, chaque surface est dessinée à plat : l'interface reste fluide sur une machine sans accélération graphique.",
+      "modes": {
+        "auto": {
+          "label": "Automatique",
+          "full": "Complets sur cette machine ; allégés quand l'interface est dessinée sans GPU.",
+          "reduced": "Allégés sur cette machine : l'interface y est dessinée sans GPU."
+        },
+        "full": {
+          "label": "Complets",
+          "description": "Tous les effets de l'habillage, même sans GPU."
+        },
+        "reduced": {
+          "label": "Allégés",
+          "description": "Sans flou, verre, halo ni animation d'ambiance ; la mise en page et les couleurs restent."
+        }
+      }
+    },
     "cacheLocation": {
       "title": "Emplacement des caches",
       "subtitle": "Pochettes, pochettes animées et clips Canvas. Contenu reconstructible : le déplacer ne perd rien. Les bases de données et vos fichiers choisis à la main restent en place.",
