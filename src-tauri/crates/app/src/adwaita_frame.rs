@@ -29,6 +29,8 @@
 //! `gtk.css`, which keeps the last word.
 
 use std::sync::Mutex;
+#[cfg(target_os = "linux")]
+use std::sync::{Arc, OnceLock};
 
 use tauri::AppHandle;
 
@@ -41,9 +43,9 @@ use crate::error::AppResult;
 #[cfg(target_os = "linux")]
 pub const WINDOW_CLASS: &str = "waveflow-adwaita";
 
-/// The colours the frame takes: the background of WaveFlow's own theme,
+/// The colours the frame takes: the background of WaveFlow's own page,
 /// so the bar reads as the top of the window rather than a strip above
-/// it, and which side of light and dark that theme sits on.
+/// it, and which side of light and dark that background sits on.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FrameColors {
     pub background: [u8; 3],
@@ -52,17 +54,24 @@ pub struct FrameColors {
 
 impl FrameColors {
     /// `#rrggbb` only. The value ends up inside a stylesheet, so anything
-    /// richer is refused rather than escaped: the interface sends a theme's
-    /// ambient colour, which is always written that way.
-    pub fn parse(background: &str, dark: bool) -> Option<Self> {
+    /// richer is refused rather than escaped.
+    ///
+    /// Dark or light is read from the colour itself, not from the theme's
+    /// mode: a skin paints its own page (Editorial's paper is light under
+    /// a dark theme), and the title has to stay readable on what is there.
+    pub fn parse(background: &str) -> Option<Self> {
         let hex = background.strip_prefix('#')?;
         if hex.len() != 6 || !hex.bytes().all(|b| b.is_ascii_hexdigit()) {
             return None;
         }
         let channel = |i: usize| u8::from_str_radix(&hex[i..i + 2], 16).ok();
+        let background = [channel(0)?, channel(2)?, channel(4)?];
+        let [r, g, b] = background.map(f32::from);
+        // Rec. 601 luma, on the 0-255 scale.
+        let luma = 0.299 * r + 0.587 * g + 0.114 * b;
         Some(Self {
-            background: [channel(0)?, channel(2)?, channel(4)?],
-            dark,
+            background,
+            dark: luma < 128.0,
         })
     }
 
@@ -144,9 +153,17 @@ pub fn stylesheet(colors: FrameColors) -> String {
 {w}.maximized decoration,
 {w}.fullscreen decoration,
 {w}.tiled decoration,
+{w}.tiled-top decoration,
+{w}.tiled-bottom decoration,
+{w}.tiled-left decoration,
+{w}.tiled-right decoration,
 {w}.maximized > headerbar.titlebar.default-decoration,
 {w}.fullscreen > headerbar.titlebar.default-decoration,
-{w}.tiled > headerbar.titlebar.default-decoration {{
+{w}.tiled > headerbar.titlebar.default-decoration,
+{w}.tiled-top > headerbar.titlebar.default-decoration,
+{w}.tiled-bottom > headerbar.titlebar.default-decoration,
+{w}.tiled-left > headerbar.titlebar.default-decoration,
+{w}.tiled-right > headerbar.titlebar.default-decoration {{
   border-radius: 0;
 }}
 {bar} .title {{
@@ -182,12 +199,26 @@ pub fn stylesheet(colors: FrameColors) -> String {
 /// Whether this launch's frame is one GTK draws: a Linux window on GTK's
 /// Wayland backend. Read from the display GTK actually opened, not from
 /// `GDK_BACKEND`, which may name X11 and fall back to Wayland (#894).
+///
+/// Asked of GDK on the main thread, once per launch: the backend cannot
+/// change while the process lives. Not through `AppHandle::display_handle`,
+/// which under X11 opens a new X connection on every call and never closes
+/// it (tao 0.37) -- one per Settings visit, until the server refuses more.
+/// A failed ask is not cached, and answers `false`: the desktop's frame.
 pub fn available(app: &AppHandle) -> bool {
     #[cfg(target_os = "linux")]
     {
-        use raw_window_handle::{HasDisplayHandle, RawDisplayHandle};
-        app.display_handle()
-            .is_ok_and(|handle| matches!(handle.as_raw(), RawDisplayHandle::Wayland(_)))
+        static ON_WAYLAND: OnceLock<bool> = OnceLock::new();
+        if let Some(known) = ON_WAYLAND.get() {
+            return *known;
+        }
+        match on_main_thread(app, |_| gtk_side::display_is_wayland()) {
+            Ok(on_wayland) => *ON_WAYLAND.get_or_init(|| on_wayland),
+            Err(err) => {
+                tracing::warn!(?err, "could not ask GTK for its display backend");
+                false
+            }
+        }
     }
     #[cfg(not(target_os = "linux"))]
     {
@@ -228,20 +259,47 @@ pub fn set_colors(app: &AppHandle, colors: FrameColors) -> AppResult<()> {
 /// Run `f` on the main thread and wait for its answer. Tauri runs it in
 /// place when this already is the main thread, so there is no deadlock to
 /// fear from either side.
+///
+/// **A call that times out never runs.** Its error tells the caller
+/// nothing changed, and a task still queued would make that a lie later:
+/// the window would take a style that neither the store nor the interface
+/// knows about. So the task checks, under the lock the waiter takes to
+/// give up, whether anyone is still waiting -- and sends its answer while
+/// holding it, so the waiter either finds that answer or leaves the task
+/// nothing to do.
 #[cfg(target_os = "linux")]
 fn on_main_thread<T: Send + 'static>(
     app: &AppHandle,
     f: impl FnOnce(&AppHandle) -> Result<T, String> + Send + 'static,
 ) -> AppResult<T> {
     let (tx, rx) = std::sync::mpsc::sync_channel(1);
+    let abandoned = Arc::new(Mutex::new(false));
+    let task_abandoned = Arc::clone(&abandoned);
     let handle = app.clone();
     app.run_on_main_thread(move || {
-        let _ = tx.send(f(&handle));
+        let gone = task_abandoned.lock().unwrap_or_else(|p| p.into_inner());
+        if !*gone {
+            let _ = tx.send(f(&handle));
+        }
     })
     .map_err(|err| AppError::Other(format!("window frame style: {err}")))?;
-    rx.recv_timeout(std::time::Duration::from_secs(5))
-        .map_err(|err| AppError::Other(format!("window frame style: no answer ({err})")))?
-        .map_err(|err| AppError::Other(format!("window frame style: {err}")))
+    let answer = match rx.recv_timeout(std::time::Duration::from_secs(5)) {
+        Ok(answer) => answer,
+        Err(_) => {
+            let mut gone = abandoned.lock().unwrap_or_else(|p| p.into_inner());
+            match rx.try_recv() {
+                // It ran between the timeout and the lock.
+                Ok(answer) => answer,
+                Err(_) => {
+                    *gone = true;
+                    return Err(AppError::Other(
+                        "window frame style: the main thread did not answer in time".to_string(),
+                    ));
+                }
+            }
+        }
+    };
+    answer.map_err(|err| AppError::Other(format!("window frame style: {err}")))
 }
 
 #[cfg(target_os = "linux")]
@@ -259,6 +317,11 @@ mod gtk_side {
         /// Created on first use and added to the screen once; later colour
         /// changes reload it in place.
         static PROVIDER: RefCell<Option<gtk::CssProvider>> = const { RefCell::new(None) };
+    }
+
+    pub(super) fn display_is_wayland() -> Result<bool, String> {
+        let display = gtk::gdk::Display::default().ok_or("no default display")?;
+        Ok(display.backend().is_wayland())
     }
 
     fn current_colors() -> FrameColors {
@@ -330,7 +393,7 @@ mod tests {
     #[test]
     fn colors_parse_only_a_plain_hex_triplet() {
         assert_eq!(
-            FrameColors::parse("#1a2B3c", true),
+            FrameColors::parse("#1a2B3c"),
             Some(FrameColors {
                 background: [0x1a, 0x2b, 0x3c],
                 dark: true
@@ -347,7 +410,28 @@ mod tests {
             "#000000; } window { background: red",
             "",
         ] {
-            assert_eq!(FrameColors::parse(bad, false), None, "{bad:?}");
+            assert_eq!(FrameColors::parse(bad), None, "{bad:?}");
+        }
+    }
+
+    /// Read from the colour, not the theme: the pages the skins paint.
+    #[test]
+    fn dark_or_light_follows_the_background() {
+        for (page, dark) in [
+            ("#0b0b0e", true),  // Fluid
+            ("#000000", true),  // Pulse
+            ("#14070c", true),  // Lounge
+            ("#121212", true),  // the default dark ambient
+            ("#f0ebd8", false), // Editorial's paper
+            ("#eceef5", false), // Liquid, light
+            ("#e0e7ff", false), // an indigo-100 ambient
+            ("#ffffff", false),
+        ] {
+            assert_eq!(
+                FrameColors::parse(page).map(|c| c.dark),
+                Some(dark),
+                "{page}"
+            );
         }
     }
 

@@ -46,10 +46,15 @@ function readCached(): WindowChromeState {
       parsed !== null &&
       "draw" in parsed &&
       "chrome" in parsed &&
-      "supported" in parsed &&
-      "options" in parsed
+      "supported" in parsed
     ) {
-      const state = parsed as WindowChromeState;
+      // A cache written before `options` existed still knows what to
+      // draw, which is all the first paint needs; the card waits for the
+      // round-trip before it lists anything.
+      const state = {
+        options: ["system"],
+        ...parsed,
+      } as WindowChromeState;
       // Validate rather than trust: this is page-writable storage, and a
       // bad `draw` would mean drawing a title bar over a framed window.
       const drawOk =

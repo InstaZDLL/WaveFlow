@@ -72,14 +72,11 @@ export function setWindowChrome(
   );
 }
 
-/** The colours the `adwaita` frame takes: the theme's background as
- *  `#rrggbb`, and whether the theme is dark. Not a setting -- it follows
- *  the theme -- so no write is announced. */
-export function setWindowFrameColors(
-  background: string,
-  dark: boolean,
-): Promise<void> {
-  return invoke<void>("set_window_frame_colors", { background, dark });
+/** The colour the `adwaita` frame takes: the page's background as
+ *  `#rrggbb` (the backend reads dark or light from it). Not a setting --
+ *  it follows the theme and the skin -- so no write is announced. */
+export function setWindowFrameColors(background: string): Promise<void> {
+  return invoke<void>("set_window_frame_colors", { background });
 }
 
 /** Broadcast after a successful write so the layout (which draws the bar)

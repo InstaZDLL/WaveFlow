@@ -723,7 +723,7 @@ pub fn apply_window_chrome(app: &tauri::AppHandle, chrome: WindowChrome) -> AppR
         }
     }
 
-    // Windows keeps its frame; see `WindowChrome::supported`.
+    // Windows keeps its frame; see `ChromeSupport`.
     #[cfg(target_os = "windows")]
     let _ = (&window, chrome);
 
@@ -764,7 +764,7 @@ pub async fn set_window_chrome(
 ) -> AppResult<WindowChromeState> {
     let parsed = WindowChrome::parse(&chrome).ok_or_else(|| {
         crate::error::AppError::Other(format!(
-            "set_window_chrome: unsupported value '{chrome}' (expected system, app)"
+            "set_window_chrome: unsupported value '{chrome}' (expected system, adwaita, app)"
         ))
     })?;
     // What the window has right now, for the rollback below -- and the
@@ -827,17 +827,13 @@ pub async fn set_window_chrome(
     Ok(WindowChromeState::new(parsed.resolved(support), support))
 }
 
-/// The colours of the `adwaita` frame: the background of WaveFlow's theme
-/// and whether it is dark, sent by the interface whenever the theme
+/// The colour of the `adwaita` frame: the background WaveFlow's page is
+/// painted with, sent by the interface whenever the theme or the skin
 /// changes. A no-op off Linux, and harmless while another frame is in
-/// use -- the style picks them up when it is turned on.
+/// use -- the style picks it up when it is turned on.
 #[tauri::command]
-pub fn set_window_frame_colors(
-    app: tauri::AppHandle,
-    background: String,
-    dark: bool,
-) -> AppResult<()> {
-    let colors = crate::adwaita_frame::FrameColors::parse(&background, dark).ok_or_else(|| {
+pub fn set_window_frame_colors(app: tauri::AppHandle, background: String) -> AppResult<()> {
+    let colors = crate::adwaita_frame::FrameColors::parse(&background).ok_or_else(|| {
         crate::error::AppError::Other(format!(
             "set_window_frame_colors: expected #rrggbb, got '{background}'"
         ))
