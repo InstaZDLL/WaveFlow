@@ -300,6 +300,9 @@ mod tests {
 
     fn client() -> reqwest::blocking::Client {
         reqwest::blocking::Client::builder()
+            // A system proxy would answer for the host itself and hide the
+            // transport error these tests are about.
+            .no_proxy()
             .timeout(std::time::Duration::from_secs(5))
             .build()
             .expect("client")
@@ -350,6 +353,7 @@ mod tests {
         let origin = listener.local_addr().expect("addr").to_string();
         let silent = std::thread::spawn(move || listener.accept().map(|(stream, _)| stream));
         let err = reqwest::blocking::Client::builder()
+            .no_proxy()
             .timeout(std::time::Duration::from_millis(300))
             .build()
             .expect("client")
@@ -383,6 +387,7 @@ mod tests {
             stream.write_all(reply.as_bytes()).expect("write");
         });
         let err = reqwest::blocking::Client::builder()
+            .no_proxy()
             .redirect(reqwest::redirect::Policy::custom(|attempt| {
                 let refused = format!("refused to follow ({})", attempt.url());
                 attempt.error(refused)

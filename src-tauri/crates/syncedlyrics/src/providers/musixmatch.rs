@@ -584,6 +584,9 @@ mod redact_tests {
     fn client() -> reqwest::Client {
         // Short timeouts so the test fails fast on real networks too.
         reqwest::Client::builder()
+            // A system proxy would answer for `.invalid` and hide the DNS
+            // failure these tests are about.
+            .no_proxy()
             .connect_timeout(std::time::Duration::from_millis(500))
             .timeout(std::time::Duration::from_millis(500))
             .build()
