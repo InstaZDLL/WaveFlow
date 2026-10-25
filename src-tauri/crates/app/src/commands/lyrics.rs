@@ -64,7 +64,7 @@ use lofty::tag::ItemKey;
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter};
 
-use waveflow_core::error::describe_error;
+use waveflow_core::error::{describe_error, describe_http_error};
 use waveflow_core::metadata::lrclib::LrclibClient;
 use waveflow_core::plugin::runtime::{
     AssociatedKind as PluginAssociatedKind, LyricsBundle as PluginLyricsBundle,
@@ -2721,13 +2721,14 @@ async fn fetch_after_plugins(
             return resolve_after_lrclib_miss(pool, track_id, meta, prefer_lrclib).await;
         }
         Some(Err(err)) => {
-            tracing::warn!(?err, "LRCLIB fetch failed");
+            let error = describe_http_error(&err);
+            tracing::warn!(%error, "LRCLIB fetch failed");
             return resolve_while_lrclib_unreachable(
                 pool,
                 track_id,
                 meta,
                 prefer_lrclib,
-                format!("LRCLIB request failed: {err}"),
+                format!("LRCLIB request failed: {error}"),
             )
             .await;
         }
@@ -3413,7 +3414,8 @@ async fn run_prefetch(
                 }
             }
             Err(err) => {
-                tracing::warn!(track_id, ?err, "LRCLIB prefetch failed");
+                let error = describe_http_error(&err);
+                tracing::warn!(track_id, %error, "LRCLIB prefetch failed");
                 failed += 1;
             }
         }

@@ -172,8 +172,14 @@ mod imp {
     #[derive(Default)]
     pub struct PendingUpdate(pub Mutex<Option<Update>>);
 
-    fn updater_err(e: impl std::fmt::Display) -> AppError {
-        AppError::Other(format!("updater: {e}"))
+    /// The cause chain too: the plugin's `Reqwest` variant is transparent,
+    /// and its message alone reads "error sending request" — offline, DNS,
+    /// refused and timed out all look the same without the layers below.
+    fn updater_err(e: impl std::error::Error) -> AppError {
+        AppError::Other(format!(
+            "updater: {}",
+            waveflow_core::error::describe_error_without_urls(&e)
+        ))
     }
 
     async fn check_endpoint(app: &AppHandle, endpoint: &str) -> AppResult<Option<Update>> {

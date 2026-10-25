@@ -119,6 +119,15 @@ pub fn describe_http_error(err: &reqwest::Error) -> String {
     redact_urls(&describe_chain(first, std::error::Error::source(err)))
 }
 
+/// [`describe_http_error`] for an error this crate cannot name: a
+/// `reqwest::Error` of another major version, wrapped by a dependency (the
+/// updater plugin's). Its first layer keeps reqwest's " for url (…)" — the
+/// version-specific `url()` is out of reach — but that URL, like any other
+/// in the chain, is cut down to its origin.
+pub fn describe_error_without_urls(err: &dyn std::error::Error) -> String {
+    redact_urls(&describe_error(err))
+}
+
 /// Cut every URL in `text` down to its origin. A URL is a run of
 /// non-whitespace holding `://`; trailing punctuation that wraps it in
 /// prose (`)`, `,`, …) is kept outside. A run that does not parse is
@@ -139,7 +148,7 @@ fn redact_urls(text: &str) -> String {
             .find(|&(_, c)| !(c.is_ascii_alphanumeric() || matches!(c, '+' | '-' | '.')))
             .map_or(0, |(at, c)| at + c.len_utf8());
         let end = word
-            .trim_end_matches([')', ']', '>', '"', '\'', ',', ';', '.'])
+            .trim_end_matches([')', ']', '>', '"', '\'', ',', ';', ':', '.', '!', '?'])
             .len()
             .max(marker + 3);
         out.push_str(&word[..start]);
@@ -392,6 +401,21 @@ mod tests {
         assert_no_secret(&out);
     }
 
+    /// The walker for an error of a reqwest this crate cannot name: the
+    /// first layer still prints its URL, which comes out as its origin.
+    #[test]
+    fn describe_error_without_urls_keeps_the_cause_and_only_the_origin() {
+        let err = chain(&[
+            "error sending request for url (https://u:p@h.example/latest.json?k=s3cr3t)",
+            "client error (Connect)",
+            "dns error",
+        ]);
+        assert_eq!(
+            super::describe_error_without_urls(&err),
+            "error sending request for url (https://h.example): client error (Connect): dns error"
+        );
+    }
+
     #[test]
     fn redact_urls_keeps_the_origin_and_the_prose_around_it() {
         assert_eq!(
@@ -399,6 +423,10 @@ mod tests {
             "failed at (https://host.example:8443), retrying"
         );
         assert_eq!(super::redact_urls("no url here"), "no url here");
+        assert_eq!(
+            super::redact_urls("for url (https://h.example/p?k=v): refused"),
+            "for url (https://h.example): refused"
+        );
         assert_eq!(
             super::redact_urls("«https://h.example/x"),
             "«https://h.example"
