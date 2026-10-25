@@ -337,7 +337,7 @@ export function ProfileSelectorModal({
                   <div className="relative mb-4">
                     <div
                       aria-hidden="true"
-                      className="pointer-events-none absolute inset-0 -m-10 rounded-full blur-3xl animate-breathing transition-colors duration-300 bg-red-500/30"
+                      className="soft-glow absolute -inset-[10.5rem] animate-breathing [--orb:var(--color-red-500)] [--orb-alpha:30%]"
                     />
                     <div className="relative w-20 h-20 rounded-2xl bg-zinc-800 border border-red-500/40 text-red-400 flex items-center justify-center shadow-sm">
                       <Trash2 size={32} />
@@ -418,7 +418,7 @@ export function ProfileSelectorModal({
                   <div className="relative mb-4">
                     <div
                       aria-hidden="true"
-                      className={`pointer-events-none absolute inset-0 -m-10 rounded-full blur-3xl animate-breathing transition-colors duration-300 ${currentColor.glow}`}
+                      className={`soft-glow absolute -inset-[10.5rem] animate-breathing ${currentColor.glow}`}
                     />
                     <div
                       className={`relative w-20 h-20 rounded-2xl bg-zinc-800 border flex items-center justify-center shadow-sm transition-colors duration-300 ${currentColor.iconBorder} ${currentColor.iconText}`}

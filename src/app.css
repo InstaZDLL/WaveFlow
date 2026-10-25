@@ -218,11 +218,11 @@
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
 }
-/* The glows that breathe behind an empty state or a profile's avatar are
-   blurred discs under an infinite animation: gone, not frozen. A held
-   note keeps its swell and loses its halo, an animated text-shadow. */
+/* The glows that breathe behind an empty state or a profile's initial
+   hold still (their breathing never stops), and a held note keeps its
+   swell without its halo, an animated text-shadow. */
 :root[data-effects="reduced"] .animate-breathing {
-  display: none;
+  animation: none;
 }
 :root[data-effects="reduced"] .wf-held-letter--glow {
   animation-name: wf-held-swell;
@@ -258,6 +258,27 @@
     color-mix(in srgb, var(--orb) var(--orb-alpha, 30%), transparent) 11%,
     color-mix(in srgb, var(--orb) calc(var(--orb-alpha, 30%) / 2), transparent)
       56%,
+    transparent
+  );
+}
+
+/* The same for a small disc — the glow behind an empty state's icon or
+   a profile's initial, a disc 2.5 rem past the icon under a 64 px blur.
+   A disc that small has no full core: the blur takes its centre down to
+   about 55 % of the colour, then a bell to nothing at twice the blur
+   past its edge (the box). The stops sample that bell, computed from
+   the Gaussian the CSS blur is. */
+.soft-glow {
+  --glow-a: calc(var(--orb-alpha, 30%) * 0.55);
+  pointer-events: none;
+  border-radius: 9999px;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in srgb, var(--orb) var(--glow-a), transparent) 0%,
+    color-mix(in srgb, var(--orb) calc(var(--glow-a) * 0.87), transparent) 20%,
+    color-mix(in srgb, var(--orb) calc(var(--glow-a) * 0.57), transparent) 40%,
+    color-mix(in srgb, var(--orb) calc(var(--glow-a) * 0.27), transparent) 60%,
+    color-mix(in srgb, var(--orb) calc(var(--glow-a) * 0.09), transparent) 80%,
     transparent
   );
 }
