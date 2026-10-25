@@ -242,6 +242,13 @@
       "playlistSubtextPending_zero": "0 tracks · not sent yet",
       "playlistSubtextPending_one": "{{count}} track · not sent yet",
       "playlistSubtextPending_other": "{{count}} tracks · not sent yet"
+    },
+    "pins": {
+      "title": "Pinned",
+      "pin": "Pin to sidebar",
+      "unpin": "Unpin",
+      "album": "Album",
+      "artist": "Artist"
     }
   },
   "topbar": {

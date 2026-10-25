@@ -242,6 +242,13 @@
       "playlistSubtextPending_zero": "0 nummers · nog niet verstuurd",
       "playlistSubtextPending_one": "{{count}} nummer · nog niet verstuurd",
       "playlistSubtextPending_other": "{{count}} nummers · nog niet verstuurd"
+    },
+    "pins": {
+      "title": "Vastgezet",
+      "pin": "Vastzetten in zijbalk",
+      "unpin": "Losmaken",
+      "album": "Album",
+      "artist": "Artiest"
     }
   },
   "topbar": {

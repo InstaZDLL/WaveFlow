@@ -254,6 +254,13 @@
       "playlistSubtextPending_few": "{{count}} трека · ещё не отправлены",
       "playlistSubtextPending_other": "{{count}} треков · ещё не отправлены",
       "playlistSubtextPending_many": "{{count}} треков · ещё не отправлены"
+    },
+    "pins": {
+      "title": "Закреплённые",
+      "pin": "Закрепить на боковой панели",
+      "unpin": "Открепить",
+      "album": "Альбом",
+      "artist": "Исполнитель"
     }
   },
   "topbar": {

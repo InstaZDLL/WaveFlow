@@ -15,6 +15,7 @@ pub mod library;
 pub mod playlist;
 pub mod profile;
 pub mod search;
+pub mod sidebar_pin;
 pub mod track;
 
 pub use album::SqliteAlbumRepository;

@@ -57,6 +57,8 @@ import {
   EyeOff,
   Trash2,
   ImageIcon,
+  Pin,
+  PinOff,
   ArrowUpDown,
   ArrowDown,
   ArrowUp,
@@ -112,6 +114,16 @@ import { useLibrary } from "../../hooks/useLibrary";
 import { usePlayer } from "../../hooks/usePlayer";
 import { usePlaylist } from "../../hooks/usePlaylist";
 import { useTrackContextMenu } from "../../hooks/useTrackContextMenu";
+import { toggleSidebarPin, useSidebarPins } from "../../hooks/useSidebarPins";
+import {
+  ContextMenu,
+  ContextMenuItem,
+  type ContextMenuPoint,
+} from "../common/ContextMenu";
+import {
+  isContextMenuKey,
+  menuAnchorForElement,
+} from "../../lib/contextMenuKeys";
 import { useRemoteTrackContextMenu } from "../../hooks/useRemoteTrackContextMenu";
 import { useTrackUpdated } from "../../hooks/useTrackUpdated";
 import { useArtistUpdated } from "../../hooks/useArtistUpdated";
@@ -3337,6 +3349,7 @@ function AlbumGrid({
     x: number;
     y: number;
   } | null>(null);
+  const { isPinned } = useSidebarPins();
 
   // Virtual-grid plumbing — without this a 800-album library mounts 800
   // <Artwork> components on every tab switch, blowing the main thread
@@ -3644,6 +3657,29 @@ function AlbumGrid({
               <ImageIcon size={14} />
               <span>{t("library.changeCover")}</span>
             </button>
+            {(() => {
+              const pinned = isPinned("album", contextMenu.albumId);
+              return (
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    const id = contextMenu.albumId;
+                    setContextMenu(null);
+                    toggleSidebarPin("album", id, !pinned).catch(
+                      (err: unknown) =>
+                        console.error("[AlbumGrid] pin failed", err),
+                    );
+                  }}
+                  className="w-full flex items-center space-x-2 px-3 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700/30 transition-colors"
+                >
+                  {pinned ? <PinOff size={14} /> : <Pin size={14} />}
+                  <span>
+                    {pinned ? t("sidebar.pins.unpin") : t("sidebar.pins.pin")}
+                  </span>
+                </button>
+              );
+            })()}
           </div>,
           document.body,
         )}
@@ -3750,6 +3786,12 @@ function ArtistList({
 }: ArtistListProps) {
   "use no memo";
   const [openMenuArtistId, setOpenMenuArtistId] = useState<number | null>(null);
+  // Right-click on a local artist: pin it to the sidebar, or unpin it.
+  const [artistMenu, setArtistMenu] = useState<{
+    artistId: number;
+    point: ContextMenuPoint;
+  } | null>(null);
+  const { isPinned } = useSidebarPins();
   // See AlbumGrid: the `+` button DOM nodes feed the popover's portal
   // positioning, which is the only way to escape the virtualizer's
   // transform-based stacking context.
@@ -3865,6 +3907,22 @@ function ArtistList({
       <div
         key={`${artist.source}:${artist.id}`}
         data-artist-index={idx}
+        onContextMenu={(e) => {
+          if (localId === null) return;
+          e.preventDefault();
+          setArtistMenu({
+            artistId: localId,
+            point: { x: e.clientX, y: e.clientY },
+          });
+        }}
+        onKeyDown={(e) => {
+          if (localId === null || !isContextMenuKey(e)) return;
+          e.preventDefault();
+          setArtistMenu({
+            artistId: localId,
+            point: menuAnchorForElement(e.target as HTMLElement),
+          });
+        }}
         className="group flex flex-col items-center space-y-3 cursor-pointer relative"
       >
         <div className="relative w-full">
@@ -3944,48 +4002,75 @@ function ArtistList({
   };
 
   return (
-    <div
-      ref={parentRef}
-      className={isLoading ? "opacity-50" : ""}
-      style={{
-        height: `${virtualizer.getTotalSize()}px`,
-        position: "relative",
-      }}
-    >
-      {virtualizer.getVirtualItems().map((row) => {
-        const startIdx = row.index * colCount;
-        const rowItems = artists.slice(startIdx, startIdx + colCount);
-        // Same stacking fix as TrackTable / AlbumGrid: bump the row that
-        // owns the open `+` popover above the rows rendered after it.
-        const rowHasOpenMenu = rowItems.some(
-          (artist) =>
-            artist.source === "local" && Number(artist.id) === openMenuArtistId,
-        );
-        return (
-          <div
-            key={row.key}
-            style={{
-              position: "absolute",
-              top: positionRowsWithTop ? row.start - scrollMargin : 0,
-              left: 0,
-              width: "100%",
-              transform: positionRowsWithTop
-                ? undefined
-                : "translateY(" + (row.start - scrollMargin) + "px)",
-              display: "grid",
-              gridTemplateColumns: `repeat(${colCount}, minmax(0, 1fr))`,
-              gap: `${GAP}px`,
-              paddingBottom: `${GAP}px`,
-              zIndex: rowHasOpenMenu ? 20 : undefined,
-            }}
-          >
-            {rowItems.map((artist, i) =>
-              renderArtistTile(artist, startIdx + i),
-            )}
-          </div>
-        );
-      })}
-    </div>
+    <>
+      <div
+        ref={parentRef}
+        className={isLoading ? "opacity-50" : ""}
+        style={{
+          height: `${virtualizer.getTotalSize()}px`,
+          position: "relative",
+        }}
+      >
+        {virtualizer.getVirtualItems().map((row) => {
+          const startIdx = row.index * colCount;
+          const rowItems = artists.slice(startIdx, startIdx + colCount);
+          // Same stacking fix as TrackTable / AlbumGrid: bump the row that
+          // owns the open `+` popover above the rows rendered after it.
+          const rowHasOpenMenu = rowItems.some(
+            (artist) =>
+              artist.source === "local" &&
+              Number(artist.id) === openMenuArtistId,
+          );
+          return (
+            <div
+              key={row.key}
+              style={{
+                position: "absolute",
+                top: positionRowsWithTop ? row.start - scrollMargin : 0,
+                left: 0,
+                width: "100%",
+                transform: positionRowsWithTop
+                  ? undefined
+                  : "translateY(" + (row.start - scrollMargin) + "px)",
+                display: "grid",
+                gridTemplateColumns: `repeat(${colCount}, minmax(0, 1fr))`,
+                gap: `${GAP}px`,
+                paddingBottom: `${GAP}px`,
+                zIndex: rowHasOpenMenu ? 20 : undefined,
+              }}
+            >
+              {rowItems.map((artist, i) =>
+                renderArtistTile(artist, startIdx + i),
+              )}
+            </div>
+          );
+        })}
+      </div>
+      {artistMenu && (
+        <ContextMenu
+          point={artistMenu.point}
+          onClose={() => setArtistMenu(null)}
+        >
+          {(() => {
+            const pinned = isPinned("artist", artistMenu.artistId);
+            return (
+              <ContextMenuItem
+                icon={pinned ? <PinOff size={16} /> : <Pin size={16} />}
+                label={pinned ? t("sidebar.pins.unpin") : t("sidebar.pins.pin")}
+                onSelect={() => {
+                  const id = artistMenu.artistId;
+                  setArtistMenu(null);
+                  toggleSidebarPin("artist", id, !pinned).catch(
+                    (err: unknown) =>
+                      console.error("[ArtistList] pin failed", err),
+                  );
+                }}
+              />
+            );
+          })()}
+        </ContextMenu>
+      )}
+    </>
   );
 }
 

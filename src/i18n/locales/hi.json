@@ -242,6 +242,13 @@
       "playlistSubtextPending_zero": "0 ट्रैक · अभी नहीं भेजी गई",
       "playlistSubtextPending_one": "{{count}} ट्रैक · अभी नहीं भेजी गई",
       "playlistSubtextPending_other": "{{count}} ट्रैक · अभी नहीं भेजी गई"
+    },
+    "pins": {
+      "title": "पिन किए गए",
+      "pin": "साइडबार में पिन करें",
+      "unpin": "अनपिन करें",
+      "album": "एल्बम",
+      "artist": "कलाकार"
     }
   },
   "topbar": {

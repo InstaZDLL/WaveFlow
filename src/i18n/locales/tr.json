@@ -242,6 +242,13 @@
       "playlistSubtextPending_zero": "0 parça · henüz gönderilmedi",
       "playlistSubtextPending_one": "{{count}} parça · henüz gönderilmedi",
       "playlistSubtextPending_other": "{{count}} parça · henüz gönderilmedi"
+    },
+    "pins": {
+      "title": "Sabitlenenler",
+      "pin": "Kenar çubuğuna sabitle",
+      "unpin": "Sabitlemeyi kaldır",
+      "album": "Albüm",
+      "artist": "Sanatçı"
     }
   },
   "topbar": {

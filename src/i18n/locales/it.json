@@ -248,6 +248,13 @@
       "playlistSubtextPending_one": "{{count}} brano · non ancora inviata",
       "playlistSubtextPending_other": "{{count}} brani · non ancora inviata",
       "playlistSubtextPending_many": "{{count}} brani · non ancora inviata"
+    },
+    "pins": {
+      "title": "Fissati",
+      "pin": "Fissa nella barra laterale",
+      "unpin": "Sblocca",
+      "album": "Album",
+      "artist": "Artista"
     }
   },
   "topbar": {

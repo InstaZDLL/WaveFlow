@@ -19,6 +19,7 @@ import {
   PlayCircle,
   FileAudio,
   FolderOpen,
+  PinOff,
 } from "lucide-react";
 import {
   ContextMenu,
@@ -26,6 +27,12 @@ import {
   type ContextMenuPoint,
 } from "../common/ContextMenu";
 import { openFilesToPlay, openFolderToPlay } from "../../lib/openToPlay";
+import {
+  isContextMenuKey,
+  menuAnchorForElement,
+} from "../../lib/contextMenuKeys";
+import type { SidebarPin } from "../../lib/tauri/sidebarPins";
+import { toggleSidebarPin, useSidebarPins } from "../../hooks/useSidebarPins";
 import { loadBindings, type ShortcutBindings } from "../../lib/shortcuts";
 import type { ViewId, LibraryTab } from "../../types";
 import { NavItem } from "../common/NavItem";
@@ -74,6 +81,12 @@ interface SidebarProps {
   /** Id of the currently-open ui plugin view, or `null`. Drives the
    *  active highlight on the dynamic plugin entries. */
   activePluginId: string | null;
+  /** The open album / artist page, or `null`: drives the highlight of
+   *  their pinned rows. */
+  activeAlbumId: number | null;
+  navigateToAlbum: (id: number) => void;
+  activeArtistId: number | null;
+  navigateToArtist: (id: number) => void;
   navigateToPluginUi: (
     pluginId: string,
     initialPath: string,
@@ -95,6 +108,10 @@ export function Sidebar({
   navigateToRemotePlaylist,
   activePluginId,
   navigateToPluginUi,
+  activeAlbumId,
+  navigateToAlbum,
+  activeArtistId,
+  navigateToArtist,
   collapsed,
 }: SidebarProps) {
   const { t } = useTranslation();
@@ -162,6 +179,14 @@ export function Sidebar({
     },
     onOpenRemote: navigateToRemotePlaylist,
   });
+  // Albums, artists and playlists the user pinned, in pinning order.
+  const { pins } = useSidebarPins();
+  // Right-click on a pinned album or artist: Unpin. A pinned playlist
+  // opens the playlist menu, which carries the same entry.
+  const [pinMenu, setPinMenu] = useState<{
+    pin: SidebarPin;
+    point: ContextMenuPoint;
+  } | null>(null);
   // Seq-guarded stats fetch
   const statsSeqRef = useRef(0);
   const refreshStats = useCallback(() => {
@@ -269,6 +294,16 @@ export function Sidebar({
       console.error("[Sidebar] import m3u failed", err);
     }
   }, [t, refreshPlaylists, navigateToPlaylist]);
+
+  // A pinned playlist is drawn from the list below; one that list does
+  // not hold (yet) is left out, so the section never stands empty.
+  const shownPins = pins.filter(
+    (pin) =>
+      pin.kind !== "playlist" ||
+      libraryPlaylists.some(
+        (row) => row.source !== "remote" && Number(row.id) === pin.id,
+      ),
+  );
 
   const isPlaylistRowActive = (id: number) =>
     activeView === "playlist" && activePlaylistId === id;
@@ -552,6 +587,119 @@ export function Sidebar({
           />
         </div>
 
+        {/* ─── PINNED ─── albums, artists and playlists the user put
+            here, in the order they were pinned. Only when there is one. */}
+        {shownPins.length > 0 && (
+          <div data-sidebar-section="pins">
+            {collapsed ? (
+              <SectionRule />
+            ) : (
+              <div
+                data-sidebar-section-title
+                className="flex items-center justify-between text-[10px] font-bold tracking-widest text-zinc-400 mb-1 px-2 uppercase"
+              >
+                <span>{t("sidebar.pins.title")}</span>
+              </div>
+            )}
+            <div data-sidebar-pins className="space-y-1">
+              {shownPins.map((pin) => {
+                if (pin.kind === "playlist") {
+                  // Drawn from the playlist list the section below holds,
+                  // so a rename or a new cover shows here at once.
+                  const pl = libraryPlaylists.find(
+                    (row) =>
+                      row.source !== "remote" && Number(row.id) === pin.id,
+                  );
+                  if (!pl) return null;
+                  const subject = {
+                    id: pl.id,
+                    name: pl.name,
+                    isRemote: false,
+                  };
+                  return (
+                    <PlaylistSidebarRow
+                      key={`pin:playlist:${pin.id}`}
+                      collapsed={collapsed}
+                      playlist={pl}
+                      active={isPlaylistRowActive(pin.id)}
+                      onClick={() => handleSelectPlaylist(pin.id)}
+                      subtext={t("sidebar.myLibrary.playlistSubtext", {
+                        count: pl.track_count,
+                      })}
+                      onContextMenu={(e) => playlistMenu.open(e, subject)}
+                      onKeyDown={(e) =>
+                        void playlistMenu.openFromKeyboard(e, subject)
+                      }
+                    />
+                  );
+                }
+                const album = pin.kind === "album";
+                const src = resolveRemoteImage(
+                  pin.image_path_2x ?? pin.image_path ?? pin.image_path_1x,
+                  null,
+                );
+                const shape = album ? "rounded-lg" : "rounded-full";
+                return (
+                  <SidebarRow
+                    key={`pin:${pin.kind}:${pin.id}`}
+                    kind="playlist"
+                    collapsed={collapsed}
+                    icon={
+                      src ? (
+                        <img
+                          src={src}
+                          alt=""
+                          className={`w-8 h-8 object-cover ${shape}`}
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div
+                          className={`w-8 h-8 flex items-center justify-center bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400 ${shape}`}
+                        >
+                          {album ? <Disc size={16} /> : <Mic2 size={16} />}
+                        </div>
+                      )
+                    }
+                    label={pin.name}
+                    subtext={
+                      album
+                        ? (pin.subtitle ?? t("sidebar.pins.album"))
+                        : t("sidebar.pins.artist")
+                    }
+                    active={
+                      album
+                        ? activeView === "album-detail" &&
+                          activeAlbumId === pin.id
+                        : activeView === "artist-detail" &&
+                          activeArtistId === pin.id
+                    }
+                    onClick={() =>
+                      album ? navigateToAlbum(pin.id) : navigateToArtist(pin.id)
+                    }
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      setPinMenu({
+                        pin,
+                        point: { x: e.clientX, y: e.clientY },
+                      });
+                    }}
+                    onKeyDown={(e) => {
+                      if (!isContextMenuKey(e)) return;
+                      e.preventDefault();
+                      setPinMenu({
+                        pin,
+                        point: menuAnchorForElement(
+                          e.currentTarget as HTMLElement,
+                        ),
+                      });
+                    }}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* ─── PLAYLISTS ─── */}
         <div data-sidebar-section="playlists">
           {collapsed ? (
@@ -674,6 +822,22 @@ export function Sidebar({
 
       {playlistMenu.render()}
 
+      {pinMenu && (
+        <ContextMenu point={pinMenu.point} onClose={() => setPinMenu(null)}>
+          <ContextMenuItem
+            icon={<PinOff size={16} />}
+            label={t("sidebar.pins.unpin")}
+            onSelect={() => {
+              const { kind, id } = pinMenu.pin;
+              setPinMenu(null);
+              toggleSidebarPin(kind, id, false).catch((err: unknown) =>
+                console.error("[Sidebar] unpin failed", err),
+              );
+            }}
+          />
+        </ContextMenu>
+      )}
+
       {openMenuPoint && (
         <ContextMenu
           point={openMenuPoint}
@@ -756,7 +920,9 @@ function SidebarRow({
   kind,
 }: {
   /** What the row stands for, for the skins that lay the two kinds out
-   *  differently (the pinned pair as tiles, the playlists as rows). */
+   *  differently: the pinned pair as tiles, every other row — a
+   *  playlist, or an album or artist pinned by the user — as a row with
+   *  its cover. */
   kind: "pinned" | "playlist";
   icon: React.ReactNode;
   label: string;
@@ -765,8 +931,7 @@ function SidebarRow({
   /** The tile alone; the name stays the button's name and its tooltip. */
   collapsed?: boolean;
   onClick?: () => void;
-  /** Only the playlist rows pass these. The pinned Liked / Recently
-   *  played rows have no menu, leave them out, and behave as before. */
+  /** Optional: a row given neither has no menu. */
   onContextMenu?: (event: React.MouseEvent) => void;
   onKeyDown?: (event: React.KeyboardEvent) => void;
 }) {

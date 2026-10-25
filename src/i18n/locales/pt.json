@@ -248,6 +248,13 @@
       "playlistSubtextPending_one": "{{count}} faixa · ainda não enviada",
       "playlistSubtextPending_other": "{{count}} faixas · ainda não enviada",
       "playlistSubtextPending_many": "{{count}} faixas · ainda não enviada"
+    },
+    "pins": {
+      "title": "Afixados",
+      "pin": "Afixar na barra lateral",
+      "unpin": "Desafixar",
+      "album": "Álbum",
+      "artist": "Artista"
     }
   },
   "topbar": {

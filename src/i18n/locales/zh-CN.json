@@ -242,6 +242,13 @@
       "playlistSubtextPending_zero": "0 首曲目 · 尚未发送",
       "playlistSubtextPending_one": "{{count}} 首曲目 · 尚未发送",
       "playlistSubtextPending_other": "{{count}} 首曲目 · 尚未发送"
+    },
+    "pins": {
+      "title": "已固定",
+      "pin": "固定到侧边栏",
+      "unpin": "取消固定",
+      "album": "专辑",
+      "artist": "艺人"
     }
   },
   "topbar": {
