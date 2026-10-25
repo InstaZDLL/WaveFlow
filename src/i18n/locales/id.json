@@ -2654,6 +2654,10 @@
           "label": "Sistem",
           "hint": "Bingkai yang digambar desktopmu untuk semua aplikasi."
         },
+        "adwaita": {
+          "label": "GNOME",
+          "hint": "Bingkai desktopmu, bergaya aplikasi GNOME terkini dan dengan warna WaveFlow."
+        },
         "app": {
           "label": "WaveFlow",
           "hint": "WaveFlow yang menggambarnya, dan tombol jendela berada di bilahnya sendiri."

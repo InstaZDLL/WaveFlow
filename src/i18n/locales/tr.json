@@ -2656,6 +2656,10 @@
           "label": "Sistem",
           "hint": "Masaüstünün her uygulama için çizdiği çerçeve."
         },
+        "adwaita": {
+          "label": "GNOME",
+          "hint": "Masaüstünün çerçevesi, güncel GNOME uygulamalarının tarzında ve WaveFlow'un renklerinde."
+        },
         "app": {
           "label": "WaveFlow",
           "hint": "Onu WaveFlow çizer ve pencere düğmeleri kendi çubuğunda yer alır."

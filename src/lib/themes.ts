@@ -363,6 +363,15 @@ export function findTheme(id: string | null | undefined): ThemePreset {
 }
 
 /**
+ * The page background a theme paints (`--ambient-bg`), always `#rrggbb`.
+ * Also the colour of the desktop frame when it is dressed as a GNOME
+ * header bar (`useWindowFrameColors`), so the two cannot drift apart.
+ */
+export function themeAmbient(theme: ThemePreset): string {
+  return theme.ambient ?? (theme.mode === "dark" ? "#121212" : "#ffffff");
+}
+
+/**
  * Apply the theme's CSS variables + dark class to the document root.
  * Idempotent — calling repeatedly with the same theme is a no-op.
  */
@@ -388,10 +397,7 @@ export function applyTheme(
     root.style.setProperty(`--accent-${shade}`, value);
   }
   writeCachedAccent(accent, accentOverride !== null);
-  root.style.setProperty(
-    "--ambient-bg",
-    theme.ambient ?? (theme.mode === "dark" ? "#121212" : "#ffffff"),
-  );
+  root.style.setProperty("--ambient-bg", themeAmbient(theme));
   // Surface tokens that drive `bg-surface-{dark,light}` / `-elevated`
   // (Tailwind v4 generates the utilities from these custom-property
   // names). Themed palettes override them so sidebar / right panels /

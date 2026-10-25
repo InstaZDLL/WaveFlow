@@ -4,6 +4,7 @@
 //! (running any pending migrations) and exposes the initial set of Tauri
 //! commands to the frontend.
 
+mod adwaita_frame;
 mod analysis;
 mod audio;
 mod autoplay;
@@ -1197,6 +1198,7 @@ pub fn run() {
             commands::preferences::set_ui_zoom,
             commands::preferences::get_window_chrome,
             commands::preferences::set_window_chrome,
+            commands::preferences::set_window_frame_colors,
             commands::library_media::get_clips_in_library,
             commands::library_media::set_clips_in_library,
             commands::library_media::get_local_video_base_url,

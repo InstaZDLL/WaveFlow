@@ -179,6 +179,8 @@ export const SETTINGS_CATEGORIES = [
           "settings.windowChrome.subtitle",
           "settings.windowChrome.options.system.label",
           "settings.windowChrome.options.system.hint",
+          "settings.windowChrome.options.adwaita.label",
+          "settings.windowChrome.options.adwaita.hint",
           "settings.windowChrome.options.app.label",
           "settings.windowChrome.options.app.hint",
           "settings.xwayland.title",

@@ -2654,6 +2654,10 @@
           "label": "システム",
           "hint": "デスクトップがすべてのアプリに描く枠。"
         },
+        "adwaita": {
+          "label": "GNOME",
+          "hint": "デスクトップの枠を、最近の GNOME アプリ風のスタイルと WaveFlow の色で表示します。"
+        },
         "app": {
           "label": "WaveFlow",
           "hint": "WaveFlow が描き、ウィンドウのボタンは WaveFlow 自身のバーに収まります。"

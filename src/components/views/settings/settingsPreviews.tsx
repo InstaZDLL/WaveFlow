@@ -292,7 +292,11 @@ export function ReplayGainPreview({ mode }: { mode: ReplayGainMode }) {
 
 /** A window framed by the system (its title bar above the app) or by the
  *  app itself (the app up to the top edge, its own buttons in it). */
-export function WindowFramePreview({ kind }: { kind: "system" | "app" }) {
+export function WindowFramePreview({
+  kind,
+}: {
+  kind: "system" | "adwaita" | "app";
+}) {
   return (
     <span className={`sp-frame sp-frame--${kind}`}>
       <span className="sp-frame__titlebar">

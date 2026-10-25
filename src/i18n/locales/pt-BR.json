@@ -2722,6 +2722,10 @@
           "label": "Sistema",
           "hint": "A moldura que o seu sistema desenha para todos os aplicativos."
         },
+        "adwaita": {
+          "label": "GNOME",
+          "hint": "A moldura do seu sistema, no estilo dos aplicativos GNOME recentes e com as cores do WaveFlow."
+        },
         "app": {
           "label": "WaveFlow",
           "hint": "É o WaveFlow que a desenha, e os botões da janela ficam na barra dele."

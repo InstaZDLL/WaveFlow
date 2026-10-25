@@ -43,13 +43,19 @@ export function setUiZoom(zoom: number): Promise<void> {
  * into, which is the only part the interface acts on — `"none"` (the
  * desktop's frame is there), `"titlebar"` (no frame, draw one) or
  * `"overlay"` (macOS: the frame is transparent over our content, so leave
- * the traffic lights room). `supported` is false where the choice is not
- * offered at all, which today means Windows.
+ * the traffic lights room). `adwaita` is the desktop's frame restyled as
+ * a libadwaita header bar, so it draws `"none"` too. `options` lists the
+ * choices this platform and launch offer — `adwaita` only where GTK draws
+ * the frame, its Wayland backend — and `supported` is false where there
+ * is nothing to choose, which today means Windows.
  */
+export type WindowChrome = "system" | "adwaita" | "app";
+
 export interface WindowChromeState {
-  chrome: "system" | "app";
+  chrome: WindowChrome;
   draw: "none" | "titlebar" | "overlay";
   supported: boolean;
+  options: WindowChrome[];
 }
 
 export function getWindowChrome(): Promise<WindowChromeState> {
@@ -59,11 +65,18 @@ export function getWindowChrome(): Promise<WindowChromeState> {
 /** Persists AND applies, in one call: the backend owns both halves so a
  *  stored choice and the window on screen cannot disagree. */
 export function setWindowChrome(
-  chrome: "system" | "app",
+  chrome: WindowChrome,
 ): Promise<WindowChromeState> {
   return announceSettingWrite(
     invoke<WindowChromeState>("set_window_chrome", { chrome }),
   );
+}
+
+/** The colour the `adwaita` frame takes: the page's background as
+ *  `#rrggbb` (the backend reads dark or light from it). Not a setting --
+ *  it follows the theme and the skin -- so no write is announced. */
+export function setWindowFrameColors(background: string): Promise<void> {
+  return invoke<void>("set_window_frame_colors", { background });
 }
 
 /** Broadcast after a successful write so the layout (which draws the bar)

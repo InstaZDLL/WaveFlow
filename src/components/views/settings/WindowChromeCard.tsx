@@ -5,22 +5,22 @@ import { useWindowChrome } from "../../../hooks/useWindowChrome";
 import { SettingsChoiceCards } from "./SettingsChoiceCards";
 import { WindowFramePreview } from "./settingsPreviews";
 
-const OPTIONS = ["system", "app"] as const;
-
 /**
  * Settings → Appearance row picking who draws the window's frame
- * (issue #696): two cards, each drawing the window with the system's
- * title bar above it or with WaveFlow up to the top edge.
+ * (issue #696): a card per choice the backend offers, each drawing the
+ * window with the system's title bar above it, with that bar in the
+ * GNOME style, or with WaveFlow up to the top edge.
  *
  * **Renders nothing where the choice is not offered.** Today that means
  * Windows, where a frame we drew ourselves would lose Snap Layouts and the
  * system menu — a worse Windows than the one the user has. The platform
  * rule lives in `commands/preferences.rs`, not here; this card only asks
- * whether there is a choice to show.
+ * whether there is a choice to show, and which: `adwaita` is offered only
+ * where GTK draws the frame (Linux on its Wayland backend).
  */
 export function WindowChromeCard() {
   const { t } = useTranslation();
-  const { chrome, supported, ready, busy, choose } = useWindowChrome();
+  const { chrome, supported, options, ready, busy, choose } = useWindowChrome();
 
   if (!ready || !supported) return null;
 
@@ -50,7 +50,7 @@ export function WindowChromeCard() {
         busy={busy}
         value={chrome}
         onChange={(id) => void choose(id)}
-        choices={OPTIONS.map((id) => ({
+        choices={options.map((id) => ({
           value: id,
           label: t(`settings.windowChrome.options.${id}.label`),
           hint: t(`settings.windowChrome.options.${id}.hint`),

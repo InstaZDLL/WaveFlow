@@ -7764,6 +7764,7 @@ dependencies = [
  "encoding_rs",
  "fast_image_resize",
  "futures",
+ "gtk",
  "hex",
  "id3",
  "if-addrs",

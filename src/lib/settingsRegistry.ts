@@ -454,8 +454,9 @@ export const SETTINGS = {
     true,
     "settings.scrollTitles.title",
   ),
-  /** Linux and macOS only; elsewhere the card, and the count, skip it. */
-  "ui.window_chrome": setting<"system" | "app">(
+  /** Linux and macOS only; elsewhere the card, and the count, skip it.
+   *  `adwaita` is Linux on GTK's Wayland backend only. */
+  "ui.window_chrome": setting<"system" | "adwaita" | "app">(
     "appearance",
     "app",
     "string",

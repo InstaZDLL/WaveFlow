@@ -4,6 +4,7 @@ import {
   getWindowChrome,
   setWindowChrome,
   WINDOW_CHROME_EVENT,
+  type WindowChrome,
   type WindowChromeState,
 } from "../lib/tauri/preferences";
 import { SETTINGS } from "../lib/settingsRegistry";
@@ -12,7 +13,13 @@ const FALLBACK: WindowChromeState = {
   chrome: SETTINGS["ui.window_chrome"].defaultValue,
   draw: "none",
   supported: false,
+  options: ["system"],
 };
+
+const CHROMES: readonly WindowChrome[] = ["system", "adwaita", "app"];
+
+const isChrome = (value: unknown): value is WindowChrome =>
+  CHROMES.includes(value as WindowChrome);
 
 /**
  * First-paint cache, the same bargain the theme, skin and contrast
@@ -41,15 +48,27 @@ function readCached(): WindowChromeState {
       "chrome" in parsed &&
       "supported" in parsed
     ) {
-      const state = parsed as WindowChromeState;
+      // A cache written before `options` existed still knows what to
+      // draw, which is all the first paint needs; the card waits for the
+      // round-trip before it lists anything.
+      const state = {
+        options: ["system"],
+        ...parsed,
+      } as WindowChromeState;
       // Validate rather than trust: this is page-writable storage, and a
       // bad `draw` would mean drawing a title bar over a framed window.
       const drawOk =
         state.draw === "none" ||
         state.draw === "titlebar" ||
         state.draw === "overlay";
-      const chromeOk = state.chrome === "system" || state.chrome === "app";
-      if (drawOk && chromeOk && typeof state.supported === "boolean") {
+      const optionsOk =
+        Array.isArray(state.options) && state.options.every(isChrome);
+      if (
+        drawOk &&
+        isChrome(state.chrome) &&
+        optionsOk &&
+        typeof state.supported === "boolean"
+      ) {
         return state;
       }
     }
@@ -75,7 +94,7 @@ function writeCached(state: WindowChromeState) {
  * as the card's choice. Rejects when the backend refuses the change.
  */
 export async function applyWindowChrome(
-  next: "system" | "app",
+  next: WindowChrome,
 ): Promise<WindowChromeState> {
   const applied = await setWindowChrome(next);
   writeCached(applied);
@@ -92,11 +111,12 @@ export interface WindowChromePreference extends WindowChromeState {
   ready: boolean;
   /** A write is in flight; the surface should refuse a second click. */
   busy: boolean;
-  choose: (next: "system" | "app") => Promise<void>;
+  choose: (next: WindowChrome) => Promise<void>;
 }
 
 /**
- * Who draws the frame around the window (issue #696): the desktop, or
+ * Who draws the frame around the window (issue #696): the desktop, the
+ * desktop in a current GNOME app's style (`adwaita`, Linux on Wayland), or
  * WaveFlow.
  *
  * **The backend owns both halves.** `set_window_chrome` persists the choice
@@ -108,7 +128,7 @@ export interface WindowChromePreference extends WindowChromeState {
  * `draw` is the resolved instruction, decided per platform in Rust rather
  * than by three `if (platform)` branches here: `"titlebar"` means render
  * one, `"overlay"` means leave the macOS traffic lights room over our own
- * top bar, `"none"` means the desktop already drew it.
+ * top bar, `"none"` means the desktop already drew it -- restyled or not.
  */
 export function useWindowChrome(): WindowChromePreference {
   const [state, setState] = useState<WindowChromeState>(readCached);
@@ -175,7 +195,7 @@ export function useWindowChrome(): WindowChromePreference {
     return () => window.removeEventListener(WINDOW_CHROME_EVENT, handler);
   }, []);
 
-  const choose = useCallback(async (next: "system" | "app") => {
+  const choose = useCallback(async (next: WindowChrome) => {
     if (writing.current) return;
     // Clicking the option already shown is not a change. It matters after
     // a failed apply, where what is shown is the SESSION's answer and the

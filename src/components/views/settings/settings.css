@@ -1065,6 +1065,21 @@ section.settings-group > .settings-group-heading {
   border-radius: 999px;
 }
 
+/* GNOME: the desktop's bar in the page's colour, round buttons, and the
+   larger top corners of a libadwaita window. */
+.sp-frame--adwaita {
+  border-radius: 10px 10px 6px 6px;
+}
+.sp-frame--adwaita .sp-frame__titlebar {
+  background-color: var(--st-card);
+  box-shadow: inset 0 -1px var(--st-card-edge);
+}
+.sp-frame--adwaita .sp-frame__titlebar > span {
+  width: auto;
+  height: 46%;
+  aspect-ratio: 1;
+  border-radius: 999px;
+}
 .sp-frame__body {
   display: flex;
   flex: 1;

@@ -2654,6 +2654,10 @@
           "label": "系統",
           "hint": "你的桌面為所有應用程式繪製的外框。"
         },
+        "adwaita": {
+          "label": "GNOME",
+          "hint": "桌面的外框，採用新版 GNOME 應用程式的樣式與 WaveFlow 的配色。"
+        },
         "app": {
           "label": "WaveFlow",
           "hint": "由 WaveFlow 繪製，視窗按鈕落在它自己的橫列裡。"

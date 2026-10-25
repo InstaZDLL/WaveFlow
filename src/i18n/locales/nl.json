@@ -2656,6 +2656,10 @@
           "label": "Systeem",
           "hint": "De rand die je bureaublad voor elke app tekent."
         },
+        "adwaita": {
+          "label": "GNOME",
+          "hint": "De rand van je bureaublad, in de stijl van recente GNOME-apps en in de kleuren van WaveFlow."
+        },
         "app": {
           "label": "WaveFlow",
           "hint": "WaveFlow tekent hem, en de vensterknoppen zitten in zijn eigen balk."

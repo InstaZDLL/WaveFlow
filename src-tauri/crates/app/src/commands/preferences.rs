@@ -451,7 +451,8 @@ pub async fn set_desktop_lyrics_bounds(
 }
 
 /// Who draws the frame around the window: the desktop (`system`, the
-/// default) or WaveFlow itself (`app`).
+/// default), the desktop in a current GNOME app's style (`adwaita`), or
+/// WaveFlow itself (`app`).
 ///
 /// Issue #696 asked for the appearance choice Chrome offers on Linux. That
 /// option does not translate one-to-one — Chrome paints its own chrome from
@@ -463,9 +464,13 @@ pub async fn set_desktop_lyrics_bounds(
 /// here rather than in three `if (platform)` branches in the interface:
 ///
 /// - **Linux**: `app` drops the decorations and the interface draws its own
-///   title bar. That is the route `docs/upstream-blockers.md` (B1) already
-///   names as what we can do today about GTK3 client-side decorations
-///   looking dated next to libadwaita.
+///   title bar. `adwaita` keeps the frame GTK draws and restyles it as a
+///   libadwaita header bar ([`crate::adwaita_frame`]) — the answer to GTK3
+///   client-side decorations looking dated next to libadwaita
+///   (`docs/upstream-blockers.md`, B1) that keeps everything the toolkit
+///   gives a frame. Only offered where GTK draws the frame, which is its
+///   Wayland backend: under X11 the window manager does, and a stored
+///   `adwaita` is the desktop's frame there.
 /// - **macOS**: dropping the decorations would take the traffic lights with
 ///   them, and drawing our own would be the one thing a macOS user would
 ///   call *not* native. `app` makes the title bar a transparent overlay
@@ -495,14 +500,50 @@ static WINDOW_CHROME_UNAPPLIED: AtomicBool = AtomicBool::new(false);
 pub enum WindowChrome {
     /// The desktop's own frame.
     System,
+    /// The desktop's frame, styled as a libadwaita header bar.
+    Adwaita,
     /// WaveFlow draws it.
     App,
+}
+
+/// Which choices this platform, and this launch, can honour.
+///
+/// `adwaita` depends on the launch, not only the platform: it needs the
+/// frame GTK draws, which only its Wayland backend does. Pure data, so the
+/// rules below are testable without a window to ask.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct ChromeSupport {
+    app: bool,
+    adwaita: bool,
+}
+
+impl ChromeSupport {
+    fn detect(app: &tauri::AppHandle) -> Self {
+        Self {
+            app: cfg!(any(target_os = "linux", target_os = "macos")),
+            adwaita: crate::adwaita_frame::available(app),
+        }
+    }
+
+    /// The choices to offer, in the order the card shows them. A lone
+    /// `system` means there is nothing to choose.
+    fn options(self) -> Vec<&'static str> {
+        let mut options = vec![WindowChrome::System.as_str()];
+        if self.adwaita {
+            options.push(WindowChrome::Adwaita.as_str());
+        }
+        if self.app {
+            options.push(WindowChrome::App.as_str());
+        }
+        options
+    }
 }
 
 impl WindowChrome {
     fn as_str(self) -> &'static str {
         match self {
             Self::System => "system",
+            Self::Adwaita => "adwaita",
             Self::App => "app",
         }
     }
@@ -510,63 +551,76 @@ impl WindowChrome {
     fn parse(value: &str) -> Option<Self> {
         match value {
             "system" => Some(Self::System),
+            "adwaita" => Some(Self::Adwaita),
             "app" => Some(Self::App),
             _ => None,
         }
     }
 
-    /// Whether this platform offers the choice at all.
-    fn supported() -> bool {
-        cfg!(any(target_os = "linux", target_os = "macos"))
-    }
-
-    /// The stored choice, narrowed to what this platform can honour.
-    fn resolved(self) -> Self {
-        if Self::supported() {
-            self
-        } else {
-            Self::System
+    /// The stored choice, narrowed to what can be honoured here: a row
+    /// written on a Wayland session means the desktop's frame on X11, and
+    /// a database carried over from Linux means it on Windows.
+    fn resolved(self, support: ChromeSupport) -> Self {
+        match self {
+            Self::Adwaita if !support.adwaita => Self::System,
+            Self::App if !support.app => Self::System,
+            other => other,
         }
     }
 
-    /// What the interface has to draw for it — the one thing the frontend
-    /// needs, already decided per platform:
+    /// What the interface has to draw for a resolved choice — the one
+    /// thing the frontend needs, already decided per platform:
     ///
-    /// - `none`: the desktop's frame is there, nothing to add.
+    /// - `none`: the desktop's frame is there, nothing to add (`adwaita`
+    ///   included: it is still the desktop's frame, only restyled).
     /// - `titlebar`: no frame at all, draw one.
     /// - `overlay`: the frame is there but transparent over our content,
     ///   so leave the traffic lights room and give them a drag region.
     fn draw(self) -> &'static str {
-        match self.resolved() {
-            Self::System => "none",
+        match self {
+            Self::System | Self::Adwaita => "none",
             Self::App if cfg!(target_os = "macos") => "overlay",
             Self::App => "titlebar",
         }
     }
 }
 
-/// The choice narrowed twice: to what this platform can honour, and to
-/// what this session's window actually accepted.
+/// The choice narrowed twice: to what this platform and launch can
+/// honour, and to what this session's window actually accepted.
 ///
 /// Pure, and takes the session flag rather than reading it, so the rule is
 /// testable without a window to fail against.
-fn effective_chrome(stored: WindowChrome, unapplied: bool) -> WindowChrome {
+fn effective_chrome(stored: WindowChrome, unapplied: bool, support: ChromeSupport) -> WindowChrome {
     if unapplied {
         WindowChrome::System
     } else {
-        stored.resolved()
+        stored.resolved(support)
     }
 }
 
 /// What the frontend needs to know in one round-trip.
 #[derive(Debug, Serialize)]
 pub struct WindowChromeState {
-    /// The stored choice, `"system"` or `"app"`.
+    /// The choice in use: `"system"`, `"adwaita"` or `"app"`.
     pub chrome: String,
     /// What to draw: `"none"`, `"titlebar"` or `"overlay"`.
     pub draw: String,
     /// Whether to offer the choice in Settings at all.
     pub supported: bool,
+    /// The choices this platform and launch offer, in display order.
+    pub options: Vec<&'static str>,
+}
+
+impl WindowChromeState {
+    fn new(chrome: WindowChrome, support: ChromeSupport) -> Self {
+        let options = support.options();
+        Self {
+            chrome: chrome.as_str().to_string(),
+            draw: chrome.draw().to_string(),
+            supported: options.len() > 1,
+            options,
+        }
+    }
 }
 
 /// Record that the stored choice could not be put on the window. Called by
@@ -577,7 +631,9 @@ pub fn mark_window_chrome_unapplied() {
 }
 
 /// Read the stored choice. A missing or unparseable row is `System`, which
-/// is also what every platform looked like before this existed.
+/// is also what every platform looked like before this existed. Not yet
+/// narrowed to what this launch can honour: that needs the window's
+/// display, and every caller resolves it against [`ChromeSupport`].
 pub async fn load_window_chrome(app_db: &SqlitePool) -> WindowChrome {
     let raw: Option<String> = sqlx::query_scalar("SELECT value FROM app_setting WHERE key = ?")
         .bind(KEY_WINDOW_CHROME)
@@ -590,7 +646,6 @@ pub async fn load_window_chrome(app_db: &SqlitePool) -> WindowChrome {
     raw.as_deref()
         .and_then(WindowChrome::parse)
         .unwrap_or(WindowChrome::System)
-        .resolved()
 }
 
 /// Put the choice on the main window.
@@ -614,7 +669,7 @@ pub fn apply_window_chrome(app: &tauri::AppHandle, chrome: WindowChrome) -> AppR
     let window = app.get_webview_window("main").ok_or_else(|| {
         crate::error::AppError::Other("window chrome: no main window".to_string())
     })?;
-    let chrome = chrome.resolved();
+    let chrome = chrome.resolved(ChromeSupport::detect(app));
 
     #[cfg(target_os = "macos")]
     {
@@ -629,14 +684,14 @@ pub fn apply_window_chrome(app: &tauri::AppHandle, chrome: WindowChrome) -> AppR
         let previous_title = window.title().ok();
         let title = match chrome {
             WindowChrome::App => "",
-            WindowChrome::System => "WaveFlow",
+            WindowChrome::System | WindowChrome::Adwaita => "WaveFlow",
         };
         window.set_title(title).map_err(|err| {
             crate::error::AppError::Other(format!("window chrome: set_title: {err}"))
         })?;
         let style = match chrome {
             WindowChrome::App => tauri::utils::TitleBarStyle::Overlay,
-            WindowChrome::System => tauri::utils::TitleBarStyle::Visible,
+            WindowChrome::System | WindowChrome::Adwaita => tauri::utils::TitleBarStyle::Visible,
         };
         if let Err(err) = window.set_title_bar_style(style) {
             // Put the title back. Going first was what kept a failure from
@@ -652,13 +707,23 @@ pub fn apply_window_chrome(app: &tauri::AppHandle, chrome: WindowChrome) -> AppR
     }
 
     #[cfg(target_os = "linux")]
-    window
-        .set_decorations(matches!(chrome, WindowChrome::System))
-        .map_err(|err| {
-            crate::error::AppError::Other(format!("window chrome: set_decorations: {err}"))
-        })?;
+    {
+        // The style first, for the same reason as the macOS title: on a
+        // window without a frame the class changes nothing visible, and
+        // on one with a frame it is the whole change -- so a failure here
+        // stops before anything has moved.
+        let was_styled = crate::adwaita_frame::apply(app, matches!(chrome, WindowChrome::Adwaita))?;
+        if let Err(err) = window.set_decorations(!matches!(chrome, WindowChrome::App)) {
+            // Put the style back, or the frame the window keeps would wear
+            // one the caller is about to be told did not change.
+            let _ = crate::adwaita_frame::apply(app, was_styled);
+            return Err(crate::error::AppError::Other(format!(
+                "window chrome: set_decorations: {err}"
+            )));
+        }
+    }
 
-    // Windows keeps its frame; see `WindowChrome::supported`.
+    // Windows keeps its frame; see `ChromeSupport`.
     #[cfg(target_os = "windows")]
     let _ = (&window, chrome);
 
@@ -673,16 +738,17 @@ pub fn apply_window_chrome(app: &tauri::AppHandle, chrome: WindowChrome) -> AppR
 }
 
 #[tauri::command]
-pub async fn get_window_chrome(state: tauri::State<'_, AppState>) -> AppResult<WindowChromeState> {
+pub async fn get_window_chrome(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> AppResult<WindowChromeState> {
+    let support = ChromeSupport::detect(&app);
     let chrome = effective_chrome(
         load_window_chrome(&state.app_db).await,
         WINDOW_CHROME_UNAPPLIED.load(Ordering::Relaxed),
+        support,
     );
-    Ok(WindowChromeState {
-        chrome: chrome.as_str().to_string(),
-        draw: chrome.draw().to_string(),
-        supported: WindowChrome::supported(),
-    })
+    Ok(WindowChromeState::new(chrome, support))
 }
 
 /// Put the choice on the window, then persist it — in that order, so a
@@ -698,14 +764,19 @@ pub async fn set_window_chrome(
 ) -> AppResult<WindowChromeState> {
     let parsed = WindowChrome::parse(&chrome).ok_or_else(|| {
         crate::error::AppError::Other(format!(
-            "set_window_chrome: unsupported value '{chrome}' (expected system, app)"
+            "set_window_chrome: unsupported value '{chrome}' (expected system, adwaita, app)"
         ))
     })?;
     // What the window has right now, for the rollback below -- and the
     // marker that says so, kept because the rollback has to restore the
     // situation it describes, not just the frame.
     let was_unapplied = WINDOW_CHROME_UNAPPLIED.load(Ordering::Relaxed);
-    let previous = effective_chrome(load_window_chrome(&state.app_db).await, was_unapplied);
+    let support = ChromeSupport::detect(&app);
+    let previous = effective_chrome(
+        load_window_chrome(&state.app_db).await,
+        was_unapplied,
+        support,
+    );
     // Clears WINDOW_CHROME_UNAPPLIED on success, so a startup failure stops
     // describing a window that has since been changed.
     apply_window_chrome(&app, parsed)?;
@@ -753,17 +824,41 @@ pub async fn set_window_chrome(
         return Err(err.into());
     }
 
-    let resolved = parsed.resolved();
-    Ok(WindowChromeState {
-        chrome: resolved.as_str().to_string(),
-        draw: resolved.draw().to_string(),
-        supported: WindowChrome::supported(),
-    })
+    Ok(WindowChromeState::new(parsed.resolved(support), support))
+}
+
+/// The colour of the `adwaita` frame: the background WaveFlow's page is
+/// painted with, sent by the interface whenever the theme or the skin
+/// changes. A no-op off Linux, and harmless while another frame is in
+/// use -- the style picks it up when it is turned on.
+#[tauri::command]
+pub fn set_window_frame_colors(app: tauri::AppHandle, background: String) -> AppResult<()> {
+    let colors = crate::adwaita_frame::FrameColors::parse(&background).ok_or_else(|| {
+        crate::error::AppError::Other(format!(
+            "set_window_frame_colors: expected #rrggbb, got '{background}'"
+        ))
+    })?;
+    crate::adwaita_frame::set_colors(&app, colors)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    const EVERYTHING: ChromeSupport = ChromeSupport {
+        app: true,
+        adwaita: true,
+    };
+    /// macOS, or Linux under X11: no frame GTK draws.
+    const NO_ADWAITA: ChromeSupport = ChromeSupport {
+        app: true,
+        adwaita: false,
+    };
+    /// Windows.
+    const NOTHING: ChromeSupport = ChromeSupport {
+        app: false,
+        adwaita: false,
+    };
 
     /// A stored choice this session could not put on the window must not
     /// be reported as the one in use: the interface draws what it is told,
@@ -771,29 +866,71 @@ mod tests {
     /// the window still has.
     #[test]
     fn a_chrome_that_could_not_be_applied_reports_as_system() {
-        assert_eq!(
-            effective_chrome(WindowChrome::App, true),
-            WindowChrome::System
-        );
-        assert_eq!(
-            effective_chrome(WindowChrome::System, true),
-            WindowChrome::System
-        );
+        for stored in [
+            WindowChrome::App,
+            WindowChrome::Adwaita,
+            WindowChrome::System,
+        ] {
+            assert_eq!(
+                effective_chrome(stored, true, EVERYTHING),
+                WindowChrome::System
+            );
+        }
     }
 
     /// With nothing to correct, the platform rule is the only one left --
-    /// and it already refuses `app` where the choice is not offered.
+    /// and it refuses what this platform or launch does not offer.
     #[test]
-    fn an_applied_chrome_is_reported_as_stored() {
-        let expected = if WindowChrome::supported() {
-            WindowChrome::App
-        } else {
-            WindowChrome::System
-        };
-        assert_eq!(effective_chrome(WindowChrome::App, false), expected);
+    fn an_applied_chrome_is_reported_as_stored_where_offered() {
+        for stored in [
+            WindowChrome::App,
+            WindowChrome::Adwaita,
+            WindowChrome::System,
+        ] {
+            assert_eq!(effective_chrome(stored, false, EVERYTHING), stored);
+            assert_eq!(
+                effective_chrome(stored, false, NOTHING),
+                WindowChrome::System
+            );
+        }
+        // A row written on a Wayland session, read under X11: the
+        // desktop's frame, not the frame WaveFlow draws.
         assert_eq!(
-            effective_chrome(WindowChrome::System, false),
+            effective_chrome(WindowChrome::Adwaita, false, NO_ADWAITA),
             WindowChrome::System
         );
+        assert_eq!(
+            effective_chrome(WindowChrome::App, false, NO_ADWAITA),
+            WindowChrome::App
+        );
+    }
+
+    /// `adwaita` keeps the desktop's frame: the interface must not draw a
+    /// title bar under it.
+    #[test]
+    fn a_restyled_frame_draws_nothing_more() {
+        assert_eq!(WindowChrome::Adwaita.draw(), "none");
+        assert_eq!(WindowChrome::System.draw(), "none");
+    }
+
+    #[test]
+    fn the_card_offers_what_is_supported_and_hides_when_alone() {
+        assert_eq!(EVERYTHING.options(), ["system", "adwaita", "app"]);
+        assert_eq!(NO_ADWAITA.options(), ["system", "app"]);
+        assert_eq!(NOTHING.options(), ["system"]);
+        assert!(!WindowChromeState::new(WindowChrome::System, NOTHING).supported);
+        assert!(WindowChromeState::new(WindowChrome::System, NO_ADWAITA).supported);
+    }
+
+    #[test]
+    fn every_option_round_trips_through_its_stored_value() {
+        for chrome in [
+            WindowChrome::System,
+            WindowChrome::Adwaita,
+            WindowChrome::App,
+        ] {
+            assert_eq!(WindowChrome::parse(chrome.as_str()), Some(chrome));
+        }
+        assert_eq!(WindowChrome::parse("gnome"), None);
     }
 }
