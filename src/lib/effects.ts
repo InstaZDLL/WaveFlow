@@ -22,8 +22,9 @@
  * - The native side passes `renderer=software` in the main window's URL
  *   when this launch draws without the GPU (forced, or the fallback), so
  *   the bootstrap in `index.html` can stamp the first paint right.
- * - A window without that parameter (the mini-player) asks
- *   `renderer_status`.
+ * - The main window hands the parameter on to the mini-player it opens,
+ *   and every window also asks `renderer_status` at once, for the one
+ *   that carries no hint.
  * - A WebGL context that names a software rasteriser (llvmpipe,
  *   SwiftShader, Microsoft's Basic Render Driver: a virtual machine, a
  *   missing driver) counts as no GPU too. That probe runs once, after

@@ -34,8 +34,8 @@ const serialize = (value: EffectsLevel) => value;
 
 // Whether this window draws without a GPU: one answer per window, shared
 // by every consumer. Starts from what is known synchronously (the
-// launch's URL, the last probe), then the renderer status and a fresh
-// probe settle it once.
+// launch's URL, the last probe), then the renderer status (asked at
+// once) and a fresh probe (after the first paint) settle it.
 let noGpu = launchedInSoftware() || readCachedProbe();
 let settled = false;
 const listeners = new Set<() => void>();
@@ -48,17 +48,26 @@ function settle() {
     noGpu = value;
     listeners.forEach((l) => l());
   };
-  // After the first paint: a WebGL context is not free to create, and
-  // nothing on screen waits for its answer.
+  // Already known from the URL: no context to create, nothing to ask.
+  if (launchedInSoftware()) return set(true);
+  let software = false;
+  // The last probe's answer until this one's: a status that lands first
+  // must not undo it for the second and a half in between.
+  let softwareGl = readCachedProbe();
+  // The status is the backend's, ready before any window exists.
+  rendererStatus()
+    .then((status) => {
+      software = status?.mode === "software";
+      set(software || softwareGl);
+    })
+    .catch(() => {});
+  // The probe after the first paint: a WebGL context is not free to
+  // create, and nothing on screen waits for its answer.
   window.setTimeout(() => {
-    // Already known: no context to create, nothing to ask.
-    if (launchedInSoftware()) return set(true);
     const probe = probeSoftwareGl();
     if (probe !== null) writeCachedProbe(probe);
-    const softwareGl = probe ?? false;
-    rendererStatus()
-      .then((status) => set(status?.mode === "software" || softwareGl))
-      .catch(() => set(softwareGl));
+    softwareGl = probe ?? false;
+    set(software || softwareGl);
   }, 1500);
 }
 
