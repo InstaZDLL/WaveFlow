@@ -165,7 +165,7 @@
     },
     "lyrics": {
       "title": "Dove salvare i testi?",
-      "description": "Dove devono andare i testi, quelli che scrivi e quelli che WaveFlow trova per te? Puoi cambiare questa scelta in qualsiasi momento da Impostazioni → Immagini e testi.",
+      "description": "Dove devono andare i testi, quelli che scrivi e quelli che WaveFlow trova per te? Puoi cambiare questa scelta in qualsiasi momento da Impostazioni → Testi.",
       "hint": "Scegli «File sidecar» per non toccare i file audio — come fanno foobar2000 e simili."
     }
   },
@@ -1565,7 +1565,7 @@
       "empty": "Nessun testo per questo brano"
     },
     "dragHandle": "Trascina per spostare · Doppio clic per ripristinare dimensioni e posizione",
-    "pinWayland": "Sempre in primo piano: ignorato su Wayland. Attiva «Usa XWayland» in Impostazioni → Aspetto → Lettore e finestra."
+    "pinWayland": "Sempre in primo piano: ignorato su Wayland. Attiva «Usa XWayland» in Impostazioni → Aspetto → Finestre."
   },
   "window": {
     "minimize": "Riduci a icona",
@@ -1628,7 +1628,7 @@
     "toast": {
       "tagWriteSkipped": "TTML salvato solo nel database (non scritto nel tag audio)"
     },
-    "excludedGenre": "I testi non vengono cercati online per il genere {{genre}} (Impostazioni → Immagini e testi). Puoi importare un file .lrc o cercare comunque."
+    "excludedGenre": "I testi non vengono cercati online per il genere {{genre}} (Impostazioni → Testi). Puoi importare un file .lrc o cercare comunque."
   },
   "duplicates": {
     "title": "Duplicati rilevati",
@@ -2919,7 +2919,7 @@
     },
     "desktopLyrics": {
       "subtitle": "Una finestra mobile sopra le altre app che mostra la riga cantata.",
-      "waylandNote": "Su Wayland la finestra non resta né sopra le altre app né dove la posizioni. Per questo, attiva «Usa XWayland» in Impostazioni → Aspetto → Lettore e finestra.",
+      "waylandNote": "Su Wayland la finestra non resta né sopra le altre app né dove la posizioni. Per questo, attiva «Usa XWayland» in Impostazioni → Aspetto → Finestre.",
       "previewSung": "Testi che seguono",
       "previewUnsung": "la canzone",
       "fontSize": "Dimensione del testo",

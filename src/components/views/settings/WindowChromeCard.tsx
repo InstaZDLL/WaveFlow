@@ -47,7 +47,7 @@ export function WindowChromeCard() {
       <SettingsChoiceCards
         labelledBy="settings-window-chrome-heading"
         minWidth={11}
-        disabled={busy}
+        busy={busy}
         value={chrome}
         onChange={(id) => void choose(id)}
         choices={OPTIONS.map((id) => ({

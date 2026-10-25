@@ -165,7 +165,7 @@
     },
     "lyrics": {
       "title": "¿Dónde guardar las letras?",
-      "description": "¿Dónde quieres que se guarden las letras, tanto las que editas como las que WaveFlow encuentra? Podrás cambiarlo en Configuración → Imágenes y letras.",
+      "description": "¿Dónde quieres que se guarden las letras, tanto las que editas como las que WaveFlow encuentra? Podrás cambiarlo en Configuración → Letras.",
       "hint": "Elige «Archivo auxiliar» para mantener tus archivos de audio intactos (lo que hacen foobar2000 y compañía)."
     }
   },
@@ -1565,7 +1565,7 @@
       "empty": "No hay letra para esta pista"
     },
     "dragHandle": "Arrastrar para mover · Doble clic para restablecer tamaño y posición",
-    "pinWayland": "Siempre visible: ignorado en Wayland. Activa «Usar XWayland» en Configuración → Apariencia → Reproductor y ventana."
+    "pinWayland": "Siempre visible: ignorado en Wayland. Activa «Usar XWayland» en Configuración → Apariencia → Ventanas."
   },
   "window": {
     "minimize": "Minimizar",
@@ -1628,7 +1628,7 @@
     "toast": {
       "tagWriteSkipped": "TTML guardado solo en la base de datos (no se escribe en la etiqueta de audio)"
     },
-    "excludedGenre": "Las letras no se buscan en línea para el género {{genre}} (Configuración → Imágenes y letras). Puedes importar un archivo .lrc o buscar de todos modos."
+    "excludedGenre": "Las letras no se buscan en línea para el género {{genre}} (Configuración → Letras). Puedes importar un archivo .lrc o buscar de todos modos."
   },
   "duplicates": {
     "title": "Duplicados detectados",
@@ -2919,7 +2919,7 @@
     },
     "desktopLyrics": {
       "subtitle": "Una ventana flotante sobre tus otras aplicaciones que muestra la línea que se está cantando.",
-      "waylandNote": "En Wayland, la ventana no se mantiene encima de las demás aplicaciones ni donde la colocas. Para ello, activa «Usar XWayland» en Configuración → Apariencia → Reproductor y ventana.",
+      "waylandNote": "En Wayland, la ventana no se mantiene encima de las demás aplicaciones ni donde la colocas. Para ello, activa «Usar XWayland» en Configuración → Apariencia → Ventanas.",
       "previewSung": "Letras que siguen",
       "previewUnsung": "la canción",
       "fontSize": "Tamaño del texto",

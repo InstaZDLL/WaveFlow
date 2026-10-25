@@ -165,7 +165,7 @@
     },
     "lyrics": {
       "title": "Şarkı sözleri nereye gitsin?",
-      "description": "Şarkı sözleri nereye gitsin — hem düzenlediklerin hem de WaveFlow'un senin için buldukları? Ayarlar → Görseller ve şarkı sözleri bölümünden değiştirebilirsin.",
+      "description": "Şarkı sözleri nereye gitsin — hem düzenlediklerin hem de WaveFlow'un senin için buldukları? Ayarlar → Şarkı sözleri bölümünden değiştirebilirsin.",
       "hint": "Ses dosyalarını bozulmadan tutmak için “Yan dosya” seç — foobar2000 ve benzerleri böyle yapar."
     }
   },
@@ -1512,7 +1512,7 @@
       "empty": "Bu parça için şarkı sözü yok"
     },
     "dragHandle": "Taşımak için sürükle · Boyutu ve konumu geri yüklemek için çift tıkla",
-    "pinWayland": "Her zaman üstte: Wayland'de yok sayılır. Ayarlar → Görünüm → Oynatıcı ve pencere içinde \"XWayland üzerinden çalıştır\" seçeneğini açın."
+    "pinWayland": "Her zaman üstte: Wayland'de yok sayılır. Ayarlar → Görünüm → Pencereler içinde \"XWayland üzerinden çalıştır\" seçeneğini açın."
   },
   "window": {
     "minimize": "Simge durumuna küçült",
@@ -1574,7 +1574,7 @@
     "toast": {
       "tagWriteSkipped": "TTML yalnızca veritabanına kaydedildi (ses etiketine yazılmadı)"
     },
-    "excludedGenre": "{{genre}} türü için şarkı sözleri çevrimiçi aranmıyor (Ayarlar → Görseller ve şarkı sözleri). Bir .lrc dosyası içe aktarabilir ya da yine de arayabilirsin."
+    "excludedGenre": "{{genre}} türü için şarkı sözleri çevrimiçi aranmıyor (Ayarlar → Şarkı sözleri). Bir .lrc dosyası içe aktarabilir ya da yine de arayabilirsin."
   },
   "duplicates": {
     "title": "Yinelenenler algılandı",
@@ -2854,7 +2854,7 @@
     },
     "desktopLyrics": {
       "subtitle": "Diğer uygulamaların üzerinde, söylenen satırı gösteren yüzen bir pencere.",
-      "waylandNote": "Wayland'de pencere ne diğer uygulamaların üstünde ne de koyduğunuz yerde kalır. Bunun için Ayarlar → Görünüm → Oynatıcı ve pencere içinde \"XWayland üzerinden çalıştır\" seçeneğini açın.",
+      "waylandNote": "Wayland'de pencere ne diğer uygulamaların üstünde ne de koyduğunuz yerde kalır. Bunun için Ayarlar → Görünüm → Pencereler içinde \"XWayland üzerinden çalıştır\" seçeneğini açın.",
       "previewSung": "Şarkıyı izleyen",
       "previewUnsung": "sözler",
       "fontSize": "Metin boyutu",

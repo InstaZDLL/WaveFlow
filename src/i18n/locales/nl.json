@@ -165,7 +165,7 @@
     },
     "lyrics": {
       "title": "Waar moeten songteksten heen?",
-      "description": "Waar moeten songteksten heen, zowel die je bewerkt als die WaveFlow voor je vindt? Aanpasbaar via Instellingen → Afbeeldingen en songteksten.",
+      "description": "Waar moeten songteksten heen, zowel die je bewerkt als die WaveFlow voor je vindt? Aanpasbaar via Instellingen → Songteksten.",
       "hint": "Kies ‘Sidecarbestand’ om je audiobestanden ongemoeid te laten — zoals foobar2000 & co."
     }
   },
@@ -1512,7 +1512,7 @@
       "empty": "Geen songtekst voor dit nummer"
     },
     "dragHandle": "Slepen om te verplaatsen · Dubbelklik om formaat en positie te herstellen",
-    "pinWayland": "Altijd bovenop: genegeerd onder Wayland. Zet 'Via XWayland draaien' aan in Instellingen → Weergave → Speler en venster."
+    "pinWayland": "Altijd bovenop: genegeerd onder Wayland. Zet 'Via XWayland draaien' aan in Instellingen → Weergave → Vensters."
   },
   "window": {
     "minimize": "Minimaliseren",
@@ -1574,7 +1574,7 @@
     "toast": {
       "tagWriteSkipped": "TTML alleen in de database bewaard (niet naar de audiotag geschreven)"
     },
-    "excludedGenre": "Voor het genre {{genre}} worden songteksten niet online gezocht (Instellingen → Afbeeldingen en songteksten). Je kunt een .lrc-bestand importeren of toch zoeken."
+    "excludedGenre": "Voor het genre {{genre}} worden songteksten niet online gezocht (Instellingen → Songteksten). Je kunt een .lrc-bestand importeren of toch zoeken."
   },
   "duplicates": {
     "title": "Duplicaten gevonden",
@@ -2854,7 +2854,7 @@
     },
     "desktopLyrics": {
       "subtitle": "Een zwevend venster boven je andere apps dat de regel toont die gezongen wordt.",
-      "waylandNote": "Onder Wayland blijft het venster niet boven andere apps en niet waar je het neerzet. Zet daarvoor 'Via XWayland draaien' aan in Instellingen → Weergave → Speler en venster.",
+      "waylandNote": "Onder Wayland blijft het venster niet boven andere apps en niet waar je het neerzet. Zet daarvoor 'Via XWayland draaien' aan in Instellingen → Weergave → Vensters.",
       "previewSung": "Songtekst die het nummer",
       "previewUnsung": "volgt",
       "fontSize": "Tekstgrootte",

@@ -309,6 +309,12 @@ section.settings-group > .settings-group-heading {
   opacity: 0.5;
 }
 
+/* A change being applied: the cards keep their look and the focus, the
+   pointer says to wait. */
+.settings-choice[aria-disabled="true"] {
+  cursor: progress;
+}
+
 .settings-choice-preview {
   /* Defaults for the drawings; a theme preview brings its own. */
   --sp-bg: var(--st-preview);

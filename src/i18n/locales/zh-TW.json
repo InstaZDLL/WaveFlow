@@ -165,7 +165,7 @@
     },
     "lyrics": {
       "title": "歌詞要儲存在哪裡？",
-      "description": "歌詞應該儲存到何處？你編輯的歌詞和 WaveFlow 為你找到的歌詞都適用。可隨時在「設定 → 圖片與歌詞」中變更。",
+      "description": "歌詞應該儲存到何處？你編輯的歌詞和 WaveFlow 為你找到的歌詞都適用。可隨時在「設定 → 歌詞」中變更。",
       "hint": "選擇「外部歌詞檔」可讓音訊檔保持不變——foobar2000 等播放器就是這樣做的。"
     }
   },
@@ -1510,7 +1510,7 @@
       "empty": "此曲目沒有歌詞"
     },
     "dragHandle": "拖曳以移動 · 按兩下還原大小和位置",
-    "pinWayland": "永遠在最上層：在 Wayland 下無效。請在 設定 → 外觀 → 播放器與視窗 中開啟「透過 XWayland 執行」。"
+    "pinWayland": "永遠在最上層：在 Wayland 下無效。請在 設定 → 外觀 → 視窗 中開啟「透過 XWayland 執行」。"
   },
   "window": {
     "minimize": "最小化",
@@ -1572,7 +1572,7 @@
     "toast": {
       "tagWriteSkipped": "TTML 僅保留在資料庫中（未寫入音訊標籤）"
     },
-    "excludedGenre": "不會在線上搜尋 {{genre}} 曲風的歌詞（設定 → 圖片與歌詞）。你可以匯入 .lrc 檔案，或仍然搜尋。"
+    "excludedGenre": "不會在線上搜尋 {{genre}} 曲風的歌詞（設定 → 歌詞）。你可以匯入 .lrc 檔案，或仍然搜尋。"
   },
   "duplicates": {
     "title": "偵測到重複檔案",
@@ -2852,7 +2852,7 @@
     },
     "desktopLyrics": {
       "subtitle": "懸浮在其他應用程式上方、顯示正在演唱歌詞的視窗。",
-      "waylandNote": "在 Wayland 下，視窗既不會停在其他應用程式之上，也不會停在你放置的位置。如需如此，請在 設定 → 外觀 → 播放器與視窗 中開啟「透過 XWayland 執行」。",
+      "waylandNote": "在 Wayland 下，視窗既不會停在其他應用程式之上，也不會停在你放置的位置。如需如此，請在 設定 → 外觀 → 視窗 中開啟「透過 XWayland 執行」。",
       "previewSung": "跟著歌曲的",
       "previewUnsung": "歌詞",
       "fontSize": "文字大小",

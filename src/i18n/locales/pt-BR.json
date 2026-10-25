@@ -165,7 +165,7 @@
     },
     "lyrics": {
       "title": "Onde salvar as letras?",
-      "description": "Para onde devem ir as letras, tanto as que você edita quanto as que o WaveFlow encontra? Pode mudar em Configurações → Imagens e letras.",
+      "description": "Para onde devem ir as letras, tanto as que você edita quanto as que o WaveFlow encontra? Pode mudar em Configurações → Letras.",
       "hint": "Escolha “Arquivo sidecar” para manter seus arquivos de áudio intactos — como faz o foobar2000."
     }
   },
@@ -1566,7 +1566,7 @@
       "empty": "Sem letra para esta faixa"
     },
     "dragHandle": "Arraste para mover · Clique duplo para restaurar tamanho e posição",
-    "pinWayland": "Sempre no topo: ignorado no Wayland. Ative \"Usar XWayland\" em Configurações → Aparência → Player e janela."
+    "pinWayland": "Sempre no topo: ignorado no Wayland. Ative \"Usar XWayland\" em Configurações → Aparência → Janelas."
   },
   "window": {
     "minimize": "Minimizar",
@@ -1629,7 +1629,7 @@
     "toast": {
       "tagWriteSkipped": "TTML mantido apenas no banco de dados (não gravado na tag de áudio)"
     },
-    "excludedGenre": "As letras não são buscadas online para o gênero {{genre}} (Configurações → Imagens e letras). Você pode importar um arquivo .lrc ou buscar mesmo assim."
+    "excludedGenre": "As letras não são buscadas online para o gênero {{genre}} (Configurações → Letras). Você pode importar um arquivo .lrc ou buscar mesmo assim."
   },
   "duplicates": {
     "title": "Duplicatas detectadas",
@@ -2920,7 +2920,7 @@
     },
     "desktopLyrics": {
       "subtitle": "Uma janela flutuante acima dos outros aplicativos que mostra a linha sendo cantada.",
-      "waylandNote": "No Wayland, a janela não fica acima dos outros apps nem onde você a coloca. Para isso, ative \"Usar XWayland\" em Configurações → Aparência → Player e janela.",
+      "waylandNote": "No Wayland, a janela não fica acima dos outros apps nem onde você a coloca. Para isso, ative \"Usar XWayland\" em Configurações → Aparência → Janelas.",
       "previewSung": "Letra que acompanha",
       "previewUnsung": "a música",
       "fontSize": "Tamanho do texto",

@@ -24,8 +24,11 @@ interface SettingsChoiceCardsProps<T extends string | number> {
   /** The id of the element naming the group (the row's title). */
   labelledBy?: string;
   label?: string;
-  /** Inert while the stored value is being read, or a change applies. */
+  /** Inert while the stored value is being read. */
   disabled?: boolean;
+  /** A change is being applied: the cards keep the focus (a disabled
+   *  button would drop it to the page) but ignore every choice. */
+  busy?: boolean;
   /** Minimum width of a card before the grid wraps, in rem. */
   minWidth?: number;
   /** Short drawings (bars, a strip) instead of a 16:10 scene. */
@@ -53,6 +56,7 @@ export function SettingsChoiceCards<T extends string | number>({
   labelledBy,
   label,
   disabled = false,
+  busy = false,
   minWidth = 9,
   compact = false,
 }: SettingsChoiceCardsProps<T>) {
@@ -91,6 +95,7 @@ export function SettingsChoiceCards<T extends string | number>({
         return;
     }
     event.preventDefault();
+    if (busy) return;
     const target = order.find((i) => !choices[i].disabled);
     if (target === undefined) return;
     onChange(choices[target].value);
@@ -102,7 +107,7 @@ export function SettingsChoiceCards<T extends string | number>({
       role="radiogroup"
       aria-labelledby={labelledBy}
       aria-label={labelledBy ? undefined : label}
-      aria-busy={disabled || undefined}
+      aria-busy={disabled || busy || undefined}
       className={
         compact
           ? "settings-choices settings-choices--compact"
@@ -127,8 +132,9 @@ export function SettingsChoiceCards<T extends string | number>({
             disabled={disabled || choice.disabled}
             data-selected={selected || undefined}
             data-preview={choice.preview ? "" : undefined}
+            aria-disabled={busy || undefined}
             onClick={(event) => {
-              if (!selected) onChange(choice.value, event);
+              if (!selected && !busy) onChange(choice.value, event);
             }}
             onKeyDown={(event) => move(event, index)}
             className="settings-choice"

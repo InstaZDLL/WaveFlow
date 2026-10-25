@@ -35,7 +35,7 @@ const DEFAULTS: Record<Knob, number> = {
 const WRITE_DELAY_MS = 150;
 
 /**
- * Settings → Playback and audio: the left / right balance and the stereo
+ * Settings → Audio → Stereo image: the left / right balance and the stereo
  * width, two sliders with a button each that puts them back on their
  * neutral value (a double-click on the slider does the same).
  *

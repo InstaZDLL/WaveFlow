@@ -165,7 +165,7 @@
     },
     "lyrics": {
       "title": "Where should lyrics live?",
-      "description": "Where should lyrics go — the ones you write and the ones WaveFlow finds for you? You can change this anytime from Settings → Images and lyrics.",
+      "description": "Where should lyrics go — the ones you write and the ones WaveFlow finds for you? You can change this anytime from Settings → Lyrics.",
       "hint": "Pick “Sidecar file” to keep your audio files untouched — what foobar2000 and friends do."
     }
   },
@@ -1512,7 +1512,7 @@
       "empty": "No lyrics for this track"
     },
     "dragHandle": "Drag to move · Double-click to restore size and position",
-    "pinWayland": "Always on top: ignored on Wayland. Turn on \"Run through XWayland\" in Settings → Appearance → Player and window."
+    "pinWayland": "Always on top: ignored on Wayland. Turn on \"Run through XWayland\" in Settings → Appearance → Windows."
   },
   "window": {
     "minimize": "Minimise",
@@ -1574,7 +1574,7 @@
     "toast": {
       "tagWriteSkipped": "TTML kept in the database only (not written to the audio tag)"
     },
-    "excludedGenre": "Lyrics aren't searched online for the {{genre}} genre (Settings → Images and lyrics). You can import a .lrc file or search anyway."
+    "excludedGenre": "Lyrics aren't searched online for the {{genre}} genre (Settings → Lyrics). You can import a .lrc file or search anyway."
   },
   "duplicates": {
     "title": "Duplicates detected",
@@ -2854,7 +2854,7 @@
     },
     "desktopLyrics": {
       "subtitle": "A floating window above your other apps that shows the line being sung.",
-      "waylandNote": "On Wayland, the window is kept neither above other apps nor where you place it. For that, turn on \"Run through XWayland\" in Settings → Appearance → Player and window.",
+      "waylandNote": "On Wayland, the window is kept neither above other apps nor where you place it. For that, turn on \"Run through XWayland\" in Settings → Appearance → Windows.",
       "previewSung": "Lyrics that follow",
       "previewUnsung": "the song",
       "fontSize": "Text size",

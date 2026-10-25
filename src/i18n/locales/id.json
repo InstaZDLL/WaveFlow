@@ -165,7 +165,7 @@
     },
     "lyrics": {
       "title": "Di mana menyimpan lirik?",
-      "description": "Di mana lirik harus disimpan — yang kamu edit maupun yang ditemukan WaveFlow? Kamu dapat mengubahnya kapan saja di Pengaturan → Gambar dan lirik.",
+      "description": "Di mana lirik harus disimpan — yang kamu edit maupun yang ditemukan WaveFlow? Kamu dapat mengubahnya kapan saja di Pengaturan → Lirik.",
       "hint": "Pilih \"Berkas pendamping\" agar berkas audiomu tetap utuh — seperti yang dilakukan foobar2000 dkk."
     }
   },
@@ -1510,7 +1510,7 @@
       "empty": "Tidak ada lirik untuk lagu ini"
     },
     "dragHandle": "Seret untuk memindahkan · Klik dua kali untuk memulihkan ukuran dan posisi",
-    "pinWayland": "Selalu di atas: diabaikan di Wayland. Aktifkan \"Jalankan lewat XWayland\" di Pengaturan → Tampilan → Pemutar dan jendela."
+    "pinWayland": "Selalu di atas: diabaikan di Wayland. Aktifkan \"Jalankan lewat XWayland\" di Pengaturan → Tampilan → Jendela."
   },
   "window": {
     "minimize": "Minimalkan",
@@ -1572,7 +1572,7 @@
     "toast": {
       "tagWriteSkipped": "TTML disimpan di database saja (tidak ditulis ke tag audio)"
     },
-    "excludedGenre": "Lirik tidak dicari secara daring untuk genre {{genre}} (Pengaturan → Gambar dan lirik). Kamu bisa mengimpor berkas .lrc atau tetap mencari."
+    "excludedGenre": "Lirik tidak dicari secara daring untuk genre {{genre}} (Pengaturan → Lirik). Kamu bisa mengimpor berkas .lrc atau tetap mencari."
   },
   "duplicates": {
     "title": "Duplikat terdeteksi",
@@ -2852,7 +2852,7 @@
     },
     "desktopLyrics": {
       "subtitle": "Jendela mengambang di atas aplikasi lain yang menampilkan baris yang sedang dinyanyikan.",
-      "waylandNote": "Di Wayland, jendela tidak tetap di atas aplikasi lain dan tidak tetap di tempat Anda meletakkannya. Untuk itu, aktifkan \"Jalankan lewat XWayland\" di Pengaturan → Tampilan → Pemutar dan jendela.",
+      "waylandNote": "Di Wayland, jendela tidak tetap di atas aplikasi lain dan tidak tetap di tempat Anda meletakkannya. Untuk itu, aktifkan \"Jalankan lewat XWayland\" di Pengaturan → Tampilan → Jendela.",
       "previewSung": "Lirik yang mengikuti",
       "previewUnsung": "lagu",
       "fontSize": "Ukuran teks",

@@ -147,7 +147,8 @@ export function ExclusiveModeCard() {
         <SettingsChoiceCards
           labelledBy="settings-output-mode-label"
           minWidth={13}
-          disabled={busy || state === null}
+          disabled={state === null}
+          busy={busy}
           value={
             state === null ? null : state.requested ? "exclusive" : "shared"
           }

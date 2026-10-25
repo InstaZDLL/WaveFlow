@@ -165,7 +165,7 @@
     },
     "lyrics": {
       "title": "Wo sollen Songtexte landen?",
-      "description": "Wo sollen Songtexte hin — die, die du bearbeitest, und die, die WaveFlow für dich findet? Du kannst dies jederzeit unter Einstellungen → Bilder und Songtexte ändern.",
+      "description": "Wo sollen Songtexte hin — die, die du bearbeitest, und die, die WaveFlow für dich findet? Du kannst dies jederzeit unter Einstellungen → Songtexte ändern.",
       "hint": "Wähle „Sidecar-Datei“, um Audiodateien unberührt zu lassen — wie foobar2000 & Co."
     }
   },
@@ -1512,7 +1512,7 @@
       "empty": "Kein Songtext für diesen Titel"
     },
     "dragHandle": "Ziehen zum Verschieben · Doppelklick setzt Größe und Position zurück",
-    "pinWayland": "Immer im Vordergrund: unter Wayland ignoriert. Aktiviere „Über XWayland ausführen“ unter Einstellungen → Darstellung → Player und Fenster."
+    "pinWayland": "Immer im Vordergrund: unter Wayland ignoriert. Aktiviere „Über XWayland ausführen“ unter Einstellungen → Darstellung → Fenster."
   },
   "window": {
     "minimize": "Minimieren",
@@ -1574,7 +1574,7 @@
     "toast": {
       "tagWriteSkipped": "TTML nur in der Datenbank gespeichert (nicht in den Audio-Tag geschrieben)"
     },
-    "excludedGenre": "Für das Genre {{genre}} werden keine Songtexte online gesucht (Einstellungen → Bilder und Songtexte). Du kannst eine .lrc-Datei importieren oder trotzdem suchen."
+    "excludedGenre": "Für das Genre {{genre}} werden keine Songtexte online gesucht (Einstellungen → Songtexte). Du kannst eine .lrc-Datei importieren oder trotzdem suchen."
   },
   "duplicates": {
     "title": "Duplikate erkannt",
@@ -2854,7 +2854,7 @@
     },
     "desktopLyrics": {
       "subtitle": "Ein schwebendes Fenster über deinen anderen Apps, das die gerade gesungene Zeile zeigt.",
-      "waylandNote": "Unter Wayland bleibt das Fenster weder über anderen Apps noch dort, wo du es platzierst. Dafür aktiviere „Über XWayland ausführen“ unter Einstellungen → Darstellung → Player und Fenster.",
+      "waylandNote": "Unter Wayland bleibt das Fenster weder über anderen Apps noch dort, wo du es platzierst. Dafür aktiviere „Über XWayland ausführen“ unter Einstellungen → Darstellung → Fenster.",
       "previewSung": "Songtext, der dem Lied",
       "previewUnsung": "folgt",
       "fontSize": "Textgröße",

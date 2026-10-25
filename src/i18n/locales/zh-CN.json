@@ -165,7 +165,7 @@
     },
     "lyrics": {
       "title": "歌词保存在哪里？",
-      "description": "歌词应该保存到何处？你编辑的歌词和 WaveFlow 为你找到的歌词都适用。可随时在“设置 → 图片与歌词”中更改。",
+      "description": "歌词应该保存到何处？你编辑的歌词和 WaveFlow 为你找到的歌词都适用。可随时在“设置 → 歌词”中更改。",
       "hint": "选择“外挂歌词文件”可让音频文件保持不变——foobar2000 等播放器就是这样做的。"
     }
   },
@@ -1510,7 +1510,7 @@
       "empty": "此曲目没有歌词"
     },
     "dragHandle": "拖动以移动 · 双击恢复大小和位置",
-    "pinWayland": "始终置顶：在 Wayland 下无效。请在 设置 → 外观 → 播放器与窗口 中开启“通过 XWayland 运行”。"
+    "pinWayland": "始终置顶：在 Wayland 下无效。请在 设置 → 外观 → 窗口 中开启“通过 XWayland 运行”。"
   },
   "window": {
     "minimize": "最小化",
@@ -1572,7 +1572,7 @@
     "toast": {
       "tagWriteSkipped": "TTML 仅保留在数据库中（未写入音频标签）"
     },
-    "excludedGenre": "不会在线搜索 {{genre}} 流派的歌词（设置 → 图片与歌词）。你可以导入 .lrc 文件，或选择仍然搜索。"
+    "excludedGenre": "不会在线搜索 {{genre}} 流派的歌词（设置 → 歌词）。你可以导入 .lrc 文件，或选择仍然搜索。"
   },
   "duplicates": {
     "title": "检测到重复文件",
@@ -2852,7 +2852,7 @@
     },
     "desktopLyrics": {
       "subtitle": "悬浮在其他应用之上、显示正在演唱歌词的窗口。",
-      "waylandNote": "在 Wayland 下，窗口既不会置顶于其他应用之上，也不会停在你放置的位置。如需这样，请在 设置 → 外观 → 播放器与窗口 中开启“通过 XWayland 运行”。",
+      "waylandNote": "在 Wayland 下，窗口既不会置顶于其他应用之上，也不会停在你放置的位置。如需这样，请在 设置 → 外观 → 窗口 中开启“通过 XWayland 运行”。",
       "previewSung": "跟随歌曲的",
       "previewUnsung": "歌词",
       "fontSize": "文字大小",
