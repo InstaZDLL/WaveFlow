@@ -110,10 +110,10 @@ export function CacheLocationCard({ language }: { language: string }) {
         aria-label={t("settings.cacheLocation.title")}
         className="py-5 px-4 rounded-xl"
       >
-        <div className="flex items-start gap-3">
+        <div className="flex items-start gap-4">
           <HardDrive
-            size={20}
-            className="text-zinc-400 mt-0.5 shrink-0"
+            size={16}
+            className="settings-row-icon"
             aria-hidden="true"
           />
           <div className="min-w-0">
@@ -142,8 +142,8 @@ export function CacheLocationCard({ language }: { language: string }) {
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start space-x-4 min-w-0">
           <HardDrive
-            size={20}
-            className="text-zinc-400 mt-0.5 shrink-0"
+            size={16}
+            className="settings-row-icon"
             aria-hidden="true"
           />
           <div className="min-w-0">

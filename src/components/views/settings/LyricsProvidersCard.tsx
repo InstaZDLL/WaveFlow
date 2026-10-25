@@ -23,12 +23,8 @@ export function LyricsProvidersCard() {
       aria-label={t("settings.lyricsProviders.title")}
       className="space-y-3 py-3"
     >
-      <header className="px-4 flex items-start gap-3">
-        <Globe
-          size={20}
-          className="text-zinc-400 mt-0.5 shrink-0"
-          aria-hidden="true"
-        />
+      <header className="flex items-start gap-4">
+        <Globe size={16} className="settings-row-icon" aria-hidden="true" />
         <div className="min-w-0">
           <h3 className="text-sm font-medium text-zinc-900 dark:text-white">
             {t("settings.lyricsProviders.title")}
@@ -39,7 +35,7 @@ export function LyricsProvidersCard() {
         </div>
       </header>
 
-      <fieldset className="mx-4">
+      <fieldset>
         <legend className="sr-only">
           {t("settings.lyricsProviders.title")}
         </legend>

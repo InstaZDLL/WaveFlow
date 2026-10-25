@@ -94,10 +94,10 @@ export function ImmersiveViewCard() {
               key={prop}
               className="flex items-center justify-between gap-3 py-1"
             >
-              <span className="flex items-start gap-3 min-w-0">
+              <span className="flex items-start gap-4 min-w-0">
                 <Icon
-                  size={20}
-                  className="text-zinc-400 mt-0.5 shrink-0"
+                  size={16}
+                  className="settings-row-icon"
                   aria-hidden="true"
                 />
                 <span className="min-w-0">

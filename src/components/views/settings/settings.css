@@ -1,58 +1,1143 @@
-/* Scope the shared row rhythm to settings; existing cards keep their controls. */
-.settings-group-body > :is(.settings-row, .settings-block),
-.settings-dependent > :is(.settings-row, .settings-block) {
-  padding-block: 1rem;
+/* ============================================================
+   Settings — titled groups of cards, choices as cards with a
+   drawing of what they do.
+
+   Every colour below comes from the `--st-*` tokens set on
+   `.settings-view`: Studio's light and dark values here, and under
+   the fluid layout the material's own `--fe-*` tokens, which each
+   material (Fluid, Liquid, Pulse, Editorial, Lounge) redefines — so
+   one set of rules draws the page in all six skins.
+   ============================================================ */
+
+.settings-view {
+  --st-card: #ffffff;
+  --st-card-edge: var(--color-zinc-200);
+  --st-edge-hover: var(--color-zinc-300);
+  --st-divider: rgb(24 24 27 / 0.07);
+  --st-ink: var(--color-zinc-900);
+  --st-ink-2: var(--color-zinc-600);
+  --st-ink-3: var(--color-zinc-500);
+  --st-tone: var(--color-zinc-100);
+  --st-tone-2: var(--color-zinc-200);
+  --st-preview: var(--color-zinc-100);
+  --st-accent: var(--accent-500);
+  --st-accent-ink: #ffffff;
+  --st-accent-soft: color-mix(in srgb, var(--accent-500) 9%, transparent);
 }
 
-.settings-group-body > .settings-row,
-.settings-dependent > .settings-row {
-  gap: 1.5rem;
+/* The dark selector mirrors the `dark:` variant in app.css: Lounge and
+   Pulse are dark skins that never set `.dark` on a light theme. */
+:is(.dark, :root[data-skin="lounge"], :root[data-skin="pulse"]) .settings-view {
+  --st-card: rgb(255 255 255 / 0.03);
+  --st-card-edge: rgb(255 255 255 / 0.08);
+  --st-edge-hover: rgb(255 255 255 / 0.16);
+  --st-divider: rgb(255 255 255 / 0.06);
+  --st-ink: #ffffff;
+  --st-ink-2: var(--color-zinc-300);
+  --st-ink-3: var(--color-zinc-400);
+  --st-tone: rgb(255 255 255 / 0.06);
+  --st-tone-2: rgb(255 255 255 / 0.1);
+  --st-preview: rgb(255 255 255 / 0.04);
+  --st-accent: var(--accent-400);
+  --st-accent-ink: #0b0b0e;
+  --st-accent-soft: color-mix(in srgb, var(--accent-400) 10%, transparent);
 }
 
-.settings-group-body > .settings-row > :first-child,
-.settings-dependent > .settings-row > :first-child {
+:root[data-layout="fluid"] .settings-view {
+  --st-card: var(--fe-surface);
+  --st-card-edge: var(--fe-hairline);
+  --st-edge-hover: var(--fe-hairline-strong);
+  --st-divider: var(--fe-hairline);
+  --st-ink: var(--fe-ink);
+  --st-ink-2: var(--fe-ink-2);
+  --st-ink-3: var(--fe-ink-3);
+  --st-tone: var(--fe-tone-2);
+  --st-tone-2: var(--fe-tone-4);
+  --st-preview: var(--fe-tone-1);
+  --st-accent: var(--fe-accent);
+  --st-accent-ink: var(--fe-accent-ink);
+  --st-accent-soft: color-mix(in srgb, var(--fe-accent) 11%, transparent);
+}
+
+/* High contrast: edges and dividers that read without hunting. */
+:root[data-contrast="high"] .settings-view {
+  --st-card-edge: var(--color-zinc-500);
+  --st-edge-hover: var(--color-zinc-400);
+  --st-divider: var(--color-zinc-400);
+}
+
+/* ── The navigation: each category's name over its one-line hint ── */
+.settings-nav-item {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  border-radius: 0.75rem;
+  text-align: start;
+  color: var(--st-ink-2);
+  transition: background-color 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.settings-nav-item:hover {
+  background-color: var(--st-tone);
+  color: var(--st-ink);
+}
+
+.settings-nav-item[data-active] {
+  background-color: var(--st-accent-soft);
+  color: var(--st-ink);
+}
+
+/* The open category's edge, as the sidebar marks the open page. */
+.settings-nav-item[data-active]::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  top: 0.625rem;
+  bottom: 0.625rem;
+  width: 2px;
+  border-radius: 2px;
+  background-color: var(--st-accent);
+}
+
+.settings-nav-item:focus-visible {
+  outline: 2px solid var(--st-accent);
+  outline-offset: -2px;
+}
+
+.settings-nav-icon {
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+  color: var(--st-ink-3);
+}
+
+.settings-nav-item[data-active] .settings-nav-icon {
+  color: var(--st-accent);
+}
+
+.settings-nav-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.settings-nav-hint {
+  display: block;
+  margin-top: 0.0625rem;
+  font-size: 0.6875rem;
+  line-height: 1.35;
+  color: var(--st-ink-3);
+}
+
+/* A page's title, larger than a group's. */
+.settings-category-header h2 {
+  font-size: 1.625rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  color: var(--st-ink);
+}
+
+/* ── A page: its header, then its groups ─────────────────────── */
+.settings-category {
+  display: flex;
+  flex-direction: column;
+  gap: 2.25rem;
+}
+
+.settings-group-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.125rem 0.75rem;
   min-width: 0;
 }
 
-.settings-group-body > .settings-row > :last-child,
-.settings-dependent > .settings-row > :last-child {
+section.settings-group > .settings-group-heading {
+  padding: 0 0.25rem 0.75rem;
+}
+
+.settings-group-title {
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--st-ink);
+}
+
+.settings-group-hint {
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--st-ink-3);
+}
+
+/* ── The card a group's rows sit in ──────────────────────────── */
+.settings-card {
+  background-color: var(--st-card);
+  border-color: var(--st-card-edge);
+}
+
+/* Each block of a card gets the same inset, whatever padding its own
+   component carries (these rules are outside Tailwind's layers, so
+   they win over its utilities), and a hairline above it. */
+.settings-group-body.settings-card > :where(*),
+.settings-card--disclosure > .settings-group-body > :where(*) {
+  padding: 1rem 1.25rem;
+  border-radius: 0;
+}
+
+.settings-group-body.settings-card > * + *,
+.settings-card--disclosure > .settings-group-body > * + *,
+.settings-card--disclosure > .settings-group-body {
+  border-top: 1px solid var(--st-divider);
+}
+
+/* Rows whose text sits under an icon tile: the indent of a second line
+   (`ml-9`) follows the tile, 2 rem wide, and its 1 rem gap. */
+.settings-group-body .ml-9 {
+  margin-inline-start: 3rem;
+}
+
+/* A disclosure group: the heading is its summary. */
+.settings-disclosure {
+  padding: 1rem 1.25rem;
+}
+
+.settings-disclosure-chevron {
+  color: var(--st-ink-3);
+}
+
+/* ── A row: icon tile, title and description, control ───────── */
+.settings-row {
+  gap: 1.5rem;
+}
+
+.settings-row > :first-child {
+  min-width: 0;
+}
+
+.settings-row > :last-child {
   flex-shrink: 0;
+}
+
+/* The row's icon, in a tile of the page's tone. Not a coloured box:
+   the accent is kept for the choice the user made. */
+.settings-row-icon {
+  box-sizing: content-box;
+  flex-shrink: 0;
+  padding: 0.5rem;
+  border-radius: 0.625rem;
+  background-color: var(--st-tone);
+  color: var(--st-ink-3);
 }
 
 /* The secondary line under a setting's title (and the hints beside its
    inputs). A named class rather than `.text-xs.text-zinc-400`: matching
    on utilities restyled any small grey text inside a group and missed
-   every subtitle written with other shades.
-
-   The dark selector mirrors the `dark:` variant in app.css. Lounge and
-   Pulse are dark skins that never set `.dark` on a light theme, so a bare
-   `.dark` ancestor would leave them with the light-mode grey. */
+   every subtitle written with other shades. */
 .settings-description {
-  color: var(--color-zinc-500);
+  color: var(--st-ink-3);
   line-height: 1.5;
   max-width: 65ch;
 }
 
+/* Settings that only apply while the one above is on, set under it. */
+.settings-dependent {
+  padding: 0 !important;
+}
+
+.settings-dependent > :is(.settings-row, .settings-block) {
+  padding: 0.875rem 1.25rem 0.875rem 4.25rem;
+}
+
+.settings-dependent > * + * {
+  border-top: 1px solid var(--st-divider);
+}
+
+/* A block that shows what a setting will do, under its row. */
+.settings-preview-strip {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* ── Choice cards (`SettingsChoiceCards`) ─────────────────────── */
+.settings-choices {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(min(100%, var(--settings-choice-min, 9rem)), 1fr)
+  );
+  gap: 0.75rem;
+}
+
+.settings-choice {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 0.5rem;
+  border-radius: 0.875rem;
+  text-align: start;
+  color: var(--st-ink);
+  background-color: transparent;
+  box-shadow: inset 0 0 0 1px var(--st-card-edge);
+  cursor: pointer;
+  transition:
+    box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.settings-choice:hover:not(:disabled) {
+  box-shadow: inset 0 0 0 1px var(--st-edge-hover);
+}
+
+.settings-choice[data-selected] {
+  background-color: var(--st-accent-soft);
+  box-shadow: inset 0 0 0 2px var(--st-accent);
+}
+
+.settings-choice:focus-visible {
+  outline: 2px solid var(--st-accent);
+  outline-offset: 2px;
+}
+
+.settings-choice:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+/* A change being applied: the cards keep their look and the focus, the
+   pointer says to wait. */
+.settings-choice[aria-disabled="true"] {
+  cursor: progress;
+}
+
+.settings-choice-preview {
+  /* Defaults for the drawings; a theme preview brings its own. */
+  --sp-bg: var(--st-preview);
+  --sp-side: var(--st-tone);
+  --sp-bar: var(--st-tone);
+  --sp-ink: var(--st-ink-2);
+  --sp-ink-2: var(--st-tone-2);
+  --sp-edge: var(--st-divider);
+  --sp-accent: var(--st-accent);
+  --sp-accent-2: color-mix(in srgb, var(--st-accent) 40%, transparent);
+  position: relative;
+  display: block;
+  aspect-ratio: 16 / 10;
+  /* Two choices stretched across a wide card would make a scene of a
+     thumbnail: past this height the drawing centres in a wider box. */
+  max-height: 8.5rem;
+  overflow: hidden;
+  border-radius: 0.5rem;
+  background-color: var(--sp-bg);
+  box-shadow: inset 0 0 0 1px var(--st-divider);
+}
+
+/* A small drawing (bars, a strip) rather than a scene. */
+.settings-choices--compact .settings-choice-preview {
+  aspect-ratio: auto;
+  height: 2.75rem;
+}
+
+.settings-choice-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+  padding: 0.625rem 0.375rem 0.25rem;
+}
+
+.settings-choice:not([data-preview]) .settings-choice-body {
+  padding: 0.375rem 2rem 0.375rem 0.5rem;
+}
+
+.settings-choice-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.settings-choice-hint {
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--st-ink-3);
+}
+
+.settings-choice-check {
+  position: absolute;
+  top: 0.875rem;
+  inset-inline-end: 0.875rem;
+  display: grid;
+  place-items: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 999px;
+  color: var(--st-accent-ink);
+  background-color: var(--st-accent);
+  opacity: 0;
+  transform: scale(0.6);
+  transition:
+    opacity 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.settings-choice:not([data-preview]) .settings-choice-check {
+  top: 0.75rem;
+}
+
+.settings-choice[data-selected] .settings-choice-check {
+  opacity: 1;
+  transform: none;
+}
+
+/* Editorial is ruled paper: its cards have square corners, and so do
+   the choices and their drawings. */
+:root[data-skin="editorial"] .settings-choice,
+:root[data-skin="editorial"] .settings-choice-preview,
+:root[data-skin="editorial"] .settings-nav-item,
+:root[data-skin="editorial"] .settings-row-icon {
+  border-radius: 0;
+}
+
+/* ── The drawings (`settingsPreviews.tsx`) ───────────────────── */
+.sp-line {
+  display: block;
+  height: 4px;
+  border-radius: 2px;
+  background-color: var(--sp-ink-2);
+}
+
+.sp-line--ink {
+  background-color: var(--sp-ink);
+  opacity: 0.7;
+}
+
+.sp-line--short {
+  width: 55%;
+}
+
+.sp-dot {
+  display: block;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background-color: var(--sp-accent);
+}
+
+/* A theme: sidebar, page, player bar in its colours. */
+.sp-app {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: 27% 1fr;
+  grid-template-rows: 1fr 19%;
+  background-color: var(--sp-bg);
+}
+
+.sp-app__side {
+  display: flex;
+  flex-direction: column;
+  gap: 9%;
+  padding: 14% 14%;
+  background-color: var(--sp-side);
+  box-shadow: inset -1px 0 0 var(--sp-edge);
+}
+
+.sp-app__main {
+  display: flex;
+  flex-direction: column;
+  gap: 9%;
+  min-width: 0;
+  padding: 9% 10%;
+}
+
+.sp-app__hero {
+  display: block;
+  height: 32%;
+  border-radius: 4px;
+  background: linear-gradient(135deg, var(--sp-accent), var(--sp-accent-2));
+}
+
+.sp-app__tiles {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8%;
+}
+
+.sp-app__tiles > span {
+  display: block;
+  aspect-ratio: 1;
+  border-radius: 3px;
+  background-color: var(--sp-ink-2);
+}
+
+.sp-app__bar {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 6%;
+  padding: 0 8%;
+  background-color: var(--sp-bar);
+  box-shadow: inset 0 1px 0 var(--sp-edge);
+}
+
+.sp-app__play {
+  display: block;
+  flex-shrink: 0;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background-color: var(--sp-accent);
+}
+
+.sp-app__progress {
+  display: block;
+  flex: 1;
+  height: 3px;
+  border-radius: 2px;
+  background: linear-gradient(
+    to right,
+    var(--sp-accent) 42%,
+    var(--sp-ink-2) 42%
+  );
+}
+
+/* A skin. Studio: sidebar, top bar, grid, a bar across. */
+.sp-skin {
+  position: absolute;
+  inset: 0;
+  background: var(--sp-bg);
+}
+
+.sp-skin--studio {
+  --sp-bg: #fafafa;
+  --sp-side: #f0f0f2;
+  --sp-bar: #ffffff;
+  --sp-ink: #27272a;
+  --sp-ink-2: rgb(24 24 27 / 0.14);
+  --sp-edge: rgb(24 24 27 / 0.08);
+  --sp-accent: var(--accent-500);
+  display: grid;
+  grid-template-columns: 26% 1fr;
+  grid-template-rows: 18% 1fr 18%;
+}
+
 :is(.dark, :root[data-skin="lounge"], :root[data-skin="pulse"])
-  .settings-description {
-  color: var(--color-zinc-400);
+  .sp-skin--studio {
+  --sp-bg: #121212;
+  --sp-side: #181818;
+  --sp-bar: #1c1c1c;
+  --sp-ink: #e4e4e7;
+  --sp-ink-2: rgb(255 255 255 / 0.14);
+  --sp-edge: rgb(255 255 255 / 0.06);
 }
 
-.settings-group-body > * + * {
-  margin-top: 0.25rem;
+.sp-studio__side {
+  grid-row: 1 / 3;
+  display: flex;
+  flex-direction: column;
+  gap: 8%;
+  padding: 16% 14%;
+  background-color: var(--sp-side);
+  box-shadow: inset -1px 0 0 var(--sp-edge);
 }
 
-/* Measured on the content column, not the viewport: the main window never
-   gets below 1000px, so a viewport query never fired, while the column
-   beside the settings navigation can be narrower than 40rem. */
+.sp-studio__top {
+  display: flex;
+  align-items: center;
+  padding: 0 8%;
+  box-shadow: inset 0 -1px 0 var(--sp-edge);
+}
+
+.sp-studio__search {
+  display: block;
+  width: 46%;
+  height: 46%;
+  border-radius: 999px;
+  background-color: var(--sp-ink-2);
+}
+
+.sp-studio__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  align-content: start;
+  gap: 7%;
+  padding: 8%;
+}
+
+.sp-studio__grid > span {
+  display: block;
+  aspect-ratio: 1;
+  border-radius: 4px;
+  background-color: var(--sp-ink-2);
+}
+
+.sp-studio__grid > span:first-child {
+  background-color: var(--sp-accent);
+  opacity: 0.75;
+}
+
+.sp-studio__bar {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 6%;
+  padding: 0 8%;
+  background-color: var(--sp-bar);
+  box-shadow: inset 0 1px 0 var(--sp-edge);
+}
+
+/* The fluid skins: a rail, a display title, a band, a floating bar. */
+.sp-skin--fluid {
+  --sp-bg: #0b0b0e;
+  --sp-rail: #121216;
+  --sp-ink: #f3f1ec;
+  --sp-ink-2: rgb(243 241 236 / 0.16);
+  --sp-edge: rgb(255 255 255 / 0.07);
+  --sp-accent: var(--accent-400);
+  --sp-tile: rgb(255 255 255 / 0.08);
+  --sp-floating: rgb(255 255 255 / 0.07);
+  display: grid;
+  grid-template-columns: 15% 1fr;
+}
+
+.sp-fluid__rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12%;
+  padding-top: 40%;
+  background-color: var(--sp-rail);
+  box-shadow: inset -1px 0 0 var(--sp-edge);
+}
+
+.sp-fluid__mark {
+  display: block;
+  width: 40%;
+  height: 4px;
+  border-radius: 2px;
+  background-color: var(--sp-ink-2);
+}
+
+.sp-fluid__page {
+  display: flex;
+  flex-direction: column;
+  gap: 6%;
+  min-width: 0;
+  padding: 10% 9% 0;
+}
+
+.sp-fluid__kicker {
+  display: block;
+  width: 26%;
+  height: 3px;
+  border-radius: 2px;
+  background-color: var(--sp-accent);
+}
+
+.sp-fluid__title {
+  display: block;
+  width: 78%;
+  height: 16%;
+  border-radius: 3px;
+  background-color: var(--sp-ink);
+  opacity: 0.88;
+}
+
+.sp-fluid__band {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7%;
+  margin-top: 4%;
+}
+
+.sp-fluid__band > span {
+  display: block;
+  aspect-ratio: 1;
+  border-radius: 4px;
+  background-color: var(--sp-tile);
+}
+
+.sp-fluid__bar {
+  position: absolute;
+  inset-inline: 22% 6%;
+  bottom: 7%;
+  display: flex;
+  align-items: center;
+  gap: 6%;
+  height: 13%;
+  padding: 0 5%;
+  border-radius: 999px;
+  background-color: var(--sp-floating);
+  box-shadow: inset 0 0 0 1px var(--sp-edge);
+}
+
+.sp-fluid__bar .sp-app__progress {
+  background: linear-gradient(
+    to right,
+    var(--sp-accent) 42%,
+    var(--sp-ink-2) 42%
+  );
+}
+
+/* Fluid: near-black, the cover's light in a corner. */
+.sp-skin--fluid.sp-skin--fluid {
+  background:
+    radial-gradient(
+      ellipse 70% 60% at 30% 0%,
+      rgb(31 90 72 / 0.75),
+      transparent 70%
+    ),
+    var(--sp-bg);
+}
+
+/* Liquid: the aurora's three pools behind glass. */
+.sp-skin--fluid.sp-skin--liquid {
+  --sp-bg: #13141c;
+  --sp-rail: rgb(255 255 255 / 0.07);
+  --sp-ink: #f4f4f8;
+  --sp-tile: rgb(255 255 255 / 0.12);
+  --sp-floating: rgb(255 255 255 / 0.14);
+  --sp-edge: rgb(255 255 255 / 0.18);
+  background:
+    radial-gradient(
+      ellipse 60% 55% at 12% 10%,
+      rgb(139 124 246 / 0.7),
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 60% 55% at 92% 24%,
+      rgb(108 199 240 / 0.6),
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 70% 55% at 40% 110%,
+      rgb(94 224 184 / 0.5),
+      transparent 72%
+    ),
+    var(--sp-bg);
+}
+
+.sp-skin--liquid .sp-fluid__band > span {
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.25);
+}
+
+/* Pulse: black, the accent lit like a tube. */
+.sp-skin--fluid.sp-skin--pulse {
+  --sp-bg: #000000;
+  --sp-rail: #0a0a0c;
+  --sp-ink: #f4f4f5;
+  --sp-tile: transparent;
+  --sp-floating: #0a0a0c;
+  --sp-edge: rgb(255 255 255 / 0.1);
+}
+
+.sp-skin--pulse .sp-fluid__band > span {
+  box-shadow:
+    inset 0 0 0 1px var(--sp-accent),
+    0 0 6px -1px var(--sp-accent);
+}
+
+.sp-skin--pulse .sp-fluid__kicker,
+.sp-skin--pulse .sp-dot,
+.sp-skin--pulse .sp-app__play {
+  box-shadow: 0 0 6px var(--sp-accent);
+}
+
+.sp-skin--pulse .sp-fluid__bar {
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--sp-accent) 60%, transparent),
+    0 0 8px -2px var(--sp-accent);
+}
+
+/* Editorial: paper, ink and rules, the accent deep. */
+.sp-skin--fluid.sp-skin--editorial {
+  --sp-bg: #f0ebd8;
+  --sp-rail: #e8e2ce;
+  --sp-ink: #1a1a1a;
+  --sp-ink-2: rgb(26 26 26 / 0.22);
+  --sp-edge: rgb(26 26 26 / 0.28);
+  --sp-tile: rgb(26 26 26 / 0.12);
+  --sp-floating: #f0ebd8;
+  --sp-accent: var(--accent-800);
+}
+
+.sp-skin--editorial .sp-fluid__title {
+  border-radius: 0;
+  box-shadow:
+    0 6px 0 -4px var(--sp-bg),
+    0 7px 0 -4px var(--sp-edge);
+}
+
+.sp-skin--editorial .sp-fluid__band > span,
+.sp-skin--editorial .sp-fluid__bar {
+  border-radius: 0;
+}
+
+/* Lounge: a wine room, two warm lights. */
+.sp-skin--fluid.sp-skin--lounge {
+  --sp-bg: #14070c;
+  --sp-rail: rgb(31 11 19 / 0.8);
+  --sp-ink: #fbf1f4;
+  --sp-ink-2: rgb(251 241 244 / 0.16);
+  --sp-tile: rgb(255 214 225 / 0.1);
+  --sp-floating: rgb(36 11 21 / 0.8);
+  --sp-edge: rgb(255 156 188 / 0.14);
+  background:
+    radial-gradient(circle at 14% 8%, rgb(137 24 58 / 0.7), transparent 55%),
+    radial-gradient(circle at 88% 22%, rgb(194 102 45 / 0.4), transparent 50%),
+    linear-gradient(135deg, #1f050e, #0c060b 56%, #24070f);
+}
+
+.sp-skin--lounge .sp-fluid__band > span {
+  border-radius: 8px;
+}
+
+/* Contrast and effects: one half or the other, both on the diagonal for
+   "auto", which follows the system. */
+.sp-contrast,
+.sp-effects {
+  position: absolute;
+  inset: 0;
+}
+
+.sp-contrast__half,
+.sp-effects__half {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 9%;
+  padding: 0 14%;
+}
+
+.sp-contrast--normal .sp-contrast__half--high,
+.sp-contrast--high .sp-contrast__half--normal,
+.sp-effects--full .sp-effects__half--reduced,
+.sp-effects--reduced .sp-effects__half--full {
+  display: none;
+}
+
+.sp-contrast--auto .sp-contrast__half--high,
+.sp-effects--auto .sp-effects__half--reduced {
+  clip-path: polygon(62% 0, 100% 0, 100% 100%, 38% 100%);
+}
+
+.sp-contrast--auto .sp-contrast__half--normal,
+.sp-effects--auto .sp-effects__half--full {
+  clip-path: polygon(0 0, 62% 0, 38% 100%, 0 100%);
+}
+
+.sp-contrast__half--normal {
+  --sp-ink: color-mix(in srgb, var(--st-ink) 45%, transparent);
+  --sp-ink-2: color-mix(in srgb, var(--st-ink) 14%, transparent);
+  background-color: var(--st-preview);
+}
+
+.sp-contrast__half--high {
+  --sp-ink: var(--st-ink);
+  --sp-ink-2: color-mix(in srgb, var(--st-ink) 62%, transparent);
+  background-color: var(--st-card);
+}
+
+.sp-contrast__half--high .sp-line--ink {
+  opacity: 1;
+}
+
+.sp-contrast__focus {
+  display: block;
+  width: 42%;
+  height: 16%;
+  margin-top: 4%;
+  border-radius: 999px;
+  background-color: var(--sp-ink-2);
+}
+
+.sp-contrast__half--high .sp-contrast__focus {
+  background-color: transparent;
+  box-shadow:
+    inset 0 0 0 2px var(--st-ink),
+    0 0 0 2px var(--st-card),
+    0 0 0 4px var(--st-accent);
+}
+
+.sp-effects__half {
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  align-content: center;
+  gap: 8% 10%;
+}
+
+.sp-effects__half .sp-line {
+  flex: 0 0 100%;
+}
+
+.sp-effects__half .sp-line--short {
+  flex-basis: 55%;
+}
+
+.sp-effects__cover {
+  display: block;
+  width: 30%;
+  aspect-ratio: 1;
+  border-radius: 5px;
+  background: linear-gradient(
+    135deg,
+    var(--sp-accent),
+    color-mix(in srgb, var(--sp-accent) 45%, #000000)
+  );
+}
+
+/* Full: the cover lights the page and lifts off it. A gradient, not a
+   blur: the drawing repaints with the page. */
+.sp-effects__half--full {
+  background:
+    radial-gradient(
+      ellipse 70% 80% at 20% 30%,
+      color-mix(in srgb, var(--sp-accent) 34%, transparent),
+      transparent 70%
+    ),
+    var(--st-preview);
+}
+
+.sp-effects__half--full .sp-effects__cover {
+  box-shadow: 0 6px 14px -4px
+    color-mix(in srgb, var(--sp-accent) 70%, transparent);
+}
+
+.sp-effects__half--reduced {
+  background-color: var(--st-preview);
+}
+
+/* The output path. */
+.sp-path {
+  position: absolute;
+  inset: 8% 6%;
+  width: 88%;
+  height: 84%;
+}
+
+.sp-path__node {
+  fill: var(--st-tone);
+  stroke: var(--st-ink-3);
+  stroke-width: 1.25;
+}
+
+.sp-path__node--app {
+  fill: var(--st-accent-soft);
+  stroke: var(--st-accent);
+}
+
+.sp-path__node--other {
+  opacity: 0.6;
+}
+
+.sp-path__wire {
+  stroke: var(--st-ink-3);
+  stroke-width: 2;
+}
+
+.sp-path__wire--other {
+  stroke-dasharray: 3 3;
+  opacity: 0.7;
+}
+
+.sp-path__wire--direct {
+  stroke: var(--st-accent);
+  stroke-width: 2.5;
+}
+
+.sp-path__lock {
+  fill: var(--st-accent);
+}
+
+.sp-path__glyph {
+  stroke: var(--st-ink-2);
+  stroke-width: 1.5;
+}
+
+.sp-path__lock + .sp-path__glyph {
+  stroke: var(--st-accent);
+}
+
+/* Signal bars. */
+.sp-bars {
+  position: absolute;
+  inset: 22% 0 22%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 4px;
+}
+
+.sp-bars > span {
+  display: block;
+  width: 6px;
+  border-radius: 2px;
+  background-color: var(--st-tone-2);
+}
+
+.sp-bars > span[data-lit] {
+  background-color: var(--st-accent);
+}
+
+/* ReplayGain: the line every track or album is brought to. */
+.sp-gain {
+  position: absolute;
+  inset: 16% 18% 14%;
+  display: flex;
+  align-items: flex-end;
+  gap: 6%;
+}
+
+.sp-gain__target {
+  position: absolute;
+  inset-inline: -6%;
+  bottom: 58%;
+  border-top: 1px dashed var(--st-ink-3);
+}
+
+.sp-gain__bar {
+  display: block;
+  flex: 1;
+  border-radius: 2px 2px 0 0;
+  background-color: var(--st-accent);
+  opacity: 0.85;
+}
+
+.sp-gain__bar--b {
+  background-color: var(--st-ink-3);
+  opacity: 0.6;
+}
+
+.sp-gain__bar:nth-child(4) {
+  margin-inline-end: 6%;
+}
+
+/* A window and who frames it. */
+.sp-frame {
+  position: absolute;
+  inset: 12% 10%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 6px;
+  background-color: var(--st-card);
+  box-shadow: 0 0 0 1px var(--st-card-edge);
+}
+
+.sp-frame__titlebar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 5%;
+  height: 18%;
+  padding: 0 5%;
+  background-color: var(--st-tone-2);
+}
+
+.sp-frame__titlebar > span {
+  display: block;
+  width: 7%;
+  height: 32%;
+  border-radius: 1px;
+  background-color: var(--st-ink-3);
+  opacity: 0.6;
+}
+
+.sp-frame--app .sp-frame__titlebar {
+  position: absolute;
+  top: 0;
+  inset-inline-end: 0;
+  width: 40%;
+  background-color: transparent;
+}
+
+.sp-frame--app .sp-frame__titlebar > span {
+  width: 14%;
+  height: 26%;
+  border-radius: 999px;
+}
+
+/* GNOME: the desktop's bar in the page's colour, round buttons, and the
+   larger top corners of a libadwaita window. */
+.sp-frame--adwaita {
+  border-radius: 10px 10px 6px 6px;
+}
+.sp-frame--adwaita .sp-frame__titlebar {
+  background-color: var(--st-card);
+  box-shadow: inset 0 -1px var(--st-card-edge);
+}
+.sp-frame--adwaita .sp-frame__titlebar > span {
+  width: auto;
+  height: 46%;
+  aspect-ratio: 1;
+  border-radius: 999px;
+}
+.sp-frame__body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.sp-frame__side {
+  display: block;
+  width: 28%;
+  background-color: var(--st-tone);
+}
+
+.sp-frame__main {
+  --sp-ink: var(--st-ink-3);
+  --sp-ink-2: var(--st-tone-2);
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12%;
+  padding: 14% 10%;
+}
+
+/* The crossfade, live under its slider. */
+.sp-fade {
+  display: block;
+  width: 7rem;
+  height: 1.75rem;
+  border-radius: 0.375rem;
+  background-color: var(--st-tone);
+}
+
+.sp-fade__a {
+  fill: color-mix(in srgb, var(--st-accent) 70%, transparent);
+}
+
+.sp-fade__b {
+  fill: color-mix(in srgb, var(--st-ink-3) 55%, transparent);
+}
+
+/* ── Narrow content column ───────────────────────────────────── */
+/* Measured on the content column, not the viewport: the main window
+   never gets below 1000px, so a viewport query never fired, while the
+   column beside the settings navigation can be narrower than 40rem. */
 .settings-content {
   container: settings-content / inline-size;
 }
 
 @container settings-content (max-width: 40rem) {
-  .settings-group-body > .settings-row,
-  .settings-dependent > .settings-row {
+  .settings-group-body .settings-row {
     flex-wrap: wrap;
     gap: 0.75rem;
+  }
+
+  .settings-dependent > :is(.settings-row, .settings-block) {
+    padding-inline-start: 1.25rem;
+  }
+
+  .sp-fade {
+    display: none;
   }
 }

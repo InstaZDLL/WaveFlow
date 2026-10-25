@@ -561,6 +561,20 @@ const ACCESSORS: Record<SettingKey, SettingAccessor> = {
     getNotificationsTrackChange,
     setNotificationsTrackChange,
   ),
+  "ui.single_click_play": profileBool(
+    "ui.single_click_play",
+    SINGLE_CLICK_PLAY_EVENT,
+  ),
+  "playback.autoplay": profileBool("playback.autoplay", AUTOPLAY_EVENT),
+  "playback.generator_album_mode": profileBool(
+    "playback.generator_album_mode",
+    GENERATOR_ALBUM_MODE_EVENT,
+  ),
+  "playback.keep_awake": command(
+    "playback.keep_awake",
+    async (reads) => (await reads.audio()).keep_awake,
+    (value, ctx) => playerSetKeepAwake(value, ctx.profileId),
+  ),
 
   // ---- Library ---------------------------------------------------------
   // Read at boot only, and written by the Settings switch without an
@@ -576,6 +590,16 @@ const ACCESSORS: Record<SettingKey, SettingAccessor> = {
     getAutoAnalyze,
     setAutoAnalyze,
   ),
+  "metadata.bio_source": command(
+    "metadata.bio_source",
+    getBioSource,
+    setBioSource,
+  ),
+  // Asked only for TheAudioDB, the one source that serves several.
+  "metadata.bio_language": shownWhen(
+    command("metadata.bio_language", getBioLanguage, setBioLanguage),
+    async () => (await getBioSource()) === "theaudiodb",
+  ),
   // The card offers it once a catalogue has been downloaded.
   "radio.catalogue.local_first": shownWhen(
     command(
@@ -586,7 +610,7 @@ const ACCESSORS: Record<SettingKey, SettingAccessor> = {
     async (_ctx, reads) => (await reads.radio()).count > 0,
   ),
 
-  // ---- Playback and audio ----------------------------------------------
+  // ---- Audio ---------------------------------------------------------
   "audio.gapless": engineSwitch("audio.gapless", playerSetGapless),
   "audio.crossfade_ms": command(
     "audio.crossfade_ms",
@@ -604,24 +628,10 @@ const ACCESSORS: Record<SettingKey, SettingAccessor> = {
     getDynamicCrossfade,
     setDynamicCrossfade,
   ),
-  "ui.single_click_play": profileBool(
-    "ui.single_click_play",
-    SINGLE_CLICK_PLAY_EVENT,
-  ),
-  "playback.autoplay": profileBool("playback.autoplay", AUTOPLAY_EVENT),
-  "playback.generator_album_mode": profileBool(
-    "playback.generator_album_mode",
-    GENERATOR_ALBUM_MODE_EVENT,
-  ),
   "audio.pause_on_device_loss": command(
     "audio.pause_on_device_loss",
     async (reads) => (await reads.audio()).pause_on_device_loss,
     playerSetPauseOnDeviceLoss,
-  ),
-  "playback.keep_awake": command(
-    "playback.keep_awake",
-    async (reads) => (await reads.audio()).keep_awake,
-    (value, ctx) => playerSetKeepAwake(value, ctx.profileId),
   ),
   "audio.normalize": engineSwitch("audio.normalize", playerSetNormalize),
   "audio.replaygain": engineSwitch("audio.replaygain", playerSetReplayGain),
@@ -838,30 +848,6 @@ const ACCESSORS: Record<SettingKey, SettingAccessor> = {
     COVER_SLIDESHOW_EVENT,
   ),
   "ui.motion_covers": profileBool("ui.motion_covers", MOTION_COVERS_EVENT),
-  "ui.desktop_lyrics_style": {
-    inspect: async (ctx) => {
-      const style = parseStyle(
-        await getProfileSetting("ui.desktop_lyrics_style", ctx.profileId),
-      );
-      const fallback = SETTINGS["ui.desktop_lyrics_style"].defaultValue;
-      return (
-        Object.keys(DESKTOP_LYRICS_FIELD_LABELS) as Array<
-          keyof DesktopLyricsStyle
-        >
-      )
-        .filter((field) => style[field] !== fallback[field])
-        .map((field) => DESKTOP_LYRICS_FIELD_LABELS[field]);
-    },
-    reset: async (ctx) => {
-      await setProfileSetting(
-        "ui.desktop_lyrics_style",
-        JSON.stringify(SETTINGS["ui.desktop_lyrics_style"].defaultValue),
-        "json",
-        ctx.profileId,
-      );
-      window.dispatchEvent(new CustomEvent(DESKTOP_LYRICS_STYLE_EVENT));
-    },
-  },
   "ui.artist_hero": profileBool("ui.artist_hero", ARTIST_HERO_EVENT),
   "stats.hidden_kpis": profileRow("stats.hidden_kpis", {
     parse: parseHidden,
@@ -877,17 +863,7 @@ const ACCESSORS: Record<SettingKey, SettingAccessor> = {
     event: WRAPPED_BANNER_EVENT,
   }),
 
-  // ---- Images and lyrics -----------------------------------------------
-  "metadata.bio_source": command(
-    "metadata.bio_source",
-    getBioSource,
-    setBioSource,
-  ),
-  // Asked only for TheAudioDB, the one source that serves several.
-  "metadata.bio_language": shownWhen(
-    command("metadata.bio_language", getBioLanguage, setBioLanguage),
-    async () => (await getBioSource()) === "theaudiodb",
-  ),
+  // ---- Lyrics --------------------------------------------------------
   "lyrics.translation_lang": command(
     "lyrics.translation_lang",
     getLyricsTranslationLang,
@@ -932,6 +908,30 @@ const ACCESSORS: Record<SettingKey, SettingAccessor> = {
     valueType: "string",
     event: LYRICS_HIGHLIGHT_COLOR_EVENT,
   }),
+  "ui.desktop_lyrics_style": {
+    inspect: async (ctx) => {
+      const style = parseStyle(
+        await getProfileSetting("ui.desktop_lyrics_style", ctx.profileId),
+      );
+      const fallback = SETTINGS["ui.desktop_lyrics_style"].defaultValue;
+      return (
+        Object.keys(DESKTOP_LYRICS_FIELD_LABELS) as Array<
+          keyof DesktopLyricsStyle
+        >
+      )
+        .filter((field) => style[field] !== fallback[field])
+        .map((field) => DESKTOP_LYRICS_FIELD_LABELS[field]);
+    },
+    reset: async (ctx) => {
+      await setProfileSetting(
+        "ui.desktop_lyrics_style",
+        JSON.stringify(SETTINGS["ui.desktop_lyrics_style"].defaultValue),
+        "json",
+        ctx.profileId,
+      );
+      window.dispatchEvent(new CustomEvent(DESKTOP_LYRICS_STYLE_EVENT));
+    },
+  },
 
   // ---- Connections -----------------------------------------------------
   "network.offline_mode": command(

@@ -69,11 +69,11 @@ export function ListenBrainzCard() {
   };
 
   return (
-    <div className="settings-block py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+    <div className="settings-block">
       <div className="flex items-start space-x-4">
         <Headphones
-          size={20}
-          className="text-zinc-400 mt-0.5"
+          size={16}
+          className="settings-row-icon"
           aria-hidden="true"
         />
         <div className="flex-1 min-w-0">

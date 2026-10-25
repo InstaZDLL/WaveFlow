@@ -1,18 +1,15 @@
 import { useTranslation } from "react-i18next";
-import { AppWindow, AppWindowMac, PanelTop } from "lucide-react";
+import { AppWindow } from "lucide-react";
 
 import { useWindowChrome } from "../../../hooks/useWindowChrome";
-import type { WindowChrome } from "../../../lib/tauri/preferences";
-
-const ICONS: Record<WindowChrome, typeof AppWindow> = {
-  system: AppWindow,
-  adwaita: AppWindowMac,
-  app: PanelTop,
-};
+import { SettingsChoiceCards } from "./SettingsChoiceCards";
+import { WindowFramePreview } from "./settingsPreviews";
 
 /**
  * Settings → Appearance row picking who draws the window's frame
- * (issue #696).
+ * (issue #696): a card per choice the backend offers, each drawing the
+ * window with the system's title bar above it, with that bar in the
+ * GNOME style, or with WaveFlow up to the top edge.
  *
  * **Renders nothing where the choice is not offered.** Today that means
  * Windows, where a frame we drew ourselves would lose Snap Layouts and the
@@ -23,22 +20,17 @@ const ICONS: Record<WindowChrome, typeof AppWindow> = {
  */
 export function WindowChromeCard() {
   const { t } = useTranslation();
-  const { chrome, supported, options, ready, busy, choose } =
-    useWindowChrome();
+  const { chrome, supported, options, ready, busy, choose } = useWindowChrome();
 
   if (!ready || !supported) return null;
 
   return (
     <section
       aria-labelledby="settings-window-chrome-heading"
-      className="px-4 py-3"
+      className="settings-block"
     >
-      <header className="flex items-start gap-3 mb-3">
-        <AppWindow
-          size={20}
-          className="text-zinc-400 mt-0.5 shrink-0"
-          aria-hidden="true"
-        />
+      <header className="flex items-start gap-4 mb-4">
+        <AppWindow size={16} className="settings-row-icon" aria-hidden="true" />
         <div className="min-w-0">
           <h3
             id="settings-window-chrome-heading"
@@ -52,50 +44,19 @@ export function WindowChromeCard() {
         </div>
       </header>
 
-      <div
-        role="radiogroup"
-        aria-labelledby="settings-window-chrome-heading"
-        className={`grid grid-cols-1 gap-2 ${
-          options.length > 2 ? "sm:grid-cols-3" : "sm:grid-cols-2"
-        }`}
-      >
-        {options.map((id) => {
-          const Icon = ICONS[id];
-          const selected = chrome === id;
-          return (
-            <button
-              key={id}
-              type="button"
-              role="radio"
-              aria-checked={selected}
-              disabled={busy}
-              onClick={() => void choose(id)}
-              className={[
-                "flex flex-col items-start gap-2 rounded-xl border p-3 text-left transition-all disabled:opacity-50",
-                selected
-                  ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 ring-1 ring-emerald-500/40"
-                  : "border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600 bg-white dark:bg-zinc-900",
-              ].join(" ")}
-            >
-              <Icon
-                size={18}
-                className={
-                  selected
-                    ? "text-emerald-600 dark:text-emerald-400"
-                    : "text-zinc-400"
-                }
-                aria-hidden="true"
-              />
-              <span className="text-sm font-medium text-zinc-900 dark:text-white">
-                {t(`settings.windowChrome.options.${id}.label`)}
-              </span>
-              <span className="text-xs text-zinc-500 dark:text-zinc-400 leading-snug">
-                {t(`settings.windowChrome.options.${id}.hint`)}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+      <SettingsChoiceCards
+        labelledBy="settings-window-chrome-heading"
+        minWidth={11}
+        busy={busy}
+        value={chrome}
+        onChange={(id) => void choose(id)}
+        choices={options.map((id) => ({
+          value: id,
+          label: t(`settings.windowChrome.options.${id}.label`),
+          hint: t(`settings.windowChrome.options.${id}.hint`),
+          preview: <WindowFramePreview kind={id} />,
+        }))}
+      />
     </section>
   );
 }

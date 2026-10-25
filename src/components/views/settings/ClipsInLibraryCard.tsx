@@ -68,9 +68,13 @@ export function ClipsInLibraryCard() {
   };
 
   return (
-    <div className="settings-row flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+    <div className="settings-row flex items-center justify-between">
       <div className="flex items-center space-x-4">
-        <FolderHeart size={20} className="text-zinc-400" aria-hidden="true" />
+        <FolderHeart
+          size={16}
+          className="settings-row-icon"
+          aria-hidden="true"
+        />
         <div>
           <div className="text-sm font-medium text-zinc-900 dark:text-white">
             {t("settings.clipsInLibrary.title")}

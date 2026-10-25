@@ -226,13 +226,9 @@ export function CatalogueMirrorCard() {
     (stats?.libraries ?? 0) > 0;
 
   return (
-    <div className="py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+    <div className="settings-block">
       <div className="flex items-start space-x-4">
-        <Library
-          size={20}
-          className="text-zinc-400 mt-0.5"
-          aria-hidden="true"
-        />
+        <Library size={16} className="settings-row-icon" aria-hidden="true" />
         <div className="flex-1 min-w-0 space-y-4">
           <div className="flex items-start justify-between gap-4">
             <div>

@@ -24,12 +24,8 @@ export function LyricsExcludedGenresCard() {
       aria-label={t("settings.lyricsExcludedGenres.title")}
       className="space-y-3 py-3"
     >
-      <header className="px-4 flex items-start gap-3">
-        <Tags
-          size={20}
-          className="text-zinc-400 mt-0.5 shrink-0"
-          aria-hidden="true"
-        />
+      <header className="flex items-start gap-4">
+        <Tags size={16} className="settings-row-icon" aria-hidden="true" />
         <div className="min-w-0">
           <h3 className="text-sm font-medium text-zinc-900 dark:text-white">
             {t("settings.lyricsExcludedGenres.title")}
@@ -40,7 +36,7 @@ export function LyricsExcludedGenresCard() {
         </div>
       </header>
 
-      <div className="mx-4 space-y-3">
+      <div className="space-y-3">
         {genres.length === 0 ? (
           <p className="text-xs settings-description">
             {t("settings.lyricsExcludedGenres.empty")}

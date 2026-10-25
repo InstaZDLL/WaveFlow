@@ -165,7 +165,7 @@
     },
     "lyrics": {
       "title": "Di mana menyimpan lirik?",
-      "description": "Di mana lirik harus disimpan — yang kamu edit maupun yang ditemukan WaveFlow? Kamu dapat mengubahnya kapan saja di Pengaturan → Gambar dan lirik.",
+      "description": "Di mana lirik harus disimpan — yang kamu edit maupun yang ditemukan WaveFlow? Kamu dapat mengubahnya kapan saja di Pengaturan → Lirik.",
       "hint": "Pilih \"Berkas pendamping\" agar berkas audiomu tetap utuh — seperti yang dilakukan foobar2000 dkk."
     }
   },
@@ -1510,7 +1510,7 @@
       "empty": "Tidak ada lirik untuk lagu ini"
     },
     "dragHandle": "Seret untuk memindahkan · Klik dua kali untuk memulihkan ukuran dan posisi",
-    "pinWayland": "Selalu di atas: diabaikan di Wayland. Aktifkan \"Jalankan lewat XWayland\" di Pengaturan → Tampilan → Pemutar dan jendela."
+    "pinWayland": "Selalu di atas: diabaikan di Wayland. Aktifkan \"Jalankan lewat XWayland\" di Pengaturan → Tampilan → Jendela."
   },
   "window": {
     "minimize": "Minimalkan",
@@ -1572,7 +1572,7 @@
     "toast": {
       "tagWriteSkipped": "TTML disimpan di database saja (tidak ditulis ke tag audio)"
     },
-    "excludedGenre": "Lirik tidak dicari secara daring untuk genre {{genre}} (Pengaturan → Gambar dan lirik). Kamu bisa mengimpor berkas .lrc atau tetap mencari."
+    "excludedGenre": "Lirik tidak dicari secara daring untuk genre {{genre}} (Pengaturan → Lirik). Kamu bisa mengimpor berkas .lrc atau tetap mencari."
   },
   "duplicates": {
     "title": "Duplikat terdeteksi",
@@ -2568,7 +2568,8 @@
       "subtitle": "Ketajaman filter konversi DSD → PCM. Hanya memengaruhi berkas DSD (.dsf / .dff); lebih banyak koefisien = pita transisi lebih tajam dengan biaya CPU lebih tinggi.",
       "standard": "Standar",
       "high": "Tinggi",
-      "max": "Maksimum"
+      "max": "Maksimum",
+      "tapsValue": "Koefisien: {{value}}"
     },
     "statsKpis": {
       "title": "Indikator statistik",
@@ -2745,9 +2746,9 @@
       "categories": {
         "general": "Umum",
         "library": "Pustaka",
-        "playback": "Pemutaran dan audio",
+        "playback": "Audio",
         "appearance": "Tampilan",
-        "media": "Gambar dan lirik",
+        "media": "Lirik",
         "integrations": "Koneksi",
         "plugins": "Ekstensi",
         "shortcuts": "Pintasan keyboard",
@@ -2755,11 +2756,11 @@
         "diagnostics": "Pemeliharaan"
       },
       "descriptions": {
-        "general": "Bahasa, proses mulai, dan perilaku aplikasi.",
-        "library": "Atur dan perbarui pustaka musikmu.",
-        "playback": "Transisi lagu, volume, dan keluaran audio.",
-        "appearance": "Sesuaikan antarmuka dan tampilan saat mendengarkan.",
-        "media": "Sampul, informasi artis, dan sumber lirik.",
+        "general": "Bahasa, proses mulai, dan perilaku pemutaran.",
+        "library": "Pemindaian, analisis musik, sampul, biografi, dan radio.",
+        "playback": "Keluaran audio, transisi lagu, volume, dan ekualiser.",
+        "appearance": "Gaya antarmuka, tema, keterbacaan, dan jendela.",
+        "media": "Dari mana lirik diambil, cara menampilkannya, dan di desktop.",
         "integrations": "Hubungkan layanan, server, dan perangkat jaringanmu.",
         "plugins": "Temukan ekstensi dan kelola pengaturannya.",
         "shortcuts": "Pilih pintasan keyboard untuk tindakan sehari-hari.",
@@ -2776,14 +2777,14 @@
         "listening": "Perilaku pemutaran",
         "volume": "Volume",
         "equalizer": "Ekualiser",
-        "output": "Pengaturan audio lanjutan",
-        "theme": "Tema dan keterbacaan",
-        "player": "Pemutar dan jendela",
+        "output": "Keluaran audio",
+        "theme": "Tema dan warna",
+        "player": "Bilah pemutar",
         "immersive": "Tampilan imersif",
         "pages": "Halaman pustaka",
         "artwork": "Sampul dan gambar artis",
         "biographies": "Biografi artis",
-        "lyrics": "Lirik",
+        "lyrics": "Pencarian lirik",
         "connectivity": "Konektivitas",
         "services": "Layanan terhubung",
         "remote": "Server jarak jauh",
@@ -2797,12 +2798,65 @@
         "diagnostics": "Diagnostik",
         "reset": "Atur ulang aplikasi",
         "desktopLyrics": "Lirik desktop",
-        "stereo": "Citra stereo"
+        "stereo": "Citra stereo",
+        "outputAdvanced": "Keluaran lanjutan",
+        "skin": "Gaya antarmuka",
+        "display": "Keterbacaan",
+        "window": "Jendela",
+        "lyricsDisplay": "Tampilan lirik"
+      },
+      "navHints": {
+        "general": "Bahasa, mulai, pemutaran",
+        "appearance": "Gaya, tema, jendela",
+        "playback": "Keluaran, volume, ekualiser",
+        "media": "Sumber, tampilan, desktop",
+        "library": "Pemindaian, analisis, sampul",
+        "integrations": "Layanan, server, jaringan",
+        "shortcuts": "Keyboard dan tombol media",
+        "data": "Cadangan, folder, cache",
+        "diagnostics": "Pembaruan, log, atur ulang"
+      },
+      "groupHints": {
+        "language": "Langsung berlaku, tanpa memulai ulang",
+        "startup": "Yang terjadi saat WaveFlow dibuka dan ditutup",
+        "listening": "Cara lagu dimulai dan apa yang diputar berikutnya",
+        "skin": "Tata letak dan material antarmuka",
+        "theme": "Warna antarmuka dan warna aksen",
+        "display": "Kontras, efek visual, dan ukuran antarmuka",
+        "player": "Tombol dan lencana di bilah bawah",
+        "window": "Ukuran, posisi, dan bingkai jendela",
+        "immersive": "Sampul layar penuh, dengan lirik",
+        "pages": "Yang ditampilkan halaman artis, statistik, dan beranda",
+        "output": "Cara suara sampai ke perangkat",
+        "transitions": "Di antara dua lagu: gapless atau crossfade",
+        "volume": "Volume yang rata dari satu lagu ke lagu lain",
+        "equalizer": "Bentuk kurva frekuensi",
+        "stereo": "Keseimbangan dan lebar citra stereo",
+        "outputAdvanced": "Laju sampel dan mono",
+        "lyrics": "Sumber, terjemahan, dan tempat penyimpanan",
+        "lyricsDisplay": "Karaoke, perataan tengah, dan warna baris yang dinyanyikan",
+        "desktopLyrics": "Satu baris lirik di atas jendela-jendelamu",
+        "scanning": "Temukan file baru dan duplikat",
+        "analysis": "BPM, kelantangan, dan puncak tiap lagu",
+        "artwork": "Sampul album dan foto artis yang belum ada",
+        "biographies": "Asal teks tentang artis",
+        "radio": "Katalog stasiun, luring",
+        "connectivity": "Putus semua akses internet",
+        "services": "Last.fm, ListenBrainz, dan Discord",
+        "remote": "Server WaveFlow-mu dan pustakanya",
+        "network": "DLNA dan MPD di jaringan lokalmu",
+        "keyboard": "Pintasan untuk tindakan sehari-hari",
+        "backups": "Ekspor, impor, dan cadangkan profilmu",
+        "storage": "Tempat WaveFlow menyimpan data dan cache-nya",
+        "cleanup": "Gambar mini dan sampul dalam cache",
+        "updates": "Versi stabil atau beta",
+        "diagnostics": "Log dan rendering grafis",
+        "reset": "Mulai lagi dengan aplikasi yang bersih"
       }
     },
     "desktopLyrics": {
       "subtitle": "Jendela mengambang di atas aplikasi lain yang menampilkan baris yang sedang dinyanyikan.",
-      "waylandNote": "Di Wayland, jendela tidak tetap di atas aplikasi lain dan tidak tetap di tempat Anda meletakkannya. Untuk itu, aktifkan \"Jalankan lewat XWayland\" di Pengaturan → Tampilan → Pemutar dan jendela.",
+      "waylandNote": "Di Wayland, jendela tidak tetap di atas aplikasi lain dan tidak tetap di tempat Anda meletakkannya. Untuk itu, aktifkan \"Jalankan lewat XWayland\" di Pengaturan → Tampilan → Jendela.",
       "previewSung": "Lirik yang mengikuti",
       "previewUnsung": "lagu",
       "fontSize": "Ukuran teks",
@@ -2887,6 +2941,14 @@
         "mono": "Mono",
         "value": "{{value}}%",
         "reset": "Setel ulang lebar ke 100%"
+      }
+    },
+    "outputMode": {
+      "title": "Mode keluaran",
+      "subtitle": "Bagikan perangkat dengan sistem, atau khususkan untuk WaveFlow.",
+      "shared": {
+        "label": "Keluaran bersama",
+        "hint": "Suara melewati mixer sistem, bersama suara aplikasi lain. Ideal untuk sehari-hari."
       }
     }
   },

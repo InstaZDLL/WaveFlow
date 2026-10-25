@@ -1,71 +1,33 @@
-import { useRef, type KeyboardEvent } from "react";
 import { useTranslation } from "react-i18next";
-import { Layers, Check } from "lucide-react";
+import { Layers } from "lucide-react";
 import { useSkin } from "../../../hooks/useSkin";
 import { SKIN_PRESETS } from "../../../lib/skins";
+import { SettingsChoiceCards } from "./SettingsChoiceCards";
+import { SkinPreview } from "./settingsPreviews";
 
 /**
  * Settings → Appearance → Skin picker.
  *
  * Where the theme picker swaps the accent palette, the skin picker
- * swaps the *language* of the UI: density, surface materials,
+ * swaps the *language* of the UI: layout, surface materials,
  * typography, motion. The two axes are orthogonal so any (theme,
  * skin) combination works.
  *
- * Each card shows a tiny preview of the skin's typographic identity
- * (display font + heading weight + tracking) over a swatch that
- * hints at the surface treatment (paper grain for Editorial, soft
- * shadow card for Studio). Adding a new skin to `SKIN_PRESETS`
- * surfaces it here automatically.
+ * Each card draws the skin's layout on its material — Studio's sidebar,
+ * top bar and full-width bar; the fluid skins' rail, display title and
+ * floating bar over the near-black, the aurora, the neon, the paper or
+ * the wine room — and names it in the skin's own display face. Adding a
+ * new skin to `SKIN_PRESETS` surfaces it here; its drawing is a
+ * `.sp-skin--<id>` rule in `settings.css`.
  */
 export function SkinPickerCard() {
   const { t } = useTranslation();
   const { skin, setSkinId, skinError } = useSkin();
-  // Refs to each radio button so the keyboard handler can move
-  // DOM focus to the newly-selected option (WAI-ARIA radiogroup
-  // pattern: arrow key changes selection AND focus, screen
-  // readers announce the new value because focus moves).
-  const buttonRefs = useRef<Array<HTMLButtonElement | null>>([]);
-
-  const handleKeyDown = (
-    e: KeyboardEvent<HTMLButtonElement>,
-    currentIdx: number,
-  ) => {
-    const len = SKIN_PRESETS.length;
-    let targetIdx: number;
-    switch (e.key) {
-      case "ArrowRight":
-      case "ArrowDown":
-        targetIdx = (currentIdx + 1) % len;
-        break;
-      case "ArrowLeft":
-      case "ArrowUp":
-        targetIdx = (currentIdx - 1 + len) % len;
-        break;
-      case "Home":
-        targetIdx = 0;
-        break;
-      case "End":
-        targetIdx = len - 1;
-        break;
-      default:
-        return;
-    }
-    e.preventDefault();
-    setSkinId(SKIN_PRESETS[targetIdx].id);
-    // Move focus too — radiogroup pattern moves selection AND
-    // focus on arrow key. Refs are populated by the JSX below.
-    buttonRefs.current[targetIdx]?.focus();
-  };
 
   return (
-    <section aria-labelledby="skin-picker-heading" className="px-4 py-3">
+    <section aria-labelledby="skin-picker-heading" className="settings-block">
       <div className="flex items-center space-x-4 mb-4">
-        <Layers
-          size={20}
-          className="text-zinc-400 shrink-0"
-          aria-hidden="true"
-        />
+        <Layers size={16} className="settings-row-icon" aria-hidden="true" />
         <div className="min-w-0">
           <div
             id="skin-picker-heading"
@@ -83,85 +45,30 @@ export function SkinPickerCard() {
           {t("skinRecovery.saveFailed")}
         </p>
       )}
-      <div
-        className="grid grid-cols-2 gap-3"
-        role="radiogroup"
-        aria-labelledby="skin-picker-heading"
-      >
-        {SKIN_PRESETS.map((preset, idx) => {
-          const isActive = preset.id === skin.id;
-          // Inline-style preview so the swatch always reflects the
-          // skin's actual tokens, not the active skin's. Using inline
-          // styles also sidesteps having to round-trip through
-          // tailwind / data-skin attribute fiddling for the preview.
-          //
-          // `shadowCard` is intentionally NOT applied here: Pulse's
-          // neon halo (`0 0 24px -4px var(--accent-500)`) leaks
-          // visibly past the button's overflow-hidden clip, and at
-          // ~200×100 px the other skins' shadows are too subtle to
-          // read anyway. The skin's identity is already carried by
-          // the display font + heading weight + tracking + radius;
-          // chrome-scale shadows belong on real surfaces, not on
-          // thumbnail previews.
-          const previewStyle: React.CSSProperties = {
-            fontFamily: preset.typography.display,
-            fontWeight: preset.typography.headingWeight,
-            letterSpacing: preset.typography.displayTracking,
-            borderRadius: preset.radius.card,
-          };
-          return (
-            <button
-              key={preset.id}
-              ref={(el) => {
-                buttonRefs.current[idx] = el;
+      <SettingsChoiceCards
+        labelledBy="skin-picker-heading"
+        minWidth={12}
+        value={skin.id}
+        onChange={(id) => setSkinId(id)}
+        choices={SKIN_PRESETS.map((preset) => ({
+          value: preset.id,
+          // The name in the skin's own display face: the cue that sells
+          // the skin's mood before the user commits.
+          label: (
+            <span
+              style={{
+                fontFamily: preset.typography.display,
+                fontWeight: preset.typography.headingWeight,
+                letterSpacing: preset.typography.displayTracking,
               }}
-              type="button"
-              role="radio"
-              aria-checked={isActive}
-              // Roving tabindex: only the active option lives in
-              // the tab order; arrow keys cycle to the others.
-              // Standard WAI-ARIA radiogroup pattern.
-              tabIndex={isActive ? 0 : -1}
-              onClick={() => setSkinId(preset.id)}
-              onKeyDown={(e) => handleKeyDown(e, idx)}
-              // A column flex, its preview `flex-1`: the cards of a row
-              // share the tallest one's height, and a button centres
-              // its content, so a card beside one with a two-line
-              // description showed its preview floating in the middle
-              // of an empty frame (#884).
-              className={`group relative flex flex-col text-left overflow-hidden transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
-                isActive
-                  ? "ring-2 ring-emerald-500/40"
-                  : "ring-1 ring-zinc-200 dark:ring-zinc-700 hover:ring-zinc-300 dark:hover:ring-zinc-600"
-              }`}
-              style={{ borderRadius: preset.radius.card }}
             >
-              <div
-                className="flex-1 px-4 py-5 bg-white dark:bg-zinc-900 relative"
-                style={previewStyle}
-              >
-                {/* Skin label rendered in its own display family —
-                    this is the headline visual cue that sells the
-                    skin's mood before the user commits. */}
-                <div className="text-base text-zinc-900 dark:text-white truncate">
-                  {t(preset.labelKey)}
-                </div>
-                <div className="text-xs font-normal text-zinc-500 dark:text-zinc-400 mt-1 leading-relaxed font-sans">
-                  {t(preset.descriptionKey)}
-                </div>
-                {isActive && (
-                  <span
-                    className="absolute top-2 right-2 inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500 text-white"
-                    aria-hidden="true"
-                  >
-                    <Check size={12} strokeWidth={3} />
-                  </span>
-                )}
-              </div>
-            </button>
-          );
-        })}
-      </div>
+              {t(preset.labelKey)}
+            </span>
+          ),
+          hint: t(preset.descriptionKey),
+          preview: <SkinPreview skinId={preset.id} />,
+        }))}
+      />
     </section>
   );
 }

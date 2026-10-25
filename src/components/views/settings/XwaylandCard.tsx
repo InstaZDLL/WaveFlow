@@ -54,14 +54,10 @@ export function XwaylandCard() {
   const pending = !status.set_by_user && status.xwayland !== status.active;
 
   return (
-    <div className="py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+    <div className="settings-block">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center space-x-4 min-w-0">
-          <Layers
-            size={20}
-            className="shrink-0 text-zinc-500 dark:text-zinc-400"
-            aria-hidden="true"
-          />
+          <Layers size={16} className="settings-row-icon" aria-hidden="true" />
           <div className="min-w-0">
             <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
               {t("settings.xwayland.title")}
