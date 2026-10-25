@@ -59,6 +59,7 @@ export function PluginStoreCard({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const searchId = useId();
+  const searchRef = useRef<HTMLInputElement>(null);
   const localize = useLocalizedText();
 
   // One read path for the mount, the availability event and the manual
@@ -226,6 +227,7 @@ export function PluginStoreCard({
             className="pointer-events-none absolute start-2.5 top-1/2 -translate-y-1/2 text-zinc-400"
           />
           <input
+            ref={searchRef}
             id={searchId}
             type="search"
             value={query}
@@ -242,7 +244,12 @@ export function PluginStoreCard({
           {query && (
             <button
               type="button"
-              onClick={() => setQuery("")}
+              onClick={() => {
+                setQuery("");
+                // The button goes with the query; focus stays in the field
+                // rather than falling to the page.
+                searchRef.current?.focus();
+              }}
               aria-label={t("settings.pluginStore.clearSearch")}
               className="absolute end-1.5 top-1/2 -translate-y-1/2 rounded-md p-1 text-zinc-500 hover:bg-zinc-100 focus-visible:outline-emerald-500 dark:hover:bg-zinc-800"
             >
