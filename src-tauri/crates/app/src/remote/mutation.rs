@@ -53,6 +53,23 @@ pub fn is_placeholder(id: &str) -> bool {
     id.starts_with(PLACEHOLDER_PREFIX)
 }
 
+/// [`is_placeholder`] as a SQL `GLOB` pattern. `GLOB`, not `LIKE`: `LIKE`
+/// folds ASCII case, so it would also match `LOCAL:…`, which the prefix
+/// test above does not — and the two must agree on what is a placeholder.
+pub const PLACEHOLDER_GLOB: &str = "local:*";
+
+/// Whether an identifier the **server** sent falls in the namespace this
+/// device mints placeholders in.
+///
+/// Server identifiers are UUIDs, so this never happens with a server that
+/// keeps to the protocol — but nothing enforces it, and one such ID would
+/// be taken for a playlist the server never received: spared by every
+/// snapshot, its edits refused as "never created", its deletion dropped.
+/// It is refused where it would enter the projection instead.
+pub fn is_reserved_for_placeholders(server_id: &str) -> bool {
+    is_placeholder(server_id)
+}
+
 /// Mint an identifier for something the server has not seen yet.
 pub fn new_placeholder() -> String {
     format!("{PLACEHOLDER_PREFIX}{}", Uuid::new_v4())

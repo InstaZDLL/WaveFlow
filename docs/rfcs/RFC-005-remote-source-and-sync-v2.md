@@ -236,6 +236,14 @@ Two consequences that are easy to get wrong:
 - A snapshot **must not delete a placeholder playlist**. The server has never
   heard of it, so its snapshot cannot be evidence that it was deleted; wiping it
   would destroy a playlist the user made offline while its creation sat queued.
+  It is spared by `GLOB 'local:*'`, case-sensitive like `is_placeholder` —
+  `LIKE` folds case and also spared a server's `LOCAL:…`.
+- The `local:` namespace is **this device's**, and nothing stops a server from
+  naming something inside it. A playlist or share it names there is kept out of
+  the projection (skipped in a snapshot, its change ignored, a creation answered
+  with one marked permanent): taken for a placeholder, it would outlive every
+  snapshot, have its edits refused as "never created" — or overwrite the
+  offline playlist that really holds that name.
 
 Rewriting those queued payloads is the single exception to entry immutability,
 and it is sound for a specific reason: FIFO guarantees an entry behind an

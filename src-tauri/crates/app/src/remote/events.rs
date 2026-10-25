@@ -260,7 +260,10 @@ async fn catch_up_library(
 ) -> Result<(), PassError> {
     let mut cursor = from;
     for _ in 0..MAX_PAGES {
-        let path = format!("/api/v2/libraries/{library_id}/events?after={cursor}&limit={PAGE}");
+        let path = format!(
+            "/api/v2/libraries/{}/events?after={cursor}&limit={PAGE}",
+            super::client::segment(library_id).map_err(RemoteFailure::from)?
+        );
         let page: EventPage = client.send_json(client.get(&path)).await?;
         if page.events.is_empty() {
             break;
@@ -344,7 +347,10 @@ async fn acknowledge(client: &RemoteClient<'_>, library_id: &str, cursor: i64) {
         // records the position per device, and there is no device to record.
         return;
     };
-    let path = format!("/api/v2/libraries/{library_id}/events/ack");
+    let Ok(library) = super::client::segment(library_id) else {
+        return;
+    };
+    let path = format!("/api/v2/libraries/{library}/events/ack");
     let request = client
         .request(reqwest::Method::PUT, &path)
         .json(&serde_json::json!({ "device_id": device_id, "cursor": cursor }));
@@ -379,7 +385,10 @@ async fn apply(
             let unlinked = mark_link_stale(pool, &event.entity_id, hash_of(&event.payload)).await?;
             report.unlinked += usize::from(unlinked);
 
-            let path = format!("/api/v2/tracks/{}", event.entity_id);
+            let path = format!(
+                "/api/v2/tracks/{}",
+                super::client::segment(&event.entity_id).map_err(RemoteFailure::from)?
+            );
             let song: super::dto::SongItem = client.send_json(client.get(&path)).await?;
             let mut conn = pool.acquire().await?;
             projection::cache_song(&mut conn, &song).await?;

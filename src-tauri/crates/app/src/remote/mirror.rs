@@ -748,7 +748,10 @@ async fn walk_one_album(
     album_id: &str,
 ) -> AppResult<i64> {
     let detail: AlbumDetailDto = client
-        .send_json(client.get(&format!("/api/v2/albums/{album_id}")))
+        .send_json(client.get(&format!(
+            "/api/v2/albums/{}",
+            super::client::segment(album_id)?
+        )))
         .await
         .map_err(|err| AppError::Other(format!("album fetch failed: {err}")))?;
 
@@ -796,7 +799,10 @@ async fn sweep_libraries(
                     client
                         .request(
                             reqwest::Method::GET,
-                            &format!("/api/v2/libraries/{}/tracks", library.id),
+                            &format!(
+                                "/api/v2/libraries/{}/tracks",
+                                super::client::segment(&library.id)?
+                            ),
                         )
                         .query(&[
                             ("offset", offset.to_string()),
@@ -863,7 +869,7 @@ async fn fetch_missing(
             break;
         }
         let song: SongItem = client
-            .send_json(client.get(&format!("/api/v2/tracks/{id}")))
+            .send_json(client.get(&format!("/api/v2/tracks/{}", super::client::segment(id)?)))
             .await
             .map_err(|err| AppError::Other(format!("track fetch failed: {err}")))?;
         let mut tx = pool.begin().await?;

@@ -207,6 +207,22 @@ pub async fn drain(state: &AppState) -> AppResult<DrainReport> {
     Ok(report)
 }
 
+/// A creation the server answered with an identifier inside the placeholder
+/// namespace. Resolving to it would leave the projection holding what reads
+/// as a playlist the server never received; permanent, since a replay gets
+/// the same answer.
+fn created_outside_placeholders(created: Created) -> Result<Option<Echo>, RemoteFailure> {
+    if mutation::is_reserved_for_placeholders(&created.id) {
+        return Err(RemoteFailure {
+            kind: FailureKind::Permanent,
+            status: None,
+            code: None,
+            message: "the server named the creation inside the local placeholder namespace".into(),
+        });
+    }
+    Ok(Some(Echo::Created(created)))
+}
+
 /// Issue one queued change.
 ///
 /// Returns an [`Echo`] for the two mutations whose reply carries
@@ -229,7 +245,11 @@ async fn send(
             } else {
                 reqwest::Method::DELETE
             };
-            let path = format!("/api/v2/favorites/{entity_type}/{entity_id}");
+            let path = format!(
+                "/api/v2/favorites/{}/{}",
+                super::client::segment(entity_type)?,
+                super::client::segment(entity_id)?
+            );
             client.send_ok(client.mutate(method, &path, op)).await?;
             Ok(None)
         }
@@ -239,7 +259,11 @@ async fn send(
             entity_id,
             rating,
         } => {
-            let path = format!("/api/v2/ratings/{entity_type}/{entity_id}");
+            let path = format!(
+                "/api/v2/ratings/{}/{}",
+                super::client::segment(entity_type)?,
+                super::client::segment(entity_id)?
+            );
             client
                 .send_ok(
                     client
@@ -257,7 +281,11 @@ async fn send(
             // Clearing is a rating of zero on the same endpoint — the
             // server turns it into a delete event. There is no DELETE
             // route for a rating.
-            let path = format!("/api/v2/ratings/{entity_type}/{entity_id}");
+            let path = format!(
+                "/api/v2/ratings/{}/{}",
+                super::client::segment(entity_type)?,
+                super::client::segment(entity_id)?
+            );
             client
                 .send_ok(
                     client
@@ -278,7 +306,7 @@ async fn send(
                         .json(&serde_json::json!({ "name": name, "track_ids": track_ids })),
                 )
                 .await?;
-            Ok(Some(Echo::Created(created)))
+            created_outside_placeholders(created)
         }
 
         Mutation::UpdatePlaylist {
@@ -303,7 +331,7 @@ async fn send(
                         .into(),
                 });
             }
-            let path = format!("/api/v2/playlists/{playlist_id}");
+            let path = format!("/api/v2/playlists/{}", super::client::segment(playlist_id)?);
             let mut body = serde_json::Map::new();
             // Only the keys that carry an intent. Sending `null` would
             // mean the same thing to this server — it coalesces — but
@@ -342,7 +370,7 @@ async fn send(
                 // already true. Nothing to send, and nothing to retry.
                 return Ok(None);
             }
-            let path = format!("/api/v2/playlists/{playlist_id}");
+            let path = format!("/api/v2/playlists/{}", super::client::segment(playlist_id)?);
             client
                 .send_ok(client.mutate(reqwest::Method::DELETE, &path, op))
                 .await?;
@@ -410,7 +438,7 @@ async fn send(
                         })),
                 )
                 .await?;
-            Ok(Some(Echo::Created(created)))
+            created_outside_placeholders(created)
         }
 
         Mutation::UpdateShare {
@@ -429,7 +457,7 @@ async fn send(
                         .into(),
                 });
             }
-            let path = format!("/api/v2/shares/{share_id}");
+            let path = format!("/api/v2/shares/{}", super::client::segment(share_id)?);
             let mut body = serde_json::Map::new();
             if let Some(description) = description {
                 body.insert("description".into(), serde_json::json!(description));
@@ -462,7 +490,7 @@ async fn send(
                 // Never reached the server, so it is already gone.
                 return Ok(None);
             }
-            let path = format!("/api/v2/shares/{share_id}");
+            let path = format!("/api/v2/shares/{}", super::client::segment(share_id)?);
             client
                 .send_ok(client.mutate(reqwest::Method::DELETE, &path, op))
                 .await?;
@@ -478,7 +506,7 @@ async fn send(
             track_number,
             disc_number,
         } => {
-            let path = format!("/api/v2/tracks/{track_id}");
+            let path = format!("/api/v2/tracks/{}", super::client::segment(track_id)?);
             // Every field, nulls included. The endpoint is a partial
             // patch in three states: absent leaves a correction alone,
             // `null` removes it, a value sets it. `None` here means the

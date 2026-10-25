@@ -57,7 +57,10 @@ pub async fn ticket_url(state: &AppState, remote_track_id: &str) -> AppResult<Op
         return Ok(None);
     };
 
-    let path = format!("/api/v2/tracks/{remote_track_id}/canvas-ticket");
+    let path = format!(
+        "/api/v2/tracks/{}/canvas-ticket",
+        super::client::segment(remote_track_id)?
+    );
     let response: CanvasTicketResponse = match client
         .send_json(client.request(reqwest::Method::POST, &path))
         .await
