@@ -1,8 +1,27 @@
 name: Label PR
 
+# `pull_request_target`, not `pull_request`: a PR from a fork runs
+# `pull_request` with a read-only `GITHUB_TOKEN` and no secrets, so every
+# label call failed with "Resource not accessible by integration".
+# `pull_request_target` runs in the base repository's context, with the
+# workflow file and `.github/labeler.yml` read from the base branch.
+#
+# That is only safe because nothing here touches the PR's code: the
+# labeler reads the changed-file list through the API, and the scripts
+# read the title and the file stats from the event payload.
+# NEVER CHECK OUT THE PR HEAD IN THIS WORKFLOW, and never run anything
+# it contains (no actions/checkout, no build, no script from the diff):
+# with a write token and the secrets in scope, that hands both to
+# whoever opened the PR.
 on:
-  pull_request:
+  pull_request_target:
     types: [opened, synchronize]
+
+# One run per PR at a time: two pushes in quick succession would
+# otherwise race, and the older run could land its labels last.
+concurrency:
+  group: label-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
