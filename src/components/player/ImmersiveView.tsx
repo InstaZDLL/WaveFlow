@@ -268,20 +268,28 @@ export function ImmersiveView({
     setClassicSide((s) => (s === "lyrics" ? "nowPlaying" : "lyrics"));
 
   // ── Theater mode ─────────────────────────────────────────────────
+  // Writes go one after the other, so two quick toggles cannot store the
+  // first value last; only the latest one's failure undoes the toggle.
+  const theaterWritesRef = useRef<Promise<void>>(Promise.resolve());
+  const theaterWriteSeqRef = useRef(0);
   const toggleTheater = () => {
     const next = !theater;
+    const seq = ++theaterWriteSeqRef.current;
     setTheaterOverride(next);
-    setProfileSetting(
-      IMMERSIVE_PREF_KEYS.theaterMode,
-      next ? "true" : "false",
-      "bool",
-    )
-      .then(() => window.dispatchEvent(new CustomEvent(IMMERSIVE_PREFS_EVENT)))
-      .catch((err) => {
-        console.error("[ImmersiveView] save theater mode failed", err);
-        // Back to what is stored, which the failed write did not change.
-        setTheaterOverride(null);
-      });
+    const write = theaterWritesRef.current.then(async () => {
+      await setProfileSetting(
+        IMMERSIVE_PREF_KEYS.theaterMode,
+        next ? "true" : "false",
+        "bool",
+      );
+      window.dispatchEvent(new CustomEvent(IMMERSIVE_PREFS_EVENT));
+    });
+    theaterWritesRef.current = write.catch(() => undefined);
+    write.catch((err) => {
+      console.error("[ImmersiveView] save theater mode failed", err);
+      // Back to what is stored, which the failed write did not change.
+      if (seq === theaterWriteSeqRef.current) setTheaterOverride(null);
+    });
   };
 
   // Entering theater mode opens the panel on the tracklist — unless the
