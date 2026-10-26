@@ -231,7 +231,10 @@ pub async fn raw_ticket_url(state: &AppState, track_id: &str) -> AppResult<Strin
     let resp: StreamTicketResponse = client
         .send_json(client.request(
             reqwest::Method::POST,
-            &format!("/api/v2/tracks/{track_id}/stream-ticket"),
+            &format!(
+                "/api/v2/tracks/{}/stream-ticket",
+                super::client::segment(track_id)?
+            ),
         ))
         .await
         .map_err(|err| AppError::Other(format!("stream ticket: {}", err.message)))?;

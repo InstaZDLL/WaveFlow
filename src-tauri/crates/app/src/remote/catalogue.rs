@@ -169,7 +169,7 @@ pub async fn get_album(state: &AppState, album_id: &str) -> AppResult<RemoteAlbu
         .ok_or_else(|| AppError::Other("not signed in to a remote server".into()))?;
 
     let resp: AlbumDetailResponse = client
-        .send_json(client.get(&format!("/api/v2/albums/{album_id}")))
+        .send_json(client.get(&format!("/api/v2/albums/{}", super::client::segment(album_id)?)))
         .await
         // Preserve the status (see `search`) so a lapsed session is
         // distinguishable from a missing album.
@@ -221,7 +221,7 @@ pub async fn get_artist(state: &AppState, artist_id: &str) -> AppResult<RemoteAr
         .ok_or_else(|| AppError::Other("not signed in to a remote server".into()))?;
 
     let resp: ArtistDetailResponse = client
-        .send_json(client.get(&format!("/api/v2/artists/{artist_id}")))
+        .send_json(client.get(&format!("/api/v2/artists/{}", super::client::segment(artist_id)?)))
         .await
         // Preserve the status (see `search`) so a lapsed session is
         // distinguishable from a missing artist.

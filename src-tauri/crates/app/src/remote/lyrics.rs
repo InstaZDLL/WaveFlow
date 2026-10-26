@@ -75,8 +75,13 @@ pub async fn fetch_server_lyrics(
         Ok(None) | Err(_) => return Ok(None),
     };
 
+    // An identifier that cannot be a path segment has no server lyrics to
+    // ask for: the same fallback as a 404.
+    let Ok(track) = super::client::segment(track_id) else {
+        return Ok(None);
+    };
     let resp: LyricsListDto = match client
-        .send_json(client.get(&format!("/api/v2/tracks/{track_id}/lyrics")))
+        .send_json(client.get(&format!("/api/v2/tracks/{track}/lyrics")))
         .await
     {
         Ok(list) => list,

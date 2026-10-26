@@ -495,7 +495,10 @@ async fn upload_one(
             client
                 .request(
                     reqwest::Method::POST,
-                    &format!("/api/v2/libraries/{library_id}/uploads"),
+                    &format!(
+                        "/api/v2/libraries/{}/uploads",
+                        super::client::segment(library_id)?
+                    ),
                 )
                 .json(&NegotiateBody {
                     offers: vec![WireOffer {
@@ -575,7 +578,10 @@ async fn upload_one(
                 client
                     .request(
                         reqwest::Method::PUT,
-                        &format!("/api/v2/uploads/{}/chunks/{index}", session.session_id),
+                        &format!(
+                            "/api/v2/uploads/{}/chunks/{index}",
+                            super::client::segment(&session.session_id)?
+                        ),
                     )
                     .header(reqwest::header::CONTENT_TYPE, "application/octet-stream")
                     .body(chunk),
@@ -608,7 +614,10 @@ async fn upload_one(
     let committed: WireCommitted = client
         .send_json(client.request(
             reqwest::Method::POST,
-            &format!("/api/v2/uploads/{}/commit", session.session_id),
+            &format!(
+                "/api/v2/uploads/{}/commit",
+                super::client::segment(&session.session_id)?
+            ),
         ))
         .await
         .map_err(|err| AppError::Other(format!("upload commit: {}", err.message)))?;
