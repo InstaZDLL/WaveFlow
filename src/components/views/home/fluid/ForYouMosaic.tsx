@@ -9,6 +9,7 @@ import {
 import type { TopAlbumRow } from "../../../../lib/tauri/stats";
 import { resolveRemoteImage } from "../../../../lib/tauri/artwork";
 import { SectionHeader } from "./SectionHeader";
+import { useAlbumArtistContextMenu } from "../../../../hooks/useAlbumArtistContextMenu";
 
 interface ForYouMosaicProps {
   featured: TopAlbumRow | null;
@@ -40,6 +41,8 @@ export function ForYouMosaic({
     .filter((p) => smartPlaylistKind(p)?.kind === "daily_mix")
     .slice(0, 2);
   const rest = smartPlaylists.filter((p) => !daily.includes(p));
+  // Right-click on the featured album: pin it to the sidebar.
+  const albumMenu = useAlbumArtistContextMenu();
   if (!featured && smartPlaylists.length === 0) return null;
 
   return (
@@ -74,6 +77,7 @@ export function ForYouMosaic({
           <button
             type="button"
             onClick={() => onNavigateToAlbum(featured.album_id)}
+            {...albumMenu.bind({ kind: "album", id: featured.album_id })}
             className="fe-tile-hover group col-span-12 row-span-2 text-left lg:col-span-6"
           >
             <div className="fe-tile relative h-full min-h-[18rem] w-full rounded-[1.125rem]!">
@@ -163,6 +167,7 @@ export function ForYouMosaic({
           </ul>
         </div>
       )}
+      {albumMenu.render()}
     </section>
   );
 }

@@ -52,6 +52,7 @@ import {
   type AlbumRow,
   type ArtistRow,
 } from "../../lib/tauri/browse";
+import { useAlbumArtistContextMenu } from "../../hooks/useAlbumArtistContextMenu";
 
 interface TopBarProps {
   activeView: ViewId;
@@ -294,6 +295,9 @@ export function TopBar({
     playTracks(tracks, index, { type: "library", id: null });
     closeSearch();
   };
+
+  // Right-click on an artist or album result: pin it to the sidebar.
+  const resultMenu = useAlbumArtistContextMenu();
 
   const handleAlbumResultClick = (id: number) => {
     remember(resultsQueryRef.current);
@@ -760,6 +764,10 @@ export function TopBar({
                           <button
                             type="button"
                             onClick={() => handleArtistResultClick(artist.id)}
+                            {...resultMenu.bind({
+                              kind: "artist",
+                              id: artist.id,
+                            })}
                             className="flex w-full items-center space-x-3 px-4 py-2.5 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800/60 cursor-pointer transition-colors"
                           >
                             <Artwork
@@ -786,6 +794,10 @@ export function TopBar({
                           <button
                             type="button"
                             onClick={() => handleAlbumResultClick(album.id)}
+                            {...resultMenu.bind({
+                              kind: "album",
+                              id: album.id,
+                            })}
                             className="flex w-full items-center space-x-3 px-4 py-2.5 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800/60 cursor-pointer transition-colors"
                           >
                             <Artwork
@@ -1000,6 +1012,7 @@ export function TopBar({
           </AnimatePresence>
         </div>
       </div>
+      {resultMenu.render()}
     </header>
   );
 }
