@@ -1,4 +1,4 @@
-use super::{present_alsa_hints, AlsaHintRow};
+use super::devices::{present_alsa_hints, AlsaHintRow};
 
 fn row(id: &str, display: &str) -> AlsaHintRow {
     AlsaHintRow {
