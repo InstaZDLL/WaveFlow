@@ -3020,7 +3020,9 @@
         }
       },
       "confirmEmptyLabel": "Konfirmasi pengosongan: {{item}}",
-      "emptyFailed": "Pengosongan tidak selesai: mungkin ada berkas yang masih dipakai. Coba lagi nanti."
+      "emptyFailed": "Pengosongan tidak selesai: mungkin ada berkas yang masih dipakai. Coba lagi nanti.",
+      "atLeast": "setidaknya {{size}}",
+      "incomplete": "Sebuah folder tidak dapat dibaca utuh: ukuran sebenarnya lebih besar."
     }
   },
   "scanProgress": {

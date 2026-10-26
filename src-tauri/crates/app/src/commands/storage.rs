@@ -972,6 +972,12 @@ pub async fn set_cache_location(
                 ))),
             })?;
         }
+        // A stop pressed while the last file was copying arrives after
+        // the last check: the move is not finished until the setting is
+        // written, so it is still honoured here.
+        if stop_copy.load(Ordering::Acquire) {
+            return Err(CopyStop::Cancelled);
+        }
         Ok(())
     })
     .await

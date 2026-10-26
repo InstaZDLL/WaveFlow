@@ -3090,7 +3090,9 @@
         }
       },
       "confirmEmptyLabel": "Confirmar el vaciado: {{item}}",
-      "emptyFailed": "No se pudo vaciar: puede que un archivo siga en uso. Inténtalo más tarde."
+      "emptyFailed": "No se pudo vaciar: puede que un archivo siga en uso. Inténtalo más tarde.",
+      "atLeast": "al menos {{size}}",
+      "incomplete": "No se pudo leer una carpeta entera: el tamaño real es mayor."
     }
   },
   "scanProgress": {

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { HardDrive, Loader2, RefreshCw } from "lucide-react";
 
@@ -62,16 +62,22 @@ export function DiskUsageCard({ language }: { language: string }) {
     null,
   );
 
+  // Only the latest measure paints: one started by an emptying can
+  // finish before the one the page opened with, which would then put
+  // the old figures back.
+  const generation = useRef(0);
   const measure = useCallback(async () => {
+    const mine = ++generation.current;
     setMeasuring(true);
     setFailed(false);
     try {
-      setUsage(await diskUsage());
+      const next = await diskUsage();
+      if (mine === generation.current) setUsage(next);
     } catch (err) {
       console.error("[DiskUsageCard] measure failed", err);
-      setFailed(true);
+      if (mine === generation.current) setFailed(true);
     } finally {
-      setMeasuring(false);
+      if (mine === generation.current) setMeasuring(false);
     }
   }, []);
 
@@ -79,14 +85,15 @@ export function DiskUsageCard({ language }: { language: string }) {
   // before the answer arrives.
   useEffect(() => {
     let cancelled = false;
+    const mine = ++generation.current;
     diskUsage().then(
       (next) => {
-        if (cancelled) return;
+        if (cancelled || mine !== generation.current) return;
         setUsage(next);
         setMeasuring(false);
       },
       (err) => {
-        if (cancelled) return;
+        if (cancelled || mine !== generation.current) return;
         console.error("[DiskUsageCard] measure failed", err);
         setFailed(true);
         setMeasuring(false);
@@ -159,14 +166,27 @@ export function DiskUsageCard({ language }: { language: string }) {
         )}
       </div>
       <div className="flex shrink-0 items-center gap-3">
-        <span className="text-sm tabular-nums text-zinc-600 dark:text-zinc-300">
-          {formatBytes(entry.bytes, language)}
+        <span
+          className="text-sm tabular-nums text-zinc-600 dark:text-zinc-300"
+          title={
+            entry.incomplete ? t("settings.diskUsage.incomplete") : undefined
+          }
+        >
+          {entry.incomplete
+            ? t("settings.diskUsage.atLeast", {
+                size: formatBytes(entry.bytes, language),
+              })
+            : formatBytes(entry.bytes, language)}
         </span>
         {entry.rebuildable && EMPTY[entry.id] && (
           <button
             type="button"
             onClick={() => void empty(entry.id)}
-            disabled={entry.bytes === 0 || emptying !== null || measuring}
+            disabled={
+              (entry.bytes === 0 && !entry.incomplete) ||
+              emptying !== null ||
+              measuring
+            }
             aria-label={t(
               confirming === entry.id
                 ? "settings.diskUsage.confirmEmptyLabel"

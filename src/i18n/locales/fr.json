@@ -3090,7 +3090,9 @@
         }
       },
       "confirmEmptyLabel": "Confirmer le vidage : {{item}}",
-      "emptyFailed": "Le vidage n'a pas abouti : un fichier est peut-être encore utilisé. Réessayez plus tard."
+      "emptyFailed": "Le vidage n'a pas abouti : un fichier est peut-être encore utilisé. Réessayez plus tard.",
+      "atLeast": "au moins {{size}}",
+      "incomplete": "Un dossier n'a pas pu être lu en entier : la taille réelle est plus grande."
     }
   },
   "scanProgress": {

@@ -3022,7 +3022,9 @@
         }
       },
       "confirmEmptyLabel": "Confirm emptying: {{item}}",
-      "emptyFailed": "Emptying did not finish: a file may still be in use. Try again later."
+      "emptyFailed": "Emptying did not finish: a file may still be in use. Try again later.",
+      "atLeast": "at least {{size}}",
+      "incomplete": "A folder could not be read whole: the real size is larger."
     }
   },
   "scanProgress": {

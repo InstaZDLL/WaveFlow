@@ -3091,7 +3091,9 @@
         }
       },
       "confirmEmptyLabel": "Confirmar esvaziamento: {{item}}",
-      "emptyFailed": "Não foi possível esvaziar: um arquivo pode ainda estar em uso. Tente mais tarde."
+      "emptyFailed": "Não foi possível esvaziar: um arquivo pode ainda estar em uso. Tente mais tarde.",
+      "atLeast": "pelo menos {{size}}",
+      "incomplete": "Não foi possível ler uma pasta inteira: o tamanho real é maior."
     }
   },
   "scanProgress": {

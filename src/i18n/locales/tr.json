@@ -3022,7 +3022,9 @@
         }
       },
       "confirmEmptyLabel": "Boşaltmayı onayla: {{item}}",
-      "emptyFailed": "Boşaltma tamamlanamadı: bir dosya hâlâ kullanılıyor olabilir. Daha sonra yeniden deneyin."
+      "emptyFailed": "Boşaltma tamamlanamadı: bir dosya hâlâ kullanılıyor olabilir. Daha sonra yeniden deneyin.",
+      "atLeast": "en az {{size}}",
+      "incomplete": "Bir klasör tamamen okunamadı: gerçek boyut daha büyük."
     }
   },
   "scanProgress": {

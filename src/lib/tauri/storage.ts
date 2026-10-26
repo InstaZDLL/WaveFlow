@@ -67,6 +67,8 @@ export interface DiskUsageEntry {
   files: number;
   /** Emptied without loss: filled again from where it came from. */
   rebuildable: boolean;
+  /** A folder could not be read whole: `bytes` is a floor. */
+  incomplete: boolean;
 }
 
 export interface DiskUsage {

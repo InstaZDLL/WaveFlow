@@ -3090,7 +3090,9 @@
         }
       },
       "confirmEmptyLabel": "Conferma lo svuotamento: {{item}}",
-      "emptyFailed": "Lo svuotamento non è riuscito: un file potrebbe essere ancora in uso. Riprova più tardi."
+      "emptyFailed": "Lo svuotamento non è riuscito: un file potrebbe essere ancora in uso. Riprova più tardi.",
+      "atLeast": "almeno {{size}}",
+      "incomplete": "Non è stato possibile leggere per intero una cartella: la dimensione reale è maggiore."
     }
   },
   "scanProgress": {

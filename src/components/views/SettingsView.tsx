@@ -4055,7 +4055,12 @@ function SettingsViewContent({
                 id="diskUsage"
                 reveal={targetGroup === "diskUsage"}
               >
+                {/* Keyed by profile: the per-profile items (covers,
+                    offline copies, server caches) are the active
+                    profile's, and Settings stays mounted across a
+                    switch. */}
                 <DiskUsageCard
+                  key={activeProfile?.id ?? 0}
                   language={i18n.resolvedLanguage ?? i18n.language}
                 />
               </SettingsGroup>

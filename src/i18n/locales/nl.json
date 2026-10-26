@@ -3022,7 +3022,9 @@
         }
       },
       "confirmEmptyLabel": "Leegmaken bevestigen: {{item}}",
-      "emptyFailed": "Leegmaken is niet gelukt: een bestand is misschien nog in gebruik. Probeer het later opnieuw."
+      "emptyFailed": "Leegmaken is niet gelukt: een bestand is misschien nog in gebruik. Probeer het later opnieuw.",
+      "atLeast": "minstens {{size}}",
+      "incomplete": "Een map kon niet volledig worden gelezen: de echte grootte is groter."
     }
   },
   "scanProgress": {

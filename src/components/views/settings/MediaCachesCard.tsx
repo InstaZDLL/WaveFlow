@@ -141,11 +141,16 @@ function LocalCacheOption({
   }, [getInfo]);
 
   // Emptied from the disk space card on the same page: show the size the
-  // cache has now.
+  // cache has now. Only the latest read paints, so an older one finishing
+  // last cannot put the size back.
   useEffect(() => {
+    let live = true;
+    let latest = 0;
     const onChanged = () => {
+      const mine = ++latest;
       getInfo().then(
         (info) => {
+          if (!live || mine !== latest) return;
           setSizeBytes(info.sizeBytes);
           setFileCount(info.fileCount);
         },
@@ -153,7 +158,10 @@ function LocalCacheOption({
       );
     };
     window.addEventListener(STORAGE_CHANGED_EVENT, onChanged);
-    return () => window.removeEventListener(STORAGE_CHANGED_EVENT, onChanged);
+    return () => {
+      live = false;
+      window.removeEventListener(STORAGE_CHANGED_EVENT, onChanged);
+    };
   }, [getInfo]);
 
   const onToggle = useCallback(async () => {

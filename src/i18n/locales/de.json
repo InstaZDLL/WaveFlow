@@ -3022,7 +3022,9 @@
         }
       },
       "confirmEmptyLabel": "Leeren bestätigen: {{item}}",
-      "emptyFailed": "Das Leeren wurde nicht abgeschlossen: Eine Datei wird vielleicht noch verwendet. Versuche es später erneut."
+      "emptyFailed": "Das Leeren wurde nicht abgeschlossen: Eine Datei wird vielleicht noch verwendet. Versuche es später erneut.",
+      "atLeast": "mindestens {{size}}",
+      "incomplete": "Ein Ordner konnte nicht vollständig gelesen werden: Die tatsächliche Größe ist höher."
     }
   },
   "scanProgress": {

@@ -36,6 +36,9 @@ pub struct UsageEntry {
     pub files: u64,
     /// Emptied without loss: filled again from where it came from.
     pub rebuildable: bool,
+    /// A folder that exists could not be read whole (permissions, a
+    /// drive gone mid-walk): the figure is a floor, not the size.
+    pub incomplete: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -48,12 +51,22 @@ pub struct DiskUsage {
 /// Bytes and files under `root`, those `keep` accepts, in its
 /// subdirectories too when `recursive`. Symlinks are not followed: a link
 /// into the music library would count the library.
-fn walk(root: &Path, keep: &dyn Fn(&Path) -> bool, recursive: bool) -> (u64, u64) {
-    let (mut bytes, mut files) = (0u64, 0u64);
+///
+/// The third value is false when a folder that exists could not be read:
+/// a cache that is not there yet is empty, one that cannot be listed is
+/// not.
+fn walk(root: &Path, keep: &dyn Fn(&Path) -> bool, recursive: bool) -> (u64, u64, bool) {
+    let (mut bytes, mut files, mut complete) = (0u64, 0u64, true);
     let mut stack = vec![root.to_path_buf()];
     while let Some(dir) = stack.pop() {
-        let Ok(entries) = std::fs::read_dir(&dir) else {
-            continue;
+        let entries = match std::fs::read_dir(&dir) {
+            Ok(entries) => entries,
+            Err(err) => {
+                if err.kind() != std::io::ErrorKind::NotFound {
+                    complete = false;
+                }
+                continue;
+            }
         };
         for entry in entries.flatten() {
             match entry.file_type() {
@@ -75,7 +88,7 @@ fn walk(root: &Path, keep: &dyn Fn(&Path) -> bool, recursive: bool) -> (u64, u64
             }
         }
     }
-    (bytes, files)
+    (bytes, files, complete)
 }
 
 fn everything(_: &Path) -> bool {
@@ -152,17 +165,19 @@ fn measure(items: Vec<Item>) -> DiskUsage {
     let entries: Vec<UsageEntry> = items
         .into_iter()
         .map(|item| {
-            let (mut bytes, mut files) = (0u64, 0u64);
+            let (mut bytes, mut files, mut complete) = (0u64, 0u64, true);
             for root in &item.roots {
-                let (b, f) = walk(root, &item.keep, item.recursive);
+                let (b, f, c) = walk(root, &item.keep, item.recursive);
                 bytes = bytes.saturating_add(b);
                 files += f;
+                complete &= c;
             }
             UsageEntry {
                 id: item.id,
                 bytes,
                 files,
                 rebuildable: item.rebuildable,
+                incomplete: !complete,
             }
         })
         .collect();
@@ -319,6 +334,7 @@ mod tests {
         assert_eq!((get("backups").bytes, get("backups").files), (50, 1));
         // A directory that is not there is empty, not an error.
         assert_eq!((get("cache").bytes, get("cache").files), (0, 0));
+        assert!(!get("cache").incomplete);
         // A whole tree, by contrast, counts everything under it.
         assert_eq!(get("artwork").files, 4);
         assert_eq!(usage.total_bytes, 38 + 18 + 50 + (20 + 3 + 11 + 100));

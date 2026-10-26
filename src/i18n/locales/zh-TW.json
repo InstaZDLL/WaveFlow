@@ -3020,7 +3020,9 @@
         }
       },
       "confirmEmptyLabel": "確認清空：{{item}}",
-      "emptyFailed": "未能清空：可能有檔案仍在使用。請稍後再試。"
+      "emptyFailed": "未能清空：可能有檔案仍在使用。請稍後再試。",
+      "atLeast": "至少 {{size}}",
+      "incomplete": "有資料夾無法完整讀取：實際大小更大。"
     }
   },
   "scanProgress": {
