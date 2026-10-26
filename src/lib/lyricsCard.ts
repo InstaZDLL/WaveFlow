@@ -3,6 +3,7 @@ import type { LyricsLine, LyricsPayload } from "./tauri/lyrics";
 import { drawBlurred } from "./precomputedBlur";
 import {
   canvasToPng,
+  cardEyebrow,
   cardFont,
   darken,
   drawCard,
@@ -118,7 +119,7 @@ export async function renderLyricsCard(opts: LyricsCardOptions): Promise<Blob> {
   ctx.textAlign = align;
   ctx.fillStyle = "rgba(255,255,255,0.7)";
   ctx.font = cardFont(600, 26);
-  ctx.fillText(opts.labels.eyebrow.toUpperCase(), start, 112);
+  ctx.fillText(cardEyebrow(opts.labels.eyebrow), start, 112);
 
   // ----- Excerpt ------------------------------------------------------
   const layout = fitExcerpt(ctx, lines, width, BLOCK_BOTTOM - BLOCK_TOP);
@@ -243,7 +244,10 @@ function fitExcerpt(
     const { rows, total } = measure(font, Infinity);
     if (total <= height) return { font, rows };
   }
-  // At the floor: keep whole rows while they fit.
+  // At the floor: as it is when it fits, else capped per line, keeping
+  // whole rows while they fit.
+  const whole = measure(MIN_FONT, Infinity);
+  if (whole.total <= height) return { font: MIN_FONT, rows: whole.rows };
   const { rows } = measure(MIN_FONT, MAX_ROWS_PER_LINE);
   const rowHeight = Math.round(MIN_FONT * 1.22);
   const gap = Math.round(MIN_FONT * 0.45);
@@ -321,6 +325,9 @@ export function wrapText(
     // A word that does not fit a row of its own.
     while (ctx.measureText(row).width > width) {
       const chars = graphemes(row);
+      // One grapheme wider than the row (a long ZWJ emoji sequence)
+      // cannot be split: it overflows its row rather than loop forever.
+      if (chars.length <= 1) break;
       let cut = chars.length - 1;
       while (
         cut > 1 &&
