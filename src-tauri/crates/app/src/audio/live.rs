@@ -280,7 +280,13 @@ impl LagReporter {
 fn pause_unless_stopped(buffer: &Buffer, pause: Duration) -> bool {
     let until = Instant::now() + pause;
     while Instant::now() < until {
-        if buffer.ended().is_some() || crate::offline::is_offline() {
+        if crate::offline::is_offline() {
+            // Ended rather than abandoned: a reader waiting on the buffer
+            // would otherwise wait for good.
+            buffer.finish(End::Failed("offline mode is enabled".into()));
+            return false;
+        }
+        if buffer.ended().is_some() {
             return false;
         }
         std::thread::sleep(Duration::from_millis(100));
@@ -581,6 +587,9 @@ struct HlsState {
     media_url: String,
     /// The next segment to fetch, by media sequence.
     next: u64,
+    /// The URI of the last segment taken: what tells "nothing new yet"
+    /// from a numbering that went back or that numbers nothing.
+    last_uri: Option<String>,
     unpack: Unpack,
     /// Seconds of audio appended, and the bytes they took: the rate.
     seconds: f64,
@@ -595,24 +604,14 @@ impl HlsState {
         list: &hls::MediaPlaylist,
         buffer: &Buffer,
     ) -> Result<usize, String> {
-        let first = list
-            .segments
-            .first()
-            .map(|s| s.sequence)
-            .unwrap_or(self.next);
-        let last = list.segments.last().map(|s| s.sequence);
-        if last.is_some_and(|last| last + 1 < self.next) {
-            // The numbering went back: an encoder restarted at 0, or a
-            // playlist that numbers nothing (each reload starts at 0).
-            // Waiting for it to catch up would be silence for good, so the
-            // stream picks up near the live edge again.
-            tracing::warn!(next = self.next, ?last, "hls: media sequence went back");
-            self.next = list.segments[list.segments.len().saturating_sub(3)].sequence;
-        } else if self.next < first {
-            // Fell out of the window (a long stall): the audio in between
-            // is gone, and the stream picks up at what the server still has.
-            tracing::warn!(missed = first - self.next, "hls: segments missed");
-            self.next = first;
+        let resynced = resync(self.next, self.last_uri.as_deref(), &list.segments);
+        if resynced != self.next {
+            tracing::warn!(
+                from = self.next,
+                to = resynced,
+                "hls: picked the stream up again"
+            );
+            self.next = resynced;
         }
         let mut taken = 0;
         let mut audio = Vec::new();
@@ -629,6 +628,7 @@ impl HlsState {
             }
             buffer.push(&audio);
             self.next = segment.sequence + 1;
+            self.last_uri = Some(segment.uri.clone());
             self.seconds += segment.duration_s;
             self.bytes += audio.len();
             if self.seconds > 0.0 {
@@ -638,6 +638,33 @@ impl HlsState {
         }
         Ok(taken)
     }
+}
+
+/// The media sequence to take segments from, given the one expected next
+/// and the URI of the last one taken.
+///
+/// - The last segment taken is still listed: the ones after it are the new
+///   ones (none yet is "nothing new"), whatever the numbering says — a
+///   playlist that numbers nothing starts every reload at 0.
+/// - It is not, and a segment is numbered `next` or later: the window
+///   moved on, past `next` during a stall — then from its first segment;
+///   the audio in between is gone.
+/// - Neither: the numbering went back (an encoder restarted at 0), and the
+///   stream picks up near the live edge, as waiting for the numbering to
+///   catch up would be silence for good.
+fn resync(next: u64, last_uri: Option<&str>, segments: &[hls::Segment]) -> u64 {
+    let Some(first) = segments.first() else {
+        return next;
+    };
+    // The last segment taken, still listed: what follows it is new,
+    // whatever the numbering says.
+    if let Some(at) = last_uri.and_then(|uri| segments.iter().rposition(|s| s.uri == uri)) {
+        return segments.get(at + 1).map_or(next, |s| s.sequence);
+    }
+    if segments.iter().any(|s| s.sequence >= next) {
+        return next.max(first.sequence);
+    }
+    segments[segments.len().saturating_sub(3)].sequence
 }
 
 fn open_hls(url: &str, station: Station) -> Result<(LiveSource, Option<&'static str>), String> {
@@ -685,6 +712,7 @@ fn open_hls(url: &str, station: Station) -> Result<(LiveSource, Option<&'static 
         public,
         media_url,
         next: first.sequence + 1,
+        last_uri: Some(first.uri.clone()),
         unpack,
         seconds: first.duration_s,
         bytes: audio.len(),
@@ -777,6 +805,39 @@ mod tests {
         assert!(is_mpegurl(Some("audio/x-mpegurl")));
         assert!(!is_mpegurl(Some("audio/mpeg")));
         assert!(!is_mpegurl(None));
+    }
+
+    fn segments(uris: &[&str], first: u64) -> Vec<hls::Segment> {
+        uris.iter()
+            .enumerate()
+            .map(|(i, uri)| hls::Segment {
+                uri: uri.to_string(),
+                duration_s: 6.0,
+                sequence: first + i as u64,
+            })
+            .collect()
+    }
+
+    #[test]
+    fn a_numbered_window_is_followed_and_a_stall_skips_ahead() {
+        let window = segments(&["a", "b", "c", "d"], 100);
+        assert_eq!(resync(102, Some("b"), &window), 102);
+        // Nothing new: wait.
+        assert_eq!(resync(104, Some("d"), &window), 104);
+        // The window moved past what was expected.
+        assert_eq!(resync(90, Some("x"), &window), 100);
+    }
+
+    #[test]
+    fn an_unnumbered_or_restarted_playlist_is_picked_up_again() {
+        // Numbers nothing: every reload starts at 0, the last taken is "c".
+        let reload = segments(&["b", "c", "d", "e"], 0);
+        assert_eq!(resync(3, Some("c"), &reload), 2);
+        // Nothing new after "e": wait.
+        assert_eq!(resync(4, Some("e"), &reload), 4);
+        // An encoder that restarted at 0 with new names: near the edge.
+        let restarted = segments(&["n0", "n1", "n2", "n3", "n4"], 0);
+        assert_eq!(resync(500, Some("old"), &restarted), 2);
     }
 
     #[test]
