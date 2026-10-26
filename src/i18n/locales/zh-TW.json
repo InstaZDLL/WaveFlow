@@ -242,6 +242,13 @@
       "playlistSubtextPending_zero": "0 首曲目 · 尚未傳送",
       "playlistSubtextPending_one": "{{count}} 首曲目 · 尚未傳送",
       "playlistSubtextPending_other": "{{count}} 首曲目 · 尚未傳送"
+    },
+    "pins": {
+      "title": "已釘選",
+      "pin": "釘選到側邊欄",
+      "unpin": "取消釘選",
+      "album": "專輯",
+      "artist": "藝人"
     }
   },
   "topbar": {

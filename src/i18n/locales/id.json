@@ -242,6 +242,13 @@
       "playlistSubtextPending_zero": "0 lagu · belum dikirim",
       "playlistSubtextPending_one": "{{count}} lagu · belum dikirim",
       "playlistSubtextPending_other": "{{count}} lagu · belum dikirim"
+    },
+    "pins": {
+      "title": "Disematkan",
+      "pin": "Sematkan ke bilah sisi",
+      "unpin": "Lepas sematan",
+      "album": "Album",
+      "artist": "Artis"
     }
   },
   "topbar": {

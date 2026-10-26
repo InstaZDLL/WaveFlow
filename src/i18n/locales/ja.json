@@ -242,6 +242,13 @@
       "playlistSubtextPending_zero": "0曲・未送信",
       "playlistSubtextPending_one": "{{count}}曲・未送信",
       "playlistSubtextPending_other": "{{count}}曲・未送信"
+    },
+    "pins": {
+      "title": "ピン留め",
+      "pin": "サイドバーにピン留め",
+      "unpin": "ピン留めを外す",
+      "album": "アルバム",
+      "artist": "アーティスト"
     }
   },
   "topbar": {

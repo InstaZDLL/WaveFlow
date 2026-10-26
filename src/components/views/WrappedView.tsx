@@ -25,6 +25,7 @@ import { formatDuration } from "../../lib/tauri/track";
 import { pickSaveFile } from "../../lib/tauri/dialog";
 import { saveShareImage } from "../../lib/tauri/share";
 import { renderWrappedCard } from "../../lib/wrappedCard";
+import { useAlbumArtistContextMenu } from "../../hooks/useAlbumArtistContextMenu";
 
 interface WrappedViewProps {
   onNavigate: (view: ViewId) => void;
@@ -56,6 +57,8 @@ export function WrappedView({
   onNavigateToArtist,
 }: WrappedViewProps) {
   const { t, i18n } = useTranslation();
+  // Right-click on a top artist or album: pin it to the sidebar.
+  const tileMenu = useAlbumArtistContextMenu();
 
   const [year, setYear] = useState<number | null>(initialYear);
   const [availableYears, setAvailableYears] = useState<number[]>([]);
@@ -152,7 +155,10 @@ export function WrappedView({
   // ---- Auto-advance ----
   const tickRef = useRef<number | null>(null);
   useEffect(() => {
-    if (paused || loading || error || slides.length === 0) return;
+    // An open tile menu holds the slide: advancing would take its tile
+    // away and leave the menu floating where it was.
+    if (paused || tileMenu.isOpen || loading || error || slides.length === 0)
+      return;
     tickRef.current = window.setTimeout(() => {
       setSlideIdx((i) => (i + 1 < slides.length ? i + 1 : i));
     }, SLIDE_MS);
@@ -162,11 +168,14 @@ export function WrappedView({
         tickRef.current = null;
       }
     };
-  }, [paused, loading, error, slides.length, slideIdx]);
+  }, [paused, tileMenu.isOpen, loading, error, slides.length, slideIdx]);
 
   // ---- Keyboard ----
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      // The tile menu's keys are its own: Escape closes it, not Wrapped,
+      // and Space activates its item rather than pausing.
+      if (tileMenu.isOpen) return;
       if (e.key === "Escape") {
         onNavigate("home");
       } else if (e.key === "ArrowRight") {
@@ -180,7 +189,7 @@ export function WrappedView({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onNavigate, slides.length]);
+  }, [onNavigate, slides.length, tileMenu.isOpen]);
 
   const goPrev = () => setSlideIdx((i) => (i > 0 ? i - 1 : 0));
   const goNext = () => setSlideIdx((i) => (i + 1 < slides.length ? i + 1 : i));
@@ -436,11 +445,13 @@ export function WrappedView({
             <SlideRenderer
               slide={current}
               payload={payload}
+              bindMenu={tileMenu.bind}
               onNavigateToAlbum={onNavigateToAlbum}
               onNavigateToArtist={onNavigateToArtist}
               onClose={() => onNavigate("home")}
             />
           )}
+          {tileMenu.render()}
         </div>
       </div>
     </div>
@@ -457,9 +468,12 @@ function SlideRenderer({
   onNavigateToAlbum,
   onNavigateToArtist,
   onClose,
+  bindMenu,
 }: {
   slide: SlideId | undefined;
   payload: WrappedPayload;
+  /** The album / artist right-click menu's handlers. */
+  bindMenu: ReturnType<typeof useAlbumArtistContextMenu>["bind"];
   onNavigateToAlbum: (id: number) => void;
   onNavigateToArtist: (id: number) => void;
   onClose: () => void;
@@ -584,6 +598,7 @@ function SlideRenderer({
                       type="button"
                       className="flex items-center gap-4 bg-white/10 rounded-2xl p-3 backdrop-blur-sm cursor-pointer hover:bg-white/15 transition-colors w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
                       onClick={() => onNavigateToArtist(ar.artist_id)}
+                      {...bindMenu({ kind: "artist", id: ar.artist_id })}
                     >
                       <div className="text-3xl font-extrabold tabular-nums w-10 text-center text-white/70">
                         {idx + 1}
@@ -629,6 +644,7 @@ function SlideRenderer({
                   <button
                     key={al.album_id}
                     onClick={() => onNavigateToAlbum(al.album_id)}
+                    {...bindMenu({ kind: "album", id: al.album_id })}
                     className="bg-white/10 rounded-2xl p-3 hover:bg-white/15 transition-colors backdrop-blur-sm text-left"
                   >
                     <div className="aspect-square rounded-xl bg-white/10 overflow-hidden mb-3">

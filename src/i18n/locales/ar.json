@@ -260,6 +260,13 @@
       "playlistSubtextPending_two": "مقطعان · لم تُرسل بعد",
       "playlistSubtextPending_few": "{{count}} مقاطع · لم تُرسل بعد",
       "playlistSubtextPending_many": "{{count}} مقطعًا · لم تُرسل بعد"
+    },
+    "pins": {
+      "title": "المثبّتة",
+      "pin": "تثبيت في الشريط الجانبي",
+      "unpin": "إلغاء التثبيت",
+      "album": "ألبوم",
+      "artist": "فنان"
     }
   },
   "topbar": {

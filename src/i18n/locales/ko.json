@@ -242,6 +242,13 @@
       "playlistSubtextPending_zero": "0곡 · 아직 보내지 않음",
       "playlistSubtextPending_one": "{{count}}곡 · 아직 보내지 않음",
       "playlistSubtextPending_other": "{{count}}곡 · 아직 보내지 않음"
+    },
+    "pins": {
+      "title": "고정됨",
+      "pin": "사이드바에 고정",
+      "unpin": "고정 해제",
+      "album": "앨범",
+      "artist": "아티스트"
     }
   },
   "topbar": {

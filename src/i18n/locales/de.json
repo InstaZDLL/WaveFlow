@@ -242,6 +242,13 @@
       "playlistSubtextPending_zero": "0 Titel · noch nicht gesendet",
       "playlistSubtextPending_one": "{{count}} Titel · noch nicht gesendet",
       "playlistSubtextPending_other": "{{count}} Titel · noch nicht gesendet"
+    },
+    "pins": {
+      "title": "Angeheftet",
+      "pin": "An Seitenleiste anheften",
+      "unpin": "Lösen",
+      "album": "Album",
+      "artist": "Künstler"
     }
   },
   "topbar": {

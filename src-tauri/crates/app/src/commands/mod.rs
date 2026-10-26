@@ -57,6 +57,7 @@ pub mod inventory;
 pub mod remote_auth;
 pub mod scan;
 pub mod share_image;
+pub mod sidebar_pins;
 pub mod similar;
 pub mod smart_playlists;
 pub mod stats;

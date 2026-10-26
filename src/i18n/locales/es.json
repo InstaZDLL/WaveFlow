@@ -248,6 +248,13 @@
       "playlistSubtextPending_one": "{{count}} pista · aún sin enviar",
       "playlistSubtextPending_other": "{{count}} pistas · aún sin enviar",
       "playlistSubtextPending_many": "{{count}} pistas · aún sin enviar"
+    },
+    "pins": {
+      "title": "Fijados",
+      "pin": "Fijar en la barra lateral",
+      "unpin": "Dejar de fijar",
+      "album": "Álbum",
+      "artist": "Artista"
     }
   },
   "topbar": {
