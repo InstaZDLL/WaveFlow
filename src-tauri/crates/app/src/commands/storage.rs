@@ -990,27 +990,33 @@ pub async fn set_cache_location(
     // folder -- which is the one file that lets a later reset delete it.
     // Rolled back to exactly what was there before, never further.
     if let Err(stopped) = copy.and_then(|inner| inner) {
-        for ((_, dir), existed) in destinations.iter().zip(pre_existing.iter()) {
-            if !existed {
-                let _ = std::fs::remove_dir_all(dir);
+        // On the blocking pool: a stopped move can leave thousands of
+        // copied files to remove, too long to hold an executor thread.
+        let outside_root = target != paths.root;
+        let _ = tokio::task::spawn_blocking(move || {
+            for ((_, dir), existed) in destinations.iter().zip(pre_existing.iter()) {
+                if !existed {
+                    let _ = std::fs::remove_dir_all(dir);
+                }
             }
-        }
-        // `remove_dir`, which refuses a folder that is not empty: these
-        // were made by this attempt, but a file the user dropped in since
-        // is still theirs.
-        for dir in &created_parents {
-            let _ = std::fs::remove_dir(dir);
-        }
-        if !marker_existed && target != paths.root {
-            let _ = std::fs::remove_file(target.join(OWNER_MARKER));
-        }
-        // And the folder itself, for the same reason: `is_usable` is
-        // what brought it into being, so a failed move must not leave
-        // it standing. Last, because it can only go once the copies and
-        // the marker inside it are gone.
-        if !target_existed {
-            let _ = std::fs::remove_dir(&target);
-        }
+            // `remove_dir`, which refuses a folder that is not empty: these
+            // were made by this attempt, but a file the user dropped in since
+            // is still theirs.
+            for dir in &created_parents {
+                let _ = std::fs::remove_dir(dir);
+            }
+            if !marker_existed && outside_root {
+                let _ = std::fs::remove_file(target.join(OWNER_MARKER));
+            }
+            // And the folder itself, for the same reason: `is_usable` is
+            // what brought it into being, so a failed move must not leave
+            // it standing. Last, because it can only go once the copies and
+            // the marker inside it are gone.
+            if !target_existed {
+                let _ = std::fs::remove_dir(&target);
+            }
+        })
+        .await;
         return match stopped {
             // Asked for: nothing moved, which is what the card shows.
             CopyStop::Cancelled => get_cache_location(state).await,

@@ -68,7 +68,21 @@ fn walk(root: &Path, keep: &dyn Fn(&Path) -> bool, recursive: bool) -> (u64, u64
                 continue;
             }
         };
-        for entry in entries.flatten() {
+        // Any entry that cannot be read makes the figure a floor; one gone
+        // between the listing and the read is a cache doing its job.
+        let mut missed = |err: std::io::Error| {
+            if err.kind() != std::io::ErrorKind::NotFound {
+                complete = false;
+            }
+        };
+        for entry in entries {
+            let entry = match entry {
+                Ok(entry) => entry,
+                Err(err) => {
+                    missed(err);
+                    continue;
+                }
+            };
             match entry.file_type() {
                 Ok(ft) if ft.is_dir() => {
                     if recursive {
@@ -79,12 +93,16 @@ fn walk(root: &Path, keep: &dyn Fn(&Path) -> bool, recursive: bool) -> (u64, u64
                     if !keep(&entry.path()) {
                         continue;
                     }
-                    if let Ok(meta) = entry.metadata() {
-                        bytes = bytes.saturating_add(meta.len());
-                        files += 1;
+                    match entry.metadata() {
+                        Ok(meta) => {
+                            bytes = bytes.saturating_add(meta.len());
+                            files += 1;
+                        }
+                        Err(err) => missed(err),
                     }
                 }
-                _ => {}
+                Ok(_) => {}
+                Err(err) => missed(err),
             }
         }
     }
