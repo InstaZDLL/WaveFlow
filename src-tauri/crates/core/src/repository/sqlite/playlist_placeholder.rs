@@ -15,7 +15,7 @@
 use serde::Serialize;
 use sqlx::{FromRow, SqliteConnection, SqlitePool};
 
-use crate::error::CoreResult;
+use crate::error::{CoreError, CoreResult};
 use crate::playlist_import::matching::{Candidate, LibraryIndex, Wanted};
 use crate::playlist_import::{normalize_isrc, path_key, ImportEntry, ImportSource};
 
@@ -351,10 +351,10 @@ struct CandidateRow {
 /// separator, which no tag contains.
 const NAME_SEP: char = '\u{1f}';
 
-/// Every available track, as the matcher sees it. `with_paths` adds the
-/// comparable path of each file ([`path_key`], lexical — no filesystem
-/// access), only worth building when an entry names a path.
-pub async fn load_candidates(pool: &SqlitePool, with_paths: bool) -> CoreResult<Vec<Candidate>> {
+/// Every available track, as the matcher sees it, its path not yet made
+/// comparable — that is CPU work for the caller's blocking pool
+/// ([`index_paths`]), and only worth doing when an entry names a path.
+pub async fn load_candidates(pool: &SqlitePool) -> CoreResult<Vec<Candidate>> {
     let rows = sqlx::query_as::<_, CandidateRow>(
         "SELECT t.id, t.title, t.duration_ms, t.file_path,
                 (SELECT GROUP_CONCAT(name, char(31)) FROM (
@@ -373,28 +373,30 @@ pub async fn load_candidates(pool: &SqlitePool, with_paths: bool) -> CoreResult<
     .await?;
     Ok(rows
         .into_iter()
-        .map(|row| {
-            let path = std::path::Path::new(&row.file_path);
-            Candidate {
-                track_id: row.id,
-                title: row.title,
-                artists: row
-                    .artists
-                    .map(|names| names.split(NAME_SEP).map(str::to_string).collect())
-                    .unwrap_or_default(),
-                duration_ms: row.duration_ms,
-                isrc: row.isrc.as_deref().and_then(normalize_isrc),
-                path_key: with_paths.then(|| path_key(path)),
-                file_name: if with_paths {
-                    path.file_name()
-                        .and_then(|n| n.to_str())
-                        .map(str::to_lowercase)
-                } else {
-                    None
-                },
-            }
+        .map(|row| Candidate {
+            track_id: row.id,
+            title: row.title,
+            artists: row
+                .artists
+                .map(|names| names.split(NAME_SEP).map(str::to_string).collect())
+                .unwrap_or_default(),
+            duration_ms: row.duration_ms,
+            isrc: row.isrc.as_deref().and_then(normalize_isrc),
+            file_path: row.file_path,
+            path_key: None,
+            file_name: None,
         })
         .collect())
+}
+
+/// Give every candidate the comparable form of its path ([`path_key`],
+/// lexical — no filesystem access) and its file name.
+pub fn index_paths(candidates: &mut [Candidate]) {
+    for candidate in candidates {
+        let (key, name) = locator_keys(&candidate.file_path);
+        candidate.path_key = Some(key);
+        candidate.file_name = name;
+    }
 }
 
 /// The keys a placeholder (or an M3U entry) gives the matcher for the path
@@ -433,27 +435,37 @@ pub async fn fill_pending(pool: &SqlitePool, now_ms: i64) -> CoreResult<Vec<i64>
     )
     .fetch_all(pool)
     .await?;
-    let with_paths = placeholders.iter().any(|p| p.locator.is_some());
-    let index = LibraryIndex::new(load_candidates(pool, with_paths).await?);
-    if index.is_empty() {
+    let mut candidates = load_candidates(pool).await?;
+    if candidates.is_empty() {
         return Ok(Vec::new());
     }
-
-    let mut matches: Vec<(i64, i64, i64)> = Vec::new();
-    for placeholder in &placeholders {
-        let keys = placeholder.locator.as_deref().map(locator_keys);
-        let wanted = Wanted {
-            title: &placeholder.title,
-            artist: placeholder.artist.as_deref(),
-            duration_ms: placeholder.duration_ms,
-            isrc: placeholder.isrc.as_deref(),
-            path_key: keys.as_ref().map(|(key, _)| key.as_str()),
-            file_name: keys.as_ref().and_then(|(_, name)| name.as_deref()),
-        };
-        if let Some(track_id) = index.find(&wanted) {
-            matches.push((placeholder.id, track_id, placeholder.playlist_id));
+    // Indexing the library and matching is CPU work, and this runs after
+    // every scan — a watcher's one-file rescan included: off the runtime.
+    let matches: Vec<(i64, i64, i64)> = tokio::task::spawn_blocking(move || {
+        if placeholders.iter().any(|p| p.locator.is_some()) {
+            index_paths(&mut candidates);
         }
-    }
+        let index = LibraryIndex::new(candidates);
+        placeholders
+            .iter()
+            .filter_map(|placeholder| {
+                let keys = placeholder.locator.as_deref().map(locator_keys);
+                let wanted = Wanted {
+                    title: &placeholder.title,
+                    artist: placeholder.artist.as_deref(),
+                    duration_ms: placeholder.duration_ms,
+                    isrc: placeholder.isrc.as_deref(),
+                    path_key: keys.as_ref().map(|(key, _)| key.as_str()),
+                    file_name: keys.as_ref().and_then(|(_, name)| name.as_deref()),
+                };
+                index
+                    .find(&wanted)
+                    .map(|track_id| (placeholder.id, track_id, placeholder.playlist_id))
+            })
+            .collect()
+    })
+    .await
+    .map_err(|e| CoreError::Other(format!("placeholder match join: {e}")))?;
     if matches.is_empty() {
         return Ok(Vec::new());
     }

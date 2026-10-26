@@ -39,8 +39,9 @@ pub struct Candidate {
     pub duration_ms: i64,
     /// Through [`super::normalize_isrc`].
     pub isrc: Option<String>,
+    pub file_path: String,
     /// The comparable form of the file's path, when the caller has
-    /// entries that name paths (computing it touches the filesystem).
+    /// entries that name paths.
     pub path_key: Option<String>,
     /// The file name, lower-cased.
     pub file_name: Option<String>,

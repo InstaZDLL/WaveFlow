@@ -162,11 +162,13 @@ async fn resolve(
     pool: &sqlx::SqlitePool,
     entries: Vec<ImportEntry>,
 ) -> AppResult<Vec<ResolvedEntry>> {
-    let with_paths = entries.iter().any(|e| e.locator.is_some());
-    let candidates = placeholders::load_candidates(pool, with_paths).await?;
+    let mut candidates = placeholders::load_candidates(pool).await?;
     // Indexing a large library and matching a long playlist is CPU work:
     // off the runtime.
     tokio::task::spawn_blocking(move || {
+        if entries.iter().any(|e| e.locator.is_some()) {
+            placeholders::index_paths(&mut candidates);
+        }
         let index = LibraryIndex::new(candidates);
         entries
             .into_iter()
@@ -218,8 +220,9 @@ async fn import_parsed(
     fallback_name: String,
     parsed: ParsedPlaylist,
 ) -> AppResult<ImportPlaylistResult> {
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
+    // One read for both: a profile switch between two would create the
+    // playlist in one profile and draw its cover into another's folders.
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     let name = parsed
         .name
         .filter(|n| !n.trim().is_empty())
