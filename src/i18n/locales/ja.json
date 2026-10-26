@@ -2816,6 +2816,7 @@
         "display": "読みやすさ",
         "window": "ウィンドウ",
         "lyricsDisplay": "歌詞の表示",
+        "diskUsage": "ディスク容量",
         "globalShortcuts": "グローバルショートカット"
       },
       "navHints": {
@@ -2865,6 +2866,7 @@
         "updates": "安定版またはベータ版",
         "diagnostics": "ログと描画",
         "reset": "アプリを初期状態からやり直す",
+        "diskUsage": "WaveFlow がこのコンピューターに保存しているもの",
         "globalShortcuts": "どのアプリからでも"
       }
     },
@@ -2964,6 +2966,77 @@
         "label": "共有出力",
         "hint": "他のアプリの音と一緒に、システムミキサーを経由して再生します。普段使いに最適です。"
       }
+    },
+    "diskUsage": {
+      "total": "WaveFlow はこのコンピューターで {{size}} を使用しています。",
+      "measuring": "計測中…",
+      "refresh": "再計測",
+      "failed": "ディスク容量を計測できませんでした。",
+      "rebuildableTitle": "自動で再構築されるもの",
+      "rebuildableHint": "空にしても何も失われません。必要なときに再取得されます。",
+      "keptTitle": "あなたのデータ",
+      "keptHint": "ここにあるものは自動で再構築されません。各項目はそれぞれのセクションで管理します。",
+      "empty": "空にする",
+      "confirmEmpty": "確定",
+      "emptyLabel": "空にする：{{item}}",
+      "items": {
+        "artwork": {
+          "label": "ライブラリのジャケット",
+          "description": "このプロフィールのアルバムジャケットとサムネイル。使われていないものは「{{section}}」で削除できます。"
+        },
+        "metadataArtwork": {
+          "label": "ダウンロードした画像",
+          "description": "オンラインで取得したアーティスト写真やジャケット。すべてのプロフィールで共有されます。"
+        },
+        "motionCache": {
+          "label": "アニメーションジャケット",
+          "description": "プラグインが取得し、必要なときに再ダウンロードされます。"
+        },
+        "canvasCache": {
+          "label": "Canvas クリップ",
+          "description": "プラグインが取得し、必要なときに再ダウンロードされます。"
+        },
+        "remoteArtwork": {
+          "label": "サーバーのジャケット",
+          "description": "サーバーからのサムネイル。必要なときに再ダウンロードされます。"
+        },
+        "remoteStream": {
+          "label": "キャッシュ済みのサーバー曲",
+          "description": "再生後に保持され、次の再生時に再ダウンロードされます。"
+        },
+        "remoteDownloads": {
+          "label": "オフラインのサーバー曲",
+          "description": "オフラインで保持すると選んだ曲。曲またはアルバムから削除します。"
+        },
+        "manualMedia": {
+          "label": "手動で設定したメディア",
+          "description": "自分で設定したアニメーションジャケットと Canvas クリップ。"
+        },
+        "databases": {
+          "label": "データベース",
+          "description": "すべてのプロフィールのライブラリ、プレイリスト、履歴、設定。"
+        },
+        "databaseSnapshots": {
+          "label": "アップグレード前のコピー",
+          "description": "データベースのアップグレードごとに作成され、最新のものだけが保持されます。"
+        },
+        "backups": {
+          "label": "バックアップ",
+          "description": "自動・手動バックアップのアーカイブ。"
+        },
+        "logs": {
+          "label": "ログ",
+          "description": "直近数日の診断ログ。"
+        },
+        "plugins": {
+          "label": "プラグイン",
+          "description": "インストール済みのプラグインとそのデータ。"
+        }
+      },
+      "confirmEmptyLabel": "空にすることを確定：{{item}}",
+      "emptyFailed": "空にできませんでした。ファイルがまだ使用中の可能性があります。後でもう一度お試しください。",
+      "atLeast": "{{size}} 以上",
+      "incomplete": "フォルダーを完全には読み取れませんでした。実際のサイズはこれより大きくなります。"
     },
     "globalShortcuts": {
       "subtitle": "WaveFlow がバックグラウンドにあっても、どのアプリからでも再生を操作できます。設定するまで有効なものはありません。",
@@ -3347,6 +3420,7 @@
       "backup": "バックアップ",
       "thumbnails": "サムネイル",
       "drop_import": "ライブラリへのコピー",
+      "cache_move": "キャッシュを移動中",
       "spectrogram": "トラックのスペクトル"
     }
   },

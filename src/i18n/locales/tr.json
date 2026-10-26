@@ -2818,6 +2818,7 @@
         "display": "Okunabilirlik",
         "window": "Pencereler",
         "lyricsDisplay": "Şarkı sözü görünümü",
+        "diskUsage": "Disk alanı",
         "globalShortcuts": "Genel kısayollar"
       },
       "navHints": {
@@ -2867,6 +2868,7 @@
         "updates": "Kararlı veya beta sürümler",
         "diagnostics": "Günlükler ve grafik işleme",
         "reset": "Uygulamayı sıfırdan başlat",
+        "diskUsage": "WaveFlow'un bu bilgisayarda tuttukları",
         "globalShortcuts": "Herhangi bir uygulamadan"
       }
     },
@@ -2966,6 +2968,77 @@
         "label": "Paylaşımlı çıkış",
         "hint": "Ses, diğer uygulamaların sesiyle birlikte sistem karıştırıcısından geçer. Günlük kullanım için ideal."
       }
+    },
+    "diskUsage": {
+      "total": "WaveFlow bu bilgisayarda {{size}} kullanıyor.",
+      "measuring": "Ölçülüyor…",
+      "refresh": "Yeniden ölç",
+      "failed": "Disk alanı ölçülemedi.",
+      "rebuildableTitle": "Kendini yeniden oluşturur",
+      "rebuildableHint": "Boşaltmak hiçbir şey kaybettirmez: bu dosyalar gerektiğinde yeniden alınır.",
+      "keptTitle": "Verileriniz",
+      "keptHint": "Buradakilerin hiçbiri kendini yeniden oluşturmaz: her öğe kendi bölümünden yönetilir.",
+      "empty": "Boşalt",
+      "confirmEmpty": "Onayla",
+      "emptyLabel": "Boşalt: {{item}}",
+      "items": {
+        "artwork": {
+          "label": "Kitaplık kapakları",
+          "description": "Bu profilin albüm kapakları ve küçük resimleri. Kullanılmayan kapaklar “{{section}}” bölümünden kaldırılır."
+        },
+        "metadataArtwork": {
+          "label": "İndirilen görseller",
+          "description": "Çevrimiçi alınan sanatçı fotoğrafları ve kapaklar, tüm profillerce paylaşılır."
+        },
+        "motionCache": {
+          "label": "Hareketli kapaklar",
+          "description": "Eklentilerce alınır, gerektiğinde yeniden indirilir."
+        },
+        "canvasCache": {
+          "label": "Canvas klipleri",
+          "description": "Eklentilerce alınır, gerektiğinde yeniden indirilir."
+        },
+        "remoteArtwork": {
+          "label": "Sunucu kapakları",
+          "description": "Sunucunuzdan gelen küçük resimler, gerektiğinde yeniden indirilir."
+        },
+        "remoteStream": {
+          "label": "Önbellekteki sunucu parçaları",
+          "description": "Dinlendikten sonra tutulur, bir sonraki çalmada yeniden indirilir."
+        },
+        "remoteDownloads": {
+          "label": "Çevrimdışı sunucu parçaları",
+          "description": "Çevrimdışı tutmayı seçtikleriniz. Parçadan veya albümden kaldırılır."
+        },
+        "manualMedia": {
+          "label": "Elle seçilen medya",
+          "description": "Kendiniz belirlediğiniz hareketli kapaklar ve Canvas klipleri."
+        },
+        "databases": {
+          "label": "Veritabanları",
+          "description": "Tüm profillerin kitaplığı, çalma listeleri, geçmişi ve ayarları."
+        },
+        "databaseSnapshots": {
+          "label": "Yükseltme öncesi kopyalar",
+          "description": "Her veritabanı yükseltmesinden önce alınır; yalnızca son birkaçı tutulur."
+        },
+        "backups": {
+          "label": "Yedekler",
+          "description": "Otomatik ve elle alınan yedeklerin arşivleri."
+        },
+        "logs": {
+          "label": "Günlükler",
+          "description": "Son birkaç günün tanılama günlükleri."
+        },
+        "plugins": {
+          "label": "Eklentiler",
+          "description": "Yüklü eklentiler ve verileri."
+        }
+      },
+      "confirmEmptyLabel": "Boşaltmayı onayla: {{item}}",
+      "emptyFailed": "Boşaltma tamamlanamadı: bir dosya hâlâ kullanılıyor olabilir. Daha sonra yeniden deneyin.",
+      "atLeast": "en az {{size}}",
+      "incomplete": "Bir klasör tamamen okunamadı: gerçek boyut daha büyük."
     },
     "globalShortcuts": {
       "subtitle": "WaveFlow arka planda olsa bile çalmayı herhangi bir uygulamadan kontrol edin. Siz tanımlayana kadar hiçbiri etkin değildir.",
@@ -3349,6 +3422,7 @@
       "backup": "Yedekleme",
       "thumbnails": "Kapak önizlemeleri",
       "drop_import": "Kitaplığa kopyalama",
+      "cache_move": "Önbellekler taşınıyor",
       "spectrogram": "Parça spektrumu"
     }
   },

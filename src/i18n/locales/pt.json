@@ -2884,6 +2884,7 @@
         "display": "Legibilidade",
         "window": "Janelas",
         "lyricsDisplay": "Apresentação das letras",
+        "diskUsage": "Espaço em disco",
         "globalShortcuts": "Atalhos globais"
       },
       "navHints": {
@@ -2933,6 +2934,7 @@
         "updates": "Versões estáveis ou beta",
         "diagnostics": "Registos e renderização gráfica",
         "reset": "Recomeçar com uma aplicação nova",
+        "diskUsage": "O que o WaveFlow guarda neste computador",
         "globalShortcuts": "A partir de qualquer aplicação"
       }
     },
@@ -3035,6 +3037,77 @@
         "label": "Saída partilhada",
         "hint": "O som passa pelo misturador do sistema, juntamente com o das outras aplicações. Ideal para o dia a dia."
       }
+    },
+    "diskUsage": {
+      "total": "O WaveFlow ocupa {{size}} neste computador.",
+      "measuring": "A medir…",
+      "refresh": "Medir de novo",
+      "failed": "Não foi possível medir o espaço em disco.",
+      "rebuildableTitle": "Reconstrói-se sozinho",
+      "rebuildableHint": "Esvaziar não perde nada: estes ficheiros voltam a ser obtidos quando é preciso.",
+      "keptTitle": "Os seus dados",
+      "keptHint": "Nada aqui se reconstrói sozinho: cada item gere-se na sua própria secção.",
+      "empty": "Esvaziar",
+      "confirmEmpty": "Confirmar",
+      "emptyLabel": "Esvaziar: {{item}}",
+      "items": {
+        "artwork": {
+          "label": "Capas da biblioteca",
+          "description": "Capas dos álbuns deste perfil e as suas miniaturas. As capas sem uso removem-se em «{{section}}»."
+        },
+        "metadataArtwork": {
+          "label": "Imagens transferidas",
+          "description": "Fotos de artistas e capas obtidas online, partilhadas por todos os perfis."
+        },
+        "motionCache": {
+          "label": "Capas animadas",
+          "description": "Obtidas pelos plugins, transferidas de novo quando é preciso."
+        },
+        "canvasCache": {
+          "label": "Clips Canvas",
+          "description": "Obtidos pelos plugins, transferidos de novo quando é preciso."
+        },
+        "remoteArtwork": {
+          "label": "Capas do servidor",
+          "description": "Miniaturas do seu servidor, transferidas de novo quando é preciso."
+        },
+        "remoteStream": {
+          "label": "Faixas do servidor em cache",
+          "description": "Guardadas depois de ouvidas, transferidas de novo na próxima reprodução."
+        },
+        "remoteDownloads": {
+          "label": "Faixas do servidor offline",
+          "description": "As que escolheu guardar offline. Removem-se a partir da faixa ou do álbum."
+        },
+        "manualMedia": {
+          "label": "Multimédia escolhida à mão",
+          "description": "Capas animadas e clips Canvas que definiu."
+        },
+        "databases": {
+          "label": "Bases de dados",
+          "description": "Biblioteca, playlists, histórico e definições de todos os perfis."
+        },
+        "databaseSnapshots": {
+          "label": "Cópias antes de atualizações",
+          "description": "Feitas antes de cada atualização de uma base de dados; só as últimas são guardadas."
+        },
+        "backups": {
+          "label": "Cópias de segurança",
+          "description": "Arquivos das cópias de segurança automáticas e manuais."
+        },
+        "logs": {
+          "label": "Registos",
+          "description": "Registos de diagnóstico dos últimos dias."
+        },
+        "plugins": {
+          "label": "Plugins",
+          "description": "Plugins instalados e os seus dados."
+        }
+      },
+      "confirmEmptyLabel": "Confirmar esvaziamento: {{item}}",
+      "emptyFailed": "Não foi possível esvaziar: um ficheiro pode ainda estar em uso. Tente mais tarde.",
+      "atLeast": "pelo menos {{size}}",
+      "incomplete": "Não foi possível ler uma pasta por inteiro: o tamanho real é maior."
     },
     "globalShortcuts": {
       "subtitle": "Controle a reprodução a partir de qualquer aplicação, mesmo com o WaveFlow em segundo plano. Nenhum está ativo até definir um.",
@@ -3445,6 +3518,7 @@
       "backup": "Cópia de segurança",
       "thumbnails": "Miniaturas",
       "drop_import": "Cópia para a biblioteca",
+      "cache_move": "A mover as caches",
       "spectrogram": "Espectro de uma faixa"
     }
   },

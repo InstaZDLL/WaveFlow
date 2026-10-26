@@ -184,6 +184,7 @@ import { AccentCard } from "./settings/AccentCard";
 import { PlayerBarLayoutCard } from "./settings/PlayerBarLayoutCard";
 import { ShortcutsCard } from "./settings/ShortcutsCard";
 import { GlobalShortcutsCard } from "./settings/GlobalShortcutsCard";
+import { DiskUsageCard } from "./settings/DiskUsageCard";
 import { WrappedBannerCard } from "./settings/WrappedBannerCard";
 import { HiResBadgeCard } from "./settings/HiResBadgeCard";
 import { StatsKpiVisibilityCard } from "./settings/StatsKpiVisibilityCard";
@@ -4058,6 +4059,19 @@ function SettingsViewContent({
               className="settings-category"
             >
               <SettingsCategoryHeader category="data" />
+              <SettingsGroup
+                id="diskUsage"
+                reveal={targetGroup === "diskUsage"}
+              >
+                {/* Keyed by profile: the per-profile items (covers,
+                    offline copies, server caches) are the active
+                    profile's, and Settings stays mounted across a
+                    switch. */}
+                <DiskUsageCard
+                  key={activeProfile?.id ?? 0}
+                  language={i18n.resolvedLanguage ?? i18n.language}
+                />
+              </SettingsGroup>
               <SettingsGroup id="backups" reveal={targetGroup === "backups"}>
                 <div className="settings-block">
                   <div className="flex items-center justify-between gap-4">

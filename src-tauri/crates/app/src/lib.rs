@@ -1016,6 +1016,7 @@ pub fn run() {
             commands::global_shortcuts::global_shortcuts_clear,
             commands::spectrogram::track_spectrogram,
             commands::spectrogram::cancel_track_spectrogram,
+            commands::disk_usage::disk_usage,
             commands::mpd::mpd_get_config,
             commands::mpd::mpd_set_config,
             commands::mpd::mpd_get_status,

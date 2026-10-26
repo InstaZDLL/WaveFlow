@@ -80,6 +80,9 @@ pub enum TaskKind {
     /// The spectrogram Track Properties draws: one full decode of the
     /// file ([`crate::commands::spectrogram`]).
     Spectrogram,
+    /// The caches copied to the folder picked in Settings → Storage
+    /// ([`crate::commands::storage::set_cache_location`]).
+    CacheMove,
 }
 
 impl TaskKind {
@@ -95,6 +98,7 @@ impl TaskKind {
             Self::Thumbnails => "thumbnails",
             Self::DropImport => "drop_import",
             Self::Spectrogram => "spectrogram",
+            Self::CacheMove => "cache_move",
         }
     }
 }
@@ -503,12 +507,13 @@ mod tests {
             TaskKind::Thumbnails,
             TaskKind::DropImport,
             TaskKind::Spectrogram,
+            TaskKind::CacheMove,
         ];
         let mut seen = std::collections::HashSet::new();
         for kind in all {
             assert!(seen.insert(kind.slug()), "duplicate slug {}", kind.slug());
         }
-        assert_eq!(seen.len(), 10);
+        assert_eq!(seen.len(), 11);
         assert_eq!(TaskKind::LibraryScan.slug(), "library_scan");
         assert_eq!(TaskKind::CatalogueMirror.slug(), "catalogue_mirror");
     }

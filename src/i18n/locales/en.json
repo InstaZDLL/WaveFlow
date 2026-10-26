@@ -2818,6 +2818,7 @@
         "display": "Readability",
         "window": "Windows",
         "lyricsDisplay": "Showing lyrics",
+        "diskUsage": "Disk space",
         "globalShortcuts": "Global shortcuts"
       },
       "navHints": {
@@ -2867,6 +2868,7 @@
         "updates": "Stable or beta releases",
         "diagnostics": "Logs and rendering",
         "reset": "Start over with a fresh app",
+        "diskUsage": "What WaveFlow keeps on this computer",
         "globalShortcuts": "From any application"
       }
     },
@@ -2966,6 +2968,77 @@
         "label": "Shared output",
         "hint": "Sound goes through the system mixer, alongside other apps. Best for everyday listening."
       }
+    },
+    "diskUsage": {
+      "total": "WaveFlow uses {{size}} on this computer.",
+      "measuring": "Measuring…",
+      "refresh": "Measure again",
+      "failed": "Disk space could not be measured.",
+      "rebuildableTitle": "Rebuilds itself",
+      "rebuildableHint": "Emptying loses nothing: these files are fetched again when needed.",
+      "keptTitle": "Your data",
+      "keptHint": "Nothing here rebuilds itself: each item is managed from its own section.",
+      "empty": "Empty",
+      "confirmEmpty": "Confirm",
+      "emptyLabel": "Empty: {{item}}",
+      "items": {
+        "artwork": {
+          "label": "Library covers",
+          "description": "Album covers of this profile and their thumbnails. Unused covers are removed under “{{section}}”."
+        },
+        "metadataArtwork": {
+          "label": "Downloaded pictures",
+          "description": "Artist photos and covers fetched online, shared by every profile."
+        },
+        "motionCache": {
+          "label": "Animated covers",
+          "description": "Fetched by plugins, downloaded again when needed."
+        },
+        "canvasCache": {
+          "label": "Canvas clips",
+          "description": "Fetched by plugins, downloaded again when needed."
+        },
+        "remoteArtwork": {
+          "label": "Server covers",
+          "description": "Thumbnails from your server, downloaded again when needed."
+        },
+        "remoteStream": {
+          "label": "Cached server tracks",
+          "description": "Kept after playing, downloaded again the next time they play."
+        },
+        "remoteDownloads": {
+          "label": "Offline server tracks",
+          "description": "The ones you chose to keep offline. Removed from the track or the album."
+        },
+        "manualMedia": {
+          "label": "Media set by hand",
+          "description": "Animated covers and Canvas clips you set yourself."
+        },
+        "databases": {
+          "label": "Databases",
+          "description": "Library, playlists, history and settings of every profile."
+        },
+        "databaseSnapshots": {
+          "label": "Copies before upgrades",
+          "description": "Taken before each database upgrade; only the latest are kept."
+        },
+        "backups": {
+          "label": "Backups",
+          "description": "Archives from automatic and manual backups."
+        },
+        "logs": {
+          "label": "Logs",
+          "description": "Diagnostic logs from the last few days."
+        },
+        "plugins": {
+          "label": "Plugins",
+          "description": "Installed plugins and their data."
+        }
+      },
+      "confirmEmptyLabel": "Confirm emptying: {{item}}",
+      "emptyFailed": "Emptying did not finish: a file may still be in use. Try again later.",
+      "atLeast": "at least {{size}}",
+      "incomplete": "A folder could not be read whole: the real size is larger."
     },
     "globalShortcuts": {
       "subtitle": "Control playback from any application, even while WaveFlow is in the background. None is active until you set one.",
@@ -3349,6 +3422,7 @@
       "backup": "Backup",
       "thumbnails": "Thumbnails",
       "drop_import": "Copying to the library",
+      "cache_move": "Moving the caches",
       "spectrogram": "Track spectrum"
     }
   },

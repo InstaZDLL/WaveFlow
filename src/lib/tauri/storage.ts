@@ -45,3 +45,48 @@ export function setCacheLocation(root: string | null): Promise<CacheLocation> {
 export function restartForCacheMove(): Promise<void> {
   return invoke<void>("restart_for_cache_move");
 }
+
+/** One item of what WaveFlow keeps on disk. Mirrors the Rust
+ *  `UsageEntry`: per-profile items are the active profile's. */
+export interface DiskUsageEntry {
+  id:
+    | "artwork"
+    | "metadataArtwork"
+    | "motionCache"
+    | "canvasCache"
+    | "remoteArtwork"
+    | "remoteStream"
+    | "remoteDownloads"
+    | "manualMedia"
+    | "databases"
+    | "databaseSnapshots"
+    | "backups"
+    | "logs"
+    | "plugins";
+  bytes: number;
+  files: number;
+  /** Emptied without loss: filled again from where it came from. */
+  rebuildable: boolean;
+  /** A folder could not be read whole: `bytes` is a floor. */
+  incomplete: boolean;
+}
+
+export interface DiskUsage {
+  entries: DiskUsageEntry[];
+  totalBytes: number;
+}
+
+/** Measure every item. Walks the caches, so a few seconds at worst. */
+export function diskUsage(): Promise<DiskUsage> {
+  return invoke<DiskUsage>("disk_usage");
+}
+
+/** Window event fired after a cache is emptied from Settings, so every
+ *  card showing a size on the page measures again. */
+export const STORAGE_CHANGED_EVENT = "waveflow:storage-changed";
+
+export function announceStorageChanged(): void {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent(STORAGE_CHANGED_EVENT));
+  }
+}

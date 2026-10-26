@@ -217,7 +217,7 @@ Two surfaces needed more than a key handler: history rows had no `tabIndex` at a
 One status bar for every operation that takes long enough to wonder about
 (issue #601): the library scan, the analysis sweep, lyrics prefetch, the
 catalogue mirror, reconciliation, uploads, backups, the thumbnail pass, the
-spectrogram Track Properties draws.
+spectrogram Track Properties draws, a move of the caches to another folder.
 [`TaskStatusBar`](../../src/components/layout/TaskStatusBar.tsx) subscribes to
 `tasks:changed` before asking for a snapshot, so a task that starts between the
 two is not missed. That subscription lives in
@@ -240,7 +240,10 @@ Two things a stopping point has to respect, both learned the hard way:
   the bar pulses — but a count with nothing to divide it by is still worth
   showing, so the row prints `current` alone once it is above zero. The scan's
   listing phase is the case it exists for: it knows how many files it has found
-  long before it knows how many there are.
+  long before it knows how many there are. The thumbnail pass reports the same
+  way, the covers done so far, since it walks directories it has not counted.
+  No row advances on a timer: a figure is something measured, or there is
+  none.
 - **A scan's safe stopping point is not between two files.** The scan ends with
   a pass that marks everything the walk did not reach as `is_available = 0`.
   Stopping halfway and letting that run marks a working library unavailable

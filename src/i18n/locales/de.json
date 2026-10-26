@@ -2818,6 +2818,7 @@
         "display": "Lesbarkeit",
         "window": "Fenster",
         "lyricsDisplay": "Songtextanzeige",
+        "diskUsage": "Speicherplatz",
         "globalShortcuts": "Globale Tastenkürzel"
       },
       "navHints": {
@@ -2867,6 +2868,7 @@
         "updates": "Stabile oder Beta-Versionen",
         "diagnostics": "Logs und Grafik-Rendering",
         "reset": "Mit einer frischen App neu beginnen",
+        "diskUsage": "Was WaveFlow auf diesem Computer speichert",
         "globalShortcuts": "Aus jeder Anwendung"
       }
     },
@@ -2966,6 +2968,77 @@
         "label": "Gemeinsame Ausgabe",
         "hint": "Der Klang läuft über den System-Mixer, zusammen mit dem anderer Apps. Ideal für den Alltag."
       }
+    },
+    "diskUsage": {
+      "total": "WaveFlow belegt {{size}} auf diesem Computer.",
+      "measuring": "Wird gemessen…",
+      "refresh": "Neu messen",
+      "failed": "Der Speicherplatz konnte nicht gemessen werden.",
+      "rebuildableTitle": "Baut sich selbst wieder auf",
+      "rebuildableHint": "Leeren kostet nichts: Diese Dateien werden bei Bedarf erneut geholt.",
+      "keptTitle": "Deine Daten",
+      "keptHint": "Nichts davon baut sich selbst wieder auf: Jeder Eintrag wird in seinem eigenen Bereich verwaltet.",
+      "empty": "Leeren",
+      "confirmEmpty": "Bestätigen",
+      "emptyLabel": "Leeren: {{item}}",
+      "items": {
+        "artwork": {
+          "label": "Cover der Mediathek",
+          "description": "Albumcover dieses Profils und ihre Vorschaubilder. Ungenutzte Cover werden unter „{{section}}“ entfernt."
+        },
+        "metadataArtwork": {
+          "label": "Heruntergeladene Bilder",
+          "description": "Online geholte Künstlerfotos und Cover, von allen Profilen geteilt."
+        },
+        "motionCache": {
+          "label": "Animierte Cover",
+          "description": "Von Plugins geholt, bei Bedarf erneut heruntergeladen."
+        },
+        "canvasCache": {
+          "label": "Canvas-Clips",
+          "description": "Von Plugins geholt, bei Bedarf erneut heruntergeladen."
+        },
+        "remoteArtwork": {
+          "label": "Server-Cover",
+          "description": "Vorschaubilder von deinem Server, bei Bedarf erneut heruntergeladen."
+        },
+        "remoteStream": {
+          "label": "Zwischengespeicherte Server-Titel",
+          "description": "Nach dem Abspielen behalten, beim nächsten Abspielen erneut heruntergeladen."
+        },
+        "remoteDownloads": {
+          "label": "Offline-Server-Titel",
+          "description": "Die du offline behalten wolltest. Werden am Titel oder Album entfernt."
+        },
+        "manualMedia": {
+          "label": "Von Hand gewählte Medien",
+          "description": "Animierte Cover und Canvas-Clips, die du selbst festgelegt hast."
+        },
+        "databases": {
+          "label": "Datenbanken",
+          "description": "Mediathek, Playlists, Verlauf und Einstellungen aller Profile."
+        },
+        "databaseSnapshots": {
+          "label": "Kopien vor Upgrades",
+          "description": "Vor jedem Datenbank-Upgrade angelegt; nur die neuesten werden behalten."
+        },
+        "backups": {
+          "label": "Sicherungen",
+          "description": "Archive der automatischen und manuellen Sicherungen."
+        },
+        "logs": {
+          "label": "Protokolle",
+          "description": "Diagnoseprotokolle der letzten Tage."
+        },
+        "plugins": {
+          "label": "Plugins",
+          "description": "Installierte Plugins und ihre Daten."
+        }
+      },
+      "confirmEmptyLabel": "Leeren bestätigen: {{item}}",
+      "emptyFailed": "Das Leeren wurde nicht abgeschlossen: Eine Datei wird vielleicht noch verwendet. Versuche es später erneut.",
+      "atLeast": "mindestens {{size}}",
+      "incomplete": "Ein Ordner konnte nicht vollständig gelesen werden: Die tatsächliche Größe ist höher."
     },
     "globalShortcuts": {
       "subtitle": "Steuere die Wiedergabe aus jeder Anwendung, auch wenn WaveFlow im Hintergrund läuft. Keines ist aktiv, bis du eines festlegst.",
@@ -3349,6 +3422,7 @@
       "backup": "Sicherung",
       "thumbnails": "Vorschaubilder",
       "drop_import": "Kopieren in die Bibliothek",
+      "cache_move": "Caches werden verschoben",
       "spectrogram": "Spektrum eines Titels"
     }
   },

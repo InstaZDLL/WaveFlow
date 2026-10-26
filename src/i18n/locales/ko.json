@@ -2816,6 +2816,7 @@
         "display": "가독성",
         "window": "창",
         "lyricsDisplay": "가사 표시",
+        "diskUsage": "디스크 공간",
         "globalShortcuts": "전역 단축키"
       },
       "navHints": {
@@ -2865,6 +2866,7 @@
         "updates": "안정 버전 또는 베타 버전",
         "diagnostics": "로그 및 그래픽 렌더링",
         "reset": "처음 설치한 상태로 다시 시작",
+        "diskUsage": "WaveFlow가 이 컴퓨터에 보관하는 것",
         "globalShortcuts": "어떤 앱에서든"
       }
     },
@@ -2964,6 +2966,77 @@
         "label": "공유 출력",
         "hint": "다른 앱의 소리와 함께 시스템 믹서를 거쳐 재생됩니다. 일상적인 감상에 적합합니다."
       }
+    },
+    "diskUsage": {
+      "total": "WaveFlow가 이 컴퓨터에서 {{size}}를 사용하고 있습니다.",
+      "measuring": "측정 중…",
+      "refresh": "다시 측정",
+      "failed": "디스크 공간을 측정할 수 없습니다.",
+      "rebuildableTitle": "스스로 다시 만들어지는 것",
+      "rebuildableHint": "비워도 잃는 것이 없습니다. 필요할 때 다시 가져옵니다.",
+      "keptTitle": "내 데이터",
+      "keptHint": "여기 있는 것은 스스로 다시 만들어지지 않습니다. 각 항목은 해당 섹션에서 관리합니다.",
+      "empty": "비우기",
+      "confirmEmpty": "확인",
+      "emptyLabel": "비우기: {{item}}",
+      "items": {
+        "artwork": {
+          "label": "라이브러리 커버",
+          "description": "이 프로필의 앨범 커버와 썸네일. 사용하지 않는 커버는 '{{section}}'에서 제거합니다."
+        },
+        "metadataArtwork": {
+          "label": "다운로드한 이미지",
+          "description": "온라인에서 가져온 아티스트 사진과 커버로, 모든 프로필이 공유합니다."
+        },
+        "motionCache": {
+          "label": "움직이는 커버",
+          "description": "플러그인이 가져오며, 필요할 때 다시 다운로드됩니다."
+        },
+        "canvasCache": {
+          "label": "Canvas 클립",
+          "description": "플러그인이 가져오며, 필요할 때 다시 다운로드됩니다."
+        },
+        "remoteArtwork": {
+          "label": "서버 커버",
+          "description": "서버에서 받은 썸네일로, 필요할 때 다시 다운로드됩니다."
+        },
+        "remoteStream": {
+          "label": "캐시된 서버 트랙",
+          "description": "재생 후 보관되며, 다음 재생 때 다시 다운로드됩니다."
+        },
+        "remoteDownloads": {
+          "label": "오프라인 서버 트랙",
+          "description": "오프라인으로 보관하기로 한 트랙. 트랙이나 앨범에서 제거합니다."
+        },
+        "manualMedia": {
+          "label": "직접 지정한 미디어",
+          "description": "직접 지정한 움직이는 커버와 Canvas 클립."
+        },
+        "databases": {
+          "label": "데이터베이스",
+          "description": "모든 프로필의 라이브러리, 플레이리스트, 기록, 설정."
+        },
+        "databaseSnapshots": {
+          "label": "업그레이드 전 사본",
+          "description": "데이터베이스 업그레이드 전에 만들어지며, 최신 사본만 보관됩니다."
+        },
+        "backups": {
+          "label": "백업",
+          "description": "자동 및 수동 백업 보관 파일."
+        },
+        "logs": {
+          "label": "로그",
+          "description": "최근 며칠간의 진단 로그."
+        },
+        "plugins": {
+          "label": "플러그인",
+          "description": "설치된 플러그인과 그 데이터."
+        }
+      },
+      "confirmEmptyLabel": "비우기 확인: {{item}}",
+      "emptyFailed": "비우지 못했습니다. 파일이 아직 사용 중일 수 있습니다. 나중에 다시 시도하세요.",
+      "atLeast": "최소 {{size}}",
+      "incomplete": "폴더를 모두 읽지 못했습니다. 실제 크기는 이보다 큽니다."
     },
     "globalShortcuts": {
       "subtitle": "WaveFlow가 백그라운드에 있어도 어떤 앱에서든 재생을 제어하세요. 직접 설정하기 전에는 아무것도 활성화되지 않습니다.",
@@ -3347,6 +3420,7 @@
       "backup": "백업",
       "thumbnails": "썸네일",
       "drop_import": "보관함으로 복사",
+      "cache_move": "캐시 이동 중",
       "spectrogram": "트랙 스펙트럼"
     }
   },

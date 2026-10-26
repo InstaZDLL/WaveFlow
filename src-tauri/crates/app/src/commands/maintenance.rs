@@ -3,7 +3,7 @@
 
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -40,10 +40,11 @@ pub async fn regenerate_thumbnails(
     // the only total available before the pass is the number of
     // directories -- two or three -- which would show a bar jumping
     // half the way across on the first one. Indeterminate says less and
-    // none of it wrong.
+    // none of it wrong. The covers done so far are a count that needs no
+    // total, so the row prints that beside the pulse.
     let stop = Arc::new(AtomicBool::new(false));
     let stop_for_cancel = Arc::clone(&stop);
-    let _task = crate::tasks::start(
+    let task = crate::tasks::start(
         &app,
         crate::tasks::TaskKind::Thumbnails,
         0,
@@ -51,6 +52,18 @@ pub async fn regenerate_thumbnails(
             stop_for_cancel.store(true, Ordering::Relaxed);
         }),
     );
+    let task = Arc::new(task);
+    let done = Arc::new(AtomicU32::new(0));
+    let progress = {
+        let task = Arc::clone(&task);
+        let done = Arc::clone(&done);
+        move || {
+            let n = done.fetch_add(1, Ordering::Relaxed) + 1;
+            if let Some(task) = task.as_ref() {
+                task.progress(u64::from(n), 0);
+            }
+        }
+    };
     let mut total: u32 = 0;
 
     // `regen_in_dir` is intentionally synchronous (walks the directory
@@ -62,10 +75,12 @@ pub async fn regenerate_thumbnails(
     // `spawn_blocking` so the runtime stays responsive.
     let metadata_dir = state.paths.metadata_artwork_dir.clone();
     let stop_meta = Arc::clone(&stop);
-    let metadata_total =
-        tokio::task::spawn_blocking(move || regen_in_dir(&metadata_dir, Some(&stop_meta)))
-            .await
-            .map_err(|e| AppError::Other(format!("regen_thumbnails join: {e}")))??;
+    let progress_meta = progress.clone();
+    let metadata_total = tokio::task::spawn_blocking(move || {
+        regen_in_dir(&metadata_dir, Some(&stop_meta), &progress_meta)
+    })
+    .await
+    .map_err(|e| AppError::Other(format!("regen_thumbnails join: {e}")))??;
     total = total.saturating_add(metadata_total);
 
     let profile_ids: Vec<i64> = sqlx::query_scalar("SELECT id FROM profile")
@@ -80,10 +95,12 @@ pub async fn regenerate_thumbnails(
         }
         let dir = state.paths.profile_artwork_dir(pid);
         let stop_profile = Arc::clone(&stop);
-        let profile_total =
-            tokio::task::spawn_blocking(move || regen_in_dir(&dir, Some(&stop_profile)))
-                .await
-                .map_err(|e| AppError::Other(format!("regen_thumbnails join: {e}")))??;
+        let progress_profile = progress.clone();
+        let profile_total = tokio::task::spawn_blocking(move || {
+            regen_in_dir(&dir, Some(&stop_profile), &progress_profile)
+        })
+        .await
+        .map_err(|e| AppError::Other(format!("regen_thumbnails join: {e}")))??;
         total = total.saturating_add(profile_total);
     }
 
@@ -625,7 +642,8 @@ fn sanitize_filename(name: &str) -> String {
     }
 }
 
-fn regen_in_dir(dir: &Path, stop: Option<&AtomicBool>) -> AppResult<u32> {
+/// `on_done` is called after each cover whose thumbnails were written.
+fn regen_in_dir(dir: &Path, stop: Option<&AtomicBool>, on_done: &dyn Fn()) -> AppResult<u32> {
     if !dir.exists() {
         return Ok(0);
     }
@@ -672,6 +690,7 @@ fn regen_in_dir(dir: &Path, stop: Option<&AtomicBool>) -> AppResult<u32> {
         match crate::thumbnails::generate_thumbnails(&path, dir, stem) {
             Ok(()) => {
                 count = count.saturating_add(1);
+                on_done();
             }
             Err(err) => {
                 tracing::warn!(error = %err, %stem, "regen thumbnail failed");

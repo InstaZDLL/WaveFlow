@@ -2883,6 +2883,7 @@
         "display": "Lisibilité",
         "window": "Fenêtres",
         "lyricsDisplay": "Affichage des paroles",
+        "diskUsage": "Espace disque",
         "globalShortcuts": "Raccourcis globaux"
       },
       "navHints": {
@@ -2932,6 +2933,7 @@
         "updates": "Versions stables ou bêta",
         "diagnostics": "Journaux et rendu graphique",
         "reset": "Repartir d'une application neuve",
+        "diskUsage": "Ce que WaveFlow garde sur cet ordinateur",
         "globalShortcuts": "Depuis n'importe quelle application"
       }
     },
@@ -3034,6 +3036,77 @@
         "label": "Sortie partagée",
         "hint": "Le son passe par le mixeur du système, avec celui des autres applications. Idéal au quotidien."
       }
+    },
+    "diskUsage": {
+      "total": "WaveFlow occupe {{size}} sur cet ordinateur.",
+      "measuring": "Mesure en cours…",
+      "refresh": "Mesurer à nouveau",
+      "failed": "Impossible de mesurer l'espace disque.",
+      "rebuildableTitle": "Se reconstruit tout seul",
+      "rebuildableHint": "Vider ne fait rien perdre : ces fichiers sont récupérés à nouveau quand il le faut.",
+      "keptTitle": "Vos données",
+      "keptHint": "Rien ici ne se reconstruit seul : chaque élément se gère depuis sa propre section.",
+      "empty": "Vider",
+      "confirmEmpty": "Confirmer",
+      "emptyLabel": "Vider : {{item}}",
+      "items": {
+        "artwork": {
+          "label": "Pochettes de la bibliothèque",
+          "description": "Pochettes des albums de ce profil et leurs miniatures. Les pochettes inutilisées se retirent dans « {{section}} »."
+        },
+        "metadataArtwork": {
+          "label": "Images téléchargées",
+          "description": "Photos d'artistes et pochettes récupérées en ligne, partagées par tous les profils."
+        },
+        "motionCache": {
+          "label": "Pochettes animées",
+          "description": "Récupérées par les greffons, de nouveau téléchargées au besoin."
+        },
+        "canvasCache": {
+          "label": "Clips Canvas",
+          "description": "Récupérés par les greffons, de nouveau téléchargés au besoin."
+        },
+        "remoteArtwork": {
+          "label": "Pochettes du serveur",
+          "description": "Miniatures venues de votre serveur, de nouveau téléchargées au besoin."
+        },
+        "remoteStream": {
+          "label": "Titres du serveur en cache",
+          "description": "Gardés après écoute, de nouveau téléchargés à la prochaine lecture."
+        },
+        "remoteDownloads": {
+          "label": "Titres du serveur hors ligne",
+          "description": "Ceux que vous avez choisi de garder hors ligne. Se retirent depuis le titre ou l'album."
+        },
+        "manualMedia": {
+          "label": "Médias choisis à la main",
+          "description": "Pochettes animées et clips Canvas que vous avez définis vous-même."
+        },
+        "databases": {
+          "label": "Bases de données",
+          "description": "Bibliothèque, playlists, historique et réglages de tous les profils."
+        },
+        "databaseSnapshots": {
+          "label": "Copies avant mise à niveau",
+          "description": "Prises avant chaque mise à niveau d'une base de données ; seules les dernières sont gardées."
+        },
+        "backups": {
+          "label": "Sauvegardes",
+          "description": "Archives des sauvegardes automatiques et manuelles."
+        },
+        "logs": {
+          "label": "Journaux",
+          "description": "Journaux de diagnostic des derniers jours."
+        },
+        "plugins": {
+          "label": "Greffons",
+          "description": "Greffons installés et leurs données."
+        }
+      },
+      "confirmEmptyLabel": "Confirmer le vidage : {{item}}",
+      "emptyFailed": "Le vidage n'a pas abouti : un fichier est peut-être encore utilisé. Réessayez plus tard.",
+      "atLeast": "au moins {{size}}",
+      "incomplete": "Un dossier n'a pas pu être lu en entier : la taille réelle est plus grande."
     },
     "globalShortcuts": {
       "subtitle": "Contrôlez la lecture depuis n'importe quelle application, même quand WaveFlow est en arrière-plan. Aucun n'est actif tant que vous n'en définissez pas.",
@@ -3444,6 +3517,7 @@
       "backup": "Sauvegarde",
       "thumbnails": "Vignettes",
       "drop_import": "Copie vers la bibliothèque",
+      "cache_move": "Déplacement des caches",
       "spectrogram": "Spectre d'un titre"
     }
   },

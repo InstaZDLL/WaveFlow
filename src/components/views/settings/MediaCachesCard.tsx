@@ -13,6 +13,10 @@ import {
   clearCanvasCache,
 } from "../../../lib/tauri/canvas";
 import { formatBytes } from "../../../lib/format";
+import {
+  announceStorageChanged,
+  STORAGE_CHANGED_EVENT,
+} from "../../../lib/tauri/storage";
 import { invalidateAllMotionArtwork } from "../../../hooks/useAlbumMotionArtwork";
 import { invalidateAllTrackCanvas } from "../../../hooks/useTrackCanvas";
 
@@ -136,6 +140,30 @@ function LocalCacheOption({
     };
   }, [getInfo]);
 
+  // Emptied from the disk space card on the same page: show the size the
+  // cache has now. Only the latest read paints, so an older one finishing
+  // last cannot put the size back.
+  useEffect(() => {
+    let live = true;
+    let latest = 0;
+    const onChanged = () => {
+      const mine = ++latest;
+      getInfo().then(
+        (info) => {
+          if (!live || mine !== latest) return;
+          setSizeBytes(info.sizeBytes);
+          setFileCount(info.fileCount);
+        },
+        () => {},
+      );
+    };
+    window.addEventListener(STORAGE_CHANGED_EVENT, onChanged);
+    return () => {
+      live = false;
+      window.removeEventListener(STORAGE_CHANGED_EVENT, onChanged);
+    };
+  }, [getInfo]);
+
   const onToggle = useCallback(async () => {
     // Serialise against BOTH the toggle write and the clear op — ignore clicks
     // while either is in flight so a set + clear (or two sets) can't overlap.
@@ -173,6 +201,7 @@ function LocalCacheOption({
     setError(null);
     try {
       await clear();
+      announceStorageChanged();
       const info = await getInfo();
       setSizeBytes(info.sizeBytes);
       setFileCount(info.fileCount);

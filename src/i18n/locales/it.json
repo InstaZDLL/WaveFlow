@@ -2883,6 +2883,7 @@
         "display": "Leggibilità",
         "window": "Finestre",
         "lyricsDisplay": "Visualizzazione dei testi",
+        "diskUsage": "Spazio su disco",
         "globalShortcuts": "Scorciatoie globali"
       },
       "navHints": {
@@ -2932,6 +2933,7 @@
         "updates": "Versioni stabili o beta",
         "diagnostics": "Log e rendering grafico",
         "reset": "Ricominciare con un'app nuova",
+        "diskUsage": "Cosa conserva WaveFlow su questo computer",
         "globalShortcuts": "Da qualsiasi applicazione"
       }
     },
@@ -3034,6 +3036,77 @@
         "label": "Uscita condivisa",
         "hint": "Il suono passa per il mixer di sistema, insieme a quello delle altre app. Ideale per l'uso quotidiano."
       }
+    },
+    "diskUsage": {
+      "total": "WaveFlow occupa {{size}} su questo computer.",
+      "measuring": "Misurazione…",
+      "refresh": "Misura di nuovo",
+      "failed": "Impossibile misurare lo spazio su disco.",
+      "rebuildableTitle": "Si ricostruisce da sé",
+      "rebuildableHint": "Svuotare non fa perdere nulla: questi file vengono recuperati di nuovo quando servono.",
+      "keptTitle": "I tuoi dati",
+      "keptHint": "Niente qui si ricostruisce da sé: ogni elemento si gestisce dalla sua sezione.",
+      "empty": "Svuota",
+      "confirmEmpty": "Conferma",
+      "emptyLabel": "Svuota: {{item}}",
+      "items": {
+        "artwork": {
+          "label": "Copertine della libreria",
+          "description": "Copertine degli album di questo profilo e le loro miniature. Quelle inutilizzate si rimuovono in «{{section}}»."
+        },
+        "metadataArtwork": {
+          "label": "Immagini scaricate",
+          "description": "Foto degli artisti e copertine recuperate online, condivise da tutti i profili."
+        },
+        "motionCache": {
+          "label": "Copertine animate",
+          "description": "Recuperate dai plugin, scaricate di nuovo quando servono."
+        },
+        "canvasCache": {
+          "label": "Clip Canvas",
+          "description": "Recuperate dai plugin, scaricate di nuovo quando servono."
+        },
+        "remoteArtwork": {
+          "label": "Copertine del server",
+          "description": "Miniature dal tuo server, scaricate di nuovo quando servono."
+        },
+        "remoteStream": {
+          "label": "Brani del server in cache",
+          "description": "Conservati dopo l'ascolto, scaricati di nuovo alla prossima riproduzione."
+        },
+        "remoteDownloads": {
+          "label": "Brani del server offline",
+          "description": "Quelli che hai scelto di tenere offline. Si rimuovono dal brano o dall'album."
+        },
+        "manualMedia": {
+          "label": "Contenuti scelti a mano",
+          "description": "Copertine animate e clip Canvas impostate da te."
+        },
+        "databases": {
+          "label": "Database",
+          "description": "Libreria, playlist, cronologia e impostazioni di tutti i profili."
+        },
+        "databaseSnapshots": {
+          "label": "Copie prima degli aggiornamenti",
+          "description": "Fatte prima di ogni aggiornamento di un database; si conservano solo le ultime."
+        },
+        "backups": {
+          "label": "Backup",
+          "description": "Archivi dei backup automatici e manuali."
+        },
+        "logs": {
+          "label": "Log",
+          "description": "Log di diagnostica degli ultimi giorni."
+        },
+        "plugins": {
+          "label": "Plugin",
+          "description": "Plugin installati e i loro dati."
+        }
+      },
+      "confirmEmptyLabel": "Conferma lo svuotamento: {{item}}",
+      "emptyFailed": "Lo svuotamento non è riuscito: un file potrebbe essere ancora in uso. Riprova più tardi.",
+      "atLeast": "almeno {{size}}",
+      "incomplete": "Non è stato possibile leggere per intero una cartella: la dimensione reale è maggiore."
     },
     "globalShortcuts": {
       "subtitle": "Controlla la riproduzione da qualsiasi applicazione, anche con WaveFlow in background. Nessuna è attiva finché non ne imposti una.",
@@ -3444,6 +3517,7 @@
       "backup": "Backup",
       "thumbnails": "Miniature",
       "drop_import": "Copia nella libreria",
+      "cache_move": "Spostamento delle cache",
       "spectrogram": "Spettro di un brano"
     }
   },
