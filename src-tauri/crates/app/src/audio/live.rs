@@ -406,12 +406,17 @@ fn continuous_ingest(
     let mut block = vec![0u8; READ_BLOCK];
     let mut lag = LagReporter::new(station);
     let mut rate = RateMeter::new(source.icy_bitrate_kbps().is_some());
+    // Attempts to reopen since the stream last delivered a byte: a station
+    // that answers and closes at once is a failure each time, not a
+    // success that restarts the count.
+    let mut attempts = 0usize;
     loop {
         if buffer.ended().is_some() {
             return;
         }
         let reason = match source.read(&mut block) {
             Ok(n) if n > 0 => {
+                attempts = 0;
                 buffer.push(&block[..n]);
                 rate.record(n, &buffer);
                 lag.tick(&buffer);
@@ -424,7 +429,7 @@ fn continuous_ingest(
             return;
         }
         tracing::warn!(url = %redacted, %reason, "radio stream dropped, reconnecting");
-        match reconnect(&url, &buffer) {
+        match reconnect(&url, &buffer, &mut attempts) {
             Some(reopened) => source = reopened,
             None => {
                 tracing::warn!(url = %redacted, %reason, "radio stream lost");
@@ -435,8 +440,12 @@ fn continuous_ingest(
     }
 }
 
-fn reconnect(url: &str, buffer: &Arc<Buffer>) -> Option<HttpMediaSource> {
-    for pause in RECONNECT_BACKOFF {
+/// Reopen a dropped stream, waiting the next pause of the backoff before
+/// each attempt. `attempts` counts across calls, and only a byte arriving
+/// resets it: `None` once the backoff is spent.
+fn reconnect(url: &str, buffer: &Arc<Buffer>, attempts: &mut usize) -> Option<HttpMediaSource> {
+    while let Some(pause) = RECONNECT_BACKOFF.get(*attempts).copied() {
+        *attempts += 1;
         if !pause_unless_stopped(buffer, pause) {
             return None;
         }
