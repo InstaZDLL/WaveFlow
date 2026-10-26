@@ -1,3 +1,5 @@
+use super::super::replay_gain::TrackGain;
+use super::resume::{resume_start_ms, LastLoadSource, LivePosition};
 use super::*;
 use std::path::PathBuf;
 

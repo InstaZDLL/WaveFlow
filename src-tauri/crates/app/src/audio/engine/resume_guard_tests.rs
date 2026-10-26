@@ -1,6 +1,6 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use super::ResumeGuard;
+use super::resume::ResumeGuard;
 
 #[test]
 fn the_slot_is_taken_once_and_released_on_drop() {

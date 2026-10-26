@@ -1,8 +1,7 @@
+use super::super::replay_gain::TrackGain;
 use super::super::state::PlayerState;
-use super::{
-    endpoint_moved, pause_pending_after, rebuild_resume, AudioCmd, LoadIntent, RebuildResume,
-    TrackGain,
-};
+use super::rebuild::{endpoint_moved, rebuild_resume, RebuildResume};
+use super::{pause_pending_after, AudioCmd, LoadIntent};
 
 #[test]
 fn a_session_that_was_playing_picks_back_up() {

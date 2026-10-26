@@ -1,3 +1,4 @@
+use super::rebuild::EXCLUSIVE_FLAP_WINDOW;
 use super::*;
 
 // Threshold is 3 within a 12 s window — see the consts under test.

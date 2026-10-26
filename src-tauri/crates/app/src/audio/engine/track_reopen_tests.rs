@@ -1,4 +1,5 @@
-use super::{track_needs_reopen, DopFormat};
+use super::super::output::DopFormat;
+use super::rebuild::track_needs_reopen;
 
 const DOP64: DopFormat = DopFormat {
     sample_rate: 176_400,

@@ -1,4 +1,4 @@
-use super::{output_mode_of, OutputMode};
+use super::{notice::output_mode_of, OutputMode};
 
 #[test]
 fn nothing_asked_for_is_shared() {

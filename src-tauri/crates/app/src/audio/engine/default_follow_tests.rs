@@ -1,4 +1,4 @@
-use super::should_follow_default;
+use super::rebuild::should_follow_default;
 
 #[test]
 fn a_new_default_is_followed() {

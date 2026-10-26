@@ -1,4 +1,4 @@
-use super::must_release_before_reopening;
+use super::rebuild::must_release_before_reopening;
 
 #[test]
 fn nothing_to_release_when_no_stream_is_installed() {
