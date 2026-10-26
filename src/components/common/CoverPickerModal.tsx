@@ -144,9 +144,10 @@ export function CoverPickerModal({
     setError(null);
     try {
       await setAlbumArtworkFromDeezer(albumId, album.deezer_id);
-      if (session !== sessionRef.current) return;
-      // A pinned album shows its cover in the sidebar too.
+      // The cover is written whatever became of the dialog meanwhile, and
+      // a pinned album shows it in the sidebar too.
       window.dispatchEvent(new CustomEvent(SIDEBAR_PINS_EVENT));
+      if (session !== sessionRef.current) return;
       onSuccess();
       onClose();
     } catch (err) {
@@ -173,9 +174,10 @@ export function CoverPickerModal({
       setIsApplying(true);
       setError(null);
       await setAlbumArtworkFromFile(albumId, path);
-      if (session !== sessionRef.current) return;
-      // A pinned album shows its cover in the sidebar too.
+      // The cover is written whatever became of the dialog meanwhile, and
+      // a pinned album shows it in the sidebar too.
       window.dispatchEvent(new CustomEvent(SIDEBAR_PINS_EVENT));
+      if (session !== sessionRef.current) return;
       onSuccess();
       onClose();
     } catch (err) {
