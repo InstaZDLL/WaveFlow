@@ -2655,6 +2655,10 @@
       "nativeFullscreen": {
         "title": "原生全屏",
         "subtitle": "打开时占满整个屏幕，关闭时恢复窗口。关闭后保留窗口内浮层（多显示器时有用）。"
+      },
+      "theaterMode": {
+        "title": "影院模式",
+        "subtitle": "把沉浸式视图变成远处也能看清的显示画面：更大、全屏，封面旁显示曲目列表。几秒无操作后控件和指针会隐藏，播放音乐时屏幕保持常亮。"
       }
     },
     "scrollTitles": {
@@ -3223,7 +3227,12 @@
   },
   "immersive": {
     "togglePanel": "显示/隐藏面板",
-    "panelTabs": "面板标签"
+    "panelTabs": "面板标签",
+    "theater": "影院模式",
+    "tracklist": {
+      "tab": "曲目列表",
+      "position": "第 {{current}} 首，共 {{total}} 首"
+    }
   },
   "pluginView": {
     "refresh": "刷新",

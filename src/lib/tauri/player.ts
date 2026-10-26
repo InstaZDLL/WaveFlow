@@ -583,6 +583,15 @@ export function playerSetKeepAwake(
   );
 }
 
+/**
+ * Keep the display on while the music plays (`power.rs`), whatever the
+ * keep-awake setting says. Taken by the immersive view in theater mode and
+ * given back when it leaves it; not persisted.
+ */
+export function playerHoldDisplay(held: boolean): Promise<void> {
+  return invoke<void>("player_hold_display", { held });
+}
+
 export function playerSetCrossfade(seconds: number): Promise<void> {
   return announceSettingWrite(
     invoke<void>("player_set_crossfade", { seconds }),

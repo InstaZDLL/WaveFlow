@@ -19,6 +19,13 @@
 //! - **macOS**: nothing to do. `coreaudiod` holds its own assertion while
 //!   audio is being played.
 //!
+//! The theater view asks for more: the **display** kept on while it is open
+//! and the music plays (`set_display_held`), whatever the setting — a
+//! screen showing the album from across the room must not go dark between
+//! two songs. Windows adds `ES_DISPLAY_REQUIRED`; Linux's `idle` flag above
+//! already keeps the screen on; macOS runs `caffeinate -d` for as long as
+//! the hold lasts, tied to this process so it cannot outlive it.
+//!
 //! Process-wide, like the offline mode: the decoder's state transitions and
 //! the profile settings loader both reach it without an `AppHandle`.
 
@@ -28,6 +35,31 @@ use std::sync::OnceLock;
 enum Msg {
     Playing(bool),
     Enabled(bool),
+    Display(bool),
+}
+
+/// What the worker should hold, from the three inputs.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Hold {
+    /// The machine stays awake; the screen may still turn off.
+    System,
+    /// The machine and the screen both stay on.
+    Display,
+}
+
+/// Nothing while paused; the display while the theater view is open;
+/// otherwise the system, if the setting is on. The display hold ignores
+/// the setting, which is about a suspend in the middle of an album.
+fn wanted(playing: bool, enabled: bool, display: bool) -> Option<Hold> {
+    if !playing {
+        None
+    } else if display {
+        Some(Hold::Display)
+    } else if enabled {
+        Some(Hold::System)
+    } else {
+        None
+    }
 }
 
 static WORKER: OnceLock<Sender<Msg>> = OnceLock::new();
@@ -59,36 +91,47 @@ pub fn set_enabled(enabled: bool) {
     send(Msg::Enabled(enabled));
 }
 
+/// The theater view opened (`true`) or closed: keep the display on while
+/// the music plays.
+pub fn set_display_held(held: bool) {
+    send(Msg::Display(held));
+}
+
 fn run(rx: mpsc::Receiver<Msg>) {
     let mut playing = false;
     let mut enabled = true;
-    let mut held: Option<sys::Inhibitor> = None;
+    let mut display = false;
+    let mut held: Option<(Hold, sys::Inhibitor)> = None;
     // Without a portal every play would fail the same way: say it once.
     let mut warned = false;
     while let Ok(msg) = rx.recv() {
         match msg {
             Msg::Playing(value) => playing = value,
             Msg::Enabled(value) => enabled = value,
+            Msg::Display(value) => display = value,
         }
-        let wanted = playing && enabled;
-        if wanted && held.is_none() {
-            match sys::Inhibitor::acquire() {
-                Ok(inhibitor) => {
-                    tracing::debug!("power: sleep inhibited while playing");
-                    held = Some(inhibitor);
-                }
-                // No portal (a bare window manager), or the call failed:
-                // the machine may sleep, nothing else is affected.
-                Err(err) if !warned => {
-                    warned = true;
-                    tracing::warn!(%err, "power: could not inhibit sleep");
-                }
-                Err(err) => tracing::debug!(%err, "power: could not inhibit sleep"),
+        let want = wanted(playing, enabled, display);
+        if held.as_ref().map(|(hold, _)| *hold) == want {
+            continue;
+        }
+        // Released before the next one is taken: on Windows both are the
+        // same thread state, and the old one's drop would clear the new.
+        if held.take().is_some() {
+            tracing::debug!("power: inhibitor released");
+        }
+        let Some(hold) = want else { continue };
+        match sys::Inhibitor::acquire(hold == Hold::Display) {
+            Ok(inhibitor) => {
+                tracing::debug!(?hold, "power: sleep inhibited while playing");
+                held = Some((hold, inhibitor));
             }
-        } else if !wanted && held.is_some() {
-            // Dropping releases it.
-            held = None;
-            tracing::debug!("power: sleep inhibitor released");
+            // No portal (a bare window manager), or the call failed:
+            // the machine may sleep, nothing else is affected.
+            Err(err) if !warned => {
+                warned = true;
+                tracing::warn!(%err, "power: could not inhibit sleep");
+            }
+            Err(err) => tracing::debug!(%err, "power: could not inhibit sleep"),
         }
     }
 }
@@ -111,7 +154,9 @@ mod sys {
     }
 
     impl Inhibitor {
-        pub fn acquire() -> Result<Self, String> {
+        /// `display` changes nothing here: the `idle` flag already keeps
+        /// the screen from blanking.
+        pub fn acquire(_display: bool) -> Result<Self, String> {
             let conn = Connection::session().map_err(|e| e.to_string())?;
             let mut options: HashMap<&str, Value<'_>> = HashMap::new();
             options.insert("reason", Value::from("Playing music"));
@@ -149,17 +194,22 @@ mod sys {
 #[cfg(target_os = "windows")]
 mod sys {
     use windows::Win32::System::Power::{
-        SetThreadExecutionState, ES_CONTINUOUS, ES_SYSTEM_REQUIRED,
+        SetThreadExecutionState, ES_CONTINUOUS, ES_DISPLAY_REQUIRED, ES_SYSTEM_REQUIRED,
     };
 
-    /// `ES_SYSTEM_REQUIRED` for the calling thread, cleared on drop. Both
-    /// happen on the power worker, the one thread that ever touches it.
+    /// `ES_SYSTEM_REQUIRED` (plus `ES_DISPLAY_REQUIRED` for the display)
+    /// for the calling thread, cleared on drop. Both happen on the power
+    /// worker, the one thread that ever touches it.
     pub struct Inhibitor;
 
     impl Inhibitor {
-        pub fn acquire() -> Result<Self, String> {
+        pub fn acquire(display: bool) -> Result<Self, String> {
+            let mut flags = ES_CONTINUOUS | ES_SYSTEM_REQUIRED;
+            if display {
+                flags |= ES_DISPLAY_REQUIRED;
+            }
             // SAFETY: plain Win32 call with documented flag values.
-            let previous = unsafe { SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED) };
+            let previous = unsafe { SetThreadExecutionState(flags) };
             if previous.0 == 0 {
                 return Err("SetThreadExecutionState failed".into());
             }
@@ -177,14 +227,71 @@ mod sys {
     }
 }
 
-#[cfg(not(any(target_os = "linux", target_os = "windows")))]
+#[cfg(target_os = "macos")]
 mod sys {
-    /// macOS: `coreaudiod` already asserts while audio plays.
+    use std::process::{Child, Command};
+
+    /// `coreaudiod` already keeps the machine awake while audio plays; the
+    /// display needs `caffeinate -d`, which `-w` ties to this process so a
+    /// crash cannot leave the screen held.
+    pub struct Inhibitor(Option<Child>);
+
+    impl Inhibitor {
+        pub fn acquire(display: bool) -> Result<Self, String> {
+            if !display {
+                return Ok(Self(None));
+            }
+            Command::new("/usr/bin/caffeinate")
+                .args(["-d", "-w", &std::process::id().to_string()])
+                .spawn()
+                .map(|child| Self(Some(child)))
+                .map_err(|e| e.to_string())
+        }
+    }
+
+    impl Drop for Inhibitor {
+        fn drop(&mut self) {
+            if let Some(mut child) = self.0.take() {
+                let _ = child.kill();
+                let _ = child.wait();
+            }
+        }
+    }
+}
+
+#[cfg(not(any(target_os = "linux", target_os = "windows", target_os = "macos")))]
+mod sys {
     pub struct Inhibitor;
 
     impl Inhibitor {
-        pub fn acquire() -> Result<Self, String> {
+        pub fn acquire(_display: bool) -> Result<Self, String> {
             Ok(Self)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{wanted, Hold};
+
+    #[test]
+    fn nothing_is_held_while_paused() {
+        for enabled in [false, true] {
+            for display in [false, true] {
+                assert_eq!(wanted(false, enabled, display), None);
+            }
+        }
+    }
+
+    #[test]
+    fn the_setting_keeps_the_system_awake_while_playing() {
+        assert_eq!(wanted(true, true, false), Some(Hold::System));
+        assert_eq!(wanted(true, false, false), None);
+    }
+
+    #[test]
+    fn the_theater_view_holds_the_display_whatever_the_setting() {
+        assert_eq!(wanted(true, true, true), Some(Hold::Display));
+        assert_eq!(wanted(true, false, true), Some(Hold::Display));
     }
 }

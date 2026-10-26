@@ -2657,6 +2657,10 @@
       "nativeFullscreen": {
         "title": "Sistem tam ekranı",
         "subtitle": "Açılışta tüm ekranı kaplar ve kapanışta pencereni geri yükler. Pencere içi katmanı korumak için kapat (çoklu monitörde kullanışlı)."
+      },
+      "theaterMode": {
+        "title": "Sinema modu",
+        "subtitle": "Sürükleyici görünümü uzaktan okunacak bir ekrana dönüştürür: daha büyük, tam ekran, kapağın yanında parça listesiyle. Kontroller ve imleç birkaç saniye sonra gizlenir; müzik çalarken ekran açık kalır."
       }
     },
     "scrollTitles": {
@@ -3225,7 +3229,12 @@
   },
   "immersive": {
     "togglePanel": "Paneli göster / gizle",
-    "panelTabs": "Panel sekmeleri"
+    "panelTabs": "Panel sekmeleri",
+    "theater": "Sinema modu",
+    "tracklist": {
+      "tab": "Parça listesi",
+      "position": "Parça {{current}} / {{total}}"
+    }
   },
   "pluginView": {
     "refresh": "Yenile",

@@ -2657,6 +2657,10 @@
       "nativeFullscreen": {
         "title": "Native volledig scherm",
         "subtitle": "Vult het hele scherm bij openen en herstelt je venster bij sluiten. Schakel uit om een overlay in het venster te houden (handig bij meerdere monitoren)."
+      },
+      "theaterMode": {
+        "title": "Theatermodus",
+        "subtitle": "Maakt van de meeslepende weergave een scherm dat je van een afstand leest: groter, schermvullend, met de tracklijst naast de hoes. De bediening en de aanwijzer verdwijnen na een paar seconden, en het scherm blijft aan zolang er muziek speelt."
       }
     },
     "scrollTitles": {
@@ -3225,7 +3229,12 @@
   },
   "immersive": {
     "togglePanel": "Paneel tonen / verbergen",
-    "panelTabs": "Paneeltabbladen"
+    "panelTabs": "Paneeltabbladen",
+    "theater": "Theatermodus",
+    "tracklist": {
+      "tab": "Tracklijst",
+      "position": "Nummer {{current}} van {{total}}"
+    }
   },
   "pluginView": {
     "refresh": "Vernieuwen",

@@ -274,7 +274,11 @@ export function ImmersiveNowPlaying({
                 : "bar"
             }
           />
-          <div className="flex items-center justify-between gap-6 mt-2">
+          {/* Chrome in the theater view: hidden while idle. */}
+          <div
+            data-theater-chrome
+            className="flex items-center justify-between gap-6 mt-2"
+          >
             {/* Left cluster — like / station favorite. Lives down here
                 (not in the hero) so the visualizer canvas above never
                 sits underneath an interactive control. */}

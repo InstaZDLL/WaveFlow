@@ -1,16 +1,14 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import {
   isPlayClick,
   useSingleClickPlay,
 } from "../../hooks/useSingleClickPlay";
-import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { ListMusic, Radio } from "lucide-react";
 import { Artwork } from "../common/Artwork";
+import { usePlayerQueue } from "../../hooks/usePlayerQueue";
 import {
-  playerGetQueue,
   playerJumpToIndex,
-  type PlayerQueueSnapshot,
   type QueueTrackPayload,
 } from "../../lib/tauri/player";
 
@@ -26,46 +24,7 @@ import {
 export function ImmersiveQueueTab() {
   const { t } = useTranslation();
   const { value: singleClickPlay } = useSingleClickPlay();
-  const [snapshot, setSnapshot] = useState<PlayerQueueSnapshot | null>(null);
-
-  // Seq guard so overlapping refetches (rapid Next clicks fire many
-  // `player:queue-changed` events) never resolve out of order.
-  const fetchSeqRef = useRef(0);
-  const doFetch = useCallback(() => {
-    const seq = ++fetchSeqRef.current;
-    playerGetQueue()
-      .then((q) => {
-        if (seq === fetchSeqRef.current) setSnapshot(q);
-      })
-      .catch((err) => {
-        // A transient refetch failure shouldn't blank the last known
-        // queue — just log and keep the previous snapshot on screen.
-        console.error("[ImmersiveQueueTab] fetch failed", err);
-      });
-  }, []);
-
-  useEffect(() => {
-    doFetch();
-    let unlisten: UnlistenFn | null = null;
-    // Guard against the component unmounting before `listen` resolves —
-    // otherwise `unlisten` is still null when cleanup runs and the
-    // subscription leaks. If disposed by the time it resolves, tear it
-    // down immediately.
-    let disposed = false;
-    (async () => {
-      try {
-        const fn = await listen("player:queue-changed", doFetch);
-        if (disposed) fn();
-        else unlisten = fn;
-      } catch (err) {
-        console.error("[ImmersiveQueueTab] listen failed", err);
-      }
-    })();
-    return () => {
-      disposed = true;
-      if (unlisten) unlisten();
-    };
-  }, [doFetch]);
+  const snapshot = usePlayerQueue();
 
   const items: QueueTrackPayload[] = useMemo(
     () => snapshot?.items ?? [],

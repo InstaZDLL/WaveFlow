@@ -983,6 +983,33 @@ html.mini-player-window #root {
   --tw-ring-offset-shadow: 0 0 #0000;
 }
 
+/* The immersive view in theater mode (`ImmersiveView`): after a few
+ * seconds without a pointer move or a key, its controls (`data-theater-
+ * chrome`: the top buttons, the panel's tabs, the transport row) fade out
+ * and the pointer goes; the cover, the title, the progress and the
+ * tracklist stay. Faded controls take no clicks, their children included —
+ * the top bar's buttons opt back in with `pointer-events-auto`, which this
+ * unlayered rule outranks. */
+[data-theater] [data-theater-chrome] {
+  transition: opacity 400ms ease;
+}
+[data-theater][data-idle] [data-theater-chrome] {
+  opacity: 0;
+}
+[data-theater][data-idle] [data-theater-chrome],
+[data-theater][data-idle] [data-theater-chrome] * {
+  pointer-events: none;
+}
+[data-theater][data-idle],
+[data-theater][data-idle] * {
+  cursor: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-theater] [data-theater-chrome] {
+    transition: none;
+  }
+}
+
 /* Glassy chrome, opted in by the surfaces that carry a translucent
    background *behind text* (issue #596).
  *

@@ -2655,6 +2655,10 @@
       "nativeFullscreen": {
         "title": "原生全螢幕",
         "subtitle": "開啟時佔滿整個螢幕，關閉時還原視窗。關閉後保留視窗內覆蓋層（多螢幕時實用）。"
+      },
+      "theaterMode": {
+        "title": "劇院模式",
+        "subtitle": "將沉浸式檢視變成遠處也能看清的顯示畫面：更大、全螢幕，封面旁顯示曲目清單。幾秒無操作後控制項和指標會隱藏，播放音樂時螢幕保持開啟。"
       }
     },
     "scrollTitles": {
@@ -3223,7 +3227,12 @@
   },
   "immersive": {
     "togglePanel": "顯示 / 隱藏面板",
-    "panelTabs": "面板分頁"
+    "panelTabs": "面板分頁",
+    "theater": "劇院模式",
+    "tracklist": {
+      "tab": "曲目清單",
+      "position": "第 {{current}} 首，共 {{total}} 首"
+    }
   },
   "pluginView": {
     "refresh": "重新整理",

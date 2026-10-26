@@ -2655,6 +2655,10 @@
       "nativeFullscreen": {
         "title": "Layar penuh sistem",
         "subtitle": "Memenuhi seluruh layar saat dibuka dan memulihkan jendela saat ditutup. Matikan untuk mempertahankan lapisan dalam jendela (berguna pada banyak monitor)."
+      },
+      "theaterMode": {
+        "title": "Mode teater",
+        "subtitle": "Mengubah tampilan imersif menjadi layar yang bisa dibaca dari jauh: lebih besar, layar penuh, dengan daftar lagu di samping sampul. Kontrol dan penunjuk tersembunyi setelah beberapa detik, dan layar tetap menyala selama musik diputar."
       }
     },
     "scrollTitles": {
@@ -3223,7 +3227,12 @@
   },
   "immersive": {
     "togglePanel": "Tampilkan / sembunyikan panel",
-    "panelTabs": "Tab panel"
+    "panelTabs": "Tab panel",
+    "theater": "Mode teater",
+    "tracklist": {
+      "tab": "Daftar lagu",
+      "position": "Lagu {{current}} dari {{total}}"
+    }
   },
   "pluginView": {
     "refresh": "Segarkan",

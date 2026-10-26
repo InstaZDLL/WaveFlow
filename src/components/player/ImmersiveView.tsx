@@ -1,10 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { X, PanelRight, Mic2, MoreHorizontal } from "lucide-react";
+import { X, PanelRight, Mic2, MoreHorizontal, Tv } from "lucide-react";
 import { useModalA11y } from "../../hooks/useModalA11y";
 import { usePlayer } from "../../hooks/usePlayer";
 import { useTrackLyrics } from "../../hooks/useTrackLyrics";
-import { useImmersivePrefs } from "../../hooks/useImmersivePrefs";
+import {
+  IMMERSIVE_PREF_KEYS,
+  IMMERSIVE_PREFS_EVENT,
+  useImmersivePrefs,
+} from "../../hooks/useImmersivePrefs";
+import { setProfileSetting } from "../../lib/tauri/profile";
+import { playerHoldDisplay } from "../../lib/tauri/player";
 import { useTrackCanvas } from "../../hooks/useTrackCanvas";
 import {
   useCanvasEnabled,
@@ -28,6 +34,25 @@ import { LINUX } from "../../hooks/usePlayableVideo";
  *  with a now-playing ⇄ panel toggle — two columns only make sense at
  *  desktop widths. */
 const NARROW_BREAKPOINT = 900;
+
+/**
+ * Theater mode lays the view out as if the window were this wide and
+ * scales it up to the real width (`zoom`), so a 1080p TV shows it half as
+ * large again — readable from the sofa — and a wider one up to twice. A
+ * window narrower than this keeps the normal scale.
+ */
+const THEATER_BASE_WIDTH = 1280;
+const THEATER_MAX_ZOOM = 2;
+/** Without a pointer move or a key for this long, the theater view hides
+ *  its controls and the pointer. */
+const THEATER_IDLE_MS = 3000;
+/** What wakes the theater view's controls. */
+const THEATER_WAKE_EVENTS = [
+  "pointermove",
+  "pointerdown",
+  "keydown",
+  "wheel",
+] as const;
 
 /**
  * The view fades in everywhere but Linux. WebKitGTK 2.54 rebuilds its
@@ -67,7 +92,13 @@ interface ImmersiveViewProps {
  *
  * Native fullscreen (`immersive.use_native_fullscreen`, default OFF)
  * drives the OS window into real fullscreen on open and restores the
- * prior window state on close. Escape closes the view; exiting OS
+ * prior window state on close.
+ *
+ * Theater mode (`immersive.theater_mode`, the Tv button) is the same view
+ * set up as a display across the room: always the two columns, the
+ * Tracklist tab beside the cover, scaled up to the window, in native
+ * fullscreen, the controls and the pointer hidden after a few idle
+ * seconds, and the display kept on while the music plays. Escape closes the view; exiting OS
  * fullscreen another way (F11) is deliberately decoupled — it leaves the
  * view as a windowed overlay rather than dismissing it.
  */
@@ -84,8 +115,12 @@ export function ImmersiveView({
     mergedLyrics,
     useNativeFullscreen,
     hideEmptyLyrics,
+    theaterMode,
     loaded: prefsLoaded,
   } = useImmersivePrefs();
+  // The view's own toggle answers at once; the stored pref catches up.
+  const [theaterOverride, setTheaterOverride] = useState<boolean | null>(null);
+  const theater = theaterOverride ?? theaterMode;
   const lyrics = useTrackLyrics();
 
   // Per-track Canvas (issue #442). Only a real library track can carry one
@@ -134,14 +169,19 @@ export function ImmersiveView({
   // Track the viewport width so the dual layout collapses on narrow
   // windows. `window.innerWidth` is fine — the view is always
   // full-window so there's no inner container to measure.
-  const [narrow, setNarrow] = useState(
-    () => window.innerWidth < NARROW_BREAKPOINT,
-  );
+  const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   useEffect(() => {
-    const onResize = () => setNarrow(window.innerWidth < NARROW_BREAKPOINT);
+    const onResize = () => setViewportWidth(window.innerWidth);
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
+  const narrow = viewportWidth < NARROW_BREAKPOINT;
+  const theaterZoom = theater
+    ? Math.min(
+        THEATER_MAX_ZOOM,
+        Math.max(1, viewportWidth / THEATER_BASE_WIDTH),
+      )
+    : 1;
 
   // Two genuinely distinct interfaces, chosen by the merged pref (and
   // forced to the classic one on narrow windows where two columns don't
@@ -151,7 +191,9 @@ export function ImmersiveView({
   //  - else  → CLASSIC view: now-playing fullscreen with a Mic2 button
   //    that flips to a lyrics-only fullscreen (the pre-#328 behaviour,
   //    unchanged — no panel, no queue).
-  const dual = mergedLyrics && !narrow;
+  // Theater mode always has the two columns: the tracklist beside the
+  // cover is what it is for.
+  const dual = (mergedLyrics || theater) && !narrow;
 
   // Static source for the blurred backdrop: a pre-resized variant or
   // nothing. Never a library track's `artwork_path`, which can be the
@@ -225,6 +267,86 @@ export function ImmersiveView({
   const toggleClassicLyrics = () =>
     setClassicSide((s) => (s === "lyrics" ? "nowPlaying" : "lyrics"));
 
+  // ── Theater mode ─────────────────────────────────────────────────
+  const toggleTheater = () => {
+    const next = !theater;
+    setTheaterOverride(next);
+    setProfileSetting(
+      IMMERSIVE_PREF_KEYS.theaterMode,
+      next ? "true" : "false",
+      "bool",
+    )
+      .then(() => window.dispatchEvent(new CustomEvent(IMMERSIVE_PREFS_EVENT)))
+      .catch((err) =>
+        console.error("[ImmersiveView] save theater mode failed", err),
+      );
+  };
+
+  // Entering theater mode opens the panel on the tracklist — unless the
+  // view was opened for its lyrics and is only starting in theater mode.
+  const [theaterShown, setTheaterShown] = useState(false);
+  if (theater !== theaterShown) {
+    setTheaterShown(theater);
+    if (theater) {
+      setPanelOpen(true);
+      if (theaterOverride !== null || initialTab !== "lyrics") {
+        setActiveTab("tracklist");
+      }
+    }
+  }
+
+  // Idle: no pointer move and no key for a few seconds hides the controls
+  // and the pointer (CSS on `data-idle`); any of them brings them back. A
+  // control the keyboard had focused is let go, so the key that wakes the
+  // view reaches the shortcuts rather than pressing an unseen button.
+  const [idle, setIdle] = useState(false);
+  useEffect(() => {
+    if (!theater) return;
+    let timer = 0;
+    const arm = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        setIdle(true);
+        const focused = document.activeElement;
+        if (
+          focused instanceof HTMLElement &&
+          focused.closest("[data-theater-chrome]")
+        ) {
+          focused.blur();
+        }
+      }, THEATER_IDLE_MS);
+    };
+    const wake = () => {
+      setIdle(false);
+      arm();
+    };
+    arm();
+    for (const type of THEATER_WAKE_EVENTS) {
+      window.addEventListener(type, wake, { capture: true, passive: true });
+    }
+    return () => {
+      window.clearTimeout(timer);
+      for (const type of THEATER_WAKE_EVENTS) {
+        window.removeEventListener(type, wake, { capture: true });
+      }
+    };
+  }, [theater]);
+  const chromeHidden = theater && idle;
+
+  // The display stays on while the music plays, for as long as theater
+  // mode lasts (`power.rs`); given back when it ends or the view closes.
+  useEffect(() => {
+    if (!theater) return;
+    playerHoldDisplay(true).catch((err) =>
+      console.error("[ImmersiveView] hold display failed", err),
+    );
+    return () => {
+      playerHoldDisplay(false).catch((err) =>
+        console.error("[ImmersiveView] release display failed", err),
+      );
+    };
+  }, [theater]);
+
   // ── Native fullscreen (reversible) ───────────────────────────────
   // The floating top-right buttons, which the side panel measures.
   const buttonBarRef = useRef<HTMLDivElement>(null);
@@ -232,13 +354,17 @@ export function ImmersiveView({
   // Enter on mount, restore the prior window state on unmount. Refs so
   // the cleanup restores exactly what we changed even if mount/unmount
   // race a very fast open→close.
+  //
+  // Theater mode asks for it too, whatever the pref: turning it off leaves
+  // fullscreen again, unless the pref wants it for the whole view.
+  const wantNativeFullscreen = useNativeFullscreen || theater;
   const enteredFullscreenRef = useRef(false);
   const priorMaximizedRef = useRef(false);
   useEffect(() => {
     // Wait for the real pref before touching the OS window — acting on
     // the optimistic default would flash a user who disabled native
     // fullscreen into fullscreen for one tick.
-    if (!prefsLoaded || !useNativeFullscreen) return;
+    if (!prefsLoaded || !wantNativeFullscreen) return;
     let cancelled = false;
     (async () => {
       try {
@@ -282,7 +408,7 @@ export function ImmersiveView({
         }
       })();
     };
-  }, [prefsLoaded, useNativeFullscreen]);
+  }, [prefsLoaded, wantNativeFullscreen]);
 
   const showNowPlaying = dual || classicSide === "nowPlaying";
 
@@ -302,6 +428,10 @@ export function ImmersiveView({
       // their dark-theme variants (hover / track) over the dark backdrop,
       // even when the app theme is light.
       className="dark fixed inset-0 z-100 bg-zinc-950"
+      // Theater mode, and whether its controls are hidden for want of
+      // input (`app.css`).
+      data-theater={theater || undefined}
+      data-idle={chromeHidden || undefined}
     >
       {/* Blurred artwork background — flat dark gradient fallback. Same
           recipe as the old overlays. The fade-in (`FADE_IN`, none on
@@ -351,7 +481,10 @@ export function ImmersiveView({
       </div>
 
       {/* Foreground */}
-      <div className={`relative h-full flex flex-col text-white${FADE_IN}`}>
+      <div
+        className={`relative h-full flex flex-col text-white${FADE_IN}`}
+        style={theaterZoom !== 1 ? { zoom: theaterZoom } : undefined}
+      >
         {/* Shared top bar — panel toggle + share + close. Absolute so
             the columns own the full height underneath. The side panel
             measures it to know how much of its own top line is free.
@@ -364,6 +497,7 @@ export function ImmersiveView({
             spare (#752 review), and a strip of the lyrics or queue. */}
         <div
           ref={buttonBarRef}
+          data-theater-chrome
           className="absolute top-0 right-0 z-10 flex items-center justify-end gap-3 px-8 py-6 pointer-events-none *:pointer-events-auto"
         >
           {currentTrack &&
@@ -438,6 +572,20 @@ export function ImmersiveView({
               activeLyricIndex={lyrics.activeIndex}
             />
           )}
+          <button
+            type="button"
+            onClick={toggleTheater}
+            aria-label={t("immersive.theater")}
+            aria-pressed={theater}
+            title={t("immersive.theater")}
+            className={`p-2.5 rounded-full transition-colors ${
+              theater
+                ? "bg-white/25 text-white"
+                : "bg-white/10 hover:bg-white/20 text-white/80"
+            }`}
+          >
+            <Tv size={22} />
+          </button>
           <button
             type="button"
             onClick={onClose}
