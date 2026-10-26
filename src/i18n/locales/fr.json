@@ -2254,6 +2254,34 @@
         "done": "Profil importé sous le nom « {{name}} ». Sélectionnez-le dans le sélecteur de profil.",
         "busy": "Import en cours… Une grande bibliothèque peut prendre quelques minutes.",
         "failed": "Échec de l'import. Le fichier est peut-être corrompu ou incompatible."
+      },
+      "preview": {
+        "title": "Importer « {{name}} » ?",
+        "titleUnknown": "Importer un profil",
+        "origin": "Exporté le {{date}} avec WaveFlow {{version}}.",
+        "loading": "Lecture de l'archive…",
+        "unreadable": "Ce fichier est illisible : il est endommagé ou ce n'est pas une archive de profil WaveFlow.",
+        "failed": "L'archive n'a pas pu être lue. Consultez le journal pour le détail.",
+        "newer": "Cette archive vient d'une version plus récente de WaveFlow. Mettez WaveFlow à jour pour l'importer.",
+        "differentBuild": "Cette archive vient d'une autre version de WaveFlow dont la base de données diffère de celle-ci : elle ne peut pas être importée.",
+        "unsupported": "Le format de cette archive n'est plus pris en charge.",
+        "schema": "Version de la base : {{archive}} (cette app : {{local}}).",
+        "schemaUnknown": "Version de la base inconnue (cette app : {{local}}).",
+        "asNewProfile": "Elle sera importée comme un nouveau profil : vos profils actuels ne sont pas modifiés.",
+        "cancel": "Annuler",
+        "import": "Importer",
+        "rows": {
+          "tracks": "Pistes",
+          "playlists": "Playlists",
+          "smartPlaylists": "Playlists intelligentes",
+          "likedTracks": "Titres likés",
+          "plays": "Écoutes",
+          "libraryFolders": "Dossiers de bibliothèque",
+          "settings": "Réglages",
+          "covers": "Pochettes personnalisées",
+          "coverCache": "Pochettes en cache",
+          "size": "Taille"
+        }
       }
     },
     "backup": {

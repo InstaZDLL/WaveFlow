@@ -2373,6 +2373,34 @@
         "done": "个人资料已导入为“{{name}}”。请从个人资料菜单切换到它。",
         "busy": "正在导入… 音乐库较大时可能需要几分钟。",
         "failed": "导入失败。文件可能已损坏或不兼容。"
+      },
+      "preview": {
+        "title": "导入“{{name}}”？",
+        "titleUnknown": "导入配置文件",
+        "origin": "于 {{date}} 使用 WaveFlow {{version}} 导出。",
+        "loading": "正在读取归档…",
+        "unreadable": "无法读取此文件：它已损坏，或不是 WaveFlow 配置文件归档。",
+        "failed": "无法读取归档。详情请查看日志。",
+        "newer": "此归档来自更新版本的 WaveFlow。请更新 WaveFlow 后再导入。",
+        "differentBuild": "此归档来自另一个版本的 WaveFlow，其数据库与当前版本不同，无法导入。",
+        "unsupported": "已不再支持此归档的格式。",
+        "schema": "数据库版本：{{archive}}（本应用：{{local}}）。",
+        "schemaUnknown": "数据库版本未知（本应用：{{local}}）。",
+        "asNewProfile": "将作为新的配置文件导入：现有配置文件保持不变。",
+        "cancel": "取消",
+        "import": "导入",
+        "rows": {
+          "tracks": "曲目",
+          "playlists": "播放列表",
+          "smartPlaylists": "智能播放列表",
+          "likedTracks": "喜欢的曲目",
+          "plays": "播放次数",
+          "libraryFolders": "资料库文件夹",
+          "settings": "设置",
+          "covers": "自定义封面",
+          "coverCache": "缓存的封面",
+          "size": "大小"
+        }
       }
     },
     "visualizer": {

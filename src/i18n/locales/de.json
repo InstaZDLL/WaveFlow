@@ -2115,6 +2115,34 @@
         "done": "Profil als „{{name}}“ importiert. Wechsle über die Profilauswahl dazu.",
         "busy": "Import läuft … Eine große Bibliothek kann einige Minuten dauern.",
         "failed": "Import fehlgeschlagen. Die Datei könnte beschädigt oder inkompatibel sein."
+      },
+      "preview": {
+        "title": "„{{name}}“ importieren?",
+        "titleUnknown": "Profil importieren",
+        "origin": "Exportiert am {{date}} mit WaveFlow {{version}}.",
+        "loading": "Archiv wird gelesen…",
+        "unreadable": "Diese Datei ist nicht lesbar: Sie ist beschädigt oder kein WaveFlow-Profilarchiv.",
+        "failed": "Das Archiv konnte nicht gelesen werden. Details stehen im Protokoll.",
+        "newer": "Dieses Archiv stammt aus einer neueren WaveFlow-Version. Aktualisiere WaveFlow, um es zu importieren.",
+        "differentBuild": "Dieses Archiv stammt aus einer anderen WaveFlow-Version, deren Datenbank sich von dieser unterscheidet: Es kann nicht importiert werden.",
+        "unsupported": "Das Format dieses Archivs wird nicht mehr unterstützt.",
+        "schema": "Datenbankversion: {{archive}} (diese App: {{local}}).",
+        "schemaUnknown": "Datenbankversion unbekannt (diese App: {{local}}).",
+        "asNewProfile": "Es wird als neues Profil importiert: Deine bestehenden Profile bleiben unverändert.",
+        "cancel": "Abbrechen",
+        "import": "Importieren",
+        "rows": {
+          "tracks": "Titel",
+          "playlists": "Playlists",
+          "smartPlaylists": "Intelligente Playlists",
+          "likedTracks": "Lieblingstitel",
+          "plays": "Wiedergaben",
+          "libraryFolders": "Bibliotheksordner",
+          "settings": "Einstellungen",
+          "covers": "Eigene Cover",
+          "coverCache": "Zwischengespeicherte Cover",
+          "size": "Größe"
+        }
       }
     },
     "clipsInLibrary": {

@@ -120,7 +120,12 @@ import {
 import { openLogFolder, readRecentLogs } from "../../lib/tauri/diagnostics";
 import { RenderingCard } from "./settings/RenderingCard";
 import { getOfflineMode, setOfflineMode } from "../../lib/tauri/offline";
-import { exportProfile, importProfile } from "../../lib/tauri/profile_io";
+import {
+  ARCHIVE_UNREADABLE,
+  exportProfile,
+  importProfile,
+  previewProfileArchive,
+} from "../../lib/tauri/profile_io";
 import { pickFile, pickSaveFile } from "../../lib/tauri/dialog";
 import {
   getVisualizerEnabled,
@@ -175,6 +180,10 @@ import {
 import { applyUiZoom } from "../../hooks/useUiZoom";
 import { DuplicatesModal } from "../common/DuplicatesModal";
 import { ResetAppModal } from "../common/ResetAppModal";
+import {
+  ProfileArchivePreviewModal,
+  type ArchivePreviewState,
+} from "../common/ProfileArchivePreviewModal";
 import { BackupCard } from "./settings/BackupCard";
 import { RadioCatalogueCard } from "./settings/RadioCatalogueCard";
 import { EqualizerCard } from "./settings/EqualizerCard";
@@ -1486,6 +1495,17 @@ function SettingsViewContent({
     }
   }, [activeProfile, clearProfileIoStatus, flashStatus, profileIoBusy, t]);
 
+  // The archive picked for import, and what it was found to hold. The
+  // import starts only from the preview's own button, which the backend's
+  // verdict enables: nothing is created before the user has seen what the
+  // archive is and that this build can take it.
+  const [archivePreview, setArchivePreview] =
+    useState<ArchivePreviewState | null>(null);
+  const archiveSourceRef = useRef<string | null>(null);
+  // Bumped per pick, so a slow preview of an archive the user already
+  // moved on from cannot fill the dialog.
+  const archivePreviewSeqRef = useRef(0);
+
   const handleImportProfile = useCallback(async () => {
     if (profileIoBusy) return;
     const source = await pickFile(
@@ -1493,6 +1513,36 @@ function SettingsViewContent({
       t("settings.profileIo.import.dialogTitle") ?? undefined,
     );
     if (!source) return;
+    clearProfileIoStatus();
+    const seq = ++archivePreviewSeqRef.current;
+    archiveSourceRef.current = source;
+    setArchivePreview({ status: "loading" });
+    try {
+      const preview = await previewProfileArchive(source);
+      if (seq !== archivePreviewSeqRef.current) return;
+      setArchivePreview({ status: "ready", preview });
+    } catch (err) {
+      console.error("[SettingsView] preview profile archive failed", err);
+      if (seq !== archivePreviewSeqRef.current) return;
+      setArchivePreview({
+        status: String(err).includes(ARCHIVE_UNREADABLE)
+          ? "unreadable"
+          : "failed",
+      });
+    }
+  }, [clearProfileIoStatus, profileIoBusy, t]);
+
+  const handleCancelArchivePreview = useCallback(() => {
+    archivePreviewSeqRef.current += 1;
+    archiveSourceRef.current = null;
+    setArchivePreview(null);
+  }, []);
+
+  const handleConfirmImportProfile = useCallback(async () => {
+    const source = archiveSourceRef.current;
+    if (profileIoBusy || !source) return;
+    archiveSourceRef.current = null;
+    setArchivePreview(null);
     clearProfileIoStatus();
     setProfileIoBusy("import");
     try {
@@ -4532,6 +4582,11 @@ function SettingsViewContent({
       <ResetAppModal
         isOpen={isResetOpen}
         onClose={() => setIsResetOpen(false)}
+      />
+      <ProfileArchivePreviewModal
+        state={archivePreview}
+        onCancel={handleCancelArchivePreview}
+        onImport={() => void handleConfirmImportProfile()}
       />
     </div>
   );

@@ -2115,6 +2115,34 @@
         "done": "Profil “{{name}}” adıyla içe aktarıldı. Profil seçiciden ona geç.",
         "busy": "İçe aktarılıyor… Büyük bir kütüphane birkaç dakika sürebilir.",
         "failed": "İçe aktarma başarısız oldu. Dosya bozuk veya uyumsuz olabilir."
+      },
+      "preview": {
+        "title": "“{{name}}” içe aktarılsın mı?",
+        "titleUnknown": "Profil içe aktar",
+        "origin": "{{date}} tarihinde WaveFlow {{version}} ile dışa aktarıldı.",
+        "loading": "Arşiv okunuyor…",
+        "unreadable": "Bu dosya okunamıyor: hasarlı ya da bir WaveFlow profil arşivi değil.",
+        "failed": "Arşiv okunamadı. Ayrıntılar için günlüğe bakın.",
+        "newer": "Bu arşiv WaveFlow'un daha yeni bir sürümünden geliyor. İçe aktarmak için WaveFlow'u güncelleyin.",
+        "differentBuild": "Bu arşiv, veritabanı bundan farklı olan başka bir WaveFlow sürümünden geliyor: içe aktarılamaz.",
+        "unsupported": "Bu arşivin biçimi artık desteklenmiyor.",
+        "schema": "Veritabanı sürümü: {{archive}} (bu uygulama: {{local}}).",
+        "schemaUnknown": "Veritabanı sürümü bilinmiyor (bu uygulama: {{local}}).",
+        "asNewProfile": "Yeni bir profil olarak içe aktarılır: mevcut profilleriniz olduğu gibi kalır.",
+        "cancel": "İptal",
+        "import": "İçe aktar",
+        "rows": {
+          "tracks": "Parçalar",
+          "playlists": "Çalma listeleri",
+          "smartPlaylists": "Akıllı çalma listeleri",
+          "likedTracks": "Beğenilen parçalar",
+          "plays": "Dinlemeler",
+          "libraryFolders": "Kitaplık klasörleri",
+          "settings": "Ayarlar",
+          "covers": "Özel kapaklar",
+          "coverCache": "Önbellekteki kapaklar",
+          "size": "Boyut"
+        }
       }
     },
     "clipsInLibrary": {

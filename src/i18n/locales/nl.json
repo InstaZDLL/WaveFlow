@@ -2115,6 +2115,34 @@
         "done": "Profiel geïmporteerd als ‘{{name}}’. Wissel ernaartoe via de profielkiezer.",
         "busy": "Bezig met importeren… Een grote bibliotheek kan een paar minuten duren.",
         "failed": "Import mislukt. Het bestand is mogelijk beschadigd of incompatibel."
+      },
+      "preview": {
+        "title": "“{{name}}” importeren?",
+        "titleUnknown": "Een profiel importeren",
+        "origin": "Geëxporteerd op {{date}} met WaveFlow {{version}}.",
+        "loading": "Archief wordt gelezen…",
+        "unreadable": "Dit bestand is onleesbaar: het is beschadigd of geen WaveFlow-profielarchief.",
+        "failed": "Het archief kon niet worden gelezen. Zie het logboek voor details.",
+        "newer": "Dit archief komt van een nieuwere versie van WaveFlow. Werk WaveFlow bij om het te importeren.",
+        "differentBuild": "Dit archief komt van een andere versie van WaveFlow waarvan de database verschilt van deze: het kan niet worden geïmporteerd.",
+        "unsupported": "De indeling van dit archief wordt niet meer ondersteund.",
+        "schema": "Databaseversie: {{archive}} (deze app: {{local}}).",
+        "schemaUnknown": "Databaseversie onbekend (deze app: {{local}}).",
+        "asNewProfile": "Het wordt als nieuw profiel geïmporteerd: je huidige profielen blijven ongewijzigd.",
+        "cancel": "Annuleren",
+        "import": "Importeren",
+        "rows": {
+          "tracks": "Nummers",
+          "playlists": "Afspeellijsten",
+          "smartPlaylists": "Slimme afspeellijsten",
+          "likedTracks": "Favoriete nummers",
+          "plays": "Keer afgespeeld",
+          "libraryFolders": "Bibliotheekmappen",
+          "settings": "Instellingen",
+          "covers": "Eigen hoezen",
+          "coverCache": "Hoezen in cache",
+          "size": "Grootte"
+        }
       }
     },
     "clipsInLibrary": {

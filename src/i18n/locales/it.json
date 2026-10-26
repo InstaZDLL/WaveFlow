@@ -2174,6 +2174,34 @@
         "done": "Profilo importato come «{{name}}». Selezionalo dal selettore dei profili.",
         "busy": "Importazione in corso… Una libreria grande può richiedere qualche minuto.",
         "failed": "Importazione non riuscita. Il file potrebbe essere corrotto o incompatibile."
+      },
+      "preview": {
+        "title": "Importare «{{name}}»?",
+        "titleUnknown": "Importa un profilo",
+        "origin": "Esportato il {{date}} con WaveFlow {{version}}.",
+        "loading": "Lettura dell'archivio…",
+        "unreadable": "Questo file non è leggibile: è danneggiato o non è un archivio di profilo WaveFlow.",
+        "failed": "Impossibile leggere l'archivio. Consulta il registro per i dettagli.",
+        "newer": "Questo archivio proviene da una versione più recente di WaveFlow. Aggiorna WaveFlow per importarlo.",
+        "differentBuild": "Questo archivio proviene da un'altra versione di WaveFlow il cui database è diverso da questo: non può essere importato.",
+        "unsupported": "Il formato di questo archivio non è più supportato.",
+        "schema": "Versione del database: {{archive}} (questa app: {{local}}).",
+        "schemaUnknown": "Versione del database sconosciuta (questa app: {{local}}).",
+        "asNewProfile": "Verrà importato come nuovo profilo: i tuoi profili attuali restano invariati.",
+        "cancel": "Annulla",
+        "import": "Importa",
+        "rows": {
+          "tracks": "Brani",
+          "playlists": "Playlist",
+          "smartPlaylists": "Playlist intelligenti",
+          "likedTracks": "Brani preferiti",
+          "plays": "Ascolti",
+          "libraryFolders": "Cartelle della libreria",
+          "settings": "Impostazioni",
+          "covers": "Copertine personalizzate",
+          "coverCache": "Copertine in cache",
+          "size": "Dimensione"
+        }
       }
     },
     "clipsInLibrary": {
