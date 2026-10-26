@@ -1067,7 +1067,8 @@
     "live": {
       "live": "Em direto",
       "behind": "{{time}} atrás do direto",
-      "goLive": "Voltar ao direto"
+      "goLive": "Voltar ao direto",
+      "behindState": "Atrás do direto"
     }
   },
   "queue": {

@@ -1024,7 +1024,8 @@
     "live": {
       "live": "Siaran langsung",
       "behind": "{{time}} di belakang siaran langsung",
-      "goLive": "Kembali ke siaran langsung"
+      "goLive": "Kembali ke siaran langsung",
+      "behindState": "Di belakang siaran langsung"
     }
   },
   "queue": {

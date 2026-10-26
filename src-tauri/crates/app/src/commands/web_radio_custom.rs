@@ -269,7 +269,7 @@ const MAX_REDIRECTS: usize = 10;
 
 /// Whether a URL a station handed back may be opened: `http(s)`, and
 /// public unless the URL the user typed was not.
-fn may_open(user_url_is_public: bool, url: &str) -> bool {
+pub(crate) fn may_open(user_url_is_public: bool, url: &str) -> bool {
     if user_url_is_public {
         is_public_http_url(url)
     } else {

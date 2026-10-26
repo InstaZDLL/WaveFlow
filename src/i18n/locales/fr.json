@@ -1066,7 +1066,8 @@
     "live": {
       "live": "En direct",
       "behind": "{{time}} de retard sur le direct",
-      "goLive": "Revenir au direct"
+      "goLive": "Revenir au direct",
+      "behindState": "En retard sur le direct"
     }
   },
   "queue": {

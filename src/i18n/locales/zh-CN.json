@@ -1024,7 +1024,8 @@
     "live": {
       "live": "直播",
       "behind": "落后直播 {{time}}",
-      "goLive": "回到直播"
+      "goLive": "回到直播",
+      "behindState": "落后于直播"
     }
   },
   "queue": {

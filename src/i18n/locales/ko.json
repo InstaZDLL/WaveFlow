@@ -1024,7 +1024,8 @@
     "live": {
       "live": "실시간",
       "behind": "실시간보다 {{time}} 늦음",
-      "goLive": "실시간으로 돌아가기"
+      "goLive": "실시간으로 돌아가기",
+      "behindState": "실시간보다 늦음"
     }
   },
   "queue": {

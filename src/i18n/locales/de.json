@@ -1026,7 +1026,8 @@
     "live": {
       "live": "Live",
       "behind": "{{time}} hinter dem Live-Stream",
-      "goLive": "Zurück zum Live-Stream"
+      "goLive": "Zurück zum Live-Stream",
+      "behindState": "Hinter dem Live-Stream"
     }
   },
   "queue": {

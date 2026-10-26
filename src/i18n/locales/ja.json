@@ -1024,7 +1024,8 @@
     "live": {
       "live": "ライブ",
       "behind": "ライブから{{time}}遅れ",
-      "goLive": "ライブに戻る"
+      "goLive": "ライブに戻る",
+      "behindState": "ライブから遅れています"
     }
   },
   "queue": {

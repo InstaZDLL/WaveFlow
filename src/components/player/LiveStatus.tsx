@@ -20,8 +20,13 @@ export function LiveStatus({ compact = false }: { compact?: boolean }) {
       className={`flex items-center justify-center ${compact ? "" : "w-full py-1"}`}
       data-live-status={isBehind ? "behind" : "live"}
     >
+      {/* Announced on the change between live and behind only: the
+          visible label moves every second while behind, and a live
+          region on it would read every one of them out. */}
+      <span role="status" className="sr-only">
+        {isBehind ? t("player.live.behindState") : t("player.live.live")}
+      </span>
       <span
-        role="status"
         className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest tabular-nums ${
           isBehind
             ? "bg-zinc-500/15 text-zinc-600 dark:text-zinc-300"

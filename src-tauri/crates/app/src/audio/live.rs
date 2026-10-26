@@ -444,13 +444,27 @@ fn reconnect(url: &str, buffer: &Arc<Buffer>) -> Option<HttpMediaSource> {
 
 // ── HLS ─────────────────────────────────────────────────────────────
 
-fn http_client() -> Result<reqwest::blocking::Client, String> {
+/// The client an HLS stream is fetched with. `public` is whether the URL
+/// the station was played from is public: then every redirect, like every
+/// URI its playlists name ([`resolve`]), must be public too — a playlist on
+/// the internet must not make the player reach the user's router. A
+/// station on the local network may name local segments.
+fn http_client(public: bool) -> Result<reqwest::blocking::Client, String> {
     reqwest::blocking::Client::builder()
         .user_agent(super::http_source::USER_AGENT)
         .connect_timeout(Duration::from_secs(10))
         // Every request here is a playlist or one segment: bounded, unlike
         // a continuous stream, so a total deadline is the right tool.
         .timeout(Duration::from_secs(30))
+        .redirect(reqwest::redirect::Policy::custom(move |attempt| {
+            if attempt.previous().len() >= 10 {
+                attempt.error("too many redirects")
+            } else if may_open(public, attempt.url().as_str()) {
+                attempt.follow()
+            } else {
+                attempt.stop()
+            }
+        }))
         .build()
         .map_err(|e| format!("http client build: {e}"))
 }
@@ -485,16 +499,27 @@ fn fetch(
     Ok((final_url, body))
 }
 
-/// Resolve a playlist entry against the playlist's own URL.
-fn resolve(base: &str, entry: &str) -> Result<String, String> {
+/// Whether a URL an HLS stream hands back may be fetched: the rule of a
+/// station added by hand — public, unless the station's own URL was not.
+fn may_open(public: bool, url: &str) -> bool {
+    crate::commands::web_radio_custom::may_open(public, url)
+}
+
+/// Resolve a playlist entry against the playlist's own URL: `http(s)`
+/// only, and public when the station's URL is.
+fn resolve(public: bool, base: &str, entry: &str) -> Result<String, String> {
     let base = url::Url::parse(base).map_err(|e| format!("playlist url: {e}"))?;
     let joined = base
         .join(entry)
         .map_err(|e| format!("playlist entry: {e}"))?;
     match joined.scheme() {
-        "http" | "https" => Ok(joined.to_string()),
-        other => Err(format!("unsupported scheme in a playlist: {other}")),
+        "http" | "https" => {}
+        other => return Err(format!("unsupported scheme in a playlist: {other}")),
     }
+    if !may_open(public, joined.as_str()) {
+        return Err("hls: a public playlist names a private address".to_string());
+    }
+    Ok(joined.to_string())
 }
 
 fn hls_error(err: HlsError) -> String {
@@ -505,6 +530,7 @@ fn hls_error(err: HlsError) -> String {
 /// the variant to play. Returns the media playlist's URL and contents.
 fn media_playlist(
     client: &reqwest::blocking::Client,
+    public: bool,
     url: &str,
 ) -> Result<(String, hls::MediaPlaylist), String> {
     let mut url = url.to_string();
@@ -516,7 +542,7 @@ fn media_playlist(
             Playlist::Media(list) => return Ok((final_url, list)),
             Playlist::Multivariant(list) => {
                 let pick = list.pick().ok_or_else(|| hls_error(HlsError::Empty))?;
-                url = resolve(&final_url, pick)?;
+                url = resolve(public, &final_url, pick)?;
             }
         }
     }
@@ -549,6 +575,9 @@ impl Unpack {
 /// Where an HLS ingest stands.
 struct HlsState {
     client: reqwest::blocking::Client,
+    /// Whether the station's URL is public, which every URL fetched for it
+    /// then has to be ([`resolve`]).
+    public: bool,
     media_url: String,
     /// The next segment to fetch, by media sequence.
     next: u64,
@@ -571,7 +600,15 @@ impl HlsState {
             .first()
             .map(|s| s.sequence)
             .unwrap_or(self.next);
-        if self.next < first {
+        let last = list.segments.last().map(|s| s.sequence);
+        if last.is_some_and(|last| last + 1 < self.next) {
+            // The numbering went back: an encoder restarted at 0, or a
+            // playlist that numbers nothing (each reload starts at 0).
+            // Waiting for it to catch up would be silence for good, so the
+            // stream picks up near the live edge again.
+            tracing::warn!(next = self.next, ?last, "hls: media sequence went back");
+            self.next = list.segments[list.segments.len().saturating_sub(3)].sequence;
+        } else if self.next < first {
             // Fell out of the window (a long stall): the audio in between
             // is gone, and the stream picks up at what the server still has.
             tracing::warn!(missed = first - self.next, "hls: segments missed");
@@ -584,7 +621,7 @@ impl HlsState {
             if buffer.ended().is_some() {
                 return Ok(taken);
             }
-            let url = resolve(&self.media_url, &segment.uri)?;
+            let url = resolve(self.public, &self.media_url, &segment.uri)?;
             let (_, body) = fetch(&self.client, &url, MAX_SEGMENT_BYTES)?;
             audio.clear();
             if self.unpack.unpack(&body, &mut audio).is_none() {
@@ -604,8 +641,9 @@ impl HlsState {
 }
 
 fn open_hls(url: &str, station: Station) -> Result<(LiveSource, Option<&'static str>), String> {
-    let client = http_client()?;
-    let (media_url, list) = media_playlist(&client, url)?;
+    let public = crate::commands::deezer::is_public_http_url(url);
+    let client = http_client(public)?;
+    let (media_url, list) = media_playlist(&client, public, url)?;
     // Three segments from the live edge, the distance the specification
     // asks a client to keep, so the first poll has something to add.
     let start = list
@@ -623,7 +661,7 @@ fn open_hls(url: &str, station: Station) -> Result<(LiveSource, Option<&'static 
     // probe is hinted with.
     let (_, body) = fetch(
         &client,
-        &resolve(&media_url, &first.uri)?,
+        &resolve(public, &media_url, &first.uri)?,
         MAX_SEGMENT_BYTES,
     )?;
     let mut unpack = if ts::is_transport_stream(&body) {
@@ -644,6 +682,7 @@ fn open_hls(url: &str, station: Station) -> Result<(LiveSource, Option<&'static 
     buffer.push(&audio);
     let mut state = HlsState {
         client,
+        public,
         media_url,
         next: first.sequence + 1,
         unpack,
@@ -676,7 +715,8 @@ fn open_hls(url: &str, station: Station) -> Result<(LiveSource, Option<&'static 
                 }
                 let list = match pending.take() {
                     Some(list) => Ok(list),
-                    None => media_playlist(&state.client, &state.media_url).map(|(_, l)| l),
+                    None => media_playlist(&state.client, state.public, &state.media_url)
+                        .map(|(_, l)| l),
                 };
                 let outcome = list.and_then(|list| {
                     let taken = state.take_segments(&list, &ingest_buffer)?;
@@ -742,14 +782,24 @@ mod tests {
     #[test]
     fn playlist_entries_resolve_against_the_playlist() {
         assert_eq!(
-            resolve("https://cdn.example/live/hi/index.m3u8", "seg-1.ts").unwrap(),
+            resolve(true, "https://cdn.example/live/hi/index.m3u8", "seg-1.ts").unwrap(),
             "https://cdn.example/live/hi/seg-1.ts"
         );
         assert_eq!(
-            resolve("https://cdn.example/live/master.m3u8", "/abs/x.m3u8").unwrap(),
+            resolve(true, "https://cdn.example/live/master.m3u8", "/abs/x.m3u8").unwrap(),
             "https://cdn.example/abs/x.m3u8"
         );
-        assert!(resolve("https://cdn.example/a.m3u8", "file:///etc/passwd").is_err());
+        assert!(resolve(true, "https://cdn.example/a.m3u8", "file:///etc/passwd").is_err());
+        // A public playlist cannot send the player into the local network;
+        // a station on it can name its own segments.
+        assert!(resolve(
+            true,
+            "https://cdn.example/a.m3u8",
+            "http://192.168.1.1/x.ts"
+        )
+        .is_err());
+        assert!(resolve(true, "https://cdn.example/a.m3u8", "http://router.lan/x.ts").is_err());
+        assert!(resolve(false, "http://192.168.1.20/a.m3u8", "x.ts").is_ok());
     }
 
     #[test]

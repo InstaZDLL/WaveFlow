@@ -1026,7 +1026,8 @@
     "live": {
       "live": "Live",
       "behind": "{{time}} achter op live",
-      "goLive": "Terug naar live"
+      "goLive": "Terug naar live",
+      "behindState": "Achter op live"
     }
   },
   "queue": {

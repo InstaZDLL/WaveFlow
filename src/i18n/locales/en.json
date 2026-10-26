@@ -1026,7 +1026,8 @@
     "live": {
       "live": "Live",
       "behind": "{{time}} behind live",
-      "goLive": "Back to live"
+      "goLive": "Back to live",
+      "behindState": "Behind live"
     }
   },
   "queue": {

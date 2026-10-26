@@ -1026,7 +1026,8 @@
     "live": {
       "live": "Canlı",
       "behind": "Canlı yayının {{time}} gerisinde",
-      "goLive": "Canlı yayına dön"
+      "goLive": "Canlı yayına dön",
+      "behindState": "Canlı yayının gerisinde"
     }
   },
   "queue": {
