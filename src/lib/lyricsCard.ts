@@ -358,7 +358,9 @@ function words(text: string): string[] {
     }
     return out;
   }
-  return text.split(/(?<=\s)/);
+  // No lookbehind: a regex literal with one fails to parse on a WebKit
+  // older than 16.4, which would take the whole module down with it.
+  return text.match(/\S+\s*|\s+/g) ?? [];
 }
 
 function graphemes(text: string): string[] {
