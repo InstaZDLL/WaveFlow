@@ -212,14 +212,13 @@
     },
     "playlists": {
       "createPlaylistAria": "Yeni bir çalma listesi oluştur",
-      "importM3uAria": "M3U çalma listesi içe aktar",
-      "importDialogTitle": "M3U çalma listesi içe aktar",
       "liked": "Beğenilen parçalar",
       "recent": "Son çalınanlar",
       "emptySubtext_zero": "0 parça",
       "emptySubtext_one": "{{count}} parça",
       "emptySubtext_other": "{{count}} parça",
-      "createSmartAria": "Akıllı çalma listesi oluştur"
+      "createSmartAria": "Akıllı çalma listesi oluştur",
+      "importAria": "Çalma listesi içe aktar"
     },
     "myMusic": {
       "title": "Müziğim",
@@ -1022,6 +1021,12 @@
         "unknown": "Ses çıkışı değişti"
       },
       "dismiss": "Kapat"
+    },
+    "live": {
+      "live": "Canlı",
+      "behind": "Canlı yayının {{time}} gerisinde",
+      "goLive": "Canlı yayına dön",
+      "behindState": "Canlı yayının gerisinde"
     }
   },
   "queue": {
@@ -1190,7 +1195,13 @@
     "notFoundTitle": "Çalma listesi bulunamadı",
     "notFoundDescription": "Bu çalma listesi etkin profilde artık yok.",
     "smartLabel": "Daily Mix",
-    "smartLabelCustom": "Akıllı çalma listesi"
+    "smartLabelCustom": "Akıllı çalma listesi",
+    "placeholder": {
+      "missing": "Kitaplığınızda yok",
+      "remove": "Çalma listesinden kaldır",
+      "count_one": "{{count}} eksik",
+      "count_other": "{{count}} eksik"
+    }
   },
   "trackActions": {
     "addToPlaylist": "Çalma listesine ekle",
@@ -3199,7 +3210,7 @@
         "offline": "Çevrimdışı mod açık.",
         "unreachable": "İstasyon bu adreste yanıt vermiyor.",
         "notAudio": "Bu adres bir ses yayınına çıkmıyor.",
-        "hls": "Bu bir HLS listesi: yalnızca kesintisiz yayınlar desteklenir.",
+        "hls": "Bu HLS akışı WaveFlow'un çalamadığı bir biçim kullanıyor (şifreleme, parçalı MP4 veya bayt aralıkları).",
         "noStream": "Listede http:// ya da https:// yayını yok.",
         "notSaved": "Favorileriniz henüz yüklenmedi; birazdan yeniden deneyin."
       }
@@ -3650,6 +3661,36 @@
       "same": "Bu klasör zaten kitaplıkta: {{folder}}",
       "inside": "Bu klasör zaten kitaplıkta, {{folder}} içinde.",
       "contains": "Bu klasör, zaten kitaplıkta olan {{folder}} klasörünü içeriyor. Bunun yerine diğer alt klasörlerini ekleyin."
+    }
+  },
+  "playlistImport": {
+    "title": "Çalma listesi içe aktar",
+    "help": "Zaten sahip olduğunuz parçalar eklenir. Diğerleri yerlerini gri olarak korur ve kitaplığınıza geldiklerinde tamamlanır.",
+    "fromFile": "Bir dosyadan",
+    "fromFileHint": "M3U, CSV veya JSON",
+    "fileDialogTitle": "Çalma listesi dosyası içe aktar",
+    "linkLabel": "Deezer çalma listesi bağlantısı",
+    "linkHint": "Yalnızca herkese açık çalma listeleri. Hesap gerekmez.",
+    "importLink": "İçe aktar",
+    "working": "İçe aktarılıyor…",
+    "result": {
+      "imported_zero": "Hiç parça eklenmedi",
+      "imported_one": "{{count}} parça eklendi",
+      "imported_other": "{{count}} parça eklendi",
+      "placeholders_one": "{{count}} parça bekliyor",
+      "placeholders_other": "{{count}} parça bekliyor",
+      "duplicates_one": "{{count}} tekrar atlandı",
+      "duplicates_other": "{{count}} tekrar atlandı"
+    },
+    "errors": {
+      "unsupported": "Bu dosya WaveFlow'un okuyabildiği bir çalma listesi değil (M3U, CSV veya JSON).",
+      "unreadable": "Dosya okunamadı.",
+      "noTitleColumn": "CSV'de başlık sütunu yok. İlk satır sütunları adlandırmalı, en azından başlığı.",
+      "empty": "Çalma listesinde hiç kayıt yok.",
+      "notALink": "Bu bir Deezer çalma listesi bağlantısı değil.",
+      "offline": "Çevrimdışı mod açık.",
+      "notFound": "Deezer'da bu bağlantıda herkese açık bir çalma listesi yok.",
+      "unreachable": "Deezer'a ulaşılamadı."
     }
   }
 }

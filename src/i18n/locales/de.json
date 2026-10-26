@@ -212,14 +212,13 @@
     },
     "playlists": {
       "createPlaylistAria": "Neue Playlist erstellen",
-      "importM3uAria": "M3U-Playlist importieren",
-      "importDialogTitle": "M3U-Playlist importieren",
       "liked": "Favoriten",
       "recent": "Kürzlich gespielt",
       "emptySubtext_zero": "0 Titel",
       "emptySubtext_one": "{{count}} Titel",
       "emptySubtext_other": "{{count}} Titel",
-      "createSmartAria": "Intelligente Playlist erstellen"
+      "createSmartAria": "Intelligente Playlist erstellen",
+      "importAria": "Playlist importieren"
     },
     "myMusic": {
       "title": "Meine Musik",
@@ -1022,6 +1021,12 @@
         "unknown": "Die Audioausgabe hat sich geändert"
       },
       "dismiss": "Schließen"
+    },
+    "live": {
+      "live": "Live",
+      "behind": "{{time}} hinter dem Live-Stream",
+      "goLive": "Zurück zum Live-Stream",
+      "behindState": "Hinter dem Live-Stream"
     }
   },
   "queue": {
@@ -1190,7 +1195,13 @@
     "notFoundTitle": "Playlist nicht gefunden",
     "notFoundDescription": "Diese Playlist existiert im aktiven Profil nicht mehr.",
     "smartLabel": "Daily Mix",
-    "smartLabelCustom": "Intelligente Playlist"
+    "smartLabelCustom": "Intelligente Playlist",
+    "placeholder": {
+      "missing": "Nicht in deiner Mediathek",
+      "remove": "Aus der Playlist entfernen",
+      "count_one": "{{count}} fehlt",
+      "count_other": "{{count}} fehlen"
+    }
   },
   "trackActions": {
     "addToPlaylist": "Zu einer Playlist hinzufügen",
@@ -3199,7 +3210,7 @@
         "offline": "Der Offline-Modus ist aktiv.",
         "unreachable": "Der Sender antwortet unter dieser Adresse nicht.",
         "notAudio": "Diese Adresse führt zu keinem Audiostream.",
-        "hls": "Das ist eine HLS-Playlist: Nur durchgehende Streams werden unterstützt.",
+        "hls": "Dieser HLS-Stream nutzt ein Format, das WaveFlow nicht abspielen kann (Verschlüsselung, fragmentiertes MP4 oder Byte-Bereiche).",
         "noStream": "Die Playlist enthält keinen http://- oder https://-Stream.",
         "notSaved": "Deine Favoriten sind noch nicht geladen; versuche es gleich noch einmal."
       }
@@ -3650,6 +3661,36 @@
       "same": "Dieser Ordner ist bereits in der Bibliothek: {{folder}}",
       "inside": "Dieser Ordner ist bereits in der Bibliothek, innerhalb von {{folder}}.",
       "contains": "Dieser Ordner enthält {{folder}}, der bereits in der Bibliothek ist. Füge stattdessen seine anderen Unterordner hinzu."
+    }
+  },
+  "playlistImport": {
+    "title": "Playlist importieren",
+    "help": "Titel, die du schon hast, werden hinzugefügt. Die anderen behalten ihren Platz, ausgegraut, und werden ergänzt, sobald sie in deiner Mediathek auftauchen.",
+    "fromFile": "Aus einer Datei",
+    "fromFileHint": "M3U, CSV oder JSON",
+    "fileDialogTitle": "Playlist-Datei importieren",
+    "linkLabel": "Link einer Deezer-Playlist",
+    "linkHint": "Nur öffentliche Playlists. Kein Konto nötig.",
+    "importLink": "Importieren",
+    "working": "Wird importiert…",
+    "result": {
+      "imported_zero": "Keine Titel hinzugefügt",
+      "imported_one": "{{count}} Titel hinzugefügt",
+      "imported_other": "{{count}} Titel hinzugefügt",
+      "placeholders_one": "{{count}} Titel wartet",
+      "placeholders_other": "{{count}} Titel warten",
+      "duplicates_one": "{{count}} Wiederholung übersprungen",
+      "duplicates_other": "{{count}} Wiederholungen übersprungen"
+    },
+    "errors": {
+      "unsupported": "Diese Datei ist keine Playlist, die WaveFlow lesen kann (M3U, CSV oder JSON).",
+      "unreadable": "Die Datei konnte nicht gelesen werden.",
+      "noTitleColumn": "Die CSV hat keine Titelspalte. Ihre erste Zeile muss die Spalten benennen, mindestens den Titel.",
+      "empty": "Die Playlist enthält keinen Eintrag.",
+      "notALink": "Das ist kein Link zu einer Deezer-Playlist.",
+      "offline": "Der Offline-Modus ist aktiv.",
+      "notFound": "Deezer hat unter diesem Link keine öffentliche Playlist.",
+      "unreachable": "Deezer ist nicht erreichbar."
     }
   }
 }

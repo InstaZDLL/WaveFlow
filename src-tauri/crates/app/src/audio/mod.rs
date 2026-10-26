@@ -37,6 +37,7 @@ pub mod engine;
 pub mod eq;
 pub mod events;
 pub mod http_source;
+pub mod live;
 pub mod output;
 // The integer packing of the exclusive backends (WASAPI, ALSA); tested on
 // every system.

@@ -215,15 +215,14 @@
     },
     "playlists": {
       "createPlaylistAria": "Criar uma nova playlist",
-      "importM3uAria": "Importar uma playlist M3U",
-      "importDialogTitle": "Importar uma playlist M3U",
       "liked": "Músicas curtidas",
       "recent": "Reproduzidas recentemente",
       "emptySubtext_zero": "0 faixas",
       "emptySubtext_one": "{{count}} faixa",
       "emptySubtext_other": "{{count}} faixas",
       "emptySubtext_many": "{{count}} faixas",
-      "createSmartAria": "Criar uma playlist inteligente"
+      "createSmartAria": "Criar uma playlist inteligente",
+      "importAria": "Importar uma playlist"
     },
     "myMusic": {
       "title": "Minha música",
@@ -1063,6 +1062,12 @@
         "unknown": "A saída de áudio mudou"
       },
       "dismiss": "Fechar"
+    },
+    "live": {
+      "live": "Ao vivo",
+      "behind": "{{time}} atrás do ao vivo",
+      "goLive": "Voltar para o ao vivo",
+      "behindState": "Atrás do ao vivo"
     }
   },
   "queue": {
@@ -1236,7 +1241,14 @@
     "notFoundTitle": "Playlist não encontrada",
     "notFoundDescription": "Essa playlist não existe mais no perfil ativo.",
     "smartLabel": "Daily Mix",
-    "smartLabelCustom": "Playlist inteligente"
+    "smartLabelCustom": "Playlist inteligente",
+    "placeholder": {
+      "missing": "Não está na sua biblioteca",
+      "remove": "Remover da playlist",
+      "count_one": "{{count}} faltando",
+      "count_many": "{{count}} faltando",
+      "count_other": "{{count}} faltando"
+    }
   },
   "trackActions": {
     "addToPlaylist": "Adicionar a uma playlist",
@@ -3269,7 +3281,7 @@
         "offline": "O modo offline está ativado.",
         "unreachable": "A estação não responde neste endereço.",
         "notAudio": "Este endereço não leva a um stream de áudio.",
-        "hls": "É uma playlist HLS: só streams contínuos são suportados.",
+        "hls": "Este stream HLS usa um formato que o WaveFlow não consegue reproduzir (criptografia, MP4 fragmentado ou intervalos de bytes).",
         "noStream": "A playlist não contém nenhum stream http:// ou https://.",
         "notSaved": "Seus favoritos ainda não carregaram; tente de novo em instantes."
       }
@@ -3756,6 +3768,39 @@
       "same": "Esta pasta já está na biblioteca: {{folder}}",
       "inside": "Esta pasta já está na biblioteca, dentro de {{folder}}.",
       "contains": "Esta pasta contém {{folder}}, que já está na biblioteca. Adicione as outras subpastas dela."
+    }
+  },
+  "playlistImport": {
+    "title": "Importar uma playlist",
+    "help": "As faixas que você já tem são adicionadas. As outras mantêm o lugar, em cinza, e são completadas quando chegam à sua biblioteca.",
+    "fromFile": "De um arquivo",
+    "fromFileHint": "M3U, CSV ou JSON",
+    "fileDialogTitle": "Importar um arquivo de playlist",
+    "linkLabel": "Link de uma playlist do Deezer",
+    "linkHint": "Apenas playlists públicas. Não precisa de conta.",
+    "importLink": "Importar",
+    "working": "Importando…",
+    "result": {
+      "imported_zero": "Nenhuma faixa adicionada",
+      "imported_one": "{{count}} faixa adicionada",
+      "imported_many": "{{count}} faixas adicionadas",
+      "imported_other": "{{count}} faixas adicionadas",
+      "placeholders_one": "{{count}} faixa aguardando",
+      "placeholders_many": "{{count}} faixas aguardando",
+      "placeholders_other": "{{count}} faixas aguardando",
+      "duplicates_one": "{{count}} repetição ignorada",
+      "duplicates_many": "{{count}} repetições ignoradas",
+      "duplicates_other": "{{count}} repetições ignoradas"
+    },
+    "errors": {
+      "unsupported": "Este arquivo não é uma playlist que o WaveFlow consiga ler (M3U, CSV ou JSON).",
+      "unreadable": "Não foi possível ler o arquivo.",
+      "noTitleColumn": "O CSV não tem coluna de título. A primeira linha precisa nomear as colunas, com pelo menos o título.",
+      "empty": "A playlist não tem nenhuma entrada.",
+      "notALink": "Isto não é um link de playlist do Deezer.",
+      "offline": "O modo offline está ativado.",
+      "notFound": "O Deezer não tem nenhuma playlist pública neste link.",
+      "unreachable": "Não foi possível acessar o Deezer."
     }
   }
 }

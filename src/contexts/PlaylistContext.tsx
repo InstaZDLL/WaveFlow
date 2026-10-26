@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { listen } from "@tauri-apps/api/event";
 import { PlaylistContext } from "../hooks/usePlaylist";
 import { useProfile } from "../hooks/useProfile";
 import {
@@ -65,6 +66,34 @@ export function PlaylistProvider({ children }: { children: ReactNode }) {
       cancelled = true;
     };
   }, [activeProfile]);
+
+  // A playlist's contents changed without the frontend asking: a scan
+  // brought in a track an imported playlist was waiting for, or a mix
+  // was rebuilt. Refreshing bumps that row's `updated_at`, which the
+  // playlist view keys its own refetch on.
+  useEffect(() => {
+    if (!activeProfile) return;
+    let unlisten: (() => void) | undefined;
+    let cancelled = false;
+    (async () => {
+      try {
+        const off = await listen("playlist:changed", () => {
+          refresh().catch(() => {});
+        });
+        if (cancelled) {
+          off();
+        } else {
+          unlisten = off;
+        }
+      } catch (err) {
+        console.error("[PlaylistContext] listen playlist:changed failed", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+      unlisten?.();
+    };
+  }, [activeProfile, refresh]);
 
   const createPlaylist = useCallback(
     async (input: CreatePlaylistInput) => {

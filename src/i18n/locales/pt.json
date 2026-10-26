@@ -215,15 +215,14 @@
     },
     "playlists": {
       "createPlaylistAria": "Criar uma nova lista de reprodução",
-      "importM3uAria": "Importar uma lista de reprodução M3U",
-      "importDialogTitle": "Importar uma lista de reprodução M3U",
       "liked": "Faixas favoritas",
       "recent": "Reproduzidas recentemente",
       "emptySubtext_zero": "0 faixas",
       "emptySubtext_one": "{{count}} faixa",
       "emptySubtext_other": "{{count}} faixas",
       "emptySubtext_many": "{{count}} faixas",
-      "createSmartAria": "Criar uma lista de reprodução inteligente"
+      "createSmartAria": "Criar uma lista de reprodução inteligente",
+      "importAria": "Importar uma lista de reprodução"
     },
     "myMusic": {
       "title": "A minha música",
@@ -1063,6 +1062,12 @@
         "unknown": "A saída de áudio mudou"
       },
       "dismiss": "Fechar"
+    },
+    "live": {
+      "live": "Em direto",
+      "behind": "{{time}} atrás do direto",
+      "goLive": "Voltar ao direto",
+      "behindState": "Atrás do direto"
     }
   },
   "queue": {
@@ -1236,7 +1241,14 @@
     "notFoundTitle": "Lista de reprodução não encontrada",
     "notFoundDescription": "Esta lista de reprodução já não existe no perfil ativo.",
     "smartLabel": "Daily Mix",
-    "smartLabelCustom": "Playlist inteligente"
+    "smartLabelCustom": "Playlist inteligente",
+    "placeholder": {
+      "missing": "Não está na sua biblioteca",
+      "remove": "Remover da lista de reprodução",
+      "count_one": "{{count}} em falta",
+      "count_many": "{{count}} em falta",
+      "count_other": "{{count}} em falta"
+    }
   },
   "trackActions": {
     "addToPlaylist": "Adicionar a uma lista de reprodução",
@@ -3269,7 +3281,7 @@
         "offline": "O modo offline está ativo.",
         "unreachable": "A estação não responde neste endereço.",
         "notAudio": "Este endereço não leva a um fluxo de áudio.",
-        "hls": "É uma lista HLS: só são suportados fluxos contínuos.",
+        "hls": "Este fluxo HLS usa um formato que o WaveFlow não consegue reproduzir (cifra, MP4 fragmentado ou intervalos de bytes).",
         "noStream": "A lista não contém nenhum fluxo http:// ou https://.",
         "notSaved": "Os favoritos ainda não foram carregados; tente de novo dentro de momentos."
       }
@@ -3756,6 +3768,39 @@
       "same": "Esta pasta já está na biblioteca: {{folder}}",
       "inside": "Esta pasta já está na biblioteca, dentro de {{folder}}.",
       "contains": "Esta pasta contém {{folder}}, que já está na biblioteca. Adiciona antes as outras subpastas."
+    }
+  },
+  "playlistImport": {
+    "title": "Importar uma lista de reprodução",
+    "help": "As faixas que já tem são adicionadas. As outras mantêm o seu lugar, a cinzento, e são completadas quando chegam à sua biblioteca.",
+    "fromFile": "A partir de um ficheiro",
+    "fromFileHint": "M3U, CSV ou JSON",
+    "fileDialogTitle": "Importar um ficheiro de lista de reprodução",
+    "linkLabel": "Ligação de uma lista de reprodução Deezer",
+    "linkHint": "Apenas listas públicas. Não é necessária uma conta.",
+    "importLink": "Importar",
+    "working": "A importar…",
+    "result": {
+      "imported_zero": "Nenhuma faixa adicionada",
+      "imported_one": "{{count}} faixa adicionada",
+      "imported_many": "{{count}} faixas adicionadas",
+      "imported_other": "{{count}} faixas adicionadas",
+      "placeholders_one": "{{count}} faixa em espera",
+      "placeholders_many": "{{count}} faixas em espera",
+      "placeholders_other": "{{count}} faixas em espera",
+      "duplicates_one": "{{count}} repetição ignorada",
+      "duplicates_many": "{{count}} repetições ignoradas",
+      "duplicates_other": "{{count}} repetições ignoradas"
+    },
+    "errors": {
+      "unsupported": "Este ficheiro não é uma lista de reprodução que o WaveFlow saiba ler (M3U, CSV ou JSON).",
+      "unreadable": "Não foi possível ler o ficheiro.",
+      "noTitleColumn": "O CSV não tem coluna de título. A primeira linha deve nomear as colunas, com pelo menos o título.",
+      "empty": "A lista de reprodução não tem nenhuma entrada.",
+      "notALink": "Isto não é uma ligação de lista de reprodução Deezer.",
+      "offline": "O modo offline está ativado.",
+      "notFound": "A Deezer não tem nenhuma lista pública nesta ligação.",
+      "unreachable": "Não foi possível contactar a Deezer."
     }
   }
 }

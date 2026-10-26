@@ -35,6 +35,7 @@ pub mod playback;
 // path-dep. The `doc(cfg(...))` attribute surfaces the gate in
 // rendered docs on `docs.rs` so an external integrator sees the
 // requirement without grepping the manifest.
+pub mod playlist_import;
 #[cfg(feature = "plugins")]
 #[cfg_attr(docsrs, doc(cfg(feature = "plugins")))]
 pub mod plugin;

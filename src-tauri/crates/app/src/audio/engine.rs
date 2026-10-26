@@ -1413,9 +1413,21 @@ impl AudioEngine {
         let previous = self
             .pause_pending
             .load(std::sync::atomic::Ordering::Acquire);
-        self.pause_pending.store(
-            pause_pending_after(&cmd, previous),
-            std::sync::atomic::Ordering::Release,
+        let paused_after = pause_pending_after(&cmd, previous);
+        self.pause_pending
+            .store(paused_after, std::sync::atomic::Ordering::Release);
+        // A live station that is reconnecting holds the decoder in a read
+        // on an empty buffer; a command that replaces or stops it would
+        // otherwise wait for the station to come back or give up. Released
+        // after the send, so the command is waiting when the decoder sees
+        // the stream end, and is served before that end is declared.
+        let releases = matches!(
+            cmd,
+            AudioCmd::LoadAndPlay { .. }
+                | AudioCmd::LoadRemoteFileAndPlay { .. }
+                | AudioCmd::LoadUrlAndPlay { .. }
+                | AudioCmd::Stop
+                | AudioCmd::Shutdown
         );
         self.cmd_tx.send(cmd).map_err(|e| {
             // Nothing was queued, so the intent this recorded is one the
@@ -1423,7 +1435,29 @@ impl AudioEngine {
             self.pause_pending
                 .store(previous, std::sync::atomic::Ordering::Release);
             AppError::Audio(format!("audio command channel closed: {e}"))
-        })
+        })?;
+        if releases {
+            super::live::release_starved_reader();
+        }
+        // A pause on a live station is time behind live, counted by its
+        // buffer — the same lifecycle as the pending pause, so a load
+        // counts as playing again.
+        if paused_after != previous {
+            super::live::note_paused(paused_after);
+        }
+        Ok(())
+    }
+
+    /// The `Stop` an output rebuild sends straight down the channel, past
+    /// [`Self::send`]: a live station reconnecting holds the decoder in a
+    /// read on an empty buffer, released once the `Stop` is queued so the
+    /// rebuild does not wait for the station to come back.
+    fn stop_for_rebuild(&self) -> Result<(), String> {
+        self.cmd_tx
+            .send(AudioCmd::Stop)
+            .map_err(|e| e.to_string())?;
+        super::live::release_starved_reader();
+        Ok(())
     }
 
     /// Take the publish lock: hold it across [`Self::claim_dispatch`]
@@ -2505,8 +2539,7 @@ impl AudioEngine {
             must_release_before_reopening(guard.handle.as_ref().map(|h| h.exclusive), exclusive);
         if pre_release {
             if was_playing {
-                self.cmd_tx
-                    .send(AudioCmd::Stop)
+                self.stop_for_rebuild()
                     .map_err(|e| AppError::Audio(format!("audio command channel closed: {e}")))?;
             }
             if let Some(old) = guard.handle.take() {
@@ -2539,8 +2572,7 @@ impl AudioEngine {
         // `set_output_device`'s error rollback.
         let send_result = (|| {
             if was_playing && !pre_release {
-                self.cmd_tx
-                    .send(AudioCmd::Stop)
+                self.stop_for_rebuild()
                     .map_err(|e| AppError::Audio(format!("audio command channel closed: {e}")))?;
             }
             // No-op when `pre_release` already took the old handle above.
@@ -2707,8 +2739,7 @@ impl AudioEngine {
         let mut previous_device = None;
         if pre_release {
             if was_playing {
-                self.cmd_tx
-                    .send(AudioCmd::Stop)
+                self.stop_for_rebuild()
                     .map_err(|e| AppError::Audio(format!("audio command channel closed: {e}")))?;
             }
             if let Some(old) = guard.handle.take() {
@@ -2800,8 +2831,7 @@ impl AudioEngine {
         // output back down so it doesn't outlive the engine.
         let send_result = (|| {
             if was_playing && !stopped_early {
-                self.cmd_tx
-                    .send(AudioCmd::Stop)
+                self.stop_for_rebuild()
                     .map_err(|e| AppError::Audio(format!("audio command channel closed: {e}")))?;
             }
             // Step 4 — drop the old output thread (releases the
@@ -2947,7 +2977,7 @@ impl AudioEngine {
             must_release_before_reopening(guard.handle.as_ref().map(|h| h.exclusive), enabled);
         if pre_release {
             if was_playing {
-                if let Err(e) = self.cmd_tx.send(AudioCmd::Stop) {
+                if let Err(e) = self.stop_for_rebuild() {
                     // Nothing has been torn down yet — the old exclusive
                     // stream is still installed and running. Roll the
                     // preference swap back so the in-memory pref keeps
@@ -3035,8 +3065,7 @@ impl AudioEngine {
         // as `force_rebuild_output`.
         let send_result = (|| {
             if was_playing && !pre_release {
-                self.cmd_tx
-                    .send(AudioCmd::Stop)
+                self.stop_for_rebuild()
                     .map_err(|e| AppError::Audio(format!("audio command channel closed: {e}")))?;
             }
             // No-op when `pre_release` already took the old handle above.

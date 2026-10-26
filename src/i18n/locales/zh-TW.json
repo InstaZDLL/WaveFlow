@@ -212,14 +212,13 @@
     },
     "playlists": {
       "createPlaylistAria": "建立新的播放清單",
-      "importM3uAria": "匯入 M3U 播放清單",
-      "importDialogTitle": "匯入 M3U 播放清單",
       "liked": "收藏的曲目",
       "recent": "最近播放的",
       "emptySubtext_zero": "0 首曲目",
       "emptySubtext_one": "{{count}} 首曲目",
       "emptySubtext_other": "{{count}} 首曲目",
-      "createSmartAria": "建立智慧型播放清單"
+      "createSmartAria": "建立智慧型播放清單",
+      "importAria": "匯入播放清單"
     },
     "myMusic": {
       "title": "我的音樂",
@@ -1020,6 +1019,12 @@
         "unknown": "音訊輸出已變更"
       },
       "dismiss": "關閉"
+    },
+    "live": {
+      "live": "直播",
+      "behind": "落後直播 {{time}}",
+      "goLive": "回到直播",
+      "behindState": "落後於直播"
     }
   },
   "queue": {
@@ -1188,7 +1193,13 @@
     "notFoundTitle": "找不到播放清單",
     "notFoundDescription": "此播放清單在目前的個人檔案中已不存在。",
     "smartLabel": "Daily Mix",
-    "smartLabelCustom": "智慧播放清單"
+    "smartLabelCustom": "智慧播放清單",
+    "placeholder": {
+      "missing": "不在你的音樂庫中",
+      "remove": "從播放清單中移除",
+      "count_one": "缺少 {{count}} 首",
+      "count_other": "缺少 {{count}} 首"
+    }
   },
   "trackActions": {
     "addToPlaylist": "加入播放清單",
@@ -3197,7 +3208,7 @@
         "offline": "離線模式已開啟。",
         "unreachable": "此位址上的電台沒有回應。",
         "notAudio": "此位址不指向音訊串流。",
-        "hls": "這是 HLS 播放清單：只支援連續的串流。",
+        "hls": "此 HLS 串流使用了 WaveFlow 無法播放的格式（加密、分段 MP4 或位元組範圍）。",
         "noStream": "播放清單中沒有 http:// 或 https:// 串流。",
         "notSaved": "收藏尚未載入，請稍後再試。"
       }
@@ -3648,6 +3659,36 @@
       "same": "此資料夾已在音樂庫中：{{folder}}",
       "inside": "此資料夾已在音樂庫中，位於 {{folder}} 內。",
       "contains": "此資料夾包含已在音樂庫中的 {{folder}}。請改為加入它的其他子資料夾。"
+    }
+  },
+  "playlistImport": {
+    "title": "匯入播放清單",
+    "help": "你已有的曲目會被加入。其餘曲目以灰色保留原位，等它們進入你的音樂庫時自動補上。",
+    "fromFile": "從檔案匯入",
+    "fromFileHint": "M3U、CSV 或 JSON",
+    "fileDialogTitle": "匯入播放清單檔案",
+    "linkLabel": "Deezer 播放清單連結",
+    "linkHint": "僅限公開播放清單，無需帳號。",
+    "importLink": "匯入",
+    "working": "正在匯入…",
+    "result": {
+      "imported_zero": "未加入任何曲目",
+      "imported_one": "已加入 {{count}} 首曲目",
+      "imported_other": "已加入 {{count}} 首曲目",
+      "placeholders_one": "{{count}} 首曲目等待中",
+      "placeholders_other": "{{count}} 首曲目等待中",
+      "duplicates_one": "已略過 {{count}} 個重複項目",
+      "duplicates_other": "已略過 {{count}} 個重複項目"
+    },
+    "errors": {
+      "unsupported": "此檔案不是 WaveFlow 能讀取的播放清單（M3U、CSV 或 JSON）。",
+      "unreadable": "無法讀取該檔案。",
+      "noTitleColumn": "CSV 沒有標題欄。第一列須列出欄位名稱，至少包含標題。",
+      "empty": "播放清單中沒有任何項目。",
+      "notALink": "這不是 Deezer 播放清單連結。",
+      "offline": "離線模式已開啟。",
+      "notFound": "Deezer 在此連結下沒有公開的播放清單。",
+      "unreachable": "無法連線到 Deezer。"
     }
   }
 }

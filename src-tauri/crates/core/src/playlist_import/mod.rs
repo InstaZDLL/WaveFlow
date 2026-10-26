@@ -1,0 +1,275 @@
+//! Playlists brought in from elsewhere: an M3U, a CSV or JSON export, a
+//! public Deezer playlist.
+//!
+//! Every source is read into the same list of [`ImportEntry`], in the
+//! playlist's own order, and every entry goes through the same
+//! [`matching::LibraryIndex`]. An entry the library holds becomes a
+//! `playlist_track` row; one it does not becomes a **placeholder**
+//! (`playlist_placeholder`), which keeps its place in the order and its
+//! metadata, and which a later scan turns into the real track when that
+//! track shows up. A placeholder is never presented as something the user
+//! owns: it is not counted, not timed, not queued.
+//!
+//! Parsing is here, without a network or a filesystem, so the rules can be
+//! tested on their own; reading the file, fetching Deezer and writing the
+//! rows belong to the caller.
+
+pub mod csv;
+pub mod deezer_link;
+pub mod json;
+pub mod m3u;
+pub mod matching;
+
+/// Most entries one import keeps. A real playlist is far below this; the
+/// cap is here so a file that is not one cannot fill the database.
+pub const MAX_ENTRIES: usize = 10_000;
+
+/// Where a placeholder came from — the `playlist_placeholder.source`
+/// column, whose `CHECK` lists the same four strings.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ImportSource {
+    M3u,
+    Csv,
+    Json,
+    Deezer,
+}
+
+impl ImportSource {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::M3u => "m3u",
+            Self::Csv => "csv",
+            Self::Json => "json",
+            Self::Deezer => "deezer",
+        }
+    }
+}
+
+/// One entry of an imported playlist, before it is matched.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct ImportEntry {
+    pub title: String,
+    /// As the source wrote it — possibly several names in one string
+    /// ("A, B", "A; B", "A feat. B"). Kept whole for display; the matcher
+    /// splits it.
+    pub artist: Option<String>,
+    pub album: Option<String>,
+    pub duration_ms: Option<i64>,
+    /// Already through [`normalize_isrc`].
+    pub isrc: Option<String>,
+    /// The file an M3U entry names, resolved against the playlist's own
+    /// folder. `None` for every other source.
+    pub locator: Option<String>,
+}
+
+/// A source read into entries, with the name it gives itself, if any.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct ParsedPlaylist {
+    pub name: Option<String>,
+    pub entries: Vec<ImportEntry>,
+}
+
+/// Why a file gave no playlist.
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+pub enum ParseError {
+    /// A CSV whose header names no title column — there would be nothing
+    /// to show, let alone to match.
+    #[error("no title column in the header")]
+    NoTitleColumn,
+    #[error("not a playlist JSON: {0}")]
+    Json(String),
+    #[error("the playlist has no entry")]
+    Empty,
+}
+
+/// An ISRC in the form the matcher compares: twelve characters, upper
+/// case, the hyphens and spaces some exports insert removed. Anything that
+/// is not twelve letters and digits afterwards is not an ISRC and is
+/// dropped rather than compared.
+pub fn normalize_isrc(raw: &str) -> Option<String> {
+    let cleaned: String = raw
+        .chars()
+        .filter(|c| !matches!(c, '-' | ' ' | '\u{a0}'))
+        .map(|c| c.to_ascii_uppercase())
+        .collect();
+    (cleaned.len() == 12 && cleaned.chars().all(|c| c.is_ascii_alphanumeric())).then_some(cleaned)
+}
+
+/// A duration as exports spell it: `m:ss` / `h:mm:ss`, or a plain number.
+///
+/// A plain number is seconds unless `as_ms` says the column is in
+/// milliseconds — or unless it is above 20 000: no track runs five and a
+/// half hours, and an export that writes milliseconds in a column called
+/// "duration" is common enough to be worth reading right.
+pub fn parse_duration(raw: &str, as_ms: bool) -> Option<i64> {
+    let raw = raw.trim();
+    if raw.is_empty() {
+        return None;
+    }
+    if raw.contains(':') {
+        let mut total: i64 = 0;
+        for part in raw.split(':') {
+            let value: f64 = part.trim().parse().ok()?;
+            if !(0.0..60.0).contains(&value) && total > 0 {
+                return None;
+            }
+            total = total.checked_mul(60)?;
+            total = total.checked_add(value.floor() as i64)?;
+        }
+        return total.checked_mul(1000).filter(|ms| *ms > 0);
+    }
+    let value: f64 = raw.parse().ok()?;
+    if !value.is_finite() || value <= 0.0 {
+        return None;
+    }
+    let ms = if as_ms || value > 20_000.0 {
+        value
+    } else {
+        value * 1000.0
+    };
+    Some(ms.round() as i64)
+}
+
+/// Build a comparable key from a filesystem path, **lexically**: `.` and
+/// `..` resolved, the separators the platform's, the Windows `\\?\` and
+/// `\\?\UNC\` extended-length prefixes stripped.
+///
+/// No filesystem access, on purpose. The paths compared come from a
+/// playlist someone else may have written, and are kept with its
+/// placeholders and compared again after every scan: resolving
+/// `\\host\share\x.mp3` through `canonicalize` would open an SMB
+/// connection to that host, which on Windows hands it the user's NTLM
+/// credentials. It is also a syscall per library track the M3U import no
+/// longer pays. What canonicalising bought — a symlink resolved, a casing
+/// fixed — is what the file-name fallback recovers anyway.
+///
+/// **Platform-aware case folding**: filesystems are case-insensitive on
+/// Windows + macOS (HFS+/APFS default) and case-sensitive on Linux. We
+/// lowercase only on Windows so a Linux library where `Song.flac` and
+/// `song.flac` are two distinct files (rare but legal) doesn't collide
+/// during the M3U → DB match. macOS is treated as case-sensitive too:
+/// a case-insensitive volume only suffers when the playlist's casing
+/// disagrees with the file's, which the file-name fallback does not fix
+/// either.
+pub fn path_key(p: &std::path::Path) -> String {
+    use std::path::Component;
+    let mut parts: Vec<String> = Vec::new();
+    let mut head = String::new();
+    for component in p.components() {
+        match component {
+            Component::Prefix(prefix) => head = prefix_key(prefix),
+            Component::RootDir => head.push(std::path::MAIN_SEPARATOR),
+            Component::CurDir => {}
+            Component::ParentDir => {
+                parts.pop();
+            }
+            Component::Normal(name) => parts.push(name.to_string_lossy().into_owned()),
+        }
+    }
+    let key = format!("{head}{}", parts.join(std::path::MAIN_SEPARATOR_STR));
+    if cfg!(windows) {
+        key.to_lowercase()
+    } else {
+        key
+    }
+}
+
+/// A Windows path prefix in its plain form: `\\?\C:` reads as `C:`, and
+/// `\\?\UNC\server\share` as `\\server\share`.
+fn prefix_key(prefix: std::path::PrefixComponent<'_>) -> String {
+    use std::path::Prefix;
+    match prefix.kind() {
+        Prefix::VerbatimDisk(drive) | Prefix::Disk(drive) => format!("{}:", drive as char),
+        Prefix::VerbatimUNC(server, share) | Prefix::UNC(server, share) => format!(
+            r"\\{}\{}",
+            server.to_string_lossy(),
+            share.to_string_lossy()
+        ),
+        _ => prefix.as_os_str().to_string_lossy().into_owned(),
+    }
+}
+
+/// The last component of a path as a playlist wrote it, split on `/` and
+/// `\` both: an M3U written on Windows keeps its backslashes when it is
+/// imported on Linux, where `Path::file_name` would return the whole
+/// string.
+pub fn file_name(path: &str) -> Option<&str> {
+    path.rsplit(['/', '\\'])
+        .next()
+        .filter(|name| !name.is_empty())
+}
+
+/// Trim a field and turn an empty one into `None`.
+pub(crate) fn non_empty(raw: &str) -> Option<String> {
+    let trimmed = raw.trim();
+    (!trimmed.is_empty()).then(|| trimmed.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn an_isrc_is_compared_without_its_hyphens_and_case() {
+        assert_eq!(
+            normalize_isrc("gb-n9y-11-00088").as_deref(),
+            Some("GBN9Y1100088")
+        );
+        assert_eq!(
+            normalize_isrc(" USRC17607839 ").as_deref(),
+            Some("USRC17607839")
+        );
+        assert_eq!(normalize_isrc("not an isrc"), None);
+        assert_eq!(normalize_isrc("USRC1760783"), None);
+        assert_eq!(normalize_isrc(""), None);
+    }
+
+    #[test]
+    fn a_path_key_is_built_without_touching_the_disk() {
+        use std::path::Path;
+        let sep = std::path::MAIN_SEPARATOR;
+        let key = path_key(Path::new("/music/./a/../b/song.flac"));
+        assert_eq!(key, format!("{sep}music{sep}b{sep}song.flac"));
+        if cfg!(windows) {
+            assert_eq!(
+                path_key(Path::new(r"\\?\C:\Music\Song.FLAC")),
+                path_key(Path::new("c:/music/song.flac"))
+            );
+            assert_eq!(
+                path_key(Path::new(r"\\?\UNC\server\share\x.mp3")),
+                r"\\server\share\x.mp3"
+            );
+            // A share another machine names is compared, never opened.
+            assert_eq!(
+                path_key(Path::new(r"\\203.0.113.9\music\x.mp3")),
+                r"\\203.0.113.9\music\x.mp3"
+            );
+        }
+    }
+
+    #[test]
+    fn a_file_name_is_found_whatever_the_separator() {
+        assert_eq!(file_name(r"C:\Music\a.flac"), Some("a.flac"));
+        assert_eq!(file_name("/music/b.mp3"), Some("b.mp3"));
+        assert_eq!(file_name("c.ogg"), Some("c.ogg"));
+        assert_eq!(file_name("/music/"), None);
+    }
+
+    #[test]
+    fn durations_are_read_the_way_exports_write_them() {
+        assert_eq!(parse_duration("3:45", false), Some(225_000));
+        assert_eq!(parse_duration("1:02:03", false), Some(3_723_000));
+        assert_eq!(parse_duration("225", false), Some(225_000));
+        assert_eq!(parse_duration("225.4", false), Some(225_400));
+        assert_eq!(parse_duration("225000", true), Some(225_000));
+        // Milliseconds in a column that does not say so.
+        assert_eq!(parse_duration("225000", false), Some(225_000));
+        assert_eq!(parse_duration("", false), None);
+        assert_eq!(parse_duration("-1", false), None);
+        assert_eq!(parse_duration("abc", false), None);
+        assert_eq!(parse_duration("3:75", false), None);
+        // Absurd, and refused rather than overflowed.
+        assert_eq!(parse_duration("200000000000000:00", false), None);
+    }
+}

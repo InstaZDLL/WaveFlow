@@ -218,8 +218,6 @@
     },
     "playlists": {
       "createPlaylistAria": "Создать новый плейлист",
-      "importM3uAria": "Импортировать плейлист M3U",
-      "importDialogTitle": "Импорт плейлиста M3U",
       "liked": "Любимые треки",
       "recent": "Недавно проигранные",
       "emptySubtext_zero": "0 треков",
@@ -227,7 +225,8 @@
       "emptySubtext_few": "{{count}} трека",
       "emptySubtext_other": "{{count}} треков",
       "createSmartAria": "Создать умный плейлист",
-      "emptySubtext_many": "{{count}} треков"
+      "emptySubtext_many": "{{count}} треков",
+      "importAria": "Импортировать плейлист"
     },
     "myMusic": {
       "title": "Моя музыка",
@@ -1106,6 +1105,12 @@
         "unknown": "Аудиовыход изменился"
       },
       "dismiss": "Закрыть"
+    },
+    "live": {
+      "live": "В эфире",
+      "behind": "Отставание от эфира: {{time}}",
+      "goLive": "Вернуться в эфир",
+      "behindState": "Отставание от эфира"
     }
   },
   "queue": {
@@ -1284,7 +1289,15 @@
     "notFoundDescription": "Этого плейлиста больше нет в активном профиле.",
     "smartLabel": "Daily Mix",
     "smartLabelCustom": "Умный плейлист",
-    "trackCount_many": "{{count}} треков"
+    "trackCount_many": "{{count}} треков",
+    "placeholder": {
+      "missing": "Нет в вашей медиатеке",
+      "remove": "Убрать из плейлиста",
+      "count_one": "{{count}} отсутствует",
+      "count_few": "{{count}} отсутствуют",
+      "count_many": "{{count}} отсутствуют",
+      "count_other": "{{count}} отсутствуют"
+    }
   },
   "trackActions": {
     "addToPlaylist": "Добавить в плейлист",
@@ -3341,7 +3354,7 @@
         "offline": "Включён автономный режим.",
         "unreachable": "Станция не отвечает по этому адресу.",
         "notAudio": "По этому адресу нет аудиопотока.",
-        "hls": "Это плейлист HLS: поддерживаются только непрерывные потоки.",
+        "hls": "Этот поток HLS использует формат, который WaveFlow не может воспроизвести (шифрование, фрагментированный MP4 или диапазоны байтов).",
         "noStream": "В плейлисте нет потока http:// или https://.",
         "notSaved": "Избранное ещё не загружено; повторите попытку чуть позже."
       }
@@ -3864,6 +3877,42 @@
       "same": "Эта папка уже в библиотеке: {{folder}}",
       "inside": "Эта папка уже в библиотеке, внутри {{folder}}.",
       "contains": "Эта папка содержит {{folder}}, которая уже в библиотеке. Добавьте лучше её другие подпапки."
+    }
+  },
+  "playlistImport": {
+    "title": "Импортировать плейлист",
+    "help": "Треки, которые у вас уже есть, добавляются. Остальные сохраняют своё место, серым цветом, и заполняются, когда появляются в вашей медиатеке.",
+    "fromFile": "Из файла",
+    "fromFileHint": "M3U, CSV или JSON",
+    "fileDialogTitle": "Импортировать файл плейлиста",
+    "linkLabel": "Ссылка на плейлист Deezer",
+    "linkHint": "Только публичные плейлисты. Аккаунт не нужен.",
+    "importLink": "Импортировать",
+    "working": "Импорт…",
+    "result": {
+      "imported_zero": "Треки не добавлены",
+      "imported_one": "Добавлен {{count}} трек",
+      "imported_few": "Добавлено {{count}} трека",
+      "imported_many": "Добавлено {{count}} треков",
+      "imported_other": "Добавлено {{count}} трека",
+      "placeholders_one": "{{count}} трек ожидает",
+      "placeholders_few": "{{count}} трека ожидают",
+      "placeholders_many": "{{count}} треков ожидают",
+      "placeholders_other": "{{count}} трека ожидают",
+      "duplicates_one": "Пропущен {{count}} повтор",
+      "duplicates_few": "Пропущено {{count}} повтора",
+      "duplicates_many": "Пропущено {{count}} повторов",
+      "duplicates_other": "Пропущено {{count}} повтора"
+    },
+    "errors": {
+      "unsupported": "Этот файл не является плейлистом, который WaveFlow умеет читать (M3U, CSV или JSON).",
+      "unreadable": "Не удалось прочитать файл.",
+      "noTitleColumn": "В CSV нет столбца с названием. Первая строка должна называть столбцы, как минимум название.",
+      "empty": "В плейлисте нет ни одной записи.",
+      "notALink": "Это не ссылка на плейлист Deezer.",
+      "offline": "Включён автономный режим.",
+      "notFound": "У Deezer нет публичного плейлиста по этой ссылке.",
+      "unreachable": "Не удалось связаться с Deezer."
     }
   }
 }

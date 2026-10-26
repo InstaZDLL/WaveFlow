@@ -861,6 +861,10 @@ pub(crate) async fn scan_folder_inner(
     let Some((library_id, folder_path)) = row else {
         return Err(AppError::Other(format!("folder {folder_id} not found")));
     };
+    // What the folder makes available before the scan, to tell afterwards
+    // whether a track came back — a file that reappears unchanged is
+    // counted as skipped, not added.
+    let available_before = super::playlist_import::available_in_folder(pool, folder_id).await;
 
     // Phase timers (diagnostics — logged once at the end so a slow scan
     // on a big library tells us which phase to optimise).
@@ -2048,6 +2052,18 @@ pub(crate) async fn scan_folder_inner(
             0
         }
     };
+
+    // The same, for imported playlists: a track the scan brought in takes
+    // the place of every placeholder waiting for it. Library-wide too — a
+    // playlist belongs to no folder. Non-fatal for the same reason. Only
+    // when the scan changed what the library holds: matching reads the
+    // whole library, and a watcher rescan that found nothing new would
+    // pay that for nothing.
+    let brought_tracks = summary.added + summary.updated > 0
+        || super::playlist_import::available_in_folder(pool, folder_id).await != available_before;
+    if brought_tracks {
+        super::playlist_import::fill_placeholders_after_scan(pool, app_handle).await;
+    }
 
     // Marked whatever the individual files turned out to hold: the
     // point of the pass is that every file was *read once*, and a

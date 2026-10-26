@@ -212,14 +212,13 @@
     },
     "playlists": {
       "createPlaylistAria": "새 재생 목록 만들기",
-      "importM3uAria": "M3U 재생 목록 가져오기",
-      "importDialogTitle": "M3U 재생 목록 가져오기",
       "liked": "좋아요한 곡",
       "recent": "최근 재생한 곡",
       "emptySubtext_zero": "0곡",
       "emptySubtext_one": "{{count}}곡",
       "emptySubtext_other": "{{count}}곡",
-      "createSmartAria": "스마트 재생 목록 만들기"
+      "createSmartAria": "스마트 재생 목록 만들기",
+      "importAria": "재생 목록 가져오기"
     },
     "myMusic": {
       "title": "내 음악",
@@ -1020,6 +1019,12 @@
         "unknown": "오디오 출력이 변경되었습니다"
       },
       "dismiss": "닫기"
+    },
+    "live": {
+      "live": "실시간",
+      "behind": "실시간보다 {{time}} 늦음",
+      "goLive": "실시간으로 돌아가기",
+      "behindState": "실시간보다 늦음"
     }
   },
   "queue": {
@@ -1188,7 +1193,13 @@
     "notFoundTitle": "재생 목록을 찾을 수 없습니다",
     "notFoundDescription": "이 재생 목록은 현재 프로필에서 더 이상 존재하지 않습니다.",
     "smartLabel": "Daily Mix",
-    "smartLabelCustom": "스마트 플레이리스트"
+    "smartLabelCustom": "스마트 플레이리스트",
+    "placeholder": {
+      "missing": "보관함에 없음",
+      "remove": "재생 목록에서 제거",
+      "count_one": "{{count}}곡 없음",
+      "count_other": "{{count}}곡 없음"
+    }
   },
   "trackActions": {
     "addToPlaylist": "재생 목록에 추가",
@@ -3197,7 +3208,7 @@
         "offline": "오프라인 모드가 켜져 있습니다.",
         "unreachable": "이 주소에서 방송국이 응답하지 않습니다.",
         "notAudio": "이 주소는 오디오 스트림으로 연결되지 않습니다.",
-        "hls": "HLS 재생 목록입니다. 연속 스트림만 지원합니다.",
+        "hls": "이 HLS 스트림은 WaveFlow가 재생할 수 없는 형식을 사용합니다(암호화, 조각난 MP4 또는 바이트 범위).",
         "noStream": "재생 목록에 http:// 또는 https:// 스트림이 없습니다.",
         "notSaved": "즐겨찾기를 아직 불러오지 못했습니다. 잠시 후 다시 시도하세요."
       }
@@ -3648,6 +3659,36 @@
       "same": "이 폴더는 이미 보관함에 있습니다: {{folder}}",
       "inside": "이 폴더는 이미 보관함의 {{folder}} 안에 있습니다.",
       "contains": "이 폴더에는 이미 보관함에 있는 {{folder}}이(가) 들어 있습니다. 대신 다른 하위 폴더를 추가하세요."
+    }
+  },
+  "playlistImport": {
+    "title": "재생 목록 가져오기",
+    "help": "이미 있는 곡은 추가됩니다. 나머지는 회색으로 제자리를 지키며, 보관함에 들어오면 채워집니다.",
+    "fromFile": "파일에서",
+    "fromFileHint": "M3U, CSV 또는 JSON",
+    "fileDialogTitle": "재생 목록 파일 가져오기",
+    "linkLabel": "Deezer 재생 목록 링크",
+    "linkHint": "공개 재생 목록만 가능합니다. 계정은 필요 없습니다.",
+    "importLink": "가져오기",
+    "working": "가져오는 중…",
+    "result": {
+      "imported_zero": "추가된 곡이 없습니다",
+      "imported_one": "{{count}}곡 추가됨",
+      "imported_other": "{{count}}곡 추가됨",
+      "placeholders_one": "{{count}}곡 대기 중",
+      "placeholders_other": "{{count}}곡 대기 중",
+      "duplicates_one": "중복 {{count}}개 건너뜀",
+      "duplicates_other": "중복 {{count}}개 건너뜀"
+    },
+    "errors": {
+      "unsupported": "이 파일은 WaveFlow가 읽을 수 있는 재생 목록(M3U, CSV, JSON)이 아닙니다.",
+      "unreadable": "파일을 읽을 수 없습니다.",
+      "noTitleColumn": "CSV에 제목 열이 없습니다. 첫 줄에 열 이름을 적고, 최소한 제목을 포함해야 합니다.",
+      "empty": "재생 목록에 항목이 없습니다.",
+      "notALink": "Deezer 재생 목록 링크가 아닙니다.",
+      "offline": "오프라인 모드가 켜져 있습니다.",
+      "notFound": "이 링크에는 Deezer 공개 재생 목록이 없습니다.",
+      "unreachable": "Deezer에 연결할 수 없습니다."
     }
   }
 }

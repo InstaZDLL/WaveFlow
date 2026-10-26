@@ -99,7 +99,7 @@ WaveFlow is a desktop music player for the audio files you already own. It scans
 
 ### 🎶 Playlists · [docs](docs/features/playlists.md) · [smart playlists](docs/features/smart-playlists.md)
 
-- Drag-and-drop, M3U import and export, a header coloured from the cover
+- Drag-and-drop, M3U export, and import from M3U, CSV, JSON or a public Deezer playlist link — the tracks you do not have yet keep their place and fill in when they reach your library; a header coloured from the cover
 - Smart playlists built from rules, with a live count
 - **Daily Mix** and **On Repeat**, generated from what you play
 

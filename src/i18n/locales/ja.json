@@ -212,14 +212,13 @@
     },
     "playlists": {
       "createPlaylistAria": "新しいプレイリストを作成する",
-      "importM3uAria": "M3Uプレイリストをインポートする",
-      "importDialogTitle": "M3Uプレイリストをインポートする",
       "liked": "「いいね」した曲",
       "recent": "最近再生した曲",
       "emptySubtext_zero": "0曲",
       "emptySubtext_one": "{{count}}曲",
       "emptySubtext_other": "{{count}}曲",
-      "createSmartAria": "スマートプレイリストを作成"
+      "createSmartAria": "スマートプレイリストを作成",
+      "importAria": "プレイリストをインポート"
     },
     "myMusic": {
       "title": "マイミュージック",
@@ -1020,6 +1019,12 @@
         "unknown": "オーディオ出力が変わりました"
       },
       "dismiss": "閉じる"
+    },
+    "live": {
+      "live": "ライブ",
+      "behind": "ライブから{{time}}遅れ",
+      "goLive": "ライブに戻る",
+      "behindState": "ライブから遅れています"
     }
   },
   "queue": {
@@ -1188,7 +1193,13 @@
     "notFoundTitle": "プレイリストが見つかりません",
     "notFoundDescription": "このプレイリストは、現在のプロフィールには存在しません。",
     "smartLabel": "Daily Mix",
-    "smartLabelCustom": "スマートプレイリスト"
+    "smartLabelCustom": "スマートプレイリスト",
+    "placeholder": {
+      "missing": "ライブラリにありません",
+      "remove": "プレイリストから削除",
+      "count_one": "{{count}}曲が未所持",
+      "count_other": "{{count}}曲が未所持"
+    }
   },
   "trackActions": {
     "addToPlaylist": "プレイリストに追加",
@@ -3197,7 +3208,7 @@
         "offline": "オフラインモードがオンです。",
         "unreachable": "このアドレスで局が応答しません。",
         "notAudio": "このアドレスはオーディオストリームにつながっていません。",
-        "hls": "HLS プレイリストです。連続ストリームのみ対応しています。",
+        "hls": "このHLSストリームはWaveFlowが再生できない形式を使っています（暗号化、断片化MP4、またはバイト範囲）。",
         "noStream": "プレイリストに http:// または https:// のストリームがありません。",
         "notSaved": "お気に入りがまだ読み込まれていません。少し待ってからもう一度お試しください。"
       }
@@ -3648,6 +3659,36 @@
       "same": "このフォルダーは既にライブラリにあります: {{folder}}",
       "inside": "このフォルダーは既にライブラリにあります({{folder}} の中)。",
       "contains": "このフォルダーには、既にライブラリにある {{folder}} が含まれています。代わりに他のサブフォルダーを追加してください。"
+    }
+  },
+  "playlistImport": {
+    "title": "プレイリストをインポート",
+    "help": "すでにある曲は追加されます。それ以外の曲はグレーで元の位置に残り、ライブラリに加わった時点で補完されます。",
+    "fromFile": "ファイルから",
+    "fromFileHint": "M3U、CSV、JSON",
+    "fileDialogTitle": "プレイリストファイルをインポート",
+    "linkLabel": "Deezerプレイリストのリンク",
+    "linkHint": "公開プレイリストのみ。アカウントは不要です。",
+    "importLink": "インポート",
+    "working": "インポート中…",
+    "result": {
+      "imported_zero": "追加された曲はありません",
+      "imported_one": "{{count}}曲を追加しました",
+      "imported_other": "{{count}}曲を追加しました",
+      "placeholders_one": "{{count}}曲が待機中",
+      "placeholders_other": "{{count}}曲が待機中",
+      "duplicates_one": "重複{{count}}件をスキップしました",
+      "duplicates_other": "重複{{count}}件をスキップしました"
+    },
+    "errors": {
+      "unsupported": "このファイルはWaveFlowが読めるプレイリスト（M3U、CSV、JSON）ではありません。",
+      "unreadable": "ファイルを読み込めませんでした。",
+      "noTitleColumn": "CSVにタイトル列がありません。1行目で列名を指定し、少なくともタイトルを含めてください。",
+      "empty": "プレイリストに項目がありません。",
+      "notALink": "Deezerのプレイリストのリンクではありません。",
+      "offline": "オフラインモードがオンです。",
+      "notFound": "このリンクにDeezerの公開プレイリストはありません。",
+      "unreachable": "Deezerに接続できませんでした。"
     }
   }
 }

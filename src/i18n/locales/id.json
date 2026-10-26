@@ -212,14 +212,13 @@
     },
     "playlists": {
       "createPlaylistAria": "Buat daftar putar baru",
-      "importM3uAria": "Impor daftar putar M3U",
-      "importDialogTitle": "Impor daftar putar M3U",
       "liked": "Lagu yang disukai",
       "recent": "Baru saja diputar",
       "emptySubtext_zero": "0 lagu",
       "emptySubtext_one": "{{count}} lagu",
       "emptySubtext_other": "{{count}} lagu",
-      "createSmartAria": "Buat daftar putar pintar"
+      "createSmartAria": "Buat daftar putar pintar",
+      "importAria": "Impor daftar putar"
     },
     "myMusic": {
       "title": "Musikku",
@@ -1020,6 +1019,12 @@
         "unknown": "Keluaran audio berubah"
       },
       "dismiss": "Tutup"
+    },
+    "live": {
+      "live": "Siaran langsung",
+      "behind": "{{time}} di belakang siaran langsung",
+      "goLive": "Kembali ke siaran langsung",
+      "behindState": "Di belakang siaran langsung"
     }
   },
   "queue": {
@@ -1188,7 +1193,13 @@
     "notFoundTitle": "Daftar putar tidak ditemukan",
     "notFoundDescription": "Daftar putar ini tidak lagi ada di profil aktif.",
     "smartLabel": "Daily Mix",
-    "smartLabelCustom": "Playlist pintar"
+    "smartLabelCustom": "Playlist pintar",
+    "placeholder": {
+      "missing": "Tidak ada di pustaka Anda",
+      "remove": "Hapus dari daftar putar",
+      "count_one": "{{count}} tidak ada",
+      "count_other": "{{count}} tidak ada"
+    }
   },
   "trackActions": {
     "addToPlaylist": "Tambahkan ke daftar putar",
@@ -3197,7 +3208,7 @@
         "offline": "Mode offline aktif.",
         "unreachable": "Stasiun tidak merespons di alamat ini.",
         "notAudio": "Alamat ini tidak mengarah ke stream audio.",
-        "hls": "Ini playlist HLS: hanya stream berkelanjutan yang didukung.",
+        "hls": "Aliran HLS ini memakai format yang tidak dapat diputar WaveFlow (enkripsi, MP4 terfragmentasi, atau rentang byte).",
         "noStream": "Playlist tidak berisi stream http:// atau https://.",
         "notSaved": "Favorit Anda belum dimuat; coba lagi sebentar lagi."
       }
@@ -3648,6 +3659,36 @@
       "same": "Folder ini sudah ada di pustaka: {{folder}}",
       "inside": "Folder ini sudah ada di pustaka, di dalam {{folder}}.",
       "contains": "Folder ini berisi {{folder}}, yang sudah ada di pustaka. Tambahkan subfolder lainnya saja."
+    }
+  },
+  "playlistImport": {
+    "title": "Impor daftar putar",
+    "help": "Lagu yang sudah Anda miliki ditambahkan. Yang lain tetap di tempatnya, berwarna abu-abu, dan dilengkapi saat muncul di pustaka Anda.",
+    "fromFile": "Dari file",
+    "fromFileHint": "M3U, CSV, atau JSON",
+    "fileDialogTitle": "Impor file daftar putar",
+    "linkLabel": "Tautan daftar putar Deezer",
+    "linkHint": "Hanya daftar putar publik. Tidak perlu akun.",
+    "importLink": "Impor",
+    "working": "Mengimpor…",
+    "result": {
+      "imported_zero": "Tidak ada lagu yang ditambahkan",
+      "imported_one": "{{count}} lagu ditambahkan",
+      "imported_other": "{{count}} lagu ditambahkan",
+      "placeholders_one": "{{count}} lagu menunggu",
+      "placeholders_other": "{{count}} lagu menunggu",
+      "duplicates_one": "{{count}} duplikat dilewati",
+      "duplicates_other": "{{count}} duplikat dilewati"
+    },
+    "errors": {
+      "unsupported": "File ini bukan daftar putar yang dapat dibaca WaveFlow (M3U, CSV, atau JSON).",
+      "unreadable": "File tidak dapat dibaca.",
+      "noTitleColumn": "CSV tidak memiliki kolom judul. Baris pertamanya harus menamai kolom, setidaknya judul.",
+      "empty": "Daftar putar tidak memiliki entri.",
+      "notALink": "Ini bukan tautan daftar putar Deezer.",
+      "offline": "Mode luring aktif.",
+      "notFound": "Deezer tidak memiliki daftar putar publik di tautan ini.",
+      "unreachable": "Deezer tidak dapat dihubungi."
     }
   }
 }

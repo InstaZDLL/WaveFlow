@@ -221,8 +221,6 @@
     },
     "playlists": {
       "createPlaylistAria": "إنشاء قائمة تشغيل جديدة",
-      "importM3uAria": "استيراد قائمة تشغيل M3U",
-      "importDialogTitle": "استيراد قائمة تشغيل M3U",
       "liked": "المقاطع المفضلة",
       "recent": "شُغّلت مؤخرًا",
       "emptySubtext_zero": "0 مقطع",
@@ -231,7 +229,8 @@
       "createSmartAria": "إنشاء قائمة تشغيل ذكية",
       "emptySubtext_two": "مقطعان",
       "emptySubtext_few": "{{count}} مقاطع",
-      "emptySubtext_many": "{{count}} مقطعًا"
+      "emptySubtext_many": "{{count}} مقطعًا",
+      "importAria": "استيراد قائمة تشغيل"
     },
     "myMusic": {
       "title": "موسيقاي",
@@ -1160,6 +1159,12 @@
         "unknown": "تغيّر مخرج الصوت"
       },
       "dismiss": "إغلاق"
+    },
+    "live": {
+      "live": "مباشر",
+      "behind": "متأخر {{time}} عن البث المباشر",
+      "goLive": "العودة إلى البث المباشر",
+      "behindState": "متأخر عن البث المباشر"
     }
   },
   "queue": {
@@ -1345,7 +1350,17 @@
     "smartLabelCustom": "قائمة تشغيل ذكية",
     "trackCount_two": "مقطعان",
     "trackCount_few": "{{count}} مقاطع",
-    "trackCount_many": "{{count}} مقطعًا"
+    "trackCount_many": "{{count}} مقطعًا",
+    "placeholder": {
+      "missing": "غير موجود في مكتبتك",
+      "remove": "إزالة من قائمة التشغيل",
+      "count_zero": "لا شيء مفقود",
+      "count_one": "مقطع واحد مفقود",
+      "count_two": "مقطعان مفقودان",
+      "count_few": "{{count}} مقاطع مفقودة",
+      "count_many": "{{count}} مقطعًا مفقودًا",
+      "count_other": "{{count}} مقطع مفقود"
+    }
   },
   "trackActions": {
     "addToPlaylist": "إضافة إلى قائمة تشغيل",
@@ -3442,7 +3457,7 @@
         "offline": "وضع عدم الاتصال مفعّل.",
         "unreachable": "لا تستجيب المحطة على هذا العنوان.",
         "notAudio": "لا يقود هذا العنوان إلى بث صوتي.",
-        "hls": "هذه قائمة HLS: لا تُدعم إلا البثوث المتواصلة.",
+        "hls": "يستخدم هذا البث بصيغة HLS تنسيقًا لا يستطيع WaveFlow تشغيله (تشفير أو MP4 مجزأ أو نطاقات بايت).",
         "noStream": "لا تحتوي القائمة على بث http:// أو https://.",
         "notSaved": "لم تُحمَّل مفضلتك بعد؛ حاول مجددًا بعد لحظة."
       }
@@ -4033,6 +4048,47 @@
       "same": "هذا المجلد موجود بالفعل في المكتبة: {{folder}}",
       "inside": "هذا المجلد موجود بالفعل في المكتبة، داخل {{folder}}.",
       "contains": "يحتوي هذا المجلد على {{folder}} الموجود بالفعل في المكتبة. أضف مجلداته الفرعية الأخرى بدلًا من ذلك."
+    }
+  },
+  "playlistImport": {
+    "title": "استيراد قائمة تشغيل",
+    "help": "تُضاف المقاطع الموجودة لديك بالفعل. أما البقية فتحتفظ بمكانها باللون الرمادي، وتُستكمل عند وصولها إلى مكتبتك.",
+    "fromFile": "من ملف",
+    "fromFileHint": "M3U أو CSV أو JSON",
+    "fileDialogTitle": "استيراد ملف قائمة تشغيل",
+    "linkLabel": "رابط قائمة تشغيل على Deezer",
+    "linkHint": "القوائم العامة فقط. لا حاجة إلى حساب.",
+    "importLink": "استيراد",
+    "working": "جارٍ الاستيراد…",
+    "result": {
+      "imported_zero": "لم يُضف أي مقطع",
+      "imported_one": "أُضيف مقطع واحد",
+      "imported_two": "أُضيف مقطعان",
+      "imported_few": "أُضيفت {{count}} مقاطع",
+      "imported_many": "أُضيف {{count}} مقطعًا",
+      "imported_other": "أُضيف {{count}} مقطع",
+      "placeholders_zero": "لا مقاطع في الانتظار",
+      "placeholders_one": "مقطع واحد في الانتظار",
+      "placeholders_two": "مقطعان في الانتظار",
+      "placeholders_few": "{{count}} مقاطع في الانتظار",
+      "placeholders_many": "{{count}} مقطعًا في الانتظار",
+      "placeholders_other": "{{count}} مقطع في الانتظار",
+      "duplicates_zero": "لا تكرارات",
+      "duplicates_one": "تُخطّي تكرار واحد",
+      "duplicates_two": "تُخطّي تكراران",
+      "duplicates_few": "تُخطّيت {{count}} تكرارات",
+      "duplicates_many": "تُخطّي {{count}} تكرارًا",
+      "duplicates_other": "تُخطّي {{count}} تكرار"
+    },
+    "errors": {
+      "unsupported": "هذا الملف ليس قائمة تشغيل يستطيع WaveFlow قراءتها (M3U أو CSV أو JSON).",
+      "unreadable": "تعذّرت قراءة الملف.",
+      "noTitleColumn": "لا يحتوي ملف CSV على عمود للعنوان. يجب أن يسمّي سطره الأول الأعمدة، وأن يتضمّن العنوان على الأقل.",
+      "empty": "لا تحتوي قائمة التشغيل على أي إدخال.",
+      "notALink": "هذا ليس رابط قائمة تشغيل على Deezer.",
+      "offline": "وضع عدم الاتصال مُفعّل.",
+      "notFound": "لا توجد لدى Deezer قائمة تشغيل عامة على هذا الرابط.",
+      "unreachable": "تعذّر الوصول إلى Deezer."
     }
   }
 }

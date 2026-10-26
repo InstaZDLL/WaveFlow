@@ -179,6 +179,7 @@ pub async fn create_playlist(
         updated_at: now,
         track_count: 0,
         total_duration_ms: 0,
+        placeholder_count: 0,
         smart_rules: None,
     })
 }
@@ -678,7 +679,7 @@ pub async fn add_source_to_playlist(
     Ok(inserted)
 }
 
-// ── M3U / M3U8 import + export ──────────────────────────────────────
+// ── M3U / M3U8 export ───────────────────────────────────────────────
 //
 // Plain-text playlist exchange so users can move between WaveFlow and
 // foobar2000 / VLC / Rekordbox / car stereos. Format:
@@ -688,75 +689,9 @@ pub async fn add_source_to_playlist(
 //   #EXTINF:<seconds>,<artist> - <title>
 //   <absolute path>
 //
-// We always write UTF-8 (.m3u8). On import we accept both encodings —
-// UTF-8 first, lossy latin-1 fallback for older players' .m3u dumps.
-
-#[derive(Debug, serde::Serialize)]
-pub struct ImportPlaylistResult {
-    pub playlist_id: i64,
-    pub imported: i64,
-    pub missing: i64,
-    /// Up to 20 unmatched paths so the UI can surface them to the
-    /// user. Truncated server-side to keep the IPC payload bounded
-    /// even when a user imports a 10 k-line broken playlist.
-    pub missing_paths: Vec<String>,
-}
-
-/// Build a comparable key from a filesystem path. We canonicalize
-/// when possible (resolves symlinks, fixes case, tightens drive
-/// letters) then strip the `\\?\` and `\\?\UNC\` extended-length
-/// prefixes Windows' `canonicalize` adds. Falls back to the input
-/// path when canonicalize fails so library-relative .m3u entries can
-/// still match scanned tracks even if the file isn't currently
-/// mounted.
-///
-/// **Platform-aware case folding**: filesystems are case-insensitive on
-/// Windows + macOS (HFS+/APFS default) and case-sensitive on Linux. We
-/// lowercase only on Windows so a Linux library where `Song.flac` and
-/// `song.flac` are two distinct files (rare but legal) doesn't collide
-/// during the M3U → DB match. macOS is treated as case-sensitive too —
-/// the rare case-sensitive HFS+/APFS volume gets a correct match, and
-/// the common case-insensitive one only suffers when the M3U casing
-/// disagrees with the on-disk casing (which `canonicalize` usually
-/// fixes anyway).
-fn canonical_path_key(p: &std::path::Path) -> String {
-    let canon = std::fs::canonicalize(p).unwrap_or_else(|_| p.to_path_buf());
-    let s = canon.to_string_lossy().to_string();
-    #[cfg(windows)]
-    {
-        // Windows: strip `\\?\` / `\\?\UNC\` prefixes that canonicalize
-        // adds (extended-length paths), then lowercase since NTFS is
-        // case-insensitive by default. Byte-level prefix match used so
-        // some shells that mangle raw strings can't drop a backslash.
-        let bytes = s.as_bytes();
-        let has_verbatim = bytes.len() >= 4
-            && bytes[0] == b'\\'
-            && bytes[1] == b'\\'
-            && bytes[2] == b'?'
-            && bytes[3] == b'\\';
-        let has_unc = has_verbatim
-            && bytes.len() >= 8
-            && (bytes[4] == b'U' || bytes[4] == b'u')
-            && (bytes[5] == b'N' || bytes[5] == b'n')
-            && (bytes[6] == b'C' || bytes[6] == b'c')
-            && bytes[7] == b'\\';
-        if has_unc {
-            // \\?\UNC\server\share\... → \\server\share\...
-            return format!("\\\\{}", &s[8..]).to_lowercase();
-        }
-        if has_verbatim {
-            // \\?\C:\... → C:\...
-            return s[4..].to_lowercase();
-        }
-        s.to_lowercase()
-    }
-    #[cfg(not(windows))]
-    {
-        // Linux / macOS: case-sensitive matching. No extended-length
-        // prefix to strip — `canonicalize` returns plain absolute paths.
-        s
-    }
-}
+// We always write UTF-8 (.m3u8). Importing — M3U and the other formats —
+// lives in `playlist_import`. A placeholder has no file, so it has no line
+// here: an M3U entry is a path.
 
 /// Write the active playlist out as a UTF-8 .m3u8 file at `dest_path`.
 /// Caller (frontend) is responsible for picking the destination via
@@ -848,149 +783,4 @@ pub async fn export_playlist_m3u(
         "playlist exported as m3u8"
     );
     Ok(())
-}
-
-/// Parse an .m3u / .m3u8 file at `source_path`, match each entry
-/// against the active profile's library, and create a new playlist
-/// holding the tracks that resolved. Unmatched entries are returned
-/// (truncated to 20) so the UI can warn the user.
-#[tauri::command]
-pub async fn import_playlist_m3u(
-    state: tauri::State<'_, AppState>,
-    source_path: String,
-) -> AppResult<ImportPlaylistResult> {
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
-    let src = std::path::PathBuf::from(&source_path);
-
-    let raw = std::fs::read(&src).map_err(|e| AppError::Other(format!("read m3u file: {e}")))?;
-    // A `.m3u8` is UTF-8; a legacy `.m3u` is in the code page of the
-    // machine that wrote it — Windows-1252, but just as often GBK, Big5
-    // or Shift_JIS, whose paths a byte-per-char read turned into
-    // nonsense that matched nothing.
-    let text = waveflow_core::text_encoding::decode(&raw);
-
-    let parent = src.parent().unwrap_or_else(|| std::path::Path::new(""));
-
-    // Collect candidate paths in playlist order, resolving relatives
-    // against the m3u's own directory (matches what every desktop
-    // player does and what users intuitively expect).
-    let mut candidates: Vec<std::path::PathBuf> = Vec::new();
-    for raw_line in text.lines() {
-        // BOMs sneak in on Windows-edited m3u8 files; strip them once.
-        let line = raw_line.trim_start_matches('\u{feff}').trim();
-        if line.is_empty() || line.starts_with('#') {
-            continue;
-        }
-        let p = std::path::PathBuf::from(line);
-        let resolved = if p.is_absolute() { p } else { parent.join(&p) };
-        candidates.push(resolved);
-    }
-
-    // Build two lowercase lookups over every available track in the
-    // active library — one full table scan, O(1) per candidate. The
-    // canonical lookup is the primary match (handles different drive
-    // mounts, symlinks, case differences). The basename lookup is a
-    // last-resort fallback when the .m3u was authored on a machine
-    // whose absolute paths don't resolve here — common when sharing
-    // playlists across libraries with the same filename layout.
-    #[derive(FromRow)]
-    struct PathRow {
-        id: i64,
-        file_path: String,
-    }
-    let all =
-        sqlx::query_as::<_, PathRow>("SELECT id, file_path FROM track WHERE is_available = 1")
-            .fetch_all(&*pool)
-            .await?;
-    let mut by_canonical: std::collections::HashMap<String, i64> =
-        std::collections::HashMap::with_capacity(all.len());
-    let mut by_basename: std::collections::HashMap<String, i64> =
-        std::collections::HashMap::with_capacity(all.len());
-    for r in all {
-        let p = std::path::Path::new(&r.file_path);
-        by_canonical.insert(canonical_path_key(p), r.id);
-        if let Some(stem) = p.file_name().and_then(|s| s.to_str()) {
-            // Last-write-wins on basename collisions — that's fine,
-            // the user can still curate the playlist after import.
-            by_basename.insert(stem.to_lowercase(), r.id);
-        }
-    }
-
-    let mut matched: Vec<i64> = Vec::with_capacity(candidates.len());
-    let mut missing: Vec<String> = Vec::new();
-    for path in &candidates {
-        let key = canonical_path_key(path);
-        if let Some(id) = by_canonical.get(&key) {
-            matched.push(*id);
-            continue;
-        }
-        if let Some(stem) = path.file_name().and_then(|s| s.to_str()) {
-            if let Some(id) = by_basename.get(&stem.to_lowercase()) {
-                matched.push(*id);
-                continue;
-            }
-        }
-        missing.push(path.to_string_lossy().to_string());
-    }
-    if matched.is_empty() && !candidates.is_empty() {
-        // Surface the first few resolved keys + a peek at the
-        // library's stored basenames so the user can immediately tell
-        // whether the divergence is path-shape or "the tracks just
-        // aren't scanned in this profile".
-        let sample: Vec<String> = candidates
-            .iter()
-            .take(3)
-            .map(|p| canonical_path_key(p))
-            .collect();
-        let library_sample: Vec<String> = by_basename.keys().take(3).cloned().collect();
-        tracing::warn!(
-            ?sample,
-            library_sample = ?library_sample,
-            library_size = by_basename.len(),
-            total = candidates.len(),
-            "m3u import: no entries matched the active library"
-        );
-    }
-
-    let name = src
-        .file_stem()
-        .and_then(|s| s.to_str())
-        .map(|s| s.trim().to_string())
-        .filter(|s| !s.is_empty())
-        .unwrap_or_else(|| "Imported playlist".to_string());
-
-    let now = now_millis();
-    let draft = PlaylistDraft {
-        name,
-        description: None,
-        color_id: "violet".to_string(),
-        color_mode: "auto".to_string(),
-        icon_id: "music".to_string(),
-        now_ms: now,
-    };
-    let (new_id, imported_u32) = SqlitePlaylistRepository::new(pool.clone())
-        .create_with_tracks(&draft, &matched)
-        .await?;
-    let imported = i64::from(imported_u32);
-
-    let missing_count = missing.len() as i64;
-    tracing::info!(
-        playlist_id = new_id,
-        path = %src.display(),
-        imported,
-        missing = missing_count,
-        "playlist imported from m3u"
-    );
-
-    let missing_paths: Vec<String> = missing.into_iter().take(20).collect();
-
-    super::playlist_cover::maybe_regen_auto_cover(&pool, &state.paths, profile_id, new_id).await;
-
-    Ok(ImportPlaylistResult {
-        playlist_id: new_id,
-        imported,
-        missing: missing_count,
-        missing_paths,
-    })
 }

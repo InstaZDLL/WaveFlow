@@ -1007,11 +1007,19 @@ async fn track_at_position(pool: &SqlitePool, position: i64) -> AppResult<Option
 }
 
 /// Return the track currently pointed at by `queue.current_index`.
+///
+/// The cursor is clamped into the queue first, as [`stepped_index`] does:
+/// a stale one — a queue that shrank under it — would otherwise point
+/// past the last row and report no track at all.
 pub async fn current_track(pool: &SqlitePool) -> AppResult<Option<QueueTrack>> {
     let Some(idx) = read_setting_i64(pool, "queue.current_index").await? else {
         return Ok(None);
     };
-    track_at_position(pool, idx).await
+    let length = queue_length(pool).await?;
+    if length == 0 {
+        return Ok(None);
+    }
+    track_at_position(pool, idx.clamp(0, length - 1)).await
 }
 
 /// Move the cursor to an arbitrary position in the existing queue
@@ -1131,22 +1139,13 @@ pub async fn advance(
 /// the crossfade actually starts.
 pub async fn peek_next(pool: &SqlitePool, repeat: RepeatMode) -> AppResult<Option<QueueTrack>> {
     let length = queue_length(pool).await?;
-    if length == 0 {
-        return Ok(None);
-    }
     let current = read_setting_i64(pool, "queue.current_index")
         .await?
         .unwrap_or(0);
-
-    let next_index = match repeat {
-        RepeatMode::One => current,
-        RepeatMode::Off => {
-            if current + 1 >= length {
-                return Ok(None);
-            }
-            current + 1
-        }
-        RepeatMode::All => (current + 1) % length,
+    // The same rule as the step itself, so what is preloaded for a gapless
+    // hand-over is what the advance then plays, a stale cursor included.
+    let Some(next_index) = stepped_index(length, current, Direction::Next, repeat) else {
+        return Ok(None);
     };
     track_at_position(pool, next_index).await
 }
@@ -1992,7 +1991,10 @@ mod step_tests {
 
 #[cfg(test)]
 mod fill_queue_tests {
-    use super::{append_to_user_queue, fill_queue, insert_after_current, read_album_ordered};
+    use super::{
+        append_to_user_queue, current_track, fill_queue, insert_after_current, peek_next,
+        peek_step, read_album_ordered, write_setting_i64, Direction, RepeatMode,
+    };
     use sqlx::SqlitePool;
 
     /// The repo's own profile migrations, with `foreign_keys` on —
@@ -2101,5 +2103,34 @@ mod fill_queue_tests {
             .unwrap());
         assert!(!append_to_user_queue(&pool, &[2], None).await.unwrap());
         assert!(read_album_ordered(&pool).await);
+    }
+
+    /// A cursor left past the end — the queue shrank under it — is read
+    /// as the last row, as a step reads it: the playing track is still
+    /// reported, and what is preloaded next is what the step will play.
+    #[tokio::test]
+    async fn a_stale_cursor_is_read_inside_the_queue() {
+        let pool = migrated_pool().await;
+        fill_queue(&pool, "playlist", Some(1), &[1, 2], 0, false)
+            .await
+            .unwrap();
+        write_setting_i64(&pool, "queue.current_index", 99)
+            .await
+            .unwrap();
+
+        let current = current_track(&pool)
+            .await
+            .unwrap()
+            .expect("a current track");
+        assert_eq!(current.id, 2, "the last row stands in for the stale cursor");
+
+        for repeat in [RepeatMode::Off, RepeatMode::All, RepeatMode::One] {
+            let preloaded = peek_next(&pool, repeat).await.unwrap().map(|t| t.id);
+            let stepped = peek_step(&pool, Direction::Next, repeat)
+                .await
+                .unwrap()
+                .map(|(_, t)| t.id);
+            assert_eq!(preloaded, stepped, "{repeat:?}: preload and step agree");
+        }
     }
 }

@@ -207,6 +207,7 @@ pub async fn remove_track_conn(
     .bind(pos)
     .execute(&mut *conn)
     .await?;
+    super::playlist_placeholder::shift_after_removal(conn, playlist_id, pos).await?;
     sqlx::query("UPDATE playlist SET updated_at = ? WHERE id = ?")
         .bind(now_ms)
         .bind(playlist_id)
@@ -273,6 +274,8 @@ pub async fn reorder_track_conn(
         .await?;
     }
 
+    super::playlist_placeholder::shift_for_move(conn, playlist_id, from, to).await?;
+
     sqlx::query(
         "UPDATE playlist_track SET position = ?
           WHERE playlist_id = ? AND track_id = ?",
@@ -310,7 +313,9 @@ impl SqlitePlaylistRepository {
 }
 
 /// `SELECT … FROM playlist p LEFT JOIN (counts)` — kept as a const so
-/// the same projection backs both list + single-row fetches.
+/// the same projection backs both list + single-row fetches. The counts
+/// are of real tracks only; a placeholder is counted apart, in
+/// `placeholder_count`, never as a track the user has.
 const SELECT_WITH_COUNTS: &str = r#"
 SELECT p.id, p.name, p.description, p.color_id, p.color_mode, p.icon_id,
        p.is_smart, p.cover_hash, NULL AS cover_path,
@@ -318,6 +323,8 @@ SELECT p.id, p.name, p.description, p.color_id, p.color_mode, p.icon_id,
        p.position, p.created_at, p.updated_at,
        COALESCE(pc.track_count,       0) AS track_count,
        COALESCE(pc.total_duration_ms, 0) AS total_duration_ms,
+       (SELECT COUNT(*) FROM playlist_placeholder ph
+         WHERE ph.playlist_id = p.id) AS placeholder_count,
        p.smart_rules
   FROM playlist p
   LEFT JOIN (
