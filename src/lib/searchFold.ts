@@ -16,7 +16,10 @@ export function foldForSearch(value: string): string {
     value
       .normalize("NFD")
       .replace(/[\p{Diacritic}\u0653-\u0655]/gu, "")
-      .toLocaleLowerCase()
+      // Not toLocaleLowerCase: under a Turkish locale it writes I as ı, so
+      // "International" stopped matching "international". A dotted İ is
+      // already I by now, its dot stripped with the diacritics.
+      .toLowerCase()
       // Lowercasing a whole string writes a word-final Greek sigma as ς, so
       // "ΚΟΣ" typed in capitals became "κος" and missed "κοσμος".
       .replace(/ς/g, "σ")

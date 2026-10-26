@@ -132,17 +132,23 @@ export function PluginStoreCard({
 
   // The search runs over the catalogue already loaded, on what the row
   // shows in the user's language: the name (registries carry it as is),
-  // the description resolved like the row resolves it, the world chip's
-  // label beside the raw WIT world, the author and the registry tags.
-  // Every word of the query must appear, in any order.
+  // the description resolved like the row resolves it plus its English
+  // source (a term is often typed in English whatever the UI language),
+  // the world chip's label beside the raw WIT world, the author and the
+  // registry tags. Every word of the query must appear, in any order.
   const terms = searchTerms(query);
   const shown = terms.length
     ? available.filter((entry) => {
         const worldKey = pluginWorldLabelKey(entry.world);
+        const english =
+          entry.description && typeof entry.description === "object"
+            ? (entry.description.en ?? "")
+            : "";
         const text = foldForSearch(
           [
             entry.name,
             localize(entry.description) ?? "",
+            english,
             worldKey ? t(worldKey) : "",
             entry.world,
             entry.author,
