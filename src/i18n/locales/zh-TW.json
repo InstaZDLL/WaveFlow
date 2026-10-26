@@ -1919,7 +1919,16 @@
         "lanWarningAuth": "可從整個區域網路存取，但播放控制需要你設定的密碼。",
         "statusRunning": "執行中",
         "statusStopped": "已停止",
-        "copyAddress": "複製位址"
+        "copyAddress": "複製位址",
+        "suggestTitle": "為伺服器設定密碼？",
+        "suggestBody": "沒有密碼時，網路中的任何裝置都能暫停播放、切換曲目或調整音量。",
+        "suggestGenerate": "產生密碼",
+        "suggestChoose": "自行設定",
+        "suggestDismiss": "稍後再說",
+        "generatedHint": "密碼已儲存：請在你的 MPD 用戶端中輸入。",
+        "showPassword": "顯示密碼",
+        "hidePassword": "隱藏密碼",
+        "saveFailed": "無法儲存 MPD 伺服器設定：未做任何變更。"
       },
       "notifications": {
         "title": "曲目變更通知",

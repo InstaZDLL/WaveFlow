@@ -1919,7 +1919,16 @@
         "lanWarningAuth": "可从整个局域网访问，但播放控制需要你设置的密码。",
         "statusRunning": "运行中",
         "statusStopped": "已停止",
-        "copyAddress": "复制地址"
+        "copyAddress": "复制地址",
+        "suggestTitle": "为服务器设置密码？",
+        "suggestBody": "没有密码时，网络中的任何设备都能暂停播放、切换曲目或调节音量。",
+        "suggestGenerate": "生成密码",
+        "suggestChoose": "自己设置",
+        "suggestDismiss": "以后再说",
+        "generatedHint": "密码已保存：请在你的 MPD 客户端中输入。",
+        "showPassword": "显示密码",
+        "hidePassword": "隐藏密码",
+        "saveFailed": "无法保存 MPD 服务器设置：未做任何更改。"
       },
       "notifications": {
         "title": "曲目变更通知",

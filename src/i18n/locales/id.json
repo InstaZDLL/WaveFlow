@@ -1948,7 +1948,16 @@
         "lanWarningAuth": "Dapat dijangkau dari seluruh jaringan lokalmu, tetapi kontrol pemutaran memerlukan kata sandi yang kamu tetapkan.",
         "statusRunning": "Aktif",
         "statusStopped": "Berhenti",
-        "copyAddress": "Salin alamat"
+        "copyAddress": "Salin alamat",
+        "suggestTitle": "Lindungi server dengan kata sandi?",
+        "suggestBody": "Tanpa kata sandi, perangkat apa pun di jaringan Anda bisa menjeda, melewati lagu, atau mengubah volume.",
+        "suggestGenerate": "Buat kata sandi",
+        "suggestChoose": "Pilih sendiri",
+        "suggestDismiss": "Nanti saja",
+        "generatedHint": "Kata sandi disimpan: masukkan di klien MPD Anda.",
+        "showPassword": "Tampilkan kata sandi",
+        "hidePassword": "Sembunyikan kata sandi",
+        "saveFailed": "Pengaturan server MPD tidak dapat disimpan: tidak ada yang diubah."
       },
       "notifications": {
         "title": "Notifikasi pergantian lagu",

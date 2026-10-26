@@ -1950,7 +1950,16 @@
         "lanWarningAuth": "Aus deinem gesamten lokalen Netzwerk erreichbar, aber die Wiedergabesteuerung erfordert das von dir festgelegte Passwort.",
         "statusRunning": "Aktiv",
         "statusStopped": "Gestoppt",
-        "copyAddress": "Adresse kopieren"
+        "copyAddress": "Adresse kopieren",
+        "suggestTitle": "Server mit einem Passwort schützen?",
+        "suggestBody": "Ohne Passwort kann jedes Gerät im Netzwerk pausieren, Titel überspringen oder die Lautstärke ändern.",
+        "suggestGenerate": "Passwort erzeugen",
+        "suggestChoose": "Eigenes wählen",
+        "suggestDismiss": "Später",
+        "generatedHint": "Passwort gespeichert: Gib es in deinem MPD-Client ein.",
+        "showPassword": "Passwort anzeigen",
+        "hidePassword": "Passwort verbergen",
+        "saveFailed": "Die MPD-Servereinstellungen konnten nicht gespeichert werden: Es wurde nichts geändert."
       },
       "notifications": {
         "title": "Benachrichtigungen beim Titelwechsel",

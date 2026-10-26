@@ -2008,7 +2008,16 @@
         "lanWarningAuth": "Raggiungibile da tutta la tua rete locale, ma il controllo della riproduzione richiede la password impostata.",
         "statusRunning": "Attivo",
         "statusStopped": "Arrestato",
-        "copyAddress": "Copia indirizzo"
+        "copyAddress": "Copia indirizzo",
+        "suggestTitle": "Proteggere il server con una password?",
+        "suggestBody": "Senza password, qualsiasi dispositivo della rete può mettere in pausa, saltare un brano o cambiare il volume.",
+        "suggestGenerate": "Genera una password",
+        "suggestChoose": "Scegli la mia",
+        "suggestDismiss": "Non ora",
+        "generatedHint": "Password salvata: inseriscila nel tuo client MPD.",
+        "showPassword": "Mostra password",
+        "hidePassword": "Nascondi password",
+        "saveFailed": "Impossibile salvare le impostazioni del server MPD: non è stato modificato nulla."
       },
       "notifications": {
         "title": "Notifiche di cambio brano",

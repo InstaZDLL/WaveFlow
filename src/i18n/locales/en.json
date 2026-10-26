@@ -1950,7 +1950,16 @@
         "lanWarningAuth": "Reachable from your whole local network, but playback control requires the password you set.",
         "statusRunning": "Running",
         "statusStopped": "Stopped",
-        "copyAddress": "Copy address"
+        "copyAddress": "Copy address",
+        "suggestTitle": "Protect the server with a password?",
+        "suggestBody": "Without one, any device on your network can pause, skip a track or change the volume.",
+        "suggestGenerate": "Generate a password",
+        "suggestChoose": "Choose my own",
+        "suggestDismiss": "Not now",
+        "generatedHint": "Password saved: enter it in your MPD client.",
+        "showPassword": "Show password",
+        "hidePassword": "Hide password",
+        "saveFailed": "Couldn't save the MPD server settings: nothing was changed."
       },
       "notifications": {
         "title": "Track-change notifications",

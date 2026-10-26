@@ -2009,7 +2009,16 @@
         "lanWarningAuth": "Acessível a partir de toda a tua rede local, mas o controlo da reprodução requer a palavra-passe que definiste.",
         "statusRunning": "Ativo",
         "statusStopped": "Parado",
-        "copyAddress": "Copiar endereço"
+        "copyAddress": "Copiar endereço",
+        "suggestTitle": "Proteger o servidor com uma palavra-passe?",
+        "suggestBody": "Sem ela, qualquer dispositivo da rede pode pausar, saltar uma faixa ou alterar o volume.",
+        "suggestGenerate": "Gerar uma palavra-passe",
+        "suggestChoose": "Escolher a minha",
+        "suggestDismiss": "Agora não",
+        "generatedHint": "Palavra-passe guardada: introduza-a no seu cliente MPD.",
+        "showPassword": "Mostrar palavra-passe",
+        "hidePassword": "Ocultar palavra-passe",
+        "saveFailed": "Não foi possível guardar as definições do servidor MPD: nada foi alterado."
       },
       "notifications": {
         "title": "Notificações de mudança de faixa",

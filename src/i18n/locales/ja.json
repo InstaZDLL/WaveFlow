@@ -1919,7 +1919,16 @@
         "lanWarningAuth": "ローカルネットワーク全体からアクセスできますが、再生操作には設定したパスワードが必要です。",
         "statusRunning": "実行中",
         "statusStopped": "停止中",
-        "copyAddress": "アドレスをコピー"
+        "copyAddress": "アドレスをコピー",
+        "suggestTitle": "サーバーをパスワードで保護しますか?",
+        "suggestBody": "パスワードがないと、ネットワーク上のどの機器からでも一時停止、曲送り、音量変更ができてしまいます。",
+        "suggestGenerate": "パスワードを生成",
+        "suggestChoose": "自分で決める",
+        "suggestDismiss": "後で",
+        "generatedHint": "パスワードを保存しました。MPD クライアントに入力してください。",
+        "showPassword": "パスワードを表示",
+        "hidePassword": "パスワードを隠す",
+        "saveFailed": "MPD サーバーの設定を保存できませんでした。何も変更されていません。"
       },
       "notifications": {
         "title": "曲変更通知",

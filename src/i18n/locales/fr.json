@@ -2088,7 +2088,16 @@
         "lanWarningAuth": "Joignable depuis tout votre réseau local, mais le contrôle de la lecture nécessite le mot de passe que vous avez défini.",
         "statusRunning": "Actif",
         "statusStopped": "Arrêté",
-        "copyAddress": "Copier l'adresse"
+        "copyAddress": "Copier l'adresse",
+        "suggestTitle": "Protéger le serveur par un mot de passe ?",
+        "suggestBody": "Sans mot de passe, n'importe quel appareil du réseau peut mettre en pause, changer de titre ou régler le volume.",
+        "suggestGenerate": "Générer un mot de passe",
+        "suggestChoose": "Choisir le mien",
+        "suggestDismiss": "Plus tard",
+        "generatedHint": "Mot de passe enregistré : saisissez-le dans votre client MPD.",
+        "showPassword": "Afficher le mot de passe",
+        "hidePassword": "Masquer le mot de passe",
+        "saveFailed": "Impossible d'enregistrer les réglages du serveur MPD : rien n'a été modifié."
       },
       "notifications": {
         "title": "Notifications de changement de titre",
