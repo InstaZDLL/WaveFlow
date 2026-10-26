@@ -273,6 +273,42 @@ impl DeezerAlbumTrack {
     }
 }
 
+/// A public playlist's header.
+#[derive(Debug, Clone, Deserialize)]
+pub struct DeezerPlaylist {
+    pub id: i64,
+    pub title: String,
+    /// How many tracks Deezer says the playlist holds.
+    pub nb_tracks: Option<i64>,
+}
+
+/// The album a playlist track belongs to, as far as an import needs it.
+#[derive(Debug, Clone, Deserialize)]
+pub struct DeezerPlaylistAlbum {
+    pub title: Option<String>,
+}
+
+/// One track of a playlist listing.
+///
+/// `duration` is in **seconds**, as on [`DeezerAlbumTrack`]. `isrc` comes
+/// with every entry of this listing, unlike the album one, and is what the
+/// importer matches first.
+#[derive(Debug, Clone, Deserialize)]
+pub struct DeezerPlaylistTrack {
+    pub id: i64,
+    pub title: String,
+    pub duration: Option<i64>,
+    pub isrc: Option<String>,
+    pub artist: Option<DeezerAlbumArtist>,
+    pub album: Option<DeezerPlaylistAlbum>,
+}
+
+impl DeezerPlaylistTrack {
+    pub fn duration_ms(&self) -> Option<i64> {
+        self.duration.filter(|s| *s > 0).map(|s| s * 1000)
+    }
+}
+
 // ── Client implementation ───────────────────────────────────────────
 
 impl Default for DeezerClient {
@@ -412,6 +448,39 @@ impl DeezerClient {
             index += received;
         }
         Ok(out)
+    }
+
+    /// Fetch a public playlist's header. A private or deleted playlist is
+    /// refused in-band, which arrives as [`DeezerError::Api`].
+    pub async fn get_playlist(&self, deezer_id: u64) -> DeezerResult<DeezerPlaylist> {
+        Self::fetch(
+            self.http
+                .get(format!("{}/playlist/{deezer_id}", self.base_url)),
+        )
+        .await
+    }
+
+    /// One page of a public playlist's tracks, from `index` on, and whether
+    /// there is more. A page rather than the whole listing: a playlist runs
+    /// to thousands of tracks, and the caller paces the pages to stay under
+    /// the anonymous rate limit, with the timer of its own runtime.
+    pub async fn get_playlist_tracks_page(
+        &self,
+        deezer_id: u64,
+        index: usize,
+    ) -> DeezerResult<(Vec<DeezerPlaylistTrack>, bool)> {
+        /// Deezer's own maximum page size for a collection.
+        const PAGE: usize = 100;
+        let resp: DeezerSearchResponse<DeezerPlaylistTrack> = Self::fetch(
+            self.http
+                .get(format!("{}/playlist/{deezer_id}/tracks", self.base_url))
+                .query(&[("index", index.to_string()), ("limit", PAGE.to_string())]),
+        )
+        .await?;
+        // `next` is the authority on whether there is more; an empty page
+        // ends the walk whatever it claims.
+        let more = resp.next.is_some() && !resp.data.is_empty();
+        Ok((resp.data, more))
     }
 
     /// Fetch artists Deezer reports as related to the given artist.
@@ -603,6 +672,33 @@ mod tests {
 
         assert!(matches!(error, DeezerError::TooLarge { .. }), "{error:?}");
         assert!(!error.is_quota_exceeded());
+    }
+
+    #[tokio::test]
+    async fn a_playlist_listing_carries_isrc_and_seconds() {
+        let provider = serve_json(
+            r#"{"data":[{"id":1,"title":"One","duration":225,"isrc":"GBAYE0601690",
+               "artist":{"id":2,"name":"A"},"album":{"id":3,"title":"B"}}],"total":1}"#,
+        )
+        .await;
+        let client = DeezerClient::with_http(strict_http(), provider.base_url.clone());
+
+        let (tracks, more) = client
+            .get_playlist_tracks_page(908_622_995, 0)
+            .await
+            .unwrap();
+
+        assert!(!more);
+        assert_eq!(tracks.len(), 1);
+        assert_eq!(tracks[0].duration_ms(), Some(225_000));
+        assert_eq!(tracks[0].isrc.as_deref(), Some("GBAYE0601690"));
+        assert_eq!(
+            tracks[0].album.as_ref().and_then(|a| a.title.as_deref()),
+            Some("B")
+        );
+        assert!(provider
+            .request_line(0)
+            .starts_with("GET /playlist/908622995/tracks?index=0&limit=100"));
     }
 
     /// The search travels in the query string, which a caller that logs

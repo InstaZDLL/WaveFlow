@@ -215,15 +215,14 @@
     },
     "playlists": {
       "createPlaylistAria": "Crear una nueva lista de reproducción",
-      "importM3uAria": "Importar una lista M3U",
-      "importDialogTitle": "Importar una lista M3U",
       "liked": "Pistas que te gustan",
       "recent": "Reproducido recientemente",
       "emptySubtext_zero": "0 pistas",
       "emptySubtext_one": "{{count}} pista",
       "emptySubtext_other": "{{count}} pistas",
       "emptySubtext_many": "{{count}} pistas",
-      "createSmartAria": "Crear una lista inteligente"
+      "createSmartAria": "Crear una lista inteligente",
+      "importAria": "Importar una lista"
     },
     "myMusic": {
       "title": "Mi música",
@@ -1235,7 +1234,14 @@
     "notFoundTitle": "Lista no encontrada",
     "notFoundDescription": "Esta lista ya no existe en el perfil activo.",
     "smartLabel": "Daily Mix",
-    "smartLabelCustom": "Playlist inteligente"
+    "smartLabelCustom": "Playlist inteligente",
+    "placeholder": {
+      "missing": "No está en tu biblioteca",
+      "remove": "Quitar de la lista",
+      "count_one": "{{count}} falta",
+      "count_many": "{{count}} faltan",
+      "count_other": "{{count}} faltan"
+    }
   },
   "trackActions": {
     "addToPlaylist": "Añadir a una lista",
@@ -3746,6 +3752,39 @@
       "same": "Esta carpeta ya está en la biblioteca: {{folder}}",
       "inside": "Esta carpeta ya está en la biblioteca, dentro de {{folder}}.",
       "contains": "Esta carpeta contiene {{folder}}, que ya está en la biblioteca. Añade mejor sus otras subcarpetas."
+    }
+  },
+  "playlistImport": {
+    "title": "Importar una lista",
+    "help": "Las pistas que ya tienes se añaden. Las demás conservan su lugar, en gris, y se completan cuando llegan a tu biblioteca.",
+    "fromFile": "Desde un archivo",
+    "fromFileHint": "M3U, CSV o JSON",
+    "fileDialogTitle": "Importar un archivo de lista",
+    "linkLabel": "Enlace de una lista de Deezer",
+    "linkHint": "Solo listas públicas. No hace falta una cuenta.",
+    "importLink": "Importar",
+    "working": "Importando…",
+    "result": {
+      "imported_zero": "No se añadió ninguna pista",
+      "imported_one": "{{count}} pista añadida",
+      "imported_many": "{{count}} pistas añadidas",
+      "imported_other": "{{count}} pistas añadidas",
+      "placeholders_one": "{{count}} pista en espera",
+      "placeholders_many": "{{count}} pistas en espera",
+      "placeholders_other": "{{count}} pistas en espera",
+      "duplicates_one": "{{count}} repetida omitida",
+      "duplicates_many": "{{count}} repetidas omitidas",
+      "duplicates_other": "{{count}} repetidas omitidas"
+    },
+    "errors": {
+      "unsupported": "Este archivo no es una lista que WaveFlow pueda leer (M3U, CSV o JSON).",
+      "unreadable": "No se pudo leer el archivo.",
+      "noTitleColumn": "El CSV no tiene columna de título. Su primera línea debe nombrar las columnas, con al menos el título.",
+      "empty": "La lista no tiene ninguna entrada.",
+      "notALink": "No es un enlace de lista de Deezer.",
+      "offline": "El modo sin conexión está activado.",
+      "notFound": "Deezer no tiene ninguna lista pública en este enlace.",
+      "unreachable": "No se pudo contactar con Deezer."
     }
   }
 }

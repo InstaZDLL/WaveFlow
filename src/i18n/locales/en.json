@@ -212,14 +212,13 @@
     },
     "playlists": {
       "createPlaylistAria": "Create a new playlist",
-      "importM3uAria": "Import an M3U playlist",
-      "importDialogTitle": "Import an M3U playlist",
       "liked": "Liked tracks",
       "recent": "Recently played",
       "emptySubtext_zero": "0 tracks",
       "emptySubtext_one": "{{count}} track",
       "emptySubtext_other": "{{count}} tracks",
-      "createSmartAria": "Create a smart playlist"
+      "createSmartAria": "Create a smart playlist",
+      "importAria": "Import a playlist"
     },
     "myMusic": {
       "title": "My music",
@@ -1190,7 +1189,13 @@
     "notFoundTitle": "Playlist not found",
     "notFoundDescription": "This playlist no longer exists in the active profile.",
     "smartLabel": "Daily Mix",
-    "smartLabelCustom": "Smart playlist"
+    "smartLabelCustom": "Smart playlist",
+    "placeholder": {
+      "missing": "Not in your library",
+      "remove": "Remove from the playlist",
+      "count_one": "{{count}} missing",
+      "count_other": "{{count}} missing"
+    }
   },
   "trackActions": {
     "addToPlaylist": "Add to a playlist",
@@ -3641,6 +3646,36 @@
       "same": "This folder is already in the library: {{folder}}",
       "inside": "This folder is already in the library, inside {{folder}}.",
       "contains": "This folder contains {{folder}}, which is already in the library. Add its other subfolders instead."
+    }
+  },
+  "playlistImport": {
+    "title": "Import a playlist",
+    "help": "Tracks you already have are added. The others keep their place, greyed out, and are filled in when they turn up in your library.",
+    "fromFile": "From a file",
+    "fromFileHint": "M3U, CSV or JSON",
+    "fileDialogTitle": "Import a playlist file",
+    "linkLabel": "Deezer playlist link",
+    "linkHint": "Public playlists only. No account is needed.",
+    "importLink": "Import",
+    "working": "Importing…",
+    "result": {
+      "imported_zero": "No tracks added",
+      "imported_one": "{{count}} track added",
+      "imported_other": "{{count}} tracks added",
+      "placeholders_one": "{{count}} track waiting",
+      "placeholders_other": "{{count}} tracks waiting",
+      "duplicates_one": "{{count}} repeat skipped",
+      "duplicates_other": "{{count}} repeats skipped"
+    },
+    "errors": {
+      "unsupported": "This file is not a playlist WaveFlow can read (M3U, CSV or JSON).",
+      "unreadable": "The file could not be read.",
+      "noTitleColumn": "The CSV has no title column. Its first line must name the columns, with at least a title.",
+      "empty": "The playlist has no entries.",
+      "notALink": "This is not a Deezer playlist link.",
+      "offline": "Offline mode is on.",
+      "notFound": "Deezer has no public playlist at this link.",
+      "unreachable": "Deezer could not be reached."
     }
   }
 }

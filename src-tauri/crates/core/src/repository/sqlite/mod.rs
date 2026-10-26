@@ -13,6 +13,7 @@ pub mod album;
 pub mod collation;
 pub mod library;
 pub mod playlist;
+pub mod playlist_placeholder;
 pub mod profile;
 pub mod search;
 pub mod sidebar_pin;

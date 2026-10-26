@@ -212,14 +212,13 @@
     },
     "playlists": {
       "createPlaylistAria": "एक नई प्लेलिस्ट बनाएँ",
-      "importM3uAria": "M3U प्लेलिस्ट आयात करें",
-      "importDialogTitle": "M3U प्लेलिस्ट आयात करें",
       "liked": "पसंदीदा ट्रैक",
       "recent": "हाल ही में चलाए गए",
       "emptySubtext_zero": "0 ट्रैक",
       "emptySubtext_one": "{{count}} ट्रैक",
       "emptySubtext_other": "{{count}} ट्रैक",
-      "createSmartAria": "स्मार्ट प्लेलिस्ट बनाएँ"
+      "createSmartAria": "स्मार्ट प्लेलिस्ट बनाएँ",
+      "importAria": "प्लेलिस्ट आयात करें"
     },
     "myMusic": {
       "title": "मेरा संगीत",
@@ -1190,7 +1189,13 @@
     "notFoundTitle": "प्लेलिस्ट नहीं मिली",
     "notFoundDescription": "यह प्लेलिस्ट अब सक्रिय प्रोफ़ाइल में मौजूद नहीं है।",
     "smartLabel": "Daily Mix",
-    "smartLabelCustom": "स्मार्ट प्लेलिस्ट"
+    "smartLabelCustom": "स्मार्ट प्लेलिस्ट",
+    "placeholder": {
+      "missing": "आपकी लाइब्रेरी में नहीं",
+      "remove": "प्लेलिस्ट से हटाएँ",
+      "count_one": "{{count}} नहीं है",
+      "count_other": "{{count}} नहीं हैं"
+    }
   },
   "trackActions": {
     "addToPlaylist": "प्लेलिस्ट में जोड़ें",
@@ -3641,6 +3646,36 @@
       "same": "यह फ़ोल्डर पहले से लाइब्रेरी में है: {{folder}}",
       "inside": "यह फ़ोल्डर पहले से लाइब्रेरी में है, {{folder}} के अंदर।",
       "contains": "इस फ़ोल्डर में {{folder}} है, जो पहले से लाइब्रेरी में है। इसके बजाय इसके अन्य सब-फ़ोल्डर जोड़ें।"
+    }
+  },
+  "playlistImport": {
+    "title": "प्लेलिस्ट आयात करें",
+    "help": "जो ट्रैक आपके पास पहले से हैं वे जोड़े जाते हैं। बाकी धूसर रंग में अपनी जगह बने रहते हैं और आपकी लाइब्रेरी में आने पर भर दिए जाते हैं।",
+    "fromFile": "फ़ाइल से",
+    "fromFileHint": "M3U, CSV या JSON",
+    "fileDialogTitle": "प्लेलिस्ट फ़ाइल आयात करें",
+    "linkLabel": "Deezer प्लेलिस्ट का लिंक",
+    "linkHint": "केवल सार्वजनिक प्लेलिस्ट। किसी खाते की ज़रूरत नहीं।",
+    "importLink": "आयात करें",
+    "working": "आयात हो रहा है…",
+    "result": {
+      "imported_zero": "कोई ट्रैक नहीं जोड़ा गया",
+      "imported_one": "{{count}} ट्रैक जोड़ा गया",
+      "imported_other": "{{count}} ट्रैक जोड़े गए",
+      "placeholders_one": "{{count}} ट्रैक प्रतीक्षा में",
+      "placeholders_other": "{{count}} ट्रैक प्रतीक्षा में",
+      "duplicates_one": "{{count}} दोहराव छोड़ा गया",
+      "duplicates_other": "{{count}} दोहराव छोड़े गए"
+    },
+    "errors": {
+      "unsupported": "यह फ़ाइल ऐसी प्लेलिस्ट नहीं है जिसे WaveFlow पढ़ सके (M3U, CSV या JSON)।",
+      "unreadable": "फ़ाइल पढ़ी नहीं जा सकी।",
+      "noTitleColumn": "CSV में शीर्षक का कॉलम नहीं है। इसकी पहली पंक्ति में कॉलमों के नाम होने चाहिए, कम से कम शीर्षक।",
+      "empty": "प्लेलिस्ट में कोई प्रविष्टि नहीं है।",
+      "notALink": "यह Deezer प्लेलिस्ट का लिंक नहीं है।",
+      "offline": "ऑफ़लाइन मोड चालू है।",
+      "notFound": "इस लिंक पर Deezer की कोई सार्वजनिक प्लेलिस्ट नहीं है।",
+      "unreachable": "Deezer से संपर्क नहीं हो सका।"
     }
   }
 }
