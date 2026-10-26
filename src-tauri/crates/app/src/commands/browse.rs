@@ -2054,7 +2054,7 @@ struct FolderNodeRaw {
 /// `/m/Rockabilly`, and `high` is `low` with that last byte incremented
 /// — the separator is ASCII on every platform we build for, so the
 /// increment cannot split a character.
-fn folder_prefix_range(dir: &str) -> (String, String) {
+pub(crate) fn folder_prefix_range(dir: &str) -> (String, String) {
     let mut low = dir.to_string();
     if !low.ends_with(std::path::MAIN_SEPARATOR) {
         low.push(std::path::MAIN_SEPARATOR);
