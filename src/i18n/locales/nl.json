@@ -1249,7 +1249,8 @@
       "metadata": "Metadata",
       "audio": "Audio",
       "analysis": "Analyse",
-      "file": "Bestand"
+      "file": "Bestand",
+      "spectrum": "Spectrum"
     },
     "bpm": "BPM",
     "bpmUncertain": "{{bpm}} (onzeker)",
@@ -1302,7 +1303,18 @@
     "bandwidth": "Hoge frequenties",
     "bandwidthFull": "Volledige band",
     "bandwidthCutoff": "Stoppen bij {{khz}} kHz",
-    "bandwidthFake": "Stoppen bij {{khz}} kHz — waarschijnlijk gemaakt van een lossy bestand"
+    "bandwidthFake": "Stoppen bij {{khz}} kHz — waarschijnlijk gemaakt van een lossy bestand",
+    "spectrogram": {
+      "hint": "Zie waar de hoge tonen ophouden in de loop van het nummer. Het hele bestand wordt gedecodeerd.",
+      "show": "Spectrum tonen",
+      "stop": "Stoppen",
+      "decoding": "Bestand wordt gedecodeerd",
+      "failed": "Dit bestand kon niet worden gedecodeerd.",
+      "altCutoff": "De hoge tonen houden scherp op bij {{khz}} kHz. De bovenkant van de grafiek is de Nyquist-frequentie ({{nyquist}} kHz), het hoogste dat dit bestand kan bevatten.",
+      "altFull": "Geen scherpe grens: het spectrum dooft uit in de ruisvloer of loopt door tot de Nyquist-frequentie ({{nyquist}} kHz), het hoogste dat dit bestand kan bevatten.",
+      "guides": "Dunne lijnen: 16, 19 en 20 kHz, waar mp3's van 128, 192 en 320 kbps vaak ophouden.",
+      "axisKhz": "{{value}} kHz"
+    }
   },
   "selection": {
     "toolbarLabel": "Selectieacties",
@@ -2862,7 +2874,9 @@
         "skin": "Skin",
         "display": "Leesbaarheid",
         "window": "Vensters",
-        "lyricsDisplay": "Weergave van songteksten"
+        "lyricsDisplay": "Weergave van songteksten",
+        "diskUsage": "Schijfruimte",
+        "globalShortcuts": "Globale sneltoetsen"
       },
       "navHints": {
         "general": "Taal, opstarten, afspelen",
@@ -2910,7 +2924,9 @@
         "cleanup": "Gecachete miniaturen en hoezen",
         "updates": "Stabiele of bètaversies",
         "diagnostics": "Logs en grafische weergave",
-        "reset": "Opnieuw beginnen met een verse app"
+        "reset": "Opnieuw beginnen met een verse app",
+        "diskUsage": "Wat WaveFlow op deze computer bewaart",
+        "globalShortcuts": "Vanuit elke toepassing"
       }
     },
     "desktopLyrics": {
@@ -3009,6 +3025,101 @@
         "label": "Gedeelde uitvoer",
         "hint": "Het geluid gaat via de systeemmixer, samen met dat van andere apps. Ideaal voor dagelijks gebruik."
       }
+    },
+    "diskUsage": {
+      "total": "WaveFlow gebruikt {{size}} op deze computer.",
+      "measuring": "Meten…",
+      "refresh": "Opnieuw meten",
+      "failed": "De schijfruimte kon niet worden gemeten.",
+      "rebuildableTitle": "Bouwt zichzelf opnieuw op",
+      "rebuildableHint": "Leegmaken kost niets: deze bestanden worden opnieuw opgehaald wanneer nodig.",
+      "keptTitle": "Je gegevens",
+      "keptHint": "Niets hiervan bouwt zichzelf op: elk onderdeel beheer je in zijn eigen sectie.",
+      "empty": "Leegmaken",
+      "confirmEmpty": "Bevestigen",
+      "emptyLabel": "Leegmaken: {{item}}",
+      "items": {
+        "artwork": {
+          "label": "Hoezen van de bibliotheek",
+          "description": "Albumhoezen van dit profiel en hun miniaturen. Ongebruikte hoezen verwijder je onder ‘{{section}}’."
+        },
+        "metadataArtwork": {
+          "label": "Gedownloade afbeeldingen",
+          "description": "Online opgehaalde artiestfoto's en hoezen, gedeeld door alle profielen."
+        },
+        "motionCache": {
+          "label": "Geanimeerde hoezen",
+          "description": "Opgehaald door plug-ins, opnieuw gedownload wanneer nodig."
+        },
+        "canvasCache": {
+          "label": "Canvas-clips",
+          "description": "Opgehaald door plug-ins, opnieuw gedownload wanneer nodig."
+        },
+        "remoteArtwork": {
+          "label": "Serverhoezen",
+          "description": "Miniaturen van je server, opnieuw gedownload wanneer nodig."
+        },
+        "remoteStream": {
+          "label": "Servernummers in cache",
+          "description": "Bewaard na het afspelen, opnieuw gedownload bij de volgende keer."
+        },
+        "remoteDownloads": {
+          "label": "Offline servernummers",
+          "description": "Die je offline wilde bewaren. Verwijder je via het nummer of album."
+        },
+        "manualMedia": {
+          "label": "Zelf gekozen media",
+          "description": "Geanimeerde hoezen en Canvas-clips die je zelf hebt ingesteld."
+        },
+        "databases": {
+          "label": "Databases",
+          "description": "Bibliotheek, afspeellijsten, geschiedenis en instellingen van alle profielen."
+        },
+        "databaseSnapshots": {
+          "label": "Kopieën vóór upgrades",
+          "description": "Gemaakt vóór elke database-upgrade; alleen de laatste worden bewaard."
+        },
+        "backups": {
+          "label": "Back-ups",
+          "description": "Archieven van automatische en handmatige back-ups."
+        },
+        "logs": {
+          "label": "Logboeken",
+          "description": "Diagnoselogboeken van de afgelopen dagen."
+        },
+        "plugins": {
+          "label": "Plug-ins",
+          "description": "Geïnstalleerde plug-ins en hun gegevens."
+        }
+      },
+      "confirmEmptyLabel": "Leegmaken bevestigen: {{item}}",
+      "emptyFailed": "Leegmaken is niet gelukt: een bestand is misschien nog in gebruik. Probeer het later opnieuw.",
+      "atLeast": "minstens {{size}}",
+      "incomplete": "Een map kon niet volledig worden gelezen: de echte grootte is groter."
+    },
+    "globalShortcuts": {
+      "subtitle": "Bedien het afspelen vanuit elke toepassing, ook als WaveFlow op de achtergrond draait. Geen enkele is actief totdat je er een instelt.",
+      "captureHelp": "Combineer Ctrl, Alt of de Windows-/Cmd-toets met een toets, of gebruik F13 tot F24 los. Gebeurt er niets als je een combinatie indrukt, dan gebruikt een andere toepassing die al.",
+      "clearAll": "Alles wissen",
+      "backend": {
+        "portal": "Op Wayland bevestigt je bureaublad elke wijziging in een eigen venster en kan het een andere combinatie toewijzen: de gekozen combinatie staat onder de actie.",
+        "unavailable": "Niet beschikbaar in deze Wayland-sessie: het bureaublad biedt het portaal voor globale sneltoetsen niet aan. De mediatoetsen van je toetsenbord werken nog steeds."
+      },
+      "states": {
+        "taken": "Al in gebruik door een andere toepassing.",
+        "refused": "Het systeem heeft deze combinatie geweigerd (gereserveerd of al bezet).",
+        "dismissed": "Niet bevestigd in het venster van je bureaublad.",
+        "unavailable": "Niet beschikbaar in deze sessie.",
+        "invalid": {
+          "empty": "Druk naast de modificatietoetsen ook een toets in.",
+          "unsupportedKey": "Deze toets kan niet voor een globale sneltoets worden gebruikt.",
+          "needsModifier": "Voeg Ctrl, Alt of de Windows-/Cmd-toets toe: alleen F13 tot F24 werken los."
+        }
+      },
+      "rejected": "{{combo}} is niet opgeslagen: {{reason}}",
+      "assigned": "Toegewezen door je bureaublad: {{trigger}}",
+      "waitingForDesktop": "Bevestig op het bureaublad…",
+      "registering": "Registreren…"
     }
   },
   "scanProgress": {
@@ -3367,7 +3478,9 @@
       "upload": "Uploaden",
       "backup": "Back-up",
       "thumbnails": "Miniaturen",
-      "drop_import": "Kopiëren naar de bibliotheek"
+      "drop_import": "Kopiëren naar de bibliotheek",
+      "cache_move": "Caches verplaatsen",
+      "spectrogram": "Spectrum van een nummer"
     }
   },
   "smartRuleSummary": {

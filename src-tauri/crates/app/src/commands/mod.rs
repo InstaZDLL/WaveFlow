@@ -17,6 +17,7 @@ pub mod diagnostics;
 pub mod dlna;
 pub mod duplicates;
 pub mod edit;
+pub mod global_shortcuts;
 pub mod home_suggestion;
 pub mod integration;
 pub mod library;
@@ -26,6 +27,7 @@ pub mod years;
 // the server account binding, so it carries the same gate — it used to
 // stay ungated because the Spotify handshake needed it in a build
 // without sync, and that consumer is gone.
+pub mod disk_usage;
 pub mod display_backend;
 #[cfg(feature = "sync_v2")]
 pub mod loopback;
@@ -60,6 +62,7 @@ pub mod share_image;
 pub mod sidebar_pins;
 pub mod similar;
 pub mod smart_playlists;
+pub mod spectrogram;
 pub mod stats;
 pub mod storage;
 pub mod tag_fetch;

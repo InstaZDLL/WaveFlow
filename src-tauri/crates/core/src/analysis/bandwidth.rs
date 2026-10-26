@@ -21,9 +21,11 @@ use std::sync::Arc;
 use realfft::num_complex::Complex;
 use realfft::{RealFftPlanner, RealToComplex};
 
+use super::spectrogram::{Spectrogram, SpectrogramRecorder};
+
 /// Samples per FFT frame: 10.8 Hz per bin at 44.1 kHz, fine enough to
 /// place a wall within a band of a few hundred hertz.
-const FRAME: usize = 4096;
+pub(crate) const FRAME: usize = 4096;
 /// Frames under this RMS (dBFS) are left out: silence and fades would
 /// pull the average towards the noise floor everywhere at once.
 const SILENT_DBFS: f64 = -60.0;
@@ -126,6 +128,11 @@ pub(crate) struct BandwidthMeter {
     scratch: Vec<Complex<f32>>,
     power: Vec<f64>,
     frames: u64,
+    /// One frame's power per bin, before it joins the average.
+    frame_power: Vec<f64>,
+    /// Set for Track Properties' spectrogram: every frame, silent ones
+    /// included, also goes into its columns.
+    columns: Option<SpectrogramRecorder>,
 }
 
 impl BandwidthMeter {
@@ -142,6 +149,8 @@ impl BandwidthMeter {
         Self {
             rate,
             power: vec![0.0; spectrum.len()],
+            frame_power: vec![0.0; spectrum.len()],
+            columns: None,
             fft,
             window,
             frames_in: vec![vec![0.0; FRAME]; channels.max(1)],
@@ -151,6 +160,25 @@ impl BandwidthMeter {
             scratch,
             frames: 0,
         }
+    }
+
+    /// A meter that also records the spectrum over time, `frames_per_column`
+    /// FFT frames to a column and never more than `max_columns` columns
+    /// (see [`super::spectrogram`]).
+    pub(crate) fn with_spectrogram(
+        rate: f64,
+        channels: usize,
+        frames_per_column: usize,
+        max_columns: usize,
+    ) -> Self {
+        let mut meter = Self::new(rate, channels);
+        meter.columns = Some(SpectrogramRecorder::new(
+            rate,
+            FRAME,
+            frames_per_column,
+            max_columns,
+        ));
+        meter
     }
 
     /// One sample per channel, in channel order. Extra samples beyond the
@@ -175,9 +203,12 @@ impl BandwidthMeter {
             .map(|&s| f64::from(s) * f64::from(s))
             .sum();
         let rms_db = 10.0 * (energy / (FRAME as f64 * channels)).max(1e-20).log10();
-        if rms_db < SILENT_DBFS {
+        let silent = rms_db < SILENT_DBFS;
+        // The average leaves silence out; only the spectrogram needs it.
+        if silent && self.columns.is_none() {
             return;
         }
+        self.frame_power.iter_mut().for_each(|p| *p = 0.0);
         for channel in 0..self.frames_in.len() {
             for ((dst, &src), &w) in self
                 .input
@@ -194,11 +225,28 @@ impl BandwidthMeter {
             {
                 return;
             }
-            for (acc, bin) in self.power.iter_mut().zip(&self.spectrum) {
+            for (acc, bin) in self.frame_power.iter_mut().zip(&self.spectrum) {
                 *acc += f64::from(bin.norm_sqr());
             }
         }
+        if let Some(columns) = self.columns.as_mut() {
+            columns.push(&self.frame_power);
+        }
+        if silent {
+            return;
+        }
+        for (acc, p) in self.power.iter_mut().zip(&self.frame_power) {
+            *acc += p;
+        }
         self.frames += 1;
+    }
+
+    /// The recorded spectrogram, and the measure over the same frames.
+    /// `None` for the spectrogram when this meter was not asked to record
+    /// one or nothing was decoded.
+    pub(crate) fn finish_with_spectrogram(mut self) -> (Option<Spectrogram>, Option<Bandwidth>) {
+        let spectrogram = self.columns.take().and_then(SpectrogramRecorder::finish);
+        (spectrogram, self.finish())
     }
 
     pub(crate) fn finish(self) -> Option<Bandwidth> {
@@ -341,6 +389,50 @@ mod tests {
             let found = b.cutoff_hz.expect("a wall");
             assert!((found - cut).abs() < 300.0, "{cut}: {b:?}");
         }
+    }
+
+    #[test]
+    fn the_spectrogram_shows_the_cut_the_measure_finds() {
+        let cut = 16_000.0;
+        let mut signal = shaped_noise(10.0, |hz| tilt(hz) + if hz > cut { -60.0 } else { 0.0 });
+        // A second of silence in the middle: kept as a gap in the picture,
+        // left out of the measure.
+        let mid = signal.len() / 2;
+        // `repeat().take()`: `repeat_n` is Rust 1.82, past the crate's MSRV.
+        signal.splice(mid..mid, std::iter::repeat(0.0).take(RATE as usize));
+        let mut meter = BandwidthMeter::with_spectrogram(RATE, 1, 4, 900);
+        for &s in &signal {
+            meter.push_frame(&[s]);
+        }
+        let (picture, measured) = meter.finish_with_spectrogram();
+        // Recording changes nothing in the verdict.
+        assert_eq!(measured, Some(measure(&signal)));
+        let picture = picture.expect("a picture");
+        let row_of = |hz: f64| (hz / (RATE / 2.0) * picture.rows as f64) as usize;
+        let level = |column: usize, row: usize| picture.cells[column * picture.rows + row];
+        let (below, above) = (row_of(cut - 1_500.0), row_of(cut + 1_500.0));
+        // 60 dB of the 120 the bytes cover is about 127 steps.
+        assert!(
+            level(1, below) > level(1, above) + 100,
+            "{} / {}",
+            level(1, below),
+            level(1, above)
+        );
+        // The silent second shows as a dark column.
+        let quiet = (0..picture.columns).map(|c| level(c, below)).min().unwrap();
+        assert!(quiet < 10, "darkest column below the cut: {quiet}");
+    }
+
+    #[test]
+    fn a_silent_file_draws_a_dark_spectrogram() {
+        let mut meter = BandwidthMeter::with_spectrogram(RATE, 1, 4, 900);
+        for _ in 0..(RATE as usize * 2) {
+            meter.push_frame(&[0.0]);
+        }
+        let (picture, _) = meter.finish_with_spectrogram();
+        let picture = picture.expect("a picture");
+        let brightest = picture.cells.iter().copied().max().unwrap();
+        assert_eq!(brightest, 0, "silence drawn at {brightest}");
     }
 
     #[test]

@@ -40,13 +40,22 @@ Artwork landed on the system drive whatever drive WaveFlow was installed on, and
 
 Five things follow from that, each of which is a silent failure if skipped:
 
-- **The move copies, persists, restarts, and only then deletes.** `AppState` hands out a plain `AppPaths` captured at boot and ~95 call sites read it directly, so the running process cannot adopt a new root; the old tree is removed by a startup pass (`cleanup_moved_caches`) once a fresh process is reading the new one. Power loss between any two steps leaves a whole copy on disk and a setting naming a whole copy.
+- **The move copies, persists, restarts, and only then deletes.** `AppState` hands out a plain `AppPaths` captured at boot and ~95 call sites read it directly, so the running process cannot adopt a new root; the old tree is removed by a startup pass (`cleanup_moved_caches`) once a fresh process is reading the new one. Power loss between any two steps leaves a whole copy on disk and a setting naming a whole copy. The copy announces itself to the task bar (`cache_move`) with a progress counted in files, and can be stopped between two files; a stopped copy takes the same rollback as a failed one — the setting is only written once everything is copied — and the card comes back showing the location unchanged.
 - **The asset scope has to be widened at runtime.** See below.
 - **A missing drive falls back without forgetting.** `resolve_cache_root` drops to the default location for that session and leaves the stored choice alone, so plugging the drive back in is enough. The Settings card says so: caches reappearing at the default location is, from the user's side, indistinguishable from them having been wiped.
 - **`reset_app` has to wipe both roots.** It removes `AppPaths::root`, which stopped being the whole story here; `wipe_targets_outside_root` covers the difference.
 - **Nothing outside the app-data tree is deleted without an ownership marker.** The cache layout is a set of ordinary names — `metadata_artwork`, `motion_cache`, `profiles` — under a folder the user picked in a file dialog, so a root that already contains a `profiles/` directory would otherwise have it removed by a reset. `.waveflow-cache` at the root says WaveFlow created the tree; a folder holding one of those names _without_ the marker is refused at adoption rather than silently taken over, and every recursive delete checks for it first.
 
 The startup order matters and is easy to get backwards: `app.db` lives at the _default_ root, so it is opened first, and only then is the cache root read out of it. `ensure_dirs` therefore runs after that read — running it before would create the cache tree at the default location a moment before learning it belongs somewhere else.
+
+## What is on disk, item by item
+
+Settings → Storage and backups → Disk space ([`DiskUsageCard`](../../src/components/views/settings/DiskUsageCard.tsx), [`commands/disk_usage.rs`](../../src-tauri/crates/app/src/commands/disk_usage.rs)) measures each item apart, when the page opens and on demand, on the blocking pool. Per-profile items are the active profile's; shared caches and the databases cover every profile. The items fall in two lists, and the line between them is the one above — what rebuilds itself and what the user would have to redo:
+
+- **Rebuilds itself**, with an Empty button that goes through the command the item already had: the animated-cover and Canvas caches (plugins fetch them again; the frontend forgets the local paths it remembered), and for a server account its cover thumbnails and the streams kept from playing (the server still has them).
+- **Your data**, shown without a button — each has its own card where removing it is explained: the library's covers (the database points at them; unused ones go through the artwork maintenance group), downloaded artist pictures, the clips and covers set by hand, a server's offline copies, the databases with their journals, the copies taken before a schema upgrade (`*.pre-<version>.bak`), the backup archives, the logs, the plugins.
+
+The databases and the backups are counted one level deep, by name — `app.db*` / `data.db*`, and `*.waveflow` in the backup folder — never as a tree: the backup folder can be the user's Documents, and a recursive walk would count all of it.
 
 ## Two databases
 

@@ -630,6 +630,18 @@ export const SETTINGS_CATEGORIES = [
           "settings.shortcuts.unbind",
         ],
       },
+      {
+        id: "globalShortcuts",
+        labelKey: "settings.organization.groups.globalShortcuts",
+        hintKey: "settings.organization.groupHints.globalShortcuts",
+        searchKeys: [
+          "settings.globalShortcuts.subtitle",
+          "settings.globalShortcuts.captureHelp",
+          "settings.globalShortcuts.clearAll",
+          "settings.globalShortcuts.backend.portal",
+          "settings.globalShortcuts.backend.unavailable",
+        ],
+      },
     ],
   },
   {
@@ -638,6 +650,24 @@ export const SETTINGS_CATEGORIES = [
     descriptionKey: "settings.organization.descriptions.data",
     hintKey: "settings.organization.navHints.data",
     groups: [
+      {
+        id: "diskUsage",
+        labelKey: "settings.organization.groups.diskUsage",
+        hintKey: "settings.organization.groupHints.diskUsage",
+        searchKeys: [
+          "settings.diskUsage.refresh",
+          "settings.diskUsage.rebuildableTitle",
+          "settings.diskUsage.rebuildableHint",
+          "settings.diskUsage.keptTitle",
+          "settings.diskUsage.keptHint",
+          "settings.diskUsage.items.motionCache.label",
+          "settings.diskUsage.items.canvasCache.label",
+          "settings.diskUsage.items.remoteStream.label",
+          "settings.diskUsage.items.backups.label",
+          "settings.diskUsage.items.logs.label",
+          "settings.diskUsage.items.databases.label",
+        ],
+      },
       {
         id: "backups",
         labelKey: "settings.organization.groups.backups",

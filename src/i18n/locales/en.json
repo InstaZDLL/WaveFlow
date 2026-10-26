@@ -1249,7 +1249,8 @@
       "metadata": "Metadata",
       "audio": "Audio",
       "analysis": "Analysis",
-      "file": "File"
+      "file": "File",
+      "spectrum": "Spectrum"
     },
     "bpm": "BPM",
     "bpmUncertain": "{{bpm}} (uncertain)",
@@ -1302,7 +1303,18 @@
     "bandwidth": "High frequencies",
     "bandwidthFull": "Full band",
     "bandwidthCutoff": "Stop at {{khz}} kHz",
-    "bandwidthFake": "Stop at {{khz}} kHz — likely made from a lossy file"
+    "bandwidthFake": "Stop at {{khz}} kHz — likely made from a lossy file",
+    "spectrogram": {
+      "hint": "See where the highs stop over the track. The whole file is decoded.",
+      "show": "Show spectrum",
+      "stop": "Stop",
+      "decoding": "Decoding the file",
+      "failed": "This file could not be decoded.",
+      "altCutoff": "The highs stop sharply at {{khz}} kHz. The top of the chart is the Nyquist frequency ({{nyquist}} kHz), the highest this file can hold.",
+      "altFull": "No sharp cut: the spectrum fades into the noise floor or runs up to the Nyquist frequency ({{nyquist}} kHz), the highest this file can hold.",
+      "guides": "Thin lines: 16, 19 and 20 kHz, where MP3s at 128, 192 and 320 kbps often stop.",
+      "axisKhz": "{{value}} kHz"
+    }
   },
   "selection": {
     "toolbarLabel": "Selection actions",
@@ -2862,7 +2874,9 @@
         "skin": "Skin",
         "display": "Readability",
         "window": "Windows",
-        "lyricsDisplay": "Showing lyrics"
+        "lyricsDisplay": "Showing lyrics",
+        "diskUsage": "Disk space",
+        "globalShortcuts": "Global shortcuts"
       },
       "navHints": {
         "general": "Language, startup, playback",
@@ -2910,7 +2924,9 @@
         "cleanup": "Cached thumbnails and covers",
         "updates": "Stable or beta releases",
         "diagnostics": "Logs and rendering",
-        "reset": "Start over with a fresh app"
+        "reset": "Start over with a fresh app",
+        "diskUsage": "What WaveFlow keeps on this computer",
+        "globalShortcuts": "From any application"
       }
     },
     "desktopLyrics": {
@@ -3009,6 +3025,101 @@
         "label": "Shared output",
         "hint": "Sound goes through the system mixer, alongside other apps. Best for everyday listening."
       }
+    },
+    "diskUsage": {
+      "total": "WaveFlow uses {{size}} on this computer.",
+      "measuring": "Measuring…",
+      "refresh": "Measure again",
+      "failed": "Disk space could not be measured.",
+      "rebuildableTitle": "Rebuilds itself",
+      "rebuildableHint": "Emptying loses nothing: these files are fetched again when needed.",
+      "keptTitle": "Your data",
+      "keptHint": "Nothing here rebuilds itself: each item is managed from its own section.",
+      "empty": "Empty",
+      "confirmEmpty": "Confirm",
+      "emptyLabel": "Empty: {{item}}",
+      "items": {
+        "artwork": {
+          "label": "Library covers",
+          "description": "Album covers of this profile and their thumbnails. Unused covers are removed under “{{section}}”."
+        },
+        "metadataArtwork": {
+          "label": "Downloaded pictures",
+          "description": "Artist photos and covers fetched online, shared by every profile."
+        },
+        "motionCache": {
+          "label": "Animated covers",
+          "description": "Fetched by plugins, downloaded again when needed."
+        },
+        "canvasCache": {
+          "label": "Canvas clips",
+          "description": "Fetched by plugins, downloaded again when needed."
+        },
+        "remoteArtwork": {
+          "label": "Server covers",
+          "description": "Thumbnails from your server, downloaded again when needed."
+        },
+        "remoteStream": {
+          "label": "Cached server tracks",
+          "description": "Kept after playing, downloaded again the next time they play."
+        },
+        "remoteDownloads": {
+          "label": "Offline server tracks",
+          "description": "The ones you chose to keep offline. Removed from the track or the album."
+        },
+        "manualMedia": {
+          "label": "Media set by hand",
+          "description": "Animated covers and Canvas clips you set yourself."
+        },
+        "databases": {
+          "label": "Databases",
+          "description": "Library, playlists, history and settings of every profile."
+        },
+        "databaseSnapshots": {
+          "label": "Copies before upgrades",
+          "description": "Taken before each database upgrade; only the latest are kept."
+        },
+        "backups": {
+          "label": "Backups",
+          "description": "Archives from automatic and manual backups."
+        },
+        "logs": {
+          "label": "Logs",
+          "description": "Diagnostic logs from the last few days."
+        },
+        "plugins": {
+          "label": "Plugins",
+          "description": "Installed plugins and their data."
+        }
+      },
+      "confirmEmptyLabel": "Confirm emptying: {{item}}",
+      "emptyFailed": "Emptying did not finish: a file may still be in use. Try again later.",
+      "atLeast": "at least {{size}}",
+      "incomplete": "A folder could not be read whole: the real size is larger."
+    },
+    "globalShortcuts": {
+      "subtitle": "Control playback from any application, even while WaveFlow is in the background. None is active until you set one.",
+      "captureHelp": "Combine Ctrl, Alt or the Windows / Cmd key with a key, or use F13 to F24 on their own. If nothing happens when you press a combination, another application already holds it.",
+      "clearAll": "Clear all",
+      "backend": {
+        "portal": "On Wayland, your desktop confirms each change in a window of its own and may assign a different combination: the one it chose is shown under the action.",
+        "unavailable": "Not available in this Wayland session: the desktop does not offer the global shortcuts portal. Your keyboard's media keys still work."
+      },
+      "states": {
+        "taken": "Already used by another application.",
+        "refused": "The system refused this combination (reserved or already taken).",
+        "dismissed": "Not confirmed in your desktop's window.",
+        "unavailable": "Not available in this session.",
+        "invalid": {
+          "empty": "Press a key along with the modifiers.",
+          "unsupportedKey": "This key cannot be used for a global shortcut.",
+          "needsModifier": "Add Ctrl, Alt or the Windows / Cmd key: only F13 to F24 work on their own."
+        }
+      },
+      "rejected": "{{combo}} was not kept: {{reason}}",
+      "assigned": "Assigned by your desktop: {{trigger}}",
+      "waitingForDesktop": "Confirm on your desktop…",
+      "registering": "Registering…"
     }
   },
   "scanProgress": {
@@ -3367,7 +3478,9 @@
       "upload": "Upload",
       "backup": "Backup",
       "thumbnails": "Thumbnails",
-      "drop_import": "Copying to the library"
+      "drop_import": "Copying to the library",
+      "cache_move": "Moving the caches",
+      "spectrogram": "Track spectrum"
     }
   },
   "smartRuleSummary": {

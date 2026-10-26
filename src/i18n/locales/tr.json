@@ -1249,7 +1249,8 @@
       "metadata": "Üst veri",
       "audio": "Ses",
       "analysis": "Analiz",
-      "file": "Dosya"
+      "file": "Dosya",
+      "spectrum": "Spektrum"
     },
     "bpm": "BPM",
     "bpmUncertain": "{{bpm}} (belirsiz)",
@@ -1302,7 +1303,18 @@
     "bandwidth": "Yüksek frekanslar",
     "bandwidthFull": "Tam bant",
     "bandwidthCutoff": "{{khz}} kHz'de kesiliyor",
-    "bandwidthFake": "{{khz}} kHz'de kesiliyor — muhtemelen kayıplı bir dosyadan yapılmış"
+    "bandwidthFake": "{{khz}} kHz'de kesiliyor — muhtemelen kayıplı bir dosyadan yapılmış",
+    "spectrogram": {
+      "hint": "Parça boyunca tizlerin nerede kesildiğini görün. Dosyanın tamamı çözülür.",
+      "show": "Spektrumu göster",
+      "stop": "Durdur",
+      "decoding": "Dosya çözülüyor",
+      "failed": "Bu dosya çözülemedi.",
+      "altCutoff": "Tizler {{khz}} kHz'de keskin biçimde kesiliyor. Grafiğin üstü Nyquist frekansıdır ({{nyquist}} kHz), bu dosyanın içerebileceği en yüksek frekans.",
+      "altFull": "Keskin bir kesim yok: spektrum taban gürültüsünde sönüyor ya da Nyquist frekansına ({{nyquist}} kHz), bu dosyanın içerebileceği en yüksek frekansa kadar uzanıyor.",
+      "guides": "İnce çizgiler: 128, 192 ve 320 kbps MP3'lerin sıkça kesildiği 16, 19 ve 20 kHz.",
+      "axisKhz": "{{value}} kHz"
+    }
   },
   "selection": {
     "toolbarLabel": "Seçim eylemleri",
@@ -2862,7 +2874,9 @@
         "skin": "Arayüz stili",
         "display": "Okunabilirlik",
         "window": "Pencereler",
-        "lyricsDisplay": "Şarkı sözü görünümü"
+        "lyricsDisplay": "Şarkı sözü görünümü",
+        "diskUsage": "Disk alanı",
+        "globalShortcuts": "Genel kısayollar"
       },
       "navHints": {
         "general": "Dil, başlangıç, oynatma",
@@ -2910,7 +2924,9 @@
         "cleanup": "Önbellekteki küçük resimler ve kapaklar",
         "updates": "Kararlı veya beta sürümler",
         "diagnostics": "Günlükler ve grafik işleme",
-        "reset": "Uygulamayı sıfırdan başlat"
+        "reset": "Uygulamayı sıfırdan başlat",
+        "diskUsage": "WaveFlow'un bu bilgisayarda tuttukları",
+        "globalShortcuts": "Herhangi bir uygulamadan"
       }
     },
     "desktopLyrics": {
@@ -3009,6 +3025,101 @@
         "label": "Paylaşımlı çıkış",
         "hint": "Ses, diğer uygulamaların sesiyle birlikte sistem karıştırıcısından geçer. Günlük kullanım için ideal."
       }
+    },
+    "diskUsage": {
+      "total": "WaveFlow bu bilgisayarda {{size}} kullanıyor.",
+      "measuring": "Ölçülüyor…",
+      "refresh": "Yeniden ölç",
+      "failed": "Disk alanı ölçülemedi.",
+      "rebuildableTitle": "Kendini yeniden oluşturur",
+      "rebuildableHint": "Boşaltmak hiçbir şey kaybettirmez: bu dosyalar gerektiğinde yeniden alınır.",
+      "keptTitle": "Verileriniz",
+      "keptHint": "Buradakilerin hiçbiri kendini yeniden oluşturmaz: her öğe kendi bölümünden yönetilir.",
+      "empty": "Boşalt",
+      "confirmEmpty": "Onayla",
+      "emptyLabel": "Boşalt: {{item}}",
+      "items": {
+        "artwork": {
+          "label": "Kitaplık kapakları",
+          "description": "Bu profilin albüm kapakları ve küçük resimleri. Kullanılmayan kapaklar “{{section}}” bölümünden kaldırılır."
+        },
+        "metadataArtwork": {
+          "label": "İndirilen görseller",
+          "description": "Çevrimiçi alınan sanatçı fotoğrafları ve kapaklar, tüm profillerce paylaşılır."
+        },
+        "motionCache": {
+          "label": "Hareketli kapaklar",
+          "description": "Eklentilerce alınır, gerektiğinde yeniden indirilir."
+        },
+        "canvasCache": {
+          "label": "Canvas klipleri",
+          "description": "Eklentilerce alınır, gerektiğinde yeniden indirilir."
+        },
+        "remoteArtwork": {
+          "label": "Sunucu kapakları",
+          "description": "Sunucunuzdan gelen küçük resimler, gerektiğinde yeniden indirilir."
+        },
+        "remoteStream": {
+          "label": "Önbellekteki sunucu parçaları",
+          "description": "Dinlendikten sonra tutulur, bir sonraki çalmada yeniden indirilir."
+        },
+        "remoteDownloads": {
+          "label": "Çevrimdışı sunucu parçaları",
+          "description": "Çevrimdışı tutmayı seçtikleriniz. Parçadan veya albümden kaldırılır."
+        },
+        "manualMedia": {
+          "label": "Elle seçilen medya",
+          "description": "Kendiniz belirlediğiniz hareketli kapaklar ve Canvas klipleri."
+        },
+        "databases": {
+          "label": "Veritabanları",
+          "description": "Tüm profillerin kitaplığı, çalma listeleri, geçmişi ve ayarları."
+        },
+        "databaseSnapshots": {
+          "label": "Yükseltme öncesi kopyalar",
+          "description": "Her veritabanı yükseltmesinden önce alınır; yalnızca son birkaçı tutulur."
+        },
+        "backups": {
+          "label": "Yedekler",
+          "description": "Otomatik ve elle alınan yedeklerin arşivleri."
+        },
+        "logs": {
+          "label": "Günlükler",
+          "description": "Son birkaç günün tanılama günlükleri."
+        },
+        "plugins": {
+          "label": "Eklentiler",
+          "description": "Yüklü eklentiler ve verileri."
+        }
+      },
+      "confirmEmptyLabel": "Boşaltmayı onayla: {{item}}",
+      "emptyFailed": "Boşaltma tamamlanamadı: bir dosya hâlâ kullanılıyor olabilir. Daha sonra yeniden deneyin.",
+      "atLeast": "en az {{size}}",
+      "incomplete": "Bir klasör tamamen okunamadı: gerçek boyut daha büyük."
+    },
+    "globalShortcuts": {
+      "subtitle": "WaveFlow arka planda olsa bile çalmayı herhangi bir uygulamadan kontrol edin. Siz tanımlayana kadar hiçbiri etkin değildir.",
+      "captureHelp": "Ctrl, Alt veya Windows / Cmd tuşunu bir tuşla birleştirin ya da F13–F24 tuşlarını tek başına kullanın. Bir kombinasyona bastığınızda hiçbir şey olmuyorsa, onu zaten başka bir uygulama tutuyordur.",
+      "clearAll": "Tümünü temizle",
+      "backend": {
+        "portal": "Wayland'de masaüstünüz her değişikliği kendi penceresinde onaylar ve farklı bir kombinasyon atayabilir: seçtiği kombinasyon eylemin altında gösterilir.",
+        "unavailable": "Bu Wayland oturumunda kullanılamıyor: masaüstü genel kısayollar portalını sunmuyor. Klavyenizin medya tuşları çalışmaya devam eder."
+      },
+      "states": {
+        "taken": "Zaten başka bir uygulama tarafından kullanılıyor.",
+        "refused": "Sistem bu kombinasyonu reddetti (ayrılmış veya zaten alınmış).",
+        "dismissed": "Masaüstünüzün penceresinde onaylanmadı.",
+        "unavailable": "Bu oturumda kullanılamıyor.",
+        "invalid": {
+          "empty": "Değiştirici tuşlarla birlikte bir tuşa basın.",
+          "unsupportedKey": "Bu tuş genel kısayol olarak kullanılamaz.",
+          "needsModifier": "Ctrl, Alt veya Windows / Cmd tuşunu ekleyin: yalnızca F13–F24 tek başına çalışır."
+        }
+      },
+      "rejected": "{{combo}} kaydedilmedi: {{reason}}",
+      "assigned": "Masaüstünüzün atadığı: {{trigger}}",
+      "waitingForDesktop": "Masaüstünde onaylayın…",
+      "registering": "Kaydediliyor…"
     }
   },
   "scanProgress": {
@@ -3367,7 +3478,9 @@
       "upload": "Yükleme",
       "backup": "Yedekleme",
       "thumbnails": "Kapak önizlemeleri",
-      "drop_import": "Kitaplığa kopyalama"
+      "drop_import": "Kitaplığa kopyalama",
+      "cache_move": "Önbellekler taşınıyor",
+      "spectrogram": "Parça spektrumu"
     }
   },
   "smartRuleSummary": {

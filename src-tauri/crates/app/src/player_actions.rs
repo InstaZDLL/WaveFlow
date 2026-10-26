@@ -2,7 +2,8 @@
 //!
 //! The tray menu ([`crate::lib`]), the OS media keys
 //! ([`crate::media_controls`]), the taskbar thumbnail buttons on Windows
-//! (`crate::taskbar_buttons`) and the MPD server ([`crate::mpd`]) all
+//! (`crate::taskbar_buttons`), the system-wide shortcuts
+//! ([`crate::global_shortcuts`]) and the MPD server ([`crate::mpd`]) all
 //! need the same "advance the queue, tell the UI, hand the track to the
 //! decoder" sequence that `commands::player` performs for the frontend.
 //!
@@ -22,7 +23,7 @@
 
 use std::sync::Arc;
 
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 
 use crate::{
     audio::{
@@ -365,6 +366,93 @@ pub async fn previous(app: &AppHandle, label: &str) -> Moved {
         return moved;
     }
     step(app, Direction::Previous, label).await
+}
+
+/// Set the playback volume (`0.0..=1.0`, saturated) and tell every
+/// window. Returns the value the engine was given.
+///
+/// Each window runs its own `PlayerContext` over one engine, so a change
+/// that no `player:volume-changed` announces leaves the sliders showing a
+/// volume the output no longer plays at — which is what MPD's `setvol`
+/// did before it came through here. Persisted to
+/// `profile_setting['player.volume']` (0-100) on a best-effort basis: a
+/// profile pool that is gone does not undo the change.
+pub async fn set_volume(app: &AppHandle, value: f32) -> AppResult<f32> {
+    let engine = app.state::<Arc<AudioEngine>>();
+    engine.send(AudioCmd::SetVolume(value))?;
+
+    let clamped = value.clamp(0.0, 1.0);
+    // Published now as well as by the decoder when it drains the command
+    // (the same plain store): a second nudge read before that — during a
+    // slow track open, say — would otherwise start from the old value and
+    // three presses would move the volume one step.
+    engine.shared().set_volume(clamped);
+    // Emitted after the clamp so every listener adopts the value the
+    // engine really got.
+    let _ = app.emit(
+        "player:volume-changed",
+        commands::player::VolumeChangedPayload { volume: clamped },
+    );
+
+    if let Ok(pool) = app.state::<AppState>().require_profile_pool().await {
+        let as_int = (clamped * 100.0).round() as i64;
+        let now = chrono::Utc::now().timestamp_millis();
+        if let Err(err) = sqlx::query(
+            "UPDATE profile_setting
+                SET value = ?, updated_at = ?
+              WHERE key = 'player.volume'",
+        )
+        .bind(as_int.to_string())
+        .bind(now)
+        .execute(&*pool)
+        .await
+        {
+            tracing::warn!(%err, "player.volume not saved");
+        }
+    }
+    Ok(clamped)
+}
+
+/// Move the volume by `delta` points of 100, the step the in-app arrow
+/// keys take, from what the engine plays now.
+pub async fn nudge_volume(app: &AppHandle, delta: i32, label: &str) {
+    // One nudge at a time: each press is its own task, and two that read
+    // the volume before either has written it would both land on the same
+    // step.
+    static NUDGE: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+    let _one_at_a_time = NUDGE.lock().await;
+    let current = {
+        let engine = app.state::<Arc<AudioEngine>>();
+        (engine.shared().volume() * 100.0).round() as i32
+    };
+    let next = (current + delta).clamp(0, 100);
+    if next == current {
+        return;
+    }
+    if let Err(err) = set_volume(app, next as f32 / 100.0).await {
+        tracing::warn!(%err, surface = label, "player action: volume failed");
+    }
+}
+
+/// Like or unlike the track playing now.
+///
+/// Only a library track has a heart: radio, a remote-queue track and a
+/// file played without importing it all run under a negative sentinel id
+/// (`current_track_id` is 0 when nothing is open), and the in-app ♥ is
+/// hidden for them, so this does nothing there either.
+pub async fn toggle_like_current(app: &AppHandle, label: &str) {
+    let track_id = app
+        .state::<Arc<AudioEngine>>()
+        .shared()
+        .current_track_id
+        .load(std::sync::atomic::Ordering::Acquire);
+    if track_id <= 0 {
+        tracing::debug!(surface = label, "like: no library track playing");
+        return;
+    }
+    if let Err(err) = commands::track::toggle_like(app, track_id).await {
+        tracing::warn!(%err, surface = label, "player action: like failed");
+    }
 }
 
 /// When files played without importing them are the queue, advance it

@@ -46,6 +46,8 @@
 //!   wiped.
 
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
@@ -535,8 +537,48 @@ async fn cache_dirs(paths: &AppPaths, app_db: &SqlitePool) -> AppResult<Vec<(Str
     Ok(dirs)
 }
 
-/// Copy a directory tree. Returns the number of files written.
-fn copy_tree(from: &Path, to: &Path) -> AppResult<u64> {
+/// Files under `root`, counted the way [`copy_tree`] copies them: regular
+/// files, symlinks left out. What a move's progress is measured against.
+fn count_files(root: &Path) -> u64 {
+    let mut files = 0u64;
+    let mut stack = vec![root.to_path_buf()];
+    while let Some(dir) = stack.pop() {
+        let Ok(entries) = std::fs::read_dir(&dir) else {
+            continue;
+        };
+        for entry in entries.flatten() {
+            match entry.file_type() {
+                Ok(ft) if ft.is_dir() => stack.push(entry.path()),
+                Ok(ft) if ft.is_file() => files += 1,
+                _ => {}
+            }
+        }
+    }
+    files
+}
+
+/// Why [`copy_tree`] stopped before the end.
+#[derive(Debug)]
+enum CopyStop {
+    /// The stop flag was raised; the caller rolls back.
+    Cancelled,
+    Failed(AppError),
+}
+
+impl<E: Into<AppError>> From<E> for CopyStop {
+    fn from(err: E) -> Self {
+        Self::Failed(err.into())
+    }
+}
+
+/// Copy a directory tree, checking `stop` between two files and calling
+/// `on_file` after each one. Returns the number of files written.
+fn copy_tree(
+    from: &Path,
+    to: &Path,
+    stop: &AtomicBool,
+    on_file: &dyn Fn(),
+) -> Result<u64, CopyStop> {
     if !from.exists() {
         return Ok(0);
     }
@@ -545,6 +587,9 @@ fn copy_tree(from: &Path, to: &Path) -> AppResult<u64> {
     let mut stack = vec![(from.to_path_buf(), to.to_path_buf())];
     while let Some((src, dst)) = stack.pop() {
         for entry in std::fs::read_dir(&src)? {
+            if stop.load(Ordering::Acquire) {
+                return Err(CopyStop::Cancelled);
+            }
             let entry = entry?;
             let target = dst.join(entry.file_name());
             let file_type = entry.file_type()?;
@@ -554,6 +599,7 @@ fn copy_tree(from: &Path, to: &Path) -> AppResult<u64> {
             } else if file_type.is_file() {
                 std::fs::copy(entry.path(), &target)?;
                 copied += 1;
+                on_file();
             }
             // Symlinks are skipped rather than followed or recreated: a
             // cache holds files we downloaded, so a link in there is
@@ -862,17 +908,80 @@ pub async fn set_cache_location(
     // the marker: a folder the user had before this attempt is not ours
     // to remove when it fails.
     let pre_existing: Vec<bool> = destinations.iter().map(|(_, to)| to.exists()).collect();
+    // And the folders between the target and each destination
+    // (`profiles/`, `profiles/<id>/`), which `create_dir_all` makes on the
+    // way: left behind after a stop, an empty `profiles/` without the
+    // marker is exactly what `claim` refuses, and the next attempt at the
+    // same folder would be turned away.
+    let created_parents: Vec<PathBuf> = {
+        let mut parents: Vec<PathBuf> = Vec::new();
+        for (_, to) in &destinations {
+            let mut dir = to.parent();
+            while let Some(d) = dir.filter(|d| *d != target.as_path() && d.starts_with(&target)) {
+                if !d.exists() && !parents.iter().any(|p| p == d) {
+                    parents.push(d.to_path_buf());
+                }
+                dir = d.parent();
+            }
+        }
+        // Deepest first, so each is empty by the time it is removed.
+        parents.sort_by_key(|p| std::cmp::Reverse(p.components().count()));
+        parents
+    };
 
-    let copy = tokio::task::spawn_blocking(move || -> AppResult<()> {
+    // Announced to the task bar with a progress measured in files: a
+    // library's worth of covers takes minutes on a slow drive, and the
+    // card's spinner alone said neither how far it had got nor that it
+    // could be stopped. Stopping is between two files, and leads to the
+    // same rollback as a failure below — the setting is only written
+    // once everything is copied, so a stopped move changes nothing.
+    let stop = Arc::new(AtomicBool::new(false));
+    let task = crate::tasks::start(
+        &app,
+        crate::tasks::TaskKind::CacheMove,
+        0,
+        crate::tasks::cancel_fn({
+            let stop = Arc::clone(&stop);
+            move || stop.store(true, Ordering::Release)
+        }),
+    );
+    if let Some(task) = task.as_ref() {
+        task.detail(target.to_string_lossy());
+    }
+    let stop_copy = Arc::clone(&stop);
+    let copy = tokio::task::spawn_blocking(move || -> Result<(), CopyStop> {
+        let total: u64 = plan.iter().map(|(_, from, _)| count_files(from)).sum();
+        let done = std::sync::atomic::AtomicU64::new(0);
+        if let Some(task) = task.as_ref() {
+            task.progress(0, total);
+        }
+        let on_file = || {
+            let n = done.fetch_add(1, Ordering::Relaxed) + 1;
+            if let Some(task) = task.as_ref() {
+                // Held under the total: a file added to a cache while
+                // the move runs would otherwise push past it.
+                task.progress(n.min(total.saturating_sub(1)), total);
+            }
+        };
         for (name, from, to) in plan {
-            copy_tree(&from, &to).map_err(|e| {
-                AppError::Other(format!("copying {name} to {} failed: {e}", to.display()))
+            copy_tree(&from, &to, &stop_copy, &on_file).map_err(|e| match e {
+                CopyStop::Cancelled => CopyStop::Cancelled,
+                CopyStop::Failed(e) => CopyStop::Failed(AppError::Other(format!(
+                    "copying {name} to {} failed: {e}",
+                    to.display()
+                ))),
             })?;
+        }
+        // A stop pressed while the last file was copying arrives after
+        // the last check: the move is not finished until the setting is
+        // written, so it is still honoured here.
+        if stop_copy.load(Ordering::Acquire) {
+            return Err(CopyStop::Cancelled);
         }
         Ok(())
     })
     .await
-    .map_err(|e| AppError::Other(format!("cache copy task failed: {e}")));
+    .map_err(|e| CopyStop::Failed(AppError::Other(format!("cache copy task failed: {e}"))));
 
     // A copy that stopped part-way has adopted a folder and filled some
     // of it, and nothing records either: the setting is written further
@@ -880,23 +989,44 @@ pub async fn set_cache_location(
     // half-copied artwork tree and a marker saying WaveFlow owns the
     // folder -- which is the one file that lets a later reset delete it.
     // Rolled back to exactly what was there before, never further.
-    if let Err(err) = copy.and_then(|inner| inner) {
-        for ((_, dir), existed) in destinations.iter().zip(pre_existing.iter()) {
-            if !existed {
-                let _ = std::fs::remove_dir_all(dir);
+    if let Err(stopped) = copy.and_then(|inner| inner) {
+        // On the blocking pool: a stopped move can leave thousands of
+        // copied files to remove, too long to hold an executor thread.
+        let outside_root = target != paths.root;
+        let _ = tokio::task::spawn_blocking(move || {
+            // A copy that would not go keeps the marker: it is what lets a
+            // later attempt at this folder, or a reset, claim the copy back.
+            let mut copies_gone = true;
+            for ((_, dir), existed) in destinations.iter().zip(pre_existing.iter()) {
+                if !existed {
+                    if let Err(err) = std::fs::remove_dir_all(dir) {
+                        copies_gone &= err.kind() == std::io::ErrorKind::NotFound;
+                    }
+                }
             }
-        }
-        if !marker_existed && target != paths.root {
-            let _ = std::fs::remove_file(target.join(OWNER_MARKER));
-        }
-        // And the folder itself, for the same reason: `is_usable` is
-        // what brought it into being, so a failed move must not leave
-        // it standing. Last, because it can only go once the copies and
-        // the marker inside it are gone.
-        if !target_existed {
-            let _ = std::fs::remove_dir(&target);
-        }
-        return Err(err);
+            // `remove_dir`, which refuses a folder that is not empty: these
+            // were made by this attempt, but a file the user dropped in since
+            // is still theirs.
+            for dir in &created_parents {
+                let _ = std::fs::remove_dir(dir);
+            }
+            if !marker_existed && outside_root && copies_gone {
+                let _ = std::fs::remove_file(target.join(OWNER_MARKER));
+            }
+            // And the folder itself, for the same reason: `is_usable` is
+            // what brought it into being, so a failed move must not leave
+            // it standing. Last, because it can only go once the copies and
+            // the marker inside it are gone.
+            if !target_existed {
+                let _ = std::fs::remove_dir(&target);
+            }
+        })
+        .await;
+        return match stopped {
+            // Asked for: nothing moved, which is what the card shows.
+            CopyStop::Cancelled => get_cache_location(state).await,
+            CopyStop::Failed(err) => Err(err),
+        };
     }
 
     // Both writes or neither. They used to go one after the other, on
@@ -1111,4 +1241,55 @@ pub async fn wipe_targets_outside_root(state: &AppState) -> Vec<RelocatedCache> 
         });
     }
     targets
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn tree(root: &Path) {
+        for name in ["a.jpg", "b.jpg", "sub/c.jpg", "sub/deeper/d.jpg"] {
+            let path = root.join(name);
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::fs::write(path, b"x").unwrap();
+        }
+    }
+
+    #[test]
+    fn copy_tree_counts_what_it_copies_and_matches_the_count() {
+        let src = tempfile::tempdir().unwrap();
+        let dst = tempfile::tempdir().unwrap();
+        tree(src.path());
+        let seen = std::sync::atomic::AtomicU64::new(0);
+        let copied = copy_tree(
+            src.path(),
+            &dst.path().join("out"),
+            &AtomicBool::new(false),
+            &|| {
+                seen.fetch_add(1, Ordering::Relaxed);
+            },
+        )
+        .unwrap();
+        assert_eq!(copied, 4);
+        assert_eq!(seen.load(Ordering::Relaxed), 4);
+        // The total a move's progress is measured against is the same count.
+        assert_eq!(count_files(src.path()), 4);
+        assert!(dst.path().join("out/sub/deeper/d.jpg").is_file());
+    }
+
+    #[test]
+    fn copy_tree_stops_between_two_files_when_asked() {
+        let src = tempfile::tempdir().unwrap();
+        let dst = tempfile::tempdir().unwrap();
+        tree(src.path());
+        let stop = AtomicBool::new(false);
+        let seen = std::sync::atomic::AtomicU64::new(0);
+        let result = copy_tree(src.path(), &dst.path().join("out"), &stop, &|| {
+            // Asked to stop after the first file.
+            seen.fetch_add(1, Ordering::Relaxed);
+            stop.store(true, Ordering::Release);
+        });
+        assert!(matches!(result, Err(CopyStop::Cancelled)));
+        assert_eq!(seen.load(Ordering::Relaxed), 1);
+    }
 }

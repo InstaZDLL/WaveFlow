@@ -1294,7 +1294,8 @@
       "metadata": "Metadatos",
       "audio": "Audio",
       "analysis": "Análisis",
-      "file": "Archivo"
+      "file": "Archivo",
+      "spectrum": "Espectro"
     },
     "bpm": "BPM",
     "bpmUncertain": "{{bpm}} (incierto)",
@@ -1347,7 +1348,18 @@
     "bandwidth": "Frecuencias altas",
     "bandwidthFull": "Banda completa",
     "bandwidthCutoff": "Se detienen en {{khz}} kHz",
-    "bandwidthFake": "Se detienen en {{khz}} kHz — probablemente creado a partir de un archivo con pérdida"
+    "bandwidthFake": "Se detienen en {{khz}} kHz — probablemente creado a partir de un archivo con pérdida",
+    "spectrogram": {
+      "hint": "Mira dónde se cortan los agudos a lo largo de la pista. Se decodifica el archivo entero.",
+      "show": "Mostrar el espectro",
+      "stop": "Detener",
+      "decoding": "Decodificando el archivo",
+      "failed": "No se pudo decodificar este archivo.",
+      "altCutoff": "Los agudos se cortan en seco a {{khz}} kHz. La parte superior del gráfico es la frecuencia de Nyquist ({{nyquist}} kHz), lo más agudo que puede contener este archivo.",
+      "altFull": "Sin corte brusco: el espectro se apaga en el ruido de fondo o llega hasta la frecuencia de Nyquist ({{nyquist}} kHz), lo más agudo que puede contener este archivo.",
+      "guides": "Líneas finas: 16, 19 y 20 kHz, donde suelen cortarse los MP3 a 128, 192 y 320 kbps.",
+      "axisKhz": "{{value}} kHz"
+    }
   },
   "selection": {
     "toolbarLabel": "Acciones de selección",
@@ -2927,7 +2939,9 @@
         "skin": "Estilo",
         "display": "Legibilidad",
         "window": "Ventanas",
-        "lyricsDisplay": "Visualización de letras"
+        "lyricsDisplay": "Visualización de letras",
+        "diskUsage": "Espacio en disco",
+        "globalShortcuts": "Atajos globales"
       },
       "navHints": {
         "general": "Idioma, inicio, reproducción",
@@ -2975,7 +2989,9 @@
         "cleanup": "Miniaturas y portadas en caché",
         "updates": "Versiones estables o beta",
         "diagnostics": "Registros y renderizado gráfico",
-        "reset": "Volver a empezar con la aplicación como nueva"
+        "reset": "Volver a empezar con la aplicación como nueva",
+        "diskUsage": "Lo que WaveFlow guarda en este equipo",
+        "globalShortcuts": "Desde cualquier aplicación"
       }
     },
     "desktopLyrics": {
@@ -3077,6 +3093,101 @@
         "label": "Salida compartida",
         "hint": "El sonido pasa por el mezclador del sistema, junto con el de las demás aplicaciones. Ideal para el día a día."
       }
+    },
+    "diskUsage": {
+      "total": "WaveFlow ocupa {{size}} en este equipo.",
+      "measuring": "Midiendo…",
+      "refresh": "Medir de nuevo",
+      "failed": "No se pudo medir el espacio en disco.",
+      "rebuildableTitle": "Se reconstruye solo",
+      "rebuildableHint": "Vaciar no hace perder nada: estos archivos se vuelven a obtener cuando hace falta.",
+      "keptTitle": "Tus datos",
+      "keptHint": "Nada de esto se reconstruye solo: cada elemento se gestiona desde su propia sección.",
+      "empty": "Vaciar",
+      "confirmEmpty": "Confirmar",
+      "emptyLabel": "Vaciar: {{item}}",
+      "items": {
+        "artwork": {
+          "label": "Portadas de la biblioteca",
+          "description": "Portadas de los álbumes de este perfil y sus miniaturas. Las que no se usan se eliminan en «{{section}}»."
+        },
+        "metadataArtwork": {
+          "label": "Imágenes descargadas",
+          "description": "Fotos de artistas y portadas obtenidas en línea, compartidas por todos los perfiles."
+        },
+        "motionCache": {
+          "label": "Portadas animadas",
+          "description": "Obtenidas por los complementos, se vuelven a descargar cuando hace falta."
+        },
+        "canvasCache": {
+          "label": "Clips de Canvas",
+          "description": "Obtenidos por los complementos, se vuelven a descargar cuando hace falta."
+        },
+        "remoteArtwork": {
+          "label": "Portadas del servidor",
+          "description": "Miniaturas de tu servidor, se vuelven a descargar cuando hace falta."
+        },
+        "remoteStream": {
+          "label": "Pistas del servidor en caché",
+          "description": "Guardadas tras escucharlas, se vuelven a descargar la próxima vez."
+        },
+        "remoteDownloads": {
+          "label": "Pistas del servidor sin conexión",
+          "description": "Las que elegiste guardar sin conexión. Se quitan desde la pista o el álbum."
+        },
+        "manualMedia": {
+          "label": "Medios elegidos a mano",
+          "description": "Portadas animadas y clips de Canvas que definiste tú."
+        },
+        "databases": {
+          "label": "Bases de datos",
+          "description": "Biblioteca, listas, historial y ajustes de todos los perfiles."
+        },
+        "databaseSnapshots": {
+          "label": "Copias previas a actualizaciones",
+          "description": "Tomadas antes de cada actualización de una base de datos; solo se guardan las últimas."
+        },
+        "backups": {
+          "label": "Copias de seguridad",
+          "description": "Archivos de las copias automáticas y manuales."
+        },
+        "logs": {
+          "label": "Registros",
+          "description": "Registros de diagnóstico de los últimos días."
+        },
+        "plugins": {
+          "label": "Complementos",
+          "description": "Complementos instalados y sus datos."
+        }
+      },
+      "confirmEmptyLabel": "Confirmar el vaciado: {{item}}",
+      "emptyFailed": "No se pudo vaciar: puede que un archivo siga en uso. Inténtalo más tarde.",
+      "atLeast": "al menos {{size}}",
+      "incomplete": "No se pudo leer una carpeta entera: el tamaño real es mayor."
+    },
+    "globalShortcuts": {
+      "subtitle": "Controla la reproducción desde cualquier aplicación, incluso con WaveFlow en segundo plano. Ninguno está activo hasta que lo definas.",
+      "captureHelp": "Combina Ctrl, Alt o la tecla Windows / Cmd con una tecla, o usa F13 a F24 solas. Si no pasa nada al pulsar una combinación, otra aplicación ya la tiene.",
+      "clearAll": "Borrar todo",
+      "backend": {
+        "portal": "En Wayland, tu escritorio confirma cada cambio en su propia ventana y puede asignar otra combinación: la que eligió se muestra bajo la acción.",
+        "unavailable": "No disponible en esta sesión de Wayland: el escritorio no ofrece el portal de atajos globales. Las teclas multimedia de tu teclado siguen funcionando."
+      },
+      "states": {
+        "taken": "Ya la usa otra aplicación.",
+        "refused": "El sistema rechazó esta combinación (reservada o ya ocupada).",
+        "dismissed": "No confirmada en la ventana de tu escritorio.",
+        "unavailable": "No disponible en esta sesión.",
+        "invalid": {
+          "empty": "Pulsa una tecla además de los modificadores.",
+          "unsupportedKey": "Esta tecla no puede usarse como atajo global.",
+          "needsModifier": "Añade Ctrl, Alt o la tecla Windows / Cmd: solo F13 a F24 funcionan solas."
+        }
+      },
+      "rejected": "{{combo}} no se guardó: {{reason}}",
+      "assigned": "Asignado por tu escritorio: {{trigger}}",
+      "waitingForDesktop": "Confirma en el escritorio…",
+      "registering": "Registrando…"
     }
   },
   "scanProgress": {
@@ -3462,7 +3573,9 @@
       "upload": "Subida",
       "backup": "Copia de seguridad",
       "thumbnails": "Miniaturas",
-      "drop_import": "Copia a la biblioteca"
+      "drop_import": "Copia a la biblioteca",
+      "cache_move": "Moviendo las cachés",
+      "spectrogram": "Espectro de una pista"
     }
   },
   "smartRuleSummary": {

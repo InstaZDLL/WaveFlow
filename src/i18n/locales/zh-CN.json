@@ -1247,7 +1247,8 @@
       "metadata": "元数据",
       "audio": "音频",
       "analysis": "分析",
-      "file": "文件"
+      "file": "文件",
+      "spectrum": "频谱"
     },
     "bpm": "BPM",
     "bpmUncertain": "{{bpm}}（不确定）",
@@ -1300,7 +1301,18 @@
     "bandwidth": "高频",
     "bandwidthFull": "全频段",
     "bandwidthCutoff": "截止于 {{khz}} kHz",
-    "bandwidthFake": "截止于 {{khz}} kHz — 可能由有损文件转换而来"
+    "bandwidthFake": "截止于 {{khz}} kHz — 可能由有损文件转换而来",
+    "spectrogram": {
+      "hint": "查看整首曲目中高频在哪里截止。将解码整个文件。",
+      "show": "显示频谱",
+      "stop": "停止",
+      "decoding": "正在解码文件",
+      "failed": "无法解码此文件。",
+      "altCutoff": "高频在 {{khz}} kHz 处陡然截止。图表顶部是奈奎斯特频率（{{nyquist}} kHz），即此文件能容纳的最高频率。",
+      "altFull": "没有陡峭的截止：频谱逐渐消失在本底噪声中，或一直延伸到奈奎斯特频率（{{nyquist}} kHz，即此文件能容纳的最高频率）。",
+      "guides": "细线：16、19 和 20 kHz，即 128、192 和 320 kbps 的 MP3 常见的截止位置。",
+      "axisKhz": "{{value}} kHz"
+    }
   },
   "selection": {
     "toolbarLabel": "选择操作",
@@ -2860,7 +2872,9 @@
         "skin": "界面风格",
         "display": "可读性",
         "window": "窗口",
-        "lyricsDisplay": "歌词显示"
+        "lyricsDisplay": "歌词显示",
+        "diskUsage": "磁盘空间",
+        "globalShortcuts": "全局快捷键"
       },
       "navHints": {
         "general": "语言、启动、播放",
@@ -2908,7 +2922,9 @@
         "cleanup": "已缓存的缩略图和封面",
         "updates": "稳定版或测试版",
         "diagnostics": "日志与图形渲染",
-        "reset": "将应用恢复到全新状态"
+        "reset": "将应用恢复到全新状态",
+        "diskUsage": "WaveFlow 在这台电脑上保存的内容",
+        "globalShortcuts": "在任何应用中"
       }
     },
     "desktopLyrics": {
@@ -3007,6 +3023,101 @@
         "label": "共享输出",
         "hint": "声音与其他应用的声音一起经过系统混音器。适合日常使用。"
       }
+    },
+    "diskUsage": {
+      "total": "WaveFlow 在这台电脑上占用 {{size}}。",
+      "measuring": "正在测量…",
+      "refresh": "重新测量",
+      "failed": "无法测量磁盘空间。",
+      "rebuildableTitle": "可自动重建",
+      "rebuildableHint": "清空不会丢失任何内容：这些文件会在需要时重新获取。",
+      "keptTitle": "你的数据",
+      "keptHint": "这里的内容都不会自动重建：每一项都在各自的设置中管理。",
+      "empty": "清空",
+      "confirmEmpty": "确认",
+      "emptyLabel": "清空：{{item}}",
+      "items": {
+        "artwork": {
+          "label": "资料库封面",
+          "description": "此配置文件的专辑封面及其缩略图。未使用的封面可在“{{section}}”中移除。"
+        },
+        "metadataArtwork": {
+          "label": "已下载的图片",
+          "description": "从网上获取的艺人照片和封面，所有配置文件共用。"
+        },
+        "motionCache": {
+          "label": "动态封面",
+          "description": "由插件获取，需要时会重新下载。"
+        },
+        "canvasCache": {
+          "label": "Canvas 片段",
+          "description": "由插件获取，需要时会重新下载。"
+        },
+        "remoteArtwork": {
+          "label": "服务器封面",
+          "description": "来自你的服务器的缩略图，需要时会重新下载。"
+        },
+        "remoteStream": {
+          "label": "已缓存的服务器曲目",
+          "description": "播放后保留，下次播放时会重新下载。"
+        },
+        "remoteDownloads": {
+          "label": "离线的服务器曲目",
+          "description": "你选择离线保留的曲目。可从曲目或专辑中移除。"
+        },
+        "manualMedia": {
+          "label": "手动设置的媒体",
+          "description": "你自己设置的动态封面和 Canvas 片段。"
+        },
+        "databases": {
+          "label": "数据库",
+          "description": "所有配置文件的资料库、播放列表、历史和设置。"
+        },
+        "databaseSnapshots": {
+          "label": "升级前的副本",
+          "description": "每次数据库升级前创建，只保留最近的几份。"
+        },
+        "backups": {
+          "label": "备份",
+          "description": "自动和手动备份的存档。"
+        },
+        "logs": {
+          "label": "日志",
+          "description": "最近几天的诊断日志。"
+        },
+        "plugins": {
+          "label": "插件",
+          "description": "已安装的插件及其数据。"
+        }
+      },
+      "confirmEmptyLabel": "确认清空：{{item}}",
+      "emptyFailed": "未能清空：可能有文件仍在使用。请稍后再试。",
+      "atLeast": "至少 {{size}}",
+      "incomplete": "有文件夹无法完整读取：实际大小更大。"
+    },
+    "globalShortcuts": {
+      "subtitle": "即使 WaveFlow 在后台，也能在任何应用中控制播放。在你设置之前，任何快捷键都不会生效。",
+      "captureHelp": "将 Ctrl、Alt 或 Windows / Cmd 键与另一个键组合，或单独使用 F13 至 F24。如果按下组合键后没有反应，说明它已被其他应用占用。",
+      "clearAll": "全部清除",
+      "backend": {
+        "portal": "在 Wayland 下，桌面会在自己的窗口中确认每次更改，并可能分配不同的组合键：它所选的组合键显示在操作下方。",
+        "unavailable": "此 Wayland 会话中不可用：桌面未提供全局快捷键门户。键盘上的媒体键仍可使用。"
+      },
+      "states": {
+        "taken": "已被其他应用占用。",
+        "refused": "系统拒绝了此组合键（已保留或已被占用）。",
+        "dismissed": "未在桌面窗口中确认。",
+        "unavailable": "此会话中不可用。",
+        "invalid": {
+          "empty": "请在修饰键之外再按一个键。",
+          "unsupportedKey": "此键不能用作全局快捷键。",
+          "needsModifier": "请加上 Ctrl、Alt 或 Windows / Cmd 键：只有 F13 至 F24 可以单独使用。"
+        }
+      },
+      "rejected": "{{combo}} 未保存：{{reason}}",
+      "assigned": "由桌面分配：{{trigger}}",
+      "waitingForDesktop": "请在桌面上确认…",
+      "registering": "正在注册…"
     }
   },
   "scanProgress": {
@@ -3365,7 +3476,9 @@
       "upload": "上传",
       "backup": "备份",
       "thumbnails": "缩略图",
-      "drop_import": "复制到音乐库"
+      "drop_import": "复制到音乐库",
+      "cache_move": "正在移动缓存",
+      "spectrogram": "曲目频谱"
     }
   },
   "smartRuleSummary": {

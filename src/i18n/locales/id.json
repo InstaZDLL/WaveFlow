@@ -1247,7 +1247,8 @@
       "metadata": "Metadata",
       "audio": "Audio",
       "analysis": "Analisis",
-      "file": "Berkas"
+      "file": "Berkas",
+      "spectrum": "Spektrum"
     },
     "bpm": "BPM",
     "bpmUncertain": "{{bpm}} (tidak pasti)",
@@ -1300,7 +1301,18 @@
     "bandwidth": "Frekuensi tinggi",
     "bandwidthFull": "Pita penuh",
     "bandwidthCutoff": "Berhenti di {{khz}} kHz",
-    "bandwidthFake": "Berhenti di {{khz}} kHz — kemungkinan dibuat dari file lossy"
+    "bandwidthFake": "Berhenti di {{khz}} kHz — kemungkinan dibuat dari file lossy",
+    "spectrogram": {
+      "hint": "Lihat di mana nada tinggi berhenti sepanjang lagu. Seluruh berkas didekode.",
+      "show": "Tampilkan spektrum",
+      "stop": "Hentikan",
+      "decoding": "Mendekode berkas",
+      "failed": "Berkas ini tidak dapat didekode.",
+      "altCutoff": "Nada tinggi berhenti tajam di {{khz}} kHz. Bagian atas grafik adalah frekuensi Nyquist ({{nyquist}} kHz), yang tertinggi yang bisa dimuat berkas ini.",
+      "altFull": "Tidak ada potongan tajam: spektrum memudar ke derau latar atau berlanjut hingga frekuensi Nyquist ({{nyquist}} kHz), yang tertinggi yang bisa dimuat berkas ini.",
+      "guides": "Garis tipis: 16, 19, dan 20 kHz, tempat MP3 128, 192, dan 320 kbps sering berhenti.",
+      "axisKhz": "{{value}} kHz"
+    }
   },
   "selection": {
     "toolbarLabel": "Aksi pemilihan",
@@ -2860,7 +2872,9 @@
         "skin": "Gaya antarmuka",
         "display": "Keterbacaan",
         "window": "Jendela",
-        "lyricsDisplay": "Tampilan lirik"
+        "lyricsDisplay": "Tampilan lirik",
+        "diskUsage": "Ruang disk",
+        "globalShortcuts": "Pintasan global"
       },
       "navHints": {
         "general": "Bahasa, mulai, pemutaran",
@@ -2908,7 +2922,9 @@
         "cleanup": "Gambar mini dan sampul dalam cache",
         "updates": "Versi stabil atau beta",
         "diagnostics": "Log dan rendering grafis",
-        "reset": "Mulai lagi dengan aplikasi yang bersih"
+        "reset": "Mulai lagi dengan aplikasi yang bersih",
+        "diskUsage": "Apa yang disimpan WaveFlow di komputer ini",
+        "globalShortcuts": "Dari aplikasi mana pun"
       }
     },
     "desktopLyrics": {
@@ -3007,6 +3023,101 @@
         "label": "Keluaran bersama",
         "hint": "Suara melewati mixer sistem, bersama suara aplikasi lain. Ideal untuk sehari-hari."
       }
+    },
+    "diskUsage": {
+      "total": "WaveFlow memakai {{size}} di komputer ini.",
+      "measuring": "Mengukur…",
+      "refresh": "Ukur lagi",
+      "failed": "Ruang disk tidak dapat diukur.",
+      "rebuildableTitle": "Terbangun ulang sendiri",
+      "rebuildableHint": "Mengosongkan tidak menghilangkan apa pun: berkas ini diambil lagi saat diperlukan.",
+      "keptTitle": "Data Anda",
+      "keptHint": "Tidak ada di sini yang terbangun ulang sendiri: tiap item dikelola dari bagiannya sendiri.",
+      "empty": "Kosongkan",
+      "confirmEmpty": "Konfirmasi",
+      "emptyLabel": "Kosongkan: {{item}}",
+      "items": {
+        "artwork": {
+          "label": "Sampul pustaka",
+          "description": "Sampul album profil ini dan gambar kecilnya. Sampul yang tak terpakai dihapus di “{{section}}”."
+        },
+        "metadataArtwork": {
+          "label": "Gambar yang diunduh",
+          "description": "Foto artis dan sampul yang diambil daring, dipakai bersama semua profil."
+        },
+        "motionCache": {
+          "label": "Sampul animasi",
+          "description": "Diambil oleh plugin, diunduh lagi saat diperlukan."
+        },
+        "canvasCache": {
+          "label": "Klip Canvas",
+          "description": "Diambil oleh plugin, diunduh lagi saat diperlukan."
+        },
+        "remoteArtwork": {
+          "label": "Sampul server",
+          "description": "Gambar kecil dari server Anda, diunduh lagi saat diperlukan."
+        },
+        "remoteStream": {
+          "label": "Lagu server di cache",
+          "description": "Disimpan setelah diputar, diunduh lagi saat diputar berikutnya."
+        },
+        "remoteDownloads": {
+          "label": "Lagu server luring",
+          "description": "Yang Anda pilih untuk disimpan luring. Dihapus dari lagu atau albumnya."
+        },
+        "manualMedia": {
+          "label": "Media pilihan sendiri",
+          "description": "Sampul animasi dan klip Canvas yang Anda atur sendiri."
+        },
+        "databases": {
+          "label": "Basis data",
+          "description": "Pustaka, playlist, riwayat, dan pengaturan semua profil."
+        },
+        "databaseSnapshots": {
+          "label": "Salinan sebelum peningkatan",
+          "description": "Dibuat sebelum setiap peningkatan basis data; hanya yang terbaru disimpan."
+        },
+        "backups": {
+          "label": "Cadangan",
+          "description": "Arsip dari pencadangan otomatis dan manual."
+        },
+        "logs": {
+          "label": "Log",
+          "description": "Log diagnostik beberapa hari terakhir."
+        },
+        "plugins": {
+          "label": "Plugin",
+          "description": "Plugin yang terpasang dan datanya."
+        }
+      },
+      "confirmEmptyLabel": "Konfirmasi pengosongan: {{item}}",
+      "emptyFailed": "Pengosongan tidak selesai: mungkin ada berkas yang masih dipakai. Coba lagi nanti.",
+      "atLeast": "setidaknya {{size}}",
+      "incomplete": "Sebuah folder tidak dapat dibaca utuh: ukuran sebenarnya lebih besar."
+    },
+    "globalShortcuts": {
+      "subtitle": "Kendalikan pemutaran dari aplikasi mana pun, bahkan saat WaveFlow berjalan di latar belakang. Tidak ada yang aktif sampai Anda menetapkannya.",
+      "captureHelp": "Gabungkan Ctrl, Alt, atau tombol Windows / Cmd dengan sebuah tombol, atau gunakan F13 hingga F24 saja. Jika tidak terjadi apa-apa saat menekan sebuah kombinasi, aplikasi lain sudah memakainya.",
+      "clearAll": "Hapus semua",
+      "backend": {
+        "portal": "Di Wayland, desktop Anda mengonfirmasi setiap perubahan di jendelanya sendiri dan bisa menetapkan kombinasi lain: kombinasi pilihannya ditampilkan di bawah tindakan.",
+        "unavailable": "Tidak tersedia di sesi Wayland ini: desktop tidak menyediakan portal pintasan global. Tombol media keyboard Anda tetap berfungsi."
+      },
+      "states": {
+        "taken": "Sudah dipakai aplikasi lain.",
+        "refused": "Sistem menolak kombinasi ini (dicadangkan atau sudah dipakai).",
+        "dismissed": "Tidak dikonfirmasi di jendela desktop Anda.",
+        "unavailable": "Tidak tersedia di sesi ini.",
+        "invalid": {
+          "empty": "Tekan sebuah tombol bersama tombol pengubah.",
+          "unsupportedKey": "Tombol ini tidak bisa dipakai untuk pintasan global.",
+          "needsModifier": "Tambahkan Ctrl, Alt, atau tombol Windows / Cmd: hanya F13 hingga F24 yang berfungsi sendiri."
+        }
+      },
+      "rejected": "{{combo}} tidak disimpan: {{reason}}",
+      "assigned": "Ditetapkan oleh desktop Anda: {{trigger}}",
+      "waitingForDesktop": "Konfirmasi di desktop…",
+      "registering": "Mendaftarkan…"
     }
   },
   "scanProgress": {
@@ -3365,7 +3476,9 @@
       "upload": "Unggah",
       "backup": "Cadangan",
       "thumbnails": "Gambar mini",
-      "drop_import": "Menyalin ke pustaka"
+      "drop_import": "Menyalin ke pustaka",
+      "cache_move": "Memindahkan cache",
+      "spectrogram": "Spektrum lagu"
     }
   },
   "smartRuleSummary": {

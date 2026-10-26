@@ -18,6 +18,7 @@ mod display_backend;
 mod dlna;
 mod error;
 mod external_open;
+mod global_shortcuts;
 mod logging;
 mod media_controls;
 #[cfg(target_os = "linux")]
@@ -216,6 +217,14 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init());
 
+    // System-wide shortcuts. The plugin is left out where it cannot work —
+    // a Wayland session, which goes through the portal instead — because
+    // there it would accept every combination and deliver none.
+    let global_shortcut_backend = global_shortcuts::initial_backend();
+    if global_shortcut_backend == global_shortcuts::Backend::Native {
+        builder = builder.plugin(tauri_plugin_global_shortcut::Builder::new().build());
+    }
+
     // Auto-updater is wired in release builds only. In dev (`tauri dev`)
     // the binary points at the local source tree, the version is the
     // working copy, and there's no signed manifest to fetch — the
@@ -237,7 +246,7 @@ pub fn run() {
 
     builder
         .manage(QuitGate(AtomicBool::new(false)))
-        .setup(|app| {
+        .setup(move |app| {
             // Everything below can fail, and a failure here stops the
             // launch before the frontend can report a paint. This takes
             // the renderer marker down on any of those paths — including
@@ -314,6 +323,7 @@ pub fn run() {
                 commands::preferences::load_sort_ignore_articles(&state.app_db),
             );
             app.manage(desktop_lyrics::DesktopLyricsState::default());
+            app.manage(commands::spectrogram::SpectrogramJobs::default());
 
             // Artwork reaches the webview through `convertFileSrc`, which
             // the asset protocol gates on the static scope in
@@ -556,6 +566,11 @@ pub fn run() {
             if let Some(buttons) = taskbar_buttons::init(app) {
                 app.manage(buttons);
             }
+
+            // System-wide shortcuts, none bound until the user sets one.
+            // Registers from a task: the native backend runs each
+            // registration on this thread, free once `setup` returns.
+            global_shortcuts::init(app.handle(), global_shortcut_backend);
 
             // Discord Rich Presence. Always spawn the worker thread —
             // it stays idle until the user flips the opt-in toggle.
@@ -996,6 +1011,13 @@ pub fn run() {
             commands::mood_radio::track_mood_overrides,
             commands::mood_radio::set_mood_override,
             commands::mood_radio::list_mood_overrides,
+            commands::global_shortcuts::global_shortcuts_status,
+            commands::global_shortcuts::global_shortcuts_set,
+            commands::global_shortcuts::global_shortcuts_suspend,
+            commands::global_shortcuts::global_shortcuts_clear,
+            commands::spectrogram::track_spectrogram,
+            commands::spectrogram::cancel_track_spectrogram,
+            commands::disk_usage::disk_usage,
             commands::mpd::mpd_get_config,
             commands::mpd::mpd_set_config,
             commands::mpd::mpd_get_status,

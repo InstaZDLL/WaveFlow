@@ -14,6 +14,7 @@ import type { BioLanguage, BioSource } from "./tauri/integration";
 import type { LyricsDestination, LyricsProvider } from "./tauri/lyrics";
 import type { DsdPrecisionTaps, ReplayGainMode } from "./tauri/player";
 import type { ShortcutAction } from "./shortcuts";
+import type { GlobalShortcutAction } from "./tauri/globalShortcuts";
 import type { UpdateChannel } from "./tauri/updater";
 
 /**
@@ -703,6 +704,19 @@ export const SETTINGS = {
     "string",
     {},
     "settings.organization.groups.keyboard",
+  ),
+
+  /** System-wide shortcuts: action id → combination, none by default.
+   *  App-wide, not per profile: the combinations are claimed from the
+   *  whole desktop at launch, before any profile is open, and a profile
+   *  switch must neither drop them nor take new ones from other
+   *  applications. Written by its own command, which registers it. */
+  "shortcuts.global": setting<Partial<Record<GlobalShortcutAction, string>>>(
+    "shortcuts",
+    "app",
+    "json",
+    {},
+    "settings.organization.groups.globalShortcuts",
   ),
 
   // ---- Storage and backups ---------------------------------------------

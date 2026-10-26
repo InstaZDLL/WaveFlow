@@ -703,13 +703,18 @@ struct LikedChangedPayload {
 /// Toggle the liked state of a track. If already liked → unlike (DELETE),
 /// if not → like (INSERT). Returns `true` if the track is now liked.
 #[tauri::command]
-pub async fn toggle_like_track(
-    app: tauri::AppHandle,
-    state: tauri::State<'_, AppState>,
-    track_id: i64,
-) -> AppResult<bool> {
-    use tauri::Emitter;
+pub async fn toggle_like_track(app: tauri::AppHandle, track_id: i64) -> AppResult<bool> {
+    toggle_like(&app, track_id).await
+}
 
+/// [`toggle_like_track`]'s body, shared with the global shortcut
+/// (`player_actions::toggle_like_current`), so a heart flipped from
+/// outside the window enqueues the same sync op and emits the same
+/// `track:liked-changed`.
+pub(crate) async fn toggle_like(app: &tauri::AppHandle, track_id: i64) -> AppResult<bool> {
+    use tauri::{Emitter, Manager};
+
+    let state = app.state::<AppState>();
     let pool = state.require_profile_pool().await?;
     let mut tx = pool.begin().await?;
 

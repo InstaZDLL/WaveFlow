@@ -91,6 +91,11 @@ tauri-plugin-autostart = "2"
 # Center (toastify), macOS NSUserNotification, and libnotify on Linux.
 # Off by default and gated on `app_setting['notifications.track_change']`.
 tauri-plugin-notification = "2"
+# System-wide shortcuts (`global_shortcuts`): RegisterHotKey on Windows,
+# Carbon hot keys on macOS (no accessibility permission needed), an X11
+# key grab on Linux. Wayland has no global grab; that session goes
+# through the XDG GlobalShortcuts portal instead, over the zbus below.
+tauri-plugin-global-shortcut = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_urlencoded = "0.7"
@@ -299,6 +304,10 @@ same-file = "1"
 tempfile = "3"
 # Writes a lyrics sidecar in a legacy encoding for the decoding test.
 encoding_rs = "0.8.42"
+# Builds the error the global-shortcut plugin flattens to text, so the
+# test that tells "taken" apart pins the wording. Already in the tree
+# under that plugin; the version is its own.
+global-hotkey = "0.8"
 
 # Linux-only: direct ALSA enumeration so the output-device picker can
 # show human-readable descriptions ("HDA Intel PCH, ALC897 Analog
