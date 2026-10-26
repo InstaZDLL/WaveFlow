@@ -11,6 +11,12 @@
 //! transaction — and an append needs nothing: it lands at the tail, after
 //! the placeholders already there, because a placeholder sorts before the
 //! real track it shares a position with.
+//!
+//! Free functions over SQLite, like [`super::sidebar_pin`], rather than a
+//! repository trait: placeholders are the desktop's — an import matches
+//! against the files of this machine's library, and the server's schema
+//! has no such table. A trait would have one implementation and no caller
+//! that needs the abstraction.
 
 use serde::Serialize;
 use sqlx::{FromRow, SqliteConnection, SqlitePool};
