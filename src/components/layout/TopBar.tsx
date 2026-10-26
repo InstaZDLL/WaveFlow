@@ -745,7 +745,7 @@ export function TopBar({
                               query,
                             })}
                             title={t("topbar.search.recent.remove", { query })}
-                            className="mr-2 rounded-full p-1.5 text-zinc-400 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 hover:text-zinc-700 dark:hover:text-zinc-200 transition-opacity"
+                            className="mr-2 rounded-full p-1.5 text-zinc-400 opacity-0 reveal:opacity-100 hover:text-zinc-700 dark:hover:text-zinc-200 transition-opacity"
                           >
                             <X size={14} />
                           </button>

@@ -396,24 +396,25 @@ export function WrappedView({
         </button>
       </div>
 
-      {/* Tap zones — left/right thirds for prev/next */}
+      {/* Tap zones — left/right thirds for prev/next. Keyboard focus
+          rings the chevron rather than outlining a third of the screen. */}
       <button
         type="button"
         onClick={goPrev}
-        className="absolute top-16 bottom-0 left-0 w-1/3 z-5 group cursor-default"
+        className="absolute top-16 bottom-0 left-0 w-1/3 z-5 group cursor-default focus-visible:outline-none!"
         aria-label={t("wrapped.prev")}
       >
-        <span className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity">
+        <span className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/10 opacity-0 reveal:opacity-100 group-[:focus-visible:not([data-pointer-focus])]:ring-2 group-[:focus-visible:not([data-pointer-focus])]:ring-white/80 transition-opacity">
           <ChevronLeft size={20} />
         </span>
       </button>
       <button
         type="button"
         onClick={goNext}
-        className="absolute top-16 bottom-0 right-0 w-1/3 z-5 group cursor-default"
+        className="absolute top-16 bottom-0 right-0 w-1/3 z-5 group cursor-default focus-visible:outline-none!"
         aria-label={t("wrapped.next")}
       >
-        <span className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity">
+        <span className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/10 opacity-0 reveal:opacity-100 group-[:focus-visible:not([data-pointer-focus])]:ring-2 group-[:focus-visible:not([data-pointer-focus])]:ring-white/80 transition-opacity">
           <ChevronRight size={20} />
         </span>
       </button>

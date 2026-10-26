@@ -2308,7 +2308,7 @@ const SortablePlaylistRow = memo(function SortablePlaylistRow({
           {...attributes}
           {...listeners}
           aria-label={reorderLabel}
-          className="shrink-0 p-1 -ml-1 text-zinc-300 dark:text-zinc-600 hover:text-zinc-500 dark:hover:text-zinc-400 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
+          className="shrink-0 p-1 -ml-1 text-zinc-300 dark:text-zinc-600 hover:text-zinc-500 dark:hover:text-zinc-400 cursor-grab active:cursor-grabbing opacity-0 reveal:opacity-100 transition-opacity"
           onClick={(e) => e.stopPropagation()}
           onDoubleClick={(e) => e.stopPropagation()}
         >
@@ -2438,7 +2438,7 @@ const SortablePlaylistRow = memo(function SortablePlaylistRow({
               onRemoveAt(index);
             }}
             disabled={busy}
-            className="p-1 rounded text-zinc-300 dark:text-zinc-600 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 hover:text-red-500 dark:hover:text-red-400 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+            className="p-1 rounded text-zinc-300 dark:text-zinc-600 opacity-0 reveal:opacity-100 hover:text-red-500 dark:hover:text-red-400 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
             aria-label={removeLabel}
             title={removeLabel}
           >

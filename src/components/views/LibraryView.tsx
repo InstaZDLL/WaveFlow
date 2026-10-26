@@ -2956,12 +2956,12 @@ function TrackTable({
                           ? t("remote.download.kept")
                           : t("remote.download.keep")
                       }
-                      className={`p-1.5 rounded-full transition-all focus-visible:opacity-100 ${
+                      className={`p-1.5 rounded-full transition-all ${
                         downloadedRemote.has(String(track.id))
                           ? "opacity-100 text-emerald-500"
                           : downloadingRemote.has(String(track.id))
                             ? "opacity-100 text-zinc-400 animate-pulse"
-                            : "opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                            : "opacity-0 reveal:opacity-100 text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-700"
                       }`}
                     >
                       {downloadedRemote.has(String(track.id)) ? (
@@ -2978,7 +2978,7 @@ function TrackTable({
                       }}
                       aria-label={t("remote.import.action")}
                       title={t("remote.import.action")}
-                      className="p-1.5 rounded-full transition-all opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                      className="p-1.5 rounded-full transition-all opacity-0 reveal:opacity-100 text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-700"
                     >
                       <FolderDown size={16} />
                     </button>
@@ -2996,7 +2996,7 @@ function TrackTable({
                       }}
                       aria-label={t("remote.tags.action")}
                       title={t("remote.tags.action")}
-                      className="p-1.5 rounded-full transition-all opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                      className="p-1.5 rounded-full transition-all opacity-0 reveal:opacity-100 text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-700"
                     >
                       <Pencil size={16} />
                     </button>
@@ -3036,10 +3036,10 @@ function TrackTable({
                       aria-label={t("trackActions.addToPlaylist")}
                       aria-haspopup="menu"
                       aria-expanded={isMenuOpen}
-                      className={`p-1.5 rounded-full transition-all focus-visible:opacity-100 ${
+                      className={`p-1.5 rounded-full transition-all ${
                         isMenuOpen
                           ? "opacity-100 bg-zinc-100 dark:bg-zinc-700 text-zinc-800 dark:text-white"
-                          : "opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                          : "opacity-0 reveal:opacity-100 text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-700"
                       }`}
                     >
                       <Plus size={16} />
@@ -3502,12 +3502,12 @@ function AlbumGrid({
                 setOpenMenuAlbumId(isMenuOpen ? null : localId);
               }}
               aria-label={t("trackActions.addToPlaylist")}
-              // `focus-visible:opacity-100` is not decoration: without it the
-              // button is invisible exactly when the keyboard reaches it.
-              className={`absolute bottom-2 right-2 p-1.5 rounded-full shadow-sm transition-all focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500 ${
+              // `reveal:`, not `group-hover:`: the hover-only form left the
+              // button invisible exactly when the keyboard reached it.
+              className={`absolute bottom-2 right-2 p-1.5 rounded-full shadow-sm transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500 ${
                 isMenuOpen
                   ? "opacity-100 bg-emerald-500 text-white"
-                  : "opacity-0 group-hover:opacity-100 bg-white/90 dark:bg-zinc-800/90 text-zinc-600 dark:text-zinc-300 hover:bg-emerald-500 hover:text-white"
+                  : "opacity-0 reveal:opacity-100 bg-white/90 dark:bg-zinc-800/90 text-zinc-600 dark:text-zinc-300 hover:bg-emerald-500 hover:text-white"
               }`}
             >
               <Plus size={16} />
@@ -3851,10 +3851,10 @@ function ArtistList({
                 setOpenMenuArtistId(isMenuOpen ? null : localId);
               }}
               aria-label={t("trackActions.addToPlaylist")}
-              className={`absolute bottom-1 right-1 p-1.5 rounded-full shadow-sm transition-all focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500 ${
+              className={`absolute bottom-1 right-1 p-1.5 rounded-full shadow-sm transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500 ${
                 isMenuOpen
                   ? "opacity-100 bg-emerald-500 text-white"
-                  : "opacity-0 group-hover:opacity-100 bg-white/90 dark:bg-zinc-800/90 text-zinc-600 dark:text-zinc-300 hover:bg-emerald-500 hover:text-white"
+                  : "opacity-0 reveal:opacity-100 bg-white/90 dark:bg-zinc-800/90 text-zinc-600 dark:text-zinc-300 hover:bg-emerald-500 hover:text-white"
               }`}
             >
               <Plus size={16} />
@@ -4206,7 +4206,8 @@ function FolderList({
             className="group relative flex flex-col gap-3 rounded-2xl border border-zinc-200 bg-white p-4 transition-colors cursor-pointer hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-800/40 dark:hover:bg-zinc-800/70"
           >
             {/* The folder's tile on the left, its actions on the right:
-                shown on hover, the watch eye always when it is on. */}
+                shown on hover or keyboard focus, the watch eye always when it is
+                on. */}
             <div className="flex items-start justify-between gap-2">
               <div className="w-11 h-11 rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400 flex items-center justify-center shrink-0">
                 <Folder size={22} />
@@ -4234,7 +4235,7 @@ function FolderList({
                     className={`p-1.5 rounded-full transition-colors ${
                       folder.is_watched === 1
                         ? "text-emerald-500 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-500/10"
-                        : "opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                        : "opacity-0 reveal:opacity-100 text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-700"
                     }`}
                   >
                     {folder.is_watched === 1 ? (
@@ -4257,7 +4258,7 @@ function FolderList({
                     className={`p-1.5 rounded-full transition-colors text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-700 disabled:opacity-50 ${
                       deepRescanFolderId === folder.id
                         ? "opacity-100"
-                        : "opacity-0 group-hover:opacity-100"
+                        : "opacity-0 reveal:opacity-100"
                     }`}
                   >
                     {deepRescanFolderId === folder.id ? (
@@ -4298,7 +4299,7 @@ function FolderList({
                     className={`p-1.5 rounded-full transition-colors ${
                       confirmDeleteId === folder.id
                         ? "bg-red-500 text-white"
-                        : "opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10"
+                        : "opacity-0 reveal:opacity-100 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10"
                     }`}
                   >
                     <Trash2 size={16} />
@@ -4316,7 +4317,7 @@ function FolderList({
                     className={`p-1.5 rounded-full transition-all ${
                       isMenuOpen
                         ? "opacity-100 bg-emerald-500 text-white"
-                        : "opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                        : "opacity-0 reveal:opacity-100 text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-700"
                     }`}
                   >
                     <Plus size={16} />
