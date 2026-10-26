@@ -2805,7 +2805,8 @@
         "skin": "Skin",
         "display": "Leesbaarheid",
         "window": "Vensters",
-        "lyricsDisplay": "Weergave van songteksten"
+        "lyricsDisplay": "Weergave van songteksten",
+        "globalShortcuts": "Globale sneltoetsen"
       },
       "navHints": {
         "general": "Taal, opstarten, afspelen",
@@ -2853,7 +2854,8 @@
         "cleanup": "Gecachete miniaturen en hoezen",
         "updates": "Stabiele of bètaversies",
         "diagnostics": "Logs en grafische weergave",
-        "reset": "Opnieuw beginnen met een verse app"
+        "reset": "Opnieuw beginnen met een verse app",
+        "globalShortcuts": "Vanuit elke toepassing"
       }
     },
     "desktopLyrics": {
@@ -2952,6 +2954,30 @@
         "label": "Gedeelde uitvoer",
         "hint": "Het geluid gaat via de systeemmixer, samen met dat van andere apps. Ideaal voor dagelijks gebruik."
       }
+    },
+    "globalShortcuts": {
+      "subtitle": "Bedien het afspelen vanuit elke toepassing, ook als WaveFlow op de achtergrond draait. Geen enkele is actief totdat je er een instelt.",
+      "captureHelp": "Combineer Ctrl, Alt of de Windows-/Cmd-toets met een toets, of gebruik F13 tot F24 los. Gebeurt er niets als je een combinatie indrukt, dan gebruikt een andere toepassing die al.",
+      "clearAll": "Alles wissen",
+      "backend": {
+        "portal": "Op Wayland bevestigt je bureaublad elke wijziging in een eigen venster en kan het een andere combinatie toewijzen: de gekozen combinatie staat onder de actie.",
+        "unavailable": "Niet beschikbaar in deze Wayland-sessie: het bureaublad biedt het portaal voor globale sneltoetsen niet aan. De mediatoetsen van je toetsenbord werken nog steeds."
+      },
+      "states": {
+        "taken": "Al in gebruik door een andere toepassing.",
+        "refused": "Het systeem heeft deze combinatie geweigerd (gereserveerd of al bezet).",
+        "dismissed": "Niet bevestigd in het venster van je bureaublad.",
+        "unavailable": "Niet beschikbaar in deze sessie.",
+        "invalid": {
+          "empty": "Druk naast de modificatietoetsen ook een toets in.",
+          "unsupportedKey": "Deze toets kan niet voor een globale sneltoets worden gebruikt.",
+          "needsModifier": "Voeg Ctrl, Alt of de Windows-/Cmd-toets toe: alleen F13 tot F24 werken los."
+        }
+      },
+      "rejected": "{{combo}} is niet opgeslagen: {{reason}}",
+      "assigned": "Toegewezen door je bureaublad: {{trigger}}",
+      "waitingForDesktop": "Bevestig op het bureaublad…",
+      "registering": "Registreren…"
     }
   },
   "scanProgress": {

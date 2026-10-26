@@ -65,7 +65,10 @@ pub struct DisplayBackendStatus {
     pub set_by_user: bool,
 }
 
-fn wayland_session() -> bool {
+/// A Wayland desktop session, whatever backend GTK opened the window on:
+/// under XWayland the session is still Wayland (the global shortcuts
+/// depend on that, not on the window).
+pub(crate) fn wayland_session() -> bool {
     std::env::var("XDG_SESSION_TYPE").is_ok_and(|t| t == "wayland")
         || std::env::var_os("WAYLAND_DISPLAY").is_some()
 }

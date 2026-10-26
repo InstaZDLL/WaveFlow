@@ -182,6 +182,10 @@ import {
   REMOTE_TRANSCODE_EVENT,
   type RemoteTranscodeFormat,
 } from "../../../hooks/useRemoteTranscode";
+import {
+  clearGlobalShortcuts,
+  globalShortcutsStatus,
+} from "../../../lib/tauri/globalShortcuts";
 
 /**
  * The live state a reset has to go through rather than around: the theme
@@ -1017,6 +1021,19 @@ const ACCESSORS: Record<SettingKey, SettingAccessor> = {
     },
     // The card's "Reset all": it stores the overrides, none here.
     reset: () => saveBindings({ ...DEFAULT_BINDINGS }),
+  },
+  // None is bound by default: each bound action counts, under its own
+  // name, and the reset unbinds them all.
+  "shortcuts.global": {
+    inspect: async () => {
+      const { bindings } = await globalShortcutsStatus();
+      return bindings.map(
+        (binding) => `settings.shortcuts.actions.${binding.action}`,
+      );
+    },
+    reset: async () => {
+      await clearGlobalShortcuts();
+    },
   },
 
   // ---- Storage and backups ---------------------------------------------

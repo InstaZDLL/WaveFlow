@@ -127,24 +127,6 @@ fn ack_arg(command: &str, message: &str) -> Ack {
     Ack::new(ACK_ERROR_ARG, command, message)
 }
 
-/// Persist the effective volume (0–100) into `profile_setting['player.volume']`
-/// so an MPD-driven volume change survives a restart, exactly as
-/// `commands::player::player_set_volume` does. Best-effort — a missing profile
-/// pool is not worth failing the command over; the engine was already told.
-async fn persist_volume(ctx: &Ctx, volume_0_100: i64) {
-    let state = ctx.app.state::<AppState>();
-    if let Ok(pool) = state.require_profile_pool().await {
-        let now = chrono::Utc::now().timestamp_millis();
-        let _ = sqlx::query(
-            "UPDATE profile_setting SET value = ?, updated_at = ? WHERE key = 'player.volume'",
-        )
-        .bind(volume_0_100.to_string())
-        .bind(now)
-        .execute(&*pool)
-        .await;
-    }
-}
-
 /// MPD sends seek targets as fractional seconds; the engine wants
 /// milliseconds.
 ///
@@ -640,8 +622,9 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
         }
 
         Command::SetVol(v) => {
-            let _ = ctx.engine().send(AudioCmd::SetVolume(v as f32 / 100.0));
-            persist_volume(ctx, v as i64).await;
+            // Through the shared sequence, so the windows' sliders follow
+            // and the value is persisted like a change made in the app.
+            let _ = crate::player_actions::set_volume(&ctx.app, v as f32 / 100.0).await;
             ctx.idle.notify(Subsystem::Mixer);
             Ok(Response::new())
         }
@@ -659,8 +642,7 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
             let engine = ctx.engine();
             let current = (engine.shared().volume() * 100.0).round() as i32;
             let next = (current + delta).clamp(0, 100);
-            let _ = engine.send(AudioCmd::SetVolume(next as f32 / 100.0));
-            persist_volume(ctx, next as i64).await;
+            let _ = crate::player_actions::set_volume(&ctx.app, next as f32 / 100.0).await;
             ctx.idle.notify(Subsystem::Mixer);
             Ok(Response::new())
         }

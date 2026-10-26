@@ -2870,7 +2870,8 @@
         "skin": "Habillage",
         "display": "Lisibilité",
         "window": "Fenêtres",
-        "lyricsDisplay": "Affichage des paroles"
+        "lyricsDisplay": "Affichage des paroles",
+        "globalShortcuts": "Raccourcis globaux"
       },
       "navHints": {
         "general": "Langue, démarrage, lecture",
@@ -2918,7 +2919,8 @@
         "cleanup": "Vignettes et pochettes en cache",
         "updates": "Versions stables ou bêta",
         "diagnostics": "Journaux et rendu graphique",
-        "reset": "Repartir d'une application neuve"
+        "reset": "Repartir d'une application neuve",
+        "globalShortcuts": "Depuis n'importe quelle application"
       }
     },
     "desktopLyrics": {
@@ -3020,6 +3022,30 @@
         "label": "Sortie partagée",
         "hint": "Le son passe par le mixeur du système, avec celui des autres applications. Idéal au quotidien."
       }
+    },
+    "globalShortcuts": {
+      "subtitle": "Contrôlez la lecture depuis n'importe quelle application, même quand WaveFlow est en arrière-plan. Aucun n'est actif tant que vous n'en définissez pas.",
+      "captureHelp": "Combinez Ctrl, Alt ou la touche Windows / Cmd avec une touche, ou utilisez F13 à F24 seules. Si rien ne se passe quand vous appuyez sur une combinaison, une autre application la détient déjà.",
+      "clearAll": "Tout effacer",
+      "backend": {
+        "portal": "Sur Wayland, votre bureau confirme chaque changement dans sa propre fenêtre et peut attribuer une autre combinaison : celle qu'il a choisie s'affiche sous l'action.",
+        "unavailable": "Indisponible dans cette session Wayland : le bureau ne propose pas le portail des raccourcis globaux. Les touches multimédia de votre clavier fonctionnent toujours."
+      },
+      "states": {
+        "taken": "Déjà utilisée par une autre application.",
+        "refused": "Le système a refusé cette combinaison (réservée ou déjà prise).",
+        "dismissed": "Non confirmée dans la fenêtre de votre bureau.",
+        "unavailable": "Indisponible dans cette session.",
+        "invalid": {
+          "empty": "Appuyez sur une touche en plus des modificateurs.",
+          "unsupportedKey": "Cette touche ne peut pas servir de raccourci global.",
+          "needsModifier": "Ajoutez Ctrl, Alt ou la touche Windows / Cmd : seules F13 à F24 fonctionnent seules."
+        }
+      },
+      "rejected": "{{combo}} n'a pas été retenue : {{reason}}",
+      "assigned": "Attribué par votre bureau : {{trigger}}",
+      "waitingForDesktop": "Confirmez sur le bureau…",
+      "registering": "Enregistrement…"
     }
   },
   "scanProgress": {

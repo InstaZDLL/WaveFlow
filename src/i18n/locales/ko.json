@@ -2803,7 +2803,8 @@
         "skin": "스킨",
         "display": "가독성",
         "window": "창",
-        "lyricsDisplay": "가사 표시"
+        "lyricsDisplay": "가사 표시",
+        "globalShortcuts": "전역 단축키"
       },
       "navHints": {
         "general": "언어, 시작, 재생",
@@ -2851,7 +2852,8 @@
         "cleanup": "캐시된 썸네일과 커버",
         "updates": "안정 버전 또는 베타 버전",
         "diagnostics": "로그 및 그래픽 렌더링",
-        "reset": "처음 설치한 상태로 다시 시작"
+        "reset": "처음 설치한 상태로 다시 시작",
+        "globalShortcuts": "어떤 앱에서든"
       }
     },
     "desktopLyrics": {
@@ -2950,6 +2952,30 @@
         "label": "공유 출력",
         "hint": "다른 앱의 소리와 함께 시스템 믹서를 거쳐 재생됩니다. 일상적인 감상에 적합합니다."
       }
+    },
+    "globalShortcuts": {
+      "subtitle": "WaveFlow가 백그라운드에 있어도 어떤 앱에서든 재생을 제어하세요. 직접 설정하기 전에는 아무것도 활성화되지 않습니다.",
+      "captureHelp": "Ctrl, Alt 또는 Windows / Cmd 키를 다른 키와 조합하거나 F13~F24를 단독으로 사용하세요. 조합을 눌러도 아무 일도 일어나지 않으면 다른 앱이 이미 사용 중입니다.",
+      "clearAll": "모두 지우기",
+      "backend": {
+        "portal": "Wayland에서는 데스크톱이 변경할 때마다 자체 창에서 확인하며 다른 조합을 할당할 수 있습니다. 데스크톱이 고른 조합이 동작 아래에 표시됩니다.",
+        "unavailable": "이 Wayland 세션에서는 사용할 수 없습니다. 데스크톱이 전역 단축키 포털을 제공하지 않습니다. 키보드의 미디어 키는 계속 작동합니다."
+      },
+      "states": {
+        "taken": "다른 앱이 이미 사용 중입니다.",
+        "refused": "시스템이 이 조합을 거부했습니다(예약되었거나 이미 사용 중).",
+        "dismissed": "데스크톱 창에서 확인되지 않았습니다.",
+        "unavailable": "이 세션에서는 사용할 수 없습니다.",
+        "invalid": {
+          "empty": "보조 키와 함께 다른 키를 누르세요.",
+          "unsupportedKey": "이 키는 전역 단축키로 사용할 수 없습니다.",
+          "needsModifier": "Ctrl, Alt 또는 Windows / Cmd 키를 추가하세요. 단독으로는 F13~F24만 작동합니다."
+        }
+      },
+      "rejected": "{{combo}}이(가) 저장되지 않았습니다: {{reason}}",
+      "assigned": "데스크톱이 할당함: {{trigger}}",
+      "waitingForDesktop": "데스크톱에서 확인하세요…",
+      "registering": "등록 중…"
     }
   },
   "scanProgress": {

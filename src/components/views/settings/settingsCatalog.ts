@@ -628,6 +628,18 @@ export const SETTINGS_CATEGORIES = [
           "settings.shortcuts.unbind",
         ],
       },
+      {
+        id: "globalShortcuts",
+        labelKey: "settings.organization.groups.globalShortcuts",
+        hintKey: "settings.organization.groupHints.globalShortcuts",
+        searchKeys: [
+          "settings.globalShortcuts.subtitle",
+          "settings.globalShortcuts.captureHelp",
+          "settings.globalShortcuts.clearAll",
+          "settings.globalShortcuts.backend.portal",
+          "settings.globalShortcuts.backend.unavailable",
+        ],
+      },
     ],
   },
   {

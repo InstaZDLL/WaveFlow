@@ -2805,7 +2805,8 @@
         "skin": "Arayüz stili",
         "display": "Okunabilirlik",
         "window": "Pencereler",
-        "lyricsDisplay": "Şarkı sözü görünümü"
+        "lyricsDisplay": "Şarkı sözü görünümü",
+        "globalShortcuts": "Genel kısayollar"
       },
       "navHints": {
         "general": "Dil, başlangıç, oynatma",
@@ -2853,7 +2854,8 @@
         "cleanup": "Önbellekteki küçük resimler ve kapaklar",
         "updates": "Kararlı veya beta sürümler",
         "diagnostics": "Günlükler ve grafik işleme",
-        "reset": "Uygulamayı sıfırdan başlat"
+        "reset": "Uygulamayı sıfırdan başlat",
+        "globalShortcuts": "Herhangi bir uygulamadan"
       }
     },
     "desktopLyrics": {
@@ -2952,6 +2954,30 @@
         "label": "Paylaşımlı çıkış",
         "hint": "Ses, diğer uygulamaların sesiyle birlikte sistem karıştırıcısından geçer. Günlük kullanım için ideal."
       }
+    },
+    "globalShortcuts": {
+      "subtitle": "WaveFlow arka planda olsa bile çalmayı herhangi bir uygulamadan kontrol edin. Siz tanımlayana kadar hiçbiri etkin değildir.",
+      "captureHelp": "Ctrl, Alt veya Windows / Cmd tuşunu bir tuşla birleştirin ya da F13–F24 tuşlarını tek başına kullanın. Bir kombinasyona bastığınızda hiçbir şey olmuyorsa, onu zaten başka bir uygulama tutuyordur.",
+      "clearAll": "Tümünü temizle",
+      "backend": {
+        "portal": "Wayland'de masaüstünüz her değişikliği kendi penceresinde onaylar ve farklı bir kombinasyon atayabilir: seçtiği kombinasyon eylemin altında gösterilir.",
+        "unavailable": "Bu Wayland oturumunda kullanılamıyor: masaüstü genel kısayollar portalını sunmuyor. Klavyenizin medya tuşları çalışmaya devam eder."
+      },
+      "states": {
+        "taken": "Zaten başka bir uygulama tarafından kullanılıyor.",
+        "refused": "Sistem bu kombinasyonu reddetti (ayrılmış veya zaten alınmış).",
+        "dismissed": "Masaüstünüzün penceresinde onaylanmadı.",
+        "unavailable": "Bu oturumda kullanılamıyor.",
+        "invalid": {
+          "empty": "Değiştirici tuşlarla birlikte bir tuşa basın.",
+          "unsupportedKey": "Bu tuş genel kısayol olarak kullanılamaz.",
+          "needsModifier": "Ctrl, Alt veya Windows / Cmd tuşunu ekleyin: yalnızca F13–F24 tek başına çalışır."
+        }
+      },
+      "rejected": "{{combo}} kaydedilmedi: {{reason}}",
+      "assigned": "Masaüstünüzün atadığı: {{trigger}}",
+      "waitingForDesktop": "Masaüstünde onaylayın…",
+      "registering": "Kaydediliyor…"
     }
   },
   "scanProgress": {

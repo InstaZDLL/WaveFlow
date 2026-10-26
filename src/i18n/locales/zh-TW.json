@@ -2803,7 +2803,8 @@
         "skin": "介面風格",
         "display": "可讀性",
         "window": "視窗",
-        "lyricsDisplay": "歌詞顯示"
+        "lyricsDisplay": "歌詞顯示",
+        "globalShortcuts": "全域快速鍵"
       },
       "navHints": {
         "general": "語言、啟動、播放",
@@ -2851,7 +2852,8 @@
         "cleanup": "已快取的縮圖和封面",
         "updates": "穩定版或測試版",
         "diagnostics": "記錄檔與圖形算繪",
-        "reset": "將應用程式還原為全新狀態"
+        "reset": "將應用程式還原為全新狀態",
+        "globalShortcuts": "在任何應用程式中"
       }
     },
     "desktopLyrics": {
@@ -2950,6 +2952,30 @@
         "label": "共用輸出",
         "hint": "聲音會與其他應用程式的聲音一起經過系統混音器。適合日常使用。"
       }
+    },
+    "globalShortcuts": {
+      "subtitle": "即使 WaveFlow 在背景執行，也能在任何應用程式中控制播放。在你設定之前，任何快速鍵都不會生效。",
+      "captureHelp": "將 Ctrl、Alt 或 Windows / Cmd 鍵與另一個鍵組合，或單獨使用 F13 至 F24。如果按下組合鍵後沒有反應，表示它已被其他應用程式佔用。",
+      "clearAll": "全部清除",
+      "backend": {
+        "portal": "在 Wayland 下，桌面會在自己的視窗中確認每次變更，並可能指派不同的組合鍵：它所選的組合鍵會顯示在動作下方。",
+        "unavailable": "此 Wayland 工作階段中無法使用：桌面未提供全域快速鍵入口。鍵盤上的媒體鍵仍可使用。"
+      },
+      "states": {
+        "taken": "已被其他應用程式佔用。",
+        "refused": "系統拒絕了此組合鍵（已保留或已被佔用）。",
+        "dismissed": "未在桌面視窗中確認。",
+        "unavailable": "此工作階段中無法使用。",
+        "invalid": {
+          "empty": "請在輔助鍵之外再按一個鍵。",
+          "unsupportedKey": "此鍵無法用作全域快速鍵。",
+          "needsModifier": "請加上 Ctrl、Alt 或 Windows / Cmd 鍵：只有 F13 至 F24 可以單獨使用。"
+        }
+      },
+      "rejected": "{{combo}} 未儲存：{{reason}}",
+      "assigned": "由桌面指派：{{trigger}}",
+      "waitingForDesktop": "請在桌面上確認…",
+      "registering": "正在註冊…"
     }
   },
   "scanProgress": {

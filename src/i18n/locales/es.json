@@ -2870,7 +2870,8 @@
         "skin": "Estilo",
         "display": "Legibilidad",
         "window": "Ventanas",
-        "lyricsDisplay": "Visualización de letras"
+        "lyricsDisplay": "Visualización de letras",
+        "globalShortcuts": "Atajos globales"
       },
       "navHints": {
         "general": "Idioma, inicio, reproducción",
@@ -2918,7 +2919,8 @@
         "cleanup": "Miniaturas y portadas en caché",
         "updates": "Versiones estables o beta",
         "diagnostics": "Registros y renderizado gráfico",
-        "reset": "Volver a empezar con la aplicación como nueva"
+        "reset": "Volver a empezar con la aplicación como nueva",
+        "globalShortcuts": "Desde cualquier aplicación"
       }
     },
     "desktopLyrics": {
@@ -3020,6 +3022,30 @@
         "label": "Salida compartida",
         "hint": "El sonido pasa por el mezclador del sistema, junto con el de las demás aplicaciones. Ideal para el día a día."
       }
+    },
+    "globalShortcuts": {
+      "subtitle": "Controla la reproducción desde cualquier aplicación, incluso con WaveFlow en segundo plano. Ninguno está activo hasta que lo definas.",
+      "captureHelp": "Combina Ctrl, Alt o la tecla Windows / Cmd con una tecla, o usa F13 a F24 solas. Si no pasa nada al pulsar una combinación, otra aplicación ya la tiene.",
+      "clearAll": "Borrar todo",
+      "backend": {
+        "portal": "En Wayland, tu escritorio confirma cada cambio en su propia ventana y puede asignar otra combinación: la que eligió se muestra bajo la acción.",
+        "unavailable": "No disponible en esta sesión de Wayland: el escritorio no ofrece el portal de atajos globales. Las teclas multimedia de tu teclado siguen funcionando."
+      },
+      "states": {
+        "taken": "Ya la usa otra aplicación.",
+        "refused": "El sistema rechazó esta combinación (reservada o ya ocupada).",
+        "dismissed": "No confirmada en la ventana de tu escritorio.",
+        "unavailable": "No disponible en esta sesión.",
+        "invalid": {
+          "empty": "Pulsa una tecla además de los modificadores.",
+          "unsupportedKey": "Esta tecla no puede usarse como atajo global.",
+          "needsModifier": "Añade Ctrl, Alt o la tecla Windows / Cmd: solo F13 a F24 funcionan solas."
+        }
+      },
+      "rejected": "{{combo}} no se guardó: {{reason}}",
+      "assigned": "Asignado por tu escritorio: {{trigger}}",
+      "waitingForDesktop": "Confirma en el escritorio…",
+      "registering": "Registrando…"
     }
   },
   "scanProgress": {
