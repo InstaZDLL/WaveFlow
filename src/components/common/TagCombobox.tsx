@@ -2,6 +2,8 @@ import { useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ChevronDown } from "lucide-react";
 
+import { foldForSearch as fold } from "../../lib/searchFold";
+
 /** A titled group of suggestions, shown in order. */
 export interface SuggestionGroup {
   label: string;
@@ -37,14 +39,6 @@ interface TagComboboxProps {
  *  and the list is for picking one, not for browsing them all — typing
  *  narrows it. */
 const MAX_PER_GROUP = 80;
-
-/** Case- and accent-insensitive form, so "beyonce" finds "Beyoncé". */
-function fold(s: string): string {
-  return s
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLocaleLowerCase();
-}
 
 /**
  * Text field with a list of suggestions, the way a tag editor offers the

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Store,
@@ -11,6 +11,8 @@ import {
   BadgeCheck,
   Users,
   Loader2,
+  Search,
+  X,
 } from "lucide-react";
 
 import {
@@ -20,6 +22,8 @@ import {
 } from "../../../lib/tauri/plugins";
 import { PLUGIN_AVAILABILITY_EVENT } from "../../../hooks/usePluginAvailability";
 import { useLocalizedText } from "../../../hooks/useLocalizedText";
+import { pluginWorldLabelKey } from "../../../lib/pluginWorlds";
+import { foldForSearch, searchTerms } from "../../../lib/searchFold";
 import { PluginWorldBadge } from "./PluginWorldBadge";
 
 /**
@@ -53,6 +57,10 @@ export function PluginStoreCard({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const searchId = useId();
+  const searchRef = useRef<HTMLInputElement>(null);
+  const localize = useLocalizedText();
 
   // One read path for the mount, the availability event and the manual
   // refresh, behind one sequence: whichever of them answers last cannot
@@ -118,9 +126,32 @@ export function PluginStoreCard({
 
   // On the page, an entry already on disk belongs to the installed list
   // beneath; the store shows what is left to get, or to update.
-  const shown = grid
+  const available = grid
     ? entries.filter((e) => !e.installed || e.updateAvailable)
     : entries;
+
+  // The search runs over the catalogue already loaded, on what the row
+  // shows in the user's language: the name (registries carry it as is),
+  // the description resolved like the row resolves it, the world chip's
+  // label beside the raw WIT world, the author and the registry tags.
+  // Every word of the query must appear, in any order.
+  const terms = searchTerms(query);
+  const shown = terms.length
+    ? available.filter((entry) => {
+        const worldKey = pluginWorldLabelKey(entry.world);
+        const text = foldForSearch(
+          [
+            entry.name,
+            localize(entry.description) ?? "",
+            worldKey ? t(worldKey) : "",
+            entry.world,
+            entry.author,
+            ...entry.tags,
+          ].join(" "),
+        );
+        return terms.every((term) => text.includes(term));
+      })
+    : available;
 
   return (
     <section
@@ -185,13 +216,67 @@ export function PluginStoreCard({
         </div>
       )}
 
+      {!loading && available.length > 0 && (
+        <div className={grid ? "relative max-w-md" : "relative mx-4 mt-3"}>
+          <label htmlFor={searchId} className="sr-only">
+            {t("settings.pluginStore.search")}
+          </label>
+          <Search
+            size={14}
+            aria-hidden="true"
+            className="pointer-events-none absolute start-2.5 top-1/2 -translate-y-1/2 text-zinc-400"
+          />
+          <input
+            ref={searchRef}
+            id={searchId}
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Escape" && query) {
+                event.stopPropagation();
+                setQuery("");
+              }
+            }}
+            placeholder={t("settings.pluginStore.search")}
+            className="h-8 w-full rounded-lg border border-zinc-200 bg-white ps-8 pe-8 text-xs text-zinc-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 [&::-webkit-search-cancel-button]:appearance-none"
+          />
+          {query && (
+            <button
+              type="button"
+              onClick={() => {
+                setQuery("");
+                // The button goes with the query; focus stays in the field
+                // rather than falling to the page.
+                searchRef.current?.focus();
+              }}
+              aria-label={t("settings.pluginStore.clearSearch")}
+              className="absolute end-1.5 top-1/2 -translate-y-1/2 rounded-md p-1 text-zinc-500 hover:bg-zinc-100 focus-visible:outline-emerald-500 dark:hover:bg-zinc-800"
+            >
+              <X size={13} aria-hidden="true" />
+            </button>
+          )}
+        </div>
+      )}
+
       {loading ? (
         <div className="px-4 py-6 text-xs text-zinc-500 dark:text-zinc-400 text-center">
           {t("settings.pluginStore.loading")}
         </div>
-      ) : grid && shown.length === 0 && entries.length > 0 ? (
+      ) : grid && available.length === 0 && entries.length > 0 ? (
         <p className="px-1 py-2 text-xs text-zinc-500 dark:text-zinc-400">
           {t("settings.pluginStore.allInstalled")}
+        </p>
+      ) : terms.length > 0 && shown.length === 0 ? (
+        <p
+          role="status"
+          className={
+            grid
+              ? "px-1 py-2 text-xs text-zinc-500 dark:text-zinc-400"
+              : "px-4 py-6 text-xs text-zinc-500 dark:text-zinc-400 text-center"
+          }
+        >
+          {t("settings.pluginStore.noMatch", { query: query.trim() })}
         </p>
       ) : entries.length === 0 && !error ? (
         <div className="px-4 py-8 text-center">

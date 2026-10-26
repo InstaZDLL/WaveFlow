@@ -2625,7 +2625,10 @@
       "canReach": "アクセス先：",
       "installAria": "{{name}} をインストール",
       "updateAria": "{{name}} を更新",
-      "allInstalled": "ストアのすべてがインストール済みです。"
+      "allInstalled": "ストアのすべてがインストール済みです。",
+      "search": "プラグインを検索",
+      "clearSearch": "検索をクリア",
+      "noMatch": "「{{query}}」に一致するプラグインはありません。"
     },
     "motionArtwork": {
       "title": "モーションカバー",

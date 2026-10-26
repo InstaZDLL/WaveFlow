@@ -2627,7 +2627,10 @@
       "canReach": "Heeft toegang tot:",
       "installAria": "{{name}} installeren",
       "updateAria": "{{name}} bijwerken",
-      "allInstalled": "Alles uit de winkel is al geïnstalleerd."
+      "allInstalled": "Alles uit de winkel is al geïnstalleerd.",
+      "search": "Plug-ins zoeken",
+      "clearSearch": "Zoekopdracht wissen",
+      "noMatch": "Geen plug-in komt overeen met ‘{{query}}’."
     },
     "motionArtwork": {
       "title": "Bewegende hoezen",

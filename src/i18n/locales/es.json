@@ -2692,7 +2692,10 @@
       "canReach": "Puede acceder a:",
       "installAria": "Instalar {{name}}",
       "updateAria": "Actualizar {{name}}",
-      "allInstalled": "Todo lo que hay en la tienda ya está instalado."
+      "allInstalled": "Todo lo que hay en la tienda ya está instalado.",
+      "search": "Buscar complementos",
+      "clearSearch": "Borrar la búsqueda",
+      "noMatch": "Ningún complemento coincide con «{{query}}»."
     },
     "motionArtwork": {
       "title": "Portadas animadas",

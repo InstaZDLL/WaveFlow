@@ -2692,7 +2692,10 @@
       "canReach": "Peut accéder à :",
       "installAria": "Installer {{name}}",
       "updateAria": "Mettre à jour {{name}}",
-      "allInstalled": "Tout ce que propose le magasin est déjà installé."
+      "allInstalled": "Tout ce que propose le magasin est déjà installé.",
+      "search": "Rechercher un plugin",
+      "clearSearch": "Effacer la recherche",
+      "noMatch": "Aucun plugin ne correspond à « {{query}} »."
     },
     "motionArtwork": {
       "title": "Pochettes animées",

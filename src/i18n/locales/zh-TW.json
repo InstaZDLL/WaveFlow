@@ -2625,7 +2625,10 @@
       "canReach": "可存取：",
       "installAria": "安裝 {{name}}",
       "updateAria": "更新 {{name}}",
-      "allInstalled": "商店中的所有外掛均已安裝。"
+      "allInstalled": "商店中的所有外掛均已安裝。",
+      "search": "搜尋外掛",
+      "clearSearch": "清除搜尋",
+      "noMatch": "沒有符合「{{query}}」的外掛。"
     },
     "motionArtwork": {
       "title": "動態封面",

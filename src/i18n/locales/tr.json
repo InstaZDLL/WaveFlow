@@ -2627,7 +2627,10 @@
       "canReach": "Erişebileceği adresler:",
       "installAria": "{{name}} eklentisini yükle",
       "updateAria": "{{name}} eklentisini güncelle",
-      "allInstalled": "Mağazadaki her şey zaten yüklü."
+      "allInstalled": "Mağazadaki her şey zaten yüklü.",
+      "search": "Eklenti ara",
+      "clearSearch": "Aramayı temizle",
+      "noMatch": "“{{query}}” ile eşleşen eklenti yok."
     },
     "motionArtwork": {
       "title": "Animasyonlu kapaklar",

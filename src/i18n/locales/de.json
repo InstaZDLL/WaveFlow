@@ -2627,7 +2627,10 @@
       "canReach": "Kann zugreifen auf:",
       "installAria": "{{name}} installieren",
       "updateAria": "{{name}} aktualisieren",
-      "allInstalled": "Alles aus dem Store ist bereits installiert."
+      "allInstalled": "Alles aus dem Store ist bereits installiert.",
+      "search": "Plugins durchsuchen",
+      "clearSearch": "Suche löschen",
+      "noMatch": "Kein Plugin passt zu „{{query}}“."
     },
     "motionArtwork": {
       "title": "Animierte Cover",

@@ -2692,7 +2692,10 @@
       "canReach": "Può accedere a:",
       "installAria": "Installa {{name}}",
       "updateAria": "Aggiorna {{name}}",
-      "allInstalled": "Tutto il negozio è già installato."
+      "allInstalled": "Tutto il negozio è già installato.",
+      "search": "Cerca plugin",
+      "clearSearch": "Cancella la ricerca",
+      "noMatch": "Nessun plugin corrisponde a «{{query}}»."
     },
     "motionArtwork": {
       "title": "Copertine animate",
