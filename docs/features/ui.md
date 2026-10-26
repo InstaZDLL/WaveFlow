@@ -380,6 +380,16 @@ On Linux the window is GTK3 — wry binds the GTK3 build of WebKitGTK, and there
 - **The bottom corners stay square.** GTK3 does not clip the web view to the frame's radius, so rounding them would round the shadow and nothing else.
 - **Applied like the other frames.** `apply_window_chrome` turns the style on or off first — on a window without a frame the class changes nothing visible, on one with a frame it is the whole change — and then sets the decorations, putting the style back if that fails. The GTK side runs on the main thread, and the command waits for its answer, so what is persisted is what the window wears; a call that times out is withdrawn rather than left to land later. (Not `AppHandle::display_handle` for the backend: under X11, tao 0.37 opens a new X connection on every call and never closes it.)
 
+### File pickers
+
+Every file picker — add a folder, import a playlist, choose a cover, play files without importing them — is the desktop's own on Linux, through the XDG desktop portal: KDE's dialog on Plasma, the current GNOME one on GNOME, rather than GTK3's chooser everywhere (the last point of #696).
+
+- **Through GTK, not around it.** The dialog plugin draws its pickers with `rfd`'s GTK3 backend, which opens a `GtkFileChooserNative`, and GTK sends that to `org.freedesktop.portal.FileChooser` when `GTK_USE_PORTAL=1`. [`preflight_file_dialogs`](../../src-tauri/crates/app/src/lib.rs) sets it at startup, before anything builds a dialog. Inside the Flatpak GTK already did so on its own (the manifest has carried `--talk-name=org.freedesktop.portal.FileChooser` for it); the native packages now behave the same.
+- **A desktop without a portal keeps a picker.** With no portal on the bus, or one without a file chooser (a folder pick needs version 3 of the interface), GTK shows its own dialog, exactly as before. Measured on GTK 3.24.52 against a stand-in portal on a private bus: with the variable, a folder pick went to the portal (`OpenFile` with `directory`) and came back with the folder it chose; without a portal, or without its file chooser, GTK opened its own `GtkFileChooserDialog`.
+- **Not `rfd`'s `xdg-portal` backend.** That backend's only fallback is zenity, and it hands every message dialog to zenity — the pre-migration backup question included — which neither a bare desktop nor the Flatpak runtime can be counted on to have. It would also add `ashpd` and its Wayland stack (eleven crates, and a Flatpak source regeneration). The message dialogs, and the fatal startup error `rfd` shows directly, stay GTK3.
+- **The user's value wins.** A `GTK_USE_PORTAL` already in the environment is left alone, so `GTK_USE_PORTAL=0` brings GTK3's chooser back. The variable is withheld from the programs the app starts ([`external_open`](../../src-tauri/crates/app/src/external_open.rs)), so a browser opened for a link keeps its own pickers.
+- **Not yet seen on Plasma.** The portal route was measured on Fedora 44 GNOME 50; KDE's dialog on a real Plasma session has not been watched.
+
 ## Mini-player
 
 [`MiniPlayerApp`](../../src/MiniPlayerApp.tsx) + [`MiniPlayer`](../../src/components/views/MiniPlayer.tsx) ship a Spotify-style always-on-top widget. Launched from the picture-in-picture button in the PlayerBar via [`lib/miniPlayer.ts::openMiniPlayer`](../../src/lib/miniPlayer.ts).
