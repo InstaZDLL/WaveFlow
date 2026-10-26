@@ -1225,14 +1225,9 @@ pub async fn player_get_queue(state: tauri::State<'_, AppState>) -> AppResult<Pl
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await.ok();
     let items = queue::list_queue(&pool).await?;
-    let current_index: i64 = sqlx::query_scalar::<_, Option<String>>(
-        "SELECT value FROM profile_setting WHERE key = 'queue.current_index'",
-    )
-    .fetch_optional(&*pool)
-    .await?
-    .flatten()
-    .and_then(|s| s.parse::<i64>().ok())
-    .unwrap_or(0);
+    // Bounded to the queue: the stored cursor can outlive a shrink, and a
+    // raw one would mark no row and number the track past the end.
+    let current_index = queue::current_index(&pool).await;
 
     let payload_items = items
         .into_iter()
