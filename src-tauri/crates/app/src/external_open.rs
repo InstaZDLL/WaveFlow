@@ -16,7 +16,7 @@
 //! The variables the app sets for itself are withheld the same way, in
 //! every package: `GDK_BACKEND=x11,wayland`, set when the user chose to run
 //! through XWayland, would otherwise start their browser under XWayland
-//! too.
+//! too, and `GTK_USE_PORTAL=1` would change its file pickers.
 //!
 //! Revealing a file in its folder is not routed here: the plugin asks
 //! the file manager over D-Bus, which starts it with its own environment.
@@ -59,7 +59,8 @@ pub fn is_openable_url(url: &str) -> bool {
 /// program handed them would load the image's plugins — or share a
 /// registry written by another GStreamer — as surely as through
 /// `LD_LIBRARY_PATH`. In any package, `GDK_BACKEND` when the app asked
-/// GTK for XWayland ([`crate::display_backend`]).
+/// GTK for XWayland ([`crate::display_backend`]), and `GTK_USE_PORTAL`,
+/// which routes the app's own file pickers through the desktop portal.
 #[cfg(target_os = "linux")]
 static SET_FOR_SELF: std::sync::Mutex<Vec<&'static str>> = std::sync::Mutex::new(Vec::new());
 

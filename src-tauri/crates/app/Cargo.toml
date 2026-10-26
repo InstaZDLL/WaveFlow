@@ -68,9 +68,11 @@ tauri-plugin-dialog = "2"
 # unsafe from the main thread for that reason. rfd is called directly,
 # on a thread of its own.
 #
-# Version and features are pinned to match what tauri-plugin-dialog
-# already requests, so Cargo unifies them into the single copy that is
-# in the lockfile — no new crate, no Flatpak source regeneration.
+# The same backend as tauri-plugin-dialog's default: GTK3, never
+# `xdg-portal`, whose message dialogs all go through zenity. The
+# plugin's file pickers reach the desktop portal anyway, through GTK (see
+# `preflight_file_dialogs` in lib.rs). Only the features match: the
+# plugin asks for rfd 0.16, so the lockfile carries both versions.
 rfd = { version = "0.17", default-features = false, features = [
     "gtk3",
     "common-controls-v6",

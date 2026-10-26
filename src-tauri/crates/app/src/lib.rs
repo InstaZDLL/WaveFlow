@@ -120,6 +120,8 @@ pub fn run() {
     preflight_render_mode(&context.config().identifier);
     #[cfg(target_os = "linux")]
     preflight_appimage_gstreamer(&context.config().identifier);
+    #[cfg(target_os = "linux")]
+    preflight_file_dialogs();
 
     let _log_guard = logging::init_tracing();
     render_mode::log_decision();
@@ -1649,6 +1651,37 @@ fn preflight_render_mode(identifier: &str) {
             eprintln!("waveflow: no app-data dir ({err}); the renderer fallback is inactive");
         }
     }
+}
+
+/// Send GTK's file pickers through the desktop's portal (#696).
+///
+/// The dialog plugin draws its pickers with `rfd`'s GTK3 backend, which
+/// opens a `GtkFileChooserNative`. GTK hands that to
+/// `org.freedesktop.portal.FileChooser` when `GTK_USE_PORTAL=1` (and on
+/// its own inside a Flatpak), so the desktop supplies its own dialog:
+/// KDE's on Plasma, the current GNOME one on GNOME, instead of GTK3's
+/// chooser everywhere. Where no portal answers — none installed, or one
+/// without a file chooser — GTK shows its own dialog, as it did before.
+/// Both measured on GTK 3.24.52 against a stand-in portal on a private
+/// bus, folder pick included.
+///
+/// Not `rfd`'s `xdg-portal` backend: that one has no fallback but
+/// zenity for the pickers, and hands every message dialog to zenity —
+/// which a bare desktop or the Flatpak runtime may not have.
+///
+/// Set before anything builds a dialog (GTK reads the variable once) and
+/// before the logger's thread exists. A value the user set wins, so
+/// `GTK_USE_PORTAL=0` brings GTK3's chooser back. Withheld from the
+/// programs the app starts: a browser opened for a link should keep the
+/// pickers its own user chose.
+#[cfg(target_os = "linux")]
+fn preflight_file_dialogs() {
+    const KEY: &str = "GTK_USE_PORTAL";
+    if std::env::var_os(KEY).is_some() {
+        return;
+    }
+    std::env::set_var(KEY, "1");
+    external_open::note_own_variable(KEY);
 }
 
 /// Give the AppImage's bundled GStreamer a plugin registry of its own.
