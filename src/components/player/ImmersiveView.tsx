@@ -432,7 +432,9 @@ export function ImmersiveView({
           {currentTrack && (
             <ImmersiveShareButton
               track={currentTrack}
-              lyricLines={shareableLyricLines(lyrics)}
+              // Empty while a fetch runs: the previous track's lyrics
+              // linger until the new ones land.
+              lyricLines={lyrics.isFetching ? [] : shareableLyricLines(lyrics)}
               activeLyricIndex={lyrics.activeIndex}
             />
           )}

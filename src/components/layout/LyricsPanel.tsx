@@ -117,7 +117,10 @@ export function LyricsPanel({
     radioPlainText,
     payload,
   });
-  const canShare = shareLines.some((line) => line.trim() !== "");
+  // Not while a fetch runs: a library track keeps the previous track's
+  // payload until the new one lands, and the card would put those lines
+  // under the new title.
+  const canShare = !isFetching && shareLines.some((line) => line.trim() !== "");
   // Provider picker dropdown — opens on click of the source label so the
   // user can re-query a specific source when the auto-waterfall cached a
   // low-quality hit. Closed by an outside click + by `handleRefetch`
