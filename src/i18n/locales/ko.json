@@ -1240,7 +1240,8 @@
       "metadata": "메타데이터",
       "audio": "오디오",
       "analysis": "분석",
-      "file": "파일"
+      "file": "파일",
+      "spectrum": "스펙트럼"
     },
     "bpm": "BPM",
     "bpmUncertain": "{{bpm}} (불확실)",
@@ -1293,7 +1294,17 @@
     "bandwidth": "고주파",
     "bandwidthFull": "전체 대역",
     "bandwidthCutoff": "{{khz}} kHz에서 끊김",
-    "bandwidthFake": "{{khz}} kHz에서 끊김 — 손실 압축 파일로 만든 것으로 보임"
+    "bandwidthFake": "{{khz}} kHz에서 끊김 — 손실 압축 파일로 만든 것으로 보임",
+    "spectrogram": {
+      "hint": "곡이 진행되는 동안 고음이 어디서 끊기는지 확인하세요. 파일 전체를 디코딩합니다.",
+      "show": "스펙트럼 보기",
+      "stop": "중지",
+      "decoding": "파일 디코딩 중",
+      "failed": "이 파일을 디코딩할 수 없습니다.",
+      "altCutoff": "고음이 {{khz}} kHz에서 급격히 끊깁니다. 그래프의 맨 위는 나이퀴스트 주파수({{nyquist}} kHz)로, 이 파일이 담을 수 있는 가장 높은 주파수입니다.",
+      "altFull": "급격한 끊김이 없습니다. 스펙트럼이 노이즈 플로어로 사라지거나 나이퀴스트 주파수({{nyquist}} kHz, 이 파일이 담을 수 있는 가장 높은 주파수)까지 이어집니다.",
+      "guides": "가는 선: 16, 19, 20 kHz. 128, 192, 320 kbps MP3가 자주 끊기는 위치입니다."
+    }
   },
   "selection": {
     "toolbarLabel": "선택 작업",
@@ -3308,7 +3319,8 @@
       "upload": "업로드",
       "backup": "백업",
       "thumbnails": "썸네일",
-      "drop_import": "보관함으로 복사"
+      "drop_import": "보관함으로 복사",
+      "spectrogram": "트랙 스펙트럼"
     }
   },
   "smartRuleSummary": {

@@ -1242,7 +1242,8 @@
       "metadata": "Metadata",
       "audio": "Audio",
       "analysis": "Analyse",
-      "file": "Bestand"
+      "file": "Bestand",
+      "spectrum": "Spectrum"
     },
     "bpm": "BPM",
     "bpmUncertain": "{{bpm}} (onzeker)",
@@ -1295,7 +1296,17 @@
     "bandwidth": "Hoge frequenties",
     "bandwidthFull": "Volledige band",
     "bandwidthCutoff": "Stoppen bij {{khz}} kHz",
-    "bandwidthFake": "Stoppen bij {{khz}} kHz — waarschijnlijk gemaakt van een lossy bestand"
+    "bandwidthFake": "Stoppen bij {{khz}} kHz — waarschijnlijk gemaakt van een lossy bestand",
+    "spectrogram": {
+      "hint": "Zie waar de hoge tonen ophouden in de loop van het nummer. Het hele bestand wordt gedecodeerd.",
+      "show": "Spectrum tonen",
+      "stop": "Stoppen",
+      "decoding": "Bestand wordt gedecodeerd",
+      "failed": "Dit bestand kon niet worden gedecodeerd.",
+      "altCutoff": "De hoge tonen houden scherp op bij {{khz}} kHz. De bovenkant van de grafiek is de Nyquist-frequentie ({{nyquist}} kHz), het hoogste dat dit bestand kan bevatten.",
+      "altFull": "Geen scherpe grens: het spectrum dooft uit in de ruisvloer of loopt door tot de Nyquist-frequentie ({{nyquist}} kHz), het hoogste dat dit bestand kan bevatten.",
+      "guides": "Dunne lijnen: 16, 19 en 20 kHz, waar mp3's van 128, 192 en 320 kbps vaak ophouden."
+    }
   },
   "selection": {
     "toolbarLabel": "Selectieacties",
@@ -3310,7 +3321,8 @@
       "upload": "Uploaden",
       "backup": "Back-up",
       "thumbnails": "Miniaturen",
-      "drop_import": "Kopiëren naar de bibliotheek"
+      "drop_import": "Kopiëren naar de bibliotheek",
+      "spectrogram": "Spectrum van een nummer"
     }
   },
   "smartRuleSummary": {

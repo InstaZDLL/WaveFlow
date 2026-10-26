@@ -1242,7 +1242,8 @@
       "metadata": "Üst veri",
       "audio": "Ses",
       "analysis": "Analiz",
-      "file": "Dosya"
+      "file": "Dosya",
+      "spectrum": "Spektrum"
     },
     "bpm": "BPM",
     "bpmUncertain": "{{bpm}} (belirsiz)",
@@ -1295,7 +1296,17 @@
     "bandwidth": "Yüksek frekanslar",
     "bandwidthFull": "Tam bant",
     "bandwidthCutoff": "{{khz}} kHz'de kesiliyor",
-    "bandwidthFake": "{{khz}} kHz'de kesiliyor — muhtemelen kayıplı bir dosyadan yapılmış"
+    "bandwidthFake": "{{khz}} kHz'de kesiliyor — muhtemelen kayıplı bir dosyadan yapılmış",
+    "spectrogram": {
+      "hint": "Parça boyunca tizlerin nerede kesildiğini görün. Dosyanın tamamı çözülür.",
+      "show": "Spektrumu göster",
+      "stop": "Durdur",
+      "decoding": "Dosya çözülüyor",
+      "failed": "Bu dosya çözülemedi.",
+      "altCutoff": "Tizler {{khz}} kHz'de keskin biçimde kesiliyor. Grafiğin üstü Nyquist frekansıdır ({{nyquist}} kHz), bu dosyanın içerebileceği en yüksek frekans.",
+      "altFull": "Keskin bir kesim yok: spektrum taban gürültüsünde sönüyor ya da Nyquist frekansına ({{nyquist}} kHz), bu dosyanın içerebileceği en yüksek frekansa kadar uzanıyor.",
+      "guides": "İnce çizgiler: 128, 192 ve 320 kbps MP3'lerin sıkça kesildiği 16, 19 ve 20 kHz."
+    }
   },
   "selection": {
     "toolbarLabel": "Seçim eylemleri",
@@ -3310,7 +3321,8 @@
       "upload": "Yükleme",
       "backup": "Yedekleme",
       "thumbnails": "Kapak önizlemeleri",
-      "drop_import": "Kitaplığa kopyalama"
+      "drop_import": "Kitaplığa kopyalama",
+      "spectrogram": "Parça spektrumu"
     }
   },
   "smartRuleSummary": {

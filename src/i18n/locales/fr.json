@@ -1287,7 +1287,8 @@
       "metadata": "Métadonnées",
       "audio": "Audio",
       "analysis": "Analyse",
-      "file": "Fichier"
+      "file": "Fichier",
+      "spectrum": "Spectre"
     },
     "bpm": "BPM",
     "bpmUncertain": "{{bpm}} (incertain)",
@@ -1340,7 +1341,17 @@
     "bandwidth": "Hautes fréquences",
     "bandwidthFull": "Bande complète",
     "bandwidthCutoff": "S'arrêtent à {{khz}} kHz",
-    "bandwidthFake": "S'arrêtent à {{khz}} kHz — probablement issu d'un fichier compressé"
+    "bandwidthFake": "S'arrêtent à {{khz}} kHz — probablement issu d'un fichier compressé",
+    "spectrogram": {
+      "hint": "Voyez où s'arrêtent les aigus au fil du morceau. Le fichier est décodé en entier.",
+      "show": "Afficher le spectre",
+      "stop": "Arrêter",
+      "decoding": "Décodage du fichier",
+      "failed": "Impossible de décoder ce fichier.",
+      "altCutoff": "Les aigus s'arrêtent net à {{khz}} kHz. Le haut du graphique est la fréquence de Nyquist ({{nyquist}} kHz), le plus aigu que ce fichier puisse contenir.",
+      "altFull": "Pas de coupure nette : le spectre s'éteint dans le bruit de fond ou va jusqu'à la fréquence de Nyquist ({{nyquist}} kHz), le plus aigu que ce fichier puisse contenir.",
+      "guides": "Lignes fines : 16, 19 et 20 kHz, où s'arrêtent souvent les MP3 à 128, 192 et 320 kbit/s."
+    }
   },
   "selection": {
     "toolbarLabel": "Actions de sélection",
@@ -3405,7 +3416,8 @@
       "upload": "Téléversement",
       "backup": "Sauvegarde",
       "thumbnails": "Vignettes",
-      "drop_import": "Copie vers la bibliothèque"
+      "drop_import": "Copie vers la bibliothèque",
+      "spectrogram": "Spectre d'un titre"
     }
   },
   "smartRuleSummary": {

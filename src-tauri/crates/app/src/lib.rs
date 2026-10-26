@@ -314,6 +314,7 @@ pub fn run() {
                 commands::preferences::load_sort_ignore_articles(&state.app_db),
             );
             app.manage(desktop_lyrics::DesktopLyricsState::default());
+            app.manage(commands::spectrogram::SpectrogramJobs::default());
 
             // Artwork reaches the webview through `convertFileSrc`, which
             // the asset protocol gates on the static scope in
@@ -995,6 +996,8 @@ pub fn run() {
             commands::mood_radio::track_mood_overrides,
             commands::mood_radio::set_mood_override,
             commands::mood_radio::list_mood_overrides,
+            commands::spectrogram::track_spectrogram,
+            commands::spectrogram::cancel_track_spectrogram,
             commands::mpd::mpd_get_config,
             commands::mpd::mpd_set_config,
             commands::mpd::mpd_get_status,

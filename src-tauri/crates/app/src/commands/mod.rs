@@ -59,6 +59,7 @@ pub mod scan;
 pub mod share_image;
 pub mod similar;
 pub mod smart_playlists;
+pub mod spectrogram;
 pub mod stats;
 pub mod storage;
 pub mod tag_fetch;

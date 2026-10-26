@@ -96,3 +96,39 @@ export function getAutoAnalyze(): Promise<boolean> {
 export function setAutoAnalyze(enable: boolean): Promise<void> {
   return announceSettingWrite(invoke<void>("set_auto_analyze", { enable }));
 }
+
+/**
+ * The spectrum over time Track Properties draws. Mirrors the Rust
+ * `TrackSpectrogram`: `cells` is base64, column after column, `rows`
+ * bytes each with row 0 at 0 Hz; a byte is its cell's level from
+ * `rangeDb` (or more) under the loudest cell (0) to the loudest (255),
+ * on a linear frequency scale up to half the sample rate.
+ */
+export interface TrackSpectrogram {
+  sampleRate: number;
+  columns: number;
+  rows: number;
+  secondsPerColumn: number;
+  rangeDb: number;
+  cells: string;
+  /** The wall the same decode measured, in Hz; `null` for none. */
+  cutoffHz: number | null;
+}
+
+/** Decode the track and draw its spectrum. `null` when the decode was
+ *  stopped (another track's dialog, `cancelTrackSpectrogram`, the
+ *  status bar's stop button). */
+export function trackSpectrogram(
+  trackId: number,
+  width?: number,
+): Promise<TrackSpectrogram | null> {
+  return invoke<TrackSpectrogram | null>("track_spectrogram", {
+    trackId,
+    width,
+  });
+}
+
+/** Stop the spectrogram decode in flight, if any. */
+export function cancelTrackSpectrogram(): Promise<void> {
+  return invoke<void>("cancel_track_spectrogram");
+}

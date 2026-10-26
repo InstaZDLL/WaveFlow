@@ -1242,7 +1242,8 @@
       "metadata": "Metadata",
       "audio": "Audio",
       "analysis": "Analysis",
-      "file": "File"
+      "file": "File",
+      "spectrum": "Spectrum"
     },
     "bpm": "BPM",
     "bpmUncertain": "{{bpm}} (uncertain)",
@@ -1295,7 +1296,17 @@
     "bandwidth": "High frequencies",
     "bandwidthFull": "Full band",
     "bandwidthCutoff": "Stop at {{khz}} kHz",
-    "bandwidthFake": "Stop at {{khz}} kHz — likely made from a lossy file"
+    "bandwidthFake": "Stop at {{khz}} kHz — likely made from a lossy file",
+    "spectrogram": {
+      "hint": "See where the highs stop over the track. The whole file is decoded.",
+      "show": "Show spectrum",
+      "stop": "Stop",
+      "decoding": "Decoding the file",
+      "failed": "This file could not be decoded.",
+      "altCutoff": "The highs stop sharply at {{khz}} kHz. The top of the chart is the Nyquist frequency ({{nyquist}} kHz), the highest this file can hold.",
+      "altFull": "No sharp cut: the spectrum fades into the noise floor or runs up to the Nyquist frequency ({{nyquist}} kHz), the highest this file can hold.",
+      "guides": "Thin lines: 16, 19 and 20 kHz, where MP3s at 128, 192 and 320 kbps often stop."
+    }
   },
   "selection": {
     "toolbarLabel": "Selection actions",
@@ -3310,7 +3321,8 @@
       "upload": "Upload",
       "backup": "Backup",
       "thumbnails": "Thumbnails",
-      "drop_import": "Copying to the library"
+      "drop_import": "Copying to the library",
+      "spectrogram": "Track spectrum"
     }
   },
   "smartRuleSummary": {

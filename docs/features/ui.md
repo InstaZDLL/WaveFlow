@@ -216,7 +216,8 @@ Two surfaces needed more than a key handler: history rows had no `tabIndex` at a
 
 One status bar for every operation that takes long enough to wonder about
 (issue #601): the library scan, the analysis sweep, lyrics prefetch, the
-catalogue mirror, reconciliation, uploads, backups, the thumbnail pass.
+catalogue mirror, reconciliation, uploads, backups, the thumbnail pass, the
+spectrogram Track Properties draws.
 [`TaskStatusBar`](../../src/components/layout/TaskStatusBar.tsx) subscribes to
 `tasks:changed` before asking for a snapshot, so a task that starts between the
 two is not missed. That subscription lives in
