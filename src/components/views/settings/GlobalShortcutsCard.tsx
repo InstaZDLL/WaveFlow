@@ -244,7 +244,7 @@ export function GlobalShortcutsCard() {
                       <span className="flex items-center justify-center gap-1.5">
                         <Loader2
                           size={12}
-                          className="animate-spin"
+                          className="motion-safe:animate-spin"
                           aria-hidden="true"
                         />
                         <span>
