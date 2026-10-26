@@ -410,10 +410,10 @@ async fn apply_all(app: &AppHandle, inner: &mut Inner) {
         }
         #[cfg(target_os = "linux")]
         Backend::Portal => {
-            if let Some(session) = inner.portal.take() {
-                session.close().await;
-            }
             if valid.is_empty() {
+                if let Some(session) = inner.portal.take() {
+                    session.close().await;
+                }
                 return;
             }
             let requested: Vec<portal::Requested> = valid
@@ -425,6 +425,10 @@ async fn apply_all(app: &AppHandle, inner: &mut Inner) {
                 })
                 .collect();
             match portal::bind(app.clone(), requested).await {
+                // The session in place stays open until the new one is
+                // bound: a dismissed dialog must not take the shortcuts
+                // that already worked down with it (`set` then puts the
+                // previous set back).
                 Ok(portal::Outcome::Bound(session, triggers)) => {
                     for (action, _) in &valid {
                         inner.states.insert(*action, BindingState::Active);
@@ -432,7 +436,9 @@ async fn apply_all(app: &AppHandle, inner: &mut Inner) {
                             inner.triggers.insert(*action, trigger.clone());
                         }
                     }
-                    inner.portal = Some(session);
+                    if let Some(previous) = inner.portal.replace(session) {
+                        previous.close().await;
+                    }
                 }
                 Ok(portal::Outcome::Dismissed) => {
                     for (action, _) in &valid {
@@ -491,10 +497,11 @@ impl GlobalShortcuts {
     /// Bind `action` to `combo`, or unbind it with `None`.
     ///
     /// A combination another action holds moves to this one, as in the
-    /// in-app shortcuts card. Natively, a combination the system refuses
-    /// is not stored: the previous binding stays and the refusal comes
-    /// back in `rejected`, so the row can say "taken by another
-    /// application" next to the combination that was tried. A recording
+    /// in-app shortcuts card. A combination the system refuses — or, on
+    /// Wayland, one whose dialog the user dismissed — is not stored: the
+    /// previous set stays and the refusal comes back in `rejected`, so the
+    /// row can say "taken by another application" next to the
+    /// combination that was tried. A recording
     /// in progress ends here — the new set is registered at once, which is
     /// what finds a conflict.
     pub async fn set(
@@ -548,29 +555,42 @@ impl GlobalShortcuts {
             native_release_all(app, &mut inner).await;
         }
         let previous = std::mem::replace(&mut inner.bindings, next);
+        let previous_states = inner.states.clone();
+        let previous_triggers = inner.triggers.clone();
         inner.suspended = false;
         apply_all(app, &mut inner).await;
 
-        // Natively, a refused combination is not kept: put the previous
-        // set back and say why.
-        if inner.backend == Backend::Native {
-            let refused = inner
-                .states
-                .get(&action)
-                .filter(|s| matches!(s, BindingState::Taken | BindingState::Refused { .. }))
-                .cloned();
-            if let Some(state) = refused {
-                let tried = inner.bindings.get(&action).cloned().unwrap_or_default();
+        // A combination that was not taken up is not kept: put the
+        // previous set back and say why. Natively it is registered again;
+        // through the portal the previous session is still the one open,
+        // so only what is shown goes back.
+        let refused = inner
+            .states
+            .get(&action)
+            .filter(|s| {
+                matches!(
+                    s,
+                    BindingState::Taken | BindingState::Refused { .. } | BindingState::Dismissed
+                )
+            })
+            .cloned();
+        if let Some(state) = refused {
+            let tried = inner.bindings.get(&action).cloned().unwrap_or_default();
+            if inner.backend == Backend::Native {
                 native_release_all(app, &mut inner).await;
                 inner.bindings = previous;
                 apply_all(app, &mut inner).await;
-                rejected = Some(Rejected {
-                    action,
-                    combo: tried,
-                    state,
-                });
-                return Ok(snapshot(&inner, rejected));
+            } else {
+                inner.bindings = previous;
+                inner.states = previous_states;
+                inner.triggers = previous_triggers;
             }
+            rejected = Some(Rejected {
+                action,
+                combo: tried,
+                state,
+            });
+            return Ok(snapshot(&inner, rejected));
         }
         save(app_db, &inner.bindings).await?;
         Ok(snapshot(&inner, None))

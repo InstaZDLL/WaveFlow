@@ -25,6 +25,7 @@ use std::time::Duration;
 use futures::StreamExt;
 use tauri::AppHandle;
 use zbus::names::InterfaceName;
+use zbus::proxy::CacheProperties;
 use zbus::zvariant::{ObjectPath, OwnedObjectPath, OwnedValue, Value};
 
 use super::GlobalAction;
@@ -178,7 +179,11 @@ async fn expect_response(
     token: &str,
 ) -> zbus::Result<ResponseStream> {
     let path = format!("{PORTAL_PATH}/request/{sender}/{token}");
-    let proxy = RequestProxy::builder(conn).path(path)?.build().await?;
+    let proxy = RequestProxy::builder(conn)
+        .path(path)?
+        .cache_properties(CacheProperties::No)
+        .build()
+        .await?;
     proxy.receive_response().await
 }
 
@@ -207,7 +212,13 @@ async fn bind_inner(app: AppHandle, shortcuts: Vec<Requested>) -> zbus::Result<O
     if std::env::var_os("FLATPAK_ID").is_none() {
         // Best effort: a portal older than 1.19 has no registry and then
         // needs no registration either.
-        match RegistryProxy::new(&conn).await {
+        // Without the property cache: a cached proxy starts with a
+        // `GetAll`, which would reach the portal before `Register`.
+        match RegistryProxy::builder(&conn)
+            .cache_properties(CacheProperties::No)
+            .build()
+            .await
+        {
             Ok(registry) => {
                 if let Err(err) = registry.register(HOST_APP_ID, HashMap::new()).await {
                     tracing::debug!(%err, "global shortcuts: portal registry refused the app id");
@@ -217,7 +228,10 @@ async fn bind_inner(app: AppHandle, shortcuts: Vec<Requested>) -> zbus::Result<O
         }
     }
     let sender = sender_element(&conn)?;
-    let portal = GlobalShortcutsPortalProxy::new(&conn).await?;
+    let portal = GlobalShortcutsPortalProxy::builder(&conn)
+        .cache_properties(CacheProperties::No)
+        .build()
+        .await?;
 
     // 1. The session.
     let request_token = token();
@@ -305,7 +319,10 @@ async fn bind_inner(app: AppHandle, shortcuts: Vec<Requested>) -> zbus::Result<O
 }
 
 async fn close_handle(conn: &zbus::Connection, handle: &OwnedObjectPath) {
-    if let Ok(builder) = PortalSessionProxy::builder(conn).path(handle.clone()) {
+    if let Ok(builder) = PortalSessionProxy::builder(conn)
+        .path(handle.clone())
+        .map(|b| b.cache_properties(CacheProperties::No))
+    {
         if let Ok(proxy) = builder.build().await {
             let _ = proxy.close().await;
         }

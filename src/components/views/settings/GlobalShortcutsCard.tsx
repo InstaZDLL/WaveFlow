@@ -168,7 +168,7 @@ export function GlobalShortcutsCard() {
         <p className="text-xs settings-description">
           {t("settings.globalShortcuts.subtitle")}
         </p>
-        {hasBindings && (
+        {hasBindings && !capturing && (
           <button
             type="button"
             onClick={handleClearAll}
@@ -276,7 +276,10 @@ export function GlobalShortcutsCard() {
                       </span>
                     )}
                   </button>
-                  {binding && !isCapturing && !isPending && (
+                  {/* Hidden during any recording: unbinding stores the
+                      set, which puts the suspended registrations back
+                      while the recording row still waits for its keys. */}
+                  {binding && !capturing && !isPending && (
                     <button
                       type="button"
                       onClick={() => void apply(action, null)}
