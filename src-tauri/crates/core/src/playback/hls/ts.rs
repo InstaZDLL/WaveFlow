@@ -150,7 +150,12 @@ impl TsDemuxer {
         }
     }
 
-    /// The program map: the first audio stream WaveFlow can decode.
+    /// The program map: the audio stream to keep. The one already chosen
+    /// while the map still lists it — a map is resent in every segment —
+    /// and otherwise the first one WaveFlow can decode: an encoder that
+    /// restarted, or a discontinuity, may renumber the streams, and holding
+    /// on to a PID no packet carries any more would demux nothing, for good.
+    /// A map naming no decodable audio leaves none chosen.
     fn read_pmt(&mut self, payload: &[u8]) {
         let Some(section) = section(payload) else {
             return;
@@ -161,6 +166,7 @@ impl TsDemuxer {
         let program_info = (usize::from(info[0] & 0x0f) << 8) | usize::from(info[1]);
         let end = section.len().saturating_sub(4);
         let mut at = 12 + program_info;
+        let mut decodable: Vec<(u16, AudioKind)> = Vec::new();
         while at + 5 <= end {
             let stream_type = section[at];
             let pid = (u16::from(section[at + 1] & 0x1f) << 8) | u16::from(section[at + 2]);
@@ -171,15 +177,14 @@ impl TsDemuxer {
                 _ => None,
             };
             if let Some(kind) = kind {
-                // A program map is resent in every segment: once an audio
-                // stream is chosen it stays the one.
-                if self.audio.is_none() {
-                    self.audio = Some((pid, kind));
-                }
-                return;
+                decodable.push((pid, kind));
             }
             at += 5 + es_info;
         }
+        let kept = self
+            .audio
+            .and_then(|(pid, _)| decodable.iter().find(|(p, _)| *p == pid));
+        self.audio = kept.or(decodable.first()).copied();
     }
 }
 
@@ -332,6 +337,41 @@ mod tests {
         let mut want = frame_a.clone();
         want.extend(&frame_b);
         assert_eq!(out, want);
+    }
+
+    #[test]
+    fn a_program_map_that_renumbers_its_audio_is_followed() {
+        let mut demuxer = TsDemuxer::new();
+        let mut out = Vec::new();
+        let mut first = Vec::new();
+        first.extend(packet(0, true, &pat(0x1000)));
+        first.extend(packet(0x1000, true, &pmt(&[(0x0f, 0x101)])));
+        first.extend(padded(0x101, true, &pes(&[1, 1])));
+        demuxer.feed(&first, &mut out);
+        assert_eq!(out, [1, 1]);
+
+        // The same map again keeps the stream, whatever else it lists.
+        let mut again = Vec::new();
+        again.extend(packet(0x1000, true, &pmt(&[(0x0f, 0x102), (0x0f, 0x101)])));
+        again.extend(padded(0x101, true, &pes(&[2])));
+        demuxer.feed(&again, &mut out);
+        assert_eq!(out, [1, 1, 2]);
+
+        // An encoder that restarted: new program map PID, new audio PID.
+        // The old PID is gone, so the new one is taken.
+        let mut restarted = Vec::new();
+        restarted.extend(packet(0, true, &pat(0x1100)));
+        restarted.extend(packet(0x1100, true, &pmt(&[(0x1b, 0x200), (0x03, 0x201)])));
+        restarted.extend(padded(0x101, true, &pes(&[9])));
+        restarted.extend(padded(0x201, true, &pes(&[3, 3])));
+        demuxer.feed(&restarted, &mut out);
+        assert_eq!(out, [1, 1, 2, 3, 3]);
+        // And it says so: the decoder was opened for ADTS.
+        assert_eq!(demuxer.audio_kind(), Some(AudioKind::Mpeg));
+
+        // A map with no audio left chooses none.
+        demuxer.feed(&packet(0x1100, true, &pmt(&[(0x1b, 0x200)])), &mut out);
+        assert_eq!(demuxer.audio_kind(), None);
     }
 
     #[test]

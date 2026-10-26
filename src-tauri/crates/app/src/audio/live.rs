@@ -25,6 +25,7 @@
 //! decoder thread may block, the callback never waits on either.
 
 use std::io::{self, Read, Seek, SeekFrom};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, Weak};
 use std::time::{Duration, Instant};
 
@@ -92,17 +93,38 @@ pub struct TimeshiftPayload {
     pub capacity_ms: Option<u64>,
 }
 
-/// The buffer the decoder is waiting on, if any — so a new load or a stop
-/// can release a read that waits for a station still reconnecting, rather
-/// than queue behind it for half a minute.
+/// The buffer of the station the decoder plays, if any — so a new load or
+/// a stop can release a read that waits for a station still reconnecting,
+/// rather than queue behind it for half a minute, and a pause can be
+/// counted in how far behind live the listener is.
 static WAITING: Mutex<Option<Weak<Buffer>>> = Mutex::new(None);
 
-/// Release a read blocked on a starved live buffer. Called before a
-/// command that replaces or stops what plays is sent to the decoder.
-pub fn release_starved_reader() {
+fn current_buffer() -> Option<Arc<Buffer>> {
     let current = WAITING.lock().ok().and_then(|slot| slot.clone());
-    if let Some(buffer) = current.and_then(|weak| weak.upgrade()) {
+    current.and_then(|weak| weak.upgrade())
+}
+
+/// Release a read blocked on a starved live buffer. Called once a command
+/// that replaces or stops what plays is queued for the decoder.
+pub fn release_starved_reader() {
+    if let Some(buffer) = current_buffer() {
         buffer.stop_if_starved();
+    }
+}
+
+/// Whether the user asked to pause, as [`note_paused`] last heard it. Kept
+/// for a station whose buffer does not exist yet: an HLS station is opened
+/// over a couple of seconds, and a pause sent meanwhile would otherwise
+/// reach the station it replaces.
+static PAUSED: AtomicBool = AtomicBool::new(false);
+
+/// The player paused or played again: the live station, if it is what
+/// plays, counts the pause as time behind live. A station that already
+/// ended (another track since) ignores it.
+pub fn note_paused(paused: bool) {
+    PAUSED.store(paused, Ordering::Release);
+    if let Some(buffer) = current_buffer().filter(|b| b.ended().is_none()) {
+        buffer.set_paused(paused);
     }
 }
 
@@ -117,6 +139,10 @@ impl LiveSource {
     fn new(buffer: Arc<Buffer>, station: Station) -> Self {
         if let Ok(mut slot) = WAITING.lock() {
             *slot = Some(Arc::downgrade(&buffer));
+        }
+        // Paused while the station was being opened: behind from now on.
+        if PAUSED.load(Ordering::Acquire) {
+            buffer.set_paused(true);
         }
         Self {
             buffer,
@@ -605,6 +631,8 @@ struct HlsState {
     /// from a numbering that went back or that numbers nothing.
     last_uri: Option<String>,
     unpack: Unpack,
+    /// What the decoder was opened for, from the first segment.
+    kind: AudioKind,
     /// Seconds of audio appended, and the bytes they took: the rate.
     seconds: f64,
     bytes: usize,
@@ -637,8 +665,29 @@ impl HlsState {
             let url = resolve(self.public, &self.media_url, &segment.uri)?;
             let (_, body) = fetch(&self.client, &url, MAX_SEGMENT_BYTES)?;
             audio.clear();
-            if self.unpack.unpack(&body, &mut audio).is_none() {
-                return Err("hls: a segment carries no audio WaveFlow can decode".into());
+            match self.unpack.unpack(&body, &mut audio) {
+                None => return Err("hls: a segment carries no audio WaveFlow can decode".into()),
+                // The decoder was opened for the stream's first codec, and
+                // the other's frames would only be undecodable bytes to it:
+                // the stream ends, with the reason, rather than play noise
+                // or nothing at all.
+                Some(kind) if kind != self.kind => {
+                    let reason = format!(
+                        "hls: the stream changed from {} to {}",
+                        self.kind.extension(),
+                        kind.extension()
+                    );
+                    tracing::warn!(%reason, "hls stream ended");
+                    buffer.finish(End::Failed(reason));
+                    return Ok(taken);
+                }
+                Some(_) => {}
+            }
+            // A segment that brought no audio at all is a failure, retried
+            // like a fetch that failed: counted as taken, a stream that
+            // stopped carrying audio would poll forever, in silence.
+            if audio.is_empty() {
+                return Err("hls: a segment carried no audio".into());
             }
             buffer.push(&audio);
             self.next = segment.sequence + 1;
@@ -715,11 +764,6 @@ fn open_hls(url: &str, station: Station) -> Result<(LiveSource, Option<&'static 
         .unpack(&body, &mut audio)
         .ok_or_else(|| "hls: the stream carries no audio WaveFlow can decode".to_string())?;
     let buffer = Arc::new(Buffer::new());
-    // A segment lands whole every target duration: that much more in hand
-    // just after one arrived is not being behind live.
-    buffer.set_slack(Duration::from_secs_f64(
-        list.target_duration_s.clamp(1.0, 30.0) + 1.0,
-    ));
     buffer.push(&audio);
     let mut state = HlsState {
         client,
@@ -728,6 +772,7 @@ fn open_hls(url: &str, station: Station) -> Result<(LiveSource, Option<&'static 
         next: first.sequence + 1,
         last_uri: Some(first.uri.clone()),
         unpack,
+        kind,
         seconds: first.duration_s,
         bytes: audio.len(),
     };

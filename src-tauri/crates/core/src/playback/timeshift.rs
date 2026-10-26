@@ -88,22 +88,11 @@ struct State {
     /// The station's bytes per second, once known.
     byte_rate: Option<f64>,
     end: Option<End>,
-    /// When the first byte was read.
-    first_read: Option<Instant>,
-    /// The least the reader has had in hand once settled: what a station
-    /// keeps ahead of a listener who never paused (the burst a server
-    /// sends on connect, the network's slack). Unread audio past this is
-    /// how far behind live the listener is.
-    floor: Option<usize>,
-    /// How much the unread level swings above the floor by itself: an HLS
-    /// stream arrives a segment at a time, so a listener who never paused
-    /// has up to a segment more in hand just after one landed.
-    slack: Duration,
+    /// Time spent paused, pauses already over.
+    paused_total: Duration,
+    /// When the pause in progress began.
+    paused_since: Option<Instant>,
 }
-
-/// How long after the first read the unread level counts toward the
-/// floor: the server's burst arrives in that time.
-const SETTLE: Duration = Duration::from_secs(5);
 
 /// The buffer, shared by the ingest thread and the reader.
 #[derive(Debug)]
@@ -133,8 +122,8 @@ pub fn capacity_for(byte_rate: Option<f64>) -> usize {
 pub struct Lag {
     /// Unread audio, in the station's time. `None` until its rate is known.
     pub unread: Option<Duration>,
-    /// How far behind live the reader is: the unread audio past what a
-    /// listener who never paused has in hand. Zero until that is known.
+    /// How far behind live the listener is: the time spent paused, the
+    /// one way to fall behind, up to the capacity.
     pub behind: Duration,
     pub capacity: Option<Duration>,
     pub dropped_bytes: u64,
@@ -231,10 +220,29 @@ impl Buffer {
         }
     }
 
-    /// How much the unread level may rise above the floor without the
-    /// listener being behind: the length of one HLS segment.
-    pub fn set_slack(&self, slack: Duration) {
-        self.lock().slack = slack;
+    /// The listener paused, or played again. The time between is how far
+    /// behind live they are from then on: the stream kept arriving and
+    /// nothing read it.
+    ///
+    /// Counted here rather than read off the unread level: what a listener
+    /// who never paused has in hand is the server's burst plus the
+    /// network's slack, measured between 2.7 s (an Icecast mount at
+    /// 128 kbit/s) and 17 s (an HLS stream of 10 s segments), and a pause
+    /// in the first seconds would be taken for it.
+    pub fn set_paused(&self, paused: bool) {
+        self.set_paused_at(paused, Instant::now());
+    }
+
+    fn set_paused_at(&self, paused: bool, now: Instant) {
+        let mut s = self.lock();
+        match (paused, s.paused_since) {
+            (true, None) => s.paused_since = Some(now),
+            (false, Some(since)) => {
+                s.paused_total += now.saturating_duration_since(since);
+                s.paused_since = None;
+            }
+            _ => {}
+        }
     }
 
     /// Whether the stream has ended (the reader gone, or the station lost).
@@ -285,12 +293,6 @@ impl Buffer {
                 s.front_read = 0;
             }
         }
-        let now = Instant::now();
-        let first = *s.first_read.get_or_insert(now);
-        if now.duration_since(first) >= SETTLE {
-            let unread = s.unread;
-            s.floor = Some(s.floor.map_or(unread, |floor| floor.min(unread)));
-        }
         pass_titles(&mut s);
         Ok(copied)
     }
@@ -301,21 +303,27 @@ impl Buffer {
     }
 
     pub fn lag(&self) -> Lag {
+        self.lag_at(Instant::now())
+    }
+
+    fn lag_at(&self, now: Instant) -> Lag {
         let s = self.lock();
         let to_time = |bytes: usize| {
             s.byte_rate
                 .filter(|r| *r > 0.0)
                 .and_then(|r| Duration::try_from_secs_f64(bytes as f64 / r).ok())
         };
-        let behind = s
-            .floor
-            .and_then(|floor| to_time(s.unread.saturating_sub(floor)))
-            .map(|over| over.saturating_sub(s.slack))
-            .unwrap_or_default();
+        let paused = s.paused_total
+            + s.paused_since
+                .map_or(Duration::ZERO, |since| now.saturating_duration_since(since));
+        // Past the capacity the oldest audio went and the reader jumped
+        // forward: no further behind than the buffer holds.
+        let capacity = to_time(s.capacity);
+        let behind = capacity.map_or(paused, |capacity| paused.min(capacity));
         Lag {
             unread: to_time(s.unread),
             behind,
-            capacity: to_time(s.capacity),
+            capacity,
             dropped_bytes: s.dropped,
         }
     }
@@ -461,22 +469,39 @@ mod tests {
     }
 
     #[test]
-    fn behind_is_what_is_unread_past_the_settled_floor_and_the_slack() {
+    fn behind_is_the_time_spent_paused_even_in_the_first_seconds() {
         let buffer = Buffer::new();
-        buffer.set_byte_rate(1_000.0);
-        buffer.push(&[0u8; 4_000]);
-        let mut buf = [0u8; 1_000];
-        buffer.read(&mut buf, NOW).unwrap();
-        // Settled: the reader had 3 s in hand when it was last served.
-        buffer.lock().first_read = Some(Instant::now() - SETTLE);
-        buffer.read(&mut buf, NOW).unwrap();
-        assert_eq!(buffer.lag().behind, Duration::ZERO);
-        // A 30 s pause: 30 s more arrive, none is read.
-        buffer.push(&vec![0u8; 30_000]);
-        assert_eq!(buffer.lag().behind, Duration::from_secs(30));
-        // A segment's worth of it is how HLS arrives, not a delay.
-        buffer.set_slack(Duration::from_secs(6));
-        assert_eq!(buffer.lag().behind, Duration::from_secs(24));
+        let t0 = Instant::now();
+        // However much the station sent ahead, never pausing is live.
+        buffer.push(&[0u8; 400_000]);
+        assert_eq!(buffer.lag_at(t0).behind, Duration::ZERO);
+        // Paused a second in, before anything settled, for 20 s.
+        buffer.set_paused_at(true, t0 + Duration::from_secs(1));
+        assert_eq!(
+            buffer.lag_at(t0 + Duration::from_secs(11)).behind,
+            Duration::from_secs(10)
+        );
+        buffer.set_paused_at(false, t0 + Duration::from_secs(21));
+        let later = t0 + Duration::from_secs(300);
+        assert_eq!(buffer.lag_at(later).behind, Duration::from_secs(20));
+        // A second pause adds to it; a repeated call changes nothing.
+        buffer.set_paused_at(true, later);
+        buffer.set_paused_at(true, later + Duration::from_secs(4));
+        buffer.set_paused_at(false, later + Duration::from_secs(5));
+        buffer.set_paused_at(false, later + Duration::from_secs(9));
+        assert_eq!(
+            buffer.lag_at(later + Duration::from_secs(60)).behind,
+            Duration::from_secs(25)
+        );
+    }
+
+    #[test]
+    fn behind_stops_at_the_capacity() {
+        let buffer = Buffer::new();
+        buffer.set_byte_rate(16_000.0);
+        let t0 = Instant::now();
+        buffer.set_paused_at(true, t0);
+        assert_eq!(buffer.lag_at(t0 + Duration::from_secs(3_600)).behind, SPAN);
     }
 
     #[test]

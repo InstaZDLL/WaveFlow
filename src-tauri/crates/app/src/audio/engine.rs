@@ -1413,10 +1413,9 @@ impl AudioEngine {
         let previous = self
             .pause_pending
             .load(std::sync::atomic::Ordering::Acquire);
-        self.pause_pending.store(
-            pause_pending_after(&cmd, previous),
-            std::sync::atomic::Ordering::Release,
-        );
+        let paused_after = pause_pending_after(&cmd, previous);
+        self.pause_pending
+            .store(paused_after, std::sync::atomic::Ordering::Release);
         // A live station that is reconnecting holds the decoder in a read
         // on an empty buffer; a command that replaces or stops it would
         // otherwise wait for the station to come back or give up. Released
@@ -1439,6 +1438,12 @@ impl AudioEngine {
         })?;
         if releases {
             super::live::release_starved_reader();
+        }
+        // A pause on a live station is time behind live, counted by its
+        // buffer — the same lifecycle as the pending pause, so a load
+        // counts as playing again.
+        if paused_after != previous {
+            super::live::note_paused(paused_after);
         }
         Ok(())
     }
