@@ -178,7 +178,7 @@ export function DiskUsageCard({ language }: { language: string }) {
             {emptying === entry.id ? (
               <Loader2
                 size={12}
-                className="mx-auto animate-spin"
+                className="mx-auto motion-safe:animate-spin"
                 aria-hidden="true"
               />
             ) : confirming === entry.id ? (
@@ -206,7 +206,7 @@ export function DiskUsageCard({ language }: { language: string }) {
               <span className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
                 <Loader2
                   size={14}
-                  className="animate-spin"
+                  className="motion-safe:animate-spin"
                   aria-hidden="true"
                 />
                 {t("settings.diskUsage.measuring")}
@@ -231,7 +231,7 @@ export function DiskUsageCard({ language }: { language: string }) {
         >
           <RefreshCw
             size={12}
-            className={measuring ? "animate-spin" : undefined}
+            className={measuring ? "motion-safe:animate-spin" : undefined}
             aria-hidden="true"
           />
           <span>{t("settings.diskUsage.refresh")}</span>
