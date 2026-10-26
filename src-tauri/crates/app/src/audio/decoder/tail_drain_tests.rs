@@ -1,6 +1,6 @@
 use std::time::{Duration, Instant};
 
-use super::{TailDrain, TAIL_POLL, TAIL_STALL_LIMIT};
+use super::control::{TailDrain, TAIL_POLL, TAIL_STALL_LIMIT};
 
 /// Poll every [`TAIL_POLL`] with nothing taken from the ring, from
 /// `from` for `watched`; the answer at the last poll.
