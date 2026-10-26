@@ -3,7 +3,9 @@ import { useTranslation } from "react-i18next";
 import { HardDrive, Loader2, RefreshCw } from "lucide-react";
 
 import {
+  announceStorageChanged,
   diskUsage,
+  STORAGE_CHANGED_EVENT,
   type DiskUsage,
   type DiskUsageEntry,
 } from "../../../lib/tauri/storage";
@@ -56,6 +58,9 @@ export function DiskUsageCard({ language }: { language: string }) {
     null,
   );
   const [emptying, setEmptying] = useState<DiskUsageEntry["id"] | null>(null);
+  const [emptyFailed, setEmptyFailed] = useState<DiskUsageEntry["id"] | null>(
+    null,
+  );
 
   const measure = useCallback(async () => {
     setMeasuring(true);
@@ -92,6 +97,14 @@ export function DiskUsageCard({ language }: { language: string }) {
     };
   }, []);
 
+  // Emptied here or from another card on the page (the media caches
+  // card): every figure shown measures again.
+  useEffect(() => {
+    const onChanged = () => void measure();
+    window.addEventListener(STORAGE_CHANGED_EVENT, onChanged);
+    return () => window.removeEventListener(STORAGE_CHANGED_EVENT, onChanged);
+  }, [measure]);
+
   const empty = useCallback(
     async (id: DiskUsageEntry["id"]) => {
       const run = EMPTY[id];
@@ -102,16 +115,21 @@ export function DiskUsageCard({ language }: { language: string }) {
       }
       setConfirming(null);
       setEmptying(id);
+      setEmptyFailed(null);
       try {
         await run();
       } catch (err) {
+        // A file in use — the stream of the server track playing now, on
+        // Windows — keeps the size where it was; say so rather than
+        // re-measure the same figure in silence.
         console.error("[DiskUsageCard] empty failed", err);
+        setEmptyFailed(id);
       } finally {
         setEmptying(null);
       }
-      await measure();
+      announceStorageChanged();
     },
-    [confirming, measure],
+    [confirming],
   );
 
   const rebuildable = usage?.entries.filter((e) => e.rebuildable) ?? [];
@@ -131,6 +149,14 @@ export function DiskUsageCard({ language }: { language: string }) {
             section: t("settings.organization.groups.cleanup"),
           })}
         </div>
+        {emptyFailed === entry.id && (
+          <div
+            role="alert"
+            className="mt-1 text-xs text-amber-700 dark:text-amber-300"
+          >
+            {t("settings.diskUsage.emptyFailed")}
+          </div>
+        )}
       </div>
       <div className="flex shrink-0 items-center gap-3">
         <span className="text-sm tabular-nums text-zinc-600 dark:text-zinc-300">
@@ -141,9 +167,12 @@ export function DiskUsageCard({ language }: { language: string }) {
             type="button"
             onClick={() => void empty(entry.id)}
             disabled={entry.bytes === 0 || emptying !== null || measuring}
-            aria-label={t("settings.diskUsage.emptyLabel", {
-              item: t(`settings.diskUsage.items.${entry.id}.label`),
-            })}
+            aria-label={t(
+              confirming === entry.id
+                ? "settings.diskUsage.confirmEmptyLabel"
+                : "settings.diskUsage.emptyLabel",
+              { item: t(`settings.diskUsage.items.${entry.id}.label`) },
+            )}
             className="min-w-20 rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors"
           >
             {emptying === entry.id ? (

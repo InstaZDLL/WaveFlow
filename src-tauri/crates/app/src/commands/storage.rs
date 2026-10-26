@@ -908,6 +908,26 @@ pub async fn set_cache_location(
     // the marker: a folder the user had before this attempt is not ours
     // to remove when it fails.
     let pre_existing: Vec<bool> = destinations.iter().map(|(_, to)| to.exists()).collect();
+    // And the folders between the target and each destination
+    // (`profiles/`, `profiles/<id>/`), which `create_dir_all` makes on the
+    // way: left behind after a stop, an empty `profiles/` without the
+    // marker is exactly what `claim` refuses, and the next attempt at the
+    // same folder would be turned away.
+    let created_parents: Vec<PathBuf> = {
+        let mut parents: Vec<PathBuf> = Vec::new();
+        for (_, to) in &destinations {
+            let mut dir = to.parent();
+            while let Some(d) = dir.filter(|d| *d != target.as_path() && d.starts_with(&target)) {
+                if !d.exists() && !parents.iter().any(|p| p == d) {
+                    parents.push(d.to_path_buf());
+                }
+                dir = d.parent();
+            }
+        }
+        // Deepest first, so each is empty by the time it is removed.
+        parents.sort_by_key(|p| std::cmp::Reverse(p.components().count()));
+        parents
+    };
 
     // Announced to the task bar with a progress measured in files: a
     // library's worth of covers takes minutes on a slow drive, and the
@@ -968,6 +988,12 @@ pub async fn set_cache_location(
             if !existed {
                 let _ = std::fs::remove_dir_all(dir);
             }
+        }
+        // `remove_dir`, which refuses a folder that is not empty: these
+        // were made by this attempt, but a file the user dropped in since
+        // is still theirs.
+        for dir in &created_parents {
+            let _ = std::fs::remove_dir(dir);
         }
         if !marker_existed && target != paths.root {
             let _ = std::fs::remove_file(target.join(OWNER_MARKER));

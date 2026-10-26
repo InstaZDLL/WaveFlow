@@ -3020,7 +3020,9 @@
           "label": "Plugins",
           "description": "Installed plugins and their data."
         }
-      }
+      },
+      "confirmEmptyLabel": "Confirm emptying: {{item}}",
+      "emptyFailed": "Emptying did not finish: a file may still be in use. Try again later."
     }
   },
   "scanProgress": {

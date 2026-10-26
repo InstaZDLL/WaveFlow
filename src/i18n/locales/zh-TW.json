@@ -3018,7 +3018,9 @@
           "label": "外掛程式",
           "description": "已安裝的外掛程式及其資料。"
         }
-      }
+      },
+      "confirmEmptyLabel": "確認清空：{{item}}",
+      "emptyFailed": "未能清空：可能有檔案仍在使用。請稍後再試。"
     }
   },
   "scanProgress": {

@@ -3020,7 +3020,9 @@
           "label": "Plug-ins",
           "description": "Geïnstalleerde plug-ins en hun gegevens."
         }
-      }
+      },
+      "confirmEmptyLabel": "Leegmaken bevestigen: {{item}}",
+      "emptyFailed": "Leegmaken is niet gelukt: een bestand is misschien nog in gebruik. Probeer het later opnieuw."
     }
   },
   "scanProgress": {

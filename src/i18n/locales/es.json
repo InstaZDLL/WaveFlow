@@ -3088,7 +3088,9 @@
           "label": "Complementos",
           "description": "Complementos instalados y sus datos."
         }
-      }
+      },
+      "confirmEmptyLabel": "Confirmar el vaciado: {{item}}",
+      "emptyFailed": "No se pudo vaciar: puede que un archivo siga en uso. Inténtalo más tarde."
     }
   },
   "scanProgress": {

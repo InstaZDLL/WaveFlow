@@ -3018,7 +3018,9 @@
           "label": "플러그인",
           "description": "설치된 플러그인과 그 데이터."
         }
-      }
+      },
+      "confirmEmptyLabel": "비우기 확인: {{item}}",
+      "emptyFailed": "비우지 못했습니다. 파일이 아직 사용 중일 수 있습니다. 나중에 다시 시도하세요."
     }
   },
   "scanProgress": {

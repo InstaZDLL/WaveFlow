@@ -3020,7 +3020,9 @@
           "label": "Eklentiler",
           "description": "Yüklü eklentiler ve verileri."
         }
-      }
+      },
+      "confirmEmptyLabel": "Boşaltmayı onayla: {{item}}",
+      "emptyFailed": "Boşaltma tamamlanamadı: bir dosya hâlâ kullanılıyor olabilir. Daha sonra yeniden deneyin."
     }
   },
   "scanProgress": {

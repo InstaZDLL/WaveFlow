@@ -13,6 +13,10 @@ import {
   clearCanvasCache,
 } from "../../../lib/tauri/canvas";
 import { formatBytes } from "../../../lib/format";
+import {
+  announceStorageChanged,
+  STORAGE_CHANGED_EVENT,
+} from "../../../lib/tauri/storage";
 import { invalidateAllMotionArtwork } from "../../../hooks/useAlbumMotionArtwork";
 import { invalidateAllTrackCanvas } from "../../../hooks/useTrackCanvas";
 
@@ -136,6 +140,22 @@ function LocalCacheOption({
     };
   }, [getInfo]);
 
+  // Emptied from the disk space card on the same page: show the size the
+  // cache has now.
+  useEffect(() => {
+    const onChanged = () => {
+      getInfo().then(
+        (info) => {
+          setSizeBytes(info.sizeBytes);
+          setFileCount(info.fileCount);
+        },
+        () => {},
+      );
+    };
+    window.addEventListener(STORAGE_CHANGED_EVENT, onChanged);
+    return () => window.removeEventListener(STORAGE_CHANGED_EVENT, onChanged);
+  }, [getInfo]);
+
   const onToggle = useCallback(async () => {
     // Serialise against BOTH the toggle write and the clear op — ignore clicks
     // while either is in flight so a set + clear (or two sets) can't overlap.
@@ -173,6 +193,7 @@ function LocalCacheOption({
     setError(null);
     try {
       await clear();
+      announceStorageChanged();
       const info = await getInfo();
       setSizeBytes(info.sizeBytes);
       setFileCount(info.fileCount);

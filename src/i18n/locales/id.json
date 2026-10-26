@@ -3018,7 +3018,9 @@
           "label": "Plugin",
           "description": "Plugin yang terpasang dan datanya."
         }
-      }
+      },
+      "confirmEmptyLabel": "Konfirmasi pengosongan: {{item}}",
+      "emptyFailed": "Pengosongan tidak selesai: mungkin ada berkas yang masih dipakai. Coba lagi nanti."
     }
   },
   "scanProgress": {

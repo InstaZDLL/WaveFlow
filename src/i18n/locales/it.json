@@ -3088,7 +3088,9 @@
           "label": "Plugin",
           "description": "Plugin installati e i loro dati."
         }
-      }
+      },
+      "confirmEmptyLabel": "Conferma lo svuotamento: {{item}}",
+      "emptyFailed": "Lo svuotamento non è riuscito: un file potrebbe essere ancora in uso. Riprova più tardi."
     }
   },
   "scanProgress": {

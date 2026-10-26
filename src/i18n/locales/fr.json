@@ -3088,7 +3088,9 @@
           "label": "Greffons",
           "description": "Greffons installés et leurs données."
         }
-      }
+      },
+      "confirmEmptyLabel": "Confirmer le vidage : {{item}}",
+      "emptyFailed": "Le vidage n'a pas abouti : un fichier est peut-être encore utilisé. Réessayez plus tard."
     }
   },
   "scanProgress": {

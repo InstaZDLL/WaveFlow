@@ -3089,7 +3089,9 @@
           "label": "Plugins",
           "description": "Plugins instalados e os seus dados."
         }
-      }
+      },
+      "confirmEmptyLabel": "Confirmar esvaziamento: {{item}}",
+      "emptyFailed": "Não foi possível esvaziar: um ficheiro pode ainda estar em uso. Tente mais tarde."
     }
   },
   "scanProgress": {

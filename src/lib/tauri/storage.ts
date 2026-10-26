@@ -78,3 +78,13 @@ export interface DiskUsage {
 export function diskUsage(): Promise<DiskUsage> {
   return invoke<DiskUsage>("disk_usage");
 }
+
+/** Window event fired after a cache is emptied from Settings, so every
+ *  card showing a size on the page measures again. */
+export const STORAGE_CHANGED_EVENT = "waveflow:storage-changed";
+
+export function announceStorageChanged(): void {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent(STORAGE_CHANGED_EVENT));
+  }
+}
