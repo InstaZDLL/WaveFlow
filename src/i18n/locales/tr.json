@@ -1022,6 +1022,11 @@
         "unknown": "Ses çıkışı değişti"
       },
       "dismiss": "Kapat"
+    },
+    "live": {
+      "live": "Canlı",
+      "behind": "Canlı yayının {{time}} gerisinde",
+      "goLive": "Canlı yayına dön"
     }
   },
   "queue": {
@@ -3195,7 +3200,7 @@
         "offline": "Çevrimdışı mod açık.",
         "unreachable": "İstasyon bu adreste yanıt vermiyor.",
         "notAudio": "Bu adres bir ses yayınına çıkmıyor.",
-        "hls": "Bu bir HLS listesi: yalnızca kesintisiz yayınlar desteklenir.",
+        "hls": "Bu HLS akışı şifreli veya parçalı MP4 biçiminde; WaveFlow bunu çalamaz.",
         "noStream": "Listede http:// ya da https:// yayını yok.",
         "notSaved": "Favorileriniz henüz yüklenmedi; birazdan yeniden deneyin."
       }

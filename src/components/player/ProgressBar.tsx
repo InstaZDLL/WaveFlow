@@ -12,6 +12,7 @@ import { useTranslation } from "react-i18next";
 import { usePlayer } from "../../hooks/usePlayer";
 import { usePlayerPosition } from "../../hooks/usePlayerPosition";
 import { isRadioTrack } from "../../lib/playerSources";
+import { LiveStatus } from "./LiveStatus";
 import { formatDuration } from "../../lib/tauri/track";
 import { playerGetAbLoop, type AbLoopSnapshot } from "../../lib/tauri/player";
 
@@ -174,9 +175,12 @@ export function ProgressBar({ variant = "bar" }: ProgressBarProps = {}) {
 
   // Live Web Radio has no seekable timeline (the stream started before we
   // tuned in, position is "seconds since I connected"), so the scrubber +
-  // timestamps are meaningless — hide the whole row. Placed after all
-  // hooks so the Rules of Hooks hold.
-  if (isRadioTrack(currentTrack)) return null;
+  // timestamps are meaningless — the row says where the listener stands
+  // against the live edge instead. Placed after all hooks so the Rules of
+  // Hooks hold.
+  if (isRadioTrack(currentTrack)) {
+    return <LiveStatus compact={variant !== "bar"} />;
+  }
 
   if (variant === "horizon") {
     // Moved by transforms only (`--fe-progress` is a 0–1 factor), so a

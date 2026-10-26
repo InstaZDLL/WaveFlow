@@ -1020,6 +1020,11 @@
         "unknown": "音訊輸出已變更"
       },
       "dismiss": "關閉"
+    },
+    "live": {
+      "live": "直播",
+      "behind": "落後直播 {{time}}",
+      "goLive": "回到直播"
     }
   },
   "queue": {
@@ -3193,7 +3198,7 @@
         "offline": "離線模式已開啟。",
         "unreachable": "此位址上的電台沒有回應。",
         "notAudio": "此位址不指向音訊串流。",
-        "hls": "這是 HLS 播放清單：只支援連續的串流。",
+        "hls": "此 HLS 串流已加密或為分段 MP4，WaveFlow 無法播放。",
         "noStream": "播放清單中沒有 http:// 或 https:// 串流。",
         "notSaved": "收藏尚未載入，請稍後再試。"
       }

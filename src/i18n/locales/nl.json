@@ -1022,6 +1022,11 @@
         "unknown": "De audio-uitvoer is gewijzigd"
       },
       "dismiss": "Sluiten"
+    },
+    "live": {
+      "live": "Live",
+      "behind": "{{time}} achter op live",
+      "goLive": "Terug naar live"
     }
   },
   "queue": {
@@ -3195,7 +3200,7 @@
         "offline": "De offlinemodus staat aan.",
         "unreachable": "De zender reageert niet op dit adres.",
         "notAudio": "Dit adres leidt niet naar een audiostream.",
-        "hls": "Dit is een HLS-playlist: alleen doorlopende streams worden ondersteund.",
+        "hls": "Deze HLS-stream is versleuteld of gefragmenteerde MP4, wat WaveFlow niet kan afspelen.",
         "noStream": "De playlist bevat geen http://- of https://-stream.",
         "notSaved": "Je favorieten zijn nog niet geladen; probeer het zo opnieuw."
       }

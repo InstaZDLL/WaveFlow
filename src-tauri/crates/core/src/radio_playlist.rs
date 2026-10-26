@@ -7,11 +7,11 @@
 //! text, parsed here without a network or a filesystem so the rules can
 //! be tested on their own; fetching and resolving belong to the caller.
 //!
-//! **HLS is refused, not parsed.** An `.m3u8` can also be an HTTP Live
+//! **HLS is not a station list.** An `.m3u8` can also be an HTTP Live
 //! Streaming playlist — a list of short media segments, not a list of
-//! stations — and the engine plays a continuous stream, not segments.
-//! It is recognised by its `#EXT-X-` tags and reported as such, so the
-//! user is told why rather than handed a station that plays two seconds.
+//! stations. It is recognised by its `#EXT-X-` tags and reported as such:
+//! the playlist is then the stream itself, which the player polls
+//! (`playback::hls`), not a list to take a station from.
 
 /// One stream a playlist names, in the order it names them.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]

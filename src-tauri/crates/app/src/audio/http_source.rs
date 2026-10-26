@@ -42,10 +42,7 @@ use std::time::Duration;
 
 use reqwest::blocking::{Client, Response};
 use symphonia::core::io::MediaSource;
-use tauri::AppHandle;
 use waveflow_core::error::describe_http_error;
-
-use super::events::{emit_radio_metadata, RadioMetadataPayload};
 
 /// Strip credentials + query string from a URL before logging it.
 /// Radio mount URLs sometimes carry userinfo (`http://user:pwd@host`)
@@ -122,31 +119,17 @@ const CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
 /// in how strictly they filter — some Icecast configs reject empty UAs
 /// outright. Mirror the `Mozilla/5.0` style that desktop browsers use
 /// so we look like any other listener.
-const USER_AGENT: &str = concat!(
+pub(crate) const USER_AGENT: &str = concat!(
     "WaveFlow/",
     env!("CARGO_PKG_VERSION"),
     " (+https://waveflow.app)"
 );
 
-/// Context the host hands to [`HttpMediaSource::open_with_icy`] so the
-/// source can re-emit `player:radio-metadata` whenever the stream's
-/// ICY `StreamTitle` changes. The station artwork + a fallback artist
-/// ride along so each "now playing" update keeps the station's cover +
-/// identity instead of blanking them.
-pub struct IcyContext {
-    pub app: AppHandle,
-    pub track_id: i64,
-    /// Raw stream URL — the favorite id is `url:<station_url>`, so it
-    /// rides every emit to let the PlayerBar / mini-player star save the
-    /// station even after the now-playing line shows a song title.
-    pub station_url: String,
-    /// Station display name (kept stable across song changes).
-    pub station_name: Option<String>,
-    /// Station name kept as the artist line when a `StreamTitle` has no
-    /// `Artist - Title` split (e.g. a bare show name).
-    pub station_artist: Option<String>,
-    pub artwork_url: Option<String>,
-}
+/// What a stream's ICY `StreamTitle` changes are handed to: the time-shift
+/// buffer of [`super::live`], which records each at the offset it arrived
+/// at so the title shows when the audio around it is heard. `None` is a
+/// title the station cleared.
+pub type TitleSink = Box<dyn FnMut(Option<String>) + Send + Sync>;
 
 /// MediaSource backed by a live HTTP response body.
 ///
@@ -160,10 +143,9 @@ pub struct IcyContext {
 /// honours `Icy-MetaData: 1` (advertising an `icy-metaint` interval),
 /// the read path de-interleaves the periodic metadata blocks out of the
 /// audio stream — symphonia only ever sees pure audio — and parses the
-/// `StreamTitle`, re-emitting `player:radio-metadata` on change so the
-/// PlayerBar shows the live song. Streams that don't carry ICY (HLS,
-/// DASH, or servers that ignore the header) set `metaint = 0` and the
-/// read path is a plain passthrough.
+/// `StreamTitle`, handing each change to the caller's [`TitleSink`].
+/// Streams that don't carry ICY (servers that ignore the header) set
+/// `metaint = 0` and the read path is a plain passthrough.
 pub struct HttpMediaSource {
     /// Buffered reader over the response body. Wrapped in a `Mutex` to
     /// upgrade `reqwest::blocking::Response` from `Send` to `Send + Sync`
@@ -193,13 +175,17 @@ pub struct HttpMediaSource {
     /// `metaint`; decremented as audio is read, and when it hits `0` the
     /// read path consumes one metadata block before resuming.
     bytes_until_meta: usize,
-    /// `Some` only when ICY is active — carries the handle to emit on +
-    /// the station identity to keep across song changes.
-    icy: Option<IcyContext>,
-    /// Last `StreamTitle` we emitted, so an unchanged metadata block
-    /// (radio servers resend the same title every interval) doesn't
-    /// re-fire the event.
+    /// `Some` only when ICY is active: where title changes go.
+    on_title: Option<TitleSink>,
+    /// Last `StreamTitle` handed on, so an unchanged metadata block
+    /// (radio servers resend the same title every interval) is not handed
+    /// on again.
     last_title: Option<String>,
+    /// `icy-br`, the bitrate the station says it sends, in kbit/s.
+    icy_bitrate_kbps: Option<u32>,
+    /// The answer's `Content-Type`, for a caller to tell a playlist (HLS)
+    /// behind a URL that does not say so.
+    content_type: Option<String>,
     /// Writes what this source reads into the on-disk stream cache, when the
     /// caller asked for it and the body declared a length. `None` for radio
     /// (endless, so never complete) and whenever the cache is unusable — it
@@ -231,11 +217,11 @@ impl HttpMediaSource {
     }
 
     /// Open a streaming HTTP GET that also requests + de-interleaves ICY
-    /// metadata, re-emitting `player:radio-metadata` through `icy.app`
-    /// whenever the live `StreamTitle` changes. Falls back transparently
-    /// to passthrough when the server ignores `Icy-MetaData: 1`.
-    pub fn open_with_icy(url: &str, icy: IcyContext) -> Result<Self, String> {
-        Self::open_inner(url, Some(icy), false, None)
+    /// metadata, handing every change of the live `StreamTitle` to
+    /// `on_title`. Falls back transparently to passthrough when the server
+    /// ignores `Icy-MetaData: 1`.
+    pub fn open_with_icy(url: &str, on_title: TitleSink) -> Result<Self, String> {
+        Self::open_inner(url, Some(on_title), false, None)
     }
 
     /// Open a finite, range-capable file for **seekable** playback — a
@@ -264,7 +250,7 @@ impl HttpMediaSource {
 
     fn open_inner(
         url: &str,
-        icy: Option<IcyContext>,
+        on_title: Option<TitleSink>,
         want_seek: bool,
         cache_target: Option<crate::audio::stream_cache::CacheTarget>,
     ) -> Result<Self, String> {
@@ -289,7 +275,7 @@ impl HttpMediaSource {
         // Some Icecast mounts also mute the audio payload unless the
         // header is present at all, so the passthrough path still sends
         // an explicit "0".
-        let want_icy = icy.is_some();
+        let want_icy = on_title.is_some();
         let response = client
             .get(url)
             .header(reqwest::header::ACCEPT, "audio/*,*/*;q=0.8")
@@ -344,6 +330,21 @@ impl HttpMediaSource {
         // was never cached at all.
         let declared_len = len;
         let len = if seekable { len } else { None };
+        // `icy-br` is sometimes a list ("128,128" on a dual-rate mount);
+        // the first is the stream's. Anything outside what a station can
+        // send is ignored rather than trusted.
+        let icy_bitrate_kbps = response
+            .headers()
+            .get("icy-br")
+            .and_then(|v| v.to_str().ok())
+            .and_then(|v| v.split(',').next())
+            .and_then(|v| v.trim().parse::<u32>().ok())
+            .filter(|kbps| (8..=1_536).contains(kbps));
+        let content_type = response
+            .headers()
+            .get(reqwest::header::CONTENT_TYPE)
+            .and_then(|v| v.to_str().ok())
+            .map(str::to_string);
 
         Ok(Self {
             inner: Mutex::new(BufReader::with_capacity(8 * 1024, response)),
@@ -357,8 +358,10 @@ impl HttpMediaSource {
             // Drop the sink when the server isn't interleaving — keeps
             // the read path's `Some` check honest (ICY active iff we'll
             // actually parse blocks).
-            icy: if metaint > 0 { icy } else { None },
+            on_title: if metaint > 0 { on_title } else { None },
             last_title: None,
+            icy_bitrate_kbps,
+            content_type,
             // Only a body that declared its length can be cached: without one
             // there is no way to decide that every byte has been covered, and
             // a file we cannot call complete must never be offered as one.
@@ -374,6 +377,16 @@ impl HttpMediaSource {
     /// Origin URL for diagnostics.
     pub fn url(&self) -> &str {
         &self.url
+    }
+
+    /// The bitrate the station declares (`icy-br`), in kbit/s.
+    pub fn icy_bitrate_kbps(&self) -> Option<u32> {
+        self.icy_bitrate_kbps
+    }
+
+    /// The answer's `Content-Type`, as sent.
+    pub fn content_type(&self) -> Option<&str> {
+        self.content_type.as_deref()
     }
 }
 
@@ -413,25 +426,6 @@ fn parse_stream_title(block: &[u8]) -> Option<String> {
         None
     } else {
         Some(title.to_string())
-    }
-}
-
-/// Split a raw `StreamTitle` into (title, artist) for the PlayerBar.
-/// The near-universal radio convention is `Artist - Title`; when there's
-/// no ` - ` separator we keep the whole string as the title and let the
-/// caller supply the station name as the artist line.
-fn split_artist_title(raw: &str) -> (String, Option<String>) {
-    match raw.split_once(" - ") {
-        Some((artist, title)) => {
-            let artist = artist.trim();
-            let title = title.trim();
-            if artist.is_empty() || title.is_empty() {
-                (raw.to_string(), None)
-            } else {
-                (title.to_string(), Some(artist.to_string()))
-            }
-        }
-        None => (raw.to_string(), None),
     }
 }
 
@@ -532,62 +526,18 @@ impl Read for HttpMediaSource {
         self.bytes_until_meta -= n;
         drop(guard);
 
-        // Emit outside the lock. Only when the title actually changed —
+        // Handed on outside the lock. Only when the title actually changed —
         // servers resend the same `StreamTitle` every interval.
         if let Some(parsed) = new_title {
             if parsed != self.last_title {
                 self.last_title = parsed.clone();
-                self.emit_now_playing(parsed.as_deref());
+                if let Some(on_title) = self.on_title.as_mut() {
+                    on_title(parsed);
+                }
             }
         }
 
         Ok(n)
-    }
-}
-
-impl HttpMediaSource {
-    /// Emit `player:radio-metadata` with the live song. `raw` is the
-    /// parsed `StreamTitle`, or `None` when the station cleared it (back
-    /// to "just the station"). Keeps the station artwork on every update
-    /// and falls back to the station name for the artist line.
-    fn emit_now_playing(&self, raw: Option<&str>) {
-        let Some(icy) = &self.icy else { return };
-        tracing::info!(
-            track_id = icy.track_id,
-            stream_title = ?raw,
-            "radio ICY now-playing"
-        );
-        let (title, artist) = match raw {
-            Some(raw) => {
-                let (title, artist) = split_artist_title(raw);
-                (Some(title), artist.or_else(|| icy.station_artist.clone()))
-            }
-            None => (None, icy.station_artist.clone()),
-        };
-        emit_radio_metadata(
-            &icy.app,
-            RadioMetadataPayload {
-                track_id: icy.track_id,
-                title,
-                artist,
-                artwork_url: icy.artwork_url.clone(),
-                station_url: Some(icy.station_url.clone()),
-                station_name: icy.station_name.clone(),
-                station_artist: icy.station_artist.clone(),
-                station_artwork: icy.artwork_url.clone(),
-                // ICY `StreamTitle` frames only come from a live shoutcast
-                // stream — a remote-queue track is a plain file with no ICY,
-                // so this re-emit path is always a radio station with an
-                // open-ended timeline.
-                is_remote: false,
-                duration_ms: None,
-                artwork_hash: None,
-                // Live radio: there is no server track to name.
-                remote_track_id: None,
-                is_file: false,
-                file_path: None,
-            },
-        );
     }
 }
 
@@ -888,24 +838,6 @@ mod tests {
         assert_eq!(
             parse_stream_title(b"StreamTitle='No Closer\0\0\0").as_deref(),
             Some("No Closer")
-        );
-    }
-
-    #[test]
-    fn split_artist_title_splits_on_separator() {
-        assert_eq!(
-            split_artist_title("Daft Punk - Get Lucky"),
-            ("Get Lucky".to_string(), Some("Daft Punk".to_string()))
-        );
-        // No separator → whole string is the title, no artist.
-        assert_eq!(
-            split_artist_title("Morning Show"),
-            ("Morning Show".to_string(), None)
-        );
-        // A dangling separator half keeps the raw string as the title.
-        assert_eq!(
-            split_artist_title("Artist - "),
-            ("Artist - ".to_string(), None)
         );
     }
 

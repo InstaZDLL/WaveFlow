@@ -742,11 +742,13 @@ fn decoder_loop(
                 let redacted = super::http_source::redact_url(&url);
 
                 // A remote-queue track is a finite file: open it seekable
-                // (no ICY, range-capable) so the scrubber works. Radio opens
-                // with ICY so the source can re-emit `player:radio-metadata`
-                // with the live `StreamTitle` while keeping the station's
-                // cover + name; it stays forward-only.
-                let opened = if finite {
+                // (no ICY, range-capable) so the scrubber works. Radio goes
+                // through the time-shift buffer, which re-emits
+                // `player:radio-metadata` with the `StreamTitle` of what is
+                // heard while keeping the station's cover + name; it stays
+                // forward-only.
+                let mut live_hint: Option<String> = None;
+                let opened: Result<Box<dyn symphonia::core::io::MediaSource>, String> = if finite {
                     // A cache target only ever accompanies a finite
                     // remote-queue track, so the seekable open is the only
                     // one that can honour it.
@@ -756,16 +758,27 @@ fn decoder_loop(
                         }
                         None => super::http_source::HttpMediaSource::open_seekable(&url),
                     }
+                    .map(|source| Box::new(source) as Box<dyn symphonia::core::io::MediaSource>)
                 } else {
-                    let icy_ctx = super::http_source::IcyContext {
+                    // A live station: read ahead into the time-shift buffer
+                    // by a thread of its own, so a pause does not stall the
+                    // stream (`live`).
+                    let station = super::live::Station {
                         app: app.clone(),
                         track_id,
-                        station_url: url.clone(),
-                        station_name: title.clone(),
-                        station_artist: artist.clone(),
+                        url: url.clone(),
+                        name: title.clone(),
+                        artist: artist.clone(),
                         artwork_url: artwork_url.clone(),
                     };
-                    super::http_source::HttpMediaSource::open_with_icy(&url, icy_ctx)
+                    super::live::open(&url, station).map(|(source, hint)| {
+                        // An HLS stream says what it carries once its first
+                        // segment is in: that, rather than the caller's guess.
+                        if let Some(hint) = hint {
+                            live_hint = Some(hint.to_string());
+                        }
+                        Box::new(source) as Box<dyn symphonia::core::io::MediaSource>
+                    })
                 };
                 let http_source = match opened {
                     Ok(s) => s,
@@ -781,8 +794,8 @@ fn decoder_loop(
                 };
 
                 let stream = match ActiveStream::open_from_source(
-                    Box::new(http_source),
-                    ext_hint.as_deref(),
+                    http_source,
+                    live_hint.as_deref().or(ext_hint.as_deref()),
                     track_id,
                     // duration_ms = 0 is the live-stream sentinel —
                     // play_track interprets it to suppress crossfade

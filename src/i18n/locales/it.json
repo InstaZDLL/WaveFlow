@@ -1062,6 +1062,11 @@
         "unknown": "L'uscita audio è cambiata"
       },
       "dismiss": "Chiudi"
+    },
+    "live": {
+      "live": "In diretta",
+      "behind": "{{time}} di ritardo sulla diretta",
+      "goLive": "Torna alla diretta"
     }
   },
   "queue": {
@@ -3264,7 +3269,7 @@
         "offline": "La modalità offline è attiva.",
         "unreachable": "La stazione non risponde a questo indirizzo.",
         "notAudio": "Questo indirizzo non porta a un flusso audio.",
-        "hls": "È una playlist HLS: sono supportati solo flussi continui.",
+        "hls": "Questo flusso HLS è cifrato o in MP4 frammentato, che WaveFlow non sa riprodurre.",
         "noStream": "La playlist non contiene alcun flusso http:// o https://.",
         "notSaved": "I preferiti non sono ancora caricati; riprova tra un momento."
       }

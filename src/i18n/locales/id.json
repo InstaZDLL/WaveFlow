@@ -1020,6 +1020,11 @@
         "unknown": "Keluaran audio berubah"
       },
       "dismiss": "Tutup"
+    },
+    "live": {
+      "live": "Siaran langsung",
+      "behind": "{{time}} di belakang siaran langsung",
+      "goLive": "Kembali ke siaran langsung"
     }
   },
   "queue": {
@@ -3193,7 +3198,7 @@
         "offline": "Mode offline aktif.",
         "unreachable": "Stasiun tidak merespons di alamat ini.",
         "notAudio": "Alamat ini tidak mengarah ke stream audio.",
-        "hls": "Ini playlist HLS: hanya stream berkelanjutan yang didukung.",
+        "hls": "Aliran HLS ini terenkripsi atau berformat MP4 terfragmentasi, yang tidak dapat diputar WaveFlow.",
         "noStream": "Playlist tidak berisi stream http:// atau https://.",
         "notSaved": "Favorit Anda belum dimuat; coba lagi sebentar lagi."
       }

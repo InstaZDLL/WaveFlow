@@ -1022,6 +1022,11 @@
         "unknown": "Die Audioausgabe hat sich geändert"
       },
       "dismiss": "Schließen"
+    },
+    "live": {
+      "live": "Live",
+      "behind": "{{time}} hinter dem Live-Stream",
+      "goLive": "Zurück zum Live-Stream"
     }
   },
   "queue": {
@@ -3195,7 +3200,7 @@
         "offline": "Der Offline-Modus ist aktiv.",
         "unreachable": "Der Sender antwortet unter dieser Adresse nicht.",
         "notAudio": "Diese Adresse führt zu keinem Audiostream.",
-        "hls": "Das ist eine HLS-Playlist: Nur durchgehende Streams werden unterstützt.",
+        "hls": "Dieser HLS-Stream ist verschlüsselt oder fragmentiertes MP4, das WaveFlow nicht abspielen kann.",
         "noStream": "Die Playlist enthält keinen http://- oder https://-Stream.",
         "notSaved": "Deine Favoriten sind noch nicht geladen; versuche es gleich noch einmal."
       }

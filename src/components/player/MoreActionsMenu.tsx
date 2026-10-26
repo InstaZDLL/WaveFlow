@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   MessageSquareQuote,
   MoreHorizontal,
+  Radio,
   Moon,
   SlidersHorizontal,
   X,
@@ -13,6 +14,8 @@ import type { SleepTimerStatus } from "../../hooks/useSleepTimer";
 import { useDesktopLyricsStatus } from "../../hooks/useDesktopLyricsStatus";
 import { ToggleSwitch } from "../common/ToggleSwitch";
 import { usePlayer } from "../../hooks/usePlayer";
+import { useRadioTimeshift } from "../../hooks/useRadioTimeshift";
+import { formatDuration } from "../../lib/tauri/track";
 import { AbLoopButton } from "./AbLoopButton";
 import { EqPresetPanel } from "./EqPresetButton";
 
@@ -55,6 +58,7 @@ export function MoreActionsMenu({
   const { t } = useTranslation();
   const { playbackSpeed, setPlaybackSpeed } = usePlayer();
   const desktopLyrics = useDesktopLyricsStatus();
+  const timeshift = useRadioTimeshift();
   const [isOpen, setIsOpen] = useState(false);
   const [customMinutes, setCustomMinutes] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
@@ -157,6 +161,41 @@ export function MoreActionsMenu({
             style={{ transformOrigin: "bottom right" }}
             className="absolute bottom-full right-0 mb-3 w-72 max-h-[calc(100dvh-7rem)] overflow-y-auto overscroll-contain p-1 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl z-50"
           >
+            {/* Back to a paused station's live edge: only while behind
+                it, so the menu does not offer what would change nothing. */}
+            {timeshift.isBehind && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsOpen(false);
+                    timeshift
+                      .goLive()
+                      .catch((err) =>
+                        console.error(
+                          "[MoreActionsMenu] back to live failed",
+                          err,
+                        ),
+                      );
+                  }}
+                  className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-left hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                >
+                  <span className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-200">
+                    <Radio
+                      size={14}
+                      className="text-red-500"
+                      aria-hidden="true"
+                    />
+                    {t("player.live.goLive")}
+                  </span>
+                  <span className="text-xs tabular-nums text-zinc-400">
+                    −{formatDuration(timeshift.behindMs)}
+                  </span>
+                </button>
+                <div className="my-1 h-px bg-zinc-100 dark:bg-zinc-800" />
+              </>
+            )}
+
             <div className="px-3 py-2 space-y-2">
               <div className="flex items-center justify-between">
                 <div className="text-xs font-bold uppercase tracking-widest text-zinc-400">

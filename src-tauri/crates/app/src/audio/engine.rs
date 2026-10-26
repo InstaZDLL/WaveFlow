@@ -1417,6 +1417,19 @@ impl AudioEngine {
             pause_pending_after(&cmd, previous),
             std::sync::atomic::Ordering::Release,
         );
+        // A live station that is reconnecting holds the decoder in a read
+        // on an empty buffer; a command that replaces or stops it would
+        // otherwise wait for the station to come back or give up.
+        if matches!(
+            cmd,
+            AudioCmd::LoadAndPlay { .. }
+                | AudioCmd::LoadRemoteFileAndPlay { .. }
+                | AudioCmd::LoadUrlAndPlay { .. }
+                | AudioCmd::Stop
+                | AudioCmd::Shutdown
+        ) {
+            super::live::release_starved_reader();
+        }
         self.cmd_tx.send(cmd).map_err(|e| {
             // Nothing was queued, so the intent this recorded is one the
             // decoder will never see either.

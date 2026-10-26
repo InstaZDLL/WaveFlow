@@ -183,6 +183,10 @@ pub(crate) async fn probe(raw: &str) -> AppResult<ProbedStation> {
         Kind::Playlist => {
             let base = response.url().clone();
             let body = read_capped(response).await?;
+            // An HLS playlist is the stream itself: the player polls it.
+            if let Some(station) = hls_station(&body, &url)? {
+                return Ok(logged(station));
+            }
             let entries = parse_playlist(&body).map_err(playlist_error)?;
             // The first entry that is a station: a `.pls` lists mirrors
             // of one stream, and the first is the one its author meant.
@@ -209,10 +213,22 @@ pub(crate) async fn probe(raw: &str) -> AppResult<ProbedStation> {
                         .map(clip_name)
                         .or_else(|| icy_name(inner.headers())),
                 },
+                // A station list naming an HLS stream: that is the stream.
+                // Any other playlist inside a playlist is not followed.
                 Kind::Playlist => {
-                    return Err(AppError::Other(format!(
-                        "{ERR_NOT_AUDIO}: the playlist names another playlist"
-                    )))
+                    let title = entry.title.clone().map(clip_name);
+                    let inner_body = read_capped(inner).await?;
+                    match hls_station(&inner_body, &stream)? {
+                        Some(station) => ProbedStation {
+                            name: title,
+                            ..station
+                        },
+                        None => {
+                            return Err(AppError::Other(format!(
+                                "{ERR_NOT_AUDIO}: the playlist names another playlist"
+                            )))
+                        }
+                    }
                 }
                 Kind::Other(ct) => {
                     return Err(AppError::Other(format!("{ERR_NOT_AUDIO}: {ct}")));
@@ -221,11 +237,31 @@ pub(crate) async fn probe(raw: &str) -> AppResult<ProbedStation> {
         }
         Kind::Other(ct) => return Err(AppError::Other(format!("{ERR_NOT_AUDIO}: {ct}"))),
     };
+    Ok(logged(station))
+}
+
+fn logged(station: ProbedStation) -> ProbedStation {
     tracing::info!(
         url = %redact_url(&station.stream_url),
         "web radio station probed"
     );
-    Ok(station)
+    station
+}
+
+/// The station an HLS playlist is, when `body` is one: the playlist's own
+/// URL, which the player polls. `Ok(None)` for a station list. An HLS
+/// stream the player cannot play — encrypted, fragmented MP4 — is refused
+/// here rather than saved.
+fn hls_station(body: &str, url: &url::Url) -> AppResult<Option<ProbedStation>> {
+    use waveflow_core::playback::hls::playlist;
+    if !playlist::is_hls(body) {
+        return Ok(None);
+    }
+    playlist::parse(body).map_err(|err| AppError::Other(format!("{ERR_HLS}: {err}")))?;
+    Ok(Some(ProbedStation {
+        stream_url: url.to_string(),
+        name: None,
+    }))
 }
 
 /// How many redirects a probe follows.
@@ -478,17 +514,43 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn an_hls_playlist_is_the_stream_itself() {
+        let hls = "#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:6\n#EXTINF:6,\nseg.ts\n";
+        let m3u = "#EXTM3U\n#EXTINF:-1,Segmented FM\n/live/index.m3u8\n";
+        let base = serve(vec![
+            (
+                "/live/index.m3u8",
+                text("application/vnd.apple.mpegurl", hls),
+            ),
+            ("/listen.m3u", text("audio/x-mpegurl", m3u)),
+        ])
+        .await;
+        let station = probe(&format!("{base}/live/index.m3u8")).await.unwrap();
+        assert_eq!(station.stream_url, format!("{base}/live/index.m3u8"));
+        // A station list naming an HLS stream gives that stream, and the
+        // list's title for it.
+        let station = probe(&format!("{base}/listen.m3u")).await.unwrap();
+        assert_eq!(station.stream_url, format!("{base}/live/index.m3u8"));
+        assert_eq!(station.name.as_deref(), Some("Segmented FM"));
+    }
+
+    #[tokio::test]
     async fn what_is_not_a_station_is_refused_with_its_reason() {
-        let hls = "#EXTM3U\n#EXT-X-VERSION:3\n#EXTINF:6,\nseg.ts\n";
+        let encrypted =
+            "#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-KEY:METHOD=AES-128,URI=\"k\"\n#EXTINF:6,\nseg.ts\n";
         let base = serve(vec![
             ("/page", text("text/html", "<html></html>")),
-            ("/hls.m3u8", text("application/vnd.apple.mpegurl", hls)),
+            (
+                "/hls.m3u8",
+                text("application/vnd.apple.mpegurl", encrypted),
+            ),
             ("/empty.m3u", text("audio/x-mpegurl", "#EXTM3U\n")),
             ("/nested.m3u", text("audio/x-mpegurl", "/empty.m3u\n")),
         ])
         .await;
         let err = |r: AppResult<ProbedStation>| r.unwrap_err().to_string();
         assert!(err(probe(&format!("{base}/page")).await).contains(ERR_NOT_AUDIO));
+        // HLS the player cannot play: encrypted segments.
         assert!(err(probe(&format!("{base}/hls.m3u8")).await).contains(ERR_HLS));
         assert!(err(probe(&format!("{base}/empty.m3u")).await).contains(ERR_NO_STREAM));
         assert!(err(probe(&format!("{base}/nested.m3u")).await).contains(ERR_NOT_AUDIO));
