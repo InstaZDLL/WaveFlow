@@ -994,9 +994,14 @@ pub async fn set_cache_location(
         // copied files to remove, too long to hold an executor thread.
         let outside_root = target != paths.root;
         let _ = tokio::task::spawn_blocking(move || {
+            // A copy that would not go keeps the marker: it is what lets a
+            // later attempt at this folder, or a reset, claim the copy back.
+            let mut copies_gone = true;
             for ((_, dir), existed) in destinations.iter().zip(pre_existing.iter()) {
                 if !existed {
-                    let _ = std::fs::remove_dir_all(dir);
+                    if let Err(err) = std::fs::remove_dir_all(dir) {
+                        copies_gone &= err.kind() == std::io::ErrorKind::NotFound;
+                    }
                 }
             }
             // `remove_dir`, which refuses a folder that is not empty: these
@@ -1005,7 +1010,7 @@ pub async fn set_cache_location(
             for dir in &created_parents {
                 let _ = std::fs::remove_dir(dir);
             }
-            if !marker_existed && outside_root {
+            if !marker_existed && outside_root && copies_gone {
                 let _ = std::fs::remove_file(target.join(OWNER_MARKER));
             }
             // And the folder itself, for the same reason: `is_usable` is
