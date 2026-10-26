@@ -24,6 +24,11 @@ pub const ROWS: usize = 256;
 /// floor of a 16-bit file in view without crushing the rest.
 pub const RANGE_DB: f64 = 120.0;
 
+/// Lowest level the scale is ever measured from, in dB, under the noise
+/// floor of a 24-bit file. Without it a silent file, every cell at the
+/// -300 dB clamp, is measured against itself and drawn at full level.
+const FLOOR_DB: f64 = -130.0;
+
 /// What [`SpectrogramRecorder::finish`] produces.
 #[derive(Debug, Clone, PartialEq, serde::Serialize)]
 pub struct Spectrogram {
@@ -153,7 +158,7 @@ impl SpectrogramRecorder {
             .iter()
             .map(|&p| 10.0 * p.max(1e-30).log10())
             .collect();
-        let top = db.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+        let top = db.iter().copied().fold(FLOOR_DB, f64::max);
         let cells = db
             .iter()
             .map(|&d| (((d - (top - RANGE_DB)) / RANGE_DB).clamp(0.0, 1.0) * 255.0).round() as u8)

@@ -398,7 +398,8 @@ mod tests {
         // A second of silence in the middle: kept as a gap in the picture,
         // left out of the measure.
         let mid = signal.len() / 2;
-        signal.splice(mid..mid, std::iter::repeat_n(0.0, RATE as usize));
+        // `repeat().take()`: `repeat_n` is Rust 1.82, past the crate's MSRV.
+        signal.splice(mid..mid, std::iter::repeat(0.0).take(RATE as usize));
         let mut meter = BandwidthMeter::with_spectrogram(RATE, 1, 4, 900);
         for &s in &signal {
             meter.push_frame(&[s]);
@@ -420,6 +421,18 @@ mod tests {
         // The silent second shows as a dark column.
         let quiet = (0..picture.columns).map(|c| level(c, below)).min().unwrap();
         assert!(quiet < 10, "darkest column below the cut: {quiet}");
+    }
+
+    #[test]
+    fn a_silent_file_draws_a_dark_spectrogram() {
+        let mut meter = BandwidthMeter::with_spectrogram(RATE, 1, 4, 900);
+        for _ in 0..(RATE as usize * 2) {
+            meter.push_frame(&[0.0]);
+        }
+        let (picture, _) = meter.finish_with_spectrogram();
+        let picture = picture.expect("a picture");
+        let brightest = picture.cells.iter().copied().max().unwrap();
+        assert_eq!(brightest, 0, "silence drawn at {brightest}");
     }
 
     #[test]
