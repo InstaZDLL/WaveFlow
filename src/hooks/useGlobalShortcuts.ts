@@ -65,6 +65,11 @@ export function useGlobalShortcuts() {
         Object.keys(bindingsRef.current) as ShortcutAction[]
       ).find((a) => bindingsRef.current[a] === combo);
       if (!action) return;
+      // A focused control acted on the key itself and said so — a row
+      // that plays on Enter / Space, a slider that moves on the arrows.
+      // The shortcut bound to the same key must not act a second time
+      // (Space on a queue row jumped to it, then paused it).
+      if (event.defaultPrevented) return;
 
       const target = event.target as HTMLElement | null;
       const firesInFields =

@@ -847,6 +847,7 @@ const ACCESSORS: Record<SettingKey, SettingAccessor> = {
     "immersive.use_native_fullscreen",
   ),
   "immersive.hide_empty_lyrics": immersivePref("immersive.hide_empty_lyrics"),
+  "immersive.theater_mode": immersivePref("immersive.theater_mode"),
   "ui.cover_slideshow": profileBool(
     "ui.cover_slideshow",
     COVER_SLIDESHOW_EVENT,

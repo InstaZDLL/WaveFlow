@@ -2657,6 +2657,10 @@
       "nativeFullscreen": {
         "title": "Nativer Vollbildmodus",
         "subtitle": "Füllt beim Öffnen den ganzen Bildschirm und stellt dein Fenster beim Schließen wieder her. Deaktivieren, um eine Overlay-Ansicht im Fenster zu behalten (nützlich bei mehreren Monitoren)."
+      },
+      "theaterMode": {
+        "title": "Theatermodus",
+        "subtitle": "Macht die immersive Ansicht zu einer Anzeige, die man aus der Ferne liest: größer, im Vollbild, mit der Titelliste neben dem Cover. Steuerelemente und Mauszeiger verschwinden nach einigen Sekunden, und der Bildschirm bleibt an, solange Musik läuft."
       }
     },
     "scrollTitles": {
@@ -3225,7 +3229,12 @@
   },
   "immersive": {
     "togglePanel": "Panel ein-/ausblenden",
-    "panelTabs": "Panel-Tabs"
+    "panelTabs": "Panel-Tabs",
+    "theater": "Theatermodus",
+    "tracklist": {
+      "tab": "Titelliste",
+      "position": "Titel {{current}} von {{total}}"
+    }
   },
   "pluginView": {
     "refresh": "Aktualisieren",

@@ -200,6 +200,8 @@ export const SETTINGS_CATEGORIES = [
           "settings.immersiveView.nativeFullscreen.subtitle",
           "settings.immersiveView.hideEmptyLyrics.title",
           "settings.immersiveView.hideEmptyLyrics.subtitle",
+          "settings.immersiveView.theaterMode.title",
+          "settings.immersiveView.theaterMode.subtitle",
           "settings.immersiveView.title",
           "settings.coverSlideshow.title",
           "settings.coverSlideshow.subtitle",

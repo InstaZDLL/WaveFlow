@@ -2723,6 +2723,10 @@
       "nativeFullscreen": {
         "title": "Ecrã inteiro nativo",
         "subtitle": "Preenche todo o ecrã ao abrir e restaura a janela ao fechar. Desativa para manter uma sobreposição na janela (útil em vários monitores)."
+      },
+      "theaterMode": {
+        "title": "Modo teatro",
+        "subtitle": "Transforma a vista imersiva num ecrã para ler à distância: maior, em ecrã inteiro, com a lista de faixas ao lado da capa. Os controlos e o ponteiro desaparecem ao fim de alguns segundos, e o ecrã mantém-se ligado enquanto a música toca."
       }
     },
     "scrollTitles": {
@@ -3295,7 +3299,12 @@
   },
   "immersive": {
     "togglePanel": "Mostrar / ocultar painel",
-    "panelTabs": "Separadores do painel"
+    "panelTabs": "Separadores do painel",
+    "theater": "Modo teatro",
+    "tracklist": {
+      "tab": "Lista de faixas",
+      "position": "Faixa {{current}} de {{total}}"
+    }
   },
   "pluginView": {
     "refresh": "Atualizar",

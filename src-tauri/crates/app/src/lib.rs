@@ -1319,6 +1319,7 @@ pub fn run() {
             commands::player::player_get_exclusive_output_state,
             commands::player::player_set_pause_on_device_loss,
             commands::player::player_set_keep_awake,
+            commands::player::player_hold_display,
             commands::player::player_probe_output_device,
             commands::player::player_set_match_source_rate,
             commands::inventory::inventory_summary,

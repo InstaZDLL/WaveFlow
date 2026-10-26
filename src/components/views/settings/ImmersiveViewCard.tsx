@@ -4,6 +4,7 @@ import {
   Columns2,
   Expand,
   PanelRightClose,
+  Tv,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -14,17 +15,18 @@ import {
 import { setProfileSetting } from "../../../lib/tauri/profile";
 import { ToggleSwitch } from "../../common/ToggleSwitch";
 
-/** The three writable toggles (excludes the derived `loaded` flag). */
+/** The writable toggles (excludes the derived `loaded` flag). */
 type ImmersiveToggleKey = keyof typeof IMMERSIVE_PREF_KEYS;
 
 /**
- * Settings → Appearance card for the immersive view (issue #328). Three
+ * Settings → Appearance card for the immersive view (issue #328). Four
  * independent per-profile toggles:
  *  - merged lyrics column (vs the legacy single-view-with-toggle), ON by
  *    default so the lyrics column is shown to everyone
  *  - hide that column for a track without lyrics (#794), OFF
  *  - native OS fullscreen on open (vs an in-window overlay), OFF so the
  *    view keeps to its window
+ *  - theater mode, OFF; the view's own Theater button writes it too
  *
  * The defaults are in the settings registry. Writes flow through
  * `setProfileSetting` then a single
@@ -75,6 +77,12 @@ export function ImmersiveViewCard() {
       icon: Expand,
       title: t("settings.immersiveView.nativeFullscreen.title"),
       subtitle: t("settings.immersiveView.nativeFullscreen.subtitle"),
+    },
+    {
+      prop: "theaterMode",
+      icon: Tv,
+      title: t("settings.immersiveView.theaterMode.title"),
+      subtitle: t("settings.immersiveView.theaterMode.subtitle"),
     },
   ];
 

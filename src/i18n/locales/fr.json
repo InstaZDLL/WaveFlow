@@ -2722,6 +2722,10 @@
       "nativeFullscreen": {
         "title": "Plein écran natif",
         "subtitle": "Remplit tout l'écran à l'ouverture et restaure votre fenêtre à la fermeture. Désactivez pour garder une surcouche fenêtrée (utile en multi-écran)."
+      },
+      "theaterMode": {
+        "title": "Mode Théâtre",
+        "subtitle": "Fait de la vue immersive un écran à lire de loin : plus grande, en plein écran, la liste des titres à côté de la pochette. Les commandes et le pointeur disparaissent après quelques secondes, et l'écran reste allumé pendant la lecture."
       }
     },
     "scrollTitles": {
@@ -3294,7 +3298,12 @@
   },
   "immersive": {
     "togglePanel": "Afficher / masquer le panneau",
-    "panelTabs": "Onglets du panneau"
+    "panelTabs": "Onglets du panneau",
+    "theater": "Mode Théâtre",
+    "tracklist": {
+      "tab": "Liste des titres",
+      "position": "Titre {{current}} sur {{total}}"
+    }
   },
   "pluginView": {
     "refresh": "Actualiser",

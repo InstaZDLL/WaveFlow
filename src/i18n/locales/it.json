@@ -2722,6 +2722,10 @@
       "nativeFullscreen": {
         "title": "Schermo intero nativo",
         "subtitle": "Riempie tutto lo schermo all'apertura e ripristina la finestra alla chiusura. Disattiva per mantenere un overlay nella finestra (utile con più monitor)."
+      },
+      "theaterMode": {
+        "title": "Modalità teatro",
+        "subtitle": "Trasforma la vista immersiva in uno schermo da leggere a distanza: più grande, a schermo intero, con l'elenco delle tracce accanto alla copertina. I controlli e il puntatore si nascondono dopo qualche secondo e lo schermo resta acceso durante la riproduzione."
       }
     },
     "scrollTitles": {
@@ -3294,7 +3298,12 @@
   },
   "immersive": {
     "togglePanel": "Mostra / nascondi pannello",
-    "panelTabs": "Schede del pannello"
+    "panelTabs": "Schede del pannello",
+    "theater": "Modalità teatro",
+    "tracklist": {
+      "tab": "Elenco tracce",
+      "position": "Traccia {{current}} di {{total}}"
+    }
   },
   "pluginView": {
     "refresh": "Aggiorna",

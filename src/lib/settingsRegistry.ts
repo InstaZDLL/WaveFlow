@@ -501,6 +501,13 @@ export const SETTINGS = {
     false,
     "settings.immersiveView.hideEmptyLyrics.title",
   ),
+  "immersive.theater_mode": setting(
+    "appearance",
+    "profile",
+    "bool",
+    false,
+    "settings.immersiveView.theaterMode.title",
+  ),
   "ui.cover_slideshow": setting(
     "appearance",
     "profile",

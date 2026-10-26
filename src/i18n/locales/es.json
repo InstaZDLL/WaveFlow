@@ -2722,6 +2722,10 @@
       "nativeFullscreen": {
         "title": "Pantalla completa nativa",
         "subtitle": "Ocupa toda la pantalla al abrir y restaura tu ventana al cerrar. Desactívalo para mantener una capa en ventana (útil con varios monitores)."
+      },
+      "theaterMode": {
+        "title": "Modo teatro",
+        "subtitle": "Convierte la vista inmersiva en una pantalla para leer de lejos: más grande, a pantalla completa, con la lista de canciones junto a la portada. Los controles y el puntero se ocultan tras unos segundos, y la pantalla sigue encendida mientras suena la música."
       }
     },
     "scrollTitles": {
@@ -3294,7 +3298,12 @@
   },
   "immersive": {
     "togglePanel": "Mostrar / ocultar panel",
-    "panelTabs": "Pestañas del panel"
+    "panelTabs": "Pestañas del panel",
+    "theater": "Modo teatro",
+    "tracklist": {
+      "tab": "Lista de canciones",
+      "position": "Canción {{current}} de {{total}}"
+    }
   },
   "pluginView": {
     "refresh": "Actualizar",

@@ -23,7 +23,12 @@
 //! Each call re-reads the window's real state, so a missed or extra event
 //! costs nothing, and a level already applied is not sent again.
 //!
-//! Windows only: WebKitGTK and WKWebView have no equivalent control.
+//! The same calls tell `power.rs` whether the main window is on screen,
+//! on every platform: the theater view's display hold lapses while it is
+//! minimized or hidden to the tray.
+//!
+//! The memory target is Windows only: WebKitGTK and WKWebView have no
+//! equivalent control.
 //! `ICoreWebView2_19` needs WebView2 runtime 1.0.2210 or newer; an older
 //! runtime simply keeps its memory, as before.
 
@@ -68,7 +73,8 @@ fn remember(label: &str, idle: Option<bool>) -> bool {
 /// `Low` while minimized or hidden, `Normal` otherwise.
 #[cfg(windows)]
 pub fn sync(window: &tauri::WebviewWindow) {
-    let idle = window.is_minimized().unwrap_or(false) || !window.is_visible().unwrap_or(true);
+    let idle = out_of_sight(window);
+    note_seen(window, idle);
     if !remember(window.label(), Some(idle)) {
         return;
     }
@@ -88,7 +94,21 @@ pub fn sync(window: &tauri::WebviewWindow) {
 }
 
 #[cfg(not(windows))]
-pub fn sync(_window: &tauri::WebviewWindow) {}
+pub fn sync(window: &tauri::WebviewWindow) {
+    note_seen(window, out_of_sight(window));
+}
+
+/// Minimized or hidden.
+fn out_of_sight(window: &tauri::WebviewWindow) -> bool {
+    window.is_minimized().unwrap_or(false) || !window.is_visible().unwrap_or(true)
+}
+
+/// The main window's visibility, for the theater view's display hold.
+fn note_seen(window: &tauri::WebviewWindow, idle: bool) {
+    if window.label() == "main" {
+        crate::power::set_window_seen(!idle);
+    }
+}
 
 #[cfg(windows)]
 fn apply(webview: &tauri::webview::PlatformWebview, idle: bool) -> windows::core::Result<()> {

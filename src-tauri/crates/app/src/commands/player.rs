@@ -2659,6 +2659,16 @@ pub async fn player_set_keep_awake(
     Ok(())
 }
 
+/// Keep the display on while the theater view is open and the music
+/// plays, whatever `playback.keep_awake` says — see `power.rs`. Not
+/// persisted: the view takes the hold when it enters theater mode and
+/// gives it back when it leaves or closes, and the process gives it back
+/// when it exits.
+#[tauri::command]
+pub fn player_hold_display(held: bool) {
+    crate::power::set_display_held(held);
+}
+
 /// Replace the queue with the given track list and start playing at
 /// `start_index`. `source_type` must match one of the enum values on
 /// `queue_item.source_type` ('album'|'playlist'|'artist'|'library'|
