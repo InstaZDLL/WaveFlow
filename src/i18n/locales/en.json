@@ -1021,6 +1021,12 @@
         "unknown": "The audio output changed"
       },
       "dismiss": "Dismiss"
+    },
+    "live": {
+      "live": "Live",
+      "behind": "{{time}} behind live",
+      "goLive": "Back to live",
+      "behindState": "Behind live"
     }
   },
   "queue": {
@@ -3200,7 +3206,7 @@
         "offline": "Offline mode is on.",
         "unreachable": "The station does not answer at this address.",
         "notAudio": "This address does not lead to an audio stream.",
-        "hls": "This is an HLS playlist: only continuous streams are supported.",
+        "hls": "This HLS stream uses a format WaveFlow cannot play (encryption, fragmented MP4 or byte ranges).",
         "noStream": "The playlist holds no http:// or https:// stream.",
         "notSaved": "Your favorites have not loaded yet; try again in a moment."
       }

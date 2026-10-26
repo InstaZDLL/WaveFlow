@@ -1061,6 +1061,12 @@
         "unknown": "La salida de audio ha cambiado"
       },
       "dismiss": "Cerrar"
+    },
+    "live": {
+      "live": "En directo",
+      "behind": "{{time}} de retraso sobre el directo",
+      "goLive": "Volver al directo",
+      "behindState": "Con retraso sobre el directo"
     }
   },
   "queue": {
@@ -3270,7 +3276,7 @@
         "offline": "El modo sin conexión está activado.",
         "unreachable": "La emisora no responde en esta dirección.",
         "notAudio": "Esta dirección no lleva a un flujo de audio.",
-        "hls": "Es una lista HLS: solo se admiten flujos continuos.",
+        "hls": "Este flujo HLS usa un formato que WaveFlow no puede reproducir (cifrado, MP4 fragmentado o rangos de bytes).",
         "noStream": "La lista no contiene ningún flujo http:// o https://.",
         "notSaved": "Tus favoritos aún no se han cargado; inténtalo de nuevo en un momento."
       }

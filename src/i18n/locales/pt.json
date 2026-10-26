@@ -1062,6 +1062,12 @@
         "unknown": "A saída de áudio mudou"
       },
       "dismiss": "Fechar"
+    },
+    "live": {
+      "live": "Em direto",
+      "behind": "{{time}} atrás do direto",
+      "goLive": "Voltar ao direto",
+      "behindState": "Atrás do direto"
     }
   },
   "queue": {
@@ -3271,7 +3277,7 @@
         "offline": "O modo offline está ativo.",
         "unreachable": "A estação não responde neste endereço.",
         "notAudio": "Este endereço não leva a um fluxo de áudio.",
-        "hls": "É uma lista HLS: só são suportados fluxos contínuos.",
+        "hls": "Este fluxo HLS usa um formato que o WaveFlow não consegue reproduzir (cifra, MP4 fragmentado ou intervalos de bytes).",
         "noStream": "A lista não contém nenhum fluxo http:// ou https://.",
         "notSaved": "Os favoritos ainda não foram carregados; tente de novo dentro de momentos."
       }
