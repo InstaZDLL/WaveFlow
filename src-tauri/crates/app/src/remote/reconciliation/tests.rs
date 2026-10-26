@@ -1,3 +1,4 @@
+use super::playlists::convert_playlist_with_post_validation;
 use super::*;
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 use std::fs;
