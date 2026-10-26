@@ -286,15 +286,23 @@ mod tests {
     }
 
     fn assert_no_secret(out: &str) {
-        for secret in [
+        for (i, secret) in [
             "hunter2",
             "listener",
             "tk_9f8e7d6c",
             "s3cr3t",
             "/api/",
             "frag",
-        ] {
-            assert!(!out.contains(secret), "{secret:?} leaked: {out}");
+        ]
+        .iter()
+        .enumerate()
+        {
+            // By its index: the message must not carry the fixture
+            // secret, nor the text that leaked it.
+            assert!(
+                !out.contains(secret),
+                "fixture secret #{i} leaked into the message"
+            );
         }
     }
 
