@@ -260,12 +260,12 @@ pub async fn disk_usage(
                 vec![paths.profile_remote_stream_dir(id)],
                 true,
             ));
+            items.push(Item::tree(
+                "remoteDownloads",
+                vec![paths.profile_remote_download_dir(id)],
+                false,
+            ));
         }
-        items.push(Item::tree(
-            "remoteDownloads",
-            vec![paths.profile_remote_download_dir(id)],
-            false,
-        ));
         items.push(Item::tree(
             "manualMedia",
             vec![paths.profile_motion_dir(id), paths.profile_canvas_dir(id)],
