@@ -239,7 +239,7 @@ export function TrackSpectrogramPanel({ trackId }: { trackId: number }) {
               ) : (
                 <Loader2
                   size={14}
-                  className="animate-spin text-zinc-400"
+                  className="motion-safe:animate-spin text-zinc-400"
                   aria-label={t("trackProperties.spectrogram.decoding")}
                 />
               )}
