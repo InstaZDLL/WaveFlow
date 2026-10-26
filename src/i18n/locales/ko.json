@@ -2655,6 +2655,10 @@
       "nativeFullscreen": {
         "title": "네이티브 전체 화면",
         "subtitle": "열 때 화면 전체를 채우고 닫을 때 창을 복원합니다. 끄면 창 내 오버레이로 유지됩니다(멀티 모니터에 유용)."
+      },
+      "theaterMode": {
+        "title": "시어터 모드",
+        "subtitle": "몰입형 보기를 멀리서도 읽기 쉬운 화면으로 바꿉니다. 더 크게, 전체 화면으로, 커버 옆에 트랙 목록을 표시합니다. 몇 초 동안 입력이 없으면 컨트롤과 포인터가 숨겨지고, 음악이 재생되는 동안 화면이 꺼지지 않습니다."
       }
     },
     "scrollTitles": {
@@ -3223,7 +3227,12 @@
   },
   "immersive": {
     "togglePanel": "패널 표시 / 숨기기",
-    "panelTabs": "패널 탭"
+    "panelTabs": "패널 탭",
+    "theater": "시어터 모드",
+    "tracklist": {
+      "tab": "트랙 목록",
+      "position": "{{total}}곡 중 {{current}}번째"
+    }
   },
   "pluginView": {
     "refresh": "새로고침",

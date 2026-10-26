@@ -19,6 +19,10 @@ import { SETTINGS, type SettingKey } from "../lib/settingsRegistry";
  *   for a track that has none, so the now-playing side takes the room
  *   (#794). OFF by default: some prefer a layout that does not change
  *   from one track to the next.
+ * - `theaterMode` — the view as a display to read from across the room
+ *   (larger, full screen, the tracklist beside the cover, the controls
+ *   hidden while idle, the screen kept on). Toggled from the view itself
+ *   too, and remembered, so a TV setup opens straight into it.
  *
  * Lives in `profile_setting` (not `app_setting`) to sit next to the
  * sibling appearance prefs — player-bar layout, cover action,
@@ -29,6 +33,7 @@ export interface ImmersivePrefs {
   mergedLyrics: boolean;
   useNativeFullscreen: boolean;
   hideEmptyLyrics: boolean;
+  theaterMode: boolean;
   /** False until the first read resolves. Consumers that take an
    *  OS-level action on a pref (native fullscreen) MUST wait for this —
    *  acting on the optimistic defaults would briefly flash a user who
@@ -44,6 +49,7 @@ const DEFAULTS: ImmersivePrefs = {
   mergedLyrics: SETTINGS["immersive.merged_lyrics"].defaultValue,
   useNativeFullscreen: SETTINGS["immersive.use_native_fullscreen"].defaultValue,
   hideEmptyLyrics: SETTINGS["immersive.hide_empty_lyrics"].defaultValue,
+  theaterMode: SETTINGS["immersive.theater_mode"].defaultValue,
   loaded: false,
 };
 
@@ -53,12 +59,14 @@ export const IMMERSIVE_PREF_KEYS = {
   mergedLyrics: "immersive.merged_lyrics",
   useNativeFullscreen: "immersive.use_native_fullscreen",
   hideEmptyLyrics: "immersive.hide_empty_lyrics",
+  theaterMode: "immersive.theater_mode",
 } as const satisfies Record<keyof StoredPrefs, SettingKey>;
 
 const STORED_DEFAULTS: StoredPrefs = {
   mergedLyrics: DEFAULTS.mergedLyrics,
   useNativeFullscreen: DEFAULTS.useNativeFullscreen,
   hideEmptyLyrics: DEFAULTS.hideEmptyLyrics,
+  theaterMode: DEFAULTS.theaterMode,
 };
 
 /** Window event the Settings card dispatches after a write so every

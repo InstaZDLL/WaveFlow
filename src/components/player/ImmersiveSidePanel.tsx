@@ -1,12 +1,13 @@
 import { useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { useTranslation } from "react-i18next";
-import { Mic2, ListMusic } from "lucide-react";
+import { Mic2, ListMusic, ListOrdered } from "lucide-react";
 import type { Track } from "../../lib/tauri/track";
 import type { TrackLyrics } from "../../hooks/useTrackLyrics";
 import { ImmersiveLyricsColumn } from "./ImmersiveLyricsColumn";
 import { ImmersiveQueueTab } from "./ImmersiveQueueTab";
+import { ImmersiveTracklistTab } from "./ImmersiveTracklistTab";
 
-export type ImmersiveTab = "lyrics" | "queue";
+export type ImmersiveTab = "lyrics" | "queue" | "tracklist";
 
 interface ImmersiveSidePanelProps {
   track: Track;
@@ -28,16 +29,16 @@ interface ImmersiveSidePanelProps {
  */
 type TabLayout = "pill" | "icons" | "stacked";
 
-/** Two `p-2.5` round buttons with a 22px icon (42px each) and `gap-3`. */
-const ICON_TABS_WIDTH = 42 * 2 + 12;
+/** Three `p-2.5` round buttons with a 22px icon (42px each) and `gap-3`. */
+const ICON_TABS_WIDTH = 42 * 3 + 12 * 2;
 /** Breathing room kept between the tabs and the first floating button. */
 const LINE_GAP = 16;
 
 /**
  * Right-side control panel of the immersive view (issue #328 follow-up).
- * A tab header switches the content between the synced lyrics and the
- * playback queue, so the right side is a small dashboard rather than a
- * single lyrics pane. Built to grow — add a tab id + a content branch to
+ * A tab header switches the content between the synced lyrics, the
+ * playback queue and the whole tracklist (the theater view's column), so
+ * the right side is a small dashboard rather than a single lyrics pane. Built to grow — add a tab id + a content branch to
  * extend it.
  */
 export function ImmersiveSidePanel({
@@ -52,6 +53,7 @@ export function ImmersiveSidePanel({
   const tabs: Array<{ id: ImmersiveTab; label: string; icon: typeof Mic2 }> = [
     { id: "lyrics", label: t("lyrics.title"), icon: Mic2 },
     { id: "queue", label: t("queue.title"), icon: ListMusic },
+    { id: "tracklist", label: t("immersive.tracklist.tab"), icon: ListOrdered },
   ];
 
   // The view's buttons (panel, Canvas, ⋯, share, close) float over this
@@ -79,8 +81,13 @@ export function ImmersiveSidePanel({
 
     const measure = () => {
       const headerBox = header.getBoundingClientRect();
+      // Theater mode scales the view with `zoom`: the boxes come back
+      // scaled, the padding and the constants here do not. Everything is
+      // brought back to layout pixels before it is compared.
+      const scale =
+        header.offsetWidth > 0 ? headerBox.width / header.offsetWidth : 1;
       const style = getComputedStyle(header);
-      const start = headerBox.left + parseFloat(style.paddingLeft);
+      const start = headerBox.left + parseFloat(style.paddingLeft) * scale;
       // The room ends at the bar's leftmost button, not at the bar's own
       // edge: the bar's padding is click-through (see `ImmersiveView`), so
       // a tab under it still takes its clicks. Measuring to the bar's edge
@@ -88,9 +95,9 @@ export function ImmersiveSidePanel({
       const firstButton = bar?.firstElementChild;
       const end = firstButton
         ? firstButton.getBoundingClientRect().left
-        : headerBox.right - parseFloat(style.paddingRight);
-      const room = end - start - LINE_GAP;
-      const pillWidth = pill.getBoundingClientRect().width;
+        : headerBox.right - parseFloat(style.paddingRight) * scale;
+      const room = (end - start) / scale - LINE_GAP;
+      const pillWidth = pill.getBoundingClientRect().width / scale;
       setLayout(
         pillWidth <= room
           ? "pill"
@@ -137,9 +144,11 @@ export function ImmersiveSidePanel({
   return (
     <div className="h-full flex flex-col text-white">
       {/* `pt-6` matches the view's bar (`py-6`) and the 42px row matches
-          its buttons, so tabs on that line centre on it. */}
+          its buttons, so tabs on that line centre on it. Chrome in the
+          theater view: hidden with the buttons while idle. */}
       <div
         ref={headerRef}
+        data-theater-chrome
         className={`relative shrink-0 px-6 pb-4 ${
           layout === "stacked" ? "pt-24" : "pt-6"
         }`}
@@ -220,8 +229,10 @@ export function ImmersiveSidePanel({
           onRefetch={() => void lyrics.refetch()}
           showHeader={false}
         />
-      ) : (
+      ) : activeTab === "queue" ? (
         <ImmersiveQueueTab />
+      ) : (
+        <ImmersiveTracklistTab />
       )}
     </div>
   );

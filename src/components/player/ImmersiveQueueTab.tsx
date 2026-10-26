@@ -1,16 +1,21 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import {
   isPlayClick,
   useSingleClickPlay,
 } from "../../hooks/useSingleClickPlay";
-import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { ListMusic, Radio } from "lucide-react";
 import { Artwork } from "../common/Artwork";
+import { usePlayerQueue } from "../../hooks/usePlayerQueue";
+import { usePlayer } from "../../hooks/usePlayer";
 import {
-  playerGetQueue,
+  isFileTrack,
+  isRadioTrack,
+  isRemoteTrack,
+} from "../../lib/playerSources";
+import { RemoteQueueView } from "../layout/RemoteQueueView";
+import {
   playerJumpToIndex,
-  type PlayerQueueSnapshot,
   type QueueTrackPayload,
 } from "../../lib/tauri/player";
 
@@ -22,56 +27,37 @@ import {
  * theme-aware styling + drag-reorder for the docked surface; this tab is
  * a read-mostly companion, so it reuses the same backend commands
  * (`player_get_queue` / `player_jump_to_index`) without the dnd weight.
+ *
+ * A remote play session and files played without importing them have
+ * their own queue, shown by the docked panel's view, as there; a web
+ * radio station plays outside the queue, so none of it is "now playing".
  */
 export function ImmersiveQueueTab() {
+  const { currentTrack } = usePlayer();
+  if (isRemoteTrack(currentTrack) || isFileTrack(currentTrack)) {
+    return (
+      <div className="flex-1 min-h-0 flex flex-col px-6 pb-8">
+        <RemoteQueueView
+          source={isFileTrack(currentTrack) ? "file" : "remote"}
+        />
+      </div>
+    );
+  }
+  return <LocalQueue onAir={isRadioTrack(currentTrack)} />;
+}
+
+/** The library queue. `onAir`: a web radio station plays instead, so
+ *  none of it is the playing track. */
+function LocalQueue({ onAir }: { onAir: boolean }) {
   const { t } = useTranslation();
   const { value: singleClickPlay } = useSingleClickPlay();
-  const [snapshot, setSnapshot] = useState<PlayerQueueSnapshot | null>(null);
-
-  // Seq guard so overlapping refetches (rapid Next clicks fire many
-  // `player:queue-changed` events) never resolve out of order.
-  const fetchSeqRef = useRef(0);
-  const doFetch = useCallback(() => {
-    const seq = ++fetchSeqRef.current;
-    playerGetQueue()
-      .then((q) => {
-        if (seq === fetchSeqRef.current) setSnapshot(q);
-      })
-      .catch((err) => {
-        // A transient refetch failure shouldn't blank the last known
-        // queue — just log and keep the previous snapshot on screen.
-        console.error("[ImmersiveQueueTab] fetch failed", err);
-      });
-  }, []);
-
-  useEffect(() => {
-    doFetch();
-    let unlisten: UnlistenFn | null = null;
-    // Guard against the component unmounting before `listen` resolves —
-    // otherwise `unlisten` is still null when cleanup runs and the
-    // subscription leaks. If disposed by the time it resolves, tear it
-    // down immediately.
-    let disposed = false;
-    (async () => {
-      try {
-        const fn = await listen("player:queue-changed", doFetch);
-        if (disposed) fn();
-        else unlisten = fn;
-      } catch (err) {
-        console.error("[ImmersiveQueueTab] listen failed", err);
-      }
-    })();
-    return () => {
-      disposed = true;
-      if (unlisten) unlisten();
-    };
-  }, [doFetch]);
+  const snapshot = usePlayerQueue();
 
   const items: QueueTrackPayload[] = useMemo(
     () => snapshot?.items ?? [],
     [snapshot],
   );
-  const currentIndex = snapshot?.current_index ?? -1;
+  const currentIndex = onAir ? -1 : (snapshot?.current_index ?? -1);
   const nowPlaying =
     currentIndex >= 0 && currentIndex < items.length
       ? items[currentIndex]

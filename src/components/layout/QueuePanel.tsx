@@ -670,6 +670,7 @@ const SortableQueueRow = memo(function SortableQueueRow({
   onContextMenu: (e: ReactMouseEvent, item: QueueTrackPayload) => void;
   onRowMenuKey: (e: ReactKeyboardEvent, item: QueueTrackPayload) => boolean;
 }) {
+  const { t } = useTranslation();
   // `animateLayoutChanges: () => false` disables the CSS transition
   // dnd-kit applies to every neighbour as the drag crosses them — on
   // a long queue (800+ tracks) animating that many elements in
@@ -740,8 +741,8 @@ const SortableQueueRow = memo(function SortableQueueRow({
           type="button"
           {...attributes}
           {...listeners}
-          aria-label="Drag to reorder"
-          className="shrink-0 p-1 -ml-1 text-zinc-300 dark:text-zinc-600 hover:text-zinc-500 dark:hover:text-zinc-400 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
+          aria-label={t("playlistView.actions.reorder")}
+          className="shrink-0 p-1 -ml-1 text-zinc-300 dark:text-zinc-600 hover:text-zinc-500 dark:hover:text-zinc-400 cursor-grab active:cursor-grabbing opacity-0 reveal:opacity-100 transition-opacity"
           onClick={(e) => e.stopPropagation()}
           onDoubleClick={(e) => e.stopPropagation()}
         >

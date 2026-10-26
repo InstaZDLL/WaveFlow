@@ -540,7 +540,7 @@ export function ArtistDetailView({
                   onClick={() => setIsImagePickerOpen(true)}
                   aria-label={t("artistImagePicker.editAria")}
                   title={t("artistImagePicker.title")}
-                  className="pointer-events-auto w-10 h-10 rounded-full bg-zinc-900/80 hover:bg-zinc-900 text-white shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 transition-opacity"
+                  className="pointer-events-auto w-10 h-10 rounded-full bg-zinc-900/80 hover:bg-zinc-900 text-white shadow-lg flex items-center justify-center opacity-0 reveal:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 transition-opacity"
                 >
                   <Pencil size={16} />
                 </button>

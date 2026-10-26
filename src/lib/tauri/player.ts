@@ -583,6 +583,23 @@ export function playerSetKeepAwake(
   );
 }
 
+/** The hold requests in flight, one after the other. */
+let displayHoldChain: Promise<void> = Promise.resolve();
+
+/**
+ * Keep the display on while the music plays (`power.rs`), whatever the
+ * keep-awake setting says. Taken by the immersive view in theater mode and
+ * given back when it leaves it; not persisted. Sent in order: a release
+ * that overtook its hold would leave the screen held.
+ */
+export function playerHoldDisplay(held: boolean): Promise<void> {
+  const request = displayHoldChain
+    .catch(() => undefined)
+    .then(() => invoke<void>("player_hold_display", { held }));
+  displayHoldChain = request;
+  return request;
+}
+
 export function playerSetCrossfade(seconds: number): Promise<void> {
   return announceSettingWrite(
     invoke<void>("player_set_crossfade", { seconds }),

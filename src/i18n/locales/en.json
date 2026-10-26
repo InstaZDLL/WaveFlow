@@ -2657,6 +2657,10 @@
       "nativeFullscreen": {
         "title": "Native fullscreen",
         "subtitle": "Fill the whole screen on open and restore your window on close. Turn off to keep an in-window overlay (useful on multi-monitor setups)."
+      },
+      "theaterMode": {
+        "title": "Theater mode",
+        "subtitle": "Turns the immersive view into a display to read from across the room: larger, full screen, with the tracklist beside the cover. The controls and the pointer hide after a few seconds, and the screen stays on while music plays."
       }
     },
     "scrollTitles": {
@@ -3225,7 +3229,12 @@
   },
   "immersive": {
     "togglePanel": "Show / hide panel",
-    "panelTabs": "Panel tabs"
+    "panelTabs": "Panel tabs",
+    "theater": "Theater mode",
+    "tracklist": {
+      "tab": "Tracklist",
+      "position": "Track {{current}} of {{total}}"
+    }
   },
   "pluginView": {
     "refresh": "Refresh",
