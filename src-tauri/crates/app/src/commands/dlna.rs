@@ -8,7 +8,7 @@
 //! at launch.
 
 use crate::{
-    dlna::{config::DlnaConfig, DlnaResources, DlnaStatus},
+    dlna::{cds::RootLabels, config::DlnaConfig, DlnaResources, DlnaStatus},
     error::AppResult,
     state::AppState,
 };
@@ -36,6 +36,15 @@ pub async fn dlna_set_config(
 #[tauri::command]
 pub async fn dlna_get_status(state: tauri::State<'_, AppState>) -> AppResult<DlnaStatus> {
     Ok(state.dlna.status().await)
+}
+
+/// Retitle the top-level folders in the interface language. The
+/// backend has no copy of that language (i18next keeps it in the
+/// webview), so the frontend pushes the titles once i18next is ready
+/// and on every `languageChanged`, as it does the tray's.
+#[tauri::command]
+pub fn dlna_set_labels(state: tauri::State<'_, AppState>, labels: RootLabels) {
+    state.dlna.set_labels(labels);
 }
 
 /// Snapshot the per-profile pool + artwork dirs into a `DlnaResources`

@@ -1,4 +1,5 @@
 import i18n from "i18next";
+import { dlnaSetLabels } from "../lib/tauri/dlna";
 import { setTrayLabels } from "../lib/tauri/tray";
 import type {
   BackendModule,
@@ -180,6 +181,22 @@ function pushTrayLabels() {
   });
 }
 
+// Push the titles of the DLNA server's top-level folders, for the same
+// reason: the backend has no copy of the interface language, and the
+// server may be running before i18next is. They are the library tabs'
+// own strings, so a folder on the TV is named as the tab in the app.
+function pushDlnaLabels() {
+  dlnaSetLabels({
+    artists: i18n.t("library.tabs.artists"),
+    albums: i18n.t("library.tabs.albums"),
+    genres: i18n.t("library.tabs.genres"),
+    playlists: i18n.t("library.tabs.playlists"),
+    folders: i18n.t("library.tabs.folders"),
+  }).catch(() => {
+    // Same as the tray: no Tauri shell, nothing to retitle.
+  });
+}
+
 const dynamicLocaleBackend: BackendModule = {
   type: "backend",
   init(
@@ -231,11 +248,13 @@ export const i18nReady = i18n
   .then(() => {
     applyDocumentLanguage(i18n.resolvedLanguage ?? i18n.language);
     pushTrayLabels();
+    pushDlnaLabels();
   });
 
 i18n.on("languageChanged", (code) => {
   applyDocumentLanguage(code);
   pushTrayLabels();
+  pushDlnaLabels();
 });
 
 export default i18n;

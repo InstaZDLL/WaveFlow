@@ -36,28 +36,50 @@ Persisted in the global `app_setting` table because the server is process-wide, 
 Object IDs are **string prefixes**, routed by [`cds.rs`](../../src-tauri/crates/app/src/dlna/cds.rs):
 
 ```bash
-0                    Root container
-├─ 0/artists         All artists (paginated)
-│  └─ 0/artists/<id> Albums for that artist (containers)
-└─ 0/albums          All albums (paginated)
-   └─ 0/albums/<id>  Tracks for that album (items)
+0                       Root container
+├─ 0/artists            All artists (paginated)
+│  └─ 0/artists/<id>    Albums for that artist (containers)
+├─ 0/albums             All albums (paginated)
+│  └─ 0/albums/<id>     Tracks for that album (items)
+├─ 0/genres             Genres holding at least one available track
+│  └─ 0/genres/<id>     Tracks of that genre, by album artist, album, then running order
+├─ 0/playlists          All playlists, in the sidebar's order (smart ones included)
+│  └─ 0/playlists/<id>  Tracks of that playlist, in its order
+└─ 0/folders            The library folders, each titled with its full path
+   └─ 0/folders/<id>[/<segment>…]
+                        A directory: its subdirectories first, then its files
 
-0/track/<id>         Single-track BrowseMetadata payload
+0/track/<id>            Single-track BrowseMetadata payload
 ```
 
-Every id that a `BrowseDirectChildren` can return also answers `BrowseMetadata` with exactly one object: controllers read a folder's metadata before opening it, or before queueing it whole, and an empty answer shows as an empty folder. Every container carries a `childCount` (index-backed `COUNT` subqueries; an album counts only its available tracks, as its listing does). The `parentID` a `BrowseMetadata` reports:
+A track is one object wherever it is listed: the same `0/track/<id>` under its album, its genres, its playlists and its directory, each listing naming itself as the item's `parentID`.
 
-| Object                  | `parentID`      | Why                                                                                                                     |
-| ----------------------- | --------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `0`                     | `-1`            | The root, per the spec.                                                                                                 |
-| `0/artists`, `0/albums` | `0`             |                                                                                                                         |
-| `0/artists/<id>`        | `0/artists`     |                                                                                                                         |
-| `0/albums/<id>`         | `0/albums`      | Also listed under its artist, but its id lives under `0/albums`, which reaches it whatever the album's artist row says. |
-| `0/track/<id>`          | `0/albums/<id>` | Its album, the only container that lists it; `0` for a track without an album.                                          |
+**Folders** are derived from `track.file_path` at query time, as the app's own folder browser does: the band of paths under a directory walks the `(library_id, file_path)` index, so a Browse costs that directory's subtree, never the library. A directory exists only through the available tracks under it — one whose files are all missing is not listed, and its id answers nothing. Each directory segment of an id is percent-encoded (every byte outside `A-Z a-z 0-9 - . _ ~`), so an id is plain ASCII whatever the name holds: nothing to XML-escape, no `/` inside a name, no space at an end for a controller to trim.
+
+**Smart playlists** need no special case: their rules are materialised into `playlist_track` like a manual playlist's tracks, so the listing shows what the app last computed.
+
+Every id that a `BrowseDirectChildren` can return also answers `BrowseMetadata` with exactly one object: controllers read a folder's metadata before opening it, or before queueing it whole, and an empty answer shows as an empty folder. Every container carries a `childCount` (index-backed `COUNT` subqueries; only available tracks count, as the listings show only those), and it equals the `TotalMatches` of browsing that container — a test walks the whole tree to hold the three in step. The `parentID` a `BrowseMetadata` reports:
+
+| Object                                 | `parentID`                | Why                                                                                                                            |
+| -------------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `0`                                    | `-1`                      | The root, per the spec.                                                                                                        |
+| `0/artists`, `0/albums`, `0/genres`, … | `0`                       |                                                                                                                                |
+| `0/artists/<id>`                       | `0/artists`               |                                                                                                                                |
+| `0/albums/<id>`                        | `0/albums`                | Also listed under its artist, but its id lives under `0/albums`, which reaches it whatever the album's artist row says.        |
+| `0/genres/<id>`, `0/playlists/<id>`    | `0/genres`, `0/playlists` |                                                                                                                                |
+| `0/folders/<id>`                       | `0/folders`               | Answers while its `library_folder` row exists, even before its first scan.                                                     |
+| `0/folders/<id>/<a>/<b>`               | `0/folders/<id>/<a>`      | The id with its last segment dropped.                                                                                          |
+| `0/track/<id>`                         | `0/albums/<id>`           | Its album: the one container that lists it whatever the user does with genres and playlists; `0` for a track without an album. |
 
 An unknown id, or one whose row is gone, still answers an empty DIDL rather than a fault.
 
-Pagination via `StartingIndex` + `RequestedCount` → SQL `LIMIT/OFFSET`, capped at `MAX_PAGE_SIZE = 500`. `RequestedCount = 0` (the spec's "all") folds to the same cap so a misbehaving controller can't pull 50k tracks into one DIDL document.
+Pagination via `StartingIndex` + `RequestedCount` → SQL `LIMIT/OFFSET`, capped at `MAX_PAGE_SIZE = 500`. `RequestedCount = 0` (the spec's "all") folds to the same cap so a misbehaving controller can't pull 50k tracks into one DIDL document. The root pages its five folders the same way, and a directory pages one list — its subdirectories, then its files — so a page can start among the directories and end among the files. Every ordering ends on a unique key — the row id, or a name the table or the grouping keeps unique — so a page boundary never falls between two rows that compare equal.
+
+### Titles in the interface language
+
+The five top-level folders are titled in the interface language, with the strings of the library tabs (`library.tabs.*`) so a folder on the TV is named as the matching tab in the app. The backend has no copy of that language — i18next keeps it in the webview's storage — and the server may be running before i18next is, since it starts at boot. So the frontend pushes the titles through `dlna_set_labels` once i18next is ready and on every `languageChanged`, exactly as it pushes the tray's (`set_tray_labels`). They are held in a lock shared with every server the worker starts: a language change shows on the next Browse, with no restart. Until the first push they are English.
+
+`SystemUpdateID` stays `1`, so a controller that caches its listings by that id may show the old titles until it browses the root again.
 
 ## DIDL-Lite items
 

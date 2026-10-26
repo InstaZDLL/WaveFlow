@@ -43,6 +43,9 @@ pub struct ServerCtx {
     pub pool: SqlitePool,
     pub profile_artwork_dir: PathBuf,
     pub metadata_artwork_dir: PathBuf,
+    /// The top-level folder titles, kept in the interface language by
+    /// `dlna_set_labels`.
+    pub labels: cds::SharedLabels,
 }
 
 impl ServerCtx {
@@ -577,6 +580,7 @@ mod tests {
             pool: SqlitePool::connect_lazy("sqlite::memory:").unwrap(),
             profile_artwork_dir,
             metadata_artwork_dir: dir.path().join("metadata_artwork"),
+            labels: Default::default(),
         });
 
         let response = serve_art(State(ctx.clone()), Path("af13.bin".into())).await;

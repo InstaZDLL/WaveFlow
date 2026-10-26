@@ -89,6 +89,9 @@ enum Cmd {
 #[derive(Clone)]
 pub struct DlnaServer {
     tx: Sender<Cmd>,
+    /// Shared with every server the worker starts, so a new set of
+    /// titles reaches a running server without a restart.
+    labels: cds::SharedLabels,
 }
 
 impl DlnaServer {
@@ -97,6 +100,8 @@ impl DlnaServer {
     /// channel.
     pub fn spawn() -> Self {
         let (tx, rx) = unbounded::<Cmd>();
+        let labels = cds::SharedLabels::default();
+        let worker_labels = labels.clone();
         std::thread::Builder::new()
             .name("dlna-worker".into())
             .spawn(move || {
@@ -116,7 +121,10 @@ impl DlnaServer {
                     }
                 };
 
-                let mut state = WorkerState::default();
+                let mut state = WorkerState {
+                    labels: worker_labels,
+                    ..WorkerState::default()
+                };
                 while let Ok(cmd) = rx.recv() {
                     match cmd {
                         Cmd::Start(cfg, res) => {
@@ -133,7 +141,16 @@ impl DlnaServer {
                 runtime.block_on(state.stop());
             })
             .expect("spawn dlna-worker thread");
-        Self { tx }
+        Self { tx, labels }
+    }
+
+    /// Retitle the top-level folders. Takes effect on the next Browse,
+    /// whether or not a server is running.
+    pub fn set_labels(&self, labels: cds::RootLabels) {
+        match self.labels.write() {
+            Ok(mut guard) => *guard = labels,
+            Err(poisoned) => *poisoned.into_inner() = labels,
+        }
     }
 
     pub fn start(&self, cfg: DlnaConfig, resources: DlnaResources) {
@@ -164,6 +181,8 @@ struct WorkerState {
     /// Owns the SSDP announcer + responder background tasks. Replaced
     /// (and previous handle dropped → tasks aborted) on every Start.
     ssdp: Option<ssdp::SsdpHandle>,
+    /// Handed to each server's [`http::ServerCtx`].
+    labels: cds::SharedLabels,
 }
 
 impl WorkerState {
@@ -217,6 +236,7 @@ impl WorkerState {
             pool: resources.pool.clone(),
             profile_artwork_dir: resources.profile_artwork_dir.clone(),
             metadata_artwork_dir: resources.metadata_artwork_dir.clone(),
+            labels: self.labels.clone(),
         };
         let app = http::router(ctx);
 
