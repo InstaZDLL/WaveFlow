@@ -31,6 +31,7 @@
 //! Process-wide, like the offline mode: the decoder's state transitions and
 //! the profile settings loader both reach it without an `AppHandle`.
 
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{self, Sender};
 use std::sync::OnceLock;
 
@@ -104,8 +105,14 @@ pub fn set_display_held(held: bool) {
 /// The main window went out of sight (minimized, hidden to the tray) or
 /// came back. Fed by `webview_memory::sync`, which every hide, show,
 /// minimize and restore of the window already goes through.
+///
+/// Only a change is sent: those events fire in bursts during a resize,
+/// and with no portal to reach every message would retry the inhibitor.
 pub fn set_window_seen(seen: bool) {
-    send(Msg::Seen(seen));
+    static SEEN: AtomicBool = AtomicBool::new(true);
+    if SEEN.swap(seen, Ordering::Relaxed) != seen {
+        send(Msg::Seen(seen));
+    }
 }
 
 fn run(rx: mpsc::Receiver<Msg>) {
