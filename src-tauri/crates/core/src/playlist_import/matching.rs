@@ -3,9 +3,13 @@
 //! Strongest key first, each one tried only when the one before found
 //! nothing:
 //!
-//! 1. **The path an M3U named** — its canonical form, then its file name
-//!    alone, as the M3U importer always did: a playlist written before the
-//!    library was reorganised still finds its files.
+//! 1. **The path an M3U named** — its comparable form
+//!    ([`super::path_key`]), then its file name, as the M3U importer always
+//!    did: a playlist written before the library was reorganised still
+//!    finds its files. The file name alone only when the entry names no
+//!    artist, otherwise the file must be by that artist — `01.mp3` names a
+//!    track in every album, and a placeholder is matched again after every
+//!    scan.
 //! 2. **ISRC** — exact, and the same recording whatever the tags say. When
 //!    several tracks carry it (a single and its album), the closest length
 //!    wins.
@@ -196,7 +200,16 @@ impl LibraryIndex {
             .file_name
             .and_then(|name| self.by_file_name.get(name))
         {
-            return Some(self.candidates[*at].track_id);
+            // A file name alone ("01.mp3") names a track in every album.
+            // It is enough when the entry says nothing else; when it names
+            // an artist, the file found must be by them.
+            let agrees = match wanted.artist {
+                None => true,
+                Some(artist) => self.artist_agrees(*at, &artist_names(artist)),
+            };
+            if agrees {
+                return Some(self.candidates[*at].track_id);
+            }
         }
         if let Some(hits) = wanted.isrc.and_then(|isrc| self.by_isrc.get(isrc)) {
             if let Some(id) = self.closest(hits.iter().copied(), wanted.duration_ms) {
@@ -362,10 +375,18 @@ mod tests {
         let mut w = wanted("Song", Some("Band"), None);
         w.path_key = Some("c:\\music\\a.flac");
         assert_eq!(index.find(&w), Some(1));
-        let mut w = wanted("Song", Some("Band"), None);
+        // Moved: the file name finds it, when the artist agrees or the
+        // entry names none.
+        let mut w = wanted("Song", Some("Z"), None);
         w.path_key = Some("d:\\moved\\a.flac");
         w.file_name = Some("a.flac");
         assert_eq!(index.find(&w), Some(1));
+        w.artist = None;
+        assert_eq!(index.find(&w), Some(1));
+        // Another artist's file of the same name is not it: the title
+        // match takes over.
+        w.artist = Some("Band");
+        assert_eq!(index.find(&w), Some(2));
     }
 
     #[test]
