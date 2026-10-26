@@ -73,7 +73,7 @@ Every id that a `BrowseDirectChildren` can return also answers `BrowseMetadata` 
 
 An unknown id, or one whose row is gone, still answers an empty DIDL rather than a fault.
 
-Pagination via `StartingIndex` + `RequestedCount` → SQL `LIMIT/OFFSET`, capped at `MAX_PAGE_SIZE = 500`. `RequestedCount = 0` (the spec's "all") folds to the same cap so a misbehaving controller can't pull 50k tracks into one DIDL document. The root pages its five folders the same way, and a directory pages one list — its subdirectories, then its files — so a page can start among the directories and end among the files. Every ordering ends on the row id, so a page boundary never falls between two rows that compare equal.
+Pagination via `StartingIndex` + `RequestedCount` → SQL `LIMIT/OFFSET`, capped at `MAX_PAGE_SIZE = 500`. `RequestedCount = 0` (the spec's "all") folds to the same cap so a misbehaving controller can't pull 50k tracks into one DIDL document. The root pages its five folders the same way, and a directory pages one list — its subdirectories, then its files — so a page can start among the directories and end among the files. Every ordering ends on a unique key — the row id, or a name the table or the grouping keeps unique — so a page boundary never falls between two rows that compare equal.
 
 ### Titles in the interface language
 
