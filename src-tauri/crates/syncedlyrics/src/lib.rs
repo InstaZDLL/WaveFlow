@@ -19,12 +19,18 @@ pub enum Error {
     Json(#[from] serde_json::Error),
     #[error("provider failed: {0}")]
     Provider(String),
-    /// A request that could not reach the provider or was refused by it,
-    /// already reduced to a message that carries no credential. What
-    /// `Http` is for a provider whose URLs hold a token and so cannot
-    /// keep the `reqwest::Error` itself.
-    #[error("provider unreachable: {0}")]
-    Transport(String),
+    /// A request that could not reach the provider or was refused by it.
+    /// What `Http` is for a provider whose URLs hold a token and so cannot
+    /// keep the `reqwest::Error` as it came: `message` names the endpoint
+    /// through its redacted URL, and `source` is the error with its own
+    /// URL dropped, kept so a caller that walks `source()` can say why the
+    /// request failed (refused, DNS, timeout) and not only that it did.
+    #[error("provider unreachable: {message}")]
+    Transport {
+        message: String,
+        #[source]
+        source: Option<reqwest::Error>,
+    },
 }
 
 impl Error {
@@ -36,7 +42,7 @@ impl Error {
     pub fn is_transport(&self) -> bool {
         match self {
             Error::Http(err) => !err.is_decode() && !err.is_body(),
-            Error::Transport(_) => true,
+            Error::Transport { .. } => true,
             _ => false,
         }
     }
@@ -279,7 +285,11 @@ mod tests {
 
     #[test]
     fn only_an_unreachable_provider_counts_as_transport() {
-        assert!(Error::Transport("connect timeout".into()).is_transport());
+        assert!(Error::Transport {
+            message: "connect timeout".into(),
+            source: None,
+        }
+        .is_transport());
         assert!(!Error::Provider("stub page".into()).is_transport());
         let json = serde_json::from_str::<serde_json::Value>("{").unwrap_err();
         assert!(!Error::Json(json).is_transport());
@@ -290,7 +300,10 @@ mod tests {
         let nobody = SearchReport {
             failures: vec![ProviderFailure {
                 provider: Provider::Megalobiz,
-                error: Error::Transport("connect timeout".into()),
+                error: Error::Transport {
+                    message: "connect timeout".into(),
+                    source: None,
+                },
             }],
             ..SearchReport::default()
         };

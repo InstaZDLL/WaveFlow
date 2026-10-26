@@ -88,7 +88,9 @@ impl DeezerApiError {
 pub enum DeezerError {
     /// Built through `From`, which strips the URL: it carries the search
     /// query, and a caller that logs this error must not log that.
-    #[error("deezer request failed: {0}")]
+    /// Its message carries the cause chain — the refusal, the DNS
+    /// failure, the timeout — see [`crate::error::describe_http_error`].
+    #[error("deezer request failed: {}", crate::error::describe_http_error(.0))]
     Http(reqwest::Error),
     #[error("deezer refused the request: {0}")]
     Api(DeezerApiError),

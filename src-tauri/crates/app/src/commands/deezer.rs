@@ -31,6 +31,7 @@ use waveflow_core::metadata::{
 // the transaction (see CLAUDE.md, "Single writer to SQLite"). This
 // module used to carry a pool-taking copy of it, which is what kept
 // these paths non-transactional.
+use waveflow_core::error::describe_http_error;
 use waveflow_core::scanner::{upsert_artwork, ArtworkSource};
 
 use crate::{
@@ -1759,11 +1760,9 @@ async fn download_image_bytes(url: &str) -> AppResult<Vec<u8>> {
         .build()
         .map_err(|err| AppError::Other(format!("http client build failed: {err}")))?;
 
-    let mut resp = client
-        .get(url)
-        .send()
-        .await
-        .map_err(|err| AppError::Other(format!("download failed: {}", err.without_url())))?;
+    let mut resp = client.get(url).send().await.map_err(|err| {
+        AppError::Other(format!("download failed: {}", describe_http_error(&err)))
+    })?;
     if !resp.status().is_success() {
         return Err(AppError::Other(format!(
             "download status {}",
@@ -1790,7 +1789,7 @@ async fn download_image_bytes(url: &str) -> AppResult<Vec<u8>> {
     while let Some(chunk) = resp
         .chunk()
         .await
-        .map_err(|err| AppError::Other(format!("read failed: {}", err.without_url())))?
+        .map_err(|err| AppError::Other(format!("read failed: {}", describe_http_error(&err))))?
     {
         if bytes.len() + chunk.len() > MAX_IMAGE_BYTES {
             return Err(AppError::Other(format!(

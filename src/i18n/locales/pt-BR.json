@@ -2026,7 +2026,16 @@
         "lanWarningAuth": "Acessível a partir de toda a sua rede local, mas o controle da reprodução exige a senha que você definiu.",
         "statusRunning": "Em execução",
         "statusStopped": "Parado",
-        "copyAddress": "Copiar endereço"
+        "copyAddress": "Copiar endereço",
+        "suggestTitle": "Proteger o servidor com uma senha?",
+        "suggestBody": "Sem ela, qualquer dispositivo da rede pode pausar, pular uma faixa ou mudar o volume.",
+        "suggestGenerate": "Gerar uma senha",
+        "suggestChoose": "Escolher a minha",
+        "suggestDismiss": "Agora não",
+        "generatedHint": "Senha salva: digite-a no seu cliente MPD.",
+        "showPassword": "Mostrar senha",
+        "hidePassword": "Ocultar senha",
+        "saveFailed": "Não foi possível salvar as configurações do servidor MPD: nada foi alterado."
       },
       "notifications": {
         "title": "Notificações de mudança de faixa",
@@ -2210,6 +2219,34 @@
         "done": "Perfil importado como “{{name}}”. Alterne para ele no seletor de perfis.",
         "busy": "Importando… Uma biblioteca grande pode levar alguns minutos.",
         "failed": "Falha na importação. O arquivo pode estar corrompido ou ser incompatível."
+      },
+      "preview": {
+        "title": "Importar “{{name}}”?",
+        "titleUnknown": "Importar um perfil",
+        "origin": "Exportado em {{date}} com o WaveFlow {{version}}.",
+        "loading": "Lendo o arquivo…",
+        "unreadable": "Não é possível ler este arquivo: ele está danificado ou não é um arquivo de perfil do WaveFlow.",
+        "failed": "Não foi possível ler o arquivo. Consulte o log para mais detalhes.",
+        "newer": "Este arquivo vem de uma versão mais recente do WaveFlow. Atualize o WaveFlow para importá-lo.",
+        "differentBuild": "Este arquivo vem de outra versão do WaveFlow cujo banco de dados é diferente deste: não pode ser importado.",
+        "unsupported": "O formato deste arquivo não é mais suportado.",
+        "schema": "Versão do banco de dados: {{archive}} (este app: {{local}}).",
+        "schemaUnknown": "Versão do banco de dados desconhecida (este app: {{local}}).",
+        "asNewProfile": "Ele será importado como um novo perfil: seus perfis atuais não são alterados.",
+        "cancel": "Cancelar",
+        "import": "Importar",
+        "rows": {
+          "tracks": "Faixas",
+          "playlists": "Playlists",
+          "smartPlaylists": "Playlists inteligentes",
+          "likedTracks": "Faixas curtidas",
+          "plays": "Reproduções",
+          "libraryFolders": "Pastas da biblioteca",
+          "settings": "Configurações",
+          "covers": "Capas personalizadas",
+          "coverCache": "Capas em cache",
+          "size": "Tamanho"
+        }
       }
     },
     "clipsInLibrary": {

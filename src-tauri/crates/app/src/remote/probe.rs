@@ -41,6 +41,7 @@
 use std::time::Duration;
 
 use serde::Deserialize;
+use waveflow_core::error::describe_http_error;
 
 use crate::{
     error::{AppError, AppResult},
@@ -132,7 +133,10 @@ pub async fn detect(base_url: &str) -> AppResult<ServerFlavour> {
         .map_err(|err| AppError::Other(format!("http client init: {err}")))?;
 
     let response = http.get(url).send().await.map_err(|err| {
-        AppError::Other(format!("could not reach the server: {}", err.without_url()))
+        AppError::Other(format!(
+            "could not reach the server: {}",
+            describe_http_error(&err)
+        ))
     })?;
 
     // Deliberately not checking the status — see the module docs. An
@@ -141,7 +145,7 @@ pub async fn detect(base_url: &str) -> AppResult<ServerFlavour> {
     let body = response.text().await.map_err(|err| {
         AppError::Other(format!(
             "could not read the server's reply: {}",
-            err.without_url()
+            describe_http_error(&err)
         ))
     })?;
 

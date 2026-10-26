@@ -2025,7 +2025,16 @@
         "lanWarningAuth": "Accesible desde toda tu red local, pero el control de la reproducción requiere la contraseña que has definido.",
         "statusRunning": "En ejecución",
         "statusStopped": "Detenido",
-        "copyAddress": "Copiar dirección"
+        "copyAddress": "Copiar dirección",
+        "suggestTitle": "¿Proteger el servidor con una contraseña?",
+        "suggestBody": "Sin ella, cualquier dispositivo de tu red puede pausar, saltar una canción o cambiar el volumen.",
+        "suggestGenerate": "Generar una contraseña",
+        "suggestChoose": "Elegir la mía",
+        "suggestDismiss": "Ahora no",
+        "generatedHint": "Contraseña guardada: introdúcela en tu cliente MPD.",
+        "showPassword": "Mostrar contraseña",
+        "hidePassword": "Ocultar contraseña",
+        "saveFailed": "No se pudieron guardar los ajustes del servidor MPD: no se ha cambiado nada."
       },
       "notifications": {
         "title": "Notificaciones al cambiar de pista",
@@ -2182,6 +2191,34 @@
         "done": "Perfil importado como «{{name}}». Cámbiate a él desde el selector de perfiles.",
         "busy": "Importando… Una biblioteca grande puede tardar unos minutos.",
         "failed": "La importación ha fallado. El archivo puede estar dañado o ser incompatible."
+      },
+      "preview": {
+        "title": "¿Importar «{{name}}»?",
+        "titleUnknown": "Importar un perfil",
+        "origin": "Exportado el {{date}} con WaveFlow {{version}}.",
+        "loading": "Leyendo el archivo…",
+        "unreadable": "No se puede leer este archivo: está dañado o no es un archivo de perfil de WaveFlow.",
+        "failed": "No se pudo leer el archivo. Consulta el registro para más detalles.",
+        "newer": "Este archivo procede de una versión más reciente de WaveFlow. Actualiza WaveFlow para importarlo.",
+        "differentBuild": "Este archivo procede de otra versión de WaveFlow cuya base de datos es distinta de esta: no se puede importar.",
+        "unsupported": "El formato de este archivo ya no es compatible.",
+        "schema": "Versión de la base de datos: {{archive}} (esta app: {{local}}).",
+        "schemaUnknown": "Versión de la base de datos desconocida (esta app: {{local}}).",
+        "asNewProfile": "Se importará como un perfil nuevo: tus perfiles actuales no se modifican.",
+        "cancel": "Cancelar",
+        "import": "Importar",
+        "rows": {
+          "tracks": "Pistas",
+          "playlists": "Listas",
+          "smartPlaylists": "Listas inteligentes",
+          "likedTracks": "Canciones que te gustan",
+          "plays": "Reproducciones",
+          "libraryFolders": "Carpetas de la biblioteca",
+          "settings": "Ajustes",
+          "covers": "Portadas personalizadas",
+          "coverCache": "Portadas en caché",
+          "size": "Tamaño"
+        }
       }
     },
     "clipsInLibrary": {

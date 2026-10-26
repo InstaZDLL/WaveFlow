@@ -38,7 +38,9 @@ pub const MAX_RESPONSE_BYTES: usize = 2 * 1024 * 1024;
 #[derive(Debug, thiserror::Error)]
 pub enum LookupError {
     /// Built through `From`, which strips the URL — see [`redact`].
-    #[error("request failed: {0}")]
+    /// Its message carries the cause chain — the refusal, the DNS
+    /// failure, the timeout — see [`crate::error::describe_http_error`].
+    #[error("request failed: {}", crate::error::describe_http_error(.0))]
     Http(reqwest::Error),
     /// The provider answered, and its answer was a refusal: a bad key, a
     /// suspended one, a quota spent. Not "nothing matched" — reading it
@@ -62,7 +64,9 @@ pub enum LookupError {
 #[derive(Debug, thiserror::Error)]
 pub enum BodyError {
     /// Built through `From`, which strips the URL — see [`redact`].
-    #[error("request failed: {0}")]
+    /// Its message carries the cause chain — the refusal, the DNS
+    /// failure, the timeout — see [`crate::error::describe_http_error`].
+    #[error("request failed: {}", crate::error::describe_http_error(.0))]
     Http(reqwest::Error),
     #[error("the answer exceeds {limit} bytes")]
     TooLarge { limit: usize },

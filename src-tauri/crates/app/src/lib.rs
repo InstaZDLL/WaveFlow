@@ -868,6 +868,7 @@ pub fn run() {
             commands::profile::set_profile_setting,
             commands::profile_io::export_profile,
             commands::profile_io::import_profile,
+            commands::profile_io::preview_profile_archive,
             commands::library::list_libraries,
             commands::library::create_library,
             commands::library::update_library,

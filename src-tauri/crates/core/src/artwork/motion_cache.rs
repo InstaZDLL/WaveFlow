@@ -13,6 +13,8 @@ use std::str::FromStr;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, SystemTime};
 
+use crate::error::describe_http_error;
+
 /// Per-file cap on a downloaded motion mp4 — refuses a hostile/oversized body
 /// before it reaches disk.
 ///
@@ -239,12 +241,12 @@ pub async fn cache_mp4(dir: &Path, url: &str, max_cache_bytes: u64) -> Result<Pa
         // rejection, not an ordinary failure the caller may stream past.
         Err(e) if e.is_redirect() => return Err(CacheError::UnsafeUrl),
         Err(e) => {
-            // `without_url`: reqwest's Display appends the full URL, which
-            // would put back the query `redact_url` just took off.
+            // `describe_http_error`: reqwest's Display appends the full
+            // URL, which would put back the query `redact_url` just took off.
             return Err(CacheError::Other(format!(
                 "download {}: {}",
                 redact_url(url),
-                e.without_url()
+                describe_http_error(&e)
             )));
         }
     };
@@ -263,11 +265,9 @@ pub async fn cache_mp4(dir: &Path, url: &str, max_cache_bytes: u64) -> Result<Pa
         }
     }
     let mut bytes: Vec<u8> = Vec::new();
-    while let Some(chunk) = resp
-        .chunk()
-        .await
-        .map_err(|e| CacheError::Other(format!("read motion mp4 body: {}", e.without_url())))?
-    {
+    while let Some(chunk) = resp.chunk().await.map_err(|e| {
+        CacheError::Other(format!("read motion mp4 body: {}", describe_http_error(&e)))
+    })? {
         if bytes.len() as u64 + chunk.len() as u64 > MAX_MP4_BYTES {
             return Err(CacheError::Other(format!(
                 "motion mp4 exceeds {MAX_MP4_BYTES} bytes — refusing"

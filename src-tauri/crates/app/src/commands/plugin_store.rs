@@ -22,6 +22,7 @@ use std::time::Duration;
 use serde::{Deserialize, Serialize};
 use tauri::State;
 use waveflow_core::artwork::motion_cache::is_safe_motion_url;
+use waveflow_core::error::describe_http_error;
 use waveflow_core::plugin::binfmt::{classify_wasm_binary, WasmBinaryKind};
 use waveflow_core::plugin::is_bundled_plugin;
 use waveflow_core::plugin::manifest::{LocalizedString, Manifest};
@@ -200,11 +201,15 @@ async fn fetch_registry() -> AppResult<Registry> {
                     )));
                 }
                 Err(e) => {
-                    last_err = format!("{}: decode failed: {}", redact_url(url), e.without_url())
+                    last_err = format!(
+                        "{}: decode failed: {}",
+                        redact_url(url),
+                        describe_http_error(&e)
+                    )
                 }
             },
             Ok(resp) => last_err = format!("{}: HTTP {}", redact_url(url), resp.status()),
-            Err(e) => last_err = format!("{}: {}", redact_url(url), e.without_url()),
+            Err(e) => last_err = format!("{}: {}", redact_url(url), describe_http_error(&e)),
         }
     }
     Err(AppError::Other(last_err))
@@ -559,7 +564,7 @@ pub async fn install_plugin_from_registry(
         AppError::Other(format!(
             "download {}: {}",
             redact_url(&url),
-            e.without_url()
+            describe_http_error(&e)
         ))
     })?;
     if !resp.status().is_success() {
@@ -586,7 +591,7 @@ pub async fn install_plugin_from_registry(
     while let Some(chunk) = resp
         .chunk()
         .await
-        .map_err(|e| AppError::Other(format!("read release body: {}", e.without_url())))?
+        .map_err(|e| AppError::Other(format!("read release body: {}", describe_http_error(&e))))?
     {
         if bytes.len() as u64 + chunk.len() as u64 > MAX_DOWNLOAD_BYTES {
             return Err(AppError::Other(format!(

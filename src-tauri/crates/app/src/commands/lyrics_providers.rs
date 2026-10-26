@@ -13,6 +13,7 @@
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
+use waveflow_core::error::describe_error;
 use waveflow_syncedlyrics::{Error as ProviderError, Provider};
 
 use crate::error::AppResult;
@@ -276,6 +277,9 @@ pub fn record_failure(provider: Provider, error: &ProviderError) {
     if error.is_transport() {
         entry.down_until = Some(Instant::now() + COOLDOWN);
     }
+    // The whole chain: the variant alone says the provider failed, its
+    // source says why (refused, DNS, timeout).
+    let error = describe_error(error);
     if entry.warned {
         tracing::debug!(provider = provider.as_str(), %error, "lyrics provider failed");
     } else {
