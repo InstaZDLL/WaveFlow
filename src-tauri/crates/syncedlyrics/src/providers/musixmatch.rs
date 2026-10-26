@@ -632,7 +632,15 @@ mod redact_tests {
     #[tokio::test]
     async fn send_failure_keeps_its_cause_in_the_chain() {
         let url = "https://musixmatch-token-redact-test.invalid/track.search".to_string();
-        let err = redacted_get(&client(), url, &[("usertoken", SECRET)], "test endpoint")
+        // Not `client()`: its 500 ms would cut a Windows lookup (DNS
+        // suffixes, LLMNR: over 11 s) and leave a timeout where this test
+        // asks for the DNS failure. The lookup always ends.
+        let slow = reqwest::Client::builder()
+            .no_proxy()
+            .timeout(std::time::Duration::from_secs(60))
+            .build()
+            .expect("client builds");
+        let err = redacted_get(&slow, url, &[("usertoken", SECRET)], "test endpoint")
             .await
             .expect_err("DNS for .invalid must fail");
         let mut chain = Vec::new();

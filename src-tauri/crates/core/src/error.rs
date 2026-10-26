@@ -336,7 +336,15 @@ mod tests {
     /// this, RFC 6761): the message must name the DNS failure.
     #[test]
     fn describe_http_error_says_why_an_unknown_host_failed() {
-        let err = client()
+        // Its own deadline, far past the resolver's: on Windows the lookup
+        // walks the DNS suffixes and LLMNR and takes over 11 s to fail, and
+        // a request cut at `client()`'s 5 s would read "timed out" instead
+        // of the DNS failure this test is about. The lookup always ends.
+        let err = reqwest::blocking::Client::builder()
+            .no_proxy()
+            .timeout(std::time::Duration::from_secs(60))
+            .build()
+            .expect("client")
             .get(secret_url("waveflow-test.invalid"))
             .send()
             .expect_err(".invalid never resolves");
