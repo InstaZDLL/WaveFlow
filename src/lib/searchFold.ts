@@ -15,7 +15,10 @@ export function foldForSearch(value: string): string {
   return value
     .normalize("NFD")
     .replace(/[\p{Diacritic}ٓ-ٕ]/gu, "")
-    .toLocaleLowerCase();
+    .toLocaleLowerCase()
+    // Lowercasing a whole string writes a word-final Greek sigma as ς, so
+    // "ΚΟΣ" typed in capitals became "κος" and missed "κοσμος".
+    .replace(/ς/g, "σ");
 }
 
 /** A query split into folded words; every word must appear somewhere in
