@@ -89,8 +89,15 @@ export function ProfileArchivePreviewModal({
               ["settings", number(preview.contents.settings)],
             ] as [string, string][])
           : []),
-        ["covers", number(preview.artworkFiles)],
-        ["coverCache", number(preview.metadataArtworkFiles)],
+        ...(preview.artworkFiles != null
+          ? ([["covers", number(preview.artworkFiles)]] as [string, string][])
+          : []),
+        ...(preview.metadataArtworkFiles != null
+          ? ([["coverCache", number(preview.metadataArtworkFiles)]] as [
+              string,
+              string,
+            ][])
+          : []),
         ["size", formatBytes(preview.sizeBytes, i18n.language)],
       ]
     : [];

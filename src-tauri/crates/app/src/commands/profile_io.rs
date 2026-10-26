@@ -374,8 +374,10 @@ pub struct ArchivePreview {
     /// `None` when the archive's layout is not one this build reads
     /// (`compatibility` says which): its database is then left unopened.
     pub contents: Option<ArchiveContents>,
-    pub artwork_files: u64,
-    pub metadata_artwork_files: u64,
+    /// Entries under `artwork/` and `metadata_artwork/`; `None`, like
+    /// `contents`, for a layout this build does not read.
+    pub artwork_files: Option<u64>,
+    pub metadata_artwork_files: Option<u64>,
     pub size_bytes: u64,
 }
 
@@ -501,19 +503,34 @@ impl ScratchFile {
 impl Drop for ScratchFile {
     fn drop(&mut self) {
         let _ = std::fs::remove_file(&self.path);
+        // The database is opened `immutable` and creates none of these;
+        // removing them anyway keeps a later change of that from leaving
+        // files in a directory nobody empties on Windows.
+        for suffix in ["-wal", "-shm", "-journal"] {
+            let mut side = self.path.clone().into_os_string();
+            side.push(suffix);
+            let _ = std::fs::remove_file(side);
+        }
     }
 }
 
 /// What the zip itself says, before its database is opened.
 struct ArchiveInventory {
     manifest: ArchiveManifest,
-    artwork_files: u64,
-    metadata_artwork_files: u64,
+    /// `None` for a layout this build does not read: its entries are left
+    /// alone, and no `data.db` was copied.
+    artwork_files: Option<u64>,
+    metadata_artwork_files: Option<u64>,
     size_bytes: u64,
 }
 
-/// Read the manifest, count the artwork entries and copy `data.db` to
-/// `db_out`. Any of those failing is the archive being unreadable.
+/// Read the manifest, then — for the one layout this build knows — count
+/// the artwork entries and copy `data.db` to `db_out`. A failure to read
+/// any of those is the archive being unreadable.
+///
+/// The manifest comes first so that an archive from a newer build is
+/// described as one even if its layout moved or renamed `data.db`, or
+/// compressed an entry in a way this build cannot read.
 fn inspect_archive(source: &Path, db_out: &Path) -> AppResult<ArchiveInventory> {
     let file = File::open(source)?;
     let size_bytes = file.metadata()?.len();
@@ -529,6 +546,14 @@ fn inspect_archive(source: &Path, db_out: &Path) -> AppResult<ArchiveInventory> 
             .map_err(|e| unreadable(format!("read manifest: {e}")))?;
         serde_json::from_str(&buf).map_err(|e| unreadable(format!("decode manifest: {e}")))?
     };
+    if manifest.archive_version != ARCHIVE_VERSION {
+        return Ok(ArchiveInventory {
+            manifest,
+            artwork_files: None,
+            metadata_artwork_files: None,
+            size_bytes,
+        });
+    }
 
     let mut artwork_files = 0;
     let mut metadata_artwork_files = 0;
@@ -549,8 +574,7 @@ fn inspect_archive(source: &Path, db_out: &Path) -> AppResult<ArchiveInventory> 
         } else if name.starts_with("metadata_artwork/") {
             metadata_artwork_files += 1;
         } else if name == "data.db" {
-            let mut out = File::create(db_out)?;
-            std::io::copy(&mut entry, &mut out).map_err(|e| unreadable(format!("data.db: {e}")))?;
+            copy_entry(&mut entry, db_out)?;
             has_db = true;
         }
     }
@@ -559,10 +583,28 @@ fn inspect_archive(source: &Path, db_out: &Path) -> AppResult<ArchiveInventory> 
     }
     Ok(ArchiveInventory {
         manifest,
-        artwork_files,
-        metadata_artwork_files,
+        artwork_files: Some(artwork_files),
+        metadata_artwork_files: Some(metadata_artwork_files),
         size_bytes,
     })
+}
+
+/// Copy a zip entry to `dest`, telling the two ends apart: a failed read
+/// is the archive being unreadable, a failed write (a full temporary
+/// directory) is not, and must not be reported as a damaged archive.
+fn copy_entry(entry: &mut impl Read, dest: &Path) -> AppResult<()> {
+    let scratch = |e: std::io::Error| AppError::Other(format!("preview scratch copy: {e}"));
+    let mut out = File::create(dest).map_err(scratch)?;
+    let mut buf = vec![0u8; 64 * 1024];
+    loop {
+        let n = match entry.read(&mut buf) {
+            Ok(0) => return Ok(()),
+            Ok(n) => n,
+            Err(e) if e.kind() == std::io::ErrorKind::Interrupted => continue,
+            Err(e) => return Err(unreadable(format!("data.db: {e}"))),
+        };
+        out.write_all(&buf[..n]).map_err(scratch)?;
+    }
 }
 
 /// The archive's database, as far as a preview needs it.
@@ -571,12 +613,17 @@ struct ArchiveDb {
     migrations: Vec<(i64, Vec<u8>)>,
 }
 
-/// Open the copied database read-only, check it, and count what it holds.
+/// Open the copied database, check it, and count what it holds.
+///
+/// Opened `immutable`, as the pre-migration copy is verified: nothing else
+/// knows the file, and a profile database is in WAL mode, so a plain
+/// read-only open would leave a `-wal` and a `-shm` beside the scratch file
+/// in the temporary directory.
 async fn read_archive_db(path: &Path) -> AppResult<ArchiveDb> {
     let mut conn = SqliteConnectOptions::new()
         .filename(path)
         .create_if_missing(false)
-        .read_only(true)
+        .immutable(true)
         .disable_statement_logging()
         .connect()
         .await
@@ -1148,10 +1195,13 @@ mod tests {
         std::fs::create_dir_all(profile.join("artwork")).unwrap();
         std::fs::write(profile.join("artwork").join("cover.jpg"), b"jpeg").unwrap();
         let db = extracted(&profile).await;
+        // In WAL, as a profile database is: its header carries the mode.
         exec(
             &db,
-            "INSERT INTO playlist (name, is_smart, created_at, updated_at) VALUES
-                ('A', 0, 1, 1), ('B', 0, 1, 1), ('Smart', 1, 1, 1);",
+            "PRAGMA journal_mode = WAL;
+             INSERT INTO playlist (name, is_smart, created_at, updated_at) VALUES
+                ('A', 0, 1, 1), ('B', 0, 1, 1), ('Smart', 1, 1, 1);
+             PRAGMA wal_checkpoint(TRUNCATE);",
         )
         .await;
         let target = dir.join("weekend.waveflow");
@@ -1176,8 +1226,8 @@ mod tests {
         assert_eq!(preview.compatibility, ArchiveCompatibility::Compatible);
         assert_eq!(preview.profile_name, "Weekend");
         assert_eq!(preview.app_version, "9.9.9");
-        assert_eq!(preview.artwork_files, 1);
-        assert_eq!(preview.metadata_artwork_files, 0);
+        assert_eq!(preview.artwork_files, Some(1));
+        assert_eq!(preview.metadata_artwork_files, Some(0));
         assert_eq!(preview.schema_version, Some(preview.local_schema_version));
         assert!(preview.size_bytes > 0);
         let contents = preview.contents.unwrap();
@@ -1188,6 +1238,16 @@ mod tests {
             contents.settings,
             count(&db, "SELECT count(*) FROM profile_setting").await
         );
+        // Nothing left beside the scratch copy of a WAL database.
+        let leftovers: Vec<_> = std::fs::read_dir(std::env::temp_dir())
+            .unwrap()
+            .flatten()
+            .map(|e| e.file_name().to_string_lossy().into_owned())
+            .filter(|n| {
+                n.starts_with("waveflow-preview-") && (n.ends_with("-wal") || n.ends_with("-shm"))
+            })
+            .collect();
+        assert!(leftovers.is_empty(), "{leftovers:?}");
     }
 
     /// The preview refuses what the import refuses, for the same reason.
@@ -1264,7 +1324,38 @@ mod tests {
         let preview = preview_archive(&archive).await.unwrap();
         assert_eq!(preview.compatibility, ArchiveCompatibility::NewerArchive);
         assert!(preview.contents.is_none());
+        assert_eq!(preview.artwork_files, None);
         assert_eq!(preview.profile_name, "Weekend");
+    }
+
+    /// A newer layout is described as one even when it has no `data.db`
+    /// where this build would look: the manifest is read first.
+    #[tokio::test]
+    async fn a_newer_layout_without_a_database_is_still_newer() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("next.waveflow");
+        let mut zip = ZipWriter::new(File::create(&path).unwrap());
+        zip.start_file(MANIFEST_FILENAME, SimpleFileOptions::default())
+            .unwrap();
+        zip.write_all(&serde_json::to_vec(&manifest(ARCHIVE_VERSION + 1)).unwrap())
+            .unwrap();
+        zip.start_file("profile.sqlite", SimpleFileOptions::default())
+            .unwrap();
+        zip.write_all(b"whatever comes next").unwrap();
+        zip.finish().unwrap();
+
+        let preview = preview_archive(&path).await.unwrap();
+        assert_eq!(preview.compatibility, ArchiveCompatibility::NewerArchive);
+    }
+
+    #[test]
+    fn a_failed_write_of_the_copy_is_not_an_unreadable_archive() {
+        let dir = tempfile::tempdir().unwrap();
+        // A directory where the copy should go: the write side fails.
+        let err = copy_entry(&mut std::io::Cursor::new(b"bytes"), dir.path())
+            .unwrap_err()
+            .to_string();
+        assert!(!err.contains(ERR_UNREADABLE), "{err}");
     }
 
     fn assert_unreadable(result: AppResult<ArchivePreview>) {

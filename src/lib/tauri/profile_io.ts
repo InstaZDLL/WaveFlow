@@ -69,8 +69,10 @@ export interface ArchivePreview {
   compatibility: ArchiveCompatibility;
   /** `null` when the archive's layout is one this build does not read. */
   contents: ArchiveContents | null;
-  artworkFiles: number;
-  metadataArtworkFiles: number;
+  /** Entry counts; `null`, like `contents`, for a layout this build does
+   * not read. */
+  artworkFiles: number | null;
+  metadataArtworkFiles: number | null;
   sizeBytes: number;
 }
 
