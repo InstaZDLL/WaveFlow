@@ -9,8 +9,9 @@ export type PinKind = "album" | "artist" | "playlist";
  *
  * An album or an artist with no available track is left out, rather than
  * shown as a row that opens on nothing; its pin stays, and the row comes
- * back with the tracks. A playlist pin carries its id alone: the sidebar
- * draws it from the playlist list it already holds.
+ * back with the tracks. A playlist pin carries its id and name, but the
+ * sidebar draws it from the playlist list it already holds, so a rename
+ * or a new cover shows at once.
  */
 export interface SidebarPin {
   kind: PinKind;

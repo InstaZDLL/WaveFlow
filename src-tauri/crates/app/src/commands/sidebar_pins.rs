@@ -124,8 +124,9 @@ fn resolve(row: PinRaw, artwork_dir: &Path, metadata_dir: &Path) -> Option<Sideb
 
 #[tauri::command]
 pub async fn list_sidebar_pins(state: tauri::State<'_, AppState>) -> AppResult<Vec<SidebarPin>> {
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
+    // One read of the profile: a switch between two awaits would resolve
+    // one profile's artwork hashes in the other's folder.
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
     let metadata_dir = state.paths.metadata_artwork_dir.clone();
     let rows = list_rows(&pool).await?;
@@ -237,7 +238,9 @@ mod tests {
         sidebar_pin::pin(&pool, PinKind::Album, 1, 20)
             .await
             .unwrap();
-        sidebar_pin::pin(&pool, PinKind::Artist, 1, 30)
+        // Inserted last, pinned first: the order is `pinned_at`, not the
+        // rowid.
+        sidebar_pin::pin(&pool, PinKind::Artist, 1, 5)
             .await
             .unwrap();
         // A second pin of the same album keeps its first place.
@@ -247,12 +250,12 @@ mod tests {
         assert_eq!(
             listed(&pool).await,
             vec![
+                ("artist".into(), 1, "A".into()),
                 ("playlist".into(), 1, "P".into()),
                 ("album".into(), 1, "One".into()),
-                ("artist".into(), 1, "A".into()),
             ]
         );
-        let row = list_rows(&pool).await.unwrap().remove(1);
+        let row = list_rows(&pool).await.unwrap().remove(2);
         assert_eq!(row.subtitle.as_deref(), Some("A"));
     }
 

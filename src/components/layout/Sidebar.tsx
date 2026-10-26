@@ -639,7 +639,14 @@ export function Sidebar({
                     key={`pin:${pin.kind}:${pin.id}`}
                     kind="playlist"
                     collapsed={collapsed}
-                    icon={<PinTile pin={pin} />}
+                    icon={
+                      // Keyed on the picture, so a new cover gets a fresh
+                      // try after an earlier one failed to load.
+                      <PinTile
+                        key={pin.image_path_2x ?? pin.image_path ?? ""}
+                        pin={pin}
+                      />
+                    }
                     label={pin.name}
                     subtext={
                       album

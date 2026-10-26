@@ -3,7 +3,9 @@
 //! One row of `sidebar_pin` per pin, pointing at exactly one album, artist
 //! or playlist; the sidebar lists them in the order they were pinned. A pin
 //! follows its target out through `ON DELETE CASCADE`, so deleting a
-//! playlist or merging an album away needs no cleanup here.
+//! playlist or an artist needs no cleanup here. An album merged into
+//! another is the exception: [`carry_album_pin`] moves its pin onto the
+//! survivor before the delete would cascade it away.
 
 use serde::{Deserialize, Serialize};
 use sqlx::{SqliteConnection, SqlitePool};

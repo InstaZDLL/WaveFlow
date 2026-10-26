@@ -252,7 +252,7 @@
     "pins": {
       "title": "Fissati",
       "pin": "Fissa nella barra laterale",
-      "unpin": "Sblocca",
+      "unpin": "Rimuovi dalla barra laterale",
       "album": "Album",
       "artist": "Artista"
     }
