@@ -382,7 +382,7 @@ On Linux the window is GTK3 — wry binds the GTK3 build of WebKitGTK, and there
 
 ### File pickers
 
-Every file picker — add a folder, import a playlist, choose a cover, play files without importing them — is the desktop's own on Linux, through the XDG desktop portal: KDE's dialog on Plasma, the current GNOME one on GNOME, rather than GTK3's chooser everywhere (the last point of #696).
+On Linux, every file picker — add a folder, import a playlist, choose a cover, play files without importing them — is the desktop's own wherever its XDG desktop portal offers a file chooser: KDE's dialog on Plasma, the current GNOME one on GNOME, rather than GTK3's chooser everywhere (the last point of #696). Without one, it is GTK3's chooser, as before.
 
 - **Through GTK, not around it.** The dialog plugin draws its pickers with `rfd`'s GTK3 backend, which opens a `GtkFileChooserNative`, and GTK sends that to `org.freedesktop.portal.FileChooser` when `GTK_USE_PORTAL=1`. [`preflight_file_dialogs`](../../src-tauri/crates/app/src/lib.rs) sets it at startup, before anything builds a dialog. Inside the Flatpak GTK already did so on its own (the manifest has carried `--talk-name=org.freedesktop.portal.FileChooser` for it); the native packages now behave the same.
 - **A desktop without a portal keeps a picker.** With no portal on the bus, or one without a file chooser (a folder pick needs version 3 of the interface), GTK shows its own dialog, exactly as before. Measured on GTK 3.24.52 against a stand-in portal on a private bus: with the variable, a folder pick went to the portal (`OpenFile` with `directory`) and came back with the folder it chose; without a portal, or without its file chooser, GTK opened its own `GtkFileChooserDialog`.
