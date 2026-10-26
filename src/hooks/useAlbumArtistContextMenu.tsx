@@ -109,5 +109,9 @@ export function useAlbumArtistContextMenu({
     );
   };
 
-  return { bind, close, render };
+  /** A menu is open: a surface with keys of its own (Wrapped's Escape and
+   *  Space, the search dropdown's Escape) leaves them to the menu. */
+  const isOpen = state != null;
+
+  return { bind, close, render, isOpen };
 }

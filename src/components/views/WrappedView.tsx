@@ -155,7 +155,10 @@ export function WrappedView({
   // ---- Auto-advance ----
   const tickRef = useRef<number | null>(null);
   useEffect(() => {
-    if (paused || loading || error || slides.length === 0) return;
+    // An open tile menu holds the slide: advancing would take its tile
+    // away and leave the menu floating where it was.
+    if (paused || tileMenu.isOpen || loading || error || slides.length === 0)
+      return;
     tickRef.current = window.setTimeout(() => {
       setSlideIdx((i) => (i + 1 < slides.length ? i + 1 : i));
     }, SLIDE_MS);
@@ -165,11 +168,14 @@ export function WrappedView({
         tickRef.current = null;
       }
     };
-  }, [paused, loading, error, slides.length, slideIdx]);
+  }, [paused, tileMenu.isOpen, loading, error, slides.length, slideIdx]);
 
   // ---- Keyboard ----
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      // The tile menu's keys are its own: Escape closes it, not Wrapped,
+      // and Space activates its item rather than pausing.
+      if (tileMenu.isOpen) return;
       if (e.key === "Escape") {
         onNavigate("home");
       } else if (e.key === "ArrowRight") {
@@ -183,7 +189,7 @@ export function WrappedView({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onNavigate, slides.length]);
+  }, [onNavigate, slides.length, tileMenu.isOpen]);
 
   const goPrev = () => setSlideIdx((i) => (i > 0 ? i - 1 : 0));
   const goNext = () => setSlideIdx((i) => (i + 1 < slides.length ? i + 1 : i));
