@@ -17,15 +17,19 @@ const REMOTE_QUEUE_ROW_HEIGHT = 56;
  * or files played without importing them (`source="file"`). It gets its
  * own view rather than being forced through `player_get_queue` (whose
  * jump / reorder act on the local queue). Now Playing + Up Next, click a
- * row to jump.
+ * row to jump. `whole`: the entire queue in its order instead, played
+ * entries dimmed and the playing one marked and kept in view, as the
+ * immersive Tracklist tab shows a library queue.
  *
  * Localized under the shared `remote.*` i18n namespace, like the rest of
  * the remote surface.
  */
 export function RemoteQueueView({
   source = "remote",
+  whole = false,
 }: {
   source?: keyof typeof DETACHED_QUEUES;
+  whole?: boolean;
 }) {
   const { read, jump } = DETACHED_QUEUES[source];
   const { t } = useTranslation();
@@ -68,16 +72,24 @@ export function RemoteQueueView({
   // unconditionally, before the early return, with a count derived from the
   // queue so a remote session of any length renders ~a screenful of rows.
   const scrollRef = useRef<HTMLDivElement>(null);
+  const listStart = whole ? 0 : (queue?.index ?? 0) + 1;
+  const listCount = queue ? Math.max(0, queue.entries.length - listStart) : 0;
   const upNextCount = queue
     ? Math.max(0, queue.entries.length - queue.index - 1)
     : 0;
   // eslint-disable-next-line react-hooks/incompatible-library
   const rowVirtualizer = useVirtualizer({
-    count: upNextCount,
+    count: listCount,
     getScrollElement: () => scrollRef.current,
     estimateSize: () => REMOTE_QUEUE_ROW_HEIGHT,
     overscan: 6,
   });
+  const playingIndex = queue?.index ?? -1;
+  useEffect(() => {
+    if (whole && playingIndex >= 0 && playingIndex < listCount) {
+      rowVirtualizer.scrollToIndex(playingIndex, { align: "center" });
+    }
+  }, [whole, playingIndex, listCount, rowVirtualizer]);
 
   if (!queue || queue.entries.length === 0) {
     return (
@@ -87,8 +99,7 @@ export function RemoteQueueView({
     );
   }
 
-  const nowPlaying = queue.entries[queue.index] ?? null;
-  const upNextStart = queue.index + 1;
+  const nowPlaying = whole ? null : (queue.entries[queue.index] ?? null);
 
   return (
     <div className="flex-1 flex flex-col min-h-0 -mx-2 px-2 space-y-5">
@@ -100,11 +111,13 @@ export function RemoteQueueView({
           <RemoteQueueRow entry={nowPlaying} isCurrent />
         </section>
       )}
-      {upNextCount > 0 && (
+      {listCount > 0 && (
         <section className="flex-1 flex flex-col min-h-0">
-          <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase mb-2 px-1">
-            {t("remote.queue.upNext")} · {upNextCount}
-          </div>
+          {!whole && (
+            <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase mb-2 px-1">
+              {t("remote.queue.upNext")} · {upNextCount}
+            </div>
+          )}
           <div
             ref={scrollRef}
             className="flex-1 min-h-0 overflow-y-auto scrollbar-hide"
@@ -117,13 +130,15 @@ export function RemoteQueueView({
               }}
             >
               {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-                const absoluteIndex = upNextStart + virtualRow.index;
+                const absoluteIndex = listStart + virtualRow.index;
                 const entry = queue.entries[absoluteIndex];
                 if (!entry) return null;
                 return (
                   <RemoteQueueRow
                     key={`${entry.id}-${absoluteIndex}`}
                     entry={entry}
+                    isCurrent={absoluteIndex === queue.index}
+                    played={whole && absoluteIndex < queue.index}
                     top={virtualRow.start}
                     rowHeight={REMOTE_QUEUE_ROW_HEIGHT}
                     onJump={() => handleJump(absoluteIndex)}
@@ -141,12 +156,15 @@ export function RemoteQueueView({
 function RemoteQueueRow({
   entry,
   isCurrent = false,
+  played = false,
   onJump,
   top,
   rowHeight,
 }: {
   entry: RemotePlayQueue["entries"][number];
   isCurrent?: boolean;
+  /** Already played, in the whole-queue view: dimmed. */
+  played?: boolean;
   onJump?: () => void;
   /** Absolute offset within the virtualized Up Next list. Omitted for the
    *  static Now Playing row. */
@@ -174,7 +192,7 @@ function RemoteQueueRow({
         isCurrent
           ? "bg-emerald-50 dark:bg-emerald-900/20 cursor-default"
           : "hover:bg-zinc-50 dark:hover:bg-zinc-800/60"
-      }`}
+      }${played ? " opacity-60" : ""}`}
     >
       <RemoteArtwork
         hash={entry.artwork_hash}

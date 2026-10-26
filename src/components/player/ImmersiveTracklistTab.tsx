@@ -33,7 +33,8 @@ const ROW_HEIGHT = 56;
  * page, and a queue started from the library can hold thousands of rows.
  *
  * A remote play session and files played without importing them have
- * their own queue, shown by the docked panel's view, as there; a web
+ * their own queue, shown by the docked panel's view in its whole-queue
+ * mode; a web
  * radio station plays outside the queue, so no row is marked playing.
  */
 export function ImmersiveTracklistTab() {
@@ -43,6 +44,7 @@ export function ImmersiveTracklistTab() {
       <div className="flex-1 min-h-0 flex flex-col px-6 pb-8">
         <RemoteQueueView
           source={isFileTrack(currentTrack) ? "file" : "remote"}
+          whole
         />
       </div>
     );
