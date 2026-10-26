@@ -1512,7 +1512,7 @@ mod artwork_source_tests {
     /// rather than copied: a copy is what let "theaudiodb" through (#750),
     /// since every fixture in this crate re-typed the constraint by hand.
     const INITIAL_PROFILE_MIGRATION: &str =
-        include_str!("../../../../migrations/profile/20260411120000_initial.sql");
+        include_str!("../../../../../migrations/profile/20260411120000_initial.sql");
 
     fn every_variant() -> Vec<ArtworkSource> {
         // A new variant makes this match non-exhaustive, so it cannot be
