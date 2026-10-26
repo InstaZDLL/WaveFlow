@@ -983,6 +983,41 @@ html.mini-player-window #root {
   --tw-ring-offset-shadow: 0 0 #0000;
 }
 
+/* `reveal:` — a control its row or card (`.group`) shows on hover.
+ *
+ * `opacity-0 group-hover:opacity-100` alone hides the control exactly when
+ * the keyboard reaches it: the ring above is painted at the element's
+ * opacity, so Tab landed on an invisible button. `opacity-0
+ * reveal:opacity-100` shows it on hover, on keyboard focus of the control
+ * itself or of anything in its group (Tab through a folder card and its
+ * actions are all there to see), and always on a screen without hover.
+ * Focus a pointer gave (`data-pointer-focus`) reveals nothing, on the
+ * control or through its group: the mouse that gave it has hover for that,
+ * and a key pressed afterwards (#866) must not pin a control on a card the
+ * mouse has left. */
+@custom-variant reveal {
+  @media (hover: hover) {
+    &:where(.group:hover *) {
+      @slot;
+    }
+  }
+  @media (hover: none) {
+    @slot;
+  }
+  &:focus-visible:not([data-pointer-focus]) {
+    @slot;
+  }
+  &:where(
+    .group:is(
+        :focus-visible:not([data-pointer-focus]),
+        :has(:focus-visible:not([data-pointer-focus]))
+      )
+      *
+  ) {
+    @slot;
+  }
+}
+
 /* Glassy chrome, opted in by the surfaces that carry a translucent
    background *behind text* (issue #596).
  *

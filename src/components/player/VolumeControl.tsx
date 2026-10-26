@@ -131,7 +131,7 @@ export function VolumeControl() {
               style={{ width: `${volume}%` }}
             />
             <div
-              className="absolute top-1/2 w-3 h-3 bg-white rounded-full shadow border border-zinc-200 -translate-y-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity"
+              className="absolute top-1/2 w-3 h-3 bg-white rounded-full shadow border border-zinc-200 -translate-y-1/2 -translate-x-1/2 opacity-0 reveal:opacity-100 transition-opacity"
               style={{ left: `${volume}%` }}
             />
           </div>

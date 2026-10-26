@@ -109,6 +109,12 @@ The first Rust build can take several minutes.
 - Add comments only when they explain a decision or a non-obvious constraint.
 - Preserve accessibility for visible components: ARIA roles, keyboard focus,
   labels, and interactive states.
+- A control its row or card shows only on hover is written
+  `opacity-0 reveal:opacity-100`, never `opacity-0 group-hover:opacity-100`:
+  the `reveal:` variant (`src/app.css`) also shows it on keyboard focus of the
+  control or of anything in its `group`, and on a screen without hover. The
+  hover-only form hides the control, focus ring included, exactly when Tab
+  reaches it.
 
 ## Translations
 
