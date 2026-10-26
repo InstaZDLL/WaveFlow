@@ -14,7 +14,7 @@ A single global toggle — Settings → Connections → Connectivity → "Offlin
 - Album covers (`enrich_album_deezer`, `search_albums_deezer`, `set_album_artwork_from_deezer`, `batch_fetch_missing_album_covers`)
 - Label / fan-count metadata
 - Fetching an album's tags for review (#599, below)
-- Importing a public playlist from its link (`get_playlist` / `get_playlist_tracks`) — the listing carries each track's ISRC, which the importer matches first ([playlists.md](playlists.md#importing-a-playlist))
+- Importing a public playlist from its link (`get_playlist` / `get_playlist_tracks_page`) — the listing carries each track's ISRC, which the importer matches first; its pages of 100 are fetched 150 ms apart, under the anonymous rate limit ([playlists.md](playlists.md#importing-a-playlist))
 
 **Deezer refuses with HTTP 200.** A rate-limited or rejected call answers `{"error":{"type":"Exception","message":"Quota limit exceeded","code":4}}` with a 200 status, so the response type has a `DeezerError::Api` arm that reads the object instead of letting the missing `data` field surface as a decode failure. Before that, a throttled client and an artist Deezer had never heard of produced the same log line and the same empty result — which is the fog #406 was diagnosed through; the reason now reaches the log the enrichment paths already write. A 429 from the edge in front of the API carries no JSON to read at all and gets its own `RateLimited` arm.
 

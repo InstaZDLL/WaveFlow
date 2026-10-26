@@ -190,6 +190,16 @@ fn prefix_key(prefix: std::path::PrefixComponent<'_>) -> String {
     }
 }
 
+/// The last component of a path as a playlist wrote it, split on `/` and
+/// `\` both: an M3U written on Windows keeps its backslashes when it is
+/// imported on Linux, where `Path::file_name` would return the whole
+/// string.
+pub fn file_name(path: &str) -> Option<&str> {
+    path.rsplit(['/', '\\'])
+        .next()
+        .filter(|name| !name.is_empty())
+}
+
 /// Trim a field and turn an empty one into `None`.
 pub(crate) fn non_empty(raw: &str) -> Option<String> {
     let trimmed = raw.trim();
@@ -236,6 +246,14 @@ mod tests {
                 r"\\203.0.113.9\music\x.mp3"
             );
         }
+    }
+
+    #[test]
+    fn a_file_name_is_found_whatever_the_separator() {
+        assert_eq!(file_name(r"C:\Music\a.flac"), Some("a.flac"));
+        assert_eq!(file_name("/music/b.mp3"), Some("b.mp3"));
+        assert_eq!(file_name("c.ogg"), Some("c.ogg"));
+        assert_eq!(file_name("/music/"), None);
     }
 
     #[test]

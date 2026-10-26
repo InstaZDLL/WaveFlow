@@ -87,11 +87,13 @@ fn m3u_entries(text: &str, folder: &std::path::Path) -> ParsedPlaylist {
             } else {
                 folder.join(path)
             };
+            // Named after its file, split on either separator: an M3U
+            // written on another system keeps that system's.
             let title = entry.title.unwrap_or_else(|| {
-                resolved
-                    .file_stem()
-                    .and_then(|s| s.to_str())
-                    .unwrap_or(&entry.path)
+                let name =
+                    waveflow_core::playlist_import::file_name(&entry.path).unwrap_or(&entry.path);
+                name.rsplit_once('.')
+                    .map_or(name, |(stem, _)| stem)
                     .to_string()
             });
             ImportEntry {
@@ -336,10 +338,21 @@ pub async fn import_playlist_deezer(
     };
     let client = DeezerClient::new();
     let playlist = client.get_playlist(id).await.map_err(deezer_error)?;
-    let tracks = client
-        .get_playlist_tracks(id, MAX_ENTRIES)
-        .await
-        .map_err(deezer_error)?;
+    // Page by page, paced: Deezer allows about 50 anonymous requests in 5
+    // seconds, and a long playlist is a hundred pages.
+    let mut tracks = Vec::new();
+    loop {
+        let (page, more) = client
+            .get_playlist_tracks_page(id, tracks.len())
+            .await
+            .map_err(deezer_error)?;
+        tracks.extend(page);
+        if !more || tracks.len() >= MAX_ENTRIES {
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(150)).await;
+    }
+    tracks.truncate(MAX_ENTRIES);
     let entries: Vec<ImportEntry> = tracks
         .into_iter()
         .filter(|t| !t.title.trim().is_empty())

@@ -146,7 +146,11 @@ export function ImportPlaylistModal({
           disabled={busy}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 text-left hover:border-emerald-500 hover:bg-emerald-500/5 transition-colors disabled:opacity-50"
         >
-          <FileUp size={18} className="text-emerald-500 shrink-0" aria-hidden="true" />
+          <FileUp
+            size={18}
+            className="text-emerald-500 shrink-0"
+            aria-hidden="true"
+          />
           <span className="min-w-0">
             <span className="block text-sm font-semibold text-zinc-900 dark:text-white">
               {t("playlistImport.fromFile")}
@@ -222,7 +226,9 @@ export function ImportPlaylistModal({
             className="mt-4 px-3 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 text-xs text-emerald-800 dark:text-emerald-200 border border-emerald-200 dark:border-emerald-900 space-y-0.5"
           >
             <p className="font-semibold">{result.name}</p>
-            <p>{t("playlistImport.result.imported", { count: result.imported })}</p>
+            <p>
+              {t("playlistImport.result.imported", { count: result.imported })}
+            </p>
             {result.placeholders > 0 && (
               <p>
                 {t("playlistImport.result.placeholders", {

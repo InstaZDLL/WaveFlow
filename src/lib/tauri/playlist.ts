@@ -317,7 +317,10 @@ export function playlistImportErrorKey(err: unknown): string | null {
     ["playlist-import: unreadable", "playlistImport.errors.unreadable"],
     ["playlist-import: no title column", "playlistImport.errors.noTitleColumn"],
     ["playlist-import: empty", "playlistImport.errors.empty"],
-    ["playlist-import: not a deezer playlist link", "playlistImport.errors.notALink"],
+    [
+      "playlist-import: not a deezer playlist link",
+      "playlistImport.errors.notALink",
+    ],
     ["playlist-import: offline", "playlistImport.errors.offline"],
     ["playlist-import: not found", "playlistImport.errors.notFound"],
     ["playlist-import: unreachable", "playlistImport.errors.unreachable"],

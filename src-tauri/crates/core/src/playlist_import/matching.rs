@@ -7,9 +7,9 @@
 //!    ([`super::path_key`]), then its file name, as the M3U importer always
 //!    did: a playlist written before the library was reorganised still
 //!    finds its files. The file name alone only when the entry names no
-//!    artist, otherwise the file must be by that artist — `01.mp3` names a
-//!    track in every album, and a placeholder is matched again after every
-//!    scan.
+//!    artist and one file in the library has it, otherwise the file must be
+//!    by that artist — `01.mp3` names a track in every album, and a
+//!    placeholder is matched again after every scan.
 //! 2. **ISRC** — exact, and the same recording whatever the tags say. When
 //!    several tracks carry it (a single and its album), the closest length
 //!    wins.
@@ -68,7 +68,7 @@ pub struct Wanted<'a> {
 pub struct LibraryIndex {
     candidates: Vec<Candidate>,
     by_path: HashMap<String, usize>,
-    by_file_name: HashMap<String, usize>,
+    by_file_name: HashMap<String, Vec<usize>>,
     by_isrc: HashMap<String, Vec<usize>>,
     by_title: HashMap<String, Vec<usize>>,
     by_base_title: HashMap<String, Vec<usize>>,
@@ -143,10 +143,8 @@ impl LibraryIndex {
             if let Some(key) = &candidate.path_key {
                 index.by_path.insert(key.clone(), at);
             }
-            // Last write wins on a shared file name, as the M3U importer
-            // always did; the user can still curate after the import.
             if let Some(name) = &candidate.file_name {
-                index.by_file_name.insert(name.clone(), at);
+                index.by_file_name.entry(name.clone()).or_default().push(at);
             }
             if let Some(isrc) = &candidate.isrc {
                 index.by_isrc.entry(isrc.clone()).or_default().push(at);
@@ -196,19 +194,28 @@ impl LibraryIndex {
         if let Some(at) = wanted.path_key.and_then(|key| self.by_path.get(key)) {
             return Some(self.candidates[*at].track_id);
         }
-        if let Some(at) = wanted
+        if let Some(hits) = wanted
             .file_name
             .and_then(|name| self.by_file_name.get(name))
         {
             // A file name alone ("01.mp3") names a track in every album.
-            // It is enough when the entry says nothing else; when it names
-            // an artist, the file found must be by them.
-            let agrees = match wanted.artist {
-                None => true,
-                Some(artist) => self.artist_agrees(*at, &artist_names(artist)),
+            // With nothing else to go on it is taken only when one file in
+            // the library has it; when the entry names an artist, the file
+            // must be by them, the closest length deciding between several.
+            let found = match wanted.artist {
+                None => (hits.len() == 1).then(|| self.candidates[hits[0]].track_id),
+                Some(artist) => {
+                    let names = artist_names(artist);
+                    self.closest(
+                        hits.iter()
+                            .copied()
+                            .filter(|at| self.artist_agrees(*at, &names)),
+                        wanted.duration_ms,
+                    )
+                }
             };
-            if agrees {
-                return Some(self.candidates[*at].track_id);
+            if found.is_some() {
+                return found;
             }
         }
         if let Some(hits) = wanted.isrc.and_then(|isrc| self.by_isrc.get(isrc)) {
@@ -386,6 +393,20 @@ mod tests {
         // Another artist's file of the same name is not it: the title
         // match takes over.
         w.artist = Some("Band");
+        assert_eq!(index.find(&w), Some(2));
+    }
+
+    #[test]
+    fn a_file_name_two_files_share_needs_an_artist() {
+        let mut first = track(1, "Intro", &["X"], 60_000);
+        first.file_name = Some("01.mp3".into());
+        let mut second = track(2, "Intro", &["Y"], 60_000);
+        second.file_name = Some("01.mp3".into());
+        let index = LibraryIndex::new(vec![first, second]);
+        let mut w = wanted("01", None, None);
+        w.file_name = Some("01.mp3");
+        assert_eq!(index.find(&w), None);
+        w.artist = Some("Y");
         assert_eq!(index.find(&w), Some(2));
     }
 

@@ -298,6 +298,13 @@ pub async fn fill(
     .fetch_one(&mut *conn)
     .await?;
     if held {
+        // The placeholder went all the same: stamp the playlist, which is
+        // what the view keys its refetch on.
+        sqlx::query("UPDATE playlist SET updated_at = ? WHERE id = ?")
+            .bind(now_ms)
+            .bind(playlist_id)
+            .execute(conn)
+            .await?;
         return Ok(Some(false));
     }
 
@@ -402,12 +409,9 @@ pub fn index_paths(candidates: &mut [Candidate]) {
 /// The keys a placeholder (or an M3U entry) gives the matcher for the path
 /// it names: its comparable form and its file name.
 pub fn locator_keys(locator: &str) -> (String, Option<String>) {
-    let path = std::path::Path::new(locator);
     (
-        path_key(path),
-        path.file_name()
-            .and_then(|n| n.to_str())
-            .map(str::to_lowercase),
+        path_key(std::path::Path::new(locator)),
+        crate::playlist_import::file_name(locator).map(str::to_lowercase),
     )
 }
 

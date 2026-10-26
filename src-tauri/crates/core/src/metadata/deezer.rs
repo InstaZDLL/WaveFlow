@@ -460,32 +460,27 @@ impl DeezerClient {
         .await
     }
 
-    /// Every track of a public playlist, in its order, paged the same way
-    /// as [`Self::get_album_tracks`] and capped at `max` entries.
-    pub async fn get_playlist_tracks(
+    /// One page of a public playlist's tracks, from `index` on, and whether
+    /// there is more. A page rather than the whole listing: a playlist runs
+    /// to thousands of tracks, and the caller paces the pages to stay under
+    /// the anonymous rate limit, with the timer of its own runtime.
+    pub async fn get_playlist_tracks_page(
         &self,
         deezer_id: u64,
-        max: usize,
-    ) -> DeezerResult<Vec<DeezerPlaylistTrack>> {
+        index: usize,
+    ) -> DeezerResult<(Vec<DeezerPlaylistTrack>, bool)> {
+        /// Deezer's own maximum page size for a collection.
         const PAGE: usize = 100;
-        let mut out: Vec<DeezerPlaylistTrack> = Vec::new();
-        let mut index = 0usize;
-        while out.len() < max {
-            let resp: DeezerSearchResponse<DeezerPlaylistTrack> = Self::fetch(
-                self.http
-                    .get(format!("{}/playlist/{deezer_id}/tracks", self.base_url))
-                    .query(&[("index", index.to_string()), ("limit", PAGE.to_string())]),
-            )
-            .await?;
-            let received = resp.data.len();
-            out.extend(resp.data);
-            if resp.next.is_none() || received == 0 {
-                break;
-            }
-            index += received;
-        }
-        out.truncate(max);
-        Ok(out)
+        let resp: DeezerSearchResponse<DeezerPlaylistTrack> = Self::fetch(
+            self.http
+                .get(format!("{}/playlist/{deezer_id}/tracks", self.base_url))
+                .query(&[("index", index.to_string()), ("limit", PAGE.to_string())]),
+        )
+        .await?;
+        // `next` is the authority on whether there is more; an empty page
+        // ends the walk whatever it claims.
+        let more = resp.next.is_some() && !resp.data.is_empty();
+        Ok((resp.data, more))
     }
 
     /// Fetch artists Deezer reports as related to the given artist.
@@ -688,8 +683,12 @@ mod tests {
         .await;
         let client = DeezerClient::with_http(strict_http(), provider.base_url.clone());
 
-        let tracks = client.get_playlist_tracks(908_622_995, 10).await.unwrap();
+        let (tracks, more) = client
+            .get_playlist_tracks_page(908_622_995, 0)
+            .await
+            .unwrap();
 
+        assert!(!more);
         assert_eq!(tracks.len(), 1);
         assert_eq!(tracks[0].duration_ms(), Some(225_000));
         assert_eq!(tracks[0].isrc.as_deref(), Some("GBAYE0601690"));

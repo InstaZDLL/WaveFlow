@@ -353,9 +353,7 @@ export function PlaylistView({
   const [tracks, setTracks] = useState<PlaylistTrack[]>([]);
   // Entries of an imported playlist the library does not hold yet. Shown
   // in their place, never played, never counted as tracks.
-  const [placeholders, setPlaceholders] = useState<PlaylistPlaceholder[]>(
-    [],
-  );
+  const [placeholders, setPlaceholders] = useState<PlaylistPlaceholder[]>([]);
   /** Remote only: created here and never sent to the server yet. */
   const [remotePending, setRemotePending] = useState(false);
   // Init `true` so the skeleton paints on first render — the
@@ -620,25 +618,31 @@ export function PlaylistView({
   // A track moved or removed moves the placeholders beside it, on the
   // backend, in the same write: read them again rather than re-deriving
   // where each one went.
+  // An answer about a playlist the user has since left is dropped: it
+  // would draw that playlist's placeholders, and their remove buttons, in
+  // this one.
+  const shownPlaylistIdRef = useRef(playlistId);
+  useEffect(() => {
+    shownPlaylistIdRef.current = playlistId;
+  }, [playlistId]);
   const reloadPlaceholders = useCallback((pid: number) => {
     listPlaylistPlaceholders(pid)
-      .then(setPlaceholders)
+      .then((list) => {
+        if (shownPlaylistIdRef.current === pid) setPlaceholders(list);
+      })
       .catch((err) =>
         console.error("[PlaylistView] reload placeholders failed", err),
       );
   }, []);
 
-  const handleRemovePlaceholder = useCallback(
-    async (placeholderId: number) => {
-      try {
-        await removePlaylistPlaceholder(placeholderId);
-        setPlaceholders((prev) => prev.filter((p) => p.id !== placeholderId));
-      } catch (err) {
-        console.error("[PlaylistView] remove placeholder failed", err);
-      }
-    },
-    [],
-  );
+  const handleRemovePlaceholder = useCallback(async (placeholderId: number) => {
+    try {
+      await removePlaylistPlaceholder(placeholderId);
+      setPlaceholders((prev) => prev.filter((p) => p.id !== placeholderId));
+    } catch (err) {
+      console.error("[PlaylistView] remove placeholder failed", err);
+    }
+  }, []);
 
   const handleRemoveFromPlaylist = useCallback(
     async (pid: number, trackId: number) => {
@@ -897,7 +901,12 @@ export function PlaylistView({
           const [pl, items, waiting] = await Promise.all([
             getPlaylist(playlistId),
             getPlaylistTracks(playlistId),
-            listPlaylistPlaceholders(playlistId),
+            // The placeholders are an extra: a failure to read them leaves
+            // the playlist on screen, without them, rather than "not found".
+            listPlaylistPlaceholders(playlistId).catch((err) => {
+              console.error("[PlaylistView] load placeholders failed", err);
+              return [] as PlaylistPlaceholder[];
+            }),
           ]);
           if (cancelled) return;
           setPlaylist(pl);
@@ -1998,14 +2007,17 @@ function PlaylistTrackTable({
   // among the tracks — the number it shows and the one played from — and
   // a placeholder takes none: it is not a track the queue could reach.
   const rows = useMemo<PlaylistTableRow[]>(() => {
-    const trackRows = tracks.map(
-      (track, index): PlaylistTableRow => ({ kind: "track", track, index }),
-    );
+    const trackRows = tracks.map((track, index): PlaylistTableRow => ({
+      kind: "track",
+      track,
+      index,
+    }));
     if (placeholders.length === 0) return trackRows;
     const asRows = (list: PlaylistPlaceholder[]) =>
-      list.map(
-        (placeholder): PlaylistTableRow => ({ kind: "placeholder", placeholder }),
-      );
+      list.map((placeholder): PlaylistTableRow => ({
+        kind: "placeholder",
+        placeholder,
+      }));
     if (!interleavePlaceholders) return [...trackRows, ...asRows(placeholders)];
     const before = new Map<number, PlaylistPlaceholder[]>();
     for (const placeholder of placeholders) {
