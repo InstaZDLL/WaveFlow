@@ -44,6 +44,18 @@ pub const MAX_BYTES: usize = 96 * 1024 * 1024;
 /// useful pause.
 pub const MIN_BYTES: usize = 4 * 1024 * 1024;
 
+/// The byte rates taken for a station's: 800 B/s is 6.4 kbit/s, under any
+/// station; 1 MB/s is 8 Mbit/s, past a lossless one. A figure outside —
+/// a server's misreport, an HLS duration of almost nothing — is not
+/// trusted with the bound or the lag.
+const RATE_RANGE: std::ops::RangeInclusive<f64> = 800.0..=1_000_000.0;
+
+/// Title changes kept while the reader has not reached them. A station
+/// changes title once a song; a server sending one with every metadata
+/// block is not to grow memory alongside a pause, so past this the oldest
+/// change goes.
+const MAX_TITLES: usize = 512;
+
 /// How the stream ended, once it has.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum End {
@@ -147,6 +159,9 @@ impl Buffer {
 
     /// Set the station's rate, which sizes the bound.
     pub fn set_byte_rate(&self, byte_rate: f64) {
+        if !RATE_RANGE.contains(&byte_rate) {
+            return;
+        }
         let mut s = self.lock();
         s.byte_rate = Some(byte_rate);
         s.capacity = capacity_for(Some(byte_rate));
@@ -186,6 +201,9 @@ impl Buffer {
     pub fn push_title(&self, title: Option<String>) {
         let mut s = self.lock();
         let at = s.written;
+        if s.titles.len() >= MAX_TITLES {
+            s.titles.pop_front();
+        }
         s.titles.push_back((at, title));
     }
 
@@ -287,7 +305,7 @@ impl Buffer {
         let to_time = |bytes: usize| {
             s.byte_rate
                 .filter(|r| *r > 0.0)
-                .map(|r| Duration::from_secs_f64(bytes as f64 / r))
+                .and_then(|r| Duration::try_from_secs_f64(bytes as f64 / r).ok())
         };
         let behind = s
             .floor
@@ -393,6 +411,20 @@ mod tests {
     }
 
     #[test]
+    fn an_absurd_rate_or_a_flood_of_titles_is_not_trusted() {
+        let buffer = Buffer::new();
+        for rate in [f64::NAN, f64::INFINITY, 0.0, -1.0, 1e-300, 1e300] {
+            buffer.set_byte_rate(rate);
+        }
+        buffer.push(&[0u8; 100]);
+        assert_eq!(buffer.lag().unread, None);
+        for i in 0..(MAX_TITLES * 3) {
+            buffer.push_title(Some(format!("title {i}")));
+        }
+        assert_eq!(buffer.lock().titles.len(), MAX_TITLES);
+    }
+
+    #[test]
     fn the_bound_follows_the_bitrate_within_its_limits() {
         assert_eq!(capacity_for(Some(40_000.0)), 72_000_000);
         assert_eq!(capacity_for(Some(100.0)), MIN_BYTES);
@@ -417,7 +449,7 @@ mod tests {
     #[test]
     fn a_dropped_stretch_hands_over_the_title_it_carried() {
         let buffer = Buffer::new();
-        buffer.set_byte_rate(1.0);
+        buffer.set_byte_rate(800.0);
         buffer.push(&[1u8; 10]);
         buffer.push_title(Some("Skipped into".into()));
         assert_eq!(buffer.take_title(), None);

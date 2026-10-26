@@ -143,6 +143,16 @@ fn attribute<'a>(list: &'a str, key: &str) -> Option<&'a str> {
     None
 }
 
+/// A duration as a playlist writes it, when it is one a segment can have:
+/// finite, above zero, at most an hour. `inf`, `NaN` and absurd figures
+/// parse as floats, and would reach the lag arithmetic.
+fn seconds(raw: &str) -> Option<f64> {
+    raw.trim()
+        .parse::<f64>()
+        .ok()
+        .filter(|s| s.is_finite() && *s > 0.0 && *s <= 3600.0)
+}
+
 pub fn parse(text: &str) -> Result<Playlist, HlsError> {
     if !is_hls(text) {
         return Err(HlsError::NotHls);
@@ -192,10 +202,8 @@ pub fn parse(text: &str) -> Result<Playlist, HlsError> {
     let mut duration: Option<f64> = None;
     for line in &lines {
         if let Some(value) = line.strip_prefix("#EXT-X-TARGETDURATION:") {
-            if let Ok(v) = value.trim().parse::<f64>() {
-                if v > 0.0 {
-                    out.target_duration_s = v;
-                }
+            if let Some(v) = seconds(value) {
+                out.target_duration_s = v;
             }
         } else if let Some(value) = line.strip_prefix("#EXT-X-MEDIA-SEQUENCE:") {
             sequence = value.trim().parse().unwrap_or(0);
@@ -208,7 +216,7 @@ pub fn parse(text: &str) -> Result<Playlist, HlsError> {
         } else if line.starts_with("#EXT-X-ENDLIST") {
             out.ended = true;
         } else if let Some(value) = line.strip_prefix("#EXTINF:") {
-            duration = value.split(',').next().and_then(|d| d.trim().parse().ok());
+            duration = value.split(',').next().and_then(seconds);
         } else if !line.starts_with('#') {
             out.segments.push(Segment {
                 uri: line.to_string(),
@@ -293,6 +301,16 @@ mod tests {
             parse("#EXTM3U\n#EXT-X-TARGETDURATION:6\n#EXT-X-KEY:METHOD=NONE\n#EXTINF:6,\na.ts\n"),
             Ok(Playlist::Media(_))
         ));
+    }
+
+    #[test]
+    fn durations_that_are_not_one_fall_back_to_the_target() {
+        let text = "#EXTM3U\n#EXT-X-TARGETDURATION:inf\n#EXTINF:NaN,\na.ts\n#EXTINF:1e300,\nb.ts\n#EXTINF:-4,\nc.ts\n";
+        let Playlist::Media(list) = parse(text).unwrap() else {
+            panic!();
+        };
+        assert_eq!(list.target_duration_s, 6.0);
+        assert!(list.segments.iter().all(|s| s.duration_s == 6.0));
     }
 
     #[test]
