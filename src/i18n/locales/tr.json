@@ -242,6 +242,13 @@
       "playlistSubtextPending_zero": "0 parça · henüz gönderilmedi",
       "playlistSubtextPending_one": "{{count}} parça · henüz gönderilmedi",
       "playlistSubtextPending_other": "{{count}} parça · henüz gönderilmedi"
+    },
+    "pins": {
+      "title": "Sabitlenenler",
+      "pin": "Kenar çubuğuna sabitle",
+      "unpin": "Sabitlemeyi kaldır",
+      "album": "Albüm",
+      "artist": "Sanatçı"
     }
   },
   "topbar": {
@@ -1574,7 +1581,17 @@
     "toast": {
       "tagWriteSkipped": "TTML yalnızca veritabanına kaydedildi (ses etiketine yazılmadı)"
     },
-    "excludedGenre": "{{genre}} türü için şarkı sözleri çevrimiçi aranmıyor (Ayarlar → Şarkı sözleri). Bir .lrc dosyası içe aktarabilir ya da yine de arayabilirsin."
+    "excludedGenre": "{{genre}} türü için şarkı sözleri çevrimiçi aranmıyor (Ayarlar → Şarkı sözleri). Bir .lrc dosyası içe aktarabilir ya da yine de arayabilirsin.",
+    "share": {
+      "open": "Alıntı paylaş",
+      "title": "Şarkı sözlerinden alıntı paylaş",
+      "hint": "En fazla {{max}} satır seçin.",
+      "counter": "{{selected}} / {{max}}",
+      "empty": "Kartı görmek için bir satır seçin.",
+      "previewAlt": "Kart önizlemesi",
+      "linesLabel": "Şarkı sözü satırları",
+      "eyebrow": "Şarkı sözleri"
+    }
   },
   "duplicates": {
     "title": "Yinelenenler algılandı",
@@ -2627,7 +2644,10 @@
       "canReach": "Erişebileceği adresler:",
       "installAria": "{{name}} eklentisini yükle",
       "updateAria": "{{name}} eklentisini güncelle",
-      "allInstalled": "Mağazadaki her şey zaten yüklü."
+      "allInstalled": "Mağazadaki her şey zaten yüklü.",
+      "search": "Eklenti ara",
+      "clearSearch": "Aramayı temizle",
+      "noMatch": "“{{query}}” ile eşleşen eklenti yok."
     },
     "motionArtwork": {
       "title": "Animasyonlu kapaklar",

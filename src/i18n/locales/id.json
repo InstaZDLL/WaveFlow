@@ -242,6 +242,13 @@
       "playlistSubtextPending_zero": "0 lagu · belum dikirim",
       "playlistSubtextPending_one": "{{count}} lagu · belum dikirim",
       "playlistSubtextPending_other": "{{count}} lagu · belum dikirim"
+    },
+    "pins": {
+      "title": "Disematkan",
+      "pin": "Sematkan ke bilah sisi",
+      "unpin": "Lepas sematan",
+      "album": "Album",
+      "artist": "Artis"
     }
   },
   "topbar": {
@@ -1572,7 +1579,17 @@
     "toast": {
       "tagWriteSkipped": "TTML disimpan di database saja (tidak ditulis ke tag audio)"
     },
-    "excludedGenre": "Lirik tidak dicari secara daring untuk genre {{genre}} (Pengaturan → Lirik). Kamu bisa mengimpor berkas .lrc atau tetap mencari."
+    "excludedGenre": "Lirik tidak dicari secara daring untuk genre {{genre}} (Pengaturan → Lirik). Kamu bisa mengimpor berkas .lrc atau tetap mencari.",
+    "share": {
+      "open": "Bagikan kutipan",
+      "title": "Bagikan kutipan lirik",
+      "hint": "Pilih hingga {{max}} baris.",
+      "counter": "{{selected}} / {{max}}",
+      "empty": "Pilih satu baris untuk melihat kartu.",
+      "previewAlt": "Pratinjau kartu",
+      "linesLabel": "Baris lirik",
+      "eyebrow": "Lirik"
+    }
   },
   "duplicates": {
     "title": "Duplikat terdeteksi",
@@ -2625,7 +2642,10 @@
       "canReach": "Dapat mengakses:",
       "installAria": "Pasang {{name}}",
       "updateAria": "Perbarui {{name}}",
-      "allInstalled": "Semua yang ada di toko sudah terpasang."
+      "allInstalled": "Semua yang ada di toko sudah terpasang.",
+      "search": "Cari plugin",
+      "clearSearch": "Hapus pencarian",
+      "noMatch": "Tidak ada plugin yang cocok dengan “{{query}}”."
     },
     "motionArtwork": {
       "title": "Sampul animasi",

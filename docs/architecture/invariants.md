@@ -261,6 +261,8 @@ The **sidebar** is the deliberate exception on the other side: it is a fixed col
 
 Every modal calls [`useModalA11y(isOpen, onClose)`](../../src/hooks/useModalA11y.ts) — Escape-close, Tab focus trap, focus restoration. The container gets `role="dialog"` + `aria-modal="true"` + `aria-labelledby` (stable heading id) or `aria-label` (conditional heading). Don't roll bespoke `useEffect` Escape handlers.
 
+Modals nest — the immersive view is one, and the Canvas picker or the lyrics excerpt dialog opens over it. Every instance listens on `document`, where `stopPropagation` cannot keep the others from hearing the same key, so the hook keeps a stack of the open ones and only the top one answers Escape and traps Tab: Escape closes the dialog on top, not everything beneath it.
+
 ### Overlays must be portalled, not just given a big `z-index`
 
 Issue #390. A `z-index` is only compared inside its stacking context, and `position: fixed` escapes layout flow but NOT that context. WaveFlow's chrome is glassy — the TopBar carries `backdrop-blur-md`, and the Pulse / Liquid skins add `backdrop-filter` to the PlayerBar and other containers — and **any** `backdrop-filter` / `transform` / `opacity < 1` / `filter` / `will-change` ancestor creates a context that silently caps everything inside it. So a context menu at `z-100` nested under such an ancestor still paints _under_ the PlayerBar.

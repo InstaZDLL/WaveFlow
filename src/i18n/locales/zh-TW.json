@@ -242,6 +242,13 @@
       "playlistSubtextPending_zero": "0 首曲目 · 尚未傳送",
       "playlistSubtextPending_one": "{{count}} 首曲目 · 尚未傳送",
       "playlistSubtextPending_other": "{{count}} 首曲目 · 尚未傳送"
+    },
+    "pins": {
+      "title": "已釘選",
+      "pin": "釘選到側邊欄",
+      "unpin": "取消釘選",
+      "album": "專輯",
+      "artist": "藝人"
     }
   },
   "topbar": {
@@ -1572,7 +1579,17 @@
     "toast": {
       "tagWriteSkipped": "TTML 僅保留在資料庫中（未寫入音訊標籤）"
     },
-    "excludedGenre": "不會在線上搜尋 {{genre}} 曲風的歌詞（設定 → 歌詞）。你可以匯入 .lrc 檔案，或仍然搜尋。"
+    "excludedGenre": "不會在線上搜尋 {{genre}} 曲風的歌詞（設定 → 歌詞）。你可以匯入 .lrc 檔案，或仍然搜尋。",
+    "share": {
+      "open": "分享片段",
+      "title": "分享歌詞片段",
+      "hint": "最多選擇 {{max}} 行。",
+      "counter": "{{selected}} / {{max}}",
+      "empty": "選擇一行即可預覽卡片。",
+      "previewAlt": "卡片預覽",
+      "linesLabel": "歌詞行",
+      "eyebrow": "歌詞"
+    }
   },
   "duplicates": {
     "title": "偵測到重複檔案",
@@ -2625,7 +2642,10 @@
       "canReach": "可存取：",
       "installAria": "安裝 {{name}}",
       "updateAria": "更新 {{name}}",
-      "allInstalled": "商店中的所有外掛均已安裝。"
+      "allInstalled": "商店中的所有外掛均已安裝。",
+      "search": "搜尋外掛",
+      "clearSearch": "清除搜尋",
+      "noMatch": "沒有符合「{{query}}」的外掛。"
     },
     "motionArtwork": {
       "title": "動態封面",

@@ -652,6 +652,10 @@ pub async fn merge_implicit_compilations(pool: &SqlitePool) -> CoreResult<()> {
                 .bind(sid)
                 .execute(&mut *tx)
                 .await?;
+            // The record lives on under the survivor's id; so does a
+            // sidebar pin, which the delete below would cascade away.
+            crate::repository::sqlite::sidebar_pin::carry_album_pin(&mut tx, *sid, survivor)
+                .await?;
             sqlx::query("DELETE FROM album WHERE id = ?")
                 .bind(sid)
                 .execute(&mut *tx)

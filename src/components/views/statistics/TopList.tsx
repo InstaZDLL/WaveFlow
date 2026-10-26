@@ -1,4 +1,8 @@
-import type { ReactNode } from "react";
+import type {
+  KeyboardEvent as ReactKeyboardEvent,
+  MouseEvent as ReactMouseEvent,
+  ReactNode,
+} from "react";
 
 interface TopListProps {
   title: string;
@@ -32,6 +36,9 @@ interface TopRowProps {
   /** Right-aligned metric (e.g. "42 plays"). */
   metric: string;
   onClick?: () => void;
+  /** A right-click menu on the row (the album / artist menu). */
+  onContextMenu?: (event: ReactMouseEvent) => void;
+  onKeyDown?: (event: ReactKeyboardEvent) => void;
 }
 
 export function TopRow({
@@ -41,6 +48,8 @@ export function TopRow({
   secondary,
   metric,
   onClick,
+  onContextMenu,
+  onKeyDown,
 }: TopRowProps) {
   const interactive = !!onClick;
   return (
@@ -48,6 +57,8 @@ export function TopRow({
       <button
         type="button"
         onClick={onClick}
+        onContextMenu={onContextMenu}
+        onKeyDown={onKeyDown}
         disabled={!interactive}
         className={`w-full flex items-center gap-3 p-2 rounded-lg text-left transition-colors ${
           interactive

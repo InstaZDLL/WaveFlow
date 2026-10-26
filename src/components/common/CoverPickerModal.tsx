@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ImageIcon, FolderOpen, Search, Loader2 } from "lucide-react";
 import { useModalA11y } from "../../hooks/useModalA11y";
+import { SIDEBAR_PINS_EVENT } from "../../hooks/useSidebarPins";
 import { AnimatedModalContent, AnimatedModalShell } from "./AnimatedModalShell";
 import {
   searchAlbumsDeezer,
@@ -143,6 +144,9 @@ export function CoverPickerModal({
     setError(null);
     try {
       await setAlbumArtworkFromDeezer(albumId, album.deezer_id);
+      // The cover is written whatever became of the dialog meanwhile, and
+      // a pinned album shows it in the sidebar too.
+      window.dispatchEvent(new CustomEvent(SIDEBAR_PINS_EVENT));
       if (session !== sessionRef.current) return;
       onSuccess();
       onClose();
@@ -170,6 +174,9 @@ export function CoverPickerModal({
       setIsApplying(true);
       setError(null);
       await setAlbumArtworkFromFile(albumId, path);
+      // The cover is written whatever became of the dialog meanwhile, and
+      // a pinned album shows it in the sidebar too.
+      window.dispatchEvent(new CustomEvent(SIDEBAR_PINS_EVENT));
       if (session !== sessionRef.current) return;
       onSuccess();
       onClose();

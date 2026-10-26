@@ -57,6 +57,7 @@ import {
   type Track,
 } from "../../lib/tauri/track";
 import { useCreatePlaylistFromModal } from "../../hooks/useCreatePlaylistFromModal";
+import { useAlbumArtistContextMenu } from "../../hooks/useAlbumArtistContextMenu";
 
 /**
  * A server artist in the shape the view already speaks.
@@ -170,6 +171,9 @@ export function ArtistDetailView({
   // similar effects re-run and pick up the new local values.
   const [overrideRefetch, setOverrideRefetch] = useState(0);
 
+  // Right-click on an album of the discography, or on a similar artist
+  // held in the library: pin it to the sidebar.
+  const tileMenu = useAlbumArtistContextMenu();
   const trackContextMenu = useTrackContextMenu({
     likedIds,
     onLikedChanged: (trackId, nowLiked) =>
@@ -736,6 +740,12 @@ export function ArtistDetailView({
                       ? () => onNavigateToArtist(s.library_artist_id!)
                       : undefined
                   }
+                  {...(inLibrary
+                    ? tileMenu.bind({
+                        kind: "artist",
+                        id: s.library_artist_id!,
+                      })
+                    : {})}
                   className={`group flex flex-col items-center text-center space-y-2 ${
                     inLibrary ? "cursor-pointer" : "cursor-default opacity-70"
                   }`}
@@ -792,6 +802,9 @@ export function ArtistDetailView({
                     ? onNavigateToRemoteAlbum?.(album.remote_id)
                     : onNavigateToAlbum(album.id)
                 }
+                {...(album.remote_id
+                  ? {}
+                  : tileMenu.bind({ kind: "album", id: album.id }))}
                 className="group flex flex-col space-y-2 text-left"
               >
                 {album.source === "remote" ? (
@@ -869,6 +882,7 @@ export function ArtistDetailView({
       />
 
       {trackContextMenu.render()}
+      {tileMenu.render()}
 
       <Lightbox
         src={pictureSrc}

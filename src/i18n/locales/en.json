@@ -242,6 +242,13 @@
       "playlistSubtextPending_zero": "0 tracks · not sent yet",
       "playlistSubtextPending_one": "{{count}} track · not sent yet",
       "playlistSubtextPending_other": "{{count}} tracks · not sent yet"
+    },
+    "pins": {
+      "title": "Pinned",
+      "pin": "Pin to sidebar",
+      "unpin": "Unpin",
+      "album": "Album",
+      "artist": "Artist"
     }
   },
   "topbar": {
@@ -1574,7 +1581,17 @@
     "toast": {
       "tagWriteSkipped": "TTML kept in the database only (not written to the audio tag)"
     },
-    "excludedGenre": "Lyrics aren't searched online for the {{genre}} genre (Settings → Lyrics). You can import a .lrc file or search anyway."
+    "excludedGenre": "Lyrics aren't searched online for the {{genre}} genre (Settings → Lyrics). You can import a .lrc file or search anyway.",
+    "share": {
+      "open": "Share an excerpt",
+      "title": "Share a lyrics excerpt",
+      "hint": "Pick up to {{max}} lines.",
+      "counter": "{{selected}} / {{max}}",
+      "empty": "Pick a line to preview the card.",
+      "previewAlt": "Card preview",
+      "linesLabel": "Lyrics lines",
+      "eyebrow": "Lyrics"
+    }
   },
   "duplicates": {
     "title": "Duplicates detected",
@@ -2627,7 +2644,10 @@
       "canReach": "Can reach:",
       "installAria": "Install {{name}}",
       "updateAria": "Update {{name}}",
-      "allInstalled": "Everything in the store is already installed."
+      "allInstalled": "Everything in the store is already installed.",
+      "search": "Search plugins",
+      "clearSearch": "Clear search",
+      "noMatch": "No plugin matches “{{query}}”."
     },
     "motionArtwork": {
       "title": "Animated artwork",

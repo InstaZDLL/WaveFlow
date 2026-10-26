@@ -52,6 +52,7 @@ import {
   type AlbumRow,
   type ArtistRow,
 } from "../../lib/tauri/browse";
+import { useAlbumArtistContextMenu } from "../../hooks/useAlbumArtistContextMenu";
 
 interface TopBarProps {
   activeView: ViewId;
@@ -295,6 +296,10 @@ export function TopBar({
     closeSearch();
   };
 
+  // Right-click on an artist or album result: pin it to the sidebar.
+  const resultMenu = useAlbumArtistContextMenu();
+  const resultMenuOpen = resultMenu.isOpen;
+
   const handleAlbumResultClick = (id: number) => {
     remember(resultsQueryRef.current);
     onNavigateToAlbum(id);
@@ -354,13 +359,18 @@ export function TopBar({
   useEffect(() => {
     if (!isSearchOpen && !filtersOpen) return;
     const handleClick = (e: MouseEvent) => {
+      // A result's right-click menu is portalled out of the dropdown;
+      // choosing in it is not a click away from the results.
+      if ((e.target as Element | null)?.closest?.("[data-context-menu]"))
+        return;
       if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
         setIsSearchOpen(false);
         setFiltersOpen(false);
       }
     };
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
+      // Escape closes the result's menu first, and only that.
+      if (e.key === "Escape" && !resultMenuOpen) {
         setIsSearchOpen(false);
         setFiltersOpen(false);
       }
@@ -371,7 +381,7 @@ export function TopBar({
       document.removeEventListener("mousedown", handleClick);
       document.removeEventListener("keydown", handleKey);
     };
-  }, [isSearchOpen, filtersOpen]);
+  }, [isSearchOpen, filtersOpen, resultMenuOpen]);
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -760,6 +770,10 @@ export function TopBar({
                           <button
                             type="button"
                             onClick={() => handleArtistResultClick(artist.id)}
+                            {...resultMenu.bind({
+                              kind: "artist",
+                              id: artist.id,
+                            })}
                             className="flex w-full items-center space-x-3 px-4 py-2.5 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800/60 cursor-pointer transition-colors"
                           >
                             <Artwork
@@ -786,6 +800,10 @@ export function TopBar({
                           <button
                             type="button"
                             onClick={() => handleAlbumResultClick(album.id)}
+                            {...resultMenu.bind({
+                              kind: "album",
+                              id: album.id,
+                            })}
                             className="flex w-full items-center space-x-3 px-4 py-2.5 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800/60 cursor-pointer transition-colors"
                           >
                             <Artwork
@@ -1000,6 +1018,7 @@ export function TopBar({
           </AnimatePresence>
         </div>
       </div>
+      {resultMenu.render()}
     </header>
   );
 }

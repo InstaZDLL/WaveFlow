@@ -41,6 +41,7 @@ import { formatDuration } from "../../lib/tauri/track";
  *  full queue takes over: a double album would otherwise fill the panel. */
 const ALBUM_REST_SHOWN = 12;
 import { startRadio } from "../../lib/tauri/radio";
+import { useAlbumArtistContextMenu } from "../../hooks/useAlbumArtistContextMenu";
 
 interface NowPlayingPanelProps {
   onNavigateToArtist: (artistId: number) => void;
@@ -79,6 +80,8 @@ export function NowPlayingPanel({
 
   // Enrichment (picture + bio) for the current artist. Re-fetched
   // whenever the primary artist_id changes.
+  // Right-click on the About-the-artist row: pin the artist.
+  const artistMenu = useAlbumArtistContextMenu();
   const [pictureSrc, setPictureSrc] = useState<string | null>(null);
   // Full-res artist photo for the cover slideshow (issue #466) — derived from
   // the SAME enrichment as `pictureSrc` (which resolves 1x for the bio
@@ -760,7 +763,15 @@ export function NowPlayingPanel({
               <h3 className="text-[10px] font-bold tracking-widest uppercase text-zinc-400">
                 {t("nowPlaying.aboutArtist")}
               </h3>
-              <div className="flex items-center space-x-3">
+              <div
+                className="flex items-center space-x-3"
+                {...(!isRemote && currentTrack?.artist_id != null
+                  ? artistMenu.bind({
+                      kind: "artist",
+                      id: currentTrack.artist_id,
+                    })
+                  : {})}
+              >
                 {pictureSrc ? (
                   <img
                     src={pictureSrc}
@@ -834,6 +845,7 @@ export function NowPlayingPanel({
       <div className="h-full">
         {body}
         {lightbox}
+        {artistMenu.render()}
       </div>
     );
   }
@@ -848,6 +860,7 @@ export function NowPlayingPanel({
     >
       {body}
       {lightbox}
+      {artistMenu.render()}
     </motion.aside>
   );
 }

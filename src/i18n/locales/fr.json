@@ -248,6 +248,13 @@
       "playlistSubtextPending_one": "{{count}} titre · pas encore envoyée",
       "playlistSubtextPending_other": "{{count}} titres · pas encore envoyée",
       "playlistSubtextPending_many": "{{count}} titres · pas encore envoyée"
+    },
+    "pins": {
+      "title": "Épinglés",
+      "pin": "Épingler dans la barre latérale",
+      "unpin": "Désépingler",
+      "album": "Album",
+      "artist": "Artiste"
     }
   },
   "topbar": {
@@ -1628,7 +1635,17 @@
     "toast": {
       "tagWriteSkipped": "TTML conservé en base (non écrit dans le tag audio)"
     },
-    "excludedGenre": "Les paroles ne sont pas cherchées en ligne pour le genre {{genre}} (Paramètres → Paroles). Vous pouvez importer un fichier .lrc ou chercher quand même."
+    "excludedGenre": "Les paroles ne sont pas cherchées en ligne pour le genre {{genre}} (Paramètres → Paroles). Vous pouvez importer un fichier .lrc ou chercher quand même.",
+    "share": {
+      "open": "Partager un extrait",
+      "title": "Partager un extrait des paroles",
+      "hint": "Choisissez jusqu'à {{max}} lignes.",
+      "counter": "{{selected}} / {{max}}",
+      "empty": "Choisissez une ligne pour voir la carte.",
+      "previewAlt": "Aperçu de la carte",
+      "linesLabel": "Lignes des paroles",
+      "eyebrow": "Paroles"
+    }
   },
   "smartPlaylistEditor": {
     "createTitle": "Nouvelle playlist intelligente",
@@ -2692,7 +2709,10 @@
       "canReach": "Peut accéder à :",
       "installAria": "Installer {{name}}",
       "updateAria": "Mettre à jour {{name}}",
-      "allInstalled": "Tout ce que propose le magasin est déjà installé."
+      "allInstalled": "Tout ce que propose le magasin est déjà installé.",
+      "search": "Rechercher un plugin",
+      "clearSearch": "Effacer la recherche",
+      "noMatch": "Aucun plugin ne correspond à « {{query}} »."
     },
     "motionArtwork": {
       "title": "Pochettes animées",

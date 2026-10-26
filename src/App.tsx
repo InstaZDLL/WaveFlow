@@ -6,6 +6,7 @@ import { PlayerProvider } from "./contexts/PlayerContext";
 import { ProfileProvider } from "./contexts/ProfileContext";
 import { LibraryProvider } from "./contexts/LibraryContext";
 import { PlaylistProvider } from "./contexts/PlaylistContext";
+import { SidebarPinsProvider } from "./contexts/SidebarPinsContext";
 import { RemoteSourceProvider } from "./contexts/RemoteSourceContext";
 import { AppLayout } from "./components/layout/AppLayout";
 import { AccentSync } from "./components/common/AccentSync";
@@ -39,17 +40,21 @@ export default function App() {
             <SkinProvider>
               <LibraryProvider>
                 <PlaylistProvider>
-                  <PlayerProvider>
-                    {/* One owner of the remote-source state so a single
+                  {/* One read of the sidebar pins per change, for the
+                      sidebar, the playlist menus and the grids alike. */}
+                  <SidebarPinsProvider>
+                    <PlayerProvider>
+                      {/* One owner of the remote-source state so a single
                     `waveflow:remote-changed` event fans out one refresh
                     to every consumer (sidebar, create-playlist modal). */}
-                    <RemoteSourceProvider>
-                      {/* Under PlayerProvider: the cover accent follows
+                      <RemoteSourceProvider>
+                        {/* Under PlayerProvider: the cover accent follows
                         the playing track. */}
-                      <AccentSync />
-                      <AppLayout />
-                    </RemoteSourceProvider>
-                  </PlayerProvider>
+                        <AccentSync />
+                        <AppLayout />
+                      </RemoteSourceProvider>
+                    </PlayerProvider>
+                  </SidebarPinsProvider>
                 </PlaylistProvider>
               </LibraryProvider>
             </SkinProvider>

@@ -242,6 +242,13 @@
       "playlistSubtextPending_zero": "0 Titel · noch nicht gesendet",
       "playlistSubtextPending_one": "{{count}} Titel · noch nicht gesendet",
       "playlistSubtextPending_other": "{{count}} Titel · noch nicht gesendet"
+    },
+    "pins": {
+      "title": "Angeheftet",
+      "pin": "An Seitenleiste anheften",
+      "unpin": "Lösen",
+      "album": "Album",
+      "artist": "Künstler"
     }
   },
   "topbar": {
@@ -1574,7 +1581,17 @@
     "toast": {
       "tagWriteSkipped": "TTML nur in der Datenbank gespeichert (nicht in den Audio-Tag geschrieben)"
     },
-    "excludedGenre": "Für das Genre {{genre}} werden keine Songtexte online gesucht (Einstellungen → Songtexte). Du kannst eine .lrc-Datei importieren oder trotzdem suchen."
+    "excludedGenre": "Für das Genre {{genre}} werden keine Songtexte online gesucht (Einstellungen → Songtexte). Du kannst eine .lrc-Datei importieren oder trotzdem suchen.",
+    "share": {
+      "open": "Auszug teilen",
+      "title": "Songtext-Auszug teilen",
+      "hint": "Wähle bis zu {{max}} Zeilen.",
+      "counter": "{{selected}} / {{max}}",
+      "empty": "Wähle eine Zeile, um die Karte zu sehen.",
+      "previewAlt": "Kartenvorschau",
+      "linesLabel": "Songtextzeilen",
+      "eyebrow": "Songtext"
+    }
   },
   "duplicates": {
     "title": "Duplikate erkannt",
@@ -2627,7 +2644,10 @@
       "canReach": "Kann zugreifen auf:",
       "installAria": "{{name}} installieren",
       "updateAria": "{{name}} aktualisieren",
-      "allInstalled": "Alles aus dem Store ist bereits installiert."
+      "allInstalled": "Alles aus dem Store ist bereits installiert.",
+      "search": "Plugins durchsuchen",
+      "clearSearch": "Suche löschen",
+      "noMatch": "Kein Plugin passt zu „{{query}}“."
     },
     "motionArtwork": {
       "title": "Animierte Cover",

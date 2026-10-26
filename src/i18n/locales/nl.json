@@ -242,6 +242,13 @@
       "playlistSubtextPending_zero": "0 nummers · nog niet verstuurd",
       "playlistSubtextPending_one": "{{count}} nummer · nog niet verstuurd",
       "playlistSubtextPending_other": "{{count}} nummers · nog niet verstuurd"
+    },
+    "pins": {
+      "title": "Vastgezet",
+      "pin": "Vastzetten in zijbalk",
+      "unpin": "Losmaken",
+      "album": "Album",
+      "artist": "Artiest"
     }
   },
   "topbar": {
@@ -1574,7 +1581,17 @@
     "toast": {
       "tagWriteSkipped": "TTML alleen in de database bewaard (niet naar de audiotag geschreven)"
     },
-    "excludedGenre": "Voor het genre {{genre}} worden songteksten niet online gezocht (Instellingen → Songteksten). Je kunt een .lrc-bestand importeren of toch zoeken."
+    "excludedGenre": "Voor het genre {{genre}} worden songteksten niet online gezocht (Instellingen → Songteksten). Je kunt een .lrc-bestand importeren of toch zoeken.",
+    "share": {
+      "open": "Fragment delen",
+      "title": "Songtekstfragment delen",
+      "hint": "Kies tot {{max}} regels.",
+      "counter": "{{selected}} / {{max}}",
+      "empty": "Kies een regel om de kaart te zien.",
+      "previewAlt": "Voorbeeld van de kaart",
+      "linesLabel": "Songtekstregels",
+      "eyebrow": "Songtekst"
+    }
   },
   "duplicates": {
     "title": "Duplicaten gevonden",
@@ -2627,7 +2644,10 @@
       "canReach": "Heeft toegang tot:",
       "installAria": "{{name}} installeren",
       "updateAria": "{{name}} bijwerken",
-      "allInstalled": "Alles uit de winkel is al geïnstalleerd."
+      "allInstalled": "Alles uit de winkel is al geïnstalleerd.",
+      "search": "Plug-ins zoeken",
+      "clearSearch": "Zoekopdracht wissen",
+      "noMatch": "Geen plug-in komt overeen met ‘{{query}}’."
     },
     "motionArtwork": {
       "title": "Bewegende hoezen",

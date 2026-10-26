@@ -813,6 +813,10 @@ export function AppLayout() {
                 navigateToRemotePlaylist={navigateToRemotePlaylist}
                 activePluginId={activePluginId}
                 navigateToPluginUi={navigateToPluginUi}
+                activeAlbumId={activeAlbumId}
+                navigateToAlbum={navigateToAlbum}
+                activeArtistId={activeArtistId}
+                navigateToArtist={navigateToArtist}
                 collapsed={sidebarMode === "icons"}
               />
             </motion.div>

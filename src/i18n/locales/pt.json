@@ -248,6 +248,13 @@
       "playlistSubtextPending_one": "{{count}} faixa · ainda não enviada",
       "playlistSubtextPending_other": "{{count}} faixas · ainda não enviada",
       "playlistSubtextPending_many": "{{count}} faixas · ainda não enviada"
+    },
+    "pins": {
+      "title": "Afixados",
+      "pin": "Afixar na barra lateral",
+      "unpin": "Desafixar",
+      "album": "Álbum",
+      "artist": "Artista"
     }
   },
   "topbar": {
@@ -1629,7 +1636,17 @@
     "toast": {
       "tagWriteSkipped": "TTML guardado apenas na base de dados (não escrito nas etiquetas do ficheiro de áudio)"
     },
-    "excludedGenre": "As letras não são procuradas online para o género {{genre}} (Definições → Letras). Podes importar um ficheiro .lrc ou procurar na mesma."
+    "excludedGenre": "As letras não são procuradas online para o género {{genre}} (Definições → Letras). Podes importar um ficheiro .lrc ou procurar na mesma.",
+    "share": {
+      "open": "Partilhar um excerto",
+      "title": "Partilhar um excerto da letra",
+      "hint": "Escolha até {{max}} linhas.",
+      "counter": "{{selected}} / {{max}}",
+      "empty": "Escolha uma linha para ver o cartão.",
+      "previewAlt": "Pré-visualização do cartão",
+      "linesLabel": "Linhas da letra",
+      "eyebrow": "Letra"
+    }
   },
   "duplicates": {
     "title": "Duplicados detetados",
@@ -2693,7 +2710,10 @@
       "canReach": "Pode aceder a:",
       "installAria": "Instalar {{name}}",
       "updateAria": "Atualizar {{name}}",
-      "allInstalled": "Tudo o que há na loja já está instalado."
+      "allInstalled": "Tudo o que há na loja já está instalado.",
+      "search": "Pesquisar plugins",
+      "clearSearch": "Limpar a pesquisa",
+      "noMatch": "Nenhum plugin corresponde a «{{query}}»."
     },
     "motionArtwork": {
       "title": "Capas animadas",

@@ -242,6 +242,13 @@
       "playlistSubtextPending_zero": "0곡 · 아직 보내지 않음",
       "playlistSubtextPending_one": "{{count}}곡 · 아직 보내지 않음",
       "playlistSubtextPending_other": "{{count}}곡 · 아직 보내지 않음"
+    },
+    "pins": {
+      "title": "고정됨",
+      "pin": "사이드바에 고정",
+      "unpin": "고정 해제",
+      "album": "앨범",
+      "artist": "아티스트"
     }
   },
   "topbar": {
@@ -1572,7 +1579,17 @@
     "toast": {
       "tagWriteSkipped": "TTML은 데이터베이스에만 저장되었습니다(오디오 태그에는 기록되지 않음)"
     },
-    "excludedGenre": "{{genre}} 장르는 온라인에서 가사를 검색하지 않습니다(설정 → 가사). .lrc 파일을 가져오거나 그래도 검색할 수 있습니다."
+    "excludedGenre": "{{genre}} 장르는 온라인에서 가사를 검색하지 않습니다(설정 → 가사). .lrc 파일을 가져오거나 그래도 검색할 수 있습니다.",
+    "share": {
+      "open": "발췌 공유",
+      "title": "가사 발췌 공유",
+      "hint": "최대 {{max}}줄까지 고르세요.",
+      "counter": "{{selected}} / {{max}}",
+      "empty": "줄을 고르면 카드를 미리 볼 수 있습니다.",
+      "previewAlt": "카드 미리보기",
+      "linesLabel": "가사 줄",
+      "eyebrow": "가사"
+    }
   },
   "duplicates": {
     "title": "중복 파일 감지됨",
@@ -2625,7 +2642,10 @@
       "canReach": "접근 가능:",
       "installAria": "{{name}} 설치",
       "updateAria": "{{name}} 업데이트",
-      "allInstalled": "스토어의 모든 항목이 이미 설치되어 있습니다."
+      "allInstalled": "스토어의 모든 항목이 이미 설치되어 있습니다.",
+      "search": "플러그인 검색",
+      "clearSearch": "검색 지우기",
+      "noMatch": "“{{query}}”와(과) 일치하는 플러그인이 없습니다."
     },
     "motionArtwork": {
       "title": "모션 커버",

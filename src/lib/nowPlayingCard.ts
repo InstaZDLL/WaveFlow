@@ -3,6 +3,7 @@ import { resolveRemoteImage } from "./tauri/artwork";
 import { dominantColor } from "./dominantColor";
 import {
   canvasToPng,
+  cardEyebrow,
   darken,
   drawCard,
   drawRoundedImage,
@@ -120,7 +121,7 @@ export async function renderNowPlayingCard(
   ctx.font =
     "600 28px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText(opts.labels.nowPlaying.toUpperCase(), SIZE / 2, 80);
+  ctx.fillText(cardEyebrow(opts.labels.nowPlaying), SIZE / 2, 80);
 
   // ----- Cover (centerpiece) ------------------------------------------
   const coverSize = 580;
