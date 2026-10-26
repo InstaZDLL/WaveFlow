@@ -1642,38 +1642,48 @@ function SettingsViewContent({
     persistDlna({ ...dlnaConfig, enabled: !dlnaConfig.enabled });
   }, [dlnaConfig, persistDlna]);
 
-  const persistMpd = useCallback(async (next: MpdConfig) => {
-    mpdTouchedRef.current = true;
-    const seq = ++mpdWriteSeqRef.current;
-    setMpdConfig(next);
-    // Chain each save so concurrent toggle/onBlur writes reach the backend in
-    // order; only the latest revision commits its side effects.
-    const run = mpdWriteChainRef.current.then(async () => {
-      try {
-        const status = await mpdSetConfig(next);
-        if (seq !== mpdWriteSeqRef.current) return false;
-        mpdConfirmedRef.current = next;
-        setMpdStatus(status);
-        setMpdSaveFailed(false);
-        return true;
-      } catch (err) {
-        // The error is the backend's; the config — password included — is
-        // never logged.
-        console.error("[SettingsView] mpd set", err);
-        if (seq !== mpdWriteSeqRef.current) return false;
-        // Restore the last backend-confirmed config so a failed set doesn't
-        // leave the optimistic value displayed as if it took.
-        if (mpdConfirmedRef.current) setMpdConfig(mpdConfirmedRef.current);
-        setMpdSaveFailed(true);
-        return false;
-      }
-    });
-    mpdWriteChainRef.current = run.then(
-      () => undefined,
-      () => undefined,
-    );
-    return run;
-  }, []);
+  // `optimistic: false` shows `next` only once the backend took it — for a
+  // generated password, which must never be on screen unless it is the one
+  // the server now asks for.
+  const persistMpd = useCallback(
+    async (next: MpdConfig, { optimistic = true } = {}) => {
+      mpdTouchedRef.current = true;
+      const seq = ++mpdWriteSeqRef.current;
+      setMpdSaveFailed(false);
+      if (optimistic) setMpdConfig(next);
+      // Chain each save so concurrent toggle/onBlur writes reach the backend
+      // in order; only the latest revision commits its side effects.
+      const run = mpdWriteChainRef.current.then(async () => {
+        try {
+          const status = await mpdSetConfig(next);
+          // The writes are serialized, so every success — the latest or
+          // not — is what the backend now holds, and what a later failure
+          // has to roll back to.
+          mpdConfirmedRef.current = next;
+          if (seq !== mpdWriteSeqRef.current) return false;
+          if (!optimistic) setMpdConfig(next);
+          setMpdStatus(status);
+          return true;
+        } catch (err) {
+          // The error is the backend's; the config — password included — is
+          // never logged.
+          console.error("[SettingsView] mpd set", err);
+          if (seq !== mpdWriteSeqRef.current) return false;
+          // Restore the last backend-confirmed config so a failed set doesn't
+          // leave the optimistic value displayed as if it took.
+          if (mpdConfirmedRef.current) setMpdConfig(mpdConfirmedRef.current);
+          setMpdSaveFailed(true);
+          return false;
+        }
+      });
+      mpdWriteChainRef.current = run.then(
+        () => undefined,
+        () => undefined,
+      );
+      return run;
+    },
+    [],
+  );
 
   const handleToggleMpd = useCallback(() => {
     // Switching on is when the server starts answering the whole network,
@@ -1682,16 +1692,19 @@ function SettingsViewContent({
     persistMpd({ ...mpdConfig, enabled: !mpdConfig.enabled });
   }, [mpdConfig, persistMpd]);
 
-  // Saved first, through the same path as a typed password: shown and
-  // announced only once the backend confirmed it, rolled back otherwise.
+  // Saved first, through the same path as a typed password, and put in the
+  // field only once the backend confirmed it. The suggestion it came from
+  // unmounts with the password set, so focus moves to the field that now
+  // holds it.
   const handleGenerateMpdPassword = useCallback(async () => {
-    const saved = await persistMpd({
-      ...mpdConfig,
-      password: generatePassword(),
-    });
+    const saved = await persistMpd(
+      { ...mpdConfig, password: generatePassword() },
+      { optimistic: false },
+    );
     if (!saved) return;
     setMpdPasswordVisible(true);
     setMpdPasswordGenerated(true);
+    mpdPasswordInputRef.current?.focus();
   }, [mpdConfig, persistMpd]);
 
   const handleMpdCopyAddress = useCallback(() => {
@@ -3923,6 +3936,18 @@ function SettingsViewContent({
                         />
                       </div>
 
+                      {/* Outside the enabled block: a switch-on that fails
+                      rolls `enabled` back, and the reason must not vanish
+                      with the block. */}
+                      {mpdSaveFailed && (
+                        <div
+                          role="alert"
+                          className="mt-2 text-xs text-rose-500 break-words"
+                        >
+                          {t("settings.integrations.mpd.saveFailed")}
+                        </div>
+                      )}
+
                       {mpdConfig.enabled && (
                         <div className="mt-3 space-y-3">
                           {/* The LAN exposure is stated plainly rather than
@@ -3984,7 +4009,10 @@ function SettingsViewContent({
                                   </button>
                                   <button
                                     type="button"
-                                    onClick={() => setMpdSuggestDismissed(true)}
+                                    onClick={() => {
+                                      setMpdSuggestDismissed(true);
+                                      mpdPasswordInputRef.current?.focus();
+                                    }}
                                     className="px-3 py-1 text-xs rounded-lg text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
                                   >
                                     {t(
@@ -4085,7 +4113,6 @@ function SettingsViewContent({
                                         "settings.integrations.mpd.showPassword",
                                       )
                                 }
-                                aria-pressed={mpdPasswordVisible}
                                 className="absolute inset-y-0 right-0 px-2 flex items-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
                               >
                                 {mpdPasswordVisible ? (
@@ -4096,7 +4123,10 @@ function SettingsViewContent({
                               </button>
                             </div>
                           </div>
-                          <div className="text-xs settings-description">
+                          <div
+                            aria-live="polite"
+                            className="text-xs settings-description"
+                          >
                             {mpdPasswordGenerated && mpdConfig.password
                               ? t("settings.integrations.mpd.generatedHint")
                               : t("settings.integrations.mpd.passwordHint")}
@@ -4143,14 +4173,6 @@ function SettingsViewContent({
                           {mpdStatus?.last_error && (
                             <div className="text-xs text-rose-500 break-words">
                               {mpdStatus.last_error}
-                            </div>
-                          )}
-                          {mpdSaveFailed && (
-                            <div
-                              role="alert"
-                              className="text-xs text-rose-500 break-words"
-                            >
-                              {t("settings.integrations.mpd.saveFailed")}
                             </div>
                           )}
                         </div>
