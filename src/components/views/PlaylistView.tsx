@@ -1868,6 +1868,8 @@ export function PlaylistView({
           onAfterRemoveFromPlaylist={(removedIds) => {
             const removed = new Set(removedIds);
             setTracks((prev) => prev.filter((t) => !removed.has(t.id)));
+            // The placeholders beside them moved on the backend.
+            if (playlistId != null) reloadPlaceholders(playlistId);
           }}
         />
       )}

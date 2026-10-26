@@ -402,6 +402,24 @@ pub async fn remove_playlist_placeholder(
     Ok(())
 }
 
+/// A fingerprint of the tracks a folder makes available — how many, and
+/// which. A scan that leaves it as it was, and adds or rewrites nothing,
+/// brought no track a placeholder could be waiting for. `None` when it
+/// cannot be read, which never equals a value read.
+pub(crate) async fn available_in_folder(
+    pool: &sqlx::SqlitePool,
+    folder_id: i64,
+) -> Option<(i64, i64)> {
+    sqlx::query_as(
+        "SELECT COUNT(*), COALESCE(SUM(id), 0) FROM track
+          WHERE folder_id = ? AND is_available = 1",
+    )
+    .bind(folder_id)
+    .fetch_one(pool)
+    .await
+    .ok()
+}
+
 /// Fill the placeholders the scan just brought tracks for, and say which
 /// playlists changed. Never fails the scan: an index that indexed every
 /// track correctly is not undone by a playlist that could not be updated.
