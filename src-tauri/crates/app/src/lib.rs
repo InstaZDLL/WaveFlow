@@ -1024,6 +1024,7 @@ pub fn run() {
             commands::dlna::dlna_get_config,
             commands::dlna::dlna_set_config,
             commands::dlna::dlna_get_status,
+            commands::dlna::dlna_set_labels,
             commands::plugins::list_installed_plugins,
             commands::plugins::get_plugin_info,
             commands::plugins::set_plugin_enabled,

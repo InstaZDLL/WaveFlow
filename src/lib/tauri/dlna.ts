@@ -31,3 +31,17 @@ export function dlnaSetConfig(cfg: DlnaConfig): Promise<DlnaStatus> {
 export function dlnaGetStatus(): Promise<DlnaStatus> {
   return invoke<DlnaStatus>("dlna_get_status");
 }
+
+/// Mirrors `dlna::cds::RootLabels`: the titles of the top-level
+/// folders a DLNA controller shows.
+export interface DlnaLabels {
+  artists: string;
+  albums: string;
+  genres: string;
+  playlists: string;
+  folders: string;
+}
+
+export function dlnaSetLabels(labels: DlnaLabels): Promise<void> {
+  return invoke<void>("dlna_set_labels", { labels });
+}
