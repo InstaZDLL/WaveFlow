@@ -20,7 +20,7 @@ import {
   ReplayGainPreview,
 } from "./settings/settingsPreviews";
 import { ThemePickerCard } from "./settings/ThemePickerCard";
-import { createPortal } from "react-dom";
+import { createPortal, flushSync } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { useSortIgnoreArticles } from "../../hooks/useSortIgnoreArticles";
 import {
@@ -1759,7 +1759,9 @@ function SettingsViewContent({
         { optimistic: false },
       );
     } finally {
-      setMpdGenerating(false);
+      // Rendered now rather than batched: the field is disabled while a
+      // password is generated, and a disabled field takes no focus.
+      flushSync(() => setMpdGenerating(false));
     }
     if (!saved) return;
     setMpdPasswordVisible(true);
