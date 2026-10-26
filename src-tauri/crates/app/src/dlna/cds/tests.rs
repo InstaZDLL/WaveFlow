@@ -1,3 +1,4 @@
+use super::didl::format_duration_hms;
 use super::*;
 
 #[test]
