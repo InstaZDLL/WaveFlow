@@ -3199,7 +3199,7 @@
         "offline": "Mode offline aktif.",
         "unreachable": "Stasiun tidak merespons di alamat ini.",
         "notAudio": "Alamat ini tidak mengarah ke stream audio.",
-        "hls": "Aliran HLS ini terenkripsi atau berformat MP4 terfragmentasi, yang tidak dapat diputar WaveFlow.",
+        "hls": "Aliran HLS ini memakai format yang tidak dapat diputar WaveFlow (enkripsi, MP4 terfragmentasi, atau rentang byte).",
         "noStream": "Playlist tidak berisi stream http:// atau https://.",
         "notSaved": "Favorit Anda belum dimuat; coba lagi sebentar lagi."
       }

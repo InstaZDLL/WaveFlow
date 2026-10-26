@@ -3201,7 +3201,7 @@
         "offline": "Çevrimdışı mod açık.",
         "unreachable": "İstasyon bu adreste yanıt vermiyor.",
         "notAudio": "Bu adres bir ses yayınına çıkmıyor.",
-        "hls": "Bu HLS akışı şifreli veya parçalı MP4 biçiminde; WaveFlow bunu çalamaz.",
+        "hls": "Bu HLS akışı WaveFlow'un çalamadığı bir biçim kullanıyor (şifreleme, parçalı MP4 veya bayt aralıkları).",
         "noStream": "Listede http:// ya da https:// yayını yok.",
         "notSaved": "Favorileriniz henüz yüklenmedi; birazdan yeniden deneyin."
       }

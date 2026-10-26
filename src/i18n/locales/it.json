@@ -3270,7 +3270,7 @@
         "offline": "La modalità offline è attiva.",
         "unreachable": "La stazione non risponde a questo indirizzo.",
         "notAudio": "Questo indirizzo non porta a un flusso audio.",
-        "hls": "Questo flusso HLS è cifrato o in MP4 frammentato, che WaveFlow non sa riprodurre.",
+        "hls": "Questo flusso HLS usa un formato che WaveFlow non sa riprodurre (cifratura, MP4 frammentato o intervalli di byte).",
         "noStream": "La playlist non contiene alcun flusso http:// o https://.",
         "notSaved": "I preferiti non sono ancora caricati; riprova tra un momento."
       }

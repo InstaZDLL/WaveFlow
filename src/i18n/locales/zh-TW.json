@@ -3199,7 +3199,7 @@
         "offline": "離線模式已開啟。",
         "unreachable": "此位址上的電台沒有回應。",
         "notAudio": "此位址不指向音訊串流。",
-        "hls": "此 HLS 串流已加密或為分段 MP4，WaveFlow 無法播放。",
+        "hls": "此 HLS 串流使用了 WaveFlow 無法播放的格式（加密、分段 MP4 或位元組範圍）。",
         "noStream": "播放清單中沒有 http:// 或 https:// 串流。",
         "notSaved": "收藏尚未載入，請稍後再試。"
       }

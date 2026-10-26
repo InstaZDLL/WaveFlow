@@ -1505,6 +1505,10 @@ fn play_dop_track(
                 std::thread::sleep(TAIL_POLL);
                 continue;
             }
+            // A command already waiting goes first — see the PCM path.
+            if !cmd_rx.is_empty() {
+                continue;
+            }
             ended_naturally = true;
             break 'pkt;
         }
@@ -2180,6 +2184,14 @@ fn play_track(
                         last_position_emit = Instant::now();
                     }
                     std::thread::sleep(TAIL_POLL);
+                    continue;
+                }
+                // A command already waiting — another track, a stop — is
+                // served first, at the top of the loop. A live station
+                // released for it (`live::release_starved_reader`) reads as
+                // ended, and declaring that end would put a track-ended and
+                // an advance ahead of what the user just asked for.
+                if !cmd_rx.is_empty() {
                     continue;
                 }
                 ended_naturally = true;

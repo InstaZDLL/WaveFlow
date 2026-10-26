@@ -110,6 +110,8 @@ pub enum HlsError {
     Encrypted,
     #[error("the segments are fragmented MP4")]
     FragmentedMp4,
+    #[error("the segments are byte ranges of one file")]
+    ByteRange,
     #[error("the playlist names nothing to play")]
     Empty,
 }
@@ -213,6 +215,10 @@ pub fn parse(text: &str) -> Result<Playlist, HlsError> {
             }
         } else if line.starts_with("#EXT-X-MAP") {
             return Err(HlsError::FragmentedMp4);
+        } else if line.starts_with("#EXT-X-BYTERANGE") {
+            // Each segment a slice of one file: fetching the URI would
+            // fetch the whole file once per slice.
+            return Err(HlsError::ByteRange);
         } else if line.starts_with("#EXT-X-ENDLIST") {
             out.ended = true;
         } else if let Some(value) = line.strip_prefix("#EXTINF:") {
@@ -296,6 +302,12 @@ mod tests {
         assert_eq!(
             parse("#EXTM3U\n#EXT-X-TARGETDURATION:6\n#EXT-X-MAP:URI=\"init.mp4\"\n#EXTINF:6,\na.m4s\n"),
             Err(HlsError::FragmentedMp4)
+        );
+        assert_eq!(
+            parse(
+                "#EXTM3U\n#EXT-X-TARGETDURATION:6\n#EXTINF:6,\n#EXT-X-BYTERANGE:1000@0\nall.aac\n"
+            ),
+            Err(HlsError::ByteRange)
         );
         assert!(matches!(
             parse("#EXTM3U\n#EXT-X-TARGETDURATION:6\n#EXT-X-KEY:METHOD=NONE\n#EXTINF:6,\na.ts\n"),

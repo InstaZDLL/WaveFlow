@@ -3270,7 +3270,7 @@
         "offline": "Le mode hors ligne est activé.",
         "unreachable": "La station ne répond pas à cette adresse.",
         "notAudio": "Cette adresse ne mène pas à un flux audio.",
-        "hls": "Ce flux HLS est chiffré ou au format MP4 fragmenté : WaveFlow ne sait pas le lire.",
+        "hls": "Ce flux HLS utilise un format que WaveFlow ne sait pas lire (chiffrement, MP4 fragmenté ou plages d'octets).",
         "noStream": "La liste ne contient aucun flux http:// ou https://.",
         "notSaved": "Les favoris ne sont pas encore chargés ; réessayez dans un instant."
       }

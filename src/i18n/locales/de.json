@@ -3201,7 +3201,7 @@
         "offline": "Der Offline-Modus ist aktiv.",
         "unreachable": "Der Sender antwortet unter dieser Adresse nicht.",
         "notAudio": "Diese Adresse führt zu keinem Audiostream.",
-        "hls": "Dieser HLS-Stream ist verschlüsselt oder fragmentiertes MP4, das WaveFlow nicht abspielen kann.",
+        "hls": "Dieser HLS-Stream nutzt ein Format, das WaveFlow nicht abspielen kann (Verschlüsselung, fragmentiertes MP4 oder Byte-Bereiche).",
         "noStream": "Die Playlist enthält keinen http://- oder https://-Stream.",
         "notSaved": "Deine Favoriten sind noch nicht geladen; versuche es gleich noch einmal."
       }

@@ -1419,33 +1419,40 @@ impl AudioEngine {
         );
         // A live station that is reconnecting holds the decoder in a read
         // on an empty buffer; a command that replaces or stops it would
-        // otherwise wait for the station to come back or give up.
-        if matches!(
+        // otherwise wait for the station to come back or give up. Released
+        // after the send, so the command is waiting when the decoder sees
+        // the stream end, and is served before that end is declared.
+        let releases = matches!(
             cmd,
             AudioCmd::LoadAndPlay { .. }
                 | AudioCmd::LoadRemoteFileAndPlay { .. }
                 | AudioCmd::LoadUrlAndPlay { .. }
                 | AudioCmd::Stop
                 | AudioCmd::Shutdown
-        ) {
-            super::live::release_starved_reader();
-        }
+        );
         self.cmd_tx.send(cmd).map_err(|e| {
             // Nothing was queued, so the intent this recorded is one the
             // decoder will never see either.
             self.pause_pending
                 .store(previous, std::sync::atomic::Ordering::Release);
             AppError::Audio(format!("audio command channel closed: {e}"))
-        })
+        })?;
+        if releases {
+            super::live::release_starved_reader();
+        }
+        Ok(())
     }
 
     /// The `Stop` an output rebuild sends straight down the channel, past
     /// [`Self::send`]: a live station reconnecting holds the decoder in a
-    /// read on an empty buffer, released first so the rebuild does not wait
-    /// for the station to come back.
+    /// read on an empty buffer, released once the `Stop` is queued so the
+    /// rebuild does not wait for the station to come back.
     fn stop_for_rebuild(&self) -> Result<(), String> {
+        self.cmd_tx
+            .send(AudioCmd::Stop)
+            .map_err(|e| e.to_string())?;
         super::live::release_starved_reader();
-        self.cmd_tx.send(AudioCmd::Stop).map_err(|e| e.to_string())
+        Ok(())
     }
 
     /// Take the publish lock: hold it across [`Self::claim_dispatch`]

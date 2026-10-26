@@ -3201,7 +3201,7 @@
         "offline": "De offlinemodus staat aan.",
         "unreachable": "De zender reageert niet op dit adres.",
         "notAudio": "Dit adres leidt niet naar een audiostream.",
-        "hls": "Deze HLS-stream is versleuteld of gefragmenteerde MP4, wat WaveFlow niet kan afspelen.",
+        "hls": "Deze HLS-stream gebruikt een formaat dat WaveFlow niet kan afspelen (versleuteling, gefragmenteerde MP4 of bytebereiken).",
         "noStream": "De playlist bevat geen http://- of https://-stream.",
         "notSaved": "Je favorieten zijn nog niet geladen; probeer het zo opnieuw."
       }

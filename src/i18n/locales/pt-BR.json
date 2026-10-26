@@ -3271,7 +3271,7 @@
         "offline": "O modo offline está ativado.",
         "unreachable": "A estação não responde neste endereço.",
         "notAudio": "Este endereço não leva a um stream de áudio.",
-        "hls": "Este stream HLS está criptografado ou em MP4 fragmentado, que o WaveFlow não consegue reproduzir.",
+        "hls": "Este stream HLS usa um formato que o WaveFlow não consegue reproduzir (criptografia, MP4 fragmentado ou intervalos de bytes).",
         "noStream": "A playlist não contém nenhum stream http:// ou https://.",
         "notSaved": "Seus favoritos ainda não carregaram; tente de novo em instantes."
       }

@@ -234,8 +234,8 @@ fn emit_now_playing(station: &Station, raw: Option<&str>) {
     );
 }
 
-/// Says how far behind live the listener is, at most once a second and
-/// only when it changed by a second or more.
+/// Says how far behind live the listener is: at most once a second, when
+/// it changed by a second or more, and every five seconds regardless.
 struct LagReporter {
     station: Station,
     last_sent: Option<(Instant, u64)>,
@@ -258,8 +258,13 @@ impl LagReporter {
         }
         let lag = buffer.lag();
         let behind_ms = lag.behind.as_millis() as u64;
-        if let Some((_, previous)) = self.last_sent {
-            if previous.abs_diff(behind_ms) < 1000 {
+        // Said again every few seconds even when unchanged: a view mounted
+        // after the last change — another layout, the mini-player's window
+        // — has nothing else to learn it from.
+        if let Some((at, previous)) = self.last_sent {
+            if previous.abs_diff(behind_ms) < 1000
+                && now.duration_since(at) < Duration::from_secs(5)
+            {
                 return;
             }
         }

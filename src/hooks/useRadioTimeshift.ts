@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { usePlayer } from "./usePlayer";
 import { isRadioTrack } from "../lib/playerSources";
@@ -14,6 +14,37 @@ interface TimeshiftPayload {
 /** Under this, the listener is live: a station keeps a few seconds of
  *  slack ahead of everyone, and a network hiccup moves it by a second. */
 export const LIVE_THRESHOLD_MS = 3000;
+
+// The last report, kept for the whole webview: a view mounted after it —
+// a layout swapped, the overflow menu opened — reads it at once rather than
+// waiting for the backend to say it again (it does every five seconds).
+let lastReport: TimeshiftPayload | null = null;
+const subscribers = new Set<() => void>();
+let listening = false;
+
+function startListening() {
+  if (listening) return;
+  listening = true;
+  listen<TimeshiftPayload>("player:radio-timeshift", (e) => {
+    lastReport = e.payload;
+    subscribers.forEach((notify) => notify());
+  }).catch((err) => {
+    listening = false;
+    console.error("[useRadioTimeshift] listen failed", err);
+  });
+}
+
+function subscribe(notify: () => void) {
+  startListening();
+  subscribers.add(notify);
+  return () => {
+    subscribers.delete(notify);
+  };
+}
+
+function snapshot() {
+  return lastReport;
+}
 
 export interface RadioTimeshift {
   /** Whether a live station is what plays now. */
@@ -39,43 +70,12 @@ export function useRadioTimeshift(): RadioTimeshift {
   const { currentTrack, currentRadioStation } = usePlayer();
   const isRadio = isRadioTrack(currentTrack);
   const trackId = currentTrack?.id ?? null;
-  const [state, setState] = useState<{
-    trackId: number;
-    behindMs: number;
-    capacityMs: number | null;
-  } | null>(null);
-
-  useEffect(() => {
-    let unlisten: (() => void) | undefined;
-    let cancelled = false;
-    (async () => {
-      try {
-        const off = await listen<TimeshiftPayload>(
-          "player:radio-timeshift",
-          (e) => {
-            setState({
-              trackId: e.payload.track_id,
-              behindMs: e.payload.behind_ms,
-              capacityMs: e.payload.capacity_ms,
-            });
-          },
-        );
-        if (cancelled) off();
-        else unlisten = off;
-      } catch (err) {
-        console.error("[useRadioTimeshift] listen failed", err);
-      }
-    })();
-    return () => {
-      cancelled = true;
-      unlisten?.();
-    };
-  }, []);
+  const report = useSyncExternalStore(subscribe, snapshot);
 
   // Only what was said about the station playing now counts: a station
   // played again starts live, whatever the previous one reported.
-  const reported = isRadio && state?.trackId === trackId ? state : null;
-  const behindMs = reported?.behindMs ?? 0;
+  const reported = isRadio && report?.track_id === trackId ? report : null;
+  const behindMs = reported?.behind_ms ?? 0;
 
   const goLive = useCallback(async () => {
     const station = currentRadioStation;
@@ -91,7 +91,7 @@ export function useRadioTimeshift(): RadioTimeshift {
   return {
     isRadio,
     behindMs,
-    capacityMs: reported?.capacityMs ?? null,
+    capacityMs: reported?.capacity_ms ?? null,
     isBehind: behindMs >= LIVE_THRESHOLD_MS,
     goLive,
   };
