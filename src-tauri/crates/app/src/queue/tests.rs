@@ -1,3 +1,5 @@
+use super::remove::cursor_after_removal;
+use super::shuffle::{album_runs, QueuedAlbumTrack};
 use super::*;
 
 #[test]
