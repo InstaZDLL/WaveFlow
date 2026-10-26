@@ -32,6 +32,10 @@ pub struct Spectrogram {
     pub rows: usize,
     /// Audio covered by one column, in seconds.
     pub seconds_per_column: f64,
+    /// Audio covered by the whole picture, in seconds: the last column
+    /// is usually only partly filled, so this is not `columns ×
+    /// seconds_per_column`.
+    pub duration_seconds: f64,
     /// Column-major, `rows` bytes per column, row 0 = 0 Hz. `0` is
     /// [`RANGE_DB`] or more under the loudest cell, `255` the loudest.
     pub cells: Vec<u8>,
@@ -51,6 +55,8 @@ pub(crate) struct SpectrogramRecorder {
     max_columns: usize,
     acc: Vec<f64>,
     in_column: usize,
+    /// Frames pushed in all.
+    frames: u64,
     /// Mean power per row, column after column.
     power: Vec<f64>,
 }
@@ -69,6 +75,7 @@ impl SpectrogramRecorder {
             max_columns: max_columns.max(2),
             acc: vec![0.0; ROWS],
             in_column: 0,
+            frames: 0,
             power: Vec::new(),
         }
     }
@@ -83,6 +90,7 @@ impl SpectrogramRecorder {
             *acc += bins[lo.min(hi)..hi].iter().sum::<f64>() / per_row as f64;
         }
         self.in_column += 1;
+        self.frames += 1;
         if self.in_column == self.frames_per_column {
             self.flush();
         }
@@ -131,6 +139,12 @@ impl SpectrogramRecorder {
     /// `None` when not one frame was recorded.
     pub(crate) fn finish(mut self) -> Option<Spectrogram> {
         self.flush();
+        // The last flush can tip the picture over the cap, and halving
+        // then hands an odd column back to the accumulator: flush it
+        // again, or the end of the track would be missing.
+        if self.in_column > 0 {
+            self.flush();
+        }
         if self.power.is_empty() {
             return None;
         }
@@ -149,6 +163,7 @@ impl SpectrogramRecorder {
             columns: self.power.len() / ROWS,
             rows: ROWS,
             seconds_per_column: (self.frames_per_column * self.frame_len) as f64 / self.rate,
+            duration_seconds: (self.frames * self.frame_len as u64) as f64 / self.rate,
             cells,
         })
     }
@@ -187,6 +202,8 @@ mod tests {
         // Nothing above the first row.
         assert_eq!(out.cells[1], 0);
         assert!((out.seconds_per_column - 2.0 * 4096.0 / 44_100.0).abs() < 1e-9);
+        // Three frames, not two full columns' worth.
+        assert!((out.duration_seconds - 3.0 * 4096.0 / 44_100.0).abs() < 1e-9);
     }
 
     #[test]
@@ -216,6 +233,20 @@ mod tests {
         assert_eq!(per_column.round() as usize, 16);
         assert_eq!(out.cells[0], 255);
         assert_eq!(out.cells[(out.columns - 1) * ROWS], 0);
+    }
+
+    #[test]
+    fn the_last_frames_survive_a_final_halving() {
+        // 17 frames, two per column, capped at 8: the closing flush makes
+        // a ninth column and halves.
+        let mut rec = SpectrogramRecorder::new(44_100.0, 4096, 2, 8);
+        for i in 0..17 {
+            rec.push(&vec![if i == 16 { 1.0 } else { 0.0 }; 2049]);
+        }
+        let out = rec.finish().unwrap();
+        // The loud last frame is still in the picture.
+        assert_eq!(out.cells[(out.columns - 1) * ROWS], 255);
+        assert!((out.duration_seconds - 17.0 * 4096.0 / 44_100.0).abs() < 1e-9);
     }
 
     #[test]

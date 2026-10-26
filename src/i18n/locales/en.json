@@ -1305,7 +1305,8 @@
       "failed": "This file could not be decoded.",
       "altCutoff": "The highs stop sharply at {{khz}} kHz. The top of the chart is the Nyquist frequency ({{nyquist}} kHz), the highest this file can hold.",
       "altFull": "No sharp cut: the spectrum fades into the noise floor or runs up to the Nyquist frequency ({{nyquist}} kHz), the highest this file can hold.",
-      "guides": "Thin lines: 16, 19 and 20 kHz, where MP3s at 128, 192 and 320 kbps often stop."
+      "guides": "Thin lines: 16, 19 and 20 kHz, where MP3s at 128, 192 and 320 kbps often stop.",
+      "axisKhz": "{{value}} kHz"
     }
   },
   "selection": {

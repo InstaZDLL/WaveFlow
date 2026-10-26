@@ -52,6 +52,7 @@ pub struct TrackSpectrogram {
     pub columns: usize,
     pub rows: usize,
     pub seconds_per_column: f64,
+    pub duration_seconds: f64,
     /// dB the byte scale spans under the loudest cell.
     pub range_db: f64,
     /// Column-major bytes, `rows` per column, row 0 = 0 Hz, base64.
@@ -88,6 +89,14 @@ impl SpectrogramJobs {
         }
     }
 
+    /// Take the slot for as long as the returned guard lives.
+    fn slot(&self) -> Slot<'_> {
+        Slot {
+            jobs: self,
+            flag: self.begin(),
+        }
+    }
+
     fn cancel(&self) {
         let current = self.current.lock().unwrap_or_else(|e| e.into_inner());
         if let Some(flag) = current.as_ref() {
@@ -108,6 +117,24 @@ impl SpectrogramJobs {
     }
 }
 
+/// The slot held by one request, given back on every way out of it.
+struct Slot<'a> {
+    jobs: &'a SpectrogramJobs,
+    flag: Arc<AtomicBool>,
+}
+
+impl Slot<'_> {
+    fn cancelled(&self) -> bool {
+        self.flag.load(Ordering::Acquire)
+    }
+}
+
+impl Drop for Slot<'_> {
+    fn drop(&mut self) {
+        self.jobs.end(&self.flag);
+    }
+}
+
 /// Draw the spectrogram of a library track. `Ok(None)` when the decode
 /// was stopped — by [`cancel_track_spectrogram`], by the dialog opening on
 /// another track, or from the status bar.
@@ -119,6 +146,10 @@ pub async fn track_spectrogram(
     track_id: i64,
     width: Option<usize>,
 ) -> AppResult<Option<Arc<TrackSpectrogram>>> {
+    // Taken before the first await: a dialog closed while the database or
+    // a sleeping drive answers must find something to cancel, or the
+    // decode would start afterwards with nobody to show it to.
+    let slot = jobs.slot();
     let pool = state.require_profile_pool().await?;
     let row: Option<(String, i64, Option<String>)> =
         sqlx::query_as("SELECT file_path, duration_ms, title FROM track WHERE id = ?")
@@ -129,14 +160,22 @@ pub async fn track_spectrogram(
     let (path, duration_ms, title) =
         row.ok_or_else(|| AppError::Other(format!("track {track_id} not found")))?;
     let path = PathBuf::from(path);
-    let meta = std::fs::metadata(&path)?;
+    let meta = {
+        let path = path.clone();
+        tokio::task::spawn_blocking(move || std::fs::metadata(path))
+            .await
+            .map_err(|e| AppError::Other(format!("spectrogram task panicked: {e}")))??
+    };
     let key: CacheKey = (path.clone(), meta.len(), meta.modified().ok());
     if let Some(picture) = jobs.cached(&key) {
         return Ok(Some(picture));
     }
+    if slot.cancelled() {
+        return Ok(None);
+    }
 
     let width = width.unwrap_or(DEFAULT_WIDTH).clamp(64, 2048);
-    let flag = jobs.begin();
+    let flag = slot.flag.clone();
     let task = tasks::start(
         &app,
         TaskKind::Spectrogram,
@@ -153,9 +192,12 @@ pub async fn track_spectrogram(
     let decode_flag = flag.clone();
     let decode_path = path.clone();
     let result = tokio::task::spawn_blocking(move || {
-        // Progress in steps of 1/200: a packet is a few thousand samples,
-        // and the registry has no use for thousands of updates a second.
-        let mut next_tick = 0u64;
+        // Progress in whole percent of the samples decoded: a packet is a
+        // few thousand samples, the registry has no use for thousands of
+        // updates a second, and the status bar prints the two numbers, which
+        // read better as "40 / 100" than as sample counts. With no length
+        // to divide by, the row stays indeterminate.
+        let mut last_percent = None;
         spectrogram_file(
             &decode_path,
             width,
@@ -165,10 +207,14 @@ pub async fn track_spectrogram(
                     .map(|ms| ms * u64::from(rate) / 1000)
             },
             |done, total| {
-                if let Some(task) = task.as_ref() {
-                    if total == 0 || done >= next_tick {
-                        task.progress(done.min(total), total);
-                        next_tick = done + total / 200;
+                if let Some(task) = task.as_ref().filter(|_| total > 0) {
+                    // 99 at most while decoding: a declared length can be
+                    // short, and a full bar would be a promise the decode
+                    // has not kept yet. The row retires when it ends.
+                    let percent = (done.min(total) * 100 / total).min(99);
+                    if last_percent != Some(percent) {
+                        task.progress(percent, 100);
+                        last_percent = Some(percent);
                     }
                 }
                 !decode_flag.load(Ordering::Acquire)
@@ -177,7 +223,7 @@ pub async fn track_spectrogram(
     })
     .await
     .map_err(|e| AppError::Other(format!("spectrogram task panicked: {e}")));
-    jobs.end(&flag);
+    drop(slot);
 
     let (picture, bandwidth) = match result? {
         Ok(pair) => pair,
@@ -189,6 +235,7 @@ pub async fn track_spectrogram(
         columns: picture.columns,
         rows: picture.rows,
         seconds_per_column: picture.seconds_per_column,
+        duration_seconds: picture.duration_seconds,
         range_db: waveflow_core::analysis::spectrogram::RANGE_DB,
         cells: base64::engine::general_purpose::STANDARD.encode(&picture.cells),
         cutoff_hz: bandwidth.and_then(|b| b.cutoff_hz),
@@ -235,6 +282,7 @@ mod tests {
                 columns,
                 rows: 256,
                 seconds_per_column: 0.1,
+                duration_seconds: 1.0,
                 range_db: 120.0,
                 cells: String::new(),
                 cutoff_hz: None,

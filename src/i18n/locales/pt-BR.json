@@ -1351,7 +1351,8 @@
       "failed": "Não foi possível decodificar este arquivo.",
       "altCutoff": "Os agudos param de forma abrupta em {{khz}} kHz. O topo do gráfico é a frequência de Nyquist ({{nyquist}} kHz), o mais agudo que este arquivo pode conter.",
       "altFull": "Sem corte abrupto: o espectro some no ruído de fundo ou vai até a frequência de Nyquist ({{nyquist}} kHz), o mais agudo que este arquivo pode conter.",
-      "guides": "Linhas finas: 16, 19 e 20 kHz, onde MP3 de 128, 192 e 320 kbps costumam parar."
+      "guides": "Linhas finas: 16, 19 e 20 kHz, onde MP3 de 128, 192 e 320 kbps costumam parar.",
+      "axisKhz": "{{value}} kHz"
     }
   },
   "selection": {

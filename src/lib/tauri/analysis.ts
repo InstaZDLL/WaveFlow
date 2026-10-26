@@ -109,6 +109,8 @@ export interface TrackSpectrogram {
   columns: number;
   rows: number;
   secondsPerColumn: number;
+  /** Audio the picture covers; the last column is usually partial. */
+  durationSeconds: number;
   rangeDb: number;
   cells: string;
   /** The wall the same decode measured, in Hz; `null` for none. */

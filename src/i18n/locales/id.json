@@ -1303,7 +1303,8 @@
       "failed": "Berkas ini tidak dapat didekode.",
       "altCutoff": "Nada tinggi berhenti tajam di {{khz}} kHz. Bagian atas grafik adalah frekuensi Nyquist ({{nyquist}} kHz), yang tertinggi yang bisa dimuat berkas ini.",
       "altFull": "Tidak ada potongan tajam: spektrum memudar ke derau latar atau berlanjut hingga frekuensi Nyquist ({{nyquist}} kHz), yang tertinggi yang bisa dimuat berkas ini.",
-      "guides": "Garis tipis: 16, 19, dan 20 kHz, tempat MP3 128, 192, dan 320 kbps sering berhenti."
+      "guides": "Garis tipis: 16, 19, dan 20 kHz, tempat MP3 128, 192, dan 320 kbps sering berhenti.",
+      "axisKhz": "{{value}} kHz"
     }
   },
   "selection": {

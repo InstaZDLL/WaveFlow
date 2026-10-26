@@ -1350,7 +1350,8 @@
       "failed": "Impossible de décoder ce fichier.",
       "altCutoff": "Les aigus s'arrêtent net à {{khz}} kHz. Le haut du graphique est la fréquence de Nyquist ({{nyquist}} kHz), le plus aigu que ce fichier puisse contenir.",
       "altFull": "Pas de coupure nette : le spectre s'éteint dans le bruit de fond ou va jusqu'à la fréquence de Nyquist ({{nyquist}} kHz), le plus aigu que ce fichier puisse contenir.",
-      "guides": "Lignes fines : 16, 19 et 20 kHz, où s'arrêtent souvent les MP3 à 128, 192 et 320 kbit/s."
+      "guides": "Lignes fines : 16, 19 et 20 kHz, où s'arrêtent souvent les MP3 à 128, 192 et 320 kbit/s.",
+      "axisKhz": "{{value}} kHz"
     }
   },
   "selection": {

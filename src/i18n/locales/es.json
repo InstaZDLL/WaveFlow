@@ -1350,7 +1350,8 @@
       "failed": "No se pudo decodificar este archivo.",
       "altCutoff": "Los agudos se cortan en seco a {{khz}} kHz. La parte superior del gráfico es la frecuencia de Nyquist ({{nyquist}} kHz), lo más agudo que puede contener este archivo.",
       "altFull": "Sin corte brusco: el espectro se apaga en el ruido de fondo o llega hasta la frecuencia de Nyquist ({{nyquist}} kHz), lo más agudo que puede contener este archivo.",
-      "guides": "Líneas finas: 16, 19 y 20 kHz, donde suelen cortarse los MP3 a 128, 192 y 320 kbps."
+      "guides": "Líneas finas: 16, 19 y 20 kHz, donde suelen cortarse los MP3 a 128, 192 y 320 kbps.",
+      "axisKhz": "{{value}} kHz"
     }
   },
   "selection": {

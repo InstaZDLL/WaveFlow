@@ -1305,7 +1305,8 @@
       "failed": "Bu dosya çözülemedi.",
       "altCutoff": "Tizler {{khz}} kHz'de keskin biçimde kesiliyor. Grafiğin üstü Nyquist frekansıdır ({{nyquist}} kHz), bu dosyanın içerebileceği en yüksek frekans.",
       "altFull": "Keskin bir kesim yok: spektrum taban gürültüsünde sönüyor ya da Nyquist frekansına ({{nyquist}} kHz), bu dosyanın içerebileceği en yüksek frekansa kadar uzanıyor.",
-      "guides": "İnce çizgiler: 128, 192 ve 320 kbps MP3'lerin sıkça kesildiği 16, 19 ve 20 kHz."
+      "guides": "İnce çizgiler: 128, 192 ve 320 kbps MP3'lerin sıkça kesildiği 16, 19 ve 20 kHz.",
+      "axisKhz": "{{value}} kHz"
     }
   },
   "selection": {

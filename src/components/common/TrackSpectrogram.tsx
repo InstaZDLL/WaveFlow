@@ -170,7 +170,9 @@ export function TrackSpectrogramPanel({ trackId }: { trackId: number }) {
     ? layoutLabels([
         {
           key: "nyquist",
-          text: `${khz.format(nyquist / 1000)} kHz`,
+          text: t("trackProperties.spectrogram.axisKhz", {
+            value: khz.format(nyquist / 1000),
+          }),
           y: 0,
           cutoff: false,
         },
@@ -185,14 +187,16 @@ export function TrackSpectrogramPanel({ trackId }: { trackId: number }) {
           )
           .map((m) => ({
             key: `${m.kind}-${m.hz}`,
-            text: `${khz.format(m.hz / 1000)} kHz`,
+            text: t("trackProperties.spectrogram.axisKhz", {
+              value: khz.format(m.hz / 1000),
+            }),
             y: yOf(m.hz),
             cutoff: m.kind === "cutoff",
           })),
         { key: "zero", text: "0", y: CHART_PX, cutoff: false },
       ])
     : [];
-  const duration = picture ? picture.columns * picture.secondsPerColumn : 0;
+  const duration = picture?.durationSeconds ?? 0;
   const percent =
     task && task.total > 0
       ? Math.min(100, Math.round((task.current / task.total) * 100))
@@ -273,7 +277,7 @@ export function TrackSpectrogramPanel({ trackId }: { trackId: number }) {
           <div className="flex gap-2">
             {/* Frequency axis: label positions follow the linear scale. */}
             <div
-              className="relative h-44 w-14 shrink-0 text-[10px] tabular-nums text-zinc-500 dark:text-zinc-400"
+              className="relative h-44 w-20 shrink-0 text-[10px] tabular-nums text-zinc-500 dark:text-zinc-400"
               aria-hidden="true"
             >
               {labels.map((label) => (
@@ -312,7 +316,7 @@ export function TrackSpectrogramPanel({ trackId }: { trackId: number }) {
             </div>
           </div>
           <div
-            className="ml-16 mt-1 flex justify-between text-[10px] tabular-nums text-zinc-500 dark:text-zinc-400"
+            className="ms-[5.5rem] mt-1 flex justify-between text-[10px] tabular-nums text-zinc-500 dark:text-zinc-400"
             aria-hidden="true"
           >
             <span>0:00</span>

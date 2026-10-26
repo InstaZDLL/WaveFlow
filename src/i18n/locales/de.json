@@ -1305,7 +1305,8 @@
       "failed": "Diese Datei konnte nicht dekodiert werden.",
       "altCutoff": "Die Höhen brechen bei {{khz}} kHz scharf ab. Der obere Rand des Diagramms ist die Nyquist-Frequenz ({{nyquist}} kHz), das Höchste, was diese Datei enthalten kann.",
       "altFull": "Kein scharfer Schnitt: Das Spektrum verläuft im Grundrauschen oder reicht bis zur Nyquist-Frequenz ({{nyquist}} kHz), dem Höchsten, was diese Datei enthalten kann.",
-      "guides": "Dünne Linien: 16, 19 und 20 kHz, wo MP3s mit 128, 192 und 320 kbit/s oft enden."
+      "guides": "Dünne Linien: 16, 19 und 20 kHz, wo MP3s mit 128, 192 und 320 kbit/s oft enden.",
+      "axisKhz": "{{value}} kHz"
     }
   },
   "selection": {

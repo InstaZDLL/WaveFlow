@@ -1305,7 +1305,8 @@
       "failed": "Dit bestand kon niet worden gedecodeerd.",
       "altCutoff": "De hoge tonen houden scherp op bij {{khz}} kHz. De bovenkant van de grafiek is de Nyquist-frequentie ({{nyquist}} kHz), het hoogste dat dit bestand kan bevatten.",
       "altFull": "Geen scherpe grens: het spectrum dooft uit in de ruisvloer of loopt door tot de Nyquist-frequentie ({{nyquist}} kHz), het hoogste dat dit bestand kan bevatten.",
-      "guides": "Dunne lijnen: 16, 19 en 20 kHz, waar mp3's van 128, 192 en 320 kbps vaak ophouden."
+      "guides": "Dunne lijnen: 16, 19 en 20 kHz, waar mp3's van 128, 192 en 320 kbps vaak ophouden.",
+      "axisKhz": "{{value}} kHz"
     }
   },
   "selection": {
