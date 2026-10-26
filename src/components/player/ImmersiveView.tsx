@@ -277,9 +277,11 @@ export function ImmersiveView({
       "bool",
     )
       .then(() => window.dispatchEvent(new CustomEvent(IMMERSIVE_PREFS_EVENT)))
-      .catch((err) =>
-        console.error("[ImmersiveView] save theater mode failed", err),
-      );
+      .catch((err) => {
+        console.error("[ImmersiveView] save theater mode failed", err);
+        // Back to what is stored, which the failed write did not change.
+        setTheaterOverride(null);
+      });
   };
 
   // Entering theater mode opens the panel on the tracklist — unless the
@@ -299,7 +301,9 @@ export function ImmersiveView({
   // and the pointer (CSS on `data-idle`); any of them brings them back.
   // Focus goes back to the view itself, so the key that wakes it reaches
   // the shortcuts — Space, the arrows, what a remote sends — rather than
-  // pressing an unseen button or jumping to a focused tracklist row.
+  // pressing an unseen button or jumping to a focused tracklist row. Not
+  // from a dialog or a menu opened over the view (the Canvas picker):
+  // that one is being read, and keeps its focus.
   const [idle, setIdle] = useState(false);
   useEffect(() => {
     if (!theater) return;
@@ -309,7 +313,14 @@ export function ImmersiveView({
       timer = window.setTimeout(() => {
         setIdle(true);
         const view = dialogRef.current;
-        if (view && view !== document.activeElement) {
+        const focused = document.activeElement;
+        if (
+          view &&
+          focused instanceof HTMLElement &&
+          focused !== view &&
+          view.contains(focused) &&
+          focused.closest('[role="dialog"], [role="menu"]') === view
+        ) {
           view.focus({ preventScroll: true });
         }
       }, THEATER_IDLE_MS);
