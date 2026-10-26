@@ -1029,11 +1029,13 @@ async fn browse_album_tracks(
     ))
 }
 
-/// A genre's tracks, grouped as a shelf is: by artist, then album,
-/// then running order, so queueing the whole genre plays albums
-/// through rather than shuffling them. The album id keeps two albums
-/// that share a title (an artist's own "Greatest Hits" and a
-/// compilation of the same name) apart.
+/// A genre's tracks, grouped as a shelf is: by album artist, then
+/// album, then running order, so queueing the whole genre plays albums
+/// through rather than shuffling them. The album's artist, not the
+/// track's: a compilation's tracks each name a different one and would
+/// scatter among them. The album id keeps two albums that share a
+/// title (an artist's own "Greatest Hits" and a compilation of the same
+/// name) apart.
 async fn browse_genre_tracks(
     ctx: &ServerCtx,
     base: &str,
@@ -1052,8 +1054,9 @@ async fn browse_genre_tracks(
     .await?;
     let rows: Vec<TrackRow> = sqlx::query_as(track_select!(
         "JOIN track_genre tg ON tg.track_id = t.id
+         LEFT JOIN artist aa ON aa.id = al.artist_id
          WHERE tg.genre_id = ? AND t.is_available = 1
-         ORDER BY ar.canonical_name, al.canonical_title, al.id,
+         ORDER BY aa.canonical_name, al.canonical_title, al.id,
                   t.disc_number, t.track_number, t.id
          LIMIT ? OFFSET ?"
     ))
@@ -1822,29 +1825,34 @@ mod tests {
         assert_eq!(children(&ctx, "0/genres/2", 0, 0).await.total_matches, 0);
     }
 
-    /// An artist's own album and a compilation that share a title stay
-    /// two blocks in a genre: running order alone would deal their
-    /// track 1s, then their track 2s.
+    /// A genre plays each album through. A compilation under Various
+    /// Artists that shares a title with an artist's own album stays one
+    /// block: sorted by the track's artist, its track by Aphex would
+    /// open the genre, and running order alone would deal the two
+    /// albums' track 1s, then their track 2s.
     #[tokio::test]
-    async fn a_genre_keeps_two_albums_of_one_title_apart() {
+    async fn a_genre_keeps_each_album_in_one_block() {
         let ctx = ctx().await;
-        sqlx::query(
-            "INSERT INTO album (id, title, canonical_title, is_compilation)
-             VALUES (2, 'Vespertine', 'vespertine', 1)",
-        )
-        .execute(&ctx.pool)
-        .await
-        .unwrap();
-        for (id, number) in [(7, 1), (8, 2)] {
+        for sql in [
+            "INSERT INTO artist (id, name, canonical_name)
+             VALUES (2, 'Various Artists', 'various artists')",
+            "INSERT INTO artist (id, name, canonical_name) VALUES (3, 'Aphex', 'aphex')",
+            "INSERT INTO album (id, title, canonical_title, artist_id, is_compilation)
+             VALUES (2, 'Vespertine', 'vespertine', 2, 1)",
+        ] {
+            sqlx::query(sql).execute(&ctx.pool).await.unwrap();
+        }
+        for (id, number, artist) in [(7, 1, 3), (8, 2, 1)] {
             sqlx::query(
                 "INSERT INTO track (id, library_id, file_path, file_hash, file_size,
                                     file_modified, title, album_id, primary_artist,
                                     track_number, duration_ms, added_at)
-                 VALUES (?, 1, ?, 'h', 1, 0, ?, 2, 1, ?, 1000, 0)",
+                 VALUES (?, 1, ?, 'h', 1, 0, ?, 2, ?, ?, 1000, 0)",
             )
             .bind(id)
             .bind(path(&["m", "Comp", &format!("{number}.flac")]))
             .bind(format!("T{id}"))
+            .bind(artist)
             .bind(number)
             .execute(&ctx.pool)
             .await

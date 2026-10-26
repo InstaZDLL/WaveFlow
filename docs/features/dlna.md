@@ -42,7 +42,7 @@ Object IDs are **string prefixes**, routed by [`cds.rs`](../../src-tauri/crates/
 ├─ 0/albums             All albums (paginated)
 │  └─ 0/albums/<id>     Tracks for that album (items)
 ├─ 0/genres             Genres holding at least one available track
-│  └─ 0/genres/<id>     Tracks of that genre, by artist, album, then running order
+│  └─ 0/genres/<id>     Tracks of that genre, by album artist, album, then running order
 ├─ 0/playlists          All playlists, in the sidebar's order (smart ones included)
 │  └─ 0/playlists/<id>  Tracks of that playlist, in its order
 └─ 0/folders            The library folders, each titled with its full path
