@@ -17,6 +17,12 @@ on:
   pull_request_target:
     types: [opened, synchronize]
 
+# One run per PR at a time: two pushes in quick succession would
+# otherwise race, and the older run could land its labels last.
+concurrency:
+  group: label-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
   pull-requests: write
