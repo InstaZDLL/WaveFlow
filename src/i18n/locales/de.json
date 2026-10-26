@@ -1574,7 +1574,17 @@
     "toast": {
       "tagWriteSkipped": "TTML nur in der Datenbank gespeichert (nicht in den Audio-Tag geschrieben)"
     },
-    "excludedGenre": "Für das Genre {{genre}} werden keine Songtexte online gesucht (Einstellungen → Songtexte). Du kannst eine .lrc-Datei importieren oder trotzdem suchen."
+    "excludedGenre": "Für das Genre {{genre}} werden keine Songtexte online gesucht (Einstellungen → Songtexte). Du kannst eine .lrc-Datei importieren oder trotzdem suchen.",
+    "share": {
+      "open": "Auszug teilen",
+      "title": "Songtext-Auszug teilen",
+      "hint": "Wähle bis zu {{max}} Zeilen.",
+      "counter": "{{selected}} / {{max}}",
+      "empty": "Wähle eine Zeile, um die Karte zu sehen.",
+      "previewAlt": "Kartenvorschau",
+      "linesLabel": "Songtextzeilen",
+      "eyebrow": "Songtext"
+    }
   },
   "duplicates": {
     "title": "Duplikate erkannt",

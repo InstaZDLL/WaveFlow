@@ -1628,7 +1628,17 @@
     "toast": {
       "tagWriteSkipped": "TTML conservé en base (non écrit dans le tag audio)"
     },
-    "excludedGenre": "Les paroles ne sont pas cherchées en ligne pour le genre {{genre}} (Paramètres → Paroles). Vous pouvez importer un fichier .lrc ou chercher quand même."
+    "excludedGenre": "Les paroles ne sont pas cherchées en ligne pour le genre {{genre}} (Paramètres → Paroles). Vous pouvez importer un fichier .lrc ou chercher quand même.",
+    "share": {
+      "open": "Partager un extrait",
+      "title": "Partager un extrait des paroles",
+      "hint": "Choisissez jusqu'à {{max}} lignes.",
+      "counter": "{{selected}} / {{max}}",
+      "empty": "Choisissez une ligne pour voir la carte.",
+      "previewAlt": "Aperçu de la carte",
+      "linesLabel": "Lignes des paroles",
+      "eyebrow": "Paroles"
+    }
   },
   "smartPlaylistEditor": {
     "createTitle": "Nouvelle playlist intelligente",

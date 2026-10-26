@@ -1629,7 +1629,17 @@
     "toast": {
       "tagWriteSkipped": "TTML mantido apenas no banco de dados (não gravado na tag de áudio)"
     },
-    "excludedGenre": "As letras não são buscadas online para o gênero {{genre}} (Configurações → Letras). Você pode importar um arquivo .lrc ou buscar mesmo assim."
+    "excludedGenre": "As letras não são buscadas online para o gênero {{genre}} (Configurações → Letras). Você pode importar um arquivo .lrc ou buscar mesmo assim.",
+    "share": {
+      "open": "Compartilhar um trecho",
+      "title": "Compartilhar um trecho da letra",
+      "hint": "Escolha até {{max}} linhas.",
+      "counter": "{{selected}} / {{max}}",
+      "empty": "Escolha uma linha para ver o cartão.",
+      "previewAlt": "Prévia do cartão",
+      "linesLabel": "Linhas da letra",
+      "eyebrow": "Letra"
+    }
   },
   "duplicates": {
     "title": "Duplicatas detectadas",

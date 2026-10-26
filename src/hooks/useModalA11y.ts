@@ -18,6 +18,13 @@ import { useEffect, useLayoutEffect, useRef } from "react";
  * Returns a ref the caller attaches to the modal's container — the
  * element whose subtree should hold the focus.
  */
+/** The modals open right now, the innermost last. Every one listens on
+ *  `document`, where a `stopPropagation` cannot keep the others from
+ *  hearing the same key: only the top one may answer Escape and trap Tab,
+ *  or a dialog opened over another (an excerpt picker over the immersive
+ *  view) closes both. */
+const openModals: symbol[] = [];
+
 export function useModalA11y<T extends HTMLElement>(
   isOpen: boolean,
   onClose: () => void,
@@ -49,7 +56,11 @@ export function useModalA11y<T extends HTMLElement>(
       window.setTimeout(() => first.focus(), 0);
     }
 
+    const token = Symbol("modal");
+    openModals.push(token);
+
     const onKeyDown = (e: KeyboardEvent) => {
+      if (openModals[openModals.length - 1] !== token) return;
       if (e.key === "Escape") {
         e.stopPropagation();
         onCloseRef.current();
@@ -78,6 +89,7 @@ export function useModalA11y<T extends HTMLElement>(
     document.addEventListener("keydown", onKeyDown);
     return () => {
       document.removeEventListener("keydown", onKeyDown);
+      openModals.splice(openModals.indexOf(token), 1);
       // Restore focus on close. Guarded against the previous element
       // being detached (e.g. a context menu that spawned the modal
       // and then re-rendered).

@@ -1574,7 +1574,17 @@
     "toast": {
       "tagWriteSkipped": "TTML kept in the database only (not written to the audio tag)"
     },
-    "excludedGenre": "Lyrics aren't searched online for the {{genre}} genre (Settings → Lyrics). You can import a .lrc file or search anyway."
+    "excludedGenre": "Lyrics aren't searched online for the {{genre}} genre (Settings → Lyrics). You can import a .lrc file or search anyway.",
+    "share": {
+      "open": "Share an excerpt",
+      "title": "Share a lyrics excerpt",
+      "hint": "Pick up to {{max}} lines.",
+      "counter": "{{selected}} / {{max}}",
+      "empty": "Pick a line to preview the card.",
+      "previewAlt": "Card preview",
+      "linesLabel": "Lyrics lines",
+      "eyebrow": "Lyrics"
+    }
   },
   "duplicates": {
     "title": "Duplicates detected",

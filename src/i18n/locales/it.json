@@ -1628,7 +1628,17 @@
     "toast": {
       "tagWriteSkipped": "TTML salvato solo nel database (non scritto nel tag audio)"
     },
-    "excludedGenre": "I testi non vengono cercati online per il genere {{genre}} (Impostazioni → Testi). Puoi importare un file .lrc o cercare comunque."
+    "excludedGenre": "I testi non vengono cercati online per il genere {{genre}} (Impostazioni → Testi). Puoi importare un file .lrc o cercare comunque.",
+    "share": {
+      "open": "Condividi un estratto",
+      "title": "Condividi un estratto del testo",
+      "hint": "Scegli fino a {{max}} righe.",
+      "counter": "{{selected}} / {{max}}",
+      "empty": "Scegli una riga per vedere la scheda.",
+      "previewAlt": "Anteprima della scheda",
+      "linesLabel": "Righe del testo",
+      "eyebrow": "Testo"
+    }
   },
   "duplicates": {
     "title": "Duplicati rilevati",

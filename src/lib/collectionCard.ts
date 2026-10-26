@@ -1,6 +1,7 @@
 import { dominantColor } from "./dominantColor";
 import {
   canvasToPng,
+  cardEyebrow,
   cardFont,
   darken,
   drawCard,
@@ -128,7 +129,7 @@ export async function renderCollectionCard(
   ctx.textAlign = "left";
   ctx.fillStyle = "rgba(255,255,255,0.7)";
   ctx.font = cardFont(600, 26);
-  ctx.fillText(opts.labels.eyebrow.toUpperCase(), tx, py + 70);
+  ctx.fillText(cardEyebrow(opts.labels.eyebrow), tx, py + 70);
 
   ctx.fillStyle = "#fff";
   ctx.font = cardFont(800, 60);
