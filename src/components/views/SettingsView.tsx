@@ -1552,6 +1552,10 @@ function SettingsViewContent({
   // rolled-back value to speak for itself.
   const [mpdSaveFailed, setMpdSaveFailed] = useState(false);
   const mpdPasswordInputRef = useRef<HTMLInputElement>(null);
+  // A generated password is not in `mpdConfig` until the backend took it,
+  // so any other save sent meanwhile would carry the old password and
+  // overwrite it. The card's controls wait for the generation instead.
+  const [mpdGenerating, setMpdGenerating] = useState(false);
 
   useEffect(() => {
     getDiscordRpcEnabled()
@@ -1697,10 +1701,16 @@ function SettingsViewContent({
   // unmounts with the password set, so focus moves to the field that now
   // holds it.
   const handleGenerateMpdPassword = useCallback(async () => {
-    const saved = await persistMpd(
-      { ...mpdConfig, password: generatePassword() },
-      { optimistic: false },
-    );
+    setMpdGenerating(true);
+    let saved: boolean;
+    try {
+      saved = await persistMpd(
+        { ...mpdConfig, password: generatePassword() },
+        { optimistic: false },
+      );
+    } finally {
+      setMpdGenerating(false);
+    }
     if (!saved) return;
     setMpdPasswordVisible(true);
     setMpdPasswordGenerated(true);
@@ -3931,7 +3941,7 @@ function SettingsViewContent({
                         <ToggleSwitch
                           enabled={mpdConfig.enabled}
                           onToggle={handleToggleMpd}
-                          disabled={!mpdHydrated}
+                          disabled={!mpdHydrated || mpdGenerating}
                           label={t("settings.integrations.mpd.title")}
                         />
                       </div>
@@ -3987,10 +3997,11 @@ function SettingsViewContent({
                                 <div className="flex flex-wrap gap-2">
                                   <button
                                     type="button"
+                                    disabled={mpdGenerating}
                                     onClick={() =>
                                       void handleGenerateMpdPassword()
                                     }
-                                    className="px-3 py-1 text-xs rounded-lg bg-emerald-500 text-white hover:bg-emerald-600"
+                                    className="px-3 py-1 text-xs rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed"
                                   >
                                     {t(
                                       "settings.integrations.mpd.suggestGenerate",
@@ -4036,7 +4047,7 @@ function SettingsViewContent({
                               min={1}
                               max={65535}
                               step={1}
-                              disabled={!mpdHydrated}
+                              disabled={!mpdHydrated || mpdGenerating}
                               value={mpdConfig.port}
                               onChange={(e) =>
                                 setMpdConfig({
@@ -4086,7 +4097,7 @@ function SettingsViewContent({
                                 type={mpdPasswordVisible ? "text" : "password"}
                                 autoComplete="new-password"
                                 spellCheck={false}
-                                disabled={!mpdHydrated}
+                                disabled={!mpdHydrated || mpdGenerating}
                                 value={mpdConfig.password}
                                 placeholder={t(
                                   "settings.integrations.mpd.passwordPlaceholder",
