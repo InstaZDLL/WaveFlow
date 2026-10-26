@@ -995,6 +995,7 @@ pub fn run() {
             commands::mood_radio::track_mood_overrides,
             commands::mood_radio::set_mood_override,
             commands::mood_radio::list_mood_overrides,
+            commands::disk_usage::disk_usage,
             commands::mpd::mpd_get_config,
             commands::mpd::mpd_set_config,
             commands::mpd::mpd_get_status,

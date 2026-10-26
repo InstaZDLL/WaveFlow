@@ -2870,7 +2870,8 @@
         "skin": "Estilo",
         "display": "Legibilidad",
         "window": "Ventanas",
-        "lyricsDisplay": "Visualización de letras"
+        "lyricsDisplay": "Visualización de letras",
+        "diskUsage": "Espacio en disco"
       },
       "navHints": {
         "general": "Idioma, inicio, reproducción",
@@ -2918,7 +2919,8 @@
         "cleanup": "Miniaturas y portadas en caché",
         "updates": "Versiones estables o beta",
         "diagnostics": "Registros y renderizado gráfico",
-        "reset": "Volver a empezar con la aplicación como nueva"
+        "reset": "Volver a empezar con la aplicación como nueva",
+        "diskUsage": "Lo que WaveFlow guarda en este equipo"
       }
     },
     "desktopLyrics": {
@@ -3019,6 +3021,73 @@
       "shared": {
         "label": "Salida compartida",
         "hint": "El sonido pasa por el mezclador del sistema, junto con el de las demás aplicaciones. Ideal para el día a día."
+      }
+    },
+    "diskUsage": {
+      "total": "WaveFlow ocupa {{size}} en este equipo.",
+      "measuring": "Midiendo…",
+      "refresh": "Medir de nuevo",
+      "failed": "No se pudo medir el espacio en disco.",
+      "rebuildableTitle": "Se reconstruye solo",
+      "rebuildableHint": "Vaciar no hace perder nada: estos archivos se vuelven a obtener cuando hace falta.",
+      "keptTitle": "Tus datos",
+      "keptHint": "Nada de esto se reconstruye solo: cada elemento se gestiona desde su propia sección.",
+      "empty": "Vaciar",
+      "confirmEmpty": "Confirmar",
+      "emptyLabel": "Vaciar: {{item}}",
+      "items": {
+        "artwork": {
+          "label": "Portadas de la biblioteca",
+          "description": "Portadas de los álbumes de este perfil y sus miniaturas. Las que no se usan se eliminan en «{{section}}»."
+        },
+        "metadataArtwork": {
+          "label": "Imágenes descargadas",
+          "description": "Fotos de artistas y portadas obtenidas en línea, compartidas por todos los perfiles."
+        },
+        "motionCache": {
+          "label": "Portadas animadas",
+          "description": "Obtenidas por los complementos, se vuelven a descargar cuando hace falta."
+        },
+        "canvasCache": {
+          "label": "Clips de Canvas",
+          "description": "Obtenidos por los complementos, se vuelven a descargar cuando hace falta."
+        },
+        "remoteArtwork": {
+          "label": "Portadas del servidor",
+          "description": "Miniaturas de tu servidor, se vuelven a descargar cuando hace falta."
+        },
+        "remoteStream": {
+          "label": "Pistas del servidor en caché",
+          "description": "Guardadas tras escucharlas, se vuelven a descargar la próxima vez."
+        },
+        "remoteDownloads": {
+          "label": "Pistas del servidor sin conexión",
+          "description": "Las que elegiste guardar sin conexión. Se quitan desde la pista o el álbum."
+        },
+        "manualMedia": {
+          "label": "Medios elegidos a mano",
+          "description": "Portadas animadas y clips de Canvas que definiste tú."
+        },
+        "databases": {
+          "label": "Bases de datos",
+          "description": "Biblioteca, listas, historial y ajustes de todos los perfiles."
+        },
+        "databaseSnapshots": {
+          "label": "Copias previas a actualizaciones",
+          "description": "Tomadas antes de cada actualización de una base de datos; solo se guardan las últimas."
+        },
+        "backups": {
+          "label": "Copias de seguridad",
+          "description": "Archivos de las copias automáticas y manuales."
+        },
+        "logs": {
+          "label": "Registros",
+          "description": "Registros de diagnóstico de los últimos días."
+        },
+        "plugins": {
+          "label": "Complementos",
+          "description": "Complementos instalados y sus datos."
+        }
       }
     }
   },
@@ -3405,7 +3474,8 @@
       "upload": "Subida",
       "backup": "Copia de seguridad",
       "thumbnails": "Miniaturas",
-      "drop_import": "Copia a la biblioteca"
+      "drop_import": "Copia a la biblioteca",
+      "cache_move": "Moviendo las cachés"
     }
   },
   "smartRuleSummary": {

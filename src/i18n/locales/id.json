@@ -2803,7 +2803,8 @@
         "skin": "Gaya antarmuka",
         "display": "Keterbacaan",
         "window": "Jendela",
-        "lyricsDisplay": "Tampilan lirik"
+        "lyricsDisplay": "Tampilan lirik",
+        "diskUsage": "Ruang disk"
       },
       "navHints": {
         "general": "Bahasa, mulai, pemutaran",
@@ -2851,7 +2852,8 @@
         "cleanup": "Gambar mini dan sampul dalam cache",
         "updates": "Versi stabil atau beta",
         "diagnostics": "Log dan rendering grafis",
-        "reset": "Mulai lagi dengan aplikasi yang bersih"
+        "reset": "Mulai lagi dengan aplikasi yang bersih",
+        "diskUsage": "Apa yang disimpan WaveFlow di komputer ini"
       }
     },
     "desktopLyrics": {
@@ -2949,6 +2951,73 @@
       "shared": {
         "label": "Keluaran bersama",
         "hint": "Suara melewati mixer sistem, bersama suara aplikasi lain. Ideal untuk sehari-hari."
+      }
+    },
+    "diskUsage": {
+      "total": "WaveFlow memakai {{size}} di komputer ini.",
+      "measuring": "Mengukur…",
+      "refresh": "Ukur lagi",
+      "failed": "Ruang disk tidak dapat diukur.",
+      "rebuildableTitle": "Terbangun ulang sendiri",
+      "rebuildableHint": "Mengosongkan tidak menghilangkan apa pun: berkas ini diambil lagi saat diperlukan.",
+      "keptTitle": "Data Anda",
+      "keptHint": "Tidak ada di sini yang terbangun ulang sendiri: tiap item dikelola dari bagiannya sendiri.",
+      "empty": "Kosongkan",
+      "confirmEmpty": "Konfirmasi",
+      "emptyLabel": "Kosongkan: {{item}}",
+      "items": {
+        "artwork": {
+          "label": "Sampul pustaka",
+          "description": "Sampul album profil ini dan gambar kecilnya. Sampul yang tak terpakai dihapus di “{{section}}”."
+        },
+        "metadataArtwork": {
+          "label": "Gambar yang diunduh",
+          "description": "Foto artis dan sampul yang diambil daring, dipakai bersama semua profil."
+        },
+        "motionCache": {
+          "label": "Sampul animasi",
+          "description": "Diambil oleh plugin, diunduh lagi saat diperlukan."
+        },
+        "canvasCache": {
+          "label": "Klip Canvas",
+          "description": "Diambil oleh plugin, diunduh lagi saat diperlukan."
+        },
+        "remoteArtwork": {
+          "label": "Sampul server",
+          "description": "Gambar kecil dari server Anda, diunduh lagi saat diperlukan."
+        },
+        "remoteStream": {
+          "label": "Lagu server di cache",
+          "description": "Disimpan setelah diputar, diunduh lagi saat diputar berikutnya."
+        },
+        "remoteDownloads": {
+          "label": "Lagu server luring",
+          "description": "Yang Anda pilih untuk disimpan luring. Dihapus dari lagu atau albumnya."
+        },
+        "manualMedia": {
+          "label": "Media pilihan sendiri",
+          "description": "Sampul animasi dan klip Canvas yang Anda atur sendiri."
+        },
+        "databases": {
+          "label": "Basis data",
+          "description": "Pustaka, playlist, riwayat, dan pengaturan semua profil."
+        },
+        "databaseSnapshots": {
+          "label": "Salinan sebelum peningkatan",
+          "description": "Dibuat sebelum setiap peningkatan basis data; hanya yang terbaru disimpan."
+        },
+        "backups": {
+          "label": "Cadangan",
+          "description": "Arsip dari pencadangan otomatis dan manual."
+        },
+        "logs": {
+          "label": "Log",
+          "description": "Log diagnostik beberapa hari terakhir."
+        },
+        "plugins": {
+          "label": "Plugin",
+          "description": "Plugin yang terpasang dan datanya."
+        }
       }
     }
   },
@@ -3308,7 +3377,8 @@
       "upload": "Unggah",
       "backup": "Cadangan",
       "thumbnails": "Gambar mini",
-      "drop_import": "Menyalin ke pustaka"
+      "drop_import": "Menyalin ke pustaka",
+      "cache_move": "Memindahkan cache"
     }
   },
   "smartRuleSummary": {

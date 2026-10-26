@@ -45,3 +45,36 @@ export function setCacheLocation(root: string | null): Promise<CacheLocation> {
 export function restartForCacheMove(): Promise<void> {
   return invoke<void>("restart_for_cache_move");
 }
+
+/** One item of what WaveFlow keeps on disk. Mirrors the Rust
+ *  `UsageEntry`: per-profile items are the active profile's. */
+export interface DiskUsageEntry {
+  id:
+    | "artwork"
+    | "metadataArtwork"
+    | "motionCache"
+    | "canvasCache"
+    | "remoteArtwork"
+    | "remoteStream"
+    | "remoteDownloads"
+    | "manualMedia"
+    | "databases"
+    | "databaseSnapshots"
+    | "backups"
+    | "logs"
+    | "plugins";
+  bytes: number;
+  files: number;
+  /** Emptied without loss: filled again from where it came from. */
+  rebuildable: boolean;
+}
+
+export interface DiskUsage {
+  entries: DiskUsageEntry[];
+  totalBytes: number;
+}
+
+/** Measure every item. Walks the caches, so a few seconds at worst. */
+export function diskUsage(): Promise<DiskUsage> {
+  return invoke<DiskUsage>("disk_usage");
+}

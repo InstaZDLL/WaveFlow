@@ -2871,7 +2871,8 @@
         "skin": "Estilo",
         "display": "Legibilidade",
         "window": "Janelas",
-        "lyricsDisplay": "Exibição das letras"
+        "lyricsDisplay": "Exibição das letras",
+        "diskUsage": "Espaço em disco"
       },
       "navHints": {
         "general": "Idioma, inicialização, reprodução",
@@ -2919,7 +2920,8 @@
         "cleanup": "Miniaturas e capas em cache",
         "updates": "Versões estáveis ou beta",
         "diagnostics": "Registros e renderização gráfica",
-        "reset": "Recomeçar com um aplicativo novo"
+        "reset": "Recomeçar com um aplicativo novo",
+        "diskUsage": "O que o WaveFlow guarda neste computador"
       }
     },
     "desktopLyrics": {
@@ -3020,6 +3022,73 @@
       "shared": {
         "label": "Saída compartilhada",
         "hint": "O som passa pelo mixer do sistema, junto com o dos outros aplicativos. Ideal para o dia a dia."
+      }
+    },
+    "diskUsage": {
+      "total": "O WaveFlow ocupa {{size}} neste computador.",
+      "measuring": "Medindo…",
+      "refresh": "Medir de novo",
+      "failed": "Não foi possível medir o espaço em disco.",
+      "rebuildableTitle": "Se reconstrói sozinho",
+      "rebuildableHint": "Esvaziar não perde nada: esses arquivos são obtidos de novo quando necessário.",
+      "keptTitle": "Seus dados",
+      "keptHint": "Nada aqui se reconstrói sozinho: cada item é gerenciado na própria seção.",
+      "empty": "Esvaziar",
+      "confirmEmpty": "Confirmar",
+      "emptyLabel": "Esvaziar: {{item}}",
+      "items": {
+        "artwork": {
+          "label": "Capas da biblioteca",
+          "description": "Capas dos álbuns deste perfil e suas miniaturas. As capas sem uso são removidas em “{{section}}”."
+        },
+        "metadataArtwork": {
+          "label": "Imagens baixadas",
+          "description": "Fotos de artistas e capas obtidas on-line, compartilhadas por todos os perfis."
+        },
+        "motionCache": {
+          "label": "Capas animadas",
+          "description": "Obtidas pelos plugins, baixadas de novo quando necessário."
+        },
+        "canvasCache": {
+          "label": "Clipes Canvas",
+          "description": "Obtidos pelos plugins, baixados de novo quando necessário."
+        },
+        "remoteArtwork": {
+          "label": "Capas do servidor",
+          "description": "Miniaturas do seu servidor, baixadas de novo quando necessário."
+        },
+        "remoteStream": {
+          "label": "Faixas do servidor em cache",
+          "description": "Guardadas depois de ouvidas, baixadas de novo na próxima reprodução."
+        },
+        "remoteDownloads": {
+          "label": "Faixas do servidor off-line",
+          "description": "As que você escolheu manter off-line. Removidas pela faixa ou pelo álbum."
+        },
+        "manualMedia": {
+          "label": "Mídia escolhida à mão",
+          "description": "Capas animadas e clipes Canvas que você definiu."
+        },
+        "databases": {
+          "label": "Bancos de dados",
+          "description": "Biblioteca, playlists, histórico e configurações de todos os perfis."
+        },
+        "databaseSnapshots": {
+          "label": "Cópias antes de atualizações",
+          "description": "Feitas antes de cada atualização de banco de dados; só as últimas são mantidas."
+        },
+        "backups": {
+          "label": "Backups",
+          "description": "Arquivos dos backups automáticos e manuais."
+        },
+        "logs": {
+          "label": "Logs",
+          "description": "Logs de diagnóstico dos últimos dias."
+        },
+        "plugins": {
+          "label": "Plugins",
+          "description": "Plugins instalados e seus dados."
+        }
       }
     }
   },
@@ -3406,7 +3475,8 @@
       "upload": "Envio",
       "backup": "Backup",
       "thumbnails": "Miniaturas",
-      "drop_import": "Cópia para a biblioteca"
+      "drop_import": "Cópia para a biblioteca",
+      "cache_move": "Movendo os caches"
     }
   },
   "smartRuleSummary": {

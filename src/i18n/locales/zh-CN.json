@@ -2803,7 +2803,8 @@
         "skin": "界面风格",
         "display": "可读性",
         "window": "窗口",
-        "lyricsDisplay": "歌词显示"
+        "lyricsDisplay": "歌词显示",
+        "diskUsage": "磁盘空间"
       },
       "navHints": {
         "general": "语言、启动、播放",
@@ -2851,7 +2852,8 @@
         "cleanup": "已缓存的缩略图和封面",
         "updates": "稳定版或测试版",
         "diagnostics": "日志与图形渲染",
-        "reset": "将应用恢复到全新状态"
+        "reset": "将应用恢复到全新状态",
+        "diskUsage": "WaveFlow 在这台电脑上保存的内容"
       }
     },
     "desktopLyrics": {
@@ -2949,6 +2951,73 @@
       "shared": {
         "label": "共享输出",
         "hint": "声音与其他应用的声音一起经过系统混音器。适合日常使用。"
+      }
+    },
+    "diskUsage": {
+      "total": "WaveFlow 在这台电脑上占用 {{size}}。",
+      "measuring": "正在测量…",
+      "refresh": "重新测量",
+      "failed": "无法测量磁盘空间。",
+      "rebuildableTitle": "可自动重建",
+      "rebuildableHint": "清空不会丢失任何内容：这些文件会在需要时重新获取。",
+      "keptTitle": "你的数据",
+      "keptHint": "这里的内容都不会自动重建：每一项都在各自的设置中管理。",
+      "empty": "清空",
+      "confirmEmpty": "确认",
+      "emptyLabel": "清空：{{item}}",
+      "items": {
+        "artwork": {
+          "label": "资料库封面",
+          "description": "此配置文件的专辑封面及其缩略图。未使用的封面可在“{{section}}”中移除。"
+        },
+        "metadataArtwork": {
+          "label": "已下载的图片",
+          "description": "从网上获取的艺人照片和封面，所有配置文件共用。"
+        },
+        "motionCache": {
+          "label": "动态封面",
+          "description": "由插件获取，需要时会重新下载。"
+        },
+        "canvasCache": {
+          "label": "Canvas 片段",
+          "description": "由插件获取，需要时会重新下载。"
+        },
+        "remoteArtwork": {
+          "label": "服务器封面",
+          "description": "来自你的服务器的缩略图，需要时会重新下载。"
+        },
+        "remoteStream": {
+          "label": "已缓存的服务器曲目",
+          "description": "播放后保留，下次播放时会重新下载。"
+        },
+        "remoteDownloads": {
+          "label": "离线的服务器曲目",
+          "description": "你选择离线保留的曲目。可从曲目或专辑中移除。"
+        },
+        "manualMedia": {
+          "label": "手动设置的媒体",
+          "description": "你自己设置的动态封面和 Canvas 片段。"
+        },
+        "databases": {
+          "label": "数据库",
+          "description": "所有配置文件的资料库、播放列表、历史和设置。"
+        },
+        "databaseSnapshots": {
+          "label": "升级前的副本",
+          "description": "每次数据库升级前创建，只保留最近的几份。"
+        },
+        "backups": {
+          "label": "备份",
+          "description": "自动和手动备份的存档。"
+        },
+        "logs": {
+          "label": "日志",
+          "description": "最近几天的诊断日志。"
+        },
+        "plugins": {
+          "label": "插件",
+          "description": "已安装的插件及其数据。"
+        }
       }
     }
   },
@@ -3308,7 +3377,8 @@
       "upload": "上传",
       "backup": "备份",
       "thumbnails": "缩略图",
-      "drop_import": "复制到音乐库"
+      "drop_import": "复制到音乐库",
+      "cache_move": "正在移动缓存"
     }
   },
   "smartRuleSummary": {

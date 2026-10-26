@@ -183,6 +183,7 @@ import { TestToneCard } from "./settings/TestToneCard";
 import { AccentCard } from "./settings/AccentCard";
 import { PlayerBarLayoutCard } from "./settings/PlayerBarLayoutCard";
 import { ShortcutsCard } from "./settings/ShortcutsCard";
+import { DiskUsageCard } from "./settings/DiskUsageCard";
 import { WrappedBannerCard } from "./settings/WrappedBannerCard";
 import { HiResBadgeCard } from "./settings/HiResBadgeCard";
 import { StatsKpiVisibilityCard } from "./settings/StatsKpiVisibilityCard";
@@ -4050,6 +4051,14 @@ function SettingsViewContent({
               className="settings-category"
             >
               <SettingsCategoryHeader category="data" />
+              <SettingsGroup
+                id="diskUsage"
+                reveal={targetGroup === "diskUsage"}
+              >
+                <DiskUsageCard
+                  language={i18n.resolvedLanguage ?? i18n.language}
+                />
+              </SettingsGroup>
               <SettingsGroup id="backups" reveal={targetGroup === "backups"}>
                 <div className="settings-block">
                   <div className="flex items-center justify-between gap-4">

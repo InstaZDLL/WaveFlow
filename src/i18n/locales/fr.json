@@ -2870,7 +2870,8 @@
         "skin": "Habillage",
         "display": "Lisibilité",
         "window": "Fenêtres",
-        "lyricsDisplay": "Affichage des paroles"
+        "lyricsDisplay": "Affichage des paroles",
+        "diskUsage": "Espace disque"
       },
       "navHints": {
         "general": "Langue, démarrage, lecture",
@@ -2918,7 +2919,8 @@
         "cleanup": "Vignettes et pochettes en cache",
         "updates": "Versions stables ou bêta",
         "diagnostics": "Journaux et rendu graphique",
-        "reset": "Repartir d'une application neuve"
+        "reset": "Repartir d'une application neuve",
+        "diskUsage": "Ce que WaveFlow garde sur cet ordinateur"
       }
     },
     "desktopLyrics": {
@@ -3019,6 +3021,73 @@
       "shared": {
         "label": "Sortie partagée",
         "hint": "Le son passe par le mixeur du système, avec celui des autres applications. Idéal au quotidien."
+      }
+    },
+    "diskUsage": {
+      "total": "WaveFlow occupe {{size}} sur cet ordinateur.",
+      "measuring": "Mesure en cours…",
+      "refresh": "Mesurer à nouveau",
+      "failed": "Impossible de mesurer l'espace disque.",
+      "rebuildableTitle": "Se reconstruit tout seul",
+      "rebuildableHint": "Vider ne fait rien perdre : ces fichiers sont récupérés à nouveau quand il le faut.",
+      "keptTitle": "Vos données",
+      "keptHint": "Rien ici ne se reconstruit seul : chaque élément se gère depuis sa propre section.",
+      "empty": "Vider",
+      "confirmEmpty": "Confirmer",
+      "emptyLabel": "Vider : {{item}}",
+      "items": {
+        "artwork": {
+          "label": "Pochettes de la bibliothèque",
+          "description": "Pochettes des albums de ce profil et leurs miniatures. Les pochettes inutilisées se retirent dans « {{section}} »."
+        },
+        "metadataArtwork": {
+          "label": "Images téléchargées",
+          "description": "Photos d'artistes et pochettes récupérées en ligne, partagées par tous les profils."
+        },
+        "motionCache": {
+          "label": "Pochettes animées",
+          "description": "Récupérées par les greffons, de nouveau téléchargées au besoin."
+        },
+        "canvasCache": {
+          "label": "Clips Canvas",
+          "description": "Récupérés par les greffons, de nouveau téléchargés au besoin."
+        },
+        "remoteArtwork": {
+          "label": "Pochettes du serveur",
+          "description": "Miniatures venues de votre serveur, de nouveau téléchargées au besoin."
+        },
+        "remoteStream": {
+          "label": "Titres du serveur en cache",
+          "description": "Gardés après écoute, de nouveau téléchargés à la prochaine lecture."
+        },
+        "remoteDownloads": {
+          "label": "Titres du serveur hors ligne",
+          "description": "Ceux que vous avez choisi de garder hors ligne. Se retirent depuis le titre ou l'album."
+        },
+        "manualMedia": {
+          "label": "Médias choisis à la main",
+          "description": "Pochettes animées et clips Canvas que vous avez définis vous-même."
+        },
+        "databases": {
+          "label": "Bases de données",
+          "description": "Bibliothèque, playlists, historique et réglages de tous les profils."
+        },
+        "databaseSnapshots": {
+          "label": "Copies avant mise à niveau",
+          "description": "Prises avant chaque mise à niveau d'une base de données ; seules les dernières sont gardées."
+        },
+        "backups": {
+          "label": "Sauvegardes",
+          "description": "Archives des sauvegardes automatiques et manuelles."
+        },
+        "logs": {
+          "label": "Journaux",
+          "description": "Journaux de diagnostic des derniers jours."
+        },
+        "plugins": {
+          "label": "Greffons",
+          "description": "Greffons installés et leurs données."
+        }
       }
     }
   },
@@ -3405,7 +3474,8 @@
       "upload": "Téléversement",
       "backup": "Sauvegarde",
       "thumbnails": "Vignettes",
-      "drop_import": "Copie vers la bibliothèque"
+      "drop_import": "Copie vers la bibliothèque",
+      "cache_move": "Déplacement des caches"
     }
   },
   "smartRuleSummary": {
