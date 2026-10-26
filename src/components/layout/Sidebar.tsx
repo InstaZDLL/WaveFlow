@@ -38,6 +38,7 @@ import type { ViewId, LibraryTab } from "../../types";
 import { NavItem } from "../common/NavItem";
 import { WaveFlowLogo } from "../common/WaveFlowLogo";
 import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
+import { ImportPlaylistModal } from "../common/ImportPlaylistModal";
 import { SmartPlaylistEditorModal } from "../common/SmartPlaylistEditorModal";
 import { usePlayer } from "../../hooks/usePlayer";
 import { useProfile } from "../../hooks/useProfile";
@@ -54,8 +55,8 @@ import { useLibraryPlaylists } from "../../hooks/useLibraryPlaylists";
 import { usePlaylistContextMenu } from "../../hooks/usePlaylistContextMenu";
 import { resolvePluginIcon } from "../../lib/pluginIcons";
 import { getProfileColor, profileInitial } from "../../lib/profileColors";
-import { pickFile, pickFolder } from "../../lib/tauri/dialog";
-import { importPlaylistM3u } from "../../lib/tauri/playlist";
+import { pickFolder } from "../../lib/tauri/dialog";
+import type { ImportPlaylistResult } from "../../lib/tauri/playlist";
 import { getProfileStats, type ProfileStats } from "../../lib/tauri/browse";
 import {
   colorForPlaylistId,
@@ -274,26 +275,15 @@ export function Sidebar({
     navigateToPlaylist(playlistId);
   };
 
-  const handleImportM3u = useCallback(async () => {
-    const path = await pickFile(
-      ["m3u8", "m3u"],
-      t("sidebar.playlists.importDialogTitle"),
-    );
-    if (!path) return;
-    try {
-      const result = await importPlaylistM3u(path);
-      await refreshPlaylists();
-      navigateToPlaylist(result.playlist_id);
-      if (result.missing > 0) {
-        console.warn(
-          `[Sidebar] m3u import: ${result.missing} entries not found in library`,
-          result.missing_paths,
-        );
-      }
-    } catch (err) {
-      console.error("[Sidebar] import m3u failed", err);
-    }
-  }, [t, refreshPlaylists, navigateToPlaylist]);
+  const [isImportPlaylistOpen, setIsImportPlaylistOpen] = useState(false);
+  const handleImportedPlaylist = useCallback(
+    (result: ImportPlaylistResult) => {
+      refreshPlaylists()
+        .catch(() => {})
+        .finally(() => navigateToPlaylist(result.playlist_id));
+    },
+    [refreshPlaylists, navigateToPlaylist],
+  );
 
   // A pinned playlist is drawn from the list below; one that list does
   // not hold (yet) is left out, so the section never stands empty.
@@ -700,9 +690,9 @@ export function Sidebar({
               <div className="flex items-center gap-1">
                 <button
                   type="button"
-                  onClick={handleImportM3u}
-                  aria-label={t("sidebar.playlists.importM3uAria")}
-                  title={t("sidebar.playlists.importM3uAria")}
+                  onClick={() => setIsImportPlaylistOpen(true)}
+                  aria-label={t("sidebar.playlists.importAria")}
+                  title={t("sidebar.playlists.importAria")}
                   className="p-0.5 rounded hover:text-emerald-500 transition-colors"
                 >
                   <Upload size={14} />
@@ -851,6 +841,12 @@ export function Sidebar({
           />
         </ContextMenu>
       )}
+
+      <ImportPlaylistModal
+        isOpen={isImportPlaylistOpen}
+        onClose={() => setIsImportPlaylistOpen(false)}
+        onImported={handleImportedPlaylist}
+      />
 
       <CreatePlaylistModal
         isOpen={isCreatePlaylistModalOpen}

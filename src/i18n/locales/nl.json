@@ -212,14 +212,13 @@
     },
     "playlists": {
       "createPlaylistAria": "Nieuwe afspeellijst maken",
-      "importM3uAria": "M3U-afspeellijst importeren",
-      "importDialogTitle": "M3U-afspeellijst importeren",
       "liked": "Favoriete nummers",
       "recent": "Recent afgespeeld",
       "emptySubtext_zero": "0 nummers",
       "emptySubtext_one": "{{count}} nummer",
       "emptySubtext_other": "{{count}} nummers",
-      "createSmartAria": "Slimme afspeellijst maken"
+      "createSmartAria": "Slimme afspeellijst maken",
+      "importAria": "Afspeellijst importeren"
     },
     "myMusic": {
       "title": "Mijn muziek",
@@ -1190,7 +1189,13 @@
     "notFoundTitle": "Afspeellijst niet gevonden",
     "notFoundDescription": "Deze afspeellijst bestaat niet meer in het actieve profiel.",
     "smartLabel": "Daily Mix",
-    "smartLabelCustom": "Slimme playlist"
+    "smartLabelCustom": "Slimme playlist",
+    "placeholder": {
+      "missing": "Niet in je bibliotheek",
+      "remove": "Uit de afspeellijst verwijderen",
+      "count_one": "{{count}} ontbreekt",
+      "count_other": "{{count}} ontbreken"
+    }
   },
   "trackActions": {
     "addToPlaylist": "Toevoegen aan afspeellijst",
@@ -3641,6 +3646,36 @@
       "same": "Deze map staat al in de bibliotheek: {{folder}}",
       "inside": "Deze map staat al in de bibliotheek, binnen {{folder}}.",
       "contains": "Deze map bevat {{folder}}, die al in de bibliotheek staat. Voeg liever de andere submappen toe."
+    }
+  },
+  "playlistImport": {
+    "title": "Afspeellijst importeren",
+    "help": "Nummers die je al hebt worden toegevoegd. De andere houden hun plek, grijs, en worden aangevuld zodra ze in je bibliotheek verschijnen.",
+    "fromFile": "Uit een bestand",
+    "fromFileHint": "M3U, CSV of JSON",
+    "fileDialogTitle": "Afspeellijstbestand importeren",
+    "linkLabel": "Link van een Deezer-afspeellijst",
+    "linkHint": "Alleen openbare afspeellijsten. Geen account nodig.",
+    "importLink": "Importeren",
+    "working": "Bezig met importeren…",
+    "result": {
+      "imported_zero": "Geen nummers toegevoegd",
+      "imported_one": "{{count}} nummer toegevoegd",
+      "imported_other": "{{count}} nummers toegevoegd",
+      "placeholders_one": "{{count}} nummer wacht",
+      "placeholders_other": "{{count}} nummers wachten",
+      "duplicates_one": "{{count}} herhaling overgeslagen",
+      "duplicates_other": "{{count}} herhalingen overgeslagen"
+    },
+    "errors": {
+      "unsupported": "Dit bestand is geen afspeellijst die WaveFlow kan lezen (M3U, CSV of JSON).",
+      "unreadable": "Het bestand kon niet worden gelezen.",
+      "noTitleColumn": "De CSV heeft geen titelkolom. De eerste regel moet de kolommen benoemen, met minstens de titel.",
+      "empty": "De afspeellijst bevat geen items.",
+      "notALink": "Dit is geen link naar een Deezer-afspeellijst.",
+      "offline": "De offlinemodus staat aan.",
+      "notFound": "Deezer heeft geen openbare afspeellijst op deze link.",
+      "unreachable": "Deezer is niet bereikbaar."
     }
   }
 }

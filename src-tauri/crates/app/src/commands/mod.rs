@@ -42,6 +42,7 @@ pub mod offline;
 pub mod player;
 pub mod playlist;
 pub mod playlist_cover;
+pub mod playlist_import;
 pub mod plugin_store;
 pub mod plugins;
 pub mod preferences;

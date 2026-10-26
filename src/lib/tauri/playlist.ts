@@ -36,6 +36,10 @@ export interface Playlist {
   updated_at: number;
   track_count: number;
   total_duration_ms: number;
+  /** Entries of an imported playlist the library does not hold yet
+   * (placeholders). Counted apart: `track_count` and
+   * `total_duration_ms` cover the tracks the user has, only. */
+  placeholder_count: number;
   /** Raw JSON payload from `playlist.smart_rules`. `null` for user
    * playlists. For smart playlists the frontend parses the `kind`
    * discriminant to distinguish Daily Mix slots, On Repeat, and
@@ -249,10 +253,38 @@ export function addSourceToPlaylist(
 
 export interface ImportPlaylistResult {
   playlist_id: number;
+  name: string;
+  /** Tracks the library holds, now in the playlist. */
   imported: number;
-  missing: number;
-  /** Up to 20 unmatched paths from the imported file. */
-  missing_paths: string[];
+  /** Entries kept as placeholders, filled in when a scan brings them. */
+  placeholders: number;
+  /** Entries naming a track the playlist already held. */
+  duplicates: number;
+}
+
+/**
+ * An entry of an imported playlist the library does not hold (yet). It
+ * keeps its place: `position` is in the numbering of the tracks'
+ * positions, and the placeholder sits just before the track holding the
+ * same position (at the end when none does); `ordinal` orders the
+ * placeholders sharing a position.
+ */
+export interface PlaylistPlaceholder {
+  id: number;
+  playlist_id: number;
+  position: number;
+  ordinal: number;
+  title: string;
+  artist: string | null;
+  album: string | null;
+  duration_ms: number | null;
+  isrc: string | null;
+  locator: string | null;
+  source: "m3u" | "csv" | "json" | "deezer";
+  added_at: number;
+  /** The available track the placeholder is shown before; `null` at the
+   * end of the playlist. */
+  before_track_id: number | null;
 }
 
 /** Write the playlist out as a UTF-8 .m3u8 file at `destPath`. */
@@ -264,13 +296,56 @@ export function exportPlaylistM3u(
 }
 
 /**
- * Parse an .m3u/.m3u8 file, match its entries against the active
- * library, and create a new playlist holding the resolved tracks.
+ * Import an .m3u / .m3u8, .csv or .json playlist file into a new
+ * playlist: what the library holds becomes tracks, the rest placeholders.
  */
-export function importPlaylistM3u(
+export function importPlaylistFile(
   sourcePath: string,
 ): Promise<ImportPlaylistResult> {
-  return invoke<ImportPlaylistResult>("import_playlist_m3u", { sourcePath });
+  return invoke<ImportPlaylistResult>("import_playlist_file", { sourcePath });
+}
+
+/**
+ * The translation key for an import refusal the backend names, `null`
+ * for anything else (shown as is). The prefixes are the `ERR_*`
+ * constants of `commands::playlist_import`.
+ */
+export function playlistImportErrorKey(err: unknown): string | null {
+  const message = String(err);
+  const known: [string, string][] = [
+    ["playlist-import: unsupported file", "playlistImport.errors.unsupported"],
+    ["playlist-import: unreadable", "playlistImport.errors.unreadable"],
+    ["playlist-import: no title column", "playlistImport.errors.noTitleColumn"],
+    ["playlist-import: empty", "playlistImport.errors.empty"],
+    ["playlist-import: not a deezer playlist link", "playlistImport.errors.notALink"],
+    ["playlist-import: offline", "playlistImport.errors.offline"],
+    ["playlist-import: not found", "playlistImport.errors.notFound"],
+    ["playlist-import: unreachable", "playlistImport.errors.unreachable"],
+  ];
+  return known.find(([prefix]) => message.includes(prefix))?.[1] ?? null;
+}
+
+/** Import a public Deezer playlist from its link (or its id). */
+export function importPlaylistDeezer(
+  link: string,
+): Promise<ImportPlaylistResult> {
+  return invoke<ImportPlaylistResult>("import_playlist_deezer", { link });
+}
+
+/** The placeholders of a playlist, in its order. */
+export function listPlaylistPlaceholders(
+  playlistId: number,
+): Promise<PlaylistPlaceholder[]> {
+  return invoke<PlaylistPlaceholder[]>("list_playlist_placeholders", {
+    playlistId,
+  });
+}
+
+/** Remove one placeholder from its playlist. */
+export function removePlaylistPlaceholder(
+  placeholderId: number,
+): Promise<void> {
+  return invoke<void>("remove_playlist_placeholder", { placeholderId });
 }
 
 /**

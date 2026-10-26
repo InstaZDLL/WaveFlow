@@ -2049,6 +2049,11 @@ pub(crate) async fn scan_folder_inner(
         }
     };
 
+    // The same, for imported playlists: a track the scan brought in takes
+    // the place of every placeholder waiting for it. Library-wide too — a
+    // playlist belongs to no folder. Non-fatal for the same reason.
+    super::playlist_import::fill_placeholders_after_scan(pool, app_handle).await;
+
     // Marked whatever the individual files turned out to hold: the
     // point of the pass is that every file was *read once*, and a
     // folder of tracks that carry no custom tags must not be re-read on

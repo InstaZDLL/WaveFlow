@@ -51,6 +51,14 @@ pub struct Playlist {
     pub updated_at: i64,
     pub track_count: i64,
     pub total_duration_ms: i64,
+    /// Entries of an imported playlist the library does not hold — the
+    /// `playlist_placeholder` rows. Counted apart from `track_count` and
+    /// left out of `total_duration_ms`: a placeholder is not something
+    /// the user has. `#[sqlx(default)]` for the backends without the
+    /// table.
+    #[cfg_attr(any(feature = "sqlite", feature = "postgres"), sqlx(default))]
+    #[serde(default)]
+    pub placeholder_count: i64,
     /// Raw JSON payload from `playlist.smart_rules`. `None` for user
     /// playlists (`is_smart = 0`); for smart playlists the frontend
     /// parses the `kind` discriminant to distinguish Daily Mix slots,

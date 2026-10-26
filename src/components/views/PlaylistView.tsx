@@ -30,6 +30,7 @@ import {
   Plus,
   Search,
   X,
+  CircleDashed,
 } from "lucide-react";
 import {
   DndContext,
@@ -84,10 +85,13 @@ import {
 import {
   exportPlaylistM3u,
   getPlaylist,
+  listPlaylistPlaceholders,
+  removePlaylistPlaceholder,
   reorderPlaylistTrack,
   smartFamilyStyle,
   smartPlaylistKind,
   type Playlist,
+  type PlaylistPlaceholder,
 } from "../../lib/tauri/playlist";
 import {
   remoteAddPlaylistTracks,
@@ -271,6 +275,7 @@ function toPlaylist(
     updated_at: 0,
     track_count: rows.length,
     total_duration_ms: rows.reduce((sum, r) => sum + (r.duration_ms ?? 0), 0),
+    placeholder_count: 0,
     smart_rules: null,
   };
 }
@@ -346,6 +351,11 @@ export function PlaylistView({
 
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [tracks, setTracks] = useState<PlaylistTrack[]>([]);
+  // Entries of an imported playlist the library does not hold yet. Shown
+  // in their place, never played, never counted as tracks.
+  const [placeholders, setPlaceholders] = useState<PlaylistPlaceholder[]>(
+    [],
+  );
   /** Remote only: created here and never sent to the server yet. */
   const [remotePending, setRemotePending] = useState(false);
   // Init `true` so the skeleton paints on first render — the
@@ -607,16 +617,40 @@ export function PlaylistView({
     }
   }, [playlist, t]);
 
+  // A track moved or removed moves the placeholders beside it, on the
+  // backend, in the same write: read them again rather than re-deriving
+  // where each one went.
+  const reloadPlaceholders = useCallback((pid: number) => {
+    listPlaylistPlaceholders(pid)
+      .then(setPlaceholders)
+      .catch((err) =>
+        console.error("[PlaylistView] reload placeholders failed", err),
+      );
+  }, []);
+
+  const handleRemovePlaceholder = useCallback(
+    async (placeholderId: number) => {
+      try {
+        await removePlaylistPlaceholder(placeholderId);
+        setPlaceholders((prev) => prev.filter((p) => p.id !== placeholderId));
+      } catch (err) {
+        console.error("[PlaylistView] remove placeholder failed", err);
+      }
+    },
+    [],
+  );
+
   const handleRemoveFromPlaylist = useCallback(
     async (pid: number, trackId: number) => {
       try {
         await removeTrackFromPlaylist(pid, trackId);
         setTracks((prev) => prev.filter((t) => t.id !== trackId));
+        reloadPlaceholders(pid);
       } catch (err) {
         console.error("[PlaylistView] remove track from playlist failed", err);
       }
     },
-    [removeTrackFromPlaylist],
+    [removeTrackFromPlaylist, reloadPlaceholders],
   );
 
   const handleReorder = useCallback(
@@ -644,9 +678,11 @@ export function PlaylistView({
         return;
       }
       if (playlistId == null) return;
-      reorderPlaylistTrack(playlistId, moved.id, toIdx).catch(rollback);
+      reorderPlaylistTrack(playlistId, moved.id, toIdx)
+        .then(() => reloadPlaceholders(playlistId))
+        .catch(rollback);
     },
-    [playlistId, remotePlaylistId],
+    [playlistId, remotePlaylistId, reloadPlaceholders],
   );
 
   const isCustomOrder = sortMode === "custom";
@@ -837,6 +873,7 @@ export function PlaylistView({
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setPlaylist(null);
       setTracks([]);
+      setPlaceholders([]);
       return;
     }
     (async () => {
@@ -854,15 +891,18 @@ export function PlaylistView({
             summary ? toPlaylist(summary, remotePlaylistId, rows) : null,
           );
           setTracks(summary ? toPlaylistTracks(rows) : []);
+          setPlaceholders([]);
           setRemotePending(summary?.pending_creation ?? false);
         } else if (playlistId != null) {
-          const [pl, items] = await Promise.all([
+          const [pl, items, waiting] = await Promise.all([
             getPlaylist(playlistId),
             getPlaylistTracks(playlistId),
+            listPlaylistPlaceholders(playlistId),
           ]);
           if (cancelled) return;
           setPlaylist(pl);
           setTracks(items);
+          setPlaceholders(waiting);
           setRemotePending(false);
         }
         if (!cancelled) setLoadedKey(playlistKey);
@@ -871,6 +911,7 @@ export function PlaylistView({
           console.error("[PlaylistView] failed to load playlist", err);
           setPlaylist(null);
           setTracks([]);
+          setPlaceholders([]);
           // Stamped on failure too: the not-found state below is a loaded
           // answer about *this* playlist, and leaving the key behind would
           // hold the skeleton forever instead of showing it.
@@ -971,6 +1012,13 @@ export function PlaylistView({
   // A server track can be in a playlist before its metadata has been
   // fetched, so an empty title means "not known yet", not "untitled".
   const awaitingLabel = t("remote.common.awaitingMetadata");
+  const placeholderLabels = useMemo(
+    () => ({
+      missing: t("playlistView.placeholder.missing"),
+      remove: t("playlistView.placeholder.remove"),
+    }),
+    [t],
+  );
   const headerLabels = useMemo(
     () => ({
       number: t("library.table.number"),
@@ -1348,6 +1396,16 @@ export function PlaylistView({
                       count: playlist.track_count,
                     })}
                   </span>
+                  {placeholders.length > 0 && (
+                    <>
+                      <span>·</span>
+                      <span>
+                        {t("playlistView.placeholder.count", {
+                          count: placeholders.length,
+                        })}
+                      </span>
+                    </>
+                  )}
                   <span>·</span>
                   <span>{totalDurationLabel}</span>
                   {remote && keeping && (
@@ -1659,7 +1717,7 @@ export function PlaylistView({
           per-playlist sort memory has finished hydrating so the active
           option doesn't flash from "Custom" to the persisted value on
           first paint. */}
-      {tracks.length > 0 && playlistSort.isLoaded && (
+      {tracks.length + placeholders.length > 0 && playlistSort.isLoaded && (
         <div className="flex items-center justify-end -mt-4">
           <PlaylistSortMenu
             current={sortMode}
@@ -1673,9 +1731,13 @@ export function PlaylistView({
       {/* Tracks list */}
       {tracks.length === 0 && isLoading ? (
         <PlaylistSkeleton t={t} />
-      ) : tracks.length > 0 ? (
+      ) : tracks.length + placeholders.length > 0 ? (
         <PlaylistTrackTable
           tracks={displayTracks}
+          placeholders={placeholders}
+          interleavePlaceholders={isCustomOrder}
+          placeholderLabels={placeholderLabels}
+          onRemovePlaceholder={handleRemovePlaceholder}
           isLoading={isLoading}
           remote={remote}
           currentTrackId={currentTrack?.id ?? null}
@@ -1806,6 +1868,14 @@ export function PlaylistView({
 
 interface PlaylistTrackTableProps {
   tracks: PlaylistTrack[];
+  /** Entries of an imported playlist the library does not hold yet. */
+  placeholders: PlaylistPlaceholder[];
+  /** In the playlist's own order each placeholder sits before the track
+   *  it waits in front of; under a display sort there is no such place,
+   *  so they follow the tracks. */
+  interleavePlaceholders: boolean;
+  placeholderLabels: { missing: string; remove: string };
+  onRemovePlaceholder: (placeholderId: number) => void;
   isLoading: boolean;
   /** The whole table comes from one source — a playlist is one or the
    *  other, never a mix — so the branch is decided once here rather than
@@ -1864,8 +1934,17 @@ interface PlaylistTrackTableProps {
 
 const PLAYLIST_ROW_HEIGHT = 56;
 
+/** A row of the table: a track, or a placeholder waiting for one. */
+type PlaylistTableRow =
+  | { kind: "track"; track: PlaylistTrack; index: number }
+  | { kind: "placeholder"; placeholder: PlaylistPlaceholder };
+
 function PlaylistTrackTable({
   tracks,
+  placeholders,
+  interleavePlaceholders,
+  placeholderLabels,
+  onRemovePlaceholder,
   isLoading,
   remote,
   currentTrackId,
@@ -1915,6 +1994,41 @@ function PlaylistTrackTable({
   // the rows move rather than being re-projected.
   const ids = useMemo(() => tracks.map((t) => String(t.id)), [tracks]);
 
+  // Tracks and placeholders in display order. A track keeps its index
+  // among the tracks — the number it shows and the one played from — and
+  // a placeholder takes none: it is not a track the queue could reach.
+  const rows = useMemo<PlaylistTableRow[]>(() => {
+    const trackRows = tracks.map(
+      (track, index): PlaylistTableRow => ({ kind: "track", track, index }),
+    );
+    if (placeholders.length === 0) return trackRows;
+    const asRows = (list: PlaylistPlaceholder[]) =>
+      list.map(
+        (placeholder): PlaylistTableRow => ({ kind: "placeholder", placeholder }),
+      );
+    if (!interleavePlaceholders) return [...trackRows, ...asRows(placeholders)];
+    const before = new Map<number, PlaylistPlaceholder[]>();
+    for (const placeholder of placeholders) {
+      if (placeholder.before_track_id == null) continue;
+      const list = before.get(placeholder.before_track_id) ?? [];
+      list.push(placeholder);
+      before.set(placeholder.before_track_id, list);
+    }
+    const out: PlaylistTableRow[] = [];
+    const placed = new Set<number>();
+    for (const row of trackRows) {
+      if (row.kind === "track") {
+        for (const placeholder of before.get(row.track.id) ?? []) {
+          out.push({ kind: "placeholder", placeholder });
+          placed.add(placeholder.id);
+        }
+      }
+      out.push(row);
+    }
+    // The tail, and any placeholder whose track is not on screen.
+    return [...out, ...asRows(placeholders.filter((p) => !placed.has(p.id)))];
+  }, [tracks, placeholders, interleavePlaceholders]);
+
   const [activeId, setActiveId] = useState<string | null>(null);
 
   const pageScrollRef = usePageScroll();
@@ -1937,7 +2051,7 @@ function PlaylistTrackTable({
     ro.observe(parent);
     ro.observe(scroller);
     return () => ro.disconnect();
-  }, [pageScrollRef, tracks.length]);
+  }, [pageScrollRef, rows.length]);
 
   // Virtualize the row list. SortableContext keeps the *full* id array
   // so dnd-kit knows the abstract ordering, even for items that aren't
@@ -1945,7 +2059,7 @@ function PlaylistTrackTable({
   // cost. This is what makes grab-on-300+-tracks feel instant.
   // eslint-disable-next-line react-hooks/incompatible-library
   const rowVirtualizer = useVirtualizer({
-    count: tracks.length,
+    count: rows.length,
     getScrollElement: () => pageScrollRef?.current ?? null,
     estimateSize: () => PLAYLIST_ROW_HEIGHT,
     overscan: 8,
@@ -2020,14 +2134,29 @@ function PlaylistTrackTable({
             }}
           >
             {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-              const track = tracks[virtualRow.index];
-              if (!track) return null;
+              const row = rows[virtualRow.index];
+              if (!row) return null;
+              if (row.kind === "placeholder") {
+                return (
+                  <PlaceholderRow
+                    key={`placeholder-${row.placeholder.id}`}
+                    placeholder={row.placeholder}
+                    top={virtualRow.start - scrollMargin}
+                    rowHeight={PLAYLIST_ROW_HEIGHT}
+                    gridCols={gridCols}
+                    labels={placeholderLabels}
+                    unknownLabel={unknownLabel}
+                    onRemove={onRemovePlaceholder}
+                  />
+                );
+              }
+              const { track } = row;
               return (
                 <SortablePlaylistRow
                   key={track.id}
                   track={track}
                   singleClickPlay={singleClickPlay}
-                  index={virtualRow.index}
+                  index={row.index}
                   rowHeight={PLAYLIST_ROW_HEIGHT}
                   top={virtualRow.start - scrollMargin}
                   gridCols={gridCols}
@@ -2089,6 +2218,80 @@ function PlaylistTrackTable({
           document.body,
         )}
       </DndContext>
+    </div>
+  );
+}
+
+/**
+ * An entry the library does not hold: shown greyed in its place, with
+ * nothing to play and nothing to open — only a way to drop it. It turns
+ * into the real row on its own once a scan brings the track in.
+ */
+function PlaceholderRow({
+  placeholder,
+  top,
+  rowHeight,
+  gridCols,
+  labels,
+  unknownLabel,
+  onRemove,
+}: {
+  placeholder: PlaylistPlaceholder;
+  top: number;
+  rowHeight: number;
+  gridCols: string;
+  labels: { missing: string; remove: string };
+  unknownLabel: string;
+  onRemove: (placeholderId: number) => void;
+}) {
+  const artist = placeholder.artist ?? unknownLabel;
+  return (
+    <div
+      role="group"
+      aria-label={`${placeholder.title} — ${artist} — ${labels.missing}`}
+      style={{
+        position: "absolute",
+        top: `${top}px`,
+        left: 0,
+        width: "100%",
+        height: `${rowHeight}px`,
+      }}
+      className={`group grid ${gridCols} gap-4 px-5 items-center select-none border-b border-zinc-100 dark:border-zinc-800/60 text-zinc-400 dark:text-zinc-500`}
+      data-playlist-placeholder
+    >
+      <span aria-hidden="true" />
+      <span className="text-right text-sm" aria-hidden="true">
+        –
+      </span>
+      <span
+        aria-hidden="true"
+        className="w-10 h-10 rounded-md border border-dashed border-zinc-300 dark:border-zinc-700 flex items-center justify-center"
+      >
+        <CircleDashed size={16} />
+      </span>
+      <div className="min-w-0">
+        <p className="truncate text-sm italic">{placeholder.title}</p>
+        <p className="truncate text-[11px] uppercase tracking-wider">
+          {labels.missing}
+        </p>
+      </div>
+      <span className="truncate text-sm">{artist}</span>
+      <span className="truncate text-sm">{placeholder.album ?? ""}</span>
+      <span className="text-right text-sm tabular-nums">
+        {placeholder.duration_ms != null && placeholder.duration_ms > 0
+          ? formatDuration(placeholder.duration_ms)
+          : ""}
+      </span>
+      <Tooltip label={labels.remove}>
+        <button
+          type="button"
+          onClick={() => onRemove(placeholder.id)}
+          aria-label={labels.remove}
+          className="p-1 rounded-md text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
+        >
+          <X size={14} />
+        </button>
+      </Tooltip>
     </div>
   );
 }
