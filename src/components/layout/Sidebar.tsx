@@ -634,32 +634,12 @@ export function Sidebar({
                   );
                 }
                 const album = pin.kind === "album";
-                const src = resolveRemoteImage(
-                  pin.image_path_2x ?? pin.image_path ?? pin.image_path_1x,
-                  null,
-                );
-                const shape = album ? "rounded-lg" : "rounded-full";
                 return (
                   <SidebarRow
                     key={`pin:${pin.kind}:${pin.id}`}
                     kind="playlist"
                     collapsed={collapsed}
-                    icon={
-                      src ? (
-                        <img
-                          src={src}
-                          alt=""
-                          className={`w-8 h-8 object-cover ${shape}`}
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div
-                          className={`w-8 h-8 flex items-center justify-center bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400 ${shape}`}
-                        >
-                          {album ? <Disc size={16} /> : <Mic2 size={16} />}
-                        </div>
-                      )
-                    }
+                    icon={<PinTile pin={pin} />}
                     label={pin.name}
                     subtext={
                       album
@@ -968,6 +948,37 @@ function SidebarRow({
         )}
       </div>
     </button>
+  );
+}
+
+/** A pinned album's cover or artist's picture, a rounded square or a
+ *  circle; the kind's icon when there is none, or when the file is gone
+ *  (a broken image would otherwise stand in the row). */
+function PinTile({ pin }: { pin: SidebarPin }) {
+  const [failed, setFailed] = useState(false);
+  const album = pin.kind === "album";
+  const shape = album ? "rounded-lg" : "rounded-full";
+  const src = resolveRemoteImage(
+    pin.image_path_2x ?? pin.image_path ?? pin.image_path_1x,
+    null,
+  );
+  if (src && !failed) {
+    return (
+      <img
+        src={src}
+        alt=""
+        onError={() => setFailed(true)}
+        className={`w-8 h-8 object-cover ${shape}`}
+        loading="lazy"
+      />
+    );
+  }
+  return (
+    <div
+      className={`w-8 h-8 flex items-center justify-center bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400 ${shape}`}
+    >
+      {album ? <Disc size={16} /> : <Mic2 size={16} />}
+    </div>
   );
 }
 
