@@ -76,7 +76,7 @@ export function ImportPlaylistModal({
   const handleFile = useCallback(async () => {
     if (busy) return;
     const path = await pickFile(
-      ["m3u8", "m3u", "csv", "json"],
+      ["m3u8", "m3u", "csv", "tsv", "txt", "json"],
       t("playlistImport.fileDialogTitle"),
     );
     if (!path) return;

@@ -178,15 +178,40 @@ pub async fn delete(conn: &mut SqliteConnection, id: i64) -> CoreResult<Option<i
     )
 }
 
+/// Renumber the placeholders at `later` so that they follow those at
+/// `earlier` once both gaps are one: two gaps meet whenever the track
+/// between them goes, and each one's ordinals start at 0.
+async fn append_gap(
+    conn: &mut SqliteConnection,
+    playlist_id: i64,
+    earlier: i64,
+    later: i64,
+) -> CoreResult<()> {
+    sqlx::query(
+        "UPDATE playlist_placeholder
+            SET ordinal = ordinal + (SELECT COALESCE(MAX(ordinal) + 1, 0)
+                                       FROM playlist_placeholder
+                                      WHERE playlist_id = ?1 AND position = ?2)
+          WHERE playlist_id = ?1 AND position = ?3",
+    )
+    .bind(playlist_id)
+    .bind(earlier)
+    .bind(later)
+    .execute(conn)
+    .await?;
+    Ok(())
+}
+
 /// The real track at `position` left the playlist and the ones after it
 /// moved up one: the placeholders after it move with them. A placeholder
 /// at `position` itself stays — it now sits before the track that took
-/// the place.
+/// the place, followed by the gap that came after the track that left.
 pub async fn shift_after_removal(
     conn: &mut SqliteConnection,
     playlist_id: i64,
     position: i64,
 ) -> CoreResult<()> {
+    append_gap(conn, playlist_id, position, position + 1).await?;
     sqlx::query(
         "UPDATE playlist_placeholder SET position = position - 1
           WHERE playlist_id = ? AND position > ?",
@@ -201,7 +226,8 @@ pub async fn shift_after_removal(
 /// A real track moved from `from` to `to`, and the tracks in between
 /// shifted one place toward `from`. The placeholders among those tracks
 /// shift with them, so each still sits before the track it sat before;
-/// the moved track jumps over them.
+/// the moved track jumps over them. The gap it leaves behind — the one
+/// before it and the one after it — becomes one, in their order.
 pub async fn shift_for_move(
     conn: &mut SqliteConnection,
     playlist_id: i64,
@@ -209,6 +235,8 @@ pub async fn shift_for_move(
     to: i64,
 ) -> CoreResult<()> {
     if to > from {
+        // The gap after the moved track comes down onto the one before it.
+        append_gap(conn, playlist_id, from, from + 1).await?;
         sqlx::query(
             "UPDATE playlist_placeholder SET position = position - 1
               WHERE playlist_id = ? AND position > ? AND position <= ?",
@@ -219,6 +247,9 @@ pub async fn shift_for_move(
         .execute(conn)
         .await?;
     } else if to < from {
+        // The gap before the moved track goes up onto the one after it,
+        // ahead of it.
+        append_gap(conn, playlist_id, from, from + 1).await?;
         sqlx::query(
             "UPDATE playlist_placeholder SET position = position + 1
               WHERE playlist_id = ? AND position >= ? AND position <= ?",
@@ -320,9 +351,9 @@ struct CandidateRow {
 /// separator, which no tag contains.
 const NAME_SEP: char = '\u{1f}';
 
-/// Every available track, as the matcher sees it. `with_paths` computes
-/// the comparable path of each file, which touches the filesystem and is
-/// only worth it when an entry names a path.
+/// Every available track, as the matcher sees it. `with_paths` adds the
+/// comparable path of each file ([`path_key`], lexical — no filesystem
+/// access), only worth building when an entry names a path.
 pub async fn load_candidates(pool: &SqlitePool, with_paths: bool) -> CoreResult<Vec<Candidate>> {
     let rows = sqlx::query_as::<_, CandidateRow>(
         "SELECT t.id, t.title, t.duration_ms, t.file_path,

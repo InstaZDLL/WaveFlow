@@ -117,7 +117,7 @@ pub fn parse_duration(raw: &str, as_ms: bool) -> Option<i64> {
             total = total.checked_mul(60)?;
             total = total.checked_add(value.floor() as i64)?;
         }
-        return Some(total * 1000).filter(|ms| *ms > 0);
+        return total.checked_mul(1000).filter(|ms| *ms > 0);
     }
     let value: f64 = raw.parse().ok()?;
     if !value.is_finite() || value <= 0.0 {
@@ -131,59 +131,62 @@ pub fn parse_duration(raw: &str, as_ms: bool) -> Option<i64> {
     Some(ms.round() as i64)
 }
 
-/// Build a comparable key from a filesystem path. We canonicalize
-/// when possible (resolves symlinks, fixes case, tightens drive
-/// letters) then strip the `\\?\` and `\\?\UNC\` extended-length
-/// prefixes Windows' `canonicalize` adds. Falls back to the input
-/// path when canonicalize fails so library-relative .m3u entries can
-/// still match scanned tracks even if the file isn't currently
-/// mounted.
+/// Build a comparable key from a filesystem path, **lexically**: `.` and
+/// `..` resolved, the separators the platform's, the Windows `\\?\` and
+/// `\\?\UNC\` extended-length prefixes stripped.
+///
+/// No filesystem access, on purpose. The paths compared come from a
+/// playlist someone else may have written, and are kept with its
+/// placeholders and compared again after every scan: resolving
+/// `\\host\share\x.mp3` through `canonicalize` would open an SMB
+/// connection to that host, which on Windows hands it the user's NTLM
+/// credentials. It is also a syscall per library track the M3U import no
+/// longer pays. What canonicalising bought — a symlink resolved, a casing
+/// fixed — is what the file-name fallback recovers anyway.
 ///
 /// **Platform-aware case folding**: filesystems are case-insensitive on
 /// Windows + macOS (HFS+/APFS default) and case-sensitive on Linux. We
 /// lowercase only on Windows so a Linux library where `Song.flac` and
 /// `song.flac` are two distinct files (rare but legal) doesn't collide
-/// during the M3U → DB match. macOS is treated as case-sensitive too —
-/// the rare case-sensitive HFS+/APFS volume gets a correct match, and
-/// the common case-insensitive one only suffers when the M3U casing
-/// disagrees with the on-disk casing (which `canonicalize` usually
-/// fixes anyway).
+/// during the M3U → DB match. macOS is treated as case-sensitive too:
+/// a case-insensitive volume only suffers when the playlist's casing
+/// disagrees with the file's, which the file-name fallback does not fix
+/// either.
 pub fn path_key(p: &std::path::Path) -> String {
-    let canon = std::fs::canonicalize(p).unwrap_or_else(|_| p.to_path_buf());
-    let s = canon.to_string_lossy().to_string();
-    #[cfg(windows)]
-    {
-        // Windows: strip `\\?\` / `\\?\UNC\` prefixes that canonicalize
-        // adds (extended-length paths), then lowercase since NTFS is
-        // case-insensitive by default. Byte-level prefix match used so
-        // some shells that mangle raw strings can't drop a backslash.
-        let bytes = s.as_bytes();
-        let has_verbatim = bytes.len() >= 4
-            && bytes[0] == b'\\'
-            && bytes[1] == b'\\'
-            && bytes[2] == b'?'
-            && bytes[3] == b'\\';
-        let has_unc = has_verbatim
-            && bytes.len() >= 8
-            && (bytes[4] == b'U' || bytes[4] == b'u')
-            && (bytes[5] == b'N' || bytes[5] == b'n')
-            && (bytes[6] == b'C' || bytes[6] == b'c')
-            && bytes[7] == b'\\';
-        if has_unc {
-            // \\?\UNC\server\share\... → \\server\share\...
-            return format!("\\\\{}", &s[8..]).to_lowercase();
+    use std::path::Component;
+    let mut parts: Vec<String> = Vec::new();
+    let mut head = String::new();
+    for component in p.components() {
+        match component {
+            Component::Prefix(prefix) => head = prefix_key(prefix),
+            Component::RootDir => head.push(std::path::MAIN_SEPARATOR),
+            Component::CurDir => {}
+            Component::ParentDir => {
+                parts.pop();
+            }
+            Component::Normal(name) => parts.push(name.to_string_lossy().into_owned()),
         }
-        if has_verbatim {
-            // \\?\C:\... → C:\...
-            return s[4..].to_lowercase();
-        }
-        s.to_lowercase()
     }
-    #[cfg(not(windows))]
-    {
-        // Linux / macOS: case-sensitive matching. No extended-length
-        // prefix to strip — `canonicalize` returns plain absolute paths.
-        s
+    let key = format!("{head}{}", parts.join(std::path::MAIN_SEPARATOR_STR));
+    if cfg!(windows) {
+        key.to_lowercase()
+    } else {
+        key
+    }
+}
+
+/// A Windows path prefix in its plain form: `\\?\C:` reads as `C:`, and
+/// `\\?\UNC\server\share` as `\\server\share`.
+fn prefix_key(prefix: std::path::PrefixComponent<'_>) -> String {
+    use std::path::Prefix;
+    match prefix.kind() {
+        Prefix::VerbatimDisk(drive) | Prefix::Disk(drive) => format!("{}:", drive as char),
+        Prefix::VerbatimUNC(server, share) | Prefix::UNC(server, share) => format!(
+            r"\\{}\{}",
+            server.to_string_lossy(),
+            share.to_string_lossy()
+        ),
+        _ => prefix.as_os_str().to_string_lossy().into_owned(),
     }
 }
 
@@ -213,6 +216,29 @@ mod tests {
     }
 
     #[test]
+    fn a_path_key_is_built_without_touching_the_disk() {
+        use std::path::Path;
+        let sep = std::path::MAIN_SEPARATOR;
+        let key = path_key(Path::new("/music/./a/../b/song.flac"));
+        assert_eq!(key, format!("{sep}music{sep}b{sep}song.flac"));
+        if cfg!(windows) {
+            assert_eq!(
+                path_key(Path::new(r"\\?\C:\Music\Song.FLAC")),
+                path_key(Path::new("c:/music/song.flac"))
+            );
+            assert_eq!(
+                path_key(Path::new(r"\\?\UNC\server\share\x.mp3")),
+                r"\\server\share\x.mp3"
+            );
+            // A share another machine names is compared, never opened.
+            assert_eq!(
+                path_key(Path::new(r"\\203.0.113.9\music\x.mp3")),
+                r"\\203.0.113.9\music\x.mp3"
+            );
+        }
+    }
+
+    #[test]
     fn durations_are_read_the_way_exports_write_them() {
         assert_eq!(parse_duration("3:45", false), Some(225_000));
         assert_eq!(parse_duration("1:02:03", false), Some(3_723_000));
@@ -225,5 +251,7 @@ mod tests {
         assert_eq!(parse_duration("-1", false), None);
         assert_eq!(parse_duration("abc", false), None);
         assert_eq!(parse_duration("3:75", false), None);
+        // Absurd, and refused rather than overflowed.
+        assert_eq!(parse_duration("200000000000000:00", false), None);
     }
 }

@@ -37,6 +37,11 @@ pub const ERR_OFFLINE: &str = "playlist-import: offline";
 pub const ERR_NOT_FOUND: &str = "playlist-import: not found";
 pub const ERR_UNREACHABLE: &str = "playlist-import: unreachable";
 
+/// The largest file read as a playlist. Ten thousand entries of a rich
+/// CSV export stay far below it; anything bigger is not a playlist, and
+/// is refused before it is read into memory.
+const MAX_FILE_BYTES: u64 = 16 * 1024 * 1024;
+
 /// The event a playlist's contents changed under it on. The payload is the
 /// playlist's id — the same event the smart-playlist commands emit.
 pub const EVENT_PLAYLIST_CHANGED: &str = "playlist:changed";
@@ -118,7 +123,20 @@ fn read_file(path: &std::path::Path) -> AppResult<(ImportSource, ParsedPlaylist)
         "json" => ImportSource::Json,
         other => return Err(AppError::Other(format!("{ERR_UNSUPPORTED_FILE}: .{other}"))),
     };
-    let raw = std::fs::read(path).map_err(|e| AppError::Other(format!("{ERR_UNREADABLE}: {e}")))?;
+    // Bounded by the read itself, not by the reported length, which a
+    // pipe or a growing file does not give honestly.
+    let mut raw = Vec::new();
+    std::fs::File::open(path)
+        .and_then(|file| {
+            use std::io::Read;
+            file.take(MAX_FILE_BYTES + 1).read_to_end(&mut raw)
+        })
+        .map_err(|e| AppError::Other(format!("{ERR_UNREADABLE}: {e}")))?;
+    if raw.len() as u64 > MAX_FILE_BYTES {
+        return Err(AppError::Other(format!(
+            "{ERR_UNREADABLE}: larger than {MAX_FILE_BYTES} bytes"
+        )));
+    }
     // A `.m3u8` is UTF-8; a legacy `.m3u` — or a CSV out of a spreadsheet —
     // is in the code page of the machine that wrote it.
     let text = waveflow_core::text_encoding::decode(&raw);
@@ -146,7 +164,8 @@ async fn resolve(
 ) -> AppResult<Vec<ResolvedEntry>> {
     let with_paths = entries.iter().any(|e| e.locator.is_some());
     let candidates = placeholders::load_candidates(pool, with_paths).await?;
-    // `path_key` canonicalises, a syscall per file: off the runtime.
+    // Indexing a large library and matching a long playlist is CPU work:
+    // off the runtime.
     tokio::task::spawn_blocking(move || {
         let index = LibraryIndex::new(candidates);
         entries
@@ -280,8 +299,10 @@ async fn follow_share_link(url: &str) -> AppResult<u64> {
 }
 
 fn deezer_error(err: DeezerError) -> AppError {
+    // Deezer's in-band refusal is a missing or private playlist — unless
+    // it is the rate limiter, which means "try again in a moment".
     let prefix = match &err {
-        DeezerError::Api(_) => ERR_NOT_FOUND,
+        DeezerError::Api(api) if !api.is_quota_exceeded() => ERR_NOT_FOUND,
         _ => ERR_UNREACHABLE,
     };
     AppError::Other(format!("{prefix}: {err}"))
@@ -621,18 +642,78 @@ mod tests {
         .await;
         assert_eq!(shown(&pool, pl).await, ["T1", "P:x", "T2", "P:y", "T3"]);
 
-        let mut conn = pool.acquire().await.unwrap();
+        // One connection in the pool: each write takes it and gives it
+        // back before `shown` reads.
+        let conn = || async { pool.acquire().await.unwrap() };
         // C to the top: it jumps over both placeholders, which stay
         // before the tracks they were before.
-        reorder_track_conn(&mut conn, pl, 3, 0, 1).await.unwrap();
+        reorder_track_conn(&mut *conn().await, pl, 3, 0, 1)
+            .await
+            .unwrap();
         assert_eq!(shown(&pool, pl).await, ["T3", "T1", "P:x", "T2", "P:y"]);
         // And back to the last place among the tracks. y had become the
         // tail, after B, and the tail stays after the last track.
-        reorder_track_conn(&mut conn, pl, 3, 2, 2).await.unwrap();
+        reorder_track_conn(&mut *conn().await, pl, 3, 2, 2)
+            .await
+            .unwrap();
         assert_eq!(shown(&pool, pl).await, ["T1", "P:x", "T2", "T3", "P:y"]);
         // B leaves: x now sits before the track that took its place.
-        remove_track_conn(&mut conn, pl, 2, 3).await.unwrap();
+        remove_track_conn(&mut *conn().await, pl, 2, 3)
+            .await
+            .unwrap();
         assert_eq!(shown(&pool, pl).await, ["T1", "P:x", "T3", "P:y"]);
+    }
+
+    #[tokio::test]
+    async fn gaps_that_meet_keep_each_one_s_order() {
+        use waveflow_core::repository::sqlite::playlist::{remove_track_conn, reorder_track_conn};
+        let pool = pool().await;
+        for (id, title) in [(1, "A"), (2, "B"), (3, "C")] {
+            add_track(&pool, id, title, 1, 100_000).await;
+        }
+        let missing = |t: &str| entry(t, "Band", 1);
+        let (pl, _) = import(
+            &pool,
+            vec![
+                missing("a1"),
+                missing("a2"),
+                entry("A", "Band", 100_000),
+                missing("b1"),
+                missing("b2"),
+                entry("B", "Band", 100_000),
+                missing("c1"),
+                missing("c2"),
+                entry("C", "Band", 100_000),
+            ],
+        )
+        .await;
+        let conn = || async { pool.acquire().await.unwrap() };
+        // A leaves: the gap before it and the one before B become one,
+        // in their order.
+        remove_track_conn(&mut *conn().await, pl, 1, 1)
+            .await
+            .unwrap();
+        assert_eq!(
+            shown(&pool, pl).await,
+            ["P:a1", "P:a2", "P:b1", "P:b2", "T2", "P:c1", "P:c2", "T3"]
+        );
+        // B down past C: the gaps either side of B's old place meet.
+        reorder_track_conn(&mut *conn().await, pl, 2, 1, 2)
+            .await
+            .unwrap();
+        assert_eq!(
+            shown(&pool, pl).await,
+            ["P:a1", "P:a2", "P:b1", "P:b2", "P:c1", "P:c2", "T3", "T2"]
+        );
+        // And back up: the gap B leaves meets the one before the track
+        // after it, placed ahead of it.
+        reorder_track_conn(&mut *conn().await, pl, 2, 0, 3)
+            .await
+            .unwrap();
+        assert_eq!(
+            shown(&pool, pl).await,
+            ["T2", "P:a1", "P:a2", "P:b1", "P:b2", "P:c1", "P:c2", "T3"]
+        );
     }
 
     #[tokio::test]
@@ -646,8 +727,9 @@ mod tests {
             vec![entry("A", "Band", 100_000), entry("z", "Band", 1)],
         )
         .await;
-        let mut conn = pool.acquire().await.unwrap();
-        append_track_conn(&mut conn, pl, 2, 1).await.unwrap();
+        append_track_conn(&mut pool.acquire().await.unwrap(), pl, 2, 1)
+            .await
+            .unwrap();
         assert_eq!(shown(&pool, pl).await, ["T1", "P:z", "T2"]);
     }
 
