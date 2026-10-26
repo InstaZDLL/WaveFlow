@@ -8,6 +8,13 @@ import {
 } from "../../hooks/useSingleClickPlay";
 import { usePlayerQueue } from "../../hooks/usePlayerQueue";
 import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
+import { usePlayer } from "../../hooks/usePlayer";
+import {
+  isFileTrack,
+  isRadioTrack,
+  isRemoteTrack,
+} from "../../lib/playerSources";
+import { RemoteQueueView } from "../layout/RemoteQueueView";
 import { playerJumpToIndex } from "../../lib/tauri/player";
 import { formatDuration } from "../../lib/tauri/track";
 import { formatPlaylistDuration } from "../../lib/playlistDuration";
@@ -24,15 +31,35 @@ const ROW_HEIGHT = 56;
  *
  * Virtualized against its own scroller: the view is an overlay over the
  * page, and a queue started from the library can hold thousands of rows.
+ *
+ * A remote play session and files played without importing them have
+ * their own queue, shown by the docked panel's view, as there; a web
+ * radio station plays outside the queue, so no row is marked playing.
  */
 export function ImmersiveTracklistTab() {
+  const { currentTrack } = usePlayer();
+  if (isRemoteTrack(currentTrack) || isFileTrack(currentTrack)) {
+    return (
+      <div className="flex-1 min-h-0 flex flex-col px-6 pb-8">
+        <RemoteQueueView
+          source={isFileTrack(currentTrack) ? "file" : "remote"}
+        />
+      </div>
+    );
+  }
+  return <LocalTracklist onAir={isRadioTrack(currentTrack)} />;
+}
+
+/** The library queue as a tracklist. `onAir`: a web radio station plays
+ *  instead, so nothing in it is the playing track. */
+function LocalTracklist({ onAir }: { onAir: boolean }) {
   "use no memo";
   const { t } = useTranslation();
   const { value: singleClickPlay } = useSingleClickPlay();
   const reducedMotion = usePrefersReducedMotion();
   const snapshot = usePlayerQueue();
   const items = useMemo(() => snapshot?.items ?? [], [snapshot]);
-  const currentIndex = snapshot?.current_index ?? -1;
+  const currentIndex = onAir ? -1 : (snapshot?.current_index ?? -1);
   const totalMs = useMemo(
     () => items.reduce((sum, item) => sum + item.duration_ms, 0),
     [items],

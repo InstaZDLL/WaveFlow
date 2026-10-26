@@ -296,9 +296,10 @@ export function ImmersiveView({
   }
 
   // Idle: no pointer move and no key for a few seconds hides the controls
-  // and the pointer (CSS on `data-idle`); any of them brings them back. A
-  // control the keyboard had focused is let go, so the key that wakes the
-  // view reaches the shortcuts rather than pressing an unseen button.
+  // and the pointer (CSS on `data-idle`); any of them brings them back.
+  // Focus goes back to the view itself, so the key that wakes it reaches
+  // the shortcuts — Space, the arrows, what a remote sends — rather than
+  // pressing an unseen button or jumping to a focused tracklist row.
   const [idle, setIdle] = useState(false);
   useEffect(() => {
     if (!theater) return;
@@ -307,12 +308,9 @@ export function ImmersiveView({
       window.clearTimeout(timer);
       timer = window.setTimeout(() => {
         setIdle(true);
-        const focused = document.activeElement;
-        if (
-          focused instanceof HTMLElement &&
-          focused.closest("[data-theater-chrome]")
-        ) {
-          focused.blur();
+        const view = dialogRef.current;
+        if (view && view !== document.activeElement) {
+          view.focus({ preventScroll: true });
         }
       }, THEATER_IDLE_MS);
     };
@@ -335,6 +333,9 @@ export function ImmersiveView({
 
   // The display stays on while the music plays, for as long as theater
   // mode lasts (`power.rs`); given back when it ends or the view closes.
+  // The backend lets it lapse on its own while the window is minimized or
+  // hidden to the tray, where the view stays mounted but shows nobody —
+  // the page is still "visible" to itself there.
   useEffect(() => {
     if (!theater) return;
     playerHoldDisplay(true).catch((err) =>
@@ -427,11 +428,14 @@ export function ImmersiveView({
       // controls (PlaybackControls / VolumeControl / ProgressBar) render
       // their dark-theme variants (hover / track) over the dark backdrop,
       // even when the app theme is light.
-      className="dark fixed inset-0 z-100 bg-zinc-950"
+      className="dark fixed inset-0 z-100 bg-zinc-950 outline-none!"
       // Theater mode, and whether its controls are hidden for want of
       // input (`app.css`).
       data-theater={theater || undefined}
       data-idle={chromeHidden || undefined}
+      // Where focus goes when theater mode turns idle; never outlined (the
+      // global ring is unlayered, hence the important).
+      tabIndex={-1}
     >
       {/* Blurred artwork background — flat dark gradient fallback. Same
           recipe as the old overlays. The fade-in (`FADE_IN`, none on

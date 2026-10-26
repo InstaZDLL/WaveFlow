@@ -7,6 +7,13 @@ import {
 import { ListMusic, Radio } from "lucide-react";
 import { Artwork } from "../common/Artwork";
 import { usePlayerQueue } from "../../hooks/usePlayerQueue";
+import { usePlayer } from "../../hooks/usePlayer";
+import {
+  isFileTrack,
+  isRadioTrack,
+  isRemoteTrack,
+} from "../../lib/playerSources";
+import { RemoteQueueView } from "../layout/RemoteQueueView";
 import {
   playerJumpToIndex,
   type QueueTrackPayload,
@@ -20,8 +27,28 @@ import {
  * theme-aware styling + drag-reorder for the docked surface; this tab is
  * a read-mostly companion, so it reuses the same backend commands
  * (`player_get_queue` / `player_jump_to_index`) without the dnd weight.
+ *
+ * A remote play session and files played without importing them have
+ * their own queue, shown by the docked panel's view, as there; a web
+ * radio station plays outside the queue, so none of it is "now playing".
  */
 export function ImmersiveQueueTab() {
+  const { currentTrack } = usePlayer();
+  if (isRemoteTrack(currentTrack) || isFileTrack(currentTrack)) {
+    return (
+      <div className="flex-1 min-h-0 flex flex-col px-6 pb-8">
+        <RemoteQueueView
+          source={isFileTrack(currentTrack) ? "file" : "remote"}
+        />
+      </div>
+    );
+  }
+  return <LocalQueue onAir={isRadioTrack(currentTrack)} />;
+}
+
+/** The library queue. `onAir`: a web radio station plays instead, so
+ *  none of it is the playing track. */
+function LocalQueue({ onAir }: { onAir: boolean }) {
   const { t } = useTranslation();
   const { value: singleClickPlay } = useSingleClickPlay();
   const snapshot = usePlayerQueue();
@@ -30,7 +57,7 @@ export function ImmersiveQueueTab() {
     () => snapshot?.items ?? [],
     [snapshot],
   );
-  const currentIndex = snapshot?.current_index ?? -1;
+  const currentIndex = onAir ? -1 : (snapshot?.current_index ?? -1);
   const nowPlaying =
     currentIndex >= 0 && currentIndex < items.length
       ? items[currentIndex]

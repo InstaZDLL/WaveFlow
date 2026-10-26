@@ -27,7 +27,6 @@ export function usePlayerQueue(): PlayerQueueSnapshot | null {
   }, []);
 
   useEffect(() => {
-    doFetch();
     let unlisten: UnlistenFn | null = null;
     // Guard against the component unmounting before `listen` resolves —
     // otherwise `unlisten` is still null when cleanup runs and the
@@ -42,6 +41,9 @@ export function usePlayerQueue(): PlayerQueueSnapshot | null {
       } catch (err) {
         console.error("[usePlayerQueue] listen failed", err);
       }
+      // Read once the listener is in place: `listen` replays nothing, so
+      // a change between an earlier read and the subscription was lost.
+      if (!disposed) doFetch();
     })();
     return () => {
       disposed = true;

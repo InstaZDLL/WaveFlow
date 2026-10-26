@@ -22,7 +22,9 @@
 //! The theater view asks for more: the **display** kept on while it is open
 //! and the music plays (`set_display_held`), whatever the setting — a
 //! screen showing the album from across the room must not go dark between
-//! two songs. Windows adds `ES_DISPLAY_REQUIRED`; Linux's `idle` flag above
+//! two songs — and only while the main window is on screen
+//! (`set_window_seen`): minimized or hidden to the tray, the view stays
+//! mounted but shows nobody. Windows adds `ES_DISPLAY_REQUIRED`; Linux's `idle` flag above
 //! already keeps the screen on; macOS runs `caffeinate -d` for as long as
 //! the hold lasts, tied to this process so it cannot outlive it.
 //!
@@ -36,6 +38,7 @@ enum Msg {
     Playing(bool),
     Enabled(bool),
     Display(bool),
+    Seen(bool),
 }
 
 /// What the worker should hold, from the three inputs.
@@ -47,13 +50,14 @@ enum Hold {
     Display,
 }
 
-/// Nothing while paused; the display while the theater view is open;
-/// otherwise the system, if the setting is on. The display hold ignores
-/// the setting, which is about a suspend in the middle of an album.
-fn wanted(playing: bool, enabled: bool, display: bool) -> Option<Hold> {
+/// Nothing while paused; the display while the theater view is open and
+/// its window on screen; otherwise the system, if the setting is on. The
+/// display hold ignores the setting, which is about a suspend in the
+/// middle of an album.
+fn wanted(playing: bool, enabled: bool, display: bool, seen: bool) -> Option<Hold> {
     if !playing {
         None
-    } else if display {
+    } else if display && seen {
         Some(Hold::Display)
     } else if enabled {
         Some(Hold::System)
@@ -97,10 +101,18 @@ pub fn set_display_held(held: bool) {
     send(Msg::Display(held));
 }
 
+/// The main window went out of sight (minimized, hidden to the tray) or
+/// came back. Fed by `webview_memory::sync`, which every hide, show,
+/// minimize and restore of the window already goes through.
+pub fn set_window_seen(seen: bool) {
+    send(Msg::Seen(seen));
+}
+
 fn run(rx: mpsc::Receiver<Msg>) {
     let mut playing = false;
     let mut enabled = true;
     let mut display = false;
+    let mut seen = true;
     let mut held: Option<(Hold, sys::Inhibitor)> = None;
     // Without a portal every play would fail the same way: say it once.
     let mut warned = false;
@@ -109,8 +121,9 @@ fn run(rx: mpsc::Receiver<Msg>) {
             Msg::Playing(value) => playing = value,
             Msg::Enabled(value) => enabled = value,
             Msg::Display(value) => display = value,
+            Msg::Seen(value) => seen = value,
         }
-        let want = wanted(playing, enabled, display);
+        let want = wanted(playing, enabled, display, seen);
         if held.as_ref().map(|(hold, _)| *hold) == want {
             continue;
         }
@@ -278,20 +291,29 @@ mod tests {
     fn nothing_is_held_while_paused() {
         for enabled in [false, true] {
             for display in [false, true] {
-                assert_eq!(wanted(false, enabled, display), None);
+                for seen in [false, true] {
+                    assert_eq!(wanted(false, enabled, display, seen), None);
+                }
             }
         }
     }
 
     #[test]
     fn the_setting_keeps_the_system_awake_while_playing() {
-        assert_eq!(wanted(true, true, false), Some(Hold::System));
-        assert_eq!(wanted(true, false, false), None);
+        assert_eq!(wanted(true, true, false, true), Some(Hold::System));
+        assert_eq!(wanted(true, false, false, true), None);
     }
 
     #[test]
     fn the_theater_view_holds_the_display_whatever_the_setting() {
-        assert_eq!(wanted(true, true, true), Some(Hold::Display));
-        assert_eq!(wanted(true, false, true), Some(Hold::Display));
+        assert_eq!(wanted(true, true, true, true), Some(Hold::Display));
+        assert_eq!(wanted(true, false, true, true), Some(Hold::Display));
+    }
+
+    #[test]
+    fn a_window_out_of_sight_holds_no_display() {
+        // Back to what the setting asks for.
+        assert_eq!(wanted(true, true, true, false), Some(Hold::System));
+        assert_eq!(wanted(true, false, true, false), None);
     }
 }

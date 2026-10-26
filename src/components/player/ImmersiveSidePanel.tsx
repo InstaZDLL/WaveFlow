@@ -81,8 +81,13 @@ export function ImmersiveSidePanel({
 
     const measure = () => {
       const headerBox = header.getBoundingClientRect();
+      // Theater mode scales the view with `zoom`: the boxes come back
+      // scaled, the padding and the constants here do not. Everything is
+      // brought back to layout pixels before it is compared.
+      const scale =
+        header.offsetWidth > 0 ? headerBox.width / header.offsetWidth : 1;
       const style = getComputedStyle(header);
-      const start = headerBox.left + parseFloat(style.paddingLeft);
+      const start = headerBox.left + parseFloat(style.paddingLeft) * scale;
       // The room ends at the bar's leftmost button, not at the bar's own
       // edge: the bar's padding is click-through (see `ImmersiveView`), so
       // a tab under it still takes its clicks. Measuring to the bar's edge
@@ -90,9 +95,9 @@ export function ImmersiveSidePanel({
       const firstButton = bar?.firstElementChild;
       const end = firstButton
         ? firstButton.getBoundingClientRect().left
-        : headerBox.right - parseFloat(style.paddingRight);
-      const room = end - start - LINE_GAP;
-      const pillWidth = pill.getBoundingClientRect().width;
+        : headerBox.right - parseFloat(style.paddingRight) * scale;
+      const room = (end - start) / scale - LINE_GAP;
+      const pillWidth = pill.getBoundingClientRect().width / scale;
       setLayout(
         pillWidth <= room
           ? "pill"
