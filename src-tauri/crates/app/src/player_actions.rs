@@ -382,6 +382,11 @@ pub async fn set_volume(app: &AppHandle, value: f32) -> AppResult<f32> {
     engine.send(AudioCmd::SetVolume(value))?;
 
     let clamped = value.clamp(0.0, 1.0);
+    // Published now as well as by the decoder when it drains the command
+    // (the same plain store): a second nudge read before that — during a
+    // slow track open, say — would otherwise start from the old value and
+    // three presses would move the volume one step.
+    engine.shared().set_volume(clamped);
     // Emitted after the clamp so every listener adopts the value the
     // engine really got.
     let _ = app.emit(
@@ -411,6 +416,11 @@ pub async fn set_volume(app: &AppHandle, value: f32) -> AppResult<f32> {
 /// Move the volume by `delta` points of 100, the step the in-app arrow
 /// keys take, from what the engine plays now.
 pub async fn nudge_volume(app: &AppHandle, delta: i32, label: &str) {
+    // One nudge at a time: each press is its own task, and two that read
+    // the volume before either has written it would both land on the same
+    // step.
+    static NUDGE: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+    let _one_at_a_time = NUDGE.lock().await;
     let current = {
         let engine = app.state::<Arc<AudioEngine>>();
         (engine.shared().volume() * 100.0).round() as i32

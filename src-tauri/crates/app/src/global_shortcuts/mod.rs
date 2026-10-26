@@ -592,7 +592,18 @@ impl GlobalShortcuts {
             });
             return Ok(snapshot(&inner, rejected));
         }
-        save(app_db, &inner.bindings).await?;
+        if let Err(err) = save(app_db, &inner.bindings).await {
+            // Not stored, so not kept either: what fires must be what the
+            // next launch registers. Natively the previous set goes back
+            // at once; a portal session cannot be rebound without the
+            // desktop's dialog, so there the next launch restores it.
+            if inner.backend == Backend::Native {
+                native_release_all(app, &mut inner).await;
+                inner.bindings = previous;
+                apply_all(app, &mut inner).await;
+            }
+            return Err(err);
+        }
         Ok(snapshot(&inner, None))
     }
 
