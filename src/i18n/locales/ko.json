@@ -242,6 +242,13 @@
       "playlistSubtextPending_zero": "0곡 · 아직 보내지 않음",
       "playlistSubtextPending_one": "{{count}}곡 · 아직 보내지 않음",
       "playlistSubtextPending_other": "{{count}}곡 · 아직 보내지 않음"
+    },
+    "pins": {
+      "title": "고정됨",
+      "pin": "사이드바에 고정",
+      "unpin": "고정 해제",
+      "album": "앨범",
+      "artist": "아티스트"
     }
   },
   "topbar": {
@@ -1584,7 +1591,17 @@
     "toast": {
       "tagWriteSkipped": "TTML은 데이터베이스에만 저장되었습니다(오디오 태그에는 기록되지 않음)"
     },
-    "excludedGenre": "{{genre}} 장르는 온라인에서 가사를 검색하지 않습니다(설정 → 가사). .lrc 파일을 가져오거나 그래도 검색할 수 있습니다."
+    "excludedGenre": "{{genre}} 장르는 온라인에서 가사를 검색하지 않습니다(설정 → 가사). .lrc 파일을 가져오거나 그래도 검색할 수 있습니다.",
+    "share": {
+      "open": "발췌 공유",
+      "title": "가사 발췌 공유",
+      "hint": "최대 {{max}}줄까지 고르세요.",
+      "counter": "{{selected}} / {{max}}",
+      "empty": "줄을 고르면 카드를 미리 볼 수 있습니다.",
+      "previewAlt": "카드 미리보기",
+      "linesLabel": "가사 줄",
+      "eyebrow": "가사"
+    }
   },
   "duplicates": {
     "title": "중복 파일 감지됨",
@@ -1960,7 +1977,16 @@
         "lanWarningAuth": "로컬 네트워크 전체에서 접근할 수 있지만 재생 제어에는 설정한 비밀번호가 필요합니다.",
         "statusRunning": "실행 중",
         "statusStopped": "중지됨",
-        "copyAddress": "주소 복사"
+        "copyAddress": "주소 복사",
+        "suggestTitle": "서버를 비밀번호로 보호할까요?",
+        "suggestBody": "비밀번호가 없으면 네트워크의 어떤 기기든 일시 정지, 곡 건너뛰기, 볼륨 변경을 할 수 있습니다.",
+        "suggestGenerate": "비밀번호 생성",
+        "suggestChoose": "직접 정하기",
+        "suggestDismiss": "나중에",
+        "generatedHint": "비밀번호가 저장되었습니다. MPD 클라이언트에 입력하세요.",
+        "showPassword": "비밀번호 표시",
+        "hidePassword": "비밀번호 숨기기",
+        "saveFailed": "MPD 서버 설정을 저장하지 못했습니다. 아무것도 변경되지 않았습니다."
       },
       "notifications": {
         "title": "곡 변경 알림",
@@ -2143,6 +2169,34 @@
         "done": "프로필을 ‘{{name}}’(으)로 가져왔습니다. 프로필 선택기에서 전환하세요.",
         "busy": "가져오는 중… 라이브러리가 크면 몇 분 걸릴 수 있습니다.",
         "failed": "가져오기에 실패했습니다. 파일이 손상되었거나 호환되지 않을 수 있습니다."
+      },
+      "preview": {
+        "title": "“{{name}}”을(를) 가져올까요?",
+        "titleUnknown": "프로필 가져오기",
+        "origin": "{{date}}에 WaveFlow {{version}}(으)로 내보냄.",
+        "loading": "아카이브를 읽는 중…",
+        "unreadable": "이 파일을 읽을 수 없습니다. 손상되었거나 WaveFlow 프로필 아카이브가 아닙니다.",
+        "failed": "아카이브를 읽지 못했습니다. 자세한 내용은 로그를 확인하세요.",
+        "newer": "이 아카이브는 더 최신 버전의 WaveFlow에서 만들어졌습니다. 가져오려면 WaveFlow를 업데이트하세요.",
+        "differentBuild": "이 아카이브는 데이터베이스가 이 버전과 다른 WaveFlow에서 만들어져 가져올 수 없습니다.",
+        "unsupported": "이 아카이브 형식은 더 이상 지원되지 않습니다.",
+        "schema": "데이터베이스 버전: {{archive}} (이 앱: {{local}})",
+        "schemaUnknown": "데이터베이스 버전을 알 수 없음 (이 앱: {{local}})",
+        "asNewProfile": "새 프로필로 가져옵니다. 기존 프로필은 그대로 유지됩니다.",
+        "cancel": "취소",
+        "import": "가져오기",
+        "rows": {
+          "tracks": "트랙",
+          "playlists": "재생목록",
+          "smartPlaylists": "스마트 재생목록",
+          "likedTracks": "좋아요 표시한 트랙",
+          "plays": "재생 횟수",
+          "libraryFolders": "보관함 폴더",
+          "settings": "설정",
+          "covers": "사용자 커버",
+          "coverCache": "캐시된 커버",
+          "size": "크기"
+        }
       }
     },
     "clipsInLibrary": {
@@ -2637,7 +2691,10 @@
       "canReach": "접근 가능:",
       "installAria": "{{name}} 설치",
       "updateAria": "{{name}} 업데이트",
-      "allInstalled": "스토어의 모든 항목이 이미 설치되어 있습니다."
+      "allInstalled": "스토어의 모든 항목이 이미 설치되어 있습니다.",
+      "search": "플러그인 검색",
+      "clearSearch": "검색 지우기",
+      "noMatch": "“{{query}}”와(과) 일치하는 플러그인이 없습니다."
     },
     "motionArtwork": {
       "title": "모션 커버",

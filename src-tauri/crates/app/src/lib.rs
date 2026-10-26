@@ -883,6 +883,7 @@ pub fn run() {
             commands::profile::set_profile_setting,
             commands::profile_io::export_profile,
             commands::profile_io::import_profile,
+            commands::profile_io::preview_profile_archive,
             commands::library::list_libraries,
             commands::library::create_library,
             commands::library::update_library,
@@ -1351,6 +1352,8 @@ pub fn run() {
             commands::wrapped::available_wrapped_years,
             commands::wrapped::wrapped_current_year,
             commands::share_image::save_share_image,
+            commands::sidebar_pins::list_sidebar_pins,
+            commands::sidebar_pins::set_sidebar_pin,
         ])
         .on_window_event(|window, event| match event {
             // Close-to-tray: when the user clicks the window's "X" we

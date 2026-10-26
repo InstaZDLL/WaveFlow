@@ -242,6 +242,13 @@
       "playlistSubtextPending_zero": "0 tracks · not sent yet",
       "playlistSubtextPending_one": "{{count}} track · not sent yet",
       "playlistSubtextPending_other": "{{count}} tracks · not sent yet"
+    },
+    "pins": {
+      "title": "Pinned",
+      "pin": "Pin to sidebar",
+      "unpin": "Unpin",
+      "album": "Album",
+      "artist": "Artist"
     }
   },
   "topbar": {
@@ -1586,7 +1593,17 @@
     "toast": {
       "tagWriteSkipped": "TTML kept in the database only (not written to the audio tag)"
     },
-    "excludedGenre": "Lyrics aren't searched online for the {{genre}} genre (Settings → Lyrics). You can import a .lrc file or search anyway."
+    "excludedGenre": "Lyrics aren't searched online for the {{genre}} genre (Settings → Lyrics). You can import a .lrc file or search anyway.",
+    "share": {
+      "open": "Share an excerpt",
+      "title": "Share a lyrics excerpt",
+      "hint": "Pick up to {{max}} lines.",
+      "counter": "{{selected}} / {{max}}",
+      "empty": "Pick a line to preview the card.",
+      "previewAlt": "Card preview",
+      "linesLabel": "Lyrics lines",
+      "eyebrow": "Lyrics"
+    }
   },
   "duplicates": {
     "title": "Duplicates detected",
@@ -1962,7 +1979,16 @@
         "lanWarningAuth": "Reachable from your whole local network, but playback control requires the password you set.",
         "statusRunning": "Running",
         "statusStopped": "Stopped",
-        "copyAddress": "Copy address"
+        "copyAddress": "Copy address",
+        "suggestTitle": "Protect the server with a password?",
+        "suggestBody": "Without one, any device on your network can pause, skip a track or change the volume.",
+        "suggestGenerate": "Generate a password",
+        "suggestChoose": "Choose my own",
+        "suggestDismiss": "Not now",
+        "generatedHint": "Password saved: enter it in your MPD client.",
+        "showPassword": "Show password",
+        "hidePassword": "Hide password",
+        "saveFailed": "Couldn't save the MPD server settings: nothing was changed."
       },
       "notifications": {
         "title": "Track-change notifications",
@@ -2118,6 +2144,34 @@
         "done": "Profile imported as “{{name}}”. Switch to it from the profile selector.",
         "busy": "Importing… A large library can take a few minutes.",
         "failed": "Import failed. The file may be corrupt or incompatible."
+      },
+      "preview": {
+        "title": "Import “{{name}}”?",
+        "titleUnknown": "Import a profile",
+        "origin": "Exported on {{date}} with WaveFlow {{version}}.",
+        "loading": "Reading the archive…",
+        "unreadable": "This file can't be read: it's damaged or isn't a WaveFlow profile archive.",
+        "failed": "The archive couldn't be read. See the logs for details.",
+        "newer": "This archive comes from a newer version of WaveFlow. Update WaveFlow to import it.",
+        "differentBuild": "This archive comes from another version of WaveFlow whose database differs from this one: it can't be imported.",
+        "unsupported": "This archive's format is no longer supported.",
+        "schema": "Database version: {{archive}} (this app: {{local}}).",
+        "schemaUnknown": "Database version unknown (this app: {{local}}).",
+        "asNewProfile": "It's imported as a new profile: your current profiles are left as they are.",
+        "cancel": "Cancel",
+        "import": "Import",
+        "rows": {
+          "tracks": "Tracks",
+          "playlists": "Playlists",
+          "smartPlaylists": "Smart playlists",
+          "likedTracks": "Liked tracks",
+          "plays": "Plays",
+          "libraryFolders": "Library folders",
+          "settings": "Settings",
+          "covers": "Custom covers",
+          "coverCache": "Cached covers",
+          "size": "Size"
+        }
       }
     },
     "clipsInLibrary": {
@@ -2639,7 +2693,10 @@
       "canReach": "Can reach:",
       "installAria": "Install {{name}}",
       "updateAria": "Update {{name}}",
-      "allInstalled": "Everything in the store is already installed."
+      "allInstalled": "Everything in the store is already installed.",
+      "search": "Search plugins",
+      "clearSearch": "Clear search",
+      "noMatch": "No plugin matches “{{query}}”."
     },
     "motionArtwork": {
       "title": "Animated artwork",

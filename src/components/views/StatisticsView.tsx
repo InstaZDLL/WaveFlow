@@ -44,6 +44,7 @@ import {
   formatListenTime,
   formatPercent,
 } from "./statistics/formatters";
+import { useAlbumArtistContextMenu } from "../../hooks/useAlbumArtistContextMenu";
 
 interface StatisticsViewProps {
   onNavigate: (view: ViewId) => void;
@@ -72,6 +73,8 @@ export function StatisticsView({
   const [heatmapData, setHeatmapData] = useState<ListeningByDayRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
+  // Right-click on a top artist or album: pin it to the sidebar.
+  const tileMenu = useAlbumArtistContextMenu();
   const { isHidden, ready: kpiPrefsReady } = useHiddenKpis();
 
   // Export the on-screen stats (top 100 each, listening by day/hour,
@@ -408,6 +411,7 @@ export function StatisticsView({
                     secondary={formatListenTime(artist.listened_ms)}
                     metric={t("statistics.plays", { count: artist.plays })}
                     onClick={() => onNavigateToArtist(artist.artist_id)}
+                    {...tileMenu.bind({ kind: "artist", id: artist.artist_id })}
                   />
                 );
               })}
@@ -432,12 +436,14 @@ export function StatisticsView({
                   secondary={album.artist_name ?? "—"}
                   metric={t("statistics.plays", { count: album.plays })}
                   onClick={() => onNavigateToAlbum(album.album_id)}
+                  {...tileMenu.bind({ kind: "album", id: album.album_id })}
                 />
               ))}
             </TopList>
           </div>
         </>
       )}
+      {tileMenu.render()}
     </div>
   );
 }

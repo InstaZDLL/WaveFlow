@@ -40,6 +40,7 @@ import { MoodRadioGrid } from "./home/MoodRadioGrid";
 import { HomeSuggestionCard } from "./home/HomeSuggestionCard";
 import { FluidHome } from "./home/fluid/FluidHome";
 import { recentPlayToTrack } from "./home/recentPlayToTrack";
+import { useAlbumArtistContextMenu } from "../../hooks/useAlbumArtistContextMenu";
 
 interface HomeViewProps {
   onNavigate: (view: ViewId) => void;
@@ -288,6 +289,9 @@ function ClassicHomeView({
     const tracks = recentPlays.map(recentPlayToTrack);
     await playTracks(tracks, index, { type: "library", id: null });
   };
+
+  // Right-click on a recently added album: pin it to the sidebar.
+  const albumMenu = useAlbumArtistContextMenu();
 
   const bannerClasses =
     "relative overflow-hidden rounded-3xl bg-linear-to-br from-emerald-50 to-white shadow-sm border border-emerald-100/50 dark:from-emerald-900/40 dark:to-zinc-800/40 dark:border-zinc-800 dark:shadow-none p-10";
@@ -678,6 +682,7 @@ function ClassicHomeView({
                   key={album.id}
                   type="button"
                   onClick={() => onNavigateToAlbum(album.id)}
+                  {...albumMenu.bind({ kind: "album", id: album.id })}
                   className="group flex flex-col items-stretch text-left rounded-2xl p-3 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
                 >
                   <Artwork
@@ -708,6 +713,7 @@ function ClassicHomeView({
           )}
         </section>
       )}
+      {albumMenu.render()}
     </div>
   );
 }

@@ -14,6 +14,7 @@ import {
   Zap,
   type LucideIcon,
 } from "lucide-react";
+import { foldForSearch, searchTerms } from "../../../lib/searchFold";
 import { SETTINGS_CATEGORIES, type SettingsCategory } from "./settingsCatalog";
 
 const ICONS = {
@@ -28,10 +29,6 @@ const ICONS = {
   diagnostics: Stethoscope,
 } satisfies Record<SettingsCategory, LucideIcon>;
 
-function normalize(value: string) {
-  return value.normalize("NFD").replace(/\p{M}/gu, "").toLocaleLowerCase();
-}
-
 interface SettingsNavigationProps {
   activeCategory: SettingsCategory;
   onSelect: (category: SettingsCategory, group?: string) => void;
@@ -45,12 +42,12 @@ export function SettingsNavigation({
   const [query, setQuery] = useState("");
   const searchId = useId();
   const categoryId = useId();
-  const terms = normalize(query).trim().split(/\s+/).filter(Boolean);
+  const terms = searchTerms(query);
   const results = terms.length
     ? SETTINGS_CATEGORIES.flatMap((category) =>
         category.groups
           .filter((group) => {
-            const text = normalize(
+            const text = foldForSearch(
               [
                 t(category.labelKey),
                 t(group.labelKey),

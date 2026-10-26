@@ -335,7 +335,9 @@ pub fn is_lastfm_star_placeholder(url: &str) -> bool {
 pub enum LastfmError {
     /// Built through `From`, which strips the URL, as every transport
     /// error in this module is.
-    #[error("network: {0}")]
+    /// Its message carries the cause chain — the refusal, the DNS
+    /// failure, the timeout — see [`crate::error::describe_http_error`].
+    #[error("network: {}", crate::error::describe_http_error(.0))]
     Http(reqwest::Error),
     #[error("Last.fm API error {code}: {message}")]
     Api { code: i64, message: String },

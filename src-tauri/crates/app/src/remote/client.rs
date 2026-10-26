@@ -33,6 +33,7 @@ use std::time::Duration;
 
 use serde::Deserialize;
 use tokio::sync::Mutex;
+use waveflow_core::error::describe_http_error;
 
 use crate::{
     error::{AppError, AppResult},
@@ -158,7 +159,7 @@ impl RemoteFailure {
             kind: FailureKind::Transient,
             status: None,
             code: None,
-            message: error.without_url().to_string(),
+            message: describe_http_error(&error),
         }
     }
 
@@ -403,7 +404,7 @@ impl<'a> RemoteClient<'a> {
             kind: FailureKind::Permanent,
             status: None,
             code: None,
-            message: format!("malformed response body: {}", err.without_url()),
+            message: format!("malformed response body: {}", describe_http_error(&err)),
         })
     }
 
@@ -554,7 +555,12 @@ pub async fn refresh(
         .json(&serde_json::json!({ "refresh_token": known.refresh_token }))
         .send()
         .await
-        .map_err(|err| AppError::Other(format!("token refresh failed: {}", err.without_url())))?;
+        .map_err(|err| {
+            AppError::Other(format!(
+                "token refresh failed: {}",
+                describe_http_error(&err)
+            ))
+        })?;
 
     let status = response.status().as_u16();
     if classify_status(status).is_some() {
@@ -564,7 +570,10 @@ pub async fn refresh(
     }
 
     let fresh: AuthTokensResponse = response.json().await.map_err(|err| {
-        AppError::Other(format!("malformed refresh response: {}", err.without_url()))
+        AppError::Other(format!(
+            "malformed refresh response: {}",
+            describe_http_error(&err)
+        ))
     })?;
 
     let pair = TokenPair {
@@ -621,6 +630,61 @@ pub async fn refresh(
     tx.commit().await?;
 
     Ok(pair)
+}
+
+/// An identifier the server handed us that cannot stand as one segment of
+/// a request path: empty, or `.` / `..`, which the URL parser resolves away
+/// whatever their encoding (`%2e` is a dot to it too).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct InvalidPathSegment;
+
+impl std::fmt::Display for InvalidPathSegment {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("the server sent an identifier that cannot be used in a request path")
+    }
+}
+
+impl From<InvalidPathSegment> for AppError {
+    fn from(err: InvalidPathSegment) -> Self {
+        AppError::Other(err.to_string())
+    }
+}
+
+/// Permanent: the identifier will be just as unusable on every retry.
+impl From<InvalidPathSegment> for RemoteFailure {
+    fn from(err: InvalidPathSegment) -> Self {
+        Self {
+            kind: FailureKind::Permanent,
+            status: None,
+            code: None,
+            message: err.to_string(),
+        }
+    }
+}
+
+/// `id` encoded as **one** segment of a REST path.
+///
+/// Every identifier the server supplies — a track, an album, a playlist, an
+/// upload session — goes through here before it is formatted into a path.
+/// Raw, an ID holding `/`, `?` or `#` would move the authenticated request to
+/// another route of the same host, or into its query; a `..` would climb out
+/// of the resource. Every byte outside RFC 3986's unreserved set is
+/// percent-encoded, so the server's router decodes back exactly the ID it
+/// sent; the dot segments cannot be encoded out of the parser's reach, so
+/// they are refused.
+pub fn segment(id: &str) -> Result<String, InvalidPathSegment> {
+    if id.is_empty() || id == "." || id == ".." {
+        return Err(InvalidPathSegment);
+    }
+    let mut out = String::with_capacity(id.len());
+    for byte in id.bytes() {
+        if byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'.' | b'_' | b'~') {
+            out.push(byte as char);
+        } else {
+            out.push_str(&format!("%{byte:02X}"));
+        }
+    }
+    Ok(out)
 }
 
 #[cfg(test)]
@@ -777,5 +841,78 @@ mod tests {
             request.url().as_str(),
             "https://music.example/api/v2/sync/snapshot"
         );
+    }
+
+    #[test]
+    fn a_plain_identifier_is_left_as_it_is() {
+        let id = "31be1c98-3984-40ff-8352-73fc6e2c29b5";
+        assert_eq!(segment(id).unwrap(), id);
+        assert_eq!(segment("a.b_c~d").unwrap(), "a.b_c~d");
+    }
+
+    #[test]
+    fn a_separator_in_an_identifier_stays_inside_its_segment() {
+        assert_eq!(segment("a/b").unwrap(), "a%2Fb");
+        assert_eq!(segment("a?b=c").unwrap(), "a%3Fb%3Dc");
+        assert_eq!(segment("a#b").unwrap(), "a%23b");
+        assert_eq!(segment("../admin").unwrap(), "..%2Fadmin");
+        assert_eq!(segment("50%").unwrap(), "50%25");
+        assert_eq!(segment("é è").unwrap(), "%C3%A9%20%C3%A8");
+        assert_eq!(segment("local:x").unwrap(), "local%3Ax");
+    }
+
+    #[test]
+    fn a_dot_segment_or_an_empty_identifier_is_refused() {
+        for id in ["", ".", ".."] {
+            assert_eq!(segment(id), Err(InvalidPathSegment), "{id:?}");
+        }
+        // Not a dot segment: a longer run of dots is an ordinary name.
+        assert_eq!(segment("...").unwrap(), "...");
+    }
+
+    /// The property that matters, checked on the URL reqwest would send:
+    /// whatever the identifier, the request stays on the route it was
+    /// built for, and the query is the one the caller wrote.
+    #[test]
+    fn an_encoded_identifier_cannot_leave_its_route() {
+        let base = "https://music.example";
+        for id in [
+            "a/b",
+            "../../admin",
+            "..%2F..%2Fadmin",
+            "x?admin=1",
+            "x#frag",
+            "%2e%2e",
+            "x/../../y",
+            "\\..\\admin",
+        ] {
+            let path = format!("/api/v2/tracks/{}/lyrics", segment(id).unwrap());
+            let url = reqwest::Url::parse(&format!("{base}{path}")).unwrap();
+            let segments: Vec<_> = url.path_segments().unwrap().collect();
+            assert_eq!(segments.len(), 5, "{id:?} -> {url}");
+            assert_eq!(segments[..3], ["api", "v2", "tracks"], "{id:?} -> {url}");
+            assert_eq!(segments[4], "lyrics", "{id:?} -> {url}");
+            assert_eq!(url.query(), None, "{id:?} -> {url}");
+            assert_eq!(url.fragment(), None, "{id:?} -> {url}");
+            let decoded = percent_decode(segments[3]);
+            assert_eq!(decoded, id, "{id:?} does not round-trip");
+        }
+    }
+
+    fn percent_decode(segment: &str) -> String {
+        let bytes = segment.as_bytes();
+        let mut out = Vec::new();
+        let mut i = 0;
+        while i < bytes.len() {
+            if bytes[i] == b'%' {
+                let hex = std::str::from_utf8(&bytes[i + 1..i + 3]).unwrap();
+                out.push(u8::from_str_radix(hex, 16).unwrap());
+                i += 3;
+            } else {
+                out.push(bytes[i]);
+                i += 1;
+            }
+        }
+        String::from_utf8(out).unwrap()
     }
 }

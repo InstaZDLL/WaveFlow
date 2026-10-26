@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { Artwork } from "../../../common/Artwork";
 import type { AlbumRow } from "../../../../lib/tauri/browse";
 import { SectionHeader } from "./SectionHeader";
+import { useAlbumArtistContextMenu } from "../../../../hooks/useAlbumArtistContextMenu";
 
 interface RecentlyAddedProps {
   albums: AlbumRow[];
@@ -23,6 +24,8 @@ export function RecentlyAdded({
   onSeeAll,
 }: RecentlyAddedProps) {
   const { t } = useTranslation();
+  // Right-click on an album: pin it to the sidebar.
+  const albumMenu = useAlbumArtistContextMenu();
   if (!loading && albums.length === 0) return null;
   const shown = albums.slice(0, 9);
   const [lead, ...rest] = shown;
@@ -62,12 +65,25 @@ export function RecentlyAdded({
         </div>
       ) : (
         <div className="grid grid-cols-3 gap-x-4 gap-y-6 sm:grid-cols-4 lg:grid-cols-6">
-          {lead && <AlbumTile album={lead} lead onOpen={onNavigateToAlbum} />}
+          {lead && (
+            <AlbumTile
+              album={lead}
+              lead
+              onOpen={onNavigateToAlbum}
+              bindMenu={albumMenu.bind}
+            />
+          )}
           {rest.map((a) => (
-            <AlbumTile key={a.id} album={a} onOpen={onNavigateToAlbum} />
+            <AlbumTile
+              key={a.id}
+              album={a}
+              onOpen={onNavigateToAlbum}
+              bindMenu={albumMenu.bind}
+            />
           ))}
         </div>
       )}
+      {albumMenu.render()}
     </section>
   );
 }
@@ -76,16 +92,20 @@ function AlbumTile({
   album,
   lead,
   onOpen,
+  bindMenu,
 }: {
   album: AlbumRow;
   lead?: boolean;
   onOpen: (albumId: number) => void;
+  /** The right-click menu's handlers, from the section's one menu. */
+  bindMenu: ReturnType<typeof useAlbumArtistContextMenu>["bind"];
 }) {
   const { t } = useTranslation();
   return (
     <button
       type="button"
       onClick={() => onOpen(album.id)}
+      {...bindMenu({ kind: "album", id: album.id })}
       className={`fe-tile-hover text-left ${lead ? "col-span-2 row-span-2" : ""}`}
     >
       <Artwork

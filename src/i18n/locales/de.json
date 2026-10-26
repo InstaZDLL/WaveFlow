@@ -242,6 +242,13 @@
       "playlistSubtextPending_zero": "0 Titel · noch nicht gesendet",
       "playlistSubtextPending_one": "{{count}} Titel · noch nicht gesendet",
       "playlistSubtextPending_other": "{{count}} Titel · noch nicht gesendet"
+    },
+    "pins": {
+      "title": "Angeheftet",
+      "pin": "An Seitenleiste anheften",
+      "unpin": "Lösen",
+      "album": "Album",
+      "artist": "Künstler"
     }
   },
   "topbar": {
@@ -1586,7 +1593,17 @@
     "toast": {
       "tagWriteSkipped": "TTML nur in der Datenbank gespeichert (nicht in den Audio-Tag geschrieben)"
     },
-    "excludedGenre": "Für das Genre {{genre}} werden keine Songtexte online gesucht (Einstellungen → Songtexte). Du kannst eine .lrc-Datei importieren oder trotzdem suchen."
+    "excludedGenre": "Für das Genre {{genre}} werden keine Songtexte online gesucht (Einstellungen → Songtexte). Du kannst eine .lrc-Datei importieren oder trotzdem suchen.",
+    "share": {
+      "open": "Auszug teilen",
+      "title": "Songtext-Auszug teilen",
+      "hint": "Wähle bis zu {{max}} Zeilen.",
+      "counter": "{{selected}} / {{max}}",
+      "empty": "Wähle eine Zeile, um die Karte zu sehen.",
+      "previewAlt": "Kartenvorschau",
+      "linesLabel": "Songtextzeilen",
+      "eyebrow": "Songtext"
+    }
   },
   "duplicates": {
     "title": "Duplikate erkannt",
@@ -1962,7 +1979,16 @@
         "lanWarningAuth": "Aus deinem gesamten lokalen Netzwerk erreichbar, aber die Wiedergabesteuerung erfordert das von dir festgelegte Passwort.",
         "statusRunning": "Aktiv",
         "statusStopped": "Gestoppt",
-        "copyAddress": "Adresse kopieren"
+        "copyAddress": "Adresse kopieren",
+        "suggestTitle": "Server mit einem Passwort schützen?",
+        "suggestBody": "Ohne Passwort kann jedes Gerät im Netzwerk pausieren, Titel überspringen oder die Lautstärke ändern.",
+        "suggestGenerate": "Passwort erzeugen",
+        "suggestChoose": "Eigenes wählen",
+        "suggestDismiss": "Später",
+        "generatedHint": "Passwort gespeichert: Gib es in deinem MPD-Client ein.",
+        "showPassword": "Passwort anzeigen",
+        "hidePassword": "Passwort verbergen",
+        "saveFailed": "Die MPD-Servereinstellungen konnten nicht gespeichert werden: Es wurde nichts geändert."
       },
       "notifications": {
         "title": "Benachrichtigungen beim Titelwechsel",
@@ -2118,6 +2144,34 @@
         "done": "Profil als „{{name}}“ importiert. Wechsle über die Profilauswahl dazu.",
         "busy": "Import läuft … Eine große Bibliothek kann einige Minuten dauern.",
         "failed": "Import fehlgeschlagen. Die Datei könnte beschädigt oder inkompatibel sein."
+      },
+      "preview": {
+        "title": "„{{name}}“ importieren?",
+        "titleUnknown": "Profil importieren",
+        "origin": "Exportiert am {{date}} mit WaveFlow {{version}}.",
+        "loading": "Archiv wird gelesen…",
+        "unreadable": "Diese Datei ist nicht lesbar: Sie ist beschädigt oder kein WaveFlow-Profilarchiv.",
+        "failed": "Das Archiv konnte nicht gelesen werden. Details stehen im Protokoll.",
+        "newer": "Dieses Archiv stammt aus einer neueren WaveFlow-Version. Aktualisiere WaveFlow, um es zu importieren.",
+        "differentBuild": "Dieses Archiv stammt aus einer anderen WaveFlow-Version, deren Datenbank sich von dieser unterscheidet: Es kann nicht importiert werden.",
+        "unsupported": "Das Format dieses Archivs wird nicht mehr unterstützt.",
+        "schema": "Datenbankversion: {{archive}} (diese App: {{local}}).",
+        "schemaUnknown": "Datenbankversion unbekannt (diese App: {{local}}).",
+        "asNewProfile": "Es wird als neues Profil importiert: Deine bestehenden Profile bleiben unverändert.",
+        "cancel": "Abbrechen",
+        "import": "Importieren",
+        "rows": {
+          "tracks": "Titel",
+          "playlists": "Playlists",
+          "smartPlaylists": "Intelligente Playlists",
+          "likedTracks": "Lieblingstitel",
+          "plays": "Wiedergaben",
+          "libraryFolders": "Bibliotheksordner",
+          "settings": "Einstellungen",
+          "covers": "Eigene Cover",
+          "coverCache": "Zwischengespeicherte Cover",
+          "size": "Größe"
+        }
       }
     },
     "clipsInLibrary": {
@@ -2639,7 +2693,10 @@
       "canReach": "Kann zugreifen auf:",
       "installAria": "{{name}} installieren",
       "updateAria": "{{name}} aktualisieren",
-      "allInstalled": "Alles aus dem Store ist bereits installiert."
+      "allInstalled": "Alles aus dem Store ist bereits installiert.",
+      "search": "Plugins durchsuchen",
+      "clearSearch": "Suche löschen",
+      "noMatch": "Kein Plugin passt zu „{{query}}“."
     },
     "motionArtwork": {
       "title": "Animierte Cover",

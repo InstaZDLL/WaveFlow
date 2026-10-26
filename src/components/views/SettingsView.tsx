@@ -20,7 +20,7 @@ import {
   ReplayGainPreview,
 } from "./settings/settingsPreviews";
 import { ThemePickerCard } from "./settings/ThemePickerCard";
-import { createPortal } from "react-dom";
+import { createPortal, flushSync } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { useSortIgnoreArticles } from "../../hooks/useSortIgnoreArticles";
 import {
@@ -120,7 +120,12 @@ import {
 import { openLogFolder, readRecentLogs } from "../../lib/tauri/diagnostics";
 import { RenderingCard } from "./settings/RenderingCard";
 import { getOfflineMode, setOfflineMode } from "../../lib/tauri/offline";
-import { exportProfile, importProfile } from "../../lib/tauri/profile_io";
+import {
+  ARCHIVE_UNREADABLE,
+  exportProfile,
+  importProfile,
+  previewProfileArchive,
+} from "../../lib/tauri/profile_io";
 import { pickFile, pickSaveFile } from "../../lib/tauri/dialog";
 import {
   getVisualizerEnabled,
@@ -146,6 +151,7 @@ import {
   type MpdConfig,
   type MpdStatus,
 } from "../../lib/tauri/mpd";
+import { generatePassword } from "../../lib/password";
 import { listen } from "@tauri-apps/api/event";
 import { useLibrary } from "../../hooks/useLibrary";
 import { useTasks } from "../../hooks/useTasks";
@@ -174,6 +180,10 @@ import {
 import { applyUiZoom } from "../../hooks/useUiZoom";
 import { DuplicatesModal } from "../common/DuplicatesModal";
 import { ResetAppModal } from "../common/ResetAppModal";
+import {
+  ProfileArchivePreviewModal,
+  type ArchivePreviewState,
+} from "../common/ProfileArchivePreviewModal";
 import { BackupCard } from "./settings/BackupCard";
 import { RadioCatalogueCard } from "./settings/RadioCatalogueCard";
 import { EqualizerCard } from "./settings/EqualizerCard";
@@ -1487,6 +1497,17 @@ function SettingsViewContent({
     }
   }, [activeProfile, clearProfileIoStatus, flashStatus, profileIoBusy, t]);
 
+  // The archive picked for import, and what it was found to hold. The
+  // import starts only from the preview's own button, which the backend's
+  // verdict enables: nothing is created before the user has seen what the
+  // archive is and that this build can take it.
+  const [archivePreview, setArchivePreview] =
+    useState<ArchivePreviewState | null>(null);
+  const archiveSourceRef = useRef<string | null>(null);
+  // Bumped per pick, so a slow preview of an archive the user already
+  // moved on from cannot fill the dialog.
+  const archivePreviewSeqRef = useRef(0);
+
   const handleImportProfile = useCallback(async () => {
     if (profileIoBusy) return;
     const source = await pickFile(
@@ -1494,6 +1515,36 @@ function SettingsViewContent({
       t("settings.profileIo.import.dialogTitle") ?? undefined,
     );
     if (!source) return;
+    clearProfileIoStatus();
+    const seq = ++archivePreviewSeqRef.current;
+    archiveSourceRef.current = source;
+    setArchivePreview({ status: "loading" });
+    try {
+      const preview = await previewProfileArchive(source);
+      if (seq !== archivePreviewSeqRef.current) return;
+      setArchivePreview({ status: "ready", preview });
+    } catch (err) {
+      console.error("[SettingsView] preview profile archive failed", err);
+      if (seq !== archivePreviewSeqRef.current) return;
+      setArchivePreview({
+        status: String(err).includes(ARCHIVE_UNREADABLE)
+          ? "unreadable"
+          : "failed",
+      });
+    }
+  }, [clearProfileIoStatus, profileIoBusy, t]);
+
+  const handleCancelArchivePreview = useCallback(() => {
+    archivePreviewSeqRef.current += 1;
+    archiveSourceRef.current = null;
+    setArchivePreview(null);
+  }, []);
+
+  const handleConfirmImportProfile = useCallback(async () => {
+    const source = archiveSourceRef.current;
+    if (profileIoBusy || !source) return;
+    archiveSourceRef.current = null;
+    setArchivePreview(null);
     clearProfileIoStatus();
     setProfileIoBusy("import");
     try {
@@ -1539,6 +1590,24 @@ function SettingsViewContent({
   // disabled and the user can't edit placeholder defaults before the real
   // config arrives (a failed load still unlocks them, on the defaults).
   const [mpdHydrated, setMpdHydrated] = useState(false);
+  // The password field shows its text once asked to, or once a generated
+  // password was put in it: the user has to read it to type it into their
+  // client.
+  const [mpdPasswordVisible, setMpdPasswordVisible] = useState(false);
+  // "Not now" on the suggestion to set a password. Session-only, and
+  // cleared by the next switch-on: the suggestion is made on activation.
+  const [mpdSuggestDismissed, setMpdSuggestDismissed] = useState(false);
+  // A generated password that was saved, so the card can say where it
+  // goes. Cleared by any later edit of the field.
+  const [mpdPasswordGenerated, setMpdPasswordGenerated] = useState(false);
+  // The last save was refused: the card says so instead of leaving the
+  // rolled-back value to speak for itself.
+  const [mpdSaveFailed, setMpdSaveFailed] = useState(false);
+  const mpdPasswordInputRef = useRef<HTMLInputElement>(null);
+  // A generated password is not in `mpdConfig` until the backend took it,
+  // so any other save sent meanwhile would carry the old password and
+  // overwrite it. The card's controls wait for the generation instead.
+  const [mpdGenerating, setMpdGenerating] = useState(false);
 
   useEffect(() => {
     getDiscordRpcEnabled()
@@ -1629,32 +1698,77 @@ function SettingsViewContent({
     persistDlna({ ...dlnaConfig, enabled: !dlnaConfig.enabled });
   }, [dlnaConfig, persistDlna]);
 
-  const persistMpd = useCallback(async (next: MpdConfig) => {
-    mpdTouchedRef.current = true;
-    const seq = ++mpdWriteSeqRef.current;
-    setMpdConfig(next);
-    // Chain each save so concurrent toggle/onBlur writes reach the backend in
-    // order; only the latest revision commits its side effects.
-    const run = mpdWriteChainRef.current.then(async () => {
-      try {
-        const status = await mpdSetConfig(next);
-        if (seq !== mpdWriteSeqRef.current) return;
-        mpdConfirmedRef.current = next;
-        setMpdStatus(status);
-      } catch (err) {
-        console.error("[SettingsView] mpd set", err);
-        if (seq !== mpdWriteSeqRef.current) return;
-        // Restore the last backend-confirmed config so a failed set doesn't
-        // leave the optimistic value displayed as if it took.
-        if (mpdConfirmedRef.current) setMpdConfig(mpdConfirmedRef.current);
-      }
-    });
-    mpdWriteChainRef.current = run.catch(() => undefined);
-    await run;
-  }, []);
+  // `optimistic: false` shows `next` only once the backend took it — for a
+  // generated password, which must never be on screen unless it is the one
+  // the server now asks for.
+  const persistMpd = useCallback(
+    async (next: MpdConfig, { optimistic = true } = {}) => {
+      mpdTouchedRef.current = true;
+      const seq = ++mpdWriteSeqRef.current;
+      setMpdSaveFailed(false);
+      if (optimistic) setMpdConfig(next);
+      // Chain each save so concurrent toggle/onBlur writes reach the backend
+      // in order; only the latest revision commits its side effects.
+      const run = mpdWriteChainRef.current.then(async () => {
+        try {
+          const status = await mpdSetConfig(next);
+          // The writes are serialized, so every success — the latest or
+          // not — is what the backend now holds, and what a later failure
+          // has to roll back to.
+          mpdConfirmedRef.current = next;
+          if (seq !== mpdWriteSeqRef.current) return false;
+          if (!optimistic) setMpdConfig(next);
+          setMpdStatus(status);
+          return true;
+        } catch (err) {
+          // The error is the backend's; the config — password included — is
+          // never logged.
+          console.error("[SettingsView] mpd set", err);
+          if (seq !== mpdWriteSeqRef.current) return false;
+          // Restore the last backend-confirmed config so a failed set doesn't
+          // leave the optimistic value displayed as if it took.
+          if (mpdConfirmedRef.current) setMpdConfig(mpdConfirmedRef.current);
+          setMpdSaveFailed(true);
+          return false;
+        }
+      });
+      mpdWriteChainRef.current = run.then(
+        () => undefined,
+        () => undefined,
+      );
+      return run;
+    },
+    [],
+  );
 
   const handleToggleMpd = useCallback(() => {
+    // Switching on is when the server starts answering the whole network,
+    // so that is when a missing password is pointed out again.
+    if (!mpdConfig.enabled) setMpdSuggestDismissed(false);
     persistMpd({ ...mpdConfig, enabled: !mpdConfig.enabled });
+  }, [mpdConfig, persistMpd]);
+
+  // Saved first, through the same path as a typed password, and put in the
+  // field only once the backend confirmed it. The suggestion it came from
+  // unmounts with the password set, so focus moves to the field that now
+  // holds it.
+  const handleGenerateMpdPassword = useCallback(async () => {
+    setMpdGenerating(true);
+    let saved: boolean;
+    try {
+      saved = await persistMpd(
+        { ...mpdConfig, password: generatePassword() },
+        { optimistic: false },
+      );
+    } finally {
+      // Rendered now rather than batched: the field is disabled while a
+      // password is generated, and a disabled field takes no focus.
+      flushSync(() => setMpdGenerating(false));
+    }
+    if (!saved) return;
+    setMpdPasswordVisible(true);
+    setMpdPasswordGenerated(true);
+    mpdPasswordInputRef.current?.focus();
   }, [mpdConfig, persistMpd]);
 
   const handleMpdCopyAddress = useCallback(() => {
@@ -3881,10 +3995,22 @@ function SettingsViewContent({
                         <ToggleSwitch
                           enabled={mpdConfig.enabled}
                           onToggle={handleToggleMpd}
-                          disabled={!mpdHydrated}
+                          disabled={!mpdHydrated || mpdGenerating}
                           label={t("settings.integrations.mpd.title")}
                         />
                       </div>
+
+                      {/* Outside the enabled block: a switch-on that fails
+                      rolls `enabled` back, and the reason must not vanish
+                      with the block. */}
+                      {mpdSaveFailed && (
+                        <div
+                          role="alert"
+                          className="mt-2 text-xs text-rose-500 break-words"
+                        >
+                          {t("settings.integrations.mpd.saveFailed")}
+                        </div>
+                      )}
 
                       {mpdConfig.enabled && (
                         <div className="mt-3 space-y-3">
@@ -3901,6 +4027,67 @@ function SettingsViewContent({
                               : t("settings.integrations.mpd.lanWarning")}
                           </div>
 
+                          {/* No password on a server that answers the whole
+                          network: offer one right where it is turned on,
+                          generated or typed. Gated on the hydrated config so
+                          it never flashes over a password still loading. */}
+                          {mpdHydrated &&
+                            !mpdConfig.password &&
+                            !mpdSuggestDismissed && (
+                              <div
+                                role="group"
+                                aria-labelledby="mpd-suggest-title"
+                                className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 space-y-2"
+                              >
+                                <div
+                                  id="mpd-suggest-title"
+                                  className="text-xs font-medium text-zinc-900 dark:text-white"
+                                >
+                                  {t("settings.integrations.mpd.suggestTitle")}
+                                </div>
+                                <div className="text-xs settings-description">
+                                  {t("settings.integrations.mpd.suggestBody")}
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                  <button
+                                    type="button"
+                                    disabled={mpdGenerating}
+                                    onClick={() =>
+                                      void handleGenerateMpdPassword()
+                                    }
+                                    className="px-3 py-1 text-xs rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    {t(
+                                      "settings.integrations.mpd.suggestGenerate",
+                                    )}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      mpdPasswordInputRef.current?.focus()
+                                    }
+                                    className="px-3 py-1 text-xs rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                                  >
+                                    {t(
+                                      "settings.integrations.mpd.suggestChoose",
+                                    )}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setMpdSuggestDismissed(true);
+                                      mpdPasswordInputRef.current?.focus();
+                                    }}
+                                    className="px-3 py-1 text-xs rounded-lg text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
+                                  >
+                                    {t(
+                                      "settings.integrations.mpd.suggestDismiss",
+                                    )}
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+
                           <div className="flex items-center space-x-2">
                             <label
                               htmlFor="mpd-port"
@@ -3914,7 +4101,7 @@ function SettingsViewContent({
                               min={1}
                               max={65535}
                               step={1}
-                              disabled={!mpdHydrated}
+                              disabled={!mpdHydrated || mpdGenerating}
                               value={mpdConfig.port}
                               onChange={(e) =>
                                 setMpdConfig({
@@ -3957,27 +4144,57 @@ function SettingsViewContent({
                             >
                               {t("settings.integrations.mpd.password")}
                             </label>
-                            <input
-                              id="mpd-password"
-                              type="password"
-                              autoComplete="new-password"
-                              disabled={!mpdHydrated}
-                              value={mpdConfig.password}
-                              placeholder={t(
-                                "settings.integrations.mpd.passwordPlaceholder",
-                              )}
-                              onChange={(e) =>
-                                setMpdConfig({
-                                  ...mpdConfig,
-                                  password: e.target.value,
-                                })
-                              }
-                              onBlur={() => persistMpd(mpdConfig)}
-                              className="flex-1 min-w-0 px-2 py-1 text-xs rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-transparent focus:border-emerald-500 focus:outline-none text-zinc-900 dark:text-white"
-                            />
+                            <div className="relative flex-1 min-w-0">
+                              <input
+                                id="mpd-password"
+                                ref={mpdPasswordInputRef}
+                                type={mpdPasswordVisible ? "text" : "password"}
+                                autoComplete="new-password"
+                                spellCheck={false}
+                                disabled={!mpdHydrated || mpdGenerating}
+                                value={mpdConfig.password}
+                                placeholder={t(
+                                  "settings.integrations.mpd.passwordPlaceholder",
+                                )}
+                                onChange={(e) => {
+                                  setMpdPasswordGenerated(false);
+                                  setMpdConfig({
+                                    ...mpdConfig,
+                                    password: e.target.value,
+                                  });
+                                }}
+                                onBlur={() => persistMpd(mpdConfig)}
+                                className="w-full pl-2 pr-8 py-1 text-xs rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-transparent focus:border-emerald-500 focus:outline-none text-zinc-900 dark:text-white"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setMpdPasswordVisible((v) => !v)}
+                                aria-label={
+                                  mpdPasswordVisible
+                                    ? t(
+                                        "settings.integrations.mpd.hidePassword",
+                                      )
+                                    : t(
+                                        "settings.integrations.mpd.showPassword",
+                                      )
+                                }
+                                className="absolute inset-y-0 right-0 px-2 flex items-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+                              >
+                                {mpdPasswordVisible ? (
+                                  <EyeOff size={14} />
+                                ) : (
+                                  <Eye size={14} />
+                                )}
+                              </button>
+                            </div>
                           </div>
-                          <div className="text-xs settings-description">
-                            {t("settings.integrations.mpd.passwordHint")}
+                          <div
+                            aria-live="polite"
+                            className="text-xs settings-description"
+                          >
+                            {mpdPasswordGenerated && mpdConfig.password
+                              ? t("settings.integrations.mpd.generatedHint")
+                              : t("settings.integrations.mpd.passwordHint")}
                           </div>
 
                           {/* Status */}
@@ -4389,6 +4606,11 @@ function SettingsViewContent({
       <ResetAppModal
         isOpen={isResetOpen}
         onClose={() => setIsResetOpen(false)}
+      />
+      <ProfileArchivePreviewModal
+        state={archivePreview}
+        onCancel={handleCancelArchivePreview}
+        onImport={() => void handleConfirmImportProfile()}
       />
     </div>
   );

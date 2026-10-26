@@ -8,6 +8,13 @@ export function cardFont(weight: number, size: number): string {
   return `${weight} ${size}px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
 }
 
+/** A card's eyebrow in capitals, by the rules of the UI language: a bare
+ *  `toUpperCase()` turns Turkish "sözleri" into "SÖZLERI", without the
+ *  dot its capital İ keeps. */
+export function cardEyebrow(text: string): string {
+  return text.toLocaleUpperCase(document.documentElement.lang || undefined);
+}
+
 export function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();

@@ -12,6 +12,8 @@ import {
   ListEnd,
   ListPlus,
   Pencil,
+  Pin,
+  PinOff,
   Play,
   Shuffle,
   Trash2,
@@ -38,6 +40,7 @@ import {
   playerPlayTracks,
 } from "../lib/tauri/player";
 import { usePlaylist } from "./usePlaylist";
+import { toggleSidebarPin, useSidebarPins } from "./useSidebarPins";
 import { usePlayer } from "./usePlayer";
 import { listLikedTrackIds } from "../lib/tauri/track";
 import { listRecentPlays } from "../lib/tauri/browse";
@@ -99,6 +102,7 @@ export function usePlaylistContextMenu({
   const { t } = useTranslation();
   const { deletePlaylist, refresh } = usePlaylist();
   const { isShuffled, toggleShuffle } = usePlayer();
+  const { isPinned } = useSidebarPins();
   const [state, setState] = useState<{
     point: ContextMenuPoint;
     playlist: ContextPlaylist;
@@ -286,6 +290,29 @@ export function usePlaylistContextMenu({
           />
           <ContextMenuSeparator />
           <ContextMenuItem
+            icon={
+              isPinned("playlist", localId) ? (
+                <PinOff size={16} aria-hidden="true" />
+              ) : (
+                <Pin size={16} aria-hidden="true" />
+              )
+            }
+            label={
+              isPinned("playlist", localId)
+                ? t("sidebar.pins.unpin")
+                : t("sidebar.pins.pin")
+            }
+            onSelect={act(() => {
+              toggleSidebarPin(
+                "playlist",
+                localId,
+                !isPinned("playlist", localId),
+              ).catch((err: unknown) =>
+                console.error("[usePlaylistContextMenu] pin failed", err),
+              );
+            })}
+          />
+          <ContextMenuItem
             icon={<Pencil size={16} aria-hidden="true" />}
             label={t("playlistView.actions.edit")}
             onSelect={act(() => {
@@ -400,6 +427,7 @@ export function usePlaylistContextMenu({
     closeEditing,
     isShuffled,
     toggleShuffle,
+    isPinned,
   ]);
 
   return { open, openFromKeyboard, close, render };

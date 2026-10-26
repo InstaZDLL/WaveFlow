@@ -606,6 +606,8 @@ export const SETTINGS_CATEGORIES = [
           "settings.integrations.mpd.passwordPlaceholder",
           "settings.integrations.mpd.passwordHint",
           "settings.integrations.mpd.copyAddress",
+          "settings.integrations.mpd.suggestTitle",
+          "settings.integrations.mpd.suggestGenerate",
         ],
       },
     ],

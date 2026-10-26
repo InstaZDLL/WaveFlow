@@ -1,12 +1,18 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Share2, Download, Copy, Loader2, Check } from "lucide-react";
+import { Share2, Download, Copy, Loader2, Check, Quote } from "lucide-react";
 import type { Track } from "../../lib/tauri/track";
+import { useLyricsShare } from "../../hooks/useLyricsShare";
 import { useShareImage } from "../../hooks/useShareImage";
 import { renderNowPlayingCard } from "../../lib/nowPlayingCard";
 
 interface ImmersiveShareButtonProps {
   track: Track;
+  /** The lyric's lines as the view shows them (`shareableLyricLines`);
+   *  the menu offers an excerpt card when one of them holds text. */
+  lyricLines: string[];
+  /** The line playing, selected first in the excerpt picker. */
+  activeLyricIndex: number;
 }
 
 /**
@@ -16,11 +22,18 @@ interface ImmersiveShareButtonProps {
  * open/sharing state) so the orchestrator's top bar stays declarative.
  *
  * The save / copy flow is `useShareImage`, shared with the playlist and
- * artist headers.
+ * artist headers. With lyrics on screen, a third entry opens the excerpt
+ * picker (`useLyricsShare`), the lyrics panel's own.
  */
-export function ImmersiveShareButton({ track }: ImmersiveShareButtonProps) {
+export function ImmersiveShareButton({
+  track,
+  lyricLines,
+  activeLyricIndex,
+}: ImmersiveShareButtonProps) {
   const { t } = useTranslation();
   const [shareOpen, setShareOpen] = useState(false);
+  const lyricsShare = useLyricsShare();
+  const hasLyrics = lyricLines.some((line) => line.trim() !== "");
   const {
     state: sharing,
     save,
@@ -76,8 +89,22 @@ export function ImmersiveShareButton({ track }: ImmersiveShareButtonProps) {
             <Copy size={16} className="opacity-70" />
             {t("nowPlaying.share.copy")}
           </button>
+          {hasLyrics && (
+            <button
+              type="button"
+              onClick={() => {
+                setShareOpen(false);
+                lyricsShare.open(track, lyricLines, activeLyricIndex);
+              }}
+              className="w-full px-4 py-3 flex items-center gap-3 hover:bg-white/10 transition-colors text-sm border-t border-white/5"
+            >
+              <Quote size={16} className="opacity-70" />
+              {t("lyrics.share.open")}
+            </button>
+          )}
         </div>
       )}
+      {lyricsShare.render()}
     </div>
   );
 }

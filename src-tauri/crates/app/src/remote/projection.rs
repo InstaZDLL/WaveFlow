@@ -41,7 +41,10 @@ use waveflow_core::metadata::name_match::normalize_name;
 
 use crate::{
     error::AppResult,
-    remote::dto::{SongItem, SyncChange, SyncSnapshot},
+    remote::{
+        dto::{SongItem, SyncChange, SyncSnapshot},
+        mutation::{is_reserved_for_placeholders, PLACEHOLDER_GLOB},
+    },
 };
 
 /// What an apply did.
@@ -80,15 +83,14 @@ fn clamp_rating(rating: i64) -> i64 {
 /// playlist the user created offline while its creation sat in the
 /// queue.
 pub async fn apply_snapshot(conn: &mut SqliteConnection, snapshot: &SyncSnapshot) -> AppResult<()> {
-    let placeholder_pattern = format!("{}%", crate::remote::mutation::PLACEHOLDER_PREFIX);
     for statement in [
-        "DELETE FROM remote_playlist_track WHERE playlist_remote_id NOT LIKE ?",
-        "DELETE FROM remote_playlist WHERE remote_id NOT LIKE ?",
-        "DELETE FROM remote_share_track WHERE share_remote_id NOT LIKE ?",
-        "DELETE FROM remote_share WHERE remote_id NOT LIKE ?",
+        "DELETE FROM remote_playlist_track WHERE playlist_remote_id NOT GLOB ?",
+        "DELETE FROM remote_playlist WHERE remote_id NOT GLOB ?",
+        "DELETE FROM remote_share_track WHERE share_remote_id NOT GLOB ?",
+        "DELETE FROM remote_share WHERE remote_id NOT GLOB ?",
     ] {
         sqlx::query(statement)
-            .bind(&placeholder_pattern)
+            .bind(PLACEHOLDER_GLOB)
             .execute(&mut *conn)
             .await?;
     }
@@ -103,6 +105,10 @@ pub async fn apply_snapshot(conn: &mut SqliteConnection, snapshot: &SyncSnapshot
     }
 
     for playlist in &snapshot.playlists {
+        if is_reserved_for_placeholders(&playlist.id) {
+            tracing::warn!("snapshot playlist skipped: its identifier is in the local namespace");
+            continue;
+        }
         sqlx::query(
             "INSERT INTO remote_playlist
                 (remote_id, name, comment, is_public, created_at, updated_at)
@@ -205,6 +211,10 @@ pub async fn apply_snapshot(conn: &mut SqliteConnection, snapshot: &SyncSnapshot
     }
 
     for share in &snapshot.shares {
+        if is_reserved_for_placeholders(&share.id) {
+            tracing::warn!("snapshot share skipped: its identifier is in the local namespace");
+            continue;
+        }
         sqlx::query(
             "INSERT INTO remote_share
                 (remote_id, description, expires_at, visit_count, url, created_at)
@@ -397,6 +407,19 @@ pub async fn tracks_missing_artist_id(conn: &mut SqliteConnection) -> AppResult<
 
 /// Apply one journal event.
 pub async fn apply_change(conn: &mut SqliteConnection, change: &SyncChange) -> AppResult<Outcome> {
+    // A playlist or share the server names inside the placeholder
+    // namespace would be mistaken for — or would overwrite, or delete —
+    // one created offline here. See `is_reserved_for_placeholders`.
+    if matches!(change.entity_type.as_str(), "playlist" | "share") {
+        let id = payload_str(&change.payload, "id").unwrap_or(&change.entity_id);
+        if is_reserved_for_placeholders(id) || is_reserved_for_placeholders(&change.entity_id) {
+            tracing::warn!(
+                entity_type = %change.entity_type,
+                "change ignored: its identifier is in the local namespace"
+            );
+            return Ok(Outcome::Ignored);
+        }
+    }
     match (change.entity_type.as_str(), change.action.as_str()) {
         ("playlist", "upsert") => apply_playlist_upsert(conn, change).await,
         ("playlist", "delete") => {
@@ -1146,6 +1169,84 @@ mod tests {
         // Nothing is missing: the snapshot carried every song it
         // referenced.
         assert!(missing_track_ids(&mut conn).await.unwrap().is_empty());
+    }
+
+    /// A server that names a playlist or share inside the placeholder
+    /// namespace — here, the very placeholder of an offline playlist — must
+    /// neither overwrite that playlist nor fail the snapshot on its key.
+    #[tokio::test]
+    async fn a_server_identifier_in_the_local_namespace_is_kept_out() {
+        let pool = pool().await;
+        let mut conn = pool.acquire().await.unwrap();
+        let local_id = crate::remote::mutation::new_placeholder();
+        sqlx::query("INSERT INTO remote_playlist (remote_id, name) VALUES (?, 'Offline mix')")
+            .bind(&local_id)
+            .execute(&mut *conn)
+            .await
+            .unwrap();
+
+        let snapshot: SyncSnapshot = serde_json::from_value(serde_json::json!({
+            "cursor": 3,
+            "playlists": [{"id": local_id, "name": "Hijack", "public": false, "songs": []}],
+            "shares": [{"id": "local:share", "track_ids": []}]
+        }))
+        .unwrap();
+        apply_snapshot(&mut conn, &snapshot).await.unwrap();
+
+        let name: String =
+            sqlx::query_scalar("SELECT name FROM remote_playlist WHERE remote_id = ?")
+                .bind(&local_id)
+                .fetch_one(&mut *conn)
+                .await
+                .unwrap();
+        assert_eq!(name, "Offline mix");
+        let shares: i64 = sqlx::query_scalar("SELECT count(*) FROM remote_share")
+            .fetch_one(&mut *conn)
+            .await
+            .unwrap();
+        assert_eq!(shares, 0);
+
+        for (entity_type, action) in [("playlist", "upsert"), ("playlist", "delete")] {
+            let outcome = apply_change(
+                &mut conn,
+                &change(
+                    entity_type,
+                    action,
+                    &local_id,
+                    serde_json::json!({"id": local_id, "name": "Hijack"}),
+                ),
+            )
+            .await
+            .unwrap();
+            assert_eq!(outcome, Outcome::Ignored, "{entity_type} {action}");
+        }
+        let name: String =
+            sqlx::query_scalar("SELECT name FROM remote_playlist WHERE remote_id = ?")
+                .bind(&local_id)
+                .fetch_one(&mut *conn)
+                .await
+                .unwrap();
+        assert_eq!(name, "Offline mix", "a change reached the offline playlist");
+    }
+
+    /// The snapshot spares placeholders by the same test `is_placeholder`
+    /// applies: case-sensitive. `LIKE` folded case, so a server playlist
+    /// named `LOCAL:…` outlived every snapshot that no longer listed it.
+    #[tokio::test]
+    async fn a_snapshot_spares_only_what_is_placeholder() {
+        let pool = pool().await;
+        let mut conn = pool.acquire().await.unwrap();
+        sqlx::query("INSERT INTO remote_playlist (remote_id, name) VALUES ('LOCAL:x', 'Server')")
+            .execute(&mut *conn)
+            .await
+            .unwrap();
+        let snapshot: SyncSnapshot = serde_json::from_str(r#"{"cursor": 4}"#).unwrap();
+        apply_snapshot(&mut conn, &snapshot).await.unwrap();
+        let left: i64 = sqlx::query_scalar("SELECT count(*) FROM remote_playlist")
+            .fetch_one(&mut *conn)
+            .await
+            .unwrap();
+        assert_eq!(left, 0);
     }
 
     #[tokio::test]

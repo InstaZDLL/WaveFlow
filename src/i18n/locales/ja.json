@@ -242,6 +242,13 @@
       "playlistSubtextPending_zero": "0曲・未送信",
       "playlistSubtextPending_one": "{{count}}曲・未送信",
       "playlistSubtextPending_other": "{{count}}曲・未送信"
+    },
+    "pins": {
+      "title": "ピン留め",
+      "pin": "サイドバーにピン留め",
+      "unpin": "ピン留めを外す",
+      "album": "アルバム",
+      "artist": "アーティスト"
     }
   },
   "topbar": {
@@ -1584,7 +1591,17 @@
     "toast": {
       "tagWriteSkipped": "TTML はデータベースにのみ保存されました（オーディオタグには書き込まれていません）"
     },
-    "excludedGenre": "ジャンル「{{genre}}」の歌詞はオンラインで検索されません（設定 → 歌詞）。.lrcファイルをインポートするか、このまま検索できます。"
+    "excludedGenre": "ジャンル「{{genre}}」の歌詞はオンラインで検索されません（設定 → 歌詞）。.lrcファイルをインポートするか、このまま検索できます。",
+    "share": {
+      "open": "抜粋を共有",
+      "title": "歌詞の抜粋を共有",
+      "hint": "最大 {{max}} 行まで選べます。",
+      "counter": "{{selected}} / {{max}}",
+      "empty": "行を選ぶとカードのプレビューが表示されます。",
+      "previewAlt": "カードのプレビュー",
+      "linesLabel": "歌詞の行",
+      "eyebrow": "歌詞"
+    }
   },
   "duplicates": {
     "title": "重複が見つかりました",
@@ -1931,7 +1948,16 @@
         "lanWarningAuth": "ローカルネットワーク全体からアクセスできますが、再生操作には設定したパスワードが必要です。",
         "statusRunning": "実行中",
         "statusStopped": "停止中",
-        "copyAddress": "アドレスをコピー"
+        "copyAddress": "アドレスをコピー",
+        "suggestTitle": "サーバーをパスワードで保護しますか?",
+        "suggestBody": "パスワードがないと、ネットワーク上のどの機器からでも一時停止、曲送り、音量変更ができてしまいます。",
+        "suggestGenerate": "パスワードを生成",
+        "suggestChoose": "自分で決める",
+        "suggestDismiss": "後で",
+        "generatedHint": "パスワードを保存しました。MPD クライアントに入力してください。",
+        "showPassword": "パスワードを表示",
+        "hidePassword": "パスワードを隠す",
+        "saveFailed": "MPD サーバーの設定を保存できませんでした。何も変更されていません。"
       },
       "notifications": {
         "title": "曲変更通知",
@@ -2376,6 +2402,34 @@
         "done": "プロフィールを「{{name}}」としてインポートしました。プロフィール選択画面で切り替えてください。",
         "busy": "インポート中… ライブラリが大きい場合は数分かかることがあります。",
         "failed": "インポートに失敗しました。ファイルが破損しているか互換性がない可能性があります。"
+      },
+      "preview": {
+        "title": "「{{name}}」をインポートしますか？",
+        "titleUnknown": "プロフィールをインポート",
+        "origin": "{{date}} に WaveFlow {{version}} でエクスポート。",
+        "loading": "アーカイブを読み込み中…",
+        "unreadable": "このファイルは読み込めません。破損しているか、WaveFlow のプロフィールアーカイブではありません。",
+        "failed": "アーカイブを読み込めませんでした。詳細はログを確認してください。",
+        "newer": "このアーカイブは新しいバージョンの WaveFlow で作成されています。インポートするには WaveFlow を更新してください。",
+        "differentBuild": "このアーカイブは、データベースがこのバージョンと異なる別の WaveFlow で作成されています。インポートできません。",
+        "unsupported": "このアーカイブの形式はサポートされなくなりました。",
+        "schema": "データベースのバージョン: {{archive}}（このアプリ: {{local}}）",
+        "schemaUnknown": "データベースのバージョンは不明です（このアプリ: {{local}}）",
+        "asNewProfile": "新しいプロフィールとしてインポートされます。既存のプロフィールは変更されません。",
+        "cancel": "キャンセル",
+        "import": "インポート",
+        "rows": {
+          "tracks": "トラック",
+          "playlists": "プレイリスト",
+          "smartPlaylists": "スマートプレイリスト",
+          "likedTracks": "お気に入りのトラック",
+          "plays": "再生回数",
+          "libraryFolders": "ライブラリのフォルダ",
+          "settings": "設定",
+          "covers": "カスタムカバー",
+          "coverCache": "キャッシュ済みカバー",
+          "size": "サイズ"
+        }
       }
     },
     "visualizer": {
@@ -2637,7 +2691,10 @@
       "canReach": "アクセス先：",
       "installAria": "{{name}} をインストール",
       "updateAria": "{{name}} を更新",
-      "allInstalled": "ストアのすべてがインストール済みです。"
+      "allInstalled": "ストアのすべてがインストール済みです。",
+      "search": "プラグインを検索",
+      "clearSearch": "検索をクリア",
+      "noMatch": "「{{query}}」に一致するプラグインはありません。"
     },
     "motionArtwork": {
       "title": "モーションカバー",

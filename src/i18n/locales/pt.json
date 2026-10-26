@@ -248,6 +248,13 @@
       "playlistSubtextPending_one": "{{count}} faixa · ainda não enviada",
       "playlistSubtextPending_other": "{{count}} faixas · ainda não enviada",
       "playlistSubtextPending_many": "{{count}} faixas · ainda não enviada"
+    },
+    "pins": {
+      "title": "Afixados",
+      "pin": "Afixar na barra lateral",
+      "unpin": "Desafixar",
+      "album": "Álbum",
+      "artist": "Artista"
     }
   },
   "topbar": {
@@ -1641,7 +1648,17 @@
     "toast": {
       "tagWriteSkipped": "TTML guardado apenas na base de dados (não escrito nas etiquetas do ficheiro de áudio)"
     },
-    "excludedGenre": "As letras não são procuradas online para o género {{genre}} (Definições → Letras). Podes importar um ficheiro .lrc ou procurar na mesma."
+    "excludedGenre": "As letras não são procuradas online para o género {{genre}} (Definições → Letras). Podes importar um ficheiro .lrc ou procurar na mesma.",
+    "share": {
+      "open": "Partilhar um excerto",
+      "title": "Partilhar um excerto da letra",
+      "hint": "Escolha até {{max}} linhas.",
+      "counter": "{{selected}} / {{max}}",
+      "empty": "Escolha uma linha para ver o cartão.",
+      "previewAlt": "Pré-visualização do cartão",
+      "linesLabel": "Linhas da letra",
+      "eyebrow": "Letra"
+    }
   },
   "duplicates": {
     "title": "Duplicados detetados",
@@ -2021,7 +2038,16 @@
         "lanWarningAuth": "Acessível a partir de toda a tua rede local, mas o controlo da reprodução requer a palavra-passe que definiste.",
         "statusRunning": "Ativo",
         "statusStopped": "Parado",
-        "copyAddress": "Copiar endereço"
+        "copyAddress": "Copiar endereço",
+        "suggestTitle": "Proteger o servidor com uma palavra-passe?",
+        "suggestBody": "Sem ela, qualquer dispositivo da rede pode pausar, saltar uma faixa ou alterar o volume.",
+        "suggestGenerate": "Gerar uma palavra-passe",
+        "suggestChoose": "Escolher a minha",
+        "suggestDismiss": "Agora não",
+        "generatedHint": "Palavra-passe guardada: introduza-a no seu cliente MPD.",
+        "showPassword": "Mostrar palavra-passe",
+        "hidePassword": "Ocultar palavra-passe",
+        "saveFailed": "Não foi possível guardar as definições do servidor MPD: nada foi alterado."
       },
       "notifications": {
         "title": "Notificações de mudança de faixa",
@@ -2205,6 +2231,34 @@
         "done": "Perfil importado como «{{name}}». Muda para ele a partir do seletor de perfis.",
         "busy": "A importar… Uma biblioteca grande pode demorar alguns minutos.",
         "failed": "Falha na importação. O ficheiro pode estar corrompido ou incompatível."
+      },
+      "preview": {
+        "title": "Importar «{{name}}»?",
+        "titleUnknown": "Importar um perfil",
+        "origin": "Exportado a {{date}} com o WaveFlow {{version}}.",
+        "loading": "A ler o arquivo…",
+        "unreadable": "Não é possível ler este ficheiro: está danificado ou não é um arquivo de perfil do WaveFlow.",
+        "failed": "Não foi possível ler o arquivo. Consulte o registo para mais detalhes.",
+        "newer": "Este arquivo vem de uma versão mais recente do WaveFlow. Atualize o WaveFlow para o importar.",
+        "differentBuild": "Este arquivo vem de outra versão do WaveFlow cuja base de dados é diferente desta: não pode ser importado.",
+        "unsupported": "O formato deste arquivo já não é suportado.",
+        "schema": "Versão da base de dados: {{archive}} (esta app: {{local}}).",
+        "schemaUnknown": "Versão da base de dados desconhecida (esta app: {{local}}).",
+        "asNewProfile": "Será importado como um novo perfil: os seus perfis atuais não são alterados.",
+        "cancel": "Cancelar",
+        "import": "Importar",
+        "rows": {
+          "tracks": "Faixas",
+          "playlists": "Playlists",
+          "smartPlaylists": "Playlists inteligentes",
+          "likedTracks": "Faixas favoritas",
+          "plays": "Reproduções",
+          "libraryFolders": "Pastas da biblioteca",
+          "settings": "Definições",
+          "covers": "Capas personalizadas",
+          "coverCache": "Capas em cache",
+          "size": "Tamanho"
+        }
       }
     },
     "clipsInLibrary": {
@@ -2705,7 +2759,10 @@
       "canReach": "Pode aceder a:",
       "installAria": "Instalar {{name}}",
       "updateAria": "Atualizar {{name}}",
-      "allInstalled": "Tudo o que há na loja já está instalado."
+      "allInstalled": "Tudo o que há na loja já está instalado.",
+      "search": "Pesquisar plugins",
+      "clearSearch": "Limpar a pesquisa",
+      "noMatch": "Nenhum plugin corresponde a «{{query}}»."
     },
     "motionArtwork": {
       "title": "Capas animadas",

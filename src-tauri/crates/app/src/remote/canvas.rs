@@ -57,7 +57,12 @@ pub async fn ticket_url(state: &AppState, remote_track_id: &str) -> AppResult<Op
         return Ok(None);
     };
 
-    let path = format!("/api/v2/tracks/{remote_track_id}/canvas-ticket");
+    // An identifier that cannot be a path segment is a malformed id, which
+    // means what a permanent failure below means: no Canvas to paint.
+    let Ok(track) = super::client::segment(remote_track_id) else {
+        return Ok(None);
+    };
+    let path = format!("/api/v2/tracks/{track}/canvas-ticket");
     let response: CanvasTicketResponse = match client
         .send_json(client.request(reqwest::Method::POST, &path))
         .await

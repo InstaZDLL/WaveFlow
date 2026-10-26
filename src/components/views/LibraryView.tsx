@@ -56,7 +56,6 @@ import {
   Eye,
   EyeOff,
   Trash2,
-  ImageIcon,
   ArrowUpDown,
   ArrowDown,
   ArrowUp,
@@ -112,6 +111,7 @@ import { useLibrary } from "../../hooks/useLibrary";
 import { usePlayer } from "../../hooks/usePlayer";
 import { usePlaylist } from "../../hooks/usePlaylist";
 import { useTrackContextMenu } from "../../hooks/useTrackContextMenu";
+import { useAlbumArtistContextMenu } from "../../hooks/useAlbumArtistContextMenu";
 import { useRemoteTrackContextMenu } from "../../hooks/useRemoteTrackContextMenu";
 import { useTrackUpdated } from "../../hooks/useTrackUpdated";
 import { useArtistUpdated } from "../../hooks/useArtistUpdated";
@@ -3332,11 +3332,8 @@ function AlbumGrid({
   // node to compute its portal position via `getBoundingClientRect`,
   // sidestepping every ancestor stacking context.
   const triggerRefs = useRef<Map<number, HTMLButtonElement>>(new Map());
-  const [contextMenu, setContextMenu] = useState<{
-    albumId: number;
-    x: number;
-    y: number;
-  } | null>(null);
+  // Right-click on a local album: change its cover, pin it.
+  const albumMenu = useAlbumArtistContextMenu({ onChangeCover });
 
   // Virtual-grid plumbing — without this a 800-album library mounts 800
   // <Artwork> components on every tab switch, blowing the main thread
@@ -3407,22 +3404,6 @@ function AlbumGrid({
   });
 
   useEffect(() => {
-    if (contextMenu == null) return;
-    const handleClick = () => setContextMenu(null);
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setContextMenu(null);
-    };
-    document.addEventListener("click", handleClick);
-    document.addEventListener("contextmenu", handleClick);
-    document.addEventListener("keydown", handleEscape);
-    return () => {
-      document.removeEventListener("click", handleClick);
-      document.removeEventListener("contextmenu", handleClick);
-      document.removeEventListener("keydown", handleEscape);
-    };
-  }, [contextMenu]);
-
-  useEffect(() => {
     if (openMenuAlbumId == null) return;
     const handleMouseDown = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
@@ -3454,15 +3435,9 @@ function AlbumGrid({
     return (
       <div
         key={`${album.source}:${album.id}`}
-        onContextMenu={(e) => {
-          if (localId === null) return;
-          e.preventDefault();
-          setContextMenu({
-            albumId: localId,
-            x: e.clientX,
-            y: e.clientY,
-          });
-        }}
+        {...(localId !== null
+          ? albumMenu.bind({ kind: "album", id: localId })
+          : {})}
         className="group flex flex-col space-y-2 cursor-pointer relative"
       >
         <div className="relative">
@@ -3619,34 +3594,7 @@ function AlbumGrid({
           );
         })}
       </div>
-      {contextMenu &&
-        createPortal(
-          // Portaled to <body>: the menu uses viewport `fixed` coords,
-          // but an ancestor album card gets a `backdrop-filter` under
-          // the Lounge / Liquid skins, which would otherwise become the
-          // containing block and trap / mis-stack the menu.
-          <div
-            role="menu"
-            style={{ top: contextMenu.y, left: contextMenu.x }}
-            className="fixed z-100 min-w-48 rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated dark:shadow-black/40 overflow-hidden animate-fade-in py-1"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              type="button"
-              role="menuitem"
-              onClick={() => {
-                const id = contextMenu.albumId;
-                setContextMenu(null);
-                onChangeCover(id);
-              }}
-              className="w-full flex items-center space-x-2 px-3 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700/30 transition-colors"
-            >
-              <ImageIcon size={14} />
-              <span>{t("library.changeCover")}</span>
-            </button>
-          </div>,
-          document.body,
-        )}
+      {albumMenu.render()}
     </>
   );
 }
@@ -3750,6 +3698,8 @@ function ArtistList({
 }: ArtistListProps) {
   "use no memo";
   const [openMenuArtistId, setOpenMenuArtistId] = useState<number | null>(null);
+  // Right-click on a local artist: pin it to the sidebar, or unpin it.
+  const artistMenu = useAlbumArtistContextMenu();
   // See AlbumGrid: the `+` button DOM nodes feed the popover's portal
   // positioning, which is the only way to escape the virtualizer's
   // transform-based stacking context.
@@ -3865,6 +3815,9 @@ function ArtistList({
       <div
         key={`${artist.source}:${artist.id}`}
         data-artist-index={idx}
+        {...(localId !== null
+          ? artistMenu.bind({ kind: "artist", id: localId })
+          : {})}
         className="group flex flex-col items-center space-y-3 cursor-pointer relative"
       >
         <div className="relative w-full">
@@ -3944,48 +3897,52 @@ function ArtistList({
   };
 
   return (
-    <div
-      ref={parentRef}
-      className={isLoading ? "opacity-50" : ""}
-      style={{
-        height: `${virtualizer.getTotalSize()}px`,
-        position: "relative",
-      }}
-    >
-      {virtualizer.getVirtualItems().map((row) => {
-        const startIdx = row.index * colCount;
-        const rowItems = artists.slice(startIdx, startIdx + colCount);
-        // Same stacking fix as TrackTable / AlbumGrid: bump the row that
-        // owns the open `+` popover above the rows rendered after it.
-        const rowHasOpenMenu = rowItems.some(
-          (artist) =>
-            artist.source === "local" && Number(artist.id) === openMenuArtistId,
-        );
-        return (
-          <div
-            key={row.key}
-            style={{
-              position: "absolute",
-              top: positionRowsWithTop ? row.start - scrollMargin : 0,
-              left: 0,
-              width: "100%",
-              transform: positionRowsWithTop
-                ? undefined
-                : "translateY(" + (row.start - scrollMargin) + "px)",
-              display: "grid",
-              gridTemplateColumns: `repeat(${colCount}, minmax(0, 1fr))`,
-              gap: `${GAP}px`,
-              paddingBottom: `${GAP}px`,
-              zIndex: rowHasOpenMenu ? 20 : undefined,
-            }}
-          >
-            {rowItems.map((artist, i) =>
-              renderArtistTile(artist, startIdx + i),
-            )}
-          </div>
-        );
-      })}
-    </div>
+    <>
+      <div
+        ref={parentRef}
+        className={isLoading ? "opacity-50" : ""}
+        style={{
+          height: `${virtualizer.getTotalSize()}px`,
+          position: "relative",
+        }}
+      >
+        {virtualizer.getVirtualItems().map((row) => {
+          const startIdx = row.index * colCount;
+          const rowItems = artists.slice(startIdx, startIdx + colCount);
+          // Same stacking fix as TrackTable / AlbumGrid: bump the row that
+          // owns the open `+` popover above the rows rendered after it.
+          const rowHasOpenMenu = rowItems.some(
+            (artist) =>
+              artist.source === "local" &&
+              Number(artist.id) === openMenuArtistId,
+          );
+          return (
+            <div
+              key={row.key}
+              style={{
+                position: "absolute",
+                top: positionRowsWithTop ? row.start - scrollMargin : 0,
+                left: 0,
+                width: "100%",
+                transform: positionRowsWithTop
+                  ? undefined
+                  : "translateY(" + (row.start - scrollMargin) + "px)",
+                display: "grid",
+                gridTemplateColumns: `repeat(${colCount}, minmax(0, 1fr))`,
+                gap: `${GAP}px`,
+                paddingBottom: `${GAP}px`,
+                zIndex: rowHasOpenMenu ? 20 : undefined,
+              }}
+            >
+              {rowItems.map((artist, i) =>
+                renderArtistTile(artist, startIdx + i),
+              )}
+            </div>
+          );
+        })}
+      </div>
+      {artistMenu.render()}
+    </>
   );
 }
 

@@ -242,6 +242,13 @@
       "playlistSubtextPending_zero": "0 首曲目 · 尚未发送",
       "playlistSubtextPending_one": "{{count}} 首曲目 · 尚未发送",
       "playlistSubtextPending_other": "{{count}} 首曲目 · 尚未发送"
+    },
+    "pins": {
+      "title": "已固定",
+      "pin": "固定到侧边栏",
+      "unpin": "取消固定",
+      "album": "专辑",
+      "artist": "艺人"
     }
   },
   "topbar": {
@@ -1584,7 +1591,17 @@
     "toast": {
       "tagWriteSkipped": "TTML 仅保留在数据库中（未写入音频标签）"
     },
-    "excludedGenre": "不会在线搜索 {{genre}} 流派的歌词（设置 → 歌词）。你可以导入 .lrc 文件，或选择仍然搜索。"
+    "excludedGenre": "不会在线搜索 {{genre}} 流派的歌词（设置 → 歌词）。你可以导入 .lrc 文件，或选择仍然搜索。",
+    "share": {
+      "open": "分享片段",
+      "title": "分享歌词片段",
+      "hint": "最多选择 {{max}} 行。",
+      "counter": "{{selected}} / {{max}}",
+      "empty": "选择一行即可预览卡片。",
+      "previewAlt": "卡片预览",
+      "linesLabel": "歌词行",
+      "eyebrow": "歌词"
+    }
   },
   "duplicates": {
     "title": "检测到重复文件",
@@ -1931,7 +1948,16 @@
         "lanWarningAuth": "可从整个局域网访问，但播放控制需要你设置的密码。",
         "statusRunning": "运行中",
         "statusStopped": "已停止",
-        "copyAddress": "复制地址"
+        "copyAddress": "复制地址",
+        "suggestTitle": "为服务器设置密码？",
+        "suggestBody": "没有密码时，网络中的任何设备都能暂停播放、切换曲目或调节音量。",
+        "suggestGenerate": "生成密码",
+        "suggestChoose": "自己设置",
+        "suggestDismiss": "以后再说",
+        "generatedHint": "密码已保存：请在你的 MPD 客户端中输入。",
+        "showPassword": "显示密码",
+        "hidePassword": "隐藏密码",
+        "saveFailed": "无法保存 MPD 服务器设置：未做任何更改。"
       },
       "notifications": {
         "title": "曲目变更通知",
@@ -2376,6 +2402,34 @@
         "done": "个人资料已导入为“{{name}}”。请从个人资料菜单切换到它。",
         "busy": "正在导入… 音乐库较大时可能需要几分钟。",
         "failed": "导入失败。文件可能已损坏或不兼容。"
+      },
+      "preview": {
+        "title": "导入“{{name}}”？",
+        "titleUnknown": "导入配置文件",
+        "origin": "于 {{date}} 使用 WaveFlow {{version}} 导出。",
+        "loading": "正在读取归档…",
+        "unreadable": "无法读取此文件：它已损坏，或不是 WaveFlow 配置文件归档。",
+        "failed": "无法读取归档。详情请查看日志。",
+        "newer": "此归档来自更新版本的 WaveFlow。请更新 WaveFlow 后再导入。",
+        "differentBuild": "此归档来自另一个版本的 WaveFlow，其数据库与当前版本不同，无法导入。",
+        "unsupported": "已不再支持此归档的格式。",
+        "schema": "数据库版本：{{archive}}（本应用：{{local}}）。",
+        "schemaUnknown": "数据库版本未知（本应用：{{local}}）。",
+        "asNewProfile": "将作为新的配置文件导入：现有配置文件保持不变。",
+        "cancel": "取消",
+        "import": "导入",
+        "rows": {
+          "tracks": "曲目",
+          "playlists": "播放列表",
+          "smartPlaylists": "智能播放列表",
+          "likedTracks": "喜欢的曲目",
+          "plays": "播放次数",
+          "libraryFolders": "资料库文件夹",
+          "settings": "设置",
+          "covers": "自定义封面",
+          "coverCache": "缓存的封面",
+          "size": "大小"
+        }
       }
     },
     "visualizer": {
@@ -2637,7 +2691,10 @@
       "canReach": "可访问：",
       "installAria": "安装 {{name}}",
       "updateAria": "更新 {{name}}",
-      "allInstalled": "商店中的所有插件均已安装。"
+      "allInstalled": "商店中的所有插件均已安装。",
+      "search": "搜索插件",
+      "clearSearch": "清除搜索",
+      "noMatch": "没有与“{{query}}”匹配的插件。"
     },
     "motionArtwork": {
       "title": "动态封面",

@@ -242,6 +242,13 @@
       "playlistSubtextPending_zero": "0 lagu · belum dikirim",
       "playlistSubtextPending_one": "{{count}} lagu · belum dikirim",
       "playlistSubtextPending_other": "{{count}} lagu · belum dikirim"
+    },
+    "pins": {
+      "title": "Disematkan",
+      "pin": "Sematkan ke bilah sisi",
+      "unpin": "Lepas sematan",
+      "album": "Album",
+      "artist": "Artis"
     }
   },
   "topbar": {
@@ -1584,7 +1591,17 @@
     "toast": {
       "tagWriteSkipped": "TTML disimpan di database saja (tidak ditulis ke tag audio)"
     },
-    "excludedGenre": "Lirik tidak dicari secara daring untuk genre {{genre}} (Pengaturan → Lirik). Kamu bisa mengimpor berkas .lrc atau tetap mencari."
+    "excludedGenre": "Lirik tidak dicari secara daring untuk genre {{genre}} (Pengaturan → Lirik). Kamu bisa mengimpor berkas .lrc atau tetap mencari.",
+    "share": {
+      "open": "Bagikan kutipan",
+      "title": "Bagikan kutipan lirik",
+      "hint": "Pilih hingga {{max}} baris.",
+      "counter": "{{selected}} / {{max}}",
+      "empty": "Pilih satu baris untuk melihat kartu.",
+      "previewAlt": "Pratinjau kartu",
+      "linesLabel": "Baris lirik",
+      "eyebrow": "Lirik"
+    }
   },
   "duplicates": {
     "title": "Duplikat terdeteksi",
@@ -1960,7 +1977,16 @@
         "lanWarningAuth": "Dapat dijangkau dari seluruh jaringan lokalmu, tetapi kontrol pemutaran memerlukan kata sandi yang kamu tetapkan.",
         "statusRunning": "Aktif",
         "statusStopped": "Berhenti",
-        "copyAddress": "Salin alamat"
+        "copyAddress": "Salin alamat",
+        "suggestTitle": "Lindungi server dengan kata sandi?",
+        "suggestBody": "Tanpa kata sandi, perangkat apa pun di jaringan Anda bisa menjeda, melewati lagu, atau mengubah volume.",
+        "suggestGenerate": "Buat kata sandi",
+        "suggestChoose": "Pilih sendiri",
+        "suggestDismiss": "Nanti saja",
+        "generatedHint": "Kata sandi disimpan: masukkan di klien MPD Anda.",
+        "showPassword": "Tampilkan kata sandi",
+        "hidePassword": "Sembunyikan kata sandi",
+        "saveFailed": "Pengaturan server MPD tidak dapat disimpan: tidak ada yang diubah."
       },
       "notifications": {
         "title": "Notifikasi pergantian lagu",
@@ -2116,6 +2142,34 @@
         "done": "Profil diimpor sebagai “{{name}}”. Beralih ke sana dari pemilih profil.",
         "busy": "Mengimpor… Pustaka besar bisa memakan waktu beberapa menit.",
         "failed": "Impor gagal. Berkas mungkin rusak atau tidak kompatibel."
+      },
+      "preview": {
+        "title": "Impor “{{name}}”?",
+        "titleUnknown": "Impor profil",
+        "origin": "Diekspor pada {{date}} dengan WaveFlow {{version}}.",
+        "loading": "Membaca arsip…",
+        "unreadable": "File ini tidak dapat dibaca: rusak atau bukan arsip profil WaveFlow.",
+        "failed": "Arsip tidak dapat dibaca. Lihat log untuk detailnya.",
+        "newer": "Arsip ini berasal dari versi WaveFlow yang lebih baru. Perbarui WaveFlow untuk mengimpornya.",
+        "differentBuild": "Arsip ini berasal dari versi WaveFlow lain yang basis datanya berbeda dari versi ini: tidak dapat diimpor.",
+        "unsupported": "Format arsip ini tidak lagi didukung.",
+        "schema": "Versi basis data: {{archive}} (aplikasi ini: {{local}}).",
+        "schemaUnknown": "Versi basis data tidak diketahui (aplikasi ini: {{local}}).",
+        "asNewProfile": "Arsip diimpor sebagai profil baru: profil Anda yang ada tidak diubah.",
+        "cancel": "Batal",
+        "import": "Impor",
+        "rows": {
+          "tracks": "Lagu",
+          "playlists": "Playlist",
+          "smartPlaylists": "Playlist pintar",
+          "likedTracks": "Lagu yang disukai",
+          "plays": "Pemutaran",
+          "libraryFolders": "Folder pustaka",
+          "settings": "Pengaturan",
+          "covers": "Sampul kustom",
+          "coverCache": "Sampul dalam cache",
+          "size": "Ukuran"
+        }
       }
     },
     "clipsInLibrary": {
@@ -2637,7 +2691,10 @@
       "canReach": "Dapat mengakses:",
       "installAria": "Pasang {{name}}",
       "updateAria": "Perbarui {{name}}",
-      "allInstalled": "Semua yang ada di toko sudah terpasang."
+      "allInstalled": "Semua yang ada di toko sudah terpasang.",
+      "search": "Cari plugin",
+      "clearSearch": "Hapus pencarian",
+      "noMatch": "Tidak ada plugin yang cocok dengan “{{query}}”."
     },
     "motionArtwork": {
       "title": "Sampul animasi",

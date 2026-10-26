@@ -242,6 +242,13 @@
       "playlistSubtextPending_zero": "0 parça · henüz gönderilmedi",
       "playlistSubtextPending_one": "{{count}} parça · henüz gönderilmedi",
       "playlistSubtextPending_other": "{{count}} parça · henüz gönderilmedi"
+    },
+    "pins": {
+      "title": "Sabitlenenler",
+      "pin": "Kenar çubuğuna sabitle",
+      "unpin": "Sabitlemeyi kaldır",
+      "album": "Albüm",
+      "artist": "Sanatçı"
     }
   },
   "topbar": {
@@ -1586,7 +1593,17 @@
     "toast": {
       "tagWriteSkipped": "TTML yalnızca veritabanına kaydedildi (ses etiketine yazılmadı)"
     },
-    "excludedGenre": "{{genre}} türü için şarkı sözleri çevrimiçi aranmıyor (Ayarlar → Şarkı sözleri). Bir .lrc dosyası içe aktarabilir ya da yine de arayabilirsin."
+    "excludedGenre": "{{genre}} türü için şarkı sözleri çevrimiçi aranmıyor (Ayarlar → Şarkı sözleri). Bir .lrc dosyası içe aktarabilir ya da yine de arayabilirsin.",
+    "share": {
+      "open": "Alıntı paylaş",
+      "title": "Şarkı sözlerinden alıntı paylaş",
+      "hint": "En fazla {{max}} satır seçin.",
+      "counter": "{{selected}} / {{max}}",
+      "empty": "Kartı görmek için bir satır seçin.",
+      "previewAlt": "Kart önizlemesi",
+      "linesLabel": "Şarkı sözü satırları",
+      "eyebrow": "Şarkı sözleri"
+    }
   },
   "duplicates": {
     "title": "Yinelenenler algılandı",
@@ -1962,7 +1979,16 @@
         "lanWarningAuth": "Tüm yerel ağından erişilebilir, ancak oynatma kontrolü belirlediğin şifreyi gerektirir.",
         "statusRunning": "Çalışıyor",
         "statusStopped": "Durduruldu",
-        "copyAddress": "Adresi kopyala"
+        "copyAddress": "Adresi kopyala",
+        "suggestTitle": "Sunucu bir parolayla korunsun mu?",
+        "suggestBody": "Parola olmadan ağdaki herhangi bir cihaz çalmayı duraklatabilir, parça atlayabilir veya sesi değiştirebilir.",
+        "suggestGenerate": "Parola oluştur",
+        "suggestChoose": "Kendim seçeyim",
+        "suggestDismiss": "Şimdi değil",
+        "generatedHint": "Parola kaydedildi: MPD istemcinize girin.",
+        "showPassword": "Parolayı göster",
+        "hidePassword": "Parolayı gizle",
+        "saveFailed": "MPD sunucusu ayarları kaydedilemedi: hiçbir şey değiştirilmedi."
       },
       "notifications": {
         "title": "Parça değişimi bildirimleri",
@@ -2118,6 +2144,34 @@
         "done": "Profil “{{name}}” adıyla içe aktarıldı. Profil seçiciden ona geç.",
         "busy": "İçe aktarılıyor… Büyük bir kütüphane birkaç dakika sürebilir.",
         "failed": "İçe aktarma başarısız oldu. Dosya bozuk veya uyumsuz olabilir."
+      },
+      "preview": {
+        "title": "“{{name}}” içe aktarılsın mı?",
+        "titleUnknown": "Profil içe aktar",
+        "origin": "{{date}} tarihinde WaveFlow {{version}} ile dışa aktarıldı.",
+        "loading": "Arşiv okunuyor…",
+        "unreadable": "Bu dosya okunamıyor: hasarlı ya da bir WaveFlow profil arşivi değil.",
+        "failed": "Arşiv okunamadı. Ayrıntılar için günlüğe bakın.",
+        "newer": "Bu arşiv WaveFlow'un daha yeni bir sürümünden geliyor. İçe aktarmak için WaveFlow'u güncelleyin.",
+        "differentBuild": "Bu arşiv, veritabanı bundan farklı olan başka bir WaveFlow sürümünden geliyor: içe aktarılamaz.",
+        "unsupported": "Bu arşivin biçimi artık desteklenmiyor.",
+        "schema": "Veritabanı sürümü: {{archive}} (bu uygulama: {{local}}).",
+        "schemaUnknown": "Veritabanı sürümü bilinmiyor (bu uygulama: {{local}}).",
+        "asNewProfile": "Yeni bir profil olarak içe aktarılır: mevcut profilleriniz olduğu gibi kalır.",
+        "cancel": "İptal",
+        "import": "İçe aktar",
+        "rows": {
+          "tracks": "Parçalar",
+          "playlists": "Çalma listeleri",
+          "smartPlaylists": "Akıllı çalma listeleri",
+          "likedTracks": "Beğenilen parçalar",
+          "plays": "Dinlemeler",
+          "libraryFolders": "Kitaplık klasörleri",
+          "settings": "Ayarlar",
+          "covers": "Özel kapaklar",
+          "coverCache": "Önbellekteki kapaklar",
+          "size": "Boyut"
+        }
       }
     },
     "clipsInLibrary": {
@@ -2639,7 +2693,10 @@
       "canReach": "Erişebileceği adresler:",
       "installAria": "{{name}} eklentisini yükle",
       "updateAria": "{{name}} eklentisini güncelle",
-      "allInstalled": "Mağazadaki her şey zaten yüklü."
+      "allInstalled": "Mağazadaki her şey zaten yüklü.",
+      "search": "Eklenti ara",
+      "clearSearch": "Aramayı temizle",
+      "noMatch": "“{{query}}” ile eşleşen eklenti yok."
     },
     "motionArtwork": {
       "title": "Animasyonlu kapaklar",

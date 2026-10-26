@@ -385,8 +385,12 @@ async fn backfill_missing_tracks(state: &AppState, profile_id: i64, client: &Rem
     let total = missing.len();
     let mut fetched = Vec::new();
     for id in missing.into_iter().take(TRACK_BACKFILL_LIMIT) {
+        // Like a track the account cannot see: it stays a placeholder.
+        let Ok(segment) = super::client::segment(&id) else {
+            continue;
+        };
         match client
-            .send_json::<SongItem>(client.get(&format!("/api/v2/tracks/{id}")))
+            .send_json::<SongItem>(client.get(&format!("/api/v2/tracks/{segment}")))
             .await
         {
             Ok(song) => fetched.push(song),
