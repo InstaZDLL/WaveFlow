@@ -1240,7 +1240,8 @@
       "metadata": "中繼資料",
       "audio": "音訊",
       "analysis": "分析",
-      "file": "檔案"
+      "file": "檔案",
+      "spectrum": "頻譜"
     },
     "bpm": "BPM",
     "bpmUncertain": "{{bpm}}（不確定）",
@@ -1293,7 +1294,18 @@
     "bandwidth": "高頻",
     "bandwidthFull": "全頻段",
     "bandwidthCutoff": "截止於 {{khz}} kHz",
-    "bandwidthFake": "截止於 {{khz}} kHz — 可能由有損檔案轉換而來"
+    "bandwidthFake": "截止於 {{khz}} kHz — 可能由有損檔案轉換而來",
+    "spectrogram": {
+      "hint": "查看整首曲目中高頻在哪裡截止。將解碼整個檔案。",
+      "show": "顯示頻譜",
+      "stop": "停止",
+      "decoding": "正在解碼檔案",
+      "failed": "無法解碼此檔案。",
+      "altCutoff": "高頻在 {{khz}} kHz 處陡然截止。圖表頂端是奈奎斯特頻率（{{nyquist}} kHz），即此檔案能容納的最高頻率。",
+      "altFull": "沒有陡峭的截止：頻譜逐漸消失在底噪中，或一路延伸到奈奎斯特頻率（{{nyquist}} kHz，即此檔案能容納的最高頻率）。",
+      "guides": "細線：16、19 和 20 kHz，即 128、192 和 320 kbps 的 MP3 常見的截止位置。",
+      "axisKhz": "{{value}} kHz"
+    }
   },
   "selection": {
     "toolbarLabel": "選取操作",
@@ -3334,7 +3346,8 @@
       "upload": "上傳",
       "backup": "備份",
       "thumbnails": "縮圖",
-      "drop_import": "複製到音樂庫"
+      "drop_import": "複製到音樂庫",
+      "spectrogram": "曲目頻譜"
     }
   },
   "smartRuleSummary": {

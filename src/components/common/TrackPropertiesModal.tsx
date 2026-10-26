@@ -43,6 +43,7 @@ import { GENRE_PRESETS } from "../../lib/genrePresets";
 import { pickFile } from "../../lib/tauri/dialog";
 import { useTrackUpdated } from "../../hooks/useTrackUpdated";
 import { useModalA11y } from "../../hooks/useModalA11y";
+import { TrackSpectrogramPanel } from "./TrackSpectrogram";
 import { formatMusicalKey } from "../../lib/musicalKey";
 import {
   analyzeTrack,
@@ -903,7 +904,9 @@ export function TrackPropertiesModal({
                   </span>
                   <TagCombobox
                     value={form.album_artist}
-                    onChange={(v) => setForm((p) => ({ ...p, album_artist: v }))}
+                    onChange={(v) =>
+                      setForm((p) => ({ ...p, album_artist: v }))
+                    }
                     groups={albumArtistGroups}
                     placeholder={t("trackProperties.fields.albumArtist")}
                     ariaLabel={t("trackProperties.fields.albumArtist")}
@@ -1095,6 +1098,13 @@ export function TrackPropertiesModal({
               value={analysis?.peak != null ? analysis.peak.toFixed(3) : "—"}
             />
           </Section>
+
+          {/* Only a file on this machine can be decoded for it. */}
+          {track.id > 0 && track.file_path && (
+            <Section title={t("trackProperties.sections.spectrum")}>
+              <TrackSpectrogramPanel trackId={track.id} />
+            </Section>
+          )}
 
           <Section title={t("trackProperties.sections.file")}>
             <Row label={t("trackProperties.fileSize")} value={fileSizeMB} />

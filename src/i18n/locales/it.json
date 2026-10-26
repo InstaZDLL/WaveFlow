@@ -1287,7 +1287,8 @@
       "metadata": "Metadati",
       "audio": "Audio",
       "analysis": "Analisi",
-      "file": "File"
+      "file": "File",
+      "spectrum": "Spettro"
     },
     "bpm": "BPM",
     "bpmUncertain": "{{bpm}} (incerto)",
@@ -1340,7 +1341,18 @@
     "bandwidth": "Alte frequenze",
     "bandwidthFull": "Banda completa",
     "bandwidthCutoff": "Si fermano a {{khz}} kHz",
-    "bandwidthFake": "Si fermano a {{khz}} kHz — probabilmente ricavato da un file con perdita"
+    "bandwidthFake": "Si fermano a {{khz}} kHz — probabilmente ricavato da un file con perdita",
+    "spectrogram": {
+      "hint": "Guarda dove si fermano gli acuti lungo il brano. Il file viene decodificato per intero.",
+      "show": "Mostra lo spettro",
+      "stop": "Interrompi",
+      "decoding": "Decodifica del file",
+      "failed": "Impossibile decodificare questo file.",
+      "altCutoff": "Gli acuti si fermano di netto a {{khz}} kHz. Il bordo superiore del grafico è la frequenza di Nyquist ({{nyquist}} kHz), la più alta che questo file possa contenere.",
+      "altFull": "Nessun taglio netto: lo spettro si spegne nel rumore di fondo o arriva fino alla frequenza di Nyquist ({{nyquist}} kHz), la più alta che questo file possa contenere.",
+      "guides": "Linee sottili: 16, 19 e 20 kHz, dove spesso si fermano gli MP3 a 128, 192 e 320 kbps.",
+      "axisKhz": "{{value}} kHz"
+    }
   },
   "selection": {
     "toolbarLabel": "Azioni di selezione",
@@ -3431,7 +3443,8 @@
       "upload": "Caricamento",
       "backup": "Backup",
       "thumbnails": "Miniature",
-      "drop_import": "Copia nella libreria"
+      "drop_import": "Copia nella libreria",
+      "spectrogram": "Spettro di un brano"
     }
   },
   "smartRuleSummary": {

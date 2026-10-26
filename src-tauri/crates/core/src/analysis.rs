@@ -40,6 +40,7 @@ pub mod beats;
 pub mod key;
 pub mod loudness;
 pub mod rhythm;
+pub mod spectrogram;
 
 use bandwidth::BandwidthMeter;
 use key::KeyDetector;
@@ -123,34 +124,12 @@ pub struct AnalysisResult {
 /// surface it without dragging the symphonia error type through
 /// the app's `AppError` enum.
 pub fn analyze_file(path: &Path) -> Result<AnalysisResult, String> {
-    let file = File::open(path).map_err(|e| format!("open: {e}"))?;
-    let mss = MediaSourceStream::new(Box::new(file), Default::default());
-    let mut hint = Hint::new();
-    if let Some(ext) = path.extension().and_then(|s| s.to_str()) {
-        hint.with_extension(ext);
-    }
-
-    let mut format = symphonia::default::get_probe()
-        .probe(
-            &hint,
-            mss,
-            FormatOptions::default(),
-            MetadataOptions::default(),
-        )
-        .map_err(|e| format!("probe: {e}"))?;
-
-    let track = format
-        .default_track(TrackType::Audio)
-        .ok_or_else(|| "no decodable track".to_string())?;
-    let track_id = track.id;
-    let audio_params = track
-        .codec_params
-        .as_ref()
-        .and_then(|p| p.audio())
-        .ok_or_else(|| "track has no audio codec params".to_string())?;
-    let mut decoder = crate::audio_format::opus::codecs()
-        .make_audio_decoder(audio_params, &AudioDecoderOptions::default())
-        .map_err(|e| format!("codec init: {e}"))?;
+    let OpenedAudio {
+        mut format,
+        track_id,
+        mut decoder,
+        ..
+    } = open_audio(path)?;
 
     let mut interleaved: Vec<f32> = Vec::new();
     let mut spec_captured = false;
@@ -282,6 +261,148 @@ pub fn analyze_file(path: &Path) -> Result<AnalysisResult, String> {
         chroma,
         bandwidth: bandwidth.and_then(BandwidthMeter::finish),
     })
+}
+
+/// A file opened for a full decode: its container, the audio track and a
+/// decoder from the app's one codec registry.
+struct OpenedAudio {
+    format: Box<dyn symphonia::core::formats::FormatReader>,
+    track_id: u32,
+    decoder: Box<dyn symphonia::core::codecs::audio::AudioDecoder>,
+    /// Samples per channel, when the container says.
+    num_frames: Option<u64>,
+}
+
+/// Open `path` the way every decode in this module does: probed with its
+/// extension as a hint, decoded through `audio_format::opus::codecs()` —
+/// the registry playback and the scanner use too, so what plays is what
+/// gets measured.
+fn open_audio(path: &Path) -> Result<OpenedAudio, String> {
+    let file = File::open(path).map_err(|e| format!("open: {e}"))?;
+    let mss = MediaSourceStream::new(Box::new(file), Default::default());
+    let mut hint = Hint::new();
+    if let Some(ext) = path.extension().and_then(|s| s.to_str()) {
+        hint.with_extension(ext);
+    }
+
+    let format = symphonia::default::get_probe()
+        .probe(
+            &hint,
+            mss,
+            FormatOptions::default(),
+            MetadataOptions::default(),
+        )
+        .map_err(|e| format!("probe: {e}"))?;
+
+    let track = format
+        .default_track(TrackType::Audio)
+        .ok_or_else(|| "no decodable track".to_string())?;
+    let track_id = track.id;
+    let num_frames = track.num_frames;
+    let audio_params = track
+        .codec_params
+        .as_ref()
+        .and_then(|p| p.audio())
+        .ok_or_else(|| "track has no audio codec params".to_string())?;
+    let decoder = crate::audio_format::opus::codecs()
+        .make_audio_decoder(audio_params, &AudioDecoderOptions::default())
+        .map_err(|e| format!("codec init: {e}"))?;
+    Ok(OpenedAudio {
+        format,
+        track_id,
+        decoder,
+        num_frames,
+    })
+}
+
+/// Why [`spectrogram_file`] produced nothing.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SpectrogramError {
+    /// `keep_going` said stop.
+    Cancelled,
+    Failed(String),
+}
+
+/// Decode `path` and record its spectrum over time, about `width` columns
+/// wide (see [`spectrogram`]), with the fake-lossless measure taken over
+/// the same frames.
+///
+/// `fallback_frames` is the length to spread the columns over when the
+/// container does not give one (samples per channel, from the library's
+/// duration). `keep_going(done, total)` is called after every packet with
+/// the samples decoded so far and the expected total (`0` when unknown);
+/// returning `false` stops the decode with [`SpectrogramError::Cancelled`].
+///
+/// Blocking and CPU-bound, like [`analyze_file`].
+pub fn spectrogram_file(
+    path: &Path,
+    width: usize,
+    fallback_frames: impl Fn(u32) -> Option<u64>,
+    mut keep_going: impl FnMut(u64, u64) -> bool,
+) -> Result<(spectrogram::Spectrogram, Option<bandwidth::Bandwidth>), SpectrogramError> {
+    let OpenedAudio {
+        mut format,
+        track_id,
+        mut decoder,
+        num_frames,
+    } = open_audio(path).map_err(SpectrogramError::Failed)?;
+
+    let mut interleaved: Vec<f32> = Vec::new();
+    let mut meter: Option<BandwidthMeter> = None;
+    let mut channels: usize = 1;
+    let mut total: u64 = 0;
+    let mut done: u64 = 0;
+
+    loop {
+        let packet = match format.next_packet() {
+            Ok(Some(p)) => p,
+            Ok(None) => break,
+            Err(SymphoniaError::ResetRequired) => break,
+            Err(e) => return Err(SpectrogramError::Failed(format!("next_packet: {e}"))),
+        };
+        if packet.track_id != track_id {
+            continue;
+        }
+        let decoded = match decoder.decode(&packet) {
+            Ok(d) => d,
+            Err(SymphoniaError::DecodeError(e)) => {
+                tracing::warn!(error = %e, "spectrogram: decode error, skipping packet");
+                continue;
+            }
+            Err(e) => return Err(SpectrogramError::Failed(format!("decode: {e}"))),
+        };
+        if meter.is_none() {
+            let spec = decoded.spec();
+            channels = spec.channels().count().max(1);
+            let rate = spec.rate().max(1);
+            total = num_frames.or_else(|| fallback_frames(rate)).unwrap_or(0);
+            let per_column = spectrogram::frames_per_column(total, bandwidth::FRAME, width);
+            // Twice the width at most, whatever length was declared.
+            meter = Some(BandwidthMeter::with_spectrogram(
+                f64::from(rate),
+                channels,
+                per_column,
+                2 * width.max(1),
+            ));
+        }
+        decoded.copy_to_vec_interleaved(&mut interleaved);
+        if let Some(meter) = meter.as_mut() {
+            for frame in interleaved.chunks_exact(channels) {
+                meter.push_frame(frame);
+            }
+        }
+        done += (interleaved.len() / channels) as u64;
+        if !keep_going(done, total) {
+            return Err(SpectrogramError::Cancelled);
+        }
+    }
+
+    let (spectrogram, bandwidth) = meter
+        .map(BandwidthMeter::finish_with_spectrogram)
+        .unwrap_or((None, None));
+    spectrogram
+        .map(|s| (s, bandwidth))
+        .ok_or_else(|| SpectrogramError::Failed("no samples decoded".into()))
 }
 
 /// BS.1770-4 §2 channel weights, in the decoder's own channel order.

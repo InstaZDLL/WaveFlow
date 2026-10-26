@@ -1240,7 +1240,8 @@
       "metadata": "メタデータ",
       "audio": "オーディオ",
       "analysis": "解析",
-      "file": "ファイル"
+      "file": "ファイル",
+      "spectrum": "スペクトル"
     },
     "bpm": "BPM",
     "bpmUncertain": "{{bpm}}（不確か）",
@@ -1293,7 +1294,18 @@
     "bandwidth": "高音域",
     "bandwidthFull": "フルバンド",
     "bandwidthCutoff": "{{khz}} kHz で途切れる",
-    "bandwidthFake": "{{khz}} kHz で途切れる — 非可逆ファイルから作られた可能性"
+    "bandwidthFake": "{{khz}} kHz で途切れる — 非可逆ファイルから作られた可能性",
+    "spectrogram": {
+      "hint": "曲の中で高音がどこで途切れるかを確認できます。ファイル全体をデコードします。",
+      "show": "スペクトルを表示",
+      "stop": "停止",
+      "decoding": "ファイルをデコード中",
+      "failed": "このファイルをデコードできませんでした。",
+      "altCutoff": "高音は {{khz}} kHz で急に途切れています。グラフの上端はナイキスト周波数（{{nyquist}} kHz）で、このファイルが含められる最も高い周波数です。",
+      "altFull": "急な途切れはありません。スペクトルはノイズフロアに消えていくか、ナイキスト周波数（{{nyquist}} kHz、このファイルが含められる最も高い周波数）まで続いています。",
+      "guides": "細い線：16・19・20 kHz。128・192・320 kbps の MP3 がよく途切れる位置です。",
+      "axisKhz": "{{value}} kHz"
+    }
   },
   "selection": {
     "toolbarLabel": "選択中の操作",
@@ -3334,7 +3346,8 @@
       "upload": "アップロード",
       "backup": "バックアップ",
       "thumbnails": "サムネイル",
-      "drop_import": "ライブラリへのコピー"
+      "drop_import": "ライブラリへのコピー",
+      "spectrogram": "トラックのスペクトル"
     }
   },
   "smartRuleSummary": {

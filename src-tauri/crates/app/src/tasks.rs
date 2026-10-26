@@ -77,6 +77,9 @@ pub enum TaskKind {
     /// Files dropped on the window, copied into the folder WaveFlow
     /// manages under the user's music ([`crate::drop_import`]).
     DropImport,
+    /// The spectrogram Track Properties draws: one full decode of the
+    /// file ([`crate::commands::spectrogram`]).
+    Spectrogram,
 }
 
 impl TaskKind {
@@ -91,6 +94,7 @@ impl TaskKind {
             Self::Backup => "backup",
             Self::Thumbnails => "thumbnails",
             Self::DropImport => "drop_import",
+            Self::Spectrogram => "spectrogram",
         }
     }
 }
@@ -498,12 +502,13 @@ mod tests {
             TaskKind::Backup,
             TaskKind::Thumbnails,
             TaskKind::DropImport,
+            TaskKind::Spectrogram,
         ];
         let mut seen = std::collections::HashSet::new();
         for kind in all {
             assert!(seen.insert(kind.slug()), "duplicate slug {}", kind.slug());
         }
-        assert_eq!(seen.len(), 9);
+        assert_eq!(seen.len(), 10);
         assert_eq!(TaskKind::LibraryScan.slug(), "library_scan");
         assert_eq!(TaskKind::CatalogueMirror.slug(), "catalogue_mirror");
     }

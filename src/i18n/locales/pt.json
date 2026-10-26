@@ -1288,7 +1288,8 @@
       "metadata": "Metadados",
       "audio": "Áudio",
       "analysis": "Análise",
-      "file": "Ficheiro"
+      "file": "Ficheiro",
+      "spectrum": "Espectro"
     },
     "bpm": "BPM",
     "bpmUncertain": "{{bpm}} (incerto)",
@@ -1341,7 +1342,18 @@
     "bandwidth": "Frequências altas",
     "bandwidthFull": "Banda completa",
     "bandwidthCutoff": "Param nos {{khz}} kHz",
-    "bandwidthFake": "Param nos {{khz}} kHz — provavelmente feito a partir de um ficheiro com perdas"
+    "bandwidthFake": "Param nos {{khz}} kHz — provavelmente feito a partir de um ficheiro com perdas",
+    "spectrogram": {
+      "hint": "Veja onde os agudos param ao longo da faixa. O ficheiro é descodificado por inteiro.",
+      "show": "Mostrar o espectro",
+      "stop": "Parar",
+      "decoding": "A descodificar o ficheiro",
+      "failed": "Não foi possível descodificar este ficheiro.",
+      "altCutoff": "Os agudos param de forma abrupta a {{khz}} kHz. O topo do gráfico é a frequência de Nyquist ({{nyquist}} kHz), o mais agudo que este ficheiro pode conter.",
+      "altFull": "Sem corte abrupto: o espectro desvanece no ruído de fundo ou vai até à frequência de Nyquist ({{nyquist}} kHz), o mais agudo que este ficheiro pode conter.",
+      "guides": "Linhas finas: 16, 19 e 20 kHz, onde os MP3 a 128, 192 e 320 kbps costumam parar.",
+      "axisKhz": "{{value}} kHz"
+    }
   },
   "selection": {
     "toolbarLabel": "Ações de seleção",
@@ -3432,7 +3444,8 @@
       "upload": "Envio",
       "backup": "Cópia de segurança",
       "thumbnails": "Miniaturas",
-      "drop_import": "Cópia para a biblioteca"
+      "drop_import": "Cópia para a biblioteca",
+      "spectrogram": "Espectro de uma faixa"
     }
   },
   "smartRuleSummary": {

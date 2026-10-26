@@ -1240,7 +1240,8 @@
       "metadata": "Metadata",
       "audio": "Audio",
       "analysis": "Analisis",
-      "file": "Berkas"
+      "file": "Berkas",
+      "spectrum": "Spektrum"
     },
     "bpm": "BPM",
     "bpmUncertain": "{{bpm}} (tidak pasti)",
@@ -1293,7 +1294,18 @@
     "bandwidth": "Frekuensi tinggi",
     "bandwidthFull": "Pita penuh",
     "bandwidthCutoff": "Berhenti di {{khz}} kHz",
-    "bandwidthFake": "Berhenti di {{khz}} kHz — kemungkinan dibuat dari file lossy"
+    "bandwidthFake": "Berhenti di {{khz}} kHz — kemungkinan dibuat dari file lossy",
+    "spectrogram": {
+      "hint": "Lihat di mana nada tinggi berhenti sepanjang lagu. Seluruh berkas didekode.",
+      "show": "Tampilkan spektrum",
+      "stop": "Hentikan",
+      "decoding": "Mendekode berkas",
+      "failed": "Berkas ini tidak dapat didekode.",
+      "altCutoff": "Nada tinggi berhenti tajam di {{khz}} kHz. Bagian atas grafik adalah frekuensi Nyquist ({{nyquist}} kHz), yang tertinggi yang bisa dimuat berkas ini.",
+      "altFull": "Tidak ada potongan tajam: spektrum memudar ke derau latar atau berlanjut hingga frekuensi Nyquist ({{nyquist}} kHz), yang tertinggi yang bisa dimuat berkas ini.",
+      "guides": "Garis tipis: 16, 19, dan 20 kHz, tempat MP3 128, 192, dan 320 kbps sering berhenti.",
+      "axisKhz": "{{value}} kHz"
+    }
   },
   "selection": {
     "toolbarLabel": "Aksi pemilihan",
@@ -3334,7 +3346,8 @@
       "upload": "Unggah",
       "backup": "Cadangan",
       "thumbnails": "Gambar mini",
-      "drop_import": "Menyalin ke pustaka"
+      "drop_import": "Menyalin ke pustaka",
+      "spectrogram": "Spektrum lagu"
     }
   },
   "smartRuleSummary": {
