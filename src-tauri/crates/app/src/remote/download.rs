@@ -35,6 +35,7 @@ use std::{
 use serde::Serialize;
 use sqlx::{Row, SqliteConnection, SqlitePool};
 use tauri::{AppHandle, Emitter};
+use waveflow_core::error::describe_http_error;
 
 use crate::{
     error::{AppError, AppResult},
@@ -372,9 +373,9 @@ pub(super) async fn stream_to_file(
         .get(url)
         .send()
         .await
-        // `without_url`: the URL is a stream ticket, and this error is
-        // logged by every caller.
-        .map_err(|err| AppError::Other(format!("download: {}", err.without_url())))?;
+        // `describe_http_error`: the URL is a stream ticket, and this
+        // error is logged by every caller.
+        .map_err(|err| AppError::Other(format!("download: {}", describe_http_error(&err))))?;
     if !response.status().is_success() {
         return Err(AppError::Other(format!(
             "download refused: HTTP {}",
@@ -390,7 +391,7 @@ pub(super) async fn stream_to_file(
     while let Some(chunk) = response
         .chunk()
         .await
-        .map_err(|err| AppError::Other(format!("download: {}", err.without_url())))?
+        .map_err(|err| AppError::Other(format!("download: {}", describe_http_error(&err))))?
     {
         file.write_all(&chunk)?;
         hasher.update(&chunk);

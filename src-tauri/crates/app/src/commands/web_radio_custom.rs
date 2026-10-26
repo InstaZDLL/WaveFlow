@@ -30,7 +30,7 @@
 //! - **Offline mode is honoured** before a socket is opened.
 //! - **No secret reaches the log or an error.** A station URL may carry
 //!   credentials (`user:pass@`, `?key=`): every URL logged goes through
-//!   [`redact_url`], and a `reqwest::Error` through `without_url()` —
+//!   [`redact_url`], and a `reqwest::Error` through `describe_http_error` —
 //!   the error strings are shown in the dialog, and the dialog is
 //!   screenshotted into bug reports.
 
@@ -39,6 +39,7 @@ use std::time::Duration;
 
 use reqwest::header::{HeaderMap, CONTENT_TYPE};
 use serde::Serialize;
+use waveflow_core::error::describe_http_error;
 use waveflow_core::radio_playlist::{
     has_playlist_extension, is_http_url, parse_playlist, PlaylistEntry, PlaylistError,
 };
@@ -171,7 +172,7 @@ pub(crate) async fn probe(raw: &str) -> AppResult<ProbedStation> {
             }
         }))
         .build()
-        .map_err(|e| AppError::Other(format!("http client build: {}", e.without_url())))?;
+        .map_err(|e| AppError::Other(format!("http client build: {}", describe_http_error(&e))))?;
 
     let response = open(&client, &url).await?;
     let station = match classify(response.headers(), response.url().path()) {
@@ -260,7 +261,7 @@ async fn open(client: &reqwest::Client, url: &url::Url) -> AppResult<reqwest::Re
     let response = match tokio::time::timeout(RESPONSE_TIMEOUT, send).await {
         Ok(Ok(response)) => response,
         Ok(Err(err)) => {
-            let err = err.without_url();
+            let err = describe_http_error(&err);
             tracing::info!(url = %redact_url(url.as_str()), error = %err, "web radio probe failed");
             return Err(AppError::Other(format!("{ERR_UNREACHABLE}: {err}")));
         }
@@ -300,7 +301,7 @@ async fn read_capped(mut response: reqwest::Response) -> AppResult<String> {
         Ok(Err(err)) => {
             return Err(AppError::Other(format!(
                 "{ERR_UNREACHABLE}: {}",
-                err.without_url()
+                describe_http_error(&err)
             )))
         }
         Err(_) => return Err(AppError::Other(format!("{ERR_UNREACHABLE}: timed out"))),

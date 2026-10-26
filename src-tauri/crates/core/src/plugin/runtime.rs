@@ -26,11 +26,10 @@ use wasmtime::component::{Component, Linker, ResourceTable};
 use wasmtime::{Config, Engine, OptLevel, Store, StoreLimits, StoreLimitsBuilder};
 use wasmtime_wasi::{WasiCtx, WasiCtxBuilder, WasiCtxView, WasiView};
 
+use crate::error::describe_error;
 use crate::plugin::assets::AssetResolver;
 use crate::plugin::binfmt::{classify_wasm_binary, WasmBinaryKind};
-use crate::plugin::host_impl::{
-    describe_error, HostError, HostPermissions, StateStore, STATE_QUOTA_BYTES,
-};
+use crate::plugin::host_impl::{HostError, HostPermissions, StateStore, STATE_QUOTA_BYTES};
 use crate::plugin::manifest::{Manifest, ManifestError};
 use crate::plugin::{InvalidPluginId, PluginPaths};
 
@@ -143,7 +142,7 @@ impl RuntimeError {
     /// does **not** implement `std::error::Error` (it is anyhow-shaped,
     /// so a blanket `From` would conflict): its own alternate form is
     /// the only way into its chain. Everything else goes through
-    /// [`describe_error`], the walker this module already had for the
+    /// [`describe_error`], the walker the host already used for the
     /// same problem on the guest side — `HttpClient(reqwest::Error)`
     /// is the very case it was written for.
     pub fn detail(&self) -> String {

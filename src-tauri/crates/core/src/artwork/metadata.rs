@@ -13,6 +13,7 @@
 use std::path::{Path, PathBuf};
 
 use super::motion_cache::redact_url;
+use crate::error::describe_http_error;
 
 const ARTWORK_EXT: &str = "jpg";
 const DOWNLOAD_TIMEOUT_SECS: u64 = 10;
@@ -118,7 +119,7 @@ async fn download_and_cache_inner(
     let resp = match client.get(url).send().await {
         Ok(r) => r,
         Err(err) => {
-            tracing::warn!(url = %redact_url(url), err = %err.without_url(), "metadata artwork download failed");
+            tracing::warn!(url = %redact_url(url), err = %describe_http_error(&err), "metadata artwork download failed");
             return None;
         }
     };
@@ -129,7 +130,7 @@ async fn download_and_cache_inner(
     let bytes = match resp.bytes().await {
         Ok(b) => b,
         Err(err) => {
-            tracing::warn!(url = %redact_url(url), err = %err.without_url(), "metadata artwork read failed");
+            tracing::warn!(url = %redact_url(url), err = %describe_http_error(&err), "metadata artwork read failed");
             return None;
         }
     };

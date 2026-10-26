@@ -20,6 +20,7 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 use tauri::{AppHandle, Emitter};
+use waveflow_core::error::describe_http_error;
 
 use crate::{
     commands::plugins::PluginTrack,
@@ -403,7 +404,12 @@ async fn download_dump(url: &str) -> AppResult<Vec<u8>> {
         .header("Accept", "application/json")
         .send()
         .await
-        .map_err(|e| AppError::Other(format!("catalogue download failed: {}", e.without_url())))?;
+        .map_err(|e| {
+            AppError::Other(format!(
+                "catalogue download failed: {}",
+                describe_http_error(&e)
+            ))
+        })?;
     if !resp.status().is_success() {
         return Err(AppError::Other(format!(
             "catalogue download status {}",
@@ -418,11 +424,12 @@ async fn download_dump(url: &str) -> AppResult<Vec<u8>> {
         }
     }
     let mut bytes = Vec::with_capacity(8 * 1024 * 1024);
-    while let Some(chunk) = resp
-        .chunk()
-        .await
-        .map_err(|e| AppError::Other(format!("catalogue read failed: {}", e.without_url())))?
-    {
+    while let Some(chunk) = resp.chunk().await.map_err(|e| {
+        AppError::Other(format!(
+            "catalogue read failed: {}",
+            describe_http_error(&e)
+        ))
+    })? {
         if bytes.len() + chunk.len() > MAX_DUMP_BYTES {
             return Err(AppError::Other(format!(
                 "station dump exceeds max size ({MAX_DUMP_BYTES} bytes)"

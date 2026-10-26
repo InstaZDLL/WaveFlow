@@ -59,6 +59,10 @@ impl LrclibClient {
     /// `duration_seconds` should come from `track.duration_ms / 1000`
     /// rounded to the nearest second — LRCLIB matches with a small
     /// tolerance so don't worry about exact precision.
+    ///
+    /// The error comes back without its URL (`without_url`): the query
+    /// carries the track being looked up, and every caller logs what it
+    /// gets. Render it with [`crate::error::describe_http_error`].
     pub async fn get(
         &self,
         artist_name: &str,
@@ -77,11 +81,22 @@ impl LrclibClient {
             }
         }
 
-        let resp = self.http.get(BASE_URL).query(&params).send().await?;
+        let resp = self
+            .http
+            .get(BASE_URL)
+            .query(&params)
+            .send()
+            .await
+            .map_err(reqwest::Error::without_url)?;
         if resp.status().as_u16() == 404 {
             return Ok(None);
         }
-        let body: LrclibResponse = resp.error_for_status()?.json().await?;
+        let body: LrclibResponse = resp
+            .error_for_status()
+            .map_err(reqwest::Error::without_url)?
+            .json()
+            .await
+            .map_err(reqwest::Error::without_url)?;
         Ok(Some(body))
     }
 }

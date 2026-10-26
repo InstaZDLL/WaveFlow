@@ -28,6 +28,7 @@ use crate::plugin::bindings::source::waveflow::host as wit_host;
 // bindgen module rather than `source`. http/log/storage/config all
 // resolve to `wit_host` (source's) because the `with:` remap makes
 // them one and the same type across worlds.
+use crate::error::{describe_error, describe_http_error};
 use crate::plugin::bindings::ui::waveflow::host::library as ui_library;
 use crate::plugin::manifest::Manifest;
 use crate::plugin::runtime::HostCtx;
@@ -352,55 +353,6 @@ fn sum_state_dir_bytes(
 
 // ----- waveflow:host/http -------------------------------------------------
 
-/// Render an error *with its cause chain* for a guest to surface.
-///
-/// `reqwest::Error`'s `Display` stops at the outermost layer — a
-/// failed request reads only "error sending request for url (…)",
-/// which says the transport failed but never says why. The reason
-/// (DNS lookup, connection refused, timeout, TLS handshake) lives in
-/// `source()`, and the frontend shows this string verbatim, so
-/// without unwinding it a bug report arrives with no way to tell
-/// those cases apart. That is exactly what happened in issue #452.
-///
-/// The chain is depth-capped: `source()` is author-controlled and
-/// nothing forbids a cyclic or absurdly deep implementation.
-///
-/// Shared with [`RuntimeError::detail`](crate::plugin::runtime::RuntimeError::detail),
-/// which has the same problem one layer out: a load failure read
-/// through plain `Display` loses the sentence that says what went
-/// wrong. One walker, so a fix to the dedup or the cap reaches both.
-pub(crate) fn describe_error(err: &dyn std::error::Error) -> String {
-    const MAX_DEPTH: usize = 8;
-    let mut out = err.to_string();
-    // The last message actually appended, tracked separately from
-    // `out`: testing against the accumulated string would compare a
-    // cause to the tail of *everything* written so far, so a distinct
-    // cause that happens to end the buffer ("failed to connect" then
-    // "connect") would be dropped as a repeat.
-    let mut last = out.clone();
-    let mut source = err.source();
-    let mut depth = 0;
-    while let Some(cause) = source {
-        if depth >= MAX_DEPTH {
-            out.push_str(": …");
-            break;
-        }
-        // Skip a layer that just restates its parent — `reqwest` and
-        // `hyper` both do this, and "timed out: timed out" reads
-        // worse than the single line it repeats. Only an exact repeat
-        // of the previous layer counts.
-        let text = cause.to_string();
-        if text != last {
-            out.push_str(": ");
-            out.push_str(&text);
-            last = text;
-        }
-        source = cause.source();
-        depth += 1;
-    }
-    out
-}
-
 impl wit_host::http::Host for HostCtx {
     fn send(
         &mut self,
@@ -454,7 +406,7 @@ impl wit_host::http::Host for HostCtx {
         }
         let resp = match builder.send() {
             Ok(r) => r,
-            Err(e) => return Ok(Err(describe_error(&e.without_url()))),
+            Err(e) => return Ok(Err(describe_http_error(&e))),
         };
         let status = resp.status().as_u16();
         let headers = resp
@@ -895,105 +847,5 @@ mod tests {
             Err(HostError::InvalidStateKey(_)) => {}
             Err(err) => panic!("expected InvalidStateKey, got {err:?}"),
         }
-    }
-
-    // ----- describe_error -------------------------------------------------
-
-    /// Minimal error whose `source()` we control, so the cause-chain
-    /// walk can be tested without conjuring a real `reqwest::Error`.
-    #[derive(Debug)]
-    struct Chained {
-        msg: &'static str,
-        source: Option<Box<Chained>>,
-    }
-
-    impl std::fmt::Display for Chained {
-        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            f.write_str(self.msg)
-        }
-    }
-
-    impl std::error::Error for Chained {
-        fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-            self.source
-                .as_deref()
-                .map(|s| s as &(dyn std::error::Error + 'static))
-        }
-    }
-
-    fn chain(msgs: &[&'static str]) -> Chained {
-        let mut it = msgs.iter().rev();
-        let last = Chained {
-            msg: it.next().expect("at least one"),
-            source: None,
-        };
-        it.fold(last, |acc, msg| Chained {
-            msg,
-            source: Some(Box::new(acc)),
-        })
-    }
-
-    /// The whole point: the root cause has to survive into the string
-    /// the user pastes into a bug report (issue #452).
-    #[test]
-    fn describe_error_keeps_the_root_cause() {
-        let err = chain(&[
-            "error sending request for url (https://de1.api.radio-browser.info/json/…)",
-            "client error (Connect)",
-            "dns error",
-            "failed to lookup address information",
-        ]);
-        let out = super::describe_error(&err);
-        assert!(
-            out.contains("failed to lookup address information"),
-            "root cause lost: {out}"
-        );
-        assert!(out.starts_with("error sending request for url"));
-    }
-
-    #[test]
-    fn describe_error_handles_a_lone_error() {
-        let err = chain(&["timed out"]);
-        assert_eq!(super::describe_error(&err), "timed out");
-    }
-
-    /// `reqwest`/`hyper` often wrap an error in one that Displays
-    /// identically; echoing it would read "timed out: timed out".
-    #[test]
-    fn describe_error_skips_a_layer_that_restates_its_parent() {
-        let err = chain(&["timed out", "timed out"]);
-        assert_eq!(super::describe_error(&err), "timed out");
-    }
-
-    /// The dedup must fire on an exact repeat of the previous layer
-    /// and nothing else. Comparing against the accumulated buffer
-    /// instead would drop a distinct cause that merely happens to end
-    /// it — here "connect" is a suffix of "failed to connect", but it
-    /// is its own layer and has to survive.
-    #[test]
-    fn describe_error_only_dedups_an_exact_repeat_of_the_previous_layer() {
-        let err = chain(&["failed to connect", "connect"]);
-        assert_eq!(super::describe_error(&err), "failed to connect: connect");
-    }
-
-    /// `source()` is author-controlled — a pathological chain must not
-    /// build an unbounded string.
-    #[test]
-    fn describe_error_caps_a_very_deep_chain() {
-        let deep = vec!["layer"; 64];
-        // Distinct messages, otherwise the dedup above hides the cap.
-        let mut err = Chained {
-            msg: "root",
-            source: None,
-        };
-        for _ in 0..deep.len() {
-            err = Chained {
-                msg: "wrap",
-                source: Some(Box::new(err)),
-            };
-        }
-        let out = super::describe_error(&err);
-        assert!(out.ends_with('\u{2026}'), "chain not capped: {out}");
-        assert!(out.len() < 200, "chain not capped: {out}");
     }
 }
