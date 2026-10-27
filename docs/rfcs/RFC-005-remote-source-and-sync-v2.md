@@ -306,7 +306,7 @@ next / previous from the PlayerBar, the media keys, the tray and MPD drive it â€
 but its queue does **not** live in the local `queue_item` table.
 
 `queue_item` rows are library row ids, joined to `track` / `album` / `artist` /
-`artwork` to build [`QueueTrack`](../../src-tauri/crates/app/src/queue.rs), which
+`artwork` to build [`QueueTrack`](../../src-tauri/crates/app/src/queue/mod.rs), which
 the local player, MPD and the PlayerBar payload all consume. A projected remote
 track has no such row (Decision 1 keeps the projection out of local tables), so
 teaching `QueueTrack` about id-less entries would ripple through every one of

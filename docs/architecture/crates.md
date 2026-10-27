@@ -48,6 +48,7 @@ src-tauri/
             ├── notifications.rs       (Tauri notification plugin bridge)
             ├── paths.rs               (AppPaths via tauri::AppHandle + dirs)
             ├── scrobbler.rs           (Last.fm scrobble worker)
+            ├── startup/               (setup hook, tray, pre-flights, window and run events)
             ├── state.rs               (AppState — held by Tauri)
             ├── taskbar_buttons.rs     (Windows taskbar thumbnail playback buttons)
             └── watcher.rs             (notify-driven fs watch)

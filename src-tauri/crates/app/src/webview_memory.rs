@@ -13,7 +13,7 @@
 //! events carry on. Back to `Normal` as soon as the window is on screen
 //! again, since a visible page at `Low` would pay for it in jank.
 //!
-//! Driven from the window events in `lib.rs`: `Resized` fires on minimize
+//! Driven from the window events in `startup/events.rs`: `Resized` fires on minimize
 //! and restore, `Focused` when a window is hidden or shown (the
 //! mini-player hides itself from the frontend, which emits nothing else
 //! on the Rust side). Close-to-tray calls [`sync`] after its `hide`, and

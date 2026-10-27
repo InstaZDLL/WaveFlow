@@ -86,7 +86,7 @@ fn read(path: &Path) -> Stored {
 
 /// Read the choice and, on a Wayland session, ask GTK for its X11 backend.
 ///
-/// Called by the preflight in `lib.rs`, before logging and before any
+/// Called by the preflight in `startup/preflight.rs`, before logging and before any
 /// window. Never fails: a file that cannot be read is the default, which
 /// is native Wayland, exactly as before this existed.
 pub fn decide(root: &Path) {

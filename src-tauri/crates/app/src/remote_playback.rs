@@ -60,7 +60,7 @@
 // under `#[cfg(feature = "sync_v2")]`. In a stock build those callers are
 // compiled out, so all but `clear()` reads as dead code even though it is
 // live wherever the feature is on (and under `cfg(test)`). Same treatment,
-// same reason, as `queue.rs` and `remote/mod.rs`.
+// same reason, as `queue/mod.rs` and `remote/mod.rs`.
 #![allow(dead_code)]
 
 use std::sync::atomic::{AtomicU64, Ordering};

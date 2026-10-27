@@ -312,7 +312,7 @@ impl AudioEngine {
             dispatch: Mutex::new(()),
             // On unless the profile says otherwise: what people expect
             // from headphones, and the reported defect is the other
-            // behaviour. Seeded properly in `lib.rs` once the profile
+            // behaviour. Seeded properly in `startup/setup.rs` once the profile
             // pool is up.
             pause_on_device_loss: std::sync::atomic::AtomicBool::new(true),
             last_device_loss: Mutex::new(None),
