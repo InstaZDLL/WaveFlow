@@ -52,17 +52,6 @@ pub(super) use probe::probe_capabilities;
 use event_loop::run_event_loop;
 use session::open_exclusive_session;
 
-/// Spawn the WASAPI Exclusive output thread. Returns the
-/// decoder-side `Producer<f32>` (hand it to the decoder) and an
-/// [`OutputHandle`] the engine keeps around for teardown.
-///
-/// Mirrors `output::spawn_output_thread`'s signature so the engine can
-/// pick a backend without leaking the type into every layer.
-///
-/// Init is synchronous: if the device can't be opened in exclusive
-/// mode (busy, unsupported format, no such device), the error is
-/// surfaced before this function returns so the caller can fall back
-/// to the cpal shared backend.
 /// Why an exclusive open failed, from the `HRESULT` the error carries.
 ///
 /// The `wasapi` crate reports Win32 failures as text, with the code in it
@@ -92,6 +81,17 @@ pub fn refusal_of(err: &AppError) -> super::engine::ExclusiveRefusal {
     }
 }
 
+/// Spawn the WASAPI Exclusive output thread. Returns the
+/// decoder-side `Producer<f32>` (hand it to the decoder) and an
+/// [`OutputHandle`] the engine keeps around for teardown.
+///
+/// Mirrors `output::spawn_output_thread`'s signature so the engine can
+/// pick a backend without leaking the type into every layer.
+///
+/// Init is synchronous: if the device can't be opened in exclusive
+/// mode (busy, unsupported format, no such device), the error is
+/// surfaced before this function returns so the caller can fall back
+/// to the cpal shared backend.
 pub fn spawn_exclusive_output_thread(
     shared: Arc<SharedPlayback>,
     app: AppHandle,

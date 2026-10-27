@@ -5,28 +5,6 @@ use wasapi::Device;
 
 use super::LayoutCandidate;
 
-/// Build the layout candidates in priority order (#409).
-///
-/// The order matters, and the first entry is the whole point of this
-/// function. `get_mixformat` returns the **shared-mode mix format** —
-/// the shape of the pipe into the Windows audio engine, *after* the
-/// engine has applied whatever it wants. With "Audio Enhancements",
-/// Spatial Sound or a virtual-surround driver in the way, that comes
-/// back as 8 channels even though the endpoint is a plain stereo jack.
-/// Negotiating exclusive mode against it asks the hardware for a
-/// layout it has never supported, so every format in the chain is
-/// rejected with `AUDCLNT_E_UNSUPPORTED_FORMAT` (0x88890008) and the
-/// user silently drops to shared mode.
-///
-/// `get_device_format` reads `PKEY_AudioEngine_DeviceFormat` instead —
-/// the "Default Format" the user picked in the Windows Sound control
-/// panel, which describes the endpoint itself rather than the engine
-/// in front of it. That is the layout exclusive mode actually wants.
-///
-/// The mix format stays as the second candidate (it's correct on the
-/// majority of machines, where the two agree anyway), and a plain
-/// stereo entry closes the list for drivers that report a
-/// multi-channel default no application can open.
 /// Put the track's own rate at the head of the candidate list (#600).
 ///
 /// Every layout the device offered is kept, in its own order, behind a
@@ -69,6 +47,28 @@ pub(super) fn layouts_at_requested_rate(
     layouts
 }
 
+/// Build the layout candidates in priority order (#409).
+///
+/// The order matters, and the first entry is the whole point of this
+/// function. `get_mixformat` returns the **shared-mode mix format** —
+/// the shape of the pipe into the Windows audio engine, *after* the
+/// engine has applied whatever it wants. With "Audio Enhancements",
+/// Spatial Sound or a virtual-surround driver in the way, that comes
+/// back as 8 channels even though the endpoint is a plain stereo jack.
+/// Negotiating exclusive mode against it asks the hardware for a
+/// layout it has never supported, so every format in the chain is
+/// rejected with `AUDCLNT_E_UNSUPPORTED_FORMAT` (0x88890008) and the
+/// user silently drops to shared mode.
+///
+/// `get_device_format` reads `PKEY_AudioEngine_DeviceFormat` instead —
+/// the "Default Format" the user picked in the Windows Sound control
+/// panel, which describes the endpoint itself rather than the engine
+/// in front of it. That is the layout exclusive mode actually wants.
+///
+/// The mix format stays as the second candidate (it's correct on the
+/// majority of machines, where the two agree anyway), and a plain
+/// stereo entry closes the list for drivers that report a
+/// multi-channel default no application can open.
 pub(super) fn collect_layout_candidates(device: &Device) -> Vec<LayoutCandidate> {
     // A device with no property store, or a driver that doesn't
     // publish the key, is a soft failure — the mix format still gets
