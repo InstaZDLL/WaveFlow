@@ -7,10 +7,10 @@ interface ToggleSwitchProps {
 }
 
 /**
- * Plain switch — emerald when on, grey when off. Matches the inline
- * copies in `SettingsView` and `EqualizerCard`; new cards should
- * prefer this shared export and the older inline copies can be
- * collapsed in a follow-up.
+ * Plain switch — emerald when on, grey when off. Matches the copies in
+ * `views/settings/ToggleSwitch.tsx` (the Settings pages') and
+ * `EqualizerCard`; new cards should prefer this shared export and the
+ * older copies can be collapsed in a follow-up.
  *
  * `shrink-0` because a flex item shrinks past an explicit width: every
  * row here is a flex line whose other half is a label, so a long enough

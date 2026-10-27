@@ -51,21 +51,27 @@ import { PageScrollContext } from "../../contexts/PageScrollContext";
 const HomeView = lazy(() =>
   import("../views/HomeView").then((module) => ({ default: module.HomeView })),
 );
-const LibraryView = lazy(() =>
-  import("../views/LibraryView").then((module) => ({
+// The Library and Settings render their tabs and pages from chunks of
+// their own: those start loading alongside the view's, not after it.
+const LibraryView = lazy(() => {
+  void import("../views/library/tabs").then((m) => m.preloadLibraryTabs());
+  return import("../views/LibraryView").then((module) => ({
     default: module.LibraryView,
-  })),
-);
+  }));
+});
 // Type-only, so it does not pull the lazily-loaded module into this
 // bundle: the entry below carries a category and has to spell it the
 // same way Settings does.
 import type { SettingsCategory } from "../views/SettingsView";
 
-const SettingsView = lazy(() =>
-  import("../views/SettingsView").then((module) => ({
+const SettingsView = lazy(() => {
+  void import("../views/settings/sections").then((m) =>
+    m.preloadSettingsSections(),
+  );
+  return import("../views/SettingsView").then((module) => ({
     default: module.SettingsView,
-  })),
-);
+  }));
+});
 const WebRadioView = lazy(() =>
   import("../views/WebRadioView").then((module) => ({
     default: module.WebRadioView,
@@ -305,6 +311,9 @@ export function AppLayout() {
   useEffect(() => {
     const warmup = () => {
       void import("../views/LibraryView");
+      // The Library's tabs and the Settings pages are chunks of their own,
+      // which those views load on demand: warm them too.
+      void import("../views/library/tabs").then((m) => m.preloadLibraryTabs());
       void import("../views/LikedView");
       void import("../views/HistoryView");
       void import("../views/PlaylistView");
@@ -315,6 +324,9 @@ export function AppLayout() {
       void import("../views/StatisticsView");
       void import("../views/WrappedView");
       void import("../views/SettingsView");
+      void import("../views/settings/sections").then((m) =>
+        m.preloadSettingsSections(),
+      );
       void import("../views/WebRadioView");
       void import("../views/AboutView");
       void import("../views/FeedbackView");
