@@ -16,8 +16,16 @@ export function preloadable<P extends object>(
 ) {
   let loaded: ComponentType<P> | undefined;
   let pending: Promise<ComponentType<P>> | undefined;
+  // A failed load is forgotten, so the next open tries again instead of
+  // replaying the same rejection for the rest of the session.
   const preload = () =>
-    (pending ??= load().then((component) => (loaded = component)));
+    (pending ??= load().then(
+      (component) => (loaded = component),
+      (error: unknown) => {
+        pending = undefined;
+        throw error;
+      },
+    ));
   const Lazy = lazy(() =>
     preload().then((component) => ({ default: component })),
   );

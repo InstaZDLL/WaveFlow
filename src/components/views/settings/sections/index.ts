@@ -32,7 +32,8 @@ export const DiagnosticsSection = preloadable(() =>
   import("./DiagnosticsSection").then((m) => m.DiagnosticsSection),
 );
 
-/** Fetch every page's chunk. */
+/** Fetch every page's chunk. Best effort: a chunk that fails here is
+ * fetched again when its page opens, which is where an error shows. */
 export function preloadSettingsSections() {
   for (const section of [
     GeneralSection,
@@ -45,6 +46,6 @@ export function preloadSettingsSections() {
     DataSection,
     DiagnosticsSection,
   ]) {
-    void section.preload();
+    section.preload().catch(() => {});
   }
 }

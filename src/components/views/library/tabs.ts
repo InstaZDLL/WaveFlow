@@ -35,7 +35,8 @@ export const PhantomArtistList = preloadable(() =>
   import("./PhantomArtistList").then((m) => m.PhantomArtistList),
 );
 
-/** Fetch every tab's chunk. */
+/** Fetch every tab's chunk. Best effort: a chunk that fails here is
+ * fetched again when its tab opens, which is where an error shows. */
 export function preloadLibraryTabs() {
   for (const tab of [
     TrackTable,
@@ -49,6 +50,6 @@ export function preloadLibraryTabs() {
     InventoryCategories,
     PhantomArtistList,
   ]) {
-    void tab.preload();
+    tab.preload().catch(() => {});
   }
 }
