@@ -1,7 +1,25 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { SettingsNavigation } from "./settings/SettingsNavigation";
-import { SettingsGroup } from "./settings/SettingsGroup";
-import { SettingsCategoryHeader } from "./settings/SettingsCategoryHeader";
+import {
+  AppearanceSection,
+  AudioSection,
+  DataSection,
+  DiagnosticsSection,
+  GeneralSection,
+  IntegrationsSection,
+  LibrarySection,
+  LyricsSection,
+  preloadSettingsSections,
+  ShortcutsSection,
+} from "./settings/sections";
 import {
   SETTINGS_CATEGORIES,
   type SettingsCategory,
@@ -13,72 +31,13 @@ import {
   type CompletedReset,
 } from "./settings/settingsReset";
 import { SETTINGS } from "../../lib/settingsRegistry";
-import { SettingsChoiceCards } from "./settings/SettingsChoiceCards";
-import {
-  CrossfadePreview,
-  PrecisionBars,
-  ReplayGainPreview,
-} from "./settings/settingsPreviews";
-import { ThemePickerCard } from "./settings/ThemePickerCard";
-import { createPortal, flushSync } from "react-dom";
+import { flushSync } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { useSortIgnoreArticles } from "../../hooks/useSortIgnoreArticles";
-import {
-  ArrowLeft,
-  Globe,
-  Power,
-  Minimize2,
-  ScanLine,
-  RefreshCcw,
-  Loader2,
-  ImageIcon,
-  FolderOpen,
-  Trash2,
-  ChevronDown,
-  Check,
-  Volume2,
-  AudioWaveform,
-  Headphones,
-  Unplug,
-  Coffee,
-  Shuffle,
-  Radio,
-  Eye,
-  EyeOff,
-  MousePointerClick,
-  Sparkles,
-  Square,
-  Bell,
-  Gamepad2,
-  FileText,
-  Copy,
-  Check as CheckIcon,
-  Mic2,
-  Network,
-  Server,
-  ChevronsRight,
-  WifiOff,
-  Download,
-  Upload,
-  Activity,
-  Gauge,
-  ZoomIn,
-  Disc3,
-  ListPlus,
-  ArrowDownAZ,
-} from "lucide-react";
-import { RemoteServerCard } from "./settings/RemoteServerCard";
-import { ReconciliationCard } from "./settings/ReconciliationCard";
-import { CatalogueMirrorCard } from "./settings/CatalogueMirrorCard";
-import { UploadToServerCard } from "./settings/UploadToServerCard";
-import { RemoteTranscodeCard } from "./settings/RemoteTranscodeCard";
+import { ArrowLeft } from "lucide-react";
 import { getProfileSetting, setProfileSetting } from "../../lib/tauri/profile";
 import { useSingleClickPlay } from "../../hooks/useSingleClickPlay";
 import type { ViewId } from "../../types";
-import {
-  SUPPORTED_LANGUAGES,
-  normalizeSupportedLanguageCode,
-} from "../../i18n";
 import {
   playerGetAudioSettings,
   playerSetNormalize,
@@ -91,8 +50,6 @@ import {
   playerSetReplayGain,
   playerSetReplayGainOptions,
   playerSetReplayGainMode,
-  REPLAYGAIN_MODES,
-  REPLAYGAIN_ADJUST_LIMIT_DB,
   playerSetDsdPrecision,
   playerSetDsdDop,
   DSD_PRECISION_TAPS,
@@ -118,7 +75,6 @@ import {
   batchFetchMissingArtistPictures,
 } from "../../lib/tauri/deezer";
 import { openLogFolder, readRecentLogs } from "../../lib/tauri/diagnostics";
-import { RenderingCard } from "./settings/RenderingCard";
 import { getOfflineMode, setOfflineMode } from "../../lib/tauri/offline";
 import {
   ARCHIVE_UNREADABLE,
@@ -175,7 +131,6 @@ import {
   UI_ZOOM_CHANGED_EVENT,
   UI_ZOOM_MAX,
   UI_ZOOM_MIN,
-  UI_ZOOM_STEP,
 } from "../../lib/tauri/preferences";
 import { applyUiZoom } from "../../hooks/useUiZoom";
 import { DuplicatesModal } from "../common/DuplicatesModal";
@@ -184,46 +139,6 @@ import {
   ProfileArchivePreviewModal,
   type ArchivePreviewState,
 } from "../common/ProfileArchivePreviewModal";
-import { BackupCard } from "./settings/BackupCard";
-import { RadioCatalogueCard } from "./settings/RadioCatalogueCard";
-import { EqualizerCard } from "./settings/EqualizerCard";
-import { StereoImageCard } from "./settings/StereoImageCard";
-import { ExclusiveModeCard } from "./settings/ExclusiveModeCard";
-import { TestToneCard } from "./settings/TestToneCard";
-import { AccentCard } from "./settings/AccentCard";
-import { PlayerBarLayoutCard } from "./settings/PlayerBarLayoutCard";
-import { ShortcutsCard } from "./settings/ShortcutsCard";
-import { GlobalShortcutsCard } from "./settings/GlobalShortcutsCard";
-import { DiskUsageCard } from "./settings/DiskUsageCard";
-import { WrappedBannerCard } from "./settings/WrappedBannerCard";
-import { HiResBadgeCard } from "./settings/HiResBadgeCard";
-import { StatsKpiVisibilityCard } from "./settings/StatsKpiVisibilityCard";
-import { SkinPickerCard } from "./settings/SkinPickerCard";
-import { ContrastCard } from "./settings/ContrastCard";
-import { EffectsCard } from "./settings/EffectsCard";
-import { CacheLocationCard } from "./settings/CacheLocationCard";
-import { ClipsInLibraryCard } from "./settings/ClipsInLibraryCard";
-import { MediaCachesCard } from "./settings/MediaCachesCard";
-import { FullscreenLyricsCenteringCard } from "./settings/FullscreenLyricsCenteringCard";
-import { LyricsProvidersCard } from "./settings/LyricsProvidersCard";
-import { EstimatedKaraokeCard } from "./settings/EstimatedKaraokeCard";
-import { HeldNoteGlowCard } from "./settings/HeldNoteGlowCard";
-import { LyricsHighlightColorCard } from "./settings/LyricsHighlightColorCard";
-import { LyricsExcludedGenresCard } from "./settings/LyricsExcludedGenresCard";
-import { ImmersiveViewCard } from "./settings/ImmersiveViewCard";
-import { CoverSlideshowCard } from "./settings/CoverSlideshowCard";
-import { MotionCoversCard } from "./settings/MotionCoversCard";
-import { ArtistHeroCard } from "./settings/ArtistHeroCard";
-import { ScrollTitlesCard } from "./settings/ScrollTitlesCard";
-import { WindowBoundsCard } from "./settings/WindowBoundsCard";
-import { MiniPlayerBoundsCard } from "./settings/MiniPlayerBoundsCard";
-import { WindowChromeCard } from "./settings/WindowChromeCard";
-import { XwaylandCard } from "./settings/XwaylandCard";
-import { LyricsDestinationCard } from "./settings/LyricsDestinationCard";
-import { UpdateChannelCard } from "./settings/UpdateChannelCard";
-import { ListenBrainzCard } from "./settings/ListenBrainzCard";
-import { ArtistBioSourceCard } from "./settings/ArtistBioSourceCard";
-import { DesktopLyricsCard } from "./settings/DesktopLyricsCard";
 
 interface SettingsViewProps {
   onNavigate: (view: ViewId) => void;
@@ -245,35 +160,43 @@ const SETTINGS_CATEGORY_IDS = new Set<SettingsCategory>(
 );
 
 /**
- * Languages the Musixmatch translation pipeline can target.
- * Mirrors `SUPPORTED_TRANSLATION_LANGS` in
- * `src-tauri/crates/app/src/commands/lyrics.rs` exactly. Adding /
- * removing a code requires touching both the Rust whitelist (the
- * backend rejects unknown codes) and this list. The empty `value`
- * entry is the "off" sentinel — the dropdown's default state.
+ * Runs `onReveal` once the page it sits beside has mounted. Inside the
+ * same `Suspense` boundary as the page, so a search result for a page
+ * whose chunk is still loading scrolls to its group when the group
+ * exists, not before.
  */
-const TRANSLATION_LANG_OPTIONS: ReadonlyArray<{
-  value: string;
-  label: string;
-}> = [
-  { value: "", label: "Off" },
-  { value: "en", label: "English" },
-  { value: "es", label: "Español" },
-  { value: "de", label: "Deutsch" },
-  { value: "fr", label: "Français" },
-  { value: "it", label: "Italiano" },
-  { value: "nl", label: "Nederlands" },
-  { value: "pt", label: "Português" },
-  { value: "ru", label: "Русский" },
-  { value: "tr", label: "Türkçe" },
-  { value: "id", label: "Bahasa Indonesia" },
-  { value: "ja", label: "日本語" },
-  { value: "ko", label: "한국어" },
-  { value: "zh-CN", label: "简体中文" },
-  { value: "zh-TW", label: "繁體中文" },
-  { value: "ar", label: "العربية" },
-  { value: "hi", label: "हिन्दी" },
-];
+function RevealOnMount({
+  request,
+  onReveal,
+}: {
+  request: { group: string | null; seq: number } | null;
+  onReveal: (group: string | null) => void;
+}) {
+  // The latest callback, without making a new render re-run a reveal
+  // that already happened: only a new request does.
+  const onRevealRef = useRef(onReveal);
+  useLayoutEffect(() => {
+    onRevealRef.current = onReveal;
+  });
+  useEffect(() => {
+    if (request == null) return;
+    requestAnimationFrame(() => onRevealRef.current(request.group));
+  }, [request]);
+  return null;
+}
+
+/** Holds a page's place, unseen, while its chunk loads. */
+function SectionFallback() {
+  const { t } = useTranslation();
+  return (
+    <div
+      role="status"
+      aria-busy="true"
+      aria-label={t("common.loading")}
+      className="settings-category min-h-[50vh]"
+    />
+  );
+}
 
 function readStoredCategory(): SettingsCategory {
   if (typeof window === "undefined") return "general";
@@ -286,262 +209,6 @@ function readStoredCategory(): SettingsCategory {
     // localStorage unavailable — fall through to default.
   }
   return "general";
-}
-
-function ToggleSwitch({
-  enabled,
-  onToggle,
-  label,
-  disabled = false,
-}: {
-  enabled: boolean;
-  onToggle: () => void;
-  label: string;
-  disabled?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onToggle}
-      disabled={disabled}
-      role="switch"
-      aria-checked={enabled}
-      aria-label={label}
-      className={`relative w-12 h-7 rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-900 disabled:opacity-50 disabled:cursor-not-allowed ${
-        enabled ? "bg-emerald-500" : "bg-zinc-300 dark:bg-zinc-600"
-      }`}
-    >
-      <div
-        className={`absolute top-0.5 w-6 h-6 rounded-full bg-white shadow-sm transition-transform ${
-          enabled ? "left-[calc(100%-1.625rem)]" : "left-0.5"
-        }`}
-      />
-    </button>
-  );
-}
-
-interface LanguageDropdownProps {
-  currentCode: string;
-  onSelect: (code: string) => void;
-}
-
-function LanguageDropdown({ currentCode, onSelect }: LanguageDropdownProps) {
-  const { t } = useTranslation();
-  const [isOpen, setIsOpen] = useState(false);
-  const [focusedIndex, setFocusedIndex] = useState(0);
-  // Viewport-relative coordinates for the portaled listbox. Captured
-  // once per open from the trigger's bounding rect; closed on scroll
-  // or resize so a stale position never paints.
-  const [position, setPosition] = useState<{
-    top: number;
-    right: number;
-  } | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const listboxRef = useRef<HTMLUListElement>(null);
-  const optionRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const normalizedCurrentCode = normalizeSupportedLanguageCode(currentCode);
-
-  const currentLanguage =
-    SUPPORTED_LANGUAGES.find((lang) => lang.code === normalizedCurrentCode) ??
-    SUPPORTED_LANGUAGES[0];
-
-  // Click-outside + Escape handling. The listbox is portaled to
-  // document.body to escape the parent stacking context (the Lounge +
-  // Liquid skins paint Settings cards through `backdrop-filter`, which
-  // by spec creates a new stacking context and traps `z-index` of any
-  // descendant — so the dropdown rendered as an absolute child landed
-  // visually behind the cards below it). Click-outside therefore has
-  // to whitelist the portaled listbox too, otherwise clicking an
-  // option dismisses the menu before its onClick handler runs.
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Node;
-      const inTrigger = containerRef.current?.contains(target);
-      const inListbox = listboxRef.current?.contains(target);
-      if (!inTrigger && !inListbox) {
-        setIsOpen(false);
-      }
-    };
-
-    const handleKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setIsOpen(false);
-        // Return focus to the trigger so keyboard users stay anchored
-        // to where they opened the listbox from. Matches WAI-ARIA APG
-        // for combobox/listbox dismissal via Escape.
-        triggerRef.current?.focus();
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    document.addEventListener("keydown", handleKey);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("keydown", handleKey);
-    };
-  }, [isOpen]);
-
-  // Close on scroll/resize — the listbox uses fixed positioning derived
-  // from a snapshot of the trigger's rect, so any layout shift would
-  // leave it visually detached from the trigger. Closing is simpler
-  // (and matches native <select>) than re-measuring on every frame.
-  useEffect(() => {
-    if (!isOpen) return;
-    const close = () => setIsOpen(false);
-    window.addEventListener("scroll", close, true);
-    window.addEventListener("resize", close);
-    return () => {
-      window.removeEventListener("scroll", close, true);
-      window.removeEventListener("resize", close);
-    };
-  }, [isOpen]);
-
-  // Keep keyboard focus on the highlighted option when it changes
-  useEffect(() => {
-    if (isOpen) {
-      optionRefs.current[focusedIndex]?.focus();
-    }
-  }, [isOpen, focusedIndex]);
-
-  const handleTriggerClick = () => {
-    setIsOpen((prev) => {
-      if (!prev) {
-        // Opening: snapshot the trigger's viewport rect for the
-        // portaled listbox, then focus the currently selected option.
-        // `mt-2` (= 8px) keeps the visual gap the old absolute markup
-        // had; `right` is measured from the viewport edge to mirror
-        // the original `right-0` anchor.
-        const rect = triggerRef.current?.getBoundingClientRect();
-        if (rect) {
-          setPosition({
-            top: rect.bottom + 8,
-            right: window.innerWidth - rect.right,
-          });
-        }
-        const initialIndex = Math.max(
-          0,
-          SUPPORTED_LANGUAGES.findIndex(
-            (lang) => lang.code === normalizedCurrentCode,
-          ),
-        );
-        setFocusedIndex(initialIndex);
-      }
-      return !prev;
-    });
-  };
-
-  const handleOptionKeyDown = (
-    event: React.KeyboardEvent<HTMLButtonElement>,
-    index: number,
-  ) => {
-    if (event.key === "ArrowDown") {
-      event.preventDefault();
-      setFocusedIndex((index + 1) % SUPPORTED_LANGUAGES.length);
-    } else if (event.key === "ArrowUp") {
-      event.preventDefault();
-      setFocusedIndex(
-        (index - 1 + SUPPORTED_LANGUAGES.length) % SUPPORTED_LANGUAGES.length,
-      );
-    } else if (event.key === "Home") {
-      event.preventDefault();
-      setFocusedIndex(0);
-    } else if (event.key === "End") {
-      event.preventDefault();
-      setFocusedIndex(SUPPORTED_LANGUAGES.length - 1);
-    } else if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      handleSelect(SUPPORTED_LANGUAGES[index].code);
-    } else if (event.key === "Tab") {
-      // Dismiss the listbox and let the browser's default Tab action
-      // continue from the trigger's position in tab order. Focus is
-      // moved synchronously to the trigger before this handler
-      // returns; the un-prevented Tab default then advances from
-      // there, so Tab lands on the next focusable element AFTER the
-      // trigger and Shift+Tab lands on the previous one. Without this
-      // shim, Tab from a portaled option escapes through document.body
-      // and the keyboard caret falls off the end of tab order.
-      setIsOpen(false);
-      triggerRef.current?.focus();
-    }
-  };
-
-  const handleSelect = (code: string) => {
-    onSelect(code);
-    setIsOpen(false);
-    // Same restoration as the Escape branch: a deliberate option pick
-    // (mouse click or Enter/Space) lands the keyboard caret back on
-    // the trigger so the user can keep tabbing forward from where
-    // they were. Click-outside is intentionally NOT mirrored here —
-    // there the user explicitly aimed at something else, and stealing
-    // focus back to the trigger would override that intent.
-    triggerRef.current?.focus();
-  };
-
-  return (
-    <div className="relative" ref={containerRef}>
-      <button
-        ref={triggerRef}
-        type="button"
-        onClick={handleTriggerClick}
-        aria-haspopup="listbox"
-        aria-expanded={isOpen}
-        aria-label={t("settings.language.title")}
-        className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
-      >
-        <span>{currentLanguage.nativeLabel}</span>
-        <ChevronDown
-          size={14}
-          className={`transition-transform ${isOpen ? "rotate-180" : ""}`}
-        />
-      </button>
-
-      {isOpen &&
-        position &&
-        createPortal(
-          <ul
-            ref={listboxRef}
-            role="listbox"
-            aria-label={t("settings.language.title")}
-            style={{
-              position: "fixed",
-              top: position.top,
-              right: position.right,
-            }}
-            className="min-w-48 rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated dark:shadow-black/40 overflow-hidden z-[100] animate-fade-in py-1"
-          >
-            {SUPPORTED_LANGUAGES.map((lang, index) => {
-              const isSelected = lang.code === normalizedCurrentCode;
-              return (
-                <li key={lang.code} role="presentation">
-                  <button
-                    ref={(el) => {
-                      optionRefs.current[index] = el;
-                    }}
-                    type="button"
-                    role="option"
-                    aria-selected={isSelected}
-                    onClick={() => handleSelect(lang.code)}
-                    onKeyDown={(event) => handleOptionKeyDown(event, index)}
-                    className={`w-full flex items-center justify-between px-4 py-2 text-sm text-left transition-colors focus:outline-none ${
-                      isSelected
-                        ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400"
-                        : "text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700/30 focus:bg-zinc-50 dark:focus:bg-zinc-700/30"
-                    }`}
-                  >
-                    <span>{lang.nativeLabel}</span>
-                    {isSelected && <Check size={14} />}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>,
-          document.body,
-        )}
-    </div>
-  );
 }
 
 /**
@@ -611,6 +278,12 @@ function SettingsViewContent({
   // Group a settings-search result asked to reveal; cleared whenever the
   // category changes by any other route, so it never outlives its request.
   const [targetGroup, setTargetGroup] = useState<string | null>(null);
+  // The latest navigation request, for `RevealOnMount`: a new object per
+  // request, so asking for the same group twice still scrolls to it.
+  const [revealRequest, setRevealRequest] = useState<{
+    group: string | null;
+    seq: number;
+  } | null>(null);
   // The banner that sends people here is visible *on* this page too, so
   // the request can arrive while Settings is already mounted — React
   // keeps the instance and the initializer above never runs again. The
@@ -2232,6 +1905,50 @@ function SettingsViewContent({
     }
   }, [activeProfile]);
 
+  // Bring the page or group a navigation asked for into view, once it is
+  // on screen.
+  const revealTarget = (group: string | null) => {
+    const target = group
+      ? (document.getElementById(`settings-group-${group}`) ?? panelRef.current)
+      : panelRef.current;
+    if (target instanceof HTMLDetailsElement) target.open = true;
+    // A category goes back to the top of the page itself, not
+    // to `.settings-view` with its scroll margin: under a skin
+    // whose page padding exceeds that margin (Studio's 2rem
+    // against 1.5rem), the page scrolled the difference — but
+    // only for a category long enough to scroll, so switching
+    // between a short and a long one jumped by 8 px (#884).
+    const page = pageScroll?.current;
+    // In a narrow window the navigation sits above the panel,
+    // and the top of the page would show the list just clicked
+    // with the chosen category below the fold: scroll to the
+    // panel there instead.
+    const panel = panelRef.current;
+    const nav = panel?.previousElementSibling;
+    const stacked =
+      panel != null &&
+      nav != null &&
+      panel.getBoundingClientRect().top >= nav.getBoundingClientRect().bottom;
+    if (group) {
+      target?.scrollIntoView({ block: "start" });
+    } else if (stacked) {
+      panel.scrollIntoView({ block: "start" });
+    } else if (page) {
+      page.scrollTo({ top: 0 });
+    } else {
+      panelRef.current
+        ?.closest(".settings-view")
+        ?.scrollIntoView({ block: "start" });
+    }
+    target?.focus({ preventScroll: true });
+  };
+
+  // Every page's chunk, fetched right after Settings mounts.
+  useEffect(() => {
+    const handle = window.setTimeout(preloadSettingsSections, 0);
+    return () => window.clearTimeout(handle);
+  }, []);
+
   return (
     <div className="settings-view @container max-w-6xl mx-auto space-y-8 animate-fade-in pb-20 scroll-mt-6">
       {/* Header */}
@@ -2258,43 +1975,10 @@ function SettingsViewContent({
           onSelect={(category, group) => {
             handleCategoryChange(category);
             setTargetGroup(group ?? null);
-            requestAnimationFrame(() => {
-              const target = group
-                ? (document.getElementById(`settings-group-${group}`) ??
-                  panelRef.current)
-                : panelRef.current;
-              if (target instanceof HTMLDetailsElement) target.open = true;
-              // A category goes back to the top of the page itself, not
-              // to `.settings-view` with its scroll margin: under a skin
-              // whose page padding exceeds that margin (Studio's 2rem
-              // against 1.5rem), the page scrolled the difference — but
-              // only for a category long enough to scroll, so switching
-              // between a short and a long one jumped by 8 px (#884).
-              const page = pageScroll?.current;
-              // In a narrow window the navigation sits above the panel,
-              // and the top of the page would show the list just clicked
-              // with the chosen category below the fold: scroll to the
-              // panel there instead.
-              const panel = panelRef.current;
-              const nav = panel?.previousElementSibling;
-              const stacked =
-                panel != null &&
-                nav != null &&
-                panel.getBoundingClientRect().top >=
-                  nav.getBoundingClientRect().bottom;
-              if (group) {
-                target?.scrollIntoView({ block: "start" });
-              } else if (stacked) {
-                panel.scrollIntoView({ block: "start" });
-              } else if (page) {
-                page.scrollTo({ top: 0 });
-              } else {
-                panelRef.current
-                  ?.closest(".settings-view")
-                  ?.scrollIntoView({ block: "start" });
-              }
-              target?.focus({ preventScroll: true });
-            });
+            setRevealRequest((prev) => ({
+              group: group ?? null,
+              seq: (prev?.seq ?? 0) + 1,
+            }));
           }}
         />
         <div
@@ -2302,2300 +1986,218 @@ function SettingsViewContent({
           tabIndex={-1}
           className="settings-content min-w-0 scroll-mt-6 outline-none"
         >
-          {activeCategory === "general" && (
-            <section
-              aria-labelledby="settings-heading-general"
-              className="settings-category"
-            >
-              <SettingsCategoryHeader category="general" />
-              <SettingsGroup id="language" reveal={targetGroup === "language"}>
-                <div className="settings-row flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <Globe
-                      size={16}
-                      className="settings-row-icon"
-                      aria-hidden="true"
-                    />
-                    <div>
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.language.title")}
-                      </div>
-                      <div className="text-xs settings-description">
-                        {t("settings.language.subtitle")}
-                      </div>
-                    </div>
-                  </div>
-                  <LanguageDropdown
-                    currentCode={normalizeSupportedLanguageCode(
-                      i18n.resolvedLanguage ?? i18n.language,
-                    )}
-                    onSelect={handleLanguageChange}
-                  />
-                </div>
-              </SettingsGroup>
-              <SettingsGroup id="startup" reveal={targetGroup === "startup"}>
-                <div className="settings-row flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <Power
-                      size={16}
-                      className="settings-row-icon"
-                      aria-hidden="true"
-                    />
-                    <div>
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.autoStart.title")}
-                      </div>
-                      <div className="text-xs settings-description">
-                        {t("settings.autoStart.subtitle")}
-                      </div>
-                    </div>
-                  </div>
-                  <ToggleSwitch
-                    enabled={autoStart}
-                    onToggle={handleToggleAutoStart}
-                    label={t("settings.autoStart.title")}
-                  />
-                </div>
-                <div className="settings-row flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <Minimize2
-                      size={16}
-                      className="settings-row-icon"
-                      aria-hidden="true"
-                    />
-                    <div>
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.minimizeToTray.title")}
-                      </div>
-                      <div className="text-xs settings-description">
-                        {t("settings.minimizeToTray.subtitle")}
-                      </div>
-                    </div>
-                  </div>
-                  <ToggleSwitch
-                    enabled={minimizeToTray}
-                    onToggle={handleToggleMinimizeToTray}
-                    label={t("settings.minimizeToTray.title")}
-                  />
-                </div>
-                <div className="settings-row flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <Bell
-                      size={16}
-                      className="settings-row-icon"
-                      aria-hidden="true"
-                    />
-                    <div>
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.integrations.notifications.title")}
-                      </div>
-                      <div className="text-xs settings-description">
-                        {t("settings.integrations.notifications.subtitle")}
-                      </div>
-                    </div>
-                  </div>
-                  <ToggleSwitch
-                    enabled={trackChangeNotif}
-                    onToggle={handleToggleTrackChangeNotif}
-                    label={t("settings.integrations.notifications.title")}
-                  />
-                </div>
-              </SettingsGroup>
-              <SettingsGroup
-                id="listening"
-                reveal={targetGroup === "listening"}
-              >
-                <div className="settings-row flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <MousePointerClick
-                      size={16}
-                      className="settings-row-icon"
-                      aria-hidden="true"
-                    />
-                    <div>
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.singleClickPlay.title")}
-                      </div>
-                      <div className="text-xs settings-description">
-                        {t("settings.singleClickPlay.subtitle")}
-                      </div>
-                    </div>
-                  </div>
-                  <ToggleSwitch
-                    enabled={singleClickPlay}
-                    onToggle={handleToggleSingleClickPlay}
-                    label={t("settings.singleClickPlay.title")}
-                  />
-                </div>
-                <div className="settings-row flex items-center justify-between">
-                  <div className="flex items-center space-x-4 flex-1 min-w-0">
-                    <ListPlus
-                      size={16}
-                      className="settings-row-icon"
-                      aria-hidden="true"
-                    />
-                    <div className="min-w-0">
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.autoplay.title")}
-                      </div>
-                      <div className="text-xs settings-description">
-                        {t("settings.autoplay.subtitle")}
-                      </div>
-                    </div>
-                  </div>
-                  <ToggleSwitch
-                    enabled={autoplay}
-                    onToggle={() => void setAutoplay(!autoplay)}
-                    disabled={!autoplayResolved}
-                    label={t("settings.autoplay.title")}
-                  />
-                </div>
-                <div className="settings-row flex items-center justify-between">
-                  <div className="flex items-center space-x-4 flex-1 min-w-0">
-                    <Disc3
-                      size={16}
-                      className="settings-row-icon"
-                      aria-hidden="true"
-                    />
-                    <div className="min-w-0">
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.generatorAlbumMode.title")}
-                      </div>
-                      <div className="text-xs settings-description">
-                        {t("settings.generatorAlbumMode.subtitle")}
-                      </div>
-                    </div>
-                  </div>
-                  <ToggleSwitch
-                    enabled={generatorAlbumMode}
-                    onToggle={() =>
-                      void setGeneratorAlbumMode(!generatorAlbumMode)
-                    }
-                    disabled={!generatorAlbumModeResolved}
-                    label={t("settings.generatorAlbumMode.title")}
-                  />
-                </div>
-                <div className="settings-row flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <Coffee
-                      size={16}
-                      className="settings-row-icon"
-                      aria-hidden="true"
-                    />
-                    <div>
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.keepAwake.title")}
-                      </div>
-                      <div className="text-xs settings-description">
-                        {t("settings.keepAwake.subtitle")}
-                      </div>
-                    </div>
-                  </div>
-                  <ToggleSwitch
-                    enabled={keepAwake}
-                    onToggle={handleToggleKeepAwake}
-                    label={t("settings.keepAwake.title")}
-                  />
-                </div>
-              </SettingsGroup>
-            </section>
-          )}
-          {activeCategory === "appearance" && (
-            <section
-              aria-labelledby="settings-heading-appearance"
-              className="settings-category"
-            >
-              <SettingsCategoryHeader category="appearance" />
-              <SettingsGroup id="skin" reveal={targetGroup === "skin"}>
-                <SkinPickerCard />
-              </SettingsGroup>
-              <SettingsGroup id="theme" reveal={targetGroup === "theme"}>
-                <ThemePickerCard />
-                <AccentCard />
-              </SettingsGroup>
-              <SettingsGroup id="display" reveal={targetGroup === "display"}>
-                <ContrastCard />
-                <EffectsCard />
-                <div className="settings-row flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <ZoomIn
-                      size={16}
-                      className="settings-row-icon"
-                      aria-hidden="true"
-                    />
-                    <div>
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.uiZoom.title")}
-                      </div>
-                      <div className="text-xs settings-description">
-                        {t("settings.uiZoom.subtitle")}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <button
-                      type="button"
-                      onClick={() => handleZoomDelta(-UI_ZOOM_STEP)}
-                      disabled={uiZoom <= UI_ZOOM_MIN + 1e-3}
-                      aria-label={t("settings.uiZoom.decreaseAria")}
-                      className="w-8 h-8 flex items-center justify-center rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed text-lg leading-none"
-                    >
-                      −
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleZoomReset}
-                      aria-label={t("settings.uiZoom.resetAria")}
-                      title={t("settings.uiZoom.resetAria")}
-                      className="min-w-14 px-2 h-8 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-sm font-mono tabular-nums"
-                    >
-                      {Math.round(uiZoom * 100)} %
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleZoomDelta(UI_ZOOM_STEP)}
-                      disabled={uiZoom >= UI_ZOOM_MAX - 1e-3}
-                      aria-label={t("settings.uiZoom.increaseAria")}
-                      className="w-8 h-8 flex items-center justify-center rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed text-lg leading-none"
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-              </SettingsGroup>
-              <SettingsGroup id="player" reveal={targetGroup === "player"}>
-                <PlayerBarLayoutCard />
-                <HiResBadgeCard />
-                <ScrollTitlesCard />
-              </SettingsGroup>
-              <SettingsGroup id="window" reveal={targetGroup === "window"}>
-                <WindowBoundsCard />
-                <MiniPlayerBoundsCard />
-                <WindowChromeCard />
-                <XwaylandCard />
-              </SettingsGroup>
-              <SettingsGroup
-                id="immersive"
-                reveal={targetGroup === "immersive"}
-              >
-                <ImmersiveViewCard />
-                <CoverSlideshowCard />
-                <MotionCoversCard />
-                <div className="settings-row flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <Activity
-                      size={16}
-                      className="settings-row-icon"
-                      aria-hidden="true"
-                    />
-                    <div>
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.visualizer.title")}
-                      </div>
-                      <div className="text-xs settings-description">
-                        {t("settings.visualizer.subtitle")}
-                      </div>
-                    </div>
-                  </div>
-                  <ToggleSwitch
-                    enabled={visualizer}
-                    onToggle={handleToggleVisualizer}
-                    disabled={!visualizerHydrated}
-                    label={t("settings.visualizer.title")}
-                  />
-                </div>
-              </SettingsGroup>
-              <SettingsGroup id="pages" reveal={targetGroup === "pages"}>
-                <ArtistHeroCard />
-                <StatsKpiVisibilityCard />
-                <WrappedBannerCard />
-              </SettingsGroup>
-            </section>
-          )}
-          {activeCategory === "playback" && (
-            <section
-              aria-labelledby="settings-heading-playback"
-              className="settings-category"
-            >
-              <SettingsCategoryHeader category="playback" />
-              <SettingsGroup id="output" reveal={targetGroup === "output"}>
-                <ExclusiveModeCard />
-                {dopPlatformSupported && (
-                  <div className="settings-row flex items-center justify-between">
-                    <div className="flex items-center space-x-4 min-w-0">
-                      <AudioWaveform
-                        size={16}
-                        className="settings-row-icon"
-                        aria-hidden="true"
-                      />
-                      <div className="min-w-0">
-                        <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                          {t("settings.dsdDop.title")}
-                        </div>
-                        <div className="text-xs settings-description">
-                          {t("settings.dsdDop.subtitle")}
-                        </div>
-                      </div>
-                    </div>
-                    <ToggleSwitch
-                      enabled={dsdDop}
-                      onToggle={handleToggleDsdDop}
-                      label={t("settings.dsdDop.title")}
-                    />
-                  </div>
-                )}
-                <div className="settings-block">
-                  <div className="flex items-center space-x-4 min-w-0">
-                    <AudioWaveform
-                      size={16}
-                      className="settings-row-icon"
-                      aria-hidden="true"
-                    />
-                    <div className="min-w-0">
-                      <div
-                        id="settings-dsd-precision-label"
-                        className="text-sm font-medium text-zinc-900 dark:text-white"
-                      >
-                        {t("settings.dsdPrecision.title")}
-                      </div>
-                      <div className="text-xs settings-description">
-                        {t("settings.dsdPrecision.subtitle")}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-4">
-                    <SettingsChoiceCards
-                      compact
-                      minWidth={8}
-                      labelledBy="settings-dsd-precision-label"
-                      value={dsdTaps}
-                      onChange={(taps) => handleSetDsdPrecision(taps)}
-                      choices={DSD_PRECISION_TAPS.map((taps, index) => ({
-                        value: taps,
-                        label:
-                          taps === 256
-                            ? t("settings.dsdPrecision.standard")
-                            : taps === 1024
-                              ? t("settings.dsdPrecision.high")
-                              : t("settings.dsdPrecision.max"),
-                        // "Taps: 1024" rather than "1024 taps": no plural to agree.
-                        hint: t("settings.dsdPrecision.tapsValue", {
-                          value: taps,
-                        }),
-                        preview: (
-                          <PrecisionBars
-                            level={index + 2}
-                            of={DSD_PRECISION_TAPS.length + 1}
-                          />
-                        ),
-                      }))}
-                    />
-                  </div>
-                </div>
-                <div className="settings-row flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <Unplug
-                      size={16}
-                      className="settings-row-icon"
-                      aria-hidden="true"
-                    />
-                    <div>
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.pauseOnDeviceLoss.title")}
-                      </div>
-                      <div className="text-xs settings-description">
-                        {t("settings.pauseOnDeviceLoss.subtitle")}
-                      </div>
-                    </div>
-                  </div>
-                  <ToggleSwitch
-                    enabled={pauseOnDeviceLoss}
-                    onToggle={handleTogglePauseOnDeviceLoss}
-                    label={t("settings.pauseOnDeviceLoss.title")}
-                  />
-                </div>
-                <TestToneCard />
-              </SettingsGroup>
-              <SettingsGroup
-                id="transitions"
-                reveal={targetGroup === "transitions"}
-              >
-                <div className="settings-row flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <ChevronsRight
-                      size={16}
-                      className="settings-row-icon"
-                      aria-hidden="true"
-                    />
-                    <div>
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.gapless.title")}
-                      </div>
-                      <div className="text-xs settings-description">
-                        {t("settings.gapless.subtitle")}
-                      </div>
-                    </div>
-                  </div>
-                  <ToggleSwitch
-                    enabled={gapless}
-                    onToggle={handleToggleGapless}
-                    label={t("settings.gapless.title")}
-                  />
-                </div>
-                <div className="settings-row flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <Shuffle
-                      size={16}
-                      className="settings-row-icon"
-                      aria-hidden="true"
-                    />
-                    <div>
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.crossfade.title")}
-                      </div>
-                      <div className="text-xs settings-description">
-                        {t("settings.crossfade.subtitle")}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <CrossfadePreview seconds={crossfadeSec} max={12} />
-                    <input
-                      type="range"
-                      min={0}
-                      max={12}
-                      step={1}
-                      value={crossfadeSec}
-                      onChange={(e) =>
-                        handleCrossfadeChange(Number(e.target.value))
-                      }
-                      className="w-32 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-emerald-500 cursor-pointer"
-                      aria-label={t("settings.crossfade.title")}
-                    />
-                    <span className="text-sm font-medium text-zinc-500 w-10 text-right tabular-nums">
-                      {crossfadeSec} s
-                    </span>
-                  </div>
-                </div>
-                <div className="settings-dependent">
-                  <div className="settings-row flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <Sparkles
-                        size={16}
-                        className="settings-row-icon"
-                        aria-hidden="true"
-                      />
-                      <div>
-                        <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                          {t("settings.smartCrossfade.title")}
-                        </div>
-                        <div className="text-xs settings-description">
-                          {t("settings.smartCrossfade.subtitle")}
-                        </div>
-                      </div>
-                    </div>
-                    <ToggleSwitch
-                      enabled={smartCrossfade}
-                      onToggle={handleToggleSmartCrossfade}
-                      disabled={!smartCrossfadeHydrated}
-                      label={t("settings.smartCrossfade.title")}
-                    />
-                  </div>
-                  <div className="settings-row flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <Gauge
-                        size={16}
-                        className="settings-row-icon"
-                        aria-hidden="true"
-                      />
-                      <div>
-                        <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                          {t("settings.dynamicCrossfade.title")}
-                        </div>
-                        <div className="text-xs settings-description">
-                          {t("settings.dynamicCrossfade.subtitle")}
-                        </div>
-                      </div>
-                    </div>
-                    <ToggleSwitch
-                      enabled={dynamicCrossfade}
-                      onToggle={handleToggleDynamicCrossfade}
-                      disabled={!dynamicCrossfadeHydrated}
-                      label={t("settings.dynamicCrossfade.title")}
-                    />
-                  </div>
-                </div>
-              </SettingsGroup>
-              <SettingsGroup id="volume" reveal={targetGroup === "volume"}>
-                <div className="settings-row flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <Volume2
-                      size={16}
-                      className="settings-row-icon"
-                      aria-hidden="true"
-                    />
-                    <div>
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.normalize.title")}
-                      </div>
-                      <div className="text-xs settings-description">
-                        {t("settings.normalize.subtitle")}
-                      </div>
-                    </div>
-                  </div>
-                  <ToggleSwitch
-                    enabled={normalize}
-                    onToggle={handleToggleNormalize}
-                    label={t("settings.normalize.title")}
-                  />
-                </div>
-                <div className="settings-row flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <Volume2
-                      size={16}
-                      className="settings-row-icon"
-                      aria-hidden="true"
-                    />
-                    <div>
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.replayGain.title")}
-                      </div>
-                      <div className="text-xs settings-description">
-                        {t("settings.replayGain.subtitle")}
-                      </div>
-                    </div>
-                  </div>
-                  <ToggleSwitch
-                    enabled={replayGain}
-                    onToggle={handleToggleReplayGain}
-                    label={t("settings.replayGain.title")}
-                  />
-                </div>
-                {replayGain && (
-                  <div className="settings-dependent">
-                    {/* Pre-amp */}
-                    <div className="settings-row flex items-center justify-between">
-                      <div>
-                        <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                          {t("settings.replayGain.preamp.title")}
-                        </div>
-                        <div className="text-xs settings-description">
-                          {t("settings.replayGain.preamp.subtitle")}
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-3">
-                        <input
-                          type="range"
-                          min={-REPLAYGAIN_ADJUST_LIMIT_DB}
-                          max={REPLAYGAIN_ADJUST_LIMIT_DB}
-                          step={0.5}
-                          value={replayGainPreamp}
-                          onChange={(e) =>
-                            handleReplayGainPreampChange(Number(e.target.value))
-                          }
-                          className="w-32 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-emerald-500 cursor-pointer"
-                          aria-label={t("settings.replayGain.preamp.title")}
-                        />
-                        <span className="text-sm font-medium text-zinc-500 w-16 text-right tabular-nums">
-                          {t("settings.replayGain.decibels", {
-                            value: replayGainPreamp.toFixed(1),
-                          })}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Fallback gain for untagged, unanalysed tracks */}
-                    <div className="settings-row flex items-center justify-between">
-                      <div>
-                        <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                          {t("settings.replayGain.fallback.title")}
-                        </div>
-                        <div className="text-xs settings-description">
-                          {t("settings.replayGain.fallback.subtitle")}
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-3">
-                        <input
-                          type="range"
-                          min={-REPLAYGAIN_ADJUST_LIMIT_DB}
-                          max={REPLAYGAIN_ADJUST_LIMIT_DB}
-                          step={0.5}
-                          value={replayGainFallback}
-                          onChange={(e) =>
-                            handleReplayGainFallbackChange(
-                              Number(e.target.value),
-                            )
-                          }
-                          className="w-32 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-emerald-500 cursor-pointer"
-                          aria-label={t("settings.replayGain.fallback.title")}
-                        />
-                        <span className="text-sm font-medium text-zinc-500 w-16 text-right tabular-nums">
-                          {t("settings.replayGain.decibels", {
-                            value: replayGainFallback.toFixed(1),
-                          })}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Track gain vs album gain (#587) */}
-                    <div className="settings-block">
-                      <div
-                        id="settings-replaygain-mode-label"
-                        className="text-sm font-medium text-zinc-900 dark:text-white"
-                      >
-                        {t("settings.replayGain.mode.title")}
-                      </div>
-                      <div className="mt-3">
-                        <SettingsChoiceCards
-                          compact
-                          minWidth={9}
-                          labelledBy="settings-replaygain-mode-label"
-                          value={replayGainMode}
-                          onChange={(mode) => handleReplayGainModeChange(mode)}
-                          choices={REPLAYGAIN_MODES.map((mode) => ({
-                            value: mode,
-                            label: t(`settings.replayGain.mode.${mode}`),
-                            hint: t(`settings.replayGain.mode.${mode}Hint`),
-                            preview: <ReplayGainPreview mode={mode} />,
-                          }))}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Clipping prevention */}
-                    <div className="settings-row flex items-center justify-between">
-                      <div>
-                        <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                          {t("settings.replayGain.preventClipping.title")}
-                        </div>
-                        <div className="text-xs settings-description">
-                          {t("settings.replayGain.preventClipping.subtitle")}
-                        </div>
-                      </div>
-                      <ToggleSwitch
-                        enabled={replayGainPreventClipping}
-                        onToggle={handleToggleReplayGainPreventClipping}
-                        label={t("settings.replayGain.preventClipping.title")}
-                      />
-                    </div>
-                  </div>
-                )}
-              </SettingsGroup>
-              <SettingsGroup
-                id="equalizer"
-                bare
-                reveal={targetGroup === "equalizer"}
-              >
-                <EqualizerCard />
-              </SettingsGroup>
-              <SettingsGroup id="stereo" reveal={targetGroup === "stereo"}>
-                <StereoImageCard />
-              </SettingsGroup>
-              <SettingsGroup
-                id="outputAdvanced"
-                advanced
-                reveal={targetGroup === "outputAdvanced"}
-              >
-                <div className="settings-row flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <Gauge
-                      size={16}
-                      className="settings-row-icon"
-                      aria-hidden="true"
-                    />
-                    <div>
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.matchSourceRate.title")}
-                      </div>
-                      <div className="text-xs settings-description">
-                        {t("settings.matchSourceRate.subtitle")}
-                      </div>
-                    </div>
-                  </div>
-                  <ToggleSwitch
-                    enabled={matchSourceRate}
-                    onToggle={handleToggleMatchSourceRate}
-                    label={t("settings.matchSourceRate.title")}
-                  />
-                </div>
-                <div className="settings-row flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <Headphones
-                      size={16}
-                      className="settings-row-icon"
-                      aria-hidden="true"
-                    />
-                    <div>
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.mono.title")}
-                      </div>
-                      <div className="text-xs settings-description">
-                        {t("settings.mono.subtitle")}
-                      </div>
-                    </div>
-                  </div>
-                  <ToggleSwitch
-                    enabled={mono}
-                    onToggle={handleToggleMono}
-                    label={t("settings.mono.title")}
-                  />
-                </div>
-              </SettingsGroup>
-            </section>
-          )}
-          {activeCategory === "media" && (
-            <section
-              aria-labelledby="settings-heading-media"
-              className="settings-category"
-            >
-              <SettingsCategoryHeader category="media" />
-              <SettingsGroup id="lyrics" reveal={targetGroup === "lyrics"}>
-                <LyricsDestinationCard />
-                <div className="settings-row flex items-center justify-between">
-                  <div className="flex items-center space-x-4 flex-1 min-w-0">
-                    <Mic2
-                      size={16}
-                      className="settings-row-icon"
-                      aria-hidden="true"
-                    />
-                    <div className="min-w-0">
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.lyricsPrefetch.title")}
-                      </div>
-                      {lyricsPrefetchProgress && isPrefetchingLyrics ? (
-                        <div className="text-xs text-zinc-500 mt-1 truncate">
-                          {t("settings.lyricsPrefetch.progress", {
-                            current: lyricsPrefetchProgress.processed,
-                            total: lyricsPrefetchProgress.total,
-                            hits: lyricsPrefetchProgress.hits,
-                          })}
-                          {lyricsPrefetchProgress.currentTitle
-                            ? ` — ${lyricsPrefetchProgress.currentTitle}`
-                            : ""}
-                        </div>
-                      ) : lyricsResultMsg ? (
-                        <div className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 truncate">
-                          {lyricsResultMsg}
-                        </div>
-                      ) : (
-                        <div className="text-xs settings-description">
-                          {t("settings.lyricsPrefetch.subtitle")}
-                        </div>
-                      )}
-                      {lyricsPrefetchProgress &&
-                        lyricsPrefetchProgress.total > 0 && (
-                          <div className="mt-2 h-1.5 w-full max-w-xs rounded-full bg-zinc-200 dark:bg-zinc-700 overflow-hidden">
-                            <div
-                              className="h-full bg-emerald-500 transition-all"
-                              style={{
-                                width: `${Math.min(100, (lyricsPrefetchProgress.processed / lyricsPrefetchProgress.total) * 100)}%`,
-                              }}
-                            />
-                          </div>
-                        )}
-                    </div>
-                  </div>
-                  {isPrefetchingLyrics ? (
-                    <button
-                      type="button"
-                      onClick={handleCancelPrefetchLyrics}
-                      className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
-                    >
-                      <span>{t("common.cancel")}</span>
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={handlePrefetchLyrics}
-                      className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <Mic2 size={14} aria-hidden="true" />
-                      <span>{t("settings.lyricsPrefetch.action")}</span>
-                    </button>
-                  )}
-                </div>
-                <div className="settings-row flex items-center justify-between">
-                  <div className="flex items-center space-x-4 flex-1 min-w-0">
-                    <Mic2
-                      size={16}
-                      className="settings-row-icon"
-                      aria-hidden="true"
-                    />
-                    <div className="min-w-0">
-                      <label
-                        htmlFor="lyrics-translation-lang-select"
-                        className="text-sm font-medium text-zinc-900 dark:text-white"
-                      >
-                        {t("settings.lyricsTranslation.title")}
-                      </label>
-                      <div className="text-xs settings-description">
-                        {t("settings.lyricsTranslation.subtitle")}
-                      </div>
-                    </div>
-                  </div>
-                  <select
-                    id="lyrics-translation-lang-select"
-                    value={translationLang ?? ""}
-                    disabled={translationLangBusy}
-                    onChange={(e) =>
-                      void handleTranslationLangChange(e.target.value)
-                    }
-                    className="shrink-0 px-3 py-2 rounded-xl border border-zinc-200 bg-white text-sm text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {TRANSLATION_LANG_OPTIONS.map((opt) =>
-                      opt.value === "" ? (
-                        <option key="off" value="">
-                          {t("settings.lyricsTranslation.off")}
-                        </option>
-                      ) : (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ),
-                    )}
-                  </select>
-                </div>
-                <div className="settings-row flex items-center justify-between">
-                  <div className="flex items-center space-x-4 flex-1 min-w-0">
-                    <Globe
-                      size={16}
-                      className="settings-row-icon"
-                      aria-hidden="true"
-                    />
-                    <div className="min-w-0">
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.lyricsPreferLrclib.title")}
-                      </div>
-                      <div className="text-xs settings-description">
-                        {t("settings.lyricsPreferLrclib.subtitle")}
-                      </div>
-                    </div>
-                  </div>
-                  <ToggleSwitch
-                    enabled={preferLrclib}
-                    onToggle={() => void handlePreferLrclibToggle()}
-                    disabled={preferLrclibBusy}
-                    label={t("settings.lyricsPreferLrclib.title")}
-                  />
-                </div>
-                <LyricsProvidersCard />
-                <LyricsExcludedGenresCard />
-              </SettingsGroup>
-              <SettingsGroup
-                id="lyricsDisplay"
-                reveal={targetGroup === "lyricsDisplay"}
-              >
-                <FullscreenLyricsCenteringCard />
-                <EstimatedKaraokeCard />
-                <HeldNoteGlowCard />
-                <LyricsHighlightColorCard />
-              </SettingsGroup>
-              <SettingsGroup
-                id="desktopLyrics"
-                reveal={targetGroup === "desktopLyrics"}
-              >
-                <DesktopLyricsCard />
-              </SettingsGroup>
-            </section>
-          )}
-          {activeCategory === "library" && (
-            <section
-              aria-labelledby="settings-heading-library"
-              className="settings-category"
-            >
-              <SettingsCategoryHeader category="library" />
-              <SettingsGroup id="scanning" reveal={targetGroup === "scanning"}>
-                <div className="settings-row flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <ScanLine
-                      size={16}
-                      className="settings-row-icon"
-                      aria-hidden="true"
-                    />
-                    <div>
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.scanOnStart.title")}
-                      </div>
-                      <div className="text-xs settings-description">
-                        {t("settings.scanOnStart.subtitle")}
-                      </div>
-                    </div>
-                  </div>
-                  <ToggleSwitch
-                    enabled={scanOnStart}
-                    onToggle={handleToggleScanOnStart}
-                    label={t("settings.scanOnStart.title")}
-                  />
-                </div>
-                <div className="settings-row flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <ArrowDownAZ
-                      size={16}
-                      className="settings-row-icon"
-                      aria-hidden="true"
-                    />
-                    <div>
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.sortIgnoreArticles.title")}
-                      </div>
-                      <div className="text-xs settings-description">
-                        {t("settings.sortIgnoreArticles.subtitle")}
-                      </div>
-                    </div>
-                  </div>
-                  <ToggleSwitch
-                    enabled={ignoreArticles}
-                    onToggle={handleToggleIgnoreArticles}
-                    label={t("settings.sortIgnoreArticles.title")}
-                    disabled={savingIgnoreArticles}
-                  />
-                </div>
-                <div className="settings-row flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <RefreshCcw
-                      size={16}
-                      className="settings-row-icon"
-                      aria-hidden="true"
-                    />
-                    <div>
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.rescan.title")}
-                      </div>
-                      <div className="text-xs settings-description">
-                        {t("settings.rescan.subtitle")}
-                      </div>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleRescan}
-                    disabled={isRescanning || libraries.length === 0}
-                    className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isRescanning ? (
-                      <Loader2
-                        size={14}
-                        className="animate-spin"
-                        aria-hidden="true"
-                      />
-                    ) : (
-                      <RefreshCcw size={14} aria-hidden="true" />
-                    )}
-                    <span>{t("settings.rescan.action")}</span>
-                  </button>
-                </div>
-                <div className="settings-row flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <Copy
-                      size={16}
-                      className="settings-row-icon"
-                      aria-hidden="true"
-                    />
-                    <div>
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.duplicates.title")}
-                      </div>
-                      <div className="text-xs settings-description">
-                        {t("settings.duplicates.subtitle")}
-                      </div>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setIsDuplicatesOpen(true)}
-                    className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
-                  >
-                    <Copy size={14} aria-hidden="true" />
-                    <span>{t("settings.duplicates.action")}</span>
-                  </button>
-                </div>
-              </SettingsGroup>
-              <SettingsGroup id="analysis" reveal={targetGroup === "analysis"}>
-                <div className="settings-block">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <Sparkles
-                        size={16}
-                        className="settings-row-icon"
-                        aria-hidden="true"
-                      />
-                      <div>
-                        <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                          {t("settings.analyze.title")}
-                        </div>
-                        <div className="text-xs settings-description">
-                          {t("settings.analyze.subtitle")}
-                        </div>
-                      </div>
-                    </div>
-                    {isAnalyzingLib ? (
-                      // Mid-run: swap the Analyze button out for a Stop
-                      // button so the user can recover from a long-running
-                      // sweep that's saturating their CPU (issue #286).
-                      // The backend `cancel_library_analysis` flips a flag
-                      // the worker loop checks at every track boundary —
-                      // the click resolves quickly but the loop only exits
-                      // after the current decode finishes (single track
-                      // delay is acceptable; aborting mid-decode would
-                      // require restructuring `analyze_file` for cancel
-                      // tokens, deferred).
-                      <button
-                        type="button"
-                        onClick={handleCancelAnalyzeLibrary}
-                        className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-rose-200 bg-rose-50 text-sm font-medium text-rose-700 hover:bg-rose-100 dark:border-rose-900/40 dark:bg-rose-950/30 dark:text-rose-300 dark:hover:bg-rose-950/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
-                      >
-                        <Square size={14} aria-hidden="true" />
-                        <span>{t("settings.analyze.cancel")}</span>
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={handleAnalyzeLibrary}
-                        disabled={libraries.length === 0}
-                        className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <Sparkles size={14} aria-hidden="true" />
-                        <span>{t("settings.analyze.action")}</span>
-                      </button>
-                    )}
-                  </div>
-                  {/* Auto-analyze toggle: when on, every scan that
-                adds new tracks fires the analyzer in the
-                background. Sits inside the same card so users
-                see it as a related option rather than a
-                disconnected setting. */}
-                  <div className="mt-3 ml-9 flex items-center justify-between">
-                    <div>
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.analyze.autoTitle")}
-                      </div>
-                      <div className="text-xs settings-description">
-                        {t("settings.analyze.autoSubtitle")}
-                      </div>
-                    </div>
-                    <ToggleSwitch
-                      enabled={autoAnalyze}
-                      onToggle={handleToggleAutoAnalyze}
-                      label={t("settings.analyze.autoTitle")}
-                    />
-                  </div>
-                  {/* Progress strip — shown while the sweep runs, whoever
-                started it (this card, or the automatic analysis after a
-                scan). */}
-                  {analysisTask && (
-                    <div className="mt-3 ml-9">
-                      <div className="flex justify-between text-[11px] text-zinc-500 mb-1">
-                        <span>
-                          {analysisTask.total > 0
-                            ? `${analysisTask.current} / ${analysisTask.total}`
-                            : analysisTask.current}
-                        </span>
-                        {analyzeFailed > 0 && (
-                          <span className="text-rose-500">
-                            {t("settings.analyze.failed", {
-                              count: analyzeFailed,
-                            })}
-                          </span>
-                        )}
-                      </div>
-                      <div className="h-1.5 rounded-full bg-zinc-200 dark:bg-zinc-700 overflow-hidden">
-                        {/* Until the sweep has counted its queue the total
-                        is 0, "unknown": a pulsing third, as in the task
-                        bar, rather than an empty bar that reads as stuck. */}
-                        <div
-                          className={
-                            analysisTask.total > 0
-                              ? "h-full bg-emerald-500 transition-all duration-200"
-                              : "h-full w-1/3 bg-emerald-500 opacity-70 motion-safe:animate-pulse"
-                          }
-                          style={
-                            analysisTask.total > 0
-                              ? {
-                                  width: `${Math.round(
-                                    (analysisTask.current /
-                                      analysisTask.total) *
-                                      100,
-                                  )}%`,
-                                }
-                              : undefined
-                          }
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </SettingsGroup>
-              <SettingsGroup id="artwork" reveal={targetGroup === "artwork"}>
-                <div className="settings-row flex items-center justify-between">
-                  <div className="flex items-center space-x-4 flex-1 min-w-0">
-                    <ImageIcon
-                      size={16}
-                      className="settings-row-icon"
-                      aria-hidden="true"
-                    />
-                    <div className="min-w-0">
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.localArtistImages.title")}
-                      </div>
-                      <div className="text-xs settings-description">
-                        {localArtistRescanStatus ??
-                          t("settings.localArtistImages.subtitle")}
-                      </div>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleRescanLocalArtistImages}
-                    disabled={isRescanningLocalArtists}
-                    className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <ImageIcon
-                      size={14}
-                      aria-hidden="true"
-                      className={
-                        isRescanningLocalArtists ? "animate-pulse" : ""
-                      }
-                    />
-                    <span>{t("settings.localArtistImages.action")}</span>
-                  </button>
-                </div>
-                <div className="settings-row flex items-center justify-between">
-                  <div className="flex items-center space-x-4 flex-1 min-w-0">
-                    <ImageIcon
-                      size={16}
-                      className="settings-row-icon"
-                      aria-hidden="true"
-                    />
-                    <div className="min-w-0">
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.artistImages.title")}
-                      </div>
-                      {artistFetchProgress && isFetchingArtists ? (
-                        <div className="text-xs text-zinc-500 mt-1 truncate">
-                          {t("settings.artistImages.progress", {
-                            current: artistFetchProgress.current,
-                            total: artistFetchProgress.total,
-                          })}
-                          {artistFetchProgress.artistName
-                            ? ` — ${artistFetchProgress.artistName}`
-                            : ""}
-                        </div>
-                      ) : (
-                        <div className="text-xs settings-description">
-                          {t("settings.artistImages.subtitle")}
-                        </div>
-                      )}
-                      {artistFetchProgress && artistFetchProgress.total > 0 && (
-                        <div className="mt-2 h-1.5 w-full max-w-xs rounded-full bg-zinc-200 dark:bg-zinc-700 overflow-hidden">
-                          <div
-                            className="h-full bg-emerald-500 transition-all"
-                            style={{
-                              width: `${Math.min(100, (artistFetchProgress.current / artistFetchProgress.total) * 100)}%`,
-                            }}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleFetchMissingArtistPictures}
-                    disabled={isFetchingArtists}
-                    className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <ImageIcon
-                      size={14}
-                      aria-hidden="true"
-                      className={isFetchingArtists ? "animate-pulse" : ""}
-                    />
-                    <span>{t("settings.artistImages.action")}</span>
-                  </button>
-                </div>
-                <div className="settings-row flex items-center justify-between">
-                  <div className="flex items-center space-x-4 flex-1 min-w-0">
-                    <ImageIcon
-                      size={16}
-                      className="settings-row-icon"
-                      aria-hidden="true"
-                    />
-                    <div className="min-w-0">
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("library.fetchMissingCovers")}
-                      </div>
-                      {coverProgress && isFetchingCovers ? (
-                        <div className="text-xs text-zinc-500 mt-1 truncate">
-                          {t("library.fetchingCovers", {
-                            current: coverProgress.current,
-                            total: coverProgress.total,
-                          })}
-                          {coverProgress.albumTitle
-                            ? ` — ${coverProgress.albumTitle}`
-                            : ""}
-                        </div>
-                      ) : coverResultMsg ? (
-                        <div className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 truncate">
-                          {coverResultMsg}
-                        </div>
-                      ) : (
-                        <div className="text-xs settings-description">
-                          {t("settings.artistImages.subtitle")}
-                        </div>
-                      )}
-                      {coverProgress && coverProgress.total > 0 && (
-                        <div className="mt-2 h-1.5 w-full max-w-xs rounded-full bg-zinc-200 dark:bg-zinc-700 overflow-hidden">
-                          <div
-                            className="h-full bg-emerald-500 transition-all"
-                            style={{
-                              width: `${Math.min(100, (coverProgress.current / coverProgress.total) * 100)}%`,
-                            }}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleFetchMissingCovers}
-                    disabled={isFetchingCovers}
-                    className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <ImageIcon
-                      size={14}
-                      aria-hidden="true"
-                      className={isFetchingCovers ? "animate-pulse" : ""}
-                    />
-                    <span>{t("settings.artistImages.action")}</span>
-                  </button>
-                </div>
-              </SettingsGroup>
-              <SettingsGroup
-                id="biographies"
-                reveal={targetGroup === "biographies"}
-              >
-                <ArtistBioSourceCard />
-              </SettingsGroup>
-              <SettingsGroup id="radio" reveal={targetGroup === "radio"}>
-                <RadioCatalogueCard
-                  language={i18n.resolvedLanguage ?? i18n.language}
-                />
-              </SettingsGroup>
-            </section>
-          )}
-          {activeCategory === "integrations" && (
-            <section
-              aria-labelledby="settings-heading-integrations"
-              className="settings-category"
-            >
-              <SettingsCategoryHeader category="integrations" />
-              <SettingsGroup
-                id="connectivity"
-                reveal={targetGroup === "connectivity"}
-              >
-                <div className="settings-row flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <WifiOff
-                      size={16}
-                      className="settings-row-icon"
-                      aria-hidden="true"
-                    />
-                    <div>
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.offlineMode.title")}
-                      </div>
-                      <div className="text-xs settings-description">
-                        {t("settings.offlineMode.subtitle")}
-                      </div>
-                    </div>
-                  </div>
-                  <ToggleSwitch
-                    enabled={offlineMode}
-                    onToggle={handleToggleOfflineMode}
-                    label={t("settings.offlineMode.title")}
-                  />
-                </div>
-              </SettingsGroup>
-              <SettingsGroup id="services" reveal={targetGroup === "services"}>
-                <div className="settings-block">
-                  <div className="flex items-start space-x-4">
-                    <Radio
-                      size={16}
-                      className="settings-row-icon"
-                      aria-hidden="true"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.integrations.lastfm.title")}
-                      </div>
-                      <div className="text-xs mb-3 settings-description">
-                        {t("settings.integrations.lastfm.subtitle")}
-                      </div>
-
-                      {/* API key */}
-                      <div className="flex items-center space-x-2 mb-2">
-                        <div className="relative flex-1">
-                          <input
-                            type={lastfmKeyVisible ? "text" : "password"}
-                            value={lastfmKey}
-                            onChange={(e) => {
-                              setLastfmKey(e.target.value);
-                              setLastfmSaved(false);
-                            }}
-                            placeholder={t(
-                              "settings.integrations.lastfm.placeholder",
-                            )}
-                            spellCheck={false}
-                            autoComplete="off"
-                            className="w-full pr-10 pl-3 py-2 rounded-xl text-sm bg-white border border-zinc-200 text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-emerald-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100 dark:placeholder-zinc-500"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setLastfmKeyVisible((v) => !v)}
-                            aria-label={
-                              lastfmKeyVisible
-                                ? t("settings.integrations.lastfm.hide")
-                                : t("settings.integrations.lastfm.show")
-                            }
-                            className="absolute inset-y-0 right-0 px-3 flex items-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
-                          >
-                            {lastfmKeyVisible ? (
-                              <EyeOff size={16} />
-                            ) : (
-                              <Eye size={16} />
-                            )}
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* API secret */}
-                      <div className="flex items-center space-x-2 mb-2">
-                        <div className="relative flex-1">
-                          <input
-                            type={lastfmSecretVisible ? "text" : "password"}
-                            value={lastfmSecret}
-                            onChange={(e) => {
-                              setLastfmSecret(e.target.value);
-                              setLastfmSaved(false);
-                            }}
-                            placeholder={t(
-                              "settings.integrations.lastfm.secretPlaceholder",
-                            )}
-                            spellCheck={false}
-                            autoComplete="off"
-                            className="w-full pr-10 pl-3 py-2 rounded-xl text-sm bg-white border border-zinc-200 text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-emerald-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100 dark:placeholder-zinc-500"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setLastfmSecretVisible((v) => !v)}
-                            aria-label={
-                              lastfmSecretVisible
-                                ? t("settings.integrations.lastfm.hide")
-                                : t("settings.integrations.lastfm.show")
-                            }
-                            className="absolute inset-y-0 right-0 px-3 flex items-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
-                          >
-                            {lastfmSecretVisible ? (
-                              <EyeOff size={16} />
-                            ) : (
-                              <Eye size={16} />
-                            )}
-                          </button>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={handleSaveLastfmKey}
-                          disabled={lastfmSaving}
-                          className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-50 ${
-                            lastfmSaved
-                              ? "bg-emerald-500 text-white"
-                              : "border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
-                          }`}
-                        >
-                          {lastfmSaved
-                            ? t("settings.integrations.lastfm.saved")
-                            : t("settings.integrations.lastfm.save")}
-                        </button>
-                      </div>
-
-                      {/* Account login / status — only shown once API
-                    credentials are present. The session stays per
-                    profile so two profiles can scrobble to two
-                    different Last.fm accounts. */}
-                      {lastfmStatus?.configured && (
-                        <div className="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-800">
-                          {lastfmStatus.connected ? (
-                            <div className="flex items-center justify-between">
-                              <div className="text-xs">
-                                <span className="text-zinc-500">
-                                  {t(
-                                    "settings.integrations.lastfm.connectedAs",
-                                  )}{" "}
-                                </span>
-                                <span className="font-medium text-emerald-500">
-                                  {lastfmStatus.username}
-                                </span>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={handleLastfmLogout}
-                                className="px-3 py-1.5 rounded-lg text-xs font-medium border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors"
-                              >
-                                {t("settings.integrations.lastfm.disconnect")}
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="space-y-2">
-                              <div className="text-xs text-zinc-500">
-                                {t("settings.integrations.lastfm.loginPrompt")}
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <input
-                                  type="text"
-                                  value={lastfmUsername}
-                                  onChange={(e) => {
-                                    setLastfmUsername(e.target.value);
-                                    setLastfmLoginError(null);
-                                  }}
-                                  placeholder={t(
-                                    "settings.integrations.lastfm.usernamePlaceholder",
-                                  )}
-                                  autoComplete="username"
-                                  spellCheck={false}
-                                  className="flex-1 px-3 py-2 rounded-xl text-sm bg-white border border-zinc-200 text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-emerald-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100 dark:placeholder-zinc-500"
-                                />
-                                <input
-                                  type="password"
-                                  value={lastfmPassword}
-                                  onChange={(e) => {
-                                    setLastfmPassword(e.target.value);
-                                    setLastfmLoginError(null);
-                                  }}
-                                  placeholder={t(
-                                    "settings.integrations.lastfm.passwordPlaceholder",
-                                  )}
-                                  autoComplete="current-password"
-                                  className="flex-1 px-3 py-2 rounded-xl text-sm bg-white border border-zinc-200 text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-emerald-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100 dark:placeholder-zinc-500"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={handleLastfmLogin}
-                                  disabled={
-                                    lastfmLoggingIn ||
-                                    !lastfmUsername.trim() ||
-                                    !lastfmPassword
-                                  }
-                                  className="px-4 py-2 rounded-xl text-sm font-medium bg-emerald-500 text-white hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                >
-                                  {lastfmLoggingIn
-                                    ? t(
-                                        "settings.integrations.lastfm.connecting",
-                                      )
-                                    : t("settings.integrations.lastfm.connect")}
-                                </button>
-                              </div>
-                              {lastfmLoginError && (
-                                <div className="text-xs text-rose-500">
-                                  {lastfmLoginError}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                {/* Remounted per profile: the token is per profile, and
-                    the last one's status, half-typed token or error must
-                    not show under the next. */}
-                <ListenBrainzCard key={activeProfile?.id ?? "none"} />
-                <div className="settings-row flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <Gamepad2
-                      size={16}
-                      className="settings-row-icon"
-                      aria-hidden="true"
-                    />
-                    <div>
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.integrations.discord.title")}
-                      </div>
-                      <div className="text-xs settings-description">
-                        {t("settings.integrations.discord.subtitle")}
-                      </div>
-                    </div>
-                  </div>
-                  <ToggleSwitch
-                    enabled={discordRpc}
-                    onToggle={handleToggleDiscordRpc}
-                    label={t("settings.integrations.discord.title")}
-                  />
-                </div>
-              </SettingsGroup>
-              <SettingsGroup id="remote" reveal={targetGroup === "remote"}>
-                <RemoteServerCard />
-                <RemoteTranscodeCard />
-                <CatalogueMirrorCard />
-                <UploadToServerCard />
-                <ReconciliationCard />
-              </SettingsGroup>
-              <SettingsGroup
-                id="network"
-                advanced
-                reveal={targetGroup === "network"}
-              >
-                <div className="settings-block">
-                  <div className="flex items-start space-x-4">
-                    <Server
-                      size={16}
-                      className="settings-row-icon"
-                      aria-hidden="true"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <div>
-                          <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                            {t("settings.integrations.dlna.title")}
-                          </div>
-                          <div className="text-xs settings-description">
-                            {t("settings.integrations.dlna.subtitle")}
-                          </div>
-                        </div>
-                        <ToggleSwitch
-                          enabled={dlnaConfig.enabled}
-                          onToggle={handleToggleDlna}
-                          label={t("settings.integrations.dlna.title")}
-                        />
-                      </div>
-
-                      {dlnaConfig.enabled && (
-                        <div className="mt-3 space-y-3">
-                          {/* Server name */}
-                          <div className="flex items-center space-x-2">
-                            <label
-                              htmlFor="dlna-name"
-                              className="text-xs text-zinc-500 w-24 shrink-0"
-                            >
-                              {t("settings.integrations.dlna.serverName")}
-                            </label>
-                            <input
-                              id="dlna-name"
-                              type="text"
-                              value={dlnaConfig.server_name}
-                              onChange={(e) =>
-                                setDlnaConfig((c) => ({
-                                  ...c,
-                                  server_name: e.target.value,
-                                }))
-                              }
-                              onBlur={() => persistDlna(dlnaConfig)}
-                              spellCheck={false}
-                              className="flex-1 px-3 py-2 rounded-xl text-sm bg-white border border-zinc-200 text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-emerald-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100 dark:placeholder-zinc-500"
-                            />
-                          </div>
-
-                          {/* Port */}
-                          <div className="flex items-center space-x-2">
-                            <label
-                              htmlFor="dlna-port"
-                              className="text-xs text-zinc-500 w-24 shrink-0"
-                            >
-                              {t("settings.integrations.dlna.port")}
-                            </label>
-                            <input
-                              id="dlna-port"
-                              type="number"
-                              min={0}
-                              max={65535}
-                              value={dlnaConfig.port}
-                              onChange={(e) =>
-                                setDlnaConfig((c) => ({
-                                  ...c,
-                                  port: Math.max(
-                                    0,
-                                    Math.min(
-                                      65535,
-                                      Number(e.target.value) || 0,
-                                    ),
-                                  ),
-                                }))
-                              }
-                              onBlur={() => persistDlna(dlnaConfig)}
-                              className="w-32 px-3 py-2 rounded-xl text-sm bg-white border border-zinc-200 text-zinc-800 focus:outline-none focus:border-emerald-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100"
-                            />
-                            <span className="text-xs settings-description">
-                              {t("settings.integrations.dlna.portHint")}
-                            </span>
-                          </div>
-
-                          {/* Status */}
-                          <div className="flex items-center space-x-2 pt-1">
-                            <span
-                              className={`inline-block w-2 h-2 rounded-full ${
-                                dlnaStatus?.running
-                                  ? "bg-emerald-500"
-                                  : "bg-zinc-400"
-                              }`}
-                              aria-hidden="true"
-                            />
-                            <span className="text-xs text-zinc-500">
-                              {dlnaStatus?.running
-                                ? t("settings.integrations.dlna.statusRunning")
-                                : t("settings.integrations.dlna.statusStopped")}
-                            </span>
-                            {dlnaStatus?.bound_url && (
-                              <>
-                                <span className="text-xs font-mono text-zinc-700 dark:text-zinc-300 truncate">
-                                  {dlnaStatus.bound_url}
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={handleDlnaCopyUrl}
-                                  aria-label={t(
-                                    "settings.integrations.dlna.copyUrl",
-                                  )}
-                                  className="p-1 rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
-                                >
-                                  {dlnaUrlCopied ? (
-                                    <CheckIcon size={14} />
-                                  ) : (
-                                    <Copy size={14} />
-                                  )}
-                                </button>
-                              </>
-                            )}
-                          </div>
-
-                          {dlnaStatus?.last_error && (
-                            <div className="text-xs text-rose-500 break-words">
-                              {dlnaStatus.last_error}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <div className="settings-block">
-                  <div className="flex items-start space-x-4">
-                    <Network
-                      size={16}
-                      className="settings-row-icon"
-                      aria-hidden="true"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <div>
-                          <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                            {t("settings.integrations.mpd.title")}
-                          </div>
-                          <div className="text-xs settings-description">
-                            {t("settings.integrations.mpd.subtitle")}
-                          </div>
-                        </div>
-                        <ToggleSwitch
-                          enabled={mpdConfig.enabled}
-                          onToggle={handleToggleMpd}
-                          disabled={!mpdHydrated || mpdGenerating}
-                          label={t("settings.integrations.mpd.title")}
-                        />
-                      </div>
-
-                      {/* Outside the enabled block: a switch-on that fails
-                      rolls `enabled` back, and the reason must not vanish
-                      with the block. */}
-                      {mpdSaveFailed && (
-                        <div
-                          role="alert"
-                          className="mt-2 text-xs text-rose-500 break-words"
-                        >
-                          {t("settings.integrations.mpd.saveFailed")}
-                        </div>
-                      )}
-
-                      {mpdConfig.enabled && (
-                        <div className="mt-3 space-y-3">
-                          {/* The LAN exposure is stated plainly rather than
-                          buried in docs — it is the whole point of the
-                          feature and also its only real risk. With a password
-                          set (MpdConfig.requires_auth), control is gated, so
-                          the "anyone can control" warning would be misleading:
-                          swap it for one that separates reachability from
-                          control. */}
-                          <div className="text-xs text-amber-600 dark:text-amber-500">
-                            {mpdConfig.password
-                              ? t("settings.integrations.mpd.lanWarningAuth")
-                              : t("settings.integrations.mpd.lanWarning")}
-                          </div>
-
-                          {/* No password on a server that answers the whole
-                          network: offer one right where it is turned on,
-                          generated or typed. Gated on the hydrated config so
-                          it never flashes over a password still loading. */}
-                          {mpdHydrated &&
-                            !mpdConfig.password &&
-                            !mpdSuggestDismissed && (
-                              <div
-                                role="group"
-                                aria-labelledby="mpd-suggest-title"
-                                className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 space-y-2"
-                              >
-                                <div
-                                  id="mpd-suggest-title"
-                                  className="text-xs font-medium text-zinc-900 dark:text-white"
-                                >
-                                  {t("settings.integrations.mpd.suggestTitle")}
-                                </div>
-                                <div className="text-xs settings-description">
-                                  {t("settings.integrations.mpd.suggestBody")}
-                                </div>
-                                <div className="flex flex-wrap gap-2">
-                                  <button
-                                    type="button"
-                                    disabled={mpdGenerating}
-                                    onClick={() =>
-                                      void handleGenerateMpdPassword()
-                                    }
-                                    className="px-3 py-1 text-xs rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                                  >
-                                    {t(
-                                      "settings.integrations.mpd.suggestGenerate",
-                                    )}
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      mpdPasswordInputRef.current?.focus()
-                                    }
-                                    className="px-3 py-1 text-xs rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                                  >
-                                    {t(
-                                      "settings.integrations.mpd.suggestChoose",
-                                    )}
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setMpdSuggestDismissed(true);
-                                      mpdPasswordInputRef.current?.focus();
-                                    }}
-                                    className="px-3 py-1 text-xs rounded-lg text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
-                                  >
-                                    {t(
-                                      "settings.integrations.mpd.suggestDismiss",
-                                    )}
-                                  </button>
-                                </div>
-                              </div>
-                            )}
-
-                          <div className="flex items-center space-x-2">
-                            <label
-                              htmlFor="mpd-port"
-                              className="text-xs text-zinc-500 w-24 shrink-0"
-                            >
-                              {t("settings.integrations.mpd.port")}
-                            </label>
-                            <input
-                              id="mpd-port"
-                              type="number"
-                              min={1}
-                              max={65535}
-                              step={1}
-                              disabled={!mpdHydrated || mpdGenerating}
-                              value={mpdConfig.port}
-                              onChange={(e) =>
-                                setMpdConfig({
-                                  ...mpdConfig,
-                                  // Keep the state an integer in 0–65535 while
-                                  // typing; onBlur enforces the final 1–65535.
-                                  port: Math.max(
-                                    0,
-                                    Math.min(
-                                      65535,
-                                      Math.trunc(Number(e.target.value)) || 0,
-                                    ),
-                                  ),
-                                })
-                              }
-                              onBlur={() => {
-                                // Never persist an empty / zero / decimal /
-                                // out-of-range port: fall back to the last
-                                // confirmed value (or the 6600 default).
-                                const p = mpdConfig.port;
-                                const valid =
-                                  Number.isInteger(p) && p >= 1 && p <= 65535
-                                    ? p
-                                    : (mpdConfirmedRef.current?.port ?? 6600);
-                                const next = { ...mpdConfig, port: valid };
-                                setMpdConfig(next);
-                                void persistMpd(next);
-                              }}
-                              className="w-28 px-2 py-1 text-xs rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-transparent focus:border-emerald-500 focus:outline-none text-zinc-900 dark:text-white"
-                            />
-                            <span className="text-xs settings-description">
-                              {t("settings.integrations.mpd.portHint")}
-                            </span>
-                          </div>
-
-                          <div className="flex items-center space-x-2">
-                            <label
-                              htmlFor="mpd-password"
-                              className="text-xs text-zinc-500 w-24 shrink-0"
-                            >
-                              {t("settings.integrations.mpd.password")}
-                            </label>
-                            <div className="relative flex-1 min-w-0">
-                              <input
-                                id="mpd-password"
-                                ref={mpdPasswordInputRef}
-                                type={mpdPasswordVisible ? "text" : "password"}
-                                autoComplete="new-password"
-                                spellCheck={false}
-                                disabled={!mpdHydrated || mpdGenerating}
-                                value={mpdConfig.password}
-                                placeholder={t(
-                                  "settings.integrations.mpd.passwordPlaceholder",
-                                )}
-                                onChange={(e) => {
-                                  setMpdPasswordGenerated(false);
-                                  setMpdConfig({
-                                    ...mpdConfig,
-                                    password: e.target.value,
-                                  });
-                                }}
-                                onBlur={() => persistMpd(mpdConfig)}
-                                className="w-full pl-2 pr-8 py-1 text-xs rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-transparent focus:border-emerald-500 focus:outline-none text-zinc-900 dark:text-white"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => setMpdPasswordVisible((v) => !v)}
-                                aria-label={
-                                  mpdPasswordVisible
-                                    ? t(
-                                        "settings.integrations.mpd.hidePassword",
-                                      )
-                                    : t(
-                                        "settings.integrations.mpd.showPassword",
-                                      )
-                                }
-                                className="absolute inset-y-0 right-0 px-2 flex items-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
-                              >
-                                {mpdPasswordVisible ? (
-                                  <EyeOff size={14} />
-                                ) : (
-                                  <Eye size={14} />
-                                )}
-                              </button>
-                            </div>
-                          </div>
-                          <div
-                            aria-live="polite"
-                            className="text-xs settings-description"
-                          >
-                            {mpdPasswordGenerated && mpdConfig.password
-                              ? t("settings.integrations.mpd.generatedHint")
-                              : t("settings.integrations.mpd.passwordHint")}
-                          </div>
-
-                          {/* Status */}
-                          <div className="flex items-center space-x-2 pt-1">
-                            <span
-                              className={`inline-block w-2 h-2 rounded-full ${
-                                mpdStatus?.running
-                                  ? "bg-emerald-500"
-                                  : "bg-zinc-400"
-                              }`}
-                              aria-hidden="true"
-                            />
-                            <span className="text-xs text-zinc-500">
-                              {mpdStatus?.running
-                                ? t("settings.integrations.mpd.statusRunning")
-                                : t("settings.integrations.mpd.statusStopped")}
-                            </span>
-                            {mpdStatus?.bound_address && (
-                              <>
-                                <span className="text-xs font-mono text-zinc-700 dark:text-zinc-300 truncate">
-                                  {mpdStatus.bound_address}
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={handleMpdCopyAddress}
-                                  aria-label={t(
-                                    "settings.integrations.mpd.copyAddress",
-                                  )}
-                                  className="p-1 rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
-                                >
-                                  {mpdAddressCopied ? (
-                                    <CheckIcon size={14} />
-                                  ) : (
-                                    <Copy size={14} />
-                                  )}
-                                </button>
-                              </>
-                            )}
-                          </div>
-
-                          {mpdStatus?.last_error && (
-                            <div className="text-xs text-rose-500 break-words">
-                              {mpdStatus.last_error}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </SettingsGroup>
-            </section>
-          )}
-          {activeCategory === "shortcuts" && (
-            <section
-              aria-labelledby="settings-heading-shortcuts"
-              className="settings-category"
-            >
-              <SettingsCategoryHeader category="shortcuts" />
-              <SettingsGroup
-                id="keyboard"
-                bare
-                reveal={targetGroup === "keyboard"}
-              >
-                <ShortcutsCard />
-              </SettingsGroup>
-              <SettingsGroup
-                id="globalShortcuts"
-                bare
-                reveal={targetGroup === "globalShortcuts"}
-              >
-                <GlobalShortcutsCard />
-              </SettingsGroup>
-            </section>
-          )}
-          {activeCategory === "data" && (
-            <section
-              aria-labelledby="settings-heading-data"
-              className="settings-category"
-            >
-              <SettingsCategoryHeader category="data" />
-              <SettingsGroup
-                id="diskUsage"
-                reveal={targetGroup === "diskUsage"}
-              >
-                {/* Keyed by profile: the per-profile items (covers,
-                    offline copies, server caches) are the active
-                    profile's, and Settings stays mounted across a
-                    switch. */}
-                <DiskUsageCard
-                  key={activeProfile?.id ?? 0}
-                  language={i18n.resolvedLanguage ?? i18n.language}
-                />
-              </SettingsGroup>
-              <SettingsGroup id="backups" reveal={targetGroup === "backups"}>
-                <div className="settings-block">
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-center space-x-4 min-w-0">
-                      <Download
-                        size={16}
-                        className="settings-row-icon"
-                        aria-hidden="true"
-                      />
-                      <div className="min-w-0">
-                        <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                          {t("settings.profileIo.title")}
-                        </div>
-                        <div className="text-xs settings-description">
-                          {t("settings.profileIo.subtitle")}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2 shrink-0">
-                      <button
-                        type="button"
-                        onClick={handleExportProfile}
-                        disabled={profileIoBusy != null || !activeProfile}
-                        className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <Download
-                          size={14}
-                          aria-hidden="true"
-                          className={
-                            profileIoBusy === "export" ? "animate-pulse" : ""
-                          }
-                        />
-                        <span>{t("settings.profileIo.export.action")}</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleImportProfile}
-                        disabled={profileIoBusy != null}
-                        className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <Upload
-                          size={14}
-                          aria-hidden="true"
-                          className={
-                            profileIoBusy === "import" ? "animate-pulse" : ""
-                          }
-                        />
-                        <span>{t("settings.profileIo.import.action")}</span>
-                      </button>
-                    </div>
-                  </div>
-                  {profileIoBusy && !profileIoStatus && (
-                    // An archive carries the artwork cache too, so a large
-                    // library takes minutes; greyed buttons alone read as
-                    // a hang.
-                    <div
-                      role="status"
-                      className="mt-2 ml-9 text-xs text-zinc-500 dark:text-zinc-400"
-                    >
-                      {t(`settings.profileIo.${profileIoBusy}.busy`)}
-                    </div>
-                  )}
-                  {profileIoStatus && (
-                    <div
-                      className={`mt-2 ml-9 text-xs ${
-                        profileIoStatus.kind === "ok"
-                          ? "text-emerald-600 dark:text-emerald-400"
-                          : "text-red-500"
-                      }`}
-                    >
-                      {profileIoStatus.message}
-                    </div>
-                  )}
-                </div>
-                <BackupCard language={i18n.resolvedLanguage ?? i18n.language} />
-              </SettingsGroup>
-              <SettingsGroup id="storage" reveal={targetGroup === "storage"}>
-                <CacheLocationCard
-                  language={i18n.resolvedLanguage ?? i18n.language}
-                />
-                <MediaCachesCard
-                  language={i18n.resolvedLanguage ?? i18n.language}
-                />
-                <ClipsInLibraryCard />
-                <div className="settings-row flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <FolderOpen
-                      size={16}
-                      className="settings-row-icon"
-                      aria-hidden="true"
-                    />
-                    <div>
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.dataFolder.title")}
-                      </div>
-                      <div className="text-xs settings-description">
-                        {t("settings.dataFolder.subtitle")}
-                      </div>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleOpenDataFolder}
-                    aria-label={t("settings.openDataFolder")}
-                    className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
-                  >
-                    <FolderOpen size={14} aria-hidden="true" />
-                    <span>{t("settings.dataFolder.action")}</span>
-                  </button>
-                </div>
-              </SettingsGroup>
-              <SettingsGroup
-                id="cleanup"
-                advanced
-                reveal={targetGroup === "cleanup"}
-              >
-                <div className="settings-row flex items-center justify-between">
-                  <div className="flex items-center space-x-4 flex-1 min-w-0">
-                    <ImageIcon
-                      size={16}
-                      className="settings-row-icon"
-                      aria-hidden="true"
-                    />
-                    <div className="min-w-0">
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.regenerateThumbnails")}
-                      </div>
-                      {thumbsStatus ? (
-                        <div className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 truncate">
-                          {thumbsStatus}
-                        </div>
-                      ) : (
-                        <div className="text-xs settings-description">
-                          {t("settings.regenerateThumbnailsSubtitle")}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleRegenerateThumbnails}
-                    disabled={isRegeneratingThumbs}
-                    className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isRegeneratingThumbs ? (
-                      <Loader2
-                        size={14}
-                        className="animate-spin"
-                        aria-hidden="true"
-                      />
-                    ) : (
-                      <RefreshCcw size={14} aria-hidden="true" />
-                    )}
-                    <span>{t("settings.regenerateThumbnailsAction")}</span>
-                  </button>
-                </div>
-                <div className="settings-row flex items-center justify-between">
-                  <div className="flex items-center space-x-4 flex-1 min-w-0">
-                    <ImageIcon
-                      size={16}
-                      className="settings-row-icon"
-                      aria-hidden="true"
-                    />
-                    <div className="min-w-0">
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.pruneAlbumCovers")}
-                      </div>
-                      {pruneCoversStatus ? (
-                        <div
-                          role="status"
-                          aria-live="polite"
-                          className={`text-xs mt-1 truncate ${
-                            pruneCoversStatus.ok
-                              ? "text-emerald-600 dark:text-emerald-400"
-                              : "text-rose-600 dark:text-rose-400"
-                          }`}
-                        >
-                          {pruneCoversStatus.text}
-                        </div>
-                      ) : (
-                        <div className="text-xs settings-description">
-                          {t("settings.pruneAlbumCoversSubtitle")}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handlePruneCachedCovers}
-                    disabled={isPruningCovers}
-                    className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isPruningCovers ? (
-                      <Loader2
-                        size={14}
-                        className="animate-spin"
-                        aria-hidden="true"
-                      />
-                    ) : (
-                      <RefreshCcw size={14} aria-hidden="true" />
-                    )}
-                    <span>{t("settings.pruneAlbumCoversAction")}</span>
-                  </button>
-                </div>
-              </SettingsGroup>
-            </section>
-          )}
-          {activeCategory === "diagnostics" && (
-            <section
-              aria-labelledby="settings-heading-diagnostics"
-              className="settings-category"
-            >
-              <SettingsCategoryHeader category="diagnostics" />
-              <SettingsGroup id="updates" reveal={targetGroup === "updates"}>
-                <UpdateChannelCard />
-              </SettingsGroup>
-              <SettingsGroup
-                id="diagnostics"
-                reveal={targetGroup === "diagnostics"}
-              >
-                <RenderingCard />
-                <div className="settings-block">
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-center space-x-4 min-w-0">
-                      <FileText
-                        size={16}
-                        className="settings-row-icon"
-                        aria-hidden="true"
-                      />
-                      <div className="min-w-0">
-                        <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                          {t("settings.diagnostics.title")}
-                        </div>
-                        <div className="text-xs settings-description">
-                          {t("settings.diagnostics.subtitle")}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2 shrink-0">
-                      <button
-                        type="button"
-                        onClick={handleOpenLogFolder}
-                        className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
-                      >
-                        <FolderOpen size={14} aria-hidden="true" />
-                        <span>{t("settings.diagnostics.openFolder")}</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleCopyLogs}
-                        className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
-                      >
-                        {copyLogsStatus === "ok" ? (
-                          <CheckIcon
-                            size={14}
-                            aria-hidden="true"
-                            className="text-emerald-500"
-                          />
-                        ) : (
-                          <Copy size={14} aria-hidden="true" />
-                        )}
-                        <span>
-                          {copyLogsStatus === "ok"
-                            ? t("settings.diagnostics.copied")
-                            : copyLogsStatus === "fail"
-                              ? t("settings.diagnostics.copyFailed")
-                              : t("settings.diagnostics.copyLogs")}
-                        </span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </SettingsGroup>
-              <SettingsGroup
-                id="reset"
-                advanced
-                reveal={targetGroup === "reset"}
-              >
-                <div className="settings-row flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <Trash2
-                      size={16}
-                      className="settings-row-icon"
-                      aria-hidden="true"
-                    />
-                    <div>
-                      <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {t("settings.reset.title")}
-                      </div>
-                      <div className="text-xs settings-description">
-                        {t("settings.reset.subtitle")}
-                      </div>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setIsResetOpen(true)}
-                    aria-label={t("settings.reset.action")}
-                    className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-red-200 bg-white text-sm font-medium text-red-500 hover:bg-red-50 dark:border-red-500/30 dark:bg-zinc-800 dark:hover:bg-red-500/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-                  >
-                    <Trash2 size={14} aria-hidden="true" />
-                    <span>{t("settings.reset.action")}</span>
-                  </button>
-                </div>
-              </SettingsGroup>
-            </section>
-          )}
+          <Suspense fallback={<SectionFallback />}>
+            {activeCategory === "general" && (
+              <GeneralSection
+                autoStart={autoStart}
+                autoplay={autoplay}
+                autoplayResolved={autoplayResolved}
+                generatorAlbumMode={generatorAlbumMode}
+                generatorAlbumModeResolved={generatorAlbumModeResolved}
+                handleLanguageChange={handleLanguageChange}
+                handleToggleAutoStart={handleToggleAutoStart}
+                handleToggleKeepAwake={handleToggleKeepAwake}
+                handleToggleMinimizeToTray={handleToggleMinimizeToTray}
+                handleToggleSingleClickPlay={handleToggleSingleClickPlay}
+                handleToggleTrackChangeNotif={handleToggleTrackChangeNotif}
+                keepAwake={keepAwake}
+                minimizeToTray={minimizeToTray}
+                setAutoplay={setAutoplay}
+                setGeneratorAlbumMode={setGeneratorAlbumMode}
+                singleClickPlay={singleClickPlay}
+                targetGroup={targetGroup}
+                trackChangeNotif={trackChangeNotif}
+              />
+            )}
+            {activeCategory === "appearance" && (
+              <AppearanceSection
+                handleToggleVisualizer={handleToggleVisualizer}
+                handleZoomDelta={handleZoomDelta}
+                handleZoomReset={handleZoomReset}
+                targetGroup={targetGroup}
+                uiZoom={uiZoom}
+                visualizer={visualizer}
+                visualizerHydrated={visualizerHydrated}
+              />
+            )}
+            {activeCategory === "playback" && (
+              <AudioSection
+                crossfadeSec={crossfadeSec}
+                dopPlatformSupported={dopPlatformSupported}
+                dsdDop={dsdDop}
+                dsdTaps={dsdTaps}
+                dynamicCrossfade={dynamicCrossfade}
+                dynamicCrossfadeHydrated={dynamicCrossfadeHydrated}
+                gapless={gapless}
+                handleCrossfadeChange={handleCrossfadeChange}
+                handleReplayGainFallbackChange={handleReplayGainFallbackChange}
+                handleReplayGainModeChange={handleReplayGainModeChange}
+                handleReplayGainPreampChange={handleReplayGainPreampChange}
+                handleSetDsdPrecision={handleSetDsdPrecision}
+                handleToggleDsdDop={handleToggleDsdDop}
+                handleToggleDynamicCrossfade={handleToggleDynamicCrossfade}
+                handleToggleGapless={handleToggleGapless}
+                handleToggleMatchSourceRate={handleToggleMatchSourceRate}
+                handleToggleMono={handleToggleMono}
+                handleToggleNormalize={handleToggleNormalize}
+                handleTogglePauseOnDeviceLoss={handleTogglePauseOnDeviceLoss}
+                handleToggleReplayGain={handleToggleReplayGain}
+                handleToggleReplayGainPreventClipping={
+                  handleToggleReplayGainPreventClipping
+                }
+                handleToggleSmartCrossfade={handleToggleSmartCrossfade}
+                matchSourceRate={matchSourceRate}
+                mono={mono}
+                normalize={normalize}
+                pauseOnDeviceLoss={pauseOnDeviceLoss}
+                replayGain={replayGain}
+                replayGainFallback={replayGainFallback}
+                replayGainMode={replayGainMode}
+                replayGainPreamp={replayGainPreamp}
+                replayGainPreventClipping={replayGainPreventClipping}
+                smartCrossfade={smartCrossfade}
+                smartCrossfadeHydrated={smartCrossfadeHydrated}
+                targetGroup={targetGroup}
+              />
+            )}
+            {activeCategory === "media" && (
+              <LyricsSection
+                handleCancelPrefetchLyrics={handleCancelPrefetchLyrics}
+                handlePreferLrclibToggle={handlePreferLrclibToggle}
+                handlePrefetchLyrics={handlePrefetchLyrics}
+                handleTranslationLangChange={handleTranslationLangChange}
+                isPrefetchingLyrics={isPrefetchingLyrics}
+                lyricsPrefetchProgress={lyricsPrefetchProgress}
+                lyricsResultMsg={lyricsResultMsg}
+                preferLrclib={preferLrclib}
+                preferLrclibBusy={preferLrclibBusy}
+                targetGroup={targetGroup}
+                translationLang={translationLang}
+                translationLangBusy={translationLangBusy}
+              />
+            )}
+            {activeCategory === "library" && (
+              <LibrarySection
+                analysisTask={analysisTask}
+                analyzeFailed={analyzeFailed}
+                artistFetchProgress={artistFetchProgress}
+                autoAnalyze={autoAnalyze}
+                coverProgress={coverProgress}
+                coverResultMsg={coverResultMsg}
+                handleAnalyzeLibrary={handleAnalyzeLibrary}
+                handleCancelAnalyzeLibrary={handleCancelAnalyzeLibrary}
+                handleFetchMissingArtistPictures={
+                  handleFetchMissingArtistPictures
+                }
+                handleFetchMissingCovers={handleFetchMissingCovers}
+                handleRescan={handleRescan}
+                handleRescanLocalArtistImages={handleRescanLocalArtistImages}
+                handleToggleAutoAnalyze={handleToggleAutoAnalyze}
+                handleToggleIgnoreArticles={handleToggleIgnoreArticles}
+                handleToggleScanOnStart={handleToggleScanOnStart}
+                ignoreArticles={ignoreArticles}
+                isAnalyzingLib={isAnalyzingLib}
+                isFetchingArtists={isFetchingArtists}
+                isFetchingCovers={isFetchingCovers}
+                isRescanning={isRescanning}
+                isRescanningLocalArtists={isRescanningLocalArtists}
+                libraries={libraries}
+                localArtistRescanStatus={localArtistRescanStatus}
+                savingIgnoreArticles={savingIgnoreArticles}
+                scanOnStart={scanOnStart}
+                setIsDuplicatesOpen={setIsDuplicatesOpen}
+                targetGroup={targetGroup}
+              />
+            )}
+            {activeCategory === "integrations" && (
+              <IntegrationsSection
+                activeProfile={activeProfile}
+                discordRpc={discordRpc}
+                dlnaConfig={dlnaConfig}
+                dlnaStatus={dlnaStatus}
+                dlnaUrlCopied={dlnaUrlCopied}
+                handleDlnaCopyUrl={handleDlnaCopyUrl}
+                handleGenerateMpdPassword={handleGenerateMpdPassword}
+                handleLastfmLogin={handleLastfmLogin}
+                handleLastfmLogout={handleLastfmLogout}
+                handleMpdCopyAddress={handleMpdCopyAddress}
+                handleSaveLastfmKey={handleSaveLastfmKey}
+                handleToggleDiscordRpc={handleToggleDiscordRpc}
+                handleToggleDlna={handleToggleDlna}
+                handleToggleMpd={handleToggleMpd}
+                handleToggleOfflineMode={handleToggleOfflineMode}
+                lastfmKey={lastfmKey}
+                lastfmKeyVisible={lastfmKeyVisible}
+                lastfmLoggingIn={lastfmLoggingIn}
+                lastfmLoginError={lastfmLoginError}
+                lastfmPassword={lastfmPassword}
+                lastfmSaved={lastfmSaved}
+                lastfmSaving={lastfmSaving}
+                lastfmSecret={lastfmSecret}
+                lastfmSecretVisible={lastfmSecretVisible}
+                lastfmStatus={lastfmStatus}
+                lastfmUsername={lastfmUsername}
+                mpdAddressCopied={mpdAddressCopied}
+                mpdConfig={mpdConfig}
+                mpdConfirmedRef={mpdConfirmedRef}
+                mpdGenerating={mpdGenerating}
+                mpdHydrated={mpdHydrated}
+                mpdPasswordGenerated={mpdPasswordGenerated}
+                mpdPasswordInputRef={mpdPasswordInputRef}
+                mpdPasswordVisible={mpdPasswordVisible}
+                mpdSaveFailed={mpdSaveFailed}
+                mpdStatus={mpdStatus}
+                mpdSuggestDismissed={mpdSuggestDismissed}
+                offlineMode={offlineMode}
+                persistDlna={persistDlna}
+                persistMpd={persistMpd}
+                setDlnaConfig={setDlnaConfig}
+                setLastfmKey={setLastfmKey}
+                setLastfmKeyVisible={setLastfmKeyVisible}
+                setLastfmLoginError={setLastfmLoginError}
+                setLastfmPassword={setLastfmPassword}
+                setLastfmSaved={setLastfmSaved}
+                setLastfmSecret={setLastfmSecret}
+                setLastfmSecretVisible={setLastfmSecretVisible}
+                setLastfmUsername={setLastfmUsername}
+                setMpdConfig={setMpdConfig}
+                setMpdPasswordGenerated={setMpdPasswordGenerated}
+                setMpdPasswordVisible={setMpdPasswordVisible}
+                setMpdSuggestDismissed={setMpdSuggestDismissed}
+                targetGroup={targetGroup}
+              />
+            )}
+            {activeCategory === "shortcuts" && (
+              <ShortcutsSection targetGroup={targetGroup} />
+            )}
+            {activeCategory === "data" && (
+              <DataSection
+                activeProfile={activeProfile}
+                handleExportProfile={handleExportProfile}
+                handleImportProfile={handleImportProfile}
+                handleOpenDataFolder={handleOpenDataFolder}
+                handlePruneCachedCovers={handlePruneCachedCovers}
+                handleRegenerateThumbnails={handleRegenerateThumbnails}
+                isPruningCovers={isPruningCovers}
+                isRegeneratingThumbs={isRegeneratingThumbs}
+                profileIoBusy={profileIoBusy}
+                profileIoStatus={profileIoStatus}
+                pruneCoversStatus={pruneCoversStatus}
+                targetGroup={targetGroup}
+                thumbsStatus={thumbsStatus}
+              />
+            )}
+            {activeCategory === "diagnostics" && (
+              <DiagnosticsSection
+                copyLogsStatus={copyLogsStatus}
+                handleCopyLogs={handleCopyLogs}
+                handleOpenLogFolder={handleOpenLogFolder}
+                setIsResetOpen={setIsResetOpen}
+                targetGroup={targetGroup}
+              />
+            )}
+            <RevealOnMount request={revealRequest} onReveal={revealTarget} />
+          </Suspense>
         </div>
       </div>
 
