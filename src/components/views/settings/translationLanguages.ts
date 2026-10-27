@@ -1,7 +1,7 @@
 /**
  * Languages the Musixmatch translation pipeline can target.
  * Mirrors `SUPPORTED_TRANSLATION_LANGS` in
- * `src-tauri/crates/app/src/commands/lyrics.rs` exactly. Adding /
+ * `src-tauri/crates/app/src/commands/lyrics/settings.rs` exactly. Adding /
  * removing a code requires touching both the Rust whitelist (the
  * backend rejects unknown codes) and this list. The empty `value`
  * entry is the "off" sentinel — the dropdown's default state.

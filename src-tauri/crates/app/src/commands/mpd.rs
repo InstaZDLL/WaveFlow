@@ -4,7 +4,7 @@
 //! through the [`MpdServer`](crate::mpd::MpdServer) handle owned by
 //! `AppState`, so the worker thread stays the single source of truth on
 //! what is bound. Settings persistence is decoupled — the Settings page
-//! writes `app_setting` and the boot path in `lib.rs` reads the same
+//! writes `app_setting` and the boot path in `startup/setup.rs` reads the same
 //! rows at launch.
 
 use crate::{

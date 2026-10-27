@@ -177,9 +177,9 @@ pub async fn player_reopen_output_device(
 /// - **Windows**, WASAPI Exclusive Mode, event-driven, negotiating the
 ///   layout from the endpoint's own format
 ///   (`PKEY_AudioEngine_DeviceFormat`) first and only then the
-///   shared-mode mix format (#409) — see `audio/wasapi_exclusive.rs`.
+///   shared-mode mix format (#409) — see `audio/wasapi_exclusive/`.
 /// - **Linux**, a raw `hw:` ALSA device, asking the sound server to
-///   release the card first — see `audio/alsa_exclusive.rs`.
+///   release the card first — see `audio/alsa_exclusive/`.
 /// - **macOS**, CoreAudio hog mode, which leaves the device's physical
 ///   format alone — see `audio/coreaudio_exclusive.rs`.
 ///
@@ -192,7 +192,7 @@ pub async fn player_reopen_output_device(
 /// across machines.
 ///
 /// Persisted in `profile_setting['audio.exclusive_output']`. The boot
-/// read in `lib.rs` also accepts the legacy `audio.wasapi_exclusive`
+/// read in `startup/setup.rs` also accepts the legacy `audio.wasapi_exclusive`
 /// row, from when this was a Windows-only setting.
 #[tauri::command]
 pub async fn player_set_exclusive_output(

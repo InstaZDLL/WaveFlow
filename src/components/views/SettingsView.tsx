@@ -743,7 +743,7 @@ function SettingsViewContent({
   // Lyrics translation language (Musixmatch) — issue #208.
   // `null` = no translation (default). The backend whitelist must
   // stay in sync with `SUPPORTED_TRANSLATION_LANGS` in
-  // `commands/lyrics.rs`; we propagate the same set + an "off"
+  // `commands/lyrics/settings.rs`; we propagate the same set + an "off"
   // sentinel here.
   const [translationLang, setTranslationLang] = useState<string | null>(
     SETTINGS["lyrics.translation_lang"].defaultValue,

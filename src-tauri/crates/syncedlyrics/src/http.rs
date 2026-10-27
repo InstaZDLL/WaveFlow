@@ -161,7 +161,7 @@ pub fn validate_outbound_url(candidate: &str, allowed_hosts: &[&str]) -> Result<
 ///
 /// Consumed by [`crate::providers::musixmatch::redacted_get`] on
 /// every Musixmatch endpoint (GH #234). Kept exported so future
-/// callers in `commands/lyrics.rs` or any other debugging path that
+/// callers in `commands/lyrics/` or any other debugging path that
 /// needs to surface the URL of a failed provider call have a safe
 /// option instead of inlining their own redactor.
 pub fn redact_url(raw: &str) -> String {

@@ -341,7 +341,7 @@ async fn add_translations(
 /// stamps are unique. `None` means the row set must be rejected.
 ///
 /// Used by both the live `richsync` path and the unit tests; the
-/// caller in `commands/lyrics.rs::fetch_lyrics` caches a Musixmatch
+/// caller in `commands/lyrics/fetch.rs::fetch_lyrics` caches a Musixmatch
 /// hit with `EnhancedLrc` format AHEAD of LRCLIB, so a corrupted
 /// row set must not slip through — Musixmatch occasionally returns
 /// rows where `ts` is missing or shaped as a string, which the

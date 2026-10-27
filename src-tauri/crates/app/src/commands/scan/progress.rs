@@ -12,7 +12,7 @@ use waveflow_core::scanner::now_millis;
 /// Process-wide count of in-flight library scans. Bumped for the whole
 /// body of [`scan_folder_inner`] — which every scan entry point routes
 /// through (`scan_folder`, `rescan_library`, `import_dropped`, the
-/// fs-watcher, the startup rescan in `lib.rs`).
+/// fs-watcher, the startup rescan in `startup/setup.rs`).
 ///
 /// The background library analyzer reads this via [`scan_in_flight`]
 /// and parks itself while a scan is running: a scan is foreground (the
