@@ -389,14 +389,12 @@ impl AudioEngine {
             .is_some_and(|at| at.elapsed() < DEVICE_LOSS_OWNERSHIP)
     }
 
-    /// Take the session a rebuild parked, if it is still the right thing
-    /// to resume (#611, #617).
+    /// Read the parked session **without spending it** (#611, #617).
     ///
     /// A park is only valid while nothing newer has claimed the dispatch:
     /// the moment the user picks anything else, this snapshot describes a
     /// session they have moved on from, and handing it to Play would
     /// start the wrong thing.
-    /// Read the parked session **without spending it** (#611, #617).
     ///
     /// Split from [`Self::clear_parked_resume`] on purpose: the caller
     /// has to claim the dispatch before it can act on this, and a claim

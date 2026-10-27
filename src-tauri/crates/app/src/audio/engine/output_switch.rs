@@ -354,6 +354,23 @@ impl AudioEngine {
         Ok(())
     }
 
+    /// Hot-swap the cpal output device without restarting the decoder
+    /// or the analytics task.
+    ///
+    /// Strategy (reordered so a failing device doesn't leave us with
+    /// no audio at all):
+    /// 1. snapshot the currently loaded track + its position;
+    /// 2. open the new output thread first — if cpal can't open the
+    ///    device (broken HDMI sink, exclusive-mode conflict, …), bail
+    ///    out before touching the old one so the user keeps hearing
+    ///    audio through whatever was already working;
+    /// 3. send `Stop` so the decoder unwinds out of `play_track` and
+    ///    parks at the top-level command loop;
+    /// 4. tear the old output thread down (releases the cpal device);
+    /// 5. send `SwapProducer` so the decoder picks up the new ring;
+    /// 6. send `LoadAndPlay` with the saved position so playback
+    ///    resumes at the same spot through the new device.
+    ///
     /// `device_name = None` means "follow the OS default". Picking the
     /// already-active device is a no-op so spamming the menu doesn't
     /// glitch playback.

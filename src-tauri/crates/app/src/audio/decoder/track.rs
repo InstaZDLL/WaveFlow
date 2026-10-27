@@ -37,6 +37,30 @@ pub(super) enum PushOutcome {
     LoadNext,
 }
 
+/// Decode tracks until either an interruption or a track ends naturally.
+/// Honors crossfade: if `shared.crossfade_ms > 0` and there's a pending
+/// next track (delivered by `AudioCmd::SetNextTrack`), this function
+/// transparently mixes the two streams over the fade window, swaps the
+/// secondary into primary on EOF, sends `AnalyticsMsg::CrossfadeStarted`
+/// for the just-finished primary, and continues decoding the swapped
+/// stream.
+///
+/// Returns `(PlaybackEnd, listened_ms_of_final_track, FinishedTrack)`.
+///
+/// `stream` is opened by the caller (file: [`ActiveStream::open`], live
+/// HTTP: [`ActiveStream::open_from_source`] over an
+/// [`super::super::http_source::HttpMediaSource`]). Hoisting the open out lets
+/// the same playback loop drive both file-backed tracks and Web Radio
+/// streams without re-deriving "is this a path or a URL" inside the
+/// hot loop. A `stream` with `duration_ms == 0` is the canonical
+/// live-stream marker — the prefetch + end-of-track guards branch on
+/// it to suppress crossfade and auto-advance.
+///
+/// Yes, this takes a lot of parameters — but each one is load-bearing
+/// (initial track context + the I/O + sync handles the decoder loop
+/// needs) and folding them into a struct just to satisfy a lint would
+/// obscure the call site without changing what the function does.
+#[allow(clippy::too_many_arguments)]
 pub(super) fn play_track(
     initial_stream: ActiveStream,
     initial_start_ms: u64,

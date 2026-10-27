@@ -179,6 +179,36 @@ pub(super) fn endpoint_moved(before: Option<&str>, after: Option<&str>) -> bool 
     matches!((before, after), (Some(before), Some(after)) if before != after)
 }
 
+/// Whether a track's request needs the output reopened.
+///
+/// Reopened when there is no stream, or when DoP has to start, stop or
+/// change shape. Otherwise only a request **for a rate** can call for
+/// it, and that rate is compared against what the last open *asked*
+/// for, never what it got (#600): a device that refused 96 kHz has its
+/// own rate installed, and comparing against that would rebuild the
+/// output on every single track for as long as the preference stayed on.
+///
+/// A request with no rate — the DoP check of an ordinary PCM track, a
+/// remote or HTTP load putting the output back on PCM, the test tone —
+/// is about DoP only and leaves the rate alone. It used to count as a
+/// request for "no rate in particular", which differs from any rate the
+/// last track matched: with "Match each track's sample rate" on, every
+/// track reopened the output twice, once to the device's default rate
+/// for the DoP check and once to its own rate, two gaps where the guard
+/// above promised none.
+pub(super) fn track_needs_reopen(
+    has_output: bool,
+    current_dop: Option<DopFormat>,
+    want_dop: Option<DopFormat>,
+    last_requested_rate: u32,
+    requested_rate: Option<u32>,
+) -> bool {
+    if !has_output || current_dop != want_dop {
+        return true;
+    }
+    requested_rate.is_some_and(|rate| rate != last_requested_rate)
+}
+
 /// Whether the old output has to be released *before* the new one is
 /// opened, rather than the other way round. `old_is_exclusive` is `None`
 /// when there is no stream installed at all.
@@ -215,36 +245,6 @@ pub(super) fn endpoint_moved(before: Option<&str>, after: Option<&str>) -> bool 
 /// Releasing first is safe wherever it applies because
 /// [`spawn_output_with_mode`] falls back to shared mode on its own, so the
 /// caller still comes back holding a stream.
-/// Whether a track's request needs the output reopened.
-///
-/// Reopened when there is no stream, or when DoP has to start, stop or
-/// change shape. Otherwise only a request **for a rate** can call for
-/// it, and that rate is compared against what the last open *asked*
-/// for, never what it got (#600): a device that refused 96 kHz has its
-/// own rate installed, and comparing against that would rebuild the
-/// output on every single track for as long as the preference stayed on.
-///
-/// A request with no rate — the DoP check of an ordinary PCM track, a
-/// remote or HTTP load putting the output back on PCM, the test tone —
-/// is about DoP only and leaves the rate alone. It used to count as a
-/// request for "no rate in particular", which differs from any rate the
-/// last track matched: with "Match each track's sample rate" on, every
-/// track reopened the output twice, once to the device's default rate
-/// for the DoP check and once to its own rate, two gaps where the guard
-/// above promised none.
-pub(super) fn track_needs_reopen(
-    has_output: bool,
-    current_dop: Option<DopFormat>,
-    want_dop: Option<DopFormat>,
-    last_requested_rate: u32,
-    requested_rate: Option<u32>,
-) -> bool {
-    if !has_output || current_dop != want_dop {
-        return true;
-    }
-    requested_rate.is_some_and(|rate| rate != last_requested_rate)
-}
-
 pub(super) fn must_release_before_reopening(
     old_is_exclusive: Option<bool>,
     entering_exclusive: bool,
@@ -420,6 +420,7 @@ impl AudioEngine {
     /// that is no longer enumerated is replaced by the default endpoint
     /// on open, and ticking the pin then described a device playing
     /// nothing (#612).
+    ///
     /// Returned as `(opened, pinned)` under a **single** lock.
     ///
     /// Reading the two names through separate accessors let a rebuild
@@ -448,6 +449,7 @@ impl AudioEngine {
     /// row, so "choose another device, then choose this one again" was
     /// the only cure (#612). This goes straight to the rebuild path that
     /// device-error recovery already uses.
+    ///
     /// Carries the same two protections every other deliberate rebuild
     /// has, because `force_rebuild_output` owns neither: its recovery
     /// caller computes them.
@@ -496,23 +498,6 @@ impl AudioEngine {
             .unwrap_or(false)
     }
 
-    /// Hot-swap the cpal output device without restarting the decoder
-    /// or the analytics task.
-    ///
-    /// Strategy (reordered so a failing device doesn't leave us with
-    /// no audio at all):
-    /// 1. snapshot the currently loaded track + its position;
-    /// 2. open the new output thread first — if cpal can't open the
-    ///    device (broken HDMI sink, exclusive-mode conflict, …), bail
-    ///    out before touching the old one so the user keeps hearing
-    ///    audio through whatever was already working;
-    /// 3. send `Stop` so the decoder unwinds out of `play_track` and
-    ///    parks at the top-level command loop;
-    /// 4. tear the old output thread down (releases the cpal device);
-    /// 5. send `SwapProducer` so the decoder picks up the new ring;
-    /// 6. send `LoadAndPlay` with the saved position so playback
-    ///    resumes at the same spot through the new device.
-    ///
     /// Recover from a mid-stream `cpal::StreamError::DeviceNotAvailable`
     /// (#175). The cpal error callback fires on a random thread when
     /// Windows resets its audio session, a USB DAC unplugs, or a
