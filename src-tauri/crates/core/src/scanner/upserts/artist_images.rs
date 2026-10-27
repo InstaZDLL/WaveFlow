@@ -48,6 +48,24 @@ pub async fn link_local_artist_image(
     Ok(())
 }
 
+/// Pair each split name with the id `artist_ids` holds for it.
+///
+/// `artist_ids` has no entry for a name whose canonical form is empty
+/// (`"!!!"`): the upsert skips those. Zipping the raw split against it
+/// would then shift every later name onto the next artist's id, and the
+/// scan would link one artist's image to another — durably, since a
+/// linked image is never replaced. The same filter as the upsert keeps
+/// the two lists in step.
+fn named_ids<'a>(
+    names: &'a [String],
+    artist_ids: &'a [i64],
+) -> impl Iterator<Item = (&'a String, &'a i64)> {
+    names
+        .iter()
+        .filter(|name| !canonical_name(name.trim()).is_empty())
+        .zip(artist_ids)
+}
+
 /// Walk every artist name parsed from `raw`, pair it with its `artist.id`
 /// from `artist_ids` (positionally aligned), and try to resolve a sidecar
 /// artist image from `track_path`. Idempotent — artists that already have
@@ -83,7 +101,7 @@ pub async fn maybe_link_artist_images(
     let names = split_artist_name(raw);
     let va_canon = canonical_name(VARIOUS_ARTISTS_LABEL);
     let parent = track_path.parent();
-    for (name, id) in names.iter().zip(artist_ids.iter()) {
+    for (name, id) in named_ids(&names, artist_ids) {
         // Per-(artist, folder) skip. `insert` returns false when the
         // pair was already attempted this scan — the match + the
         // has-artwork probe below are deterministic for it, so there's
@@ -172,3 +190,6 @@ pub async fn link_va_artist_image(
     }
     Ok(Some(false))
 }
+
+#[cfg(test)]
+mod tests;
