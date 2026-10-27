@@ -149,8 +149,7 @@ pub async fn get_wrapped(
     state: tauri::State<'_, AppState>,
     year: i32,
 ) -> AppResult<WrappedPayload> {
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
     let metadata_dir = &state.paths.metadata_artwork_dir;
     let (since, until) = year_bounds_ms(year);

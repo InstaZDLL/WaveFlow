@@ -335,8 +335,7 @@ pub async fn rescan_library(
     deep: Option<bool>,
 ) -> AppResult<RescanSummary> {
     let deep = deep.unwrap_or(false);
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
     let repo = SqliteLibraryRepository::new(pool.clone());
 
@@ -492,8 +491,7 @@ pub async fn import_dropped(
     if paths.is_empty() {
         return Ok(summary);
     }
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
     let repo = SqliteLibraryRepository::new(pool.clone());
 

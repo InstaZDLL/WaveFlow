@@ -247,8 +247,7 @@ pub async fn stats_top_artists(
     range: String,
     limit: i64,
 ) -> AppResult<Vec<TopArtistRow>> {
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
     stats_top_artists_inner(
         &pool,

@@ -894,8 +894,7 @@ pub async fn list_mood_overrides(
     state: tauri::State<'_, AppState>,
     mood: Mood,
 ) -> AppResult<Vec<MoodOverrideTrack>> {
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
     let rows: Vec<(i64, String)> = sqlx::query_as(
         "SELECT track_id, kind FROM mood_override

@@ -95,9 +95,8 @@ pub async fn list_recent_plays(
     library_id: Option<i64>,
     limit: i64,
 ) -> AppResult<Vec<RecentPlay>> {
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await.ok();
-    let artwork_dir = profile_id.map(|pid| state.paths.profile_artwork_dir(pid));
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
+    let artwork_dir = state.paths.profile_artwork_dir(profile_id);
 
     let raw = sqlx::query_as::<_, RecentPlayRaw>(
         r#"
@@ -147,7 +146,7 @@ pub async fn list_recent_plays(
             let (artwork_path, artwork_path_1x, artwork_path_2x) = match (
                 row.artwork_hash.as_deref(),
                 row.artwork_format.as_deref(),
-                artwork_dir.as_ref(),
+                Some(&artwork_dir),
             ) {
                 (Some(hash), Some(format), Some(dir)) => {
                     let full = dir
@@ -239,9 +238,8 @@ pub async fn list_play_history(
     after_ms: Option<i64>,
     limit: i64,
 ) -> AppResult<Vec<PlayHistoryRow>> {
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await.ok();
-    let artwork_dir = profile_id.map(|pid| state.paths.profile_artwork_dir(pid));
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
+    let artwork_dir = state.paths.profile_artwork_dir(profile_id);
 
     let raw = sqlx::query_as::<_, PlayHistoryRaw>(
         r#"
@@ -292,7 +290,7 @@ pub async fn list_play_history(
             let (artwork_path, artwork_path_1x, artwork_path_2x) = match (
                 row.artwork_hash.as_deref(),
                 row.artwork_format.as_deref(),
-                artwork_dir.as_ref(),
+                Some(&artwork_dir),
             ) {
                 (Some(hash), Some(format), Some(dir)) => {
                     let full = dir

@@ -149,8 +149,7 @@ pub async fn list_tracks(
     direction: Option<String>,
     artist_id: Option<i64>,
 ) -> AppResult<ListTracksResponse> {
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
 
     let sort = parse_sort(order_by.as_deref(), direction.as_deref());
@@ -193,8 +192,7 @@ pub async fn get_track(
     state: tauri::State<'_, AppState>,
     track_id: i64,
 ) -> AppResult<Option<Track>> {
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
 
     let row = SqliteTrackRepository::new((*pool).clone())
@@ -311,8 +309,7 @@ pub async fn search_tracks(
     let Some(plan) = plan_search(&query) else {
         return Ok(vec![]);
     };
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
 
     let rows = SqliteTrackRepository::new((*pool).clone())
@@ -371,8 +368,7 @@ pub async fn search_tracks_advanced(
     state: tauri::State<'_, AppState>,
     filters: SearchFilters,
 ) -> AppResult<Vec<Track>> {
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
 
     // Empty / whitespace → pure-filter mode, no text clause at all.
@@ -820,8 +816,7 @@ pub async fn list_liked_track_ids(state: tauri::State<'_, AppState>) -> AppResul
 /// liked first. Used by the LikedView.
 #[tauri::command]
 pub async fn list_liked_tracks(state: tauri::State<'_, AppState>) -> AppResult<ListTracksResponse> {
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
 
     let rows = SqliteTrackRepository::new((*pool).clone())

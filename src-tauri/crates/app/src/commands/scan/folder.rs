@@ -53,8 +53,7 @@ pub async fn scan_folder(
     // time — an explicit, occasional user action, not the default.
     deep: Option<bool>,
 ) -> AppResult<ScanSummary> {
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
     let summary = scan_folder_inner(
         &pool,

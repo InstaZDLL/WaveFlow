@@ -116,8 +116,7 @@ pub async fn get_album_detail(
     state: tauri::State<'_, AppState>,
     album_id: i64,
 ) -> AppResult<AlbumDetail> {
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
 
     let header = sqlx::query_as::<_, AlbumDetailRaw>(
@@ -375,8 +374,7 @@ pub async fn get_artist_detail(
     state: tauri::State<'_, AppState>,
     artist_id: i64,
 ) -> AppResult<ArtistDetail> {
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
 
     let header = sqlx::query_as::<_, ArtistDetailRaw>(
@@ -586,8 +584,7 @@ pub async fn get_genre_detail(
     state: tauri::State<'_, AppState>,
     genre_id: i64,
 ) -> AppResult<GenreDetail> {
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
 
     let header = sqlx::query_as::<_, GenreHeaderRaw>(

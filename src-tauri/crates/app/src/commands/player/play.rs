@@ -27,8 +27,7 @@ pub async fn player_jump_to_index(
     // Before the first await (#622): the queue read and the ReplayGain
     // lookup below are exactly where a newer click overtakes this one.
     let intent = engine.next_load_intent();
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await.ok();
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     // The lock covers the whole queue half of the dispatch, not just its
     // tail (#632): the index below is read from the queue as it stands
     // now, and committing it after another producer replaced that queue
@@ -50,7 +49,7 @@ pub async fn player_jump_to_index(
         return Ok(());
     }
     queue::commit_index(&pool, index).await?;
-    emit_track_changed(&app, &state.paths, &track, profile_id);
+    emit_track_changed(&app, &state.paths, &track, Some(profile_id));
     emit_queue_changed(&app);
     engine.send(AudioCmd::LoadAndPlay {
         intent,
@@ -118,8 +117,7 @@ pub(crate) async fn play_tracks_with_intent(
     album_ordered: Option<bool>,
     intent: crate::audio::engine::LoadIntent,
 ) -> AppResult<()> {
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await.ok();
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
 
     // This path cannot peek: replacing the queue is the point. So it
     // claims before the first write instead, which is the last moment at
@@ -220,7 +218,7 @@ pub(crate) async fn play_tracks_with_intent(
                 tracing::debug!("play_tracks superseded before the server stand-in");
                 return Ok(());
             }
-            emit_track_changed(&app, &state.paths, &track, profile_id);
+            emit_track_changed(&app, &state.paths, &track, Some(profile_id));
             return engine.send(AudioCmd::LoadRemoteFileAndPlay {
                 intent,
                 origin: crate::audio::engine::DetachedOrigin::Remote,
@@ -261,7 +259,7 @@ pub(crate) async fn play_tracks_with_intent(
     // Tell the frontend about the new track BEFORE dispatching the
     // decoder command so the PlayerBar updates without waiting on
     // the first position/state event.
-    emit_track_changed(&app, &state.paths, &track, profile_id);
+    emit_track_changed(&app, &state.paths, &track, Some(profile_id));
     engine.send(AudioCmd::LoadAndPlay {
         intent,
         path: pb,
@@ -360,8 +358,7 @@ pub async fn player_next(
         crate::remote::playback::advance(&app, Direction::Next, intent).await?;
         return Ok(());
     }
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await.ok();
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     let repeat = queue::read_repeat_mode(&pool).await;
     // The lock covers the whole queue half of the dispatch, not just its
     // tail (#632): the index below is read from the queue as it stands
@@ -416,7 +413,7 @@ pub async fn player_next(
         crate::autoplay::undo_if_added(topped_up, &pool).await;
         return Err(err);
     }
-    emit_track_changed(&app, &state.paths, &track, profile_id);
+    emit_track_changed(&app, &state.paths, &track, Some(profile_id));
     emit_queue_changed(&app);
     engine.send(AudioCmd::LoadAndPlay {
         intent,
@@ -457,8 +454,7 @@ pub async fn player_previous(
         crate::remote::playback::advance(&app, Direction::Previous, intent).await?;
         return Ok(());
     }
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await.ok();
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     let repeat = queue::read_repeat_mode(&pool).await;
     // The lock covers the whole queue half of the dispatch, not just its
     // tail (#632): the index below is read from the queue as it stands
@@ -479,7 +475,7 @@ pub async fn player_previous(
         return Ok(());
     }
     queue::commit_index(&pool, index).await?;
-    emit_track_changed(&app, &state.paths, &track, profile_id);
+    emit_track_changed(&app, &state.paths, &track, Some(profile_id));
     emit_queue_changed(&app);
     engine.send(AudioCmd::LoadAndPlay {
         intent,

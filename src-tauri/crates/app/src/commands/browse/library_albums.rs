@@ -121,8 +121,7 @@ pub async fn list_library_albums(
     order_by: Option<String>,
     direction: Option<String>,
 ) -> AppResult<ListLibraryAlbumsResponse> {
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
 
     let order_clause = library_album_order_clause(order_by.as_deref(), direction.as_deref());

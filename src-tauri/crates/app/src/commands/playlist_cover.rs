@@ -135,8 +135,7 @@ pub async fn regenerate_playlist_auto_cover(
     state: tauri::State<'_, AppState>,
     playlist_id: i64,
 ) -> AppResult<()> {
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     ensure_user_playlist(&pool, playlist_id).await?;
     regenerate_inner(&pool, &state.paths, profile_id, playlist_id).await
 }
@@ -149,8 +148,7 @@ pub async fn clear_playlist_cover(
     state: tauri::State<'_, AppState>,
     playlist_id: i64,
 ) -> AppResult<()> {
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     ensure_user_playlist(&pool, playlist_id).await?;
     update_cover(&pool, playlist_id, None, 1).await?;
     // Best-effort regen — a brand new playlist with < 4 tracks legitimately

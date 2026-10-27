@@ -30,8 +30,7 @@ pub async fn update_track_cover(
     track_id: i64,
     image_path: String,
 ) -> AppResult<()> {
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
     std::fs::create_dir_all(&artwork_dir)?;
 

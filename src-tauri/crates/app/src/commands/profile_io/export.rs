@@ -49,14 +49,8 @@ async fn export_profile_inner(
     // If we're exporting the currently active profile, make sure any
     // pending WAL pages are folded back into the main file before we
     // copy it — otherwise the archive holds a partial snapshot.
-    let active_id = {
-        let guard = state.profile.read().await;
-        guard.as_ref().map(|p| p.profile_id)
-    };
-    if active_id == Some(profile_id) {
-        if let Ok(pool) = state.require_profile_pool().await {
-            checkpoint_wal(&pool).await?;
-        }
+    if let Ok(pool) = state.require_profile_pool_for(Some(profile_id)).await {
+        checkpoint_wal(&pool).await?;
     }
 
     let profile_dir = state.paths.profile_dir(profile_id);

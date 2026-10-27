@@ -26,12 +26,11 @@ pub async fn player_get_state(
     state: tauri::State<'_, AppState>,
     engine: tauri::State<'_, Arc<AudioEngine>>,
 ) -> AppResult<PlayerStateSnapshot> {
-    let pool_result = state.require_profile_pool().await;
-    let (shuffle, repeat_mode, current_track, resumed_position) = match pool_result {
-        Ok(pool) => {
+    let snapshot = state.require_profile_snapshot().await;
+    let (shuffle, repeat_mode, current_track, resumed_position) = match snapshot {
+        Ok((pool, profile_id)) => {
             let shuffle = queue::read_shuffle_mode(&pool).await;
             let repeat_mode = queue::read_repeat_mode(&pool).await;
-            let profile_id = state.require_profile_id().await.ok();
 
             // Restores the persisted volume into the atomic shared with
             // the cpal callback (without which the knob jumps back to
@@ -86,7 +85,7 @@ pub async fn player_get_state(
                     None => (None, 0),
                 }
             };
-            let payload = restored.map(|t| queue_track_to_payload(&state, t, profile_id));
+            let payload = restored.map(|t| queue_track_to_payload(&state, t, Some(profile_id)));
             (shuffle, repeat_mode, payload, position)
         }
         Err(_) => (queue::ShuffleMode::Off, queue::RepeatMode::Off, None, 0),
@@ -164,8 +163,7 @@ pub struct PlayerQueueSnapshot {
 /// event fires.
 #[tauri::command]
 pub async fn player_get_queue(state: tauri::State<'_, AppState>) -> AppResult<PlayerQueueSnapshot> {
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await.ok();
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     let items = queue::list_queue(&pool).await?;
     // Bounded to the queue: the stored cursor can outlive a shrink, and a
     // raw one would mark no row and number the track past the end.
@@ -173,7 +171,7 @@ pub async fn player_get_queue(state: tauri::State<'_, AppState>) -> AppResult<Pl
 
     let payload_items = items
         .into_iter()
-        .map(|t| queue_track_to_payload_with_paths(&state.paths, t, profile_id))
+        .map(|t| queue_track_to_payload_with_paths(&state.paths, t, Some(profile_id)))
         .collect();
 
     // Single extra query for the queue-wide source type. Reading
