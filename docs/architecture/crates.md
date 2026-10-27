@@ -63,7 +63,7 @@ Anything that could run inside an axum handler in the future `waveflow-server` (
 - **Domain types** — the DTOs the UI sees. Plain `serde::Serialize`/`Deserialize` plus an opt-in `sqlx::FromRow` derive (via the `sqlite` feature) so the same struct backs `query_as` calls without a parallel row type.
 - **Repository traits** — `ProfileRepository`, `LibraryRepository`, `PlaylistRepository`, `TrackRepository`. Each lives in `repository/<entity>.rs` and is implementation-agnostic. Two implementations ship alongside: `repository/sqlite/` (compiled when the `sqlite` feature is on, what the desktop crate uses) and `repository/postgres/` (compiled when the `postgres` feature is on, what `waveflow-server` uses). Both submodules implement the same traits, so a swap of `Box<dyn ProfileRepository>` at runtime is the only line that differs between consumers.
 - **HTTP clients** for the third-party metadata sources we enrich the local library with (`metadata/{deezer,lastfm,lrclib}.rs`). Pure `reqwest` over rustls; no Tauri.
-- **Scanner helpers** — every pure function the file-walker calls per track (`scanner/extract.rs` for the lofty / blake3 / cover-extraction side, `scanner/upserts.rs` for the SQL writes and the album-grouping policy). The Tauri-aware orchestrator (`scan_folder_inner` + the `scan:progress` emit) stays in `app/commands/scan.rs` until a future `ScannerEventSink` decoupling.
+- **Scanner helpers** — every pure function the file-walker calls per track (`scanner/extract.rs` for the lofty / blake3 / cover-extraction side, `scanner/upserts.rs` for the SQL writes and the album-grouping policy). The Tauri-aware orchestrator (`scan_folder_inner` + the `scan:progress` emit) stays in `app/commands/scan/folder.rs` until a future `ScannerEventSink` decoupling.
 - **Smart-playlist engine** — Daily Mix generator, On Repeat regen, custom rule evaluator, cover composer. The `PathsContext` struct decouples the engine from `AppPaths`; the app constructs one from its `state.paths`.
 - **Audio analysis** — per-track peak / loudness / ReplayGain / BPM (`analysis.rs`). Symphonia-based, no `cpal`.
 - **Audio format conversion** — DSD parser + decimating FIR (`audio_format/dsd/*`), used by playback, analysis and the scanner.
@@ -103,7 +103,7 @@ Several files in `crates/app/src/` are one-line re-exports of code that moved to
 - `app/src/audio/mod.rs` → `pub use waveflow_core::playback::replay_gain`, so `crate::audio::replay_gain::*` still resolves
 - `app/src/smart_playlists.rs` → `waveflow_core::smart_playlists::*` (submodules re-exported individually so the `cover` / `custom` / `generator` / `on_repeat` paths still work)
 
-Likewise the domain types in `commands/{track,playlist,library,profile}.rs` and `commands/scan.rs::canonical_name` stay reachable through `pub use waveflow_core::...` lines at the top of their original files.
+Likewise the domain types in `commands/{track,playlist,library,profile}.rs` and `commands/scan/mod.rs::canonical_name` stay reachable through `pub use waveflow_core::...` lines at the top of their original files.
 
 These shims are cosmetic — they keep the diff small while the migration lands. Future cleanup PRs can collapse them by walking the call sites.
 

@@ -395,7 +395,7 @@ pub async fn rescan_library(
     state.drain.notify();
 
     // Same rule as the import path below and the single-folder scan
-    // in `commands/scan.rs`: a stop is not a cue to start the longest
+    // in `commands/scan/`: a stop is not a cue to start the longest
     // job in the app.
     if total.added > 0 && !total.cancelled {
         crate::commands::analysis::maybe_auto_analyze(&app);
