@@ -58,7 +58,7 @@ mod artist_row {
 
     /// A pool whose connections see the real `app` schema as `app`,
     /// attached per connection the way the application attaches it
-    /// (see the harness in `lyrics.rs` for why each detail matters).
+    /// (see the harness in `lyrics/tests.rs` for why each detail matters).
     async fn pool_with_app_schema(dir: &std::path::Path) -> sqlx::SqlitePool {
         use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
         use std::str::FromStr;

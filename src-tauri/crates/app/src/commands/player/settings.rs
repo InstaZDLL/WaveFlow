@@ -145,7 +145,7 @@ pub(super) async fn read_bool_setting(pool: &sqlx::SqlitePool, key: &str, defaul
             // `"1"` / `"0"` are the older spelling, still on disk in
             // libraries that predate the current writers and still
             // accepted everywhere else that reads a boolean setting
-            // (`plugins.rs`, `canvas.rs`, `profile_io.rs`, …). Reading
+            // (`plugins/`, `canvas.rs`, `profile_io/`, …). Reading
             // `"1"` as false would silently turn a setting off.
             "true" | "1" => Some(true),
             "false" | "0" => Some(false),

@@ -15,7 +15,7 @@
 //! by canonical name** (so the tracks immediately point at the already-
 //! enriched artist), then delete the now-orphaned phantom. No file is
 //! re-tagged. The scanner's skip-branch has a matching guard
-//! ([`commands/scan.rs`](super::scan)) so an unchanged-file rescan doesn't
+//! ([`commands/scan/`](super::scan)) so an unchanged-file rescan doesn't
 //! collapse the split back into the phantom.
 
 use serde::Serialize;

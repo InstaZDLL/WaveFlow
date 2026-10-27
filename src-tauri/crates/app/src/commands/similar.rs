@@ -620,7 +620,7 @@ fn unenriched_fallback_picture(url: Option<String>) -> Option<String> {
 /// caching it under the same `CACHE_TTL_MS` as a real result used to
 /// lock an artist to an empty list for 30 days over a single hiccup
 /// (#406). Same non-caching-of-failures shape as
-/// `deezer.rs::enrich_artist_deezer`.
+/// `deezer/artist.rs::enrich_artist_deezer`.
 async fn fetch_and_cache(
     pool: &SqlitePool,
     api_key: Option<&str>,
@@ -695,7 +695,7 @@ async fn try_deezer(deezer_id: Option<i64>, source_name: &str) -> Option<Vec<Raw
                 // Fuzzy match (#406): an exact `canonical_name` compare
                 // doesn't fold diacritics or expand `&`, unlike the
                 // shared matcher — same fix as
-                // deezer.rs::enrich_artist_deezer (#342/#383).
+                // deezer/artist.rs::enrich_artist_deezer (#342/#383).
                 select_by_name(hits, &normalize_name(source_name), |h| {
                     Some(h.name.as_str())
                 })?
