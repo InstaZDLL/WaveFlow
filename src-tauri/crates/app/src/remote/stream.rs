@@ -205,9 +205,10 @@ pub async fn status(state: &AppState, profile_id: i64) -> AppResult<TranscodeSta
 /// bandwidth instead of a track that will not play.
 ///
 /// `profile_id` is the profile the track belongs to: the preference, the
-/// ticket and the transcoder's status all come from it, so a switch landing
-/// mid-way fails the call instead of minting the ticket on the other
-/// profile's server.
+/// ticket and the transcoder's status all come from it, so the ticket is
+/// never minted on another profile's server. A switch that lands before the
+/// ticket's client is built fails the call; one that only makes the status
+/// check fail returns the URL without its transcode suffix.
 pub async fn ticket_url(state: &AppState, profile_id: i64, track_id: &str) -> AppResult<String> {
     // Read the preference before the client is built: `try_build_for`
     // releases its own lease before any network call, and holding one across
