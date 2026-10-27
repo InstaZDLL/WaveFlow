@@ -376,3 +376,64 @@ fn a_scratch_file_is_removed_when_dropped() {
     drop(scratch);
     assert!(!path.exists());
 }
+
+/// A migrated `app.db` under `root`, as the app opens it.
+async fn app_db(root: &Path) -> sqlx::SqlitePool {
+    let pool = SqlitePoolOptions::new()
+        .max_connections(1)
+        .connect_with(
+            SqliteConnectOptions::new()
+                .filename(root.join("app.db"))
+                .create_if_missing(true),
+        )
+        .await
+        .unwrap();
+    sqlx::migrate!("../../migrations/app")
+        .run(&pool)
+        .await
+        .unwrap();
+    pool
+}
+
+#[tokio::test]
+async fn a_failure_after_the_row_is_inserted_rolls_the_row_back() {
+    let dir = tempfile::tempdir().unwrap();
+    let (archive, _) = profile_archive(dir.path(), ARCHIVE_VERSION).await;
+    let root = dir.path().join("app");
+    std::fs::create_dir_all(&root).unwrap();
+    let paths = crate::paths::AppPaths::from_root(root.clone(), None);
+    let app_db = app_db(&root).await;
+    // Records every insert, so the test knows the import got that far
+    // rather than failing before it and passing for nothing.
+    sqlx::raw_sql(
+        "CREATE TABLE inserted (id INTEGER NOT NULL);
+         CREATE TRIGGER record_insert AFTER INSERT ON profile
+         BEGIN INSERT INTO inserted (id) VALUES (new.id); END;",
+    )
+    .execute(&app_db)
+    .await
+    .unwrap();
+    // A file where the profiles directory goes: the row is inserted, then
+    // laying out its directories fails.
+    std::fs::write(&paths.profiles_dir, b"in the way").unwrap();
+
+    let result = import_profile_inner(
+        &app_db,
+        &paths,
+        archive.to_string_lossy().into_owned(),
+        None,
+    )
+    .await;
+
+    assert!(result.is_err(), "{result:?}");
+    let inserted: i64 = sqlx::query_scalar("SELECT count(*) FROM inserted")
+        .fetch_one(&app_db)
+        .await
+        .unwrap();
+    assert_eq!(inserted, 1);
+    let left: i64 = sqlx::query_scalar("SELECT count(*) FROM profile")
+        .fetch_one(&app_db)
+        .await
+        .unwrap();
+    assert_eq!(left, 0);
+}
