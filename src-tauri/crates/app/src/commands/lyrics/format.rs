@@ -1,0 +1,388 @@
+//! What a lyrics document is: plain text, LRC, enhanced LRC or TTML,
+//! and whether it actually carries timing.
+
+use super::*;
+
+/// Heuristic format sniffer.
+///
+/// Order matters: TTML (XML envelope) is checked first because its
+/// `<p begin="...">` could otherwise look like nothing else, then
+/// Enhanced LRC (LRC with inline `<mm:ss.xx>` word stamps), then
+/// plain LRC, then unsynced text.
+pub(super) fn detect_format(content: &str) -> LyricsFormat {
+    let head = content.trim_start();
+
+    // TTML: XML declaration, root `<tt`, or the TTML namespace anywhere
+    // in the first ~512 bytes. Apple Music's exported lyrics start with
+    // `<?xml version="1.0"...`, LyricsX-style exports start with `<tt`.
+    let head_lower_prefix: String = head
+        .chars()
+        .take(512)
+        .collect::<String>()
+        .to_ascii_lowercase();
+    if head_lower_prefix.starts_with("<?xml")
+        || head_lower_prefix.starts_with("<tt ")
+        || head_lower_prefix.starts_with("<tt>")
+        || head_lower_prefix.contains("xmlns=\"http://www.w3.org/ns/ttml\"")
+        || head_lower_prefix.contains("<timedtext")
+    {
+        return LyricsFormat::Ttml;
+    }
+
+    // Scan up to 40 lines (first lines may be `[ar:Artist]` / `[ti:…]`
+    // LRC headers before the synced body starts).
+    let mut has_line_stamp = false;
+    let mut has_word_stamp = false;
+    for raw in content.lines().take(40) {
+        let line = raw.trim_start();
+        // Line stamp: `[mm:ss` with both digits present.
+        if line.starts_with('[')
+            && line.len() >= 7
+            && line[1..].chars().take(2).all(|c| c.is_ascii_digit())
+            && line.as_bytes().get(3) == Some(&b':')
+        {
+            has_line_stamp = true;
+            // Inline word stamp: `<mm:ss(.xx)?>` somewhere after the
+            // first `]`. We scan the byte string directly to keep this
+            // cheap for large libraries.
+            if let Some(close) = line.find(']') {
+                let body = &line[close + 1..];
+                if word_stamp_present(body) {
+                    has_word_stamp = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    if has_word_stamp {
+        LyricsFormat::EnhancedLrc
+    } else if has_line_stamp {
+        LyricsFormat::Lrc
+    } else {
+        LyricsFormat::Plain
+    }
+}
+
+/// Return true if `s` contains at least one `<\d+:\d+(\.\d+)?>` token —
+/// the Enhanced LRC word-stamp shape. Hand-rolled (no regex dep) to
+/// keep `detect_format` allocation-free on the hot prefetch path.
+pub(super) fn word_stamp_present(s: &str) -> bool {
+    let bytes = s.as_bytes();
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'<' {
+            let mut j = i + 1;
+            // Need at least one digit, then ':', then one digit, then '>'.
+            let digits1 = scan_digits(bytes, j);
+            if digits1 > 0 {
+                j += digits1;
+                if bytes.get(j) == Some(&b':') {
+                    j += 1;
+                    let digits2 = scan_digits(bytes, j);
+                    if digits2 > 0 {
+                        j += digits2;
+                        // Optional fractional `.xx` or `:xx`.
+                        if matches!(bytes.get(j), Some(b'.') | Some(b':')) {
+                            j += 1;
+                            let frac = scan_digits(bytes, j);
+                            j += frac;
+                        }
+                        if bytes.get(j) == Some(&b'>') {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        i += 1;
+    }
+    false
+}
+
+fn scan_digits(bytes: &[u8], start: usize) -> usize {
+    let mut n = 0;
+    while let Some(&b) = bytes.get(start + n) {
+        if b.is_ascii_digit() {
+            n += 1;
+        } else {
+            break;
+        }
+    }
+    n
+}
+
+/// Whether a TTML document is well formed (its attributes included), rooted
+/// at `<tt>`, and holds a
+/// `<p>` with text in it: what the renderer needs to show anything, timed
+/// or not.
+pub(super) fn ttml_has_a_line(content: &str) -> bool {
+    use quick_xml::events::Event;
+
+    let mut reader = quick_xml::Reader::from_str(content);
+    let mut stack: Vec<String> = Vec::new();
+    let mut root_is_tt = None;
+    let mut line_with_text = false;
+    loop {
+        match reader.read_event() {
+            // A malformed attribute (a duplicate, a missing quote) makes
+            // `DOMParser` reject the whole document, as in
+            // `ttml_has_timed_line`; quick-xml only reports it when the
+            // attributes are read.
+            Ok(Event::Start(e)) => {
+                if e.attributes().any(|a| a.is_err()) {
+                    return false;
+                }
+                let name = e.local_name().into_inner().to_owned();
+                root_is_tt.get_or_insert(name == "tt");
+                stack.push(name);
+            }
+            Ok(Event::Empty(e)) => {
+                if e.attributes().any(|a| a.is_err()) {
+                    return false;
+                }
+                root_is_tt.get_or_insert(e.local_name().into_inner() == "tt");
+            }
+            Ok(Event::End(_)) => {
+                if stack.pop().is_none() {
+                    return false;
+                }
+            }
+            Ok(Event::Text(t)) => {
+                let inside_line = stack.iter().any(|name| name == "p");
+                if inside_line && !t.trim().is_empty() {
+                    line_with_text = true;
+                }
+            }
+            // A CDATA section is text, as `DOMParser` reads it.
+            Ok(Event::CData(c)) => {
+                let inside_line = stack.iter().any(|name| name == "p");
+                if inside_line && !c.into_inner().trim().is_empty() {
+                    line_with_text = true;
+                }
+            }
+            // quick-xml hands references over unresolved. A character
+            // reference to a character XML allows (its `Char` production)
+            // or one of XML's five predefined entities is text; any other
+            // reference (an undefined name, `&#xZZ;`, `&#0;`, `&#1;`)
+            // makes `DOMParser` reject the document whole, wherever it
+            // appears.
+            Ok(Event::GeneralRef(r)) => {
+                let predefined = matches!(&*r, "lt" | "gt" | "amp" | "apos" | "quot");
+                let legal_char = matches!(
+                    r.resolve_char_ref(),
+                    Ok(Some(
+                        '\u{9}'
+                        | '\u{A}'
+                        | '\u{D}'
+                        | '\u{20}'..='\u{D7FF}'
+                        | '\u{E000}'..='\u{FFFD}'
+                        | '\u{10000}'..,
+                    ))
+                );
+                if !predefined && !legal_char {
+                    return false;
+                }
+                if stack.iter().any(|name| name == "p") {
+                    line_with_text = true;
+                }
+            }
+            Ok(Event::Eof) => {
+                return root_is_tt == Some(true) && stack.is_empty() && line_with_text
+            }
+            Err(_) => return false,
+            _ => {}
+        }
+    }
+}
+
+/// A `<span>` carrying a `begin`: TTML timed below the line.
+pub(super) static TTML_TIMED_SPAN: std::sync::LazyLock<regex::Regex> =
+    std::sync::LazyLock::new(|| {
+        regex::Regex::new(r"<(?:[A-Za-z_][\w.-]*:)?span\b[^>]*\bbegin\s*=").expect("static pattern")
+    });
+
+/// Lyrics the renderer can follow: LRC or Enhanced LRC whose lines carry
+/// real timing (see [`lrc_has_timing`]), or a well-formed TTML document with at least one
+/// `<p>` whose `begin` it can read. Each rule mirrors the frontend parser,
+/// because an answer judged synced here ends the waterfall, and one the
+/// renderer then cannot follow is static text that beat synced lyrics.
+/// Apple serves lyrics it has no timing for as TTML too, with
+/// `itunes:timing="None"` and bare lines.
+pub(super) fn lyrics_are_synced(format: &LyricsFormat, content: &str) -> bool {
+    match format {
+        LyricsFormat::Lrc | LyricsFormat::EnhancedLrc => lrc_has_timing(content),
+        LyricsFormat::Plain => false,
+        LyricsFormat::Ttml => ttml_has_timed_line(content),
+    }
+}
+
+/// `LRC_LINE_STAMP_RE` in `src/lib/tauri/lyrics.ts`: the renderer keeps a
+/// line only when it carries a complete stamp of this shape.
+static LRC_LINE_STAMP: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
+    regex::Regex::new(r"\[(\d{1,3}):(\d{1,2})(?:[.:](\d{1,3}))?\]").expect("static pattern")
+});
+
+/// Whether stamped LRC is actually timed. A complete line stamp is not
+/// enough: some sources stamp every line `[00:00.00]`, which the renderer
+/// shows as plain text (`isUntimedLrc` in `src/lib/tauri/lyrics.ts`), so
+/// an answer like that must not end the search ahead of real timing. The
+/// rule is the frontend's: untimed when more than half of the sung lines
+/// (a stamp followed by text) share one time. Enhanced LRC word stamps at
+/// two or more different times are timing however the lines are stamped:
+/// those words still carry the karaoke. Only a stamp followed by text
+/// counts; the one closing a line marks where it ends, not a word. Text
+/// before a line's first word stamp is a word sung at the line's own time,
+/// as `parseEnhancedLrc` reads it.
+fn lrc_has_timing(content: &str) -> bool {
+    let mut word_times = std::collections::HashSet::new();
+    for line in content.lines() {
+        // Read like the frontend: lines without a line stamp are skipped,
+        // and the words are found in what remains once those are removed.
+        let line_times: Vec<u64> = LRC_LINE_STAMP
+            .captures_iter(line)
+            .map(|stamp| lrc_stamp_ms(&stamp))
+            .collect();
+        if line_times.is_empty() {
+            continue;
+        }
+        let body = LRC_LINE_STAMP.replace_all(line, "");
+        let stamps: Vec<_> = LRC_WORD_STAMP.captures_iter(&body).collect();
+        let Some(first) = stamps.first().and_then(|stamp| stamp.get(0)) else {
+            continue;
+        };
+        if !body[..first.start()].trim().is_empty() {
+            word_times.extend(line_times.iter().copied());
+        }
+        for (i, stamp) in stamps.iter().enumerate() {
+            let from = stamp.get(0).map_or(body.len(), |m| m.end());
+            let to = stamps
+                .get(i + 1)
+                .and_then(|next| next.get(0))
+                .map_or(body.len(), |m| m.start());
+            if !body[from..to].trim().is_empty() {
+                word_times.insert(lrc_stamp_ms(stamp));
+            }
+        }
+    }
+    if word_times.len() >= 2 {
+        return true;
+    }
+    let mut per_time: std::collections::HashMap<u64, usize> = std::collections::HashMap::new();
+    let mut sung = 0usize;
+    for line in content.lines() {
+        if LRC_LINE_STAMP.replace_all(line, "").trim().is_empty() {
+            continue;
+        }
+        for stamp in LRC_LINE_STAMP.captures_iter(line) {
+            *per_time.entry(lrc_stamp_ms(&stamp)).or_default() += 1;
+            sung += 1;
+        }
+    }
+    let top = per_time.values().copied().max().unwrap_or(0);
+    sung > 0 && !(sung >= 2 && top * 2 > sung)
+}
+
+/// An Enhanced LRC word stamp, `<mm:ss.xx>`, same fields as a line stamp.
+static LRC_WORD_STAMP: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
+    regex::Regex::new(r"<(\d{1,3}):(\d{1,2})(?:[.:](\d{1,3}))?>").expect("static pattern")
+});
+
+/// A captured `[mm:ss.xx]` or `<mm:ss.xx>` stamp in milliseconds. Only compared for
+/// equality, but normalised the way the frontend reads it: a fraction of
+/// one, two or three digits is tenths, hundredths or thousandths.
+fn lrc_stamp_ms(stamp: &regex::Captures) -> u64 {
+    let number = |i: usize| {
+        stamp
+            .get(i)
+            .map_or(0, |m| m.as_str().parse::<u64>().unwrap_or(0))
+    };
+    let fraction = stamp.get(3).map_or(0, |m| {
+        let digits = m.as_str();
+        digits.parse::<u64>().unwrap_or(0) * 10u64.pow(3 - digits.len().min(3) as u32)
+    });
+    number(1) * 60_000 + number(2) * 1000 + fraction
+}
+
+fn ttml_has_timed_line(content: &str) -> bool {
+    use quick_xml::events::Event;
+
+    let mut reader = quick_xml::Reader::from_str(content);
+    let mut depth: usize = 0;
+    let mut timed = false;
+    loop {
+        match reader.read_event() {
+            Ok(Event::Start(e)) => {
+                depth += 1;
+                match is_timed_line(&e) {
+                    Some(t) => timed |= t,
+                    None => return false,
+                }
+            }
+            Ok(Event::Empty(e)) => match is_timed_line(&e) {
+                Some(t) => timed |= t,
+                None => return false,
+            },
+            Ok(Event::End(_)) => match depth.checked_sub(1) {
+                Some(d) => depth = d,
+                None => return false,
+            },
+            Ok(Event::Eof) => return timed && depth == 0,
+            Err(_) => return false,
+            _ => {}
+        }
+    }
+}
+
+/// Whether this element is a `<p>` with a `begin` the renderer can read,
+/// or `None` when one of its attributes is malformed (a duplicate, a
+/// missing quote). Every element's attributes are checked, not only the
+/// lines': `DOMParser` rejects the whole document for any of them.
+fn is_timed_line(e: &quick_xml::events::BytesStart<'_>) -> Option<bool> {
+    let is_line = e.local_name().into_inner() == "p";
+    let mut timed = false;
+    for attr in e.attributes() {
+        let attr = attr.ok()?;
+        if is_line
+            && attr.key.local_name().into_inner() == "begin"
+            && ttml_time_ms(&attr.value).is_some_and(|ms| ms >= -0.5)
+        {
+            timed = true;
+        }
+    }
+    Some(timed)
+}
+
+/// `parseTtmlTime` in `src/lib/tauri/lyrics.ts`, which drops a line whose
+/// `begin` it cannot read or that rounds below zero.
+fn ttml_time_ms(value: &str) -> Option<f64> {
+    // `Number("")` is 0 in JavaScript, which the renderer inherits.
+    fn number(s: &str) -> Option<f64> {
+        let t = s.trim();
+        if t.is_empty() {
+            return Some(0.0);
+        }
+        t.parse::<f64>().ok().filter(|n| n.is_finite())
+    }
+    let s = value.trim();
+    if s.is_empty() {
+        return None;
+    }
+    if let Some(n) = s.strip_suffix("ms") {
+        return number(n);
+    }
+    if let Some(n) = s.strip_suffix('s') {
+        return number(n).map(|v| v * 1000.0);
+    }
+    if s.contains(':') {
+        let parts: Vec<&str> = s.split(':').collect();
+        return match parts.as_slice() {
+            [m, sec] => Some(number(m)? * 60_000.0 + number(sec)? * 1000.0),
+            [h, m, sec] => {
+                Some(number(h)? * 3_600_000.0 + number(m)? * 60_000.0 + number(sec)? * 1000.0)
+            }
+            _ => None,
+        };
+    }
+    number(s).map(|v| v * 1000.0)
+}

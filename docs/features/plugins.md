@@ -62,7 +62,7 @@ One more thing wasmtime cannot tell you itself: its refusal is `failed to parse 
 
 ## Per-plugin options
 
-A plugin can declare `[[options]]` in its `manifest.toml` (`key` / `type` = `bool` · `enum` · `text` / `label` / `default` / `choices?` / `description?`, parsed + validated in [`manifest.rs`](../../src-tauri/crates/core/src/plugin/manifest.rs)). The user edits them in a per-plugin **⚙️ options panel** ([`PluginOptions`](../../src/components/views/settings/PluginOptions.tsx)) revealed inline under the plugin's row, via `get_plugin_options` / `set_plugin_option` ([`commands/plugins.rs`](../../src-tauri/crates/app/src/commands/plugins.rs)).
+A plugin can declare `[[options]]` in its `manifest.toml` (`key` / `type` = `bool` · `enum` · `text` / `label` / `default` / `choices?` / `description?`, parsed + validated in [`manifest.rs`](../../src-tauri/crates/core/src/plugin/manifest.rs)). The user edits them in a per-plugin **⚙️ options panel** ([`PluginOptions`](../../src/components/views/settings/PluginOptions.tsx)) revealed inline under the plugin's row, via `get_plugin_options` / `set_plugin_option` ([`commands/plugins/`](../../src-tauri/crates/app/src/commands/plugins/)).
 
 Values persist in `<state_dir>/.plugin-config.json` ([`plugin_config`](../../src-tauri/crates/core/src/plugin/plugin_config.rs)) — the single source of truth, with no `app_setting` row and excluded from the scratch quota. They reach the guest through the read-only `waveflow:host/config.get-option` import, pinned at instantiate time. The import is additive: a plugin built before it still instantiates.
 
@@ -149,7 +149,7 @@ The exported interface `extension` is three functions ([`wit/ui/plugin.wit`](../
 
 **The plugin cannot know the UI language.** Neither `render` nor `on-event` carries a locale, so a descriptor's strings are whatever the plugin hard-codes; only the host's own chrome (Refresh, the error banner) is translated. Passing the locale is a WIT change, not done yet.
 
-The host side is thin: [`bindings::ui`](../../src-tauri/crates/core/src/plugin/bindings.rs) binds the world (reusing `source`'s host types via `with:`), [`runtime::{ui_manifest, ui_render, ui_event}`](../../src-tauri/crates/core/src/plugin/runtime/ui.rs) instantiate + call it, and the Tauri commands [`list_ui_plugins` / `plugin_ui_render` / `plugin_ui_event`](../../src-tauri/crates/app/src/commands/plugins.rs) drive the frontend. Sidebar entries + routing are built dynamically off `manifest()` (keyed on plugin id), not hardcoded per plugin — a plugin whose `manifest()` traps is skipped + logged rather than blanking the nav.
+The host side is thin: [`bindings::ui`](../../src-tauri/crates/core/src/plugin/bindings.rs) binds the world (reusing `source`'s host types via `with:`), [`runtime::{ui_manifest, ui_render, ui_event}`](../../src-tauri/crates/core/src/plugin/runtime/ui.rs) instantiate + call it, and the Tauri commands [`list_ui_plugins` / `plugin_ui_render` / `plugin_ui_event`](../../src-tauri/crates/app/src/commands/plugins/ui.rs) drive the frontend. Sidebar entries + routing are built dynamically off `manifest()` (keyed on plugin id), not hardcoded per plugin — a plugin whose `manifest()` traps is skipped + logged rather than blanking the nav.
 
 ### The redacted `library.read_artists` capability
 
