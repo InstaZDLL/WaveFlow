@@ -142,7 +142,7 @@ export function CoverWithControls({
 }
 
 /** Volume step for the wheel and the arrow keys, matching the
- *  PlayerBar's [`VolumeControl`](../player/VolumeControl.tsx). */
+ *  PlayerBar's [`VolumeControl`](../../player/VolumeControl.tsx). */
 export const VOLUME_STEP = 5;
 
 /**

@@ -21,7 +21,7 @@ function now(): number {
  *
  * 1. **The position only arrives at 4 Hz.** The decoder throttles
  *    `player:position` to one event per 250 ms
- *    ([`POSITION_EMIT_INTERVAL`](../../src-tauri/crates/app/src/audio/decoder.rs)),
+ *    ([`POSITION_EMIT_INTERVAL`](../../src-tauri/crates/app/src/audio/decoder/mod.rs)),
  *    so painting straight from `positionMs` would advance the fill in
  *    250 ms steps — worse than the old discrete highlight, not better.
  *    Each event becomes an *anchor* (position + the `performance.now()`
