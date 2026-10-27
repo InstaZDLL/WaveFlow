@@ -46,21 +46,12 @@ async fn export_profile_inner(
         .await?
         .ok_or(AppError::ProfileNotFound(profile_id))?;
 
+    // Fold any pending WAL pages back into the main file before we copy
+    // it — otherwise the archive holds a partial snapshot.
+    checkpoint_profile_wal(state, profile_id).await?;
+
     let profile_dir = state.paths.profile_dir(profile_id);
     let db_path = state.paths.profile_db(profile_id);
-
-    // Fold any pending WAL pages back into the main file before we copy
-    // it — otherwise the archive holds a partial snapshot. The active
-    // profile goes through its own pool. Any other one closed its pool on
-    // the switch, which folds the WAL back, but a crash or a switch whose
-    // leases are still draining leaves one beside the file.
-    match state.require_profile_pool_for(Some(profile_id)).await {
-        Ok(pool) => checkpoint_wal(&pool).await?,
-        Err(AppError::ProfileChanged { .. } | AppError::NoActiveProfile) => {
-            checkpoint_wal_at(&db_path).await?
-        }
-        Err(e) => return Err(e),
-    }
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
     let metadata_artwork_dir = if read_include_metadata_artwork(&state.app_db).await? {
         Some(state.paths.metadata_artwork_dir.clone())

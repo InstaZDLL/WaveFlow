@@ -332,19 +332,6 @@ pub async fn run_one_backup(
         .map_err(|e| AppError::Other(format!("create backup folder task: {e}")))?
         .map_err(|e| AppError::Other(format!("create backup folder: {e}")))?;
 
-    // Active profile gets a WAL checkpoint so the bundled DB captures
-    // every committed page. Inactive profiles are cold on disk — their
-    // last checkpoint already ran at switch/shutdown.
-    let active_id = {
-        let guard = state.profile.read().await;
-        guard.as_ref().map(|p| p.profile_id)
-    };
-    if let Some(_id) = active_id {
-        if let Ok(pool) = state.require_profile_pool().await {
-            let _ = crate::commands::profile_io::checkpoint_wal(&pool).await;
-        }
-    }
-
     let profiles: Vec<(i64, String)> = sqlx::query_as("SELECT id, name FROM profile ORDER BY id")
         .fetch_all(&state.app_db)
         .await?;
@@ -399,6 +386,16 @@ pub async fn run_one_backup(
             source_profile_id: profile_id,
             exported_at: Utc::now().to_rfc3339(),
         };
+
+        // Every profile's WAL is folded back so the bundled DB captures
+        // every committed page — an inactive one can still carry a WAL
+        // after a crash. Best effort, as before: the archive is still
+        // written, and the log says it may miss the last writes.
+        if let Err(err) =
+            crate::commands::profile_io::checkpoint_profile_wal(state, profile_id).await
+        {
+            tracing::warn!(profile_id, error = %err, "auto backup: WAL checkpoint failed");
+        }
 
         let profile_dir = state.paths.profile_dir(profile_id);
         let db_path = state.paths.profile_db(profile_id);

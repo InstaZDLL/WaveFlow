@@ -532,3 +532,44 @@ async fn a_closed_profile_without_a_wal_is_left_alone() {
     checkpoint_wal_at(&db).await.unwrap();
     assert!(!db.exists(), "no WAL, so nothing is opened or created");
 }
+
+#[tokio::test]
+async fn a_checkpoint_a_reader_blocks_fails_rather_than_pass() {
+    let dir = tempfile::tempdir().unwrap();
+    let db = dir.path().join("data.db");
+    let mut writer = SqliteConnectOptions::new()
+        .filename(&db)
+        .create_if_missing(true)
+        .journal_mode(sqlx::sqlite::SqliteJournalMode::Wal)
+        .connect()
+        .await
+        .unwrap();
+    sqlx::raw_sql(
+        "PRAGMA wal_autocheckpoint = 0;
+         CREATE TABLE t (v INTEGER);
+         INSERT INTO t VALUES (1);",
+    )
+    .execute(&mut writer)
+    .await
+    .unwrap();
+    // A reader holding an older snapshot, then pages written after it:
+    // those cannot be folded back while the reader is open.
+    let mut reader = SqliteConnectOptions::new()
+        .filename(&db)
+        .connect()
+        .await
+        .unwrap();
+    sqlx::raw_sql("BEGIN; SELECT count(*) FROM t;")
+        .execute(&mut reader)
+        .await
+        .unwrap();
+    sqlx::query("INSERT INTO t VALUES (2)")
+        .execute(&mut writer)
+        .await
+        .unwrap();
+
+    assert!(checkpoint_wal_at(&db).await.is_err());
+
+    let _ = reader.close().await;
+    let _ = writer.close().await;
+}

@@ -7,6 +7,7 @@ use sqlx::sqlite::SqliteConnectOptions;
 use sqlx::{ConnectOptions, Connection, SqlitePool};
 
 use crate::error::{AppError, AppResult};
+use crate::state::AppState;
 
 // ── helpers ────────────────────────────────────────────────────────
 
@@ -139,10 +140,10 @@ pub(super) fn judge_migrations(
 /// which also keeps `.waveflow` archives from carrying a stale
 /// sidecar's worth of bytes.
 pub(crate) async fn checkpoint_wal(pool: &SqlitePool) -> AppResult<()> {
-    sqlx::query("PRAGMA wal_checkpoint(TRUNCATE)")
-        .execute(pool)
+    let outcome = sqlx::query_as("PRAGMA wal_checkpoint(TRUNCATE)")
+        .fetch_one(pool)
         .await?;
-    Ok(())
+    ensure_checkpointed(outcome)
 }
 
 /// [`checkpoint_wal`] for a profile database no pool holds open: a WAL
@@ -162,10 +163,36 @@ pub(crate) async fn checkpoint_wal_at(db_path: &Path) -> AppResult<()> {
         .disable_statement_logging()
         .connect()
         .await?;
-    let checkpoint = sqlx::query("PRAGMA wal_checkpoint(TRUNCATE)")
-        .execute(&mut conn)
+    let outcome = sqlx::query_as("PRAGMA wal_checkpoint(TRUNCATE)")
+        .fetch_one(&mut conn)
         .await;
     let _ = conn.close().await;
-    checkpoint?;
+    ensure_checkpointed(outcome?)
+}
+
+/// Checkpoint `profile_id`'s WAL before its database file is copied. The
+/// active profile goes through its own pool. Any other one closed its
+/// pool on the switch, which folds the WAL back, but a crash or a switch
+/// whose leases are still draining leaves one beside the file.
+pub(crate) async fn checkpoint_profile_wal(state: &AppState, profile_id: i64) -> AppResult<()> {
+    match state.require_profile_pool_for(Some(profile_id)).await {
+        Ok(pool) => checkpoint_wal(&pool).await,
+        Err(AppError::ProfileChanged { .. } | AppError::NoActiveProfile) => {
+            checkpoint_wal_at(&state.paths.profile_db(profile_id)).await
+        }
+        Err(e) => Err(e),
+    }
+}
+
+/// `wal_checkpoint` reports a checkpoint it could not finish — a reader
+/// still on an older snapshot once the busy timeout ran out — in its
+/// first column, not as an error. Copying the file then would leave the
+/// pages still in the WAL out of the archive.
+fn ensure_checkpointed((busy, _log, _checkpointed): (i64, i64, i64)) -> AppResult<()> {
+    if busy != 0 {
+        return Err(AppError::Other(
+            "the database WAL could not be checkpointed: a reader still holds it".into(),
+        ));
+    }
     Ok(())
 }
