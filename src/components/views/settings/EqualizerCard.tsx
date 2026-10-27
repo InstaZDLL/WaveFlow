@@ -590,8 +590,8 @@ function EqCurve({ bands, freqs, maxGain, onUpdateBand }: EqCurveProps) {
   );
 }
 
-/** Local mirror of SettingsView's ToggleSwitch — kept inline to
- *  avoid coupling this card to the parent view's private helper. */
+/** Local mirror of `./ToggleSwitch`, the switch the Settings pages
+ *  share. */
 function ToggleSwitch({
   enabled,
   onToggle,
