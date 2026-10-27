@@ -33,7 +33,7 @@ Persisted in the global `app_setting` table because the server is process-wide, 
 
 ## Object hierarchy (ContentDirectory)
 
-Object IDs are **string prefixes**, routed by [`cds.rs`](../../src-tauri/crates/app/src/dlna/cds.rs):
+Object IDs are **string prefixes**, routed by [`cds/mod.rs`](../../src-tauri/crates/app/src/dlna/cds/mod.rs):
 
 ```bash
 0                       Root container

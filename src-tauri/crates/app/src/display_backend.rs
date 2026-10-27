@@ -86,7 +86,7 @@ fn read(path: &Path) -> Stored {
 
 /// Read the choice and, on a Wayland session, ask GTK for its X11 backend.
 ///
-/// Called by the preflight in `lib.rs`, before logging and before any
+/// Called by the preflight in `startup/preflight.rs`, before logging and before any
 /// window. Never fails: a file that cannot be read is the default, which
 /// is native Wayland, exactly as before this existed.
 pub fn decide(root: &Path) {
@@ -154,17 +154,4 @@ pub fn set_xwayland(enabled: bool) -> std::io::Result<()> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn a_missing_or_broken_file_reads_as_native_wayland() {
-        let dir = tempfile::tempdir().unwrap();
-        let path = dir.path().join(FILE);
-        assert!(!read(&path).xwayland);
-        std::fs::write(&path, b"{not json").unwrap();
-        assert!(!read(&path).xwayland);
-        std::fs::write(&path, br#"{"xwayland":true}"#).unwrap();
-        assert!(read(&path).xwayland);
-    }
-}
+mod tests;

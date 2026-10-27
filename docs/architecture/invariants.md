@@ -169,7 +169,7 @@ Deep dive: [library § tag editing](../features/library.md#tag-editing).
 
 The cpal callback (and the WASAPI exclusive thread) MUST NOT allocate, lock, or log. Only `rtrb::Consumer` reads and `Atomic*` loads. All heavy work (EQ, ReplayGain, resampling, FFT, BLAKE3) runs on the decoder thread before samples reach the SPSC ring.
 
-The decoder's last stage is a `[-1.0, 1.0]` safety clamp ([`decoder::clamp_to_unity`](../../src-tauri/crates/app/src/audio/decoder.rs)) applied to every buffer right before `push_samples` — identity for an untouched stream (so bit-perfect output is preserved), it only bites when a gain stage overshoots unity and would otherwise hard-clip the DAC.
+The decoder's last stage is a `[-1.0, 1.0]` safety clamp ([`decoder::clamp_to_unity`](../../src-tauri/crates/app/src/audio/decoder/track.rs)) applied to every buffer right before `push_samples` — identity for an untouched stream (so bit-perfect output is preserved), it only bites when a gain stage overshoots unity and would otherwise hard-clip the DAC.
 
 ### Every load command carries its intent
 
