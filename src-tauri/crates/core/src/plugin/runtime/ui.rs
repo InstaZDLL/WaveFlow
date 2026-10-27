@@ -39,9 +39,9 @@ pub struct UiMountPoint {
 }
 
 /// Errors specific to the ui-invocation surface. Mirrors
-/// [`SourceError`]'s split so callers can tell a plugin-side `Err`
-/// (shown as a view-level error banner) from a host-side trap / load
-/// failure.
+/// [`SourceError`](super::SourceError)'s split so callers can tell a
+/// plugin-side `Err` (shown as a view-level error banner) from a host-side
+/// trap / load failure.
 #[derive(Debug, thiserror::Error)]
 pub enum UiError {
     #[error("runtime: {0}")]
@@ -55,7 +55,7 @@ pub enum UiError {
 }
 
 impl UiError {
-    /// See [`SourceError::detail`].
+    /// See [`SourceError::detail`](super::SourceError::detail).
     pub fn detail(&self) -> String {
         match self {
             Self::Runtime(err) => format!("runtime: {}", err.detail()),

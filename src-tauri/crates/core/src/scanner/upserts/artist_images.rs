@@ -119,12 +119,14 @@ pub async fn maybe_link_artist_images(
 /// Resolve a sidecar artist image for the "Various Artists" sentinel.
 ///
 /// VA is an *album* artist — it's written to `album.artist_id` by
-/// [`upsert_album`] / [`merge_implicit_compilations`] and never appears in
-/// `track_artist` — so the per-track [`maybe_link_artist_images`] pass can't
-/// reach it. A user who curates a `Various Artists/` folder and drops an
-/// `artist.jpg` (or `Various Artists.jpg`) at its root legitimately wants
-/// that photo on the VA page (issue #292); we resolve it here via the album
-/// relationship instead.
+/// [`upsert_album`](super::upsert_album) /
+/// [`merge_implicit_compilations`](super::merge_implicit_compilations) and
+/// never appears in `track_artist` — so the per-track
+/// [`maybe_link_artist_images`] pass can't reach it. A user who curates a
+/// `Various Artists/` folder and drops an `artist.jpg` (or
+/// `Various Artists.jpg`) at its root legitimately wants that photo on the
+/// VA page (issue #292); we resolve it here via the album relationship
+/// instead.
 ///
 /// Safe to run unconditionally: [`extract_artist_image`] only matches an
 /// explicit artist-named sidecar (an `artist` / `performer` / `band` stem,

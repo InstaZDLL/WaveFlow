@@ -118,9 +118,10 @@ pub async fn merge_implicit_compilations(pool: &SqlitePool) -> CoreResult<()> {
 /// took its artist from that track in the first place.
 ///
 /// An album with no Album Artist tag and no compilation flag is keyed on
-/// its first track's primary artist (see [`resolve_album_artist`]). When a
-/// rescan splits that track's credits anew, the album should follow the
-/// new lead artist — but only then:
+/// its first track's primary artist (see
+/// [`resolve_album_artist`](super::resolve_album_artist)). When a rescan
+/// splits that track's credits anew, the album should follow the new lead
+/// artist — but only then:
 ///
 /// - `album_artist IS NULL AND is_compilation = 0`: an explicit album
 ///   artist or a Various Artists record is the tag's decision, and a
