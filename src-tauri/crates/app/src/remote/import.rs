@@ -249,7 +249,7 @@ pub async fn import(
             continue;
         };
         guards.push(guard);
-        match import_one(app, state, &pool, remote_track_id, &folder).await {
+        match import_one(app, state, &pool, profile_id, remote_track_id, &folder).await {
             Ok(Prepared::Written { path, full_hash }) => {
                 written.push((remote_track_id.clone(), path, full_hash));
             }
@@ -344,6 +344,7 @@ async fn import_one(
     app: &AppHandle,
     state: &AppState,
     pool: &SqlitePool,
+    profile_id: i64,
     remote_track_id: &str,
     folder: &Path,
 ) -> AppResult<Prepared> {
@@ -425,7 +426,7 @@ async fn import_one(
             .0
     ));
 
-    let url = super::stream::raw_ticket_url(state, remote_track_id).await?;
+    let url = super::stream::raw_ticket_url(state, profile_id, remote_track_id).await?;
     let outcome =
         super::download::stream_to_file(app, remote_track_id, &url, &part_path, PROGRESS_EVENT)
             .await;

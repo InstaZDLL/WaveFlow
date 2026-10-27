@@ -204,7 +204,7 @@ pub(crate) async fn play_tracks_with_intent(
         // of refusing. Announced rather than silent — the row keeps saying the
         // file is missing, because it is.
         #[cfg(feature = "sync_v2")]
-        if let Some(url) = server_stand_in(&state, &pool, track.id).await {
+        if let Some(url) = server_stand_in(&state, &pool, profile_id, track.id).await {
             tracing::info!(
                 track_id = track.id,
                 path = %track.file_path,
@@ -499,6 +499,7 @@ pub async fn player_previous(
 async fn server_stand_in(
     state: &AppState,
     pool: &sqlx::SqlitePool,
+    profile_id: i64,
     local_track_id: i64,
 ) -> Option<String> {
     if crate::offline::is_offline() {
@@ -508,7 +509,7 @@ async fn server_stand_in(
         .await
         .ok()
         .flatten()?;
-    crate::remote::stream::ticket_url(state, &remote_id)
+    crate::remote::stream::ticket_url(state, profile_id, &remote_id)
         .await
         .ok()
 }

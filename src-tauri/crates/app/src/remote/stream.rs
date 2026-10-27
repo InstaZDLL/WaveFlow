@@ -134,8 +134,12 @@ struct StreamTicketResponse {
     url: String,
 }
 
-async fn client(state: &AppState) -> AppResult<RemoteClient<'_>> {
-    RemoteClient::try_build(state)
+/// The client of `profile_id`'s session. Built for the id the caller
+/// captured rather than for whatever is active now: when a switch has
+/// replaced that profile, the build fails instead of sending the request to
+/// the other profile's server.
+async fn client(state: &AppState, profile_id: i64) -> AppResult<RemoteClient<'_>> {
+    RemoteClient::try_build_for(state, profile_id)
         .await?
         .ok_or_else(|| AppError::Other("not signed in to a remote server".into()))
 }
@@ -177,11 +181,11 @@ async fn read_setting(pool: &SqlitePool, key: &str) -> Option<String> {
 /// Offline is refused before the request, like every other outbound path:
 /// this one is reachable from the settings card as well as from
 /// [`ticket_url`], and only the latter was checking.
-pub async fn status(state: &AppState) -> AppResult<TranscodeStatus> {
+pub async fn status(state: &AppState, profile_id: i64) -> AppResult<TranscodeStatus> {
     if crate::offline::is_offline() {
         return Err(AppError::Other("offline".into()));
     }
-    let client = client(state).await?;
+    let client = client(state, profile_id).await?;
     client
         .send_json(client.request(reqwest::Method::GET, "/api/v2/transcode/status"))
         .await
@@ -199,20 +203,28 @@ pub async fn status(state: &AppState) -> AppResult<TranscodeStatus> {
 /// the fallback to the original bytes is decided before the request rather
 /// than discovered by being refused, and a saturated server costs the user
 /// bandwidth instead of a track that will not play.
-pub async fn ticket_url(state: &AppState, track_id: &str) -> AppResult<String> {
-    // Read the preference before the client is built: `try_build` releases
-    // its own lease before any network call, and holding one across a
-    // request would stall a profile switch for its whole duration.
+///
+/// `profile_id` is the profile the track belongs to: the preference, the
+/// ticket and the transcoder's status all come from it, so a switch landing
+/// mid-way fails the call instead of minting the ticket on the other
+/// profile's server.
+pub async fn ticket_url(state: &AppState, profile_id: i64, track_id: &str) -> AppResult<String> {
+    // Read the preference before the client is built: `try_build_for`
+    // releases its own lease before any network call, and holding one across
+    // a request would stall a profile switch for its whole duration.
     let wanted = {
-        let pool = state.require_profile_pool().await?;
+        let pool = state.require_profile_pool_for(Some(profile_id)).await?;
         preference(&pool).await
     };
 
-    let base = raw_ticket_url(state, track_id).await?;
+    let base = raw_ticket_url(state, profile_id, track_id).await?;
     if !wanted.is_on() {
         return Ok(base);
     }
-    Ok(format!("{base}{}", transcode_query(state, wanted).await))
+    Ok(format!(
+        "{base}{}",
+        transcode_query(state, profile_id, wanted).await
+    ))
 }
 
 /// A stream URL for the track's **original** bytes, ignoring the transcode
@@ -222,11 +234,17 @@ pub async fn ticket_url(state: &AppState, track_id: &str) -> AppResult<String> {
 /// server holds — not a re-encode of it. The preference exists to spend less
 /// bandwidth on a stream heard once; baking it into a stored copy would make a
 /// bandwidth choice permanent, and silently.
-pub async fn raw_ticket_url(state: &AppState, track_id: &str) -> AppResult<String> {
+///
+/// Minted on `profile_id`'s server, like [`ticket_url`].
+pub async fn raw_ticket_url(
+    state: &AppState,
+    profile_id: i64,
+    track_id: &str,
+) -> AppResult<String> {
     if crate::offline::is_offline() {
         return Err(AppError::Other("offline".into()));
     }
-    let client = client(state).await?;
+    let client = client(state, profile_id).await?;
 
     let resp: StreamTicketResponse = client
         .send_json(client.request(
@@ -253,13 +271,17 @@ pub async fn raw_ticket_url(state: &AppState, track_id: &str) -> AppResult<Strin
 
 /// The `?format=&bitrate=` suffix, or an empty string when the original
 /// bytes are what should be fetched.
-async fn transcode_query(state: &AppState, preference: TranscodePreference) -> String {
+async fn transcode_query(
+    state: &AppState,
+    profile_id: i64,
+    preference: TranscodePreference,
+) -> String {
     let Some(format) = preference.format.query_value() else {
         return String::new();
     };
     // A status call that fails is not a reason to fail playback: fall back
     // to the original bytes, which always work.
-    match status(state).await {
+    match status(state, profile_id).await {
         Ok(status) if status.has_headroom() => {
             format!("?format={format}&bitrate={}", preference.bitrate)
         }
