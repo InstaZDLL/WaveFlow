@@ -81,7 +81,7 @@ Both funnel into `resume_last`, which holds a one-at-a-time guard (`AudioEngine:
 
 ### Anything WaveFlow writes into a library folder goes under `.waveflow/`
 
-`mp4` is in `AUDIO_EXTENSIONS` and [`is_scannable_audio`](../../src-tauri/crates/core/src/scanner/extract.rs) takes it **on sight** (only `ogg` / `oga` pay for a header read), so any clip written into somebody's music folder becomes a track on the next scan. The walk has no other directory filter, and a leading dot is a display convention rather than something a file walker obeys — so the single reserved name in [`scanner::reserved`](../../src-tauri/crates/core/src/scanner/reserved.rs) is what keeps our own files out of the library, and both walkers honour it: `collect_scannable_files` prunes the branch, the fs watcher drops an event whose every path is inside it.
+`mp4` is in `AUDIO_EXTENSIONS` and [`is_scannable_audio`](../../src-tauri/crates/core/src/scanner/extract/mod.rs) takes it **on sight** (only `ogg` / `oga` pay for a header read), so any clip written into somebody's music folder becomes a track on the next scan. The walk has no other directory filter, and a leading dot is a display convention rather than something a file walker obeys — so the single reserved name in [`scanner::reserved`](../../src-tauri/crates/core/src/scanner/reserved.rs) is what keeps our own files out of the library, and both walkers honour it: `collect_scannable_files` prunes the branch, the fs watcher drops an event whose every path is inside it.
 
 Two rules that are easy to get wrong: the check is **rooted** (a library that itself lives under a directory of that name is still an ordinary library, and testing every component of an absolute path would empty it), and the walk never prunes **its own root** for the same reason. Writing anywhere else in a library folder needs the same treatment or it will be indexed — including by the watcher, which would otherwise answer our own writes with a rescan. Layout: [`storage.md`](storage.md#inside-the-users-library-issue-695).
 
@@ -95,7 +95,7 @@ No library folder is, lies under or holds another, in any library of the profile
 
 The profile pool opens with `foreign_keys = ON` and SQLite's `DROP TABLE` fires an implicit `DELETE`, so `ON DELETE SET NULL` / `CASCADE` on children run — dropping `artwork` blanks every `album.artwork_id`, dropping `artist` empties `track_artist`. `PRAGMA foreign_keys` is a no-op inside the transaction sqlx wraps migrations in, so it cannot be turned off there. Use `ALTER TABLE … ADD COLUMN` (issue #401 took this route for exactly this reason).
 
-A consequence that is easy to miss: a `CHECK` constraint on a parent table is **frozen**. SQLite changes a constraint only by rebuilding the table, which is this `DROP TABLE`. `artwork.source` is one — `IN ('embedded','folder','deezer','manual')` since the initial migration — so its values live in code as the [`ArtworkSource`](../../src-tauri/crates/core/src/scanner/extract.rs) enum, and a test reads the constraint out of the real migration file to hold the two together. A free string there once wrote `'theaudiodb'`, which the database refused on every write while every test, run against hand-typed fixtures, stayed green (#750).
+A consequence that is easy to miss: a `CHECK` constraint on a parent table is **frozen**. SQLite changes a constraint only by rebuilding the table, which is this `DROP TABLE`. `artwork.source` is one — `IN ('embedded','folder','deezer','manual')` since the initial migration — so its values live in code as the [`ArtworkSource`](../../src-tauri/crates/core/src/scanner/extract/artwork.rs) enum, and a test reads the constraint out of the real migration file to hold the two together. A free string there once wrote `'theaudiodb'`, which the database refused on every write while every test, run against hand-typed fixtures, stayed green (#750).
 
 ### Migrations are immutable once merged
 
@@ -136,7 +136,7 @@ Queries rebuild the display string via `GROUP_CONCAT` over `track_artist` ordere
 
 [`scan.rs::upsert_album`](../../src-tauri/crates/app/src/commands/scan.rs) keys on the album artist (Album Artist tag → `is_compilation` → primary artist fallback). `album.is_compilation` is sticky, and `merge_implicit_compilations` collapses ≥ 3 distinct-artist same-title rows into "Various Artists" after every scan. `edit.rs` re-runs `upsert_album` with the OLD album's Album Artist / compilation flags so renames don't re-split — except for the Album Artist when the edit names a new one, which moves the track to the album that name keys, without the old compilation flag.
 
-The tag decides, and a track never overrides it. When a rescan re-splits a track's credits, [`repoint_fallback_album_artist`](../../src-tauri/crates/core/src/scanner/upserts.rs) moves the album to the new lead artist only if the album took its artist from _that_ track by fallback: no Album Artist, no compilation flag, and `artist_id` still the track's old lead. When another album already holds the target `(canonical_title, artist_id)` — a `UNIQUE` pair, so re-keying would abort the whole scan transaction — the track joins that album instead, where a fresh scan would have put it. The unguarded version used to re-key a Various Artists record or an explicit Album Artist on the first track to be rescanned.
+The tag decides, and a track never overrides it. When a rescan re-splits a track's credits, [`repoint_fallback_album_artist`](../../src-tauri/crates/core/src/scanner/upserts/album_artist.rs) moves the album to the new lead artist only if the album took its artist from _that_ track by fallback: no Album Artist, no compilation flag, and `artist_id` still the track's old lead. When another album already holds the target `(canonical_title, artist_id)` — a `UNIQUE` pair, so re-keying would abort the whole scan transaction — the track joins that album instead, where a fresh scan would have put it. The unguarded version used to re-key a Various Artists record or an explicit Album Artist on the first track to be rescanned.
 
 Deep dive: [library § album grouping](../features/library.md#album-grouping).
 
@@ -236,7 +236,7 @@ Two consequences worth stating:
 
 - **Adding a decoder means one registration**, not three, and the
   scanner's extension list plus
-  [`undecodable_stream`](../../src-tauri/crates/core/src/scanner/extract.rs)
+  [`undecodable_stream`](../../src-tauri/crates/core/src/scanner/extract/mod.rs)
   have to move with it — those two are the scanner's half of the same
   agreement.
 - **The registry lives in `core`**, not in the app, because the
@@ -344,7 +344,7 @@ The frontend subscribes to `tasks:changed` **before** calling `list_tasks` — s
 
 Full surface — worlds, store, options, security model — in [features/plugins.md](../features/plugins.md). The invariants that bite:
 
-- **Plugins load at runtime; distribution is a separate repo.** The wasmtime host ([`waveflow_core::plugin::runtime`](../../src-tauri/crates/core/src/plugin/runtime.rs)) loads WASM components from `<app-data>/waveflow/plugins/` (writable sideload) and `<resource>/plugins/` (installer-bundled, re-seeded at boot). The catalogue and each plugin live in **separate repos** ([`InstaZDLL/waveflow-plugins`](https://github.com/InstaZDLL/waveflow-plugins) + per-plugin repos) — never in this one — so grey-area plugins carry no liability for the signed core and a takedown is one registry commit.
+- **Plugins load at runtime; distribution is a separate repo.** The wasmtime host ([`waveflow_core::plugin::runtime`](../../src-tauri/crates/core/src/plugin/runtime/mod.rs)) loads WASM components from `<app-data>/waveflow/plugins/` (writable sideload) and `<resource>/plugins/` (installer-bundled, re-seeded at boot). The catalogue and each plugin live in **separate repos** ([`InstaZDLL/waveflow-plugins`](https://github.com/InstaZDLL/waveflow-plugins) + per-plugin repos) — never in this one — so grey-area plugins carry no liability for the signed core and a takedown is one registry commit.
 - **The registry is the trusted pin, not the release.** [`commands/plugin_store.rs`](../../src-tauri/crates/app/src/commands/plugin_store.rs) verifies `plugin.wasm`'s blake3 against the registry entry before installing, so a compromised GitHub release fails the hash.
 - **Every registry fetch honours [`offline::is_offline()`](../../src-tauri/crates/app/src/offline.rs).**
 - **A published manifest string must ship its translations in the sibling `*_i18n` field**, never as an inline `{ lang -> text }` map — an older host type-errors on the table and drops the plugin, and for `registry.json` it fails the whole catalogue decode on that build, so the store goes dark. `min_app_version` can't rescue it because it's read _after_ the decode. See [plugins § localized manifest strings](../features/plugins.md#localized-manifest-strings).

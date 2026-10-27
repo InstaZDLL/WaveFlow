@@ -48,7 +48,7 @@ Each OS has a parallel output backend to the cpal shared-mode default, engaged b
 
 | OS      | Backend                                                                                 | How the device is taken                                                                      |
 | ------- | --------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| Windows | [`wasapi_exclusive.rs`](../../src-tauri/crates/app/src/audio/wasapi_exclusive.rs)       | WASAPI event-driven exclusive mode via the [`wasapi` crate](https://crates.io/crates/wasapi) |
+| Windows | [`wasapi_exclusive/`](../../src-tauri/crates/app/src/audio/wasapi_exclusive/mod.rs)     | WASAPI event-driven exclusive mode via the [`wasapi` crate](https://crates.io/crates/wasapi) |
 | Linux   | [`alsa_exclusive.rs`](../../src-tauri/crates/app/src/audio/alsa_exclusive.rs)           | a raw `hw:` PCM, after asking the sound server for the card                                  |
 | macOS   | [`coreaudio_exclusive.rs`](../../src-tauri/crates/app/src/audio/coreaudio_exclusive.rs) | CoreAudio **hog mode**                                                                       |
 
