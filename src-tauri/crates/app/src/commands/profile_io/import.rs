@@ -179,14 +179,16 @@ async fn insert_with_free_name(app_db: &SqlitePool, base: &str) -> AppResult<(i6
     )))
 }
 
-/// Roll back a half-imported profile: remove the on-disk directory and
-/// the `profile` row. Best-effort — failures are swallowed so the caller
-/// can surface the *original* import error rather than a cleanup error
-/// masking it. User can wipe `<app_data>/profiles/<id>/` by hand if the
-/// fs delete failed (rare; usually a held file handle from a panicked
-/// pool).
+/// Roll back a half-imported profile: remove the on-disk directory, its
+/// cache directory (a separate tree once the user moved the caches; the
+/// shared `metadata_artwork` stays) and the `profile` row. Best-effort —
+/// failures are swallowed so the caller can surface the *original* import
+/// error rather than a cleanup error masking it. User can wipe
+/// `<app_data>/profiles/<id>/` by hand if the fs delete failed (rare;
+/// usually a held file handle from a panicked pool).
 async fn cleanup_partial_profile(app_db: &SqlitePool, paths: &AppPaths, profile_id: i64) {
     let _ = std::fs::remove_dir_all(paths.profile_dir(profile_id));
+    let _ = std::fs::remove_dir_all(paths.profile_cache_dir(profile_id));
     let _ = sqlx::query("DELETE FROM profile WHERE id = ?")
         .bind(profile_id)
         .execute(app_db)

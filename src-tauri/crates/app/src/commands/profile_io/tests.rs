@@ -437,3 +437,48 @@ async fn a_failure_after_the_row_is_inserted_rolls_the_row_back() {
         .unwrap();
     assert_eq!(left, 0);
 }
+
+#[tokio::test]
+async fn a_failed_import_removes_the_profile_cache_moved_elsewhere() {
+    let dir = tempfile::tempdir().unwrap();
+    let (archive, _) = profile_archive(dir.path(), ARCHIVE_VERSION).await;
+    let root = dir.path().join("app");
+    std::fs::create_dir_all(&root).unwrap();
+    let paths = crate::paths::AppPaths::from_root(root.clone(), None)
+        .with_cache_root(dir.path().join("cache"));
+    let app_db = app_db(&root).await;
+    sqlx::raw_sql(
+        "CREATE TABLE inserted (id INTEGER NOT NULL);
+         CREATE TRIGGER record_insert AFTER INSERT ON profile
+         BEGIN INSERT INTO inserted (id) VALUES (new.id); END;",
+    )
+    .execute(&app_db)
+    .await
+    .unwrap();
+    let next_id: i64 = sqlx::query_scalar("SELECT COALESCE(MAX(id), 0) + 1 FROM profile")
+        .fetch_one(&app_db)
+        .await
+        .unwrap();
+    // A file where the profile's last cache directory goes: the profile
+    // directory and most of its cache tree are laid out, then this fails.
+    let blocker = paths.profile_remote_artwork_dir(next_id);
+    std::fs::create_dir_all(blocker.parent().unwrap()).unwrap();
+    std::fs::write(&blocker, b"in the way").unwrap();
+
+    let result = import_profile_inner(
+        &app_db,
+        &paths,
+        archive.to_string_lossy().into_owned(),
+        None,
+    )
+    .await;
+
+    assert!(result.is_err(), "{result:?}");
+    let inserted: i64 = sqlx::query_scalar("SELECT id FROM inserted")
+        .fetch_one(&app_db)
+        .await
+        .unwrap();
+    assert_eq!(inserted, next_id);
+    assert!(!paths.profile_dir(next_id).exists());
+    assert!(!paths.profile_cache_dir(next_id).exists());
+}
