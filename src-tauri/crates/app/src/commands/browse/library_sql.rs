@@ -2,11 +2,6 @@
 //! the RFC-006 predicates that decide when a server entry pairs with a
 //! local one.
 
-/// Both halves of the album listing, as one compound select.
-///
-/// Split out of the command so the SQL can be exercised on its own: the
-/// command needs an `AppState`, the query needs only a database, and the query
-/// is the part that can be wrong.
 /// A local track whose bytes have been read and recorded — RFC-006's
 /// "examined" side of the completeness frontier.
 ///
@@ -175,6 +170,11 @@ macro_rules! artist_pair_proven {
     };
 }
 
+/// Both halves of the album listing, as one compound select.
+///
+/// Split out of the command so the SQL can be exercised on its own: the
+/// command needs an `AppState`, the query needs only a database, and the query
+/// is the part that can be wrong.
 pub(super) fn library_albums_sql(order_clause: &str) -> String {
     let album_pair = album_pair_proven!();
     format!(

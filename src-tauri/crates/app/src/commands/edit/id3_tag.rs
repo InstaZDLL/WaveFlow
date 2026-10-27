@@ -178,26 +178,6 @@ pub(super) fn apply_patch_id3(tag: &mut id3::Tag, patch: &TagPatch<'_>) {
     }
 }
 
-/// Put the year where a pre-2.4 reader will look for it.
-///
-/// `TDRC` is a 2.4 frame. The `id3` crate writes whatever frames the tag
-/// holds, version target or not, so a 2.3 tag built from a `TDRC` comes
-/// back out carrying `TDRC` — and a reader that only knows 2.3 finds no
-/// year at all (measured: `year()` answers `None` after that round
-/// trip). Since a DSF now keeps the version it arrived with, the year
-/// has to be mirrored into `TYER`, which is the frame the older
-/// versions define — 2.2 among them, where the writer shortens it to
-/// `TYE` on the way out.
-///
-/// A cleared year clears both, so a stale `TYER` cannot outlive the
-/// date it duplicated.
-///
-/// **Only when the edit touched the year.** A genuine 2.3 tag carries
-/// `TYER` and no `TDRC` at all — that is the normal shape, not an odd
-/// one — so a mirror that ran on every save read "no date" from a file
-/// that had a perfectly good year and removed it. Editing a title, or
-/// setting a cover, would have quietly erased the year of every 2.3 DSF
-/// it touched.
 /// Keep several genres readable as several in an ID3v2.2 / 2.3 tag
 /// (#729).
 ///
@@ -223,6 +203,26 @@ pub(super) fn join_genres_for_legacy(tag: &mut id3::Tag, version: id3::Version) 
     tag.set_genre(joined);
 }
 
+/// Put the year where a pre-2.4 reader will look for it.
+///
+/// `TDRC` is a 2.4 frame. The `id3` crate writes whatever frames the tag
+/// holds, version target or not, so a 2.3 tag built from a `TDRC` comes
+/// back out carrying `TDRC` — and a reader that only knows 2.3 finds no
+/// year at all (measured: `year()` answers `None` after that round
+/// trip). Since a DSF now keeps the version it arrived with, the year
+/// has to be mirrored into `TYER`, which is the frame the older
+/// versions define — 2.2 among them, where the writer shortens it to
+/// `TYE` on the way out.
+///
+/// A cleared year clears both, so a stale `TYER` cannot outlive the
+/// date it duplicated.
+///
+/// **Only when the edit touched the year.** A genuine 2.3 tag carries
+/// `TYER` and no `TDRC` at all — that is the normal shape, not an odd
+/// one — so a mirror that ran on every save read "no date" from a file
+/// that had a perfectly good year and removed it. Editing a title, or
+/// setting a cover, would have quietly erased the year of every 2.3 DSF
+/// it touched.
 pub(super) fn mirror_year_for_legacy(
     tag: &mut id3::Tag,
     patch: &TagPatch<'_>,

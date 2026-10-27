@@ -90,13 +90,6 @@ pub(crate) struct LibraryTrackRawRow {
     rating: Option<i64>,
 }
 
-/// Ordering for the unified track listing.
-///
-/// Artist and album sort on the normalised keys both halves now carry; the
-/// title sorts on the display string on both sides, because the local half has
-/// no canonical form for it either. Consistency per column is what matters —
-/// normalising one side of a comparison and not the other is exactly how an
-/// artist ends up in two places.
 /// The SQL expression a column sorts on, or `None` when the key is not
 /// a sortable column.
 ///
@@ -160,6 +153,12 @@ fn sorts_descending_by_default(key: Option<&str>) -> bool {
 /// sortable set is every column the table can show, and spelling out
 /// two match arms per column was how the previous shape quietly stopped
 /// at seven of them.
+///
+/// Artist and album sort on the normalised keys both halves now carry; the
+/// title sorts on the display string on both sides, because the local half has
+/// no canonical form for it either. Consistency per column is what matters —
+/// normalising one side of a comparison and not the other is exactly how an
+/// artist ends up in two places.
 pub(crate) fn library_track_order_clause(
     order_by: Option<&str>,
     direction: Option<&str>,
