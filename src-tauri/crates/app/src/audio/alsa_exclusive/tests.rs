@@ -1,5 +1,4 @@
-use super::hw_card_index;
-use super::{is_system_route, resolve_hw_device};
+use super::device::{hw_card_index, is_system_route, resolve_hw_device};
 
 #[test]
 fn a_pinned_sound_server_route_opens_the_default_card() {
@@ -22,15 +21,15 @@ fn an_unopened_engine_asks_for_stereo_not_mono() {
     // when a backend opens. Read literally, the first launch with
     // exclusive already on would ask the card for one channel — and
     // a card that grants it would downmix every track from then on.
-    assert_eq!(super::channel_candidates(0), vec![2]);
+    assert_eq!(super::open::channel_candidates(0), vec![2]);
 }
 
 #[test]
 fn a_known_layout_is_tried_before_stereo_and_stereo_closes_the_list() {
-    assert_eq!(super::channel_candidates(6), vec![6, 2]);
-    assert_eq!(super::channel_candidates(2), vec![2]);
+    assert_eq!(super::open::channel_candidates(6), vec![6, 2]);
+    assert_eq!(super::open::channel_candidates(2), vec![2]);
     // A genuinely mono device keeps its own layout first.
-    assert_eq!(super::channel_candidates(1), vec![1, 2]);
+    assert_eq!(super::open::channel_candidates(1), vec![1, 2]);
 }
 
 /// The trap this whole variant exists to document. ALSA puts the 24
