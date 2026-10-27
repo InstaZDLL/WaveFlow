@@ -4,7 +4,7 @@
 //! `AppState` so the worker thread is the single source of truth on
 //! what's bound and serving. Settings persistence is decoupled — the
 //! Settings page can update `app_setting` without restarting the
-//! server, and the bootstrap path in `lib.rs` reads the same row
+//! server, and the bootstrap path in `startup/setup.rs` reads the same row
 //! at launch.
 
 use crate::{

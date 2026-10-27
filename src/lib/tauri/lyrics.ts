@@ -1592,7 +1592,7 @@ export function splitCaretTranslations(lines: LyricsLine[]): LyricsLine[] {
  * share one time. Some sources stamp every line `[00:00.00]`; read as
  * synced, only the last line would ever light up. Shown as plain text
  * instead. The backend applies the same rule (`lrc_has_timing` in
- * `commands/lyrics.rs`) so such an answer does not end the search for
+ * `commands/lyrics/format.rs`) so such an answer does not end the search for
  * real timing.
  */
 export function isUntimedLrc(lines: LyricsLine[]): boolean {

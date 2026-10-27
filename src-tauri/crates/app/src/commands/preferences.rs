@@ -9,7 +9,7 @@
 //!
 //! - **Minimize to tray** — `app_setting['app.minimize_to_tray']` (process-
 //!   wide, default `true`). Mirrored on [`PreferencesState::minimize_to_tray`]
-//!   so the `WindowEvent::CloseRequested` handler in `lib.rs` is a single
+//!   so the `WindowEvent::CloseRequested` handler in `startup/events.rs` is a single
 //!   atomic load. When OFF, closing the window arms the `QuitGate` and
 //!   lets the destroy event run the normal shutdown path.
 //! - **Scan on start** — `profile_setting['library.scan_on_start']` (per
@@ -252,7 +252,7 @@ fn bounds_are_valid(b: &MiniPlayerBounds) -> bool {
         && b.height > 0.0
 }
 
-/// Non-command helper used by the `app://ready` boot path (lib.rs) to read
+/// Non-command helper used by the `app://ready` boot path (`startup/setup.rs`) to read
 /// the persisted main-window bounds before the window is made visible, so
 /// the window appears at the saved size/position with no jump.
 pub async fn load_main_window_bounds(app_db: &SqlitePool) -> Option<MiniPlayerBounds> {
@@ -269,7 +269,7 @@ pub async fn load_main_window_bounds(app_db: &SqlitePool) -> Option<MiniPlayerBo
                 // diagnosable instead of silently masquerading as a first-run
                 // default. We still fall back to `None` — the splash handoff must
                 // reveal the window at default bounds rather than block on a
-                // cosmetic bounds read (see `restore_bounds_and_reveal` in lib.rs).
+                // cosmetic bounds read (see `restore_bounds_and_reveal` in `startup/window.rs`).
                 tracing::warn!(?err, "failed to read persisted main-window bounds");
                 None
             }
