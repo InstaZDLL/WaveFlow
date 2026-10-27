@@ -360,7 +360,7 @@ export function DetailTrackTable({
                 if (!singleClickPlay) onPlayTrack(index);
               }}
               onKeyDown={(e) => {
-                // Only play when the row itself is focused — see LibraryView.
+                // Only play when the row itself is focused — see `library/TrackTable`.
                 if (e.target !== e.currentTarget) return;
                 if (onRowMenuKey(e, track)) return;
                 if (e.key === "Enter" || e.key === " ") {

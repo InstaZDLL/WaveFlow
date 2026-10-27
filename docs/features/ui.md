@@ -34,6 +34,8 @@ The right panel is **a flex sibling** of the center column, not an overlay — o
 
 Every full-page view (Home, Library, Liked, History, Playlist, Album/Artist/Genre detail, Statistics, Wrapped, Settings) is `React.lazy()`-loaded. The Suspense fallback in [`AppLayout`](../../src/components/layout/AppLayout.tsx) is [`ViewSuspenseFallback`](../../src/components/common/ViewSuspenseFallback.tsx) — a layout-shaped skeleton (`role="status"` / `aria-busy="true"`) instead of a spinner that read as a blank screen. To make the fallback rarely fire at all, AppLayout schedules a `requestIdleCallback` after first mount that warm-imports every lazy view module; once those imports resolve they're cached in the module registry, so a sidebar click usually skips Suspense entirely.
 
+The two heaviest views split once more: each Settings page ([`settings/sections`](../../src/components/views/settings/sections/index.ts)) and each Library tab ([`library/tabs`](../../src/components/views/library/tabs.ts)) is a chunk of its own, so opening Settings or the Library parses the page or tab shown, not all of them. The state a Settings page shows still lives in `SettingsView` and is read when Settings mounts; a page only receives it. These are [`preloadable`](../../src/lib/preloadable.tsx) rather than plain `React.lazy`: `lazy` suspends on a component's first render even when its chunk is already loaded, which under a boundary already on screen shows the fallback and holds the page back for React's fallback throttle (about 300 ms); a preloaded one renders directly. AppLayout preloads them with the views, and starts them alongside a view's own chunk when that view is opened before the warm-up.
+
 Per-view data fetches initialise their `isLoading` state to `true` (not `false`) so the first render paints a skeleton matching the view's shape rather than flashing the empty-state for the frame between mount and the first effect tick. Detail pages (Album/Artist/Genre) share [`DetailViewSkeleton`](../../src/components/common/DetailViewSkeleton.tsx); list-shaped pages use inline `<…Skeleton>` components colocated with their view file.
 
 ## Back and forward
@@ -84,7 +86,10 @@ Lyrics page.
 [`settingsCatalog.ts`](../../src/components/views/settings/settingsCatalog.ts)
 indexes translated category, group and setting labels — and each group's hint —
 for local settings search. A result opens its category, expands an advanced
-group when necessary, and moves focus to that group. Keep the search keys and
+group when necessary, and moves focus to that group — once the page is on
+screen: each page is a chunk of its own (see
+[View loading & code-splitting](#view-loading--code-splitting)), so the scroll
+and the focus wait for it to mount. Keep the search keys and
 group IDs aligned when adding or moving a setting, and move its registry entry's
 `category` with it. New navigation strings live under `settings.organization`
 in all 17 locales: `categories`, `descriptions` (the page header), `navHints`

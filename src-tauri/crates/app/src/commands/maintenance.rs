@@ -281,7 +281,7 @@ fn delete_cover_files(dir: &Path, hashes: &[String]) -> (u64, u64) {
 ///    of decoded samples from before the reset; without this the
 ///    callback flushes them to the device during step 2's wait,
 ///    producing a jarring tail at the worst possible moment. Same
-///    mechanism the window-close handler uses in `lib.rs`. No
+///    mechanism the window-close handler uses in `startup/events.rs`. No
 ///    paired restore is needed because step 5 below replaces the
 ///    process unconditionally — the in-memory engine state goes
 ///    with it.

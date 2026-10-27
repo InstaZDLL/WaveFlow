@@ -819,7 +819,7 @@ function AlbumTrackTable({
           if (!singleClickPlay) onPlayTrack(globalIndex);
         }}
         onKeyDown={(e) => {
-          // Only play when the row itself is focused — see LibraryView.
+          // Only play when the row itself is focused — see `library/TrackTable`.
           if (e.target !== e.currentTarget) return;
           if (playable && onRowMenuKey(e, playable)) return;
           if (e.key === "Enter" || e.key === " ") {
