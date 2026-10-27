@@ -387,16 +387,6 @@ pub async fn run_one_backup(
             exported_at: Utc::now().to_rfc3339(),
         };
 
-        // Every profile's WAL is folded back so the bundled DB captures
-        // every committed page — an inactive one can still carry a WAL
-        // after a crash. Best effort, as before: the archive is still
-        // written, and the log says it may miss the last writes.
-        if let Err(err) =
-            crate::commands::profile_io::checkpoint_profile_wal(state, profile_id).await
-        {
-            tracing::warn!(profile_id, error = %err, "auto backup: WAL checkpoint failed");
-        }
-
         let profile_dir = state.paths.profile_dir(profile_id);
         let db_path = state.paths.profile_db(profile_id);
         let artwork_dir = state.paths.profile_artwork_dir(profile_id);
@@ -408,18 +398,27 @@ pub async fn run_one_backup(
         let target_owned = target.clone();
 
         let attempted_with_cache = bundle_metadata_artwork;
-        let result = tokio::task::spawn_blocking(move || -> AppResult<()> {
-            write_archive(
-                &target_owned,
-                &profile_dir,
-                &db_path,
-                &artwork_dir,
-                metadata_artwork_dir.as_deref(),
-                &manifest,
-            )
-        })
-        .await
-        .map_err(|e| AppError::Other(format!("backup task join: {e}")))?;
+        // Every profile's WAL is folded back first so the bundled DB
+        // captures every committed page — an inactive one can still carry
+        // a WAL after a crash. A checkpoint that cannot finish fails this
+        // profile like a failed write: an archive missing the last writes
+        // would count as a backup and let retention prune a complete one.
+        let result =
+            match crate::commands::profile_io::checkpoint_profile_wal(state, profile_id).await {
+                Ok(()) => tokio::task::spawn_blocking(move || -> AppResult<()> {
+                    write_archive(
+                        &target_owned,
+                        &profile_dir,
+                        &db_path,
+                        &artwork_dir,
+                        metadata_artwork_dir.as_deref(),
+                        &manifest,
+                    )
+                })
+                .await
+                .map_err(|e| AppError::Other(format!("backup task join: {e}")))?,
+                Err(err) => Err(err),
+            };
 
         let written = match result {
             Ok(()) => {
