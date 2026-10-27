@@ -705,8 +705,10 @@ impl AppState {
 
     /// Return the active profile id, or an error if none is active.
     ///
-    /// Used by upcoming library/scan/queue commands.
-    #[allow(dead_code)]
+    /// For a caller that needs the id alone, or that pins its pool to it
+    /// afterwards through [`Self::require_profile_pool_for`]. A caller
+    /// that needs the pool too takes both from
+    /// [`Self::require_profile_snapshot`] instead.
     pub async fn require_profile_id(&self) -> AppResult<i64> {
         let guard = self.profile.read().await;
         guard

@@ -47,8 +47,7 @@ pub async fn list_genres(
     state: tauri::State<'_, AppState>,
     library_id: Option<i64>,
 ) -> AppResult<ListGenresResponse> {
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
 
     let raw = sqlx::query_as::<_, GenreRawRow>(
@@ -122,8 +121,7 @@ pub async fn set_genre_artwork_from_file(
     genre_id: i64,
     file_path: String,
 ) -> AppResult<()> {
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     let profile_artwork_dir = state.paths.profile_artwork_dir(profile_id);
 
     // Off the async runtime: create_dir_all/read/write are all blocking

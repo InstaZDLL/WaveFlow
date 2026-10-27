@@ -451,17 +451,10 @@ async fn debounce_loop(
 /// emit `library:rescanned` so the UI can refetch.
 async fn run_scan(app: &AppHandle, folder_id: i64, library_id: i64) {
     let state = app.state::<AppState>();
-    let pool = match state.require_profile_pool().await {
-        Ok(p) => p,
+    let (pool, profile_id) = match state.require_profile_snapshot().await {
+        Ok(snapshot) => snapshot,
         Err(err) => {
-            tracing::warn!(folder_id, %err, "watcher: no profile pool, skipping scan");
-            return;
-        }
-    };
-    let profile_id = match state.require_profile_id().await {
-        Ok(id) => id,
-        Err(err) => {
-            tracing::warn!(folder_id, %err, "watcher: no profile id, skipping scan");
+            tracing::warn!(folder_id, %err, "watcher: no active profile, skipping scan");
             return;
         }
     };

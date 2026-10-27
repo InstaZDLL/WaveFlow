@@ -164,8 +164,8 @@ async fn handle_message(
         return Ok(());
     }
 
-    let pool = state
-        .require_profile_pool()
+    let (pool, profile_id) = state
+        .require_profile_snapshot()
         .await
         .map_err(|e| format!("profile pool: {e}"))?;
 
@@ -240,7 +240,6 @@ async fn handle_message(
                     }
                 };
                 if let Some((index, track)) = next {
-                    let profile_id = state.require_profile_id().await.ok();
                     let replay_gain =
                         crate::commands::player::fetch_replay_gain(&pool, track.id).await;
                     if !engine.claim_dispatch(*intent) {
@@ -262,7 +261,7 @@ async fn handle_message(
                         crate::autoplay::undo_if_added(topped_up, &pool).await;
                         return Err(format!("cursor: {e}"));
                     }
-                    emit_track_changed(app, &state.paths, &track, profile_id);
+                    emit_track_changed(app, &state.paths, &track, Some(profile_id));
                     emit_queue_changed(app);
                     let _ = cmd_tx.send(AudioCmd::LoadAndPlay {
                         intent: *intent,
@@ -452,8 +451,7 @@ async fn handle_message(
                 .await
                 .map_err(|e| format!("advance after crossfade: {e}"))?;
             if let Some(track) = advanced {
-                let profile_id = state.require_profile_id().await.ok();
-                emit_track_changed(app, &state.paths, &track, profile_id);
+                emit_track_changed(app, &state.paths, &track, Some(profile_id));
                 emit_queue_changed(app);
             }
         }

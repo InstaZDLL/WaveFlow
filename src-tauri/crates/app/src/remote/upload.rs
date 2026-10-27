@@ -406,7 +406,7 @@ pub async fn upload(
         track_ids.len() as u64,
         crate::tasks::cancel_fn(request_cancel),
     );
-    let (pool, _) = state.require_profile_snapshot().await?;
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
 
     let total = track_ids.len() as u64;
     let mut processed = 0u64;
@@ -416,7 +416,7 @@ pub async fn upload(
             outcome.cancelled = true;
             break;
         }
-        match upload_one(app, state, &pool, library_id, *track_id).await {
+        match upload_one(app, state, &pool, profile_id, library_id, *track_id).await {
             Ok(Sent::Uploaded(entry)) => outcome.uploaded.push(entry),
             // Set here rather than only at the top of the loop: a stop during
             // the last track's transfer would otherwise fall out of the loop
@@ -430,6 +430,10 @@ pub async fn upload(
                 track_id: *track_id,
                 reason,
             }),
+            // The profile the sweep started on is no longer the active one:
+            // every track left would fail the same way, so the sweep stops
+            // here instead of reporting each of them as a failed upload.
+            Err(err @ AppError::ProfileChanged { .. }) => return Err(err),
             Err(err) => {
                 tracing::warn!(track = track_id, ?err, "upload failed");
                 outcome.skipped.push(SkippedUpload {
@@ -463,6 +467,7 @@ async fn upload_one(
     app: &AppHandle,
     state: &AppState,
     pool: &SqlitePool,
+    profile_id: i64,
     library_id: &str,
     track_id: i64,
 ) -> AppResult<Sent> {
@@ -487,7 +492,7 @@ async fn upload_one(
         return Ok(Sent::Refused(UploadRefusal::Failed));
     };
 
-    let client = super::client::RemoteClient::try_build(state)
+    let client = super::client::RemoteClient::try_build_for(state, profile_id)
         .await?
         .ok_or_else(|| AppError::Other("not signed in to a remote server".into()))?;
     let negotiated: NegotiateResponse = client

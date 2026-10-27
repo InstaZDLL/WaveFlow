@@ -355,8 +355,7 @@ pub async fn list_playlist_tracks(
     state: tauri::State<'_, AppState>,
     playlist_id: i64,
 ) -> AppResult<crate::commands::track::ListTracksResponse> {
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
 
     let rows = SqliteTrackRepository::new((*pool).clone())
@@ -430,8 +429,7 @@ pub async fn add_track_to_playlist(
     playlist_id: i64,
     track_id: i64,
 ) -> AppResult<()> {
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     let now = now_millis();
 
     let mut tx = pool.begin().await?;
@@ -479,8 +477,7 @@ pub async fn add_tracks_to_playlist(
     playlist_id: i64,
     track_ids: Vec<i64>,
 ) -> AppResult<u32> {
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     let now = now_millis();
 
     let mut tx = pool.begin().await?;
@@ -524,8 +521,7 @@ pub async fn remove_track_from_playlist(
     playlist_id: i64,
     track_id: i64,
 ) -> AppResult<()> {
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
 
     let mut tx = pool.begin().await?;
     let removed = remove_track_conn(&mut tx, playlist_id, track_id, now_millis()).await?;
@@ -576,8 +572,7 @@ pub async fn reorder_playlist_track(
     track_id: i64,
     new_position: i64,
 ) -> AppResult<()> {
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
 
     // Atomic move + outbox enqueue in one tx. `reorder_track_conn`
     // returns the effective position (the value after the repo's
@@ -630,8 +625,7 @@ pub async fn add_source_to_playlist(
     source_type: String,
     source_id: i64,
 ) -> AppResult<u32> {
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
 
     let source = match source_type.as_str() {
         "folder" => TrackSource::Folder(source_id),

@@ -249,7 +249,7 @@ pub async fn import(
             continue;
         };
         guards.push(guard);
-        match import_one(app, state, &pool, remote_track_id, &folder).await {
+        match import_one(app, state, &pool, profile_id, remote_track_id, &folder).await {
             Ok(Prepared::Written { path, full_hash }) => {
                 written.push((remote_track_id.clone(), path, full_hash));
             }
@@ -268,6 +268,12 @@ pub async fn import(
                     reason: ImportRefusal::Failed,
                     local_track_id: None,
                 });
+                // The profile the batch started on is no longer the active
+                // one: every track left would fail the same way. Stop asking,
+                // but still index what was already written below.
+                if matches!(err, AppError::ProfileChanged { .. }) {
+                    break;
+                }
             }
         }
     }
@@ -344,6 +350,7 @@ async fn import_one(
     app: &AppHandle,
     state: &AppState,
     pool: &SqlitePool,
+    profile_id: i64,
     remote_track_id: &str,
     folder: &Path,
 ) -> AppResult<Prepared> {
@@ -395,6 +402,12 @@ async fn import_one(
         }
     }
 
+    // The ticket before anything is written into the user's folder: a refusal
+    // here — offline, the server, a profile switch — must not leave an empty
+    // artist directory or a zero-byte reservation carrying an audio extension
+    // that the scanner would take for a track.
+    let url = super::stream::raw_ticket_url(state, profile_id, remote_track_id).await?;
+
     // The two fallbacks stay English rather than localised: they name
     // directories on disk, and translating them would scatter one artist's
     // untagged tracks across as many folders as the user has changed language.
@@ -425,7 +438,6 @@ async fn import_one(
             .0
     ));
 
-    let url = super::stream::raw_ticket_url(state, remote_track_id).await?;
     let outcome =
         super::download::stream_to_file(app, remote_track_id, &url, &part_path, PROGRESS_EVENT)
             .await;

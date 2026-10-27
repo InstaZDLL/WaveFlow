@@ -62,8 +62,7 @@ pub async fn set_album_artwork_from_deezer(
     if crate::offline::is_offline() {
         return Err(AppError::Other("offline mode is enabled".into()));
     }
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     let profile_artwork_dir = state.paths.profile_artwork_dir(profile_id);
     std::fs::create_dir_all(&profile_artwork_dir)?;
 
@@ -115,8 +114,7 @@ pub async fn set_album_artwork_from_file(
     album_id: i64,
     file_path: String,
 ) -> AppResult<()> {
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     let profile_artwork_dir = state.paths.profile_artwork_dir(profile_id);
     std::fs::create_dir_all(&profile_artwork_dir)?;
 
@@ -255,8 +253,7 @@ pub async fn set_artist_artwork_from_deezer(
     if crate::offline::is_offline() {
         return Err(AppError::Other("offline mode is enabled".into()));
     }
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     let profile_artwork_dir = state.paths.profile_artwork_dir(profile_id);
     std::fs::create_dir_all(&profile_artwork_dir)?;
 
@@ -314,8 +311,7 @@ pub async fn set_artist_artwork_from_file(
     artist_id: i64,
     file_path: String,
 ) -> AppResult<()> {
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     let profile_artwork_dir = state.paths.profile_artwork_dir(profile_id);
     std::fs::create_dir_all(&profile_artwork_dir)?;
 

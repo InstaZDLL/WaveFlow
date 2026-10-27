@@ -243,7 +243,7 @@ async fn play_current(app: &AppHandle, intent: LoadIntent) -> AppResult<()> {
         let fallback_url = if crate::offline::is_offline() {
             None
         } else {
-            match crate::remote::stream::ticket_url(&state, &entry.id).await {
+            match crate::remote::stream::ticket_url(&state, profile_id, &entry.id).await {
                 Ok(url) => Some(url),
                 Err(_) => {
                     tracing::warn!("remote local playback has no server fallback ticket");
@@ -324,7 +324,7 @@ async fn play_current(app: &AppHandle, intent: LoadIntent) -> AppResult<()> {
         let fallback_url = if crate::offline::is_offline() {
             None
         } else {
-            crate::remote::stream::ticket_url(&state, &entry.id)
+            crate::remote::stream::ticket_url(&state, profile_id, &entry.id)
                 .await
                 .ok()
         };
@@ -353,7 +353,7 @@ async fn play_current(app: &AppHandle, intent: LoadIntent) -> AppResult<()> {
         return Ok(());
     }
 
-    let url = crate::remote::stream::ticket_url(&state, &entry.id).await?;
+    let url = crate::remote::stream::ticket_url(&state, profile_id, &entry.id).await?;
     engine.send(AudioCmd::LoadUrlAndPlay {
         intent,
         // Fill the cache from the blocks this playback was going to read

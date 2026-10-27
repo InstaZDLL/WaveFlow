@@ -94,8 +94,7 @@ pub async fn list_years(
     state: tauri::State<'_, AppState>,
     library_id: Option<i64>,
 ) -> AppResult<ListYearsResponse> {
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
 
     let raw = sqlx::query_as::<_, YearRawRow>(list_years_sql())
@@ -157,8 +156,7 @@ pub async fn get_year_detail(
     state: tauri::State<'_, AppState>,
     year: Option<i64>,
 ) -> AppResult<YearDetail> {
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
 
     let rows =

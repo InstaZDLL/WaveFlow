@@ -98,8 +98,7 @@ pub async fn list_albums(
     order_by: Option<String>,
     direction: Option<String>,
 ) -> AppResult<ListAlbumsResponse> {
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
 
     let order_clause = album_order_clause(order_by.as_deref(), direction.as_deref());
@@ -198,8 +197,7 @@ pub async fn search_albums(
     library_id: Option<i64>,
     limit: Option<i64>,
 ) -> AppResult<ListAlbumsResponse> {
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
 
     let canon = waveflow_core::scanner::canonical_name(query.trim());

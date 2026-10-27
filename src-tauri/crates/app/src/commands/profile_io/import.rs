@@ -27,13 +27,14 @@ pub async fn import_profile(
 ) -> AppResult<ImportedProfile> {
     // Same as the export: the UI has one generic sentence, the log has
     // the cause. #767 took a user report to find a UNIQUE violation.
-    import_profile_inner(&state, source_path, name)
+    import_profile_inner(&state.app_db, &state.paths, source_path, name)
         .await
         .inspect_err(|e| tracing::warn!(error = %e, "profile import failed"))
 }
 
-async fn import_profile_inner(
-    state: &AppState,
+pub(super) async fn import_profile_inner(
+    app_db: &SqlitePool,
+    paths: &AppPaths,
     source_path: String,
     name: Option<String>,
 ) -> AppResult<ImportedProfile> {
@@ -63,26 +64,48 @@ async fn import_profile_inner(
         .filter(|n| !n.is_empty())
         .unwrap_or(manifest.profile_name.clone());
 
-    let (new_profile_id, profile_name) =
-        insert_with_free_name(&state.app_db, &profile_name).await?;
+    let (new_profile_id, profile_name) = insert_with_free_name(app_db, &profile_name).await?;
+
+    // From here on the row exists and shows in the profile selector, so
+    // every failure rolls it back — through this one exit, not one per
+    // step — rather than leave a stub profile that points at a missing
+    // or half-written directory.
+    if let Err(err) = fill_imported_profile(app_db, paths, new_profile_id, source_path).await {
+        cleanup_partial_profile(app_db, paths, new_profile_id).await;
+        return Err(err);
+    }
+
+    Ok(ImportedProfile {
+        id: new_profile_id,
+        name: profile_name,
+    })
+}
+
+/// Everything an import does once its `profile` row is inserted: the
+/// row's `data_dir`, the directory layout, the extracted archive and the
+/// migrated database. The caller rolls the row back when this fails.
+async fn fill_imported_profile(
+    app_db: &SqlitePool,
+    paths: &AppPaths,
+    new_profile_id: i64,
+    source_path: String,
+) -> AppResult<()> {
     let rel_dir = AppPaths::profile_rel_dir(new_profile_id);
     sqlx::query("UPDATE profile SET data_dir = ? WHERE id = ?")
         .bind(&rel_dir)
         .bind(new_profile_id)
-        .execute(&state.app_db)
+        .execute(app_db)
         .await?;
 
-    state.paths.ensure_profile_dirs(new_profile_id)?;
+    paths.ensure_profile_dirs(new_profile_id)?;
 
-    let new_profile_dir = state.paths.profile_dir(new_profile_id);
-    let new_db_path = state.paths.profile_db(new_profile_id);
-    let new_artwork_dir = state.paths.profile_artwork_dir(new_profile_id);
-    let metadata_artwork_dir = state.paths.metadata_artwork_dir.clone();
+    let new_profile_dir = paths.profile_dir(new_profile_id);
+    let new_db_path = paths.profile_db(new_profile_id);
+    let new_artwork_dir = paths.profile_artwork_dir(new_profile_id);
+    let metadata_artwork_dir = paths.metadata_artwork_dir.clone();
 
-    // 3. Extract — also blocking. On any failure, roll the profile row
-    //    back so the user doesn't end up with a stub profile that
-    //    points at a half-written directory.
-    let extract_result = tokio::task::spawn_blocking(move || {
+    // 3. Extract — also blocking.
+    tokio::task::spawn_blocking(move || {
         extract_archive(
             Path::new(&source_path),
             &new_profile_dir,
@@ -92,12 +115,7 @@ async fn import_profile_inner(
         )
     })
     .await
-    .map_err(|e| AppError::Other(format!("import extract join: {e}")))?;
-
-    if let Err(err) = extract_result {
-        cleanup_partial_profile(state, new_profile_id).await;
-        return Err(err);
-    }
+    .map_err(|e| AppError::Other(format!("import extract join: {e}")))??;
 
     // 4. Normalise the bundled `_sqlx_migrations.checksum` column against
     //    the local migration files before running the migrator. Archives
@@ -109,31 +127,15 @@ async fn import_profile_inner(
     //    this step sqlx refuses the import with
     //    "migration X was previously applied but has been modified".
     //    See `.gitattributes` for the forward fix.
-    if let Err(err) = normalise_migration_checksums(&state.paths.profile_db(new_profile_id)).await {
-        cleanup_partial_profile(state, new_profile_id).await;
-        return Err(err);
-    }
+    normalise_migration_checksums(&paths.profile_db(new_profile_id)).await?;
 
     // 5. Open + close the imported pool once so any pending migrations
     //    (the source might be older than the local schema) replay
     //    immediately. This matches the create_profile flow and gives
     //    the user a usable profile by the time the call returns.
-    let pool =
-        match db::profile_db::open(&state.paths.profile_db(new_profile_id), &state.paths.app_db)
-            .await
-        {
-            Ok(pool) => pool,
-            Err(err) => {
-                cleanup_partial_profile(state, new_profile_id).await;
-                return Err(err);
-            }
-        };
+    let pool = db::profile_db::open(&paths.profile_db(new_profile_id), &paths.app_db).await?;
     pool.close().await;
-
-    Ok(ImportedProfile {
-        id: new_profile_id,
-        name: profile_name,
-    })
+    Ok(())
 }
 
 /// The most "(n)" suffixes an import tries before giving up. A person
@@ -177,16 +179,18 @@ async fn insert_with_free_name(app_db: &SqlitePool, base: &str) -> AppResult<(i6
     )))
 }
 
-/// Roll back a half-imported profile: remove the on-disk directory and
-/// the `profile` row. Best-effort — failures are swallowed so the caller
-/// can surface the *original* import error rather than a cleanup error
-/// masking it. User can wipe `<app_data>/profiles/<id>/` by hand if the
-/// fs delete failed (rare; usually a held file handle from a panicked
-/// pool).
-async fn cleanup_partial_profile(state: &AppState, profile_id: i64) {
-    let _ = std::fs::remove_dir_all(state.paths.profile_dir(profile_id));
+/// Roll back a half-imported profile: remove the on-disk directory, its
+/// cache directory (a separate tree once the user moved the caches; the
+/// shared `metadata_artwork` stays) and the `profile` row. Best-effort —
+/// failures are swallowed so the caller can surface the *original* import
+/// error rather than a cleanup error masking it. User can wipe
+/// `<app_data>/profiles/<id>/` by hand if the fs delete failed (rare;
+/// usually a held file handle from a panicked pool).
+async fn cleanup_partial_profile(app_db: &SqlitePool, paths: &AppPaths, profile_id: i64) {
+    let _ = std::fs::remove_dir_all(paths.profile_dir(profile_id));
+    let _ = std::fs::remove_dir_all(paths.profile_cache_dir(profile_id));
     let _ = sqlx::query("DELETE FROM profile WHERE id = ?")
         .bind(profile_id)
-        .execute(&state.app_db)
+        .execute(app_db)
         .await;
 }

@@ -267,7 +267,7 @@ pub(crate) fn setup(
     let scan_handle = app.handle().clone();
     tauri::async_runtime::spawn(async move {
         let state = scan_handle.state::<AppState>();
-        let Ok(pool) = state.require_profile_pool().await else {
+        let Ok((pool, profile_id)) = state.require_profile_snapshot().await else {
             return;
         };
         let enabled: bool = sqlx::query_scalar::<_, String>(
@@ -287,10 +287,6 @@ pub(crate) fn setup(
             commands::analysis::maybe_auto_analyze(&scan_handle);
             return;
         }
-        let Ok(profile_id) = state.require_profile_id().await else {
-            commands::analysis::maybe_auto_analyze(&scan_handle);
-            return;
-        };
         let artwork_dir = state.paths.profile_artwork_dir(profile_id);
         let folder_ids: Vec<i64> =
             match sqlx::query_scalar("SELECT id FROM library_folder ORDER BY id")

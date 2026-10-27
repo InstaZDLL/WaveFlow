@@ -60,10 +60,9 @@ pub async fn build_resources(state: &AppState) -> AppResult<DlnaResources> {
     // every profile switch until the drain timeout without making the
     // worker any more correct. It must tolerate `PoolClosed` — which is
     // exactly what it hits today after a switch (see #399).
-    let pool = state.require_profile_pool().await?.into_unleashed();
-    let profile_id = state.require_profile_id().await?;
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     Ok(DlnaResources {
-        pool,
+        pool: pool.into_unleashed(),
         profile_artwork_dir: state.paths.profile_artwork_dir(profile_id),
         metadata_artwork_dir: state.paths.metadata_artwork_dir.clone(),
     })

@@ -14,7 +14,8 @@ pub async fn remote_stream_url(
     state: tauri::State<'_, AppState>,
     track_id: String,
 ) -> AppResult<String> {
-    crate::remote::stream::ticket_url(&state, &track_id).await
+    let profile_id = state.require_profile_id().await?;
+    crate::remote::stream::ticket_url(&state, profile_id, &track_id).await
 }
 
 /// What the bound server's transcoder can do, and how busy it is.
@@ -27,7 +28,8 @@ pub async fn remote_stream_url(
 pub async fn remote_transcode_status(
     state: tauri::State<'_, AppState>,
 ) -> AppResult<crate::remote::stream::TranscodeStatus> {
-    crate::remote::stream::status(&state).await
+    let profile_id = state.require_profile_id().await?;
+    crate::remote::stream::status(&state, profile_id).await
 }
 
 /// Resolve a remote cover (by hash) to a **local file path**, downloading it

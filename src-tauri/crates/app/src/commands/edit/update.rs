@@ -162,8 +162,7 @@ pub async fn reread_track_folder(
     app: AppHandle,
     track_id: i64,
 ) -> AppResult<()> {
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     let folder_id: Option<Option<i64>> =
         sqlx::query_scalar("SELECT folder_id FROM track WHERE id = ?")
             .bind(track_id)

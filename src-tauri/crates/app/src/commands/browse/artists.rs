@@ -92,7 +92,7 @@ pub async fn list_artists(
     order_by: Option<String>,
     direction: Option<String>,
 ) -> AppResult<ListArtistsResponse> {
-    let pool = state.require_profile_pool().await?;
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
 
     let order_clause = artist_order_clause(order_by.as_deref(), direction.as_deref());
 
@@ -123,7 +123,6 @@ pub async fn list_artists(
         .fetch_all(&*pool)
         .await?;
 
-    let profile_id = state.require_profile_id().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
     let metadata_dir = state.paths.metadata_artwork_dir.clone();
     let items = expand_artist_rows(raw, artwork_dir.clone(), metadata_dir.clone()).await?;
@@ -202,8 +201,7 @@ pub async fn search_artists(
     library_id: Option<i64>,
     limit: Option<i64>,
 ) -> AppResult<ListArtistsResponse> {
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
     let metadata_dir = state.paths.metadata_artwork_dir.clone();
 

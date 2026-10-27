@@ -252,7 +252,7 @@ pub async fn download(
     // The original bytes, whatever the streaming preference says — see the
     // module note. `ticket_url` applies the preference, so the ticket is minted
     // here instead of borrowed from it.
-    let url = crate::remote::stream::raw_ticket_url(state, remote_track_id).await?;
+    let url = crate::remote::stream::raw_ticket_url(state, profile_id, remote_track_id).await?;
 
     let final_path = dir.join(file_name(remote_track_id, &extension));
     // Unique per call, not merely per track: a shared working name is how two

@@ -32,8 +32,7 @@ use tauri::{AppHandle, Emitter};
 /// optimistically refresh and navigate to the first one.
 #[tauri::command]
 pub async fn regenerate_daily_mixes(state: tauri::State<'_, AppState>) -> AppResult<Vec<i64>> {
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     let ctx = paths_ctx(&state, profile_id);
     Ok(generator::regenerate_daily_mixes(&pool, &ctx, profile_id).await?)
 }
@@ -44,8 +43,7 @@ pub async fn regenerate_daily_mixes(state: tauri::State<'_, AppState>) -> AppRes
 /// row, if any, is cleaned up in that case).
 #[tauri::command]
 pub async fn regenerate_on_repeat(state: tauri::State<'_, AppState>) -> AppResult<Option<i64>> {
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     let ctx = paths_ctx(&state, profile_id);
     Ok(on_repeat::regenerate_on_repeat(&pool, &ctx).await?)
 }
@@ -73,8 +71,7 @@ pub async fn regenerate_all_smart_playlists(
     state: tauri::State<'_, AppState>,
     labels: MixLabels,
 ) -> AppResult<RegenerateAllSmartPlaylistsOutput> {
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     let ctx = paths_ctx(&state, profile_id);
     let daily_mix_ids = generator::regenerate_daily_mixes(&pool, &ctx, profile_id).await?;
     let on_repeat_id = on_repeat::regenerate_on_repeat(&pool, &ctx).await?;
