@@ -77,13 +77,15 @@ pub struct SyncReport {
 /// The entry point for every trigger: sign-in, app start, the socket
 /// wake-up and the periodic pass all call this.
 pub async fn sync_now(state: &AppState) -> AppResult<SyncReport> {
-    let Some(client) = RemoteClient::try_build(state).await? else {
+    // Capture the profile once and build the client for it: an id re-read
+    // after the client could name a profile switched to meanwhile, and the
+    // pass would write one server's journal into the other's projection.
+    let profile_id = state.require_profile_id().await?;
+    let Some(client) = RemoteClient::try_build_for(state, profile_id).await? else {
         // Not bound, signed out, or bound to a server with no journal.
         // All three are ordinary states, not failures.
         return Ok(SyncReport::default());
     };
-
-    let profile_id = state.require_profile_id().await?;
 
     // Push before pulling, for two reasons. Our own changes then come
     // back in the same pass instead of the next one — and, more
