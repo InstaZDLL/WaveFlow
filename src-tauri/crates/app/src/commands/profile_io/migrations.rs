@@ -144,3 +144,28 @@ pub(crate) async fn checkpoint_wal(pool: &SqlitePool) -> AppResult<()> {
         .await?;
     Ok(())
 }
+
+/// [`checkpoint_wal`] for a profile database no pool holds open: a WAL
+/// left beside `db_path` is folded back through a connection of its own,
+/// closed straight after. No WAL, nothing to open. Not `read_only`: a WAL
+/// left by a crash needs recovery on open, which a read-only connection
+/// refuses.
+pub(crate) async fn checkpoint_wal_at(db_path: &Path) -> AppResult<()> {
+    let mut wal = db_path.as_os_str().to_owned();
+    wal.push("-wal");
+    if !Path::new(&wal).exists() {
+        return Ok(());
+    }
+    let mut conn = SqliteConnectOptions::new()
+        .filename(db_path)
+        .create_if_missing(false)
+        .disable_statement_logging()
+        .connect()
+        .await?;
+    let checkpoint = sqlx::query("PRAGMA wal_checkpoint(TRUNCATE)")
+        .execute(&mut conn)
+        .await;
+    let _ = conn.close().await;
+    checkpoint?;
+    Ok(())
+}

@@ -482,3 +482,53 @@ async fn a_failed_import_removes_the_profile_cache_moved_elsewhere() {
     assert!(!paths.profile_dir(next_id).exists());
     assert!(!paths.profile_cache_dir(next_id).exists());
 }
+
+#[tokio::test]
+async fn a_wal_left_beside_a_closed_profile_is_folded_into_its_file() {
+    let dir = tempfile::tempdir().unwrap();
+    let db = dir.path().join("data.db");
+    // A writer still holding the database, as a draining lease would: its
+    // committed rows sit in the WAL, none of them in the main file yet.
+    let mut writer = SqliteConnectOptions::new()
+        .filename(&db)
+        .create_if_missing(true)
+        .journal_mode(sqlx::sqlite::SqliteJournalMode::Wal)
+        .connect()
+        .await
+        .unwrap();
+    sqlx::raw_sql(
+        "PRAGMA wal_autocheckpoint = 0;
+         CREATE TABLE t (v INTEGER);
+         INSERT INTO t VALUES (1), (2), (3);",
+    )
+    .execute(&mut writer)
+    .await
+    .unwrap();
+
+    checkpoint_wal_at(&db).await.unwrap();
+
+    // What the archive copies: the main file alone, without its WAL.
+    let copy = dir.path().join("copy.db");
+    std::fs::copy(&db, &copy).unwrap();
+    let mut reader = SqliteConnectOptions::new()
+        .filename(&copy)
+        .immutable(true)
+        .connect()
+        .await
+        .unwrap();
+    let rows: i64 = sqlx::query_scalar("SELECT count(*) FROM t")
+        .fetch_one(&mut reader)
+        .await
+        .unwrap();
+    assert_eq!(rows, 3);
+    let _ = reader.close().await;
+    let _ = writer.close().await;
+}
+
+#[tokio::test]
+async fn a_closed_profile_without_a_wal_is_left_alone() {
+    let dir = tempfile::tempdir().unwrap();
+    let db = dir.path().join("data.db");
+    checkpoint_wal_at(&db).await.unwrap();
+    assert!(!db.exists(), "no WAL, so nothing is opened or created");
+}
