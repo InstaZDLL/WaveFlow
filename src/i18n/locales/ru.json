@@ -582,6 +582,7 @@
     "searchDeezer": "Поиск в Deezer",
     "localFile": "Локальный файл",
     "fetchMissingCovers": "Загрузить все недостающие обложки",
+    "fetchMissingCoversSubtitle": "Ищет в Deezer обложку для каждого альбома без неё",
     "fetchingCovers": "Загрузка обложек… ({{current}} / {{total}})",
     "fetchCoversResult_few": "Загружено обложек: {{count}}",
     "fetchCoversResult_many": "Загружено обложек: {{count}}",

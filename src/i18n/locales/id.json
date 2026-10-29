@@ -536,6 +536,7 @@
     "searchDeezer": "Cari di Deezer",
     "localFile": "Berkas lokal",
     "fetchMissingCovers": "Ambil semua sampul yang hilang",
+    "fetchMissingCoversSubtitle": "Mencari sampul di Deezer untuk setiap album yang belum punya",
     "fetchingCovers": "Mengambil sampul… ({{current}} / {{total}})",
     "fetchCoversResult_one": "{{count}} sampul diambil",
     "fetchCoversResult_other": "{{count}} sampul diambil",

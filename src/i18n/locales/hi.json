@@ -538,6 +538,7 @@
     "searchDeezer": "Deezer में खोजें",
     "localFile": "स्थानीय फ़ाइल",
     "fetchMissingCovers": "सभी अनुपलब्ध कवर प्राप्त करें",
+    "fetchMissingCoversSubtitle": "हर उस एल्बम के लिए Deezer पर कवर खोजता है जिसका कोई कवर नहीं है",
     "fetchingCovers": "कवर डाउनलोड हो रहे हैं... ({{current}} / {{total}})",
     "fetchCoversResult_one": "{{count}} कवर प्राप्त हुआ",
     "fetchCoversResult_other": "{{count}} कवर प्राप्त हुए",

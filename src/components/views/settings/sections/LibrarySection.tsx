@@ -410,7 +410,7 @@ export function LibrarySection({
                 </div>
               ) : (
                 <div className="text-xs settings-description">
-                  {t("settings.artistImages.subtitle")}
+                  {t("library.fetchMissingCoversSubtitle")}
                 </div>
               )}
               {coverProgress && coverProgress.total > 0 && (

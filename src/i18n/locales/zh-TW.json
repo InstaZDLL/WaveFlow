@@ -536,6 +536,7 @@
     "searchDeezer": "搜尋 Deezer",
     "localFile": "本機檔案",
     "fetchMissingCovers": "取得所有遺失的封面",
+    "fetchMissingCoversSubtitle": "在 Deezer 上為每張沒有封面的專輯尋找封面",
     "fetchingCovers": "正在取得封面…（{{current}} / {{total}}）",
     "fetchCoversResult_one": "已取得 {{count}} 張封面",
     "fetchCoversResult_other": "已取得 {{count}} 張封面",

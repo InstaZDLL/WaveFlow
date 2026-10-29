@@ -558,6 +558,7 @@
     "searchDeezer": "Buscar en Deezer",
     "localFile": "Archivo local",
     "fetchMissingCovers": "Recuperar todas las portadas que faltan",
+    "fetchMissingCoversSubtitle": "Busca en Deezer una portada para cada álbum que no tenga",
     "fetchingCovers": "Recuperando portadas… ({{current}} / {{total}})",
     "fetchCoversResult_one": "{{count}} portada recuperada",
     "fetchCoversResult_other": "{{count}} portadas recuperadas",
