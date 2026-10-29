@@ -7,9 +7,10 @@ import {
 import { Check, ChevronDown } from "lucide-react";
 import { createPortal } from "react-dom";
 
-// Tallest the listbox gets (keep in sync with `max-h-80` below). With
-// seventeen languages the list is taller than most windows, so it scrolls
-// inside its own box, and the box is pulled up to stay on screen.
+// Tallest the listbox gets. With seventeen languages the list is taller
+// than most windows, so it scrolls inside its own box, and the box is
+// pulled up to stay on screen — and shortened when even that is not enough
+// (a small window at a high zoom can be under 336 CSS pixels tall).
 const MENU_MAX_HEIGHT = 320;
 
 interface LanguageDropdownProps {
@@ -30,6 +31,7 @@ export function LanguageDropdown({
   const [position, setPosition] = useState<{
     top: number;
     right: number;
+    maxHeight: number;
   } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -119,15 +121,14 @@ export function LanguageDropdown({
         // near the bottom of the window does not push the list off it.
         const rect = triggerRef.current?.getBoundingClientRect();
         if (rect) {
+          const maxHeight = Math.min(MENU_MAX_HEIGHT, window.innerHeight - 16);
           setPosition({
             top: Math.max(
               8,
-              Math.min(
-                rect.bottom + 8,
-                window.innerHeight - MENU_MAX_HEIGHT - 8,
-              ),
+              Math.min(rect.bottom + 8, window.innerHeight - maxHeight - 8),
             ),
             right: window.innerWidth - rect.right,
+            maxHeight,
           });
         }
         const initialIndex = Math.max(
@@ -218,8 +219,9 @@ export function LanguageDropdown({
               position: "fixed",
               top: position.top,
               right: position.right,
+              maxHeight: position.maxHeight,
             }}
-            className="min-w-48 max-h-80 overflow-y-auto overscroll-contain rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated dark:shadow-black/40 z-[100] animate-fade-in py-1"
+            className="min-w-48 overflow-y-auto overscroll-contain rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated dark:shadow-black/40 z-[100] animate-fade-in py-1"
           >
             {SUPPORTED_LANGUAGES.map((lang, index) => {
               const isSelected = lang.code === normalizedCurrentCode;
