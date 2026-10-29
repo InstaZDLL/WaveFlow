@@ -450,13 +450,20 @@ export function IntegrationsSection({
                       type="number"
                       min={0}
                       max={65535}
+                      step={1}
                       value={dlnaConfig.port}
                       onChange={(e) =>
                         setDlnaConfig((c) => ({
                           ...c,
+                          // A whole number in 0–65535 (0 lets the OS pick):
+                          // the backend reads the port as a u16 and refuses
+                          // the whole save over "12.5".
                           port: Math.max(
                             0,
-                            Math.min(65535, Number(e.target.value) || 0),
+                            Math.min(
+                              65535,
+                              Math.trunc(Number(e.target.value)) || 0,
+                            ),
                           ),
                         }))
                       }
