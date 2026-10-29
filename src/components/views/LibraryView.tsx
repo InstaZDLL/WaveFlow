@@ -48,6 +48,7 @@ import {
   type LibrarySourceFilter,
 } from "../../hooks/useLibrarySource";
 import { EmptyState } from "../common/EmptyState";
+import { ViewErrorBoundary } from "../common/ViewErrorBoundary";
 import { Tooltip } from "../common/Tooltip";
 import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
 import { CoverPickerModal } from "../common/CoverPickerModal";
@@ -1552,238 +1553,245 @@ export function LibraryView({
       )}
 
       {hasContent ? (
-        <Suspense fallback={<LibraryTabSkeleton tab={activeTab} t={t} />}>
-          {activeTab === "tracks" && (
-            <>{renderTrackTable(tracks, loading.tracks, playRow)}</>
-          )}
-          {activeTab === "albums" && (
-            <>
-              <AlbumGrid
-                albums={albums}
-                isLoading={loading.albums}
-                t={t}
-                playlists={playlists}
-                onAddToPlaylist={(playlistId, albumId) =>
-                  addSourceToPlaylist(playlistId, "album", albumId)
-                }
-                onCreatePlaylist={(albumId) => {
-                  setPendingSourceForCreate({ kind: "album", id: albumId });
-                  setIsCreatePlaylistModalOpen(true);
-                }}
-                onAlbumClick={onNavigateToAlbum}
-                onRemoteAlbumClick={onNavigateToRemoteAlbum}
-                onChangeCover={(albumId) => setCoverPickerAlbumId(albumId)}
-              />
-            </>
-          )}
-          {activeTab === "artists" && (
-            <>
-              <div className="relative">
-                <ArtistList
-                  artists={artists}
-                  isLoading={loading.artists}
+        // A tab that fails leaves the tab bar and the other tabs usable.
+        <ViewErrorBoundary resetKey={activeTab} size="sm">
+          <Suspense fallback={<LibraryTabSkeleton tab={activeTab} t={t} />}>
+            {activeTab === "tracks" && (
+              <>{renderTrackTable(tracks, loading.tracks, playRow)}</>
+            )}
+            {activeTab === "albums" && (
+              <>
+                <AlbumGrid
+                  albums={albums}
+                  isLoading={loading.albums}
                   t={t}
                   playlists={playlists}
-                  onAddToPlaylist={(playlistId, artistId) =>
-                    addSourceToPlaylist(playlistId, "artist", artistId)
+                  onAddToPlaylist={(playlistId, albumId) =>
+                    addSourceToPlaylist(playlistId, "album", albumId)
                   }
-                  onCreatePlaylist={(artistId) => {
-                    setPendingSourceForCreate({ kind: "artist", id: artistId });
+                  onCreatePlaylist={(albumId) => {
+                    setPendingSourceForCreate({ kind: "album", id: albumId });
                     setIsCreatePlaylistModalOpen(true);
                   }}
-                  onArtistClick={onNavigateToArtist}
-                  onRemoteArtistClick={onNavigateToRemoteArtist}
-                  scrollToIndexRef={artistScrollToIndexRef}
+                  onAlbumClick={onNavigateToAlbum}
+                  onRemoteAlbumClick={onNavigateToRemoteAlbum}
+                  onChangeCover={(albumId) => setCoverPickerAlbumId(albumId)}
                 />
-                {artistsSort.sort.orderBy === "name" && artists.length > 0 && (
-                  <AlphabetIndex
-                    items={artists}
-                    onLetterClick={(idx) => {
-                      artistScrollToIndexRef.current?.(idx);
+              </>
+            )}
+            {activeTab === "artists" && (
+              <>
+                <div className="relative">
+                  <ArtistList
+                    artists={artists}
+                    isLoading={loading.artists}
+                    t={t}
+                    playlists={playlists}
+                    onAddToPlaylist={(playlistId, artistId) =>
+                      addSourceToPlaylist(playlistId, "artist", artistId)
+                    }
+                    onCreatePlaylist={(artistId) => {
+                      setPendingSourceForCreate({
+                        kind: "artist",
+                        id: artistId,
+                      });
+                      setIsCreatePlaylistModalOpen(true);
                     }}
-                    className="hidden md:flex fixed right-6 top-1/2 -translate-y-1/2 z-30 bg-white/80 dark:bg-zinc-900/70 backdrop-blur-sm wf-glass rounded-full py-2 px-1.5 shadow-sm"
+                    onArtistClick={onNavigateToArtist}
+                    onRemoteArtistClick={onNavigateToRemoteArtist}
+                    scrollToIndexRef={artistScrollToIndexRef}
                   />
-                )}
-              </div>
-            </>
-          )}
-          {activeTab === "genres" && (
-            <GenreList
-              genres={genres}
-              isLoading={loading.genres}
-              t={t}
-              onSelect={onNavigateToGenre}
-            />
-          )}
-          {activeTab === "years" && (
-            <YearList
-              years={years}
-              isLoading={loading.years}
-              t={t}
-              onSelect={onNavigateToYear}
-            />
-          )}
-          {activeTab === "playlists" && (
-            <>
-              <PlaylistGrid
-                playlists={libraryPlaylists}
-                sort={playlistsSort.sort}
-                onOpen={onNavigateToPlaylist}
-                onOpenRemote={onNavigateToRemotePlaylist}
-                sourceFiltered={librarySource.source !== "all"}
-              />
-            </>
-          )}
-          {activeTab === "folders" && folderPath != null && (
-            <>
-              <FolderBrowser
-                listing={
-                  folderListing?.path === folderPath ? folderListing : null
-                }
-                isLoading={folderBusy}
-                density={folderDensity}
-                onDensity={setFolderDensity}
+                  {artistsSort.sort.orderBy === "name" &&
+                    artists.length > 0 && (
+                      <AlphabetIndex
+                        items={artists}
+                        onLetterClick={(idx) => {
+                          artistScrollToIndexRef.current?.(idx);
+                        }}
+                        className="hidden md:flex fixed right-6 top-1/2 -translate-y-1/2 z-30 bg-white/80 dark:bg-zinc-900/70 backdrop-blur-sm wf-glass rounded-full py-2 px-1.5 shadow-sm"
+                      />
+                    )}
+                </div>
+              </>
+            )}
+            {activeTab === "genres" && (
+              <GenreList
+                genres={genres}
+                isLoading={loading.genres}
                 t={t}
-                locale={i18n.resolvedLanguage ?? i18n.language}
-                onOpen={setFolderPath}
-                onRoots={() => setFolderPath(null)}
-                playlists={playlists}
-                onPlay={(path) => void playFolder(path)}
-                onQueue={(path) => {
-                  void idsUnderFolder(path).then((ids) => {
-                    if (ids.length > 0) void playerAddToQueue(ids);
-                  });
-                }}
-                onPlayNext={(path) => {
-                  void idsUnderFolder(path).then((ids) => {
-                    if (ids.length > 0) void playerPlayNext(ids);
-                  });
-                }}
-                onAddToPlaylist={(playlistId, path) => {
-                  void idsUnderFolder(path).then((ids) => {
-                    if (ids.length === 0) return;
-                    void addTracksToPlaylist(playlistId, ids).catch(
-                      (err: unknown) => {
-                        console.error(
-                          "[LibraryView] add folder to playlist failed",
-                          err,
-                        );
-                      },
-                    );
-                  });
-                }}
-                onCreatePlaylist={(path) => {
-                  void idsUnderFolder(path).then((ids) => {
-                    if (ids.length === 0) return;
-                    setPendingSourceForCreate({ kind: "tracks", ids });
-                    setIsCreatePlaylistModalOpen(true);
-                  });
-                }}
-                onBatchTag={(path) => {
-                  void idsUnderFolder(path).then((ids) => {
-                    if (ids.length > 0) setBatchTagIds(ids);
-                  });
-                }}
+                onSelect={onNavigateToGenre}
               />
-              {/* The files directly inside, in the library's own table --
+            )}
+            {activeTab === "years" && (
+              <YearList
+                years={years}
+                isLoading={loading.years}
+                t={t}
+                onSelect={onNavigateToYear}
+              />
+            )}
+            {activeTab === "playlists" && (
+              <>
+                <PlaylistGrid
+                  playlists={libraryPlaylists}
+                  sort={playlistsSort.sort}
+                  onOpen={onNavigateToPlaylist}
+                  onOpenRemote={onNavigateToRemotePlaylist}
+                  sourceFiltered={librarySource.source !== "all"}
+                />
+              </>
+            )}
+            {activeTab === "folders" && folderPath != null && (
+              <>
+                <FolderBrowser
+                  listing={
+                    folderListing?.path === folderPath ? folderListing : null
+                  }
+                  isLoading={folderBusy}
+                  density={folderDensity}
+                  onDensity={setFolderDensity}
+                  t={t}
+                  locale={i18n.resolvedLanguage ?? i18n.language}
+                  onOpen={setFolderPath}
+                  onRoots={() => setFolderPath(null)}
+                  playlists={playlists}
+                  onPlay={(path) => void playFolder(path)}
+                  onQueue={(path) => {
+                    void idsUnderFolder(path).then((ids) => {
+                      if (ids.length > 0) void playerAddToQueue(ids);
+                    });
+                  }}
+                  onPlayNext={(path) => {
+                    void idsUnderFolder(path).then((ids) => {
+                      if (ids.length > 0) void playerPlayNext(ids);
+                    });
+                  }}
+                  onAddToPlaylist={(playlistId, path) => {
+                    void idsUnderFolder(path).then((ids) => {
+                      if (ids.length === 0) return;
+                      void addTracksToPlaylist(playlistId, ids).catch(
+                        (err: unknown) => {
+                          console.error(
+                            "[LibraryView] add folder to playlist failed",
+                            err,
+                          );
+                        },
+                      );
+                    });
+                  }}
+                  onCreatePlaylist={(path) => {
+                    void idsUnderFolder(path).then((ids) => {
+                      if (ids.length === 0) return;
+                      setPendingSourceForCreate({ kind: "tracks", ids });
+                      setIsCreatePlaylistModalOpen(true);
+                    });
+                  }}
+                  onBatchTag={(path) => {
+                    void idsUnderFolder(path).then((ids) => {
+                      if (ids.length > 0) setBatchTagIds(ids);
+                    });
+                  }}
+                />
+                {/* The files directly inside, in the library's own table --
                   same columns, same sort, same context menu. */}
-              {folderListing?.path === folderPath &&
-                (folderTracks.length > 0 || folderBusy) &&
-                renderTrackTable(folderTracks, folderBusy, playFolderRow)}
-            </>
-          )}
-          {activeTab === "needs-attention" && (
-            <div className="space-y-4">
-              <InventoryCategories
-                categories={inventory}
-                isLoading={loading["needs-attention"]}
-                activeKey={inventoryCategory}
-                onSelect={(key) => {
-                  // Clicking the open category closes it, so the user
-                  // gets back to the overview without a second control.
-                  const next = inventoryCategory === key ? null : key;
-                  // The rows belong to the category that was open, and
-                  // the query replacing them runs over the whole
-                  // library. Left in place, the table spends that time
-                  // showing one category's tracks under another's name
-                  // -- and a click plays them.
-                  setInventoryRows([]);
-                  setInventoryCategory(next);
-                }}
-                t={t}
-              />
-              {/* The library's own table, so a category is an entry
+                {folderListing?.path === folderPath &&
+                  (folderTracks.length > 0 || folderBusy) &&
+                  renderTrackTable(folderTracks, folderBusy, playFolderRow)}
+              </>
+            )}
+            {activeTab === "needs-attention" && (
+              <div className="space-y-4">
+                <InventoryCategories
+                  categories={inventory}
+                  isLoading={loading["needs-attention"]}
+                  activeKey={inventoryCategory}
+                  onSelect={(key) => {
+                    // Clicking the open category closes it, so the user
+                    // gets back to the overview without a second control.
+                    const next = inventoryCategory === key ? null : key;
+                    // The rows belong to the category that was open, and
+                    // the query replacing them runs over the whole
+                    // library. Left in place, the table spends that time
+                    // showing one category's tracks under another's name
+                    // -- and a click plays them.
+                    setInventoryRows([]);
+                    setInventoryCategory(next);
+                  }}
+                  t={t}
+                />
+                {/* The library's own table, so a category is an entry
                   point and not a report: same columns, same sort, same
                   context menu, same properties modal -- which is what
                   makes fixing a track from here possible at all. */}
-              {inventoryCategory === "phantom_artist" && (
-                <PhantomArtistList
-                  refreshKey={editRefetch}
-                  onChanged={() => setEditRefetch((k) => k + 1)}
-                  t={t}
-                />
-              )}
-              {inventoryCategory != null &&
-                inventoryCategory !== "phantom_artist" &&
-                renderTrackTable(inventoryRows, inventoryBusy, (index) => {
-                  void playTracks(inventoryRows.map(toLocalTrack), index, {
-                    type: "library",
-                    id: null,
+                {inventoryCategory === "phantom_artist" && (
+                  <PhantomArtistList
+                    refreshKey={editRefetch}
+                    onChanged={() => setEditRefetch((k) => k + 1)}
+                    t={t}
+                  />
+                )}
+                {inventoryCategory != null &&
+                  inventoryCategory !== "phantom_artist" &&
+                  renderTrackTable(inventoryRows, inventoryBusy, (index) => {
+                    void playTracks(inventoryRows.map(toLocalTrack), index, {
+                      type: "library",
+                      id: null,
+                    });
+                  })}
+              </div>
+            )}
+            {activeTab === "folders" && folderPath == null && (
+              <FolderList
+                folders={folders}
+                isLoading={loading.folders}
+                t={t}
+                playlists={playlists}
+                onAddToPlaylist={(playlistId, folderId) =>
+                  addSourceToPlaylist(playlistId, "folder", folderId)
+                }
+                onCreatePlaylist={(folderId) => {
+                  setPendingSourceForCreate({ kind: "folder", id: folderId });
+                  setIsCreatePlaylistModalOpen(true);
+                }}
+                onRemove={(folderId) => {
+                  // Optimistic removal — the backend cascade-deletes
+                  // tracks too, so the LibraryContext will refresh on
+                  // the `library:rescanned` event the command emits.
+                  setFolders((prev) => prev.filter((f) => f.id !== folderId));
+                  removeFolderFromLibrary(folderId).catch((err) => {
+                    console.error("[LibraryView] remove folder failed", err);
                   });
-                })}
-            </div>
-          )}
-          {activeTab === "folders" && folderPath == null && (
-            <FolderList
-              folders={folders}
-              isLoading={loading.folders}
-              t={t}
-              playlists={playlists}
-              onAddToPlaylist={(playlistId, folderId) =>
-                addSourceToPlaylist(playlistId, "folder", folderId)
-              }
-              onCreatePlaylist={(folderId) => {
-                setPendingSourceForCreate({ kind: "folder", id: folderId });
-                setIsCreatePlaylistModalOpen(true);
-              }}
-              onRemove={(folderId) => {
-                // Optimistic removal — the backend cascade-deletes
-                // tracks too, so the LibraryContext will refresh on
-                // the `library:rescanned` event the command emits.
-                setFolders((prev) => prev.filter((f) => f.id !== folderId));
-                removeFolderFromLibrary(folderId).catch((err) => {
-                  console.error("[LibraryView] remove folder failed", err);
-                });
-              }}
-              onOpen={setFolderPath}
-              onDeepRescan={handleDeepRescanFolder}
-              deepRescanFolderId={deepRescanFolderId}
-              isAnyRescanActive={isAnyRescanActive}
-              onToggleWatched={(folderId, enable) => {
-                // Optimistic flip — the watcher hookup is fire-and-
-                // forget on the backend so the UI shouldn't block on it.
-                setFolders((prev) =>
-                  prev.map((f) =>
-                    f.id === folderId
-                      ? { ...f, is_watched: enable ? 1 : 0 }
-                      : f,
-                  ),
-                );
-                setFolderWatched(folderId, enable).catch((err) => {
-                  console.error("[LibraryView] toggle watched failed", err);
-                  // Roll back on error.
+                }}
+                onOpen={setFolderPath}
+                onDeepRescan={handleDeepRescanFolder}
+                deepRescanFolderId={deepRescanFolderId}
+                isAnyRescanActive={isAnyRescanActive}
+                onToggleWatched={(folderId, enable) => {
+                  // Optimistic flip — the watcher hookup is fire-and-
+                  // forget on the backend so the UI shouldn't block on it.
                   setFolders((prev) =>
                     prev.map((f) =>
                       f.id === folderId
-                        ? { ...f, is_watched: enable ? 0 : 1 }
+                        ? { ...f, is_watched: enable ? 1 : 0 }
                         : f,
                     ),
                   );
-                });
-              }}
-            />
-          )}
-        </Suspense>
+                  setFolderWatched(folderId, enable).catch((err) => {
+                    console.error("[LibraryView] toggle watched failed", err);
+                    // Roll back on error.
+                    setFolders((prev) =>
+                      prev.map((f) =>
+                        f.id === folderId
+                          ? { ...f, is_watched: enable ? 0 : 1 }
+                          : f,
+                      ),
+                    );
+                  });
+                }}
+              />
+            )}
+          </Suspense>
+        </ViewErrorBoundary>
       ) : loading[activeTab] ? (
         // First-load skeleton — keeps the layout occupied while the
         // initial SQL query lands, instead of flashing the "No X

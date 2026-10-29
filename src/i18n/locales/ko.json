@@ -3690,5 +3690,10 @@
       "notFound": "이 링크에는 Deezer 공개 재생 목록이 없습니다.",
       "unreachable": "Deezer에 연결할 수 없습니다."
     }
+  },
+  "viewError": {
+    "title": "이 페이지를 표시할 수 없습니다",
+    "description": "오류로 인해 불러오지 못했습니다. 앱의 나머지 기능은 계속 사용할 수 있습니다.",
+    "retry": "다시 시도"
   }
 }

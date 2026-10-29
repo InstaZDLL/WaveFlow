@@ -3690,5 +3690,10 @@
       "notFound": "Deezer 在此連結下沒有公開的播放清單。",
       "unreachable": "無法連線到 Deezer。"
     }
+  },
+  "viewError": {
+    "title": "無法顯示此頁面",
+    "description": "發生錯誤，頁面未能載入。應用程式的其他部分仍可正常使用。",
+    "retry": "重試"
   }
 }

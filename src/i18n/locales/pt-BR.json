@@ -3802,5 +3802,10 @@
       "notFound": "O Deezer não tem nenhuma playlist pública neste link.",
       "unreachable": "Não foi possível acessar o Deezer."
     }
+  },
+  "viewError": {
+    "title": "Não foi possível exibir esta página",
+    "description": "Um erro impediu o carregamento. O restante do app continua funcionando.",
+    "retry": "Tentar novamente"
   }
 }

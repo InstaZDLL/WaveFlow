@@ -3690,5 +3690,10 @@
       "notFound": "Deezer tidak memiliki daftar putar publik di tautan ini.",
       "unreachable": "Deezer tidak dapat dihubungi."
     }
+  },
+  "viewError": {
+    "title": "Halaman ini tidak dapat ditampilkan",
+    "description": "Sebuah galat mencegahnya dimuat. Bagian lain aplikasi tetap berfungsi.",
+    "retry": "Coba lagi"
   }
 }

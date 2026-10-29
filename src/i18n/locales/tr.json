@@ -3692,5 +3692,10 @@
       "notFound": "Deezer'da bu bağlantıda herkese açık bir çalma listesi yok.",
       "unreachable": "Deezer'a ulaşılamadı."
     }
+  },
+  "viewError": {
+    "title": "Bu sayfa gösterilemedi",
+    "description": "Bir hata yüklenmesini engelledi. Uygulamanın geri kalanı çalışmaya devam ediyor.",
+    "retry": "Yeniden dene"
   }
 }
