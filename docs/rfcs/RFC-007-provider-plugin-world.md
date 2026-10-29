@@ -304,8 +304,14 @@ adds one permission, **`connection`**, and changes nothing else:
 - **The grant is the connection's origin**: scheme, host and port of
   `base-url`, under its path prefix. A request to anything else answers
   `permission denied` before a socket opens, exactly as an unlisted host does
-  today. A provider's manifest may still list fixed hosts in `http` — none of the
-  three planned here needs one.
+  today. It is installed **before `sign-in`** — the host parses and normalises
+  the URL first — so the call that receives the secret already runs under it.
+- **A provider has no fixed hosts.** The manifest parser refuses a
+  `waveflow:provider/*` plugin whose `http` list is not empty. Every call carries
+  the credential, and one allowlisted third-party host would be somewhere the
+  guest could send it; none of the three planned here needs one. A provider that
+  ever does is a new permission with its own review, not a loosening of this
+  rule.
 - **A private or loopback address is allowed through the grant, and only
   through it.** The SSRF guard that refuses internal addresses for plugin URLs
   (`is_safe_motion_url`) stays in force everywhere else; it is the user typing
@@ -323,14 +329,20 @@ adds one permission, **`connection`**, and changes nothing else:
   URL in a place the log keeps. It is refused, and the picture comes from
   `getCoverArt` instead.
 - **Redirects stay off for the guest** (the shared client already refuses them,
-  so an allowlisted host cannot bounce a request elsewhere) **and become
-  same-origin-only for the decoder** when it opens a provider stream — the HTTP
-  source follows redirects to any host today, which is right for a radio CDN and
-  wrong for a URL carrying a server credential.
-- **Plain `http` is allowed**, because most home servers have no certificate, and
-  the interface says, on a public address, that the credential travels in
-  clear — a Subsonic salted token does not expire, so a captured one is
-  replayable. Whether that should be a refusal instead is an
+  so an allowlisted host cannot bounce a request elsewhere) **and, for the
+  decoder, every hop must stay inside the grant** when it opens a provider
+  stream — the same scheme, host, port **and path prefix** as the first URL,
+  re-checked at each hop. The HTTP source follows redirects to any host today,
+  which is right for a radio CDN and wrong for a URL carrying a server
+  credential; and checking only the origin would let a redirect carry the
+  credential to another application served from the same host under another
+  path.
+- **Plain `http` is allowed on a private or loopback address**, because most
+  home servers have no certificate. **On a public address it is refused** unless
+  the user turns on, for that one source, an explicit "connect without
+  encryption" switch whose warning says what it costs: a Subsonic salted token
+  does not expire, so a captured one is replayable by anyone on the path.
+  Whether that switch should exist at all is an
   [open question](#open-questions).
 
 **Nothing opens the network implicitly.** Installing a provider does nothing.
@@ -347,8 +359,10 @@ queue. The guest is never woken to be told no.
 **No secret reaches the log** ([invariant](../architecture/invariants.md#no-secret-reaches-the-log)),
 in three places the existing rule does not yet cover:
 
-- a provider URL is logged as its **origin only** — `redact_url` drops query
-  and userinfo but keeps the path, and a provider's path is not ours to vouch
+- a provider URL is logged as its **origin only**, through a helper of its own.
+  `redact_url` is deliberately not used for it: it drops query and userinfo but
+  keeps the path, which is right for our server's routes (whose one secret
+  segment it knows how to mask) and not for a path that is not ours to vouch
   for;
 - a plugin's `log.emit` text goes through the walk the updater's foreign errors
   already use, `describe_error_without_urls` (every URL cut to its origin), and
@@ -763,8 +777,11 @@ headers / same-origin redirects / media-type refusal, the picture cache, the
 outbound queue and its retry rule — driven by an in-repository **fixture
 provider** (like `canvas-fixture` and `ui-fixture`) serving a synthetic,
 paginated catalogue. It must prove, in Rust tests: a request off the connection's
-origin is refused before a socket opens, a redirect to another origin is refused,
-a descriptor with userinfo or a path secret is refused; offline mode calls no
+origin is refused before a socket opens, `sign-in` included; a provider manifest
+with fixed hosts is refused; a redirect to another origin is refused, and so is
+one to another path of the same origin outside the prefix; a public `http` URL
+is refused without the source's opt-in; a descriptor with userinfo or a path
+secret is refused; offline mode calls no
 export; the credential never appears in the log, verbatim or inside a URL; a walk
 is resumable and cancellable between pages and a partial walk purges nothing; a
 referenced row survives the purge; a 200 JSON body is refused as audio; the
@@ -816,9 +833,10 @@ when nothing changed.
 
 These need a decision from the maintainer, not from an implementer:
 
-1. **Plain `http` to a public address**: allowed with a warning (this draft), or
-   refused? A home LAN server has no certificate; a public one without TLS sends
-   a replayable token to anyone on the path.
+1. **Plain `http` to a public address**: refused unless a per-source switch is
+   turned on (this draft), or refused outright with no switch? A home LAN server
+   has no certificate; a public one without TLS sends a replayable token to
+   anyone on the path.
 2. **A play report whose answer was lost**: dropped (this draft — a missed play
    count) or replayed (a doubled one)? Subsonic cannot tell the two apart.
 3. **More than one source per plugin per profile** — two Navidromes. The schema
