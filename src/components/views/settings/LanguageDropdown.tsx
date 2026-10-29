@@ -7,6 +7,11 @@ import {
 import { Check, ChevronDown } from "lucide-react";
 import { createPortal } from "react-dom";
 
+// Tallest the listbox gets (keep in sync with `max-h-80` below). With
+// seventeen languages the list is taller than most windows, so it scrolls
+// inside its own box, and the box is pulled up to stay on screen.
+const MENU_MAX_HEIGHT = 320;
+
 interface LanguageDropdownProps {
   currentCode: string;
   onSelect: (code: string) => void;
@@ -78,13 +83,20 @@ export function LanguageDropdown({
   // from a snapshot of the trigger's rect, so any layout shift would
   // leave it visually detached from the trigger. Closing is simpler
   // (and matches native <select>) than re-measuring on every frame.
+  // The capture-phase listener also hears the listbox's own scrolling —
+  // a wheel over it, or the arrow keys moving focus past its edge — and
+  // that one must not close it.
   useEffect(() => {
     if (!isOpen) return;
     const close = () => setIsOpen(false);
-    window.addEventListener("scroll", close, true);
+    const onScroll = (event: Event) => {
+      if (listboxRef.current?.contains(event.target as Node)) return;
+      setIsOpen(false);
+    };
+    window.addEventListener("scroll", onScroll, true);
     window.addEventListener("resize", close);
     return () => {
-      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("scroll", onScroll, true);
       window.removeEventListener("resize", close);
     };
   }, [isOpen]);
@@ -103,11 +115,18 @@ export function LanguageDropdown({
         // portaled listbox, then focus the currently selected option.
         // `mt-2` (= 8px) keeps the visual gap the old absolute markup
         // had; `right` is measured from the viewport edge to mirror
-        // the original `right-0` anchor.
+        // the original `right-0` anchor. The top is clamped so a trigger
+        // near the bottom of the window does not push the list off it.
         const rect = triggerRef.current?.getBoundingClientRect();
         if (rect) {
           setPosition({
-            top: rect.bottom + 8,
+            top: Math.max(
+              8,
+              Math.min(
+                rect.bottom + 8,
+                window.innerHeight - MENU_MAX_HEIGHT - 8,
+              ),
+            ),
             right: window.innerWidth - rect.right,
           });
         }
@@ -200,7 +219,7 @@ export function LanguageDropdown({
               top: position.top,
               right: position.right,
             }}
-            className="min-w-48 rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated dark:shadow-black/40 overflow-hidden z-[100] animate-fade-in py-1"
+            className="min-w-48 max-h-80 overflow-y-auto overscroll-contain rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated dark:shadow-black/40 z-[100] animate-fade-in py-1"
           >
             {SUPPORTED_LANGUAGES.map((lang, index) => {
               const isSelected = lang.code === normalizedCurrentCode;
