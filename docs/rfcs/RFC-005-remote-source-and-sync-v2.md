@@ -96,6 +96,11 @@ available.
 > today. A client that probed capabilities that way would conclude the server
 > offers nothing, while it in fact offers the entire v2 API.
 
+_Since amended:_ the `SubsonicSource` half of this diagram will not be built in
+the core. [RFC-007](RFC-007-provider-plugin-world.md) (Draft) moves third-party
+servers to plugins of a new `waveflow:provider/v1` world; `WaveflowSource` and
+everything above about our own server stand.
+
 ## Decision 3 — remote identity is polymorphic
 
 ```rust
@@ -108,6 +113,11 @@ enum RemoteIdentity {
 A third-party server has no account UUID, no device notion and no cursor.
 Putting those three fields in a shared struct would make them optional
 everywhere and spread `unwrap` over cases that cannot occur.
+
+_Since amended:_ the `Subsonic` variant is never written — sign-in refuses such a
+server before any binding exists — and
+[RFC-007](RFC-007-provider-plugin-world.md) (Draft) gives a third-party server
+its own per-profile connection instead, so the variant goes when that is built.
 
 One desktop profile binds to one server account. A profile stays the local unit
 of identity and session; a library is a content resource, so an account exposing
@@ -838,6 +848,7 @@ comparable rather than merely concatenated:
   before, is ASCII-only and could not. A row mirrored before the sort
   columns existed has them `NULL`, and `COALESCE` supplies its display title
   and artist until a mirror walk fills them in.
+
 - **A local library filter excludes the remote half.** The picker chooses among
   _local_ libraries, and a server album belongs to none of them; leaving the
   remote rows visible while the user has narrowed to one library reads as the
