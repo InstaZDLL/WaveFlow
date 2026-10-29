@@ -3692,5 +3692,10 @@
       "notFound": "Deezer has no public playlist at this link.",
       "unreachable": "Deezer could not be reached."
     }
+  },
+  "viewError": {
+    "title": "This page couldn't be shown",
+    "description": "Something stopped it from loading. The rest of the app still works.",
+    "retry": "Retry"
   }
 }

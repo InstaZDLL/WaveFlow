@@ -3802,5 +3802,10 @@
       "notFound": "A Deezer não tem nenhuma lista pública nesta ligação.",
       "unreachable": "Não foi possível contactar a Deezer."
     }
+  },
+  "viewError": {
+    "title": "Não foi possível mostrar esta página",
+    "description": "Um erro impediu o seu carregamento. O resto da aplicação continua a funcionar.",
+    "retry": "Tentar novamente"
   }
 }

@@ -3692,5 +3692,10 @@
       "notFound": "Deezer heeft geen openbare afspeellijst op deze link.",
       "unreachable": "Deezer is niet bereikbaar."
     }
+  },
+  "viewError": {
+    "title": "Deze pagina kan niet worden weergegeven",
+    "description": "Een fout verhinderde het laden. De rest van de app werkt nog steeds.",
+    "retry": "Opnieuw proberen"
   }
 }

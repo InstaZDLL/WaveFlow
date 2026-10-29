@@ -1,11 +1,4 @@
-import {
-  lazy,
-  Suspense,
-  useState,
-  useCallback,
-  useEffect,
-  useRef,
-} from "react";
+import { Suspense, useState, useCallback, useEffect, useRef } from "react";
 import type { ViewId, LibraryTab, SidebarMode } from "../../types";
 import { useLibrary } from "../../hooks/useLibrary";
 import { useProfile } from "../../hooks/useProfile";
@@ -46,101 +39,71 @@ import { QueueToast } from "../common/QueueToast";
 import { PluginAttentionToast } from "../common/PluginAttentionToast";
 import { OnboardingModal } from "../common/OnboardingModal";
 import { ViewSuspenseFallback } from "../common/ViewSuspenseFallback";
+import { ViewErrorBoundary } from "../common/ViewErrorBoundary";
+import { retryableLazy } from "../../lib/preloadable";
 import { PageScrollContext } from "../../contexts/PageScrollContext";
 
-const HomeView = lazy(() =>
-  import("../views/HomeView").then((module) => ({ default: module.HomeView })),
+const HomeView = retryableLazy(() =>
+  import("../views/HomeView").then((module) => module.HomeView),
 );
 // The Library and Settings render their tabs and pages from chunks of
 // their own: those start loading alongside the view's, not after it.
-const LibraryView = lazy(() => {
+const LibraryView = retryableLazy(() => {
   void import("../views/library/tabs").then((m) => m.preloadLibraryTabs());
-  return import("../views/LibraryView").then((module) => ({
-    default: module.LibraryView,
-  }));
+  return import("../views/LibraryView").then((module) => module.LibraryView);
 });
 // Type-only, so it does not pull the lazily-loaded module into this
 // bundle: the entry below carries a category and has to spell it the
 // same way Settings does.
 import type { SettingsCategory } from "../views/SettingsView";
 
-const SettingsView = lazy(() => {
+const SettingsView = retryableLazy(() => {
   void import("../views/settings/sections").then((m) =>
     m.preloadSettingsSections(),
   );
-  return import("../views/SettingsView").then((module) => ({
-    default: module.SettingsView,
-  }));
+  return import("../views/SettingsView").then((module) => module.SettingsView);
 });
-const WebRadioView = lazy(() =>
-  import("../views/WebRadioView").then((module) => ({
-    default: module.WebRadioView,
-  })),
+const WebRadioView = retryableLazy(() =>
+  import("../views/WebRadioView").then((module) => module.WebRadioView),
 );
-const ExtensionsView = lazy(() =>
-  import("../views/ExtensionsView").then((module) => ({
-    default: module.ExtensionsView,
-  })),
+const ExtensionsView = retryableLazy(() =>
+  import("../views/ExtensionsView").then((module) => module.ExtensionsView),
 );
-const PluginUIView = lazy(() =>
-  import("../views/PluginUIView").then((module) => ({
-    default: module.PluginUIView,
-  })),
+const PluginUIView = retryableLazy(() =>
+  import("../views/PluginUIView").then((module) => module.PluginUIView),
 );
-const AboutView = lazy(() =>
-  import("../views/AboutView").then((module) => ({
-    default: module.AboutView,
-  })),
+const AboutView = retryableLazy(() =>
+  import("../views/AboutView").then((module) => module.AboutView),
 );
-const FeedbackView = lazy(() =>
-  import("../views/FeedbackView").then((module) => ({
-    default: module.FeedbackView,
-  })),
+const FeedbackView = retryableLazy(() =>
+  import("../views/FeedbackView").then((module) => module.FeedbackView),
 );
-const StatisticsView = lazy(() =>
-  import("../views/StatisticsView").then((module) => ({
-    default: module.StatisticsView,
-  })),
+const StatisticsView = retryableLazy(() =>
+  import("../views/StatisticsView").then((module) => module.StatisticsView),
 );
-const WrappedView = lazy(() =>
-  import("../views/WrappedView").then((module) => ({
-    default: module.WrappedView,
-  })),
+const WrappedView = retryableLazy(() =>
+  import("../views/WrappedView").then((module) => module.WrappedView),
 );
-const LikedView = lazy(() =>
-  import("../views/LikedView").then((module) => ({
-    default: module.LikedView,
-  })),
+const LikedView = retryableLazy(() =>
+  import("../views/LikedView").then((module) => module.LikedView),
 );
-const HistoryView = lazy(() =>
-  import("../views/HistoryView").then((module) => ({
-    default: module.HistoryView,
-  })),
+const HistoryView = retryableLazy(() =>
+  import("../views/HistoryView").then((module) => module.HistoryView),
 );
-const PlaylistView = lazy(() =>
-  import("../views/PlaylistView").then((module) => ({
-    default: module.PlaylistView,
-  })),
+const PlaylistView = retryableLazy(() =>
+  import("../views/PlaylistView").then((module) => module.PlaylistView),
 );
-const AlbumDetailView = lazy(() =>
-  import("../views/AlbumDetailView").then((module) => ({
-    default: module.AlbumDetailView,
-  })),
+const AlbumDetailView = retryableLazy(() =>
+  import("../views/AlbumDetailView").then((module) => module.AlbumDetailView),
 );
-const ArtistDetailView = lazy(() =>
-  import("../views/ArtistDetailView").then((module) => ({
-    default: module.ArtistDetailView,
-  })),
+const ArtistDetailView = retryableLazy(() =>
+  import("../views/ArtistDetailView").then((module) => module.ArtistDetailView),
 );
-const GenreDetailView = lazy(() =>
-  import("../views/GenreDetailView").then((module) => ({
-    default: module.GenreDetailView,
-  })),
+const GenreDetailView = retryableLazy(() =>
+  import("../views/GenreDetailView").then((module) => module.GenreDetailView),
 );
-const YearDetailView = lazy(() =>
-  import("../views/YearDetailView").then((module) => ({
-    default: module.YearDetailView,
-  })),
+const YearDetailView = retryableLazy(() =>
+  import("../views/YearDetailView").then((module) => module.YearDetailView),
 );
 // Each entry in the navigation history pairs a view id with its payload
 // (when relevant) so back/forward can restore the exact target the user
@@ -862,24 +825,29 @@ export function AppLayout() {
                 className="flex-1 overflow-y-auto p-8 relative"
               >
                 <PageScrollContext.Provider value={pageScrollRef}>
-                  <Suspense fallback={<ViewSuspenseFallback />}>
-                    {/* Crossfade + slight slide between views. Keyed on
+                  {/* A view that fails to load or to render is contained
+                    here: everything outside `main` keeps working, and the
+                    next navigation clears it. */}
+                  <ViewErrorBoundary resetKey={currentEntry}>
+                    <Suspense fallback={<ViewSuspenseFallback />}>
+                      {/* Crossfade + slight slide between views. Keyed on
                       the structural view id (album/artist/genre/playlist
                       keep a single key so the inner view handles its own
                       internal navigation — re-keying on every payload
                       change would jank the transition). */}
-                    <AnimatePresence mode="wait" initial={false}>
-                      <motion.div
-                        key={activeView}
-                        initial={{ opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -4 }}
-                        transition={{ duration: 0.18, ease: "easeOut" }}
-                      >
-                        {renderView()}
-                      </motion.div>
-                    </AnimatePresence>
-                  </Suspense>
+                      <AnimatePresence mode="wait" initial={false}>
+                        <motion.div
+                          key={activeView}
+                          initial={{ opacity: 0, y: 6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -4 }}
+                          transition={{ duration: 0.18, ease: "easeOut" }}
+                        >
+                          {renderView()}
+                        </motion.div>
+                      </AnimatePresence>
+                    </Suspense>
+                  </ViewErrorBoundary>
                 </PageScrollContext.Provider>
               </main>
 
