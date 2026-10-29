@@ -5,7 +5,7 @@
 - **Authors**: @InstaZDLL
 - **Depends on**: [RFC-002](RFC-002-plugin-sdk.md) (the WASM host, worlds, permissions, the registry pin), [RFC-005](RFC-005-remote-source-and-sync-v2.md) (the remote source, the parallel queue, the projection), [RFC-006](RFC-006-deduplicating-the-two-catalogues.md) (what a proven pair may change).
 - **Amends**: RFC-005 [Decision 2](RFC-005-remote-source-and-sync-v2.md#decision-2--two-seams-so-sync-stays-a-capability) and [Decision 3](RFC-005-remote-source-and-sync-v2.md#decision-3--remote-identity-is-polymorphic). The `SubsonicSource` they placed in the core is withdrawn; a third-party server is reached through a plugin. Everything those decisions say about our own server stands.
-- **Implementation**: none yet. The measurements below were taken against a live server on 2026-10-29.
+- **Implementation**: none yet. The measurements below were taken on 2026-10-29 against two live servers: Navidrome 0.64.2, and the `/rest` façade of WaveFlow Server 2.0.0. Wherever this RFC compares a provider with our own server, "our server" is that published release (tag `v2.0.0`).
 - **Naming trap**: the server repository has its **own** RFC-007 (the library event stream) and RFC-008 (receiving a file), and code in this repository already cites them by number — `remote/upload.rs` says "RFC-008" and means the server's. Any reference to "RFC-007" must name the repository, exactly as [RFC-005 does for 003](RFC-005-remote-source-and-sync-v2.md#the-rfc-003-naming-trap).
 
 ---
@@ -193,19 +193,23 @@ the retry rule is:
 
 Measured on Navidrome, which is what forced the split: `star` twice is harmless,
 `setRating` is absolute, but **`scrobble` with the same timestamp twice counts
-two plays** (`playCount` 3 after one play, its replay and one more). And the
+two plays** (`playCount` 3 after one play, its replay and one more) — and so does
+WaveFlow Server 2.0.0's own `/rest` façade (`playCount` 2 after one play and its
+replay), so this is the protocol, not one server. And the
 playlist edit the protocol offers, `updatePlaylist`, removes by **index** — a
 replay removes the next song. So the contract offers no index-based edit at all:
 a playlist change is `replace-playlist(id, full ordered list)`, which
 `createPlaylist` with a `playlistId` implements (measured: it replaces the whole
 content) and which is idempotent by construction.
 
-Two more measured facts the host has to own rather than trust: **`setRating`
-accepts 7** and stores it, so the host clamps to 0–5 before anything is queued;
-and **`star` or `scrobble` on an unknown id answers `ok`**, so a write against a
-track the server has since deleted is invisible to the client. That is accepted —
-the next walk purges the row — but it means a queue can never use a server's
-silence as proof the write landed on something.
+Two more measured facts the host has to own rather than trust, because the two
+servers disagree on them: **`setRating 7`** is stored by Navidrome and refused
+(code 10) by WaveFlow 2.0.0, so the host clamps to 0–5 before anything is
+queued; and **`star` or `scrobble` on an unknown id** answers `ok` on Navidrome
+and code 70 on WaveFlow. On the first, a write against a track the server has
+since deleted is invisible to the client. That is accepted — the next walk
+purges the row — but it means a queue can never use a server's silence as proof
+the write landed on something.
 
 ### Identifiers
 
@@ -254,10 +258,13 @@ Typed because the host acts on it: `auth-refused` puts the source in the
 "credential refused" state the plugin settings already render
 ([plugins.md](../features/plugins.md#telling-the-user-a-credential-was-refused)),
 `transient` lets a walk pause instead of failing. Measured, and the reason the
-mapping belongs in the plugin: **Navidrome answers every error with HTTP 200**
-and a `status: "failed"` body — code 10 for a missing parameter, 40 for a wrong
-credential, 70 for an unknown id — where our server answers 400 and 401. A client
-that looked at status codes would read every refusal as success.
+mapping belongs in the plugin: **both servers answer every `/rest` error with
+HTTP 200** and a `status: "failed"` body — code 10 for a missing parameter, 40
+for a wrong credential, 70 for an unknown id (WaveFlow 2.0.0 aligned on this
+for its façade; its `/api/v2` keeps real statuses). A client that looked at
+status codes would read every refusal as success. The codes themselves are not
+uniform either: an identifier WaveFlow cannot parse answers code 10 ("Invalid
+UUID") where Navidrome answers 70, and both mean "no such item" to the host.
 
 ## Decision 3 — the connection belongs to the profile, the credential to the host
 
@@ -436,7 +443,10 @@ against Navidrome:
   scan**, and `ifModifiedSince` returns an empty index when it has not moved. A
   scan that changed nothing still moves it, so it is a safe "skip" signal and a
   noisy "walk" signal — never a false "unchanged". That is `unchanged` /
-  `changed`.
+  `changed`. **It is not universal**: WaveFlow 2.0.0's façade returns the full
+  index whatever `ifModifiedSince` says. The plugin therefore checks once, after
+  sign-in, whether the server honours it — asking with the `lastModified` it
+  just received — and answers `changed` every time on a server that does not.
 - **Identifiers survive a retag and a rename** — the same song id before and
   after both, on Navidrome 0.64.2. Without that, every rename would read as a
   deletion plus an addition and orphan the song from every server playlist; with
@@ -515,15 +525,16 @@ protocols:
 
 **Seeking** depends on what the server sent, and the descriptor says which:
 
-| What was asked                           | Measured answer                                                                                                          | Seek by                                                                      |
-| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
-| original bytes                           | `Content-Length`, `Accept-Ranges: bytes`, 206 with `Content-Range`                                                       | byte ranges, as today; the stream cache can keep it                          |
-| a transcode, first time                  | chunked, `Accept-Ranges: none`, no length                                                                                | re-request with a time offset (`timeOffset`, OpenSubsonic `transcodeOffset`) |
-| the same transcode again                 | the server cached it: 206 and an exact length                                                                            | byte ranges — a bonus, never relied on                                       |
-| a transcode with `estimateContentLength` | a length announced up front — **larger than what is sent** the first time (236 526 bytes delivered of 241 664 announced) | not used: a seek or a progress bar computed on it points past the end        |
+| What was asked                           | Measured answer                                                                                                                                                       | Seek by                                                                      |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| original bytes                           | `Content-Length`, `Accept-Ranges: bytes`, 206 with `Content-Range`                                                                                                    | byte ranges, as today; the stream cache can keep it                          |
+| a transcode, first time                  | chunked, `Accept-Ranges: none`, no length                                                                                                                             | re-request with a time offset (`timeOffset`, OpenSubsonic `transcodeOffset`) |
+| the same transcode again                 | the server cached it: 206 and an exact length                                                                                                                         | byte ranges — a bonus, never relied on                                       |
+| a transcode with `estimateContentLength` | Navidrome: a length announced up front — **larger than what is sent** the first time (236 526 bytes delivered of 241 664 announced); WaveFlow 2.0.0: ignored, chunked | not used: a seek or a progress bar computed on it points past the end        |
 
-`timeOffset` on an original stream is **ignored** (measured: the whole file
-comes back), so it is never used for raw bytes. A transcoded stream from a
+`timeOffset` on an original stream is **ignored** by Navidrome (the whole file
+comes back) and **refused** by WaveFlow 2.0.0 (a JSON error in place of the
+audio), so it is never sent for raw bytes. A transcoded stream from a
 server without `transcodeOffset` cannot seek at all: the descriptor says
 `seek: none` and the scrubber is not drawn, rather than drawn and ignored.
 
@@ -537,31 +548,39 @@ scanner and playback use (`AUDIO_EXTENSIONS` and the codec registry —
 never a list a plugin keeps. That last part is not an optimisation: a server
 holding WavPack or APE files, which the engine does not decode, must be asked to
 transcode **those** whatever the preference says, or they are unplayable rows.
-Measured against Navidrome:
+Measured:
 
 - `maxBitRate` alone is not "lossy": it caps the file's _average_ bitrate. A
   100 kbps FLAC came back as FLAC under a 192 cap; a 734 kbps one came back as
-  Opus. "Original" means `format=raw`, said explicitly.
-- An unknown `format` (`wav`) falls back to Opus without an error.
+  Opus on Navidrome and as MP3 on WaveFlow 2.0.0. "Original" means `format=raw`,
+  said explicitly.
+- An unknown `format` (`wav`) is not an error on either server, and they answer
+  it differently: Navidrome falls back to Opus, WaveFlow 2.0.0 to the original
+  (a 24/96 FLAC came back as FLAC). A plugin never sends a format it has not
+  seen the server advertise or accept.
 - The OpenSubsonic `transcoding` extension's `getTranscodeDecision` takes our
-  capability list and answers per track: `canDirectPlay` for a 24/96 FLAC, an
-  Opus transcode for WavPack, with a signed `transcodeParams` for
-  `getTranscodeStream`. Where it exists, the plugin uses it; where it does not,
+  capability list and answers per track: on Navidrome, `canDirectPlay` for a
+  24/96 FLAC, an Opus transcode for WavPack, with a signed `transcodeParams` for
+  `getTranscodeStream`. WaveFlow 2.0.0 does not implement it ("Requested method
+  is not implemented"). Where it exists, the plugin uses it; where it does not,
   the plugin forces a lossy format for containers outside our list.
-- A fresh Opus or AAC transcode started answering in about 50 ms on this machine.
+- A fresh Opus or AAC transcode started answering in about 50 ms on Navidrome; a
+  20-second MP3 transcode took 160–210 ms end to end on both.
 
 **Caching.** The catalogue is in SQL. Pictures go to a disk cache per profile,
-as the remote covers do, **only when the descriptor says the answer is
-immutable** — measured: Navidrome's versioned cover id (`al-<id>_<hash>`) answers
-`Cache-Control: public, max-age=31536000, immutable`, the bare album id answers
-`no-cache` — and **only for an entity whose `art-ref` is set**: asked for an album
-with no picture, Navidrome returns a 69 KB placeholder image with a 200, which a
-cache would keep as that album's cover forever. Original streams with a length can
+as the remote covers do, **kept as long as the answer allows and no longer** —
+measured: Navidrome's versioned cover id (`al-<id>_<hash>`) answers
+`Cache-Control: public, max-age=31536000, immutable` and is kept for good, the
+bare album id answers `no-cache` and is not kept, and WaveFlow 2.0.0 answers
+`private, max-age=86400` to both its hash and its album id, which is a day —
+and **only for an entity whose `art-ref` is set**: asked for an album with no
+picture, Navidrome returns a 69 KB placeholder image with a 200, which a cache
+would keep as that album's cover forever (WaveFlow answers a JSON error). Original streams with a length can
 use the existing stream cache; transcodes cannot.
 
 ## What stays ours, what becomes generic
 
-| Ours alone (our server, RFC-005)                                  | Generic (every source)                                                     |
+| Ours alone (WaveFlow Server 2.0.0, `/api/v2`, RFC-005)            | Generic (every source)                                                     |
 | ----------------------------------------------------------------- | -------------------------------------------------------------------------- |
 | PKCE sign-in, refresh rotation, device id                         | A source in the unified library: tag, chip, filter, comparable sort keys   |
 | The sync journal, snapshot, ACK, socket                           | The parallel playback queue, with a source discriminant                    |
@@ -570,7 +589,11 @@ use the existing stream cache; transcodes cannot.
 | Stream and Canvas tickets, upload, download, import               | The task registry for walks; the per-source outbound queue and retry rule  |
 | Server-side transcode status (`/api/v2/transcode/status`)         | The transcode preference and the playable-format list passed to the server |
 
-The left column is why our server is not a provider. The right column is built
+Every route the left column relies on — stream and Canvas tickets, the transcode
+status, the library events feed, the sync snapshot and changes, the PKCE
+authorize and token endpoints, uploads, `full_hash` and the operation-id header —
+is in the 2.0.0 release's API guide. The left column is why our server is not a
+provider. The right column is built
 once, in step 1, and the server path is moved onto it where it already does the
 same thing — the queue entry and the artwork cache — so there is one of each.
 
@@ -579,7 +602,16 @@ same thing — the queue entry and the artwork cache — so there is one of each
 What happens to `probe.supports_sync === false`:
 
 - **The probe stays.** It is unauthenticated, protocol-generic and correct — its
-  job becomes routing the user, not refusing them.
+  job becomes routing the user, not refusing them. It still discriminates on
+  `type`, which stays right: the "empty extension list" RFC-005 recorded as a
+  trap no longer holds — 2.0.0 advertises four extensions, but only to a signed-in
+  caller.
+- **A WaveFlow server never becomes a provider.** Its `/rest` façade passed every
+  probe above, so the OpenSubsonic plugin _could_ browse it — and would lose the
+  journal, the events feed, the content hashes and RFC-006 pairing, and list the
+  same server twice beside a native binding. `type: "waveflow"` routes to the
+  native sign-in on the card, and the plugin's `describe`, seeing it, refuses
+  with a message that says where to connect instead.
 - **The disabled browser sign-in button goes.** For a Subsonic-speaking server
   the card says what it found and offers the way in: _Add as a source_ when the
   OpenSubsonic plugin is installed (opening its connection form with the URL
@@ -601,21 +633,21 @@ speaks the protocol — and because the protocol was measured here rather than r
 
 ### Call mapping
 
-| Contract                   | OpenSubsonic call(s)                                                                                                                                                                          |
-| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `sign-in`, `describe`      | `ping` (identifies the server even when it fails), `getOpenSubsonicExtensions` (answers without auth), `getUser` (roles), `getMusicFolders`                                                   |
-| `catalogue-page` tracks    | `search3` with an empty query, `songCount` / `songOffset` — measured to page the whole catalogue on Navidrome; fallback `getAlbumList2` + `getAlbum` for a server that refuses an empty query |
-| `catalogue-page` albums    | `getAlbumList2` `type=alphabeticalByName`, `size` / `offset`                                                                                                                                  |
-| `catalogue-page` artists   | `search3` artists **and** `getArtists`: measured, `getArtists` lists album artists only (7 of 10 here); a track-only credit ("Gamma Pulse") appears only through search                       |
-| `catalogue-page` playlists | `getPlaylists`, `getPlaylist`                                                                                                                                                                 |
-| `changes`                  | `getIndexes` with `ifModifiedSince` (`unchanged` / `changed` only, see Delta)                                                                                                                 |
-| `search`                   | `search3` — measured prefix-matching ("lig" finds "Light", "ight" finds nothing) and accent-folding ("Ålpha" finds "Alpha")                                                                   |
-| `stream`                   | `stream` (`format`, `maxBitRate`, `timeOffset`), or `getTranscodeDecision` + `getTranscodeStream` with the `transcoding` extension                                                            |
-| `artwork`                  | `getCoverArt` with the entity's `coverArt` id and `size`                                                                                                                                      |
-| `apply` favourite          | `star` / `unstar` (`id`, `albumId`, `artistId`)                                                                                                                                               |
-| `apply` rating             | `setRating` (host clamps 0–5)                                                                                                                                                                 |
-| `apply` play               | `scrobble` `submission=true` with `time`; `submission=false` for now-playing                                                                                                                  |
-| `apply` playlist           | `createPlaylist` (new, or with `playlistId` to replace), `deletePlaylist` — never `updatePlaylist`'s index removal                                                                            |
+| Contract                   | OpenSubsonic call(s)                                                                                                                                                                                                                                                                                                                                                      |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sign-in`, `describe`      | `ping` (identifies the server even when it fails), `getOpenSubsonicExtensions` (public on Navidrome, signed-in only on WaveFlow 2.0.0 — so it is asked after sign-in), `getUser` (roles), `getMusicFolders`                                                                                                                                                               |
+| `catalogue-page` tracks    | `search3` with the **literal query `""`** (two quote characters), `songCount` / `songOffset` in pages of at most 500 — measured: Navidrome pages the whole catalogue with it or with an empty string, and caps nothing; WaveFlow 2.0.0 answers nothing to an empty string and caps a page at 500. Fallback `getAlbumList2` + `getAlbum` for a server that accepts neither |
+| `catalogue-page` albums    | `getAlbumList2` `type=alphabeticalByName`, `size` / `offset`                                                                                                                                                                                                                                                                                                              |
+| `catalogue-page` artists   | `search3` artists **and** `getArtists`: measured, `getArtists` lists album artists only (7 of 10 here); a track-only credit ("Gamma Pulse") appears only through search                                                                                                                                                                                                   |
+| `catalogue-page` playlists | `getPlaylists`, `getPlaylist`                                                                                                                                                                                                                                                                                                                                             |
+| `changes`                  | `getIndexes` with `ifModifiedSince` where the server honours it (`unchanged` / `changed` only, see Delta), `changed` every time where it does not                                                                                                                                                                                                                         |
+| `search`                   | `search3` — measured prefix-matching ("lig" finds "Light", "ight" finds nothing) and accent-folding ("Ålpha" finds "Alpha")                                                                                                                                                                                                                                               |
+| `stream`                   | `stream` (`format`, `maxBitRate`, `timeOffset`), or `getTranscodeDecision` + `getTranscodeStream` with the `transcoding` extension                                                                                                                                                                                                                                        |
+| `artwork`                  | `getCoverArt` with the entity's `coverArt` id and `size`                                                                                                                                                                                                                                                                                                                  |
+| `apply` favourite          | `star` / `unstar` (`id`, `albumId`, `artistId`)                                                                                                                                                                                                                                                                                                                           |
+| `apply` rating             | `setRating` (host clamps 0–5)                                                                                                                                                                                                                                                                                                                                             |
+| `apply` play               | `scrobble` `submission=true` with `time`; `submission=false` for now-playing                                                                                                                                                                                                                                                                                              |
+| `apply` playlist           | `createPlaylist` (new, or with `playlistId` to replace), `deletePlaylist` — never `updatePlaylist`'s index removal                                                                                                                                                                                                                                                        |
 
 Lyrics (`getLyricsBySongId`, the `songLyrics` extension) are deliberately left
 out of the provider world: they belong to the `metadata` world's lyrics
@@ -629,6 +661,8 @@ In order of preference:
 1. **An API key** (`apiKey`), where the server advertises the
    `apiKeyAuthentication` extension. Navidrome 0.64.2 does not: measured, an
    `apiKey` parameter is ignored and the request fails on the missing username.
+   WaveFlow 2.0.0 does, and accepts it — also when a username is sent beside it,
+   which the extension says should be refused, so the plugin never sends both.
 2. **A salted token** — `t = md5(password + salt)`, `s = salt`, fresh per request.
    The password stays in the connection, never in a URL.
 3. **Never `p=`, never `p=enc:`.** The second is hex, which is the first with an
@@ -642,71 +676,92 @@ form body), API calls carry them in the body, not the URL. Stream and cover URLs
 are GETs the decoder opens and keep them in the query, which is why they never
 leave the backend and are logged as an origin.
 
-### Measured against Navidrome
+### Measured against two servers
 
-**Set-up.** `deluan/navidrome:latest` — Navidrome **0.64.2** (OpenSubsonic,
-protocol 1.16.1) — under Docker on Fedora 44, capped at 768 MB, the library
-mounted read-only. The library was generated: sine tones written by FFmpeg, 26
-tracks over FLAC 16/44.1, FLAC 24/96, MP3 320 and 128 kbps CBR, Opus in Ogg, AAC
-and ALAC in M4A, Vorbis and WavPack, then 1 200 stream-copied MP3s over 120 albums
-for the paging and walk figures. The container peaked at 62 MiB just after its
-first scan and held 17–27 MiB afterwards, rescans included.
+**Set-up.** Both under Docker on Fedora 44, capped at 768 MB, over the same
+library mounted read-only. The library was generated: sine tones written by
+FFmpeg, 26 tracks over FLAC 16/44.1, FLAC 24/96, MP3 320 and 128 kbps CBR, Opus
+in Ogg, AAC and ALAC in M4A, Vorbis and WavPack, then 1 200 stream-copied MP3s
+over 120 albums for the paging and walk figures.
 
-Advertised extensions: `transcodeOffset`, `formPost`, `songLyrics` (1, 2),
-`indexBasedQueue`, `transcoding`, `playbackReport`, `topSongsByArtistId`. Not
-advertised: `apiKeyAuthentication`.
+- **Navidrome 0.64.2** (`deluan/navidrome:latest`, OpenSubsonic, protocol
+  1.16.1). It peaked at 62 MiB just after its first scan and held 17–27 MiB
+  afterwards, rescans included. Advertised extensions: `transcodeOffset`,
+  `formPost`, `songLyrics` (1, 2), `indexBasedQueue`, `transcoding`,
+  `playbackReport`, `topSongsByArtistId` — not `apiKeyAuthentication`.
+- **WaveFlow Server 2.0.0** (`ghcr.io/instazdll/waveflow-server:2.0.0`), through
+  its `/rest` façade with the account's dedicated Subsonic password and its API
+  key. 28 MiB idle, 80 MiB after scanning the 1 225 files it indexed, 122 MiB
+  after the transcodes. Advertised extensions: `formPost`,
+  `apiKeyAuthentication`, `transcodeOffset`, `songLyrics` (1). Measured as a
+  second implementation of the protocol, not as a provider target —
+  [the settings-card section](#the-subsonic-server-the-settings-card-already-detects)
+  says why it is never one.
 
-**Server / version / format matrix** — Navidrome 0.64.2. "Original" is
-`format=raw` with a `Range: bytes=0-99` request; "first transcode" is
-`format=mp3&maxBitRate=128` or `format=opus&maxBitRate=96` on a track the server
-had not transcoded before:
+**Server / version / format matrix.** "Original" is `format=raw` with a
+`Range: bytes=0-99` request; "first transcode" is `format=mp3&maxBitRate=128` or
+`format=opus&maxBitRate=96` on a track the server had not transcoded before.
+Where WaveFlow 2.0.0 answered the same, its column says so:
 
-| Source file  | Original `Content-Type` | Original range | Reported depth / rate | First transcode                                                | Engine plays the original |
-| ------------ | ----------------------- | -------------- | --------------------- | -------------------------------------------------------------- | ------------------------- |
-| FLAC 16/44.1 | `audio/flac`            | 206            | 16 / 44 100           | chunked, no ranges, ~0.2 s for 20 s of audio                   | yes                       |
-| FLAC 24/96   | `audio/flac`            | 206            | 24 / 96 000           | chunked; `getTranscodeDecision` answers direct play            | yes                       |
-| MP3 320 CBR  | `audio/mpeg`            | 206            | 0 / 44 100            | chunked MP3 under a 128 cap                                    | yes                       |
-| MP3 128 CBR  | `audio/mpeg`            | 206            | 0 / 44 100            | the original itself under a 128 cap (`Content-Length`, ranges) | yes                       |
-| Opus (Ogg)   | `audio/ogg`             | 206            | 0 / 48 000            | chunked                                                        | yes                       |
-| Vorbis (Ogg) | `audio/ogg`             | 206            | 0 / 44 100            | chunked                                                        | yes                       |
-| AAC (M4A)    | `audio/mp4`             | 206            | 16 / 44 100           | chunked                                                        | yes                       |
-| ALAC (M4A)   | `audio/mp4`             | 206            | 16 / 44 100           | chunked                                                        | yes                       |
-| WavPack      | `audio/x-wavpack`       | 206            | 16 / 44 100           | chunked; `getTranscodeDecision` answers an Opus 128 transcode  | **no — must transcode**   |
+| Source file  | Original `Content-Type` | Original range | Reported depth / rate (Navidrome) | First transcode (Navidrome)                                    | WaveFlow Server 2.0.0                                           | Engine plays the original |
+| ------------ | ----------------------- | -------------- | --------------------------------- | -------------------------------------------------------------- | --------------------------------------------------------------- | ------------------------- |
+| FLAC 16/44.1 | `audio/flac`            | 206            | 16 / 44 100                       | chunked, no ranges, ~0.2 s for 20 s of audio                   | same                                                            | yes                       |
+| FLAC 24/96   | `audio/flac`            | 206            | 24 / 96 000                       | chunked; `getTranscodeDecision` answers direct play            | same; no `getTranscodeDecision`                                 | yes                       |
+| MP3 320 CBR  | `audio/mpeg`            | 206            | 0 / 44 100                        | chunked MP3 under a 128 cap                                    | same                                                            | yes                       |
+| MP3 128 CBR  | `audio/mpeg`            | 206            | 0 / 44 100                        | the original itself under a 128 cap (`Content-Length`, ranges) | re-encoded, chunked                                             | yes                       |
+| Opus (Ogg)   | `audio/ogg`             | 206            | 0 / 48 000                        | chunked                                                        | same                                                            | yes                       |
+| Vorbis (Ogg) | `audio/ogg`             | 206            | 0 / 44 100                        | chunked                                                        | first answer not recorded; cached afterwards                    | yes                       |
+| AAC (M4A)    | `audio/mp4`             | 206            | 16 / 44 100                       | chunked                                                        | first answer not recorded; cached afterwards (depth reported 0) | yes                       |
+| ALAC (M4A)   | `audio/mp4`             | 206            | 16 / 44 100                       | chunked                                                        | first answer not recorded; cached afterwards                    | yes                       |
+| WavPack      | `audio/x-wavpack`       | 206            | 16 / 44 100                       | chunked; `getTranscodeDecision` answers an Opus 128 transcode  | **not indexed** — absent from the catalogue                     | **no — must transcode**   |
+
+On both servers a transcode asked for a second time is served from the server's
+cache with a `Content-Length` and byte ranges. WaveFlow marks every stream
+`Cache-Control: private, no-store`.
 
 Two things the matrix says that the decoder has to know: **the media type does not
 name the codec** — Opus and Vorbis both arrive as `audio/ogg`, AAC and ALAC both
 as `audio/mp4` — so the host keeps the catalogue's codec hint and sniffs the
 ambiguous containers, the scanner's `AMBIGUOUS_CONTAINERS` rule over the network;
-and **bit depth is reported as 16 for AAC**, where it means nothing (0 for MP3,
-Opus and Vorbis), so it is shown only for lossless codecs.
+and **bit depth means nothing for lossy files** — Navidrome reports 16 for AAC
+where WaveFlow reports 0 — so it is shown only for lossless codecs.
 
-**Other measured behaviour**, each already used above:
+**Other measured behaviour**, each already used above. The two columns are why
+the plugin reads what a server does instead of assuming one server's answers:
 
-| Behaviour                                 | Measured                                                                                                                          |
-| ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| Errors                                    | HTTP 200, `status: "failed"`, codes 10 / 40 / 70                                                                                  |
-| `getAlbumList2`, `search3` page caps      | none hit: `songCount=5000` returned all 1 226 songs; the protocol's own 500 cap for album lists was not reachable with 139 albums |
-| Latency (loopback, small library)         | 1–7 ms per call; a 500-song page 16–19 ms                                                                                         |
-| Full walk                                 | 1 226 songs, 3 pages, 54 ms; ~1 KiB JSON per song                                                                                 |
-| Identifier stability                      | unchanged across a retag and a file rename                                                                                        |
-| Change signal                             | `lastModified` = last scan time; moves on a no-op scan                                                                            |
-| `star` twice, `unstar` twice              | both `ok`                                                                                                                         |
-| `star` / `scrobble` an unknown id         | `ok`                                                                                                                              |
-| `setRating 7`                             | accepted and stored                                                                                                               |
-| `scrobble` replayed with the same `time`  | counted twice                                                                                                                     |
-| `updatePlaylist` duplicate add            | allowed — the playlist holds the song twice                                                                                       |
-| `createPlaylist` with `playlistId`        | replaces the whole content                                                                                                        |
-| `getCoverArt` on an album with no picture | 200, a 69 KB placeholder                                                                                                          |
-| `artistImageUrl`                          | absolute, path-signed, fetchable without credentials                                                                              |
-| `stream` / `getCoverArt` failure          | HTTP 200, `application/json`                                                                                                      |
-| `stream` response                         | sets a `nd-player-*` cookie (ignored; the host keeps no cookie jar)                                                               |
+| Behaviour                                  | Navidrome 0.64.2                                                        | WaveFlow Server 2.0.0 (`/rest`)                         |
+| ------------------------------------------ | ----------------------------------------------------------------------- | ------------------------------------------------------- |
+| Errors                                     | HTTP 200, `status: "failed"`, codes 10 / 40 / 70                        | same                                                    |
+| An identifier the server cannot parse      | code 70                                                                 | code 10, "Invalid UUID"                                 |
+| `getOpenSubsonicExtensions` signed out     | answers                                                                 | code 10                                                 |
+| `search3` match-all                        | empty string or `""`; no page cap (`songCount=5000` returned all 1 226) | `""` only (an empty string finds nothing); 500 per page |
+| `getAlbumList2` page cap                   | not reachable with 139 albums                                           | not reachable with 138 albums                           |
+| Latency (loopback, small library)          | 1–7 ms per call; a 500-song page 16–19 ms                               | 0–4 ms per call; a 500-song page 19–23 ms               |
+| Full walk                                  | 1 226 songs, 3 pages, 54 ms; ~1 KiB JSON per song                       | 1 225 songs, 3 pages, 64 ms; ~1 KiB JSON per song       |
+| Identifier stability                       | unchanged across a retag and a file rename                              | not measured through `/rest`                            |
+| `ifModifiedSince`                          | honoured; `lastModified` = last scan time, moves on a no-op scan        | ignored: the full index every time                      |
+| `star` twice, `unstar` twice               | both `ok`                                                               | same                                                    |
+| `star` / `scrobble` an unknown id          | `ok`                                                                    | code 70                                                 |
+| `setRating 7`                              | accepted and stored                                                     | refused, code 10                                        |
+| `scrobble` replayed with the same `time`   | counted twice                                                           | counted twice                                           |
+| `updatePlaylist` duplicate add             | allowed — the playlist holds the song twice                             | same                                                    |
+| `createPlaylist` with `playlistId`         | replaces the whole content                                              | same                                                    |
+| `getCoverArt` on an album with no picture  | 200, a 69 KB placeholder                                                | 200, a JSON error                                       |
+| `getCoverArt` caching                      | versioned id `immutable` for a year; bare id `no-cache`                 | `private, max-age=86400` for both                       |
+| `artistImageUrl`                           | absolute, path-signed, fetchable without credentials                    | not sent                                                |
+| `stream` / `getCoverArt` failure           | HTTP 200, `application/json`                                            | same                                                    |
+| `stream` with `timeOffset` on the original | ignored, the whole file                                                 | refused, a JSON error                                   |
+| `estimateContentLength`                    | a length larger than what is sent, first time                           | ignored, chunked                                        |
+| Unknown `format`                           | Opus                                                                    | the original                                            |
+| `stream` response                          | sets a `nd-player-*` cookie (ignored; the host keeps no cookie jar)     | no cookie                                               |
 
 ### What was not measured
 
-- **Any other OpenSubsonic server**, and any Navidrome version but 0.64.2. The
-  plugin's tests carry the recipe (container, generated library) so the matrix
-  is re-run per server in step 2, and the plugin's `describe` reads capabilities
-  rather than assuming Navidrome's.
+- **Any third OpenSubsonic server**, and any version of these two but 0.64.2 and
+  2.0.0. The plugin's tests carry the recipe (containers, generated library) so
+  the matrix is re-run per server in step 2, and the plugin's `describe` reads
+  capabilities rather than assuming either server's. Two implementations
+  measured side by side already disagree on more than half of the rows above.
 - **A large real library** — real tags, real covers, tens of thousands of
   tracks, so the album-list cap of 500 and the walk's wall time on a NAS over
   Wi-Fi. The figures above are loopback figures on a fast machine.

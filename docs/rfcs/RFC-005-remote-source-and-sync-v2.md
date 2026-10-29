@@ -95,6 +95,10 @@ available.
 > **Verified trap.** `getOpenSubsonicExtensions` returns an _empty_ container
 > today. A client that probed capabilities that way would conclude the server
 > offers nothing, while it in fact offers the entire v2 API.
+>
+> _Since 2.0.0:_ the list is no longer empty — it names four extensions, to a
+> signed-in caller only — and `type` remains the discriminant
+> ([RFC-007](RFC-007-provider-plugin-world.md#measured-against-two-servers)).
 
 _Since amended:_ the `SubsonicSource` half of this diagram will not be built in
 the core. [RFC-007](RFC-007-provider-plugin-world.md) (Draft) moves third-party
