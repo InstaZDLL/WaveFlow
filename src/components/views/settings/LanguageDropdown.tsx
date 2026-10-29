@@ -8,9 +8,10 @@ import { Check, ChevronDown } from "lucide-react";
 import { createPortal } from "react-dom";
 
 // Tallest the listbox gets. With seventeen languages the list is taller
-// than most windows, so it scrolls inside its own box, and the box is
-// pulled up to stay on screen — and shortened when even that is not enough
-// (a small window at a high zoom can be under 336 CSS pixels tall).
+// than most windows, so it scrolls inside its own box. The box opens below
+// the trigger, or above it when there is more room there, and is shortened
+// to the room on that side: it never covers the trigger, where a second
+// click meant to close it would pick a language instead.
 const MENU_MAX_HEIGHT = 320;
 
 interface LanguageDropdownProps {
@@ -28,8 +29,10 @@ export function LanguageDropdown({
   // Viewport-relative coordinates for the portaled listbox. Captured
   // once per open from the trigger's bounding rect; closed on scroll
   // or resize so a stale position never paints.
+  // `top` when the list opens below the trigger, `bottom` when above.
   const [position, setPosition] = useState<{
-    top: number;
+    top?: number;
+    bottom?: number;
     right: number;
     maxHeight: number;
   } | null>(null);
@@ -111,36 +114,46 @@ export function LanguageDropdown({
   }, [isOpen, focusedIndex]);
 
   const handleTriggerClick = () => {
-    setIsOpen((prev) => {
-      if (!prev) {
-        // Opening: snapshot the trigger's viewport rect for the
-        // portaled listbox, then focus the currently selected option.
-        // `mt-2` (= 8px) keeps the visual gap the old absolute markup
-        // had; `right` is measured from the viewport edge to mirror
-        // the original `right-0` anchor. The top is clamped so a trigger
-        // near the bottom of the window does not push the list off it.
-        const rect = triggerRef.current?.getBoundingClientRect();
-        if (rect) {
-          const maxHeight = Math.min(MENU_MAX_HEIGHT, window.innerHeight - 16);
-          setPosition({
-            top: Math.max(
-              8,
-              Math.min(rect.bottom + 8, window.innerHeight - maxHeight - 8),
-            ),
-            right: window.innerWidth - rect.right,
-            maxHeight,
-          });
-        }
-        const initialIndex = Math.max(
-          0,
-          SUPPORTED_LANGUAGES.findIndex(
-            (lang) => lang.code === normalizedCurrentCode,
-          ),
-        );
-        setFocusedIndex(initialIndex);
+    if (isOpen) {
+      setIsOpen(false);
+      return;
+    }
+    // Opening: snapshot the trigger's viewport rect for the portaled
+    // listbox, then focus the currently selected option. `mt-2` (= 8px)
+    // keeps the visual gap the old absolute markup had; `right` is
+    // measured from the viewport edge to mirror the original `right-0`
+    // anchor. A trigger near the bottom of the window opens the list above
+    // it instead (see `MENU_MAX_HEIGHT`). Computed here rather than in a
+    // `setIsOpen` updater, which React may run more than once.
+    const rect = triggerRef.current?.getBoundingClientRect();
+    if (rect) {
+      const right = window.innerWidth - rect.right;
+      // Room on each side, less the 8px gap and an 8px window margin.
+      const below = window.innerHeight - rect.bottom - 16;
+      const above = rect.top - 16;
+      if (below >= MENU_MAX_HEIGHT || below >= above) {
+        setPosition({
+          top: rect.bottom + 8,
+          right,
+          maxHeight: Math.max(0, Math.min(MENU_MAX_HEIGHT, below)),
+        });
+      } else {
+        setPosition({
+          bottom: window.innerHeight - rect.top + 8,
+          right,
+          maxHeight: Math.max(0, Math.min(MENU_MAX_HEIGHT, above)),
+        });
       }
-      return !prev;
-    });
+    }
+    setFocusedIndex(
+      Math.max(
+        0,
+        SUPPORTED_LANGUAGES.findIndex(
+          (lang) => lang.code === normalizedCurrentCode,
+        ),
+      ),
+    );
+    setIsOpen(true);
   };
 
   const handleOptionKeyDown = (
@@ -218,6 +231,7 @@ export function LanguageDropdown({
             style={{
               position: "fixed",
               top: position.top,
+              bottom: position.bottom,
               right: position.right,
               maxHeight: position.maxHeight,
             }}
