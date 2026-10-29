@@ -441,6 +441,7 @@ export const SETTINGS_CATEGORIES = [
           "settings.artistImages.subtitle",
           "settings.artistImages.action",
           "library.fetchMissingCovers",
+          "library.fetchMissingCoversSubtitle",
         ],
       },
       {

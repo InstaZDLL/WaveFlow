@@ -258,12 +258,12 @@ pub struct AppState {
     pub dlna: DlnaServer,
     /// MPD protocol server (issue #471). Opt-in, off by default.
     pub mpd: MpdServer,
-    /// Wake handle for the sync drain task (Phase 1.f.desktop.4a).
-    /// CRUD command sites notify after `tx.commit()` so a chatty
-    /// user's edits reach the server without waiting for the
-    /// periodic tick. Defaults to an unparked notifier on a fresh
-    /// `AppState` — the live task is spawned in `lib.rs::run` once
-    /// the AppHandle is available.
+    /// Wake handle of the v1 sync drain task (Phase 1.f.desktop.4a).
+    /// CRUD command sites still call `notify()` after `tx.commit()`,
+    /// but since the RFC-005 cutover `crate::sync` is the permanent
+    /// stub: the handle is a no-op and no task is spawned for it, in
+    /// `startup/` or anywhere else. Kept so those call sites compile
+    /// unchanged.
     pub drain: Arc<crate::sync::drain::DrainHandle>,
     /// Mutual-exclusion lock around [`crate::sync::drain::drain_once`].
     /// The background task and the `sync_drain_now` Tauri command
@@ -272,8 +272,9 @@ pub struct AppState {
     /// `sync_pending_op` rows and double-send — server absorbs the
     /// duplicates via the `operation_id` UNIQUE but the wasted
     /// round-trip + duplicated `total_sent` accounting is avoidable).
-    /// Held only by the gated `commands::sync` module — the stub
-    /// build never reads it, hence the `dead_code` allow.
+    /// Its only holder, the v1 `commands::sync` module, was removed in
+    /// the RFC-005 cutover; nothing reads it now, hence the
+    /// `dead_code` allow.
     #[allow(dead_code)]
     pub drain_lock: Arc<tokio::sync::Mutex<()>>,
     /// Mutual-exclusion lock around [`crate::sync::backfill::run_backfill`]
@@ -281,8 +282,8 @@ pub struct AppState {
     /// concurrent Tauri command surfaces `AlreadyRunning` instead of
     /// firing a parallel sweep that would race the same digest +
     /// entity fetches. Independent of [`drain_lock`] — a backfill can
-    /// trigger drains internally without deadlocking. Same dead-code
-    /// caveat as `drain_lock` in stub builds.
+    /// trigger drains internally without deadlocking. Unread since the
+    /// RFC-005 cutover, like `drain_lock`.
     #[allow(dead_code)]
     pub backfill_lock: Arc<tokio::sync::Mutex<()>>,
     /// Held for the whole of a profile switch — watchers stopped, pool
@@ -295,13 +296,11 @@ pub struct AppState {
     /// profile while the first one restored the watchers of the one it
     /// was leaving.
     pub profile_switch_lock: Arc<tokio::sync::Mutex<()>>,
-    /// Wake handle for the sync WebSocket subscriber (Phase
-    /// 1.f.desktop.4b). The `server_account` commands fire it after
-    /// the user signs in / signs out / changes mode so the
-    /// subscriber doesn't sit on its idle gate while something has
-    /// actually changed. Defaults to an unparked handle; the live
-    /// task spawns in `lib.rs::run` once the AppHandle is available.
-    /// Wake() is no-op in stub builds.
+    /// Wake handle of the v1 sync WebSocket subscriber (Phase
+    /// 1.f.desktop.4b). A no-op since the RFC-005 cutover, like
+    /// `drain`: `crate::sync` is the stub and no subscriber task is
+    /// spawned. v2's wake-up socket is `crate::remote::socket`, which
+    /// does not go through this handle.
     #[allow(dead_code)]
     pub ws: Arc<crate::sync::ws::SubscribeHandle>,
     /// Plugin SDK runtime. One engine + one shared HTTP client per
@@ -493,10 +492,9 @@ impl AppState {
             profile: Arc::new(RwLock::new(None)),
             dlna: DlnaServer::spawn(),
             mpd: MpdServer::spawn(),
-            // Placeholder until `lib.rs::run` wires the live task.
-            // CRUD command sites can `notify()` against it harmlessly
-            // before the task spawns (no waiter parked yet); the
-            // first real tick will pick up any queued work.
+            // The stub's no-op handle; no task is ever wired to it
+            // (see the field). CRUD command sites `notify()` it
+            // harmlessly.
             drain: Arc::new(crate::sync::drain::DrainHandle),
             drain_lock: Arc::new(tokio::sync::Mutex::new(())),
             backfill_lock: Arc::new(tokio::sync::Mutex::new(())),

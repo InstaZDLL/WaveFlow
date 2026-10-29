@@ -536,6 +536,7 @@
     "searchDeezer": "Deezer 검색",
     "localFile": "로컬 파일",
     "fetchMissingCovers": "누락된 모든 커버 가져오기",
+    "fetchMissingCoversSubtitle": "커버가 없는 모든 앨범의 커버를 Deezer에서 찾습니다",
     "fetchingCovers": "커버 가져오는 중…({{current}} / {{total}})",
     "fetchCoversResult_one": "{{count}}개의 커버를 가져왔습니다",
     "fetchCoversResult_other": "{{count}}개의 커버를 가져왔습니다",

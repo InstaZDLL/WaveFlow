@@ -538,6 +538,7 @@
     "searchDeezer": "Deezer'da ara",
     "localFile": "Yerel dosya",
     "fetchMissingCovers": "Eksik tüm kapakları getir",
+    "fetchMissingCoversSubtitle": "Kapağı olmayan her albüm için Deezer'da kapak arar",
     "fetchingCovers": "Kapaklar getiriliyor… ({{current}} / {{total}})",
     "fetchCoversResult_one": "{{count}} kapak getirildi",
     "fetchCoversResult_other": "{{count}} kapak getirildi",

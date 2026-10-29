@@ -8,8 +8,8 @@
 //! Trade-offs vs the default cpal shared-mode backend:
 //!
 //! - Only one application can hold the device exclusive at a time.
-//!   If Spotify (or any other player) already grabbed it, our init
-//!   fails and the engine falls back to shared mode.
+//!   If another application already grabbed it, our init fails and
+//!   the engine falls back to shared mode.
 //! - System sounds (notifications, Discord) are silenced for the
 //!   duration — by design.
 //! - Some USB DACs ship buggy drivers that misbehave in

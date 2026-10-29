@@ -536,6 +536,7 @@
     "searchDeezer": "Deezer で検索",
     "localFile": "ローカルファイル",
     "fetchMissingCovers": "不足しているジャケットをすべて取得",
+    "fetchMissingCoversSubtitle": "ジャケットのないアルバムごとに Deezer でジャケットを探します",
     "fetchingCovers": "ジャケットを取得中…（{{current}} / {{total}}）",
     "fetchCoversResult_one": "{{count}}枚のジャケットを取得しました",
     "fetchCoversResult_other": "{{count}}枚のジャケットを取得しました",
