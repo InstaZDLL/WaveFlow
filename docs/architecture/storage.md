@@ -188,4 +188,6 @@ Files under `metadata_artwork/`, `avatars/` and `profiles/<id>/artwork/` are ser
 
 Smart-playlist covers reuse `metadata_artwork/` (no extra scope needed).
 
+The scope says which files the protocol serves; the webview's [Content Security Policy](invariants.md#the-webview-runs-under-a-content-security-policy) says which pages may load from it, and names it under both of its schemes (`http://asset.localhost` in WebView2, `asset://localhost` in WebKit).
+
 **The declared scope is static, and a moved cache root matches none of it.** `tauri.conf.json` lists `$APPDATA/…` and `$APPLOCALDATA/…` patterns only, so artwork on another drive fails to load with no error and no console message — just an image that never appears. `commands::storage::grant_asset_scope` widens the scope at startup through `asset_protocol_scope().allow_directory(…)`. It runs on **every** launch: a scope grant lives in the process, not on disk.

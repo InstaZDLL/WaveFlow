@@ -39,7 +39,33 @@
       }
     ],
     "security": {
-      "csp": null,
+      "csp": {
+        "default-src": "'self'",
+        "script-src": "'self'",
+        "style-src": "'self'",
+        "connect-src": ["ipc:", "http://ipc.localhost"],
+        "img-src": [
+          "'self'",
+          "asset:",
+          "http://asset.localhost",
+          "data:",
+          "blob:",
+          "https:",
+          "http:"
+        ],
+        "media-src": [
+          "'self'",
+          "asset:",
+          "http://asset.localhost",
+          "https:",
+          "http:"
+        ],
+        "font-src": "'self'",
+        "object-src": "'none'",
+        "base-uri": "'none'",
+        "form-action": "'none'",
+        "frame-src": "'none'"
+      },
       "assetProtocol": {
         "enable": true,
         "scope": [
