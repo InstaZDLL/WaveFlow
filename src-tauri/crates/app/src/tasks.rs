@@ -69,8 +69,14 @@ pub enum TaskKind {
     LibraryScan,
     Analysis,
     LyricsPrefetch,
+    // The server source's three walks (`crate::remote`), which only a
+    // `sync_v2` build starts. Kept in the enum without it, so the slug
+    // contract and its test do not depend on the feature set.
+    #[cfg_attr(not(feature = "sync_v2"), allow(dead_code))]
     CatalogueMirror,
+    #[cfg_attr(not(feature = "sync_v2"), allow(dead_code))]
     Reconcile,
+    #[cfg_attr(not(feature = "sync_v2"), allow(dead_code))]
     Upload,
     Backup,
     Thumbnails,
