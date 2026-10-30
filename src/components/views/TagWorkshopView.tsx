@@ -142,6 +142,10 @@ export function TagWorkshopView({
     request?.releaseMbid ? "match" : null,
   );
   const [proposal, setProposal] = useState<AlbumProposal | null>(null);
+  // The proposal whose tags were put into the table ("Use these tags"):
+  // the only one a write names as its release, labels, or takes a cover
+  // from. A proposal searched and left unused is not one.
+  const [taken, setTaken] = useState<AlbumProposal | null>(null);
   const [preview, setPreview] = useState<FilePreview[] | null>(null);
   const [previewing, setPreviewing] = useState(false);
   const [writing, setWriting] = useState(false);
@@ -339,13 +343,13 @@ export function TagWorkshopView({
         values: Object.fromEntries(p.diffs.map((d) => [d.field, d.new])),
         expected: Object.fromEntries(p.diffs.map((d) => [d.field, d.old])),
       }));
-    const releaseMbid = proposal?.release.mbid ?? null;
+    const releaseMbid = taken?.release.mbid ?? null;
     const cover =
-      withCover && proposal
+      withCover && taken
         ? {
-            release_mbid: proposal.release.mbid,
-            release_group_mbid: proposal.release.release_group_mbid,
-            has_front_cover: proposal.release.has_front_cover,
+            release_mbid: taken.release.mbid,
+            release_group_mbid: taken.release.release_group_mbid,
+            has_front_cover: taken.release.has_front_cover,
           }
         : null;
     setWriting(true);
@@ -376,12 +380,24 @@ export function TagWorkshopView({
         }
         return out;
       });
+      // Written whole: the match is spent. A batch that left files behind
+      // keeps it, so writing them again still names the release.
+      if (result.problems.length === 0 && !result.cancelled) {
+        setProposal(null);
+        setTaken(null);
+      }
       await reload();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setWriting(false);
     }
+  };
+
+  const discard = () => {
+    setEdits(new Map());
+    setProposal(null);
+    setTaken(null);
   };
 
   const undo = async (batchId: number) => {
@@ -402,6 +418,7 @@ export function TagWorkshopView({
 
   const takeProposal = (fields: Set<WorkshopField>) => {
     if (!proposal) return;
+    setTaken(proposal);
     const byId = new Map(rows.map((row) => [row.track_id, row]));
     setEdits((prev) => {
       const out = new Map(prev);
@@ -424,6 +441,10 @@ export function TagWorkshopView({
 
   const allSelected =
     editable.length > 0 && editable.every((row) => selected.has(row.track_id));
+  // A preview or a write in flight: their answers replace the table's
+  // edits and rows, so nothing is edited, ticked or transformed meanwhile
+  // — a keystroke made then would be lost.
+  const busy = previewing || writing;
 
   if (!source) {
     return (
@@ -481,8 +502,8 @@ export function TagWorkshopView({
           )}
           <button
             type="button"
-            disabled={changes.length === 0 || writing}
-            onClick={() => setEdits(new Map())}
+            disabled={changes.length === 0 || busy}
+            onClick={discard}
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 text-sm text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-50"
           >
             <RotateCcw size={14} aria-hidden="true" />
@@ -518,6 +539,7 @@ export function TagWorkshopView({
             key={id}
             type="button"
             aria-pressed={tool === id}
+            disabled={busy}
             onClick={() => setTool(tool === id ? null : id)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
               tool === id
@@ -559,82 +581,87 @@ export function TagWorkshopView({
               ? t("tagWorkshop.appliesToSelection", { count: targets.length })
               : t("tagWorkshop.appliesToAll", { count: targets.length })}
           </p>
-          {tool === "fill" && (
-            <FillTool
-              onApply={(field, value) => editMany(targets, field, () => value)}
-            />
-          )}
-          {tool === "replace" && (
-            <ReplaceTool
-              onApply={(fields, pattern, spec) => {
-                for (const field of fields) {
-                  editMany(targets, field, (current) =>
-                    applyFindReplace(current, pattern, spec),
+          {/* Every control of a tool, disabled at once while busy. */}
+          <fieldset disabled={busy} className="min-w-0">
+            {tool === "fill" && (
+              <FillTool
+                onApply={(field, value) =>
+                  editMany(targets, field, () => value)
+                }
+              />
+            )}
+            {tool === "replace" && (
+              <ReplaceTool
+                onApply={(fields, pattern, spec) => {
+                  for (const field of fields) {
+                    editMany(targets, field, (current) =>
+                      applyFindReplace(current, pattern, spec),
+                    );
+                  }
+                }}
+              />
+            )}
+            {tool === "case" && (
+              <CaseTool
+                onApply={(fields, mode) => {
+                  for (const field of fields) {
+                    editMany(targets, field, (current) =>
+                      applyCase(current, mode),
+                    );
+                  }
+                }}
+              />
+            )}
+            {tool === "number" && (
+              <NumberTool
+                onApply={(start, perDisc, totals) => {
+                  // In table order; with `perDisc`, each disc counts from
+                  // `start` again and gets its own total.
+                  const discOf = (row: WorkshopRow) =>
+                    perDisc ? valueOf(row, "disc_number").trim() || "1" : "";
+                  const positions = new Map<number, number>();
+                  const sizes = new Map<string, number>();
+                  const seen = new Map<string, number>();
+                  for (const row of targets) {
+                    const disc = discOf(row);
+                    const at = seen.get(disc) ?? 0;
+                    positions.set(row.track_id, at);
+                    seen.set(disc, at + 1);
+                  }
+                  for (const [disc, count] of seen) sizes.set(disc, count);
+                  editMany(targets, "track_number", (_c, row) =>
+                    String(start + (positions.get(row.track_id) ?? 0)),
                   );
-                }
-              }}
-            />
-          )}
-          {tool === "case" && (
-            <CaseTool
-              onApply={(fields, mode) => {
-                for (const field of fields) {
-                  editMany(targets, field, (current) =>
-                    applyCase(current, mode),
-                  );
-                }
-              }}
-            />
-          )}
-          {tool === "number" && (
-            <NumberTool
-              onApply={(start, perDisc, totals) => {
-                // In table order; with `perDisc`, each disc counts from
-                // `start` again and gets its own total.
-                const discOf = (row: WorkshopRow) =>
-                  perDisc ? valueOf(row, "disc_number").trim() || "1" : "";
-                const positions = new Map<number, number>();
-                const sizes = new Map<string, number>();
-                const seen = new Map<string, number>();
-                for (const row of targets) {
-                  const disc = discOf(row);
-                  const at = seen.get(disc) ?? 0;
-                  positions.set(row.track_id, at);
-                  seen.set(disc, at + 1);
-                }
-                for (const [disc, count] of seen) sizes.set(disc, count);
-                editMany(targets, "track_number", (_c, row) =>
-                  String(start + (positions.get(row.track_id) ?? 0)),
-                );
-                if (totals) {
-                  editMany(targets, "track_total", (_c, row) =>
-                    String(sizes.get(discOf(row)) ?? targets.length),
-                  );
-                }
-              }}
-            />
-          )}
-          {/* Mounted once the files are read: its fields start from the
+                  if (totals) {
+                    editMany(targets, "track_total", (_c, row) =>
+                      String(sizes.get(discOf(row)) ?? targets.length),
+                    );
+                  }
+                }}
+              />
+            )}
+            {/* Mounted once the files are read: its fields start from the
               table's album and artist. */}
-          {tool === "match" && rows.length > 0 && (
-            <MatchTool
-              key={request?.releaseMbid ?? "match"}
-              initialRelease={request?.releaseMbid ?? null}
-              album={mostCommon(targets.map((r) => valueOf(r, "album")))}
-              artist={
-                mostCommon(targets.map((r) => valueOf(r, "album_artist"))) ||
-                mostCommon(targets.map((r) => valueOf(r, "artist")))
-              }
-              taggedRelease={mostCommon(
-                targets.map((r) => valueOf(r, "mb_release_id")),
-              )}
-              targets={targets}
-              valueOf={valueOf}
-              proposal={proposal}
-              onProposal={setProposal}
-              onUse={takeProposal}
-            />
-          )}
+            {tool === "match" && rows.length > 0 && (
+              <MatchTool
+                key={request?.releaseMbid ?? "match"}
+                initialRelease={request?.releaseMbid ?? null}
+                album={mostCommon(targets.map((r) => valueOf(r, "album")))}
+                artist={
+                  mostCommon(targets.map((r) => valueOf(r, "album_artist"))) ||
+                  mostCommon(targets.map((r) => valueOf(r, "artist")))
+                }
+                taggedRelease={mostCommon(
+                  targets.map((r) => valueOf(r, "mb_release_id")),
+                )}
+                targets={targets}
+                valueOf={valueOf}
+                proposal={proposal}
+                onProposal={setProposal}
+                onUse={takeProposal}
+              />
+            )}
+          </fieldset>
         </div>
       )}
 
@@ -668,6 +695,7 @@ export function TagWorkshopView({
               <input
                 type="checkbox"
                 aria-label={t("tagWorkshop.selectAll")}
+                disabled={busy}
                 checked={allSelected}
                 onChange={() =>
                   setSelected(
@@ -708,7 +736,7 @@ export function TagWorkshopView({
                   <span role="cell">
                     <input
                       type="checkbox"
-                      disabled={row.error != null}
+                      disabled={row.error != null || busy}
                       aria-label={basename(row.file_path)}
                       checked={selected.has(row.track_id)}
                       onChange={() =>
@@ -736,25 +764,25 @@ export function TagWorkshopView({
                     <span className="truncate">{basename(row.file_path)}</span>
                   </span>
                   {visibleFields.map((field) => (
-                    <input
-                      key={field}
-                      role="cell"
-                      aria-label={`${t(`tagWorkshop.fields.${field}`)} — ${basename(row.file_path)}`}
-                      disabled={row.error != null}
-                      value={valueOf(row, field)}
-                      inputMode={
-                        NUMBER_FIELDS.includes(field) ? "numeric" : undefined
-                      }
-                      spellCheck={false}
-                      onChange={(event) =>
-                        setCell(row, field, event.target.value)
-                      }
-                      className={`min-w-0 w-full px-2 py-1 rounded-md text-xs bg-transparent border focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
-                        isEdited(row, field)
-                          ? "border-amber-400 bg-amber-50 dark:bg-amber-950/30 text-zinc-900 dark:text-zinc-100"
-                          : "border-transparent hover:border-zinc-200 dark:hover:border-zinc-700 text-zinc-800 dark:text-zinc-200"
-                      } ${IDENTIFIER_FIELDS.includes(field) ? "font-mono text-[11px]" : ""}`}
-                    />
+                    <div key={field} role="cell" className="min-w-0">
+                      <input
+                        aria-label={`${t(`tagWorkshop.fields.${field}`)} — ${basename(row.file_path)}`}
+                        disabled={row.error != null || busy}
+                        value={valueOf(row, field)}
+                        inputMode={
+                          NUMBER_FIELDS.includes(field) ? "numeric" : undefined
+                        }
+                        spellCheck={false}
+                        onChange={(event) =>
+                          setCell(row, field, event.target.value)
+                        }
+                        className={`min-w-0 w-full px-2 py-1 rounded-md text-xs bg-transparent border focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
+                          isEdited(row, field)
+                            ? "border-amber-400 bg-amber-50 dark:bg-amber-950/30 text-zinc-900 dark:text-zinc-100"
+                            : "border-transparent hover:border-zinc-200 dark:hover:border-zinc-700 text-zinc-800 dark:text-zinc-200"
+                        } ${IDENTIFIER_FIELDS.includes(field) ? "font-mono text-[11px]" : ""}`}
+                      />
+                    </div>
                   ))}
                 </div>
               );
@@ -775,11 +803,11 @@ export function TagWorkshopView({
         <WorkshopPreviewModal
           previews={preview}
           defaultLabel={
-            proposal
-              ? `${proposal.release.title} — MusicBrainz`
+            taken
+              ? `${taken.release.title} — MusicBrainz`
               : t("tagWorkshop.defaultLabel", { count: preview.length })
           }
-          coverOffer={proposal != null}
+          coverOffer={taken != null}
           onClose={() => setPreview(null)}
           onWrite={(label, withCover) => void write(label, withCover)}
         />

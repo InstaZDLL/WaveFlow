@@ -236,11 +236,17 @@ export function matchWorkshop(
   });
 }
 
-/** The release identifier in a pasted MusicBrainz link, or the
- *  identifier itself. */
+const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+const RELEASE_URL = new RegExp(`/release/(${UUID})(?:[/?#]|$)`, "i");
+const BARE_UUID = new RegExp(`^${UUID}$`, "i");
+
+/** The release identifier in a pasted MusicBrainz release link, or the
+ *  identifier itself. A link to another entity — a release group, an
+ *  artist — names no release, and gives none: its identifier would be
+ *  looked up as a release that does not exist. */
 export function parseReleaseMbid(input: string): string | null {
-  const match = input
-    .trim()
-    .match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
-  return match ? match[0].toLowerCase() : null;
+  const text = input.trim();
+  const fromUrl = RELEASE_URL.exec(text);
+  if (fromUrl) return fromUrl[1].toLowerCase();
+  return BARE_UUID.test(text) ? text.toLowerCase() : null;
 }
