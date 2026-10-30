@@ -474,6 +474,6 @@ pub(super) async fn rank_plugin_answers<T: Send + 'static>(
         deadline.get_or_insert_with(|| tokio::time::Instant::now() + window);
     }
     // A stable sort: arrival order stands within a quality.
-    answers.sort_by(|a, b| b.0.cmp(&a.0));
+    answers.sort_by_key(|(quality, _)| std::cmp::Reverse(*quality));
     answers.into_iter().map(|(_, answer)| answer).collect()
 }
