@@ -105,6 +105,8 @@ export interface ApplyReport {
   batch_id: number | null;
   written: number;
   unchanged: number;
+  /** Tracks whose files now say what was asked: written, or already so. */
+  done: number[];
   problems: FileProblem[];
   cancelled: boolean;
   covers: number;

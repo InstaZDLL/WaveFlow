@@ -394,6 +394,10 @@ pub struct ApplyReport {
     pub batch_id: Option<i64>,
     pub written: u32,
     pub unchanged: u32,
+    /// The tracks whose files now say what was asked — written, or found
+    /// already so. The table drops their edits and keeps every other's:
+    /// a refused file, and the ones a stopped batch never reached.
+    pub done: Vec<i64>,
     pub problems: Vec<FileProblem>,
     pub cancelled: bool,
     pub covers: u32,
@@ -449,10 +453,13 @@ pub async fn tag_workshop_apply(
     };
 
     let mut report = ApplyReport::default();
-    // The albums the written tracks were in before and are in after:
-    // the enrichment decisions to look at again, the covers to fill.
-    let mut albums_before: Vec<i64> = Vec::new();
+    // The albums the written tracks are in after the write: the covers
+    // to fill.
     let mut albums_after: Vec<i64> = Vec::new();
+    // The albums, before and after, of the written files that now name
+    // `release_mbid`: the only ones whose enrichment decision the files
+    // can settle.
+    let mut albums_naming_release: Vec<i64> = Vec::new();
 
     for (index, change) in changes.into_iter().enumerate() {
         if let Some(task) = &task {
@@ -509,6 +516,7 @@ pub async fn tag_workshop_apply(
         }
         if diffs.is_empty() {
             report.unchanged += 1;
+            report.done.push(change.track_id);
             continue;
         }
         let written: Values = diffs.iter().map(|d| (d.field, d.new.clone())).collect();
@@ -570,8 +578,17 @@ pub async fn tag_workshop_apply(
         })
         .await?;
         report.written += 1;
-        albums_before.extend(album_before);
+        report.done.push(change.track_id);
         albums_after.extend(album_after);
+        // The release the file names now: the one just written, else the
+        // one it already carried.
+        let named = written
+            .get(&Field::MbReleaseId)
+            .or_else(|| current.get(&Field::MbReleaseId));
+        if named.is_some() && named.map(String::as_str) == release_mbid.as_deref() {
+            albums_naming_release.extend(album_before);
+            albums_naming_release.extend(album_after);
+        }
         let _ = app.emit("track:updated", change.track_id);
     }
     if let Some(task) = &task {
@@ -583,15 +600,13 @@ pub async fn tag_workshop_apply(
         .await?;
     report.batch_id = (!kept).then_some(batch_id);
 
-    albums_before.sort_unstable();
-    albums_before.dedup();
     albums_after.sort_unstable();
     albums_after.dedup();
+    albums_naming_release.sort_unstable();
+    albums_naming_release.dedup();
     if let Some(release) = release_mbid.as_deref() {
-        if report.written > 0 {
-            let mut touched = albums_before.clone();
-            touched.extend(&albums_after);
-            reopen_enrichment_decisions(&app, &db, touched, release).await?;
+        if !albums_naming_release.is_empty() {
+            reopen_enrichment_decisions(&app, &db, albums_naming_release, release).await?;
         }
     }
     if let Some(cover) = cover.filter(|_| report.written > 0) {

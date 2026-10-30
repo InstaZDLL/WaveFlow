@@ -80,9 +80,10 @@ export function applyCase(value: string, mode: CaseMode): string {
           const lower = word.toLocaleLowerCase();
           if (!isEdge && MINOR_WORDS.has(lower)) return lower;
           // "(feat." and "rock-n-roll": each part after a bracket or a
-          // hyphen starts a word of its own.
+          // hyphen starts a word of its own, as does a word opening on a
+          // quote. An apostrophe between letters does not: "don't".
           return lower.replace(
-            /(^|[-(["'/])(\p{L})/gu,
+            /(^['"]?|[-([/])(\p{L})/gu,
             (_, lead: string, letter: string) =>
               `${lead}${letter.toLocaleUpperCase()}`,
           );

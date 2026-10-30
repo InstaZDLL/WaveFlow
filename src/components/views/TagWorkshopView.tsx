@@ -99,10 +99,11 @@ function mostCommon(values: string[]): string {
   return best;
 }
 
+/** Every column shares the width the view has: a cell truncates rather
+ *  than push the page into scrolling sideways. */
 function columnWidth(field: WorkshopField): string {
-  if (NUMBER_FIELDS.includes(field)) return "4.5rem";
-  if (IDENTIFIER_FIELDS.includes(field)) return "minmax(7rem, 1fr)";
-  return "minmax(6.5rem, 1fr)";
+  if (NUMBER_FIELDS.includes(field)) return "3.25rem";
+  return "minmax(0, 1fr)";
 }
 
 /**
@@ -134,7 +135,11 @@ export function TagWorkshopView({
   const [groups, setGroups] = useState<Set<Group>>(
     () => new Set<Group>(["tags", "numbers"]),
   );
-  const [tool, setTool] = useState<Tool | null>(null);
+  // Opened from the enrichment review with a release: the match is what
+  // the user came for, so its panel is open from the start.
+  const [tool, setTool] = useState<Tool | null>(
+    request?.releaseMbid ? "match" : null,
+  );
   const [proposal, setProposal] = useState<AlbumProposal | null>(null);
   const [preview, setPreview] = useState<FilePreview[] | null>(null);
   const [previewing, setPreviewing] = useState(false);
@@ -288,7 +293,7 @@ export function TagWorkshopView({
         .flatMap((g) => GROUPS[g]),
     [groups],
   );
-  const gridTemplate = `2rem minmax(8rem, 1.3fr) ${visibleFields
+  const gridTemplate = `1.5rem minmax(0, 1.2fr) ${visibleFields
     .map(columnWidth)
     .join(" ")}`;
 
@@ -332,16 +337,23 @@ export function TagWorkshopView({
         : null;
     setWriting(true);
     setPreview(null);
+    setUndoReport(null);
     try {
       const result = await applyWorkshop(toWrite, label, releaseMbid, cover);
       setReport(result);
-      // What was written is the files' now: those edits are done. A
-      // file that was refused keeps its edits for another try.
-      const refused = new Set(result.problems.map((p) => p.track_id));
+      // What was written is the files' now, and so is what the backend
+      // found already so: those edits are done. A refused file keeps its
+      // edits, and so does every file a stopped batch never reached. An
+      // edit the preview found no difference in ("01" for "1") is done
+      // too: it would only ever preview as nothing.
+      const done = new Set(result.done);
+      const previewed = new Set(preview.map((p) => p.track_id));
       setEdits((prev) => {
-        const out = new Map(prev);
-        for (const change of toWrite) {
-          if (!refused.has(change.track_id)) out.delete(change.track_id);
+        const out = new Map<number, WorkshopValues>();
+        for (const [trackId, values] of prev) {
+          if (done.has(trackId)) continue;
+          if (!previewed.has(trackId) && !result.cancelled) continue;
+          out.set(trackId, values);
         }
         return out;
       });
@@ -356,6 +368,8 @@ export function TagWorkshopView({
   const undo = async (batchId: number) => {
     setWriting(true);
     setError(null);
+    // The last write's report is about a batch this may be undoing.
+    setReport(null);
     try {
       setUndoReport(await undoWorkshopBatch(batchId));
       await reload();
@@ -571,7 +585,9 @@ export function TagWorkshopView({
               }}
             />
           )}
-          {tool === "match" && (
+          {/* Mounted once the files are read: its fields start from the
+              table's album and artist. */}
+          {tool === "match" && rows.length > 0 && (
             <MatchTool
               key={request?.releaseMbid ?? "match"}
               initialRelease={request?.releaseMbid ?? null}
