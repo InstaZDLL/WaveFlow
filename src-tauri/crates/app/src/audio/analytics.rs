@@ -459,12 +459,14 @@ async fn handle_message(
                     cap_ms,
                 )
             });
-            // No cue for a track without a usable grid: the next track is
-            // asked for at the usual moment, and the plan will fall back.
-            if let Some(at) = earliest {
-                shared
+            // No cue for a track without a usable grid, nor an old one
+            // left for its id: the next track is asked for at the usual
+            // moment, and the plan will fall back.
+            match earliest {
+                Some(at) => shared
                     .automix
-                    .set_cue(*track_id, at.saturating_sub(AUTOMIX_PREFETCH_LEAD_MS));
+                    .set_cue(*track_id, at.saturating_sub(AUTOMIX_PREFETCH_LEAD_MS)),
+                None => shared.automix.clear_cue(*track_id),
             }
         }
         AnalyticsMsg::CrossfadeStarted {

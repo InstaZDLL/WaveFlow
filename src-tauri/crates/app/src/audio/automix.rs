@@ -60,6 +60,15 @@ impl AutoMixShared {
         self.cue_track.store(track_id, Ordering::Release);
     }
 
+    /// Leave no cue for `track_id`: it is asked about at the usual moment.
+    /// A cue left by an earlier play of the same id (another profile, an
+    /// analysis since) must not outlive it.
+    pub fn clear_cue(&self, track_id: i64) {
+        let _ = self
+            .cue_track
+            .compare_exchange(track_id, 0, Ordering::AcqRel, Ordering::Relaxed);
+    }
+
     /// When to ask for the track after `track_id`, if a cue was left for
     /// that track.
     pub fn prefetch_at_ms(&self, track_id: i64) -> Option<u64> {
@@ -125,5 +134,9 @@ mod tests {
         a.set_cue(7, 180_000);
         assert_eq!(a.prefetch_at_ms(7), Some(180_000));
         assert_eq!(a.prefetch_at_ms(8), None);
+        a.clear_cue(8);
+        assert_eq!(a.prefetch_at_ms(7), Some(180_000));
+        a.clear_cue(7);
+        assert_eq!(a.prefetch_at_ms(7), None);
     }
 }

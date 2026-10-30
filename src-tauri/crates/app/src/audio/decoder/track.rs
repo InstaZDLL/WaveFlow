@@ -344,7 +344,13 @@ pub(super) fn play_track(
                 };
                 if let Some((fade_start_us, fade_end_us)) = plan {
                     let now_us = pos.saturating_sub(primary_slip_ms) * 1000;
-                    if now_us + AUTOMIX_ENTER_US >= fade_start_us {
+                    // An armed A-B loop keeps the track: the mix, which no
+                    // loop interrupts, would play through B into the next
+                    // one, or end the track before a B past the fade. The
+                    // plan waits; one the loop outlasts is missed, and the
+                    // plain fade takes the transition.
+                    let looping = shared.ab_loop_armed().is_some();
+                    if !looping && now_us + AUTOMIX_ENTER_US >= fade_start_us {
                         match MixWindow::automix(
                             fade_start_us,
                             fade_end_us,
