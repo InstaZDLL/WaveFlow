@@ -317,25 +317,8 @@ pub(super) fn drain_commands(
             Ok(AudioCmd::SetCrossfade(ms)) => {
                 shared.crossfade_ms.store(ms, Ordering::Release);
             }
-            Ok(AudioCmd::SetNextTrack {
-                path,
-                track_id: next_id,
-                duration_ms,
-                source_type,
-                source_id,
-                replay_gain,
-            }) => {
-                store_next(
-                    pending_next,
-                    path,
-                    next_id,
-                    duration_ms,
-                    source_type,
-                    source_id,
-                    replay_gain,
-                    shared.playback_speed(),
-                    shared.dsd_taps.load(Ordering::Acquire) as usize,
-                );
+            Ok(cmd @ (AudioCmd::SetNextTrack { .. } | AudioCmd::ClearNextTrack { .. })) => {
+                take_next(cmd, pending_next, shared, track_id);
             }
             Ok(AudioCmd::SetReplayGain(on)) => {
                 shared.replaygain_enabled.store(on, Ordering::Release)
@@ -371,24 +354,9 @@ pub(super) fn drain_commands(
                         Ok(AudioCmd::SetCrossfade(ms)) => {
                             shared.crossfade_ms.store(ms, Ordering::Release)
                         }
-                        Ok(AudioCmd::SetNextTrack {
-                            path,
-                            track_id: next_id,
-                            duration_ms,
-                            source_type,
-                            source_id,
-                            replay_gain,
-                        }) => store_next(
-                            pending_next,
-                            path,
-                            next_id,
-                            duration_ms,
-                            source_type,
-                            source_id,
-                            replay_gain,
-                            shared.playback_speed(),
-                            shared.dsd_taps.load(Ordering::Acquire) as usize,
-                        ),
+                        Ok(
+                            cmd @ (AudioCmd::SetNextTrack { .. } | AudioCmd::ClearNextTrack { .. }),
+                        ) => take_next(cmd, pending_next, shared, track_id),
                         Ok(AudioCmd::SetReplayGain(on)) => {
                             shared.replaygain_enabled.store(on, Ordering::Release)
                         }
@@ -452,6 +420,130 @@ pub(super) fn drain_commands(
             Err(TryRecvError::Disconnected) => return ControlFlow::Shutdown,
         }
     }
+}
+
+/// What the decoder does with a next track it is handed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum NextVerdict {
+    /// Not for this transition: prepared for a track no longer playing,
+    /// or arriving once the fade has started.
+    Drop,
+    /// The track already prepared: keep its stream, take the new hints.
+    Keep,
+    /// Open it in place of what is prepared, if anything.
+    Replace,
+}
+
+/// The rule for a `SetNextTrack` prepared to follow `after`, offering
+/// `offered`, while `playing` plays with `prepared` ready behind it.
+///
+/// A next is for the track it was prepared after: once that one has been
+/// replaced (a load, a gapless or crossfade hand-off) it is dropped, so a
+/// late answer never sets up a transition out of a track it was not
+/// worked out for. And once a fade has started, the track fading in is
+/// the next one: a later offer changes nothing.
+pub(super) fn judge_next(
+    after: i64,
+    offered: i64,
+    playing: i64,
+    mixing: bool,
+    prepared: Option<i64>,
+) -> NextVerdict {
+    if after != playing || mixing {
+        NextVerdict::Drop
+    } else if prepared == Some(offered) {
+        NextVerdict::Keep
+    } else {
+        NextVerdict::Replace
+    }
+}
+
+/// Act on a `SetNextTrack` or a `ClearNextTrack` for the track
+/// `playing`: [`judge_next`], then store the stream and the hints that
+/// came with it, so the two always describe the same pair.
+fn take_next(
+    cmd: AudioCmd,
+    pending_next: &mut Option<ActiveStream>,
+    shared: &SharedPlayback,
+    playing: i64,
+) {
+    let mixing = shared.mixing.load(Ordering::Acquire);
+    let prepared = pending_next.as_ref().map(|s| s.track_id);
+    match cmd {
+        AudioCmd::ClearNextTrack { after } => {
+            if after == playing && !mixing {
+                if prepared.is_some() {
+                    tracing::info!(after, ?prepared, "next track dropped: the queue has none");
+                    *pending_next = None;
+                }
+                clear_next_hints(shared);
+            }
+        }
+        AudioCmd::SetNextTrack {
+            after,
+            path,
+            track_id,
+            duration_ms,
+            source_type,
+            source_id,
+            replay_gain,
+            same_album,
+            crossfade_ms,
+            automix_fade,
+        } => {
+            let verdict = judge_next(after, track_id, playing, mixing, prepared);
+            match verdict {
+                NextVerdict::Drop => {
+                    tracing::debug!(after, track_id, playing, mixing, "next track dropped");
+                    return;
+                }
+                NextVerdict::Keep => {}
+                NextVerdict::Replace => {
+                    if let Some(old) = prepared {
+                        tracing::info!(old, track_id, "next track replaced: the queue changed");
+                    }
+                    // A replacement that fails to open must not leave the
+                    // old one behind: the queue no longer names it.
+                    *pending_next = None;
+                    store_next(
+                        pending_next,
+                        path,
+                        track_id,
+                        duration_ms,
+                        source_type,
+                        source_id,
+                        replay_gain,
+                        shared.playback_speed(),
+                        shared.dsd_taps.load(Ordering::Acquire) as usize,
+                    );
+                }
+            }
+            // Hints describe the stream prepared: none when the
+            // replacement failed to open.
+            if pending_next.is_none() {
+                clear_next_hints(shared);
+                return;
+            }
+            shared
+                .pending_next_same_album
+                .store(same_album, Ordering::Release);
+            shared
+                .pending_next_crossfade_ms
+                .store(crossfade_ms, Ordering::Release);
+            shared.automix.set_plan(after, track_id, automix_fade);
+        }
+        _ => {}
+    }
+}
+
+/// No next track prepared: no hints either, so the dynamic length or the
+/// album flag of one dropped never times or shapes the next transition.
+fn clear_next_hints(shared: &SharedPlayback) {
+    shared
+        .pending_next_same_album
+        .store(false, Ordering::Release);
+    shared.pending_next_crossfade_ms.store(0, Ordering::Release);
+    shared.automix.clear_plan();
 }
 
 /// Open the supplied next-track file into an [`ActiveStream`] and

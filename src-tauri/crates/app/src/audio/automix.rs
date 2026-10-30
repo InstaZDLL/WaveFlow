@@ -1,9 +1,8 @@
 //! AutoMix's half of [`super::state::SharedPlayback`]: the switch, and the
-//! two hints the analytics task leaves for the decoder thread.
+//! two hints the decoder thread reads.
 //!
 //! The decoder cannot read the database, so it asks (`AnalyticsMsg::AutoMixCue`
-//! and `PrefetchNext`) and the analytics task answers here, the way smart and
-//! dynamic crossfade hand over their hints. Every field is an atomic: the
+//! and `PrefetchNext`) and is answered here. Every field is an atomic: the
 //! decoder reads them between packets, never in the audio callback.
 //!
 //! - **The cue**: for the track playing, when to ask for the next one. A
@@ -12,9 +11,9 @@
 //!   usual moment, the next track would arrive too late for it.
 //! - **The plan**: for one pair of tracks, when the incoming one starts
 //!   (the fade with it) and when the fade ends, in the outgoing track's
-//!   time. Written before the `SetNextTrack` it belongs to, so the decoder
-//!   finds it when the stream arrives, and keyed on both track ids so a
-//!   plan for another pair is never applied.
+//!   time. It rides in the `SetNextTrack` it belongs to and the decoder
+//!   stores it with the stream, keyed on both track ids so a plan for
+//!   another pair is never applied.
 
 use std::sync::atomic::{AtomicBool, AtomicI64, AtomicU64, Ordering};
 

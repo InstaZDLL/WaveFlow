@@ -40,6 +40,8 @@ pub mod eq;
 pub mod events;
 pub mod http_source;
 pub mod live;
+// The next track handed to the decoder, sent again when the queue changes.
+pub mod next_track;
 pub mod output;
 // The integer packing of the exclusive backends (WASAPI, ALSA); tested on
 // every system.

@@ -658,6 +658,7 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
                 .map_err(|e| ack_arg("clear", &e.to_string()))?;
             drop(pool);
             crate::commands::player::emit_queue_changed(&ctx.app);
+            crate::audio::next_track::revise_soon(&ctx.app);
             ctx.queue_changed();
             Ok(Response::new())
         }
@@ -677,6 +678,7 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
                 .map_err(|e| ack_arg("delete", &e.to_string()))?;
             drop(pool);
             crate::commands::player::emit_queue_changed(&ctx.app);
+            crate::audio::next_track::revise_soon(&ctx.app);
             ctx.queue_changed();
             Ok(Response::new())
         }
@@ -695,6 +697,7 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
                 return Err(Ack::new(ACK_ERROR_NO_EXIST, "deleteid", "No such song"));
             }
             crate::commands::player::emit_queue_changed(&ctx.app);
+            crate::audio::next_track::revise_soon(&ctx.app);
             ctx.queue_changed();
             Ok(Response::new())
         }
@@ -720,6 +723,7 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
                 .map_err(|e| ack_arg("move", &e.to_string()))?;
             drop(pool);
             crate::commands::player::emit_queue_changed(&ctx.app);
+            crate::audio::next_track::revise_soon(&ctx.app);
             ctx.queue_changed();
             Ok(Response::new())
         }
@@ -742,6 +746,7 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
                 .map_err(|e| ack_arg("moveid", &e.to_string()))?;
             drop(pool);
             crate::commands::player::emit_queue_changed(&ctx.app);
+            crate::audio::next_track::revise_soon(&ctx.app);
             ctx.queue_changed();
             Ok(Response::new())
         }
@@ -757,6 +762,7 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
                 .map_err(|e| ack_arg("shuffle", &e.to_string()))?;
             drop(pool);
             crate::commands::player::emit_queue_changed(&ctx.app);
+            crate::audio::next_track::revise_soon(&ctx.app);
             ctx.queue_changed();
             Ok(Response::new())
         }
@@ -783,6 +789,7 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
             crate::commands::player::emit_options_changed(&ctx.app, &pool).await;
             drop(pool);
             crate::commands::player::emit_queue_changed(&ctx.app);
+            crate::audio::next_track::revise_soon(&ctx.app);
             ctx.idle.notify(Subsystem::Options);
             ctx.queue_changed();
             Ok(Response::new())
@@ -798,6 +805,7 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
             queue::write_repeat_mode(&pool, repeat_from_mpd(current, on))
                 .await
                 .map_err(|e| ack_arg("repeat", &e.to_string()))?;
+            crate::audio::next_track::revise_soon(&ctx.app);
             // Reflect the change in the WaveFlow UI too (an MPD client toggled
             // it, so the frontend has no optimistic update of its own).
             crate::commands::player::emit_options_changed(&ctx.app, &pool).await;
@@ -821,6 +829,7 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
             queue::write_repeat_mode(&pool, next)
                 .await
                 .map_err(|e| ack_arg("single", &e.to_string()))?;
+            crate::audio::next_track::revise_soon(&ctx.app);
             crate::commands::player::emit_options_changed(&ctx.app, &pool).await;
             ctx.idle.notify(Subsystem::Options);
             Ok(Response::new())

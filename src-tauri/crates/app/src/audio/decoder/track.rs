@@ -150,6 +150,9 @@ pub(super) fn play_track(
     // both buffers topped up so a slow decoder doesn't starve the mix.
     const CROSSFADE_MIN_FRAMES: usize = 1024;
 
+    // A track starting has not asked for its next one, and mixes nothing.
+    shared.next_wanted.store(false, Ordering::Release);
+    shared.mixing.store(false, Ordering::Release);
     transition_state(shared, app, PlayerState::Playing, Some(stream.track_id));
 
     let mut ended_naturally = false;
@@ -185,6 +188,7 @@ pub(super) fn play_track(
                     // restart from the new position with no fade.
                     pending_next = None;
                     mix_active = false;
+                    shared.mixing.store(false, Ordering::Release);
                     next_requested = false;
                 }
                 // Clear every already-resampled buffer + EOF flag so
@@ -319,6 +323,7 @@ pub(super) fn play_track(
                     && (remaining <= effective_ms + 500 || automix_cue_reached)
                 {
                     let _ = analytics_tx.send(AnalyticsMsg::PrefetchNext);
+                    shared.next_wanted.store(true, Ordering::Release);
                     next_requested = true;
                 }
 
@@ -368,6 +373,7 @@ pub(super) fn play_track(
                                     "automix: mixing on the beats"
                                 );
                                 mix_active = true;
+                                shared.mixing.store(true, Ordering::Release);
                                 mix_window = window;
                                 incoming_delay_taken = false;
                                 faded_track_ms = 0.0;
@@ -388,6 +394,7 @@ pub(super) fn play_track(
                     }
                 } else if !smart_skip && pending_next.is_some() && remaining <= effective_ms {
                     mix_active = true;
+                    shared.mixing.store(true, Ordering::Release);
                     faded_track_ms = 0.0;
                     mix_window = MixWindow::fixed((effective_ms * dst_sample_rate as u64) / 1000);
                     // One-shot — consume the dynamic override so the
@@ -409,6 +416,7 @@ pub(super) fn play_track(
                 let remaining = stream.duration_ms.saturating_sub(pos);
                 if !next_requested && pending_next.is_none() && remaining <= 500 {
                     let _ = analytics_tx.send(AnalyticsMsg::PrefetchNext);
+                    shared.next_wanted.store(true, Ordering::Release);
                     next_requested = true;
                 }
             }
@@ -535,6 +543,7 @@ pub(super) fn play_track(
                     PushOutcome::Seek(ms) => {
                         pending_next = None;
                         mix_active = false;
+                        shared.mixing.store(false, Ordering::Release);
                         next_requested = false;
                         primary_at_eof = false;
                         secondary_at_eof = false;
@@ -594,10 +603,12 @@ pub(super) fn play_track(
                 secondary_at_eof = false;
                 next_requested = false;
                 mix_active = false;
+                shared.mixing.store(false, Ordering::Release);
                 // The new primary plays from its first sample, and has not
                 // been asked about yet.
                 primary_slip_ms = 0;
                 automix_cue_sent = false;
+                shared.next_wanted.store(false, Ordering::Release);
 
                 // The fade is already `faded_ms` into the new track, but
                 // the end of it is still in the ring: the clock starts
@@ -666,8 +677,10 @@ pub(super) fn play_track(
                     secondary_at_eof = false;
                     next_requested = false;
                     mix_active = false;
+                    shared.mixing.store(false, Ordering::Release);
                     primary_slip_ms = 0;
                     automix_cue_sent = false;
+                    shared.next_wanted.store(false, Ordering::Release);
 
                     // What is still in the ring is the end of the track
                     // that just finished: the new one starts at 0 only

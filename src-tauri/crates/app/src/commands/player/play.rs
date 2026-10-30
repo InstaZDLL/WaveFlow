@@ -286,6 +286,8 @@ pub async fn player_reorder_queue(
     let pool = state.require_profile_pool().await?;
     queue::reorder(&pool, from_position, to_position).await?;
     emit_queue_changed(&app);
+    // A prepared next track follows the queue (see `audio::next_track`).
+    crate::audio::next_track::revise_soon(&app);
     Ok(())
 }
 
@@ -312,6 +314,7 @@ pub async fn player_add_to_queue(
         publish_album_ordering(&engine, false);
     }
     emit_queue_changed(&app);
+    crate::audio::next_track::revise_soon(&app);
     Ok(())
 }
 
@@ -331,6 +334,7 @@ pub async fn player_play_next(
         publish_album_ordering(&engine, false);
     }
     emit_queue_changed(&app);
+    crate::audio::next_track::revise_soon(&app);
     Ok(())
 }
 

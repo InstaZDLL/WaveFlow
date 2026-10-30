@@ -311,17 +311,17 @@ pub struct SharedPlayback {
     /// album — concept records / live sets hand off naturally instead
     /// of getting smeared by an equal-power mix. The same-album
     /// decision is computed by the analytics worker on every
-    /// PrefetchNext and stashed in `pending_next_same_album` for the
-    /// decoder to consult at mix-decision time. Persisted in
+    /// PrefetchNext, sent with the next track and stored in
+    /// `pending_next_same_album` for the decoder to consult at
+    /// mix-decision time. Persisted in
     /// `profile_setting['audio.smart_crossfade']`, default OFF —
     /// it's an opinionated behaviour change so users opt in.
     pub smart_crossfade_enabled: AtomicBool,
-    /// One-shot hint set by the analytics worker right before
-    /// dispatching `SetNextTrack`: `true` when the upcoming track
-    /// shares an album_id with the currently-playing track. Cleared
-    /// implicitly when the next track is consumed (LoadAndPlay /
-    /// pending_next swap) so a stale value can't bleed into the
-    /// transition after.
+    /// One-shot hint that rides in `SetNextTrack` and is stored by the
+    /// decoder with the stream it describes: `true` when the upcoming
+    /// track shares an album_id with the currently-playing track. Each
+    /// next track handed over, a replacement included, writes it again,
+    /// so a stale value can't bleed into another transition.
     pub pending_next_same_album: AtomicBool,
     /// When `true` AND a crossfade window is configured, the analytics
     /// worker scales the upcoming fade duration by the tempo gap
@@ -331,8 +331,9 @@ pub struct SharedPlayback {
     /// Persisted in `profile_setting['audio.dynamic_crossfade']`,
     /// default OFF — opt-in like smart crossfade.
     pub dynamic_crossfade_enabled: AtomicBool,
-    /// One-shot crossfade override in ms, set by the analytics worker
-    /// right before `SetNextTrack` when dynamic crossfade is armed.
+    /// One-shot crossfade override in ms, worked out by the analytics
+    /// worker when dynamic crossfade is armed and stored by the decoder
+    /// from the `SetNextTrack` that carries it.
     /// `0` = no override (decoder falls back to `crossfade_ms`).
     /// Cleared by the decoder the instant the mix actually starts so
     /// it can't bleed into the transition after.
@@ -340,6 +341,16 @@ pub struct SharedPlayback {
     /// AutoMix: the switch, and the cue and plan the analytics task
     /// leaves for the decoder. See [`super::automix`].
     pub automix: super::automix::AutoMixShared,
+    /// Set by the decoder when it asks for the next track (`PrefetchNext`),
+    /// cleared when a track starts: while it is set, a queue change sends
+    /// the decoder the queue's next track again
+    /// ([`super::next_track::revise`]), so the transition it prepares
+    /// follows the queue.
+    pub next_wanted: AtomicBool,
+    /// Set by the decoder while it mixes two tracks (an AutoMix lead
+    /// included), so a revised next track arriving then is dropped: the
+    /// fade under way plays to its end.
+    pub mixing: AtomicBool,
     /// Playback speed multiplier, stored as `f32` bits. `1.0` is
     /// normal; `<1.0` is slower / lower-pitched, `>1.0` is faster /
     /// higher-pitched. The decoder achieves this by feeding rubato a
@@ -429,6 +440,8 @@ impl SharedPlayback {
             dynamic_crossfade_enabled: AtomicBool::new(false),
             pending_next_crossfade_ms: AtomicU32::new(0),
             automix: super::automix::AutoMixShared::new(),
+            next_wanted: AtomicBool::new(false),
+            mixing: AtomicBool::new(false),
             playback_speed_bits: AtomicU32::new(1.0_f32.to_bits()),
             speed_dirty: AtomicBool::new(false),
             dsd_taps: AtomicU32::new(256),

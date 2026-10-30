@@ -73,7 +73,9 @@ pub enum AnalyticsMsg {
     /// Sent by the decoder when it's approaching the end of the
     /// current track and crossfade is enabled. Triggers a
     /// `peek_next` and a `SetNextTrack` reply so the decoder can
-    /// open the second decoder before the fade window starts.
+    /// open the second decoder before the fade window starts
+    /// ([`super::next_track::send_next`]), sent again on every queue
+    /// change until the transition ([`super::next_track::revise`]).
     PrefetchNext,
     /// Sent by the decoder when a library track starts playing with
     /// AutoMix on: work out from its beats when to ask for the next track
@@ -311,136 +313,36 @@ async fn handle_message(
             // under a negative id and advances its own queue at its end;
             // answering its prefetch from the library queue would fade or
             // hand off into a track of that queue instead.
-            if app
-                .state::<Arc<AudioEngine>>()
-                .shared()
-                .current_track_id
-                .load(Ordering::Acquire)
-                <= 0
-            {
+            let engine = app.state::<Arc<AudioEngine>>();
+            if engine.shared().current_track_id.load(Ordering::Acquire) <= 0 {
                 return Ok(());
             }
             // Look up what would be played next without bumping the
             // cursor (the cursor is bumped only when the crossfade
             // actually starts, via CrossfadeStarted).
             let repeat = queue::read_repeat_mode(&pool).await;
+            // Under the publish lock, like every other writer of the queue
+            // a producer may be replacing, and through to the answer: the
+            // queue it is read from is the queue no step is rewriting, and
+            // a queue change made after it sends the answer again
+            // (`next_track::revise`).
+            let _publish = engine.lock_publish().await;
             // The last track of the queue is playing: with autoplay on,
             // grow the queue now rather than at its end, so the gapless
             // hand-off or the crossfade reaches the first added track.
-            // Under the publish lock, like every other writer of the
-            // queue a producer may be replacing.
-            {
-                let engine = app.state::<Arc<AudioEngine>>();
-                let _publish = engine.lock_publish().await;
-                // No dispatch is claimed here, so there is nothing to lose
-                // and the batch is announced at once.
-                if crate::autoplay::top_up_or_log(&pool, repeat, "prefetch")
-                    .await
-                    .is_some()
-                {
-                    emit_queue_changed(app);
-                }
-            }
-            let next: Option<QueueTrack> = queue::peek_next(&pool, repeat)
+            // No dispatch is claimed here, so there is nothing to lose
+            // and the batch is announced at once.
+            if crate::autoplay::top_up_or_log(&pool, repeat, "prefetch")
                 .await
-                .map_err(|e| format!("peek_next: {e}"))?;
-            if let Some(track) = next {
-                let replay_gain = crate::commands::player::fetch_replay_gain(&pool, track.id).await;
-
-                // Smart-crossfade hint: pre-compute whether the next
-                // track shares an album with the currently-playing
-                // one and stash the answer on SharedPlayback. The
-                // decoder reads it at mix-decision time to suppress
-                // the fade for same-album hand-offs (concept records
-                // / live sets). Best-effort — any DB hiccup falls
-                // back to "different album" (regular crossfade).
-                let engine = app.state::<Arc<AudioEngine>>();
-                let shared = engine.shared();
-                let current_id = shared.current_track_id.load(Ordering::Acquire);
-                let mut same_album = false;
-                if current_id > 0 {
-                    let current_album: Option<i64> =
-                        sqlx::query_scalar("SELECT album_id FROM track WHERE id = ?")
-                            .bind(current_id)
-                            .fetch_optional(&*pool)
-                            .await
-                            .ok()
-                            .flatten();
-                    let next_album: Option<i64> =
-                        sqlx::query_scalar("SELECT album_id FROM track WHERE id = ?")
-                            .bind(track.id)
-                            .fetch_optional(&*pool)
-                            .await
-                            .ok()
-                            .flatten();
-                    same_album = matches!(
-                        (current_album, next_album),
-                        (Some(a), Some(b)) if a == b
-                    );
-                }
-                shared
-                    .pending_next_same_album
-                    .store(same_album, Ordering::Release);
-
-                // Dynamic crossfade hint: scale the fade by the tempo
-                // gap so similar-tempo transitions get the full window
-                // (clean blend) while large gaps snap quickly (no time
-                // for the rhythms to clash). When either tempo is
-                // unknown or not trusted, we leave the override at 0 so
-                // the decoder falls back to the user-configured static
-                // crossfade. Cleared right before SetNextTrack to
-                // avoid bleeding into a transition where dynamic was
-                // toggled off mid-flight.
-                let mut override_ms: u32 = 0;
-                if shared.dynamic_crossfade_enabled.load(Ordering::Relaxed) && current_id > 0 {
-                    let base_ms = shared.crossfade_ms.load(Ordering::Relaxed);
-                    if base_ms > 0 {
-                        let tempo = |id: i64| {
-                            let pool = &pool;
-                            async move {
-                                sqlx::query_as::<_, (Option<f64>, Option<f64>)>(
-                                    "SELECT bpm, bpm_confidence FROM track_analysis WHERE track_id = ?",
-                                )
-                                .bind(id)
-                                .fetch_optional(&**pool)
-                                .await
-                                .ok()
-                                .flatten()
-                            }
-                        };
-                        let current = tempo(current_id).await;
-                        let next = tempo(track.id).await;
-                        override_ms = dynamic_crossfade_ms(base_ms, current, next);
-                    }
-                }
-                shared
-                    .pending_next_crossfade_ms
-                    .store(override_ms, Ordering::Release);
-
-                // AutoMix plan: the fade placed on both tracks' beats,
-                // left for the decoder keyed on this pair. No plan (the
-                // switch off, an album playing through, a fallback) clears
-                // any older one, and the decoder makes the fade it makes
-                // without AutoMix.
-                let mut automix_fade = None;
-                let cap_ms = u64::from(shared.crossfade_ms.load(Ordering::Relaxed));
-                if shared.automix.is_enabled() && current_id > 0 && !same_album && cap_ms > 0 {
-                    automix_fade = automix_plan(&pool, current_id, &track, cap_ms).await;
-                }
-                shared.automix.set_plan(current_id, track.id, automix_fade);
-
-                let _ = cmd_tx.send(AudioCmd::SetNextTrack {
-                    path: track.as_path(),
-                    track_id: track.id,
-                    duration_ms: track.duration_ms.max(0) as u64,
-                    // Handed over as `manual`, whatever its queue row
-                    // says — the source autoplay's picks are loaded under
-                    // from every surface, the end of a track included.
-                    source_type: "manual".into(),
-                    source_id: None,
-                    replay_gain,
-                });
+                .is_some()
+            {
+                emit_queue_changed(app);
             }
+            super::next_track::send_next(&pool, engine.shared(), repeat, |cmd| {
+                let _ = cmd_tx.send(cmd);
+            })
+            .await
+            .map_err(|e| format!("next track: {e}"))?;
         }
         AnalyticsMsg::AutoMixCue {
             track_id,
@@ -449,7 +351,7 @@ async fn handle_message(
             let engine = app.state::<Arc<AudioEngine>>();
             let shared = engine.shared();
             let cap_ms = u64::from(shared.crossfade_ms.load(Ordering::Relaxed));
-            let beats = stored_beats(&pool, *track_id).await;
+            let beats = super::next_track::stored_beats(&pool, *track_id).await;
             let earliest = beats.as_deref().and_then(|beats| {
                 waveflow_core::automix::earliest_fade_start_ms(
                     waveflow_core::automix::TrackBeats {
@@ -463,9 +365,10 @@ async fn handle_message(
             // left for its id: the next track is asked for at the usual
             // moment, and the plan will fall back.
             match earliest {
-                Some(at) => shared
-                    .automix
-                    .set_cue(*track_id, at.saturating_sub(AUTOMIX_PREFETCH_LEAD_MS)),
+                Some(at) => shared.automix.set_cue(
+                    *track_id,
+                    at.saturating_sub(super::next_track::AUTOMIX_PREFETCH_LEAD_MS),
+                ),
                 None => shared.automix.clear_cue(*track_id),
             }
         }
@@ -504,86 +407,10 @@ async fn handle_message(
     Ok(())
 }
 
-/// How long before the earliest start of an AutoMix fade the next track
-/// is asked for: time to open it and plan the transition, and the half
-/// second the decoder enters the mix ahead of its start
-/// ([`super::crossfade::AUTOMIX_ENTER_US`]).
-const AUTOMIX_PREFETCH_LEAD_MS: u64 = 2_000;
-
-/// A track's beat list as the analysis stored it, in seconds. `None` when
-/// it has none (not analysed, analysed before beats were stored, or no
-/// tempo) or the row cannot be read.
-async fn stored_beats(pool: &sqlx::SqlitePool, track_id: i64) -> Option<Vec<f64>> {
-    let bytes: Option<Vec<u8>> =
-        sqlx::query_scalar("SELECT beats FROM track_analysis WHERE track_id = ?")
-            .bind(track_id)
-            .fetch_optional(pool)
-            .await
-            .ok()
-            .flatten()
-            .flatten();
-    waveflow_core::analysis::beats::decode(&bytes?)
-}
-
-/// The AutoMix fade from `current_id` into `next`, as the decoder takes
-/// it: `(fade_start_us, fade_end_us)` in the outgoing track's time.
-/// `None` when either track has no grid or the plan falls back, which is
-/// logged with its reason.
-async fn automix_plan(
-    pool: &sqlx::SqlitePool,
-    current_id: i64,
-    next: &QueueTrack,
-    cap_ms: u64,
-) -> Option<(u64, u64)> {
-    use waveflow_core::automix::{plan, TrackBeats};
-    let current_ms: Option<i64> = sqlx::query_scalar("SELECT duration_ms FROM track WHERE id = ?")
-        .bind(current_id)
-        .fetch_optional(pool)
-        .await
-        .ok()
-        .flatten();
-    let out_beats = stored_beats(pool, current_id).await.unwrap_or_default();
-    let in_beats = stored_beats(pool, next.id).await.unwrap_or_default();
-    let result = plan(
-        TrackBeats {
-            beats: &out_beats,
-            duration_ms: current_ms.unwrap_or(0).max(0) as u64,
-        },
-        TrackBeats {
-            beats: &in_beats,
-            duration_ms: next.duration_ms.max(0) as u64,
-        },
-        cap_ms,
-    );
-    match result {
-        Ok(p) => {
-            tracing::info!(
-                from = current_id,
-                to = next.id,
-                beats = p.beats,
-                fold = p.fold,
-                ratio = p.ratio,
-                drift_ms = p.max_drift_ms,
-                "automix: transition planned"
-            );
-            Some((p.fade_start_us, p.fade_end_us))
-        }
-        Err(reason) => {
-            tracing::info!(
-                from = current_id,
-                to = next.id,
-                ?reason,
-                "automix: falling back"
-            );
-            None
-        }
-    }
-}
-
 /// Insert a row into `play_event`. Best-effort: errors are logged
 /// and swallowed so analytics never blocks playback.
 /// A tempo as `track_analysis` stores it: the BPM and how far to trust it.
-type StoredTempo = (Option<f64>, Option<f64>);
+pub(crate) type StoredTempo = (Option<f64>, Option<f64>);
 
 /// The dynamic crossfade window for a transition, or 0 to keep the
 /// user's static one.
@@ -593,7 +420,7 @@ type StoredTempo = (Option<f64>, Option<f64>);
 /// its 170 BPM neighbour and cut the fade to its shortest. Rows from
 /// before tempo confidence existed are not trusted either; the sweep
 /// re-measures them. The tiers themselves are unchanged.
-fn dynamic_crossfade_ms(
+pub(crate) fn dynamic_crossfade_ms(
     base_ms: u32,
     current: Option<StoredTempo>,
     next: Option<StoredTempo>,

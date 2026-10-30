@@ -148,8 +148,10 @@ pub async fn player_toggle_shuffle(
         queue::read_shuffle_grouping_preference(&pool).await
     };
     set_shuffle_mode(&pool, &engine, next).await?;
-    // Queue content changed (reordered in place) — tell the panel.
+    // Queue content changed (reordered in place) — tell the panel, and
+    // the decoder if it has a next track prepared.
     emit_queue_changed(&app);
+    crate::audio::next_track::revise_soon(&app);
     // …and the other windows. Each one runs its own `PlayerContext` with
     // its own optimistic toggle state, so without this the mini-player
     // and the main window disagree about shuffle while sharing one queue
@@ -181,6 +183,7 @@ pub async fn player_set_shuffle_mode(
     let mode = queue::ShuffleMode::from_str(&mode);
     set_shuffle_mode(&pool, &engine, mode).await?;
     emit_queue_changed(&app);
+    crate::audio::next_track::revise_soon(&app);
     emit_options_changed(&app, &pool).await;
     Ok(mode.as_str().to_string())
 }
@@ -199,6 +202,8 @@ pub async fn player_cycle_repeat(
         queue::RepeatMode::One => queue::RepeatMode::Off,
     };
     queue::write_repeat_mode(&pool, next).await?;
+    // Repeat decides what follows the last track.
+    crate::audio::next_track::revise_soon(&app);
     // Same reason as `player_toggle_shuffle` (#523): the caller updates
     // its own state from the return value, the *other* windows only
     // learn about it here.
