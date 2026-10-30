@@ -392,27 +392,41 @@ export function clearUnit(
   });
 }
 
-/** Move a line's start (`j === null`) or a unit's by `delta` ms. */
+/** Every time of a line moved by `delta` ms: its own, its units', its
+ *  backing vocals'. */
+function shiftLine(
+  line: LyricsDocumentLine,
+  delta: number,
+): LyricsDocumentLine {
+  const shift = (v: number | undefined) =>
+    v === undefined ? v : ms(v + delta);
+  const move = (u: LyricsUnit): LyricsUnit => ({
+    ...u,
+    beginMs: shift(u.beginMs),
+    endMs: shift(u.endMs),
+  });
+  return {
+    ...line,
+    beginMs: shift(line.beginMs),
+    endMs: shift(line.endMs),
+    words: line.words.map(move),
+    background: line.background?.map(move),
+  };
+}
+
+/** Move a whole line (`j === null`), or one unit's start, by `delta` ms. */
 export function nudge(
   doc: LyricsDocument,
   i: number,
   j: number | null,
   delta: number,
 ): LyricsDocument {
-  const shift = (v: number | undefined) =>
-    v === undefined ? v : ms(v + delta);
   return mapLine(doc, i, (line) => {
-    if (j === null) {
-      const begin = shift(lineBegin(line));
-      return {
-        ...line,
-        beginMs: begin,
-        words: line.words.map((u, k) =>
-          k === 0 && u.beginMs !== undefined ? { ...u, beginMs: begin } : u,
-        ),
-      };
-    }
-    const next = mapUnit(line, j, (u) => ({ ...u, beginMs: shift(u.beginMs) }));
+    if (j === null) return shiftLine(line, delta);
+    const next = mapUnit(line, j, (u) => ({
+      ...u,
+      beginMs: u.beginMs === undefined ? undefined : ms(u.beginMs + delta),
+    }));
     return j === 0 ? { ...next, beginMs: next.words[0].beginMs } : next;
   });
 }
@@ -423,22 +437,9 @@ export function shiftDocument(
   doc: LyricsDocument,
   delta: number,
 ): LyricsDocument {
-  const shift = (v: number | undefined) =>
-    v === undefined ? v : ms(v + delta);
-  const move = (u: LyricsUnit): LyricsUnit => ({
-    ...u,
-    beginMs: shift(u.beginMs),
-    endMs: shift(u.endMs),
-  });
   return withLines(
     doc,
-    doc.lines.map((line) => ({
-      ...line,
-      beginMs: shift(line.beginMs),
-      endMs: shift(line.endMs),
-      words: line.words.map(move),
-      background: line.background?.map(move),
-    })),
+    doc.lines.map((line) => shiftLine(line, delta)),
   );
 }
 

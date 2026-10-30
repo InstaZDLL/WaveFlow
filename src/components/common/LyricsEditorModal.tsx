@@ -251,7 +251,9 @@ function LyricsEditorDialog({
     };
     if (!initial || !initial.content.trim()) {
       start(withTrack(EMPTY_LYRICS_DOCUMENT));
-      setFormat("lrc");
+      // Nothing synced yet: saved as typed, until a first stamp moves it
+      // to a timed format (below).
+      setFormat("plain");
       setSyncMode("line");
       return;
     }
