@@ -53,6 +53,7 @@
 //! [`run_prefetch`] path stays local-first (a cheap gap-filler).
 
 mod cache;
+mod editor;
 mod fetch;
 mod format;
 mod local;
@@ -65,6 +66,7 @@ mod save;
 mod settings;
 
 use cache::*;
+pub use editor::*;
 pub use fetch::*;
 use format::*;
 use local::*;

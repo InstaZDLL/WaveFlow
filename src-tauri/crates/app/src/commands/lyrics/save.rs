@@ -18,19 +18,6 @@ use super::*;
 
 // ── User-edited lyrics ──────────────────────────────────────────────
 
-/// Format hint coming from the in-app editor. The frontend can pass
-/// "plain", "lrc", "enhanced_lrc" or "ttml" — the backend re-runs
-/// `detect_format` on the content as a safety net so a mistyped header
-/// still ends up in the right bucket.
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum LyricsSaveFormat {
-    Plain,
-    Lrc,
-    EnhancedLrc,
-    Ttml,
-}
-
 /// Where the user wants the editor's output to land.
 ///
 /// Drives both the per-edit choice in [`save_lyrics`] and the global
@@ -81,7 +68,10 @@ impl LyricsDestination {
 #[derive(Debug, Deserialize)]
 pub struct SaveLyricsPayload {
     pub content: String,
-    pub format: LyricsSaveFormat,
+    /// Format hint coming from the in-app editor. The backend re-runs
+    /// `detect_format` on the content as a safety net so a mistyped
+    /// header still ends up in the right bucket.
+    pub format: LyricsFormat,
     /// Per-edit choice; the frontend pre-fills it with the app-wide
     /// default and lets the user override per save.
     #[serde(default = "default_destination")]
@@ -130,12 +120,12 @@ pub async fn save_lyrics(
     // a synced format) or Ttml (which the detector also catches but we
     // honour the explicit choice).
     let detected = detect_format(&trimmed);
-    let format = match &payload.format {
-        LyricsSaveFormat::Plain => LyricsFormat::Plain,
-        LyricsSaveFormat::Ttml => LyricsFormat::Ttml,
+    let format = match payload.format {
+        LyricsFormat::Plain => LyricsFormat::Plain,
+        LyricsFormat::Ttml => LyricsFormat::Ttml,
         // For Lrc / EnhancedLrc the detector picks between Lrc,
         // EnhancedLrc and Plain (if the user cleared every stamp).
-        LyricsSaveFormat::Lrc | LyricsSaveFormat::EnhancedLrc => detected,
+        LyricsFormat::Lrc | LyricsFormat::EnhancedLrc => detected,
     };
 
     let mut tag_write_skipped = false;

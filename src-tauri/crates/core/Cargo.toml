@@ -104,6 +104,10 @@ regex = "1"
 # Used by the Last.fm + LRCLIB clients to parse the more dynamic
 # response shapes that don't deserialize cleanly into a fixed struct.
 serde_json = "1"
+# Reads TTML lyrics for the `lyrics` document model (the editor's
+# import). A read-only DOM over the borrowed string, already in the
+# lockfile through another dependency.
+roxmltree = "0.21"
 
 # Artwork pipeline (`artwork::thumbnails` + `artwork::metadata`):
 # `image` decodes the source covers, `fast_image_resize` SIMD-resizes

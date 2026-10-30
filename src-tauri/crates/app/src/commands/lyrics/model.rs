@@ -10,19 +10,9 @@ pub(super) fn now_ms() -> i64 {
     Utc::now().timestamp_millis()
 }
 
-/// Format flags returned to the frontend.
-///
-/// `Plain` = unsynced text. `Lrc` = `[mm:ss.xx]`-prefixed lines.
-/// `EnhancedLrc` is the per-word timed variant (`[00:01.00]Hello <00:01.50>world`).
-/// `Ttml` is Apple-Music-style XML with `<span begin="…" end="…">` word timing.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum LyricsFormat {
-    Plain,
-    Lrc,
-    EnhancedLrc,
-    Ttml,
-}
+/// Format flags exchanged with the frontend: the lyrics document model's
+/// own, so the editor and the payloads name formats the same way.
+pub use waveflow_core::lyrics::Format as LyricsFormat;
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "snake_case")]
