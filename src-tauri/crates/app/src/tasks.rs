@@ -92,6 +92,9 @@ pub enum TaskKind {
     /// A pass of the library enrichment engine
     /// ([`crate::commands::enrichment`]).
     Enrichment,
+    /// The Release Radar asking MusicBrainz about the library's artists
+    /// ([`crate::commands::release_radar::release_radar_scan`]).
+    ReleaseRadar,
 }
 
 impl TaskKind {
@@ -109,6 +112,7 @@ impl TaskKind {
             Self::Spectrogram => "spectrogram",
             Self::CacheMove => "cache_move",
             Self::Enrichment => "enrichment",
+            Self::ReleaseRadar => "release_radar",
         }
     }
 }

@@ -69,6 +69,9 @@ const WebRadioView = retryableLazy(() =>
 const ExtensionsView = retryableLazy(() =>
   import("../views/ExtensionsView").then((module) => module.ExtensionsView),
 );
+const ReleaseRadarView = retryableLazy(() =>
+  import("../views/ReleaseRadarView").then((module) => module.ReleaseRadarView),
+);
 const PluginUIView = retryableLazy(() =>
   import("../views/PluginUIView").then((module) => module.PluginUIView),
 );
@@ -124,6 +127,7 @@ type HistoryEntry =
   // and lands on whatever the user last had open.
   | { id: "settings"; settingsCategory?: SettingsCategory }
   | { id: "web-radio" }
+  | { id: "release-radar" }
   | { id: "extensions" }
   | { id: "about" }
   | { id: "feedback" }
@@ -291,6 +295,7 @@ export function AppLayout() {
         m.preloadSettingsSections(),
       );
       void import("../views/WebRadioView");
+      void import("../views/ReleaseRadarView");
       void import("../views/AboutView");
       void import("../views/FeedbackView");
     };
@@ -603,6 +608,14 @@ export function AppLayout() {
         return <WebRadioView />;
       case "extensions":
         return <ExtensionsView />;
+      case "release-radar":
+        return (
+          <ReleaseRadarView
+            onNavigateToArtist={navigateToArtist}
+            onNavigateToPlaylist={navigateToPlaylist}
+            onNavigateToExtensions={() => setActiveView("extensions")}
+          />
+        );
       case "plugin-ui":
         // `key` forces a fresh mount per plugin so switching between two
         // ui plugins reloads cleanly instead of reusing the last view.

@@ -49,7 +49,7 @@ pub async fn regenerate_on_repeat(state: tauri::State<'_, AppState>) -> AppResul
 }
 
 /// One-shot regen for every built-in smart-playlist family (Daily Mix
-/// slots, On Repeat, the artist, genre and decade mixes). The frontend's
+/// slots, On Repeat, Release Radar, the artist, genre and decade mixes). The frontend's
 /// "Regenerate" button calls this so the user gets the whole "Made for
 /// you" surface refreshed in a single click without having to know about
 /// the family split.
@@ -57,6 +57,7 @@ pub async fn regenerate_on_repeat(state: tauri::State<'_, AppState>) -> AppResul
 pub struct RegenerateAllSmartPlaylistsOutput {
     pub daily_mix_ids: Vec<i64>,
     pub on_repeat_id: Option<i64>,
+    pub release_radar_id: Option<i64>,
     pub artist_mix_ids: Vec<i64>,
     pub genre_mix_ids: Vec<i64>,
     pub decade_mix_ids: Vec<i64>,
@@ -78,9 +79,18 @@ pub async fn regenerate_all_smart_playlists(
     let artist_mix_ids = themed::regenerate_artist_mixes(&pool, &ctx, profile_id, &labels).await?;
     let genre_mix_ids = themed::regenerate_genre_mixes(&pool, &ctx, profile_id, &labels).await?;
     let decade_mix_ids = themed::regenerate_decade_mixes(&pool, &ctx, profile_id, &labels).await?;
+    // From what the radar already knows: no request goes out here.
+    let release_radar_id = waveflow_core::smart_playlists::release_radar::regenerate_release_radar(
+        &pool,
+        &ctx,
+        profile_id,
+        &labels.release_radar_description,
+    )
+    .await?;
     Ok(RegenerateAllSmartPlaylistsOutput {
         daily_mix_ids,
         on_repeat_id,
+        release_radar_id,
         artist_mix_ids,
         genre_mix_ids,
         decade_mix_ids,
@@ -180,7 +190,7 @@ pub async fn update_custom_smart_playlist(
     }
     if !is_custom_payload(existing_rules.as_deref()) {
         return Err(AppError::Other(
-            "playlist is a generated smart playlist (Daily Mix, On Repeat, a genre or decade mix), not a custom one".into(),
+            "playlist is a generated smart playlist (Daily Mix, On Repeat, Release Radar, a genre or decade mix), not a custom one".into(),
         ));
     }
 

@@ -51,6 +51,7 @@ pub mod profile;
 pub mod profile_io;
 pub mod radio;
 pub mod ready;
+pub mod release_radar;
 pub mod renderer;
 pub mod replace;
 // Remote server binding + PKCE sign-in (RFC-005). Gated on `sync_v2`,

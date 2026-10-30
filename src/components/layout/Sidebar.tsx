@@ -15,6 +15,7 @@ import {
   Upload,
   Sparkles,
   Radio,
+  Radar,
   Puzzle,
   PlayCircle,
   FileAudio,
@@ -54,6 +55,7 @@ import {
 import { useLibraryPlaylists } from "../../hooks/useLibraryPlaylists";
 import { usePlaylistContextMenu } from "../../hooks/usePlaylistContextMenu";
 import { resolvePluginIcon } from "../../lib/pluginIcons";
+import { RELEASE_RADAR_PLUGIN_ID } from "../../lib/tauri/releaseRadar";
 import { getProfileColor, profileInitial } from "../../lib/profileColors";
 import { pickFolder } from "../../lib/tauri/dialog";
 import type { ImportPlaylistResult } from "../../lib/tauri/playlist";
@@ -149,7 +151,11 @@ export function Sidebar({
   // Dynamic entries for every enabled `ui`-world plugin — label + icon
   // + landing path all come from each plugin's `manifest()`, so a new
   // UI plugin appears here without any hardcoded per-plugin wiring.
-  const uiPlugins = useUiPlugins();
+  // Except the Release Radar plugin, which the native entry replaced:
+  // two "Release Radar" side by side would leave the user guessing.
+  const uiPlugins = useUiPlugins().filter(
+    (plugin) => plugin.pluginId !== RELEASE_RADAR_PLUGIN_ID,
+  );
   // Remote source (RFC-005 sync_v2). Self-hides in stock builds — the
   // hook probes `remote_get_status`, which is unregistered when the
   // feature is off, and reports `available: false`.
@@ -438,6 +444,15 @@ export function Sidebar({
             onClick={() => setActiveView("web-radio")}
           />
         )}
+        {/* Native, not a plugin entry: always here, and it sends
+            nothing to the network until the user asks for a search. */}
+        <NavItem
+          collapsed={collapsed}
+          icon={<Radar size={18} />}
+          label={t("sidebar.nav.releaseRadar")}
+          active={activeView === "release-radar"}
+          onClick={() => setActiveView("release-radar")}
+        />
         {uiPlugins.map((plugin) => (
           <NavItem
             key={plugin.pluginId}

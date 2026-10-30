@@ -51,6 +51,7 @@ export interface Playlist {
 export type SmartPlaylistKind =
   | { kind: "daily_mix"; slot: number }
   | { kind: "on_repeat" }
+  | { kind: "release_radar" }
   | { kind: "genre_mix"; genre_id: number }
   | { kind: "decade_mix"; decade: number }
   | { kind: "artist_mix"; artist_id: number }
@@ -77,6 +78,7 @@ export function smartPlaylistKind(p: Playlist): SmartPlaylistKind {
       return { kind: "daily_mix", slot: parsed.slot };
     }
     if (parsed.kind === "on_repeat") return { kind: "on_repeat" };
+    if (parsed.kind === "release_radar") return { kind: "release_radar" };
     if (parsed.kind === "genre_mix" && typeof parsed.genre_id === "number") {
       return { kind: "genre_mix", genre_id: parsed.genre_id };
     }
@@ -108,6 +110,12 @@ export function smartFamilyStyle(kind: SmartPlaylistKind): {
         labelKey: "home.onRepeat.label",
         gradient: "bg-linear-to-br from-emerald-400 to-emerald-700",
         ring: "focus-visible:ring-emerald-500",
+      };
+    case "release_radar":
+      return {
+        labelKey: "home.releaseRadar.label",
+        gradient: "bg-linear-to-br from-cyan-400 to-teal-700",
+        ring: "focus-visible:ring-cyan-500",
       };
     case "genre_mix":
       return {

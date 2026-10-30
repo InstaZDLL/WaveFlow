@@ -172,7 +172,8 @@
   "sidebar": {
     "nav": {
       "home": "首頁",
-      "webRadio": "網路電台"
+      "webRadio": "網路電台",
+      "releaseRadar": "Release Radar"
     },
     "sections": {
       "open": "開啟",
@@ -443,6 +444,10 @@
       "plays_zero": "播放 0 次",
       "plays_one": "播放 {{count}} 次",
       "plays_other": "播放 {{count}} 次"
+    },
+    "releaseRadar": {
+      "label": "Release Radar",
+      "description": "音樂庫中你的藝人的新發行"
     }
   },
   "library": {
@@ -3545,7 +3550,8 @@
       "drop_import": "複製到音樂庫",
       "cache_move": "正在移動快取",
       "spectrogram": "曲目頻譜",
-      "enrichment": "音樂庫資訊補全"
+      "enrichment": "音樂庫資訊補全",
+      "release_radar": "Release Radar"
     }
   },
   "smartRuleSummary": {
@@ -3776,5 +3782,61 @@
     "fromAlbums_other": "出現在 {{count}} 張已配對的專輯中",
     "acceptEvidenced_one": "接受署名的藝人",
     "acceptEvidenced_other": "接受 {{count}} 位署名的藝人"
+  },
+  "releaseRadar": {
+    "badge": "新發行",
+    "subtitle": "音樂庫中藝人的近期發行作品，資訊來自 MusicBrainz。",
+    "followed": "追蹤的藝人：{{n}}",
+    "lastChecked": "上次檢查：{{when}}",
+    "neverChecked": "從未檢查",
+    "scan": "尋找新發行",
+    "rescan": "全部重新檢查",
+    "scanning": "正在尋找… {{checked}} / {{due}}",
+    "scanningIndeterminate": "正在尋找…",
+    "stop": "停止",
+    "playAll": "播放",
+    "openPlaylist": "開啟播放清單",
+    "offline": "離線模式：不會送出任何查詢。已找到的發行作品仍會顯示。",
+    "filter": {
+      "all": "全部",
+      "playable": "音樂庫中已有",
+      "discovered": "僅發現"
+    },
+    "state": {
+      "playable": "音樂庫中已有（{{n}}）",
+      "discovered": "已發現 · 在 MusicBrainz 上查看"
+    },
+    "upcoming": "即將發行",
+    "play": "播放 {{title}}",
+    "openMusicBrainz": "在 MusicBrainz 上查看",
+    "outcome": {
+      "rateLimited": "MusicBrainz 要求放慢請求速度。下次尋找會從這次停下的地方繼續。",
+      "failed": "網路沒有回應。下次尋找會從這次停下的地方繼續。",
+      "cancelled": "已停止尋找。下次會從這次停下的地方繼續。",
+      "profileChanged": "尋找期間切換了設定檔，因此已停止尋找。",
+      "error": "尋找失敗：{{detail}}"
+    },
+    "emptyTitle": "歡迎使用 Release Radar",
+    "emptyHint": "開始尋找，即可找到音樂庫中藝人的近期發行作品。只會下載發行資訊與封面，絕不下載音樂本身。",
+    "noneTitle": "沒有近期發行",
+    "noneHint": "MusicBrainz 中沒有所追蹤藝人最近六個月的發行作品。",
+    "filterEmpty": "此篩選條件下沒有發行作品。",
+    "credits": "資訊：MusicBrainz · 封面：Cover Art Archive",
+    "type": {
+      "album": "專輯",
+      "single": "單曲",
+      "ep": "EP",
+      "broadcast": "廣播",
+      "other": "其他",
+      "live": "現場",
+      "compilation": "合輯",
+      "remix": "混音",
+      "soundtrack": "原聲帶"
+    },
+    "pluginNotice": {
+      "title": "Release Radar 現已內建",
+      "body": "此頁面取代了 Release Radar 擴充功能，該擴充功能已不再需要：你可以在「擴充功能」頁面中將其解除安裝。",
+      "openExtensions": "開啟擴充功能"
+    }
   }
 }

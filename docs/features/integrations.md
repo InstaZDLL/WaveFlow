@@ -4,7 +4,7 @@ External services WaveFlow talks to. All clients use [`reqwest 0.12`](https://cr
 
 ## Offline mode
 
-A single global toggle — Settings → Connections → Connectivity → "Offline mode" — short-circuits every outbound call described below. The flag is a `static AtomicBool` in [`offline.rs`](../../src-tauri/crates/app/src/offline.rs); it is consulted by Deezer enrichment, Last.fm now-playing + the scrobble worker tick, similar-artist lookups, and lyrics fetch + library prefetch providers. Each gated path returns an empty payload (or whatever the local cache holds), nothing throws, so the UI keeps rendering with whatever metadata is already on disk. Persisted in `app_setting['network.offline_mode']` because the flag is process-wide — switching profiles must not silently re-enable network calls.
+A single global toggle — Settings → Connections → Connectivity → "Offline mode" — short-circuits every outbound call described below. The flag is a `static AtomicBool` in [`offline.rs`](../../src-tauri/crates/app/src/offline.rs); it is consulted by Deezer enrichment, Last.fm now-playing + the scrobble worker tick, similar-artist lookups, lyrics fetch + library prefetch providers, and the [Release Radar](smart-playlists.md#release-radar) scan (MusicBrainz and the Cover Art Archive, checked before every request). Each gated path returns an empty payload (or whatever the local cache holds), nothing throws, so the UI keeps rendering with whatever metadata is already on disk. Persisted in `app_setting['network.offline_mode']` because the flag is process-wide — switching profiles must not silently re-enable network calls.
 
 ## Deezer (metadata)
 

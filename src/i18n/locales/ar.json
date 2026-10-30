@@ -172,7 +172,8 @@
   "sidebar": {
     "nav": {
       "home": "الرئيسية",
-      "webRadio": "راديو الويب"
+      "webRadio": "راديو الويب",
+      "releaseRadar": "Release Radar"
     },
     "sections": {
       "open": "فتح",
@@ -492,6 +493,10 @@
       "plays_few": "{{count}} تشغيلات",
       "plays_many": "{{count}} تشغيلًا",
       "plays_other": "{{count}} تشغيل"
+    },
+    "releaseRadar": {
+      "label": "Release Radar",
+      "description": "جديد فنانيك، من مكتبتك"
     }
   },
   "library": {
@@ -3894,7 +3899,8 @@
       "drop_import": "النسخ إلى المكتبة",
       "cache_move": "نقل ذاكرات التخزين المؤقت",
       "spectrogram": "طيف مقطوعة",
-      "enrichment": "إثراء المكتبة"
+      "enrichment": "إثراء المكتبة",
+      "release_radar": "Release Radar"
     },
     "more_zero": "لا مهام أخرى",
     "more_two": "مهمتان أخريان",
@@ -4192,5 +4198,61 @@
     "acceptEvidenced_few": "قبول {{count}} فنانين مذكورين",
     "acceptEvidenced_many": "قبول {{count}} فنانًا مذكورًا",
     "acceptEvidenced_other": "قبول {{count}} فنان مذكور"
+  },
+  "releaseRadar": {
+    "badge": "إصدارات جديدة",
+    "subtitle": "الإصدارات الحديثة لفناني مكتبتك، وفقًا لـ MusicBrainz.",
+    "followed": "الفنانون المتابَعون: {{n}}",
+    "lastChecked": "آخر تحقق: {{when}}",
+    "neverChecked": "لم يتم التحقق بعد",
+    "scan": "البحث عن الإصدارات الجديدة",
+    "rescan": "إعادة التحقق من الكل",
+    "scanning": "جارٍ البحث… {{checked}} / {{due}}",
+    "scanningIndeterminate": "جارٍ البحث…",
+    "stop": "إيقاف",
+    "playAll": "تشغيل",
+    "openPlaylist": "فتح قائمة التشغيل",
+    "offline": "وضع عدم الاتصال: لا يُرسَل أي بحث. تبقى الإصدارات التي عُثر عليها معروضة.",
+    "filter": {
+      "all": "الكل",
+      "playable": "في مكتبتك",
+      "discovered": "مكتشَفة"
+    },
+    "state": {
+      "playable": "في مكتبتك ({{n}})",
+      "discovered": "مكتشَف · عرض على MusicBrainz"
+    },
+    "upcoming": "قريبًا",
+    "play": "تشغيل {{title}}",
+    "openMusicBrainz": "عرض على MusicBrainz",
+    "outcome": {
+      "rateLimited": "طلب MusicBrainz الإبطاء. سيستأنف البحث التالي من حيث توقف هذا البحث.",
+      "failed": "الشبكة لا تستجيب. سيستأنف البحث التالي من حيث توقف هذا البحث.",
+      "cancelled": "توقف البحث. سيستأنف البحث التالي من حيث توقف هذا البحث.",
+      "profileChanged": "تغيّر الملف الشخصي أثناء البحث، لذا توقف البحث.",
+      "error": "فشل البحث: {{detail}}"
+    },
+    "emptyTitle": "مرحبًا بك في Release Radar",
+    "emptyHint": "ابدأ بحثًا للعثور على الإصدارات الحديثة لفناني مكتبتك. تُنزَّل معلوماتها وأغلفتها فقط، ولا تُنزَّل الموسيقى أبدًا.",
+    "noneTitle": "لا توجد إصدارات حديثة",
+    "noneHint": "لا يعرف MusicBrainz أي إصدار خلال الأشهر الستة الأخيرة للفنانين المتابَعين.",
+    "filterEmpty": "لا توجد إصدارات في هذا المرشح.",
+    "credits": "المعلومات: MusicBrainz · الأغلفة: Cover Art Archive",
+    "type": {
+      "album": "ألبوم",
+      "single": "أغنية منفردة",
+      "ep": "EP",
+      "broadcast": "بث",
+      "other": "أخرى",
+      "live": "مباشر",
+      "compilation": "تجميعة",
+      "remix": "ريمكس",
+      "soundtrack": "موسيقى تصويرية"
+    },
+    "pluginNotice": {
+      "title": "أصبح Release Radar مدمجًا الآن",
+      "body": "تحل هذه الصفحة محل إضافة Release Radar التي لم تعد ضرورية: يمكنك إلغاء تثبيتها من صفحة الإضافات.",
+      "openExtensions": "فتح الإضافات"
+    }
   }
 }

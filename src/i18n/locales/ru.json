@@ -172,7 +172,8 @@
   "sidebar": {
     "nav": {
       "home": "Главная",
-      "webRadio": "Веб-радио"
+      "webRadio": "Веб-радио",
+      "releaseRadar": "Release Radar"
     },
     "sections": {
       "open": "Открыть",
@@ -473,6 +474,10 @@
       "plays_few": "{{count}} прослушивания",
       "plays_many": "{{count}} прослушиваний",
       "plays_other": "{{count}} прослушиваний"
+    },
+    "releaseRadar": {
+      "label": "Release Radar",
+      "description": "Новинки ваших исполнителей из вашей медиатеки"
     }
   },
   "library": {
@@ -3743,7 +3748,8 @@
       "drop_import": "Копирование в библиотеку",
       "cache_move": "Перенос кэшей",
       "spectrogram": "Спектр трека",
-      "enrichment": "Обогащение медиатеки"
+      "enrichment": "Обогащение медиатеки",
+      "release_radar": "Release Radar"
     },
     "more_few": "Ещё {{count}} задачи",
     "more_many": "Ещё {{count}} задач"
@@ -4008,5 +4014,61 @@
     "acceptEvidenced_few": "Принять {{count}} указанных исполнителей",
     "acceptEvidenced_many": "Принять {{count}} указанных исполнителей",
     "acceptEvidenced_other": "Принять {{count}} указанного исполнителя"
+  },
+  "releaseRadar": {
+    "badge": "Новинки",
+    "subtitle": "Свежие релизы исполнителей из вашей медиатеки по данным MusicBrainz.",
+    "followed": "Отслеживаемых исполнителей: {{n}}",
+    "lastChecked": "Последняя проверка: {{when}}",
+    "neverChecked": "Ещё не проверялось",
+    "scan": "Найти новинки",
+    "rescan": "Проверить всё заново",
+    "scanning": "Поиск… {{checked}} / {{due}}",
+    "scanningIndeterminate": "Поиск…",
+    "stop": "Остановить",
+    "playAll": "Слушать",
+    "openPlaylist": "Открыть плейлист",
+    "offline": "Офлайн-режим: запросы не отправляются. Уже найденные релизы остаются на экране.",
+    "filter": {
+      "all": "Все",
+      "playable": "В медиатеке",
+      "discovered": "Найденные"
+    },
+    "state": {
+      "playable": "В медиатеке ({{n}})",
+      "discovered": "Найдено · открыть в MusicBrainz"
+    },
+    "upcoming": "Скоро",
+    "play": "Слушать «{{title}}»",
+    "openMusicBrainz": "Открыть в MusicBrainz",
+    "outcome": {
+      "rateLimited": "MusicBrainz просит снизить частоту запросов. Следующий поиск продолжится с того места, где остановился этот.",
+      "failed": "Сеть не отвечает. Следующий поиск продолжится с того места, где остановился этот.",
+      "cancelled": "Поиск остановлен. Следующий продолжится с того места, где остановился этот.",
+      "profileChanged": "Во время поиска сменился профиль, поэтому поиск остановлен.",
+      "error": "Поиск не удался: {{detail}}"
+    },
+    "emptyTitle": "Добро пожаловать в Release Radar",
+    "emptyHint": "Запустите поиск, чтобы найти свежие релизы исполнителей из вашей медиатеки. Загружаются только сведения о них и обложки — никогда сама музыка.",
+    "noneTitle": "Свежих релизов нет",
+    "noneHint": "MusicBrainz не знает релизов отслеживаемых исполнителей за последние шесть месяцев.",
+    "filterEmpty": "В этом фильтре релизов нет.",
+    "credits": "Сведения: MusicBrainz · Обложки: Cover Art Archive",
+    "type": {
+      "album": "Альбом",
+      "single": "Сингл",
+      "ep": "EP",
+      "broadcast": "Трансляция",
+      "other": "Другое",
+      "live": "Концертный",
+      "compilation": "Сборник",
+      "remix": "Ремикс",
+      "soundtrack": "Саундтрек"
+    },
+    "pluginNotice": {
+      "title": "Release Radar теперь встроен",
+      "body": "Эта страница заменяет расширение Release Radar, которое больше не нужно: его можно удалить на странице «Расширения».",
+      "openExtensions": "Открыть «Расширения»"
+    }
   }
 }

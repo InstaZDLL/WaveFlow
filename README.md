@@ -101,7 +101,7 @@ WaveFlow is a desktop music player for the audio files you already own. It scans
 
 - Drag-and-drop, M3U export, and import from M3U, CSV, JSON or a public Deezer playlist link — the tracks you do not have yet keep their place and fill in when they reach your library; a header coloured from the cover
 - Smart playlists built from rules, with a live count
-- **Daily Mix** and **On Repeat**, generated from what you play
+- **Daily Mix** and **On Repeat**, generated from what you play, and **Release Radar**: the recent releases of your artists, found on MusicBrainz, the ones you already have ready to play
 
 ### 🎨 Interface · [docs](docs/features/ui.md)
 
@@ -121,7 +121,7 @@ WaveFlow is a desktop music player for the audio files you already own. It scans
 ### 🧩 Plugins · [docs](docs/features/plugins.md) · [RFC-002](docs/rfcs/RFC-002-plugin-sdk.md)
 
 - Sandboxed WebAssembly plugins with permissions, from an in-app store with verified installs
-- Official plugins: **Web Radio** (30 000+ stations), **Apple Motion Artwork** (animated covers) and **Release Radar** (new releases from your artists)
+- Official plugins: **Web Radio** (30 000+ stations) and **Apple Motion Artwork** (animated covers)
 
 ## Tech Stack
 

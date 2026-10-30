@@ -1,5 +1,7 @@
 //! Auto-generated playlist engine — "Daily Mix" (tempo-bucketed mixes of
-//! favourite artists) and "On Repeat" (top tracks of the last 30 days).
+//! favourite artists), "On Repeat" (top tracks of the last 30 days),
+//! "Release Radar" (the recent releases the library holds) and the
+//! artist, genre and decade mixes.
 //!
 //! Reads listening history from `play_event`, runs family-specific picking
 //! logic, materializes the result as one or more `is_smart = 1` playlist
@@ -29,6 +31,8 @@ pub mod custom;
 pub mod generator;
 #[cfg(feature = "sqlite")]
 pub mod on_repeat;
+#[cfg(feature = "sqlite")]
+pub mod release_radar;
 #[cfg(feature = "sqlite")]
 pub mod themed;
 
@@ -104,6 +108,9 @@ pub enum SmartPlaylistRules {
     /// One of the artists the user listens to most, with the artists
     /// near it.
     ArtistMix { artist_id: i64 },
+    /// The recent releases of the user's artists that the library holds
+    /// ([`release_radar`]). Single row per profile, like On Repeat.
+    ReleaseRadar,
     /// User-defined rule set evaluated by [`custom::materialize`]. Stored
     /// in JSON so the rule editor can round-trip it without a per-field
     /// SQL column.

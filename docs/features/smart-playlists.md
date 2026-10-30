@@ -1,6 +1,6 @@
 # Smart playlists
 
-Auto-generated playlists materialised from the user's listening history. Today: a 3-slot **Daily Mix** family bucketed by energy, plus a single **On Repeat** playlist tracking the user's top played tracks over the last 30 days. Tomorrow: "Repeat Rewind", "Release Radar", per-mood mixes — the engine in [`smart_playlists/`](../../src-tauri/crates/core/src/smart_playlists) is built around a discriminated `SmartPlaylistRules` enum so new families plug in without touching the regen flow.
+Auto-generated playlists materialised from the user's listening history. Today: a 3-slot **Daily Mix** family bucketed by energy, a single **On Repeat** playlist tracking the user's top played tracks over the last 30 days, a single **Release Radar** holding the recent releases of the user's artists that the library already has, and the artist, genre and decade mixes. Tomorrow: "Repeat Rewind", per-mood mixes — the engine in [`smart_playlists/`](../../src-tauri/crates/core/src/smart_playlists) is built around a discriminated `SmartPlaylistRules` enum so new families plug in without touching the regen flow.
 
 ## Storage
 
@@ -138,7 +138,7 @@ Differences vs Daily Mix:
 
 On Repeat doesn't use the album-art composite — its identity is a fixed visual rendered deterministically by [`cover::build_on_repeat_cover`](../../src-tauri/crates/core/src/smart_playlists/cover.rs): a 640×640 JPEG composited from the embedded SVG at [`on_repeat.svg`](../../src-tauri/crates/core/src/smart_playlists/on_repeat.svg) — deep indigo → near-black diagonal gradient, a faint vertical-bar equaliser motif at 4 % opacity, and a centred bezier infinity loop stroked with a `#ff3377 → #9933ff → #33ccff` gradient under a gaussian glow filter with a thin white inner-rim. Rasterised through `resvg + usvg + tiny-skia` (default features disabled — no font / raster-image bloat since the SVG is shape + gradient + filter primitives only), so the curves anti-alias at the canvas resolution instead of looking like the old hand-rolled pixel grid. Same bytes every regen → same blake3 hash → the cache dedupes against the existing file instead of piling up orphans. No `<text>` baked in (the playlist name and "On Repeat" eyebrow are rendered by React on top of the tile), so the canvas stays locale-agnostic.
 
-Future per-track-art families (Release Radar, Recently Added) will resolve the _first track's artist image_ instead — that's why [`generator::first_track_artwork_paths`](../../src-tauri/crates/core/src/smart_playlists/generator.rs) is `pub(super)` even though On Repeat doesn't use it.
+Release Radar, the genre and decade mixes take the 2×2 composite of their first tracks' album art instead, through [`generator::first_track_artwork_paths`](../../src-tauri/crates/core/src/smart_playlists/generator.rs), which is `pub(super)` for them.
 
 ## Genre and decade mixes
 
@@ -159,6 +159,66 @@ The same module, the same scoring, pick and sweep as the genre and decade mixes;
 - **Tracks.** The artist's own up to **15** (`SEED_ARTIST_CAP`), each neighbour's up to **4** (`NEIGHBOUR_CAP`), scored and shuffled like the other mixes. A mix needs **2 neighbours bringing tracks** (`MIN_NEIGHBOURS`) and **15 songs** (`MIN_ARTIST_MIX_TRACKS`, lower than a genre's 25: in a library built of singles both the artist and its neighbours are there by a few songs each — measured on one, the three most played artists had 4 to 9 songs and their eight neighbours one or two, which made mixes of 16 to 18): below that it is the artist's page shuffled, not a mix, and the artist gets none.
 - **Rows.** `ArtistMix { artist_id }`, positions 10+, named from the frontend's `artist_name` / `artist_description` templates ("Mix {name}").
 
+## Release Radar
+
+The recent releases of the artists in the library, found on [MusicBrainz](https://musicbrainz.org) and matched against the files the user already has. It replaces the `ui`-world plugin of the same name ([plugins.md](plugins.md#release-radar-ui-world)): the logic that plugin proved — an incremental scan, one request a second, a clean stop on `503` / `429`, a cursor to resume from, an identifying User-Agent — is kept, and the release now meets the library. **Nothing is downloaded but a release's information and its cover**: the radar points at music, it never fetches any.
+
+A release is in one of **two states**, and only two:
+
+| State          | Means                                                     | Shown as                                              |
+| -------------- | --------------------------------------------------------- | ----------------------------------------------------- |
+| **discovered** | MusicBrainz knows of it, no local track was matched to it | its cover, a link to its MusicBrainz page             |
+| **playable**   | at least one available local track was matched to it      | its cover, a play button, and a place in the playlist |
+
+A release is never offered as playable without a matched track: "playable" is the presence of a match, computed on every read, not a stored flag.
+
+### Pieces
+
+- **Core** — [`waveflow_core::release_radar`](../../src-tauri/crates/core/src/release_radar.rs): the Lucene query, the parsing, the title rules and the matcher, all pure; [`musicbrainz`](../../src-tauri/crates/core/src/release_radar/musicbrainz.rs), the release-group search client; [`store`](../../src-tauri/crates/core/src/release_radar/store.rs), the two tables. The family is [`smart_playlists::release_radar`](../../src-tauri/crates/core/src/smart_playlists/release_radar.rs).
+- **App** — [`commands/release_radar.rs`](../../src-tauri/crates/app/src/commands/release_radar.rs): the scan (`release_radar_scan`), the view's read (`release_radar_list`) and the local playlist rewrite (`release_radar_refresh_playlist`). The scan is the app's because it needs the offline switch, the task row, the pacing across awaits and the profile it runs for.
+- **Tables** — `release_radar_artist` (what the radar learnt about an artist: its MusicBrainz id, when it was last asked about) and `release_radar_release` (one row per release group) — see [storage.md](../architecture/storage.md#release-radar). The radar never writes the library's own `artist` table.
+
+### Who is followed
+
+The library's **100** heaviest artists (`FOLLOWED_ARTISTS`, `store::followed_artists`). An artist weighs its available tracks, plus one for every two plays over the last 90 days, plus three for every liked track — what the user keeps, listens to and loves, the first of which is all a library that was never played has. Every credit counts, not only the first, so a featured artist the user collects is followed too. "Various Artists" is a label and is never followed.
+
+### The scan
+
+`release_radar_scan(rescan, playlistDescription)`, from the view's button — never on its own: opening the view sends nothing.
+
+1. **Offline mode** answers `offline` before anything is sent, and is checked again **before every request**: the switch can be turned on while the scan runs.
+2. The releases older than the window (**180 days**, `RECENT_DAYS`) are pruned; `rescan` clears every artist's `checked_at` and learnt id.
+3. **The cursor is `checked_at`.** An artist answered less than 20 hours ago (`REFRESH_AFTER_MS`) is not asked again, so a scan stopped by the user, a rate limit, offline mode, the network or a profile switch resumes with the artists it did not reach. A failed lookup leaves the artist due.
+4. **One request a second.** Every request waits on the process-wide `musicbrainz::shared_pacer()` (one a second for the whole app, shared with the [enrichment engine](enrichment.md)), and a rate limit pushes that pacer back for every caller ([invariant](../architecture/invariants.md#musicbrainz-is-paced-process-wide)). A `503` / `429` is waited out **once**, at the `Retry-After` MusicBrainz gives (5 s without one, 3 s at least — its `503` comes with `Retry-After: 0` — and 30 s at most), and stops the scan the second time — never a retry loop, which is what gets a client blocked. Three transport failures in a row stop it too (`failed`): the network is down.
+5. **By id when known.** The query is `arid:<mbid>` once the radar knows the artist's MusicBrainz id, `artist:"<name>"` until then. A query by name is a phrase search, answered with homonyms and releases that merely mention the name, so a release is kept only when one of its credits is the artist, through the shared [`name_match::select_by_name`](../../src-tauri/crates/core/src/metadata/name_match.rs) (which also accepts "Artist & The Band"). The id is **learnt only when the library confirms it** ([`confirmed_mbid`](../../src-tauri/crates/core/src/release_radar.rs)): every release of the answer that matched a local track of the artist was credited, under the artist's exact name, to one and the same id. The answer alone is no proof — it is filtered to the recent window, so an artist with nothing new and a homonym with something would leave the homonym's id alone on the page — while a homonym does not put out a record the user already has under that name. A credit kept only as "Artist & The Band" teaches nothing either: that id is the band's. Until an id is confirmed, the radar keeps searching by name; **Check everything again** forgets the learnt ids along with `checked_at`, the one way back from an id learnt wrong.
+6. Each artist's answer is **one short transaction** (`store::record_artist`): checked, its confirmed id kept (`COALESCE`, a later answer that confirms nothing does not erase it), its releases upserted. Every write of the scan, the playlist's included, is parked behind a library scan (`scan_in_flight`) and retried on `SQLITE_BUSY`.
+7. **Covers** come from the [Cover Art Archive](https://coverartarchive.org) (`front-250`), cached into the shared `metadata_artwork/` by `download_and_cache`, each waiting on the same pacer, so the view draws local files — offline too — and never a remote image. A release the archive had no cover for is asked again after a week.
+8. When the scan ends — however it ends, unless the profile changed — the playlist is rewritten and `playlist:changed` emitted. `release-radar:changed` goes out after every artist, so an open view fills as releases come in.
+
+The scan takes a `TaskHandle` (`TaskKind::ReleaseRadar`, slug `release_radar`, `Cancellation::Flag`) before anything waits — a scan parked behind a library scan is shown and can be stopped — so the status bar shows it with a stop button, and it stops between two artists (or during a `Retry-After` wait, polled every 500 ms). It takes the profile pool again for every artist rather than holding a lease for the minute it runs, and stops (`profile_changed`) the moment the active profile is not the one it started for.
+
+**Where the library's own MusicBrainz ids plug in.** `store::followed_artists` reads `COALESCE(musicbrainz_artist.artist_mbid, release_radar_artist.mbid)`: an artist id the user accepted from the [enrichment engine](enrichment.md) (status `applied`) goes first, so that artist is asked about by id from the first scan on, and the id the radar learnt is the fallback. A proposal still waiting on review is not used. "Recheck everything" forgets only the radar's own ids; an accepted one stays until the user undoes it on the enrichment side.
+
+### Matching
+
+[`match_releases`](../../src-tauri/crates/core/src/release_radar.rs) pairs each release with the library's available tracks, **within the artist the release was found for** — never across artists, since a title alone ("Intro", "Home") is shared by half a library. A track belongs to an artist by any of its credits or by its album's artist.
+
+- **An album, EP or other release** matches the local albums whose title has the same key: [`title_key`](../../src-tauri/crates/core/src/release_radar.rs) drops a store's " - Single" / " - EP" suffix and a trailing bracketed **edition** ("(Deluxe Edition)", "[2024 Remaster]"), then folds through `name_match::normalize_name`. A remix or a live recording keeps its suffix: it is another record. Its tracks play as the record (`matched_by: album`, album-ordered for ReplayGain).
+- **A single** that no album matches falls back to the artist's tracks of that title — the single often came out before the album the user has (`matched_by: track`).
+- **An album never falls back to a track**: the title track of a record is not the record.
+
+### The playlist
+
+`ReleaseRadar` in `smart_rules` (needle `"kind":"release_radar"`), named **"Release Radar"** in every language, like Daily Mix and On Repeat; its description comes from the frontend (`MixLabels.release_radar_description`). Position **4**, after Daily Mix. Releases newest first, each bringing at most **5** of its matched tracks (`PER_RELEASE_CAP`, so a whole new album does not fill it alone), **50** in all, a track two releases share (a single, then its album) once. Cover: the 2×2 composite of the first tracks' album art. No playable release, no row — an existing one is deleted.
+
+It is rewritten from local data only, so a regeneration offline gives the same playlist: at the end of a scan, by **Regenerate** on Home (`regenerate_all_smart_playlists`), and when the view opens (`release_radar_refresh_playlist`), so an album imported since the last scan joins it without asking MusicBrainz anything.
+
+### View
+
+[`ReleaseRadarView`](../../src/components/views/ReleaseRadarView.tsx), the `release-radar` view, from a native sidebar entry (always present — the radar sends nothing until asked). A header with the artists followed and the last check; **Find new releases** / **Check everything again**, disabled offline; **Play** (every playable release) and **Open the playlist**; filters **All / In your library / Discovered**; then the releases as a grid virtualized against the page scroller. A card says its date at the precision MusicBrainz gave it, "Upcoming" for a date after today, its type, and either its local track count with a play button or a link to MusicBrainz. Whether a scan runs is read from the task registry (`useTasks`), not kept in the view, so it survives a trip to another page; the stop button cancels the task. The card's hook for the skins is `data-release-card` with `data-release-state`.
+
+**The retired plugin.** While the `ui` plugin this view replaced is installed — enabled or not — the view shows a notice, `data-release-radar-plugin-notice`, saying the radar is built in now and the plugin can be uninstalled, with a button to the Extensions page. It is shown **once per profile** ([`useReleaseRadarPluginNotice`](../../src/hooks/useReleaseRadarPluginNotice.ts), `profile_setting['release_radar.plugin_notice_seen']`, default unseen): the flag is written as soon as the notice is drawn, and the notice stays up for that visit until it is closed or the plugin uninstalled. Not a preference, so not in the settings registry and not counted by Settings' reset, like `artist.bio_collapsed`. The plugin's own sidebar entry is never shown ([plugins.md](plugins.md#release-radar-ui-world)).
+
 ## Regen flow
 
 ```bash
@@ -177,6 +237,10 @@ User clicks "Régénérer" on HomeView
     ├── cover::build_on_repeat_cover()← deterministic brand artwork
     └── upsert_smart_playlist()       ← LIKE-match on "kind":"on_repeat" needle
     │
+    → smart_playlists::release_radar::regenerate_release_radar()
+    ├── store::recent_releases() + store::local_tracks()  ← the radar's tables; no network
+    ├── match_releases() → pick_tracks()  ← newest first, 5 per release, 50
+    │
     → smart_playlists::themed::regenerate_artist_mixes()
     ├── artist_seeds() → neighbours()   ← similar-artists cache, then shared sessions; no network
     │
@@ -192,7 +256,7 @@ The cross-DB lookup in `top_artists_with_bpm` reads `metadata_artist` (renamed f
 
 ## UI
 
-- **Sidebar** ([`Sidebar.tsx`](../../src/components/layout/Sidebar.tsx)): when `cover_path` is set, the playlist row swaps its icon-tile for an 8 × 8 image. Generated playlists carry their family's `position` (On Repeat 0, Daily Mix 1–3, artist mixes 10+, genre mixes 20+, decade mixes 30+), and the list sorts on `position`, then on the last update.
+- **Sidebar** ([`Sidebar.tsx`](../../src/components/layout/Sidebar.tsx)): when `cover_path` is set, the playlist row swaps its icon-tile for an 8 × 8 image. Generated playlists carry their family's `position` (On Repeat 0, Daily Mix 1–3, Release Radar 4, artist mixes 10+, genre mixes 20+, decade mixes 30+), and the list sorts on `position`, then on the last update.
 - **HomeView** ([`HomeView.tsx`](../../src/components/views/HomeView.tsx)): a "Pour vous" section above "Récemment joués" renders 16:7 cards with the cover as background, a black gradient, the `DAILY MIX` label, the playlist name and the track count. Empty state when `smartPlaylists.length === 0`.
 - **Regen button**: violet "Régénérer" with a spinning `RefreshCw` while in flight. Calls `regenerateAllSmartPlaylists(labels)` — every family, with the genre and decade mixes' name templates — then `refresh()` on the playlist context.
 

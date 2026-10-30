@@ -172,7 +172,8 @@
   "sidebar": {
     "nav": {
       "home": "होम",
-      "webRadio": "वेब रेडियो"
+      "webRadio": "वेब रेडियो",
+      "releaseRadar": "Release Radar"
     },
     "sections": {
       "open": "खोलें",
@@ -445,6 +446,10 @@
       "plays_zero": "0 बार सुना",
       "plays_one": "{{count}} बार सुना",
       "plays_other": "{{count}} बार सुना"
+    },
+    "releaseRadar": {
+      "label": "Release Radar",
+      "description": "आपके कलाकारों की नई रिलीज़, आपकी लाइब्रेरी से"
     }
   },
   "library": {
@@ -3547,7 +3552,8 @@
       "drop_import": "लाइब्रेरी में कॉपी",
       "cache_move": "कैश ले जाए जा रहे हैं",
       "spectrogram": "ट्रैक का स्पेक्ट्रम",
-      "enrichment": "लाइब्रेरी समृद्धि"
+      "enrichment": "लाइब्रेरी समृद्धि",
+      "release_radar": "Release Radar"
     }
   },
   "smartRuleSummary": {
@@ -3778,5 +3784,61 @@
     "fromAlbums_other": "{{count}} पहचाने गए एल्बमों पर श्रेय",
     "acceptEvidenced_one": "श्रेय पाए कलाकार को स्वीकार करें",
     "acceptEvidenced_other": "श्रेय पाए {{count}} कलाकारों को स्वीकार करें"
+  },
+  "releaseRadar": {
+    "badge": "नई रिलीज़",
+    "subtitle": "MusicBrainz के अनुसार, आपकी लाइब्रेरी के कलाकारों की हाल की रिलीज़।",
+    "followed": "फ़ॉलो किए गए कलाकार: {{n}}",
+    "lastChecked": "पिछली जाँच: {{when}}",
+    "neverChecked": "कभी नहीं जाँचा गया",
+    "scan": "नई रिलीज़ खोजें",
+    "rescan": "सब फिर से जाँचें",
+    "scanning": "खोज जारी… {{checked}} / {{due}}",
+    "scanningIndeterminate": "खोज जारी…",
+    "stop": "रोकें",
+    "playAll": "चलाएँ",
+    "openPlaylist": "प्लेलिस्ट खोलें",
+    "offline": "ऑफ़लाइन मोड: कोई खोज नहीं भेजी जाती। पहले मिली रिलीज़ दिखती रहती हैं।",
+    "filter": {
+      "all": "सभी",
+      "playable": "आपकी लाइब्रेरी में",
+      "discovered": "खोजी गई"
+    },
+    "state": {
+      "playable": "आपकी लाइब्रेरी में ({{n}})",
+      "discovered": "खोजी गई · MusicBrainz पर देखें"
+    },
+    "upcoming": "जल्द आ रही है",
+    "play": "{{title}} चलाएँ",
+    "openMusicBrainz": "MusicBrainz पर देखें",
+    "outcome": {
+      "rateLimited": "MusicBrainz ने धीमा होने को कहा है। अगली खोज वहीं से जारी रहेगी जहाँ यह रुकी।",
+      "failed": "नेटवर्क जवाब नहीं दे रहा। अगली खोज वहीं से जारी रहेगी जहाँ यह रुकी।",
+      "cancelled": "खोज रोक दी गई। अगली खोज वहीं से जारी रहेगी जहाँ यह रुकी।",
+      "profileChanged": "खोज के दौरान प्रोफ़ाइल बदल गई, इसलिए खोज रुक गई।",
+      "error": "खोज विफल रही: {{detail}}"
+    },
+    "emptyTitle": "Release Radar में आपका स्वागत है",
+    "emptyHint": "अपनी लाइब्रेरी के कलाकारों की हाल की रिलीज़ खोजने के लिए खोज शुरू करें। सिर्फ़ उनकी जानकारी और कवर डाउनलोड होते हैं, संगीत कभी नहीं।",
+    "noneTitle": "कोई हाल की रिलीज़ नहीं",
+    "noneHint": "MusicBrainz को फ़ॉलो किए गए कलाकारों की पिछले छह महीनों की कोई रिलीज़ नहीं पता।",
+    "filterEmpty": "इस फ़िल्टर में कोई रिलीज़ नहीं।",
+    "credits": "जानकारी: MusicBrainz · कवर: Cover Art Archive",
+    "type": {
+      "album": "एल्बम",
+      "single": "सिंगल",
+      "ep": "EP",
+      "broadcast": "प्रसारण",
+      "other": "अन्य",
+      "live": "लाइव",
+      "compilation": "संकलन",
+      "remix": "रीमिक्स",
+      "soundtrack": "साउंडट्रैक"
+    },
+    "pluginNotice": {
+      "title": "Release Radar अब बिल्ट-इन है",
+      "body": "यह पेज Release Radar एक्सटेंशन की जगह लेता है, जिसकी अब ज़रूरत नहीं है: आप इसे एक्सटेंशन पेज से अनइंस्टॉल कर सकते हैं।",
+      "openExtensions": "एक्सटेंशन खोलें"
+    }
   }
 }

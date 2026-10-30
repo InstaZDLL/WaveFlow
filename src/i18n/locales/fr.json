@@ -172,7 +172,8 @@
   "sidebar": {
     "nav": {
       "home": "Accueil",
-      "webRadio": "Web Radio"
+      "webRadio": "Web Radio",
+      "releaseRadar": "Release Radar"
     },
     "sections": {
       "open": "Ouvrir",
@@ -457,6 +458,10 @@
       "plays_one": "{{count}} écoute",
       "plays_other": "{{count}} écoutes",
       "plays_many": "{{count}} écoutes"
+    },
+    "releaseRadar": {
+      "label": "Release Radar",
+      "description": "Les nouveautés de tes artistes, depuis ta bibliothèque"
     }
   },
   "library": {
@@ -3644,7 +3649,8 @@
       "drop_import": "Copie vers la bibliothèque",
       "cache_move": "Déplacement des caches",
       "spectrogram": "Spectre d'un titre",
-      "enrichment": "Enrichissement de la bibliothèque"
+      "enrichment": "Enrichissement de la bibliothèque",
+      "release_radar": "Release Radar"
     }
   },
   "smartRuleSummary": {
@@ -3891,5 +3897,61 @@
     "acceptEvidenced_one": "Accepter l'artiste crédité",
     "acceptEvidenced_many": "Accepter les {{count}} artistes crédités",
     "acceptEvidenced_other": "Accepter les {{count}} artistes crédités"
+  },
+  "releaseRadar": {
+    "badge": "Nouveautés",
+    "subtitle": "Les sorties récentes des artistes de ta bibliothèque, d'après MusicBrainz.",
+    "followed": "Artistes suivis : {{n}}",
+    "lastChecked": "Dernière vérification : {{when}}",
+    "neverChecked": "Jamais vérifié",
+    "scan": "Chercher les nouveautés",
+    "rescan": "Tout revérifier",
+    "scanning": "Recherche… {{checked}} / {{due}}",
+    "scanningIndeterminate": "Recherche…",
+    "stop": "Arrêter",
+    "playAll": "Lire",
+    "openPlaylist": "Ouvrir la playlist",
+    "offline": "Mode hors ligne : aucune recherche n'est envoyée. Les sorties déjà trouvées restent affichées.",
+    "filter": {
+      "all": "Tout",
+      "playable": "Dans ta bibliothèque",
+      "discovered": "Découvertes"
+    },
+    "state": {
+      "playable": "Dans ta bibliothèque ({{n}})",
+      "discovered": "Découverte · voir sur MusicBrainz"
+    },
+    "upcoming": "À venir",
+    "play": "Lire {{title}}",
+    "openMusicBrainz": "Voir sur MusicBrainz",
+    "outcome": {
+      "rateLimited": "MusicBrainz demande de ralentir. La prochaine recherche reprendra là où celle-ci s'est arrêtée.",
+      "failed": "Le réseau ne répond pas. La prochaine recherche reprendra là où celle-ci s'est arrêtée.",
+      "cancelled": "Recherche arrêtée. La prochaine reprendra là où celle-ci s'est arrêtée.",
+      "profileChanged": "Le profil a changé pendant la recherche, elle s'est arrêtée.",
+      "error": "La recherche a échoué : {{detail}}"
+    },
+    "emptyTitle": "Bienvenue dans Release Radar",
+    "emptyHint": "Lance une recherche pour trouver les sorties récentes des artistes de ta bibliothèque. Seules leurs informations et leurs pochettes sont téléchargées, jamais la musique.",
+    "noneTitle": "Aucune sortie récente",
+    "noneHint": "MusicBrainz ne connaît aucune sortie de ces six derniers mois pour les artistes suivis.",
+    "filterEmpty": "Aucune sortie dans ce filtre.",
+    "credits": "Informations : MusicBrainz · Pochettes : Cover Art Archive",
+    "type": {
+      "album": "Album",
+      "single": "Single",
+      "ep": "EP",
+      "broadcast": "Émission",
+      "other": "Autre",
+      "live": "Live",
+      "compilation": "Compilation",
+      "remix": "Remix",
+      "soundtrack": "Bande originale"
+    },
+    "pluginNotice": {
+      "title": "Release Radar est maintenant intégré",
+      "body": "Cette page remplace l'extension Release Radar, qui n'est plus nécessaire : tu peux la désinstaller depuis la page Extensions.",
+      "openExtensions": "Ouvrir les extensions"
+    }
   }
 }

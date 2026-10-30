@@ -16,6 +16,8 @@ export type ViewId =
   | "genre-detail"
   | "year-detail"
   | "web-radio"
+  // The native Release Radar: recent releases of the library's artists.
+  | "release-radar"
   // The plugin store and the installed plugins, a page of their own.
   | "extensions"
   // A playlist that lives on the bound remote server (RFC-005 sync_v2).

@@ -83,6 +83,15 @@ pub struct MixLabels {
     /// `{name}` stands for the artist's name.
     pub artist_name: String,
     pub artist_description: String,
+    /// The Release Radar playlist's description. Its name is the same in
+    /// every language. `default` so a caller that predates the family
+    /// still parses.
+    #[serde(default = "default_release_radar_description")]
+    pub release_radar_description: String,
+}
+
+fn default_release_radar_description() -> String {
+    "New releases from your artists, from your library".to_string()
 }
 
 /// A track a mix may take.
