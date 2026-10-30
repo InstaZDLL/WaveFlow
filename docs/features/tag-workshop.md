@@ -76,7 +76,7 @@ Every database write is a short transaction retried on `SQLITE_BUSY`. The batch 
 When the batch came from a MusicBrainz match:
 
 - **Add the Cover Art Archive cover to albums that have none** fills a cover the way the engine does (`enrichment::fetch_cover`): the release's front, or the release group's, linked only to an album that has no cover. Never into the files, and never over a cover the album has.
-- An enrichment decision about one of the albums that names another release — a proposal under review, a rejection, a match with another release — is **forgotten**, so the engine's next pass reads the identifier from the files and settles it. A decision for the very release is kept.
+- For each album a written file now names that release in (the release identifier written, or already there), an enrichment decision that says otherwise — a proposal under review, a rejection, a match with another release — is **forgotten**, so the engine's next pass reads the identifier from the files and settles it. A decision for the very release is kept, and so is every decision about an album whose files were given other tags only: a rejection stays a rejection.
 
 ## Undo
 
