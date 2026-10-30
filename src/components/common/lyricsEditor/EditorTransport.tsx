@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Pause, Play, RotateCcw, RotateCw } from "lucide-react";
 import { usePlayerPosition } from "../../../hooks/usePlayerPosition";
-import { formatEditorTime } from "./shared";
+import { formatEditorTime, keepFocus } from "./shared";
 
 /** The speeds offered while syncing: slower helps place fast words. */
 const SPEEDS = [0.5, 0.75, 1] as const;
@@ -38,6 +38,7 @@ export function EditorTransport({
     <div className="flex flex-wrap items-center gap-2">
       <button
         type="button"
+        onMouseDown={keepFocus}
         onClick={() => seek(Math.max(0, estimate() - SKIP_MS))}
         title={t("lyricsEditor.transport.back")}
         aria-label={t("lyricsEditor.transport.back")}
@@ -47,6 +48,7 @@ export function EditorTransport({
       </button>
       <button
         type="button"
+        onMouseDown={keepFocus}
         onClick={togglePlayback}
         title={
           isPlaying ? t("player.controls.pause") : t("player.controls.play")
@@ -60,6 +62,7 @@ export function EditorTransport({
       </button>
       <button
         type="button"
+        onMouseDown={keepFocus}
         onClick={() => seek(estimate() + SKIP_MS)}
         title={t("lyricsEditor.transport.forward")}
         aria-label={t("lyricsEditor.transport.forward")}
@@ -82,6 +85,7 @@ export function EditorTransport({
           return (
             <button
               key={value}
+              onMouseDown={keepFocus}
               type="button"
               role="radio"
               aria-checked={checked}

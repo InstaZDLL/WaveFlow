@@ -22,6 +22,7 @@ import type { LyricsDocument } from "../../../lib/tauri/lyricsDocument";
 import {
   formatEditorTime,
   isTypingTarget,
+  keepFocus,
   type EditDocument,
   type SyncCursor,
   type SyncMode,
@@ -115,6 +116,19 @@ export function SyncStep({
       if (isTypingTarget(e.target) || e.ctrlKey || e.metaKey || e.altKey) {
         return;
       }
+      // A control focused from the keyboard keeps Space and Enter, so
+      // the editor can be saved or left without a mouse. The units of
+      // the list are the exception: picking one is how a stamp is aimed.
+      if (
+        (e.code === "Space" ||
+          e.code === "Enter" ||
+          e.code === "NumpadEnter") &&
+        e.target instanceof HTMLElement &&
+        e.target.closest("button, a, [role='radio']") &&
+        !e.target.closest("[data-sync-list]")
+      ) {
+        return;
+      }
       const { doc, cursor, mode, reactionMs } = live.current;
       const n = doc.lines.length;
       const now = () => Math.max(0, Math.round(estimate() - reactionMs));
@@ -127,10 +141,12 @@ export function SyncStep({
       let handled = true;
       if (e.code === "Space") {
         if (mode === "line") {
-          if (cursor.line < n) {
+          // The next line with words: a stanza break is not sung.
+          const next = forward(doc, { line: cursor.line, word: 0 });
+          if (next) {
             const at = now();
-            edit((d) => stampLine(d, cursor.line, at));
-            go({ line: Math.min(n, cursor.line + 1), word: 0 });
+            edit((d) => stampLine(d, next.line, at));
+            go({ line: next.line + 1, word: 0 });
           }
         } else {
           const next = forward(doc, cursor);
@@ -144,18 +160,18 @@ export function SyncStep({
         // Where what was just sung stops: a breath, an instrumental.
         const at = now();
         if (mode === "line") {
-          const line = Math.min(cursor.line, n) - 1;
-          if (line >= 0) edit((d) => endLine(d, line, at));
+          const prev = backward(doc, { line: cursor.line, word: 0 });
+          if (prev) edit((d) => endLine(d, prev.line, at));
         } else {
           const prev = backward(doc, cursor);
           if (prev) edit((d) => endUnit(d, prev.line, prev.word, at));
         }
       } else if (e.code === "Backspace") {
         if (mode === "line") {
-          const line = Math.min(cursor.line, n) - 1;
-          if (line >= 0) {
-            edit((d) => clearLine(d, line));
-            go({ line, word: 0 });
+          const prev = backward(doc, { line: cursor.line, word: 0 });
+          if (prev) {
+            edit((d) => clearLine(d, prev.line));
+            go({ line: prev.line, word: 0 });
           }
         } else {
           const prev = backward(doc, cursor);
@@ -211,6 +227,7 @@ export function SyncStep({
               type="button"
               role="radio"
               aria-checked={mode === m}
+              onMouseDown={keepFocus}
               onClick={() => setMode(m)}
               className={`px-3 py-1 rounded-full font-medium transition-colors ${
                 mode === m
@@ -252,6 +269,7 @@ export function SyncStep({
             className="p-1.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800"
             aria-label={t("lyricsEditor.sync.shiftEarlier", { ms: SHIFT_MS })}
             title={t("lyricsEditor.sync.shiftEarlier", { ms: SHIFT_MS })}
+            onMouseDown={keepFocus}
             onClick={() => edit((d) => shiftDocument(d, -SHIFT_MS))}
           >
             <Minus size={12} />
@@ -261,6 +279,7 @@ export function SyncStep({
             className="p-1.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800"
             aria-label={t("lyricsEditor.sync.shiftLater", { ms: SHIFT_MS })}
             title={t("lyricsEditor.sync.shiftLater", { ms: SHIFT_MS })}
+            onMouseDown={keepFocus}
             onClick={() => edit((d) => shiftDocument(d, SHIFT_MS))}
           >
             <Plus size={12} />
@@ -364,6 +383,7 @@ function SyncList({
   return (
     <div
       ref={parentRef}
+      data-sync-list
       className="relative"
       style={{ height: virtualizer.getTotalSize() }}
     >

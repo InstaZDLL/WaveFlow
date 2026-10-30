@@ -30,6 +30,16 @@ const AGENT_COLORS = ["#f59e0b", "#38bdf8", "#a78bfa", "#34d399", "#f472b6"];
 export const agentColor = (index: number) =>
   AGENT_COLORS[index % AGENT_COLORS.length];
 
+/**
+ * `onMouseDown` for the controls used while syncing (play, the mode, the
+ * steps): a mouse click leaves the focus where it was, so Space and Enter
+ * keep stamping instead of pressing the button last clicked. Tab still
+ * reaches them, and a button focused that way keeps its keys.
+ */
+export function keepFocus(e: { preventDefault: () => void }): void {
+  e.preventDefault();
+}
+
 /** Whether a key event belongs to a field being typed in. */
 export function isTypingTarget(target: EventTarget | null): boolean {
   return (

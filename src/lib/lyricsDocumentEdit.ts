@@ -123,23 +123,36 @@ export function setLineText(
 }
 
 /**
- * Rebuild the lines from a block of text, one per non-blank row. A line
- * whose text is unchanged at the same position keeps everything (times,
- * singer, translation).
+ * Rebuild the lines from a block of text, one per non-blank row; a run of
+ * blank rows between two is a stanza break, kept as one line without
+ * words. A line whose text is still there keeps everything (times,
+ * singer, translation): rows are matched in order, so a line inserted or
+ * removed above does not cost the ones after it their sync.
  */
 export function setLinesFromText(
   doc: LyricsDocument,
   text: string,
 ): LyricsDocument {
-  const rows = text
-    .split(/\r?\n/)
-    .map((r) => r.trim())
-    .filter(Boolean);
+  const rows: string[] = [];
+  for (const raw of text.split(/\r?\n/)) {
+    const row = raw.trim();
+    if (row || (rows.length > 0 && rows[rows.length - 1] !== "")) {
+      rows.push(row);
+    }
+  }
+  while (rows.length > 0 && rows[rows.length - 1] === "") rows.pop();
+  let from = 0;
   return withLines(
     doc,
-    rows.map((row, k) => {
-      const old = doc.lines[k];
-      return old && lineText(old) === row ? old : { words: splitUnits(row) };
+    rows.map((row) => {
+      if (!row) return { words: [] };
+      for (let k = from; k < doc.lines.length; k += 1) {
+        if (doc.lines[k].words.length > 0 && lineText(doc.lines[k]) === row) {
+          from = k + 1;
+          return doc.lines[k];
+        }
+      }
+      return { words: splitUnits(row) };
     }),
   );
 }
@@ -483,17 +496,21 @@ export function activeLineIndex(doc: LyricsDocument, at: number): number {
   return found;
 }
 
-/** How many lines, and how many units, carry a start. */
+/** How many lines, and how many units, carry a start. A stanza break
+ *  (a line without words) is no line to sync and is not counted. */
 export function syncProgress(doc: LyricsDocument) {
   let lines = 0;
+  let totalLines = 0;
   let units = 0;
   let totalUnits = 0;
   for (const line of doc.lines) {
+    if (line.words.length === 0) continue;
+    totalLines += 1;
     if (lineBegin(line) !== undefined) lines += 1;
     totalUnits += line.words.length;
     units += line.words.filter((u) => u.beginMs !== undefined).length;
   }
-  return { lines, totalLines: doc.lines.length, units, totalUnits };
+  return { lines, totalLines, units, totalUnits };
 }
 
 /** Whether a later unit than the first is timed: a word-by-word sync. */

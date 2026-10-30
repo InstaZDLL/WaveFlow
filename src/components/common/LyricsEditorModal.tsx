@@ -51,6 +51,7 @@ import { PreviewStep } from "./lyricsEditor/PreviewStep";
 import { EditorTransport } from "./lyricsEditor/EditorTransport";
 import {
   isTypingTarget,
+  keepFocus,
   type SyncCursor,
   type SyncMode,
 } from "./lyricsEditor/shared";
@@ -141,6 +142,9 @@ function LyricsEditorDialog({
   const [syncMode, setSyncMode] = useState<SyncMode>("line");
   const [cursor, setCursor] = useState<SyncCursor>({ line: 0, word: 0 });
   const [format, setFormat] = useState<LyricsFormat>("lrc");
+  // Whether the user picked the format on this open. Until then, plain
+  // text that gets its first stamp moves to a format that keeps it.
+  const formatTouchedRef = useRef(false);
   const [lrcTranslations, setLrcTranslations] = useState(true);
   const [loading, setLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -255,7 +259,7 @@ function LyricsEditorDialog({
       .then(({ format: read, document }) => {
         if (cancelled) return;
         start(withTrack(document));
-        setFormat(read === "plain" ? "lrc" : read);
+        setFormat(read);
         setSyncMode(
           document.lines.some(isWordSynced) || read === "enhanced_lrc"
             ? "word"
@@ -312,6 +316,17 @@ function LyricsEditorDialog({
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
   }, [isOpen, undo, redo]);
+
+  // ── Plain text that starts being synced ───────────────────────────
+  // Lyrics opened as plain text save as plain text, unless they are
+  // synced here: the first stamp moves them to LRC (TTML when stamped
+  // word by word), or the sync would be written away on save. A format
+  // the user picked is theirs.
+  const stamped = doc.lines.some((l) => lineBegin(l) !== undefined);
+  useEffect(() => {
+    if (format !== "plain" || !stamped || formatTouchedRef.current) return;
+    setFormat(syncMode === "word" ? "ttml" : "lrc");
+  }, [format, stamped, syncMode]);
 
   // ── Writing ───────────────────────────────────────────────────────
   const writeOptions = useMemo(
@@ -459,6 +474,18 @@ function LyricsEditorDialog({
     }
   };
 
+  const unsyncedText = unsynced
+    ? unsynced.word !== undefined
+      ? t("lyricsEditor.unsynced.word", {
+          format: t(`lyricsEditor.format.${format}`),
+          line: unsynced.line + 1,
+          word: unsynced.word + 1,
+        })
+      : t("lyricsEditor.unsynced.line", {
+          format: t(`lyricsEditor.format.${format}`),
+          line: unsynced.line + 1,
+        })
+    : "";
   const otherTrackPlaying =
     editingTrackId != null && currentTrack?.id !== editingTrackId;
   const hasTranslations = doc.lines.some((l) => l.translations?.length);
@@ -495,6 +522,7 @@ function LyricsEditorDialog({
               key={s}
               type="button"
               aria-current={step === s ? "step" : undefined}
+              onMouseDown={keepFocus}
               onClick={() => setStep(s)}
               className={`px-4 py-1.5 rounded-full font-medium transition-colors ${
                 step === s
@@ -512,6 +540,7 @@ function LyricsEditorDialog({
         <div className="flex items-center gap-1">
           <button
             type="button"
+            onMouseDown={keepFocus}
             onClick={history.undo}
             disabled={!history.canUndo}
             title={t("lyricsEditor.undo")}
@@ -522,6 +551,7 @@ function LyricsEditorDialog({
           </button>
           <button
             type="button"
+            onMouseDown={keepFocus}
             onClick={history.redo}
             disabled={!history.canRedo}
             title={t("lyricsEditor.redo")}
@@ -641,6 +671,7 @@ function LyricsEditorDialog({
               <select
                 value={format}
                 onChange={(e) => {
+                  formatTouchedRef.current = true;
                   setFormat(e.target.value as LyricsFormat);
                   setUnsynced(null);
                 }}
@@ -701,17 +732,8 @@ function LyricsEditorDialog({
             <div className="flex basis-full lg:flex-1 items-center gap-2 min-w-0 justify-end">
               {unsynced && (
                 <span className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400 min-w-0">
-                  <span className="truncate">
-                    {unsynced.word !== undefined
-                      ? t("lyricsEditor.unsynced.word", {
-                          format: t(`lyricsEditor.format.${format}`),
-                          line: unsynced.line + 1,
-                          word: unsynced.word + 1,
-                        })
-                      : t("lyricsEditor.unsynced.line", {
-                          format: t(`lyricsEditor.format.${format}`),
-                          line: unsynced.line + 1,
-                        })}
+                  <span className="truncate" title={unsyncedText}>
+                    {unsyncedText}
                   </span>
                   <button
                     type="button"
