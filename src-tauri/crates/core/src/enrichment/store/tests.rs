@@ -478,11 +478,9 @@ async fn the_cover_backlog_is_the_applied_albums_whose_release_has_a_cover() {
     .await
     .unwrap();
     assert_eq!(albums_wanting_cover(&mut conn).await.unwrap().len(), 1);
-    // A release with no front cover is never retried.
-    sqlx::query("UPDATE musicbrainz_album SET has_front_cover = 0")
-        .execute(&mut *conn)
-        .await
-        .unwrap();
+    // A release the archive turned out to hold no front cover for is
+    // never retried.
+    forget_front_cover(&mut conn, 1).await.unwrap();
     assert!(albums_wanting_cover(&mut conn).await.unwrap().is_empty());
 }
 

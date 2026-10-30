@@ -513,6 +513,17 @@ pub async fn albums_wanting_cover(
     .await?)
 }
 
+/// The archive answered for an album's release and holds no usable front
+/// cover after all: [`albums_wanting_cover`] stops asking for it. A later
+/// lookup of the album records what the release says again.
+pub async fn forget_front_cover(conn: &mut SqliteConnection, album_id: i64) -> CoreResult<()> {
+    sqlx::query("UPDATE musicbrainz_album SET has_front_cover = 0 WHERE album_id = ?")
+        .bind(album_id)
+        .execute(&mut *conn)
+        .await?;
+    Ok(())
+}
+
 /// The albums with an applied decision, for a refill one album at a time.
 pub async fn applied_album_ids(conn: &mut SqliteConnection) -> CoreResult<Vec<i64>> {
     Ok(

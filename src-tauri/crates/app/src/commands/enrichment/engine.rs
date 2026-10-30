@@ -805,10 +805,17 @@ pub(super) async fn fetch_cover(
         Ok(None)
     }
     .map_err(|e| crate::error::AppError::Other(format!("cover art archive: {e}")))?;
-    let Some(bytes) = bytes else {
-        return Ok(false);
-    };
-    let Some(format) = waveflow_core::artwork::image_format::detect_image_format(&bytes) else {
+    let format = bytes
+        .as_deref()
+        .and_then(waveflow_core::artwork::image_format::detect_image_format);
+    let (Some(bytes), Some(format)) = (bytes, format) else {
+        // The archive answered, and holds no usable front cover after
+        // all: the backlog stops asking, or every pass would cost one
+        // request per such album, forever.
+        if has_front {
+            db.write(|conn| Box::pin(store::forget_front_cover(conn, album_id)))
+                .await?;
+        }
         return Ok(false);
     };
     // Hashing up to 16 MiB and writing it is blocking work: off the
