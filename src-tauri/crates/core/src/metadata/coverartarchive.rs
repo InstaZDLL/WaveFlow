@@ -21,6 +21,8 @@ use super::{read_bounded, LookupError};
 const BASE_URL: &str = "https://coverartarchive.org";
 const TIMEOUT_SECS: u64 = 30;
 const MAX_REDIRECTS: usize = 5;
+/// How long every later request waits after the archive said "slow down".
+const RATE_LIMIT_BACK_OFF: Duration = Duration::from_secs(5);
 
 /// The largest image read. The 500-pixel thumbnail asked for is a few
 /// tens of kilobytes; a full-size scan can reach several megabytes,
@@ -94,6 +96,12 @@ impl CoverArtArchiveClient {
             return Ok(None);
         }
         if !status.is_success() {
+            // The archive's rate limiter: the shared pacer slows down for
+            // MusicBrainz too, which is what sharing it is for. Not
+            // retried here — the cover is picked up by the next pass.
+            if matches!(status.as_u16(), 429 | 503) {
+                self.pacer.back_off(RATE_LIMIT_BACK_OFF);
+            }
             return Err(LookupError::Status {
                 status: status.as_u16(),
             });

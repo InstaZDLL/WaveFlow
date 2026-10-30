@@ -82,6 +82,9 @@ export function EnrichmentReviewModal({
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [tab, setTab] = useState<Tab>("albums");
   const [rows, setRows] = useState<Row[]>([]);
+  // The tab `rows` were loaded for: until a switch's load lands, the rows
+  // on screen are the previous tab's.
+  const [loadedTab, setLoadedTab] = useState<Tab | null>(null);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState<Set<string>>(() => new Set());
   const [error, setError] = useState<string | null>(null);
@@ -114,7 +117,10 @@ export function EnrichmentReviewModal({
         );
         next = list.map((decision) => ({ kind: "artist", decision }));
       }
-      if (seq === loadSeq.current) setRows(next);
+      if (seq === loadSeq.current) {
+        setRows(next);
+        setLoadedTab(which);
+      }
     } catch (err) {
       if (seq === loadSeq.current)
         setError(err instanceof Error ? err.message : String(err));
@@ -180,7 +186,7 @@ export function EnrichmentReviewModal({
   });
 
   const pendingArtists =
-    tab === "artists"
+    tab === "artists" && loadedTab === "artists"
       ? rows.flatMap((row) =>
           row.kind === "artist" && row.decision.album_evidence > 0
             ? [row.decision.artist_id]

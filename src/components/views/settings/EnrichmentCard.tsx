@@ -89,7 +89,11 @@ export function EnrichmentCard() {
       .then((status) => {
         if (seq === readSeq.current) setStats(status.stats);
       })
-      .catch((err) => console.warn("[EnrichmentCard] status failed", err));
+      .catch((err) => {
+        console.warn("[EnrichmentCard] status failed", err);
+        // No counts rather than the previous profile's.
+        if (seq === readSeq.current) setStats(null);
+      });
   }, []);
 
   useEffect(() => {

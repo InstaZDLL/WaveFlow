@@ -37,17 +37,23 @@ export function ArtistMusicBrainzFacts({ artistId }: { artistId: number }) {
           console.warn("[ArtistMusicBrainzFacts] read failed", err),
         );
     let off: (() => void) | undefined;
+    // Subscribe first, then read: an accept that lands between the two is
+    // heard rather than lost (see the "Events" invariant).
     listen<number>("artist:updated", (event) => {
       if (event.payload === artistId) void read();
     })
       .then((unlisten) => {
-        if (cancelled) unlisten();
-        else off = unlisten;
+        if (cancelled) {
+          unlisten();
+          return;
+        }
+        off = unlisten;
+        void read();
       })
-      .catch((err) =>
-        console.warn("[ArtistMusicBrainzFacts] listen failed", err),
-      );
-    void read();
+      .catch((err) => {
+        console.warn("[ArtistMusicBrainzFacts] listen failed", err);
+        if (!cancelled) void read();
+      });
     return () => {
       cancelled = true;
       off?.();

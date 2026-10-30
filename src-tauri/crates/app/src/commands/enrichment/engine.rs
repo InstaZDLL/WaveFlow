@@ -757,10 +757,18 @@ pub(super) async fn fetch_cover(
     let Some(format) = waveflow_core::artwork::image_format::detect_image_format(&bytes) else {
         return Ok(false);
     };
-    std::fs::create_dir_all(artwork_dir)?;
-    let hash = blake3::hash(&bytes).to_hex().to_string();
-    let target = artwork_dir.join(format!("{hash}.{format}"));
-    waveflow_core::atomic_write::store_content_addressed(&target, &bytes)?;
+    // Hashing up to 16 MiB and writing it is blocking work: off the
+    // runtime, as the scanner does its own.
+    let dir = artwork_dir.to_path_buf();
+    let (hash, target) = tokio::task::spawn_blocking(move || -> std::io::Result<_> {
+        std::fs::create_dir_all(&dir)?;
+        let hash = blake3::hash(&bytes).to_hex().to_string();
+        let target = dir.join(format!("{hash}.{format}"));
+        waveflow_core::atomic_write::store_content_addressed(&target, &bytes)?;
+        Ok((hash, target))
+    })
+    .await
+    .map_err(|e| crate::error::AppError::Other(format!("cover write task failed: {e}")))??;
     let linked = write_retrying(&*db.lease().await?, |conn| {
         let hash = hash.clone();
         Box::pin(async move {

@@ -101,7 +101,7 @@ impl Pacer {
 
     /// Push every later slot back by `delay`: the service asked the whole
     /// client to slow down, not just the request that was refused.
-    fn back_off(&self, delay: Duration) {
+    pub(crate) fn back_off(&self, delay: Duration) {
         let mut next = self.next.lock().unwrap_or_else(|p| p.into_inner());
         let earliest = Instant::now() + delay;
         if next.map_or(true, |at| at < earliest) {

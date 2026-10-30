@@ -671,7 +671,9 @@ export function ArtistDetailView({
       {/* What MusicBrainz says, once the user accepted the match. A
           server artist has no local decision to read. */}
       {!remote && artistId != null && (
-        <ArtistMusicBrainzFacts artistId={artistId} />
+        // Keyed: another artist's page starts from no facts, not from
+        // the previous artist's while its own loads.
+        <ArtistMusicBrainzFacts key={artistId} artistId={artistId} />
       )}
 
       {/* Bio */}
