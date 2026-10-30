@@ -331,3 +331,89 @@ async fn a_library_with_nothing_left_adds_nothing() {
     assert!(top_up(&pool, RepeatMode::Off).await.unwrap().is_none());
     assert_eq!(queued(&pool).await.len(), 30);
 }
+
+async fn set_key(pool: &SqlitePool, ids: std::ops::RangeInclusive<i64>, key: &str) {
+    for id in ids {
+        sqlx::query("UPDATE track SET musical_key = ? WHERE id = ?")
+            .bind(key)
+            .bind(id)
+            .execute(pool)
+            .await
+            .unwrap();
+    }
+}
+
+async fn automix(pool: &SqlitePool, on: bool) {
+    sqlx::query(
+        "INSERT INTO profile_setting (key, value, value_type, updated_at)
+             VALUES ('audio.automix', ?, 'bool', 0)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+    )
+    .bind(if on { "true" } else { "false" })
+    .execute(pool)
+    .await
+    .unwrap();
+}
+
+/// With AutoMix on, a track whose key sits beside the seed's comes first
+/// within its tier, and only within it: the seed artist and the similar
+/// ones are taken exactly as without it.
+#[tokio::test]
+async fn with_automix_on_a_compatible_key_breaks_the_tie_within_a_tier() {
+    let dir = tempfile::tempdir().unwrap();
+    let pool = pool(dir.path()).await;
+    library(&pool).await;
+    // Fourteen tracks of the unrelated artist, so a draw of KEY_DRAW per
+    // pick sees all of them and the outcome does not hang on chance.
+    sqlx::query("DELETE FROM track WHERE id > 24")
+        .execute(&pool)
+        .await
+        .unwrap();
+    set_key(&pool, 1..=1, "C").await;
+    // A fifth up, the relative minor (Camelot notation), a fifth down.
+    set_key(&pool, 20..=20, "G").await;
+    set_key(&pool, 21..=21, "8A").await;
+    set_key(&pool, 22..=22, "F").await;
+    // Far from C on the wheel, or no key at all.
+    set_key(&pool, 11..=19, "F#").await;
+    automix(&pool, true).await;
+    at_end(&pool, &[1]).await;
+
+    let picked = pick(&pool, 1, BATCH, 0).await.unwrap();
+    assert_eq!(picked.len(), BATCH);
+    // The tiers before the open library are as they were.
+    assert_eq!(
+        picked.iter().filter(|id| (2..=5).contains(*id)).count(),
+        SEED_ARTIST_CAP
+    );
+    assert_eq!(picked.iter().filter(|id| (6..=10).contains(*id)).count(), 5);
+    // The two picks left come from the open library, both compatible.
+    let rest: Vec<i64> = picked.iter().copied().filter(|id| *id > 10).collect();
+    assert_eq!(rest.len(), 2, "{picked:?}");
+    assert!(rest.iter().all(|id| (20..=22).contains(id)), "{picked:?}");
+}
+
+/// Off, the key plays no part: across many draws, incompatible tracks are
+/// picked from the open library as often as chance has it.
+#[tokio::test]
+async fn with_automix_off_the_key_plays_no_part() {
+    let dir = tempfile::tempdir().unwrap();
+    let pool = pool(dir.path()).await;
+    library(&pool).await;
+    sqlx::query("DELETE FROM track WHERE id > 24")
+        .execute(&pool)
+        .await
+        .unwrap();
+    set_key(&pool, 1..=1, "C").await;
+    set_key(&pool, 20..=22, "G").await;
+    set_key(&pool, 11..=19, "F#").await;
+    automix(&pool, false).await;
+    at_end(&pool, &[1]).await;
+
+    let mut incompatible = 0;
+    for _ in 0..20 {
+        let picked = pick(&pool, 1, BATCH, 0).await.unwrap();
+        incompatible += picked.iter().filter(|id| (11..=19).contains(*id)).count();
+    }
+    assert!(incompatible > 0, "the key should not have steered the draw");
+}

@@ -24,10 +24,19 @@
 //! Never a track already in the queue, and not one played in the last
 //! [`RECENT_WINDOW_MS`] unless nothing else is left.
 //!
+//! **With AutoMix on, the key breaks ties.** Inside each of those tiers the
+//! tracks are drawn at random; AutoMix draws [`KEY_DRAW`] times as many and
+//! puts first those whose key sits beside the seed's on the Camelot wheel
+//! ([`waveflow_core::automix::harmonic`]), so a transition it mixes is more
+//! often a harmonic one. It never moves a track across tiers, never adds
+//! one, and never touches what the user queued or the shuffle order: only
+//! the picks autoplay was choosing at random anyway.
+//!
 //! Turning the option off stops the next top-up; tracks already added
 //! stay in the queue, where the user can see and remove them.
 
 use sqlx::SqlitePool;
+use waveflow_core::automix::harmonic;
 
 use crate::{
     error::AppResult,
@@ -51,11 +60,25 @@ const SIMILAR_ARTIST_CAP: usize = 8;
 /// left in the library.
 const RECENT_WINDOW_MS: i64 = 3 * 60 * 60 * 1000;
 
+/// AutoMix's `profile_setting` key (`player_set_automix`): while it is on,
+/// the key breaks ties between picks.
+const AUTOMIX_SETTING_KEY: &str = "audio.automix";
+
+/// Candidates drawn for each pick while the key breaks ties. Three keys in
+/// twenty-four sit beside any one, so about one random track in eight is
+/// compatible: eight candidates hold one about two times in three, and the
+/// draw is still a random one.
+const KEY_DRAW: usize = 8;
+
 /// Whether the option is on for this profile. Missing or unreadable is off.
 pub async fn is_enabled(pool: &SqlitePool) -> bool {
+    bool_setting(pool, SETTING_KEY).await
+}
+
+async fn bool_setting(pool: &SqlitePool, key: &str) -> bool {
     let value: Option<String> =
         sqlx::query_scalar("SELECT value FROM profile_setting WHERE key = ?")
-            .bind(SETTING_KEY)
+            .bind(key)
             .fetch_optional(pool)
             .await
             .ok()
@@ -188,10 +211,24 @@ async fn pick(pool: &SqlitePool, seed: i64, n: usize, now: i64) -> AppResult<Vec
             .fetch_optional(pool)
             .await?
             .flatten();
+    let key = if bool_setting(pool, AUTOMIX_SETTING_KEY).await {
+        seed_key(pool, seed).await?
+    } else {
+        None
+    };
+    let key = key.as_ref();
 
     let mut out: Vec<i64> = Vec::with_capacity(n);
     if let Some(artist) = seed_artist {
-        let own = by_artists(pool, &[artist], SEED_ARTIST_CAP.min(n), recent_since, &out).await?;
+        let own = by_artists(
+            pool,
+            &[artist],
+            SEED_ARTIST_CAP.min(n),
+            recent_since,
+            &out,
+            key,
+        )
+        .await?;
         out.extend(own);
         // The cache needs `app` attached, as every profile pool has it; a
         // read that fails is no similar artist, not a failed top-up.
@@ -203,7 +240,7 @@ async fn pick(pool: &SqlitePool, seed: i64, n: usize, now: i64) -> AppResult<Vec
             });
         let similar: Vec<i64> = similar.into_iter().take(SIMILAR_ARTIST_CAP).collect();
         if out.len() < n {
-            let more = by_artists(pool, &similar, n - out.len(), recent_since, &out).await?;
+            let more = by_artists(pool, &similar, n - out.len(), recent_since, &out, key).await?;
             out.extend(more);
         }
     }
@@ -220,10 +257,62 @@ async fn pick(pool: &SqlitePool, seed: i64, n: usize, now: i64) -> AppResult<Vec
         if out.len() >= n {
             break;
         }
-        let more = anywhere(pool, n - out.len(), recent, skip_artist, &out).await?;
+        let more = anywhere(pool, n - out.len(), recent, skip_artist, &out, key).await?;
         out.extend(more);
     }
     Ok(out)
+}
+
+/// The seed's key, as the track's tag gives it or the analysis measured
+/// it. `None` when it has none or it is not one [`harmonic::parse`] reads:
+/// then nothing breaks ties.
+async fn seed_key(pool: &SqlitePool, seed: i64) -> AppResult<Option<harmonic::Key>> {
+    let raw: Option<String> = sqlx::query_scalar(sqlx::AssertSqlSafe(format!(
+        "SELECT {} FROM track t WHERE t.id = ?",
+        waveflow_core::effective_musical_key_sql!()
+    )))
+    .bind(seed)
+    .fetch_optional(pool)
+    .await?
+    .flatten();
+    Ok(raw.as_deref().and_then(harmonic::parse))
+}
+
+/// Draw up to `limit` of a tier from what `sql` selects (`t.id` and the
+/// track's key), binding the parameters with `bind`. Without a seed key:
+/// `limit` at random. With one: [`KEY_DRAW`] times as many at random, the
+/// compatible ones first, otherwise in the order drawn.
+async fn draw<'q>(
+    pool: &SqlitePool,
+    sql: String,
+    limit: usize,
+    key: Option<&harmonic::Key>,
+    bind: impl FnOnce(
+        sqlx::query::QueryAs<'q, sqlx::Sqlite, (i64, Option<String>), sqlx::sqlite::SqliteArguments>,
+    ) -> sqlx::query::QueryAs<
+        'q,
+        sqlx::Sqlite,
+        (i64, Option<String>),
+        sqlx::sqlite::SqliteArguments,
+    >,
+) -> AppResult<Vec<i64>> {
+    let drawn = if key.is_some() {
+        limit.saturating_mul(KEY_DRAW)
+    } else {
+        limit
+    };
+    let q = sqlx::query_as::<_, (i64, Option<String>)>(sqlx::AssertSqlSafe(sql));
+    let mut rows = bind(q).bind(drawn as i64).fetch_all(pool).await?;
+    if let Some(seed) = key {
+        // Stable: the compatible ones keep their random order between
+        // them, and so do the rest.
+        rows.sort_by_key(|(_, raw)| {
+            !raw.as_deref()
+                .and_then(harmonic::parse)
+                .is_some_and(|k| harmonic::compatible(*seed, k))
+        });
+    }
+    Ok(rows.into_iter().take(limit).map(|(id, _)| id).collect())
 }
 
 /// The SQL that every tier shares: available, not queued, not already
@@ -255,24 +344,28 @@ async fn by_artists(
     limit: usize,
     recent_since: i64,
     picked: &[i64],
+    key: Option<&harmonic::Key>,
 ) -> AppResult<Vec<i64>> {
     if artists.is_empty() || limit == 0 {
         return Ok(Vec::new());
     }
     let marks = vec!["?"; artists.len()].join(",");
     let sql = format!(
-        "SELECT t.id FROM track t WHERE t.primary_artist IN ({marks}){} ORDER BY RANDOM() LIMIT ?",
+        "SELECT t.id, {} FROM track t WHERE t.primary_artist IN ({marks}){} ORDER BY RANDOM() LIMIT ?",
+        waveflow_core::effective_musical_key_sql!(),
         exclusions(picked, true)
     );
-    let mut q = sqlx::query_scalar::<_, i64>(sqlx::AssertSqlSafe(sql));
-    for a in artists {
-        q = q.bind(*a);
-    }
-    q = q.bind(recent_since);
-    for p in picked {
-        q = q.bind(*p);
-    }
-    Ok(q.bind(limit as i64).fetch_all(pool).await?)
+    draw(pool, sql, limit, key, |mut q| {
+        for a in artists {
+            q = q.bind(*a);
+        }
+        q = q.bind(recent_since);
+        for p in picked {
+            q = q.bind(*p);
+        }
+        q
+    })
+    .await
 }
 
 /// Any track of the library, except `skip_artist`'s when one is given.
@@ -282,6 +375,7 @@ async fn anywhere(
     recent_since: Option<i64>,
     skip_artist: Option<i64>,
     picked: &[i64],
+    key: Option<&harmonic::Key>,
 ) -> AppResult<Vec<i64>> {
     if limit == 0 {
         return Ok(Vec::new());
@@ -292,20 +386,23 @@ async fn anywhere(
         ""
     };
     let sql = format!(
-        "SELECT t.id FROM track t WHERE 1 = 1{}{skip} ORDER BY RANDOM() LIMIT ?",
+        "SELECT t.id, {} FROM track t WHERE 1 = 1{}{skip} ORDER BY RANDOM() LIMIT ?",
+        waveflow_core::effective_musical_key_sql!(),
         exclusions(picked, recent_since.is_some())
     );
-    let mut q = sqlx::query_scalar::<_, i64>(sqlx::AssertSqlSafe(sql));
-    if let Some(since) = recent_since {
-        q = q.bind(since);
-    }
-    for p in picked {
-        q = q.bind(*p);
-    }
-    if let Some(artist) = skip_artist {
-        q = q.bind(artist);
-    }
-    Ok(q.bind(limit as i64).fetch_all(pool).await?)
+    draw(pool, sql, limit, key, |mut q| {
+        if let Some(since) = recent_since {
+            q = q.bind(since);
+        }
+        for p in picked {
+            q = q.bind(*p);
+        }
+        if let Some(artist) = skip_artist {
+            q = q.bind(artist);
+        }
+        q
+    })
+    .await
 }
 
 #[cfg(test)]
