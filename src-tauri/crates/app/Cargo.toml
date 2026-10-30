@@ -310,6 +310,9 @@ encoding_rs = "0.8.42"
 # test that tells "taken" apart pins the wording. Already in the tree
 # under that plugin; the version is its own.
 global-hotkey = "0.8"
+# Paused time (`start_paused`), so the tests of the lyrics plugin tier's
+# upgrade window run on the clock they set rather than the machine's.
+tokio = { version = "1", features = ["test-util"] }
 
 # Linux-only: direct ALSA enumeration so the output-device picker can
 # show human-readable descriptions ("HDA Intel PCH, ALC897 Analog

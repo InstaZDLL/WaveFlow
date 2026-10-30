@@ -128,6 +128,10 @@ async fn fetch_lyrics_honouring(
     //    host imports: a guest that ignores a denied fetch would still
     //    burn the timeout.
     //
+    //    The tier answers with the best of its plugins, not the first:
+    //    word-synced over line-synced over unsynced, waiting a bounded
+    //    moment for a richer answer (`rank_plugin_answers`).
+    //
     //    Only a synced answer ends the waterfall here (#668). An unsynced
     //    one — Apple serves lyrics it has no timing for as untimed TTML —
     //    is held while the network tiers look for synced lyrics, and used
