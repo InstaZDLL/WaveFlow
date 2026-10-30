@@ -2540,6 +2540,10 @@
       "title": "Fondu dynamique",
       "subtitle": "Adapte automatiquement la durée du fondu selon l'écart de tempo entre les deux titres (revient au fondu fixe si le BPM est inconnu)"
     },
+    "autoMix": {
+      "title": "AutoMix",
+      "subtitle": "Cale le fondu sur les temps des deux titres et compte sa durée en temps, dans la limite du fondu réglé ; un album s'enchaîne sans fondu (revient au fondu intelligent sans grille de temps ou si les tempos sont trop éloignés)"
+    },
     "gapless": {
       "title": "Lecture sans pause",
       "subtitle": "Enchaîne les titres suivants sans micro-silence (idéal pour les albums live ou concept)"

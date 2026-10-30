@@ -70,8 +70,10 @@ import {
   type EqSnapshot,
 } from "../../../lib/tauri/eq";
 import {
+  getAutoMix,
   getDynamicCrossfade,
   getSmartCrossfade,
+  setAutoMix,
   setDynamicCrossfade,
   setSmartCrossfade,
 } from "../../../lib/tauri/smartCrossfade";
@@ -677,6 +679,7 @@ const ACCESSORS: Record<SettingKey, SettingAccessor> = {
     getDynamicCrossfade,
     setDynamicCrossfade,
   ),
+  "audio.automix": command("audio.automix", getAutoMix, setAutoMix),
   "audio.pause_on_device_loss": command(
     "audio.pause_on_device_loss",
     async (reads) => (await reads.audio()).pause_on_device_loss,

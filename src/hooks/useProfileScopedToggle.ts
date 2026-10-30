@@ -6,7 +6,7 @@ import { useProfile } from "./useProfile";
  * A boolean setting that lives on the backend, per profile, and is read
  * and written through a pair of Tauri commands rather than through
  * [`useProfileSetting`](./useProfileSetting.ts) — the engine toggles
- * (spectrum visualizer, smart and dynamic crossfade) push their value
+ * (spectrum visualizer, smart and dynamic crossfade, AutoMix) push their value
  * to the audio threads on the way in, so they own their own commands.
  *
  * What this hook carries, and why each part is there (issue #698):

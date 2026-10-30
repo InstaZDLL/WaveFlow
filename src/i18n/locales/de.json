@@ -2346,6 +2346,10 @@
       "title": "Dynamisches Crossfade",
       "subtitle": "Skaliert die Crossfade-Dauer mit der Tempodifferenz zwischen den Titeln (fällt auf das feste Crossfade zurück, wenn der BPM-Wert unbekannt ist)"
     },
+    "autoMix": {
+      "title": "AutoMix",
+      "subtitle": "Legt das Crossfade auf die Beats beider Titel und zählt seine Dauer in Beats, innerhalb der eingestellten Crossfade-Zeit; ein Album läuft ohne Überblendung durch (fällt ohne Beat-Raster oder bei zu weit auseinanderliegenden Tempi auf smartes Crossfade zurück)"
+    },
     "gapless": {
       "title": "Gapless-Wiedergabe",
       "subtitle": "Verknüpft aufeinanderfolgende Titel ohne Mikrostille (ideal für Live- und Konzeptalben)"
