@@ -366,6 +366,9 @@ function afterReset(
     inspect: accessor.inspect,
     reset: async (ctx) => {
       await accessor.reset(ctx);
+      // The follow-up acts on whatever profile is active; after a switch
+      // that is not the one just reset.
+      if (ctx.activeProfileId() !== ctx.profileId) return;
       await then();
     },
   };

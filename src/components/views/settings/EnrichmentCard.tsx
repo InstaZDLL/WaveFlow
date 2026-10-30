@@ -238,7 +238,11 @@ export function EnrichmentCard() {
           {task ? (
             <button
               type="button"
-              onClick={() => void cancelEnrichment()}
+              onClick={() =>
+                cancelEnrichment().catch((err) =>
+                  setError(err instanceof Error ? err.message : String(err)),
+                )
+              }
               className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-rose-200 bg-rose-50 text-sm font-medium text-rose-700 hover:bg-rose-100 dark:border-rose-900/40 dark:bg-rose-950/30 dark:text-rose-300 dark:hover:bg-rose-950/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
             >
               <Square size={14} aria-hidden="true" />

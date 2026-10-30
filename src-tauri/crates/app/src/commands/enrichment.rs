@@ -24,7 +24,7 @@ use waveflow_core::enrichment::ArtistFacts;
 use crate::error::{AppError, AppResult};
 use crate::state::AppState;
 
-pub use engine::maybe_run;
+pub use engine::{maybe_run, stop_for_profile_change};
 
 /// Emitted whenever a decision changes: the Settings card and the review
 /// window re-read their counts and lists.
@@ -83,10 +83,11 @@ fn now_ms() -> i64 {
     chrono::Utc::now().timestamp_millis()
 }
 
-/// How many rows a review list returns. The lists are read in a modal
-/// that shows the most recent first; past this the user is better
-/// served by the counts and a "try again" than by a longer scroll.
-const LIST_LIMIT: i64 = 500;
+/// How many rows a review list returns, at most. The window virtualizes
+/// them, so the cap is not a rendering one: it bounds one answer's size
+/// (a few hundred bytes a row) for a library far past any the engine was
+/// measured on. The Settings card counts every decision, capped or not.
+const LIST_LIMIT: i64 = 5000;
 
 #[derive(Debug, Serialize)]
 pub struct EnrichmentStatus {
@@ -143,6 +144,7 @@ pub async fn enrichment_accept_album(
     }
     let (pool, profile_id) = state.require_profile_snapshot().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
+    let db = engine::ProfileDb::new(&app, profile_id);
     let mut conn = pool.acquire().await?;
     let release = store::proposed_release_mbid(&mut conn, album_id)
         .await?
@@ -152,13 +154,15 @@ pub async fn enrichment_accept_album(
         .ok_or_else(|| AppError::Other(format!("album {album_id} not found")))?;
     drop(conn);
     let fields = read_fields(&pool).await;
+    // No lease across the lookup: see `engine::ProfileDb`.
+    drop(pool);
     let (mb, caa) = engine::clients();
     let resolution = resolve::resolve_against(&mb, &album, &release)
         .await
         .map_err(|e| AppError::Other(format!("musicbrainz: {e}")))?
         .ok_or_else(|| AppError::Other("the release is gone from MusicBrainz".into()))?;
     engine::apply_resolution(
-        &pool,
+        &db,
         &caa,
         &artwork_dir,
         album_id,
@@ -250,7 +254,9 @@ pub async fn enrichment_accept_artists(
             "offline mode is on — turn it off to apply a match".into(),
         ));
     }
-    let pool = state.require_profile_pool().await?;
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
+    drop(pool);
+    let db = engine::ProfileDb::new(&app, profile_id);
     let (mb, _) = engine::clients();
     let mut accepted = 0;
     for artist_id in artist_ids {
@@ -259,9 +265,11 @@ pub async fn enrichment_accept_artists(
         if crate::offline::is_offline() {
             break;
         }
-        let mut conn = pool.acquire().await?;
+        let lease = db.lease().await?;
+        let mut conn = lease.acquire().await?;
         let mbid = store::proposed_artist_mbid(&mut conn, artist_id).await?;
         drop(conn);
+        drop(lease);
         let Some(mbid) = mbid else {
             continue;
         };
@@ -279,7 +287,7 @@ pub async fn enrichment_accept_artists(
             }
         };
         let now = now_ms();
-        let ok = engine::write_retrying(&pool, |conn| {
+        let ok = engine::write_retrying(&*db.lease().await?, |conn| {
             let facts = facts.clone();
             Box::pin(async move { store::accept_artist(conn, artist_id, &facts, now).await })
         })

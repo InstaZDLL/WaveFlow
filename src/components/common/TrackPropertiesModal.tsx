@@ -451,13 +451,13 @@ export function TrackPropertiesModal({
     setSaveError(null);
     setFileChanged(false);
     try {
+      // Empty string in a number field clears the value (sent as 0
+      // → backend treats as "remove this tag"). Non-numeric input
+      // is rejected silently — the input is `type="number"` so the
+      // browser typically guards against it anyway.
+      const year = form.year.trim() === "" ? 0 : Number(form.year) || 0;
       const edit: TrackEdit = {
         title: form.title,
-        // Empty string in a number field clears the value (sent as 0
-        // → backend treats as "remove this tag"). Non-numeric input
-        // is rejected silently — the input is `type="number"` so the
-        // browser typically guards against it anyway.
-        year: form.year.trim() === "" ? 0 : Number(form.year) || 0,
         track_number:
           form.track_number.trim() === "" ? 0 : Number(form.track_number) || 0,
         disc_number:
@@ -475,6 +475,11 @@ export function TrackPropertiesModal({
         genres != null &&
         genreList.join("; ") !== genres.join("; ");
       if (sendingGenre) edit.genre = genreList.join("; ");
+      // The year too, only when changed. The enrichment engine can fill
+      // it in the database alone; sent on every save, a save for the
+      // title would write that value into the file, which the engine
+      // itself never does.
+      if (year !== (track.year ?? 0)) edit.year = year;
       // Artist and album likewise ride along only when changed. Sent on
       // every save, a multi-artist track saved for its title alone had
       // its credits rewritten — and with the display form "A, B", merged

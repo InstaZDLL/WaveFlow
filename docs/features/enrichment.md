@@ -8,13 +8,13 @@ The enrichment engine completes the local library from [MusicBrainz](https://mus
 
 - **The database only, never a file.** Nothing the engine does opens an audio file for writing. Writing identifiers and genres into the files themselves belongs to the tag workshop, which reuses the engine's matching.
 - **Fill the gaps, never overwrite.** A genre, a year, a release date, a cover the library already has — from the file's tags or typed by the user — stays. Every write is conditional on the field being empty (`year IS NULL`, a track with no genre row, an album with no cover).
-- **What was filled is recorded.** Each decision keeps `filled_*` flags and the genres it gave (`musicbrainz_filled_genre`), so **Undo** takes back exactly that, and leaves alone a value the user changed since.
+- **What was filled is recorded.** Each decision keeps `filled_*` flags and the genres it gave (`musicbrainz_filled_genre`), so **Undo** takes back exactly that, and leaves alone a value the user changed since. A value the user writes in the tag editor, or a genre a rescanned file carries, is theirs even when it equals the filled one: the editor (`store::release_track_fields`, `release_album_years`) and the scanner's genre link drop the provenance for it. The editor also sends the year only when the user changed it, so a save for the title alone never writes a filled year into the file.
 - **Applied on its own only when sure.** A confident album match is applied at once; a doubtful one waits in the review. **An artist is never applied on its own**: a name is too ambiguous — two bands are called Nirvana — so every artist match waits for the user, with the disambiguation MusicBrainz gives.
-- **Which fields** — genres, release dates, missing covers, credits — are switches of their own. A field turned off is never written, automatically or on review.
+- **Which fields** — genres, release dates, missing covers, credits — are switches of their own. A field turned off is never written, automatically or on review; a running pass reads the switches again before every album.
 
 ## How a pass runs
 
-A pass starts when the engine is turned on, after every finished scan (any scan, not only one that added files — see [below](#surviving-the-scanner)), when a profile opens, at startup, and on **Run now**. One pass at a time; a request made while one runs is honoured when it ends, unless the user stopped it. It shows in the task bar as _Library enrichment_ and stops between two albums.
+A pass starts when the engine is turned on, after every finished scan (any scan, not only one that added files — see [below](#surviving-the-scanner)), when a profile opens, at startup, and on **Run now**. A profile switch stops the running pass at its next album and starts one for the profile opened. The pass holds no lease on the database while it waits on the network — it takes one per read or write, for its own profile only — so the switch does not wait for it (measured: 26–36 ms during a pass, against the 5 s lease drain timeout before). One pass at a time; a request made while one runs is honoured when it ends, unless the user stopped it. It shows in the task bar as _Library enrichment_ and stops between two albums.
 
 1. **Refill** what a scan emptied since the last pass, from the stored decisions, with no network.
 2. **Albums** with no decision, and `no_match` ones older than thirty days (the catalogue grows). For each:
@@ -24,7 +24,7 @@ A pass starts when the engine is turned on, after every finished scan (any scan,
 3. **Covers** an earlier pass could not fetch.
 4. **Artists** no matched album named, searched by name.
 
-A failed lookup writes nothing — the album stays pending for the next pass — and five failures in a row end the pass: the service is down, and asking a thousand more times changes nothing.
+A failed lookup writes nothing — the album stays pending for the next pass — and five failures in a row end the pass: the service is down, and asking a thousand more times changes nothing. A refusal that will not change on the next try and belongs to this album — an answer too large to read, or a `400` / `413` / `414` / `422` — is recorded as no match, so it neither ends the pass nor sits first in the queue of every pass after. Any other status (`401`, `403`…) or an answer that no longer parses is the same for every album: it stays a failure and counts toward the five that end the pass, rather than marking the whole library unmatched for a month.
 
 The engine is the second background writer next to the analysis sweep, with the same shape ([invariant](../architecture/invariants.md#single-writer-to-sqlite)): it parks while a scan runs, writes each album in one short transaction, retries on `SQLITE_BUSY`, and never holds a transaction across a network wait.
 
@@ -76,7 +76,7 @@ The libraries are mostly singles — one track per "album" — which is the hard
 - **Undo** on an applied album takes back what it filled and marks it rejected.
 - **Accept the credited artists** accepts, in one go, every pending artist that a matched album credits under the same name — the strongest evidence an artist match can have.
 
-The lists have no natural bound, so they are virtualized against the window's own scroller.
+The lists have no natural bound, so they are virtualized against the window's own scroller; one answer holds at most 5,000 decisions, the most recent first. **Accept the credited artists** looks each one up for its facts at one a second, so accepting hundreds takes minutes, with the window's button busy until it is done.
 
 ## Where the results show
 

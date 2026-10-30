@@ -207,7 +207,8 @@ async fn a_scan_that_empties_a_genre_is_filled_again() {
         .await
         .unwrap();
     assert_eq!(reapply_all(&mut conn, Fields::default()).await.unwrap(), 1);
-    // And a second pass has nothing left to do.
+    // And a second pass has nothing left to do, and writes nothing.
+    assert!(!has_gap(&mut conn, 1, Fields::default()).await.unwrap());
     assert_eq!(reapply_all(&mut conn, Fields::default()).await.unwrap(), 0);
     drop(conn);
     assert_eq!(
@@ -483,4 +484,70 @@ async fn the_cover_backlog_is_the_applied_albums_whose_release_has_a_cover() {
         .await
         .unwrap();
     assert!(albums_wanting_cover(&mut conn).await.unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn a_value_the_user_wrote_since_survives_the_undo() {
+    let pool = pool().await;
+    let mut conn = pool.acquire().await.unwrap();
+    record_match(
+        &mut conn,
+        1,
+        Status::Applied,
+        0.95,
+        &facts(),
+        &matched(),
+        Fields::default(),
+        1,
+    )
+    .await
+    .unwrap();
+    // The tag editor saves track 1, keeping the filled genres and year.
+    release_track_fields(&mut conn, 1, true, true)
+        .await
+        .unwrap();
+    undo_album(&mut conn, 1, 2).await.unwrap();
+    let year: Option<i64> = sqlx::query_scalar("SELECT year FROM track WHERE id = 1")
+        .fetch_one(&mut *conn)
+        .await
+        .unwrap();
+    drop(conn);
+    assert_eq!(year, Some(1991));
+    assert_eq!(
+        genres_of(&pool, 1).await,
+        vec!["Alternative Rock", "Grunge"]
+    );
+    // Track 2 was not edited: its fill is taken back.
+    assert!(genres_of(&pool, 2).await.is_empty());
+}
+
+async fn album_year_filled(conn: &mut sqlx::SqliteConnection) -> bool {
+    sqlx::query_scalar("SELECT filled_year FROM musicbrainz_album WHERE album_id = 1")
+        .fetch_one(conn)
+        .await
+        .unwrap()
+}
+
+#[tokio::test]
+async fn an_album_year_is_released_only_when_it_is_the_typed_one() {
+    let pool = pool().await;
+    let mut conn = pool.acquire().await.unwrap();
+    record_match(
+        &mut conn,
+        1,
+        Status::Applied,
+        0.95,
+        &facts(),
+        &matched(),
+        Fields::default(),
+        1,
+    )
+    .await
+    .unwrap();
+    // Another track typed 2011; the album keeps the filled 1991.
+    release_album_years(&mut conn, &[1], 2011).await.unwrap();
+    assert!(album_year_filled(&mut conn).await);
+    // The typed year is the album's: it is the user's now.
+    release_album_years(&mut conn, &[1], 1991).await.unwrap();
+    assert!(!album_year_filled(&mut conn).await);
 }

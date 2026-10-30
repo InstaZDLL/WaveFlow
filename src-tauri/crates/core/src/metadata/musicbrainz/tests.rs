@@ -145,6 +145,10 @@ fn queries_escape_what_lucene_would_read() {
         r"release:(Live\! \(1977\))"
     );
     assert_eq!(release_query("  ", Some("x"), true), "");
+    assert_eq!(
+        release_query("Love AND Hate", None, false),
+        "release:(Love and Hate)"
+    );
 }
 
 #[test]

@@ -73,6 +73,10 @@ static SLOT: Mutex<Slot> = Mutex::new(Slot {
     rerun: false,
 });
 static CANCEL: AtomicBool = AtomicBool::new(false);
+/// Set when the profile the pass reads from is being closed. It stops the
+/// pass like [`CANCEL`] does, but it is not the user's stop: the guard
+/// still starts the run asked for, which reads the profile opened next.
+static PROFILE_CHANGE: AtomicBool = AtomicBool::new(false);
 
 fn slot() -> std::sync::MutexGuard<'static, Slot> {
     SLOT.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
@@ -89,6 +93,7 @@ fn reserve(queue: bool) -> bool {
     slot.running = true;
     slot.rerun = false;
     CANCEL.store(false, Ordering::SeqCst);
+    PROFILE_CHANGE.store(false, Ordering::SeqCst);
     true
 }
 
@@ -103,6 +108,24 @@ pub(super) fn request_stop() -> bool {
 
 pub(super) fn is_running() -> bool {
     slot().running
+}
+
+/// The active profile is about to be closed: stop the running pass at its
+/// next stopping point, and run again afterwards for whichever profile is
+/// active then.
+///
+/// Called by [`crate::state::AppState::activate_profile`] and
+/// `deactivate_profile` once the old profile is out of the state, before
+/// they wait for its leases. A pass holds its lease for hours; without
+/// this the switch waits out the full drain timeout and then closes the
+/// pool under the pass, which goes on sending the old profile's titles to
+/// MusicBrainz until its next write fails.
+pub fn stop_for_profile_change() {
+    let mut slot = slot();
+    if slot.running {
+        PROFILE_CHANGE.store(true, Ordering::SeqCst);
+        slot.rerun = true;
+    }
 }
 
 /// Releases the slot on every exit path, and starts the run that was
@@ -138,7 +161,10 @@ pub fn maybe_run(app: &AppHandle) {
         let Ok((pool, profile_id)) = state.require_profile_snapshot().await else {
             return;
         };
-        if !read_enabled(&pool).await || crate::offline::is_offline() {
+        let enabled = read_enabled(&pool).await;
+        // Not held into the pass: see `ProfileDb`.
+        drop(pool);
+        if !enabled || crate::offline::is_offline() {
             return;
         }
         if !reserve(true) {
@@ -146,7 +172,8 @@ pub fn maybe_run(app: &AppHandle) {
         }
         let _guard = RunningGuard { app: app.clone() };
         let artwork_dir = state.paths.profile_artwork_dir(profile_id);
-        if let Err(err) = run_pass(&app, &pool, &artwork_dir).await {
+        let db = ProfileDb::new(&app, profile_id);
+        if let Err(err) = run_pass(&app, &db, &artwork_dir).await {
             tracing::warn!(%err, "enrichment pass failed");
         }
     });
@@ -157,7 +184,7 @@ fn now_ms() -> i64 {
 }
 
 fn cancelled() -> bool {
-    CANCEL.load(Ordering::Relaxed)
+    CANCEL.load(Ordering::Relaxed) || PROFILE_CHANGE.load(Ordering::Relaxed)
 }
 
 /// Park while a scan walks and writes. Cancel-aware.
@@ -167,6 +194,23 @@ async fn wait_out_active_scan() {
             return;
         }
         tokio::time::sleep(SCAN_WAIT_POLL).await;
+    }
+}
+
+/// A lookup failure that belongs to this album and asking again will not
+/// change: its release is too large to read, or its query is one the
+/// service refuses as malformed.
+///
+/// Deliberately narrow. A `403`, a `401`, or an answer that no longer
+/// parses is the same for every album — a block, a change of format —
+/// and reading it as "this album has no match" would mark the whole
+/// library unmatched for a month. Those stay failures, which end the pass.
+fn is_permanent(err: &waveflow_core::metadata::LookupError) -> bool {
+    use waveflow_core::metadata::LookupError as E;
+    match err {
+        E::TooLarge { .. } => true,
+        E::Status { status } => matches!(status, 400 | 413 | 414 | 422),
+        E::Decode(_) | E::Refused { .. } | E::Http(_) => false,
     }
 }
 
@@ -216,6 +260,41 @@ pub(super) fn clients() -> (MusicBrainzClient, CoverArtArchiveClient) {
     )
 }
 
+/// The profile a pass works on, without a lease held between its steps.
+///
+/// A pass runs for as long as the library takes, and most of that is
+/// spent waiting on the network. Holding one [`crate::state::ProfilePool`]
+/// for the whole run would make every profile switch wait out the lease
+/// drain timeout. So each read and each write takes a lease of its own
+/// through [`AppState::require_profile_pool_for`], which refuses once the
+/// profile is no longer the active one: a step can never land in another
+/// profile's database, and a switch only waits for the step in flight.
+#[derive(Clone)]
+pub(super) struct ProfileDb {
+    app: AppHandle,
+    profile_id: i64,
+}
+
+impl ProfileDb {
+    pub(super) fn new(app: &AppHandle, profile_id: i64) -> Self {
+        Self {
+            app: app.clone(),
+            profile_id,
+        }
+    }
+
+    pub(super) async fn lease(&self) -> AppResult<crate::state::ProfilePool> {
+        self.app
+            .state::<AppState>()
+            .require_profile_pool_for(Some(self.profile_id))
+            .await
+    }
+
+    async fn fields(&self) -> AppResult<Fields> {
+        Ok(read_fields(&*self.lease().await?).await)
+    }
+}
+
 /// What a pass did, for the log.
 #[derive(Debug, Default)]
 struct PassSummary {
@@ -228,9 +307,9 @@ struct PassSummary {
     cancelled: bool,
 }
 
-async fn run_pass(app: &AppHandle, pool: &SqlitePool, artwork_dir: &Path) -> AppResult<()> {
+async fn run_pass(app: &AppHandle, db: &ProfileDb, artwork_dir: &Path) -> AppResult<()> {
     let started = Instant::now();
-    let fields = read_fields(pool).await;
+    let mut fields = db.fields().await?;
     let task = crate::tasks::start(
         app,
         crate::tasks::TaskKind::Enrichment,
@@ -254,14 +333,16 @@ async fn run_pass(app: &AppHandle, pool: &SqlitePool, artwork_dir: &Path) -> App
     // What a scan emptied since the last pass comes back first, with no
     // network at all — one album per transaction, so a library of
     // thousands never holds the writer for the whole refill.
-    let mut conn = pool.acquire().await?;
+    let lease = db.lease().await?;
+    let mut conn = lease.acquire().await?;
     let applied = store::applied_album_ids(&mut conn).await?;
     drop(conn);
+    drop(lease);
     for album_id in applied {
         if stop() {
             break;
         }
-        let refilled = write_retrying(pool, |conn| {
+        let refilled = write_retrying(&*db.lease().await?, |conn| {
             Box::pin(store::reapply_album(conn, album_id, fields))
         })
         .await?;
@@ -269,11 +350,13 @@ async fn run_pass(app: &AppHandle, pool: &SqlitePool, artwork_dir: &Path) -> App
     }
 
     let retry_before = now_ms() - NO_MATCH_RETRY_MS;
-    let mut conn = pool.acquire().await?;
+    let lease = db.lease().await?;
+    let mut conn = lease.acquire().await?;
     let albums_total = store::count_pending_albums(&mut conn, retry_before).await?;
     let artists_total =
         store::count_pending_artists(&mut conn, retry_before, VARIOUS_ARTISTS_LABEL).await?;
     drop(conn);
+    drop(lease);
     let mut total = (albums_total + artists_total) as u64;
     let mut done: u64 = 0;
     if let Some(task) = task.as_ref() {
@@ -284,9 +367,11 @@ async fn run_pass(app: &AppHandle, pool: &SqlitePool, artwork_dir: &Path) -> App
     let mut cursor = 0;
     let mut failures = 0;
     'albums: loop {
-        let mut conn = pool.acquire().await?;
+        let lease = db.lease().await?;
+        let mut conn = lease.acquire().await?;
         let batch = store::pending_albums(&mut conn, retry_before, cursor, BATCH).await?;
         drop(conn);
+        drop(lease);
         if batch.is_empty() {
             break;
         }
@@ -299,7 +384,10 @@ async fn run_pass(app: &AppHandle, pool: &SqlitePool, artwork_dir: &Path) -> App
             if let Some(task) = task.as_ref() {
                 task.detail(album.title.clone());
             }
-            match enrich_album(pool, &mb, &caa, artwork_dir, &album, fields).await {
+            // Read again for every album: a field the user turns off while
+            // a pass runs is not written from the next album on.
+            fields = db.fields().await?;
+            match enrich_album(db, &mb, &caa, artwork_dir, &album, fields).await {
                 Ok(outcome) => {
                     failures = 0;
                     match outcome.status {
@@ -337,10 +425,13 @@ async fn run_pass(app: &AppHandle, pool: &SqlitePool, artwork_dir: &Path) -> App
     // Read after the albums, not before: the albums this pass applied
     // fetched their own, and listing them first would download each
     // twice.
+    fields = db.fields().await?;
     if fields.covers && !summary.cancelled && failures < MAX_CONSECUTIVE_FAILURES {
-        let mut conn = pool.acquire().await?;
+        let lease = db.lease().await?;
+        let mut conn = lease.acquire().await?;
         let backlog = store::albums_wanting_cover(&mut conn).await?;
         drop(conn);
+        drop(lease);
         total += backlog.len() as u64;
         for (album_id, release, group, has_front) in backlog {
             if stop() || crate::offline::is_offline() {
@@ -348,7 +439,7 @@ async fn run_pass(app: &AppHandle, pool: &SqlitePool, artwork_dir: &Path) -> App
                 break;
             }
             match fetch_cover(
-                pool,
+                db,
                 &caa,
                 artwork_dir,
                 album_id,
@@ -376,7 +467,8 @@ async fn run_pass(app: &AppHandle, pool: &SqlitePool, artwork_dir: &Path) -> App
     if !summary.cancelled && failures < MAX_CONSECUTIVE_FAILURES {
         let mut cursor = 0;
         'artists: loop {
-            let mut conn = pool.acquire().await?;
+            let lease = db.lease().await?;
+            let mut conn = lease.acquire().await?;
             let batch = store::pending_artists(
                 &mut conn,
                 retry_before,
@@ -386,6 +478,7 @@ async fn run_pass(app: &AppHandle, pool: &SqlitePool, artwork_dir: &Path) -> App
             )
             .await?;
             drop(conn);
+            drop(lease);
             if batch.is_empty() {
                 break;
             }
@@ -402,7 +495,7 @@ async fn run_pass(app: &AppHandle, pool: &SqlitePool, artwork_dir: &Path) -> App
                     Ok(found) => {
                         failures = 0;
                         let now = now_ms();
-                        write_retrying(pool, |conn| {
+                        write_retrying(&*db.lease().await?, |conn| {
                             let found = found.clone();
                             Box::pin(async move {
                                 match found {
@@ -462,7 +555,7 @@ pub(super) struct AlbumOutcome {
 
 /// Resolve one album and write the decision.
 async fn enrich_album(
-    pool: &SqlitePool,
+    db: &ProfileDb,
     mb: &MusicBrainzClient,
     caa: &CoverArtArchiveClient,
     artwork_dir: &Path,
@@ -479,12 +572,21 @@ async fn enrich_album(
             .flatten(),
         None => None,
     };
-    let resolution = resolve::resolve_album(mb, album, tagged.as_deref())
-        .await
-        .map_err(|e| crate::error::AppError::Other(format!("musicbrainz: {e}")))?;
     let now = now_ms();
+    let resolution = match resolve::resolve_album(mb, album, tagged.as_deref()).await {
+        Ok(found) => found,
+        // An answer that will be the same next time and is this album's
+        // (`is_permanent`) is remembered as no match, asked again in a
+        // month, so it neither counts toward the failures that end a pass
+        // nor stays first in the queue of every pass after.
+        Err(err) if is_permanent(&err) => {
+            tracing::warn!(album_id = album.album_id, %err, "enrichment lookup refused; no match");
+            None
+        }
+        Err(err) => return Err(crate::error::AppError::Other(format!("musicbrainz: {err}"))),
+    };
     let Some(resolution) = resolution else {
-        write_retrying(pool, |conn| {
+        write_retrying(&*db.lease().await?, |conn| {
             Box::pin(store::record_no_match(conn, album.album_id, now))
         })
         .await?;
@@ -500,7 +602,7 @@ async fn enrich_album(
         // `resolve_album` keeps no such resolution; were one to come
         // back, it is what it says.
         Verdict::NoMatch => {
-            write_retrying(pool, |conn| {
+            write_retrying(&*db.lease().await?, |conn| {
                 Box::pin(store::record_no_match(conn, album.album_id, now))
             })
             .await?;
@@ -512,7 +614,7 @@ async fn enrich_album(
         }
     };
     apply_resolution(
-        pool,
+        db,
         caa,
         artwork_dir,
         album.album_id,
@@ -526,7 +628,7 @@ async fn enrich_album(
 /// Write a resolution as `status`, propose the artists it credits when it
 /// is applied, and fetch the cover it allows.
 pub(super) async fn apply_resolution(
-    pool: &SqlitePool,
+    db: &ProfileDb,
     caa: &CoverArtArchiveClient,
     artwork_dir: &Path,
     album_id: i64,
@@ -535,7 +637,7 @@ pub(super) async fn apply_resolution(
     fields: Fields,
 ) -> AppResult<AlbumOutcome> {
     let now = now_ms();
-    let report: ApplyReport = write_retrying(pool, |conn| {
+    let report: ApplyReport = write_retrying(&*db.lease().await?, |conn| {
         // Owned by each attempt: the future outlives no borrow of the
         // caller's, which is what a retried transaction needs.
         let resolution = resolution.clone();
@@ -562,7 +664,7 @@ pub(super) async fn apply_resolution(
     let mut cover = false;
     if report.wants_cover {
         match fetch_cover(
-            pool,
+            db,
             caa,
             artwork_dir,
             album_id,
@@ -630,7 +732,7 @@ async fn propose_credited_artists(
 /// release group's — the one the archive chose for the album across its
 /// pressings.
 pub(super) async fn fetch_cover(
-    pool: &SqlitePool,
+    db: &ProfileDb,
     caa: &CoverArtArchiveClient,
     artwork_dir: &Path,
     album_id: i64,
@@ -659,7 +761,7 @@ pub(super) async fn fetch_cover(
     let hash = blake3::hash(&bytes).to_hex().to_string();
     let target = artwork_dir.join(format!("{hash}.{format}"));
     waveflow_core::atomic_write::store_content_addressed(&target, &bytes)?;
-    let linked = write_retrying(pool, |conn| {
+    let linked = write_retrying(&*db.lease().await?, |conn| {
         let hash = hash.clone();
         Box::pin(async move {
             // Checked in the transaction that links, so an album that

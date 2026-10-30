@@ -366,8 +366,18 @@ fn escape_phrase(value: &str) -> String {
 }
 
 /// Outside quotes Lucene reads its whole operator set; every one of them
-/// is escaped, so a title like "AC/DC - Live!" stays words.
+/// is escaped, so a title like "AC/DC - Live!" stays words — and so are
+/// the upper-case `AND` / `OR` / `NOT`, lowered: a title "NOT" alone
+/// would otherwise be a query the service refuses.
 fn escape_terms(value: &str) -> String {
+    let value = value
+        .split(' ')
+        .map(|word| match word {
+            "AND" | "OR" | "NOT" => word.to_lowercase(),
+            other => other.to_owned(),
+        })
+        .collect::<Vec<_>>()
+        .join(" ");
     const SPECIAL: &[char] = &[
         '+', '-', '&', '|', '!', '(', ')', '{', '}', '[', ']', '^', '"', '~', '*', '?', ':', '\\',
         '/',

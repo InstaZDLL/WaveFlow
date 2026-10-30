@@ -611,6 +611,10 @@ impl AppState {
             previous
         };
         if let Some(previous) = previous {
+            // The enrichment pass holds its lease for as long as the
+            // library takes; it stops at its next album instead of being
+            // waited out (see `stop_for_profile_change`).
+            crate::commands::enrichment::stop_for_profile_change();
             previous.close_when_idle().await;
         }
 
@@ -635,6 +639,7 @@ impl AppState {
             previous
         };
         if let Some(previous) = previous {
+            crate::commands::enrichment::stop_for_profile_change();
             previous.close_when_idle().await;
         }
     }

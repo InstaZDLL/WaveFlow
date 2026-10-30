@@ -392,17 +392,19 @@ pub async fn apply_album(
             .rows_affected()
                 > 0;
         }
-        sqlx::query(
-            "UPDATE musicbrainz_album
-                SET filled_year = filled_year OR ?,
-                    filled_release_date = filled_release_date OR ?
-              WHERE album_id = ?",
-        )
-        .bind(report.year)
-        .bind(report.release_date)
-        .bind(album_id)
-        .execute(&mut *conn)
-        .await?;
+        if report.year || report.release_date {
+            sqlx::query(
+                "UPDATE musicbrainz_album
+                    SET filled_year = filled_year OR ?,
+                        filled_release_date = filled_release_date OR ?
+                  WHERE album_id = ?",
+            )
+            .bind(report.year)
+            .bind(report.release_date)
+            .bind(album_id)
+            .execute(&mut *conn)
+            .await?;
+        }
     }
 
     if fields.genres {
@@ -533,8 +535,40 @@ pub async fn reapply_album(
         covers: false,
         ..fields
     };
+    // Read first: a pass follows every scan, and an album with no gap
+    // must cost no write — the writer is shared with the scan and with
+    // every `play_event`.
+    if !has_gap(conn, album_id, fields).await? {
+        return Ok(false);
+    }
     let report = apply_album(conn, album_id, fields).await?;
     Ok(report.year || report.release_date || report.track_years > 0 || report.genre_tracks > 0)
+}
+
+/// Whether an applied album has an empty field its decision could fill.
+async fn has_gap(conn: &mut SqliteConnection, album_id: i64, fields: Fields) -> CoreResult<bool> {
+    let gap: i64 = sqlx::query_scalar(
+        "SELECT EXISTS (
+             SELECT 1 FROM musicbrainz_album m JOIN album al ON al.id = m.album_id
+              WHERE m.album_id = ?1 AND ?2
+                AND ((al.year IS NULL AND m.original_year IS NOT NULL)
+                     OR (al.release_date IS NULL AND m.original_date IS NOT NULL)))
+          OR EXISTS (
+             SELECT 1 FROM musicbrainz_track mt
+               JOIN track t ON t.id = mt.track_id AND t.album_id = mt.album_id
+               JOIN musicbrainz_album m ON m.album_id = mt.album_id
+              WHERE mt.album_id = ?1
+                AND ((?2 AND t.year IS NULL AND m.original_year IS NOT NULL)
+                     OR (?3 AND m.genres IS NOT NULL AND m.genres <> '[]'
+                         AND NOT EXISTS (SELECT 1 FROM track_genre tg
+                                          WHERE tg.track_id = mt.track_id))))",
+    )
+    .bind(album_id)
+    .bind(fields.dates)
+    .bind(fields.genres)
+    .fetch_one(&mut *conn)
+    .await?;
+    Ok(gap != 0)
 }
 
 /// [`reapply_album`] over every applied decision, in the caller's one
@@ -637,6 +671,58 @@ pub async fn undo_album(conn: &mut SqliteConnection, album_id: i64, now: i64) ->
     }
     clear_pairing(conn, album_id).await?;
     set_album_status(conn, album_id, Status::Rejected, now).await
+}
+
+/// The user wrote these fields of a track themself — in the tag editor —
+/// so what is in them now is theirs: the engine's provenance for them
+/// goes, and neither an undo nor a refill touches them again.
+///
+/// Without it, keeping a filled genre and adding one beside it would hand
+/// the kept one back to the engine, and the album's undo would delete a
+/// genre the user had just confirmed.
+pub async fn release_track_fields(
+    conn: &mut SqliteConnection,
+    track_id: i64,
+    genres: bool,
+    year: bool,
+) -> CoreResult<()> {
+    if genres {
+        sqlx::query("DELETE FROM musicbrainz_filled_genre WHERE track_id = ?")
+            .bind(track_id)
+            .execute(&mut *conn)
+            .await?;
+    }
+    if year {
+        sqlx::query("UPDATE musicbrainz_track SET filled_year = 0 WHERE track_id = ?")
+            .bind(track_id)
+            .execute(&mut *conn)
+            .await?;
+    }
+    Ok(())
+}
+
+/// An album year the tag editor just recomputed is the user's too
+/// ([`release_track_fields`]) when it is the year they typed: the album
+/// takes its first track's year, so an edit of another track leaves an
+/// album year the engine filled, and its provenance, where they were.
+pub async fn release_album_years(
+    conn: &mut SqliteConnection,
+    album_ids: &[i64],
+    typed_year: i64,
+) -> CoreResult<()> {
+    for album_id in album_ids {
+        sqlx::query(
+            "UPDATE musicbrainz_album SET filled_year = 0
+              WHERE album_id = ?
+                AND (SELECT year FROM album WHERE id = ?) IS ?",
+        )
+        .bind(album_id)
+        .bind(album_id)
+        .bind(typed_year)
+        .execute(&mut *conn)
+        .await?;
+    }
+    Ok(())
 }
 
 /// Refuse a proposal: it is never made again on its own.
