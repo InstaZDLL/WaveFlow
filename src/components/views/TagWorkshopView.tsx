@@ -502,7 +502,9 @@ export function TagWorkshopView({
           )}
           <button
             type="button"
-            disabled={changes.length === 0 || busy}
+            // Reachable while a match is held, even with no edit left:
+            // it is how a taken match is let go.
+            disabled={(changes.length === 0 && !taken && !proposal) || busy}
             onClick={discard}
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 text-sm text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-50"
           >
@@ -1094,7 +1096,9 @@ function MatchTool({
   const [release, setRelease] = useState(initialRelease ?? "");
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [searched, setSearched] = useState(false);
+  // The last search found nothing. Its own outcome, not read from
+  // `proposal`, which the view also clears after a write or a discard.
+  const [noMatch, setNoMatch] = useState(false);
   const [fields, setFields] = useState<Set<WorkshopField>>(
     () => new Set(WORKSHOP_FIELDS.filter((f) => f !== "composer")),
   );
@@ -1122,7 +1126,7 @@ function MatchTool({
         parseReleaseMbid(taggedRelease),
       );
       onProposal(found);
-      setSearched(true);
+      setNoMatch(found == null);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -1185,7 +1189,7 @@ function MatchTool({
           {error}
         </p>
       )}
-      {searched && !proposal && !error && (
+      {noMatch && !proposal && !error && (
         <p className="text-sm text-zinc-500">{t("tagWorkshop.matchNone")}</p>
       )}
       {proposal && (
