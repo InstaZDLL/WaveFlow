@@ -81,6 +81,11 @@ pub async fn scan_folder(
     if summary.added > 0 && !summary.cancelled {
         crate::commands::analysis::maybe_auto_analyze(&app);
     }
+    // Any scan, not only one that added files: a rewritten file loses
+    // the genre the enrichment engine filled, and its pass fills it back.
+    if !summary.cancelled {
+        crate::commands::enrichment::maybe_run(&app);
+    }
     Ok(summary)
 }
 

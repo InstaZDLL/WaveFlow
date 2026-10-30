@@ -229,6 +229,8 @@ pub async fn switch_profile(
         // The profile just opened may hold rows from an older analysis
         // version; nothing else re-measures them until a scan adds a file.
         crate::commands::analysis::maybe_auto_analyze(&app);
+        // Same for the enrichment engine, when the opened profile has it on.
+        crate::commands::enrichment::maybe_run(&app);
     }
 
     let now = now_millis();
