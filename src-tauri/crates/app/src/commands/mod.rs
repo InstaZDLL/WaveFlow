@@ -17,6 +17,7 @@ pub mod diagnostics;
 pub mod dlna;
 pub mod duplicates;
 pub mod edit;
+pub mod enrichment;
 pub mod global_shortcuts;
 pub mod home_suggestion;
 pub mod integration;

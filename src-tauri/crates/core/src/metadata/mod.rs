@@ -16,10 +16,14 @@
 //! point every outbound call at a listener of their own.
 
 pub mod album_match;
+#[cfg(feature = "musicbrainz")]
+pub mod coverartarchive;
 pub mod deezer;
 pub mod lastfm;
 pub mod listenbrainz;
 pub mod lrclib;
+#[cfg(feature = "musicbrainz")]
+pub mod musicbrainz;
 pub mod name_match;
 pub mod theaudiodb;
 

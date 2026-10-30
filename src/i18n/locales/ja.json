@@ -1265,7 +1265,8 @@
       "audio": "オーディオ",
       "analysis": "解析",
       "file": "ファイル",
-      "spectrum": "スペクトル"
+      "spectrum": "スペクトル",
+      "credits": "クレジット"
     },
     "bpm": "BPM",
     "bpmUncertain": "{{bpm}}（不確か）",
@@ -1329,6 +1330,21 @@
       "altFull": "急な途切れはありません。スペクトルはノイズフロアに消えていくか、ナイキスト周波数（{{nyquist}} kHz、このファイルが含められる最も高い周波数）まで続いています。",
       "guides": "細い線：16・19・20 kHz。128・192・320 kbps の MP3 がよく途切れる位置です。",
       "axisKhz": "{{value}} kHz"
+    },
+    "creditRoles": {
+      "composer": "作曲",
+      "lyricist": "作詞",
+      "writer": "作詞作曲",
+      "arranger": "編曲",
+      "orchestrator": "オーケストレーション",
+      "conductor": "指揮",
+      "producer": "プロデュース",
+      "mix": "ミックス",
+      "engineer": "エンジニア",
+      "remixer": "リミックス",
+      "vocal": "ボーカル",
+      "instrument": "楽器",
+      "performer": "演奏"
     }
   },
   "selection": {
@@ -1390,7 +1406,12 @@
       "inLibrary": "ライブラリ内",
       "notInLibrary": "ライブラリ外"
     },
-    "editMetadata": "情報を編集"
+    "editMetadata": "情報を編集",
+    "facts": {
+      "title": "プロフィール",
+      "activeRange": "{{begin}}–{{end}}",
+      "activeSince": "{{begin}} 年から"
+    }
   },
   "artistImagePicker": {
     "title": "アーティスト画像を変更",
@@ -2895,7 +2916,8 @@
         "window": "ウィンドウ",
         "lyricsDisplay": "歌詞の表示",
         "diskUsage": "ディスク容量",
-        "globalShortcuts": "グローバルショートカット"
+        "globalShortcuts": "グローバルショートカット",
+        "enrichment": "情報の補完"
       },
       "navHints": {
         "general": "言語、起動、再生",
@@ -2945,7 +2967,8 @@
         "diagnostics": "ログと描画",
         "reset": "アプリを初期状態からやり直す",
         "diskUsage": "WaveFlow がこのコンピューターに保存しているもの",
-        "globalShortcuts": "どのアプリからでも"
+        "globalShortcuts": "どのアプリからでも",
+        "enrichment": "MusicBrainz からジャンル・日付・クレジット・ジャケット"
       }
     },
     "desktopLyrics": {
@@ -3139,6 +3162,28 @@
       "assigned": "デスクトップによる割り当て：{{trigger}}",
       "waitingForDesktop": "デスクトップで確認してください…",
       "registering": "登録中…"
+    },
+    "enrichment": {
+      "title": "ライブラリ情報の補完",
+      "subtitle": "ジャンル、リリース日、クレジット、欠けているジャケットを MusicBrainz から補います。変わるのは WaveFlow のデータベースだけで、ファイルには触れません。",
+      "policy": "確実な一致は自動で、欠けている項目にだけ適用されます。不確かなアルバムとすべてのアーティストは確認待ちになります。",
+      "fieldsTitle": "補完する項目",
+      "run": "今すぐ実行",
+      "stop": "停止",
+      "fields": {
+        "genres": "ジャンル",
+        "dates": "リリース日",
+        "covers": "欠けているジャケット",
+        "credits": "クレジット（作詞作曲・演奏・制作）"
+      },
+      "stats": {
+        "applied": "補完したアルバム",
+        "review": "確認待ち",
+        "noMatch": "一致なし",
+        "artists": "承認したアーティスト"
+      },
+      "review_one": "確認する（{{count}}）",
+      "review_other": "確認する（{{count}}）"
     }
   },
   "scanProgress": {
@@ -3505,6 +3550,7 @@
       "drop_import": "ライブラリへのコピー",
       "cache_move": "キャッシュを移動中",
       "spectrogram": "トラックのスペクトル",
+      "enrichment": "ライブラリ情報の補完",
       "release_radar": "Release Radar"
     }
   },
@@ -3702,6 +3748,40 @@
     "title": "このページを表示できませんでした",
     "description": "エラーにより読み込めませんでした。アプリのほかの部分は引き続き使えます。",
     "retry": "再試行"
+  },
+  "enrichmentReview": {
+    "title": "補完の確認",
+    "tabs": {
+      "albums": "確認待ちのアルバム",
+      "artists": "確認待ちのアーティスト",
+      "applied": "補完したアルバム",
+      "accepted": "承認したアーティスト",
+      "rejected": "却下"
+    },
+    "hints": {
+      "albums": "不確かな一致です。承認する前にリリースを確かめてください。",
+      "artists": "アーティストはすべて承認待ちです。名前の下の補足で同名の別人を区別できます。",
+      "applied": "自動で適用済み。元に戻すと、補完した内容だけが取り除かれます。",
+      "accepted": "これらの情報はアーティストページに表示されます。",
+      "rejected": "再試行しない限り、二度と提案されません。"
+    },
+    "empty": "まだ何もありません。",
+    "yourAlbum": "あなたのアルバム",
+    "yourArtist": "あなたのアーティスト",
+    "release": "MusicBrainz のリリース · {{score}}",
+    "noRelease": "リリースなし",
+    "fromName": "名前で検出 · {{score}}",
+    "accept": "承認",
+    "reject": "却下",
+    "undo": "元に戻す",
+    "retry": "再試行",
+    "openMusicBrainz": "MusicBrainz で見る",
+    "tracks_one": "{{count}} 曲",
+    "tracks_other": "{{count}} 曲",
+    "fromAlbums_one": "一致した {{count}} 枚のアルバムにクレジット",
+    "fromAlbums_other": "一致した {{count}} 枚のアルバムにクレジット",
+    "acceptEvidenced_one": "クレジットされたアーティストを承認",
+    "acceptEvidenced_other": "クレジットされた {{count}} 組のアーティストを承認"
   },
   "releaseRadar": {
     "badge": "新作",

@@ -130,6 +130,8 @@ import { setSortIgnoreArticles } from "../../../hooks/useSortIgnoreArticles";
 import { applyWindowChrome } from "../../../hooks/useWindowChrome";
 import { SINGLE_CLICK_PLAY_EVENT } from "../../../hooks/useSingleClickPlay";
 import { AUTOPLAY_EVENT } from "../../../hooks/useAutoplay";
+import { ENRICHMENT_SETTING_EVENTS } from "../../../hooks/useEnrichmentSettings";
+import { cancelEnrichment } from "../../../lib/tauri/enrichment";
 import { GENERATOR_ALBUM_MODE_EVENT } from "../../../hooks/useGeneratorAlbumMode";
 import { CONTRAST_EVENT } from "../../../hooks/useContrastMode";
 import { EFFECTS_EVENT } from "../../../hooks/useEffectsLevel";
@@ -351,6 +353,23 @@ function profileRow<K extends SettingKey>(
         ctx.profileId,
       );
       if (options.event) window.dispatchEvent(new CustomEvent(options.event));
+    },
+  };
+}
+
+/** `accessor`, with `then` run once its reset has landed. */
+function afterReset(
+  accessor: SettingAccessor,
+  then: () => Promise<unknown>,
+): SettingAccessor {
+  return {
+    inspect: accessor.inspect,
+    reset: async (ctx) => {
+      await accessor.reset(ctx);
+      // The follow-up acts on whatever profile is active; after a switch
+      // that is not the one just reset.
+      if (ctx.activeProfileId() !== ctx.profileId) return;
+      await then();
     },
   };
 }
@@ -593,6 +612,32 @@ const ACCESSORS: Record<SettingKey, SettingAccessor> = {
     "audio.auto_analyze",
     getAutoAnalyze,
     setAutoAnalyze,
+  ),
+  // The engine reads its switch when a pass starts, not during one: a
+  // reset that turns it off stops the running pass too, as the card's
+  // switch does.
+  "enrichment.enabled": afterReset(
+    profileBool(
+      "enrichment.enabled",
+      ENRICHMENT_SETTING_EVENTS["enrichment.enabled"],
+    ),
+    () => cancelEnrichment(),
+  ),
+  "enrichment.fill_genres": profileBool(
+    "enrichment.fill_genres",
+    ENRICHMENT_SETTING_EVENTS["enrichment.fill_genres"],
+  ),
+  "enrichment.fill_dates": profileBool(
+    "enrichment.fill_dates",
+    ENRICHMENT_SETTING_EVENTS["enrichment.fill_dates"],
+  ),
+  "enrichment.fill_covers": profileBool(
+    "enrichment.fill_covers",
+    ENRICHMENT_SETTING_EVENTS["enrichment.fill_covers"],
+  ),
+  "enrichment.fill_credits": profileBool(
+    "enrichment.fill_credits",
+    ENRICHMENT_SETTING_EVENTS["enrichment.fill_credits"],
   ),
   "metadata.bio_source": command(
     "metadata.bio_source",

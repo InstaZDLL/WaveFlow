@@ -399,6 +399,10 @@ pub async fn rescan_library(
     if total.added > 0 && !total.cancelled {
         crate::commands::analysis::maybe_auto_analyze(&app);
     }
+    // After any finished rescan: see `scan::folder::scan_folder`.
+    if !total.cancelled {
+        crate::commands::enrichment::maybe_run(&app);
+    }
 
     Ok(total)
 }
@@ -589,6 +593,7 @@ pub async fn import_dropped(
     // sweep, the longest job in the app, is the opposite of what was asked.
     if fresh && !summary.cancelled {
         crate::commands::analysis::maybe_auto_analyze(&app);
+        crate::commands::enrichment::maybe_run(&app);
     }
     Ok(summary)
 }

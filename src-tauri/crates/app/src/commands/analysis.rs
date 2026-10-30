@@ -568,7 +568,8 @@ struct PendingAnalysis {
 /// `true` when a sqlx error is a SQLite busy/locked contention — i.e.
 /// the single-writer WAL lock was held by another writer (a concurrent
 /// scan, a `play_event` insert) — rather than a real schema/constraint
-/// fault. Only the former is worth retrying.
+/// fault. Only the former is worth retrying. Shared with the enrichment
+/// engine, the other background writer.
 pub(crate) fn is_busy(err: &sqlx::Error) -> bool {
     if let sqlx::Error::Database(db) = err {
         if let Some(code) = db.code() {

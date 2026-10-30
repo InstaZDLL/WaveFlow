@@ -1267,7 +1267,8 @@
       "audio": "Audio",
       "analysis": "Analysis",
       "file": "File",
-      "spectrum": "Spectrum"
+      "spectrum": "Spectrum",
+      "credits": "Credits"
     },
     "bpm": "BPM",
     "bpmUncertain": "{{bpm}} (uncertain)",
@@ -1331,6 +1332,21 @@
       "altFull": "No sharp cut: the spectrum fades into the noise floor or runs up to the Nyquist frequency ({{nyquist}} kHz), the highest this file can hold.",
       "guides": "Thin lines: 16, 19 and 20 kHz, where MP3s at 128, 192 and 320 kbps often stop.",
       "axisKhz": "{{value}} kHz"
+    },
+    "creditRoles": {
+      "composer": "Composer",
+      "lyricist": "Lyrics",
+      "writer": "Writer",
+      "arranger": "Arranger",
+      "orchestrator": "Orchestration",
+      "conductor": "Conductor",
+      "producer": "Producer",
+      "mix": "Mix",
+      "engineer": "Engineer",
+      "remixer": "Remix",
+      "vocal": "Vocals",
+      "instrument": "Instruments",
+      "performer": "Performer"
     }
   },
   "selection": {
@@ -1392,7 +1408,12 @@
       "inLibrary": "In your library",
       "notInLibrary": "Not in your library"
     },
-    "editMetadata": "Edit info"
+    "editMetadata": "Edit info",
+    "facts": {
+      "title": "About",
+      "activeRange": "{{begin}}–{{end}}",
+      "activeSince": "since {{begin}}"
+    }
   },
   "artistImagePicker": {
     "title": "Change artist image",
@@ -2897,7 +2918,8 @@
         "window": "Windows",
         "lyricsDisplay": "Showing lyrics",
         "diskUsage": "Disk space",
-        "globalShortcuts": "Global shortcuts"
+        "globalShortcuts": "Global shortcuts",
+        "enrichment": "Enrichment"
       },
       "navHints": {
         "general": "Language, startup, playback",
@@ -2947,7 +2969,8 @@
         "diagnostics": "Logs and rendering",
         "reset": "Start over with a fresh app",
         "diskUsage": "What WaveFlow keeps on this computer",
-        "globalShortcuts": "From any application"
+        "globalShortcuts": "From any application",
+        "enrichment": "Genres, dates, credits and covers from MusicBrainz"
       }
     },
     "desktopLyrics": {
@@ -3141,6 +3164,28 @@
       "assigned": "Assigned by your desktop: {{trigger}}",
       "waitingForDesktop": "Confirm on your desktop…",
       "registering": "Registering…"
+    },
+    "enrichment": {
+      "title": "Library enrichment",
+      "subtitle": "Completes genres, release dates, credits and missing covers from MusicBrainz. Only WaveFlow's database changes, never your files.",
+      "policy": "A sure match is applied on its own, and only where something is missing. Doubtful albums and every artist wait for your review.",
+      "fieldsTitle": "What gets completed",
+      "run": "Run now",
+      "stop": "Stop",
+      "fields": {
+        "genres": "Genres",
+        "dates": "Release dates",
+        "covers": "Missing covers",
+        "credits": "Credits (writers, performers, production)"
+      },
+      "stats": {
+        "applied": "Albums completed",
+        "review": "To review",
+        "noMatch": "No match",
+        "artists": "Artists accepted"
+      },
+      "review_one": "Review ({{count}})",
+      "review_other": "Review ({{count}})"
     }
   },
   "scanProgress": {
@@ -3507,6 +3552,7 @@
       "drop_import": "Copying to the library",
       "cache_move": "Moving the caches",
       "spectrogram": "Track spectrum",
+      "enrichment": "Library enrichment",
       "release_radar": "Release Radar"
     }
   },
@@ -3704,6 +3750,40 @@
     "title": "This page couldn't be shown",
     "description": "Something stopped it from loading. The rest of the app still works.",
     "retry": "Retry"
+  },
+  "enrichmentReview": {
+    "title": "Enrichment review",
+    "tabs": {
+      "albums": "Albums to review",
+      "artists": "Artists to review",
+      "applied": "Albums completed",
+      "accepted": "Artists accepted",
+      "rejected": "Rejected"
+    },
+    "hints": {
+      "albums": "Uncertain matches: check the release before accepting.",
+      "artists": "Every artist waits for your approval; the note under the name tells namesakes apart.",
+      "applied": "Applied automatically. Undo removes exactly what was filled in.",
+      "accepted": "These details show on the artist's page.",
+      "rejected": "Never proposed again unless you try again."
+    },
+    "empty": "Nothing here yet.",
+    "yourAlbum": "Your album",
+    "yourArtist": "Your artist",
+    "release": "MusicBrainz release · {{score}}",
+    "noRelease": "No release",
+    "fromName": "Found by name · {{score}}",
+    "accept": "Accept",
+    "reject": "Reject",
+    "undo": "Undo",
+    "retry": "Try again",
+    "openMusicBrainz": "View on MusicBrainz",
+    "tracks_one": "{{count}} track",
+    "tracks_other": "{{count}} tracks",
+    "fromAlbums_one": "Credited on {{count}} matched album",
+    "fromAlbums_other": "Credited on {{count}} matched albums",
+    "acceptEvidenced_one": "Accept the credited artist",
+    "acceptEvidenced_other": "Accept the {{count}} credited artists"
   },
   "releaseRadar": {
     "badge": "New releases",

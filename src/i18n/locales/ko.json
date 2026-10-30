@@ -1265,7 +1265,8 @@
       "audio": "오디오",
       "analysis": "분석",
       "file": "파일",
-      "spectrum": "스펙트럼"
+      "spectrum": "스펙트럼",
+      "credits": "크레딧"
     },
     "bpm": "BPM",
     "bpmUncertain": "{{bpm}} (불확실)",
@@ -1329,6 +1330,21 @@
       "altFull": "급격한 끊김이 없습니다. 스펙트럼이 노이즈 플로어로 사라지거나 나이퀴스트 주파수({{nyquist}} kHz, 이 파일이 담을 수 있는 가장 높은 주파수)까지 이어집니다.",
       "guides": "가는 선: 16, 19, 20 kHz. 128, 192, 320 kbps MP3가 자주 끊기는 위치입니다.",
       "axisKhz": "{{value}} kHz"
+    },
+    "creditRoles": {
+      "composer": "작곡",
+      "lyricist": "작사",
+      "writer": "작사·작곡",
+      "arranger": "편곡",
+      "orchestrator": "오케스트레이션",
+      "conductor": "지휘",
+      "producer": "프로듀서",
+      "mix": "믹싱",
+      "engineer": "엔지니어",
+      "remixer": "리믹스",
+      "vocal": "보컬",
+      "instrument": "악기",
+      "performer": "연주"
     }
   },
   "selection": {
@@ -1390,7 +1406,12 @@
       "inLibrary": "라이브러리에 있음",
       "notInLibrary": "라이브러리에 없음"
     },
-    "editMetadata": "정보 편집"
+    "editMetadata": "정보 편집",
+    "facts": {
+      "title": "소개",
+      "activeRange": "{{begin}}–{{end}}",
+      "activeSince": "{{begin}}년부터"
+    }
   },
   "artistImagePicker": {
     "title": "아티스트 이미지 변경",
@@ -2895,7 +2916,8 @@
         "window": "창",
         "lyricsDisplay": "가사 표시",
         "diskUsage": "디스크 공간",
-        "globalShortcuts": "전역 단축키"
+        "globalShortcuts": "전역 단축키",
+        "enrichment": "정보 보강"
       },
       "navHints": {
         "general": "언어, 시작, 재생",
@@ -2945,7 +2967,8 @@
         "diagnostics": "로그 및 그래픽 렌더링",
         "reset": "처음 설치한 상태로 다시 시작",
         "diskUsage": "WaveFlow가 이 컴퓨터에 보관하는 것",
-        "globalShortcuts": "어떤 앱에서든"
+        "globalShortcuts": "어떤 앱에서든",
+        "enrichment": "MusicBrainz의 장르, 날짜, 크레딧, 커버"
       }
     },
     "desktopLyrics": {
@@ -3139,6 +3162,28 @@
       "assigned": "데스크톱이 할당함: {{trigger}}",
       "waitingForDesktop": "데스크톱에서 확인하세요…",
       "registering": "등록 중…"
+    },
+    "enrichment": {
+      "title": "라이브러리 정보 보강",
+      "subtitle": "MusicBrainz에서 장르, 발매일, 크레딧, 빠진 커버를 채웁니다. WaveFlow의 데이터베이스만 바뀌며 파일은 절대 건드리지 않습니다.",
+      "policy": "확실한 일치는 자동으로, 비어 있는 항목에만 적용됩니다. 애매한 앨범과 모든 아티스트는 검토를 기다립니다.",
+      "fieldsTitle": "채우는 항목",
+      "run": "지금 실행",
+      "stop": "중지",
+      "fields": {
+        "genres": "장르",
+        "dates": "발매일",
+        "covers": "빠진 커버",
+        "credits": "크레딧 (작사·작곡, 연주자, 프로듀싱)"
+      },
+      "stats": {
+        "applied": "보강된 앨범",
+        "review": "검토 대기",
+        "noMatch": "일치 없음",
+        "artists": "승인한 아티스트"
+      },
+      "review_one": "검토 ({{count}})",
+      "review_other": "검토 ({{count}})"
     }
   },
   "scanProgress": {
@@ -3505,6 +3550,7 @@
       "drop_import": "보관함으로 복사",
       "cache_move": "캐시 이동 중",
       "spectrogram": "트랙 스펙트럼",
+      "enrichment": "라이브러리 정보 보강",
       "release_radar": "Release Radar"
     }
   },
@@ -3702,6 +3748,40 @@
     "title": "이 페이지를 표시할 수 없습니다",
     "description": "오류로 인해 불러오지 못했습니다. 앱의 나머지 기능은 계속 사용할 수 있습니다.",
     "retry": "다시 시도"
+  },
+  "enrichmentReview": {
+    "title": "보강 검토",
+    "tabs": {
+      "albums": "검토할 앨범",
+      "artists": "검토할 아티스트",
+      "applied": "보강된 앨범",
+      "accepted": "승인한 아티스트",
+      "rejected": "거절됨"
+    },
+    "hints": {
+      "albums": "불확실한 일치입니다. 승인하기 전에 발매반을 확인하세요.",
+      "artists": "모든 아티스트가 승인을 기다립니다. 이름 아래 설명으로 동명이인을 구분합니다.",
+      "applied": "자동으로 적용됨. 되돌리기는 채운 내용만 정확히 지웁니다.",
+      "accepted": "이 정보는 아티스트 페이지에 표시됩니다.",
+      "rejected": "다시 시도하지 않는 한 다시 제안되지 않습니다."
+    },
+    "empty": "아직 아무것도 없습니다.",
+    "yourAlbum": "내 앨범",
+    "yourArtist": "내 아티스트",
+    "release": "MusicBrainz 발매반 · {{score}}",
+    "noRelease": "발매반 없음",
+    "fromName": "이름으로 찾음 · {{score}}",
+    "accept": "승인",
+    "reject": "거절",
+    "undo": "되돌리기",
+    "retry": "다시 시도",
+    "openMusicBrainz": "MusicBrainz에서 보기",
+    "tracks_one": "{{count}}곡",
+    "tracks_other": "{{count}}곡",
+    "fromAlbums_one": "일치한 앨범 {{count}}장에 크레딧",
+    "fromAlbums_other": "일치한 앨범 {{count}}장에 크레딧",
+    "acceptEvidenced_one": "크레딧된 아티스트 승인",
+    "acceptEvidenced_other": "크레딧된 아티스트 {{count}}명 승인"
   },
   "releaseRadar": {
     "badge": "새 발매",

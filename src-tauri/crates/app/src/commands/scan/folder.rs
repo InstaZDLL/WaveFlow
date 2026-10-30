@@ -81,6 +81,11 @@ pub async fn scan_folder(
     if summary.added > 0 && !summary.cancelled {
         crate::commands::analysis::maybe_auto_analyze(&app);
     }
+    // Any scan, not only one that added files: a rewritten file loses
+    // the genre the enrichment engine filled, and its pass fills it back.
+    if !summary.cancelled {
+        crate::commands::enrichment::maybe_run(&app);
+    }
     Ok(summary)
 }
 
@@ -982,6 +987,28 @@ pub(crate) async fn scan_folder_inner(
                 .bind(existing_track_id)
                 .execute(&mut *tx)
                 .await?;
+
+                // A year the file carries is the file's, even one equal to
+                // what the enrichment engine had filled: its provenance goes,
+                // as `link_genres` does for genres, so an undo of the album
+                // cannot clear it. A file with none leaves it.
+                if let Some(year) = extracted.year {
+                    waveflow_core::enrichment::store::release_track_fields(
+                        &mut tx,
+                        existing_track_id,
+                        false,
+                        true,
+                    )
+                    .await?;
+                    if let Some(aid) = album_id {
+                        waveflow_core::enrichment::store::release_album_years(
+                            &mut tx,
+                            &[aid],
+                            year,
+                        )
+                        .await?;
+                    }
+                }
 
                 if let (Some(cover), Some(aid)) = (&extracted.cover_art, album_id) {
                     let artwork_id =

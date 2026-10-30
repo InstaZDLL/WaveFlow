@@ -1426,7 +1426,8 @@
       "audio": "الصوت",
       "analysis": "التحليل",
       "file": "الملف",
-      "spectrum": "الطيف"
+      "spectrum": "الطيف",
+      "credits": "المساهمون"
     },
     "bpm": "BPM",
     "bpmUncertain": "{{bpm}} (غير مؤكد)",
@@ -1490,6 +1491,21 @@
       "altFull": "لا يوجد قطع حاد: يخفت الطيف في ضجيج الخلفية أو يمتد حتى تردد نايكويست ({{nyquist}} كيلوهرتز)، أعلى ما يمكن أن يحمله هذا الملف.",
       "guides": "خطوط رفيعة: 16 و19 و20 كيلوهرتز، حيث تتوقف غالبًا ملفات MP3 بمعدل 128 و192 و320 كيلوبت/ث.",
       "axisKhz": "{{value}} كيلوهرتز"
+    },
+    "creditRoles": {
+      "composer": "التلحين",
+      "lyricist": "الكلمات",
+      "writer": "التأليف",
+      "arranger": "التوزيع",
+      "orchestrator": "التوزيع الأوركسترالي",
+      "conductor": "القيادة",
+      "producer": "الإنتاج",
+      "mix": "المزج",
+      "engineer": "هندسة الصوت",
+      "remixer": "إعادة المزج",
+      "vocal": "الغناء",
+      "instrument": "الآلات",
+      "performer": "الأداء"
     }
   },
   "selection": {
@@ -1566,7 +1582,12 @@
     "albumTrackCount_many": "{{count}} مقطعًا",
     "trackCount_two": "مقطعان",
     "trackCount_few": "{{count}} مقاطع",
-    "trackCount_many": "{{count}} مقطعًا"
+    "trackCount_many": "{{count}} مقطعًا",
+    "facts": {
+      "title": "نبذة",
+      "activeRange": "{{begin}}–{{end}}",
+      "activeSince": "منذ {{begin}}"
+    }
   },
   "artistImagePicker": {
     "title": "تغيير صورة الفنان",
@@ -3128,7 +3149,8 @@
         "window": "النوافذ",
         "lyricsDisplay": "عرض الكلمات",
         "diskUsage": "مساحة القرص",
-        "globalShortcuts": "اختصارات عامة"
+        "globalShortcuts": "اختصارات عامة",
+        "enrichment": "الإثراء"
       },
       "navHints": {
         "general": "اللغة، البدء، التشغيل",
@@ -3178,7 +3200,8 @@
         "diagnostics": "السجلات والعرض الرسومي",
         "reset": "البدء من جديد بتطبيق كأنه جديد",
         "diskUsage": "ما يحتفظ به WaveFlow على هذا الحاسوب",
-        "globalShortcuts": "من أي تطبيق"
+        "globalShortcuts": "من أي تطبيق",
+        "enrichment": "الأنواع والتواريخ والمساهمون والأغلفة من MusicBrainz"
       }
     },
     "desktopLyrics": {
@@ -3384,6 +3407,32 @@
       "assigned": "عيّنه سطح المكتب: {{trigger}}",
       "waitingForDesktop": "أكّد على سطح المكتب…",
       "registering": "جارٍ التسجيل…"
+    },
+    "enrichment": {
+      "title": "إثراء المكتبة",
+      "subtitle": "يكمل الأنواع وتواريخ الإصدار والمساهمين والأغلفة الناقصة من MusicBrainz. تتغير قاعدة بيانات WaveFlow وحدها، ولا تُمسّ ملفاتك أبدًا.",
+      "policy": "تُطبَّق المطابقة المؤكدة تلقائيًا، وفي المواضع الناقصة فقط. أما الألبومات المشكوك فيها وجميع الفنانين فتنتظر مراجعتك.",
+      "fieldsTitle": "ما يُكمَل",
+      "run": "التشغيل الآن",
+      "stop": "إيقاف",
+      "fields": {
+        "genres": "الأنواع",
+        "dates": "تواريخ الإصدار",
+        "covers": "الأغلفة الناقصة",
+        "credits": "المساهمون (التأليف، الأداء، الإنتاج)"
+      },
+      "stats": {
+        "applied": "ألبومات مكتملة",
+        "review": "للمراجعة",
+        "noMatch": "بلا مطابقة",
+        "artists": "فنانون مقبولون"
+      },
+      "review_zero": "مراجعة ({{count}})",
+      "review_one": "مراجعة ({{count}})",
+      "review_two": "مراجعة ({{count}})",
+      "review_few": "مراجعة ({{count}})",
+      "review_many": "مراجعة ({{count}})",
+      "review_other": "مراجعة ({{count}})"
     }
   },
   "scanProgress": {
@@ -3850,6 +3899,7 @@
       "drop_import": "النسخ إلى المكتبة",
       "cache_move": "نقل ذاكرات التخزين المؤقت",
       "spectrogram": "طيف مقطوعة",
+      "enrichment": "إثراء المكتبة",
       "release_radar": "Release Radar"
     },
     "more_zero": "لا مهام أخرى",
@@ -4102,6 +4152,52 @@
     "title": "تعذّر عرض هذه الصفحة",
     "description": "منع خطأٌ تحميلها. بقية التطبيق لا تزال تعمل.",
     "retry": "إعادة المحاولة"
+  },
+  "enrichmentReview": {
+    "title": "مراجعة الإثراء",
+    "tabs": {
+      "albums": "ألبومات للمراجعة",
+      "artists": "فنانون للمراجعة",
+      "applied": "ألبومات مكتملة",
+      "accepted": "فنانون مقبولون",
+      "rejected": "مرفوضة"
+    },
+    "hints": {
+      "albums": "مطابقات غير مؤكدة: تحقّق من الإصدار قبل القبول.",
+      "artists": "كل فنان ينتظر موافقتك؛ والملاحظة تحت الاسم تميّز بين المتشابهين في الاسم.",
+      "applied": "طُبّقت تلقائيًا. التراجع يزيل ما مُلئ فقط.",
+      "accepted": "تظهر هذه البيانات في صفحة الفنان.",
+      "rejected": "لن تُقترح مجددًا ما لم تُعِد المحاولة."
+    },
+    "empty": "لا شيء هنا بعد.",
+    "yourAlbum": "ألبومك",
+    "yourArtist": "فنانك",
+    "release": "إصدار MusicBrainz · {{score}}",
+    "noRelease": "لا إصدار",
+    "fromName": "عُثر عليه بالاسم · {{score}}",
+    "accept": "قبول",
+    "reject": "رفض",
+    "undo": "تراجع",
+    "retry": "إعادة المحاولة",
+    "openMusicBrainz": "عرض في MusicBrainz",
+    "tracks_zero": "لا مقاطع",
+    "tracks_one": "مقطع واحد",
+    "tracks_two": "مقطعان",
+    "tracks_few": "{{count}} مقاطع",
+    "tracks_many": "{{count}} مقطعًا",
+    "tracks_other": "{{count}} مقطع",
+    "fromAlbums_zero": "غير مذكور في أي ألبوم مطابق",
+    "fromAlbums_one": "مذكور في ألبوم مطابق واحد",
+    "fromAlbums_two": "مذكور في ألبومين مطابقين",
+    "fromAlbums_few": "مذكور في {{count}} ألبومات مطابقة",
+    "fromAlbums_many": "مذكور في {{count}} ألبومًا مطابقًا",
+    "fromAlbums_other": "مذكور في {{count}} ألبوم مطابق",
+    "acceptEvidenced_zero": "قبول الفنانين المذكورين",
+    "acceptEvidenced_one": "قبول الفنان المذكور",
+    "acceptEvidenced_two": "قبول الفنانَين المذكورَين",
+    "acceptEvidenced_few": "قبول {{count}} فنانين مذكورين",
+    "acceptEvidenced_many": "قبول {{count}} فنانًا مذكورًا",
+    "acceptEvidenced_other": "قبول {{count}} فنان مذكور"
   },
   "releaseRadar": {
     "badge": "إصدارات جديدة",

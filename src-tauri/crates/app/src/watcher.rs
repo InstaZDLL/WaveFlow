@@ -489,6 +489,11 @@ async fn run_scan(app: &AppHandle, folder_id: i64, library_id: i64) {
             if summary.added > 0 && !summary.cancelled {
                 crate::commands::analysis::maybe_auto_analyze(app);
             }
+            // A watched file that changed is one the scanner rewrote,
+            // and with it the genre the enrichment engine had filled.
+            if !summary.cancelled {
+                crate::commands::enrichment::maybe_run(app);
+            }
         }
         Err(err) => {
             tracing::warn!(folder_id, %err, "watcher rescan failed");

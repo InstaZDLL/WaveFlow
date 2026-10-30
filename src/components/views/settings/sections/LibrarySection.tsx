@@ -3,6 +3,7 @@ import type { TaskSnapshot } from "../../../../lib/tauri/tasks";
 import type { Library } from "../../../../lib/tauri/library";
 import { useTranslation } from "react-i18next";
 import { ArtistBioSourceCard } from "../ArtistBioSourceCard";
+import { EnrichmentCard } from "../EnrichmentCard";
 import { RadioCatalogueCard } from "../RadioCatalogueCard";
 import { SettingsCategoryHeader } from "../SettingsCategoryHeader";
 import { SettingsGroup } from "../SettingsGroup";
@@ -439,6 +440,9 @@ export function LibrarySection({
             <span>{t("settings.artistImages.action")}</span>
           </button>
         </div>
+      </SettingsGroup>
+      <SettingsGroup id="enrichment" reveal={targetGroup === "enrichment"}>
+        <EnrichmentCard />
       </SettingsGroup>
       <SettingsGroup id="biographies" reveal={targetGroup === "biographies"}>
         <ArtistBioSourceCard />

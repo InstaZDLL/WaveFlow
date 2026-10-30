@@ -1267,7 +1267,8 @@
       "audio": "Ses",
       "analysis": "Analiz",
       "file": "Dosya",
-      "spectrum": "Spektrum"
+      "spectrum": "Spektrum",
+      "credits": "Katkıda bulunanlar"
     },
     "bpm": "BPM",
     "bpmUncertain": "{{bpm}} (belirsiz)",
@@ -1331,6 +1332,21 @@
       "altFull": "Keskin bir kesim yok: spektrum taban gürültüsünde sönüyor ya da Nyquist frekansına ({{nyquist}} kHz), bu dosyanın içerebileceği en yüksek frekansa kadar uzanıyor.",
       "guides": "İnce çizgiler: 128, 192 ve 320 kbps MP3'lerin sıkça kesildiği 16, 19 ve 20 kHz.",
       "axisKhz": "{{value}} kHz"
+    },
+    "creditRoles": {
+      "composer": "Besteci",
+      "lyricist": "Söz yazarı",
+      "writer": "Yazar",
+      "arranger": "Düzenleme",
+      "orchestrator": "Orkestrasyon",
+      "conductor": "Şef",
+      "producer": "Yapımcı",
+      "mix": "Miks",
+      "engineer": "Ses mühendisi",
+      "remixer": "Remiks",
+      "vocal": "Vokal",
+      "instrument": "Enstrümanlar",
+      "performer": "İcra"
     }
   },
   "selection": {
@@ -1392,7 +1408,12 @@
       "inLibrary": "Kütüphanende",
       "notInLibrary": "Kütüphanende yok"
     },
-    "editMetadata": "Bilgileri düzenle"
+    "editMetadata": "Bilgileri düzenle",
+    "facts": {
+      "title": "Hakkında",
+      "activeRange": "{{begin}}–{{end}}",
+      "activeSince": "{{begin}} yılından beri"
+    }
   },
   "artistImagePicker": {
     "title": "Sanatçı görselini değiştir",
@@ -2897,7 +2918,8 @@
         "window": "Pencereler",
         "lyricsDisplay": "Şarkı sözü görünümü",
         "diskUsage": "Disk alanı",
-        "globalShortcuts": "Genel kısayollar"
+        "globalShortcuts": "Genel kısayollar",
+        "enrichment": "Zenginleştirme"
       },
       "navHints": {
         "general": "Dil, başlangıç, oynatma",
@@ -2947,7 +2969,8 @@
         "diagnostics": "Günlükler ve grafik işleme",
         "reset": "Uygulamayı sıfırdan başlat",
         "diskUsage": "WaveFlow'un bu bilgisayarda tuttukları",
-        "globalShortcuts": "Herhangi bir uygulamadan"
+        "globalShortcuts": "Herhangi bir uygulamadan",
+        "enrichment": "MusicBrainz'den türler, tarihler, katkıda bulunanlar ve kapaklar"
       }
     },
     "desktopLyrics": {
@@ -3141,6 +3164,28 @@
       "assigned": "Masaüstünüzün atadığı: {{trigger}}",
       "waitingForDesktop": "Masaüstünde onaylayın…",
       "registering": "Kaydediliyor…"
+    },
+    "enrichment": {
+      "title": "Kitaplık zenginleştirme",
+      "subtitle": "Türleri, çıkış tarihlerini, katkıda bulunanları ve eksik kapakları MusicBrainz'den tamamlar. Yalnızca WaveFlow veritabanı değişir, dosyalarınız asla.",
+      "policy": "Kesin bir eşleşme kendiliğinden ve yalnızca eksik bir şey olan yerde uygulanır. Şüpheli albümler ve tüm sanatçılar incelemenizi bekler.",
+      "fieldsTitle": "Neler tamamlanır",
+      "run": "Şimdi çalıştır",
+      "stop": "Durdur",
+      "fields": {
+        "genres": "Türler",
+        "dates": "Çıkış tarihleri",
+        "covers": "Eksik kapaklar",
+        "credits": "Katkıda bulunanlar (yazarlar, icracılar, yapım)"
+      },
+      "stats": {
+        "applied": "Tamamlanan albümler",
+        "review": "İncelenecek",
+        "noMatch": "Eşleşme yok",
+        "artists": "Kabul edilen sanatçılar"
+      },
+      "review_one": "İncele ({{count}})",
+      "review_other": "İncele ({{count}})"
     }
   },
   "scanProgress": {
@@ -3507,6 +3552,7 @@
       "drop_import": "Kitaplığa kopyalama",
       "cache_move": "Önbellekler taşınıyor",
       "spectrogram": "Parça spektrumu",
+      "enrichment": "Kitaplık zenginleştirme",
       "release_radar": "Release Radar"
     }
   },
@@ -3704,6 +3750,40 @@
     "title": "Bu sayfa gösterilemedi",
     "description": "Bir hata yüklenmesini engelledi. Uygulamanın geri kalanı çalışmaya devam ediyor.",
     "retry": "Yeniden dene"
+  },
+  "enrichmentReview": {
+    "title": "Zenginleştirme incelemesi",
+    "tabs": {
+      "albums": "İncelenecek albümler",
+      "artists": "İncelenecek sanatçılar",
+      "applied": "Tamamlanan albümler",
+      "accepted": "Kabul edilen sanatçılar",
+      "rejected": "Reddedilenler"
+    },
+    "hints": {
+      "albums": "Belirsiz eşleşmeler: kabul etmeden önce yayını kontrol edin.",
+      "artists": "Her sanatçı onayınızı bekler; adın altındaki not adaşları ayırt eder.",
+      "applied": "Otomatik uygulandı. Geri al, yalnızca doldurulanı kaldırır.",
+      "accepted": "Bu bilgiler sanatçı sayfasında görünür.",
+      "rejected": "Siz yeniden denemedikçe bir daha önerilmez."
+    },
+    "empty": "Burada henüz bir şey yok.",
+    "yourAlbum": "Albümünüz",
+    "yourArtist": "Sanatçınız",
+    "release": "MusicBrainz yayını · {{score}}",
+    "noRelease": "Yayın yok",
+    "fromName": "Adla bulundu · {{score}}",
+    "accept": "Kabul et",
+    "reject": "Reddet",
+    "undo": "Geri al",
+    "retry": "Yeniden dene",
+    "openMusicBrainz": "MusicBrainz'de görüntüle",
+    "tracks_one": "{{count}} parça",
+    "tracks_other": "{{count}} parça",
+    "fromAlbums_one": "Tanınan {{count}} albümde yer alıyor",
+    "fromAlbums_other": "Tanınan {{count}} albümde yer alıyor",
+    "acceptEvidenced_one": "Yer alan sanatçıyı kabul et",
+    "acceptEvidenced_other": "Yer alan {{count}} sanatçıyı kabul et"
   },
   "releaseRadar": {
     "badge": "Yeni çıkanlar",
