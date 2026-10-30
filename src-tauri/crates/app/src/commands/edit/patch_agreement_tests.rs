@@ -13,6 +13,18 @@ fn full_edit() -> TrackEdit {
         genre: Some(" Jazz ; Trip Hop".into()),
         album_artist: Some("  The Album Artist ".into()),
         composer: Some(" A Composer".into()),
+        track_total: Some(12),
+        disc_total: Some(3),
+        musicbrainz: MusicBrainzEdit {
+            release_id: Some("9DCE399D-3EC7-34A4-97D0-B4BAC54E5F08".into()),
+            release_group_id: Some("1b022e01-4da6-387b-8658-8678046e4cef".into()),
+            recording_id: Some("5fb524f1-8cc8-4c04-a921-e34c0a911ea7".into()),
+            release_track_id: Some("e18075e4-fb74-3896-8967-d4b1e683702f".into()),
+            artist_id: Some(
+                "5b11f4ce-a62d-471e-81fc-a69a8278c7da; 6b11f4ce-a62d-471e-81fc-a69a8278c7da".into(),
+            ),
+            album_artist_id: Some("5b11f4ce-a62d-471e-81fc-a69a8278c7da".into()),
+        },
     }
 }
 
@@ -28,6 +40,16 @@ fn clearing_edit() -> TrackEdit {
         genre: Some("  ".into()),
         album_artist: Some(" ".into()),
         composer: Some(String::new()),
+        track_total: Some(0),
+        disc_total: Some(0),
+        musicbrainz: MusicBrainzEdit {
+            release_id: Some(String::new()),
+            release_group_id: Some(" ".into()),
+            recording_id: Some(String::new()),
+            release_track_id: Some(String::new()),
+            artist_id: Some(String::new()),
+            album_artist_id: Some(String::new()),
+        },
     }
 }
 
@@ -43,7 +65,21 @@ struct Fields {
     genres: Vec<String>,
     album_artist: Option<String>,
     composer: Option<String>,
+    track_total: Option<u32>,
+    disc_total: Option<u32>,
+    /// The six identifiers in [`musicbrainz_slots`] order, a list
+    /// `"; "`-joined.
+    musicbrainz: Vec<Option<String>>,
 }
+
+const ID_SLOTS: [IdSlot; 6] = [
+    RELEASE,
+    RELEASE_GROUP,
+    RECORDING,
+    RELEASE_TRACK,
+    ARTIST,
+    ALBUM_ARTIST,
+];
 
 fn through_lofty(edit: &TrackEdit) -> Fields {
     use lofty::prelude::*;
@@ -66,6 +102,18 @@ fn through_lofty(edit: &TrackEdit) -> Fields {
         composer: tag
             .get_string(lofty::tag::ItemKey::Composer)
             .map(str::to_string),
+        track_total: tag.track_total(),
+        disc_total: tag.disk_total(),
+        musicbrainz: ID_SLOTS
+            .iter()
+            .map(|slot| {
+                let values: Vec<&str> = tag
+                    .get_strings(slot.key)
+                    .flat_map(|v| v.split('\0'))
+                    .collect();
+                (!values.is_empty()).then(|| values.join("; "))
+            })
+            .collect(),
     }
 }
 
@@ -91,6 +139,12 @@ fn through_id3(edit: &TrackEdit) -> Fields {
             .get("TCOM")
             .and_then(|f| f.content().text())
             .map(str::to_string),
+        track_total: tag.total_tracks(),
+        disc_total: tag.total_discs(),
+        musicbrainz: ID_SLOTS
+            .iter()
+            .map(|slot| read_musicbrainz_id3(&tag, *slot))
+            .collect(),
     }
 }
 
@@ -107,6 +161,19 @@ fn both_appliers_agree_on_a_full_edit() {
     assert_eq!(written.genres, ["Jazz", "Trip Hop"]);
     assert_eq!(written.album_artist.as_deref(), Some("The Album Artist"));
     assert_eq!(written.composer.as_deref(), Some("A Composer"));
+    assert_eq!(
+        (written.track_total, written.disc_total),
+        (Some(12), Some(3))
+    );
+    // Lower-cased, and the list kept as two identifiers.
+    assert_eq!(
+        written.musicbrainz[0].as_deref(),
+        Some("9dce399d-3ec7-34a4-97d0-b4bac54e5f08")
+    );
+    assert_eq!(
+        written.musicbrainz[4].as_deref(),
+        Some("5b11f4ce-a62d-471e-81fc-a69a8278c7da; 6b11f4ce-a62d-471e-81fc-a69a8278c7da")
+    );
 }
 
 #[test]
@@ -123,6 +190,8 @@ fn both_appliers_agree_on_clearing_every_field() {
     assert!(cleared.genres.is_empty());
     assert_eq!(cleared.album_artist, None);
     assert_eq!(cleared.composer, None);
+    assert_eq!((cleared.track_total, cleared.disc_total), (None, None));
+    assert!(cleared.musicbrainz.iter().all(Option::is_none));
 }
 
 #[test]

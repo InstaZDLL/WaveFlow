@@ -88,6 +88,31 @@ pub struct TrackEdit {
     /// under [`COMPOSER_KEY`] — the row the scanner fills from the same
     /// frame. Empty clears it.
     pub composer: Option<String>,
+    /// The size of the track's disc (`TRCK` "4/12", `TRACKTOTAL`, `trkn`).
+    /// `0` clears it.
+    pub track_total: Option<i64>,
+    /// The number of discs (`TPOS` "1/2", `DISCTOTAL`, `disk`). `0` clears it.
+    pub disc_total: Option<i64>,
+    /// The MusicBrainz identifiers, each under its format's own key. Only
+    /// the tag workshop sends them; the properties dialog leaves them be.
+    pub musicbrainz: MusicBrainzEdit,
+}
+
+/// The six MusicBrainz identifiers a file can carry, as the tag workshop
+/// writes them. Same convention as every other field: `None` leaves the
+/// identifier alone, `Some("")` removes it. The two artist lists are
+/// `"; "`-joined, one identifier per credited artist.
+///
+/// Where each one goes is [`super::musicbrainz_slots`].
+#[derive(Debug, Clone, Deserialize, Default, PartialEq, Eq)]
+#[serde(default)]
+pub struct MusicBrainzEdit {
+    pub release_id: Option<String>,
+    pub release_group_id: Option<String>,
+    pub recording_id: Option<String>,
+    pub release_track_id: Option<String>,
+    pub artist_id: Option<String>,
+    pub album_artist_id: Option<String>,
 }
 
 /// Refuse an edit the file and the database could not agree on.
@@ -98,7 +123,7 @@ pub struct TrackEdit {
 /// different stories — the same divergence the date handling in
 /// [`apply_patch`] exists to avoid — so an unrepresentable year is
 /// refused before either is touched. The message is user-facing.
-fn validate_edit(edit: &TrackEdit) -> AppResult<()> {
+pub(crate) fn validate_edit(edit: &TrackEdit) -> AppResult<()> {
     if let Some(year) = edit.year {
         if year > i64::from(u16::MAX) {
             return Err(AppError::Other(format!(

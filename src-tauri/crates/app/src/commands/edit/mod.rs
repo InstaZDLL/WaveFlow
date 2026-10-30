@@ -33,13 +33,15 @@ mod cover;
 mod db_sync;
 mod dsf_tag;
 mod id3_tag;
+mod musicbrainz_ids;
 mod patch;
 mod update;
 
 pub use cover::*;
-use db_sync::*;
+pub(crate) use db_sync::*;
 pub(crate) use dsf_tag::*;
 use id3_tag::*;
+pub(crate) use musicbrainz_ids::*;
 pub(crate) use patch::*;
 pub use update::*;
 

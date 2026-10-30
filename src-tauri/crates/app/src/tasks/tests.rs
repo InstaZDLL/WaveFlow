@@ -55,12 +55,13 @@ fn slugs_are_stable_and_distinct() {
         TaskKind::CacheMove,
         TaskKind::Enrichment,
         TaskKind::ReleaseRadar,
+        TaskKind::TagWorkshop,
     ];
     let mut seen = std::collections::HashSet::new();
     for kind in all {
         assert!(seen.insert(kind.slug()), "duplicate slug {}", kind.slug());
     }
-    assert_eq!(seen.len(), 13);
+    assert_eq!(seen.len(), 14);
     assert_eq!(TaskKind::LibraryScan.slug(), "library_scan");
     assert_eq!(TaskKind::CatalogueMirror.slug(), "catalogue_mirror");
 }

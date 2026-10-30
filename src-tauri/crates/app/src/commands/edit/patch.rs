@@ -267,6 +267,25 @@ pub(super) fn apply_patch(tag: &mut lofty::tag::Tag, patch: &TagPatch<'_>) {
             tag.insert_text(ItemKey::Composer, c.trim().to_string());
         }
     }
+    // The totals ride on the same frames as their numbers in ID3v2
+    // (`TRCK` "4/12") and MP4 (`trkn`): lofty keeps the pair together
+    // when it merges the generic tag back, so a number edited alone
+    // keeps the total, and the reverse.
+    if let Some(n) = edit.track_total {
+        if n > 0 {
+            tag.set_track_total(n as u32);
+        } else {
+            tag.remove_track_total();
+        }
+    }
+    if let Some(n) = edit.disc_total {
+        if n > 0 {
+            tag.set_disk_total(n as u32);
+        } else {
+            tag.remove_disk_total();
+        }
+    }
+    apply_musicbrainz(tag, &edit.musicbrainz);
 }
 
 /// Write the rating into an ID3v2 tag as the frame it is.

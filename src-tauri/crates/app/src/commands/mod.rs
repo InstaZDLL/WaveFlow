@@ -69,6 +69,7 @@ pub mod spectrogram;
 pub mod stats;
 pub mod storage;
 pub mod tag_fetch;
+pub mod tag_workshop;
 pub mod tasks;
 pub mod track;
 pub mod track_tags;

@@ -25,6 +25,9 @@ use crate::error::{AppError, AppResult};
 use crate::state::AppState;
 
 pub use engine::{maybe_run, stop_for_profile_change};
+// The tag workshop matches with the engine's clients and fills a missing
+// cover the way the engine does.
+pub(crate) use engine::{clients, fetch_cover, ProfileDb};
 
 /// Emitted whenever a decision changes: the Settings card and the review
 /// window re-read their counts and lists.
