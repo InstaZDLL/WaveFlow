@@ -35,10 +35,23 @@ pub struct ResolvedLine<'a> {
     pub background: Option<Vec<Span>>,
 }
 
-/// Resolve every non-empty line. With `with_words`, each unit must have a
-/// start (the first one may borrow its line's) or the export is refused,
-/// naming the first unit that has none.
-pub fn resolve(doc: &Document, with_words: bool) -> Result<Vec<ResolvedLine<'_>>, ExportError> {
+/// Which lines are resolved down to their units.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Units {
+    /// None: every line is written with its own time only.
+    Lines,
+    /// Every line: a unit with no start refuses the export.
+    Words,
+    /// The lines whose units all have a start; the others are written
+    /// with their own time only. A half-synced document keeps the word
+    /// timing it has.
+    WhereTimed,
+}
+
+/// Resolve every non-empty line. With [`Units::Words`], each unit must
+/// have a start (the first one may borrow its line's) or the export is
+/// refused, naming the first unit that has none.
+pub fn resolve(doc: &Document, units: Units) -> Result<Vec<ResolvedLine<'_>>, ExportError> {
     let lines: Vec<(usize, &Line)> = doc
         .lines
         .iter()
@@ -65,9 +78,15 @@ pub fn resolve(doc: &Document, with_words: bool) -> Result<Vec<ResolvedLine<'_>>
             .max();
         let mut end = explicit_end.or(next_begin);
 
-        let words = if with_words {
-            let starts = word_starts(&line.words, Some(begin))
-                .ok_or_else(|| first_untimed(*index, &line.words))?;
+        let starts = match units {
+            Units::Lines => None,
+            Units::Words => Some(
+                word_starts(&line.words, Some(begin))
+                    .ok_or_else(|| first_untimed(*index, &line.words))?,
+            ),
+            Units::WhereTimed => word_starts(&line.words, Some(begin)),
+        };
+        let words = if let Some(starts) = starts {
             // A stated end before the last unit starts is stale (that
             // unit was stamped again after it): the line runs on as if
             // it stated none, or its last unit would never sound.
@@ -83,7 +102,7 @@ pub fn resolve(doc: &Document, with_words: bool) -> Result<Vec<ResolvedLine<'_>>
             None
         };
         let background = word_starts(&line.background, None)
-            .filter(|_| with_words && !line.background.is_empty())
+            .filter(|_| units != Units::Lines && !line.background.is_empty())
             .map(|starts| spans(&line.background, &starts, end));
         if let (Some(e), Some(bg)) = (end, &background) {
             end = Some(e.max(bg.last().map_or(e, |s| s.end)));
@@ -159,7 +178,7 @@ mod tests {
             ],
             ..Document::default()
         };
-        let r = resolve(&doc, true).unwrap();
+        let r = resolve(&doc, Units::Words).unwrap();
         let w = r[0].words.as_ref().unwrap();
         assert_eq!(
             w[0],
@@ -185,11 +204,11 @@ mod tests {
             lines: vec![line(vec![Word::timed("a", 1000, None)])],
             ..Document::default()
         };
-        let r = resolve(&doc, true).unwrap();
+        let r = resolve(&doc, Units::Words).unwrap();
         assert_eq!(r[0].words.as_ref().unwrap()[0].end, 1000 + DEFAULT_TAIL_MS);
         assert_eq!(r[0].end, Some(1000 + DEFAULT_TAIL_MS));
         // Line timing alone does not invent an end.
-        assert_eq!(resolve(&doc, false).unwrap()[0].end, None);
+        assert_eq!(resolve(&doc, Units::Lines).unwrap()[0].end, None);
     }
 
     #[test]
@@ -200,7 +219,7 @@ mod tests {
             lines: vec![l],
             ..Document::default()
         };
-        let r = resolve(&doc, true).unwrap();
+        let r = resolve(&doc, Units::Words).unwrap();
         assert_eq!(r[0].words.as_ref().unwrap()[0].begin, 1000);
     }
 
@@ -214,12 +233,12 @@ mod tests {
             ..Document::default()
         };
         assert_eq!(
-            resolve(&doc, true).unwrap_err(),
+            resolve(&doc, Units::Words).unwrap_err(),
             ExportError::UnsyncedWord { line: 1, word: 1 }
         );
         let doc = Document::from_plain_text("x");
         assert_eq!(
-            resolve(&doc, false).unwrap_err(),
+            resolve(&doc, Units::Lines).unwrap_err(),
             ExportError::UnsyncedLine { line: 0 }
         );
     }
@@ -236,7 +255,7 @@ mod tests {
             lines: vec![l, line(vec![Word::timed("c", 3000, None)])],
             ..Document::default()
         };
-        let r = resolve(&doc, true).unwrap();
+        let r = resolve(&doc, Units::Words).unwrap();
         assert_eq!(
             r[0].words.as_ref().unwrap()[1],
             Span {
@@ -248,6 +267,26 @@ mod tests {
     }
 
     #[test]
+    fn where_timed_keeps_the_words_of_the_lines_that_have_them() {
+        let mut half = line(vec![Word::new("c"), Word::new("d")]);
+        half.begin_ms = Some(3000);
+        let doc = Document {
+            lines: vec![
+                line(vec![
+                    Word::timed("a", 1000, None),
+                    Word::timed("b", 1500, None),
+                ]),
+                half,
+            ],
+            ..Document::default()
+        };
+        let r = resolve(&doc, Units::WhereTimed).unwrap();
+        assert_eq!(r[0].words.as_ref().map(Vec::len), Some(2));
+        assert!(r[1].words.is_none());
+        assert_eq!(r[1].begin, 3000);
+    }
+
+    #[test]
     fn backing_vocals_can_extend_the_line() {
         let mut l = line(vec![Word::timed("a", 1000, Some(1500))]);
         l.background = vec![Word::timed("(b)", 1400, Some(2200))];
@@ -255,7 +294,7 @@ mod tests {
             lines: vec![l],
             ..Document::default()
         };
-        let r = resolve(&doc, true).unwrap();
+        let r = resolve(&doc, Units::Words).unwrap();
         assert_eq!(r[0].end, Some(2200));
         assert_eq!(r[0].background.as_ref().unwrap()[0].end, 2200);
     }

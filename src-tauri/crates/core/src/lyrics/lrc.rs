@@ -11,7 +11,7 @@
 //!   translation, the way most LRC sites ship bilingual lyrics.
 
 use crate::lyrics::model::{Document, Line, Translation, Word};
-use crate::lyrics::resolve::resolve;
+use crate::lyrics::resolve::{resolve, Units};
 use crate::lyrics::time::{format_lrc_time, parse_lrc_time};
 use crate::lyrics::ExportError;
 
@@ -245,7 +245,12 @@ impl Default for WriteOptions {
 
 /// Write LRC, or Enhanced LRC with [`WriteOptions::enhanced`].
 pub fn write(doc: &Document, options: &WriteOptions) -> Result<String, ExportError> {
-    let lines = resolve(doc, options.enhanced)?;
+    let units = if options.enhanced {
+        Units::Words
+    } else {
+        Units::Lines
+    };
+    let lines = resolve(doc, units)?;
     let stamp = |ms: u64| format_lrc_time(ms, options.millis);
     let mut out = String::new();
 

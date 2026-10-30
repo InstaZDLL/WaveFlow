@@ -1,6 +1,6 @@
 use super::{NS_ITUNES, NS_TT, NS_TTM};
 use crate::lyrics::model::{Document, Translation, Word};
-use crate::lyrics::resolve::{resolve, ResolvedLine, Span};
+use crate::lyrics::resolve::{resolve, ResolvedLine, Span, Units};
 use crate::lyrics::time::format_ttml_time;
 use crate::lyrics::ExportError;
 
@@ -8,7 +8,8 @@ use crate::lyrics::ExportError;
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Timing {
-    /// Word timing when every unit is synced, line timing otherwise.
+    /// Word timing for each line whose units are all synced, line
+    /// timing for the others.
     #[default]
     Auto,
     Line,
@@ -28,12 +29,13 @@ pub struct WriteOptions {
 /// the head under those keys. A singer a line names but the document does
 /// not declare is declared as a person, so a player can lay a duet out.
 pub fn write(doc: &Document, options: &WriteOptions) -> Result<String, ExportError> {
-    let word_timed = match options.timing {
-        Timing::Auto => doc.is_word_synced(),
-        Timing::Word => true,
-        Timing::Line => false,
+    let units = match options.timing {
+        Timing::Auto => Units::WhereTimed,
+        Timing::Word => Units::Words,
+        Timing::Line => Units::Lines,
     };
-    let lines = resolve(doc, word_timed)?;
+    let lines = resolve(doc, units)?;
+    let word_timed = lines.iter().any(|l| l.words.is_some());
     let mut x = Xml::default();
 
     x.raw("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");

@@ -280,3 +280,21 @@ fn an_empty_line_does_not_turn_word_timing_into_line_timing() {
     }
     .is_word_synced());
 }
+
+#[test]
+fn a_half_word_synced_document_keeps_its_word_timing_in_ttml() {
+    let mut doc = lrc::parse(
+        "[00:01.00]<00:01.00>a <00:01.50>b <00:02.00>
+[00:03.00]c d
+",
+    );
+    assert!(!doc.is_word_synced());
+    doc.lines[1].end_ms = Some(4000);
+    let xml = ttml::write(&doc, &WriteOptions::default()).unwrap();
+    assert!(xml.contains("itunes:timing=\"Word\""));
+    let again = ttml::parse(&xml).unwrap();
+    assert!(again.lines[0].is_word_timed());
+    assert_eq!(again.lines[0].words[1].begin_ms, Some(1500));
+    assert_eq!(again.lines[1].begin_ms, Some(3000));
+    assert!(!again.lines[1].is_word_timed());
+}

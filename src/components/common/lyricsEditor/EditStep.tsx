@@ -474,6 +474,7 @@ function LineRow({
           <span className={LABEL}>{t("lyricsEditor.edit.singer")}</span>
           <select
             className={FIELD}
+            aria-label={t("lyricsEditor.edit.singer")}
             value={line.agent ?? ""}
             onChange={(e) => {
               const agent = e.target.value || undefined;
@@ -490,6 +491,7 @@ function LineRow({
           <span className={LABEL}>{t("lyricsEditor.edit.part")}</span>
           <input
             className={FIELD}
+            aria-label={t("lyricsEditor.edit.part")}
             value={line.part ?? ""}
             placeholder={t("lyricsEditor.edit.partPlaceholder")}
             onChange={(e) => {
@@ -542,6 +544,7 @@ function LineRow({
           <span className={LABEL}>{t("lyricsEditor.edit.romanization")}</span>
           <input
             className={FIELD}
+            aria-label={t("lyricsEditor.edit.romanization")}
             value={line.romanization ?? ""}
             onChange={(e) => {
               const romanization = e.target.value || undefined;
@@ -572,6 +575,7 @@ function BackgroundField({
     <input
       className={FIELD}
       value={draft}
+      aria-label={t("lyricsEditor.edit.background")}
       placeholder={t("lyricsEditor.edit.backgroundPlaceholder")}
       onChange={(e) => {
         setDraft(e.target.value);
