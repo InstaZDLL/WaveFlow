@@ -59,7 +59,8 @@ export type AssociatedLyricsKind = "translation" | "pronunciation";
  * `content` is a document in its own right — parse it with the same
  * `parseLrc` / TTML path as the primary one rather than assuming it
  * lines up positionally: a localized document may omit lines the
- * original has, so pairing them by index is wrong.
+ * original has, so pairing them by index is wrong. `attachAssociatedLyrics`
+ * in `lyricsLocalization.ts` pairs them by time.
  */
 export interface AssociatedLyrics {
   kind: AssociatedLyricsKind;
@@ -94,7 +95,9 @@ export interface LyricsPayload {
   /**
    * Translations and pronunciations cached with these lyrics. Absent
    * or empty for every source that yields a single document, which is
-   * all of them except a `waveflow:metadata/v2` plugin.
+   * all of them except a `waveflow:metadata/v2` or `/v3` plugin.
+   * `useTrackLyrics` lays them under the lines as `translation` and
+   * `romanization` (`attachAssociatedLyrics`).
    *
    * Cached and replaced as a unit with `content`, so these always come
    * from the same fetch — never a leftover companion from whichever
@@ -494,12 +497,17 @@ export interface LyricsLine {
    * whichever was asked for. A line-timed one romanizes the line and
    * stops there, so the text always reads even when nothing can be
    * highlighted inside it.
+   *
+   * A pronunciation a plugin sent beside the lyrics lands here too,
+   * paired by time (`attachAssociatedLyrics`).
    */
   romanization?: LyricsReading;
   /**
    * Line-level translation, when the document carries one. Apple gives
    * these as whole lines with no word split — which is also how they
-   * read on screen, one block under the line.
+   * read on screen, one block under the line. A translation a plugin
+   * sent beside the lyrics lands here too, paired by time
+   * (`attachAssociatedLyrics`).
    */
   translation?: string;
   /**
@@ -965,7 +973,7 @@ function ttmlWords(el: Element): LyricsWord[] | undefined {
  * disagree; case is ignored because neither a transliterator nor a
  * translator has reason to preserve it.
  */
-function saysTheSameThing(one: string, other: string): boolean {
+export function saysTheSameThing(one: string, other: string): boolean {
   const strip = (value: string) => value.replace(/\s+/g, "").toLowerCase();
   return strip(one) === strip(other);
 }
@@ -990,7 +998,7 @@ function saysTheSameThing(one: string, other: string): boolean {
  * only: the text still reads correctly under the line, so it is kept
  * unsplit rather than thrown away.
  */
-function usableRomanization(
+export function usableRomanization(
   romanized: LyricsReading | undefined,
   words: LyricsWord[] | undefined,
   text: string,

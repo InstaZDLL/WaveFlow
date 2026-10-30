@@ -4,6 +4,7 @@ import { usePlayer } from "./usePlayer";
 import { usePlayerPosition } from "./usePlayerPosition";
 import { useEstimatedKaraoke } from "./useEstimatedKaraoke";
 import { estimateLineWords } from "../lib/lyricsWordEstimate";
+import { attachAssociatedLyrics } from "../lib/lyricsLocalization";
 import {
   isFileTrack,
   isRadioTrack,
@@ -122,7 +123,7 @@ export interface TrackLyrics {
 }
 
 export function useTrackLyrics(): TrackLyrics {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { currentTrack, seek } = usePlayer();
   const positionMs = usePlayerPosition();
 
@@ -307,14 +308,19 @@ export function useTrackLyrics(): TrackLyrics {
   // Lines sharing a stamp light together (#821). After the untimed
   // check, which must see every line the file has: a file stamping all of
   // them `[00:00.00]` is plain text, not one group of a hundred lines.
-  const groupedLines = useMemo<LyricsLine[]>(
-    () =>
-      payload != null &&
-      (payload.format === "lrc" || payload.format === "enhanced_lrc")
+  //
+  // The translation and pronunciation a plugin sent beside the lyrics
+  // are laid under the lines they share a stamp with, where the
+  // localization toggle finds them as it finds a TTML document's own.
+  const uiLanguage = i18n.language;
+  const groupedLines = useMemo<LyricsLine[]>(() => {
+    if (payload == null) return rawLines;
+    const grouped =
+      payload.format === "lrc" || payload.format === "enhanced_lrc"
         ? splitCaretTranslations(groupSharedStamps(rawLines))
-        : rawLines,
-    [payload, rawLines],
-  );
+        : rawLines;
+    return attachAssociatedLyrics(grouped, payload.associated, uiLanguage);
+  }, [payload, rawLines, uiLanguage]);
   const parsedLines = untimed ? NO_LINES : groupedLines;
   const shownPayload = useMemo<LyricsPayload | null>(
     () =>
