@@ -18,6 +18,9 @@ export type ViewId =
   | "web-radio"
   // The native Release Radar: recent releases of the library's artists.
   | "release-radar"
+  // The tag workshop: many files' tags edited at once. Its source is on
+  // the history entry (see AppLayout `HistoryEntry`).
+  | "tag-workshop"
   // The plugin store and the installed plugins, a page of their own.
   | "extensions"
   // A playlist that lives on the bound remote server (RFC-005 sync_v2).

@@ -13,6 +13,7 @@ import {
   ExternalLink,
   Loader2,
   RotateCcw,
+  Tags,
   Undo2,
   Wand2,
   X,
@@ -35,6 +36,7 @@ import {
   type ArtistDecision,
 } from "../../lib/tauri/enrichment";
 import { openUrl } from "../../lib/tauri/external";
+import { openTagWorkshop } from "../../lib/tagWorkshop";
 import { useModalA11y } from "../../hooks/useModalA11y";
 import { AnimatedModalContent, AnimatedModalShell } from "./AnimatedModalShell";
 
@@ -312,6 +314,17 @@ export function EnrichmentReviewModal({
                     {row.kind === "album" ? (
                       <AlbumRow
                         decision={row.decision}
+                        onOpenWorkshop={() => {
+                          // The workshop is a view: the dialog gives way.
+                          onClose();
+                          openTagWorkshop({
+                            source: {
+                              kind: "album",
+                              album_id: row.decision.album_id,
+                            },
+                            releaseMbid: row.decision.release_mbid,
+                          });
+                        }}
                         busy={busy.has(`album:${row.decision.album_id}`)}
                         onAction={(action) =>
                           void run(`album:${row.decision.album_id}`, () =>
@@ -414,9 +427,14 @@ function AlbumRow({
   decision,
   busy,
   onAction,
+  onOpenWorkshop,
 }: {
   decision: AlbumDecision;
   busy: boolean;
+  /** Open the album in the tag workshop, matched against this release:
+   *  where a doubtful match is checked track by track and, once right,
+   *  written into the files. */
+  onOpenWorkshop: () => void;
   onAction: (action: (albumId: number) => Promise<unknown>) => void;
 }) {
   const { t } = useTranslation();
@@ -479,6 +497,13 @@ function AlbumRow({
       <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
         <MusicBrainzLink entity="release" mbid={decision.release_mbid} />
         <div className="flex gap-1.5">
+          <SmallButton
+            tone="neutral"
+            disabled={busy}
+            onClick={onOpenWorkshop}
+            icon={<Tags size={12} aria-hidden="true" />}
+            label={t("enrichmentReview.openWorkshop")}
+          />
           {decision.status === "review" && (
             <>
               <SmallButton

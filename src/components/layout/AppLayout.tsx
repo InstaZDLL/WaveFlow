@@ -41,6 +41,10 @@ import { OnboardingModal } from "../common/OnboardingModal";
 import { ViewSuspenseFallback } from "../common/ViewSuspenseFallback";
 import { ViewErrorBoundary } from "../common/ViewErrorBoundary";
 import { retryableLazy } from "../../lib/preloadable";
+import {
+  OPEN_TAG_WORKSHOP_EVENT,
+  type TagWorkshopRequest,
+} from "../../lib/tagWorkshop";
 import { PageScrollContext } from "../../contexts/PageScrollContext";
 
 const HomeView = retryableLazy(() =>
@@ -71,6 +75,9 @@ const ExtensionsView = retryableLazy(() =>
 );
 const ReleaseRadarView = retryableLazy(() =>
   import("../views/ReleaseRadarView").then((module) => module.ReleaseRadarView),
+);
+const TagWorkshopView = retryableLazy(() =>
+  import("../views/TagWorkshopView").then((module) => module.TagWorkshopView),
 );
 const PluginUIView = retryableLazy(() =>
   import("../views/PluginUIView").then((module) => module.PluginUIView),
@@ -128,6 +135,10 @@ type HistoryEntry =
   | { id: "settings"; settingsCategory?: SettingsCategory }
   | { id: "web-radio" }
   | { id: "release-radar" }
+  // The files it opened travel on the entry, so Back returns to the same
+  // table; `opened` tells two openings of the same source apart, each a
+  // fresh workshop rather than the last one's leftovers.
+  | { id: "tag-workshop"; request?: TagWorkshopRequest; opened?: number }
   | { id: "extensions" }
   | { id: "about" }
   | { id: "feedback" }
@@ -402,6 +413,13 @@ export function AppLayout() {
     currentEntry.id === "wrapped" ? (currentEntry.year ?? null) : null;
   const activePluginId =
     currentEntry.id === "plugin-ui" ? currentEntry.pluginId : null;
+  const activeWorkshop =
+    currentEntry.id === "tag-workshop"
+      ? {
+          request: currentEntry.request ?? null,
+          opened: currentEntry.opened ?? 0,
+        }
+      : null;
   const activePluginPath =
     currentEntry.id === "plugin-ui" ? (currentEntry.initialPath ?? "/") : "/";
   const activePluginIcon =
@@ -428,6 +446,19 @@ export function AppLayout() {
       return { history: next, index };
     });
   }, []);
+
+  // The tag workshop opens from menus and dialogs far from any navigation
+  // callback (a track's menu, a folder's, the enrichment review): they
+  // dispatch `OPEN_TAG_WORKSHOP_EVENT` and the layout pushes the view.
+  useEffect(() => {
+    const onOpen = (event: Event) => {
+      const request = (event as CustomEvent<TagWorkshopRequest>).detail;
+      if (!request?.source) return;
+      pushEntry({ id: "tag-workshop", request, opened: Date.now() });
+    };
+    window.addEventListener(OPEN_TAG_WORKSHOP_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_TAG_WORKSHOP_EVENT, onOpen);
+  }, [pushEntry]);
 
   // Wrapper used by views that only need a plain id (Home, Settings, …).
   // The cast is safe because every `ViewId` matches a HistoryEntry whose
@@ -614,6 +645,13 @@ export function AppLayout() {
             onNavigateToArtist={navigateToArtist}
             onNavigateToPlaylist={navigateToPlaylist}
             onNavigateToExtensions={() => setActiveView("extensions")}
+          />
+        );
+      case "tag-workshop":
+        return (
+          <TagWorkshopView
+            key={activeWorkshop?.opened ?? 0}
+            request={activeWorkshop?.request ?? null}
           />
         );
       case "plugin-ui":
