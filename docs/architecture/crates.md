@@ -18,6 +18,7 @@ src-tauri/
     │       ├── error.rs               (CoreError + CoreResult)
     │       ├── handoff.rs             (the playback another player hands over: `--handoff <file>`)
     │       ├── enrichment/            (MusicBrainz matching, gap filling, decisions; `musicbrainz` + `sqlite`)
+    │       ├── lyrics.rs + lyrics/    (lyrics document model, LRC / Enhanced LRC / TTML readers + writers)
     │       ├── metadata/              (Deezer / Last.fm / LRCLIB / MusicBrainz / Cover Art Archive HTTP clients)
     │       ├── playback/              (track decoding, resampler, channel conversion, ReplayGain; `playback` feature)
     │       ├── repository/            (storage traits + sqlite implementations)
@@ -70,6 +71,7 @@ Anything that could run inside an axum handler in the future `waveflow-server` (
 - **Audio format conversion** — DSD parser + decimating FIR (`audio_format/dsd/*`), used by playback, analysis and the scanner.
 - **Decoding for playback** (`playback`, behind the feature of the same name) — `ActiveStream` (open a track, decode it packet by packet to interleaved `f32`, seek, DSD to PCM and DoP, the end-of-stream tolerance of #898, the network pre-load), the rubato resampler, channel conversion with the Lo/Ro downmix, and `TrackGain` / ReplayGain. Shared so a second player built on WaveFlow decodes exactly as the desktop app does. The real-time half stays in `app/src/audio/`: the decoder thread and its `LoadIntent` commands, the crossfade mix, the cpal and exclusive outputs, the EQ and the events.
 - **The handoff contract** (`handoff.rs`) — what another player built on WaveFlow (QuickPlay) writes to hand its playback over, and what the desktop app reads: the queue, the track, the position, playing or paused, versioned. Here so the sender and the receiver cannot drift apart. The app's half, waiting for the player and taking over, is in `launch_args.rs` and `external_playback.rs`.
+- **Lyrics documents** (`lyrics`) — one model for a lyrics document (singers, sections, word and syllable timing, backing vocals, translations, romanization), with readers and writers for plain text, LRC, Enhanced LRC and TTML, and the format sniffer the app reads stored lyrics with. The in-app lyrics editor edits this model and writes it back; what the *renderer* will follow in a stored document is judged app-side, against the frontend parser's rules ([integrations.md](../features/integrations.md#in-app-lyrics-editor)). `waveflow-syncedlyrics` keeps a sniffer of its own: it depends on nothing in the workspace.
 - **Artwork pipeline** — the shared blake3-keyed metadata cache + the SIMD thumbnail variants (`artwork/{metadata,thumbnails}.rs`).
 - **Error type** — `CoreError`. The desktop's `AppError` wraps it via `#[from] CoreError` so `?` flattens automatically across the boundary.
 
