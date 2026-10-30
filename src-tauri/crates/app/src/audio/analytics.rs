@@ -75,6 +75,11 @@ pub enum AnalyticsMsg {
     /// `peek_next` and a `SetNextTrack` reply so the decoder can
     /// open the second decoder before the fade window starts.
     PrefetchNext,
+    /// Sent by the decoder when a library track starts playing with
+    /// AutoMix on: work out from its beats when to ask for the next track
+    /// (`SharedPlayback::automix`'s cue), early enough for a fade placed
+    /// on its last beats.
+    AutoMixCue { track_id: i64, duration_ms: u64 },
     /// A finite non-library stream reached EOF (`track_id < 0`). No
     /// `play_event` — there is no library row — but if a remote play
     /// queue is active this drives its auto-advance. Radio is infinite
@@ -412,6 +417,18 @@ async fn handle_message(
                     .pending_next_crossfade_ms
                     .store(override_ms, Ordering::Release);
 
+                // AutoMix plan: the fade placed on both tracks' beats,
+                // left for the decoder keyed on this pair. No plan (the
+                // switch off, an album playing through, a fallback) clears
+                // any older one, and the decoder makes the fade it makes
+                // without AutoMix.
+                let mut automix_fade = None;
+                let cap_ms = u64::from(shared.crossfade_ms.load(Ordering::Relaxed));
+                if shared.automix.is_enabled() && current_id > 0 && !same_album && cap_ms > 0 {
+                    automix_fade = automix_plan(&pool, current_id, &track, cap_ms).await;
+                }
+                shared.automix.set_plan(current_id, track.id, automix_fade);
+
                 let _ = cmd_tx.send(AudioCmd::SetNextTrack {
                     path: track.as_path(),
                     track_id: track.id,
@@ -423,6 +440,31 @@ async fn handle_message(
                     source_id: None,
                     replay_gain,
                 });
+            }
+        }
+        AnalyticsMsg::AutoMixCue {
+            track_id,
+            duration_ms,
+        } => {
+            let engine = app.state::<Arc<AudioEngine>>();
+            let shared = engine.shared();
+            let cap_ms = u64::from(shared.crossfade_ms.load(Ordering::Relaxed));
+            let beats = stored_beats(&pool, *track_id).await;
+            let earliest = beats.as_deref().and_then(|beats| {
+                waveflow_core::automix::earliest_fade_start_ms(
+                    waveflow_core::automix::TrackBeats {
+                        beats,
+                        duration_ms: *duration_ms,
+                    },
+                    cap_ms,
+                )
+            });
+            // No cue for a track without a usable grid: the next track is
+            // asked for at the usual moment, and the plan will fall back.
+            if let Some(at) = earliest {
+                shared
+                    .automix
+                    .set_cue(*track_id, at.saturating_sub(AUTOMIX_PREFETCH_LEAD_MS));
             }
         }
         AnalyticsMsg::CrossfadeStarted {
@@ -458,6 +500,82 @@ async fn handle_message(
     }
 
     Ok(())
+}
+
+/// How long before the earliest start of an AutoMix fade the next track
+/// is asked for: time to open it and plan the transition, and the half
+/// second the decoder enters the mix ahead of its start
+/// ([`super::crossfade::AUTOMIX_ENTER_US`]).
+const AUTOMIX_PREFETCH_LEAD_MS: u64 = 2_000;
+
+/// A track's beat list as the analysis stored it, in seconds. `None` when
+/// it has none (not analysed, analysed before beats were stored, or no
+/// tempo) or the row cannot be read.
+async fn stored_beats(pool: &sqlx::SqlitePool, track_id: i64) -> Option<Vec<f64>> {
+    let bytes: Option<Vec<u8>> =
+        sqlx::query_scalar("SELECT beats FROM track_analysis WHERE track_id = ?")
+            .bind(track_id)
+            .fetch_optional(pool)
+            .await
+            .ok()
+            .flatten()
+            .flatten();
+    waveflow_core::analysis::beats::decode(&bytes?)
+}
+
+/// The AutoMix fade from `current_id` into `next`, as the decoder takes
+/// it: `(fade_start_us, fade_end_us)` in the outgoing track's time.
+/// `None` when either track has no grid or the plan falls back, which is
+/// logged with its reason.
+async fn automix_plan(
+    pool: &sqlx::SqlitePool,
+    current_id: i64,
+    next: &QueueTrack,
+    cap_ms: u64,
+) -> Option<(u64, u64)> {
+    use waveflow_core::automix::{plan, TrackBeats};
+    let current_ms: Option<i64> = sqlx::query_scalar("SELECT duration_ms FROM track WHERE id = ?")
+        .bind(current_id)
+        .fetch_optional(pool)
+        .await
+        .ok()
+        .flatten();
+    let out_beats = stored_beats(pool, current_id).await.unwrap_or_default();
+    let in_beats = stored_beats(pool, next.id).await.unwrap_or_default();
+    let result = plan(
+        TrackBeats {
+            beats: &out_beats,
+            duration_ms: current_ms.unwrap_or(0).max(0) as u64,
+        },
+        TrackBeats {
+            beats: &in_beats,
+            duration_ms: next.duration_ms.max(0) as u64,
+        },
+        cap_ms,
+    );
+    match result {
+        Ok(p) => {
+            tracing::info!(
+                from = current_id,
+                to = next.id,
+                beats = p.beats,
+                fold = p.fold,
+                ratio = p.ratio,
+                drift_ms = p.max_drift_ms,
+                "automix: transition planned"
+            );
+            Some((p.fade_start_us, p.fade_end_us))
+        }
+        Err(reason) => {
+            tracing::info!(
+                from = current_id,
+                to = next.id,
+                ?reason,
+                "automix: falling back"
+            );
+            None
+        }
+    }
 }
 
 /// Insert a row into `play_event`. Best-effort: errors are logged

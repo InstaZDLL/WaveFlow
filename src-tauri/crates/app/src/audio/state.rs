@@ -337,6 +337,9 @@ pub struct SharedPlayback {
     /// Cleared by the decoder the instant the mix actually starts so
     /// it can't bleed into the transition after.
     pub pending_next_crossfade_ms: AtomicU32,
+    /// AutoMix: the switch, and the cue and plan the analytics task
+    /// leaves for the decoder. See [`super::automix`].
+    pub automix: super::automix::AutoMixShared,
     /// Playback speed multiplier, stored as `f32` bits. `1.0` is
     /// normal; `<1.0` is slower / lower-pitched, `>1.0` is faster /
     /// higher-pitched. The decoder achieves this by feeding rubato a
@@ -425,6 +428,7 @@ impl SharedPlayback {
             pending_next_same_album: AtomicBool::new(false),
             dynamic_crossfade_enabled: AtomicBool::new(false),
             pending_next_crossfade_ms: AtomicU32::new(0),
+            automix: super::automix::AutoMixShared::new(),
             playback_speed_bits: AtomicU32::new(1.0_f32.to_bits()),
             speed_dirty: AtomicBool::new(false),
             dsd_taps: AtomicU32::new(256),

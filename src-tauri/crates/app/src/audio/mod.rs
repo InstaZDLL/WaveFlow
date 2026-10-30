@@ -17,6 +17,8 @@
 #[cfg(target_os = "linux")]
 pub mod alsa_exclusive;
 pub mod analytics;
+// AutoMix's switch and the hints the analytics task leaves the decoder.
+pub mod automix;
 // What a device accepts, asked one device at a time and never during
 // enumeration (#593).
 pub mod capabilities;

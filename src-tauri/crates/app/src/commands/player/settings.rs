@@ -377,7 +377,7 @@ pub(crate) async fn restore_profile_audio_settings(pool: &sqlx::SqlitePool, engi
         }
         engine.shared().eq.set_all_bands_db(&bands);
     }
-    // Both crossfade refinements default OFF.
+    // The crossfade refinements default OFF.
     let smart_crossfade = read_bool_setting(pool, "audio.smart_crossfade", false).await;
     engine
         .shared()
@@ -388,6 +388,13 @@ pub(crate) async fn restore_profile_audio_settings(pool: &sqlx::SqlitePool, engi
         .shared()
         .dynamic_crossfade_enabled
         .store(dynamic_crossfade, std::sync::atomic::Ordering::Release);
+    // AutoMix, default OFF like the two above.
+    let automix = read_bool_setting(pool, "audio.automix", false).await;
+    engine
+        .shared()
+        .automix
+        .enabled
+        .store(automix, std::sync::atomic::Ordering::Release);
     // Visualizer toggle. Default ON so the spectrum is found without a
     // trip to Settings. The analysis runs on the decoder thread, up to ~30
     // FFTs and spectrum events a second (`EMIT_INTERVAL` in

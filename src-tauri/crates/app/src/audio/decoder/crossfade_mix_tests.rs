@@ -1,4 +1,4 @@
-use super::track::crossfade_mix_frames;
+use super::super::crossfade::crossfade_mix_frames;
 
 #[test]
 fn both_playing_mixes_what_both_hold() {
