@@ -3979,6 +3979,8 @@
     "batchLabel": "Naam",
     "coverFill": "De hoes van het Cover Art Archive toevoegen aan albums zonder hoes",
     "write_one": "{{count}} bestand schrijven",
-    "write_other": "{{count}} bestanden schrijven"
+    "write_other": "{{count}} bestanden schrijven",
+    "otherProfile": "Deze werkplaats is in een ander profiel geopend. Open hem opnieuw vanuit dit profiel.",
+    "truncated": "Alleen de eerste {{shown}} van {{total}} bestanden zijn geopend: beperk de selectie om de rest te bewerken."
   }
 }

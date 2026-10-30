@@ -3977,6 +3977,8 @@
     "batchLabel": "名前",
     "coverFill": "ジャケットのないアルバムに Cover Art Archive のジャケットを追加",
     "write_one": "{{count}} ファイルを書き込む",
-    "write_other": "{{count}} ファイルを書き込む"
+    "write_other": "{{count}} ファイルを書き込む",
+    "otherProfile": "この工房は別のプロフィールで開かれました。このプロフィールから開き直してください。",
+    "truncated": "{{total}} ファイルのうち最初の {{shown}} 件だけを開いています。残りを編集するには選択を絞ってください。"
   }
 }

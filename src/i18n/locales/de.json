@@ -3979,6 +3979,8 @@
     "batchLabel": "Name",
     "coverFill": "Alben ohne Cover das Cover aus dem Cover Art Archive geben",
     "write_one": "{{count}} Datei schreiben",
-    "write_other": "{{count}} Dateien schreiben"
+    "write_other": "{{count}} Dateien schreiben",
+    "otherProfile": "Diese Werkstatt wurde in einem anderen Profil geöffnet. Öffne sie aus diesem Profil neu.",
+    "truncated": "Nur die ersten {{shown}} von {{total}} Dateien sind geöffnet: grenze die Auswahl ein, um die übrigen zu bearbeiten."
   }
 }

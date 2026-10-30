@@ -453,12 +453,18 @@ export function AppLayout() {
   useEffect(() => {
     const onOpen = (event: Event) => {
       const request = (event as CustomEvent<TagWorkshopRequest>).detail;
-      if (!request?.source) return;
-      pushEntry({ id: "tag-workshop", request, opened: Date.now() });
+      if (!request?.source || !activeProfile) return;
+      // The ids in the source are this profile's: the view refuses to act
+      // on them once another profile is active.
+      pushEntry({
+        id: "tag-workshop",
+        request: { ...request, profileId: activeProfile.id },
+        opened: Date.now(),
+      });
     };
     window.addEventListener(OPEN_TAG_WORKSHOP_EVENT, onOpen);
     return () => window.removeEventListener(OPEN_TAG_WORKSHOP_EVENT, onOpen);
-  }, [pushEntry]);
+  }, [pushEntry, activeProfile]);
 
   // Wrapper used by views that only need a plain id (Home, Settings, …).
   // The cast is safe because every `ViewId` matches a HistoryEntry whose
@@ -650,7 +656,7 @@ export function AppLayout() {
       case "tag-workshop":
         return (
           <TagWorkshopView
-            key={activeWorkshop?.opened ?? 0}
+            key={`${activeWorkshop?.opened ?? 0}-${activeProfile?.id ?? 0}`}
             request={activeWorkshop?.request ?? null}
           />
         );

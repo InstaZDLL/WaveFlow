@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 
 import { usePageVirtualizer } from "../../hooks/usePageVirtualizer";
+import { useProfile } from "../../hooks/useProfile";
 import { useTasks } from "../../hooks/useTasks";
 import { cancelTask } from "../../lib/tauri/tasks";
 import { openUrl } from "../../lib/tauri/external";
@@ -150,47 +151,59 @@ export function TagWorkshopView({
   const tasks = useTasks();
   const workshopTask = tasks.find((task) => task.kind === "tag_workshop");
 
-  const source = request?.source ?? null;
+  // The source's ids are the profile's the workshop was opened in. Under
+  // another one the view acts on nothing (and the backend would refuse).
+  const { activeProfile } = useProfile();
+  const profileId = request?.profileId ?? null;
+  const otherProfile = profileId != null && activeProfile?.id !== profileId;
+  const pid = profileId ?? 0;
+  const source =
+    otherProfile || profileId == null ? null : (request?.source ?? null);
+  const [total, setTotal] = useState(0);
 
   const reload = useCallback(async () => {
     if (!source) return;
     setLoading(true);
     setError(null);
     try {
-      setRows(await openWorkshop(source));
+      const opened = await openWorkshop(pid, source);
+      setRows(opened.rows);
+      setTotal(opened.total);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
     }
-  }, [source]);
+  }, [source, pid]);
 
   const reloadBatches = useCallback(async () => {
+    if (!source) return;
     try {
-      setBatches(await listWorkshopBatches());
+      setBatches(await listWorkshopBatches(pid));
     } catch (err) {
       console.warn("[TagWorkshop] batches failed", err);
     }
-  }, []);
+  }, [source, pid]);
 
   // The first read, with its state set from the answer only: `reload` is
   // what a write or an undo calls afterwards.
   useEffect(() => {
     let cancelled = false;
-    if (source) {
-      openWorkshop(source)
-        .then((next) => {
-          if (!cancelled) setRows(next);
-        })
-        .catch((err: unknown) => {
-          if (!cancelled)
-            setError(err instanceof Error ? err.message : String(err));
-        })
-        .finally(() => {
-          if (!cancelled) setLoading(false);
-        });
-    }
-    listWorkshopBatches()
+    if (!source) return;
+    openWorkshop(pid, source)
+      .then((opened) => {
+        if (cancelled) return;
+        setRows(opened.rows);
+        setTotal(opened.total);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled)
+          setError(err instanceof Error ? err.message : String(err));
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    listWorkshopBatches(pid)
       .then((list) => {
         if (!cancelled) setBatches(list);
       })
@@ -200,7 +213,7 @@ export function TagWorkshopView({
     return () => {
       cancelled = true;
     };
-  }, [source]);
+  }, [source, pid]);
 
   useEffect(() => {
     let off: (() => void) | undefined;
@@ -307,7 +320,7 @@ export function TagWorkshopView({
     setPreviewing(true);
     setError(null);
     try {
-      setPreview(await previewWorkshop(changes));
+      setPreview(await previewWorkshop(pid, changes));
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -339,7 +352,13 @@ export function TagWorkshopView({
     setPreview(null);
     setUndoReport(null);
     try {
-      const result = await applyWorkshop(toWrite, label, releaseMbid, cover);
+      const result = await applyWorkshop(
+        pid,
+        toWrite,
+        label,
+        releaseMbid,
+        cover,
+      );
       setReport(result);
       // What was written is the files' now, and so is what the backend
       // found already so: those edits are done. A refused file keeps its
@@ -371,7 +390,7 @@ export function TagWorkshopView({
     // The last write's report is about a batch this may be undoing.
     setReport(null);
     try {
-      setUndoReport(await undoWorkshopBatch(batchId));
+      setUndoReport(await undoWorkshopBatch(pid, batchId));
       await reload();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -411,7 +430,9 @@ export function TagWorkshopView({
       <EmptyState
         icon={<Tags size={28} />}
         title={t("tagWorkshop.title")}
-        description={t("tagWorkshop.emptyHint")}
+        description={t(
+          otherProfile ? "tagWorkshop.otherProfile" : "tagWorkshop.emptyHint",
+        )}
       />
     );
   }
@@ -434,6 +455,14 @@ export function TagWorkshopView({
             {selected.size > 0 &&
               ` · ${t("tagWorkshop.selectedCount", { count: selected.size })}`}
           </p>
+          {total > rows.length && (
+            <p
+              role="alert"
+              className="text-xs text-amber-600 dark:text-amber-400 mt-1"
+            >
+              {t("tagWorkshop.truncated", { shown: rows.length, total })}
+            </p>
+          )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {workshopTask && (
@@ -832,7 +861,12 @@ function ReplaceTool({
   onApply: (
     fields: readonly WorkshopField[],
     pattern: RegExp,
-    spec: { find: string; replace: string; regex: boolean; caseSensitive: boolean },
+    spec: {
+      find: string;
+      replace: string;
+      regex: boolean;
+      caseSensitive: boolean;
+    },
   ) => void;
 }) {
   const { t } = useTranslation();
@@ -902,7 +936,10 @@ function ReplaceTool({
           {t("tagWorkshop.caseSensitive")}
         </label>
         {compileError && (
-          <span role="alert" className="text-xs text-rose-600 dark:text-rose-400">
+          <span
+            role="alert"
+            className="text-xs text-rose-600 dark:text-rose-400"
+          >
             {t("tagWorkshop.badRegex", { error: compileError })}
           </span>
         )}
@@ -1235,7 +1272,11 @@ function ProblemList({
   return (
     <ul className="space-y-0.5 text-xs text-rose-600 dark:text-rose-400">
       {problems.slice(0, 50).map((p, i) => (
-        <li key={`${p.file_path}-${i}`} className="truncate" title={p.file_path}>
+        <li
+          key={`${p.file_path}-${i}`}
+          className="truncate"
+          title={p.file_path}
+        >
           {basename(p.file_path) || "—"} —{" "}
           {known.includes(p.reason)
             ? t(`tagWorkshop.problems.${p.reason}`)
@@ -1243,7 +1284,9 @@ function ProblemList({
         </li>
       ))}
       {problems.length > 50 && (
-        <li>{t("tagWorkshop.moreProblems", { count: problems.length - 50 })}</li>
+        <li>
+          {t("tagWorkshop.moreProblems", { count: problems.length - 50 })}
+        </li>
       )}
     </ul>
   );

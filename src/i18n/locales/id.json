@@ -3977,6 +3977,8 @@
     "batchLabel": "Nama",
     "coverFill": "Tambahkan sampul dari Cover Art Archive ke album yang belum punya",
     "write_one": "Tulis {{count}} berkas",
-    "write_other": "Tulis {{count}} berkas"
+    "write_other": "Tulis {{count}} berkas",
+    "otherProfile": "Bengkel ini dibuka di profil lain. Buka lagi dari profil ini.",
+    "truncated": "Hanya {{shown}} dari {{total}} berkas pertama yang terbuka: persempit pilihan untuk mengedit sisanya."
   }
 }

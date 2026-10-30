@@ -41,7 +41,9 @@ pub(crate) async fn rehash_track_file(
         .bind(track_id)
         .execute(pool)
         .await
-        .map_err(|e| AppError::Other(format!("rehash update: {e}")))?;
+        // As the database error it is, so a caller that retries a busy
+        // database can tell (the tag workshop does).
+        .map_err(AppError::Database)?;
     // The whole-file digest cached for the server is about these bytes, and
     // these bytes have just changed. Dropping it here rather than relying on
     // `(size, mtime)` to notice covers the one case that pair cannot: a

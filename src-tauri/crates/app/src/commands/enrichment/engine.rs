@@ -260,7 +260,7 @@ where
 }
 
 /// A write a command makes for the user: see [`write_with`].
-pub(super) async fn write_now<T, F>(pool: &SqlitePool, write: F) -> Result<T, CoreError>
+pub(crate) async fn write_now<T, F>(pool: &SqlitePool, write: F) -> Result<T, CoreError>
 where
     F: for<'c> FnMut(
         &'c mut sqlx::SqliteConnection,

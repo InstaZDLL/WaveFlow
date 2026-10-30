@@ -58,8 +58,7 @@ export const IDENTIFIER_FIELDS: readonly WorkshopField[] = [
 ];
 
 export type WorkshopSource =
-  | { kind: "tracks"; track_ids: number[] }
-  | { kind: "album"; album_id: number };
+  { kind: "tracks"; track_ids: number[] } | { kind: "album"; album_id: number };
 
 export interface WorkshopRow {
   track_id: number;
@@ -69,6 +68,13 @@ export interface WorkshopRow {
   values: WorkshopValues;
   /** Unreadable, or a container no tag can be written into. */
   error: string | null;
+}
+
+/** What the workshop opened: `total` is more than `rows.length` when the
+ *  source was cut to the backend's limit. */
+export interface WorkshopOpened {
+  rows: WorkshopRow[];
+  total: number;
 }
 
 export interface TrackChange {
@@ -168,23 +174,32 @@ export interface AlbumProposal {
   unmatched: number[];
 }
 
-export function openWorkshop(source: WorkshopSource): Promise<WorkshopRow[]> {
-  return invoke<WorkshopRow[]>("tag_workshop_open", { source });
+// Every call but the match names the profile the workshop was opened in:
+// the backend refuses it once another profile is active.
+
+export function openWorkshop(
+  profileId: number,
+  source: WorkshopSource,
+): Promise<WorkshopOpened> {
+  return invoke<WorkshopOpened>("tag_workshop_open", { profileId, source });
 }
 
 export function previewWorkshop(
+  profileId: number,
   changes: TrackChange[],
 ): Promise<FilePreview[]> {
-  return invoke<FilePreview[]>("tag_workshop_preview", { changes });
+  return invoke<FilePreview[]>("tag_workshop_preview", { profileId, changes });
 }
 
 export function applyWorkshop(
+  profileId: number,
   changes: TrackChange[],
   label: string,
   releaseMbid: string | null,
   cover: CoverRequest | null,
 ): Promise<ApplyReport> {
   return invoke<ApplyReport>("tag_workshop_apply", {
+    profileId,
     changes,
     label,
     releaseMbid,
@@ -192,12 +207,17 @@ export function applyWorkshop(
   });
 }
 
-export function listWorkshopBatches(): Promise<BatchSummary[]> {
-  return invoke<BatchSummary[]>("tag_workshop_batches");
+export function listWorkshopBatches(
+  profileId: number,
+): Promise<BatchSummary[]> {
+  return invoke<BatchSummary[]>("tag_workshop_batches", { profileId });
 }
 
-export function undoWorkshopBatch(batchId: number): Promise<UndoReport> {
-  return invoke<UndoReport>("tag_workshop_undo", { batchId });
+export function undoWorkshopBatch(
+  profileId: number,
+  batchId: number,
+): Promise<UndoReport> {
+  return invoke<UndoReport>("tag_workshop_undo", { profileId, batchId });
 }
 
 export function matchWorkshop(

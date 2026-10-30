@@ -4111,6 +4111,8 @@
     "coverFill": "Añadir la portada de Cover Art Archive a los álbumes que no tienen",
     "write_one": "Escribir {{count}} archivo",
     "write_many": "Escribir {{count}} archivos",
-    "write_other": "Escribir {{count}} archivos"
+    "write_other": "Escribir {{count}} archivos",
+    "otherProfile": "Este taller se abrió en otro perfil. Vuelve a abrirlo desde este.",
+    "truncated": "Solo están abiertos los primeros {{shown}} de {{total}} archivos: acota la selección para editar el resto."
   }
 }

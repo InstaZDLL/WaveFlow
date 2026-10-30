@@ -3979,6 +3979,8 @@
     "batchLabel": "Name",
     "coverFill": "Add the Cover Art Archive cover to albums that have none",
     "write_one": "Write {{count}} file",
-    "write_other": "Write {{count}} files"
+    "write_other": "Write {{count}} files",
+    "otherProfile": "This workshop was opened in another profile. Open it again from this one.",
+    "truncated": "Only the first {{shown}} of {{total}} files are open: narrow the selection to edit the rest."
   }
 }

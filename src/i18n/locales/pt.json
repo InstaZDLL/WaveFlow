@@ -4112,6 +4112,8 @@
     "coverFill": "Adicionar a capa da Cover Art Archive aos álbuns que não têm",
     "write_one": "Escrever {{count}} ficheiro",
     "write_many": "Escrever {{count}} ficheiros",
-    "write_other": "Escrever {{count}} ficheiros"
+    "write_other": "Escrever {{count}} ficheiros",
+    "otherProfile": "Esta oficina foi aberta noutro perfil. Abra-a de novo a partir deste.",
+    "truncated": "Só estão abertos os primeiros {{shown}} de {{total}} ficheiros: restrinja a seleção para editar os restantes."
   }
 }

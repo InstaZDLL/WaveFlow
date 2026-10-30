@@ -3977,6 +3977,8 @@
     "batchLabel": "名稱",
     "coverFill": "為沒有封面的專輯加入 Cover Art Archive 封面",
     "write_one": "寫入 {{count}} 個檔案",
-    "write_other": "寫入 {{count}} 個檔案"
+    "write_other": "寫入 {{count}} 個檔案",
+    "otherProfile": "此工坊是在另一個設定檔中開啟的。請從目前的設定檔重新開啟。",
+    "truncated": "只開啟了 {{total}} 個檔案中的前 {{shown}} 個：請縮小選取範圍以編輯其餘檔案。"
   }
 }

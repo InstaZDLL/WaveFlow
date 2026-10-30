@@ -1,7 +1,4 @@
-import type {
-  WorkshopField,
-  WorkshopSource,
-} from "./tauri/tagWorkshop";
+import type { WorkshopField, WorkshopSource } from "./tauri/tagWorkshop";
 
 /**
  * Opening the tag workshop from anywhere — a track's menu, a folder's,
@@ -13,6 +10,9 @@ export const OPEN_TAG_WORKSHOP_EVENT = "waveflow:open-tag-workshop";
 
 export interface TagWorkshopRequest {
   source: WorkshopSource;
+  /** The profile the source's ids belong to. Set by the layout when it
+   *  opens the view, never by the caller: the active one at that moment. */
+  profileId?: number;
   /** A release to match against as soon as the files are read: the
    *  proposal the enrichment review was showing. */
   releaseMbid?: string | null;
@@ -61,8 +61,10 @@ export function applyCase(value: string, mode: CaseMode): string {
       return value.toLocaleLowerCase();
     case "sentence": {
       const lower = value.toLocaleLowerCase();
-      return lower.replace(/^(\s*)(\p{L})/u, (_, space: string, letter: string) =>
-        `${space}${letter.toLocaleUpperCase()}`,
+      return lower.replace(
+        /^(\s*)(\p{L})/u,
+        (_, space: string, letter: string) =>
+          `${space}${letter.toLocaleUpperCase()}`,
       );
     }
     case "title": {
@@ -74,7 +76,11 @@ export function applyCase(value: string, mode: CaseMode): string {
           if (word.trim() === "") return word;
           seen += 1;
           const isEdge = seen === 1 || seen === real.length;
-          if (word.length > 1 && word === word.toLocaleUpperCase() && /\p{L}/u.test(word)) {
+          if (
+            word.length > 1 &&
+            word === word.toLocaleUpperCase() &&
+            /\p{L}/u.test(word)
+          ) {
             return word;
           }
           const lower = word.toLocaleLowerCase();

@@ -4111,6 +4111,8 @@
     "coverFill": "Ajouter la pochette de la Cover Art Archive aux albums qui n'en ont pas",
     "write_one": "Écrire {{count}} fichier",
     "write_many": "Écrire {{count}} fichiers",
-    "write_other": "Écrire {{count}} fichiers"
+    "write_other": "Écrire {{count}} fichiers",
+    "otherProfile": "Cet atelier a été ouvert dans un autre profil. Rouvrez-le depuis ce profil-ci.",
+    "truncated": "Seuls les {{shown}} premiers fichiers sur {{total}} sont ouverts : restreignez la sélection pour modifier les autres."
   }
 }

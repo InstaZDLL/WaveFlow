@@ -13,7 +13,9 @@ It is the file-writing counterpart of the [enrichment engine](enrichment.md), wh
 
 The view is reached through a window event (`OPEN_TAG_WORKSHOP_EVENT` in [`src/lib/tagWorkshop.ts`](../../src/lib/tagWorkshop.ts)) that `AppLayout` turns into a history entry carrying the source, so the menus need no navigation callback and **Back** returns to the same table. Remote tracks are not offered: there is no file to write.
 
-At most 5,000 files open at once (`MAX_FILES`); each one's tags are read from the file, through the same probe and the same tag (`primary_tag`, else the first) the scanner uses, so the table shows what a rescan would store. A file that cannot be read, or a `.dff` (no tag block this build writes), is shown greyed with the reason and is never written.
+The workshop belongs to the profile it was opened in: the layout stamps the active profile on the request, every command takes it and is refused once another profile is active (`require_profile_pool_for`), and the view shows nothing under another profile. A batch number or a track id means nothing in another profile's database, and an undo sent there would rewrite that profile's files.
+
+At most 5,000 files open at once (`MAX_FILES`), and the view says so when a source held more; each one's tags are read from the file, through the same probe and the same tag (`primary_tag`, else the first) the scanner uses, so the table shows what a rescan would store. A file that cannot be read, or a `.dff` (no tag block this build writes), is shown greyed with the reason and is never written.
 
 ## The table
 
@@ -71,12 +73,14 @@ Written as MusicBrainz's own tagger writes them, the keys lofty maps to its `Mus
 5. it re-hashes the whole file (BLAKE3) into `track.file_hash`, and keeps the same hash in the journal;
 6. it brings the database in line through `edit::sync_db`, the relink the properties dialog runs: the track's fields, its artists split on `"; "`, its album regrouped on `(canonical_title, album_artist_id)` ([invariant](../architecture/invariants.md#album-grouping--canonical_title-album_artist_id)), its genres, its composer row, the totals. A title cleared from the file is the file's name in the library, as the scanner would store it.
 
-Every database write is a short transaction retried on `SQLITE_BUSY`. The batch takes a `TaskHandle` (`tag_workshop` in the status bar) and stops **between two files** when cancelled; what was written stays written and journaled. One batch writes or undoes at a time. A profile switch waits for one file at most: the batch takes a lease per step and stops if the profile is no longer the one it started on.
+Every database write is a short transaction retried on `SQLITE_BUSY`. The batch takes a `TaskHandle` (`tag_workshop` in the status bar) and stops **between two files** when cancelled; what was written stays written and journaled. One batch writes or undoes at a time. Each file holds one profile lease from its journal entry to its confirmation, so a profile switch waits for that file and never closes the database between a write and its record; the next file asks for a new lease and the batch stops if the profile changed.
+
+Once a file is written, nothing stops the batch any more: the hash is journaled first, and a failure of the database update after it is reported against that file (the next scan of the folder reads the file back) while the batch goes on. A file whose hash could not be recorded stays `pending` and is reported as such.
 
 When the batch came from a MusicBrainz match:
 
-- **Add the Cover Art Archive cover to albums that have none** fills a cover the way the engine does (`enrichment::fetch_cover`): the release's front, or the release group's, linked only to an album that has no cover. Never into the files, and never over a cover the album has.
-- For each album a written file now names that release in (the release identifier written, or already there), an enrichment decision that says otherwise — a proposal under review, a rejection, a match with another release — is **forgotten**, so the engine's next pass reads the identifier from the files and settles it. A decision for the very release is kept, and so is every decision about an album whose files were given other tags only: a rejection stays a rejection.
+- **Add the Cover Art Archive cover to albums that have none** fills a cover the way the engine does (`enrichment::fetch_cover`): the release's front, or the release group's, linked only to an album that has no cover — and only to the albums whose written files now name that release, never to another album the same batch touched. Never into the files, and never over a cover the album has.
+- For each album a written file now names that release in (the release identifier written, or already there) — the album the file is in after the write, not one it left — an enrichment decision that says otherwise — a proposal under review, a rejection, a match with another release — is **forgotten**, so the engine's next pass reads the identifier from the files and settles it. A decision for the very release is kept, and so is every decision about an album whose files were given other tags only: a rejection stays a rejection.
 
 ## Undo
 

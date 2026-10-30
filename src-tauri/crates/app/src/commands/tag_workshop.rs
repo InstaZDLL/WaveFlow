@@ -200,12 +200,30 @@ pub struct WorkshopRow {
 
 type TrackRow = (i64, Option<i64>, String, i64);
 
+/// What the workshop opened.
+#[derive(Debug, Serialize)]
+pub struct WorkshopOpened {
+    pub rows: Vec<WorkshopRow>,
+    /// How many files the source holds: more than `rows` when it was cut
+    /// to [`MAX_FILES`], which the view says.
+    pub total: usize,
+}
+
+/// Every command takes the profile the workshop was opened in and is
+/// refused once another one is active: a table, a batch number or a
+/// track id means nothing in another profile's database, and an undo sent
+/// there would rewrite that profile's files.
+async fn profile_pool(state: &AppState, profile_id: i64) -> AppResult<crate::state::ProfilePool> {
+    state.require_profile_pool_for(Some(profile_id)).await
+}
+
 #[tauri::command]
 pub async fn tag_workshop_open(
     state: tauri::State<'_, AppState>,
+    profile_id: i64,
     source: WorkshopSource,
-) -> AppResult<Vec<WorkshopRow>> {
-    let pool = state.require_profile_pool().await?;
+) -> AppResult<WorkshopOpened> {
+    let pool = profile_pool(&state, profile_id).await?;
     let rows: Vec<TrackRow> = match source {
         WorkshopSource::Album { album_id } => {
             sqlx::query_as(
@@ -224,9 +242,6 @@ pub async fn tag_workshop_open(
             let mut out = Vec::with_capacity(track_ids.len().min(MAX_FILES));
             let mut seen = std::collections::HashSet::new();
             for id in track_ids {
-                if out.len() >= MAX_FILES {
-                    break;
-                }
                 if !seen.insert(id) {
                     continue;
                 }
@@ -247,6 +262,7 @@ pub async fn tag_workshop_open(
         }
     };
     drop(pool);
+    let total = rows.len();
     let rows: Vec<TrackRow> = rows.into_iter().take(MAX_FILES).collect();
     let out = tokio::task::spawn_blocking(move || {
         rows.into_iter()
@@ -269,7 +285,7 @@ pub async fn tag_workshop_open(
     })
     .await
     .map_err(|e| AppError::Other(format!("tag workshop read join: {e}")))?;
-    Ok(out)
+    Ok(WorkshopOpened { rows: out, total })
 }
 
 // ---------------------------------------------------------------------
@@ -320,9 +336,10 @@ async fn track_path(pool: &sqlx::SqlitePool, track_id: i64) -> AppResult<Option<
 #[tauri::command]
 pub async fn tag_workshop_preview(
     state: tauri::State<'_, AppState>,
+    profile_id: i64,
     changes: Vec<TrackChange>,
 ) -> AppResult<Vec<FilePreview>> {
-    let pool = state.require_profile_pool().await?;
+    let pool = profile_pool(&state, profile_id).await?;
     let mut paths = Vec::with_capacity(changes.len());
     for change in &changes {
         paths.push(track_path(&pool, change.track_id).await?);
@@ -410,17 +427,17 @@ pub async fn tag_workshop_apply(
     app: AppHandle,
     state: tauri::State<'_, AppState>,
     engine: tauri::State<'_, Arc<AudioEngine>>,
+    profile_id: i64,
     changes: Vec<TrackChange>,
     label: String,
     release_mbid: Option<String>,
     cover: Option<CoverRequest>,
 ) -> AppResult<ApplyReport> {
     let _busy = BusyGuard::take()?;
-    let (pool, profile_id) = state.require_profile_snapshot().await?;
-    // A lease per step rather than one for the batch, as the enrichment
+    // A lease per file rather than one for the batch, as the enrichment
     // engine holds it: a profile switch waits for one file, and a step
     // can never land in the next profile's database.
-    drop(pool);
+    drop(profile_pool(&state, profile_id).await?);
     let db = ProfileDb::for_command(&app, profile_id);
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
     let release_mbid = release_mbid
@@ -453,12 +470,12 @@ pub async fn tag_workshop_apply(
     };
 
     let mut report = ApplyReport::default();
-    // The albums the written tracks are in after the write: the covers
-    // to fill.
-    let mut albums_after: Vec<i64> = Vec::new();
-    // The albums, before and after, of the written files that now name
-    // `release_mbid`: the only ones whose enrichment decision the files
-    // can settle.
+    // The profile was switched under the batch: its database is closing,
+    // and nothing after the loop can reach it.
+    let mut profile_gone = false;
+    // The albums the written files that now name `release_mbid` are in:
+    // the only ones whose enrichment decision the files can settle, and
+    // the only ones that release's cover belongs to.
     let mut albums_naming_release: Vec<i64> = Vec::new();
 
     for (index, change) in changes.into_iter().enumerate() {
@@ -469,7 +486,16 @@ pub async fn tag_workshop_apply(
             report.cancelled = true;
             break;
         }
-        let pool = db.lease().await?;
+        // One lease for the whole of this file, from the journal entry to
+        // its confirmation: a profile switch waits for it rather than
+        // closing the database between the write and its record. Taken
+        // anew per file, so the switch waits for one file at most; refused
+        // once the profile is no longer the one the batch started on.
+        let Ok(pool) = db.lease().await else {
+            report.cancelled = true;
+            profile_gone = true;
+            break;
+        };
         let Some(path) = track_path(&pool, change.track_id).await? else {
             report.problems.push(FileProblem {
                 track_id: Some(change.track_id),
@@ -478,12 +504,6 @@ pub async fn tag_workshop_apply(
             });
             continue;
         };
-        let album_before: Option<i64> =
-            sqlx::query_scalar("SELECT album_id FROM track WHERE id = ?")
-                .bind(change.track_id)
-                .fetch_one(&*pool)
-                .await?;
-        drop(pool);
         let problem = |reason: String| FileProblem {
             track_id: Some(change.track_id),
             file_path: path.clone(),
@@ -526,7 +546,7 @@ pub async fn tag_workshop_apply(
             let path = path.clone();
             let diffs = diffs.clone();
             let track_id = change.track_id;
-            db.write(move |conn| {
+            enrichment::write_now(&pool, move |conn| {
                 let path = path.clone();
                 let diffs = diffs.clone();
                 Box::pin(async move {
@@ -551,7 +571,7 @@ pub async fn tag_workshop_apply(
         if let Err(err) = outcome {
             let message = format!("tag write failed: {err}");
             let failed = message.clone();
-            db.write(move |conn| {
+            enrichment::write_now(&pool, move |conn| {
                 let failed = failed.clone();
                 Box::pin(async move { journal::mark_failed(conn, file_id, &failed).await })
             })
@@ -560,33 +580,67 @@ pub async fn tag_workshop_apply(
             continue;
         }
 
-        // 5 and 6. The hash, then the database.
-        let pool = db.lease().await?;
-        let hash =
-            retry_busy(|| rehash_track_file(&pool, change.track_id, Path::new(&path))).await?;
+        // 5. The hash the write left, journaled at once: from here on the
+        //    file is changed, and its record is what lets an undo take the
+        //    change back — whatever happens to the database next.
+        let hash = match retry_busy(|| rehash_track_file(&pool, change.track_id, Path::new(&path)))
+            .await
+        {
+            Ok(hash) => Some(hash),
+            Err(err) => {
+                tracing::warn!(track_id = change.track_id, %err, "tag workshop re-hash failed");
+                full_hash(PathBuf::from(&path)).await.ok()
+            }
+        };
+        let confirmed = match &hash {
+            Some(hash) => {
+                let hash = hash.clone();
+                enrichment::write_now(&pool, move |conn| {
+                    let hash = hash.clone();
+                    Box::pin(async move { journal::mark_written(conn, file_id, &hash).await })
+                })
+                .await
+                .is_ok()
+            }
+            None => false,
+        };
+        report.written += 1;
+        if !confirmed {
+            // Written, but the record of it could not be completed: the
+            // file stays `pending`, which an undo refuses rather than guess.
+            report.problems.push(problem("interrupted".into()));
+        }
+
+        // 6. The database in line with the file. A failure here leaves the
+        //    file written and journaled; the next scan of the folder reads
+        //    it back, so it is reported and the batch goes on.
         let db_edit = to_db_edit(&written, Path::new(&path));
-        retry_busy(|| sync_db(&pool, change.track_id, &db_edit)).await?;
+        if let Err(err) = retry_busy(|| sync_db(&pool, change.track_id, &db_edit)).await {
+            report
+                .problems
+                .push(problem(format!("database update failed: {err}")));
+            continue;
+        }
         let album_after: Option<i64> =
             sqlx::query_scalar("SELECT album_id FROM track WHERE id = ?")
                 .bind(change.track_id)
-                .fetch_one(&*pool)
-                .await?;
+                .fetch_optional(&*pool)
+                .await
+                .ok()
+                .flatten()
+                .flatten();
         drop(pool);
-        db.write(move |conn| {
-            let hash = hash.clone();
-            Box::pin(async move { journal::mark_written(conn, file_id, &hash).await })
-        })
-        .await?;
-        report.written += 1;
-        report.done.push(change.track_id);
-        albums_after.extend(album_after);
+        if confirmed {
+            report.done.push(change.track_id);
+        }
         // The release the file names now: the one just written, else the
-        // one it already carried.
+        // one it already carried. Only the album the file is in now is
+        // settled by it: the one it left keeps the decision its other
+        // files earned.
         let named = written
             .get(&Field::MbReleaseId)
             .or_else(|| current.get(&Field::MbReleaseId));
         if named.is_some() && named.map(String::as_str) == release_mbid.as_deref() {
-            albums_naming_release.extend(album_before);
             albums_naming_release.extend(album_after);
         }
         let _ = app.emit("track:updated", change.track_id);
@@ -595,24 +649,36 @@ pub async fn tag_workshop_apply(
         task.progress(total, total);
     }
 
+    if profile_gone {
+        // What was written is journaled; the batch is settled, its
+        // decisions reopened and its covers fetched the next time — or
+        // never, which leaves the files and their journal as they are.
+        // The partial report is what the user needs now.
+        report.batch_id = (report.written > 0).then_some(batch_id);
+        drop(task);
+        let _ = app.emit(CHANGED_EVENT, ());
+        return Ok(report);
+    }
     let kept = db
         .write(move |conn| Box::pin(async move { journal::discard_if_empty(conn, batch_id).await }))
         .await?;
     report.batch_id = (!kept).then_some(batch_id);
 
-    albums_after.sort_unstable();
-    albums_after.dedup();
     albums_naming_release.sort_unstable();
     albums_naming_release.dedup();
     if let Some(release) = release_mbid.as_deref() {
         if !albums_naming_release.is_empty() {
-            reopen_enrichment_decisions(&app, &db, albums_naming_release, release).await?;
+            reopen_enrichment_decisions(&app, &db, albums_naming_release.clone(), release).await?;
         }
     }
-    if let Some(cover) = cover.filter(|_| report.written > 0) {
+    // The cover of the release the files now name, for their albums only:
+    // a genre fixed in another album of the same batch gives that album
+    // nothing of this release.
+    let cover = cover.filter(|c| release_mbid.as_deref() == Some(c.release_mbid.as_str()));
+    if let Some(cover) = cover.filter(|_| !albums_naming_release.is_empty()) {
         if !crate::offline::is_offline() {
             let (_, caa) = enrichment::clients();
-            for album_id in &albums_after {
+            for album_id in &albums_naming_release {
                 match enrichment::fetch_cover(
                     &db,
                     &caa,
@@ -694,8 +760,9 @@ async fn reopen_enrichment_decisions(
 #[tauri::command]
 pub async fn tag_workshop_batches(
     state: tauri::State<'_, AppState>,
+    profile_id: i64,
 ) -> AppResult<Vec<journal::BatchSummary>> {
-    let pool = state.require_profile_pool().await?;
+    let pool = profile_pool(&state, profile_id).await?;
     let mut conn = pool.acquire().await?;
     Ok(journal::batches(&mut conn, BATCH_LIST_LIMIT).await?)
 }
@@ -703,9 +770,10 @@ pub async fn tag_workshop_batches(
 #[tauri::command]
 pub async fn tag_workshop_batch_files(
     state: tauri::State<'_, AppState>,
+    profile_id: i64,
     batch_id: i64,
 ) -> AppResult<Vec<journal::JournaledFile>> {
-    let pool = state.require_profile_pool().await?;
+    let pool = profile_pool(&state, profile_id).await?;
     let mut conn = pool.acquire().await?;
     Ok(journal::batch_files(&mut conn, batch_id).await?)
 }
@@ -726,10 +794,11 @@ pub async fn tag_workshop_undo(
     app: AppHandle,
     state: tauri::State<'_, AppState>,
     engine: tauri::State<'_, Arc<AudioEngine>>,
+    profile_id: i64,
     batch_id: i64,
 ) -> AppResult<UndoReport> {
     let _busy = BusyGuard::take()?;
-    let (pool, profile_id) = state.require_profile_snapshot().await?;
+    let pool = profile_pool(&state, profile_id).await?;
     let files = {
         let mut conn = pool.acquire().await?;
         journal::batch_files(&mut conn, batch_id).await?
@@ -753,6 +822,7 @@ pub async fn tag_workshop_undo(
         crate::tasks::Cancellation::Flag,
     );
     let mut report = UndoReport::default();
+    let mut profile_gone = false;
 
     for (index, file) in open.into_iter().enumerate() {
         if let Some(task) = &task {
@@ -762,6 +832,12 @@ pub async fn tag_workshop_undo(
             report.cancelled = true;
             break;
         }
+        // One lease for the whole of this file, as the write takes it.
+        let Ok(pool) = db.lease().await else {
+            report.cancelled = true;
+            profile_gone = true;
+            break;
+        };
         let refuse = |reason: &str| FileProblem {
             track_id: file.track_id,
             file_path: file.file_path.clone(),
@@ -797,7 +873,6 @@ pub async fn tag_workshop_undo(
         // The track that is this file now, if it still is.
         let track_id = match file.track_id {
             Some(id) => {
-                let pool = db.lease().await?;
                 let current = track_path(&pool, id).await?;
                 (current.as_deref() == Some(file.file_path.as_str())).then_some(id)
             }
@@ -820,25 +895,43 @@ pub async fn tag_workshop_undo(
                 .push(refuse(&format!("tag write failed: {err}")));
             continue;
         }
+        // The old values are back in the file: recorded at once, so a
+        // failure of the database below cannot leave the batch claiming
+        // the file still holds what it wrote.
+        let file_id = file.id;
+        enrichment::write_now(&pool, move |conn| {
+            Box::pin(async move { journal::mark_undone(conn, file_id).await })
+        })
+        .await?;
+        report.restored += 1;
         if let Some(track_id) = track_id {
-            let pool = db.lease().await?;
-            retry_busy(|| rehash_track_file(&pool, track_id, &path)).await?;
             let db_edit = to_db_edit(&restore, &path);
-            retry_busy(|| sync_db(&pool, track_id, &db_edit)).await?;
+            let synced = async {
+                retry_busy(|| rehash_track_file(&pool, track_id, &path)).await?;
+                retry_busy(|| sync_db(&pool, track_id, &db_edit)).await
+            }
+            .await;
+            // Restored, and the next scan of the folder reads it back.
+            if let Err(err) = synced {
+                report
+                    .refused
+                    .push(refuse(&format!("database update failed: {err}")));
+            }
             let _ = app.emit("track:updated", track_id);
         }
-        let file_id = file.id;
-        db.write(move |conn| Box::pin(async move { journal::mark_undone(conn, file_id).await }))
-            .await?;
-        report.restored += 1;
     }
     if let Some(task) = &task {
         task.progress(total, total);
     }
     let now = now_ms();
-    report.done = db
-        .write(move |conn| Box::pin(async move { journal::settle_undo(conn, batch_id, now).await }))
-        .await?;
+    // Under another profile the batch cannot be settled; the files undone
+    // so far are recorded, and the next undo of it finishes the job.
+    report.done = !profile_gone
+        && db
+            .write(move |conn| {
+                Box::pin(async move { journal::settle_undo(conn, batch_id, now).await })
+            })
+            .await?;
     drop(task);
     let _ = app.emit(CHANGED_EVENT, ());
     let _ = app.emit("library:rescanned", ());

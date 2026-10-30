@@ -3977,6 +3977,8 @@
     "batchLabel": "이름",
     "coverFill": "커버가 없는 앨범에 Cover Art Archive 커버 추가",
     "write_one": "파일 {{count}}개 기록",
-    "write_other": "파일 {{count}}개 기록"
+    "write_other": "파일 {{count}}개 기록",
+    "otherProfile": "이 작업실은 다른 프로필에서 열렸습니다. 이 프로필에서 다시 여세요.",
+    "truncated": "파일 {{total}}개 중 처음 {{shown}}개만 열려 있습니다. 나머지를 편집하려면 선택 범위를 좁히세요."
   }
 }

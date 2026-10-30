@@ -3979,6 +3979,8 @@
     "batchLabel": "Ad",
     "coverFill": "Kapağı olmayan albümlere Cover Art Archive kapağını ekle",
     "write_one": "{{count}} dosyayı yaz",
-    "write_other": "{{count}} dosyayı yaz"
+    "write_other": "{{count}} dosyayı yaz",
+    "otherProfile": "Bu atölye başka bir profilde açıldı. Bu profilden yeniden açın.",
+    "truncated": "{{total}} dosyanın yalnızca ilk {{shown}} tanesi açık: geri kalanları düzenlemek için seçimi daraltın."
   }
 }
