@@ -3752,6 +3752,11 @@
       "compilation": "컴필레이션",
       "remix": "리믹스",
       "soundtrack": "사운드트랙"
+    },
+    "pluginNotice": {
+      "title": "Release Radar가 이제 기본 기능입니다",
+      "body": "이 페이지가 Release Radar 확장 기능을 대신합니다. 더 이상 필요 없으니 확장 기능 페이지에서 제거할 수 있습니다.",
+      "openExtensions": "확장 기능 열기"
     }
   }
 }

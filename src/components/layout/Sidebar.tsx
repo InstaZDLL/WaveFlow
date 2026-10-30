@@ -55,6 +55,7 @@ import {
 import { useLibraryPlaylists } from "../../hooks/useLibraryPlaylists";
 import { usePlaylistContextMenu } from "../../hooks/usePlaylistContextMenu";
 import { resolvePluginIcon } from "../../lib/pluginIcons";
+import { RELEASE_RADAR_PLUGIN_ID } from "../../lib/tauri/releaseRadar";
 import { getProfileColor, profileInitial } from "../../lib/profileColors";
 import { pickFolder } from "../../lib/tauri/dialog";
 import type { ImportPlaylistResult } from "../../lib/tauri/playlist";
@@ -150,7 +151,11 @@ export function Sidebar({
   // Dynamic entries for every enabled `ui`-world plugin — label + icon
   // + landing path all come from each plugin's `manifest()`, so a new
   // UI plugin appears here without any hardcoded per-plugin wiring.
-  const uiPlugins = useUiPlugins();
+  // Except the Release Radar plugin, which the native entry replaced:
+  // two "Release Radar" side by side would leave the user guessing.
+  const uiPlugins = useUiPlugins().filter(
+    (plugin) => plugin.pluginId !== RELEASE_RADAR_PLUGIN_ID,
+  );
   // Remote source (RFC-005 sync_v2). Self-hides in stock builds — the
   // hook probes `remote_get_status`, which is unregistered when the
   // feature is off, and reports `available: false`.

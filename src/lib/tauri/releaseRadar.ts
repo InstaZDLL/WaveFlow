@@ -1,5 +1,10 @@
 import { invoke } from "@tauri-apps/api/core";
 
+/** The id of the `ui` plugin this feature replaced. The sidebar leaves
+ *  its entry out, and the view tells a user who still has it installed,
+ *  once, that it can go. */
+export const RELEASE_RADAR_PLUGIN_ID = "release-radar";
+
 /** Emitted by the backend after every artist a scan records, and when
  *  the scan ends. */
 export const RELEASE_RADAR_CHANGED = "release-radar:changed";

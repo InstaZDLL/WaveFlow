@@ -4152,6 +4152,11 @@
       "compilation": "تجميعة",
       "remix": "ريمكس",
       "soundtrack": "موسيقى تصويرية"
+    },
+    "pluginNotice": {
+      "title": "أصبح Release Radar مدمجًا الآن",
+      "body": "تحل هذه الصفحة محل إضافة Release Radar التي لم تعد ضرورية: يمكنك إلغاء تثبيتها من صفحة الإضافات.",
+      "openExtensions": "فتح الإضافات"
     }
   }
 }

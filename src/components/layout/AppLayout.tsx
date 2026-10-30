@@ -613,6 +613,7 @@ export function AppLayout() {
           <ReleaseRadarView
             onNavigateToArtist={navigateToArtist}
             onNavigateToPlaylist={navigateToPlaylist}
+            onNavigateToExtensions={() => setActiveView("extensions")}
           />
         );
       case "plugin-ui":

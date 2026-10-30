@@ -3754,6 +3754,11 @@
       "compilation": "Compilatie",
       "remix": "Remix",
       "soundtrack": "Soundtrack"
+    },
+    "pluginNotice": {
+      "title": "Release Radar is nu ingebouwd",
+      "body": "Deze pagina vervangt de extensie Release Radar, die niet meer nodig is: je kunt hem verwijderen via de pagina Extensies.",
+      "openExtensions": "Extensies openen"
     }
   }
 }

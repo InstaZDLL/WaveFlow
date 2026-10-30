@@ -3754,6 +3754,11 @@
       "compilation": "Derleme",
       "remix": "Remiks",
       "soundtrack": "Film müziği"
+    },
+    "pluginNotice": {
+      "title": "Release Radar artık yerleşik",
+      "body": "Bu sayfa artık gerekmeyen Release Radar eklentisinin yerini alıyor: eklentiyi Eklentiler sayfasından kaldırabilirsiniz.",
+      "openExtensions": "Eklentiler'i aç"
     }
   }
 }

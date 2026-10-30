@@ -16,12 +16,15 @@ import {
   Loader2,
   Play,
   Radar,
+  Puzzle,
   RefreshCw,
   Square,
   WifiOff,
+  X,
 } from "lucide-react";
 
 import { usePageScroll } from "../../hooks/usePageScroll";
+import { useReleaseRadarPluginNotice } from "../../hooks/useReleaseRadarPluginNotice";
 import { useTasks } from "../../hooks/useTasks";
 import { resolveRemoteImage } from "../../lib/tauri/artwork";
 import { openUrl } from "../../lib/tauri/external";
@@ -42,6 +45,8 @@ import { EmptyState } from "../common/EmptyState";
 interface ReleaseRadarViewProps {
   onNavigateToArtist: (artistId: number) => void;
   onNavigateToPlaylist: (playlistId: number) => void;
+  /** The extensions page, where the replaced plugin is uninstalled. */
+  onNavigateToExtensions: () => void;
 }
 
 type Filter = "all" | "playable" | "discovered";
@@ -67,6 +72,7 @@ const SECONDARY_TYPES = ["live", "compilation", "remix", "soundtrack"];
 export function ReleaseRadarView({
   onNavigateToArtist,
   onNavigateToPlaylist,
+  onNavigateToExtensions,
 }: ReleaseRadarViewProps) {
   const { t, i18n } = useTranslation();
   const [snapshot, setSnapshot] = useState<ReleaseRadarSnapshot | null>(null);
@@ -74,6 +80,7 @@ export function ReleaseRadarView({
   const [offline, setOffline] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
+  const pluginNotice = useReleaseRadarPluginNotice();
   const tasks = useTasks();
   const task = tasks.find((row) => row.kind === "release_radar") ?? null;
   // The task row, or the backend's own flag for the moment before the
@@ -340,6 +347,39 @@ export function ReleaseRadarView({
         )}
       </div>
 
+      {pluginNotice.visible && (
+        <div
+          role="status"
+          data-release-radar-plugin-notice
+          className="flex items-start gap-3 rounded-xl px-4 py-3 text-sm bg-cyan-50 text-cyan-900 dark:bg-cyan-950/40 dark:text-cyan-200"
+        >
+          <Puzzle size={16} className="mt-0.5 shrink-0" />
+          <div className="min-w-0 flex-1 space-y-2">
+            <div>
+              <div className="font-semibold">
+                {t("releaseRadar.pluginNotice.title")}
+              </div>
+              <div>{t("releaseRadar.pluginNotice.body")}</div>
+            </div>
+            <button
+              type="button"
+              onClick={onNavigateToExtensions}
+              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium bg-cyan-600 text-white hover:bg-cyan-500"
+            >
+              {t("releaseRadar.pluginNotice.openExtensions")}
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={pluginNotice.dismiss}
+            aria-label={t("common.close")}
+            title={t("common.close")}
+            className="shrink-0 rounded-full p-1 hover:bg-cyan-100 dark:hover:bg-cyan-900/50"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
       {offline && (
         <div className="flex items-start gap-2 rounded-xl px-4 py-3 text-sm bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
           <WifiOff size={16} className="mt-0.5 shrink-0" />

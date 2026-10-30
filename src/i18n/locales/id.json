@@ -3752,6 +3752,11 @@
       "compilation": "Kompilasi",
       "remix": "Remix",
       "soundtrack": "Soundtrack"
+    },
+    "pluginNotice": {
+      "title": "Release Radar kini sudah bawaan",
+      "body": "Halaman ini menggantikan ekstensi Release Radar, yang tidak lagi diperlukan: kamu bisa mencopotnya dari halaman Ekstensi.",
+      "openExtensions": "Buka Ekstensi"
     }
   }
 }

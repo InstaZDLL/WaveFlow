@@ -161,7 +161,7 @@ The same module, the same scoring, pick and sweep as the genre and decade mixes;
 
 ## Release Radar
 
-The recent releases of the artists in the library, found on [MusicBrainz](https://musicbrainz.org) and matched against the files the user already has. It replaces the `ui`-world plugin of the same name ([plugins.md](plugins.md#release-radar)): the logic that plugin proved — an incremental scan, one request a second, a clean stop on `503` / `429`, a cursor to resume from, an identifying User-Agent — is kept, and the release now meets the library. **Nothing is downloaded but a release's information and its cover**: the radar points at music, it never fetches any.
+The recent releases of the artists in the library, found on [MusicBrainz](https://musicbrainz.org) and matched against the files the user already has. It replaces the `ui`-world plugin of the same name ([plugins.md](plugins.md#release-radar-ui-world)): the logic that plugin proved — an incremental scan, one request a second, a clean stop on `503` / `429`, a cursor to resume from, an identifying User-Agent — is kept, and the release now meets the library. **Nothing is downloaded but a release's information and its cover**: the radar points at music, it never fetches any.
 
 A release is in one of **two states**, and only two:
 
@@ -216,6 +216,8 @@ It is rewritten from local data only, so a regeneration offline gives the same p
 ### View
 
 [`ReleaseRadarView`](../../src/components/views/ReleaseRadarView.tsx), the `release-radar` view, from a native sidebar entry (always present — the radar sends nothing until asked). A header with the artists followed and the last check; **Find new releases** / **Check everything again**, disabled offline; **Play** (every playable release) and **Open the playlist**; filters **All / In your library / Discovered**; then the releases as a grid virtualized against the page scroller. A card says its date at the precision MusicBrainz gave it, "Upcoming" for a date after today, its type, and either its local track count with a play button or a link to MusicBrainz. Whether a scan runs is read from the task registry (`useTasks`), not kept in the view, so it survives a trip to another page; the stop button cancels the task. The card's hook for the skins is `data-release-card` with `data-release-state`.
+
+**The retired plugin.** While the `ui` plugin this view replaced is installed — enabled or not — the view shows a notice, `data-release-radar-plugin-notice`, saying the radar is built in now and the plugin can be uninstalled, with a button to the Extensions page. It is shown **once per profile** ([`useReleaseRadarPluginNotice`](../../src/hooks/useReleaseRadarPluginNotice.ts), `profile_setting['release_radar.plugin_notice_seen']`, default unseen): the flag is written as soon as the notice is drawn, and the notice stays up for that visit until it is closed or the plugin uninstalled. Not a preference, so not in the settings registry and not counted by Settings' reset, like `artist.bio_collapsed`. The plugin's own sidebar entry is never shown ([plugins.md](plugins.md#release-radar-ui-world)).
 
 ## Regen flow
 

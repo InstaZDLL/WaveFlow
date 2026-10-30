@@ -3863,6 +3863,11 @@
       "compilation": "Compilation",
       "remix": "Remix",
       "soundtrack": "Colonna sonora"
+    },
+    "pluginNotice": {
+      "title": "Release Radar ora è integrato",
+      "body": "Questa pagina sostituisce l'estensione Release Radar, che non serve più: puoi disinstallarla dalla pagina Estensioni.",
+      "openExtensions": "Apri Estensioni"
     }
   }
 }

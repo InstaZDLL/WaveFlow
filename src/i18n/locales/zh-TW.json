@@ -3752,6 +3752,11 @@
       "compilation": "合輯",
       "remix": "混音",
       "soundtrack": "原聲帶"
+    },
+    "pluginNotice": {
+      "title": "Release Radar 現已內建",
+      "body": "此頁面取代了 Release Radar 擴充功能，該擴充功能已不再需要：你可以在「擴充功能」頁面中將其解除安裝。",
+      "openExtensions": "開啟擴充功能"
     }
   }
 }

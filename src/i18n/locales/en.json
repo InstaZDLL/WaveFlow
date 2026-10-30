@@ -3754,6 +3754,11 @@
       "compilation": "Compilation",
       "remix": "Remix",
       "soundtrack": "Soundtrack"
+    },
+    "pluginNotice": {
+      "title": "Release Radar is now built in",
+      "body": "This page replaces the Release Radar extension, which is no longer needed: you can uninstall it from the Extensions page.",
+      "openExtensions": "Open Extensions"
     }
   }
 }

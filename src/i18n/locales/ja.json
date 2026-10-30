@@ -3752,6 +3752,11 @@
       "compilation": "コンピレーション",
       "remix": "リミックス",
       "soundtrack": "サウンドトラック"
+    },
+    "pluginNotice": {
+      "title": "Release Radar が標準機能になりました",
+      "body": "このページは Release Radar 拡張機能に代わるものです。拡張機能は不要になったため、「拡張機能」ページからアンインストールできます。",
+      "openExtensions": "拡張機能を開く"
     }
   }
 }
