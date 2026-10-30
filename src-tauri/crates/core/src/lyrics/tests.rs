@@ -248,6 +248,20 @@ fn formats_serialize_as_the_payloads_spell_them() {
 }
 
 #[test]
+fn backing_vocals_alone_in_a_p_join_the_line_before() {
+    let xml = r#"<tt xmlns="http://www.w3.org/ns/ttml" xmlns:ttm="http://www.w3.org/ns/ttml#metadata"><body><div>
+      <p begin="1s" end="2s"><span begin="1s" end="2s">lead</span></p>
+      <p begin="2s" end="3s"><span ttm:role="x-bg"><span begin="2s" end="3s">(echo)</span></span></p>
+    </div></body></tt>"#;
+    let doc = ttml::parse(xml).unwrap();
+    assert_eq!(doc.lines.len(), 1);
+    assert_eq!(doc.lines[0].background[0].text, "(echo)");
+    assert_eq!(doc.lines[0].end_ms, Some(3000));
+    let again = ttml::parse(&ttml::write(&doc, &WriteOptions::default()).unwrap()).unwrap();
+    assert_eq!(again.lines[0].background.len(), 1);
+}
+
+#[test]
 fn an_empty_line_does_not_turn_word_timing_into_line_timing() {
     let mut doc = lrc::parse(
         "[00:01.00]<00:01.00>a <00:01.50>b <00:02.00>

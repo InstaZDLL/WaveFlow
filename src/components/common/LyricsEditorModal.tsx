@@ -149,6 +149,9 @@ function LyricsEditorDialog({
   const [loading, setLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // The stored lyrics could not be read: the document shown is not them,
+  // so nothing is saved or exported over them.
+  const [readFailed, setReadFailed] = useState(false);
   /** Surfaced after save when the backend kept the lyrics in-DB but
    *  couldn't write them to the audio file's tag (e.g. TTML on MP3). */
   const [warning, setWarning] = useState<string | null>(null);
@@ -270,6 +273,7 @@ function LyricsEditorDialog({
         if (cancelled) return;
         console.error("[LyricsEditor] read failed", err);
         setError(String(err));
+        setReadFailed(true);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -316,6 +320,23 @@ function LyricsEditorDialog({
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
   }, [isOpen, undo, redo]);
+
+  // ── The keys belong to the Sync step ──────────────────────────────
+  // Opening focuses the first control (the Edit step's button), and a
+  // step reached with the mouse leaves the focus there: Space would
+  // press that button rather than stamp. The dialog takes the focus
+  // instead; Tab still walks the controls from there.
+  useEffect(() => {
+    if (step !== "sync") return;
+    const active = document.activeElement;
+    if (
+      active instanceof HTMLElement &&
+      !isTypingTarget(active) &&
+      active.closest("button, a, [role='radio']")
+    ) {
+      dialogRef.current?.focus();
+    }
+  }, [step, dialogRef]);
 
   // ── Plain text that starts being synced ───────────────────────────
   // Lyrics opened as plain text save as plain text, unless they are
@@ -493,6 +514,9 @@ function LyricsEditorDialog({
   return (
     <AnimatedModalContent
       ref={dialogRef}
+      // Focusable itself, so the Sync step can take the focus off a
+      // button without sending it out of the dialog.
+      tabIndex={-1}
       role="dialog"
       aria-modal="true"
       aria-labelledby="lyrics-editor-title"
@@ -758,7 +782,7 @@ function LyricsEditorDialog({
                 <button
                   type="button"
                   onClick={handleExportToFile}
-                  disabled={isSaving || !hasText}
+                  disabled={isSaving || readFailed || !hasText}
                   className="px-4 py-2 rounded-full text-sm border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50 flex items-center gap-2 whitespace-nowrap"
                   title={t("lyricsEditor.exportToFileHint") ?? undefined}
                 >
@@ -768,7 +792,9 @@ function LyricsEditorDialog({
                 <button
                   type="button"
                   onClick={handleSave}
-                  disabled={isSaving || editingTrackId == null || !hasText}
+                  disabled={
+                    isSaving || readFailed || editingTrackId == null || !hasText
+                  }
                   className="px-5 py-2 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center gap-2 whitespace-nowrap"
                 >
                   {isSaving ? (

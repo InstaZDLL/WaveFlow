@@ -94,6 +94,18 @@ pub fn parse(xml: &str) -> Result<Document, ParseError> {
         if content.words.is_empty() && content.background.is_empty() {
             continue;
         }
+        // Backing vocals with no lead in their own `<p>` are sung over the
+        // line before: no format writes a line without words, so kept on
+        // their own they would be lost on the next save.
+        if content.words.is_empty() {
+            if let Some(previous) = doc.lines.last_mut() {
+                previous.background.append(&mut content.background);
+                if let (Some(end), Some(last)) = (previous.end_ms, previous.background.last()) {
+                    previous.end_ms = Some(end.max(last.end_ms.unwrap_or(end)));
+                }
+                continue;
+            }
+        }
         let key = attr(p, "key");
         let mut line_translations = key.and_then(|k| translations.remove(k)).unwrap_or_default();
         line_translations.extend(content.translations);

@@ -124,6 +124,7 @@ export function SyncStep({
           e.code === "Enter" ||
           e.code === "NumpadEnter") &&
         e.target instanceof HTMLElement &&
+        e.target.matches(":focus-visible") &&
         e.target.closest("button, a, [role='radio']") &&
         !e.target.closest("[data-sync-list]")
       ) {
