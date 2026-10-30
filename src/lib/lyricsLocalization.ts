@@ -38,8 +38,9 @@ const ASSOCIATED_STAMP_TOLERANCE_MS = 100;
  * word split only when it matches the line's word for word, and then
  * takes the line's word bounds, as {@link usableRomanization} rules.
  *
- * One document per kind: the one in `language` when there is one, else
- * the first by language tag, the order the cache reads them back in.
+ * One document per kind: the one tagged `language` exactly, else one in
+ * its language whatever the region or script, else the first by language
+ * tag, the order the cache reads them back in.
  */
 export function attachAssociatedLyrics(
   lines: LyricsLine[],
@@ -106,16 +107,27 @@ function pickAssociated(
       const other = b.language ?? "";
       return one < other ? -1 : one > other ? 1 : 0;
     });
+  // The whole tag first, so a `zh-TW` interface is not handed `zh-CN`
+  // because it sorts first; then the language alone.
+  const exact = normalizedTag(language);
   const wanted = primarySubtag(language);
   return (
+    (exact !== ""
+      ? docs.find((doc) => normalizedTag(doc.language) === exact)
+      : undefined) ??
     (wanted !== ""
       ? docs.find((doc) => primarySubtag(doc.language) === wanted)
-      : undefined) ?? docs[0]
+      : undefined) ??
+    docs[0]
   );
 }
 
+function normalizedTag(tag: string | undefined): string {
+  return (tag ?? "").replace(/_/g, "-").toLowerCase();
+}
+
 function primarySubtag(tag: string | undefined): string {
-  return (tag ?? "").split(/[-_]/)[0].toLowerCase();
+  return normalizedTag(tag).split("-")[0];
 }
 
 /** A document's lines, when it carries timing to pair them on. */
