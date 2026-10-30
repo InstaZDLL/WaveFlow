@@ -70,7 +70,9 @@ pub async fn followed_artists(
         )
         SELECT ar.id                          AS artist_id,
                ar.name                        AS name,
-               rra.mbid                       AS mbid,
+               -- The id the user accepted from the enrichment engine
+               -- comes first; the one the radar learnt is the fallback.
+               COALESCE(mba.artist_mbid, rra.mbid) AS mbid,
                rra.checked_at                 AS checked_at,
                held.n + COALESCE(played.n, 0) / 2 + 3 * COALESCE(liked.n, 0) AS weight
           FROM held
@@ -78,6 +80,9 @@ pub async fn followed_artists(
           LEFT JOIN played ON played.artist_id = ar.id
           LEFT JOIN liked  ON liked.artist_id  = ar.id
           LEFT JOIN release_radar_artist rra ON rra.artist_id = ar.id
+          LEFT JOIN musicbrainz_artist mba
+                 ON mba.artist_id = ar.id
+                AND mba.status = 'applied'
          WHERE ar.name <> ? COLLATE NOCASE
            AND TRIM(ar.name) <> ''
          ORDER BY weight DESC, ar.canonical_name ASC, ar.id ASC

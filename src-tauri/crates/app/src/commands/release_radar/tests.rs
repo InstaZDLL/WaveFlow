@@ -168,6 +168,44 @@ async fn an_answer_checks_the_artist_and_keeps_an_id_it_learnt() {
         .all(|a| a.checked_at.is_none() && a.mbid.is_none()));
 }
 
+async fn followed_mbid(pool: &SqlitePool, artist_id: i64) -> Option<String> {
+    store::followed_artists(pool, 0, 100)
+        .await
+        .unwrap()
+        .into_iter()
+        .find(|a| a.artist_id == artist_id)
+        .unwrap()
+        .mbid
+}
+
+#[tokio::test]
+async fn an_artist_id_accepted_from_the_enrichment_engine_comes_first() {
+    let pool = pool().await;
+    seed(&pool).await;
+    store::record_artist(&pool, 1, Some("mb-learnt"), &[], 1_000)
+        .await
+        .unwrap();
+
+    // A proposal still waiting on review is not the user's word yet.
+    sqlx::query(
+        "INSERT INTO musicbrainz_artist (artist_id, status, artist_mbid, matched_at)
+         VALUES (1, 'review', 'mb-accepted', 0)",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+    assert_eq!(followed_mbid(&pool, 1).await.as_deref(), Some("mb-learnt"));
+
+    sqlx::query("UPDATE musicbrainz_artist SET status = 'applied' WHERE artist_id = 1")
+        .execute(&pool)
+        .await
+        .unwrap();
+    assert_eq!(
+        followed_mbid(&pool, 1).await.as_deref(),
+        Some("mb-accepted")
+    );
+}
+
 #[tokio::test]
 async fn the_library_confirms_an_id_only_through_a_release_it_holds() {
     let pool = pool().await;

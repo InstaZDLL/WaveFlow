@@ -28,6 +28,7 @@ use chrono::Utc;
 use serde::Serialize;
 use tauri::{AppHandle, Emitter};
 
+use waveflow_core::metadata::musicbrainz::shared_pacer;
 use waveflow_core::release_radar::{
     self,
     musicbrainz::{MusicBrainzClient, MusicBrainzError},
@@ -43,14 +44,6 @@ use crate::state::AppState;
 /// Emitted after every artist a scan records and when it ends, so an
 /// open view redraws as releases come in.
 pub const RELEASE_RADAR_CHANGED: &str = "release-radar:changed";
-
-/// Gap between two MusicBrainz requests: their guidance is one a
-/// second on average, and a little over keeps the average under.
-const MB_SPACING: Duration = Duration::from_millis(1100);
-
-/// Gap between two Cover Art Archive requests. It sets no rate of its
-/// own, and a burst of a dozen covers is still no reason to hurry.
-const COVER_SPACING: Duration = Duration::from_millis(250);
 
 /// The wait after a rate limit that came without a `Retry-After`.
 const DEFAULT_RETRY_AFTER: Duration = Duration::from_secs(5);
@@ -205,7 +198,10 @@ async fn run_scan(
     }
 
     let client = MusicBrainzClient::new();
-    let mut last_request: Option<Instant> = None;
+    // The process-wide pacer, not one of the scan's own: the enrichment
+    // engine asks MusicBrainz too, and two schedules side by side would
+    // double the rate the service allows.
+    let pacer = shared_pacer();
     let mut checked = 0u32;
     let mut failures = 0u32;
     let mut outcome = ScanOutcome::Done;
@@ -234,13 +230,7 @@ async fn run_scan(
                 outcome = ScanOutcome::Offline;
                 break 'artists;
             }
-            if let Some(at) = last_request {
-                let elapsed = at.elapsed();
-                if elapsed < MB_SPACING {
-                    tokio::time::sleep(MB_SPACING - elapsed).await;
-                }
-            }
-            last_request = Some(Instant::now());
+            pacer.wait().await;
             match client.recent_release_groups(&query, &cutoff).await {
                 Ok(page) => break Some(page),
                 Err(MusicBrainzError::RateLimited { retry_after }) if !waited_out => {
@@ -249,6 +239,8 @@ async fn run_scan(
                         .unwrap_or(DEFAULT_RETRY_AFTER)
                         .max(MIN_RETRY_AFTER);
                     tracing::info!(?wait, "release radar: MusicBrainz asked to slow down");
+                    // Every MusicBrainz caller waits it out, not just this scan.
+                    pacer.back_off(wait);
                     if !sleep_unless_cancelled(wait, &cancelled).await {
                         outcome = ScanOutcome::Cancelled;
                         break 'artists;
@@ -393,16 +385,15 @@ async fn fetch_covers(
         store::covers_due(&pool, now_ms, COVER_RETRY_AFTER_MS).await?
     };
     let dir = state.paths.metadata_artwork_dir.clone();
-    for (i, release_id) in due.iter().enumerate() {
+    let pacer = shared_pacer();
+    for release_id in &due {
         if cancelled() {
             break;
         }
         if crate::offline::is_offline() {
             return Ok(CoversEnd::Offline);
         }
-        if i > 0 {
-            tokio::time::sleep(COVER_SPACING).await;
-        }
+        pacer.wait().await;
         // `None` both for "the archive has no cover" (a 404) and for a
         // failed download: either way it is asked again in a week.
         let hash = crate::metadata_artwork::download_and_cache(

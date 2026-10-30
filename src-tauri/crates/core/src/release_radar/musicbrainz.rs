@@ -4,8 +4,10 @@
 //! the application and a way to reach its authors (an anonymous one is
 //! answered with `403`), and an average of at most one request a second,
 //! a `503` being its answer to a client that goes faster. The pacing is
-//! the caller's, which knows when it last asked; this client says when
-//! it was told to slow down, with the delay MusicBrainz asked for.
+//! the caller's, which waits on the process-wide
+//! [`crate::metadata::musicbrainz::shared_pacer`] before each request;
+//! this client says when it was told to slow down, with the delay
+//! MusicBrainz asked for.
 
 use std::time::Duration;
 
