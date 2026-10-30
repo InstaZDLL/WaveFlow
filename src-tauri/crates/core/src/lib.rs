@@ -16,6 +16,7 @@ pub mod analysis;
 pub mod artwork;
 pub mod atomic_write;
 pub mod audio_format;
+pub mod automix;
 pub mod domain;
 pub mod enrichment;
 pub mod error;
