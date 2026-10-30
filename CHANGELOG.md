@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.9.8](https://github.com/InstaZDLL/WaveFlow/compare/v1.9.7...v1.9.8) (2026-10-30)
+
+
+### Bug Fixes
+
+* **audio:** persist replaygain preamp, fallback and speed ([#947](https://github.com/InstaZDLL/WaveFlow/issues/947)) ([c63c53b](https://github.com/InstaZDLL/WaveFlow/commit/c63c53bb6911e4b23040bf6e848cc8497678b4a7))
+* **ui:** stop the idle logo and home badge from pulsing forever ([c4fb9e9](https://github.com/InstaZDLL/WaveFlow/commit/c4fb9e99a296d1b83a9d2e39b3a89785c1ede8dd))
+
 ## [1.9.7](https://github.com/InstaZDLL/WaveFlow/compare/v1.9.6...v1.9.7) (2026-10-23)
 
 
