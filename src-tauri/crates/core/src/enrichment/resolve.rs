@@ -48,15 +48,7 @@ pub fn resolution(local: &LocalAlbum, release: &Release, from_tags: bool) -> Res
     let remote_tracks = extract::remote_tracks(release);
     let remote = extract::remote_side(release);
     let found = matching::match_album(&local.side(), &remote);
-    let verdict = if from_tags {
-        if found.score.local_tracks > 0 && found.score.paired == found.score.local_tracks {
-            Verdict::Confident
-        } else {
-            Verdict::Doubtful
-        }
-    } else {
-        found.verdict
-    };
+    let verdict = verdict_for(&found, from_tags);
     let tracks = found
         .assignments
         .iter()
@@ -78,6 +70,21 @@ pub fn resolution(local: &LocalAlbum, release: &Release, from_tags: bool) -> Res
         tracks,
         credited: extract::credited_artists(release),
         from_tags,
+    }
+}
+
+/// The verdict a match earns: the matcher's own, except for a release the
+/// files name, which is trusted for its identity — confident when every
+/// local track pairs, a proposal otherwise (see [`resolution`]). Shared
+/// with the tag workshop, so both read one release the same way.
+pub fn verdict_for(found: &matching::AlbumMatch, from_tags: bool) -> Verdict {
+    if !from_tags {
+        return found.verdict;
+    }
+    if found.score.local_tracks > 0 && found.score.paired == found.score.local_tracks {
+        Verdict::Confident
+    } else {
+        Verdict::Doubtful
     }
 }
 

@@ -244,4 +244,41 @@ mod proposals {
         assert!(proposal.from_tags);
         assert_eq!(proposal.verdict, Verdict::Confident);
     }
+    #[test]
+    fn on_a_release_of_several_discs_each_file_gets_its_own_disc() {
+        // The fixture's two tracks split over two discs: the pairing's
+        // indices and the disc each tag names come from one walk.
+        let mut release = nevermind();
+        let second = release.media[0].tracks.remove(1);
+        release.media.push(crate::metadata::musicbrainz::Medium {
+            position: Some(2),
+            format: None,
+            tracks: vec![second],
+        });
+        let mut album = local(&[
+            ("In Bloom", 254_900, Some(2)),
+            ("Smells Like Teen Spirit", 301_000, Some(1)),
+        ]);
+        album.tracks[0].signals.disc_number = Some(2);
+        album.tracks[0].signals.track_number = Some(2);
+        album.tracks[1].signals.disc_number = Some(1);
+        let proposal = propose(&album, &release, false);
+        assert_eq!(proposal.tracks.len(), 2);
+        let get = |id: i64, f: Field| {
+            proposal
+                .tracks
+                .iter()
+                .find(|t| t.track_id == id)
+                .and_then(|t| t.values.get(&f).cloned())
+        };
+        assert_eq!(get(100, Field::Title).as_deref(), Some("In Bloom"));
+        assert_eq!(get(100, Field::DiscNumber).as_deref(), Some("2"));
+        assert_eq!(get(100, Field::TrackTotal).as_deref(), Some("1"));
+        assert_eq!(get(100, Field::DiscTotal).as_deref(), Some("2"));
+        assert_eq!(
+            get(101, Field::Title).as_deref(),
+            Some("Smells Like Teen Spirit")
+        );
+        assert_eq!(get(101, Field::DiscNumber).as_deref(), Some("1"));
+    }
 }

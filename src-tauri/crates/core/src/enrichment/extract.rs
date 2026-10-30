@@ -13,9 +13,22 @@ pub const MAX_GENRES: usize = 3;
 /// full orchestra listed would otherwise fill the properties panel.
 pub const MAX_CREDITS: usize = 40;
 
-/// The release's tracks in disc order, as the matcher reads them, with
-/// the catalogue track each one came from.
-pub fn remote_tracks(release: &Release) -> Vec<(TrackSignals, &Track)> {
+/// One track of a release, where it sits on its disc.
+#[derive(Debug, Clone)]
+pub struct ReleaseTrack<'a> {
+    /// The track as the matcher reads it.
+    pub signals: TrackSignals,
+    pub track: &'a Track,
+    /// The disc's number: its position, or its rank when it has none.
+    pub disc: i64,
+    /// How many tracks that disc holds.
+    pub disc_tracks: usize,
+}
+
+/// The release's tracks in disc order — the one walk every index into
+/// "the release's tracks" refers to: the matcher's pairings
+/// ([`remote_tracks`]) and the tag workshop's tags read the same list.
+pub fn release_tracks(release: &Release) -> Vec<ReleaseTrack<'_>> {
     let multi_disc = release.media.len() > 1;
     let mut out = Vec::with_capacity(release.track_count());
     for (index, medium) in release.media.iter().enumerate() {
@@ -24,8 +37,8 @@ pub fn remote_tracks(release: &Release) -> Vec<(TrackSignals, &Track)> {
             let length = track
                 .length
                 .or_else(|| track.recording.as_ref().and_then(|r| r.length));
-            out.push((
-                TrackSignals {
+            out.push(ReleaseTrack {
+                signals: TrackSignals {
                     title: track.title.clone(),
                     duration_ms: length,
                     track_number: track.position,
@@ -35,10 +48,21 @@ pub fn remote_tracks(release: &Release) -> Vec<(TrackSignals, &Track)> {
                     disc_number: multi_disc.then_some(disc),
                 },
                 track,
-            ));
+                disc,
+                disc_tracks: medium.tracks.len(),
+            });
         }
     }
     out
+}
+
+/// The release's tracks in disc order, as the matcher reads them, with
+/// the catalogue track each one came from.
+pub fn remote_tracks(release: &Release) -> Vec<(TrackSignals, &Track)> {
+    release_tracks(release)
+        .into_iter()
+        .map(|t| (t.signals, t.track))
+        .collect()
 }
 
 /// The release as the album matcher sees it.

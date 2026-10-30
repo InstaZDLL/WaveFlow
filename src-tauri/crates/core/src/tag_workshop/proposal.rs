@@ -6,10 +6,10 @@
 //! engine agree on which recording a file is. What is added here is
 //! the step the engine never takes — turning a paired track into tags.
 
-use crate::enrichment::extract;
 use crate::enrichment::matching::{self, AlbumScore, Verdict};
 use crate::enrichment::LocalAlbum;
-use crate::metadata::musicbrainz::{credit_text, ArtistCredit, Release, Track};
+use crate::enrichment::{extract, resolve};
+use crate::metadata::musicbrainz::{credit_text, ArtistCredit, Release};
 
 use super::{Field, Values};
 
@@ -58,46 +58,25 @@ pub struct AlbumProposal {
 /// about is left out, which leaves the file's own value alone.
 pub fn propose(local: &LocalAlbum, release: &Release, from_tags: bool) -> AlbumProposal {
     let found = matching::match_album(&local.side(), &extract::remote_side(release));
-    let verdict = if from_tags {
-        // The same trust `resolve::resolution` gives a release the files
-        // name: confident when every file pairs.
-        if found.score.local_tracks > 0 && found.score.paired == found.score.local_tracks {
-            Verdict::Confident
-        } else {
-            Verdict::Doubtful
-        }
-    } else {
-        found.verdict
-    };
+    let verdict = resolve::verdict_for(&found, from_tags);
     let facts = extract::album_facts(release);
 
-    // The release's tracks in the order `extract::remote_tracks` lists
-    // them — the order the pairing's indices are into — each with the
-    // medium it is on.
-    let remote: Vec<(i64, usize, &Track)> = release
-        .media
-        .iter()
-        .enumerate()
-        .flat_map(|(index, medium)| {
-            let disc = medium.position.unwrap_or(index as i64 + 1);
-            medium
-                .tracks
-                .iter()
-                .map(move |track| (disc, medium.tracks.len(), track))
-        })
-        .collect();
+    // The very walk the pairing's indices are into (`remote_side` reads
+    // `remote_tracks`, which reads this one), with each track's disc.
+    let remote = extract::release_tracks(release);
 
     let album_artist = credit_text(&release.artist_credit);
     let album_artist_ids = credit_ids(&release.artist_credit);
     let mut tracks = Vec::with_capacity(found.assignments.len());
     let mut paired = vec![false; local.tracks.len()];
     for assignment in &found.assignments {
-        let (Some(file), Some(&(disc, on_disc, track))) = (
+        let (Some(file), Some(slot)) = (
             local.tracks.get(assignment.local),
             remote.get(assignment.remote),
         ) else {
             continue;
         };
+        let (track, disc, on_disc) = (slot.track, slot.disc, slot.disc_tracks);
         paired[assignment.local] = true;
         let mut values = Values::new();
         let mut set = |field: Field, value: Option<String>| {
