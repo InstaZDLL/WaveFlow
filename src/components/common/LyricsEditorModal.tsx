@@ -1,38 +1,59 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type RefObject,
+} from "react";
 import { useTranslation } from "react-i18next";
 import {
-  X,
-  Play,
-  Pause,
-  SkipBack,
-  SkipForward,
-  Crosshair,
-  Trash2,
-  Plus,
-  Loader2,
-  Save,
-  Minus,
-  RotateCcw,
   FileDown,
+  Loader2,
+  Redo2,
+  Save,
+  Undo2,
+  X,
+  AlertTriangle,
 } from "lucide-react";
 import { save as showSaveDialog } from "@tauri-apps/plugin-dialog";
 import { usePlayer } from "../../hooks/usePlayer";
-import { usePlayerPosition } from "../../hooks/usePlayerPosition";
 import { useModalA11y } from "../../hooks/useModalA11y";
+import { usePlaybackClock } from "../../hooks/usePlaybackClock";
+import { useUndoHistory } from "../../hooks/useUndoHistory";
+import { useLyricsEditorReaction } from "../../hooks/useLyricsEditorReaction";
+import { PageScrollContext } from "../../contexts/PageScrollContext";
 import { AnimatedModalContent, AnimatedModalShell } from "./AnimatedModalShell";
 import {
   exportLyricsToPath,
-  formatLrcTimestamp,
   getLyricsDefaultDestination,
-  parseLrc,
-  parseLyrics,
   saveLyrics,
-  serializeEnhancedLrc,
-  serializeLrc,
   type LyricsDestination,
-  type LyricsLine,
+  type LyricsFormat,
   type LyricsPayload,
 } from "../../lib/tauri/lyrics";
+import {
+  EMPTY_LYRICS_DOCUMENT,
+  readLyricsDocument,
+  writeLyricsDocument,
+  type LyricsDocument,
+  type LyricsDocumentWrite,
+} from "../../lib/tauri/lyricsDocument";
+import {
+  cleanedDocument,
+  isWordSynced,
+  lineBegin,
+} from "../../lib/lyricsDocumentEdit";
+import { EditStep } from "./lyricsEditor/EditStep";
+import { SyncStep } from "./lyricsEditor/SyncStep";
+import { PreviewStep } from "./lyricsEditor/PreviewStep";
+import { EditorTransport } from "./lyricsEditor/EditorTransport";
+import {
+  isTypingTarget,
+  type SyncCursor,
+  type SyncMode,
+} from "./lyricsEditor/shared";
 
 interface LyricsEditorModalProps {
   isOpen: boolean;
@@ -52,39 +73,51 @@ interface LyricsEditorModalProps {
   trackFilePath?: string | null;
 }
 
-type Mode = "plain" | "synced";
-/** Capture granularity inside the synced tab. */
-type Granularity = "line" | "word";
+type Step = "edit" | "sync" | "preview";
+const STEPS: Step[] = ["edit", "sync", "preview"];
 
-interface SyncedWord {
-  /** -1 when not yet captured. */
-  timeMs: number;
-  /** Word text, kept verbatim including any trailing spaces. */
-  text: string;
-}
+/** The formats offered, richest first, with the extension each is saved
+ *  under. */
+const FORMATS: { id: LyricsFormat; ext: string }[] = [
+  { id: "ttml", ext: "ttml" },
+  { id: "enhanced_lrc", ext: "lrc" },
+  { id: "lrc", ext: "lrc" },
+  { id: "plain", ext: "txt" },
+];
 
-interface SyncedRow {
-  /** Stable id so React keys survive reorders. */
-  id: number;
-  /** -1 when not yet captured. */
-  timeMs: number;
-  text: string;
-  /**
-   * Populated in word-mode once the user starts capturing per-word
-   * stamps for the row. Absent in line-mode and for plain rows.
-   */
-  words?: SyncedWord[];
-  /** Cursor inside `words` — index of the next word to capture. */
-  wordCursor?: number;
-}
+type Unsynced = Extract<LyricsDocumentWrite, { kind: "unsynced" }>;
 
 /**
- * Two-mode lyrics editor — plain textarea on one tab, Musicolet-style
- * line-by-line capture on the other. The synced tab pilots the
- * existing player (play / pause / ±2 s) so the user can match each
- * line to the playback head with a single keystroke.
+ * The lyrics editor, in three steps over one document:
+ *
+ * - **Edit** — the text, the singers, and per line the section, the
+ *   backing vocals, a translation and a romanization;
+ * - **Sync** — keys stamp the lines or the words as the song plays;
+ * - **Preview** — the karaoke the app will draw from what is saved.
+ *
+ * The song plays through the app's own player (its seek, its speed), so
+ * the stamps are taken against the position the engine reports. The
+ * document is the backend's lyrics model (`waveflow_core::lyrics`): it is
+ * read from the stored lyrics on open and written back in the format
+ * picked here, then saved through `save_lyrics` like any edit.
  */
-export function LyricsEditorModal({
+export function LyricsEditorModal(props: LyricsEditorModalProps) {
+  // The backdrop asks the dialog, which knows whether closing would lose
+  // an edit. The dialog is mounted only while the modal is open, so a
+  // closed editor neither reads the profile nor re-renders on every
+  // position event.
+  const requestCloseRef = useRef(props.onClose);
+  return (
+    <AnimatedModalShell
+      isOpen={props.isOpen}
+      onBackdropClick={() => requestCloseRef.current()}
+    >
+      <LyricsEditorDialog {...props} requestCloseRef={requestCloseRef} />
+    </AnimatedModalShell>
+  );
+}
+
+function LyricsEditorDialog({
   isOpen,
   onClose,
   trackId,
@@ -92,30 +125,49 @@ export function LyricsEditorModal({
   initial,
   onSaved,
   trackFilePath,
-}: LyricsEditorModalProps) {
+  requestCloseRef,
+}: LyricsEditorModalProps & { requestCloseRef: RefObject<() => void> }) {
   const { t } = useTranslation();
-  const { isPlaying, togglePlayback, seek } = usePlayer();
-  const positionMs = usePlayerPosition();
-  const dialogRef = useModalA11y<HTMLDivElement>(isOpen, onClose);
+  const { currentTrack, togglePlayback, seek, setPlaybackSpeed } = usePlayer();
+  const { estimate, isPlaying, playbackSpeed } = usePlaybackClock();
+  const { reactionMs, setReactionMs } = useLyricsEditorReaction();
 
-  const [mode, setMode] = useState<Mode>("plain");
-  const [granularity, setGranularity] = useState<Granularity>("line");
-  const [plainText, setPlainText] = useState("");
-  const [syncedRows, setSyncedRows] = useState<SyncedRow[]>([]);
-  const [activeRow, setActiveRow] = useState(0);
+  const history = useUndoHistory<LyricsDocument>(EMPTY_LYRICS_DOCUMENT);
+  const doc = history.state;
+  const { set: edit, undo, redo } = history;
+
+  const [step, setStep] = useState<Step>("edit");
+  const [selected, setSelected] = useState(0);
+  const [syncMode, setSyncMode] = useState<SyncMode>("line");
+  const [cursor, setCursor] = useState<SyncCursor>({ line: 0, word: 0 });
+  const [format, setFormat] = useState<LyricsFormat>("lrc");
+  const [lrcTranslations, setLrcTranslations] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  /** Surfaced after save when the backend kept the lyrics in-DB but
+   *  couldn't write them to the audio file's tag (e.g. TTML on MP3). */
+  const [warning, setWarning] = useState<string | null>(null);
+  /** The unit a save or an export stopped at. */
+  const [unsynced, setUnsynced] = useState<Unsynced | null>(null);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+  // The document as last read or saved: anything else is an edit closing
+  // would lose. Compared by identity, so undoing back to it is clean.
+  const [savedDoc, setSavedDoc] = useState<LyricsDocument | null>(null);
+  const dirty = savedDoc !== null && doc !== savedDoc;
+  // The track whose lyrics were opened. Saving goes to it even if the
+  // player has moved on; syncing against another song is flagged.
+  const [editingTrackId, setEditingTrackId] = useState<number | null>(null);
+
   // Per-edit destination override. Initial value mirrors the app-wide
-  // default fetched once on mount; the user can flip it for the
-  // current save without touching the global setting (which lives in
-  // Settings → Playback). Defaults to `tag` for pre-init renders so a
-  // very fast save before the fetch lands behaves exactly like the
-  // legacy `write_to_file: true` flow.
+  // default fetched on open; the user can flip it for the current save
+  // without touching the global setting (Settings → Lyrics). Defaults
+  // to `tag` for pre-init renders so a very fast save before the fetch
+  // lands behaves like the legacy flow.
   const [destination, setDestinationState] = useState<LyricsDestination>("tag");
-  // True once the user has touched the segmented control on the
-  // current modal open. Lets the async default fetch defer to a
-  // manual pick that landed first (rare but possible: the SQLite read
-  // can lose to a sub-10 ms double-click on the segmented control).
-  // Reset on every open so the next edit starts honouring the default
-  // again.
+  // True once the user has touched the segmented control on the current
+  // open, so the async default fetch defers to a manual pick that landed
+  // first. Reset on every open.
   const destinationUserTouchedRef = useRef(false);
   const setDestination = useCallback(
     (next: LyricsDestination, fromUser: boolean = true) => {
@@ -124,56 +176,25 @@ export function LyricsEditorModal({
     },
     [],
   );
-  const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  /** Surfaced after save when the backend kept the lyrics in-DB but
-   *  couldn't write them to the audio file's tag (e.g. TTML on MP3). */
-  const [warning, setWarning] = useState<string | null>(null);
-  // Global timestamp shift applied to every captured row at save
-  // time. Stays "preview" until Save (we don't mutate `syncedRows`
-  // on every drag) so the user can dial it in without losing the
-  // original capture if they reset.
-  const [globalOffsetMs, setGlobalOffsetMs] = useState(0);
 
-  const nextIdRef = useRef(1);
-  const newRow = (
-    timeMs: number,
-    text: string,
-    words?: SyncedWord[],
-  ): SyncedRow => ({
-    id: nextIdRef.current++,
-    timeMs,
-    text,
-    words,
-    wordCursor: words ? 0 : undefined,
-  });
-
-  /** Split a line into tokens that preserve trailing spaces, so the
-   *  reassembled text still reads naturally. Empty tokens are dropped. */
-  const tokenize = (text: string): SyncedWord[] => {
-    if (!text.trim()) return [];
-    const re = /\S+\s*/g;
-    const out: SyncedWord[] = [];
-    let m: RegExpExecArray | null;
-    while ((m = re.exec(text)) !== null) {
-      out.push({ timeMs: -1, text: m[0] });
+  // Close, unless that would throw away an unsaved edit the user has not
+  // agreed to lose: Escape is one key away from the ones that sync.
+  const requestClose = useCallback(() => {
+    if (dirty && !confirmDiscard) {
+      setConfirmDiscard(true);
+      return;
     }
-    return out;
-  };
+    onClose();
+  }, [dirty, confirmDiscard, onClose]);
+  useLayoutEffect(() => {
+    requestCloseRef.current = requestClose;
+  });
+  const dialogRef = useModalA11y<HTMLDivElement>(isOpen, requestClose);
+  const bodyRef = useRef<HTMLDivElement>(null);
 
-  // ── Pre-fill destination from the app-wide default ───────────────
-  //
-  // Runs once each time the modal opens so a user who flipped the
-  // setting in Settings → Playback while the modal was closed picks
-  // up the new value on next edit. A racy second open (rare — the
-  // editor is modal) is acceptable because the user can still
-  // override per-save via the segmented control below.
+  // ── Destination default ───────────────────────────────────────────
   useEffect(() => {
     if (!isOpen) return;
-    // Reset the touched flag for this open. Any setDestination call
-    // from the user (segmented control click) below will set it back
-    // to true so the async fetch's then-handler bails out instead of
-    // overwriting a deliberate pick that landed mid-fetch.
     destinationUserTouchedRef.current = false;
     let cancelled = false;
     getLyricsDefaultDestination().then(
@@ -182,8 +203,7 @@ export function LyricsEditorModal({
         setDestination(def, false);
       },
       (err) => {
-        // Fall back to the legacy "tag" default and log; never block
-        // the editor from opening over a stale setting fetch.
+        // Never block the editor from opening over a stale setting fetch.
         if (cancelled || destinationUserTouchedRef.current) return;
         console.warn("[LyricsEditor] default destination fetch failed", err);
         setDestination("tag", false);
@@ -194,407 +214,211 @@ export function LyricsEditorModal({
     };
   }, [isOpen, setDestination]);
 
-  // ── Hydrate from initial payload ─────────────────────────────────
+  // ── Hydrate from the stored lyrics ────────────────────────────────
   useEffect(() => {
     if (!isOpen) return;
     /* eslint-disable react-hooks/set-state-in-effect */
+    setStep("edit");
+    setSelected(0);
+    setCursor({ line: 0, word: 0 });
     setError(null);
     setWarning(null);
-    setActiveRow(0);
-    setGlobalOffsetMs(0);
-    nextIdRef.current = 1;
-
-    if (initial == null) {
-      setMode("plain");
-      setGranularity("line");
-      setPlainText("");
-      setSyncedRows([newRow(-1, "")]);
+    setUnsynced(null);
+    setConfirmDiscard(false);
+    setEditingTrackId(trackId);
+    /* eslint-enable react-hooks/set-state-in-effect */
+    // What the song itself says, for the fields the stored lyrics leave
+    // empty: an LRC header and a TTML title carry them.
+    const withTrack = (d: LyricsDocument): LyricsDocument => ({
+      ...d,
+      metadata: {
+        ...d.metadata,
+        title: d.metadata.title ?? trackTitle ?? undefined,
+        artist: d.metadata.artist ?? currentTrack?.artist_name ?? undefined,
+        album: d.metadata.album ?? currentTrack?.album_title ?? undefined,
+      },
+    });
+    const start = (d: LyricsDocument) => {
+      history.reset(d);
+      setSavedDoc(d);
+    };
+    if (!initial || !initial.content.trim()) {
+      start(withTrack(EMPTY_LYRICS_DOCUMENT));
+      setFormat("lrc");
+      setSyncMode("line");
       return;
     }
-
-    const trimmed = initial.content.trim();
-    const isSynced =
-      initial.format === "lrc" ||
-      initial.format === "enhanced_lrc" ||
-      initial.format === "ttml";
-    const hasWordTiming =
-      initial.format === "enhanced_lrc" || initial.format === "ttml";
-
-    setPlainText(trimmed);
-    if (isSynced) {
-      let parsed: LyricsLine[];
-      if (hasWordTiming) {
-        parsed = parseLyrics(trimmed, initial.format);
-      } else {
-        parsed = parseLrc(trimmed);
-      }
-      const rows = parsed.length
-        ? parsed.map((line) => {
-            const words = line.words?.map((w) => ({
-              timeMs: w.timeMs,
-              text: w.text,
-            }));
-            const cursor = words
-              ? Math.min(
-                  words.length,
-                  words.findIndex((w) => w.timeMs < 0),
-                )
-              : undefined;
-            return {
-              id: nextIdRef.current++,
-              timeMs: line.timeMs,
-              text: line.text,
-              words,
-              wordCursor: cursor != null && cursor < 0 ? words!.length : cursor,
-            } satisfies SyncedRow;
-          })
-        : [newRow(-1, "")];
-      setSyncedRows(rows);
-      setMode("synced");
-      setGranularity(hasWordTiming ? "word" : "line");
-    } else {
-      // Pre-fill the synced tab with a row per non-empty line so the
-      // user can capture timestamps without retyping.
-      const lines = trimmed.length
-        ? trimmed.split(/\r?\n/).map((l) => newRow(-1, l))
-        : [newRow(-1, "")];
-      setSyncedRows(lines);
-      setMode("plain");
-      setGranularity("line");
-    }
-    /* eslint-enable react-hooks/set-state-in-effect */
-    // We intentionally only rehydrate when the modal opens for a track,
-    // not on every initial change while open.
+    let cancelled = false;
+    setLoading(true);
+    start(withTrack(EMPTY_LYRICS_DOCUMENT));
+    readLyricsDocument(initial.content, initial.format)
+      .then(({ format: read, document }) => {
+        if (cancelled) return;
+        start(withTrack(document));
+        setFormat(read === "plain" ? "lrc" : read);
+        setSyncMode(
+          document.lines.some(isWordSynced) || read === "enhanced_lrc"
+            ? "word"
+            : "line",
+        );
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.error("[LyricsEditor] read failed", err);
+        setError(String(err));
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // Rehydrate when the modal opens, not when the panel's payload or the
+    // playing track changes under an open editor.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, trackId]);
+  }, [isOpen]);
 
-  // ── Capture handlers ─────────────────────────────────────────────
-  // Line mode: stamp the active row, append a fresh row if needed,
-  // advance the cursor.
-  const captureLine = useCallback(() => {
-    setSyncedRows((rows) => {
-      if (rows.length === 0) return rows;
-      const idx = Math.min(activeRow, rows.length - 1);
-      const next = rows.slice();
-      next[idx] = { ...next[idx], timeMs: Math.max(0, positionMs) };
-      if (idx === next.length - 1) {
-        next.push(newRow(-1, ""));
-      }
-      return next;
-    });
-    setActiveRow((i) => i + 1);
-  }, [activeRow, positionMs]);
-
-  // Word mode: stamp the next word in the active row. If the row has
-  // no `words` yet, tokenize its text first. Once every word is
-  // stamped, the next press advances to the next line (and stamps the
-  // line's own timeMs if it's still -1, like line mode).
-  const captureWord = useCallback(() => {
-    if (syncedRows.length === 0) return;
-    const idx = Math.min(activeRow, syncedRows.length - 1);
-    const currentRow = syncedRows[idx];
-    const currentWords = currentRow.words ?? tokenize(currentRow.text);
-    const currentCursor = currentRow.wordCursor ?? 0;
-    const hasNextRow = idx + 1 < syncedRows.length;
-
-    // Decide auto-advance BEFORE mutating state. The previous version
-    // set a `shouldAdvance` flag inside the `setSyncedRows` updater
-    // and read it outside; in React 18 the updater can run in a
-    // separate microtask (and runs twice in strict-mode dev), so the
-    // outer check could read the flag before the updater had set it
-    // — the user ended up needing an extra click to fall through to
-    // the over-press branch. Reading state via closure here makes the
-    // decision deterministic against the live `syncedRows` snapshot.
-    //
-    // Two paths trigger advance:
-    //   1. This keystroke will stamp the LAST word of the current
-    //      row → advance after the stamp lands.
-    //   2. The cursor is ALREADY past the last word (over-press
-    //      after a complete row) → advance without re-stamping.
-    // Both require an existing next row; we never auto-append a
-    // blank line (Enter still owns that semantic explicitly).
-    const willStampLastWord =
-      currentWords.length > 0 && currentCursor === currentWords.length - 1;
-    const alreadyPastLastWord =
-      currentWords.length > 0 && currentCursor >= currentWords.length;
-    const shouldAdvance =
-      hasNextRow && (willStampLastWord || alreadyPastLastWord);
-
-    setSyncedRows((rows) => {
-      if (rows.length === 0) return rows;
-      const i = Math.min(activeRow, rows.length - 1);
-      const next = rows.slice();
-      const row = { ...next[i] };
-
-      // Seed words from row.text on first capture.
-      let words = row.words ? row.words.slice() : tokenize(row.text);
-      if (words.length === 0) {
-        // Empty line — degrade to line capture so we don't get stuck.
-        row.timeMs = Math.max(0, positionMs);
-        next[i] = row;
-        return next;
-      }
-
-      const cursor = row.wordCursor ?? 0;
-      if (cursor >= words.length) {
-        // Over-press on a complete row → nothing to stamp here.
-        // The outer advance still fires below.
-        return rows;
-      }
-      // Stamp the line's timeMs on the very first word capture if the
-      // line itself isn't stamped yet.
-      if (row.timeMs < 0 && cursor === 0) {
-        row.timeMs = Math.max(0, positionMs);
-      }
-      words = words.slice();
-      words[cursor] = { ...words[cursor], timeMs: Math.max(0, positionMs) };
-      row.words = words;
-      row.wordCursor = cursor + 1;
-      next[i] = row;
-      return next;
-    });
-
-    if (shouldAdvance) {
-      setActiveRow((i) => i + 1);
-    }
-  }, [activeRow, positionMs, syncedRows]);
-
-  // Advance to the next line in word mode (Enter shortcut). Appends a
-  // fresh empty row if we're at the end, mirroring line mode's UX.
-  const advanceLine = useCallback(() => {
-    setSyncedRows((rows) => {
-      if (rows.length === 0) return rows;
-      const idx = Math.min(activeRow, rows.length - 1);
-      if (idx === rows.length - 1) {
-        return [...rows, newRow(-1, "")];
-      }
-      return rows;
-    });
-    setActiveRow((i) => i + 1);
-  }, [activeRow]);
-
-  // Undo the last word capture on the active row (Backspace in word
-  // mode). If no words are stamped yet, clears the line's own timeMs.
-  const undoLastWord = useCallback(() => {
-    setSyncedRows((rows) => {
-      if (rows.length === 0) return rows;
-      const idx = Math.min(activeRow, rows.length - 1);
-      const row = { ...rows[idx] };
-      if (!row.words || row.words.length === 0) {
-        if (row.timeMs >= 0) {
-          row.timeMs = -1;
-          const next = rows.slice();
-          next[idx] = row;
-          return next;
-        }
-        return rows;
-      }
-      const cursor = Math.max(0, (row.wordCursor ?? 0) - 1);
-      const words = row.words.slice();
-      if (words[cursor]) {
-        words[cursor] = { ...words[cursor], timeMs: -1 };
-      }
-      row.words = words;
-      row.wordCursor = cursor;
-      // If we backed all the way out, clear the line stamp too.
-      if (cursor === 0 && words.every((w) => w.timeMs < 0)) {
-        row.timeMs = -1;
-      }
-      const next = rows.slice();
-      next[idx] = row;
-      return next;
-    });
-  }, [activeRow]);
-
-  // Single entry point used by the capture button + Space shortcut.
-  const captureCurrent = useCallback(() => {
-    if (granularity === "word") {
-      captureWord();
-    } else {
-      captureLine();
-    }
-  }, [granularity, captureWord, captureLine]);
-
-  // ── Keyboard shortcuts in synced mode (avoid hijacking inputs) ───
+  // ── The engine's speed, given back on close ───────────────────────
+  // The editor's speed buttons drive the player itself; leaving the
+  // song at half speed after the editor closes is not what was asked.
+  const speedRef = useRef(playbackSpeed);
   useEffect(() => {
-    if (!isOpen || mode !== "synced") return;
-    const handler = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement | null)?.tagName?.toLowerCase();
-      const isInput = tag === "input" || tag === "textarea";
-      if (e.code === "Space" && !isInput) {
-        e.preventDefault();
-        captureCurrent();
-        return;
-      }
-      if (
-        granularity === "word" &&
-        !isInput &&
-        (e.code === "Enter" || e.code === "NumpadEnter")
-      ) {
-        e.preventDefault();
-        advanceLine();
-        return;
-      }
-      if (
-        granularity === "word" &&
-        !isInput &&
-        (e.code === "Backspace" || e.code === "Delete")
-      ) {
-        e.preventDefault();
-        undoLastWord();
+    speedRef.current = playbackSpeed;
+  }, [playbackSpeed]);
+  useEffect(() => {
+    if (!isOpen) return;
+    const before = speedRef.current;
+    return () => {
+      if (Math.abs(speedRef.current - before) > 0.001) {
+        setPlaybackSpeed(before);
       }
     };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [isOpen, mode, granularity, captureCurrent, advanceLine, undoLastWord]);
+  }, [isOpen, setPlaybackSpeed]);
 
-  // ── Player nudges (compose a ±2 s seek with current position) ────
-  const nudge = (deltaMs: number) => {
-    seek(Math.max(0, positionMs + deltaMs)).catch(() => {});
-  };
+  // ── Undo / redo ───────────────────────────────────────────────────
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+      // A field has its own undo for what is typed in it.
+      if (isTypingTarget(e.target)) return;
+      const key = e.key.toLowerCase();
+      if (key === "z" && !e.shiftKey) undo();
+      else if ((key === "z" && e.shiftKey) || key === "y") redo();
+      else return;
+      e.preventDefault();
+      e.stopPropagation();
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [isOpen, undo, redo]);
 
-  // ── Row-level helpers ────────────────────────────────────────────
-  const updateRowText = (id: number, text: string) => {
-    setSyncedRows((rows) =>
-      rows.map((r) => {
-        if (r.id !== id) return r;
-        // In word mode editing the text invalidates the captured word
-        // stamps (tokenization changes). Drop them so the user can
-        // re-capture cleanly — keep the line-level timeMs.
-        if (r.words) {
-          return { ...r, text, words: undefined, wordCursor: undefined };
-        }
-        return { ...r, text };
-      }),
-    );
-  };
-  const removeRow = (id: number) => {
-    setSyncedRows((rows) => {
-      const next = rows.filter((r) => r.id !== id);
-      return next.length ? next : [newRow(-1, "")];
-    });
-  };
-  const insertRowBelow = (id: number) => {
-    setSyncedRows((rows) => {
-      const idx = rows.findIndex((r) => r.id === id);
-      if (idx < 0) return rows;
-      const next = rows.slice();
-      next.splice(idx + 1, 0, newRow(-1, ""));
-      return next;
-    });
-  };
-  const seekToRow = (row: SyncedRow) => {
-    if (row.timeMs >= 0) {
-      // Honour the in-flight global offset so seeking a previewed
-      // timestamp lands on the position the user can actually hear.
-      seek(Math.max(0, row.timeMs + globalOffsetMs)).catch(() => {});
-    }
-  };
-  const recapture = (id: number) => {
-    setSyncedRows((rows) =>
-      rows.map((r) =>
-        r.id === id ? { ...r, timeMs: Math.max(0, positionMs) } : r,
-      ),
-    );
-  };
+  // ── Writing ───────────────────────────────────────────────────────
+  const writeOptions = useMemo(
+    () => ({ translations: lrcTranslations }),
+    [lrcTranslations],
+  );
 
-  // Serialize the current editor state (plain text or synced rows) to
-  // the same `{ content, format }` shape both the in-app save path
-  // (DB cache + optional tag write) and the "Save to file…" path
-  // consume. Extracted from `handleSave` so the export-to-disk
-  // affordance (issue #201) doesn't have to re-implement the
-  // word/line/plain dispatch.
-  const buildPayload = (): {
+  // What the Preview step draws: the document as it would be saved, in
+  // the format picked, without the lines that have no time yet. Plain
+  // text has nothing to play along, and Enhanced LRC refuses a line not
+  // timed word by word, so those preview as TTML, which takes both.
+  const [preview, setPreview] = useState<{
     content: string;
-    format: "plain" | "lrc" | "enhanced_lrc";
-  } => {
-    const isSyncedMode = mode === "synced";
-    const isWordMode = isSyncedMode && granularity === "word";
-
-    // Bake the previewed global offset into every captured stamp on
-    // save (both line- and word-level). Negative results are clamped
-    // to 0 so a user shifting past the start of the track doesn't
-    // emit invalid stamps.
-    const shift = (ts: number): number =>
-      ts < 0 ? -1 : Math.max(0, ts + globalOffsetMs);
-
-    if (!isSyncedMode) {
-      return { content: plainText.trim(), format: "plain" };
-    }
-    if (isWordMode) {
-      // Keep every row the user typed text into, even if they
-      // haven't captured a stamp yet — line mode does the same,
-      // so saving in word mode shouldn't silently delete unstamped
-      // text. `serializeEnhancedLrc` emits `[--:--.--]` for rows
-      // with `timeMs < 0` and folds uncaptured words into the
-      // previous segment (no phantom `<00:00.00>` stamp), so half-
-      // finished work round-trips cleanly through save → reload.
-      const rowsForSave: LyricsLine[] = syncedRows
-        .filter(
-          (r) =>
-            r.text.trim().length > 0 ||
-            r.timeMs >= 0 ||
-            (r.words?.some((w) => w.timeMs >= 0) ?? false),
-        )
-        .map((r) => ({
-          timeMs: shift(r.timeMs),
-          endMs: -1,
-          text: r.text,
-          words: r.words?.map((w) => ({
-            timeMs: shift(w.timeMs),
-            endMs: -1,
-            text: w.text,
-          })),
-        }))
-        // Untimed rows (timeMs < 0) sort to the end so the synced
-        // body stays monotonically ordered; the user can resume
-        // capturing them on the next edit.
-        .sort((a, b) => {
-          if (a.timeMs < 0 && b.timeMs < 0) return 0;
-          if (a.timeMs < 0) return 1;
-          if (b.timeMs < 0) return -1;
-          return a.timeMs - b.timeMs;
-        });
-      return {
-        content: serializeEnhancedLrc(rowsForSave),
-        format: "enhanced_lrc",
-      };
-    }
+    format: LyricsFormat;
+  } | null>(null);
+  const previewSource = useMemo(() => {
+    const cleaned = cleanedDocument(doc);
+    const timed = cleaned.lines.filter(
+      (l) => l.words.length > 0 && lineBegin(l) !== undefined,
+    );
+    const hidden = cleaned.lines.filter((l) => l.words.length > 0).length;
     return {
-      content: serializeLrc(
-        syncedRows
-          .filter((r) => r.text.trim().length > 0 || r.timeMs >= 0)
-          .map((r) => (r.timeMs >= 0 ? { ...r, timeMs: shift(r.timeMs) } : r))
-          .sort((a, b) => {
-            if (a.timeMs < 0 && b.timeMs < 0) return 0;
-            if (a.timeMs < 0) return 1;
-            if (b.timeMs < 0) return -1;
-            return a.timeMs - b.timeMs;
-          }),
-      ),
-      format: "lrc",
+      doc: { ...cleaned, lines: timed },
+      hidden: hidden - timed.length,
     };
+  }, [doc]);
+  useEffect(() => {
+    if (!isOpen || step !== "preview") return;
+    let cancelled = false;
+    // Typing in another step never reaches here; a burst of nudges does.
+    const timer = window.setTimeout(async () => {
+      try {
+        const asked: LyricsFormat = format === "plain" ? "ttml" : format;
+        let written = await writeLyricsDocument(
+          previewSource.doc,
+          asked,
+          writeOptions,
+        );
+        let shown = asked;
+        if (written.kind === "unsynced") {
+          shown = "ttml";
+          written = await writeLyricsDocument(previewSource.doc, "ttml");
+        }
+        if (cancelled) return;
+        setPreview(
+          written.kind === "written"
+            ? { content: written.content, format: shown }
+            : { content: "", format: "plain" },
+        );
+      } catch (err) {
+        if (!cancelled) setError(String(err));
+      }
+    }, 120);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [isOpen, step, previewSource, format, writeOptions]);
+
+  const hasText = doc.lines.some((l) => l.words.length > 0);
+
+  /** The document in the format picked, or `null` after showing which
+   *  unit keeps it from being written. */
+  const writeForSave = async (): Promise<string | null> => {
+    const written = await writeLyricsDocument(
+      cleanedDocument(doc),
+      format,
+      writeOptions,
+    );
+    if (written.kind === "unsynced") {
+      setUnsynced(written);
+      return null;
+    }
+    setUnsynced(null);
+    return written.content;
   };
 
-  // ── Save ─────────────────────────────────────────────────────────
+  const showUnsynced = (at: Unsynced) => {
+    setStep("sync");
+    if (at.word !== undefined) setSyncMode("word");
+    setCursor({ line: at.line, word: at.word ?? 0 });
+    setUnsynced(null);
+  };
+
+  // ── Save ──────────────────────────────────────────────────────────
   const handleSave = async () => {
-    if (trackId == null) return;
+    if (editingTrackId == null || !hasText) return;
     setIsSaving(true);
     setError(null);
+    setWarning(null);
     try {
-      const { content, format: saveFormat } = buildPayload();
-
+      const content = await writeForSave();
+      if (content === null) return;
       // The backend pauses playback if we're editing the currently
-      // playing file, so the flag is passed through as-is.
-      const next = await saveLyrics(trackId, {
+      // playing file before it rewrites the tag.
+      const next = await saveLyrics(editingTrackId, {
         content,
-        format: saveFormat,
+        format,
         destination,
       });
-      onSaved(next);
+      // The panel shows the playing track: hand it lyrics only if that
+      // is still the one they belong to (`lyrics:updated` covers the rest).
+      if (next.track_id === currentTrack?.id) onSaved(next);
       if (next.tag_write_skipped) {
-        // Keep the modal open with a warning so the user knows the
-        // file itself wasn't touched — DB cache still updated.
+        // Keep the modal open with a warning so the user knows the file
+        // itself wasn't touched — DB cache still updated.
+        setSavedDoc(doc);
         setWarning(t("lyrics.toast.tagWriteSkipped"));
       } else {
         onClose();
@@ -612,29 +436,17 @@ export function LyricsEditorModal({
     setError(null);
     setWarning(null);
     try {
-      const { content, format: saveFormat } = buildPayload();
-      // Default to `.lrc` for synced output, `.txt` for plain — the
-      // user can switch via the dialog's format dropdown either way.
-      const defaultExt = saveFormat === "plain" ? "txt" : "lrc";
+      const content = await writeForSave();
+      if (content === null) return;
+      const ext = FORMATS.find((f) => f.id === format)?.ext ?? "lrc";
       const stem = filenameStem(trackFilePath, trackTitle);
-      const defaultPath = defaultExportPath(trackFilePath, stem, defaultExt);
       const target = await showSaveDialog({
         title: t("lyricsEditor.exportToFile") ?? undefined,
-        defaultPath,
+        defaultPath: defaultExportPath(trackFilePath, stem, ext),
         filters: [
           {
-            name:
-              defaultExt === "lrc"
-                ? "Synced lyrics (.lrc)"
-                : "Plain lyrics (.txt)",
-            extensions: [defaultExt],
-          },
-          {
-            name:
-              defaultExt === "lrc"
-                ? "Plain lyrics (.txt)"
-                : "Synced lyrics (.lrc)",
-            extensions: [defaultExt === "lrc" ? "txt" : "lrc"],
+            name: t(`lyricsEditor.format.${format}`),
+            extensions: [ext],
           },
         ],
       });
@@ -647,534 +459,309 @@ export function LyricsEditorModal({
     }
   };
 
-  // ── Stats for the footer ─────────────────────────────────────────
-  const captured = useMemo(
-    () => syncedRows.filter((r) => r.timeMs >= 0).length,
-    [syncedRows],
-  );
-
-  // Index of the row whose effective timestamp (raw + global offset)
-  // is the largest one ≤ current playback position. Drives a subtle
-  // "now playing" dot so the user can see whether their offset is
-  // dialled in correctly while music plays.
-  const playingRowIdx = useMemo(() => {
-    let best = -1;
-    let bestTs = -1;
-    for (let i = 0; i < syncedRows.length; i += 1) {
-      const ts = syncedRows[i].timeMs;
-      if (ts < 0) continue;
-      const effective = ts + globalOffsetMs;
-      if (effective <= positionMs && effective > bestTs) {
-        best = i;
-        bestTs = effective;
-      }
-    }
-    return best;
-  }, [syncedRows, globalOffsetMs, positionMs]);
+  const otherTrackPlaying =
+    editingTrackId != null && currentTrack?.id !== editingTrackId;
+  const hasTranslations = doc.lines.some((l) => l.translations?.length);
 
   return (
-    <AnimatedModalShell isOpen={isOpen} onBackdropClick={onClose}>
-      <AnimatedModalContent
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="lyrics-editor-title"
-        className="relative bg-white dark:bg-surface-dark-elevated text-zinc-900 dark:text-zinc-100 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-2xl w-full max-w-3xl max-h-[calc(100vh-2rem)] flex flex-col overflow-hidden"
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
-          <div className="min-w-0">
-            <h2
-              id="lyrics-editor-title"
-              className="text-lg font-semibold truncate"
+    <AnimatedModalContent
+      ref={dialogRef}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="lyrics-editor-title"
+      className="relative bg-white dark:bg-surface-dark-elevated text-zinc-900 dark:text-zinc-100 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-2xl w-full max-w-5xl h-[min(56rem,calc(100vh-2rem))] flex flex-col overflow-hidden"
+    >
+      {/* Header */}
+      <div className="flex items-center gap-4 px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
+        <div className="min-w-0">
+          <h2
+            id="lyrics-editor-title"
+            className="text-lg font-semibold truncate"
+          >
+            {t("lyricsEditor.title")}
+          </h2>
+          {trackTitle && (
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate mt-0.5">
+              {trackTitle}
+            </p>
+          )}
+        </div>
+        <nav
+          aria-label={t("lyricsEditor.stepsLabel")}
+          className="mx-auto flex rounded-full bg-zinc-100 dark:bg-zinc-800 p-0.5 text-sm"
+        >
+          {STEPS.map((s, k) => (
+            <button
+              key={s}
+              type="button"
+              aria-current={step === s ? "step" : undefined}
+              onClick={() => setStep(s)}
+              className={`px-4 py-1.5 rounded-full font-medium transition-colors ${
+                step === s
+                  ? "bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm"
+                  : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200"
+              }`}
             >
-              {t("lyricsEditor.title")}
-            </h2>
-            {trackTitle && (
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate mt-0.5">
-                {trackTitle}
-              </p>
-            )}
-          </div>
+              <span className="mr-1.5 text-xs tabular-nums opacity-60">
+                {k + 1}
+              </span>
+              {t(`lyricsEditor.steps.${s}`)}
+            </button>
+          ))}
+        </nav>
+        <div className="flex items-center gap-1">
           <button
             type="button"
-            onClick={onClose}
+            onClick={history.undo}
+            disabled={!history.canUndo}
+            title={t("lyricsEditor.undo")}
+            aria-label={t("lyricsEditor.undo")}
+            className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-30 transition-colors"
+          >
+            <Undo2 size={16} />
+          </button>
+          <button
+            type="button"
+            onClick={history.redo}
+            disabled={!history.canRedo}
+            title={t("lyricsEditor.redo")}
+            aria-label={t("lyricsEditor.redo")}
+            className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-30 transition-colors"
+          >
+            <Redo2 size={16} />
+          </button>
+          <button
+            type="button"
+            onClick={requestClose}
             className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors"
             aria-label={t("common.close")}
           >
             <X size={18} />
           </button>
         </div>
+      </div>
 
-        {/* Tabs */}
-        <div className="flex border-b border-zinc-200 dark:border-zinc-800">
-          <TabButton
-            active={mode === "plain"}
-            onClick={() => setMode("plain")}
-            label={t("lyricsEditor.tabs.plain")}
-          />
-          <TabButton
-            active={mode === "synced"}
-            onClick={() => setMode("synced")}
-            label={t("lyricsEditor.tabs.synced")}
-          />
+      {otherTrackPlaying && step !== "edit" && (
+        <div className="flex items-center gap-2 px-6 py-2 text-xs bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 border-b border-amber-200 dark:border-amber-900">
+          <AlertTriangle size={14} />
+          {t("lyricsEditor.otherTrackPlaying")}
         </div>
+      )}
 
-        {/* Body — flex-1 so it absorbs the leftover height between the
-            header/tabs and the footer (and the synced controls when
-            visible) without ever pushing the action bar off-screen.
-            Plain-mode textarea fills the body via `h-full`; in synced
-            mode the row list scrolls inside this same scroll container.
-            See #172 — a fixed `h-[50vh]` here hid the footer on 1080p
-            + Windows display scaling. */}
-        <div className="flex-1 min-h-0 overflow-y-auto p-6">
-          {mode === "plain" ? (
-            <textarea
-              value={plainText}
-              onChange={(e) => setPlainText(e.target.value)}
-              placeholder={t("lyricsEditor.plainPlaceholder")}
-              className="w-full h-full min-h-48 resize-none rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 p-4 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-pink-500"
+      {/* Body — the one scroller of the editor, handed to its lists as
+            the page they virtualize against. The preview scrolls itself,
+            as the immersive view does. */}
+      <PageScrollContext.Provider value={bodyRef}>
+        <div
+          ref={bodyRef}
+          className={`flex-1 min-h-0 p-6 ${
+            step === "preview" ? "overflow-hidden" : "overflow-y-auto"
+          }`}
+        >
+          {loading ? (
+            <div className="flex h-full items-center justify-center text-zinc-400">
+              <Loader2 size={20} className="animate-spin" />
+            </div>
+          ) : step === "edit" ? (
+            <EditStep
+              doc={doc}
+              edit={edit}
+              selected={selected}
+              onSelect={(line) => {
+                setSelected(line);
+                setCursor({ line, word: 0 });
+              }}
             />
-          ) : (
-            <>
-              {/* Granularity toggle. Sits above the row list so users
-                  can flip between line + word capture without losing
-                  what they've already stamped. */}
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-xs text-zinc-500 dark:text-zinc-400 mr-1">
-                  {t("lyricsEditor.granularity.label")}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setGranularity("line")}
-                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                    granularity === "line"
-                      ? "bg-pink-500 text-white"
-                      : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                  }`}
-                >
-                  {t("lyricsEditor.granularity.line")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setGranularity("word")}
-                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                    granularity === "word"
-                      ? "bg-pink-500 text-white"
-                      : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                  }`}
-                >
-                  {t("lyricsEditor.granularity.word")}
-                </button>
-              </div>
-              <SyncedEditor
-                rows={syncedRows}
-                activeRow={activeRow}
-                playingRow={playingRowIdx}
-                offsetMs={globalOffsetMs}
-                granularity={granularity}
-                onActivate={setActiveRow}
-                onUpdateText={updateRowText}
-                onRemove={removeRow}
-                onInsertBelow={insertRowBelow}
-                onSeekTo={seekToRow}
-                onRecapture={recapture}
-              />
-            </>
-          )}
+          ) : step === "sync" ? (
+            <SyncStep
+              doc={doc}
+              edit={edit}
+              mode={syncMode}
+              setMode={setSyncMode}
+              cursor={cursor}
+              setCursor={setCursor}
+              reactionMs={reactionMs}
+              setReactionMs={setReactionMs}
+              estimate={estimate}
+              seek={(ms) => void seek(ms).catch(() => {})}
+              togglePlayback={() => void togglePlayback()}
+              active={isOpen && !confirmDiscard}
+            />
+          ) : currentTrack ? (
+            <PreviewStep
+              track={currentTrack}
+              written={preview}
+              hiddenLines={previewSource.hidden}
+              seek={(ms) => void seek(ms).catch(() => {})}
+            />
+          ) : null}
         </div>
+      </PageScrollContext.Provider>
 
-        {/* Synced controls */}
-        {mode === "synced" && (
-          <div className="px-6 py-3 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950/40">
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => nudge(-2000)}
-                title="-2s"
-                className="p-2 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors"
-              >
-                <SkipBack size={16} />
-              </button>
-              <button
-                type="button"
-                onClick={() => togglePlayback()}
-                title={
-                  isPlaying
-                    ? t("player.controls.pause")
-                    : t("player.controls.play")
-                }
-                className="p-2 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:opacity-90 transition-opacity"
-              >
-                {isPlaying ? <Pause size={16} /> : <Play size={16} />}
-              </button>
-              <button
-                type="button"
-                onClick={() => nudge(2000)}
-                title="+2s"
-                className="p-2 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors"
-              >
-                <SkipForward size={16} />
-              </button>
-              <div className="text-xs font-mono text-zinc-500 dark:text-zinc-400 ml-2 w-24">
-                {formatLrcTimestamp(positionMs)}
-              </div>
-              <div className="flex-1" />
-              <button
-                type="button"
-                onClick={captureCurrent}
-                className="px-4 py-2 rounded-full bg-pink-500 hover:bg-pink-600 text-white text-sm font-medium flex items-center gap-2 transition-colors"
-                title={t("lyricsEditor.captureHint")}
-              >
-                <Crosshair size={14} />
-                {t("lyricsEditor.capture")}
-              </button>
-            </div>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
-              {granularity === "word"
-                ? t("lyricsEditor.captureHintWord")
-                : t("lyricsEditor.captureHint")}{" "}
-              · {captured}/{syncedRows.length} {t("lyricsEditor.lines")}
-            </p>
+      {/* Transport */}
+      <div className="px-6 py-3 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950/40">
+        <EditorTransport
+          isPlaying={isPlaying}
+          togglePlayback={() => void togglePlayback()}
+          seek={(ms) => void seek(Math.max(0, ms)).catch(() => {})}
+          estimate={estimate}
+          speed={playbackSpeed}
+          setSpeed={setPlaybackSpeed}
+          durationMs={currentTrack?.duration_ms ?? null}
+        />
+      </div>
 
-            {/* Global timestamp shift — applied to every captured row
-                at save time. Useful when imported LRC files are
-                consistently early/late, or when the user's reaction
-                latency drifted every capture by the same amount. */}
-            <div className="mt-3 flex items-center gap-2">
-              <span
-                className="text-xs font-medium text-zinc-600 dark:text-zinc-300 shrink-0"
-                title={t("lyricsEditor.offset.help")}
-              >
-                {t("lyricsEditor.offset.label")}
-              </span>
-              <button
-                type="button"
-                onClick={() =>
-                  setGlobalOffsetMs((v) => Math.max(-5000, v - 100))
-                }
-                className="p-1.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors"
-                title="-100 ms"
-              >
-                <Minus size={12} />
-              </button>
-              <input
-                type="range"
-                min={-5000}
-                max={5000}
-                step={50}
-                value={globalOffsetMs}
-                onChange={(e) =>
-                  setGlobalOffsetMs(Number(e.currentTarget.value))
-                }
-                aria-label={t("lyricsEditor.offset.label")}
-                className="flex-1 accent-pink-500"
-              />
-              <button
-                type="button"
-                onClick={() =>
-                  setGlobalOffsetMs((v) => Math.min(5000, v + 100))
-                }
-                className="p-1.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors"
-                title="+100 ms"
-              >
-                <Plus size={12} />
-              </button>
-              <span
-                className={`font-mono text-xs w-16 text-right ${
-                  globalOffsetMs === 0
-                    ? "text-zinc-400 dark:text-zinc-500"
-                    : "text-pink-500"
-                }`}
-              >
-                {globalOffsetMs > 0 ? "+" : ""}
-                {(globalOffsetMs / 1000).toFixed(2)} s
-              </span>
-              <button
-                type="button"
-                onClick={() => setGlobalOffsetMs(0)}
-                disabled={globalOffsetMs === 0}
-                className="p-1.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                title={t("lyricsEditor.offset.reset")}
-              >
-                <RotateCcw size={12} />
-              </button>
-            </div>
+      {/* Footer — flex-wrap so on a narrow window the pickers and the
+            action group stack instead of pushing Save off-screen (#341). */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-3 px-6 py-4 border-t border-zinc-200 dark:border-zinc-800">
+        {confirmDiscard ? (
+          <div className="flex basis-full items-center justify-end gap-3 text-sm">
+            <span className="mr-auto text-amber-600 dark:text-amber-400">
+              {t("lyricsEditor.discard.question")}
+            </span>
+            <button
+              type="button"
+              onClick={() => setConfirmDiscard(false)}
+              className="px-4 py-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+            >
+              {t("lyricsEditor.discard.keep")}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 rounded-full bg-red-500 hover:bg-red-600 text-white font-medium transition-colors"
+            >
+              {t("lyricsEditor.discard.confirm")}
+            </button>
           </div>
-        )}
-
-        {/* Footer — flex-wrap so on a narrow modal (viewport < max-w-3xl)
-            the destination pills and the action group stack onto two
-            rows instead of overflowing horizontally and pushing the Save
-            button off-screen (issue #341). */}
-        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 px-6 py-4 border-t border-zinc-200 dark:border-zinc-800">
-          {/* Destination segmented control. Replaces the previous
-              "Écrire dans le fichier" checkbox (issue #201): the
-              third option (Sidecar) writes a sibling .lrc / .txt
-              next to the audio file so users can keep the tag block
-              clean. The control starts on the app-wide default
-              fetched on open; a per-save override here is in-memory
-              only. */}
-          <div
-            role="radiogroup"
-            aria-label={t("lyricsEditor.destinationLabel")}
-            className="flex items-center shrink-0 whitespace-nowrap rounded-full bg-zinc-100 dark:bg-zinc-800 p-0.5 text-xs"
-          >
-            {(["tag", "sidecar", "db_only"] as const).map((value) => {
-              const checked = destination === value;
-              return (
-                <button
-                  key={value}
-                  type="button"
-                  role="radio"
-                  aria-checked={checked}
-                  onClick={() => setDestination(value)}
-                  title={
-                    t(`lyricsEditor.destination.${value}.hint`) ?? undefined
-                  }
-                  className={[
-                    "px-3 py-1 rounded-full transition-colors font-medium",
-                    checked
-                      ? "bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm"
-                      : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200",
-                  ].join(" ")}
-                >
-                  {t(`lyricsEditor.destination.${value}.label`)}
-                </button>
-              );
-            })}
-          </div>
-          {/* min-w-0 lets the warning/error text truncate to whatever
-              space is left instead of forcing the row to overflow —
-              without it, a long "Exported to <path>" message pushed the
-              destination pills into wrapping their labels and squeezed
-              the Save button out of view (issue #341). */}
-          <div className="flex basis-full md:flex-1 items-center gap-2 min-w-0 justify-end">
-            {warning && (
-              <span className="text-xs text-amber-600 dark:text-amber-400 truncate min-w-0">
-                {warning}
-              </span>
-            )}
-            {error && (
-              <span className="text-xs text-red-500 truncate min-w-0">
-                {error}
-              </span>
-            )}
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 rounded-full text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-              >
-                {t("common.cancel")}
-              </button>
-              <button
-                type="button"
-                onClick={handleExportToFile}
-                disabled={isSaving}
-                className="px-4 py-2 rounded-full text-sm border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50 flex items-center gap-2 whitespace-nowrap"
-                title={t("lyricsEditor.exportToFileHint") ?? undefined}
-              >
-                <FileDown size={14} />
-                {t("lyricsEditor.exportToFile")}
-              </button>
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={isSaving || trackId == null}
-                className="px-5 py-2 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center gap-2 whitespace-nowrap"
-              >
-                {isSaving ? (
-                  <Loader2 size={14} className="animate-spin" />
-                ) : (
-                  <Save size={14} />
-                )}
-                {t("common.save")}
-              </button>
-            </div>
-          </div>
-        </div>
-      </AnimatedModalContent>
-    </AnimatedModalShell>
-  );
-}
-
-function TabButton({
-  active,
-  onClick,
-  label,
-}: {
-  active: boolean;
-  onClick: () => void;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`px-5 py-3 text-sm font-medium transition-colors border-b-2 -mb-px ${
-        active
-          ? "border-pink-500 text-zinc-900 dark:text-white"
-          : "border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
-      }`}
-    >
-      {label}
-    </button>
-  );
-}
-
-interface SyncedEditorProps {
-  rows: SyncedRow[];
-  activeRow: number;
-  /** Index of the row currently sounding at playback position
-   * (after the global offset preview). -1 = none. */
-  playingRow: number;
-  /** Global timestamp shift previewed in the timestamp buttons. */
-  offsetMs: number;
-  /** Capture granularity — drives the per-word chip row. */
-  granularity: Granularity;
-  onActivate: (idx: number) => void;
-  onUpdateText: (id: number, text: string) => void;
-  onRemove: (id: number) => void;
-  onInsertBelow: (id: number) => void;
-  onSeekTo: (row: SyncedRow) => void;
-  onRecapture: (id: number) => void;
-}
-
-function SyncedEditor({
-  rows,
-  activeRow,
-  playingRow,
-  offsetMs,
-  granularity,
-  onActivate,
-  onUpdateText,
-  onRemove,
-  onInsertBelow,
-  onSeekTo,
-  onRecapture,
-}: SyncedEditorProps) {
-  const { t } = useTranslation();
-  return (
-    <ul className="space-y-1.5">
-      {rows.map((row, idx) => {
-        const isActive = idx === activeRow;
-        const isPlaying = idx === playingRow;
-        const captured = row.timeMs >= 0;
-        const shifted = captured && offsetMs !== 0;
-        const previewMs = captured ? Math.max(0, row.timeMs + offsetMs) : -1;
-        const showWordChips =
-          granularity === "word" && isActive && (row.words?.length ?? 0) > 0;
-        return (
-          <li
-            key={row.id}
-            className={`flex flex-col gap-1 px-2 py-1.5 rounded-lg transition-colors ${
-              isActive
-                ? "bg-pink-50 dark:bg-pink-950/30 ring-1 ring-pink-200 dark:ring-pink-900"
-                : isPlaying
-                  ? "bg-emerald-50/60 dark:bg-emerald-950/20"
-                  : "hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
-            }`}
-            onFocus={() => onActivate(idx)}
-          >
-            <div className="flex items-center gap-2">
-              <span
-                aria-hidden
-                className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                  isPlaying ? "bg-emerald-500 animate-pulse" : "bg-transparent"
-                }`}
-              />
-              <button
-                type="button"
-                onClick={() => (captured ? onSeekTo(row) : onRecapture(row.id))}
-                title={
-                  captured
-                    ? t("lyricsEditor.seekToLine")
-                    : t("lyricsEditor.captureNow")
-                }
-                className={`shrink-0 font-mono text-xs px-2 py-1 rounded w-20 text-center transition-colors ${
-                  captured
-                    ? shifted
-                      ? "bg-pink-100 dark:bg-pink-900/40 text-pink-600 dark:text-pink-300 hover:bg-pink-200 dark:hover:bg-pink-900/60 italic"
-                      : "bg-zinc-200 dark:bg-zinc-700 hover:bg-zinc-300 dark:hover:bg-zinc-600"
-                    : "bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 hover:text-pink-500"
-                }`}
-              >
-                {captured ? formatLrcTimestamp(previewMs) : "--:--.--"}
-              </button>
-              <input
-                type="text"
-                value={row.text}
-                onChange={(e) => onUpdateText(row.id, e.target.value)}
-                onFocus={() => onActivate(idx)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    onInsertBelow(row.id);
-                    // Defer so the new row exists before we activate it.
-                    setTimeout(() => onActivate(idx + 1), 0);
-                  }
+        ) : (
+          <>
+            <label className="flex items-center gap-2 text-xs text-zinc-600 dark:text-zinc-300">
+              {t("lyricsEditor.formatLabel")}
+              <select
+                value={format}
+                onChange={(e) => {
+                  setFormat(e.target.value as LyricsFormat);
+                  setUnsynced(null);
                 }}
-                placeholder={t("lyricsEditor.linePlaceholder")}
-                className="flex-1 bg-transparent text-sm focus:outline-none px-2 py-1"
-              />
-              <button
-                type="button"
-                onClick={() => onRecapture(row.id)}
-                title={t("lyricsEditor.recapture")}
-                className="p-1.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-400 hover:text-pink-500 transition-colors"
+                className="rounded-full border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3 py-1 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-pink-500"
               >
-                <Crosshair size={12} />
-              </button>
-              <button
-                type="button"
-                onClick={() => onInsertBelow(row.id)}
-                title={t("lyricsEditor.insertBelow")}
-                className="p-1.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
-              >
-                <Plus size={12} />
-              </button>
-              <button
-                type="button"
-                onClick={() => onRemove(row.id)}
-                title={t("lyricsEditor.removeLine")}
-                className="p-1.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-400 hover:text-red-500 transition-colors"
-              >
-                <Trash2 size={12} />
-              </button>
+                {FORMATS.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {t(`lyricsEditor.format.${f.id}`)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {(format === "lrc" || format === "enhanced_lrc") &&
+              hasTranslations && (
+                <label className="flex items-center gap-1.5 text-xs text-zinc-600 dark:text-zinc-300">
+                  <input
+                    type="checkbox"
+                    checked={lrcTranslations}
+                    onChange={(e) => setLrcTranslations(e.target.checked)}
+                    className="accent-pink-500"
+                  />
+                  {t("lyricsEditor.lrcTranslations")}
+                </label>
+              )}
+            {/* Destination segmented control (issue #201): the
+                  app-wide default fetched on open, overridable per save. */}
+            <div
+              role="radiogroup"
+              aria-label={t("lyricsEditor.destinationLabel")}
+              className="flex items-center shrink-0 whitespace-nowrap rounded-full bg-zinc-100 dark:bg-zinc-800 p-0.5 text-xs"
+            >
+              {(["tag", "sidecar", "db_only"] as const).map((value) => {
+                const checked = destination === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    role="radio"
+                    aria-checked={checked}
+                    onClick={() => setDestination(value)}
+                    title={
+                      t(`lyricsEditor.destination.${value}.hint`) ?? undefined
+                    }
+                    className={[
+                      "px-3 py-1 rounded-full transition-colors font-medium",
+                      checked
+                        ? "bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm"
+                        : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200",
+                    ].join(" ")}
+                  >
+                    {t(`lyricsEditor.destination.${value}.label`)}
+                  </button>
+                );
+              })}
             </div>
-            {showWordChips && (
-              <div className="flex flex-wrap items-center gap-1 pl-22 pr-2 pb-1">
-                {row.words!.map((w, wi) => {
-                  const wCursor = row.wordCursor ?? 0;
-                  const wCaptured = w.timeMs >= 0;
-                  const isNext = wi === wCursor;
-                  return (
-                    <span
-                      key={wi}
-                      className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-mono transition-colors ${
-                        wCaptured
-                          ? "bg-pink-100 dark:bg-pink-900/40 text-pink-700 dark:text-pink-200"
-                          : isNext
-                            ? "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-200 ring-1 ring-emerald-400"
-                            : "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400"
-                      }`}
-                      title={
-                        wCaptured
-                          ? formatLrcTimestamp(Math.max(0, w.timeMs + offsetMs))
-                          : t("lyricsEditor.notCaptured")
-                      }
-                    >
-                      <span>{w.text.trim() || "·"}</span>
-                    </span>
-                  );
-                })}
+            {/* min-w-0 lets the messages truncate instead of squeezing
+                  the Save button out of view (issue #341). */}
+            <div className="flex basis-full lg:flex-1 items-center gap-2 min-w-0 justify-end">
+              {unsynced && (
+                <span className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400 min-w-0">
+                  <span className="truncate">
+                    {unsynced.word !== undefined
+                      ? t("lyricsEditor.unsynced.word", {
+                          format: t(`lyricsEditor.format.${format}`),
+                          line: unsynced.line + 1,
+                          word: unsynced.word + 1,
+                        })
+                      : t("lyricsEditor.unsynced.line", {
+                          format: t(`lyricsEditor.format.${format}`),
+                          line: unsynced.line + 1,
+                        })}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => showUnsynced(unsynced)}
+                    className="shrink-0 underline underline-offset-2"
+                  >
+                    {t("lyricsEditor.unsynced.show")}
+                  </button>
+                </span>
+              )}
+              {warning && (
+                <span className="text-xs text-amber-600 dark:text-amber-400 truncate min-w-0">
+                  {warning}
+                </span>
+              )}
+              {error && (
+                <span className="text-xs text-red-500 truncate min-w-0">
+                  {error}
+                </span>
+              )}
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={handleExportToFile}
+                  disabled={isSaving || !hasText}
+                  className="px-4 py-2 rounded-full text-sm border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50 flex items-center gap-2 whitespace-nowrap"
+                  title={t("lyricsEditor.exportToFileHint") ?? undefined}
+                >
+                  <FileDown size={14} />
+                  {t("lyricsEditor.exportToFile")}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={isSaving || editingTrackId == null || !hasText}
+                  className="px-5 py-2 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center gap-2 whitespace-nowrap"
+                >
+                  {isSaving ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <Save size={14} />
+                  )}
+                  {t("common.save")}
+                </button>
               </div>
-            )}
-          </li>
-        );
-      })}
-    </ul>
+            </div>
+          </>
+        )}
+      </div>
+    </AnimatedModalContent>
   );
 }
 

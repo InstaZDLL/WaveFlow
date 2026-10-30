@@ -1798,35 +1798,8 @@
   },
   "lyricsEditor": {
     "title": "Lyrics editor",
-    "tabs": {
-      "plain": "Plain",
-      "synced": "Synced"
-    },
-    "plainPlaceholder": "Type the lyrics line by line…",
-    "linePlaceholder": "Line text",
-    "capture": "Capture",
-    "captureHint": "Start playback then press Space (or Capture) to anchor the current line to the playhead",
-    "captureNow": "Capture now",
-    "recapture": "Re-anchor to current position",
-    "seekToLine": "Jump to this line",
-    "insertBelow": "Insert a line below",
-    "removeLine": "Remove line",
-    "lines": "lines anchored",
-    "writeToFile": "Also write to the audio file (USLT/LYRICS)",
-    "offset": {
-      "label": "Global shift",
-      "help": "Shifts every captured line by the same delta — useful for fixing imported LRC files that are uniformly early or late",
-      "reset": "Reset shift"
-    },
-    "granularity": {
-      "label": "Granularity:",
-      "line": "Line by line",
-      "word": "Word by word"
-    },
-    "captureHintWord": "Space = next word · Enter = next line · Backspace = undo last word",
-    "notCaptured": "Not captured",
     "exportToFile": "Save to file…",
-    "exportToFileHint": "Export the lyrics to a .lrc or .txt file at the location of your choice, without touching the audio file",
+    "exportToFileHint": "Exports the lyrics in the chosen format (.ttml, .lrc or .txt) wherever you like, without touching the audio file",
     "exportedToFile": "Exported to {{path}}",
     "destinationLabel": "Default lyrics destination",
     "destination": {
@@ -1842,6 +1815,130 @@
         "label": "WaveFlow database only",
         "hint": "Stays in WaveFlow's database. No files or tags are touched."
       }
+    },
+    "stepsLabel": "Editor steps",
+    "steps": {
+      "edit": "Edit",
+      "sync": "Sync",
+      "preview": "Preview"
+    },
+    "undo": "Undo (Ctrl+Z)",
+    "redo": "Redo (Ctrl+Shift+Z)",
+    "otherTrackPlaying": "The track playing is not the one whose lyrics you are editing: syncing and the preview follow the player.",
+    "formatLabel": "Format",
+    "format": {
+      "ttml": "TTML",
+      "enhanced_lrc": "Enhanced LRC",
+      "lrc": "LRC",
+      "plain": "Plain text"
+    },
+    "lrcTranslations": "Translations as doubled lines",
+    "discard": {
+      "question": "Close without saving your changes?",
+      "keep": "Keep editing",
+      "confirm": "Discard and close"
+    },
+    "unsynced": {
+      "line": "{{format}}: line {{line}} has no time",
+      "word": "{{format}}: word {{word}} of line {{line}} has no time",
+      "show": "Show me"
+    },
+    "transport": {
+      "back": "Back 2 s",
+      "forward": "Forward 2 s",
+      "speed": "Playback speed"
+    },
+    "edit": {
+      "lines": "Lines · {{n}}",
+      "viewLabel": "Line view",
+      "view": {
+        "lines": "Lines",
+        "text": "Text"
+      },
+      "meta": {
+        "title": "Title",
+        "artist": "Artist",
+        "album": "Album",
+        "language": "Language",
+        "languagePlaceholder": "en, ja, pt-BR…"
+      },
+      "singers": "Singers",
+      "singersHint": "One voice. Add singers for a duet.",
+      "singerName": "Singer name",
+      "singerKind": "Solo or together",
+      "kind": {
+        "person": "solo",
+        "group": "together"
+      },
+      "removeSinger": "Remove this singer",
+      "addSinger": "Add singer",
+      "textPlaceholder": "Paste the lyrics here, one line per line.\nBlank lines are ignored.",
+      "useText": "Use these lines",
+      "useTextKeepsTiming": "Lines you did not change keep their timing.",
+      "addLine": "Add a line",
+      "details": "Line details",
+      "linePlaceholder": "Line text",
+      "lineLabel": "Line {{n}}",
+      "badge": {
+        "background": "backing",
+        "translation": "transl.",
+        "romanization": "rom."
+      },
+      "mergeNext": "Merge with the next line",
+      "removeLine": "Delete line",
+      "singer": "Singer",
+      "lead": "Lead",
+      "part": "Section",
+      "partPlaceholder": "Verse, Chorus…",
+      "background": "Backing vocals",
+      "backgroundPlaceholder": "(sung over this line)",
+      "translation": "Translation",
+      "translationLang": "lang",
+      "romanization": "Romanization"
+    },
+    "sync": {
+      "modeLabel": "Sync",
+      "mode": {
+        "line": "Line by line",
+        "word": "Word by word"
+      },
+      "reaction": "Reaction offset",
+      "reactionHint": "Every tap is moved this much earlier, to make up for the time between hearing and pressing.",
+      "shift": "Shift all",
+      "shiftHint": "Moves every time in the document, for a file that is consistently early or late.",
+      "shiftEarlier": "Move everything {{ms}} ms earlier",
+      "shiftLater": "Move everything {{ms}} ms later",
+      "progressLines": "Lines synced: {{done}} / {{total}}",
+      "progressWords": "Words synced: {{done}} / {{total}}",
+      "keyNames": {
+        "space": "Space",
+        "enter": "Enter"
+      },
+      "keys": {
+        "space": {
+          "line": "start the next line",
+          "word": "start the next word"
+        },
+        "enter": {
+          "line": "end the line just sung",
+          "word": "end the word just sung"
+        },
+        "backspace": "undo the last tap",
+        "play": "play / pause",
+        "seek": "2 s back / forward",
+        "line": "pick a line"
+      },
+      "empty": "No lyrics yet. Type or paste them in the Edit step.",
+      "emptyLine": "empty line",
+      "notTimed": "Not timed yet",
+      "nudgeEarlier": "{{ms}} ms earlier",
+      "nudgeLater": "{{ms}} ms later",
+      "playFromHere": "Play from here"
+    },
+    "preview": {
+      "hiddenLines": "Lines not synced yet, hidden here: {{n}}",
+      "writing": "Preparing the preview…",
+      "nothingSynced": "Sync a few lines in the Sync step to see them play here."
     }
   },
   "sort": {

@@ -1796,35 +1796,8 @@
   },
   "lyricsEditor": {
     "title": "歌詞エディタ",
-    "tabs": {
-      "plain": "テキスト",
-      "synced": "同期"
-    },
-    "plainPlaceholder": "歌詞を一行ずつ入力…",
-    "linePlaceholder": "行のテキスト",
-    "capture": "キャプチャ",
-    "captureHint": "再生を開始してからスペース（またはキャプチャ）を押すと、現在の行が再生位置に固定されます",
-    "captureNow": "今キャプチャ",
-    "recapture": "現在位置に再固定",
-    "seekToLine": "この行へジャンプ",
-    "insertBelow": "下に行を挿入",
-    "removeLine": "行を削除",
-    "lines": "行を同期済み",
-    "writeToFile": "オーディオファイルにも書き込む（USLT/LYRICS）",
-    "offset": {
-      "label": "全体オフセット",
-      "help": "キャプチャ済みのすべての行を同じ量だけずらします。インポートした LRC ファイルが一律に早い、または遅い場合の補正に便利です",
-      "reset": "オフセットをリセット"
-    },
-    "granularity": {
-      "label": "粒度：",
-      "line": "1行ずつ",
-      "word": "1単語ずつ"
-    },
-    "captureHintWord": "スペース = 次の単語 · Enter = 次の行 · Backspace = 最後の単語を取り消す",
-    "notCaptured": "未キャプチャ",
     "exportToFile": "ファイルに保存…",
-    "exportToFileHint": "オーディオファイルを変更せずに、任意の場所へ .lrc または .txt として歌詞を書き出します",
+    "exportToFileHint": "選んだ形式（.ttml、.lrc、.txt）で歌詞を好きな場所に書き出します。音声ファイルには触れません",
     "exportedToFile": "{{path}} に書き出しました",
     "destinationLabel": "歌詞の既定の保存先",
     "destination": {
@@ -1840,6 +1813,130 @@
         "label": "WaveFlow のデータベースのみ",
         "hint": "WaveFlow のデータベースにのみ残ります。ファイルもタグも変更しません。"
       }
+    },
+    "stepsLabel": "エディターの手順",
+    "steps": {
+      "edit": "編集",
+      "sync": "同期",
+      "preview": "プレビュー"
+    },
+    "undo": "元に戻す (Ctrl+Z)",
+    "redo": "やり直す (Ctrl+Shift+Z)",
+    "otherTrackPlaying": "再生中の曲は、歌詞を編集している曲ではありません。同期とプレビューはプレーヤーに従います。",
+    "formatLabel": "形式",
+    "format": {
+      "ttml": "TTML",
+      "enhanced_lrc": "拡張 LRC",
+      "lrc": "LRC",
+      "plain": "テキストのみ"
+    },
+    "lrcTranslations": "翻訳を重複行として書き出す",
+    "discard": {
+      "question": "変更を保存せずに閉じますか？",
+      "keep": "編集を続ける",
+      "confirm": "保存せずに閉じる"
+    },
+    "unsynced": {
+      "line": "{{format}}：{{line}} 行目に時間がありません",
+      "word": "{{format}}：{{line}} 行目の {{word}} 語目に時間がありません",
+      "show": "移動"
+    },
+    "transport": {
+      "back": "2 秒戻る",
+      "forward": "2 秒進む",
+      "speed": "再生速度"
+    },
+    "edit": {
+      "lines": "行 · {{n}}",
+      "viewLabel": "行の表示",
+      "view": {
+        "lines": "行",
+        "text": "テキスト"
+      },
+      "meta": {
+        "title": "タイトル",
+        "artist": "アーティスト",
+        "album": "アルバム",
+        "language": "言語",
+        "languagePlaceholder": "ja, en, ko…"
+      },
+      "singers": "歌い手",
+      "singersHint": "声は 1 つです。デュエットには歌い手を追加します。",
+      "singerName": "歌い手の名前",
+      "singerKind": "ソロか一緒か",
+      "kind": {
+        "person": "ソロ",
+        "group": "一緒に"
+      },
+      "removeSinger": "この歌い手を削除",
+      "addSinger": "歌い手を追加",
+      "textPlaceholder": "ここに歌詞を貼り付けてください。1 行ずつ。\n空行は無視されます。",
+      "useText": "この行を使う",
+      "useTextKeepsTiming": "変更していない行は同期を保ちます。",
+      "addLine": "行を追加",
+      "details": "行の詳細",
+      "linePlaceholder": "行のテキスト",
+      "lineLabel": "{{n}} 行目",
+      "badge": {
+        "background": "コーラス",
+        "translation": "訳",
+        "romanization": "ローマ字"
+      },
+      "mergeNext": "次の行と結合",
+      "removeLine": "行を削除",
+      "singer": "歌い手",
+      "lead": "メインボーカル",
+      "part": "セクション",
+      "partPlaceholder": "Aメロ、サビ…",
+      "background": "バックコーラス",
+      "backgroundPlaceholder": "（この行に重ねて歌われる）",
+      "translation": "翻訳",
+      "translationLang": "言語",
+      "romanization": "ローマ字表記"
+    },
+    "sync": {
+      "modeLabel": "同期",
+      "mode": {
+        "line": "行ごと",
+        "word": "単語ごと"
+      },
+      "reaction": "反応補正",
+      "reactionHint": "聞いてから押すまでの遅れを補うため、各タップをこの分だけ早めます。",
+      "shift": "すべてずらす",
+      "shiftHint": "文書内のすべての時間をずらします。一貫して早い・遅いファイル向けです。",
+      "shiftEarlier": "すべて {{ms}} ms 早める",
+      "shiftLater": "すべて {{ms}} ms 遅らせる",
+      "progressLines": "同期済みの行：{{done}} / {{total}}",
+      "progressWords": "同期済みの単語：{{done}} / {{total}}",
+      "keyNames": {
+        "space": "スペース",
+        "enter": "Enter"
+      },
+      "keys": {
+        "space": {
+          "line": "次の行の開始",
+          "word": "次の単語の開始"
+        },
+        "enter": {
+          "line": "歌った行の終わり",
+          "word": "歌った単語の終わり"
+        },
+        "backspace": "最後のタップを取り消す",
+        "play": "再生 / 一時停止",
+        "seek": "2 秒戻る / 進む",
+        "line": "行を選ぶ"
+      },
+      "empty": "まだ歌詞がありません。編集の手順で入力するか貼り付けてください。",
+      "emptyLine": "空行",
+      "notTimed": "未同期",
+      "nudgeEarlier": "{{ms}} ms 早く",
+      "nudgeLater": "{{ms}} ms 遅く",
+      "playFromHere": "ここから再生"
+    },
+    "preview": {
+      "hiddenLines": "まだ同期していない行（ここでは非表示）：{{n}}",
+      "writing": "プレビューを準備中…",
+      "nothingSynced": "同期の手順でいくつかの行を同期すると、ここで流れます。"
     }
   },
   "sort": {

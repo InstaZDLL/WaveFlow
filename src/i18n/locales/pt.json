@@ -1858,35 +1858,8 @@
   },
   "lyricsEditor": {
     "title": "Editor de letras",
-    "tabs": {
-      "plain": "Texto",
-      "synced": "Sincronizado"
-    },
-    "plainPlaceholder": "Escreve a letra linha a linha…",
-    "linePlaceholder": "Texto da linha",
-    "capture": "Capturar",
-    "captureHint": "Inicia a reprodução e prime Espaço (ou Capturar) para fixar a linha atual ao tempo atual",
-    "captureNow": "Capturar agora",
-    "recapture": "Voltar a fixar na posição atual",
-    "seekToLine": "Ir para esta linha",
-    "insertBelow": "Inserir uma linha abaixo",
-    "removeLine": "Remover linha",
-    "lines": "linhas fixadas",
-    "writeToFile": "Escrever também no ficheiro áudio (USLT/LYRICS)",
-    "offset": {
-      "label": "Desfasamento global",
-      "help": "Desloca todas as linhas capturadas pelo mesmo delta — útil para corrigir ficheiros LRC importados uniformemente adiantados ou atrasados",
-      "reset": "Repor desfasamento"
-    },
-    "granularity": {
-      "label": "Granularidade:",
-      "line": "Linha a linha",
-      "word": "Palavra a palavra"
-    },
-    "captureHintWord": "Espaço = próxima palavra · Enter = próxima linha · Retrocesso = desfazer última palavra",
-    "notCaptured": "Não capturado",
     "exportToFile": "Guardar em ficheiro…",
-    "exportToFileHint": "Exporta a letra para um ficheiro .lrc ou .txt no local escolhido, sem alterar o ficheiro de áudio",
+    "exportToFileHint": "Exporta a letra no formato escolhido (.ttml, .lrc ou .txt) para onde quiser, sem tocar no ficheiro de áudio",
     "exportedToFile": "Exportado para {{path}}",
     "destinationLabel": "Destino predefinido das letras",
     "destination": {
@@ -1902,6 +1875,130 @@
         "label": "Apenas base de dados WaveFlow",
         "hint": "Permanece na base de dados do WaveFlow. Nenhum ficheiro nem etiqueta é alterado."
       }
+    },
+    "stepsLabel": "Passos do editor",
+    "steps": {
+      "edit": "Edição",
+      "sync": "Sincronia",
+      "preview": "Pré-visualização"
+    },
+    "undo": "Anular (Ctrl+Z)",
+    "redo": "Refazer (Ctrl+Shift+Z)",
+    "otherTrackPlaying": "A faixa em reprodução não é aquela cuja letra está a editar: a sincronização e a pré-visualização seguem o leitor.",
+    "formatLabel": "Formato",
+    "format": {
+      "ttml": "TTML",
+      "enhanced_lrc": "LRC melhorado",
+      "lrc": "LRC",
+      "plain": "Só texto"
+    },
+    "lrcTranslations": "Traduções como linhas duplicadas",
+    "discard": {
+      "question": "Fechar sem guardar as alterações?",
+      "keep": "Continuar a editar",
+      "confirm": "Fechar sem guardar"
+    },
+    "unsynced": {
+      "line": "{{format}}: a linha {{line}} não tem tempo",
+      "word": "{{format}}: a palavra {{word}} da linha {{line}} não tem tempo",
+      "show": "Ir para lá"
+    },
+    "transport": {
+      "back": "Recuar 2 s",
+      "forward": "Avançar 2 s",
+      "speed": "Velocidade de reprodução"
+    },
+    "edit": {
+      "lines": "Linhas · {{n}}",
+      "viewLabel": "Vista das linhas",
+      "view": {
+        "lines": "Linhas",
+        "text": "Texto"
+      },
+      "meta": {
+        "title": "Título",
+        "artist": "Artista",
+        "album": "Álbum",
+        "language": "Idioma",
+        "languagePlaceholder": "pt, en, ja…"
+      },
+      "singers": "Cantores",
+      "singersHint": "Uma só voz. Adicione cantores para um dueto.",
+      "singerName": "Nome do cantor",
+      "singerKind": "Sozinho ou juntos",
+      "kind": {
+        "person": "sozinho",
+        "group": "juntos"
+      },
+      "removeSinger": "Remover este cantor",
+      "addSinger": "Adicionar cantor",
+      "textPlaceholder": "Cole a letra aqui, uma linha por linha.\nAs linhas vazias são ignoradas.",
+      "useText": "Usar estas linhas",
+      "useTextKeepsTiming": "As linhas não alteradas mantêm a sincronia.",
+      "addLine": "Adicionar uma linha",
+      "details": "Detalhes da linha",
+      "linePlaceholder": "Texto da linha",
+      "lineLabel": "Linha {{n}}",
+      "badge": {
+        "background": "coros",
+        "translation": "trad.",
+        "romanization": "rom."
+      },
+      "mergeNext": "Juntar com a linha seguinte",
+      "removeLine": "Eliminar a linha",
+      "singer": "Cantor",
+      "lead": "Voz principal",
+      "part": "Secção",
+      "partPlaceholder": "Estrofe, Refrão…",
+      "background": "Coros",
+      "backgroundPlaceholder": "(cantados por cima desta linha)",
+      "translation": "Tradução",
+      "translationLang": "idioma",
+      "romanization": "Romanização"
+    },
+    "sync": {
+      "modeLabel": "Sincronizar",
+      "mode": {
+        "line": "Linha a linha",
+        "word": "Palavra a palavra"
+      },
+      "reaction": "Compensação de reação",
+      "reactionHint": "Cada toque é antecipado neste valor, para compensar o tempo entre ouvir e premir.",
+      "shift": "Deslocar tudo",
+      "shiftHint": "Desloca todos os tempos do documento, para um ficheiro sempre adiantado ou atrasado.",
+      "shiftEarlier": "Adiantar tudo {{ms}} ms",
+      "shiftLater": "Atrasar tudo {{ms}} ms",
+      "progressLines": "Linhas sincronizadas: {{done}} / {{total}}",
+      "progressWords": "Palavras sincronizadas: {{done}} / {{total}}",
+      "keyNames": {
+        "space": "Espaço",
+        "enter": "Enter"
+      },
+      "keys": {
+        "space": {
+          "line": "início da linha seguinte",
+          "word": "início da palavra seguinte"
+        },
+        "enter": {
+          "line": "fim da linha cantada",
+          "word": "fim da palavra cantada"
+        },
+        "backspace": "anular o último toque",
+        "play": "reproduzir / pausa",
+        "seek": "2 s atrás / à frente",
+        "line": "escolher uma linha"
+      },
+      "empty": "Ainda sem letra. Escreva-a ou cole-a no passo Edição.",
+      "emptyLine": "linha vazia",
+      "notTimed": "Ainda não sincronizada",
+      "nudgeEarlier": "{{ms}} ms mais cedo",
+      "nudgeLater": "{{ms}} ms mais tarde",
+      "playFromHere": "Reproduzir a partir daqui"
+    },
+    "preview": {
+      "hiddenLines": "Linhas ainda não sincronizadas, ocultas aqui: {{n}}",
+      "writing": "A preparar a pré-visualização…",
+      "nothingSynced": "Sincronize algumas linhas no passo Sincronia para as ver passar aqui."
     }
   },
   "sort": {

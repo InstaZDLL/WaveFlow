@@ -2001,35 +2001,8 @@
   },
   "lyricsEditor": {
     "title": "محرر الكلمات",
-    "tabs": {
-      "plain": "نص عادي",
-      "synced": "متزامن"
-    },
-    "plainPlaceholder": "اكتب الكلمات سطرًا تلو الآخر…",
-    "linePlaceholder": "نص السطر",
-    "capture": "التقاط",
-    "captureHint": "ابدأ التشغيل ثم اضغط على مفتاح المسافة (أو «التقاط») لربط السطر الحالي بموضع التشغيل",
-    "captureNow": "التقاط الآن",
-    "recapture": "إعادة الربط بالموضع الحالي",
-    "seekToLine": "الانتقال إلى هذا السطر",
-    "insertBelow": "إدراج سطر أدناه",
-    "removeLine": "إزالة السطر",
-    "lines": "سطرًا مربوطًا",
-    "writeToFile": "الكتابة أيضًا في الملف الصوتي (USLT/LYRICS)",
-    "offset": {
-      "label": "إزاحة عامة",
-      "help": "تنقل كل سطر ملتقَط بنفس الفارق — مفيد لإصلاح ملفات LRC المستوردة التي تتقدم أو تتأخر بشكل موحد",
-      "reset": "إعادة تعيين الإزاحة"
-    },
-    "granularity": {
-      "label": "الدقة:",
-      "line": "سطرًا بسطر",
-      "word": "كلمة بكلمة"
-    },
-    "captureHintWord": "مفتاح المسافة = الكلمة التالية · Enter = السطر التالي · Backspace = التراجع عن الكلمة الأخيرة",
-    "notCaptured": "لم يتم الالتقاط",
     "exportToFile": "حفظ إلى ملف…",
-    "exportToFileHint": "صدّر كلمات الأغنية إلى ملف .lrc أو .txt في الموقع الذي تختاره، دون تعديل ملف الصوت",
+    "exportToFileHint": "يصدّر الكلمات بالصيغة المختارة (.ttml أو .lrc أو .txt) إلى المكان الذي تختاره، دون المساس بالملف الصوتي",
     "exportedToFile": "تم التصدير إلى {{path}}",
     "destinationLabel": "وجهة الكلمات الافتراضية",
     "destination": {
@@ -2045,6 +2018,130 @@
         "label": "قاعدة بيانات WaveFlow فقط",
         "hint": "تبقى في قاعدة بيانات التطبيق. لا تُلمس أي ملفات أو وسوم."
       }
+    },
+    "stepsLabel": "خطوات المحرر",
+    "steps": {
+      "edit": "التحرير",
+      "sync": "المزامنة",
+      "preview": "المعاينة"
+    },
+    "undo": "تراجع (Ctrl+Z)",
+    "redo": "إعادة (Ctrl+Shift+Z)",
+    "otherTrackPlaying": "المقطع قيد التشغيل ليس الذي تحرّر كلماته: المزامنة والمعاينة تتبعان المشغّل.",
+    "formatLabel": "الصيغة",
+    "format": {
+      "ttml": "TTML",
+      "enhanced_lrc": "LRC المحسّن",
+      "lrc": "LRC",
+      "plain": "نص فقط"
+    },
+    "lrcTranslations": "الترجمات كأسطر مكرّرة",
+    "discard": {
+      "question": "إغلاق دون حفظ التغييرات؟",
+      "keep": "متابعة التحرير",
+      "confirm": "إغلاق دون حفظ"
+    },
+    "unsynced": {
+      "line": "{{format}}: السطر {{line}} بلا توقيت",
+      "word": "{{format}}: الكلمة {{word}} من السطر {{line}} بلا توقيت",
+      "show": "انتقل إليه"
+    },
+    "transport": {
+      "back": "رجوع ثانيتين",
+      "forward": "تقدّم ثانيتين",
+      "speed": "سرعة التشغيل"
+    },
+    "edit": {
+      "lines": "الأسطر · {{n}}",
+      "viewLabel": "عرض الأسطر",
+      "view": {
+        "lines": "أسطر",
+        "text": "نص"
+      },
+      "meta": {
+        "title": "العنوان",
+        "artist": "الفنان",
+        "album": "الألبوم",
+        "language": "اللغة",
+        "languagePlaceholder": "ar, en, ja…"
+      },
+      "singers": "المغنّون",
+      "singersHint": "صوت واحد. أضف مغنّين لأداء ثنائي.",
+      "singerName": "اسم المغنّي",
+      "singerKind": "منفرد أو معًا",
+      "kind": {
+        "person": "منفرد",
+        "group": "معًا"
+      },
+      "removeSinger": "إزالة هذا المغنّي",
+      "addSinger": "إضافة مغنٍّ",
+      "textPlaceholder": "الصق الكلمات هنا، سطرًا بسطر.\nتُتجاهل الأسطر الفارغة.",
+      "useText": "استخدام هذه الأسطر",
+      "useTextKeepsTiming": "الأسطر التي لم تتغيّر تحتفظ بتوقيتها.",
+      "addLine": "إضافة سطر",
+      "details": "تفاصيل السطر",
+      "linePlaceholder": "نص السطر",
+      "lineLabel": "السطر {{n}}",
+      "badge": {
+        "background": "كورال",
+        "translation": "ترجمة",
+        "romanization": "لاتيني"
+      },
+      "mergeNext": "دمج مع السطر التالي",
+      "removeLine": "حذف السطر",
+      "singer": "المغنّي",
+      "lead": "الصوت الرئيسي",
+      "part": "المقطع",
+      "partPlaceholder": "كوبليه، لازمة…",
+      "background": "أصوات خلفية",
+      "backgroundPlaceholder": "(تُغنّى فوق هذا السطر)",
+      "translation": "الترجمة",
+      "translationLang": "اللغة",
+      "romanization": "الكتابة اللاتينية"
+    },
+    "sync": {
+      "modeLabel": "المزامنة",
+      "mode": {
+        "line": "سطرًا بسطر",
+        "word": "كلمة بكلمة"
+      },
+      "reaction": "تعويض ردّ الفعل",
+      "reactionHint": "تُقدَّم كل نقرة بهذا المقدار لتعويض الوقت بين السماع والضغط.",
+      "shift": "إزاحة الكل",
+      "shiftHint": "يزيح كل الأوقات في المستند، لملف متقدّم أو متأخّر باستمرار.",
+      "shiftEarlier": "تقديم الكل {{ms}} مللي ثانية",
+      "shiftLater": "تأخير الكل {{ms}} مللي ثانية",
+      "progressLines": "الأسطر المتزامنة: {{done}} / {{total}}",
+      "progressWords": "الكلمات المتزامنة: {{done}} / {{total}}",
+      "keyNames": {
+        "space": "المسافة",
+        "enter": "Enter"
+      },
+      "keys": {
+        "space": {
+          "line": "بداية السطر التالي",
+          "word": "بداية الكلمة التالية"
+        },
+        "enter": {
+          "line": "نهاية السطر المُغنّى",
+          "word": "نهاية الكلمة المُغنّاة"
+        },
+        "backspace": "التراجع عن آخر نقرة",
+        "play": "تشغيل / إيقاف مؤقت",
+        "seek": "ثانيتان للخلف / للأمام",
+        "line": "اختيار سطر"
+      },
+      "empty": "لا كلمات بعد. اكتبها أو الصقها في خطوة التحرير.",
+      "emptyLine": "سطر فارغ",
+      "notTimed": "لم يُزامَن بعد",
+      "nudgeEarlier": "أبكر بـ {{ms}} مللي ثانية",
+      "nudgeLater": "أبطأ بـ {{ms}} مللي ثانية",
+      "playFromHere": "التشغيل من هنا"
+    },
+    "preview": {
+      "hiddenLines": "أسطر لم تُزامَن بعد، مخفية هنا: {{n}}",
+      "writing": "جارٍ تحضير المعاينة…",
+      "nothingSynced": "زامِن بضعة أسطر في خطوة المزامنة لتراها تمرّ هنا."
     }
   },
   "sort": {

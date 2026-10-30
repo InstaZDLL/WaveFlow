@@ -1798,35 +1798,8 @@
   },
   "lyricsEditor": {
     "title": "Şarkı sözü düzenleyicisi",
-    "tabs": {
-      "plain": "Düz",
-      "synced": "Senkron"
-    },
-    "plainPlaceholder": "Sözleri satır satır yaz…",
-    "linePlaceholder": "Satır metni",
-    "capture": "Yakala",
-    "captureHint": "Oynatmayı başlat ve mevcut satırı oynatma konumuna sabitlemek için Boşluk'a (veya “Yakala”ya) bas",
-    "captureNow": "Şimdi yakala",
-    "recapture": "Mevcut konuma yeniden sabitle",
-    "seekToLine": "Bu satıra atla",
-    "insertBelow": "Altına satır ekle",
-    "removeLine": "Satırı kaldır",
-    "lines": "satır sabitlendi",
-    "writeToFile": "Ses dosyasına da yaz (USLT/LYRICS)",
-    "offset": {
-      "label": "Genel kaydırma",
-      "help": "Her yakalanmış satırı aynı miktar kadar kaydırır — tamamı aynı ölçüde erken veya geç kalan içe aktarılmış LRC dosyalarını düzeltmek için kullanışlıdır",
-      "reset": "Kaydırmayı sıfırla"
-    },
-    "granularity": {
-      "label": "Zamanlama düzeyi:",
-      "line": "Satır satır",
-      "word": "Kelime kelime"
-    },
-    "captureHintWord": "Boşluk = sonraki kelime · Enter = sonraki satır · Backspace = son kelimeyi geri al",
-    "notCaptured": "Yakalanmadı",
     "exportToFile": "Dosyaya kaydet…",
-    "exportToFileHint": "Sözleri seçtiğin konumda bir .lrc veya .txt dosyasına aktarır, ses dosyasını değiştirmez",
+    "exportToFileHint": "Sözleri seçilen biçimde (.ttml, .lrc veya .txt) istediğiniz yere dışa aktarır, ses dosyasına dokunmaz",
     "exportedToFile": "{{path}} konumuna aktarıldı",
     "destinationLabel": "Varsayılan şarkı sözü hedefi",
     "destination": {
@@ -1842,6 +1815,130 @@
         "label": "Yalnızca WaveFlow veritabanı",
         "hint": "Yalnızca WaveFlow veritabanında kalır. Hiçbir dosyaya veya etikete dokunulmaz."
       }
+    },
+    "stepsLabel": "Düzenleyici adımları",
+    "steps": {
+      "edit": "Düzenle",
+      "sync": "Eşitle",
+      "preview": "Önizleme"
+    },
+    "undo": "Geri al (Ctrl+Z)",
+    "redo": "Yinele (Ctrl+Shift+Z)",
+    "otherTrackPlaying": "Çalan parça, sözlerini düzenlediğiniz parça değil: eşitleme ve önizleme oynatıcıyı izler.",
+    "formatLabel": "Biçim",
+    "format": {
+      "ttml": "TTML",
+      "enhanced_lrc": "Gelişmiş LRC",
+      "lrc": "LRC",
+      "plain": "Yalnızca metin"
+    },
+    "lrcTranslations": "Çeviriler çift satır olarak",
+    "discard": {
+      "question": "Değişiklikleri kaydetmeden kapatılsın mı?",
+      "keep": "Düzenlemeye devam et",
+      "confirm": "Kaydetmeden kapat"
+    },
+    "unsynced": {
+      "line": "{{format}}: {{line}}. satırın zamanı yok",
+      "word": "{{format}}: {{line}}. satırın {{word}}. kelimesinin zamanı yok",
+      "show": "Oraya git"
+    },
+    "transport": {
+      "back": "2 sn geri",
+      "forward": "2 sn ileri",
+      "speed": "Çalma hızı"
+    },
+    "edit": {
+      "lines": "Satırlar · {{n}}",
+      "viewLabel": "Satır görünümü",
+      "view": {
+        "lines": "Satırlar",
+        "text": "Metin"
+      },
+      "meta": {
+        "title": "Başlık",
+        "artist": "Sanatçı",
+        "album": "Albüm",
+        "language": "Dil",
+        "languagePlaceholder": "tr, en, ja…"
+      },
+      "singers": "Şarkıcılar",
+      "singersHint": "Tek ses. Düet için şarkıcı ekleyin.",
+      "singerName": "Şarkıcı adı",
+      "singerKind": "Tek başına veya birlikte",
+      "kind": {
+        "person": "tek başına",
+        "group": "birlikte"
+      },
+      "removeSinger": "Bu şarkıcıyı kaldır",
+      "addSinger": "Şarkıcı ekle",
+      "textPlaceholder": "Sözleri buraya yapıştırın, her satıra bir satır.\nBoş satırlar yok sayılır.",
+      "useText": "Bu satırları kullan",
+      "useTextKeepsTiming": "Değiştirilmeyen satırlar eşitlemesini korur.",
+      "addLine": "Satır ekle",
+      "details": "Satır ayrıntıları",
+      "linePlaceholder": "Satır metni",
+      "lineLabel": "Satır {{n}}",
+      "badge": {
+        "background": "vokal",
+        "translation": "çev.",
+        "romanization": "lat."
+      },
+      "mergeNext": "Sonraki satırla birleştir",
+      "removeLine": "Satırı sil",
+      "singer": "Şarkıcı",
+      "lead": "Ana vokal",
+      "part": "Bölüm",
+      "partPlaceholder": "Kıta, Nakarat…",
+      "background": "Arka vokaller",
+      "backgroundPlaceholder": "(bu satırın üzerine söylenen)",
+      "translation": "Çeviri",
+      "translationLang": "dil",
+      "romanization": "Latin harfleri"
+    },
+    "sync": {
+      "modeLabel": "Eşitle",
+      "mode": {
+        "line": "Satır satır",
+        "word": "Kelime kelime"
+      },
+      "reaction": "Tepki düzeltmesi",
+      "reactionHint": "Her basış bu kadar öne alınır; duymakla basmak arasındaki süreyi telafi eder.",
+      "shift": "Tümünü kaydır",
+      "shiftHint": "Belgedeki tüm zamanları kaydırır; sürekli erken ya da geç kalan bir dosya için.",
+      "shiftEarlier": "Tümünü {{ms}} ms öne al",
+      "shiftLater": "Tümünü {{ms}} ms geciktir",
+      "progressLines": "Eşitlenen satırlar: {{done}} / {{total}}",
+      "progressWords": "Eşitlenen kelimeler: {{done}} / {{total}}",
+      "keyNames": {
+        "space": "Boşluk",
+        "enter": "Enter"
+      },
+      "keys": {
+        "space": {
+          "line": "sonraki satırın başı",
+          "word": "sonraki kelimenin başı"
+        },
+        "enter": {
+          "line": "söylenen satırın sonu",
+          "word": "söylenen kelimenin sonu"
+        },
+        "backspace": "son basışı geri al",
+        "play": "oynat / duraklat",
+        "seek": "2 sn geri / ileri",
+        "line": "satır seç"
+      },
+      "empty": "Henüz söz yok. Düzenle adımında yazın veya yapıştırın.",
+      "emptyLine": "boş satır",
+      "notTimed": "Henüz eşitlenmedi",
+      "nudgeEarlier": "{{ms}} ms erken",
+      "nudgeLater": "{{ms}} ms geç",
+      "playFromHere": "Buradan çal"
+    },
+    "preview": {
+      "hiddenLines": "Henüz eşitlenmemiş satırlar, burada gizli: {{n}}",
+      "writing": "Önizleme hazırlanıyor…",
+      "nothingSynced": "Burada akışını görmek için Eşitle adımında birkaç satır eşitleyin."
     }
   },
   "sort": {

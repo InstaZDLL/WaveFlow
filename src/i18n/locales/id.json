@@ -1796,35 +1796,8 @@
   },
   "lyricsEditor": {
     "title": "Editor lirik",
-    "tabs": {
-      "plain": "Polos",
-      "synced": "Tersinkron"
-    },
-    "plainPlaceholder": "Ketik lirik baris per baris…",
-    "linePlaceholder": "Teks baris",
-    "capture": "Tangkap",
-    "captureHint": "Mulai pemutaran lalu tekan Spasi (atau Tangkap) untuk menambatkan baris saat ini ke posisi pemutaran",
-    "captureNow": "Tangkap sekarang",
-    "recapture": "Tambatkan ulang ke posisi saat ini",
-    "seekToLine": "Lompat ke baris ini",
-    "insertBelow": "Sisipkan baris di bawah",
-    "removeLine": "Hapus baris",
-    "lines": "baris ditambatkan",
-    "writeToFile": "Tulis juga ke berkas audio (USLT/LYRICS)",
-    "offset": {
-      "label": "Pergeseran global",
-      "help": "Menggeser setiap baris yang ditangkap sejumlah delta yang sama — berguna untuk memperbaiki berkas LRC impor yang terlalu cepat atau lambat secara seragam",
-      "reset": "Atur ulang pergeseran"
-    },
-    "granularity": {
-      "label": "Granularitas:",
-      "line": "Baris per baris",
-      "word": "Kata per kata"
-    },
-    "captureHintWord": "Spasi = kata berikutnya · Enter = baris berikutnya · Backspace = batalkan kata terakhir",
-    "notCaptured": "Belum ditangkap",
     "exportToFile": "Simpan ke berkas…",
-    "exportToFileHint": "Ekspor lirik ke berkas .lrc atau .txt di lokasi pilihanmu, tanpa menyentuh berkas audio",
+    "exportToFileHint": "Mengekspor lirik dalam format yang dipilih (.ttml, .lrc, atau .txt) ke lokasi pilihan Anda, tanpa menyentuh file audio",
     "exportedToFile": "Diekspor ke {{path}}",
     "destinationLabel": "Tujuan bawaan lirik",
     "destination": {
@@ -1840,6 +1813,130 @@
         "label": "Hanya database WaveFlow",
         "hint": "Tetap di database WaveFlow. Tidak ada berkas atau tag yang disentuh."
       }
+    },
+    "stepsLabel": "Langkah editor",
+    "steps": {
+      "edit": "Sunting",
+      "sync": "Sinkron",
+      "preview": "Pratinjau"
+    },
+    "undo": "Urungkan (Ctrl+Z)",
+    "redo": "Ulangi (Ctrl+Shift+Z)",
+    "otherTrackPlaying": "Lagu yang diputar bukan lagu yang liriknya sedang Anda sunting: sinkronisasi dan pratinjau mengikuti pemutar.",
+    "formatLabel": "Format",
+    "format": {
+      "ttml": "TTML",
+      "enhanced_lrc": "LRC lanjutan",
+      "lrc": "LRC",
+      "plain": "Teks saja"
+    },
+    "lrcTranslations": "Terjemahan sebagai baris ganda",
+    "discard": {
+      "question": "Tutup tanpa menyimpan perubahan?",
+      "keep": "Lanjut menyunting",
+      "confirm": "Tutup tanpa menyimpan"
+    },
+    "unsynced": {
+      "line": "{{format}}: baris {{line}} belum punya waktu",
+      "word": "{{format}}: kata {{word}} di baris {{line}} belum punya waktu",
+      "show": "Ke sana"
+    },
+    "transport": {
+      "back": "Mundur 2 dtk",
+      "forward": "Maju 2 dtk",
+      "speed": "Kecepatan putar"
+    },
+    "edit": {
+      "lines": "Baris · {{n}}",
+      "viewLabel": "Tampilan baris",
+      "view": {
+        "lines": "Baris",
+        "text": "Teks"
+      },
+      "meta": {
+        "title": "Judul",
+        "artist": "Artis",
+        "album": "Album",
+        "language": "Bahasa",
+        "languagePlaceholder": "id, en, ja…"
+      },
+      "singers": "Penyanyi",
+      "singersHint": "Satu suara. Tambahkan penyanyi untuk duet.",
+      "singerName": "Nama penyanyi",
+      "singerKind": "Sendiri atau bersama",
+      "kind": {
+        "person": "sendiri",
+        "group": "bersama"
+      },
+      "removeSinger": "Hapus penyanyi ini",
+      "addSinger": "Tambah penyanyi",
+      "textPlaceholder": "Tempel lirik di sini, satu baris per baris.\nBaris kosong diabaikan.",
+      "useText": "Gunakan baris ini",
+      "useTextKeepsTiming": "Baris yang tidak diubah tetap tersinkron.",
+      "addLine": "Tambah baris",
+      "details": "Detail baris",
+      "linePlaceholder": "Teks baris",
+      "lineLabel": "Baris {{n}}",
+      "badge": {
+        "background": "latar",
+        "translation": "terj.",
+        "romanization": "rom."
+      },
+      "mergeNext": "Gabungkan dengan baris berikutnya",
+      "removeLine": "Hapus baris",
+      "singer": "Penyanyi",
+      "lead": "Vokal utama",
+      "part": "Bagian",
+      "partPlaceholder": "Bait, Reff…",
+      "background": "Vokal latar",
+      "backgroundPlaceholder": "(dinyanyikan di atas baris ini)",
+      "translation": "Terjemahan",
+      "translationLang": "bahasa",
+      "romanization": "Romanisasi"
+    },
+    "sync": {
+      "modeLabel": "Sinkronkan",
+      "mode": {
+        "line": "Per baris",
+        "word": "Per kata"
+      },
+      "reaction": "Koreksi reaksi",
+      "reactionHint": "Setiap ketukan dimajukan sebesar ini, untuk menutup jeda antara mendengar dan menekan.",
+      "shift": "Geser semua",
+      "shiftHint": "Menggeser semua waktu dalam dokumen, untuk file yang selalu terlalu cepat atau terlambat.",
+      "shiftEarlier": "Majukan semua {{ms}} md",
+      "shiftLater": "Mundurkan semua {{ms}} md",
+      "progressLines": "Baris tersinkron: {{done}} / {{total}}",
+      "progressWords": "Kata tersinkron: {{done}} / {{total}}",
+      "keyNames": {
+        "space": "Spasi",
+        "enter": "Enter"
+      },
+      "keys": {
+        "space": {
+          "line": "awal baris berikutnya",
+          "word": "awal kata berikutnya"
+        },
+        "enter": {
+          "line": "akhir baris yang dinyanyikan",
+          "word": "akhir kata yang dinyanyikan"
+        },
+        "backspace": "urungkan ketukan terakhir",
+        "play": "putar / jeda",
+        "seek": "2 dtk mundur / maju",
+        "line": "pilih baris"
+      },
+      "empty": "Belum ada lirik. Ketik atau tempel di langkah Sunting.",
+      "emptyLine": "baris kosong",
+      "notTimed": "Belum tersinkron",
+      "nudgeEarlier": "{{ms}} md lebih awal",
+      "nudgeLater": "{{ms}} md lebih lambat",
+      "playFromHere": "Putar dari sini"
+    },
+    "preview": {
+      "hiddenLines": "Baris yang belum tersinkron, disembunyikan di sini: {{n}}",
+      "writing": "Menyiapkan pratinjau…",
+      "nothingSynced": "Sinkronkan beberapa baris di langkah Sinkron untuk melihatnya berjalan di sini."
     }
   },
   "sort": {
