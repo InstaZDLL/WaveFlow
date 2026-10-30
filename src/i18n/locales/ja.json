@@ -172,7 +172,8 @@
   "sidebar": {
     "nav": {
       "home": "ホーム",
-      "webRadio": "ウェブラジオ"
+      "webRadio": "ウェブラジオ",
+      "releaseRadar": "Release Radar"
     },
     "sections": {
       "open": "開く",
@@ -443,6 +444,10 @@
       "plays_zero": "再生 0 回",
       "plays_one": "再生 {{count}} 回",
       "plays_other": "再生 {{count}} 回"
+    },
+    "releaseRadar": {
+      "label": "Release Radar",
+      "description": "ライブラリにある、あなたのアーティストの新作"
     }
   },
   "library": {
@@ -3499,7 +3504,8 @@
       "thumbnails": "サムネイル",
       "drop_import": "ライブラリへのコピー",
       "cache_move": "キャッシュを移動中",
-      "spectrogram": "トラックのスペクトル"
+      "spectrogram": "トラックのスペクトル",
+      "release_radar": "Release Radar"
     }
   },
   "smartRuleSummary": {
@@ -3696,5 +3702,56 @@
     "title": "このページを表示できませんでした",
     "description": "エラーにより読み込めませんでした。アプリのほかの部分は引き続き使えます。",
     "retry": "再試行"
+  },
+  "releaseRadar": {
+    "badge": "新作",
+    "subtitle": "ライブラリ内のアーティストによる最近のリリース（MusicBrainz の情報）。",
+    "followed": "フォロー中のアーティスト：{{n}}",
+    "lastChecked": "最終確認：{{when}}",
+    "neverChecked": "未確認",
+    "scan": "新作を探す",
+    "rescan": "すべて再確認",
+    "scanning": "検索中… {{checked}} / {{due}}",
+    "scanningIndeterminate": "検索中…",
+    "stop": "停止",
+    "playAll": "再生",
+    "openPlaylist": "プレイリストを開く",
+    "offline": "オフラインモード：検索は送信されません。見つかったリリースは表示されたままです。",
+    "filter": {
+      "all": "すべて",
+      "playable": "ライブラリにあり",
+      "discovered": "発見のみ"
+    },
+    "state": {
+      "playable": "ライブラリにあり（{{n}}）",
+      "discovered": "発見 · MusicBrainz で見る"
+    },
+    "upcoming": "近日リリース",
+    "play": "{{title}} を再生",
+    "openMusicBrainz": "MusicBrainz で見る",
+    "outcome": {
+      "rateLimited": "MusicBrainz からリクエストを控えるよう求められました。次回の検索は今回止まったところから再開します。",
+      "failed": "ネットワークが応答しません。次回の検索は今回止まったところから再開します。",
+      "cancelled": "検索を停止しました。次回は今回止まったところから再開します。",
+      "profileChanged": "検索中にプロフィールが切り替わったため、検索を停止しました。",
+      "error": "検索に失敗しました：{{detail}}"
+    },
+    "emptyTitle": "Release Radar へようこそ",
+    "emptyHint": "検索を実行すると、ライブラリ内のアーティストによる最近のリリースが見つかります。ダウンロードされるのはリリース情報とジャケットだけで、音楽そのものは一切ダウンロードされません。",
+    "noneTitle": "最近のリリースはありません",
+    "noneHint": "フォロー中のアーティストについて、MusicBrainz に過去 6 か月のリリースはありません。",
+    "filterEmpty": "このフィルターに該当するリリースはありません。",
+    "credits": "情報：MusicBrainz · ジャケット：Cover Art Archive",
+    "type": {
+      "album": "アルバム",
+      "single": "シングル",
+      "ep": "EP",
+      "broadcast": "放送",
+      "other": "その他",
+      "live": "ライブ",
+      "compilation": "コンピレーション",
+      "remix": "リミックス",
+      "soundtrack": "サウンドトラック"
+    }
   }
 }

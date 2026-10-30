@@ -15,6 +15,7 @@ import {
   Upload,
   Sparkles,
   Radio,
+  Radar,
   Puzzle,
   PlayCircle,
   FileAudio,
@@ -438,6 +439,15 @@ export function Sidebar({
             onClick={() => setActiveView("web-radio")}
           />
         )}
+        {/* Native, not a plugin entry: always here, and it sends
+            nothing to the network until the user asks for a search. */}
+        <NavItem
+          collapsed={collapsed}
+          icon={<Radar size={18} />}
+          label={t("sidebar.nav.releaseRadar")}
+          active={activeView === "release-radar"}
+          onClick={() => setActiveView("release-radar")}
+        />
         {uiPlugins.map((plugin) => (
           <NavItem
             key={plugin.pluginId}

@@ -89,6 +89,9 @@ pub enum TaskKind {
     /// The caches copied to the folder picked in Settings → Storage
     /// ([`crate::commands::storage::set_cache_location`]).
     CacheMove,
+    /// The Release Radar asking MusicBrainz about the library's artists
+    /// ([`crate::commands::release_radar::release_radar_scan`]).
+    ReleaseRadar,
 }
 
 impl TaskKind {
@@ -105,6 +108,7 @@ impl TaskKind {
             Self::DropImport => "drop_import",
             Self::Spectrogram => "spectrogram",
             Self::CacheMove => "cache_move",
+            Self::ReleaseRadar => "release_radar",
         }
     }
 }

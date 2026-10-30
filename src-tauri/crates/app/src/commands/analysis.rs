@@ -569,7 +569,7 @@ struct PendingAnalysis {
 /// the single-writer WAL lock was held by another writer (a concurrent
 /// scan, a `play_event` insert) — rather than a real schema/constraint
 /// fault. Only the former is worth retrying.
-fn is_busy(err: &sqlx::Error) -> bool {
+pub(crate) fn is_busy(err: &sqlx::Error) -> bool {
     if let sqlx::Error::Database(db) = err {
         if let Some(code) = db.code() {
             return code_is_busy(&code);

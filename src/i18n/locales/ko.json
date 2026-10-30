@@ -172,7 +172,8 @@
   "sidebar": {
     "nav": {
       "home": "홈",
-      "webRadio": "웹 라디오"
+      "webRadio": "웹 라디오",
+      "releaseRadar": "Release Radar"
     },
     "sections": {
       "open": "열기",
@@ -443,6 +444,10 @@
       "plays_zero": "재생 0회",
       "plays_one": "재생 {{count}}회",
       "plays_other": "재생 {{count}}회"
+    },
+    "releaseRadar": {
+      "label": "Release Radar",
+      "description": "라이브러리에 있는 내 아티스트의 새 발매작"
     }
   },
   "library": {
@@ -3499,7 +3504,8 @@
       "thumbnails": "썸네일",
       "drop_import": "보관함으로 복사",
       "cache_move": "캐시 이동 중",
-      "spectrogram": "트랙 스펙트럼"
+      "spectrogram": "트랙 스펙트럼",
+      "release_radar": "Release Radar"
     }
   },
   "smartRuleSummary": {
@@ -3696,5 +3702,56 @@
     "title": "이 페이지를 표시할 수 없습니다",
     "description": "오류로 인해 불러오지 못했습니다. 앱의 나머지 기능은 계속 사용할 수 있습니다.",
     "retry": "다시 시도"
+  },
+  "releaseRadar": {
+    "badge": "새 발매",
+    "subtitle": "MusicBrainz 기준, 라이브러리 아티스트들의 최근 발매작입니다.",
+    "followed": "팔로우 중인 아티스트: {{n}}",
+    "lastChecked": "마지막 확인: {{when}}",
+    "neverChecked": "확인한 적 없음",
+    "scan": "새 발매 찾기",
+    "rescan": "모두 다시 확인",
+    "scanning": "검색 중… {{checked}} / {{due}}",
+    "scanningIndeterminate": "검색 중…",
+    "stop": "중지",
+    "playAll": "재생",
+    "openPlaylist": "플레이리스트 열기",
+    "offline": "오프라인 모드: 검색 요청을 보내지 않습니다. 이미 찾은 발매작은 계속 표시됩니다.",
+    "filter": {
+      "all": "전체",
+      "playable": "라이브러리에 있음",
+      "discovered": "발견됨"
+    },
+    "state": {
+      "playable": "라이브러리에 있음 ({{n}})",
+      "discovered": "발견됨 · MusicBrainz에서 보기"
+    },
+    "upcoming": "발매 예정",
+    "play": "{{title}} 재생",
+    "openMusicBrainz": "MusicBrainz에서 보기",
+    "outcome": {
+      "rateLimited": "MusicBrainz가 요청 속도를 줄여 달라고 했습니다. 다음 검색은 이번에 멈춘 곳부터 이어집니다.",
+      "failed": "네트워크가 응답하지 않습니다. 다음 검색은 이번에 멈춘 곳부터 이어집니다.",
+      "cancelled": "검색을 중지했습니다. 다음 검색은 이번에 멈춘 곳부터 이어집니다.",
+      "profileChanged": "검색 중에 프로필이 바뀌어 검색을 중지했습니다.",
+      "error": "검색에 실패했습니다: {{detail}}"
+    },
+    "emptyTitle": "Release Radar에 오신 것을 환영합니다",
+    "emptyHint": "검색을 시작하면 라이브러리 아티스트들의 최근 발매작을 찾습니다. 발매 정보와 아트워크만 내려받으며, 음악 자체는 절대 내려받지 않습니다.",
+    "noneTitle": "최근 발매작 없음",
+    "noneHint": "MusicBrainz에 팔로우 중인 아티스트의 최근 6개월 발매작이 없습니다.",
+    "filterEmpty": "이 필터에 해당하는 발매작이 없습니다.",
+    "credits": "정보: MusicBrainz · 아트워크: Cover Art Archive",
+    "type": {
+      "album": "앨범",
+      "single": "싱글",
+      "ep": "EP",
+      "broadcast": "방송",
+      "other": "기타",
+      "live": "라이브",
+      "compilation": "컴필레이션",
+      "remix": "리믹스",
+      "soundtrack": "사운드트랙"
+    }
   }
 }

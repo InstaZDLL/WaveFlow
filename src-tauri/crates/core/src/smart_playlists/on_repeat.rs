@@ -52,9 +52,9 @@ struct TrackPlayRow {
 /// so a stale playlist doesn't linger after a quiet month).
 ///
 /// Cover artwork is brand-rendered (no per-library imagery) so a
-/// profile id is not required here; future per-track-art families
-/// (Release Radar, Recently Added) will take a `profile_id` to resolve
-/// the active library's artwork cache.
+/// profile id is not required here; the per-track-art families (Release
+/// Radar, the themed mixes) take a `profile_id` to resolve the active
+/// library's artwork cache.
 pub async fn regenerate_on_repeat(
     pool: &SqlitePool,
     paths: &PathsContext,

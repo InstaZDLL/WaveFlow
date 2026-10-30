@@ -31,6 +31,7 @@ fn labels() -> MixLabels {
         decade_description: "Your {decade}s".into(),
         artist_name: "{name} Mix".into(),
         artist_description: "{name} and artists like them".into(),
+        release_radar_description: "New from your artists".into(),
     }
 }
 

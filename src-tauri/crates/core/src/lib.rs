@@ -40,6 +40,7 @@ pub mod playlist_import;
 #[cfg_attr(docsrs, doc(cfg(feature = "plugins")))]
 pub mod plugin;
 pub mod radio_playlist;
+pub mod release_radar;
 pub mod repository;
 pub mod scanner;
 pub mod search;

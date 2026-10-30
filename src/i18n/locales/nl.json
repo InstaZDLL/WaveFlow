@@ -172,7 +172,8 @@
   "sidebar": {
     "nav": {
       "home": "Start",
-      "webRadio": "Web Radio"
+      "webRadio": "Web Radio",
+      "releaseRadar": "Release Radar"
     },
     "sections": {
       "open": "Openen",
@@ -445,6 +446,10 @@
       "plays_zero": "0 keer afgespeeld",
       "plays_one": "{{count}} keer afgespeeld",
       "plays_other": "{{count}} keer afgespeeld"
+    },
+    "releaseRadar": {
+      "label": "Release Radar",
+      "description": "Nieuw van je artiesten, uit je bibliotheek"
     }
   },
   "library": {
@@ -3501,7 +3506,8 @@
       "thumbnails": "Miniaturen",
       "drop_import": "Kopiëren naar de bibliotheek",
       "cache_move": "Caches verplaatsen",
-      "spectrogram": "Spectrum van een nummer"
+      "spectrogram": "Spectrum van een nummer",
+      "release_radar": "Release Radar"
     }
   },
   "smartRuleSummary": {
@@ -3698,5 +3704,56 @@
     "title": "Deze pagina kan niet worden weergegeven",
     "description": "Een fout verhinderde het laden. De rest van de app werkt nog steeds.",
     "retry": "Opnieuw proberen"
+  },
+  "releaseRadar": {
+    "badge": "Nieuwe releases",
+    "subtitle": "Recente releases van de artiesten in je bibliotheek, volgens MusicBrainz.",
+    "followed": "Gevolgde artiesten: {{n}}",
+    "lastChecked": "Laatst gecontroleerd: {{when}}",
+    "neverChecked": "Nooit gecontroleerd",
+    "scan": "Nieuwe releases zoeken",
+    "rescan": "Alles opnieuw controleren",
+    "scanning": "Zoeken… {{checked}} / {{due}}",
+    "scanningIndeterminate": "Zoeken…",
+    "stop": "Stoppen",
+    "playAll": "Afspelen",
+    "openPlaylist": "Playlist openen",
+    "offline": "Offlinemodus: er wordt geen zoekopdracht verstuurd. De releases die al gevonden zijn blijven zichtbaar.",
+    "filter": {
+      "all": "Alles",
+      "playable": "In je bibliotheek",
+      "discovered": "Ontdekt"
+    },
+    "state": {
+      "playable": "In je bibliotheek ({{n}})",
+      "discovered": "Ontdekt · bekijk op MusicBrainz"
+    },
+    "upcoming": "Binnenkort",
+    "play": "{{title}} afspelen",
+    "openMusicBrainz": "Bekijk op MusicBrainz",
+    "outcome": {
+      "rateLimited": "MusicBrainz vraagt om het rustiger aan te doen. De volgende zoekopdracht gaat verder waar deze stopte.",
+      "failed": "Het netwerk reageert niet. De volgende zoekopdracht gaat verder waar deze stopte.",
+      "cancelled": "Zoeken gestopt. De volgende keer gaat het verder waar het stopte.",
+      "profileChanged": "Het profiel is tijdens het zoeken gewisseld, dus het zoeken is gestopt.",
+      "error": "Het zoeken is mislukt: {{detail}}"
+    },
+    "emptyTitle": "Welkom bij Release Radar",
+    "emptyHint": "Start een zoekopdracht om recente releases van de artiesten in je bibliotheek te vinden. Alleen hun gegevens en hoezen worden gedownload, nooit de muziek.",
+    "noneTitle": "Geen recente releases",
+    "noneHint": "MusicBrainz kent geen release van de afgelopen zes maanden van de gevolgde artiesten.",
+    "filterEmpty": "Geen release in dit filter.",
+    "credits": "Gegevens: MusicBrainz · Hoezen: Cover Art Archive",
+    "type": {
+      "album": "Album",
+      "single": "Single",
+      "ep": "EP",
+      "broadcast": "Uitzending",
+      "other": "Overig",
+      "live": "Live",
+      "compilation": "Compilatie",
+      "remix": "Remix",
+      "soundtrack": "Soundtrack"
+    }
   }
 }

@@ -172,7 +172,8 @@
   "sidebar": {
     "nav": {
       "home": "Beranda",
-      "webRadio": "Radio Web"
+      "webRadio": "Radio Web",
+      "releaseRadar": "Release Radar"
     },
     "sections": {
       "open": "Buka",
@@ -443,6 +444,10 @@
       "plays_zero": "0 pemutaran",
       "plays_one": "{{count}} pemutaran",
       "plays_other": "{{count}} pemutaran"
+    },
+    "releaseRadar": {
+      "label": "Release Radar",
+      "description": "Rilis baru dari artismu, dari pustakamu"
     }
   },
   "library": {
@@ -3499,7 +3504,8 @@
       "thumbnails": "Gambar mini",
       "drop_import": "Menyalin ke pustaka",
       "cache_move": "Memindahkan cache",
-      "spectrogram": "Spektrum lagu"
+      "spectrogram": "Spektrum lagu",
+      "release_radar": "Release Radar"
     }
   },
   "smartRuleSummary": {
@@ -3696,5 +3702,56 @@
     "title": "Halaman ini tidak dapat ditampilkan",
     "description": "Sebuah galat mencegahnya dimuat. Bagian lain aplikasi tetap berfungsi.",
     "retry": "Coba lagi"
+  },
+  "releaseRadar": {
+    "badge": "Rilis baru",
+    "subtitle": "Rilis terbaru dari artis di pustakamu, menurut MusicBrainz.",
+    "followed": "Artis yang diikuti: {{n}}",
+    "lastChecked": "Terakhir diperiksa: {{when}}",
+    "neverChecked": "Belum pernah diperiksa",
+    "scan": "Cari rilis baru",
+    "rescan": "Periksa semua lagi",
+    "scanning": "Mencari… {{checked}} / {{due}}",
+    "scanningIndeterminate": "Mencari…",
+    "stop": "Hentikan",
+    "playAll": "Putar",
+    "openPlaylist": "Buka playlist",
+    "offline": "Mode offline: tidak ada pencarian yang dikirim. Rilis yang sudah ditemukan tetap ditampilkan.",
+    "filter": {
+      "all": "Semua",
+      "playable": "Di pustakamu",
+      "discovered": "Ditemukan"
+    },
+    "state": {
+      "playable": "Di pustakamu ({{n}})",
+      "discovered": "Ditemukan · lihat di MusicBrainz"
+    },
+    "upcoming": "Segera hadir",
+    "play": "Putar {{title}}",
+    "openMusicBrainz": "Lihat di MusicBrainz",
+    "outcome": {
+      "rateLimited": "MusicBrainz meminta untuk melambat. Pencarian berikutnya melanjutkan dari tempat pencarian ini berhenti.",
+      "failed": "Jaringan tidak merespons. Pencarian berikutnya melanjutkan dari tempat pencarian ini berhenti.",
+      "cancelled": "Pencarian dihentikan. Pencarian berikutnya melanjutkan dari tempat ini berhenti.",
+      "profileChanged": "Profil berganti saat pencarian berjalan, jadi pencarian berhenti.",
+      "error": "Pencarian gagal: {{detail}}"
+    },
+    "emptyTitle": "Selamat datang di Release Radar",
+    "emptyHint": "Mulai pencarian untuk menemukan rilis terbaru dari artis di pustakamu. Hanya informasi dan sampulnya yang diunduh, tidak pernah musiknya.",
+    "noneTitle": "Tidak ada rilis terbaru",
+    "noneHint": "MusicBrainz tidak mengetahui rilis dari enam bulan terakhir untuk artis yang diikuti.",
+    "filterEmpty": "Tidak ada rilis dalam filter ini.",
+    "credits": "Informasi: MusicBrainz · Sampul: Cover Art Archive",
+    "type": {
+      "album": "Album",
+      "single": "Single",
+      "ep": "EP",
+      "broadcast": "Siaran",
+      "other": "Lainnya",
+      "live": "Live",
+      "compilation": "Kompilasi",
+      "remix": "Remix",
+      "soundtrack": "Soundtrack"
+    }
   }
 }

@@ -218,6 +218,7 @@ export function FluidHome({
         }),
         artist_name: t("home.artistMix.name", { name: "{name}" }),
         artist_description: t("home.artistMix.description", { name: "{name}" }),
+        release_radar_description: t("home.releaseRadar.description"),
       });
       await refreshPlaylists();
     } catch (err) {

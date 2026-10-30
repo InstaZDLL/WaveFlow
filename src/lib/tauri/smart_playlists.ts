@@ -29,6 +29,7 @@ export function regenerateOnRepeat(): Promise<number | null> {
 export interface RegenerateAllSmartPlaylistsOutput {
   daily_mix_ids: number[];
   on_repeat_id: number | null;
+  release_radar_id: number | null;
   artist_mix_ids: number[];
   genre_mix_ids: number[];
   decade_mix_ids: number[];
@@ -47,11 +48,14 @@ export interface MixLabels {
   /** `{name}` stands for the artist. */
   artist_name: string;
   artist_description: string;
+  /** The Release Radar playlist's description; its name is the same in
+   *  every language. */
+  release_radar_description: string;
 }
 
 /**
  * Regen every built-in smart-playlist family (Daily Mix slots, On
- * Repeat, the genre and decade mixes) in one round-trip. Used by the
+ * Repeat, Release Radar, the genre and decade mixes) in one round-trip. Used by the
  * Home view's "Regenerate" button so the whole "Made for you" surface
  * refreshes together without the frontend having to know about the
  * family split.

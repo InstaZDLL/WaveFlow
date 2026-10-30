@@ -172,7 +172,8 @@
   "sidebar": {
     "nav": {
       "home": "首页",
-      "webRadio": "网络电台"
+      "webRadio": "网络电台",
+      "releaseRadar": "Release Radar"
     },
     "sections": {
       "open": "打开",
@@ -443,6 +444,10 @@
       "plays_zero": "播放 0 次",
       "plays_one": "播放 {{count}} 次",
       "plays_other": "播放 {{count}} 次"
+    },
+    "releaseRadar": {
+      "label": "Release Radar",
+      "description": "音乐库中你的艺术家的新发行"
     }
   },
   "library": {
@@ -3499,7 +3504,8 @@
       "thumbnails": "缩略图",
       "drop_import": "复制到音乐库",
       "cache_move": "正在移动缓存",
-      "spectrogram": "曲目频谱"
+      "spectrogram": "曲目频谱",
+      "release_radar": "Release Radar"
     }
   },
   "smartRuleSummary": {
@@ -3696,5 +3702,56 @@
     "title": "无法显示此页面",
     "description": "发生错误，页面未能加载。应用的其他部分仍可正常使用。",
     "retry": "重试"
+  },
+  "releaseRadar": {
+    "badge": "新发行",
+    "subtitle": "音乐库中艺术家的近期发行作品，信息来自 MusicBrainz。",
+    "followed": "关注的艺术家：{{n}}",
+    "lastChecked": "上次检查：{{when}}",
+    "neverChecked": "从未检查",
+    "scan": "查找新发行",
+    "rescan": "全部重新检查",
+    "scanning": "正在查找… {{checked}} / {{due}}",
+    "scanningIndeterminate": "正在查找…",
+    "stop": "停止",
+    "playAll": "播放",
+    "openPlaylist": "打开歌单",
+    "offline": "离线模式：不会发送任何查询。已找到的发行作品仍会显示。",
+    "filter": {
+      "all": "全部",
+      "playable": "音乐库中已有",
+      "discovered": "仅发现"
+    },
+    "state": {
+      "playable": "音乐库中已有（{{n}}）",
+      "discovered": "已发现 · 在 MusicBrainz 上查看"
+    },
+    "upcoming": "即将发行",
+    "play": "播放 {{title}}",
+    "openMusicBrainz": "在 MusicBrainz 上查看",
+    "outcome": {
+      "rateLimited": "MusicBrainz 要求放慢请求速度。下次查找会从这次停下的地方继续。",
+      "failed": "网络没有响应。下次查找会从这次停下的地方继续。",
+      "cancelled": "查找已停止。下次会从这次停下的地方继续。",
+      "profileChanged": "查找过程中切换了配置文件，因此查找已停止。",
+      "error": "查找失败：{{detail}}"
+    },
+    "emptyTitle": "欢迎使用 Release Radar",
+    "emptyHint": "开始查找，即可找到音乐库中艺术家的近期发行作品。只会下载发行信息和封面，绝不下载音乐本身。",
+    "noneTitle": "没有近期发行",
+    "noneHint": "MusicBrainz 中没有所关注艺术家最近六个月的发行作品。",
+    "filterEmpty": "此筛选条件下没有发行作品。",
+    "credits": "信息：MusicBrainz · 封面：Cover Art Archive",
+    "type": {
+      "album": "专辑",
+      "single": "单曲",
+      "ep": "EP",
+      "broadcast": "广播",
+      "other": "其他",
+      "live": "现场",
+      "compilation": "合辑",
+      "remix": "混音",
+      "soundtrack": "原声"
+    }
   }
 }

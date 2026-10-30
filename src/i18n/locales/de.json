@@ -172,7 +172,8 @@
   "sidebar": {
     "nav": {
       "home": "Startseite",
-      "webRadio": "Web-Radio"
+      "webRadio": "Web-Radio",
+      "releaseRadar": "Release Radar"
     },
     "sections": {
       "open": "Öffnen",
@@ -445,6 +446,10 @@
       "plays_zero": "0 Wiedergaben",
       "plays_one": "{{count}} Wiedergabe",
       "plays_other": "{{count}} Wiedergaben"
+    },
+    "releaseRadar": {
+      "label": "Release Radar",
+      "description": "Neues von deinen Künstlern, aus deiner Bibliothek"
     }
   },
   "library": {
@@ -3501,7 +3506,8 @@
       "thumbnails": "Vorschaubilder",
       "drop_import": "Kopieren in die Bibliothek",
       "cache_move": "Caches werden verschoben",
-      "spectrogram": "Spektrum eines Titels"
+      "spectrogram": "Spektrum eines Titels",
+      "release_radar": "Release Radar"
     }
   },
   "smartRuleSummary": {
@@ -3698,5 +3704,56 @@
     "title": "Diese Seite konnte nicht angezeigt werden",
     "description": "Ein Fehler hat das Laden verhindert. Der Rest der App funktioniert weiterhin.",
     "retry": "Erneut versuchen"
+  },
+  "releaseRadar": {
+    "badge": "Neuerscheinungen",
+    "subtitle": "Neue Veröffentlichungen der Künstler in deiner Bibliothek, laut MusicBrainz.",
+    "followed": "Verfolgte Künstler: {{n}}",
+    "lastChecked": "Zuletzt geprüft: {{when}}",
+    "neverChecked": "Noch nie geprüft",
+    "scan": "Neuerscheinungen suchen",
+    "rescan": "Alles neu prüfen",
+    "scanning": "Suche läuft… {{checked}} / {{due}}",
+    "scanningIndeterminate": "Suche läuft…",
+    "stop": "Stoppen",
+    "playAll": "Abspielen",
+    "openPlaylist": "Playlist öffnen",
+    "offline": "Offline-Modus: Es wird keine Suche gesendet. Bereits gefundene Veröffentlichungen bleiben sichtbar.",
+    "filter": {
+      "all": "Alle",
+      "playable": "In deiner Bibliothek",
+      "discovered": "Entdeckt"
+    },
+    "state": {
+      "playable": "In deiner Bibliothek ({{n}})",
+      "discovered": "Entdeckt · auf MusicBrainz ansehen"
+    },
+    "upcoming": "Demnächst",
+    "play": "{{title}} abspielen",
+    "openMusicBrainz": "Auf MusicBrainz ansehen",
+    "outcome": {
+      "rateLimited": "MusicBrainz bittet um eine Pause. Die nächste Suche macht dort weiter, wo diese aufgehört hat.",
+      "failed": "Das Netzwerk antwortet nicht. Die nächste Suche macht dort weiter, wo diese aufgehört hat.",
+      "cancelled": "Suche gestoppt. Die nächste macht dort weiter, wo diese aufgehört hat.",
+      "profileChanged": "Das Profil wurde während der Suche gewechselt, daher wurde sie gestoppt.",
+      "error": "Die Suche ist fehlgeschlagen: {{detail}}"
+    },
+    "emptyTitle": "Willkommen bei Release Radar",
+    "emptyHint": "Starte eine Suche, um neue Veröffentlichungen der Künstler in deiner Bibliothek zu finden. Heruntergeladen werden nur ihre Angaben und Cover, niemals die Musik.",
+    "noneTitle": "Keine neuen Veröffentlichungen",
+    "noneHint": "MusicBrainz kennt keine Veröffentlichung der letzten sechs Monate von den verfolgten Künstlern.",
+    "filterEmpty": "Keine Veröffentlichung in diesem Filter.",
+    "credits": "Angaben: MusicBrainz · Cover: Cover Art Archive",
+    "type": {
+      "album": "Album",
+      "single": "Single",
+      "ep": "EP",
+      "broadcast": "Sendung",
+      "other": "Sonstiges",
+      "live": "Live",
+      "compilation": "Kompilation",
+      "remix": "Remix",
+      "soundtrack": "Soundtrack"
+    }
   }
 }

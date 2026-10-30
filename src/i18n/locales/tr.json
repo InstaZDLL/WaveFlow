@@ -172,7 +172,8 @@
   "sidebar": {
     "nav": {
       "home": "Ana sayfa",
-      "webRadio": "Web Radyo"
+      "webRadio": "Web Radyo",
+      "releaseRadar": "Release Radar"
     },
     "sections": {
       "open": "Aç",
@@ -445,6 +446,10 @@
       "plays_zero": "0 dinleme",
       "plays_one": "{{count}} dinleme",
       "plays_other": "{{count}} dinleme"
+    },
+    "releaseRadar": {
+      "label": "Release Radar",
+      "description": "Sanatçılarınızın yeni çıkanları, kitaplığınızdan"
     }
   },
   "library": {
@@ -3501,7 +3506,8 @@
       "thumbnails": "Kapak önizlemeleri",
       "drop_import": "Kitaplığa kopyalama",
       "cache_move": "Önbellekler taşınıyor",
-      "spectrogram": "Parça spektrumu"
+      "spectrogram": "Parça spektrumu",
+      "release_radar": "Release Radar"
     }
   },
   "smartRuleSummary": {
@@ -3698,5 +3704,56 @@
     "title": "Bu sayfa gösterilemedi",
     "description": "Bir hata yüklenmesini engelledi. Uygulamanın geri kalanı çalışmaya devam ediyor.",
     "retry": "Yeniden dene"
+  },
+  "releaseRadar": {
+    "badge": "Yeni çıkanlar",
+    "subtitle": "MusicBrainz'e göre kitaplığınızdaki sanatçıların yeni çıkışları.",
+    "followed": "Takip edilen sanatçı: {{n}}",
+    "lastChecked": "Son kontrol: {{when}}",
+    "neverChecked": "Hiç kontrol edilmedi",
+    "scan": "Yeni çıkanları bul",
+    "rescan": "Hepsini yeniden kontrol et",
+    "scanning": "Aranıyor… {{checked}} / {{due}}",
+    "scanningIndeterminate": "Aranıyor…",
+    "stop": "Durdur",
+    "playAll": "Çal",
+    "openPlaylist": "Çalma listesini aç",
+    "offline": "Çevrimdışı mod: hiçbir arama gönderilmez. Daha önce bulunan çıkışlar görünmeye devam eder.",
+    "filter": {
+      "all": "Tümü",
+      "playable": "Kitaplığınızda",
+      "discovered": "Keşfedilenler"
+    },
+    "state": {
+      "playable": "Kitaplığınızda ({{n}})",
+      "discovered": "Keşfedildi · MusicBrainz'de gör"
+    },
+    "upcoming": "Yakında",
+    "play": "{{title}} çal",
+    "openMusicBrainz": "MusicBrainz'de gör",
+    "outcome": {
+      "rateLimited": "MusicBrainz yavaşlamayı istedi. Bir sonraki arama bunun durduğu yerden devam eder.",
+      "failed": "Ağ yanıt vermiyor. Bir sonraki arama bunun durduğu yerden devam eder.",
+      "cancelled": "Arama durduruldu. Bir sonraki arama bunun durduğu yerden devam eder.",
+      "profileChanged": "Arama sırasında profil değişti, bu yüzden arama durdu.",
+      "error": "Arama başarısız oldu: {{detail}}"
+    },
+    "emptyTitle": "Release Radar'a hoş geldiniz",
+    "emptyHint": "Kitaplığınızdaki sanatçıların yeni çıkışlarını bulmak için bir arama başlatın. Yalnızca bilgileri ve kapakları indirilir, müziğin kendisi asla.",
+    "noneTitle": "Yeni çıkış yok",
+    "noneHint": "MusicBrainz, takip edilen sanatçıların son altı aydaki hiçbir çıkışını bilmiyor.",
+    "filterEmpty": "Bu filtrede çıkış yok.",
+    "credits": "Bilgiler: MusicBrainz · Kapaklar: Cover Art Archive",
+    "type": {
+      "album": "Albüm",
+      "single": "Single",
+      "ep": "EP",
+      "broadcast": "Yayın",
+      "other": "Diğer",
+      "live": "Canlı",
+      "compilation": "Derleme",
+      "remix": "Remiks",
+      "soundtrack": "Film müziği"
+    }
   }
 }
