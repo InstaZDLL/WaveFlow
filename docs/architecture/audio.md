@@ -142,7 +142,7 @@ The bulk-pop in `drain_silent` (vs the previous one-pop-per-output-slot) is what
 
 ## Crossfade dual-decoder
 
-When the user enables crossfade, the decoder maintains a `pending_next: Option<ActiveStream>` set by an `AudioCmd::SetNextTrack` from the command layer. On each iteration it tops up persistent `primary_resampled` and `secondary_resampled` buffers (one packet each), then mixes the minimum of both with `equal_power_gains(t)`. The window is clamped to `min(user_ms, primary.duration / 2)` so 30 s clips don't start mixing at 18 s.
+When the user enables crossfade, the decoder maintains a `pending_next: Option<ActiveStream>` set by an `AudioCmd::SetNextTrack` from the analytics task — sent again whenever the queue changes before the fade starts, and dropped by the decoder when it was prepared after another track ([playback / The next track follows the queue](../features/playback.md#the-next-track-follows-the-queue)). On each iteration it tops up persistent `primary_resampled` and `secondary_resampled` buffers (one packet each), then mixes the minimum of both with `equal_power_gains(t)`. The window is clamped to `min(user_ms, primary.duration / 2)` so 30 s clips don't start mixing at 18 s.
 
 The mix itself is [`MixWindow`](../../src-tauri/crates/app/src/audio/crossfade.rs): a fixed fade ramps from its first frame; an AutoMix one is entered half a second early and lands the ramp and the incoming track's first frame on the frames its plan put on the beats, the outgoing track playing alone at full gain until then ([playback / AutoMix](../features/playback.md#automix-beat-aligned)).
 
