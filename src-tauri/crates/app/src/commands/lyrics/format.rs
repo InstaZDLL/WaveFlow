@@ -197,10 +197,9 @@ pub(super) fn ttml_has_a_line(content: &str) -> bool {
 }
 
 /// A `<span>` carrying a `begin`: TTML timed below the line.
-pub(super) static TTML_TIMED_SPAN: std::sync::LazyLock<regex::Regex> =
-    std::sync::LazyLock::new(|| {
-        regex::Regex::new(r"<(?:[A-Za-z_][\w.-]*:)?span\b[^>]*\bbegin\s*=").expect("static pattern")
-    });
+static TTML_TIMED_SPAN: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
+    regex::Regex::new(r"<(?:[A-Za-z_][\w.-]*:)?span\b[^>]*\bbegin\s*=").expect("static pattern")
+});
 
 /// Lyrics the renderer can follow: LRC or Enhanced LRC whose lines carry
 /// real timing (see [`lrc_has_timing`]), or a well-formed TTML document with at least one
@@ -214,6 +213,38 @@ pub(super) fn lyrics_are_synced(format: &LyricsFormat, content: &str) -> bool {
         LyricsFormat::Lrc | LyricsFormat::EnhancedLrc => lrc_has_timing(content),
         LyricsFormat::Plain => false,
         LyricsFormat::Ttml => ttml_has_timed_line(content),
+    }
+}
+
+/// How much timing a lyrics document carries, as the renderer will
+/// follow it. Ordered: word timing beats line timing, which beats none.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub(super) enum LyricsQuality {
+    /// Plain text, or a timed format the renderer shows as static text.
+    Unsynced,
+    /// Synced line by line.
+    Lines,
+    /// Synced word by word: Enhanced LRC, or TTML with a timed `<span>`.
+    Words,
+}
+
+/// Rank a document by the timing the renderer can follow in it: unsynced
+/// unless [`lyrics_are_synced`], then word-timed for Enhanced LRC and for
+/// TTML with a timed `<span>`. The richest local sidecar and the plugin
+/// answer kept are both chosen by it.
+pub(super) fn lyrics_quality(format: &LyricsFormat, content: &str) -> LyricsQuality {
+    if !lyrics_are_synced(format, content) {
+        return LyricsQuality::Unsynced;
+    }
+    let words = match format {
+        LyricsFormat::EnhancedLrc => true,
+        LyricsFormat::Ttml => TTML_TIMED_SPAN.is_match(content),
+        LyricsFormat::Lrc | LyricsFormat::Plain => false,
+    };
+    if words {
+        LyricsQuality::Words
+    } else {
+        LyricsQuality::Lines
     }
 }
 

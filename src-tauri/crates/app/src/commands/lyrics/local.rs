@@ -561,32 +561,25 @@ fn read_stem_match_in_dir(dir: &Path, stem: &str) -> Option<String> {
             Some((rank, modified, content))
         })
         .filter_map(|(rank, modified, content)| {
-            let (synced, words) = sidecar_richness(&content)?;
-            Some(((synced, words, modified, rank), content))
+            let quality = sidecar_richness(&content)?;
+            Some(((quality, modified, rank), content))
         })
         .max_by(|(a, _), (b, _)| a.cmp(b))
         .map(|(_, content)| content)
 }
 
-/// How much a sidecar's lyrics carry, judged the way the renderer will:
-/// whether they are synced at all ([`lyrics_are_synced`]), and whether
-/// they are timed word by word (Enhanced LRC, or TTML with a timed
-/// `<span>`). `None` for a TTML document the renderer could not show a
-/// line of — malformed, or with no `<p>` that holds text — which is no
-/// better than no file, and must not outrank a readable `.txt`.
-fn sidecar_richness(content: &str) -> Option<(bool, bool)> {
+/// How much a sidecar's lyrics carry, judged the way the renderer will
+/// ([`lyrics_quality`]): synced at all, then timed word by word (Enhanced
+/// LRC, or TTML with a timed `<span>`). `None` for a TTML document the
+/// renderer could not show a line of — malformed, or with no `<p>` that
+/// holds text — which is no better than no file, and must not outrank a
+/// readable `.txt`.
+fn sidecar_richness(content: &str) -> Option<LyricsQuality> {
     let format = detect_format(content);
     if matches!(format, LyricsFormat::Ttml) && !ttml_has_a_line(content) {
         return None;
     }
-    let synced = lyrics_are_synced(&format, content);
-    let words = synced
-        && match format {
-            LyricsFormat::EnhancedLrc => true,
-            LyricsFormat::Ttml => TTML_TIMED_SPAN.is_match(content),
-            LyricsFormat::Lrc | LyricsFormat::Plain => false,
-        };
-    Some((synced, words))
+    Some(lyrics_quality(&format, content))
 }
 
 /// Read a text file and return its trimmed contents, or `None` if

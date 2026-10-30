@@ -48,6 +48,24 @@ pub(super) fn document_is_what_it_claims(content: &str, declared: LyricsFormat) 
     !content.trim().is_empty() && detect_format(content) == declared
 }
 
+/// The format of a bundle's primary document, or `None`, logged, when the
+/// document is not the format it declared ([`document_is_what_it_claims`]).
+/// The plugin tier ranks answers by it before any is cached, and the cache
+/// write checks it again: the rejection is the same in both places.
+fn usable_primary_format(bundle: &PluginLyricsBundle, plugin_id: &str) -> Option<LyricsFormat> {
+    let format = plugin_format_to_app(bundle.primary.format);
+    if document_is_what_it_claims(&bundle.primary.content, format) {
+        return Some(format);
+    }
+    tracing::warn!(
+        plugin = %plugin_id,
+        declared = ?format,
+        sniffed = ?detect_format(&bundle.primary.content),
+        "plugin lyrics rejected: primary document is not the format it declared"
+    );
+    None
+}
+
 /// Persist one fetch result — the primary document and everything that
 /// came with it — as a single unit.
 ///
@@ -70,16 +88,9 @@ pub(super) async fn cache_lyrics_bundle(
     bundle: PluginLyricsBundle,
     plugin_id: &str,
 ) -> AppResult<Option<LyricsPayload>> {
-    let primary_format = plugin_format_to_app(bundle.primary.format);
-    if !document_is_what_it_claims(&bundle.primary.content, primary_format) {
-        tracing::warn!(
-            plugin = %plugin_id,
-            declared = ?primary_format,
-            sniffed = ?detect_format(&bundle.primary.content),
-            "plugin lyrics rejected: primary document is not the format it declared"
-        );
+    let Some(primary_format) = usable_primary_format(&bundle, plugin_id) else {
         return Ok(None);
-    }
+    };
 
     // One document per (kind, language), decided HERE rather than left to
     // the unique index. The insert below is `OR IGNORE`, so the database
@@ -206,14 +217,19 @@ pub(super) async fn cache_lyrics_bundle(
     }))
 }
 
-/// Multi-tier lookup: cache → embedded tag → sidecar → enhanced/API
-/// providers. Caches the first hit and returns it. Returns `None` if
-/// local tiers fail and offline mode prevents network lookup.
 /// How long one plugin gets to answer a lyrics lookup.
 ///
 /// Matches the motion-artwork budget: the call is a network round-trip
 /// inside a wasm guest, and the panel is waiting on it.
 const LYRICS_PLUGIN_TIMEOUT: Duration = Duration::from_secs(20);
+
+/// How long the plugin tier keeps listening once a first plugin has
+/// answered, for a richer answer from the others. A provider that falls
+/// back to line-synced LRC can answer a few hundred milliseconds ahead
+/// of one serving word-synced TTML; the window lets the second one land
+/// without letting a stalled plugin hold the panel for its whole
+/// [`LYRICS_PLUGIN_TIMEOUT`].
+const LYRICS_PLUGIN_UPGRADE_WINDOW: Duration = Duration::from_secs(2);
 
 /// What the plugin tier cached: the payload it returned, and the bundle
 /// and plugin id it came from, kept so the same answer can be cached again.
@@ -255,12 +271,17 @@ pub(super) async fn track_isrc(pool: &sqlx::SqlitePool, track_id: i64) -> Option
 }
 
 /// Ask every enabled `waveflow:metadata/v2` and `/v3` plugin for this
-/// track, and cache the first bundle that survives validation.
+/// track, and cache the best bundle that survives validation.
 ///
 /// Fan-out rather than a chain: plugins are independent, so they are all
-/// asked at once and the first usable answer wins. A plugin that traps,
-/// times out, or returns a document that is not the format it claimed is
-/// skipped — one bad provider must not deny the tier.
+/// asked at once, and their answers are ranked as they land
+/// ([`rank_plugin_answers`]): word-synced over line-synced over
+/// unsynced, and between two of the same quality the one that answered
+/// first. A word-synced answer ends the wait at once; anything less waits
+/// up to [`LYRICS_PLUGIN_UPGRADE_WINDOW`] after the first answer for a
+/// better one. A plugin that traps, times out, or returns a document that
+/// is not the format it claimed is skipped — one bad provider must not
+/// deny the tier.
 ///
 /// `Ok(None)` means nothing was cached and the caller should carry on
 /// down the waterfall. Nothing here writes a miss: a plugin having no
@@ -350,50 +371,46 @@ pub(super) async fn try_plugin_lyrics(
                 }),
             )
             .await;
-            (plugin_id, outcome)
+            let bundle = match outcome {
+                Ok(Ok(Ok(Some(bundle)))) => bundle,
+                // The plugin answered and has nothing for this track.
+                Ok(Ok(Ok(None))) => return None,
+                Ok(Ok(Err(err))) if err.is_load_failure() => {
+                    tracing::warn!(
+                        plugin = %plugin_id,
+                        err = %err.detail(),
+                        "plugin lyrics: the plugin could not be loaded"
+                    );
+                    return None;
+                }
+                Ok(Ok(Err(err))) => {
+                    if !crate::plugin_attention::inspect(&plugin_id, &err) {
+                        tracing::debug!(
+                            plugin = %plugin_id,
+                            err = %err.detail(),
+                            "plugin lyrics lookup failed"
+                        );
+                    }
+                    return None;
+                }
+                Ok(Err(e)) => {
+                    tracing::warn!(plugin = %plugin_id, %e, "plugin lyrics task panicked");
+                    return None;
+                }
+                Err(_) => {
+                    tracing::warn!(plugin = %plugin_id, "plugin lyrics lookup timed out");
+                    return None;
+                }
+            };
+            // Validated here, so a mislabelled document never holds a
+            // rank, and ranked on the document the renderer will read.
+            let format = usable_primary_format(&bundle, &plugin_id)?;
+            let quality = lyrics_quality(&format, &bundle.primary.content);
+            Some(((plugin_id, bundle), quality))
         });
     }
 
-    while let Some(joined) = set.join_next().await {
-        let (plugin_id, outcome) = match joined {
-            Ok(v) => v,
-            Err(e) => {
-                tracing::warn!(%e, "plugin lyrics task join failed; skipping");
-                continue;
-            }
-        };
-        let bundle = match outcome {
-            Ok(Ok(Ok(Some(bundle)))) => bundle,
-            // The plugin answered and has nothing for this track.
-            Ok(Ok(Ok(None))) => continue,
-            Ok(Ok(Err(err))) if err.is_load_failure() => {
-                tracing::warn!(
-                    plugin = %plugin_id,
-                    err = %err.detail(),
-                    "plugin lyrics: the plugin could not be loaded"
-                );
-                continue;
-            }
-            Ok(Ok(Err(err))) => {
-                if !crate::plugin_attention::inspect(&plugin_id, &err) {
-                    tracing::debug!(
-                        plugin = %plugin_id,
-                        err = %err.detail(),
-                        "plugin lyrics lookup failed"
-                    );
-                }
-                continue;
-            }
-            Ok(Err(e)) => {
-                tracing::warn!(plugin = %plugin_id, %e, "plugin lyrics task panicked");
-                continue;
-            }
-            Err(_) => {
-                tracing::warn!(plugin = %plugin_id, "plugin lyrics lookup timed out");
-                continue;
-            }
-        };
-
+    for (plugin_id, bundle) in rank_plugin_answers(&mut set, LYRICS_PLUGIN_UPGRADE_WINDOW).await {
         if let Some(payload) =
             cache_lyrics_bundle(pool, track_id, &meta.file_hash, bundle.clone(), &plugin_id).await?
         {
@@ -404,8 +421,59 @@ pub(super) async fn try_plugin_lyrics(
             }));
         }
         // Validation rejected it; `cache_lyrics_bundle` has already said
-        // why. Keep asking the others.
+        // why. Try the next one down.
     }
 
     Ok(None)
+}
+
+/// The answers of the plugin tier, best first, as they land in `set`.
+///
+/// Each task yields its answer and its [`LyricsQuality`], or `None` when
+/// its plugin had nothing usable. The result is ranked by quality, and
+/// between two of the same quality by arrival, so a tie goes to the
+/// plugin that answered first, as it always has.
+///
+/// The wait is bounded twice. A word-synced answer ends it at once:
+/// nothing can outrank it, and an earlier one of the same quality would
+/// have ended it already. Otherwise it ends `window` after the first
+/// answer, whatever is still running, or as soon as every task has
+/// finished. Tasks still running when it returns are dropped with `set`
+/// by the caller; their plugin's timeout bounds what is left of them.
+pub(super) async fn rank_plugin_answers<T: Send + 'static>(
+    set: &mut tokio::task::JoinSet<Option<(T, LyricsQuality)>>,
+    window: Duration,
+) -> Vec<T> {
+    let mut answers: Vec<(LyricsQuality, T)> = Vec::new();
+    let mut deadline: Option<tokio::time::Instant> = None;
+    loop {
+        // `join_next` is cancel-safe: a task that finishes as the window
+        // closes is not lost, only no longer waited for.
+        let joined = match deadline {
+            None => set.join_next().await,
+            Some(at) => match tokio::time::timeout_at(at, set.join_next()).await {
+                Ok(joined) => joined,
+                Err(_) => break,
+            },
+        };
+        let Some(joined) = joined else {
+            break;
+        };
+        let (answer, quality) = match joined {
+            Ok(Some(ranked)) => ranked,
+            Ok(None) => continue,
+            Err(e) => {
+                tracing::warn!(%e, "plugin lyrics task join failed; skipping");
+                continue;
+            }
+        };
+        answers.push((quality, answer));
+        if quality == LyricsQuality::Words {
+            break;
+        }
+        deadline.get_or_insert_with(|| tokio::time::Instant::now() + window);
+    }
+    // A stable sort: arrival order stands within a quality.
+    answers.sort_by_key(|(quality, _)| std::cmp::Reverse(*quality));
+    answers.into_iter().map(|(_, answer)| answer).collect()
 }

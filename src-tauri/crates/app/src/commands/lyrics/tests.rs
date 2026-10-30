@@ -853,6 +853,122 @@ async fn a_bundle_holds_one_document_per_kind_and_language() {
     assert_eq!(associated_count(&pool, "hash-c").await, 3);
 }
 
+// The plugin tier keeps the best answer, not the first: a provider that
+// falls back to line-synced LRC must not beat one serving word-synced
+// TTML a moment later. Time is paused, so each arrival lands exactly
+// when the test says.
+type RankedSet = tokio::task::JoinSet<Option<(&'static str, LyricsQuality)>>;
+
+fn answer_after(set: &mut RankedSet, ms: u64, answer: Option<(&'static str, LyricsQuality)>) {
+    set.spawn(async move {
+        tokio::time::sleep(std::time::Duration::from_millis(ms)).await;
+        answer
+    });
+}
+
+const WINDOW: std::time::Duration = std::time::Duration::from_secs(2);
+
+#[tokio::test(start_paused = true)]
+async fn a_word_synced_answer_beats_a_faster_line_synced_one() {
+    let mut set = RankedSet::new();
+    answer_after(&mut set, 100, Some(("lines", LyricsQuality::Lines)));
+    answer_after(&mut set, 400, Some(("words", LyricsQuality::Words)));
+    // Still running when the words land: never waited for.
+    answer_after(&mut set, 10_000, Some(("late", LyricsQuality::Lines)));
+    let start = tokio::time::Instant::now();
+    let ranked = rank_plugin_answers(&mut set, WINDOW).await;
+    assert_eq!(ranked, ["words", "lines"]);
+    assert_eq!(
+        start.elapsed(),
+        std::time::Duration::from_millis(400),
+        "word timing cannot be outranked, so it ends the wait"
+    );
+}
+
+#[tokio::test(start_paused = true)]
+async fn the_wait_for_a_better_answer_is_bounded() {
+    let mut set = RankedSet::new();
+    answer_after(&mut set, 100, Some(("lines", LyricsQuality::Lines)));
+    answer_after(&mut set, 100 + 2_500, Some(("words", LyricsQuality::Words)));
+    let start = tokio::time::Instant::now();
+    let ranked = rank_plugin_answers(&mut set, WINDOW).await;
+    assert_eq!(ranked, ["lines"]);
+    assert_eq!(
+        start.elapsed(),
+        std::time::Duration::from_millis(100) + WINDOW,
+        "the window runs from the first answer"
+    );
+}
+
+#[tokio::test(start_paused = true)]
+async fn answers_of_one_quality_keep_their_arrival_order() {
+    let mut set = RankedSet::new();
+    answer_after(&mut set, 50, Some(("plain", LyricsQuality::Unsynced)));
+    answer_after(&mut set, 300, Some(("second", LyricsQuality::Lines)));
+    answer_after(&mut set, 100, Some(("first", LyricsQuality::Lines)));
+    let ranked = rank_plugin_answers(&mut set, WINDOW).await;
+    assert_eq!(ranked, ["first", "second", "plain"]);
+}
+
+#[tokio::test(start_paused = true)]
+async fn an_unsynced_answer_waits_for_a_synced_one() {
+    let mut set = RankedSet::new();
+    answer_after(&mut set, 10, Some(("plain", LyricsQuality::Unsynced)));
+    answer_after(&mut set, 900, Some(("lines", LyricsQuality::Lines)));
+    let ranked = rank_plugin_answers(&mut set, WINDOW).await;
+    assert_eq!(ranked, ["lines", "plain"]);
+}
+
+#[tokio::test(start_paused = true)]
+async fn no_usable_answer_ends_as_soon_as_every_plugin_has_spoken() {
+    let mut set = RankedSet::new();
+    answer_after(&mut set, 100, None);
+    answer_after(&mut set, 200, None);
+    let start = tokio::time::Instant::now();
+    let ranked = rank_plugin_answers(&mut set, WINDOW).await;
+    assert!(ranked.is_empty());
+    assert_eq!(start.elapsed(), std::time::Duration::from_millis(200));
+}
+
+#[test]
+fn lyrics_quality_follows_the_timing_the_renderer_reads() {
+    let word_ttml = r#"<tt xmlns="http://www.w3.org/ns/ttml"><body><div><p begin="1s" end="2s"><span begin="1s" end="1.5s">word</span></p></div></body></tt>"#;
+    let line_ttml = r#"<tt xmlns="http://www.w3.org/ns/ttml"><body><div><p begin="1s" end="2s">line</p></div></body></tt>"#;
+    let untimed_ttml = r#"<tt xmlns="http://www.w3.org/ns/ttml" xmlns:itunes="http://music.apple.com/lyric-ttml-internal" itunes:timing="None"><body><div><p>line</p></div></body></tt>"#;
+    let enhanced = "[00:01.00]<00:01.00>one <00:01.50>two\n[00:03.00]<00:03.00>three";
+    let lrc = "[00:01.00]one\n[00:03.00]two";
+    let stamped_at_zero = "[00:00.00]one\n[00:00.00]two\n[00:00.00]three";
+
+    assert_eq!(
+        lyrics_quality(&LyricsFormat::Ttml, word_ttml),
+        LyricsQuality::Words
+    );
+    assert_eq!(
+        lyrics_quality(&LyricsFormat::Ttml, line_ttml),
+        LyricsQuality::Lines
+    );
+    assert_eq!(
+        lyrics_quality(&LyricsFormat::Ttml, untimed_ttml),
+        LyricsQuality::Unsynced
+    );
+    assert_eq!(
+        lyrics_quality(&LyricsFormat::EnhancedLrc, enhanced),
+        LyricsQuality::Words
+    );
+    assert_eq!(
+        lyrics_quality(&LyricsFormat::Lrc, lrc),
+        LyricsQuality::Lines
+    );
+    assert_eq!(
+        lyrics_quality(&LyricsFormat::Lrc, stamped_at_zero),
+        LyricsQuality::Unsynced
+    );
+    assert_eq!(
+        lyrics_quality(&LyricsFormat::Plain, "one\ntwo"),
+        LyricsQuality::Unsynced
+    );
+}
+
 /// The chain must consult LRCLIB before providers that answer for
 /// almost any query. Tier 5 already asked LRCLIB, but through the
 /// exact-match `/api/get`; this pass is the fuzzy one, and dropping
