@@ -1260,7 +1260,8 @@
       "audio": "Audio",
       "analysis": "Analisis",
       "file": "Berkas",
-      "spectrum": "Spektrum"
+      "spectrum": "Spektrum",
+      "credits": "Kredit"
     },
     "bpm": "BPM",
     "bpmUncertain": "{{bpm}} (tidak pasti)",
@@ -1324,6 +1325,21 @@
       "altFull": "Tidak ada potongan tajam: spektrum memudar ke derau latar atau berlanjut hingga frekuensi Nyquist ({{nyquist}} kHz), yang tertinggi yang bisa dimuat berkas ini.",
       "guides": "Garis tipis: 16, 19, dan 20 kHz, tempat MP3 128, 192, dan 320 kbps sering berhenti.",
       "axisKhz": "{{value}} kHz"
+    },
+    "creditRoles": {
+      "composer": "Komposer",
+      "lyricist": "Penulis lirik",
+      "writer": "Penulis",
+      "arranger": "Aransemen",
+      "orchestrator": "Orkestrasi",
+      "conductor": "Konduktor",
+      "producer": "Produser",
+      "mix": "Mixing",
+      "engineer": "Teknisi suara",
+      "remixer": "Remix",
+      "vocal": "Vokal",
+      "instrument": "Instrumen",
+      "performer": "Pembawa"
     }
   },
   "selection": {
@@ -1385,7 +1401,12 @@
       "inLibrary": "Di pustakamu",
       "notInLibrary": "Tidak ada di pustakamu"
     },
-    "editMetadata": "Sunting info"
+    "editMetadata": "Sunting info",
+    "facts": {
+      "title": "Tentang",
+      "activeRange": "{{begin}}–{{end}}",
+      "activeSince": "sejak {{begin}}"
+    }
   },
   "artistImagePicker": {
     "title": "Ganti gambar artis",
@@ -2890,7 +2911,8 @@
         "window": "Jendela",
         "lyricsDisplay": "Tampilan lirik",
         "diskUsage": "Ruang disk",
-        "globalShortcuts": "Pintasan global"
+        "globalShortcuts": "Pintasan global",
+        "enrichment": "Pengayaan"
       },
       "navHints": {
         "general": "Bahasa, mulai, pemutaran",
@@ -2940,7 +2962,8 @@
         "diagnostics": "Log dan rendering grafis",
         "reset": "Mulai lagi dengan aplikasi yang bersih",
         "diskUsage": "Apa yang disimpan WaveFlow di komputer ini",
-        "globalShortcuts": "Dari aplikasi mana pun"
+        "globalShortcuts": "Dari aplikasi mana pun",
+        "enrichment": "Genre, tanggal, kredit, dan sampul dari MusicBrainz"
       }
     },
     "desktopLyrics": {
@@ -3134,6 +3157,28 @@
       "assigned": "Ditetapkan oleh desktop Anda: {{trigger}}",
       "waitingForDesktop": "Konfirmasi di desktop…",
       "registering": "Mendaftarkan…"
+    },
+    "enrichment": {
+      "title": "Pengayaan pustaka",
+      "subtitle": "Melengkapi genre, tanggal rilis, kredit, dan sampul yang hilang dari MusicBrainz. Hanya basis data WaveFlow yang berubah, bukan file Anda.",
+      "policy": "Kecocokan yang pasti diterapkan sendiri, dan hanya di tempat yang masih kosong. Album yang meragukan dan semua artis menunggu tinjauan Anda.",
+      "fieldsTitle": "Yang dilengkapi",
+      "run": "Jalankan sekarang",
+      "stop": "Hentikan",
+      "fields": {
+        "genres": "Genre",
+        "dates": "Tanggal rilis",
+        "covers": "Sampul yang hilang",
+        "credits": "Kredit (penulis, pengisi, produksi)"
+      },
+      "stats": {
+        "applied": "Album dilengkapi",
+        "review": "Perlu ditinjau",
+        "noMatch": "Tidak cocok",
+        "artists": "Artis diterima"
+      },
+      "review_one": "Tinjau ({{count}})",
+      "review_other": "Tinjau ({{count}})"
     }
   },
   "scanProgress": {
@@ -3499,7 +3544,8 @@
       "thumbnails": "Gambar mini",
       "drop_import": "Menyalin ke pustaka",
       "cache_move": "Memindahkan cache",
-      "spectrogram": "Spektrum lagu"
+      "spectrogram": "Spektrum lagu",
+      "enrichment": "Pengayaan pustaka"
     }
   },
   "smartRuleSummary": {
@@ -3696,5 +3742,39 @@
     "title": "Halaman ini tidak dapat ditampilkan",
     "description": "Sebuah galat mencegahnya dimuat. Bagian lain aplikasi tetap berfungsi.",
     "retry": "Coba lagi"
+  },
+  "enrichmentReview": {
+    "title": "Tinjauan pengayaan",
+    "tabs": {
+      "albums": "Album untuk ditinjau",
+      "artists": "Artis untuk ditinjau",
+      "applied": "Album dilengkapi",
+      "accepted": "Artis diterima",
+      "rejected": "Ditolak"
+    },
+    "hints": {
+      "albums": "Kecocokan tidak pasti: periksa rilisnya sebelum menerima.",
+      "artists": "Setiap artis menunggu persetujuan Anda; catatan di bawah nama membedakan nama yang sama.",
+      "applied": "Diterapkan otomatis. Urungkan menghapus persis apa yang diisi.",
+      "accepted": "Detail ini tampil di halaman artis.",
+      "rejected": "Tidak diusulkan lagi kecuali Anda mencoba lagi."
+    },
+    "empty": "Belum ada apa-apa di sini.",
+    "yourAlbum": "Album Anda",
+    "yourArtist": "Artis Anda",
+    "release": "Rilis MusicBrainz · {{score}}",
+    "noRelease": "Tidak ada rilis",
+    "fromName": "Ditemukan lewat nama · {{score}}",
+    "accept": "Terima",
+    "reject": "Tolak",
+    "undo": "Urungkan",
+    "retry": "Coba lagi",
+    "openMusicBrainz": "Lihat di MusicBrainz",
+    "tracks_one": "{{count}} lagu",
+    "tracks_other": "{{count}} lagu",
+    "fromAlbums_one": "Tercantum di {{count}} album yang dikenali",
+    "fromAlbums_other": "Tercantum di {{count}} album yang dikenali",
+    "acceptEvidenced_one": "Terima artis yang tercantum",
+    "acceptEvidenced_other": "Terima {{count}} artis yang tercantum"
   }
 }

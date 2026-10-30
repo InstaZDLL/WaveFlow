@@ -445,6 +445,19 @@ export const SETTINGS_CATEGORIES = [
         ],
       },
       {
+        id: "enrichment",
+        labelKey: "settings.organization.groups.enrichment",
+        hintKey: "settings.organization.groupHints.enrichment",
+        searchKeys: [
+          "settings.enrichment.title",
+          "settings.enrichment.subtitle",
+          "settings.enrichment.fields.genres",
+          "settings.enrichment.fields.dates",
+          "settings.enrichment.fields.covers",
+          "settings.enrichment.fields.credits",
+        ],
+      },
+      {
         id: "biographies",
         labelKey: "settings.organization.groups.biographies",
         hintKey: "settings.organization.groupHints.biographies",

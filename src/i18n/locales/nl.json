@@ -1262,7 +1262,8 @@
       "audio": "Audio",
       "analysis": "Analyse",
       "file": "Bestand",
-      "spectrum": "Spectrum"
+      "spectrum": "Spectrum",
+      "credits": "Credits"
     },
     "bpm": "BPM",
     "bpmUncertain": "{{bpm}} (onzeker)",
@@ -1326,6 +1327,21 @@
       "altFull": "Geen scherpe grens: het spectrum dooft uit in de ruisvloer of loopt door tot de Nyquist-frequentie ({{nyquist}} kHz), het hoogste dat dit bestand kan bevatten.",
       "guides": "Dunne lijnen: 16, 19 en 20 kHz, waar mp3's van 128, 192 en 320 kbps vaak ophouden.",
       "axisKhz": "{{value}} kHz"
+    },
+    "creditRoles": {
+      "composer": "Compositie",
+      "lyricist": "Tekst",
+      "writer": "Schrijver",
+      "arranger": "Arrangement",
+      "orchestrator": "Orkestratie",
+      "conductor": "Dirigent",
+      "producer": "Productie",
+      "mix": "Mix",
+      "engineer": "Geluidstechniek",
+      "remixer": "Remix",
+      "vocal": "Zang",
+      "instrument": "Instrumenten",
+      "performer": "Uitvoering"
     }
   },
   "selection": {
@@ -1387,7 +1403,12 @@
       "inLibrary": "In je bibliotheek",
       "notInLibrary": "Niet in je bibliotheek"
     },
-    "editMetadata": "Info bewerken"
+    "editMetadata": "Info bewerken",
+    "facts": {
+      "title": "Over",
+      "activeRange": "{{begin}}–{{end}}",
+      "activeSince": "sinds {{begin}}"
+    }
   },
   "artistImagePicker": {
     "title": "Artiestafbeelding wijzigen",
@@ -2892,7 +2913,8 @@
         "window": "Vensters",
         "lyricsDisplay": "Weergave van songteksten",
         "diskUsage": "Schijfruimte",
-        "globalShortcuts": "Globale sneltoetsen"
+        "globalShortcuts": "Globale sneltoetsen",
+        "enrichment": "Verrijking"
       },
       "navHints": {
         "general": "Taal, opstarten, afspelen",
@@ -2942,7 +2964,8 @@
         "diagnostics": "Logs en grafische weergave",
         "reset": "Opnieuw beginnen met een verse app",
         "diskUsage": "Wat WaveFlow op deze computer bewaart",
-        "globalShortcuts": "Vanuit elke toepassing"
+        "globalShortcuts": "Vanuit elke toepassing",
+        "enrichment": "Genres, datums, credits en hoezen van MusicBrainz"
       }
     },
     "desktopLyrics": {
@@ -3136,6 +3159,28 @@
       "assigned": "Toegewezen door je bureaublad: {{trigger}}",
       "waitingForDesktop": "Bevestig op het bureaublad…",
       "registering": "Registreren…"
+    },
+    "enrichment": {
+      "title": "Bibliotheek verrijken",
+      "subtitle": "Vult genres, releasedatums, credits en ontbrekende hoezen aan vanuit MusicBrainz. Alleen de database van WaveFlow verandert, nooit je bestanden.",
+      "policy": "Een zekere match wordt vanzelf toegepast, en alleen waar iets ontbreekt. Twijfelachtige albums en alle artiesten wachten op jouw controle.",
+      "fieldsTitle": "Wat wordt aangevuld",
+      "run": "Nu starten",
+      "stop": "Stoppen",
+      "fields": {
+        "genres": "Genres",
+        "dates": "Releasedatums",
+        "covers": "Ontbrekende hoezen",
+        "credits": "Credits (schrijvers, uitvoerenden, productie)"
+      },
+      "stats": {
+        "applied": "Aangevulde albums",
+        "review": "Te controleren",
+        "noMatch": "Geen match",
+        "artists": "Geaccepteerde artiesten"
+      },
+      "review_one": "Controleren ({{count}})",
+      "review_other": "Controleren ({{count}})"
     }
   },
   "scanProgress": {
@@ -3501,7 +3546,8 @@
       "thumbnails": "Miniaturen",
       "drop_import": "Kopiëren naar de bibliotheek",
       "cache_move": "Caches verplaatsen",
-      "spectrogram": "Spectrum van een nummer"
+      "spectrogram": "Spectrum van een nummer",
+      "enrichment": "Bibliotheek verrijken"
     }
   },
   "smartRuleSummary": {
@@ -3698,5 +3744,39 @@
     "title": "Deze pagina kan niet worden weergegeven",
     "description": "Een fout verhinderde het laden. De rest van de app werkt nog steeds.",
     "retry": "Opnieuw proberen"
+  },
+  "enrichmentReview": {
+    "title": "Verrijking controleren",
+    "tabs": {
+      "albums": "Albums te controleren",
+      "artists": "Artiesten te controleren",
+      "applied": "Aangevulde albums",
+      "accepted": "Geaccepteerde artiesten",
+      "rejected": "Afgewezen"
+    },
+    "hints": {
+      "albums": "Onzekere matches: controleer de release voor je accepteert.",
+      "artists": "Elke artiest wacht op je goedkeuring; de notitie onder de naam onderscheidt naamgenoten.",
+      "applied": "Automatisch toegepast. Ongedaan maken haalt precies weg wat werd ingevuld.",
+      "accepted": "Deze gegevens staan op de artiestenpagina.",
+      "rejected": "Nooit opnieuw voorgesteld, tenzij je het opnieuw probeert."
+    },
+    "empty": "Hier staat nog niets.",
+    "yourAlbum": "Je album",
+    "yourArtist": "Je artiest",
+    "release": "MusicBrainz-release · {{score}}",
+    "noRelease": "Geen release",
+    "fromName": "Gevonden op naam · {{score}}",
+    "accept": "Accepteren",
+    "reject": "Afwijzen",
+    "undo": "Ongedaan maken",
+    "retry": "Opnieuw proberen",
+    "openMusicBrainz": "Bekijken op MusicBrainz",
+    "tracks_one": "{{count}} nummer",
+    "tracks_other": "{{count}} nummers",
+    "fromAlbums_one": "Vermeld op {{count}} herkend album",
+    "fromAlbums_other": "Vermeld op {{count}} herkende albums",
+    "acceptEvidenced_one": "De vermelde artiest accepteren",
+    "acceptEvidenced_other": "De {{count}} vermelde artiesten accepteren"
   }
 }

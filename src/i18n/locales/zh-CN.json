@@ -1260,7 +1260,8 @@
       "audio": "音频",
       "analysis": "分析",
       "file": "文件",
-      "spectrum": "频谱"
+      "spectrum": "频谱",
+      "credits": "制作人员"
     },
     "bpm": "BPM",
     "bpmUncertain": "{{bpm}}（不确定）",
@@ -1324,6 +1325,21 @@
       "altFull": "没有陡峭的截止：频谱逐渐消失在本底噪声中，或一直延伸到奈奎斯特频率（{{nyquist}} kHz，即此文件能容纳的最高频率）。",
       "guides": "细线：16、19 和 20 kHz，即 128、192 和 320 kbps 的 MP3 常见的截止位置。",
       "axisKhz": "{{value}} kHz"
+    },
+    "creditRoles": {
+      "composer": "作曲",
+      "lyricist": "作词",
+      "writer": "词曲",
+      "arranger": "编曲",
+      "orchestrator": "配器",
+      "conductor": "指挥",
+      "producer": "制作人",
+      "mix": "混音",
+      "engineer": "录音师",
+      "remixer": "重混",
+      "vocal": "演唱",
+      "instrument": "乐器",
+      "performer": "演奏"
     }
   },
   "selection": {
@@ -1385,7 +1401,12 @@
       "inLibrary": "在你的音乐库中",
       "notInLibrary": "不在你的音乐库中"
     },
-    "editMetadata": "编辑信息"
+    "editMetadata": "编辑信息",
+    "facts": {
+      "title": "简介",
+      "activeRange": "{{begin}}–{{end}}",
+      "activeSince": "{{begin}} 年至今"
+    }
   },
   "artistImagePicker": {
     "title": "更改艺人图片",
@@ -2890,7 +2911,8 @@
         "window": "窗口",
         "lyricsDisplay": "歌词显示",
         "diskUsage": "磁盘空间",
-        "globalShortcuts": "全局快捷键"
+        "globalShortcuts": "全局快捷键",
+        "enrichment": "信息补全"
       },
       "navHints": {
         "general": "语言、启动、播放",
@@ -2940,7 +2962,8 @@
         "diagnostics": "日志与图形渲染",
         "reset": "将应用恢复到全新状态",
         "diskUsage": "WaveFlow 在这台电脑上保存的内容",
-        "globalShortcuts": "在任何应用中"
+        "globalShortcuts": "在任何应用中",
+        "enrichment": "来自 MusicBrainz 的流派、日期、制作人员和封面"
       }
     },
     "desktopLyrics": {
@@ -3134,6 +3157,28 @@
       "assigned": "由桌面分配：{{trigger}}",
       "waitingForDesktop": "请在桌面上确认…",
       "registering": "正在注册…"
+    },
+    "enrichment": {
+      "title": "音乐库信息补全",
+      "subtitle": "从 MusicBrainz 补全流派、发行日期、制作人员和缺失的封面。只改动 WaveFlow 的数据库，从不改动你的文件。",
+      "policy": "确定的匹配会自动应用，且只填补空缺。存疑的专辑和所有艺人都会等你审核。",
+      "fieldsTitle": "补全内容",
+      "run": "立即运行",
+      "stop": "停止",
+      "fields": {
+        "genres": "流派",
+        "dates": "发行日期",
+        "covers": "缺失的封面",
+        "credits": "制作人员（词曲、演奏、制作）"
+      },
+      "stats": {
+        "applied": "已补全专辑",
+        "review": "待审核",
+        "noMatch": "无匹配",
+        "artists": "已接受艺人"
+      },
+      "review_one": "审核（{{count}}）",
+      "review_other": "审核（{{count}}）"
     }
   },
   "scanProgress": {
@@ -3499,7 +3544,8 @@
       "thumbnails": "缩略图",
       "drop_import": "复制到音乐库",
       "cache_move": "正在移动缓存",
-      "spectrogram": "曲目频谱"
+      "spectrogram": "曲目频谱",
+      "enrichment": "音乐库信息补全"
     }
   },
   "smartRuleSummary": {
@@ -3696,5 +3742,39 @@
     "title": "无法显示此页面",
     "description": "发生错误，页面未能加载。应用的其他部分仍可正常使用。",
     "retry": "重试"
+  },
+  "enrichmentReview": {
+    "title": "补全审核",
+    "tabs": {
+      "albums": "待审核专辑",
+      "artists": "待审核艺人",
+      "applied": "已补全专辑",
+      "accepted": "已接受艺人",
+      "rejected": "已拒绝"
+    },
+    "hints": {
+      "albums": "匹配不确定：接受前请核对发行版本。",
+      "artists": "每位艺人都需要你的确认；名字下方的说明用来区分同名者。",
+      "applied": "已自动应用。撤销只会移除当时填入的内容。",
+      "accepted": "这些信息会显示在艺人页面上。",
+      "rejected": "除非你重试，否则不会再次推荐。"
+    },
+    "empty": "这里还没有内容。",
+    "yourAlbum": "你的专辑",
+    "yourArtist": "你的艺人",
+    "release": "MusicBrainz 发行版本 · {{score}}",
+    "noRelease": "无发行版本",
+    "fromName": "按名称找到 · {{score}}",
+    "accept": "接受",
+    "reject": "拒绝",
+    "undo": "撤销",
+    "retry": "重试",
+    "openMusicBrainz": "在 MusicBrainz 上查看",
+    "tracks_one": "{{count}} 首",
+    "tracks_other": "{{count}} 首",
+    "fromAlbums_one": "出现在 {{count}} 张已匹配的专辑中",
+    "fromAlbums_other": "出现在 {{count}} 张已匹配的专辑中",
+    "acceptEvidenced_one": "接受署名的艺人",
+    "acceptEvidenced_other": "接受 {{count}} 位署名的艺人"
   }
 }

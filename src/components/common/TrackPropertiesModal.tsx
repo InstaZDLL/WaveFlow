@@ -42,6 +42,10 @@ import {
 import { GENRE_PRESETS } from "../../lib/genrePresets";
 import { pickFile } from "../../lib/tauri/dialog";
 import { useTrackUpdated } from "../../hooks/useTrackUpdated";
+import {
+  getTrackMusicBrainzCredits,
+  type TrackCredit,
+} from "../../lib/tauri/enrichment";
 import { useModalA11y } from "../../hooks/useModalA11y";
 import { TrackSpectrogramPanel } from "./TrackSpectrogram";
 import { formatMusicalKey } from "../../lib/musicalKey";
@@ -1106,6 +1110,8 @@ export function TrackPropertiesModal({
             </Section>
           )}
 
+          {track.id > 0 && <MusicBrainzCredits trackId={track.id} />}
+
           <Section title={t("trackProperties.sections.file")}>
             <Row label={t("trackProperties.fileSize")} value={fileSizeMB} />
             <Row label={t("trackProperties.addedAt")} value={addedAt} />
@@ -1298,6 +1304,71 @@ function useSearchHits<T>(
   if (hits.query === q) return hits.names;
   const typed = q.toLocaleLowerCase();
   return hits.names.filter((n) => n.toLocaleLowerCase().includes(typed));
+}
+
+/** The roles the credits section names in the reader's language; any
+ *  other relationship type is shown as MusicBrainz spells it. */
+const CREDIT_ROLES = new Set([
+  "composer",
+  "lyricist",
+  "writer",
+  "arranger",
+  "orchestrator",
+  "conductor",
+  "producer",
+  "mix",
+  "engineer",
+  "remixer",
+  "vocal",
+  "instrument",
+  "performer",
+]);
+
+/**
+ * The credits the enrichment engine stored for this track — who wrote
+ * it, who played on it, who produced it — grouped by role. Nothing is
+ * drawn when there are none: most tracks have no match, and an empty
+ * section would only say so.
+ */
+function MusicBrainzCredits({ trackId }: { trackId: number }) {
+  const { t } = useTranslation();
+  const [credits, setCredits] = useState<TrackCredit[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    getTrackMusicBrainzCredits(trackId)
+      .then((rows) => {
+        if (!cancelled) setCredits(rows);
+      })
+      .catch((err) =>
+        console.error("[TrackProperties] get credits failed", err),
+      );
+    return () => {
+      cancelled = true;
+    };
+  }, [trackId]);
+  if (credits.length === 0) return null;
+  const byRole = new Map<string, string[]>();
+  for (const credit of credits) {
+    const shown = credit.detail
+      ? `${credit.name} (${credit.detail})`
+      : credit.name;
+    byRole.set(credit.role, [...(byRole.get(credit.role) ?? []), shown]);
+  }
+  return (
+    <Section title={t("trackProperties.sections.credits")}>
+      {[...byRole.entries()].map(([role, names]) => (
+        <Row
+          key={role}
+          label={
+            CREDIT_ROLES.has(role)
+              ? t(`trackProperties.creditRoles.${role}`)
+              : role
+          }
+          value={names.join(", ")}
+        />
+      ))}
+    </Section>
+  );
 }
 
 function Section({
