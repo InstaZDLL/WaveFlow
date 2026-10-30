@@ -103,7 +103,9 @@ pub fn parse(content: &str) -> Document {
             .lines
             .iter_mut()
             .rev()
-            .find(|l| l.begin_ms.is_some_and(|b| b <= e))
+            // Strictly before: a line starting at that very stamp is the
+            // one after the silence, not the one it ends.
+            .find(|l| l.begin_ms.is_some_and(|b| b < e))
         {
             if line.end_ms.is_none() {
                 line.end_ms = Some(e);
@@ -336,6 +338,18 @@ mod tests {
     fn empty_stamp_ends_the_previous_line() {
         let doc = parse("[00:01.00]one\n[00:02.50]\n[00:04.00]two\n");
         assert_eq!(doc.lines.len(), 2);
+        assert_eq!(doc.lines[0].end_ms, Some(2500));
+        assert_eq!(doc.lines[1].end_ms, None);
+    }
+
+    #[test]
+    fn an_empty_stamp_ends_the_line_before_not_the_one_starting_there() {
+        let doc = parse(
+            "[00:01.00]one
+[00:02.50]
+[00:02.50]two
+",
+        );
         assert_eq!(doc.lines[0].end_ms, Some(2500));
         assert_eq!(doc.lines[1].end_ms, None);
     }

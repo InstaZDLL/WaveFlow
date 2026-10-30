@@ -286,12 +286,19 @@ export function stampLine(
   at: number,
 ): LyricsDocument {
   const t = ms(at);
-  return mapLine(doc, i, (line) => ({
-    ...line,
-    beginMs: t,
-    // An end stamped before is no end of a line starting later.
-    endMs: line.endMs !== undefined && line.endMs > t ? line.endMs : undefined,
-  }));
+  return mapLine(doc, i, (line) => {
+    // Words already stamped move with the line: stamping its start again
+    // corrects the whole line, as a nudge does.
+    const before = lineBegin(line);
+    const moved = before === undefined ? line : shiftLine(line, t - before);
+    return {
+      ...moved,
+      beginMs: t,
+      // An end stamped before is no end of a line starting later.
+      endMs:
+        moved.endMs !== undefined && moved.endMs > t ? moved.endMs : undefined,
+    };
+  });
 }
 
 /** Where line `i` stops: a silence before the next line starts. */
