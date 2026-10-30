@@ -496,7 +496,22 @@ pub async fn tag_workshop_apply(
             profile_gone = true;
             break;
         };
-        let Some(path) = track_path(&pool, change.track_id).await? else {
+        // A database that fails here fails every file after: the batch
+        // stops, and what it did so far is settled and reported below
+        // rather than lost with an error.
+        let path = match track_path(&pool, change.track_id).await {
+            Ok(path) => path,
+            Err(err) => {
+                report.problems.push(FileProblem {
+                    track_id: Some(change.track_id),
+                    file_path: String::new(),
+                    reason: format!("database error: {err}"),
+                });
+                report.cancelled = true;
+                break;
+            }
+        };
+        let Some(path) = path else {
             report.problems.push(FileProblem {
                 track_id: Some(change.track_id),
                 file_path: String::new(),
@@ -541,8 +556,9 @@ pub async fn tag_workshop_apply(
         }
         let written: Values = diffs.iter().map(|d| (d.field, d.new.clone())).collect();
 
-        // 3. Journaled before the write.
-        let file_id = {
+        // 3. Journaled before the write. Not journaled, not written: the
+        //    file is left as it is and the batch stops.
+        let journaled = {
             let path = path.clone();
             let diffs = diffs.clone();
             let track_id = change.track_id;
@@ -553,7 +569,17 @@ pub async fn tag_workshop_apply(
                     journal::journal_file(conn, batch_id, Some(track_id), &path, &diffs).await
                 })
             })
-            .await?
+            .await
+        };
+        let file_id = match journaled {
+            Ok(file_id) => file_id,
+            Err(err) => {
+                report
+                    .problems
+                    .push(problem(format!("database error: {err}")));
+                report.cancelled = true;
+                break;
+            }
         };
 
         // 4. The write.
@@ -571,12 +597,20 @@ pub async fn tag_workshop_apply(
         if let Err(err) = outcome {
             let message = format!("tag write failed: {err}");
             let failed = message.clone();
-            enrichment::write_now(&pool, move |conn| {
+            let recorded = enrichment::write_now(&pool, move |conn| {
                 let failed = failed.clone();
                 Box::pin(async move { journal::mark_failed(conn, file_id, &failed).await })
             })
-            .await?;
+            .await;
             report.problems.push(problem(message));
+            if let Err(err) = recorded {
+                // The file is untouched, but its entry stays `pending`: an
+                // undo refuses it as interrupted, which writes nothing —
+                // the safe answer for a write nothing confirms either way.
+                tracing::warn!(file_id, %err, "tag workshop could not record a refused write");
+                report.cancelled = true;
+                break;
+            }
             continue;
         }
 
@@ -659,16 +693,29 @@ pub async fn tag_workshop_apply(
         let _ = app.emit(CHANGED_EVENT, ());
         return Ok(report);
     }
-    let kept = db
+    // The finalisation reports, it does not fail: past this point files
+    // may be written, and the report of them is what the user needs.
+    let kept = match db
         .write(move |conn| Box::pin(async move { journal::discard_if_empty(conn, batch_id).await }))
-        .await?;
-    report.batch_id = (!kept).then_some(batch_id);
+        .await
+    {
+        Ok(discarded) => !discarded,
+        Err(err) => {
+            tracing::warn!(batch_id, %err, "tag workshop could not settle the batch");
+            true
+        }
+    };
+    report.batch_id = kept.then_some(batch_id);
 
     albums_naming_release.sort_unstable();
     albums_naming_release.dedup();
     if let Some(release) = release_mbid.as_deref() {
         if !albums_naming_release.is_empty() {
-            reopen_enrichment_decisions(&app, &db, albums_naming_release.clone(), release).await?;
+            if let Err(err) =
+                reopen_enrichment_decisions(&app, &db, albums_naming_release.clone(), release).await
+            {
+                tracing::warn!(%err, "tag workshop could not reopen enrichment decisions");
+            }
         }
     }
     // The cover of the release the files now name, for their albums only:
@@ -872,10 +919,18 @@ pub async fn tag_workshop_undo(
             .collect();
         // The track that is this file now, if it still is.
         let track_id = match file.track_id {
-            Some(id) => {
-                let current = track_path(&pool, id).await?;
-                (current.as_deref() == Some(file.file_path.as_str())).then_some(id)
-            }
+            Some(id) => match track_path(&pool, id).await {
+                Ok(current) => (current.as_deref() == Some(file.file_path.as_str())).then_some(id),
+                // As in a write: the batch stops before touching the file,
+                // and what was restored so far is reported.
+                Err(err) => {
+                    report
+                        .refused
+                        .push(refuse(&format!("database error: {err}")));
+                    report.cancelled = true;
+                    break;
+                }
+            },
             None => None,
         };
         pause_if_playing(&engine, track_id).await;
@@ -899,11 +954,20 @@ pub async fn tag_workshop_undo(
         // failure of the database below cannot leave the batch claiming
         // the file still holds what it wrote.
         let file_id = file.id;
-        enrichment::write_now(&pool, move |conn| {
+        let recorded = enrichment::write_now(&pool, move |conn| {
             Box::pin(async move { journal::mark_undone(conn, file_id).await })
         })
-        .await?;
+        .await;
         report.restored += 1;
+        if let Err(err) = recorded {
+            // Restored, but still recorded as written: a later undo refuses
+            // it, its bytes having changed. Said, and the batch stops.
+            report
+                .refused
+                .push(refuse(&format!("database error: {err}")));
+            report.cancelled = true;
+            break;
+        }
         if let Some(track_id) = track_id {
             let db_edit = to_db_edit(&restore, &path);
             let synced = async {
@@ -931,7 +995,13 @@ pub async fn tag_workshop_undo(
             .write(move |conn| {
                 Box::pin(async move { journal::settle_undo(conn, batch_id, now).await })
             })
-            .await?;
+            .await
+            .unwrap_or_else(|err| {
+                // The files are restored; the batch is marked undone by the
+                // next undo of it, which finds nothing left to do.
+                tracing::warn!(batch_id, %err, "tag workshop could not settle the undo");
+                false
+            });
     drop(task);
     let _ = app.emit(CHANGED_EVENT, ());
     let _ = app.emit("library:rescanned", ());
