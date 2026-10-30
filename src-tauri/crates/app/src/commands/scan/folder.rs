@@ -988,6 +988,28 @@ pub(crate) async fn scan_folder_inner(
                 .execute(&mut *tx)
                 .await?;
 
+                // A year the file carries is the file's, even one equal to
+                // what the enrichment engine had filled: its provenance goes,
+                // as `link_genres` does for genres, so an undo of the album
+                // cannot clear it. A file with none leaves it.
+                if let Some(year) = extracted.year {
+                    waveflow_core::enrichment::store::release_track_fields(
+                        &mut tx,
+                        existing_track_id,
+                        false,
+                        true,
+                    )
+                    .await?;
+                    if let Some(aid) = album_id {
+                        waveflow_core::enrichment::store::release_album_years(
+                            &mut tx,
+                            &[aid],
+                            year,
+                        )
+                        .await?;
+                    }
+                }
+
                 if let (Some(cover), Some(aid)) = (&extracted.cover_art, album_id) {
                     let artwork_id =
                         upsert_artwork(&mut tx, &cover.hash, &cover.format, cover.source).await?;
