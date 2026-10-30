@@ -144,7 +144,7 @@ pub async fn enrichment_accept_album(
     }
     let (pool, profile_id) = state.require_profile_snapshot().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
-    let db = engine::ProfileDb::new(&app, profile_id);
+    let db = engine::ProfileDb::for_command(&app, profile_id);
     let mut conn = pool.acquire().await?;
     let release = store::proposed_release_mbid(&mut conn, album_id)
         .await?
@@ -184,7 +184,7 @@ pub async fn enrichment_reject_album(
 ) -> AppResult<()> {
     let pool = state.require_profile_pool().await?;
     let now = now_ms();
-    engine::write_retrying(&pool, |conn| {
+    engine::write_now(&pool, |conn| {
         Box::pin(store::reject_album(conn, album_id, now))
     })
     .await?;
@@ -202,7 +202,7 @@ pub async fn enrichment_undo_album(
 ) -> AppResult<()> {
     let pool = state.require_profile_pool().await?;
     let now = now_ms();
-    engine::write_retrying(&pool, |conn| {
+    engine::write_now(&pool, |conn| {
         Box::pin(store::undo_album(conn, album_id, now))
     })
     .await?;
@@ -220,7 +220,7 @@ pub async fn enrichment_forget_album(
 ) -> AppResult<()> {
     let pool = state.require_profile_pool().await?;
     let now = now_ms();
-    engine::write_retrying(&pool, |conn| {
+    engine::write_now(&pool, |conn| {
         Box::pin(store::forget_album(conn, album_id, now))
     })
     .await?;
@@ -256,7 +256,7 @@ pub async fn enrichment_accept_artists(
     }
     let (pool, profile_id) = state.require_profile_snapshot().await?;
     drop(pool);
-    let db = engine::ProfileDb::new(&app, profile_id);
+    let db = engine::ProfileDb::for_command(&app, profile_id);
     let (mb, _) = engine::clients();
     let mut accepted = 0;
     for artist_id in artist_ids {
@@ -287,11 +287,12 @@ pub async fn enrichment_accept_artists(
             }
         };
         let now = now_ms();
-        let ok = engine::write_retrying(&*db.lease().await?, |conn| {
-            let facts = facts.clone();
-            Box::pin(async move { store::accept_artist(conn, artist_id, &facts, now).await })
-        })
-        .await?;
+        let ok = db
+            .write(|conn| {
+                let facts = facts.clone();
+                Box::pin(async move { store::accept_artist(conn, artist_id, &facts, now).await })
+            })
+            .await?;
         if ok {
             accepted += 1;
             let _ = app.emit("artist:updated", artist_id);
@@ -310,7 +311,7 @@ pub async fn enrichment_reject_artist(
 ) -> AppResult<()> {
     let pool = state.require_profile_pool().await?;
     let now = now_ms();
-    engine::write_retrying(&pool, |conn| {
+    engine::write_now(&pool, |conn| {
         Box::pin(store::reject_artist(conn, artist_id, now))
     })
     .await?;
@@ -327,7 +328,7 @@ pub async fn enrichment_forget_artist(
     artist_id: i64,
 ) -> AppResult<()> {
     let pool = state.require_profile_pool().await?;
-    engine::write_retrying(&pool, |conn| {
+    engine::write_now(&pool, |conn| {
         Box::pin(store::forget_artist(conn, artist_id))
     })
     .await?;

@@ -26,7 +26,7 @@ A pass starts when the engine is turned on, after every finished scan (any scan,
 
 A failed lookup writes nothing — the album stays pending for the next pass — and five failures in a row end the pass: the service is down, and asking a thousand more times changes nothing. A refusal that will not change on the next try and belongs to this album — an answer too large to read, or a `400` / `413` / `414` / `422` — is recorded as no match, so it neither ends the pass nor sits first in the queue of every pass after. Any other status (`401`, `403`…) or an answer that no longer parses is the same for every album: it stays a failure and counts toward the five that end the pass, rather than marking the whole library unmatched for a month.
 
-The engine is the second background writer next to the analysis sweep, with the same shape ([invariant](../architecture/invariants.md#single-writer-to-sqlite)): it parks while a scan runs, writes each album in one short transaction, retries on `SQLITE_BUSY`, and never holds a transaction across a network wait.
+The engine is the second background writer next to the analysis sweep, with the same shape ([invariant](../architecture/invariants.md#single-writer-to-sqlite)): it parks while a scan runs, writes each album in one short transaction, retries on `SQLITE_BUSY`, and never holds a transaction across a network wait. The review's buttons do not park: a decision the user is waiting on is one short write, and the busy retry covers it.
 
 ## The service's rules
 

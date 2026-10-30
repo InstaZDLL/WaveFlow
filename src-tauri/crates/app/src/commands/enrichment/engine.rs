@@ -218,9 +218,15 @@ fn is_busy(err: &CoreError) -> bool {
     matches!(err, CoreError::Database(e) if crate::commands::analysis::is_busy(e))
 }
 
-/// Run `write` in a transaction behind any scan, retried on a busy
-/// database. `write` is called afresh on every attempt.
-pub(super) async fn write_retrying<T, F>(pool: &SqlitePool, mut write: F) -> Result<T, CoreError>
+/// Run `write` in a transaction, retried on a busy database; `write` is
+/// called afresh on every attempt.
+///
+/// `park` waits out a running scan before each attempt — what a
+/// background writer owes the scan. A write the user just asked for does
+/// not: it is one short transaction, the busy retry covers it, and
+/// making a button wait for a library scan to end is a button that looks
+/// broken.
+async fn write_with<T, F>(pool: &SqlitePool, park: bool, mut write: F) -> Result<T, CoreError>
 where
     F: for<'c> FnMut(
         &'c mut sqlx::SqliteConnection,
@@ -233,7 +239,9 @@ where
     let mut attempt = 0;
     loop {
         attempt += 1;
-        wait_out_active_scan().await;
+        if park {
+            wait_out_active_scan().await;
+        }
         let result = async {
             let mut tx = pool.begin().await?;
             let value = write(&mut tx).await?;
@@ -249,6 +257,18 @@ where
             other => return other,
         }
     }
+}
+
+/// A write a command makes for the user: see [`write_with`].
+pub(super) async fn write_now<T, F>(pool: &SqlitePool, write: F) -> Result<T, CoreError>
+where
+    F: for<'c> FnMut(
+        &'c mut sqlx::SqliteConnection,
+    ) -> std::pin::Pin<
+        Box<dyn std::future::Future<Output = Result<T, CoreError>> + Send + 'c>,
+    >,
+{
+    write_with(pool, false, write).await
 }
 
 /// The clients one pass uses, sharing the process-wide pacing.
@@ -273,14 +293,41 @@ pub(super) fn clients() -> (MusicBrainzClient, CoverArtArchiveClient) {
 pub(super) struct ProfileDb {
     app: AppHandle,
     profile_id: i64,
+    /// Writes wait out a running scan: true for a pass, false for a
+    /// command the user is waiting on (see [`write_with`]).
+    park: bool,
 }
 
 impl ProfileDb {
+    /// For a background pass.
     pub(super) fn new(app: &AppHandle, profile_id: i64) -> Self {
         Self {
             app: app.clone(),
             profile_id,
+            park: true,
         }
+    }
+
+    /// For a command the user is waiting on.
+    pub(super) fn for_command(app: &AppHandle, profile_id: i64) -> Self {
+        Self {
+            park: false,
+            ..Self::new(app, profile_id)
+        }
+    }
+
+    /// Run `write` in a transaction on this profile, under a lease held
+    /// for that write alone.
+    pub(super) async fn write<T, F>(&self, write: F) -> AppResult<T>
+    where
+        F: for<'c> FnMut(
+            &'c mut sqlx::SqliteConnection,
+        ) -> std::pin::Pin<
+            Box<dyn std::future::Future<Output = Result<T, CoreError>> + Send + 'c>,
+        >,
+    {
+        let lease = self.lease().await?;
+        Ok(write_with(&lease, self.park, write).await?)
     }
 
     pub(super) async fn lease(&self) -> AppResult<crate::state::ProfilePool> {
@@ -342,10 +389,9 @@ async fn run_pass(app: &AppHandle, db: &ProfileDb, artwork_dir: &Path) -> AppRes
         if stop() {
             break;
         }
-        let refilled = write_retrying(&*db.lease().await?, |conn| {
-            Box::pin(store::reapply_album(conn, album_id, fields))
-        })
-        .await?;
+        let refilled = db
+            .write(|conn| Box::pin(store::reapply_album(conn, album_id, fields)))
+            .await?;
         library_dirty |= refilled;
     }
 
@@ -495,7 +541,7 @@ async fn run_pass(app: &AppHandle, db: &ProfileDb, artwork_dir: &Path) -> AppRes
                     Ok(found) => {
                         failures = 0;
                         let now = now_ms();
-                        write_retrying(&*db.lease().await?, |conn| {
+                        db.write(|conn| {
                             let found = found.clone();
                             Box::pin(async move {
                                 match found {
@@ -510,6 +556,17 @@ async fn run_pass(app: &AppHandle, db: &ProfileDb, artwork_dir: &Path) -> AppRes
                         })
                         .await?;
                         summary.artists += 1;
+                    }
+                    // As for an album: a refusal that is this artist's is
+                    // remembered as no match rather than counted.
+                    Err(err) if is_permanent(&err) => {
+                        failures = 0;
+                        tracing::warn!(artist_id, %err, "artist lookup refused; no match");
+                        let now = now_ms();
+                        db.write(|conn| {
+                            Box::pin(store::record_artist_no_match(conn, artist_id, now))
+                        })
+                        .await?;
                     }
                     Err(err) => {
                         failures += 1;
@@ -586,10 +643,8 @@ async fn enrich_album(
         Err(err) => return Err(crate::error::AppError::Other(format!("musicbrainz: {err}"))),
     };
     let Some(resolution) = resolution else {
-        write_retrying(&*db.lease().await?, |conn| {
-            Box::pin(store::record_no_match(conn, album.album_id, now))
-        })
-        .await?;
+        db.write(|conn| Box::pin(store::record_no_match(conn, album.album_id, now)))
+            .await?;
         return Ok(AlbumOutcome {
             status: None,
             cover: false,
@@ -602,10 +657,8 @@ async fn enrich_album(
         // `resolve_album` keeps no such resolution; were one to come
         // back, it is what it says.
         Verdict::NoMatch => {
-            write_retrying(&*db.lease().await?, |conn| {
-                Box::pin(store::record_no_match(conn, album.album_id, now))
-            })
-            .await?;
+            db.write(|conn| Box::pin(store::record_no_match(conn, album.album_id, now)))
+                .await?;
             return Ok(AlbumOutcome {
                 status: None,
                 cover: false,
@@ -637,30 +690,31 @@ pub(super) async fn apply_resolution(
     fields: Fields,
 ) -> AppResult<AlbumOutcome> {
     let now = now_ms();
-    let report: ApplyReport = write_retrying(&*db.lease().await?, |conn| {
-        // Owned by each attempt: the future outlives no borrow of the
-        // caller's, which is what a retried transaction needs.
-        let resolution = resolution.clone();
-        Box::pin(async move {
-            let resolution = &resolution;
-            let report = store::record_match(
-                conn,
-                album_id,
-                status,
-                resolution.score.total,
-                &resolution.facts,
-                &resolution.tracks,
-                fields,
-                now,
-            )
-            .await?;
-            if status == Status::Applied {
-                propose_credited_artists(conn, album_id, resolution, now).await?;
-            }
-            Ok(report)
+    let report: ApplyReport = db
+        .write(|conn| {
+            // Owned by each attempt: the future outlives no borrow of the
+            // caller's, which is what a retried transaction needs.
+            let resolution = resolution.clone();
+            Box::pin(async move {
+                let resolution = &resolution;
+                let report = store::record_match(
+                    conn,
+                    album_id,
+                    status,
+                    resolution.score.total,
+                    &resolution.facts,
+                    &resolution.tracks,
+                    fields,
+                    now,
+                )
+                .await?;
+                if status == Status::Applied {
+                    propose_credited_artists(conn, album_id, resolution, now).await?;
+                }
+                Ok(report)
+            })
         })
-    })
-    .await?;
+        .await?;
     let mut cover = false;
     if report.wants_cover {
         match fetch_cover(
@@ -769,28 +823,29 @@ pub(super) async fn fetch_cover(
     })
     .await
     .map_err(|e| crate::error::AppError::Other(format!("cover write task failed: {e}")))??;
-    let linked = write_retrying(&*db.lease().await?, |conn| {
-        let hash = hash.clone();
-        Box::pin(async move {
-            // Checked in the transaction that links, so an album that
-            // found a cover of its own meanwhile (a scan, the user)
-            // gets no artwork row pointing at nothing.
-            let bare: Option<bool> =
-                sqlx::query_scalar("SELECT artwork_id IS NULL FROM album WHERE id = ?")
-                    .bind(album_id)
-                    .fetch_optional(&mut *conn)
-                    .await?;
-            if bare != Some(true) {
-                return Ok(false);
-            }
-            // `manual`: `artwork.source`'s CHECK knows no other online
-            // source, and the album link carries the real provenance
-            // (`store::COVER_SOURCE`).
-            let artwork_id = upsert_artwork(conn, &hash, format, ArtworkSource::Manual).await?;
-            store::link_cover(conn, album_id, artwork_id).await
+    let linked = db
+        .write(|conn| {
+            let hash = hash.clone();
+            Box::pin(async move {
+                // Checked in the transaction that links, so an album that
+                // found a cover of its own meanwhile (a scan, the user)
+                // gets no artwork row pointing at nothing.
+                let bare: Option<bool> =
+                    sqlx::query_scalar("SELECT artwork_id IS NULL FROM album WHERE id = ?")
+                        .bind(album_id)
+                        .fetch_optional(&mut *conn)
+                        .await?;
+                if bare != Some(true) {
+                    return Ok(false);
+                }
+                // `manual`: `artwork.source`'s CHECK knows no other online
+                // source, and the album link carries the real provenance
+                // (`store::COVER_SOURCE`).
+                let artwork_id = upsert_artwork(conn, &hash, format, ArtworkSource::Manual).await?;
+                store::link_cover(conn, album_id, artwork_id).await
+            })
         })
-    })
-    .await?;
+        .await?;
     if linked {
         crate::thumbnails::spawn_thumbnail_job(target, artwork_dir.to_path_buf(), hash);
     }
