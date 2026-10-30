@@ -89,6 +89,9 @@ pub enum TaskKind {
     /// The caches copied to the folder picked in Settings → Storage
     /// ([`crate::commands::storage::set_cache_location`]).
     CacheMove,
+    /// A pass of the library enrichment engine
+    /// ([`crate::commands::enrichment`]).
+    Enrichment,
 }
 
 impl TaskKind {
@@ -105,6 +108,7 @@ impl TaskKind {
             Self::DropImport => "drop_import",
             Self::Spectrogram => "spectrogram",
             Self::CacheMove => "cache_move",
+            Self::Enrichment => "enrichment",
         }
     }
 }

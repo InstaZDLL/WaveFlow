@@ -285,6 +285,7 @@ pub(crate) fn setup(
             // that gains no file would never reach the current
             // one (`maybe_auto_analyze` honours the toggle).
             commands::analysis::maybe_auto_analyze(&scan_handle);
+            commands::enrichment::maybe_run(&scan_handle);
             return;
         }
         let artwork_dir = state.paths.profile_artwork_dir(profile_id);
@@ -318,6 +319,7 @@ pub(crate) fn setup(
         // scan would make this one a no-op (one sweep at a time), and
         // a scan that added nothing triggers none of its own.
         commands::analysis::maybe_auto_analyze(&scan_handle);
+        commands::enrichment::maybe_run(&scan_handle);
     });
 
     // OS media controls (SMTC / MPRIS / MediaRemote) via

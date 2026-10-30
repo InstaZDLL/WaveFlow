@@ -161,6 +161,43 @@ export const SETTINGS = {
     false,
     "settings.analyze.autoTitle",
   ),
+  // Off until the user opts in: a pass sends the library's titles and
+  // artist names to MusicBrainz. Mirrored in `commands::enrichment`.
+  "enrichment.enabled": setting(
+    "library",
+    "profile",
+    "bool",
+    false,
+    "settings.enrichment.title",
+  ),
+  "enrichment.fill_genres": setting(
+    "library",
+    "profile",
+    "bool",
+    true,
+    "settings.enrichment.fields.genres",
+  ),
+  "enrichment.fill_dates": setting(
+    "library",
+    "profile",
+    "bool",
+    true,
+    "settings.enrichment.fields.dates",
+  ),
+  "enrichment.fill_covers": setting(
+    "library",
+    "profile",
+    "bool",
+    true,
+    "settings.enrichment.fields.covers",
+  ),
+  "enrichment.fill_credits": setting(
+    "library",
+    "profile",
+    "bool",
+    true,
+    "settings.enrichment.fields.credits",
+  ),
   "metadata.bio_source": setting<BioSource>(
     "library",
     "app",

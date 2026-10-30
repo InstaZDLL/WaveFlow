@@ -112,3 +112,13 @@ fn rejects_parenthetical_homonym_when_alone() {
 fn empty_search_is_none() {
     assert_eq!(pick(&["Anything"], ""), None);
 }
+
+#[test]
+fn names_match_is_the_yes_no_form_of_the_selector() {
+    assert!(names_match("Céline Dion", "Celine Dion"));
+    assert!(names_match("Bob Marley", "Bob Marley & The Wailers"));
+    assert!(names_match("Bob Marley & The Wailers", "Bob Marley"));
+    assert!(!names_match("Nirvana", "Nirvana (60s band)"));
+    assert!(!names_match("", ""));
+    assert!(!names_match("Air", "Airbourne"));
+}

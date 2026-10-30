@@ -1308,7 +1308,8 @@
       "audio": "Audio",
       "analysis": "Analyse",
       "file": "Fichier",
-      "spectrum": "Spectre"
+      "spectrum": "Spectre",
+      "credits": "Crédits"
     },
     "bpm": "BPM",
     "bpmUncertain": "{{bpm}} (incertain)",
@@ -1372,6 +1373,21 @@
       "altFull": "Pas de coupure nette : le spectre s'éteint dans le bruit de fond ou va jusqu'à la fréquence de Nyquist ({{nyquist}} kHz), le plus aigu que ce fichier puisse contenir.",
       "guides": "Lignes fines : 16, 19 et 20 kHz, où s'arrêtent souvent les MP3 à 128, 192 et 320 kbit/s.",
       "axisKhz": "{{value}} kHz"
+    },
+    "creditRoles": {
+      "composer": "Composition",
+      "lyricist": "Paroles",
+      "writer": "Écriture",
+      "arranger": "Arrangement",
+      "orchestrator": "Orchestration",
+      "conductor": "Direction",
+      "producer": "Production",
+      "mix": "Mixage",
+      "engineer": "Prise de son",
+      "remixer": "Remix",
+      "vocal": "Chant",
+      "instrument": "Instruments",
+      "performer": "Interprétation"
     }
   },
   "selection": {
@@ -1438,7 +1454,12 @@
       "inLibrary": "Dans votre bibliothèque",
       "notInLibrary": "Pas dans votre bibliothèque"
     },
-    "editMetadata": "Modifier les infos"
+    "editMetadata": "Modifier les infos",
+    "facts": {
+      "title": "Fiche",
+      "activeRange": "{{begin}}–{{end}}",
+      "activeSince": "depuis {{begin}}"
+    }
   },
   "artistImagePicker": {
     "title": "Modifier l'image de l'artiste",
@@ -2958,7 +2979,8 @@
         "window": "Fenêtres",
         "lyricsDisplay": "Affichage des paroles",
         "diskUsage": "Espace disque",
-        "globalShortcuts": "Raccourcis globaux"
+        "globalShortcuts": "Raccourcis globaux",
+        "enrichment": "Enrichissement"
       },
       "navHints": {
         "general": "Langue, démarrage, lecture",
@@ -3008,7 +3030,8 @@
         "diagnostics": "Journaux et rendu graphique",
         "reset": "Repartir d'une application neuve",
         "diskUsage": "Ce que WaveFlow garde sur cet ordinateur",
-        "globalShortcuts": "Depuis n'importe quelle application"
+        "globalShortcuts": "Depuis n'importe quelle application",
+        "enrichment": "Genres, dates, crédits et pochettes depuis MusicBrainz"
       }
     },
     "desktopLyrics": {
@@ -3205,6 +3228,29 @@
       "assigned": "Attribué par votre bureau : {{trigger}}",
       "waitingForDesktop": "Confirmez sur le bureau…",
       "registering": "Enregistrement…"
+    },
+    "enrichment": {
+      "title": "Enrichissement de la bibliothèque",
+      "subtitle": "Complète les genres, les dates de sortie, les crédits et les pochettes manquantes depuis MusicBrainz. Seule la base de WaveFlow change, jamais vos fichiers.",
+      "policy": "Une correspondance sûre est appliquée d'office, et seulement là où il manque quelque chose. Les albums douteux et tous les artistes attendent votre relecture.",
+      "fieldsTitle": "Ce qui est complété",
+      "run": "Lancer maintenant",
+      "stop": "Arrêter",
+      "fields": {
+        "genres": "Genres",
+        "dates": "Dates de sortie",
+        "covers": "Pochettes manquantes",
+        "credits": "Crédits (écriture, interprètes, production)"
+      },
+      "stats": {
+        "applied": "Albums complétés",
+        "review": "À relire",
+        "noMatch": "Sans correspondance",
+        "artists": "Artistes acceptés"
+      },
+      "review_one": "Relire ({{count}})",
+      "review_many": "Relire ({{count}})",
+      "review_other": "Relire ({{count}})"
     }
   },
   "scanProgress": {
@@ -3597,7 +3643,8 @@
       "thumbnails": "Vignettes",
       "drop_import": "Copie vers la bibliothèque",
       "cache_move": "Déplacement des caches",
-      "spectrogram": "Spectre d'un titre"
+      "spectrogram": "Spectre d'un titre",
+      "enrichment": "Enrichissement de la bibliothèque"
     }
   },
   "smartRuleSummary": {
@@ -3807,5 +3854,42 @@
     "title": "Impossible d'afficher cette page",
     "description": "Une erreur l'a empêchée de se charger. Le reste de l'application fonctionne toujours.",
     "retry": "Réessayer"
+  },
+  "enrichmentReview": {
+    "title": "Relecture de l'enrichissement",
+    "tabs": {
+      "albums": "Albums à relire",
+      "artists": "Artistes à relire",
+      "applied": "Albums complétés",
+      "accepted": "Artistes acceptés",
+      "rejected": "Refusés"
+    },
+    "hints": {
+      "albums": "Correspondances incertaines : vérifiez la sortie avant d'accepter.",
+      "artists": "Chaque artiste attend votre accord ; la précision sous le nom distingue les homonymes.",
+      "applied": "Appliqués d'office. Annuler retire exactement ce qui a été rempli.",
+      "accepted": "Ces fiches s'affichent sur la page de l'artiste.",
+      "rejected": "Jamais proposés à nouveau, sauf si vous réessayez."
+    },
+    "empty": "Rien ici pour l'instant.",
+    "yourAlbum": "Votre album",
+    "yourArtist": "Votre artiste",
+    "release": "Sortie MusicBrainz · {{score}}",
+    "noRelease": "Aucune sortie",
+    "fromName": "Trouvé par le nom · {{score}}",
+    "accept": "Accepter",
+    "reject": "Refuser",
+    "undo": "Annuler",
+    "retry": "Réessayer",
+    "openMusicBrainz": "Voir sur MusicBrainz",
+    "tracks_one": "{{count}} titre",
+    "tracks_many": "{{count}} titres",
+    "tracks_other": "{{count}} titres",
+    "fromAlbums_one": "Crédité sur {{count}} album reconnu",
+    "fromAlbums_many": "Crédité sur {{count}} albums reconnus",
+    "fromAlbums_other": "Crédité sur {{count}} albums reconnus",
+    "acceptEvidenced_one": "Accepter l'artiste crédité",
+    "acceptEvidenced_many": "Accepter les {{count}} artistes crédités",
+    "acceptEvidenced_other": "Accepter les {{count}} artistes crédités"
   }
 }

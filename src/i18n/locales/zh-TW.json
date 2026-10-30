@@ -1260,7 +1260,8 @@
       "audio": "音訊",
       "analysis": "分析",
       "file": "檔案",
-      "spectrum": "頻譜"
+      "spectrum": "頻譜",
+      "credits": "製作人員"
     },
     "bpm": "BPM",
     "bpmUncertain": "{{bpm}}（不確定）",
@@ -1324,6 +1325,21 @@
       "altFull": "沒有陡峭的截止：頻譜逐漸消失在底噪中，或一路延伸到奈奎斯特頻率（{{nyquist}} kHz，即此檔案能容納的最高頻率）。",
       "guides": "細線：16、19 和 20 kHz，即 128、192 和 320 kbps 的 MP3 常見的截止位置。",
       "axisKhz": "{{value}} kHz"
+    },
+    "creditRoles": {
+      "composer": "作曲",
+      "lyricist": "作詞",
+      "writer": "詞曲",
+      "arranger": "編曲",
+      "orchestrator": "配器",
+      "conductor": "指揮",
+      "producer": "製作人",
+      "mix": "混音",
+      "engineer": "錄音師",
+      "remixer": "重混",
+      "vocal": "演唱",
+      "instrument": "樂器",
+      "performer": "演奏"
     }
   },
   "selection": {
@@ -1385,7 +1401,12 @@
       "inLibrary": "在你的音樂庫中",
       "notInLibrary": "不在你的音樂庫中"
     },
-    "editMetadata": "編輯資訊"
+    "editMetadata": "編輯資訊",
+    "facts": {
+      "title": "簡介",
+      "activeRange": "{{begin}}–{{end}}",
+      "activeSince": "{{begin}} 年至今"
+    }
   },
   "artistImagePicker": {
     "title": "更改藝人圖片",
@@ -2890,7 +2911,8 @@
         "window": "視窗",
         "lyricsDisplay": "歌詞顯示",
         "diskUsage": "磁碟空間",
-        "globalShortcuts": "全域快速鍵"
+        "globalShortcuts": "全域快速鍵",
+        "enrichment": "資訊補全"
       },
       "navHints": {
         "general": "語言、啟動、播放",
@@ -2940,7 +2962,8 @@
         "diagnostics": "記錄檔與圖形算繪",
         "reset": "將應用程式還原為全新狀態",
         "diskUsage": "WaveFlow 在這台電腦上保存的內容",
-        "globalShortcuts": "在任何應用程式中"
+        "globalShortcuts": "在任何應用程式中",
+        "enrichment": "來自 MusicBrainz 的曲風、日期、製作人員與封面"
       }
     },
     "desktopLyrics": {
@@ -3134,6 +3157,28 @@
       "assigned": "由桌面指派：{{trigger}}",
       "waitingForDesktop": "請在桌面上確認…",
       "registering": "正在註冊…"
+    },
+    "enrichment": {
+      "title": "音樂庫資訊補全",
+      "subtitle": "從 MusicBrainz 補全曲風、發行日期、製作人員與缺少的封面。只會變更 WaveFlow 的資料庫，絕不更動你的檔案。",
+      "policy": "確定的配對會自動套用，而且只填補空缺。有疑慮的專輯與所有藝人都會等你審核。",
+      "fieldsTitle": "補全內容",
+      "run": "立即執行",
+      "stop": "停止",
+      "fields": {
+        "genres": "曲風",
+        "dates": "發行日期",
+        "covers": "缺少的封面",
+        "credits": "製作人員（詞曲、演奏、製作）"
+      },
+      "stats": {
+        "applied": "已補全專輯",
+        "review": "待審核",
+        "noMatch": "無配對",
+        "artists": "已接受藝人"
+      },
+      "review_one": "審核（{{count}}）",
+      "review_other": "審核（{{count}}）"
     }
   },
   "scanProgress": {
@@ -3499,7 +3544,8 @@
       "thumbnails": "縮圖",
       "drop_import": "複製到音樂庫",
       "cache_move": "正在移動快取",
-      "spectrogram": "曲目頻譜"
+      "spectrogram": "曲目頻譜",
+      "enrichment": "音樂庫資訊補全"
     }
   },
   "smartRuleSummary": {
@@ -3696,5 +3742,39 @@
     "title": "無法顯示此頁面",
     "description": "發生錯誤，頁面未能載入。應用程式的其他部分仍可正常使用。",
     "retry": "重試"
+  },
+  "enrichmentReview": {
+    "title": "補全審核",
+    "tabs": {
+      "albums": "待審核專輯",
+      "artists": "待審核藝人",
+      "applied": "已補全專輯",
+      "accepted": "已接受藝人",
+      "rejected": "已拒絕"
+    },
+    "hints": {
+      "albums": "配對不確定：接受前請核對發行版本。",
+      "artists": "每位藝人都需要你的確認；名字下方的說明用來區分同名者。",
+      "applied": "已自動套用。復原只會移除當時填入的內容。",
+      "accepted": "這些資訊會顯示在藝人頁面上。",
+      "rejected": "除非你重試，否則不會再次推薦。"
+    },
+    "empty": "這裡還沒有內容。",
+    "yourAlbum": "你的專輯",
+    "yourArtist": "你的藝人",
+    "release": "MusicBrainz 發行版本 · {{score}}",
+    "noRelease": "無發行版本",
+    "fromName": "依名稱找到 · {{score}}",
+    "accept": "接受",
+    "reject": "拒絕",
+    "undo": "復原",
+    "retry": "重試",
+    "openMusicBrainz": "在 MusicBrainz 上查看",
+    "tracks_one": "{{count}} 首",
+    "tracks_other": "{{count}} 首",
+    "fromAlbums_one": "出現在 {{count}} 張已配對的專輯中",
+    "fromAlbums_other": "出現在 {{count}} 張已配對的專輯中",
+    "acceptEvidenced_one": "接受署名的藝人",
+    "acceptEvidenced_other": "接受 {{count}} 位署名的藝人"
   }
 }

@@ -26,7 +26,7 @@ It returns a **leased** [`ProfilePool`](../../src-tauri/crates/app/src/state.rs)
 
 **A command that needs the profile id too takes both from one call**: `let (pool, profile_id) = state.require_profile_snapshot().await?;`, never `require_profile_pool` followed by `require_profile_id`. Two awaits can straddle a `switch_profile` and pair one profile's database with another profile's id — and with every path derived from it (`profile_artwork_dir`…): a cover set that way lands in the new profile's folder while its `artwork` row goes into the old profile's database, and stays broken. A caller that starts from the id resolves the pool with `require_profile_pool_for(Some(profile_id))`, which refuses a pool that no longer belongs to that profile. A server client is the third half of the pair: the remote source builds it with `RemoteClient::try_build_for(state, profile_id)` for the id it captured, and a stream ticket is minted through `stream::ticket_url` / `raw_ticket_url` with that same id — never `try_build(state)` next to a pool, which would send one profile's rows to the other profile's server.
 
-Same reasoning applies to re-resolving the pool inside a loop: a batch that reads its work list from one pool must keep using **that** pool for the whole run (see `enrich_artist_deezer_with_pool`), otherwise a mid-batch profile switch writes the remainder into the other profile.
+Same reasoning applies to re-resolving the pool inside a loop: a batch that reads its work list from one pool must keep using **that** pool for the whole run (see `enrich_artist_deezer_with_pool`), otherwise a mid-batch profile switch writes the remainder into the other profile. A batch that runs for hours and spends them on the network does the other half of the same rule: the enrichment pass ([`engine::ProfileDb`](../../src-tauri/crates/app/src/commands/enrichment/engine.rs)) keeps the profile **id** and takes a lease per step through `require_profile_pool_for(Some(id))`, which refuses once that profile is closed — a step can never land in the next profile, and a switch waits for the step in flight rather than for the drain timeout. Holding one lease across the network made every switch during a pass take the full five seconds.
 
 ### Persistence of settings
 
@@ -314,6 +314,10 @@ Default it into the overflow ("⋯") menu via [`MoreActionsMenu`](../../src/comp
 ### Process-wide offline mode
 
 Every outbound HTTP path (Deezer, Last.fm, similar, LRCLIB, the plugin registry) checks `offline::is_offline()` first and short-circuits to an empty payload or the cache. Persisted in `app_setting['network.offline_mode']`. **Treat new HTTP code paths the same way.**
+
+### MusicBrainz is paced process-wide
+
+MusicBrainz allows one request a second per IP and throttles anonymous agents first; the Cover Art Archive asks for the same restraint. The rate is the **IP's**, so it holds for the whole app, not for one caller: every client of either service waits on [`musicbrainz::shared_pacer()`](../../src-tauri/crates/core/src/metadata/musicbrainz.rs), which hands out one slot every 1.1 s to whoever asks, in order, and pushes every later slot back when the service answers `503` / `429`. A second client with a pacer of its own — a feature that looks up one album while an enrichment pass runs — would double the rate and get the whole app throttled, the pass included. The User-Agent names WaveFlow, its version and the project's site (`musicbrainz::user_agent`), as the service requires. A throttled answer is retried and then reported as a failure, never read as "nothing found": the engine remembers a "no match" for a month. See [enrichment.md](../features/enrichment.md#the-services-rules).
 
 ### No secret reaches the log
 

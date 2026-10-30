@@ -1,0 +1,1018 @@
+{
+ "asin": "B000000IV0",
+ "relations": [],
+ "packaging-id": "ec27701a-4a22-37f4-bfac-6616e0f9750a",
+ "cover-art-archive": {
+  "artwork": true,
+  "count": 7,
+  "front": true,
+  "back": true,
+  "darkened": false
+ },
+ "disambiguation": "",
+ "packaging": "Jewel Case",
+ "release-events": [
+  {
+   "area": {
+    "id": "489ce91b-6658-3307-9877-795b68554c98",
+    "disambiguation": "",
+    "type": null,
+    "type-id": null,
+    "iso-3166-1-codes": [
+     "US"
+    ],
+    "name": "United States",
+    "sort-name": "United States"
+   },
+   "date": "1996-03-12"
+  }
+ ],
+ "status-id": "4e304316-386d-3409-af2e-78857eec5cfe",
+ "label-info": [
+  {
+   "catalog-number": "UDCD 666",
+   "label": {
+    "id": "edd54e2f-2eef-46b1-a9b5-bedfe5ed33be",
+    "disambiguation": "",
+    "type": "Reissue Production",
+    "type-id": "88ee6ae7-f413-3490-a1d2-54f6a9f0838c",
+    "label-code": null,
+    "genres": [],
+    "sort-name": "Mobile Fidelity Sound Lab",
+    "name": "Mobile Fidelity Sound Lab"
+   }
+  }
+ ],
+ "artist-credit": [
+  {
+   "artist": {
+    "name": "Nirvana",
+    "sort-name": "Nirvana",
+    "disambiguation": "1980s–1990s US grunge band",
+    "type": "Group",
+    "id": "5b11f4ce-a62d-471e-81fc-a69a8278c7da",
+    "country": "US",
+    "genres": [
+     {
+      "id": "00055e8b-b951-46e2-af1e-58b5624e7952",
+      "count": 8,
+      "disambiguation": "",
+      "name": "acoustic rock"
+     },
+     {
+      "name": "alternative metal",
+      "id": "7983ff25-ddf9-411e-a7f9-6cca238bff79",
+      "count": 1,
+      "disambiguation": ""
+     },
+     {
+      "disambiguation": "",
+      "count": 1,
+      "id": "d3ebe947-7c03-43f5-b333-09379881b0f6",
+      "name": "alternative pop"
+     },
+     {
+      "name": "alternative rock",
+      "id": "ceeaa283-5d7b-4202-8d1d-e25d116b2a18",
+      "count": 30,
+      "disambiguation": ""
+     },
+     {
+      "id": "608b0471-7531-4854-a348-e698c69cb699",
+      "count": 1,
+      "disambiguation": "",
+      "name": "ambient"
+     },
+     {
+      "id": "c0e73bb6-37a4-485e-aaea-11c63b40c9f3",
+      "count": 1,
+      "disambiguation": "",
+      "name": "conscious hip hop"
+     },
+     {
+      "name": "electronic",
+      "disambiguation": "",
+      "count": 1,
+      "id": "89255676-1f14-4dd8-bbad-fca839d6aff4"
+     },
+     {
+      "name": "experimental",
+      "id": "68c81274-5770-4e7b-a4bf-ab0d7d425d99",
+      "count": 1,
+      "disambiguation": ""
+     },
+     {
+      "name": "grunge",
+      "disambiguation": "",
+      "count": 68,
+      "id": "3f08faa9-6c3e-4b6d-b4b8-08eea45954e2"
+     },
+     {
+      "name": "hard rock",
+      "count": 1,
+      "disambiguation": "",
+      "id": "51cb9f91-e6a2-41bf-891f-e78e3f1e52ab"
+     },
+     {
+      "id": "52faa157-6bad-4d86-a0ab-d4dec7d2513c",
+      "disambiguation": "",
+      "count": 1,
+      "name": "hip hop"
+     },
+     {
+      "count": 1,
+      "disambiguation": "",
+      "id": "24695813-4a26-4872-bc95-b3378e0ae1b4",
+      "name": "instrumental hip hop"
+     },
+     {
+      "id": "6c76d9ec-0924-4fc9-bb22-91a695ca09d6",
+      "disambiguation": "",
+      "count": 1,
+      "name": "new age"
+     },
+     {
+      "name": "noise rock",
+      "id": "8e5474b7-f445-49a7-866d-0f8e34b0a519",
+      "count": 12,
+      "disambiguation": ""
+     },
+     {
+      "id": "4a3546b4-ec9f-431f-8532-55434f1038ea",
+      "disambiguation": "",
+      "count": 1,
+      "name": "pigfuck"
+     },
+     {
+      "name": "pop",
+      "disambiguation": "",
+      "count": 1,
+      "id": "911c7bbb-172d-4df8-9478-dbff4296e791"
+     },
+     {
+      "name": "post-hardcore",
+      "disambiguation": "",
+      "count": 1,
+      "id": "aec382b7-b635-470c-9051-2f84e0b5ea1e"
+     },
+     {
+      "disambiguation": "",
+      "count": 1,
+      "id": "2aeb5340-c474-4677-b9a6-35ddac9b6a58",
+      "name": "psychedelic pop"
+     },
+     {
+      "name": "psytrance",
+      "id": "b3cccf71-e843-4546-87fa-728055ba3147",
+      "disambiguation": "",
+      "count": 1
+     },
+     {
+      "id": "8cc9b280-230b-4a3a-b1e2-8acab0744dd3",
+      "count": 2,
+      "disambiguation": "",
+      "name": "punk"
+     },
+     {
+      "name": "punk rock",
+      "id": "bd7e1d40-43b1-4ba5-97b3-05b891466962",
+      "disambiguation": "",
+      "count": 1
+     },
+     {
+      "id": "0e3fc579-2d24-4f20-9dae-736e1ec78798",
+      "count": 26,
+      "disambiguation": "",
+      "name": "rock"
+     },
+     {
+      "name": "sludge metal",
+      "disambiguation": "",
+      "count": 3,
+      "id": "66544dbb-08a8-44c2-a21a-4d251481d2b6"
+     },
+     {
+      "name": "underground hip hop",
+      "id": "03a8749c-93e6-4b71-8204-b33de116d8fd",
+      "disambiguation": "",
+      "count": 1
+     }
+    ],
+    "type-id": "e431f5f6-b5d2-343d-8b36-72607fffb74b"
+   },
+   "joinphrase": "",
+   "name": "Nirvana"
+  }
+ ],
+ "status": "Official",
+ "media": [
+  {
+   "position": 1,
+   "id": "6d0d5c1e-745b-3f38-8302-b7899a0b581b",
+   "title": "",
+   "format-id": "9712d52a-4509-3d4b-a1a2-67c88c643e31",
+   "track-offset": 0,
+   "track-count": 12,
+   "format": "CD",
+   "tracks": [
+    {
+     "artist-credit": [
+      {
+       "name": "Nirvana",
+       "artist": {
+        "id": "5b11f4ce-a62d-471e-81fc-a69a8278c7da",
+        "country": "US",
+        "disambiguation": "1980s–1990s US grunge band",
+        "type": "Group",
+        "type-id": "e431f5f6-b5d2-343d-8b36-72607fffb74b",
+        "sort-name": "Nirvana",
+        "name": "Nirvana"
+       },
+       "joinphrase": ""
+      }
+     ],
+     "recording": {
+      "video": false,
+      "first-release-date": "1991-09-10",
+      "artist-credit": [
+       {
+        "name": "Nirvana",
+        "joinphrase": "",
+        "artist": {
+         "sort-name": "Nirvana",
+         "name": "Nirvana",
+         "disambiguation": "1980s–1990s US grunge band",
+         "type": "Group",
+         "country": "US",
+         "id": "5b11f4ce-a62d-471e-81fc-a69a8278c7da",
+         "type-id": "e431f5f6-b5d2-343d-8b36-72607fffb74b"
+        }
+       }
+      ],
+      "relations": [
+       {
+        "target-type": "artist",
+        "source-credit": "",
+        "attribute-ids": {
+         "assistant": "8c4196b1-7053-4b16-921a-f22b2898ed44"
+        },
+        "begin": null,
+        "attributes": [
+         "assistant"
+        ],
+        "type-id": "5dcc52af-7064-4051-8d62-7d80f4c3c907",
+        "artist": {
+         "name": "James Johnson",
+         "sort-name": "Johnson, James",
+         "type": "Person",
+         "disambiguation": "engineer",
+         "id": "221921a3-51fd-4a6e-8e24-f81510f43915",
+         "country": null,
+         "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df"
+        },
+        "type": "engineer",
+        "ended": false,
+        "end": null,
+        "attribute-values": {},
+        "target-credit": "",
+        "direction": "backward"
+       },
+       {
+        "target-type": "artist",
+        "source-credit": "",
+        "attribute-ids": {},
+        "begin": null,
+        "type-id": "5dcc52af-7064-4051-8d62-7d80f4c3c907",
+        "attributes": [],
+        "artist": {
+         "type-id": "e431f5f6-b5d2-343d-8b36-72607fffb74b",
+         "country": "US",
+         "id": "5b11f4ce-a62d-471e-81fc-a69a8278c7da",
+         "disambiguation": "1980s–1990s US grunge band",
+         "type": "Group",
+         "name": "Nirvana",
+         "sort-name": "Nirvana"
+        },
+        "type": "engineer",
+        "ended": false,
+        "end": null,
+        "target-credit": "",
+        "attribute-values": {},
+        "direction": "backward"
+       },
+       {
+        "attribute-ids": {
+         "assistant": "8c4196b1-7053-4b16-921a-f22b2898ed44"
+        },
+        "begin": null,
+        "target-type": "artist",
+        "source-credit": "",
+        "ended": false,
+        "end": null,
+        "attribute-values": {},
+        "target-credit": "",
+        "direction": "backward",
+        "type-id": "5dcc52af-7064-4051-8d62-7d80f4c3c907",
+        "attributes": [
+         "assistant"
+        ],
+        "type": "engineer",
+        "artist": {
+         "sort-name": "Sheehan, Jeff",
+         "name": "Jeff Sheehan",
+         "type": "Person",
+         "disambiguation": "",
+         "id": "f340fcdd-79f4-4e0a-82b4-acfc8b922f4e",
+         "country": "US",
+         "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df"
+        }
+       },
+       {
+        "target-type": "artist",
+        "source-credit": "",
+        "attribute-ids": {},
+        "begin": null,
+        "attributes": [],
+        "type-id": "5dcc52af-7064-4051-8d62-7d80f4c3c907",
+        "type": "engineer",
+        "artist": {
+         "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+         "type": "Person",
+         "disambiguation": "",
+         "country": "US",
+         "id": "ba30915c-4d33-43c5-8c37-ead0b8061517",
+         "name": "Butch Vig",
+         "sort-name": "Vig, Butch"
+        },
+        "end": null,
+        "ended": false,
+        "direction": "backward",
+        "attribute-values": {},
+        "target-credit": ""
+       },
+       {
+        "target-type": "artist",
+        "source-credit": "",
+        "attribute-ids": {
+         "guitar": "63021302-86cd-4aee-80df-2270d54f4978"
+        },
+        "attribute-credits": {},
+        "begin": "1991-05",
+        "type-id": "59054b12-01ac-43ee-a618-285fd397e461",
+        "attributes": [
+         "guitar"
+        ],
+        "artist": {
+         "name": "Kurt Cobain",
+         "sort-name": "Cobain, Kurt",
+         "country": "US",
+         "id": "3c9b356d-d1db-4f4e-a7a3-2d00c1d70255",
+         "type": "Person",
+         "disambiguation": "lead singer and guitarist for Nirvana",
+         "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df"
+        },
+        "type": "instrument",
+        "end": "1991-05",
+        "ended": true,
+        "direction": "backward",
+        "target-credit": "",
+        "attribute-values": {}
+       },
+       {
+        "source-credit": "",
+        "target-type": "artist",
+        "attribute-credits": {},
+        "begin": "1991-05",
+        "attribute-ids": {
+         "drums (drum set)": "12092505-6ee1-46af-a15a-b5b468b6b155"
+        },
+        "type": "instrument",
+        "artist": {
+         "name": "Dave Grohl",
+         "sort-name": "Grohl, Dave",
+         "id": "4d5f891d-9bce-45ae-ad86-912dd27252fa",
+         "country": "US",
+         "disambiguation": "",
+         "type": "Person",
+         "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df"
+        },
+        "attributes": [
+         "drums (drum set)"
+        ],
+        "type-id": "59054b12-01ac-43ee-a618-285fd397e461",
+        "direction": "backward",
+        "target-credit": "David Grohl",
+        "attribute-values": {},
+        "end": "1991-05",
+        "ended": true
+       },
+       {
+        "type-id": "59054b12-01ac-43ee-a618-285fd397e461",
+        "attributes": [
+         "bass guitar"
+        ],
+        "type": "instrument",
+        "artist": {
+         "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+         "disambiguation": "",
+         "type": "Person",
+         "id": "ac05e29f-0561-4445-bb26-5562d2389531",
+         "country": "US",
+         "sort-name": "Novoselic, Krist",
+         "name": "Krist Novoselic"
+        },
+        "ended": true,
+        "end": "1991-05",
+        "target-credit": "Chris Novoselic",
+        "attribute-values": {},
+        "direction": "backward",
+        "target-type": "artist",
+        "source-credit": "",
+        "attribute-ids": {
+         "bass guitar": "17f9f065-2312-4a24-8309-6f6dd63e2e33"
+        },
+        "begin": "1991-05",
+        "attribute-credits": {}
+       },
+       {
+        "end": null,
+        "ended": false,
+        "direction": "backward",
+        "attribute-values": {},
+        "target-credit": "",
+        "type-id": "3e3102e1-1896-4f50-b5b2-dd9824e46efe",
+        "attributes": [],
+        "type": "mix",
+        "artist": {
+         "sort-name": "Wallace, Andy",
+         "name": "Andy Wallace",
+         "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+         "type": "Person",
+         "disambiguation": "engineer",
+         "country": "US",
+         "id": "05f87a3d-df77-42a0-b004-f1990b609dd5"
+        },
+        "attribute-ids": {},
+        "begin": null,
+        "target-type": "artist",
+        "source-credit": ""
+       },
+       {
+        "type-id": "5c0ceac3-feb4-41f0-868d-dc06f6e27fc0",
+        "attributes": [],
+        "type": "producer",
+        "artist": {
+         "sort-name": "Nirvana",
+         "name": "Nirvana",
+         "type": "Group",
+         "disambiguation": "1980s–1990s US grunge band",
+         "country": "US",
+         "id": "5b11f4ce-a62d-471e-81fc-a69a8278c7da",
+         "type-id": "e431f5f6-b5d2-343d-8b36-72607fffb74b"
+        },
+        "ended": false,
+        "end": null,
+        "target-credit": "",
+        "attribute-values": {},
+        "direction": "backward",
+        "target-type": "artist",
+        "source-credit": "",
+        "attribute-ids": {},
+        "begin": null
+       },
+       {
+        "direction": "backward",
+        "attribute-values": {},
+        "target-credit": "",
+        "end": null,
+        "ended": false,
+        "artist": {
+         "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+         "id": "ba30915c-4d33-43c5-8c37-ead0b8061517",
+         "country": "US",
+         "type": "Person",
+         "disambiguation": "",
+         "name": "Butch Vig",
+         "sort-name": "Vig, Butch"
+        },
+        "type": "producer",
+        "type-id": "5c0ceac3-feb4-41f0-868d-dc06f6e27fc0",
+        "attributes": [],
+        "begin": null,
+        "attribute-ids": {},
+        "source-credit": "",
+        "target-type": "artist"
+       },
+       {
+        "type-id": "0fdbe3c6-7700-4a31-ae54-b53f06ae1cfa",
+        "attributes": [
+         "lead vocals"
+        ],
+        "artist": {
+         "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+         "id": "3c9b356d-d1db-4f4e-a7a3-2d00c1d70255",
+         "country": "US",
+         "type": "Person",
+         "disambiguation": "lead singer and guitarist for Nirvana",
+         "sort-name": "Cobain, Kurt",
+         "name": "Kurt Cobain"
+        },
+        "type": "vocal",
+        "ended": true,
+        "end": "1991-05",
+        "target-credit": "",
+        "attribute-values": {},
+        "direction": "backward",
+        "target-type": "artist",
+        "source-credit": "",
+        "attribute-ids": {
+         "lead vocals": "8e2a3255-87c2-4809-a174-98cb3704f1a5"
+        },
+        "begin": "1991-05",
+        "attribute-credits": {}
+       },
+       {
+        "attribute-values": {},
+        "target-credit": "David Grohl",
+        "direction": "backward",
+        "ended": true,
+        "end": "1991-05",
+        "artist": {
+         "id": "4d5f891d-9bce-45ae-ad86-912dd27252fa",
+         "country": "US",
+         "disambiguation": "",
+         "type": "Person",
+         "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+         "sort-name": "Grohl, Dave",
+         "name": "Dave Grohl"
+        },
+        "type": "vocal",
+        "type-id": "0fdbe3c6-7700-4a31-ae54-b53f06ae1cfa",
+        "attributes": [
+         "background vocals"
+        ],
+        "begin": "1991-05",
+        "attribute-credits": {},
+        "attribute-ids": {
+         "background vocals": "75052401-7340-4e5b-a71d-ea024a128849"
+        },
+        "source-credit": "",
+        "target-type": "artist"
+       },
+       {
+        "end": "1991-05",
+        "ended": true,
+        "direction": "backward",
+        "target-credit": "Chris Novoselic",
+        "attribute-values": {},
+        "type-id": "0fdbe3c6-7700-4a31-ae54-b53f06ae1cfa",
+        "attributes": [
+         "background vocals"
+        ],
+        "artist": {
+         "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+         "id": "ac05e29f-0561-4445-bb26-5562d2389531",
+         "country": "US",
+         "type": "Person",
+         "disambiguation": "",
+         "sort-name": "Novoselic, Krist",
+         "name": "Krist Novoselic"
+        },
+        "type": "vocal",
+        "attribute-ids": {
+         "background vocals": "75052401-7340-4e5b-a71d-ea024a128849"
+        },
+        "attribute-credits": {},
+        "begin": "1991-05",
+        "target-type": "artist",
+        "source-credit": ""
+       },
+       {
+        "begin": "1991-05",
+        "attribute-ids": {},
+        "source-credit": "",
+        "target-type": "work",
+        "target-credit": "",
+        "attribute-values": {},
+        "direction": "forward",
+        "ended": true,
+        "end": "1991-05",
+        "work": {
+         "iswcs": [
+          "T-070.243.691-6"
+         ],
+         "relations": [
+          {
+           "type": "composer",
+           "artist": {
+            "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+            "country": "US",
+            "id": "3c9b356d-d1db-4f4e-a7a3-2d00c1d70255",
+            "disambiguation": "lead singer and guitarist for Nirvana",
+            "type": "Person",
+            "sort-name": "Cobain, Kurt",
+            "name": "Kurt Cobain"
+           },
+           "type-id": "d59d99ea-23d4-4a80-b066-edca32ee158f",
+           "attributes": [],
+           "direction": "backward",
+           "target-credit": "",
+           "attribute-values": {},
+           "end": null,
+           "ended": false,
+           "source-credit": "",
+           "target-type": "artist",
+           "begin": null,
+           "attribute-ids": {}
+          },
+          {
+           "begin": null,
+           "attribute-ids": {},
+           "source-credit": "",
+           "target-type": "artist",
+           "direction": "backward",
+           "attribute-values": {},
+           "target-credit": "David Grohl",
+           "end": null,
+           "ended": false,
+           "type": "composer",
+           "artist": {
+            "sort-name": "Grohl, Dave",
+            "name": "Dave Grohl",
+            "id": "4d5f891d-9bce-45ae-ad86-912dd27252fa",
+            "country": "US",
+            "type": "Person",
+            "disambiguation": "",
+            "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df"
+           },
+           "attributes": [],
+           "type-id": "d59d99ea-23d4-4a80-b066-edca32ee158f"
+          },
+          {
+           "attribute-ids": {},
+           "begin": null,
+           "target-type": "artist",
+           "source-credit": "",
+           "end": null,
+           "ended": false,
+           "direction": "backward",
+           "attribute-values": {},
+           "target-credit": "Chris Novoselic",
+           "type-id": "d59d99ea-23d4-4a80-b066-edca32ee158f",
+           "attributes": [],
+           "artist": {
+            "sort-name": "Novoselic, Krist",
+            "name": "Krist Novoselic",
+            "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+            "disambiguation": "",
+            "type": "Person",
+            "id": "ac05e29f-0561-4445-bb26-5562d2389531",
+            "country": "US"
+           },
+           "type": "composer"
+          },
+          {
+           "source-credit": "",
+           "target-type": "artist",
+           "begin": null,
+           "attribute-ids": {},
+           "type": "lyricist",
+           "artist": {
+            "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+            "disambiguation": "lead singer and guitarist for Nirvana",
+            "type": "Person",
+            "country": "US",
+            "id": "3c9b356d-d1db-4f4e-a7a3-2d00c1d70255",
+            "name": "Kurt Cobain",
+            "sort-name": "Cobain, Kurt"
+           },
+           "attributes": [],
+           "type-id": "3e48faba-ec01-47fd-8e89-30e81161661c",
+           "attribute-values": {},
+           "target-credit": "",
+           "direction": "backward",
+           "ended": false,
+           "end": null
+          }
+         ],
+         "languages": [
+          "eng"
+         ],
+         "language": "eng",
+         "type-id": "f061270a-2fd6-32f1-a641-f0f8676d14e6",
+         "attributes": [],
+         "id": "9840e142-269d-3fa3-9805-041a9235c18a",
+         "title": "Smells Like Teen Spirit",
+         "type": "Song",
+         "disambiguation": ""
+        },
+        "type": "performance",
+        "type-id": "a3005666-a872-32c3-ad06-98af558e99b0",
+        "attributes": []
+       }
+      ],
+      "length": 301133,
+      "genres": [
+       {
+        "name": "alternative rock",
+        "id": "ceeaa283-5d7b-4202-8d1d-e25d116b2a18",
+        "count": 6,
+        "disambiguation": ""
+       },
+       {
+        "name": "grunge",
+        "id": "3f08faa9-6c3e-4b6d-b4b8-08eea45954e2",
+        "disambiguation": "",
+        "count": 24
+       },
+       {
+        "id": "911c7bbb-172d-4df8-9478-dbff4296e791",
+        "disambiguation": "",
+        "count": 1,
+        "name": "pop"
+       },
+       {
+        "name": "punk rock",
+        "count": 1,
+        "disambiguation": "",
+        "id": "bd7e1d40-43b1-4ba5-97b3-05b891466962"
+       },
+       {
+        "name": "rock",
+        "id": "0e3fc579-2d24-4f20-9dae-736e1ec78798",
+        "disambiguation": "",
+        "count": 4
+       }
+      ],
+      "disambiguation": "",
+      "id": "5fb524f1-8cc8-4c04-a921-e34c0a911ea7",
+      "title": "Smells Like Teen Spirit"
+     },
+     "number": "1",
+     "title": "Smells Like Teen Spirit",
+     "id": "e18075e4-fb74-3896-8967-d4b1e683702f",
+     "position": 1,
+     "length": 301106
+    },
+    {
+     "recording": {
+      "genres": [
+       {
+        "id": "ceeaa283-5d7b-4202-8d1d-e25d116b2a18",
+        "disambiguation": "",
+        "count": 4,
+        "name": "alternative rock"
+       },
+       {
+        "id": "3f08faa9-6c3e-4b6d-b4b8-08eea45954e2",
+        "disambiguation": "",
+        "count": 21,
+        "name": "grunge"
+       },
+       {
+        "disambiguation": "",
+        "count": 6,
+        "id": "0e3fc579-2d24-4f20-9dae-736e1ec78798",
+        "name": "rock"
+       }
+      ],
+      "length": 255000,
+      "title": "In Bloom",
+      "id": "593e9317-a327-4a31-b796-416c62dcf49d",
+      "disambiguation": "Nevermind version",
+      "artist-credit": [
+       {
+        "name": "Nirvana",
+        "artist": {
+         "type-id": "e431f5f6-b5d2-343d-8b36-72607fffb74b",
+         "type": "Group",
+         "disambiguation": "1980s–1990s US grunge band",
+         "id": "5b11f4ce-a62d-471e-81fc-a69a8278c7da",
+         "country": "US",
+         "name": "Nirvana",
+         "sort-name": "Nirvana"
+        },
+        "joinphrase": ""
+       }
+      ],
+      "first-release-date": "1991-09-24",
+      "video": false,
+      "relations": [
+       {
+        "end": null,
+        "ended": false,
+        "direction": "backward",
+        "target-credit": "",
+        "attribute-values": {},
+        "attributes": [],
+        "type-id": "5c0ceac3-feb4-41f0-868d-dc06f6e27fc0",
+        "artist": {
+         "id": "5b11f4ce-a62d-471e-81fc-a69a8278c7da",
+         "country": "US",
+         "type": "Group",
+         "disambiguation": "1980s–1990s US grunge band",
+         "type-id": "e431f5f6-b5d2-343d-8b36-72607fffb74b",
+         "name": "Nirvana",
+         "sort-name": "Nirvana"
+        },
+        "type": "producer",
+        "attribute-ids": {},
+        "begin": null,
+        "target-type": "artist",
+        "source-credit": ""
+       },
+       {
+        "begin": null,
+        "attribute-ids": {},
+        "source-credit": "",
+        "target-type": "artist",
+        "attribute-values": {},
+        "target-credit": "",
+        "direction": "backward",
+        "ended": false,
+        "end": null,
+        "artist": {
+         "sort-name": "Vig, Butch",
+         "name": "Butch Vig",
+         "disambiguation": "",
+         "type": "Person",
+         "country": "US",
+         "id": "ba30915c-4d33-43c5-8c37-ead0b8061517",
+         "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df"
+        },
+        "type": "producer",
+        "attributes": [],
+        "type-id": "5c0ceac3-feb4-41f0-868d-dc06f6e27fc0"
+       },
+       {
+        "type": "performance",
+        "work": {
+         "languages": [
+          "eng"
+         ],
+         "language": "eng",
+         "iswcs": [
+          "T-070.241.152-6"
+         ],
+         "relations": [
+          {
+           "type": "composer",
+           "artist": {
+            "name": "Kurt Cobain",
+            "sort-name": "Cobain, Kurt",
+            "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+            "type": "Person",
+            "disambiguation": "lead singer and guitarist for Nirvana",
+            "id": "3c9b356d-d1db-4f4e-a7a3-2d00c1d70255",
+            "country": "US"
+           },
+           "attributes": [],
+           "type-id": "d59d99ea-23d4-4a80-b066-edca32ee158f",
+           "direction": "backward",
+           "target-credit": "",
+           "attribute-values": {},
+           "end": null,
+           "ended": false,
+           "source-credit": "",
+           "target-type": "artist",
+           "begin": null,
+           "attribute-ids": {}
+          },
+          {
+           "attribute-ids": {},
+           "begin": null,
+           "target-type": "artist",
+           "source-credit": "",
+           "end": null,
+           "ended": false,
+           "direction": "backward",
+           "attribute-values": {},
+           "target-credit": "",
+           "type-id": "3e48faba-ec01-47fd-8e89-30e81161661c",
+           "attributes": [],
+           "artist": {
+            "sort-name": "Cobain, Kurt",
+            "name": "Kurt Cobain",
+            "type": "Person",
+            "disambiguation": "lead singer and guitarist for Nirvana",
+            "country": "US",
+            "id": "3c9b356d-d1db-4f4e-a7a3-2d00c1d70255",
+            "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df"
+           },
+           "type": "lyricist"
+          }
+         ],
+         "disambiguation": "",
+         "type": "Song",
+         "id": "9928c4f9-de11-3a16-b75d-b6730c9407bb",
+         "title": "In Bloom",
+         "type-id": "f061270a-2fd6-32f1-a641-f0f8676d14e6",
+         "attributes": []
+        },
+        "type-id": "a3005666-a872-32c3-ad06-98af558e99b0",
+        "attributes": [],
+        "attribute-values": {},
+        "target-credit": "",
+        "direction": "forward",
+        "ended": true,
+        "end": "1991-05",
+        "source-credit": "",
+        "target-type": "work",
+        "begin": "1991-05",
+        "attribute-ids": {}
+       }
+      ]
+     },
+     "number": "2",
+     "artist-credit": [
+      {
+       "name": "Nirvana",
+       "joinphrase": "",
+       "artist": {
+        "name": "Nirvana",
+        "sort-name": "Nirvana",
+        "type-id": "e431f5f6-b5d2-343d-8b36-72607fffb74b",
+        "type": "Group",
+        "disambiguation": "1980s–1990s US grunge band",
+        "id": "5b11f4ce-a62d-471e-81fc-a69a8278c7da",
+        "country": "US"
+       }
+      }
+     ],
+     "position": 2,
+     "title": "In Bloom",
+     "id": "b1f200ee-2ff6-35d0-b53d-b50561e4d278",
+     "length": 254893
+    }
+   ]
+  }
+ ],
+ "barcode": "015775166622",
+ "country": "US",
+ "title": "Nevermind",
+ "date": "1996-03-12",
+ "id": "9dce399d-3ec7-34a4-97d0-b4bac54e5f08",
+ "genres": [],
+ "text-representation": {
+  "language": "eng",
+  "script": "Latn"
+ },
+ "quality": "normal",
+ "release-group": {
+  "disambiguation": "",
+  "primary-type": "Album",
+  "id": "1b022e01-4da6-387b-8658-8678046e4cef",
+  "title": "Nevermind",
+  "genres": [
+   {
+    "id": "ceeaa283-5d7b-4202-8d1d-e25d116b2a18",
+    "count": 21,
+    "disambiguation": "",
+    "name": "alternative rock"
+   },
+   {
+    "disambiguation": "",
+    "count": 49,
+    "id": "3f08faa9-6c3e-4b6d-b4b8-08eea45954e2",
+    "name": "grunge"
+   },
+   {
+    "name": "metal",
+    "id": "cc28f5aa-5e19-487c-88e1-e56b022f1fdd",
+    "count": 1,
+    "disambiguation": ""
+   },
+   {
+    "count": 3,
+    "disambiguation": "",
+    "id": "bd7e1d40-43b1-4ba5-97b3-05b891466962",
+    "name": "punk rock"
+   },
+   {
+    "count": 5,
+    "disambiguation": "",
+    "id": "0e3fc579-2d24-4f20-9dae-736e1ec78798",
+    "name": "rock"
+   }
+  ],
+  "secondary-type-ids": [],
+  "secondary-types": [],
+  "first-release-date": "1991-09-24",
+  "primary-type-id": "f529b476-6e62-324f-b0aa-1f3e33d313fc",
+  "artist-credit": [
+   {
+    "name": "Nirvana",
+    "artist": {
+     "disambiguation": "1980s–1990s US grunge band",
+     "type": "Group",
+     "id": "5b11f4ce-a62d-471e-81fc-a69a8278c7da",
+     "country": "US",
+     "type-id": "e431f5f6-b5d2-343d-8b36-72607fffb74b",
+     "sort-name": "Nirvana",
+     "name": "Nirvana"
+    },
+    "joinphrase": ""
+   }
+  ]
+ }
+}

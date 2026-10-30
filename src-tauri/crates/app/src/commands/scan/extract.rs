@@ -165,6 +165,17 @@ pub(super) async fn link_genres(
             .execute(&mut *tx)
             .await?;
     }
+    // Genres the file carries are the file's, even one equal to what the
+    // enrichment engine had filled: its provenance goes, so an undo of
+    // the album cannot delete them (`enrichment::store::
+    // release_track_fields`, the editor's side of the same rule). A file
+    // with none leaves it, and the engine's next pass fills the gap again.
+    if !genre_ids.is_empty() {
+        sqlx::query("DELETE FROM musicbrainz_filled_genre WHERE track_id = ?")
+            .bind(track_id)
+            .execute(&mut *tx)
+            .await?;
+    }
     Ok(())
 }
 

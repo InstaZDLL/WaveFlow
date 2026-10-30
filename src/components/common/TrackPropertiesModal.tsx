@@ -42,6 +42,10 @@ import {
 import { GENRE_PRESETS } from "../../lib/genrePresets";
 import { pickFile } from "../../lib/tauri/dialog";
 import { useTrackUpdated } from "../../hooks/useTrackUpdated";
+import {
+  getTrackMusicBrainzCredits,
+  type TrackCredit,
+} from "../../lib/tauri/enrichment";
 import { useModalA11y } from "../../hooks/useModalA11y";
 import { TrackSpectrogramPanel } from "./TrackSpectrogram";
 import { formatMusicalKey } from "../../lib/musicalKey";
@@ -447,13 +451,13 @@ export function TrackPropertiesModal({
     setSaveError(null);
     setFileChanged(false);
     try {
+      // Empty string in a number field clears the value (sent as 0
+      // → backend treats as "remove this tag"). Non-numeric input
+      // is rejected silently — the input is `type="number"` so the
+      // browser typically guards against it anyway.
+      const year = form.year.trim() === "" ? 0 : Number(form.year) || 0;
       const edit: TrackEdit = {
         title: form.title,
-        // Empty string in a number field clears the value (sent as 0
-        // → backend treats as "remove this tag"). Non-numeric input
-        // is rejected silently — the input is `type="number"` so the
-        // browser typically guards against it anyway.
-        year: form.year.trim() === "" ? 0 : Number(form.year) || 0,
         track_number:
           form.track_number.trim() === "" ? 0 : Number(form.track_number) || 0,
         disc_number:
@@ -471,6 +475,11 @@ export function TrackPropertiesModal({
         genres != null &&
         genreList.join("; ") !== genres.join("; ");
       if (sendingGenre) edit.genre = genreList.join("; ");
+      // The year too, only when changed. The enrichment engine can fill
+      // it in the database alone; sent on every save, a save for the
+      // title would write that value into the file, which the engine
+      // itself never does.
+      if (year !== (track.year ?? 0)) edit.year = year;
       // Artist and album likewise ride along only when changed. Sent on
       // every save, a multi-artist track saved for its title alone had
       // its credits rewritten — and with the display form "A, B", merged
@@ -1106,6 +1115,8 @@ export function TrackPropertiesModal({
             </Section>
           )}
 
+          {track.id > 0 && <MusicBrainzCredits trackId={track.id} />}
+
           <Section title={t("trackProperties.sections.file")}>
             <Row label={t("trackProperties.fileSize")} value={fileSizeMB} />
             <Row label={t("trackProperties.addedAt")} value={addedAt} />
@@ -1298,6 +1309,71 @@ function useSearchHits<T>(
   if (hits.query === q) return hits.names;
   const typed = q.toLocaleLowerCase();
   return hits.names.filter((n) => n.toLocaleLowerCase().includes(typed));
+}
+
+/** The roles the credits section names in the reader's language; any
+ *  other relationship type is shown as MusicBrainz spells it. */
+const CREDIT_ROLES = new Set([
+  "composer",
+  "lyricist",
+  "writer",
+  "arranger",
+  "orchestrator",
+  "conductor",
+  "producer",
+  "mix",
+  "engineer",
+  "remixer",
+  "vocal",
+  "instrument",
+  "performer",
+]);
+
+/**
+ * The credits the enrichment engine stored for this track — who wrote
+ * it, who played on it, who produced it — grouped by role. Nothing is
+ * drawn when there are none: most tracks have no match, and an empty
+ * section would only say so.
+ */
+function MusicBrainzCredits({ trackId }: { trackId: number }) {
+  const { t } = useTranslation();
+  const [credits, setCredits] = useState<TrackCredit[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    getTrackMusicBrainzCredits(trackId)
+      .then((rows) => {
+        if (!cancelled) setCredits(rows);
+      })
+      .catch((err) =>
+        console.error("[TrackProperties] get credits failed", err),
+      );
+    return () => {
+      cancelled = true;
+    };
+  }, [trackId]);
+  if (credits.length === 0) return null;
+  const byRole = new Map<string, string[]>();
+  for (const credit of credits) {
+    const shown = credit.detail
+      ? `${credit.name} (${credit.detail})`
+      : credit.name;
+    byRole.set(credit.role, [...(byRole.get(credit.role) ?? []), shown]);
+  }
+  return (
+    <Section title={t("trackProperties.sections.credits")}>
+      {[...byRole.entries()].map(([role, names]) => (
+        <Row
+          key={role}
+          label={
+            CREDIT_ROLES.has(role)
+              ? t(`trackProperties.creditRoles.${role}`)
+              : role
+          }
+          value={names.join(", ")}
+        />
+      ))}
+    </Section>
+  );
 }
 
 function Section({

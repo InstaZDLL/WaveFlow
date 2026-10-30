@@ -302,6 +302,16 @@ pub(super) async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) 
         }
     }
 
+    // What the user just wrote is theirs: the enrichment engine forgets
+    // that it once filled these fields, so its undo cannot take them back.
+    waveflow_core::enrichment::store::release_track_fields(
+        &mut tx,
+        track_id,
+        edit.genre.is_some(),
+        edit.year.is_some(),
+    )
+    .await?;
+
     // The composer lives beside the track, in the row the scanner fills
     // from the same frame, under the same key and cut to the same length
     // — so the next scan of the file finds what this wrote.
@@ -335,6 +345,9 @@ pub(super) async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) 
             albums.push(aid);
         }
         waveflow_core::repository::sqlite::album::refresh_album_years(&mut tx, &albums).await?;
+        if let Some(year) = edit.year {
+            waveflow_core::enrichment::store::release_album_years(&mut tx, &albums, year).await?;
+        }
     }
 
     tx.commit().await?;

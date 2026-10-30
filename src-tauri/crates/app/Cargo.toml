@@ -50,7 +50,7 @@ serde_json = "1"
 # in the wasmtime + Cranelift + WASI host that powers
 # `commands/plugins.rs`; the server intentionally leaves this feature
 # off to keep its binary lean.
-waveflow-core = { path = "../core", features = ["sqlite", "plugins", "playback"] }
+waveflow-core = { path = "../core", features = ["sqlite", "plugins", "playback", "musicbrainz"] }
 waveflow-syncedlyrics = { path = "../syncedlyrics" }
 
 # `macos-private-api`: a transparent window on macOS goes through a

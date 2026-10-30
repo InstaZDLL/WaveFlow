@@ -34,6 +34,12 @@ opus = ["dep:opusic-sys"]
 # `FOLD` sort collation (`repository::sqlite::collation`).
 sqlite = ["sqlx/sqlite", "sqlx/runtime-tokio", "dep:tokio", "dep:unicode-normalization"]
 postgres = ["sqlx/postgres", "sqlx/runtime-tokio"]
+# The MusicBrainz and Cover Art Archive clients (`metadata::musicbrainz`,
+# `metadata::coverartarchive`) and the enrichment engine built on them.
+# They pace their own requests — the service allows one a second — so
+# they need a timer, which is the one thing here that asks tokio for
+# `time`. Off for the server until it enriches a library of its own.
+musicbrainz = ["dep:tokio", "tokio/time"]
 # Opt in to the WebAssembly Component Model plugin host. Pulls in
 # wasmtime + Cranelift + wasmtime-wasi + the WIT-generated bindings
 # and exposes `crate::plugin`. The desktop app (`crates/app`) enables
@@ -250,4 +256,7 @@ tempfile = "3"
 # Async test harness for the scanner passes that talk to SQLite
 # (`refresh_folder_covers`). Only the attribute macro + a current-thread
 # runtime are needed, so no "full".
-tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "io-util"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "io-util", "time"] }
+# The enrichment store's tests run the real profile migrations, so a
+# constraint or a foreign key the schema declares is one the tests meet.
+sqlx = { version = "0.9", default-features = false, features = ["macros", "migrate", "sqlite", "runtime-tokio"] }

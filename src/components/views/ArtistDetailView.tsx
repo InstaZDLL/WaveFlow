@@ -33,6 +33,7 @@ import { useTrackContextMenu } from "../../hooks/useTrackContextMenu";
 import { useTrackUpdated } from "../../hooks/useTrackUpdated";
 import { usePageVirtualizer } from "../../hooks/usePageVirtualizer";
 import { useArtistBioCollapsed } from "../../hooks/useArtistBioCollapsed";
+import { ArtistMusicBrainzFacts } from "../common/ArtistMusicBrainzFacts";
 import { useArtistHero } from "../../hooks/useArtistHero";
 import {
   remoteArtwork,
@@ -666,6 +667,14 @@ export function ArtistDetailView({
           </div>
         </div>
       </div>
+
+      {/* What MusicBrainz says, once the user accepted the match. A
+          server artist has no local decision to read. */}
+      {!remote && artistId != null && (
+        // Keyed: another artist's page starts from no facts, not from
+        // the previous artist's while its own loads.
+        <ArtistMusicBrainzFacts key={artistId} artistId={artistId} />
+      )}
 
       {/* Bio */}
       {bioShort && (
