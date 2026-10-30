@@ -814,21 +814,23 @@ pub(super) async fn fetch_cover(
     let mut cover = None;
     if has_front {
         cover = usable(fetch(CoverOf::Release, release).await?);
-        if cover.is_none() {
-            // The archive answered, and holds no usable front cover for
-            // the release after all: the backlog stops asking, or every
-            // pass would cost one request per such album, forever. The
-            // release group's may still be there.
-            db.write(|conn| Box::pin(store::forget_front_cover(conn, album_id)))
-                .await?;
-        }
     }
     if cover.is_none() {
+        // The release group's may be there when the release's is not. An
+        // error here returns before the release is forgotten below, so
+        // the next pass asks both again.
         if let Some(group) = group {
             cover = usable(fetch(CoverOf::ReleaseGroup, group).await?);
         }
     }
     let Some((bytes, format)) = cover else {
+        if has_front {
+            // The archive answered for both, and holds no usable front
+            // cover after all: the backlog stops asking, or every pass
+            // would cost one request per such album, forever.
+            db.write(|conn| Box::pin(store::forget_front_cover(conn, album_id)))
+                .await?;
+        }
         return Ok(false);
     };
     // Hashing up to 16 MiB and writing it is blocking work: off the
