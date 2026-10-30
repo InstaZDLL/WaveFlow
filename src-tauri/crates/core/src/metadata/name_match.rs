@@ -44,6 +44,17 @@ pub fn select_by_name<T>(
     prefix_match
 }
 
+/// True when two raw names denote the same artist under the rules of
+/// [`select_by_name`]: equal once [`normalize_name`]d, or one the other
+/// followed by a canonical connector ("Bob Marley" and "Bob Marley & The
+/// Wailers"). The yes/no form of the same matcher, for a caller that
+/// holds one candidate rather than a ranked list.
+pub fn names_match(a: &str, b: &str) -> bool {
+    let a = normalize_name(a);
+    let b = normalize_name(b);
+    !a.is_empty() && !b.is_empty() && (a == b || names_prefix_compatible(&a, &b))
+}
+
 /// Normalise an artist name for fuzzy comparison: lowercase, fold common
 /// Latin diacritics, expand `&` to "and", drop punctuation and collapse
 /// whitespace to single spaces. "Boney M." and "Boney M" both become
