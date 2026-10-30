@@ -35,6 +35,7 @@
 | `volume`, `normalize_enabled`             | command layer                                               | cpal callback                |
 | `paused_output`, `drain_silent`           | command layer / decoder                                     | cpal callback                |
 | `crossfade_ms`, `replaygain_enabled`      | command layer                                               | decoder                      |
+| `automix` (switch, cue, plan)             | command layer, analytics task                               | decoder                      |
 | ReplayGain pre-amp / fallback / clipping  | command layer                                               | decoder (re-read per buffer) |
 | `mono_enabled`, `stereo` (balance, width) | decoder (`AudioCmd::Set*`), command layer (profile restore) | decoder (re-read per buffer) |
 | `playback_speed_bits`, `speed_dirty`      | command layer / decoder                                     | decoder + UI position math   |
@@ -142,6 +143,8 @@ The bulk-pop in `drain_silent` (vs the previous one-pop-per-output-slot) is what
 ## Crossfade dual-decoder
 
 When the user enables crossfade, the decoder maintains a `pending_next: Option<ActiveStream>` set by an `AudioCmd::SetNextTrack` from the command layer. On each iteration it tops up persistent `primary_resampled` and `secondary_resampled` buffers (one packet each), then mixes the minimum of both with `equal_power_gains(t)`. The window is clamped to `min(user_ms, primary.duration / 2)` so 30 s clips don't start mixing at 18 s.
+
+The mix itself is [`MixWindow`](../../src-tauri/crates/app/src/audio/crossfade.rs): a fixed fade ramps from its first frame; an AutoMix one is entered half a second early and lands the ramp and the incoming track's first frame on the frames its plan put on the beats, the outgoing track playing alone at full gain until then ([playback / AutoMix](../features/playback.md#automix-beat-aligned)).
 
 Per-stream ReplayGain is applied **before** the mix so the loudness of the two tracks doesn't drift mid-fade. Each `ActiveStream` carries the track's gain and peak as metadata rather than a baked-in scalar, and [`replay_gain::effective_linear`](../../src-tauri/crates/core/src/playback/replay_gain.rs) turns them into a multiplier once per decoded buffer — that is what lets the pre-amp and clipping settings take effect mid-track. Full behaviour in [playback](../features/playback.md#replaygain).
 

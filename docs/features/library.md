@@ -81,7 +81,7 @@ Measured with `analysis_bench --beats` against hand-annotated beats, scored as m
 
 "Any metrical level" also accepts the annotation's double, halves and off-beats. The gap between the two columns is mostly the tempo's octave rather than the placement: Ballroom annotates the dancer's step, so a quickstep at 200 BPM that the tempo stage reads at 100 (as it does for 96% of them, by design — that stage is tuned on a real library against Deezer) still lands every other beat. Two settings were measured and changed: the gap penalty is 400 rather than the paper's 100 (best on both datasets; 800 loses ground again), and a beat is dated 33 ms after its frame's centre, where the flux peaks earlier than the attack — the same offset on click tracks and on both datasets. A period re-read every 2 s within ±15–25% of the global one, meant to follow bands that speed up, measured slightly worse on both datasets, live genres included, and was dropped; a track that really changes tempo is the case it would have served, and the stored list leaves room for it.
 
-The list is stored in `track_analysis.beats` by [`beats::encode`](../../src-tauri/crates/core/src/analysis/beats.rs): a format byte, the first beat in milliseconds, then each gap in milliseconds as a `u16` — about 1 KB for four minutes. Nothing reads it yet.
+The list is stored in `track_analysis.beats` by [`beats::encode`](../../src-tauri/crates/core/src/analysis/beats.rs): a format byte, the first beat in milliseconds, then each gap in milliseconds as a `u16` — about 1 KB for four minutes. [AutoMix](playback.md#automix-beat-aligned) reads it to place a crossfade on the beats.
 
 ### Fake lossless files
 
