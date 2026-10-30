@@ -797,25 +797,38 @@ pub(super) async fn fetch_cover(
     if crate::offline::is_offline() {
         return Ok(false);
     }
-    let bytes = if has_front {
-        caa.front(CoverOf::Release, release).await
-    } else if let Some(group) = group {
-        caa.front(CoverOf::ReleaseGroup, group).await
-    } else {
-        Ok(None)
-    }
-    .map_err(|e| crate::error::AppError::Other(format!("cover art archive: {e}")))?;
-    let format = bytes
-        .as_deref()
-        .and_then(waveflow_core::artwork::image_format::detect_image_format);
-    let (Some(bytes), Some(format)) = (bytes, format) else {
-        // The archive answered, and holds no usable front cover after
-        // all: the backlog stops asking, or every pass would cost one
-        // request per such album, forever.
-        if has_front {
+    let usable = |bytes: Option<Vec<u8>>| {
+        let format = bytes
+            .as_deref()
+            .and_then(waveflow_core::artwork::image_format::detect_image_format);
+        bytes.zip(format)
+    };
+    let fetch = |of: CoverOf, mbid: &str| {
+        let mbid = mbid.to_owned();
+        async move {
+            caa.front(of, &mbid)
+                .await
+                .map_err(|e| crate::error::AppError::Other(format!("cover art archive: {e}")))
+        }
+    };
+    let mut cover = None;
+    if has_front {
+        cover = usable(fetch(CoverOf::Release, release).await?);
+        if cover.is_none() {
+            // The archive answered, and holds no usable front cover for
+            // the release after all: the backlog stops asking, or every
+            // pass would cost one request per such album, forever. The
+            // release group's may still be there.
             db.write(|conn| Box::pin(store::forget_front_cover(conn, album_id)))
                 .await?;
         }
+    }
+    if cover.is_none() {
+        if let Some(group) = group {
+            cover = usable(fetch(CoverOf::ReleaseGroup, group).await?);
+        }
+    }
+    let Some((bytes, format)) = cover else {
         return Ok(false);
     };
     // Hashing up to 16 MiB and writing it is blocking work: off the
