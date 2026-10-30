@@ -197,6 +197,8 @@ Missing discs follow the same shape one level up (discs 1 to the highest of the 
 
 A failed save is rendered in the dialog rather than logged to the console.
 
+**Completing the tags from MusicBrainz is a different feature.** The [enrichment engine](enrichment.md) fills empty genres, dates and covers, and adds credits, in the database only — it never goes through `patch_file` and never writes a file. Its genres sit in `track_genre` like the file's own, so the dialog above shows them in the genre field; a save that changes that field writes the list it holds — the engine's genres included — into the file, like any genre typed there.
+
 ### A server track is corrected, not rewritten
 
 None of the above applies to a track that lives on the bound server: there is no file here to open, and rewriting somebody else's collection is not something a client gets to do. [`RemoteTrackTagsModal`](../../src/components/common/RemoteTrackTagsModal.tsx) sends the correction to the server instead, which stores it _beside_ the track — so it survives that library's rescans and every member of the library sees it.
