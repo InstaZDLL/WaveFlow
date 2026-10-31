@@ -492,12 +492,11 @@ pub async fn player_get_visualizer(engine: tauri::State<'_, Arc<AudioEngine>>) -
         .load(std::sync::atomic::Ordering::Relaxed))
 }
 
-/// Update the playback speed multiplier. Pushes the new value live
-/// to the audio engine so the active stream's resampler is rebuilt
-/// against the new effective input rate, then persists to
-/// `profile_setting['audio.playback_speed']`. Clamped to `[0.5, 2.0]`
-/// on the engine side — values outside that range are saturated, not
-/// rejected.
+/// Update the playback speed multiplier. Clamped to `[0.5, 2.0]` —
+/// values outside that range are saturated, not rejected — saved to
+/// `profile_setting['audio.playback_speed']`, then pushed live to the
+/// audio engine so the active stream's resampler is rebuilt against the
+/// new effective input rate. The engine gets the value that was saved.
 ///
 /// Pitch is NOT preserved (1.5× → ~ +7 semitones). Proper pitch-locked
 /// time-stretching would need a phase vocoder; this is intentionally
@@ -519,7 +518,7 @@ pub async fn player_set_speed(
             clamped.to_string(),
             SettingType::Text,
         )],
-        || engine.send(AudioCmd::SetSpeed(value)),
+        || engine.send(AudioCmd::SetSpeed(clamped)),
     )
     .await
 }

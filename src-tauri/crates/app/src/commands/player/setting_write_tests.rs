@@ -116,9 +116,11 @@ async fn no_profile_in_mind_and_none_active_applies_without_saving() {
 }
 
 #[tokio::test]
-async fn a_switch_after_the_save_keeps_the_engine_on_the_next_profile() {
-    // The command already saved into profile 1 when the switch lands: the
-    // engine step is skipped, so it cannot overwrite profile 2's restore.
+async fn the_engine_step_runs_only_for_the_active_profile() {
+    // The guard `save_then_apply` puts around the engine step, after the
+    // save: once profile 2 is active, a step for profile 1 is skipped, so
+    // a command that saved into profile 1 just before the switch cannot
+    // overwrite profile 2's restore.
     let dir = tempfile::tempdir().unwrap();
     let a = profile_db(dir.path(), "a.db").await;
     let b = profile_db(dir.path(), "b.db").await;
