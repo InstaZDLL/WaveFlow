@@ -880,8 +880,6 @@ pub async fn tag_workshop_undo(
     );
     let mut report = UndoReport::default();
     let mut profile_gone = false;
-    // A file restored whose row the database update could not reach.
-    let mut stale = false;
 
     for (index, file) in open.into_iter().enumerate() {
         if let Some(task) = &task {
@@ -992,12 +990,12 @@ pub async fn tag_workshop_undo(
             // undone again anyway. Its row is caught up by the next scan
             // of its folder: neither this update nor any tag write touches
             // `file_modified` / `file_size`, so the scan's fast path finds
-            // them changed and reads the file back. Said, and the batch is
-            // not called undone by this pass.
+            // them changed and reads the file back. Said; the batch is
+            // settled from its journal all the same, since nothing of it is
+            // left to undo.
             if let Err(err) = synced {
                 tracing::warn!(track_id, %err, "tag workshop database update failed");
                 report.refused.push(refuse(DATABASE_STALE));
-                stale = true;
             }
             let _ = app.emit("track:updated", track_id);
         }
@@ -1007,11 +1005,8 @@ pub async fn tag_workshop_undo(
     }
     let now = now_ms();
     // Under another profile the batch cannot be settled; the files undone
-    // so far are recorded, and the next undo of it finishes the job. A
-    // pass that left a row behind its file does not call the batch undone
-    // either: the next undo, finding every file restored, does.
+    // so far are recorded, and the next undo of it finishes the job.
     report.done = !profile_gone
-        && !stale
         && db
             .write(move |conn| {
                 Box::pin(async move { journal::settle_undo(conn, batch_id, now).await })
