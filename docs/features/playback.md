@@ -88,7 +88,7 @@ The next track is handed to the decoder before the transition: near the end of a
 - **The same computation as the prefetch** ([`next_track::send_next`](../../src-tauri/crates/app/src/audio/next_track.rs)), with its hints: the same-album flag, the dynamic length and the AutoMix plan are worked out for the new pair, or fall back. A queue that now ends is grown by autoplay first, as the prefetch grows it. A queue with no next track any more sends `ClearNextTrack`, and the track ends on its own.
 - **The decoder keeps, replaces or drops** ([`judge_next`](../../src-tauri/crates/app/src/audio/decoder/control.rs)): the same track keeps its open stream and takes the new hints; another one is opened in its place (one that fails to open leaves nothing prepared rather than the old one); and the answer is dropped when it was prepared after a track that is no longer playing (`SetNextTrack.after`), or once the fade has started.
 - **A fade that has started plays to its end.** From the moment the decoder enters the mix (`SharedPlayback::mixing`, an AutoMix lead included) the track fading in is the next one; a queue change then is not heard in this transition. The cursor still moves to the queue's next entry at the hand-off, as before. The gapless hand-off has no such window: it swaps at the end of the track.
-- **Never ahead of a newer load.** Both the prefetch answer and a revision are worked out and sent under the engine's publish lock, which every producer moving the cursor holds through its claim, cursor write and load: an answer reaches the decoder after any load sent before it, and is dropped there by its `after`. Nothing is sent while the queue's cursor is not on the track playing — a step between moving the cursor and loading — since that answer would be for a track about to be replaced.
+- **Never ahead of a newer load.** Both the prefetch answer and a revision are worked out and sent under the engine's publish lock, which every producer moving the cursor holds through its claim, cursor write and load: an answer reaches the decoder after any load sent before it, and is dropped there by its `after`. Nothing is sent while the queue's cursor is not on the track playing — a step between moving the cursor and loading — since that answer would be for a track about to be replaced. An MPD `clear` empties the queue under the same lock: autoplay draws its picks there over several queries before appending them, and a clear landing in between would be followed by picks appended to the queue it had just emptied.
 
 Not covered: removing a library folder deletes its tracks' queue rows by cascade, without going through these commands; a prepared track from that folder still plays.
 
@@ -773,10 +773,10 @@ because one genuinely slow step must not be serialized:
   network call would park every other surface, so it keeps the
   `load_intent_superseded` + `clear_if` rollback described above.
 
-`SetNextTrack` is deliberately outside all of this: it arms the gapless
-prefetch rather than taking over, and dropping one would cost a gapless
-hand-off to prevent nothing audible. It is ordered by the track it follows
-instead: `after` names it, and the decoder drops a next track prepared
+`SetNextTrack` takes no claim: it arms the gapless prefetch rather than
+taking over, and dropping one would cost a gapless hand-off to prevent
+nothing audible. It is still worked out and sent under the publish lock,
+and ordered by the track it follows: `after` names it, and the decoder drops a next track prepared
 after a track no longer playing ([the next track follows the
 queue](#the-next-track-follows-the-queue)), which is what lets a queue
 change send it again. The decoder's own repair path (a

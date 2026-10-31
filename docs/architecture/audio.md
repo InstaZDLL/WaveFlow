@@ -28,18 +28,18 @@
 
 [`SharedPlayback`](../../src-tauri/crates/app/src/audio/state.rs) — an `Arc<...>` of atomics plus the rtrb consumer half. Read on the hot path; mutated by the decoder and the command layer. No locks anywhere in the pipeline.
 
-| Atomic                                    | Owner writes                                                | Hot-path reads               |
-| ----------------------------------------- | ----------------------------------------------------------- | ---------------------------- |
-| `samples_played`                          | cpal callback                                               | UI for position display      |
-| `base_offset_ms`                          | decoder (on seek / new track / speed change)                | UI                           |
-| `volume`, `normalize_enabled`             | command layer                                               | cpal callback                |
-| `paused_output`, `drain_silent`           | command layer / decoder                                     | cpal callback                |
-| `crossfade_ms`, `replaygain_enabled`      | command layer                                               | decoder                      |
-| `automix` (switch, cue, plan)             | command layer, analytics task                               | decoder                      |
-| ReplayGain pre-amp / fallback / clipping  | command layer                                               | decoder (re-read per buffer) |
-| `mono_enabled`, `stereo` (balance, width) | decoder (`AudioCmd::Set*`), command layer (profile restore) | decoder (re-read per buffer) |
-| `playback_speed_bits`, `speed_dirty`      | command layer / decoder                                     | decoder + UI position math   |
-| `current_track_id`, `seek_generation`     | decoder                                                     | UI                           |
+| Atomic                                    | Owner writes                                                                        | Hot-path reads               |
+| ----------------------------------------- | ----------------------------------------------------------------------------------- | ---------------------------- |
+| `samples_played`                          | cpal callback                                                                       | UI for position display      |
+| `base_offset_ms`                          | decoder (on seek / new track / speed change)                                        | UI                           |
+| `volume`, `normalize_enabled`             | command layer                                                                       | cpal callback                |
+| `paused_output`, `drain_silent`           | command layer / decoder                                                             | cpal callback                |
+| `crossfade_ms`, `replaygain_enabled`      | command layer                                                                       | decoder                      |
+| `automix` (switch, cue, plan)             | switch: command layer · cue: analytics task · plan: decoder (cleared by the switch) | decoder                      |
+| ReplayGain pre-amp / fallback / clipping  | command layer                                                                       | decoder (re-read per buffer) |
+| `mono_enabled`, `stereo` (balance, width) | decoder (`AudioCmd::Set*`), command layer (profile restore)                         | decoder (re-read per buffer) |
+| `playback_speed_bits`, `speed_dirty`      | command layer / decoder                                                             | decoder + UI position math   |
+| `current_track_id`, `seek_generation`     | decoder                                                                             | UI                           |
 
 `playback_speed_bits` is read on every position computation (UI 4 Hz + analytics) — see [`current_position_ms`](../../src-tauri/crates/app/src/audio/state.rs) and [playback / Playback speed](../features/playback.md#playback-speed-05--2). `speed_dirty` is a one-shot flag the decoder consumes once per `'pkt` loop iteration to trigger a resampler rebuild.
 
