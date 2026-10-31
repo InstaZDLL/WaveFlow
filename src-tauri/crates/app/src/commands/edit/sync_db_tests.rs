@@ -54,6 +54,9 @@ fn edit() -> TrackEdit {
         genre: None,
         album_artist: None,
         composer: None,
+        track_total: None,
+        disc_total: None,
+        musicbrainz: MusicBrainzEdit::default(),
     }
 }
 

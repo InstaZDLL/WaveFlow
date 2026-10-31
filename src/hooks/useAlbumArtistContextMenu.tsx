@@ -5,7 +5,7 @@ import {
   type MouseEvent as ReactMouseEvent,
 } from "react";
 import { useTranslation } from "react-i18next";
-import { ImageIcon, Pin, PinOff } from "lucide-react";
+import { ImageIcon, Pin, PinOff, Tags } from "lucide-react";
 
 import {
   ContextMenu,
@@ -13,6 +13,7 @@ import {
   type ContextMenuPoint,
 } from "../components/common/ContextMenu";
 import { isContextMenuKey, menuAnchorForElement } from "../lib/contextMenuKeys";
+import { openTagWorkshop } from "../lib/tagWorkshop";
 import { toggleSidebarPin, useSidebarPins } from "./useSidebarPins";
 
 /** A local album or artist, by rowid. A server album or artist has no
@@ -86,6 +87,16 @@ export function useAlbumArtistContextMenu({
             onSelect={() => {
               close();
               onChangeCover(id);
+            }}
+          />
+        )}
+        {kind === "album" && (
+          <ContextMenuItem
+            icon={<Tags size={16} aria-hidden="true" />}
+            label={t("tagWorkshop.openFromMenu")}
+            onSelect={() => {
+              close();
+              openTagWorkshop({ source: { kind: "album", album_id: id } });
             }}
           />
         )}

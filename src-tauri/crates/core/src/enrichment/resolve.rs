@@ -48,15 +48,7 @@ pub fn resolution(local: &LocalAlbum, release: &Release, from_tags: bool) -> Res
     let remote_tracks = extract::remote_tracks(release);
     let remote = extract::remote_side(release);
     let found = matching::match_album(&local.side(), &remote);
-    let verdict = if from_tags {
-        if found.score.local_tracks > 0 && found.score.paired == found.score.local_tracks {
-            Verdict::Confident
-        } else {
-            Verdict::Doubtful
-        }
-    } else {
-        found.verdict
-    };
+    let verdict = verdict_for(&found, from_tags);
     let tracks = found
         .assignments
         .iter()
@@ -78,6 +70,21 @@ pub fn resolution(local: &LocalAlbum, release: &Release, from_tags: bool) -> Res
         tracks,
         credited: extract::credited_artists(release),
         from_tags,
+    }
+}
+
+/// The verdict a match earns: the matcher's own, except for a release the
+/// files name, which is trusted for its identity — confident when every
+/// local track pairs, a proposal otherwise (see [`resolution`]). Shared
+/// with the tag workshop, so both read one release the same way.
+pub fn verdict_for(found: &matching::AlbumMatch, from_tags: bool) -> Verdict {
+    if !from_tags {
+        return found.verdict;
+    }
+    if found.score.local_tracks > 0 && found.score.paired == found.score.local_tracks {
+        Verdict::Confident
+    } else {
+        Verdict::Doubtful
     }
 }
 
@@ -106,9 +113,22 @@ pub async fn resolve_album(
     local: &LocalAlbum,
     tagged_release: Option<&str>,
 ) -> Result<Option<Resolution>, LookupError> {
+    Ok(resolve_album_release(client, local, tagged_release)
+        .await?
+        .map(|(resolution, _)| resolution))
+}
+
+/// [`resolve_album`], with the release the verdict is about: the tag
+/// workshop reads its tracklist to propose each file's tags, and asking
+/// the catalogue a second time would cost a second of its budget.
+pub async fn resolve_album_release(
+    client: &MusicBrainzClient,
+    local: &LocalAlbum,
+    tagged_release: Option<&str>,
+) -> Result<Option<(Resolution, Release)>, LookupError> {
     if let Some(mbid) = tagged_release {
         if let Some(release) = client.get_release(mbid).await? {
-            return Ok(Some(resolution(local, &release, true)));
+            return Ok(Some((resolution(local, &release, true), release)));
         }
     }
 
@@ -130,7 +150,7 @@ pub async fn resolve_album(
     // Stable: equal scores keep the service's relevance order.
     ranked.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
 
-    let mut best: Option<Resolution> = None;
+    let mut best: Option<(Resolution, Release)> = None;
     for (_, hit) in ranked.into_iter().take(MAX_LOOKUPS) {
         let Some(release) = client.get_release(&hit.id).await? else {
             continue;
@@ -140,8 +160,8 @@ pub async fn resolve_album(
             continue;
         }
         let confident = candidate.verdict == Verdict::Confident;
-        if best.as_ref().map_or(true, |b| better(&candidate, b)) {
-            best = Some(candidate);
+        if best.as_ref().map_or(true, |(b, _)| better(&candidate, b)) {
+            best = Some((candidate, release));
         }
         if confident {
             break;
@@ -157,10 +177,21 @@ pub async fn resolve_against(
     local: &LocalAlbum,
     release_mbid: &str,
 ) -> Result<Option<Resolution>, LookupError> {
+    Ok(resolve_against_release(client, local, release_mbid)
+        .await?
+        .map(|(resolution, _)| resolution))
+}
+
+/// [`resolve_against`], with the release: see [`resolve_album_release`].
+pub async fn resolve_against_release(
+    client: &MusicBrainzClient,
+    local: &LocalAlbum,
+    release_mbid: &str,
+) -> Result<Option<(Resolution, Release)>, LookupError> {
     Ok(client
         .get_release(release_mbid)
         .await?
-        .map(|release| resolution(local, &release, false)))
+        .map(|release| (resolution(local, &release, false), release)))
 }
 
 /// A proposal for a library artist found by name alone.

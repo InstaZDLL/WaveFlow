@@ -74,6 +74,7 @@ The libraries are mostly singles — one track per "album" — which is the hard
 - **Accept** looks the release or the artist up again and applies it, so nothing stale is written.
 - **Reject** means it is never proposed again on its own; **Try again** in the Rejected tab forgets the decision so the next pass looks again.
 - **Undo** on an applied album takes back what it filled and marks it rejected.
+- **Open in the tag workshop** opens the album in the [tag workshop](tag-workshop.md), matched at once against the release shown: the place to check a doubtful match track by track and, once right, write its tags and identifiers into the files. Once the files name a release, the decision about this album is forgotten and the next pass reads the identifier back.
 - **Accept the credited artists** accepts, in one go, every pending artist that a matched album credits under the same name — the strongest evidence an artist match can have.
 
 The lists have no natural bound, so they are virtualized against the window's own scroller; one answer holds at most 5,000 decisions, the most recent first. **Accept the credited artists** looks each one up for its facts at one a second, so accepting hundreds takes minutes, with the window's button busy until it is done.

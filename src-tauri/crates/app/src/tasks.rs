@@ -95,6 +95,9 @@ pub enum TaskKind {
     /// The Release Radar asking MusicBrainz about the library's artists
     /// ([`crate::commands::release_radar::release_radar_scan`]).
     ReleaseRadar,
+    /// A tag workshop batch being written or undone
+    /// ([`crate::commands::tag_workshop`]).
+    TagWorkshop,
 }
 
 impl TaskKind {
@@ -113,6 +116,7 @@ impl TaskKind {
             Self::CacheMove => "cache_move",
             Self::Enrichment => "enrichment",
             Self::ReleaseRadar => "release_radar",
+            Self::TagWorkshop => "tag_workshop",
         }
     }
 }

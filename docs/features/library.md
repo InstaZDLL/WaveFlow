@@ -197,6 +197,8 @@ Missing discs follow the same shape one level up (discs 1 to the highest of the 
 
 A failed save is rendered in the dialog rather than logged to the console.
 
+**Many files at once: the [tag workshop](tag-workshop.md).** A selection, an album or a folder in one table, with fill, find and replace, case and numbering tools, a MusicBrainz match that writes the release's tags and identifiers into the files, a field-by-field preview before anything is written, and a journal that undoes a batch. It writes through the same `patch_file` and `sync_db` as the dialog. The older batch dialog (a few shared fields over a multi-selection) stays for quick edits.
+
 **Completing the tags from MusicBrainz is a different feature.** The [enrichment engine](enrichment.md) fills empty genres, dates and covers, and adds credits, in the database only — it never goes through `patch_file` and never writes a file. Its genres sit in `track_genre` like the file's own, so the dialog above shows them in the genre field; a save that changes that field writes the list it holds — the engine's genres included — into the file, like any genre typed there.
 
 ### A server track is corrected, not rewritten
