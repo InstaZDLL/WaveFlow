@@ -166,6 +166,12 @@ pub fn normalize(field: Field, value: &str) -> String {
             Err(_) => value.to_owned(),
         };
     }
+    if field == Field::Genre {
+        // Split and deduplicated as the tag writer does, so the preview
+        // never shows a change the write cannot make ("Rock; rock" is
+        // written as "Rock", "Alternative\Rock" as two genres).
+        return crate::scanner::split_genres([value]).join("; ");
+    }
     if field.is_list() {
         // The artist list splits on `"; "` alone — a comma belongs to
         // names like "Earth, Wind & Fire". The others are lists of

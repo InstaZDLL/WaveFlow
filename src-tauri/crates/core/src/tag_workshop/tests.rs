@@ -40,6 +40,17 @@ fn artists_split_on_the_library_separator_alone() {
 }
 
 #[test]
+fn genres_read_as_the_tag_writer_writes_them() {
+    // Deduplicated on the canonical name, and split on `\` as well:
+    // the preview shows what the file will hold.
+    assert_eq!(normalize(Field::Genre, "Rock; rock"), "Rock");
+    assert_eq!(
+        normalize(Field::Genre, "Alternative\\Rock"),
+        "Alternative; Rock"
+    );
+}
+
+#[test]
 fn identifiers_are_compared_in_lower_case() {
     assert_eq!(
         normalize(
