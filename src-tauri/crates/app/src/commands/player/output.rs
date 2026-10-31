@@ -273,14 +273,19 @@ pub async fn player_set_match_source_rate(
     state: tauri::State<'_, AppState>,
     engine: tauri::State<'_, Arc<AudioEngine>>,
     enabled: bool,
+    expected_profile_id: Option<i64>,
 ) -> AppResult<()> {
     // Written before it is applied, and the error propagates. A
     // preference the UI believes it saved, and that comes back to its
     // old value at the next launch or the next profile switch, is worse
     // than a toggle that visibly refuses — and this one takes effect on
     // the next track, so there is nothing to undo in the engine when the
-    // write fails.
-    let pool = state.require_profile_pool().await?;
+    // write fails. Into the profile the toggle was flipped in, or
+    // nowhere (#996): see `save_then_apply`, whose rule this follows
+    // with a profile required.
+    let (pool, written_profile) = state
+        .require_profile_pool_with_id(expected_profile_id)
+        .await?;
     let now = chrono::Utc::now().timestamp_millis();
     sqlx::query(
         "INSERT INTO profile_setting (key, value, value_type, updated_at)
@@ -291,10 +296,14 @@ pub async fn player_set_match_source_rate(
     .bind(now)
     .execute(&*pool)
     .await?;
-    engine
-        .shared()
-        .match_source_rate
-        .store(enabled, std::sync::atomic::Ordering::Release);
+    drop(pool);
+    crate::state::while_profile_is(&state.profile, Some(written_profile), || {
+        engine
+            .shared()
+            .match_source_rate
+            .store(enabled, std::sync::atomic::Ordering::Release);
+    })
+    .await;
     Ok(())
 }
 
@@ -349,11 +358,15 @@ pub async fn player_set_pause_on_device_loss(
     state: tauri::State<'_, AppState>,
     engine: tauri::State<'_, Arc<AudioEngine>>,
     enabled: bool,
+    expected_profile_id: Option<i64>,
 ) -> AppResult<()> {
     // Persisted first, same as `player_set_match_source_rate` and for
     // the same reason: a setting that only ever lived in memory is a
-    // setting the user will find undone.
-    let pool = state.require_profile_pool().await?;
+    // setting the user will find undone. Bound to the profile the same
+    // way too.
+    let (pool, written_profile) = state
+        .require_profile_pool_with_id(expected_profile_id)
+        .await?;
     let now = chrono::Utc::now().timestamp_millis();
     let stored = if enabled { "1" } else { "0" };
     sqlx::query(
@@ -365,7 +378,11 @@ pub async fn player_set_pause_on_device_loss(
     .bind(now)
     .execute(&*pool)
     .await?;
-    engine.set_pause_on_device_loss(enabled);
+    drop(pool);
+    crate::state::while_profile_is(&state.profile, Some(written_profile), || {
+        engine.set_pause_on_device_loss(enabled)
+    })
+    .await;
     Ok(())
 }
 
@@ -409,10 +426,10 @@ pub async fn player_set_keep_awake(
     // applied while this is still the active profile, or not at all — a
     // switch that got in first has run, or will run, the next profile's
     // own restore, which must not be overwritten with this one's value.
-    let active = state.profile.read().await;
-    if active.as_ref().map(|p| p.profile_id) == Some(written_profile) {
-        crate::power::set_enabled(enabled);
-    }
+    crate::state::while_profile_is(&state.profile, Some(written_profile), || {
+        crate::power::set_enabled(enabled)
+    })
+    .await;
     Ok(())
 }
 

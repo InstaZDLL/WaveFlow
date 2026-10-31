@@ -191,6 +191,13 @@ impl ActiveProfile {
         }
     }
 
+    /// An active profile over `pool`, for a test outside this module that
+    /// drives a command body against a profile slot of its own.
+    #[cfg(test)]
+    pub(crate) fn for_test(profile_id: i64, pool: SqlitePool) -> Self {
+        Self::new(profile_id, pool)
+    }
+
     fn lease(&self) -> ProfilePool {
         ProfilePool {
             pool: self.pool.clone(),
@@ -698,12 +705,7 @@ impl AppState {
         &self,
         expected: Option<i64>,
     ) -> AppResult<(ProfilePool, i64)> {
-        let guard = self.profile.read().await;
-        check_expected_profile(guard.as_ref().map(|p| p.profile_id), expected)?;
-        guard
-            .as_ref()
-            .map(|p| (p.lease(), p.profile_id))
-            .ok_or(AppError::NoActiveProfile)
+        lease_profile(&self.profile, expected).await
     }
 
     /// Return the active profile id, or an error if none is active.
@@ -807,6 +809,40 @@ fn check_expected_profile(active: Option<i64>, expected: Option<i64>) -> AppResu
         Some(expected) if active == Some(expected) => Ok(()),
         Some(expected) => Err(AppError::ProfileChanged { expected, active }),
     }
+}
+
+/// [`AppState::require_profile_pool_with_id`] on the profile slot itself,
+/// so a caller that is handed the slot rather than the whole `AppState`
+/// — a setting command's body, driven by a test — takes the same check
+/// under the same lock.
+pub(crate) async fn lease_profile(
+    slot: &RwLock<Option<ActiveProfile>>,
+    expected: Option<i64>,
+) -> AppResult<(ProfilePool, i64)> {
+    let guard = slot.read().await;
+    check_expected_profile(guard.as_ref().map(|p| p.profile_id), expected)?;
+    guard
+        .as_ref()
+        .map(|p| (p.lease(), p.profile_id))
+        .ok_or(AppError::NoActiveProfile)
+}
+
+/// Run `f` only while `profile_id` is the active profile (`None`: while
+/// none is), under the profile lock a switch takes for writing.
+///
+/// For a setting that is applied to process-wide state after it was saved
+/// into a profile (issue #996): `switch_profile` swaps the pool under the
+/// write half of this lock and restores the next profile's settings after
+/// it, so either the pool has not been swapped yet and `f` runs before
+/// that restore, or it has and `f` is skipped — it never lands on top of
+/// the next profile's values. Returns `None` when skipped.
+pub(crate) async fn while_profile_is<R>(
+    slot: &RwLock<Option<ActiveProfile>>,
+    profile_id: Option<i64>,
+    f: impl FnOnce() -> R,
+) -> Option<R> {
+    let guard = slot.read().await;
+    (guard.as_ref().map(|p| p.profile_id) == profile_id).then(f)
 }
 
 #[cfg(test)]

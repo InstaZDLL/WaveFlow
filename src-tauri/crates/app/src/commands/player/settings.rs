@@ -3,11 +3,13 @@
 
 use serde::Serialize;
 use tauri::{AppHandle, Emitter};
+use tokio::sync::RwLock;
 
 use crate::{
     audio::{replay_gain::GainMode, AudioEngine},
-    error::AppResult,
+    error::{AppError, AppResult},
     queue::{self},
+    state::{lease_profile, while_profile_is, ActiveProfile},
 };
 
 use super::*;
@@ -128,6 +130,60 @@ pub(super) async fn persist_setting(
     }
     result?;
     Ok(())
+}
+
+/// The `profile_setting` row of an on/off setting, spelled the way the
+/// setters have always written it.
+pub(super) fn bool_row(key: &'static str, enabled: bool) -> (&'static str, String, SettingType) {
+    (
+        key,
+        if enabled { "true" } else { "false" }.to_string(),
+        SettingType::Bool,
+    )
+}
+
+/// Save a setting into the profile its control was acted on, then apply
+/// it to the engine (issue #996).
+///
+/// `expected` is that profile's id, as the frontend captured it when the
+/// user acted:
+///
+/// - **`Some(id)`** — the pool is leased only if `id` is still the active
+///   profile, checked under the lock a switch takes; otherwise the command
+///   fails with [`AppError::ProfileChanged`](crate::error::AppError) and
+///   neither saves nor applies anything. A switch landing between the
+///   click and the command can no longer write one profile's choice into
+///   the next one.
+/// - **`None`** — whatever profile is active, for a caller with no profile
+///   in mind. With none active at all the setting is applied without being
+///   saved, the contract these commands have always had.
+///
+/// Saved first, then applied: a value the database refuses never reaches
+/// the engine. The lease is released before the engine is touched, and
+/// the engine is touched only while the profile the rows went into is
+/// still the active one ([`while_profile_is`]): a switch that got in
+/// between has restored, or is about to restore, the next profile's own
+/// values, and a stale command must not overwrite them. The rows are saved
+/// either way — they belong to that profile.
+pub(super) async fn save_then_apply(
+    profile: &RwLock<Option<ActiveProfile>>,
+    expected: Option<i64>,
+    rows: &[(&str, String, SettingType)],
+    apply: impl FnOnce() -> AppResult<()>,
+) -> AppResult<()> {
+    let written = match lease_profile(profile, expected).await {
+        Ok((pool, profile_id)) => {
+            for (key, value, value_type) in rows {
+                persist_setting(&pool, key, value, *value_type).await?;
+            }
+            Some(profile_id)
+        }
+        Err(AppError::NoActiveProfile) => None,
+        Err(err) => return Err(err),
+    };
+    while_profile_is(profile, written, apply)
+        .await
+        .unwrap_or(Ok(()))
 }
 
 /// Read a boolean `profile_setting`. `"true"` / `"1"` read as true and

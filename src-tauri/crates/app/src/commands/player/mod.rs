@@ -126,3 +126,6 @@ pub(crate) async fn fetch_replay_gain(pool: &sqlx::SqlitePool, track_id: i64) ->
 
 #[cfg(test)]
 mod album_ordering_tests;
+
+#[cfg(test)]
+mod setting_write_tests;

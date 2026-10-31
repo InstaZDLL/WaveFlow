@@ -1587,39 +1587,69 @@ function SettingsViewContent({
     };
   }, [activeProfile?.id, audioSettingsNonce]);
 
+  // Which profile is live, readable from inside a callback that was
+  // scheduled under a different one. Declared here rather than beside
+  // its first user further down: every handler below captures the id
+  // at click time and compares against this, and `react-hooks`
+  // reasons about the whole component — a ref first referenced above
+  // its own declaration makes the rule treat it as frozen.
+  //
+  // Each handler also hands that id to its command, which refuses the
+  // write once another profile is active (#996): the comparison here
+  // runs before the IPC hop, so only the backend can close the window
+  // after it. A refused write then fails, and its rollback must not
+  // land on the profile the user switched to — hence the same
+  // comparison before every rollback. Kept in sync from a layout effect,
+  // so a callback that resolves between the commit and the passive
+  // effects already sees the profile on screen.
+  const activeProfileIdRef = useRef(activeProfile?.id);
+  useLayoutEffect(() => {
+    activeProfileIdRef.current = activeProfile?.id;
+  }, [activeProfile?.id]);
+
   const handleToggleNormalize = useCallback(() => {
     const next = !normalize;
+    const profileId = activeProfile?.id;
     setNormalize(next);
-    playerSetNormalize(next).catch((err) => {
+    playerSetNormalize(next, profileId ?? null).catch((err) => {
       console.error("[Settings] set normalize failed", err);
+      if (activeProfileIdRef.current !== profileId) return;
       setNormalize(!next); // rollback
     });
-  }, [normalize]);
+  }, [normalize, activeProfile?.id]);
 
   const handleToggleReplayGain = useCallback(() => {
     const next = !replayGain;
+    const profileId = activeProfile?.id;
     setReplayGain(next);
-    playerSetReplayGain(next).catch((err) => {
+    playerSetReplayGain(next, profileId ?? null).catch((err) => {
       console.error("[Settings] set replaygain failed", err);
+      if (activeProfileIdRef.current !== profileId) return;
       setReplayGain(!next); // rollback
     });
-  }, [replayGain]);
+  }, [replayGain, activeProfile?.id]);
 
   // The sliders fire on every pixel of drag. The audio side is a pair
   // of atomics and would happily take all of them, but each push also
   // writes three rows to SQLite — so the round trip is debounced and
-  // local state drives the UI in the meantime.
+  // local state drives the UI in the meantime. The profile is the one
+  // the slider moved in, not the one active when the timer fires.
   const pushReplayGainOptions = useCallback(
     (preampDb: number, fallbackDb: number, preventClipping: boolean) => {
       if (replayGainOptionsDebounce.current != null) {
         window.clearTimeout(replayGainOptionsDebounce.current);
       }
+      const profileId = activeProfileIdRef.current;
       replayGainOptionsDebounce.current = window.setTimeout(() => {
-        playerSetReplayGainOptions({
-          preampDb,
-          fallbackDb,
-          preventClipping,
-        }).catch((err) => {
+        if (activeProfileIdRef.current !== profileId) return;
+        playerSetReplayGainOptions(
+          {
+            preampDb,
+            fallbackDb,
+            preventClipping,
+          },
+          profileId ?? null,
+        ).catch((err) => {
           console.error("[Settings] set replaygain options failed", err);
           // Not saved, so not applied either: show what the engine
           // still holds instead of the slider's position.
@@ -1659,17 +1689,6 @@ function SettingsViewContent({
     [pushReplayGainOptions, replayGainPreamp, replayGainPreventClipping],
   );
 
-  // Which profile is live, readable from inside a callback that was
-  // scheduled under a different one. Declared here rather than beside
-  // its first user further down: every handler below captures the id
-  // at click time and compares against this, and `react-hooks`
-  // reasons about the whole component — a ref first referenced above
-  // its own declaration makes the rule treat it as frozen.
-  const activeProfileIdRef = useRef(activeProfile?.id);
-  useEffect(() => {
-    activeProfileIdRef.current = activeProfile?.id;
-  }, [activeProfile?.id]);
-
   const handleReplayGainModeChange = useCallback(
     (next: ReplayGainMode) => {
       const previous = replayGainMode;
@@ -1681,7 +1700,7 @@ function SettingsViewContent({
       // cannot land on top of a choice the user has already made.
       audioSettingsTouched.current.add("replayGainMode");
       setReplayGainMode(next);
-      playerSetReplayGainMode(next).catch((err) => {
+      playerSetReplayGainMode(next, profileId ?? null).catch((err) => {
         console.error("[Settings] set replaygain mode failed", err);
         if (activeProfileIdRef.current !== profileId) return;
         // Only roll back if no newer selection superseded this one —
@@ -1708,15 +1727,17 @@ function SettingsViewContent({
     (next: DsdPrecisionTaps) => {
       const prev = dsdTaps;
       if (prev === next) return;
+      const profileId = activeProfile?.id;
       setDsdTaps(next); // optimistic
-      playerSetDsdPrecision(next).catch((err) => {
+      playerSetDsdPrecision(next, profileId ?? null).catch((err) => {
         console.error("[Settings] set DSD precision failed", err);
+        if (activeProfileIdRef.current !== profileId) return;
         // Only roll back if no newer selection superseded this one —
         // a stale failure must not clobber a later successful click.
         setDsdTaps((cur) => (cur === next ? prev : cur));
       });
     },
-    [dsdTaps],
+    [dsdTaps, activeProfile?.id],
   );
 
   // Writes are chained rather than fired in parallel: two fast clicks
@@ -1738,7 +1759,7 @@ function SettingsViewContent({
       .catch(() => {})
       .then(() => {
         if (activeProfileIdRef.current !== profileId) return;
-        return playerSetDsdDop(next);
+        return playerSetDsdDop(next, profileId ?? null);
       })
       .catch((err) => {
         console.error("[Settings] set DSD DoP failed", err);
@@ -1795,21 +1816,25 @@ function SettingsViewContent({
 
   const handleToggleGapless = useCallback(() => {
     const next = !gapless;
+    const profileId = activeProfile?.id;
     setGapless(next);
-    playerSetGapless(next).catch((err) => {
+    playerSetGapless(next, profileId ?? null).catch((err) => {
       console.error("[Settings] set gapless failed", err);
+      if (activeProfileIdRef.current !== profileId) return;
       setGapless(!next); // rollback
     });
-  }, [gapless]);
+  }, [gapless, activeProfile?.id]);
 
   const handleToggleMono = useCallback(() => {
     const next = !mono;
+    const profileId = activeProfile?.id;
     setMono(next);
-    playerSetMono(next).catch((err) => {
+    playerSetMono(next, profileId ?? null).catch((err) => {
       console.error("[Settings] set mono failed", err);
+      if (activeProfileIdRef.current !== profileId) return;
       setMono(!next);
     });
-  }, [mono]);
+  }, [mono, activeProfile?.id]);
 
   // Both of these are profile-scoped settings written by a backend
   // command, so they take the same discipline `handleToggleDsdDop`
@@ -1830,7 +1855,7 @@ function SettingsViewContent({
       .catch(() => {})
       .then(() => {
         if (activeProfileIdRef.current !== profileId) return;
-        return playerSetMatchSourceRate(next);
+        return playerSetMatchSourceRate(next, profileId ?? null);
       })
       .catch((err) => {
         console.error("[Settings] set match source rate failed", err);
@@ -1854,7 +1879,7 @@ function SettingsViewContent({
       .catch(() => {})
       .then(() => {
         if (activeProfileIdRef.current !== profileId) return;
-        return playerSetPauseOnDeviceLoss(next);
+        return playerSetPauseOnDeviceLoss(next, profileId ?? null);
       })
       .catch((err) => {
         console.error("[Settings] set pause on device loss failed", err);
@@ -1888,14 +1913,17 @@ function SettingsViewContent({
   }, [keepAwake, activeProfile?.id]);
 
   // Debounce crossfade slider changes to avoid spamming the backend.
+  // Saved into the profile the slider moved in, like the ReplayGain ones.
   const crossfadeTimerRef = useRef<number | null>(null);
   const handleCrossfadeChange = useCallback((sec: number) => {
     setCrossfadeSec(sec);
     if (crossfadeTimerRef.current != null) {
       window.clearTimeout(crossfadeTimerRef.current);
     }
+    const profileId = activeProfileIdRef.current;
     crossfadeTimerRef.current = window.setTimeout(() => {
-      playerSetCrossfade(sec).catch((err) => {
+      if (activeProfileIdRef.current !== profileId) return;
+      playerSetCrossfade(sec, profileId ?? null).catch((err) => {
         console.error("[Settings] set crossfade failed", err);
         // Same as the ReplayGain sliders: re-read what is in force.
         setAudioSettingsNonce((n) => n + 1);
