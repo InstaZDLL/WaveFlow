@@ -49,5 +49,6 @@ pub mod search;
 pub mod similar;
 pub mod smart_playlists;
 pub mod sync;
+pub mod tag_workshop;
 pub mod tagio;
 pub mod text_encoding;

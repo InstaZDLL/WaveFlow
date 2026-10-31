@@ -16,7 +16,7 @@ use super::*;
 /// `track.album_id` depends on the resolved `primary_artist` (album
 /// is keyed on `(canonical_title, artist_id)`), and `track_artist`
 /// needs the new track row state.
-pub(super) async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) -> AppResult<()> {
+pub(crate) async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) -> AppResult<()> {
     let mut tx = pool.begin().await?;
 
     // The album the track leaves, if it does: its year may have come
@@ -196,6 +196,12 @@ pub(super) async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) 
     if edit.disc_number.is_some() {
         sets.push("disc_number = ?");
     }
+    if edit.track_total.is_some() {
+        sets.push("track_total = ?");
+    }
+    if edit.disc_total.is_some() {
+        sets.push("disc_total = ?");
+    }
     if let Some(pid) = primary_artist_id {
         let _ = pid; // keep variable readable in the binding loop below
         sets.push("primary_artist = ?");
@@ -220,6 +226,12 @@ pub(super) async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) 
             q = q.bind(if n > 0 { Some(n) } else { None });
         }
         if let Some(n) = edit.disc_number {
+            q = q.bind(if n > 0 { Some(n) } else { None });
+        }
+        if let Some(n) = edit.track_total {
+            q = q.bind(if n > 0 { Some(n) } else { None });
+        }
+        if let Some(n) = edit.disc_total {
             q = q.bind(if n > 0 { Some(n) } else { None });
         }
         if let Some(pid) = primary_artist_id {

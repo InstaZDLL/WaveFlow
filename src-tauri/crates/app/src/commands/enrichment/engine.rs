@@ -260,7 +260,7 @@ where
 }
 
 /// A write a command makes for the user: see [`write_with`].
-pub(super) async fn write_now<T, F>(pool: &SqlitePool, write: F) -> Result<T, CoreError>
+pub(crate) async fn write_now<T, F>(pool: &SqlitePool, write: F) -> Result<T, CoreError>
 where
     F: for<'c> FnMut(
         &'c mut sqlx::SqliteConnection,
@@ -272,7 +272,7 @@ where
 }
 
 /// The clients one pass uses, sharing the process-wide pacing.
-pub(super) fn clients() -> (MusicBrainzClient, CoverArtArchiveClient) {
+pub(crate) fn clients() -> (MusicBrainzClient, CoverArtArchiveClient) {
     let version = env!("CARGO_PKG_VERSION");
     (
         MusicBrainzClient::new(version),
@@ -290,7 +290,7 @@ pub(super) fn clients() -> (MusicBrainzClient, CoverArtArchiveClient) {
 /// profile is no longer the active one: a step can never land in another
 /// profile's database, and a switch only waits for the step in flight.
 #[derive(Clone)]
-pub(super) struct ProfileDb {
+pub(crate) struct ProfileDb {
     app: AppHandle,
     profile_id: i64,
     /// Writes wait out a running scan: true for a pass, false for a
@@ -309,7 +309,7 @@ impl ProfileDb {
     }
 
     /// For a command the user is waiting on.
-    pub(super) fn for_command(app: &AppHandle, profile_id: i64) -> Self {
+    pub(crate) fn for_command(app: &AppHandle, profile_id: i64) -> Self {
         Self {
             park: false,
             ..Self::new(app, profile_id)
@@ -318,7 +318,7 @@ impl ProfileDb {
 
     /// Run `write` in a transaction on this profile, under a lease held
     /// for that write alone.
-    pub(super) async fn write<T, F>(&self, write: F) -> AppResult<T>
+    pub(crate) async fn write<T, F>(&self, write: F) -> AppResult<T>
     where
         F: for<'c> FnMut(
             &'c mut sqlx::SqliteConnection,
@@ -330,7 +330,7 @@ impl ProfileDb {
         Ok(write_with(&lease, self.park, write).await?)
     }
 
-    pub(super) async fn lease(&self) -> AppResult<crate::state::ProfilePool> {
+    pub(crate) async fn lease(&self) -> AppResult<crate::state::ProfilePool> {
         self.app
             .state::<AppState>()
             .require_profile_pool_for(Some(self.profile_id))
@@ -785,7 +785,7 @@ async fn propose_credited_artists(
 /// The release's own cover when the archive says it has one, else the
 /// release group's — the one the archive chose for the album across its
 /// pressings.
-pub(super) async fn fetch_cover(
+pub(crate) async fn fetch_cover(
     db: &ProfileDb,
     caa: &CoverArtArchiveClient,
     artwork_dir: &Path,

@@ -11,6 +11,7 @@ import {
   Plus,
   Radio,
   Star,
+  Tags,
   Trash2,
   User,
 } from "lucide-react";
@@ -28,6 +29,7 @@ import { resolvePlaylistColor } from "../../lib/playlistVisuals";
 import { PlaylistIcon } from "../../lib/PlaylistIcon";
 import { isRemoteTrack } from "../../lib/playerSources";
 import { TrackMoodSubmenu } from "./TrackMoodSubmenu";
+import { openTagWorkshop } from "../../lib/tagWorkshop";
 
 export interface TrackContextMenuProps {
   point: ContextMenuPoint;
@@ -331,6 +333,26 @@ export function TrackContextMenu({
           icon={<FileAudio size={14} />}
           label={t("trackActions.replaceFile")}
           onSelect={closeAfter(() => onReplaceFile(track))}
+        />
+      )}
+      {!isRemoteTrack(track) && (
+        <ContextMenuItem
+          icon={<Tags size={14} />}
+          label={t("tagWorkshop.openFromMenu")}
+          onSelect={closeAfter(() =>
+            openTagWorkshop({
+              source: {
+                kind: "tracks",
+                // The selection when this track is in it, else the track.
+                track_ids:
+                  batchEditIds &&
+                  batchEditIds.length >= 2 &&
+                  batchEditIds.includes(track.id)
+                    ? batchEditIds
+                    : [track.id],
+              },
+            }),
+          )}
         />
       )}
       {batchEditIds &&

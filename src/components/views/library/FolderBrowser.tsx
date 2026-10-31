@@ -1,4 +1,9 @@
-import { type FolderListing, type FolderNode } from "../../../lib/tauri/browse";
+import {
+  folderTrackIds,
+  type FolderListing,
+  type FolderNode,
+} from "../../../lib/tauri/browse";
+import { openTagWorkshop } from "../../../lib/tagWorkshop";
 import { type Translator } from "./libraryTypes";
 import { type Playlist } from "../../../lib/tauri/playlist";
 import { useEffect, useMemo, useState } from "react";
@@ -12,6 +17,7 @@ import {
   Play,
   Plus,
   TagsIcon,
+  Wand2,
 } from "lucide-react";
 import { Tooltip } from "../../common/Tooltip";
 import { MenuActionItem } from "../../common/MenuActionItem";
@@ -291,6 +297,26 @@ export function FolderBrowser({
                       onClick={() => {
                         onBatchTag(here);
                         setMenuOpen(false);
+                      }}
+                    />
+                    <MenuActionItem
+                      icon={<Wand2 size={15} />}
+                      label={t("tagWorkshop.openFromMenu")}
+                      onClick={() => {
+                        setMenuOpen(false);
+                        void folderTrackIds(null, here)
+                          .then((ids) => {
+                            if (ids.length > 0)
+                              openTagWorkshop({
+                                source: { kind: "tracks", track_ids: ids },
+                              });
+                          })
+                          .catch((err: unknown) =>
+                            console.error(
+                              "[FolderBrowser] folder ids failed",
+                              err,
+                            ),
+                          );
                       }}
                     />
                     <div className="my-1 h-px bg-zinc-100 dark:bg-zinc-700/60" />

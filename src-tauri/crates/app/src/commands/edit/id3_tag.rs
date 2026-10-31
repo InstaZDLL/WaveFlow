@@ -176,6 +176,21 @@ pub(super) fn apply_patch_id3(tag: &mut id3::Tag, patch: &TagPatch<'_>) {
             tag.set_text("TCOM", c.trim());
         }
     }
+    if let Some(n) = edit.track_total {
+        if n > 0 {
+            tag.set_total_tracks(n as u32);
+        } else {
+            tag.remove_total_tracks();
+        }
+    }
+    if let Some(n) = edit.disc_total {
+        if n > 0 {
+            tag.set_total_discs(n as u32);
+        } else {
+            tag.remove_total_discs();
+        }
+    }
+    apply_musicbrainz_id3(tag, &edit.musicbrainz);
 }
 
 /// Keep several genres readable as several in an ID3v2.2 / 2.3 tag
