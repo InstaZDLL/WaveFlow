@@ -139,10 +139,13 @@ pub fn parse(content: &str) -> Document {
 /// rule stays this narrow: counting lines per time would take the
 /// translations of a short lyric for untimed text.
 fn is_untimed(entries: &[(u64, usize, Line)]) -> bool {
-    let has_word_stamps = entries
+    // Word stamps are timing only at two times or more, as the renderer
+    // counts them: every word stamped where its line starts is not.
+    let word_times: std::collections::HashSet<u64> = entries
         .iter()
-        .any(|(_, _, l)| l.words.iter().any(|w| w.begin_ms.is_some()));
-    entries.len() >= 2 && !has_word_stamps && entries.iter().all(|(t, _, _)| *t == entries[0].0)
+        .flat_map(|(_, _, l)| l.words.iter().filter_map(|w| w.begin_ms))
+        .collect();
+    entries.len() >= 2 && word_times.len() < 2 && entries.iter().all(|(t, _, _)| *t == entries[0].0)
 }
 
 fn read_tag(doc: &mut Document, offset: &mut i64, key: &str, value: &str) {
@@ -395,6 +398,20 @@ mod tests {
         assert_eq!(texts, ["one", "two", "three"]);
         assert!(doc.lines.iter().all(|l| l.begin_ms.is_none()));
         assert!(doc.lines.iter().all(|l| l.translations.is_empty()));
+        // Words stamped where their line starts are no timing either.
+        let doc = parse(
+            "[00:00.00]<00:00.00>one
+[00:00.00]<00:00.00>two
+",
+        );
+        assert_eq!(doc.lines.len(), 2);
+        // Words at two times or more are: the lines stay timed.
+        let doc = parse(
+            "[00:00.00]<00:01.00>a <00:01.50>b
+[00:00.00]<00:03.00>c
+",
+        );
+        assert_eq!(doc.lines[0].words[1].begin_ms, Some(1500));
     }
 
     #[test]
