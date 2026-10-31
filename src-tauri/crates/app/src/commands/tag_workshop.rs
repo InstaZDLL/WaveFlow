@@ -650,6 +650,10 @@ pub async fn tag_workshop_apply(
             None => false,
         };
         report.written += 1;
+        // The file says what was asked whatever is recorded of it next:
+        // done, so the view drops the edit rather than keep one it could
+        // no longer preview.
+        report.done.push(change.track_id);
         if !confirmed {
             // Written, but the record of it could not be completed: the
             // file stays `pending`, which an undo refuses rather than guess.
@@ -674,9 +678,6 @@ pub async fn tag_workshop_apply(
                 .flatten()
                 .flatten();
         drop(pool);
-        if confirmed {
-            report.done.push(change.track_id);
-        }
         // The release the file names now: the one just written, else the
         // one it already carried. Only the album the file is in now is
         // settled by it: the one it left keeps the decision its other
