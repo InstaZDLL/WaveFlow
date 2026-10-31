@@ -203,15 +203,21 @@ pub async fn player_set_shuffle_mode(
 pub async fn player_cycle_repeat(
     app: AppHandle,
     state: tauri::State<'_, AppState>,
+    engine: tauri::State<'_, Arc<AudioEngine>>,
 ) -> AppResult<String> {
     let pool = state.require_profile_pool().await?;
-    let current = queue::read_repeat_mode(&pool).await;
-    let next = match current {
-        queue::RepeatMode::Off => queue::RepeatMode::All,
-        queue::RepeatMode::All => queue::RepeatMode::One,
-        queue::RepeatMode::One => queue::RepeatMode::Off,
-    };
-    queue::write_repeat_mode(&pool, next).await?;
+    // Read and written under the publish lock, which a prefetch holds
+    // while it reads the mode: it never sends the next track by the mode
+    // this replaces, and two cycles at once (two windows) both count.
+    let next = edit_queue(engine.lock_publish(), async {
+        let next = match queue::read_repeat_mode(&pool).await {
+            queue::RepeatMode::Off => queue::RepeatMode::All,
+            queue::RepeatMode::All => queue::RepeatMode::One,
+            queue::RepeatMode::One => queue::RepeatMode::Off,
+        };
+        queue::write_repeat_mode(&pool, next).await.map(|()| next)
+    })
+    .await?;
     // Repeat decides what follows the last track.
     crate::audio::next_track::revise_soon(&app);
     // Same reason as `player_toggle_shuffle` (#523): the caller updates

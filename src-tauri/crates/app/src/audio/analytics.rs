@@ -220,7 +220,6 @@ async fn handle_message(
                 tracing::info!("sleep-timer end-of-track armed: skipping auto-advance");
             } else {
                 // Auto-advance.
-                let repeat = queue::read_repeat_mode(&pool).await;
                 // No engine means no claim to make and no one to send to:
                 // the auto-advance simply does not happen.
                 let Some(engine) = engine.as_deref() else {
@@ -234,6 +233,7 @@ async fn handle_message(
                 // the user is picking something else must not leave the
                 // queue pointing at its successor.
                 let _publish = engine.lock_publish().await;
+                let repeat = queue::read_repeat_mode(&pool).await;
                 // A track that ends the queue: autoplay grows it here, as
                 // the Next button would, so playback goes on into it. Taken
                 // back out if this advance loses its claim.
@@ -320,13 +320,14 @@ async fn handle_message(
             // Look up what would be played next without bumping the
             // cursor (the cursor is bumped only when the crossfade
             // actually starts, via CrossfadeStarted).
-            let repeat = queue::read_repeat_mode(&pool).await;
             // Under the publish lock, like every other writer of the queue
             // a producer may be replacing, and through to the answer: the
             // queue it is read from is the queue no step is rewriting, and
             // a queue change made after it sends the answer again
-            // (`next_track::revise`).
+            // (`next_track::revise`). The repeat mode too, which a repeat
+            // change writes under the same lock.
             let _publish = engine.lock_publish().await;
+            let repeat = queue::read_repeat_mode(&pool).await;
             // The last track of the queue is playing: with autoplay on,
             // grow the queue now rather than at its end, so the gapless
             // hand-off or the crossfade reaches the first added track.

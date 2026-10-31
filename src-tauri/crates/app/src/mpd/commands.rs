@@ -817,10 +817,15 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
                 .require_profile_pool()
                 .await
                 .map_err(|_| Ack::new(ACK_ERROR_NO_EXIST, "repeat", "no active profile"))?;
-            let current = queue::read_repeat_mode(&pool).await;
-            queue::write_repeat_mode(&pool, repeat_from_mpd(current, on))
-                .await
-                .map_err(|e| ack_arg("repeat", &e.to_string()))?;
+            // Read and written under the publish lock, which a prefetch
+            // holds while it reads the mode, so it never sends the next
+            // track by the mode this replaces.
+            edit_queue(ctx.engine().lock_publish(), async {
+                let current = queue::read_repeat_mode(&pool).await;
+                queue::write_repeat_mode(&pool, repeat_from_mpd(current, on)).await
+            })
+            .await
+            .map_err(|e| ack_arg("repeat", &e.to_string()))?;
             crate::audio::next_track::revise_soon(&ctx.app);
             // Reflect the change in the WaveFlow UI too (an MPD client toggled
             // it, so the frontend has no optimistic update of its own).
@@ -835,16 +840,20 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
                 .require_profile_pool()
                 .await
                 .map_err(|_| Ack::new(ACK_ERROR_NO_EXIST, "single", "no active profile"))?;
-            let current = queue::read_repeat_mode(&pool).await;
-            // `single oneshot` has no durable equivalent — reject it rather
-            // than persist it as a permanent `single 1` (which `status` would
-            // then misreport).
-            let Some(next) = single_action(mode, current) else {
-                return Err(ack_arg("single", "oneshot single is not supported"));
-            };
-            queue::write_repeat_mode(&pool, next)
-                .await
-                .map_err(|e| ack_arg("single", &e.to_string()))?;
+            // Under the publish lock, as for `repeat`.
+            edit_queue(ctx.engine().lock_publish(), async {
+                let current = queue::read_repeat_mode(&pool).await;
+                // `single oneshot` has no durable equivalent — reject it
+                // rather than persist it as a permanent `single 1` (which
+                // `status` would then misreport).
+                let Some(next) = single_action(mode, current) else {
+                    return Err(ack_arg("single", "oneshot single is not supported"));
+                };
+                queue::write_repeat_mode(&pool, next)
+                    .await
+                    .map_err(|e| ack_arg("single", &e.to_string()))
+            })
+            .await?;
             crate::audio::next_track::revise_soon(&ctx.app);
             crate::commands::player::emit_options_changed(&ctx.app, &pool).await;
             ctx.idle.notify(Subsystem::Options);
