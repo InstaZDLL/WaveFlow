@@ -653,7 +653,7 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
                 .require_profile_pool()
                 .await
                 .map_err(|_| Ack::new(ACK_ERROR_NO_EXIST, "clear", "no active profile"))?;
-            queue::clear(&pool)
+            clear_queue(ctx.engine().lock_publish(), &pool)
                 .await
                 .map_err(|e| ack_arg("clear", &e.to_string()))?;
             drop(pool);
@@ -866,6 +866,20 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
             format!("unknown command \"{verb}\""),
         )),
     }
+}
+
+/// Empty the queue under the engine's publish lock (`publish`, its
+/// [`AudioEngine::lock_publish`]). Every autoplay top-up — a step, the
+/// prefetch, a revision of the next track — holds that lock while it
+/// reads the queue's end, draws its picks over several queries and
+/// appends them; a clear landing in between would be followed by picks
+/// appended to the queue it has just emptied.
+async fn clear_queue<G>(
+    publish: impl std::future::Future<Output = G>,
+    pool: &sqlx::SqlitePool,
+) -> crate::error::AppResult<()> {
+    let _publish = publish.await;
+    queue::clear(pool).await
 }
 
 #[cfg(test)]
