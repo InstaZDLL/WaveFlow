@@ -139,18 +139,20 @@ pub async fn player_toggle_shuffle(
     engine: tauri::State<'_, Arc<AudioEngine>>,
 ) -> AppResult<String> {
     let pool = state.require_profile_pool().await?;
-    let next = if queue::read_shuffle(&pool).await {
-        queue::ShuffleMode::Off
-    } else {
-        // On, using whichever grouping the listener last picked — a
-        // preference for whole records should not be forgotten every
-        // time shuffle is switched off and back on.
-        queue::read_shuffle_grouping_preference(&pool).await
-    };
-    edit_queue(
-        engine.lock_publish(),
-        set_shuffle_mode(&pool, &engine, next),
-    )
+    // The mode is read under the lock too: two toggles at once (two
+    // windows) would otherwise both flip from the same state, and the
+    // second would be lost.
+    let next = edit_queue(engine.lock_publish(), async {
+        let next = if queue::read_shuffle(&pool).await {
+            queue::ShuffleMode::Off
+        } else {
+            // On, using whichever grouping the listener last picked — a
+            // preference for whole records should not be forgotten every
+            // time shuffle is switched off and back on.
+            queue::read_shuffle_grouping_preference(&pool).await
+        };
+        set_shuffle_mode(&pool, &engine, next).await.map(|()| next)
+    })
     .await?;
     // Queue content changed (reordered in place) — tell the panel, and
     // the decoder if it has a next track prepared.
