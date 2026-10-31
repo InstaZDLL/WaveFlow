@@ -130,6 +130,21 @@ export function SyncStep({
       ) {
         return;
       }
+      // A key held down repeats: one press, one stamp (or one stamp taken
+      // back), not a run of lines stamped a few milliseconds apart. The
+      // arrows keep repeating, to scrub and to walk the lines.
+      if (
+        e.repeat &&
+        (e.code === "Space" ||
+          e.code === "Enter" ||
+          e.code === "NumpadEnter" ||
+          e.code === "Backspace" ||
+          e.code === "KeyP")
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
       const { doc, cursor, mode, reactionMs } = live.current;
       const n = doc.lines.length;
       const now = () => Math.max(0, Math.round(estimate() - reactionMs));

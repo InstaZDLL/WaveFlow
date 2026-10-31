@@ -96,7 +96,10 @@ pub fn parse_lrc_time(value: &str) -> Option<u64> {
             n * 10u64.pow(3 - f.len() as u32)
         }
     };
-    Some(minutes * 60_000 + seconds * 1000 + fraction_ms)
+    // Minutes come from the file: one too large to hold is no time.
+    minutes
+        .checked_mul(60_000)?
+        .checked_add(seconds * 1000 + fraction_ms)
 }
 
 /// Write milliseconds as an LRC timestamp body, `mm:ss.xx` (hundredths,
@@ -149,6 +152,12 @@ mod tests {
         assert_eq!(parse_lrc_time("75:00.00"), Some(4_500_000));
         assert_eq!(parse_lrc_time("01:60.00"), None);
         assert_eq!(parse_lrc_time("ti:Song"), None);
+        // Too many minutes to hold in milliseconds.
+        assert_eq!(parse_lrc_time("99999999999999999:00.00"), None);
+        assert_eq!(
+            parse_lrc_time("307445734561825:00.00"),
+            Some(18_446_744_073_709_500_000)
+        );
     }
 
     #[test]

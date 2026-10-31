@@ -62,17 +62,18 @@ pub fn parse(content: &str) -> Document {
             match &parsed {
                 Some((words, end)) => {
                     // A line stamped at several times repeats its word
-                    // stamps relative to the first.
-                    let shift = |v: u64| (v + t).saturating_sub(times[0]);
+                    // stamps relative to the first. One that cannot be
+                    // held is no time.
+                    let shift = |v: u64| v.checked_add(t).map(|s| s.saturating_sub(times[0]));
                     line.words = words
                         .iter()
                         .map(|w| Word {
-                            begin_ms: w.begin_ms.map(shift),
-                            end_ms: w.end_ms.map(shift),
+                            begin_ms: w.begin_ms.and_then(shift),
+                            end_ms: w.end_ms.and_then(shift),
                             ..w.clone()
                         })
                         .collect();
-                    line.end_ms = end.map(shift);
+                    line.end_ms = end.and_then(shift);
                 }
                 None => line.words = crate::lyrics::model::split_words(text),
             }
@@ -81,6 +82,17 @@ pub fn parse(content: &str) -> Document {
     }
 
     entries.sort_by_key(|(t, seq, _)| (*t, *seq));
+    if is_untimed(&entries) {
+        // Text stamped all on one time is read as text, as the renderer
+        // shows it: every line kept, in file order, none of it a
+        // translation of the first.
+        entries.sort_by_key(|(_, seq, _)| *seq);
+        doc.lines = entries
+            .into_iter()
+            .map(|(_, _, line)| Line::from_text(&line.text()))
+            .collect();
+        return doc;
+    }
     for (t, _, line) in entries {
         if let Some(prev) = doc.lines.last_mut() {
             if prev.begin_ms == Some(t)
@@ -118,6 +130,21 @@ pub fn parse(content: &str) -> Document {
     doc
 }
 
+/// Stamped text that is not timed: two lines or more, every one on the
+/// same time — what sources that have no timing write (`[00:00.00]` on
+/// each line), and what the renderer shows as plain text. Read as a line
+/// and its translations, all but the first line would be lost to a save
+/// in plain text. Unfolding loses nothing even when it guesses wrong (a
+/// lone line with translations on its stamp keeps them as lines), so the
+/// rule stays this narrow: counting lines per time would take the
+/// translations of a short lyric for untimed text.
+fn is_untimed(entries: &[(u64, usize, Line)]) -> bool {
+    let has_word_stamps = entries
+        .iter()
+        .any(|(_, _, l)| l.words.iter().any(|w| w.begin_ms.is_some()));
+    entries.len() >= 2 && !has_word_stamps && entries.iter().all(|(t, _, _)| *t == entries[0].0)
+}
+
 fn read_tag(doc: &mut Document, offset: &mut i64, key: &str, value: &str) {
     if value.is_empty() {
         return;
@@ -134,11 +161,13 @@ fn read_tag(doc: &mut Document, offset: &mut i64, key: &str, value: &str) {
     }
 }
 
-/// `[offset:+500]` shows the lyrics 500 ms sooner.
+/// `[offset:+500]` shows the lyrics 500 ms sooner. Worked out wide, so no
+/// offset the file states can wrap a time; one pushed past what a time
+/// can hold is dropped.
 fn apply_offset(doc: &mut Document, offset: i64) {
     let shift = |v: &mut Option<u64>| {
-        if let Some(t) = v {
-            *t = (*t as i64 - offset).max(0) as u64;
+        if let Some(t) = *v {
+            *v = u64::try_from((i128::from(t) - i128::from(offset)).max(0)).ok();
         }
     };
     for line in &mut doc.lines {
@@ -355,6 +384,70 @@ mod tests {
     }
 
     #[test]
+    fn text_stamped_all_on_one_time_keeps_every_line() {
+        let doc = parse(
+            "[00:00.00]one
+[00:00.00]two
+[00:00.00]three
+",
+        );
+        let texts: Vec<String> = doc.lines.iter().map(Line::text).collect();
+        assert_eq!(texts, ["one", "two", "three"]);
+        assert!(doc.lines.iter().all(|l| l.begin_ms.is_none()));
+        assert!(doc.lines.iter().all(|l| l.translations.is_empty()));
+    }
+
+    #[test]
+    fn a_line_with_two_translations_round_trips() {
+        let src = "[00:01.00]original
+[00:01.00]first
+[00:01.00]second
+[00:04.00]next
+";
+        let doc = parse(src);
+        assert_eq!(doc.lines.len(), 2);
+        assert_eq!(doc.lines[0].translations.len(), 2);
+        let options = WriteOptions {
+            translations: true,
+            ..WriteOptions::default()
+        };
+        assert_eq!(write(&doc, &options).unwrap(), src);
+    }
+
+    #[test]
+    fn stamps_too_large_to_hold_do_not_panic() {
+        // A huge minute count is no stamp: the line is not read.
+        assert!(parse(
+            "[99999999999999999:00.00]x
+"
+        )
+        .lines
+        .is_empty());
+        // Word stamps repeated on a second line time would overflow.
+        let doc = parse(
+            "[307445734561825:00.00][00:01.00]<307445734561825:00.00>x <307445734561825:00.50>
+",
+        );
+        assert_eq!(doc.lines.len(), 2);
+        // The offset is worked out wide: neither extreme wraps a time.
+        let doc = parse(
+            "[offset:-9223372036854775808]
+[307445734561825:00.00]x
+[00:02.00]y
+",
+        );
+        assert_eq!(doc.lines[0].begin_ms, Some(9_223_372_036_854_777_808));
+        assert_eq!(doc.lines[1].begin_ms, None);
+        let doc = parse(
+            "[offset:9223372036854775807]
+[00:01.00]x
+[00:02.00]y
+",
+        );
+        assert_eq!(doc.lines[0].begin_ms, Some(0));
+    }
+
+    #[test]
     fn same_stamp_is_a_translation() {
         let doc = parse("[00:01.00]original\n[00:01.00]translated\n[00:02.00]next\n");
         assert_eq!(doc.lines.len(), 2);
@@ -406,14 +499,13 @@ mod tests {
 
     #[test]
     fn translations_are_written_on_request() {
-        let doc = parse("[00:01.00]original\n[00:01.00]translated\n");
+        // A second line on a time of its own: a lone line on one stamp is
+        // read as untimed text (see `is_untimed`).
+        let src = "[00:01.00]original\n[00:01.00]translated\n[00:03.00]next\n";
         let options = WriteOptions {
             translations: true,
             ..WriteOptions::default()
         };
-        assert_eq!(
-            write(&doc, &options).unwrap(),
-            "[00:01.00]original\n[00:01.00]translated\n"
-        );
+        assert_eq!(write(&parse(src), &options).unwrap(), src);
     }
 }

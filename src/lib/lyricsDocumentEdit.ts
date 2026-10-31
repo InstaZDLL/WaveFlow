@@ -369,11 +369,12 @@ export function endUnit(
 ): LyricsDocument {
   const t = ms(at);
   return mapLine(doc, i, (line) => {
-    const next = mapUnit(line, j, (u) => ({
-      ...u,
-      endMs: Math.max(t, u.beginMs ?? t),
-    }));
-    return j === line.words.length - 1 ? { ...next, endMs: t } : next;
+    // Never before the unit's own start (the clock can step back a little
+    // when a position event corrects it), and the line takes the same end
+    // from its last unit, or it would stop before that unit is sung.
+    const end = Math.max(t, line.words[j]?.beginMs ?? t);
+    const next = mapUnit(line, j, (u) => ({ ...u, endMs: end }));
+    return j === line.words.length - 1 ? { ...next, endMs: end } : next;
   });
 }
 
