@@ -1599,9 +1599,11 @@ function SettingsViewContent({
   // runs before the IPC hop, so only the backend can close the window
   // after it. A refused write then fails, and its rollback must not
   // land on the profile the user switched to — hence the same
-  // comparison before every rollback.
+  // comparison before every rollback. Kept in sync from a layout effect,
+  // so a callback that resolves between the commit and the passive
+  // effects already sees the profile on screen.
   const activeProfileIdRef = useRef(activeProfile?.id);
-  useEffect(() => {
+  useLayoutEffect(() => {
     activeProfileIdRef.current = activeProfile?.id;
   }, [activeProfile?.id]);
 
