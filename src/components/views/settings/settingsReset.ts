@@ -317,6 +317,17 @@ function command<K extends SettingKey>(
 }
 
 /**
+ * An engine setter that names the profile it writes into (#996), bound to
+ * the profile being reset: the command refuses the write once another
+ * profile is active, rather than putting this one's default there.
+ */
+function inProfile<T>(
+  write: (value: T, expectedProfileId: number | null) => Promise<unknown>,
+): (value: T, ctx: SettingsResetContext) => Promise<unknown> {
+  return (value, ctx) => write(value, ctx.profileId);
+}
+
+/**
  * A `profile_setting` row the frontend writes itself, with the window
  * event its hook re-reads on. The reset writes the default the way the
  * hook's own setter does and fires the same event, so every mounted
@@ -405,7 +416,10 @@ function profileBool(key: BooleanSettingKey, event?: string): SettingAccessor {
  */
 function engineSwitch(
   key: "audio.normalize" | "audio.mono" | "audio.gapless" | "audio.replaygain",
-  write: (enabled: boolean) => Promise<unknown>,
+  write: (
+    enabled: boolean,
+    expectedProfileId: number | null,
+  ) => Promise<unknown>,
 ): SettingAccessor {
   const fallback: boolean = SETTINGS[key].defaultValue;
   return {
@@ -419,8 +433,8 @@ function engineSwitch(
             : fallback;
       return labelIf(value !== fallback, key);
     },
-    reset: async () => {
-      await write(fallback);
+    reset: async (ctx) => {
+      await write(fallback, ctx.profileId);
     },
   };
 }
@@ -488,24 +502,27 @@ function replayGainOption(
         key,
       );
     },
-    reset: async () => {
+    reset: async (ctx) => {
       // Fresh, not from the inspection: an earlier reset in the same pass
       // may have put one of the other two back already.
       const s = await playerGetAudioSettings();
-      await playerSetReplayGainOptions({
-        preampDb:
-          key === "audio.replaygain_preamp"
-            ? SETTINGS[key].defaultValue
-            : s.replaygain_preamp_db,
-        fallbackDb:
-          key === "audio.replaygain_fallback"
-            ? SETTINGS[key].defaultValue
-            : s.replaygain_fallback_db,
-        preventClipping:
-          key === "audio.replaygain_prevent_clipping"
-            ? SETTINGS[key].defaultValue
-            : s.replaygain_prevent_clipping,
-      });
+      await playerSetReplayGainOptions(
+        {
+          preampDb:
+            key === "audio.replaygain_preamp"
+              ? SETTINGS[key].defaultValue
+              : s.replaygain_preamp_db,
+          fallbackDb:
+            key === "audio.replaygain_fallback"
+              ? SETTINGS[key].defaultValue
+              : s.replaygain_fallback_db,
+          preventClipping:
+            key === "audio.replaygain_prevent_clipping"
+              ? SETTINGS[key].defaultValue
+              : s.replaygain_prevent_clipping,
+        },
+        ctx.profileId,
+      );
     },
   };
 }
@@ -667,23 +684,23 @@ const ACCESSORS: Record<SettingKey, SettingAccessor> = {
     "audio.crossfade_ms",
     async (reads) => (await reads.audio()).crossfade_ms,
     // The command takes seconds; the slider shows whole ones.
-    (ms) => playerSetCrossfade(Math.round(ms / 1000)),
+    (ms, ctx) => playerSetCrossfade(Math.round(ms / 1000), ctx.profileId),
   ),
   "audio.smart_crossfade": command(
     "audio.smart_crossfade",
     getSmartCrossfade,
-    setSmartCrossfade,
+    inProfile(setSmartCrossfade),
   ),
   "audio.dynamic_crossfade": command(
     "audio.dynamic_crossfade",
     getDynamicCrossfade,
-    setDynamicCrossfade,
+    inProfile(setDynamicCrossfade),
   ),
-  "audio.automix": command("audio.automix", getAutoMix, setAutoMix),
+  "audio.automix": command("audio.automix", getAutoMix, inProfile(setAutoMix)),
   "audio.pause_on_device_loss": command(
     "audio.pause_on_device_loss",
     async (reads) => (await reads.audio()).pause_on_device_loss,
-    playerSetPauseOnDeviceLoss,
+    inProfile(playerSetPauseOnDeviceLoss),
   ),
   "audio.normalize": engineSwitch("audio.normalize", playerSetNormalize),
   "audio.replaygain": engineSwitch("audio.replaygain", playerSetReplayGain),
@@ -699,7 +716,7 @@ const ACCESSORS: Record<SettingKey, SettingAccessor> = {
     command(
       "audio.replaygain_mode",
       async (reads) => (await reads.audio()).replaygain_mode,
-      playerSetReplayGainMode,
+      inProfile(playerSetReplayGainMode),
     ),
     whileReplayGainOn,
   ),
@@ -733,25 +750,25 @@ const ACCESSORS: Record<SettingKey, SettingAccessor> = {
   "audio.match_source_rate": command(
     "audio.match_source_rate",
     async (reads) => (await reads.audio()).match_source_rate,
-    playerSetMatchSourceRate,
+    inProfile(playerSetMatchSourceRate),
   ),
   "audio.mono": engineSwitch("audio.mono", playerSetMono),
   "audio.balance": command(
     "audio.balance",
     async (reads) => (await reads.audio()).balance,
-    playerSetBalance,
+    inProfile(playerSetBalance),
   ),
   "audio.stereo_width": command(
     "audio.stereo_width",
     async (reads) => (await reads.audio()).stereo_width,
-    playerSetStereoWidth,
+    inProfile(playerSetStereoWidth),
   ),
   "audio.dsd_precision": command(
     "audio.dsd_precision",
     async (reads) =>
       (await reads.audio())
         .dsd_taps as (typeof SETTINGS)["audio.dsd_precision"]["defaultValue"],
-    playerSetDsdPrecision,
+    inProfile(playerSetDsdPrecision),
   ),
   "audio.dsd_dop": {
     inspect: async (_ctx, reads) =>
@@ -761,7 +778,8 @@ const ACCESSORS: Record<SettingKey, SettingAccessor> = {
             SETTINGS["audio.dsd_dop"].defaultValue,
         "audio.dsd_dop",
       ),
-    reset: () => playerSetDsdDop(SETTINGS["audio.dsd_dop"].defaultValue),
+    reset: (ctx) =>
+      playerSetDsdDop(SETTINGS["audio.dsd_dop"].defaultValue, ctx.profileId),
   },
 
   // ---- Appearance ------------------------------------------------------
@@ -888,7 +906,7 @@ const ACCESSORS: Record<SettingKey, SettingAccessor> = {
   "ui.visualizer": command(
     "ui.visualizer",
     getVisualizerEnabled,
-    setVisualizerEnabled,
+    inProfile(setVisualizerEnabled),
   ),
   "immersive.merged_lyrics": immersivePref("immersive.merged_lyrics"),
   "immersive.use_native_fullscreen": immersivePref(

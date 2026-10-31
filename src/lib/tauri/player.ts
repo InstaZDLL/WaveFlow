@@ -501,14 +501,22 @@ export function playerGetAudioSettings(): Promise<AudioSettingsSnapshot> {
   return invoke<AudioSettingsSnapshot>("player_get_audio_settings");
 }
 
-export function playerSetNormalize(enabled: boolean): Promise<void> {
+export function playerSetNormalize(
+  enabled: boolean,
+  expectedProfileId: number | null = null,
+): Promise<void> {
   return announceSettingWrite(
-    invoke<void>("player_set_normalize", { enabled }),
+    invoke<void>("player_set_normalize", { enabled, expectedProfileId }),
   );
 }
 
-export function playerSetMono(enabled: boolean): Promise<void> {
-  return announceSettingWrite(invoke<void>("player_set_mono", { enabled }));
+export function playerSetMono(
+  enabled: boolean,
+  expectedProfileId: number | null = null,
+): Promise<void> {
+  return announceSettingWrite(
+    invoke<void>("player_set_mono", { enabled, expectedProfileId }),
+  );
 }
 
 /** Balance end stop, in percent either side of the centre. */
@@ -521,9 +529,15 @@ export const STEREO_WIDTH_MAX = 200;
  * is attenuated, the near one never raised. Saved before it is applied:
  * a refused write rejects and leaves the engine where it was.
  */
-export function playerSetBalance(value: number): Promise<void> {
+export function playerSetBalance(
+  value: number,
+  expectedProfileId: number | null = null,
+): Promise<void> {
   return announceSettingWrite(
-    invoke<void>("player_set_balance", { value: Math.round(value) }),
+    invoke<void>("player_set_balance", {
+      value: Math.round(value),
+      expectedProfileId,
+    }),
   );
 }
 
@@ -531,9 +545,15 @@ export function playerSetBalance(value: number): Promise<void> {
  * Stereo width in whole percents: 0 is mono, 100 the source as it is,
  * 200 the side doubled. Saved before it is applied, like the balance.
  */
-export function playerSetStereoWidth(value: number): Promise<void> {
+export function playerSetStereoWidth(
+  value: number,
+  expectedProfileId: number | null = null,
+): Promise<void> {
   return announceSettingWrite(
-    invoke<void>("player_set_stereo_width", { value: Math.round(value) }),
+    invoke<void>("player_set_stereo_width", {
+      value: Math.round(value),
+      expectedProfileId,
+    }),
   );
 }
 
@@ -550,9 +570,15 @@ export function playerSetStereoWidth(value: number): Promise<void> {
  * costs an audible gap, so every rate change becomes a break in the
  * music. Takes effect on the next track.
  */
-export function playerSetMatchSourceRate(enabled: boolean): Promise<void> {
+export function playerSetMatchSourceRate(
+  enabled: boolean,
+  expectedProfileId: number | null = null,
+): Promise<void> {
   return announceSettingWrite(
-    invoke<void>("player_set_match_source_rate", { enabled }),
+    invoke<void>("player_set_match_source_rate", {
+      enabled,
+      expectedProfileId,
+    }),
   );
 }
 
@@ -564,9 +590,15 @@ export function playerSetMatchSourceRate(enabled: boolean): Promise<void> {
  * that flaps and comes back is still picked up where it was; only a
  * fallback onto a different endpoint parks the session.
  */
-export function playerSetPauseOnDeviceLoss(enabled: boolean): Promise<void> {
+export function playerSetPauseOnDeviceLoss(
+  enabled: boolean,
+  expectedProfileId: number | null = null,
+): Promise<void> {
   return announceSettingWrite(
-    invoke<void>("player_set_pause_on_device_loss", { enabled }),
+    invoke<void>("player_set_pause_on_device_loss", {
+      enabled,
+      expectedProfileId,
+    }),
   );
 }
 
@@ -600,15 +632,21 @@ export function playerHoldDisplay(held: boolean): Promise<void> {
   return request;
 }
 
-export function playerSetCrossfade(seconds: number): Promise<void> {
+export function playerSetCrossfade(
+  seconds: number,
+  expectedProfileId: number | null = null,
+): Promise<void> {
   return announceSettingWrite(
-    invoke<void>("player_set_crossfade", { seconds }),
+    invoke<void>("player_set_crossfade", { seconds, expectedProfileId }),
   );
 }
 
-export function playerSetReplayGain(enabled: boolean): Promise<void> {
+export function playerSetReplayGain(
+  enabled: boolean,
+  expectedProfileId: number | null = null,
+): Promise<void> {
   return announceSettingWrite(
-    invoke<void>("player_set_replaygain", { enabled }),
+    invoke<void>("player_set_replaygain", { enabled, expectedProfileId }),
   );
 }
 
@@ -627,12 +665,14 @@ export interface ReplayGainOptions {
 
 export function playerSetReplayGainOptions(
   options: ReplayGainOptions,
+  expectedProfileId: number | null = null,
 ): Promise<void> {
   return announceSettingWrite(
     invoke<void>("player_set_replaygain_options", {
       preampDb: options.preampDb,
       fallbackDb: options.fallbackDb,
       preventClipping: options.preventClipping,
+      expectedProfileId,
     }),
   );
 }
@@ -655,14 +695,22 @@ export const REPLAYGAIN_MODES: readonly ReplayGainMode[] = [
   "album",
 ];
 
-export function playerSetReplayGainMode(mode: ReplayGainMode): Promise<void> {
+export function playerSetReplayGainMode(
+  mode: ReplayGainMode,
+  expectedProfileId: number | null = null,
+): Promise<void> {
   return announceSettingWrite(
-    invoke<void>("player_set_replaygain_mode", { mode }),
+    invoke<void>("player_set_replaygain_mode", { mode, expectedProfileId }),
   );
 }
 
-export function playerSetGapless(enabled: boolean): Promise<void> {
-  return announceSettingWrite(invoke<void>("player_set_gapless", { enabled }));
+export function playerSetGapless(
+  enabled: boolean,
+  expectedProfileId: number | null = null,
+): Promise<void> {
+  return announceSettingWrite(
+    invoke<void>("player_set_gapless", { enabled, expectedProfileId }),
+  );
 }
 
 /**
@@ -671,9 +719,12 @@ export function playerSetGapless(enabled: boolean): Promise<void> {
  * the next track open. An out-of-set value is coerced to 256 by the
  * backend. Persisted in `profile_setting['audio.dsd_precision']`.
  */
-export function playerSetDsdPrecision(taps: DsdPrecisionTaps): Promise<void> {
+export function playerSetDsdPrecision(
+  taps: DsdPrecisionTaps,
+  expectedProfileId: number | null = null,
+): Promise<void> {
   return announceSettingWrite(
-    invoke<void>("player_set_dsd_precision", { taps }),
+    invoke<void>("player_set_dsd_precision", { taps, expectedProfileId }),
   );
 }
 
@@ -687,8 +738,13 @@ export function playerSetDsdPrecision(taps: DsdPrecisionTaps): Promise<void> {
  * DSD → PCM, so it's safe to leave on. Persisted in
  * `profile_setting['audio.dsd_dop']`.
  */
-export function playerSetDsdDop(enabled: boolean): Promise<void> {
-  return announceSettingWrite(invoke<void>("player_set_dsd_dop", { enabled }));
+export function playerSetDsdDop(
+  enabled: boolean,
+  expectedProfileId: number | null = null,
+): Promise<void> {
+  return announceSettingWrite(
+    invoke<void>("player_set_dsd_dop", { enabled, expectedProfileId }),
+  );
 }
 
 /**
@@ -697,8 +753,11 @@ export function playerSetDsdDop(enabled: boolean): Promise<void> {
  * lifts the pitch by ~7 semitones (resampler-shift, same as VLC's
  * default playback rate).
  */
-export function playerSetSpeed(value: number): Promise<void> {
-  return invoke<void>("player_set_speed", { value });
+export function playerSetSpeed(
+  value: number,
+  expectedProfileId: number | null = null,
+): Promise<void> {
+  return invoke<void>("player_set_speed", { value, expectedProfileId });
 }
 
 export function playerGetSpeed(): Promise<number> {

@@ -672,18 +672,23 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     }, 60);
   }, []);
 
-  const setPlaybackSpeed = useCallback((value: number) => {
-    const clamped = Math.max(0.5, Math.min(2.0, value));
-    setPlaybackSpeedState(clamped);
-    playerSetSpeed(clamped).catch((err) => {
-      console.error("[PlayerContext] set speed failed", err);
-      // The backend saves before it applies, so a refused speed never
-      // reached the engine: show the one it still plays at.
-      playerGetSpeed()
-        .then(setPlaybackSpeedState)
-        .catch(() => {});
-    });
-  }, []);
+  const activeProfileId = activeProfile?.id;
+  const setPlaybackSpeed = useCallback(
+    (value: number) => {
+      const clamped = Math.max(0.5, Math.min(2.0, value));
+      setPlaybackSpeedState(clamped);
+      // Saved into the profile it was chosen in, or refused (#996).
+      playerSetSpeed(clamped, activeProfileId ?? null).catch((err) => {
+        console.error("[PlayerContext] set speed failed", err);
+        // The backend saves before it applies, so a refused speed never
+        // reached the engine: show the one it still plays at.
+        playerGetSpeed()
+          .then(setPlaybackSpeedState)
+          .catch(() => {});
+      });
+    },
+    [activeProfileId],
+  );
 
   const toggleMute = useCallback(() => {
     lastLocalVolumeWriteRef.current = Date.now();

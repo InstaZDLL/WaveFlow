@@ -6,11 +6,12 @@ use std::sync::Arc;
 
 use serde::Serialize;
 use tauri::AppHandle;
+use tokio::sync::RwLock;
 
 use crate::{
-    audio::{engine::AudioCmd, replay_gain::GainMode, AudioEngine},
+    audio::{engine::AudioCmd, replay_gain::GainMode, state::SharedPlayback, AudioEngine},
     error::AppResult,
-    state::AppState,
+    state::{ActiveProfile, AppState},
 };
 
 use super::*;
@@ -42,18 +43,15 @@ pub async fn player_set_normalize(
     state: tauri::State<'_, AppState>,
     engine: tauri::State<'_, Arc<AudioEngine>>,
     enabled: bool,
+    expected_profile_id: Option<i64>,
 ) -> AppResult<()> {
-    if let Ok(pool) = state.require_profile_pool().await {
-        persist_setting(
-            &pool,
-            "audio.normalize",
-            if enabled { "true" } else { "false" },
-            SettingType::Bool,
-        )
-        .await?;
-    }
-    engine.send(AudioCmd::SetNormalize(enabled))?;
-    Ok(())
+    save_then_apply(
+        &state.profile,
+        expected_profile_id,
+        &[bool_row("audio.normalize", enabled)],
+        || engine.send(AudioCmd::SetNormalize(enabled)),
+    )
+    .await
 }
 
 /// Allowed DSD → PCM FIR tap counts. 256 is the historical default
@@ -71,6 +69,7 @@ pub async fn player_set_dsd_precision(
     state: tauri::State<'_, AppState>,
     engine: tauri::State<'_, Arc<AudioEngine>>,
     taps: u32,
+    expected_profile_id: Option<i64>,
 ) -> AppResult<()> {
     // Reject an out-of-set value rather than silently clamping — keeps
     // the persisted row in lockstep with the three UI options.
@@ -79,20 +78,19 @@ pub async fn player_set_dsd_precision(
     } else {
         256
     };
-    if let Ok(pool) = state.require_profile_pool().await {
-        persist_setting(
-            &pool,
-            "audio.dsd_precision",
-            taps.to_string(),
-            SettingType::Int,
-        )
-        .await?;
-    }
-    engine
-        .shared()
-        .dsd_taps
-        .store(taps, std::sync::atomic::Ordering::Release);
-    Ok(())
+    save_then_apply(
+        &state.profile,
+        expected_profile_id,
+        &[("audio.dsd_precision", taps.to_string(), SettingType::Int)],
+        || {
+            engine
+                .shared()
+                .dsd_taps
+                .store(taps, std::sync::atomic::Ordering::Release);
+            Ok(())
+        },
+    )
+    .await
 }
 
 /// Toggle native DSD output via DoP (DSD over PCM), #495. When on AND an
@@ -109,21 +107,21 @@ pub async fn player_set_dsd_dop(
     state: tauri::State<'_, AppState>,
     engine: tauri::State<'_, Arc<AudioEngine>>,
     enabled: bool,
+    expected_profile_id: Option<i64>,
 ) -> AppResult<()> {
-    if let Ok(pool) = state.require_profile_pool().await {
-        persist_setting(
-            &pool,
-            "audio.dsd_dop",
-            if enabled { "true" } else { "false" },
-            SettingType::Bool,
-        )
-        .await?;
-    }
-    engine
-        .shared()
-        .dsd_dop_enabled
-        .store(enabled, std::sync::atomic::Ordering::Release);
-    Ok(())
+    save_then_apply(
+        &state.profile,
+        expected_profile_id,
+        &[bool_row("audio.dsd_dop", enabled)],
+        || {
+            engine
+                .shared()
+                .dsd_dop_enabled
+                .store(enabled, std::sync::atomic::Ordering::Release);
+            Ok(())
+        },
+    )
+    .await
 }
 
 /// Toggle ReplayGain — multiply each track by its analyzed gain to
@@ -134,18 +132,15 @@ pub async fn player_set_replaygain(
     state: tauri::State<'_, AppState>,
     engine: tauri::State<'_, Arc<AudioEngine>>,
     enabled: bool,
+    expected_profile_id: Option<i64>,
 ) -> AppResult<()> {
-    if let Ok(pool) = state.require_profile_pool().await {
-        persist_setting(
-            &pool,
-            "audio.replaygain",
-            if enabled { "true" } else { "false" },
-            SettingType::Bool,
-        )
-        .await?;
-    }
-    engine.send(AudioCmd::SetReplayGain(enabled))?;
-    Ok(())
+    save_then_apply(
+        &state.profile,
+        expected_profile_id,
+        &[bool_row("audio.replaygain", enabled)],
+        || engine.send(AudioCmd::SetReplayGain(enabled)),
+    )
+    .await
 }
 
 /// Bound on the pre-amp and on the fallback gain, in dB. Wide enough
@@ -171,47 +166,46 @@ pub async fn player_set_replaygain_options(
     preamp_db: f32,
     fallback_db: f32,
     prevent_clipping: bool,
+    expected_profile_id: Option<i64>,
 ) -> AppResult<()> {
     let preamp = clamp_replaygain_adjust(preamp_db);
     let fallback = clamp_replaygain_adjust(fallback_db);
 
-    if let Ok(pool) = state.require_profile_pool().await {
-        // The two gains are decimals, which the table has no marker for:
-        // stored as text like `ui.zoom_level`, and parsed back on restore.
-        // They were written as `'float'`, which the CHECK refuses, so
-        // neither ever survived a restart.
-        for (key, value, value_type) in [
-            (
-                "audio.replaygain_preamp",
-                preamp.to_string(),
-                SettingType::Text,
-            ),
-            (
-                "audio.replaygain_fallback",
-                fallback.to_string(),
-                SettingType::Text,
-            ),
-            (
-                "audio.replaygain_prevent_clipping",
-                prevent_clipping.to_string(),
-                SettingType::Bool,
-            ),
-        ] {
-            persist_setting(&pool, key, value, value_type).await?;
-        }
-    }
-
-    let shared = engine.shared();
-    shared
-        .replaygain_preamp_db_bits
-        .store(preamp.to_bits(), std::sync::atomic::Ordering::Relaxed);
-    shared
-        .replaygain_fallback_db_bits
-        .store(fallback.to_bits(), std::sync::atomic::Ordering::Relaxed);
-    shared
-        .replaygain_prevent_clipping
-        .store(prevent_clipping, std::sync::atomic::Ordering::Relaxed);
-    Ok(())
+    // The two gains are decimals, which the table has no marker for:
+    // stored as text like `ui.zoom_level`, and parsed back on restore.
+    // They were written as `'float'`, which the CHECK refuses, so
+    // neither ever survived a restart.
+    let rows = [
+        (
+            "audio.replaygain_preamp",
+            preamp.to_string(),
+            SettingType::Text,
+        ),
+        (
+            "audio.replaygain_fallback",
+            fallback.to_string(),
+            SettingType::Text,
+        ),
+        (
+            "audio.replaygain_prevent_clipping",
+            prevent_clipping.to_string(),
+            SettingType::Bool,
+        ),
+    ];
+    save_then_apply(&state.profile, expected_profile_id, &rows, || {
+        let shared = engine.shared();
+        shared
+            .replaygain_preamp_db_bits
+            .store(preamp.to_bits(), std::sync::atomic::Ordering::Relaxed);
+        shared
+            .replaygain_fallback_db_bits
+            .store(fallback.to_bits(), std::sync::atomic::Ordering::Relaxed);
+        shared
+            .replaygain_prevent_clipping
+            .store(prevent_clipping, std::sync::atomic::Ordering::Relaxed);
+        Ok(())
+    })
+    .await
 }
 
 /// Choose which of a file's two ReplayGain measurements to apply:
@@ -232,23 +226,26 @@ pub async fn player_set_replaygain_mode(
     state: tauri::State<'_, AppState>,
     engine: tauri::State<'_, Arc<AudioEngine>>,
     mode: String,
+    expected_profile_id: Option<i64>,
 ) -> AppResult<()> {
     let mode = GainMode::from_setting(&mode);
-    if let Ok(pool) = state.require_profile_pool().await {
-        persist_setting(
-            &pool,
+    save_then_apply(
+        &state.profile,
+        expected_profile_id,
+        &[(
             "audio.replaygain_mode",
-            mode.as_setting(),
+            mode.as_setting().to_string(),
             SettingType::Text,
-        )
-        .await?;
-    }
-    engine
-        .shared()
-        .replaygain_mode_bits
-        .store(mode.as_bits(), std::sync::atomic::Ordering::Relaxed);
-
-    Ok(())
+        )],
+        || {
+            engine
+                .shared()
+                .replaygain_mode_bits
+                .store(mode.as_bits(), std::sync::atomic::Ordering::Relaxed);
+            Ok(())
+        },
+    )
+    .await
 }
 
 /// Keep a pre-amp / fallback value inside the supported range, and
@@ -268,18 +265,15 @@ pub async fn player_set_mono(
     state: tauri::State<'_, AppState>,
     engine: tauri::State<'_, Arc<AudioEngine>>,
     enabled: bool,
+    expected_profile_id: Option<i64>,
 ) -> AppResult<()> {
-    if let Ok(pool) = state.require_profile_pool().await {
-        persist_setting(
-            &pool,
-            "audio.mono",
-            if enabled { "true" } else { "false" },
-            SettingType::Bool,
-        )
-        .await?;
-    }
-    engine.send(AudioCmd::SetMono(enabled))?;
-    Ok(())
+    save_then_apply(
+        &state.profile,
+        expected_profile_id,
+        &[bool_row("audio.mono", enabled)],
+        || engine.send(AudioCmd::SetMono(enabled)),
+    )
+    .await
 }
 
 /// Set the left / right balance, in percent: `-100` is hard left, `100`
@@ -291,20 +285,17 @@ pub async fn player_set_balance(
     state: tauri::State<'_, AppState>,
     engine: tauri::State<'_, Arc<AudioEngine>>,
     value: i32,
+    expected_profile_id: Option<i64>,
 ) -> AppResult<()> {
     let limit = i32::from(crate::audio::stereo::BALANCE_LIMIT);
     let clamped = value.clamp(-limit, limit);
-    if let Ok(pool) = state.require_profile_pool().await {
-        persist_setting(
-            &pool,
-            "audio.balance",
-            clamped.to_string(),
-            SettingType::Int,
-        )
-        .await?;
-    }
-    engine.send(AudioCmd::SetBalance(clamped))?;
-    Ok(())
+    save_then_apply(
+        &state.profile,
+        expected_profile_id,
+        &[("audio.balance", clamped.to_string(), SettingType::Int)],
+        || engine.send(AudioCmd::SetBalance(clamped)),
+    )
+    .await
 }
 
 /// Set the stereo width, in percent: `0` is mono, `100` the source as it
@@ -316,19 +307,16 @@ pub async fn player_set_stereo_width(
     state: tauri::State<'_, AppState>,
     engine: tauri::State<'_, Arc<AudioEngine>>,
     value: i32,
+    expected_profile_id: Option<i64>,
 ) -> AppResult<()> {
     let clamped = value.clamp(0, i32::from(crate::audio::stereo::WIDTH_MAX));
-    if let Ok(pool) = state.require_profile_pool().await {
-        persist_setting(
-            &pool,
-            "audio.stereo_width",
-            clamped.to_string(),
-            SettingType::Int,
-        )
-        .await?;
-    }
-    engine.send(AudioCmd::SetStereoWidth(clamped))?;
-    Ok(())
+    save_then_apply(
+        &state.profile,
+        expected_profile_id,
+        &[("audio.stereo_width", clamped.to_string(), SettingType::Int)],
+        || engine.send(AudioCmd::SetStereoWidth(clamped)),
+    )
+    .await
 }
 
 /// Toggle smart crossfade. When ON, same-album transitions skip
@@ -341,21 +329,21 @@ pub async fn player_set_smart_crossfade(
     state: tauri::State<'_, AppState>,
     engine: tauri::State<'_, Arc<AudioEngine>>,
     enabled: bool,
+    expected_profile_id: Option<i64>,
 ) -> AppResult<()> {
-    if let Ok(pool) = state.require_profile_pool().await {
-        persist_setting(
-            &pool,
-            "audio.smart_crossfade",
-            if enabled { "true" } else { "false" },
-            SettingType::Bool,
-        )
-        .await?;
-    }
-    engine
-        .shared()
-        .smart_crossfade_enabled
-        .store(enabled, std::sync::atomic::Ordering::Release);
-    Ok(())
+    save_then_apply(
+        &state.profile,
+        expected_profile_id,
+        &[bool_row("audio.smart_crossfade", enabled)],
+        || {
+            engine
+                .shared()
+                .smart_crossfade_enabled
+                .store(enabled, std::sync::atomic::Ordering::Release);
+            Ok(())
+        },
+    )
+    .await
 }
 
 #[tauri::command]
@@ -380,29 +368,29 @@ pub async fn player_set_dynamic_crossfade(
     state: tauri::State<'_, AppState>,
     engine: tauri::State<'_, Arc<AudioEngine>>,
     enabled: bool,
+    expected_profile_id: Option<i64>,
 ) -> AppResult<()> {
-    if let Ok(pool) = state.require_profile_pool().await {
-        persist_setting(
-            &pool,
-            "audio.dynamic_crossfade",
-            if enabled { "true" } else { "false" },
-            SettingType::Bool,
-        )
-        .await?;
-    }
-    engine
-        .shared()
-        .dynamic_crossfade_enabled
-        .store(enabled, std::sync::atomic::Ordering::Release);
-    if !enabled {
-        // Drop any in-flight override so the next transition snaps
-        // back to the static crossfade immediately.
-        engine
-            .shared()
-            .pending_next_crossfade_ms
-            .store(0, std::sync::atomic::Ordering::Release);
-    }
-    Ok(())
+    save_then_apply(
+        &state.profile,
+        expected_profile_id,
+        &[bool_row("audio.dynamic_crossfade", enabled)],
+        || {
+            engine
+                .shared()
+                .dynamic_crossfade_enabled
+                .store(enabled, std::sync::atomic::Ordering::Release);
+            if !enabled {
+                // Drop any in-flight override so the next transition snaps
+                // back to the static crossfade immediately.
+                engine
+                    .shared()
+                    .pending_next_crossfade_ms
+                    .store(0, std::sync::atomic::Ordering::Release);
+            }
+            Ok(())
+        },
+    )
+    .await
 }
 
 #[tauri::command]
@@ -426,26 +414,43 @@ pub async fn player_set_automix(
     state: tauri::State<'_, AppState>,
     engine: tauri::State<'_, Arc<AudioEngine>>,
     enabled: bool,
+    expected_profile_id: Option<i64>,
 ) -> AppResult<()> {
-    if let Ok(pool) = state.require_profile_pool().await {
-        persist_setting(
-            &pool,
-            "audio.automix",
-            if enabled { "true" } else { "false" },
-            SettingType::Bool,
-        )
-        .await?;
-    }
-    let automix = &engine.shared().automix;
-    automix
-        .enabled
-        .store(enabled, std::sync::atomic::Ordering::Release);
-    if !enabled {
-        // A plan already handed over would still be honoured: drop it
-        // so the next transition is the plain one at once.
-        automix.clear_plan();
-    }
-    Ok(())
+    set_automix(
+        &state.profile,
+        engine.shared(),
+        enabled,
+        expected_profile_id,
+    )
+    .await
+}
+
+/// [`player_set_automix`] on the profile slot and the shared playback
+/// state rather than on Tauri's managed state, so a test can drive it.
+pub(super) async fn set_automix(
+    profile: &RwLock<Option<ActiveProfile>>,
+    shared: &SharedPlayback,
+    enabled: bool,
+    expected_profile_id: Option<i64>,
+) -> AppResult<()> {
+    save_then_apply(
+        profile,
+        expected_profile_id,
+        &[bool_row("audio.automix", enabled)],
+        || {
+            let automix = &shared.automix;
+            automix
+                .enabled
+                .store(enabled, std::sync::atomic::Ordering::Release);
+            if !enabled {
+                // A plan already handed over would still be honoured: drop
+                // it so the next transition is the plain one at once.
+                automix.clear_plan();
+            }
+            Ok(())
+        },
+    )
+    .await
 }
 
 #[tauri::command]
@@ -462,21 +467,21 @@ pub async fn player_set_visualizer(
     state: tauri::State<'_, AppState>,
     engine: tauri::State<'_, Arc<AudioEngine>>,
     enabled: bool,
+    expected_profile_id: Option<i64>,
 ) -> AppResult<()> {
-    if let Ok(pool) = state.require_profile_pool().await {
-        persist_setting(
-            &pool,
-            "ui.visualizer",
-            if enabled { "true" } else { "false" },
-            SettingType::Bool,
-        )
-        .await?;
-    }
-    engine
-        .shared()
-        .visualizer_enabled
-        .store(enabled, std::sync::atomic::Ordering::Release);
-    Ok(())
+    save_then_apply(
+        &state.profile,
+        expected_profile_id,
+        &[bool_row("ui.visualizer", enabled)],
+        || {
+            engine
+                .shared()
+                .visualizer_enabled
+                .store(enabled, std::sync::atomic::Ordering::Release);
+            Ok(())
+        },
+    )
+    .await
 }
 
 #[tauri::command]
@@ -503,19 +508,20 @@ pub async fn player_set_speed(
     state: tauri::State<'_, AppState>,
     engine: tauri::State<'_, Arc<AudioEngine>>,
     value: f32,
+    expected_profile_id: Option<i64>,
 ) -> AppResult<()> {
-    if let Ok(pool) = state.require_profile_pool().await {
-        let clamped = value.clamp(0.5, 2.0);
-        persist_setting(
-            &pool,
+    let clamped = value.clamp(0.5, 2.0);
+    save_then_apply(
+        &state.profile,
+        expected_profile_id,
+        &[(
             "audio.playback_speed",
             clamped.to_string(),
             SettingType::Text,
-        )
-        .await?;
-    }
-    engine.send(AudioCmd::SetSpeed(value))?;
-    Ok(())
+        )],
+        || engine.send(AudioCmd::SetSpeed(value)),
+    )
+    .await
 }
 
 #[tauri::command]
@@ -530,18 +536,15 @@ pub async fn player_set_gapless(
     state: tauri::State<'_, AppState>,
     engine: tauri::State<'_, Arc<AudioEngine>>,
     enabled: bool,
+    expected_profile_id: Option<i64>,
 ) -> AppResult<()> {
-    if let Ok(pool) = state.require_profile_pool().await {
-        persist_setting(
-            &pool,
-            "audio.gapless",
-            if enabled { "true" } else { "false" },
-            SettingType::Bool,
-        )
-        .await?;
-    }
-    engine.send(AudioCmd::SetGapless(enabled))?;
-    Ok(())
+    save_then_apply(
+        &state.profile,
+        expected_profile_id,
+        &[bool_row("audio.gapless", enabled)],
+        || engine.send(AudioCmd::SetGapless(enabled)),
+    )
+    .await
 }
 
 /// Update the crossfade duration. Pushes the new value live to the
@@ -552,19 +555,16 @@ pub async fn player_set_crossfade(
     state: tauri::State<'_, AppState>,
     engine: tauri::State<'_, Arc<AudioEngine>>,
     seconds: f64,
+    expected_profile_id: Option<i64>,
 ) -> AppResult<()> {
     let ms = (seconds.max(0.0) * 1000.0).round() as i64;
-    if let Ok(pool) = state.require_profile_pool().await {
-        persist_setting(
-            &pool,
-            "audio.crossfade_ms",
-            ms.to_string(),
-            SettingType::Int,
-        )
-        .await?;
-    }
-    engine.send(AudioCmd::SetCrossfade(ms.max(0) as u32))?;
-    Ok(())
+    save_then_apply(
+        &state.profile,
+        expected_profile_id,
+        &[("audio.crossfade_ms", ms.to_string(), SettingType::Int)],
+        || engine.send(AudioCmd::SetCrossfade(ms.max(0) as u32)),
+    )
+    .await
 }
 
 /// Return current audio settings so the Settings view can hydrate.

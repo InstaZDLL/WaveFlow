@@ -20,7 +20,10 @@ import {
 
 type Knob = "balance" | "width";
 
-const WRITERS: Record<Knob, (value: number) => Promise<void>> = {
+const WRITERS: Record<
+  Knob,
+  (value: number, expectedProfileId: number | null) => Promise<void>
+> = {
   balance: playerSetBalance,
   width: playerSetStereoWidth,
 };
@@ -117,7 +120,9 @@ export function StereoImageCard() {
     chain.current = chain.current.then(async () => {
       try {
         if (profileIdRef.current !== profileId) return;
-        await WRITERS[knob](value);
+        // The command refuses it too once another profile is active: this
+        // check runs before the IPC hop, the backend's after it (#996).
+        await WRITERS[knob](value, profileId ?? null);
       } catch (err) {
         console.error(`[StereoImageCard] set ${knob} failed`, err);
         // Not saved, so not applied: show what the engine still holds —
