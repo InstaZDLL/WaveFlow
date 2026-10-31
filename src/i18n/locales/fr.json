@@ -1857,36 +1857,9 @@
   },
   "lyricsEditor": {
     "title": "Éditeur de paroles",
-    "tabs": {
-      "plain": "Texte",
-      "synced": "Synchronisé"
-    },
-    "plainPlaceholder": "Saisissez les paroles ligne par ligne…",
-    "linePlaceholder": "Texte de la ligne",
-    "capture": "Capturer",
-    "captureHint": "Lancez la lecture puis appuyez sur Espace (ou Capturer) pour caler la ligne courante au temps actuel",
-    "captureNow": "Capturer maintenant",
-    "recapture": "Recaler sur la position actuelle",
-    "seekToLine": "Aller à ce passage",
-    "insertBelow": "Insérer une ligne après",
-    "removeLine": "Supprimer la ligne",
-    "lines": "lignes calées",
-    "writeToFile": "Écrire aussi dans le fichier audio (USLT/LYRICS)",
     "exportToFile": "Enregistrer dans un fichier…",
-    "exportToFileHint": "Exporte les paroles vers un .lrc ou .txt à l'emplacement de votre choix, sans toucher au fichier audio",
+    "exportToFileHint": "Exporte les paroles dans le format choisi (.ttml, .lrc ou .txt) à l'emplacement de votre choix, sans toucher au fichier audio",
     "exportedToFile": "Exporté vers {{path}}",
-    "offset": {
-      "label": "Décalage global",
-      "help": "Décale toutes les lignes calées du même delta — utile pour corriger un fichier LRC importé qui est uniformément en avance ou en retard",
-      "reset": "Réinitialiser le décalage"
-    },
-    "granularity": {
-      "label": "Granularité :",
-      "line": "Ligne par ligne",
-      "word": "Mot par mot"
-    },
-    "captureHintWord": "Espace = mot suivant · Entrée = ligne suivante · Retour arrière = annuler le dernier mot",
-    "notCaptured": "Non calé",
     "destinationLabel": "Destination par défaut des paroles",
     "destination": {
       "tag": {
@@ -1901,6 +1874,130 @@
         "label": "Base WaveFlow uniquement",
         "hint": "Reste dans la base de WaveFlow. Aucun fichier ni tag touché."
       }
+    },
+    "stepsLabel": "Étapes de l'éditeur",
+    "steps": {
+      "edit": "Édition",
+      "sync": "Synchro",
+      "preview": "Aperçu"
+    },
+    "undo": "Annuler (Ctrl+Z)",
+    "redo": "Rétablir (Ctrl+Maj+Z)",
+    "otherTrackPlaying": "Le morceau en lecture n'est pas celui dont vous éditez les paroles : la synchro et l'aperçu suivent le lecteur.",
+    "formatLabel": "Format",
+    "format": {
+      "ttml": "TTML",
+      "enhanced_lrc": "LRC enrichi",
+      "lrc": "LRC",
+      "plain": "Texte seul"
+    },
+    "lrcTranslations": "Traductions en lignes doublées",
+    "discard": {
+      "question": "Fermer sans enregistrer vos modifications ?",
+      "keep": "Continuer l'édition",
+      "confirm": "Fermer sans enregistrer"
+    },
+    "unsynced": {
+      "line": "{{format}} : la ligne {{line}} n'a pas de temps",
+      "word": "{{format}} : le mot {{word}} de la ligne {{line}} n'a pas de temps",
+      "show": "Y aller"
+    },
+    "transport": {
+      "back": "Reculer de 2 s",
+      "forward": "Avancer de 2 s",
+      "speed": "Vitesse de lecture"
+    },
+    "edit": {
+      "lines": "Lignes · {{n}}",
+      "viewLabel": "Affichage des lignes",
+      "view": {
+        "lines": "Lignes",
+        "text": "Texte"
+      },
+      "meta": {
+        "title": "Titre",
+        "artist": "Artiste",
+        "album": "Album",
+        "language": "Langue",
+        "languagePlaceholder": "fr, en, ja…"
+      },
+      "singers": "Chanteurs",
+      "singersHint": "Une seule voix. Ajoutez des chanteurs pour un duo.",
+      "singerName": "Nom du chanteur",
+      "singerKind": "Seul ou ensemble",
+      "kind": {
+        "person": "seul",
+        "group": "ensemble"
+      },
+      "removeSinger": "Retirer ce chanteur",
+      "addSinger": "Ajouter un chanteur",
+      "textPlaceholder": "Collez les paroles ici, une ligne par ligne.\nLes lignes vides sont ignorées.",
+      "useText": "Utiliser ces lignes",
+      "useTextKeepsTiming": "Les lignes inchangées gardent leur synchro.",
+      "addLine": "Ajouter une ligne",
+      "details": "Détails de la ligne",
+      "linePlaceholder": "Texte de la ligne",
+      "lineLabel": "Ligne {{n}}",
+      "badge": {
+        "background": "chœurs",
+        "translation": "trad.",
+        "romanization": "rom."
+      },
+      "mergeNext": "Fusionner avec la ligne suivante",
+      "removeLine": "Supprimer la ligne",
+      "singer": "Chanteur",
+      "lead": "Voix principale",
+      "part": "Section",
+      "partPlaceholder": "Couplet, Refrain…",
+      "background": "Chœurs",
+      "backgroundPlaceholder": "(chantés par-dessus cette ligne)",
+      "translation": "Traduction",
+      "translationLang": "langue",
+      "romanization": "Romanisation"
+    },
+    "sync": {
+      "modeLabel": "Synchroniser",
+      "mode": {
+        "line": "Ligne par ligne",
+        "word": "Mot par mot"
+      },
+      "reaction": "Décalage de réaction",
+      "reactionHint": "Chaque frappe est avancée d'autant, pour compenser le temps entre entendre et appuyer.",
+      "shift": "Tout décaler",
+      "shiftHint": "Décale tous les temps du document, pour un fichier uniformément en avance ou en retard.",
+      "shiftEarlier": "Tout avancer de {{ms}} ms",
+      "shiftLater": "Tout retarder de {{ms}} ms",
+      "progressLines": "Lignes calées : {{done}} / {{total}}",
+      "progressWords": "Mots calés : {{done}} / {{total}}",
+      "keyNames": {
+        "space": "Espace",
+        "enter": "Entrée"
+      },
+      "keys": {
+        "space": {
+          "line": "début de la ligne suivante",
+          "word": "début du mot suivant"
+        },
+        "enter": {
+          "line": "fin de la ligne chantée",
+          "word": "fin du mot chanté"
+        },
+        "backspace": "annuler la dernière frappe",
+        "play": "lecture / pause",
+        "seek": "2 s en arrière / en avant",
+        "line": "choisir une ligne"
+      },
+      "empty": "Pas encore de paroles. Saisissez-les ou collez-les à l'étape Édition.",
+      "emptyLine": "ligne vide",
+      "notTimed": "Pas encore calé",
+      "nudgeEarlier": "{{ms}} ms plus tôt",
+      "nudgeLater": "{{ms}} ms plus tard",
+      "playFromHere": "Lire à partir d'ici"
+    },
+    "preview": {
+      "hiddenLines": "Lignes pas encore calées, masquées ici : {{n}}",
+      "writing": "Préparation de l'aperçu…",
+      "nothingSynced": "Calez quelques lignes à l'étape Synchro pour les voir défiler ici."
     }
   },
   "sort": {

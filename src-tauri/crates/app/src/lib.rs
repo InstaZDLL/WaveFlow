@@ -624,6 +624,8 @@ pub fn run() {
             commands::lyrics::import_lrc_file,
             commands::lyrics::save_lyrics,
             commands::lyrics::export_lyrics_to_path,
+            commands::lyrics::read_lyrics_document,
+            commands::lyrics::write_lyrics_document,
             commands::lyrics::clear_lyrics,
             commands::lyrics::get_lyrics_translation_lang,
             commands::lyrics::set_lyrics_translation_lang,

@@ -1796,35 +1796,8 @@
   },
   "lyricsEditor": {
     "title": "歌词编辑器",
-    "tabs": {
-      "plain": "文本",
-      "synced": "同步"
-    },
-    "plainPlaceholder": "逐行输入歌词…",
-    "linePlaceholder": "行文本",
-    "capture": "标记时间",
-    "captureHint": "开始播放后按空格（或标记时间）将当前行标记到播放点",
-    "captureNow": "立即标记时间",
-    "recapture": "重新标记到当前位置",
-    "seekToLine": "跳转到该行",
-    "insertBelow": "在下方插入一行",
-    "removeLine": "删除行",
-    "lines": "行已标记",
-    "writeToFile": "同时写入音频文件（USLT/LYRICS）",
-    "offset": {
-      "label": "整体偏移",
-      "help": "将所有已标记时间行整体偏移相同的时长——适用于导入的 LRC 文件整体提前或滞后的情况",
-      "reset": "重置偏移"
-    },
-    "granularity": {
-      "label": "粒度：",
-      "line": "逐行",
-      "word": "逐词"
-    },
-    "captureHintWord": "空格 = 下一个词 · 回车 = 下一行 · Backspace = 撤销最后一个词",
-    "notCaptured": "未标记时间",
     "exportToFile": "保存到文件…",
-    "exportToFileHint": "将歌词导出为 .lrc 或 .txt 文件到你选择的位置，不会修改音频文件",
+    "exportToFileHint": "以所选格式（.ttml、.lrc 或 .txt）将歌词导出到任意位置，不改动音频文件",
     "exportedToFile": "已导出到 {{path}}",
     "destinationLabel": "歌词默认保存位置",
     "destination": {
@@ -1840,6 +1813,130 @@
         "label": "仅 WaveFlow 数据库",
         "hint": "仅保留在 WaveFlow 数据库中。不会触碰任何文件或标签。"
       }
+    },
+    "stepsLabel": "编辑器步骤",
+    "steps": {
+      "edit": "编辑",
+      "sync": "同步",
+      "preview": "预览"
+    },
+    "undo": "撤销 (Ctrl+Z)",
+    "redo": "重做 (Ctrl+Shift+Z)",
+    "otherTrackPlaying": "正在播放的不是你正在编辑歌词的曲目：同步和预览会跟随播放器。",
+    "formatLabel": "格式",
+    "format": {
+      "ttml": "TTML",
+      "enhanced_lrc": "增强 LRC",
+      "lrc": "LRC",
+      "plain": "纯文本"
+    },
+    "lrcTranslations": "翻译作为重复行",
+    "discard": {
+      "question": "不保存更改就关闭吗？",
+      "keep": "继续编辑",
+      "confirm": "不保存并关闭"
+    },
+    "unsynced": {
+      "line": "{{format}}：第 {{line}} 行没有时间",
+      "word": "{{format}}：第 {{line}} 行的第 {{word}} 个词没有时间",
+      "show": "前往"
+    },
+    "transport": {
+      "back": "后退 2 秒",
+      "forward": "前进 2 秒",
+      "speed": "播放速度"
+    },
+    "edit": {
+      "lines": "行 · {{n}}",
+      "viewLabel": "行视图",
+      "view": {
+        "lines": "行",
+        "text": "文本"
+      },
+      "meta": {
+        "title": "标题",
+        "artist": "艺人",
+        "album": "专辑",
+        "language": "语言",
+        "languagePlaceholder": "zh, en, ja…"
+      },
+      "singers": "演唱者",
+      "singersHint": "只有一个声部。对唱请添加演唱者。",
+      "singerName": "演唱者名称",
+      "singerKind": "独唱或合唱",
+      "kind": {
+        "person": "独唱",
+        "group": "合唱"
+      },
+      "removeSinger": "移除此演唱者",
+      "addSinger": "添加演唱者",
+      "textPlaceholder": "在此粘贴歌词，每行一句。\n空行会被忽略。",
+      "useText": "使用这些行",
+      "useTextKeepsTiming": "未改动的行会保留同步。",
+      "addLine": "添加一行",
+      "details": "行详情",
+      "linePlaceholder": "行文本",
+      "lineLabel": "第 {{n}} 行",
+      "badge": {
+        "background": "和声",
+        "translation": "译",
+        "romanization": "拼"
+      },
+      "mergeNext": "与下一行合并",
+      "removeLine": "删除此行",
+      "singer": "演唱者",
+      "lead": "主唱",
+      "part": "段落",
+      "partPlaceholder": "主歌、副歌…",
+      "background": "和声",
+      "backgroundPlaceholder": "（叠在这一行上演唱）",
+      "translation": "翻译",
+      "translationLang": "语言",
+      "romanization": "罗马化"
+    },
+    "sync": {
+      "modeLabel": "同步",
+      "mode": {
+        "line": "逐行",
+        "word": "逐词"
+      },
+      "reaction": "反应补偿",
+      "reactionHint": "每次按键都提前这么多，以抵消从听到到按下之间的延迟。",
+      "shift": "全部平移",
+      "shiftHint": "平移文档中的所有时间，适用于整体偏早或偏晚的文件。",
+      "shiftEarlier": "全部提前 {{ms}} 毫秒",
+      "shiftLater": "全部推迟 {{ms}} 毫秒",
+      "progressLines": "已同步的行：{{done}} / {{total}}",
+      "progressWords": "已同步的词：{{done}} / {{total}}",
+      "keyNames": {
+        "space": "空格",
+        "enter": "回车"
+      },
+      "keys": {
+        "space": {
+          "line": "下一行的开始",
+          "word": "下一个词的开始"
+        },
+        "enter": {
+          "line": "刚唱完的行结束",
+          "word": "刚唱完的词结束"
+        },
+        "backspace": "撤销上一次按键",
+        "play": "播放 / 暂停",
+        "seek": "后退 / 前进 2 秒",
+        "line": "选择一行"
+      },
+      "empty": "还没有歌词。请在编辑步骤中输入或粘贴。",
+      "emptyLine": "空行",
+      "notTimed": "尚未同步",
+      "nudgeEarlier": "提前 {{ms}} 毫秒",
+      "nudgeLater": "推迟 {{ms}} 毫秒",
+      "playFromHere": "从这里播放"
+    },
+    "preview": {
+      "hiddenLines": "尚未同步的行（此处隐藏）：{{n}}",
+      "writing": "正在准备预览…",
+      "nothingSynced": "在同步步骤中同步几行，即可在这里看到它们滚动。"
     }
   },
   "sort": {

@@ -1798,35 +1798,8 @@
   },
   "lyricsEditor": {
     "title": "Songtekstbewerker",
-    "tabs": {
-      "plain": "Tekst",
-      "synced": "Gesynchroniseerd"
-    },
-    "plainPlaceholder": "Typ de songtekst regel per regel…",
-    "linePlaceholder": "Regeltekst",
-    "capture": "Vastleggen",
-    "captureHint": "Start het afspelen en druk dan op Spatie (of ‘Vastleggen’) om de huidige regel te koppelen aan de afspeelpositie",
-    "captureNow": "Nu vastleggen",
-    "recapture": "Opnieuw koppelen aan huidige positie",
-    "seekToLine": "Naar deze regel springen",
-    "insertBelow": "Regel hieronder invoegen",
-    "removeLine": "Regel verwijderen",
-    "lines": "regels gekoppeld",
-    "writeToFile": "Ook naar het audiobestand schrijven (USLT/LYRICS)",
-    "offset": {
-      "label": "Globale verschuiving",
-      "help": "Verschuift elke vastgelegde regel met dezelfde delta — handig om geïmporteerde LRC-bestanden recht te zetten die uniform te vroeg of te laat zijn",
-      "reset": "Verschuiving resetten"
-    },
-    "granularity": {
-      "label": "Granulariteit:",
-      "line": "Regel per regel",
-      "word": "Woord per woord"
-    },
-    "captureHintWord": "Spatie = volgend woord · Enter = volgende regel · Backspace = laatste woord ongedaan maken",
-    "notCaptured": "Niet vastgelegd",
     "exportToFile": "Opslaan in bestand…",
-    "exportToFileHint": "Exporteert de songtekst naar een .lrc- of .txt-bestand op de gekozen locatie, zonder het audiobestand aan te raken",
+    "exportToFileHint": "Exporteert de songtekst in het gekozen formaat (.ttml, .lrc of .txt) naar een plek naar keuze, zonder het audiobestand aan te raken",
     "exportedToFile": "Geëxporteerd naar {{path}}",
     "destinationLabel": "Standaardbestemming voor songteksten",
     "destination": {
@@ -1842,6 +1815,130 @@
         "label": "Alleen WaveFlow-database",
         "hint": "Blijft in de database van WaveFlow. Geen bestanden of tags worden aangeraakt."
       }
+    },
+    "stepsLabel": "Stappen van de editor",
+    "steps": {
+      "edit": "Bewerken",
+      "sync": "Synchroniseren",
+      "preview": "Voorbeeld"
+    },
+    "undo": "Ongedaan maken (Ctrl+Z)",
+    "redo": "Opnieuw (Ctrl+Shift+Z)",
+    "otherTrackPlaying": "Het nummer dat speelt is niet het nummer waarvan je de songtekst bewerkt: synchroniseren en het voorbeeld volgen de speler.",
+    "formatLabel": "Formaat",
+    "format": {
+      "ttml": "TTML",
+      "enhanced_lrc": "Uitgebreide LRC",
+      "lrc": "LRC",
+      "plain": "Alleen tekst"
+    },
+    "lrcTranslations": "Vertalingen als dubbele regels",
+    "discard": {
+      "question": "Sluiten zonder je wijzigingen op te slaan?",
+      "keep": "Verder bewerken",
+      "confirm": "Sluiten zonder opslaan"
+    },
+    "unsynced": {
+      "line": "{{format}}: regel {{line}} heeft geen tijd",
+      "word": "{{format}}: woord {{word}} van regel {{line}} heeft geen tijd",
+      "show": "Ga erheen"
+    },
+    "transport": {
+      "back": "2 s terug",
+      "forward": "2 s vooruit",
+      "speed": "Afspeelsnelheid"
+    },
+    "edit": {
+      "lines": "Regels · {{n}}",
+      "viewLabel": "Regelweergave",
+      "view": {
+        "lines": "Regels",
+        "text": "Tekst"
+      },
+      "meta": {
+        "title": "Titel",
+        "artist": "Artiest",
+        "album": "Album",
+        "language": "Taal",
+        "languagePlaceholder": "nl, en, ja…"
+      },
+      "singers": "Zangers",
+      "singersHint": "Eén stem. Voeg zangers toe voor een duet.",
+      "singerName": "Naam van de zanger",
+      "singerKind": "Alleen of samen",
+      "kind": {
+        "person": "alleen",
+        "group": "samen"
+      },
+      "removeSinger": "Deze zanger verwijderen",
+      "addSinger": "Zanger toevoegen",
+      "textPlaceholder": "Plak de songtekst hier, één regel per regel.\nLege regels worden genegeerd.",
+      "useText": "Deze regels gebruiken",
+      "useTextKeepsTiming": "Ongewijzigde regels behouden hun synchronisatie.",
+      "addLine": "Regel toevoegen",
+      "details": "Regeldetails",
+      "linePlaceholder": "Regeltekst",
+      "lineLabel": "Regel {{n}}",
+      "badge": {
+        "background": "koor",
+        "translation": "vert.",
+        "romanization": "rom."
+      },
+      "mergeNext": "Samenvoegen met de volgende regel",
+      "removeLine": "Regel verwijderen",
+      "singer": "Zanger",
+      "lead": "Hoofdstem",
+      "part": "Sectie",
+      "partPlaceholder": "Couplet, Refrein…",
+      "background": "Achtergrondzang",
+      "backgroundPlaceholder": "(over deze regel gezongen)",
+      "translation": "Vertaling",
+      "translationLang": "taal",
+      "romanization": "Romanisering"
+    },
+    "sync": {
+      "modeLabel": "Synchroniseren",
+      "mode": {
+        "line": "Regel voor regel",
+        "word": "Woord voor woord"
+      },
+      "reaction": "Reactiecorrectie",
+      "reactionHint": "Elke tik wordt zoveel vervroegd, om de tijd tussen horen en drukken te compenseren.",
+      "shift": "Alles verschuiven",
+      "shiftHint": "Verschuift alle tijden in het document, voor een bestand dat steeds te vroeg of te laat is.",
+      "shiftEarlier": "Alles {{ms}} ms vroeger",
+      "shiftLater": "Alles {{ms}} ms later",
+      "progressLines": "Gesynchroniseerde regels: {{done}} / {{total}}",
+      "progressWords": "Gesynchroniseerde woorden: {{done}} / {{total}}",
+      "keyNames": {
+        "space": "Spatie",
+        "enter": "Enter"
+      },
+      "keys": {
+        "space": {
+          "line": "begin van de volgende regel",
+          "word": "begin van het volgende woord"
+        },
+        "enter": {
+          "line": "einde van de gezongen regel",
+          "word": "einde van het gezongen woord"
+        },
+        "backspace": "laatste tik ongedaan maken",
+        "play": "afspelen / pauzeren",
+        "seek": "2 s terug / vooruit",
+        "line": "regel kiezen"
+      },
+      "empty": "Nog geen songtekst. Typ of plak hem in de stap Bewerken.",
+      "emptyLine": "lege regel",
+      "notTimed": "Nog niet gesynchroniseerd",
+      "nudgeEarlier": "{{ms}} ms eerder",
+      "nudgeLater": "{{ms}} ms later",
+      "playFromHere": "Vanaf hier afspelen"
+    },
+    "preview": {
+      "hiddenLines": "Nog niet gesynchroniseerde regels, hier verborgen: {{n}}",
+      "writing": "Voorbeeld wordt voorbereid…",
+      "nothingSynced": "Synchroniseer een paar regels in de stap Synchroniseren om ze hier te zien meelopen."
     }
   },
   "sort": {

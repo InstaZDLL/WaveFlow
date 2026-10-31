@@ -298,7 +298,7 @@ export type LyricsDestination = "tag" | "sidecar" | "db_only";
 
 export interface SaveLyricsPayload {
   content: string;
-  format: "plain" | "lrc" | "enhanced_lrc" | "ttml";
+  format: LyricsFormat;
   /**
    * `tag` embeds in USLT/LYRICS/©lyr (current default, TTML silently
    * skipped on MP3 — see `tag_write_skipped`). `sidecar` writes a
@@ -344,49 +344,6 @@ export function setLyricsDefaultDestination(
       destination,
     }),
   );
-}
-
-/**
- * Format a millisecond timestamp as `<open>mm:ss.xx<close>`.
- * Centisecond precision matches Musicolet / LRCLIB output. Used with
- * `[` / `]` for LRC line stamps and `<` / `>` for Enhanced LRC inline
- * word stamps — picking the delimiters up-front avoids string-replace
- * round-trips on a known-good output.
- */
-function formatTimestamp(timeMs: number, open: string, close: string): string {
-  const safe = Math.max(0, Math.floor(timeMs));
-  const minutes = Math.floor(safe / 60_000);
-  const seconds = Math.floor((safe % 60_000) / 1000);
-  const centis = Math.floor((safe % 1000) / 10);
-  const mm = minutes.toString().padStart(2, "0");
-  const ss = seconds.toString().padStart(2, "0");
-  const cc = centis.toString().padStart(2, "0");
-  return `${open}${mm}:${ss}.${cc}${close}`;
-}
-
-/**
- * Format a millisecond timestamp as the LRC `[mm:ss.xx]` tag.
- * Centisecond precision matches Musicolet / LRCLIB output.
- */
-export function formatLrcTimestamp(timeMs: number): string {
-  return formatTimestamp(timeMs, "[", "]");
-}
-
-/**
- * Serialize an array of `{ timeMs, text }` rows back into LRC text.
- * Lines without a captured timestamp (timeMs < 0) are emitted with
- * the placeholder `[--:--.--]` so the user can revisit them.
- */
-export function serializeLrc(
-  rows: Array<{ timeMs: number; text: string }>,
-): string {
-  return rows
-    .map((row) => {
-      const stamp =
-        row.timeMs < 0 ? "[--:--.--]" : formatLrcTimestamp(row.timeMs);
-      return `${stamp}${row.text}`;
-    })
-    .join("\n");
 }
 
 export interface LyricsPrefetchProgress {
@@ -1624,46 +1581,6 @@ export function isUntimedLrc(lines: LyricsLine[]): boolean {
     if (n > top) top = n;
   }
   return top * 2 > sung.length;
-}
-
-/**
- * Serialize a list of word-stamped lines back to Enhanced LRC text.
- * Lines without `words` fall back to a plain `[mm:ss.xx]` entry.
- * Used by the editor when the user saves a word-timed track — TTML
- * round-trip isn't part of v1, so we always export to Enhanced LRC.
- *
- * Words with `timeMs < 0` (not yet captured) are emitted **without**
- * an inline stamp — their text is folded into the previous word so a
- * half-finished line doesn't ship phantom `<00:00.00>word` stamps
- * that would mis-sync on the next load. The user can re-open the
- * editor and finish stamping later.
- */
-export function serializeEnhancedLrc(lines: LyricsLine[]): string {
-  return lines
-    .map((line) => {
-      const stamp =
-        line.timeMs < 0 ? "[--:--.--]" : formatLrcTimestamp(line.timeMs);
-      if (!line.words || line.words.length === 0) {
-        return `${stamp}${line.text}`;
-      }
-      const parts: string[] = [];
-      for (const w of line.words) {
-        if (w.timeMs >= 0) {
-          parts.push(`${formatTimestamp(w.timeMs, "<", ">")}${w.text}`);
-        } else {
-          // Uncaptured — append the text to the previous segment so
-          // it survives the round-trip without acquiring a fake
-          // zero-second stamp.
-          if (parts.length > 0) {
-            parts[parts.length - 1] += w.text;
-          } else {
-            parts.push(w.text);
-          }
-        }
-      }
-      return `${stamp}${parts.join("")}`;
-    })
-    .join("\n");
 }
 
 /**

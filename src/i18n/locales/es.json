@@ -1857,35 +1857,8 @@
   },
   "lyricsEditor": {
     "title": "Editor de letras",
-    "tabs": {
-      "plain": "Texto",
-      "synced": "Sincronizado"
-    },
-    "plainPlaceholder": "Escribe las letras línea por línea…",
-    "linePlaceholder": "Texto de la línea",
-    "capture": "Capturar",
-    "captureHint": "Inicia la reproducción y pulsa Espacio (o Capturar) para anclar la línea actual a la posición de reproducción",
-    "captureNow": "Capturar ahora",
-    "recapture": "Volver a anclar a la posición actual",
-    "seekToLine": "Saltar a esta línea",
-    "insertBelow": "Insertar línea debajo",
-    "removeLine": "Eliminar línea",
-    "lines": "líneas ancladas",
-    "writeToFile": "Escribir también en el archivo de audio (USLT/LYRICS)",
-    "offset": {
-      "label": "Desplazamiento global",
-      "help": "Desplaza todas las líneas capturadas el mismo delta — útil para corregir archivos LRC importados que están sistemáticamente adelantados o retrasados",
-      "reset": "Restablecer desplazamiento"
-    },
-    "granularity": {
-      "label": "Granularidad:",
-      "line": "Línea por línea",
-      "word": "Palabra por palabra"
-    },
-    "captureHintWord": "Espacio = siguiente palabra · Intro = siguiente línea · Retroceso = deshacer última palabra",
-    "notCaptured": "No capturada",
     "exportToFile": "Guardar en archivo…",
-    "exportToFileHint": "Exporta la letra a un archivo .lrc o .txt en la ubicación que elijas, sin modificar el archivo de audio",
+    "exportToFileHint": "Exporta la letra en el formato elegido (.ttml, .lrc o .txt) donde quieras, sin tocar el archivo de audio",
     "exportedToFile": "Exportado a {{path}}",
     "destinationLabel": "Destino predeterminado de las letras",
     "destination": {
@@ -1901,6 +1874,130 @@
         "label": "Solo base de datos de WaveFlow",
         "hint": "Se queda en la base de datos de la app. No se tocan archivos ni etiquetas."
       }
+    },
+    "stepsLabel": "Pasos del editor",
+    "steps": {
+      "edit": "Edición",
+      "sync": "Sincronía",
+      "preview": "Vista previa"
+    },
+    "undo": "Deshacer (Ctrl+Z)",
+    "redo": "Rehacer (Ctrl+Mayús+Z)",
+    "otherTrackPlaying": "La pista en reproducción no es aquella cuya letra estás editando: la sincronización y la vista previa siguen al reproductor.",
+    "formatLabel": "Formato",
+    "format": {
+      "ttml": "TTML",
+      "enhanced_lrc": "LRC mejorado",
+      "lrc": "LRC",
+      "plain": "Solo texto"
+    },
+    "lrcTranslations": "Traducciones como líneas duplicadas",
+    "discard": {
+      "question": "¿Cerrar sin guardar los cambios?",
+      "keep": "Seguir editando",
+      "confirm": "Cerrar sin guardar"
+    },
+    "unsynced": {
+      "line": "{{format}}: la línea {{line}} no tiene tiempo",
+      "word": "{{format}}: la palabra {{word}} de la línea {{line}} no tiene tiempo",
+      "show": "Ir allí"
+    },
+    "transport": {
+      "back": "Retroceder 2 s",
+      "forward": "Avanzar 2 s",
+      "speed": "Velocidad de reproducción"
+    },
+    "edit": {
+      "lines": "Líneas · {{n}}",
+      "viewLabel": "Vista de las líneas",
+      "view": {
+        "lines": "Líneas",
+        "text": "Texto"
+      },
+      "meta": {
+        "title": "Título",
+        "artist": "Artista",
+        "album": "Álbum",
+        "language": "Idioma",
+        "languagePlaceholder": "es, en, ja…"
+      },
+      "singers": "Cantantes",
+      "singersHint": "Una sola voz. Añade cantantes para un dúo.",
+      "singerName": "Nombre del cantante",
+      "singerKind": "Solo o juntos",
+      "kind": {
+        "person": "solo",
+        "group": "juntos"
+      },
+      "removeSinger": "Quitar este cantante",
+      "addSinger": "Añadir cantante",
+      "textPlaceholder": "Pega aquí la letra, una línea por línea.\nLas líneas vacías se ignoran.",
+      "useText": "Usar estas líneas",
+      "useTextKeepsTiming": "Las líneas sin cambios conservan su sincronía.",
+      "addLine": "Añadir una línea",
+      "details": "Detalles de la línea",
+      "linePlaceholder": "Texto de la línea",
+      "lineLabel": "Línea {{n}}",
+      "badge": {
+        "background": "coros",
+        "translation": "trad.",
+        "romanization": "rom."
+      },
+      "mergeNext": "Unir con la línea siguiente",
+      "removeLine": "Eliminar la línea",
+      "singer": "Cantante",
+      "lead": "Voz principal",
+      "part": "Sección",
+      "partPlaceholder": "Estrofa, Estribillo…",
+      "background": "Coros",
+      "backgroundPlaceholder": "(cantados sobre esta línea)",
+      "translation": "Traducción",
+      "translationLang": "idioma",
+      "romanization": "Romanización"
+    },
+    "sync": {
+      "modeLabel": "Sincronizar",
+      "mode": {
+        "line": "Línea a línea",
+        "word": "Palabra a palabra"
+      },
+      "reaction": "Desfase de reacción",
+      "reactionHint": "Cada pulsación se adelanta esa cantidad, para compensar el tiempo entre oír y pulsar.",
+      "shift": "Desplazar todo",
+      "shiftHint": "Desplaza todos los tiempos del documento, para un archivo que va siempre adelantado o atrasado.",
+      "shiftEarlier": "Adelantar todo {{ms}} ms",
+      "shiftLater": "Retrasar todo {{ms}} ms",
+      "progressLines": "Líneas sincronizadas: {{done}} / {{total}}",
+      "progressWords": "Palabras sincronizadas: {{done}} / {{total}}",
+      "keyNames": {
+        "space": "Espacio",
+        "enter": "Intro"
+      },
+      "keys": {
+        "space": {
+          "line": "inicio de la línea siguiente",
+          "word": "inicio de la palabra siguiente"
+        },
+        "enter": {
+          "line": "fin de la línea cantada",
+          "word": "fin de la palabra cantada"
+        },
+        "backspace": "deshacer la última pulsación",
+        "play": "reproducir / pausar",
+        "seek": "2 s atrás / adelante",
+        "line": "elegir una línea"
+      },
+      "empty": "Aún no hay letra. Escríbela o pégala en el paso Edición.",
+      "emptyLine": "línea vacía",
+      "notTimed": "Aún sin sincronizar",
+      "nudgeEarlier": "{{ms}} ms antes",
+      "nudgeLater": "{{ms}} ms después",
+      "playFromHere": "Reproducir desde aquí"
+    },
+    "preview": {
+      "hiddenLines": "Líneas aún sin sincronizar, ocultas aquí: {{n}}",
+      "writing": "Preparando la vista previa…",
+      "nothingSynced": "Sincroniza algunas líneas en el paso Sincronía para verlas pasar aquí."
     }
   },
   "sort": {

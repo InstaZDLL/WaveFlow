@@ -1128,54 +1128,6 @@ fn synced_keys_match_vorbis_comments_case_insensitively() {
     );
 }
 
-#[test]
-fn detect_format_plain() {
-    let sample = "This is just\nsome text without any timestamps.";
-    assert_eq!(detect_format(sample), LyricsFormat::Plain);
-}
-
-#[test]
-fn detect_format_lrc() {
-    let sample = "[ar:Some Artist]\n[ti:Some Title]\n[00:01.00]First line\n[00:05.50]Second line";
-    assert_eq!(detect_format(sample), LyricsFormat::Lrc);
-}
-
-#[test]
-fn detect_format_enhanced_lrc() {
-    let sample =
-        "[00:01.00]<00:01.00>Hello <00:01.50>world\n[00:03.00]<00:03.00>Another <00:03.40>line";
-    assert_eq!(detect_format(sample), LyricsFormat::EnhancedLrc);
-}
-
-#[test]
-fn detect_format_enhanced_lrc_no_colon_frac() {
-    let sample = "[00:01.00]<00:01>plain stamps still count";
-    assert_eq!(detect_format(sample), LyricsFormat::EnhancedLrc);
-}
-
-#[test]
-fn detect_format_ttml_xml_decl() {
-    let sample = r#"<?xml version="1.0" encoding="UTF-8"?>
-<tt xmlns="http://www.w3.org/ns/ttml">
-  <body>
-    <div>
-      <p begin="00:00:01.000" end="00:00:03.000">
-        <span begin="00:00:01.000" end="00:00:01.500">Hello</span>
-        <span begin="00:00:01.500" end="00:00:03.000">world</span>
-      </p>
-    </div>
-  </body>
-</tt>"#;
-    assert_eq!(detect_format(sample), LyricsFormat::Ttml);
-}
-
-#[test]
-fn detect_format_ttml_no_decl() {
-    let sample =
-        r#"<tt xmlns="http://www.w3.org/ns/ttml"><body><div><p begin="0s">x</p></div></body></tt>"#;
-    assert_eq!(detect_format(sample), LyricsFormat::Ttml);
-}
-
 // #668: whether an answer can be followed decides if it ends the
 // waterfall, so these mirror the renderer's own rules. The untimed
 // shape is Apple's; the text is placeholder.
@@ -1321,23 +1273,6 @@ fn lrc_needs_a_complete_line_stamp() {
         "[00:01.00]\n[00:02.00]"
     ));
     assert!(!lyrics_are_synced(&LyricsFormat::Plain, "x"));
-}
-
-#[test]
-fn detect_format_brackets_but_no_timestamp_stays_plain() {
-    // A line starting with `[foo]` (LRC metadata header) without
-    // any actual time-stamped line should NOT be classified as
-    // synchronized.
-    let sample = "[ar:Artist]\n[ti:Title]\nVerse without timestamps.";
-    assert_eq!(detect_format(sample), LyricsFormat::Plain);
-}
-
-#[test]
-fn word_stamp_present_basic() {
-    assert!(word_stamp_present("<00:01.50>word"));
-    assert!(word_stamp_present("plain<5:00>more"));
-    assert!(!word_stamp_present("nothing here"));
-    assert!(!word_stamp_present("<not:a:stamp>"));
 }
 
 #[test]
@@ -1594,4 +1529,95 @@ fn sidecar_returns_none_for_empty_file() {
     // Whitespace-only payload is treated as a miss so we fall
     // through to the next tier instead of caching an empty hit.
     assert!(read_sidecar_lyrics(&audio).is_none());
+}
+
+// The editor writes the model in the format the user picked and saves
+// it through `save_lyrics`. What it writes has to be what the renderer
+// follows at the timing it was synced at, or a word-by-word sync would
+// come back as static text.
+
+fn editor_document(word_timed: bool) -> waveflow_core::lyrics::Document {
+    use waveflow_core::lyrics::{Document, Line, Translation, Word};
+    let words = |a: u64, b: u64| {
+        if word_timed {
+            vec![Word::timed("one", a, None), Word::timed("two", b, None)]
+        } else {
+            vec![Word::new("one"), Word::new("two")]
+        }
+    };
+    Document {
+        lines: vec![
+            Line {
+                begin_ms: Some(1000),
+                words: words(1000, 1400),
+                translations: vec![Translation {
+                    lang: Some("en".into()),
+                    text: "un deux".into(),
+                }],
+                ..Line::default()
+            },
+            Line {
+                begin_ms: Some(3000),
+                words: words(3000, 3500),
+                ..Line::default()
+            },
+        ],
+        ..Document::default()
+    }
+}
+
+#[test]
+fn what_the_editor_writes_is_followed_at_the_timing_it_was_synced_at() {
+    let words = editor_document(true);
+    let lines = editor_document(false);
+    let options = LyricsWriteOptions::default();
+    let cases = [
+        (&words, LyricsFormat::Ttml, LyricsQuality::Words),
+        (&lines, LyricsFormat::Ttml, LyricsQuality::Lines),
+        (&words, LyricsFormat::EnhancedLrc, LyricsQuality::Words),
+        (&words, LyricsFormat::Lrc, LyricsQuality::Lines),
+        (&lines, LyricsFormat::Plain, LyricsQuality::Unsynced),
+    ];
+    for (doc, format, quality) in cases {
+        let content = write_document(doc, format, &options).unwrap();
+        // `save_lyrics` stores what the detector finds for LRC, and the
+        // format asked for otherwise.
+        assert_eq!(detect_format(&content), format, "{format:?}");
+        assert_eq!(lyrics_quality(&format, &content), quality, "{format:?}");
+    }
+}
+
+#[test]
+fn the_editor_reads_back_what_it_wrote() {
+    let doc = editor_document(true);
+    for format in [LyricsFormat::Ttml, LyricsFormat::EnhancedLrc] {
+        let content = write_document(&doc, format, &LyricsWriteOptions::default()).unwrap();
+        let read = read_lyrics_document(content, Some(format)).unwrap();
+        assert_eq!(read.format, format);
+        let texts: Vec<String> = read.document.lines.iter().map(|l| l.text()).collect();
+        assert_eq!(texts, ["one two", "one two"]);
+        assert!(read.document.is_word_synced(), "{format:?}");
+    }
+    // A translation reaches LRC only when asked for, as a line stamped
+    // at its original's time.
+    let with = LyricsWriteOptions { translations: true };
+    let content = write_document(&doc, LyricsFormat::Lrc, &with).unwrap();
+    assert!(content.contains("[00:01.00]one two\n[00:01.00]un deux\n"));
+}
+
+#[test]
+fn an_unsynced_word_is_named_rather_than_written() {
+    let mut doc = editor_document(true);
+    doc.lines[1].words[1].begin_ms = None;
+    let answer =
+        serde_json::to_value(write_lyrics_document(doc, LyricsFormat::EnhancedLrc, None)).unwrap();
+    assert_eq!(
+        answer,
+        serde_json::json!({ "kind": "unsynced", "line": 1, "word": 1 })
+    );
+}
+
+#[test]
+fn a_ttml_the_editor_cannot_read_is_refused() {
+    assert!(read_lyrics_document("<tt><p>".into(), Some(LyricsFormat::Ttml)).is_err());
 }

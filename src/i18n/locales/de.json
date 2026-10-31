@@ -1798,35 +1798,8 @@
   },
   "lyricsEditor": {
     "title": "Songtext-Editor",
-    "tabs": {
-      "plain": "Nur Text",
-      "synced": "Synchronisiert"
-    },
-    "plainPlaceholder": "Tippe den Songtext Zeile für Zeile…",
-    "linePlaceholder": "Zeilentext",
-    "capture": "Erfassen",
-    "captureHint": "Starte die Wiedergabe und drücke dann Leertaste (oder „Erfassen“), um die aktuelle Zeile an die Wiedergabeposition zu binden",
-    "captureNow": "Jetzt erfassen",
-    "recapture": "An aktueller Position neu verankern",
-    "seekToLine": "Zu dieser Zeile springen",
-    "insertBelow": "Zeile darunter einfügen",
-    "removeLine": "Zeile entfernen",
-    "lines": "Zeilen verankert",
-    "writeToFile": "Auch in die Audiodatei schreiben (USLT/LYRICS)",
-    "offset": {
-      "label": "Globale Verschiebung",
-      "help": "Verschiebt jede erfasste Zeile um denselben Wert — nützlich für importierte LRC-Dateien, die gleichmäßig zu früh oder zu spät sind",
-      "reset": "Verschiebung zurücksetzen"
-    },
-    "granularity": {
-      "label": "Granularität:",
-      "line": "Zeile für Zeile",
-      "word": "Wort für Wort"
-    },
-    "captureHintWord": "Leertaste = nächstes Wort · Enter = nächste Zeile · Rücktaste = letztes Wort rückgängig",
-    "notCaptured": "Nicht erfasst",
     "exportToFile": "In Datei speichern…",
-    "exportToFileHint": "Exportiert den Text als .lrc oder .txt an einen frei gewählten Ort, ohne die Audiodatei zu verändern",
+    "exportToFileHint": "Exportiert den Songtext im gewählten Format (.ttml, .lrc oder .txt) an einen Ort deiner Wahl, ohne die Audiodatei anzurühren",
     "exportedToFile": "Exportiert nach {{path}}",
     "destinationLabel": "Standard-Speicherort für Songtexte",
     "destination": {
@@ -1842,6 +1815,130 @@
         "label": "Nur WaveFlow-Datenbank",
         "hint": "Bleibt in der WaveFlow-Datenbank. Keine Dateien oder Tags werden verändert."
       }
+    },
+    "stepsLabel": "Schritte des Editors",
+    "steps": {
+      "edit": "Bearbeiten",
+      "sync": "Synchronisieren",
+      "preview": "Vorschau"
+    },
+    "undo": "Rückgängig (Strg+Z)",
+    "redo": "Wiederholen (Strg+Umschalt+Z)",
+    "otherTrackPlaying": "Der laufende Titel ist nicht der, dessen Songtext du bearbeitest: Synchronisierung und Vorschau folgen dem Player.",
+    "formatLabel": "Format",
+    "format": {
+      "ttml": "TTML",
+      "enhanced_lrc": "Erweitertes LRC",
+      "lrc": "LRC",
+      "plain": "Nur Text"
+    },
+    "lrcTranslations": "Übersetzungen als doppelte Zeilen",
+    "discard": {
+      "question": "Schließen, ohne die Änderungen zu speichern?",
+      "keep": "Weiter bearbeiten",
+      "confirm": "Verwerfen und schließen"
+    },
+    "unsynced": {
+      "line": "{{format}}: Zeile {{line}} hat keine Zeit",
+      "word": "{{format}}: Wort {{word}} in Zeile {{line}} hat keine Zeit",
+      "show": "Hinspringen"
+    },
+    "transport": {
+      "back": "2 s zurück",
+      "forward": "2 s vor",
+      "speed": "Wiedergabegeschwindigkeit"
+    },
+    "edit": {
+      "lines": "Zeilen · {{n}}",
+      "viewLabel": "Zeilenansicht",
+      "view": {
+        "lines": "Zeilen",
+        "text": "Text"
+      },
+      "meta": {
+        "title": "Titel",
+        "artist": "Künstler",
+        "album": "Album",
+        "language": "Sprache",
+        "languagePlaceholder": "de, en, ja…"
+      },
+      "singers": "Stimmen",
+      "singersHint": "Eine Stimme. Füge Stimmen für ein Duett hinzu.",
+      "singerName": "Name der Stimme",
+      "singerKind": "Allein oder gemeinsam",
+      "kind": {
+        "person": "allein",
+        "group": "gemeinsam"
+      },
+      "removeSinger": "Diese Stimme entfernen",
+      "addSinger": "Stimme hinzufügen",
+      "textPlaceholder": "Füge den Songtext hier ein, eine Zeile pro Zeile.\nLeere Zeilen werden ignoriert.",
+      "useText": "Diese Zeilen übernehmen",
+      "useTextKeepsTiming": "Unveränderte Zeilen behalten ihre Synchronisierung.",
+      "addLine": "Zeile hinzufügen",
+      "details": "Zeilendetails",
+      "linePlaceholder": "Zeilentext",
+      "lineLabel": "Zeile {{n}}",
+      "badge": {
+        "background": "Chor",
+        "translation": "Übers.",
+        "romanization": "Rom."
+      },
+      "mergeNext": "Mit der nächsten Zeile zusammenführen",
+      "removeLine": "Zeile löschen",
+      "singer": "Stimme",
+      "lead": "Hauptstimme",
+      "part": "Abschnitt",
+      "partPlaceholder": "Strophe, Refrain…",
+      "background": "Backgroundgesang",
+      "backgroundPlaceholder": "(über dieser Zeile gesungen)",
+      "translation": "Übersetzung",
+      "translationLang": "Sprache",
+      "romanization": "Umschrift"
+    },
+    "sync": {
+      "modeLabel": "Synchronisieren",
+      "mode": {
+        "line": "Zeile für Zeile",
+        "word": "Wort für Wort"
+      },
+      "reaction": "Reaktionsausgleich",
+      "reactionHint": "Jeder Tastendruck wird um so viel vorverlegt, um die Zeit zwischen Hören und Drücken auszugleichen.",
+      "shift": "Alles verschieben",
+      "shiftHint": "Verschiebt alle Zeiten des Dokuments, für eine Datei, die durchgehend zu früh oder zu spät ist.",
+      "shiftEarlier": "Alles {{ms}} ms früher",
+      "shiftLater": "Alles {{ms}} ms später",
+      "progressLines": "Synchronisierte Zeilen: {{done}} / {{total}}",
+      "progressWords": "Synchronisierte Wörter: {{done}} / {{total}}",
+      "keyNames": {
+        "space": "Leertaste",
+        "enter": "Eingabe"
+      },
+      "keys": {
+        "space": {
+          "line": "Beginn der nächsten Zeile",
+          "word": "Beginn des nächsten Worts"
+        },
+        "enter": {
+          "line": "Ende der gesungenen Zeile",
+          "word": "Ende des gesungenen Worts"
+        },
+        "backspace": "letzten Tastendruck zurücknehmen",
+        "play": "Wiedergabe / Pause",
+        "seek": "2 s zurück / vor",
+        "line": "Zeile wählen"
+      },
+      "empty": "Noch kein Songtext. Gib ihn im Schritt Bearbeiten ein oder füge ihn ein.",
+      "emptyLine": "leere Zeile",
+      "notTimed": "Noch nicht synchronisiert",
+      "nudgeEarlier": "{{ms}} ms früher",
+      "nudgeLater": "{{ms}} ms später",
+      "playFromHere": "Ab hier abspielen"
+    },
+    "preview": {
+      "hiddenLines": "Noch nicht synchronisierte Zeilen, hier ausgeblendet: {{n}}",
+      "writing": "Vorschau wird vorbereitet…",
+      "nothingSynced": "Synchronisiere ein paar Zeilen im Schritt Synchronisieren, um sie hier laufen zu sehen."
     }
   },
   "sort": {

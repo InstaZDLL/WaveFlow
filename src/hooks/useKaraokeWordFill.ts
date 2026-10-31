@@ -1,16 +1,10 @@
 import { useCallback, useEffect, useRef } from "react";
-import { usePlayer } from "./usePlayer";
-import { usePlayerPosition } from "./usePlayerPosition";
+import { usePlaybackClock } from "./usePlaybackClock";
 import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 import type { LyricsWord } from "../lib/tauri/lyrics";
 
 /** CSS custom property the fill layer's `clip-path` reads. */
 const FILL_VAR = "--kw-fill";
-
-/** Monotonic clock, guarded for non-browser hosts (tests). */
-function now(): number {
-  return typeof performance !== "undefined" ? performance.now() : 0;
-}
 
 /**
  * Drives the progressive sweep across the active karaoke word (issue
@@ -24,9 +18,9 @@ function now(): number {
  *    ([`POSITION_EMIT_INTERVAL`](../../src-tauri/crates/app/src/audio/decoder/mod.rs)),
  *    so painting straight from `positionMs` would advance the fill in
  *    250 ms steps — worse than the old discrete highlight, not better.
- *    Each event becomes an *anchor* (position + the `performance.now()`
- *    at which we saw it) and every frame extrapolates from it, scaled by
- *    `playbackSpeed` so the sweep still tracks at 0.5× or 2×.
+ *    Every frame extrapolates from the last event instead
+ *    ({@link usePlaybackClock}), scaled by `playbackSpeed` so the sweep
+ *    still tracks at 0.5× or 2×.
  * 2. **A frame-rate React update would re-render the world.**
  *    `useTrackLyrics` is shared by the immersive column and the side
  *    panel, and the column renders every line — so `setState` per frame
@@ -44,47 +38,10 @@ function now(): number {
  * playback is paused mid-word.
  */
 export function useKaraokeWordFill(word: LyricsWord | null | undefined) {
-  const { isPlaying, playbackSpeed } = usePlayer();
-  const positionMs = usePlayerPosition();
+  const { estimate, positionMs, isPlaying, playbackSpeed } = usePlaybackClock();
   const reduceMotion = usePrefersReducedMotion();
 
   const elRef = useRef<HTMLElement | null>(null);
-  // The point the loop extrapolates from: a position, the moment we
-  // adopted it, and the speed in force from that moment on. `at` is
-  // seeded on the first render so the very first frame doesn't measure
-  // the whole page lifetime as elapsed playback.
-  const anchorRef = useRef({ positionMs, at: now(), speed: playbackSpeed });
-  // What the last position *event* carried, so we can tell "the backend
-  // told us something new" from "only the speed or play state changed".
-  const lastEventPositionRef = useRef(positionMs);
-  const wasPlayingRef = useRef(isPlaying);
-
-  useEffect(() => {
-    const at = now();
-    const previous = anchorRef.current;
-    const fromEvent = positionMs !== lastEventPositionRef.current;
-    lastEventPositionRef.current = positionMs;
-    // Where the fill had actually reached, advanced with the speed that
-    // was in force — not the one that just took effect.
-    const carried =
-      previous.positionMs +
-      (wasPlayingRef.current
-        ? Math.max(0, at - previous.at) * previous.speed
-        : 0);
-    wasPlayingRef.current = isPlaying;
-    anchorRef.current = {
-      // A fresh position from the backend is authoritative. Otherwise the
-      // trigger was a speed change or a play/pause, and re-anchoring on
-      // `positionMs` would discard up to 250 ms of already-extrapolated
-      // progress — the fill would visibly jump backwards on every pause
-      // and every speed change. Carrying the extrapolated value over also
-      // means a resume excludes the paused time for free: `at` is reset
-      // here, so `elapsed` restarts at zero.
-      positionMs: fromEvent ? positionMs : carried,
-      at,
-      speed: playbackSpeed,
-    };
-  }, [positionMs, isPlaying, playbackSpeed]);
 
   const start = word?.timeMs ?? -1;
   // `fillEndMs` first: an estimated last word stays active until the line
@@ -111,13 +68,9 @@ export function useKaraokeWordFill(word: LyricsWord | null | undefined) {
 
     let raf = 0;
     const paint = () => {
-      const anchor = anchorRef.current;
-      // Only extrapolate while actually playing: paused, the fill must
-      // hold where it is instead of drifting to the end of the word.
-      const elapsed = isPlaying ? Math.max(0, now() - anchor.at) : 0;
-      // The anchor's own speed, not the live one — they differ for the
-      // frames between a speed change and the next position event.
-      const estimated = anchor.positionMs + elapsed * anchor.speed;
+      // Paused, the estimate holds where it is instead of drifting to the
+      // end of the word.
+      const estimated = estimate();
       const ratio = (estimated - start) / (end - start);
       const clamped = ratio <= 0 ? 0 : ratio >= 1 ? 1 : ratio;
       el.style.setProperty(FILL_VAR, `${(clamped * 100).toFixed(2)}%`);
@@ -138,9 +91,18 @@ export function useKaraokeWordFill(word: LyricsWord | null | undefined) {
     };
     // `positionMs` is a dependency on purpose. It only changes at 4 Hz, so
     // re-running this is cheap, and it's what repaints after a seek while
-    // *paused* — no loop is running then, and the anchor effect above
-    // updates a ref, which by itself repaints nothing.
-  }, [start, end, hasSpan, isPlaying, playbackSpeed, reduceMotion, positionMs]);
+    // *paused* — no loop is running then, and the clock's anchor is a
+    // ref, which by itself repaints nothing.
+  }, [
+    start,
+    end,
+    hasSpan,
+    isPlaying,
+    playbackSpeed,
+    reduceMotion,
+    positionMs,
+    estimate,
+  ]);
 
   return useCallback((el: HTMLElement | null) => {
     elRef.current = el;

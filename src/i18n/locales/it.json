@@ -1857,35 +1857,8 @@
   },
   "lyricsEditor": {
     "title": "Editor dei testi",
-    "tabs": {
-      "plain": "Semplice",
-      "synced": "Sincronizzato"
-    },
-    "plainPlaceholder": "Digita i testi riga per riga…",
-    "linePlaceholder": "Testo della riga",
-    "capture": "Cattura",
-    "captureHint": "Avvia la riproduzione e premi Spazio (o «Cattura») per ancorare la riga corrente alla posizione di riproduzione",
-    "captureNow": "Cattura ora",
-    "recapture": "Riancora alla posizione corrente",
-    "seekToLine": "Salta a questa riga",
-    "insertBelow": "Inserisci una riga sotto",
-    "removeLine": "Rimuovi riga",
-    "lines": "righe ancorate",
-    "writeToFile": "Scrivi anche nel file audio (USLT/LYRICS)",
-    "offset": {
-      "label": "Spostamento globale",
-      "help": "Sposta tutte le righe catturate dello stesso delta — utile per correggere file LRC importati uniformemente in anticipo o in ritardo",
-      "reset": "Ripristina spostamento"
-    },
-    "granularity": {
-      "label": "Granularità:",
-      "line": "Riga per riga",
-      "word": "Parola per parola"
-    },
-    "captureHintWord": "Spazio = parola successiva · Invio = riga successiva · Backspace = annulla ultima parola",
-    "notCaptured": "Non catturata",
     "exportToFile": "Salva su file…",
-    "exportToFileHint": "Esporta il testo in un file .lrc o .txt nella posizione scelta, senza modificare il file audio",
+    "exportToFileHint": "Esporta il testo nel formato scelto (.ttml, .lrc o .txt) dove vuoi, senza toccare il file audio",
     "exportedToFile": "Esportato in {{path}}",
     "destinationLabel": "Destinazione predefinita dei testi",
     "destination": {
@@ -1901,6 +1874,130 @@
         "label": "Solo database WaveFlow",
         "hint": "Rimane nel database di WaveFlow. Nessun file o tag toccato."
       }
+    },
+    "stepsLabel": "Passaggi dell'editor",
+    "steps": {
+      "edit": "Modifica",
+      "sync": "Sincronia",
+      "preview": "Anteprima"
+    },
+    "undo": "Annulla (Ctrl+Z)",
+    "redo": "Ripeti (Ctrl+Maiusc+Z)",
+    "otherTrackPlaying": "Il brano in riproduzione non è quello di cui stai modificando il testo: sincronia e anteprima seguono il lettore.",
+    "formatLabel": "Formato",
+    "format": {
+      "ttml": "TTML",
+      "enhanced_lrc": "LRC avanzato",
+      "lrc": "LRC",
+      "plain": "Solo testo"
+    },
+    "lrcTranslations": "Traduzioni come righe doppie",
+    "discard": {
+      "question": "Chiudere senza salvare le modifiche?",
+      "keep": "Continua a modificare",
+      "confirm": "Chiudi senza salvare"
+    },
+    "unsynced": {
+      "line": "{{format}}: la riga {{line}} non ha un tempo",
+      "word": "{{format}}: la parola {{word}} della riga {{line}} non ha un tempo",
+      "show": "Vai lì"
+    },
+    "transport": {
+      "back": "Indietro di 2 s",
+      "forward": "Avanti di 2 s",
+      "speed": "Velocità di riproduzione"
+    },
+    "edit": {
+      "lines": "Righe · {{n}}",
+      "viewLabel": "Vista delle righe",
+      "view": {
+        "lines": "Righe",
+        "text": "Testo"
+      },
+      "meta": {
+        "title": "Titolo",
+        "artist": "Artista",
+        "album": "Album",
+        "language": "Lingua",
+        "languagePlaceholder": "it, en, ja…"
+      },
+      "singers": "Cantanti",
+      "singersHint": "Una sola voce. Aggiungi cantanti per un duetto.",
+      "singerName": "Nome del cantante",
+      "singerKind": "Da solo o insieme",
+      "kind": {
+        "person": "da solo",
+        "group": "insieme"
+      },
+      "removeSinger": "Rimuovi questo cantante",
+      "addSinger": "Aggiungi cantante",
+      "textPlaceholder": "Incolla qui il testo, una riga per riga.\nLe righe vuote vengono ignorate.",
+      "useText": "Usa queste righe",
+      "useTextKeepsTiming": "Le righe non modificate mantengono la sincronia.",
+      "addLine": "Aggiungi una riga",
+      "details": "Dettagli della riga",
+      "linePlaceholder": "Testo della riga",
+      "lineLabel": "Riga {{n}}",
+      "badge": {
+        "background": "cori",
+        "translation": "trad.",
+        "romanization": "rom."
+      },
+      "mergeNext": "Unisci alla riga successiva",
+      "removeLine": "Elimina la riga",
+      "singer": "Cantante",
+      "lead": "Voce principale",
+      "part": "Sezione",
+      "partPlaceholder": "Strofa, Ritornello…",
+      "background": "Cori",
+      "backgroundPlaceholder": "(cantati sopra questa riga)",
+      "translation": "Traduzione",
+      "translationLang": "lingua",
+      "romanization": "Romanizzazione"
+    },
+    "sync": {
+      "modeLabel": "Sincronizza",
+      "mode": {
+        "line": "Riga per riga",
+        "word": "Parola per parola"
+      },
+      "reaction": "Compensazione della reazione",
+      "reactionHint": "Ogni pressione viene anticipata di questo valore, per compensare il tempo tra sentire e premere.",
+      "shift": "Sposta tutto",
+      "shiftHint": "Sposta tutti i tempi del documento, per un file sempre in anticipo o in ritardo.",
+      "shiftEarlier": "Anticipa tutto di {{ms}} ms",
+      "shiftLater": "Ritarda tutto di {{ms}} ms",
+      "progressLines": "Righe sincronizzate: {{done}} / {{total}}",
+      "progressWords": "Parole sincronizzate: {{done}} / {{total}}",
+      "keyNames": {
+        "space": "Spazio",
+        "enter": "Invio"
+      },
+      "keys": {
+        "space": {
+          "line": "inizio della riga successiva",
+          "word": "inizio della parola successiva"
+        },
+        "enter": {
+          "line": "fine della riga cantata",
+          "word": "fine della parola cantata"
+        },
+        "backspace": "annulla l'ultima pressione",
+        "play": "riproduci / pausa",
+        "seek": "2 s indietro / avanti",
+        "line": "scegli una riga"
+      },
+      "empty": "Ancora nessun testo. Scrivilo o incollalo nel passaggio Modifica.",
+      "emptyLine": "riga vuota",
+      "notTimed": "Non ancora sincronizzata",
+      "nudgeEarlier": "{{ms}} ms prima",
+      "nudgeLater": "{{ms}} ms dopo",
+      "playFromHere": "Riproduci da qui"
+    },
+    "preview": {
+      "hiddenLines": "Righe non ancora sincronizzate, nascoste qui: {{n}}",
+      "writing": "Preparazione dell'anteprima…",
+      "nothingSynced": "Sincronizza qualche riga nel passaggio Sincronia per vederla scorrere qui."
     }
   },
   "sort": {

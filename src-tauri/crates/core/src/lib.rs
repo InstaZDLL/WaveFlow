@@ -23,6 +23,7 @@ pub mod error;
 pub mod handoff;
 pub mod home_suggestion;
 pub mod inventory;
+pub mod lyrics;
 pub mod metadata;
 pub mod mood;
 // Decoding for playback; the server, which plays nothing, leaves it off.

@@ -1796,35 +1796,8 @@
   },
   "lyricsEditor": {
     "title": "가사 편집기",
-    "tabs": {
-      "plain": "텍스트",
-      "synced": "동기화"
-    },
-    "plainPlaceholder": "가사를 한 줄씩 입력하세요…",
-    "linePlaceholder": "줄 텍스트",
-    "capture": "캡처",
-    "captureHint": "재생을 시작한 후 스페이스(또는 캡처)를 눌러 현재 줄을 현재 시점에 고정하세요",
-    "captureNow": "지금 캡처",
-    "recapture": "현재 위치로 다시 고정",
-    "seekToLine": "이 줄로 이동",
-    "insertBelow": "아래에 줄 삽입",
-    "removeLine": "줄 제거",
-    "lines": "줄 고정됨",
-    "writeToFile": "오디오 파일에도 기록(USLT/LYRICS)",
-    "offset": {
-      "label": "전체 오프셋",
-      "help": "캡처된 모든 줄을 동일한 시간만큼 이동합니다 — 전체적으로 빠르거나 느리게 가져온 LRC 파일의 싱크를 보정할 때 유용합니다.",
-      "reset": "오프셋 초기화"
-    },
-    "granularity": {
-      "label": "세분화 단위:",
-      "line": "한 줄씩",
-      "word": "한 단어씩"
-    },
-    "captureHintWord": "스페이스 = 다음 단어 · Enter = 다음 줄 · Backspace = 마지막 단어 취소",
-    "notCaptured": "캡처되지 않음",
     "exportToFile": "파일로 저장…",
-    "exportToFileHint": "오디오 파일은 그대로 두고, 원하는 위치에 .lrc 또는 .txt 가사 파일을 내보냅니다",
+    "exportToFileHint": "선택한 형식(.ttml, .lrc 또는 .txt)으로 가사를 원하는 위치에 내보냅니다. 오디오 파일은 건드리지 않습니다",
     "exportedToFile": "{{path}}에 내보냈습니다",
     "destinationLabel": "기본 가사 저장 위치",
     "destination": {
@@ -1840,6 +1813,130 @@
         "label": "WaveFlow 데이터베이스만",
         "hint": "WaveFlow 데이터베이스에만 남습니다. 파일이나 태그를 건드리지 않습니다."
       }
+    },
+    "stepsLabel": "편집기 단계",
+    "steps": {
+      "edit": "편집",
+      "sync": "동기화",
+      "preview": "미리 보기"
+    },
+    "undo": "실행 취소 (Ctrl+Z)",
+    "redo": "다시 실행 (Ctrl+Shift+Z)",
+    "otherTrackPlaying": "재생 중인 곡은 가사를 편집 중인 곡이 아닙니다. 동기화와 미리 보기는 플레이어를 따릅니다.",
+    "formatLabel": "형식",
+    "format": {
+      "ttml": "TTML",
+      "enhanced_lrc": "확장 LRC",
+      "lrc": "LRC",
+      "plain": "텍스트만"
+    },
+    "lrcTranslations": "번역을 중복 줄로",
+    "discard": {
+      "question": "변경 사항을 저장하지 않고 닫을까요?",
+      "keep": "계속 편집",
+      "confirm": "저장하지 않고 닫기"
+    },
+    "unsynced": {
+      "line": "{{format}}: {{line}}번째 줄에 시간이 없습니다",
+      "word": "{{format}}: {{line}}번째 줄의 {{word}}번째 단어에 시간이 없습니다",
+      "show": "이동"
+    },
+    "transport": {
+      "back": "2초 뒤로",
+      "forward": "2초 앞으로",
+      "speed": "재생 속도"
+    },
+    "edit": {
+      "lines": "줄 · {{n}}",
+      "viewLabel": "줄 보기",
+      "view": {
+        "lines": "줄",
+        "text": "텍스트"
+      },
+      "meta": {
+        "title": "제목",
+        "artist": "아티스트",
+        "album": "앨범",
+        "language": "언어",
+        "languagePlaceholder": "ko, en, ja…"
+      },
+      "singers": "가수",
+      "singersHint": "목소리가 하나입니다. 듀엣이면 가수를 추가하세요.",
+      "singerName": "가수 이름",
+      "singerKind": "솔로 또는 함께",
+      "kind": {
+        "person": "솔로",
+        "group": "함께"
+      },
+      "removeSinger": "이 가수 제거",
+      "addSinger": "가수 추가",
+      "textPlaceholder": "여기에 가사를 붙여 넣으세요. 한 줄에 한 줄씩.\n빈 줄은 무시됩니다.",
+      "useText": "이 줄 사용",
+      "useTextKeepsTiming": "바꾸지 않은 줄은 동기화를 유지합니다.",
+      "addLine": "줄 추가",
+      "details": "줄 세부 정보",
+      "linePlaceholder": "줄 텍스트",
+      "lineLabel": "{{n}}번째 줄",
+      "badge": {
+        "background": "코러스",
+        "translation": "번역",
+        "romanization": "로마자"
+      },
+      "mergeNext": "다음 줄과 합치기",
+      "removeLine": "줄 삭제",
+      "singer": "가수",
+      "lead": "메인 보컬",
+      "part": "구간",
+      "partPlaceholder": "벌스, 후렴…",
+      "background": "백 보컬",
+      "backgroundPlaceholder": "(이 줄 위에 함께 부름)",
+      "translation": "번역",
+      "translationLang": "언어",
+      "romanization": "로마자 표기"
+    },
+    "sync": {
+      "modeLabel": "동기화",
+      "mode": {
+        "line": "줄 단위",
+        "word": "단어 단위"
+      },
+      "reaction": "반응 보정",
+      "reactionHint": "듣고 누르기까지의 지연을 보정하도록 각 탭을 이만큼 앞당깁니다.",
+      "shift": "모두 이동",
+      "shiftHint": "문서의 모든 시간을 이동합니다. 계속 빠르거나 느린 파일에 씁니다.",
+      "shiftEarlier": "모두 {{ms}}ms 앞당기기",
+      "shiftLater": "모두 {{ms}}ms 늦추기",
+      "progressLines": "동기화된 줄: {{done}} / {{total}}",
+      "progressWords": "동기화된 단어: {{done}} / {{total}}",
+      "keyNames": {
+        "space": "스페이스",
+        "enter": "Enter"
+      },
+      "keys": {
+        "space": {
+          "line": "다음 줄 시작",
+          "word": "다음 단어 시작"
+        },
+        "enter": {
+          "line": "부른 줄의 끝",
+          "word": "부른 단어의 끝"
+        },
+        "backspace": "마지막 탭 취소",
+        "play": "재생 / 일시정지",
+        "seek": "2초 뒤로 / 앞으로",
+        "line": "줄 선택"
+      },
+      "empty": "아직 가사가 없습니다. 편집 단계에서 입력하거나 붙여 넣으세요.",
+      "emptyLine": "빈 줄",
+      "notTimed": "아직 동기화 안 됨",
+      "nudgeEarlier": "{{ms}}ms 앞당기기",
+      "nudgeLater": "{{ms}}ms 늦추기",
+      "playFromHere": "여기서부터 재생"
+    },
+    "preview": {
+      "hiddenLines": "아직 동기화되지 않은 줄(여기서는 숨김): {{n}}",
+      "writing": "미리 보기 준비 중…",
+      "nothingSynced": "동기화 단계에서 몇 줄을 동기화하면 여기서 흘러갑니다."
     }
   },
   "sort": {
