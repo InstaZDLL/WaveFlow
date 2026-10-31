@@ -62,6 +62,11 @@ use read::{first_invalid, to_db_edit, to_edit};
 /// re-reads itself.
 pub const CHANGED_EVENT: &str = "tag-workshop:changed";
 
+/// A file's problem when the file is as asked but its row is not: the
+/// database update after the write failed. The next scan of the folder
+/// reads the file back (see `tag_workshop_undo`).
+const DATABASE_STALE: &str = "database_stale";
+
 /// Files opened at once, at most. A table of this many rows is still
 /// one page scroller away; past it, the user is better served by a
 /// narrower selection than by a minute of reading tags.
@@ -292,15 +297,22 @@ pub async fn tag_workshop_open(
 // Previewing
 // ---------------------------------------------------------------------
 
-/// The values asked of one file. `expected` is what the preview showed
-/// as each changed field's old value: the write refuses a file whose tags
-/// moved since, so what is written is what was seen.
+/// The values asked of one file, for a preview.
 #[derive(Debug, Clone, Deserialize)]
 pub struct TrackChange {
     pub track_id: i64,
     pub values: Values,
-    #[serde(default)]
-    pub expected: Option<Values>,
+}
+
+/// The values a write puts into one file, and `expected`: what the
+/// preview showed as each changed field's old value. Required, never
+/// defaulted — the write refuses a file whose tags moved since, so what
+/// is written is what was seen, and a write without it would skip that.
+#[derive(Debug, Clone, Deserialize)]
+pub struct TrackWrite {
+    pub track_id: i64,
+    pub values: Values,
+    pub expected: Values,
 }
 
 /// A value that cannot be written, and why (a key the frontend
@@ -428,7 +440,7 @@ pub async fn tag_workshop_apply(
     state: tauri::State<'_, AppState>,
     engine: tauri::State<'_, Arc<AudioEngine>>,
     profile_id: i64,
-    changes: Vec<TrackChange>,
+    changes: Vec<TrackWrite>,
     label: String,
     release_mbid: Option<String>,
     cover: Option<CoverRequest>,
@@ -538,16 +550,15 @@ pub async fn tag_workshop_apply(
             }
         };
         let diffs = diff(&current, &change.values);
-        if let Some(expected) = &change.expected {
-            let seen: Values = diffs.iter().map(|d| (d.field, d.old.clone())).collect();
-            let expected: Values = expected
-                .iter()
-                .map(|(f, v)| (*f, waveflow_core::tag_workshop::normalize(*f, v)))
-                .collect();
-            if seen != expected {
-                report.problems.push(problem("changed_since".into()));
-                continue;
-            }
+        let seen: Values = diffs.iter().map(|d| (d.field, d.old.clone())).collect();
+        let expected: Values = change
+            .expected
+            .iter()
+            .map(|(f, v)| (*f, waveflow_core::tag_workshop::normalize(*f, v)))
+            .collect();
+        if seen != expected {
+            report.problems.push(problem("changed_since".into()));
+            continue;
         }
         if diffs.is_empty() {
             report.unchanged += 1;
@@ -650,9 +661,8 @@ pub async fn tag_workshop_apply(
         //    it back, so it is reported and the batch goes on.
         let db_edit = to_db_edit(&written, Path::new(&path));
         if let Err(err) = retry_busy(|| sync_db(&pool, change.track_id, &db_edit)).await {
-            report
-                .problems
-                .push(problem(format!("database update failed: {err}")));
+            tracing::warn!(track_id = change.track_id, %err, "tag workshop database update failed");
+            report.problems.push(problem(DATABASE_STALE.into()));
             continue;
         }
         let album_after: Option<i64> =
@@ -870,6 +880,8 @@ pub async fn tag_workshop_undo(
     );
     let mut report = UndoReport::default();
     let mut profile_gone = false;
+    // A file restored whose row the database update could not reach.
+    let mut stale = false;
 
     for (index, file) in open.into_iter().enumerate() {
         if let Some(task) = &task {
@@ -975,11 +987,17 @@ pub async fn tag_workshop_undo(
                 retry_busy(|| sync_db(&pool, track_id, &db_edit)).await
             }
             .await;
-            // Restored, and the next scan of the folder reads it back.
+            // The file is restored and recorded as such — its bytes no
+            // longer hash to what the batch left, so it could not be
+            // undone again anyway. Its row is caught up by the next scan
+            // of its folder: neither this update nor any tag write touches
+            // `file_modified` / `file_size`, so the scan's fast path finds
+            // them changed and reads the file back. Said, and the batch is
+            // not called undone by this pass.
             if let Err(err) = synced {
-                report
-                    .refused
-                    .push(refuse(&format!("database update failed: {err}")));
+                tracing::warn!(track_id, %err, "tag workshop database update failed");
+                report.refused.push(refuse(DATABASE_STALE));
+                stale = true;
             }
             let _ = app.emit("track:updated", track_id);
         }
@@ -989,8 +1007,11 @@ pub async fn tag_workshop_undo(
     }
     let now = now_ms();
     // Under another profile the batch cannot be settled; the files undone
-    // so far are recorded, and the next undo of it finishes the job.
+    // so far are recorded, and the next undo of it finishes the job. A
+    // pass that left a row behind its file does not call the batch undone
+    // either: the next undo, finding every file restored, does.
     report.done = !profile_gone
+        && !stale
         && db
             .write(move |conn| {
                 Box::pin(async move { journal::settle_undo(conn, batch_id, now).await })

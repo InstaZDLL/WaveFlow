@@ -4069,7 +4069,8 @@
       "changed_since": "alterado desde a visualização ou o lote; fica como está",
       "missing": "arquivo não encontrado",
       "interrupted": "gravação nunca confirmada; fica como está",
-      "invalid": "um valor não pode ser gravado"
+      "invalid": "um valor não pode ser gravado",
+      "database_stale": "arquivo atualizado, mas a biblioteca ainda não: ela o lerá de novo na próxima varredura da pasta"
     },
     "moreProblems_one": "e mais {{count}}",
     "moreProblems_many": "e mais {{count}}",

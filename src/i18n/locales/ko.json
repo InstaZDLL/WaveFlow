@@ -3942,7 +3942,8 @@
       "changed_since": "미리 보기나 배치 이후 변경되어 그대로 둠",
       "missing": "파일을 찾을 수 없음",
       "interrupted": "기록이 확인되지 않아 그대로 둠",
-      "invalid": "기록할 수 없는 값이 있음"
+      "invalid": "기록할 수 없는 값이 있음",
+      "database_stale": "파일은 업데이트되었지만 보관함은 아직입니다. 다음 폴더 스캔 때 다시 읽습니다"
     },
     "moreProblems_one": "외 {{count}}개",
     "moreProblems_other": "외 {{count}}개",

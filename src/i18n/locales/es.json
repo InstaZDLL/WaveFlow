@@ -4068,7 +4068,8 @@
       "changed_since": "modificado desde la vista previa o el lote; se deja como está",
       "missing": "archivo no encontrado",
       "interrupted": "escritura nunca confirmada; se deja como está",
-      "invalid": "un valor no se puede escribir"
+      "invalid": "un valor no se puede escribir",
+      "database_stale": "archivo actualizado, pero la biblioteca aún no: lo volverá a leer en el próximo escaneo de la carpeta"
     },
     "moreProblems_one": "y {{count}} más",
     "moreProblems_many": "y {{count}} más",

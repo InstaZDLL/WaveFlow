@@ -3942,7 +3942,8 @@
       "changed_since": "プレビューまたはバッチの後に変更されたため、そのままにしました",
       "missing": "ファイルが見つかりません",
       "interrupted": "書き込みが確認されていないため、そのままにしました",
-      "invalid": "書き込めない値があります"
+      "invalid": "書き込めない値があります",
+      "database_stale": "ファイルは更新済みですが、ライブラリはまだです。次回のフォルダースキャンで読み直されます"
     },
     "moreProblems_one": "ほか {{count}} 件",
     "moreProblems_other": "ほか {{count}} 件",

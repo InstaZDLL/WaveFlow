@@ -40,6 +40,7 @@ import {
   type BatchSummary,
   type FilePreview,
   type TrackChange,
+  type TrackWrite,
   type UndoReport,
   type WorkshopField,
   type WorkshopRow,
@@ -336,7 +337,7 @@ export function TagWorkshopView({
     if (!preview) return;
     // Exactly what the preview showed: the files it listed, the new
     // values it listed, and each old value as the write's check.
-    const toWrite: TrackChange[] = preview
+    const toWrite: TrackWrite[] = preview
       .filter((p) => p.diffs.length > 0 && !p.invalid && !p.error)
       .map((p) => ({
         track_id: p.track_id,
@@ -1300,7 +1301,13 @@ function ProblemList({
   problems: { file_path: string; reason: string }[];
 }) {
   const { t } = useTranslation();
-  const known = ["changed_since", "missing", "interrupted", "invalid"];
+  const known = [
+    "changed_since",
+    "missing",
+    "interrupted",
+    "invalid",
+    "database_stale",
+  ];
   return (
     <ul className="space-y-0.5 text-xs text-rose-600 dark:text-rose-400">
       {problems.slice(0, 50).map((p, i) => (

@@ -77,12 +77,19 @@ export interface WorkshopOpened {
   total: number;
 }
 
+/** The values asked of one file, for a preview. */
 export interface TrackChange {
   track_id: number;
   values: WorkshopValues;
+}
+
+/** What a write puts into one file. */
+export interface TrackWrite {
+  track_id: number;
+  values: WorkshopValues;
   /** Each changed field's old value as the preview showed it: the write
-   *  refuses a file whose tags moved since. */
-  expected?: WorkshopValues;
+   *  refuses a file whose tags moved since. Required. */
+  expected: WorkshopValues;
 }
 
 export interface FieldDiff {
@@ -102,8 +109,8 @@ export interface FilePreview {
 export interface FileProblem {
   track_id: number | null;
   file_path: string;
-  /** `changed_since`, `missing`, `interrupted`, `invalid`, or the
-   *  write's own message. */
+  /** `changed_since`, `missing`, `interrupted`, `invalid`,
+   *  `database_stale`, or the write's own message. */
   reason: string;
 }
 
@@ -193,7 +200,7 @@ export function previewWorkshop(
 
 export function applyWorkshop(
   profileId: number,
-  changes: TrackChange[],
+  changes: TrackWrite[],
   label: string,
   releaseMbid: string | null,
   cover: CoverRequest | null,

@@ -4068,7 +4068,8 @@
       "changed_since": "modificato dopo l'anteprima o il lotto, lasciato com'è",
       "missing": "file non trovato",
       "interrupted": "scrittura mai confermata, lasciato com'è",
-      "invalid": "un valore non può essere scritto"
+      "invalid": "un valore non può essere scritto",
+      "database_stale": "file aggiornato, ma la libreria non ancora: lo rileggerà alla prossima scansione della cartella"
     },
     "moreProblems_one": "e altro {{count}}",
     "moreProblems_many": "e altri {{count}}",

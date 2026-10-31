@@ -3944,7 +3944,8 @@
       "changed_since": "gewijzigd sinds het voorbeeld of de batch, gelaten zoals het is",
       "missing": "bestand niet gevonden",
       "interrupted": "schrijven nooit bevestigd, gelaten zoals het is",
-      "invalid": "een waarde kan niet worden geschreven"
+      "invalid": "een waarde kan niet worden geschreven",
+      "database_stale": "bestand bijgewerkt, maar de bibliotheek nog niet: die leest het opnieuw bij de volgende scan van de map"
     },
     "moreProblems_one": "en nog {{count}}",
     "moreProblems_other": "en nog {{count}}",

@@ -3942,7 +3942,8 @@
       "changed_since": "berubah sejak pratinjau atau batch, dibiarkan apa adanya",
       "missing": "berkas tidak ditemukan",
       "interrupted": "penulisan tak pernah dikonfirmasi, dibiarkan apa adanya",
-      "invalid": "sebuah nilai tidak bisa ditulis"
+      "invalid": "sebuah nilai tidak bisa ditulis",
+      "database_stale": "berkas sudah diperbarui, tetapi pustaka belum: pustaka akan membacanya lagi pada pemindaian folder berikutnya"
     },
     "moreProblems_one": "dan {{count}} lainnya",
     "moreProblems_other": "dan {{count}} lainnya",

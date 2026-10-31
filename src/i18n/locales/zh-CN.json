@@ -3942,7 +3942,8 @@
       "changed_since": "在预览或批次之后被修改，保持原样",
       "missing": "找不到文件",
       "interrupted": "写入未经确认，保持原样",
-      "invalid": "有值无法写入"
+      "invalid": "有值无法写入",
+      "database_stale": "文件已更新，但资料库尚未更新：下次扫描该文件夹时会重新读取"
     },
     "moreProblems_one": "另有 {{count}} 个",
     "moreProblems_other": "另有 {{count}} 个",

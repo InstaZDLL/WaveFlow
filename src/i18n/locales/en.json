@@ -3944,7 +3944,8 @@
       "changed_since": "changed since the preview or the batch, left as it is",
       "missing": "file not found",
       "interrupted": "write never confirmed, left as it is",
-      "invalid": "a value cannot be written"
+      "invalid": "a value cannot be written",
+      "database_stale": "file updated, but the library is not yet: it reads the file again on the folder's next scan"
     },
     "moreProblems_one": "and {{count}} more",
     "moreProblems_other": "and {{count}} more",

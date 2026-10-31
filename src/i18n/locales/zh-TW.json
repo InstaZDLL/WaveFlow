@@ -3942,7 +3942,8 @@
       "changed_since": "在預覽或批次之後被修改，保持原樣",
       "missing": "找不到檔案",
       "interrupted": "寫入未經確認，保持原樣",
-      "invalid": "有值無法寫入"
+      "invalid": "有值無法寫入",
+      "database_stale": "檔案已更新，但資料庫尚未更新：下次掃描該資料夾時會重新讀取"
     },
     "moreProblems_one": "另有 {{count}} 個",
     "moreProblems_other": "另有 {{count}} 個",

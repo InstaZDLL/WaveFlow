@@ -4068,7 +4068,8 @@
       "changed_since": "modifié depuis l'aperçu ou le lot, laissé tel quel",
       "missing": "fichier introuvable",
       "interrupted": "écriture jamais confirmée, laissé tel quel",
-      "invalid": "une valeur ne peut pas être écrite"
+      "invalid": "une valeur ne peut pas être écrite",
+      "database_stale": "fichier à jour, mais la bibliothèque ne l'est pas encore : elle le relira au prochain scan du dossier"
     },
     "moreProblems_one": "et {{count}} autre",
     "moreProblems_many": "et {{count}} autres",

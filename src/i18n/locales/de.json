@@ -3944,7 +3944,8 @@
       "changed_since": "seit der Vorschau oder dem Stapel geändert, unverändert gelassen",
       "missing": "Datei nicht gefunden",
       "interrupted": "Schreiben nie bestätigt, unverändert gelassen",
-      "invalid": "ein Wert kann nicht geschrieben werden"
+      "invalid": "ein Wert kann nicht geschrieben werden",
+      "database_stale": "Datei aktualisiert, die Bibliothek aber noch nicht: Sie liest die Datei beim nächsten Scan des Ordners neu"
     },
     "moreProblems_one": "und {{count}} weitere",
     "moreProblems_other": "und {{count}} weitere",

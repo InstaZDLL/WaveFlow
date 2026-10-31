@@ -4069,7 +4069,8 @@
       "changed_since": "alterado desde a pré-visualização ou o lote; fica como está",
       "missing": "ficheiro não encontrado",
       "interrupted": "escrita nunca confirmada; fica como está",
-      "invalid": "um valor não pode ser escrito"
+      "invalid": "um valor não pode ser escrito",
+      "database_stale": "ficheiro atualizado, mas a biblioteca ainda não: volta a lê-lo na próxima análise da pasta"
     },
     "moreProblems_one": "e mais {{count}}",
     "moreProblems_many": "e mais {{count}}",

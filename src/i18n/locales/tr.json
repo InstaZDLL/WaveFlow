@@ -3944,7 +3944,8 @@
       "changed_since": "önizlemeden veya topluluktan sonra değişmiş, olduğu gibi bırakıldı",
       "missing": "dosya bulunamadı",
       "interrupted": "yazma hiç onaylanmadı, olduğu gibi bırakıldı",
-      "invalid": "bir değer yazılamıyor"
+      "invalid": "bir değer yazılamıyor",
+      "database_stale": "dosya güncellendi ama kütüphane henüz güncellenmedi: klasörün bir sonraki taramasında dosyayı yeniden okuyacak"
     },
     "moreProblems_one": "ve {{count}} tane daha",
     "moreProblems_other": "ve {{count}} tane daha",
