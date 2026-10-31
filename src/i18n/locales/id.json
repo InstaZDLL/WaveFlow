@@ -2344,6 +2344,10 @@
       "title": "Crossfade dinamis",
       "subtitle": "Menyesuaikan durasi crossfade dengan selisih tempo antarlagu (kembali ke crossfade tetap jika BPM tidak diketahui)"
     },
+    "autoMix": {
+      "title": "AutoMix",
+      "subtitle": "Menyelaraskan crossfade dengan ketukan kedua lagu dan menghitung durasinya dalam ketukan, dalam batas waktu crossfade yang diatur; album diputar tanpa crossfade (kembali ke crossfade pintar jika tidak ada grid ketukan atau tempo terlalu berbeda)"
+    },
     "gapless": {
       "title": "Pemutaran gapless",
       "subtitle": "Rangkai lagu berturutan tanpa hening mikro (cocok untuk album live dan konsep)"

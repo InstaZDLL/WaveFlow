@@ -215,6 +215,16 @@ pub(super) fn dsd_byte_offset_for_ms(layout: &DsdLayout, ms: u64) -> u64 {
     ((ms as u128) * bits_per_second / 8 / 1000).min(u64::MAX as u128) as u64
 }
 
+/// The time a byte offset into the DSD payload stands for, in
+/// milliseconds: [`dsd_byte_offset_for_ms`] the other way, rounded down.
+pub(super) fn dsd_ms_for_byte_offset(layout: &DsdLayout, bytes: u64) -> u64 {
+    let bits_per_second = (layout.sample_rate_hz as u128) * (layout.channels.count() as u128);
+    if bits_per_second == 0 {
+        return 0;
+    }
+    ((bytes as u128) * 8 * 1000 / bits_per_second).min(u64::MAX as u128) as u64
+}
+
 /// Round a byte count down to a whole interleave stride — what's left of
 /// a block that ended mid-cycle is unusable, not just short.
 #[inline]

@@ -2111,6 +2111,10 @@
       "title": "Crossfade dinâmico",
       "subtitle": "Ajusta a duração da transição à diferença de andamento entre as faixas (volta ao crossfade fixo se o BPM for desconhecido)"
     },
+    "autoMix": {
+      "title": "AutoMix",
+      "subtitle": "Alinha o crossfade às batidas das duas faixas e conta sua duração em batidas, dentro do tempo de crossfade definido; um álbum toca sem transição (volta ao crossfade inteligente sem grade de batidas ou quando os andamentos estão muito distantes)"
+    },
     "normalize": {
       "title": "Normalizar o volume",
       "subtitle": "Reduz o volume das faixas muito altas para obter um nível uniforme"

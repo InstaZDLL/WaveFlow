@@ -12,7 +12,7 @@ use tokio::sync::mpsc::UnboundedSender;
 use waveflow_core::playback::stream::ActiveStream;
 
 use super::super::analytics::AnalyticsMsg;
-use super::super::crossfade::equal_power_gains;
+use super::super::crossfade::{MixWindow, AUTOMIX_ENTER_US};
 use super::super::engine::AudioCmd;
 use super::super::replay_gain::effective_linear;
 use super::super::state::{PlayerState, SharedPlayback};
@@ -84,8 +84,13 @@ pub(super) fn play_track(
     // starts while speed != 1.0 would briefly resample at 1.0× and
     // then trigger a rebuild on the next speed_dirty cycle.
     stream.playback_speed = shared.playback_speed();
+    // How far before the asked position the primary's last seek landed:
+    // the clock counts from the position asked for, the audio from the
+    // packet that holds it. AutoMix places its fade on the track's own
+    // time and takes this off the clock.
+    let mut primary_slip_ms: u64 = 0;
     if initial_start_ms > 0 {
-        stream.seek_ms(initial_start_ms);
+        primary_slip_ms = initial_start_ms.saturating_sub(stream.seek_ms(initial_start_ms));
     }
 
     tracing::info!(
@@ -100,8 +105,13 @@ pub(super) fn play_track(
     let mut pending_next: Option<ActiveStream> = None;
     let mut next_requested = false;
     let mut mix_active = false;
-    let mut mix_frames_written: u64 = 0;
-    let mut mix_frames_total: u64 = 0;
+    let mut mix_window = MixWindow::fixed(0);
+    // Whether the incoming track's resampler delay has been taken off its
+    // start (AutoMix): known once its first packet is decoded.
+    let mut incoming_delay_taken = false;
+    // Whether the analytics task has been asked for this primary's AutoMix
+    // cue.
+    let mut automix_cue_sent = false;
     // Track time of the incoming stream the fade has played so far,
     // summed chunk by chunk at the speed each chunk was mixed at — a
     // speed change during the fade would otherwise re-scale all of it.
@@ -140,6 +150,9 @@ pub(super) fn play_track(
     // both buffers topped up so a slow decoder doesn't starve the mix.
     const CROSSFADE_MIN_FRAMES: usize = 1024;
 
+    // A track starting has not asked for its next one, and mixes nothing.
+    shared.next_wanted.store(false, Ordering::Release);
+    shared.mixing.store(false, Ordering::Release);
     transition_state(shared, app, PlayerState::Playing, Some(stream.track_id));
 
     let mut ended_naturally = false;
@@ -175,6 +188,7 @@ pub(super) fn play_track(
                     // restart from the new position with no fade.
                     pending_next = None;
                     mix_active = false;
+                    shared.mixing.store(false, Ordering::Release);
                     next_requested = false;
                 }
                 // Clear every already-resampled buffer + EOF flag so
@@ -188,7 +202,7 @@ pub(super) fn play_track(
                 secondary_resampled.clear();
                 primary_at_eof = false;
                 secondary_at_eof = false;
-                stream.seek_ms(ms);
+                primary_slip_ms = ms.saturating_sub(stream.seek_ms(ms));
                 reset_clock(shared, ms);
                 spectrum_analyzer.discard_pending();
                 reset_resampler_for_seek(&mut stream, shared, dst_sample_rate, dst_channels);
@@ -235,7 +249,7 @@ pub(super) fn play_track(
                     primary_resampled.clear();
                     primary_at_eof = false;
                     tail_drain = None;
-                    stream.seek_ms(a_ms);
+                    primary_slip_ms = a_ms.saturating_sub(stream.seek_ms(a_ms));
                     reset_clock(shared, a_ms);
                     spectrum_analyzer.discard_pending();
                     reset_resampler_for_seek(&mut stream, shared, dst_sample_rate, dst_channels);
@@ -273,6 +287,17 @@ pub(super) fn play_track(
                 shared.crossfade_ms.load(Ordering::Relaxed) as u64
             };
             if cf_ms > 0 {
+                // AutoMix plans within the crossfade length, so it only
+                // acts while one is set. A library track only: the plan
+                // is made from its analysis row.
+                let automix_on = shared.automix.is_enabled() && stream.track_id > 0;
+                if automix_on && !automix_cue_sent {
+                    let _ = analytics_tx.send(AnalyticsMsg::AutoMixCue {
+                        track_id: stream.track_id,
+                        duration_ms: stream.duration_ms,
+                    });
+                    automix_cue_sent = true;
+                }
                 // Effective fade window — never longer than half the
                 // track, so a 30 s clip with crossfade=12 s doesn't
                 // start mixing at the 18 s mark.
@@ -286,8 +311,19 @@ pub(super) fn play_track(
 
                 // Pre-fetch ~500 ms before the window starts so the
                 // file open + first packet decode have time to complete.
-                if !next_requested && pending_next.is_none() && remaining <= effective_ms + 500 {
+                // AutoMix asks at its cue instead when that comes first:
+                // its fade can start before the usual window does.
+                let automix_cue_reached = automix_on
+                    && shared
+                        .automix
+                        .prefetch_at_ms(stream.track_id)
+                        .is_some_and(|at| pos >= at);
+                if !next_requested
+                    && pending_next.is_none()
+                    && (remaining <= effective_ms + 500 || automix_cue_reached)
+                {
                     let _ = analytics_tx.send(AnalyticsMsg::PrefetchNext);
+                    shared.next_wanted.store(true, Ordering::Release);
                     next_requested = true;
                 }
 
@@ -296,16 +332,71 @@ pub(super) fn play_track(
                 // mix and fall through to the gapless EOF swap below.
                 // The hint comes from analytics — set right before
                 // SetNextTrack lands — so we only consult it once
-                // pending_next is populated.
+                // pending_next is populated. AutoMix keeps the same
+                // rule: an album plays through without a fade.
                 let smart_skip = pending_next.is_some()
-                    && shared.smart_crossfade_enabled.load(Ordering::Relaxed)
+                    && (shared.smart_crossfade_enabled.load(Ordering::Relaxed) || automix_on)
                     && shared.pending_next_same_album.load(Ordering::Relaxed);
 
-                if !smart_skip && pending_next.is_some() && remaining <= effective_ms {
+                // AutoMix: a plan for this pair places the fade on the
+                // beats, and the plain trigger below waits for it.
+                let plan = if automix_on && !smart_skip {
+                    pending_next
+                        .as_ref()
+                        .and_then(|next| shared.automix.plan_for(stream.track_id, next.track_id))
+                } else {
+                    None
+                };
+                if let Some((fade_start_us, fade_end_us)) = plan {
+                    let now_us = pos.saturating_sub(primary_slip_ms) * 1000;
+                    // An armed A-B loop keeps the track: the mix, which no
+                    // loop interrupts, would play through B into the next
+                    // one, or end the track before a B past the fade. The
+                    // plan waits; one the loop outlasts is missed, and the
+                    // plain fade takes the transition.
+                    let looping = shared.ab_loop_armed().is_some();
+                    if !looping && now_us + AUTOMIX_ENTER_US >= fade_start_us {
+                        match MixWindow::automix(
+                            fade_start_us,
+                            fade_end_us,
+                            now_us,
+                            dst_sample_rate,
+                            shared.playback_speed(),
+                            stream.resampler.output_delay_frames(),
+                        ) {
+                            Some(window) => {
+                                tracing::info!(
+                                    track_id = stream.track_id,
+                                    fade_start_us,
+                                    fade_end_us,
+                                    now_us,
+                                    "automix: mixing on the beats"
+                                );
+                                mix_active = true;
+                                shared.mixing.store(true, Ordering::Release);
+                                mix_window = window;
+                                incoming_delay_taken = false;
+                                faded_track_ms = 0.0;
+                                shared.pending_next_crossfade_ms.store(0, Ordering::Release);
+                            }
+                            None => {
+                                // Already past the planned start (a seek
+                                // over it): the plain fade takes this one.
+                                tracing::info!(
+                                    track_id = stream.track_id,
+                                    fade_start_us,
+                                    now_us,
+                                    "automix: plan missed, plain crossfade"
+                                );
+                                shared.automix.clear_plan();
+                            }
+                        }
+                    }
+                } else if !smart_skip && pending_next.is_some() && remaining <= effective_ms {
                     mix_active = true;
-                    mix_frames_written = 0;
+                    shared.mixing.store(true, Ordering::Release);
                     faded_track_ms = 0.0;
-                    mix_frames_total = (effective_ms * dst_sample_rate as u64) / 1000;
+                    mix_window = MixWindow::fixed((effective_ms * dst_sample_rate as u64) / 1000);
                     // One-shot — consume the dynamic override so the
                     // next prefetch starts from a clean slate.
                     shared.pending_next_crossfade_ms.store(0, Ordering::Release);
@@ -325,6 +416,7 @@ pub(super) fn play_track(
                 let remaining = stream.duration_ms.saturating_sub(pos);
                 if !next_requested && pending_next.is_none() && remaining <= 500 {
                     let _ = analytics_tx.send(AnalyticsMsg::PrefetchNext);
+                    shared.next_wanted.store(true, Ordering::Release);
                     next_requested = true;
                 }
             }
@@ -361,10 +453,17 @@ pub(super) fn play_track(
                     dst_channels,
                 )?;
                 apply_replay_gain(&mut secondary_resampled[prev_len..], shared, secondary);
+                // Its resampler exists from its first packet on, and puts
+                // its delay ahead of the track's first sample: start it
+                // that much earlier so the sample lands where planned.
+                // Nothing to move for the plain fade, which starts the
+                // incoming track on its first frame.
+                if !incoming_delay_taken {
+                    mix_window.start_incoming_earlier(secondary.resampler.output_delay_frames());
+                    incoming_delay_taken = true;
+                }
             }
 
-            let primary_frames = primary_resampled.len() / dst_channels;
-            let secondary_frames = secondary_resampled.len() / dst_channels;
             // Once the primary stream EOFs we must keep mixing — but
             // with a primary contribution of zero — for the remainder
             // of the fade window. Otherwise the swap-on-EOF path
@@ -374,47 +473,20 @@ pub(super) fn play_track(
             // doesn't quite match the duration the fade was timed
             // against (DSD files in particular: the data chunk is
             // block-aligned, not duration-aligned).
-            let remaining_window = mix_frames_total.saturating_sub(mix_frames_written) as usize;
-            let mix_frames = crossfade_mix_frames(
-                primary_frames,
-                secondary_frames,
+            let (primary_consumed, secondary_consumed) = mix_window.mix(
+                &primary_resampled,
+                &secondary_resampled,
                 primary_at_eof,
                 secondary_at_eof,
-                remaining_window,
+                dst_channels,
+                &mut mix_scratch,
             );
-            let denom = mix_frames_total.max(1) as f32;
+            let mix_frames = mix_scratch.len() / dst_channels;
 
             if mix_frames > 0 {
-                mix_scratch.clear();
-                mix_scratch.reserve(mix_frames * dst_channels);
-                for f in 0..mix_frames {
-                    let t = (mix_frames_written as f32 / denom).min(1.0);
-                    let (g_out, g_in) = equal_power_gains(t);
-                    for ch in 0..dst_channels {
-                        // Use 0 for primary frames past the buffer —
-                        // happens only when primary EOF'd and we're
-                        // running out the rest of the fade.
-                        let p = if f < primary_frames {
-                            primary_resampled[f * dst_channels + ch] * g_out
-                        } else {
-                            0.0
-                        };
-                        // And 0 for the incoming track once it has run
-                        // out, when it is shorter than the window.
-                        let s = if f < secondary_frames {
-                            secondary_resampled[f * dst_channels + ch] * g_in
-                        } else {
-                            0.0
-                        };
-                        mix_scratch.push(p + s);
-                    }
-                    mix_frames_written += 1;
-                }
-                // Drain only what each buffer actually contributed,
-                // i.e. clamp to the per-buffer length — the primary
-                // buffer may be empty in the EOF tail.
-                let primary_consumed = mix_frames.min(primary_frames);
-                let secondary_consumed = mix_frames.min(secondary_frames);
+                // Drain only what each buffer actually contributed: the
+                // primary buffer may be empty in the EOF tail, and the
+                // incoming one gives nothing before its first frame.
                 primary_resampled.drain(..primary_consumed * dst_channels);
                 secondary_resampled.drain(..secondary_consumed * dst_channels);
                 // How far into the incoming track the fade has got: what
@@ -471,12 +543,13 @@ pub(super) fn play_track(
                     PushOutcome::Seek(ms) => {
                         pending_next = None;
                         mix_active = false;
+                        shared.mixing.store(false, Ordering::Release);
                         next_requested = false;
                         primary_at_eof = false;
                         secondary_at_eof = false;
                         primary_resampled.clear();
                         secondary_resampled.clear();
-                        stream.seek_ms(ms);
+                        primary_slip_ms = ms.saturating_sub(stream.seek_ms(ms));
                         reset_clock(shared, ms);
                         spectrum_analyzer.discard_pending();
                         reset_resampler_for_seek(
@@ -505,7 +578,7 @@ pub(super) fn play_track(
             //
             // dead_loop guards against an infinite spin when both
             // sides are EOF'd and there's nothing left to write.
-            let window_done = mix_frames_written >= mix_frames_total;
+            let window_done = mix_window.done();
             let dead_loop = mix_frames == 0 && primary_at_eof && secondary_at_eof;
             if window_done || dead_loop {
                 let listened = shared.session_listened_ms();
@@ -530,8 +603,12 @@ pub(super) fn play_track(
                 secondary_at_eof = false;
                 next_requested = false;
                 mix_active = false;
-                mix_frames_written = 0;
-                mix_frames_total = 0;
+                shared.mixing.store(false, Ordering::Release);
+                // The new primary plays from its first sample, and has not
+                // been asked about yet.
+                primary_slip_ms = 0;
+                automix_cue_sent = false;
+                shared.next_wanted.store(false, Ordering::Release);
 
                 // The fade is already `faded_ms` into the new track, but
                 // the end of it is still in the ring: the clock starts
@@ -600,8 +677,10 @@ pub(super) fn play_track(
                     secondary_at_eof = false;
                     next_requested = false;
                     mix_active = false;
-                    mix_frames_written = 0;
-                    mix_frames_total = 0;
+                    shared.mixing.store(false, Ordering::Release);
+                    primary_slip_ms = 0;
+                    automix_cue_sent = false;
+                    shared.next_wanted.store(false, Ordering::Release);
 
                     // What is still in the ring is the end of the track
                     // that just finished: the new one starts at 0 only
@@ -704,7 +783,7 @@ pub(super) fn play_track(
                 PushOutcome::Seek(ms) => {
                     primary_resampled.clear();
                     primary_at_eof = false;
-                    stream.seek_ms(ms);
+                    primary_slip_ms = ms.saturating_sub(stream.seek_ms(ms));
                     reset_clock(shared, ms);
                     spectrum_analyzer.discard_pending();
                     reset_resampler_for_seek(&mut stream, shared, dst_sample_rate, dst_channels);
@@ -873,33 +952,4 @@ pub(super) fn push_samples(
         written += slots;
     }
     PushOutcome::Ok
-}
-
-/// How many frames a crossfade mixes in one pass.
-///
-/// A side that has reached its end counts as silence for the rest of the
-/// window, either way round. The outgoing track can end a little before
-/// the duration the fade was timed against (DSD in particular); the
-/// incoming one can be shorter than the window altogether, since the
-/// window is timed against the outgoing track (a jingle under a long
-/// fade). Before the second case was handled, an incoming track that had
-/// run out left nothing to mix and the loop waited for frames that never
-/// came, with the outgoing track still playing: playback stalled. Now the
-/// outgoing track finishes its fade, then the queue moves on.
-///
-/// While neither side has ended, only what both hold is mixed: the next
-/// pass decodes more of the shorter one.
-pub(super) fn crossfade_mix_frames(
-    primary_frames: usize,
-    secondary_frames: usize,
-    primary_at_eof: bool,
-    secondary_at_eof: bool,
-    remaining_window: usize,
-) -> usize {
-    match (primary_at_eof, secondary_at_eof) {
-        (false, false) => primary_frames.min(secondary_frames),
-        (true, false) => secondary_frames.min(remaining_window),
-        (false, true) => primary_frames.min(remaining_window),
-        (true, true) => primary_frames.max(secondary_frames).min(remaining_window),
-    }
 }

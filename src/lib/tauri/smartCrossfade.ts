@@ -21,3 +21,11 @@ export function setDynamicCrossfade(enabled: boolean): Promise<void> {
     invoke<void>("player_set_dynamic_crossfade", { enabled }),
   );
 }
+
+export function getAutoMix(): Promise<boolean> {
+  return invoke<boolean>("player_get_automix");
+}
+
+export function setAutoMix(enabled: boolean): Promise<void> {
+  return announceSettingWrite(invoke<void>("player_set_automix", { enabled }));
+}

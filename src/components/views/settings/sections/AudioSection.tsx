@@ -21,6 +21,7 @@ import { ToggleSwitch } from "../ToggleSwitch";
 import {
   AudioWaveform,
   ChevronsRight,
+  Disc3,
   Gauge,
   Headphones,
   Shuffle,
@@ -30,6 +31,8 @@ import {
 } from "lucide-react";
 
 interface AudioSectionProps {
+  autoMix: boolean;
+  autoMixHydrated: boolean;
   crossfadeSec: number;
   dopPlatformSupported: boolean;
   dsdDop: boolean;
@@ -42,6 +45,7 @@ interface AudioSectionProps {
   handleReplayGainModeChange: (next: ReplayGainMode) => void;
   handleReplayGainPreampChange: (value: number) => void;
   handleSetDsdPrecision: (next: 256 | 1024 | 2048) => void;
+  handleToggleAutoMix: () => void;
   handleToggleDsdDop: () => void;
   handleToggleDynamicCrossfade: () => void;
   handleToggleGapless: () => void;
@@ -67,6 +71,8 @@ interface AudioSectionProps {
 }
 
 export function AudioSection({
+  autoMix,
+  autoMixHydrated,
   crossfadeSec,
   dopPlatformSupported,
   dsdDop,
@@ -79,6 +85,7 @@ export function AudioSection({
   handleReplayGainModeChange,
   handleReplayGainPreampChange,
   handleSetDsdPrecision,
+  handleToggleAutoMix,
   handleToggleDsdDop,
   handleToggleDynamicCrossfade,
   handleToggleGapless,
@@ -308,6 +315,29 @@ export function AudioSection({
               onToggle={handleToggleDynamicCrossfade}
               disabled={!dynamicCrossfadeHydrated}
               label={t("settings.dynamicCrossfade.title")}
+            />
+          </div>
+          <div className="settings-row flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <Disc3
+                size={16}
+                className="settings-row-icon"
+                aria-hidden="true"
+              />
+              <div>
+                <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                  {t("settings.autoMix.title")}
+                </div>
+                <div className="text-xs settings-description">
+                  {t("settings.autoMix.subtitle")}
+                </div>
+              </div>
+            </div>
+            <ToggleSwitch
+              enabled={autoMix}
+              onToggle={handleToggleAutoMix}
+              disabled={!autoMixHydrated}
+              label={t("settings.autoMix.title")}
             />
           </div>
         </div>

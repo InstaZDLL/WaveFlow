@@ -675,6 +675,8 @@ pub fn run() {
             commands::player::player_get_smart_crossfade,
             commands::player::player_set_dynamic_crossfade,
             commands::player::player_get_dynamic_crossfade,
+            commands::player::player_set_automix,
+            commands::player::player_get_automix,
             commands::player::player_set_replaygain,
             commands::player::player_set_replaygain_options,
             commands::player::player_set_replaygain_mode,

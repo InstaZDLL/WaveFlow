@@ -29,7 +29,7 @@ use super::resampler::Resampler;
 mod decode;
 mod dsd;
 
-use dsd::{aligned_byte_offset, dsd_byte_offset_for_ms, interleave_stride};
+use dsd::{aligned_byte_offset, dsd_byte_offset_for_ms, dsd_ms_for_byte_offset, interleave_stride};
 
 /// How long the container says the track is, and how far decoding got
 /// (#898).
@@ -605,10 +605,16 @@ impl ActiveStream {
         self.resampler.reset();
     }
 
-    /// Seek to `ms` milliseconds. Returns `Ok` even when the offset
-    /// is past EOF — seeking a VBR file or beyond the DSD bitstream
-    /// is best-effort.
-    pub fn seek_ms(&mut self, ms: u64) {
+    /// Seek to `ms` milliseconds, and return where decoding resumes, in
+    /// milliseconds. Best-effort: an offset past EOF, a VBR file or one
+    /// beyond the DSD bitstream still lands somewhere.
+    ///
+    /// The landing is at or before `ms`: symphonia's accurate seek stops
+    /// on the packet that holds `ms` and the decoder plays that packet
+    /// from its start, and a DSD seek rounds down to a whole interleave
+    /// cycle. A failed seek reports `ms`, the position the caller asked
+    /// for, since nothing better is known.
+    pub fn seek_ms(&mut self, ms: u64) -> u64 {
         // A seek back from the end makes the track's end come again.
         self.tail_flushed = false;
         match &mut self.backend {
@@ -633,8 +639,21 @@ impl ActiveStream {
                         track_id: Some(*symphonia_track_id),
                     },
                 ) {
-                    Ok(seeked) => extent.seeked(seeked.actual_ts.get()),
-                    Err(err) => tracing::warn!(?err, ms, "format seek failed"),
+                    Ok(seeked) => {
+                        extent.seeked(seeked.actual_ts.get());
+                        let landed = format
+                            .tracks()
+                            .iter()
+                            .find(|t| t.id == *symphonia_track_id)
+                            .and_then(|t| t.time_base)
+                            .and_then(|tb| tb.calc_time(seeked.actual_ts))
+                            .map(|t| (t.as_micros() / 1000) as u64);
+                        landed.map_or(ms, |l| l.min(ms))
+                    }
+                    Err(err) => {
+                        tracing::warn!(?err, ms, "format seek failed");
+                        ms
+                    }
                 }
             }
             StreamBackend::Dsd {
@@ -659,9 +678,10 @@ impl ActiveStream {
                 let absolute = layout.data_offset + aligned;
                 if let Err(err) = file.seek(SeekFrom::Start(absolute)) {
                     tracing::warn!(?err, ms, "dsd seek failed");
-                    return;
+                    return ms;
                 }
                 *bytes_read = aligned;
+                dsd_ms_for_byte_offset(layout, aligned)
             }
             StreamBackend::Dop {
                 file,
@@ -680,10 +700,11 @@ impl ActiveStream {
                 let absolute = layout.data_offset + aligned;
                 if let Err(err) = file.seek(SeekFrom::Start(absolute)) {
                     tracing::warn!(?err, ms, "dop seek failed");
-                    return;
+                    return ms;
                 }
                 *bytes_read = aligned;
                 encoder.reset();
+                dsd_ms_for_byte_offset(layout, aligned)
             }
         }
     }

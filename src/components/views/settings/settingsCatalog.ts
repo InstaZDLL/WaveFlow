@@ -273,6 +273,8 @@ export const SETTINGS_CATEGORIES = [
           "settings.smartCrossfade.subtitle",
           "settings.dynamicCrossfade.title",
           "settings.dynamicCrossfade.subtitle",
+          "settings.autoMix.title",
+          "settings.autoMix.subtitle",
         ],
       },
       {

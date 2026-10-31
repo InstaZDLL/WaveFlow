@@ -20,7 +20,7 @@ use super::{
     songs,
 };
 use crate::{
-    audio::{engine::AudioCmd, state::PlayerState, AudioEngine},
+    audio::{engine::AudioCmd, next_track::edit_queue, state::PlayerState, AudioEngine},
     player_actions,
     queue::{self, RepeatMode},
     state::AppState,
@@ -653,11 +653,12 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
                 .require_profile_pool()
                 .await
                 .map_err(|_| Ack::new(ACK_ERROR_NO_EXIST, "clear", "no active profile"))?;
-            queue::clear(&pool)
+            edit_queue(ctx.engine().lock_publish(), queue::clear(&pool))
                 .await
                 .map_err(|e| ack_arg("clear", &e.to_string()))?;
             drop(pool);
             crate::commands::player::emit_queue_changed(&ctx.app);
+            crate::audio::next_track::revise_soon(&ctx.app);
             ctx.queue_changed();
             Ok(Response::new())
         }
@@ -668,15 +669,19 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
                 .require_profile_pool()
                 .await
                 .map_err(|_| Ack::new(ACK_ERROR_NO_EXIST, "delete", "no active profile"))?;
-            let len = queue::queue_length(&pool).await.unwrap_or(0) as u32;
-            let Some((start, end)) = range.resolve(len) else {
-                return Err(ack_arg("delete", "Bad song index"));
-            };
-            queue::remove_range(&pool, start as i64, end as i64)
-                .await
-                .map_err(|e| ack_arg("delete", &e.to_string()))?;
+            edit_queue(ctx.engine().lock_publish(), async {
+                let len = queue::queue_length(&pool).await.unwrap_or(0) as u32;
+                let Some((start, end)) = range.resolve(len) else {
+                    return Err(ack_arg("delete", "Bad song index"));
+                };
+                queue::remove_range(&pool, start as i64, end as i64)
+                    .await
+                    .map_err(|e| ack_arg("delete", &e.to_string()))
+            })
+            .await?;
             drop(pool);
             crate::commands::player::emit_queue_changed(&ctx.app);
+            crate::audio::next_track::revise_soon(&ctx.app);
             ctx.queue_changed();
             Ok(Response::new())
         }
@@ -687,14 +692,18 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
                 .require_profile_pool()
                 .await
                 .map_err(|_| Ack::new(ACK_ERROR_NO_EXIST, "deleteid", "no active profile"))?;
-            let removed = queue::remove_by_queue_id(&pool, id as i64)
-                .await
-                .map_err(|e| ack_arg("deleteid", &e.to_string()))?;
+            let removed = edit_queue(
+                ctx.engine().lock_publish(),
+                queue::remove_by_queue_id(&pool, id as i64),
+            )
+            .await
+            .map_err(|e| ack_arg("deleteid", &e.to_string()))?;
             drop(pool);
             if !removed {
                 return Err(Ack::new(ACK_ERROR_NO_EXIST, "deleteid", "No such song"));
             }
             crate::commands::player::emit_queue_changed(&ctx.app);
+            crate::audio::next_track::revise_soon(&ctx.app);
             ctx.queue_changed();
             Ok(Response::new())
         }
@@ -705,21 +714,25 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
                 .require_profile_pool()
                 .await
                 .map_err(|_| Ack::new(ACK_ERROR_NO_EXIST, "move", "no active profile"))?;
-            let len = queue::queue_length(&pool).await.unwrap_or(0) as u32;
             // Only a single-position move is supported; MPD allows a
             // range but WaveFlow's `reorder` moves one row and building
             // range-move on top of it would need its own transaction.
             let Range::Position(from) = from else {
                 return Err(ack_arg("move", "range move is not supported"));
             };
-            if from >= len || to >= len {
-                return Err(ack_arg("move", "Bad song index"));
-            }
-            queue::reorder(&pool, from as i64, to as i64)
-                .await
-                .map_err(|e| ack_arg("move", &e.to_string()))?;
+            edit_queue(ctx.engine().lock_publish(), async {
+                let len = queue::queue_length(&pool).await.unwrap_or(0) as u32;
+                if from >= len || to >= len {
+                    return Err(ack_arg("move", "Bad song index"));
+                }
+                queue::reorder(&pool, from as i64, to as i64)
+                    .await
+                    .map_err(|e| ack_arg("move", &e.to_string()))
+            })
+            .await?;
             drop(pool);
             crate::commands::player::emit_queue_changed(&ctx.app);
+            crate::audio::next_track::revise_soon(&ctx.app);
             ctx.queue_changed();
             Ok(Response::new())
         }
@@ -730,18 +743,22 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
                 .require_profile_pool()
                 .await
                 .map_err(|_| Ack::new(ACK_ERROR_NO_EXIST, "moveid", "no active profile"))?;
-            let len = queue::queue_length(&pool).await.unwrap_or(0) as u32;
-            let Ok(Some(from)) = queue::position_of_queue_id(&pool, id as i64).await else {
-                return Err(Ack::new(ACK_ERROR_NO_EXIST, "moveid", "No such song"));
-            };
-            if to >= len {
-                return Err(ack_arg("moveid", "Bad song index"));
-            }
-            queue::reorder(&pool, from, to as i64)
-                .await
-                .map_err(|e| ack_arg("moveid", &e.to_string()))?;
+            edit_queue(ctx.engine().lock_publish(), async {
+                let len = queue::queue_length(&pool).await.unwrap_or(0) as u32;
+                let Ok(Some(from)) = queue::position_of_queue_id(&pool, id as i64).await else {
+                    return Err(Ack::new(ACK_ERROR_NO_EXIST, "moveid", "No such song"));
+                };
+                if to >= len {
+                    return Err(ack_arg("moveid", "Bad song index"));
+                }
+                queue::reorder(&pool, from, to as i64)
+                    .await
+                    .map_err(|e| ack_arg("moveid", &e.to_string()))
+            })
+            .await?;
             drop(pool);
             crate::commands::player::emit_queue_changed(&ctx.app);
+            crate::audio::next_track::revise_soon(&ctx.app);
             ctx.queue_changed();
             Ok(Response::new())
         }
@@ -752,11 +769,12 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
                 .require_profile_pool()
                 .await
                 .map_err(|_| Ack::new(ACK_ERROR_NO_EXIST, "shuffle", "no active profile"))?;
-            queue::shuffle(&pool)
+            edit_queue(ctx.engine().lock_publish(), queue::shuffle(&pool))
                 .await
                 .map_err(|e| ack_arg("shuffle", &e.to_string()))?;
             drop(pool);
             crate::commands::player::emit_queue_changed(&ctx.app);
+            crate::audio::next_track::revise_soon(&ctx.app);
             ctx.queue_changed();
             Ok(Response::new())
         }
@@ -777,12 +795,17 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
             } else {
                 queue::ShuffleMode::Off
             };
-            crate::commands::player::set_shuffle_mode(&pool, &ctx.engine(), mode)
-                .await
-                .map_err(|e| ack_arg("random", &e.to_string()))?;
+            let engine = ctx.engine();
+            edit_queue(
+                engine.lock_publish(),
+                crate::commands::player::set_shuffle_mode(&pool, &engine, mode),
+            )
+            .await
+            .map_err(|e| ack_arg("random", &e.to_string()))?;
             crate::commands::player::emit_options_changed(&ctx.app, &pool).await;
             drop(pool);
             crate::commands::player::emit_queue_changed(&ctx.app);
+            crate::audio::next_track::revise_soon(&ctx.app);
             ctx.idle.notify(Subsystem::Options);
             ctx.queue_changed();
             Ok(Response::new())
@@ -794,10 +817,16 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
                 .require_profile_pool()
                 .await
                 .map_err(|_| Ack::new(ACK_ERROR_NO_EXIST, "repeat", "no active profile"))?;
-            let current = queue::read_repeat_mode(&pool).await;
-            queue::write_repeat_mode(&pool, repeat_from_mpd(current, on))
-                .await
-                .map_err(|e| ack_arg("repeat", &e.to_string()))?;
+            // Read and written under the publish lock, which a prefetch
+            // holds while it reads the mode, so it never sends the next
+            // track by the mode this replaces.
+            edit_queue(ctx.engine().lock_publish(), async {
+                let current = queue::read_repeat_mode(&pool).await;
+                queue::write_repeat_mode(&pool, repeat_from_mpd(current, on)).await
+            })
+            .await
+            .map_err(|e| ack_arg("repeat", &e.to_string()))?;
+            crate::audio::next_track::revise_soon(&ctx.app);
             // Reflect the change in the WaveFlow UI too (an MPD client toggled
             // it, so the frontend has no optimistic update of its own).
             crate::commands::player::emit_options_changed(&ctx.app, &pool).await;
@@ -811,16 +840,21 @@ pub async fn dispatch(ctx: &Ctx, session: &mut Session, cmd: Command) -> Result<
                 .require_profile_pool()
                 .await
                 .map_err(|_| Ack::new(ACK_ERROR_NO_EXIST, "single", "no active profile"))?;
-            let current = queue::read_repeat_mode(&pool).await;
-            // `single oneshot` has no durable equivalent — reject it rather
-            // than persist it as a permanent `single 1` (which `status` would
-            // then misreport).
-            let Some(next) = single_action(mode, current) else {
-                return Err(ack_arg("single", "oneshot single is not supported"));
-            };
-            queue::write_repeat_mode(&pool, next)
-                .await
-                .map_err(|e| ack_arg("single", &e.to_string()))?;
+            // Under the publish lock, as for `repeat`.
+            edit_queue(ctx.engine().lock_publish(), async {
+                let current = queue::read_repeat_mode(&pool).await;
+                // `single oneshot` has no durable equivalent — reject it
+                // rather than persist it as a permanent `single 1` (which
+                // `status` would then misreport).
+                let Some(next) = single_action(mode, current) else {
+                    return Err(ack_arg("single", "oneshot single is not supported"));
+                };
+                queue::write_repeat_mode(&pool, next)
+                    .await
+                    .map_err(|e| ack_arg("single", &e.to_string()))
+            })
+            .await?;
+            crate::audio::next_track::revise_soon(&ctx.app);
             crate::commands::player::emit_options_changed(&ctx.app, &pool).await;
             ctx.idle.notify(Subsystem::Options);
             Ok(Response::new())

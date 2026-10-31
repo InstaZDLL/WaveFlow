@@ -92,6 +92,8 @@ import {
   setSmartCrossfade,
   getDynamicCrossfade,
   setDynamicCrossfade,
+  getAutoMix,
+  setAutoMix,
 } from "../../lib/tauri/smartCrossfade";
 import {
   dlnaGetConfig,
@@ -1769,6 +1771,17 @@ function SettingsViewContent({
     fallback: SETTINGS["audio.dynamic_crossfade"].defaultValue,
   });
 
+  // AutoMix — the crossfade placed on both tracks' beats. Same engine
+  // toggle lifecycle as the two above.
+  const {
+    enabled: autoMix,
+    hydrated: autoMixHydrated,
+    toggle: handleToggleAutoMix,
+  } = useProfileScopedToggle(getAutoMix, setAutoMix, {
+    label: "SettingsView automix",
+    fallback: SETTINGS["audio.automix"].defaultValue,
+  });
+
   // Persisted backend-side and pushed live to the decoder thread, so
   // flipping it shows / hides the bars on the next emitted frame.
   const {
@@ -2025,6 +2038,8 @@ function SettingsViewContent({
               )}
               {activeCategory === "playback" && (
                 <AudioSection
+                  autoMix={autoMix}
+                  autoMixHydrated={autoMixHydrated}
                   crossfadeSec={crossfadeSec}
                   dopPlatformSupported={dopPlatformSupported}
                   dsdDop={dsdDop}
@@ -2039,6 +2054,7 @@ function SettingsViewContent({
                   handleReplayGainModeChange={handleReplayGainModeChange}
                   handleReplayGainPreampChange={handleReplayGainPreampChange}
                   handleSetDsdPrecision={handleSetDsdPrecision}
+                  handleToggleAutoMix={handleToggleAutoMix}
                   handleToggleDsdDop={handleToggleDsdDop}
                   handleToggleDynamicCrossfade={handleToggleDynamicCrossfade}
                   handleToggleGapless={handleToggleGapless}

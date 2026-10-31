@@ -6,7 +6,7 @@ use std::sync::Arc;
 use tauri::{AppHandle, Emitter};
 
 use crate::{
-    audio::AudioEngine,
+    audio::{next_track::edit_queue, AudioEngine},
     error::AppResult,
     queue::{self},
     state::AppState,
@@ -139,17 +139,25 @@ pub async fn player_toggle_shuffle(
     engine: tauri::State<'_, Arc<AudioEngine>>,
 ) -> AppResult<String> {
     let pool = state.require_profile_pool().await?;
-    let next = if queue::read_shuffle(&pool).await {
-        queue::ShuffleMode::Off
-    } else {
-        // On, using whichever grouping the listener last picked — a
-        // preference for whole records should not be forgotten every
-        // time shuffle is switched off and back on.
-        queue::read_shuffle_grouping_preference(&pool).await
-    };
-    set_shuffle_mode(&pool, &engine, next).await?;
-    // Queue content changed (reordered in place) — tell the panel.
+    // The mode is read under the lock too: two toggles at once (two
+    // windows) would otherwise both flip from the same state, and the
+    // second would be lost.
+    let next = edit_queue(engine.lock_publish(), async {
+        let next = if queue::read_shuffle(&pool).await {
+            queue::ShuffleMode::Off
+        } else {
+            // On, using whichever grouping the listener last picked — a
+            // preference for whole records should not be forgotten every
+            // time shuffle is switched off and back on.
+            queue::read_shuffle_grouping_preference(&pool).await
+        };
+        set_shuffle_mode(&pool, &engine, next).await.map(|()| next)
+    })
+    .await?;
+    // Queue content changed (reordered in place) — tell the panel, and
+    // the decoder if it has a next track prepared.
     emit_queue_changed(&app);
+    crate::audio::next_track::revise_soon(&app);
     // …and the other windows. Each one runs its own `PlayerContext` with
     // its own optimistic toggle state, so without this the mini-player
     // and the main window disagree about shuffle while sharing one queue
@@ -179,8 +187,13 @@ pub async fn player_set_shuffle_mode(
 ) -> AppResult<String> {
     let pool = state.require_profile_pool().await?;
     let mode = queue::ShuffleMode::from_str(&mode);
-    set_shuffle_mode(&pool, &engine, mode).await?;
+    edit_queue(
+        engine.lock_publish(),
+        set_shuffle_mode(&pool, &engine, mode),
+    )
+    .await?;
     emit_queue_changed(&app);
+    crate::audio::next_track::revise_soon(&app);
     emit_options_changed(&app, &pool).await;
     Ok(mode.as_str().to_string())
 }
@@ -190,15 +203,23 @@ pub async fn player_set_shuffle_mode(
 pub async fn player_cycle_repeat(
     app: AppHandle,
     state: tauri::State<'_, AppState>,
+    engine: tauri::State<'_, Arc<AudioEngine>>,
 ) -> AppResult<String> {
     let pool = state.require_profile_pool().await?;
-    let current = queue::read_repeat_mode(&pool).await;
-    let next = match current {
-        queue::RepeatMode::Off => queue::RepeatMode::All,
-        queue::RepeatMode::All => queue::RepeatMode::One,
-        queue::RepeatMode::One => queue::RepeatMode::Off,
-    };
-    queue::write_repeat_mode(&pool, next).await?;
+    // Read and written under the publish lock, which a prefetch holds
+    // while it reads the mode: it never sends the next track by the mode
+    // this replaces, and two cycles at once (two windows) both count.
+    let next = edit_queue(engine.lock_publish(), async {
+        let next = match queue::read_repeat_mode(&pool).await {
+            queue::RepeatMode::Off => queue::RepeatMode::All,
+            queue::RepeatMode::All => queue::RepeatMode::One,
+            queue::RepeatMode::One => queue::RepeatMode::Off,
+        };
+        queue::write_repeat_mode(&pool, next).await.map(|()| next)
+    })
+    .await?;
+    // Repeat decides what follows the last track.
+    crate::audio::next_track::revise_soon(&app);
     // Same reason as `player_toggle_shuffle` (#523): the caller updates
     // its own state from the return value, the *other* windows only
     // learn about it here.

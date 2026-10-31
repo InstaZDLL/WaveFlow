@@ -252,6 +252,16 @@ impl Resampler {
         Ok(())
     }
 
+    /// Frames of the filter's delay at the start of the output: a source
+    /// frame comes out this many output frames later than the count of
+    /// frames before it says. 0 for a passthrough.
+    pub fn output_delay_frames(&self) -> u64 {
+        match self {
+            Self::Passthrough => 0,
+            Self::Fft { inner, .. } => inner.output_delay() as u64,
+        }
+    }
+
     fn frames_out(&self) -> u64 {
         match self {
             Self::Passthrough => 0,

@@ -2408,6 +2408,10 @@
       "title": "Crossfade dinámico",
       "subtitle": "Ajusta la duración del crossfade según la diferencia de tempo entre las pistas (vuelve al crossfade fijo si el BPM es desconocido)"
     },
+    "autoMix": {
+      "title": "AutoMix",
+      "subtitle": "Alinea el crossfade con los pulsos de ambas pistas y mide su duración en pulsos, dentro del tiempo de crossfade elegido; un álbum suena sin fundido (vuelve al crossfade inteligente sin cuadrícula de pulsos o si los tempos están demasiado alejados)"
+    },
     "gapless": {
       "title": "Reproducción sin pausas",
       "subtitle": "Encadena pistas consecutivas sin micro-silencios (ideal para directos y discos conceptuales)"

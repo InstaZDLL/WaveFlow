@@ -2346,6 +2346,10 @@
       "title": "Dynamische crossfade",
       "subtitle": "Schaalt de crossfade-duur met het tempoverschil tussen nummers (valt terug op de vaste crossfade als BPM onbekend is)"
     },
+    "autoMix": {
+      "title": "AutoMix",
+      "subtitle": "Legt de crossfade op de beats van beide nummers en telt de duur in beats, binnen de ingestelde crossfade-tijd; een album speelt door zonder overgang (valt terug op slimme crossfade zonder beatgrid of als de tempo's te ver uiteenliggen)"
+    },
     "gapless": {
       "title": "Naadloos afspelen",
       "subtitle": "Koppelt opeenvolgende nummers zonder microstiltes (ideaal voor live- en conceptalbums)"

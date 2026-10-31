@@ -17,6 +17,8 @@
 #[cfg(target_os = "linux")]
 pub mod alsa_exclusive;
 pub mod analytics;
+// AutoMix's switch and the hints the analytics task leaves the decoder.
+pub mod automix;
 // What a device accepts, asked one device at a time and never during
 // enumeration (#593).
 pub mod capabilities;
@@ -38,6 +40,8 @@ pub mod eq;
 pub mod events;
 pub mod http_source;
 pub mod live;
+// The next track handed to the decoder, sent again when the queue changes.
+pub mod next_track;
 pub mod output;
 // The integer packing of the exclusive backends (WASAPI, ALSA); tested on
 // every system.

@@ -148,14 +148,33 @@ pub enum AudioCmd {
     SetStereoWidth(i32),
     /// Hand the decoder thread the next track to prefetch for
     /// crossfade. Sent by the analytics task in response to a
-    /// `PrefetchNext` request from the decoder.
+    /// `PrefetchNext` request from the decoder, and again whenever the
+    /// queue changes after that ([`crate::audio::next_track`]): a second
+    /// one for the same transition replaces the first.
     SetNextTrack {
+        /// The track this one follows. The decoder takes it only while
+        /// that track is the one playing: one prepared for a track that
+        /// has since been replaced is dropped, never handed to the next.
+        after: i64,
         path: PathBuf,
         track_id: i64,
         duration_ms: u64,
         source_type: String,
         source_id: Option<i64>,
         replay_gain: TrackGain,
+        /// The transition's hints, worked out for this pair and stored by
+        /// the decoder with the stream, so a replaced next never keeps the
+        /// hints of the one it replaced: the same-album flag (smart
+        /// crossfade, AutoMix), the dynamic crossfade length (0 for the
+        /// static one) and the AutoMix fade `(start_us, end_us)`.
+        same_album: bool,
+        crossfade_ms: u32,
+        automix_fade: Option<(u64, u64)>,
+    },
+    /// The queue no longer has a track after `after`: drop the one the
+    /// decoder prepared for it, if any, and let the track end on its own.
+    ClearNextTrack {
+        after: i64,
     },
     /// Play a live HTTP audio stream (Web Radio). The decoder opens
     /// the URL in a blocking client (safe because the decoder thread
@@ -269,9 +288,12 @@ impl std::fmt::Debug for AudioCmd {
             AudioCmd::SetSpeed(v) => write!(f, "SetSpeed({v})"),
             AudioCmd::SetBalance(v) => write!(f, "SetBalance({v})"),
             AudioCmd::SetStereoWidth(v) => write!(f, "SetStereoWidth({v})"),
-            AudioCmd::SetNextTrack { track_id, .. } => {
-                write!(f, "SetNextTrack {{ track_id: {track_id} }}")
+            AudioCmd::SetNextTrack {
+                after, track_id, ..
+            } => {
+                write!(f, "SetNextTrack {{ after: {after}, track_id: {track_id} }}")
             }
+            AudioCmd::ClearNextTrack { after } => write!(f, "ClearNextTrack {{ after: {after} }}"),
             AudioCmd::LoadUrlAndPlay {
                 url,
                 track_id,
@@ -305,7 +327,10 @@ impl AudioCmd {
     /// rest act on whatever is current, so they are always meant for the
     /// state they find. `SetNextTrack` is deliberately absent too — it
     /// arms the gapless prefetch rather than taking over, and dropping one
-    /// would cost a gapless hand-off to prevent nothing audible.
+    /// would cost a gapless hand-off to prevent nothing audible. It is
+    /// ordered by what it follows instead: its `after` names the track it
+    /// was prepared for, and the decoder drops it once that track is no
+    /// longer the one playing.
     pub(crate) fn load_intent(&self) -> Option<LoadIntent> {
         match self {
             AudioCmd::LoadAndPlay { intent, .. }

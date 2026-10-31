@@ -6,7 +6,7 @@ use std::sync::Arc;
 use tauri::AppHandle;
 
 use crate::{
-    audio::{engine::AudioCmd, AudioEngine},
+    audio::{engine::AudioCmd, next_track::edit_queue, AudioEngine},
     error::{AppError, AppResult},
     queue::{self, Direction},
     state::AppState,
@@ -280,12 +280,19 @@ pub(crate) async fn play_tracks_with_intent(
 pub async fn player_reorder_queue(
     app: AppHandle,
     state: tauri::State<'_, AppState>,
+    engine: tauri::State<'_, Arc<AudioEngine>>,
     from_position: i64,
     to_position: i64,
 ) -> AppResult<()> {
     let pool = state.require_profile_pool().await?;
-    queue::reorder(&pool, from_position, to_position).await?;
+    edit_queue(
+        engine.lock_publish(),
+        queue::reorder(&pool, from_position, to_position),
+    )
+    .await?;
     emit_queue_changed(&app);
+    // A prepared next track follows the queue (see `audio::next_track`).
+    crate::audio::next_track::revise_soon(&app);
     Ok(())
 }
 
@@ -308,10 +315,16 @@ pub async fn player_add_to_queue(
     // session of records. The mirror has to follow the row that branch
     // just wrote, or the next track plays with the album gain of a
     // session that ended (#647).
-    if queue::append_to_user_queue(&pool, &track_ids, None).await? {
+    let built = edit_queue(
+        engine.lock_publish(),
+        queue::append_to_user_queue(&pool, &track_ids, None),
+    )
+    .await?;
+    if built {
         publish_album_ordering(&engine, false);
     }
     emit_queue_changed(&app);
+    crate::audio::next_track::revise_soon(&app);
     Ok(())
 }
 
@@ -327,10 +340,16 @@ pub async fn player_play_next(
     let pool = state.require_profile_pool().await?;
     // Same as "Add to queue": only the empty-queue branch replaces the
     // queue, and only then does what it is made of change (#647).
-    if queue::insert_after_current(&pool, &track_ids, "manual", None).await? {
+    let built = edit_queue(
+        engine.lock_publish(),
+        queue::insert_after_current(&pool, &track_ids, "manual", None),
+    )
+    .await?;
+    if built {
         publish_album_ordering(&engine, false);
     }
     emit_queue_changed(&app);
+    crate::audio::next_track::revise_soon(&app);
     Ok(())
 }
 

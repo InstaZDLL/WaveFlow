@@ -105,6 +105,11 @@ fn handle_playback_outcome(
     analytics_tx: &UnboundedSender<AnalyticsMsg>,
     source_label: Option<String>,
 ) {
+    // However the track ended — on its own, stopped, replaced, failed —
+    // it asks for no next track and mixes nothing any more: a queue
+    // change from here on is not for it.
+    shared.next_wanted.store(false, Ordering::Release);
+    shared.mixing.store(false, Ordering::Release);
     match outcome {
         Ok((PlaybackEnd::Natural, listened_ms, finished)) => {
             let completed = listened_ms + 2000 >= finished.duration_ms && finished.duration_ms > 0;
@@ -943,3 +948,6 @@ mod apply_setting_tests;
 
 #[cfg(test)]
 mod load_ordering_tests;
+
+#[cfg(test)]
+mod next_track_tests;

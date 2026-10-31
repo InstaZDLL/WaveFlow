@@ -2346,6 +2346,10 @@
       "title": "Dynamic crossfade",
       "subtitle": "Scales fade duration with the tempo gap between tracks (falls back to the fixed crossfade when BPM is unknown)"
     },
+    "autoMix": {
+      "title": "AutoMix",
+      "subtitle": "Lines the crossfade up on both tracks' beats and counts its length in beats, within the crossfade time set; an album plays through without a fade (falls back to smart crossfade without a beat grid or when the tempos are too far apart)"
+    },
     "gapless": {
       "title": "Gapless playback",
       "subtitle": "Chain consecutive tracks with no micro-silence (great for live and concept albums)"

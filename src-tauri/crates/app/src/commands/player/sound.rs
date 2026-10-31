@@ -415,6 +415,44 @@ pub async fn player_get_dynamic_crossfade(
         .load(std::sync::atomic::Ordering::Relaxed))
 }
 
+/// Toggle AutoMix: the crossfade placed on both tracks' beats, its length
+/// counted in beats within the crossfade setting, falling back to the
+/// smart crossfade when a track has no usable beat grid or the tempos are
+/// too far apart. Same-album transitions play through without a fade, as
+/// with smart crossfade. Default OFF. Persisted in
+/// `profile_setting['audio.automix']`.
+#[tauri::command]
+pub async fn player_set_automix(
+    state: tauri::State<'_, AppState>,
+    engine: tauri::State<'_, Arc<AudioEngine>>,
+    enabled: bool,
+) -> AppResult<()> {
+    if let Ok(pool) = state.require_profile_pool().await {
+        persist_setting(
+            &pool,
+            "audio.automix",
+            if enabled { "true" } else { "false" },
+            SettingType::Bool,
+        )
+        .await?;
+    }
+    let automix = &engine.shared().automix;
+    automix
+        .enabled
+        .store(enabled, std::sync::atomic::Ordering::Release);
+    if !enabled {
+        // A plan already handed over would still be honoured: drop it
+        // so the next transition is the plain one at once.
+        automix.clear_plan();
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn player_get_automix(engine: tauri::State<'_, Arc<AudioEngine>>) -> AppResult<bool> {
+    Ok(engine.shared().automix.is_enabled())
+}
+
 /// Toggle the spectrum visualizer. Flips the atomic the decoder
 /// thread checks before running the FFT, then persists the new
 /// value to `profile_setting['ui.visualizer']` so the choice

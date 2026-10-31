@@ -2346,6 +2346,10 @@
       "title": "Dinamik çapraz geçiş",
       "subtitle": "Çapraz geçiş süresini parçalar arasındaki tempo farkına göre ölçeklendirir (BPM bilinmiyorsa sabit çapraz geçişe geri döner)"
     },
+    "autoMix": {
+      "title": "AutoMix",
+      "subtitle": "Çapraz geçişi iki parçanın vuruşlarına hizalar ve süresini ayarlanan çapraz geçiş süresi içinde vuruş sayısıyla belirler; bir albüm geçişsiz çalar (vuruş ızgarası yoksa veya tempolar çok farklıysa akıllı çapraz geçişe döner)"
+    },
     "gapless": {
       "title": "Aralıksız oynatma",
       "subtitle": "Ardışık parçaları mikro sessizlik olmadan birbirine bağlar (canlı ve konsept albümler için idealdir)"

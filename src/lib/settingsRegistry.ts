@@ -249,6 +249,13 @@ export const SETTINGS = {
     false,
     "settings.dynamicCrossfade.title",
   ),
+  "audio.automix": setting(
+    "playback",
+    "profile",
+    "bool",
+    false,
+    "settings.autoMix.title",
+  ),
   "audio.pause_on_device_loss": setting(
     "playback",
     "profile",
