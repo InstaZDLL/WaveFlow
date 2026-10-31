@@ -200,6 +200,24 @@ pub async fn revise(app: &AppHandle) {
     }
 }
 
+/// Run `edit`, a change to the queue, under the engine's publish lock
+/// (`publish`, its [`AudioEngine::lock_publish`]).
+///
+/// The prefetch and a revision read the queue's next track and send it
+/// under that lock, and an autoplay top-up reads the queue's end, draws
+/// its picks over several queries and appends them under it too. An edit
+/// landing in between would leave the decoder a next track the queue no
+/// longer names, or be followed by picks appended to a queue it has just
+/// emptied. Taken after the profile pool, as those holders take it, and
+/// released before the edit's [`revise_soon`] takes it again.
+pub async fn edit_queue<G, T>(
+    publish: impl std::future::Future<Output = G>,
+    edit: impl std::future::Future<Output = T>,
+) -> T {
+    let _publish = publish.await;
+    edit.await
+}
+
 /// [`revise`] in the background, for a command that has just changed the
 /// queue and returns at once.
 pub fn revise_soon(app: &AppHandle) {

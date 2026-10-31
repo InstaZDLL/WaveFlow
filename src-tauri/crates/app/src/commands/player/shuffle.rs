@@ -6,7 +6,7 @@ use std::sync::Arc;
 use tauri::{AppHandle, Emitter};
 
 use crate::{
-    audio::AudioEngine,
+    audio::{next_track::edit_queue, AudioEngine},
     error::AppResult,
     queue::{self},
     state::AppState,
@@ -147,7 +147,11 @@ pub async fn player_toggle_shuffle(
         // time shuffle is switched off and back on.
         queue::read_shuffle_grouping_preference(&pool).await
     };
-    set_shuffle_mode(&pool, &engine, next).await?;
+    edit_queue(
+        engine.lock_publish(),
+        set_shuffle_mode(&pool, &engine, next),
+    )
+    .await?;
     // Queue content changed (reordered in place) — tell the panel, and
     // the decoder if it has a next track prepared.
     emit_queue_changed(&app);
@@ -181,7 +185,11 @@ pub async fn player_set_shuffle_mode(
 ) -> AppResult<String> {
     let pool = state.require_profile_pool().await?;
     let mode = queue::ShuffleMode::from_str(&mode);
-    set_shuffle_mode(&pool, &engine, mode).await?;
+    edit_queue(
+        engine.lock_publish(),
+        set_shuffle_mode(&pool, &engine, mode),
+    )
+    .await?;
     emit_queue_changed(&app);
     crate::audio::next_track::revise_soon(&app);
     emit_options_changed(&app, &pool).await;

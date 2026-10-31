@@ -166,3 +166,67 @@ async fn nothing_is_sent_while_the_cursor_is_on_another_track() {
     queue::commit_index(&pool, 2).await.unwrap();
     assert_eq!(revision(&pool, &shared).await, vec![]);
 }
+
+/// A queue edit waits for the publish lock: whoever holds it reads the
+/// queue and acts on what it read before the edit lands. `hold` stands
+/// for that holder; it returns once the edit is waiting.
+async fn edit_waits<T: Send + 'static>(
+    edit: impl std::future::Future<Output = T> + Send + 'static,
+    hold: impl std::future::Future<Output = ()>,
+) -> T {
+    let publish = std::sync::Arc::new(tokio::sync::Mutex::new(()));
+    let held = publish.clone().lock_owned().await;
+    let edit = tokio::spawn({
+        let publish = publish.clone();
+        async move { edit_queue(publish.lock_owned(), edit).await }
+    });
+    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    hold.await;
+    drop(held);
+    edit.await.unwrap()
+}
+
+/// An autoplay top-up has read the queue's end and is drawing its picks
+/// when an MPD client clears the queue: the clear waits, then empties
+/// the picks too, instead of being followed by them.
+#[tokio::test]
+async fn a_clear_waits_for_a_top_up_in_flight() {
+    let dir = tempfile::tempdir().unwrap();
+    let pool = pool(dir.path()).await;
+    library(&pool).await;
+    queue::fill_queue(&pool, "album", None, &[1, 2, 3], 2, false)
+        .await
+        .unwrap();
+    let clear = {
+        let pool = pool.clone();
+        async move { queue::clear(&pool).await }
+    };
+    edit_waits(clear, async {
+        assert_eq!(queue::queue_length(&pool).await.unwrap(), 3);
+        queue::append(&pool, &[4], "radio", None).await.unwrap();
+    })
+    .await
+    .unwrap();
+    assert_eq!(queue::queue_length(&pool).await.unwrap(), 0);
+}
+
+/// The prefetch has read the queue's next track and is sending it when
+/// the queue is reordered: the reorder waits, so the track sent is the
+/// one the queue named, and the revision that follows sends the new one.
+#[tokio::test]
+async fn a_reorder_waits_for_the_next_track_being_sent() {
+    let dir = tempfile::tempdir().unwrap();
+    let pool = pool(dir.path()).await;
+    library(&pool).await;
+    let shared = playing(&pool, &[1, 2, 3, 4], 0).await;
+    let reorder = {
+        let pool = pool.clone();
+        async move { queue::reorder(&pool, 3, 1).await }
+    };
+    edit_waits(reorder, async {
+        assert_eq!(revision(&pool, &shared).await, vec![(1, Some(2))]);
+    })
+    .await
+    .unwrap();
+    assert_eq!(revision(&pool, &shared).await, vec![(1, Some(4))]);
+}
