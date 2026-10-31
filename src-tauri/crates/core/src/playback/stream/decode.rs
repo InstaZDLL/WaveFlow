@@ -115,6 +115,8 @@ impl ActiveStream {
                 // After the decode, not before: a packet skipped as
                 // undecodable is audio that did not play.
                 extent.read(packet.pts.get(), packet.dur.get());
+                self.packets_read.bytes += packet.data.len() as u64;
+                self.packets_read.frames += decoded.frames() as u64;
                 if !*spec_captured {
                     let spec = decoded.spec();
                     let (channels, rate) = (spec.channels().count(), spec.rate());

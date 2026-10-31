@@ -228,8 +228,22 @@ pub struct ActiveStream {
     /// The codec as the format chip spells it (`FLAC`, `MP3`, `Opus`,
     /// `PCM`, `DSD64`, …), `None` when the registry has no name for it.
     pub codec: Option<String>,
+    /// What has been decoded so far, for a live bitrate: a player reads
+    /// it twice and divides. Running totals, never reset — not by a
+    /// seek either, the reader keeps its own starting point. Symphonia
+    /// streams only; a DSD stream's rate is constant and stays at zero.
+    pub packets_read: PacketTally,
     /// The resampler's tail has gone out after the end of the stream.
     tail_flushed: bool,
+}
+
+/// Running totals of the packets an [`ActiveStream`] has decoded.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct PacketTally {
+    /// Compressed bytes, the packets' payload as the container frames it.
+    pub bytes: u64,
+    /// Frames decoded from them, at the source rate.
+    pub frames: u64,
 }
 
 /// Packets one `decode_next` call may pass over (another track's,
@@ -531,6 +545,7 @@ impl ActiveStream {
             playback_speed: 1.0,
             container_duration_ms,
             codec,
+            packets_read: PacketTally::default(),
             tail_flushed: false,
         })
     }
