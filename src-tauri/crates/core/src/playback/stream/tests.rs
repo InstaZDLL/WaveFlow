@@ -67,6 +67,47 @@ fn a_track_resampled_to_its_end_keeps_its_length() {
     assert_eq!(out.len() / 2, delay + 48_000);
 }
 
+/// The tally counts every frame decoded and the bytes they came from,
+/// and a seek adds to it rather than starting it again.
+#[test]
+fn the_packet_tally_counts_what_was_decoded_and_survives_a_seek() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("tone.wav");
+    write_wav(&path);
+    let mut stream = ActiveStream::open(
+        &path,
+        0,
+        0,
+        String::new(),
+        None,
+        TrackGain::default(),
+        64,
+        false,
+    )
+    .unwrap();
+    assert_eq!(stream.packets_read, PacketTally::default());
+
+    let (mut out, mut scratch) = (Vec::new(), Vec::new());
+    while !stream
+        .decode_next(&mut out, &mut scratch, 44_100, 2)
+        .unwrap()
+    {}
+    // One second of 16-bit stereo: 44 100 frames from 176 400 bytes.
+    let whole = PacketTally {
+        bytes: 176_400,
+        frames: 44_100,
+    };
+    assert_eq!(stream.packets_read, whole);
+
+    stream.seek_ms(0);
+    assert_eq!(stream.packets_read, whole);
+    assert!(!stream
+        .decode_next(&mut out, &mut scratch, 44_100, 2)
+        .unwrap());
+    assert!(stream.packets_read.frames > whole.frames);
+    assert!(stream.packets_read.bytes > whole.bytes);
+}
+
 /// Read ahead in the background, a track decodes to exactly what the
 /// file gives read directly.
 #[test]

@@ -12,7 +12,7 @@ use crate::audio_format::dsd::pcm::DsdToPcm;
 use crate::playback::replay_gain::TrackGain;
 use crate::playback::resampler::Resampler;
 
-use super::{ActiveStream, StreamBackend, DSD_READ_CHUNK};
+use super::{ActiveStream, PacketTally, StreamBackend, DSD_READ_CHUNK};
 
 impl ActiveStream {
     /// Build an ActiveStream wrapping the DSD pipeline. The container
@@ -80,6 +80,7 @@ impl ActiveStream {
                 playback_speed: 1.0,
                 container_duration_ms,
                 codec,
+                packets_read: PacketTally::default(),
                 tail_flushed: false,
             });
         }
@@ -115,6 +116,7 @@ impl ActiveStream {
             playback_speed: 1.0,
             container_duration_ms,
             codec,
+            packets_read: PacketTally::default(),
             tail_flushed: false,
         })
     }
