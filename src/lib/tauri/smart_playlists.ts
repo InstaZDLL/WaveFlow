@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { discoveryOnSuccess } from "../discovery";
 
 /**
  * Trigger a regen of every Daily Mix slot from the active profile's
@@ -173,12 +174,16 @@ export interface RulesCount {
   kept: number;
 }
 
-export function createCustomSmartPlaylist(
+export async function createCustomSmartPlaylist(
   input: CustomSmartPlaylistInput,
 ): Promise<CustomSmartPlaylistOutput> {
-  return invoke<CustomSmartPlaylistOutput>("create_custom_smart_playlist", {
-    input,
-  });
+  const tick = discoveryOnSuccess("smartPlaylist");
+  const created = await invoke<CustomSmartPlaylistOutput>(
+    "create_custom_smart_playlist",
+    { input },
+  );
+  tick();
+  return created;
 }
 
 export function updateCustomSmartPlaylist(

@@ -18,6 +18,7 @@ import { useProfile } from "../../../hooks/useProfile";
 import { useTasks } from "../../../hooks/useTasks";
 import { EnrichmentReviewModal } from "../../common/EnrichmentReviewModal";
 import { ToggleSwitch } from "./ToggleSwitch";
+import { discoveryOnSuccess } from "../../../lib/discovery";
 
 const FIELDS: ReadonlyArray<{ key: EnrichmentSettingKey; labelKey: string }> = [
   {
@@ -124,13 +125,16 @@ export function EnrichmentCard() {
 
   const onToggleEnabled = async () => {
     const next = !enabled.value;
+    const tick = discoveryOnSuccess("enrichment");
     setError(null);
     try {
       await enabled.setValue(next);
       // Turning it on starts a pass straight away rather than waiting
       // for the next scan.
-      if (next) await runEnrichment();
-      else await cancelEnrichment();
+      if (next) {
+        await runEnrichment();
+        tick();
+      } else await cancelEnrichment();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     }

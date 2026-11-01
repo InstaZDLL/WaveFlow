@@ -1,0 +1,425 @@
+/* ============================================================
+   Feature cards and their scenes — the onboarding, the Home's
+   first steps, and (later) the "What's new" panel.
+
+   The base works in every skin from Tailwind utilities on the
+   markup; the fluid layout recomposes it with its tokens below,
+   and the materials over it (Liquid, Pulse, Editorial, Lounge)
+   repaint those tokens without a rule of their own.
+
+   Motion is transform and opacity only, never a blur, and it
+   stops under `prefers-reduced-motion` and the reduced visual
+   effects level: every scene reads standing still.
+   ============================================================ */
+
+.feature-card,
+.onboarding-shell,
+.first-steps {
+  --disc-accent: var(--fe-accent, var(--accent-500));
+  --disc-ease: var(--fe-ease, cubic-bezier(0.22, 1, 0.36, 1));
+}
+
+/* ── The card ──────────────────────────────────────────────── */
+.feature-card {
+  transition:
+    box-shadow 180ms var(--disc-ease),
+    background-color 180ms var(--disc-ease),
+    transform 320ms var(--disc-ease);
+}
+.feature-card[data-checked="true"] {
+  box-shadow: 0 0 0 2px var(--disc-accent);
+}
+button.feature-card:not(:disabled):active {
+  transform: scale(0.985);
+}
+.feature-card__art {
+  color: inherit;
+}
+.feature-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* The switch drawn in the corner of a card that toggles. */
+.feature-switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 1.25rem;
+  border-radius: 9999px;
+  background-color: rgb(127 127 127 / 0.35);
+  transition: background-color 180ms var(--disc-ease);
+}
+.feature-switch::after {
+  content: "";
+  position: absolute;
+  top: 0.1875rem;
+  left: 0.1875rem;
+  width: 0.875rem;
+  height: 0.875rem;
+  border-radius: 9999px;
+  background-color: #fff;
+  transition: transform 320ms var(--disc-ease);
+}
+.feature-switch[data-on="true"] {
+  background-color: var(--disc-accent);
+}
+.feature-switch[data-on="true"]::after {
+  transform: translateX(1rem);
+}
+
+/* ── Fluid recomposition ───────────────────────────────────── */
+/* A tone over whatever the card sits on — the dialog's surface, a
+   page — so it reads one step up wherever it is used. */
+:root[data-layout="fluid"] .feature-card {
+  background-color: var(--fe-tone-1) !important;
+  border-color: transparent !important;
+  border-radius: 0.875rem;
+  box-shadow: inset 0 1px 0 var(--fe-edge);
+}
+:root[data-layout="fluid"] .feature-card[data-checked="true"] {
+  box-shadow:
+    inset 0 1px 0 var(--fe-edge),
+    0 0 0 1.5px var(--fe-accent);
+}
+:root[data-layout="fluid"] button.feature-card:not(:disabled):hover {
+  background-color: var(--fe-tone-2) !important;
+}
+:root[data-layout="fluid"] .feature-card__art {
+  background-color: var(--fe-tone-1) !important;
+  color: var(--fe-ink-2);
+}
+:root[data-layout="fluid"] .feature-card__title {
+  color: var(--fe-ink) !important;
+  font-weight: 540;
+  letter-spacing: -0.012em;
+}
+:root[data-layout="fluid"] .feature-card__benefit {
+  color: var(--fe-ink-3) !important;
+}
+:root[data-layout="fluid"] .feature-switch[data-on="true"]::after {
+  background-color: var(--fe-accent-ink);
+}
+
+/* ── The scenes ────────────────────────────────────────────── */
+.feature-art * {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.feature-art .fa-out {
+  animation: fa-out 2.8s var(--disc-ease) infinite alternate;
+}
+.feature-art .fa-in {
+  animation: fa-in 2.8s var(--disc-ease) infinite alternate;
+}
+.feature-art .fa-slide {
+  animation: fa-slide 3.2s var(--disc-ease) infinite alternate;
+}
+.feature-art .fa-level {
+  transform-origin: bottom;
+  animation: fa-level 3.2s var(--disc-ease) infinite alternate;
+}
+.feature-art .fa-pulse {
+  animation: fa-pulse 0.94s var(--disc-ease) infinite alternate;
+}
+.feature-art .fa-turn {
+  animation: fa-turn 14s linear infinite;
+}
+.feature-art .fa-sweep {
+  transform-origin: left;
+  animation: fa-sweep 3s var(--disc-ease) infinite;
+}
+.feature-art .fa-fill {
+  transform-origin: left;
+  animation: fa-sweep 3.6s var(--disc-ease) infinite;
+}
+.feature-art .fa-feed {
+  animation: fa-feed 1.8s var(--disc-ease) infinite;
+}
+.feature-art .fa-drift {
+  animation: fa-drift 3.4s var(--disc-ease) infinite alternate;
+}
+.feature-art .fa-shine {
+  animation: fa-shine 2.6s var(--disc-ease) infinite;
+}
+.feature-art .fa-snap {
+  animation: fa-snap 2.6s var(--disc-ease) infinite;
+}
+.feature-art .fa-travel {
+  animation: fa-travel 1.6s var(--disc-ease) infinite alternate;
+}
+.feature-art .fa-grow {
+  animation: fa-grow 3s var(--disc-ease) infinite alternate;
+}
+.feature-art .fa-lift {
+  animation: fa-lift 2.4s var(--disc-ease) infinite alternate;
+}
+.feature-art .fa-float {
+  animation: fa-float 2.8s var(--disc-ease) infinite alternate;
+}
+.feature-art .fa-row {
+  animation: fa-row 3.2s var(--disc-ease) infinite;
+}
+
+@keyframes fa-out {
+  from {
+    opacity: 0.6;
+  }
+  to {
+    opacity: 0.08;
+  }
+}
+@keyframes fa-in {
+  from {
+    opacity: 0.15;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes fa-slide {
+  from {
+    transform: translateX(9px);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes fa-level {
+  from {
+    transform: scaleY(var(--fa-from, 1));
+  }
+  to {
+    transform: scaleY(0.62);
+  }
+}
+@keyframes fa-pulse {
+  from {
+    transform: scale(0.82);
+  }
+  to {
+    transform: scale(1.12);
+  }
+}
+@keyframes fa-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes fa-sweep {
+  0% {
+    transform: scaleX(0);
+  }
+  70%,
+  100% {
+    transform: scaleX(1);
+  }
+}
+@keyframes fa-feed {
+  0% {
+    opacity: 0;
+    transform: translateX(0);
+  }
+  30% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(44px);
+  }
+}
+@keyframes fa-drift {
+  from {
+    transform: translateY(-6px);
+  }
+  to {
+    transform: translateY(6px);
+  }
+}
+@keyframes fa-shine {
+  0% {
+    opacity: 0;
+    transform: translateX(0);
+  }
+  40% {
+    opacity: 0.35;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(46px);
+  }
+}
+@keyframes fa-snap {
+  0% {
+    transform: translateX(18px);
+    opacity: 0.4;
+  }
+  45%,
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+@keyframes fa-travel {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(36px);
+  }
+}
+@keyframes fa-grow {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(2.2, 1.6);
+  }
+}
+@keyframes fa-lift {
+  from {
+    transform: translate(0, 0);
+  }
+  to {
+    transform: translate(5px, -8px);
+  }
+}
+@keyframes fa-float {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-7px);
+  }
+}
+@keyframes fa-row {
+  0% {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+  25%,
+  85% {
+    opacity: var(--fa-row-opacity, 1);
+    transform: translateX(0);
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ── The Home's first steps: the scenes hold still until an item is
+   hovered or focused, so eight of them do not move the page at once. */
+.first-steps__item:not(:hover):not(:focus-visible) .feature-art * {
+  animation: none;
+}
+
+/* ── The onboarding's scan strip ───────────────────────────── */
+.onboarding-scan__bar {
+  transform-origin: left;
+  transition: transform 320ms var(--disc-ease);
+}
+/* Before the first count lands the length is unknown: a short segment
+   travels the track. */
+.onboarding-scan__bar[data-indeterminate] {
+  width: 30% !important;
+  transform: none;
+  animation: onboarding-scan-travel 1.4s var(--disc-ease) infinite;
+}
+@keyframes onboarding-scan-travel {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(340%);
+  }
+}
+
+/* ── Steps and screens ─────────────────────────────────────── */
+.onboarding-step {
+  animation: onboarding-rise 420ms var(--disc-ease) both;
+}
+@keyframes onboarding-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+/* The dialog itself takes the fluid dialog rule (surface-2, no border);
+   what sits on it is toned up from there. */
+:root[data-layout="fluid"] .onboarding-shell .onboarding-title {
+  color: var(--fe-ink) !important;
+  font-weight: 560;
+  letter-spacing: -0.03em;
+  line-height: 1.02;
+  text-wrap: balance;
+}
+:root[data-layout="fluid"] .onboarding-shell .onboarding-lede {
+  color: var(--fe-ink-2) !important;
+}
+:root[data-layout="fluid"] .onboarding-shell .onboarding-kicker {
+  color: var(--fe-ink-3) !important;
+  letter-spacing: 0.12em;
+}
+:root[data-layout="fluid"] .onboarding-shell .onboarding-primary {
+  background-color: var(--fe-accent) !important;
+  color: var(--fe-accent-ink) !important;
+}
+:root[data-layout="fluid"] .onboarding-shell .onboarding-ghost {
+  background-color: var(--fe-tone-2) !important;
+  border-color: transparent !important;
+  color: var(--fe-ink-2) !important;
+}
+:root[data-layout="fluid"] .onboarding-shell .onboarding-ghost:hover {
+  background-color: var(--fe-tone-3) !important;
+  color: var(--fe-ink) !important;
+}
+:root[data-layout="fluid"] .onboarding-shell .onboarding-tile {
+  background-color: var(--fe-tone-1) !important;
+  border-color: transparent !important;
+}
+:root[data-layout="fluid"]
+  .onboarding-shell
+  .onboarding-tile[aria-pressed="true"],
+:root[data-layout="fluid"]
+  .onboarding-shell
+  .onboarding-tile[aria-checked="true"] {
+  box-shadow: 0 0 0 1.5px var(--fe-accent) !important;
+}
+:root[data-layout="fluid"] .onboarding-shell .onboarding-drop {
+  border-color: var(--fe-hairline-strong) !important;
+  background-color: var(--fe-tone-1);
+}
+:root[data-layout="fluid"] .onboarding-shell .onboarding-drop:hover {
+  border-color: var(--fe-accent) !important;
+}
+:root[data-layout="fluid"] .onboarding-shell .onboarding-dot {
+  background-color: var(--fe-tone-4) !important;
+}
+:root[data-layout="fluid"] .onboarding-shell .onboarding-dot[data-on] {
+  background-color: var(--fe-accent) !important;
+}
+
+/* ── No motion ─────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .feature-art *,
+  .onboarding-step,
+  .onboarding-scan__bar[data-indeterminate] {
+    animation: none !important;
+  }
+  .feature-card,
+  .feature-switch,
+  .feature-switch::after,
+  .onboarding-scan__bar {
+    transition: none;
+  }
+}
+:root[data-effects="reduced"] .feature-art *,
+:root[data-effects="reduced"] .onboarding-step,
+:root[data-effects="reduced"] .onboarding-scan__bar[data-indeterminate] {
+  animation: none !important;
+}

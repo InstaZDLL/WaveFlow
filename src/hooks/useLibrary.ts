@@ -42,6 +42,12 @@ interface LibraryContextValue {
    *  fast path — see `rescanLibrary` in `lib/tauri/library`. */
   rescanLibrary: (libraryId: number, deep?: boolean) => Promise<RescanSummary>;
   /**
+   * Register a folder inside a library without scanning it, and return its
+   * id. Refused with a folder overlap, which is announced to the import
+   * toast before the error is rethrown.
+   */
+  addFolder: (libraryId: number, path: string) => Promise<number>;
+  /**
    * Register a folder inside a library and immediately scan it. Returns the
    * summary so the UI can surface counts to the user.
    */

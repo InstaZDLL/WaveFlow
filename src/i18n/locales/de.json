@@ -65,108 +65,146 @@
   },
   "onboarding": {
     "defaultLibraryName": "Musik",
-    "welcome": {
-      "title": "Willkommen bei WaveFlow",
-      "description": "Dein persönlicher Local-First-Musikplayer. Genieße deine gesamte Bibliothek ohne Streaming-Abo."
-    },
-    "localOnly": {
-      "title": "Wichtig: nur lokale Musik",
-      "description": "WaveFlow ist KEIN Streaming-Dienst. Es spielt die Dateien, die bereits auf deinem Gerät liegen.",
-      "calloutTitle": "Was du wissen solltest",
-      "bulletOwn": "Bring deine eigene Bibliothek mit (MP3, FLAC, ALAC, OGG, DSD…)",
-      "bulletImport": "Importiere einen Ordner oder lege Dateien per Drag & Drop ab",
-      "bulletScrobble": "Verbinde Last.fm, um deine Wiedergaben im Hintergrund zu scrobbeln"
-    },
-    "appearance": {
-      "title": "Wähle deinen Look",
-      "description": "Wähle ein Farbschema und einen Oberflächenstil. Du kannst beides jederzeit unter Einstellungen → Darstellung ändern.",
-      "theme": {
-        "title": "Farbschema"
-      },
-      "skin": {
-        "title": "Oberflächenstil"
-      },
-      "hint": "Diese Auswahl wird pro Profil gespeichert — jedes Profil kann sein eigenes Aussehen haben."
-    },
-    "folder": {
-      "title": "Wähle deinen Musikordner",
-      "description": "Sag WaveFlow, wo deine Musik liegt. Der Scanner organisiert deine Bibliothek automatisch.",
-      "placeholder": "Klicke, um deinen Musikordner zu wählen",
-      "changeHint": "Klicke, um den Ordner zu wechseln",
-      "quickSettings": "Schnelleinstellungen",
-      "autoAnalyze": {
-        "title": "Titel automatisch analysieren",
-        "description": "Erkenne BPM und Tonart während des Scans — Grundlage für Radio und Mood-Radio."
-      }
-    },
-    "lastfm": {
-      "title": "Mit Last.fm verbinden",
-      "description": "Scrobbling sendet deine Wiedergaben an dein Last.fm-Profil. Im Gegenzug bekommst du Künstler-Biografien und Vorschläge zu ähnlichen Künstlern direkt in der App.",
-      "recommendedBadge": "Empfohlen",
-      "keyHint": "Erstelle einen API-Schlüssel auf Last.fm",
-      "keyLabel": "API-Schlüssel",
-      "keyPlaceholder": "Dein Last.fm-API-Schlüssel",
-      "secretLabel": "Shared Secret",
-      "secretPlaceholder": "Dein Shared Secret",
-      "userLabel": "Last.fm-Benutzername",
-      "userPlaceholder": "dein-name",
-      "passwordLabel": "Passwort",
-      "passwordPlaceholder": "Dein Last.fm-Passwort",
-      "toggleSecret": "Secret ein-/ausblenden",
-      "togglePassword": "Passwort ein-/ausblenden",
-      "connect": "Last.fm verbinden",
-      "missingFields": "Bitte fülle API-Schlüssel, Secret, Benutzernamen und Passwort aus.",
-      "connectedTitle": "Verbunden als {{user}}",
-      "connectedSubtitle": "Scrobbling startet automatisch, sobald du einen Titel abspielst."
-    },
-    "scan": {
-      "title": "Bibliothek scannen",
-      "description": "Bereit, deinen Ordner zu analysieren und deine Titel zu entdecken?",
-      "noFolder": "Kein Ordner ausgewählt",
-      "readyHint": "Dein Ordner ist eingerichtet. Starte den Scan, wenn du bereit bist.",
-      "scanning": "Bibliothek wird gescannt…",
-      "errorTitle": "Scan fehlgeschlagen"
-    },
-    "done": {
-      "title": "Alles bereit!",
-      "description": "Deine Bibliothek wurde gescannt und ist startklar.",
-      "nextSteps": "Nächste Schritte:",
-      "bulletExplore": "Erkunde deine Bibliothek über die Tabs „Titel“, „Alben“ und „Künstler“",
-      "bulletQueue": "Erstelle deine erste Warteschlange, indem du auf einen Titel klickst",
-      "bulletSettings": "Justiere alles über die Seitenleiste (Darstellung, Verbindungen…)",
-      "tipImmersiveTitle": "Tipp: immersive Ansicht",
-      "tipImmersiveBody": "Klicke auf das Cover im Player, um die Vollbildansicht mit Cover und Songtext nebeneinander zu öffnen."
+    "phase": {
+      "setup": "Einrichtung · {{current}}/{{total}}",
+      "compose": "Mach WaveFlow zu deinem · {{current}}/{{total}}"
     },
     "actions": {
-      "skipSetup": "Einrichtung überspringen",
-      "getStarted": "Loslegen",
-      "back": "Zurück",
+      "close": "Tour schließen",
+      "later": "Später",
+      "start": "Los geht's",
+      "folderLater": "Später auswählen",
+      "skipAll": "Alle überspringen",
+      "skip": "Überspringen",
       "continue": "Weiter",
-      "understood": "Verstanden",
-      "skipForNow": "Vorerst überspringen",
-      "scanLater": "Später scannen",
-      "scanNow": "Jetzt scannen",
-      "startListening": "Hören starten"
+      "back": "Zurück"
     },
-    "language": {
-      "title": "Wähle deine Sprache",
-      "description": "WaveFlow ist in 17 Sprachen verfügbar. Wir haben die deines Systems vorausgewählt — ändere sie, falls wir falsch lagen.",
-      "detected": "Aus deinem System erkannt",
-      "fallback": "Wir konnten die Sprache deines Systems nicht erkennen und sind auf Englisch zurückgefallen. Wähle deine unten aus."
+    "welcome": {
+      "title": "Willkommen bei WaveFlow",
+      "lede": "Deine Musik, auf deinem Rechner. WaveFlow spielt die Dateien ab, die du schon besitzt: kein Abo, und nichts verlässt deinen Computer ohne deine Zustimmung.",
+      "language": "Sprache",
+      "languageFallback": "Deine Systemsprache ist noch nicht verfügbar: Wähle die, die dir am besten passt.",
+      "name": "Dein Vorname oder Spitzname",
+      "nameHint": "Der Name dieses Profils, angezeigt auf der Startseite.",
+      "namePlaceholder": "Dein Name",
+      "nameRequired": "Gib einen Namen für dieses Profil ein."
     },
-    "profile": {
-      "title": "Profil benennen",
-      "description": "WaveFlow verwendet Profile, um Bibliotheken zu trennen. Wähle einen Namen, den du später wiedererkennst.",
-      "nameLabel": "Profilname",
-      "namePlaceholder": "z. B. Daisy",
-      "hint": "Du kannst später bei Bedarf weitere Profile erstellen.",
-      "required": "Der Profilname ist erforderlich.",
-      "unavailable": "Profil nicht verfügbar — bitte gleich erneut versuchen."
+    "folder": {
+      "title": "Wo ist deine Musik?",
+      "lede": "Wähle den Ordner mit deinen Alben. WaveFlow liest ihn sofort im Hintergrund ein, während du mit der Tour weitermachst.",
+      "pick": "Ordner auswählen",
+      "drop": "oder zieh einen Ordner oder Dateien auf das Fenster",
+      "hint": "Hineingezogene Dateien werden in den Ordner WaveFlow in deinem Musik-Ordner kopiert. Weitere Ordner kannst du später hinzufügen."
+    },
+    "scan": {
+      "preparing": "Deine Bibliothek wird vorbereitet…",
+      "running": "Deine Musik wird eingelesen · {{current}} / {{total}}",
+      "done": "Bibliothek bereit · +{{formatted}}",
+      "stopped": "Scan angehalten · +{{formatted}}",
+      "failed": "Der Scan wurde unterbrochen"
+    },
+    "look": {
+      "title": "Dein Look",
+      "lede": "Ein Oberflächenstil verändert die ganze Oberfläche, ein Design ihre Farbe. Alles wirkt sofort und findet sich unter Einstellungen → Darstellung.",
+      "skin": "Oberflächenstil",
+      "theme": "Design"
+    },
+    "listening": {
+      "title": "Dein Hörerlebnis",
+      "lede": "Wie die Titel ineinander übergehen und wie sie klingen. Jede Karte wird mit einem Klick aktiviert und lässt sich unter Einstellungen → Audio genauer einstellen.",
+      "crossfade": {
+        "title": "Crossfade",
+        "benefit": "Jeder Titel geht über {{seconds}} Sekunden in den nächsten über, ohne Stille dazwischen."
+      },
+      "automix": {
+        "title": "AutoMix",
+        "benefit": "Setzt die Überblendung auf die Beats beider Titel, wie ein DJ. Schaltet auch Crossfade ein."
+      },
+      "replaygain": {
+        "title": "Gleiche Lautstärke",
+        "benefit": "ReplayGain bringt alle deine Titel auf dieselbe Lautheit: Du musst nicht mehr am Lautstärkeregler drehen."
+      },
+      "analysis": {
+        "title": "BPM und Tonart",
+        "benefit": "Analysiert jeden neuen Titel für Radio und AutoMix. Läuft nach dem Scan im Hintergrund."
+      }
     },
     "lyrics": {
-      "title": "Wo sollen Songtexte landen?",
-      "description": "Wo sollen Songtexte hin — die, die du bearbeitest, und die, die WaveFlow für dich findet? Du kannst dies jederzeit unter Einstellungen → Songtexte ändern.",
-      "hint": "Wähle „Sidecar-Datei“, um Audiodateien unberührt zu lassen — wie foobar2000 & Co."
+      "title": "Deine Songtexte",
+      "lede": "WaveFlow findet synchronisierte Songtexte online und lässt dich eigene schreiben. Wähle, wo sie gespeichert werden, und füge weitere Quellen hinzu.",
+      "destination": "Speicherort",
+      "sources": "Songtext-Quellen"
+    },
+    "plugins": {
+      "title": "Deine Erweiterungen",
+      "lede": "Eine offizielle Auswahl, mit einem Klick installiert. Der Rest des Katalogs wartet unter Erweiterungen auf dich.",
+      "loading": "Katalog wird gelesen…",
+      "unavailable": "Der Katalog ist gerade nicht erreichbar. Das hier bietet er an: Du findest ihn unter Erweiterungen.",
+      "inExtensions": "Unter Erweiterungen zu finden",
+      "wordSynced": "Wort für Wort",
+      "installed": "Installiert",
+      "install": "Installieren",
+      "installing": "Wird installiert…",
+      "installAria": "{{name}} installieren",
+      "failed": "Die Installation ist fehlgeschlagen. Versuch es unter Erweiterungen noch einmal.",
+      "usage": {
+        "lyrics": {
+          "title": "Songtexte Wort für Wort",
+          "benefit": "Songtexte, die Wort für Wort aufleuchten, je nach Quelle mit Übersetzung und Umschrift."
+        },
+        "canvas": {
+          "title": "Canvas",
+          "benefit": "Ein kurzes Video in Endlosschleife hinter dem laufenden Titel, in der immersiven Ansicht."
+        },
+        "artwork": {
+          "title": "Animierte Cover",
+          "benefit": "Bewegte Cover und hochauflösende Bilder für deine Alben."
+        },
+        "radio": {
+          "title": "Web-Radio",
+          "benefit": "Tausende Sender aus aller Welt, direkt neben deiner Bibliothek."
+        }
+      }
+    },
+    "connections": {
+      "title": "Deine Verbindungen",
+      "lede": "Nichts wird ohne deine Zustimmung gesendet. Diese Verknüpfungen findest du unter Einstellungen → Verbindungen.",
+      "lastfm": {
+        "title": "Last.fm",
+        "benefit": "Zeichnet auf, was du hörst, und ergänzt Biografien und ähnliche Künstler.",
+        "connect": "Last.fm verbinden",
+        "connected": "Verbunden als {{user}}",
+        "keyHint": "Last.fm-API-Schlüssel erstellen",
+        "key": "API-Schlüssel",
+        "secret": "Shared Secret",
+        "user": "Benutzername",
+        "password": "Passwort",
+        "toggleSecret": "Secret ein- oder ausblenden",
+        "togglePassword": "Passwort ein- oder ausblenden",
+        "missingFields": "Fülle alle vier Felder aus, um dich anzumelden.",
+        "signIn": "Anmelden"
+      },
+      "discord": {
+        "title": "Discord-Status",
+        "benefit": "Zeigt deinen Freunden, was du gerade hörst. Standardmäßig aktiv: Schalte es hier aus, wenn dir das lieber ist."
+      },
+      "server": {
+        "title": "WaveFlow-Server",
+        "benefit": "Hör die Bibliothek eines WaveFlow-Servers und synchronisiere sie mit dieser hier.",
+        "open": "In den Einstellungen einrichten"
+      }
+    },
+    "done": {
+      "title": "Dein WaveFlow ist bereit",
+      "lede": "Deine Bibliothek steht. Viel Spaß beim Hören!",
+      "ledeEmpty": "Füge deine Musik hinzu, wann du willst: über die Startseite, die Bibliothek oder indem du einen Ordner auf das Fenster ziehst.",
+      "ledeFailed": "Der Scan wurde unterbrochen. Starte ihn erneut über die Bibliothek: Deine Einstellungen sind gespeichert.",
+      "ledeScanning": "Der Scan läuft im Hintergrund weiter: Was er schon gefunden hat, kannst du bereits hören.",
+      "firstSteps": "Auf der Startseite zeigt dir „Erste Schritte“, was WaveFlow sonst noch kann.",
+      "nothingYet": "Noch keine Titel: Der Scan hat bisher keine gefunden.",
+      "library": "Zur Bibliothek",
+      "play": "Wiedergabe starten",
+      "finish": "Fertig"
     }
   },
   "sidebar": {
@@ -3287,6 +3325,11 @@
       },
       "review_one": "Prüfen ({{count}})",
       "review_other": "Prüfen ({{count}})"
+    },
+    "onboardingReplay": {
+      "title": "Einführungstour",
+      "subtitle": "Die Einrichtung und die beim ersten Start vorgeschlagenen Einstellungen noch einmal durchgehen.",
+      "action": "Neu starten"
     }
   },
   "scanProgress": {
@@ -4084,5 +4127,59 @@
     "write_other": "{{count}} Dateien schreiben",
     "otherProfile": "Diese Werkstatt wurde in einem anderen Profil geöffnet. Öffne sie aus diesem Profil neu.",
     "truncated": "Nur die ersten {{shown}} von {{total}} Dateien sind geöffnet: grenze die Auswahl ein, um die übrigen zu bearbeiten."
+  },
+  "firstSteps": {
+    "kicker": "Erste Schritte",
+    "title": "Was WaveFlow kann",
+    "progress": "Entdeckt: {{done}} / {{total}}",
+    "hide": "Erste Schritte ausblenden",
+    "done": "(erledigt)",
+    "items": {
+      "immersive": {
+        "title": "Immersive Ansicht",
+        "hint": "Das Cover groß, der Songtext daneben."
+      },
+      "miniPlayer": {
+        "title": "Mini-Player",
+        "hint": "Ein kleines Fenster, das immer im Vordergrund bleibt."
+      },
+      "desktopLyrics": {
+        "title": "Desktop-Songtext",
+        "hint": "Der Songtext schwebt über deinen Fenstern."
+      },
+      "smartPlaylist": {
+        "title": "Intelligente Playlist",
+        "hint": "Ein paar Regeln, und sie füllt sich von selbst."
+      },
+      "enrichment": {
+        "title": "MusicBrainz-Anreicherung",
+        "hint": "Ergänzt fehlende Genres, Daten und Cover."
+      },
+      "tagWorkshop": {
+        "title": "Tag-Werkstatt",
+        "hint": "Korrigiert die Tags eines ganzen Albums auf einmal."
+      },
+      "wrapped": {
+        "title": "Wrapped",
+        "hint": "Dein Hörjahr in ein paar Karten."
+      },
+      "plugin": {
+        "title": "Eine Erweiterung installieren",
+        "hint": "Songtexte, Canvas, animierte Cover…"
+      }
+    }
+  },
+  "tips": {
+    "dismiss": "Tipp schließen",
+    "lyricsSources": {
+      "title": "Weitere Songtext-Quellen",
+      "body": "Erweiterungen liefern Wort für Wort synchronisierte Songtexte, besonders umfangreich für asiatische Musik.",
+      "action": "Quellen unter Erweiterungen ansehen"
+    },
+    "tagWorkshop": {
+      "title": "Noch mehr Möglichkeiten: die Tag-Werkstatt",
+      "body": "Suchen und Ersetzen, Nummerierung, MusicBrainz-Abgleich und Rückgängigmachen, für eine ganze Auswahl.",
+      "action": "Diese Auswahl in der Werkstatt öffnen"
+    }
   }
 }

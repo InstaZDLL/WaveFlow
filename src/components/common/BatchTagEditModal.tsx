@@ -4,6 +4,9 @@ import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { Loader2, Pencil, Save, X } from "lucide-react";
 import { useModalA11y } from "../../hooks/useModalA11y";
+import { ContextTip } from "../discovery/ContextTip";
+import { useTip } from "../discovery/useTip";
+import { openTagWorkshop } from "../../lib/tagWorkshop";
 import {
   updateTracksBatch,
   type BatchUpdateSummary,
@@ -28,12 +31,7 @@ interface BatchTagEditModalProps {
  * remaining fields as `None` (= leave untouched).
  */
 type FieldId =
-  | "artist"
-  | "album"
-  | "albumArtist"
-  | "composer"
-  | "year"
-  | "genre";
+  "artist" | "album" | "albumArtist" | "composer" | "year" | "genre";
 
 interface FieldState {
   enabled: boolean;
@@ -67,6 +65,8 @@ export function BatchTagEditModal({
   const { t } = useTranslation();
   const isOpen = trackIds != null && trackIds.length > 0;
   const dialogRef = useModalA11y<HTMLDivElement>(isOpen, onClose);
+  // Once per profile: the workshop does what this form does and more.
+  const workshopTip = useTip("tagWorkshop", isOpen);
   const [fields, setFields] = useState<Record<FieldId, FieldState>>(blank);
   const [isSaving, setIsSaving] = useState(false);
   const [summary, setSummary] = useState<BatchUpdateSummary | null>(null);
@@ -193,6 +193,26 @@ export function BatchTagEditModal({
         <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-4">
           {t("batchTagEdit.help")}
         </p>
+
+        {workshopTip.visible && (
+          <div className="mb-4">
+            <ContextTip
+              title={t("tips.tagWorkshop.title")}
+              body={t("tips.tagWorkshop.body")}
+              action={{
+                label: t("tips.tagWorkshop.action"),
+                onClick: () => {
+                  if (isSaving) return;
+                  openTagWorkshop({
+                    source: { kind: "tracks", track_ids: trackIds },
+                  });
+                  handleClose();
+                },
+              }}
+              onDismiss={workshopTip.dismiss}
+            />
+          </div>
+        )}
 
         <div className="space-y-3">
           {FIELD_CONFIG.map(({ id, type }) => {

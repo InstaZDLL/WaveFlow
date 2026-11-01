@@ -65,108 +65,146 @@
   },
   "onboarding": {
     "defaultLibraryName": "音乐",
-    "welcome": {
-      "title": "欢迎使用 WaveFlow",
-      "description": "你的个人本地优先音乐播放器。无需流媒体订阅，畅享整个音乐库。"
-    },
-    "localOnly": {
-      "title": "重要：仅限本地音乐",
-      "description": "WaveFlow 不是流媒体服务，它播放你设备上已有的文件。",
-      "calloutTitle": "你需要知道的事",
-      "bulletOwn": "自带音乐库（MP3、FLAC、ALAC、OGG、DSD…）",
-      "bulletImport": "导入文件夹或拖放文件",
-      "bulletScrobble": "连接 Last.fm，在后台提交播放记录"
-    },
-    "appearance": {
-      "title": "选择你的外观",
-      "description": "选择一个颜色主题和界面风格。你可以随时在“设置 → 外观”中更改。",
-      "theme": {
-        "title": "颜色主题"
-      },
-      "skin": {
-        "title": "界面风格"
-      },
-      "hint": "这些选项按个人资料保存——每个个人资料都可以有自己的外观。"
-    },
-    "folder": {
-      "title": "选择你的音乐文件夹",
-      "description": "告诉 WaveFlow 你的音乐在哪里。扫描器将自动整理你的音乐库。",
-      "placeholder": "点击选择你的音乐文件夹",
-      "changeHint": "点击更换文件夹",
-      "quickSettings": "快速设置",
-      "autoAnalyze": {
-        "title": "自动分析曲目",
-        "description": "扫描时检测 BPM 和调性——为电台和心情电台提供支持。"
-      }
-    },
-    "lastfm": {
-      "title": "连接 Last.fm",
-      "description": "连接后，播放记录会提交到你的 Last.fm 个人资料，同时你也能直接在应用内查看艺人简介和相似艺人推荐。",
-      "recommendedBadge": "推荐",
-      "keyHint": "在 Last.fm 上创建 API 密钥",
-      "keyLabel": "API 密钥",
-      "keyPlaceholder": "你的 Last.fm API 密钥",
-      "secretLabel": "共享密钥",
-      "secretPlaceholder": "你的共享密钥",
-      "userLabel": "Last.fm 用户名",
-      "userPlaceholder": "你的用户名",
-      "passwordLabel": "密码",
-      "passwordPlaceholder": "你的 Last.fm 密码",
-      "toggleSecret": "显示/隐藏密钥",
-      "togglePassword": "显示/隐藏密码",
-      "connect": "连接 Last.fm",
-      "missingFields": "请填写 API 密钥、共享密钥、用户名和密码。",
-      "connectedTitle": "已以 {{user}} 身份连接",
-      "connectedSubtitle": "播放曲目后，收听记录会自动提交。"
-    },
-    "scan": {
-      "title": "扫描你的音乐库",
-      "description": "准备好分析文件夹并发现你的曲目了吗？",
-      "noFolder": "未选择文件夹",
-      "readyHint": "文件夹已设置。准备好后即可开始扫描。",
-      "scanning": "正在扫描你的音乐库…",
-      "errorTitle": "扫描失败"
-    },
-    "done": {
-      "title": "全部就绪！",
-      "description": "你的音乐库已扫描完毕，准备好播放。",
-      "nextSteps": "下一步：",
-      "bulletExplore": "通过音乐库、专辑和艺人标签页浏览你的音乐库",
-      "bulletQueue": "点击曲目创建你的第一个播放队列",
-      "bulletSettings": "在侧边栏中微调设置（外观、连接…）",
-      "tipImmersiveTitle": "提示：沉浸式视图",
-      "tipImmersiveBody": "点击播放器封面，打开封面与歌词并排的全屏视图。"
+    "phase": {
+      "setup": "快速上手 · {{current}}/{{total}}",
+      "compose": "打造你的 WaveFlow · {{current}}/{{total}}"
     },
     "actions": {
-      "skipSetup": "跳过设置",
-      "getStarted": "开始",
-      "back": "返回",
+      "close": "关闭引导",
+      "later": "稍后",
+      "start": "开始",
+      "folderLater": "稍后选择",
+      "skipAll": "全部跳过",
+      "skip": "跳过",
       "continue": "继续",
-      "understood": "我知道了",
-      "skipForNow": "暂时跳过",
-      "scanLater": "稍后扫描",
-      "scanNow": "立即扫描",
-      "startListening": "开始聆听"
+      "back": "返回"
     },
-    "language": {
-      "title": "选择你的语言",
-      "description": "WaveFlow 提供 17 种语言。我们已预选你的系统语言——如有误请更改。",
-      "detected": "已从系统检测到",
-      "fallback": "我们无法检测到你的系统语言，已默认使用英语。请在下方选择你的语言。"
+    "welcome": {
+      "title": "欢迎使用 WaveFlow",
+      "lede": "你的音乐，就在你的电脑上。WaveFlow 播放你已经拥有的文件：无需订阅，未经你的同意，任何内容都不会离开你的电脑。",
+      "language": "语言",
+      "languageFallback": "暂不支持你的系统语言，请选择一种适合你的语言。",
+      "name": "你的名字或昵称",
+      "nameHint": "此个人资料的名称，会显示在首页上。",
+      "namePlaceholder": "你的名字",
+      "nameRequired": "请为此个人资料输入名称。"
     },
-    "profile": {
-      "title": "为你的个人资料起个名字",
-      "description": "WaveFlow 通过不同的个人资料来区分音乐库。请为其命名以便日后识别。",
-      "nameLabel": "个人资料名称",
-      "namePlaceholder": "例如：Daisy",
-      "hint": "之后如有需要，你可以再创建其他个人资料。",
-      "required": "请填写个人资料名称。",
-      "unavailable": "个人资料暂不可用，请稍后再试。"
+    "folder": {
+      "title": "你的音乐在哪里？",
+      "lede": "选择存放专辑的文件夹。读取会立即在后台开始，你可以同时继续浏览引导。",
+      "pick": "选择文件夹",
+      "drop": "或将文件夹或文件拖放到窗口上",
+      "hint": "拖入的文件会被复制到“音乐”文件夹中的 WaveFlow 文件夹。之后还可以添加其他文件夹。"
+    },
+    "scan": {
+      "preparing": "正在准备你的音乐库…",
+      "running": "正在读取你的音乐 · {{current}} / {{total}}",
+      "done": "音乐库已就绪 · +{{formatted}}",
+      "stopped": "扫描已停止 · +{{formatted}}",
+      "failed": "扫描已中断"
+    },
+    "look": {
+      "title": "你的外观",
+      "lede": "界面风格改变整个界面，主题改变它的配色。所有更改即时生效，之后也可以在“设置 → 外观”中找到。",
+      "skin": "界面风格",
+      "theme": "主题"
+    },
+    "listening": {
+      "title": "聆听方式",
+      "lede": "决定曲目之间如何衔接、听起来如何。每张卡片点一下即可开启，并可在“设置 → 音频”中进一步微调。",
+      "crossfade": {
+        "title": "交叉淡化",
+        "benefit": "每首曲目在 {{seconds}} 秒内淡入下一首，中间没有静音。"
+      },
+      "automix": {
+        "title": "AutoMix",
+        "benefit": "像 DJ 一样，让过渡落在两首曲目的节拍上。同时会开启交叉淡化。"
+      },
+      "replaygain": {
+        "title": "音量均衡",
+        "benefit": "ReplayGain 会把所有曲目调整到相同响度，不用再频繁调节音量。"
+      },
+      "analysis": {
+        "title": "BPM 与调性",
+        "benefit": "分析每首新曲目，为电台和 AutoMix 提供数据。扫描完成后在后台运行。"
+      }
     },
     "lyrics": {
-      "title": "歌词保存在哪里？",
-      "description": "歌词应该保存到何处？你编辑的歌词和 WaveFlow 为你找到的歌词都适用。可随时在“设置 → 歌词”中更改。",
-      "hint": "选择“外挂歌词文件”可让音频文件保持不变——foobar2000 等播放器就是这样做的。"
+      "title": "你的歌词",
+      "lede": "WaveFlow 会在线查找同步歌词，也可以让你自己编写。选择保存位置，并添加更多来源。",
+      "destination": "保存位置",
+      "sources": "歌词来源"
+    },
+    "plugins": {
+      "title": "你的扩展",
+      "lede": "精选官方扩展，一键即可安装。完整目录在“扩展”中等你探索。",
+      "loading": "正在读取目录…",
+      "unavailable": "暂时无法连接到目录。以下是它提供的内容，之后可在“扩展”中找到。",
+      "inExtensions": "可在“扩展”中找到",
+      "wordSynced": "逐字",
+      "installed": "已安装",
+      "install": "安装",
+      "installing": "正在安装…",
+      "installAria": "安装 {{name}}",
+      "failed": "安装失败。请在“扩展”中重试。",
+      "usage": {
+        "lyrics": {
+          "title": "逐字歌词",
+          "benefit": "歌词逐字点亮，并可根据来源提供翻译和罗马音。"
+        },
+        "canvas": {
+          "title": "Canvas",
+          "benefit": "在沉浸式视图中，于正在播放的曲目背后循环播放一段短视频。"
+        },
+        "artwork": {
+          "title": "动态封面",
+          "benefit": "会动的封面，以及专辑的高清图片。"
+        },
+        "radio": {
+          "title": "网络电台",
+          "benefit": "来自世界各地的数千个电台，就在你的音乐库旁边。"
+        }
+      }
+    },
+    "connections": {
+      "title": "你的连接",
+      "lede": "未经你的同意，不会发送任何内容。这些连接可在“设置 → 连接”中找到。",
+      "lastfm": {
+        "title": "Last.fm",
+        "benefit": "记录你的收听历史，并丰富艺人简介和相似艺人信息。",
+        "connect": "连接 Last.fm",
+        "connected": "已以 {{user}} 身份连接",
+        "keyHint": "创建 Last.fm API 密钥",
+        "key": "API 密钥",
+        "secret": "共享密钥",
+        "user": "用户名",
+        "password": "密码",
+        "toggleSecret": "显示/隐藏共享密钥",
+        "togglePassword": "显示/隐藏密码",
+        "missingFields": "请填写全部四个字段后再登录。",
+        "signIn": "登录"
+      },
+      "discord": {
+        "title": "Discord 状态",
+        "benefit": "让好友看到你正在听什么。默认开启：如果不需要，可以在这里关闭。"
+      },
+      "server": {
+        "title": "WaveFlow 服务器",
+        "benefit": "播放 WaveFlow 服务器上的音乐库，并与本机音乐库保持同步。",
+        "open": "在设置中配置"
+      }
+    },
+    "done": {
+      "title": "你的 WaveFlow 已准备就绪",
+      "lede": "音乐库已就位。祝你聆听愉快！",
+      "ledeEmpty": "随时都能添加音乐：在首页、音乐库中添加，或把文件夹拖到窗口上。",
+      "ledeFailed": "扫描中断了。请从音乐库重新开始扫描：你的设置已保存。",
+      "ledeScanning": "扫描仍在后台进行：已找到的曲目现在就可以播放。",
+      "firstSteps": "首页上的“新手入门”会带你了解 WaveFlow 的更多功能。",
+      "nothingYet": "暂无曲目：扫描尚未找到任何曲目。",
+      "library": "前往音乐库",
+      "play": "开始播放",
+      "finish": "完成"
     }
   },
   "sidebar": {
@@ -3285,6 +3323,11 @@
       },
       "review_one": "审核（{{count}}）",
       "review_other": "审核（{{count}}）"
+    },
+    "onboardingReplay": {
+      "title": "功能导览",
+      "subtitle": "重新查看首次启动时的入门步骤和推荐设置。",
+      "action": "重新开始"
     }
   },
   "scanProgress": {
@@ -4082,5 +4125,59 @@
     "write_other": "写入 {{count}} 个文件",
     "otherProfile": "此工坊是在另一个配置文件中打开的。请从当前配置文件重新打开。",
     "truncated": "只打开了 {{total}} 个文件中的前 {{shown}} 个：请缩小选择范围以编辑其余文件。"
+  },
+  "firstSteps": {
+    "kicker": "新手入门",
+    "title": "WaveFlow 能做什么",
+    "progress": "已探索：{{done}} / {{total}}",
+    "hide": "隐藏新手入门",
+    "done": "（已完成）",
+    "items": {
+      "immersive": {
+        "title": "沉浸式视图",
+        "hint": "大幅封面，歌词就在旁边。"
+      },
+      "miniPlayer": {
+        "title": "迷你播放器",
+        "hint": "始终置顶的小窗口。"
+      },
+      "desktopLyrics": {
+        "title": "桌面歌词",
+        "hint": "歌词悬浮在你的窗口之上。"
+      },
+      "smartPlaylist": {
+        "title": "智能播放列表",
+        "hint": "设定几条规则，它就会自动填充。"
+      },
+      "enrichment": {
+        "title": "MusicBrainz 信息补全",
+        "hint": "补全缺失的流派、日期和封面。"
+      },
+      "tagWorkshop": {
+        "title": "标签工坊",
+        "hint": "一次性修正整张专辑的标签。"
+      },
+      "wrapped": {
+        "title": "Wrapped",
+        "hint": "用几张卡片回顾你一年的聆听。"
+      },
+      "plugin": {
+        "title": "安装扩展",
+        "hint": "歌词、Canvas、动态封面…"
+      }
+    }
+  },
+  "tips": {
+    "dismiss": "关闭提示",
+    "lyricsSources": {
+      "title": "更多歌词来源",
+      "body": "扩展可以添加逐字同步歌词，亚洲音乐的歌词尤其丰富。",
+      "action": "在“扩展”中查看来源"
+    },
+    "tagWorkshop": {
+      "title": "更进一步：标签工坊",
+      "body": "查找替换、编号、MusicBrainz 匹配和撤销，可作用于整个选区。",
+      "action": "在标签工坊中打开所选内容"
+    }
   }
 }

@@ -38,6 +38,9 @@ import { LyricsEditorModal } from "../common/LyricsEditorModal";
 import { useLyricsShare } from "../../hooks/useLyricsShare";
 import { shareableLyricLines } from "../../lib/lyricsCard";
 import { BackgroundVocals, InterludeDots } from "../player/LyricsVoiceParts";
+import { ContextTip } from "../discovery/ContextTip";
+import { useTip } from "../discovery/useTip";
+import { openView } from "../../lib/discovery";
 
 /**
  * Spotify-style right-edge panel showing the currently-playing track's
@@ -89,6 +92,18 @@ export function LyricsPanel({
     seekToLine,
     applyPayload,
   } = useTrackLyrics();
+
+  // A track with no lyrics at all: once per profile, say that the store
+  // has more sources. Not for an excluded genre, where none was looked
+  // for, nor for a radio, which no source covers.
+  const noLyrics =
+    currentTrack != null &&
+    !isFetching &&
+    !error &&
+    !isRadio &&
+    !excludedGenre &&
+    (!payload || payload.content.trim() === "");
+  const sourcesTip = useTip("lyricsSources", noLyrics);
 
   // Which extra reading rides under each line. Per-profile, so it
   // follows the reader rather than the track — resolved against what
@@ -329,14 +344,27 @@ export function LyricsPanel({
             text={t("lyrics.fetchError")}
           />
         ) : !payload || payload.content.trim() === "" ? (
-          <EmptyState
-            icon={<Music2 size={40} />}
-            text={
-              excludedGenre
-                ? t("lyrics.excludedGenre", { genre: excludedGenre })
-                : t("lyrics.notFound")
-            }
-          />
+          <>
+            <EmptyState
+              icon={<Music2 size={40} />}
+              text={
+                excludedGenre
+                  ? t("lyrics.excludedGenre", { genre: excludedGenre })
+                  : t("lyrics.notFound")
+              }
+            />
+            {sourcesTip.visible && (
+              <ContextTip
+                title={t("tips.lyricsSources.title")}
+                body={t("tips.lyricsSources.body")}
+                action={{
+                  label: t("tips.lyricsSources.action"),
+                  onClick: () => openView({ view: "extensions" }),
+                }}
+                onDismiss={sourcesTip.dismiss}
+              />
+            )}
+          </>
         ) : isSynced ? (
           <ul className="space-y-3 py-32">
             {activeInterlude?.afterIndex === -1 && (

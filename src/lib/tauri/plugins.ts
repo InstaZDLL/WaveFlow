@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 
 import type { LocalizedText } from "../localizedText";
+import { discoveryOnSuccess } from "../discovery";
 
 /**
  * Plugin information exposed by the Plugin SDK backend (Phase 3.1).
@@ -273,7 +274,9 @@ export async function listPluginMarketplace(): Promise<MarketplaceEntry[]> {
 export async function installPluginFromRegistry(
   pluginId: string,
 ): Promise<void> {
-  return invoke<void>("install_plugin_from_registry", { pluginId });
+  const tick = discoveryOnSuccess("plugin");
+  await invoke<void>("install_plugin_from_registry", { pluginId });
+  tick();
 }
 
 // ----- animated album artwork (Phase 3) ----------------------------------

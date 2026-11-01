@@ -50,6 +50,7 @@ import { enrichArtistDeezer } from "../lib/tauri/detail";
 import { remoteArtwork } from "../lib/tauri/remoteServer";
 import { setPlayerPosition } from "../hooks/usePlayerPosition";
 import { startSpectrumFeed } from "../lib/spectrumFeed";
+import { noteDiscovery } from "../lib/discovery";
 import {
   isRadioTrack,
   isRemoteTrack,
@@ -884,6 +885,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const openImmersive = useCallback((tab: "nowPlaying" | "lyrics") => {
     setImmersiveInitialTab(tab);
     setImmersiveOpen(true);
+    noteDiscovery("immersive");
   }, []);
   const closeImmersive = useCallback(() => {
     setImmersiveOpen(false);

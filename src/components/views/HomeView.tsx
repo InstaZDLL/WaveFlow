@@ -39,6 +39,7 @@ import {
 import { MoodRadioGrid } from "./home/MoodRadioGrid";
 import { HomeSuggestionCard } from "./home/HomeSuggestionCard";
 import { FluidHome } from "./home/fluid/FluidHome";
+import { FirstStepsCard } from "../discovery/FirstStepsCard";
 import { recentPlayToTrack } from "./home/recentPlayToTrack";
 import { useAlbumArtistContextMenu } from "../../hooks/useAlbumArtistContextMenu";
 
@@ -383,6 +384,10 @@ function ClassicHomeView({
           />
         </div>
       </div>
+
+      {/* First steps — the features worth finding, ticked as they are
+          used. Renders nothing once closed or complete. */}
+      <FirstStepsCard />
 
       {/* Suggestion of the day — one track and why: a forgotten
           favourite, one in line with the recent listening, or one never

@@ -14,6 +14,7 @@ import {
   type MiniPlayerBounds,
 } from "./tauri/preferences";
 import { launchedInSoftware } from "./effects";
+import { noteDiscovery } from "./discovery";
 
 const MINI_LABEL = "mini";
 const DEFAULT_WIDTH = 280;
@@ -164,6 +165,7 @@ export async function resetMiniPlayerBounds(): Promise<void> {
  * (monitor disconnected, resolution change, or first launch).
  */
 export async function openMiniPlayer(): Promise<void> {
+  noteDiscovery("miniPlayer");
   const existing = await TauriWindow.getByLabel(MINI_LABEL);
   if (existing) {
     await existing.show();

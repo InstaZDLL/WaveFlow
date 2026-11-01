@@ -65,108 +65,146 @@
   },
   "onboarding": {
     "defaultLibraryName": "Música",
-    "welcome": {
-      "title": "Bem-vindo ao WaveFlow",
-      "description": "O teu leitor de música 100% local. Desfruta de toda a tua biblioteca sem subscrição de streaming."
-    },
-    "localOnly": {
-      "title": "Importante: apenas música local",
-      "description": "O WaveFlow NÃO é um serviço de streaming. Reproduz ficheiros que já existem no teu dispositivo.",
-      "calloutTitle": "O que deves saber",
-      "bulletOwn": "Traz a tua própria biblioteca (MP3, FLAC, ALAC, OGG, DSD…)",
-      "bulletImport": "Importa uma pasta ou arrasta ficheiros",
-      "bulletScrobble": "Liga o Last.fm para fazer scrobble das reproduções em segundo plano"
-    },
-    "appearance": {
-      "title": "Escolhe o teu visual",
-      "description": "Escolhe um tema de cor e um estilo de interface. Podes alterá-los a qualquer momento em Definições → Aparência.",
-      "theme": {
-        "title": "Tema de cor"
-      },
-      "skin": {
-        "title": "Estilo de interface"
-      },
-      "hint": "Estas escolhas são guardadas por perfil — cada perfil pode ter o seu próprio visual."
-    },
-    "folder": {
-      "title": "Escolhe a tua pasta de música",
-      "description": "Diz ao WaveFlow onde está a tua música. A análise organiza a biblioteca automaticamente.",
-      "placeholder": "Clica para escolher a tua pasta de música",
-      "changeHint": "Clica para mudar de pasta",
-      "quickSettings": "Definições rápidas",
-      "autoAnalyze": {
-        "title": "Análise automática de faixas",
-        "description": "Deteta BPM e tonalidade durante a análise — alimenta a Rádio e a Rádio por Humor."
-      }
-    },
-    "lastfm": {
-      "title": "Liga o Last.fm",
-      "description": "O scrobbling envia as tuas reproduções para o teu perfil Last.fm. Recebes em troca biografias de artistas e sugestões de artistas semelhantes na aplicação.",
-      "recommendedBadge": "Recomendado",
-      "keyHint": "Cria uma chave API em Last.fm",
-      "keyLabel": "Chave API",
-      "keyPlaceholder": "A tua chave API Last.fm",
-      "secretLabel": "Segredo partilhado",
-      "secretPlaceholder": "O teu segredo partilhado",
-      "userLabel": "Nome de utilizador Last.fm",
-      "userPlaceholder": "o-teu-nome",
-      "passwordLabel": "Palavra-passe",
-      "passwordPlaceholder": "A tua palavra-passe Last.fm",
-      "toggleSecret": "Mostrar/ocultar segredo",
-      "togglePassword": "Mostrar/ocultar palavra-passe",
-      "connect": "Ligar Last.fm",
-      "missingFields": "Preenche a chave API, segredo, nome de utilizador e palavra-passe.",
-      "connectedTitle": "Ligado como {{user}}",
-      "connectedSubtitle": "O scrobbling arranca automaticamente quando reproduzes uma faixa."
-    },
-    "scan": {
-      "title": "Analisar a tua biblioteca",
-      "description": "Pronto para analisar a tua pasta e descobrir as tuas faixas?",
-      "noFolder": "Nenhuma pasta selecionada",
-      "readyHint": "A pasta está configurada. Inicia a análise quando quiseres.",
-      "scanning": "A analisar a tua biblioteca…",
-      "errorTitle": "Falha na análise"
-    },
-    "done": {
-      "title": "Está tudo pronto!",
-      "description": "A tua biblioteca foi analisada e está pronta a tocar.",
-      "nextSteps": "Próximos passos:",
-      "bulletExplore": "Explora a tua biblioteca pelos separadores Biblioteca, Álbuns e Artistas",
-      "bulletQueue": "Cria a tua primeira fila ao clicares numa faixa",
-      "bulletSettings": "Afina as definições na barra lateral (Aparência, Ligações…)",
-      "tipImmersiveTitle": "Dica: vista imersiva",
-      "tipImmersiveBody": "Clica na capa do leitor para abrir a vista de ecrã inteiro com a capa e a letra lado a lado."
+    "phase": {
+      "setup": "Configuração inicial · {{current}}/{{total}}",
+      "compose": "Torna o WaveFlow teu · {{current}}/{{total}}"
     },
     "actions": {
-      "skipSetup": "Saltar configuração",
-      "getStarted": "Começar",
-      "back": "Voltar",
+      "close": "Fechar o percurso",
+      "later": "Mais tarde",
+      "start": "Começar",
+      "folderLater": "Escolher mais tarde",
+      "skipAll": "Saltar tudo",
+      "skip": "Saltar",
       "continue": "Continuar",
-      "understood": "Compreendi",
-      "skipForNow": "Saltar por agora",
-      "scanLater": "Analisar mais tarde",
-      "scanNow": "Analisar agora",
-      "startListening": "Começar a ouvir"
+      "back": "Voltar"
     },
-    "language": {
-      "title": "Escolhe o teu idioma",
-      "description": "O WaveFlow está disponível em 17 idiomas. Pré-selecionámos o do teu sistema — muda-o se nos enganámos.",
-      "detected": "Detetado a partir do teu sistema",
-      "fallback": "Não conseguimos detetar o idioma do sistema, por isso usámos inglês por defeito. Escolhe o teu abaixo."
+    "welcome": {
+      "title": "Damos-te as boas-vindas ao WaveFlow",
+      "lede": "A tua música, no teu dispositivo. O WaveFlow reproduz os ficheiros que já tens: sem subscrição, e nada sai do teu computador sem a tua autorização.",
+      "language": "Idioma",
+      "languageFallback": "O idioma do teu sistema ainda não está disponível: escolhe o que preferires.",
+      "name": "O teu nome ou alcunha",
+      "nameHint": "O nome deste perfil, apresentado na Página inicial.",
+      "namePlaceholder": "O teu nome",
+      "nameRequired": "Indica um nome para este perfil."
     },
-    "profile": {
-      "title": "Dá um nome ao teu perfil",
-      "description": "O WaveFlow usa perfis para separar bibliotecas. Escolhe um nome que reconheças depois.",
-      "nameLabel": "Nome do perfil",
-      "namePlaceholder": "Ex.: Daisy",
-      "hint": "Podes criar mais perfis depois, se precisares.",
-      "required": "O nome do perfil é obrigatório.",
-      "unavailable": "Perfil indisponível — tenta de novo daqui a um instante."
+    "folder": {
+      "title": "Onde está a tua música?",
+      "lede": "Escolhe a pasta que contém os teus álbuns. O WaveFlow começa logo a lê-la, em segundo plano, enquanto continuas o percurso.",
+      "pick": "Escolher uma pasta",
+      "drop": "ou arrasta uma pasta ou ficheiros para a janela",
+      "hint": "Os ficheiros arrastados são copiados para a pasta WaveFlow dentro da tua pasta Música. Podes adicionar mais pastas depois."
+    },
+    "scan": {
+      "preparing": "A preparar a tua biblioteca…",
+      "running": "A ler a tua música · {{current}} / {{total}}",
+      "done": "Biblioteca pronta · +{{formatted}}",
+      "stopped": "Análise interrompida · +{{formatted}}",
+      "failed": "A análise foi interrompida"
+    },
+    "look": {
+      "title": "O teu visual",
+      "lede": "Um estilo muda toda a interface; um tema muda a sua cor. Tudo se aplica de imediato e fica em Definições → Aparência.",
+      "skin": "Estilo",
+      "theme": "Tema"
+    },
+    "listening": {
+      "title": "A tua audição",
+      "lede": "Como as faixas se encadeiam e como soam. Cada cartão ativa-se com um clique e afina-se em pormenor em Definições → Áudio.",
+      "crossfade": {
+        "title": "Crossfade",
+        "benefit": "Cada faixa funde-se na seguinte ao longo de {{seconds}} segundos, sem silêncio entre elas."
+      },
+      "automix": {
+        "title": "AutoMix",
+        "benefit": "Coloca a transição nos tempos das duas faixas, como um DJ. Também ativa o crossfade."
+      },
+      "replaygain": {
+        "title": "Volume uniforme",
+        "benefit": "O ReplayGain leva todas as tuas faixas ao mesmo nível sonoro: deixas de ter de mexer no volume."
+      },
+      "analysis": {
+        "title": "BPM e tonalidade",
+        "benefit": "Examina cada faixa nova para alimentar a Rádio e o AutoMix. Corre em segundo plano após a análise da biblioteca."
+      }
     },
     "lyrics": {
-      "title": "Onde guardar as letras?",
-      "description": "Para onde devem ir as letras, tanto as que editas como as que o WaveFlow encontra? Podes alterar em Definições → Letras.",
-      "hint": "Escolhe «Ficheiro auxiliar» para manter os teus ficheiros de áudio intactos — como o foobar2000."
+      "title": "As tuas letras",
+      "lede": "O WaveFlow encontra letras sincronizadas online e deixa-te escrever as tuas. Escolhe onde as guardar e adiciona mais fontes.",
+      "destination": "Onde guardá-las",
+      "sources": "Fontes de letras"
+    },
+    "plugins": {
+      "title": "As tuas extensões",
+      "lede": "Uma seleção oficial, instalada com um clique. O resto do catálogo espera por ti em Extensões.",
+      "loading": "A ler o catálogo…",
+      "unavailable": "O catálogo não está acessível de momento. Eis o que oferece: vais encontrá-lo em Extensões.",
+      "inExtensions": "Disponível em Extensões",
+      "wordSynced": "Palavra a palavra",
+      "installed": "Instalada",
+      "install": "Instalar",
+      "installing": "A instalar…",
+      "installAria": "Instalar {{name}}",
+      "failed": "A instalação falhou. Tenta novamente a partir de Extensões.",
+      "usage": {
+        "lyrics": {
+          "title": "Letras palavra a palavra",
+          "benefit": "Letras que se iluminam palavra a palavra, com traduções e romanizações conforme a fonte."
+        },
+        "canvas": {
+          "title": "Canvas",
+          "benefit": "Um pequeno vídeo em ciclo atrás da faixa em reprodução, na vista imersiva."
+        },
+        "artwork": {
+          "title": "Capas animadas",
+          "benefit": "Capas que se mexem e imagens em alta definição para os teus álbuns."
+        },
+        "radio": {
+          "title": "Rádio Web",
+          "benefit": "Milhares de estações de todo o mundo, ao lado da tua biblioteca."
+        }
+      }
+    },
+    "connections": {
+      "title": "As tuas ligações",
+      "lede": "Nada é enviado sem a tua autorização. Estas ligações estão em Definições → Ligações.",
+      "lastfm": {
+        "title": "Last.fm",
+        "benefit": "Regista o que ouves e enriquece as biografias e os artistas semelhantes.",
+        "connect": "Ligar o Last.fm",
+        "connected": "Ligado como {{user}}",
+        "keyHint": "Criar uma chave API do Last.fm",
+        "key": "Chave API",
+        "secret": "Segredo partilhado",
+        "user": "Nome de utilizador",
+        "password": "Palavra-passe",
+        "toggleSecret": "Mostrar ou ocultar o segredo",
+        "togglePassword": "Mostrar ou ocultar a palavra-passe",
+        "missingFields": "Preenche os quatro campos para iniciares sessão.",
+        "signIn": "Iniciar sessão"
+      },
+      "discord": {
+        "title": "Estado do Discord",
+        "benefit": "Mostra aos teus amigos o que estás a ouvir. Ativado por predefinição: desativa-o aqui se preferires."
+      },
+      "server": {
+        "title": "Servidor WaveFlow",
+        "benefit": "Ouve a biblioteca de um servidor WaveFlow e sincroniza-a com esta.",
+        "open": "Configurar nas Definições"
+      }
+    },
+    "done": {
+      "title": "O teu WaveFlow está pronto",
+      "lede": "A tua biblioteca já está no lugar. Boa música!",
+      "ledeEmpty": "Adiciona a tua música quando quiseres: a partir da Página inicial, da biblioteca ou arrastando uma pasta para a janela.",
+      "ledeFailed": "A análise foi interrompida. Volta a iniciá-la a partir da biblioteca: as tuas definições estão guardadas.",
+      "ledeScanning": "A análise continua em segundo plano: já podes ouvir o que encontrou.",
+      "firstSteps": "Na Página inicial, «Primeiros passos» mostra-te o que mais o WaveFlow sabe fazer.",
+      "nothingYet": "Ainda sem faixas: a análise ainda não encontrou nenhuma.",
+      "library": "Ir para a biblioteca",
+      "play": "Começar a ouvir",
+      "finish": "Concluir"
     }
   },
   "sidebar": {
@@ -3358,6 +3396,11 @@
       "review_one": "Rever ({{count}})",
       "review_many": "Rever ({{count}})",
       "review_other": "Rever ({{count}})"
+    },
+    "onboardingReplay": {
+      "title": "Percurso de descoberta",
+      "subtitle": "Rever a configuração inicial e as definições sugeridas no primeiro arranque.",
+      "action": "Recomeçar"
     }
   },
   "scanProgress": {
@@ -4217,5 +4260,59 @@
     "write_other": "Escrever {{count}} ficheiros",
     "otherProfile": "Esta oficina foi aberta noutro perfil. Abra-a de novo a partir deste.",
     "truncated": "Só estão abertos os primeiros {{shown}} de {{total}} ficheiros: restrinja a seleção para editar os restantes."
+  },
+  "firstSteps": {
+    "kicker": "Primeiros passos",
+    "title": "O que o WaveFlow sabe fazer",
+    "progress": "Descobertas: {{done}} / {{total}}",
+    "hide": "Ocultar os primeiros passos",
+    "done": "(feito)",
+    "items": {
+      "immersive": {
+        "title": "Vista imersiva",
+        "hint": "A capa em grande, a letra ao lado."
+      },
+      "miniPlayer": {
+        "title": "Mini-leitor",
+        "hint": "Uma pequena janela sempre visível."
+      },
+      "desktopLyrics": {
+        "title": "Letra no ambiente de trabalho",
+        "hint": "A letra flutua por cima das tuas janelas."
+      },
+      "smartPlaylist": {
+        "title": "Lista de reprodução inteligente",
+        "hint": "Algumas regras, e enche-se sozinha."
+      },
+      "enrichment": {
+        "title": "Enriquecimento com MusicBrainz",
+        "hint": "Completa géneros, datas e capas em falta."
+      },
+      "tagWorkshop": {
+        "title": "Oficina de etiquetas",
+        "hint": "Corrige as etiquetas de um álbum inteiro de uma só vez."
+      },
+      "wrapped": {
+        "title": "Wrapped",
+        "hint": "O teu ano de audições em poucos cartões."
+      },
+      "plugin": {
+        "title": "Instalar uma extensão",
+        "hint": "Letras, Canvas, capas animadas…"
+      }
+    }
+  },
+  "tips": {
+    "dismiss": "Fechar a dica",
+    "lyricsSources": {
+      "title": "Mais fontes de letras",
+      "body": "Há extensões que acrescentam letras sincronizadas palavra a palavra, muito completas sobretudo para música asiática.",
+      "action": "Ver as fontes em Extensões"
+    },
+    "tagWorkshop": {
+      "title": "Para ir mais longe: a oficina de etiquetas",
+      "body": "Procurar e substituir, numeração, correspondência com MusicBrainz e anulação, numa seleção inteira.",
+      "action": "Abrir esta seleção na oficina"
+    }
   }
 }
