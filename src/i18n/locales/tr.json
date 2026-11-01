@@ -3344,6 +3344,19 @@
       "title": "Çalar çubuğu turu",
       "subtitle": "Çalar çubuğundaki her simgenin ne işe yaradığını yeniden gör.",
       "action": "Başlat"
+    },
+    "whatsNew": {
+      "title": "Yenilikler",
+      "subtitle": "Bu sürümde nelerin değiştiğini yeniden görün.",
+      "action": "Aç",
+      "autoOpen": {
+        "title": "Güncellemeden sonra yenilikleri göster",
+        "subtitle": "Panel, yenilik içeren bir sürüm ilk açıldığında bir kez görünür."
+      },
+      "button": {
+        "title": "Üst çubukta Yenilikler düğmesi",
+        "subtitle": "Gizliyken panele buradan ve Hakkında'dan ulaşabilirsiniz."
+      }
     }
   },
   "scanProgress": {
@@ -4250,6 +4263,69 @@
       "immersive": {
         "title": "Sürükleyici görünüm",
         "body": "Büyük kapak ve şarkı sözleri, tam ekran."
+      }
+    }
+  },
+  "whatsNew": {
+    "title": "{{version}} sürümündeki yenilikler",
+    "pageOf": "Sayfa {{current}} / {{total}}",
+    "goToPage": "{{page}}. sayfaya git",
+    "close": "Yenilikleri kapat",
+    "previous": "Önceki",
+    "next": "Sonraki",
+    "done": "Bitti",
+    "try": "Dene",
+    "addMusic": "Müzik ekle",
+    "openLibrary": "Kitaplığı aç",
+    "dontShow": "Başlangıçta gösterme",
+    "history": "Tüm geçmiş",
+    "open": "Yenilikler",
+    "openUnseen": "Yenilikler, henüz görülmedi",
+    "needs": {
+      "library": "Bunun için önce kitaplığınızda müzik olmalı.",
+      "track": "Düzenleyiciyi şarkı sözleriyle açmak için kitaplığınızdan bir parça çalın.",
+      "startsPlayback": "Şu anda hiçbir şey çalmıyor: denediğinizde kitaplığınız karışık çalmaya başlar."
+    },
+    "pages": {
+      "fluidInterface": {
+        "title": "Beş malzemede yeni bir arayüz",
+        "body": "Yan çubukta gezinme, yeniden düşünülmüş bir Ana sayfa ve müziğin arkasında kapağın ışığı. Fluid, Liquid, Pulse, Editorial ve Lounge beş malzemesidir; Studio ise bildiğiniz düzeni korur.",
+        "keywords": "Fluid|Liquid|Pulse|Editorial|Lounge|Studio"
+      },
+      "automix": {
+        "title": "AutoMix, vuruşa oturan geçişler",
+        "body": "AutoMix, müziğinizin analizine dayanarak her geçişi iki parçanın vuruşlarına yerleştirir. Bir geçiş süresi gerekir; henüz analiz edilmemiş bir parça olağan geçişini korur.",
+        "keywords": "Vuruşlar|Tempo|Geçiş|Geçişler|Analiz|BPM"
+      },
+      "lyricsEditor": {
+        "title": "Baştan yapılmış bir söz düzenleyici",
+        "body": "Üç adım: düzenleyin, satır veya sözcük bazında eşitleyin, kaydetmeden önce sonucu kontrol edin. Şarkı çalarken boşluk tuşu zamanları işaretler; söyleyenler, arka vokaller ve çevirilerle birlikte LRC, Enhanced LRC veya TTML olarak.",
+        "keywords": "Sözcük sözcük|Eşitleme|LRC|TTML|Söyleyenler|Çeviriler"
+      },
+      "theater": {
+        "title": "Sinema modu",
+        "body": "Uzaktan izlenen bir ekran için sürükleyici görünüm: tam ekran, her şey pencereye göre ölçeklenir, denetimler ve imleç birkaç saniye sonra kaybolur, müzik çaldığı sürece ekran açık kalır.",
+        "keywords": "Tam ekran|Televizyon|Büyük boy|Denetimsiz|Ekran açık"
+      },
+      "tagWorkshop": {
+        "title": "Etiket atölyesi",
+        "body": "Bir albümün, klasörün veya seçimin etiketleri tek tabloda: doldurun, bulup değiştirin, numaralandırın ya da bir MusicBrainz yayınından başlayın. Her değişikliğin önizlemesi olmadan hiçbir şey yazılmaz ve her toplu işlem geri alınabilir. Denediğinizde çalan albüm veya son eklenen açılır.",
+        "keywords": "Toplu|Regex|Numaralandırma|MusicBrainz|Önizleme|Geri alma"
+      },
+      "enrichment": {
+        "title": "MusicBrainz ile tamamlanan kitaplık",
+        "body": "Türler, tarihler, katkıda bulunanlar, kapaklar, sanatçı bilgileri: WaveFlow eksikleri yalnızca kendi veritabanında tamamlar, dosyalarınıza asla dokunmaz ve hepsi geri alınabilir. Varsayılan olarak kapalıdır, çünkü bağlantı gerektirir ve albüm adlarıyla sanatçı adlarını MusicBrainz'e gönderir.",
+        "keywords": "Türler|Çıkış tarihleri|Katkıda bulunanlar|Kapaklar|Sanatçılar|MusicBrainz"
+      },
+      "releaseRadar": {
+        "title": "Eklentisiz Release Radar",
+        "body": "Kitaplığınızdaki sanatçıların yeni çıkanları doğrudan WaveFlow'da. Arama bağlantı gerektirir ve biraz sürer; zaten sahip olduklarınız bir Release Radar çalma listesine girer, bir tık uzağınızda.",
+        "keywords": "Release Radar|Yeni çıkanlar|Sanatçılar|Albümler|Single'lar|MusicBrainz"
+      },
+      "playlistImport": {
+        "title": "Çalma listelerinizi aktarın",
+        "body": "Bir M3U, CSV veya JSON dosyası ya da herkese açık bir Deezer çalma listesinin bağlantısı. Sizde olmayan parçalar yerlerini korur ve kitaplığınıza geldiklerinde kendiliğinden oraya yerleşir.",
+        "keywords": "M3U|CSV|JSON|Deezer|ISRC|Eksik parçalar"
       }
     }
   }

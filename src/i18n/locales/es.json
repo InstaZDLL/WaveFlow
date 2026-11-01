@@ -3414,6 +3414,19 @@
       "title": "Recorrido por la barra de reproducción",
       "subtitle": "Volver a ver para qué sirve cada icono de la barra de reproducción.",
       "action": "Iniciar"
+    },
+    "whatsNew": {
+      "title": "Novedades",
+      "subtitle": "Vuelve a ver lo que ha cambiado en esta versión.",
+      "action": "Abrir",
+      "autoOpen": {
+        "title": "Mostrar las novedades tras una actualización",
+        "subtitle": "El panel se abre una vez, la primera vez que se abre una versión con novedades."
+      },
+      "button": {
+        "title": "Botón Novedades en la barra superior",
+        "subtitle": "Si lo ocultas, el panel sigue disponible aquí y en Acerca de."
+      }
     }
   },
   "scanProgress": {
@@ -4382,6 +4395,69 @@
       "immersive": {
         "title": "Vista inmersiva",
         "body": "La portada en grande y la letra, a pantalla completa."
+      }
+    }
+  },
+  "whatsNew": {
+    "title": "Novedades de {{version}}",
+    "pageOf": "Página {{current}} de {{total}}",
+    "goToPage": "Ir a la página {{page}}",
+    "close": "Cerrar las novedades",
+    "previous": "Anterior",
+    "next": "Siguiente",
+    "done": "Terminar",
+    "try": "Probar",
+    "addMusic": "Añadir música",
+    "openLibrary": "Abrir la biblioteca",
+    "dontShow": "No mostrar al iniciar",
+    "history": "Historial completo",
+    "open": "Novedades",
+    "openUnseen": "Novedades sin ver",
+    "needs": {
+      "library": "Primero necesitas música en tu biblioteca.",
+      "track": "Reproduce una pista de tu biblioteca para abrir el editor con su letra.",
+      "startsPlayback": "No se está reproduciendo nada: al probarlo, tu biblioteca empieza en orden aleatorio."
+    },
+    "pages": {
+      "fluidInterface": {
+        "title": "Una interfaz nueva en cinco materiales",
+        "body": "Navegación en una barra lateral, un Inicio repensado y la luz de la carátula detrás de la música. Fluid, Liquid, Pulse, Editorial y Lounge son sus cinco materiales, y Studio conserva la disposición que ya conoces.",
+        "keywords": "Fluid|Liquid|Pulse|Editorial|Lounge|Studio"
+      },
+      "automix": {
+        "title": "AutoMix, fundidos sobre el ritmo",
+        "body": "AutoMix coloca cada transición sobre los pulsos de las dos pistas, a partir del análisis de tu música. Necesita una duración de fundido, y una pista aún sin analizar mantiene el fundido habitual.",
+        "keywords": "Pulsos|Tempo|Fundido|Transiciones|Análisis|BPM"
+      },
+      "lyricsEditor": {
+        "title": "Un editor de letras hecho de nuevo",
+        "body": "Tres pasos: editar, sincronizar por línea o por palabra y comprobar el resultado antes de guardar. La barra espaciadora marca los tiempos mientras suena la canción, con cantantes, coros y traducciones, en LRC, LRC mejorado o TTML.",
+        "keywords": "Palabra a palabra|Sincronización|LRC|TTML|Cantantes|Traducciones"
+      },
+      "theater": {
+        "title": "El modo teatro",
+        "body": "La vista inmersiva para una pantalla que se mira desde lejos: pantalla completa, todo a escala de la ventana, controles y puntero que se desvanecen a los pocos segundos y pantalla encendida mientras suena la música.",
+        "keywords": "Pantalla completa|Televisor|Gran formato|Sin controles|Pantalla encendida"
+      },
+      "tagWorkshop": {
+        "title": "El taller de etiquetas",
+        "body": "Las etiquetas de un álbum, una carpeta o una selección en una sola tabla: rellenar, buscar y reemplazar, numerar o partir de un lanzamiento de MusicBrainz. No se escribe nada sin una vista previa de cada cambio, y cada lote se puede deshacer. Al probarlo se abre el álbum en reproducción o el último añadido.",
+        "keywords": "Por lotes|Regex|Numeración|MusicBrainz|Vista previa|Deshacer"
+      },
+      "enrichment": {
+        "title": "Una biblioteca completada con MusicBrainz",
+        "body": "Géneros, fechas, créditos, carátulas, fichas de artista: WaveFlow rellena lo que falta, solo en su base de datos, nunca en tus archivos, y todo se puede deshacer. Desactivado por defecto, porque necesita conexión y envía a MusicBrainz títulos de álbumes y nombres de artistas.",
+        "keywords": "Géneros|Fechas de lanzamiento|Créditos|Carátulas|Artistas|MusicBrainz"
+      },
+      "releaseRadar": {
+        "title": "Release Radar, sin extensión",
+        "body": "Los lanzamientos recientes de los artistas de tu biblioteca, directamente en WaveFlow. Una búsqueda necesita conexión y lleva un rato; lo que ya tienes se suma a una lista Release Radar, a un clic de distancia.",
+        "keywords": "Release Radar|Lanzamientos recientes|Artistas|Álbumes|Sencillos|MusicBrainz"
+      },
+      "playlistImport": {
+        "title": "Importa tus listas",
+        "body": "Un archivo M3U, CSV o JSON, o el enlace de una lista pública de Deezer. Las pistas que no tienes conservan su lugar y lo ocupan solas cuando llegan a tu biblioteca.",
+        "keywords": "M3U|CSV|JSON|Deezer|ISRC|Pistas que faltan"
       }
     }
   }

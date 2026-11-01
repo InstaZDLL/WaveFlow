@@ -3342,6 +3342,19 @@
       "title": "播放列導覽",
       "subtitle": "重新認識播放列上每個圖示的用途。",
       "action": "開始"
+    },
+    "whatsNew": {
+      "title": "新功能",
+      "subtitle": "再看一次此版本的變化。",
+      "action": "開啟",
+      "autoOpen": {
+        "title": "更新後顯示新功能",
+        "subtitle": "首次開啟有新內容的版本時，面板會開啟一次。"
+      },
+      "button": {
+        "title": "頂部列的新功能按鈕",
+        "subtitle": "隱藏後，仍可在此處和「關於」中開啟面板。"
+      }
     }
   },
   "scanProgress": {
@@ -4248,6 +4261,69 @@
       "immersive": {
         "title": "沉浸式檢視",
         "body": "大幅封面搭配歌詞，全螢幕呈現。"
+      }
+    }
+  },
+  "whatsNew": {
+    "title": "{{version}} 新功能",
+    "pageOf": "第 {{current}} 頁，共 {{total}} 頁",
+    "goToPage": "前往第 {{page}} 頁",
+    "close": "關閉新功能",
+    "previous": "上一頁",
+    "next": "下一頁",
+    "done": "完成",
+    "try": "試試看",
+    "addMusic": "加入音樂",
+    "openLibrary": "開啟音樂庫",
+    "dontShow": "啟動時不再顯示",
+    "history": "完整歷史",
+    "open": "新功能",
+    "openUnseen": "新功能，尚未查看",
+    "needs": {
+      "library": "需要先在音樂庫中加入音樂。",
+      "track": "播放音樂庫中的一首曲目，即可在編輯器中開啟它的歌詞。",
+      "startsPlayback": "目前沒有播放內容：試用時會隨機播放你的音樂庫。"
+    },
+    "pages": {
+      "fluidInterface": {
+        "title": "全新介面，五種材質",
+        "body": "側邊導覽列、重新設計的首頁，以及音樂背後封面的光暈。Fluid、Liquid、Pulse、Editorial 和 Lounge 是它的五種材質，Studio 則保留你熟悉的版面。",
+        "keywords": "Fluid|Liquid|Pulse|Editorial|Lounge|Studio"
+      },
+      "automix": {
+        "title": "AutoMix，踩在節拍上的轉場",
+        "body": "AutoMix 依據音樂分析結果，把每次轉場對齊到兩首曲目的節拍上。需要設定淡入淡出時長，尚未分析的曲目仍使用一般轉場。",
+        "keywords": "節拍|速度|淡入淡出|轉場|分析|BPM"
+      },
+      "lyricsEditor": {
+        "title": "全新打造的歌詞編輯器",
+        "body": "三個步驟：編輯、逐行或逐字同步、儲存前檢查效果。歌曲播放時用空白鍵打點，支援演唱者、和聲與翻譯，可儲存為 LRC、增強型 LRC 或 TTML。",
+        "keywords": "逐字|同步|LRC|TTML|演唱者|翻譯"
+      },
+      "theater": {
+        "title": "劇院模式",
+        "body": "專為遠距離觀看的螢幕打造的沉浸式檢視：全螢幕顯示，所有內容隨視窗縮放，控制項和指標幾秒後隱藏，音樂播放期間螢幕保持開啟。",
+        "keywords": "全螢幕|電視|大尺寸|隱藏控制項|螢幕常亮"
+      },
+      "tagWorkshop": {
+        "title": "標籤工坊",
+        "body": "在一張表格中處理專輯、資料夾或所選曲目的標籤：填入、尋找取代、編號，或以 MusicBrainz 發行版為起點。每項變更都先預覽，確認前不會寫入，每批操作都可復原。試用時會開啟正在播放的專輯或最近加入的專輯。",
+        "keywords": "批次|規則運算式|編號|MusicBrainz|預覽|復原"
+      },
+      "enrichment": {
+        "title": "用 MusicBrainz 補全音樂庫",
+        "body": "類型、日期、製作人員、封面、藝人資料：WaveFlow 只在自己的資料庫中補全缺少的資訊，絕不更動你的檔案，且全部可以復原。預設關閉，因為它需要連線，並會把專輯名稱和藝人名稱傳送給 MusicBrainz。",
+        "keywords": "類型|發行日期|製作人員|封面|藝人|MusicBrainz"
+      },
+      "releaseRadar": {
+        "title": "Release Radar，無需擴充功能",
+        "body": "直接在 WaveFlow 中查看音樂庫內藝人的最新發行。搜尋需要連線，也需要一些時間；你已擁有的內容會進入 Release Radar 播放清單，點一下就能聽。",
+        "keywords": "Release Radar|最新發行|藝人|專輯|單曲|MusicBrainz"
+      },
+      "playlistImport": {
+        "title": "匯入你的播放清單",
+        "body": "支援 M3U、CSV、JSON 檔案，或公開的 Deezer 播放清單連結。你沒有的曲目會保留位置，等它們進入音樂庫後自動補上。",
+        "keywords": "M3U|CSV|JSON|Deezer|ISRC|缺少的曲目"
       }
     }
   }

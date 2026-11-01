@@ -3342,6 +3342,19 @@
       "title": "Tur bilah pemutar",
       "subtitle": "Lihat lagi fungsi setiap ikon di bilah pemutar.",
       "action": "Mulai"
+    },
+    "whatsNew": {
+      "title": "Yang baru",
+      "subtitle": "Lihat lagi apa yang berubah di versi ini.",
+      "action": "Buka",
+      "autoOpen": {
+        "title": "Tampilkan yang baru setelah pembaruan",
+        "subtitle": "Panel terbuka sekali, saat pertama kali membuka versi yang punya hal baru."
+      },
+      "button": {
+        "title": "Tombol Yang baru di bilah atas",
+        "subtitle": "Jika disembunyikan, panel tetap bisa dibuka dari sini dan dari Tentang."
+      }
     }
   },
   "scanProgress": {
@@ -4248,6 +4261,69 @@
       "immersive": {
         "title": "Tampilan imersif",
         "body": "Sampul berukuran besar dan lirik, dalam layar penuh."
+      }
+    }
+  },
+  "whatsNew": {
+    "title": "Yang baru di {{version}}",
+    "pageOf": "Halaman {{current}} dari {{total}}",
+    "goToPage": "Buka halaman {{page}}",
+    "close": "Tutup yang baru",
+    "previous": "Sebelumnya",
+    "next": "Berikutnya",
+    "done": "Selesai",
+    "try": "Coba",
+    "addMusic": "Tambah musik",
+    "openLibrary": "Buka pustaka",
+    "dontShow": "Jangan tampilkan saat memulai",
+    "history": "Riwayat lengkap",
+    "open": "Yang baru",
+    "openUnseen": "Yang baru, belum dilihat",
+    "needs": {
+      "library": "Fitur ini perlu musik di pustaka Anda terlebih dahulu.",
+      "track": "Putar lagu dari pustaka Anda untuk membuka editor dengan liriknya.",
+      "startsPlayback": "Tidak ada yang diputar: mencobanya akan memutar pustaka Anda secara acak."
+    },
+    "pages": {
+      "fluidInterface": {
+        "title": "Antarmuka baru dalam lima material",
+        "body": "Navigasi di bilah samping, Beranda yang dirancang ulang, dan cahaya sampul di balik musik. Fluid, Liquid, Pulse, Editorial, dan Lounge adalah lima materialnya, sedangkan Studio mempertahankan tata letak yang Anda kenal.",
+        "keywords": "Fluid|Liquid|Pulse|Editorial|Lounge|Studio"
+      },
+      "automix": {
+        "title": "AutoMix, transisi tepat di ketukan",
+        "body": "AutoMix menempatkan setiap transisi pada ketukan kedua lagu, berdasarkan analisis musik Anda. Fitur ini perlu durasi crossfade, dan lagu yang belum dianalisis tetap memakai transisi biasa.",
+        "keywords": "Ketukan|Tempo|Crossfade|Transisi|Analisis|BPM"
+      },
+      "lyricsEditor": {
+        "title": "Editor lirik yang dibuat ulang",
+        "body": "Tiga langkah: sunting, sinkronkan per baris atau per kata, lalu periksa hasilnya sebelum menyimpan. Bilah spasi menandai waktu saat lagu diputar, lengkap dengan penyanyi, vokal latar, dan terjemahan, dalam LRC, Enhanced LRC, atau TTML.",
+        "keywords": "Kata demi kata|Sinkronisasi|LRC|TTML|Penyanyi|Terjemahan"
+      },
+      "theater": {
+        "title": "Mode teater",
+        "body": "Tampilan imersif untuk layar yang dilihat dari jauh: layar penuh, semuanya mengikuti skala jendela, kontrol dan penunjuk menghilang setelah beberapa detik, dan layar tetap menyala selama musik diputar.",
+        "keywords": "Layar penuh|TV|Format besar|Tanpa kontrol|Layar menyala"
+      },
+      "tagWorkshop": {
+        "title": "Bengkel tag",
+        "body": "Tag album, folder, atau pilihan dalam satu tabel: isi, cari dan ganti, beri nomor, atau mulai dari rilisan MusicBrainz. Tidak ada yang ditulis sebelum pratinjau setiap perubahan, dan setiap kumpulan bisa dibatalkan. Mencobanya membuka album yang sedang diputar, atau yang terakhir ditambahkan.",
+        "keywords": "Massal|Regex|Penomoran|MusicBrainz|Pratinjau|Batalkan"
+      },
+      "enrichment": {
+        "title": "Pustaka yang dilengkapi MusicBrainz",
+        "body": "Genre, tanggal, kredit, sampul, info artis: WaveFlow melengkapi yang kurang, hanya di basis datanya, tidak pernah di berkas Anda, dan semuanya bisa dibatalkan. Nonaktif secara bawaan, karena perlu koneksi dan mengirim judul album serta nama artis ke MusicBrainz.",
+        "keywords": "Genre|Tanggal rilis|Kredit|Sampul|Artis|MusicBrainz"
+      },
+      "releaseRadar": {
+        "title": "Release Radar, tanpa ekstensi",
+        "body": "Rilisan terbaru dari artis di pustaka Anda, langsung di WaveFlow. Pencarian perlu koneksi dan butuh waktu; yang sudah Anda miliki masuk ke daftar putar Release Radar, sekali klik saja.",
+        "keywords": "Release Radar|Rilisan baru|Artis|Album|Singel|MusicBrainz"
+      },
+      "playlistImport": {
+        "title": "Impor daftar putar Anda",
+        "body": "Berkas M3U, CSV, atau JSON, atau tautan daftar putar Deezer publik. Lagu yang belum Anda miliki tetap memegang tempatnya dan mengisinya sendiri saat tiba di pustaka Anda.",
+        "keywords": "M3U|CSV|JSON|Deezer|ISRC|Lagu yang kurang"
       }
     }
   }

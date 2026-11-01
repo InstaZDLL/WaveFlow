@@ -3344,6 +3344,19 @@
       "title": "Rondleiding langs de afspeelbalk",
       "subtitle": "Nog eens bekijken waarvoor elk pictogram van de afspeelbalk dient.",
       "action": "Starten"
+    },
+    "whatsNew": {
+      "title": "Wat is er nieuw",
+      "subtitle": "Bekijk nog eens wat er in deze versie is veranderd.",
+      "action": "Openen",
+      "autoOpen": {
+        "title": "Nieuws tonen na een update",
+        "subtitle": "Het paneel opent één keer, de eerste keer dat een versie met iets nieuws wordt geopend."
+      },
+      "button": {
+        "title": "Knop Wat is er nieuw in de bovenste balk",
+        "subtitle": "Verborgen blijft het paneel hier en via Over bereikbaar."
+      }
     }
   },
   "scanProgress": {
@@ -4250,6 +4263,69 @@
       "immersive": {
         "title": "Meeslepende weergave",
         "body": "De hoes groot en de songtekst, schermvullend."
+      }
+    }
+  },
+  "whatsNew": {
+    "title": "Nieuw in {{version}}",
+    "pageOf": "Pagina {{current}} van {{total}}",
+    "goToPage": "Ga naar pagina {{page}}",
+    "close": "Nieuws sluiten",
+    "previous": "Vorige",
+    "next": "Volgende",
+    "done": "Klaar",
+    "try": "Proberen",
+    "addMusic": "Muziek toevoegen",
+    "openLibrary": "Bibliotheek openen",
+    "dontShow": "Niet meer tonen bij het opstarten",
+    "history": "Volledige geschiedenis",
+    "open": "Wat is er nieuw",
+    "openUnseen": "Wat is er nieuw, nog niet bekeken",
+    "needs": {
+      "library": "Hiervoor is eerst muziek in je bibliotheek nodig.",
+      "track": "Speel een nummer uit je bibliotheek af om de editor op de songtekst ervan te openen.",
+      "startsPlayback": "Er speelt niets: proberen start je bibliotheek in willekeurige volgorde."
+    },
+    "pages": {
+      "fluidInterface": {
+        "title": "Een nieuwe interface in vijf materialen",
+        "body": "Navigatie op een rail, een herdachte startpagina en het licht van de hoes achter de muziek. Fluid, Liquid, Pulse, Editorial en Lounge zijn de vijf materialen, en Studio houdt de indeling die je kent.",
+        "keywords": "Fluid|Liquid|Pulse|Editorial|Lounge|Studio"
+      },
+      "automix": {
+        "title": "AutoMix, overgangen op de tel",
+        "body": "AutoMix legt elke overgang op de tellen van beide nummers, op basis van de analyse van je muziek. Het heeft een overgangsduur nodig, en een nog niet geanalyseerd nummer houdt de gewone overgang.",
+        "keywords": "Tellen|Tempo|Crossfade|Overgangen|Analyse|BPM"
+      },
+      "lyricsEditor": {
+        "title": "Een helemaal vernieuwde songteksteditor",
+        "body": "Drie stappen: bewerken, per regel of per woord synchroniseren en het resultaat controleren voor je opslaat. De spatiebalk zet de tijden terwijl het nummer speelt, met zangers, achtergrondzang en vertalingen, in LRC, Enhanced LRC of TTML.",
+        "keywords": "Woord voor woord|Synchronisatie|LRC|TTML|Zangers|Vertalingen"
+      },
+      "theater": {
+        "title": "De theatermodus",
+        "body": "De meeslepende weergave voor een scherm dat je van ver bekijkt: volledig scherm, alles geschaald naar het venster, bediening en aanwijzer die na een paar seconden verdwijnen, en een scherm dat aan blijft zolang de muziek speelt.",
+        "keywords": "Volledig scherm|Televisie|Groot formaat|Zonder bediening|Scherm aan"
+      },
+      "tagWorkshop": {
+        "title": "De tagwerkplaats",
+        "body": "De tags van een album, een map of een selectie in één tabel: invullen, zoeken en vervangen, nummeren of uitgaan van een MusicBrainz-uitgave. Er wordt niets geschreven vóór een voorbeeld van elke wijziging, en elke reeks is ongedaan te maken. Proberen opent het spelende album, of het laatst toegevoegde.",
+        "keywords": "In reeksen|Regex|Nummering|MusicBrainz|Voorbeeld|Ongedaan maken"
+      },
+      "enrichment": {
+        "title": "Een bibliotheek aangevuld door MusicBrainz",
+        "body": "Genres, datums, credits, hoezen, artiestengegevens: WaveFlow vult aan wat ontbreekt, alleen in zijn database, nooit in je bestanden, en alles is ongedaan te maken. Standaard uit, want het heeft een verbinding nodig en stuurt albumtitels en artiestennamen naar MusicBrainz.",
+        "keywords": "Genres|Releasedatums|Credits|Hoezen|Artiesten|MusicBrainz"
+      },
+      "releaseRadar": {
+        "title": "Release Radar, zonder extensie",
+        "body": "Recente uitgaven van de artiesten in je bibliotheek, gewoon in WaveFlow. Zoeken heeft een verbinding nodig en duurt even; wat je al hebt komt in een Release Radar-afspeellijst, één klik verderop.",
+        "keywords": "Release Radar|Nieuwe uitgaven|Artiesten|Albums|Singles|MusicBrainz"
+      },
+      "playlistImport": {
+        "title": "Haal je afspeellijsten binnen",
+        "body": "Een M3U-, CSV- of JSON-bestand, of de link naar een openbare Deezer-afspeellijst. Nummers die je niet hebt houden hun plek en vullen die vanzelf zodra ze in je bibliotheek komen.",
+        "keywords": "M3U|CSV|JSON|Deezer|ISRC|Ontbrekende nummers"
       }
     }
   }

@@ -3344,6 +3344,19 @@
       "title": "Tour durch die Wiedergabeleiste",
       "subtitle": "Noch einmal ansehen, wofür jedes Symbol der Wiedergabeleiste da ist.",
       "action": "Starten"
+    },
+    "whatsNew": {
+      "title": "Neuigkeiten",
+      "subtitle": "Noch einmal ansehen, was sich in dieser Version geändert hat.",
+      "action": "Öffnen",
+      "autoOpen": {
+        "title": "Neuigkeiten nach einem Update anzeigen",
+        "subtitle": "Das Fenster öffnet sich einmal, beim ersten Start einer Version mit Neuem."
+      },
+      "button": {
+        "title": "Neuigkeiten-Schaltfläche in der oberen Leiste",
+        "subtitle": "Ausgeblendet bleibt das Fenster hier und unter „Über“ erreichbar."
+      }
     }
   },
   "scanProgress": {
@@ -4250,6 +4263,69 @@
       "immersive": {
         "title": "Immersive Ansicht",
         "body": "Das Cover groß und der Songtext, im Vollbild."
+      }
+    }
+  },
+  "whatsNew": {
+    "title": "Neu in {{version}}",
+    "pageOf": "Seite {{current}} von {{total}}",
+    "goToPage": "Zu Seite {{page}}",
+    "close": "Neuigkeiten schließen",
+    "previous": "Zurück",
+    "next": "Weiter",
+    "done": "Fertig",
+    "try": "Ausprobieren",
+    "addMusic": "Musik hinzufügen",
+    "openLibrary": "Bibliothek öffnen",
+    "dontShow": "Beim Start nicht mehr anzeigen",
+    "history": "Vollständiger Verlauf",
+    "open": "Neuigkeiten",
+    "openUnseen": "Neuigkeiten, noch nicht gesehen",
+    "needs": {
+      "library": "Dafür braucht es zuerst Musik in deiner Bibliothek.",
+      "track": "Spiele einen Titel aus deiner Bibliothek ab, um den Editor mit seinem Liedtext zu öffnen.",
+      "startsPlayback": "Gerade läuft nichts: Beim Ausprobieren startet deine Bibliothek in zufälliger Reihenfolge."
+    },
+    "pages": {
+      "fluidInterface": {
+        "title": "Eine neue Oberfläche in fünf Materialien",
+        "body": "Navigation in einer Leiste, eine neu gedachte Startseite und das Licht des Covers hinter der Musik. Fluid, Liquid, Pulse, Editorial und Lounge sind ihre fünf Materialien, und Studio behält das Layout, das du kennst.",
+        "keywords": "Fluid|Liquid|Pulse|Editorial|Lounge|Studio"
+      },
+      "automix": {
+        "title": "AutoMix: Überblendungen auf dem Beat",
+        "body": "AutoMix legt jeden Übergang auf die Beats beider Titel, anhand der Analyse deiner Musik. Es braucht eine Überblendlänge, und ein noch nicht analysierter Titel behält die gewohnte Überblendung.",
+        "keywords": "Beats|Tempo|Überblendung|Übergänge|Analyse|BPM"
+      },
+      "lyricsEditor": {
+        "title": "Ein von Grund auf neuer Liedtext-Editor",
+        "body": "Drei Schritte: bearbeiten, zeilen- oder wortweise synchronisieren und das Ergebnis vor dem Speichern prüfen. Die Leertaste setzt die Zeitmarken, während der Song läuft, mit Sängern, Backing Vocals und Übersetzungen, in LRC, Enhanced LRC oder TTML.",
+        "keywords": "Wort für Wort|Synchronisation|LRC|TTML|Sänger|Übersetzungen"
+      },
+      "theater": {
+        "title": "Der Theatermodus",
+        "body": "Die immersive Ansicht für einen Bildschirm, den man von Weitem sieht: Vollbild, alles passend zum Fenster skaliert, Bedienelemente und Mauszeiger verschwinden nach wenigen Sekunden, und der Bildschirm bleibt an, solange Musik läuft.",
+        "keywords": "Vollbild|Fernseher|Großformat|Ohne Bedienelemente|Bildschirm an"
+      },
+      "tagWorkshop": {
+        "title": "Die Tag-Werkstatt",
+        "body": "Die Tags eines Albums, eines Ordners oder einer Auswahl in einer Tabelle: ausfüllen, suchen und ersetzen, nummerieren oder von einer MusicBrainz-Veröffentlichung ausgehen. Geschrieben wird erst nach einer Vorschau jeder Änderung, und jeder Stapel lässt sich rückgängig machen. Zum Ausprobieren öffnet sich das laufende oder das zuletzt hinzugefügte Album.",
+        "keywords": "Stapelweise|Regex|Nummerierung|MusicBrainz|Vorschau|Rückgängig"
+      },
+      "enrichment": {
+        "title": "Eine Bibliothek, ergänzt durch MusicBrainz",
+        "body": "Genres, Daten, Mitwirkende, Cover, Künstlerinfos: WaveFlow ergänzt, was fehlt, nur in seiner Datenbank, nie in deinen Dateien, und alles lässt sich rückgängig machen. Standardmäßig aus, denn es braucht eine Verbindung und schickt Albumtitel und Künstlernamen an MusicBrainz.",
+        "keywords": "Genres|Erscheinungsdaten|Mitwirkende|Cover|Künstler|MusicBrainz"
+      },
+      "releaseRadar": {
+        "title": "Release Radar, ohne Erweiterung",
+        "body": "Neue Veröffentlichungen der Künstler aus deiner Bibliothek, direkt in WaveFlow. Eine Suche braucht eine Verbindung und dauert etwas; was du schon besitzt, landet in einer Release-Radar-Playlist, nur einen Klick entfernt.",
+        "keywords": "Release Radar|Neuerscheinungen|Künstler|Alben|Singles|MusicBrainz"
+      },
+      "playlistImport": {
+        "title": "Hol deine Playlists herein",
+        "body": "Eine M3U-, CSV- oder JSON-Datei oder der Link zu einer öffentlichen Deezer-Playlist. Titel, die du nicht hast, behalten ihren Platz und rücken von selbst nach, sobald sie in deiner Bibliothek ankommen.",
+        "keywords": "M3U|CSV|JSON|Deezer|ISRC|Fehlende Titel"
       }
     }
   }

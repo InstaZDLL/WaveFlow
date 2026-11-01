@@ -3344,6 +3344,19 @@
       "title": "Player bar tour",
       "subtitle": "Go over what each icon of the player bar does.",
       "action": "Start"
+    },
+    "whatsNew": {
+      "title": "What's new",
+      "subtitle": "See again what changed in this version.",
+      "action": "Open",
+      "autoOpen": {
+        "title": "Show what's new after an update",
+        "subtitle": "The panel opens once, the first time a version with something new is opened."
+      },
+      "button": {
+        "title": "What's new button in the top bar",
+        "subtitle": "When hidden, the panel stays reachable here and from About."
+      }
     }
   },
   "scanProgress": {
@@ -4250,6 +4263,69 @@
       "immersive": {
         "title": "Immersive view",
         "body": "The cover up large and the lyrics, full screen."
+      }
+    }
+  },
+  "whatsNew": {
+    "title": "What's new in {{version}}",
+    "pageOf": "Page {{current}} of {{total}}",
+    "goToPage": "Go to page {{page}}",
+    "close": "Close what's new",
+    "previous": "Previous",
+    "next": "Next",
+    "done": "Done",
+    "try": "Try it",
+    "addMusic": "Add music",
+    "openLibrary": "Open the library",
+    "dontShow": "Don't show at startup",
+    "history": "Full history",
+    "open": "What's new",
+    "openUnseen": "What's new, not seen yet",
+    "needs": {
+      "library": "This needs some music in your library first.",
+      "track": "Play a track from your library to open the editor on its lyrics.",
+      "startsPlayback": "Nothing is playing: trying it starts your library on shuffle."
+    },
+    "pages": {
+      "fluidInterface": {
+        "title": "A new interface in five materials",
+        "body": "Navigation on a rail, a rethought Home, the light of the cover behind the music. Fluid, Liquid, Pulse, Editorial and Lounge are its five materials, and Studio keeps the layout you know.",
+        "keywords": "Fluid|Liquid|Pulse|Editorial|Lounge|Studio"
+      },
+      "automix": {
+        "title": "AutoMix, fades placed on the beat",
+        "body": "AutoMix lands each transition on the beats of both tracks, from the analysis of your music. It needs a crossfade length, and a track not analysed yet keeps the usual fade.",
+        "keywords": "Beats|Tempo|Crossfade|Transitions|Analysis|BPM"
+      },
+      "lyricsEditor": {
+        "title": "A lyrics editor rebuilt from scratch",
+        "body": "Three steps: edit, sync by line or by word, and check the result before saving. The space bar stamps the timing while the song plays, with singers, backing vocals and translations, in LRC, Enhanced LRC or TTML.",
+        "keywords": "Word by word|Sync|LRC|TTML|Singers|Translations"
+      },
+      "theater": {
+        "title": "Theater mode",
+        "body": "The immersive view for a screen seen from across the room: fullscreen, everything scaled to the window, controls and pointer fading after a few seconds, and the display kept on while the music plays.",
+        "keywords": "Fullscreen|TV|Large type|No controls|Display on"
+      },
+      "tagWorkshop": {
+        "title": "The tag workshop",
+        "body": "The tags of an album, a folder or a selection in one table: fill, find and replace, number, or start from a MusicBrainz release. Nothing is written before a preview of every change, and every batch can be undone. Trying it opens the album playing, or the last one added.",
+        "keywords": "Batches|Regex|Numbering|MusicBrainz|Preview|Undo"
+      },
+      "enrichment": {
+        "title": "A library completed from MusicBrainz",
+        "body": "Genres, dates, credits, covers, artist facts: WaveFlow fills in what is missing, in its database only, never in your files, and all of it can be undone. Off by default, because it needs a connection and sends album titles and artist names to MusicBrainz.",
+        "keywords": "Genres|Release dates|Credits|Covers|Artists|MusicBrainz"
+      },
+      "releaseRadar": {
+        "title": "Release Radar, no extension needed",
+        "body": "Recent releases by the artists in your library, right inside WaveFlow. A search needs a connection and takes a while; what you already own joins a Release Radar playlist, one click away.",
+        "keywords": "Release Radar|New releases|Artists|Albums|Singles|MusicBrainz"
+      },
+      "playlistImport": {
+        "title": "Bring your playlists in",
+        "body": "An M3U, CSV or JSON file, or the link to a public Deezer playlist. Tracks you don't have keep their place, and slip in by themselves once they reach your library.",
+        "keywords": "M3U|CSV|JSON|Deezer|ISRC|Missing tracks"
       }
     }
   }
