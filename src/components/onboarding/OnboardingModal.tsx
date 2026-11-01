@@ -209,7 +209,10 @@ export function OnboardingModal({
               </div>
             )}
           </div>
-          {step !== "welcome" && step !== "folder" && <ScanStrip scan={scan} />}
+          <ScanStrip
+            scan={scan}
+            visible={step !== "welcome" && step !== "folder"}
+          />
           <button
             type="button"
             onClick={onClose}
