@@ -36,13 +36,19 @@ export function ScanStrip({ scan }: { scan: OnboardingScan }) {
     label = t("onboarding.scan.failed");
   }
 
+  // Only the outcome is announced: the count ticks all along the journey,
+  // and a live region around it would read every tick aloud.
+  const settled =
+    scan.kind === "done" || scan.kind === "stopped" || scan.kind === "error";
+
   return (
     <div
       className="w-56 shrink-0"
-      role="status"
-      aria-live="polite"
       title={scan.kind === "error" ? scan.message : undefined}
     >
+      <span className="sr-only" role="status">
+        {settled ? label : ""}
+      </span>
       <div className="flex items-center gap-1.5 text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
         {scan.kind === "done" && (
           <Check size={12} className="shrink-0 text-emerald-500" />

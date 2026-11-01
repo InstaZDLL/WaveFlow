@@ -14,7 +14,7 @@ import {
   type MiniPlayerBounds,
 } from "./tauri/preferences";
 import { launchedInSoftware } from "./effects";
-import { noteDiscovery } from "./discovery";
+import { discoveryOnSuccess } from "./discovery";
 
 const MINI_LABEL = "mini";
 const DEFAULT_WIDTH = 280;
@@ -161,17 +161,18 @@ export async function resetMiniPlayerBounds(): Promise<void> {
  *
  * Position + size are restored from `app_setting['mini_player.bounds']`
  * when the saved rectangle still intersects an available monitor; we
- * fall back to a Spotify-style bottom-right corner anchor otherwise
+ * fall back to a bottom-right corner anchor otherwise
  * (monitor disconnected, resolution change, or first launch).
  */
 export async function openMiniPlayer(): Promise<void> {
-  noteDiscovery("miniPlayer");
+  const tick = discoveryOnSuccess("miniPlayer");
   const existing = await TauriWindow.getByLabel(MINI_LABEL);
   if (existing) {
     await existing.show();
     await existing.unminimize();
     await existing.setFocus();
     void syncWebviewMemory().catch(() => {});
+    tick();
   } else {
     let x: number | undefined;
     let y: number | undefined;
@@ -230,5 +231,6 @@ export async function openMiniPlayer(): Promise<void> {
       win.once("tauri://created", () => resolve());
       win.once("tauri://error", (e) => reject(e.payload));
     });
+    tick();
   }
 }

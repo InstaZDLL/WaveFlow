@@ -29,7 +29,7 @@
 .feature-card[data-checked="true"] {
   box-shadow: 0 0 0 2px var(--disc-accent);
 }
-button.feature-card:not(:disabled):active {
+.feature-card[data-switch="enabled"]:active {
   transform: scale(0.985);
 }
 .feature-card__art {
@@ -83,7 +83,7 @@ button.feature-card:not(:disabled):active {
     inset 0 1px 0 var(--fe-edge),
     0 0 0 1.5px var(--fe-accent);
 }
-:root[data-layout="fluid"] button.feature-card:not(:disabled):hover {
+:root[data-layout="fluid"] .feature-card[data-switch="enabled"]:hover {
   background-color: var(--fe-tone-2) !important;
 }
 :root[data-layout="fluid"] .feature-card__art {
