@@ -222,6 +222,49 @@ pub async fn set_ui_zoom(state: tauri::State<'_, AppState>, zoom: f64) -> AppRes
     Ok(())
 }
 
+/// The version whose "What's new" the installation is past. App-wide: an
+/// update arrives once per installation, and a second profile does not see
+/// the panel again. The comparison lives with the pages, in
+/// `src/lib/whatsNew.ts`; this only keeps the string.
+const KEY_WHATS_NEW_MARKER: &str = "whats_new.seen_version";
+
+async fn read_whats_new_marker(pool: &sqlx::SqlitePool) -> AppResult<Option<String>> {
+    Ok(
+        sqlx::query_scalar("SELECT value FROM app_setting WHERE key = ?")
+            .bind(KEY_WHATS_NEW_MARKER)
+            .fetch_optional(pool)
+            .await?,
+    )
+}
+
+async fn write_whats_new_marker(pool: &sqlx::SqlitePool, version: &str) -> AppResult<()> {
+    sqlx::query(
+        "INSERT INTO app_setting (key, value, value_type, updated_at)
+         VALUES (?, ?, 'string', ?)
+         ON CONFLICT(key) DO UPDATE
+            SET value = excluded.value, updated_at = excluded.updated_at",
+    )
+    .bind(KEY_WHATS_NEW_MARKER)
+    .bind(version)
+    .bind(Utc::now().timestamp_millis())
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn get_whats_new_marker(state: tauri::State<'_, AppState>) -> AppResult<Option<String>> {
+    read_whats_new_marker(&state.app_db).await
+}
+
+#[tauri::command]
+pub async fn set_whats_new_marker(
+    state: tauri::State<'_, AppState>,
+    version: String,
+) -> AppResult<()> {
+    write_whats_new_marker(&state.app_db, &version).await
+}
+
 /// Mini-player window bounds in logical pixels. Persisted as a JSON blob
 /// under `app_setting['mini_player.bounds']` so the four fields move as
 /// one row — restoring half a position is worse than restoring none of

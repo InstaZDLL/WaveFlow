@@ -88,3 +88,39 @@ fn every_option_round_trips_through_its_stored_value() {
     }
     assert_eq!(WindowChrome::parse("gnome"), None);
 }
+
+/// The real `app.db` schema: `value_type` and `updated_at` are NOT NULL and
+/// checked, which a hand-made table would let a wrong write get past.
+async fn migrated_app_db() -> sqlx::SqlitePool {
+    // One connection: each one to `:memory:` is a database of its own.
+    let pool = sqlx::sqlite::SqlitePoolOptions::new()
+        .max_connections(1)
+        .connect("sqlite::memory:")
+        .await
+        .unwrap();
+    sqlx::migrate!("../../migrations/app")
+        .run(&pool)
+        .await
+        .unwrap();
+    pool
+}
+
+/// No row is the answer the frontend tells an update from a new install
+/// with, and a later version replaces the row rather than adding one.
+#[tokio::test]
+async fn the_whats_new_marker_starts_absent_and_follows_the_version() {
+    let pool = migrated_app_db().await;
+    assert_eq!(read_whats_new_marker(&pool).await.unwrap(), None);
+
+    write_whats_new_marker(&pool, "2.0.0-beta.1").await.unwrap();
+    assert_eq!(
+        read_whats_new_marker(&pool).await.unwrap().as_deref(),
+        Some("2.0.0-beta.1")
+    );
+
+    write_whats_new_marker(&pool, "2.0.0").await.unwrap();
+    assert_eq!(
+        read_whats_new_marker(&pool).await.unwrap().as_deref(),
+        Some("2.0.0")
+    );
+}
