@@ -2667,7 +2667,7 @@
         },
         "nowPlaying": {
           "label": "Show the Now Playing panel",
-          "description": "Spotify-style — opens or closes the right-edge panel with the cover and lyrics."
+          "description": "Opens or closes the right-edge panel with the cover and lyrics."
         },
         "none": {
           "label": "Do nothing",
@@ -2684,7 +2684,7 @@
       "modes": {
         "auto": {
           "label": "Automatic",
-          "description": "Only visible from December 1 through January 31 — matching Spotify Wrapped's release window."
+          "description": "Only visible from December 1 through January 31."
         },
         "always": {
           "label": "Always show",

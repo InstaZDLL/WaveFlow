@@ -2665,7 +2665,7 @@
         },
         "nowPlaying": {
           "label": "재생 중 패널 표시",
-          "description": "Spotify 스타일 — 커버와 가사가 있는 오른쪽 패널을 열거나 닫습니다."
+          "description": "커버와 가사가 있는 오른쪽 패널을 열거나 닫습니다."
         },
         "none": {
           "label": "아무것도 하지 않기",
@@ -2682,7 +2682,7 @@
       "modes": {
         "auto": {
           "label": "자동",
-          "description": "12월 1일부터 1월 31일까지만 표시됩니다. Spotify Wrapped의 공개 시기와 같습니다."
+          "description": "12월 1일부터 1월 31일까지만 표시됩니다."
         },
         "always": {
           "label": "항상 표시",

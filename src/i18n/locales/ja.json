@@ -2665,7 +2665,7 @@
         },
         "nowPlaying": {
           "label": "再生中パネルを表示",
-          "description": "Spotify 風 — ジャケットと歌詞を含む右側パネルの表示と非表示を切り替えます。"
+          "description": "ジャケットと歌詞を含む右側パネルの表示と非表示を切り替えます。"
         },
         "none": {
           "label": "何もしない",
@@ -2682,7 +2682,7 @@
       "modes": {
         "auto": {
           "label": "自動",
-          "description": "Spotify Wrapped の公開時期に合わせ、12月1日から1月31日までのみ表示します。"
+          "description": "12月1日から1月31日までのみ表示します。"
         },
         "always": {
           "label": "常に表示",

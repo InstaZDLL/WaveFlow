@@ -2665,7 +2665,7 @@
         },
         "nowPlaying": {
           "label": "顯示正在播放面板",
-          "description": "Spotify 風格——顯示或隱藏含封面與歌詞的右側面板。"
+          "description": "顯示或隱藏含封面與歌詞的右側面板。"
         },
         "none": {
           "label": "不執行任何動作",
@@ -2682,7 +2682,7 @@
       "modes": {
         "auto": {
           "label": "自動",
-          "description": "僅在 12 月 1 日至 1 月 31 日顯示——與 Spotify Wrapped 的發布時段一致。"
+          "description": "僅在 12 月 1 日至 1 月 31 日顯示。"
         },
         "always": {
           "label": "永遠顯示",

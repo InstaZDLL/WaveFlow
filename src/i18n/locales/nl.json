@@ -2667,7 +2667,7 @@
         },
         "nowPlaying": {
           "label": "Paneel Speelt nu tonen",
-          "description": "Spotify-stijl — toont of verbergt het rechterpaneel met hoes en songteksten."
+          "description": "Toont of verbergt het rechterpaneel met hoes en songteksten."
         },
         "none": {
           "label": "Niets doen",
@@ -2684,7 +2684,7 @@
       "modes": {
         "auto": {
           "label": "Automatisch",
-          "description": "Alleen zichtbaar van 1 december tot 31 januari — net als Spotify Wrapped."
+          "description": "Alleen zichtbaar van 1 december tot 31 januari."
         },
         "always": {
           "label": "Altijd tonen",

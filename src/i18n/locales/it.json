@@ -2732,7 +2732,7 @@
         },
         "nowPlaying": {
           "label": "Mostra il pannello In riproduzione",
-          "description": "Stile Spotify — mostra o nasconde il pannello laterale destro con copertina e testi."
+          "description": "Mostra o nasconde il pannello laterale destro con copertina e testi."
         },
         "none": {
           "label": "Non fare nulla",
@@ -2749,7 +2749,7 @@
       "modes": {
         "auto": {
           "label": "Automatico",
-          "description": "Visibile solo dal 1º dicembre al 31 gennaio — come Spotify Wrapped."
+          "description": "Visibile solo dal 1º dicembre al 31 gennaio."
         },
         "always": {
           "label": "Mostra sempre",

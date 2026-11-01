@@ -2667,7 +2667,7 @@
         },
         "nowPlaying": {
           "label": "Şimdi Çalıyor panelini göster",
-          "description": "Spotify tarzı — kapak ve sözleri içeren sağ paneli açar veya kapatır."
+          "description": "Kapak ve sözleri içeren sağ paneli açar veya kapatır."
         },
         "none": {
           "label": "Hiçbir şey yapma",
@@ -2684,7 +2684,7 @@
       "modes": {
         "auto": {
           "label": "Otomatik",
-          "description": "Yalnızca 1 Aralık ile 31 Ocak arasında görünür — Spotify Wrapped gibi."
+          "description": "Yalnızca 1 Aralık ile 31 Ocak arasında görünür."
         },
         "always": {
           "label": "Her zaman göster",

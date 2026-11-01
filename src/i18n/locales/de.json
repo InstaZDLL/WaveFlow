@@ -2667,7 +2667,7 @@
         },
         "nowPlaying": {
           "label": "Aktuelle Wiedergabe einblenden",
-          "description": "Spotify-Stil — blendet das rechte Seitenpanel mit Cover und Songtext ein bzw. aus."
+          "description": "Blendet das rechte Seitenpanel mit Cover und Songtext ein bzw. aus."
         },
         "none": {
           "label": "Nichts tun",
@@ -2684,7 +2684,7 @@
       "modes": {
         "auto": {
           "label": "Automatisch",
-          "description": "Nur vom 1. Dezember bis 31. Januar sichtbar — wie Spotify Wrapped."
+          "description": "Nur vom 1. Dezember bis 31. Januar sichtbar."
         },
         "always": {
           "label": "Immer anzeigen",

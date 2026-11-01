@@ -2665,7 +2665,7 @@
         },
         "nowPlaying": {
           "label": "显示正在播放面板",
-          "description": "Spotify 风格——显示或隐藏右侧带封面和歌词的面板。"
+          "description": "显示或隐藏右侧带封面和歌词的面板。"
         },
         "none": {
           "label": "不执行任何操作",
@@ -2682,7 +2682,7 @@
       "modes": {
         "auto": {
           "label": "自动",
-          "description": "仅在 12 月 1 日至 1 月 31 日显示——与 Spotify Wrapped 一致。"
+          "description": "仅在 12 月 1 日至 1 月 31 日显示。"
         },
         "always": {
           "label": "始终显示",

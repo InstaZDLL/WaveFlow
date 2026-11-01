@@ -2733,7 +2733,7 @@
         },
         "nowPlaying": {
           "label": "Mostrar o painel Tocando agora",
-          "description": "Estilo Spotify — mostra ou oculta o painel lateral direito com a capa e as letras."
+          "description": "Mostra ou oculta o painel lateral direito com a capa e as letras."
         },
         "none": {
           "label": "Não fazer nada",
@@ -2750,7 +2750,7 @@
       "modes": {
         "auto": {
           "label": "Automático",
-          "description": "Visível apenas de 1º de dezembro a 31 de janeiro — como o Spotify Wrapped."
+          "description": "Visível apenas de 1º de dezembro a 31 de janeiro."
         },
         "always": {
           "label": "Sempre mostrar",

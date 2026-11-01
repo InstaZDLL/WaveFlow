@@ -2665,7 +2665,7 @@
         },
         "nowPlaying": {
           "label": "Tampilkan panel Sedang diputar",
-          "description": "Gaya Spotify — menampilkan atau menyembunyikan panel kanan dengan sampul dan lirik."
+          "description": "Menampilkan atau menyembunyikan panel kanan dengan sampul dan lirik."
         },
         "none": {
           "label": "Tidak melakukan apa-apa",
@@ -2682,7 +2682,7 @@
       "modes": {
         "auto": {
           "label": "Otomatis",
-          "description": "Hanya muncul dari 1 Desember sampai 31 Januari — seperti Spotify Wrapped."
+          "description": "Hanya muncul dari 1 Desember sampai 31 Januari."
         },
         "always": {
           "label": "Selalu tampilkan",

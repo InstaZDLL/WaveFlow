@@ -2756,7 +2756,7 @@
         },
         "nowPlaying": {
           "label": "Afficher le panneau Lecture en cours",
-          "description": "Style Spotify — affiche ou masque le panneau latéral droit avec la pochette et les paroles."
+          "description": "Affiche ou masque le panneau latéral droit avec la pochette et les paroles."
         },
         "none": {
           "label": "Ne rien faire",
@@ -2773,7 +2773,7 @@
       "modes": {
         "auto": {
           "label": "Automatique",
-          "description": "Visible uniquement du 1er décembre au 31 janvier — comme Spotify Wrapped."
+          "description": "Visible uniquement du 1er décembre au 31 janvier."
         },
         "always": {
           "label": "Toujours afficher",
