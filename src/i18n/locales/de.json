@@ -107,7 +107,8 @@
       "title": "Dein Look",
       "lede": "Ein Oberflächenstil verändert die ganze Oberfläche, ein Design ihre Farbe. Alles wirkt sofort und findet sich unter Einstellungen → Darstellung.",
       "skin": "Oberflächenstil",
-      "theme": "Design"
+      "theme": "Design",
+      "windows": "Fenster"
     },
     "listening": {
       "title": "Dein Hörerlebnis",
@@ -192,7 +193,8 @@
         "title": "WaveFlow-Server",
         "benefit": "Hör die Bibliothek eines WaveFlow-Servers und synchronisiere sie mit dieser hier.",
         "open": "In den Einstellungen einrichten"
-      }
+      },
+      "enrichmentOffline": "Aktiviere es unter Einstellungen → Bibliothek, sobald du online bist."
     },
     "done": {
       "title": "Dein WaveFlow ist bereit",
@@ -204,7 +206,14 @@
       "nothingYet": "Noch keine Titel: Der Scan hat bisher keine gefunden.",
       "library": "Zur Bibliothek",
       "play": "Wiedergabe starten",
-      "finish": "Fertig"
+      "finish": "Fertig",
+      "tourTitle": "Eine Tour durch die Wiedergabeleiste?",
+      "tourBody": "Eine Minute, um Songtext, Warteschlange, Mini-Player und den Rest zu finden, Symbol für Symbol.",
+      "tourStart": "Tour starten",
+      "tourLater": "Später",
+      "settingsTitle": "Es gibt noch viel mehr zu entdecken",
+      "settingsBody": "Equalizer, exklusive Ausgabe, Tastenkürzel, Sicherungen… Schau dich in den Einstellungen um.",
+      "settingsOpen": "Einstellungen öffnen"
     }
   },
   "sidebar": {
@@ -1843,7 +1852,7 @@
     "destination": {
       "tag": {
         "label": "Eingebettetes Tag",
-        "hint": "Schreibt USLT/©lyr in die Audiodatei (kompatibel mit foobar2000, iTunes…)."
+        "hint": "Schreibt USLT/©lyr in die Audiodatei, lesbar für andere Player."
       },
       "sidecar": {
         "label": "Sidecar-Datei",
@@ -2587,7 +2596,7 @@
       "skins": {
         "studio": {
           "label": "Studio",
-          "description": "Apple-Music-Stil — dichte Oberfläche, weiche Schatten, klare Sans-Serif."
+          "description": "Dichte Oberfläche, weiche Schatten, klare serifenlose Schrift."
         },
         "editorial": {
           "label": "Editorial",
@@ -3330,6 +3339,11 @@
       "title": "Einführungstour",
       "subtitle": "Die Einrichtung und die beim ersten Start vorgeschlagenen Einstellungen noch einmal durchgehen.",
       "action": "Neu starten"
+    },
+    "playerTourReplay": {
+      "title": "Tour durch die Wiedergabeleiste",
+      "subtitle": "Noch einmal ansehen, wofür jedes Symbol der Wiedergabeleiste da ist.",
+      "action": "Starten"
     }
   },
   "scanProgress": {
@@ -4180,6 +4194,63 @@
       "title": "Noch mehr Möglichkeiten: die Tag-Werkstatt",
       "body": "Suchen und Ersetzen, Nummerierung, MusicBrainz-Abgleich und Rückgängigmachen, für eine ganze Auswahl.",
       "action": "Diese Auswahl in der Werkstatt öffnen"
+    }
+  },
+  "playerTour": {
+    "label": "Tour durch die Wiedergabeleiste",
+    "counter": "{{current}} / {{total}}",
+    "next": "Weiter",
+    "finish": "Fertig",
+    "skip": "Überspringen",
+    "items": {
+      "cover": {
+        "title": "Cover",
+        "body": "Ein Klick öffnet die immersive Ansicht oder den Bereich „Details“, je nach deiner Einstellung."
+      },
+      "like": {
+        "title": "Favorit",
+        "body": "Fügt den laufenden Titel zu deinen Favoriten hinzu."
+      },
+      "abLoop": {
+        "title": "A-B-Schleife",
+        "body": "Wiederholt einen Abschnitt des Titels zwischen zwei Punkten."
+      },
+      "sleepTimer": {
+        "title": "Sleep-Timer",
+        "body": "Stoppt die Wiedergabe nach einer gewissen Zeit oder am Ende des Titels."
+      },
+      "eqPreset": {
+        "title": "Equalizer",
+        "body": "Wechselt das Equalizer-Preset mit einem Klick."
+      },
+      "lyrics": {
+        "title": "Songtext",
+        "body": "Zeigt den synchronisierten Songtext des laufenden Titels."
+      },
+      "queue": {
+        "title": "Warteschlange",
+        "body": "Was als Nächstes läuft: umsortieren, ergänzen oder leeren."
+      },
+      "device": {
+        "title": "Audioausgabe",
+        "body": "Wähle die Soundkarte, den Kopfhörer oder den DAC, der spielt."
+      },
+      "more": {
+        "title": "Weitere Aktionen",
+        "body": "Geschwindigkeit, Desktop-Songtext, Sleep-Timer und weitere Schnelleinstellungen."
+      },
+      "volume": {
+        "title": "Lautstärke",
+        "body": "Stell die Lautstärke ein; ein Klick auf das Symbol schaltet stumm."
+      },
+      "miniPlayer": {
+        "title": "Mini-Player",
+        "body": "Ein kleines Fenster, das im Vordergrund bleibt, während du etwas anderes machst."
+      },
+      "immersive": {
+        "title": "Immersive Ansicht",
+        "body": "Das Cover groß und der Songtext, im Vollbild."
+      }
     }
   }
 }

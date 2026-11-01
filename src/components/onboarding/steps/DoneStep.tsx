@@ -1,10 +1,17 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Library, Loader2, Play, Sparkles } from "lucide-react";
+import {
+  Library,
+  Loader2,
+  MousePointerClick,
+  Play,
+  Settings2,
+  Sparkles,
+} from "lucide-react";
 import { usePlayer } from "../../../hooks/usePlayer";
 import { useLibrary } from "../../../hooks/useLibrary";
 import { shuffledLibrary } from "../../discovery/shuffledLibrary";
-import { openView } from "../../../lib/discovery";
+import { openView, startPlayerTour } from "../../../lib/discovery";
 import type { OnboardingScan } from "../useOnboardingScan";
 import { StepHeading } from "./StepHeading";
 
@@ -15,9 +22,12 @@ import { StepHeading } from "./StepHeading";
  */
 export function DoneStep({
   scan,
+  offerTour,
   onClose,
 }: {
   scan: OnboardingScan;
+  /** Offer the player bar tour: not seen yet, or the journey run again. */
+  offerTour: boolean;
   onClose: () => void;
 }) {
   const { t } = useTranslation();
@@ -25,6 +35,7 @@ export function DoneStep({
   const { libraries } = useLibrary();
   const [starting, setStarting] = useState(false);
   const [empty, setEmpty] = useState(false);
+  const [tourDeclined, setTourDeclined] = useState(false);
 
   const scanning = scan.kind === "preparing" || scan.kind === "running";
   const hasMusic =
@@ -114,6 +125,73 @@ export function DoneStep({
             {t("onboarding.done.finish")}
           </button>
         )}
+      </div>
+
+      <div className="mt-8 grid gap-3 text-left sm:grid-cols-2">
+        {offerTour && !tourDeclined && (
+          <div className="onboarding-tile flex flex-col rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800">
+            <p className="flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-white">
+              <MousePointerClick
+                size={16}
+                className="shrink-0 text-emerald-500"
+                aria-hidden="true"
+              />
+              {t("onboarding.done.tourTitle")}
+            </p>
+            <p className="mt-1 flex-1 text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
+              {t("onboarding.done.tourBody")}
+            </p>
+            <div className="mt-3 flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  // The layout starts the tour once the journey is gone.
+                  startPlayerTour();
+                  onClose();
+                }}
+                className="onboarding-primary rounded-full bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-emerald-600"
+              >
+                {t("onboarding.done.tourStart")}
+              </button>
+              <button
+                type="button"
+                onClick={() => setTourDeclined(true)}
+                className="onboarding-ghost rounded-full px-3 py-1.5 text-xs text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white"
+              >
+                {t("onboarding.done.tourLater")}
+              </button>
+            </div>
+          </div>
+        )}
+        <div
+          className={`onboarding-tile flex flex-col rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800 ${
+            offerTour && !tourDeclined ? "" : "sm:col-span-2"
+          }`}
+        >
+          <p className="flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-white">
+            <Settings2
+              size={16}
+              className="shrink-0 text-emerald-500"
+              aria-hidden="true"
+            />
+            {t("onboarding.done.settingsTitle")}
+          </p>
+          <p className="mt-1 flex-1 text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
+            {t("onboarding.done.settingsBody")}
+          </p>
+          <div className="mt-3">
+            <button
+              type="button"
+              onClick={() => {
+                openView({ view: "settings" });
+                onClose();
+              }}
+              className="onboarding-ghost rounded-full border border-zinc-200 px-3 py-1.5 text-xs font-semibold text-zinc-700 transition-colors hover:border-emerald-500 hover:text-emerald-600 dark:border-zinc-700 dark:text-zinc-200"
+            >
+              {t("onboarding.done.settingsOpen")}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

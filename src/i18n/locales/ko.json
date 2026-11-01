@@ -107,7 +107,8 @@
       "title": "나만의 스타일",
       "lede": "스킨은 인터페이스 전체를, 테마는 색상을 바꿉니다. 모든 변경은 바로 적용되며, 설정 → 외관에서 언제든 바꿀 수 있습니다.",
       "skin": "스킨",
-      "theme": "테마"
+      "theme": "테마",
+      "windows": "창"
     },
     "listening": {
       "title": "듣는 방식",
@@ -192,7 +193,8 @@
         "title": "WaveFlow 서버",
         "benefit": "WaveFlow 서버의 라이브러리를 재생하고, 이 라이브러리와 동기화합니다.",
         "open": "설정에서 구성"
-      }
+      },
+      "enrichmentOffline": "온라인 상태가 되면 설정 → 라이브러리에서 켜세요."
     },
     "done": {
       "title": "WaveFlow 준비 완료",
@@ -204,7 +206,14 @@
       "nothingYet": "아직 곡이 없습니다. 스캔에서 아직 찾지 못했습니다.",
       "library": "라이브러리로 이동",
       "play": "재생 시작",
-      "finish": "완료"
+      "finish": "완료",
+      "tourTitle": "플레이어 바를 둘러볼까요?",
+      "tourBody": "가사, 재생 대기열, 미니 플레이어 등을 아이콘별로 1분 만에 알아보세요.",
+      "tourStart": "둘러보기",
+      "tourLater": "나중에",
+      "settingsTitle": "알아볼 기능이 훨씬 더 많습니다",
+      "settingsBody": "이퀄라이저, 독점 출력, 단축키, 백업… 설정을 한번 둘러보세요.",
+      "settingsOpen": "설정 열기"
     }
   },
   "sidebar": {
@@ -1841,7 +1850,7 @@
     "destination": {
       "tag": {
         "label": "내장 태그",
-        "hint": "오디오 파일의 USLT/©lyr에 씁니다(foobar2000, iTunes 호환)."
+        "hint": "오디오 파일의 USLT/©lyr에 씁니다. 다른 플레이어에서도 읽을 수 있습니다."
       },
       "sidecar": {
         "label": "사이드카 파일",
@@ -2585,7 +2594,7 @@
       "skins": {
         "studio": {
           "label": "Studio",
-          "description": "Apple Music 분위기 — 밀도 있는 인터페이스, 부드러운 그림자, 깔끔한 산세리프."
+          "description": "밀도 높은 인터페이스, 부드러운 그림자, 깔끔한 산세리프 글꼴."
         },
         "editorial": {
           "label": "Editorial",
@@ -3328,6 +3337,11 @@
       "title": "둘러보기",
       "subtitle": "처음 실행할 때 나왔던 시작 화면과 추천 설정을 다시 봅니다.",
       "action": "다시 시작"
+    },
+    "playerTourReplay": {
+      "title": "플레이어 바 둘러보기",
+      "subtitle": "플레이어 바의 각 아이콘이 어떤 역할을 하는지 다시 확인합니다.",
+      "action": "시작"
     }
   },
   "scanProgress": {
@@ -4178,6 +4192,63 @@
       "title": "더 나아가기: 태그 작업실",
       "body": "찾아 바꾸기, 번호 매기기, MusicBrainz 매칭, 실행 취소를 선택한 항목 전체에 적용할 수 있습니다.",
       "action": "이 선택 항목을 작업실에서 열기"
+    }
+  },
+  "playerTour": {
+    "label": "플레이어 바 둘러보기",
+    "counter": "{{current}} / {{total}}",
+    "next": "다음",
+    "finish": "완료",
+    "skip": "건너뛰기",
+    "items": {
+      "cover": {
+        "title": "커버",
+        "body": "클릭하면 설정에 따라 몰입형 보기 또는 상세 패널이 열립니다."
+      },
+      "like": {
+        "title": "좋아요",
+        "body": "재생 중인 곡을 좋아요한 곡에 추가합니다."
+      },
+      "abLoop": {
+        "title": "A-B 루프",
+        "body": "곡의 두 지점 사이 구간을 반복합니다."
+      },
+      "sleepTimer": {
+        "title": "수면 타이머",
+        "body": "정한 시간이 지나거나 곡이 끝나면 재생을 멈춥니다."
+      },
+      "eqPreset": {
+        "title": "이퀄라이저",
+        "body": "클릭 한 번으로 이퀄라이저 프리셋을 바꿉니다."
+      },
+      "lyrics": {
+        "title": "가사",
+        "body": "재생 중인 곡의 동기화된 가사를 표시합니다."
+      },
+      "queue": {
+        "title": "재생 대기열",
+        "body": "다음에 재생될 곡: 순서를 바꾸고, 곡을 추가하거나 비울 수 있습니다."
+      },
+      "device": {
+        "title": "오디오 출력",
+        "body": "소리를 낼 사운드 카드, 헤드폰 또는 DAC를 선택하세요."
+      },
+      "more": {
+        "title": "추가 작업",
+        "body": "재생 속도, 데스크톱 가사, 수면 타이머 등 빠른 설정."
+      },
+      "volume": {
+        "title": "볼륨",
+        "body": "볼륨을 조절합니다. 아이콘을 클릭하면 음소거됩니다."
+      },
+      "miniPlayer": {
+        "title": "미니 플레이어",
+        "body": "다른 작업을 하는 동안에도 항상 위에 떠 있는 작은 창."
+      },
+      "immersive": {
+        "title": "몰입형 보기",
+        "body": "큼직한 커버와 가사를 전체 화면으로."
+      }
     }
   }
 }

@@ -107,7 +107,8 @@
       "title": "Your look",
       "lede": "A skin changes the whole interface, a theme changes its colour. Everything applies at once, and lives in Settings → Appearance.",
       "skin": "Skin",
-      "theme": "Theme"
+      "theme": "Theme",
+      "windows": "Windows"
     },
     "listening": {
       "title": "Your listening",
@@ -192,7 +193,8 @@
         "title": "WaveFlow server",
         "benefit": "Play a WaveFlow server's library and keep it in sync with this one.",
         "open": "Set up in Settings"
-      }
+      },
+      "enrichmentOffline": "Turn it on in Settings → Library once you're online."
     },
     "done": {
       "title": "Your WaveFlow is ready",
@@ -204,7 +206,14 @@
       "nothingYet": "No tracks yet: the scan hasn't found any so far.",
       "library": "Go to the library",
       "play": "Start playing",
-      "finish": "Finish"
+      "finish": "Finish",
+      "tourTitle": "Take a tour of the player bar?",
+      "tourBody": "A minute to find the lyrics, the queue, the mini-player and the rest, one icon at a time.",
+      "tourStart": "Take the tour",
+      "tourLater": "Later",
+      "settingsTitle": "There's much more to discover",
+      "settingsBody": "Equaliser, exclusive output, shortcuts, backups… Take a look around Settings.",
+      "settingsOpen": "Open Settings"
     }
   },
   "sidebar": {
@@ -1843,7 +1852,7 @@
     "destination": {
       "tag": {
         "label": "Embedded tag",
-        "hint": "Writes USLT/©lyr in the audio file (foobar2000, iTunes… compatible)."
+        "hint": "Writes USLT/©lyr in the audio file, readable by other players."
       },
       "sidecar": {
         "label": "Sidecar file",
@@ -2587,7 +2596,7 @@
       "skins": {
         "studio": {
           "label": "Studio",
-          "description": "Apple Music vibe — dense interface, soft shadows, clean sans-serif."
+          "description": "Dense interface, soft shadows, clean sans-serif type."
         },
         "editorial": {
           "label": "Editorial",
@@ -3330,6 +3339,11 @@
       "title": "Discovery tour",
       "subtitle": "Go through the getting-started screens and the suggested settings again.",
       "action": "Start again"
+    },
+    "playerTourReplay": {
+      "title": "Player bar tour",
+      "subtitle": "Go over what each icon of the player bar does.",
+      "action": "Start"
     }
   },
   "scanProgress": {
@@ -4180,6 +4194,63 @@
       "title": "Going further: the tag workshop",
       "body": "Find and replace, numbering, MusicBrainz matching and undo, across a whole selection.",
       "action": "Open this selection in the workshop"
+    }
+  },
+  "playerTour": {
+    "label": "Player bar tour",
+    "counter": "{{current}} / {{total}}",
+    "next": "Next",
+    "finish": "Done",
+    "skip": "Skip",
+    "items": {
+      "cover": {
+        "title": "Cover",
+        "body": "A click opens the immersive view or the Details panel, depending on your setting."
+      },
+      "like": {
+        "title": "Like",
+        "body": "Adds the playing track to your liked songs."
+      },
+      "abLoop": {
+        "title": "A-B loop",
+        "body": "Repeats a passage of the track between two points."
+      },
+      "sleepTimer": {
+        "title": "Sleep timer",
+        "body": "Stops playback after a while or at the end of the track."
+      },
+      "eqPreset": {
+        "title": "Equaliser",
+        "body": "Switches equaliser preset in a click."
+      },
+      "lyrics": {
+        "title": "Lyrics",
+        "body": "Shows the playing track's synced lyrics."
+      },
+      "queue": {
+        "title": "Queue",
+        "body": "What plays next: reorder it, add to it or clear it."
+      },
+      "device": {
+        "title": "Audio output",
+        "body": "Choose the sound card, headphones or DAC that plays."
+      },
+      "more": {
+        "title": "More actions",
+        "body": "Speed, desktop lyrics, sleep timer and other quick settings."
+      },
+      "volume": {
+        "title": "Volume",
+        "body": "Set the volume; a click on the icon mutes it."
+      },
+      "miniPlayer": {
+        "title": "Mini-player",
+        "body": "A small window that stays on top while you do something else."
+      },
+      "immersive": {
+        "title": "Immersive view",
+        "body": "The cover up large and the lyrics, full screen."
+      }
     }
   }
 }

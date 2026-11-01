@@ -21,6 +21,8 @@ import {
   type LastfmStatus,
 } from "../../../lib/tauri/integration";
 import { SETTINGS } from "../../../lib/settingsRegistry";
+import { getOfflineMode } from "../../../lib/tauri/offline";
+import { useEnrichmentSwitch } from "../../../hooks/useEnrichmentSettings";
 import { openView } from "../../../lib/discovery";
 import { FeatureCard } from "../../discovery/FeatureCard";
 import { StepHeading } from "./StepHeading";
@@ -33,10 +35,14 @@ import { StepHeading } from "./StepHeading";
 export function ConnectionsStep({
   onTouch,
   onLeave,
+  storeUnreachable,
 }: {
   onTouch: () => void;
   /** The server link ends the journey to open its setting. */
   onLeave: () => void;
+  /** The plugin store could not be reached earlier in the journey: the
+   *  network is probably down, and the cards that need it only present. */
+  storeUnreachable: boolean;
 }) {
   const { t } = useTranslation();
 
@@ -75,8 +81,14 @@ export function ConnectionsStep({
         lede={t("onboarding.connections.lede")}
       />
       <div className="mt-7 grid grid-cols-1 items-start gap-3 sm:grid-cols-2">
-        <LastfmCard onTouch={onTouch} />
-        <div className="grid gap-3">
+        <div className="grid min-w-0 grid-cols-1 gap-3">
+          <LastfmCard onTouch={onTouch} />
+          <EnrichmentCard
+            onTouch={onTouch}
+            storeUnreachable={storeUnreachable}
+          />
+        </div>
+        <div className="grid min-w-0 grid-cols-1 gap-3">
           <FeatureCard
             art="discord"
             title={t("onboarding.connections.discord.title")}
@@ -109,6 +121,69 @@ export function ConnectionsStep({
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * MusicBrainz enrichment, the switch of Settings → Library through the
+ * same hook (`useEnrichmentSwitch`): the setting, then a pass started at
+ * once. Off by default. Offline — the app's offline mode, or a store that
+ * could not be reached — the card only presents, as the plugins do: a
+ * pass would have nothing to ask.
+ */
+function EnrichmentCard({
+  onTouch,
+  storeUnreachable,
+}: {
+  onTouch: () => void;
+  storeUnreachable: boolean;
+}) {
+  const { t } = useTranslation();
+  const engine = useEnrichmentSwitch();
+  const [offlineMode, setOfflineMode] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    getOfflineMode()
+      .then((on) => {
+        if (!cancelled) setOfflineMode(on);
+      })
+      .catch((err) => console.error("[Onboarding] read offline failed", err));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const title = t("settings.enrichment.title");
+  const benefit = t("settings.enrichment.subtitle");
+  if ((offlineMode || storeUnreachable) && !engine.enabled) {
+    return (
+      <FeatureCard art="enrichment" title={title} benefit={benefit}>
+        <p className="mt-3 flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+          <Settings2 size={13} aria-hidden="true" className="shrink-0" />
+          {t("onboarding.connections.enrichmentOffline")}
+        </p>
+      </FeatureCard>
+    );
+  }
+  return (
+    <FeatureCard
+      art="enrichment"
+      title={title}
+      benefit={benefit}
+      checked={engine.enabled}
+      disabled={!engine.ready}
+      onToggle={() => {
+        onTouch();
+        void engine.toggle();
+      }}
+      status={
+        engine.error ? (
+          <span className="text-rose-500" role="alert">
+            {engine.error}
+          </span>
+        ) : undefined
+      }
+    />
   );
 }
 

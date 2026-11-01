@@ -9,6 +9,8 @@ import {
   ThemePreview,
 } from "../../views/settings/settingsPreviews";
 import { StepHeading, StepSection } from "./StepHeading";
+import { FeatureCard } from "../../discovery/FeatureCard";
+import { useXwaylandChoice } from "../../../hooks/useXwaylandChoice";
 // The choice cards and their drawings are styled there; the Settings view
 // is loaded lazily, so the journey may be the first to need them.
 import "../../views/settings/settings.css";
@@ -73,6 +75,59 @@ export function LookStep({ onTouch }: { onTouch: () => void }) {
           }))}
         />
       </StepSection>
+      <WaylandWindows onTouch={onTouch} />
     </div>
+  );
+}
+
+/**
+ * On a Linux Wayland session only: the compositor ignores "always on
+ * top" and places windows itself, so the mini-player and the desktop
+ * lyrics cannot stay above or where they were put. The card says so and
+ * offers XWayland — the choice of Settings → Appearance, through the same
+ * hook (`useXwaylandChoice`), applied from the next start. Renders nothing
+ * anywhere else.
+ */
+function WaylandWindows({ onTouch }: { onTouch: () => void }) {
+  const { t } = useTranslation();
+  const choice = useXwaylandChoice();
+  const { status } = choice;
+  if (!status) return null;
+  const note = status.set_by_user
+    ? t("settings.xwayland.setByUser")
+    : choice.error
+      ? choice.error
+      : choice.pending
+        ? t("settings.xwayland.nextStart")
+        : status.active
+          ? t("settings.xwayland.active")
+          : null;
+  return (
+    <StepSection label={t("onboarding.look.windows")}>
+      <FeatureCard
+        art="miniPlayer"
+        title={t("settings.xwayland.title")}
+        benefit={t("settings.xwayland.subtitle")}
+        checked={choice.on}
+        disabled={choice.busy || status.set_by_user}
+        onToggle={() => {
+          onTouch();
+          choice.toggle();
+        }}
+        status={
+          note ? (
+            <span
+              className={
+                choice.pending || choice.error
+                  ? "text-amber-600 dark:text-amber-400"
+                  : "text-zinc-500 dark:text-zinc-400"
+              }
+            >
+              {note}
+            </span>
+          ) : undefined
+        }
+      />
+    </StepSection>
   );
 }

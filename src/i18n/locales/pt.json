@@ -107,7 +107,8 @@
       "title": "O teu visual",
       "lede": "Um estilo muda toda a interface; um tema muda a sua cor. Tudo se aplica de imediato e fica em Definições → Aparência.",
       "skin": "Estilo",
-      "theme": "Tema"
+      "theme": "Tema",
+      "windows": "Janelas"
     },
     "listening": {
       "title": "A tua audição",
@@ -192,7 +193,8 @@
         "title": "Servidor WaveFlow",
         "benefit": "Ouve a biblioteca de um servidor WaveFlow e sincroniza-a com esta.",
         "open": "Configurar nas Definições"
-      }
+      },
+      "enrichmentOffline": "Ativa-o em Definições → Biblioteca quando estiveres online."
     },
     "done": {
       "title": "O teu WaveFlow está pronto",
@@ -204,7 +206,14 @@
       "nothingYet": "Ainda sem faixas: a análise ainda não encontrou nenhuma.",
       "library": "Ir para a biblioteca",
       "play": "Começar a ouvir",
-      "finish": "Concluir"
+      "finish": "Concluir",
+      "tourTitle": "Uma visita à barra do leitor?",
+      "tourBody": "Um minuto para encontrar a letra, a fila, o mini-leitor e o resto, ícone a ícone.",
+      "tourStart": "Fazer a visita",
+      "tourLater": "Mais tarde",
+      "settingsTitle": "Há muito mais para descobrir",
+      "settingsBody": "Equalizador, saída exclusiva, atalhos, cópias de segurança… Dá uma volta pelas Definições.",
+      "settingsOpen": "Abrir as Definições"
     }
   },
   "sidebar": {
@@ -1903,7 +1912,7 @@
     "destination": {
       "tag": {
         "label": "Metadados integrados",
-        "hint": "Escreve USLT/©lyr no ficheiro de áudio (compatível com foobar2000, iTunes…)."
+        "hint": "Escreve USLT/©lyr no ficheiro de áudio, legível por outros leitores."
       },
       "sidecar": {
         "label": "Ficheiro auxiliar",
@@ -2653,7 +2662,7 @@
       "skins": {
         "studio": {
           "label": "Studio",
-          "description": "Estilo Apple Music — interface densa, sombras suaves, sans-serif limpa."
+          "description": "Interface densa, sombras suaves, tipografia sem serifa limpa."
         },
         "editorial": {
           "label": "Editorial",
@@ -3401,6 +3410,11 @@
       "title": "Percurso de descoberta",
       "subtitle": "Rever a configuração inicial e as definições sugeridas no primeiro arranque.",
       "action": "Recomeçar"
+    },
+    "playerTourReplay": {
+      "title": "Visita à barra do leitor",
+      "subtitle": "Rever para que serve cada ícone da barra do leitor.",
+      "action": "Iniciar"
     }
   },
   "scanProgress": {
@@ -4313,6 +4327,63 @@
       "title": "Para ir mais longe: a oficina de etiquetas",
       "body": "Procurar e substituir, numeração, correspondência com MusicBrainz e anulação, numa seleção inteira.",
       "action": "Abrir esta seleção na oficina"
+    }
+  },
+  "playerTour": {
+    "label": "Visita à barra do leitor",
+    "counter": "{{current}} / {{total}}",
+    "next": "Seguinte",
+    "finish": "Concluir",
+    "skip": "Saltar",
+    "items": {
+      "cover": {
+        "title": "Capa",
+        "body": "Um clique abre a vista imersiva ou o painel Detalhes, conforme a tua definição."
+      },
+      "like": {
+        "title": "Favorito",
+        "body": "Adiciona a faixa em reprodução às tuas Faixas favoritas."
+      },
+      "abLoop": {
+        "title": "Ciclo A-B",
+        "body": "Repete um trecho da faixa entre dois pontos."
+      },
+      "sleepTimer": {
+        "title": "Temporizador para dormir",
+        "body": "Para a reprodução após algum tempo ou no fim da faixa."
+      },
+      "eqPreset": {
+        "title": "Equalizador",
+        "body": "Muda de predefinição do equalizador com um clique."
+      },
+      "lyrics": {
+        "title": "Letra",
+        "body": "Mostra a letra sincronizada da faixa em reprodução."
+      },
+      "queue": {
+        "title": "Fila",
+        "body": "O que vem a seguir: reordena, acrescenta ou esvazia."
+      },
+      "device": {
+        "title": "Saída de áudio",
+        "body": "Escolhe a placa de som, os auscultadores ou o DAC que toca."
+      },
+      "more": {
+        "title": "Mais ações",
+        "body": "Velocidade, letra no ambiente de trabalho, temporizador e outras definições rápidas."
+      },
+      "volume": {
+        "title": "Volume",
+        "body": "Ajusta o volume; um clique no ícone silencia o som."
+      },
+      "miniPlayer": {
+        "title": "Mini-leitor",
+        "body": "Uma pequena janela que fica por cima enquanto fazes outra coisa."
+      },
+      "immersive": {
+        "title": "Vista imersiva",
+        "body": "A capa em grande e a letra, em ecrã inteiro."
+      }
     }
   }
 }

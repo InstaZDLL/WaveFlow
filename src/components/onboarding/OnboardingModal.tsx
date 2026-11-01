@@ -16,6 +16,7 @@ import { LyricsStep } from "./steps/LyricsStep";
 import { PluginsStep } from "./steps/PluginsStep";
 import { ConnectionsStep } from "./steps/ConnectionsStep";
 import { DoneStep } from "./steps/DoneStep";
+import { playerTourSeen } from "../../lib/discovery";
 import "../discovery/discovery.css";
 
 /**
@@ -46,6 +47,9 @@ interface OnboardingModalProps {
   /** Close the journey. The layout latches `onboarding.dismissed` for the
    *  profile, so it does not come back on the next launch. */
   onClose: () => void;
+  /** Run again from Settings: the player bar tour is offered at the end
+   *  even when this profile has seen it. */
+  replay?: boolean;
 }
 
 /**
@@ -65,7 +69,10 @@ interface OnboardingModalProps {
  * writes nothing of its own. Run again from Settings → General, it skips
  * the folder when the library already has one.
  */
-export function OnboardingModal({ onClose }: OnboardingModalProps) {
+export function OnboardingModal({
+  onClose,
+  replay = false,
+}: OnboardingModalProps) {
   const { t } = useTranslation();
   const { libraries } = useLibrary();
   const { activeProfile, renameProfile } = useProfile();
@@ -96,6 +103,23 @@ export function OnboardingModal({ onClose }: OnboardingModalProps) {
   const touch = useCallback(() => {
     setTouched((cur) => (cur.has(step) ? cur : new Set(cur).add(step)));
   }, [step]);
+
+  // The player bar tour is offered at the end when this profile has not
+  // seen it, or when the journey was asked for again.
+  const [tourSeen, setTourSeen] = useState(true);
+  const profileId = activeProfile?.id ?? null;
+  useEffect(() => {
+    if (profileId == null) return;
+    let cancelled = false;
+    playerTourSeen(profileId)
+      .then((seen) => {
+        if (!cancelled) setTourSeen(seen);
+      })
+      .catch((err) => console.error("[Onboarding] read tour flag failed", err));
+    return () => {
+      cancelled = true;
+    };
+  }, [profileId]);
 
   const [profileName, setProfileName] = useState(activeProfile?.name ?? "");
   const [nameError, setNameError] = useState<string | null>(null);
@@ -228,9 +252,19 @@ export function OnboardingModal({ onClose }: OnboardingModalProps) {
               <PluginsStep onTouch={touch} plugins={plugins} />
             )}
             {step === "connections" && (
-              <ConnectionsStep onTouch={touch} onLeave={onClose} />
+              <ConnectionsStep
+                onTouch={touch}
+                onLeave={onClose}
+                storeUnreachable={plugins.catalogue.status === "unavailable"}
+              />
             )}
-            {step === "done" && <DoneStep scan={scan} onClose={onClose} />}
+            {step === "done" && (
+              <DoneStep
+                scan={scan}
+                offerTour={replay || !tourSeen}
+                onClose={onClose}
+              />
+            )}
           </div>
         </div>
 

@@ -107,7 +107,8 @@
       "title": "Il tuo look",
       "lede": "Una skin cambia tutta l'interfaccia, un tema ne cambia il colore. Tutto si applica subito e lo ritrovi in Impostazioni → Aspetto.",
       "skin": "Skin",
-      "theme": "Tema"
+      "theme": "Tema",
+      "windows": "Finestre"
     },
     "listening": {
       "title": "Il tuo ascolto",
@@ -192,7 +193,8 @@
         "title": "Server WaveFlow",
         "benefit": "Ascolta la libreria di un server WaveFlow e sincronizzala con questa.",
         "open": "Configura nelle Impostazioni"
-      }
+      },
+      "enrichmentOffline": "Da attivare in Impostazioni → Libreria quando sei online."
     },
     "done": {
       "title": "Il tuo WaveFlow è pronto",
@@ -204,7 +206,14 @@
       "nothingYet": "Ancora nessun brano: la scansione non ha ancora trovato nulla.",
       "library": "Vai alla libreria",
       "play": "Avvia la riproduzione",
-      "finish": "Fine"
+      "finish": "Fine",
+      "tourTitle": "Un giro della barra di riproduzione?",
+      "tourBody": "Un minuto per trovare i testi, la coda, il mini-player e il resto, un'icona alla volta.",
+      "tourStart": "Fai il giro",
+      "tourLater": "Più tardi",
+      "settingsTitle": "C'è molto altro da scoprire",
+      "settingsBody": "Equalizzatore, uscita esclusiva, scorciatoie, backup… Fai un giro nelle Impostazioni.",
+      "settingsOpen": "Apri le Impostazioni"
     }
   },
   "sidebar": {
@@ -1902,7 +1911,7 @@
     "destination": {
       "tag": {
         "label": "Tag integrato",
-        "hint": "Scrive USLT/©lyr nel file audio (compatibile con foobar2000, iTunes…)."
+        "hint": "Scrive USLT/©lyr nel file audio, leggibile dagli altri lettori."
       },
       "sidecar": {
         "label": "File sidecar",
@@ -2652,7 +2661,7 @@
       "skins": {
         "studio": {
           "label": "Studio",
-          "description": "Stile Apple Music — interfaccia densa, ombre morbide, sans-serif pulito."
+          "description": "Interfaccia densa, ombre morbide, tipografia sans-serif pulita."
         },
         "editorial": {
           "label": "Editorial",
@@ -3400,6 +3409,11 @@
       "title": "Percorso di scoperta",
       "subtitle": "Rivedere la configurazione iniziale e le impostazioni proposte al primo avvio.",
       "action": "Riavvia"
+    },
+    "playerTourReplay": {
+      "title": "Giro della barra di riproduzione",
+      "subtitle": "Rivedere a cosa serve ogni icona della barra di riproduzione.",
+      "action": "Avvia"
     }
   },
   "scanProgress": {
@@ -4312,6 +4326,63 @@
       "title": "Per andare oltre: il laboratorio tag",
       "body": "Trova e sostituisci, numerazione, abbinamento MusicBrainz e annullamento, su un'intera selezione.",
       "action": "Apri questa selezione nel laboratorio"
+    }
+  },
+  "playerTour": {
+    "label": "Giro della barra di riproduzione",
+    "counter": "{{current}} / {{total}}",
+    "next": "Avanti",
+    "finish": "Fine",
+    "skip": "Salta",
+    "items": {
+      "cover": {
+        "title": "Copertina",
+        "body": "Un clic apre la vista immersiva o il pannello Dettagli, secondo la tua impostazione."
+      },
+      "like": {
+        "title": "Mi piace",
+        "body": "Aggiunge il brano in riproduzione ai tuoi Brani preferiti."
+      },
+      "abLoop": {
+        "title": "Loop A-B",
+        "body": "Ripete un passaggio del brano tra due punti."
+      },
+      "sleepTimer": {
+        "title": "Timer di spegnimento",
+        "body": "Ferma la riproduzione dopo un certo tempo o alla fine del brano."
+      },
+      "eqPreset": {
+        "title": "Equalizzatore",
+        "body": "Cambia preset dell'equalizzatore con un clic."
+      },
+      "lyrics": {
+        "title": "Testi",
+        "body": "Mostra il testo sincronizzato del brano in riproduzione."
+      },
+      "queue": {
+        "title": "Coda",
+        "body": "Cosa viene dopo: da riordinare, completare o svuotare."
+      },
+      "device": {
+        "title": "Uscita audio",
+        "body": "Scegli la scheda audio, le cuffie o il DAC che suona."
+      },
+      "more": {
+        "title": "Altre azioni",
+        "body": "Velocità, testi sul desktop, timer di spegnimento e altre impostazioni rapide."
+      },
+      "volume": {
+        "title": "Volume",
+        "body": "Regola il volume; un clic sull'icona lo silenzia."
+      },
+      "miniPlayer": {
+        "title": "Mini-player",
+        "body": "Una piccola finestra che resta in primo piano mentre fai altro."
+      },
+      "immersive": {
+        "title": "Vista immersiva",
+        "body": "La copertina in grande e i testi, a schermo intero."
+      }
     }
   }
 }

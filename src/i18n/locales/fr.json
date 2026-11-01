@@ -107,7 +107,8 @@
       "title": "Votre look",
       "lede": "Un skin change toute l'interface, un thème change sa couleur. Tout s'applique tout de suite, et se retrouve dans Paramètres → Apparence.",
       "skin": "Skin",
-      "theme": "Thème"
+      "theme": "Thème",
+      "windows": "Fenêtres"
     },
     "listening": {
       "title": "Votre écoute",
@@ -192,7 +193,8 @@
         "title": "Serveur WaveFlow",
         "benefit": "Écoutez la bibliothèque d'un serveur WaveFlow et synchronisez-la avec celle-ci.",
         "open": "Configurer dans les Paramètres"
-      }
+      },
+      "enrichmentOffline": "À activer dans Paramètres → Bibliothèque une fois en ligne."
     },
     "done": {
       "title": "Votre WaveFlow est prêt",
@@ -204,7 +206,14 @@
       "nothingYet": "Aucun titre pour l'instant : le scan n'en a pas encore trouvé.",
       "library": "Aller à la bibliothèque",
       "play": "Lancer la lecture",
-      "finish": "Terminer"
+      "finish": "Terminer",
+      "tourTitle": "Faire le tour de la barre de lecture ?",
+      "tourBody": "Une minute pour repérer les paroles, la file d'attente, le mini-lecteur et le reste, icône par icône.",
+      "tourStart": "Faire le tour",
+      "tourLater": "Plus tard",
+      "settingsTitle": "Il y a bien plus à découvrir",
+      "settingsBody": "Égaliseur, sortie exclusive, raccourcis, sauvegardes… Faites un tour dans les Paramètres.",
+      "settingsOpen": "Ouvrir les Paramètres"
     }
   },
   "sidebar": {
@@ -1902,7 +1911,7 @@
     "destination": {
       "tag": {
         "label": "Tag intégré",
-        "hint": "Écrit dans l'USLT/©lyr du fichier audio (compatible foobar2000, iTunes…)."
+        "hint": "Écrit dans l'USLT/©lyr du fichier audio, lisible par les autres lecteurs."
       },
       "sidecar": {
         "label": "Fichier sidecar",
@@ -2151,7 +2160,7 @@
       "skins": {
         "studio": {
           "label": "Studio",
-          "description": "Ambiance Apple Music — interface dense, ombres douces, typographie sans empattement épurée."
+          "description": "Interface dense, ombres douces, typographie sans empattement épurée."
         },
         "editorial": {
           "label": "Éditorial",
@@ -3400,6 +3409,11 @@
       "title": "Parcours de découverte",
       "subtitle": "Revoir la mise en route et les réglages proposés au premier lancement.",
       "action": "Relancer"
+    },
+    "playerTourReplay": {
+      "title": "Visite de la barre de lecture",
+      "subtitle": "Revoir à quoi sert chaque icône de la barre de lecture.",
+      "action": "Lancer"
     }
   },
   "scanProgress": {
@@ -4312,6 +4326,63 @@
       "title": "Pour aller plus loin : l'atelier de tags",
       "body": "Rechercher-remplacer, numérotation, correspondance MusicBrainz et annulation, sur toute une sélection.",
       "action": "Ouvrir cette sélection dans l'atelier"
+    }
+  },
+  "playerTour": {
+    "label": "Visite de la barre de lecture",
+    "counter": "{{current}} / {{total}}",
+    "next": "Suivant",
+    "finish": "Terminer",
+    "skip": "Passer",
+    "items": {
+      "cover": {
+        "title": "Pochette",
+        "body": "Un clic ouvre la vue immersive ou le panneau Détails, selon votre réglage."
+      },
+      "like": {
+        "title": "Coup de cœur",
+        "body": "Ajoute le titre en cours à vos coups de cœur."
+      },
+      "abLoop": {
+        "title": "Boucle A-B",
+        "body": "Répète un passage du titre entre deux points."
+      },
+      "sleepTimer": {
+        "title": "Minuterie",
+        "body": "Arrête la lecture après un délai ou à la fin du titre."
+      },
+      "eqPreset": {
+        "title": "Égaliseur",
+        "body": "Change de préréglage d'égaliseur en un clic."
+      },
+      "lyrics": {
+        "title": "Paroles",
+        "body": "Affiche les paroles synchronisées du titre en cours."
+      },
+      "queue": {
+        "title": "File d'attente",
+        "body": "Ce qui va suivre : à réordonner, compléter ou vider."
+      },
+      "device": {
+        "title": "Sortie audio",
+        "body": "Choisissez la carte son, le casque ou le DAC qui joue."
+      },
+      "more": {
+        "title": "Plus d'actions",
+        "body": "Vitesse, paroles sur le bureau, minuterie et autres réglages rapides."
+      },
+      "volume": {
+        "title": "Volume",
+        "body": "Réglez le volume ; un clic sur l'icône coupe le son."
+      },
+      "miniPlayer": {
+        "title": "Mini-lecteur",
+        "body": "Une petite fenêtre qui reste au premier plan pendant que vous faites autre chose."
+      },
+      "immersive": {
+        "title": "Vue immersive",
+        "body": "La pochette en grand et les paroles, en plein écran."
+      }
     }
   }
 }

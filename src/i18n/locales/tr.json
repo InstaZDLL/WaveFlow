@@ -107,7 +107,8 @@
       "title": "Görünümün",
       "lede": "Arayüz stili tüm arayüzü, tema ise rengini değiştirir. Her şey anında uygulanır; hepsini Ayarlar → Görünüm bölümünde bulursun.",
       "skin": "Arayüz stili",
-      "theme": "Tema"
+      "theme": "Tema",
+      "windows": "Pencereler"
     },
     "listening": {
       "title": "Dinleme deneyimin",
@@ -192,7 +193,8 @@
         "title": "WaveFlow sunucusu",
         "benefit": "Bir WaveFlow sunucusunun kütüphanesini dinle ve bu kütüphaneyle eşitle.",
         "open": "Ayarlar'da yapılandır"
-      }
+      },
+      "enrichmentOffline": "Çevrimiçi olduğunda Ayarlar → Kütüphane bölümünden aç."
     },
     "done": {
       "title": "WaveFlow'un hazır",
@@ -204,7 +206,14 @@
       "nothingYet": "Henüz parça yok: tarama şimdilik bir şey bulamadı.",
       "library": "Kütüphaneye git",
       "play": "Çalmaya başla",
-      "finish": "Bitir"
+      "finish": "Bitir",
+      "tourTitle": "Çalar çubuğunu tanımak ister misin?",
+      "tourBody": "Şarkı sözlerini, sırayı, mini oynatıcıyı ve gerisini simge simge bulmak için bir dakika.",
+      "tourStart": "Tura başla",
+      "tourLater": "Sonra",
+      "settingsTitle": "Keşfedilecek çok daha fazlası var",
+      "settingsBody": "Ekolayzer, özel çıkış, kısayollar, yedekler… Ayarlar'a bir göz at.",
+      "settingsOpen": "Ayarlar'ı aç"
     }
   },
   "sidebar": {
@@ -1843,7 +1852,7 @@
     "destination": {
       "tag": {
         "label": "Gömülü etiket",
-        "hint": "Ses dosyasının USLT/©lyr alanına yazar (foobar2000, iTunes uyumlu)."
+        "hint": "Ses dosyasının USLT/©lyr alanına yazar; diğer oynatıcılar da okuyabilir."
       },
       "sidecar": {
         "label": "Yan dosya",
@@ -2587,7 +2596,7 @@
       "skins": {
         "studio": {
           "label": "Studio",
-          "description": "Apple Music tarzı — yoğun arayüz, yumuşak gölgeler, temiz sans-serif."
+          "description": "Yoğun arayüz, yumuşak gölgeler, sade sans-serif yazı tipi."
         },
         "editorial": {
           "label": "Editorial",
@@ -3330,6 +3339,11 @@
       "title": "Tanıtım turu",
       "subtitle": "İlk açılışta sunulan başlangıç adımlarını ve önerilen ayarları yeniden gör.",
       "action": "Yeniden başlat"
+    },
+    "playerTourReplay": {
+      "title": "Çalar çubuğu turu",
+      "subtitle": "Çalar çubuğundaki her simgenin ne işe yaradığını yeniden gör.",
+      "action": "Başlat"
     }
   },
   "scanProgress": {
@@ -4180,6 +4194,63 @@
       "title": "Daha ileri gitmek için: etiket atölyesi",
       "body": "Bul ve değiştir, numaralandırma, MusicBrainz eşleştirme ve geri alma; tüm seçim üzerinde.",
       "action": "Bu seçimi atölyede aç"
+    }
+  },
+  "playerTour": {
+    "label": "Çalar çubuğu turu",
+    "counter": "{{current}} / {{total}}",
+    "next": "İleri",
+    "finish": "Bitir",
+    "skip": "Atla",
+    "items": {
+      "cover": {
+        "title": "Kapak",
+        "body": "Bir tıkla, ayarına göre sürükleyici görünümü ya da Ayrıntılar panelini açar."
+      },
+      "like": {
+        "title": "Beğen",
+        "body": "Çalan parçayı beğenilen parçalarına ekler."
+      },
+      "abLoop": {
+        "title": "A-B döngüsü",
+        "body": "Parçanın iki nokta arasındaki bölümünü tekrarlar."
+      },
+      "sleepTimer": {
+        "title": "Uyku zamanlayıcısı",
+        "body": "Çalmayı belirli bir süre sonra ya da parçanın sonunda durdurur."
+      },
+      "eqPreset": {
+        "title": "Ekolayzer",
+        "body": "Ekolayzer önayarını tek tıkla değiştirir."
+      },
+      "lyrics": {
+        "title": "Sözler",
+        "body": "Çalan parçanın senkronize şarkı sözlerini gösterir."
+      },
+      "queue": {
+        "title": "Sıra",
+        "body": "Sırada ne var: yeniden sırala, ekle ya da temizle."
+      },
+      "device": {
+        "title": "Ses çıkışı",
+        "body": "Çalacak ses kartını, kulaklığı ya da DAC'yi seç."
+      },
+      "more": {
+        "title": "Daha fazla eylem",
+        "body": "Hız, masaüstü şarkı sözleri, uyku zamanlayıcısı ve diğer hızlı ayarlar."
+      },
+      "volume": {
+        "title": "Ses düzeyi",
+        "body": "Ses düzeyini ayarla; simgeye tıklamak sesi kapatır."
+      },
+      "miniPlayer": {
+        "title": "Mini oynatıcı",
+        "body": "Sen başka işlerle uğraşırken üstte kalan küçük bir pencere."
+      },
+      "immersive": {
+        "title": "Sürükleyici görünüm",
+        "body": "Büyük kapak ve şarkı sözleri, tam ekran."
+      }
     }
   }
 }

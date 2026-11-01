@@ -107,7 +107,8 @@
       "title": "你的外观",
       "lede": "界面风格改变整个界面，主题改变它的配色。所有更改即时生效，之后也可以在“设置 → 外观”中找到。",
       "skin": "界面风格",
-      "theme": "主题"
+      "theme": "主题",
+      "windows": "窗口"
     },
     "listening": {
       "title": "聆听方式",
@@ -192,7 +193,8 @@
         "title": "WaveFlow 服务器",
         "benefit": "播放 WaveFlow 服务器上的音乐库，并与本机音乐库保持同步。",
         "open": "在设置中配置"
-      }
+      },
+      "enrichmentOffline": "联网后可在“设置 → 音乐库”中开启。"
     },
     "done": {
       "title": "你的 WaveFlow 已准备就绪",
@@ -204,7 +206,14 @@
       "nothingYet": "暂无曲目：扫描尚未找到任何曲目。",
       "library": "前往音乐库",
       "play": "开始播放",
-      "finish": "完成"
+      "finish": "完成",
+      "tourTitle": "要逛一圈播放栏吗？",
+      "tourBody": "花一分钟，逐个图标认识歌词、队列、迷你播放器等功能。",
+      "tourStart": "开始导览",
+      "tourLater": "稍后",
+      "settingsTitle": "还有更多等你发现",
+      "settingsBody": "均衡器、独占输出、快捷键、备份……去“设置”里看看吧。",
+      "settingsOpen": "打开设置"
     }
   },
   "sidebar": {
@@ -1841,7 +1850,7 @@
     "destination": {
       "tag": {
         "label": "嵌入标签",
-        "hint": "写入音频文件的 USLT/©lyr（兼容 foobar2000、iTunes…）。"
+        "hint": "写入音频文件的 USLT/©lyr，其他播放器也能读取。"
       },
       "sidecar": {
         "label": "外挂歌词文件",
@@ -2487,7 +2496,7 @@
       "skins": {
         "studio": {
           "label": "Studio",
-          "description": "Apple Music 风格——紧凑界面、柔和阴影、简洁的无衬线字体。"
+          "description": "紧凑的界面、柔和的阴影、简洁的无衬线字体。"
         },
         "editorial": {
           "label": "Editorial",
@@ -3328,6 +3337,11 @@
       "title": "功能导览",
       "subtitle": "重新查看首次启动时的入门步骤和推荐设置。",
       "action": "重新开始"
+    },
+    "playerTourReplay": {
+      "title": "播放栏导览",
+      "subtitle": "重新了解播放栏上每个图标的用途。",
+      "action": "开始"
     }
   },
   "scanProgress": {
@@ -4178,6 +4192,63 @@
       "title": "更进一步：标签工坊",
       "body": "查找替换、编号、MusicBrainz 匹配和撤销，可作用于整个选区。",
       "action": "在标签工坊中打开所选内容"
+    }
+  },
+  "playerTour": {
+    "label": "播放栏导览",
+    "counter": "{{current}} / {{total}}",
+    "next": "下一步",
+    "finish": "完成",
+    "skip": "跳过",
+    "items": {
+      "cover": {
+        "title": "封面",
+        "body": "点击后会根据你的设置，打开沉浸式视图或详情面板。"
+      },
+      "like": {
+        "title": "喜欢",
+        "body": "将正在播放的曲目加入已喜欢的曲目。"
+      },
+      "abLoop": {
+        "title": "A-B 循环",
+        "body": "在两个点之间重复播放曲目中的一段。"
+      },
+      "sleepTimer": {
+        "title": "睡眠定时器",
+        "body": "在设定时间后或当前曲目结束时停止播放。"
+      },
+      "eqPreset": {
+        "title": "均衡器",
+        "body": "一键切换均衡器预设。"
+      },
+      "lyrics": {
+        "title": "歌词",
+        "body": "显示正在播放曲目的同步歌词。"
+      },
+      "queue": {
+        "title": "队列",
+        "body": "接下来要播放的内容：可重新排序、添加或清空。"
+      },
+      "device": {
+        "title": "音频输出",
+        "body": "选择用来播放的声卡、耳机或 DAC。"
+      },
+      "more": {
+        "title": "更多操作",
+        "body": "播放速度、桌面歌词、睡眠定时器及其他快捷设置。"
+      },
+      "volume": {
+        "title": "音量",
+        "body": "调节音量；点击图标即可静音。"
+      },
+      "miniPlayer": {
+        "title": "迷你播放器",
+        "body": "在你做其他事情时始终置顶的小窗口。"
+      },
+      "immersive": {
+        "title": "沉浸式视图",
+        "body": "大幅封面配上歌词，全屏呈现。"
+      }
     }
   }
 }
