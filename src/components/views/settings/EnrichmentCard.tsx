@@ -11,6 +11,7 @@ import {
   type EnrichmentStats,
 } from "../../../lib/tauri/enrichment";
 import {
+  useEnrichmentSwitch,
   useEnrichmentToggle,
   type EnrichmentSettingKey,
 } from "../../../hooks/useEnrichmentSettings";
@@ -18,7 +19,6 @@ import { useProfile } from "../../../hooks/useProfile";
 import { useTasks } from "../../../hooks/useTasks";
 import { EnrichmentReviewModal } from "../../common/EnrichmentReviewModal";
 import { ToggleSwitch } from "./ToggleSwitch";
-import { discoveryOnSuccess } from "../../../lib/discovery";
 
 const FIELDS: ReadonlyArray<{ key: EnrichmentSettingKey; labelKey: string }> = [
   {
@@ -72,14 +72,15 @@ function FieldToggle({
  */
 export function EnrichmentCard() {
   const { t } = useTranslation();
-  const enabled = useEnrichmentToggle("enrichment.enabled");
+  const engine = useEnrichmentSwitch();
   const { activeProfile } = useProfile();
   const activeProfileId = activeProfile?.id ?? null;
   const tasks = useTasks();
   const task = tasks.find((entry) => entry.kind === "enrichment");
   const [stats, setStats] = useState<EnrichmentStats | null>(null);
   const [reviewOpen, setReviewOpen] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [runError, setError] = useState<string | null>(null);
+  const error = runError ?? engine.error;
 
   // Which read is current: a profile switch keeps the card mounted, and
   // an answer about the previous profile must not land after the new one.
@@ -123,21 +124,9 @@ export function EnrichmentCard() {
     };
   }, [refresh, activeProfileId]);
 
-  const onToggleEnabled = async () => {
-    const next = !enabled.value;
-    const tick = discoveryOnSuccess("enrichment");
+  const onToggleEnabled = () => {
     setError(null);
-    try {
-      await enabled.setValue(next);
-      // Turning it on starts a pass straight away rather than waiting
-      // for the next scan.
-      if (next) {
-        await runEnrichment();
-        tick();
-      } else await cancelEnrichment();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    }
+    void engine.toggle();
   };
 
   const onRun = () => {
@@ -164,10 +153,10 @@ export function EnrichmentCard() {
           </div>
         </div>
         <ToggleSwitch
-          enabled={enabled.value}
-          onToggle={() => void onToggleEnabled()}
+          enabled={engine.enabled}
+          onToggle={onToggleEnabled}
           label={t("settings.enrichment.title")}
-          disabled={!enabled.ready}
+          disabled={!engine.ready}
         />
       </div>
 
@@ -185,7 +174,7 @@ export function EnrichmentCard() {
               key={field.key}
               settingKey={field.key}
               labelKey={field.labelKey}
-              disabled={!enabled.value}
+              disabled={!engine.enabled}
             />
           ))}
         </div>
@@ -260,7 +249,7 @@ export function EnrichmentCard() {
             <button
               type="button"
               onClick={onRun}
-              disabled={!enabled.value}
+              disabled={!engine.enabled}
               className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Play size={14} aria-hidden="true" />
