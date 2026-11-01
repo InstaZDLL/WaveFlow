@@ -241,8 +241,13 @@ export function SettingsView(props: SettingsViewProps) {
   const [lastInitialCategory, setLastInitialCategory] = useState(
     props.initialCategory,
   );
-  if (lastInitialCategory !== props.initialCategory) {
+  const [lastRevealToken, setLastRevealToken] = useState(props.revealToken);
+  if (
+    lastInitialCategory !== props.initialCategory ||
+    lastRevealToken !== props.revealToken
+  ) {
     setLastInitialCategory(props.initialCategory);
+    setLastRevealToken(props.revealToken);
     setResetCategory(null);
   }
   // Above the remount, so the fresh header learns what it follows.
@@ -311,7 +316,9 @@ function SettingsViewContent({
     // A restored entry carries no search target: a group revealed by an
     // earlier search result must not stay expanded in it.
     setTargetGroup(null);
-  }, [initialCategory]);
+    // `revealToken`: two requests in a row can name one category, with the
+    // user having moved to another page between them.
+  }, [initialCategory, revealToken]);
   // After the effect above, which clears the target. A group asked for from
   // outside opens like a search result does, and scrolls once its page's
   // chunk has landed (`RevealOnMount`).

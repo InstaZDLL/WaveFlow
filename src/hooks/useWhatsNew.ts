@@ -17,6 +17,7 @@ import { getProfileSetting } from "../lib/tauri/profile";
 import { getWhatsNewMarker, setWhatsNewMarker } from "../lib/tauri/preferences";
 import {
   latestRelease,
+  markerAfterShowing,
   markerShouldAdvance,
   pendingRelease,
   type WhatsNewRelease,
@@ -117,7 +118,8 @@ export interface WhatsNewState {
  * - A release between the marker and this version: it is pending. It opens by
  *   itself when the way is clear, unless this profile asked not to; the
  *   button then carries a dot until it is opened by hand.
- * - Nothing to tell (a correction release): the marker moves and that is all.
+ * - Nothing to tell (a correction release): the marker moves and that is all,
+ *   unless this is a pre-release, whose pages may still come in the next one.
  *
  * The marker moves when a pending release is actually shown, not when it is
  * found: closing the app behind another dialog, or under a profile that does
@@ -193,7 +195,7 @@ export function useWhatsNew(blocked: boolean): WhatsNewState {
     setPending(null);
     const version = versionRef.current;
     if (version) {
-      setWhatsNewMarker(version).catch((err) =>
+      setWhatsNewMarker(markerAfterShowing(next, version)).catch((err) =>
         console.error("[useWhatsNew] write marker failed", err),
       );
     }

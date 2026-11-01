@@ -57,6 +57,7 @@ export function WhatsNewPanel({
   const titleId = useId();
   const dialogRef = useModalA11y<HTMLDivElement>(isOpen, onClose);
   const nextRef = useRef<HTMLButtonElement>(null);
+  const previousRef = useRef<HTMLButtonElement>(null);
   const [index, setIndex] = useState(0);
   const [wasOpen, setWasOpen] = useState(isOpen);
   if (wasOpen !== isOpen) {
@@ -91,13 +92,20 @@ export function WhatsNewPanel({
   const isLast = index >= pages.length - 1;
 
   const goTo = (next: number) => {
-    setIndex(Math.max(0, Math.min(pages.length - 1, next)));
+    const target = Math.max(0, Math.min(pages.length - 1, next));
+    // "Previous" is about to disable itself under the focus, which would
+    // drop to the body, out of reach of the key handler below.
+    if (target === 0 && document.activeElement === previousRef.current) {
+      nextRef.current?.focus();
+    }
+    setIndex(target);
   };
 
   // The arrows follow the reading direction. Every other key stops here too,
   // except what the modal hook listens for on `document`: a key pressed in
   // the panel is not the player's, and Space on a focused button must not
-  // also pause the music.
+  // also pause the music. The dialog takes the focus itself (`tabIndex`), so
+  // this holds after a click on its text as well.
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === "Escape" || event.key === "Tab") return;
     event.stopPropagation();
@@ -201,9 +209,10 @@ export function WhatsNewPanel({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
+        tabIndex={-1}
         onKeyDown={onKeyDown}
         data-paused={focused ? undefined : ""}
-        className="whats-new flex max-h-[calc(100vh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-900"
+        className="whats-new flex outline-none max-h-[calc(100vh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-900"
       >
         <div className="flex shrink-0 items-center gap-3 px-6 pb-3 pt-4">
           <h2
@@ -287,6 +296,7 @@ export function WhatsNewPanel({
         <div className="mt-4 flex shrink-0 items-center gap-3 px-6">
           <button
             type="button"
+            ref={previousRef}
             onClick={() => goTo(index - 1)}
             disabled={isFirst}
             className="whats-new__ghost inline-flex items-center gap-1 rounded-full px-3 py-2 text-sm text-zinc-600 transition-colors hover:bg-zinc-100 disabled:cursor-default disabled:opacity-40 disabled:hover:bg-transparent dark:text-zinc-300 dark:hover:bg-zinc-800"

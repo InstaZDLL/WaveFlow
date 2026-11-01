@@ -214,15 +214,32 @@ export function pendingRelease(
   return version && compareCore(version, seen) > 0 ? release : null;
 }
 
-/** Whether the marker should move to `current`. Never backwards: someone
- *  leaving the beta channel for an older stable has still seen the pages. */
+/**
+ * Whether the marker should move to `current` when there is nothing to show.
+ * Never backwards: someone leaving the beta channel for an older stable has
+ * still seen the pages. Never to a pre-release either: only the numbers count,
+ * so a marker on `2.1.0-beta.1` would call 2.1.0 seen, and its pages may only
+ * land in `beta.2`.
+ */
 export function markerShouldAdvance(
   marker: string | null,
   current: string,
 ): boolean {
   const now = parseVersion(current);
-  if (!now) return false;
+  if (!now || now.pre.length > 0) return false;
   if (marker == null) return true;
   const seen = parseVersion(marker);
   return seen == null || compareParsed(now, seen) > 0;
+}
+
+/**
+ * What the marker holds once `release` has been shown: the version running,
+ * or on a pre-release the release's own, for the same reason as above.
+ */
+export function markerAfterShowing(
+  release: WhatsNewRelease,
+  current: string,
+): string {
+  const now = parseVersion(current);
+  return now && now.pre.length === 0 ? current : release.version;
 }
