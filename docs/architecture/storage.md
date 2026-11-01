@@ -167,10 +167,10 @@ To give an owned pool to a `waveflow-core` type that knows nothing about leases,
 
 Two flavours, two stores:
 
-| Store                             | Scope       | Used for                                                                                                                                                      |
-| --------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `app_setting` (`app.db`)          | App-wide    | API keys, session keys, theme, last-active-profile                                                                                                            |
-| `profile_setting` (per `data.db`) | Per-profile | Output device, crossfade, normalize / mono / replaygain toggles, onboarding dismissal, first-steps ticks and tips seen (`discovery.*`, `tips.*`), sort memory |
+| Store                             | Scope       | Used for                                                                                                                                                                                     |
+| --------------------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `app_setting` (`app.db`)          | App-wide    | API keys, session keys, theme, last-active-profile                                                                                                                                           |
+| `profile_setting` (per `data.db`) | Per-profile | Output device, crossfade, normalize / mono / replaygain toggles, onboarding dismissal, first-steps ticks, tips and the player bar tour seen (`discovery.*`, `tips.*`, `tour.*`), sort memory |
 
 Both follow the same `INSERT … ON CONFLICT DO UPDATE` typed-value pattern (`value_text` / `value_int` / `value_real` / `value_bool` columns + a `kind` discriminator).
 
