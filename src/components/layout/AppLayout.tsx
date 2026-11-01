@@ -18,6 +18,7 @@ import {
 } from "../../lib/discovery";
 import { useGlobalShortcuts } from "../../hooks/useGlobalShortcuts";
 import { useDiscoveryWatchers } from "../../hooks/useDiscoveryWatchers";
+import { useWhatsNew } from "../../hooks/useWhatsNew";
 import { useUiZoom } from "../../hooks/useUiZoom";
 import { useWindowChrome } from "../../hooks/useWindowChrome";
 import { useWindowFrameColors } from "../../hooks/useWindowFrameColors";
@@ -66,6 +67,7 @@ const LibraryView = retryableLazy(() => {
 // bundle: the entry below carries a category and has to spell it the
 // same way Settings does.
 import type { SettingsCategory } from "../views/SettingsView";
+import type { SettingsGroupId } from "../views/settings/settingsCatalog";
 
 const SettingsView = retryableLazy(() => {
   void import("../views/settings/sections").then((m) =>
@@ -91,6 +93,9 @@ const OnboardingModal = retryableLazy(() =>
   import("../onboarding/OnboardingModal").then(
     (module) => module.OnboardingModal,
   ),
+);
+const WhatsNewPanel = retryableLazy(() =>
+  import("../discovery/WhatsNewPanel").then((module) => module.WhatsNewPanel),
 );
 const PlayerBarTour = retryableLazy(() =>
   import("../discovery/PlayerBarTour").then((module) => module.PlayerBarTour),
@@ -148,7 +153,13 @@ type HistoryEntry =
   // state beside it, so it expires the way every other payload here
   // does: the next plain visit to Settings pushes an entry without it
   // and lands on whatever the user last had open.
-  | { id: "settings"; settingsCategory?: SettingsCategory }
+  | {
+      id: "settings";
+      settingsCategory?: SettingsCategory;
+      // The group to scroll to, and what tells two requests for it apart.
+      settingsGroup?: SettingsGroupId;
+      opened?: number;
+    }
   | { id: "web-radio" }
   | { id: "release-radar" }
   // The files it opened travel on the entry, so Back returns to the same
@@ -156,7 +167,7 @@ type HistoryEntry =
   // fresh workshop rather than the last one's leftovers.
   | { id: "tag-workshop"; request?: TagWorkshopRequest; opened?: number }
   | { id: "extensions" }
-  | { id: "about" }
+  | { id: "about"; changelog?: boolean; opened?: number }
   | { id: "feedback" }
   | { id: "statistics" }
   | { id: "liked" }
@@ -297,6 +308,17 @@ export function AppLayout() {
   // The player bar tour, offered at the end of the journey and started
   // again from Settings → General.
   const [showPlayerTour, setShowPlayerTour] = useState(false);
+  // The profile the first-run gate below has answered for: until it has,
+  // the journey may still be about to open.
+  const [onboardingDecidedFor, setOnboardingDecidedFor] = useState<
+    number | null
+  >(null);
+  const whatsNew = useWhatsNew(
+    showOnboarding ||
+      showPlayerTour ||
+      isProfileModalOpen ||
+      onboardingDecidedFor !== activeProfile?.id,
+  );
   // While the journey is up a drop is the library being chosen: import
   // only, no "play" target over it.
   const dragDrop = useDragDropImport({ importOnly: showOnboarding });
@@ -374,6 +396,9 @@ export function AppLayout() {
         // Read failure is non-fatal — fall back to "not dismissed"
         // so a brand new profile still gets the prompt.
         console.error("[AppLayout] read onboarding.dismissed failed", err);
+      }
+      if (evaluatedProfileId.current === profileId) {
+        setOnboardingDecidedFor(profileId);
       }
       if (cancelled || evaluatedProfileId.current !== profileId) return;
       if (dismissed) {
@@ -518,8 +543,19 @@ export function AppLayout() {
       if (!request?.view) return;
       pushEntry(
         request.view === "settings"
-          ? { id: "settings", settingsCategory: request.settingsCategory }
-          : ({ id: request.view } as HistoryEntry),
+          ? {
+              id: "settings",
+              settingsCategory: request.settingsCategory,
+              settingsGroup: request.settingsGroup,
+              opened: Date.now(),
+            }
+          : request.view === "about"
+            ? {
+                id: "about",
+                changelog: request.aboutChangelog,
+                opened: Date.now(),
+              }
+            : ({ id: request.view } as HistoryEntry),
       );
     };
     window.addEventListener(OPEN_VIEW_EVENT, onOpen);
@@ -699,6 +735,14 @@ export function AppLayout() {
                 ? currentEntry.settingsCategory
                 : undefined
             }
+            initialGroup={
+              currentEntry.id === "settings"
+                ? currentEntry.settingsGroup
+                : undefined
+            }
+            revealToken={
+              currentEntry.id === "settings" ? currentEntry.opened : undefined
+            }
           />
         );
       case "web-radio":
@@ -732,7 +776,17 @@ export function AppLayout() {
           />
         ) : null;
       case "about":
-        return <AboutView onNavigate={setActiveView} />;
+        return (
+          <AboutView
+            onNavigate={setActiveView}
+            scrollToChangelog={
+              currentEntry.id === "about" ? currentEntry.changelog : undefined
+            }
+            scrollToken={
+              currentEntry.id === "about" ? currentEntry.opened : undefined
+            }
+          />
+        );
       case "feedback":
         return <FeedbackView onNavigate={setActiveView} />;
       case "statistics":
@@ -935,6 +989,9 @@ export function AppLayout() {
                 onGoForward={goForward}
                 sidebarMode={sidebarMode}
                 onCycleSidebar={cycleSidebar}
+                whatsNewAvailable={whatsNew.release != null}
+                whatsNewUnseen={whatsNew.unseen}
+                onOpenWhatsNew={whatsNew.openPanel}
               />
 
               {/* Main Scrollable Content */}
@@ -1037,6 +1094,15 @@ export function AppLayout() {
             <OnboardingModal
               onClose={dismissOnboarding}
               replay={onboardingReplay}
+            />
+          </Suspense>
+        )}
+        {whatsNew.shown && (
+          <Suspense fallback={null}>
+            <WhatsNewPanel
+              isOpen={whatsNew.open}
+              release={whatsNew.shown}
+              onClose={whatsNew.closePanel}
             />
           </Suspense>
         )}

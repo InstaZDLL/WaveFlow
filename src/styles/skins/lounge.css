@@ -592,3 +592,9 @@ html:root[data-skin="lounge"]:is(
   --fe-hairline: rgb(255 156 188 / 0.3);
   --fe-hairline-strong: rgb(255 156 188 / 0.45);
 }
+
+/* The "What's new" panel: its scrim has no blur, since the page behind it may
+   be moving, so a translucent sheet would let the page's text read through. */
+:root[data-skin="lounge"] .whats-new {
+  --lg-glass-dense: var(--fe-surface);
+}

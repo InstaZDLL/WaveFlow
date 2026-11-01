@@ -20,6 +20,10 @@ import { useSkin } from "../../../hooks/useSkin";
 import { useTheme } from "../../../hooks/useTheme";
 import { parseBoolean } from "../../../hooks/useProfileSetting";
 import {
+  WHATS_NEW_AUTO_OPEN_EVENT,
+  WHATS_NEW_BUTTON_EVENT,
+} from "../../../hooks/useWhatsNew";
+import {
   getProfileSetting,
   setProfileSetting,
 } from "../../../lib/tauri/profile";
@@ -920,6 +924,14 @@ const ACCESSORS: Record<SettingKey, SettingAccessor> = {
   ),
   "ui.motion_covers": profileBool("ui.motion_covers", MOTION_COVERS_EVENT),
   "ui.artist_hero": profileBool("ui.artist_hero", ARTIST_HERO_EVENT),
+  "ui.whats_new_auto_open": profileBool(
+    "ui.whats_new_auto_open",
+    WHATS_NEW_AUTO_OPEN_EVENT,
+  ),
+  "ui.whats_new_button": profileBool(
+    "ui.whats_new_button",
+    WHATS_NEW_BUTTON_EVENT,
+  ),
   "stats.hidden_kpis": profileRow("stats.hidden_kpis", {
     parse: parseHidden,
     serialize: (ids) => JSON.stringify(ids),

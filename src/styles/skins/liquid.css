@@ -1551,3 +1551,14 @@
   > button[class*="text-3xl"] {
   filter: none !important;
 }
+
+/* The "What's new" panel: its scrim has no blur, since the page behind it may
+   be moving, so a translucent sheet would let the page's text read through.
+   It takes the material's own opaque fallback, as the reduced-transparency
+   block above does. */
+:root[data-skin="liquid"]:not([data-contrast="high"]) .whats-new {
+  --glass-overlay-bg: #2a2b38;
+}
+:root[data-skin="liquid"]:not(.dark):not([data-contrast="high"]) .whats-new {
+  --glass-overlay-bg: #ffffff;
+}

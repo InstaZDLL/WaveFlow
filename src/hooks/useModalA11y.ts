@@ -1,4 +1,9 @@
-import { useEffect, useLayoutEffect, useRef } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useSyncExternalStore,
+} from "react";
 
 /**
  * Modal accessibility helper. Wires up the three behaviours every
@@ -24,6 +29,25 @@ import { useEffect, useLayoutEffect, useRef } from "react";
  *  or a dialog opened over another (an excerpt picker over the immersive
  *  view) closes both. */
 const openModals: symbol[] = [];
+
+const openModalListeners = new Set<() => void>();
+
+function subscribeOpenModals(listener: () => void) {
+  openModalListeners.add(listener);
+  return () => {
+    openModalListeners.delete(listener);
+  };
+}
+
+/** Whether any modal is open, for what must wait until none is (the "What's
+ *  new" panel, which opens on its own and never over someone's dialog). */
+export function useAnyModalOpen(): boolean {
+  return useSyncExternalStore(
+    subscribeOpenModals,
+    () => openModals.length > 0,
+    () => false,
+  );
+}
 
 export function useModalA11y<T extends HTMLElement>(
   isOpen: boolean,
@@ -58,6 +82,7 @@ export function useModalA11y<T extends HTMLElement>(
 
     const token = Symbol("modal");
     openModals.push(token);
+    openModalListeners.forEach((listener) => listener());
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (openModals[openModals.length - 1] !== token) return;
@@ -90,6 +115,7 @@ export function useModalA11y<T extends HTMLElement>(
     return () => {
       document.removeEventListener("keydown", onKeyDown);
       openModals.splice(openModals.indexOf(token), 1);
+      openModalListeners.forEach((listener) => listener());
       // Restore focus on close. Guarded against the previous element
       // being detached (e.g. a context menu that spawned the modal
       // and then re-rendered).

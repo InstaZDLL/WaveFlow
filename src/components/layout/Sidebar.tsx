@@ -66,7 +66,10 @@ import {
 } from "../../lib/playlistVisuals";
 import { PlaylistIcon } from "../../lib/PlaylistIcon";
 import { resolveRemoteImage } from "../../lib/tauri/artwork";
-import { OPEN_SMART_PLAYLIST_EDITOR_EVENT } from "../../lib/discovery";
+import {
+  OPEN_PLAYLIST_IMPORT_EVENT,
+  OPEN_SMART_PLAYLIST_EDITOR_EVENT,
+} from "../../lib/discovery";
 import type { LibraryPlaylistRow } from "../../hooks/useLibraryPlaylists";
 
 interface SidebarProps {
@@ -290,6 +293,12 @@ export function Sidebar({
   };
 
   const [isImportPlaylistOpen, setIsImportPlaylistOpen] = useState(false);
+  // The "What's new" panel opens the dialog, which lives here.
+  useEffect(() => {
+    const onOpen = () => setIsImportPlaylistOpen(true);
+    window.addEventListener(OPEN_PLAYLIST_IMPORT_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_PLAYLIST_IMPORT_EVENT, onOpen);
+  }, []);
   const handleImportedPlaylist = useCallback(
     (result: ImportPlaylistResult) => {
       refreshPlaylists()

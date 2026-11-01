@@ -50,6 +50,7 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
     setVolume,
     immersiveOpen,
     immersiveInitialTab,
+    immersiveStartsInTheater,
     openFullscreenNowPlaying,
     closeImmersive,
     toggleNowPlaying,
@@ -404,6 +405,7 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
       {immersiveOpen && (
         <ImmersiveView
           initialTab={immersiveInitialTab}
+          startsInTheater={immersiveStartsInTheater}
           onClose={closeImmersive}
           onNavigateToArtist={onNavigateToArtist}
           isLiked={isLiked}

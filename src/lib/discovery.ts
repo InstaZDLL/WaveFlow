@@ -4,7 +4,10 @@ import {
   setProfileSetting,
 } from "./tauri/profile";
 import type { ViewId } from "../types";
-import type { SettingsCategory } from "../components/views/settings/settingsCatalog";
+import type {
+  SettingsCategory,
+  SettingsGroupId,
+} from "../components/views/settings/settingsCatalog";
 
 /**
  * What the Home's "First steps" card lists: features a new user would
@@ -112,6 +115,10 @@ export interface OpenViewRequest {
   view: ViewId;
   /** With `view: "settings"`: the category to open on. */
   settingsCategory?: SettingsCategory;
+  /** With a category: the group of it to scroll to. */
+  settingsGroup?: SettingsGroupId;
+  /** With `view: "about"`: scroll to the changelog. */
+  aboutChangelog?: boolean;
 }
 
 export function openView(request: OpenViewRequest): void {
@@ -157,4 +164,40 @@ export const START_PLAYER_TOUR_EVENT = "waveflow:start-player-tour";
 
 export function startPlayerTour(): void {
   window.dispatchEvent(new CustomEvent(START_PLAYER_TOUR_EVENT));
+}
+
+/** Ask the layout to open the "What's new" panel. */
+export const OPEN_WHATS_NEW_EVENT = "waveflow:open-whats-new";
+
+export function openWhatsNew(): void {
+  window.dispatchEvent(new CustomEvent(OPEN_WHATS_NEW_EVENT));
+}
+
+/** Ask the sidebar to open the playlist import dialog, which it owns. */
+export const OPEN_PLAYLIST_IMPORT_EVENT = "waveflow:open-playlist-import";
+
+export function openPlaylistImport(): void {
+  window.dispatchEvent(new CustomEvent(OPEN_PLAYLIST_IMPORT_EVENT));
+}
+
+/**
+ * Ask for the lyrics editor. The panel that owns it may not be mounted yet
+ * (it is being opened by the same gesture), so the request waits here for
+ * it to take: the event reaches a panel already there, its mount finds the
+ * flag otherwise.
+ */
+export const OPEN_LYRICS_EDITOR_EVENT = "waveflow:open-lyrics-editor";
+
+let lyricsEditorRequested = false;
+
+export function requestLyricsEditor(): void {
+  lyricsEditorRequested = true;
+  window.dispatchEvent(new CustomEvent(OPEN_LYRICS_EDITOR_EVENT));
+}
+
+/** Whether the editor was asked for. Answers once. */
+export function takeLyricsEditorRequest(): boolean {
+  const requested = lyricsEditorRequested;
+  lyricsEditorRequested = false;
+  return requested;
 }

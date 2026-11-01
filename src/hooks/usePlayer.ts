@@ -66,7 +66,9 @@ interface PlayerContextValue {
   // as back-compat aliases for existing callsites.
   immersiveOpen: boolean;
   immersiveInitialTab: "nowPlaying" | "lyrics";
+  immersiveStartsInTheater: boolean;
   openImmersive: (tab: "nowPlaying" | "lyrics") => void;
+  openTheater: () => void;
   closeImmersive: () => void;
   openFullscreenNowPlaying: () => void;
   closeFullscreenNowPlaying: () => void;

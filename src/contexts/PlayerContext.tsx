@@ -158,6 +158,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   // window single-column fallback to pick which column shows first;
   // at desktop widths both columns render side by side.
   const [immersiveOpen, setImmersiveOpen] = useState(false);
+  const [immersiveStartsInTheater, setImmersiveStartsInTheater] =
+    useState(false);
   const [immersiveInitialTab, setImmersiveInitialTab] = useState<
     "nowPlaying" | "lyrics"
   >("nowPlaying");
@@ -884,6 +886,16 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   // overlay did.
   const openImmersive = useCallback((tab: "nowPlaying" | "lyrics") => {
     setImmersiveInitialTab(tab);
+    setImmersiveStartsInTheater(false);
+    setImmersiveOpen(true);
+    noteDiscovery("immersive");
+  }, []);
+  // Theater mode for this visit, leaving the stored setting as it was: the
+  // "What's new" panel shows it, and a next opening of the view is not
+  // fullscreen because of a try. The view's Tv button still writes it.
+  const openTheater = useCallback(() => {
+    setImmersiveInitialTab("nowPlaying");
+    setImmersiveStartsInTheater(true);
     setImmersiveOpen(true);
     noteDiscovery("immersive");
   }, []);
@@ -950,7 +962,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         toggleDeviceMenu,
         immersiveOpen,
         immersiveInitialTab,
+        immersiveStartsInTheater,
         openImmersive,
+        openTheater,
         closeImmersive,
         openFullscreenNowPlaying,
         closeFullscreenNowPlaying,

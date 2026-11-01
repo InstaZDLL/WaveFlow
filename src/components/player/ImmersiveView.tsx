@@ -67,6 +67,8 @@ interface ImmersiveViewProps {
   /** Which entry point opened the view — only used to pick the first
    *  column in the narrow single-column fallback. */
   initialTab: "nowPlaying" | "lyrics";
+  /** Theater mode for this visit, whatever the setting says. */
+  startsInTheater?: boolean;
   onClose: () => void;
   onNavigateToArtist: (artistId: number) => void;
   isLiked: boolean;
@@ -104,6 +106,7 @@ interface ImmersiveViewProps {
  */
 export function ImmersiveView({
   initialTab,
+  startsInTheater,
   onClose,
   onNavigateToArtist,
   isLiked,
@@ -119,7 +122,9 @@ export function ImmersiveView({
     loaded: prefsLoaded,
   } = useImmersivePrefs();
   // The view's own toggle answers at once; the stored pref catches up.
-  const [theaterOverride, setTheaterOverride] = useState<boolean | null>(null);
+  const [theaterOverride, setTheaterOverride] = useState<boolean | null>(
+    startsInTheater ? true : null,
+  );
   const theater = theaterOverride ?? theaterMode;
   const lyrics = useTrackLyrics();
 

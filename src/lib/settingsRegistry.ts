@@ -131,6 +131,20 @@ export const SETTINGS = {
     false,
     "settings.generatorAlbumMode.title",
   ),
+  "ui.whats_new_auto_open": setting(
+    "general",
+    "profile",
+    "bool",
+    true,
+    "settings.whatsNew.autoOpen.title",
+  ),
+  "ui.whats_new_button": setting(
+    "general",
+    "profile",
+    "bool",
+    true,
+    "settings.whatsNew.button.title",
+  ),
   "playback.keep_awake": setting(
     "general",
     "profile",

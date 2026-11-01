@@ -24,6 +24,12 @@ export const SETTINGS_CATEGORIES = [
           "settings.onboardingReplay.subtitle",
           "settings.playerTourReplay.title",
           "settings.playerTourReplay.subtitle",
+          "settings.whatsNew.title",
+          "settings.whatsNew.subtitle",
+          "settings.whatsNew.autoOpen.title",
+          "settings.whatsNew.autoOpen.subtitle",
+          "settings.whatsNew.button.title",
+          "settings.whatsNew.button.subtitle",
         ],
       },
       {
