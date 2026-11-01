@@ -102,6 +102,7 @@ export function VolumeControl() {
         <button
           type="button"
           onClick={toggleMute}
+          data-tour="volume"
           aria-label={
             volume === 0 ? t("player.volume.unmute") : t("player.volume.mute")
           }

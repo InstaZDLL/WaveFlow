@@ -134,3 +134,27 @@ export const OPEN_SMART_PLAYLIST_EDITOR_EVENT =
 export function openSmartPlaylistEditor(): void {
   window.dispatchEvent(new CustomEvent(OPEN_SMART_PLAYLIST_EDITOR_EVENT));
 }
+
+/**
+ * The player bar tour: shown once per profile, offered at the end of the
+ * journey and started again from Settings → General. The flag is state the
+ * app keeps, not a preference, so it stays out of the settings registry.
+ */
+export const PLAYER_TOUR_SEEN_KEY = "tour.player_bar.seen";
+
+export function playerTourSeen(profileId: number): Promise<boolean> {
+  return getProfileSetting(PLAYER_TOUR_SEEN_KEY, profileId).then(
+    (raw) => raw === "true",
+  );
+}
+
+export function markPlayerTourSeen(profileId: number): Promise<void> {
+  return setProfileSetting(PLAYER_TOUR_SEEN_KEY, "true", "bool", profileId);
+}
+
+/** Ask the layout to start the player bar tour. */
+export const START_PLAYER_TOUR_EVENT = "waveflow:start-player-tour";
+
+export function startPlayerTour(): void {
+  window.dispatchEvent(new CustomEvent(START_PLAYER_TOUR_EVENT));
+}

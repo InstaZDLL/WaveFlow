@@ -13,6 +13,7 @@ import { DropTargetsOverlay } from "./DropTargetsOverlay";
 import {
   OPEN_VIEW_EVENT,
   REPLAY_ONBOARDING_EVENT,
+  START_PLAYER_TOUR_EVENT,
   type OpenViewRequest,
 } from "../../lib/discovery";
 import { useGlobalShortcuts } from "../../hooks/useGlobalShortcuts";
@@ -90,6 +91,9 @@ const OnboardingModal = retryableLazy(() =>
   import("../onboarding/OnboardingModal").then(
     (module) => module.OnboardingModal,
   ),
+);
+const PlayerBarTour = retryableLazy(() =>
+  import("../discovery/PlayerBarTour").then((module) => module.PlayerBarTour),
 );
 const PluginUIView = retryableLazy(() =>
   import("../views/PluginUIView").then((module) => module.PluginUIView),
@@ -288,6 +292,11 @@ export function AppLayout() {
   } = useLibrary();
   const { activeProfile, isLoading: isProfileLoading } = useProfile();
   const [showOnboarding, setShowOnboarding] = useState(false);
+  // Opened from Settings rather than by the first-run gate.
+  const [onboardingReplay, setOnboardingReplay] = useState(false);
+  // The player bar tour, offered at the end of the journey and started
+  // again from Settings → General.
+  const [showPlayerTour, setShowPlayerTour] = useState(false);
   // While the journey is up a drop is the library being chosen: import
   // only, no "play" target over it.
   const dragDrop = useDragDropImport({ importOnly: showOnboarding });
@@ -390,16 +399,27 @@ export function AppLayout() {
   // Settings → General runs the journey again, whatever the library holds;
   // the modal itself skips the folder when there is one.
   useEffect(() => {
-    const onReplay = () => setShowOnboarding(true);
+    const onReplay = () => {
+      setOnboardingReplay(true);
+      setShowOnboarding(true);
+    };
+    const onTour = () => setShowPlayerTour(true);
     window.addEventListener(REPLAY_ONBOARDING_EVENT, onReplay);
-    return () => window.removeEventListener(REPLAY_ONBOARDING_EVENT, onReplay);
+    window.addEventListener(START_PLAYER_TOUR_EVENT, onTour);
+    return () => {
+      window.removeEventListener(REPLAY_ONBOARDING_EVENT, onReplay);
+      window.removeEventListener(START_PLAYER_TOUR_EVENT, onTour);
+    };
   }, []);
+
+  const closePlayerTour = useCallback(() => setShowPlayerTour(false), []);
 
   const dismissOnboarding = useCallback(() => {
     // Persist the choice so the modal doesn't reappear on next
     // launch — the user already told us to leave them alone, even
     // if their library is still empty.
     setShowOnboarding(false);
+    setOnboardingReplay(false);
     setProfileSetting("onboarding.dismissed", "true", "bool").catch((err) =>
       console.error("[AppLayout] persist onboarding.dismissed failed", err),
     );
@@ -1014,7 +1034,15 @@ export function AppLayout() {
         <PluginAttentionToast />
         {showOnboarding && (
           <Suspense fallback={null}>
-            <OnboardingModal onClose={dismissOnboarding} />
+            <OnboardingModal
+              onClose={dismissOnboarding}
+              replay={onboardingReplay}
+            />
+          </Suspense>
+        )}
+        {showPlayerTour && !showOnboarding && (
+          <Suspense fallback={null}>
+            <PlayerBarTour onClose={closePlayerTour} />
           </Suspense>
         )}
       </div>

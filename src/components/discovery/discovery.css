@@ -404,13 +404,58 @@ button.feature-card:not(:disabled):active {
   background-color: var(--fe-accent) !important;
 }
 
+/* ── The player bar tour ───────────────────────────────────── */
+/* The veil is flat paint with the spotlight cut out (`clip-path`, set
+   inline); the spotlight itself is only its ring. No blur anywhere. */
+.player-tour__veil {
+  background-color: rgb(0 0 0 / 0.62);
+  transition: clip-path 320ms var(--disc-ease);
+}
+.player-tour__spot {
+  top: 0;
+  left: 0;
+  box-shadow: 0 0 0 2px var(--disc-accent);
+  transition:
+    transform 320ms var(--disc-ease),
+    width 320ms var(--disc-ease),
+    height 320ms var(--disc-ease);
+}
+.player-tour,
+.player-tour__spot {
+  --disc-accent: var(--fe-accent, var(--accent-500));
+  --disc-ease: var(--fe-ease, cubic-bezier(0.22, 1, 0.36, 1));
+}
+.player-tour__content {
+  animation: onboarding-rise 320ms var(--disc-ease) both;
+}
+:root[data-layout="fluid"] .player-tour__bubble {
+  background-color: var(--fe-surface-2) !important;
+  border-color: transparent !important;
+  box-shadow:
+    inset 0 1px 0 var(--fe-edge-strong),
+    0 30px 60px -24px rgb(0 0 0 / 0.9) !important;
+}
+:root[data-layout="fluid"] .player-tour__bubble h2 {
+  color: var(--fe-ink) !important;
+}
+:root[data-layout="fluid"] .player-tour__bubble p {
+  color: var(--fe-ink-2) !important;
+}
+:root[data-layout="fluid"] .player-tour__bubble .onboarding-primary {
+  background-color: var(--fe-accent) !important;
+  color: var(--fe-accent-ink) !important;
+}
+
 /* ── No motion ─────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
+  .player-tour__content,
   .feature-art *,
   .onboarding-step,
   .onboarding-scan__bar[data-indeterminate] {
     animation: none !important;
   }
+  .player-tour__spot,
+  .player-tour__veil,
   .feature-card,
   .feature-switch,
   .feature-switch::after,
@@ -418,8 +463,13 @@ button.feature-card:not(:disabled):active {
     transition: none;
   }
 }
+:root[data-effects="reduced"] .player-tour__content,
 :root[data-effects="reduced"] .feature-art *,
 :root[data-effects="reduced"] .onboarding-step,
 :root[data-effects="reduced"] .onboarding-scan__bar[data-indeterminate] {
   animation: none !important;
+}
+:root[data-effects="reduced"] .player-tour__spot,
+:root[data-effects="reduced"] .player-tour__veil {
+  transition: none;
 }

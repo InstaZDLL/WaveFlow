@@ -22,6 +22,8 @@ export const SETTINGS_CATEGORIES = [
           "settings.language.subtitle",
           "settings.onboardingReplay.title",
           "settings.onboardingReplay.subtitle",
+          "settings.playerTourReplay.title",
+          "settings.playerTourReplay.subtitle",
         ],
       },
       {

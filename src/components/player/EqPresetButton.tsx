@@ -70,6 +70,7 @@ export function EqPresetButton() {
         ref={triggerRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
+        data-tour="eqPreset"
         aria-label={t("playerBar.eqPreset")}
         title={t("playerBar.eqPreset")}
         aria-expanded={open}

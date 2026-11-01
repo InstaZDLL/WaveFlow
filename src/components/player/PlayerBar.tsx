@@ -146,6 +146,7 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
               type="button"
               onClick={handleCoverClick}
               disabled={coverDisabled}
+              data-tour="cover"
               aria-label={t(coverLabelKey)}
               title={t(coverLabelKey)}
               className="shrink-0 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-default"
@@ -224,6 +225,7 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
                     : t("webRadio.addFavorite")
                 }
                 aria-pressed={stationFavorited}
+                data-tour="like"
                 className={`p-2 rounded-full transition-colors shrink-0 ${
                   stationFavorited
                     ? "text-amber-500"
@@ -243,6 +245,7 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
               <button
                 type="button"
                 onClick={handleToggleLike}
+                data-tour="like"
                 aria-label={isLiked ? t("liked.unlike") : t("liked.like")}
                 className={`p-2 rounded-full transition-colors shrink-0 ${
                   isLiked
@@ -288,6 +291,7 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
               <button
                 type="button"
                 onClick={toggleLyrics}
+                data-tour="lyrics"
                 aria-label={t("playerBar.lyrics")}
                 title={t("playerBar.lyrics")}
                 className={`p-2 rounded-lg transition-colors ${
@@ -304,6 +308,7 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
               <button
                 type="button"
                 onClick={toggleQueue}
+                data-tour="queue"
                 aria-label={t("playerBar.queue")}
                 title={t("playerBar.queue")}
                 className={`p-2 rounded-lg transition-colors ${
@@ -320,6 +325,7 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
               <div className="relative">
                 <button
                   onClick={toggleDeviceMenu}
+                  data-tour="device"
                   aria-label={t("playerBar.devices")}
                   title={t("playerBar.devices")}
                   aria-expanded={isDeviceMenuOpen}
@@ -367,6 +373,7 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
                     }),
                   );
                 }}
+                data-tour="miniPlayer"
                 aria-label={t("playerBar.miniPlayer")}
                 title={t("playerBar.miniPlayer")}
                 className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-800 dark:hover:text-white transition-colors"
@@ -380,6 +387,7 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
                 type="button"
                 onClick={() => currentTrack && openFullscreenNowPlaying()}
                 disabled={!currentTrack}
+                data-tour="immersive"
                 aria-label={t("playerBar.openFullscreen")}
                 title={t("playerBar.openFullscreen")}
                 className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-800 dark:hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"

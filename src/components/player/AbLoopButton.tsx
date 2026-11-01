@@ -96,6 +96,7 @@ export function AbLoopButton() {
     <button
       type="button"
       onClick={handleClick}
+      data-tour="abLoop"
       aria-label={label}
       title={label}
       disabled={currentTrack == null}

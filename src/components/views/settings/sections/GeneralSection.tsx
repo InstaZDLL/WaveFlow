@@ -4,7 +4,7 @@ import { LanguageDropdown } from "../LanguageDropdown";
 import { SettingsCategoryHeader } from "../SettingsCategoryHeader";
 import { SettingsGroup } from "../SettingsGroup";
 import { ToggleSwitch } from "../ToggleSwitch";
-import { replayOnboarding } from "../../../../lib/discovery";
+import { replayOnboarding, startPlayerTour } from "../../../../lib/discovery";
 import {
   Bell,
   Compass,
@@ -107,6 +107,30 @@ export function GeneralSection({
             className="shrink-0 rounded-full border border-zinc-200 px-3 py-1.5 text-xs font-semibold text-zinc-700 transition-colors hover:border-emerald-500 hover:text-emerald-600 dark:border-zinc-700 dark:text-zinc-200"
           >
             {t("settings.onboardingReplay.action")}
+          </button>
+        </div>
+        <div className="settings-row flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <MousePointerClick
+              size={16}
+              className="settings-row-icon"
+              aria-hidden="true"
+            />
+            <div>
+              <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                {t("settings.playerTourReplay.title")}
+              </div>
+              <div className="text-xs settings-description">
+                {t("settings.playerTourReplay.subtitle")}
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={startPlayerTour}
+            className="shrink-0 rounded-full border border-zinc-200 px-3 py-1.5 text-xs font-semibold text-zinc-700 transition-colors hover:border-emerald-500 hover:text-emerald-600 dark:border-zinc-700 dark:text-zinc-200"
+          >
+            {t("settings.playerTourReplay.action")}
           </button>
         </div>
       </SettingsGroup>

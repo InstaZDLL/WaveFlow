@@ -94,6 +94,7 @@ export function SleepTimerMenu({
       <button
         type="button"
         onClick={() => setIsOpen((v) => !v)}
+        data-tour="sleepTimer"
         aria-label={t("sleepTimer.title")}
         title={t("sleepTimer.title")}
         className={`relative p-2 rounded-lg transition-colors ${
