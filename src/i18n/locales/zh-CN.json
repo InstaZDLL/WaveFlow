@@ -3342,6 +3342,19 @@
       "title": "播放栏导览",
       "subtitle": "重新了解播放栏上每个图标的用途。",
       "action": "开始"
+    },
+    "whatsNew": {
+      "title": "新功能",
+      "subtitle": "再看一遍此版本的变化。",
+      "action": "打开",
+      "autoOpen": {
+        "title": "更新后显示新功能",
+        "subtitle": "首次打开有新内容的版本时，面板会打开一次。"
+      },
+      "button": {
+        "title": "顶部栏的新功能按钮",
+        "subtitle": "隐藏后，仍可在此处和“关于”中打开面板。"
+      }
     }
   },
   "scanProgress": {
@@ -4248,6 +4261,69 @@
       "immersive": {
         "title": "沉浸式视图",
         "body": "大幅封面配上歌词，全屏呈现。"
+      }
+    }
+  },
+  "whatsNew": {
+    "title": "{{version}} 新功能",
+    "pageOf": "第 {{current}} 页，共 {{total}} 页",
+    "goToPage": "前往第 {{page}} 页",
+    "close": "关闭新功能",
+    "previous": "上一页",
+    "next": "下一页",
+    "done": "完成",
+    "try": "试一试",
+    "addMusic": "添加音乐",
+    "openLibrary": "打开音乐库",
+    "dontShow": "启动时不再显示",
+    "history": "完整历史",
+    "open": "新功能",
+    "openUnseen": "新功能，尚未查看",
+    "needs": {
+      "library": "需要先在音乐库中添加音乐。",
+      "track": "播放音乐库中的一首曲目，即可在编辑器中打开它的歌词。",
+      "startsPlayback": "当前没有播放内容：试用时会随机播放你的音乐库。"
+    },
+    "pages": {
+      "fluidInterface": {
+        "title": "全新界面，五种材质",
+        "body": "侧边导航栏、重新设计的主页，以及音乐背后封面的光晕。Fluid、Liquid、Pulse、Editorial 和 Lounge 是它的五种材质，Studio 则保留你熟悉的布局。",
+        "keywords": "Fluid|Liquid|Pulse|Editorial|Lounge|Studio"
+      },
+      "automix": {
+        "title": "AutoMix，踩在节拍上的过渡",
+        "body": "AutoMix 根据音乐分析结果，把每次过渡对齐到两首曲目的节拍上。需要设置淡入淡出时长，尚未分析的曲目仍使用普通过渡。",
+        "keywords": "节拍|速度|淡入淡出|过渡|分析|BPM"
+      },
+      "lyricsEditor": {
+        "title": "全新打造的歌词编辑器",
+        "body": "三个步骤：编辑、逐行或逐词同步、保存前检查效果。歌曲播放时用空格键打点，支持演唱者、和声与翻译，可保存为 LRC、增强型 LRC 或 TTML。",
+        "keywords": "逐词|同步|LRC|TTML|演唱者|翻译"
+      },
+      "theater": {
+        "title": "影院模式",
+        "body": "专为远距离观看的屏幕打造的沉浸式视图：全屏显示，所有内容随窗口缩放，控件和指针几秒后隐藏，音乐播放期间屏幕保持常亮。",
+        "keywords": "全屏|电视|大尺寸|隐藏控件|屏幕常亮"
+      },
+      "tagWorkshop": {
+        "title": "标签工坊",
+        "body": "在一张表格中处理专辑、文件夹或所选曲目的标签：填充、查找替换、编号，或以 MusicBrainz 发行版为起点。每项更改都先预览，确认前不会写入，每批操作都可撤销。试用时会打开正在播放的专辑或最近添加的专辑。",
+        "keywords": "批量|正则表达式|编号|MusicBrainz|预览|撤销"
+      },
+      "enrichment": {
+        "title": "用 MusicBrainz 补全音乐库",
+        "body": "流派、日期、制作人员、封面、艺人资料：WaveFlow 只在自己的数据库中补全缺失信息，绝不改动你的文件，且全部可以撤销。默认关闭，因为它需要联网，并会把专辑名和艺人名发送给 MusicBrainz。",
+        "keywords": "流派|发行日期|制作人员|封面|艺人|MusicBrainz"
+      },
+      "releaseRadar": {
+        "title": "Release Radar，无需扩展",
+        "body": "直接在 WaveFlow 中查看音乐库内艺人的最新发行。搜索需要联网，也需要一些时间；你已拥有的内容会进入 Release Radar 播放列表，点一下就能听。",
+        "keywords": "Release Radar|最新发行|艺人|专辑|单曲|MusicBrainz"
+      },
+      "playlistImport": {
+        "title": "导入你的播放列表",
+        "body": "支持 M3U、CSV、JSON 文件，或公开的 Deezer 播放列表链接。你没有的曲目会保留位置，等它们进入音乐库后自动补上。",
+        "keywords": "M3U|CSV|JSON|Deezer|ISRC|缺失曲目"
       }
     }
   }

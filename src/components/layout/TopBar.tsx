@@ -20,6 +20,7 @@ import {
   PanelLeftOpen,
   X,
   History,
+  Megaphone,
 } from "lucide-react";
 import type { SidebarMode, ViewId } from "../../types";
 
@@ -33,6 +34,7 @@ import { useTheme } from "../../hooks/useTheme";
 import { useProfile } from "../../hooks/useProfile";
 import { usePlayer } from "../../hooks/usePlayer";
 import { useRecentSearches } from "../../hooks/useRecentSearches";
+import { useWhatsNewButton } from "../../hooks/useWhatsNew";
 import { FOCUS_SEARCH_EVENT } from "../../lib/shortcuts";
 import { getProfileColor, profileInitial } from "../../lib/profileColors";
 import { MenuActionItem } from "../common/MenuActionItem";
@@ -66,6 +68,11 @@ interface TopBarProps {
   onGoForward: () => void;
   sidebarMode: SidebarMode;
   onCycleSidebar: () => void;
+  /** This version has a "What's new" to reopen. */
+  whatsNewAvailable: boolean;
+  /** ... that nobody has seen yet: the button carries a dot. */
+  whatsNewUnseen: boolean;
+  onOpenWhatsNew: () => void;
 }
 
 export function TopBar({
@@ -79,7 +86,11 @@ export function TopBar({
   onGoForward,
   sidebarMode,
   onCycleSidebar,
+  whatsNewAvailable,
+  whatsNewUnseen,
+  onOpenWhatsNew,
 }: TopBarProps) {
+  const whatsNewButton = useWhatsNewButton();
   const { t } = useTranslation();
   const { isDark, toggleTheme } = useTheme();
   const { activeProfile } = useProfile();
@@ -872,6 +883,28 @@ export function TopBar({
 
       {/* Right Actions */}
       <div data-topbar-right className="flex items-center space-x-4">
+        {whatsNewAvailable && whatsNewButton.ready && whatsNewButton.value && (
+          <button
+            type="button"
+            data-topbar-whatsnew
+            onClick={onOpenWhatsNew}
+            aria-label={
+              whatsNewUnseen ? t("whatsNew.openUnseen") : t("whatsNew.open")
+            }
+            title={t("whatsNew.open")}
+            className="relative grid h-8 w-8 place-items-center rounded-full border border-zinc-300 bg-white text-zinc-500 transition-colors hover:text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:text-white"
+          >
+            <Megaphone size={15} aria-hidden="true" />
+            {whatsNewUnseen && (
+              <span
+                data-topbar-whatsnew-dot
+                aria-hidden="true"
+                className="absolute end-0 top-0 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-zinc-50 dark:ring-zinc-900"
+              />
+            )}
+          </button>
+        )}
+
         {/* Theme Toggle */}
         <button
           type="button"

@@ -31,8 +31,9 @@ export interface FeatureCardProps {
 /**
  * One feature told in a card: a small animated scene, a title, the
  * benefit in a sentence and its state. Activated in a click when it is a
- * switch. Shared by the onboarding and the Home's first steps, and meant
- * for the "What's new" panel: nothing in it knows which screen it is on.
+ * switch. Shared by the onboarding and the Home's first steps: nothing in
+ * it knows which screen it is on. The "What's new" panel tells a feature at
+ * another scale, through `FeatureHero`, with the same scenes.
  */
 export function FeatureCard({
   art,

@@ -40,7 +40,11 @@ import { shareableLyricLines } from "../../lib/lyricsCard";
 import { BackgroundVocals, InterludeDots } from "../player/LyricsVoiceParts";
 import { ContextTip } from "../discovery/ContextTip";
 import { useTip } from "../discovery/useTip";
-import { openView } from "../../lib/discovery";
+import {
+  OPEN_LYRICS_EDITOR_EVENT,
+  openView,
+  takeLyricsEditorRequest,
+} from "../../lib/discovery";
 
 /**
  * Spotify-style right-edge panel showing the currently-playing track's
@@ -155,6 +159,27 @@ export function LyricsPanel({
   // the row-scoped actions (edit / import / refetch / clear / the provider
   // picker) apply to neither — they're keyed by track_id / file_hash.
   const noLibraryRow = isRadio || isRemote || isFile;
+
+  // The "What's new" panel asks for the editor, on a panel it may have just
+  // opened. The editor reads its lyrics once, when it opens, so a request
+  // waits for the fetch this mount starts (its effect runs in the same
+  // commit as this one, so the two states land together).
+  const [editorWanted, setEditorWanted] = useState(false);
+  useEffect(() => {
+    const claim = () => {
+      if (takeLyricsEditorRequest()) setEditorWanted(true);
+    };
+    claim();
+    window.addEventListener(OPEN_LYRICS_EDITOR_EVENT, claim);
+    return () => window.removeEventListener(OPEN_LYRICS_EDITOR_EVENT, claim);
+  }, []);
+  useEffect(() => {
+    if (!editorWanted || isFetching) return;
+    /* eslint-disable react-hooks/set-state-in-effect */
+    setEditorWanted(false);
+    if (currentTrack != null && !noLibraryRow) setIsEditing(true);
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, [editorWanted, isFetching, currentTrack, noLibraryRow]);
 
   // ── Active-line auto-scroll (view-local) ─────────────────────────
   // The active index itself comes from the shared hook; only the

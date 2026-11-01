@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { getVersion } from "@tauri-apps/api/app";
 import {
@@ -13,10 +13,13 @@ import {
   Wrench,
   AlertTriangle,
   GitCommit,
+  Megaphone,
 } from "lucide-react";
 import type { ViewId } from "../../types";
 import { WaveFlowLogo } from "../common/WaveFlowLogo";
 import { getChangelog, type ChangelogEntry } from "../../lib/tauri/changelog";
+import { useWhatsNewRelease } from "../../hooks/useWhatsNew";
+import { openWhatsNew } from "../../lib/discovery";
 import {
   comboParts,
   DEFAULT_BINDINGS,
@@ -29,6 +32,10 @@ import {
 
 interface AboutViewProps {
   onNavigate: (view: ViewId) => void;
+  /** Sent here for the history: scroll to the changelog. */
+  scrollToChangelog?: boolean;
+  /** Changes per request, so asking twice scrolls twice. */
+  scrollToken?: number;
 }
 
 function TechItem({
@@ -225,8 +232,21 @@ function ChangelogSection() {
   );
 }
 
-export function AboutView({ onNavigate }: AboutViewProps) {
+export function AboutView({
+  onNavigate,
+  scrollToChangelog,
+  scrollToken,
+}: AboutViewProps) {
   const { t } = useTranslation();
+  const whatsNewRelease = useWhatsNewRelease();
+  const changelogRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (!scrollToChangelog) return;
+    const frame = requestAnimationFrame(() =>
+      changelogRef.current?.scrollIntoView({ block: "start" }),
+    );
+    return () => cancelAnimationFrame(frame);
+  }, [scrollToChangelog, scrollToken]);
   // Read the version from Tauri at runtime so the bundled tauri.conf.json
   // stays the source of truth — no more cross-file drift after a bump.
   const [version, setVersion] = useState<string>("");
@@ -381,13 +401,29 @@ export function AboutView({ onNavigate }: AboutViewProps) {
       </section>
 
       {/* Changelog généré depuis les commits conventional */}
-      <section aria-labelledby="about-changelog-heading">
-        <h2
-          id="about-changelog-heading"
-          className="text-[10px] font-bold tracking-widest text-zinc-400 mb-4 px-4 uppercase"
-        >
-          {t("about.sections.changelog")}
-        </h2>
+      <section
+        ref={changelogRef}
+        aria-labelledby="about-changelog-heading"
+        className="scroll-mt-20"
+      >
+        <div className="mb-4 flex items-center justify-between gap-3 px-4">
+          <h2
+            id="about-changelog-heading"
+            className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase"
+          >
+            {t("about.sections.changelog")}
+          </h2>
+          {whatsNewRelease && (
+            <button
+              type="button"
+              onClick={openWhatsNew}
+              className="inline-flex shrink-0 items-center gap-1.5 text-xs font-medium text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white"
+            >
+              <Megaphone size={14} aria-hidden="true" />
+              {t("whatsNew.title", { version: whatsNewRelease.label })}
+            </button>
+          )}
+        </div>
         <ChangelogSection />
       </section>
 

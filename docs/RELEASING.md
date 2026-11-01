@@ -130,6 +130,8 @@ gh secret set SIGNTOOL_PFX_PASSWORD            --body "<passphrase>"
 
 ### 1. Cut the release via release-please
 
+A version with something to tell also gets its [What's new pages](features/ui.md#adding-the-pages-of-a-version), written by hand before the cut; a correction release needs none.
+
 You do **not** hand-bump versions anymore. Every push to `main` — or to
 a maintenance branch, see
 [Patch releases from a maintenance branch](#patch-releases-from-a-maintenance-branch) —

@@ -36,6 +36,16 @@ export function setUiZoom(zoom: number): Promise<void> {
   return announceSettingWrite(invoke<void>("set_ui_zoom", { zoom }));
 }
 
+/** The version whose "What's new" this installation is past, `null` when
+ *  it never recorded one (`app_setting['whats_new.seen_version']`). */
+export function getWhatsNewMarker(): Promise<string | null> {
+  return invoke<string | null>("get_whats_new_marker");
+}
+
+export function setWhatsNewMarker(version: string): Promise<void> {
+  return invoke<void>("set_whats_new_marker", { version });
+}
+
 /**
  * Who draws the frame around the window (issue #696).
  *

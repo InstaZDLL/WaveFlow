@@ -23,6 +23,7 @@ import {
 import {
   SETTINGS_CATEGORIES,
   type SettingsCategory,
+  type SettingsGroupId,
 } from "./settings/settingsCatalog";
 import "./settings/settings.css";
 import {
@@ -153,6 +154,10 @@ interface SettingsViewProps {
    * and the wrong one when something has just said "look at this".
    */
   initialCategory?: SettingsCategory;
+  /** With it, the group of that page to scroll to. */
+  initialGroup?: SettingsGroupId;
+  /** Changes per request, so asking for the same group twice scrolls twice. */
+  revealToken?: number;
 }
 
 export type { SettingsCategory } from "./settings/settingsCatalog";
@@ -236,8 +241,13 @@ export function SettingsView(props: SettingsViewProps) {
   const [lastInitialCategory, setLastInitialCategory] = useState(
     props.initialCategory,
   );
-  if (lastInitialCategory !== props.initialCategory) {
+  const [lastRevealToken, setLastRevealToken] = useState(props.revealToken);
+  if (
+    lastInitialCategory !== props.initialCategory ||
+    lastRevealToken !== props.revealToken
+  ) {
     setLastInitialCategory(props.initialCategory);
+    setLastRevealToken(props.revealToken);
     setResetCategory(null);
   }
   // Above the remount, so the fresh header learns what it follows.
@@ -269,6 +279,8 @@ export function SettingsView(props: SettingsViewProps) {
 function SettingsViewContent({
   onNavigate,
   initialCategory,
+  initialGroup,
+  revealToken,
 }: SettingsViewProps) {
   const { t, i18n } = useTranslation();
   const { libraries, rescanLibrary } = useLibrary();
@@ -304,7 +316,21 @@ function SettingsViewContent({
     // A restored entry carries no search target: a group revealed by an
     // earlier search result must not stay expanded in it.
     setTargetGroup(null);
-  }, [initialCategory]);
+    // `revealToken`: two requests in a row can name one category, with the
+    // user having moved to another page between them.
+  }, [initialCategory, revealToken]);
+  // After the effect above, which clears the target. A group asked for from
+  // outside opens like a search result does, and scrolls once its page's
+  // chunk has landed (`RevealOnMount`).
+  useEffect(() => {
+    if (!initialGroup) return;
+    /* eslint-disable-next-line react-hooks/set-state-in-effect */
+    setTargetGroup(initialGroup);
+    setRevealRequest((prev) => ({
+      group: initialGroup,
+      seq: (prev?.seq ?? 0) + 1,
+    }));
+  }, [initialGroup, revealToken]);
   const panelRef = useRef<HTMLDivElement>(null);
   const pageScroll = usePageScroll();
   const handleCategoryChange = useCallback((next: SettingsCategory) => {

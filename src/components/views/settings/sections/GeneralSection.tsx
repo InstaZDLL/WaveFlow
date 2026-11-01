@@ -4,7 +4,16 @@ import { LanguageDropdown } from "../LanguageDropdown";
 import { SettingsCategoryHeader } from "../SettingsCategoryHeader";
 import { SettingsGroup } from "../SettingsGroup";
 import { ToggleSwitch } from "../ToggleSwitch";
-import { replayOnboarding, startPlayerTour } from "../../../../lib/discovery";
+import {
+  openWhatsNew,
+  replayOnboarding,
+  startPlayerTour,
+} from "../../../../lib/discovery";
+import {
+  useWhatsNewAutoOpen,
+  useWhatsNewButton,
+  useWhatsNewRelease,
+} from "../../../../hooks/useWhatsNew";
 import {
   Bell,
   Compass,
@@ -12,6 +21,7 @@ import {
   Disc3,
   Globe,
   ListPlus,
+  Megaphone,
   Minimize2,
   MousePointerClick,
   Power,
@@ -36,6 +46,76 @@ interface GeneralSectionProps {
   singleClickPlay: boolean;
   targetGroup: string | null;
   trackChangeNotif: boolean;
+}
+
+/** Opens the panel, and holds the two choices about it. Stays here when the
+ *  top bar's button is hidden: this is then the way back to it, with About. */
+function WhatsNewRows() {
+  const { t } = useTranslation();
+  const release = useWhatsNewRelease();
+  const autoOpen = useWhatsNewAutoOpen();
+  const button = useWhatsNewButton();
+  if (!release) return null;
+  return (
+    <>
+      <div className="settings-row flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <Megaphone
+            size={16}
+            className="settings-row-icon"
+            aria-hidden="true"
+          />
+          <div>
+            <div className="text-sm font-medium text-zinc-900 dark:text-white">
+              {t("settings.whatsNew.title")}
+            </div>
+            <div className="text-xs settings-description">
+              {t("settings.whatsNew.subtitle")}
+            </div>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={openWhatsNew}
+          className="shrink-0 rounded-full border border-zinc-200 px-3 py-1.5 text-xs font-semibold text-zinc-700 transition-colors hover:border-emerald-500 hover:text-emerald-600 dark:border-zinc-700 dark:text-zinc-200"
+        >
+          {t("settings.whatsNew.action")}
+        </button>
+      </div>
+      <div className="settings-row flex items-center justify-between">
+        <div className="min-w-0 ps-8">
+          <div className="text-sm font-medium text-zinc-900 dark:text-white">
+            {t("settings.whatsNew.autoOpen.title")}
+          </div>
+          <div className="text-xs settings-description">
+            {t("settings.whatsNew.autoOpen.subtitle")}
+          </div>
+        </div>
+        <ToggleSwitch
+          enabled={autoOpen.value}
+          onToggle={() => void autoOpen.setValue(!autoOpen.value)}
+          disabled={!autoOpen.ready}
+          label={t("settings.whatsNew.autoOpen.title")}
+        />
+      </div>
+      <div className="settings-row flex items-center justify-between">
+        <div className="min-w-0 ps-8">
+          <div className="text-sm font-medium text-zinc-900 dark:text-white">
+            {t("settings.whatsNew.button.title")}
+          </div>
+          <div className="text-xs settings-description">
+            {t("settings.whatsNew.button.subtitle")}
+          </div>
+        </div>
+        <ToggleSwitch
+          enabled={button.value}
+          onToggle={() => void button.setValue(!button.value)}
+          disabled={!button.ready}
+          label={t("settings.whatsNew.button.title")}
+        />
+      </div>
+    </>
+  );
 }
 
 export function GeneralSection({
@@ -133,6 +213,7 @@ export function GeneralSection({
             {t("settings.playerTourReplay.action")}
           </button>
         </div>
+        <WhatsNewRows />
       </SettingsGroup>
       <SettingsGroup id="startup" reveal={targetGroup === "startup"}>
         <div className="settings-row flex items-center justify-between">

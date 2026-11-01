@@ -8,8 +8,9 @@ import type { CSSProperties, ReactNode } from "react";
  * The motion stops under `prefers-reduced-motion` and under the reduced
  * visual effects level, and each scene still reads standing still.
  *
- * Shared by the onboarding, the Home's first steps and, later, the
- * "What's new" panel: a kind names an idea, not a screen.
+ * Shared by the onboarding, the Home's first steps and the "What's new"
+ * panel, whose large illustration (`FeatureHero`) draws one at the centre:
+ * a kind names an idea, not a screen.
  */
 export type FeatureArtKind =
   | "crossfade"
@@ -30,7 +31,12 @@ export type FeatureArtKind =
   | "smartPlaylist"
   | "enrichment"
   | "tagWorkshop"
-  | "wrapped";
+  | "wrapped"
+  | "fluidInterface"
+  | "lyricsEditor"
+  | "theater"
+  | "releaseRadar"
+  | "playlistImport";
 
 /** A row that rises in on a loop, to its own resting opacity. */
 function rowStyle(delay: number, opacity: number): CSSProperties {
@@ -615,6 +621,272 @@ const SCENES: Record<FeatureArtKind, ReactNode> = {
           opacity={i === 2 ? 1 : 0.25 + i * 0.15}
         />
       ))}
+    </>
+  ),
+  // A window: the rail, a large cover, and tiles settling beside it.
+  fluidInterface: (
+    <>
+      <rect
+        x="16"
+        y="10"
+        width="128"
+        height="70"
+        rx="9"
+        fill="currentColor"
+        opacity="0.14"
+      />
+      <rect
+        x="22"
+        y="16"
+        width="14"
+        height="58"
+        rx="5"
+        fill="currentColor"
+        opacity="0.28"
+      />
+      <rect
+        className="fa-drift"
+        x="44"
+        y="24"
+        width="42"
+        height="42"
+        rx="7"
+        fill="var(--disc-accent)"
+      />
+      {[0, 1, 2].map((i) => (
+        <rect
+          key={i}
+          className="fa-row"
+          style={rowStyle(i * 0.3, 0.45)}
+          x="94"
+          y={22 + i * 17}
+          width="44"
+          height="12"
+          rx="4"
+          fill="currentColor"
+          opacity="0.45"
+        />
+      ))}
+    </>
+  ),
+  // Stamps down the margin, a line's words filling one after the other.
+  lyricsEditor: (
+    <>
+      {[0, 1, 2].map((i) => (
+        <circle
+          key={i}
+          cx="24"
+          cy={24 + i * 21}
+          r="3.5"
+          fill="currentColor"
+          opacity="0.4"
+        />
+      ))}
+      <rect
+        x="36"
+        y="20"
+        width="92"
+        height="8"
+        rx="4"
+        fill="currentColor"
+        opacity="0.28"
+      />
+      {[0, 1, 2].map((i) => (
+        <g key={i}>
+          <rect
+            x={36 + i * 36}
+            y="40"
+            width="30"
+            height="10"
+            rx="5"
+            fill="currentColor"
+            opacity="0.28"
+          />
+          <rect
+            className="fa-fill"
+            style={{ animationDelay: `${i * 0.5}s` }}
+            x={36 + i * 36}
+            y="40"
+            width="30"
+            height="10"
+            rx="5"
+            fill="var(--disc-accent)"
+          />
+        </g>
+      ))}
+      <rect
+        x="36"
+        y="62"
+        width="64"
+        height="8"
+        rx="4"
+        fill="currentColor"
+        opacity="0.28"
+      />
+      <circle
+        className="fa-pulse"
+        cx="24"
+        cy="45"
+        r="4.5"
+        fill="var(--disc-accent)"
+      />
+    </>
+  ),
+  // A screen across the room: the cover stays, the controls fade away.
+  theater: (
+    <>
+      <rect
+        x="26"
+        y="8"
+        width="108"
+        height="62"
+        rx="6"
+        fill="none"
+        stroke="currentColor"
+        opacity="0.55"
+      />
+      <rect
+        x="68"
+        y="70"
+        width="24"
+        height="7"
+        fill="currentColor"
+        opacity="0.3"
+      />
+      <rect
+        x="54"
+        y="77"
+        width="52"
+        height="4"
+        rx="2"
+        fill="currentColor"
+        opacity="0.4"
+      />
+      <rect
+        className="fa-pulse"
+        x="62"
+        y="16"
+        width="36"
+        height="36"
+        rx="5"
+        fill="var(--disc-accent)"
+      />
+      <rect
+        className="fa-out"
+        x="50"
+        y="58"
+        width="60"
+        height="5"
+        rx="2.5"
+        fill="currentColor"
+      />
+    </>
+  ),
+  // A sweep going round, new releases lighting up as it passes.
+  releaseRadar: (
+    <>
+      {[34, 22, 10].map((r) => (
+        <circle
+          key={r}
+          cx="80"
+          cy="45"
+          r={r}
+          fill="none"
+          stroke="currentColor"
+          opacity="0.3"
+        />
+      ))}
+      <g className="fa-sweep-turn">
+        <line
+          x1="80"
+          y1="45"
+          x2="80"
+          y2="11"
+          stroke="var(--disc-accent)"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+        />
+        <circle cx="80" cy="79" r="0.1" fill="none" />
+      </g>
+      {[
+        [100, 30, 0],
+        [62, 58, 0.5],
+        [96, 62, 0.9],
+      ].map(([cx, cy, delay]) => (
+        <circle
+          key={cx}
+          className="fa-pulse"
+          style={{ animationDelay: `${delay}s` }}
+          cx={cx}
+          cy={cy}
+          r="4"
+          fill="var(--disc-accent)"
+        />
+      ))}
+    </>
+  ),
+  // A file's entries travelling into a list, a missing one held in place.
+  playlistImport: (
+    <>
+      <rect
+        x="16"
+        y="20"
+        width="38"
+        height="50"
+        rx="5"
+        fill="currentColor"
+        opacity="0.22"
+      />
+      {[0, 1, 2].map((i) => (
+        <rect
+          key={`l${i}`}
+          x="23"
+          y={30 + i * 11}
+          width="24"
+          height="4"
+          rx="2"
+          fill="currentColor"
+          opacity="0.55"
+        />
+      ))}
+      {[0, 1, 2].map((i) => (
+        <circle
+          key={`d${i}`}
+          className="fa-feed"
+          style={{ animationDelay: `${i * 0.6}s` }}
+          cx="62"
+          cy="45"
+          r="3.5"
+          fill="var(--disc-accent)"
+        />
+      ))}
+      <rect
+        x="114"
+        y="24"
+        width="32"
+        height="9"
+        rx="4.5"
+        fill="var(--disc-accent)"
+      />
+      <rect
+        x="114.5"
+        y="41"
+        width="31"
+        height="8"
+        rx="4"
+        fill="none"
+        stroke="currentColor"
+        strokeDasharray="3 3"
+        opacity="0.6"
+      />
+      <rect
+        x="114"
+        y="57"
+        width="32"
+        height="9"
+        rx="4.5"
+        fill="var(--disc-accent)"
+      />
     </>
   ),
 };

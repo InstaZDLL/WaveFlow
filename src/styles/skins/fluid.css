@@ -1433,6 +1433,27 @@
 :root[data-layout="fluid"] [data-topbar-right] > * {
   margin: 0 !important;
 }
+:root[data-layout="fluid"] [data-topbar-whatsnew] {
+  width: 2rem;
+  height: 2rem;
+  border: 0 !important;
+  background-color: transparent !important;
+  color: var(--fe-ink-3) !important;
+  box-shadow: none !important;
+  transition:
+    color 180ms var(--fe-ease),
+    background-color 180ms var(--fe-ease);
+}
+:root[data-layout="fluid"] [data-topbar-whatsnew]:hover {
+  color: var(--fe-ink) !important;
+  background-color: var(--fe-tone-2) !important;
+}
+:root[data-layout="fluid"] [data-topbar-whatsnew-dot] {
+  background-color: var(--fe-accent) !important;
+  --tw-ring-color: transparent;
+  --tw-ring-shadow: 0 0 #0000;
+  box-shadow: 0 0 0 2px var(--fe-tone-1);
+}
 :root[data-layout="fluid"] [data-topbar-theme] {
   width: 2.75rem !important;
   height: 1.625rem !important;

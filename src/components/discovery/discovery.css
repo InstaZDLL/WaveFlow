@@ -1,6 +1,6 @@
 /* ============================================================
    Feature cards and their scenes — the onboarding, the Home's
-   first steps, and (later) the "What's new" panel.
+   first steps, and the "What's new" panel.
 
    The base works in every skin from Tailwind utilities on the
    markup; the fluid layout recomposes it with its tokens below,
@@ -14,7 +14,8 @@
 
 .feature-card,
 .onboarding-shell,
-.first-steps {
+.first-steps,
+.whats-new {
   --disc-accent: var(--fe-accent, var(--accent-500));
   --disc-ease: var(--fe-ease, cubic-bezier(0.22, 1, 0.36, 1));
 }
@@ -160,6 +161,9 @@
 }
 .feature-art .fa-row {
   animation: fa-row 3.2s var(--disc-ease) infinite;
+}
+.feature-art .fa-sweep-turn {
+  animation: fa-turn 4s linear infinite;
 }
 
 @keyframes fa-out {
@@ -446,10 +450,192 @@
   color: var(--fe-accent-ink) !important;
 }
 
+/* ── The large illustration ────────────────────────────────── */
+/* The gradient is painted once. Only the rows move, each a layer of its
+   own translated by the compositor, so nothing here repaints a frame. */
+.feature-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  contain: paint;
+  height: clamp(10rem, 28vh, 14.5rem);
+  border-radius: var(--whats-new-art-radius, 1.25rem);
+  color: #fff;
+  background:
+    radial-gradient(
+      120% 110% at 18% 8%,
+      color-mix(in srgb, var(--hero-color) 72%, #fff) 0%,
+      transparent 62%
+    ),
+    linear-gradient(
+      135deg,
+      var(--hero-color) 0%,
+      color-mix(in srgb, var(--hero-color) 48%, #000) 100%
+    );
+}
+.feature-hero__rows {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.625rem;
+  /* Laid out the same way in every language: the -50% loop counts on the
+     track starting at the left edge, and Arabic would start it at the right
+     and pour it out of the frame. Each chip reads in its own direction. */
+  direction: ltr;
+}
+.feature-hero__track {
+  display: flex;
+  width: max-content;
+  will-change: transform;
+  animation: feature-hero-slide 64s linear infinite;
+}
+.feature-hero__track[data-reverse] {
+  animation-direction: reverse;
+}
+.feature-hero__chip {
+  flex: none;
+  margin-inline-end: 0.5rem;
+  padding: 0.3125rem 0.75rem;
+  border-radius: 9999px;
+  background-color: rgb(255 255 255 / 0.14);
+  color: rgb(255 255 255 / 0.82);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.feature-hero__plate {
+  --disc-accent: color-mix(in srgb, var(--hero-color) 22%, #fff);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(44%, 15rem);
+  aspect-ratio: 16 / 9;
+  padding: 0.5rem;
+  transform: translate(-50%, -50%);
+  border-radius: 1.125rem;
+  color: rgb(255 255 255 / 0.9);
+  background-color: color-mix(in srgb, var(--hero-color) 30%, #0b0b0f);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.18),
+    0 14px 30px -14px rgb(0 0 0 / 0.65);
+}
+@keyframes feature-hero-slide {
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+/* ── The "What's new" panel ────────────────────────────────── */
+.whats-new__art,
+.whats-new__text {
+  animation: onboarding-rise 320ms var(--disc-ease) both;
+}
+.whats-new__dot[data-on] {
+  background-color: var(--disc-accent);
+}
+.whats-new button:focus-visible,
+.whats-new input:focus-visible {
+  outline: 2px solid var(--disc-accent);
+  outline-offset: 2px;
+}
+/* Drawn rather than left to the platform, which paints a white box that a
+   light dialog loses. */
+.whats-new__check {
+  appearance: none;
+  display: grid;
+  flex: none;
+  place-items: center;
+  border: 1.5px solid rgb(127 127 127 / 0.75);
+  border-radius: 0.25rem;
+  cursor: pointer;
+}
+.whats-new__check:checked {
+  border-color: var(--disc-accent);
+  background-color: var(--disc-accent);
+}
+.whats-new__check:checked::after {
+  content: "";
+  width: 0.4375rem;
+  height: 0.25rem;
+  transform: translateY(-1px) rotate(-45deg);
+  border-bottom: 1.5px solid var(--whats-new-on-accent, #fff);
+  border-left: 1.5px solid var(--whats-new-on-accent, #fff);
+}
+/* The fluid layout styles every input as a field; this one is not. */
+:root[data-layout="fluid"] .whats-new {
+  --whats-new-on-accent: var(--fe-accent-ink);
+}
+:root[data-layout="fluid"] .whats-new .whats-new__check {
+  border: 1.5px solid var(--fe-ink-3) !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+:root[data-layout="fluid"] .whats-new .whats-new__check:checked {
+  border-color: var(--fe-accent) !important;
+  background-color: var(--fe-accent) !important;
+}
+.whats-new__primary {
+  background-color: var(--disc-accent);
+}
+.whats-new__primary:hover {
+  background-color: color-mix(in srgb, var(--disc-accent) 86%, #000);
+}
+.whats-new[data-paused] .feature-hero__track,
+.whats-new[data-paused] .feature-art * {
+  animation-play-state: paused;
+}
+:root[data-layout="fluid"] .whats-new .whats-new__heading,
+:root[data-layout="fluid"] .whats-new .whats-new__title {
+  color: var(--fe-ink) !important;
+  letter-spacing: -0.012em;
+}
+:root[data-layout="fluid"] .whats-new .whats-new__title {
+  font-weight: 560;
+  text-wrap: balance;
+}
+:root[data-layout="fluid"] .whats-new .whats-new__body {
+  color: var(--fe-ink-2) !important;
+}
+:root[data-layout="fluid"] .whats-new .whats-new__note,
+:root[data-layout="fluid"] .whats-new .whats-new__count,
+:root[data-layout="fluid"] .whats-new .whats-new__option,
+:root[data-layout="fluid"] .whats-new .whats-new__link {
+  color: var(--fe-ink-3) !important;
+}
+:root[data-layout="fluid"] .whats-new .whats-new__link:hover {
+  color: var(--fe-ink) !important;
+}
+:root[data-layout="fluid"] .whats-new .whats-new__ghost {
+  color: var(--fe-ink-2) !important;
+}
+:root[data-layout="fluid"] .whats-new .whats-new__ghost:hover:not(:disabled) {
+  background-color: var(--fe-tone-2) !important;
+  color: var(--fe-ink) !important;
+}
+:root[data-layout="fluid"] .whats-new .whats-new__primary {
+  background-color: var(--fe-accent) !important;
+  color: var(--fe-accent-ink) !important;
+}
+:root[data-layout="fluid"] .whats-new .whats-new__primary:hover {
+  background-color: color-mix(in srgb, var(--fe-accent) 86%, #000) !important;
+}
+:root[data-layout="fluid"] .whats-new .whats-new__dot {
+  background-color: var(--fe-tone-4) !important;
+}
+:root[data-layout="fluid"] .whats-new .whats-new__dot[data-on] {
+  background-color: var(--fe-accent) !important;
+}
+
 /* ── No motion ─────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   .player-tour__content,
   .feature-art *,
+  .feature-hero__track,
+  .whats-new__art,
+  .whats-new__text,
   .onboarding-step,
   .onboarding-scan__bar[data-indeterminate] {
     animation: none !important;
@@ -465,6 +651,9 @@
 }
 :root[data-effects="reduced"] .player-tour__content,
 :root[data-effects="reduced"] .feature-art *,
+:root[data-effects="reduced"] .feature-hero__track,
+:root[data-effects="reduced"] .whats-new__art,
+:root[data-effects="reduced"] .whats-new__text,
 :root[data-effects="reduced"] .onboarding-step,
 :root[data-effects="reduced"] .onboarding-scan__bar[data-indeterminate] {
   animation: none !important;
@@ -472,4 +661,7 @@
 :root[data-effects="reduced"] .player-tour__spot,
 :root[data-effects="reduced"] .player-tour__veil {
   transition: none;
+}
+:root[data-effects="reduced"] .feature-hero__plate {
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.18);
 }

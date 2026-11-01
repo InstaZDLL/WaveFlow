@@ -593,6 +593,8 @@ pub fn run() {
             commands::preferences::set_auto_start,
             commands::preferences::get_ui_zoom,
             commands::preferences::set_ui_zoom,
+            commands::preferences::get_whats_new_marker,
+            commands::preferences::set_whats_new_marker,
             commands::preferences::get_window_chrome,
             commands::preferences::set_window_chrome,
             commands::preferences::set_window_frame_colors,
