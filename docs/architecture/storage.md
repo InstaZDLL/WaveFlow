@@ -167,10 +167,10 @@ To give an owned pool to a `waveflow-core` type that knows nothing about leases,
 
 Two flavours, two stores:
 
-| Store                             | Scope       | Used for                                                                                                                                                                                     |
-| --------------------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `app_setting` (`app.db`)          | App-wide    | API keys, session keys, theme, last-active-profile                                                                                                                                           |
-| `profile_setting` (per `data.db`) | Per-profile | Output device, crossfade, normalize / mono / replaygain toggles, onboarding dismissal, first-steps ticks, tips and the player bar tour seen (`discovery.*`, `tips.*`, `tour.*`), sort memory |
+| Store                             | Scope       | Used for                                                                                                                                                                                                                                                               |
+| --------------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `app_setting` (`app.db`)          | App-wide    | API keys, session keys, theme, last-active-profile, the version whose [What's new](../features/ui.md#whats-new) this installation is past (`whats_new.seen_version`, absent on anything updated from a 1.x)                                                            |
+| `profile_setting` (per `data.db`) | Per-profile | Output device, crossfade, normalize / mono / replaygain toggles, onboarding dismissal, first-steps ticks, tips and the player bar tour seen (`discovery.*`, `tips.*`, `tour.*`), the What's new choices (`ui.whats_new_auto_open`, `ui.whats_new_button`), sort memory |
 
 Both follow the same `INSERT … ON CONFLICT DO UPDATE` typed-value pattern (`value_text` / `value_int` / `value_real` / `value_bool` columns + a `kind` discriminator).
 
