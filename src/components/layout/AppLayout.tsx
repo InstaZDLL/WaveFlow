@@ -10,7 +10,14 @@ import { SkinPlayingState } from "./SkinPlayingState";
 import { SkinMotionWrapper } from "./SkinMotionWrapper";
 import { useDragDropImport } from "../../hooks/useDragDropImport";
 import { DropTargetsOverlay } from "./DropTargetsOverlay";
+import {
+  OPEN_VIEW_EVENT,
+  REPLAY_ONBOARDING_EVENT,
+  START_PLAYER_TOUR_EVENT,
+  type OpenViewRequest,
+} from "../../lib/discovery";
 import { useGlobalShortcuts } from "../../hooks/useGlobalShortcuts";
+import { useDiscoveryWatchers } from "../../hooks/useDiscoveryWatchers";
 import { useUiZoom } from "../../hooks/useUiZoom";
 import { useWindowChrome } from "../../hooks/useWindowChrome";
 import { useWindowFrameColors } from "../../hooks/useWindowFrameColors";
@@ -37,7 +44,6 @@ import { TaskStatusBar } from "./TaskStatusBar";
 import { PlaybackAlertToast } from "../common/PlaybackAlertToast";
 import { QueueToast } from "../common/QueueToast";
 import { PluginAttentionToast } from "../common/PluginAttentionToast";
-import { OnboardingModal } from "../common/OnboardingModal";
 import { ViewSuspenseFallback } from "../common/ViewSuspenseFallback";
 import { ViewErrorBoundary } from "../common/ViewErrorBoundary";
 import { retryableLazy } from "../../lib/preloadable";
@@ -78,6 +84,16 @@ const ReleaseRadarView = retryableLazy(() =>
 );
 const TagWorkshopView = retryableLazy(() =>
   import("../views/TagWorkshopView").then((module) => module.TagWorkshopView),
+);
+// Shown to a new profile once, and on demand from Settings: no reason to
+// carry it in the boot bundle.
+const OnboardingModal = retryableLazy(() =>
+  import("../onboarding/OnboardingModal").then(
+    (module) => module.OnboardingModal,
+  ),
+);
+const PlayerBarTour = retryableLazy(() =>
+  import("../discovery/PlayerBarTour").then((module) => module.PlayerBarTour),
 );
 const PluginUIView = retryableLazy(() =>
   import("../views/PluginUIView").then((module) => module.PluginUIView),
@@ -170,11 +186,12 @@ export function AppLayout() {
   // one shell; every other skin mounts them one at a time, as before.
   const { skin } = useSkin();
   const fluidPanel = skin.layout === "fluid";
-  const dragDrop = useDragDropImport();
   // Global keyboard shortcuts. The hook itself attaches the keydown
   // listener and re-reads bindings whenever Settings emits the
   // shortcuts-changed event.
   useGlobalShortcuts();
+  // Ticks the Home's first steps for a use only the backend sees.
+  useDiscoveryWatchers();
   // UI zoom: hydrate the persisted level on boot, apply through
   // Tauri's WebView `setZoom`, and listen for Ctrl+= / Ctrl+- /
   // Ctrl+0 so users can tune density without diving into Settings.
@@ -275,6 +292,14 @@ export function AppLayout() {
   } = useLibrary();
   const { activeProfile, isLoading: isProfileLoading } = useProfile();
   const [showOnboarding, setShowOnboarding] = useState(false);
+  // Opened from Settings rather than by the first-run gate.
+  const [onboardingReplay, setOnboardingReplay] = useState(false);
+  // The player bar tour, offered at the end of the journey and started
+  // again from Settings → General.
+  const [showPlayerTour, setShowPlayerTour] = useState(false);
+  // While the journey is up a drop is the library being chosen: import
+  // only, no "play" target over it.
+  const dragDrop = useDragDropImport({ importOnly: showOnboarding });
   // Tracks the active profile id we've already evaluated against, so
   // a profile switch re-runs the gate exactly once.
   const evaluatedProfileId = useRef<number | null>(null);
@@ -371,11 +396,30 @@ export function AppLayout() {
     libraries,
   ]);
 
+  // Settings → General runs the journey again, whatever the library holds;
+  // the modal itself skips the folder when there is one.
+  useEffect(() => {
+    const onReplay = () => {
+      setOnboardingReplay(true);
+      setShowOnboarding(true);
+    };
+    const onTour = () => setShowPlayerTour(true);
+    window.addEventListener(REPLAY_ONBOARDING_EVENT, onReplay);
+    window.addEventListener(START_PLAYER_TOUR_EVENT, onTour);
+    return () => {
+      window.removeEventListener(REPLAY_ONBOARDING_EVENT, onReplay);
+      window.removeEventListener(START_PLAYER_TOUR_EVENT, onTour);
+    };
+  }, []);
+
+  const closePlayerTour = useCallback(() => setShowPlayerTour(false), []);
+
   const dismissOnboarding = useCallback(() => {
     // Persist the choice so the modal doesn't reappear on next
     // launch — the user already told us to leave them alone, even
     // if their library is still empty.
     setShowOnboarding(false);
+    setOnboardingReplay(false);
     setProfileSetting("onboarding.dismissed", "true", "bool").catch((err) =>
       console.error("[AppLayout] persist onboarding.dismissed failed", err),
     );
@@ -465,6 +509,22 @@ export function AppLayout() {
     window.addEventListener(OPEN_TAG_WORKSHOP_EVENT, onOpen);
     return () => window.removeEventListener(OPEN_TAG_WORKSHOP_EVENT, onOpen);
   }, [pushEntry, activeProfile]);
+
+  // A view asked for from a place with no navigation callback: a tip in a
+  // panel, a first-steps item, the onboarding's last screen.
+  useEffect(() => {
+    const onOpen = (event: Event) => {
+      const request = (event as CustomEvent<OpenViewRequest>).detail;
+      if (!request?.view) return;
+      pushEntry(
+        request.view === "settings"
+          ? { id: "settings", settingsCategory: request.settingsCategory }
+          : ({ id: request.view } as HistoryEntry),
+      );
+    };
+    window.addEventListener(OPEN_VIEW_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_VIEW_EVENT, onOpen);
+  }, [pushEntry]);
 
   // Wrapper used by views that only need a plain id (Home, Settings, …).
   // The cast is safe because every `ViewId` matches a HistoryEntry whose
@@ -795,6 +855,7 @@ export function AppLayout() {
             <DropTargetsOverlay
               hoveredTarget={dragDrop.hoveredTarget}
               targetsRef={dragDrop.targetsRef}
+              importOnly={showOnboarding}
             />
           )}
 
@@ -971,7 +1032,19 @@ export function AppLayout() {
         <PlaybackAlertToast />
         <QueueToast />
         <PluginAttentionToast />
-        {showOnboarding && <OnboardingModal onSkip={dismissOnboarding} />}
+        {showOnboarding && (
+          <Suspense fallback={null}>
+            <OnboardingModal
+              onClose={dismissOnboarding}
+              replay={onboardingReplay}
+            />
+          </Suspense>
+        )}
+        {showPlayerTour && !showOnboarding && (
+          <Suspense fallback={null}>
+            <PlayerBarTour onClose={closePlayerTour} />
+          </Suspense>
+        )}
       </div>
     </SkinMotionWrapper>
   );

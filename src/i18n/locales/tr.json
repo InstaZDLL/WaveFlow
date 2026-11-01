@@ -65,108 +65,155 @@
   },
   "onboarding": {
     "defaultLibraryName": "Müzik",
-    "welcome": {
-      "title": "WaveFlow'a hoş geldin",
-      "description": "Kişisel, yerel tabanlı müzik çaların. Akış aboneliği olmadan tüm kütüphanenin tadını çıkar."
-    },
-    "localOnly": {
-      "title": "Önemli: yalnızca yerel müzik",
-      "description": "WaveFlow bir akış servisi DEĞİLDİR. Cihazında zaten bulunan dosyaları çalar.",
-      "calloutTitle": "Bilmen gerekenler",
-      "bulletOwn": "Kendi kütüphaneni getir (MP3, FLAC, ALAC, OGG, DSD…)",
-      "bulletImport": "Bir klasör içe aktar veya dosyaları sürükleyip bırak",
-      "bulletScrobble": "Last.fm'i bağla ve dinlemelerini arka planda scrobble et"
-    },
-    "appearance": {
-      "title": "Görünümünü seç",
-      "description": "Bir renk teması ve arayüz stili seç. Bunları istediğin zaman Ayarlar → Görünüm bölümünden değiştirebilirsin.",
-      "theme": {
-        "title": "Renk teması"
-      },
-      "skin": {
-        "title": "Arayüz stili"
-      },
-      "hint": "Bu seçimler her profil için kaydedilir — her profilin kendi görünümü olabilir."
-    },
-    "folder": {
-      "title": "Müzik klasörünü seç",
-      "description": "WaveFlow'a müziğinin yerini söyle. Tarayıcı kütüphaneni otomatik olarak düzenler.",
-      "placeholder": "Müzik klasörünü seçmek için tıkla",
-      "changeHint": "Klasörü değiştirmek için tıkla",
-      "quickSettings": "Hızlı ayarlar",
-      "autoAnalyze": {
-        "title": "Parçaları otomatik analiz et",
-        "description": "Tarama sırasında BPM ve tonu algılar — Radyo ve Ruh Hali Radyosu için kullanılır."
-      }
-    },
-    "lastfm": {
-      "title": "Last.fm'i bağla",
-      "description": "Scrobbling, dinlemelerini Last.fm profiline gönderir. Karşılığında sanatçı biyografileri ve benzer sanatçı önerileri doğrudan uygulamada görünür.",
-      "recommendedBadge": "Önerilen",
-      "keyHint": "Last.fm'de bir API anahtarı oluştur",
-      "keyLabel": "API anahtarı",
-      "keyPlaceholder": "Last.fm API anahtarın",
-      "secretLabel": "Paylaşılan gizli anahtar",
-      "secretPlaceholder": "Paylaşılan gizli anahtarın",
-      "userLabel": "Last.fm kullanıcı adı",
-      "userPlaceholder": "kullanıcı-adın",
-      "passwordLabel": "Şifre",
-      "passwordPlaceholder": "Last.fm şifren",
-      "toggleSecret": "Gizli anahtarı göster/gizle",
-      "togglePassword": "Şifreyi göster/gizle",
-      "connect": "Last.fm'i bağla",
-      "missingFields": "Lütfen API anahtarı, gizli anahtar, kullanıcı adı ve şifreyi doldur.",
-      "connectedTitle": "{{user}} olarak bağlandı",
-      "connectedSubtitle": "Bir parça çaldığında scrobbling otomatik olarak başlar."
-    },
-    "scan": {
-      "title": "Kütüphaneni tara",
-      "description": "Klasörünü analiz etmeye ve parçalarını keşfetmeye hazır mısın?",
-      "noFolder": "Klasör seçilmedi",
-      "readyHint": "Klasörün hazır. Hazır olduğunda taramayı başlat.",
-      "scanning": "Kütüphane taranıyor…",
-      "errorTitle": "Tarama başarısız oldu"
-    },
-    "done": {
-      "title": "Her şey hazır!",
-      "description": "Kütüphanen tarandı ve çalmaya hazır.",
-      "nextSteps": "Sonraki adımlar:",
-      "bulletExplore": "Kütüphane, Albümler ve Sanatçılar sekmelerinden kütüphaneni keşfet",
-      "bulletQueue": "Bir parçaya tıklayarak ilk sıranı oluştur",
-      "bulletSettings": "Yan kenar çubuğundan detayları ayarla (Görünüm, Bağlantılar…)",
-      "tipImmersiveTitle": "İpucu: sürükleyici görünüm",
-      "tipImmersiveBody": "Kapak ile şarkı sözlerini yan yana gösteren tam ekran görünümü açmak için oynatıcıdaki kapağa tıkla."
+    "phase": {
+      "setup": "Başlangıç · {{current}}/{{total}}",
+      "compose": "WaveFlow'u kendine göre ayarla · {{current}}/{{total}}"
     },
     "actions": {
-      "skipSetup": "Kurulumu atla",
-      "getStarted": "Başla",
-      "back": "Geri",
+      "close": "Turu kapat",
+      "later": "Sonra",
+      "start": "Başla",
+      "folderLater": "Sonra seç",
+      "skipAll": "Tümünü atla",
+      "skip": "Atla",
       "continue": "Devam",
-      "understood": "Anladım",
-      "skipForNow": "Şimdilik atla",
-      "scanLater": "Daha sonra tara",
-      "scanNow": "Şimdi tara",
-      "startListening": "Dinlemeye başla"
+      "back": "Geri"
     },
-    "language": {
-      "title": "Dilini seç",
-      "description": "WaveFlow 17 dilde sunuluyor. Sistem dilini önceden seçtik — yanlışsa değiştir.",
-      "detected": "Sistem dilinden algılandı",
-      "fallback": "Sistem dilini algılayamadık, bu yüzden varsayılan olarak İngilizce seçildi. Aşağıdan kendi dilini seç."
+    "welcome": {
+      "title": "WaveFlow'a hoş geldin",
+      "lede": "Müziğin, kendi bilgisayarında. WaveFlow zaten sahip olduğun dosyaları çalar: abonelik yok ve onayın olmadan hiçbir şey bilgisayarından dışarı çıkmaz.",
+      "language": "Dil",
+      "languageFallback": "Sistem dilin henüz mevcut değil: sana uygun olanı seç.",
+      "name": "Adın veya takma adın",
+      "nameHint": "Bu profilin adı; Ana sayfa'da görünür.",
+      "namePlaceholder": "Adın",
+      "nameRequired": "Bu profil için bir ad gir."
     },
-    "profile": {
-      "title": "Profiline ad ver",
-      "description": "WaveFlow, kütüphaneleri ayırmak için profiller kullanır. Daha sonra tanıyabileceğin bir ad seç.",
-      "nameLabel": "Profil adı",
-      "namePlaceholder": "Örn. Daisy",
-      "hint": "Gerekirse daha sonra başka profiller oluşturabilirsin.",
-      "required": "Profil adı zorunlu.",
-      "unavailable": "Profil kullanılamıyor — biraz sonra tekrar dene."
+    "folder": {
+      "title": "Müziğin nerede?",
+      "lede": "Albümlerinin bulunduğu klasörü seç. Okuma hemen arka planda başlar; sen de bu arada tura devam edersin.",
+      "pick": "Klasör seç",
+      "drop": "ya da pencereye bir klasör veya dosya sürükle",
+      "hint": "Sürüklenen dosyalar Müzik klasöründeki WaveFlow klasörüne kopyalanır. Daha sonra başka klasörler de ekleyebilirsin."
+    },
+    "scan": {
+      "preparing": "Kütüphanen hazırlanıyor…",
+      "running": "Müziğin okunuyor · {{current}} / {{total}}",
+      "done": "Kütüphane hazır · +{{formatted}}",
+      "stopped": "Tarama durduruldu · +{{formatted}}",
+      "failed": "Tarama yarıda kaldı"
+    },
+    "look": {
+      "title": "Görünümün",
+      "lede": "Arayüz stili tüm arayüzü, tema ise rengini değiştirir. Her şey anında uygulanır; hepsini Ayarlar → Görünüm bölümünde bulursun.",
+      "skin": "Arayüz stili",
+      "theme": "Tema",
+      "windows": "Pencereler"
+    },
+    "listening": {
+      "title": "Dinleme deneyimin",
+      "lede": "Parçaların birbirine nasıl bağlandığı ve kulağa nasıl geldiği. Her kart tek tıkla açılır; ince ayarları Ayarlar → Ses bölümünde yapabilirsin.",
+      "crossfade": {
+        "title": "Çapraz geçiş",
+        "benefit": "Her parça {{seconds}} saniye içinde bir sonrakine karışır, araya sessizlik girmez."
+      },
+      "automix": {
+        "title": "AutoMix",
+        "benefit": "Geçişi iki parçanın vuruşlarına denk getirir, tıpkı bir DJ gibi. Çapraz geçişi de açar."
+      },
+      "replaygain": {
+        "title": "Eşit ses düzeyi",
+        "benefit": "ReplayGain tüm parçalarını aynı ses düzeyine getirir: artık sürekli sesi açıp kısman gerekmez."
+      },
+      "analysis": {
+        "title": "BPM ve ton",
+        "benefit": "Radyo ve AutoMix'i beslemek için her yeni parçayı analiz eder. Taramadan sonra arka planda çalışır."
+      }
     },
     "lyrics": {
-      "title": "Şarkı sözleri nereye gitsin?",
-      "description": "Şarkı sözleri nereye gitsin — hem düzenlediklerin hem de WaveFlow'un senin için buldukları? Ayarlar → Şarkı sözleri bölümünden değiştirebilirsin.",
-      "hint": "Ses dosyalarını bozulmadan tutmak için “Yan dosya” seç — foobar2000 ve benzerleri böyle yapar."
+      "title": "Şarkı sözlerin",
+      "lede": "WaveFlow senkronize şarkı sözlerini çevrimiçi bulur, istersen kendin de yazabilirsin. Nerede saklanacaklarını seç ve kaynak ekle.",
+      "destination": "Nereye kaydedilsin",
+      "sources": "Şarkı sözü kaynakları"
+    },
+    "plugins": {
+      "title": "Eklentilerin",
+      "lede": "Tek tıkla yüklenen resmî bir seçki. Kataloğun geri kalanı Eklentiler bölümünde seni bekliyor.",
+      "loading": "Katalog okunuyor…",
+      "unavailable": "Kataloğa şu an ulaşılamıyor. Sunduklarına buradan göz atabilirsin: hepsini Eklentiler bölümünde bulacaksın.",
+      "inExtensions": "Eklentiler bölümünde",
+      "wordSynced": "Kelime kelime",
+      "installed": "Yüklü",
+      "install": "Yükle",
+      "installing": "Yükleniyor…",
+      "installAria": "{{name}} eklentisini yükle",
+      "failed": "Yükleme başarısız oldu. Eklentiler bölümünden yeniden dene.",
+      "usage": {
+        "lyrics": {
+          "title": "Kelime kelime şarkı sözleri",
+          "benefit": "Kelime kelime parlayan şarkı sözleri; kaynağa göre çeviri ve romanizasyonla birlikte."
+        },
+        "canvas": {
+          "title": "Canvas",
+          "benefit": "Sürükleyici görünümde, çalan parçanın arkasında döngüyle oynayan kısa bir video."
+        },
+        "artwork": {
+          "title": "Hareketli kapaklar",
+          "benefit": "Albümlerin için hareket eden kapaklar ve yüksek çözünürlüklü görseller."
+        },
+        "radio": {
+          "title": "Web Radyo",
+          "benefit": "Dünyanın dört bir yanından binlerce istasyon, kütüphanenin hemen yanında."
+        }
+      }
+    },
+    "connections": {
+      "title": "Bağlantıların",
+      "lede": "Onayın olmadan hiçbir şey gönderilmez. Bu bağlantıları Ayarlar → Bağlantılar bölümünde bulursun.",
+      "lastfm": {
+        "title": "Last.fm",
+        "benefit": "Dinlediklerini kaydeder; biyografileri ve benzer sanatçıları zenginleştirir.",
+        "connect": "Last.fm'i bağla",
+        "connected": "{{user}} olarak bağlandı",
+        "keyHint": "Last.fm API anahtarı oluştur",
+        "key": "API anahtarı",
+        "secret": "Paylaşılan gizli anahtar",
+        "user": "Kullanıcı adı",
+        "password": "Şifre",
+        "toggleSecret": "Gizli anahtarı göster veya gizle",
+        "togglePassword": "Şifreyi göster veya gizle",
+        "missingFields": "Giriş yapmak için dört alanı da doldur.",
+        "signIn": "Giriş yap"
+      },
+      "discord": {
+        "title": "Discord durumu",
+        "benefit": "Arkadaşlarına ne dinlediğini gösterir. Varsayılan olarak açık: istersen buradan kapatabilirsin."
+      },
+      "server": {
+        "title": "WaveFlow sunucusu",
+        "benefit": "Bir WaveFlow sunucusunun kütüphanesini dinle ve bu kütüphaneyle eşitle.",
+        "open": "Ayarlar'da yapılandır"
+      },
+      "enrichmentOffline": "Çevrimiçi olduğunda Ayarlar → Kütüphane bölümünden aç."
+    },
+    "done": {
+      "title": "WaveFlow'un hazır",
+      "lede": "Kütüphanen yerinde. Keyifli dinlemeler!",
+      "ledeEmpty": "Müziğinizi istediğiniz zaman ekleyin: Ana sayfadan, kütüphaneden ya da bir klasörü pencereye sürükleyerek.",
+      "ledeFailed": "Tarama yarıda kaldı. Kütüphaneden yeniden başlatın: ayarlarınız kaydedildi.",
+      "ledeScanning": "Tarama arka planda sürüyor: bulduklarını şimdiden dinleyebilirsin.",
+      "firstSteps": "Ana sayfa'daki “İlk adımlar”, WaveFlow'un başka neler yapabildiğini gösterir.",
+      "nothingYet": "Henüz parça yok: tarama şimdilik bir şey bulamadı.",
+      "library": "Kütüphaneye git",
+      "play": "Çalmaya başla",
+      "finish": "Bitir",
+      "tourTitle": "Çalar çubuğunu tanımak ister misin?",
+      "tourBody": "Şarkı sözlerini, sırayı, mini oynatıcıyı ve gerisini simge simge bulmak için bir dakika.",
+      "tourStart": "Tura başla",
+      "tourLater": "Sonra",
+      "settingsTitle": "Keşfedilecek çok daha fazlası var",
+      "settingsBody": "Ekolayzer, özel çıkış, kısayollar, yedekler… Ayarlar'a bir göz at.",
+      "settingsOpen": "Ayarlar'ı aç"
     }
   },
   "sidebar": {
@@ -1805,7 +1852,7 @@
     "destination": {
       "tag": {
         "label": "Gömülü etiket",
-        "hint": "Ses dosyasının USLT/©lyr alanına yazar (foobar2000, iTunes uyumlu)."
+        "hint": "Ses dosyasının USLT/©lyr alanına yazar; diğer oynatıcılar da okuyabilir."
       },
       "sidecar": {
         "label": "Yan dosya",
@@ -2549,7 +2596,7 @@
       "skins": {
         "studio": {
           "label": "Studio",
-          "description": "Apple Music tarzı — yoğun arayüz, yumuşak gölgeler, temiz sans-serif."
+          "description": "Yoğun arayüz, yumuşak gölgeler, sade sans-serif yazı tipi."
         },
         "editorial": {
           "label": "Editorial",
@@ -2620,7 +2667,7 @@
         },
         "nowPlaying": {
           "label": "Şimdi Çalıyor panelini göster",
-          "description": "Spotify tarzı — kapak ve sözleri içeren sağ paneli açar veya kapatır."
+          "description": "Kapak ve sözleri içeren sağ paneli açar veya kapatır."
         },
         "none": {
           "label": "Hiçbir şey yapma",
@@ -2637,7 +2684,7 @@
       "modes": {
         "auto": {
           "label": "Otomatik",
-          "description": "Yalnızca 1 Aralık ile 31 Ocak arasında görünür — Spotify Wrapped gibi."
+          "description": "Yalnızca 1 Aralık ile 31 Ocak arasında görünür."
         },
         "always": {
           "label": "Her zaman göster",
@@ -3287,6 +3334,16 @@
       },
       "review_one": "İncele ({{count}})",
       "review_other": "İncele ({{count}})"
+    },
+    "onboardingReplay": {
+      "title": "Tanıtım turu",
+      "subtitle": "İlk açılışta sunulan başlangıç adımlarını ve önerilen ayarları yeniden gör.",
+      "action": "Yeniden başlat"
+    },
+    "playerTourReplay": {
+      "title": "Çalar çubuğu turu",
+      "subtitle": "Çalar çubuğundaki her simgenin ne işe yaradığını yeniden gör.",
+      "action": "Başlat"
     }
   },
   "scanProgress": {
@@ -4084,5 +4141,116 @@
     "write_other": "{{count}} dosyayı yaz",
     "otherProfile": "Bu atölye başka bir profilde açıldı. Bu profilden yeniden açın.",
     "truncated": "{{total}} dosyanın yalnızca ilk {{shown}} tanesi açık: geri kalanları düzenlemek için seçimi daraltın."
+  },
+  "firstSteps": {
+    "kicker": "İlk adımlar",
+    "title": "WaveFlow neler yapabilir",
+    "progress": "Keşfedilen: {{done}} / {{total}}",
+    "hide": "İlk adımları gizle",
+    "done": "(tamam)",
+    "items": {
+      "immersive": {
+        "title": "Sürükleyici görünüm",
+        "hint": "Büyük kapak, yanında şarkı sözleri."
+      },
+      "miniPlayer": {
+        "title": "Mini oynatıcı",
+        "hint": "Hep üstte kalan küçük bir pencere."
+      },
+      "desktopLyrics": {
+        "title": "Masaüstü şarkı sözleri",
+        "hint": "Şarkı sözleri pencerelerinin üzerinde süzülür."
+      },
+      "smartPlaylist": {
+        "title": "Akıllı çalma listesi",
+        "hint": "Birkaç kural koy, liste kendi kendine dolsun."
+      },
+      "enrichment": {
+        "title": "MusicBrainz zenginleştirme",
+        "hint": "Eksik türleri, tarihleri ve kapakları tamamlar."
+      },
+      "tagWorkshop": {
+        "title": "Etiket atölyesi",
+        "hint": "Bütün bir albümün etiketlerini tek seferde düzelt."
+      },
+      "wrapped": {
+        "title": "Wrapped",
+        "hint": "Dinleme yılın, birkaç kartta."
+      },
+      "plugin": {
+        "title": "Bir eklenti yükle",
+        "hint": "Şarkı sözleri, Canvas, hareketli kapaklar…"
+      }
+    }
+  },
+  "tips": {
+    "dismiss": "İpucunu kapat",
+    "lyricsSources": {
+      "title": "Daha fazla şarkı sözü kaynağı",
+      "body": "Eklentiler kelime kelime senkronize şarkı sözleri ekler; özellikle Asya müziği için çok kapsamlıdır.",
+      "action": "Kaynakları Eklentiler'de gör"
+    },
+    "tagWorkshop": {
+      "title": "Daha ileri gitmek için: etiket atölyesi",
+      "body": "Bul ve değiştir, numaralandırma, MusicBrainz eşleştirme ve geri alma; tüm seçim üzerinde.",
+      "action": "Bu seçimi atölyede aç"
+    }
+  },
+  "playerTour": {
+    "label": "Çalar çubuğu turu",
+    "counter": "{{current}} / {{total}}",
+    "next": "İleri",
+    "finish": "Bitir",
+    "skip": "Atla",
+    "items": {
+      "cover": {
+        "title": "Kapak",
+        "body": "Bir tıkla, ayarına göre sürükleyici görünümü ya da Ayrıntılar panelini açar."
+      },
+      "like": {
+        "title": "Beğen",
+        "body": "Çalan parçayı beğenilen parçalarına ekler."
+      },
+      "abLoop": {
+        "title": "A-B döngüsü",
+        "body": "Parçanın iki nokta arasındaki bölümünü tekrarlar."
+      },
+      "sleepTimer": {
+        "title": "Uyku zamanlayıcısı",
+        "body": "Çalmayı belirli bir süre sonra ya da parçanın sonunda durdurur."
+      },
+      "eqPreset": {
+        "title": "Ekolayzer",
+        "body": "Ekolayzer önayarını tek tıkla değiştirir."
+      },
+      "lyrics": {
+        "title": "Sözler",
+        "body": "Çalan parçanın senkronize şarkı sözlerini gösterir."
+      },
+      "queue": {
+        "title": "Sıra",
+        "body": "Sırada ne var: yeniden sırala, ekle ya da temizle."
+      },
+      "device": {
+        "title": "Ses çıkışı",
+        "body": "Çalacak ses kartını, kulaklığı ya da DAC'yi seç."
+      },
+      "more": {
+        "title": "Daha fazla eylem",
+        "body": "Hız, masaüstü şarkı sözleri, uyku zamanlayıcısı ve diğer hızlı ayarlar."
+      },
+      "volume": {
+        "title": "Ses düzeyi",
+        "body": "Ses düzeyini ayarla; simgeye tıklamak sesi kapatır."
+      },
+      "miniPlayer": {
+        "title": "Mini oynatıcı",
+        "body": "Sen başka işlerle uğraşırken üstte kalan küçük bir pencere."
+      },
+      "immersive": {
+        "title": "Sürükleyici görünüm",
+        "body": "Büyük kapak ve şarkı sözleri, tam ekran."
+      }
+    }
   }
 }

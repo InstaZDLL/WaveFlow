@@ -68,6 +68,10 @@ export function LanguageDropdown({
 
     const handleKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
+        // Heard first (capture) and kept here: inside a modal — the
+        // onboarding asks for the language — Escape closes the list, not
+        // the dialog the list sits in.
+        event.stopPropagation();
         setIsOpen(false);
         // Return focus to the trigger so keyboard users stay anchored
         // to where they opened the listbox from. Matches WAI-ARIA APG
@@ -77,10 +81,10 @@ export function LanguageDropdown({
     };
 
     document.addEventListener("mousedown", handleClickOutside);
-    document.addEventListener("keydown", handleKey);
+    document.addEventListener("keydown", handleKey, true);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("keydown", handleKey);
+      document.removeEventListener("keydown", handleKey, true);
     };
   }, [isOpen]);
 

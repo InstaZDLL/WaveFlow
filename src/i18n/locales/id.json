@@ -65,108 +65,155 @@
   },
   "onboarding": {
     "defaultLibraryName": "Musik",
-    "welcome": {
-      "title": "Selamat datang di WaveFlow",
-      "description": "Pemutar musik pribadimu yang mengutamakan koleksi lokal. Nikmati seluruh pustakamu tanpa langganan streaming."
-    },
-    "localOnly": {
-      "title": "Penting: hanya musik lokal",
-      "description": "WaveFlow BUKAN layanan streaming. Aplikasi ini memutar berkas yang sudah ada di perangkatmu.",
-      "calloutTitle": "Yang perlu kamu tahu",
-      "bulletOwn": "Bawa pustakamu sendiri (MP3, FLAC, ALAC, OGG, DSD…)",
-      "bulletImport": "Impor folder atau tarik dan lepas berkas",
-      "bulletScrobble": "Hubungkan Last.fm untuk men-scrobble pemutaran di latar belakang"
-    },
-    "appearance": {
-      "title": "Pilih tampilanmu",
-      "description": "Pilih tema warna dan gaya antarmuka. Kamu dapat mengubahnya kapan saja melalui Pengaturan → Tampilan.",
-      "theme": {
-        "title": "Tema warna"
-      },
-      "skin": {
-        "title": "Gaya antarmuka"
-      },
-      "hint": "Pilihan ini disimpan per profil — setiap profil dapat memiliki tampilannya sendiri."
-    },
-    "folder": {
-      "title": "Pilih folder musikmu",
-      "description": "Beri tahu WaveFlow tempat musikmu disimpan. Pemindai akan menata pustakamu secara otomatis.",
-      "placeholder": "Klik untuk memilih folder musikmu",
-      "changeHint": "Klik untuk mengganti folder",
-      "quickSettings": "Pengaturan cepat",
-      "autoAnalyze": {
-        "title": "Analisis lagu otomatis",
-        "description": "Mendeteksi BPM dan nada dasar saat pemindaian — mengaktifkan fitur Radio dan Mood Radio."
-      }
-    },
-    "lastfm": {
-      "title": "Hubungkan Last.fm",
-      "description": "Scrobbling mengirim pemutaranmu ke profil Last.fm. Sebagai gantinya, kamu mendapatkan bio artis dan rekomendasi artis serupa langsung di dalam aplikasi.",
-      "recommendedBadge": "Direkomendasikan",
-      "keyHint": "Buat kunci API di Last.fm",
-      "keyLabel": "Kunci API",
-      "keyPlaceholder": "Kunci API Last.fm-mu",
-      "secretLabel": "Rahasia bersama",
-      "secretPlaceholder": "Rahasia bersamamu",
-      "userLabel": "Nama pengguna Last.fm",
-      "userPlaceholder": "nama-kamu",
-      "passwordLabel": "Kata sandi",
-      "passwordPlaceholder": "Kata sandi Last.fm-mu",
-      "toggleSecret": "Tampilkan/sembunyikan rahasia",
-      "togglePassword": "Tampilkan/sembunyikan kata sandi",
-      "connect": "Hubungkan Last.fm",
-      "missingFields": "Mohon isi kunci API, rahasia, nama pengguna, dan kata sandi.",
-      "connectedTitle": "Terhubung sebagai {{user}}",
-      "connectedSubtitle": "Scrobbling otomatis aktif begitu kamu memutar lagu."
-    },
-    "scan": {
-      "title": "Pindai pustakamu",
-      "description": "Siap menganalisis foldermu dan menemukan lagu-lagumu?",
-      "noFolder": "Belum ada folder dipilih",
-      "readyHint": "Foldermu sudah siap. Mulai pemindaian kapan saja.",
-      "scanning": "Memindai pustakamu…",
-      "errorTitle": "Pemindaian gagal"
-    },
-    "done": {
-      "title": "Semua siap!",
-      "description": "Pustakamu sudah dipindai dan siap diputar.",
-      "nextSteps": "Langkah selanjutnya:",
-      "bulletExplore": "Jelajahi pustakamu lewat tab Pustaka, Album, dan Artis",
-      "bulletQueue": "Buat antrean pertamamu dengan mengklik sebuah lagu",
-      "bulletSettings": "Sesuaikan detail lewat bilah samping (Tampilan, Koneksi…)",
-      "tipImmersiveTitle": "Tips: tampilan imersif",
-      "tipImmersiveBody": "Klik sampul di pemutar untuk membuka tampilan layar penuh dengan sampul dan lirik berdampingan."
+    "phase": {
+      "setup": "Persiapan · {{current}}/{{total}}",
+      "compose": "Jadikan WaveFlow milikmu · {{current}}/{{total}}"
     },
     "actions": {
-      "skipSetup": "Lewati pengaturan",
-      "getStarted": "Mulai",
-      "back": "Kembali",
-      "continue": "Lanjutkan",
-      "understood": "Mengerti",
-      "skipForNow": "Lewati dulu",
-      "scanLater": "Pindai nanti",
-      "scanNow": "Pindai sekarang",
-      "startListening": "Mulai mendengarkan"
+      "close": "Tutup tur",
+      "later": "Nanti",
+      "start": "Mulai",
+      "folderLater": "Pilih nanti",
+      "skipAll": "Lewati semua",
+      "skip": "Lewati",
+      "continue": "Lanjut",
+      "back": "Kembali"
     },
-    "language": {
-      "title": "Pilih bahasamu",
-      "description": "WaveFlow tersedia dalam 17 bahasa. Kami sudah memilih bahasa sistemmu — ubah jika salah.",
-      "detected": "Terdeteksi dari sistemmu",
-      "fallback": "Kami tidak dapat mencocokkan bahasa sistemmu, jadi bahasa Inggris dipilih sebagai bawaan. Pilih bahasamu di bawah."
+    "welcome": {
+      "title": "Selamat datang di WaveFlow",
+      "lede": "Musikmu, di perangkatmu sendiri. WaveFlow memutar berkas yang sudah kamu miliki: tanpa langganan, dan tidak ada yang keluar dari komputermu tanpa izinmu.",
+      "language": "Bahasa",
+      "languageFallback": "Bahasa sistemmu belum tersedia: pilih yang paling cocok untukmu.",
+      "name": "Nama depan atau nama panggilanmu",
+      "nameHint": "Nama profil ini, ditampilkan di Beranda.",
+      "namePlaceholder": "Namamu",
+      "nameRequired": "Masukkan nama untuk profil ini."
     },
-    "profile": {
-      "title": "Beri nama profilmu",
-      "description": "WaveFlow memakai profil untuk memisahkan pustaka. Pilih nama yang mudah kamu kenali nanti.",
-      "nameLabel": "Nama profil",
-      "namePlaceholder": "Mis. Daisy",
-      "hint": "Kamu bisa membuat profil lain nanti kalau perlu.",
-      "required": "Nama profil wajib diisi.",
-      "unavailable": "Profil belum tersedia — coba lagi sebentar."
+    "folder": {
+      "title": "Di mana musikmu?",
+      "lede": "Pilih folder yang berisi album-albummu. Pembacaannya langsung dimulai di latar belakang, sementara kamu melanjutkan tur.",
+      "pick": "Pilih folder",
+      "drop": "atau seret folder atau berkas ke jendela",
+      "hint": "Berkas yang diseret disalin ke folder WaveFlow di dalam folder Musik-mu. Kamu bisa menambahkan folder lain nanti."
+    },
+    "scan": {
+      "preparing": "Menyiapkan pustakamu…",
+      "running": "Membaca musikmu · {{current}} / {{total}}",
+      "done": "Pustaka siap · +{{formatted}}",
+      "stopped": "Pemindaian dihentikan · +{{formatted}}",
+      "failed": "Pemindaian terhenti"
+    },
+    "look": {
+      "title": "Tampilanmu",
+      "lede": "Gaya antarmuka mengubah seluruh tampilan aplikasi, tema mengubah warnanya. Semuanya langsung diterapkan dan bisa ditemukan di Pengaturan → Tampilan.",
+      "skin": "Gaya antarmuka",
+      "theme": "Tema",
+      "windows": "Jendela"
+    },
+    "listening": {
+      "title": "Cara kamu mendengarkan",
+      "lede": "Bagaimana lagu bersambung satu sama lain dan bagaimana bunyinya. Setiap kartu aktif dengan sekali klik dan bisa diatur lebih detail di Pengaturan → Audio.",
+      "crossfade": {
+        "title": "Crossfade",
+        "benefit": "Setiap lagu melebur ke lagu berikutnya selama {{seconds}} detik, tanpa jeda hening."
+      },
+      "automix": {
+        "title": "AutoMix",
+        "benefit": "Menempatkan transisi tepat di ketukan kedua lagu, seperti DJ. Sekaligus mengaktifkan crossfade."
+      },
+      "replaygain": {
+        "title": "Volume seragam",
+        "benefit": "ReplayGain menyamakan kenyaringan semua lagumu: tak perlu lagi bolak-balik mengatur volume."
+      },
+      "analysis": {
+        "title": "BPM dan nada dasar",
+        "benefit": "Menganalisis setiap lagu baru untuk Radio dan AutoMix. Berjalan di latar belakang setelah pemindaian."
+      }
     },
     "lyrics": {
-      "title": "Di mana menyimpan lirik?",
-      "description": "Di mana lirik harus disimpan — yang kamu edit maupun yang ditemukan WaveFlow? Kamu dapat mengubahnya kapan saja di Pengaturan → Lirik.",
-      "hint": "Pilih \"Berkas pendamping\" agar berkas audiomu tetap utuh — seperti yang dilakukan foobar2000 dkk."
+      "title": "Lirikmu",
+      "lede": "WaveFlow menemukan lirik tersinkron secara daring dan memungkinkanmu menulis sendiri. Pilih tempat menyimpannya, lalu tambahkan sumber.",
+      "destination": "Tempat menyimpan",
+      "sources": "Sumber lirik"
+    },
+    "plugins": {
+      "title": "Ekstensimu",
+      "lede": "Pilihan resmi, terpasang dengan sekali klik. Sisa katalog menunggumu di Ekstensi.",
+      "loading": "Membaca katalog…",
+      "unavailable": "Katalog tidak dapat dijangkau saat ini. Ini yang ditawarkannya: kamu akan menemukannya di Ekstensi.",
+      "inExtensions": "Tersedia di Ekstensi",
+      "wordSynced": "Kata demi kata",
+      "installed": "Terpasang",
+      "install": "Pasang",
+      "installing": "Memasang…",
+      "installAria": "Pasang {{name}}",
+      "failed": "Pemasangan gagal. Coba lagi dari Ekstensi.",
+      "usage": {
+        "lyrics": {
+          "title": "Lirik kata demi kata",
+          "benefit": "Lirik yang menyala kata demi kata, dengan terjemahan dan romanisasi tergantung sumbernya."
+        },
+        "canvas": {
+          "title": "Canvas",
+          "benefit": "Video pendek yang berulang di balik lagu yang sedang diputar, dalam tampilan imersif."
+        },
+        "artwork": {
+          "title": "Sampul animasi",
+          "benefit": "Sampul yang bergerak dan gambar beresolusi tinggi untuk album-albummu."
+        },
+        "radio": {
+          "title": "Radio Web",
+          "benefit": "Ribuan stasiun dari seluruh dunia, tepat di samping pustakamu."
+        }
+      }
+    },
+    "connections": {
+      "title": "Koneksimu",
+      "lede": "Tidak ada yang dikirim tanpa izinmu. Semua koneksi ini ada di Pengaturan → Koneksi.",
+      "lastfm": {
+        "title": "Last.fm",
+        "benefit": "Mencatat apa yang kamu dengarkan dan memperkaya biografi serta artis serupa.",
+        "connect": "Hubungkan Last.fm",
+        "connected": "Terhubung sebagai {{user}}",
+        "keyHint": "Buat kunci API Last.fm",
+        "key": "Kunci API",
+        "secret": "Rahasia bersama",
+        "user": "Nama pengguna",
+        "password": "Kata sandi",
+        "toggleSecret": "Tampilkan atau sembunyikan rahasia",
+        "togglePassword": "Tampilkan atau sembunyikan kata sandi",
+        "missingFields": "Isi keempat kolom untuk masuk.",
+        "signIn": "Masuk"
+      },
+      "discord": {
+        "title": "Status Discord",
+        "benefit": "Menunjukkan kepada teman-temanmu apa yang sedang kamu dengarkan. Aktif secara bawaan: matikan di sini jika kamu tidak mau."
+      },
+      "server": {
+        "title": "Server WaveFlow",
+        "benefit": "Dengarkan pustaka server WaveFlow dan sinkronkan dengan pustaka ini.",
+        "open": "Atur di Pengaturan"
+      },
+      "enrichmentOffline": "Aktifkan di Pengaturan → Pustaka setelah kamu daring."
+    },
+    "done": {
+      "title": "WaveFlow-mu sudah siap",
+      "lede": "Pustakamu sudah siap. Selamat mendengarkan!",
+      "ledeEmpty": "Tambahkan musikmu kapan saja: dari Beranda, pustaka, atau dengan menyeret folder ke jendela.",
+      "ledeFailed": "Pemindaian terhenti. Mulai lagi dari pustaka: pengaturanmu sudah tersimpan.",
+      "ledeScanning": "Pemindaian berlanjut di latar belakang: kamu sudah bisa memutar apa yang sudah ditemukannya.",
+      "firstSteps": "Di Beranda, “Langkah pertama” menunjukkan apa lagi yang bisa dilakukan WaveFlow.",
+      "nothingYet": "Belum ada lagu: pemindaian belum menemukan apa pun.",
+      "library": "Buka pustaka",
+      "play": "Mulai putar",
+      "finish": "Selesai",
+      "tourTitle": "Mau berkeliling bilah pemutar?",
+      "tourBody": "Satu menit untuk menemukan lirik, antrean, mini pemutar, dan lainnya, satu ikon demi satu ikon.",
+      "tourStart": "Mulai tur",
+      "tourLater": "Nanti",
+      "settingsTitle": "Masih banyak lagi yang bisa ditemukan",
+      "settingsBody": "Ekualiser, keluaran eksklusif, pintasan, cadangan… Jelajahi Pengaturan.",
+      "settingsOpen": "Buka Pengaturan"
     }
   },
   "sidebar": {
@@ -1803,7 +1850,7 @@
     "destination": {
       "tag": {
         "label": "Tag tertanam",
-        "hint": "Menulis USLT/©lyr di berkas audio (kompatibel dengan foobar2000, iTunes…)."
+        "hint": "Menulis ke USLT/©lyr di berkas audio, bisa dibaca oleh pemutar lain."
       },
       "sidecar": {
         "label": "Berkas pendamping",
@@ -2547,7 +2594,7 @@
       "skins": {
         "studio": {
           "label": "Studio",
-          "description": "Nuansa Apple Music — antarmuka padat, bayangan lembut, sans-serif bersih."
+          "description": "Antarmuka padat, bayangan lembut, tipografi sans-serif yang bersih."
         },
         "editorial": {
           "label": "Editorial",
@@ -2618,7 +2665,7 @@
         },
         "nowPlaying": {
           "label": "Tampilkan panel Sedang diputar",
-          "description": "Gaya Spotify — menampilkan atau menyembunyikan panel kanan dengan sampul dan lirik."
+          "description": "Menampilkan atau menyembunyikan panel kanan dengan sampul dan lirik."
         },
         "none": {
           "label": "Tidak melakukan apa-apa",
@@ -2635,7 +2682,7 @@
       "modes": {
         "auto": {
           "label": "Otomatis",
-          "description": "Hanya muncul dari 1 Desember sampai 31 Januari — seperti Spotify Wrapped."
+          "description": "Hanya muncul dari 1 Desember sampai 31 Januari."
         },
         "always": {
           "label": "Selalu tampilkan",
@@ -3285,6 +3332,16 @@
       },
       "review_one": "Tinjau ({{count}})",
       "review_other": "Tinjau ({{count}})"
+    },
+    "onboardingReplay": {
+      "title": "Tur pengenalan",
+      "subtitle": "Lihat lagi langkah persiapan dan pengaturan yang disarankan saat pertama kali dibuka.",
+      "action": "Ulangi"
+    },
+    "playerTourReplay": {
+      "title": "Tur bilah pemutar",
+      "subtitle": "Lihat lagi fungsi setiap ikon di bilah pemutar.",
+      "action": "Mulai"
     }
   },
   "scanProgress": {
@@ -4082,5 +4139,116 @@
     "write_other": "Tulis {{count}} berkas",
     "otherProfile": "Bengkel ini dibuka di profil lain. Buka lagi dari profil ini.",
     "truncated": "Hanya {{shown}} dari {{total}} berkas pertama yang terbuka: persempit pilihan untuk mengedit sisanya."
+  },
+  "firstSteps": {
+    "kicker": "Langkah pertama",
+    "title": "Yang bisa dilakukan WaveFlow",
+    "progress": "Ditemukan: {{done}} / {{total}}",
+    "hide": "Sembunyikan langkah pertama",
+    "done": "(selesai)",
+    "items": {
+      "immersive": {
+        "title": "Tampilan imersif",
+        "hint": "Sampul berukuran besar, lirik di sampingnya."
+      },
+      "miniPlayer": {
+        "title": "Mini pemutar",
+        "hint": "Jendela kecil yang selalu berada di atas."
+      },
+      "desktopLyrics": {
+        "title": "Lirik desktop",
+        "hint": "Lirik melayang di atas jendela-jendelamu."
+      },
+      "smartPlaylist": {
+        "title": "Daftar putar pintar",
+        "hint": "Tentukan beberapa aturan, dan daftar terisi sendiri."
+      },
+      "enrichment": {
+        "title": "Pengayaan MusicBrainz",
+        "hint": "Melengkapi genre, tanggal, dan sampul yang hilang."
+      },
+      "tagWorkshop": {
+        "title": "Bengkel tag",
+        "hint": "Perbaiki tag satu album penuh sekaligus."
+      },
+      "wrapped": {
+        "title": "Wrapped",
+        "hint": "Setahun mendengarkan musik dalam beberapa kartu."
+      },
+      "plugin": {
+        "title": "Pasang ekstensi",
+        "hint": "Lirik, Canvas, sampul animasi…"
+      }
+    }
+  },
+  "tips": {
+    "dismiss": "Tutup tips",
+    "lyricsSources": {
+      "title": "Sumber lirik lainnya",
+      "body": "Ekstensi menambahkan lirik tersinkron kata demi kata, yang sangat lengkap terutama untuk musik Asia.",
+      "action": "Lihat sumbernya di Ekstensi"
+    },
+    "tagWorkshop": {
+      "title": "Lebih jauh lagi: bengkel tag",
+      "body": "Cari dan ganti, penomoran, pencocokan MusicBrainz, dan urungkan, untuk seluruh pilihan.",
+      "action": "Buka pilihan ini di bengkel"
+    }
+  },
+  "playerTour": {
+    "label": "Tur bilah pemutar",
+    "counter": "{{current}} / {{total}}",
+    "next": "Berikutnya",
+    "finish": "Selesai",
+    "skip": "Lewati",
+    "items": {
+      "cover": {
+        "title": "Sampul",
+        "body": "Sekali klik membuka tampilan imersif atau panel Detail, sesuai pengaturanmu."
+      },
+      "like": {
+        "title": "Suka",
+        "body": "Menambahkan lagu yang sedang diputar ke lagu yang disukai."
+      },
+      "abLoop": {
+        "title": "Loop A-B",
+        "body": "Mengulang bagian lagu di antara dua titik."
+      },
+      "sleepTimer": {
+        "title": "Pengatur waktu tidur",
+        "body": "Menghentikan pemutaran setelah jeda tertentu atau di akhir lagu."
+      },
+      "eqPreset": {
+        "title": "Ekualiser",
+        "body": "Ganti preset ekualiser dengan sekali klik."
+      },
+      "lyrics": {
+        "title": "Lirik",
+        "body": "Menampilkan lirik tersinkron dari lagu yang sedang diputar."
+      },
+      "queue": {
+        "title": "Antrean",
+        "body": "Yang akan diputar berikutnya: atur ulang urutan, tambahkan, atau kosongkan."
+      },
+      "device": {
+        "title": "Keluaran audio",
+        "body": "Pilih kartu suara, headphone, atau DAC yang memutar musik."
+      },
+      "more": {
+        "title": "Aksi lainnya",
+        "body": "Kecepatan, lirik desktop, pengatur waktu tidur, dan pengaturan cepat lainnya."
+      },
+      "volume": {
+        "title": "Volume",
+        "body": "Atur volume; klik ikonnya untuk membisukan suara."
+      },
+      "miniPlayer": {
+        "title": "Mini pemutar",
+        "body": "Jendela kecil yang tetap di atas selagi kamu mengerjakan hal lain."
+      },
+      "immersive": {
+        "title": "Tampilan imersif",
+        "body": "Sampul berukuran besar dan lirik, dalam layar penuh."
+      }
+    }
   }
 }

@@ -65,108 +65,155 @@
   },
   "onboarding": {
     "defaultLibraryName": "Música",
-    "welcome": {
-      "title": "Te damos la bienvenida a WaveFlow",
-      "description": "Tu reproductor de música centrado en lo local. Disfruta de toda tu biblioteca sin suscripción de streaming."
-    },
-    "localOnly": {
-      "title": "Importante: solo música local",
-      "description": "WaveFlow NO es un servicio de streaming. Reproduce los archivos que ya tienes en tu dispositivo.",
-      "calloutTitle": "Lo que debes saber",
-      "bulletOwn": "Usa tu propia biblioteca (MP3, FLAC, ALAC, OGG, DSD…)",
-      "bulletImport": "Importa una carpeta o arrastra y suelta archivos",
-      "bulletScrobble": "Conecta Last.fm para hacer scrobble de tus reproducciones en segundo plano"
-    },
-    "appearance": {
-      "title": "Elige tu estilo",
-      "description": "Selecciona un tema de color y un estilo de interfaz. Puedes cambiarlos en cualquier momento desde Configuración → Apariencia.",
-      "theme": {
-        "title": "Tema de color"
-      },
-      "skin": {
-        "title": "Estilo de interfaz"
-      },
-      "hint": "Estas opciones se guardan por perfil — cada perfil puede tener su propio estilo."
-    },
-    "folder": {
-      "title": "Elige tu carpeta de música",
-      "description": "Indica a WaveFlow dónde está tu música. El escáner organizará tu biblioteca automáticamente.",
-      "placeholder": "Haz clic para elegir tu carpeta de música",
-      "changeHint": "Haz clic para cambiar de carpeta",
-      "quickSettings": "Ajustes rápidos",
-      "autoAnalyze": {
-        "title": "Analizar pistas automáticamente",
-        "description": "Detecta BPM y tonalidad durante el escaneo — necesario para la Radio y la Radio por estado de ánimo."
-      }
-    },
-    "lastfm": {
-      "title": "Conectar Last.fm",
-      "description": "El scrobbling envía tus reproducciones a tu perfil de Last.fm. A cambio recibes biografías de artistas y sugerencias de artistas similares directamente en la app.",
-      "recommendedBadge": "Recomendado",
-      "keyHint": "Crea una clave API en Last.fm",
-      "keyLabel": "Clave API",
-      "keyPlaceholder": "Tu clave API de Last.fm",
-      "secretLabel": "Secreto compartido",
-      "secretPlaceholder": "Tu secreto compartido",
-      "userLabel": "Nombre de usuario de Last.fm",
-      "userPlaceholder": "tu-usuario",
-      "passwordLabel": "Contraseña",
-      "passwordPlaceholder": "Tu contraseña de Last.fm",
-      "toggleSecret": "Mostrar/ocultar secreto",
-      "togglePassword": "Mostrar/ocultar contraseña",
-      "connect": "Conectar Last.fm",
-      "missingFields": "Rellena la clave API, el secreto, el nombre de usuario y la contraseña.",
-      "connectedTitle": "Conectado como {{user}}",
-      "connectedSubtitle": "El scrobbling se activa automáticamente en cuanto reproduces una pista."
-    },
-    "scan": {
-      "title": "Escanear tu biblioteca",
-      "description": "¿Listo para analizar tu carpeta y descubrir tus pistas?",
-      "noFolder": "Ninguna carpeta seleccionada",
-      "readyHint": "Tu carpeta está configurada. Inicia el escaneo cuando quieras.",
-      "scanning": "Escaneando tu biblioteca…",
-      "errorTitle": "El escaneo ha fallado"
-    },
-    "done": {
-      "title": "¡Todo listo!",
-      "description": "Tu biblioteca está escaneada y lista para reproducir.",
-      "nextSteps": "Próximos pasos:",
-      "bulletExplore": "Explora tu biblioteca con las pestañas Biblioteca, Álbumes y Artistas",
-      "bulletQueue": "Crea tu primera cola haciendo clic en una pista",
-      "bulletSettings": "Ajusta los detalles desde la barra lateral (Apariencia, Conexiones…)",
-      "tipImmersiveTitle": "Consejo: vista inmersiva",
-      "tipImmersiveBody": "Haz clic en la portada del reproductor para abrir la vista a pantalla completa con la portada y la letra una al lado de la otra."
+    "phase": {
+      "setup": "Puesta en marcha · {{current}}/{{total}}",
+      "compose": "Haz tuyo WaveFlow · {{current}}/{{total}}"
     },
     "actions": {
-      "skipSetup": "Omitir configuración",
-      "getStarted": "Empezar",
-      "back": "Atrás",
+      "close": "Cerrar el recorrido",
+      "later": "Más tarde",
+      "start": "Empezar",
+      "folderLater": "Elegir más tarde",
+      "skipAll": "Omitir todo",
+      "skip": "Omitir",
       "continue": "Continuar",
-      "understood": "Entendido",
-      "skipForNow": "Omitir por ahora",
-      "scanLater": "Escanear más tarde",
-      "scanNow": "Escanear ahora",
-      "startListening": "Empezar a escuchar"
+      "back": "Atrás"
     },
-    "language": {
-      "title": "Elige tu idioma",
-      "description": "WaveFlow está disponible en 17 idiomas. Hemos preseleccionado el de tu sistema — cámbialo si nos hemos equivocado.",
-      "detected": "Detectado desde tu sistema",
-      "fallback": "No hemos podido detectar el idioma de tu sistema, así que hemos puesto inglés por defecto. Elige el tuyo abajo."
+    "welcome": {
+      "title": "Te damos la bienvenida a WaveFlow",
+      "lede": "Tu música, en tu equipo. WaveFlow reproduce los archivos que ya tienes: sin suscripción, y nada sale de tu ordenador sin tu permiso.",
+      "language": "Idioma",
+      "languageFallback": "El idioma de tu sistema aún no está disponible: elige el que prefieras.",
+      "name": "Tu nombre o apodo",
+      "nameHint": "El nombre de este perfil, que se muestra en Inicio.",
+      "namePlaceholder": "Tu nombre",
+      "nameRequired": "Escribe un nombre para este perfil."
     },
-    "profile": {
-      "title": "Pon nombre a tu perfil",
-      "description": "WaveFlow usa perfiles para separar bibliotecas. Dale un nombre que reconozcas más adelante.",
-      "nameLabel": "Nombre del perfil",
-      "namePlaceholder": "P. ej. Daisy",
-      "hint": "Podrás crear más perfiles más adelante si lo necesitas.",
-      "required": "El nombre del perfil es obligatorio.",
-      "unavailable": "Perfil no disponible — inténtalo de nuevo en un momento."
+    "folder": {
+      "title": "¿Dónde está tu música?",
+      "lede": "Elige la carpeta que contiene tus álbumes. WaveFlow empieza a leerla enseguida, en segundo plano, mientras sigues con el recorrido.",
+      "pick": "Elegir una carpeta",
+      "drop": "o arrastra una carpeta o archivos a la ventana",
+      "hint": "Los archivos que arrastres se copian en la carpeta WaveFlow de tu carpeta Música. Podrás añadir más carpetas después."
+    },
+    "scan": {
+      "preparing": "Preparando tu biblioteca…",
+      "running": "Leyendo tu música · {{current}} / {{total}}",
+      "done": "Biblioteca lista · +{{formatted}}",
+      "stopped": "Escaneo detenido · +{{formatted}}",
+      "failed": "El escaneo se ha interrumpido"
+    },
+    "look": {
+      "title": "Tu aspecto",
+      "lede": "Un estilo cambia toda la interfaz; un tema, su color. Todo se aplica al momento y lo encontrarás en Configuración → Apariencia.",
+      "skin": "Estilo",
+      "theme": "Tema",
+      "windows": "Ventanas"
+    },
+    "listening": {
+      "title": "Tu escucha",
+      "lede": "Cómo se encadenan y cómo suenan las pistas. Cada tarjeta se activa con un clic y se ajusta con más detalle en Configuración → Audio.",
+      "crossfade": {
+        "title": "Crossfade",
+        "benefit": "Cada pista se funde con la siguiente durante {{seconds}} segundos, sin silencio entre ellas."
+      },
+      "automix": {
+        "title": "AutoMix",
+        "benefit": "Coloca el fundido sobre los tiempos de ambas pistas, como un DJ. También activa el crossfade."
+      },
+      "replaygain": {
+        "title": "Volumen uniforme",
+        "benefit": "ReplayGain lleva todas tus pistas al mismo nivel sonoro: ya no tendrás que tocar el volumen."
+      },
+      "analysis": {
+        "title": "BPM y tonalidad",
+        "benefit": "Analiza cada pista nueva para alimentar la Radio y AutoMix. Funciona en segundo plano después del escaneo."
+      }
     },
     "lyrics": {
-      "title": "¿Dónde guardar las letras?",
-      "description": "¿Dónde quieres que se guarden las letras, tanto las que editas como las que WaveFlow encuentra? Podrás cambiarlo en Configuración → Letras.",
-      "hint": "Elige «Archivo auxiliar» para mantener tus archivos de audio intactos (lo que hacen foobar2000 y compañía)."
+      "title": "Tus letras",
+      "lede": "WaveFlow encuentra letras sincronizadas en internet y te deja escribir las tuyas. Elige dónde guardarlas y añade más fuentes.",
+      "destination": "Dónde guardarlas",
+      "sources": "Fuentes de letras"
+    },
+    "plugins": {
+      "title": "Tus extensiones",
+      "lede": "Una selección oficial, instalable con un clic. El resto del catálogo te espera en Extensiones.",
+      "loading": "Leyendo el catálogo…",
+      "unavailable": "No se puede acceder al catálogo ahora mismo. Esto es lo que ofrece: lo encontrarás en Extensiones.",
+      "inExtensions": "Disponible en Extensiones",
+      "wordSynced": "Palabra por palabra",
+      "installed": "Instalada",
+      "install": "Instalar",
+      "installing": "Instalando…",
+      "installAria": "Instalar {{name}}",
+      "failed": "La instalación ha fallado. Vuelve a intentarlo desde Extensiones.",
+      "usage": {
+        "lyrics": {
+          "title": "Letras palabra por palabra",
+          "benefit": "Letras que se iluminan palabra a palabra, con traducciones y romanizaciones según la fuente."
+        },
+        "canvas": {
+          "title": "Canvas",
+          "benefit": "Un breve vídeo en bucle detrás de la pista que suena, en la vista inmersiva."
+        },
+        "artwork": {
+          "title": "Portadas animadas",
+          "benefit": "Portadas en movimiento e imágenes en alta definición para tus álbumes."
+        },
+        "radio": {
+          "title": "Radio Web",
+          "benefit": "Miles de emisoras de todo el mundo, junto a tu biblioteca."
+        }
+      }
+    },
+    "connections": {
+      "title": "Tus conexiones",
+      "lede": "No se envía nada sin tu permiso. Estos enlaces están en Configuración → Conexiones.",
+      "lastfm": {
+        "title": "Last.fm",
+        "benefit": "Registra lo que escuchas y enriquece las biografías y los artistas similares.",
+        "connect": "Conectar Last.fm",
+        "connected": "Conectado como {{user}}",
+        "keyHint": "Crear una clave API de Last.fm",
+        "key": "Clave API",
+        "secret": "Secreto compartido",
+        "user": "Nombre de usuario",
+        "password": "Contraseña",
+        "toggleSecret": "Mostrar u ocultar el secreto",
+        "togglePassword": "Mostrar u ocultar la contraseña",
+        "missingFields": "Rellena los cuatro campos para iniciar sesión.",
+        "signIn": "Iniciar sesión"
+      },
+      "discord": {
+        "title": "Estado de Discord",
+        "benefit": "Muestra a tus amigos lo que escuchas. Activado por defecto: desactívalo aquí si lo prefieres."
+      },
+      "server": {
+        "title": "Servidor WaveFlow",
+        "benefit": "Escucha la biblioteca de un servidor WaveFlow y sincronízala con esta.",
+        "open": "Abrir en Configuración"
+      },
+      "enrichmentOffline": "Actívalo en Configuración → Biblioteca cuando tengas conexión."
+    },
+    "done": {
+      "title": "Tu WaveFlow está listo",
+      "lede": "Tu biblioteca ya está en su sitio. ¡Disfruta de la música!",
+      "ledeEmpty": "Añade tu música cuando quieras: desde Inicio, la biblioteca o arrastrando una carpeta a la ventana.",
+      "ledeFailed": "El escaneo se interrumpió. Vuelve a lanzarlo desde la biblioteca: tus ajustes están guardados.",
+      "ledeScanning": "El escaneo sigue en segundo plano: ya puedes escuchar lo que ha encontrado.",
+      "firstSteps": "En Inicio, «Primeros pasos» te muestra qué más sabe hacer WaveFlow.",
+      "nothingYet": "Aún no hay pistas: el escaneo todavía no ha encontrado ninguna.",
+      "library": "Ir a la biblioteca",
+      "play": "Empezar a reproducir",
+      "finish": "Terminar",
+      "tourTitle": "¿Un recorrido por la barra de reproducción?",
+      "tourBody": "Un minuto para localizar las letras, la cola, el mini-reproductor y lo demás, icono a icono.",
+      "tourStart": "Hacer el recorrido",
+      "tourLater": "Más tarde",
+      "settingsTitle": "Hay mucho más por descubrir",
+      "settingsBody": "Ecualizador, salida exclusiva, atajos, copias de seguridad… Date una vuelta por la Configuración.",
+      "settingsOpen": "Abrir la Configuración"
     }
   },
   "sidebar": {
@@ -1864,7 +1911,7 @@
     "destination": {
       "tag": {
         "label": "Etiqueta incrustada",
-        "hint": "Escribe en USLT/©lyr del archivo de audio (compatible con foobar2000, iTunes…)."
+        "hint": "Escribe en USLT/©lyr del archivo de audio, legible por otros reproductores."
       },
       "sidecar": {
         "label": "Archivo auxiliar",
@@ -2614,7 +2661,7 @@
       "skins": {
         "studio": {
           "label": "Studio",
-          "description": "Estilo Apple Music — interfaz densa, sombras suaves y tipografía sans serif limpia."
+          "description": "Interfaz densa, sombras suaves y tipografía sans serif limpia."
         },
         "editorial": {
           "label": "Editorial",
@@ -2685,7 +2732,7 @@
         },
         "nowPlaying": {
           "label": "Mostrar el panel Reproduciendo",
-          "description": "Estilo Spotify — muestra u oculta el panel lateral derecho con la portada y las letras."
+          "description": "Muestra u oculta el panel lateral derecho con la portada y las letras."
         },
         "none": {
           "label": "No hacer nada",
@@ -2702,7 +2749,7 @@
       "modes": {
         "auto": {
           "label": "Automático",
-          "description": "Visible solo del 1 de diciembre al 31 de enero — como Spotify Wrapped."
+          "description": "Visible solo del 1 de diciembre al 31 de enero."
         },
         "always": {
           "label": "Mostrar siempre",
@@ -3357,6 +3404,16 @@
       "review_one": "Revisar ({{count}})",
       "review_many": "Revisar ({{count}})",
       "review_other": "Revisar ({{count}})"
+    },
+    "onboardingReplay": {
+      "title": "Recorrido de descubrimiento",
+      "subtitle": "Volver a ver la puesta en marcha y los ajustes propuestos en el primer inicio.",
+      "action": "Volver a empezar"
+    },
+    "playerTourReplay": {
+      "title": "Recorrido por la barra de reproducción",
+      "subtitle": "Volver a ver para qué sirve cada icono de la barra de reproducción.",
+      "action": "Iniciar"
     }
   },
   "scanProgress": {
@@ -4216,5 +4273,116 @@
     "write_other": "Escribir {{count}} archivos",
     "otherProfile": "Este taller se abrió en otro perfil. Vuelve a abrirlo desde este.",
     "truncated": "Solo están abiertos los primeros {{shown}} de {{total}} archivos: acota la selección para editar el resto."
+  },
+  "firstSteps": {
+    "kicker": "Primeros pasos",
+    "title": "Lo que WaveFlow sabe hacer",
+    "progress": "Descubrimientos: {{done}} / {{total}}",
+    "hide": "Ocultar los primeros pasos",
+    "done": "(hecho)",
+    "items": {
+      "immersive": {
+        "title": "Vista inmersiva",
+        "hint": "La portada en grande, la letra al lado."
+      },
+      "miniPlayer": {
+        "title": "Mini-reproductor",
+        "hint": "Una pequeña ventana siempre visible."
+      },
+      "desktopLyrics": {
+        "title": "Letras en el escritorio",
+        "hint": "La letra flota sobre tus ventanas."
+      },
+      "smartPlaylist": {
+        "title": "Lista inteligente",
+        "hint": "Unas cuantas reglas, y se llena sola."
+      },
+      "enrichment": {
+        "title": "Enriquecimiento con MusicBrainz",
+        "hint": "Completa los géneros, fechas y portadas que faltan."
+      },
+      "tagWorkshop": {
+        "title": "Taller de etiquetas",
+        "hint": "Corrige las etiquetas de un álbum entero de una vez."
+      },
+      "wrapped": {
+        "title": "Wrapped",
+        "hint": "Tu año de escucha en unas pocas tarjetas."
+      },
+      "plugin": {
+        "title": "Instalar una extensión",
+        "hint": "Letras, Canvas, portadas animadas…"
+      }
+    }
+  },
+  "tips": {
+    "dismiss": "Cerrar el consejo",
+    "lyricsSources": {
+      "title": "Más fuentes de letras",
+      "body": "Hay extensiones que añaden letras sincronizadas palabra por palabra, muy completas sobre todo para la música asiática.",
+      "action": "Ver las fuentes en Extensiones"
+    },
+    "tagWorkshop": {
+      "title": "Para ir más allá: el taller de etiquetas",
+      "body": "Buscar y reemplazar, numeración, coincidencias con MusicBrainz y deshacer, en toda una selección.",
+      "action": "Abrir esta selección en el taller"
+    }
+  },
+  "playerTour": {
+    "label": "Recorrido por la barra de reproducción",
+    "counter": "{{current}} / {{total}}",
+    "next": "Siguiente",
+    "finish": "Terminar",
+    "skip": "Omitir",
+    "items": {
+      "cover": {
+        "title": "Portada",
+        "body": "Un clic abre la vista inmersiva o el panel Detalles, según tu ajuste."
+      },
+      "like": {
+        "title": "Me gusta",
+        "body": "Añade la pista que suena a Pistas que te gustan."
+      },
+      "abLoop": {
+        "title": "Bucle A-B",
+        "body": "Repite un fragmento de la pista entre dos puntos."
+      },
+      "sleepTimer": {
+        "title": "Temporizador de apagado",
+        "body": "Detiene la reproducción tras un tiempo o al final de la pista."
+      },
+      "eqPreset": {
+        "title": "Ecualizador",
+        "body": "Cambia de preajuste del ecualizador con un clic."
+      },
+      "lyrics": {
+        "title": "Letras",
+        "body": "Muestra la letra sincronizada de la pista que suena."
+      },
+      "queue": {
+        "title": "Cola",
+        "body": "Lo que sonará después: reordénalo, amplíalo o vacíalo."
+      },
+      "device": {
+        "title": "Salida de audio",
+        "body": "Elige la tarjeta de sonido, los auriculares o el DAC que reproduce."
+      },
+      "more": {
+        "title": "Más acciones",
+        "body": "Velocidad, letras en el escritorio, temporizador y otros ajustes rápidos."
+      },
+      "volume": {
+        "title": "Volumen",
+        "body": "Ajusta el volumen; un clic en el icono lo silencia."
+      },
+      "miniPlayer": {
+        "title": "Mini-reproductor",
+        "body": "Una pequeña ventana que se queda en primer plano mientras haces otra cosa."
+      },
+      "immersive": {
+        "title": "Vista inmersiva",
+        "body": "La portada en grande y la letra, a pantalla completa."
+      }
+    }
   }
 }

@@ -38,6 +38,7 @@ import {
 import { isRadioTrack } from "../../../../lib/playerSources";
 import { recentPlayToTrack } from "../recentPlayToTrack";
 import { MoodRadioGrid } from "../MoodRadioGrid";
+import { FirstStepsCard } from "../../../discovery/FirstStepsCard";
 import { EditorialMasthead } from "../EditorialMasthead";
 import { ListeningCanvas, type StripAlbum } from "./ListeningCanvas";
 import { SuggestionOfTheDay } from "./SuggestionOfTheDay";
@@ -328,6 +329,12 @@ export function FluidHome({
         onNavigateToArtist={onNavigateToArtist}
         style={rise(1)}
       />
+
+      {/* First steps — the features worth finding, ticked as they are
+          used. Renders nothing once closed or complete. */}
+      <div className="fe-rise empty:hidden" style={rise(2)}>
+        <FirstStepsCard />
+      </div>
 
       {wrappedYears.length > 0 && wrappedBanner.shouldShow(wrappedYears[0]) && (
         <div className="fe-rise" style={rise(2)}>

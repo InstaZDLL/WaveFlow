@@ -1,12 +1,7 @@
-import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Layers } from "lucide-react";
 
-import {
-  displayBackendSetXwayland,
-  displayBackendStatus,
-  type DisplayBackendStatus,
-} from "../../../lib/tauri/displayBackend";
+import { useXwaylandChoice } from "../../../hooks/useXwaylandChoice";
 import { ToggleSwitch } from "../../common/ToggleSwitch";
 
 /**
@@ -24,34 +19,9 @@ import { ToggleSwitch } from "../../common/ToggleSwitch";
  */
 export function XwaylandCard() {
   const { t } = useTranslation();
-  const [status, setStatus] = useState<DisplayBackendStatus | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { status, busy, error, on, pending, toggle } = useXwaylandChoice();
 
-  useEffect(() => {
-    displayBackendStatus()
-      .then(setStatus)
-      .catch((err) => console.error("[XwaylandCard] status failed", err));
-  }, []);
-
-  if (!status?.available) return null;
-
-  const toggle = async () => {
-    setBusy(true);
-    setError(null);
-    try {
-      setStatus(await displayBackendSetXwayland(!status.xwayland));
-    } catch (err) {
-      console.error("[XwaylandCard] save failed", err);
-      setError(String(err));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  // Stored and running disagree exactly until the next start, unless
-  // the environment decides either way.
-  const pending = !status.set_by_user && status.xwayland !== status.active;
+  if (!status) return null;
 
   return (
     <div className="settings-block">
@@ -68,10 +38,8 @@ export function XwaylandCard() {
           </div>
         </div>
         <ToggleSwitch
-          enabled={status.set_by_user ? status.active : status.xwayland}
-          onToggle={() => {
-            if (!busy && !status.set_by_user) void toggle();
-          }}
+          enabled={on}
+          onToggle={toggle}
           disabled={busy || status.set_by_user}
           label={t("settings.xwayland.title")}
         />

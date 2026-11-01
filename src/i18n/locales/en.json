@@ -65,108 +65,155 @@
   },
   "onboarding": {
     "defaultLibraryName": "Music",
-    "welcome": {
-      "title": "Welcome to WaveFlow",
-      "description": "Your personal local-first music player. Enjoy your entire library without a streaming subscription."
-    },
-    "localOnly": {
-      "title": "Important: local music only",
-      "description": "WaveFlow is NOT a streaming service. It plays files that already exist on your device.",
-      "calloutTitle": "What you should know",
-      "bulletOwn": "Bring your own library (MP3, FLAC, ALAC, OGG, DSD…)",
-      "bulletImport": "Import a folder or drag-and-drop files",
-      "bulletScrobble": "Connect Last.fm to scrobble plays in the background"
-    },
-    "appearance": {
-      "title": "Choose your look",
-      "description": "Pick a colour theme and an interface style. You can change them anytime from Settings → Appearance.",
-      "theme": {
-        "title": "Colour theme"
-      },
-      "skin": {
-        "title": "Interface style"
-      },
-      "hint": "These choices are saved per profile — every profile can have its own look."
-    },
-    "folder": {
-      "title": "Pick your music folder",
-      "description": "Tell WaveFlow where your music lives. The scanner will organise your library automatically.",
-      "placeholder": "Click to choose your music folder",
-      "changeHint": "Click to change folder",
-      "quickSettings": "Quick settings",
-      "autoAnalyze": {
-        "title": "Auto-analyse tracks",
-        "description": "Detect BPM and key during scanning — powers Radio and Mood Radio."
-      }
-    },
-    "lastfm": {
-      "title": "Connect Last.fm",
-      "description": "Scrobbling sends your plays to your Last.fm profile. You get artist bios and similar-artist suggestions back, right inside the app.",
-      "recommendedBadge": "Recommended",
-      "keyHint": "Create an API key on Last.fm",
-      "keyLabel": "API key",
-      "keyPlaceholder": "Your Last.fm API key",
-      "secretLabel": "Shared secret",
-      "secretPlaceholder": "Your shared secret",
-      "userLabel": "Last.fm username",
-      "userPlaceholder": "your-handle",
-      "passwordLabel": "Password",
-      "passwordPlaceholder": "Your Last.fm password",
-      "toggleSecret": "Show/hide secret",
-      "togglePassword": "Show/hide password",
-      "connect": "Connect Last.fm",
-      "missingFields": "Please fill in the API key, secret, username and password.",
-      "connectedTitle": "Connected as {{user}}",
-      "connectedSubtitle": "Scrobbling kicks in automatically once you play a track."
-    },
-    "scan": {
-      "title": "Scan your library",
-      "description": "Ready to analyse your folder and discover your tracks?",
-      "noFolder": "No folder selected",
-      "readyHint": "Your folder is set. Start the scan whenever you're ready.",
-      "scanning": "Scanning your library…",
-      "errorTitle": "Scan failed"
-    },
-    "done": {
-      "title": "You're all set!",
-      "description": "Your library has been scanned and is ready to play.",
-      "nextSteps": "Next steps:",
-      "bulletExplore": "Explore your library via the Library, Albums and Artists tabs",
-      "bulletQueue": "Build your first queue by clicking on a track",
-      "bulletSettings": "Fine-tune things from the sidebar (Appearance, Connections…)",
-      "tipImmersiveTitle": "Tip: immersive view",
-      "tipImmersiveBody": "Click the player cover to open the fullscreen view with the cover and lyrics side by side."
+    "phase": {
+      "setup": "Getting started · {{current}}/{{total}}",
+      "compose": "Make WaveFlow yours · {{current}}/{{total}}"
     },
     "actions": {
-      "skipSetup": "Skip setup",
-      "getStarted": "Get started",
-      "back": "Back",
+      "close": "Close the tour",
+      "later": "Later",
+      "start": "Get started",
+      "folderLater": "Choose later",
+      "skipAll": "Skip all",
+      "skip": "Skip",
       "continue": "Continue",
-      "understood": "Got it",
-      "skipForNow": "Skip for now",
-      "scanLater": "Scan later",
-      "scanNow": "Scan now",
-      "startListening": "Start listening"
+      "back": "Back"
     },
-    "language": {
-      "title": "Pick your language",
-      "description": "WaveFlow ships in 17 languages. We pre-selected the one your system uses — switch if we got it wrong.",
-      "detected": "Detected from your system",
-      "fallback": "We couldn't match your system language, so we defaulted to English. Pick yours below."
+    "welcome": {
+      "title": "Welcome to WaveFlow",
+      "lede": "Your music, on your machine. WaveFlow plays the files you already own: no subscription, and nothing leaves your computer without your say.",
+      "language": "Language",
+      "languageFallback": "Your system language isn't available yet: pick the one that suits you.",
+      "name": "Your first name or nickname",
+      "nameHint": "This profile's name, shown on Home.",
+      "namePlaceholder": "Your name",
+      "nameRequired": "Enter a name for this profile."
     },
-    "profile": {
-      "title": "Name your profile",
-      "description": "WaveFlow uses profiles to separate libraries. Give this one a name you'll recognise later.",
-      "nameLabel": "Profile name",
-      "namePlaceholder": "e.g. Daisy",
-      "hint": "You can create additional profiles later if needed.",
-      "required": "Profile name is required.",
-      "unavailable": "Profile unavailable — please try again in a moment."
+    "folder": {
+      "title": "Where's your music?",
+      "lede": "Choose the folder that holds your albums. WaveFlow starts reading it right away, in the background, while you carry on with the tour.",
+      "pick": "Choose a folder",
+      "drop": "or drop a folder or files onto the window",
+      "hint": "Dropped files are copied into the WaveFlow folder inside your Music folder. You can add more folders later."
+    },
+    "scan": {
+      "preparing": "Preparing your library…",
+      "running": "Reading your music · {{current}} / {{total}}",
+      "done": "Library ready · +{{formatted}}",
+      "stopped": "Scan stopped · +{{formatted}}",
+      "failed": "The scan stopped"
+    },
+    "look": {
+      "title": "Your look",
+      "lede": "A skin changes the whole interface, a theme changes its colour. Everything applies at once, and lives in Settings → Appearance.",
+      "skin": "Skin",
+      "theme": "Theme",
+      "windows": "Windows"
+    },
+    "listening": {
+      "title": "Your listening",
+      "lede": "How tracks flow into each other and how they sound. Each card switches on in a click and can be fine-tuned in Settings → Audio.",
+      "crossfade": {
+        "title": "Crossfade",
+        "benefit": "Each track fades into the next over {{seconds}} seconds, with no silence in between."
+      },
+      "automix": {
+        "title": "AutoMix",
+        "benefit": "Lands the fade on both tracks' beats, like a DJ. Turns crossfade on too."
+      },
+      "replaygain": {
+        "title": "Even volume",
+        "benefit": "ReplayGain brings every track to the same loudness, so you stop reaching for the volume."
+      },
+      "analysis": {
+        "title": "BPM and key",
+        "benefit": "Analyses each new track to feed the Radio and AutoMix. Runs in the background after the scan."
+      }
     },
     "lyrics": {
-      "title": "Where should lyrics live?",
-      "description": "Where should lyrics go — the ones you write and the ones WaveFlow finds for you? You can change this anytime from Settings → Lyrics.",
-      "hint": "Pick “Sidecar file” to keep your audio files untouched — what foobar2000 and friends do."
+      "title": "Your lyrics",
+      "lede": "WaveFlow finds synced lyrics online and lets you write your own. Choose where they're kept, and add more sources.",
+      "destination": "Where to save them",
+      "sources": "Lyrics sources"
+    },
+    "plugins": {
+      "title": "Your extensions",
+      "lede": "An official selection, installed in a click. The rest of the catalogue is waiting in Extensions.",
+      "loading": "Reading the catalogue…",
+      "unavailable": "The catalogue can't be reached right now. Here's what it offers: you'll find it in Extensions.",
+      "inExtensions": "Find it in Extensions",
+      "wordSynced": "Word by word",
+      "installed": "Installed",
+      "install": "Install",
+      "installing": "Installing…",
+      "installAria": "Install {{name}}",
+      "failed": "The install failed. Try again from Extensions.",
+      "usage": {
+        "lyrics": {
+          "title": "Word-by-word lyrics",
+          "benefit": "Lyrics that light up word by word, with translations and romanisations depending on the source."
+        },
+        "canvas": {
+          "title": "Canvas",
+          "benefit": "A short looping video behind the playing track, in the immersive view."
+        },
+        "artwork": {
+          "title": "Animated covers",
+          "benefit": "Covers that move, and high-definition artwork for your albums."
+        },
+        "radio": {
+          "title": "Web Radio",
+          "benefit": "Thousands of stations from around the world, right next to your library."
+        }
+      }
+    },
+    "connections": {
+      "title": "Your connections",
+      "lede": "Nothing is sent without your say. These links live in Settings → Connections.",
+      "lastfm": {
+        "title": "Last.fm",
+        "benefit": "Records your listening and enriches biographies and similar artists.",
+        "connect": "Connect Last.fm",
+        "connected": "Connected as {{user}}",
+        "keyHint": "Create a Last.fm API key",
+        "key": "API key",
+        "secret": "Shared secret",
+        "user": "Username",
+        "password": "Password",
+        "toggleSecret": "Show or hide the secret",
+        "togglePassword": "Show or hide the password",
+        "missingFields": "Fill in all four fields to sign in.",
+        "signIn": "Sign in"
+      },
+      "discord": {
+        "title": "Discord status",
+        "benefit": "Shows your friends what you're listening to. On by default: switch it off here if you'd rather."
+      },
+      "server": {
+        "title": "WaveFlow server",
+        "benefit": "Play a WaveFlow server's library and keep it in sync with this one.",
+        "open": "Set up in Settings"
+      },
+      "enrichmentOffline": "Turn it on in Settings → Library once you're online."
+    },
+    "done": {
+      "title": "Your WaveFlow is ready",
+      "lede": "Your library is in place. Enjoy the music!",
+      "ledeEmpty": "Add your music whenever you like: from Home, the library, or by dropping a folder onto the window.",
+      "ledeFailed": "The scan stopped. Start it again from the library: your settings are saved.",
+      "ledeScanning": "The scan carries on in the background: you can already play what it has found.",
+      "firstSteps": "On Home, \"First steps\" shows you what else WaveFlow can do.",
+      "nothingYet": "No tracks yet: the scan hasn't found any so far.",
+      "library": "Go to the library",
+      "play": "Start playing",
+      "finish": "Finish",
+      "tourTitle": "Take a tour of the player bar?",
+      "tourBody": "A minute to find the lyrics, the queue, the mini-player and the rest, one icon at a time.",
+      "tourStart": "Take the tour",
+      "tourLater": "Later",
+      "settingsTitle": "There's much more to discover",
+      "settingsBody": "Equaliser, exclusive output, shortcuts, backups… Take a look around Settings.",
+      "settingsOpen": "Open Settings"
     }
   },
   "sidebar": {
@@ -1805,7 +1852,7 @@
     "destination": {
       "tag": {
         "label": "Embedded tag",
-        "hint": "Writes USLT/©lyr in the audio file (foobar2000, iTunes… compatible)."
+        "hint": "Writes USLT/©lyr in the audio file, readable by other players."
       },
       "sidecar": {
         "label": "Sidecar file",
@@ -2549,7 +2596,7 @@
       "skins": {
         "studio": {
           "label": "Studio",
-          "description": "Apple Music vibe — dense interface, soft shadows, clean sans-serif."
+          "description": "Dense interface, soft shadows, clean sans-serif type."
         },
         "editorial": {
           "label": "Editorial",
@@ -2620,7 +2667,7 @@
         },
         "nowPlaying": {
           "label": "Show the Now Playing panel",
-          "description": "Spotify-style — opens or closes the right-edge panel with the cover and lyrics."
+          "description": "Opens or closes the right-edge panel with the cover and lyrics."
         },
         "none": {
           "label": "Do nothing",
@@ -2637,7 +2684,7 @@
       "modes": {
         "auto": {
           "label": "Automatic",
-          "description": "Only visible from December 1 through January 31 — matching Spotify Wrapped's release window."
+          "description": "Only visible from December 1 through January 31."
         },
         "always": {
           "label": "Always show",
@@ -3287,6 +3334,16 @@
       },
       "review_one": "Review ({{count}})",
       "review_other": "Review ({{count}})"
+    },
+    "onboardingReplay": {
+      "title": "Discovery tour",
+      "subtitle": "Go through the getting-started screens and the suggested settings again.",
+      "action": "Start again"
+    },
+    "playerTourReplay": {
+      "title": "Player bar tour",
+      "subtitle": "Go over what each icon of the player bar does.",
+      "action": "Start"
     }
   },
   "scanProgress": {
@@ -4084,5 +4141,116 @@
     "write_other": "Write {{count}} files",
     "otherProfile": "This workshop was opened in another profile. Open it again from this one.",
     "truncated": "Only the first {{shown}} of {{total}} files are open: narrow the selection to edit the rest."
+  },
+  "firstSteps": {
+    "kicker": "First steps",
+    "title": "What WaveFlow can do",
+    "progress": "Discovered: {{done}} / {{total}}",
+    "hide": "Hide first steps",
+    "done": "(done)",
+    "items": {
+      "immersive": {
+        "title": "Immersive view",
+        "hint": "The cover up large, the lyrics beside it."
+      },
+      "miniPlayer": {
+        "title": "Mini-player",
+        "hint": "A small window that stays on top."
+      },
+      "desktopLyrics": {
+        "title": "Desktop lyrics",
+        "hint": "Lyrics floating above your windows."
+      },
+      "smartPlaylist": {
+        "title": "Smart playlist",
+        "hint": "Set a few rules and it fills itself."
+      },
+      "enrichment": {
+        "title": "MusicBrainz enrichment",
+        "hint": "Fills in missing genres, dates and covers."
+      },
+      "tagWorkshop": {
+        "title": "Tag workshop",
+        "hint": "Fix a whole album's tags in one go."
+      },
+      "wrapped": {
+        "title": "Wrapped",
+        "hint": "Your year of listening in a few cards."
+      },
+      "plugin": {
+        "title": "Install an extension",
+        "hint": "Lyrics, Canvas, animated covers…"
+      }
+    }
+  },
+  "tips": {
+    "dismiss": "Close the tip",
+    "lyricsSources": {
+      "title": "More lyrics sources",
+      "body": "Extensions add word-by-word synced lyrics, especially rich for Asian music.",
+      "action": "See the sources in Extensions"
+    },
+    "tagWorkshop": {
+      "title": "Going further: the tag workshop",
+      "body": "Find and replace, numbering, MusicBrainz matching and undo, across a whole selection.",
+      "action": "Open this selection in the workshop"
+    }
+  },
+  "playerTour": {
+    "label": "Player bar tour",
+    "counter": "{{current}} / {{total}}",
+    "next": "Next",
+    "finish": "Done",
+    "skip": "Skip",
+    "items": {
+      "cover": {
+        "title": "Cover",
+        "body": "A click opens the immersive view or the Details panel, depending on your setting."
+      },
+      "like": {
+        "title": "Like",
+        "body": "Adds the playing track to your liked songs."
+      },
+      "abLoop": {
+        "title": "A-B loop",
+        "body": "Repeats a passage of the track between two points."
+      },
+      "sleepTimer": {
+        "title": "Sleep timer",
+        "body": "Stops playback after a while or at the end of the track."
+      },
+      "eqPreset": {
+        "title": "Equaliser",
+        "body": "Switches equaliser preset in a click."
+      },
+      "lyrics": {
+        "title": "Lyrics",
+        "body": "Shows the playing track's synced lyrics."
+      },
+      "queue": {
+        "title": "Queue",
+        "body": "What plays next: reorder it, add to it or clear it."
+      },
+      "device": {
+        "title": "Audio output",
+        "body": "Choose the sound card, headphones or DAC that plays."
+      },
+      "more": {
+        "title": "More actions",
+        "body": "Speed, desktop lyrics, sleep timer and other quick settings."
+      },
+      "volume": {
+        "title": "Volume",
+        "body": "Set the volume; a click on the icon mutes it."
+      },
+      "miniPlayer": {
+        "title": "Mini-player",
+        "body": "A small window that stays on top while you do something else."
+      },
+      "immersive": {
+        "title": "Immersive view",
+        "body": "The cover up large and the lyrics, full screen."
+      }
+    }
   }
 }

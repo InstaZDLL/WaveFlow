@@ -66,6 +66,7 @@ import {
 } from "../../lib/playlistVisuals";
 import { PlaylistIcon } from "../../lib/PlaylistIcon";
 import { resolveRemoteImage } from "../../lib/tauri/artwork";
+import { OPEN_SMART_PLAYLIST_EDITOR_EVENT } from "../../lib/discovery";
 import type { LibraryPlaylistRow } from "../../hooks/useLibraryPlaylists";
 
 interface SidebarProps {
@@ -135,6 +136,13 @@ export function Sidebar({
   const fluid = skin.layout === "fluid";
   const totalTracks = libraries.reduce((sum, l) => sum + l.track_count, 0);
   const [isSmartEditorOpen, setIsSmartEditorOpen] = useState(false);
+  // The Home's first steps open the editor, which lives here.
+  useEffect(() => {
+    const onOpen = () => setIsSmartEditorOpen(true);
+    window.addEventListener(OPEN_SMART_PLAYLIST_EDITOR_EVENT, onOpen);
+    return () =>
+      window.removeEventListener(OPEN_SMART_PLAYLIST_EDITOR_EVENT, onOpen);
+  }, []);
   const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] =
     useState(false);
   const [isImporting, setIsImporting] = useState(false);

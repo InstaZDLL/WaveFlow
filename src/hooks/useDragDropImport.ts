@@ -6,6 +6,7 @@ import {
   announceImport,
   importDropped,
   parseFolderOverlap,
+  type DropImportSummary,
 } from "../lib/tauri/library";
 import { playWithoutImporting } from "../lib/openToPlay";
 
@@ -62,6 +63,26 @@ function targetAt(
 }
 
 /**
+ * What happens to an import started by a drop, for a screen that follows
+ * it — the onboarding moves on as soon as a drop starts and shows the
+ * scan behind it. Dispatched on `window` as {@link DROP_IMPORT_EVENT}.
+ */
+export type DropImportProgress =
+  | { phase: "started" }
+  | { phase: "finished"; summary: DropImportSummary }
+  | { phase: "failed"; error: string };
+
+export const DROP_IMPORT_EVENT = "waveflow:drop-import";
+
+function announceDropImport(progress: DropImportProgress) {
+  window.dispatchEvent(
+    new CustomEvent<DropImportProgress>(DROP_IMPORT_EVENT, {
+      detail: progress,
+    }),
+  );
+}
+
+/**
  * Wires Tauri's window-level drag-drop signal to its two targets: play the
  * files now without importing them, or add them to the library through
  * `import_dropped`, which copies them into the folder WaveFlow manages
@@ -71,8 +92,11 @@ function targetAt(
  * The overlay registers where the targets are in `targetsRef`; the hook
  * follows the pointer across them and reports the one under it, which is
  * where a drop goes.
+ *
+ * `importOnly` drops the "play" target: while the onboarding is up a drop
+ * is the library being chosen, never something to play over it.
  */
-export function useDragDropImport(): {
+export function useDragDropImport(options?: { importOnly?: boolean }): {
   isDraggingOver: boolean;
   lastError: string | null;
   /** The target the pointer is over while dragging. */
@@ -91,6 +115,11 @@ export function useDragDropImport(): {
   const [lastError, setLastError] = useState<string | null>(null);
   const [hoveredTarget, setHoveredTarget] = useState<DropTarget | null>(null);
   const targetsRef = useRef<DropTargetElements>({});
+  // Read from the drop handler, which is registered once.
+  const importOnlyRef = useRef(options?.importOnly ?? false);
+  useEffect(() => {
+    importOnlyRef.current = options?.importOnly ?? false;
+  });
 
   const handleImport = useCallback(
     async (paths: string[]) => {
@@ -111,13 +140,16 @@ export function useDragDropImport(): {
             selectLibrary(libId);
           }
         }
+        announceDropImport({ phase: "started" });
         const summary = await importDropped(libId, paths);
         announceImport({ kind: "dropped", summary });
+        announceDropImport({ phase: "finished", summary });
         await refresh();
       } catch (err) {
         console.error("[useDragDropImport] import failed", err);
         const overlap = parseFolderOverlap(err);
         if (overlap) announceImport({ kind: "overlap", overlap });
+        announceDropImport({ phase: "failed", error: String(err) });
         setLastError(String(err));
       }
     },
@@ -166,7 +198,7 @@ export function useDragDropImport(): {
             hover(null);
             const paths = payload.paths ?? [];
             if (paths.length === 0) return;
-            if (target === "play") {
+            if (target === "play" && !importOnlyRef.current) {
               void playWithoutImporting(paths);
             } else {
               void handleImport(paths);

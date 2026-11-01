@@ -26,6 +26,7 @@ import { pickSaveFile } from "../../lib/tauri/dialog";
 import { saveShareImage } from "../../lib/tauri/share";
 import { renderWrappedCard } from "../../lib/wrappedCard";
 import { useAlbumArtistContextMenu } from "../../hooks/useAlbumArtistContextMenu";
+import { noteDiscovery } from "../../lib/discovery";
 
 interface WrappedViewProps {
   onNavigate: (view: ViewId) => void;
@@ -71,6 +72,11 @@ export function WrappedView({
   const [sharing, setSharing] = useState<
     "idle" | "saving" | "copying" | "done"
   >("idle");
+
+  // Opening the recap is what the Home's first steps ask for.
+  useEffect(() => {
+    noteDiscovery("wrapped");
+  }, []);
 
   // ---- Year resolution + payload fetch ----
   useEffect(() => {

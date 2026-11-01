@@ -25,9 +25,12 @@ import type {
 export function DropTargetsOverlay({
   hoveredTarget,
   targetsRef,
+  importOnly = false,
 }: {
   hoveredTarget: DropTarget | null;
   targetsRef: RefObject<DropTargetElements>;
+  /** Only the import target, while the onboarding asks for a library. */
+  importOnly?: boolean;
 }) {
   const { t } = useTranslation();
 
@@ -36,14 +39,16 @@ export function DropTargetsOverlay({
       data-drop-overlay
       className="fixed inset-0 z-100 pointer-events-none flex gap-4 p-6 bg-black/45 backdrop-blur-md animate-fade-in"
     >
-      <Target
-        target="play"
-        active={hoveredTarget === "play"}
-        icon={<Play size={30} />}
-        title={t("dragDrop.play.title")}
-        hint={t("dragDrop.play.hint")}
-        targetsRef={targetsRef}
-      />
+      {!importOnly && (
+        <Target
+          target="play"
+          active={hoveredTarget === "play"}
+          icon={<Play size={30} />}
+          title={t("dragDrop.play.title")}
+          hint={t("dragDrop.play.hint")}
+          targetsRef={targetsRef}
+        />
+      )}
       <Target
         target="import"
         active={hoveredTarget === "import"}

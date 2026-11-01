@@ -1,4 +1,5 @@
 import type { WorkshopField, WorkshopSource } from "./tauri/tagWorkshop";
+import { noteDiscovery } from "./discovery";
 
 /**
  * Opening the tag workshop from anywhere — a track's menu, a folder's,
@@ -19,6 +20,7 @@ export interface TagWorkshopRequest {
 }
 
 export function openTagWorkshop(request: TagWorkshopRequest) {
+  noteDiscovery("tagWorkshop");
   window.dispatchEvent(
     new CustomEvent<TagWorkshopRequest>(OPEN_TAG_WORKSHOP_EVENT, {
       detail: request,

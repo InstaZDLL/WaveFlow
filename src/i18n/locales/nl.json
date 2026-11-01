@@ -65,108 +65,155 @@
   },
   "onboarding": {
     "defaultLibraryName": "Muziek",
-    "welcome": {
-      "title": "Welkom bij WaveFlow",
-      "description": "Jouw persoonlijke lokale muziekspeler. Geniet van je hele bibliotheek zonder streaming-abonnement."
-    },
-    "localOnly": {
-      "title": "Belangrijk: alleen lokale muziek",
-      "description": "WaveFlow is GEEN streamingdienst. Het speelt bestanden af die al op je apparaat staan.",
-      "calloutTitle": "Wat je moet weten",
-      "bulletOwn": "Neem je eigen bibliotheek mee (MP3, FLAC, ALAC, OGG, DSD…)",
-      "bulletImport": "Importeer een map of sleep bestanden",
-      "bulletScrobble": "Koppel Last.fm om je luistergeschiedenis op de achtergrond te scrobblen"
-    },
-    "appearance": {
-      "title": "Kies je look",
-      "description": "Selecteer een kleurthema en een interfacestijl. Je kunt ze altijd wijzigen via Instellingen → Weergave.",
-      "theme": {
-        "title": "Kleurthema"
-      },
-      "skin": {
-        "title": "Interfacestijl"
-      },
-      "hint": "Deze keuzes worden per profiel opgeslagen — elk profiel kan zijn eigen look hebben."
-    },
-    "folder": {
-      "title": "Kies je muziekmap",
-      "description": "Vertel WaveFlow waar je muziek staat. De scanner organiseert je bibliotheek automatisch.",
-      "placeholder": "Klik om je muziekmap te kiezen",
-      "changeHint": "Klik om van map te wisselen",
-      "quickSettings": "Snelle instellingen",
-      "autoAnalyze": {
-        "title": "Nummers automatisch analyseren",
-        "description": "Detecteert BPM en toonsoort tijdens het scannen — wordt gebruikt voor Radio en Stemmingsradio."
-      }
-    },
-    "lastfm": {
-      "title": "Last.fm koppelen",
-      "description": "Scrobblen stuurt je luisterbeurten naar je Last.fm-profiel. In ruil krijg je artiestbio's en vergelijkbare artiesten direct in de app.",
-      "recommendedBadge": "Aanbevolen",
-      "keyHint": "Maak een API-sleutel aan op Last.fm",
-      "keyLabel": "API-sleutel",
-      "keyPlaceholder": "Je Last.fm-API-sleutel",
-      "secretLabel": "Gedeeld geheim",
-      "secretPlaceholder": "Je gedeelde geheim",
-      "userLabel": "Last.fm-gebruikersnaam",
-      "userPlaceholder": "je-naam",
-      "passwordLabel": "Wachtwoord",
-      "passwordPlaceholder": "Je Last.fm-wachtwoord",
-      "toggleSecret": "Geheim tonen/verbergen",
-      "togglePassword": "Wachtwoord tonen/verbergen",
-      "connect": "Last.fm koppelen",
-      "missingFields": "Vul de API-sleutel, het gedeelde geheim, de gebruikersnaam en het wachtwoord in.",
-      "connectedTitle": "Verbonden als {{user}}",
-      "connectedSubtitle": "Scrobblen start automatisch zodra je een nummer afspeelt."
-    },
-    "scan": {
-      "title": "Bibliotheek scannen",
-      "description": "Klaar om je map te analyseren en je nummers te ontdekken?",
-      "noFolder": "Geen map geselecteerd",
-      "readyHint": "Je map is ingesteld. Start de scan wanneer je er klaar voor bent.",
-      "scanning": "Bibliotheek wordt gescand…",
-      "errorTitle": "Scan mislukt"
-    },
-    "done": {
-      "title": "Helemaal klaar!",
-      "description": "Je bibliotheek is gescand en klaar om af te spelen.",
-      "nextSteps": "Volgende stappen:",
-      "bulletExplore": "Verken je bibliotheek via de tabs Bibliotheek, Albums en Artiesten",
-      "bulletQueue": "Maak je eerste wachtrij door op een nummer te klikken",
-      "bulletSettings": "Verfijn alles via de zijbalk (Weergave, Verbindingen…)",
-      "tipImmersiveTitle": "Tip: meeslepende weergave",
-      "tipImmersiveBody": "Klik op de hoes in de speler om de volledigschermweergave te openen met hoes en songtekst naast elkaar."
+    "phase": {
+      "setup": "Aan de slag · {{current}}/{{total}}",
+      "compose": "Maak WaveFlow van jou · {{current}}/{{total}}"
     },
     "actions": {
-      "skipSetup": "Configuratie overslaan",
-      "getStarted": "Beginnen",
-      "back": "Terug",
+      "close": "Rondleiding sluiten",
+      "later": "Later",
+      "start": "Beginnen",
+      "folderLater": "Later kiezen",
+      "skipAll": "Alles overslaan",
+      "skip": "Overslaan",
       "continue": "Doorgaan",
-      "understood": "Begrepen",
-      "skipForNow": "Nu overslaan",
-      "scanLater": "Later scannen",
-      "scanNow": "Nu scannen",
-      "startListening": "Begin met luisteren"
+      "back": "Terug"
     },
-    "language": {
-      "title": "Kies je taal",
-      "description": "WaveFlow is beschikbaar in 17 talen. We hebben de taal van je systeem alvast gekozen — wijzig dit als we ernaast zaten.",
-      "detected": "Gedetecteerd vanuit je systeem",
-      "fallback": "We konden de taal van je systeem niet detecteren, dus is Engels gekozen. Kies hieronder jouw taal."
+    "welcome": {
+      "title": "Welkom bij WaveFlow",
+      "lede": "Je muziek, op je eigen apparaat. WaveFlow speelt de bestanden af die je al hebt: geen abonnement, en niets verlaat je computer zonder jouw toestemming.",
+      "language": "Taal",
+      "languageFallback": "Je systeemtaal is nog niet beschikbaar: kies de taal die je het best ligt.",
+      "name": "Je voornaam of bijnaam",
+      "nameHint": "De naam van dit profiel, getoond op Start.",
+      "namePlaceholder": "Je naam",
+      "nameRequired": "Vul een naam in voor dit profiel."
     },
-    "profile": {
-      "title": "Geef je profiel een naam",
-      "description": "WaveFlow gebruikt profielen om bibliotheken te scheiden. Kies een naam die je later herkent.",
-      "nameLabel": "Profielnaam",
-      "namePlaceholder": "Bv. Daisy",
-      "hint": "Je kunt later extra profielen aanmaken als dat nodig is.",
-      "required": "Profielnaam is vereist.",
-      "unavailable": "Profiel niet beschikbaar — probeer het over een ogenblik opnieuw."
+    "folder": {
+      "title": "Waar staat je muziek?",
+      "lede": "Kies de map met je albums. WaveFlow begint die meteen op de achtergrond in te lezen, terwijl jij verdergaat met de rondleiding.",
+      "pick": "Map kiezen",
+      "drop": "of sleep een map of bestanden naar het venster",
+      "hint": "Gesleepte bestanden worden gekopieerd naar de map WaveFlow in je map Muziek. Je kunt later meer mappen toevoegen."
+    },
+    "scan": {
+      "preparing": "Je bibliotheek wordt voorbereid…",
+      "running": "Je muziek wordt ingelezen · {{current}} / {{total}}",
+      "done": "Bibliotheek klaar · +{{formatted}}",
+      "stopped": "Scan gestopt · +{{formatted}}",
+      "failed": "De scan is onderbroken"
+    },
+    "look": {
+      "title": "Jouw look",
+      "lede": "Een skin verandert de hele interface, een thema de kleur ervan. Alles wordt direct toegepast en staat in Instellingen → Weergave.",
+      "skin": "Skin",
+      "theme": "Thema",
+      "windows": "Vensters"
+    },
+    "listening": {
+      "title": "Jouw luisterervaring",
+      "lede": "Hoe nummers in elkaar overlopen en hoe ze klinken. Elke kaart zet je met één klik aan en stel je nauwkeuriger in via Instellingen → Audio.",
+      "crossfade": {
+        "title": "Crossfade",
+        "benefit": "Elk nummer vloeit in {{seconds}} seconden over in het volgende, zonder stilte ertussen."
+      },
+      "automix": {
+        "title": "AutoMix",
+        "benefit": "Legt de overgang op de beats van beide nummers, zoals een dj. Zet ook crossfade aan."
+      },
+      "replaygain": {
+        "title": "Gelijk volume",
+        "benefit": "ReplayGain brengt al je nummers op hetzelfde geluidsniveau: nooit meer aan de volumeknop zitten."
+      },
+      "analysis": {
+        "title": "BPM en toonsoort",
+        "benefit": "Analyseert elk nieuw nummer voor Radio en AutoMix. Draait na de scan op de achtergrond."
+      }
     },
     "lyrics": {
-      "title": "Waar moeten songteksten heen?",
-      "description": "Waar moeten songteksten heen, zowel die je bewerkt als die WaveFlow voor je vindt? Aanpasbaar via Instellingen → Songteksten.",
-      "hint": "Kies ‘Sidecarbestand’ om je audiobestanden ongemoeid te laten — zoals foobar2000 & co."
+      "title": "Jouw songteksten",
+      "lede": "WaveFlow vindt online gesynchroniseerde songteksten en laat je ook je eigen schrijven. Kies waar ze bewaard worden en voeg bronnen toe.",
+      "destination": "Waar opslaan",
+      "sources": "Songtekstbronnen"
+    },
+    "plugins": {
+      "title": "Jouw extensies",
+      "lede": "Een officiële selectie, met één klik geïnstalleerd. De rest van de catalogus wacht op je in Extensies.",
+      "loading": "Catalogus wordt gelezen…",
+      "unavailable": "De catalogus is nu niet bereikbaar. Dit is wat hij biedt: je vindt hem terug in Extensies.",
+      "inExtensions": "Te vinden in Extensies",
+      "wordSynced": "Woord voor woord",
+      "installed": "Geïnstalleerd",
+      "install": "Installeren",
+      "installing": "Installeren…",
+      "installAria": "{{name}} installeren",
+      "failed": "De installatie is mislukt. Probeer het opnieuw via Extensies.",
+      "usage": {
+        "lyrics": {
+          "title": "Songteksten woord voor woord",
+          "benefit": "Songteksten die woord voor woord oplichten, met vertalingen en romanisering afhankelijk van de bron."
+        },
+        "canvas": {
+          "title": "Canvas",
+          "benefit": "Een korte video in een lus achter het nummer dat speelt, in de meeslepende weergave."
+        },
+        "artwork": {
+          "title": "Bewegende hoezen",
+          "benefit": "Hoezen die bewegen en afbeeldingen in hoge resolutie voor je albums."
+        },
+        "radio": {
+          "title": "Web Radio",
+          "benefit": "Duizenden zenders van over de hele wereld, naast je bibliotheek."
+        }
+      }
+    },
+    "connections": {
+      "title": "Jouw verbindingen",
+      "lede": "Er wordt niets verstuurd zonder jouw toestemming. Deze koppelingen vind je in Instellingen → Verbindingen.",
+      "lastfm": {
+        "title": "Last.fm",
+        "benefit": "Houdt bij wat je luistert en verrijkt biografieën en vergelijkbare artiesten.",
+        "connect": "Last.fm koppelen",
+        "connected": "Verbonden als {{user}}",
+        "keyHint": "Een Last.fm-API-sleutel aanmaken",
+        "key": "API-sleutel",
+        "secret": "Gedeeld geheim",
+        "user": "Gebruikersnaam",
+        "password": "Wachtwoord",
+        "toggleSecret": "Geheim tonen of verbergen",
+        "togglePassword": "Wachtwoord tonen of verbergen",
+        "missingFields": "Vul alle vier de velden in om in te loggen.",
+        "signIn": "Inloggen"
+      },
+      "discord": {
+        "title": "Discord-status",
+        "benefit": "Laat je vrienden zien waar je naar luistert. Standaard aan: zet het hier uit als je dat liever hebt."
+      },
+      "server": {
+        "title": "WaveFlow-server",
+        "benefit": "Luister naar de bibliotheek van een WaveFlow-server en houd die gesynchroniseerd met deze.",
+        "open": "Configureren in Instellingen"
+      },
+      "enrichmentOffline": "Zet dit aan in Instellingen → Bibliotheek zodra je online bent."
+    },
+    "done": {
+      "title": "Je WaveFlow is klaar",
+      "lede": "Je bibliotheek staat klaar. Veel luisterplezier!",
+      "ledeEmpty": "Voeg je muziek toe wanneer je wilt: via Start, de bibliotheek of door een map op het venster te slepen.",
+      "ledeFailed": "De scan is onderbroken. Start hem opnieuw vanuit de bibliotheek: je instellingen zijn bewaard.",
+      "ledeScanning": "De scan loopt op de achtergrond door: je kunt nu al luisteren naar wat hij heeft gevonden.",
+      "firstSteps": "Op Start laat 'Eerste stappen' je zien wat WaveFlow nog meer kan.",
+      "nothingYet": "Nog geen nummers: de scan heeft er nog geen gevonden.",
+      "library": "Naar de bibliotheek",
+      "play": "Begin met afspelen",
+      "finish": "Voltooien",
+      "tourTitle": "Een rondleiding langs de afspeelbalk?",
+      "tourBody": "Een minuut om de songtekst, de wachtrij, de mini-speler en de rest te vinden, pictogram voor pictogram.",
+      "tourStart": "Rondleiding starten",
+      "tourLater": "Later",
+      "settingsTitle": "Er valt nog veel meer te ontdekken",
+      "settingsBody": "Equalizer, exclusieve uitvoer, sneltoetsen, back-ups… Kijk eens rond in Instellingen.",
+      "settingsOpen": "Instellingen openen"
     }
   },
   "sidebar": {
@@ -1805,7 +1852,7 @@
     "destination": {
       "tag": {
         "label": "Ingesloten tag",
-        "hint": "Schrijft USLT/©lyr in het audiobestand (compatibel met foobar2000, iTunes…)."
+        "hint": "Schrijft USLT/©lyr in het audiobestand, leesbaar voor andere spelers."
       },
       "sidecar": {
         "label": "Sidecarbestand",
@@ -2549,7 +2596,7 @@
       "skins": {
         "studio": {
           "label": "Studio",
-          "description": "Apple Music-stijl — dichte interface, zachte schaduwen, strakke sans-serif."
+          "description": "Dichte interface, zachte schaduwen, strakke schreefloze letters."
         },
         "editorial": {
           "label": "Editorial",
@@ -2620,7 +2667,7 @@
         },
         "nowPlaying": {
           "label": "Paneel Speelt nu tonen",
-          "description": "Spotify-stijl — toont of verbergt het rechterpaneel met hoes en songteksten."
+          "description": "Toont of verbergt het rechterpaneel met hoes en songteksten."
         },
         "none": {
           "label": "Niets doen",
@@ -2637,7 +2684,7 @@
       "modes": {
         "auto": {
           "label": "Automatisch",
-          "description": "Alleen zichtbaar van 1 december tot 31 januari — net als Spotify Wrapped."
+          "description": "Alleen zichtbaar van 1 december tot 31 januari."
         },
         "always": {
           "label": "Altijd tonen",
@@ -3287,6 +3334,16 @@
       },
       "review_one": "Controleren ({{count}})",
       "review_other": "Controleren ({{count}})"
+    },
+    "onboardingReplay": {
+      "title": "Kennismakingsrondleiding",
+      "subtitle": "De introductie en de bij de eerste start voorgestelde instellingen opnieuw doorlopen.",
+      "action": "Opnieuw starten"
+    },
+    "playerTourReplay": {
+      "title": "Rondleiding langs de afspeelbalk",
+      "subtitle": "Nog eens bekijken waarvoor elk pictogram van de afspeelbalk dient.",
+      "action": "Starten"
     }
   },
   "scanProgress": {
@@ -4084,5 +4141,116 @@
     "write_other": "{{count}} bestanden schrijven",
     "otherProfile": "Deze werkplaats is in een ander profiel geopend. Open hem opnieuw vanuit dit profiel.",
     "truncated": "Alleen de eerste {{shown}} van {{total}} bestanden zijn geopend: beperk de selectie om de rest te bewerken."
+  },
+  "firstSteps": {
+    "kicker": "Eerste stappen",
+    "title": "Wat WaveFlow kan",
+    "progress": "Ontdekt: {{done}} / {{total}}",
+    "hide": "Eerste stappen verbergen",
+    "done": "(gedaan)",
+    "items": {
+      "immersive": {
+        "title": "Meeslepende weergave",
+        "hint": "De hoes groot in beeld, de songtekst ernaast."
+      },
+      "miniPlayer": {
+        "title": "Mini-speler",
+        "hint": "Een klein venster dat altijd bovenop blijft."
+      },
+      "desktopLyrics": {
+        "title": "Songtekst op bureaublad",
+        "hint": "De songtekst zweeft boven je vensters."
+      },
+      "smartPlaylist": {
+        "title": "Slimme afspeellijst",
+        "hint": "Een paar regels, en hij vult zichzelf."
+      },
+      "enrichment": {
+        "title": "MusicBrainz-verrijking",
+        "hint": "Vult ontbrekende genres, datums en hoezen aan."
+      },
+      "tagWorkshop": {
+        "title": "Tagwerkplaats",
+        "hint": "Verbeter de tags van een heel album in één keer."
+      },
+      "wrapped": {
+        "title": "Wrapped",
+        "hint": "Jouw luisterjaar in een paar kaarten."
+      },
+      "plugin": {
+        "title": "Een extensie installeren",
+        "hint": "Songteksten, Canvas, bewegende hoezen…"
+      }
+    }
+  },
+  "tips": {
+    "dismiss": "Tip sluiten",
+    "lyricsSources": {
+      "title": "Meer songtekstbronnen",
+      "body": "Extensies voegen woord voor woord gesynchroniseerde songteksten toe, bijzonder volledig voor Aziatische muziek.",
+      "action": "Bronnen bekijken in Extensies"
+    },
+    "tagWorkshop": {
+      "title": "Verder gaan: de tagwerkplaats",
+      "body": "Zoeken en vervangen, nummering, MusicBrainz-matching en ongedaan maken, voor een hele selectie.",
+      "action": "Deze selectie openen in de werkplaats"
+    }
+  },
+  "playerTour": {
+    "label": "Rondleiding langs de afspeelbalk",
+    "counter": "{{current}} / {{total}}",
+    "next": "Volgende",
+    "finish": "Voltooien",
+    "skip": "Overslaan",
+    "items": {
+      "cover": {
+        "title": "Hoes",
+        "body": "Eén klik opent de meeslepende weergave of het paneel Details, afhankelijk van je instelling."
+      },
+      "like": {
+        "title": "Favoriet",
+        "body": "Voegt het nummer dat speelt toe aan je favoriete nummers."
+      },
+      "abLoop": {
+        "title": "A-B-loop",
+        "body": "Herhaalt een stuk van het nummer tussen twee punten."
+      },
+      "sleepTimer": {
+        "title": "Slaaptimer",
+        "body": "Stopt het afspelen na een tijdje of aan het einde van het nummer."
+      },
+      "eqPreset": {
+        "title": "Equalizer",
+        "body": "Wisselt met één klik van equalizer-voorinstelling."
+      },
+      "lyrics": {
+        "title": "Songtekst",
+        "body": "Toont de gesynchroniseerde songtekst van het nummer dat speelt."
+      },
+      "queue": {
+        "title": "Wachtrij",
+        "body": "Wat er hierna komt: herschikken, aanvullen of leegmaken."
+      },
+      "device": {
+        "title": "Audio-uitvoer",
+        "body": "Kies de geluidskaart, koptelefoon of DAC die speelt."
+      },
+      "more": {
+        "title": "Meer acties",
+        "body": "Snelheid, songtekst op bureaublad, slaaptimer en andere snelle instellingen."
+      },
+      "volume": {
+        "title": "Volume",
+        "body": "Stel het volume in; een klik op het pictogram dempt het geluid."
+      },
+      "miniPlayer": {
+        "title": "Mini-speler",
+        "body": "Een klein venster dat bovenop blijft terwijl je iets anders doet."
+      },
+      "immersive": {
+        "title": "Meeslepende weergave",
+        "body": "De hoes groot en de songtekst, schermvullend."
+      }
+    }
   }
 }

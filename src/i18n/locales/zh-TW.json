@@ -65,108 +65,155 @@
   },
   "onboarding": {
     "defaultLibraryName": "音樂",
-    "welcome": {
-      "title": "歡迎使用 WaveFlow",
-      "description": "你的個人本機優先音樂播放器。無需串流訂閱，盡情享受整個音樂庫。"
-    },
-    "localOnly": {
-      "title": "重要：僅限本機音樂",
-      "description": "WaveFlow 不是串流服務，它播放裝置上已有的檔案。",
-      "calloutTitle": "你需要知道",
-      "bulletOwn": "使用你自己的音樂庫（MP3、FLAC、ALAC、OGG、DSD…）",
-      "bulletImport": "匯入資料夾或拖放檔案",
-      "bulletScrobble": "連接 Last.fm，在背景傳送播放紀錄"
-    },
-    "appearance": {
-      "title": "選擇你的外觀",
-      "description": "選擇一個顏色主題和介面風格。你可以隨時在「設定 → 外觀」中變更。",
-      "theme": {
-        "title": "顏色主題"
-      },
-      "skin": {
-        "title": "介面風格"
-      },
-      "hint": "這些選項依個人檔案儲存——每個個人檔案都可以擁有自己的外觀。"
-    },
-    "folder": {
-      "title": "選擇你的音樂資料夾",
-      "description": "告訴 WaveFlow 你的音樂存放位置，掃描器就會自動整理音樂庫。",
-      "placeholder": "按一下以選擇音樂資料夾",
-      "changeHint": "按一下以更換資料夾",
-      "quickSettings": "快速設定",
-      "autoAnalyze": {
-        "title": "自動分析曲目",
-        "description": "掃描時偵測 BPM 和調性——為電台與心情電台提供支援。"
-      }
-    },
-    "lastfm": {
-      "title": "連接 Last.fm",
-      "description": "播放紀錄追蹤（Scrobbling）會將播放紀錄傳送到你的 Last.fm 個人檔案。同時，你也能在應用程式內取得藝人簡介和相似藝人推薦。",
-      "recommendedBadge": "推薦",
-      "keyHint": "在 Last.fm 上建立 API 金鑰",
-      "keyLabel": "API 金鑰",
-      "keyPlaceholder": "你的 Last.fm API 金鑰",
-      "secretLabel": "共用密鑰",
-      "secretPlaceholder": "你的共用密鑰",
-      "userLabel": "Last.fm 使用者名稱",
-      "userPlaceholder": "你的帳號",
-      "passwordLabel": "密碼",
-      "passwordPlaceholder": "你的 Last.fm 密碼",
-      "toggleSecret": "顯示/隱藏密鑰",
-      "togglePassword": "顯示/隱藏密碼",
-      "connect": "連接 Last.fm",
-      "missingFields": "請填寫 API 金鑰、共用密鑰、使用者名稱與密碼。",
-      "connectedTitle": "已連接為 {{user}}",
-      "connectedSubtitle": "開始播放曲目後，系統就會自動記錄聆聽紀錄。"
-    },
-    "scan": {
-      "title": "掃描你的音樂庫",
-      "description": "準備好分析資料夾並找出其中的曲目了嗎？",
-      "noFolder": "未選擇資料夾",
-      "readyHint": "資料夾已設定。準備好後即可開始掃描。",
-      "scanning": "正在掃描你的音樂庫…",
-      "errorTitle": "掃描失敗"
-    },
-    "done": {
-      "title": "全部就緒！",
-      "description": "你的音樂庫已掃描完成，可以播放了。",
-      "nextSteps": "下一步：",
-      "bulletExplore": "透過音樂庫、專輯、藝人分頁探索你的音樂庫",
-      "bulletQueue": "按一下曲目以建立你的第一個播放佇列",
-      "bulletSettings": "在側邊欄微調設定（外觀、連線…）",
-      "tipImmersiveTitle": "提示：沉浸式檢視",
-      "tipImmersiveBody": "按一下播放器封面，即可開啟封面與歌詞並排的全螢幕檢視。"
+    "phase": {
+      "setup": "快速上手 · {{current}}/{{total}}",
+      "compose": "打造你的 WaveFlow · {{current}}/{{total}}"
     },
     "actions": {
-      "skipSetup": "略過設定",
-      "getStarted": "開始",
-      "back": "返回",
+      "close": "關閉導覽",
+      "later": "稍後",
+      "start": "開始",
+      "folderLater": "稍後選擇",
+      "skipAll": "全部略過",
+      "skip": "略過",
       "continue": "繼續",
-      "understood": "我知道了",
-      "skipForNow": "暫時略過",
-      "scanLater": "稍後掃描",
-      "scanNow": "立即掃描",
-      "startListening": "開始聆聽"
+      "back": "返回"
     },
-    "language": {
-      "title": "選擇你的語言",
-      "description": "WaveFlow 提供 17 種語言。我們已預選你的系統語言——如有誤請更改。",
-      "detected": "根據系統設定偵測",
-      "fallback": "我們無法偵測到你的系統語言，已預設使用英文。請在下方選擇你的語言。"
+    "welcome": {
+      "title": "歡迎使用 WaveFlow",
+      "lede": "你的音樂，就在你的電腦上。WaveFlow 播放你已經擁有的檔案：不需要訂閱，未經你的同意，任何內容都不會離開你的電腦。",
+      "language": "語言",
+      "languageFallback": "目前尚不支援你的系統語言，請選擇適合你的語言。",
+      "name": "你的名字或暱稱",
+      "nameHint": "此個人檔案的名稱，會顯示在首頁上。",
+      "namePlaceholder": "你的名字",
+      "nameRequired": "請為此個人檔案輸入名稱。"
     },
-    "profile": {
-      "title": "為你的個人檔案取名",
-      "description": "WaveFlow 透過不同的個人檔案來區隔音樂庫。請取一個之後能輕易辨認的名稱。",
-      "nameLabel": "個人檔案名稱",
-      "namePlaceholder": "例如：Daisy",
-      "hint": "之後若有需要，可以再建立其他個人檔案。",
-      "required": "請輸入個人檔案名稱。",
-      "unavailable": "個人檔案暫時無法使用，請稍後再試。"
+    "folder": {
+      "title": "你的音樂在哪裡？",
+      "lede": "選擇存放專輯的資料夾。讀取會立即在背景開始，你可以同時繼續導覽。",
+      "pick": "選擇資料夾",
+      "drop": "或將資料夾或檔案拖放到視窗上",
+      "hint": "拖放進來的檔案會複製到「音樂」資料夾中的 WaveFlow 資料夾。之後還可以新增其他資料夾。"
+    },
+    "scan": {
+      "preparing": "正在準備你的音樂庫…",
+      "running": "正在讀取你的音樂 · {{current}} / {{total}}",
+      "done": "音樂庫已就緒 · +{{formatted}}",
+      "stopped": "掃描已停止 · +{{formatted}}",
+      "failed": "掃描已中斷"
+    },
+    "look": {
+      "title": "你的外觀",
+      "lede": "介面風格會改變整個介面，主題則改變它的配色。所有變更立即生效，之後也可以在「設定 → 外觀」中找到。",
+      "skin": "介面風格",
+      "theme": "主題",
+      "windows": "視窗"
+    },
+    "listening": {
+      "title": "聆聽方式",
+      "lede": "決定曲目之間如何銜接、聽起來如何。每張卡片點一下即可開啟，並可在「設定 → 音訊」中進一步微調。",
+      "crossfade": {
+        "title": "交叉淡入淡出",
+        "benefit": "每首曲目在 {{seconds}} 秒內淡入下一首，中間沒有靜音。"
+      },
+      "automix": {
+        "title": "AutoMix",
+        "benefit": "像 DJ 一樣，讓轉場落在兩首曲目的節拍上。也會同時開啟交叉淡入淡出。"
+      },
+      "replaygain": {
+        "title": "音量一致",
+        "benefit": "ReplayGain 會把所有曲目調整到相同響度，不必再頻繁調整音量。"
+      },
+      "analysis": {
+        "title": "BPM 與調性",
+        "benefit": "分析每首新曲目，為電台和 AutoMix 提供資料。掃描完成後在背景執行。"
+      }
     },
     "lyrics": {
-      "title": "歌詞要儲存在哪裡？",
-      "description": "歌詞應該儲存到何處？你編輯的歌詞和 WaveFlow 為你找到的歌詞都適用。可隨時在「設定 → 歌詞」中變更。",
-      "hint": "選擇「外部歌詞檔」可讓音訊檔保持不變——foobar2000 等播放器就是這樣做的。"
+      "title": "你的歌詞",
+      "lede": "WaveFlow 會在線上尋找同步歌詞，也讓你自己撰寫。選擇儲存位置，並新增更多來源。",
+      "destination": "儲存位置",
+      "sources": "歌詞來源"
+    },
+    "plugins": {
+      "title": "你的擴充功能",
+      "lede": "精選官方擴充功能，一鍵即可安裝。完整目錄就在「擴充功能」中等你探索。",
+      "loading": "正在讀取目錄…",
+      "unavailable": "目前無法連線到目錄。以下是它提供的內容，之後可在「擴充功能」中找到。",
+      "inExtensions": "可在「擴充功能」中找到",
+      "wordSynced": "逐字",
+      "installed": "已安裝",
+      "install": "安裝",
+      "installing": "正在安裝…",
+      "installAria": "安裝 {{name}}",
+      "failed": "安裝失敗。請在「擴充功能」中重試。",
+      "usage": {
+        "lyrics": {
+          "title": "逐字歌詞",
+          "benefit": "歌詞逐字亮起，並可依來源提供翻譯與羅馬拼音。"
+        },
+        "canvas": {
+          "title": "Canvas",
+          "benefit": "在沉浸式檢視中，於正在播放的曲目背後循環播放一段短片。"
+        },
+        "artwork": {
+          "title": "動態封面",
+          "benefit": "會動的封面，以及專輯的高解析度圖片。"
+        },
+        "radio": {
+          "title": "網路電台",
+          "benefit": "來自世界各地的數千個電台，就在你的音樂庫旁邊。"
+        }
+      }
+    },
+    "connections": {
+      "title": "你的連線",
+      "lede": "未經你的同意，不會傳送任何內容。這些連線可在「設定 → 連線」中找到。",
+      "lastfm": {
+        "title": "Last.fm",
+        "benefit": "記錄你的聆聽紀錄，並豐富藝人簡介與相似藝人資訊。",
+        "connect": "連接 Last.fm",
+        "connected": "已連接為 {{user}}",
+        "keyHint": "建立 Last.fm API 金鑰",
+        "key": "API 金鑰",
+        "secret": "共用密鑰",
+        "user": "使用者名稱",
+        "password": "密碼",
+        "toggleSecret": "顯示/隱藏共用密鑰",
+        "togglePassword": "顯示/隱藏密碼",
+        "missingFields": "請填寫全部四個欄位後再登入。",
+        "signIn": "登入"
+      },
+      "discord": {
+        "title": "Discord 狀態",
+        "benefit": "讓朋友看到你正在聽什麼。預設為開啟：如果不想要，可以在這裡關閉。"
+      },
+      "server": {
+        "title": "WaveFlow 伺服器",
+        "benefit": "播放 WaveFlow 伺服器上的音樂庫，並與本機音樂庫保持同步。",
+        "open": "前往設定進行設定"
+      },
+      "enrichmentOffline": "連上網路後，可在「設定 → 音樂庫」中開啟。"
+    },
+    "done": {
+      "title": "你的 WaveFlow 已準備就緒",
+      "lede": "音樂庫已就位。祝你聆聽愉快！",
+      "ledeEmpty": "隨時都能加入音樂：從首頁、音樂庫加入，或把資料夾拖到視窗上。",
+      "ledeFailed": "掃描中斷了。請從音樂庫重新開始掃描：你的設定已儲存。",
+      "ledeScanning": "掃描仍在背景進行：已找到的曲目現在就能播放。",
+      "firstSteps": "首頁上的「新手入門」會帶你認識 WaveFlow 的更多功能。",
+      "nothingYet": "尚無曲目：掃描還沒有找到任何曲目。",
+      "library": "前往音樂庫",
+      "play": "開始播放",
+      "finish": "完成",
+      "tourTitle": "要認識一下播放列嗎？",
+      "tourBody": "花一分鐘，逐一認識歌詞、佇列、迷你播放器等圖示。",
+      "tourStart": "開始導覽",
+      "tourLater": "稍後",
+      "settingsTitle": "還有更多等你發掘",
+      "settingsBody": "等化器、獨佔輸出、快速鍵、備份……到「設定」裡逛逛吧。",
+      "settingsOpen": "開啟設定"
     }
   },
   "sidebar": {
@@ -1803,7 +1850,7 @@
     "destination": {
       "tag": {
         "label": "嵌入標籤",
-        "hint": "寫入音訊檔的 USLT/©lyr（與 foobar2000、iTunes 等播放器相容）。"
+        "hint": "寫入音訊檔的 USLT/©lyr，其他播放器也能讀取。"
       },
       "sidecar": {
         "label": "外部歌詞檔",
@@ -2449,7 +2496,7 @@
       "skins": {
         "studio": {
           "label": "Studio",
-          "description": "Apple Music 風格——緊湊介面、柔和陰影、乾淨無襯線。"
+          "description": "緊湊的介面、柔和的陰影、簡潔的無襯線字體。"
         },
         "editorial": {
           "label": "Editorial",
@@ -2618,7 +2665,7 @@
         },
         "nowPlaying": {
           "label": "顯示正在播放面板",
-          "description": "Spotify 風格——顯示或隱藏含封面與歌詞的右側面板。"
+          "description": "顯示或隱藏含封面與歌詞的右側面板。"
         },
         "none": {
           "label": "不執行任何動作",
@@ -2635,7 +2682,7 @@
       "modes": {
         "auto": {
           "label": "自動",
-          "description": "僅在 12 月 1 日至 1 月 31 日顯示——與 Spotify Wrapped 的發布時段一致。"
+          "description": "僅在 12 月 1 日至 1 月 31 日顯示。"
         },
         "always": {
           "label": "永遠顯示",
@@ -3285,6 +3332,16 @@
       },
       "review_one": "審核（{{count}}）",
       "review_other": "審核（{{count}}）"
+    },
+    "onboardingReplay": {
+      "title": "功能導覽",
+      "subtitle": "重新瀏覽首次啟動時的入門步驟與建議設定。",
+      "action": "重新開始"
+    },
+    "playerTourReplay": {
+      "title": "播放列導覽",
+      "subtitle": "重新認識播放列上每個圖示的用途。",
+      "action": "開始"
     }
   },
   "scanProgress": {
@@ -4082,5 +4139,116 @@
     "write_other": "寫入 {{count}} 個檔案",
     "otherProfile": "此工坊是在另一個設定檔中開啟的。請從目前的設定檔重新開啟。",
     "truncated": "只開啟了 {{total}} 個檔案中的前 {{shown}} 個：請縮小選取範圍以編輯其餘檔案。"
+  },
+  "firstSteps": {
+    "kicker": "新手入門",
+    "title": "WaveFlow 能做什麼",
+    "progress": "已探索：{{done}} / {{total}}",
+    "hide": "隱藏新手入門",
+    "done": "（已完成）",
+    "items": {
+      "immersive": {
+        "title": "沉浸式檢視",
+        "hint": "大幅封面，歌詞就在旁邊。"
+      },
+      "miniPlayer": {
+        "title": "迷你播放器",
+        "hint": "永遠在最上層的小視窗。"
+      },
+      "desktopLyrics": {
+        "title": "桌面歌詞",
+        "hint": "歌詞浮在你的視窗之上。"
+      },
+      "smartPlaylist": {
+        "title": "智慧播放清單",
+        "hint": "設定幾條規則，它就會自動填滿。"
+      },
+      "enrichment": {
+        "title": "MusicBrainz 資訊補全",
+        "hint": "補齊缺少的曲風、日期和封面。"
+      },
+      "tagWorkshop": {
+        "title": "標籤工坊",
+        "hint": "一次修正整張專輯的標籤。"
+      },
+      "wrapped": {
+        "title": "Wrapped",
+        "hint": "用幾張卡片回顧你一年的聆聽。"
+      },
+      "plugin": {
+        "title": "安裝擴充功能",
+        "hint": "歌詞、Canvas、動態封面…"
+      }
+    }
+  },
+  "tips": {
+    "dismiss": "關閉提示",
+    "lyricsSources": {
+      "title": "更多歌詞來源",
+      "body": "擴充功能可加入逐字同步歌詞，亞洲音樂的歌詞尤其齊全。",
+      "action": "在「擴充功能」中查看來源"
+    },
+    "tagWorkshop": {
+      "title": "更進一步：標籤工坊",
+      "body": "尋找與取代、編號、MusicBrainz 比對與復原，可套用到整個選取範圍。",
+      "action": "在標籤工坊中開啟這個選取範圍"
+    }
+  },
+  "playerTour": {
+    "label": "播放列導覽",
+    "counter": "{{current}} / {{total}}",
+    "next": "下一步",
+    "finish": "完成",
+    "skip": "略過",
+    "items": {
+      "cover": {
+        "title": "封面",
+        "body": "點一下會依你的設定，開啟沉浸式檢視或詳情面板。"
+      },
+      "like": {
+        "title": "收藏",
+        "body": "將正在播放的曲目加入收藏的曲目。"
+      },
+      "abLoop": {
+        "title": "A-B 循環",
+        "body": "在兩個點之間重複播放曲目中的一段。"
+      },
+      "sleepTimer": {
+        "title": "睡眠計時器",
+        "body": "在設定的時間後或目前曲目結束時停止播放。"
+      },
+      "eqPreset": {
+        "title": "等化器",
+        "body": "一鍵切換等化器預設集。"
+      },
+      "lyrics": {
+        "title": "歌詞",
+        "body": "顯示正在播放曲目的同步歌詞。"
+      },
+      "queue": {
+        "title": "佇列",
+        "body": "接下來要播放的內容：可重新排序、加入或清空。"
+      },
+      "device": {
+        "title": "音訊輸出",
+        "body": "選擇用來播放的音效卡、耳機或 DAC。"
+      },
+      "more": {
+        "title": "更多動作",
+        "body": "播放速度、桌面歌詞、睡眠計時器及其他快速設定。"
+      },
+      "volume": {
+        "title": "音量",
+        "body": "調整音量；點一下圖示即可靜音。"
+      },
+      "miniPlayer": {
+        "title": "迷你播放器",
+        "body": "在你做其他事情時，永遠停留在最上層的小視窗。"
+      },
+      "immersive": {
+        "title": "沉浸式檢視",
+        "body": "大幅封面搭配歌詞，全螢幕呈現。"
+      }
+    }
   }
 }

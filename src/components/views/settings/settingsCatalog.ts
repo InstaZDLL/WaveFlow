@@ -17,7 +17,14 @@ export const SETTINGS_CATEGORIES = [
         id: "language",
         labelKey: "settings.organization.groups.language",
         hintKey: "settings.organization.groupHints.language",
-        searchKeys: ["settings.language.title", "settings.language.subtitle"],
+        searchKeys: [
+          "settings.language.title",
+          "settings.language.subtitle",
+          "settings.onboardingReplay.title",
+          "settings.onboardingReplay.subtitle",
+          "settings.playerTourReplay.title",
+          "settings.playerTourReplay.subtitle",
+        ],
       },
       {
         id: "startup",

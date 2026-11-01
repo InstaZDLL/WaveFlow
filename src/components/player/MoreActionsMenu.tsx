@@ -122,6 +122,7 @@ export function MoreActionsMenu({
       <button
         type="button"
         onClick={() => setIsOpen((open) => !open)}
+        data-tour="more"
         aria-label={t("playerBar.moreActions")}
         aria-haspopup="dialog"
         aria-expanded={isOpen}

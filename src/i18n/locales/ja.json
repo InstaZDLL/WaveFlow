@@ -65,108 +65,155 @@
   },
   "onboarding": {
     "defaultLibraryName": "音楽",
-    "welcome": {
-      "title": "WaveFlow へようこそ",
-      "description": "あなた専用のローカルファースト音楽プレーヤー。ストリーミングサブスクなしでライブラリ全体を楽しめます。"
-    },
-    "localOnly": {
-      "title": "重要：ローカル音楽専用",
-      "description": "WaveFlow はストリーミングサービスではありません。デバイス上にあるファイルを再生します。",
-      "calloutTitle": "知っておきたいこと",
-      "bulletOwn": "自分のライブラリを使用（MP3、FLAC、ALAC、OGG、DSD…）",
-      "bulletImport": "フォルダをインポート、またはファイルをドラッグ＆ドロップ",
-      "bulletScrobble": "Last.fm と接続してバックグラウンドで再生をスクロブル"
-    },
-    "appearance": {
-      "title": "外観を選ぶ",
-      "description": "カラーテーマとインターフェーススタイルを選んでください。設定 → 外観からいつでも変更できます。",
-      "theme": {
-        "title": "カラーテーマ"
-      },
-      "skin": {
-        "title": "インターフェーススタイル"
-      },
-      "hint": "この選択はプロフィールごとに保存されます。プロフィールごとに異なる外観を設定できます。"
-    },
-    "folder": {
-      "title": "音楽フォルダを選択",
-      "description": "音楽のある場所を WaveFlow に教えてください。スキャナがライブラリを自動整理します。",
-      "placeholder": "音楽フォルダを選ぶにはクリック",
-      "changeHint": "フォルダを変更するにはクリック",
-      "quickSettings": "クイック設定",
-      "autoAnalyze": {
-        "title": "曲を自動解析",
-        "description": "スキャン中に BPM とキーを検出し、ラジオとムードラジオの選曲に活用します。"
-      }
-    },
-    "lastfm": {
-      "title": "Last.fm を接続",
-      "description": "スクロブルは再生履歴を Last.fm プロフィールに送ります。それにより、アーティストのバイオグラフィーと類似アーティストの提案がアプリ内で受け取れます。",
-      "recommendedBadge": "おすすめ",
-      "keyHint": "Last.fm で API キーを作成",
-      "keyLabel": "API キー",
-      "keyPlaceholder": "あなたの Last.fm API キー",
-      "secretLabel": "共有シークレット",
-      "secretPlaceholder": "あなたの共有シークレット",
-      "userLabel": "Last.fm ユーザー名",
-      "userPlaceholder": "あなたのハンドル",
-      "passwordLabel": "パスワード",
-      "passwordPlaceholder": "あなたの Last.fm パスワード",
-      "toggleSecret": "シークレット表示切替",
-      "togglePassword": "パスワード表示切替",
-      "connect": "Last.fm を接続",
-      "missingFields": "API キー、シークレット、ユーザー名、パスワードをすべて入力してください。",
-      "connectedTitle": "{{user}} として接続済み",
-      "connectedSubtitle": "曲を再生すると自動的にスクロブルが始まります。"
-    },
-    "scan": {
-      "title": "ライブラリをスキャン",
-      "description": "フォルダを解析して曲を見つける準備はできましたか？",
-      "noFolder": "フォルダ未選択",
-      "readyHint": "フォルダ設定済み。準備ができたらスキャンを開始してください。",
-      "scanning": "ライブラリをスキャン中…",
-      "errorTitle": "スキャン失敗"
-    },
-    "done": {
-      "title": "準備完了！",
-      "description": "ライブラリのスキャンが完了し、再生の準備ができました。",
-      "nextSteps": "次のステップ：",
-      "bulletExplore": "ライブラリ、アルバム、アーティストの各タブから楽曲を探索",
-      "bulletQueue": "曲をクリックして最初のキューを作成",
-      "bulletSettings": "サイドバーから設定を微調整（外観、接続…）",
-      "tipImmersiveTitle": "ヒント：没入ビュー",
-      "tipImmersiveBody": "プレーヤーのジャケットをクリックすると、ジャケットと歌詞を並べたフルスクリーンビューが開きます。"
+    "phase": {
+      "setup": "はじめに · {{current}}/{{total}}",
+      "compose": "WaveFlow を自分好みに · {{current}}/{{total}}"
     },
     "actions": {
-      "skipSetup": "セットアップをスキップ",
-      "getStarted": "始める",
-      "back": "戻る",
+      "close": "ツアーを閉じる",
+      "later": "あとで",
+      "start": "はじめる",
+      "folderLater": "あとで選ぶ",
+      "skipAll": "すべてスキップ",
+      "skip": "スキップ",
       "continue": "次へ",
-      "understood": "了解",
-      "skipForNow": "今はスキップ",
-      "scanLater": "後でスキャン",
-      "scanNow": "今すぐスキャン",
-      "startListening": "聴き始める"
+      "back": "戻る"
     },
-    "language": {
-      "title": "言語を選択",
-      "description": "WaveFlow は17言語に対応しています。システムの言語を選択済みです。違っていれば変更してください。",
-      "detected": "システムから検出",
-      "fallback": "システム言語を検出できなかったため、英語にフォールバックしました。下から選んでください。"
+    "welcome": {
+      "title": "WaveFlow へようこそ",
+      "lede": "あなたの音楽を、あなたのパソコンで。WaveFlow はお手持ちのファイルをそのまま再生します。サブスクリプションは不要で、あなたの同意なしに何かがパソコンの外へ送られることはありません。",
+      "language": "言語",
+      "languageFallback": "お使いのシステム言語にはまだ対応していません。お好みの言語を選んでください。",
+      "name": "お名前またはニックネーム",
+      "nameHint": "このプロフィールの名前です。ホームに表示されます。",
+      "namePlaceholder": "あなたの名前",
+      "nameRequired": "このプロフィールの名前を入力してください。"
     },
-    "profile": {
-      "title": "プロフィールに名前をつけましょう",
-      "description": "WaveFlow はライブラリを分けるためにプロフィールを使います。あとで見分けやすい名前にしてください。",
-      "nameLabel": "プロフィール名",
-      "namePlaceholder": "例：Daisy",
-      "hint": "必要に応じて、あとで別のプロフィールを作成できます。",
-      "required": "プロフィール名は必須です。",
-      "unavailable": "プロフィールを利用できません。少し待ってからもう一度お試しください。"
+    "folder": {
+      "title": "音楽はどこにありますか？",
+      "lede": "アルバムが入っているフォルダを選んでください。読み込みはすぐにバックグラウンドで始まるので、その間もツアーを続けられます。",
+      "pick": "フォルダを選択",
+      "drop": "またはフォルダやファイルをウィンドウにドロップ",
+      "hint": "ドロップしたファイルは「ミュージック」フォルダ内の WaveFlow フォルダにコピーされます。ほかのフォルダはあとから追加できます。"
+    },
+    "scan": {
+      "preparing": "ライブラリを準備しています…",
+      "running": "音楽を読み込み中 · {{current}} / {{total}}",
+      "done": "ライブラリの準備完了 · +{{formatted}}",
+      "stopped": "スキャンを停止しました · +{{formatted}}",
+      "failed": "スキャンが中断されました"
+    },
+    "look": {
+      "title": "見た目",
+      "lede": "スキンはインターフェース全体を、テーマはその色を変えます。変更はすぐに反映され、「設定 → 外観」でいつでも変更できます。",
+      "skin": "スキン",
+      "theme": "テーマ",
+      "windows": "ウィンドウ"
+    },
+    "listening": {
+      "title": "聴き方",
+      "lede": "曲のつながり方と鳴り方を決めます。各カードはワンクリックでオンになり、「設定 → オーディオ」で細かく調整できます。",
+      "crossfade": {
+        "title": "クロスフェード",
+        "benefit": "各曲が {{seconds}} 秒かけて次の曲へと溶け込み、曲間の無音がなくなります。"
+      },
+      "automix": {
+        "title": "AutoMix",
+        "benefit": "DJ のように、両方の曲のビートに合わせてフェードします。クロスフェードも同時にオンになります。"
+      },
+      "replaygain": {
+        "title": "音量をそろえる",
+        "benefit": "ReplayGain がすべての曲を同じ音量感にそろえるので、そのたびに音量を調整する必要がなくなります。"
+      },
+      "analysis": {
+        "title": "BPM とキー",
+        "benefit": "新しい曲を 1 曲ずつ解析し、ラジオと AutoMix に活用します。スキャン後にバックグラウンドで実行されます。"
+      }
     },
     "lyrics": {
-      "title": "歌詞はどこに保存しますか？",
-      "description": "歌詞をどこに保存しますか？自分で編集した歌詞にも、WaveFlow が見つけた歌詞にも適用されます。設定 → 歌詞 でいつでも変更できます。",
-      "hint": "オーディオファイルを変更したくない場合は「サイドカーファイル」を選択してください。foobar2000 などと同じ方式です。"
+      "title": "歌詞",
+      "lede": "WaveFlow はオンラインで同期歌詞を見つけ、自分で書くこともできます。保存先を選び、歌詞のソースを追加しましょう。",
+      "destination": "保存先",
+      "sources": "歌詞のソース"
+    },
+    "plugins": {
+      "title": "拡張機能",
+      "lede": "公式のおすすめをワンクリックでインストール。カタログのほかの拡張機能は「拡張機能」で見つかります。",
+      "loading": "カタログを読み込み中…",
+      "unavailable": "現在カタログに接続できません。掲載内容はこちらです。「拡張機能」からも確認できます。",
+      "inExtensions": "「拡張機能」から入手できます",
+      "wordSynced": "単語単位",
+      "installed": "インストール済み",
+      "install": "インストール",
+      "installing": "インストール中…",
+      "installAria": "{{name}} をインストール",
+      "failed": "インストールに失敗しました。「拡張機能」からもう一度お試しください。",
+      "usage": {
+        "lyrics": {
+          "title": "単語単位の歌詞",
+          "benefit": "単語ごとに光る歌詞。ソースによっては翻訳やローマ字表記も付きます。"
+        },
+        "canvas": {
+          "title": "Canvas",
+          "benefit": "没入ビューで、再生中の曲の背景に短いループ動画を流します。"
+        },
+        "artwork": {
+          "title": "モーションカバー",
+          "benefit": "動くジャケットと、アルバムの高解像度アートワーク。"
+        },
+        "radio": {
+          "title": "ウェブラジオ",
+          "benefit": "世界中の何千ものラジオ局を、ライブラリのすぐそばで。"
+        }
+      }
+    },
+    "connections": {
+      "title": "接続",
+      "lede": "あなたの同意なしに何かが送信されることはありません。これらの連携は「設定 → 接続」にあります。",
+      "lastfm": {
+        "title": "Last.fm",
+        "benefit": "再生履歴を記録し、アーティストのバイオグラフィーや類似アーティストの情報を充実させます。",
+        "connect": "Last.fm を接続",
+        "connected": "{{user}} として接続済み",
+        "keyHint": "Last.fm で API キーを作成",
+        "key": "API キー",
+        "secret": "共有シークレット",
+        "user": "ユーザー名",
+        "password": "パスワード",
+        "toggleSecret": "シークレットの表示/非表示",
+        "togglePassword": "パスワードの表示/非表示",
+        "missingFields": "ログインするには 4 つの項目をすべて入力してください。",
+        "signIn": "ログイン"
+      },
+      "discord": {
+        "title": "Discord ステータス",
+        "benefit": "今聴いている曲をフレンドに表示します。初期設定でオンになっています。不要ならここでオフにできます。"
+      },
+      "server": {
+        "title": "WaveFlow サーバー",
+        "benefit": "WaveFlow サーバーのライブラリを再生し、このライブラリと同期します。",
+        "open": "設定でセットアップ"
+      },
+      "enrichmentOffline": "オンラインになったら「設定 → ライブラリ」でオンにできます。"
+    },
+    "done": {
+      "title": "WaveFlow の準備ができました",
+      "lede": "ライブラリの準備が整いました。音楽をお楽しみください！",
+      "ledeEmpty": "音楽はいつでも追加できます。ホームやライブラリから、またはフォルダをウィンドウにドロップしてください。",
+      "ledeFailed": "スキャンが中断されました。ライブラリから再開してください。設定は保存されています。",
+      "ledeScanning": "スキャンはバックグラウンドで続いています。見つかった曲はもう再生できます。",
+      "firstSteps": "ホームの「はじめの一歩」で、WaveFlow のほかの機能を紹介しています。",
+      "nothingYet": "まだ曲がありません。スキャンでまだ見つかっていません。",
+      "library": "ライブラリへ",
+      "play": "再生を始める",
+      "finish": "完了",
+      "tourTitle": "プレーヤーバーを案内しましょうか？",
+      "tourBody": "歌詞、キュー、ミニプレーヤーなどの場所を、アイコンごとに 1 分でご案内します。",
+      "tourStart": "案内を見る",
+      "tourLater": "あとで",
+      "settingsTitle": "ほかにも見どころがたくさん",
+      "settingsBody": "イコライザー、排他出力、ショートカット、バックアップ…「設定」をのぞいてみてください。",
+      "settingsOpen": "設定を開く"
     }
   },
   "sidebar": {
@@ -1803,7 +1850,7 @@
     "destination": {
       "tag": {
         "label": "埋め込みタグ",
-        "hint": "オーディオファイルのUSLT/©lyrに書き込みます（foobar2000、iTunesと互換）。"
+        "hint": "オーディオファイルの USLT/©lyr に書き込みます。ほかのプレーヤーでも読み取れます。"
       },
       "sidecar": {
         "label": "サイドカーファイル",
@@ -2449,7 +2496,7 @@
       "skins": {
         "studio": {
           "label": "Studio",
-          "description": "Apple Music 風 — 密度のある UI、柔らかい影、クリーンなサンセリフ。"
+          "description": "密度の高いインターフェース、柔らかな影、すっきりとしたサンセリフ書体。"
         },
         "editorial": {
           "label": "Editorial",
@@ -2618,7 +2665,7 @@
         },
         "nowPlaying": {
           "label": "再生中パネルを表示",
-          "description": "Spotify 風 — ジャケットと歌詞を含む右側パネルの表示と非表示を切り替えます。"
+          "description": "ジャケットと歌詞を含む右側パネルの表示と非表示を切り替えます。"
         },
         "none": {
           "label": "何もしない",
@@ -2635,7 +2682,7 @@
       "modes": {
         "auto": {
           "label": "自動",
-          "description": "Spotify Wrapped の公開時期に合わせ、12月1日から1月31日までのみ表示します。"
+          "description": "12月1日から1月31日までのみ表示します。"
         },
         "always": {
           "label": "常に表示",
@@ -3285,6 +3332,16 @@
       },
       "review_one": "確認する（{{count}}）",
       "review_other": "確認する（{{count}}）"
+    },
+    "onboardingReplay": {
+      "title": "紹介ツアー",
+      "subtitle": "初回起動時のセットアップとおすすめ設定をもう一度見る。",
+      "action": "もう一度始める"
+    },
+    "playerTourReplay": {
+      "title": "プレーヤーバーの案内",
+      "subtitle": "プレーヤーバーの各アイコンの役割をもう一度確認します。",
+      "action": "開始"
     }
   },
   "scanProgress": {
@@ -4082,5 +4139,116 @@
     "write_other": "{{count}} ファイルを書き込む",
     "otherProfile": "この工房は別のプロフィールで開かれました。このプロフィールから開き直してください。",
     "truncated": "{{total}} ファイルのうち最初の {{shown}} 件だけを開いています。残りを編集するには選択を絞ってください。"
+  },
+  "firstSteps": {
+    "kicker": "はじめの一歩",
+    "title": "WaveFlow でできること",
+    "progress": "試した機能：{{done}} / {{total}}",
+    "hide": "「はじめの一歩」を非表示",
+    "done": "（完了）",
+    "items": {
+      "immersive": {
+        "title": "没入ビュー",
+        "hint": "ジャケットを大きく、歌詞をその横に。"
+      },
+      "miniPlayer": {
+        "title": "ミニプレーヤー",
+        "hint": "常に手前に表示される小さなウィンドウ。"
+      },
+      "desktopLyrics": {
+        "title": "デスクトップ歌詞",
+        "hint": "歌詞がウィンドウの上に浮かびます。"
+      },
+      "smartPlaylist": {
+        "title": "スマートプレイリスト",
+        "hint": "ルールを決めれば、自動で曲が集まります。"
+      },
+      "enrichment": {
+        "title": "MusicBrainz で情報を補完",
+        "hint": "足りないジャンル、日付、ジャケットを補います。"
+      },
+      "tagWorkshop": {
+        "title": "タグ工房",
+        "hint": "アルバム全体のタグを一度に修正。"
+      },
+      "wrapped": {
+        "title": "Wrapped",
+        "hint": "1 年間のリスニングを数枚のカードで。"
+      },
+      "plugin": {
+        "title": "拡張機能をインストール",
+        "hint": "歌詞、Canvas、モーションカバー…"
+      }
+    }
+  },
+  "tips": {
+    "dismiss": "ヒントを閉じる",
+    "lyricsSources": {
+      "title": "ほかの歌詞ソース",
+      "body": "拡張機能を入れると、単語単位で同期する歌詞が加わります。特にアジアの音楽が充実しています。",
+      "action": "「拡張機能」でソースを見る"
+    },
+    "tagWorkshop": {
+      "title": "さらに使いこなす：タグ工房",
+      "body": "検索と置換、番号付け、MusicBrainz との照合、元に戻す。選択した曲すべてにまとめて使えます。",
+      "action": "この選択をタグ工房で開く"
+    }
+  },
+  "playerTour": {
+    "label": "プレーヤーバーの案内",
+    "counter": "{{current}} / {{total}}",
+    "next": "次へ",
+    "finish": "完了",
+    "skip": "スキップ",
+    "items": {
+      "cover": {
+        "title": "ジャケット",
+        "body": "クリックすると、設定に応じて没入ビューまたは詳細パネルが開きます。"
+      },
+      "like": {
+        "title": "「いいね」",
+        "body": "再生中の曲を「いいね」した曲に追加します。"
+      },
+      "abLoop": {
+        "title": "A-Bループ",
+        "body": "曲の 2 点間を繰り返し再生します。"
+      },
+      "sleepTimer": {
+        "title": "スリープタイマー",
+        "body": "指定した時間が経つか、曲の終わりで再生を停止します。"
+      },
+      "eqPreset": {
+        "title": "イコライザー",
+        "body": "イコライザーのプリセットをワンクリックで切り替えます。"
+      },
+      "lyrics": {
+        "title": "歌詞",
+        "body": "再生中の曲の同期歌詞を表示します。"
+      },
+      "queue": {
+        "title": "キュー",
+        "body": "次に再生される曲。並べ替え、追加、クリアができます。"
+      },
+      "device": {
+        "title": "オーディオ出力",
+        "body": "再生に使うサウンドカード、ヘッドホン、DAC を選びます。"
+      },
+      "more": {
+        "title": "その他の操作",
+        "body": "再生速度、デスクトップ歌詞、スリープタイマーなどのクイック設定。"
+      },
+      "volume": {
+        "title": "音量",
+        "body": "音量を調整します。アイコンをクリックするとミュートになります。"
+      },
+      "miniPlayer": {
+        "title": "ミニプレーヤー",
+        "body": "ほかの作業をしている間も手前に表示される小さなウィンドウ。"
+      },
+      "immersive": {
+        "title": "没入ビュー",
+        "body": "大きなジャケットと歌詞をフルスクリーンで。"
+      }
+    }
   }
 }

@@ -1,5 +1,8 @@
+import { useCallback, useState } from "react";
 import { useProfileBooleanSetting } from "./useProfileSetting";
 import { SETTINGS } from "../lib/settingsRegistry";
+import { cancelEnrichment, runEnrichment } from "../lib/tauri/enrichment";
+import { discoveryOnSuccess } from "../lib/discovery";
 
 /** The engine's switch and the four fields it may fill. Each key has its
  *  own broadcast channel: sharing one would make a write to either re-read
@@ -35,4 +38,40 @@ export function useEnrichmentToggle(
     label: `useEnrichmentToggle(${key})`,
   });
   return { value, ready, setValue };
+}
+
+export interface EnrichmentSwitch {
+  enabled: boolean;
+  ready: boolean;
+  /** The last switch that failed, said as the error read. */
+  error: string | null;
+  toggle: () => Promise<void>;
+}
+
+/**
+ * The engine's on/off switch as Settings → Library has it, for every place
+ * that shows it (that card, the onboarding): the setting is written first,
+ * then turning it on starts a pass straight away rather than waiting for
+ * the next scan, and turning it off stops the running one. Turning it on
+ * ticks the Home's first steps, in the profile it was clicked in.
+ */
+export function useEnrichmentSwitch(): EnrichmentSwitch {
+  const enabled = useEnrichmentToggle("enrichment.enabled");
+  const [error, setError] = useState<string | null>(null);
+  const { value, setValue } = enabled;
+  const toggle = useCallback(async () => {
+    const next = !value;
+    const tick = discoveryOnSuccess("enrichment");
+    setError(null);
+    try {
+      await setValue(next);
+      if (next) {
+        await runEnrichment();
+        tick();
+      } else await cancelEnrichment();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  }, [value, setValue]);
+  return { enabled: value, ready: enabled.ready, error, toggle };
 }

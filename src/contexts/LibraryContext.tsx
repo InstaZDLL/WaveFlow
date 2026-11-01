@@ -163,23 +163,26 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     [refresh],
   );
 
+  const addFolder = useCallback(async (libraryId: number, path: string) => {
+    try {
+      return await addFolderToLibrary(libraryId, path);
+    } catch (err) {
+      // Said here, once, rather than in each of the places that add a
+      // folder: they only log a failure.
+      const overlap = parseFolderOverlap(err);
+      if (overlap) announceImport({ kind: "overlap", overlap });
+      throw err;
+    }
+  }, []);
+
   const importFolder = useCallback(
     async (libraryId: number, path: string) => {
-      let folderId: number;
-      try {
-        folderId = await addFolderToLibrary(libraryId, path);
-      } catch (err) {
-        // Said here, once, rather than in each of the places that add a
-        // folder: they only log a failure.
-        const overlap = parseFolderOverlap(err);
-        if (overlap) announceImport({ kind: "overlap", overlap });
-        throw err;
-      }
+      const folderId = await addFolder(libraryId, path);
       const summary = await scanFolder(folderId);
       await refresh();
       return summary;
     },
-    [refresh],
+    [addFolder, refresh],
   );
 
   const updateLibrary = useCallback(
@@ -233,6 +236,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
         updateLibrary,
         deleteLibrary,
         rescanLibrary,
+        addFolder,
         importFolder,
       }}
     >
