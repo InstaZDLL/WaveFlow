@@ -778,7 +778,8 @@
       "filePath": "路径",
       "moveUp": "上移“{{column}}”列",
       "moveDown": "下移“{{column}}”列"
-    }
+    },
+    "trackOnUnreachableShare": "无法访问网络共享,且此曲目不在缓存中"
   },
   "liked": {
     "badge": "收藏",
@@ -1060,7 +1061,8 @@
         "offline": "离线模式已开启",
         "unknown": "播放失败",
         "files-failed": "无法播放这些文件",
-        "picker-failed": "无法打开文件选择器"
+        "picker-failed": "无法打开文件选择器",
+        "network-source-lost": "与网络共享的连接已断开"
       },
       "notice": {
         "exclusive-refused": "此设备不接受独占模式：以共享模式播放",
@@ -3355,6 +3357,56 @@
         "title": "顶部栏的新功能按钮",
         "subtitle": "隐藏后，仍可在此处和“关于”中打开面板。"
       }
+    },
+    "networkLibrary": {
+      "title": "网络共享 (WebDAV、SMB)",
+      "subtitle": "直接读取共享,无需系统挂载。WaveFlow 只读取:共享上的文件绝不会被修改。",
+      "add": "添加共享",
+      "addConfirm": "添加并扫描",
+      "cancel": "取消",
+      "test": "测试连接",
+      "save": "保存",
+      "kind": "共享类型",
+      "kinds": {
+        "webdav": "WebDAV"
+      },
+      "name": "名称(可选)",
+      "address": "地址",
+      "addressHint": {
+        "webdav": "https://nas.local/dav"
+      },
+      "folder": "共享上的文件夹(可选)",
+      "username": "用户名",
+      "password": "密码",
+      "passwordNotice": "密码与 WaveFlow 的其他凭据一样以明文保存在配置文件的数据库中,绝不会进入配置文件导出或备份。建议使用只读账户。",
+      "plainHttpWarning": "我同意不加密发送此密码和我的音乐:使用 http:// 时,此网络上的任何人都能读取它们。",
+      "plainHttpBadge": "未加密的连接 (http://)",
+      "passwordMissing": "需要重新输入密码:它不会随导入的配置文件或恢复的备份一起带来。",
+      "changePassword": "更改密码",
+      "remove": "移除",
+      "removeConfirm": "移除此共享及其曲目?",
+      "noLibrary": "请先创建音乐库。",
+      "state": {
+        "online": "已连接",
+        "unknown": "尚未检查",
+        "unreachable": "无法访问",
+        "auth_failed": "访问被拒绝"
+      },
+      "failure": {
+        "offline": "离线模式已开启。",
+        "unreachable": "此地址没有响应。",
+        "tls": "此服务器的证书被拒绝。WaveFlow 始终验证证书:需要有效的证书,或在可信网络上使用 http://。",
+        "auth": "用户名或密码被拒绝。",
+        "not-found": "共享上不存在此文件夹。",
+        "protocol": "此服务器的响应不像共享。",
+        "plain-http": "http:// 地址需要您在下方同意。"
+      },
+      "testOk_one": "已连接:此文件夹中有 {{count}} 项。",
+      "testOk_other": "已连接:此文件夹中有 {{count}} 项。",
+      "cacheLimit": "上限 (GB)",
+      "cacheClear": "清空缓存",
+      "cacheUsed_one": "本地缓存:{{size}},{{count}} 首曲目",
+      "cacheUsed_other": "本地缓存:{{size}},{{count}} 首曲目"
     }
   },
   "scanProgress": {

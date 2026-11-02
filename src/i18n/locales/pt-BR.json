@@ -812,7 +812,8 @@
       "filePath": "Caminho",
       "moveUp": "Mover a coluna {{column}} para cima",
       "moveDown": "Mover a coluna {{column}} para baixo"
-    }
+    },
+    "trackOnUnreachableShare": "Compartilhamento de rede inacessível, e esta faixa não está no cache"
   },
   "liked": {
     "badge": "Coleção",
@@ -1103,7 +1104,8 @@
         "offline": "O modo offline está ativado",
         "unknown": "A reprodução falhou",
         "files-failed": "Não é possível tocar estes arquivos",
-        "picker-failed": "Não é possível abrir o seletor de arquivos"
+        "picker-failed": "Não é possível abrir o seletor de arquivos",
+        "network-source-lost": "A conexão com o compartilhamento de rede foi perdida"
       },
       "notice": {
         "exclusive-refused": "Este dispositivo recusa o modo exclusivo: reproduzindo em modo compartilhado",
@@ -3428,6 +3430,58 @@
         "title": "Botão Novidades na barra superior",
         "subtitle": "Oculto, o painel continua disponível aqui e em Sobre."
       }
+    },
+    "networkLibrary": {
+      "title": "Compartilhamentos de rede (WebDAV, SMB)",
+      "subtitle": "Leia um compartilhamento diretamente, sem que o sistema o monte. O WaveFlow só lê: os arquivos nunca são alterados.",
+      "add": "Adicionar compartilhamento",
+      "addConfirm": "Adicionar e analisar",
+      "cancel": "Cancelar",
+      "test": "Testar a conexão",
+      "save": "Salvar",
+      "kind": "Tipo de compartilhamento",
+      "kinds": {
+        "webdav": "WebDAV"
+      },
+      "name": "Nome (opcional)",
+      "address": "Endereço",
+      "addressHint": {
+        "webdav": "https://nas.local/dav"
+      },
+      "folder": "Pasta no compartilhamento (opcional)",
+      "username": "Nome de usuário",
+      "password": "Senha",
+      "passwordNotice": "A senha fica sem criptografia no banco de dados do perfil, como as outras credenciais do WaveFlow, e nunca entra em uma exportação de perfil nem em um backup. É melhor usar uma conta somente leitura.",
+      "plainHttpWarning": "Aceito enviar esta senha e minhas músicas sem criptografia: com http://, qualquer pessoa nesta rede pode lê-las.",
+      "plainHttpBadge": "Conexão sem criptografia (http://)",
+      "passwordMissing": "É preciso digitar a senha de novo: ela não acompanha um perfil importado nem um backup restaurado.",
+      "changePassword": "Alterar a senha",
+      "remove": "Remover",
+      "removeConfirm": "Remover este compartilhamento e suas faixas?",
+      "noLibrary": "Crie uma biblioteca primeiro.",
+      "state": {
+        "online": "Conectado",
+        "unknown": "Ainda não verificado",
+        "unreachable": "Inacessível",
+        "auth_failed": "Acesso recusado"
+      },
+      "failure": {
+        "offline": "O modo offline está ativado.",
+        "unreachable": "Sem resposta neste endereço.",
+        "tls": "O certificado deste servidor foi recusado. O WaveFlow sempre verifica os certificados: é preciso um válido, ou http:// em uma rede confiável.",
+        "auth": "Nome de usuário ou senha recusados.",
+        "not-found": "Esta pasta não existe no compartilhamento.",
+        "protocol": "Este servidor não responde como um compartilhamento.",
+        "plain-http": "Um endereço http:// precisa da sua concordância abaixo."
+      },
+      "testOk_one": "Conectado: {{count}} item nesta pasta.",
+      "testOk_other": "Conectado: {{count}} itens nesta pasta.",
+      "cacheLimit": "Limite (GB)",
+      "cacheClear": "Limpar o cache",
+      "testOk_many": "Conectado: {{count}} itens nesta pasta.",
+      "cacheUsed_one": "Cache local: {{size}}, {{count}} faixa",
+      "cacheUsed_other": "Cache local: {{size}}, {{count}} faixas",
+      "cacheUsed_many": "Cache local: {{size}}, {{count}} faixas"
     }
   },
   "scanProgress": {

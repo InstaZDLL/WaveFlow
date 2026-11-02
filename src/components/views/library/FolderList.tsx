@@ -12,6 +12,11 @@ import {
   RefreshCcw,
   Trash2,
 } from "lucide-react";
+import {
+  displayTrackPath,
+  isNetworkPath,
+  useNetworkSources,
+} from "../../../lib/networkTracks";
 import { Tooltip } from "../../common/Tooltip";
 import { AddToPlaylistPopover } from "./AddToPlaylistPopover";
 
@@ -60,6 +65,7 @@ export function FolderList({
   deepRescanFolderId,
   isAnyRescanActive,
 }: FolderListProps) {
+  const networkSources = useNetworkSources();
   const [openMenuFolderId, setOpenMenuFolderId] = useState<number | null>(null);
   // Two-step delete: first click arms the confirm state, second click
   // commits. Auto-clears after 3 s so the button doesn't stay armed
@@ -163,38 +169,42 @@ export function FolderList({
                 <Folder size={22} />
               </div>
               <div className="flex items-center gap-0.5 -mr-1.5 -mt-1.5">
-                <Tooltip
-                  label={
-                    folder.is_watched === 1
-                      ? t("library.folderList.watchOff")
-                      : t("library.folderList.watchOn")
-                  }
-                >
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onToggleWatched(folder.id, folder.is_watched !== 1);
-                    }}
-                    aria-label={
+                {/* A share has no file system events to watch: its listing
+                    is walked again on a schedule. */}
+                {!isNetworkPath(folder.path) && (
+                  <Tooltip
+                    label={
                       folder.is_watched === 1
                         ? t("library.folderList.watchOff")
                         : t("library.folderList.watchOn")
                     }
-                    aria-pressed={folder.is_watched === 1}
-                    className={`p-1.5 rounded-full transition-colors ${
-                      folder.is_watched === 1
-                        ? "text-emerald-500 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-500/10"
-                        : "opacity-0 reveal:opacity-100 text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-700"
-                    }`}
                   >
-                    {folder.is_watched === 1 ? (
-                      <Eye size={16} />
-                    ) : (
-                      <EyeOff size={16} />
-                    )}
-                  </button>
-                </Tooltip>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleWatched(folder.id, folder.is_watched !== 1);
+                      }}
+                      aria-label={
+                        folder.is_watched === 1
+                          ? t("library.folderList.watchOff")
+                          : t("library.folderList.watchOn")
+                      }
+                      aria-pressed={folder.is_watched === 1}
+                      className={`p-1.5 rounded-full transition-colors ${
+                        folder.is_watched === 1
+                          ? "text-emerald-500 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-500/10"
+                          : "opacity-0 reveal:opacity-100 text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                      }`}
+                    >
+                      {folder.is_watched === 1 ? (
+                        <Eye size={16} />
+                      ) : (
+                        <EyeOff size={16} />
+                      )}
+                    </button>
+                  </Tooltip>
+                )}
                 <Tooltip label={t("library.folderList.deepRescan")}>
                   <button
                     type="button"
@@ -297,13 +307,13 @@ export function FolderList({
                 title={t("library.folderBrowser.open")}
                 className="block w-full text-left text-sm font-semibold text-zinc-900 dark:text-white truncate hover:underline focus-visible:underline focus-visible:outline-none"
               >
-                {folderLeaf(folder.path)}
+                {folderLeaf(displayTrackPath(folder.path, networkSources))}
               </button>
               <div
                 className="text-[11px] text-zinc-500 truncate"
-                title={folder.path}
+                title={displayTrackPath(folder.path, networkSources)}
               >
-                {folder.path}
+                {displayTrackPath(folder.path, networkSources)}
               </div>
             </div>
             <div className="flex items-center justify-between gap-2 text-xs text-zinc-500">

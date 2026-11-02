@@ -27,6 +27,7 @@ import type { Track } from "../../lib/tauri/track";
 import type { Playlist } from "../../lib/tauri/playlist";
 import { resolvePlaylistColor } from "../../lib/playlistVisuals";
 import { PlaylistIcon } from "../../lib/PlaylistIcon";
+import { isNetworkPath } from "../../lib/networkTracks";
 import { isRemoteTrack } from "../../lib/playerSources";
 import { TrackMoodSubmenu } from "./TrackMoodSubmenu";
 import { openTagWorkshop } from "../../lib/tagWorkshop";
@@ -117,6 +118,10 @@ export function TrackContextMenu({
     fn();
     onClose();
   };
+
+  // A track on a share: there is no file here to show, and WaveFlow only
+  // reads it, so what would write to it is not offered.
+  const onShare = isNetworkPath(track.file_path);
 
   const showInExplorer = closeAfter(() => {
     revealItemInDir(track.file_path).catch((err) => {
@@ -318,24 +323,26 @@ export function TrackContextMenu({
 
       <ContextMenuSeparator />
 
-      <ContextMenuItem
-        icon={<ExternalLink size={14} />}
-        label={t("trackActions.showInExplorer")}
-        onSelect={showInExplorer}
-      />
+      {!onShare && (
+        <ContextMenuItem
+          icon={<ExternalLink size={14} />}
+          label={t("trackActions.showInExplorer")}
+          onSelect={showInExplorer}
+        />
+      )}
       <ContextMenuItem
         icon={<Info size={14} />}
         label={t("trackActions.properties")}
         onSelect={closeAfter(() => onShowProperties(track))}
       />
-      {onReplaceFile && !isRemoteTrack(track) && (
+      {onReplaceFile && !isRemoteTrack(track) && !onShare && (
         <ContextMenuItem
           icon={<FileAudio size={14} />}
           label={t("trackActions.replaceFile")}
           onSelect={closeAfter(() => onReplaceFile(track))}
         />
       )}
-      {!isRemoteTrack(track) && (
+      {!isRemoteTrack(track) && !onShare && (
         <ContextMenuItem
           icon={<Tags size={14} />}
           label={t("tagWorkshop.openFromMenu")}

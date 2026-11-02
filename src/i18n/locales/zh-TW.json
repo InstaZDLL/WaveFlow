@@ -778,7 +778,8 @@
       "filePath": "路徑",
       "moveUp": "上移「{{column}}」欄",
       "moveDown": "下移「{{column}}」欄"
-    }
+    },
+    "trackOnUnreachableShare": "無法連線到網路共用,且此曲目不在快取中"
   },
   "liked": {
     "badge": "收藏",
@@ -1060,7 +1061,8 @@
         "offline": "離線模式已開啟",
         "unknown": "播放失敗",
         "files-failed": "無法播放這些檔案",
-        "picker-failed": "無法開啟檔案選擇器"
+        "picker-failed": "無法開啟檔案選擇器",
+        "network-source-lost": "與網路共用的連線已中斷"
       },
       "notice": {
         "exclusive-refused": "此裝置不接受獨佔模式：以共用模式播放",
@@ -3355,6 +3357,56 @@
         "title": "頂部列的新功能按鈕",
         "subtitle": "隱藏後，仍可在此處和「關於」中開啟面板。"
       }
+    },
+    "networkLibrary": {
+      "title": "網路共用 (WebDAV、SMB)",
+      "subtitle": "直接讀取共用,無需系統掛載。WaveFlow 只讀取:共用上的檔案絕不會被修改。",
+      "add": "新增共用",
+      "addConfirm": "新增並掃描",
+      "cancel": "取消",
+      "test": "測試連線",
+      "save": "儲存",
+      "kind": "共用類型",
+      "kinds": {
+        "webdav": "WebDAV"
+      },
+      "name": "名稱(選填)",
+      "address": "位址",
+      "addressHint": {
+        "webdav": "https://nas.local/dav"
+      },
+      "folder": "共用上的資料夾(選填)",
+      "username": "使用者名稱",
+      "password": "密碼",
+      "passwordNotice": "密碼與 WaveFlow 的其他憑證一樣以明文儲存在設定檔的資料庫中,絕不會進入設定檔匯出或備份。建議使用唯讀帳號。",
+      "plainHttpWarning": "我同意不加密傳送此密碼和我的音樂:使用 http:// 時,此網路上的任何人都能讀取。",
+      "plainHttpBadge": "未加密的連線 (http://)",
+      "passwordMissing": "需要重新輸入密碼:它不會隨匯入的設定檔或還原的備份一起帶來。",
+      "changePassword": "變更密碼",
+      "remove": "移除",
+      "removeConfirm": "移除此共用及其曲目?",
+      "noLibrary": "請先建立音樂庫。",
+      "state": {
+        "online": "已連線",
+        "unknown": "尚未檢查",
+        "unreachable": "無法連線",
+        "auth_failed": "存取遭拒"
+      },
+      "failure": {
+        "offline": "離線模式已開啟。",
+        "unreachable": "此位址沒有回應。",
+        "tls": "此伺服器的憑證遭拒。WaveFlow 一律驗證憑證:需要有效的憑證,或在可信任的網路上使用 http://。",
+        "auth": "使用者名稱或密碼遭拒。",
+        "not-found": "共用上沒有此資料夾。",
+        "protocol": "此伺服器的回應不像共用。",
+        "plain-http": "http:// 位址需要您在下方同意。"
+      },
+      "testOk_one": "已連線:此資料夾有 {{count}} 個項目。",
+      "testOk_other": "已連線:此資料夾有 {{count}} 個項目。",
+      "cacheLimit": "上限 (GB)",
+      "cacheClear": "清除快取",
+      "cacheUsed_one": "本機快取:{{size}},{{count}} 首曲目",
+      "cacheUsed_other": "本機快取:{{size}},{{count}} 首曲目"
     }
   },
   "scanProgress": {
