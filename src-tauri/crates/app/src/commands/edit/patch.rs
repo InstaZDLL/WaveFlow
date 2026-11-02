@@ -52,11 +52,12 @@ fn reject_untaggable(
 pub(crate) enum LyricsSlot<'a> {
     /// Both keys go and nothing replaces them.
     Cleared,
-    /// `USLT` for ID3v2, `UNSYNCEDLYRICS` for Vorbis, `©lyr` for MP4 —
+    /// `USLT` for ID3v2, `UNSYNCEDLYRICS` for Vorbis, `UnsyncedLyrics` for
+    /// APEv2, `©lyr` for MP4 —
     /// what every other player reads.
     Unsynchronised(&'a str),
-    /// `ItemKey::Lyrics`, the arbitrary-string slot TTML needs. Vorbis
-    /// and MP4 only; ID3v2 has nothing equivalent.
+    /// `ItemKey::Lyrics`, the arbitrary-string slot TTML needs. Vorbis,
+    /// MP4 and APEv2 only; ID3v2 has nothing equivalent.
     Arbitrary(&'a str),
 }
 
@@ -581,6 +582,16 @@ pub(crate) fn patch_file(
         // APEv2 on both, the tag every tool for these formats writes. An
         // ID3v1 tag beside it is left alone, as it is beside an MP3's ID3v2.
         FileType::Ape => with_file!(lofty::ape::ApeFile, |f, handle| {
+            // lofty reads an ID3v2 tag ahead of the stream and refuses to save
+            // a file holding one, which would make the file uneditable. Taken
+            // off what it saves, it stays in the file; its fields seed the
+            // APEv2 tag when there is none, or the edit would hide them.
+            if let Some(id3) = f.remove_id3v2() {
+                if f.ape().is_none() {
+                    let (_, generic) = id3.split_tag();
+                    f.set_ape(lofty::ape::ApeTag::from(generic));
+                }
+            }
             patch_ape_slot!(f);
         }),
         FileType::WavPack => with_file!(lofty::wavpack::WavPackFile, |f, handle| {
@@ -595,7 +606,7 @@ pub(crate) fn patch_file(
 }
 
 /// Write a rating into an APEv2 tag, as text on the 0-100 scale, under the key
-/// [`waveflow_core::scanner::extract_ape_rating`] reads.
+/// the scanner's `read_tagged_file` looks for.
 fn apply_rating_ape(tag: &mut lofty::ape::ApeTag, rating: Option<u8>) {
     use lofty::ape::ApeItem;
     use lofty::tag::ItemValue;

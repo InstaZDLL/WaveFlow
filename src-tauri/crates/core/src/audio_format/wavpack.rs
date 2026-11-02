@@ -57,6 +57,7 @@ use wavicle::{BlockHeader, Error as WavpackError, Scope};
 
 const HEADER_LEN: usize = 32;
 const MARKER: &[u8; 4] = b"wvpk";
+const MAX_CHANNELS: u16 = 32;
 
 const FORMAT_INFO: FormatInfo = FormatInfo {
     format: FORMAT_ID_WAVPACK,
@@ -103,29 +104,44 @@ fn header_error(err: WavpackError) -> Error {
 /// Why this build would not play the WavPack file at `path`, or `None` when
 /// it would.
 ///
-/// Read off the first block with audio, which is where a hybrid or DSD
-/// stream shows itself. An unreadable or foreign file answers `None`: the
-/// scanner's extractor is what reports those, and refusing here would turn
-/// an unreadable file into an absent one.
+/// Answered by the reader itself, from the first block with audio, which is
+/// where a hybrid or DSD stream shows itself: what it refuses here it refuses
+/// at play time. A file that is not WavPack at all is refused too. lofty takes
+/// the extension's word for it and reports no error, so left to the extractor
+/// it would become a silent row. Only a file that cannot be opened answers
+/// `None`, for the extractor to report.
 pub fn refusal(path: &Path) -> Option<&'static str> {
+    let mut file = std::fs::File::open(path).ok()?;
+    if skip_id3v2(&mut file).is_err() {
+        return Some("not a WavPack stream");
+    }
+    let mss = MediaSourceStream::new(Box::new(file), Default::default());
+    match WavPackReader::try_new(mss, FormatOptions::default()) {
+        Ok(_) => None,
+        Err(Error::Unsupported(reason)) => Some(reason),
+        Err(_) => Some("not a WavPack stream"),
+    }
+}
+
+/// Leave `file` at the end of the ID3v2 tag it starts with, if it has one.
+/// Taggers put one there though the format has no place for it; the probe
+/// reads past it the same way.
+fn skip_id3v2(file: &mut std::fs::File) -> std::io::Result<()> {
     use std::io::Read;
 
-    let mut file = std::fs::File::open(path).ok()?;
-    let mut header = [0u8; HEADER_LEN];
-    loop {
-        file.read_exact(&mut header).ok()?;
-        match parse_header(&header) {
-            Ok(parsed) if parsed.block_samples == 0 => {
-                let body = parsed.block_len().saturating_sub(HEADER_LEN) as i64;
-                file.seek(SeekFrom::Current(body)).ok()?;
-            }
-            Ok(_) => return None,
-            Err(WavpackError::OutOfScope(Scope::Hybrid)) => return Some("hybrid WavPack"),
-            Err(WavpackError::OutOfScope(Scope::Dsd)) => return Some("WavPack DSD"),
-            Err(WavpackError::UnsupportedVersion(_)) => return Some("pre-4.0 WavPack"),
-            Err(_) => return None,
-        }
-    }
+    let mut head = [0u8; 10];
+    file.read_exact(&mut head)?;
+    let at = if &head[..3] == b"ID3" {
+        // Seven bits to the byte, and the ten bytes of the header itself.
+        head[6..10]
+            .iter()
+            .fold(0u64, |size, byte| (size << 7) | u64::from(byte & 0x7f))
+            + 10
+    } else {
+        0
+    };
+    file.seek(SeekFrom::Start(at))?;
+    Ok(())
 }
 
 /// One block as read from the stream: its parsed header and all its bytes.
@@ -187,6 +203,11 @@ fn stream_layout(block: &RawBlock) -> Result<StreamLayout> {
         return decode_error("wavpack: stream does not declare a sample rate");
     };
     let channels = match declared {
+        // More than any layout goes to, so only a damaged block says it. The
+        // buffer is sized from this before a single sample is decoded.
+        Some((count, _)) if count > MAX_CHANNELS => {
+            return unsupported_error("wavpack: implausible channel count");
+        }
         Some((count, mask)) if count > 2 => layout_from_mask(count, mask),
         _ if flags.output_channels() == 1 => CHANNEL_LAYOUT_MONO,
         _ => CHANNEL_LAYOUT_STEREO,
@@ -498,7 +519,14 @@ impl FormatReader for WavPackReader<'_> {
         if self.total_frames.is_some_and(|total| target > total) {
             return seek_error(SeekErrorKind::OutOfRange);
         }
-        let Some((first, offset)) = self.locate(target)? else {
+        // Finding the target moves the stream. A seek that fails has to leave
+        // it where the next packet is, or the track ends here.
+        let resume = self.reader.pos();
+        let located = self.locate(target);
+        if !matches!(located, Ok(Some(_))) {
+            self.reader.seek(SeekFrom::Start(resume))?;
+        }
+        let Some((first, offset)) = located? else {
             return seek_error(SeekErrorKind::OutOfRange);
         };
         self.reader.seek(SeekFrom::Start(offset))?;
@@ -525,7 +553,9 @@ impl FormatReader for WavPackReader<'_> {
         let mut data = first.data;
         while !is_final {
             let Some(block) = self.next_audio_block()? else {
-                return decode_error("wavpack: file ends inside a multichannel packet");
+                // As for a file cut short inside a block: it ends here.
+                tracing::warn!("wavpack: file ends inside a packet; ending the track there");
+                return Ok(None);
             };
             is_final = block.header.flags.final_block();
             data.extend_from_slice(&block.data);

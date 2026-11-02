@@ -57,7 +57,7 @@ fn copy_tagged(name: &str) -> (tempfile::TempDir, PathBuf, Vec<u8>) {
 }
 
 fn read_tag(path: &Path) -> Tag {
-    lofty::read_from_path(path)
+    waveflow_core::scanner::extract::read_tagged_file(path)
         .expect("read back")
         .primary_tag()
         .expect("a tag")
@@ -129,6 +129,40 @@ fn an_edit_writes_the_fields_and_keeps_what_it_does_not_model() {
     });
 }
 
+/// lofty refuses to save a file with an ID3v2 tag ahead of the stream.
+#[test]
+fn an_id3v2_tag_ahead_of_the_stream_does_not_stop_an_edit() {
+    let source = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../core/tests/fixtures/lossless/s16_stereo_c2000.ape");
+    let audio = std::fs::read(&source).expect("read");
+
+    use id3::TagLike;
+
+    let mut id3 = id3::Tag::new();
+    id3.set_title("From ID3");
+    id3.set_artist("Kept Artist");
+    let mut bytes = Vec::new();
+    id3.write_to(&mut bytes, id3::Version::Id3v24).expect("id3");
+    let tag_len = bytes.len();
+    bytes.extend_from_slice(&audio);
+
+    let dir = tempfile::tempdir().expect("tempdir");
+    let path = dir.path().join("t.ape");
+    std::fs::write(&path, &bytes).expect("write");
+
+    let edit = TrackEdit {
+        title: Some("After".into()),
+        ..Default::default()
+    };
+    write_tags_to_file(&path, &edit).expect("write");
+
+    let tag = read_tag(&path);
+    assert_eq!(tag.title().as_deref(), Some("After"));
+    assert_eq!(tag.artist().as_deref(), Some("Kept Artist"));
+    let after = std::fs::read(&path).expect("read");
+    assert_eq!(&after[tag_len..tag_len + audio.len()], &audio[..]);
+}
+
 /// The tag Monkey's Audio itself writes: items and a footer, with no header.
 #[test]
 fn an_edit_over_a_tag_with_no_header_costs_no_audio() {
@@ -166,7 +200,7 @@ fn a_rating_a_cover_and_lyrics_reach_the_file_and_read_back() {
     each_container(|name, path, audio| {
         patch_file(path, &TagPatch::Rating(Some(204))).expect("rating");
         assert_eq!(
-            waveflow_core::scanner::extract_ape_rating(path),
+            waveflow_core::scanner::extract_rating(&read_tag(path)),
             Some(204),
             "{name}: rating"
         );
@@ -181,13 +215,16 @@ fn a_rating_a_cover_and_lyrics_reach_the_file_and_read_back() {
         for rating in [26u8, 51, 77, 102, 128, 153, 179, 230, 255] {
             patch_file(path, &TagPatch::Rating(Some(rating))).expect("rating");
             assert_eq!(
-                waveflow_core::scanner::extract_ape_rating(path),
+                waveflow_core::scanner::extract_rating(&read_tag(path)),
                 Some(rating),
                 "{name}: rating {rating}"
             );
         }
         patch_file(path, &TagPatch::Rating(None)).expect("clearing");
-        assert_eq!(waveflow_core::scanner::extract_ape_rating(path), None);
+        assert_eq!(
+            waveflow_core::scanner::extract_rating(&read_tag(path)),
+            None
+        );
 
         patch_file(
             path,

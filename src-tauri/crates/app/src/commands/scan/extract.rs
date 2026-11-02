@@ -353,14 +353,23 @@ pub(super) fn extract_file(
         .tag_us
         .fetch_add(t_tag.elapsed().as_micros() as u64, Ordering::Relaxed);
     let props = tagged.properties();
-    let duration_ms = props.duration().as_millis() as i64;
+    // lofty answers 0 for the length of a WavPack file that does not state one,
+    // and for the channels of a multichannel one. A duration of 0 is what the
+    // engine takes for a live stream, so the decoder is asked instead.
+    let stream = (matches!(
+        tagged.file_type(),
+        lofty::file::FileType::WavPack | lofty::file::FileType::Ape
+    ) && (props.duration().is_zero() || props.channels() == Some(0)))
+    .then(|| waveflow_core::scanner::extract::probe_playable_stream(path))
+    .flatten();
+    let duration_ms = match &stream {
+        Some(stream) if props.duration().is_zero() => stream.duration_ms,
+        _ => props.duration().as_millis() as i64,
+    };
     let bitrate = props.audio_bitrate().map(|b| b as i64);
     let sample_rate = props.sample_rate().map(|s| s as i64);
-    // lofty answers 0 for a multichannel WavPack file; the decoder knows.
     let channels = match props.channels() {
-        Some(0) => {
-            waveflow_core::scanner::extract::probe_playable_stream(path).and_then(|s| s.channels)
-        }
+        Some(0) => stream.as_ref().and_then(|stream| stream.channels),
         other => other.map(|c| c as i64),
     };
     // Bit depth: lossless codecs report a real PCM bit count; lossy
@@ -426,16 +435,6 @@ pub(super) fn extract_file(
             ReplayGainTags::default(),
         ),
     };
-
-    // lofty's generic tag has no room for a rating on these two.
-    let rating = rating.or_else(|| {
-        matches!(
-            tagged.file_type(),
-            lofty::file::FileType::Ape | lofty::file::FileType::WavPack
-        )
-        .then(|| waveflow_core::scanner::extract_ape_rating(path))
-        .flatten()
-    });
 
     // The custom frames, from a second parse of the concrete container
     // (#588). They are not in what lofty just handed back: the generic

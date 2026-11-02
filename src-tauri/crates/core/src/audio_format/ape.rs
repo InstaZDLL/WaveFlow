@@ -102,8 +102,24 @@ const FORMAT_INFO: FormatInfo = FormatInfo {
     long_name: "Monkey's Audio",
 };
 
+/// The largest frame of PCM the crate decodes.
+const MAX_FRAME_BYTES: u64 = 64 * 1024 * 1024;
+
 /// What keeps a parsed file from playing, or `None` when it would.
 fn unplayable(info: &ApeFileInfo) -> Option<&'static str> {
+    let header = &info.header;
+    let frames = header.total_frames as usize;
+    if frames == 0
+        || header.blocks_per_frame == 0
+        || header.sample_rate == 0
+        || header.channels == 0
+        || info.block_align == 0
+        || info.seek_table.len() < frames
+        || info.seek_table[..frames].windows(2).any(|w| w[0] > w[1])
+        || u64::from(header.blocks_per_frame) * u64::from(info.block_align) > MAX_FRAME_BYTES
+    {
+        return Some("a Monkey's Audio stream with an impossible layout");
+    }
     if info.descriptor.version < MIN_VERSION {
         return Some("Monkey's Audio older than format 3950");
     }
@@ -119,12 +135,16 @@ fn unplayable(info: &ApeFileInfo) -> Option<&'static str> {
 /// Why this build would not play the Monkey's Audio file at `path`, or `None`
 /// when it would.
 ///
-/// An unreadable or foreign file answers `None`: the scanner's extractor is
-/// what reports those, and refusing here would turn an unreadable file into
-/// an absent one.
+/// The checks the reader itself makes. A file that is not Monkey's Audio at
+/// all is refused too: lofty can report no error on one, and left to the
+/// extractor it would become a silent row. Only a file that cannot be opened
+/// answers `None`, for the extractor to report.
 pub fn refusal(path: &Path) -> Option<&'static str> {
     let mut file = std::io::BufReader::new(std::fs::File::open(path).ok()?);
-    unplayable(&format::parse(&mut file).ok()?)
+    match format::parse(&mut file) {
+        Ok(info) => unplayable(&info),
+        Err(_) => Some("not a Monkey's Audio stream"),
+    }
 }
 
 /// A frame on its way to the worker.
@@ -213,16 +233,6 @@ impl<'s> ApeReader<'s> {
             return unsupported_error("ape: this stream is not supported");
         }
         let header = &info.header;
-        let frames = header.total_frames as usize;
-        if frames == 0
-            || header.blocks_per_frame == 0
-            || header.sample_rate == 0
-            || header.channels == 0
-            || info.seek_table.len() < frames
-            || info.seek_table[..frames].windows(2).any(|w| w[0] > w[1])
-        {
-            return decode_error("ape: invalid stream layout");
-        }
 
         let total = info.total_blocks as u64;
         let mut params = AudioCodecParameters::new();
@@ -240,7 +250,7 @@ impl<'s> ApeReader<'s> {
             .with_duration(Duration::from(total));
         let media_info = MediaInfo::from_track(&track);
 
-        Ok(Self {
+        let mut reader = Self {
             reader: mss,
             info,
             media_info,
@@ -253,7 +263,13 @@ impl<'s> ApeReader<'s> {
             next_frame: 0,
             next_skip: 0,
             position: 0,
-        })
+        };
+        // Started now and not at the first packet. The next track of a queue
+        // is opened shortly before the current one runs out, and its first
+        // packet is what ends the wait while the output ring drains: every
+        // moment of decoding done before then is a moment less of silence.
+        reader.request(0)?;
+        Ok(reader)
     }
 
     fn block_align(&self) -> usize {
@@ -276,7 +292,9 @@ impl<'s> ApeReader<'s> {
         let compressed = info
             .frame_byte_count(frame)
             .min(pcm_size * MAX_COMPRESSED_RATIO + 4096);
-        let want = compressed as usize + remainder as usize + 4;
+        // What the file holds from there, which a damaged header cannot inflate.
+        let want =
+            compressed.min(info.file_bytes.saturating_sub(start)) as usize + remainder as usize + 4;
 
         self.reader
             .seek(SeekFrom::Start(start - u64::from(remainder)))?;
@@ -368,6 +386,10 @@ impl<'s> ApeReader<'s> {
                 // error: the caller's way of skipping a bad packet is the
                 // one that applies. An error from here would end the track.
                 self.current = None;
+                // Decoded anew from here: a failure can leave the crate's
+                // decoder set to read this file as an interim format, and the
+                // good frames that follow would fail for it.
+                self.abandon_worker();
                 let skipped = u64::from(blocks).saturating_sub(self.position - frame_start);
                 let packet = Packet::new(
                     0,

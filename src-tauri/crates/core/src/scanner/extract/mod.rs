@@ -399,39 +399,60 @@ fn rating_from_percent(text: &str) -> Option<u8> {
 /// The key a rating goes under in an APEv2 tag.
 pub const APE_RATING_KEY: &str = "RATING";
 
-/// The rating in the APEv2 tag of a WavPack or Monkey's Audio file.
-///
-/// Read off the concrete tag because lofty's generic one cannot hold it: its
-/// APEv2 key table has no entry for a rating, so [`extract_rating`] never sees
-/// one on these two containers, and a scan would overwrite `track.rating` with
-/// nothing. Tags only, like the custom-tag pass beside it.
-pub fn extract_ape_rating(path: &Path) -> Option<u8> {
+/// Copy into `tagged`'s generic tag what lofty leaves out of it for the APEv2
+/// tag of a WavPack or Monkey's Audio file: the rating, for which its key
+/// table has no entry, and the pictures, which it keeps as binary items for
+/// the caller to decode. Every reader goes through the generic tag, so without
+/// these a cover in the file is never shown and a scan overwrites
+/// `track.rating` with nothing.
+fn complete_ape_tag(path: &Path, tagged: &mut lofty::file::TaggedFile) {
     use lofty::config::ParseOptions;
-    use lofty::file::AudioFile;
+    use lofty::file::{AudioFile, TaggedFileExt};
+    use lofty::picture::{Picture, PictureType, APE_PICTURE_TYPES};
 
-    let probe = lofty::probe::Probe::open(path)
-        .ok()?
-        .guess_file_type()
-        .ok()?;
-    let file_type = probe.file_type()?;
-    let mut handle = probe.into_inner();
-    let options = ParseOptions::new()
-        .read_properties(false)
-        .read_cover_art(false);
-    let tag = match file_type {
-        FileType::Ape => lofty::ape::ApeFile::read_from(&mut handle, options)
-            .ok()?
-            .ape()
-            .cloned(),
-        FileType::WavPack => lofty::wavpack::WavPackFile::read_from(&mut handle, options)
-            .ok()?
-            .ape()
-            .cloned(),
-        _ => None,
-    }?;
-    match tag.get(APE_RATING_KEY)?.value() {
-        lofty::tag::ItemValue::Text(text) => rating_from_percent(text),
-        _ => None,
+    let file_type = tagged.file_type();
+    if !matches!(file_type, FileType::Ape | FileType::WavPack) {
+        return;
+    }
+    let Some(tag) = tagged.primary_tag_mut() else {
+        return;
+    };
+    let Ok(mut file) = fs::File::open(path) else {
+        return;
+    };
+    let options = ParseOptions::new().read_properties(false);
+    let concrete = match file_type {
+        FileType::Ape => lofty::ape::ApeFile::read_from(&mut file, options)
+            .ok()
+            .and_then(|f| f.ape().cloned()),
+        _ => lofty::wavpack::WavPackFile::read_from(&mut file, options)
+            .ok()
+            .and_then(|f| f.ape().cloned()),
+    };
+    let Some(concrete) = concrete else {
+        return;
+    };
+
+    if let Some(lofty::tag::ItemValue::Text(rating)) =
+        concrete.get(APE_RATING_KEY).map(|item| item.value())
+    {
+        // Unchecked because of that same table: a checked insert drops it.
+        tag.insert_unchecked(lofty::tag::TagItem::new(
+            ItemKey::Popularimeter,
+            lofty::tag::ItemValue::Text(rating.clone()),
+        ));
+    }
+    let mut pictures: Vec<Picture> = APE_PICTURE_TYPES
+        .iter()
+        .filter_map(|key| match concrete.get(key)?.value() {
+            lofty::tag::ItemValue::Binary(bytes) => Picture::from_ape_bytes(key, bytes).ok(),
+            _ => None,
+        })
+        .collect();
+    // The front cover is the one a reader takes first.
+    pictures.sort_by_key(|picture| picture.pic_type() != PictureType::CoverFront);
+    for picture in pictures {
+        tag.push_picture(picture);
     }
 }
 
@@ -503,7 +524,10 @@ pub fn read_tagged_file(path: &Path) -> Result<lofty::file::TaggedFile, String> 
             .read()
             .map_err(|e| error_chain(&e))
     };
-    read(ParsingMode::BestAttempt).or_else(|first| read(ParsingMode::Relaxed).map_err(|_| first))
+    let mut tagged = read(ParsingMode::BestAttempt)
+        .or_else(|first| read(ParsingMode::Relaxed).map_err(|_| first))?;
+    complete_ape_tag(path, &mut tagged);
+    Ok(tagged)
 }
 
 /// An error and every cause under it, `outer: inner: …`.

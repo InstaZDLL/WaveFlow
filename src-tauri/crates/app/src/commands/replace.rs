@@ -182,12 +182,16 @@ async fn check(
     let named = target_for(&current.path, source);
     // Everything that touches the disk, off the async runtime: on a
     // network share each of these can take seconds.
-    let (probed, target_exists, target_is_current, source_is_current, adopts) = {
+    let (probed, ext_ok, target_exists, target_is_current, source_is_current, adopts) = {
         let (source, target, current_path) =
             (source.to_path_buf(), named.clone(), current.path.clone());
         tokio::task::spawn_blocking(move || {
             (
                 waveflow_core::scanner::extract::probe_playable_stream(&source),
+                // The scanner's own test and not the extension list: a hybrid
+                // WavPack or a Speex `.ogg` has a listed extension and would be
+                // swapped in for a track the scanner then refuses to index.
+                waveflow_core::scanner::extract::is_scannable_audio(&source),
                 target.exists(),
                 same_path(&target, &current_path),
                 same_path(&source, &current_path),
@@ -219,10 +223,6 @@ async fn check(
         bit_depth: info.bit_depth,
     });
 
-    // The scanner's own test and not the extension list: a hybrid WavPack
-    // or a Speex `.ogg` has a listed extension and would be swapped in for a
-    // track the scanner then refuses to index.
-    let ext_ok = waveflow_core::scanner::extract::is_scannable_audio(source);
     // The adopted file's own track counts too: it is the one whose file
     // is open if that is what is playing.
     let now_playing = engine

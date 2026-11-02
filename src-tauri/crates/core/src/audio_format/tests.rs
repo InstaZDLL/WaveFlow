@@ -419,6 +419,51 @@ fn total_frames(path: &Path) -> u64 {
         .expect("declared length")
 }
 
+/// lofty reports no error for a file that merely has the extension, so the
+/// refusal is what keeps it from becoming a silent row.
+#[test]
+fn a_file_that_only_has_the_extension_is_not_indexed() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    for name in ["junk.wv", "junk.ape"] {
+        let path = dir.path().join(name);
+        fs::write(&path, vec![0x41u8; 4096]).expect("write");
+        assert!(!is_scannable_audio(&path), "{name}");
+    }
+
+    // A real header with no audio behind it: an unfinished Monkey's Audio file.
+    let mut unfinished = fs::read(fixture("s16_stereo_c2000.ape")).expect("read");
+    let descriptor = u32::from_le_bytes(unfinished[8..12].try_into().expect("four bytes")) as usize;
+    let total_frames_at = descriptor + 12;
+    unfinished[total_frames_at..total_frames_at + 4].copy_from_slice(&0u32.to_le_bytes());
+    let path = dir.path().join("unfinished.ape");
+    fs::write(&path, &unfinished).expect("write");
+    assert!(!is_scannable_audio(&path));
+    assert!(open(&path).is_err());
+}
+
+/// A tag ahead of a refused stream does not hide what it is.
+#[test]
+fn a_tag_ahead_of_a_hybrid_file_does_not_hide_it() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let hybrid = [
+        id3v2_tag_of_ten_bytes(),
+        fs::read(fixture("hybrid_lossy.wv")).expect("read"),
+    ]
+    .concat();
+    let path = dir.path().join("hybrid.wv");
+    fs::write(&path, hybrid).expect("write");
+    assert!(!is_scannable_audio(&path));
+
+    let playable = [
+        id3v2_tag_of_ten_bytes(),
+        fs::read(fixture("s16_stereo.wv")).expect("read"),
+    ]
+    .concat();
+    let path = dir.path().join("playable.wv");
+    fs::write(&path, playable).expect("write");
+    assert!(is_scannable_audio(&path));
+}
+
 /// Older Monkey's Audio files are outside the crate. Refused, and with the
 /// marker honoured: the probe does not go on to read the audio as some other
 /// format.
@@ -633,6 +678,62 @@ fn replacing_a_tag_with_no_header_costs_no_audio() {
             Some(title.to_string())
         );
     }
+}
+
+/// lofty's generic tag holds neither of these for APEv2, and every reader goes
+/// through the generic tag.
+#[test]
+fn a_cover_and_a_rating_in_an_apev2_tag_reach_the_readers() {
+    use lofty::ape::{ApeFile, ApeItem, ApeTag};
+    use lofty::picture::{MimeType, Picture, PictureType};
+    use lofty::tag::ItemValue;
+
+    const FRONT: &[u8] = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDRfront";
+    const BACK: &[u8] = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDRback";
+    let picture = |kind, data: &'static [u8]| {
+        Picture::unchecked(data.to_vec())
+            .pic_type(kind)
+            .mime_type(MimeType::Png)
+            .build()
+    };
+
+    let dir = tempfile::tempdir().expect("tempdir");
+    let path = dir.path().join("t.ape");
+    fs::copy(fixture("s16_stereo_c2000.ape"), &path).expect("copy");
+    crate::tagio::rewrite_via_temp(&path, |handle| -> Result<(), std::io::Error> {
+        let mut file = ApeFile::read_from(handle, ParseOptions::new()).expect("read");
+        let mut tag = ApeTag::new();
+        tag.insert(ApeItem::new("Title".into(), ItemValue::Text("T".into())).expect("item"));
+        tag.insert(
+            ApeItem::new(
+                crate::scanner::extract::APE_RATING_KEY.into(),
+                ItemValue::Text("80".into()),
+            )
+            .expect("item"),
+        );
+        // In the order a generic edit merges them, the back one first.
+        let (remainder, mut generic) = tag.split_tag();
+        generic.push_picture(picture(PictureType::CoverBack, BACK));
+        generic.push_picture(picture(PictureType::CoverFront, FRONT));
+        file.set_ape(remainder.merge_tag(generic));
+        file.save_to(handle, WriteOptions::default()).expect("save");
+        Ok(())
+    })
+    .expect("rewrite");
+
+    let tagged = crate::scanner::extract::read_tagged_file(&path).expect("read back");
+    let tag = tagged.primary_tag().expect("tag");
+    assert_eq!(crate::scanner::extract::extract_rating(tag), Some(204));
+    assert_eq!(tag.picture_count(), 2);
+    assert_eq!(tag.pictures()[0].pic_type(), PictureType::CoverFront);
+    assert_eq!(tag.pictures()[0].data(), FRONT);
+    assert_eq!(tag.pictures()[1].data(), BACK);
+
+    let extra = crate::scanner::extra_tags::read_extra_tags(&path).expect("extra tags");
+    assert!(
+        extra.is_empty(),
+        "no custom column for any of it: {extra:?}"
+    );
 }
 
 /// Taggers disagree on the case of these keys; APEv2 says they do not differ.

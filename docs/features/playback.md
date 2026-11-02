@@ -230,7 +230,11 @@ required_ts`, WavPack by carrying the head of its block as `trim_start` and
 Monkey's Audio by starting its cursor inside the frame, so a seek plays nothing
 from before the point asked for. Measured at 44 targets on each of 144 files
 against a full decode. There is no priming to remove and the sample count is
-in the header, so a track ends where it ends and gapless needs nothing more.
+in the header, so a track ends where it ends. Gapless has one cost at Insane: the
+next track's first frame starts decoding when it is opened, shortly before the
+current one runs out, and the join stays clean as long as that decode takes less
+than what the output ring still holds plus that half second. That holds at 44.1
+kHz (0.8 s on an idle core) and can leave a short gap on a hi-res Insane album.
 
 **The first seek into a WavPack file walks its block headers** up to the
 target, and remembers them. The format has no index.
@@ -239,12 +243,14 @@ target, and remembers them. The format has no index.
 [`patch_file`](../../src-tauri/crates/app/src/commands/edit/patch.rs) like any
 other container, so a field no reader models survives, and both keep their tag
 after the audio, so the audio's bytes are not touched. ReplayGain is read from
-that tag by the scanner's usual path, whatever the case of its keys. Two things
+that tag by the scanner's usual path, whatever the case of its keys. Three things
 lofty gets wrong on APEv2 are handled on our side, each with its reason in the
 code: it removes 32 bytes of audio when it replaces a tag with no header, the
 kind Monkey's Audio writes
-([`tagio::ape`](../../src-tauri/crates/core/src/tagio/ape.rs)), and its key table
-has no rating, so the stars go through the concrete tag. It also reports 0
+([`tagio::ape`](../../src-tauri/crates/core/src/tagio/ape.rs)), and its generic tag
+holds neither a rating nor the pictures, so
+[`read_tagged_file`](../../src-tauri/crates/core/src/scanner/extract/mod.rs) adds
+them from the concrete one and a rating is written there. It also reports 0
 channels for a multichannel WavPack file, which the scanner asks the decoder
 about instead.
 
@@ -256,7 +262,8 @@ neural filter relies on 32-bit wrap-around the way the C++ reference does.
 **A frame being decoded cannot be interrupted.** Skipping to the next track
 while the first frame of an Insane file is decoding waits for that frame, one
 or two seconds at most. Once a track is playing the worker is ahead, so this
-only shows right after a load or a seek.
+only shows right after a load or a seek. The first packet of a track waits for
+the same frame, so it is also how long an Insane file takes to start.
 
 ## ReplayGain
 
@@ -635,7 +642,7 @@ A file can play without becoming a library track: opened from the system (a doub
 - **On screen** it is told apart by `isFileTrack`: a negative id with a `file_path` (`player:radio-metadata` carries `is_file` and the path; radio and remote tracks leave the path empty). It has no library affordance (`isStreamTrack` covers it: no ♥, no start radio, no slideshow, no file menu), keeps Previous / Next / Repeat like a remote track, no Shuffle, and its queue shows in the remote queue's view (`RemoteQueueView source="file"`, in the panel and the mini-player). Its lyrics are looked up by artist and title and render synced.
 - **From the app.** A drop on the window offers two targets, **Play now** and **Add to the library** (see [Drag-and-drop import](library.md#drag-and-drop-import)); the "Play without importing" button in the sidebar's _My music_ header opens a menu with **Play files…** and **Play a folder…**, also bound to `Ctrl+O` and `Ctrl+Shift+O`. All of them end in [`playWithoutImporting`](../../src/lib/openToPlay.ts), which hands the paths to `player_play_paths`; the file picker offers the extensions the scanner takes. A failure, from the picker or from the command (a folder with no audio file in it), goes through the playback alert as `files-failed` / `picker-failed`, emitted as a `player:error` from the frontend, since none of these paths has anything else on screen to show it.
 - **The command line.** [`launch_args`](../../src-tauri/crates/app/src/launch_args.rs) reads the files a launch was opened with — the first launch from its own arguments once the profile is open, a later one from what the single-instance plugin hands the running instance, relative paths taken from its working directory. Options are skipped; the Flatpak's `%U` arrives as `file://` URIs and is converted. macOS passes no arguments: it sends `RunEvent::Opened` with file URLs, at launch as well as later, read by `paths_from_urls`. **Files that arrive together play together**: Windows starts the program once per file when several are opened at once, so each reaches the running window on its own, a moment after the last, and played as they came each would replace the queue the one before had started. `play_when_ready` gathers them until none has arrived for 400 ms (at most 3 s once the player is up; the wait for the player at a cold start gathers too), each file once, then plays them as one queue: in the order given when one launch brought them all, in path order when several did, since those reach the window in no reliable order (installed and measured: three files opened together arrived third, second, first). The open's load intent (#622) is claimed as soon as the engine exists, not when the files finally play: a track the user picks during the wait is the newer choice, and the files give way to it. On macOS the window is brought forward when files are opened, as the single-instance callback does elsewhere, except while the splash still stands at a launch, whose handoff reveals it once painted.
-- **Opened from the system.** The installers offer WaveFlow for the formats it plays (mp3, flac, wav, aiff/aif, ogg/oga, opus, m4a, aac, dsf, dff) and make it the default for none: the default player stays the user's choice. `.mp4` is left out, since it is a video type first.
+- **Opened from the system.** The installers offer WaveFlow for the formats it plays (mp3, flac, wav, aiff/aif, ogg/oga, opus, m4a, aac, wv, ape, dsf, dff) and make it the default for none: the default player stays the user's choice. `.mp4` is left out, since it is a video type first.
   - **macOS**: `bundle.fileAssociations` in [`tauri.macos.conf.json`](../../src-tauri/crates/app/tauri.macos.conf.json), one per format with its MIME type, role `Viewer` and rank `Alternate` (`LSHandlerRank`): listed under _Open With_, never picked over the owner. No `exportedType`, so WaveFlow declares none of these types as its own. **They are declared for macOS only, on purpose**: on Windows Tauri's associations write each extension's default class (NSIS `APP_ASSOCIATE`, advertised `ProgId`s in the MSI), making the installer the default player for every format. A `tauri.windows.conf.json` setting them to `null` cannot remove them: the CLI merges the base config, then the platform file, then the `--config` overlay — and [`scripts/tauri.mjs`](../../scripts/tauri.mjs) passes the whole `tauri.conf.json` as that overlay, which puts them back.
   - **Linux** (.deb, .rpm and the AppImage, so the AUR and COPR packages too): a desktop template of our own ([`linux/waveflow.desktop`](../../src-tauri/crates/app/linux/waveflow.desktop)) lists the same formats as `MimeType`, with the legacy aliases (`audio/x-flac`, ...). Tauri's default template has `Exec=waveflow` with no field code, so "Open with WaveFlow" started an empty window; ours passes `%F`. The Flatpak's own entry lists the same types and launches with `%U`.
   - **Windows**: NSIS hooks ([`windows/open-with.nsh`](../../src-tauri/crates/app/windows/open-with.nsh)) and a WiX fragment for the MSI ([`windows/open-with.wxs`](../../src-tauri/crates/app/windows/open-with.wxs)) write instead the `WaveFlow.Audio` ProgID, `.ext\OpenWithProgids` (the _Open with_ entry), `Applications\<exe>\SupportedTypes` (no entry for other types), and `Capabilities` + `RegisteredApplications` (WaveFlow listed in _Settings > Default apps_, where the user can choose it). NSIS writes under the hive its install mode picked and tells Explorer (`SHChangeNotify`); the MSI installs per machine. Uninstalling removes only WaveFlow's own values: the extension keys are shared with the other players, and an update leaves them in place, as it leaves the shortcuts.
