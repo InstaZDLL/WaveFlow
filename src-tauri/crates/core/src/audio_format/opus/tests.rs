@@ -268,3 +268,81 @@ fn a_corrupt_packet_is_an_error_and_leaves_no_audio_behind() {
         "a failed decode must not leave the previous packet's audio readable"
     );
 }
+
+/// Decoder order for 5.1: libopus writes the buffer's channel `i` from table
+/// entry `i`, so the table comes out in WAVE order.
+#[test]
+fn a_five_one_table_is_put_in_wave_order() {
+    let mut bytes = head(6, 0, 1);
+    bytes.push(4);
+    bytes.push(2);
+    // FL C FR RL RR LFE, as the RFC lays family 1 out.
+    bytes.extend_from_slice(&[10, 11, 12, 13, 14, 15]);
+    let (parsed, mapping) = parse_head(&bytes).expect("parse");
+    // FL FR C LFE RL RR.
+    assert_eq!(
+        decoder_order(parsed, mapping.mapping),
+        vec![10, 12, 11, 15, 13, 14]
+    );
+}
+
+#[test]
+fn a_seven_one_table_is_put_in_wave_order() {
+    let mut bytes = head(8, 0, 1);
+    bytes.push(5);
+    bytes.push(3);
+    // FL C FR SL SR RL RR LFE.
+    bytes.extend_from_slice(&[10, 11, 12, 13, 14, 15, 16, 17]);
+    let (parsed, mapping) = parse_head(&bytes).expect("parse");
+    // FL FR C LFE RL RR SL SR.
+    assert_eq!(
+        decoder_order(parsed, mapping.mapping),
+        vec![10, 12, 11, 17, 15, 16, 13, 14]
+    );
+}
+
+/// Family 255 has no order to put anything in, and four channels are the
+/// same in both.
+#[test]
+fn discrete_and_quad_tables_are_left_alone() {
+    let mut discrete = head(6, 0, 255);
+    discrete.extend_from_slice(&[6, 0, 0, 1, 2, 3, 4, 5]);
+    let (parsed, mapping) = parse_head(&discrete).expect("parse");
+    assert_eq!(
+        decoder_order(parsed, mapping.mapping),
+        vec![0, 1, 2, 3, 4, 5]
+    );
+
+    let mut quad = head(4, 0, 1);
+    quad.extend_from_slice(&[2, 2, 0, 1, 2, 3]);
+    let (parsed, mapping) = parse_head(&quad).expect("parse");
+    assert_eq!(decoder_order(parsed, mapping.mapping), vec![0, 1, 2, 3]);
+}
+
+/// The names given to the buffer match the order the table is put in, as
+/// many channels as the stream has.
+#[test]
+fn the_buffer_names_family_1_channels_and_not_family_255_ones() {
+    for count in 3..=8 {
+        let parsed = OpusHead {
+            channel_count: count,
+            pre_skip: 0,
+            output_gain: 0,
+            mapping_family: 1,
+        };
+        let channels = channel_layout(parsed);
+        assert!(matches!(channels, Channels::Positioned(_)), "{count}");
+        assert_eq!(channels.count(), usize::from(count));
+        assert_eq!(
+            FAMILY_1_ORDER[usize::from(count) - 3].len(),
+            usize::from(count)
+        );
+    }
+    let discrete = OpusHead {
+        channel_count: 6,
+        pre_skip: 0,
+        output_gain: 0,
+        mapping_family: 255,
+    };
+    assert_eq!(channel_layout(discrete), Channels::Discrete(6));
+}

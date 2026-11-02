@@ -5,9 +5,11 @@ use std::time::{Duration, Instant};
 
 use alsa::pcm::{Access, Format, HwParams, PCM};
 use alsa::{Direction, ValueOr};
+use waveflow_core::playback::channels::ChannelLayout;
 
 use crate::error::{AppError, AppResult};
 
+use super::super::output::linux_layout::layout_of_chmap;
 use super::super::output::DopFormat;
 use super::device::hw_card_index;
 use super::{
@@ -323,11 +325,22 @@ fn try_open_pcm(
     pcm.prepare()
         .map_err(|e| AppError::Audio(format!("alsa prepare: {e}")))?;
 
+    // Each card has its own order, and an HDA card's 5.1 is not WAVE's. One
+    // that states none gets ALSA's own default: the convention of the
+    // `surround51` a driver that says nothing has been written for.
+    let layout = pcm
+        .get_chmap()
+        .ok()
+        .and_then(|map| layout_of_chmap(&map))
+        .filter(|layout| layout.channels() == channels as usize)
+        .unwrap_or_else(|| ChannelLayout::alsa_default(channels as usize));
+
     Ok(OpenPcm {
         pcm,
         format,
         sample_rate,
         channels: channels as u16,
+        layout,
         period_frames,
         buffer_frames,
     })

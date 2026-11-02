@@ -27,6 +27,9 @@ enum TestTonePayload {
         sample_rate: u32,
         channels: u16,
         sample_format: super::super::state::OutputSampleFormat,
+        /// The beeps to come, in order: left, right and both on a stereo
+        /// output, every speaker in turn on a wider one.
+        phases: Vec<super::super::test_tone::TonePhase>,
         /// Mono output folds left and right together, so the card says
         /// why both beeps sound alike.
         mono: bool,
@@ -103,6 +106,8 @@ pub(super) fn play_test_tone(
     }
     let rate = shared.sample_rate.load(Ordering::Acquire);
     let channels = shared.channels.load(Ordering::Acquire);
+    let layout = shared.output_layout();
+    let tone = test_tone::ToneSequence::new(&layout, shared.mono_enabled.load(Ordering::Acquire));
     if rate == 0 || channels == 0 {
         let _ = app.emit(
             EVENT_TEST_TONE,
@@ -124,6 +129,7 @@ pub(super) fn play_test_tone(
             sample_rate: rate,
             channels,
             sample_format: shared.sample_format(),
+            phases: tone.phases(),
             mono: shared.mono_enabled.load(Ordering::Acquire),
         },
     );
@@ -132,7 +138,8 @@ pub(super) fn play_test_tone(
     // is nobody's position, so the clock is put back afterwards.
     let clock = shared.samples_played.load(Ordering::Acquire);
     let width = channels as usize;
-    let total = test_tone::total_frames(rate);
+    let total = tone.total_frames(rate);
+    let reserve = super::super::output::ring_reserve(width);
     // 10 ms per push: fine enough for the phase to follow the output.
     let mut chunk = vec![0.0_f32; (rate as usize / 100).max(1) * width];
     let mut pushed: u64 = 0;
@@ -169,7 +176,7 @@ pub(super) fn play_test_tone(
         // waits in the ring.
         let queued = ((super::super::output::RING_CAPACITY - producer.slots()) / width) as u64;
         let played = pushed.saturating_sub(queued);
-        let phase = test_tone::phase_at(played, rate);
+        let phase = tone.phase_at(played, rate);
         if phase.is_some() && phase != shown {
             shown = phase;
             if let Some(phase) = phase {
@@ -183,13 +190,13 @@ pub(super) fn play_test_tone(
                 shared.samples_played.store(clock, Ordering::Release);
                 return ToneEnd::Done;
             }
-        } else if producer.slots() >= chunk.len() {
-            let frames = test_tone::fill(&mut chunk, pushed, rate, width);
+        } else if producer.slots().saturating_sub(reserve) >= chunk.len() {
+            let frames = tone.fill(&mut chunk, pushed, rate);
             // Mono is folded on this thread now, not in the output; the
-            // tone gets it the way a track does, so the card's warning
+            // tone gets it the way a stereo track does, so the card's warning
             // still describes what is heard.
             if shared.mono_enabled.load(Ordering::Relaxed) {
-                super::super::stereo::mono_fold(&mut chunk[..frames * width], width);
+                super::super::stereo::mono_fold(&mut chunk[..frames * width], &layout, 2);
             }
             if let Ok(slot) = producer.write_chunk_uninit(frames * width) {
                 slot.fill_from_iter(chunk[..frames * width].iter().copied());

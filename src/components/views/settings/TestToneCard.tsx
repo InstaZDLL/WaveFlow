@@ -18,6 +18,7 @@ interface ToneOutput {
   sampleRate: number;
   channels: number;
   sampleFormat: OutputSampleFormat;
+  phases: TestTonePhase[];
   mono: boolean;
   device: string | null;
   exclusive: boolean;
@@ -25,10 +26,22 @@ interface ToneOutput {
 
 type Status = "idle" | "playing" | "finished" | "interrupted" | "failed";
 
-const PHASES: TestTonePhase[] = ["left", "right", "both"];
+const PHASE_KEYS: Record<TestTonePhase, string> = {
+  left: "left",
+  right: "right",
+  both: "both",
+  center: "center",
+  lfe: "lfe",
+  "back-left": "backLeft",
+  "back-right": "backRight",
+  "back-center": "backCenter",
+  "side-left": "sideLeft",
+  "side-right": "sideRight",
+};
 
-/** Longer than the tone (about 3 s) plus a slow output's latency: past
- *  it, the decoder never answered and the button must not stay stuck. */
+/** Longer than one beep plus a slow output's latency, counted again at each
+ *  beep: past it, the decoder stopped answering and the button must not stay
+ *  stuck. */
 const NO_ANSWER_MS = 10_000;
 
 const FORMAT_KEYS: Record<OutputSampleFormat, string> = {
@@ -104,6 +117,7 @@ export function TestToneCard() {
                 sampleRate: payload.sampleRate,
                 channels: payload.channels,
                 sampleFormat: payload.sampleFormat,
+                phases: payload.phases,
                 mono: payload.mono,
                 device: null,
                 exclusive: false,
@@ -133,6 +147,7 @@ export function TestToneCard() {
               break;
             }
             case "phase":
+              armWatchdog();
               setPhase(payload.phase);
               break;
             case "finished":
@@ -240,7 +255,7 @@ export function TestToneCard() {
       {status !== "idle" && status !== "failed" && output ? (
         <div className="mt-3 ml-9 space-y-2">
           <div className="flex flex-wrap gap-2" aria-live="polite">
-            {PHASES.map((p) => (
+            {output.phases.map((p) => (
               <span
                 key={p}
                 className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
@@ -250,13 +265,18 @@ export function TestToneCard() {
                 }`}
                 aria-current={phase === p ? "true" : undefined}
               >
-                {t(`settings.testTone.${p}`)}
+                {t(`settings.testTone.${PHASE_KEYS[p]}`)}
               </span>
             ))}
           </div>
           <p className="text-xs text-zinc-600 dark:text-zinc-300 tabular-nums">
             {details.join(" · ")}
           </p>
+          {output.channels > 2 && !output.mono ? (
+            <p className="text-xs settings-description">
+              {t("settings.testTone.surroundNote")}
+            </p>
+          ) : null}
           {output.mono ? (
             <p className="text-xs text-amber-600 dark:text-amber-400">
               {t("settings.testTone.monoNote")}

@@ -28,12 +28,16 @@ use cpal::{SampleFormat, Stream, StreamConfig};
 use crossbeam_channel::{bounded, Receiver, Sender};
 use rtrb::{Consumer, Producer, RingBuffer};
 use tauri::AppHandle;
+#[cfg(target_os = "linux")]
+use waveflow_core::playback::channels::ChannelLayout;
 
 use crate::error::{AppError, AppResult};
 
 use super::state::SharedPlayback;
 
 mod devices;
+#[cfg(target_os = "linux")]
+pub(super) mod linux_layout;
 mod recovery;
 
 use devices::device_key;
@@ -88,10 +92,23 @@ fn silence_alsa_stderr<R, F: FnOnce() -> R>(f: F) -> R {
     f()
 }
 
-/// Capacity of the SPSC sample ring, in f32 samples. At 48 kHz stereo
-/// this is ~1 second of audio, which gives the decoder thread plenty of
-/// headroom while keeping latency low.
-pub const RING_CAPACITY: usize = 96_000;
+/// How many frames the decoder keeps queued ahead of the output: ~1 second
+/// at 48 kHz, whatever the channel count. Plenty of headroom for the decoder
+/// thread while keeping the delay of a moved setting low.
+pub const RING_FRAMES: usize = 48_000;
+
+/// Capacity of the SPSC sample ring, in f32 samples: [`RING_FRAMES`] of a
+/// 7.1 output. Fixed, because each backend builds the ring before it knows
+/// what the device will accept, and it costs 1.5 MB.
+pub const RING_CAPACITY: usize = RING_FRAMES * 8;
+
+/// Slots the decoder leaves free in the ring on an output of `channels`, so
+/// the queue holds [`RING_FRAMES`] on any of them. A plain 96 000-sample ring
+/// was a second of stereo but a quarter of a second of 7.1, and half that at
+/// 96 kHz, and that is all a busy machine had to catch up in.
+pub fn ring_reserve(channels: usize) -> usize {
+    RING_CAPACITY.saturating_sub(RING_FRAMES.saturating_mul(channels.max(1)))
+}
 
 /// Exact (rate, channels) an output must open at to carry a DoP (DSD
 /// over PCM) stream, #495. Unlike the normal path — where the device
@@ -666,6 +683,8 @@ fn build_stream_inner(
     let default_cfg = device
         .default_output_config()
         .map_err(|e| AppError::Audio(format!("default output config: {e}")))?;
+    #[cfg(target_os = "linux")]
+    let default_cfg = linux_layout::widen_to_sink(&device, device_name.as_deref(), default_cfg);
 
     let sample_format = default_cfg.sample_format();
     let channels = default_cfg.channels();
@@ -676,6 +695,14 @@ fn build_stream_inner(
     // position helper can compute timing without re-querying cpal.
     shared.sample_rate.store(sample_rate, Ordering::Release);
     shared.channels.store(channels, Ordering::Release);
+    // What a shared stream's channels are. On Windows the count is the mix
+    // format's, in its WAVE order, and cpal's mask says to take the channels
+    // as they come. An ALSA PCM has its own order.
+    #[cfg(target_os = "linux")]
+    let layout = ChannelLayout::alsa_default(usize::from(channels)).pack();
+    #[cfg(not(target_os = "linux"))]
+    let layout = 0;
+    shared.output_layout.store(layout, Ordering::Release);
     shared.set_sample_format(match sample_format {
         SampleFormat::F32 => super::state::OutputSampleFormat::F32,
         SampleFormat::I16 => super::state::OutputSampleFormat::S16,
@@ -877,8 +904,8 @@ where
                 // bulk (not one-per-output-slot) so the decoder's
                 // spin-wait on `producer.slots() == RING_CAPACITY`
                 // completes in a single callback (~10-15 ms) instead
-                // of waiting for the device to consume the whole ring
-                // at its native cadence (~270 ms at 44.1 kHz / 8 ch).
+                // of waiting for the device to consume the whole queue
+                // at its native cadence (a second of audio).
                 if shared.drain_silent.load(Ordering::Acquire) {
                     while consumer.pop().is_ok() {}
                     for slot in out.iter_mut() {

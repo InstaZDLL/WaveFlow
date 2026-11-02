@@ -178,16 +178,19 @@ impl SpectrumAnalyzer {
             return;
         }
 
-        // Mono mix. We average all channels per frame so multi-channel
+        // Mono mix. We average the channels per frame so multi-channel
         // sources don't bias toward whichever channel happens to be
-        // first in the interleaved stream.
+        // first in the interleaved stream. Only the ones in use: a stereo
+        // track on a 7.1 output would otherwise read 12 dB low, under the
+        // level floor in its quieter passages.
+        let in_use = channels_in_use(samples, channels) as f32;
         let mut i = 0;
         while i + channels <= samples.len() {
             let mut sum = 0.0f32;
             for ch in 0..channels {
                 sum += samples[i + ch];
             }
-            self.pending.push(sum / channels as f32);
+            self.pending.push(sum / in_use);
             i += channels;
         }
 
@@ -283,6 +286,19 @@ fn delay_ms(
     let behind = (pending_len as u64).saturating_sub(FFT_SIZE as u64 / 2);
     let frames = ahead.saturating_sub(behind);
     (frames as f64 * 1000.0 / f64::from(sample_rate.max(1.0))).round() as u32
+}
+
+/// How many channels of this buffer carry anything, at least one.
+fn channels_in_use(samples: &[f32], channels: usize) -> usize {
+    (0..channels)
+        .filter(|ch| {
+            samples[(*ch).min(samples.len())..]
+                .iter()
+                .step_by(channels)
+                .any(|s| *s != 0.0)
+        })
+        .count()
+        .max(1)
 }
 
 fn hann_window(n: usize) -> Vec<f32> {
