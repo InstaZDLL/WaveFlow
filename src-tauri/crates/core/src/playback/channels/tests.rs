@@ -283,6 +283,16 @@ fn beyond_seven_one_no_channel_is_dropped() {
     assert!(rows[0][8] > 0.0 && rows[1][9] > 0.0, "{rows:?}");
 }
 
+/// Channels past 7.1 have no name to find each other by, so each keeps its
+/// place rather than all landing on the first one.
+#[test]
+fn nameless_channels_keep_their_place_on_a_wider_output() {
+    let frame: Vec<f32> = (0..10).map(|i| i as f32 * 0.01 + 0.01).collect();
+    let out = counts(10, 12, &frame);
+    assert_eq!(out[..10], frame[..]);
+    assert_eq!(out[10..], [0.0, 0.0]);
+}
+
 /// Every pair of common layouts: a full-scale frame stays in range after
 /// the mix, whatever its signs. This is what makes the final clamp a
 /// backstop rather than the limiter of every downmix.

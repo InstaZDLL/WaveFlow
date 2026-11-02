@@ -691,8 +691,34 @@ fn build_stream_inner(
     let sample_rate = default_cfg.sample_rate();
     let config: StreamConfig = default_cfg.into();
 
+    let stream_shared = shared.clone();
+    let stream = match sample_format {
+        SampleFormat::F32 => {
+            open_stream::<f32>(&device, &config, consumer, stream_shared, app, stall_tx)
+        }
+        SampleFormat::I16 => {
+            open_stream::<i16>(&device, &config, consumer, stream_shared, app, stall_tx)
+        }
+        SampleFormat::U16 => {
+            open_stream::<u16>(&device, &config, consumer, stream_shared, app, stall_tx)
+        }
+        other => Err(AppError::Audio(format!(
+            "unsupported sample format: {other:?}"
+        ))),
+    }?;
+
+    tracing::info!(
+        sample_rate,
+        channels,
+        ?sample_format,
+        "cpal output stream opened"
+    );
+
     // Stamp the device config into the shared state so the decoder and
-    // position helper can compute timing without re-querying cpal.
+    // position helper can compute timing without re-querying cpal. Only now
+    // the stream exists: a device switch keeps the old stream when the new one
+    // is refused, and the decoder would go on writing the refused format into
+    // it, 2-channel frames into an 8-channel ring at four times the speed.
     shared.sample_rate.store(sample_rate, Ordering::Release);
     shared.channels.store(channels, Ordering::Release);
     // What a shared stream's channels are. On Windows the count is the mix
@@ -709,22 +735,6 @@ fn build_stream_inner(
         SampleFormat::U16 => super::state::OutputSampleFormat::U16,
         _ => super::state::OutputSampleFormat::Unknown,
     });
-
-    tracing::info!(
-        sample_rate,
-        channels,
-        ?sample_format,
-        "cpal output stream opened"
-    );
-
-    let stream = match sample_format {
-        SampleFormat::F32 => open_stream::<f32>(&device, &config, consumer, shared, app, stall_tx),
-        SampleFormat::I16 => open_stream::<i16>(&device, &config, consumer, shared, app, stall_tx),
-        SampleFormat::U16 => open_stream::<u16>(&device, &config, consumer, shared, app, stall_tx),
-        other => Err(AppError::Audio(format!(
-            "unsupported sample format: {other:?}"
-        ))),
-    }?;
     Ok((stream, opened_device))
 }
 

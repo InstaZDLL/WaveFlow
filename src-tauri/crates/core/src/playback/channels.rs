@@ -506,9 +506,16 @@ fn speaker_routes(
         return;
     }
 
-    if let Some(dst) = output.index_of(speaker) {
-        add(dst, 1.0);
+    // Channels with no name are told apart by their place in the frame.
+    if speaker == Unknown && output.speakers().get(src) == Some(&Unknown) {
+        add(src, 1.0);
         return;
+    }
+    if speaker != Unknown {
+        if let Some(dst) = output.index_of(speaker) {
+            add(dst, 1.0);
+            return;
+        }
     }
 
     match speaker {

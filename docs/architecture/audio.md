@@ -98,7 +98,9 @@ There is no plug layer under a `hw:` device — that is the whole point — so *
 
 `FLOAT_LE` → `S32_LE` → `S24_3LE` → `S24_LE` → `S16_LE`
 
-with the channel count tried at the engine's current value first and stereo as the fallback (a zero count — nothing has opened an output yet — reads as stereo, or the first launch with exclusive already on would ask a card for mono and get it).
+with the channel count tried at the engine's current value first and stereo as the fallback (a zero count — nothing has opened an output yet — asks the sound server how wide its sink is, and reads as stereo if it cannot say, or the first launch with exclusive already on would ask a card for mono and get it).
+
+**The card's order is the card's.** After `hw_params` the backend reads the PCM's channel map (`snd_pcm_get_chmap`) and publishes it as the output's [layout](#channel-layouts): an HDA card's 5.1 is `FL FR RL RR FC LFE`, not WAVE's order. A device that states no map gets ALSA's own default order.
 
 **`S24_LE` is placed late on purpose.** ALSA puts the 24 valid bits in the **low** three bytes of the 32-bit word; WASAPI's `Pcm24Padded` puts them in the **high** three. Copying the other backend's `<< 8` multiplies every sample by 256 into permanent clipping, and the mirror mistake costs 48 dB. A unit test pins the layout, and the enum variant's doc comment says why it exists.
 
@@ -109,7 +111,7 @@ Two things the DoP path had worked out first are now shared rather than duplicat
 
 **Period and buffer must both be asked for.** `HwParams::any` leaves them at whatever the driver offers, and `snd_pcm_hw_params` then takes its **maximum** for both. Measured on a `snd-dummy` card: a 16 384-frame period — ~370 ms at 44.1 kHz — and a buffer deep enough that starting a track, seeking and changing track each took about ten seconds. That wait was **the buffer draining**, not the period.
 
-The period has its own, quieter effect: one period is drained from the ring in a single pass, and whatever the ring can't supply is written as silence. A period that size was two thirds of [`RING_CAPACITY`](#ring-buffer-sizing) on the card measured, which makes an underrun the normal case rather than the exception. `set_period_and_buffer` asks for 1024 frames (~23 ms at 44.1 kHz) and a buffer of 4 periods.
+The period has its own, quieter effect: one period is drained from the ring in a single pass, and whatever the ring can't supply is written as silence. A period that size was two thirds of the [ring](#ring-buffer-sizing) as it then was on the card measured, which makes an underrun the normal case rather than the exception. `set_period_and_buffer` asks for 1024 frames (~23 ms at 44.1 kHz) and a buffer of 4 periods.
 
 ### macOS: hog mode, and nothing else
 
@@ -121,13 +123,35 @@ The period has its own, quieter effect: one period is drained from the ring in a
 
 - **One app at a time.** While exclusive is engaged, system sounds (notifications, Discord, browser audio) are silenced. By design.
 - **The mode survives device hot-swaps.** `engine::set_output_device` reuses the same `spawn_output_with_mode` dispatch, so picking a new output keeps the chosen mode.
-- **The negotiated layout is authoritative downstream.** Each backend stores what the device actually accepted into `SharedPlayback.{sample_rate,channels}` before init is reported to the caller, so the decoder thread — spawned only after that — resamples and downmixes to that, not to what any mix format claimed.
+- **The negotiated layout is authoritative downstream.** Each backend stores what the device actually accepted into `SharedPlayback.{sample_rate,channels,output_layout}` before init is reported to the caller, so the decoder thread — spawned only after that — resamples and mixes to that, not to what any mix format claimed.
 - **The period fill is one function.** [`output::fill_pcm_period`](../../src-tauri/crates/app/src/audio/output/mod.rs) pops the ring and applies volume / normalization, and it lives in `output/mod.rs` rather than in each backend — the three have no business disagreeing about whether an underrun counts toward the play clock. Its tests run on every platform instead of only where one backend compiles.
 - **Failure is fail-soft but not silent.** A backend that can't open logs a `warn`; the engine reports what actually engaged through `PlayerStateSnapshot.exclusive_active`, which is what the Settings card and the pipeline pill read (the toggle can be on while the mode is off).
 
+## Channel layouts
+
+A channel is a speaker, not a number. [`ChannelLayout`](../../src-tauri/crates/core/src/playback/channels.rs) names the speaker behind each interleaved channel, in the order the samples come, and every stage that treats channels differently goes through it. There are two of them per stream:
+
+- **The source's**, from the decoder's own report (`Channels::Positioned` is a WAVE mask, so a file's "side" and "back" stay apart) or from the count when it gives none. `dsd_channel_layout` reads a DSF's type and a DFF's channel identifiers.
+- **The output's**, published by whichever backend opened it in `SharedPlayback.output_layout` (one nibble per channel in a `u64`, next to the other atomics), or the count's WAVE order when that is zero.
+
+| Backend              | What the output's layout comes from                                                                                                                                                                                                    |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| cpal, Windows        | The count, in WAVE order: cpal takes the mix format's channel count and asks for the channels as they come. Measured on a 7.1 endpoint.                                                                                                |
+| cpal, Linux          | ALSA's default order (`FL FR RL RR FC LFE SL SR`), which the PipeWire ALSA plugin states for every count and maps accordingly (measured against an 8-channel sink). The count is the sink's, see below.                                 |
+| cpal, macOS          | The count, in WAVE order. Not checked against a real surround device.                                                                                                                                                                  |
+| WASAPI exclusive     | The channel mask the driver accepted, which `is_supported_exclusive_with_quirks` may have changed from the one asked for.                                                                                                              |
+| ALSA exclusive       | The PCM's channel map, or ALSA's default order when it states none.                                                                                                                                                                     |
+| CoreAudio hog mode   | The count, in WAVE order. Not checked against a real surround device.                                                                                                                                                                  |
+
+**The ring holds the output's channels, in the output's order.** The decoder mixes to that layout, so nothing after it permutes anything: the callback stays a pop and a scale, and a backend whose device numbers its speakers differently only has to say so.
+
+**Linux opens at the sink's width.** cpal's default configuration prefers stereo above anything else, and the sound server's ALSA plugin offers every count from 1 to 128, so a shared stream used to be stereo even on a 7.1 sink. [`linux_layout::widen_to_sink`](../../src-tauri/crates/app/src/audio/output/linux_layout.rs) asks `pactl` how wide the sink is (`PIPEWIRE_NODE` or `PULSE_SINK` when set, as the plugin honours them, the default sink otherwise) and only for the devices that lead to the server (`default`, `pipewire`, `pulse`). No answer in 500 ms, no `pactl`: stereo, as before.
+
 ## Ring buffer sizing
 
-`RING_CAPACITY = 96_000` `f32` samples. At 48 kHz stereo this is ~1 s of audio — plenty of headroom for the decoder while keeping latency low. With more channels the headroom shrinks proportionally (8-channel surround → ~272 ms), which is mostly relevant for the seek drain time (see [playback](../features/playback.md#seek)).
+`RING_FRAMES = 48_000` frames is what the decoder keeps queued ahead of the output, ~1 s at 48 kHz on any output — plenty of headroom for the decoder while keeping the delay of a moved setting low. `RING_CAPACITY` is that many frames of a 7.1 output, 384 000 `f32` samples, or 1.5 MB. The ring is built before a backend knows what the device will accept, so it has one size, and [`ring_reserve`](../../src-tauri/crates/app/src/audio/output/mod.rs) is how many slots the decoder leaves free for the queue to hold `RING_FRAMES` on the output actually open. A stereo output queues the 96 000 samples it always did.
+
+A plain 96 000-sample ring gave 8 channels 272 ms at 44.1 kHz, 125 ms at 96 kHz and 62 ms at 192 kHz, all of it the time a busy machine had to catch up in. The bulk pop of the [drain](#drain-modes) only ever finds the queue, under 2 ms of work in a callback.
 
 ## Drain modes
 
