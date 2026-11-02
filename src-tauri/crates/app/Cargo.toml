@@ -309,7 +309,7 @@ encoding_rs = "0.8.42"
 # Builds the error the global-shortcut plugin flattens to text, so the
 # test that tells "taken" apart pins the wording. Already in the tree
 # under that plugin; the version is its own.
-global-hotkey = "0.8"
+global-hotkey = "0.9"
 # Paused time (`start_paused`), so the tests of the lyrics plugin tier's
 # upgrade window run on the clock they set rather than the machine's.
 tokio = { version = "1", features = ["test-util"] }
