@@ -472,7 +472,7 @@ The decoder's `transition_state` feeds it (a non-blocking send), skipping `Loadi
 
 ## OS media controls
 
-[`media_controls.rs`](../../src-tauri/crates/app/src/media_controls.rs) bridges the engine to [`souvlaki 0.8`](https://crates.io/crates/souvlaki):
+[`media_controls.rs`](../../src-tauri/crates/app/src/media_controls.rs) bridges the engine to [`souvlaki 0.9`](https://crates.io/crates/souvlaki):
 
 - **Windows** — SMTC. Now-Playing artwork is served to SMTC over a tiny localhost HTTP shim because Windows expects a URL, not a file path.
 - **Linux** — MPRIS via D-Bus.
