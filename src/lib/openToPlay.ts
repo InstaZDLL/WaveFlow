@@ -20,6 +20,8 @@ export const PLAYABLE_EXTENSIONS = [
   "m4a",
   "mp4",
   "aac",
+  "wv",
+  "ape",
   "dsf",
   "dff",
 ];

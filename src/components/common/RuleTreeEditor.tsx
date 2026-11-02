@@ -404,6 +404,8 @@ const FORMAT_OPTIONS = [
   "ogg",
   "opus",
   "wav",
+  "wavpack",
+  "ape",
   "dsf",
   "dff",
 ];

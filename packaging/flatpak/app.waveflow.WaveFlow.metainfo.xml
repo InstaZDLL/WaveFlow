@@ -22,7 +22,7 @@
     <p>Features:</p>
     <ul>
       <li>Gapless playback, crossfade (static / smart album-aware / dynamic tempo-aware), ReplayGain, 6-band peaking EQ with 20 presets, playback speed 0.5×–2×</li>
-      <li>DSD → PCM conversion (256-tap Blackman-Harris FIR), FLAC, ALAC, MP3, AAC, OGG, Opus, WavPack and more via Symphonia</li>
+      <li>DSD → PCM conversion (256-tap Blackman-Harris FIR), FLAC, ALAC, MP3, AAC, OGG, Opus, WavPack, Monkey's Audio and more</li>
       <li>Real-time spectrum visualizer, fullscreen Now Playing, word-level karaoke lyrics (Enhanced LRC + TTML), sidecar .lrc / .txt auto-discovery</li>
       <li>Smart playlists: Daily Mix, On Repeat, custom boolean rule trees, M3U import/export</li>
       <li>Library scanner with multi-artist split, sticky compilation grouping, BLAKE3 duplicate detection, virtualised tables for 6000+ tracks</li>
@@ -105,6 +105,8 @@
     <mediatype>audio/opus</mediatype>
     <mediatype>audio/mp4</mediatype>
     <mediatype>audio/aac</mediatype>
+    <mediatype>audio/x-wavpack</mediatype>
+    <mediatype>audio/x-ape</mediatype>
     <mediatype>audio/x-dsf</mediatype>
     <mediatype>audio/x-dff</mediatype>
   </provides>

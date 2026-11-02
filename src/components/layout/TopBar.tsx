@@ -653,6 +653,8 @@ export function TopBar({
                     "WAV",
                     "AIFF",
                     "ALAC",
+                    "WavPack",
+                    "APE",
                     "DSF",
                     "DFF",
                     "MP3",
