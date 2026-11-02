@@ -475,6 +475,7 @@ impl AudioEngine {
         })?;
         if releases {
             super::live::release_starved_reader();
+            crate::netlib::media::release_starved_readers();
         }
         // A pause on a live station is time behind live, counted by its
         // buffer — the same lifecycle as the pending pause, so a load

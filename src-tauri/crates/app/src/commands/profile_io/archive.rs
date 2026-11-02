@@ -45,6 +45,90 @@ pub(crate) fn write_archive(
     })
 }
 
+/// A file removed when it goes out of scope, however the export ends.
+struct ScrubbedCopy(std::path::PathBuf);
+
+impl ScrubbedCopy {
+    fn path(&self) -> &Path {
+        &self.0
+    }
+}
+
+impl Drop for ScrubbedCopy {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_file(&self.0);
+    }
+}
+
+/// A copy of the database with every `network_source.secret` blanked, or
+/// `None` when it holds none, so the common export copies nothing twice.
+///
+/// `VACUUM` is the point as much as the `UPDATE`: an updated row leaves its old
+/// bytes in a free page, and the archive is the whole file. A password changed
+/// or a source removed earlier leaves none behind, because those writes run
+/// with `secure_delete` (`netlib::store`).
+///
+/// `write_archive` is a plain blocking function, so this drives sqlx on a thread
+/// of its own, which works wherever it was called from.
+fn database_without_secrets(db_path: &Path) -> AppResult<Option<ScrubbedCopy>> {
+    std::thread::scope(|scope| {
+        scope
+            .spawn(|| scrub_on_this_thread(db_path))
+            .join()
+            .map_err(|_| AppError::Other("export: the database copy panicked".into()))?
+    })
+}
+
+fn scrub_on_this_thread(db_path: &Path) -> AppResult<Option<ScrubbedCopy>> {
+    use sqlx::{sqlite::SqliteConnectOptions, ConnectOptions, Connection};
+
+    // Any doubt here copies the database, never the other way round. A profile
+    // not migrated since has no such table, and that alone means no secret.
+    let has_secrets = crate::netlib::block_on(async {
+        let mut conn = SqliteConnectOptions::new()
+            .filename(db_path)
+            .read_only(true)
+            .connect()
+            .await?;
+        let has_table: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'network_source'",
+        )
+        .fetch_one(&mut conn)
+        .await?;
+        let count: i64 = if has_table == 0 {
+            0
+        } else {
+            sqlx::query_scalar("SELECT COUNT(*) FROM network_source WHERE secret IS NOT NULL")
+                .fetch_one(&mut conn)
+                .await?
+        };
+        let _ = conn.close().await;
+        Ok::<bool, sqlx::Error>(count > 0)
+    })?;
+    if !has_secrets {
+        return Ok(None);
+    }
+    let copy = ScrubbedCopy(
+        db_path.with_extension(format!("export-{}.tmp", uuid::Uuid::new_v4().simple())),
+    );
+    std::fs::copy(db_path, copy.path())?;
+    crate::netlib::block_on(async {
+        let mut conn = SqliteConnectOptions::new()
+            .filename(copy.path())
+            .connect()
+            .await?;
+        sqlx::query("PRAGMA journal_mode = DELETE")
+            .execute(&mut conn)
+            .await?;
+        sqlx::query("UPDATE network_source SET secret = NULL")
+            .execute(&mut conn)
+            .await?;
+        sqlx::query("VACUUM").execute(&mut conn).await?;
+        conn.close().await
+    })?;
+    Ok(Some(copy))
+}
+
 fn write_archive_into(
     file: &mut File,
     profile_dir: &Path,
@@ -69,7 +153,11 @@ fn write_archive_into(
     //    caller when it belongs to the active profile).
     if db_path.exists() {
         zip.start_file("data.db", opts)?;
-        let mut src = File::open(db_path)?;
+        // A share's password is the password of an account on someone's NAS,
+        // and an archive is made to travel. A copy with it blanked goes in
+        // instead; an imported profile asks for it again.
+        let scrubbed = database_without_secrets(db_path)?;
+        let mut src = File::open(scrubbed.as_ref().map_or(db_path, |copy| copy.path()))?;
         std::io::copy(&mut src, &mut zip)?;
     }
 

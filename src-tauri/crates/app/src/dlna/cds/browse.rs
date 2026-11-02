@@ -42,18 +42,22 @@ pub(super) async fn browse_artist_albums(
     count: i64,
     offset: i64,
 ) -> Result<BrowseResult, sqlx::Error> {
-    let total: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM album WHERE artist_id = ?")
-        .bind(artist_id)
-        .fetch_one(pool)
-        .await?;
-    let rows: Vec<(i64, String, i64)> = sqlx::query_as(
+    let total: i64 = sqlx::query_scalar(concat!(
+        "SELECT COUNT(*) FROM album al WHERE al.artist_id = ? AND ",
+        served_album!()
+    ))
+    .bind(artist_id)
+    .fetch_one(pool)
+    .await?;
+    let rows: Vec<(i64, String, i64)> = sqlx::query_as(concat!(
         "SELECT al.id, al.title,
-                (SELECT COUNT(*) FROM track t WHERE t.album_id = al.id AND t.is_available = 1)
+                (SELECT COUNT(*) FROM track t WHERE t.album_id = al.id AND t.is_available = 1 AND t.file_path NOT LIKE 'wfnet://%')
            FROM album al
-          WHERE al.artist_id = ?
-          ORDER BY al.year, al.canonical_title, al.id
+          WHERE al.artist_id = ? AND ",
+        served_album!(),
+        " ORDER BY al.year, al.canonical_title, al.id
           LIMIT ? OFFSET ?",
-    )
+    ))
     .bind(artist_id)
     .bind(count)
     .bind(offset)
@@ -72,18 +76,23 @@ pub(super) async fn browse_albums(
     count: i64,
     offset: i64,
 ) -> Result<BrowseResult, sqlx::Error> {
-    let total: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM album")
-        .fetch_one(pool)
-        .await?;
+    let total: i64 = sqlx::query_scalar(concat!(
+        "SELECT COUNT(*) FROM album al WHERE ",
+        served_album!()
+    ))
+    .fetch_one(pool)
+    .await?;
     // Only available tracks count, because `browse_album_tracks` lists
     // only those; the per-row count rides `idx_track_album_available`.
-    let rows: Vec<(i64, String, i64)> = sqlx::query_as(
+    let rows: Vec<(i64, String, i64)> = sqlx::query_as(concat!(
         "SELECT al.id, al.title,
-                (SELECT COUNT(*) FROM track t WHERE t.album_id = al.id AND t.is_available = 1)
+                (SELECT COUNT(*) FROM track t WHERE t.album_id = al.id AND t.is_available = 1 AND t.file_path NOT LIKE 'wfnet://%')
            FROM album al
-          ORDER BY al.canonical_title, al.id
+          WHERE ",
+        served_album!(),
+        " ORDER BY al.canonical_title, al.id
           LIMIT ? OFFSET ?",
-    )
+    ))
     .bind(count)
     .bind(offset)
     .fetch_all(pool)
@@ -178,7 +187,7 @@ const FOLDER_SUBDIRS_SQL: &str = r#"
         FROM (SELECT substr(file_path, ? + 1) AS rest
                 FROM track
                WHERE library_id = ?
-                 AND is_available = 1
+                 AND is_available = 1 AND file_path NOT LIKE 'wfnet://%'
                  AND file_path >= ?
                  AND file_path <  ?)
        WHERE instr(rest, ?) > 0
@@ -217,7 +226,7 @@ async fn folder_file_count(pool: &SqlitePool, dir: &FolderDir) -> Result<i64, sq
         "SELECT COUNT(*)
            FROM track
           WHERE library_id = ?
-            AND is_available = 1
+            AND is_available = 1 AND file_path NOT LIKE 'wfnet://%'
             AND file_path >= ?
             AND file_path <  ?
             AND instr(substr(file_path, ? + 1), ?) = 0",
@@ -247,12 +256,14 @@ pub(super) async fn browse_library_folders(
     count: i64,
     offset: i64,
 ) -> Result<BrowseResult, sqlx::Error> {
-    let total: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM library_folder")
-        .fetch_one(pool)
-        .await?;
+    let total: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM library_folder WHERE path NOT LIKE 'wfnet://%'")
+            .fetch_one(pool)
+            .await?;
     let roots: Vec<(i64, i64, String)> = sqlx::query_as(
         "SELECT id, library_id, path
            FROM library_folder
+          WHERE path NOT LIKE 'wfnet://%'
           ORDER BY path COLLATE FOLD, id
           LIMIT ? OFFSET ?",
     )
@@ -317,7 +328,7 @@ pub(super) async fn browse_folder(
         let file_offset = (offset - dir_count).max(0);
         let rows: Vec<TrackRow> = sqlx::query_as(track_select!(
             "WHERE t.library_id = ?
-               AND t.is_available = 1
+               AND t.is_available = 1 AND t.file_path NOT LIKE 'wfnet://%'
                AND t.file_path >= ?
                AND t.file_path <  ?
                AND instr(substr(t.file_path, ? + 1), ?) = 0
@@ -354,12 +365,12 @@ pub(super) async fn browse_album_tracks(
     offset: i64,
 ) -> Result<BrowseResult, sqlx::Error> {
     let total: i64 =
-        sqlx::query_scalar("SELECT COUNT(*) FROM track WHERE album_id = ? AND is_available = 1")
+        sqlx::query_scalar("SELECT COUNT(*) FROM track WHERE album_id = ? AND is_available = 1 AND file_path NOT LIKE 'wfnet://%'")
             .bind(album_id)
             .fetch_one(&ctx.pool)
             .await?;
     let rows: Vec<TrackRow> = sqlx::query_as(track_select!(
-        "WHERE t.album_id = ? AND t.is_available = 1
+        "WHERE t.album_id = ? AND t.is_available = 1 AND t.file_path NOT LIKE 'wfnet://%'
          ORDER BY t.disc_number, t.track_number, t.title, t.id
          LIMIT ? OFFSET ?"
     ))
@@ -394,7 +405,7 @@ pub(super) async fn browse_genre_tracks(
         "SELECT COUNT(*)
            FROM track_genre tg
            JOIN track t ON t.id = tg.track_id
-          WHERE tg.genre_id = ? AND t.is_available = 1",
+          WHERE tg.genre_id = ? AND t.is_available = 1 AND t.file_path NOT LIKE 'wfnet://%'",
     )
     .bind(genre_id)
     .fetch_one(&ctx.pool)
@@ -402,7 +413,7 @@ pub(super) async fn browse_genre_tracks(
     let rows: Vec<TrackRow> = sqlx::query_as(track_select!(
         "JOIN track_genre tg ON tg.track_id = t.id
          LEFT JOIN artist aa ON aa.id = al.artist_id
-         WHERE tg.genre_id = ? AND t.is_available = 1
+         WHERE tg.genre_id = ? AND t.is_available = 1 AND t.file_path NOT LIKE 'wfnet://%'
          ORDER BY aa.canonical_name, al.canonical_title, al.id,
                   t.disc_number, t.track_number, t.id
          LIMIT ? OFFSET ?"
@@ -432,14 +443,14 @@ pub(super) async fn browse_playlist_tracks(
         "SELECT COUNT(*)
            FROM playlist_track pt
            JOIN track t ON t.id = pt.track_id
-          WHERE pt.playlist_id = ? AND t.is_available = 1",
+          WHERE pt.playlist_id = ? AND t.is_available = 1 AND t.file_path NOT LIKE 'wfnet://%'",
     )
     .bind(playlist_id)
     .fetch_one(&ctx.pool)
     .await?;
     let rows: Vec<TrackRow> = sqlx::query_as(track_select!(
         "JOIN playlist_track pt ON pt.track_id = t.id
-         WHERE pt.playlist_id = ? AND t.is_available = 1
+         WHERE pt.playlist_id = ? AND t.is_available = 1 AND t.file_path NOT LIKE 'wfnet://%'
          ORDER BY pt.position, t.id
          LIMIT ? OFFSET ?"
     ))

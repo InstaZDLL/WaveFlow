@@ -39,6 +39,7 @@ pub mod media_file;
 pub mod mood_radio;
 pub mod motion_artwork;
 pub mod mpd;
+pub mod network_library;
 pub mod offline;
 pub mod player;
 pub mod playlist;

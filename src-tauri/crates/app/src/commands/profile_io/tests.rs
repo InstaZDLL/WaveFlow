@@ -355,17 +355,35 @@ async fn an_archive_whose_database_is_damaged_is_unreadable() {
         *byte = 0xA5;
     }
     std::fs::write(&db, &bytes).unwrap();
+
+    // Written by hand: an export now refuses such a database, see below, and
+    // an archive like this comes from elsewhere, or from an older build.
     let archive = dir.path().join("damaged.waveflow");
-    write_archive(
-        &archive,
+    let mut zip = ZipWriter::new(File::create(&archive).unwrap());
+    let options = SimpleFileOptions::default();
+    zip.start_file(MANIFEST_FILENAME, options).unwrap();
+    zip.write_all(&serde_json::to_vec(&manifest(ARCHIVE_VERSION)).unwrap())
+        .unwrap();
+    zip.start_file("data.db", options).unwrap();
+    zip.write_all(&bytes).unwrap();
+    zip.finish().unwrap();
+    assert_unreadable(preview_archive(&archive).await);
+
+    // A database that cannot be read cannot be checked for a share's password,
+    // so it does not go into an archive on the chance that it holds none. The
+    // file is still there for whoever wants to rescue it, and a backup that
+    // fails keeps the last good one.
+    let refused = dir.path().join("refused.waveflow");
+    assert!(write_archive(
+        &refused,
         &profile,
         &db,
         &profile.join("artwork"),
         None,
         &manifest(ARCHIVE_VERSION),
     )
-    .unwrap();
-    assert_unreadable(preview_archive(&archive).await);
+    .is_err());
+    assert!(!refused.exists());
 }
 
 #[test]
@@ -572,4 +590,104 @@ async fn a_checkpoint_a_reader_blocks_fails_rather_than_pass() {
 
     let _ = reader.close().await;
     let _ = writer.close().await;
+}
+
+// ── a share's password ─────────────────────────────────────────
+
+/// A profile with a share's password, exported by the real `write_archive`:
+/// the row and its bytes must be gone from the archive, in clear or anywhere
+/// in a free page, and the database at home must keep it.
+#[tokio::test(flavor = "multi_thread")]
+async fn an_export_leaves_a_shares_password_behind() {
+    use std::io::Read;
+
+    const MARKER: &str = "correct-horse-battery-staple-7f3a";
+    let dir = tempfile::tempdir().unwrap();
+    let profile = dir.path().join("profile");
+    std::fs::create_dir_all(profile.join("artwork")).unwrap();
+    let db = extracted(&profile).await;
+    exec(
+        &db,
+        "PRAGMA journal_mode = WAL;
+         INSERT INTO network_source (uuid, kind, name, endpoint, username, secret, created_at)
+         VALUES ('u-1', 'webdav', 'NAS', 'https://nas.local/dav', 'me',
+                 'correct-horse-battery-staple-7f3a', 1);
+         PRAGMA wal_checkpoint(TRUNCATE);",
+    )
+    .await;
+    let at_home = std::fs::read(&db).unwrap();
+    assert!(
+        at_home
+            .windows(MARKER.len())
+            .any(|w| w == MARKER.as_bytes()),
+        "the test only proves something if the bytes were there"
+    );
+
+    let target = dir.path().join("weekend.waveflow");
+    let db_for_export = db.clone();
+    let profile_for_export = profile.clone();
+    let target_for_export = target.clone();
+    tokio::task::spawn_blocking(move || {
+        write_archive(
+            &target_for_export,
+            &profile_for_export,
+            &db_for_export,
+            &profile_for_export.join("artwork"),
+            None,
+            &manifest(ARCHIVE_VERSION),
+        )
+    })
+    .await
+    .unwrap()
+    .unwrap();
+
+    // Every entry of the archive, not only the database.
+    let mut archive = zip::ZipArchive::new(File::open(&target).unwrap()).unwrap();
+    let mut archived_db = Vec::new();
+    for index in 0..archive.len() {
+        let mut entry = archive.by_index(index).unwrap();
+        let name = entry.name().unwrap().to_string();
+        let mut bytes = Vec::new();
+        entry.read_to_end(&mut bytes).unwrap();
+        assert!(
+            !bytes.windows(MARKER.len()).any(|w| w == MARKER.as_bytes()),
+            "the password is in {name}"
+        );
+        if name == "data.db" {
+            archived_db = bytes;
+        }
+    }
+    assert!(!archived_db.is_empty());
+
+    // The source itself travels: an imported profile asks for the password.
+    let restored = dir.path().join("restored.db");
+    std::fs::write(&restored, &archived_db).unwrap();
+    assert_eq!(
+        count(&restored, "SELECT COUNT(*) FROM network_source").await,
+        1
+    );
+    assert_eq!(
+        count(
+            &restored,
+            "SELECT COUNT(*) FROM network_source WHERE secret IS NULL"
+        )
+        .await,
+        1
+    );
+
+    // The live database is untouched, and no working copy is left behind.
+    assert_eq!(
+        count(
+            &db,
+            "SELECT COUNT(*) FROM network_source WHERE secret IS NOT NULL"
+        )
+        .await,
+        1
+    );
+    let leftovers: Vec<_> = std::fs::read_dir(db.parent().unwrap())
+        .unwrap()
+        .flatten()
+        .filter(|e| e.file_name().to_string_lossy().contains("export-"))
+        .collect();
+    assert!(leftovers.is_empty());
 }

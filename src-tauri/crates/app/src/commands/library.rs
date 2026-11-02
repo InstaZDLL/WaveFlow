@@ -423,6 +423,10 @@ pub async fn add_folder_to_library(
     if path.trim().is_empty() {
         return Err(AppError::Other("folder path cannot be empty".into()));
     }
+    // A share comes in through `network_source_add`, which knows its source.
+    if waveflow_core::network_locator::is_locator(&path) {
+        return Err(AppError::Other("not a folder on this machine".into()));
+    }
     let repo = library_repo(&state).await?;
 
     // Validate the library exists to return a precise error rather than a
@@ -434,18 +438,30 @@ pub async fn add_folder_to_library(
     }
 
     let pool = state.require_profile_pool().await?;
-    let folders = all_folder_paths(&pool).await?;
+    insert_checked_folder(&pool, library_id, &path).await
+}
+
+/// Record a library folder after the overlap rule. A share's folder comes
+/// through here too: its locator compares by components like any path, and two
+/// folders of one share carry the same source id.
+pub(crate) async fn insert_checked_folder(
+    pool: &sqlx::SqlitePool,
+    library_id: i64,
+    path: &str,
+) -> AppResult<i64> {
+    let folders = all_folder_paths(pool).await?;
     if let Some((relation, existing)) = waveflow_core::scanner::folders::overlap(
-        std::path::Path::new(&path),
+        std::path::Path::new(path),
         folders.iter().map(|(_, folder)| folder.as_path()),
     ) {
         return Err(AppError::FolderOverlap {
             relation,
-            existing: existing.to_string_lossy().into_owned(),
+            existing: crate::netlib::display_path(&existing),
         });
     }
-
-    Ok(repo.insert_folder(library_id, &path).await?)
+    Ok(SqliteLibraryRepository::new(pool.clone())
+        .insert_folder(library_id, path)
+        .await?)
 }
 
 /// Every library folder of the profile, in every library.
@@ -614,6 +630,19 @@ pub async fn remove_folder_from_library(
     watcher: tauri::State<'_, std::sync::Arc<WatcherManager>>,
     folder_id: i64,
 ) -> AppResult<()> {
+    let pool = state.require_profile_pool().await?;
+    remove_folder_inner(&app, &state, &watcher, &pool, folder_id).await
+}
+
+/// Takes the pool rather than resolving it: a caller removing several folders
+/// must not end up removing the next one's id from another profile.
+pub(crate) async fn remove_folder_inner(
+    app: &tauri::AppHandle,
+    state: &AppState,
+    watcher: &WatcherManager,
+    pool: &sqlx::SqlitePool,
+    folder_id: i64,
+) -> AppResult<()> {
     use tauri::Emitter;
 
     // Detach the watcher first so a midway notify event doesn't try
@@ -631,7 +660,6 @@ pub async fn remove_folder_from_library(
     // is a 2-statement DELETE without paths) lets the SELECT live in
     // the same tx as the DELETE + emit chain so the three either all
     // land or all roll back.
-    let pool = state.require_profile_pool().await?;
     let mut tx = pool.begin().await?;
     let tracks: Vec<(i64, String)> =
         sqlx::query_as("SELECT library_id, file_path FROM track WHERE folder_id = ?")

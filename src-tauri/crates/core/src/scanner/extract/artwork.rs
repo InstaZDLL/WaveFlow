@@ -47,6 +47,7 @@ impl ArtworkSource {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct ExtractedCover {
     /// Hex-encoded blake3 hash of the picture bytes — used as the filename
     /// stem so identical artwork embedded in 20 tracks of an album yields a
@@ -161,13 +162,55 @@ pub fn extract_folder_cover(track_path: &Path, artwork_dir: &Path) -> Option<Ext
         .find_map(|key| candidates.get(&key).cloned())?;
 
     let bytes = fs::read(&picked).ok()?;
+    store_folder_cover(
+        &bytes,
+        picked.extension().and_then(|s| s.to_str()),
+        artwork_dir,
+    )
+}
+
+/// The sidecar cover among the file names of one directory, by the same
+/// priority [`extract_folder_cover`] applies. For a share, whose listing
+/// already holds the names and where asking for a directory again costs a
+/// round trip.
+pub fn pick_folder_cover<'a>(names: impl IntoIterator<Item = &'a str>) -> Option<&'a str> {
+    let mut candidates: HashMap<(String, String), &'a str> = HashMap::new();
+    for name in names {
+        let path = Path::new(name);
+        let stem = path
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .map(|s| s.to_lowercase());
+        let ext = path
+            .extension()
+            .and_then(|s| s.to_str())
+            .map(|s| s.to_lowercase());
+        if let (Some(s), Some(e)) = (stem, ext) {
+            candidates.insert((s, e), name);
+        }
+    }
+    FOLDER_COVER_STEMS
+        .iter()
+        .flat_map(|stem| {
+            FOLDER_COVER_EXTENSIONS
+                .iter()
+                .map(move |ext| (stem.to_string(), ext.to_string()))
+        })
+        .find_map(|key| candidates.get(&key).copied())
+}
+
+/// Hash-address a sidecar cover's bytes into the shared artwork dir.
+/// `extension` is the file's own; `None` stores it as `jpg`.
+pub fn store_folder_cover(
+    bytes: &[u8],
+    extension: Option<&str>,
+    artwork_dir: &Path,
+) -> Option<ExtractedCover> {
     if bytes.is_empty() {
         return None;
     }
-    let hash = blake3::hash(&bytes).to_hex().to_string();
-    let format = picked
-        .extension()
-        .and_then(|s| s.to_str())
+    let hash = blake3::hash(bytes).to_hex().to_string();
+    let format = extension
         .map(|s| s.to_lowercase())
         .unwrap_or_else(|| "jpg".to_string());
     // Normalise `jpeg` to `jpg` so the artwork dir doesn't end up with two
@@ -179,7 +222,7 @@ pub fn extract_folder_cover(track_path: &Path, artwork_dir: &Path) -> Option<Ext
     };
 
     let out_path = artwork_dir.join(format!("{}.{}", hash, format));
-    if let Err(err) = crate::atomic_write::store_content_addressed(&out_path, &bytes) {
+    if let Err(err) = crate::atomic_write::store_content_addressed(&out_path, bytes) {
         tracing::warn!(path = %out_path.display(), error = %err, "failed to write folder cover");
         return None;
     }

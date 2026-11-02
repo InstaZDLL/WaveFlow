@@ -357,6 +357,17 @@ fn read_ahead(path: &Path) -> Option<ReadAhead> {
     }
 }
 
+/// How the app opens a track that lives on a share. The core knows no
+/// source, credential or cache: only that a locator is not a file.
+pub type NetworkOpener = dyn Fn(&str) -> Result<Box<dyn MediaSource>, String> + Send + Sync;
+
+static NETWORK_OPENER: std::sync::OnceLock<Box<NetworkOpener>> = std::sync::OnceLock::new();
+
+/// Install [`NetworkOpener`]. Once per process; a second call is ignored.
+pub fn set_network_opener(opener: Box<NetworkOpener>) {
+    let _ = NETWORK_OPENER.set(opener);
+}
+
 impl ActiveStream {
     /// Open `path`, probe + build the codec, and stash everything
     /// needed to feed the resample/channel-convert pipeline. The
@@ -376,6 +387,27 @@ impl ActiveStream {
             .extension()
             .and_then(|s| s.to_str())
             .map(|s| s.to_ascii_lowercase());
+
+        // A track on a share: `path` is a locator, not a file. Decoded like
+        // any other source from here on, which is what gives it gapless,
+        // crossfade and seeking.
+        if let Some(locator) = path
+            .to_str()
+            .filter(|p| crate::network_locator::is_locator(p))
+        {
+            let opener = NETWORK_OPENER
+                .get()
+                .ok_or_else(|| "no network source support in this build".to_string())?;
+            return Self::open_from_source(
+                opener(locator)?,
+                ext.as_deref(),
+                track_id,
+                duration_ms,
+                source_type,
+                source_id,
+                replay_gain,
+            );
+        }
 
         // DSD has its own pipeline — symphonia doesn't decode it.
         // Branch up-front so we never hand a DSF / DFF file to the
