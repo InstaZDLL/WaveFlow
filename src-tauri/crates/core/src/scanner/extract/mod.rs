@@ -49,12 +49,17 @@ pub use probe::{probe_playable_stream, StreamInfo};
 /// [`is_scannable_audio`] reads the stream before believing the
 /// extension.
 ///
+/// **WavPack** and **Monkey's Audio** have decoders of ours as well, each
+/// with a family of files it does not play (hybrid WavPack, floating-point
+/// Monkey's Audio and a few more): [`is_scannable_audio`] reads the header of
+/// these two before believing the extension.
+///
 /// `.aifc` is deliberately not listed. symphonia's AIFC support covers
 /// the PCM-shaped compression types (`none`, `sowt`, `twos`, `fl32`,
 /// `alaw`, …) and refuses the rest, so accepting the extension would
 /// index files that cannot play, on a format nobody writes any more.
 pub const AUDIO_EXTENSIONS: &[&str] = &[
-    "mp3", "flac", "wav", "aiff", "aif", "ogg", "oga", "opus", "m4a", "mp4", "aac",
+    "mp3", "flac", "wav", "aiff", "aif", "ogg", "oga", "opus", "m4a", "mp4", "aac", "wv", "ape",
     // DSD: handled by the in-tree audio::dsd pipeline (symphonia
     // doesn't decode DSD), with metadata read via audio::dsd::metadata.
     "dsf", "dff",
@@ -102,6 +107,19 @@ pub fn is_scannable_audio(path: &Path) -> bool {
     };
     let extension = extension.to_lowercase();
     if !AUDIO_EXTENSIONS.contains(&extension.as_str()) {
+        return false;
+    }
+    let refusal = match extension.as_str() {
+        "wv" => crate::audio_format::wavpack::refusal(path),
+        "ape" => crate::audio_format::ape::refusal(path),
+        _ => None,
+    };
+    if let Some(codec) = refusal {
+        tracing::info!(
+            path = %path.display(),
+            codec,
+            "this build cannot decode the stream; not indexing it"
+        );
         return false;
     }
     if !AMBIGUOUS_CONTAINERS.contains(&extension.as_str()) {

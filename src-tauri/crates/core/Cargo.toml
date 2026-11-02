@@ -145,6 +145,15 @@ uuid = { version = "1", features = ["v4", "v5", "serde"] }
 # `opus` feature.
 opusic-sys = { version = "0.7", features = ["bundled"], optional = true }
 
+# WavPack and Monkey's Audio decoders, which symphonia has none of. Both are
+# pure Rust and were adopted on a bit-for-bit measure against the reference
+# tools, not on their READMEs: `audio_format::wavpack` and `audio_format::ape`
+# say what was measured and what they refuse. Not behind a feature like Opus:
+# they need no C toolchain, so a build has nothing to gain by going without.
+# Pinned exactly: a new release is a new decoder, to measure again.
+wavicle = "=0.1.0"
+ape-decoder = "=0.3.2"
+
 # Resampling for playback (`playback` feature).
 rubato = { version = "5.0", optional = true }
 

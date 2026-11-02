@@ -309,6 +309,10 @@ fn read_inner(path: &Path) -> Option<Vec<(String, String)>> {
             let file = lofty::ape::ApeFile::read_from(&mut handle, options).ok()?;
             ape_into(file.ape(), &mut out);
         }
+        FileType::WavPack => {
+            let file = lofty::wavpack::WavPackFile::read_from(&mut handle, options).ok()?;
+            ape_into(file.ape(), &mut out);
+        }
         // A container we do not read custom frames from — DSF and DFF,
         // which have their own pipeline, and anything lofty recognises
         // that we have not wired up. Falls through to `Some(vec![])`,

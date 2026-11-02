@@ -455,7 +455,7 @@ impl ActiveStream {
         if let Some(ext) = ext_hint {
             hint.with_extension(ext);
         }
-        let format = symphonia::default::get_probe()
+        let format = crate::audio_format::probe()
             .probe(
                 &hint,
                 mss,

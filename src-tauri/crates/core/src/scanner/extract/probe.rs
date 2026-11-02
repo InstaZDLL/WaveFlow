@@ -44,7 +44,7 @@ pub fn probe_playable_stream(path: &Path) -> Option<StreamInfo> {
     if let Some(ext) = ext {
         hint.with_extension(ext);
     }
-    let mut format = symphonia::default::get_probe()
+    let mut format = crate::audio_format::probe()
         .probe(
             &hint,
             MediaSourceStream::new(Box::new(file), Default::default()),

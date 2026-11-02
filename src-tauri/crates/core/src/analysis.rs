@@ -285,7 +285,7 @@ fn open_audio(path: &Path) -> Result<OpenedAudio, String> {
         hint.with_extension(ext);
     }
 
-    let format = symphonia::default::get_probe()
+    let format = crate::audio_format::probe()
         .probe(
             &hint,
             mss,

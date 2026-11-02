@@ -73,7 +73,7 @@ use symphonia::core::errors::{decode_error, unsupported_error, Result};
 use symphonia::core::packet::PacketRef;
 
 /// The codec registry this app decodes with: everything symphonia's
-/// feature flags enable, plus Opus.
+/// feature flags enable, plus Opus, WavPack and Monkey's Audio.
 ///
 /// Built once and shared, the way `symphonia::default::get_codecs`
 /// is. There are three places that open an audio stream — playback,
@@ -88,6 +88,7 @@ pub fn codecs() -> &'static CodecRegistry {
         let mut registry = CodecRegistry::new();
         symphonia::default::register_enabled_codecs(&mut registry);
         registry.register_audio_decoder::<OpusDecoder>();
+        super::register_own_decoders(&mut registry);
         registry
     })
 }

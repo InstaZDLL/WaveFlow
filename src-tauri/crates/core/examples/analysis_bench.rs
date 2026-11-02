@@ -38,7 +38,7 @@ use lofty::tag::ItemKey;
 use waveflow_core::analysis::analyze_file;
 
 const AUDIO: &[&str] = &[
-    "mp3", "flac", "m4a", "mp4", "aac", "ogg", "oga", "opus", "wav", "aiff", "aif", "wv",
+    "mp3", "flac", "m4a", "mp4", "aac", "ogg", "oga", "opus", "wav", "aiff", "aif", "wv", "ape",
 ];
 
 struct Row {
