@@ -116,8 +116,10 @@ pub enum Predicate {
     DurationMaxMs {
         value: i64,
     },
-    /// Single file extension (lowercase, no dot). Multi-format
-    /// selection uses `Any` of these.
+    /// A single format as the editor names it (`flac`, `ogg`, `dsf`), which
+    /// is not always what `track.codec` holds: see
+    /// [`formats_condition`](crate::audio_format::format_filter::formats_condition).
+    /// Multi-format selection uses `Any` of these.
     Format {
         value: String,
     },
@@ -571,8 +573,10 @@ fn build_predicate_sql(pred: &Predicate, binds: &mut Vec<BindValue>, now_ms: i64
             "t.duration_ms <= ?".to_string()
         }
         Predicate::Format { value } => {
-            binds.push(BindValue::Text(value.to_lowercase()));
-            "LOWER(t.codec) = ?".to_string()
+            let (condition, values) =
+                crate::audio_format::format_filter::formats_condition(std::slice::from_ref(value));
+            binds.extend(values.into_iter().map(BindValue::Text));
+            condition
         }
         // Guarded like every other nullable bound, and for the same
         // reason: a file with neither figure recorded used to fall out

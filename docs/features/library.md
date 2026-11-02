@@ -238,6 +238,25 @@ Short initials land on the scanned route by construction -- `zg` is two characte
 
 The top-bar dropdown shows **sectioned results — Artists / Albums / Titles** (Spotify-style). FTS is track-scoped, so the album/artist sections come from dedicated `search_albums` / `search_artists` commands ([`browse/`](../../src-tauri/crates/app/src/commands/browse/)) that substring-match the query's `canonical_name` form against `album.canonical_title` / `artist.canonical_name` (prefix matches rank first) and return the same slim `{ artwork_base, items }` shape as `list_albums` / `list_artists`. The three entities fan out in one `Promise.all`; clicking an artist or album row navigates to `ArtistDetailView` / `AlbumDetailView` (via the `onNavigateToArtist` / `onNavigateToAlbum` callbacks), while a title row plays the track. The advanced filter panel is track-only — when **any** advanced filter is active the album/artist sections are suppressed and only `search_tracks_advanced` runs.
 
+### Format filters
+
+The search panel's chips and the rule editor name formats as a listener does, and `track.codec` holds what the scanner read off the stream. The two vocabularies differ, so both filters go through one translation, [`formats_condition`](../../src-tauri/crates/core/src/audio_format/format_filter.rs), and no migration or rescan is involved:
+
+| Filter        | Finds                                                                   |
+| ------------- | ----------------------------------------------------------------------- |
+| `OGG`         | `Vorbis`                                                                |
+| `AAC`         | `AAC` with no bit depth                                                 |
+| `ALAC`        | `ALAC`, or `AAC` with a bit depth: the scanner labels every MP4 `AAC`   |
+| `DSF` / `DFF` | a known codec on a file of that extension: the codec is `DSD64` on both |
+| `WAV`         | `WAV`, or `PCM` on a `.wav`                                             |
+| `AIFF`        | `AIFF`, or `PCM` on a `.aif` / `.aiff`                                  |
+| anything else | that codec, spelled the same, upper or lower case                       |
+
+- **`OGG` means Vorbis, not the container.** Opus travels in Ogg too, but it has its own chip beside this one and the library shows `Opus` on those rows, so a file does not belong to both; picking both chips gives both. A FLAC stream in an Ogg file is `FLAC`.
+- **A FLAC stream in an MP4 file lands under `ALAC`.** It looks the same to the scanner: `AAC` with a bit depth. The same reading makes it lossless for [fake-lossless detection](#fake-lossless-files).
+- **`PCM` is a file only the decoder could describe** (#873), a WAV written to a pipe with an open-ended `data` chunk for one. The label names no container, so the extension decides.
+- **The condition is never NULL**, so a track with no codec falls in every "not this format" rule instead of out of both sides.
+
 ## Folder browsing
 
 The Folders tab lists the configured **roots**, and used to stop there — which is folder _management_, not folder _browsing_. Someone who organises their music as `Artist/Album/` on disk lost that structure entirely once the library was scanned: reachable by album, artist, genre or playlist, but not by where the files actually live (#578). Clicking a root now descends into it. The roots are **cards** in a grid (the folder's name in the lead, its full path underneath, its track count and last scan at the foot, its actions in the corner on hover — except the watch eye, which stays while watching is on, so a watched folder says so at a glance), and **the whole card opens it** (#733): at first only the path text did, with an underline on hover as its only sign, and a tester never found the browser at all. A click that starts on one of the card's own controls, or in its playlist popover, stays theirs; the name remains a button for the keyboard.

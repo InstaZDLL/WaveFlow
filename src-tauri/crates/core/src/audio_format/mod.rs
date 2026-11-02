@@ -10,6 +10,8 @@
 //! transcoding DSD uploads.
 
 pub mod dsd;
+#[cfg(feature = "sqlite")]
+pub mod format_filter;
 // Opus decoding over libopus (#581). symphonia reads the containers
 // but ships no Opus decoder, so this one is registered into a custom
 // codec registry alongside the built-ins. Behind the `opus` feature
