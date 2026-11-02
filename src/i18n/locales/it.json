@@ -3440,12 +3440,14 @@
       "save": "Salva",
       "kind": "Tipo di condivisione",
       "kinds": {
-        "webdav": "WebDAV"
+        "webdav": "WebDAV",
+        "smb": "SMB"
       },
       "name": "Nome (facoltativo)",
       "address": "Indirizzo",
       "addressHint": {
-        "webdav": "https://nas.local/dav"
+        "webdav": "https://nas.local/dav",
+        "smb": "nas.local o 192.168.1.10"
       },
       "folder": "Cartella sulla condivisione (facoltativa)",
       "username": "Nome utente",
@@ -3478,6 +3480,7 @@
       "cacheLimit": "Limite (GB)",
       "cacheClear": "Svuota la cache",
       "testOk_many": "Connesso: {{count}} elementi in questa cartella.",
+      "share": "Nome della condivisione",
       "cacheUsed_one": "Cache locale: {{size}}, {{count}} brano",
       "cacheUsed_other": "Cache locale: {{size}}, {{count}} brani",
       "cacheUsed_many": "Cache locale: {{size}}, {{count}} brani"

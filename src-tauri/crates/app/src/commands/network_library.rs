@@ -102,6 +102,7 @@ fn row_from_input(input: &NetworkSourceInput) -> Result<store::SourceRow, NetErr
             .as_str()
             .trim_end_matches('/')
             .to_string(),
+        "smb" => netlib::smb::normalise_endpoint(&input.endpoint)?,
         other => {
             return Err(NetError::Protocol(format!(
                 "unsupported source kind: {other}"

@@ -3617,12 +3617,14 @@
       "save": "حفظ",
       "kind": "نوع المشاركة",
       "kinds": {
-        "webdav": "WebDAV"
+        "webdav": "WebDAV",
+        "smb": "SMB"
       },
       "name": "الاسم (اختياري)",
       "address": "العنوان",
       "addressHint": {
-        "webdav": "https://nas.local/dav"
+        "webdav": "https://nas.local/dav",
+        "smb": "nas.local أو 192.168.1.10"
       },
       "folder": "المجلد على المشاركة (اختياري)",
       "username": "اسم المستخدم",
@@ -3658,6 +3660,7 @@
       "testOk_two": "تم الاتصال: {{count}} عنصر في هذا المجلد.",
       "testOk_few": "تم الاتصال: {{count}} عنصر في هذا المجلد.",
       "testOk_many": "تم الاتصال: {{count}} عنصر في هذا المجلد.",
+      "share": "اسم المشاركة",
       "cacheUsed_one": "ذاكرة التخزين المحلية: {{size}}، {{count}} مقطع",
       "cacheUsed_other": "ذاكرة التخزين المحلية: {{size}}، {{count}} مقطع",
       "cacheUsed_zero": "ذاكرة التخزين المحلية: {{size}}، {{count}} مقطع",

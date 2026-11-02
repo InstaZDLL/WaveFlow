@@ -36,6 +36,7 @@ pub mod fs;
 pub mod media;
 pub mod reader;
 pub mod scan;
+pub mod smb;
 pub mod store;
 pub mod webdav;
 
@@ -336,6 +337,12 @@ pub(crate) fn build_fs(row: &store::SourceRow) -> Result<Box<dyn NetworkFs>, Net
             row.username.clone(),
             row.secret.clone(),
             row.allow_plain_http,
+        )?)),
+        "smb" => Ok(Box::new(smb::SmbFs::new(
+            &row.endpoint,
+            &row.share,
+            row.username.clone(),
+            row.secret.clone(),
         )?)),
         other => Err(NetError::Protocol(format!(
             "unsupported source kind: {other}"

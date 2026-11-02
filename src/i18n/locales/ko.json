@@ -3368,12 +3368,14 @@
       "save": "저장",
       "kind": "공유 유형",
       "kinds": {
-        "webdav": "WebDAV"
+        "webdav": "WebDAV",
+        "smb": "SMB"
       },
       "name": "이름(선택)",
       "address": "주소",
       "addressHint": {
-        "webdav": "https://nas.local/dav"
+        "webdav": "https://nas.local/dav",
+        "smb": "nas.local 또는 192.168.1.10"
       },
       "folder": "공유의 폴더(선택)",
       "username": "사용자 이름",
@@ -3405,6 +3407,7 @@
       "testOk_other": "연결됨: 이 폴더에 항목 {{count}}개.",
       "cacheLimit": "한도(GB)",
       "cacheClear": "캐시 비우기",
+      "share": "공유 이름",
       "cacheUsed_one": "로컬 캐시: {{size}}, {{count}}곡",
       "cacheUsed_other": "로컬 캐시: {{size}}, {{count}}곡"
     }

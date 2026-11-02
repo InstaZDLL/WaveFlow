@@ -3368,12 +3368,14 @@
       "save": "保存",
       "kind": "共有の種類",
       "kinds": {
-        "webdav": "WebDAV"
+        "webdav": "WebDAV",
+        "smb": "SMB"
       },
       "name": "名前(任意)",
       "address": "アドレス",
       "addressHint": {
-        "webdav": "https://nas.local/dav"
+        "webdav": "https://nas.local/dav",
+        "smb": "nas.local または 192.168.1.10"
       },
       "folder": "共有上のフォルダー(任意)",
       "username": "ユーザー名",
@@ -3405,6 +3407,7 @@
       "testOk_other": "接続しました: このフォルダーに {{count}} 項目。",
       "cacheLimit": "上限 (GB)",
       "cacheClear": "キャッシュを消去",
+      "share": "共有名",
       "cacheUsed_one": "ローカルキャッシュ: {{size}}、{{count}} 曲",
       "cacheUsed_other": "ローカルキャッシュ: {{size}}、{{count}} 曲"
     }

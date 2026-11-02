@@ -3514,12 +3514,14 @@
       "save": "Сохранить",
       "kind": "Тип папки",
       "kinds": {
-        "webdav": "WebDAV"
+        "webdav": "WebDAV",
+        "smb": "SMB"
       },
       "name": "Название (необязательно)",
       "address": "Адрес",
       "addressHint": {
-        "webdav": "https://nas.local/dav"
+        "webdav": "https://nas.local/dav",
+        "smb": "nas.local или 192.168.1.10"
       },
       "folder": "Папка на сервере (необязательно)",
       "username": "Имя пользователя",
@@ -3553,6 +3555,7 @@
       "cacheClear": "Очистить кэш",
       "testOk_few": "Подключено: элементов в этой папке: {{count}}.",
       "testOk_many": "Подключено: элементов в этой папке: {{count}}.",
+      "share": "Имя сетевой папки",
       "cacheUsed_one": "Локальный кэш: {{size}}, {{count}} трек",
       "cacheUsed_other": "Локальный кэш: {{size}}, треков: {{count}}",
       "cacheUsed_few": "Локальный кэш: {{size}}, треков: {{count}}",

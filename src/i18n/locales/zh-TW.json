@@ -3368,12 +3368,14 @@
       "save": "儲存",
       "kind": "共用類型",
       "kinds": {
-        "webdav": "WebDAV"
+        "webdav": "WebDAV",
+        "smb": "SMB"
       },
       "name": "名稱(選填)",
       "address": "位址",
       "addressHint": {
-        "webdav": "https://nas.local/dav"
+        "webdav": "https://nas.local/dav",
+        "smb": "nas.local 或 192.168.1.10"
       },
       "folder": "共用上的資料夾(選填)",
       "username": "使用者名稱",
@@ -3405,6 +3407,7 @@
       "testOk_other": "已連線:此資料夾有 {{count}} 個項目。",
       "cacheLimit": "上限 (GB)",
       "cacheClear": "清除快取",
+      "share": "共用名稱",
       "cacheUsed_one": "本機快取:{{size}},{{count}} 首曲目",
       "cacheUsed_other": "本機快取:{{size}},{{count}} 首曲目"
     }

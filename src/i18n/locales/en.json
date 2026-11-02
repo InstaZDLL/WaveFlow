@@ -3370,12 +3370,14 @@
       "save": "Save",
       "kind": "Share type",
       "kinds": {
-        "webdav": "WebDAV"
+        "webdav": "WebDAV",
+        "smb": "SMB"
       },
       "name": "Name (optional)",
       "address": "Address",
       "addressHint": {
-        "webdav": "https://nas.local/dav"
+        "webdav": "https://nas.local/dav",
+        "smb": "nas.local or 192.168.1.10"
       },
       "folder": "Folder on the share (optional)",
       "username": "User name",
@@ -3407,6 +3409,7 @@
       "testOk_other": "Connected: {{count}} items in this folder.",
       "cacheLimit": "Limit (GB)",
       "cacheClear": "Clear the cache",
+      "share": "Share name",
       "cacheUsed_one": "Local cache: {{size}}, {{count}} track",
       "cacheUsed_other": "Local cache: {{size}}, {{count}} tracks"
     }

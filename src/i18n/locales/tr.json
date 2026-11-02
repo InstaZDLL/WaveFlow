@@ -3370,12 +3370,14 @@
       "save": "Kaydet",
       "kind": "Paylaşım türü",
       "kinds": {
-        "webdav": "WebDAV"
+        "webdav": "WebDAV",
+        "smb": "SMB"
       },
       "name": "Ad (isteğe bağlı)",
       "address": "Adres",
       "addressHint": {
-        "webdav": "https://nas.local/dav"
+        "webdav": "https://nas.local/dav",
+        "smb": "nas.local veya 192.168.1.10"
       },
       "folder": "Paylaşımdaki klasör (isteğe bağlı)",
       "username": "Kullanıcı adı",
@@ -3407,6 +3409,7 @@
       "testOk_other": "Bağlandı: bu klasörde {{count}} öğe.",
       "cacheLimit": "Sınır (GB)",
       "cacheClear": "Önbelleği temizle",
+      "share": "Paylaşım adı",
       "cacheUsed_one": "Yerel önbellek: {{size}}, {{count}} parça",
       "cacheUsed_other": "Yerel önbellek: {{size}}, {{count}} parça"
     }

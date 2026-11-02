@@ -3440,12 +3440,14 @@
       "save": "Guardar",
       "kind": "Tipo de recurso",
       "kinds": {
-        "webdav": "WebDAV"
+        "webdav": "WebDAV",
+        "smb": "SMB"
       },
       "name": "Nombre (opcional)",
       "address": "Dirección",
       "addressHint": {
-        "webdav": "https://nas.local/dav"
+        "webdav": "https://nas.local/dav",
+        "smb": "nas.local o 192.168.1.10"
       },
       "folder": "Carpeta en el recurso (opcional)",
       "username": "Nombre de usuario",
@@ -3478,6 +3480,7 @@
       "cacheLimit": "Límite (GB)",
       "cacheClear": "Vaciar la caché",
       "testOk_many": "Conectado: {{count}} elementos en esta carpeta.",
+      "share": "Nombre del recurso",
       "cacheUsed_one": "Caché local: {{size}}, {{count}} canción",
       "cacheUsed_other": "Caché local: {{size}}, {{count}} canciones",
       "cacheUsed_many": "Caché local: {{size}}, {{count}} canciones"

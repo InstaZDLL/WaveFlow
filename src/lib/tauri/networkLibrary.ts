@@ -15,7 +15,7 @@ export interface NetworkSourceInput {
   allowPlainHttp: boolean;
 }
 
-export type NetworkSourceKind = "webdav";
+export type NetworkSourceKind = "webdav" | "smb";
 
 export type NetworkSourceState =
   "unknown" | "online" | "unreachable" | "auth_failed";

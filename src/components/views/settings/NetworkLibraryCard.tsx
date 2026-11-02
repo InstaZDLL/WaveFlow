@@ -29,7 +29,7 @@ import {
   type NetworkTestOutcome,
 } from "../../../lib/tauri/networkLibrary";
 
-const KINDS: NetworkSourceKind[] = ["webdav"];
+const KINDS: NetworkSourceKind[] = ["webdav", "smb"];
 const MIN_CACHE_GB = 1;
 const MAX_CACHE_GB = 500;
 
@@ -259,6 +259,7 @@ export function NetworkLibraryCard({ language }: { language: string }) {
               </div>
               <div className="text-xs settings-description truncate">
                 {source.endpoint}
+                {source.share && `/${source.share}`}
                 {source.folders.map((f) => ` · /${f.path}`).join("")}
               </div>
             </div>
@@ -381,6 +382,16 @@ export function NetworkLibraryCard({ language }: { language: string }) {
             placeholder={t(`settings.networkLibrary.addressHint.${form.kind}`)}
             onChange={(e) => setForm({ ...form, endpoint: e.target.value })}
           />
+          {form.kind === "smb" && (
+            <input
+              className={inputClass}
+              value={form.share}
+              spellCheck={false}
+              aria-label={t("settings.networkLibrary.share")}
+              placeholder={t("settings.networkLibrary.share")}
+              onChange={(e) => setForm({ ...form, share: e.target.value })}
+            />
+          )}
           <input
             className={inputClass}
             value={form.root}

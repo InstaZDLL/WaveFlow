@@ -3370,12 +3370,14 @@
       "save": "Speichern",
       "kind": "Art der Freigabe",
       "kinds": {
-        "webdav": "WebDAV"
+        "webdav": "WebDAV",
+        "smb": "SMB"
       },
       "name": "Name (optional)",
       "address": "Adresse",
       "addressHint": {
-        "webdav": "https://nas.local/dav"
+        "webdav": "https://nas.local/dav",
+        "smb": "nas.local oder 192.168.1.10"
       },
       "folder": "Ordner auf der Freigabe (optional)",
       "username": "Benutzername",
@@ -3407,6 +3409,7 @@
       "testOk_other": "Verbunden: {{count}} Einträge in diesem Ordner.",
       "cacheLimit": "Obergrenze (GB)",
       "cacheClear": "Cache leeren",
+      "share": "Name der Freigabe",
       "cacheUsed_one": "Lokaler Cache: {{size}}, {{count}} Titel",
       "cacheUsed_other": "Lokaler Cache: {{size}}, {{count}} Titel"
     }

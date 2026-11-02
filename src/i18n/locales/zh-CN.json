@@ -3368,12 +3368,14 @@
       "save": "保存",
       "kind": "共享类型",
       "kinds": {
-        "webdav": "WebDAV"
+        "webdav": "WebDAV",
+        "smb": "SMB"
       },
       "name": "名称(可选)",
       "address": "地址",
       "addressHint": {
-        "webdav": "https://nas.local/dav"
+        "webdav": "https://nas.local/dav",
+        "smb": "nas.local 或 192.168.1.10"
       },
       "folder": "共享上的文件夹(可选)",
       "username": "用户名",
@@ -3405,6 +3407,7 @@
       "testOk_other": "已连接:此文件夹中有 {{count}} 项。",
       "cacheLimit": "上限 (GB)",
       "cacheClear": "清空缓存",
+      "share": "共享名称",
       "cacheUsed_one": "本地缓存:{{size}},{{count}} 首曲目",
       "cacheUsed_other": "本地缓存:{{size}},{{count}} 首曲目"
     }

@@ -3440,12 +3440,14 @@
       "save": "Enregistrer",
       "kind": "Type de partage",
       "kinds": {
-        "webdav": "WebDAV"
+        "webdav": "WebDAV",
+        "smb": "SMB"
       },
       "name": "Nom (facultatif)",
       "address": "Adresse",
       "addressHint": {
-        "webdav": "https://nas.local/dav"
+        "webdav": "https://nas.local/dav",
+        "smb": "nas.local ou 192.168.1.10"
       },
       "folder": "Dossier sur le partage (facultatif)",
       "username": "Nom d'utilisateur",
@@ -3478,6 +3480,7 @@
       "cacheLimit": "Plafond (Go)",
       "cacheClear": "Vider le cache",
       "testOk_many": "Connexion réussie : {{count}} éléments dans ce dossier.",
+      "share": "Nom du partage",
       "cacheUsed_one": "Cache local : {{size}}, {{count}} titre",
       "cacheUsed_other": "Cache local : {{size}}, {{count}} titres",
       "cacheUsed_many": "Cache local : {{size}}, {{count}} titres"

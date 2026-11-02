@@ -3368,12 +3368,14 @@
       "save": "Simpan",
       "kind": "Jenis folder berbagi",
       "kinds": {
-        "webdav": "WebDAV"
+        "webdav": "WebDAV",
+        "smb": "SMB"
       },
       "name": "Nama (opsional)",
       "address": "Alamat",
       "addressHint": {
-        "webdav": "https://nas.local/dav"
+        "webdav": "https://nas.local/dav",
+        "smb": "nas.local atau 192.168.1.10"
       },
       "folder": "Folder pada server (opsional)",
       "username": "Nama pengguna",
@@ -3405,6 +3407,7 @@
       "testOk_other": "Terhubung: {{count}} item di folder ini.",
       "cacheLimit": "Batas (GB)",
       "cacheClear": "Kosongkan cache",
+      "share": "Nama folder berbagi",
       "cacheUsed_one": "Cache lokal: {{size}}, {{count}} lagu",
       "cacheUsed_other": "Cache lokal: {{size}}, {{count}} lagu"
     }

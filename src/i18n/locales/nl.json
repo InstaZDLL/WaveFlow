@@ -3370,12 +3370,14 @@
       "save": "Opslaan",
       "kind": "Type share",
       "kinds": {
-        "webdav": "WebDAV"
+        "webdav": "WebDAV",
+        "smb": "SMB"
       },
       "name": "Naam (optioneel)",
       "address": "Adres",
       "addressHint": {
-        "webdav": "https://nas.local/dav"
+        "webdav": "https://nas.local/dav",
+        "smb": "nas.local of 192.168.1.10"
       },
       "folder": "Map op de share (optioneel)",
       "username": "Gebruikersnaam",
@@ -3407,6 +3409,7 @@
       "testOk_other": "Verbonden: {{count}} items in deze map.",
       "cacheLimit": "Limiet (GB)",
       "cacheClear": "Cache legen",
+      "share": "Naam van de share",
       "cacheUsed_one": "Lokale cache: {{size}}, {{count}} nummer",
       "cacheUsed_other": "Lokale cache: {{size}}, {{count}} nummers"
     }

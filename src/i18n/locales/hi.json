@@ -3370,12 +3370,14 @@
       "save": "सहेजें",
       "kind": "शेयर का प्रकार",
       "kinds": {
-        "webdav": "WebDAV"
+        "webdav": "WebDAV",
+        "smb": "SMB"
       },
       "name": "नाम (वैकल्पिक)",
       "address": "पता",
       "addressHint": {
-        "webdav": "https://nas.local/dav"
+        "webdav": "https://nas.local/dav",
+        "smb": "nas.local या 192.168.1.10"
       },
       "folder": "शेयर पर फ़ोल्डर (वैकल्पिक)",
       "username": "उपयोगकर्ता नाम",
@@ -3407,6 +3409,7 @@
       "testOk_other": "कनेक्ट हुआ: इस फ़ोल्डर में {{count}} आइटम।",
       "cacheLimit": "सीमा (GB)",
       "cacheClear": "कैश साफ़ करें",
+      "share": "शेयर का नाम",
       "cacheUsed_one": "स्थानीय कैश: {{size}}, {{count}} ट्रैक",
       "cacheUsed_other": "स्थानीय कैश: {{size}}, {{count}} ट्रैक"
     }
