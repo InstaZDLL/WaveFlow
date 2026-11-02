@@ -235,8 +235,9 @@ prevent.
 
 Each of the three used to build its own decoder from symphonia's
 default registry, which was harmless only for as long as the app
-shipped no decoder of its own. Opus (#581) is one, so it is not
-harmless any more.
+shipped no decoder of its own. Opus (#581) is one, and so is
+[`audio_format::aac`](../features/playback.md#aac-beyond-symphonia), so
+it is not harmless any more.
 
 Two consequences worth stating:
 
@@ -244,7 +245,10 @@ Two consequences worth stating:
   scanner's extension list plus
   [`undecodable_stream`](../../src-tauri/crates/core/src/scanner/extract/mod.rs)
   have to move with it — those two are the scanner's half of the same
-  agreement.
+  agreement, along with
+  [`decoder_channels`](../../src-tauri/crates/core/src/scanner/extract/probe.rs),
+  which keeps out an MP4 or ADTS file whose stream the registry refuses,
+  since lofty reads the tags of any of them.
 - **The registry lives in `core`**, not in the app, because the
   analysis pass and the scanner are core's and the future
   `waveflow-server` transcoder will want the same answer.

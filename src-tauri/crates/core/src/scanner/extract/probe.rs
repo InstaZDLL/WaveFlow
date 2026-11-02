@@ -4,6 +4,8 @@
 use std::fs;
 use std::path::Path;
 
+use lofty::file::FileType;
+
 /// What the player's decoder can tell about a file whose tags no reader
 /// accepts: enough to list it and play it.
 #[derive(Debug, Clone, PartialEq)]
@@ -15,6 +17,106 @@ pub struct StreamInfo {
     /// The decoder's codec, as the format chip shows it (`MP3`, `PCM`):
     /// what the stream is, not what the file is called.
     pub codec: Option<String>,
+}
+
+/// The channel count the player's decoder sees in a file lofty did read, or
+/// why it cannot decode it. `Ok(None)` for a container whose type already
+/// implies a codec the player has.
+///
+/// lofty accepting an MP4 or an ADTS file says nothing about whether it
+/// plays: an xHE-AAC `.m4a` has perfectly good tags. `file_type` is what
+/// lofty found in the file, so a misnamed one is checked as well. This opens
+/// the stream the way playback does, decoding a packet only when the layout
+/// travels inside the stream. Its count wins over lofty's, which is wrong on
+/// this family: measured 7 for 7.1 AAC, 2 for every stream with a PCE, 64
+/// for AAC-ELD.
+pub fn decoder_channels(path: &Path, file_type: FileType) -> Result<Option<i64>, String> {
+    if !matches!(file_type, FileType::Mp4 | FileType::Aac) {
+        return Ok(None);
+    }
+    let OpenedStream {
+        mut format,
+        track_id,
+        mut decoder,
+        ..
+    } = open_stream(path)?;
+    if let Some(channels) = &decoder.codec_params().channels {
+        return Ok(Some(channels.count() as i64));
+    }
+    let mut tried = 0usize;
+    while tried < PLAYABLE_PROBE_PACKETS {
+        let Ok(Some(packet)) = format.next_packet() else {
+            break;
+        };
+        if packet.track_id != track_id {
+            continue;
+        }
+        tried += 1;
+        if let Ok(decoded) = decoder.decode(&packet) {
+            return Ok(Some(decoded.spec().channels().count() as i64));
+        }
+    }
+    Err(format!(
+        "the player cannot decode this stream: none of its first {tried} packets decodes"
+    ))
+}
+
+/// A stream opened the way playback opens it: symphonia's probe, which
+/// judges by content, and the one codec registry
+/// ([`crate::audio_format::opus::codecs`]).
+struct OpenedStream {
+    format: Box<dyn symphonia::core::formats::FormatReader>,
+    track_id: u32,
+    time_base: Option<symphonia::core::units::TimeBase>,
+    track_duration: Option<symphonia::core::units::Duration>,
+    num_frames: Option<u64>,
+    params: symphonia::core::codecs::audio::AudioCodecParameters,
+    decoder: Box<dyn symphonia::core::codecs::audio::AudioDecoder>,
+}
+
+fn open_stream(path: &Path) -> Result<OpenedStream, String> {
+    use symphonia::core::codecs::audio::AudioDecoderOptions;
+    use symphonia::core::formats::probe::Hint;
+    use symphonia::core::formats::{FormatOptions, TrackType};
+    use symphonia::core::io::MediaSourceStream;
+    use symphonia::core::meta::MetadataOptions;
+
+    let file = fs::File::open(path).map_err(|e| format!("open: {e}"))?;
+    let mut hint = Hint::new();
+    if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
+        hint.with_extension(ext);
+    }
+    let format = symphonia::default::get_probe()
+        .probe(
+            &hint,
+            MediaSourceStream::new(Box::new(file), Default::default()),
+            FormatOptions::default(),
+            MetadataOptions::default(),
+        )
+        .map_err(|e| format!("the player cannot read this container: {e}"))?;
+    let track = format
+        .default_track(TrackType::Audio)
+        .ok_or_else(|| "the file holds no audio track".to_string())?;
+    let (track_id, time_base, track_duration, num_frames) =
+        (track.id, track.time_base, track.duration, track.num_frames);
+    let params = track
+        .codec_params
+        .as_ref()
+        .and_then(|p| p.audio())
+        .ok_or_else(|| "the audio track has no codec parameters".to_string())?
+        .clone();
+    let decoder = crate::audio_format::opus::codecs()
+        .make_audio_decoder(&params, &AudioDecoderOptions::default())
+        .map_err(|e| format!("the player cannot decode this stream: {e}"))?;
+    Ok(OpenedStream {
+        format,
+        track_id,
+        time_base,
+        track_duration,
+        num_frames,
+        params,
+        decoder,
+    })
 }
 
 /// How many packets may fail to decode before the stream is judged
@@ -32,37 +134,16 @@ const PLAYABLE_PROBE_PACKETS: usize = 64;
 /// will play: the scanner and the decoder cannot disagree. `None` when
 /// any of that fails.
 pub fn probe_playable_stream(path: &Path) -> Option<StreamInfo> {
-    use symphonia::core::codecs::audio::AudioDecoderOptions;
-    use symphonia::core::formats::probe::Hint;
-    use symphonia::core::formats::{FormatOptions, TrackType};
-    use symphonia::core::io::MediaSourceStream;
-    use symphonia::core::meta::MetadataOptions;
-
-    let file = fs::File::open(path).ok()?;
-    let mut hint = Hint::new();
-    let ext = path.extension().and_then(|e| e.to_str());
-    if let Some(ext) = ext {
-        hint.with_extension(ext);
-    }
-    let mut format = symphonia::default::get_probe()
-        .probe(
-            &hint,
-            MediaSourceStream::new(Box::new(file), Default::default()),
-            FormatOptions::default(),
-            MetadataOptions::default(),
-        )
-        .ok()?;
-    let track = format.default_track(TrackType::Audio)?;
-    let track_id = track.id;
-    let time_base = track.time_base;
-    let track_duration = track.duration;
-    let num_frames = track.num_frames;
-    let params = track.codec_params.as_ref()?.audio()?.clone();
-    let registry = crate::audio_format::opus::codecs();
-    let mut decoder = registry
-        .make_audio_decoder(&params, &AudioDecoderOptions::default())
-        .ok()?;
-    let codec = registry
+    let OpenedStream {
+        mut format,
+        track_id,
+        time_base,
+        track_duration,
+        num_frames,
+        params,
+        mut decoder,
+    } = open_stream(path).ok()?;
+    let codec = crate::audio_format::opus::codecs()
         .get_audio_decoder(params.codec)
         .map(|registered| crate::audio_format::codec_label(registered.codec.info.short_name));
 
@@ -110,7 +191,13 @@ pub fn probe_playable_stream(path: &Path) -> Option<StreamInfo> {
     Some(StreamInfo {
         duration_ms,
         sample_rate: sample_rate.map(i64::from),
-        channels: params.channels.as_ref().map(|c| c.count() as i64),
+        // The decoder's, which may know better than the container: an MP4 with
+        // a program config element declares no count at all.
+        channels: decoder
+            .codec_params()
+            .channels
+            .as_ref()
+            .map(|c| c.count() as i64),
         bit_depth: params.bits_per_sample.map(i64::from).filter(|b| *b > 0),
         codec,
     })

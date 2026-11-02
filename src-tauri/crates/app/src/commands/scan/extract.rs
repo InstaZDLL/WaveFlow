@@ -349,6 +349,11 @@ pub(super) fn extract_file(
             ));
         }
     };
+    // Readable tags do not make a playable file. What the player cannot
+    // open stays out of the library, counted in the scan's errors with this
+    // reason in the log, instead of listing and then failing at play time.
+    let decoder_channels =
+        waveflow_core::scanner::extract::decoder_channels(path, tagged.file_type())?;
     timings
         .tag_us
         .fetch_add(t_tag.elapsed().as_micros() as u64, Ordering::Relaxed);
@@ -356,7 +361,7 @@ pub(super) fn extract_file(
     let duration_ms = props.duration().as_millis() as i64;
     let bitrate = props.audio_bitrate().map(|b| b as i64);
     let sample_rate = props.sample_rate().map(|s| s as i64);
-    let channels = props.channels().map(|c| c as i64);
+    let channels = decoder_channels.or_else(|| props.channels().map(|c| c as i64));
     // Bit depth: lossless codecs report a real PCM bit count; lossy
     // formats either return None or 0 (which we coalesce away so the
     // UI doesn't badge a 320 kbps MP3 as "0-bit Hi-Res").

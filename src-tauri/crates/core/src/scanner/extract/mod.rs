@@ -25,7 +25,7 @@ pub use artwork::{
     extension_for_mime, extract_cover, extract_folder_cover, ArtworkSource, ExtractedCover,
     FOLDER_COVER_EXTENSIONS,
 };
-pub use probe::{probe_playable_stream, StreamInfo};
+pub use probe::{decoder_channels, probe_playable_stream, StreamInfo};
 
 /// Extensions considered "audio files" by the scanner. Limited to
 /// formats the symphonia + cpal engine can actually decode and play,
