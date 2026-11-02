@@ -4,7 +4,7 @@ The audio path lives in [`src-tauri/crates/app/src/audio/`](../../src-tauri/crat
 
 ## Decoding & output
 
-- **Decoder** — [`symphonia 0.6`](https://crates.io/crates/symphonia) over MP3, FLAC, WAV, AIFF, OGG Vorbis, AAC, ALAC (M4A), plus **Opus** through an out-of-tree decoder (see below). Source samples are converted to interleaved `f32`, channel-mapped (mono ↔ stereo, mono onto a wider output through the front pair, and any multichannel source — 3.0 / quad / 5.0 / 5.1 / 6.1 / 7.1 — folded to stereo Lo/Ro per ITU-R BS.775, centre + surrounds at −3 dB, LFE dropped), then resampled to the device rate by [`rubato 5.0`](https://crates.io/crates/rubato) (`Fft<f32>` + `FixedSync::Input`, with a fast `Passthrough` variant when source rate already matches the device). At the end of a track the resampler's tail — the input short of a whole chunk plus the filter's delay, up to ~25 ms at 48 kHz — is pushed out and cut to the track's length ([`Resampler::finish`](../../src-tauri/crates/core/src/playback/resampler.rs)), so the end is heard and the zeros that pushed it out never become a gap before the next track. A seek resets the resampler as well as the decoder (`ActiveStream::reset_decoder`), so nothing of the old position plays at the new one. A new logical stream inside one source — a chained Ogg radio stream changing song — rebuilds the decoder from the new track list, as symphonia's contract asks, instead of ending the track, and a call that passes over 64 foreign or undecodable packets hands back to the decoder loop so a damaged file still lets stop and seek through. **Network pre-load**: when the source lives on a network share (Windows UNC / mapped `DRIVE_REMOTE` drive, or a Linux gvfs / SMB mount), [`ActiveStream::open`](../../src-tauri/crates/core/src/playback/stream/mod.rs) pulls the whole file into RAM (under a 512 MiB cap) in large sequential reads and decodes from that buffer instead of streaming — high-latency per-packet reads over the link would otherwise stutter mid-playback. The transfer runs on a thread of its own ([`ReadAhead`](../../src-tauri/crates/core/src/playback/read_ahead.rs)) and the decoder reads the buffer as it fills, so opening the track waits only for its header. A read more than 1 MiB ahead of the transfer — a seek into the middle, or a container whose index sits at the end (an M4A with its `moov` last, read at open) — goes to the file through a second handle instead of waiting for everything before it. Reading it whole first froze the decoder thread for the transfer: the next track is opened a few seconds before the current one ends, and with about a second of audio queued, a FLAC on a NAS over Wi-Fi cut the current track short and held stop and seek until it had arrived. Dropping the stream stops the transfer. Best-effort: oversize / unreadable files fall back to ordinary streaming. DSD keeps streaming (multi-GB files would blow the cap).
+- **Decoder** — [`symphonia 0.6`](https://crates.io/crates/symphonia) over MP3, FLAC, WAV, AIFF, OGG Vorbis, AAC, ALAC (M4A), plus **Opus**, **WavPack** and **Monkey's Audio** through out-of-tree decoders (see below). Source samples are converted to interleaved `f32`, channel-mapped (mono ↔ stereo, mono onto a wider output through the front pair, and any multichannel source — 3.0 / quad / 5.0 / 5.1 / 6.1 / 7.1 — folded to stereo Lo/Ro per ITU-R BS.775, centre + surrounds at −3 dB, LFE dropped), then resampled to the device rate by [`rubato 5.0`](https://crates.io/crates/rubato) (`Fft<f32>` + `FixedSync::Input`, with a fast `Passthrough` variant when source rate already matches the device). At the end of a track the resampler's tail — the input short of a whole chunk plus the filter's delay, up to ~25 ms at 48 kHz — is pushed out and cut to the track's length ([`Resampler::finish`](../../src-tauri/crates/core/src/playback/resampler.rs)), so the end is heard and the zeros that pushed it out never become a gap before the next track. A seek resets the resampler as well as the decoder (`ActiveStream::reset_decoder`), so nothing of the old position plays at the new one. A new logical stream inside one source — a chained Ogg radio stream changing song — rebuilds the decoder from the new track list, as symphonia's contract asks, instead of ending the track, and a call that passes over 64 foreign or undecodable packets hands back to the decoder loop so a damaged file still lets stop and seek through. **Network pre-load**: when the source lives on a network share (Windows UNC / mapped `DRIVE_REMOTE` drive, or a Linux gvfs / SMB mount), [`ActiveStream::open`](../../src-tauri/crates/core/src/playback/stream/mod.rs) pulls the whole file into RAM (under a 512 MiB cap) in large sequential reads and decodes from that buffer instead of streaming — high-latency per-packet reads over the link would otherwise stutter mid-playback. The transfer runs on a thread of its own ([`ReadAhead`](../../src-tauri/crates/core/src/playback/read_ahead.rs)) and the decoder reads the buffer as it fills, so opening the track waits only for its header. A read more than 1 MiB ahead of the transfer — a seek into the middle, or a container whose index sits at the end (an M4A with its `moov` last, read at open) — goes to the file through a second handle instead of waiting for everything before it. Reading it whole first froze the decoder thread for the transfer: the next track is opened a few seconds before the current one ends, and with about a second of audio queued, a FLAC on a NAS over Wi-Fi cut the current track short and held stop and seek until it had arrived. Dropping the stream stops the transfer. Best-effort: oversize / unreadable files fall back to ordinary streaming. DSD keeps streaming (multi-GB files would blow the cap).
 - **Stray bytes after the last frame (#898)** — some FLAC files carry a few bytes past their final frame. The FLAC reader needs the next frame header to know where the last frame ends, so it returns `UnexpectedEof` instead of the end of the stream, and the last frame (at most one packet, ~0.1 s) is lost with it. `ActiveStream::decode_next` treats that error as the end of the track when `StreamExtent` puts the decoder within one packet of the container's declared end (`start_ts` plus the track's `duration`, or `num_frames` when it has none), measuring with the longest packet seen, seeded with the codec's `max_frames_per_packet` (or 16 384 frames, the FLAC streamable subset's largest block, since symphonia's FLAC reader declares none) so a seek straight to the tail still has a measure. The first packet read replaces that seed, and only a packet that decoded moves the position, so a generous fallback never widens the window for the rest of the track and a skipped packet never counts as played. All of it is counted in the track's time base, the unit of a packet's `pts` and `dur`: lengths given in frames are converted, since that base is the sample rate's reciprocal for FLAC but not for every container. Earlier than that it is a truncated file and stays an error; with no declared length it stays an error too. Before, the whole song played and then reported "cannot play this track" without advancing the queue.
 - **DSD pipeline** — symphonia doesn't decode 1-bit DSD, so DSF (Sony) and DFF (Philips) containers route through [`audio/dsd/`](../../src-tauri/crates/core/src/audio_format/dsd/): a custom container parser reads the layout (DSD64 → DSD1024, mono / stereo / multichannel), and a windowed-sinc FIR with a Blackman-Harris envelope (256 taps by default, user-selectable up to 1024 / 2048 via Settings → Audio → Audio output — persisted in `profile_setting['audio.dsd_precision']`, mirrored into the `SharedPlayback.dsd_taps` atomic and read at stream-open by [`DsdToPcm::new_with_taps`](../../src-tauri/crates/core/src/audio_format/dsd/pcm.rs); DSD-only, symphonia formats ignore it, and more taps buy a sharper transition band at linear CPU cost) decimates the bitstream by 64 to land DSD64 at 44.1 kHz, DSD128 at 88.2 kHz, etc. The resulting PCM joins the same channel-convert + resample + ring-buffer pipeline as symphonia output. `ActiveStream` carries a `StreamBackend` enum (Symphonia / Dsd / Dop) so seeking and decoder reset stay uniform from the engine's perspective. **Limitation**: real audiophile players use multi-stage halfband cascades for lower CPU at the same SNR; ours prioritises code clarity.
 - **Native DSD via DoP** (DSD over PCM, #495, opt-in `profile_setting['audio.dsd_dop']` default OFF) — when the toggle is on AND the active output has exclusive device access AND the DAC accepts the format, a DSD track skips the FIR entirely: [`DsdToDop`](../../src-tauri/crates/core/src/audio_format/dsd/dop.rs) repackages the raw 1-bit stream into 24-bit DoP frames (marker `0x05`/`0xFA` alternating per frame, payload MSB-first — DFF verbatim, DSF bit-reversed) at `dsd_rate / 16` (DSD64 → 176.4 kHz, DSD128 → 352.8, DSD256 → 705.6), and the DAC reconstructs the 1-bit stream in hardware (truly bit-perfect, nothing on our side filters / resamples / gains it). **Per-platform exclusive backend** — DoP needs a mixer-free path to the DAC, so each OS has its own: **Windows** = WASAPI Exclusive ([`run_dop_event_loop`](../../src-tauri/crates/app/src/audio/wasapi_exclusive/event_loop.rs)); **Linux** = a raw `hw:` ALSA device at `S32_LE`, marker MSB-justified ([`alsa_exclusive`](../../src-tauri/crates/app/src/audio/alsa_exclusive/mod.rs)); **macOS** = CoreAudio **hog mode** + a forced physical stream format at the DoP rate in 32-bit int, fed through an `AudioUnit` render callback ([`coreaudio_exclusive`](../../src-tauri/crates/app/src/audio/coreaudio_exclusive.rs)); that format is a property of the **device**, so the previous one is saved and restored on teardown — otherwise the rest of the machine keeps talking to a DAC clocked for DoP — and device loss normally arrives through an `IsAlive` property listener, with a periodic `get_hogging_pid` query as the fallback when the listener can't be registered. All three ship the DoP words MSB-justified (marker in the top byte) and share the byte/idle packing in [`audio/dop_pack`](../../src-tauri/crates/app/src/audio/dop_pack.rs), which is also where the `0x05`/`0xFA` marker is **re-stamped** onto every outgoing frame from a single running counter: the encoder's own phase restarts on each seek and never sees the idle frames generated on pause / underrun, so letting both sides number frames independently would repeat or skip a marker exactly at those seams and drop the DAC out of DSD lock. On a cold `LoadAndPlay`, [`maybe_switch_dop_output`](../../src-tauri/crates/app/src/audio/decoder/dop.rs) parses the DSD header for the DoP rate and asks the engine to re-open the exclusive output at that exact format ([`AudioEngine::switch_output_for_track`](../../src-tauri/crates/app/src/audio/engine/output_switch.rs), which hands the fresh ring producer straight back rather than via the `SwapProducer` channel); the backend ships the words bit-exact and emits marker-carrying DoP idle frames (`0x69` payload) on pause/underrun so the DAC keeps DoP lock. **Linux: the card is asked for, not given up on.** PipeWire / PulseAudio hold every card from login, so the raw `hw:` open returned `EBUSY` on any desktop and DoP fell back silently — the toggle did nothing and said nothing. [`device_reservation`](../../src-tauri/crates/app/src/audio/device_reservation.rs) now takes the `org.freedesktop.ReserveDevice1.Audio<N>` name on the session bus, which is the protocol both servers watch in order to release a device, then the open is retried for up to a second while the server finishes letting go (releasing is asynchronous on its side). The reservation is bound to the stream and released with it. No session bus, or an owner that refuses to be replaced, lands exactly where the code was before. **Fully fail-soft**: a DAC that refuses the DoP rate, a non-exclusive output, or a platform without a DoP backend all fall back transparently to the DSD → PCM path above. The two load paths that never negotiate a format — remote files and HTTP streams — force the output back to PCM before opening, since a leftover DoP output would read their PCM samples as 24-bit words and ship them to the DAC as noise. On Windows DoP rides the separate WASAPI Exclusive opt-in; on Linux and macOS the DoP toggle itself engages the exclusive path (raw `hw:` / hog mode). DoP tracks never crossfade / gaplessly prefetch (the words can't be mixed), so they always transition through a cold load + output re-open; EQ / ReplayGain / normalize / mono / balance / stereo width / speed are bypassed (bit-perfect, volume is the DAC's job — and playback speed is pinned to 1× for the track, since the resampler that implements it isn't in the chain and only the reported position would move). Seeking is the one transport action that survives untouched, so **A-B loop works on DoP tracks** just like on PCM ones. The pipeline popover shows a "Native DSD" pill sourced from `player_get_state.dop_active` — what actually engaged, not just the opt-in. **Playing DoP to a non-DoP DAC produces white noise**, so the toggle is opt-in and default OFF for users who know their DAC supports it.
@@ -149,6 +149,97 @@ scanner's probe each used to reach for `symphonia::default::get_codecs`.
 They now share [`audio_format::opus::codecs`](../../src-tauri/crates/core/src/audio_format/opus.rs),
 because those three have to agree on what this build can play — a
 disagreement between them is what puts an unplayable track in a library.
+
+## WavPack and Monkey's Audio
+
+symphonia reads neither container and decodes neither codec, so both come
+as a reader and a decoder of ours, registered in
+[`audio_format::probe`](../../src-tauri/crates/core/src/audio_format/mod.rs)
+and [`codecs`](../../src-tauri/crates/core/src/audio_format/opus.rs) for the
+three places that open a stream.
+
+**Chosen on a measure, not on a README.** Each candidate decoded a corpus
+the reference encoders made (music-like signals, 8 / 16 / 24 / 32-bit integer
+and 32-bit float, mono to 7.1, 44.1 to 192 kHz, every compression level), and
+its output was compared byte for byte with `wvunpack` 5.9.0 or `mac` 13.45:
+
+| Crate                             | Files | Bit-exact | Stops or refuses | Wrong audio, reporting success |
+| --------------------------------- | ----- | --------- | ---------------- | ------------------------------ |
+| `symphonia-codec-wavpack` 0.1.1   | 84    | 38        | 40               | 6                              |
+| `wavicle` 0.1.0, as the crate is  | 84    | 60        | 24               | 0                              |
+| `wavicle` 0.1.0, as used here     | 84    | 84        | 0                | 0                              |
+| `ape-decoder` 0.3.2, as used here | 68    | 60        | 8                | 0                              |
+
+The first crate's six are 32-bit files with the low 8 bits of most samples
+wrong; its forty stops are a false end of stream, on every stereo file above
+the default setting among others. To measure a new version the same way, [`examples/format_conformance.rs`](../../src-tauri/crates/core/examples/format_conformance.rs)
+writes what the decoder outputs. Both crates are pinned exactly for that
+reason, and neither is behind a feature: they are pure Rust, so a build that
+leaves out libopus has no reason to leave them out as well.
+
+**What each refuses.** A file in these families stays out of the library,
+through [`is_scannable_audio`](../../src-tauri/crates/core/src/scanner/extract/mod.rs),
+and fails cleanly when opened directly:
+
+- Hybrid WavPack, with or without its `.wvc`: lossy without it, so it never
+  gets the chance to pass for lossless. A hybrid file with its correction
+  file beside it is refused too, since `wavicle` reads neither half.
+- WavPack holding DSD, and WavPack older than 4.0.
+- Monkey's Audio at 32 bits with more than one channel. `ape-decoder` keeps
+  its first-order filter's output in 32 bits where the reference uses 64, so
+  frames fail their CRC from the first loud passage on. 32-bit mono is fine.
+- Floating-point Monkey's Audio (marker `MACF`). The samples sit behind a bit
+  transform the crate leaves to its caller, and its CRC runs before that
+  transform: it would report success on noise.
+- Monkey's Audio older than format 3950 (2002).
+
+`wavicle` itself stops at stereo and at 16 bits, for reasons that have nothing
+to do with how the samples decode. A multichannel stream is a run of ordinary
+mono and stereo blocks, refused only on seeing a channel count above two, and
+the stored width takes no part in decoding. So
+[`decodable_block`](../../src-tauri/crates/core/src/audio_format/wavpack.rs)
+hands it a copy with that sub-block renamed or the width field raised; the
+table's 84 includes those 24 files.
+
+**Monkey's Audio decodes ahead of the packets.** A frame only decodes whole,
+from its start, and frames are long: 73 728 samples up to High, 294 912 at
+Extra High and 1 179 648 at Insane, 27 s of audio at 44.1 kHz. The output ring
+holds a second of stereo at 48 kHz, half that at 96 kHz, so decoding a frame
+when it comes due stops the sound on a file that decodes far faster than real
+time. [`ApeReader`](../../src-tauri/crates/core/src/audio_format/ape.rs) keeps
+a worker thread on the frame after the one playing and cuts decoded frames
+into packets of 4 096 samples of PCM, and `ApeDecoder` only unpacks those. A
+seek abandons the worker rather than wait out a frame nobody wants any more.
+Measured on a 12-thread desktop while other builds ran:
+
+| File, Insane unless noted | Speed | One frame | Longest wait, played at real time |
+| ------------------------- | ----- | --------- | --------------------------------- |
+| 16-bit, 44.1 kHz, stereo  | 21×   | 1.5 s     | 9 ms                              |
+| Same, at Extra High       | 54×   | 0.2 s     | 17 ms                             |
+| 24-bit, 96 kHz, stereo    | 7.7×  | 2.0 s     | 51 ms                             |
+| Same, at Extra High       | 24×   | 0.2 s     | 325 ms                            |
+| 24-bit, 192 kHz, stereo   | 6.3×  | 1.6 s     | 33 ms                             |
+| 16-bit, 48 kHz, 7.1       | 7.5×  | 3.8 s     | 31 ms                             |
+
+A seek's first audio takes one frame's decode at most, and nothing inside the
+frame already decoded. WavPack blocks are short and fast: 40 to 1 000 times
+real time, a few milliseconds a block.
+
+**Seeks land on the exact sample.** Both readers answer `actual_ts ==
+required_ts`, WavPack by carrying the head of its block as `trim_start` and
+Monkey's Audio by starting its cursor inside the frame, so a seek plays nothing
+from before the point asked for. Measured at 44 targets on each of 144 files
+against a full decode. There is no priming to remove and the sample count is
+in the header, so a track ends where it ends and gapless needs nothing more.
+
+**The first seek into a WavPack file walks its block headers** up to the
+target, and remembers them. The format has no index.
+
+**Tags** are APEv2 on both, written through the concrete file by
+[`patch_file`](../../src-tauri/crates/app/src/commands/edit/patch.rs) like any
+other container, so a field no reader models survives, and both keep their tag
+after the audio, so the audio's bytes are not touched. ReplayGain is read from
+that tag by the scanner's usual path, whatever the case of its keys.
 
 ## ReplayGain
 

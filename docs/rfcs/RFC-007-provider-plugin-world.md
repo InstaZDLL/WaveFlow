@@ -546,8 +546,9 @@ containers and codecs our decoder plays**, derived from the same registry the
 scanner and playback use (`AUDIO_EXTENSIONS` and the codec registry —
 [one registry](../architecture/invariants.md#one-codec-registry-for-the-whole-app)),
 never a list a plugin keeps. That last part is not an optimisation: a server
-holding WavPack or APE files, which the engine does not decode, must be asked to
-transcode **those** whatever the preference says, or they are unplayable rows.
+holding files the engine does not decode (hybrid WavPack, floating-point APE)
+must be asked to transcode **those** whatever the preference says, or they are
+unplayable rows.
 Measured:
 
 - `maxBitRate` alone is not "lossy": it caps the file's _average_ bitrate. A
