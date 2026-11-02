@@ -319,20 +319,39 @@ fn discrete_and_quad_tables_are_left_alone() {
     assert_eq!(decoder_order(parsed, mapping.mapping), vec![0, 1, 2, 3]);
 }
 
-/// The names given to the buffer match the order the table is put in, as
-/// many channels as the stream has.
+/// The names given to the buffer are the ones of RFC 7845 section 5.1.1.2, in
+/// the bit order the buffer holds them: this is what the table's order has to
+/// agree with.
 #[test]
 fn the_buffer_names_family_1_channels_and_not_family_255_ones() {
-    for count in 3..=8 {
+    let (fl, fr, fc, lfe) = (
+        Position::FRONT_LEFT,
+        Position::FRONT_RIGHT,
+        Position::FRONT_CENTER,
+        Position::LFE1,
+    );
+    let (rl, rr, rc, sl, sr) = (
+        Position::REAR_LEFT,
+        Position::REAR_RIGHT,
+        Position::REAR_CENTER,
+        Position::SIDE_LEFT,
+        Position::SIDE_RIGHT,
+    );
+    for (count, positions) in [
+        (3, fl | fr | fc),
+        (4, fl | fr | rl | rr),
+        (5, fl | fr | fc | rl | rr),
+        (6, fl | fr | fc | lfe | rl | rr),
+        (7, fl | fr | fc | lfe | rc | sl | sr),
+        (8, fl | fr | fc | lfe | rl | rr | sl | sr),
+    ] {
         let parsed = OpusHead {
             channel_count: count,
             pre_skip: 0,
             output_gain: 0,
             mapping_family: 1,
         };
-        let channels = channel_layout(parsed);
-        assert!(matches!(channels, Channels::Positioned(_)), "{count}");
-        assert_eq!(channels.count(), usize::from(count));
+        assert_eq!(channel_layout(parsed), Channels::Positioned(positions));
         assert_eq!(
             FAMILY_1_ORDER[usize::from(count) - 3].len(),
             usize::from(count)

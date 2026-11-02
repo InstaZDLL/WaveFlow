@@ -11,10 +11,11 @@
 //! [`ChannelLayout::alsa_default`]), which `hw:` can state for itself through
 //! its channel map.
 
+use std::fmt::Write as _;
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
 
-use alsa::pcm::{Chmap, ChmapPosition};
+use alsa::pcm::Chmap;
 use cpal::traits::DeviceTrait;
 use cpal::SupportedStreamConfig;
 use waveflow_core::playback::channels::{ChannelLayout, Speaker};
@@ -125,30 +126,36 @@ fn pactl(args: &[&str]) -> Option<String> {
 }
 
 /// The layout a raw device stated through its channel map.
+///
+/// Through ALSA's own text rather than `Vec<ChmapPosition>`: that conversion
+/// panics on a position it has no variant for, and a position can carry a
+/// driver's flag (phase inverted, driver specific), which would bring the
+/// output thread down.
 pub(in crate::audio) fn layout_of_chmap(map: &Chmap) -> Option<ChannelLayout> {
-    let positions: Vec<ChmapPosition> = map.into();
-    layout_of_positions(&positions)
+    let mut text = String::new();
+    write!(text, "{map}").ok()?;
+    layout_of_chmap_text(&text)
 }
 
-/// `None` when any channel has no position (a device that does not know), so
-/// the caller falls back rather than treat part of the map as gospel.
-fn layout_of_positions(positions: &[ChmapPosition]) -> Option<ChannelLayout> {
-    use ChmapPosition as P;
-    let speakers = positions
-        .iter()
+/// `FL FR RL RR FC LFE`, as `snd_pcm_chmap_print` writes it. `None` when any
+/// channel has no position we can name (a device that does not know), so the
+/// caller falls back rather than treat part of the map as gospel.
+fn layout_of_chmap_text(text: &str) -> Option<ChannelLayout> {
+    let speakers = text
+        .split_whitespace()
         .map(|position| {
             Some(match position {
-                P::Mono | P::FC => Speaker::FrontCenter,
-                P::FL => Speaker::FrontLeft,
-                P::FR => Speaker::FrontRight,
-                P::LFE => Speaker::Lfe,
-                P::RL => Speaker::BackLeft,
-                P::RR => Speaker::BackRight,
-                P::RC => Speaker::BackCenter,
-                P::SL => Speaker::SideLeft,
-                P::SR => Speaker::SideRight,
-                P::FLC => Speaker::FrontLeftOfCenter,
-                P::FRC => Speaker::FrontRightOfCenter,
+                "MONO" | "FC" => Speaker::FrontCenter,
+                "FL" => Speaker::FrontLeft,
+                "FR" => Speaker::FrontRight,
+                "LFE" => Speaker::Lfe,
+                "RL" => Speaker::BackLeft,
+                "RR" => Speaker::BackRight,
+                "RC" => Speaker::BackCenter,
+                "SL" => Speaker::SideLeft,
+                "SR" => Speaker::SideRight,
+                "FLC" => Speaker::FrontLeftOfCenter,
+                "FRC" => Speaker::FrontRightOfCenter,
                 _ => return None,
             })
         })
@@ -179,16 +186,20 @@ mod tests {
     /// What an HDA card's 5.1 states: the rear pair before the centre.
     #[test]
     fn a_channel_map_keeps_the_device_order() {
-        use ChmapPosition as P;
-        let layout = layout_of_positions(&[P::FL, P::FR, P::RL, P::RR, P::FC, P::LFE]).unwrap();
-        assert_eq!(layout, ChannelLayout::alsa_default(6));
+        assert_eq!(
+            layout_of_chmap_text("FL FR RL RR FC LFE"),
+            Some(ChannelLayout::alsa_default(6))
+        );
     }
 
+    /// A flagged position is written with a mark around its name, and must
+    /// give way to the default rather than bring the output thread down.
     #[test]
-    fn a_map_with_an_unknown_channel_says_nothing() {
-        use ChmapPosition as P;
-        assert_eq!(layout_of_positions(&[P::FL, P::Unknown]), None);
-        assert_eq!(layout_of_positions(&[P::NA, P::NA]), None);
-        assert_eq!(layout_of_positions(&[]), None);
+    fn a_map_with_a_position_we_cannot_name_says_nothing() {
+        assert_eq!(layout_of_chmap_text("FL UNKNOWN"), None);
+        assert_eq!(layout_of_chmap_text("NA NA"), None);
+        assert_eq!(layout_of_chmap_text("FL -FR"), None);
+        assert_eq!(layout_of_chmap_text("[FL] FR"), None);
+        assert_eq!(layout_of_chmap_text(""), None);
     }
 }

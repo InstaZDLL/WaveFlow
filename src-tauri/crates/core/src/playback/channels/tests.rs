@@ -283,6 +283,27 @@ fn beyond_seven_one_no_channel_is_dropped() {
     assert!(rows[0][8] > 0.0 && rows[1][9] > 0.0, "{rows:?}");
 }
 
+/// A driver can accept a mono output as front left (`0x1`), and the fold has
+/// to land on it all the same.
+#[test]
+fn a_single_channel_output_is_mono_whatever_it_is_called() {
+    for mono in [
+        ChannelLayout::from_wave_mask(0x1, 1),
+        ChannelLayout::from_wave_mask(0x4, 1),
+        ChannelLayout::new(vec![FrontLeft]),
+    ] {
+        assert_eq!(mono, ChannelLayout::from_count(1));
+        let out = mix(&ChannelLayout::from_count(2), &mono, &[0.5, 0.5]);
+        approx(out[0], 0.5);
+        let out = mix(
+            &ChannelLayout::from_count(6),
+            &mono,
+            &[0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+        );
+        assert!(out[0] > 0.0, "{out:?}");
+    }
+}
+
 /// Channels past 7.1 have no name to find each other by, so each keeps its
 /// place rather than all landing on the first one.
 #[test]

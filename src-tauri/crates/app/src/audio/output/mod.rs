@@ -507,7 +507,7 @@ fn output_thread_main(
     // Kept here as well as in the error callback so the receiver never
     // disconnects while the thread waits on it.
     let (stall_tx, stall_rx) = bounded::<()>(1);
-    let (stream, opened_device) = match build_stream(
+    let (stream, opened_device, format) = match build_stream(
         shared.clone(),
         consumer,
         app.clone(),
@@ -528,6 +528,12 @@ fn output_thread_main(
         let _ = init_tx.send(Err(err));
         return;
     }
+
+    // Only now the stream is really there: a device switch keeps the old one
+    // when the new one is refused, and the decoder would go on writing the
+    // refused format into it, 2-channel frames into an 8-channel ring at four
+    // times the speed.
+    format.publish(&shared);
 
     // Signal successful initialization, naming the endpoint that really
     // opened so the engine can report it rather than the request.
@@ -631,7 +637,7 @@ fn build_stream(
     app: AppHandle,
     device_name: Option<String>,
     stall_tx: Sender<()>,
-) -> AppResult<(Stream, Option<String>)> {
+) -> AppResult<(Stream, Option<String>, StreamFormat)> {
     silence_alsa_stderr(|| build_stream_inner(shared, consumer, app, device_name, stall_tx))
 }
 
@@ -641,7 +647,7 @@ fn build_stream_inner(
     app: AppHandle,
     device_name: Option<String>,
     stall_tx: Sender<()>,
-) -> AppResult<(Stream, Option<String>)> {
+) -> AppResult<(Stream, Option<String>, StreamFormat)> {
     let host = cpal::default_host();
     // If a specific device was requested, look it up by name. If the
     // user picked a device that since vanished (USB DAC unplugged
@@ -691,17 +697,10 @@ fn build_stream_inner(
     let sample_rate = default_cfg.sample_rate();
     let config: StreamConfig = default_cfg.into();
 
-    let stream_shared = shared.clone();
     let stream = match sample_format {
-        SampleFormat::F32 => {
-            open_stream::<f32>(&device, &config, consumer, stream_shared, app, stall_tx)
-        }
-        SampleFormat::I16 => {
-            open_stream::<i16>(&device, &config, consumer, stream_shared, app, stall_tx)
-        }
-        SampleFormat::U16 => {
-            open_stream::<u16>(&device, &config, consumer, stream_shared, app, stall_tx)
-        }
+        SampleFormat::F32 => open_stream::<f32>(&device, &config, consumer, shared, app, stall_tx),
+        SampleFormat::I16 => open_stream::<i16>(&device, &config, consumer, shared, app, stall_tx),
+        SampleFormat::U16 => open_stream::<u16>(&device, &config, consumer, shared, app, stall_tx),
         other => Err(AppError::Audio(format!(
             "unsupported sample format: {other:?}"
         ))),
@@ -714,28 +713,47 @@ fn build_stream_inner(
         "cpal output stream opened"
     );
 
-    // Stamp the device config into the shared state so the decoder and
-    // position helper can compute timing without re-querying cpal. Only now
-    // the stream exists: a device switch keeps the old stream when the new one
-    // is refused, and the decoder would go on writing the refused format into
-    // it, 2-channel frames into an 8-channel ring at four times the speed.
-    shared.sample_rate.store(sample_rate, Ordering::Release);
-    shared.channels.store(channels, Ordering::Release);
-    // What a shared stream's channels are. On Windows the count is the mix
-    // format's, in its WAVE order, and cpal's mask says to take the channels
-    // as they come. An ALSA PCM has its own order.
-    #[cfg(target_os = "linux")]
-    let layout = ChannelLayout::alsa_default(usize::from(channels)).pack();
-    #[cfg(not(target_os = "linux"))]
-    let layout = 0;
-    shared.output_layout.store(layout, Ordering::Release);
-    shared.set_sample_format(match sample_format {
-        SampleFormat::F32 => super::state::OutputSampleFormat::F32,
-        SampleFormat::I16 => super::state::OutputSampleFormat::S16,
-        SampleFormat::U16 => super::state::OutputSampleFormat::U16,
-        _ => super::state::OutputSampleFormat::Unknown,
-    });
-    Ok((stream, opened_device))
+    Ok((
+        stream,
+        opened_device,
+        StreamFormat {
+            sample_rate,
+            channels,
+            sample_format,
+        },
+    ))
+}
+
+/// What a cpal stream was opened at.
+struct StreamFormat {
+    sample_rate: u32,
+    channels: u16,
+    sample_format: SampleFormat,
+}
+
+impl StreamFormat {
+    /// Stamp the device config into the shared state so the decoder and
+    /// position helper can compute timing without re-querying cpal.
+    fn publish(&self, shared: &SharedPlayback) {
+        shared
+            .sample_rate
+            .store(self.sample_rate, Ordering::Release);
+        shared.channels.store(self.channels, Ordering::Release);
+        // What a shared stream's channels are. On Windows the count is the mix
+        // format's, in its WAVE order, and cpal's mask says to take the channels
+        // as they come. An ALSA PCM has its own order.
+        #[cfg(target_os = "linux")]
+        let layout = ChannelLayout::alsa_default(usize::from(self.channels)).pack();
+        #[cfg(not(target_os = "linux"))]
+        let layout = 0;
+        shared.output_layout.store(layout, Ordering::Release);
+        shared.set_sample_format(match self.sample_format {
+            SampleFormat::F32 => super::state::OutputSampleFormat::F32,
+            SampleFormat::I16 => super::state::OutputSampleFormat::S16,
+            SampleFormat::U16 => super::state::OutputSampleFormat::U16,
+            _ => super::state::OutputSampleFormat::Unknown,
+        });
+    }
 }
 
 /// What to do with one error from a cpal stream. See [`StreamErrorStorm`].

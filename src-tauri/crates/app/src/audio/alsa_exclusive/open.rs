@@ -184,12 +184,11 @@ pub(super) fn open_dop_pcm(dev: &str, dop: DopFormat) -> Result<(PCM, usize), Pc
 /// starting a track, seeking and changing track each took about ten
 /// seconds — the wait was the buffer draining.
 ///
-/// The period also has to stay small against
-/// [`super::super::output::RING_CAPACITY`], because one period is drained from
+/// The period also has to stay small against what the decoder keeps queued
+/// ([`super::super::output::RING_FRAMES`]), because one period is drained from
 /// the ring in a single pass and whatever the ring cannot supply is
-/// written as silence. At 16 384 frames a period was two thirds of the
-/// whole ring, which makes an underrun the normal case rather than the
-/// exception.
+/// written as silence. At 16 384 frames a period was a good part of the
+/// queue, which makes an underrun the normal case rather than the exception.
 fn set_period_and_buffer(hwp: &HwParams<'_>) -> AppResult<()> {
     hwp.set_period_size_near(TARGET_PERIOD_FRAMES, ValueOr::Nearest)
         .map_err(|e| AppError::Audio(format!("alsa set_period_size: {e}")))?;

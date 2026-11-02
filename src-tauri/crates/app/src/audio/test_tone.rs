@@ -116,9 +116,11 @@ pub struct ToneSequence {
 }
 
 impl ToneSequence {
-    /// Left, right and both on a stereo output; every speaker it has on a
-    /// wider one, found by name rather than number since some backends open
-    /// a surround output in another order. A single-channel output plays all
+    /// Left, right and both on a stereo output; on a wider one, every speaker
+    /// of a 5.1 or a 7.1 that it has, found by name rather than number since
+    /// some backends open a surround output in another order. The front pair
+    /// of a 7.1 wide, which only an obsolete mask gives, is not called on. A
+    /// single-channel output plays all
     /// three stereo beeps on that channel.
     ///
     /// `front_only` is for the mono switch, which plays from the front pair

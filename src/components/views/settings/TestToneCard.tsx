@@ -61,8 +61,9 @@ function formatRate(hz: number): string {
 }
 
 /**
- * Output test tone: a beep on the left, on the right, then on both, at
- * the format the output stream really runs at, which the card then
+ * Output test tone: a beep on the left, on the right, then on both, or on
+ * each speaker in turn on a surround output, at the format the output
+ * stream really runs at, which the card then
  * spells out. Answers "is the DAC wired the right way round, and what is
  * it being sent?" without hunting for a test file.
  *

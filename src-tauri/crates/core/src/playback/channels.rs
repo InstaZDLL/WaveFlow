@@ -172,8 +172,14 @@ pub struct ChannelLayout {
 }
 
 impl ChannelLayout {
-    /// A layout from its speakers, in the order of the samples.
+    /// A layout from its speakers, in the order of the samples. A single
+    /// channel is mono whichever position it was given: FLAC, Vorbis and a
+    /// `0x1` mask say front left, others front centre, and a fold has to land
+    /// on it all the same.
     pub fn new(speakers: Vec<Speaker>) -> Self {
+        if speakers.len() == 1 {
+            return Self::from_count(1);
+        }
         Self { speakers }
     }
 
@@ -260,12 +266,12 @@ impl ChannelLayout {
         if mask.count_ones() as usize != count {
             return Self::from_count(count);
         }
-        Self {
-            speakers: (0..u32::BITS)
+        Self::new(
+            (0..u32::BITS)
                 .filter(|bit| mask & (1 << bit) != 0)
                 .map(Speaker::from_wave_bit)
                 .collect(),
-        }
+        )
     }
 
     /// The WAVE channel mask of this layout, when it is one a mask can state:
@@ -286,12 +292,11 @@ impl ChannelLayout {
 
     /// The layout of what a decoder reported. Only positioned channels say
     /// where they go; anything else (discrete, ambisonic, labelled) falls
-    /// back on the count. A single channel is mono whichever position it
-    /// was given: FLAC and Vorbis say front left, others front centre.
+    /// back on the count.
     pub fn from_symphonia(channels: &Channels) -> Self {
         let count = channels.count();
         match channels {
-            Channels::Positioned(positions) if count > 1 => {
+            Channels::Positioned(positions) => {
                 match u32::try_from(positions.bits()) {
                     Ok(mask) => Self::from_wave_mask(mask, count),
                     // A position past the WAVE mask's 32 bits has no name here.

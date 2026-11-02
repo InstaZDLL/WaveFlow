@@ -107,7 +107,9 @@ pub(super) fn play_test_tone(
     let rate = shared.sample_rate.load(Ordering::Acquire);
     let channels = shared.channels.load(Ordering::Acquire);
     let layout = shared.output_layout();
-    let tone = test_tone::ToneSequence::new(&layout, shared.mono_enabled.load(Ordering::Acquire));
+    // Read once: the beeps are chosen by it, and the card's warning says it.
+    let mono = shared.mono_enabled.load(Ordering::Acquire);
+    let tone = test_tone::ToneSequence::new(&layout, mono);
     if rate == 0 || channels == 0 {
         let _ = app.emit(
             EVENT_TEST_TONE,
@@ -130,7 +132,7 @@ pub(super) fn play_test_tone(
             channels,
             sample_format: shared.sample_format(),
             phases: tone.phases(),
-            mono: shared.mono_enabled.load(Ordering::Acquire),
+            mono,
         },
     );
 
@@ -195,7 +197,7 @@ pub(super) fn play_test_tone(
             // Mono is folded on this thread now, not in the output; the
             // tone gets it the way a stereo track does, so the card's warning
             // still describes what is heard.
-            if shared.mono_enabled.load(Ordering::Relaxed) {
+            if mono {
                 super::super::stereo::mono_fold(&mut chunk[..frames * width], &layout, 2);
             }
             if let Ok(slot) = producer.write_chunk_uninit(frames * width) {
