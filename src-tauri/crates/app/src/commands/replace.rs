@@ -219,13 +219,10 @@ async fn check(
         bit_depth: info.bit_depth,
     });
 
-    let ext_ok = source
-        .extension()
-        .and_then(|e| e.to_str())
-        .is_some_and(|e| {
-            waveflow_core::scanner::extract::AUDIO_EXTENSIONS
-                .contains(&e.to_ascii_lowercase().as_str())
-        });
+    // The scanner's own test and not the extension list: a hybrid WavPack
+    // or a Speex `.ogg` has a listed extension and would be swapped in for a
+    // track the scanner then refuses to index.
+    let ext_ok = waveflow_core::scanner::extract::is_scannable_audio(source);
     // The adopted file's own track counts too: it is the one whose file
     // is open if that is what is playing.
     let now_playing = engine

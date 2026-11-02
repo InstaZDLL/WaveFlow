@@ -558,6 +558,14 @@ pub(crate) fn patch_file(
                 }
             }
         }),
+        // APEv2 on both, the tag every tool for these formats writes. An
+        // ID3v1 tag beside it is left alone, as it is beside an MP3's ID3v2.
+        FileType::Ape => with_file!(lofty::ape::ApeFile, |f, handle| {
+            patch_slot!(f, remove_ape, set_ape);
+        }),
+        FileType::WavPack => with_file!(lofty::wavpack::WavPackFile, |f, handle| {
+            patch_slot!(f, remove_ape, set_ape);
+        }),
         other => {
             return Err(format!("{other:?} files are not editable in this build").into());
         }

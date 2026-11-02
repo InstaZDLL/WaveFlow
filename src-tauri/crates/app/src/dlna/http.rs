@@ -110,7 +110,7 @@ pub fn router(ctx: ServerCtx) -> Router {
 <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
   <s:Body>
     <u:GetProtocolInfoResponse xmlns:u="urn:schemas-upnp-org:service:ConnectionManager:1">
-      <Source>http-get:*:audio/mpeg:*,http-get:*:audio/flac:*,http-get:*:audio/wav:*,http-get:*:audio/x-aiff:*,http-get:*:audio/ogg:*,http-get:*:audio/mp4:*</Source>
+      <Source>http-get:*:audio/mpeg:*,http-get:*:audio/flac:*,http-get:*:audio/wav:*,http-get:*:audio/x-aiff:*,http-get:*:audio/ogg:*,http-get:*:audio/mp4:*,http-get:*:audio/x-wavpack:*,http-get:*:audio/x-ape:*</Source>
       <Sink></Sink>
     </u:GetProtocolInfoResponse>
   </s:Body>
@@ -337,6 +337,8 @@ fn mime_for_path(path: &str) -> &'static str {
         Some("aiff" | "aif") => "audio/x-aiff",
         Some("ogg" | "oga") => "audio/ogg",
         Some("m4a" | "mp4" | "aac") => "audio/mp4",
+        Some("wv") => "audio/x-wavpack",
+        Some("ape") => "audio/x-ape",
         _ => "application/octet-stream",
     }
 }

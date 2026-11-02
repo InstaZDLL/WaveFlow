@@ -54,5 +54,10 @@ mod patch_agreement_tests;
 #[cfg(test)]
 mod album_artist_and_composer_files;
 
+/// Every kind of edit, written into real WavPack and Monkey's Audio files
+/// that already carry another tool's APEv2 tag.
+#[cfg(test)]
+mod ape_tag_files;
+
 #[cfg(test)]
 mod sync_db_tests;
