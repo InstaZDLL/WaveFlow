@@ -272,7 +272,7 @@ export function TestToneCard() {
           <p className="text-xs text-zinc-600 dark:text-zinc-300 tabular-nums">
             {details.join(" · ")}
           </p>
-          {output.channels > 2 && !output.mono ? (
+          {output.phases.includes("lfe") ? (
             <p className="text-xs settings-description">
               {t("settings.testTone.surroundNote")}
             </p>

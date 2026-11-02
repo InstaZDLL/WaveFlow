@@ -23,6 +23,9 @@ use waveflow_core::playback::channels::{ChannelLayout, Speaker};
 /// not there, and an output must not wait on it.
 const PACTL_TIMEOUT: Duration = Duration::from_millis(500);
 
+/// The widest sink opened at its own width: 7.1, the widest layout with names.
+const MAX_SINK_CHANNELS: u16 = 8;
+
 /// The ALSA device names that lead to the sound server rather than to a card.
 const SERVER_DEVICES: [&str; 3] = ["default", "pipewire", "pulse"];
 
@@ -60,8 +63,11 @@ pub(in crate::audio) fn widen_to_sink(
     }
 }
 
-/// How many channels the sink has that a stream of ours would land on: the
+/// How many speakers the sink has that a stream of ours would land on: the
 /// one the ALSA plugin was pointed at through the environment, or the default.
+///
+/// `None` past 7.1. A sink that wide is a card's "Pro Audio" profile, whose
+/// channels are numbered inputs of a mixing desk rather than speakers.
 pub(in crate::audio) fn sink_channels() -> Option<u16> {
     let sink = std::env::var("PIPEWIRE_NODE")
         .or_else(|_| std::env::var("PULSE_SINK"))
@@ -72,10 +78,12 @@ pub(in crate::audio) fn sink_channels() -> Option<u16> {
             Some(default.trim().to_string())
         })?;
     channels_of_sink(&pactl(&["list", "short", "sinks"])?, &sink)
+        .filter(|n| *n <= MAX_SINK_CHANNELS)
 }
 
 /// One line of `pactl list short sinks` per sink, tab-separated and free of
-/// any translated word: `47	<name>	PipeWire	s32le 2ch 48000Hz	SUSPENDED`.
+/// any translated word: index, name, driver, sample spec (`s32le 2ch 48000Hz`),
+/// state.
 fn channels_of_sink(listing: &str, sink: &str) -> Option<u16> {
     listing.lines().find_map(|line| {
         let mut fields = line.split('\t');

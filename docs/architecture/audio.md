@@ -145,7 +145,7 @@ A channel is a speaker, not a number. [`ChannelLayout`](../../src-tauri/crates/c
 
 **The ring holds the output's channels, in the output's order.** The decoder mixes to that layout, so nothing after it permutes anything: the callback stays a pop and a scale, and a backend whose device numbers its speakers differently only has to say so.
 
-**Linux opens at the sink's width.** cpal's default configuration prefers stereo above anything else, and the sound server's ALSA plugin offers every count from 1 to 128, so a shared stream used to be stereo even on a 7.1 sink. [`linux_layout::widen_to_sink`](../../src-tauri/crates/app/src/audio/output/linux_layout.rs) asks `pactl` how wide the sink is (`PIPEWIRE_NODE` or `PULSE_SINK` when set, as the plugin honours them, the default sink otherwise) and only for the devices that lead to the server (`default`, `pipewire`, `pulse`). No answer in 500 ms, no `pactl`: stereo, as before.
+**Linux opens at the sink's width.** cpal's default configuration prefers stereo above anything else, and the sound server's ALSA plugin offers every count from 1 to 128, so a shared stream used to be stereo even on a 7.1 sink. [`linux_layout::widen_to_sink`](../../src-tauri/crates/app/src/audio/output/linux_layout.rs) asks `pactl` how wide the sink is (`PIPEWIRE_NODE` or `PULSE_SINK` when set, as the plugin honours them, the default sink otherwise) and only for the devices that lead to the server (`default`, `pipewire`, `pulse`). No answer in 500 ms, no `pactl`, or a sink past 7.1 (a "Pro Audio" profile, whose channels are not speakers): stereo, as before.
 
 ## Ring buffer sizing
 
