@@ -129,6 +129,36 @@ fn an_edit_writes_the_fields_and_keeps_what_it_does_not_model() {
     });
 }
 
+/// The tag Monkey's Audio itself writes: items and a footer, with no header.
+#[test]
+fn an_edit_over_a_tag_with_no_header_costs_no_audio() {
+    let items: &[u8] = b"\x05\0\0\0\0\0\0\0Title\0Hello";
+    let mut footer = b"APETAGEX".to_vec();
+    footer.extend_from_slice(&2000u32.to_le_bytes());
+    footer.extend_from_slice(&((items.len() + 32) as u32).to_le_bytes());
+    footer.extend_from_slice(&1u32.to_le_bytes());
+    footer.extend_from_slice(&(1u32 << 30).to_le_bytes());
+    footer.extend_from_slice(&[0; 8]);
+
+    for name in ["s16_stereo.wv", "s16_stereo_c2000.ape"] {
+        let source = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../core/tests/fixtures/lossless")
+            .join(name);
+        let audio = std::fs::read(&source).expect("read");
+        let dir = tempfile::tempdir().expect("tempdir");
+        let path = dir.path().join(name);
+        std::fs::write(&path, [&audio[..], items, &footer].concat()).expect("write");
+
+        let edit = TrackEdit {
+            title: Some("After".into()),
+            ..Default::default()
+        };
+        write_tags_to_file(&path, &edit).expect("write");
+        assert_eq!(read_tag(&path).title().as_deref(), Some("After"), "{name}");
+        assert_audio_untouched(name, &path, &audio);
+    }
+}
+
 #[test]
 fn a_rating_a_cover_and_lyrics_reach_the_file_and_read_back() {
     // A real PNG header is what lofty's generic picture path wants to see.
@@ -136,10 +166,28 @@ fn a_rating_a_cover_and_lyrics_reach_the_file_and_read_back() {
     each_container(|name, path, audio| {
         patch_file(path, &TagPatch::Rating(Some(204))).expect("rating");
         assert_eq!(
-            waveflow_core::scanner::extract_rating(&read_tag(path)),
+            waveflow_core::scanner::extract_ape_rating(path),
             Some(204),
             "{name}: rating"
         );
+        assert!(
+            read_extra_tags(path)
+                .expect("custom tags")
+                .iter()
+                .all(|(key, _)| key != "RATING"),
+            "{name}: the stars are not a custom column"
+        );
+        // Every value the star widget produces survives the round trip.
+        for rating in [26u8, 51, 77, 102, 128, 153, 179, 230, 255] {
+            patch_file(path, &TagPatch::Rating(Some(rating))).expect("rating");
+            assert_eq!(
+                waveflow_core::scanner::extract_ape_rating(path),
+                Some(rating),
+                "{name}: rating {rating}"
+            );
+        }
+        patch_file(path, &TagPatch::Rating(None)).expect("clearing");
+        assert_eq!(waveflow_core::scanner::extract_ape_rating(path), None);
 
         patch_file(
             path,
@@ -165,6 +213,18 @@ fn a_rating_a_cover_and_lyrics_reach_the_file_and_read_back() {
             "{name}: lyrics"
         );
         assert_eq!(tag.picture_count(), 1, "{name}: the lyrics kept the cover");
+
+        // The slot TTML needs: an arbitrary string, under its own key.
+        patch_file(
+            path,
+            &TagPatch::Lyrics(LyricsSlot::Arbitrary("<tt>the words</tt>")),
+        )
+        .expect("arbitrary lyrics");
+        assert_eq!(
+            read_tag(path).get_string(ItemKey::Lyrics),
+            Some("<tt>the words</tt>"),
+            "{name}: arbitrary lyrics"
+        );
         assert_audio_untouched(name, path, audio);
     });
 }

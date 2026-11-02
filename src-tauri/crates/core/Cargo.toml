@@ -15,7 +15,7 @@ homepage = "https://waveflow.app"
 # cmake to (waveflow-server#282).
 default = ["opus"]
 # The libopus decoder behind `audio_format::opus::codecs()`. Without it
-# the same function answers symphonia's registry alone.
+# the same function answers the registry minus Opus.
 opus = ["dep:opusic-sys"]
 # Opt in to the SQLite backend: enables `sqlx::FromRow` derives on the
 # domain types (via `cfg_attr`) and pulls the `sqlite` + `runtime-tokio`

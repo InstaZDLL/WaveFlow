@@ -586,6 +586,55 @@ fn a_tag_edit_keeps_unknown_fields_and_leaves_the_audio_alone() {
     round_trip!(lofty::ape::ApeFile, "s16_stereo_c2000.ape");
 }
 
+/// The tag Monkey's Audio writes has no header, and lofty, replacing one,
+/// took 32 bytes of audio with it: the last frame failed its CRC from then on.
+#[test]
+fn replacing_a_tag_with_no_header_costs_no_audio() {
+    use lofty::ape::{ApeFile, ApeItem, ApeTag};
+    use lofty::tag::ItemValue;
+
+    let items: &[u8] = b"\x05\0\0\0\0\0\0\0Title\0Hello";
+    let mut footer = b"APETAGEX".to_vec();
+    footer.extend_from_slice(&2000u32.to_le_bytes());
+    footer.extend_from_slice(&((items.len() + 32) as u32).to_le_bytes());
+    footer.extend_from_slice(&1u32.to_le_bytes());
+    footer.extend_from_slice(&(1u32 << 30).to_le_bytes());
+    footer.extend_from_slice(&[0; 8]);
+
+    let source = fixture("s16_stereo_c2000.ape");
+    let audio = fs::read(&source).expect("read");
+    let clean = decode_all(&source);
+    let dir = tempfile::tempdir().expect("tempdir");
+    let path = dir.path().join("tagged.ape");
+    fs::write(&path, [&audio[..], items, &footer].concat()).expect("write");
+    assert_eq!(decode_all(&path), clean, "the tag is not read as audio");
+
+    for title in ["Edited", "Edited again"] {
+        crate::tagio::rewrite_via_temp(&path, |handle| -> Result<(), std::io::Error> {
+            let mut file = ApeFile::read_from(handle, ParseOptions::new()).expect("read");
+            let mut tag = file.remove_ape().unwrap_or_else(ApeTag::new);
+            tag.insert(ApeItem::new("Title".into(), ItemValue::Text(title.into())).expect("item"));
+            file.set_ape(tag);
+            file.save_to(handle, WriteOptions::default()).expect("save");
+            Ok(())
+        })
+        .expect("rewrite");
+
+        assert!(
+            fs::read(&path).expect("read").starts_with(&audio),
+            "the audio's bytes must all still be there"
+        );
+        assert_eq!(decode_all(&path), clean, "the last frame must still decode");
+        let tagged = crate::scanner::extract::read_tagged_file(&path).expect("read back");
+        assert_eq!(
+            tagged
+                .primary_tag()
+                .and_then(|t| t.title().map(|s| s.into_owned())),
+            Some(title.to_string())
+        );
+    }
+}
+
 /// Taggers disagree on the case of these keys; APEv2 says they do not differ.
 #[test]
 fn replay_gain_is_read_whatever_the_case_of_its_key() {

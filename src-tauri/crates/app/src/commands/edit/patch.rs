@@ -96,10 +96,15 @@ pub(super) fn apply_patch(tag: &mut lofty::tag::Tag, patch: &TagPatch<'_>) {
             // email — cannot shadow the new one.
             tag.remove_key(ItemKey::Popularimeter);
             if let Some(r) = rating {
-                // Vorbis / MP4 / APE / WavPack: text on the 0-100
-                // scale, the shape the scanner reads back.
+                // Vorbis / MP4: text on the 0-100 scale, the shape the
+                // scanner reads back.
                 //
-                // ID3v2 does not come through here at all. lofty's
+                // APEv2 does not come through here at all: lofty's key
+                // table for it has no entry for a rating, so the item
+                // would be dropped on the way to the file. That is
+                // [`apply_rating_ape`].
+                //
+                // Nor does ID3v2. lofty's
                 // generic tag carries a rating as a **whole star**
                 // (`<provider>|<stars>|<counter>`), so a value on this
                 // 0-255 scale either fails to convert — which is
@@ -410,6 +415,21 @@ pub(crate) fn patch_file(
         }};
     }
 
+    // The APEv2 slot, which takes one payload off the generic path as the
+    // ID3v2 slot does, for its own reason: see `apply_rating_ape`.
+    macro_rules! patch_ape_slot {
+        ($file:expr) => {{
+            match patch {
+                TagPatch::Rating(rating) => {
+                    let mut tag = $file.remove_ape().unwrap_or_default();
+                    apply_rating_ape(&mut tag, *rating);
+                    $file.set_ape(tag);
+                }
+                _ => patch_slot!($file, remove_ape, set_ape),
+            }
+        }};
+    }
+
     // The rewrite: read the concrete file, run the body over it, save it
     // back — through a copy that replaces the original in one `rename`
     // (#598). lofty's own rewrite truncates the file it is rewriting, so
@@ -561,10 +581,10 @@ pub(crate) fn patch_file(
         // APEv2 on both, the tag every tool for these formats writes. An
         // ID3v1 tag beside it is left alone, as it is beside an MP3's ID3v2.
         FileType::Ape => with_file!(lofty::ape::ApeFile, |f, handle| {
-            patch_slot!(f, remove_ape, set_ape);
+            patch_ape_slot!(f);
         }),
         FileType::WavPack => with_file!(lofty::wavpack::WavPackFile, |f, handle| {
-            patch_slot!(f, remove_ape, set_ape);
+            patch_ape_slot!(f);
         }),
         other => {
             return Err(format!("{other:?} files are not editable in this build").into());
@@ -572,6 +592,26 @@ pub(crate) fn patch_file(
     }
 
     Ok(())
+}
+
+/// Write a rating into an APEv2 tag, as text on the 0-100 scale, under the key
+/// [`waveflow_core::scanner::extract_ape_rating`] reads.
+fn apply_rating_ape(tag: &mut lofty::ape::ApeTag, rating: Option<u8>) {
+    use lofty::ape::ApeItem;
+    use lofty::tag::ItemValue;
+    use waveflow_core::scanner::extract::APE_RATING_KEY;
+
+    tag.remove(APE_RATING_KEY);
+    if let Some(rating) = rating {
+        let as_100 = (rating as u16) * 100 / 255;
+        // Infallible for this key: it is valid ASCII of a valid length.
+        if let Ok(item) = ApeItem::new(
+            APE_RATING_KEY.to_string(),
+            ItemValue::Text(as_100.to_string()),
+        ) {
+            tag.insert(item);
+        }
+    }
 }
 
 /// Apply the edit to the file's tags. Creates a tag when the file has

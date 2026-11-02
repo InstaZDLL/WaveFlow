@@ -118,6 +118,9 @@ where
             .write(true)
             .open(&temp.path)
             .map_err(E::from)?;
+        // On the copy, for every caller: see the module. Everything that has
+        // lofty replace a tag on disk comes through here.
+        super::ape::add_missing_ape_header(&mut file).map_err(E::from)?;
         body(&mut file)?;
         file.sync_all().map_err(E::from)?;
     }

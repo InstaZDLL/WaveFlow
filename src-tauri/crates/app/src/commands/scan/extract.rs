@@ -356,7 +356,13 @@ pub(super) fn extract_file(
     let duration_ms = props.duration().as_millis() as i64;
     let bitrate = props.audio_bitrate().map(|b| b as i64);
     let sample_rate = props.sample_rate().map(|s| s as i64);
-    let channels = props.channels().map(|c| c as i64);
+    // lofty answers 0 for a multichannel WavPack file; the decoder knows.
+    let channels = match props.channels() {
+        Some(0) => {
+            waveflow_core::scanner::extract::probe_playable_stream(path).and_then(|s| s.channels)
+        }
+        other => other.map(|c| c as i64),
+    };
     // Bit depth: lossless codecs report a real PCM bit count; lossy
     // formats either return None or 0 (which we coalesce away so the
     // UI doesn't badge a 320 kbps MP3 as "0-bit Hi-Res").
@@ -420,6 +426,16 @@ pub(super) fn extract_file(
             ReplayGainTags::default(),
         ),
     };
+
+    // lofty's generic tag has no room for a rating on these two.
+    let rating = rating.or_else(|| {
+        matches!(
+            tagged.file_type(),
+            lofty::file::FileType::Ape | lofty::file::FileType::WavPack
+        )
+        .then(|| waveflow_core::scanner::extract_ape_rating(path))
+        .flatten()
+    });
 
     // The custom frames, from a second parse of the concrete container
     // (#588). They are not in what lofty just handed back: the generic

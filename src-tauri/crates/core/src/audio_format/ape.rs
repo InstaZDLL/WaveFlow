@@ -326,8 +326,9 @@ impl<'s> ApeReader<'s> {
     }
 
     /// Wait for `next_frame` and queue the one after it, which is what keeps
-    /// a frame boundary from ever being a wait while the track plays.
-    fn advance(&mut self) -> Result<std::result::Result<(), Packet>> {
+    /// a frame boundary from ever being a wait while the track plays. Answers
+    /// the packet to hand out instead when the frame failed to decode.
+    fn advance(&mut self) -> Result<Option<Packet>> {
         let frame = self.next_frame;
         self.request(frame)?;
         let Some(worker) = &mut self.worker else {
@@ -351,14 +352,14 @@ impl<'s> ApeReader<'s> {
         let frame_start = u64::from(frame) * u64::from(self.info.header.blocks_per_frame);
         self.position = frame_start + (skip / self.block_align()) as u64;
 
-        let outcome = match pcm {
+        let failed = match pcm {
             Ok(pcm) if pcm.len() == blocks as usize * self.block_align() => {
                 self.current = Some(CurrentFrame {
                     index: frame,
                     pcm,
                     cursor: skip,
                 });
-                Ok(())
+                None
             }
             other => {
                 let reason = other.err().unwrap_or_else(|| "short frame".to_string());
@@ -375,11 +376,11 @@ impl<'s> ApeReader<'s> {
                     Vec::new(),
                 );
                 self.position += skipped;
-                Err(packet)
+                Some(packet)
             }
         };
         self.request(self.next_frame)?;
-        Ok(outcome)
+        Ok(failed)
     }
 
     /// Drop what decoding is under way, for a seek somewhere else.
@@ -540,8 +541,8 @@ impl FormatReader for ApeReader<'_> {
             if self.next_frame >= self.total_frames() {
                 return Ok(None);
             }
-            if let Err(error_packet) = self.advance()? {
-                return Ok(Some(error_packet));
+            if let Some(failed) = self.advance()? {
+                return Ok(Some(failed));
             }
         }
     }

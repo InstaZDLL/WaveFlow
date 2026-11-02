@@ -239,7 +239,24 @@ target, and remembers them. The format has no index.
 [`patch_file`](../../src-tauri/crates/app/src/commands/edit/patch.rs) like any
 other container, so a field no reader models survives, and both keep their tag
 after the audio, so the audio's bytes are not touched. ReplayGain is read from
-that tag by the scanner's usual path, whatever the case of its keys.
+that tag by the scanner's usual path, whatever the case of its keys. Two things
+lofty gets wrong on APEv2 are handled on our side, each with its reason in the
+code: it removes 32 bytes of audio when it replaces a tag with no header, the
+kind Monkey's Audio writes
+([`tagio::ape`](../../src-tauri/crates/core/src/tagio/ape.rs)), and its key table
+has no rating, so the stars go through the concrete tag. It also reports 0
+channels for a multichannel WavPack file, which the scanner asks the decoder
+about instead.
+
+**A debug build plays these too.** Both crates are optimised in the `dev`
+profile (`src-tauri/Cargo.toml`): unoptimised, one Insane frame takes 55 s.
+`ape-decoder` has overflow checks off there, as in a release build, because its
+neural filter relies on 32-bit wrap-around the way the C++ reference does.
+
+**A frame being decoded cannot be interrupted.** Skipping to the next track
+while the first frame of an Insane file is decoding waits for that frame, one
+or two seconds at most. Once a track is playing the worker is ahead, so this
+only shows right after a load or a seek.
 
 ## ReplayGain
 
