@@ -393,6 +393,17 @@ fn a_wave_mask_names_the_channels_lowest_bit_first() {
 }
 
 #[test]
+fn a_layout_states_its_wave_mask_when_it_has_one() {
+    assert_eq!(ChannelLayout::from_count(2).wave_mask(), Some(0x3));
+    assert_eq!(ChannelLayout::from_count(4).wave_mask(), Some(0x33));
+    assert_eq!(ChannelLayout::from_count(6).wave_mask(), Some(0x3F));
+    assert_eq!(ChannelLayout::from_count(8).wave_mask(), Some(0x63F));
+    // Another order, or a channel with no bit: no mask can say that.
+    assert_eq!(ChannelLayout::alsa_default(6).wave_mask(), None);
+    assert_eq!(ChannelLayout::from_count(10).wave_mask(), None);
+}
+
+#[test]
 fn what_a_decoder_reports_decides_the_layout() {
     use symphonia::core::audio::layouts::*;
     use symphonia::core::audio::{Channels, Position};

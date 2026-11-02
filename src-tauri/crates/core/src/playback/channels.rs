@@ -80,6 +80,25 @@ impl Speaker {
         }
     }
 
+    /// The WAVE channel-mask bit of this speaker, for the ones that have one
+    /// bit of their own.
+    fn wave_bit(self) -> Option<u32> {
+        Some(match self {
+            Self::FrontLeft => 0,
+            Self::FrontRight => 1,
+            Self::FrontCenter => 2,
+            Self::Lfe => 3,
+            Self::BackLeft => 4,
+            Self::BackRight => 5,
+            Self::FrontLeftOfCenter => 6,
+            Self::FrontRightOfCenter => 7,
+            Self::BackCenter => 8,
+            Self::SideLeft => 9,
+            Self::SideRight => 10,
+            Self::TopLeft | Self::TopRight | Self::TopCenter | Self::Unknown => return None,
+        })
+    }
+
     /// The speaker a WAVE channel-mask bit stands for. The bit numbers are
     /// the ones of `dwChannelMask`, which symphonia's [`Position`] keeps.
     fn from_wave_bit(bit: u32) -> Self {
@@ -247,6 +266,22 @@ impl ChannelLayout {
                 .map(Speaker::from_wave_bit)
                 .collect(),
         }
+    }
+
+    /// The WAVE channel mask of this layout, when it is one a mask can state:
+    /// every channel has a bit, and they come in the order of the bits.
+    pub fn wave_mask(&self) -> Option<u32> {
+        let mut mask = 0_u32;
+        let mut last = None;
+        for speaker in &self.speakers {
+            let bit = speaker.wave_bit()?;
+            if last.is_some_and(|previous| previous >= bit) {
+                return None;
+            }
+            last = Some(bit);
+            mask |= 1 << bit;
+        }
+        Some(mask)
     }
 
     /// The layout of what a decoder reported. Only positioned channels say

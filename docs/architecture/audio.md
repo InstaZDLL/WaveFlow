@@ -77,7 +77,7 @@ The endpoint format leads on purpose (#409). The mix format describes the pipe i
 
 **Representation** — each `(layout, format)` pair is probed through `AudioClient::is_supported_exclusive_with_quirks`, not a bare `is_supported`. Two driver quirks hide behind an `AUDCLNT_E_UNSUPPORTED_FORMAT` that looks like a rate/depth problem but isn't:
 
-- **Channel mask.** `WaveFormat::new(.., None)` guesses one, and a multi-channel endpoint typically accepts exactly one specific mask. The helper re-probes against each recommended `ksmedia.h` mask. _This is the one that bit in practice_ (#405): a 7.1-configured endpoint rejected every rate × depth combination purely on the mask.
+- **Channel mask.** A multi-channel endpoint typically accepts exactly one specific mask. We ask for the one the ring's order stands for (`0x63F` for 7.1, `0x3F` for 5.1, `0x33` for quad), and the helper re-probes against each recommended `ksmedia.h` mask. Left to itself, `WaveFormat::new(.., None)` sets one bit per channel, 7.1 _wide_ for eight channels and 3.1 for four: measured, a real 7.1 endpoint corrects that to `0x63F`, while a virtual cable that takes anything would have kept it. _This is the one that bit in practice_ (#405): a 7.1-configured endpoint rejected every rate × depth combination purely on the mask. The mask that was accepted becomes the output's [layout](#channel-layouts).
 - **Structure shape.** `WaveFormat::new` always builds a `WAVEFORMATEXTENSIBLE`; some drivers refuse it while accepting the same PCM layout as a plain `WAVEFORMATEX`. The helper retries that form for mono/stereo only.
 
 Init then uses the shape the probe accepted, falling back to the requested shape when the two differ (wasapi's docs note some drivers validate the simplified form but want the original at init time).
@@ -136,7 +136,7 @@ A channel is a speaker, not a number. [`ChannelLayout`](../../src-tauri/crates/c
 
 | Backend              | What the output's layout comes from                                                                                                                                                                                                    |
 | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| cpal, Windows        | The count, in WAVE order: cpal takes the mix format's channel count and asks for the channels as they come. Measured on a 7.1 endpoint.                                                                                                |
+| cpal, Windows        | The count, in WAVE order: cpal takes the mix format's channel count and asks for the channels as they come. Measured on a 7.1 headset, whose driver folds to two channels ahead of the capture point: each channel lands on its side. |
 | cpal, Linux          | ALSA's default order (`FL FR RL RR FC LFE SL SR`), which the PipeWire ALSA plugin states for every count and maps accordingly (measured against an 8-channel sink). The count is the sink's, see below.                                 |
 | cpal, macOS          | The count, in WAVE order. Not checked against a real surround device.                                                                                                                                                                  |
 | WASAPI exclusive     | The channel mask the driver accepted, which `is_supported_exclusive_with_quirks` may have changed from the one asked for.                                                                                                              |
@@ -151,7 +151,9 @@ A channel is a speaker, not a number. [`ChannelLayout`](../../src-tauri/crates/c
 
 `RING_FRAMES = 48_000` frames is what the decoder keeps queued ahead of the output, ~1 s at 48 kHz on any output — plenty of headroom for the decoder while keeping the delay of a moved setting low. `RING_CAPACITY` is that many frames of a 7.1 output, 384 000 `f32` samples, or 1.5 MB. The ring is built before a backend knows what the device will accept, so it has one size, and [`ring_reserve`](../../src-tauri/crates/app/src/audio/output/mod.rs) is how many slots the decoder leaves free for the queue to hold `RING_FRAMES` on the output actually open. A stereo output queues the 96 000 samples it always did.
 
-A plain 96 000-sample ring gave 8 channels 272 ms at 44.1 kHz, 125 ms at 96 kHz and 62 ms at 192 kHz, all of it the time a busy machine had to catch up in. The bulk pop of the [drain](#drain-modes) only ever finds the queue, under 2 ms of work in a callback.
+A plain 96 000-sample ring gave 8 channels 272 ms at 44.1 kHz, 125 ms at 96 kHz and 62 ms at 192 kHz, all of it the time a busy machine had to catch up in. Measured once on a busy machine with a 7.1 file at 96 kHz (debug build, 8 cores, 10 busy loops): 8.8 s of silence in 30 s, up to 3.4 s at a stretch, with the old size, and 3.5 s, up to 458 ms, with this one. Idle, neither has a gap. The release decoders run far ahead of real time on these formats (FLAC 7.1 at 96 kHz 92×, Opus 7.1 42×, DSD64 5.1 10×), so what the queue buys is time against the scheduler, not against the codec.
+
+The bulk pop of the [drain](#drain-modes) only ever finds the queue, about 0.2 ms for a whole 7.1 queue (0.5 ms at worst, measured in release), so one callback still clears it.
 
 ## Drain modes
 
