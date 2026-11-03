@@ -89,11 +89,13 @@ WaveFlow only signs in with NTLM.
 - **HMAC-SHA256 on SMB 3.1.1.** With a server restricted to it, the crate offers the
   algorithm in its signing context and then signs with CMAC, so the session setup
   signature does not match. It fails closed, the published crate does the same, and it
-  has nothing to do with encryption.
+  has nothing to do with encryption. Reported upstream as
+  [vdavid/smb2#33](https://github.com/vdavid/smb2/issues/33).
 
 ## When to drop this copy
 
-As soon as a published `smb2` carries both changes:
+As soon as a published `smb2` carries both changes, reported upstream as
+[vdavid/smb2#32](https://github.com/vdavid/smb2/issues/32):
 
 1. Check on that version that a server with `server smb encrypt = required` and
    `server smb3 encryption algorithms = AES-256-GCM` accepts the client.
