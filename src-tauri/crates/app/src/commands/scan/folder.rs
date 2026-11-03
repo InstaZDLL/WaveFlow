@@ -788,6 +788,7 @@ pub(crate) async fn scan_folder_inner(
                         SET bit_depth           = COALESCE(bit_depth, ?),
                             codec               = COALESCE(codec, ?),
                             musical_key         = COALESCE(musical_key, ?),
+                            rating              = COALESCE(?, rating),
                             title_from_filename = ?,
                             rg_track_gain_db    = ?,
                             rg_track_peak       = ?,
@@ -801,6 +802,16 @@ pub(crate) async fn scan_folder_inner(
                 .bind(extracted.bit_depth)
                 .bind(extracted.codec.as_deref())
                 .bind(extracted.musical_key.as_deref())
+                // On a deep rescan only, which the user asks for. It is the
+                // one way to bring back a rating an older build moved up a
+                // step: a scan read the MP3 frame through lofty's whole-star
+                // conversion and stored that, while the file kept the byte,
+                // and with the bytes unchanged nothing else reads it again.
+                // Not on the forced passes above, which reach this branch
+                // without being asked and have no business changing stars.
+                // The same rule as the rewriting branch: a file with no
+                // rating leaves the stored one alone.
+                .bind(extracted.rating.filter(|_| deep && !is_network).map(i64::from))
                 // The one backfill site for the flag, and the only one
                 // that can reach a library scanned before the column
                 // existed. Those rows took the `NOT NULL DEFAULT 0` of
@@ -1014,10 +1025,17 @@ pub(crate) async fn scan_folder_inner(
                         duration_ms = ?, bitrate = ?, sample_rate = ?, channels = ?,
                         bit_depth = ?, codec = ?,
                         musical_key = ?,
+                        -- Unlike the tags around it, the file is not the
+                        -- only source of this one. A star can live in the
+                        -- database alone (a `.dff`, a container whose reader
+                        -- does not lift it), so a file with no rating has
+                        -- said nothing about it, and that goes for one
+                        -- another tagger emptied too: the two cannot be told
+                        -- apart. A file that does carry a rating wins.
                         -- A rating set in WaveFlow on a share's track lives
                         -- here alone, since the file cannot be written: the
                         -- file changing on the share must not take it away.
-                        rating = CASE WHEN ? THEN COALESCE(rating, ?) ELSE ? END,
+                        rating = CASE WHEN ? THEN COALESCE(rating, ?) ELSE COALESCE(?, rating) END,
                         rg_track_gain_db = ?, rg_track_peak = ?,
                         rg_album_gain_db = ?, rg_album_peak = ?,
                         -- With `title`, never without it (#579): this is the

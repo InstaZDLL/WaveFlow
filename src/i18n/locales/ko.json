@@ -3886,6 +3886,9 @@
     "added_one": "{{count}}곡을 재생 대기열에 추가했습니다",
     "added_other": "{{count}}곡을 재생 대기열에 추가했습니다"
   },
+  "ratingNotice": {
+    "notInFile": "평점이 WaveFlow에만 저장되었습니다. 파일에 쓸 수 없었습니다."
+  },
   "moodCuration": {
     "open": "분위기 편집",
     "title": "분위기 편집",

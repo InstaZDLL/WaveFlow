@@ -86,7 +86,10 @@ fn a_rating_is_read_from_both_shapes_lofty_has_used() {
     use lofty::tag::{Tag, TagType};
 
     let mut id3 = Tag::new(TagType::Id3v2);
-    id3.insert_text(ItemKey::Popularimeter, "MusicBee|4|0".to_string());
+    id3.insert_text(
+        ItemKey::Popularimeter,
+        "someone@example.com|4|0".to_string(),
+    );
     assert_eq!(extract_rating(&id3), Some(204), "four stars of five");
 
     // The provider name is optional, and a rating can be anonymous.
@@ -102,11 +105,76 @@ fn a_rating_is_read_from_both_shapes_lofty_has_used() {
 
     // Nothing that is neither — including a string that happens to
     // carry a pipe and a digit without being a popularimeter.
-    for value in ["not a rating", "MusicBee|4", "x|4|0|extra", "a|4|later"] {
+    for value in ["not a rating", "someone|4", "x|4|0|extra", "a|4|later"] {
         let mut nonsense = Tag::new(TagType::Id3v2);
         nonsense.insert_text(ItemKey::Popularimeter, value.to_string());
         assert_eq!(extract_rating(&nonsense), None, "{value}");
     }
+}
+
+/// The two scales a plain number comes on, and where they meet.
+#[test]
+fn a_plain_number_is_stars_up_to_five_and_a_percentage_above() {
+    for (text, byte) in [
+        ("0", None),
+        ("1", Some(51)),
+        ("4", Some(204)),
+        ("5", Some(255)),
+        ("6", Some(15)),
+        ("10", Some(26)),
+        ("80", Some(204)),
+        ("100", Some(255)),
+        ("250", Some(255)),
+        (" 80 ", Some(204)),
+        ("four", None),
+        ("-1", None),
+    ] {
+        assert_eq!(rating_from_number(text), byte, "{text:?}");
+    }
+}
+
+/// Which frame speaks, and on which scale.
+#[test]
+fn the_frame_with_no_email_is_the_byte_and_the_others_a_star() {
+    let read = |frames: &[(&'static str, u8)]| rating_from_popm(frames.iter().copied());
+
+    assert_eq!(read(&[]), None, "no frame, no say");
+    for byte in [26, 51, 77, 102, 128, 153, 179, 204, 230, 255] {
+        assert_eq!(read(&[("", byte)]), Some(Some(byte)), "ours, exact");
+    }
+    assert_eq!(read(&[("", 0)]), Some(None), "unknown");
+    assert_eq!(read(&[("a@b", 0)]), Some(None), "not one star");
+    assert_eq!(read(&[("a@b", 1)]), Some(Some(51)), "one star");
+    assert_eq!(read(&[("a@b", 196)]), Some(Some(204)), "four stars");
+    assert_eq!(
+        read(&[("a@b", 255), ("", 102)]),
+        Some(Some(102)),
+        "ours, wherever it sits"
+    );
+    assert_eq!(
+        read(&[("a@b", 0), ("c@d", 128)]),
+        Some(Some(153)),
+        "the first that holds a rating"
+    );
+}
+
+/// A zero says the same as no rating at all, so it cannot replace the
+/// one the library holds. Both of the shapes that can carry one.
+#[test]
+fn a_zero_is_not_a_rating() {
+    use lofty::prelude::*;
+    use lofty::tag::{ItemValue, Tag, TagItem, TagType};
+
+    let mut vorbis = Tag::new(TagType::VorbisComments);
+    vorbis.insert_text(ItemKey::Popularimeter, "0".to_string());
+    assert_eq!(extract_rating(&vorbis), None);
+
+    let mut raw_frame = Tag::new(TagType::Id3v2);
+    raw_frame.insert(TagItem::new(
+        ItemKey::Popularimeter,
+        ItemValue::Binary(b"someone@example.com\0\0\0\0\0\x07".to_vec()),
+    ));
+    assert_eq!(extract_rating(&raw_frame), None);
 }
 
 /// Smallest valid 1x1 JPEG — enough to satisfy the non-empty check

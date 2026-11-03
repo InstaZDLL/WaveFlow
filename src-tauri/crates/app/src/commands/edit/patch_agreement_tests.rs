@@ -477,10 +477,10 @@ fn clearing_a_rating_takes_every_popm_frame_with_it() {
     assert_eq!(tag.frames().filter(|f| f.id() == "POPM").count(), 0);
 }
 
-/// The generic side of the same edit — the containers that keep a
-/// rating as plain text on the 0-100 scale, which is the shape the
-/// scanner reads back from them. ID3v2 does not come through here:
-/// see [`apply_rating_id3v2`].
+/// The generic side of the same edit, which only the native lists beside
+/// an ID3v2 chunk still reach. Vorbis comments and MP4 do not come through
+/// here, nor does ID3v2: see `apply_rating_vorbis`, `apply_rating_ilst` and
+/// [`apply_rating_id3v2`].
 #[test]
 fn the_generic_applier_writes_the_text_scale() {
     use lofty::tag::{ItemKey, Tag, TagType};

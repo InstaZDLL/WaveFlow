@@ -3997,6 +3997,9 @@
     "added_many": "{{count}} pistas añadidas a la cola",
     "added_other": "{{count}} pistas añadidas a la cola"
   },
+  "ratingNotice": {
+    "notInFile": "Valoración guardada solo en WaveFlow: no se pudo escribir en el archivo."
+  },
   "moodCuration": {
     "open": "Editar estados de ánimo",
     "title": "Editar estados de ánimo",
