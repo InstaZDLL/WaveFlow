@@ -717,3 +717,61 @@ async fn a_network_album_whose_cover_moved_mid_pass_is_left_alone() {
         .unwrap();
     assert_eq!(remembered, 0);
 }
+
+/// The same when the sidecar read is the picture the album was seen holding:
+/// there is nothing to write, so nothing else would notice that it moved. An
+/// album gone since is not remembered either, and costs the others nothing.
+#[tokio::test]
+async fn a_network_album_that_moved_off_the_picture_it_held_is_not_remembered() {
+    let pool = fixture_pool().await;
+    seed_network_album(&pool, 10, None, &[&locator("a/1.flac")]).await;
+    seed_network_album(&pool, 11, None, &[&locator("b/1.flac")]).await;
+    let mut candidates = network_cover_candidates(&pool, 1).await.unwrap();
+    candidates.sort_by_key(|candidate| candidate.album_id);
+    apply_network_covers(
+        &pool,
+        candidates
+            .into_iter()
+            .map(|candidate| (candidate, stamp(5), cover_of(b"held")))
+            .collect(),
+    )
+    .await
+    .unwrap();
+    sqlx::query("DELETE FROM network_cover_seen")
+        .execute(&pool)
+        .await
+        .unwrap();
+    let mut candidates = network_cover_candidates(&pool, 1).await.unwrap();
+    candidates.sort_by_key(|candidate| candidate.album_id);
+
+    seed_artwork(&pool, 900, "another", "folder").await;
+    sqlx::query("UPDATE album SET artwork_id = 900 WHERE id = 10")
+        .execute(&pool)
+        .await
+        .unwrap();
+    sqlx::query("DELETE FROM album WHERE id = 11")
+        .execute(&pool)
+        .await
+        .unwrap();
+
+    let updated = apply_network_covers(
+        &pool,
+        candidates
+            .into_iter()
+            .map(|candidate| (candidate, stamp(5), cover_of(b"held")))
+            .collect(),
+    )
+    .await
+    .unwrap();
+
+    assert_eq!(updated, 0);
+    assert_eq!(
+        album_artwork_hash(&pool, 10).await,
+        Some("another".to_string())
+    );
+    let remembered: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM network_cover_seen")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(remembered, 0);
+}

@@ -447,11 +447,20 @@ pub async fn apply_network_covers(
             &cover.format,
         )
         .await?;
-        if adoption == Adoption::LeftAlone {
-            continue;
-        }
-        if adoption == Adoption::Linked {
-            updated += 1;
+        match adoption {
+            Adoption::LeftAlone => continue,
+            Adoption::Linked => updated += 1,
+            // Held was decided on what was observed, with no write to check it.
+            Adoption::Held => {
+                let current: Option<Option<i64>> =
+                    sqlx::query_scalar("SELECT artwork_id FROM album WHERE id = ?")
+                        .bind(candidate.album_id)
+                        .fetch_optional(&mut *tx)
+                        .await?;
+                if current != Some(candidate.observed_artwork_id) {
+                    continue;
+                }
+            }
         }
         sqlx::query(
             "INSERT INTO network_cover_seen (album_id, file_name, file_size, file_modified)
