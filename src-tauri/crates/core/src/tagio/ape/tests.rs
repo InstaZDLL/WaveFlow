@@ -13,7 +13,7 @@ fn headerless_tag() -> Vec<u8> {
     tag.extend_from_slice(&VERSION_2.to_le_bytes());
     tag.extend_from_slice(&((items.len() as u32) + FOOTER_LEN as u32).to_le_bytes());
     tag.extend_from_slice(&1u32.to_le_bytes());
-    tag.extend_from_slice(&(1u32 << 30).to_le_bytes());
+    tag.extend_from_slice(&0u32.to_le_bytes());
     tag.extend_from_slice(&[0; 8]);
     tag
 }
@@ -42,7 +42,7 @@ fn a_headerless_tag_gets_the_header_and_the_audio_stays() {
     let header = &out[AUDIO.len()..AUDIO.len() + 32];
     assert_eq!(&header[..8], PREAMBLE);
     let flags = u32::from_le_bytes([header[20], header[21], header[22], header[23]]);
-    assert_eq!(flags, (1 << 31) | (1 << 30) | (1 << 29));
+    assert_eq!(flags, (1 << 31) | (1 << 29));
     // The items follow, and the footer now admits to the header.
     assert_eq!(
         &out[AUDIO.len() + 32 + 8..AUDIO.len() + 32 + 19],
@@ -50,7 +50,7 @@ fn a_headerless_tag_gets_the_header_and_the_audio_stays() {
     );
     let footer = &out[out.len() - 32..];
     assert_eq!(&footer[..8], PREAMBLE);
-    assert_eq!(footer[20..24], ((1u32 << 31) | (1 << 30)).to_le_bytes());
+    assert_eq!(footer[20..24], (1u32 << 31).to_le_bytes());
 }
 
 #[test]
@@ -75,7 +75,7 @@ fn every_other_file_is_left_exactly_as_it_was() {
     // A tag that already has its header.
     let mut flagged = headerless_tag();
     let at = flagged.len() - 12;
-    flagged[at..at + 4].copy_from_slice(&((1u32 << 31) | (1 << 30)).to_le_bytes());
+    flagged[at..at + 4].copy_from_slice(&(1u32 << 31).to_le_bytes());
     let bytes = [AUDIO, &flagged].concat();
     assert_eq!(run(&bytes), bytes);
 
