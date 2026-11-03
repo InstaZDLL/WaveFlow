@@ -37,6 +37,7 @@ use crossbeam_channel::{bounded, Receiver, Sender};
 use rtrb::{Consumer, Producer, RingBuffer};
 use tauri::AppHandle;
 use wasapi::{AudioClient, AudioRenderClient, Handle, SampleType, WaveFormat};
+use waveflow_core::playback::channels::ChannelLayout;
 
 use super::output::{OutputHandle, RequestedFormat, RING_CAPACITY};
 use super::state::SharedPlayback;
@@ -291,7 +292,13 @@ impl ExclusiveSampleFormat {
             Self::Pcm24Padded => (32, 24, SampleType::Int),
             Self::Pcm16 => (16, 16, SampleType::Int),
         };
-        WaveFormat::new(bits, valid, &ty, sample_rate, channels, None)
+        // The mask the ring's order stands for. Left to itself, `new` sets
+        // one bit per channel: 7.1 wide for eight channels, 3.1 for four, and
+        // a driver that takes whatever it is asked (measured on a virtual
+        // cable) would then keep it, with the sides on speakers in front.
+        // A driver that refuses this one still gets the quirks' other masks.
+        let mask = ChannelLayout::from_count(channels).wave_mask();
+        WaveFormat::new(bits, valid, &ty, sample_rate, channels, mask)
     }
 
     /// What the rest of the engine calls this format.

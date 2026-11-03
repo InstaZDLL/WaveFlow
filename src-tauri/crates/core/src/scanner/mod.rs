@@ -30,8 +30,9 @@ pub use extract::{
     extension_for_mime, extract_artist_image, extract_compilation_flag, extract_cover,
     extract_folder_cover, extract_musical_key, extract_rating, file_type_label,
     find_artist_image_in_dir, hash_file, hash_file_full, hash_reader, is_scannable_audio,
-    pick_folder_cover, store_folder_cover, undecodable_stream, write_artist_image, ArtworkSource,
-    ExtractedCover, ExtractedFile, AUDIO_EXTENSIONS, HASH_CHUNK_BYTES,
+    pick_folder_cover, rating_from_number, rating_from_popm, store_folder_cover,
+    undecodable_stream, write_artist_image, ArtworkSource, ExtractedCover, ExtractedFile,
+    AUDIO_EXTENSIONS, HASH_CHUNK_BYTES,
 };
 pub use replay_gain::{extract_replay_gain, ReplayGainTags};
 pub use reserved::{is_in_reserved_dir, is_reserved_dir_name, RESERVED_DIR_NAME};

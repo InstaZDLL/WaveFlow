@@ -488,13 +488,10 @@ pub async fn search_tracks_advanced(
     }
 
     if let Some(fmts) = filters.formats.as_ref().filter(|v| !v.is_empty()) {
-        let placeholders = vec!["?"; fmts.len()].join(",");
-        sql.push_str(&format!(
-            "  AND UPPER(COALESCE(t.codec, '')) IN ({placeholders})\n"
-        ));
-        for f in fmts {
-            binds.push(Bind::Str(f.to_uppercase()));
-        }
+        let (condition, values) =
+            waveflow_core::audio_format::format_filter::formats_condition(fmts);
+        sql.push_str(&format!("  AND {condition}\n"));
+        binds.extend(values.into_iter().map(Bind::Str));
     }
 
     if let Some(sr) = filters.min_sample_rate {
@@ -547,16 +544,18 @@ pub async fn search_tracks_advanced(
 ///
 /// Writes the rating to:
 /// 1. the audio file's tag (POPM frame for ID3v2 — MP3/WAV/AAC/AIFF —
-///    or `RATING=0-100` text for Vorbis / MP4 / APE), so the rating
-///    survives a re-scan or import on another machine, and
+///    `RATING=0-100` for Vorbis, the freeform `RATING` atom for MP4), so
+///    the rating survives a re-scan or import on another machine, and
 /// 2. the per-profile `track.rating` column, so the UI updates without
 ///    waiting for a folder scan.
 ///
-/// File write is best-effort: containers lofty can't open (DSD, exotic
-/// formats) keep the DB-only rating. The pause-if-playing handshake
-/// mirrors [`crate::commands::edit::update_track_tags`] so a Windows
-/// rename doesn't fight the audio engine's open handle. Emits
-/// `track:updated` so every open view refreshes without polling.
+/// The database takes the rating whatever becomes of the file: a `.dff` has
+/// no writable tag block, and a star is not lost over a file that could not
+/// be written. That outcome is the answer, for the app to say so. The
+/// pause-if-playing handshake mirrors
+/// [`crate::commands::edit::update_track_tags`] so a Windows rename doesn't
+/// fight the audio engine's open handle. Emits `track:updated` so every
+/// open view refreshes without polling.
 #[tauri::command]
 pub async fn set_track_rating(
     state: tauri::State<'_, AppState>,
@@ -564,9 +563,12 @@ pub async fn set_track_rating(
     app: tauri::AppHandle,
     track_id: i64,
     rating: Option<u8>,
-) -> AppResult<()> {
+) -> AppResult<RatingOutcome> {
     use tauri::Emitter;
 
+    // A zero is no rating, in the file and here alike.
+    let rating = rating.filter(|byte| *byte > 0);
+    let mut file_write_failed = false;
     let pool = state.require_profile_pool().await?;
     let repo = SqliteTrackRepository::new(pool.clone());
 
@@ -589,31 +591,9 @@ pub async fn set_track_rating(
             let _ = engine.send(crate::audio::AudioCmd::Pause);
             tokio::time::sleep(std::time::Duration::from_millis(100)).await;
         }
-        // 3. Write the tag. Failures are logged + non-fatal: a `.dff`
-        //    has no writable tag block, a file can be read-only, and
-        //    neither is worth a popup over a star the database has
-        //    already recorded. `.dsf` is no longer one of these — it
-        //    takes the DSF writer like any other edit (#644).
+        // 3. Write the tag and rehash.
         let path = std::path::PathBuf::from(path_str);
-        let mut tag_written = true;
-        if let Err(err) = write_rating_to_file(&path, rating) {
-            tracing::warn!(track_id, ?err, "rating tag write failed — DB-only");
-            tag_written = false;
-        }
-        // 3b. If the tag write actually mutated the file, recompute its
-        //     blake3 hash so the scanner's fast path keeps recognising
-        //     the file on the next pass and the per-hash caches stay
-        //     addressable. The pool inside SqliteTrackRepository is the
-        //     same one we'd update through anyway, so go via the helper
-        //     in `edit` to keep the rehash + DB write in one place.
-        if tag_written {
-            // Propagate any rehash error — if we wrote to the file
-            // but can't read it back to recompute the hash, the
-            // scanner would mis-detect the row as new on its next
-            // pass. Better to surface the failure to the user (and
-            // skip the DB rating update below) than silently drift.
-            super::edit::rehash_track_file(&pool, track_id, &path).await?;
-        }
+        file_write_failed = !write_rating_and_rehash(&pool, track_id, &path, rating).await?;
     }
 
     // 4. DB update + outbox enqueue in a single tx so a peer device
@@ -669,7 +649,61 @@ pub async fn set_track_rating(
     let _ = repo;
 
     let _ = app.emit("track:updated", track_id);
-    Ok(())
+    Ok(RatingOutcome { file_write_failed })
+}
+
+/// What [`set_track_rating`] did beyond the database.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RatingOutcome {
+    /// The file could not take the rating, which the app tells the user:
+    /// it stays in the library, and does not travel with the file.
+    pub file_write_failed: bool,
+}
+
+/// Put the rating into the file, and answer whether it is there.
+///
+/// Reads it back rather than trusting the write. Lofty skips a value it
+/// cannot convert without a word, and that is how a rating on a FLAC, an
+/// Ogg, an Opus or an M4A went on never reaching the file for as long as
+/// the write reported success.
+///
+/// An error is the rehash failing on a file just written, or a blocking task
+/// that died: the scanner would then misjudge the row on its next pass, so
+/// that goes to the caller, ahead of the rating. A write that failed is
+/// `false`, because a `.dff` has no writable tag block and a star is not lost
+/// over that.
+pub(crate) async fn write_rating_and_rehash(
+    pool: &sqlx::SqlitePool,
+    track_id: i64,
+    path: &std::path::Path,
+    rating: Option<u8>,
+) -> AppResult<bool> {
+    let owned = path.to_path_buf();
+    let written = tokio::task::spawn_blocking(move || write_rating_to_file(&owned, rating))
+        .await
+        .map_err(|e| crate::error::AppError::Other(format!("rating write join: {e}")))?;
+    if let Err(err) = written {
+        tracing::warn!(track_id, ?err, "rating tag write failed — DB-only");
+        return Ok(false);
+    }
+    // Whatever the check below finds, the file was rewritten.
+    super::edit::rehash_track_file(pool, track_id, path).await?;
+    let owned = path.to_path_buf();
+    let found = tokio::task::spawn_blocking(move || super::scan::read_file_rating(&owned))
+        .await
+        .map_err(|e| crate::error::AppError::Other(format!("rating check join: {e}")))?;
+    match found {
+        Ok(found) if found.is_some() == rating.is_some() => Ok(true),
+        Ok(found) => {
+            tracing::warn!(track_id, ?found, ?rating, "rating tag write did not land");
+            Ok(false)
+        }
+        Err(err) => {
+            tracing::warn!(track_id, %err, "rating tag write could not be checked");
+            Ok(false)
+        }
+    }
 }
 
 /// Write the rating into the file's tag, through the one writer that

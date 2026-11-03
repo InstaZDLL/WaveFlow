@@ -27,3 +27,18 @@ glib = { path = "vendor/glib-0.18.5" }
 # this copy.
 smb2 = { path = "vendor/smb2-0.39.0" }
 
+
+# These two decode on the audio path and are far too slow unoptimised to play in
+# a debug build: one Monkey's Audio frame at Insane takes 55 s, against 1 to 2 s
+# optimised, with the track silent meanwhile.
+#
+# ape-decoder also needs overflow checks off, as a release build has them. Its
+# neural filter adds with 32-bit wrap-around, like the C++ it comes from, and a
+# checked add panics on a loud 24-bit passage. The result is the right one: every
+# frame's CRC passes, and the output matches the reference byte for byte.
+[profile.dev.package.ape-decoder]
+opt-level = 3
+overflow-checks = false
+
+[profile.dev.package.wavicle]
+opt-level = 3

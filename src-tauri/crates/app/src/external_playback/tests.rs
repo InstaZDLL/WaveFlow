@@ -87,6 +87,31 @@ fn a_handoff_keeps_its_place_when_files_are_gone() {
     assert_eq!(handed_over_queue(&[b], 0), None);
 }
 
+/// A length of 0 is what the engine takes for a live stream, and lofty answers
+/// it for a WavPack file whose first block states none, as a piped encode does.
+#[test]
+fn a_wavpack_file_that_states_no_length_is_measured_by_the_decoder() {
+    use lofty::prelude::AudioFile;
+
+    let dir = tempfile::tempdir().unwrap();
+    let fixture = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../core/tests/fixtures/lossless/s16_stereo.wv");
+    let mut bytes = std::fs::read(&fixture).unwrap();
+    bytes[12..16].fill(0xFF);
+    let path = dir.path().join("unstated.wv");
+    std::fs::write(&path, bytes).unwrap();
+    let tagged = waveflow_core::scanner::extract::read_tagged_file(&path).unwrap();
+    assert!(tagged.properties().duration().is_zero());
+
+    let facts = read_facts(&path, dir.path());
+
+    assert_eq!(
+        facts.duration_ms,
+        read_facts(&fixture, dir.path()).duration_ms
+    );
+    assert_ne!(facts.duration_ms, 0);
+}
+
 #[test]
 fn a_file_without_tags_reads_as_its_name() {
     let dir = tempfile::tempdir().unwrap();

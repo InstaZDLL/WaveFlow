@@ -76,7 +76,7 @@ WaveFlow is a desktop music player for the audio files you already own. It scans
 
 ### 🎧 Playback · [docs](docs/features/playback.md)
 
-- MP3, FLAC, WAV, AIFF, Ogg Vorbis, **Opus**, AAC, ALAC and **DSD**
+- MP3, FLAC, WAV, AIFF, Ogg Vorbis, **Opus**, AAC, ALAC, **WavPack**, **Monkey's Audio** and **DSD**
 - Gapless playback and a real two-decoder crossfade
 - **Exclusive output** on Windows, Linux and macOS, and **DSD over PCM (DoP)**, which sends DSD untouched to a compatible DAC (opt-in)
 - ReplayGain, 6-band EQ with presets, balance and stereo width, speed 0.5×–2×, A-B repeat, sleep timer
@@ -127,7 +127,7 @@ WaveFlow is a desktop music player for the audio files you already own. It scans
 
 - **App** — Tauri 2 · Rust · SQLite (sqlx, FTS5) · tokio
 - **Frontend** — React 19 · TypeScript · Vite · Tailwind CSS 4 · Framer Motion
-- **Audio** — symphonia + libopus (decoding) · cpal (output) · rubato (resampling) · rtrb (lock-free ring buffer)
+- **Audio** — symphonia + libopus + rusty_aac (decoding) · cpal (output) · rubato (resampling) · rtrb (lock-free ring buffer)
 - **Metadata & images** — lofty · image + fast_image_resize · resvg
 - **Plugins** — wasmtime + WASI p2
 - **Toolchain** — Bun

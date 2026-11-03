@@ -16,12 +16,15 @@ use std::sync::OnceLock;
 
 use symphonia::core::codecs::registry::CodecRegistry;
 
-/// Everything symphonia's feature flags enable, and nothing more.
+/// Everything symphonia's feature flags enable, plus WavPack, Monkey's Audio
+/// and the AAC symphonia refuses: only Opus needs the C library this build is
+/// asked to do without.
 pub fn codecs() -> &'static CodecRegistry {
     static REGISTRY: OnceLock<CodecRegistry> = OnceLock::new();
     REGISTRY.get_or_init(|| {
         let mut registry = CodecRegistry::new();
         symphonia::default::register_enabled_codecs(&mut registry);
+        super::register_own_decoders(&mut registry);
         registry
     })
 }

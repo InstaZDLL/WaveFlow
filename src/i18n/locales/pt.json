@@ -3215,6 +3215,13 @@
       "left": "Esquerda",
       "right": "Direita",
       "both": "Ambos",
+      "center": "Centro",
+      "lfe": "Subwoofer",
+      "backLeft": "Traseira esquerda",
+      "backRight": "Traseira direita",
+      "backCenter": "Traseira central",
+      "sideLeft": "Lateral esquerda",
+      "sideRight": "Lateral direita",
       "mono": "Mono",
       "stereo": "Estéreo",
       "channels": "{{count}} canais",
@@ -3222,6 +3229,7 @@
       "shared": "Partilhado",
       "sharedNote": "No modo partilhado, o misturador do sistema converte depois este formato para o do dispositivo.",
       "monoNote": "A saída mono está ativada: cada bip sai dos dois lados.",
+      "surroundNote": "Saída surround: cada coluna emite o seu sinal à vez, o subwoofer com um tom grave.",
       "swapped": "O bip da esquerda saiu à direita? Os canais estão trocados: verifique a ligação ou a configuração dos altifalantes do sistema.",
       "interrupted": "Teste interrompido.",
       "failed": "Não foi possível tocar o tom de teste: {{message}}",
@@ -3989,6 +3997,9 @@
     "added_one": "{{count}} faixa adicionada à fila",
     "added_many": "{{count}} faixas adicionadas à fila",
     "added_other": "{{count}} faixas adicionadas à fila"
+  },
+  "ratingNotice": {
+    "notInFile": "Classificação guardada apenas no WaveFlow: não foi possível escrevê-la no ficheiro."
   },
   "moodCuration": {
     "open": "Editar humores",

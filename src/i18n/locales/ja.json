@@ -3146,6 +3146,13 @@
       "left": "左",
       "right": "右",
       "both": "両方",
+      "center": "センター",
+      "lfe": "サブウーファー",
+      "backLeft": "リア左",
+      "backRight": "リア右",
+      "backCenter": "リアセンター",
+      "sideLeft": "サイド左",
+      "sideRight": "サイド右",
       "mono": "モノラル",
       "stereo": "ステレオ",
       "channels": "{{count}} チャンネル",
@@ -3153,6 +3160,7 @@
       "shared": "共有",
       "sharedNote": "共有モードでは、このあとシステムのミキサーがデバイス固有のフォーマットに変換します。",
       "monoNote": "モノラル出力がオンです。どのビープ音も両側から鳴ります。",
+      "surroundNote": "サラウンド出力：各スピーカーから順にビープ音が鳴ります。サブウーファーは低い音です。",
       "swapped": "左のビープ音が右から聞こえましたか？チャンネルが逆です。接続かシステムのスピーカー設定を確認してください。",
       "interrupted": "テストを中断しました。",
       "failed": "テストトーンを再生できませんでした: {{message}}",
@@ -3877,6 +3885,9 @@
     "playNext_other": "{{count}}曲を次に再生します",
     "added_one": "{{count}}曲を再生キューに追加しました",
     "added_other": "{{count}}曲を再生キューに追加しました"
+  },
+  "ratingNotice": {
+    "notInFile": "評価は WaveFlow にのみ保存されました。ファイルには書き込めませんでした。"
   },
   "moodCuration": {
     "open": "ムードを編集",

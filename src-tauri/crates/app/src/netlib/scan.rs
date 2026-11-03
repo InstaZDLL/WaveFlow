@@ -377,7 +377,16 @@ mod tests {
         for name in ["a.flac", "B.MP3", "c d.m4a", "e.opus"] {
             assert!(is_scannable_name(name), "{name}");
         }
-        for name in ["a.dsf", "a.DFF", "._a.flac", "a.txt", "flac", "cover.jpg"] {
+        for name in [
+            "a.dsf",
+            "a.DFF",
+            "a.wv",
+            "a.APE",
+            "._a.flac",
+            "a.txt",
+            "flac",
+            "cover.jpg",
+        ] {
             assert!(!is_scannable_name(name), "{name}");
         }
     }

@@ -328,6 +328,8 @@ impl LyricsContainer {
                     | FileType::Opus
                     | FileType::Speex
                     | FileType::Mp4
+                    | FileType::Ape
+                    | FileType::WavPack
             )
         )
     }

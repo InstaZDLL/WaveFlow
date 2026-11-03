@@ -20,8 +20,10 @@ use std::path::Path;
 pub const PREFIX: &str = "wfnet://";
 
 /// Extensions a share never offers, among the scanner's audio extensions:
-/// the DSD pipeline opens a `File`, and these files run to gigabytes.
-pub const LOCAL_ONLY_EXTENSIONS: &[&str] = &["dsf", "dff"];
+/// the DSD pipeline opens a `File`, and these files run to gigabytes. WavPack
+/// and Monkey's Audio too for now: what the scanner refuses of them, their
+/// rating and their pictures are all read from a path on this disk.
+pub const LOCAL_ONLY_EXTENSIONS: &[&str] = &["dsf", "dff", "wv", "ape"];
 
 /// A locator taken apart.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -14,6 +14,7 @@ use std::io;
 use std::path::Path;
 use std::time::Duration;
 
+mod ape;
 mod dsf;
 mod flac;
 mod id3v2;

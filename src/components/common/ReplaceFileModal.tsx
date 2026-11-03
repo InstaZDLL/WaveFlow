@@ -27,6 +27,8 @@ const AUDIO_EXTENSIONS = [
   "ogg",
   "oga",
   "opus",
+  "wv",
+  "ape",
 ];
 
 interface ReplaceFileModalProps {

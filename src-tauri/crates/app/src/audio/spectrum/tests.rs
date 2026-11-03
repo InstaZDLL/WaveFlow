@@ -115,3 +115,15 @@ fn analyzer_starts_idle_and_resets_clean() {
     a.reset();
     assert!(a.pending.is_empty());
 }
+
+/// A stereo track on a 7.1 output is two channels and six silent ones, and
+/// reads as the two.
+#[test]
+fn only_the_channels_carrying_something_count_in_the_mono_mix() {
+    let stereo_on_eight = [0.5, -0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+    assert_eq!(channels_in_use(&stereo_on_eight, 8), 2);
+    let surround = [0.5, -0.5, 0.1, 0.0, 0.2, 0.2, 0.3, 0.1];
+    assert_eq!(channels_in_use(&surround, 8), 7);
+    assert_eq!(channels_in_use(&[0.0; 16], 8), 1);
+    assert_eq!(channels_in_use(&[], 8), 1);
+}

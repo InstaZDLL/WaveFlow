@@ -4,11 +4,11 @@ The audio path lives in [`src-tauri/crates/app/src/audio/`](../../src-tauri/crat
 
 ## Decoding & output
 
-- **Decoder** — [`symphonia 0.6`](https://crates.io/crates/symphonia) over MP3, FLAC, WAV, AIFF, OGG Vorbis, AAC, ALAC (M4A), plus **Opus** through an out-of-tree decoder (see below). Source samples are converted to interleaved `f32`, channel-mapped (mono ↔ stereo, mono onto a wider output through the front pair, and any multichannel source — 3.0 / quad / 5.0 / 5.1 / 6.1 / 7.1 — folded to stereo Lo/Ro per ITU-R BS.775, centre + surrounds at −3 dB, LFE dropped), then resampled to the device rate by [`rubato 5.0`](https://crates.io/crates/rubato) (`Fft<f32>` + `FixedSync::Input`, with a fast `Passthrough` variant when source rate already matches the device). At the end of a track the resampler's tail — the input short of a whole chunk plus the filter's delay, up to ~25 ms at 48 kHz — is pushed out and cut to the track's length ([`Resampler::finish`](../../src-tauri/crates/core/src/playback/resampler.rs)), so the end is heard and the zeros that pushed it out never become a gap before the next track. A seek resets the resampler as well as the decoder (`ActiveStream::reset_decoder`), so nothing of the old position plays at the new one. A new logical stream inside one source — a chained Ogg radio stream changing song — rebuilds the decoder from the new track list, as symphonia's contract asks, instead of ending the track, and a call that passes over 64 foreign or undecodable packets hands back to the decoder loop so a damaged file still lets stop and seek through. A share read directly rather than mounted goes through the same pre-load, with a cache behind it: [network shares](library.md#playback-and-the-cache). **Network pre-load**: when the source lives on a network share (Windows UNC / mapped `DRIVE_REMOTE` drive, or a Linux gvfs / SMB mount), [`ActiveStream::open`](../../src-tauri/crates/core/src/playback/stream/mod.rs) pulls the whole file into RAM (under a 512 MiB cap) in large sequential reads and decodes from that buffer instead of streaming — high-latency per-packet reads over the link would otherwise stutter mid-playback. The transfer runs on a thread of its own ([`ReadAhead`](../../src-tauri/crates/core/src/playback/read_ahead.rs)) and the decoder reads the buffer as it fills, so opening the track waits only for its header. A read more than 1 MiB ahead of the transfer — a seek into the middle, or a container whose index sits at the end (an M4A with its `moov` last, read at open) — goes to the file through a second handle instead of waiting for everything before it. Reading it whole first froze the decoder thread for the transfer: the next track is opened a few seconds before the current one ends, and with about a second of audio queued, a FLAC on a NAS over Wi-Fi cut the current track short and held stop and seek until it had arrived. Dropping the stream stops the transfer. Best-effort: oversize / unreadable files fall back to ordinary streaming. DSD keeps streaming (multi-GB files would blow the cap).
+- **Decoder** — [`symphonia 0.6`](https://crates.io/crates/symphonia) over MP3, FLAC, WAV, AIFF, OGG Vorbis, AAC, ALAC (M4A), plus **Opus**, **WavPack** and **Monkey's Audio** through out-of-tree decoders, and the [AAC symphonia refuses](#aac-beyond-symphonia) through another (see below). Source samples are converted to interleaved `f32`, [mixed to the output's speakers](#multichannel) by name (BS.775 for what has to fold), then resampled to the device rate by [`rubato 5.0`](https://crates.io/crates/rubato) (`Fft<f32>` + `FixedSync::Input`, with a fast `Passthrough` variant when source rate already matches the device). At the end of a track the resampler's tail — the input short of a whole chunk plus the filter's delay, up to ~25 ms at 48 kHz — is pushed out and cut to the track's length ([`Resampler::finish`](../../src-tauri/crates/core/src/playback/resampler.rs)), so the end is heard and the zeros that pushed it out never become a gap before the next track. A seek resets the resampler as well as the decoder (`ActiveStream::reset_decoder`), so nothing of the old position plays at the new one. A new logical stream inside one source — a chained Ogg radio stream changing song — rebuilds the decoder from the new track list, as symphonia's contract asks, instead of ending the track, and a call that passes over 64 foreign or undecodable packets, or spends 25 ms doing so, hands back to the decoder loop so a damaged file still lets stop and seek through. A share read directly rather than mounted goes through the same pre-load, with a cache behind it: [network shares](library.md#playback-and-the-cache). **Network pre-load**: when the source lives on a network share (Windows UNC / mapped `DRIVE_REMOTE` drive, or a Linux gvfs / SMB mount), [`ActiveStream::open`](../../src-tauri/crates/core/src/playback/stream/mod.rs) pulls the whole file into RAM (under a 512 MiB cap) in large sequential reads and decodes from that buffer instead of streaming — high-latency per-packet reads over the link would otherwise stutter mid-playback. The transfer runs on a thread of its own ([`ReadAhead`](../../src-tauri/crates/core/src/playback/read_ahead.rs)) and the decoder reads the buffer as it fills, so opening the track waits only for its header. A read more than 1 MiB ahead of the transfer — a seek into the middle, or a container whose index sits at the end (an M4A with its `moov` last, read at open) — goes to the file through a second handle instead of waiting for everything before it. Reading it whole first froze the decoder thread for the transfer: the next track is opened a few seconds before the current one ends, and with about a second of audio queued, a FLAC on a NAS over Wi-Fi cut the current track short and held stop and seek until it had arrived. Dropping the stream stops the transfer. Best-effort: oversize / unreadable files fall back to ordinary streaming. DSD keeps streaming (multi-GB files would blow the cap).
 - **Stray bytes after the last frame (#898)** — some FLAC files carry a few bytes past their final frame. The FLAC reader needs the next frame header to know where the last frame ends, so it returns `UnexpectedEof` instead of the end of the stream, and the last frame (at most one packet, ~0.1 s) is lost with it. `ActiveStream::decode_next` treats that error as the end of the track when `StreamExtent` puts the decoder within one packet of the container's declared end (`start_ts` plus the track's `duration`, or `num_frames` when it has none), measuring with the longest packet seen, seeded with the codec's `max_frames_per_packet` (or 16 384 frames, the FLAC streamable subset's largest block, since symphonia's FLAC reader declares none) so a seek straight to the tail still has a measure. The first packet read replaces that seed, and only a packet that decoded moves the position, so a generous fallback never widens the window for the rest of the track and a skipped packet never counts as played. All of it is counted in the track's time base, the unit of a packet's `pts` and `dur`: lengths given in frames are converted, since that base is the sample rate's reciprocal for FLAC but not for every container. Earlier than that it is a truncated file and stays an error; with no declared length it stays an error too. Before, the whole song played and then reported "cannot play this track" without advancing the queue.
-- **DSD pipeline** — symphonia doesn't decode 1-bit DSD, so DSF (Sony) and DFF (Philips) containers route through [`audio/dsd/`](../../src-tauri/crates/core/src/audio_format/dsd/): a custom container parser reads the layout (DSD64 → DSD1024, mono / stereo / multichannel), and a windowed-sinc FIR with a Blackman-Harris envelope (256 taps by default, user-selectable up to 1024 / 2048 via Settings → Audio → Audio output — persisted in `profile_setting['audio.dsd_precision']`, mirrored into the `SharedPlayback.dsd_taps` atomic and read at stream-open by [`DsdToPcm::new_with_taps`](../../src-tauri/crates/core/src/audio_format/dsd/pcm.rs); DSD-only, symphonia formats ignore it, and more taps buy a sharper transition band at linear CPU cost) decimates the bitstream by 64 to land DSD64 at 44.1 kHz, DSD128 at 88.2 kHz, etc. The resulting PCM joins the same channel-convert + resample + ring-buffer pipeline as symphonia output. `ActiveStream` carries a `StreamBackend` enum (Symphonia / Dsd / Dop) so seeking and decoder reset stay uniform from the engine's perspective. **Limitation**: real audiophile players use multi-stage halfband cascades for lower CPU at the same SNR; ours prioritises code clarity.
+- **DSD pipeline** — symphonia doesn't decode 1-bit DSD, so DSF (Sony) and DFF (Philips) containers route through [`audio/dsd/`](../../src-tauri/crates/core/src/audio_format/dsd/): a custom container parser reads the layout (DSD64 → DSD1024, mono / stereo / multichannel, with the channel type of a DSF and the channel identifiers of a DFF, whose order is the file's), and a windowed-sinc FIR with a Blackman-Harris envelope (256 taps by default, user-selectable up to 1024 / 2048 via Settings → Audio → Audio output — persisted in `profile_setting['audio.dsd_precision']`, mirrored into the `SharedPlayback.dsd_taps` atomic and read at stream-open by [`DsdToPcm::new_with_taps`](../../src-tauri/crates/core/src/audio_format/dsd/pcm.rs); DSD-only, symphonia formats ignore it, and more taps buy a sharper transition band at linear CPU cost) decimates the bitstream by 64 to land DSD64 at 44.1 kHz, DSD128 at 88.2 kHz, etc. The resulting PCM joins the same channel-convert + resample + ring-buffer pipeline as symphonia output. `ActiveStream` carries a `StreamBackend` enum (Symphonia / Dsd / Dop) so seeking and decoder reset stay uniform from the engine's perspective. **Limitation**: real audiophile players use multi-stage halfband cascades for lower CPU at the same SNR; ours prioritises code clarity.
 - **Native DSD via DoP** (DSD over PCM, #495, opt-in `profile_setting['audio.dsd_dop']` default OFF) — when the toggle is on AND the active output has exclusive device access AND the DAC accepts the format, a DSD track skips the FIR entirely: [`DsdToDop`](../../src-tauri/crates/core/src/audio_format/dsd/dop.rs) repackages the raw 1-bit stream into 24-bit DoP frames (marker `0x05`/`0xFA` alternating per frame, payload MSB-first — DFF verbatim, DSF bit-reversed) at `dsd_rate / 16` (DSD64 → 176.4 kHz, DSD128 → 352.8, DSD256 → 705.6), and the DAC reconstructs the 1-bit stream in hardware (truly bit-perfect, nothing on our side filters / resamples / gains it). **Per-platform exclusive backend** — DoP needs a mixer-free path to the DAC, so each OS has its own: **Windows** = WASAPI Exclusive ([`run_dop_event_loop`](../../src-tauri/crates/app/src/audio/wasapi_exclusive/event_loop.rs)); **Linux** = a raw `hw:` ALSA device at `S32_LE`, marker MSB-justified ([`alsa_exclusive`](../../src-tauri/crates/app/src/audio/alsa_exclusive/mod.rs)); **macOS** = CoreAudio **hog mode** + a forced physical stream format at the DoP rate in 32-bit int, fed through an `AudioUnit` render callback ([`coreaudio_exclusive`](../../src-tauri/crates/app/src/audio/coreaudio_exclusive.rs)); that format is a property of the **device**, so the previous one is saved and restored on teardown — otherwise the rest of the machine keeps talking to a DAC clocked for DoP — and device loss normally arrives through an `IsAlive` property listener, with a periodic `get_hogging_pid` query as the fallback when the listener can't be registered. All three ship the DoP words MSB-justified (marker in the top byte) and share the byte/idle packing in [`audio/dop_pack`](../../src-tauri/crates/app/src/audio/dop_pack.rs), which is also where the `0x05`/`0xFA` marker is **re-stamped** onto every outgoing frame from a single running counter: the encoder's own phase restarts on each seek and never sees the idle frames generated on pause / underrun, so letting both sides number frames independently would repeat or skip a marker exactly at those seams and drop the DAC out of DSD lock. On a cold `LoadAndPlay`, [`maybe_switch_dop_output`](../../src-tauri/crates/app/src/audio/decoder/dop.rs) parses the DSD header for the DoP rate and asks the engine to re-open the exclusive output at that exact format ([`AudioEngine::switch_output_for_track`](../../src-tauri/crates/app/src/audio/engine/output_switch.rs), which hands the fresh ring producer straight back rather than via the `SwapProducer` channel); the backend ships the words bit-exact and emits marker-carrying DoP idle frames (`0x69` payload) on pause/underrun so the DAC keeps DoP lock. **Linux: the card is asked for, not given up on.** PipeWire / PulseAudio hold every card from login, so the raw `hw:` open returned `EBUSY` on any desktop and DoP fell back silently — the toggle did nothing and said nothing. [`device_reservation`](../../src-tauri/crates/app/src/audio/device_reservation.rs) now takes the `org.freedesktop.ReserveDevice1.Audio<N>` name on the session bus, which is the protocol both servers watch in order to release a device, then the open is retried for up to a second while the server finishes letting go (releasing is asynchronous on its side). The reservation is bound to the stream and released with it. No session bus, or an owner that refuses to be replaced, lands exactly where the code was before. **Fully fail-soft**: a DAC that refuses the DoP rate, a non-exclusive output, or a platform without a DoP backend all fall back transparently to the DSD → PCM path above. The two load paths that never negotiate a format — remote files and HTTP streams — force the output back to PCM before opening, since a leftover DoP output would read their PCM samples as 24-bit words and ship them to the DAC as noise. On Windows DoP rides the separate WASAPI Exclusive opt-in; on Linux and macOS the DoP toggle itself engages the exclusive path (raw `hw:` / hog mode). DoP tracks never crossfade / gaplessly prefetch (the words can't be mixed), so they always transition through a cold load + output re-open; EQ / ReplayGain / normalize / mono / balance / stereo width / speed are bypassed (bit-perfect, volume is the DAC's job — and playback speed is pinned to 1× for the track, since the resampler that implements it isn't in the chain and only the reported position would move). Seeking is the one transport action that survives untouched, so **A-B loop works on DoP tracks** just like on PCM ones. The pipeline popover shows a "Native DSD" pill sourced from `player_get_state.dop_active` — what actually engaged, not just the opt-in. **Playing DoP to a non-DoP DAC produces white noise**, so the toggle is opt-in and default OFF for users who know their DAC supports it.
-- **Output** — [`cpal 0.17`](https://crates.io/crates/cpal) on a dedicated thread because `cpal::Stream` is `!Send` on Windows. Samples cross the thread via an [`rtrb 0.4`](https://crates.io/crates/rtrb) SPSC ring (`RING_CAPACITY = 96 000` `f32`s ≈ 1 s @ 48 kHz stereo).
+- **Output** — [`cpal 0.17`](https://crates.io/crates/cpal) on a dedicated thread because `cpal::Stream` is `!Send` on Windows. Samples cross the thread via an [`rtrb 0.4`](https://crates.io/crates/rtrb) SPSC ring that keeps `RING_FRAMES = 48 000` frames queued ≈ 1 s @ 48 kHz on any channel count ([sizing](../architecture/audio.md#ring-buffer-sizing)).
 - **Hot-path rules** — the cpal callback never allocates, locks or logs. It only reads the `rtrb::Consumer` and `Atomic*` fields in `SharedPlayback`.
 - **Integer output and dither** — the exclusive backends turn the `f32` stream back into integer PCM through [`audio/pcm_scale`](../../src-tauri/crates/app/src/audio/pcm_scale.rs), which multiplies by the same power of two symphonia divided by, so an untouched source reaches the device bit for bit. **16-bit output is dithered** (TPDF, one step peak, `Dither16`) wherever the chain moved a sample off a 16-bit step — volume, ReplayGain, the EQ, a fade. Rounding alone leaves an error that follows the signal and is heard as distortion on quiet passages and fade-outs; the noise turns it into a steady hiss at about −96 dBFS. A sample that already is a 16-bit value is left alone, so a 16-bit track nothing altered stays bit-perfect (every one of the 65 536 values is tested). 24- and 32-bit output is not dithered: its step sits below any converter's own noise. The shared-mode output is converted by cpal and the system mixer, not by us.
 
@@ -33,12 +33,12 @@ Real dual-decoder mix in [`decoder/track.rs`](../../src-tauri/crates/app/src/aud
 
 **The position clock at the hand-off.** The new track is already playing under the fade, and the end of the mix is still queued in the ring when the decoder swaps streams. The swap therefore restarts the clock at the track time the fade covered, with the queued samples as a lead-in ([`SharedPlayback::restart_clock`](../../src-tauri/crates/app/src/audio/state.rs)): the position reads fade − queue at the swap and reaches the fade length once the output has played the queue. The gapless swap does the same with a base of 0, since what is queued there is the finished track's tail. Restarting at 0 used to leave the seek bar, the lyrics, the resume point and every external surface a fade behind the audio (≈ 4.7 s with a 5 s fade) until the next seek.
 
-**The end of a track is timed on the decoder, and played out before it is declared** (#932). The decoder runs up to a ring ahead of the output: `RING_CAPACITY` is 96 000 samples, so 1 s at 48 kHz stereo, 0.27 s on an 8-channel mixer at 44.1 kHz. Two things went wrong because of it, and together they cut the last second of every track that was followed by another.
+**The end of a track is timed on the decoder, and played out before it is declared** (#932). The decoder runs up to a ring ahead of the output, about a second. Two things went wrong because of it, and together they cut the last second of every track that was followed by another.
 
 - **The triggers read the heard position**, a ring behind what the decoder had reached. Gapless asked for the next track at 500 ms before the end _as heard_, which the decoder reached only after its EOF: the swap never ran. A crossfade started a ring late and was a ring shorter, and one shorter than the ring never started at all. Both now read [`SharedPlayback::decoded_position_ms`](../../src-tauri/crates/app/src/audio/state.rs): the heard position plus what is queued.
 - **A natural end was declared at the decoder's EOF**, with the end of the track still queued. The advance that followed sent `LoadAndPlay`, whose drain is right for a skip and threw that audio away here. Now `play_track` and `play_dop_track` wait at EOF until the output has played the ring out ([`TailDrain`](../../src-tauri/crates/app/src/audio/decoder/control.rs)) before emitting `player:track-ended`. The top of the loop keeps serving commands (a pause holds the wait, a seek or another track ends it), and a gapless next track that arrives meanwhile still takes over. The wait gives up when the ring has not moved for 1.5 s of watching it play, so a lost device cannot hold an end forever. A pause blocks the loop in `drain_commands` until Resume, so a gap between two checks longer than 250 ms restarts that clock rather than counting as a stall: otherwise a pause near the end would cut the rest on resume. An A-B jump made while the end plays out clears the EOF flag like a seek does, so the loop goes back to A instead of ending the track. This also puts the sleep timer's end of track and `listened_ms` on the end that was heard.
 
-Measured on a file queue, which always goes through the natural end: seeking 4 s before the end of a 139.2 s FLAC, the position used to stop at 138.9 s with 3.82 s heard, and it now reaches 139.15 s with 4.09 s heard. That machine's 8-channel output gives a 0.27 s ring, the reporter's stereo one a 1 s ring.
+Measured on a file queue, which always goes through the natural end: seeking 4 s before the end of a 139.2 s FLAC, the position used to stop at 138.9 s with 3.82 s heard, and it now reaches 139.15 s with 4.09 s heard. That machine's 8-channel output then had a 0.27 s ring, the reporter's stereo one a 1 s ring.
 
 ### Smart crossfade (album-aware skip)
 
@@ -94,6 +94,43 @@ Not covered: removing a library folder deletes its tracks' queue rows by cascade
 
 ReplayGain is applied **per-stream before the mix** so the two tracks can have very different gains without the louder one swamping the fade.
 
+## Multichannel
+
+[`playback/channels.rs`](../../src-tauri/crates/core/src/playback/channels.rs). A [`ChannelMixer`](../../src-tauri/crates/core/src/playback/channels.rs) is the list of gains from the source's layout to the output's, worked out on the decoder thread when a track's first packet arrives and kept until either changes ([layouts](../architecture/audio.md#channel-layouts)).
+
+| Case                                 | What happens                                                                                                                                                 |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Same layout                          | Copied, bit for bit. 5.1 side on 5.1 back is routed at unity too: one surround pair on each end is the same speakers, whichever word the file or driver uses. |
+| Channel the output has               | Routed to it at unity, by name.                                                                                                                              |
+| Mono                                 | The front pair at full level, as on a stereo output.                                                                                                         |
+| Fewer channels than the output       | The rest stay silent. There is no upmix. A 5.1 on 7.1 keeps each pair on the speakers of its own name.                                                       |
+| 7.1 on 5.1                           | The side and back of each side share the surround at −3 dB each, which keeps their combined power.                                                           |
+| Centre with no centre speaker        | The front pair at −3 dB each.                                                                                                                                |
+| Surround with no surround speaker    | The front on its own side at −3 dB.                                                                                                                          |
+| Rear centre                          | The nearest pair (back, side, then front) at −3 dB each.                                                                                                     |
+| Anything on mono                     | ITU-R BS.775: 0.707 L, 0.707 R, 1.0 C, 0.5 for each surround.                                                                                                |
+| LFE with no LFE                      | Dropped, as BS.775 says.                                                                                                                                     |
+| Past 7.1, no name                    | Folded alternately left and right, so no channel is lost.                                                                                                    |
+
+**Measured end to end** on a Linux desktop, the whole app playing into temporary PipeWire sinks of 8, 6, 4 and 2 channels and the sink's monitor analysed: 7.1 FLAC, Opus and Vorbis, 5.1 back and side, stereo, each channel on its own speaker, a 7.1 on 5.1 at −3 dB per surround source, a 5.1 on quad and on stereo at BS.775's relative levels, nothing from the LFE. On Windows, a 7.1 headset endpoint in shared mode, whose driver folds to two channels ahead of the capture point: each channel lands on its side, and balance, width and mono do what is written below. Not measured on a real surround amplifier, on WASAPI exclusive or ALSA `hw:` at more than two channels, nor on macOS: the settings card's [test tone](#output-test-tone) is how to check a room.
+
+**A fold never clips.** When the gains into one output channel add up past one, the whole mixer is scaled so that the heaviest channel sums to one: 5.1 on stereo plays 7.7 dB lower than its Lo/Ro, 7.1 on stereo 9.9 dB, 7.1 on 5.1 3 dB. The balance of the mix stays BS.775's, and a hot master no longer meets the final clamp as hard clipping. ReplayGain is worked out on the source's channels and does not know about any of this. This is the same bargain as [widening](#balance-and-stereo-width): quieter, never distorted.
+
+**What each decoder delivers**, measured with a file carrying one frequency per channel (FFmpeg-encoded, except the DSD ones):
+
+| Format      | Layout reported                               | Order delivered                                                      |
+| ----------- | --------------------------------------------- | -------------------------------------------------------------------- |
+| WAV         | The file's mask, the count's without one      | WAVE, a 5.1 side told from a 5.1 back                                |
+| FLAC        | By count (the format's own table)             | WAVE. Up to 8 channels, 6.1 with a rear centre.                      |
+| ALAC        | By count (symphonia's table for each)         | WAVE order for its layouts: 8 channels are 7.1 _wide_, in symphonia. |
+| Vorbis      | By count (the format's own table)             | WAVE, reordered by symphonia from Vorbis order.                      |
+| Opus        | By family: 1 is positioned, 255 discrete      | WAVE: our decoder permutes the family 1 table (see below).           |
+| DSF         | By type, a 3.1 told from a quad               | WAVE for every type                                                  |
+| DFF         | By identifier, in the order of the file       | The file's, which the mixer reads by name                            |
+| AAC         | By configuration or PCE, discrete if unnamed  | WAVE, sorted by `rusty_aac` from AAC element order (see below).      |
+
+**DoP is not mixed.** A multichannel DSD track on DoP keeps the file's channels in the file's order, as DoP has to: a DSF is in WAVE order, and the output is opened with the same count and a WAVE mask. On a raw ALSA device whose map differs, that is a known limit.
+
 ## Opus (#581)
 
 symphonia reads Opus containers perfectly well — `symphonia-format-ogg`
@@ -122,6 +159,8 @@ comes with the image. The one place it is taken on trust is the Flatpak
 SDK — **no CI job builds that manifest**, so a Flathub build is the
 first thing that would ever say otherwise.
 
+**Surround is put in order here.** Mapping family 1 lays its channels out in Vorbis order (front left, centre, front right, surrounds, LFE last), and the decoder used to hand them over as discrete channels, in that order, which the rest of the pipeline read as WAVE: on a 5.1 file the centre played from the front right speaker, the front right from the centre, the LFE from a surround. libopus writes output channel `i` from table entry `i`, so `decoder_order` permutes the table and the buffer comes out in WAVE order, named by `channel_layout`. Family 255 stays discrete, which is what it says. BS.1770 loudness now also weighs an Opus file's surrounds and leaves out its LFE.
+
 **The pre-skip is ours to drop, and that is not obvious.** Every Opus
 stream opens with encoder priming that must never be played. The Ogg
 reader turns `OpusHead`'s pre-skip into `Track::delay` and hands each
@@ -149,6 +188,183 @@ scanner's probe each used to reach for `symphonia::default::get_codecs`.
 They now share [`audio_format::opus::codecs`](../../src-tauri/crates/core/src/audio_format/opus.rs),
 because those three have to agree on what this build can play — a
 disagreement between them is what puts an unplayable track in a library.
+
+## WavPack and Monkey's Audio
+
+symphonia reads neither container and decodes neither codec, so both come
+as a reader and a decoder of ours, registered in
+[`audio_format::probe`](../../src-tauri/crates/core/src/audio_format/mod.rs)
+and [`codecs`](../../src-tauri/crates/core/src/audio_format/opus.rs) for the
+three places that open a stream. Both are for files on this disk for now: a
+scan of a [WebDAV or SMB share](library.md#network-shares) does not offer them.
+
+**Chosen on a measure, not on a README.** Each candidate decoded a corpus
+the reference encoders made (music-like signals, 8 / 16 / 24 / 32-bit integer
+and 32-bit float, mono to 7.1, 44.1 to 192 kHz, every compression level), and
+its output was compared byte for byte with `wvunpack` 5.9.0 or `mac` 13.45:
+
+| Crate                             | Files | Bit-exact | Stops or refuses | Wrong audio, reporting success |
+| --------------------------------- | ----- | --------- | ---------------- | ------------------------------ |
+| `symphonia-codec-wavpack` 0.1.1   | 84    | 38        | 40               | 6                              |
+| `wavicle` 0.1.0, as the crate is  | 84    | 60        | 24               | 0                              |
+| `wavicle` 0.1.0, as used here     | 84    | 84        | 0                | 0                              |
+| `ape-decoder` 0.3.2, as used here | 68    | 60        | 8                | 0                              |
+
+The first crate's six are 32-bit files with the low 8 bits of most samples
+wrong; its forty stops are a false end of stream, on every stereo file above
+the default setting among others. To measure a new version the same way, [`examples/format_conformance.rs`](../../src-tauri/crates/core/examples/format_conformance.rs)
+writes what the decoder outputs. Both crates are pinned exactly for that
+reason, and neither is behind a feature: they are pure Rust, so a build that
+leaves out libopus has no reason to leave them out as well.
+
+**What each refuses.** A local file in these families stays out of the library,
+through [`is_scannable_audio`](../../src-tauri/crates/core/src/scanner/extract/mod.rs),
+which only ever judges a path on this disk, and fails cleanly when opened directly:
+
+- Hybrid WavPack, with or without its `.wvc`: lossy without it, so it never
+  gets the chance to pass for lossless. A hybrid file with its correction
+  file beside it is refused too, since `wavicle` reads neither half.
+- WavPack holding DSD, and WavPack older than 4.0.
+- Monkey's Audio at 32 bits with more than one channel. `ape-decoder` keeps
+  its first-order filter's output in 32 bits where the reference uses 64, so
+  frames fail their CRC from the first loud passage on. 32-bit mono is fine.
+- Floating-point Monkey's Audio (marker `MACF`). The samples sit behind a bit
+  transform the crate leaves to its caller, and its CRC runs before that
+  transform: it would report success on noise.
+- Monkey's Audio older than format 3950 (2002).
+
+`wavicle` itself stops at stereo and at 16 bits, for reasons that have nothing
+to do with how the samples decode. A multichannel stream is a run of ordinary
+mono and stereo blocks, refused only on seeing a channel count above two, and
+the stored width takes no part in decoding. So
+[`decodable_block`](../../src-tauri/crates/core/src/audio_format/wavpack.rs)
+hands it a copy with that sub-block renamed or the width field raised; the
+table's 84 includes those 24 files.
+
+**Monkey's Audio decodes ahead of the packets.** A frame only decodes whole,
+from its start, and frames are long: 73 728 samples up to High, 294 912 at
+Extra High and 1 179 648 at Insane, 27 s of audio at 44.1 kHz. The output ring
+holds a second of stereo at 48 kHz, half that at 96 kHz, so decoding a frame
+when it comes due stops the sound on a file that decodes far faster than real
+time. [`ApeReader`](../../src-tauri/crates/core/src/audio_format/ape.rs) keeps
+a worker thread on the frame after the one playing and cuts decoded frames
+into packets of 4 096 samples of PCM, and `ApeDecoder` only unpacks those. A
+seek abandons the worker rather than wait out a frame nobody wants any more.
+Measured on a 12-thread desktop while other builds ran:
+
+| File, Insane unless noted | Speed | One frame | Longest wait, played at real time |
+| ------------------------- | ----- | --------- | --------------------------------- |
+| 16-bit, 44.1 kHz, stereo  | 21×   | 1.5 s     | 9 ms                              |
+| Same, at Extra High       | 54×   | 0.2 s     | 17 ms                             |
+| 24-bit, 96 kHz, stereo    | 7.7×  | 2.0 s     | 51 ms                             |
+| Same, at Extra High       | 24×   | 0.2 s     | 325 ms                            |
+| 24-bit, 192 kHz, stereo   | 6.3×  | 1.6 s     | 33 ms                             |
+| 16-bit, 48 kHz, 7.1       | 7.5×  | 3.8 s     | 31 ms                             |
+
+A seek's first audio takes one frame's decode, two near a frame's end (below), and
+nothing inside the frame already decoded. WavPack blocks are short and fast: 40 to 1 000 times
+real time, a few milliseconds a block.
+
+**A seek does not land on the last moments of a frame alone.** Frame by frame, the
+worker is always a frame ahead, but a seek puts it behind: what is left of the
+landing frame plays, then the output runs dry while the next one decodes, and a
+few milliseconds of audio between two silences sound like a click. Measured 20 ms
+before a frame's end at 96 kHz, on a device with a 270 ms ring: 13 to 33 ms of
+silence up to High, 73 to 83 ms at Extra High, 253 ms at Insane, and up to 73 ms
+with WavPack, whose blocks decode on the decoder thread. So a landing in the last
+quarter of a Monkey's Audio frame waits for the next frame before handing out any
+audio, which makes the seek's own silence longer and takes that wait out of the
+middle of the sound, and a WavPack landing with less than 250 ms left of its block
+takes the next blocks along in the same packet.
+
+**A file cut short ends where it ends.** A download or a copy that stopped early
+still announces its whole length, in Monkey's Audio's header and seek table as in
+WavPack's first block. What is missing is not damage to skip over: both readers
+work out what the file really holds, the Monkey's Audio one from the seek table and
+the WavPack one from the last block in the file's tail, and declare that length, so
+the track ends with its last whole frame or packet and the queue moves on. The
+WavPack reader looks for that block in the last 2 MiB of the file: when it finds
+none there, behind a large tag for one, the length the header announces stands. A frame
+damaged in the middle of a whole file is still skipped and what follows still plays.
+A seek into the missing part lands on the end at once, decoding nothing. The scanner
+and files played directly take their length from there too
+([`held_duration_ms`](../../src-tauri/crates/core/src/audio_format/mod.rs)), since
+lofty repeats the header, and the analysis measures what the file holds. A file cut
+inside its first frame or packet plays nothing, and is refused like a broken one.
+
+**A run of damaged frames does not hold the commands up.** `decode_next` hands back
+after 64 skipped packets or 25 ms of skipping, whichever comes first, so Pause, Stop
+and the next track are served between two failures. A failure takes as long as the
+frame takes to decode, and that one frame cannot be interrupted, so a command can
+still wait for it. Measured in the app on whole files with a long run of frames damaged at their ends, Pause, Stop and the next track took 9 to 45 ms at Normal, 4 to 113 ms at Extra High and 33 to 714 ms at Insane, where it was 0.5 to 0.8 s, 3 to 5.7 s and 9 to 11 s when only the count bounded them.
+
+**Seeks land on the exact sample.** Both readers answer `actual_ts ==
+required_ts`, WavPack by carrying the head of its block as `trim_start` and
+Monkey's Audio by starting its cursor inside the frame, so a seek plays nothing
+from before the point asked for. Measured at 44 targets on each of 144 files
+against a full decode. There is no priming to remove and the sample count is
+in the header, so a track ends where it ends. Gapless has one cost at Insane: the
+next track's first frame starts decoding when it is opened, shortly before the
+current one runs out, and the join stays clean as long as that decode takes less
+than what the output ring still holds plus that half second. That holds at 44.1
+kHz (0.8 s on an idle core) and can leave a short gap on a hi-res Insane album.
+
+**The first seek into a WavPack file walks its block headers** up to the
+target, and remembers them. The format has no index.
+
+**Tags** are APEv2 on both, written through the concrete file by
+[`patch_file`](../../src-tauri/crates/app/src/commands/edit/patch.rs) like any
+other container, so a field no reader models survives, and both keep their tag
+after the audio, so the audio's bytes are not touched. ReplayGain is read from
+that tag by the scanner's usual path, whatever the case of its keys. Three things
+lofty gets wrong on APEv2 are handled on our side, each with its reason in the
+code: it removes 32 bytes of audio when it replaces a tag with no header, the
+kind Monkey's Audio writes
+([`tagio::ape`](../../src-tauri/crates/core/src/tagio/ape.rs)), and its generic tag
+holds neither a rating nor the pictures, so
+[`read_tagged_file`](../../src-tauri/crates/core/src/scanner/extract/mod.rs) adds
+them from the concrete one and a rating is written there. It also reports 0
+channels for a multichannel WavPack file, which the scanner asks the decoder
+about instead.
+
+**A debug build plays these too.** Both crates are optimised in the `dev`
+profile (`src-tauri/Cargo.toml`): unoptimised, one Insane frame takes 55 s.
+`ape-decoder` has overflow checks off there, as in a release build, because its
+neural filter relies on 32-bit wrap-around the way the C++ reference does.
+
+**A frame being decoded cannot be interrupted.** Skipping to the next track
+while the first frame of an Insane file is decoding waits for that frame, one
+or two seconds at most. Once a track is playing the worker is ahead, so this
+only shows right after a load or a seek. The first packet of a track waits for
+the same frame, so it is also how long an Insane file takes to start.
+
+## AAC beyond symphonia
+
+symphonia's AAC decoder covers AAC-LC, mono or stereo, with a plain channel configuration, and refuses the rest when it is opened: more than two channels ("aac too complex"), a program config element, explicit SBR, Main, LTP, LD, ELD. lofty reads the tags of all of those, so such a file entered the library and failed the first time it was played; the analysis failed with it. [`audio_format::aac`](../../src-tauri/crates/core/src/audio_format/aac.rs) replaces symphonia's entry in the [one registry](../architecture/invariants.md#one-codec-registry-for-the-whole-app), asks symphonia first and hands what it refuses to [`rusty_aac`](https://crates.io/crates/rusty_aac), pure Rust and Apache-2.0, pinned to one release. A stereo AAC file decodes exactly as it did. Two more cases go to `rusty_aac`: SBR declared the backward-compatible way (object type 2 plus a sync extension), which symphonia does not read and plays without its upper band (−3 dB and 23 dB against FFmpeg on two ISO streams, 129.7 and 133.8 dB through `rusty_aac`), and syntax symphonia refuses at a packet rather than at the open (a coupling channel, a program config element inside a stereo stream).
+
+**Chosen by measure, not by README.** Every candidate decoded the same packets, out of symphonia's demuxer, against FFmpeg and against the reference PCM of FFmpeg's FATE suite: 22 files from FFmpeg's encoder and Media Foundation, mono to 7.1, then the ISO/IEC 14496-26 streams.
+
+| Decoder | Licence | Result |
+| --- | --- | --- |
+| `rusty_aac` | Apache-2.0 | ≥ 120 dB against FFmpeg on every stream it takes here, ≤ 2 LSB of 20 reference PCMs, all multichannel ones included; speakers in the right place, checked by giving each channel its own tone |
+| `syom` | MIT | AAC-LC right at 130 dB; every HE-AAC stream fails, Main and LTP refused |
+| `filmcraft-aac` | MIT or Apache-2.0 | LC only, HE-AAC decoded as its core at half the rate without an error |
+| FAAD2, through a binding from 2020 | GPL-2.0-or-later | Drops the first frame, loses the centre of 3.1 (−2.9 dB), upmixes mono |
+| FDK AAC and its ports | FDK licence | Not measured: FFmpeg treats that licence as incompatible with the GPL |
+
+Two readings of those numbers would mislead. FAAD2 and `filmcraft-aac` score 21-39 dB against FFmpeg on a file with PNS and 132 dB or better without it: PNS is noise a decoder invents, so it says nothing about either. The same goes for a seek: on a file with PNS, what follows reads about 30 dB against the uninterrupted decode, and on one without, it is identical from 4 096 frames on.
+
+**Damaged input.** 41 616 corrupted packets and 200 000 random configurations, overflow checks on: no panic, no non-finite sample. A damaged packet can yield a very large sample, which the decoder thread's final clamp is for.
+
+**Speakers.** `rusty_aac` outputs channels sorted by their bit in the channel mask, the order a positional layout means, and [`speakers`](../../src-tauri/crates/core/src/audio_format/aac.rs) reads that mask from the crate's layout tables, or from the first packet when an ADTS stream keeps its layout in-band. FFmpeg's encoder writes a program config element for a layout with no channel configuration, and for some of them (3.1, 4.1, 5.1 with side surrounds, 6.1, 7.1 wide) that element files the LFE as a side channel, so nothing in the stream can name the speakers. Those stay discrete, in the order they were encoded.
+
+**Not covered:**
+
+- **xHE-AAC** (USAC). A separate codec, and no candidate decodes it. The registry refuses it, and [the scanner does not list it](library.md#scanning).
+- **A stream declaring plain stereo AAC-LC, with SBR that nothing declares,** stays on symphonia, which plays its core at half the rate: a 48 kHz file comes out at 24 kHz, without its upper band. Seeing it takes decoding. Fixing that means replacing symphonia's decoder for every AAC file, which is a measure of its own.
+- **FFmpeg's unnamed layouts downstream of the decoder.** Discrete channels get the usual layout for their count: right for 5.1 with side surrounds and 7.1 wide, wrong for 3.1, 4.1 and 6.1, whose LFE or back centre then folds to one side of a stereo output. The analysis weighs the LFE of all of them like any other channel.
+- **The low-delay SBR of AAC-ELD.** `rusty_aac` decodes the core and plays it at the core's rate, without an error.
+- **Main or LTP in ADTS.** symphonia's reader drops the header's profile, so the decoder assumes LC: 269 and 111 failed packets on two files remuxed from the ISO streams. Neither is a file an encoder writes by default; the same streams in MP4 decode right.
 
 ## ReplayGain
 
@@ -235,13 +451,14 @@ The scalar is recomputed **per decoded buffer** rather than baked into the strea
 
 ## Balance and stereo width
 
-[`audio/stereo.rs`](../../src-tauri/crates/app/src/audio/stereo.rs): the stage that decides what each speaker of the front pair (channels 0 and 1) gets, on the decoder thread right after the EQ and before the final clamp to ±1.0. Nothing of it runs in the cpal callback. Settings → Audio → Stereo image, two sliders with a button each (and a double-click on the slider) that puts them back on neutral; both are plain range inputs, so the arrows, Page Up / Down, Home and End move them from the keyboard, and each announces its value as text ("L 30 %", "Mono").
+[`audio/stereo.rs`](../../src-tauri/crates/app/src/audio/stereo.rs): the stage that decides what each left / right pair of speakers gets, on the decoder thread right after the EQ and before the final clamp to ±1.0. Nothing of it runs in the cpal callback. Settings → Audio → Stereo image, two sliders with a button each (and a double-click on the slider) that puts them back on neutral; both are plain range inputs, so the arrows, Page Up / Down, Home and End move them from the keyboard, and each announces its value as text ("L 30 %", "Mono").
 
-- **Mono first.** The mono switch is folded here, every channel of a frame replaced by the frame's average, before the balance. It used to be done by the output, after everything else, which made mono plus balance — the pair someone hearing on one side reaches for — erase a channel instead of moving the sound: a hard-right balance left the source's right channel alone, and the output then averaged it back over both speakers at half level. Folded first, the balance moves the folded signal. The output now applies only volume and normalisation, and the switch takes effect after the audio already queued (about a second), like the EQ.
+- **Surround.** Every pair of the output is balanced and widened alike, found by name in the [layout](../architecture/audio.md#channel-layouts): the room moves or narrows as a whole. What has no side (the centre, the LFE, a rear centre) stays where it is, and only takes the width's headroom so it keeps its level against the pairs.
+- **Mono first.** The mono switch is folded here, before the balance: the frame becomes one signal, which the front pair plays and every other channel leaves silent. A stereo or mono track on a wider output is folded from the front pair alone; a surround track with BS.775's mono gains, LFE out, scaled so a full-scale frame stays in range. A plain average took 12 dB off a stereo track on a 7.1 output and played it out of the LFE. It used to be done by the output, after everything else, which made mono plus balance — the pair someone hearing on one side reaches for — erase a channel instead of moving the sound: a hard-right balance left the source's right channel alone, and the output then averaged it back over both speakers at half level. Folded first, the balance moves the folded signal. The output now applies only volume and normalisation, and the switch takes effect after the audio already queued (about a second), like the EQ.
 - **Balance**, −100 % (left) to +100 % (right), `profile_setting['audio.balance']` (int, default 0). The far channel is attenuated by `cos(|b| · π/2)` — −3 dB at half travel, silence at the end stop — and the near one stays at unity. A constant-power pan law was set aside on purpose: normalised to unity at the centre it lifts the near side by up to 3 dB, which drives a full-scale master into the clamp. A balance control trims; it never boosts, so it cannot clip what it is given.
 - **Width**, 0 % (mono) to 200 %, `profile_setting['audio.stereo_width']` (int, default 100). Done in mid/side: `M = (L + R) / 2`, `S = (L − R) / 2 × width`, then `L = M + S`, `R = M − S`. Since `|M| + |S|` is the larger of `|L|` and `|R|`, a width `w` above 100 % can raise a peak by up to `w` — +6 dB at 200 % — and a hard-panned part of a loud master clipped at the final clamp. Above 100 % the frame is scaled by `1 / w`, worked out from the width each frame is played at so a ramp keeps the bound too: widening plays quieter, as an EQ boost does, and never clips.
 - **Neutral is no stage at all.** With mono off, balance 0 and width 100 % the buffer is not touched — the mid/side round trip is not bit-exact in floating point — so bit-perfect output is kept, exclusive mode included. Native DSD over DoP never goes through the stage (the words are not PCM); DSD converted to PCM does, like any other track.
-- **Mono sources and outputs.** A track with a single channel is not widened at all, nor is anything once the mono switch has folded it: there is no side, and the `1 / w` headroom would only make it quieter. Below 100 % a frame with `L == R` comes out bit for bit anyway. The balance still acts on it, as a speaker balance. A single-channel output is never touched. On a surround output the balance and width move only the front pair; mono folds every channel, as it always did. During a crossfade the width is skipped only when both tracks are mono.
+- **Mono sources and outputs.** A track with a single channel is not widened at all, nor is anything once the mono switch has folded it: there is no side, and the `1 / w` headroom would only make it quieter. Below 100 % a frame with `L == R` comes out bit for bit anyway. The balance still acts on it, as a speaker balance. A single-channel output is never touched. During a crossfade the width is skipped only when both tracks are mono.
 - **Changes ramp** linearly across one buffer, so a slider moved during playback does not click; a buffer with no whole frame in it (a resampler holding back a short packet) leaves the change for the next one rather than using it up. The first buffer of a track starts at the target, so a track opening with the balance hard to one side does not leak its first buffer through the other.
 - **Saved, then applied.** `player_set_balance` / `player_set_stereo_width` write the row first and return its error; a refused value never reaches the engine and the card reads back what the engine still holds, unless a newer move of the same slider is still on its way. The engine is told through `AudioCmd::SetBalance` / `SetStereoWidth`, which the idle loop and the test tone take through `apply_setting` and a playing track through `drain_commands`. `restore_profile_audio_settings` puts both back at launch and on a profile switch, neutral when the row is missing. Both are in the settings registry, so the Audio header counts them and its reset puts them back.
 - The audio-pipeline popover shows a `Balance` / `Width n %` chip while either is off neutral on an output with two channels or more, which also withholds the bit-perfect pill. The output test tone does not go through the balance or the width — it exists to check which channel is which — but it is folded when mono is on.
@@ -451,9 +668,9 @@ The pill in the pipeline popover needs no change: it already compares the source
 
 ## Output test tone
 
-**Settings → Output → Test the output** plays a 1 kHz beep on the left, then on the right, then on both, and the card shows which beep is sounding along with the format it was generated at: the device, the rate, the sample format, the channel count, and whether the stream is exclusive or shared. In shared mode the card says that the system mixer converts to the device's own format afterwards, since what we hand over is then not what the DAC receives.
+**Settings → Output → Test the output** plays a 1 kHz beep on the left, then on the right, then on both, or on a surround output a beep on each speaker in turn, and the card shows which beep is sounding along with the format it was generated at: the device, the rate, the sample format, the channel count, and whether the stream is exclusive or shared. In shared mode the card says that the system mixer converts to the device's own format afterwards, since what we hand over is then not what the DAC receives.
 
-- **Generated, not decoded.** [`audio/test_tone`](../../src-tauri/crates/app/src/audio/test_tone.rs) is pure arithmetic on frame numbers: the stream's rate and channel count, −18 dBFS, 800 ms beeps with 300 ms gaps and 15 ms raised-cosine ramps so neither edge clicks. Left is channel 0, right channel 1; any further channel stays silent, and a single-channel output plays all three beeps on that channel. No resampler, ReplayGain, EQ, balance or stereo width runs on it. Volume and normalize still apply, because the output applies them to everything it plays, and the mono switch folds the tone the way it folds a track, so the card warns when mono is on.
+- **Generated, not decoded.** [`audio/test_tone`](../../src-tauri/crates/app/src/audio/test_tone.rs) is pure arithmetic on frame numbers: the stream's rate and channel count, −18 dBFS, 800 ms beeps with 300 ms gaps and 15 ms raised-cosine ramps so neither edge clicks. The beeps go to speakers rather than to channel numbers, since an output can be in another order ([`ToneSequence`](../../src-tauri/crates/app/src/audio/test_tone.rs)): the front, the LFE on a 60 Hz beep that a subwoofer can actually play, the back, then the sides. A single-channel output plays all three stereo beeps on that channel, and so does the front pair of a wide output with the mono switch on, which leaves the other speakers nothing to come out of. No resampler, ReplayGain, EQ, balance or stereo width runs on it. Volume and normalize still apply, because the output applies them to everything it plays, and the mono switch folds the tone the way it folds a track, so the card warns when mono is on.
 - **Its own loop on the decoder thread.** `AudioCmd::PlayTestTone` is handled from the idle loop by `play_test_tone`, never through `play_track`: there is no file, no play to credit, no position for the player bar. It is not a load, so it carries no intent and is never recorded as the last load, and a rebuild never replays it. It first empties the ring silently (a paused track's tail may still sit there) and puts a DoP output back on PCM, since a DoP output reads every ring value as a DSD word. Each beep is reported on `player:test-tone` when the output **plays** it, which is what was pushed minus what still waits in the ring, not when it is pushed a ring's length earlier. The output's sample counter is put back afterwards: the tone is nobody's position. A load, a `Stop` or an output rebuild ends it at once, and a load is handed back through `pending_cmd`. A setting sent meanwhile (volume, normalisation, mono, crossfade, ReplayGain, gapless, speed, balance, stereo width) still lands, through the same `apply_setting` the idle loop uses: with no track to apply them to, both loops used to drop every one of them, so the engine kept the old value until the next launch restored the row while the switch on screen said otherwise.
 - **A track in progress is parked, not lost.** `AudioEngine::play_test_tone` reads the position, sends `Stop` and parks the session exactly as a rebuild parks a paused one ([What a rebuild puts back](#what-a-rebuild-puts-back)). The track shows as stopped, and Play picks it back up where it was.
 - **The sample format is published by every backend** next to the rate: `SharedPlayback::sample_format` (`OutputSampleFormat`). WASAPI and ALSA report the format they negotiated, CoreAudio and cpal the one they hand to the system (`f32` in hog mode, whatever the device's default config is in shared mode), and a DoP stream `dop`.
@@ -472,7 +689,7 @@ The decoder's `transition_state` feeds it (a non-blocking send), skipping `Loadi
 
 ## OS media controls
 
-[`media_controls.rs`](../../src-tauri/crates/app/src/media_controls.rs) bridges the engine to [`souvlaki 0.8`](https://crates.io/crates/souvlaki):
+[`media_controls.rs`](../../src-tauri/crates/app/src/media_controls.rs) bridges the engine to [`souvlaki 0.9`](https://crates.io/crates/souvlaki):
 
 - **Windows** — SMTC. Now-Playing artwork is served to SMTC over a tiny localhost HTTP shim because Windows expects a URL, not a file path.
 - **Linux** — MPRIS via D-Bus.
@@ -527,7 +744,7 @@ A file can play without becoming a library track: opened from the system (a doub
 - **On screen** it is told apart by `isFileTrack`: a negative id with a `file_path` (`player:radio-metadata` carries `is_file` and the path; radio and remote tracks leave the path empty). It has no library affordance (`isStreamTrack` covers it: no ♥, no start radio, no slideshow, no file menu), keeps Previous / Next / Repeat like a remote track, no Shuffle, and its queue shows in the remote queue's view (`RemoteQueueView source="file"`, in the panel and the mini-player). Its lyrics are looked up by artist and title and render synced.
 - **From the app.** A drop on the window offers two targets, **Play now** and **Add to the library** (see [Drag-and-drop import](library.md#drag-and-drop-import)); the "Play without importing" button in the sidebar's _My music_ header opens a menu with **Play files…** and **Play a folder…**, also bound to `Ctrl+O` and `Ctrl+Shift+O`. All of them end in [`playWithoutImporting`](../../src/lib/openToPlay.ts), which hands the paths to `player_play_paths`; the file picker offers the extensions the scanner takes. A failure, from the picker or from the command (a folder with no audio file in it), goes through the playback alert as `files-failed` / `picker-failed`, emitted as a `player:error` from the frontend, since none of these paths has anything else on screen to show it.
 - **The command line.** [`launch_args`](../../src-tauri/crates/app/src/launch_args.rs) reads the files a launch was opened with — the first launch from its own arguments once the profile is open, a later one from what the single-instance plugin hands the running instance, relative paths taken from its working directory. Options are skipped; the Flatpak's `%U` arrives as `file://` URIs and is converted. macOS passes no arguments: it sends `RunEvent::Opened` with file URLs, at launch as well as later, read by `paths_from_urls`. **Files that arrive together play together**: Windows starts the program once per file when several are opened at once, so each reaches the running window on its own, a moment after the last, and played as they came each would replace the queue the one before had started. `play_when_ready` gathers them until none has arrived for 400 ms (at most 3 s once the player is up; the wait for the player at a cold start gathers too), each file once, then plays them as one queue: in the order given when one launch brought them all, in path order when several did, since those reach the window in no reliable order (installed and measured: three files opened together arrived third, second, first). The open's load intent (#622) is claimed as soon as the engine exists, not when the files finally play: a track the user picks during the wait is the newer choice, and the files give way to it. On macOS the window is brought forward when files are opened, as the single-instance callback does elsewhere, except while the splash still stands at a launch, whose handoff reveals it once painted.
-- **Opened from the system.** The installers offer WaveFlow for the formats it plays (mp3, flac, wav, aiff/aif, ogg/oga, opus, m4a, aac, dsf, dff) and make it the default for none: the default player stays the user's choice. `.mp4` is left out, since it is a video type first.
+- **Opened from the system.** The installers offer WaveFlow for the formats it plays (mp3, flac, wav, aiff/aif, ogg/oga, opus, m4a, aac, wv, ape, dsf, dff) and make it the default for none: the default player stays the user's choice. `.mp4` is left out, since it is a video type first.
   - **macOS**: `bundle.fileAssociations` in [`tauri.macos.conf.json`](../../src-tauri/crates/app/tauri.macos.conf.json), one per format with its MIME type, role `Viewer` and rank `Alternate` (`LSHandlerRank`): listed under _Open With_, never picked over the owner. No `exportedType`, so WaveFlow declares none of these types as its own. **They are declared for macOS only, on purpose**: on Windows Tauri's associations write each extension's default class (NSIS `APP_ASSOCIATE`, advertised `ProgId`s in the MSI), making the installer the default player for every format. A `tauri.windows.conf.json` setting them to `null` cannot remove them: the CLI merges the base config, then the platform file, then the `--config` overlay — and [`scripts/tauri.mjs`](../../scripts/tauri.mjs) passes the whole `tauri.conf.json` as that overlay, which puts them back.
   - **Linux** (.deb, .rpm and the AppImage, so the AUR and COPR packages too): a desktop template of our own ([`linux/waveflow.desktop`](../../src-tauri/crates/app/linux/waveflow.desktop)) lists the same formats as `MimeType`, with the legacy aliases (`audio/x-flac`, ...). Tauri's default template has `Exec=waveflow` with no field code, so "Open with WaveFlow" started an empty window; ours passes `%F`. The Flatpak's own entry lists the same types and launches with `%U`.
   - **Windows**: NSIS hooks ([`windows/open-with.nsh`](../../src-tauri/crates/app/windows/open-with.nsh)) and a WiX fragment for the MSI ([`windows/open-with.wxs`](../../src-tauri/crates/app/windows/open-with.wxs)) write instead the `WaveFlow.Audio` ProgID, `.ext\OpenWithProgids` (the _Open with_ entry), `Applications\<exe>\SupportedTypes` (no entry for other types), and `Capabilities` + `RegisteredApplications` (WaveFlow listed in _Settings > Default apps_, where the user can choose it). NSIS writes under the hive its install mode picked and tells Explorer (`SHChangeNotify`); the MSI installs per machine. Uninstalling removes only WaveFlow's own values: the extension keys are shared with the other players, and an update leaves them in place, as it leaves the shortcuts.
@@ -550,7 +767,7 @@ A station is not decoded from the socket. [`audio::live`](../../src-tauri/crates
 - **Bounded requests**: a playlist is read up to 1 MiB, a segment up to 16 MiB, each request within 30 s. Durations that are not ones (`inf`, `NaN`, over an hour) fall back to the target, and a byte rate outside 800 B/s – 1 MB/s is not trusted with the bound or the lag. An HLS station has no ICY: its title stays the station's.
 - **The address rule of a station added by hand**: when the URL played is public, every playlist entry and every redirect must be public too (`web_radio_custom::may_open`) — a playlist on the internet cannot make the player reach the user's router; a station on the local network may name local segments.
 
-**Not covered.** symphonia decodes AAC-LC only, so an HE-AAC stream — BBC 6 Music, several HLS stations, and the Icecast stations the directory lists as "AAC+" (335 of the 3 000) — plays its LC core at 22.05 or 24 kHz, without its upper band. That was already so before this; it needs an SBR decoder.
+**Not covered.** symphonia decodes AAC-LC only, so an HE-AAC stream — BBC 6 Music, several HLS stations, and the Icecast stations the directory lists as "AAC+" (335 of the 3 000) — plays its LC core at 22.05 or 24 kHz, without its upper band. That was already so before this and it stays so: [`rusty_aac`](#aac-beyond-symphonia) has an SBR decoder, but an ADTS header cannot declare SBR, so these streams read as plain AAC-LC and stay on symphonia.
 
 ## A-B loop
 

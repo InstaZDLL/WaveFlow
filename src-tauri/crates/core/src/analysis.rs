@@ -171,6 +171,10 @@ pub fn analyze_file(path: &Path) -> Result<AnalysisResult, String> {
                 tracing::warn!(error = %e, "analysis: decode error, skipping packet");
                 continue;
             }
+            // The channel count and rate everything here was sized for no
+            // longer hold. Treated like a new logical stream above: what was
+            // measured stands.
+            Err(SymphoniaError::ResetRequired) => break,
             Err(e) => return Err(format!("decode: {e}")),
         };
 
@@ -285,7 +289,7 @@ fn open_audio(path: &Path) -> Result<OpenedAudio, String> {
         hint.with_extension(ext);
     }
 
-    let format = symphonia::default::get_probe()
+    let format = crate::audio_format::probe()
         .probe(
             &hint,
             mss,
@@ -369,6 +373,8 @@ pub fn spectrogram_file(
                 tracing::warn!(error = %e, "spectrogram: decode error, skipping packet");
                 continue;
             }
+            // As in `analyze_file`: the format this was sized for is gone.
+            Err(SymphoniaError::ResetRequired) => break,
             Err(e) => return Err(SpectrogramError::Failed(format!("decode: {e}"))),
         };
         if meter.is_none() {

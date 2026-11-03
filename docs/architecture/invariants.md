@@ -166,6 +166,7 @@ Two rules ride along in the same function:
 
 - **The year goes on the date item**, not `ItemKey::Year`. `Year` has no ID3v2 mapping at all, so writing it there dropped the value silently while the database happily recorded the new year.
 - **A cover replaces the front cover, not the artwork.** Clearing `tag.pictures()` to make room for one image also threw away the booklet, the back cover and the artist shot. Only `CoverFront` and the untyped `Other` are removed.
+- **A rating stays out of the generic half.** lofty's generic tag holds one as a whole star and its merge skips any other shape silently, so the rating is written on the concrete tag, read back to check it landed, and carried past the round trip of every other edit. Deep dive: [library § ratings](../features/library.md#tag-editing).
 
 Containers the scanner indexes but nothing can tag are refused up front with a message that says so, instead of failing later as an unrelated "unknown format". That is `.dff` alone now: `.dsf` has a writer of its own (#592), because its tag is a plain ID3v2 block at an offset the header declares rather than something lofty has to understand.
 
@@ -176,6 +177,12 @@ Deep dive: [library § tag editing](../features/library.md#tag-editing).
 ---
 
 ## Audio
+
+### A channel is a speaker, not a number
+
+Anything that treats channels differently goes through `playback::channels::ChannelLayout`: the mixer, the balance and width, the mono fold, the test tone. **Why:** the same index is a different speaker from one place to the next. Channel 2 is the centre in WAVE and in a FLAC, the front right in an Opus file's table, a rear speaker on an ALSA device. Code that went by number sent the centre of a 5.1 Opus to the right speaker, kept only the front of a 7.1 on 5.1, and would have played a 5.1 out of the wrong speakers on Linux the moment it opened wider than stereo.
+
+**How not to break it:** a backend that opens an output publishes its layout with its channel count (`SharedPlayback.output_layout`, zero for the count's WAVE order). The ring holds the output's channels in the output's order, so nothing after the decoder permutes anything. A stage that needs "the left channels" asks the layout (`pairs`, `front_pair`), never `frame[0]`. A count alone is a guess, and `ChannelLayout::from_count` is where that guess lives: the file's or the device's own word comes first.
 
 ### The audio callback is hot
 
@@ -227,8 +234,10 @@ back](../features/playback.md#what-a-rebuild-puts-back).
 ### One codec registry for the whole app
 
 Anything that opens an audio stream MUST go through
-[`waveflow_core::audio_format::opus::codecs()`](../../src-tauri/crates/core/src/audio_format/opus.rs),
-never `symphonia::default::get_codecs()`.
+[`waveflow_core::audio_format::opus::codecs()`](../../src-tauri/crates/core/src/audio_format/opus.rs)
+for its decoder and [`audio_format::probe()`](../../src-tauri/crates/core/src/audio_format/mod.rs)
+for its container, never `symphonia::default::get_codecs()` or
+`get_probe()`.
 
 There are three such places and they answer three different questions
 about the same file: **playback** (`ActiveStream::open`), the
@@ -241,8 +250,11 @@ prevent.
 
 Each of the three used to build its own decoder from symphonia's
 default registry, which was harmless only for as long as the app
-shipped no decoder of its own. Opus (#581) is one, so it is not
-harmless any more.
+shipped no decoder of its own. Opus (#581) is one, and so is
+[`audio_format::aac`](../features/playback.md#aac-beyond-symphonia), so
+it is not harmless any more. WavPack and Monkey's Audio brought the same
+question to containers: symphonia reads neither, so a reader of ours has
+to reach all three too.
 
 Two consequences worth stating:
 
@@ -250,7 +262,18 @@ Two consequences worth stating:
   scanner's extension list plus
   [`undecodable_stream`](../../src-tauri/crates/core/src/scanner/extract/mod.rs)
   have to move with it — those two are the scanner's half of the same
-  agreement.
+  agreement, along with
+  [`decoder_channels`](../../src-tauri/crates/core/src/scanner/extract/probe.rs),
+  which keeps out an MP4 or ADTS file whose stream the registry refuses,
+  since lofty reads the tags of any of them.
+  A decoder that only plays part of a format also tells
+  [`is_scannable_audio`](../../src-tauri/crates/core/src/scanner/extract/mod.rs)
+  what it refuses, the way `wavpack::refusal` and `ape::refusal` do.
+- **A reader sure of its marker stays sure of what it refuses.** Its
+  [`Scoreable::score`](../../src-tauri/crates/core/src/audio_format/wavpack.rs)
+  answers yes for a stream it will then turn down, so the probe stops with
+  "unsupported". Answering no sends the probe on through the file's bytes
+  until something looks like an MP3 sync word, and that plays as noise.
 - **The registry lives in `core`**, not in the app, because the
   analysis pass and the scanner are core's and the future
   `waveflow-server` transcoder will want the same answer.

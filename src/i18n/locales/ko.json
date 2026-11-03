@@ -3146,6 +3146,13 @@
       "left": "왼쪽",
       "right": "오른쪽",
       "both": "양쪽",
+      "center": "센터",
+      "lfe": "서브우퍼",
+      "backLeft": "후면 왼쪽",
+      "backRight": "후면 오른쪽",
+      "backCenter": "후면 중앙",
+      "sideLeft": "측면 왼쪽",
+      "sideRight": "측면 오른쪽",
       "mono": "모노",
       "stereo": "스테레오",
       "channels": "{{count}}채널",
@@ -3153,6 +3160,7 @@
       "shared": "공유",
       "sharedNote": "공유 모드에서는 이후 시스템 믹서가 이 포맷을 장치 고유의 포맷으로 변환합니다.",
       "monoNote": "모노 출력이 켜져 있어 모든 삐 소리가 양쪽에서 납니다.",
+      "surroundNote": "서라운드 출력: 스피커마다 차례로 신호음이 나고, 서브우퍼는 낮은 음으로 울립니다.",
       "swapped": "왼쪽 삐 소리가 오른쪽에서 들렸나요? 채널이 바뀌었습니다. 연결 상태나 시스템의 스피커 설정을 확인하세요.",
       "interrupted": "테스트가 중단되었습니다.",
       "failed": "테스트 톤을 재생할 수 없습니다: {{message}}",
@@ -3877,6 +3885,9 @@
     "playNext_other": "{{count}}곡을 다음에 재생합니다",
     "added_one": "{{count}}곡을 재생 대기열에 추가했습니다",
     "added_other": "{{count}}곡을 재생 대기열에 추가했습니다"
+  },
+  "ratingNotice": {
+    "notInFile": "평점이 WaveFlow에만 저장되었습니다. 파일에 쓸 수 없었습니다."
   },
   "moodCuration": {
     "open": "분위기 편집",

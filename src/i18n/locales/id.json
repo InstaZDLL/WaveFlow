@@ -3146,6 +3146,13 @@
       "left": "Kiri",
       "right": "Kanan",
       "both": "Keduanya",
+      "center": "Tengah",
+      "lfe": "Subwoofer",
+      "backLeft": "Belakang kiri",
+      "backRight": "Belakang kanan",
+      "backCenter": "Belakang tengah",
+      "sideLeft": "Samping kiri",
+      "sideRight": "Samping kanan",
       "mono": "Mono",
       "stereo": "Stereo",
       "channels": "{{count}} kanal",
@@ -3153,6 +3160,7 @@
       "shared": "Bersama",
       "sharedNote": "Dalam mode bersama, mixer sistem lalu mengubah format ini ke format perangkat.",
       "monoNote": "Keluaran mono aktif: setiap bip keluar dari kedua sisi.",
+      "surroundNote": "Keluaran surround: setiap speaker berbunyi bergantian, subwoofer dengan nada rendah.",
       "swapped": "Bip kiri terdengar di kanan? Kanal tertukar: periksa colokan atau pengaturan speaker sistem.",
       "interrupted": "Uji dihentikan.",
       "failed": "Tidak dapat memutar nada uji: {{message}}",
@@ -3877,6 +3885,9 @@
     "playNext_other": "{{count}} lagu diputar berikutnya",
     "added_one": "{{count}} lagu ditambahkan ke antrean",
     "added_other": "{{count}} lagu ditambahkan ke antrean"
+  },
+  "ratingNotice": {
+    "notInFile": "Penilaian hanya disimpan di WaveFlow: tidak dapat ditulis ke berkas."
   },
   "moodCuration": {
     "open": "Edit mood",

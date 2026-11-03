@@ -22,6 +22,7 @@ use crate::audio_format::dsd::dop::DsdToDop;
 use crate::audio_format::dsd::parser::DsdLayout;
 use crate::audio_format::dsd::pcm::DsdToPcm;
 
+use super::channels::{ChannelLayout, ChannelMixer};
 use super::read_ahead::ReadAhead;
 use super::replay_gain::TrackGain;
 use super::resampler::Resampler;
@@ -188,6 +189,12 @@ pub struct ActiveStream {
     pub backend: StreamBackend,
     pub resampler: Resampler,
     pub src_channels: usize,
+    /// The speaker behind each source channel, from the decoder's own
+    /// report once a packet has been decoded.
+    pub(super) src_layout: ChannelLayout,
+    /// What the source is mixed to the output with, and the output it was
+    /// built for. Rebuilt when either end changes.
+    pub(super) mixer: Option<(ChannelLayout, ChannelMixer)>,
     pub track_id: i64,
     pub duration_ms: u64,
     pub source_type: String,
@@ -250,6 +257,18 @@ pub struct PacketTally {
 /// undecodable, or a stream change) before it hands back with nothing, so a damaged file still
 /// lets the player's commands through: stop, seek, the next track.
 const MAX_SKIPPED_PACKETS: usize = 64;
+
+/// How long one `decode_next` call may spend passing packets over, for the same
+/// reason. A count is not enough on its own: a Monkey's Audio frame can take over
+/// a second to fail its checksum, and 64 of them leave the player deaf to its
+/// commands for a minute. Measured at 9 to 11 s on a file of 12 such frames.
+const MAX_SKIP_TIME: std::time::Duration = std::time::Duration::from_millis(25);
+
+/// Whether a `decode_next` call that began at `started` has passed over enough
+/// packets to hand back and let the commands through.
+fn should_give_way(skipped: usize, started: std::time::Instant) -> bool {
+    skipped >= MAX_SKIPPED_PACKETS || started.elapsed() >= MAX_SKIP_TIME
+}
 
 /// How many DSD bytes to pull from disk per `decode_next` cycle.
 /// 64 KiB ≈ 23 ms of DSD64 stereo, comfortably below the SPSC ring
@@ -487,7 +506,7 @@ impl ActiveStream {
         if let Some(ext) = ext_hint {
             hint.with_extension(ext);
         }
-        let format = symphonia::default::get_probe()
+        let format = crate::audio_format::probe()
             .probe(
                 &hint,
                 mss,
@@ -567,6 +586,8 @@ impl ActiveStream {
             // the actual source rate, which AAC/M4A only reveals then).
             resampler: Resampler::Passthrough,
             src_channels: 0,
+            src_layout: ChannelLayout::from_count(0),
+            mixer: None,
             track_id,
             duration_ms,
             source_type,
@@ -773,9 +794,9 @@ impl ActiveStream {
         out: &mut Vec<f32>,
         interleaved_scratch: &mut Vec<f32>,
         dst_sample_rate: u32,
-        dst_channels: usize,
+        dst_layout: &ChannelLayout,
     ) -> Result<bool, String> {
-        let at_end = self.decode_packet(out, interleaved_scratch, dst_sample_rate, dst_channels)?;
+        let at_end = self.decode_packet(out, interleaved_scratch, dst_sample_rate, dst_layout)?;
         if at_end && !self.tail_flushed {
             self.tail_flushed = true;
             self.resampler

@@ -9,6 +9,7 @@ fn layout(rate: u32, block_interleave: Option<u32>, lsb_first: bool) -> DsdLayou
             DsdContainer::Dff
         },
         channels: DsdChannels::Stereo,
+        speakers: crate::audio_format::dsd::parser::DsdSpeakers::DsfType(2),
         sample_rate_hz: rate,
         samples_per_channel: rate as u64,
         data_offset: 0,
