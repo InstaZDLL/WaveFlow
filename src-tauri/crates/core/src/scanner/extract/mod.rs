@@ -330,9 +330,21 @@ pub fn file_type_label(ft: FileType) -> Option<String> {
 /// writes, so four stars stay four stars. It is lossy in one direction
 /// and unavoidably so: the byte another tagger wrote is mapped to a
 /// star by lofty before we ever see it, and half-stars have no
-/// representation there at all. A rating this app wrote is not affected
-/// — the file keeps the byte, and the database keeps it too.
+/// representation there at all. A rating this app wrote is no exception
+/// once a scan reads it back: lofty maps 197 and above to five stars, so
+/// the 204 of four stars returns as 255 (measured). The file keeps the
+/// byte; the database takes what this answers.
+///
+/// A zero answers `None`: it is what ID3 itself calls unknown, and no star
+/// the app can set. Read as a rating, it would replace the one the library
+/// holds, which a file saying nothing leaves alone. Only a zero that gets
+/// here as one: lofty has already turned a POPM frame's into one star, and
+/// this cannot tell that star from a real one (measured).
 pub fn extract_rating(tag: &Tag) -> Option<u8> {
+    read_rating(tag).filter(|rating| *rating > 0)
+}
+
+fn read_rating(tag: &Tag) -> Option<u8> {
     if matches!(tag.tag_type(), TagType::Id3v2) {
         if let Some(bytes) = tag.get_binary(ItemKey::Popularimeter, false) {
             let nul_pos = bytes.iter().position(|b| *b == 0)?;

@@ -21,3 +21,6 @@ mod walk_tests;
 
 #[cfg(test)]
 mod counter_tests;
+
+#[cfg(test)]
+mod rating_tests;

@@ -109,6 +109,25 @@ fn a_rating_is_read_from_both_shapes_lofty_has_used() {
     }
 }
 
+/// A zero says the same as no rating at all, so it cannot replace the
+/// one the library holds. Both of the shapes that can carry one.
+#[test]
+fn a_zero_is_not_a_rating() {
+    use lofty::prelude::*;
+    use lofty::tag::{ItemValue, Tag, TagItem, TagType};
+
+    let mut vorbis = Tag::new(TagType::VorbisComments);
+    vorbis.insert_text(ItemKey::Popularimeter, "0".to_string());
+    assert_eq!(extract_rating(&vorbis), None);
+
+    let mut raw_frame = Tag::new(TagType::Id3v2);
+    raw_frame.insert(TagItem::new(
+        ItemKey::Popularimeter,
+        ItemValue::Binary(b"someone@example.com\0\0\0\0\0\x07".to_vec()),
+    ));
+    assert_eq!(extract_rating(&raw_frame), None);
+}
+
 /// Smallest valid 1x1 JPEG — enough to satisfy the non-empty check
 /// and exercise the hash + write + spawn_thumbnail_job pipeline
 /// without dragging the `image` crate into the unit test.

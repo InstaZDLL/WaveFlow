@@ -947,7 +947,14 @@ pub(crate) async fn scan_folder_inner(
                         duration_ms = ?, bitrate = ?, sample_rate = ?, channels = ?,
                         bit_depth = ?, codec = ?,
                         musical_key = ?,
-                        rating = ?,
+                        -- Unlike the tags around it, the file is not the
+                        -- only source of this one. A star can live in the
+                        -- database alone (a `.dff`, a container whose reader
+                        -- does not lift it), so a file with no rating has
+                        -- said nothing about it, and that goes for one
+                        -- another tagger emptied too: the two cannot be told
+                        -- apart. A file that does carry a rating wins.
+                        rating = COALESCE(?, rating),
                         rg_track_gain_db = ?, rg_track_peak = ?,
                         rg_album_gain_db = ?, rg_album_peak = ?,
                         -- With `title`, never without it (#579): this is the
