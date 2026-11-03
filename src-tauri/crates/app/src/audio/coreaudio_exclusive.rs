@@ -544,6 +544,9 @@ fn open_and_run_pcm(
         .sample_rate
         .store(sample_rate.round() as u32, Ordering::Release);
     shared.channels.store(channels as u16, Ordering::Release);
+    // The device's channels in the order it numbers them, which the count's
+    // WAVE order stands for. Not checked against a real surround device.
+    shared.output_layout.store(0, Ordering::Release);
     // What we hand the HAL; the device's own physical format sits behind
     // the audio unit's converter.
     shared.set_sample_format(super::state::OutputSampleFormat::F32);

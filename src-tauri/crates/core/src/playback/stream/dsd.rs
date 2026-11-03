@@ -6,9 +6,10 @@ use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
 
 use crate::audio_format::dsd::dop::DsdToDop;
-use crate::audio_format::dsd::parser::{parse_dff, parse_dsf, DsdLayout};
+use crate::audio_format::dsd::parser::{parse_dff, parse_dsf, DsdLayout, DsdSpeakers};
 use crate::audio_format::dsd::pcm::DsdToPcm;
 
+use crate::playback::channels::{ChannelLayout, Speaker};
 use crate::playback::replay_gain::TrackGain;
 use crate::playback::resampler::Resampler;
 
@@ -44,6 +45,7 @@ impl ActiveStream {
         file.seek(SeekFrom::Start(layout.data_offset))
             .map_err(|e| format!("dsd seek to data: {e}"))?;
         let src_channels = layout.channels.count() as usize;
+        let src_layout = dsd_channel_layout(&layout);
         let container_duration_ms = Some(layout.duration_ms());
         let codec = Some(
             layout
@@ -67,6 +69,8 @@ impl ActiveStream {
                 // DoP is bit-exact: no resampler ever engages.
                 resampler: Resampler::Passthrough,
                 src_channels,
+                src_layout,
+                mixer: None,
                 track_id,
                 duration_ms,
                 source_type,
@@ -106,6 +110,8 @@ impl ActiveStream {
             // uniform.
             resampler: Resampler::Passthrough,
             src_channels,
+            src_layout,
+            mixer: None,
             track_id,
             duration_ms,
             source_type,
@@ -254,4 +260,38 @@ pub(super) fn read_full_block<R: Read>(reader: &mut R, buf: &mut [u8]) -> std::i
         }
     }
     Ok(filled)
+}
+
+/// The speakers of a DSD stream, from what its container says. Falls back on
+/// the count when a DFF does not name its channels, or names one we do not
+/// know, and when a DSF's type disagrees with its count.
+pub(super) fn dsd_channel_layout(layout: &DsdLayout) -> ChannelLayout {
+    use Speaker::*;
+    let count = usize::from(layout.channels.count());
+    let by_count = ChannelLayout::from_count(count);
+    let speakers = match &layout.speakers {
+        // Only type 5 differs from what the count stands for: four channels
+        // that are a 3.1 rather than a quad.
+        DsdSpeakers::DsfType(5) if count == 4 => vec![FrontLeft, FrontRight, FrontCenter, Lfe],
+        DsdSpeakers::DsfType(_) => return by_count,
+        DsdSpeakers::DffIds(ids) => {
+            let named: Option<Vec<Speaker>> = ids
+                .iter()
+                .map(|id| match id {
+                    b"SLFT" | b"MLFT" => Some(FrontLeft),
+                    b"SRGT" | b"MRGT" => Some(FrontRight),
+                    b"C   " => Some(FrontCenter),
+                    b"LFE " => Some(Lfe),
+                    b"LS  " => Some(BackLeft),
+                    b"RS  " => Some(BackRight),
+                    _ => None,
+                })
+                .collect();
+            match named {
+                Some(speakers) if speakers.len() == count && count > 1 => speakers,
+                _ => return by_count,
+            }
+        }
+    };
+    ChannelLayout::new(speakers)
 }

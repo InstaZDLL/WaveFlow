@@ -73,3 +73,18 @@ fn same_wave_format_rejects_a_different_valid_bit_count() {
     );
     assert!(!same_wave_format(&padded, &float));
 }
+
+/// The mask asked for first is the one the ring's order stands for: 7.1 with
+/// its side pair, not one bit per channel, which reads as 7.1 wide.
+#[test]
+fn the_first_mask_asked_for_matches_the_rings_order() {
+    let mask = |channels| {
+        ExclusiveSampleFormat::Pcm16
+            .to_wave_format(48_000, channels)
+            .get_dwchannelmask()
+    };
+    assert_eq!(mask(2), 0x3);
+    assert_eq!(mask(4), 0x33);
+    assert_eq!(mask(6), 0x3F);
+    assert_eq!(mask(8), 0x63F);
+}

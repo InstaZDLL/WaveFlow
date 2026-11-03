@@ -49,6 +49,7 @@ use alsa::pcm::{Format, Frames, State, IO, PCM};
 use crossbeam_channel::{bounded, Receiver, Sender};
 use rtrb::{Consumer, Producer, RingBuffer};
 use tauri::AppHandle;
+use waveflow_core::playback::channels::ChannelLayout;
 
 use super::output::{DopFormat, OutputHandle, RequestedFormat, RING_CAPACITY};
 use super::pcm_scale;
@@ -503,6 +504,8 @@ struct OpenPcm {
     /// to it.
     sample_rate: u32,
     channels: u16,
+    /// The speaker behind each channel, in the device's own order.
+    layout: ChannelLayout,
     period_frames: usize,
     /// Logged, not used: it is the number that says how long a pause or
     /// a seek takes to be heard, so a latency report can be read without
@@ -601,7 +604,12 @@ fn pcm_output_thread_main(
     // `open_pcm_negotiated` owns that reading.
     let preferred_rate =
         requested_rate.unwrap_or_else(|| shared.sample_rate.load(Ordering::Acquire));
-    let preferred_channels = shared.channels.load(Ordering::Acquire);
+    // Nothing open yet is the one moment the engine has no count to offer:
+    // ask the sound server now, while it still holds the card.
+    let preferred_channels = match shared.channels.load(Ordering::Acquire) {
+        0 => super::output::linux_layout::sink_channels().unwrap_or(0),
+        channels => channels,
+    };
 
     let (_reservation, opened) = match open_reserving_the_card(&dev, "pcm", || {
         open_pcm_negotiated(&dev, preferred_rate, preferred_channels)
@@ -622,6 +630,7 @@ fn pcm_output_thread_main(
         format,
         sample_rate,
         channels,
+        layout,
         period_frames,
         buffer_frames,
     } = opened;
@@ -634,6 +643,7 @@ fn pcm_output_thread_main(
 
     shared.sample_rate.store(sample_rate, Ordering::Release);
     shared.channels.store(channels, Ordering::Release);
+    shared.output_layout.store(layout.pack(), Ordering::Release);
     shared.set_sample_format(format.sample_format());
     let _ = init_tx.send(Ok(()));
 

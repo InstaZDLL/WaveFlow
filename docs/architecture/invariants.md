@@ -177,6 +177,12 @@ Deep dive: [library § tag editing](../features/library.md#tag-editing).
 
 ## Audio
 
+### A channel is a speaker, not a number
+
+Anything that treats channels differently goes through `playback::channels::ChannelLayout`: the mixer, the balance and width, the mono fold, the test tone. **Why:** the same index is a different speaker from one place to the next. Channel 2 is the centre in WAVE and in a FLAC, the front right in an Opus file's table, a rear speaker on an ALSA device. Code that went by number sent the centre of a 5.1 Opus to the right speaker, kept only the front of a 7.1 on 5.1, and would have played a 5.1 out of the wrong speakers on Linux the moment it opened wider than stereo.
+
+**How not to break it:** a backend that opens an output publishes its layout with its channel count (`SharedPlayback.output_layout`, zero for the count's WAVE order). The ring holds the output's channels in the output's order, so nothing after the decoder permutes anything. A stage that needs "the left channels" asks the layout (`pairs`, `front_pair`), never `frame[0]`. A count alone is a guess, and `ChannelLayout::from_count` is where that guess lives: the file's or the device's own word comes first.
+
 ### The audio callback is hot
 
 The cpal callback (and the WASAPI exclusive thread) MUST NOT allocate, lock, or log. Only `rtrb::Consumer` reads and `Atomic*` loads. All heavy work (EQ, ReplayGain, resampling, FFT, BLAKE3) runs on the decoder thread before samples reach the SPSC ring.
