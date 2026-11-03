@@ -17,6 +17,8 @@ use std::time::{Duration, UNIX_EPOCH};
 
 use futures::future::BoxFuture;
 use smb2::client::stream::FileReader;
+use smb2::types::status::NtStatus;
+use smb2::types::Command;
 use smb2::{ClientConfig, ErrorKind, SmbClient, Tree};
 use tokio::sync::Mutex;
 use waveflow_core::network_locator::is_safe_path;
@@ -57,6 +59,23 @@ fn classify(err: &smb2::Error) -> NetError {
         | ErrorKind::SessionExpired
         | ErrorKind::DfsTargetUnreachable => NetError::Unreachable(err.to_string()),
         _ => NetError::Protocol(err.to_string()),
+    }
+}
+
+/// Dialing says more than a later call can, so it is read by variant and not by
+/// kind: a refused port has the same kind as a socket closed on the first
+/// request, and a refused session the same as a refused file.
+fn classify_connect(err: &smb2::Error) -> NetError {
+    match err {
+        smb2::Error::Disconnected => NetError::Handshake(err.to_string()),
+        // A wrong password is STATUS_LOGON_FAILURE. This one is what Samba says
+        // to a client it wants encrypted, because smb2 does not announce
+        // SMB2_GLOBAL_CAP_ENCRYPTION and Samba then picks no cipher.
+        smb2::Error::Protocol {
+            status: NtStatus::ACCESS_DENIED,
+            command: Command::SessionSetup,
+        } => NetError::SessionRefused(err.to_string()),
+        _ => classify(err),
     }
 }
 
@@ -115,12 +134,7 @@ impl SmbFs {
     async fn connect(&self) -> Result<Session, NetError> {
         let mut client = SmbClient::connect(self.config.clone())
             .await
-            .map_err(|e| match e {
-                // The variant, not its kind: a refused port is the same kind,
-                // and only this one means that the socket had opened.
-                smb2::Error::Disconnected => NetError::Handshake(e.to_string()),
-                _ => classify(&e),
-            })?;
+            .map_err(|e| classify_connect(&e))?;
         let tree = client
             .connect_share(&self.share)
             .await
@@ -312,6 +326,22 @@ mod tests {
         let err = fs.probe().await.unwrap_err();
         assert!(matches!(err, NetError::Handshake(_)), "{err:?}");
         assert_eq!(err.code(), "handshake");
+    }
+
+    #[test]
+    fn a_refused_session_is_not_a_wrong_password() {
+        let refused = |status| smb2::Error::Protocol {
+            status,
+            command: Command::SessionSetup,
+        };
+        assert_eq!(
+            classify_connect(&refused(NtStatus::ACCESS_DENIED)).code(),
+            "session-refused"
+        );
+        assert_eq!(
+            classify_connect(&refused(NtStatus::LOGON_FAILURE)).code(),
+            "auth"
+        );
     }
 
     #[tokio::test]

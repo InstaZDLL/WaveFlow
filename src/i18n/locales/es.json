@@ -3471,7 +3471,8 @@
         "handshake": "Este servidor cerró la conexión durante la negociación. WaveFlow usa SMB 2 o posterior: un servidor limitado a SMB 1 hace exactamente esto.",
         "tls": "Se rechaza el certificado de este servidor. WaveFlow siempre comprueba los certificados: hace falta uno válido, o http:// en una red de confianza.",
         "auth": "Nombre de usuario o contraseña rechazados.",
-        "not-found": "Esta carpeta no existe en el recurso.",
+        "session-refused": "Este servidor rechazó la sesión sin pronunciarse sobre la contraseña. Si exige cifrado, WaveFlow todavía no puede ofrecérselo.",
+        "not-found": "Este recurso compartido o esta carpeta no existe.",
         "protocol": "Este servidor no responde como un recurso compartido.",
         "plain-http": "Una dirección http:// necesita tu conformidad abajo."
       },

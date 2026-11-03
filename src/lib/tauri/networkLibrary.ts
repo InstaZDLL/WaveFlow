@@ -41,6 +41,7 @@ export type NetworkFailureCode =
   | "handshake"
   | "tls"
   | "auth"
+  | "session-refused"
   | "not-found"
   | "protocol"
   | "plain-http";

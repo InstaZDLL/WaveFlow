@@ -15,18 +15,30 @@ pub(super) async fn browse_artists(
     count: i64,
     offset: i64,
 ) -> Result<BrowseResult, sqlx::Error> {
-    let total: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM artist")
-        .fetch_one(pool)
-        .await?;
+    // An artist opens onto albums, so one with none to serve is a dead end, and
+    // a library on a share would otherwise list every artist of it as one.
+    let total: i64 = sqlx::query_scalar(concat!(
+        "SELECT COUNT(*) FROM artist ar
+          WHERE EXISTS (SELECT 1 FROM album al WHERE al.artist_id = ar.id AND ",
+        served_album!(),
+        ")"
+    ))
+    .fetch_one(pool)
+    .await?;
     // The per-row counts ride `idx_album_artist`, so a page of 500
     // stays a page of index probes.
-    let rows: Vec<(i64, String, i64)> = sqlx::query_as(
+    let rows: Vec<(i64, String, i64)> = sqlx::query_as(concat!(
         "SELECT ar.id, ar.name,
-                (SELECT COUNT(*) FROM album al WHERE al.artist_id = ar.id)
+                (SELECT COUNT(*) FROM album al WHERE al.artist_id = ar.id AND ",
+        served_album!(),
+        ")
            FROM artist ar
+          WHERE EXISTS (SELECT 1 FROM album al WHERE al.artist_id = ar.id AND ",
+        served_album!(),
+        ")
           ORDER BY ar.canonical_name
           LIMIT ? OFFSET ?",
-    )
+    ))
     .bind(count)
     .bind(offset)
     .fetch_all(pool)

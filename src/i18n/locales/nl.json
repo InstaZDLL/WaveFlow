@@ -3401,7 +3401,8 @@
         "handshake": "Deze server heeft de verbinding verbroken tijdens de onderhandeling. WaveFlow spreekt SMB 2 en nieuwer: een server die beperkt is tot SMB 1 doet precies dit.",
         "tls": "Het certificaat van deze server wordt geweigerd. WaveFlow controleert certificaten altijd: er is een geldig certificaat nodig, of http:// op een vertrouwd netwerk.",
         "auth": "Gebruikersnaam of wachtwoord geweigerd.",
-        "not-found": "Deze map bestaat niet op de share.",
+        "session-refused": "Deze server heeft de sessie geweigerd zonder het wachtwoord te beoordelen. Als hij versleuteling vereist, kan WaveFlow die nog niet aanbieden.",
+        "not-found": "Deze share of map bestaat niet.",
         "protocol": "Deze server antwoordt niet als een share.",
         "plain-http": "Een http://-adres heeft hieronder je toestemming nodig."
       },

@@ -3471,7 +3471,8 @@
         "handshake": "Questo server ha chiuso la connessione durante la negoziazione. WaveFlow usa SMB 2 o versioni successive: un server limitato a SMB 1 fa esattamente così.",
         "tls": "Il certificato di questo server è rifiutato. WaveFlow verifica sempre i certificati: ne serve uno valido, oppure http:// su una rete fidata.",
         "auth": "Nome utente o password rifiutati.",
-        "not-found": "Questa cartella non esiste sulla condivisione.",
+        "session-refused": "Questo server ha rifiutato la sessione senza valutare la password. Se richiede la crittografia, WaveFlow non può ancora offrirgliela.",
+        "not-found": "Questa condivisione o questa cartella non esiste.",
         "protocol": "Questo server non risponde come una condivisione.",
         "plain-http": "Un indirizzo http:// richiede il tuo consenso qui sotto."
       },

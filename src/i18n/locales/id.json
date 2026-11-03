@@ -3399,7 +3399,8 @@
         "handshake": "Server ini menutup koneksi saat negosiasi. WaveFlow menggunakan SMB 2 atau yang lebih baru: server yang terbatas pada SMB 1 berperilaku persis seperti ini.",
         "tls": "Sertifikat server ini ditolak. WaveFlow selalu memeriksa sertifikat: perlu yang valid, atau http:// di jaringan tepercaya.",
         "auth": "Nama pengguna atau kata sandi ditolak.",
-        "not-found": "Folder ini tidak ada di server.",
+        "session-refused": "Server ini menolak sesi tanpa menilai kata sandi. Jika server mewajibkan enkripsi, WaveFlow belum dapat menawarkannya.",
+        "not-found": "Berbagi atau folder ini tidak ada.",
         "protocol": "Server ini tidak menjawab seperti folder berbagi.",
         "plain-http": "Alamat http:// memerlukan persetujuan Anda di bawah."
       },

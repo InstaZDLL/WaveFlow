@@ -103,6 +103,12 @@ export function NetworkLibraryCard({ language }: { language: string }) {
 
   const plainHttp = form?.endpoint.trim().toLowerCase().startsWith("http://");
 
+  // A result speaks for what was tested: changing the form withdraws it.
+  const edit = (patch: Partial<NetworkSourceInput>) => {
+    setForm((current) => current && { ...current, ...patch });
+    setOutcome(null);
+  };
+
   const failure = (test: NetworkTestOutcome) =>
     t(`settings.networkLibrary.failure.${test.code ?? "protocol"}`);
 
@@ -359,7 +365,7 @@ export function NetworkLibraryCard({ language }: { language: string }) {
               value={form.kind}
               aria-label={t("settings.networkLibrary.kind")}
               onChange={(e) =>
-                setForm({ ...form, kind: e.target.value as NetworkSourceKind })
+                edit({ kind: e.target.value as NetworkSourceKind })
               }
             >
               {KINDS.map((kind) => (
@@ -374,7 +380,7 @@ export function NetworkLibraryCard({ language }: { language: string }) {
             value={form.name}
             aria-label={t("settings.networkLibrary.name")}
             placeholder={t("settings.networkLibrary.name")}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            onChange={(e) => edit({ name: e.target.value })}
           />
           <input
             className={inputClass}
@@ -382,7 +388,7 @@ export function NetworkLibraryCard({ language }: { language: string }) {
             spellCheck={false}
             aria-label={t("settings.networkLibrary.address")}
             placeholder={t(`settings.networkLibrary.addressHint.${form.kind}`)}
-            onChange={(e) => setForm({ ...form, endpoint: e.target.value })}
+            onChange={(e) => edit({ endpoint: e.target.value })}
           />
           {form.kind === "smb" && (
             <input
@@ -391,7 +397,7 @@ export function NetworkLibraryCard({ language }: { language: string }) {
               spellCheck={false}
               aria-label={t("settings.networkLibrary.share")}
               placeholder={t("settings.networkLibrary.share")}
-              onChange={(e) => setForm({ ...form, share: e.target.value })}
+              onChange={(e) => edit({ share: e.target.value })}
             />
           )}
           <input
@@ -400,7 +406,7 @@ export function NetworkLibraryCard({ language }: { language: string }) {
             spellCheck={false}
             aria-label={t("settings.networkLibrary.folder")}
             placeholder={t("settings.networkLibrary.folder")}
-            onChange={(e) => setForm({ ...form, root: e.target.value })}
+            onChange={(e) => edit({ root: e.target.value })}
           />
           <input
             className={inputClass}
@@ -409,7 +415,7 @@ export function NetworkLibraryCard({ language }: { language: string }) {
             spellCheck={false}
             aria-label={t("settings.networkLibrary.username")}
             placeholder={t("settings.networkLibrary.username")}
-            onChange={(e) => setForm({ ...form, username: e.target.value })}
+            onChange={(e) => edit({ username: e.target.value })}
           />
           <input
             className={inputClass}
@@ -418,7 +424,7 @@ export function NetworkLibraryCard({ language }: { language: string }) {
             autoComplete="off"
             aria-label={t("settings.networkLibrary.password")}
             placeholder={t("settings.networkLibrary.password")}
-            onChange={(e) => setForm({ ...form, password: e.target.value })}
+            onChange={(e) => edit({ password: e.target.value })}
           />
           <div className="text-xs settings-description">
             {t("settings.networkLibrary.passwordNotice")}
@@ -429,9 +435,7 @@ export function NetworkLibraryCard({ language }: { language: string }) {
                 type="checkbox"
                 className="mt-0.5"
                 checked={form.allowPlainHttp}
-                onChange={(e) =>
-                  setForm({ ...form, allowPlainHttp: e.target.checked })
-                }
+                onChange={(e) => edit({ allowPlainHttp: e.target.checked })}
               />
               {t("settings.networkLibrary.plainHttpWarning")}
             </label>

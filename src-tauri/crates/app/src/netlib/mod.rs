@@ -178,7 +178,7 @@ impl Source {
             }
             // A refusal on one path may be just that path (a system folder on
             // a Windows share): only signing in says something about the share.
-            Err(NetError::Auth(_)) => self.check_access_soon(),
+            Err(NetError::Auth(_) | NetError::SessionRefused(_)) => self.check_access_soon(),
             Err(err @ (NetError::Unreachable(_) | NetError::Handshake(_) | NetError::Tls(_))) => {
                 self.set_state(SourceState::Unreachable, Some(err.to_string()));
             }
@@ -205,7 +205,7 @@ impl Source {
 
     pub async fn probe(&self) -> Result<(), NetError> {
         let result = self.guarded(PROBE_TIMEOUT, self.fs.probe()).await;
-        if let Err(NetError::Auth(detail)) = &result {
+        if let Err(NetError::Auth(detail) | NetError::SessionRefused(detail)) = &result {
             self.set_state(SourceState::AuthFailed, Some(detail.clone()));
         }
         result

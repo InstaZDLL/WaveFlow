@@ -38,6 +38,11 @@ pub enum NetError {
     /// The server refused these credentials, or this account.
     #[error("access refused: {0}")]
     Auth(String),
+    /// The session itself was refused, the password not being the reason: a
+    /// Samba share that requires encryption. Filed as a refused account, and
+    /// told apart so that nobody goes looking for a typo in the password.
+    #[error("session refused: {0}")]
+    SessionRefused(String),
     #[error("not found")]
     NotFound,
     /// It answered, but not like a share: no WebDAV, no range support.
@@ -57,6 +62,7 @@ impl NetError {
             Self::Handshake(_) => "handshake",
             Self::Tls(_) => "tls",
             Self::Auth(_) => "auth",
+            Self::SessionRefused(_) => "session-refused",
             Self::NotFound => "not-found",
             Self::Protocol(_) => "protocol",
         }
