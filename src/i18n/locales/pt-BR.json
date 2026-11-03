@@ -3998,6 +3998,9 @@
     "added_many": "{{count}} faixas adicionadas à fila",
     "added_other": "{{count}} faixas adicionadas à fila"
   },
+  "ratingNotice": {
+    "notInFile": "Avaliação salva apenas no WaveFlow: não foi possível gravá-la no arquivo."
+  },
   "moodCuration": {
     "open": "Editar humores",
     "title": "Editar humores",

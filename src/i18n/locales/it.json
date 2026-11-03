@@ -3997,6 +3997,9 @@
     "added_many": "{{count}} brani aggiunti alla coda",
     "added_other": "{{count}} brani aggiunti alla coda"
   },
+  "ratingNotice": {
+    "notInFile": "Valutazione salvata solo in WaveFlow: non è stato possibile scriverla nel file."
+  },
   "moodCuration": {
     "open": "Modifica i mood",
     "title": "Modifica i mood",

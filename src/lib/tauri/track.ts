@@ -268,12 +268,26 @@ export function toggleLikeTrack(trackId: number): Promise<boolean> {
   return invoke<boolean>("toggle_like_track", { trackId });
 }
 
-/** Set or clear a track rating. `rating` is the raw POPM byte 0-255, or null to clear. */
-export function setTrackRating(
+/** A rating is in the library but could not reach the track's file. */
+export const RATING_NOT_IN_FILE_EVENT = "waveflow:rating-not-in-file";
+
+/**
+ * Set or clear a track rating. `rating` is the raw POPM byte 0-255, or null to clear.
+ *
+ * A file that could not take it is announced here rather than by each
+ * caller, for `RatingNoticeToast`: the rating is saved all the same.
+ */
+export async function setTrackRating(
   trackId: number,
   rating: number | null,
 ): Promise<void> {
-  return invoke<void>("set_track_rating", { trackId, rating });
+  const outcome = await invoke<{ fileWriteFailed: boolean }>(
+    "set_track_rating",
+    { trackId, rating },
+  );
+  if (outcome.fileWriteFailed) {
+    window.dispatchEvent(new Event(RATING_NOT_IN_FILE_EVENT));
+  }
 }
 
 /** All liked track IDs (cheap — no full rows, just IDs). */

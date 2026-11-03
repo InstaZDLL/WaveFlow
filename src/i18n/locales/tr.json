@@ -3888,6 +3888,9 @@
     "added_one": "{{count}} parça kuyruğa eklendi",
     "added_other": "{{count}} parça kuyruğa eklendi"
   },
+  "ratingNotice": {
+    "notInFile": "Puan yalnızca WaveFlow'a kaydedildi: dosyaya yazılamadı."
+  },
   "moodCuration": {
     "open": "Ruh hallerini düzenle",
     "title": "Ruh hallerini düzenle",

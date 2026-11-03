@@ -3886,6 +3886,9 @@
     "added_one": "已将 {{count}} 首曲目加入播放队列",
     "added_other": "已将 {{count}} 首曲目加入播放队列"
   },
+  "ratingNotice": {
+    "notInFile": "评分仅保存在 WaveFlow 中：无法写入文件。"
+  },
   "moodCuration": {
     "open": "编辑心情",
     "title": "编辑心情",

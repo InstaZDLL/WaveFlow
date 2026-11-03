@@ -96,10 +96,11 @@ fn is_modelled(key: lofty::tag::ItemKey) -> bool {
 fn is_boring(key: &str) -> bool {
     let upper = key.to_ascii_uppercase();
     upper.starts_with("REPLAYGAIN_")
+        || upper.starts_with("RATING:")
         || upper.starts_with("MUSICBRAINZ")
         || matches!(
             upper.as_str(),
-            "SYNCEDLYRICS" | "LYRICS" | "UNSYNCEDLYRICS" | "COVERART" | "CUESHEET"
+            "SYNCEDLYRICS" | "LYRICS" | "UNSYNCEDLYRICS" | "COVERART" | "CUESHEET" | "RATING"
         )
 }
 
@@ -193,15 +194,32 @@ fn clip_value(value: &str) -> &str {
 /// a track's existing tags every time a file happened to be locked by
 /// another process for the length of one parse.
 pub fn read_extra_tags(path: &Path) -> Option<Vec<(String, String)>> {
+    read_concrete_tags(path).map(|tags| tags.extra)
+}
+
+/// What the concrete tag of a file holds that the generic one lost.
+pub struct ConcreteTags {
+    /// See [`read_extra_tags`].
+    pub extra: Vec<(String, String)>,
+    /// The rating, when this tag has the last word on it: `Some(None)` is a
+    /// rating field that holds no rating. The outer `None` is no such field
+    /// here, or a container whose generic tag keeps the value intact, and
+    /// leaves the answer to [`super::extract_rating`].
+    pub rating: Option<Option<u8>>,
+}
+
+/// One parse for both, since this is the scan's hot path. `None` means
+/// could not read, as for [`read_extra_tags`].
+pub fn read_concrete_tags(path: &Path) -> Option<ConcreteTags> {
     read_inner(Probe::open(path).ok()?)
 }
 
-/// [`read_extra_tags`] over any reader, positioned at the start of the file.
+/// [`read_concrete_tags`] over any reader, positioned at the start of the file.
 /// `hint` stands in for the extension `Probe::open` would have read.
-pub fn read_extra_tags_from<R: std::io::Read + std::io::Seek>(
+pub fn read_concrete_tags_from<R: std::io::Read + std::io::Seek>(
     reader: R,
     hint: Option<FileType>,
-) -> Option<Vec<(String, String)>> {
+) -> Option<ConcreteTags> {
     let probe = Probe::new(reader);
     read_inner(match hint {
         Some(hint) => probe.set_file_type(hint),
@@ -209,7 +227,7 @@ pub fn read_extra_tags_from<R: std::io::Read + std::io::Seek>(
     })
 }
 
-fn read_inner<R: std::io::Read + std::io::Seek>(probe: Probe<R>) -> Option<Vec<(String, String)>> {
+fn read_inner<R: std::io::Read + std::io::Seek>(probe: Probe<R>) -> Option<ConcreteTags> {
     // One open, not two. `Probe::open` already has the file, and
     // `guess_inner` restores the stream position it read from -- so the
     // reader it hands back is at the start and ready to parse. Opening
@@ -227,6 +245,7 @@ fn read_inner<R: std::io::Read + std::io::Seek>(probe: Probe<R>) -> Option<Vec<(
         .read_properties(false)
         .read_cover_art(false);
     let mut out = Vec::new();
+    let mut rating = None;
 
     match file_type {
         // ID3v2 containers: the custom values are `TXXX` frames, whose
@@ -234,6 +253,7 @@ fn read_inner<R: std::io::Read + std::io::Seek>(probe: Probe<R>) -> Option<Vec<(
         FileType::Mpeg => {
             let file = lofty::mpeg::MpegFile::read_from(&mut handle, options).ok()?;
             id3v2_into(file.id3v2(), &mut out);
+            rating = id3v2_rating(file.id3v2());
             // An MP3 can carry an APEv2 tag beside its ID3v2 one, and
             // taggers that write custom fields there do exist. Read
             // second, so a key present in both keeps the ID3v2 value —
@@ -244,10 +264,12 @@ fn read_inner<R: std::io::Read + std::io::Seek>(probe: Probe<R>) -> Option<Vec<(
         FileType::Aac => {
             let file = lofty::aac::AacFile::read_from(&mut handle, options).ok()?;
             id3v2_into(file.id3v2(), &mut out);
+            rating = id3v2_rating(file.id3v2());
         }
         FileType::Wav => {
             let file = lofty::iff::wav::WavFile::read_from(&mut handle, options).ok()?;
             id3v2_into(file.id3v2(), &mut out);
+            rating = id3v2_rating(file.id3v2());
             // A WAV's native tag is its RIFF INFO chunk; the ID3v2 one
             // is the bolt-on. Read second so an ID3v2 value wins a
             // collision, matching the MP3 branch.
@@ -294,6 +316,7 @@ fn read_inner<R: std::io::Read + std::io::Seek>(probe: Probe<R>) -> Option<Vec<(
             // every one of them already modelled. There is no room in
             // it for a custom key, so there is nothing there to find.
             id3v2_into(file.id3v2(), &mut out);
+            rating = id3v2_rating(file.id3v2());
         }
         // Vorbis comments: the key is the comment name, so anything
         // non-standard is already in the shape we want.
@@ -317,6 +340,7 @@ fn read_inner<R: std::io::Read + std::io::Seek>(probe: Probe<R>) -> Option<Vec<(
         FileType::Mp4 => {
             let file = lofty::mp4::Mp4File::read_from(&mut handle, options).ok()?;
             ilst_into(file.ilst(), &mut out);
+            rating = ilst_rating(file.ilst());
         }
         FileType::Ape => {
             let file = lofty::ape::ApeFile::read_from(&mut handle, options).ok()?;
@@ -334,7 +358,49 @@ fn read_inner<R: std::io::Read + std::io::Seek>(probe: Probe<R>) -> Option<Vec<(
     }
 
     out.sort_by(|a, b| a.0.cmp(&b.0));
-    Some(out)
+    Some(ConcreteTags { extra: out, rating })
+}
+
+fn id3v2_rating(tag: Option<&lofty::id3::v2::Id3v2Tag>) -> Option<Option<u8>> {
+    super::extract::rating_from_popm(tag?.into_iter().filter_map(|frame| match frame {
+        lofty::id3::v2::Frame::Popularimeter(popm) => Some((&*popm.email, popm.rating)),
+        _ => None,
+    }))
+}
+
+/// The atom this app writes a rating to: a freeform one, under the key and
+/// on the scale the Vorbis containers use, which general-purpose readers
+/// list where they skip the older `rate`.
+pub const ILST_RATING_MEAN: &str = "com.apple.iTunes";
+pub const ILST_RATING_NAME: &str = "RATING";
+
+/// Is this atom a rating? Both forms: other software writes `rate`, and a
+/// clear that left it behind would see the rating return at the next scan.
+pub fn is_ilst_rating(atom: &lofty::mp4::Atom<'_>) -> bool {
+    match atom.ident() {
+        lofty::mp4::AtomIdent::Fourcc(code) => code == b"rate",
+        lofty::mp4::AtomIdent::Freeform { name, .. } => name.eq_ignore_ascii_case(ILST_RATING_NAME),
+    }
+}
+
+/// On the concrete tag, because lofty's generic one rounds `rate` to a whole
+/// star and has no key for the freeform atom at all. The freeform atom wins
+/// when a file has both: it is the one this app keeps current.
+fn ilst_rating(tag: Option<&lofty::mp4::Ilst>) -> Option<Option<u8>> {
+    let atoms: Vec<_> = tag?
+        .into_iter()
+        .filter(|atom| is_ilst_rating(atom))
+        .collect();
+    let atom = atoms
+        .iter()
+        .find(|atom| matches!(atom.ident(), lofty::mp4::AtomIdent::Freeform { .. }))
+        .or_else(|| atoms.first())?;
+    Some(atom.data().find_map(|data| match data {
+        lofty::mp4::AtomData::UTF8(text) | lofty::mp4::AtomData::UTF16(text) => {
+            super::extract::rating_from_number(text)
+        }
+        _ => None,
+    }))
 }
 
 /// The half of a split that lofty *could* map, minus what WaveFlow

@@ -3888,6 +3888,9 @@
     "added_one": "{{count}} track added to the queue",
     "added_other": "{{count}} tracks added to the queue"
   },
+  "ratingNotice": {
+    "notInFile": "Rating saved in WaveFlow only: it could not be written to the file."
+  },
   "moodCuration": {
     "open": "Edit moods",
     "title": "Edit moods",

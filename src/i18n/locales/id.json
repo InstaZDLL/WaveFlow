@@ -3886,6 +3886,9 @@
     "added_one": "{{count}} lagu ditambahkan ke antrean",
     "added_other": "{{count}} lagu ditambahkan ke antrean"
   },
+  "ratingNotice": {
+    "notInFile": "Penilaian hanya disimpan di WaveFlow: tidak dapat ditulis ke berkas."
+  },
   "moodCuration": {
     "open": "Edit mood",
     "title": "Edit mood",
