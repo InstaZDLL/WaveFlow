@@ -32,6 +32,7 @@ struct FakeState {
     /// The account as a whole is refused.
     bad_password: AtomicBool,
     audio_bytes: AtomicU64,
+    image_bytes: AtomicU64,
 }
 
 struct FakeFs(Arc<FakeState>);
@@ -124,9 +125,12 @@ impl NetworkFs for FakeFs {
             let (bytes, _) = files.get(path).ok_or(NetError::NotFound)?;
             let start = (offset as usize).min(bytes.len());
             let end = (start + len as usize).min(bytes.len());
-            self.0
-                .audio_bytes
-                .fetch_add((end - start) as u64, Ordering::Relaxed);
+            let counter = if path.ends_with(".jpg") {
+                &self.0.image_bytes
+            } else {
+                &self.0.audio_bytes
+            };
+            counter.fetch_add((end - start) as u64, Ordering::Relaxed);
             Ok(bytes[start..end].to_vec())
         })
     }
@@ -149,6 +153,33 @@ fn wav(fill: u8) -> Vec<u8> {
     out.extend_from_slice(b"data");
     out.extend_from_slice(&data_len.to_le_bytes());
     out.resize(44 + data_len as usize, fill);
+    out
+}
+
+/// The same WAV with an album and an artist, in a RIFF INFO chunk at its end,
+/// so that the scan makes an album of it.
+fn album_wav(fill: u8, album: &str) -> Vec<u8> {
+    fn info_item(info: &mut Vec<u8>, id: &[u8; 4], text: &str) {
+        let mut value = text.as_bytes().to_vec();
+        value.push(0);
+        info.extend_from_slice(id);
+        info.extend_from_slice(&(value.len() as u32).to_le_bytes());
+        info.extend_from_slice(&value);
+        if value.len() % 2 == 1 {
+            info.push(0);
+        }
+    }
+
+    let mut info = b"INFO".to_vec();
+    info_item(&mut info, b"IART", "Artist");
+    info_item(&mut info, b"IPRD", album);
+
+    let mut out = wav(fill);
+    out.extend_from_slice(b"LIST");
+    out.extend_from_slice(&(info.len() as u32).to_le_bytes());
+    out.extend_from_slice(&info);
+    let riff_len = (out.len() - 8) as u32;
+    out[4..8].copy_from_slice(&riff_len.to_le_bytes());
     out
 }
 
@@ -183,6 +214,8 @@ impl Bench {
             .await
             .unwrap()
             .last_insert_rowid();
+
+        std::fs::create_dir_all(dir.path().join("artwork")).unwrap();
 
         let state = Arc::new(FakeState::default());
         let source = Arc::new(Source {
@@ -219,12 +252,39 @@ impl Bench {
         scan_folder_inner(&self.pool, &artwork, self.folder_id, None, false).await
     }
 
+    async fn deep_scan(&self) -> crate::error::AppResult<crate::commands::scan::ScanSummary> {
+        let artwork = self.dir.path().join("artwork");
+        scan_folder_inner(&self.pool, &artwork, self.folder_id, None, true).await
+    }
+
     async fn available(&self) -> Vec<String> {
         sqlx::query_scalar("SELECT file_path FROM track WHERE is_available = 1 ORDER BY file_path")
             .fetch_all(&self.pool)
             .await
             .unwrap()
     }
+
+    /// The hash and the source of what one album points at.
+    async fn cover(&self, album: &str) -> (Option<String>, Option<String>) {
+        sqlx::query_as(
+            "SELECT aw.hash, al.artwork_source
+               FROM album al
+               LEFT JOIN artwork aw ON aw.id = al.artwork_id
+              WHERE al.title = ?",
+        )
+        .bind(album)
+        .fetch_one(&self.pool)
+        .await
+        .unwrap()
+    }
+
+    fn image_bytes(&self) -> u64 {
+        self.state.image_bytes.load(Ordering::Relaxed)
+    }
+}
+
+fn blake3_of(bytes: &[u8]) -> Option<String> {
+    Some(blake3::hash(bytes).to_hex().to_string())
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -550,6 +610,218 @@ async fn a_second_scan_after_a_failed_file_reads_only_what_is_new() {
     bench.scan().await.unwrap();
     let read = bench.state.audio_bytes.load(Ordering::Relaxed) - before;
     assert!(read <= 16, "read {read} bytes again");
+}
+
+/// The fast path skips both tracks, so nothing but the reconciliation can see
+/// this, and an unchanged rescan after it reads no image.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_cover_added_next_to_unchanged_tracks_reaches_the_album() {
+    let _turn = SERIAL.lock().await;
+    let bench = Bench::new().await;
+    bench.put("Music/Album/1.wav", album_wav(1, "Album"), 1);
+    bench.put("Music/Album/2.wav", album_wav(2, "Album"), 1);
+    bench.scan().await.unwrap();
+    assert_eq!(bench.cover("Album").await, (None, None));
+    assert_eq!(bench.image_bytes(), 0, "nothing listed, nothing read");
+
+    let image = b"a cover".to_vec();
+    bench.put("Music/Album/cover.jpg", image.clone(), 5);
+    let summary = bench.scan().await.unwrap();
+    assert_eq!((summary.added, summary.updated, summary.skipped), (0, 0, 2));
+    assert_eq!(
+        bench.cover("Album").await,
+        (blake3_of(&image), Some("folder".to_string()))
+    );
+    assert_eq!(bench.image_bytes(), image.len() as u64);
+
+    let before = bench.image_bytes();
+    bench.scan().await.unwrap();
+    assert_eq!(bench.image_bytes(), before, "read it again");
+}
+
+/// The scan that first read a sidecar, for a file that carries no picture, says
+/// so: the rescan after it does not read the image a second time.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_rescan_after_a_first_scan_that_took_the_cover_reads_no_image() {
+    let _turn = SERIAL.lock().await;
+    let bench = Bench::new().await;
+    let image = b"a cover".to_vec();
+    bench.put("Music/Album/1.wav", album_wav(1, "Album"), 1);
+    bench.put("Music/Album/2.wav", album_wav(2, "Album"), 1);
+    bench.put("Music/Album/cover.jpg", image.clone(), 5);
+
+    let summary = bench.scan().await.unwrap();
+    assert_eq!(summary.added, 2);
+    assert_eq!(
+        bench.cover("Album").await,
+        (blake3_of(&image), Some("folder".to_string()))
+    );
+    assert_eq!(
+        bench.image_bytes(),
+        image.len() as u64,
+        "once for the directory"
+    );
+
+    bench.scan().await.unwrap();
+    assert_eq!(bench.image_bytes(), image.len() as u64);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn a_replaced_cover_follows_and_a_deleted_one_changes_nothing() {
+    let _turn = SERIAL.lock().await;
+    let bench = Bench::new().await;
+    bench.put("Music/Album/1.wav", album_wav(1, "Album"), 1);
+    bench.put("Music/Album/cover.jpg", b"first".to_vec(), 5);
+    bench.scan().await.unwrap();
+
+    let second = b"the second".to_vec();
+    bench.put("Music/Album/cover.jpg", second.clone(), 6);
+    bench.scan().await.unwrap();
+    assert_eq!(bench.cover("Album").await.0, blake3_of(&second));
+
+    bench
+        .state
+        .files
+        .lock()
+        .unwrap()
+        .remove("Music/Album/cover.jpg");
+    let before = bench.image_bytes();
+    bench.scan().await.unwrap();
+    assert_eq!(bench.cover("Album").await.0, blake3_of(&second));
+    assert_eq!(bench.image_bytes(), before);
+}
+
+/// A date that moved over the same bytes costs one read, and then none.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_cover_touched_on_the_share_is_read_once_and_changes_nothing() {
+    let _turn = SERIAL.lock().await;
+    let bench = Bench::new().await;
+    let image = b"a cover".to_vec();
+    bench.put("Music/Album/1.wav", album_wav(1, "Album"), 1);
+    bench.put("Music/Album/cover.jpg", image.clone(), 5);
+    bench.scan().await.unwrap();
+
+    bench.put("Music/Album/cover.jpg", image.clone(), 6);
+    bench.scan().await.unwrap();
+    assert_eq!(bench.image_bytes(), 2 * image.len() as u64);
+
+    bench.scan().await.unwrap();
+    assert_eq!(bench.image_bytes(), 2 * image.len() as u64);
+}
+
+/// A cover the user chose outranks a sidecar, and is not worth a download to
+/// find that out.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_cover_set_by_hand_is_kept_and_no_image_is_read() {
+    let _turn = SERIAL.lock().await;
+    let bench = Bench::new().await;
+    bench.put("Music/Album/1.wav", album_wav(1, "Album"), 1);
+    bench.scan().await.unwrap();
+    sqlx::query(
+        "INSERT INTO artwork (id, hash, format, source, created_at)
+         VALUES (900, 'chosen', 'jpg', 'manual', 0)",
+    )
+    .execute(&bench.pool)
+    .await
+    .unwrap();
+    sqlx::query("UPDATE album SET artwork_id = 900, artwork_source = 'manual'")
+        .execute(&bench.pool)
+        .await
+        .unwrap();
+
+    bench.put("Music/Album/cover.jpg", b"a cover".to_vec(), 5);
+    bench.scan().await.unwrap();
+    assert_eq!(
+        bench.cover("Album").await,
+        (Some("chosen".to_string()), Some("manual".to_string()))
+    );
+    assert_eq!(bench.image_bytes(), 0);
+}
+
+/// A share that stops answering is not a change: nothing is remembered of the
+/// failed attempt, so the cover arrives once it answers.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_scan_that_cannot_list_changes_no_cover_and_a_later_one_takes_it() {
+    let _turn = SERIAL.lock().await;
+    let bench = Bench::new().await;
+    bench.put("Music/Album/1.wav", album_wav(1, "Album"), 1);
+    bench.scan().await.unwrap();
+
+    let image = b"a cover".to_vec();
+    bench.put("Music/Album/cover.jpg", image.clone(), 5);
+    bench.state.down.store(true, Ordering::Release);
+    assert!(bench.scan().await.is_err());
+    assert_eq!(bench.cover("Album").await, (None, None));
+    assert_eq!(bench.image_bytes(), 0);
+
+    bench.state.down.store(false, Ordering::Release);
+    source(UUID).unwrap().set_state(SourceState::Online, None);
+    bench.scan().await.unwrap();
+    assert_eq!(bench.cover("Album").await.0, blake3_of(&image));
+}
+
+/// The first directory decides, read or not: falling back on the next one would
+/// make the picture depend on what this walk could read.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_first_directory_the_walk_could_not_read_leaves_the_album_alone() {
+    let _turn = SERIAL.lock().await;
+    let bench = Bench::new().await;
+    bench.put("Music/Album/CD1/1.wav", album_wav(1, "Album"), 1);
+    bench.put("Music/Album/CD2/2.wav", album_wav(2, "Album"), 1);
+    bench.scan().await.unwrap();
+
+    *bench.state.refused_dir.lock().unwrap() = Some("Music/Album/CD1".to_string());
+    bench.put("Music/Album/CD2/cover.jpg", b"the second disc".to_vec(), 5);
+    bench.scan().await.unwrap();
+    assert_eq!(bench.cover("Album").await, (None, None));
+    assert_eq!(bench.image_bytes(), 0);
+
+    // Readable again, it has no cover of its own, and a missing sidecar in the
+    // first directory is not a reason to look at the second either.
+    *bench.state.refused_dir.lock().unwrap() = None;
+    bench.scan().await.unwrap();
+    assert_eq!(bench.cover("Album").await, (None, None));
+
+    let first = b"the first disc".to_vec();
+    bench.put("Music/Album/CD1/cover.jpg", first.clone(), 5);
+    bench.scan().await.unwrap();
+    assert_eq!(bench.cover("Album").await.0, blake3_of(&first));
+}
+
+/// A deep scan is the way to notice a change that kept the file's size and date.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_deep_scan_reads_a_cover_whose_listing_did_not_move() {
+    let _turn = SERIAL.lock().await;
+    let bench = Bench::new().await;
+    bench.put("Music/Album/1.wav", album_wav(1, "Album"), 1);
+    bench.put("Music/Album/cover.jpg", b"same size 1".to_vec(), 5);
+    bench.scan().await.unwrap();
+
+    let image = b"same size 2".to_vec();
+    bench.put("Music/Album/cover.jpg", image.clone(), 5);
+    bench.scan().await.unwrap();
+    assert_ne!(
+        bench.cover("Album").await.0,
+        blake3_of(&image),
+        "a normal rescan goes by the listing"
+    );
+
+    bench.deep_scan().await.unwrap();
+    assert_eq!(bench.cover("Album").await.0, blake3_of(&image));
+}
+
+/// Oversized, it is left out before anything is asked of the share, on every
+/// scan: a limit is not a failure to try again.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_cover_too_large_to_read_is_never_read() {
+    let _turn = SERIAL.lock().await;
+    let bench = Bench::new().await;
+    bench.put("Music/Album/1.wav", album_wav(1, "Album"), 1);
+    bench.put("Music/Album/cover.jpg", vec![1; 32 * 1024 * 1024 + 1], 5);
+    bench.scan().await.unwrap();
+    bench.scan().await.unwrap();
+    assert_eq!(bench.cover("Album").await, (None, None));
+    assert_eq!(bench.image_bytes(), 0);
 }
 
 #[test]

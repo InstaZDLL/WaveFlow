@@ -23,7 +23,10 @@ pub use album_artist::{merge_implicit_compilations, repoint_fallback_album_artis
 pub use artist_images::{
     link_local_artist_image, link_va_artist_image, maybe_link_artist_images, ArtistImageScanCache,
 };
-pub use folder_covers::refresh_folder_covers;
+pub use folder_covers::{
+    apply_network_covers, network_cover_candidates, refresh_folder_covers, NetworkCoverCandidate,
+    SidecarStamp,
+};
 pub use play_events::reattach_orphaned_play_events;
 
 /// Scan-scoped memo for the `artist` / `genre` lookups that otherwise

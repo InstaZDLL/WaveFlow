@@ -1,13 +1,15 @@
 //! Folder covers: re-link each album to the sidecar cover its folder
 //! holds, when the album's artwork is sidecar-sourced or absent.
 
-use std::collections::HashMap;
+use std::collections::hash_map::Entry;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 use sqlx::SqlitePool;
 
 use crate::error::{CoreError, CoreResult};
-use crate::scanner::extract::{extract_folder_cover, ArtworkSource};
+use crate::network_locator;
+use crate::scanner::extract::{extract_folder_cover, ArtworkSource, ExtractedCover};
 
 use super::upsert_artwork;
 
@@ -68,6 +70,74 @@ async fn link_folder_cover_if_eligible(
     Ok(result.rows_affected() > 0)
 }
 
+/// Whether a sidecar may replace what an album holds: the allowlist of
+/// [`refresh_folder_covers`], for both of its passes.
+fn sidecar_may_replace(source: Option<&str>) -> bool {
+    matches!(source, None | Some("folder"))
+}
+
+/// What became of a sidecar an album was offered.
+#[derive(Debug, PartialEq, Eq)]
+enum Adoption {
+    /// The album already points at these bytes.
+    Held,
+    /// The album now points at them.
+    Linked,
+    /// The album's cover moved since it was observed.
+    LeftAlone,
+}
+
+/// Offer one album the sidecar `hash`, under the guards of
+/// [`link_folder_cover_if_eligible`].
+async fn adopt_folder_cover(
+    conn: &mut sqlx::SqliteConnection,
+    album_id: i64,
+    observed_artwork_id: Option<i64>,
+    observed_hash: Option<&str>,
+    hash: &str,
+    format: &str,
+) -> CoreResult<Adoption> {
+    if observed_hash == Some(hash) {
+        return Ok(Adoption::Held);
+    }
+    let artwork_id = upsert_artwork(&mut *conn, hash, format, ArtworkSource::Folder).await?;
+    if !link_folder_cover_if_eligible(&mut *conn, album_id, observed_artwork_id, artwork_id).await?
+    {
+        tracing::debug!(album_id, "album cover changed under us; leaving it alone");
+        return Ok(Adoption::LeftAlone);
+    }
+    tracing::debug!(album_id, %hash, "refreshed album cover from folder sidecar");
+    Ok(Adoption::Linked)
+}
+
+/// Every available track of the albums a scan of this folder could have
+/// touched, with what its album holds now: `(album, path, artwork, hash,
+/// source)`. The subquery scopes the work to those albums; the outer query
+/// then takes *every* available track of them, so directory selection sees
+/// the album's full extent no matter which folder triggered the scan.
+async fn album_cover_rows(
+    pool: &SqlitePool,
+    folder_id: i64,
+) -> CoreResult<Vec<(i64, String, Option<i64>, Option<String>, Option<String>)>> {
+    Ok(sqlx::query_as(
+        "SELECT t.album_id, t.file_path, al.artwork_id, aw.hash, al.artwork_source
+           FROM track t
+           JOIN album al ON al.id = t.album_id
+           LEFT JOIN artwork aw ON aw.id = al.artwork_id
+          WHERE t.is_available = 1
+            AND t.album_id IN (
+                SELECT DISTINCT album_id
+                  FROM track
+                 WHERE folder_id = ?
+                   AND album_id IS NOT NULL
+                   AND is_available = 1
+            )",
+    )
+    .bind(folder_id)
+    .fetch_all(pool)
+    .await?)
+}
+
 /// Reconcile sidecar cover art against the albums that live next to it.
 ///
 /// The scanner's fast path keys on the **audio** files' `(mtime, size)`,
@@ -111,27 +181,7 @@ pub async fn refresh_folder_covers(
     artwork_dir: &Path,
     folder_id: i64,
 ) -> CoreResult<u32> {
-    // The subquery scopes the work to albums this scan could have
-    // touched; the outer query then takes *every* available track of
-    // those albums, so directory selection sees the album's full extent
-    // no matter which folder triggered the scan.
-    let rows: Vec<(i64, String, Option<i64>, Option<String>, Option<String>)> = sqlx::query_as(
-        "SELECT t.album_id, t.file_path, al.artwork_id, aw.hash, al.artwork_source
-           FROM track t
-           JOIN album al ON al.id = t.album_id
-           LEFT JOIN artwork aw ON aw.id = al.artwork_id
-          WHERE t.is_available = 1
-            AND t.album_id IN (
-                SELECT DISTINCT album_id
-                  FROM track
-                 WHERE folder_id = ?
-                   AND album_id IS NOT NULL
-                   AND is_available = 1
-            )",
-    )
-    .bind(folder_id)
-    .fetch_all(pool)
-    .await?;
+    let rows = album_cover_rows(pool, folder_id).await?;
 
     // album_id → (winning directory, artwork id, hash, source) as
     // observed now. The directory is kept as a running minimum instead of
@@ -140,9 +190,9 @@ pub async fn refresh_folder_covers(
     let mut albums: HashMap<i64, (PathBuf, Option<i64>, Option<String>, Option<String>)> =
         HashMap::new();
     for (album_id, file_path, artwork_id, hash, source) in rows {
-        // There is no directory on this machine to read for a share. Its sidecar
-        // covers are read from the listing, and only for files the scan extracts,
-        // so one added next to unchanged tracks waits for a deep scan.
+        // There is no directory on this machine to read for a share: an album
+        // that lives on one goes through `network_cover_candidates`, and one
+        // that also has local tracks resolves here against those alone.
         if crate::network_locator::is_locator(&file_path) {
             continue;
         }
@@ -163,7 +213,7 @@ pub async fn refresh_folder_covers(
     // filesystem work, so an untouchable album never costs a read.
     let candidates: Vec<CoverCandidate> = albums
         .into_iter()
-        .filter(|(_, (_, _, _, source))| matches!(source.as_deref(), None | Some("folder")))
+        .filter(|(_, (_, _, _, source))| sidecar_may_replace(source.as_deref()))
         .map(
             |(album_id, (dir, observed_artwork_id, observed_hash, _))| CoverCandidate {
                 album_id,
@@ -218,25 +268,189 @@ pub async fn refresh_folder_covers(
         let Some((hash, format)) = covers.get(&candidate.dir).cloned().flatten() else {
             continue;
         };
-        if candidate.observed_hash.as_deref() == Some(hash.as_str()) {
-            continue;
-        }
-
-        let album_id = candidate.album_id;
-        let artwork_id = upsert_artwork(&mut tx, &hash, &format, ArtworkSource::Folder).await?;
-        if !link_folder_cover_if_eligible(
+        let adoption = adopt_folder_cover(
             &mut tx,
-            album_id,
+            candidate.album_id,
             candidate.observed_artwork_id,
-            artwork_id,
+            candidate.observed_hash.as_deref(),
+            &hash,
+            &format,
         )
-        .await?
-        {
-            tracing::debug!(album_id, "album cover changed under us; leaving it alone");
+        .await?;
+        if adoption == Adoption::Linked {
+            updated += 1;
+        }
+    }
+
+    tx.commit().await?;
+    Ok(updated)
+}
+
+/// What a share's listing says of a sidecar: enough to tell it moved without
+/// reading it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SidecarStamp {
+    pub name: String,
+    pub size: i64,
+    pub modified_ms: i64,
+}
+
+/// An album on a share that may take a sidecar, as observed before the share
+/// is asked for anything.
+#[derive(Debug, Clone)]
+pub struct NetworkCoverCandidate {
+    pub album_id: i64,
+    /// A track of the album in its first directory, which names that directory
+    /// and the share it is on.
+    pub locator: String,
+    /// What the listing showed when this album last took stock of its sidecar.
+    pub seen: Option<SidecarStamp>,
+    observed_artwork_id: Option<i64>,
+    observed_hash: Option<String>,
+}
+
+/// The albums [`apply_network_covers`] may be asked about, under the rules of
+/// [`refresh_folder_covers`]: the source allowlist, and the first directory
+/// over all of an album's tracks, whichever folder is being scanned.
+///
+/// An album that also has a local track is left to [`refresh_folder_covers`],
+/// so that each album has one owner and its picture does not depend on which
+/// folder was scanned last.
+pub async fn network_cover_candidates(
+    pool: &SqlitePool,
+    folder_id: i64,
+) -> CoreResult<Vec<NetworkCoverCandidate>> {
+    let rows = album_cover_rows(pool, folder_id).await?;
+
+    /// An album's first directory, as source and path taken apart, and a track
+    /// in it, with what the album holds.
+    struct FirstDir {
+        dir: (String, String),
+        locator: String,
+        artwork_id: Option<i64>,
+        hash: Option<String>,
+        source: Option<String>,
+    }
+
+    let mut local_albums = HashSet::new();
+    let mut albums: HashMap<i64, FirstDir> = HashMap::new();
+    for (album_id, file_path, artwork_id, hash, source) in rows {
+        if !network_locator::is_locator(&file_path) {
+            local_albums.insert(album_id);
             continue;
         }
-        updated += 1;
-        tracing::debug!(album_id, %hash, "refreshed album cover from folder sidecar");
+        let Some(parsed) = network_locator::parse(&file_path) else {
+            continue;
+        };
+        let dir = (
+            parsed.source.to_string(),
+            network_locator::parent_dir(parsed.path).to_string(),
+        );
+        match albums.entry(album_id) {
+            Entry::Occupied(mut entry) => {
+                let first = entry.get_mut();
+                if dir < first.dir {
+                    first.dir = dir;
+                    first.locator = file_path;
+                }
+            }
+            Entry::Vacant(entry) => {
+                entry.insert(FirstDir {
+                    dir,
+                    locator: file_path,
+                    artwork_id,
+                    hash,
+                    source,
+                });
+            }
+        }
+    }
+
+    let stamps: Vec<(i64, String, i64, i64)> = sqlx::query_as(
+        "SELECT album_id, file_name, file_size, file_modified
+           FROM network_cover_seen
+          WHERE album_id IN (
+                SELECT DISTINCT album_id
+                  FROM track
+                 WHERE folder_id = ?
+                   AND album_id IS NOT NULL
+            )",
+    )
+    .bind(folder_id)
+    .fetch_all(pool)
+    .await?;
+    let mut stamps: HashMap<i64, SidecarStamp> = stamps
+        .into_iter()
+        .map(|(album_id, name, size, modified_ms)| {
+            (
+                album_id,
+                SidecarStamp {
+                    name,
+                    size,
+                    modified_ms,
+                },
+            )
+        })
+        .collect();
+
+    Ok(albums
+        .into_iter()
+        .filter(|(album_id, first)| {
+            !local_albums.contains(album_id) && sidecar_may_replace(first.source.as_deref())
+        })
+        .map(|(album_id, first)| NetworkCoverCandidate {
+            album_id,
+            locator: first.locator,
+            seen: stamps.remove(&album_id),
+            observed_artwork_id: first.artwork_id,
+            observed_hash: first.hash,
+        })
+        .collect())
+}
+
+/// Offer each album the sidecar read for it, and remember what the listing
+/// showed so that the next scan reads it only if that moved. Returns how many
+/// albums changed.
+///
+/// An album whose cover moved under this pass is not stamped: the next scan
+/// looks again, at the cost of one image, and finds out why.
+pub async fn apply_network_covers(
+    pool: &SqlitePool,
+    reads: Vec<(NetworkCoverCandidate, SidecarStamp, ExtractedCover)>,
+) -> CoreResult<u32> {
+    let mut tx = pool.begin().await?;
+    let mut updated: u32 = 0;
+
+    for (candidate, stamp, cover) in reads {
+        let adoption = adopt_folder_cover(
+            &mut tx,
+            candidate.album_id,
+            candidate.observed_artwork_id,
+            candidate.observed_hash.as_deref(),
+            &cover.hash,
+            &cover.format,
+        )
+        .await?;
+        if adoption == Adoption::LeftAlone {
+            continue;
+        }
+        if adoption == Adoption::Linked {
+            updated += 1;
+        }
+        sqlx::query(
+            "INSERT INTO network_cover_seen (album_id, file_name, file_size, file_modified)
+             VALUES (?, ?, ?, ?)
+             ON CONFLICT(album_id) DO UPDATE SET
+                 file_name = excluded.file_name,
+                 file_size = excluded.file_size,
+                 file_modified = excluded.file_modified",
+        )
+        .bind(candidate.album_id)
+        .bind(&stamp.name)
+        .bind(stamp.size)
+        .bind(stamp.modified_ms)
+        .execute(&mut *tx)
+        .await?;
     }
 
     tx.commit().await?;

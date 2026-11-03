@@ -32,6 +32,13 @@ Directory resolution (`read_dir` + read + blake3 per directory, potentially hund
 
 Because that walk can take seconds, the candidate list is a snapshot that may be stale by the time it is written. The update is therefore a compare-and-swap that also re-asserts the source allowlist (`link_folder_cover_if_eligible`): an album whose cover changed mid-walk — the user uploaded one, or a concurrent scan resolved a fresher sidecar — is left alone, and the count of refreshed covers comes from `rows_affected` so a skipped album never inflates the scan summary.
 
+**On a [network share](#network-shares)** comparing bytes would mean downloading every cover on every scan, so [`netlib::scan::refresh_covers`](../../src-tauri/crates/app/src/netlib/scan.rs) compares what the listing shows instead: the sidecar's name, size and modification time against what they were when the album last took stock of it (`network_cover_seen`). An unchanged rescan reads no image, and neither does the scan after the one that first read it. When they differ the image is fetched once for its directory and goes through the same write, so the restrictions above hold. A date that moved over the same bytes costs that one read and changes nothing. A read that fails is not remembered, and the next scan tries again.
+
+- **A stopped scan runs no part of this.** A failed listing yields no list, so it never gets here.
+- **The first directory decides even when the walk could not read it.** Nothing is read for an album whose first directory was refused or lies in another folder or on another share; the scan of that folder answers for it.
+- **An album with a local track belongs to the local pass**, which resolves it against its local directories alone. Each album has one owner, so its picture does not depend on which folder was scanned last.
+- **A deep scan reads the image regardless**, which is how to notice a change that kept the file's size and date.
+
 A tag edit that rewrites the audio file is normally detected, since it moves that file's mtime — this pass is specifically about the sidecar case. **But that is not guaranteed**: taggers commonly offer to preserve the modification date (Mp3tag ships that behaviour), and an ID3 rewrite often fits in the existing padding, so `size` doesn't move either. The file then looks untouched to the fast path and its new tags are never read — reported as issue #457 for a batch of genre edits.
 
 ### Deep rescan
@@ -297,7 +304,7 @@ The overlap rule of [library folders](../architecture/invariants.md#library-fold
 - **Size and modification time come with the listing**, so a rescan that finds nothing changed reads no audio at all. There is no file system to watch: the listing is walked again 30 s after launch and every 6 hours, and on request. The sweep and the deep rescan work as for a local folder.
 - **Extraction** reads through [`RangeReader`](../../src-tauri/crates/app/src/netlib/reader.rs), four files at a time. `track.file_hash` is the same `hash_file` digest as a local copy's (`hash_reader`), so the two read as one for duplicates, the lyrics cache and an orphaned history. Its two 1 MiB windows are fetched in one request each and the tags are served from them. Measured on 11 synthetic five-minute files: a tag parse reads 8 to 24 KiB without a cover (FLAC, WAV, AIFF, MP3, M4A with `moov` at either end, ALAC, Vorbis, Opus), and 1.41 MB with a 1.4 MB embedded picture, about 358 KB of it outside the windows. So the hash is what the first scan pays: 2 MiB per file, about 20 GiB for 10 000 tracks, which by throughput alone is 3 minutes at 1 Gbit/s, 14 at 200 Mbit/s and 2.4 hours at 20 Mbit/s. A stopped first scan loses nothing: what is committed is skipped next time. The one-off backfill passes of a local folder do not run on a share, since they exist for rows older than a feature, and each would read every file again.
 
-A rating set in WaveFlow on such a track lives in the database alone, so a file changed on the share keeps it (`COALESCE(rating, ?)` in the update, for a share only). A sidecar cover is read from the listing, once per directory, when the file carries no picture; it is not refreshed when only the sidecar changes. DSF and DFF are not offered from a share: their pipeline opens a `File` and the files run to gigabytes.
+A rating set in WaveFlow on such a track lives in the database alone, so a file changed on the share keeps it (`COALESCE(rating, ?)` in the update, for a share only). A sidecar cover is found through the listing and read once per directory, when a file carries no picture or when the [reconciliation](#folder-cover-reconciliation) sees it added or changed next to unchanged tracks. DSF and DFF are not offered from a share: their pipeline opens a `File` and the files run to gigabytes.
 
 ### Playback and the cache
 
@@ -321,7 +328,6 @@ The backend refuses (`netlib::refuse_if_network`) and the interface does not off
 | Tag workshop | Listed with the reason, not selectable |
 | Rating, lyrics | In the database only |
 | Sidecar lyrics (`.lrc`), local artist images, Canvas next to the file | Not read; nothing is written on the share |
-| A `cover.jpg` added next to unchanged tracks after a scan | Picked up by a deep scan only: the [reconciliation](#folder-cover-reconciliation) does not run on a share |
 | Analysis, spectrogram | From the cached copy, else left for later: decoding would mean downloading the library |
 | Duplicates and the trash | Left out: a copy that cannot be verified is never offered for deletion |
 | The server source (upload, reconciliation) | Left out |
