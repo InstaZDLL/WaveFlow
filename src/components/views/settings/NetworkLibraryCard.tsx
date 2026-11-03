@@ -259,6 +259,7 @@ export function NetworkLibraryCard({ language }: { language: string }) {
             type="button"
             className={`${buttonClass} shrink-0 inline-flex items-center gap-1.5`}
             onClick={() => {
+              editCount.current += 1;
               setForm(EMPTY_FORM);
               setOutcome(null);
             }}
@@ -496,6 +497,7 @@ export function NetworkLibraryCard({ language }: { language: string }) {
               type="button"
               className={buttonClass}
               onClick={() => {
+                editCount.current += 1;
                 setForm(null);
                 setOutcome(null);
               }}
