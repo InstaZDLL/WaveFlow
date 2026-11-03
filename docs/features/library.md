@@ -37,7 +37,7 @@ Because that walk can take seconds, the candidate list is a snapshot that may be
 
 - **A scan stopped before this pass runs none of it**, and a failed listing yields no list, so it never gets here. A stop during the pass reads no further image and keeps those already read, as a stopped scan keeps what it committed: dropping them would only mean downloading them again.
 - **The first directory decides even when the walk could not read it.** Nothing is read for an album whose first directory was refused or lies in another folder or on another share; the scan of that folder answers for it.
-- **An album with a local track belongs to the local pass**, which resolves it against its local directories alone. Each album has one owner, so its picture does not depend on which folder was scanned last.
+- **An album with a local track belongs to the local pass**, which resolves it against its local directories alone. Each album has one owner, so its picture does not depend on which folder was scanned last. A local sidecar it takes clears the album's `network_cover_seen` row, so the share's image is read again if the local tracks go.
 - **A deep scan reads the image regardless**, which is how to notice a change that kept the file's size and date.
 
 A tag edit that rewrites the audio file is normally detected, since it moves that file's mtime — this pass is specifically about the sidecar case. **But that is not guaranteed**: taggers commonly offer to preserve the modification date (Mp3tag ships that behaviour), and an ID3 rewrite often fits in the existing padding, so `size` doesn't move either. The file then looks untouched to the fast path and its new tags are never read — reported as issue #457 for a batch of genre edits.

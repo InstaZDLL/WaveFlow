@@ -279,6 +279,13 @@ pub async fn refresh_folder_covers(
         .await?;
         if adoption == Adoption::Linked {
             updated += 1;
+            // The album no longer shows what a share's listing said of its
+            // sidecar. Should the local tracks go, that pass has to read it
+            // again rather than find its stamp unchanged and skip.
+            sqlx::query("DELETE FROM network_cover_seen WHERE album_id = ?")
+                .bind(candidate.album_id)
+                .execute(&mut *tx)
+                .await?;
         }
     }
 

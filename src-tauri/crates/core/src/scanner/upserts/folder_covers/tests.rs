@@ -538,6 +538,47 @@ async fn an_embedded_album_stays_protected_regardless_of_the_shared_row() {
     assert_eq!(album_artwork_hash(&pool, 10).await, Some(from_tag));
 }
 
+/// A stamp says what an album took from a share's listing. A local sidecar that
+/// replaces that picture ends it, or the share's image would be skipped once the
+/// local tracks are gone; one that changes nothing leaves it.
+#[tokio::test]
+async fn a_local_sidecar_that_replaces_the_cover_forgets_the_network_stamp() {
+    let music = tempfile::tempdir().unwrap();
+    let art = tempfile::tempdir().unwrap();
+    let pool = fixture_pool().await;
+
+    write_cover(music.path(), b"held already");
+    let held = blake3::hash(b"held already").to_hex().to_string();
+    seed_artwork(&pool, 1, &held, "folder").await;
+    seed_album(&pool, 10, music.path(), Some(1)).await;
+    sqlx::query(
+        "INSERT INTO network_cover_seen (album_id, file_name, file_size, file_modified)
+         VALUES (10, 'cover.jpg', 7, 5)",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+    let remembered = || async {
+        sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM network_cover_seen")
+            .fetch_one(&pool)
+            .await
+            .unwrap()
+    };
+
+    assert_eq!(
+        refresh_folder_covers(&pool, art.path(), 1).await.unwrap(),
+        0
+    );
+    assert_eq!(remembered().await, 1);
+
+    write_cover(music.path(), b"a local cover");
+    assert_eq!(
+        refresh_folder_covers(&pool, art.path(), 1).await.unwrap(),
+        1
+    );
+    assert_eq!(remembered().await, 0);
+}
+
 fn locator(path: &str) -> String {
     format!("wfnet://11111111-aaaa/{path}")
 }
