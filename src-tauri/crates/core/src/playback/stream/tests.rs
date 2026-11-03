@@ -208,6 +208,19 @@ fn a_stream_cut_short_ends_at_what_the_file_holds() {
     }
 }
 
+/// Skipped packets are bounded by time as well as by count: a slow codec's
+/// failures would otherwise keep the player's commands waiting for a minute.
+#[test]
+fn a_run_of_bad_packets_gives_way_to_the_commands() {
+    use std::time::{Duration, Instant};
+
+    let just_now = Instant::now();
+    assert!(!should_give_way(1, just_now));
+    assert!(should_give_way(MAX_SKIPPED_PACKETS, just_now));
+    let a_while_ago = just_now - Duration::from_secs(1);
+    assert!(should_give_way(1, a_while_ago));
+}
+
 #[test]
 fn network_path_heuristic() {
     // Windows UNC + Linux gvfs mounts are network.

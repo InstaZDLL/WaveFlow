@@ -8,7 +8,7 @@ use symphonia::core::formats::TrackType;
 use crate::playback::resampler::Resampler;
 
 use super::dsd::{interleave_stride, read_full_block, sub_stride_trim};
-use super::{ActiveStream, StreamBackend, StreamExtent, DSD_READ_CHUNK, MAX_SKIPPED_PACKETS};
+use super::{should_give_way, ActiveStream, StreamBackend, StreamExtent, DSD_READ_CHUNK};
 
 impl ActiveStream {
     /// One packet of [`Self::decode_next`], without the resampler's tail.
@@ -23,6 +23,7 @@ impl ActiveStream {
         // checker doesn't complain when we reach for `self.resampler`
         // or `self.src_channels` inside the match arms.
         let mut skipped = 0usize;
+        let started = std::time::Instant::now();
         match &mut self.backend {
             StreamBackend::Symphonia {
                 format,
@@ -65,7 +66,7 @@ impl ActiveStream {
                         // Checked once the decoder is rebuilt, since the
                         // reader is already past the change.
                         skipped += 1;
-                        if skipped >= MAX_SKIPPED_PACKETS {
+                        if should_give_way(skipped, started) {
                             return Ok(false);
                         }
                         continue;
@@ -85,7 +86,7 @@ impl ActiveStream {
                 };
                 if packet.track_id != *symphonia_track_id {
                     skipped += 1;
-                    if skipped >= MAX_SKIPPED_PACKETS {
+                    if should_give_way(skipped, started) {
                         return Ok(false);
                     }
                     continue;
@@ -95,7 +96,7 @@ impl ActiveStream {
                     Err(SymphoniaError::DecodeError(e)) => {
                         tracing::warn!(error = %e, "decode error, skipping packet");
                         skipped += 1;
-                        if skipped >= MAX_SKIPPED_PACKETS {
+                        if should_give_way(skipped, started) {
                             return Ok(false);
                         }
                         continue;
@@ -105,7 +106,7 @@ impl ActiveStream {
                     Err(SymphoniaError::ResetRequired) => {
                         *spec_captured = false;
                         skipped += 1;
-                        if skipped >= MAX_SKIPPED_PACKETS {
+                        if should_give_way(skipped, started) {
                             return Ok(false);
                         }
                         continue;

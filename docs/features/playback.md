@@ -238,6 +238,12 @@ and files played directly take their length from there too
 lofty repeats the header, and the analysis measures what the file holds. A file cut
 inside its first frame or packet plays nothing, and is refused like a broken one.
 
+**A run of damaged frames does not hold the commands up.** `decode_next` hands back
+after 64 skipped packets or 25 ms of skipping, whichever comes first, so Pause, Stop
+and the next track are served between two failures. A failure takes as long as the
+frame takes to decode, and that one frame cannot be interrupted, so a command can
+still wait for it. Measured in the app on whole files with a long run of frames damaged at their ends, Pause, Stop and the next track took 9 to 45 ms at Normal, 4 to 113 ms at Extra High and 33 to 714 ms at Insane, where it was 0.5 to 0.8 s, 3 to 5.7 s and 9 to 11 s when only the count bounded them.
+
 **Seeks land on the exact sample.** Both readers answer `actual_ts ==
 required_ts`, WavPack by carrying the head of its block as `trim_start` and
 Monkey's Audio by starting its cursor inside the frame, so a seek plays nothing
