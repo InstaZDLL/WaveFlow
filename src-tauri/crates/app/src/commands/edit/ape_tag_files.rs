@@ -34,26 +34,30 @@ fn copy_tagged(name: &str) -> (tempfile::TempDir, PathBuf, Vec<u8>) {
     let path = dir.path().join(name);
     std::fs::copy(&source, &path).expect("copy fixture");
     let audio = std::fs::read(&path).expect("read");
+    save_tag(&path, seeded_tag());
+    (dir, path, audio)
+}
 
+/// Save `tag` as another tool would: straight into the file, past `patch_file`.
+fn save_tag(path: &Path, tag: ApeTag) {
     let mut handle = std::fs::OpenOptions::new()
         .read(true)
         .write(true)
-        .open(&path)
+        .open(path)
         .expect("open");
-    if name.ends_with(".wv") {
+    if path.extension().is_some_and(|ext| ext == "wv") {
         let mut file = WavPackFile::read_from(&mut handle, ParseOptions::new()).expect("read");
-        file.set_ape(seeded_tag());
+        file.set_ape(tag);
         handle.seek(SeekFrom::Start(0)).expect("rewind");
         file.save_to(&mut handle, WriteOptions::default())
             .expect("save");
     } else {
         let mut file = ApeFile::read_from(&mut handle, ParseOptions::new()).expect("read");
-        file.set_ape(seeded_tag());
+        file.set_ape(tag);
         handle.seek(SeekFrom::Start(0)).expect("rewind");
         file.save_to(&mut handle, WriteOptions::default())
             .expect("save");
     }
-    (dir, path, audio)
 }
 
 fn read_tag(path: &Path) -> Tag {
@@ -191,6 +195,41 @@ fn an_edit_over_a_tag_with_no_header_costs_no_audio() {
         assert_eq!(read_tag(&path).title().as_deref(), Some("After"), "{name}");
         assert_audio_untouched(name, &path, &audio);
     }
+}
+
+/// A saved title goes through the generic tag and back, and lofty's key table
+/// has no entry for a rating here: the item has to stay behind in the tag it
+/// came out of, half stars and another program's item alike.
+#[test]
+fn a_saved_title_keeps_the_rating() {
+    each_container(|name, path, audio| {
+        let edit = TrackEdit {
+            title: Some("After".into()),
+            ..Default::default()
+        };
+        for rating in [26u8, 128, 204, 255] {
+            patch_file(path, &TagPatch::Rating(Some(rating))).expect("rating");
+            write_tags_to_file(path, &edit).expect("write");
+            assert_eq!(
+                crate::commands::scan::read_file_rating(path).expect("rating read"),
+                Some(rating),
+                "{name}: rating {rating}"
+            );
+        }
+
+        let mut tag = seeded_tag();
+        tag.insert(ApeItem::new("Rating".into(), ItemValue::Text("80".into())).expect("item"));
+        save_tag(path, tag);
+        write_tags_to_file(path, &edit).expect("write");
+        assert_eq!(
+            crate::commands::scan::read_file_rating(path).expect("rating read"),
+            Some(204),
+            "{name}: a rating another program wrote"
+        );
+        assert_eq!(read_tag(path).title().as_deref(), Some("After"), "{name}");
+
+        assert_audio_untouched(name, path, audio);
+    });
 }
 
 #[test]
