@@ -5537,8 +5537,6 @@ dependencies = [
 [[package]]
 name = "smb2"
 version = "0.39.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fdf2efe6ebfe83abf0813ef2de818ed1095cb36a19e7b2f6d44b3226238b202f"
 dependencies = [
  "aes",
  "aes-gcm",
