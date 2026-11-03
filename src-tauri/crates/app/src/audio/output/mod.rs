@@ -28,12 +28,16 @@ use cpal::{SampleFormat, Stream, StreamConfig};
 use crossbeam_channel::{bounded, Receiver, Sender};
 use rtrb::{Consumer, Producer, RingBuffer};
 use tauri::AppHandle;
+#[cfg(target_os = "linux")]
+use waveflow_core::playback::channels::ChannelLayout;
 
 use crate::error::{AppError, AppResult};
 
 use super::state::SharedPlayback;
 
 mod devices;
+#[cfg(target_os = "linux")]
+pub(super) mod linux_layout;
 mod recovery;
 
 use devices::device_key;
@@ -88,10 +92,23 @@ fn silence_alsa_stderr<R, F: FnOnce() -> R>(f: F) -> R {
     f()
 }
 
-/// Capacity of the SPSC sample ring, in f32 samples. At 48 kHz stereo
-/// this is ~1 second of audio, which gives the decoder thread plenty of
-/// headroom while keeping latency low.
-pub const RING_CAPACITY: usize = 96_000;
+/// How many frames the decoder keeps queued ahead of the output: ~1 second
+/// at 48 kHz, whatever the channel count. Plenty of headroom for the decoder
+/// thread while keeping the delay of a moved setting low.
+pub const RING_FRAMES: usize = 48_000;
+
+/// Capacity of the SPSC sample ring, in f32 samples: [`RING_FRAMES`] of a
+/// 7.1 output. Fixed, because each backend builds the ring before it knows
+/// what the device will accept, and it costs 1.5 MB.
+pub const RING_CAPACITY: usize = RING_FRAMES * 8;
+
+/// Slots the decoder leaves free in the ring on an output of `channels`, so
+/// the queue holds [`RING_FRAMES`] on any of them. A plain 96 000-sample ring
+/// was a second of stereo but a quarter of a second of 7.1, and half that at
+/// 96 kHz, and that is all a busy machine had to catch up in.
+pub fn ring_reserve(channels: usize) -> usize {
+    RING_CAPACITY.saturating_sub(RING_FRAMES.saturating_mul(channels.max(1)))
+}
 
 /// Exact (rate, channels) an output must open at to carry a DoP (DSD
 /// over PCM) stream, #495. Unlike the normal path — where the device
@@ -490,7 +507,7 @@ fn output_thread_main(
     // Kept here as well as in the error callback so the receiver never
     // disconnects while the thread waits on it.
     let (stall_tx, stall_rx) = bounded::<()>(1);
-    let (stream, opened_device) = match build_stream(
+    let (stream, opened_device, format) = match build_stream(
         shared.clone(),
         consumer,
         app.clone(),
@@ -511,6 +528,12 @@ fn output_thread_main(
         let _ = init_tx.send(Err(err));
         return;
     }
+
+    // Only now the stream is really there: a device switch keeps the old one
+    // when the new one is refused, and the decoder would go on writing the
+    // refused format into it, 2-channel frames into an 8-channel ring at four
+    // times the speed.
+    format.publish(&shared);
 
     // Signal successful initialization, naming the endpoint that really
     // opened so the engine can report it rather than the request.
@@ -614,7 +637,7 @@ fn build_stream(
     app: AppHandle,
     device_name: Option<String>,
     stall_tx: Sender<()>,
-) -> AppResult<(Stream, Option<String>)> {
+) -> AppResult<(Stream, Option<String>, StreamFormat)> {
     silence_alsa_stderr(|| build_stream_inner(shared, consumer, app, device_name, stall_tx))
 }
 
@@ -624,7 +647,7 @@ fn build_stream_inner(
     app: AppHandle,
     device_name: Option<String>,
     stall_tx: Sender<()>,
-) -> AppResult<(Stream, Option<String>)> {
+) -> AppResult<(Stream, Option<String>, StreamFormat)> {
     let host = cpal::default_host();
     // If a specific device was requested, look it up by name. If the
     // user picked a device that since vanished (USB DAC unplugged
@@ -666,29 +689,13 @@ fn build_stream_inner(
     let default_cfg = device
         .default_output_config()
         .map_err(|e| AppError::Audio(format!("default output config: {e}")))?;
+    #[cfg(target_os = "linux")]
+    let default_cfg = linux_layout::widen_to_sink(&device, device_name.as_deref(), default_cfg);
 
     let sample_format = default_cfg.sample_format();
     let channels = default_cfg.channels();
     let sample_rate = default_cfg.sample_rate();
     let config: StreamConfig = default_cfg.into();
-
-    // Stamp the device config into the shared state so the decoder and
-    // position helper can compute timing without re-querying cpal.
-    shared.sample_rate.store(sample_rate, Ordering::Release);
-    shared.channels.store(channels, Ordering::Release);
-    shared.set_sample_format(match sample_format {
-        SampleFormat::F32 => super::state::OutputSampleFormat::F32,
-        SampleFormat::I16 => super::state::OutputSampleFormat::S16,
-        SampleFormat::U16 => super::state::OutputSampleFormat::U16,
-        _ => super::state::OutputSampleFormat::Unknown,
-    });
-
-    tracing::info!(
-        sample_rate,
-        channels,
-        ?sample_format,
-        "cpal output stream opened"
-    );
 
     let stream = match sample_format {
         SampleFormat::F32 => open_stream::<f32>(&device, &config, consumer, shared, app, stall_tx),
@@ -698,7 +705,55 @@ fn build_stream_inner(
             "unsupported sample format: {other:?}"
         ))),
     }?;
-    Ok((stream, opened_device))
+
+    tracing::info!(
+        sample_rate,
+        channels,
+        ?sample_format,
+        "cpal output stream opened"
+    );
+
+    Ok((
+        stream,
+        opened_device,
+        StreamFormat {
+            sample_rate,
+            channels,
+            sample_format,
+        },
+    ))
+}
+
+/// What a cpal stream was opened at.
+struct StreamFormat {
+    sample_rate: u32,
+    channels: u16,
+    sample_format: SampleFormat,
+}
+
+impl StreamFormat {
+    /// Stamp the device config into the shared state so the decoder and
+    /// position helper can compute timing without re-querying cpal.
+    fn publish(&self, shared: &SharedPlayback) {
+        shared
+            .sample_rate
+            .store(self.sample_rate, Ordering::Release);
+        shared.channels.store(self.channels, Ordering::Release);
+        // What a shared stream's channels are. On Windows the count is the mix
+        // format's, in its WAVE order, and cpal's mask says to take the channels
+        // as they come. An ALSA PCM has its own order.
+        #[cfg(target_os = "linux")]
+        let layout = ChannelLayout::alsa_default(usize::from(self.channels)).pack();
+        #[cfg(not(target_os = "linux"))]
+        let layout = 0;
+        shared.output_layout.store(layout, Ordering::Release);
+        shared.set_sample_format(match self.sample_format {
+            SampleFormat::F32 => super::state::OutputSampleFormat::F32,
+            SampleFormat::I16 => super::state::OutputSampleFormat::S16,
+            SampleFormat::U16 => super::state::OutputSampleFormat::U16,
+            _ => super::state::OutputSampleFormat::Unknown,
+        });
+    }
 }
 
 /// What to do with one error from a cpal stream. See [`StreamErrorStorm`].
@@ -877,8 +932,8 @@ where
                 // bulk (not one-per-output-slot) so the decoder's
                 // spin-wait on `producer.slots() == RING_CAPACITY`
                 // completes in a single callback (~10-15 ms) instead
-                // of waiting for the device to consume the whole ring
-                // at its native cadence (~270 ms at 44.1 kHz / 8 ch).
+                // of waiting for the device to consume the whole queue
+                // at its native cadence (a second of audio).
                 if shared.drain_silent.load(Ordering::Acquire) {
                     while consumer.pop().is_ok() {}
                     for slot in out.iter_mut() {

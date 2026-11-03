@@ -75,6 +75,14 @@ pub async fn send_next(
         send(AudioCmd::ClearNextTrack { after: current_id });
         return Ok(());
     };
+    // The decoder opens this on its own thread, with a second of audio queued.
+    // A track on a share is offered once it is in the cache; until then the
+    // transition is left to the end of the track, a short gap instead of a
+    // cut. The download that makes it ready revises this answer.
+    if !crate::netlib::ready_for_transition(&track.file_path) {
+        send(AudioCmd::ClearNextTrack { after: current_id });
+        return Ok(());
+    }
     let replay_gain = crate::commands::player::fetch_replay_gain(pool, track.id).await;
 
     // Smart-crossfade hint: whether the next track shares an album with
@@ -222,7 +230,42 @@ pub async fn edit_queue<G, T>(
 /// queue and returns at once.
 pub fn revise_soon(app: &AppHandle) {
     let app = app.clone();
-    tauri::async_runtime::spawn(async move { revise(&app).await });
+    tauri::async_runtime::spawn(async move {
+        revise(&app).await;
+        prewarm_next(&app).await;
+    });
+}
+
+/// A track started or the queue changed: when the next track is on a share,
+/// start fetching it now, so it is in the cache by the time the decoder asks
+/// (`netlib::media`). No cost at all for a library with no share.
+pub fn prewarm_soon(app: &AppHandle) {
+    if !crate::netlib::has_sources() {
+        return;
+    }
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move { prewarm_next(&app).await });
+}
+
+async fn prewarm_next(app: &AppHandle) {
+    if !crate::netlib::has_sources() {
+        return;
+    }
+    let Ok(pool) = app.state::<AppState>().require_profile_pool().await else {
+        return;
+    };
+    let repeat = queue::read_repeat_mode(&pool).await;
+    let Ok(Some(track)) = queue::peek_next(&pool, repeat).await else {
+        return;
+    };
+    drop(pool);
+    if !crate::netlib::ready_for_transition(&track.file_path) {
+        let app = app.clone();
+        crate::netlib::media::prewarm(track.file_path, move || {
+            // Offer it now, if the decoder has already asked.
+            tauri::async_runtime::spawn(async move { revise(&app).await });
+        });
+    }
 }
 
 /// A track's beat list as the analysis stored it, in seconds. `None` when

@@ -383,6 +383,8 @@ thing step 1 measures — a 500-song page from Navidrome weighs 496 KiB.
 
 ## Decision 5 — a provider lands in its own projection, beside the server's
 
+A WebDAV or SMB share is not a provider and does not fall under this decision: it has no catalogue, account or user data, only files whose tags our own scanner reads, so its tracks are ordinary `track` rows. The reasoning is in [library.md](../features/library.md#a-transport-not-a-provider).
+
 ### Why not the `remote_*` tables
 
 They look like the place, and they are shaped for exactly one server:

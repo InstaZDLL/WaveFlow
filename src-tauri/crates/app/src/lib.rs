@@ -25,6 +25,7 @@ mod media_controls;
 mod media_loopback;
 mod metadata_artwork;
 mod mpd;
+mod netlib;
 mod notifications;
 mod offline;
 mod paths;
@@ -583,6 +584,15 @@ pub fn run() {
             commands::remote_auth::remote_convert_playlist,
             #[cfg(feature = "sync_v2")]
             commands::lyrics::fetch_remote_lyrics,
+            commands::network_library::network_source_test,
+            commands::network_library::network_source_add,
+            commands::network_library::network_source_list,
+            commands::network_library::network_source_set_credentials,
+            commands::network_library::network_source_remove,
+            commands::network_library::network_blocked_tracks,
+            commands::network_library::network_cache_info,
+            commands::network_library::network_cache_clear,
+            commands::network_library::network_cache_limit_changed,
             commands::offline::get_offline_mode,
             commands::offline::set_offline_mode,
             commands::preferences::get_minimize_to_tray,

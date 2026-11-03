@@ -123,11 +123,16 @@ pub struct MpdStats {
 pub async fn stats(pool: &sqlx::SqlitePool) -> AppResult<MpdStats> {
     let row: (i64, i64, i64, i64) = sqlx::query_as(
         r#"
-        SELECT (SELECT COUNT(*) FROM artist),
-               (SELECT COUNT(*) FROM album),
-               (SELECT COUNT(*) FROM track WHERE is_available = 1),
+        SELECT (SELECT COUNT(DISTINCT ta.artist_id)
+                  FROM track_artist ta JOIN track t ON t.id = ta.track_id
+                 WHERE t.is_available = 1 AND t.file_path NOT LIKE 'wfnet://%'),
+               (SELECT COUNT(DISTINCT album_id) FROM track
+                 WHERE is_available = 1 AND file_path NOT LIKE 'wfnet://%'),
+               (SELECT COUNT(*) FROM track
+                 WHERE is_available = 1 AND file_path NOT LIKE 'wfnet://%'),
                (SELECT COALESCE(SUM(duration_ms), 0) / 1000
-                  FROM track WHERE is_available = 1)
+                  FROM track
+                 WHERE is_available = 1 AND file_path NOT LIKE 'wfnet://%')
         "#,
     )
     .fetch_one(pool)
@@ -147,7 +152,12 @@ impl MpdSong {
     /// `duration` as a float (since 0.20). Clients read whichever they
     /// support, so both go out.
     pub fn write_into(&self, out: &mut super::protocol::Response) {
-        out.push("file", &self.file_path);
+        // A track on a share can be in the queue, which is what plays. Its
+        // locator names the source's id, which is nobody's business on the LAN.
+        out.push(
+            "file",
+            crate::netlib::display_path(std::path::Path::new(&self.file_path)),
+        );
         out.push("Last-Modified", format_last_modified(self.file_modified));
         out.push("Time", self.duration_ms.max(0) / 1000);
         out.push(

@@ -60,6 +60,7 @@ use std::sync::OnceLock;
 use symphonia::core::audio::{
     layouts::{CHANNEL_LAYOUT_MONO, CHANNEL_LAYOUT_STEREO},
     AsGenericAudioBufferRef, AudioBuffer, AudioMut, AudioSpec, Channels, GenericAudioBufferRef,
+    Position,
 };
 use symphonia::core::codecs::audio::well_known::CODEC_ID_OPUS;
 use symphonia::core::codecs::audio::{
@@ -251,8 +252,9 @@ impl OpusDecoder {
         let Some(extra) = params.extra_data.as_deref() else {
             return decode_error("opus: missing OpusHead");
         };
-        let (head, mapping) = parse_head(extra)?;
+        let (head, mut mapping) = parse_head(extra)?;
         let channels = usize::from(head.channel_count);
+        mapping.mapping = decoder_order(head, mapping.mapping);
 
         let mut error: c_int = 0;
         // SAFETY: `mapping.mapping` holds exactly `channel_count`
@@ -289,7 +291,7 @@ impl OpusDecoder {
             pending_discard: u32::from(head.pre_skip),
             interleaved: vec![0.0; MAX_FRAME_SIZE * channels],
             buf: AudioBuffer::new(
-                AudioSpec::new(OPUS_RATE, channel_layout(head.channel_count)),
+                AudioSpec::new(OPUS_RATE, channel_layout(head)),
                 MAX_FRAME_SIZE,
             ),
         };
@@ -474,20 +476,72 @@ impl RegisterableAudioDecoder for OpusDecoder {
     }
 }
 
-/// Positions for the common layouts, falling back to discrete channels
-/// for anything else.
+/// Where each output channel of a family 1 stream comes from once it is put
+/// in the buffer's order, one row per channel count from 3 to 8.
 ///
-/// A wrong *name* for a channel is a worse failure than no name: the
-/// resampler and the mixer downstream key on position, so guessing at
-/// a 7-channel layout would quietly send a surround channel to a
-/// tweeter. Discrete says "these are N channels in file order", which
-/// is exactly what is known.
-fn channel_layout(count: u8) -> Channels {
-    match count {
-        1 => CHANNEL_LAYOUT_MONO,
-        2 => CHANNEL_LAYOUT_STEREO,
-        other => Channels::Discrete(other.into()),
+/// RFC 7845 section 5.1.1.2 lays family 1 out in Vorbis order (front left,
+/// centre, front right, surrounds, LFE last). A [`Channels::Positioned`]
+/// buffer is in WAVE order (front left, front right, centre, LFE, surrounds),
+/// so channel `i` of the buffer is channel `FAMILY_1_ORDER[n - 3][i]` of the
+/// stream. Four channels are the same either way.
+const FAMILY_1_ORDER: [&[usize]; 6] = [
+    &[0, 2, 1],
+    &[0, 1, 2, 3],
+    &[0, 2, 1, 3, 4],
+    &[0, 2, 1, 5, 3, 4],
+    &[0, 2, 1, 6, 5, 3, 4],
+    &[0, 2, 1, 7, 5, 6, 3, 4],
+];
+
+/// The stream's mapping table in the order the buffer holds its channels.
+///
+/// libopus writes output channel `i` from `mapping[i]`, so permuting the table
+/// is all it takes to have it decode directly into WAVE order. Played as they
+/// came, the channels of a 5.1 file were routed by number: the centre on the
+/// front right speaker, the front right on the centre, the surrounds on the
+/// LFE and the first surround, the LFE on the other.
+fn decoder_order(head: OpusHead, mapping: Vec<u8>) -> Vec<u8> {
+    match head.channel_count {
+        n @ 3..=8 if head.mapping_family == 1 => FAMILY_1_ORDER[usize::from(n) - 3]
+            .iter()
+            .map(|stream_channel| mapping[*stream_channel])
+            .collect(),
+        _ => mapping,
     }
+}
+
+/// What the buffer's channels are.
+///
+/// Family 1 defines its layouts, up to eight channels. Family 255 says
+/// outright that its channels have no position: discrete is "these are N
+/// channels in file order", which is exactly what is known, and a wrong name
+/// would quietly send a surround channel to a tweeter.
+fn channel_layout(head: OpusHead) -> Channels {
+    let (fl, fr, fc, lfe) = (
+        Position::FRONT_LEFT,
+        Position::FRONT_RIGHT,
+        Position::FRONT_CENTER,
+        Position::LFE1,
+    );
+    let (rl, rr, rc, sl, sr) = (
+        Position::REAR_LEFT,
+        Position::REAR_RIGHT,
+        Position::REAR_CENTER,
+        Position::SIDE_LEFT,
+        Position::SIDE_RIGHT,
+    );
+    let positions = match (head.mapping_family, head.channel_count) {
+        (0 | 1, 1) => return CHANNEL_LAYOUT_MONO,
+        (0 | 1, 2) => return CHANNEL_LAYOUT_STEREO,
+        (1, 3) => fl | fr | fc,
+        (1, 4) => fl | fr | rl | rr,
+        (1, 5) => fl | fr | fc | rl | rr,
+        (1, 6) => fl | fr | fc | lfe | rl | rr,
+        (1, 7) => fl | fr | fc | lfe | rc | sl | sr,
+        (1, 8) => fl | fr | fc | lfe | rl | rr | sl | sr,
+        (_, other) => return Channels::Discrete(other.into()),
+    };
+    Channels::Positioned(positions)
 }
 
 #[cfg(test)]

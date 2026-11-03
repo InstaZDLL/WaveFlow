@@ -135,6 +135,7 @@ async fn track_file(pool: &sqlx::SqlitePool, track_id: i64) -> AppResult<TrackFi
     .await?;
     let (path, folder_id, codec, duration_ms, sample_rate, bit_depth) =
         row.ok_or_else(|| AppError::Other(format!("track {track_id} not found")))?;
+    crate::netlib::refuse_if_network(&path)?;
     Ok(TrackFile {
         path: PathBuf::from(&path),
         folder_id,

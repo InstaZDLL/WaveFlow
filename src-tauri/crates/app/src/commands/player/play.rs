@@ -3,7 +3,7 @@
 
 use std::sync::Arc;
 
-use tauri::AppHandle;
+use tauri::{AppHandle, Emitter};
 
 use crate::{
     audio::{engine::AudioCmd, next_track::edit_queue, AudioEngine},
@@ -198,7 +198,23 @@ pub(crate) async fn play_tracks_with_intent(
     drop(publish);
 
     let pb = std::path::PathBuf::from(&track.file_path);
-    if !pb.is_file() {
+    // A track on a share is no file here. It answers from what is known in
+    // memory: nothing asks the network on the way to the decoder.
+    if waveflow_core::network_locator::is_locator(&track.file_path) {
+        if crate::netlib::is_blocked(&track.file_path) {
+            // The toast the decoder raises for a share lost during playback.
+            // Nothing reaches the decoder here, and a rejected command shows
+            // the user nothing.
+            let _ = app.emit(
+                "player:error",
+                serde_json::json!({
+                    "kind": "network-source-lost",
+                    "message": crate::netlib::UNREACHABLE_MESSAGE,
+                }),
+            );
+            return Err(AppError::Audio(crate::netlib::UNREACHABLE_MESSAGE.into()));
+        }
+    } else if !pb.is_file() {
         // The file is gone, but the recording may not be: if this track was
         // proved to be one the bound server holds, play it from there instead
         // of refusing. Announced rather than silent — the row keeps saying the

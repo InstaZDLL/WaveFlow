@@ -5,9 +5,11 @@ use std::time::{Duration, Instant};
 
 use alsa::pcm::{Access, Format, HwParams, PCM};
 use alsa::{Direction, ValueOr};
+use waveflow_core::playback::channels::ChannelLayout;
 
 use crate::error::{AppError, AppResult};
 
+use super::super::output::linux_layout::layout_of_chmap;
 use super::super::output::DopFormat;
 use super::device::hw_card_index;
 use super::{
@@ -182,12 +184,11 @@ pub(super) fn open_dop_pcm(dev: &str, dop: DopFormat) -> Result<(PCM, usize), Pc
 /// starting a track, seeking and changing track each took about ten
 /// seconds — the wait was the buffer draining.
 ///
-/// The period also has to stay small against
-/// [`super::super::output::RING_CAPACITY`], because one period is drained from
+/// The period also has to stay small against what the decoder keeps queued
+/// ([`super::super::output::RING_FRAMES`]), because one period is drained from
 /// the ring in a single pass and whatever the ring cannot supply is
-/// written as silence. At 16 384 frames a period was two thirds of the
-/// whole ring, which makes an underrun the normal case rather than the
-/// exception.
+/// written as silence. At 16 384 frames a period was a good part of the
+/// queue, which makes an underrun the normal case rather than the exception.
 fn set_period_and_buffer(hwp: &HwParams<'_>) -> AppResult<()> {
     hwp.set_period_size_near(TARGET_PERIOD_FRAMES, ValueOr::Nearest)
         .map_err(|e| AppError::Audio(format!("alsa set_period_size: {e}")))?;
@@ -323,11 +324,22 @@ fn try_open_pcm(
     pcm.prepare()
         .map_err(|e| AppError::Audio(format!("alsa prepare: {e}")))?;
 
+    // Each card has its own order, and an HDA card's 5.1 is not WAVE's. One
+    // that states none gets ALSA's own default: the convention of the
+    // `surround51` a driver that says nothing has been written for.
+    let layout = pcm
+        .get_chmap()
+        .ok()
+        .and_then(|map| layout_of_chmap(&map))
+        .filter(|layout| layout.channels() == channels as usize)
+        .unwrap_or_else(|| ChannelLayout::alsa_default(channels as usize));
+
     Ok(OpenPcm {
         pcm,
         format,
         sample_rate,
         channels: channels as u16,
+        layout,
         period_frames,
         buffer_frames,
     })

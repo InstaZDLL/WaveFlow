@@ -97,10 +97,18 @@ pub(super) fn apply_patch(tag: &mut lofty::tag::Tag, patch: &TagPatch<'_>) {
             // email — cannot shadow the new one.
             tag.remove_key(ItemKey::Popularimeter);
             if let Some(r) = rating {
-                // Vorbis / MP4: text on the 0-100 scale, the shape the
-                // scanner reads back.
+                // What still comes through here is a native list beside
+                // an ID3v2 chunk (WAV, AIFF), which has no room for the
+                // value and takes the clear above; the frame there is the
+                // copy that counts.
                 //
-                // APEv2 does not come through here at all: lofty's key
+                // Vorbis comments and MP4 do not: lofty's merge only takes
+                // `<provider>|<stars>|<counter>` under this key and skips
+                // anything else without a word, so they are written on the
+                // concrete tag by [`apply_rating_vorbis`] and
+                // [`apply_rating_ilst`].
+                //
+                // APEv2 does not come through here either: lofty's key
                 // table for it has no entry for a rating, so the item
                 // would be dropped on the way to the file. That is
                 // [`apply_rating_ape`].
@@ -114,8 +122,7 @@ pub(super) fn apply_patch(tag: &mut lofty::tag::Tag, patch: &TagPatch<'_>) {
                 // own scale. Neither is the byte the user set, so that
                 // container is written as the POPM frame it is, by
                 // [`apply_rating_id3v2`].
-                let as_100 = ((*r as u16) * 100 / 255) as u8;
-                tag.insert_text(ItemKey::Popularimeter, as_100.to_string());
+                tag.insert_text(ItemKey::Popularimeter, rating_as_percent(*r));
             }
             return;
         }
@@ -317,9 +324,84 @@ pub(super) fn apply_rating_id3v2(tag: &mut lofty::id3::v2::Id3v2Tag, rating: Opt
     tag.remove(&popm).for_each(drop);
     if let Some(rating) = rating {
         // An empty email is the anonymous user the spec allows, and
-        // what every reader checked (foobar2000, Mp3tag, MusicBee)
-        // accepts. The counter stays 0 — we do not track plays here.
+        // what every reader checked accepts. The counter stays 0 — we
+        // do not track plays here.
         tag.insert(Frame::Popularimeter(PopularimeterFrame::new("", rating, 0)));
+    }
+}
+
+/// A rating on the 0-100 scale the text containers keep it on, which the
+/// scanner's `rating_from_number` reads back to the same byte, for every
+/// value the star widget produces.
+///
+/// Never below 6. The command takes any byte, and one under half a star
+/// would otherwise land on 0, which reads as no rating, or on 1 to 5, which
+/// read as stars: 13 would come back as five of them.
+fn rating_as_percent(rating: u8) -> String {
+    ((rating as u16) * 100 / 255).max(6).to_string()
+}
+
+/// Is this Vorbis comment a rating? `RATING`, or the `RATING:<email>` form.
+fn is_vorbis_rating(key: &str) -> bool {
+    key.eq_ignore_ascii_case("RATING")
+        || key
+            .get(..7)
+            .is_some_and(|head| head.eq_ignore_ascii_case("RATING:"))
+}
+
+/// Take every rating out of the comments. See [`apply_rating_id3v2`] for why
+/// all of them go; here the second form is `RATING:<email>`.
+fn take_ratings_vorbis(tag: &mut lofty::ogg::tag::VorbisComments) -> Vec<(String, String)> {
+    let keys: Vec<String> = tag
+        .items()
+        .filter(|(key, _)| is_vorbis_rating(key))
+        .map(|(key, _)| key.to_string())
+        .collect();
+    let mut taken = Vec::new();
+    for key in keys {
+        for value in tag.remove(&key).collect::<Vec<_>>() {
+            taken.push((key.clone(), value));
+        }
+    }
+    taken
+}
+
+/// `RATING=<0-100>`, on the concrete tag: the generic one would lose it.
+pub(super) fn apply_rating_vorbis(tag: &mut lofty::ogg::tag::VorbisComments, rating: Option<u8>) {
+    take_ratings_vorbis(tag);
+    if let Some(rating) = rating {
+        tag.push("RATING".to_string(), rating_as_percent(rating));
+    }
+}
+
+/// Take every rating out of the atoms, `rate` included.
+fn take_ratings_ilst(tag: &mut lofty::mp4::Ilst) -> Vec<lofty::mp4::Atom<'static>> {
+    use waveflow_core::scanner::extra_tags::is_ilst_rating;
+    let taken: Vec<_> = (&*tag)
+        .into_iter()
+        .filter(|atom| is_ilst_rating(atom))
+        .cloned()
+        .collect();
+    tag.retain(|atom| !is_ilst_rating(atom));
+    taken
+}
+
+/// The freeform `RATING` atom, on the 0-100 scale of the Vorbis containers.
+/// Whatever rating atoms the file held go first, `rate` among them, so that
+/// a cleared rating does not come back from the one left behind.
+pub(super) fn apply_rating_ilst(tag: &mut lofty::mp4::Ilst, rating: Option<u8>) {
+    use lofty::mp4::{Atom, AtomData, AtomIdent};
+    use waveflow_core::scanner::extra_tags::{ILST_RATING_MEAN, ILST_RATING_NAME};
+
+    take_ratings_ilst(tag);
+    if let Some(rating) = rating {
+        tag.insert(Atom::new(
+            AtomIdent::Freeform {
+                mean: ILST_RATING_MEAN.into(),
+                name: ILST_RATING_NAME.into(),
+            },
+            AtomData::UTF8(rating_as_percent(rating)),
+        ));
     }
 }
 
@@ -397,12 +479,67 @@ pub(crate) fn patch_file(
             match patch {
                 TagPatch::Rating(rating) => apply_rating_id3v2(&mut tag, *rating),
                 _ => {
+                    // The frames sit this round trip out. The split rounds
+                    // each to a whole star and the merge writes that back
+                    // under a provider's email: a saved title turned the
+                    // four stars of an anonymous 204 into five stars of 255
+                    // under another program's email, in the file (measured).
+                    let popm = lofty::id3::v2::FrameId::Valid(std::borrow::Cow::Borrowed("POPM"));
+                    let ratings: Vec<_> = tag.remove(&popm).collect();
                     let (remainder, mut generic) = tag.split_tag();
                     apply_patch(&mut generic, patch);
                     tag = remainder.merge_tag(generic);
+                    for frame in ratings {
+                        tag.insert(frame);
+                    }
                 }
             }
             $file.set_id3v2(tag);
+        }};
+    }
+
+    // The Vorbis slot, whichever way the container holds it, and for the
+    // ID3v2 slot's reasons. A rating is written on the concrete tag, and
+    // another payload carries the comments past the round trip, whose merge
+    // would otherwise drop a plain `RATING=80` from the file: a saved title
+    // took another tagger's rating with it.
+    macro_rules! patch_vorbis_comments {
+        ($tag:expr) => {{
+            let mut tag = $tag;
+            match patch {
+                TagPatch::Rating(rating) => apply_rating_vorbis(&mut tag, *rating),
+                _ => {
+                    let ratings = take_ratings_vorbis(&mut tag);
+                    let (remainder, mut generic) = tag.split_tag();
+                    apply_patch(&mut generic, patch);
+                    tag = remainder.merge_tag(generic);
+                    for (key, value) in ratings {
+                        tag.push(key, value);
+                    }
+                }
+            }
+            tag
+        }};
+    }
+
+    // The MP4 slot, the same way: the merge would rewrite `rate` from its
+    // whole star, losing a half.
+    macro_rules! patch_ilst {
+        ($file:expr) => {{
+            let mut tag = $file.remove_ilst().unwrap_or_default();
+            match patch {
+                TagPatch::Rating(rating) => apply_rating_ilst(&mut tag, *rating),
+                _ => {
+                    let ratings = take_ratings_ilst(&mut tag);
+                    let (remainder, mut generic) = tag.split_tag();
+                    apply_patch(&mut generic, patch);
+                    tag = remainder.merge_tag(generic);
+                    for atom in ratings {
+                        tag.insert(atom);
+                    }
+                }
+            }
+            $file.set_ilst(tag);
         }};
     }
 
@@ -410,9 +547,16 @@ pub(crate) fn patch_file(
     // their Vorbis comments by spec, so lofty models them unwrapped).
     macro_rules! patch_required_slot {
         ($file:expr, $take:ident, $set:ident) => {{
-            let (remainder, mut generic) = $file.$take().split_tag();
-            apply_patch(&mut generic, patch);
-            $file.$set(remainder.merge_tag(generic));
+            let tag = patch_vorbis_comments!($file.$take());
+            $file.$set(tag);
+        }};
+    }
+
+    // The FLAC slot, which may hold no comments yet.
+    macro_rules! patch_flac_slot {
+        ($file:expr) => {{
+            let tag = patch_vorbis_comments!($file.remove_vorbis_comments().unwrap_or_default());
+            $file.set_vorbis_comments(tag);
         }};
     }
 
@@ -499,7 +643,7 @@ pub(crate) fn patch_file(
                 path,
                 |handle| -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
                     let mut f = lofty::flac::FlacFile::read_from(handle, ParseOptions::new())?;
-                    patch_slot!(f, remove_vorbis_comments, set_vorbis_comments);
+                    patch_flac_slot!(f);
                     match f.vorbis_comments() {
                         Some(comments) => waveflow_core::tagio::try_flac_in_place(handle, comments),
                         None => Ok(false),
@@ -521,7 +665,7 @@ pub(crate) fn patch_file(
             patch_id3v2_slot!(f);
         }),
         FileType::Mp4 => with_file!(lofty::mp4::Mp4File, |f, handle| {
-            patch_slot!(f, remove_ilst, set_ilst);
+            patch_ilst!(f);
         }),
         // WAV and AIFF can carry both an ID3v2 chunk and their native
         // list, and players disagree on which one they read. Patching
@@ -575,7 +719,7 @@ pub(crate) fn patch_file(
                 // Fields, rating, lyrics: all of them are comment
                 // values, and the pictures stay where they are.
                 _ => {
-                    patch_slot!(f, remove_vorbis_comments, set_vorbis_comments);
+                    patch_flac_slot!(f);
                 }
             }
         }),
@@ -614,11 +758,10 @@ fn apply_rating_ape(tag: &mut lofty::ape::ApeTag, rating: Option<u8>) {
 
     tag.remove(APE_RATING_KEY);
     if let Some(rating) = rating {
-        let as_100 = (rating as u16) * 100 / 255;
         // Infallible for this key: it is valid ASCII of a valid length.
         if let Ok(item) = ApeItem::new(
             APE_RATING_KEY.to_string(),
-            ItemValue::Text(as_100.to_string()),
+            ItemValue::Text(rating_as_percent(rating)),
         ) {
             tag.insert(item);
         }

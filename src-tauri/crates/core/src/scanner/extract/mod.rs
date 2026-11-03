@@ -22,10 +22,10 @@ pub use artist_images::{
     write_artist_image, ArtistImageDirCache, DirImageCandidate,
 };
 pub use artwork::{
-    extension_for_mime, extract_cover, extract_folder_cover, ArtworkSource, ExtractedCover,
-    FOLDER_COVER_EXTENSIONS,
+    extension_for_mime, extract_cover, extract_folder_cover, pick_folder_cover, store_folder_cover,
+    ArtworkSource, ExtractedCover, FOLDER_COVER_EXTENSIONS,
 };
-pub use probe::{probe_playable_stream, StreamInfo};
+pub use probe::{probe_playable_source, probe_playable_stream, StreamInfo};
 
 /// Extensions considered "audio files" by the scanner. Limited to
 /// formats the symphonia + cpal engine can actually decode and play,
@@ -148,11 +148,12 @@ pub fn is_scannable_audio(path: &Path) -> bool {
 }
 
 /// Bytes hashed from each of the file's head and tail in the partial
-/// path. 1 MiB each — large enough that distinct tracks differ inside
+/// path. Public for the network scan, which fetches these two windows in one
+/// request each and serves the tag read from them. 1 MiB each — large enough that distinct tracks differ inside
 /// the window (leading frames) and that tag rewrites land in it (ID3v2
 /// at the head, ID3v1 / APE / Lyrics3 at the tail), small enough that a
 /// multi-MB track reads ~2 MiB instead of its whole length.
-const HASH_CHUNK_BYTES: u64 = 1024 * 1024;
+pub const HASH_CHUNK_BYTES: u64 = 1024 * 1024;
 
 /// Content hash used for dedup + tag-edit detection.
 ///
@@ -171,8 +172,15 @@ const HASH_CHUNK_BYTES: u64 = 1024 * 1024;
 /// but different middle bytes would collide. For real music that does
 /// not occur. Smaller files (≤ `2 * HASH_CHUNK_BYTES`) are hashed whole.
 pub fn hash_file(path: &Path) -> std::io::Result<String> {
-    let mut file = fs::File::open(path)?;
+    let file = fs::File::open(path)?;
     let len = file.metadata()?.len();
+    hash_reader(file, len)
+}
+
+/// [`hash_file`] over any reader of `len` bytes: the same digest for the same
+/// bytes, so a file on a share and its copy on this disk are recognised as
+/// one (duplicates, the lyrics cache, an orphaned history finding its track).
+pub fn hash_reader<R: Read + Seek>(mut file: R, len: u64) -> std::io::Result<String> {
     let mut hasher = blake3::Hasher::new();
     hasher.update(&len.to_le_bytes());
 
@@ -342,15 +350,24 @@ pub fn file_type_label(ft: FileType) -> Option<String> {
 /// through a whole-star `StarRating` (lofty's own doc comment still
 /// describes the old shape). Reading only the first two is why no
 /// rating has been read out of an MP3 since that bump: `get_binary`
-/// answered `None`, and `"MusicBee|4|0"` is not a number.
+/// answered `None`, and `"someone@example.com|4|0"` is not a number.
 ///
 /// The star form is rescaled on the same 51-per-star scale the app
 /// writes, so four stars stay four stars. It is lossy in one direction
 /// and unavoidably so: the byte another tagger wrote is mapped to a
 /// star by lofty before we ever see it, and half-stars have no
-/// representation there at all. A rating this app wrote is not affected
-/// — the file keeps the byte, and the database keeps it too.
+/// representation there at all. That is why a scan does not stop here for
+/// a frame: [`rating_from_popm`] reads them on the concrete tag, for the
+/// byte, and for the zero lofty would turn into one star.
+///
+/// A zero answers `None`: it is no star the app can set. Read as a rating,
+/// it would replace the one the library holds, which a file saying nothing
+/// leaves alone.
 pub fn extract_rating(tag: &Tag) -> Option<u8> {
+    read_rating(tag).filter(|rating| *rating > 0)
+}
+
+fn read_rating(tag: &Tag) -> Option<u8> {
     if matches!(tag.tag_type(), TagType::Id3v2) {
         if let Some(bytes) = tag.get_binary(ItemKey::Popularimeter, false) {
             let nul_pos = bytes.iter().position(|b| *b == 0)?;
@@ -376,24 +393,70 @@ pub fn extract_rating(tag: &Tag) -> Option<u8> {
                 }
             }
         }
-        if let Some(rating) = rating_from_percent(trimmed) {
+        if let Some(rating) = rating_from_number(trimmed) {
             return Some(rating);
         }
     }
     None
 }
 
-/// A rating written as text on the 0-100 scale, as a 0-255 byte.
-fn rating_from_percent(text: &str) -> Option<u8> {
-    let clamped = text.trim().parse::<u16>().ok()?.min(100);
-    // Rounded to the nearest byte, not truncated. The app writes
-    // this scale as `byte * 100 / 255`, so the two halves have
-    // to meet: truncating sent 128 back as 127, and the scan
-    // that follows a tag write overwrites `track.rating` with
-    // what it read. Every value the star widget produces —
-    // whole stars and halves, 26 through 255 — now survives the
-    // round trip exactly.
-    Some(((clamped * 255 + 50) / 100) as u8)
+/// A rating written as a plain number, as a 0-255 byte. `None` for a zero,
+/// which is no rating, and for anything that is not a number.
+///
+/// Most software writes this on a 0-100 scale, and so does this app. Some
+/// players write 1 to 5 instead. Those are read as stars: on the other
+/// scale they would be a fraction of one star, which no widget produces
+/// (half a star is 10).
+pub fn rating_from_number(text: &str) -> Option<u8> {
+    match text.trim().parse::<u16>().ok()? {
+        0 => None,
+        stars @ 1..=5 => Some((stars * 51) as u8),
+        percent => {
+            // Rounded to the nearest byte, not truncated. The app writes
+            // this scale as `byte * 100 / 255`, so the two halves have
+            // to meet: truncating sent 128 back as 127. Every value the
+            // star widget produces — whole stars and halves, 26 through
+            // 255 — survives the round trip exactly.
+            Some(((percent.min(100) * 255 + 50) / 100) as u8)
+        }
+    }
+}
+
+/// The rating the POPM frames of an ID3v2 tag hold, given as `(email, byte)`.
+/// The outer `None` means there is no frame, so the frames have no say.
+///
+/// A frame with no email is the one this app writes, and the only one it has
+/// ever written: its byte is the rating, on the app's own scale, half stars
+/// included. Lofty's generic tag cannot be asked for it, since it rounds
+/// every frame to a whole star on a scale of its own first (204, four stars,
+/// comes back as five).
+///
+/// A frame with an email belongs to another program, and there the rounding
+/// is what is wanted: there is no agreed scale, some write 1 for one star,
+/// and that byte taken as it is would show as no star at all. So it goes
+/// through lofty, which knows the scales of the emails it knows.
+///
+/// A zero is ID3's own word for unknown, and often sits beside a play count.
+pub fn rating_from_popm<'a>(frames: impl Iterator<Item = (&'a str, u8)>) -> Option<Option<u8>> {
+    let frames: Vec<(&str, u8)> = frames.collect();
+    if frames.is_empty() {
+        return None;
+    }
+    let rated = || frames.iter().filter(|(_, byte)| *byte > 0);
+    if let Some((_, byte)) = rated().find(|(email, _)| email.is_empty()) {
+        return Some(Some(*byte));
+    }
+    Some(rated().next().and_then(|(email, byte)| {
+        use lofty::id3::v2::{Frame, Id3v2Tag, PopularimeterFrame};
+        use lofty::tag::SplitTag;
+        let mut tag = Id3v2Tag::default();
+        tag.insert(Frame::Popularimeter(PopularimeterFrame::new(
+            (*email).to_string(),
+            *byte,
+            0,
+        )));
+        extract_rating(&tag.split_tag().1)
+    }))
 }
 
 /// The key a rating goes under in an APEv2 tag.
@@ -528,6 +591,33 @@ pub fn read_tagged_file(path: &Path) -> Result<lofty::file::TaggedFile, String> 
         .or_else(|first| read(ParsingMode::Relaxed).map_err(|_| first))?;
     complete_ape_tag(path, &mut tagged);
     Ok(tagged)
+}
+
+/// [`read_tagged_file`] over any reader, for a file that is not on this disk.
+/// `hint` stands in for the extension `Probe::open` would have read, and only
+/// counts when the content does not settle the format.
+pub fn read_tagged_from<R: Read + Seek>(
+    reader: &mut R,
+    hint: Option<FileType>,
+) -> Result<lofty::file::TaggedFile, String> {
+    use lofty::config::{ParseOptions, ParsingMode};
+    use lofty::probe::Probe;
+
+    let mut read = |mode: ParsingMode| -> Result<lofty::file::TaggedFile, String> {
+        reader
+            .seek(SeekFrom::Start(0))
+            .map_err(|e| error_chain(&e))?;
+        let mut probe = Probe::new(&mut *reader).options(ParseOptions::new().parsing_mode(mode));
+        if let Some(hint) = hint {
+            probe = probe.set_file_type(hint);
+        }
+        probe
+            .guess_file_type()
+            .map_err(|e| error_chain(&e))?
+            .read()
+            .map_err(|e| error_chain(&e))
+    };
+    read(ParsingMode::BestAttempt).or_else(|first| read(ParsingMode::Relaxed).map_err(|_| first))
 }
 
 /// An error and every cause under it, `outer: inner: …`.

@@ -129,7 +129,14 @@ pub async fn save_lyrics(
     };
 
     let mut tag_write_skipped = false;
-    match payload.destination {
+    // A share is only read: its lyrics stay in the database, whatever the
+    // destination preference says, and the save still succeeds.
+    let destination = if waveflow_core::network_locator::is_locator(&file_path) {
+        LyricsDestination::DbOnly
+    } else {
+        payload.destination
+    };
+    match destination {
         LyricsDestination::Tag => {
             let active = engine
                 .shared()

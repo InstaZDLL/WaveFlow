@@ -151,11 +151,13 @@ async fn serve_stream(
     Path(track_id): Path<i64>,
     headers: HeaderMap,
 ) -> Response {
-    let row: Result<Option<(String,)>, _> =
-        sqlx::query_as("SELECT file_path FROM track WHERE id = ? AND is_available = 1")
-            .bind(track_id)
-            .fetch_optional(&ctx.pool)
-            .await;
+    let row: Result<Option<(String,)>, _> = sqlx::query_as(
+        "SELECT file_path FROM track
+          WHERE id = ? AND is_available = 1 AND file_path NOT LIKE 'wfnet://%'",
+    )
+    .bind(track_id)
+    .fetch_optional(&ctx.pool)
+    .await;
     let path = match row {
         Ok(Some((p,))) => p,
         Ok(None) => return (StatusCode::NOT_FOUND, "track not found").into_response(),

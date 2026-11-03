@@ -15,6 +15,10 @@ use super::*;
 /// async runtime. Cheap (a couple of stat calls and at most two
 /// `read_dir` scans).
 async fn read_sidecar_of(meta: &TrackMeta) -> Option<String> {
+    // The first version of the network library reads no sidecar from a share.
+    if waveflow_core::network_locator::is_locator(&meta.file_path) {
+        return None;
+    }
     let path = meta.file_path.clone();
     tokio::task::spawn_blocking(move || read_sidecar_lyrics(Path::new(&path)))
         .await

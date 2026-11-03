@@ -54,6 +54,19 @@ impl DsdChannels {
     }
 }
 
+/// A container's own words for its channels. The count is not enough: the
+/// same four channels are a quad in one DSF and a 3.1 in another, and a DFF
+/// can list its channels in any order.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum DsdSpeakers {
+    /// DSF's `channel_type`: 1 mono, 2 stereo, 3 3.0, 4 quad, 5 3.1, 6 5.0,
+    /// 7 5.1.
+    DsfType(u32),
+    /// DFF's `CHNL` identifiers, one per channel in stream order. Empty when
+    /// the chunk stops after the count.
+    DffIds(Vec<[u8; 4]>),
+}
+
 /// Layout extracted from a container header. `data_offset` /
 /// `data_len_bytes` give the byte slice the PCM decoder needs to
 /// stream from the file; `sample_rate_hz` is the **DSD bit rate**
@@ -62,6 +75,8 @@ impl DsdChannels {
 pub struct DsdLayout {
     pub container: DsdContainer,
     pub channels: DsdChannels,
+    /// What the container says each channel is.
+    pub speakers: DsdSpeakers,
     pub sample_rate_hz: u32,
     /// Total DSD samples per channel (i.e. bits-per-channel divided
     /// by 1). Used to compute duration and seek.
@@ -150,10 +165,6 @@ pub fn parse_dsf<R: Read + Seek>(reader: &mut R) -> Result<DsdLayout, DsdError> 
         n @ 3..=8 => DsdChannels::Multi(n as u8),
         n => return Err(DsdError::UnsupportedChannels(n)),
     };
-    // DSF channel_type 1=mono, 2=stereo, 3=3.0, 4=quad, 5=4.0, 6=5.0,
-    // 7=5.1. We don't surface the layout (front/rear) — only the
-    // count is used downstream for downmixing.
-    let _ = channel_type;
 
     // data chunk: 4 magic + 8 chunk size + payload
     let mut data_magic = [0u8; 4];
@@ -170,6 +181,7 @@ pub fn parse_dsf<R: Read + Seek>(reader: &mut R) -> Result<DsdLayout, DsdError> 
     Ok(DsdLayout {
         container: DsdContainer::Dsf,
         channels,
+        speakers: DsdSpeakers::DsfType(channel_type),
         sample_rate_hz,
         samples_per_channel: total_samples_per_channel,
         data_offset,
@@ -198,6 +210,7 @@ pub fn parse_dff<R: Read + Seek>(reader: &mut R) -> Result<DsdLayout, DsdError> 
 
     let mut sample_rate_hz: Option<u32> = None;
     let mut channel_count: Option<u32> = None;
+    let mut channel_ids: Vec<[u8; 4]> = Vec::new();
     let mut data_offset: Option<u64> = None;
     let mut data_len_bytes: Option<u64> = None;
 
@@ -231,6 +244,16 @@ pub fn parse_dff<R: Read + Seek>(reader: &mut R) -> Result<DsdLayout, DsdError> 
                         b"CHNL" => {
                             let n = read_u16_be(reader)? as u32;
                             channel_count = Some(n);
+                            // A count and four bytes per channel. A short
+                            // chunk just leaves the channels unnamed.
+                            if sub_size >= 2 + 4 * u64::from(n) && n <= 8 {
+                                channel_ids = (0..n)
+                                    .map(|_| {
+                                        let mut id = [0u8; 4];
+                                        reader.read_exact(&mut id).map(|()| id)
+                                    })
+                                    .collect::<Result<_, _>>()?;
+                            }
                         }
                         _ => {}
                     }
@@ -271,6 +294,7 @@ pub fn parse_dff<R: Read + Seek>(reader: &mut R) -> Result<DsdLayout, DsdError> 
     Ok(DsdLayout {
         container: DsdContainer::Dff,
         channels,
+        speakers: DsdSpeakers::DffIds(channel_ids),
         sample_rate_hz,
         samples_per_channel,
         data_offset,

@@ -34,5 +34,6 @@ pub async fn set_offline_mode(state: tauri::State<'_, AppState>, enabled: bool) 
     .bind(Utc::now().timestamp_millis())
     .execute(&state.app_db)
     .await?;
+    crate::netlib::offline_changed();
     Ok(())
 }

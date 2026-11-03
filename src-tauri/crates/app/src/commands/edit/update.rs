@@ -240,6 +240,7 @@ pub async fn update_track_tags(
     .fetch_optional(&*pool)
     .await?;
     let row = row.ok_or_else(|| AppError::Other(format!("track {track_id} not found")))?;
+    crate::netlib::refuse_if_network(&row.file_path)?;
     let path = std::path::PathBuf::from(&row.file_path);
 
     // 1b. A save that will be refused should not pause the music first,
@@ -394,6 +395,10 @@ pub async fn update_tracks_batch(
             summary.errors.push((*track_id, "track not found".into()));
             continue;
         };
+        if let Err(err) = crate::netlib::refuse_if_network(&row.file_path) {
+            summary.errors.push((*track_id, err.to_string()));
+            continue;
+        }
         let path = std::path::PathBuf::from(&row.file_path);
 
         let written = {

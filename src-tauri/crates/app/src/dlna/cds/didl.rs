@@ -45,11 +45,13 @@ async fn container_metadata(ctx: &ServerCtx, id: &ObjectId) -> Result<Option<Str
             top_level_container(id, &current_labels(&ctx.labels), children)
         }
         ObjectId::Artist(artist_id) => {
-            let row: Option<(String, i64)> = sqlx::query_as(
-                "SELECT ar.name, (SELECT COUNT(*) FROM album al WHERE al.artist_id = ar.id)
+            let row: Option<(String, i64)> = sqlx::query_as(concat!(
+                "SELECT ar.name, (SELECT COUNT(*) FROM album al WHERE al.artist_id = ar.id AND ",
+                served_album!(),
+                ")
                    FROM artist ar
                   WHERE ar.id = ?",
-            )
+            ))
             .bind(*artist_id)
             .fetch_optional(pool)
             .await?;
@@ -58,7 +60,7 @@ async fn container_metadata(ctx: &ServerCtx, id: &ObjectId) -> Result<Option<Str
         ObjectId::Album(album_id) => {
             let row: Option<(String, i64)> = sqlx::query_as(
                 "SELECT al.title,
-                        (SELECT COUNT(*) FROM track t WHERE t.album_id = al.id AND t.is_available = 1)
+                        (SELECT COUNT(*) FROM track t WHERE t.album_id = al.id AND t.is_available = 1 AND t.file_path NOT LIKE 'wfnet://%')
                    FROM album al
                   WHERE al.id = ?",
             )
@@ -121,11 +123,12 @@ async fn track_metadata(
     base: &str,
     track_id: i64,
 ) -> Result<Option<String>, sqlx::Error> {
-    let row: Option<TrackRow> =
-        sqlx::query_as(track_select!("WHERE t.id = ? AND t.is_available = 1"))
-            .bind(track_id)
-            .fetch_optional(&ctx.pool)
-            .await?;
+    let row: Option<TrackRow> = sqlx::query_as(track_select!(
+        "WHERE t.id = ? AND t.is_available = 1 AND t.file_path NOT LIKE 'wfnet://%'"
+    ))
+    .bind(track_id)
+    .fetch_optional(&ctx.pool)
+    .await?;
     Ok(row.map(|row| item_xml(base, &row, &track_parent_id(row.album_id))))
 }
 
