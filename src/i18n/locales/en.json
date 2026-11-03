@@ -780,7 +780,8 @@
       "filePath": "Path",
       "moveUp": "Move the {{column}} column up",
       "moveDown": "Move the {{column}} column down"
-    }
+    },
+    "trackOnUnreachableShare": "Network share unreachable, and this track is not cached"
   },
   "liked": {
     "badge": "Collection",
@@ -1062,7 +1063,8 @@
         "offline": "Offline mode is on",
         "unknown": "Playback failed",
         "files-failed": "Could not play these files",
-        "picker-failed": "Could not open the file picker"
+        "picker-failed": "Could not open the file picker",
+        "network-source-lost": "The connection to the network share was lost"
       },
       "notice": {
         "exclusive-refused": "This device refuses exclusive mode: playing in shared mode",
@@ -3357,6 +3359,60 @@
         "title": "What's new button in the top bar",
         "subtitle": "When hidden, the panel stays reachable here and from About."
       }
+    },
+    "networkLibrary": {
+      "title": "Network shares (WebDAV, SMB)",
+      "subtitle": "Read a share directly, without the system mounting it. WaveFlow only reads: files there are never changed.",
+      "add": "Add a share",
+      "addConfirm": "Add and scan",
+      "cancel": "Cancel",
+      "test": "Test the connection",
+      "save": "Save",
+      "kind": "Share type",
+      "kinds": {
+        "webdav": "WebDAV",
+        "smb": "SMB"
+      },
+      "name": "Name (optional)",
+      "address": "Address",
+      "addressHint": {
+        "webdav": "https://nas.local/dav",
+        "smb": "nas.local or 192.168.1.10"
+      },
+      "folder": "Folder on the share (optional)",
+      "username": "User name",
+      "password": "Password",
+      "passwordNotice": "The password is kept in clear in the profile's database, like WaveFlow's other credentials, and never goes into a profile export or a backup. A read-only account is the better choice.",
+      "plainHttpWarning": "I accept sending this password and my music unencrypted: with http://, anyone on this network can read them.",
+      "plainHttpBadge": "Unencrypted connection (http://)",
+      "passwordMissing": "The password has to be entered again: it does not travel with an imported profile or a restored backup.",
+      "changePassword": "Change the password",
+      "remove": "Remove",
+      "removeConfirm": "Remove this share and its tracks?",
+      "state": {
+        "online": "Connected",
+        "unknown": "Not checked yet",
+        "unreachable": "Unreachable",
+        "auth_failed": "Access refused"
+      },
+      "failure": {
+        "offline": "Offline mode is on.",
+        "unreachable": "No answer at this address.",
+        "handshake": "This server closed the connection during the handshake. WaveFlow speaks SMB 2 and newer: a server limited to SMB 1 does exactly this.",
+        "tls": "This server's certificate is refused. WaveFlow always checks certificates: it takes a valid one, or http:// on a network you trust.",
+        "auth": "User name or password refused.",
+        "session-refused": "This server refused the session without judging the password. This account may not be allowed in, or the server requires encryption this connection cannot use.",
+        "not-found": "This share or folder does not exist.",
+        "protocol": "This server does not answer like a share.",
+        "plain-http": "An http:// address needs your agreement below."
+      },
+      "testOk_one": "Connected: {{count}} item in this folder.",
+      "testOk_other": "Connected: {{count}} items in this folder.",
+      "cacheLimit": "Limit (GB)",
+      "cacheClear": "Clear the cache",
+      "share": "Share name",
+      "cacheUsed_one": "Local cache: {{size}}, {{count}} track",
+      "cacheUsed_other": "Local cache: {{size}}, {{count}} tracks"
     }
   },
   "scanProgress": {

@@ -13,6 +13,11 @@ import {
   X,
 } from "lucide-react";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
+import {
+  displayTrackPath,
+  isNetworkPath,
+  useNetworkSources,
+} from "../../lib/networkTracks";
 import { Artwork } from "./Artwork";
 import { HiResBadge } from "./HiResBadge";
 import {
@@ -149,6 +154,7 @@ export function TrackPropertiesModal({
   // has to be the one read with the values the form shows. Taken at the
   // click instead, it would already include the change it is meant to
   // catch.
+  const networkSources = useNetworkSources();
   const [fileStamp, setFileStamp] = useState<string | null>(null);
   // The stamp could not be read: the file is gone, moved or unreadable.
   // Save stays disabled, and the dialog says why and offers to reload.
@@ -759,7 +765,7 @@ export function TrackPropertiesModal({
         {/* Up here rather than in the footer: the footer sits below every
             section, a scroll away, and editing is what the dialog is
             opened for as often as reading. */}
-        {!editing && (
+        {!editing && !isNetworkPath(track.file_path) && (
           <button
             type="button"
             onClick={() => setEditing(true)}
@@ -1124,7 +1130,7 @@ export function TrackPropertiesModal({
               label={t("trackProperties.filePath")}
               value={
                 <span className="font-mono text-xs break-all">
-                  {track.file_path}
+                  {displayTrackPath(track.file_path, networkSources)}
                 </span>
               }
             />
@@ -1208,14 +1214,16 @@ export function TrackPropertiesModal({
             </>
           ) : (
             <>
-              <button
-                type="button"
-                onClick={handleShowInExplorer}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors"
-              >
-                <ExternalLink size={14} />
-                <span>{t("trackProperties.showInExplorer")}</span>
-              </button>
+              {!isNetworkPath(track.file_path) && (
+                <button
+                  type="button"
+                  onClick={handleShowInExplorer}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors"
+                >
+                  <ExternalLink size={14} />
+                  <span>{t("trackProperties.showInExplorer")}</span>
+                </button>
+              )}
               <button
                 type="button"
                 onClick={onClose}

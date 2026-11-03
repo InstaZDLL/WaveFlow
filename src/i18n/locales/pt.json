@@ -812,7 +812,8 @@
       "filePath": "Caminho",
       "moveUp": "Subir a coluna {{column}}",
       "moveDown": "Descer a coluna {{column}}"
-    }
+    },
+    "trackOnUnreachableShare": "Partilha de rede inacessível, e esta faixa não está na cache"
   },
   "liked": {
     "badge": "Coleção",
@@ -1103,7 +1104,8 @@
         "offline": "O modo offline está ativado",
         "unknown": "A reprodução falhou",
         "files-failed": "Não é possível reproduzir estes ficheiros",
-        "picker-failed": "Não é possível abrir o seletor de ficheiros"
+        "picker-failed": "Não é possível abrir o seletor de ficheiros",
+        "network-source-lost": "A ligação à partilha de rede perdeu-se"
       },
       "notice": {
         "exclusive-refused": "Este dispositivo recusa o modo exclusivo: a reproduzir em modo partilhado",
@@ -3428,6 +3430,62 @@
         "title": "Botão Novidades na barra superior",
         "subtitle": "Quando oculto, o painel continua disponível aqui e em Acerca de."
       }
+    },
+    "networkLibrary": {
+      "title": "Partilhas de rede (WebDAV, SMB)",
+      "subtitle": "Lê uma partilha diretamente, sem que o sistema a monte. O WaveFlow só lê: os ficheiros nunca são alterados.",
+      "add": "Adicionar uma partilha",
+      "addConfirm": "Adicionar e analisar",
+      "cancel": "Cancelar",
+      "test": "Testar a ligação",
+      "save": "Guardar",
+      "kind": "Tipo de partilha",
+      "kinds": {
+        "webdav": "WebDAV",
+        "smb": "SMB"
+      },
+      "name": "Nome (opcional)",
+      "address": "Endereço",
+      "addressHint": {
+        "webdav": "https://nas.local/dav",
+        "smb": "nas.local ou 192.168.1.10"
+      },
+      "folder": "Pasta na partilha (opcional)",
+      "username": "Nome de utilizador",
+      "password": "Palavra-passe",
+      "passwordNotice": "A palavra-passe é guardada sem cifra na base de dados do perfil, como as outras credenciais do WaveFlow, e nunca entra numa exportação de perfil nem numa cópia de segurança. É preferível usar uma conta só de leitura.",
+      "plainHttpWarning": "Aceito enviar esta palavra-passe e a minha música sem cifra: com http://, qualquer pessoa nesta rede pode lê-las.",
+      "plainHttpBadge": "Ligação sem cifra (http://)",
+      "passwordMissing": "É preciso voltar a introduzir a palavra-passe: não acompanha um perfil importado nem uma cópia restaurada.",
+      "changePassword": "Alterar a palavra-passe",
+      "remove": "Remover",
+      "removeConfirm": "Remover esta partilha e as suas faixas?",
+      "state": {
+        "online": "Ligado",
+        "unknown": "Ainda não verificado",
+        "unreachable": "Inacessível",
+        "auth_failed": "Acesso recusado"
+      },
+      "failure": {
+        "offline": "O modo offline está ativado.",
+        "unreachable": "Sem resposta neste endereço.",
+        "handshake": "Este servidor fechou a ligação durante a negociação. O WaveFlow usa SMB 2 ou mais recente: um servidor limitado a SMB 1 faz exatamente isto.",
+        "tls": "O certificado deste servidor é recusado. O WaveFlow verifica sempre os certificados: é preciso um válido, ou http:// numa rede de confiança.",
+        "auth": "Nome de utilizador ou palavra-passe recusados.",
+        "session-refused": "Este servidor recusou a sessão sem avaliar a palavra-passe. Esta conta pode não ter acesso, ou o servidor exige uma encriptação que esta ligação não consegue usar.",
+        "not-found": "Esta partilha ou pasta não existe.",
+        "protocol": "Este servidor não responde como uma partilha.",
+        "plain-http": "Um endereço http:// precisa do seu acordo abaixo."
+      },
+      "testOk_one": "Ligado: {{count}} item nesta pasta.",
+      "testOk_other": "Ligado: {{count}} itens nesta pasta.",
+      "cacheLimit": "Limite (GB)",
+      "cacheClear": "Limpar a cache",
+      "testOk_many": "Ligado: {{count}} itens nesta pasta.",
+      "share": "Nome da partilha",
+      "cacheUsed_one": "Cache local: {{size}}, {{count}} faixa",
+      "cacheUsed_other": "Cache local: {{size}}, {{count}} faixas",
+      "cacheUsed_many": "Cache local: {{size}}, {{count}} faixas"
     }
   },
   "scanProgress": {

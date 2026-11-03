@@ -18,7 +18,7 @@
 
 use std::io::{self, Read, Seek, SeekFrom};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Condvar, Mutex, MutexGuard};
+use std::sync::{Arc, Condvar, Mutex, MutexGuard, Weak};
 
 use symphonia::core::io::MediaSource;
 
@@ -49,6 +49,10 @@ struct Shared {
     grown: Condvar,
     /// Set when the source is dropped, so the transfer stops.
     abandoned: AtomicBool,
+    /// A read is waiting for the transfer right now.
+    starved: AtomicBool,
+    /// [`ReadAheadRelease`] let go of a waiting read.
+    released: AtomicBool,
 }
 
 impl Shared {
@@ -58,6 +62,49 @@ impl Shared {
         self.filled
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+}
+
+/// What a read let go by [`ReadAheadRelease`] fails with, so the decoder can
+/// tell it from a read that failed on its own: a command is already waiting
+/// for it, and there is nothing to report.
+pub const READ_RELEASED: &str = "network read released";
+
+/// Lets go of a read waiting on a stalled transfer, from another thread.
+///
+/// The decoder reads on the thread it takes its commands on. A transfer stuck
+/// on a dead link would make Stop and every load wait for its timeout.
+#[derive(Clone)]
+pub struct ReadAheadRelease(Weak<Shared>);
+
+impl ReadAheadRelease {
+    /// `false` once the source is gone, so a holder can forget it.
+    pub fn is_alive(&self) -> bool {
+        self.0.strong_count() > 0
+    }
+
+    /// Whether a read is waiting for the transfer right now.
+    pub fn is_starved(&self) -> bool {
+        self.0
+            .upgrade()
+            .is_some_and(|shared| shared.starved.load(Ordering::Acquire))
+    }
+
+    /// From now on a read that would wait fails instead. What has arrived can
+    /// still be read: the stream ends where the transfer stopped.
+    ///
+    /// For good, not for one read: a command is on its way, and the decoder may
+    /// make a few more reads before it gets to it. Letting go of only the one
+    /// waiting would leave the next to wait out the whole stall.
+    pub fn release(&self) {
+        let Some(shared) = self.0.upgrade() else {
+            return;
+        };
+        shared.released.store(true, Ordering::Release);
+        // Under the lock: a read between its check and its wait would
+        // otherwise miss the wake-up and sleep through it.
+        let _filled = shared.lock();
+        shared.grown.notify_all();
     }
 }
 
@@ -87,6 +134,8 @@ impl ReadAhead {
             }),
             grown: Condvar::new(),
             abandoned: AtomicBool::new(false),
+            starved: AtomicBool::new(false),
+            released: AtomicBool::new(false),
         });
         let worker = Arc::clone(&shared);
         std::thread::Builder::new()
@@ -98,6 +147,11 @@ impl ReadAhead {
             pos: 0,
             len,
         })
+    }
+
+    /// The handle that lets go of a read waiting on this source.
+    pub fn release_handle(&self) -> ReadAheadRelease {
+        ReadAheadRelease(Arc::downgrade(&self.shared))
     }
 }
 
@@ -157,11 +211,20 @@ impl Read for ReadAhead {
                     return read_direct(direct, &mut self.pos, buf);
                 }
             }
+            if self.shared.released.load(Ordering::Acquire) {
+                self.shared.starved.store(false, Ordering::Release);
+                return Err(io::Error::new(
+                    io::ErrorKind::ConnectionAborted,
+                    READ_RELEASED,
+                ));
+            }
+            self.shared.starved.store(true, Ordering::Release);
             filled = self
                 .shared
                 .grown
                 .wait(filled)
                 .unwrap_or_else(|poisoned| poisoned.into_inner());
+            self.shared.starved.store(false, Ordering::Release);
         }
     }
 }

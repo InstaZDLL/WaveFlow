@@ -1,3 +1,4 @@
+import { useBlockedTrackIds } from "../../../lib/networkTracks";
 import { type LibraryTrackRow } from "../../../lib/tauri/browse";
 import { type TracksView, type Translator } from "./libraryTypes";
 import {
@@ -153,6 +154,7 @@ export function TrackTable({
   tagValues,
 }: TrackTableProps) {
   "use no memo";
+  const blockedIds = useBlockedTrackIds();
   const unknown = t("library.table.unknown");
   // Right-click on a server row. The local menu speaks `Track` — a rowid, a
   // file, a rating — which a server row has none of, so those rows were handed
@@ -429,6 +431,7 @@ export function TrackTable({
           const isCurrent = localId !== null && localId === currentTrackId;
           const isMenuOpen = localId !== null && openMenuTrackId === localId;
           const isRowSelected = localId !== null && isSelected(localId);
+          const isBlocked = localId !== null && blockedIds.has(localId);
           return (
             // Row can't be a <button> because it contains action buttons
             // (heart, more-options); nested buttons are invalid HTML.
@@ -452,6 +455,9 @@ export function TrackTable({
                   onPlayTrack(index);
                 }
               }}
+              title={
+                isBlocked ? t("library.trackOnUnreachableShare") : undefined
+              }
               // With single-click play the first click has already started
               // the track; playing again here would restart it twice more.
               onDoubleClick={() => {
@@ -520,6 +526,8 @@ export function TrackTable({
               data-track-row
               data-track-last={index === tracks.length - 1 ? "" : undefined}
               className={`group grid gap-4 px-5 items-center select-none transition-colors cursor-pointer border-b border-zinc-100 dark:border-zinc-800/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500 ${
+                isBlocked ? "opacity-40 " : ""
+              }${
                 isRowSelected
                   ? "bg-blue-500/15 ring-1 ring-inset ring-blue-500/40 dark:bg-blue-500/20"
                   : isCurrent

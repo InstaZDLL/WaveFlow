@@ -780,7 +780,8 @@
       "filePath": "Pfad",
       "moveUp": "Spalte {{column}} nach oben",
       "moveDown": "Spalte {{column}} nach unten"
-    }
+    },
+    "trackOnUnreachableShare": "Netzwerkfreigabe nicht erreichbar, und dieser Titel ist nicht im Cache"
   },
   "liked": {
     "badge": "Sammlung",
@@ -1062,7 +1063,8 @@
         "offline": "Der Offline-Modus ist aktiviert",
         "unknown": "Die Wiedergabe ist fehlgeschlagen",
         "files-failed": "Diese Dateien können nicht abgespielt werden",
-        "picker-failed": "Die Dateiauswahl lässt sich nicht öffnen"
+        "picker-failed": "Die Dateiauswahl lässt sich nicht öffnen",
+        "network-source-lost": "Die Verbindung zur Netzwerkfreigabe wurde getrennt"
       },
       "notice": {
         "exclusive-refused": "Dieses Gerät verweigert den Exklusivmodus: Wiedergabe im gemeinsamen Modus",
@@ -3357,6 +3359,60 @@
         "title": "Neuigkeiten-Schaltfläche in der oberen Leiste",
         "subtitle": "Ausgeblendet bleibt das Fenster hier und unter „Über“ erreichbar."
       }
+    },
+    "networkLibrary": {
+      "title": "Netzwerkfreigaben (WebDAV, SMB)",
+      "subtitle": "Eine Freigabe direkt lesen, ohne dass das System sie einbindet. WaveFlow liest nur: Dateien dort werden nie verändert.",
+      "add": "Freigabe hinzufügen",
+      "addConfirm": "Hinzufügen und scannen",
+      "cancel": "Abbrechen",
+      "test": "Verbindung testen",
+      "save": "Speichern",
+      "kind": "Art der Freigabe",
+      "kinds": {
+        "webdav": "WebDAV",
+        "smb": "SMB"
+      },
+      "name": "Name (optional)",
+      "address": "Adresse",
+      "addressHint": {
+        "webdav": "https://nas.local/dav",
+        "smb": "nas.local oder 192.168.1.10"
+      },
+      "folder": "Ordner auf der Freigabe (optional)",
+      "username": "Benutzername",
+      "password": "Passwort",
+      "passwordNotice": "Das Passwort wird unverschlüsselt in der Profildatenbank gespeichert, wie die anderen Zugangsdaten von WaveFlow, und gelangt nie in einen Profilexport oder ein Backup. Ein Konto nur mit Leserechten ist die bessere Wahl.",
+      "plainHttpWarning": "Ich bin einverstanden, dieses Passwort und meine Musik unverschlüsselt zu senden: Bei http:// kann sie jeder in diesem Netzwerk lesen.",
+      "plainHttpBadge": "Unverschlüsselte Verbindung (http://)",
+      "passwordMissing": "Das Passwort muss neu eingegeben werden: Es wird mit einem importierten Profil oder wiederhergestellten Backup nicht übernommen.",
+      "changePassword": "Passwort ändern",
+      "remove": "Entfernen",
+      "removeConfirm": "Diese Freigabe und ihre Titel entfernen?",
+      "state": {
+        "online": "Verbunden",
+        "unknown": "Noch nicht geprüft",
+        "unreachable": "Nicht erreichbar",
+        "auth_failed": "Zugriff verweigert"
+      },
+      "failure": {
+        "offline": "Der Offline-Modus ist aktiv.",
+        "unreachable": "Keine Antwort unter dieser Adresse.",
+        "handshake": "Dieser Server hat die Verbindung während der Aushandlung getrennt. WaveFlow spricht SMB 2 und neuer: Ein auf SMB 1 beschränkter Server verhält sich genau so.",
+        "tls": "Das Zertifikat dieses Servers wird abgelehnt. WaveFlow prüft Zertifikate immer: Nötig ist ein gültiges, oder http:// in einem vertrauenswürdigen Netzwerk.",
+        "auth": "Benutzername oder Passwort abgelehnt.",
+        "session-refused": "Dieser Server hat die Sitzung abgelehnt, ohne das Passwort zu beurteilen. Dieses Konto hat vielleicht keinen Zugriff, oder der Server verlangt eine Verschlüsselung, die diese Verbindung nicht nutzen kann.",
+        "not-found": "Diese Freigabe oder dieser Ordner existiert nicht.",
+        "protocol": "Dieser Server antwortet nicht wie eine Freigabe.",
+        "plain-http": "Eine http://-Adresse braucht unten deine Zustimmung."
+      },
+      "testOk_one": "Verbunden: {{count}} Eintrag in diesem Ordner.",
+      "testOk_other": "Verbunden: {{count}} Einträge in diesem Ordner.",
+      "cacheLimit": "Obergrenze (GB)",
+      "cacheClear": "Cache leeren",
+      "share": "Name der Freigabe",
+      "cacheUsed_one": "Lokaler Cache: {{size}}, {{count}} Titel",
+      "cacheUsed_other": "Lokaler Cache: {{size}}, {{count}} Titel"
     }
   },
   "scanProgress": {

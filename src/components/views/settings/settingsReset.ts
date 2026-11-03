@@ -194,6 +194,10 @@ import {
   clearGlobalShortcuts,
   globalShortcutsStatus,
 } from "../../../lib/tauri/globalShortcuts";
+import {
+  NETWORK_CACHE_LIMIT_EVENT,
+  notifyNetworkCacheLimitChanged,
+} from "../../../lib/tauri/networkLibrary";
 
 /**
  * The live state a reset has to go through rather than around: the theme
@@ -1116,6 +1120,20 @@ const ACCESSORS: Record<SettingKey, SettingAccessor> = {
   },
 
   // ---- Storage and backups ---------------------------------------------
+  "network.cache_max_gb": afterReset(
+    profileRow("network.cache_max_gb", {
+      parse: (raw) => {
+        const value = Number.parseInt(raw ?? "", 10);
+        return Number.isFinite(value)
+          ? value
+          : SETTINGS["network.cache_max_gb"].defaultValue;
+      },
+      serialize: String,
+      valueType: "int",
+      event: NETWORK_CACHE_LIMIT_EVENT,
+    }),
+    notifyNetworkCacheLimitChanged,
+  ),
   "media.clips_in_library": command(
     "media.clips_in_library",
     getClipsInLibrary,

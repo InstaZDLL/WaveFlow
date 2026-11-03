@@ -159,7 +159,9 @@ pub async fn track_spectrogram(
     drop(pool);
     let (path, duration_ms, title) =
         row.ok_or_else(|| AppError::Other(format!("track {track_id} not found")))?;
-    let path = PathBuf::from(path);
+    let path = crate::netlib::local_copy(&path).ok_or_else(|| {
+        AppError::Other("this track is on a network share and is not cached yet".into())
+    })?;
     let meta = {
         let path = path.clone();
         tokio::task::spawn_blocking(move || std::fs::metadata(path))

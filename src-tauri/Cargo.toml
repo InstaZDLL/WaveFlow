@@ -20,4 +20,10 @@ members = ["crates/core", "crates/app", "crates/plugin-sdk", "crates/syncedlyric
 # Patch entries MUST live at the workspace root — Cargo silently ignores
 # `[patch.crates-io]` declared in a workspace member crate.
 glib = { path = "vendor/glib-0.18.5" }
+# smb2 0.39.0 does not announce SMB2_GLOBAL_CAP_ENCRYPTION, so a Samba share
+# that requires encryption refuses the session, and it derives a 256-bit signing
+# key under AES-256, so such a session cannot sign. Two lines; the ciphers were
+# already there. See vendor/smb2-0.39.0/PATCHES.md, which also says when to drop
+# this copy.
+smb2 = { path = "vendor/smb2-0.39.0" }
 
