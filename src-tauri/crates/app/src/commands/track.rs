@@ -671,23 +671,32 @@ pub struct RatingOutcome {
 /// Ogg, an Opus or an M4A went on never reaching the file for as long as
 /// the write reported success.
 ///
-/// An error is only the rehash failing on a file just written: the scanner
-/// would then misjudge the row on its next pass, so that one goes to the
-/// caller, ahead of the rating. A write that failed is `false`, because a
-/// `.dff` has no writable tag block and a star is not lost over that.
+/// An error is the rehash failing on a file just written, or a blocking task
+/// that died: the scanner would then misjudge the row on its next pass, so
+/// that goes to the caller, ahead of the rating. A write that failed is
+/// `false`, because a `.dff` has no writable tag block and a star is not lost
+/// over that.
 pub(crate) async fn write_rating_and_rehash(
     pool: &sqlx::SqlitePool,
     track_id: i64,
     path: &std::path::Path,
     rating: Option<u8>,
 ) -> AppResult<bool> {
-    if let Err(err) = write_rating_to_file(path, rating) {
+    let owned = path.to_path_buf();
+    let written = tokio::task::spawn_blocking(move || write_rating_to_file(&owned, rating))
+        .await
+        .map_err(|e| crate::error::AppError::Other(format!("rating write join: {e}")))?;
+    if let Err(err) = written {
         tracing::warn!(track_id, ?err, "rating tag write failed — DB-only");
         return Ok(false);
     }
     // Whatever the check below finds, the file was rewritten.
     super::edit::rehash_track_file(pool, track_id, path).await?;
-    match super::scan::read_file_rating(path) {
+    let owned = path.to_path_buf();
+    let found = tokio::task::spawn_blocking(move || super::scan::read_file_rating(&owned))
+        .await
+        .map_err(|e| crate::error::AppError::Other(format!("rating check join: {e}")))?;
+    match found {
         Ok(found) if found.is_some() == rating.is_some() => Ok(true),
         Ok(found) => {
             tracing::warn!(track_id, ?found, ?rating, "rating tag write did not land");

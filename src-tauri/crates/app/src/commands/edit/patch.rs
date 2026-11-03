@@ -325,9 +325,14 @@ pub(super) fn apply_rating_id3v2(tag: &mut lofty::id3::v2::Id3v2Tag, rating: Opt
 }
 
 /// A rating on the 0-100 scale the text containers keep it on, which the
-/// scanner's `rating_from_number` reads back to the same byte.
+/// scanner's `rating_from_number` reads back to the same byte, for every
+/// value the star widget produces.
+///
+/// Never below 6. The command takes any byte, and one under half a star
+/// would otherwise land on 0, which reads as no rating, or on 1 to 5, which
+/// read as stars: 13 would come back as five of them.
 fn rating_as_percent(rating: u8) -> String {
-    ((rating as u16) * 100 / 255).to_string()
+    ((rating as u16) * 100 / 255).max(6).to_string()
 }
 
 /// Is this Vorbis comment a rating? `RATING`, or the `RATING:<email>` form.

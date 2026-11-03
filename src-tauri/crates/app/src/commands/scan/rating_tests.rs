@@ -716,3 +716,16 @@ async fn a_deep_rescan_brings_back_the_byte_in_the_file() {
         "a file with no rating says nothing, on this branch too"
     );
 }
+
+/// The command takes any byte. One under half a star stays a small rating in
+/// the text containers, rather than none at all, or five stars.
+#[tokio::test]
+async fn a_byte_under_half_a_star_stays_a_small_rating() {
+    let library = Library::new().await;
+    for byte in [1u8, 3, 13, 15] {
+        let path = add_file(&library, &format!("{byte}.flac"));
+        library.scan().await;
+        rate_in_the_app(&library, &path, Some(byte)).await;
+        assert_eq!(read_file_rating(&path).unwrap(), Some(15), "{byte}");
+    }
+}
