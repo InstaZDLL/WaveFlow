@@ -3459,7 +3459,6 @@
       "changePassword": "Cambia la password",
       "remove": "Rimuovi",
       "removeConfirm": "Rimuovere questa condivisione e i suoi brani?",
-      "noLibrary": "Crea prima una libreria.",
       "state": {
         "online": "Connesso",
         "unknown": "Non ancora verificato",

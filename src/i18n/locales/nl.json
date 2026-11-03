@@ -3389,7 +3389,6 @@
       "changePassword": "Wachtwoord wijzigen",
       "remove": "Verwijderen",
       "removeConfirm": "Deze share en de nummers ervan verwijderen?",
-      "noLibrary": "Maak eerst een bibliotheek aan.",
       "state": {
         "online": "Verbonden",
         "unknown": "Nog niet gecontroleerd",

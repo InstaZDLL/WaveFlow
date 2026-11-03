@@ -3460,7 +3460,6 @@
       "changePassword": "Alterar a palavra-passe",
       "remove": "Remover",
       "removeConfirm": "Remover esta partilha e as suas faixas?",
-      "noLibrary": "Crie primeiro uma biblioteca.",
       "state": {
         "online": "Ligado",
         "unknown": "Ainda não verificado",

@@ -3459,7 +3459,6 @@
       "changePassword": "Changer le mot de passe",
       "remove": "Retirer",
       "removeConfirm": "Retirer ce partage et ses titres ?",
-      "noLibrary": "Créez d'abord une bibliothèque.",
       "state": {
         "online": "Connecté",
         "unknown": "Pas encore vérifié",

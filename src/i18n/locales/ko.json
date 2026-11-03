@@ -3387,7 +3387,6 @@
       "changePassword": "비밀번호 변경",
       "remove": "제거",
       "removeConfirm": "이 공유와 곡을 제거할까요?",
-      "noLibrary": "먼저 라이브러리를 만드세요.",
       "state": {
         "online": "연결됨",
         "unknown": "아직 확인 안 됨",

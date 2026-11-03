@@ -3387,7 +3387,6 @@
       "changePassword": "パスワードを変更",
       "remove": "削除",
       "removeConfirm": "この共有とその曲を削除しますか?",
-      "noLibrary": "先にライブラリを作成してください。",
       "state": {
         "online": "接続済み",
         "unknown": "未確認",

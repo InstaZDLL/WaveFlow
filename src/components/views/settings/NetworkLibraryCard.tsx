@@ -64,7 +64,7 @@ const buttonClass =
 export function NetworkLibraryCard({ language }: { language: string }) {
   const { t } = useTranslation();
   const sources = useNetworkSources();
-  const { selectedLibraryId, libraries, refresh } = useLibrary();
+  const { selectedLibraryId, libraries, createLibrary, refresh } = useLibrary();
   const { activeProfile } = useProfile();
   const [form, setForm] = useState<NetworkSourceInput | null>(null);
   const [busy, setBusy] = useState(false);
@@ -121,14 +121,16 @@ export function NetworkLibraryCard({ language }: { language: string }) {
 
   const onAdd = async () => {
     if (!form) return;
-    const libraryId = selectedLibraryId ?? libraries[0]?.id;
-    if (libraryId == null) {
-      setError(t("settings.networkLibrary.noLibrary"));
-      return;
-    }
     setBusy(true);
     setError(null);
     try {
+      let libraryId = selectedLibraryId ?? libraries[0]?.id;
+      if (libraryId == null) {
+        const created = await createLibrary({
+          name: t("onboarding.defaultLibraryName"),
+        });
+        libraryId = created.id;
+      }
       const added = await addNetworkSource(libraryId, withConsent(form));
       setOutcome(added.test);
       if (added.folderId != null) {

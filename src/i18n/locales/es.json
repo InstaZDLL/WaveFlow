@@ -3459,7 +3459,6 @@
       "changePassword": "Cambiar la contraseña",
       "remove": "Quitar",
       "removeConfirm": "¿Quitar este recurso y sus canciones?",
-      "noLibrary": "Crea primero una biblioteca.",
       "state": {
         "online": "Conectado",
         "unknown": "Aún sin comprobar",

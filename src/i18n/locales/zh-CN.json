@@ -3387,7 +3387,6 @@
       "changePassword": "更改密码",
       "remove": "移除",
       "removeConfirm": "移除此共享及其曲目?",
-      "noLibrary": "请先创建音乐库。",
       "state": {
         "online": "已连接",
         "unknown": "尚未检查",

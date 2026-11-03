@@ -3389,7 +3389,6 @@
       "changePassword": "Passwort ändern",
       "remove": "Entfernen",
       "removeConfirm": "Diese Freigabe und ihre Titel entfernen?",
-      "noLibrary": "Lege zuerst eine Mediathek an.",
       "state": {
         "online": "Verbunden",
         "unknown": "Noch nicht geprüft",

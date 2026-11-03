@@ -3389,7 +3389,6 @@
       "changePassword": "Parolayı değiştir",
       "remove": "Kaldır",
       "removeConfirm": "Bu paylaşım ve parçaları kaldırılsın mı?",
-      "noLibrary": "Önce bir kitaplık oluşturun.",
       "state": {
         "online": "Bağlı",
         "unknown": "Henüz denetlenmedi",

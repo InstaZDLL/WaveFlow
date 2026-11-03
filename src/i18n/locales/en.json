@@ -3389,7 +3389,6 @@
       "changePassword": "Change the password",
       "remove": "Remove",
       "removeConfirm": "Remove this share and its tracks?",
-      "noLibrary": "Create a library first.",
       "state": {
         "online": "Connected",
         "unknown": "Not checked yet",
