@@ -618,7 +618,7 @@ A station is not decoded from the socket. [`audio::live`](../../src-tauri/crates
 - **Bounded requests**: a playlist is read up to 1 MiB, a segment up to 16 MiB, each request within 30 s. Durations that are not ones (`inf`, `NaN`, over an hour) fall back to the target, and a byte rate outside 800 B/s – 1 MB/s is not trusted with the bound or the lag. An HLS station has no ICY: its title stays the station's.
 - **The address rule of a station added by hand**: when the URL played is public, every playlist entry and every redirect must be public too (`web_radio_custom::may_open`) — a playlist on the internet cannot make the player reach the user's router; a station on the local network may name local segments.
 
-**Not covered.** symphonia decodes AAC-LC only, so an HE-AAC stream — BBC 6 Music, several HLS stations, and the Icecast stations the directory lists as "AAC+" (335 of the 3 000) — plays its LC core at 22.05 or 24 kHz, without its upper band. That was already so before this. [`rusty_aac`](#aac-beyond-symphonia) has the SBR decoder now, and that section says why a stream declaring plain AAC-LC stays on symphonia.
+**Not covered.** symphonia decodes AAC-LC only, so an HE-AAC stream — BBC 6 Music, several HLS stations, and the Icecast stations the directory lists as "AAC+" (335 of the 3 000) — plays its LC core at 22.05 or 24 kHz, without its upper band. That was already so before this and it stays so: [`rusty_aac`](#aac-beyond-symphonia) has an SBR decoder, but an ADTS header cannot declare SBR, so these streams read as plain AAC-LC and stay on symphonia.
 
 ## A-B loop
 
