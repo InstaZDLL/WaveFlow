@@ -214,8 +214,8 @@ fast_image_resize = "6"
 # today, future families). default-features disabled because we don't
 # rasterise text or embedded raster — the SVGs are pure shapes/gradients,
 # which trims ~2 MB of font + image-codec deps from the bundle.
-resvg = { version = "0.48", default-features = false }
-usvg = { version = "0.48", default-features = false }
+resvg = { version = "0.49", default-features = false }
+usvg = { version = "0.49", default-features = false }
 tiny-skia = "0.12"
 anyhow = "1"
 
@@ -229,7 +229,7 @@ sha2 = "0.11"
 # OS-level media controls: SMTC on Windows, MPRIS on Linux,
 # MediaRemoteCommandCenter on macOS. Souvlaki abstracts the three
 # behind a single API; the integration lives in `media_controls.rs`.
-souvlaki = "0.8"
+souvlaki = "0.9"
 
 # Build proper file:// URIs for cover art paths handed to MPRIS / SMTC.
 # `url` is already in our transitive tree via reqwest.
