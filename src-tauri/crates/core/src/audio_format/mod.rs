@@ -9,6 +9,7 @@
 //! The future `waveflow-server` will reuse the same code path when
 //! transcoding DSD uploads.
 
+pub mod aac;
 pub mod dsd;
 #[cfg(feature = "sqlite")]
 pub mod format_filter;
@@ -21,6 +22,15 @@ pub mod opus;
 #[cfg(not(feature = "opus"))]
 #[path = "opus_off.rs"]
 pub mod opus;
+
+use symphonia::core::codecs::registry::CodecRegistry;
+
+/// The decoders every build of [`opus::codecs`] carries on top of symphonia's.
+fn register_own_decoders(registry: &mut CodecRegistry) {
+    // Same id as symphonia's AAC decoder and the same tier: this one
+    // replaces it, and still hands it what it accepts.
+    registry.register_audio_decoder::<aac::AacDecoder>();
+}
 
 /// A symphonia decoder's short name as the format chip spells codecs:
 /// `mp3` → `MP3`, every `pcm_*` → `PCM`, `vorbis` → `Vorbis`. One spelling
