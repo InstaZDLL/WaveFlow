@@ -156,7 +156,9 @@ fn read_facts(path: &Path, artwork_dir: &Path) -> FileFacts {
         Ok(tagged) => {
             use lofty::file::TaggedFileExt;
             use lofty::prelude::{Accessor, AudioFile};
-            facts.duration_ms = tagged.properties().duration().as_millis() as u64;
+            facts.duration_ms = waveflow_core::audio_format::held_duration_ms(path)
+                .map(|ms| ms as u64)
+                .unwrap_or(tagged.properties().duration().as_millis() as u64);
             if let Some(tag) = tagged.primary_tag().or_else(|| tagged.first_tag()) {
                 if let Some(title) = tag.title().filter(|t| !t.trim().is_empty()) {
                     facts.title = title.into_owned();

@@ -225,6 +225,19 @@ A seek's first audio takes one frame's decode at most, and nothing inside the
 frame already decoded. WavPack blocks are short and fast: 40 to 1 000 times
 real time, a few milliseconds a block.
 
+**A file cut short ends where it ends.** A download or a copy that stopped early
+still announces its whole length, in Monkey's Audio's header and seek table as in
+WavPack's first block. What is missing is not damage to skip over: both readers
+work out what the file really holds, the Monkey's Audio one from the seek table and
+the WavPack one from the last block in the file's tail, and declare that length, so
+the track ends with its last whole frame or packet and the queue moves on. A frame
+damaged in the middle of a whole file is still skipped and what follows still plays.
+A seek into the missing part lands on the end at once, decoding nothing. The scanner
+and files played directly take their length from there too
+([`held_duration_ms`](../../src-tauri/crates/core/src/audio_format/mod.rs)), since
+lofty repeats the header, and the analysis measures what the file holds. A file cut
+inside its first frame or packet plays nothing, and is refused like a broken one.
+
 **Seeks land on the exact sample.** Both readers answer `actual_ts ==
 required_ts`, WavPack by carrying the head of its block as `trim_start` and
 Monkey's Audio by starting its cursor inside the frame, so a seek plays nothing

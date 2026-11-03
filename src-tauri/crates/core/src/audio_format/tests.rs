@@ -86,6 +86,11 @@ const REFERENCE: &[(&str, usize, &str)] = &[
         "1329a81edcb357f7bb1d90a0f84e0cca6f5d3df25246c5942b5698926bf83ba6",
     ),
     (
+        "s16_51_blocks.wv",
+        72000,
+        "b56046ed669d6911af21a28b11d5d4550172a6c0d1ebf618d033c2a7c843be30",
+    ),
+    (
         "seek_blocks.wv",
         80000,
         "3f7f3531ae4997e65e640a3e45d7992767c8bec10a5d71649f73dab44021fab3",
@@ -462,6 +467,209 @@ fn a_tag_ahead_of_a_hybrid_file_does_not_hide_it() {
     let path = dir.path().join("playable.wv");
     fs::write(&path, playable).expect("write");
     assert!(is_scannable_audio(&path));
+}
+
+/// A copy of `name` cut to `len` bytes.
+fn cut_short(dir: &Path, name: &str, len: usize) -> PathBuf {
+    let path = dir.join(format!("cut-{len}-{name}"));
+    let bytes = fs::read(fixture(name)).expect("read");
+    fs::write(&path, &bytes[..len]).expect("write");
+    path
+}
+
+/// Decode to the end, answering the audio and how many packets failed.
+fn decode_counting_failures(path: &Path) -> (Vec<u8>, usize) {
+    let (mut format, mut decoder) = open(path).expect("open");
+    let mut pcm = Vec::new();
+    let mut failures = 0;
+    while let Some(packet) = format.next_packet().expect("next packet") {
+        match decoder.decode(&packet) {
+            Ok(decoded) => append(&decoded, &mut pcm),
+            Err(_) => failures += 1,
+        }
+    }
+    (pcm, failures)
+}
+
+/// A download or a copy cut short still announces the whole file. What is
+/// missing is the end of the track, not a run of damaged frames: each of those
+/// costs a decoder and two lines of log, up to thousands of them, with the
+/// track silent all the while.
+#[test]
+fn a_monkeys_audio_file_cut_short_ends_with_its_last_whole_frame() {
+    use ape_decoder::format::parse;
+
+    const NAME: &str = "seek_frames_c1000.ape";
+    const FRAME: usize = 73_728;
+    const FRAME_BYTES: usize = FRAME * 4;
+    let dir = tempfile::tempdir().expect("tempdir");
+    let info = parse(&mut std::io::Cursor::new(
+        fs::read(fixture(NAME)).expect("read"),
+    ))
+    .expect("parse");
+    assert_eq!(info.header.total_frames, 3, "the fixture has three frames");
+    let clean = decode_all(&fixture(NAME));
+
+    for (cut_at, held) in [
+        // Inside the second frame, and on the very start of the third.
+        (info.seek_byte(1) as usize + 100, 1),
+        (info.seek_byte(2) as usize, 2),
+        // Inside the last, which has no next frame to mark its end.
+        (info.seek_byte(2) as usize + 100, 2),
+    ] {
+        let path = cut_short(dir.path(), NAME, cut_at);
+        let (pcm, failures) = decode_counting_failures(&path);
+        assert_eq!(failures, 0, "cut at {cut_at}: nothing to fail on");
+        assert_eq!(pcm.len(), held * FRAME_BYTES, "cut at {cut_at}");
+        assert_eq!(pcm[..], clean[..pcm.len()], "cut at {cut_at}");
+
+        let (format, _) = open(&path).expect("open");
+        let track = format.default_track(TrackType::Audio).expect("track");
+        assert_eq!(
+            track.num_frames,
+            Some((held * FRAME) as u64),
+            "cut at {cut_at}"
+        );
+
+        let expected_ms = (held * FRAME * 1000 / 44_100) as i64;
+        assert_eq!(super::held_duration_ms(&path), Some(expected_ms));
+        assert!(is_scannable_audio(&path), "what it holds still plays");
+        let stream = probe_playable_stream(&path).expect("playable");
+        assert_eq!(stream.duration_ms, expected_ms);
+        assert!(
+            crate::analysis::analyze_file(&path).is_ok(),
+            "cut at {cut_at}"
+        );
+    }
+
+    // A whole file is left to its header.
+    assert_eq!(super::held_duration_ms(&fixture(NAME)), None);
+
+    // Inside the first frame there is nothing to play.
+    let path = cut_short(dir.path(), NAME, info.seek_byte(0) as usize + 100);
+    assert!(!is_scannable_audio(&path));
+    assert!(open(&path).is_err());
+    assert_eq!(super::held_duration_ms(&path), None);
+}
+
+/// A seek into what the file no longer holds lands on its end, at once, from
+/// wherever playback was. No frame is decoded for it.
+#[test]
+fn a_seek_past_the_cut_ends_the_track_at_once() {
+    use ape_decoder::format::parse;
+
+    let dir = tempfile::tempdir().expect("tempdir");
+    let info = parse(&mut std::io::Cursor::new(
+        fs::read(fixture("seek_frames_c1000.ape")).expect("read"),
+    ))
+    .expect("parse");
+    let ape = cut_short(
+        dir.path(),
+        "seek_frames_c1000.ape",
+        info.seek_byte(1) as usize + 100,
+    );
+    let wavpack_len = fs::metadata(fixture("seek_blocks.wv")).expect("len").len() as usize;
+    let wavpack = cut_short(dir.path(), "seek_blocks.wv", wavpack_len / 2);
+
+    for path in [ape, wavpack] {
+        let (mut format, mut decoder) = open(&path).expect("open");
+        let held = format
+            .default_track(TrackType::Audio)
+            .and_then(|track| track.num_frames)
+            .expect("length");
+        let first = format.next_packet().expect("packet").expect("a packet");
+        decoder.decode(&first).expect("decode");
+
+        let seeked = format
+            .seek(
+                SeekMode::Accurate,
+                SeekTo::Timestamp {
+                    ts: Timestamp::new(held as i64 + 5_000),
+                    track_id: 0,
+                },
+            )
+            .expect("a seek inside the announced length is not an error");
+        assert_eq!(seeked.actual_ts.get(), held as i64, "{}", path.display());
+        decoder.reset();
+        let mut left = 0;
+        while let Some(packet) = format.next_packet().expect("next") {
+            left += decoder.decode(&packet).expect("decode").frames();
+        }
+        assert_eq!(left, 0, "{}", path.display());
+    }
+}
+
+/// The same, for WavPack: stereo, and multichannel, whose packets are several
+/// blocks, so a cut can fall between two blocks of one packet.
+#[test]
+fn a_wavpack_file_cut_short_ends_with_its_last_whole_block() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    for (name, frame_bytes) in [("seek_blocks.wv", 4usize), ("s16_51_blocks.wv", 12)] {
+        let whole = fs::read(fixture(name)).expect("read");
+        let clean = decode_all(&fixture(name));
+        assert_eq!(super::held_duration_ms(&fixture(name)), None, "{name}");
+
+        for fraction in [3, 2] {
+            let path = cut_short(dir.path(), name, whole.len() * fraction / 4);
+            let (pcm, failures) = decode_counting_failures(&path);
+            assert_eq!(failures, 0, "{name}");
+            assert!(!pcm.is_empty(), "{name}");
+            assert!(pcm.len() < clean.len(), "{name}");
+            assert_eq!(pcm[..], clean[..pcm.len()], "{name}");
+
+            let frames = (pcm.len() / frame_bytes) as u64;
+            let (format, _) = open(&path).expect("open");
+            let track = format.default_track(TrackType::Audio).expect("track");
+            assert_eq!(track.num_frames, Some(frames), "{name}: declared length");
+
+            let rate = if name == "s16_51_blocks.wv" {
+                48_000
+            } else {
+                44_100
+            };
+            assert_eq!(
+                super::held_duration_ms(&path),
+                Some((frames * 1000 / rate) as i64),
+                "{name}"
+            );
+            assert!(is_scannable_audio(&path), "{name}");
+        }
+    }
+
+    // Inside the first packet there is nothing to play, in either layout.
+    for name in ["s16_51.wv", "s16_stereo.wv"] {
+        let len = fs::metadata(fixture(name)).expect("len").len() as usize;
+        let path = cut_short(dir.path(), name, len / 2);
+        assert!(!is_scannable_audio(&path), "{name}");
+        assert!(open(&path).is_err(), "{name}");
+    }
+}
+
+/// A damaged frame in the middle of a whole file is not the end of it: it is
+/// skipped and what follows plays, which is what tells it from a file cut short.
+#[test]
+fn a_damaged_frame_in_a_whole_file_is_skipped_and_the_rest_plays() {
+    use ape_decoder::format::parse;
+
+    const NAME: &str = "seek_frames_c1000.ape";
+    let mut bytes = fs::read(fixture(NAME)).expect("read");
+    let info = parse(&mut std::io::Cursor::new(bytes.clone())).expect("parse");
+    let clean = decode_all(&fixture(NAME));
+    let at = info.seek_byte(1) as usize + 500;
+    bytes[at] ^= 0xff;
+    let dir = tempfile::tempdir().expect("tempdir");
+    let path = dir.path().join("damaged.ape");
+    fs::write(&path, &bytes).expect("write");
+
+    let (pcm, failures) = decode_counting_failures(&path);
+    assert_eq!(failures, 1, "the one damaged frame, once");
+    let frame_bytes = 73_728 * 4;
+    assert_eq!(pcm[..frame_bytes], clean[..frame_bytes]);
+    assert_eq!(
+        pcm[frame_bytes..],
+        clean[frame_bytes * 2..],
+        "what follows plays"
+    );
 }
 
 /// Older Monkey's Audio files are outside the crate. Refused, and with the

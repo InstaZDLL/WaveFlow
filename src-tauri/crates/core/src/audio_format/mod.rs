@@ -45,6 +45,20 @@ pub fn probe() -> &'static Probe {
     })
 }
 
+/// How long the file at `path` really plays, when it is a WavPack or Monkey's
+/// Audio file cut short of the length its header announces. lofty reads that
+/// header and repeats it. `None` for everything else, a whole file included.
+pub fn held_duration_ms(path: &std::path::Path) -> Option<i64> {
+    let extension = path.extension()?.to_str()?;
+    if extension.eq_ignore_ascii_case("wv") {
+        wavpack::held_duration_ms(path)
+    } else if extension.eq_ignore_ascii_case("ape") {
+        ape::held_duration_ms(path)
+    } else {
+        None
+    }
+}
+
 /// The decoders every build of [`opus::codecs`] carries on top of symphonia's.
 fn register_own_decoders(registry: &mut CodecRegistry) {
     registry.register_audio_decoder::<wavpack::WavPackDecoder>();

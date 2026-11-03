@@ -204,6 +204,20 @@ fn run_seek(path: &str) -> Result<(), String> {
     Ok(())
 }
 
+/// What the analysis pass makes of the file, and how long it takes.
+fn run_analyze(path: &str) -> Result<(), String> {
+    let started = Instant::now();
+    let analysis = waveflow_core::analysis::analyze_file(std::path::Path::new(path))?;
+    println!(
+        "peak={:.4} loudness={:?} bpm={:?} took={:.1}s",
+        analysis.peak,
+        analysis.loudness_lufs,
+        analysis.bpm,
+        started.elapsed().as_secs_f64()
+    );
+    Ok(())
+}
+
 /// Pull packets at `speed` times real time, as the decoder thread does while a
 /// track plays, and report how long any packet kept it waiting. The first is
 /// left out: nothing is playing yet when it is asked for.
@@ -253,11 +267,12 @@ fn main() {
     let result = match (args.get(1).map(String::as_str), args.get(2), args.get(3)) {
         (Some("decode"), Some(path), Some(out)) => run_decode(path, out),
         (Some("seek"), Some(path), _) => run_seek(path),
+        (Some("analyze"), Some(path), _) => run_analyze(path),
         (Some("pace"), Some(path), speed) => {
             run_pace(path, speed.and_then(|s| s.parse().ok()).unwrap_or(1.0))
         }
         _ => Err(
-            "usage: format_conformance decode <in> <out.raw> | seek <in> | pace <in> [speed]"
+            "usage: format_conformance decode <in> <out.raw> | seek <in> | pace <in> [speed] | analyze <in>"
                 .into(),
         ),
     };

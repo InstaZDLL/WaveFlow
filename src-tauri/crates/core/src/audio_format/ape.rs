@@ -105,6 +105,50 @@ const FORMAT_INFO: FormatInfo = FormatInfo {
 /// The largest frame of PCM the crate decodes.
 const MAX_FRAME_BYTES: u64 = 64 * 1024 * 1024;
 
+/// How many frames the file holds every byte of.
+///
+/// The header and the seek table describe the file as it was written, so a
+/// download or a copy cut short still announces all of it. A frame only decodes
+/// whole, and past the cut there is nothing left to decode: what is missing is
+/// not damage to skip over but the end of this file. The last frame has no
+/// successor to mark its end, and the descriptor's size of the frame data does
+/// that for it; a file from before descriptors does not say, and that frame's
+/// checksum is what answers.
+fn frames_held(info: &ApeFileInfo) -> u32 {
+    let total = info.header.total_frames;
+    let junk = u64::from(info.junk_header_bytes);
+    let starts_in_file = info.seek_table[1..total as usize]
+        .partition_point(|start| start + junk <= info.file_bytes) as u32;
+    let data_bytes = info.ape_frame_data_bytes;
+    let last_is_cut = data_bytes > 0 && info.seek_byte(0) + data_bytes > info.file_bytes;
+    if starts_in_file + 1 == total && !last_is_cut {
+        total
+    } else {
+        starts_in_file
+    }
+}
+
+/// Blocks in the frames the file holds.
+fn blocks_held(info: &ApeFileInfo) -> u64 {
+    let held = frames_held(info);
+    if held == info.header.total_frames {
+        info.total_blocks as u64
+    } else {
+        u64::from(held) * u64::from(info.header.blocks_per_frame)
+    }
+}
+
+/// How long the Monkey's Audio file at `path` really plays, when it holds less
+/// than its header announces. `None` for a whole file, or an unreadable one.
+pub fn held_duration_ms(path: &Path) -> Option<i64> {
+    let mut file = std::io::BufReader::new(std::fs::File::open(path).ok()?);
+    let info = format::parse(&mut file).ok()?;
+    if unplayable(&info).is_some() || frames_held(&info) == info.header.total_frames {
+        return None;
+    }
+    Some((blocks_held(&info) * 1000 / u64::from(info.header.sample_rate)) as i64)
+}
+
 /// What keeps a parsed file from playing, or `None` when it would.
 fn unplayable(info: &ApeFileInfo) -> Option<&'static str> {
     let header = &info.header;
@@ -122,6 +166,9 @@ fn unplayable(info: &ApeFileInfo) -> Option<&'static str> {
     }
     if info.descriptor.version < MIN_VERSION {
         return Some("Monkey's Audio older than format 3950");
+    }
+    if frames_held(info) == 0 {
+        return Some("a Monkey's Audio file cut short inside its first frame");
     }
     if info.header.format_flags & APE_FORMAT_FLAG_FLOATING_POINT != 0 {
         return Some("floating-point Monkey's Audio");
@@ -234,7 +281,14 @@ impl<'s> ApeReader<'s> {
         }
         let header = &info.header;
 
-        let total = info.total_blocks as u64;
+        let total = blocks_held(&info);
+        if frames_held(&info) < header.total_frames {
+            tracing::warn!(
+                frames_held = frames_held(&info),
+                frames_announced = header.total_frames,
+                "ape: the file is cut short; it ends with its last whole frame"
+            );
+        }
         let mut params = AudioCodecParameters::new();
         params
             .for_codec(CODEC_ID_MONKEYS_AUDIO)
@@ -276,8 +330,10 @@ impl<'s> ApeReader<'s> {
         usize::from(self.info.block_align)
     }
 
+    /// The frames there are to play, which a file cut short has fewer of than
+    /// its header says.
     fn total_frames(&self) -> u32 {
-        self.info.header.total_frames
+        frames_held(&self.info)
     }
 
     /// The compressed bytes of `frame`, read from the stream and addressed
@@ -498,22 +554,33 @@ impl FormatReader for ApeReader<'_> {
                     .ok_or(Error::SeekError(SeekErrorKind::OutOfRange))?
             }
         };
-        let total = self.info.total_blocks as u64;
+        let total = blocks_held(&self.info);
         let Some(target) = u64::try_from(required_ts.get())
             .ok()
-            .filter(|target| *target <= total)
+            .filter(|target| *target <= self.info.total_blocks as u64)
+            // Into what a file cut short no longer holds: the end of the track,
+            // and the queue moves on, as at the end of any other.
+            .map(|target| target.min(total))
         else {
             return seek_error(SeekErrorKind::OutOfRange);
         };
 
+        // The end has no frame to decode, and nothing to wait for.
+        if target == total {
+            self.position = total;
+            self.current = None;
+            self.next_frame = self.total_frames();
+            self.next_skip = 0;
+            self.abandon_worker();
+            return Ok(SeekedTo {
+                track_id: 0,
+                required_ts,
+                actual_ts: Timestamp::new(total as i64),
+            });
+        }
+
         let blocks_per_frame = u64::from(self.info.header.blocks_per_frame);
-        // The end of the file is the end of the last frame, not the start of
-        // a frame that does not exist.
-        let frame = if target == total {
-            self.total_frames() - 1
-        } else {
-            (target / blocks_per_frame) as u32
-        };
+        let frame = (target / blocks_per_frame) as u32;
         let skip = (target - u64::from(frame) * blocks_per_frame) as usize * self.block_align();
 
         self.position = target;

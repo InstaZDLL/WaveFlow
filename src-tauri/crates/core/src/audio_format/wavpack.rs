@@ -116,11 +116,68 @@ pub fn refusal(path: &Path) -> Option<&'static str> {
         return Some("not a WavPack stream");
     }
     let mss = MediaSourceStream::new(Box::new(file), Default::default());
-    match WavPackReader::try_new(mss, FormatOptions::default()) {
+    // Not looking at the end of the file: this runs on every file of every
+    // scan, and a file cut short plays what it holds.
+    match WavPackReader::open(mss, FormatOptions::default(), false) {
         Ok(_) => None,
         Err(Error::Unsupported(reason)) => Some(reason),
         Err(_) => Some("not a WavPack stream"),
     }
+}
+
+/// How long the WavPack file at `path` really plays, when it holds less than
+/// its first block announces. `None` for a whole file, or an unreadable one.
+pub fn held_duration_ms(path: &Path) -> Option<i64> {
+    let mut file = std::fs::File::open(path).ok()?;
+    skip_id3v2(&mut file).ok()?;
+    let mss = MediaSourceStream::new(Box::new(file), Default::default());
+    let reader = WavPackReader::open(mss, FormatOptions::default(), true).ok()?;
+    let held = reader.total_frames?;
+    if reader
+        .declared_frames
+        .is_some_and(|declared| held >= declared)
+    {
+        return None;
+    }
+    let rate = reader.tracks[0]
+        .codec_params
+        .as_ref()?
+        .audio()?
+        .sample_rate?;
+    Some((held * 1000 / u64::from(rate)) as i64)
+}
+
+/// How far the audio in the file really goes, from the last block in its tail.
+///
+/// The first block states the length of the file as it was written, so one cut
+/// short still announces all of it. A block is at most 1 MiB, so its last one
+/// starts within this much of the end unless a large tag follows it, and then
+/// nothing is found and the announced length stands. A block the file does not
+/// hold all of, or the first half of a multichannel packet, does not play, so
+/// the audio ends where it starts. `None` when that cannot be told.
+fn frames_held<R: std::io::Read + Seek>(source: &mut R, declared: u64) -> Option<u64> {
+    use std::io::Read;
+
+    let len = source.seek(SeekFrom::End(0)).ok()?;
+    let tail_len = len.min(2 * u64::from(wavicle::format::MAX_BLOCK_SIZE));
+    source.seek(SeekFrom::Start(len - tail_len)).ok()?;
+    let mut tail = Vec::with_capacity(tail_len as usize);
+    source.take(tail_len).read_to_end(&mut tail).ok()?;
+
+    let mut before = tail.len();
+    while let Some(at) = tail[..before].windows(4).rposition(|w| w == MARKER) {
+        before = at;
+        let Some(Ok(header)) = tail.get(at..at + HEADER_LEN).map(parse_header) else {
+            continue;
+        };
+        let ends_at = header.block_index + u64::from(header.block_samples);
+        if header.block_samples == 0 || ends_at > declared {
+            continue;
+        }
+        let whole = at + header.block_len() <= tail.len() && header.flags.final_block();
+        return Some(if whole { ends_at } else { header.block_index });
+    }
+    None
 }
 
 /// Leave `file` at the end of the ID3v2 tag it starts with, if it has one.
@@ -333,7 +390,11 @@ pub struct WavPackReader<'s> {
     chapters: Option<ChapterGroup>,
     /// The first block with audio, read while opening.
     pending: Option<RawBlock>,
+    /// The frames there are to play, which a file cut short has fewer of than
+    /// its first block says.
     total_frames: Option<u64>,
+    /// What the first block says.
+    declared_frames: Option<u64>,
     /// `(first frame, frames, file offset)` of every packet found so far, in
     /// order. Filled up to the seek target and no further, since finding it
     /// walks the block headers.
@@ -345,7 +406,13 @@ pub struct WavPackReader<'s> {
 }
 
 impl<'s> WavPackReader<'s> {
-    pub fn try_new(mut mss: MediaSourceStream<'s>, opts: FormatOptions) -> Result<Self> {
+    pub fn try_new(mss: MediaSourceStream<'s>, opts: FormatOptions) -> Result<Self> {
+        Self::open(mss, opts, true)
+    }
+
+    /// `check_end` also looks for where the audio really ends, which takes a
+    /// read at the end of the file.
+    fn open(mut mss: MediaSourceStream<'s>, opts: FormatOptions, check_end: bool) -> Result<Self> {
         let start = mss.pos();
         let first = loop {
             match read_block(&mut mss)? {
@@ -354,6 +421,20 @@ impl<'s> WavPackReader<'s> {
                 None => return decode_error("wavpack: stream holds no audio"),
             }
         };
+        // A multichannel packet is several blocks, and one the file does not
+        // hold all of does not play: with no whole packet at all, this would
+        // open as a stream with nothing in it.
+        if !first.header.flags.final_block() {
+            let resume = mss.pos();
+            loop {
+                match read_block(&mut mss)? {
+                    Some(block) if block.header.flags.final_block() => break,
+                    Some(_) => {}
+                    None => return decode_error("wavpack: file ends inside its first packet"),
+                }
+            }
+            mss.seek(SeekFrom::Start(resume))?;
+        }
         let flags = first.header.flags;
         let layout = stream_layout(&first)?;
 
@@ -367,7 +448,21 @@ impl<'s> WavPackReader<'s> {
             .with_bits_per_sample(bits)
             .with_max_frames_per_packet(u64::from(first.header.block_samples));
 
-        let total_frames = first.header.total_samples;
+        let declared_frames = first.header.total_samples;
+        let mut total_frames = declared_frames;
+        if let (true, true, Some(declared)) = (check_end, mss.is_seekable(), declared_frames) {
+            let resume = mss.pos();
+            let held = frames_held(&mut mss, declared);
+            mss.seek(SeekFrom::Start(resume))?;
+            if let Some(held) = held.filter(|held| *held < declared) {
+                tracing::warn!(
+                    frames_held = held,
+                    frames_announced = declared,
+                    "wavpack: the file is cut short; it ends with its last whole block"
+                );
+                total_frames = Some(held);
+            }
+        }
         let mut track = Track::new(0);
         track.with_codec_params(CodecParameters::Audio(params));
         if let Some(total) = total_frames {
@@ -385,6 +480,7 @@ impl<'s> WavPackReader<'s> {
             chapters: opts.external_data.chapters,
             pending: Some(first),
             total_frames,
+            declared_frames,
             index: Vec::new(),
             index_next: Some(start),
             trim: 0,
@@ -516,9 +612,15 @@ impl FormatReader for WavPackReader<'_> {
         let Ok(target) = u64::try_from(required_ts.get()) else {
             return seek_error(SeekErrorKind::OutOfRange);
         };
-        if self.total_frames.is_some_and(|total| target > total) {
+        if self
+            .declared_frames
+            .is_some_and(|declared| target > declared)
+        {
             return seek_error(SeekErrorKind::OutOfRange);
         }
+        // Into what a file cut short no longer holds: the end of the track, and
+        // the queue moves on, as at the end of any other.
+        let target = self.total_frames.map_or(target, |total| target.min(total));
         // Finding the target moves the stream. A seek that fails has to leave
         // it where the next packet is, or the track ends here.
         let resume = self.reader.pos();
@@ -535,7 +637,7 @@ impl FormatReader for WavPackReader<'_> {
         Ok(SeekedTo {
             track_id: 0,
             required_ts,
-            actual_ts: required_ts,
+            actual_ts: Timestamp::new(target as i64),
         })
     }
 

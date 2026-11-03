@@ -364,7 +364,9 @@ pub(super) fn extract_file(
     .flatten();
     let duration_ms = match &stream {
         Some(stream) if props.duration().is_zero() => stream.duration_ms,
-        _ => props.duration().as_millis() as i64,
+        // The header's length, unless the file was cut short of it.
+        _ => waveflow_core::audio_format::held_duration_ms(path)
+            .unwrap_or(props.duration().as_millis() as i64),
     };
     let bitrate = props.audio_bitrate().map(|b| b as i64);
     let sample_rate = props.sample_rate().map(|s| s as i64);
