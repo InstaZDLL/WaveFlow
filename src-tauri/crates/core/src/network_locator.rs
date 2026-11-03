@@ -42,12 +42,13 @@ pub fn is_locator_path(path: &Path) -> bool {
     path.to_str().is_some_and(is_locator)
 }
 
-/// Take a locator apart. `None` for anything else, or for a locator that
-/// names no source.
+/// Take a locator apart. `None` for anything else, for a locator that names no
+/// source, or for one [`build`] would have refused: an imported profile can hold
+/// any string, and what comes out of here goes to a client with a password.
 pub fn parse(locator: &str) -> Option<Locator<'_>> {
     let rest = locator.strip_prefix(PREFIX)?;
     let (source, path) = rest.split_once('/').unwrap_or((rest, ""));
-    if source.is_empty() {
+    if source.is_empty() || !is_safe_path(path) {
         return None;
     }
     Some(Locator { source, path })
@@ -136,6 +137,19 @@ mod tests {
             assert_eq!(parse(path), None, "{path}");
         }
         assert_eq!(parse("wfnet://"), None);
+    }
+
+    #[test]
+    fn a_stored_locator_that_climbs_out_of_the_share_does_not_parse() {
+        for locator in [
+            "wfnet://abc/../secret.flac",
+            "wfnet://abc/Music/../../secret.flac",
+            "wfnet://abc/Music/./a.flac",
+            r"wfnet://abc/Music\..\a.flac",
+            "wfnet://abc//a.flac",
+        ] {
+            assert_eq!(parse(locator), None, "{locator}");
+        }
     }
 
     #[test]

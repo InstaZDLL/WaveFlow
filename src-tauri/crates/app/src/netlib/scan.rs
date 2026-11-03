@@ -60,8 +60,9 @@ pub struct Listing {
     images: HashMap<String, Vec<String>>,
     /// A sidecar is one file for a whole album: fetched once per directory.
     covers: Mutex<HashMap<String, Option<ExtractedCover>>>,
-    /// Locators of the directories the account was refused. Nothing is known
-    /// of what they hold, so nothing in them may be swept as gone.
+    /// Locators of the directories a parent named and this walk could not read:
+    /// refused to the account, or not found. Nothing is known of what they hold,
+    /// so nothing in them may be swept as gone.
     refused: Vec<String>,
 }
 
@@ -181,12 +182,12 @@ pub fn walk(
                 }
                 match entries {
                     Ok(entries) => absorb(&uuid, &dir, entries, &mut next, &mut listing),
-                    // Gone since its parent was listed: it has nothing to say
-                    // about the rest. The folder itself missing does.
-                    Err(NetError::NotFound) if !is_root => {}
                     // One folder this account may not read (a system folder on
-                    // a Windows share) does not stop the rest being listed.
-                    Err(NetError::Auth(_)) if !is_root => {
+                    // a Windows share) does not stop the rest being listed. Nor
+                    // does one gone since its parent was listed, whose tracks
+                    // go when the parent stops naming it. The folder itself
+                    // missing says more.
+                    Err(NetError::Auth(_) | NetError::NotFound) if !is_root => {
                         if let Some(locator) = network_locator::build(&uuid, &dir) {
                             listing.refused.push(locator);
                         }
@@ -213,7 +214,7 @@ pub fn walk(
 }
 
 impl Listing {
-    /// Whether a locator lies under a directory this walk was refused, where
+    /// Whether a locator lies under a directory this walk could not read, where
     /// its absence from the list says nothing.
     pub fn is_under_refused(&self, locator: &str) -> bool {
         self.refused.iter().any(|dir| {

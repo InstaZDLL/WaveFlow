@@ -27,6 +27,8 @@ struct FakeState {
     empty: AtomicBool,
     /// A directory this account may not read.
     refused_dir: Mutex<Option<String>>,
+    /// A directory its parent names and that then answers not found.
+    gone_dir: Mutex<Option<String>>,
     /// The account as a whole is refused.
     bad_password: AtomicBool,
     audio_bytes: AtomicU64,
@@ -59,6 +61,9 @@ impl NetworkFs for FakeFs {
             self.check()?;
             if self.0.refused_dir.lock().unwrap().as_deref() == Some(dir) {
                 return Err(NetError::Auth("no access here".into()));
+            }
+            if self.0.gone_dir.lock().unwrap().as_deref() == Some(dir) {
+                return Err(NetError::NotFound);
             }
             if self.0.empty.load(Ordering::Acquire) {
                 return Ok(Vec::new());
@@ -341,6 +346,34 @@ async fn a_folder_the_account_cannot_read_stops_nothing_and_loses_nothing() {
     assert_eq!(bench.available().await.len(), 3, "b.wav was not swept");
     tokio::time::sleep(Duration::from_millis(100)).await;
     assert_ne!(source(UUID).unwrap().state(), SourceState::AuthFailed);
+}
+
+/// A folder its parent still names and that answers not found says nothing of
+/// its tracks. They go on the scan where the parent stops naming it.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_folder_that_vanishes_between_two_listings_loses_nothing_yet() {
+    let _turn = SERIAL.lock().await;
+    let bench = Bench::new().await;
+    bench.put("Music/a.wav", wav(1), 1);
+    bench.put("Music/album/b.wav", wav(2), 1);
+    bench.scan().await.unwrap();
+    assert_eq!(bench.available().await.len(), 2);
+
+    *bench.state.gone_dir.lock().unwrap() = Some("Music/album".to_string());
+    let summary = bench.scan().await.unwrap();
+    assert_eq!(summary.removed, 0);
+    assert_eq!(bench.available().await.len(), 2, "b.wav was not swept");
+
+    *bench.state.gone_dir.lock().unwrap() = None;
+    bench
+        .state
+        .files
+        .lock()
+        .unwrap()
+        .remove("Music/album/b.wav");
+    let summary = bench.scan().await.unwrap();
+    assert_eq!(summary.removed, 1);
+    assert_eq!(bench.available().await.len(), 1);
 }
 
 /// Refused at the root is another matter, and only signing in decides.
