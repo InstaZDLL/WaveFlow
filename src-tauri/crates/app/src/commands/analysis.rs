@@ -15,7 +15,6 @@
 //!   [`ANALYSIS_VERSION`], emitting progress events the UI can wire to
 //!   a progress bar.
 
-use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use std::time::Duration;
@@ -282,7 +281,9 @@ pub async fn analyze_track(
         .fetch_optional(&*pool)
         .await?;
     let path = path.ok_or_else(|| AppError::Other(format!("track {track_id} not found")))?;
-    let path_buf = PathBuf::from(path);
+    let path_buf = crate::netlib::local_copy(&path).ok_or_else(|| {
+        AppError::Other("this track is on a network share and is not cached yet".into())
+    })?;
 
     // Decode is blocking + CPU-bound; keep it off the tokio reactor.
     let result: AnalysisResult = tokio::task::spawn_blocking(move || analyze_file(&path_buf))
@@ -454,7 +455,12 @@ async fn run_reserved(app: &AppHandle, pool: &SqlitePool) -> AppResult<LibraryAn
                 failed,
             },
         );
-        let path_buf = PathBuf::from(file_path);
+        // A track on a share is analysed from its cached copy, or left for a
+        // later sweep: decoding it would mean downloading the whole library.
+        let Some(path_buf) = crate::netlib::local_copy(&file_path) else {
+            processed += 1;
+            continue;
+        };
         let join = tokio::task::spawn_blocking(move || analyze_file(&path_buf)).await;
         match join {
             Ok(Ok(result)) => {

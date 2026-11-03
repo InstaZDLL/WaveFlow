@@ -158,7 +158,32 @@ pub(crate) async fn scan_folder_inner(
     // with it and comes back: the walk reports through it (files found,
     // the directory it is in, no total yet) and watches its stop flag.
     let folder_path_owned = folder_path.clone();
-    let (listed, task) = tokio::task::spawn_blocking(move || {
+    let (listed, task, network) = tokio::task::spawn_blocking(move || {
+        // A share is listed in its own way, and what it answers replaces the
+        // `fs::metadata` calls and file opens below. Its walk gives a whole
+        // list or none (`netlib::scan`): the sweep at the end of this function
+        // must never run on part of one.
+        if waveflow_core::network_locator::is_locator(&folder_path_owned) {
+            let walked = crate::netlib::scan::walk(
+                &folder_path_owned,
+                |found, dir| {
+                    if let Some(task) = task.as_ref() {
+                        task.progress(found as u64, 0);
+                        task.detail(dir);
+                    }
+                },
+                || task.as_ref().is_some_and(|t| t.is_cancelling()),
+            );
+            return match walked {
+                Ok(Some(listing)) => (
+                    Some(listing.files.clone()),
+                    task,
+                    Ok(Some(Arc::new(listing))),
+                ),
+                Ok(None) => (None, task, Ok(None)),
+                Err(err) => (None, task, Err(err)),
+            };
+        }
         let listed = collect_scannable_files_with(
             Path::new(&folder_path_owned),
             |found, dir| {
@@ -169,11 +194,20 @@ pub(crate) async fn scan_folder_inner(
             },
             || task.as_ref().is_some_and(|t| t.is_cancelling()),
         );
-        (listed, task)
+        (listed, task, Ok(None))
     })
     .await
     .map_err(|e| AppError::Other(format!("walk task failed: {e}")))?;
-    let cancelled = || task.as_ref().is_some_and(|t| t.is_cancelling());
+    // Nothing was read and nothing is written: an unreachable share is not an
+    // empty folder.
+    let network = network.map_err(|err| AppError::Other(format!("network share: {err}")))?;
+    let is_network = network.is_some();
+    // A share going away is a stop too: every file left would wait out its
+    // timeout to fail, and like a stop it leaves the sweep out.
+    let cancelled = || {
+        task.as_ref().is_some_and(|t| t.is_cancelling())
+            || network.as_ref().is_some_and(|n| n.source.is_down())
+    };
     let walk_ms = t_scan.elapsed().as_millis();
 
     // Stopped while listing: nothing was read and nothing is written. In
@@ -258,8 +292,13 @@ pub(crate) async fn scan_folder_inner(
     // otherwise re-read every file on every scan and lose the fast
     // path permanently.
     let rg_backfill_key = format!("scan.rg_backfill_done.{folder_id}");
-    let rg_backfill_pending =
-        !rg_missing.is_empty() && marker_absent(pool, &rg_backfill_key, folder_id).await;
+    //
+    // Not on a share, for this pass and the three below: they exist for rows
+    // older than a feature, a share's rows are not, and each pass would read
+    // every file of the folder again.
+    let rg_backfill_pending = !is_network
+        && !rg_missing.is_empty()
+        && marker_absent(pool, &rg_backfill_key, folder_id).await;
 
     // Custom tags (#588) land in `track_tag` at scan time, and every
     // file of a library that predates the feature still matches on
@@ -274,7 +313,8 @@ pub(crate) async fn scan_folder_inner(
     // and "was never read" are the same shape. The marker is the only
     // thing that separates a first pass from a second.
     let tag_backfill_key = format!("scan.tag_backfill_done.{folder_id}");
-    let tag_backfill_pending = marker_absent(pool, &tag_backfill_key, folder_id).await;
+    let tag_backfill_pending =
+        !is_network && marker_absent(pool, &tag_backfill_key, folder_id).await;
     // How many passes have already been spent on this folder without
     // reading every file. A file whose tags cannot be read is usually
     // transient -- an antivirus holding it, a share that dropped -- so
@@ -301,7 +341,8 @@ pub(crate) async fn scan_folder_inner(
     // good; but only for a few scans, as the custom-tag pass does, so a
     // permanently unreadable file does not re-read the folder forever.
     let genre_backfill_key = format!("scan.genre_backfill_done.{folder_id}");
-    let genre_backfill_pending = marker_absent(pool, &genre_backfill_key, folder_id).await;
+    let genre_backfill_pending =
+        !is_network && marker_absent(pool, &genre_backfill_key, folder_id).await;
     let genre_backfill_attempt_key = format!("scan.genre_backfill_attempts.{folder_id}");
     let genre_backfill_attempts = if genre_backfill_pending {
         read_counter(pool, &genre_backfill_attempt_key, folder_id).await
@@ -314,7 +355,8 @@ pub(crate) async fn scan_folder_inner(
     // reopens an unchanged file: one forced pass per folder fills them,
     // with the genre pass's marker and retry budget.
     let totals_backfill_key = format!("scan.totals_backfill_done.{folder_id}");
-    let totals_backfill_pending = marker_absent(pool, &totals_backfill_key, folder_id).await;
+    let totals_backfill_pending =
+        !is_network && marker_absent(pool, &totals_backfill_key, folder_id).await;
     let totals_backfill_attempt_key = format!("scan.totals_backfill_attempts.{folder_id}");
     let totals_backfill_attempts = if totals_backfill_pending {
         read_counter(pool, &totals_backfill_attempt_key, folder_id).await
@@ -324,10 +366,19 @@ pub(crate) async fn scan_folder_inner(
 
     let meta_load_ms = t_scan.elapsed().as_millis();
 
+    // A share whose folder lists empty while the library holds tracks from it
+    // is far more likely a volume the server has not mounted than an emptied
+    // collection, and sweeping would hide every one of them.
+    if is_network && audio_files.is_empty() && !existing_meta.is_empty() {
+        return Err(AppError::Other(
+            "network share: the folder is empty, and the library has tracks from it".into(),
+        ));
+    }
+
     let total_files = audio_files.len();
     if let Some(task) = task.as_ref() {
         task.progress(0, total_files as u64);
-        task.detail(folder_path.clone());
+        task.detail(crate::netlib::display_path(Path::new(&folder_path)));
     }
 
     // Initial tick so the frontend's progress toast can size itself
@@ -389,14 +440,22 @@ pub(crate) async fn scan_folder_inner(
         let stored = existing_meta.remove(&path_str);
         if !deep {
             if let Some((stored_mtime, stored_size)) = stored {
-                if let Ok(metadata) = std::fs::metadata(&path) {
-                    let disk_size = metadata.len() as i64;
-                    let disk_mtime_ms = metadata
-                        .modified()
-                        .ok()
-                        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
-                        .map(|d| d.as_millis() as i64)
-                        .unwrap_or(0);
+                // A share's listing already said, with no request per file.
+                let current = match network.as_ref() {
+                    Some(listing) => listing
+                        .meta(&path_str)
+                        .map(|meta| (meta.size as i64, meta.modified_ms)),
+                    None => std::fs::metadata(&path).ok().map(|metadata| {
+                        let modified = metadata
+                            .modified()
+                            .ok()
+                            .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                            .map(|d| d.as_millis() as i64)
+                            .unwrap_or(0);
+                        (metadata.len() as i64, modified)
+                    }),
+                };
+                if let Some((disk_size, disk_mtime_ms)) = current {
                     let needs_rg_backfill = rg_backfill_pending && rg_missing.contains(&path_str);
                     if disk_size == stored_size
                         && disk_mtime_ms == stored_mtime
@@ -506,9 +565,14 @@ pub(crate) async fn scan_folder_inner(
     // every TX_BATCH rows. With synchronous=NORMAL + WAL, this drops
     // a 1k-track first scan from ~30 s to a few seconds — fsync per
     // checkpoint instead of per row.
-    let parallelism = std::thread::available_parallelism()
-        .map(|n| n.get().max(2))
-        .unwrap_or(4);
+    let parallelism = if is_network {
+        // The wait is the network's, not the CPU's.
+        crate::netlib::scan::CONCURRENT_EXTRACTIONS
+    } else {
+        std::thread::available_parallelism()
+            .map(|n| n.get().max(2))
+            .unwrap_or(4)
+    };
     const TX_BATCH: usize = 200;
 
     let extraction_stream = futures::stream::iter(to_extract)
@@ -516,10 +580,13 @@ pub(crate) async fn scan_folder_inner(
             let artwork_dir = artwork_dir.to_path_buf();
             let timings = Arc::clone(&timings);
             let p = path.clone();
+            let network = network.clone();
             async move {
-                let res =
-                    tokio::task::spawn_blocking(move || extract_file(&p, &artwork_dir, &timings))
-                        .await;
+                let res = tokio::task::spawn_blocking(move || match network.as_ref() {
+                    Some(listing) => extract_network_file(&p, listing, &artwork_dir, &timings),
+                    None => extract_file(&p, &artwork_dir, &timings),
+                })
+                .await;
                 (path, res)
             }
         })
@@ -744,7 +811,7 @@ pub(crate) async fn scan_folder_inner(
                 // without being asked and have no business changing stars.
                 // The same rule as the rewriting branch: a file with no
                 // rating leaves the stored one alone.
-                .bind(extracted.rating.filter(|_| deep).map(i64::from))
+                .bind(extracted.rating.filter(|_| deep && !is_network).map(i64::from))
                 // The one backfill site for the flag, and the only one
                 // that can reach a library scanned before the column
                 // existed. Those rows took the `NOT NULL DEFAULT 0` of
@@ -965,7 +1032,10 @@ pub(crate) async fn scan_folder_inner(
                         -- said nothing about it, and that goes for one
                         -- another tagger emptied too: the two cannot be told
                         -- apart. A file that does carry a rating wins.
-                        rating = COALESCE(?, rating),
+                        -- A rating set in WaveFlow on a share's track lives
+                        -- here alone, since the file cannot be written: the
+                        -- file changing on the share must not take it away.
+                        rating = CASE WHEN ? THEN COALESCE(rating, ?) ELSE COALESCE(?, rating) END,
                         rg_track_gain_db = ?, rg_track_peak = ?,
                         rg_album_gain_db = ?, rg_album_peak = ?,
                         -- With `title`, never without it (#579): this is the
@@ -996,6 +1066,8 @@ pub(crate) async fn scan_folder_inner(
                 .bind(extracted.bit_depth)
                 .bind(extracted.codec.as_deref())
                 .bind(extracted.musical_key.as_deref())
+                .bind(is_network)
+                .bind(extracted.rating.map(|r| r as i64))
                 .bind(extracted.rating.map(|r| r as i64))
                 .bind(extracted.replay_gain.track_gain_db)
                 .bind(extracted.replay_gain.track_peak)
@@ -1289,7 +1361,10 @@ pub(crate) async fn scan_folder_inner(
     let sweep: Vec<&String> = if summary.cancelled {
         Vec::new()
     } else {
-        existing_meta.keys().collect()
+        existing_meta
+            .keys()
+            .filter(|path| !network.as_ref().is_some_and(|n| n.is_under_refused(path)))
+            .collect()
     };
     for missing_path in sweep {
         let res = sqlx::query(

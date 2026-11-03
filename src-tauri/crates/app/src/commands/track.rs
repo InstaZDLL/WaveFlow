@@ -576,7 +576,12 @@ pub async fn set_track_rating(
     let repo = SqliteTrackRepository::new(pool.clone());
 
     // 1. Resolve the file path so we can write the POPM frame back.
-    let file_path = repo.get_file_path(track_id).await?;
+    let file_path = repo
+        .get_file_path(track_id)
+        .await?
+        // A share is only read: a rating set on one of its tracks stays in
+        // the database, like one a container has no room for.
+        .filter(|path| !waveflow_core::network_locator::is_locator(path));
 
     // 2. Pause playback if the engine has this track open — required on
     //    Windows so lofty's atomic rename can take an exclusive handle.

@@ -610,3 +610,42 @@ fn hash_file_large_blind_to_middle() {
     write_bytes(&path, &data);
     assert_eq!(base, hash_file(&path).unwrap());
 }
+
+/// A share's file and its local copy must read as one: duplicates, the lyrics
+/// cache and an orphaned history all go by this digest.
+#[test]
+fn the_digest_is_the_same_from_a_file_and_from_any_reader() {
+    let dir = tempfile::tempdir().unwrap();
+    for len in [10_usize, 2 * 1024 * 1024, 3 * 1024 * 1024 + 7] {
+        let bytes: Vec<u8> = (0..len).map(|i| (i % 251) as u8).collect();
+        let path = dir.path().join(format!("{len}.bin"));
+        write_bytes(&path, &bytes);
+        let from_reader = hash_reader(std::io::Cursor::new(&bytes), len as u64).unwrap();
+        assert_eq!(hash_file(&path).unwrap(), from_reader, "{len} bytes");
+    }
+}
+
+#[test]
+fn tags_read_the_same_from_a_file_and_from_a_reader() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("a.aiff");
+    let bytes = tiny_aiff(4410);
+    write_bytes(&path, &bytes);
+    let from_file = read_tagged_file(&path).unwrap();
+    let mut cursor = std::io::Cursor::new(bytes);
+    let from_reader = read_tagged_from(&mut cursor, None).unwrap();
+    assert_eq!(from_file.file_type(), from_reader.file_type());
+    use lofty::file::{AudioFile, TaggedFileExt};
+    assert_eq!(
+        from_file.properties().sample_rate(),
+        from_reader.properties().sample_rate()
+    );
+}
+
+#[test]
+fn a_folder_cover_is_picked_from_names_by_the_same_priority() {
+    let names = ["back.jpg", "Folder.PNG", "cover.txt", "cover.jpg"];
+    assert_eq!(pick_folder_cover(names), Some("cover.jpg"));
+    assert_eq!(pick_folder_cover(["back.jpg"]), None);
+    assert_eq!(pick_folder_cover(["Folder.PNG"]), Some("Folder.PNG"));
+}

@@ -778,7 +778,8 @@
       "filePath": "パス",
       "moveUp": "{{column}} 列を上へ",
       "moveDown": "{{column}} 列を下へ"
-    }
+    },
+    "trackOnUnreachableShare": "ネットワーク共有に接続できず、この曲はキャッシュにありません"
   },
   "liked": {
     "badge": "コレクション",
@@ -1060,7 +1061,8 @@
         "offline": "オフラインモードが有効です",
         "unknown": "再生に失敗しました",
         "files-failed": "これらのファイルを再生できません",
-        "picker-failed": "ファイル選択ダイアログを開けません"
+        "picker-failed": "ファイル選択ダイアログを開けません",
+        "network-source-lost": "ネットワーク共有との接続が失われました"
       },
       "notice": {
         "exclusive-refused": "このデバイスは排他モードを受け付けません。共有モードで再生します",
@@ -3355,6 +3357,60 @@
         "title": "上部バーの新機能ボタン",
         "subtitle": "非表示にしても、ここと「情報」からパネルを開けます。"
       }
+    },
+    "networkLibrary": {
+      "title": "ネットワーク共有 (WebDAV, SMB)",
+      "subtitle": "システムでマウントせずに共有を直接読み込みます。WaveFlow は読み取るだけで、共有上のファイルを変更することはありません。",
+      "add": "共有を追加",
+      "addConfirm": "追加してスキャン",
+      "cancel": "キャンセル",
+      "test": "接続をテスト",
+      "save": "保存",
+      "kind": "共有の種類",
+      "kinds": {
+        "webdav": "WebDAV",
+        "smb": "SMB"
+      },
+      "name": "名前(任意)",
+      "address": "アドレス",
+      "addressHint": {
+        "webdav": "https://nas.local/dav",
+        "smb": "nas.local または 192.168.1.10"
+      },
+      "folder": "共有上のフォルダー(任意)",
+      "username": "ユーザー名",
+      "password": "パスワード",
+      "passwordNotice": "パスワードは WaveFlow の他の認証情報と同様にプロファイルのデータベースに平文で保存されますが、プロファイルのエクスポートやバックアップには含まれません。読み取り専用アカウントの使用をおすすめします。",
+      "plainHttpWarning": "このパスワードと音楽を暗号化せずに送信することに同意します。http:// では、このネットワーク上の誰でも読み取れます。",
+      "plainHttpBadge": "暗号化されていない接続 (http://)",
+      "passwordMissing": "パスワードを再入力してください。インポートしたプロファイルや復元したバックアップには含まれません。",
+      "changePassword": "パスワードを変更",
+      "remove": "削除",
+      "removeConfirm": "この共有とその曲を削除しますか?",
+      "state": {
+        "online": "接続済み",
+        "unknown": "未確認",
+        "unreachable": "接続できません",
+        "auth_failed": "アクセスが拒否されました"
+      },
+      "failure": {
+        "offline": "オフラインモードがオンです。",
+        "unreachable": "このアドレスから応答がありません。",
+        "handshake": "このサーバーはネゴシエーション中に接続を閉じました。WaveFlow は SMB 2 以降を使用します。SMB 1 のみのサーバーはまさにこのように動作します。",
+        "tls": "このサーバーの証明書は拒否されました。WaveFlow は常に証明書を検証します。有効な証明書か、信頼できるネットワークでの http:// が必要です。",
+        "auth": "ユーザー名またはパスワードが拒否されました。",
+        "session-refused": "このサーバーはパスワードを判定せずにセッションを拒否しました。このアカウントにアクセス権がないか、この接続では使用できない暗号化をサーバーが要求している可能性があります。",
+        "not-found": "この共有またはフォルダーは存在しません。",
+        "protocol": "このサーバーは共有として応答しません。",
+        "plain-http": "http:// のアドレスには下の同意が必要です。"
+      },
+      "testOk_one": "接続しました: このフォルダーに {{count}} 項目。",
+      "testOk_other": "接続しました: このフォルダーに {{count}} 項目。",
+      "cacheLimit": "上限 (GB)",
+      "cacheClear": "キャッシュを消去",
+      "share": "共有名",
+      "cacheUsed_one": "ローカルキャッシュ: {{size}}、{{count}} 曲",
+      "cacheUsed_other": "ローカルキャッシュ: {{size}}、{{count}} 曲"
     }
   },
   "scanProgress": {

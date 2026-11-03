@@ -122,3 +122,59 @@ impl Read for Failing {
         Ok(3)
     }
 }
+
+/// A read waiting on a dead link lets a Stop through, and so does every read
+/// after it: the decoder takes its commands on the thread that reads, and may
+/// read again before it gets to the command.
+#[test]
+fn a_starved_read_can_be_released_for_good() {
+    let (send, gate) = mpsc::channel::<Vec<u8>>();
+    let mut source = ReadAhead::spawn(Gated(gate, Vec::new()), None, 8).unwrap();
+    let release = source.release_handle();
+    assert!(release.is_alive());
+    assert!(!release.is_starved(), "nothing is reading yet");
+    let reader = std::thread::spawn(move || {
+        let mut buf = [0_u8; 8];
+        let first = source.read(&mut buf);
+        let second = source.read(&mut buf);
+        (first, second)
+    });
+    while !release.is_starved() {
+        std::thread::yield_now();
+    }
+    release.release();
+    let (first, second) = reader.join().unwrap();
+    for read in [first, second] {
+        let err = read.unwrap_err();
+        assert_eq!(err.kind(), io::ErrorKind::ConnectionAborted);
+        assert_eq!(err.to_string(), READ_RELEASED);
+    }
+    // The transfer's thread holds the shared state until it sees the sender go.
+    drop(send);
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+    while release.is_alive() {
+        assert!(
+            std::time::Instant::now() < deadline,
+            "the source never went"
+        );
+        std::thread::yield_now();
+    }
+}
+
+/// What has arrived can still be read after a release.
+#[test]
+fn a_release_keeps_what_has_arrived() {
+    let (send, gate) = mpsc::channel();
+    let mut source = ReadAhead::spawn(Gated(gate, Vec::new()), None, 8).unwrap();
+    let release = source.release_handle();
+    send.send(b"data".to_vec()).unwrap();
+    let mut buf = [0_u8; 4];
+    source.read_exact(&mut buf).unwrap();
+    release.release();
+    let mut more = [0_u8; 1];
+    assert_eq!(
+        source.read(&mut more).unwrap_err().to_string(),
+        READ_RELEASED
+    );
+    assert_eq!(&buf, b"data");
+}

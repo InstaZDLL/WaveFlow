@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { BackupCard } from "../BackupCard";
 import { CacheLocationCard } from "../CacheLocationCard";
 import { ClipsInLibraryCard } from "../ClipsInLibraryCard";
+import { NetworkLibraryCard } from "../NetworkLibraryCard";
 import { DiskUsageCard } from "../DiskUsageCard";
 import { MediaCachesCard } from "../MediaCachesCard";
 import { SettingsCategoryHeader } from "../SettingsCategoryHeader";
@@ -139,6 +140,7 @@ export function DataSection({
       <SettingsGroup id="storage" reveal={targetGroup === "storage"}>
         <CacheLocationCard language={i18n.resolvedLanguage ?? i18n.language} />
         <MediaCachesCard language={i18n.resolvedLanguage ?? i18n.language} />
+        <NetworkLibraryCard language={i18n.resolvedLanguage ?? i18n.language} />
         <ClipsInLibraryCard />
         <div className="settings-row flex items-center justify-between">
           <div className="flex items-center space-x-4">

@@ -96,7 +96,7 @@ pub(super) fn maybe_emit_progress(
     }
     let current_dir = current_path
         .and_then(Path::parent)
-        .map(|d| d.to_string_lossy().into_owned());
+        .map(crate::netlib::display_path);
     let _ = app.emit(
         "scan:progress",
         ScanProgress {

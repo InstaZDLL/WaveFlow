@@ -530,6 +530,29 @@ fn items_result(base: &str, parent: &str, rows: &[TrackRow], total: i64) -> Brow
     }
 }
 
+/// An album DLNA has something to serve from: a track that is there and not on
+/// a network share, the same test as the query that lists its tracks.
+macro_rules! served_album {
+    () => {
+        "al.id IN (
+            SELECT album_id FROM track
+             WHERE is_available = 1 AND file_path NOT LIKE 'wfnet://%'
+               AND album_id IS NOT NULL)"
+    };
+}
+
+/// An artist opens onto albums, so one with none to serve is a dead end, and a
+/// library on a share would otherwise list every artist of it as one.
+macro_rules! served_artist {
+    () => {
+        concat!(
+            "EXISTS (SELECT 1 FROM album al WHERE al.artist_id = ar.id AND ",
+            served_album!(),
+            ")"
+        )
+    };
+}
+
 /// A genre and the available tracks it holds. The root and
 /// `0/genres` list only the genres where that count is positive: a
 /// genre whose every track went missing would open on nothing.
@@ -539,7 +562,7 @@ macro_rules! genre_rows {
                 (SELECT COUNT(*)
                    FROM track_genre tg
                    JOIN track t ON t.id = tg.track_id
-                  WHERE tg.genre_id = g.id AND t.is_available = 1) AS tracks
+                  WHERE tg.genre_id = g.id AND t.is_available = 1 AND t.file_path NOT LIKE 'wfnet://%') AS tracks
            FROM genre g"
     };
 }
@@ -553,7 +576,7 @@ macro_rules! playlist_rows {
                 (SELECT COUNT(*)
                    FROM playlist_track pt
                    JOIN track t ON t.id = pt.track_id
-                  WHERE pt.playlist_id = p.id AND t.is_available = 1) AS tracks
+                  WHERE pt.playlist_id = p.id AND t.is_available = 1 AND t.file_path NOT LIKE 'wfnet://%') AS tracks
            FROM playlist p"
     };
 }
@@ -562,13 +585,17 @@ macro_rules! playlist_rows {
 async fn root_counts(pool: &SqlitePool) -> Result<[i64; 5], sqlx::Error> {
     let (artists, albums, genres, playlists, folders): (i64, i64, i64, i64, i64) =
         sqlx::query_as(concat!(
-            "SELECT (SELECT COUNT(*) FROM artist),
-                    (SELECT COUNT(*) FROM album),
+            "SELECT (SELECT COUNT(*) FROM artist ar WHERE ",
+            served_artist!(),
+            "),
+                    (SELECT COUNT(*) FROM album al WHERE ",
+            served_album!(),
+            "),
                     (SELECT COUNT(*) FROM (",
             genre_rows!(),
             ") WHERE tracks > 0),
                     (SELECT COUNT(*) FROM playlist),
-                    (SELECT COUNT(*) FROM library_folder)"
+                    (SELECT COUNT(*) FROM library_folder WHERE path NOT LIKE 'wfnet://%')"
         ))
         .fetch_one(pool)
         .await?;

@@ -88,7 +88,7 @@ pub fn file_name(track_id: &str, format: &str, bitrate: u32, ext: &str) -> Strin
 /// Keep the extension to a short alphanumeric run. It comes from the server's
 /// `suffix` column, which is metadata read out of a file — not something to
 /// paste into a path unchecked.
-fn sanitize_ext(ext: &str) -> String {
+pub(crate) fn sanitize_ext(ext: &str) -> String {
     let cleaned: String = ext
         .chars()
         .filter(|c| c.is_ascii_alphanumeric())
@@ -199,7 +199,7 @@ pub fn clear(dir: &Path) -> std::io::Result<usize> {
 /// Runs after a successful publish, which is the only moment the total can
 /// grow. Best-effort throughout: failing to evict is not a reason to fail the
 /// entry that was just cached.
-fn evict(dir: &Path) {
+fn evict(dir: &Path, max_bytes: u64) {
     let Ok(entries) = fs::read_dir(dir) else {
         return;
     };
@@ -229,12 +229,12 @@ fn evict(dir: &Path) {
         .collect();
 
     let mut total: u64 = files.iter().map(|(_, len, _)| *len).sum();
-    if total <= MAX_BYTES {
+    if total <= max_bytes {
         return;
     }
     files.sort_by_key(|(stamp, _, _)| *stamp);
     for (_, len, path) in files {
-        if total <= MAX_BYTES {
+        if total <= max_bytes {
             break;
         }
         if fs::remove_file(&path).is_ok() {
@@ -260,6 +260,11 @@ pub struct CacheWriter {
     /// Byte ranges written so far, sorted and merged.
     covered: Vec<(u64, u64)>,
     published: bool,
+    /// The budget the directory is evicted down to after a publish.
+    max_bytes: u64,
+    /// Stamped on the file before it is published: what a share's copy is
+    /// later compared against, to tell whether the file there changed.
+    modified: Option<std::time::SystemTime>,
 }
 
 impl CacheWriter {
@@ -268,6 +273,18 @@ impl CacheWriter {
     /// `None` when the cache is unusable — no length, no writable directory —
     /// which the caller treats as "stream without caching".
     pub fn create(dir: &Path, name: &str, len: u64) -> Option<Self> {
+        Self::create_limited(dir, name, len, MAX_BYTES, None)
+    }
+
+    /// [`Self::create`] with a budget of its own, and the modification time
+    /// the published file should carry.
+    pub fn create_limited(
+        dir: &Path,
+        name: &str,
+        len: u64,
+        max_bytes: u64,
+        modified: Option<std::time::SystemTime>,
+    ) -> Option<Self> {
         if len == 0 {
             return None;
         }
@@ -304,6 +321,8 @@ impl CacheWriter {
             len,
             covered: Vec::new(),
             published: false,
+            max_bytes,
+            modified,
         })
     }
 
@@ -363,6 +382,9 @@ impl CacheWriter {
         let Some(file) = self.file.take() else {
             return;
         };
+        if let Some(modified) = self.modified {
+            let _ = file.set_modified(modified);
+        }
         // Flush before the rename, not after: a rename publishes the name,
         // and a reader that finds the name must find the bytes too.
         if file.sync_all().is_err() {
@@ -373,7 +395,7 @@ impl CacheWriter {
         drop(file);
         if fs::rename(&self.part, &self.final_path).is_ok() {
             self.published = true;
-            evict(&self.dir);
+            evict(&self.dir, self.max_bytes);
         } else {
             let _ = fs::remove_file(&self.part);
         }

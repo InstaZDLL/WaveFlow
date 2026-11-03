@@ -211,13 +211,30 @@ pub struct ConcreteTags {
 /// One parse for both, since this is the scan's hot path. `None` means
 /// could not read, as for [`read_extra_tags`].
 pub fn read_concrete_tags(path: &Path) -> Option<ConcreteTags> {
+    read_inner(Probe::open(path).ok()?)
+}
+
+/// [`read_concrete_tags`] over any reader, positioned at the start of the file.
+/// `hint` stands in for the extension `Probe::open` would have read.
+pub fn read_concrete_tags_from<R: std::io::Read + std::io::Seek>(
+    reader: R,
+    hint: Option<FileType>,
+) -> Option<ConcreteTags> {
+    let probe = Probe::new(reader);
+    read_inner(match hint {
+        Some(hint) => probe.set_file_type(hint),
+        None => probe,
+    })
+}
+
+fn read_inner<R: std::io::Read + std::io::Seek>(probe: Probe<R>) -> Option<ConcreteTags> {
     // One open, not two. `Probe::open` already has the file, and
     // `guess_inner` restores the stream position it read from -- so the
     // reader it hands back is at the start and ready to parse. Opening
     // the path a second time costs a syscall per track in the scan's
     // hot path, and races anything that moves the file between the two.
     // It is a `BufReader` besides, which the bare `File` was not.
-    let probe = Probe::open(path).ok()?.guess_file_type().ok()?;
+    let probe = probe.guess_file_type().ok()?;
     let file_type = probe.file_type()?;
     let mut handle = probe.into_inner();
     // Tags only. This is a *second* parse of every file in the scan's

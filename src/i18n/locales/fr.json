@@ -811,7 +811,8 @@
       "filePath": "Chemin",
       "moveUp": "Monter la colonne {{column}}",
       "moveDown": "Descendre la colonne {{column}}"
-    }
+    },
+    "trackOnUnreachableShare": "Partage réseau injoignable, et ce titre n'est pas en cache"
   },
   "liked": {
     "badge": "Collection",
@@ -1102,7 +1103,8 @@
         "offline": "Le mode hors ligne est activé",
         "unknown": "La lecture a échoué",
         "files-failed": "Impossible de lire ces fichiers",
-        "picker-failed": "Impossible d'ouvrir le sélecteur de fichiers"
+        "picker-failed": "Impossible d'ouvrir le sélecteur de fichiers",
+        "network-source-lost": "La connexion au partage réseau est perdue"
       },
       "notice": {
         "exclusive-refused": "Ce périphérique refuse le mode exclusif : lecture en mode partagé",
@@ -3427,6 +3429,62 @@
         "title": "Bouton Nouveautés dans la barre du haut",
         "subtitle": "Masqué, le panneau reste accessible ici et depuis À propos."
       }
+    },
+    "networkLibrary": {
+      "title": "Partages réseau (WebDAV, SMB)",
+      "subtitle": "Lire un partage directement, sans que le système le monte. WaveFlow ne fait que lire : les fichiers n'y sont jamais modifiés.",
+      "add": "Ajouter un partage",
+      "addConfirm": "Ajouter et analyser",
+      "cancel": "Annuler",
+      "test": "Tester la connexion",
+      "save": "Enregistrer",
+      "kind": "Type de partage",
+      "kinds": {
+        "webdav": "WebDAV",
+        "smb": "SMB"
+      },
+      "name": "Nom (facultatif)",
+      "address": "Adresse",
+      "addressHint": {
+        "webdav": "https://nas.local/dav",
+        "smb": "nas.local ou 192.168.1.10"
+      },
+      "folder": "Dossier sur le partage (facultatif)",
+      "username": "Nom d'utilisateur",
+      "password": "Mot de passe",
+      "passwordNotice": "Le mot de passe est conservé en clair dans la base du profil, comme les autres identifiants de WaveFlow, et n'entre jamais dans un export de profil ni une sauvegarde. Utilisez de préférence un compte en lecture seule.",
+      "plainHttpWarning": "J'accepte d'envoyer ce mot de passe et ma musique sans chiffrement : avec http://, n'importe qui sur ce réseau peut les lire.",
+      "plainHttpBadge": "Connexion non chiffrée (http://)",
+      "passwordMissing": "Mot de passe à saisir à nouveau : il ne voyage pas avec un profil importé ou une sauvegarde restaurée.",
+      "changePassword": "Changer le mot de passe",
+      "remove": "Retirer",
+      "removeConfirm": "Retirer ce partage et ses titres ?",
+      "state": {
+        "online": "Connecté",
+        "unknown": "Pas encore vérifié",
+        "unreachable": "Injoignable",
+        "auth_failed": "Accès refusé"
+      },
+      "failure": {
+        "offline": "Le mode hors ligne est activé.",
+        "unreachable": "Pas de réponse à cette adresse.",
+        "handshake": "Ce serveur a coupé la connexion dès la négociation. WaveFlow parle SMB 2 et plus récent : un serveur limité à SMB 1 fait exactement cela.",
+        "tls": "Le certificat de ce serveur est refusé. WaveFlow vérifie toujours les certificats : il en faut un valide, ou http:// sur un réseau de confiance.",
+        "auth": "Nom d'utilisateur ou mot de passe refusé.",
+        "session-refused": "Ce serveur a refusé la session sans se prononcer sur le mot de passe. Ce compte n'y a peut-être pas accès, ou le serveur exige un chiffrement que cette connexion ne peut pas utiliser.",
+        "not-found": "Ce partage ou ce dossier n'existe pas.",
+        "protocol": "Ce serveur ne répond pas comme un partage.",
+        "plain-http": "Une adresse http:// demande votre accord ci-dessous."
+      },
+      "testOk_one": "Connexion réussie : {{count}} élément dans ce dossier.",
+      "testOk_other": "Connexion réussie : {{count}} éléments dans ce dossier.",
+      "cacheLimit": "Plafond (Go)",
+      "cacheClear": "Vider le cache",
+      "testOk_many": "Connexion réussie : {{count}} éléments dans ce dossier.",
+      "share": "Nom du partage",
+      "cacheUsed_one": "Cache local : {{size}}, {{count}} titre",
+      "cacheUsed_other": "Cache local : {{size}}, {{count}} titres",
+      "cacheUsed_many": "Cache local : {{size}}, {{count}} titres"
     }
   },
   "scanProgress": {
