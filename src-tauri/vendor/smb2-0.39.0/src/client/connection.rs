@@ -3011,7 +3011,10 @@ impl Connection {
         let request = NegotiateRequest {
             security_mode: SecurityMode::new(SecurityMode::SIGNING_ENABLED),
             capabilities: Capabilities::new(
-                Capabilities::DFS | Capabilities::LEASING | Capabilities::LARGE_MTU,
+                Capabilities::DFS
+                    | Capabilities::LEASING
+                    | Capabilities::LARGE_MTU
+                    | Capabilities::ENCRYPTION,
             ),
             client_guid,
             dialects: Dialect::ALL.to_vec(),

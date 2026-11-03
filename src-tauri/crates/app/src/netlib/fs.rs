@@ -38,9 +38,10 @@ pub enum NetError {
     /// The server refused these credentials, or this account.
     #[error("access refused: {0}")]
     Auth(String),
-    /// The session itself was refused, the password not being the reason: a
-    /// Samba share that requires encryption. Filed as a refused account, and
-    /// told apart so that nobody goes looking for a typo in the password.
+    /// The session itself was refused, the password not being the reason: an
+    /// account the server keeps out, or encryption required on a dialect that
+    /// has none. Filed as a refused account, and told apart so that nobody goes
+    /// looking for a typo in the password.
     #[error("session refused: {0}")]
     SessionRefused(String),
     #[error("not found")]

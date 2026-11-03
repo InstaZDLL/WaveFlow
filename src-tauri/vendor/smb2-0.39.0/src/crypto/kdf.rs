@@ -126,7 +126,7 @@ pub fn derive_session_keys(
     }
 
     DerivedKeys {
-        signing_key: sp800_108_kdf(session_key, signing_label, signing_context, key_length_bits),
+        signing_key: sp800_108_kdf(session_key, signing_label, signing_context, 128),
         encryption_key: sp800_108_kdf(session_key, enc_label, enc_context, key_length_bits),
         decryption_key: sp800_108_kdf(session_key, dec_label, dec_context, key_length_bits),
     }

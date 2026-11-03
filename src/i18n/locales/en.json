@@ -3401,7 +3401,7 @@
         "handshake": "This server closed the connection during the handshake. WaveFlow speaks SMB 2 and newer: a server limited to SMB 1 does exactly this.",
         "tls": "This server's certificate is refused. WaveFlow always checks certificates: it takes a valid one, or http:// on a network you trust.",
         "auth": "User name or password refused.",
-        "session-refused": "This server refused the session without judging the password. If it requires encryption, WaveFlow cannot offer that to it yet.",
+        "session-refused": "This server refused the session without judging the password. This account may not be allowed in, or the server requires encryption this connection cannot use.",
         "not-found": "This share or folder does not exist.",
         "protocol": "This server does not answer like a share.",
         "plain-http": "An http:// address needs your agreement below."

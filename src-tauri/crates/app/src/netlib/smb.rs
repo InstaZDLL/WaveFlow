@@ -69,11 +69,11 @@ fn classify_connect(err: &smb2::Error) -> NetError {
     match err {
         smb2::Error::Disconnected => NetError::Handshake(err.to_string()),
         // A wrong password is STATUS_LOGON_FAILURE. This one is what Samba says
-        // to a client it wants encrypted, because smb2 does not announce
-        // SMB2_GLOBAL_CAP_ENCRYPTION and Samba then picks no cipher.
+        // when it requires encryption and the dialect agreed on has none, and,
+        // at the share, to an account that is not on its list.
         smb2::Error::Protocol {
             status: NtStatus::ACCESS_DENIED,
-            command: Command::SessionSetup,
+            command: Command::SessionSetup | Command::TreeConnect,
         } => NetError::SessionRefused(err.to_string()),
         _ => classify(err),
     }
@@ -138,7 +138,7 @@ impl SmbFs {
         let tree = client
             .connect_share(&self.share)
             .await
-            .map_err(|e| classify(&e))?;
+            .map_err(|e| classify_connect(&e))?;
         Ok(Session { client, tree })
     }
 

@@ -3471,7 +3471,7 @@
         "handshake": "Ce serveur a coupé la connexion dès la négociation. WaveFlow parle SMB 2 et plus récent : un serveur limité à SMB 1 fait exactement cela.",
         "tls": "Le certificat de ce serveur est refusé. WaveFlow vérifie toujours les certificats : il en faut un valide, ou http:// sur un réseau de confiance.",
         "auth": "Nom d'utilisateur ou mot de passe refusé.",
-        "session-refused": "Ce serveur a refusé la session sans se prononcer sur le mot de passe. S'il exige le chiffrement, WaveFlow ne sait pas encore le lui proposer.",
+        "session-refused": "Ce serveur a refusé la session sans se prononcer sur le mot de passe. Ce compte n'y a peut-être pas accès, ou le serveur exige un chiffrement que cette connexion ne peut pas utiliser.",
         "not-found": "Ce partage ou ce dossier n'existe pas.",
         "protocol": "Ce serveur ne répond pas comme un partage.",
         "plain-http": "Une adresse http:// demande votre accord ci-dessous."

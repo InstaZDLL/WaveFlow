@@ -3401,7 +3401,7 @@
         "handshake": "Bu sunucu el sıkışma sırasında bağlantıyı kapattı. WaveFlow, SMB 2 ve üstünü kullanır: yalnızca SMB 1 destekleyen bir sunucu tam olarak bunu yapar.",
         "tls": "Bu sunucunun sertifikası reddedildi. WaveFlow sertifikaları her zaman denetler: geçerli bir sertifika ya da güvenilir bir ağda http:// gerekir.",
         "auth": "Kullanıcı adı veya parola reddedildi.",
-        "session-refused": "Bu sunucu parolayı değerlendirmeden oturumu reddetti. Şifreleme gerektiriyorsa WaveFlow bunu henüz sunamıyor.",
+        "session-refused": "Bu sunucu parolayı değerlendirmeden oturumu reddetti. Bu hesabın erişimi olmayabilir veya sunucu bu bağlantının kullanamadığı bir şifreleme gerektiriyor olabilir.",
         "not-found": "Bu paylaşım veya klasör mevcut değil.",
         "protocol": "Bu sunucu bir paylaşım gibi yanıt vermiyor.",
         "plain-http": "Bir http:// adresi aşağıda onayınızı gerektirir."

@@ -3472,7 +3472,7 @@
         "handshake": "Este servidor fechou a ligação durante a negociação. O WaveFlow usa SMB 2 ou mais recente: um servidor limitado a SMB 1 faz exatamente isto.",
         "tls": "O certificado deste servidor é recusado. O WaveFlow verifica sempre os certificados: é preciso um válido, ou http:// numa rede de confiança.",
         "auth": "Nome de utilizador ou palavra-passe recusados.",
-        "session-refused": "Este servidor recusou a sessão sem avaliar a palavra-passe. Se exigir encriptação, o WaveFlow ainda não consegue oferecê-la.",
+        "session-refused": "Este servidor recusou a sessão sem avaliar a palavra-passe. Esta conta pode não ter acesso, ou o servidor exige uma encriptação que esta ligação não consegue usar.",
         "not-found": "Esta partilha ou pasta não existe.",
         "protocol": "Este servidor não responde como uma partilha.",
         "plain-http": "Um endereço http:// precisa do seu acordo abaixo."
