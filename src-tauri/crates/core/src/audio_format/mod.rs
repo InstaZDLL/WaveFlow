@@ -9,6 +9,7 @@
 //! The future `waveflow-server` will reuse the same code path when
 //! transcoding DSD uploads.
 
+pub mod aac;
 pub mod ape;
 pub mod dsd;
 #[cfg(feature = "sqlite")]
@@ -65,6 +66,9 @@ pub fn held_duration_ms(path: &std::path::Path) -> Option<i64> {
 fn register_own_decoders(registry: &mut CodecRegistry) {
     registry.register_audio_decoder::<wavpack::WavPackDecoder>();
     registry.register_audio_decoder::<ape::ApeDecoder>();
+    // Same id as symphonia's AAC decoder and the same tier: this one
+    // replaces it, and still hands it what it accepts.
+    registry.register_audio_decoder::<aac::AacDecoder>();
 }
 
 /// A symphonia decoder's short name as the format chip spells codecs:

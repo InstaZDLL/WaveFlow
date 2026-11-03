@@ -379,6 +379,11 @@ pub(super) fn extract_file(
             ));
         }
     };
+    // Readable tags do not make a playable file. What the player cannot
+    // open stays out of the library, counted in the scan's errors with this
+    // reason in the log, instead of listing and then failing at play time.
+    let decoder_channels =
+        waveflow_core::scanner::extract::decoder_channels(path, tagged.file_type())?;
     timings
         .tag_us
         .fetch_add(t_tag.elapsed().as_micros() as u64, Ordering::Relaxed);
@@ -388,6 +393,7 @@ pub(super) fn extract_file(
         timings,
         (size, modified_ms, hash),
         tagged,
+        decoder_channels,
         // The custom frames, from a second parse of the concrete container
         // (#588). They are not in what lofty just handed back: the generic
         // `Tag` drops everything it cannot map onto an `ItemKey`, and the
@@ -460,12 +466,25 @@ pub(super) fn extract_network_file(
     if let Some(codec) = waveflow_core::scanner::undecodable_stream(&tagged.file_type()) {
         return Err(format!("this build cannot decode {codec}"));
     }
+    // The same rule as a local file: readable tags do not make a playable one.
+    let decoder_channels = if waveflow_core::scanner::extract::decoder_decides(tagged.file_type()) {
+        let source = listing
+            .open_for_scan(locator, meta)
+            .map_err(|e| format!("read: {e}"))?;
+        waveflow_core::scanner::extract::decoder_channels_from(
+            Box::new(source),
+            path.extension().and_then(|e| e.to_str()),
+        )?
+    } else {
+        None
+    };
     Ok(from_tagged(
         path,
         artwork_dir,
         timings,
         (size, modified_ms, hash),
         tagged,
+        decoder_channels,
         || {
             reader.seek(SeekFrom::Start(0)).ok()?;
             waveflow_core::scanner::extra_tags::read_concrete_tags_from(&mut reader, hint)
@@ -475,14 +494,16 @@ pub(super) fn extract_network_file(
 }
 
 /// What the tags say, as an `ExtractedFile`. `stamp` is the file's size,
-/// modification time and hash; the two closures read what lies outside the
-/// parsed tag, which a local file and one on a share get differently.
+/// modification time and hash; `decoder_channels` the count that wins over
+/// lofty's; the two closures read what lies outside the parsed tag, which a
+/// local file and one on a share get differently.
 fn from_tagged(
     path: &Path,
     artwork_dir: &Path,
     timings: &ScanTimings,
     stamp: (i64, i64, String),
     tagged: lofty::file::TaggedFile,
+    decoder_channels: Option<i64>,
     read_concrete: impl FnOnce() -> Option<waveflow_core::scanner::extra_tags::ConcreteTags>,
     read_folder_cover: impl FnOnce() -> Option<ExtractedCover>,
 ) -> ExtractedFile {
@@ -505,10 +526,10 @@ fn from_tagged(
     };
     let bitrate = props.audio_bitrate().map(|b| b as i64);
     let sample_rate = props.sample_rate().map(|s| s as i64);
-    let channels = match props.channels() {
+    let channels = decoder_channels.or_else(|| match props.channels() {
         Some(0) => stream.as_ref().and_then(|stream| stream.channels),
         other => other.map(|c| c as i64),
-    };
+    });
     // Bit depth: lossless codecs report a real PCM bit count; lossy
     // formats either return None or 0 (which we coalesce away so the
     // UI doesn't badge a 320 kbps MP3 as "0-bit Hi-Res").

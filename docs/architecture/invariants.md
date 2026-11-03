@@ -250,10 +250,11 @@ prevent.
 
 Each of the three used to build its own decoder from symphonia's
 default registry, which was harmless only for as long as the app
-shipped no decoder of its own. Opus (#581) is one, so it is not
-harmless any more. WavPack and Monkey's Audio brought the same question
-to containers: symphonia reads neither, so a reader of ours has to reach
-all three too.
+shipped no decoder of its own. Opus (#581) is one, and so is
+[`audio_format::aac`](../features/playback.md#aac-beyond-symphonia), so
+it is not harmless any more. WavPack and Monkey's Audio brought the same
+question to containers: symphonia reads neither, so a reader of ours has
+to reach all three too.
 
 Two consequences worth stating:
 
@@ -261,7 +262,11 @@ Two consequences worth stating:
   scanner's extension list plus
   [`undecodable_stream`](../../src-tauri/crates/core/src/scanner/extract/mod.rs)
   have to move with it — those two are the scanner's half of the same
-  agreement. A decoder that only plays part of a format also tells
+  agreement, along with
+  [`decoder_channels`](../../src-tauri/crates/core/src/scanner/extract/probe.rs),
+  which keeps out an MP4 or ADTS file whose stream the registry refuses,
+  since lofty reads the tags of any of them.
+  A decoder that only plays part of a format also tells
   [`is_scannable_audio`](../../src-tauri/crates/core/src/scanner/extract/mod.rs)
   what it refuses, the way `wavpack::refusal` and `ape::refusal` do.
 - **A reader sure of its marker stays sure of what it refuses.** Its

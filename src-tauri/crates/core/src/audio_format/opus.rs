@@ -74,7 +74,8 @@ use symphonia::core::errors::{decode_error, unsupported_error, Result};
 use symphonia::core::packet::PacketRef;
 
 /// The codec registry this app decodes with: everything symphonia's
-/// feature flags enable, plus Opus, WavPack and Monkey's Audio.
+/// feature flags enable, plus Opus, WavPack, Monkey's Audio and the AAC
+/// symphonia refuses.
 ///
 /// Built once and shared, the way `symphonia::default::get_codecs`
 /// is. There are three places that open an audio stream — playback,
