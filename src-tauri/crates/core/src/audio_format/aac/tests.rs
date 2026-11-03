@@ -266,8 +266,27 @@ fn declared_stereo() -> AacDecoder {
     AacDecoder::try_new(&params, &AudioDecoderOptions::default()).unwrap()
 }
 
-/// Nothing declares the layout and no packet decodes: the count is unknown
-/// because the stream does not play, which is a refusal and not a shrug.
+/// The ADTS headers say stereo, the packets carry a 2.1 program config
+/// element: what plays is three channels, so that is what gets stored.
+#[test]
+fn the_scanner_counts_what_a_stream_plays_rather_than_what_it_declares() {
+    let mut bytes = std::fs::read(fixture("twopointone.aac")).unwrap();
+    let mut at = 0;
+    while at + 7 <= bytes.len() {
+        let length = (usize::from(bytes[at + 3] & 0x03) << 11)
+            | (usize::from(bytes[at + 4]) << 3)
+            | usize::from(bytes[at + 5] >> 5);
+        bytes[at + 3] |= 0x80; // channel configuration 0 -> 2
+        at += length;
+    }
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("declares_stereo.aac");
+    std::fs::write(&path, bytes).unwrap();
+    assert_eq!(decoder_channels(&path, FileType::Aac), Ok(Some(3)));
+}
+
+/// No packet decodes: the count is unknown because the stream does not play,
+/// which is a refusal and not a shrug.
 #[test]
 fn a_stream_of_which_no_packet_decodes_is_refused_for_the_scanner() {
     let mut bytes = std::fs::read(fixture("twopointone.aac")).unwrap();

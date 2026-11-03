@@ -26,10 +26,11 @@ pub struct StreamInfo {
 /// lofty accepting an MP4 or an ADTS file says nothing about whether it
 /// plays: an xHE-AAC `.m4a` has perfectly good tags. `file_type` is what
 /// lofty found in the file, so a misnamed one is checked as well. This opens
-/// the stream the way playback does, decoding a packet only when the layout
-/// travels inside the stream. Its count wins over lofty's, which is wrong on
-/// this family: measured 7 for 7.1 AAC, 2 for every stream with a PCE, 64
-/// for AAC-ELD.
+/// the stream the way playback does and decodes until a packet comes out,
+/// since what a stream declares is not always what it plays: a layout can
+/// travel in-band. That count wins over lofty's, which is wrong on this
+/// family: measured 7 for 7.1 AAC, 2 for every stream with a PCE, 64 for
+/// AAC-ELD.
 pub fn decoder_channels(path: &Path, file_type: FileType) -> Result<Option<i64>, String> {
     if !decoder_decides(file_type) {
         return Ok(None);
@@ -58,9 +59,6 @@ fn channels_of(opened: OpenedStream) -> Result<Option<i64>, String> {
         mut decoder,
         ..
     } = opened;
-    if let Some(channels) = &decoder.codec_params().channels {
-        return Ok(Some(channels.count() as i64));
-    }
     let mut tried = 0usize;
     while tried < PLAYABLE_PROBE_PACKETS {
         let Ok(Some(packet)) = format.next_packet() else {

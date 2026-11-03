@@ -96,6 +96,8 @@ pub enum AacDecoder {
         decoder: Box<SymphoniaAac>,
         /// Whether a caller has read the format from this decoder yet.
         decoded_any: bool,
+        /// What the caller opened it with, for the decoder that may take over.
+        opts: AudioDecoderOptions,
     },
     Extended(Box<ExtendedAac>),
 }
@@ -118,6 +120,7 @@ impl AacDecoder {
             return Ok(Self::Symphonia {
                 decoder: Box::new(decoder),
                 decoded_any: false,
+                opts: *opts,
             });
         }
         Ok(Self::Extended(Box::new(ExtendedAac::try_new(
@@ -160,6 +163,7 @@ impl AudioDecoder for AacDecoder {
         if let Self::Symphonia {
             decoder,
             decoded_any,
+            opts,
         } = self
         {
             match decoder.decode_ref(packet) {
@@ -172,8 +176,7 @@ impl AudioDecoder for AacDecoder {
                 // caller, while the other decoder reads it.
                 Err(Error::Unsupported(reason)) => {
                     let params = decoder.codec_params().clone();
-                    let opts = AudioDecoderOptions::default();
-                    let Ok(mut extended) = ExtendedAac::try_new(&params, &opts) else {
+                    let Ok(mut extended) = ExtendedAac::try_new(&params, opts) else {
                         return Err(Error::Unsupported(reason));
                     };
                     extended.decoded_any = *decoded_any;
