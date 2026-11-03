@@ -332,7 +332,7 @@ pub fn file_type_label(ft: FileType) -> Option<String> {
 /// through a whole-star `StarRating` (lofty's own doc comment still
 /// describes the old shape). Reading only the first two is why no
 /// rating has been read out of an MP3 since that bump: `get_binary`
-/// answered `None`, and `"MusicBee|4|0"` is not a number.
+/// answered `None`, and `"someone@example.com|4|0"` is not a number.
 ///
 /// The star form is rescaled on the same 51-per-star scale the app
 /// writes, so four stars stay four stars. It is lossy in one direction

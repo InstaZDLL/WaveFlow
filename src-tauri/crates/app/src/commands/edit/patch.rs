@@ -318,8 +318,8 @@ pub(super) fn apply_rating_id3v2(tag: &mut lofty::id3::v2::Id3v2Tag, rating: Opt
     tag.remove(&popm).for_each(drop);
     if let Some(rating) = rating {
         // An empty email is the anonymous user the spec allows, and
-        // what every reader checked (foobar2000, Mp3tag, MusicBee)
-        // accepts. The counter stays 0 — we do not track plays here.
+        // what every reader checked accepts. The counter stays 0 — we
+        // do not track plays here.
         tag.insert(Frame::Popularimeter(PopularimeterFrame::new("", rating, 0)));
     }
 }

@@ -86,7 +86,10 @@ fn a_rating_is_read_from_both_shapes_lofty_has_used() {
     use lofty::tag::{Tag, TagType};
 
     let mut id3 = Tag::new(TagType::Id3v2);
-    id3.insert_text(ItemKey::Popularimeter, "MusicBee|4|0".to_string());
+    id3.insert_text(
+        ItemKey::Popularimeter,
+        "someone@example.com|4|0".to_string(),
+    );
     assert_eq!(extract_rating(&id3), Some(204), "four stars of five");
 
     // The provider name is optional, and a rating can be anonymous.
@@ -102,7 +105,7 @@ fn a_rating_is_read_from_both_shapes_lofty_has_used() {
 
     // Nothing that is neither — including a string that happens to
     // carry a pipe and a digit without being a popularimeter.
-    for value in ["not a rating", "MusicBee|4", "x|4|0|extra", "a|4|later"] {
+    for value in ["not a rating", "someone|4", "x|4|0|extra", "a|4|later"] {
         let mut nonsense = Tag::new(TagType::Id3v2);
         nonsense.insert_text(ItemKey::Popularimeter, value.to_string());
         assert_eq!(extract_rating(&nonsense), None, "{value}");
