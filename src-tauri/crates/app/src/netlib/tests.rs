@@ -666,6 +666,35 @@ async fn a_rescan_after_a_first_scan_that_took_the_cover_reads_no_image() {
     assert_eq!(bench.image_bytes(), image.len() as u64);
 }
 
+/// An album left without a picture while the listing stood still (an undone
+/// enrichment clears it this way) takes the sidecar back, for one read: the
+/// stamp says the file did not move, not that the album still shows it.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_cover_the_album_lost_comes_back_for_one_read() {
+    let _turn = SERIAL.lock().await;
+    let bench = Bench::new().await;
+    let image = b"a cover".to_vec();
+    bench.put("Music/Album/1.wav", album_wav(1, "Album"), 1);
+    bench.put("Music/Album/cover.jpg", image.clone(), 5);
+    bench.scan().await.unwrap();
+    assert_eq!(bench.image_bytes(), image.len() as u64);
+
+    sqlx::query("UPDATE album SET artwork_id = NULL, artwork_source = NULL")
+        .execute(&bench.pool)
+        .await
+        .unwrap();
+
+    bench.scan().await.unwrap();
+    assert_eq!(
+        bench.cover("Album").await,
+        (blake3_of(&image), Some("folder".to_string()))
+    );
+    assert_eq!(bench.image_bytes(), 2 * image.len() as u64);
+
+    bench.scan().await.unwrap();
+    assert_eq!(bench.image_bytes(), 2 * image.len() as u64);
+}
+
 #[tokio::test(flavor = "multi_thread")]
 async fn a_replaced_cover_follows_and_a_deleted_one_changes_nothing() {
     let _turn = SERIAL.lock().await;

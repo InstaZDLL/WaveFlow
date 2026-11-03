@@ -309,6 +309,15 @@ pub struct NetworkCoverCandidate {
     observed_hash: Option<String>,
 }
 
+impl NetworkCoverCandidate {
+    /// Whether the album holds any cover. One that lost its picture while the
+    /// listing stood still (an undone enrichment, a deleted artwork row) has
+    /// nothing to show for its stamp, and takes the sidecar again.
+    pub fn holds_a_cover(&self) -> bool {
+        self.observed_artwork_id.is_some()
+    }
+}
+
 /// The albums [`apply_network_covers`] may be asked about, under the rules of
 /// [`refresh_folder_covers`]: the source allowlist, and the first directory
 /// over all of an album's tracks, whichever folder is being scanned.

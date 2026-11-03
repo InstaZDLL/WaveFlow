@@ -328,12 +328,14 @@ impl Listing {
 /// `refresh_folder_covers` compares bytes, which on a share means downloading
 /// every cover on every scan. This compares what the listing shows of the
 /// sidecar with what it showed when the album last took stock of it, and reads
-/// the image only when they differ. A deep scan, which is the way to notice a
-/// change that kept the file's date, reads it regardless.
+/// the image only when they differ or the album has lost its cover since. A deep
+/// scan, which is the way to notice a change that kept the file's date, reads it
+/// regardless.
 ///
 /// A sidecar the listing no longer shows changes nothing, nor does a read that
-/// fails, which the next scan tries again. Takes a whole listing: [`walk`]
-/// gives no other.
+/// fails, which the next scan tries again. A stop reads no further image and
+/// keeps those already read, which would otherwise be downloaded again. Takes a
+/// whole listing: [`walk`] gives no other.
 pub async fn refresh_covers(
     pool: &SqlitePool,
     listing: &Arc<Listing>,
@@ -347,7 +349,7 @@ pub async fn refresh_covers(
         let Some(stamp) = listing.listed_cover(&candidate.locator) else {
             continue;
         };
-        if !deep && candidate.seen.as_ref() == Some(&stamp) {
+        if !deep && candidate.holds_a_cover() && candidate.seen.as_ref() == Some(&stamp) {
             continue;
         }
         if should_stop() {
