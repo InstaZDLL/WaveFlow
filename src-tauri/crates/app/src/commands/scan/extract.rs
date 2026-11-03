@@ -509,10 +509,27 @@ fn from_tagged(
 ) -> ExtractedFile {
     let (size, modified_ms, hash) = stamp;
     let props = tagged.properties();
-    let duration_ms = props.duration().as_millis() as i64;
+    // lofty answers 0 for the length of a WavPack file that does not state one,
+    // and for the channels of a multichannel one. A duration of 0 is what the
+    // engine takes for a live stream, so the decoder is asked instead.
+    let stream = (matches!(
+        tagged.file_type(),
+        lofty::file::FileType::WavPack | lofty::file::FileType::Ape
+    ) && (props.duration().is_zero() || props.channels() == Some(0)))
+    .then(|| waveflow_core::scanner::extract::probe_playable_stream(path))
+    .flatten();
+    let duration_ms = match &stream {
+        Some(stream) if props.duration().is_zero() => stream.duration_ms,
+        // The header's length, unless the file was cut short of it.
+        _ => waveflow_core::audio_format::held_duration_ms(path)
+            .unwrap_or(props.duration().as_millis() as i64),
+    };
     let bitrate = props.audio_bitrate().map(|b| b as i64);
     let sample_rate = props.sample_rate().map(|s| s as i64);
-    let channels = decoder_channels.or_else(|| props.channels().map(|c| c as i64));
+    let channels = decoder_channels.or_else(|| match props.channels() {
+        Some(0) => stream.as_ref().and_then(|stream| stream.channels),
+        other => other.map(|c| c as i64),
+    });
     // Bit depth: lossless codecs report a real PCM bit count; lossy
     // formats either return None or 0 (which we coalesce away so the
     // UI doesn't badge a 320 kbps MP3 as "0-bit Hi-Res").

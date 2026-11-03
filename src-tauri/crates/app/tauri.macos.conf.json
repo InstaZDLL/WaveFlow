@@ -58,6 +58,20 @@
         "rank": "Alternate"
       },
       {
+        "ext": ["wv"],
+        "name": "WavPack Audio",
+        "mimeType": "audio/x-wavpack",
+        "role": "Viewer",
+        "rank": "Alternate"
+      },
+      {
+        "ext": ["ape"],
+        "name": "Monkey's Audio",
+        "mimeType": "audio/x-ape",
+        "role": "Viewer",
+        "rank": "Alternate"
+      },
+      {
         "ext": ["dsf"],
         "name": "DSD Audio (DSF)",
         "mimeType": "audio/x-dsf",

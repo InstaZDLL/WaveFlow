@@ -38,6 +38,8 @@
   !insertmacro ${MACRO} "opus"
   !insertmacro ${MACRO} "m4a"
   !insertmacro ${MACRO} "aac"
+  !insertmacro ${MACRO} "wv"
+  !insertmacro ${MACRO} "ape"
   !insertmacro ${MACRO} "dsf"
   !insertmacro ${MACRO} "dff"
 !macroend

@@ -77,7 +77,7 @@ fn channels_of(opened: OpenedStream) -> Result<Option<i64>, String> {
     ))
 }
 
-/// A stream opened the way playback opens it: symphonia's probe, which
+/// A stream opened the way playback opens it: the app's probe, which
 /// judges by content, and the one codec registry
 /// ([`crate::audio_format::opus::codecs`]).
 struct OpenedStream {
@@ -109,7 +109,7 @@ fn open_source(
     if let Some(ext) = ext {
         hint.with_extension(ext);
     }
-    let format = symphonia::default::get_probe()
+    let format = crate::audio_format::probe()
         .probe(
             &hint,
             MediaSourceStream::new(source, Default::default()),
@@ -150,7 +150,7 @@ const PLAYABLE_PROBE_PACKETS: usize = 64;
 /// Whether the player could play this file, and what it would play, for
 /// a file lofty cannot read at all (#873).
 ///
-/// Opened the way playback opens it — symphonia's probe, which judges
+/// Opened the way playback opens it — the app's probe, which judges
 /// by content, and the one codec registry
 /// ([`crate::audio_format::opus::codecs`]) — and accepted only once a
 /// packet actually decodes, so a file listed this way is one the player

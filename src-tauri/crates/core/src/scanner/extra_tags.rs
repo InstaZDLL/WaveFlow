@@ -346,6 +346,10 @@ fn read_inner<R: std::io::Read + std::io::Seek>(probe: Probe<R>) -> Option<Concr
             let file = lofty::ape::ApeFile::read_from(&mut handle, options).ok()?;
             ape_into(file.ape(), &mut out);
         }
+        FileType::WavPack => {
+            let file = lofty::wavpack::WavPackFile::read_from(&mut handle, options).ok()?;
+            ape_into(file.ape(), &mut out);
+        }
         // A container we do not read custom frames from — DSF and DFF,
         // which have their own pipeline, and anything lofty recognises
         // that we have not wired up. Falls through to `Some(vec![])`,
@@ -487,6 +491,14 @@ fn ape_into(tag: Option<&lofty::ape::ApeTag>, out: &mut Vec<(String, String)>) {
     let (remainder, generic) = tag.clone().split_tag();
     generic_into(&generic, out);
     for item in &*remainder {
+        // The stars have their own column, like the rating on every other
+        // container, which reaches this function modelled and is skipped.
+        if item
+            .key()
+            .eq_ignore_ascii_case(super::extract::APE_RATING_KEY)
+        {
+            continue;
+        }
         if let lofty::tag::ItemValue::Text(value) = item.value() {
             // Same as the Vorbis half: lofty compares APEv2 keys
             // without regard to case, so `SOURCE` and `source` are one

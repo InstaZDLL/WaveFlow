@@ -351,7 +351,7 @@ fn an_aiff_file_probes_and_decodes() {
     let file = fs::File::open(&path).expect("open");
     let mut hint = Hint::new();
     hint.with_extension("aiff");
-    let mut format = symphonia::default::get_probe()
+    let mut format = crate::audio_format::probe()
         .probe(
             &hint,
             MediaSourceStream::new(Box::new(file), Default::default()),
@@ -389,7 +389,7 @@ fn an_aiff_file_probes_and_decodes() {
 /// widen by accident.
 #[test]
 fn the_extension_list_admits_aiff_and_still_refuses_what_cannot_play() {
-    for accepted in ["aiff", "aif", "wav", "flac", "mp3", "opus"] {
+    for accepted in ["aiff", "aif", "wav", "flac", "mp3", "opus", "wv", "ape"] {
         assert!(
             AUDIO_EXTENSIONS.contains(&accepted),
             "{accepted} is playable and must be indexed"

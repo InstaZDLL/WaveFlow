@@ -234,8 +234,10 @@ back](../features/playback.md#what-a-rebuild-puts-back).
 ### One codec registry for the whole app
 
 Anything that opens an audio stream MUST go through
-[`waveflow_core::audio_format::opus::codecs()`](../../src-tauri/crates/core/src/audio_format/opus.rs),
-never `symphonia::default::get_codecs()`.
+[`waveflow_core::audio_format::opus::codecs()`](../../src-tauri/crates/core/src/audio_format/opus.rs)
+for its decoder and [`audio_format::probe()`](../../src-tauri/crates/core/src/audio_format/mod.rs)
+for its container, never `symphonia::default::get_codecs()` or
+`get_probe()`.
 
 There are three such places and they answer three different questions
 about the same file: **playback** (`ActiveStream::open`), the
@@ -250,7 +252,9 @@ Each of the three used to build its own decoder from symphonia's
 default registry, which was harmless only for as long as the app
 shipped no decoder of its own. Opus (#581) is one, and so is
 [`audio_format::aac`](../features/playback.md#aac-beyond-symphonia), so
-it is not harmless any more.
+it is not harmless any more. WavPack and Monkey's Audio brought the same
+question to containers: symphonia reads neither, so a reader of ours has
+to reach all three too.
 
 Two consequences worth stating:
 
@@ -262,6 +266,14 @@ Two consequences worth stating:
   [`decoder_channels`](../../src-tauri/crates/core/src/scanner/extract/probe.rs),
   which keeps out an MP4 or ADTS file whose stream the registry refuses,
   since lofty reads the tags of any of them.
+  A decoder that only plays part of a format also tells
+  [`is_scannable_audio`](../../src-tauri/crates/core/src/scanner/extract/mod.rs)
+  what it refuses, the way `wavpack::refusal` and `ape::refusal` do.
+- **A reader sure of its marker stays sure of what it refuses.** Its
+  [`Scoreable::score`](../../src-tauri/crates/core/src/audio_format/wavpack.rs)
+  answers yes for a stream it will then turn down, so the probe stops with
+  "unsupported". Answering no sends the probe on through the file's bytes
+  until something looks like an MP3 sync word, and that plays as noise.
 - **The registry lives in `core`**, not in the app, because the
   analysis pass and the scanner are core's and the future
   `waveflow-server` transcoder will want the same answer.

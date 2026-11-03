@@ -15,8 +15,7 @@ homepage = "https://waveflow.app"
 # cmake to (waveflow-server#282).
 default = ["opus"]
 # The libopus decoder behind `audio_format::opus::codecs()`. Without it
-# the same function answers symphonia's registry plus the AAC symphonia
-# refuses.
+# the same function answers the registry minus Opus.
 opus = ["dep:opusic-sys"]
 # Opt in to the SQLite backend: enables `sqlx::FromRow` derives on the
 # domain types (via `cfg_attr`) and pulls the `sqlite` + `runtime-tokio`
@@ -145,6 +144,15 @@ uuid = { version = "1", features = ["v4", "v5", "serde"] }
 # time, which every build environment already has. Optional: see the
 # `opus` feature.
 opusic-sys = { version = "0.7", features = ["bundled"], optional = true }
+
+# WavPack and Monkey's Audio decoders, which symphonia has none of. Both are
+# pure Rust and were adopted on a bit-for-bit measure against the reference
+# tools, not on their READMEs: `audio_format::wavpack` and `audio_format::ape`
+# say what was measured and what they refuse. Not behind a feature like Opus:
+# they need no C toolchain, so a build has nothing to gain by going without.
+# Pinned exactly: a new release is a new decoder, to measure again.
+wavicle = "=0.1.0"
+ape-decoder = "=0.3.2"
 
 # AAC that symphonia refuses at the open: more than two channels, PCE
 # layouts, explicit HE-AAC, Main, LTP, LD, ELD. Pure Rust, no dependency,

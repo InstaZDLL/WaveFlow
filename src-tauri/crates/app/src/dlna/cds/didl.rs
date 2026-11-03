@@ -222,6 +222,8 @@ fn mime_for_path(path: &str) -> &'static str {
         Some("aiff" | "aif") => "audio/x-aiff",
         Some("ogg" | "oga") => "audio/ogg",
         Some("m4a" | "mp4" | "aac") => "audio/mp4",
+        Some("wv") => "audio/x-wavpack",
+        Some("ape") => "audio/x-ape",
         _ => "application/octet-stream",
     }
 }

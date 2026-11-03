@@ -258,6 +258,18 @@ pub struct PacketTally {
 /// lets the player's commands through: stop, seek, the next track.
 const MAX_SKIPPED_PACKETS: usize = 64;
 
+/// How long one `decode_next` call may spend passing packets over, for the same
+/// reason. A count is not enough on its own: a Monkey's Audio frame can take over
+/// a second to fail its checksum, and 64 of them leave the player deaf to its
+/// commands for a minute. Measured at 9 to 11 s on a file of 12 such frames.
+const MAX_SKIP_TIME: std::time::Duration = std::time::Duration::from_millis(25);
+
+/// Whether a `decode_next` call that began at `started` has passed over enough
+/// packets to hand back and let the commands through.
+fn should_give_way(skipped: usize, started: std::time::Instant) -> bool {
+    skipped >= MAX_SKIPPED_PACKETS || started.elapsed() >= MAX_SKIP_TIME
+}
+
 /// How many DSD bytes to pull from disk per `decode_next` cycle.
 /// 64 KiB ≈ 23 ms of DSD64 stereo, comfortably below the SPSC ring
 /// capacity but large enough to amortise the FIR convolution cost.
@@ -494,7 +506,7 @@ impl ActiveStream {
         if let Some(ext) = ext_hint {
             hint.with_extension(ext);
         }
-        let format = symphonia::default::get_probe()
+        let format = crate::audio_format::probe()
             .probe(
                 &hint,
                 mss,

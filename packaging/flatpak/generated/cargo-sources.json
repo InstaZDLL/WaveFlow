@@ -171,6 +171,19 @@
     {
         "type": "archive",
         "archive-type": "tar-gzip",
+        "url": "https://static.crates.io/crates/ape-decoder/ape-decoder-0.3.2.crate",
+        "sha256": "95097ef8efebf7b1e1d638b77935cfce25576163614427b464efe256bb8b2ec1",
+        "dest": "cargo/vendor/ape-decoder-0.3.2"
+    },
+    {
+        "type": "inline",
+        "contents": "{\"package\": \"95097ef8efebf7b1e1d638b77935cfce25576163614427b464efe256bb8b2ec1\", \"files\": {}}",
+        "dest": "cargo/vendor/ape-decoder-0.3.2",
+        "dest-filename": ".cargo-checksum.json"
+    },
+    {
+        "type": "archive",
+        "archive-type": "tar-gzip",
         "url": "https://static.crates.io/crates/arbitrary/arbitrary-1.5.0.crate",
         "sha256": "3bc62ac97cc33321f50863d514c3bc38a453947a8f9e781137e47c7401020aed",
         "dest": "cargo/vendor/arbitrary-1.5.0"
@@ -4365,6 +4378,19 @@
         "type": "inline",
         "contents": "{\"package\": \"47e1ffaa40ddd1f3ed91f717a33c8c0ee23fff369e3aa8772b9605cc1d22f4c3\", \"files\": {}}",
         "dest": "cargo/vendor/matchit-0.8.4",
+        "dest-filename": ".cargo-checksum.json"
+    },
+    {
+        "type": "archive",
+        "archive-type": "tar-gzip",
+        "url": "https://static.crates.io/crates/md-5/md-5-0.10.6.crate",
+        "sha256": "d89e7ee0cfbedfc4da3340218492196241d89eefb6dab27de5df917a6d2e78cf",
+        "dest": "cargo/vendor/md-5-0.10.6"
+    },
+    {
+        "type": "inline",
+        "contents": "{\"package\": \"d89e7ee0cfbedfc4da3340218492196241d89eefb6dab27de5df917a6d2e78cf\", \"files\": {}}",
+        "dest": "cargo/vendor/md-5-0.10.6",
         "dest-filename": ".cargo-checksum.json"
     },
     {
@@ -9149,6 +9175,19 @@
         "type": "inline",
         "contents": "{\"package\": \"9828eddc4b35d0d91a2f7ea3ff7c72b67808ece7bb2663eed0b17e480285897e\", \"files\": {}}",
         "dest": "cargo/vendor/wasmtime-wasi-io-50.0.1",
+        "dest-filename": ".cargo-checksum.json"
+    },
+    {
+        "type": "archive",
+        "archive-type": "tar-gzip",
+        "url": "https://static.crates.io/crates/wavicle/wavicle-0.1.0.crate",
+        "sha256": "1e312eaf22b4a7e5b7bf038edb3a7e4703c7b86dfabaea49d17af85e55eb76ab",
+        "dest": "cargo/vendor/wavicle-0.1.0"
+    },
+    {
+        "type": "inline",
+        "contents": "{\"package\": \"1e312eaf22b4a7e5b7bf038edb3a7e4703c7b86dfabaea49d17af85e55eb76ab\", \"files\": {}}",
+        "dest": "cargo/vendor/wavicle-0.1.0",
         "dest-filename": ".cargo-checksum.json"
     },
     {

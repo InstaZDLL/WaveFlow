@@ -120,6 +120,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "330a5ed07fa54e4702c9d6c4174f74427fc0ef6e214bbd677ae50a5099946470"
 
 [[package]]
+name = "ape-decoder"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "95097ef8efebf7b1e1d638b77935cfce25576163614427b464efe256bb8b2ec1"
+dependencies = [
+ "crc32fast",
+ "md-5 0.10.6",
+]
+
+[[package]]
 name = "arbitrary"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3397,6 +3407,16 @@ checksum = "47e1ffaa40ddd1f3ed91f717a33c8c0ee23fff369e3aa8772b9605cc1d22f4c3"
 
 [[package]]
 name = "md-5"
+version = "0.10.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d89e7ee0cfbedfc4da3340218492196241d89eefb6dab27de5df917a6d2e78cf"
+dependencies = [
+ "cfg-if",
+ "digest 0.10.7",
+]
+
+[[package]]
+name = "md-5"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "69b6441f590336821bb897fb28fc622898ccceb1d6cea3fde5ea86b090c4de98"
@@ -5487,7 +5507,7 @@ dependencies = [
  "hmac",
  "log",
  "lz4_flex",
- "md-5",
+ "md-5 0.11.0",
  "md4",
  "num_enum",
  "pbkdf2",
@@ -5717,7 +5737,7 @@ dependencies = [
  "hmac",
  "itoa",
  "log",
- "md-5",
+ "md-5 0.11.0",
  "memchr",
  "rand",
  "serde",
@@ -7804,7 +7824,7 @@ dependencies = [
  "libc",
  "lofty",
  "mac_address",
- "md-5",
+ "md-5 0.11.0",
  "notify",
  "objc2-core-audio",
  "objc2-core-audio-types",
@@ -7868,6 +7888,7 @@ name = "waveflow-core"
 version = "1.9.1"
 dependencies = [
  "anyhow",
+ "ape-decoder",
  "async-trait",
  "blake3",
  "chardetng",
@@ -7879,7 +7900,7 @@ dependencies = [
  "id3",
  "image",
  "lofty",
- "md-5",
+ "md-5 0.11.0",
  "opusic-sys",
  "pinyin",
  "realfft",
@@ -7906,6 +7927,7 @@ dependencies = [
  "wasmtime",
  "wasmtime-wasi",
  "waveflow-plugin-sdk",
+ "wavicle",
  "windows-sys 0.61.2",
 ]
 
@@ -7928,6 +7950,12 @@ dependencies = [
  "tracing",
  "url",
 ]
+
+[[package]]
+name = "wavicle"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1e312eaf22b4a7e5b7bf038edb3a7e4703c7b86dfabaea49d17af85e55eb76ab"
 
 [[package]]
 name = "web-sys"

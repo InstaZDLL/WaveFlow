@@ -158,6 +158,73 @@ fn a_track_read_ahead_decodes_like_the_file() {
     assert_eq!(read_ahead, direct);
 }
 
+/// The engine's own path through a file cut short: the stream says it is done
+/// at the last whole frame, and a seek past it brings the end at once.
+#[test]
+fn a_stream_cut_short_ends_at_what_the_file_holds() {
+    use ape_decoder::format::parse;
+
+    let source =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/lossless/seek_frames_c1000.ape");
+    let bytes = std::fs::read(&source).expect("read");
+    let info = parse(&mut std::io::Cursor::new(bytes.clone())).expect("parse");
+    let dir = tempfile::tempdir().expect("tempdir");
+    let path = dir.path().join("cut.ape");
+    std::fs::write(&path, &bytes[..info.seek_byte(2) as usize + 100]).expect("write");
+
+    let open = || {
+        ActiveStream::open(
+            &path,
+            1,
+            3_628,
+            "local".to_string(),
+            None,
+            TrackGain::default(),
+            256,
+            false,
+        )
+        .expect("open")
+    };
+
+    let (mut out, mut scratch) = (Vec::new(), Vec::new());
+    let mut stream = open();
+    while !stream
+        .decode_next(&mut out, &mut scratch, 44_100, &stereo())
+        .expect("decode")
+    {}
+    assert_eq!(out.len() / 2, 2 * 73_728, "two whole frames, nothing after");
+
+    let mut stream = open();
+    out.clear();
+    assert!(!stream
+        .decode_next(&mut out, &mut scratch, 44_100, &stereo())
+        .expect("decode"));
+    stream.seek_ms(3_500);
+    stream.reset_decoder();
+    out.clear();
+    let mut steps = 0;
+    while !stream
+        .decode_next(&mut out, &mut scratch, 44_100, &stereo())
+        .expect("decode")
+    {
+        steps += 1;
+        assert!(steps < 3, "the end comes at once");
+    }
+}
+
+/// Skipped packets are bounded by time as well as by count: a slow codec's
+/// failures would otherwise keep the player's commands waiting for a minute.
+#[test]
+fn a_run_of_bad_packets_gives_way_to_the_commands() {
+    use std::time::{Duration, Instant};
+
+    let just_now = Instant::now();
+    assert!(!should_give_way(1, just_now));
+    assert!(should_give_way(MAX_SKIPPED_PACKETS, just_now));
+    let a_while_ago = just_now - Duration::from_secs(1);
+    assert!(should_give_way(1, a_while_ago));
+}
+
 #[test]
 fn network_path_heuristic() {
     // Windows UNC + Linux gvfs mounts are network.

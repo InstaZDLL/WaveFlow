@@ -399,11 +399,15 @@ const BIT_DEPTH_OPTIONS = [16, 24, 32];
 
 const FORMAT_OPTIONS = [
   "flac",
+  "alac",
   "mp3",
   "aac",
   "ogg",
   "opus",
   "wav",
+  "aiff",
+  "wavpack",
+  "ape",
   "dsf",
   "dff",
 ];

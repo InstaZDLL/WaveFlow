@@ -49,6 +49,8 @@
                     <RegistryValue Key="SupportedTypes" Name=".opus" Type="string" Value="" />
                     <RegistryValue Key="SupportedTypes" Name=".m4a" Type="string" Value="" />
                     <RegistryValue Key="SupportedTypes" Name=".aac" Type="string" Value="" />
+                    <RegistryValue Key="SupportedTypes" Name=".wv" Type="string" Value="" />
+                    <RegistryValue Key="SupportedTypes" Name=".ape" Type="string" Value="" />
                     <RegistryValue Key="SupportedTypes" Name=".dsf" Type="string" Value="" />
                     <RegistryValue Key="SupportedTypes" Name=".dff" Type="string" Value="" />
                 </RegistryKey>
@@ -65,6 +67,8 @@
                     <RegistryValue Key="FileAssociations" Name=".opus" Type="string" Value="WaveFlow.Audio" />
                     <RegistryValue Key="FileAssociations" Name=".m4a" Type="string" Value="WaveFlow.Audio" />
                     <RegistryValue Key="FileAssociations" Name=".aac" Type="string" Value="WaveFlow.Audio" />
+                    <RegistryValue Key="FileAssociations" Name=".wv" Type="string" Value="WaveFlow.Audio" />
+                    <RegistryValue Key="FileAssociations" Name=".ape" Type="string" Value="WaveFlow.Audio" />
                     <RegistryValue Key="FileAssociations" Name=".dsf" Type="string" Value="WaveFlow.Audio" />
                     <RegistryValue Key="FileAssociations" Name=".dff" Type="string" Value="WaveFlow.Audio" />
                 </RegistryKey>
@@ -79,6 +83,8 @@
                 <RegistryValue Root="HKLM" Key="Software\Classes\.opus\OpenWithProgids" Name="WaveFlow.Audio" Type="string" Value="" />
                 <RegistryValue Root="HKLM" Key="Software\Classes\.m4a\OpenWithProgids" Name="WaveFlow.Audio" Type="string" Value="" />
                 <RegistryValue Root="HKLM" Key="Software\Classes\.aac\OpenWithProgids" Name="WaveFlow.Audio" Type="string" Value="" />
+                <RegistryValue Root="HKLM" Key="Software\Classes\.wv\OpenWithProgids" Name="WaveFlow.Audio" Type="string" Value="" />
+                <RegistryValue Root="HKLM" Key="Software\Classes\.ape\OpenWithProgids" Name="WaveFlow.Audio" Type="string" Value="" />
                 <RegistryValue Root="HKLM" Key="Software\Classes\.dsf\OpenWithProgids" Name="WaveFlow.Audio" Type="string" Value="" />
                 <RegistryValue Root="HKLM" Key="Software\Classes\.dff\OpenWithProgids" Name="WaveFlow.Audio" Type="string" Value="" />
             </Component>

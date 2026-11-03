@@ -38,7 +38,7 @@ fn open(path: &Path) -> (Box<dyn FormatReader>, AudioCodecParameters) {
     if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
         hint.with_extension(ext);
     }
-    let format = symphonia::default::get_probe()
+    let format = crate::audio_format::probe()
         .probe(
             &hint,
             MediaSourceStream::new(Box::new(File::open(path).unwrap()), Default::default()),

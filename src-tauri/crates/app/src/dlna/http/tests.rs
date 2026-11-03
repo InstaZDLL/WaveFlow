@@ -201,5 +201,7 @@ fn an_accepted_art_name_never_leaves_the_dir() {
 fn mime_for_path_recognises_lossless_and_lossy() {
     assert_eq!(mime_for_path("a.flac"), "audio/flac");
     assert_eq!(mime_for_path("a.MP3"), "audio/mpeg");
+    assert_eq!(mime_for_path("a.wv"), "audio/x-wavpack");
+    assert_eq!(mime_for_path("a.ape"), "audio/x-ape");
     assert_eq!(mime_for_path("a.unknown"), "application/octet-stream");
 }

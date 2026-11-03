@@ -52,11 +52,12 @@ fn reject_untaggable(
 pub(crate) enum LyricsSlot<'a> {
     /// Both keys go and nothing replaces them.
     Cleared,
-    /// `USLT` for ID3v2, `UNSYNCEDLYRICS` for Vorbis, `©lyr` for MP4 —
+    /// `USLT` for ID3v2, `UNSYNCEDLYRICS` for Vorbis, `UnsyncedLyrics` for
+    /// APEv2, `©lyr` for MP4 —
     /// what every other player reads.
     Unsynchronised(&'a str),
-    /// `ItemKey::Lyrics`, the arbitrary-string slot TTML needs. Vorbis
-    /// and MP4 only; ID3v2 has nothing equivalent.
+    /// `ItemKey::Lyrics`, the arbitrary-string slot TTML needs. Vorbis,
+    /// MP4 and APEv2 only; ID3v2 has nothing equivalent.
     Arbitrary(&'a str),
 }
 
@@ -106,6 +107,11 @@ pub(super) fn apply_patch(tag: &mut lofty::tag::Tag, patch: &TagPatch<'_>) {
                 // anything else without a word, so they are written on the
                 // concrete tag by [`apply_rating_vorbis`] and
                 // [`apply_rating_ilst`].
+                //
+                // APEv2 does not come through here either: lofty's key
+                // table for it has no entry for a rating, so the item
+                // would be dropped on the way to the file. That is
+                // [`apply_rating_ape`].
                 //
                 // Nor does ID3v2. lofty's
                 // generic tag carries a rating as a **whole star**
@@ -554,6 +560,21 @@ pub(crate) fn patch_file(
         }};
     }
 
+    // The APEv2 slot, which takes one payload off the generic path as the
+    // ID3v2 slot does, for its own reason: see `apply_rating_ape`.
+    macro_rules! patch_ape_slot {
+        ($file:expr) => {{
+            match patch {
+                TagPatch::Rating(rating) => {
+                    let mut tag = $file.remove_ape().unwrap_or_default();
+                    apply_rating_ape(&mut tag, *rating);
+                    $file.set_ape(tag);
+                }
+                _ => patch_slot!($file, remove_ape, set_ape),
+            }
+        }};
+    }
+
     // The rewrite: read the concrete file, run the body over it, save it
     // back — through a copy that replaces the original in one `rename`
     // (#598). lofty's own rewrite truncates the file it is rewriting, so
@@ -702,12 +723,49 @@ pub(crate) fn patch_file(
                 }
             }
         }),
+        // APEv2 on both, the tag every tool for these formats writes. An
+        // ID3v1 tag beside it is left alone, as it is beside an MP3's ID3v2.
+        FileType::Ape => with_file!(lofty::ape::ApeFile, |f, handle| {
+            // lofty reads an ID3v2 tag ahead of the stream and refuses to save
+            // a file holding one, which would make the file uneditable. Taken
+            // off what it saves, it stays in the file; its fields seed the
+            // APEv2 tag when there is none, or the edit would hide them.
+            if let Some(id3) = f.remove_id3v2() {
+                if f.ape().is_none() {
+                    let (_, generic) = id3.split_tag();
+                    f.set_ape(lofty::ape::ApeTag::from(generic));
+                }
+            }
+            patch_ape_slot!(f);
+        }),
+        FileType::WavPack => with_file!(lofty::wavpack::WavPackFile, |f, handle| {
+            patch_ape_slot!(f);
+        }),
         other => {
             return Err(format!("{other:?} files are not editable in this build").into());
         }
     }
 
     Ok(())
+}
+
+/// Write a rating into an APEv2 tag, as text on the 0-100 scale, under the key
+/// the scanner's `read_tagged_file` looks for.
+fn apply_rating_ape(tag: &mut lofty::ape::ApeTag, rating: Option<u8>) {
+    use lofty::ape::ApeItem;
+    use lofty::tag::ItemValue;
+    use waveflow_core::scanner::extract::APE_RATING_KEY;
+
+    tag.remove(APE_RATING_KEY);
+    if let Some(rating) = rating {
+        // Infallible for this key: it is valid ASCII of a valid length.
+        if let Ok(item) = ApeItem::new(
+            APE_RATING_KEY.to_string(),
+            ItemValue::Text(rating_as_percent(rating)),
+        ) {
+            tag.insert(item);
+        }
+    }
 }
 
 /// Apply the edit to the file's tags. Creates a tag when the file has
