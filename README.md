@@ -127,7 +127,7 @@ WaveFlow is a desktop music player for the audio files you already own. It scans
 
 - **App** — Tauri 2 · Rust · SQLite (sqlx, FTS5) · tokio
 - **Frontend** — React 19 · TypeScript · Vite · Tailwind CSS 4 · Framer Motion
-- **Audio** — symphonia + libopus (decoding) · cpal (output) · rubato (resampling) · rtrb (lock-free ring buffer)
+- **Audio** — symphonia + libopus + rusty_aac (decoding) · cpal (output) · rubato (resampling) · rtrb (lock-free ring buffer)
 - **Metadata & images** — lofty · image + fast_image_resize · resvg
 - **Plugins** — wasmtime + WASI p2
 - **Toolchain** — Bun

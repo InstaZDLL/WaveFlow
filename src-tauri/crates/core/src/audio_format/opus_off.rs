@@ -16,12 +16,14 @@ use std::sync::OnceLock;
 
 use symphonia::core::codecs::registry::CodecRegistry;
 
-/// Everything symphonia's feature flags enable, and nothing more.
+/// Everything symphonia's feature flags enable, plus the AAC symphonia
+/// refuses, which costs no C toolchain the way libopus does.
 pub fn codecs() -> &'static CodecRegistry {
     static REGISTRY: OnceLock<CodecRegistry> = OnceLock::new();
     REGISTRY.get_or_init(|| {
         let mut registry = CodecRegistry::new();
         symphonia::default::register_enabled_codecs(&mut registry);
+        super::register_own_decoders(&mut registry);
         registry
     })
 }

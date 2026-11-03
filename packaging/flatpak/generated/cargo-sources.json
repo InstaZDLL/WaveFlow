@@ -6333,6 +6333,19 @@
     {
         "type": "archive",
         "archive-type": "tar-gzip",
+        "url": "https://static.crates.io/crates/rusty_aac/rusty_aac-2.0.1.crate",
+        "sha256": "93388483e43ffd3bb3c347794a849edb204438258d8642b8449992a56433798a",
+        "dest": "cargo/vendor/rusty_aac-2.0.1"
+    },
+    {
+        "type": "inline",
+        "contents": "{\"package\": \"93388483e43ffd3bb3c347794a849edb204438258d8642b8449992a56433798a\", \"files\": {}}",
+        "dest": "cargo/vendor/rusty_aac-2.0.1",
+        "dest-filename": ".cargo-checksum.json"
+    },
+    {
+        "type": "archive",
+        "archive-type": "tar-gzip",
         "url": "https://static.crates.io/crates/ryu/ryu-1.0.23.crate",
         "sha256": "9774ba4a74de5f7b1c1451ed6cd5285a32eddb5cccb8cc655a4e50009e06477f",
         "dest": "cargo/vendor/ryu-1.0.23"
