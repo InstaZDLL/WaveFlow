@@ -8,6 +8,7 @@ use wasapi::{
     AudioClient, AudioRenderClient, Device, DeviceEnumerator, Direction, Handle, StreamMode,
     WaveFormat,
 };
+use waveflow_core::playback::channels::ChannelLayout;
 
 use crate::audio::output::RequestedFormat;
 use crate::audio::state::SharedPlayback;
@@ -97,10 +98,11 @@ pub(super) fn open_exclusive_session(
     for layout in &layouts {
         for &format in formats.iter() {
             match try_open_with_format(&device, format, layout.sample_rate, layout.channels) {
-                Ok((client, render, event, buffer_frames)) => {
+                Ok((client, render, event, buffer_frames, channel_mask)) => {
                     tracing::info!(
                         sample_rate = layout.sample_rate as u32,
                         channels = layout.channels as u16,
+                        channel_mask,
                         format = format.label(),
                         layout = layout.origin,
                         "wasapi exclusive negotiation succeeded"
@@ -111,6 +113,14 @@ pub(super) fn open_exclusive_session(
                     shared
                         .channels
                         .store(layout.channels as u16, Ordering::Release);
+                    // The samples of a stream go in the order of its mask's
+                    // bits, and a driver takes one mask, not always the first
+                    // tried. A plain WAVEFORMATEX has none and reads as the
+                    // count's.
+                    shared.output_layout.store(
+                        ChannelLayout::from_wave_mask(channel_mask, layout.channels).pack(),
+                        Ordering::Release,
+                    );
                     shared.set_sample_format(if requested.is_some_and(|r| r.dop) {
                         crate::audio::state::OutputSampleFormat::Dop
                     } else {
@@ -216,7 +226,7 @@ fn try_open_with_format(
     format: ExclusiveSampleFormat,
     sample_rate: usize,
     channels: usize,
-) -> AppResult<(AudioClient, AudioRenderClient, Handle, u32)> {
+) -> AppResult<(AudioClient, AudioRenderClient, Handle, u32, u32)> {
     let requested = format.to_wave_format(sample_rate, channels);
 
     let probe_client = device
@@ -237,8 +247,11 @@ fn try_open_with_format(
     // the shape the probe accepted first, then fall back to the shape
     // we asked for — but only when they actually differ, otherwise the
     // retry is a guaranteed repeat of the same failure.
+    let with_mask = |wave: &WaveFormat, (client, render, event, frames)| {
+        (client, render, event, frames, wave.get_dwchannelmask())
+    };
     match init_stream(device, format, channels, &accepted) {
-        Ok(session) => Ok(session),
+        Ok(session) => Ok(with_mask(&accepted, session)),
         Err(accepted_err) if !same_wave_format(&accepted, &requested) => {
             tracing::debug!(
                 format = format.label(),
@@ -249,12 +262,14 @@ fn try_open_with_format(
             // `debug`, which release builds don't emit — the same blind
             // spot that made this bug take three passes to find. When
             // both shapes are refused, the caller's summary must say so.
-            init_stream(device, format, channels, &requested).map_err(|requested_err| {
-                AppError::Audio(format!(
-                    "{} refused in both shapes — probe-accepted: {accepted_err}; as requested: {requested_err}",
-                    format.label()
-                ))
-            })
+            init_stream(device, format, channels, &requested)
+                .map(|session| with_mask(&requested, session))
+                .map_err(|requested_err| {
+                    AppError::Audio(format!(
+                        "{} refused in both shapes — probe-accepted: {accepted_err}; as requested: {requested_err}",
+                        format.label()
+                    ))
+                })
         }
         Err(err) => Err(err),
     }

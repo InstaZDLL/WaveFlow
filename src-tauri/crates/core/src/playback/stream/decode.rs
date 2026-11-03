@@ -5,6 +5,7 @@ use symphonia::core::codecs::audio::AudioDecoderOptions;
 use symphonia::core::errors::Error as SymphoniaError;
 use symphonia::core::formats::TrackType;
 
+use crate::playback::channels::{ChannelLayout, ChannelMixer};
 use crate::playback::resampler::Resampler;
 
 use super::dsd::{interleave_stride, read_full_block, sub_stride_trim};
@@ -17,8 +18,9 @@ impl ActiveStream {
         out: &mut Vec<f32>,
         interleaved_scratch: &mut Vec<f32>,
         dst_sample_rate: u32,
-        dst_channels: usize,
+        dst_layout: &ChannelLayout,
     ) -> Result<bool, String> {
+        let dst_channels = dst_layout.channels();
         // Snapshot fields used after `&mut backend` so the borrow
         // checker doesn't complain when we reach for `self.resampler`
         // or `self.src_channels` inside the match arms.
@@ -120,6 +122,7 @@ impl ActiveStream {
                 if !*spec_captured {
                     let spec = decoded.spec();
                     let (channels, rate) = (spec.channels().count(), spec.rate());
+                    self.src_layout = ChannelLayout::from_symphonia(spec.channels());
                     // After a new logical stream the same rate and layout
                     // keep the resampler, and what it holds.
                     if channels != self.src_channels || rate != self.src_sample_rate {
@@ -140,12 +143,8 @@ impl ActiveStream {
                 }
                 decoded.copy_to_vec_interleaved(decoded_interleaved);
                 interleaved_scratch.clear();
-                crate::playback::channels::convert_channels(
-                    decoded_interleaved,
-                    self.src_channels,
-                    dst_channels,
-                    interleaved_scratch,
-                );
+                mixer_for(&mut self.mixer, &self.src_layout, dst_layout)
+                    .convert(decoded_interleaved, interleaved_scratch);
                 self.resampler
                     .process(interleaved_scratch, out)
                     .map_err(|e| format!("resample: {e}"))?;
@@ -229,12 +228,8 @@ impl ActiveStream {
                 // and read 4× too fast — exactly what you hear as
                 // "accelerated + pixelated" playback.
                 interleaved_scratch.clear();
-                crate::playback::channels::convert_channels(
-                    pcm_src_scratch,
-                    self.src_channels,
-                    dst_channels,
-                    interleaved_scratch,
-                );
+                mixer_for(&mut self.mixer, &self.src_layout, dst_layout)
+                    .convert(pcm_src_scratch, interleaved_scratch);
 
                 // Stage 3: resample from converter rate to device rate.
                 // Lazily built on first decode now that we know the
@@ -270,4 +265,21 @@ impl ActiveStream {
             }
         }
     }
+}
+
+/// The mixer from `src` to `dst`, kept while the two stay what they were. A
+/// new logical stream can change the source, and a stream prepared for one
+/// output can end up on another.
+fn mixer_for<'a>(
+    slot: &'a mut Option<(ChannelLayout, ChannelMixer)>,
+    src: &ChannelLayout,
+    dst: &ChannelLayout,
+) -> &'a ChannelMixer {
+    let stale = slot.as_ref().map_or(true, |(built_for, mixer)| {
+        built_for != dst || !mixer.is_from(src)
+    });
+    if stale {
+        *slot = Some((dst.clone(), ChannelMixer::new(src, dst)));
+    }
+    &slot.as_ref().expect("just filled").1
 }

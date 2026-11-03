@@ -730,6 +730,9 @@ pub async fn export_playlist_m3u(
           FROM playlist_track pt
           JOIN track t ON t.id = pt.track_id
          WHERE pt.playlist_id = ?
+           -- A locator plays nowhere but here, so it has no place in a file
+           -- another player will read.
+           AND t.file_path NOT LIKE 'wfnet://%'
          ORDER BY pt.position ASC
         "#,
     )

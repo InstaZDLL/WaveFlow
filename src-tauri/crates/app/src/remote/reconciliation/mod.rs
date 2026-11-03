@@ -481,6 +481,7 @@ async fn load_local_candidates(pool: &SqlitePool) -> AppResult<Vec<LocalTrack>> 
            FROM track t
            LEFT JOIN album al ON al.id = t.album_id
           WHERE t.is_available = 1
+            AND t.file_path NOT LIKE 'wfnet://%'
             AND (EXISTS (SELECT 1 FROM remote_track rt
                           WHERE rt.size = t.file_size AND rt.size >= 0
                             AND rt.full_hash IS NOT NULL)

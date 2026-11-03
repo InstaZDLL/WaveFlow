@@ -725,6 +725,8 @@ export const SETTINGS_CATEGORIES = [
         labelKey: "settings.organization.groups.storage",
         hintKey: "settings.organization.groupHints.storage",
         searchKeys: [
+          "settings.networkLibrary.title",
+          "settings.networkLibrary.subtitle",
           "settings.clipsInLibrary.title",
           "settings.clipsInLibrary.subtitle",
           "settings.dataFolder.title",

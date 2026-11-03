@@ -778,7 +778,8 @@
       "filePath": "경로",
       "moveUp": "{{column}} 열을 위로",
       "moveDown": "{{column}} 열을 아래로"
-    }
+    },
+    "trackOnUnreachableShare": "네트워크 공유에 연결할 수 없고 이 곡은 캐시에 없습니다"
   },
   "liked": {
     "badge": "컬렉션",
@@ -1060,7 +1061,8 @@
         "offline": "오프라인 모드가 켜져 있습니다",
         "unknown": "재생에 실패했습니다",
         "files-failed": "이 파일들을 재생할 수 없습니다",
-        "picker-failed": "파일 선택기를 열 수 없습니다"
+        "picker-failed": "파일 선택기를 열 수 없습니다",
+        "network-source-lost": "네트워크 공유 연결이 끊어졌습니다"
       },
       "notice": {
         "exclusive-refused": "이 장치는 독점 모드를 허용하지 않습니다. 공유 모드로 재생합니다",
@@ -3144,6 +3146,13 @@
       "left": "왼쪽",
       "right": "오른쪽",
       "both": "양쪽",
+      "center": "센터",
+      "lfe": "서브우퍼",
+      "backLeft": "후면 왼쪽",
+      "backRight": "후면 오른쪽",
+      "backCenter": "후면 중앙",
+      "sideLeft": "측면 왼쪽",
+      "sideRight": "측면 오른쪽",
       "mono": "모노",
       "stereo": "스테레오",
       "channels": "{{count}}채널",
@@ -3151,6 +3160,7 @@
       "shared": "공유",
       "sharedNote": "공유 모드에서는 이후 시스템 믹서가 이 포맷을 장치 고유의 포맷으로 변환합니다.",
       "monoNote": "모노 출력이 켜져 있어 모든 삐 소리가 양쪽에서 납니다.",
+      "surroundNote": "서라운드 출력: 스피커마다 차례로 신호음이 나고, 서브우퍼는 낮은 음으로 울립니다.",
       "swapped": "왼쪽 삐 소리가 오른쪽에서 들렸나요? 채널이 바뀌었습니다. 연결 상태나 시스템의 스피커 설정을 확인하세요.",
       "interrupted": "테스트가 중단되었습니다.",
       "failed": "테스트 톤을 재생할 수 없습니다: {{message}}",
@@ -3355,6 +3365,60 @@
         "title": "상단 바의 새로운 기능 버튼",
         "subtitle": "숨겨도 여기와 정보 화면에서 패널을 열 수 있습니다."
       }
+    },
+    "networkLibrary": {
+      "title": "네트워크 공유 (WebDAV, SMB)",
+      "subtitle": "시스템에 마운트하지 않고 공유를 직접 읽습니다. WaveFlow는 읽기만 하며 공유의 파일을 변경하지 않습니다.",
+      "add": "공유 추가",
+      "addConfirm": "추가 후 스캔",
+      "cancel": "취소",
+      "test": "연결 테스트",
+      "save": "저장",
+      "kind": "공유 유형",
+      "kinds": {
+        "webdav": "WebDAV",
+        "smb": "SMB"
+      },
+      "name": "이름(선택)",
+      "address": "주소",
+      "addressHint": {
+        "webdav": "https://nas.local/dav",
+        "smb": "nas.local 또는 192.168.1.10"
+      },
+      "folder": "공유의 폴더(선택)",
+      "username": "사용자 이름",
+      "password": "비밀번호",
+      "passwordNotice": "비밀번호는 WaveFlow의 다른 자격 증명과 마찬가지로 프로필 데이터베이스에 암호화 없이 저장되며, 프로필 내보내기나 백업에는 절대 포함되지 않습니다. 읽기 전용 계정을 사용하는 것이 좋습니다.",
+      "plainHttpWarning": "이 비밀번호와 음악을 암호화 없이 보내는 데 동의합니다. http://에서는 이 네트워크의 누구나 읽을 수 있습니다.",
+      "plainHttpBadge": "암호화되지 않은 연결 (http://)",
+      "passwordMissing": "비밀번호를 다시 입력해야 합니다. 가져온 프로필이나 복원한 백업에는 포함되지 않습니다.",
+      "changePassword": "비밀번호 변경",
+      "remove": "제거",
+      "removeConfirm": "이 공유와 곡을 제거할까요?",
+      "state": {
+        "online": "연결됨",
+        "unknown": "아직 확인 안 됨",
+        "unreachable": "연결할 수 없음",
+        "auth_failed": "접근 거부됨"
+      },
+      "failure": {
+        "offline": "오프라인 모드가 켜져 있습니다.",
+        "unreachable": "이 주소에서 응답이 없습니다.",
+        "handshake": "이 서버가 협상 중에 연결을 닫았습니다. WaveFlow는 SMB 2 이상을 사용하며, SMB 1만 지원하는 서버가 바로 이렇게 동작합니다.",
+        "tls": "이 서버의 인증서가 거부되었습니다. WaveFlow는 항상 인증서를 확인합니다. 유효한 인증서가 필요하거나, 신뢰할 수 있는 네트워크에서 http://를 사용해야 합니다.",
+        "auth": "사용자 이름 또는 비밀번호가 거부되었습니다.",
+        "session-refused": "이 서버가 비밀번호를 확인하지 않고 세션을 거부했습니다. 이 계정에 접근 권한이 없거나, 서버가 이 연결에서 사용할 수 없는 암호화를 요구할 수 있습니다.",
+        "not-found": "이 공유 또는 폴더가 존재하지 않습니다.",
+        "protocol": "이 서버는 공유처럼 응답하지 않습니다.",
+        "plain-http": "http:// 주소는 아래에서 동의해야 합니다."
+      },
+      "testOk_one": "연결됨: 이 폴더에 항목 {{count}}개.",
+      "testOk_other": "연결됨: 이 폴더에 항목 {{count}}개.",
+      "cacheLimit": "한도(GB)",
+      "cacheClear": "캐시 비우기",
+      "share": "공유 이름",
+      "cacheUsed_one": "로컬 캐시: {{size}}, {{count}}곡",
+      "cacheUsed_other": "로컬 캐시: {{size}}, {{count}}곡"
     }
   },
   "scanProgress": {
@@ -3821,6 +3885,9 @@
     "playNext_other": "{{count}}곡을 다음에 재생합니다",
     "added_one": "{{count}}곡을 재생 대기열에 추가했습니다",
     "added_other": "{{count}}곡을 재생 대기열에 추가했습니다"
+  },
+  "ratingNotice": {
+    "notInFile": "평점이 WaveFlow에만 저장되었습니다. 파일에 쓸 수 없었습니다."
   },
   "moodCuration": {
     "open": "분위기 편집",

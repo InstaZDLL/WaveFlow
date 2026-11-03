@@ -13,7 +13,7 @@ use lofty::tag::ItemKey;
 use waveflow_core::scanner::{
     extract_album_artist, extract_compilation_flag, extract_cover, extract_folder_cover,
     extract_musical_key, extract_rating, extract_replay_gain, file_type_label, hash_file,
-    split_genres, ExtractedFile, ReplayGainTags,
+    hash_reader, split_genres, ExtractedCover, ExtractedFile, ReplayGainTags,
 };
 
 use crate::error::AppResult;
@@ -110,7 +110,7 @@ fn extract_dsd_file(
         // No embedded picture in DSF/DFF; folder-cover fallback
         // takes over via extract_folder_cover (called below).
         cover_art: extract_folder_cover(path, artwork_dir),
-        rating: None,
+        rating: meta.rating,
         // The DSF ID3v2 blob can carry ReplayGain frames, but our DSD
         // reader surfaces only the fields it models, not arbitrary tag
         // items. A DSD track falls back to the
@@ -249,7 +249,7 @@ pub(super) struct ScanTimings {
 /// rescan after the tags are repaired fills them in as for any file.
 fn untagged_file(
     path: &Path,
-    artwork_dir: &Path,
+    cover_art: Option<ExtractedCover>,
     size: i64,
     modified_ms: i64,
     hash: String,
@@ -283,11 +283,41 @@ fn untagged_file(
         bit_depth: stream.bit_depth,
         codec: stream.codec,
         musical_key: None,
-        cover_art: extract_folder_cover(path, artwork_dir),
+        cover_art,
         rating: None,
         replay_gain: ReplayGainTags::default(),
         extra_tags: Default::default(),
     }
+}
+
+/// The rating the file at `path` holds, as a scan would read it.
+pub(crate) fn read_file_rating(path: &Path) -> Result<Option<u8>, String> {
+    use waveflow_core::audio_format::dsd::metadata::read_metadata;
+    use waveflow_core::audio_format::dsd::parser::DsdContainer;
+
+    let ext = path
+        .extension()
+        .and_then(|s| s.to_str())
+        .unwrap_or_default()
+        .to_ascii_lowercase();
+    if matches!(ext.as_str(), "dsf" | "dff") {
+        let container = if ext == "dsf" {
+            DsdContainer::Dsf
+        } else {
+            DsdContainer::Dff
+        };
+        let mut file = std::fs::File::open(path).map_err(|e| e.to_string())?;
+        let meta = read_metadata(&mut file, container).map_err(|e| e.to_string())?;
+        return Ok(meta.rating);
+    }
+    let concrete = waveflow_core::scanner::extra_tags::read_concrete_tags(path)
+        .ok_or_else(|| "the tags could not be read".to_string())?;
+    if let Some(rating) = concrete.rating {
+        return Ok(rating);
+    }
+    let tagged = waveflow_core::scanner::extract::read_tagged_file(path)?;
+    let tag = tagged.primary_tag().or_else(|| tagged.first_tag());
+    Ok(tag.and_then(extract_rating))
 }
 
 pub(super) fn extract_file(
@@ -341,7 +371,7 @@ pub(super) fn extract_file(
                 .fetch_add(t_tag.elapsed().as_micros() as u64, Ordering::Relaxed);
             return Ok(untagged_file(
                 path,
-                artwork_dir,
+                extract_folder_cover(path, artwork_dir),
                 size,
                 modified_ms,
                 hash,
@@ -352,6 +382,111 @@ pub(super) fn extract_file(
     timings
         .tag_us
         .fetch_add(t_tag.elapsed().as_micros() as u64, Ordering::Relaxed);
+    Ok(from_tagged(
+        path,
+        artwork_dir,
+        timings,
+        (size, modified_ms, hash),
+        tagged,
+        // The custom frames, from a second parse of the concrete container
+        // (#588). They are not in what lofty just handed back: the generic
+        // `Tag` drops everything it cannot map onto an `ItemKey`, and the
+        // remainder it keeps for some formats is `pub(crate)`. Best-effort —
+        // a file whose custom frames cannot be read is still a good track.
+        || waveflow_core::scanner::extra_tags::read_concrete_tags(path),
+        // Folder cover fallback: scan the track's parent directory for a
+        // sidecar cover.jpg / folder.png / front.webp / ... when the tag had
+        // no embedded picture. Common for CD rips and lossless libraries
+        // where the artwork lives next to the audio files.
+        || extract_folder_cover(path, artwork_dir),
+    ))
+}
+
+/// One file on a share into an `ExtractedFile`, reading only its two hash
+/// windows in most cases: the same digest as a local copy of it, and the tags
+/// served from those same bytes. DSD never gets here (the walk leaves it out).
+pub(super) fn extract_network_file(
+    path: &Path,
+    listing: &crate::netlib::scan::Listing,
+    artwork_dir: &Path,
+    timings: &ScanTimings,
+) -> Result<ExtractedFile, String> {
+    use std::io::{Seek, SeekFrom};
+
+    let locator = path.to_str().ok_or("not a locator")?;
+    let meta = listing.meta(locator).ok_or("not in the listing")?;
+    let size = meta.size as i64;
+    let modified_ms = meta.modified_ms;
+
+    let t_hash = Instant::now();
+    let mut reader = listing
+        .open_for_scan(locator, meta)
+        .map_err(|e| format!("read: {e}"))?;
+    let hash = hash_reader(&mut reader, meta.size).map_err(|e| format!("hash: {e}"))?;
+    timings
+        .hash_us
+        .fetch_add(t_hash.elapsed().as_micros() as u64, Ordering::Relaxed);
+
+    let hint = lofty::file::FileType::from_path(path);
+    let t_tag = Instant::now();
+    let tagged = waveflow_core::scanner::extract::read_tagged_from(&mut reader, hint);
+    timings
+        .tag_us
+        .fetch_add(t_tag.elapsed().as_micros() as u64, Ordering::Relaxed);
+    let tagged = match tagged {
+        Ok(tagged) => tagged,
+        Err(err) => {
+            // The same rule as a local file (#873), over the same reader.
+            reader
+                .seek(SeekFrom::Start(0))
+                .map_err(|e| format!("read: {e}"))?;
+            let stream = waveflow_core::scanner::extract::probe_playable_source(
+                Box::new(reader),
+                path.extension().and_then(|e| e.to_str()),
+            )
+            .ok_or_else(|| format!("lofty: {err}"))?;
+            tracing::warn!(error = %err, "tags unreadable; listing the file from its audio stream");
+            return Ok(untagged_file(
+                path,
+                listing.folder_cover(locator, artwork_dir),
+                size,
+                modified_ms,
+                hash,
+                stream,
+            ));
+        }
+    };
+    // The walk trusted the extension here, having no bytes yet.
+    if let Some(codec) = waveflow_core::scanner::undecodable_stream(&tagged.file_type()) {
+        return Err(format!("this build cannot decode {codec}"));
+    }
+    Ok(from_tagged(
+        path,
+        artwork_dir,
+        timings,
+        (size, modified_ms, hash),
+        tagged,
+        || {
+            reader.seek(SeekFrom::Start(0)).ok()?;
+            waveflow_core::scanner::extra_tags::read_concrete_tags_from(&mut reader, hint)
+        },
+        || listing.folder_cover(locator, artwork_dir),
+    ))
+}
+
+/// What the tags say, as an `ExtractedFile`. `stamp` is the file's size,
+/// modification time and hash; the two closures read what lies outside the
+/// parsed tag, which a local file and one on a share get differently.
+fn from_tagged(
+    path: &Path,
+    artwork_dir: &Path,
+    timings: &ScanTimings,
+    stamp: (i64, i64, String),
+    tagged: lofty::file::TaggedFile,
+    read_concrete: impl FnOnce() -> Option<waveflow_core::scanner::extra_tags::ConcreteTags>,
+    read_folder_cover: impl FnOnce() -> Option<ExtractedCover>,
+) -> ExtractedFile {
+    let (size, modified_ms, hash) = stamp;
     let props = tagged.properties();
     let duration_ms = props.duration().as_millis() as i64;
     let bitrate = props.audio_bitrate().map(|b| b as i64);
@@ -421,22 +556,17 @@ pub(super) fn extract_file(
         ),
     };
 
-    // The custom frames, from a second parse of the concrete container
-    // (#588). They are not in what lofty just handed back: the generic
-    // `Tag` drops everything it cannot map onto an `ItemKey`, and the
-    // remainder it keeps for some formats is `pub(crate)`. Best-effort —
-    // a file whose custom frames cannot be read is still a good track.
     let t_extra = Instant::now();
-    let extra_tags = waveflow_core::scanner::extra_tags::read_extra_tags(path);
+    let concrete = read_concrete();
     timings
         .extra_tag_us
         .fetch_add(t_extra.elapsed().as_micros() as u64, Ordering::Relaxed);
+    let (extra_tags, rating) = match concrete {
+        Some(tags) => (Some(tags.extra), tags.rating.unwrap_or(rating)),
+        None => (None, rating),
+    };
 
-    // Folder cover fallback: scan the track's parent directory for a
-    // sidecar cover.jpg / folder.png / front.webp / ... when the tag had
-    // no embedded picture. Common for CD rips and lossless libraries
-    // where the artwork lives next to the audio files.
-    let cover_art = cover_art.or_else(|| extract_folder_cover(path, artwork_dir));
+    let cover_art = cover_art.or_else(read_folder_cover);
 
     // Fall back to the file stem when the tag has no title — better than
     // displaying an empty string in the library grid. Remembered, so
@@ -449,7 +579,7 @@ pub(super) fn extract_file(
             .to_string()
     });
 
-    Ok(ExtractedFile {
+    ExtractedFile {
         title_from_filename,
         abs_path: path.to_string_lossy().to_string(),
         size,
@@ -477,5 +607,5 @@ pub(super) fn extract_file(
         rating,
         replay_gain,
         extra_tags,
-    })
+    }
 }

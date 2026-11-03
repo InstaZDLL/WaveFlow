@@ -5,7 +5,6 @@ use std::sync::atomic::Ordering;
 use std::time::{Duration, Instant};
 
 use crossbeam_channel::Receiver;
-use rtrb::chunks::ChunkError;
 use rtrb::{CopyToUninit, Producer};
 use tauri::{AppHandle, Emitter};
 use tokio::sync::mpsc::UnboundedSender;
@@ -14,6 +13,7 @@ use waveflow_core::playback::stream::ActiveStream;
 use super::super::analytics::AnalyticsMsg;
 use super::super::crossfade::{MixWindow, AUTOMIX_ENTER_US};
 use super::super::engine::AudioCmd;
+use super::super::output::ring_reserve;
 use super::super::replay_gain::effective_linear;
 use super::super::state::{PlayerState, SharedPlayback};
 use super::control::{
@@ -76,6 +76,9 @@ pub(super) fn play_track(
     if dst_sample_rate == 0 || dst_channels == 0 {
         return Err("cpal output not initialized (sample_rate=0)".into());
     }
+    // The speakers of this output. It cannot change under a track: a rebuilt
+    // output hands over a new producer, which ends the track (#639).
+    let dst_layout = shared.output_layout();
 
     let mut stream = initial_stream;
     // Inherit the active playback speed so the lazy resampler init
@@ -139,7 +142,7 @@ pub(super) fn play_track(
     let mut eq_processor = super::super::eq::EqProcessor::new();
     // Balance and stereo width, after the EQ. Keeps the gains the last
     // buffer ended on so a moved slider ramps instead of stepping.
-    let mut stereo_processor = super::super::stereo::StereoProcessor::new();
+    let mut stereo_processor = super::super::stereo::StereoProcessor::new(&dst_layout);
     // Spectrum analyzer (FFT for the visualizer). Lives across both
     // the single-stream and crossfade-mix push paths; we feed it the
     // post-EQ buffer that's about to land in the ring. Cheap when the
@@ -433,7 +436,7 @@ pub(super) fn play_track(
                     &mut primary_resampled,
                     &mut interleaved_scratch,
                     dst_sample_rate,
-                    dst_channels,
+                    &dst_layout,
                 )?;
                 apply_replay_gain(&mut primary_resampled[prev_len..], shared, &stream);
             }
@@ -441,7 +444,8 @@ pub(super) fn play_track(
                 .as_mut()
                 .expect("mix_active requires pending_next");
             // Only a mix of two mono tracks has no side to widen.
-            let mix_mono_source = stream.src_channels == 1 && secondary.src_channels == 1;
+            // A mix uses as many channels as the wider of its two tracks.
+            let mix_source_channels = stream.src_channels.max(secondary.src_channels);
             while !secondary_at_eof
                 && secondary_resampled.len() / dst_channels < CROSSFADE_MIN_FRAMES
             {
@@ -450,7 +454,7 @@ pub(super) fn play_track(
                     &mut secondary_resampled,
                     &mut interleaved_scratch,
                     dst_sample_rate,
-                    dst_channels,
+                    &dst_layout,
                 )?;
                 apply_replay_gain(&mut secondary_resampled[prev_len..], shared, secondary);
                 // Its resampler exists from its first packet on, and puts
@@ -504,10 +508,9 @@ pub(super) fn play_track(
 
                 stereo_processor.process(
                     &mut mix_scratch,
-                    dst_channels,
                     &shared.stereo,
                     shared.mono_enabled.load(Ordering::Relaxed),
-                    mix_mono_source,
+                    mix_source_channels,
                 );
                 spectrum_analyzer.feed(
                     &mix_scratch,
@@ -639,7 +642,7 @@ pub(super) fn play_track(
                     &mut primary_resampled,
                     &mut interleaved_scratch,
                     dst_sample_rate,
-                    dst_channels,
+                    &dst_layout,
                 )?;
                 apply_replay_gain(&mut primary_resampled[prev_len..], shared, &stream);
             }
@@ -744,10 +747,9 @@ pub(super) fn play_track(
             );
             stereo_processor.process(
                 &mut primary_resampled,
-                dst_channels,
                 &shared.stereo,
                 shared.mono_enabled.load(Ordering::Relaxed),
-                stream.src_channels == 1,
+                stream.src_channels,
             );
             spectrum_analyzer.feed(
                 &primary_resampled,
@@ -881,10 +883,13 @@ fn clamp_to_unity(buf: &mut [f32]) {
 /// is full. Commands are polled between retries so pause/stop/seek
 /// still respond promptly even when the buffer is saturated.
 ///
-/// rtrb 0.3's `write_chunk_uninit` either gives us the full `n` slots
-/// we asked for or returns `TooFewSlots(available)`; in the latter case
-/// we submit what fits, sleep, and loop. `CopyToUninit` handles the
-/// actual `MaybeUninit<f32>` → `f32` copy without `unsafe` code.
+/// "Full" is [`ring_reserve`] slots short of the ring's capacity, so that
+/// what waits in the ring is a length of time whatever the channel count.
+///
+/// rtrb 0.3's `write_chunk_uninit` gives us the `n` slots we ask for once
+/// we know they are free; we submit what fits, sleep, and loop.
+/// `CopyToUninit` handles the actual `MaybeUninit<f32>` → `f32` copy without
+/// `unsafe` code.
 pub(super) fn push_samples(
     samples: &[f32],
     producer: &mut Producer<f32>,
@@ -895,41 +900,38 @@ pub(super) fn push_samples(
     pending_cmd: &mut Option<AudioCmd>,
     pending_next: &mut Option<ActiveStream>,
 ) -> PushOutcome {
+    let reserve = ring_reserve(usize::from(shared.channels.load(Ordering::Relaxed)));
     let mut written = 0;
     while written < samples.len() {
         let remaining = &samples[written..];
-        let requested = remaining.len();
-        let result = producer.write_chunk_uninit(requested);
-        let (slots, chunk) = match result {
-            Ok(chunk) => (requested, chunk),
-            Err(ChunkError::TooFewSlots(available)) => {
-                if available == 0 {
-                    // Ring full. Yield briefly and poll commands so
-                    // pause/stop/seek aren't blocked by a saturated
-                    // buffer.
-                    match drain_commands(
-                        cmd_rx,
-                        producer,
-                        shared,
-                        app,
-                        track_id,
-                        pending_cmd,
-                        pending_next,
-                    ) {
-                        ControlFlow::Shutdown => return PushOutcome::Shutdown,
-                        ControlFlow::Break => return PushOutcome::Stop,
-                        ControlFlow::Seek(ms) => return PushOutcome::Seek(ms),
-                        ControlFlow::LoadNext => return PushOutcome::LoadNext,
-                        ControlFlow::Continue => {}
-                    }
-                    std::thread::sleep(Duration::from_millis(5));
-                    continue;
-                }
-                match producer.write_chunk_uninit(available) {
-                    Ok(chunk) => (available, chunk),
-                    Err(_) => unreachable!("available slots vanished under us"),
-                }
+        let available = producer.slots().saturating_sub(reserve);
+        if available == 0 {
+            // Ring full. Yield briefly and poll commands so
+            // pause/stop/seek aren't blocked by a saturated
+            // buffer.
+            match drain_commands(
+                cmd_rx,
+                producer,
+                shared,
+                app,
+                track_id,
+                pending_cmd,
+                pending_next,
+            ) {
+                ControlFlow::Shutdown => return PushOutcome::Shutdown,
+                ControlFlow::Break => return PushOutcome::Stop,
+                ControlFlow::Seek(ms) => return PushOutcome::Seek(ms),
+                ControlFlow::LoadNext => return PushOutcome::LoadNext,
+                ControlFlow::Continue => {}
             }
+            std::thread::sleep(Duration::from_millis(5));
+            continue;
+        }
+        let slots = remaining.len().min(available);
+        let chunk = match producer.write_chunk_uninit(slots) {
+            Ok(chunk) => chunk,
+            // Only this thread adds to the ring, so what was free stays free.
+            Err(_) => unreachable!("available slots vanished under us"),
         };
 
         let slice = &remaining[..slots];

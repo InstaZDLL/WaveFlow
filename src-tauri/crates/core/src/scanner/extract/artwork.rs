@@ -47,6 +47,7 @@ impl ArtworkSource {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct ExtractedCover {
     /// Hex-encoded blake3 hash of the picture bytes — used as the filename
     /// stem so identical artwork embedded in 20 tracks of an album yields a
@@ -108,8 +109,7 @@ pub fn extract_cover(tag: &Tag, artwork_dir: &Path) -> Option<ExtractedCover> {
 
 /// Canonical filename stems searched for in the track's parent directory
 /// when the audio file carries no embedded picture. Order matters — the
-/// first match wins. Mirrors the convention used by foobar2000, MusicBee,
-/// Plex and Kodi.
+/// first match wins. Mirrors the convention most music software follows.
 const FOLDER_COVER_STEMS: &[&str] = &["cover", "folder", "front", "albumart", "album", "artwork"];
 
 /// File extensions accepted as folder cover candidates. Limited to formats
@@ -129,15 +129,38 @@ pub fn extract_folder_cover(track_path: &Path, artwork_dir: &Path) -> Option<Ext
     let parent = track_path.parent()?;
     let entries = fs::read_dir(parent).ok()?;
 
-    // Index siblings by lowercased (stem, ext) for O(1) lookup against the
-    // priority lists above. Single read_dir pass — cheaper than 6×7 = 42
-    // `Path::exists` calls when the directory is large.
-    let mut candidates: HashMap<(String, String), PathBuf> = HashMap::new();
-    for entry in entries.flatten() {
-        let path = entry.path();
-        if !path.is_file() {
-            continue;
-        }
+    // Single read_dir pass: cheaper than 6×7 = 42 `Path::exists` calls when the
+    // directory is large.
+    let files: Vec<(String, PathBuf)> = entries
+        .flatten()
+        .filter_map(|entry| {
+            let path = entry.path();
+            if !path.is_file() {
+                return None;
+            }
+            let name = path.file_name()?.to_str()?.to_string();
+            Some((name, path))
+        })
+        .collect();
+    let name = pick_folder_cover(files.iter().map(|(name, _)| name.as_str()))?;
+    let picked = files.iter().find(|(file, _)| file == name)?.1.clone();
+
+    let bytes = fs::read(&picked).ok()?;
+    store_folder_cover(
+        &bytes,
+        picked.extension().and_then(|s| s.to_str()),
+        artwork_dir,
+    )
+}
+
+/// The sidecar cover among the file names of one directory, in the priority
+/// order above: lowercased `(stem, ext)` looked up against both lists. A share
+/// calls this too, since its listing already holds the names and asking for a
+/// directory again costs a round trip.
+pub fn pick_folder_cover<'a>(names: impl IntoIterator<Item = &'a str>) -> Option<&'a str> {
+    let mut candidates: HashMap<(String, String), &'a str> = HashMap::new();
+    for name in names {
+        let path = Path::new(name);
         let stem = path
             .file_stem()
             .and_then(|s| s.to_str())
@@ -147,27 +170,31 @@ pub fn extract_folder_cover(track_path: &Path, artwork_dir: &Path) -> Option<Ext
             .and_then(|s| s.to_str())
             .map(|s| s.to_lowercase());
         if let (Some(s), Some(e)) = (stem, ext) {
-            candidates.insert((s, e), path);
+            candidates.insert((s, e), name);
         }
     }
-
-    let picked = FOLDER_COVER_STEMS
+    FOLDER_COVER_STEMS
         .iter()
         .flat_map(|stem| {
             FOLDER_COVER_EXTENSIONS
                 .iter()
                 .map(move |ext| (stem.to_string(), ext.to_string()))
         })
-        .find_map(|key| candidates.get(&key).cloned())?;
+        .find_map(|key| candidates.get(&key).copied())
+}
 
-    let bytes = fs::read(&picked).ok()?;
+/// Hash-address a sidecar cover's bytes into the shared artwork dir.
+/// `extension` is the file's own; `None` stores it as `jpg`.
+pub fn store_folder_cover(
+    bytes: &[u8],
+    extension: Option<&str>,
+    artwork_dir: &Path,
+) -> Option<ExtractedCover> {
     if bytes.is_empty() {
         return None;
     }
-    let hash = blake3::hash(&bytes).to_hex().to_string();
-    let format = picked
-        .extension()
-        .and_then(|s| s.to_str())
+    let hash = blake3::hash(bytes).to_hex().to_string();
+    let format = extension
         .map(|s| s.to_lowercase())
         .unwrap_or_else(|| "jpg".to_string());
     // Normalise `jpeg` to `jpg` so the artwork dir doesn't end up with two
@@ -179,7 +206,7 @@ pub fn extract_folder_cover(track_path: &Path, artwork_dir: &Path) -> Option<Ext
     };
 
     let out_path = artwork_dir.join(format!("{}.{}", hash, format));
-    if let Err(err) = crate::atomic_write::store_content_addressed(&out_path, &bytes) {
+    if let Err(err) = crate::atomic_write::store_content_addressed(&out_path, bytes) {
         tracing::warn!(path = %out_path.display(), error = %err, "failed to write folder cover");
         return None;
     }

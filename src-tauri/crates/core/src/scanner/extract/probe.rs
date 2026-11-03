@@ -32,22 +32,30 @@ const PLAYABLE_PROBE_PACKETS: usize = 64;
 /// will play: the scanner and the decoder cannot disagree. `None` when
 /// any of that fails.
 pub fn probe_playable_stream(path: &Path) -> Option<StreamInfo> {
+    let file = fs::File::open(path).ok()?;
+    probe_playable_source(Box::new(file), path.extension().and_then(|e| e.to_str()))
+}
+
+/// [`probe_playable_stream`] over any source, for a file that is not on this
+/// disk. `ext` is the extension it carries, as a hint for the probe.
+pub fn probe_playable_source(
+    source: Box<dyn symphonia::core::io::MediaSource>,
+    ext: Option<&str>,
+) -> Option<StreamInfo> {
     use symphonia::core::codecs::audio::AudioDecoderOptions;
     use symphonia::core::formats::probe::Hint;
     use symphonia::core::formats::{FormatOptions, TrackType};
     use symphonia::core::io::MediaSourceStream;
     use symphonia::core::meta::MetadataOptions;
 
-    let file = fs::File::open(path).ok()?;
     let mut hint = Hint::new();
-    let ext = path.extension().and_then(|e| e.to_str());
     if let Some(ext) = ext {
         hint.with_extension(ext);
     }
     let mut format = symphonia::default::get_probe()
         .probe(
             &hint,
-            MediaSourceStream::new(Box::new(file), Default::default()),
+            MediaSourceStream::new(source, Default::default()),
             FormatOptions::default(),
             MetadataOptions::default(),
         )

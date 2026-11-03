@@ -98,3 +98,21 @@ fn windows_ignores_case_and_separator_style() {
         Some(FolderRelation::Inside)
     );
 }
+
+/// A share's folder goes through the same rule, and two shares never overlap.
+#[test]
+fn locators_compare_by_source_and_by_segment() {
+    let music = p("wfnet://aaaa/Music");
+    assert_eq!(relation(&music, &music), Some(FolderRelation::Same));
+    assert_eq!(
+        relation(&p("wfnet://aaaa/Music/Rock"), &music),
+        Some(FolderRelation::Inside)
+    );
+    assert_eq!(
+        relation(&p("wfnet://aaaa"), &music),
+        Some(FolderRelation::Contains)
+    );
+    assert_eq!(relation(&p("wfnet://aaaa/Music2"), &music), None);
+    assert_eq!(relation(&p("wfnet://bbbb/Music"), &music), None);
+    assert_eq!(relation(&p("/home/u/Music"), &music), None);
+}

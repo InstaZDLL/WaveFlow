@@ -145,6 +145,11 @@ fn verify_groups_full_content(candidates: Vec<DuplicateTrack>) -> Vec<DuplicateG
 
     let mut by_full: HashMap<String, Vec<DuplicateTrack>> = HashMap::new();
     for track in candidates {
+        // A copy on a share cannot be verified without reading all of it, and
+        // this is the list of what may be sent to the trash.
+        if waveflow_core::network_locator::is_locator(&track.file_path) {
+            continue;
+        }
         match waveflow_core::scanner::hash_file_full(std::path::Path::new(&track.file_path)) {
             Ok(full) => by_full.entry(full).or_default().push(track),
             Err(err) => tracing::warn!(

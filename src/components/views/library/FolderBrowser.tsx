@@ -8,6 +8,10 @@ import { type Translator } from "./libraryTypes";
 import { type Playlist } from "../../../lib/tauri/playlist";
 import { useEffect, useMemo, useState } from "react";
 import {
+  displayTrackPath,
+  useNetworkSources,
+} from "../../../lib/networkTracks";
+import {
   ChevronRight,
   CornerLeftUp,
   LayoutGrid,
@@ -114,6 +118,7 @@ export function FolderBrowser({
   // rather than from a stack of visited folders, so arriving by any
   // route -- a click, a restored state, a deep link later -- gives the
   // same trail.
+  const networkSources = useNetworkSources();
   const crumbs = useMemo(() => {
     if (!listing) return [] as { label: string; path: string }[];
     const sep = listing.path.includes("\\") ? "\\" : "/";
@@ -129,7 +134,9 @@ export function FolderBrowser({
     // `||`, not `??`: a root of `/` leaves an empty last segment, which
     // is a value rather than a missing one, and would render a crumb
     // with no label at all.
-    const rootLabel = root.split(sep).filter(Boolean).pop() || root;
+    const rootLabel =
+      displayTrackPath(root, networkSources).split(sep).filter(Boolean).pop() ||
+      root;
     const out = [{ label: rootLabel, path: root }];
     if (listing.path.length > root.length) {
       const rest = listing.path.slice(root.length).split(sep).filter(Boolean);
@@ -140,7 +147,7 @@ export function FolderBrowser({
       }
     }
     return out;
-  }, [listing]);
+  }, [listing, networkSources]);
 
   const here = listing?.path ?? null;
 

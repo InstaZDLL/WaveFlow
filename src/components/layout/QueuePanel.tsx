@@ -1,3 +1,4 @@
+import { useTrackBlocked } from "../../lib/networkTracks";
 import {
   memo,
   useCallback,
@@ -689,6 +690,7 @@ const SortableQueueRow = memo(function SortableQueueRow({
   // collision picks the row that's already at the same index). Using
   // CSS `top` keeps offsetTop honest. useSortable's own transform
   // stays as the only `transform` on the element.
+  const blocked = useTrackBlocked(item.id);
   const sortableTransform = CSS.Transform.toString(transform);
   const style: React.CSSProperties = {
     position: "absolute",
@@ -735,7 +737,9 @@ const SortableQueueRow = memo(function SortableQueueRow({
           if (e.target !== e.currentTarget) return;
           if (e.key === " ") e.preventDefault();
         }}
-        className="group flex items-center space-x-2 p-2 rounded-lg transition-colors select-none cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+        className={`group flex items-center space-x-2 p-2 rounded-lg transition-colors select-none cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
+          blocked ? "opacity-40" : ""
+        }`}
       >
         <button
           type="button"
