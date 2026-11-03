@@ -59,6 +59,11 @@ const HEADER_LEN: usize = 32;
 const MARKER: &[u8; 4] = b"wvpk";
 const MAX_CHANNELS: u16 = 32;
 
+/// A seek that lands with less of its block left than this takes the next
+/// blocks along in the same packet: the end of a block heard alone, then
+/// silence while the next one decodes, sounds like a click.
+const LANDING_TAIL_MS: u64 = 250;
+
 const FORMAT_INFO: FormatInfo = FormatInfo {
     format: FORMAT_ID_WAVPACK,
     short_name: "wavpack",
@@ -403,6 +408,8 @@ pub struct WavPackReader<'s> {
     index_next: Option<u64>,
     /// Frames of the next packet that lie before a seek's target.
     trim: u64,
+    /// [`LANDING_TAIL_MS`] in frames.
+    landing_tail: u64,
 }
 
 impl<'s> WavPackReader<'s> {
@@ -437,6 +444,7 @@ impl<'s> WavPackReader<'s> {
         }
         let flags = first.header.flags;
         let layout = stream_layout(&first)?;
+        let landing_tail = u64::from(layout.sample_rate) * LANDING_TAIL_MS / 1000;
 
         let bits = (flags.bytes_per_sample() * 8).saturating_sub(flags.output_shift());
         let mut params = AudioCodecParameters::new();
@@ -484,7 +492,30 @@ impl<'s> WavPackReader<'s> {
             index: Vec::new(),
             index_next: Some(start),
             trim: 0,
+            landing_tail,
         })
+    }
+
+    /// The blocks of one stretch of frames, one per channel or channel pair,
+    /// as `(first frame, frames, their bytes)`.
+    fn next_stretch(&mut self) -> Result<Option<(u64, u64, Vec<u8>)>> {
+        let Some(first) = self.next_audio_block()? else {
+            return Ok(None);
+        };
+        let first_frame = first.header.block_index;
+        let frames = u64::from(first.header.block_samples);
+        let mut is_final = first.header.flags.final_block();
+        let mut data = first.data;
+        while !is_final {
+            let Some(block) = self.next_audio_block()? else {
+                // As for a file cut short inside a block: it ends here.
+                tracing::warn!("wavpack: file ends inside a packet; ending the track there");
+                return Ok(None);
+            };
+            is_final = block.header.flags.final_block();
+            data.extend_from_slice(&block.data);
+        }
+        Ok(Some((first_frame, frames, data)))
     }
 
     fn next_audio_block(&mut self) -> Result<Option<RawBlock>> {
@@ -646,27 +677,24 @@ impl FormatReader for WavPackReader<'_> {
     }
 
     fn next_packet(&mut self) -> Result<Option<Packet>> {
-        let Some(first) = self.next_audio_block()? else {
+        let Some((first_frame, frames, mut data)) = self.next_stretch()? else {
             return Ok(None);
         };
-        let first_frame = first.header.block_index;
-        let frames = u64::from(first.header.block_samples);
-        let mut is_final = first.header.flags.final_block();
-        let mut data = first.data;
-        while !is_final {
-            let Some(block) = self.next_audio_block()? else {
-                // As for a file cut short inside a block: it ends here.
-                tracing::warn!("wavpack: file ends inside a packet; ending the track there");
-                return Ok(None);
-            };
-            is_final = block.header.flags.final_block();
-            data.extend_from_slice(&block.data);
-        }
         let trim = std::mem::take(&mut self.trim).min(frames);
+        let mut held = frames - trim;
+        if trim > 0 {
+            while held < self.landing_tail {
+                let Some((_, more, blocks)) = self.next_stretch()? else {
+                    break;
+                };
+                held += more;
+                data.extend_from_slice(&blocks);
+            }
+        }
         let mut packet = Packet::new(
             0,
             Timestamp::new((first_frame + trim) as i64),
-            Duration::from(frames - trim),
+            Duration::from(held),
             data,
         );
         packet.trim_start = Duration::from(trim);
@@ -724,6 +752,10 @@ impl WavPackDecoder {
     fn decode_inner(&mut self, packet: &PacketRef<'_>) -> Result<()> {
         self.buf.clear();
 
+        // A packet is one stretch of frames, or several after a seek
+        // (`LANDING_TAIL_MS`). Each ends on a block marked final.
+        let mut start = 0usize;
+        let mut first_stretch = None;
         let mut filled = 0usize;
         let mut frames = None;
         let mut at = 0usize;
@@ -752,48 +784,62 @@ impl WavPackDecoder {
             }
             let samples = &decoded.samples;
             match &mut self.buf {
-                GenericAudioBuffer::S8(buf) => store(buf, samples, width, filled, |v| v as i8),
-                GenericAudioBuffer::S16(buf) => store(buf, samples, width, filled, |v| v as i16),
-                GenericAudioBuffer::S24(buf) => store(buf, samples, width, filled, i24),
-                GenericAudioBuffer::S32(buf) => store(buf, samples, width, filled, |v| v),
-                GenericAudioBuffer::F32(buf) => {
-                    store(buf, samples, width, filled, |v| f32::from_bits(v as u32))
+                GenericAudioBuffer::S8(buf) => {
+                    store(buf, samples, width, start, filled, |v| v as i8)
                 }
+                GenericAudioBuffer::S16(buf) => {
+                    store(buf, samples, width, start, filled, |v| v as i16)
+                }
+                GenericAudioBuffer::S24(buf) => store(buf, samples, width, start, filled, i24),
+                GenericAudioBuffer::S32(buf) => store(buf, samples, width, start, filled, |v| v),
+                GenericAudioBuffer::F32(buf) => store(buf, samples, width, start, filled, |v| {
+                    f32::from_bits(v as u32)
+                }),
                 _ => decode_error("wavpack: unexpected sample format"),
             }?;
             filled += width;
+            if header.flags.final_block() {
+                if filled != self.channels {
+                    return decode_error("wavpack: packet does not match the stream's layout");
+                }
+                first_stretch.get_or_insert(block_frames);
+                start += block_frames;
+                filled = 0;
+                frames = None;
+            }
         }
-        if filled != self.channels {
+        if filled != 0 || start == 0 {
             return decode_error("wavpack: packet does not match the stream's layout");
         }
 
         // Regardless of the gapless option: this is where a seek landed, not
         // encoder priming, and a lossless stream has none.
-        let trim = (packet.trim_start.get() as usize).min(frames.unwrap_or(0));
+        let trim = (packet.trim_start.get() as usize).min(first_stretch.unwrap_or(0));
         self.buf.trim(trim, 0);
         Ok(())
     }
 }
 
-/// Write one block's interleaved samples into the planes from channel
-/// `first` on, sizing the buffer on the packet's first block.
+/// Write one block's interleaved samples into the planes, from channel
+/// `first` and from frame `start` on, making room on a stretch's first block.
 fn store<S: Sample>(
     buf: &mut AudioBuffer<S>,
     samples: &[i32],
     width: usize,
+    start: usize,
     first: usize,
     convert: impl Fn(i32) -> S,
 ) -> Result<()> {
     let frames = samples.len() / width.max(1);
     if first == 0 {
-        buf.grow_capacity(frames);
+        buf.grow_capacity(start + frames);
         buf.render_uninit(Some(frames));
     }
     for channel in 0..width {
         let Some(plane) = buf.plane_mut(first + channel) else {
             return decode_error("wavpack: missing audio plane");
         };
-        for (frame, sample) in plane.iter_mut().enumerate().take(frames) {
+        for (frame, sample) in plane[start..].iter_mut().enumerate().take(frames) {
             *sample = convert(samples[frame * width + channel]);
         }
     }

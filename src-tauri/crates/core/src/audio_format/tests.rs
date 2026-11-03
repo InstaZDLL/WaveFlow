@@ -221,7 +221,11 @@ fn decoded_audio_is_what_the_reference_decoder_outputs() {
 /// before it. The fixtures have 512-frame blocks and 73 728-frame frames.
 #[test]
 fn a_seek_lands_on_the_exact_frame() {
-    for (name, frame_bytes) in [("seek_blocks.wv", 4usize), ("seek_frames_c1000.ape", 4)] {
+    for (name, frame_bytes) in [
+        ("seek_blocks.wv", 4usize),
+        ("s16_51_blocks.wv", 12),
+        ("seek_frames_c1000.ape", 4),
+    ] {
         let path = fixture(name);
         let full = decode_all(&path);
         let total = full.len() / frame_bytes;
@@ -269,6 +273,86 @@ fn a_seek_lands_on_the_exact_frame() {
                 assert_eq!(first_pts, Some(target as i64), "{name} @{target}: stamp");
             }
         }
+    }
+}
+
+fn seek_to(format: &mut dyn FormatReader, target: usize) {
+    format
+        .seek(
+            SeekMode::Accurate,
+            SeekTo::Timestamp {
+                ts: Timestamp::new(target as i64),
+                track_id: 0,
+            },
+        )
+        .expect("seek");
+}
+
+/// Landing near the end of a frame, the first packet waits for the next frame:
+/// that end heard alone, then silence while the next one decodes, sounds like
+/// a click. The fixture has 73 728-frame frames at 44.1 kHz, so 1.67 s.
+#[test]
+fn a_landing_near_the_end_of_a_frame_waits_for_the_next_one() {
+    let open_reader = || {
+        let file = fs::File::open(fixture("seek_frames_c1000.ape")).expect("open fixture");
+        super::ape::ApeReader::try_new(
+            MediaSourceStream::new(Box::new(file), Default::default()),
+            FormatOptions::default(),
+        )
+        .expect("open")
+    };
+    let near_the_end = 73_728 - 100;
+
+    // Landing on another frame, then inside the frame already playing.
+    let mut reader = open_reader();
+    seek_to(&mut reader, near_the_end);
+    reader.next_packet().expect("packet").expect("audio");
+    assert!(reader.next_frame_is_ready());
+
+    let mut reader = open_reader();
+    seek_to(&mut reader, 0);
+    reader.next_packet().expect("packet").expect("audio");
+    seek_to(&mut reader, near_the_end);
+    reader.next_packet().expect("packet").expect("audio");
+    assert!(reader.next_frame_is_ready());
+
+    // With most of the frame ahead, nothing is waited for.
+    let mut reader = open_reader();
+    seek_to(&mut reader, 100);
+    reader.next_packet().expect("packet").expect("audio");
+    assert!(!reader.next_frame_is_ready());
+}
+
+/// The same near the end of a block, except that the blocks decode on the
+/// caller's thread: the packet carries the next ones, in order. The fixtures
+/// have 512-frame blocks at 44.1 kHz.
+#[test]
+fn a_landing_near_the_end_of_a_block_takes_the_next_ones_along() {
+    for (name, frame_bytes) in [("seek_blocks.wv", 4usize), ("s16_51_blocks.wv", 12)] {
+        let path = fixture(name);
+        let full = decode_all(&path);
+        let total = full.len() / frame_bytes;
+        let (mut format, mut decoder) = open(&path).expect("open");
+
+        let target = 1000;
+        seek_to(format.as_mut(), target);
+        let packet = format.next_packet().expect("packet").expect("audio");
+        let held = packet.dur.get() as usize;
+        // The 24 frames left of the landing's block, then blocks up to 250 ms.
+        assert_eq!(held, (24usize + 22 * 512).min(total - target), "{name}");
+
+        let mut got = Vec::new();
+        append(&decoder.decode(&packet).expect("decode"), &mut got);
+        let start = target * frame_bytes;
+        assert_eq!(got, &full[start..start + held * frame_bytes], "{name}");
+
+        // And the stream goes on from there.
+        let next = format.next_packet().expect("packet");
+        assert_eq!(
+            next.map(|packet| packet.pts.get() as usize),
+            (target + held < total).then_some(target + held),
+            "{name}"
+        );
     }
 }
 

@@ -90,6 +90,13 @@ const DESCRIPTOR_VERSION: u16 = 3980;
 /// CD audio, small enough that a packet never makes the output wait.
 const PACKET_FRAMES: usize = 4096;
 
+/// A seek that lands in the last `1 / LANDING_TAIL_SHARE` of a frame does not
+/// start until the next frame is decoded too: the end of a frame heard alone,
+/// then silence while the next one decodes, sounds like a click. A frame takes
+/// a sixth of its length to decode at worst on a desktop (see the playback doc),
+/// and this leaves room for a slower machine.
+const LANDING_TAIL_SHARE: u64 = 4;
+
 /// A frame compresses to about half its PCM. Twice the PCM, then, is far more
 /// than any frame's compressed size, and it is what stops the read of the
 /// last frame running through the tag that follows it: the seek table gives
@@ -260,6 +267,10 @@ pub struct ApeReader<'s> {
     worker: Option<Worker>,
     /// The frame the worker was last given and has not answered for.
     in_flight: Option<u32>,
+    /// That frame's answer, when a landing had to wait for it.
+    answered: Option<FrameResult>,
+    /// A seek happened and nothing has been handed out since.
+    landed: bool,
     current: Option<CurrentFrame>,
     /// The frame to play after `current`.
     next_frame: u32,
@@ -313,6 +324,8 @@ impl<'s> ApeReader<'s> {
             chapters: opts.external_data.chapters,
             worker: None,
             in_flight: None,
+            answered: None,
+            landed: false,
             current: None,
             next_frame: 0,
             next_skip: 0,
@@ -405,16 +418,10 @@ impl<'s> ApeReader<'s> {
     fn advance(&mut self) -> Result<Option<Packet>> {
         let frame = self.next_frame;
         self.request(frame)?;
-        let Some(worker) = &mut self.worker else {
-            return decode_error("ape: decode worker is gone");
+        let (answered, pcm) = match self.answered.take() {
+            Some(answer) => answer,
+            None => self.next_answer()?,
         };
-        let results = worker
-            .results
-            .get_mut()
-            .map_err(|_| Error::DecodeError("ape: decode worker panicked"))?;
-        let (answered, pcm) = results
-            .recv()
-            .map_err(|_| Error::DecodeError("ape: decode worker stopped"))?;
         if answered != frame {
             return decode_error("ape: decode worker answered out of order");
         }
@@ -461,10 +468,45 @@ impl<'s> ApeReader<'s> {
         Ok(failed)
     }
 
+    fn next_answer(&mut self) -> Result<FrameResult> {
+        let Some(worker) = &mut self.worker else {
+            return decode_error("ape: decode worker is gone");
+        };
+        let results = worker
+            .results
+            .get_mut()
+            .map_err(|_| Error::DecodeError("ape: decode worker panicked"))?;
+        results
+            .recv()
+            .map_err(|_| Error::DecodeError("ape: decode worker stopped"))
+    }
+
+    /// After a seek, with `left` bytes of the frame to play: have the next
+    /// frame ready if this one is about to run out. See [`LANDING_TAIL_SHARE`].
+    fn settle_landing(&mut self, left: usize) -> Result<()> {
+        let frame = u64::from(self.info.header.blocks_per_frame) * self.block_align() as u64;
+        if left as u64 >= frame / LANDING_TAIL_SHARE
+            || self.answered.is_some()
+            || self.next_frame >= self.total_frames()
+        {
+            return Ok(());
+        }
+        self.request(self.next_frame)?;
+        self.answered = Some(self.next_answer()?);
+        Ok(())
+    }
+
+    /// Whether a landing waited for the frame after its own.
+    #[cfg(test)]
+    pub(super) fn next_frame_is_ready(&self) -> bool {
+        self.answered.is_some()
+    }
+
     /// Drop what decoding is under way, for a seek somewhere else.
     fn abandon_worker(&mut self) {
         self.worker = None;
         self.in_flight = None;
+        self.answered = None;
     }
 }
 
@@ -571,6 +613,7 @@ impl FormatReader for ApeReader<'_> {
             self.current = None;
             self.next_frame = self.total_frames();
             self.next_skip = 0;
+            self.landed = false;
             self.abandon_worker();
             return Ok(SeekedTo {
                 track_id: 0,
@@ -584,6 +627,7 @@ impl FormatReader for ApeReader<'_> {
         let skip = (target - u64::from(frame) * blocks_per_frame) as usize * self.block_align();
 
         self.position = target;
+        self.landed = true;
         match &mut self.current {
             Some(current) if current.index == frame => current.cursor = skip,
             _ => {
@@ -609,8 +653,13 @@ impl FormatReader for ApeReader<'_> {
     fn next_packet(&mut self) -> Result<Option<Packet>> {
         let align = self.block_align();
         loop {
+            let left = self.current.as_ref().map_or(0, |current| {
+                current.pcm.len().saturating_sub(current.cursor)
+            });
+            if left > 0 && std::mem::take(&mut self.landed) {
+                self.settle_landing(left)?;
+            }
             if let Some(current) = &mut self.current {
-                let left = current.pcm.len().saturating_sub(current.cursor);
                 if left > 0 {
                     let bytes = left.min(PACKET_FRAMES * align);
                     let data = current.pcm[current.cursor..current.cursor + bytes].to_vec();

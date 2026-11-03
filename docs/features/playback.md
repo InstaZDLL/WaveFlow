@@ -221,9 +221,21 @@ Measured on a 12-thread desktop while other builds ran:
 | 24-bit, 192 kHz, stereo   | 6.3×  | 1.6 s     | 33 ms                             |
 | 16-bit, 48 kHz, 7.1       | 7.5×  | 3.8 s     | 31 ms                             |
 
-A seek's first audio takes one frame's decode at most, and nothing inside the
-frame already decoded. WavPack blocks are short and fast: 40 to 1 000 times
+A seek's first audio takes one frame's decode, two near a frame's end (below), and
+nothing inside the frame already decoded. WavPack blocks are short and fast: 40 to 1 000 times
 real time, a few milliseconds a block.
+
+**A seek does not land on the last moments of a frame alone.** Frame by frame, the
+worker is always a frame ahead, but a seek puts it behind: what is left of the
+landing frame plays, then the output runs dry while the next one decodes, and a
+few milliseconds of audio between two silences sound like a click. Measured 20 ms
+before a frame's end at 96 kHz, on a device with a 270 ms ring: 13 to 33 ms of
+silence up to High, 73 to 83 ms at Extra High, 253 ms at Insane, and up to 73 ms
+with WavPack, whose blocks decode on the decoder thread. So a landing in the last
+quarter of a Monkey's Audio frame waits for the next frame before handing out any
+audio, which makes the seek's own silence longer and takes that wait out of the
+middle of the sound, and a WavPack landing with less than 250 ms left of its block
+takes the next blocks along in the same packet.
 
 **A file cut short ends where it ends.** A download or a copy that stopped early
 still announces its whole length, in Monkey's Audio's header and seek table as in
