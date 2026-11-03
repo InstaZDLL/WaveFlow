@@ -73,7 +73,7 @@ pub fn formats_condition<S: AsRef<str>>(formats: &[S]) -> (String, Vec<String>) 
             }
             _ => {
                 values.push(format);
-                "UPPER(COALESCE(t.codec, '')) = ?"
+                "(t.codec IS NOT NULL AND UPPER(t.codec) = ?)"
             }
         });
     }

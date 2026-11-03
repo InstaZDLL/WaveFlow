@@ -224,12 +224,13 @@ fn the_bit_depth_tells_alac_from_aac() {
     );
 }
 
-/// A track of unknown codec matches no format, and so belongs to every
-/// "not this format". `NOT (NULL)` would have lost it from both sides.
+/// A track of unknown codec matches no format, not even an empty one, and so
+/// belongs to every "not this format". `NOT (NULL)` would have lost it from
+/// both sides.
 #[tokio::test]
 async fn a_track_of_unknown_codec_is_in_every_negation() {
     let pool = library().await;
-    for format in ["ogg", "aac", "alac", "dsf", "wav", "aiff", "flac"] {
+    for format in ["ogg", "aac", "alac", "dsf", "wav", "aiff", "flac", ""] {
         assert!(
             !chips(&pool, &[format])
                 .await
