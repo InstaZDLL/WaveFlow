@@ -11,7 +11,7 @@
 
 /// SQL: whether the track aliased `t` is in one of `formats`, and the values
 /// for its `?` placeholders, in order. Upper or lower case alike; an empty
-/// list matches nothing.
+/// list or an empty name matches nothing.
 ///
 /// Never NULL, not even for a track with no codec. `NOT (NULL)` is NULL, so
 /// a condition that could answer it would drop those tracks from a rule
@@ -54,6 +54,7 @@ pub fn formats_condition<S: AsRef<str>>(formats: &[S]) -> (String, Vec<String>) 
     for format in formats {
         let format = format.as_ref().to_ascii_uppercase();
         conditions.push(match format.as_str() {
+            "" => "0",
             "OGG" => "UPPER(COALESCE(t.codec, '')) = 'VORBIS'",
             "AAC" => "(UPPER(COALESCE(t.codec, '')) = 'AAC' AND t.bit_depth IS NULL)",
             "ALAC" => {

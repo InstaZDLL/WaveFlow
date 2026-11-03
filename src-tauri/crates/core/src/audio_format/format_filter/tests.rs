@@ -89,6 +89,7 @@ async fn library() -> SqlitePool {
         ("plain.wv", file_type_label(FileType::WavPack), Some(16)),
         ("plain.ape", file_type_label(FileType::Ape), Some(16)),
         ("unknown.ogg", None, None),
+        ("blank.ogg", Some(String::new()), None),
     ] {
         rows.push((name.to_string(), codec, depth));
     }
@@ -253,4 +254,7 @@ async fn a_track_of_unknown_codec_is_in_every_negation() {
 async fn no_format_matches_nothing() {
     let pool = library().await;
     assert!(chips(&pool, &[]).await.is_empty());
+    // Not even a row whose codec is an empty string.
+    assert!(chips(&pool, &[""]).await.is_empty());
+    assert!(rule(&pool, format_leaf("")).await.is_empty());
 }
