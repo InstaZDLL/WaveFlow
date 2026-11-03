@@ -488,13 +488,10 @@ pub async fn search_tracks_advanced(
     }
 
     if let Some(fmts) = filters.formats.as_ref().filter(|v| !v.is_empty()) {
-        let placeholders = vec!["?"; fmts.len()].join(",");
-        sql.push_str(&format!(
-            "  AND UPPER(COALESCE(t.codec, '')) IN ({placeholders})\n"
-        ));
-        for f in fmts {
-            binds.push(Bind::Str(f.to_uppercase()));
-        }
+        let (condition, values) =
+            waveflow_core::audio_format::format_filter::formats_condition(fmts);
+        sql.push_str(&format!("  AND {condition}\n"));
+        binds.extend(values.into_iter().map(Bind::Str));
     }
 
     if let Some(sr) = filters.min_sample_rate {
