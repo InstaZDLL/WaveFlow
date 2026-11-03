@@ -3398,6 +3398,7 @@
       "failure": {
         "offline": "Çevrimdışı mod açık.",
         "unreachable": "Bu adresten yanıt yok.",
+        "handshake": "Bu sunucu el sıkışma sırasında bağlantıyı kapattı. WaveFlow, SMB 2 ve üstünü kullanır: yalnızca SMB 1 destekleyen bir sunucu tam olarak bunu yapar.",
         "tls": "Bu sunucunun sertifikası reddedildi. WaveFlow sertifikaları her zaman denetler: geçerli bir sertifika ya da güvenilir bir ağda http:// gerekir.",
         "auth": "Kullanıcı adı veya parola reddedildi.",
         "not-found": "Bu klasör paylaşımda yok.",

@@ -3398,6 +3398,7 @@
       "failure": {
         "offline": "Der Offline-Modus ist aktiv.",
         "unreachable": "Keine Antwort unter dieser Adresse.",
+        "handshake": "Dieser Server hat die Verbindung während der Aushandlung getrennt. WaveFlow spricht SMB 2 und neuer: Ein auf SMB 1 beschränkter Server verhält sich genau so.",
         "tls": "Das Zertifikat dieses Servers wird abgelehnt. WaveFlow prüft Zertifikate immer: Nötig ist ein gültiges, oder http:// in einem vertrauenswürdigen Netzwerk.",
         "auth": "Benutzername oder Passwort abgelehnt.",
         "not-found": "Dieser Ordner existiert auf der Freigabe nicht.",

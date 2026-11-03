@@ -179,7 +179,7 @@ impl Source {
             // A refusal on one path may be just that path (a system folder on
             // a Windows share): only signing in says something about the share.
             Err(NetError::Auth(_)) => self.check_access_soon(),
-            Err(err @ (NetError::Unreachable(_) | NetError::Tls(_))) => {
+            Err(err @ (NetError::Unreachable(_) | NetError::Handshake(_) | NetError::Tls(_))) => {
                 self.set_state(SourceState::Unreachable, Some(err.to_string()));
             }
             Err(NetError::Offline) | Err(NetError::Released) => {}
@@ -263,13 +263,15 @@ impl Source {
                 .await
                 .unwrap_or_else(|_| Err(NetError::Unreachable("no answer in time".into())));
             match result {
-                Err(NetError::Unreachable(_)) if Instant::now() < deadline => {
+                Err(NetError::Unreachable(_) | NetError::Handshake(_))
+                    if Instant::now() < deadline =>
+                {
                     tokio::time::sleep(Duration::from_millis(500)).await;
                 }
                 other => {
                     self.note(&other);
                     return other.map_err(|err| match err {
-                        NetError::Unreachable(_) | NetError::Tls(_) => {
+                        NetError::Unreachable(_) | NetError::Handshake(_) | NetError::Tls(_) => {
                             NetError::Unreachable(UNREACHABLE_MESSAGE.into())
                         }
                         other => other,

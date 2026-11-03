@@ -26,6 +26,11 @@ pub enum NetError {
     /// No answer: refused, DNS, timeout, a dropped link. May pass.
     #[error("unreachable: {0}")]
     Unreachable(String),
+    /// It took the connection, then closed it before any session. An SMB server
+    /// limited to SMB 1 does this, and so does one that is restarting, so this
+    /// counts as a dropped link everywhere except in the sentence shown.
+    #[error("closed during the handshake: {0}")]
+    Handshake(String),
     /// The certificate was refused. Named apart because retrying cannot
     /// help, and the user can only act on it knowing that this is the cause.
     #[error("certificate refused: {0}")]
@@ -49,6 +54,7 @@ impl NetError {
         match self {
             Self::Offline => "offline",
             Self::Unreachable(_) | Self::Released => "unreachable",
+            Self::Handshake(_) => "handshake",
             Self::Tls(_) => "tls",
             Self::Auth(_) => "auth",
             Self::NotFound => "not-found",

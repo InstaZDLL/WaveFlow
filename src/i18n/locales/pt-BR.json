@@ -3469,6 +3469,7 @@
       "failure": {
         "offline": "O modo offline está ativado.",
         "unreachable": "Sem resposta neste endereço.",
+        "handshake": "Este servidor fechou a conexão durante a negociação. O WaveFlow usa SMB 2 ou mais recente: um servidor limitado a SMB 1 faz exatamente isso.",
         "tls": "O certificado deste servidor foi recusado. O WaveFlow sempre verifica os certificados: é preciso um válido, ou http:// em uma rede confiável.",
         "auth": "Nome de usuário ou senha recusados.",
         "not-found": "Esta pasta não existe no compartilhamento.",

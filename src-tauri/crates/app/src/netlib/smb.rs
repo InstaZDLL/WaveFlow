@@ -115,7 +115,12 @@ impl SmbFs {
     async fn connect(&self) -> Result<Session, NetError> {
         let mut client = SmbClient::connect(self.config.clone())
             .await
-            .map_err(|e| classify(&e))?;
+            .map_err(|e| match e {
+                // The variant, not its kind: a refused port is the same kind,
+                // and only this one means that the socket had opened.
+                smb2::Error::Disconnected => NetError::Handshake(e.to_string()),
+                _ => classify(&e),
+            })?;
         let tree = client
             .connect_share(&self.share)
             .await
@@ -266,6 +271,7 @@ impl NetworkFs for SmbFs {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tokio::io::AsyncReadExt;
 
     #[test]
     fn an_address_gets_its_port_and_loses_nothing() {
@@ -287,6 +293,36 @@ mod tests {
         for input in ["", "nas.local/music", r"\\nas\music", "me:secret@nas.local"] {
             assert!(normalise_endpoint(input).is_err(), "{input}");
         }
+    }
+
+    /// What a server limited to SMB 1 does to a client that opens with SMB 2,
+    /// measured on a real NAS: the socket opens, the first request closes it.
+    #[tokio::test]
+    async fn a_server_that_closes_on_the_first_request_is_not_a_silent_one() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        tokio::spawn(async move {
+            while let Ok((mut socket, _)) = listener.accept().await {
+                let mut request = [0u8; 16];
+                let _ = socket.read(&mut request).await;
+            }
+        });
+
+        let fs = SmbFs::new(&addr.to_string(), "music", None, None).unwrap();
+        let err = fs.probe().await.unwrap_err();
+        assert!(matches!(err, NetError::Handshake(_)), "{err:?}");
+        assert_eq!(err.code(), "handshake");
+    }
+
+    #[tokio::test]
+    async fn a_closed_port_is_still_no_answer() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        drop(listener);
+
+        let fs = SmbFs::new(&addr.to_string(), "music", None, None).unwrap();
+        let err = fs.probe().await.unwrap_err();
+        assert!(matches!(err, NetError::Unreachable(_)), "{err:?}");
     }
 
     #[test]

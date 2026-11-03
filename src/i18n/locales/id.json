@@ -3396,6 +3396,7 @@
       "failure": {
         "offline": "Mode luring aktif.",
         "unreachable": "Tidak ada jawaban di alamat ini.",
+        "handshake": "Server ini menutup koneksi saat negosiasi. WaveFlow menggunakan SMB 2 atau yang lebih baru: server yang terbatas pada SMB 1 berperilaku persis seperti ini.",
         "tls": "Sertifikat server ini ditolak. WaveFlow selalu memeriksa sertifikat: perlu yang valid, atau http:// di jaringan tepercaya.",
         "auth": "Nama pengguna atau kata sandi ditolak.",
         "not-found": "Folder ini tidak ada di server.",

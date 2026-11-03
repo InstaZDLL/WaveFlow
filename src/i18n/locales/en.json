@@ -3398,6 +3398,7 @@
       "failure": {
         "offline": "Offline mode is on.",
         "unreachable": "No answer at this address.",
+        "handshake": "This server closed the connection during the handshake. WaveFlow speaks SMB 2 and newer: a server limited to SMB 1 does exactly this.",
         "tls": "This server's certificate is refused. WaveFlow always checks certificates: it takes a valid one, or http:// on a network you trust.",
         "auth": "User name or password refused.",
         "not-found": "This folder does not exist on the share.",

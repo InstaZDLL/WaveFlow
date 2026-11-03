@@ -334,7 +334,7 @@ The password sits in clear in `network_source.secret`, like `auth_credential` an
 
 TLS is always verified and there is no exception: a self-signed server is refused with the cause named. `http://` is accepted only after an explicit warning, recorded on the source, since Basic then crosses the network in clear; a redirect from `https` to `http` is never followed, and an address holding credentials is refused. WebDAV uses Basic only, and a server that insists on Digest is named rather than blamed on the password.
 
-SMB goes through [`smb2`](https://crates.io/crates/smb2), pure Rust, SMB 2 and 3 only, with signing and encryption as the server asks, and pinned to one version, because how a share behaves is only known from what was tested. A wrong password on a server that maps failures to a guest session is refused rather than accepted as a guest. Links on a share are not followed, since one can lead out of it or back into a parent.
+SMB goes through [`smb2`](https://crates.io/crates/smb2), pure Rust, SMB 2 and 3 only, with signing and encryption as the server asks, and pinned to one version, because how a share behaves is only known from what was tested. A NAS limited to SMB 1 therefore cannot be added: it closes the connection on the first request, which the form reports as a closed handshake and not as a silent address, and it can still be read through a folder the system has mounted. A wrong password on a server that maps failures to a guest session is refused rather than accepted as a guest. Links on a share are not followed, since one can lead out of it or back into a parent.
 
 ## Drag-and-drop import
 

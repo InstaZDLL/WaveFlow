@@ -3398,6 +3398,7 @@
       "failure": {
         "offline": "De offlinemodus staat aan.",
         "unreachable": "Geen antwoord op dit adres.",
+        "handshake": "Deze server heeft de verbinding verbroken tijdens de onderhandeling. WaveFlow spreekt SMB 2 en nieuwer: een server die beperkt is tot SMB 1 doet precies dit.",
         "tls": "Het certificaat van deze server wordt geweigerd. WaveFlow controleert certificaten altijd: er is een geldig certificaat nodig, of http:// op een vertrouwd netwerk.",
         "auth": "Gebruikersnaam of wachtwoord geweigerd.",
         "not-found": "Deze map bestaat niet op de share.",

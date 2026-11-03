@@ -38,6 +38,7 @@ export interface NetworkSourceView {
 export type NetworkFailureCode =
   | "offline"
   | "unreachable"
+  | "handshake"
   | "tls"
   | "auth"
   | "not-found"
