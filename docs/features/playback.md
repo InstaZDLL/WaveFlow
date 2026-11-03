@@ -195,7 +195,8 @@ symphonia reads neither container and decodes neither codec, so both come
 as a reader and a decoder of ours, registered in
 [`audio_format::probe`](../../src-tauri/crates/core/src/audio_format/mod.rs)
 and [`codecs`](../../src-tauri/crates/core/src/audio_format/opus.rs) for the
-three places that open a stream.
+three places that open a stream. Both are for files on this disk for now: a
+scan of a [WebDAV or SMB share](library.md#network-shares) does not offer them.
 
 **Chosen on a measure, not on a README.** Each candidate decoded a corpus
 the reference encoders made (music-like signals, 8 / 16 / 24 / 32-bit integer
@@ -216,9 +217,9 @@ writes what the decoder outputs. Both crates are pinned exactly for that
 reason, and neither is behind a feature: they are pure Rust, so a build that
 leaves out libopus has no reason to leave them out as well.
 
-**What each refuses.** A file in these families stays out of the library,
+**What each refuses.** A local file in these families stays out of the library,
 through [`is_scannable_audio`](../../src-tauri/crates/core/src/scanner/extract/mod.rs),
-and fails cleanly when opened directly:
+which only ever judges a path on this disk, and fails cleanly when opened directly:
 
 - Hybrid WavPack, with or without its `.wvc`: lossy without it, so it never
   gets the chance to pass for lossless. A hybrid file with its correction
@@ -281,7 +282,9 @@ still announces its whole length, in Monkey's Audio's header and seek table as i
 WavPack's first block. What is missing is not damage to skip over: both readers
 work out what the file really holds, the Monkey's Audio one from the seek table and
 the WavPack one from the last block in the file's tail, and declare that length, so
-the track ends with its last whole frame or packet and the queue moves on. A frame
+the track ends with its last whole frame or packet and the queue moves on. The
+WavPack reader looks for that block in the last 2 MiB of the file: when it finds
+none there, behind a large tag for one, the length the header announces stands. A frame
 damaged in the middle of a whole file is still skipped and what follows still plays.
 A seek into the missing part lands on the end at once, decoding nothing. The scanner
 and files played directly take their length from there too
