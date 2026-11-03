@@ -811,7 +811,8 @@
       "filePath": "Percorso",
       "moveUp": "Sposta la colonna {{column}} in alto",
       "moveDown": "Sposta la colonna {{column}} in basso"
-    }
+    },
+    "trackOnUnreachableShare": "Condivisione di rete non raggiungibile, e questo brano non è nella cache"
   },
   "liked": {
     "badge": "Raccolta",
@@ -1102,7 +1103,8 @@
         "offline": "La modalità offline è attiva",
         "unknown": "Riproduzione non riuscita",
         "files-failed": "Impossibile riprodurre questi file",
-        "picker-failed": "Impossibile aprire il selettore di file"
+        "picker-failed": "Impossibile aprire il selettore di file",
+        "network-source-lost": "La connessione alla condivisione di rete è stata persa"
       },
       "notice": {
         "exclusive-refused": "Questo dispositivo rifiuta la modalità esclusiva: riproduzione in modalità condivisa",
@@ -3212,6 +3214,13 @@
       "left": "Sinistra",
       "right": "Destra",
       "both": "Entrambi",
+      "center": "Centrale",
+      "lfe": "Subwoofer",
+      "backLeft": "Posteriore sinistro",
+      "backRight": "Posteriore destro",
+      "backCenter": "Posteriore centrale",
+      "sideLeft": "Laterale sinistro",
+      "sideRight": "Laterale destro",
       "mono": "Mono",
       "stereo": "Stereo",
       "channels": "{{count}} canali",
@@ -3219,6 +3228,7 @@
       "shared": "Condivisa",
       "sharedNote": "In modalità condivisa, il mixer di sistema converte poi questo formato in quello del dispositivo.",
       "monoNote": "L'uscita mono è attiva: ogni bip esce da entrambi i lati.",
+      "surroundNote": "Uscita surround: ogni altoparlante emette il suo segnale a turno, il subwoofer con un tono grave.",
       "swapped": "Il bip sinistro è uscito a destra? I canali sono invertiti: controlla il collegamento o la configurazione degli altoparlanti del sistema.",
       "interrupted": "Prova interrotta.",
       "failed": "Impossibile riprodurre il tono di prova: {{message}}",
@@ -3427,6 +3437,62 @@
         "title": "Pulsante Novità nella barra superiore",
         "subtitle": "Se nascosto, il pannello resta raggiungibile da qui e da Informazioni."
       }
+    },
+    "networkLibrary": {
+      "title": "Condivisioni di rete (WebDAV, SMB)",
+      "subtitle": "Leggi una condivisione direttamente, senza che il sistema la monti. WaveFlow legge soltanto: i file non vengono mai modificati.",
+      "add": "Aggiungi una condivisione",
+      "addConfirm": "Aggiungi e analizza",
+      "cancel": "Annulla",
+      "test": "Prova la connessione",
+      "save": "Salva",
+      "kind": "Tipo di condivisione",
+      "kinds": {
+        "webdav": "WebDAV",
+        "smb": "SMB"
+      },
+      "name": "Nome (facoltativo)",
+      "address": "Indirizzo",
+      "addressHint": {
+        "webdav": "https://nas.local/dav",
+        "smb": "nas.local o 192.168.1.10"
+      },
+      "folder": "Cartella sulla condivisione (facoltativa)",
+      "username": "Nome utente",
+      "password": "Password",
+      "passwordNotice": "La password è conservata in chiaro nel database del profilo, come le altre credenziali di WaveFlow, e non entra mai in un'esportazione del profilo o in un backup. Meglio usare un account di sola lettura.",
+      "plainHttpWarning": "Accetto di inviare questa password e la mia musica senza cifratura: con http://, chiunque su questa rete può leggerle.",
+      "plainHttpBadge": "Connessione non cifrata (http://)",
+      "passwordMissing": "La password va reinserita: non viaggia con un profilo importato o un backup ripristinato.",
+      "changePassword": "Cambia la password",
+      "remove": "Rimuovi",
+      "removeConfirm": "Rimuovere questa condivisione e i suoi brani?",
+      "state": {
+        "online": "Connesso",
+        "unknown": "Non ancora verificato",
+        "unreachable": "Non raggiungibile",
+        "auth_failed": "Accesso negato"
+      },
+      "failure": {
+        "offline": "La modalità offline è attiva.",
+        "unreachable": "Nessuna risposta a questo indirizzo.",
+        "handshake": "Questo server ha chiuso la connessione durante la negoziazione. WaveFlow usa SMB 2 o versioni successive: un server limitato a SMB 1 fa esattamente così.",
+        "tls": "Il certificato di questo server è rifiutato. WaveFlow verifica sempre i certificati: ne serve uno valido, oppure http:// su una rete fidata.",
+        "auth": "Nome utente o password rifiutati.",
+        "session-refused": "Questo server ha rifiutato la sessione senza valutare la password. Questo account potrebbe non avere accesso, oppure il server richiede una crittografia che questa connessione non può usare.",
+        "not-found": "Questa condivisione o questa cartella non esiste.",
+        "protocol": "Questo server non risponde come una condivisione.",
+        "plain-http": "Un indirizzo http:// richiede il tuo consenso qui sotto."
+      },
+      "testOk_one": "Connesso: {{count}} elemento in questa cartella.",
+      "testOk_other": "Connesso: {{count}} elementi in questa cartella.",
+      "cacheLimit": "Limite (GB)",
+      "cacheClear": "Svuota la cache",
+      "testOk_many": "Connesso: {{count}} elementi in questa cartella.",
+      "share": "Nome della condivisione",
+      "cacheUsed_one": "Cache locale: {{size}}, {{count}} brano",
+      "cacheUsed_other": "Cache locale: {{size}}, {{count}} brani",
+      "cacheUsed_many": "Cache locale: {{size}}, {{count}} brani"
     }
   },
   "scanProgress": {

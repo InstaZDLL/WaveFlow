@@ -9,6 +9,7 @@ use std::path::Path;
 
 use waveflow_core::analysis::beats;
 use waveflow_core::automix::{self, TrackBeats};
+use waveflow_core::playback::channels::ChannelLayout;
 use waveflow_core::playback::replay_gain::TrackGain;
 use waveflow_core::playback::stream::ActiveStream;
 
@@ -111,7 +112,12 @@ fn run(out_path: &Path, out_ms: u64, in_path: &Path, in_ms: u64, plan: &automix:
         }
         buf.clear();
         assert!(!primary
-            .decode_next(&mut buf, &mut scratch, OUT_RATE, CHANNELS)
+            .decode_next(
+                &mut buf,
+                &mut scratch,
+                OUT_RATE,
+                &ChannelLayout::from_count(CHANNELS)
+            )
             .unwrap());
         out.extend_from_slice(&buf);
     }
@@ -134,12 +140,22 @@ fn run(out_path: &Path, out_ms: u64, in_path: &Path, in_ms: u64, plan: &automix:
     while !window.done() {
         while !p_eof && p_buf.len() / CHANNELS < MIN_FRAMES {
             p_eof = primary
-                .decode_next(&mut p_buf, &mut scratch, OUT_RATE, CHANNELS)
+                .decode_next(
+                    &mut p_buf,
+                    &mut scratch,
+                    OUT_RATE,
+                    &ChannelLayout::from_count(CHANNELS),
+                )
                 .unwrap();
         }
         while !s_eof && s_buf.len() / CHANNELS < MIN_FRAMES {
             s_eof = secondary
-                .decode_next(&mut s_buf, &mut scratch, OUT_RATE, CHANNELS)
+                .decode_next(
+                    &mut s_buf,
+                    &mut scratch,
+                    OUT_RATE,
+                    &ChannelLayout::from_count(CHANNELS),
+                )
                 .unwrap();
             if !delay_taken {
                 window.start_incoming_earlier(secondary.resampler.output_delay_frames());

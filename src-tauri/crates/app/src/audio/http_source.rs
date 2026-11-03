@@ -434,7 +434,7 @@ fn parse_stream_title(block: &[u8]) -> Option<String> {
 /// unsatisfied-range `bytes */<total>`, a unit other than `bytes`, or
 /// garbage — so the caller treats an unverifiable range as a failure
 /// rather than trusting it.
-fn parse_content_range_start(value: &str) -> Option<u64> {
+pub(crate) fn parse_content_range_start(value: &str) -> Option<u64> {
     // The range unit is case-insensitive per HTTP — accept "bytes",
     // "Bytes", "BYTES" — then a single space before the range.
     let (unit, rest) = value.trim().split_once(' ')?;

@@ -100,6 +100,11 @@ pub async fn track_media_dir(
             return None;
         }
     };
+    // Nothing is written on a share, and there is no directory here to read.
+    // `None` keeps the app's own directory, as for a track with no folder.
+    if waveflow_core::network_locator::is_locator(&folder) {
+        return None;
+    }
     Some(media_dir_in(Path::new(&folder), kind))
 }
 
@@ -129,6 +134,7 @@ pub async fn album_media_dirs(
     match rows {
         Ok(folders) => folders
             .iter()
+            .filter(|folder| !waveflow_core::network_locator::is_locator(folder))
             .map(|folder| media_dir_in(Path::new(folder), kind))
             .collect(),
         Err(err) => {

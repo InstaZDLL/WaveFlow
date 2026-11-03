@@ -1,16 +1,19 @@
 //! Mono, balance and stereo width.
 //!
-//! The stage that decides what each speaker of the front pair gets, on
+//! The stage that decides what each left / right pair of speakers gets, on
 //! the decoder thread after the EQ and before the final clamp. Like the
 //! EQ, it stays out of the cpal callback so its no-alloc / no-lock
 //! contract holds; the callback only scales what the ring holds.
 //!
-//! **Mono** comes first: every channel of a frame gets the frame's
-//! average. It used to be done in the output, after everything else, and
-//! with a balance that cannot work — the output averaged a hard-right
-//! frame back over both speakers at half level, erasing the source's
-//! left channel instead of moving the sound. Folded here, the balance
-//! then moves the folded signal, which is what mono plus balance is for.
+//! **Mono** comes first: the frame is folded to one signal, which the front
+//! pair then plays. It used to be done in the output, after everything
+//! else, and with a balance that cannot work — the output averaged a
+//! hard-right frame back over both speakers at half level, erasing the
+//! source's left channel instead of moving the sound. Folded here, the
+//! balance then moves the folded signal, which is what mono plus balance is
+//! for. The fold uses the gains of [`ChannelLayout::mono_gains`]: a plain
+//! average over every channel of a 7.1 output took 12 dB off a stereo track
+//! and played it from the LFE.
 //!
 //! **Width** is done in mid/side: `M = (L + R) / 2`, `S = (L − R) / 2`,
 //! the side scaled by the width, then `L = M + S`, `R = M − S`. 0 % is
@@ -39,8 +42,13 @@
 //! 100 % the buffer is not touched (the mid/side round trip is not
 //! bit-exact in floating point), so bit-perfect output is kept. A
 //! single-channel output is never touched either: it has no pair to fold,
-//! balance or widen. Balance and width leave the further channels of a
-//! surround output as they are; mono folds them in, as it always did.
+//! balance or widen.
+//!
+//! **Surround.** Every pair of the output is balanced and widened alike:
+//! the room moves to one side and widens as a whole, rather than the front
+//! alone while the surrounds stay put. What has no side (the centre, the
+//! LFE, a rear centre) is left where it is, and only takes the width's
+//! headroom, so that it keeps its level against the pairs around it.
 //!
 //! **Changes ramp.** A new balance or width moves to its target linearly
 //! across one buffer, so a slider dragged during playback does not click;
@@ -51,6 +59,8 @@
 
 use std::f32::consts::FRAC_PI_2;
 use std::sync::atomic::{AtomicI16, Ordering};
+
+use waveflow_core::playback::channels::ChannelLayout;
 
 /// The balance end stop, in percent either side of the centre.
 /// Negative is left, positive is right.
@@ -150,72 +160,101 @@ impl StereoGains {
     }
 }
 
+/// One frame through the gains: each pair in mid/side, and the width's
+/// headroom on everything, so what has no side keeps its level against the
+/// pairs. On a stereo frame the one pair is the whole frame.
 #[inline(always)]
-fn apply_frame(frame: &mut [f32], g: StereoGains) {
-    let (l, r) = (frame[0], frame[1]);
-    let mid = (l + r) * 0.5;
-    let side = (l - r) * 0.5 * g.side;
+fn apply_frame(frame: &mut [f32], pairs: &[(usize, usize)], g: StereoGains) {
     // See the module's note on headroom: `1 / w` bounds the widened peak.
     let headroom = if g.side > 1.0 { 1.0 / g.side } else { 1.0 };
-    frame[0] = (mid + side) * g.left * headroom;
-    frame[1] = (mid - side) * g.right * headroom;
+    if headroom != 1.0 {
+        for sample in frame.iter_mut() {
+            *sample *= headroom;
+        }
+    }
+    for &(left, right) in pairs {
+        let (l, r) = (frame[left], frame[right]);
+        let mid = (l + r) * 0.5;
+        let side = (l - r) * 0.5 * g.side;
+        frame[left] = (mid + side) * g.left;
+        frame[right] = (mid - side) * g.right;
+    }
 }
 
-/// Replace every channel of each frame with the frame's average. Shared
-/// with the output test tone, which is folded the same way when the mono
-/// switch is on.
-pub fn mono_fold(buf: &mut [f32], channels: usize) {
+/// Fold each frame to one signal and play it from the front pair, every
+/// other channel silent. Shared with the output test tone, which is folded
+/// the same way when the mono switch is on.
+///
+/// `source_channels` says how much of the frame is in use, see
+/// [`ChannelLayout::mono_gains`].
+pub fn mono_fold(buf: &mut [f32], layout: &ChannelLayout, source_channels: usize) {
+    let channels = layout.channels();
     if channels < 2 {
         return;
     }
-    let scale = 1.0 / channels as f32;
+    let gains = layout.mono_gains(source_channels);
+    let front = layout.front_pair();
     for frame in buf.chunks_exact_mut(channels) {
-        let average = frame.iter().sum::<f32>() * scale;
-        frame.fill(average);
+        let folded: f32 = frame.iter().zip(&gains).map(|(s, g)| s * g).sum();
+        match front {
+            Some((left, right)) => {
+                frame.fill(0.0);
+                frame[left] = folded;
+                frame[right] = folded;
+            }
+            None => frame.fill(folded),
+        }
     }
 }
 
-/// Per-decoder-thread state: the gains the last buffer ended on, so a
-/// change can ramp from them.
+/// Per-decoder-thread state: the output's layout, and the gains the last
+/// buffer ended on, so a change can ramp from them.
 pub struct StereoProcessor {
+    layout: ChannelLayout,
+    /// Every left / right pair of the layout.
+    pairs: Vec<(usize, usize)>,
     /// `None` until the first buffer, which starts at its target.
     current: Option<StereoGains>,
 }
 
 impl StereoProcessor {
-    pub fn new() -> Self {
-        Self { current: None }
+    pub fn new(layout: &ChannelLayout) -> Self {
+        Self {
+            layout: layout.clone(),
+            pairs: layout.pairs(),
+            current: None,
+        }
     }
 
     /// Apply mono, balance and width in place to an interleaved buffer.
     /// Two atomic loads per call; nothing at all is written while mono is
     /// off and the balance and width are, and were, neutral.
     ///
-    /// `mono_source` is true when what is decoding has a single channel:
-    /// there is no side to widen then, and the width's headroom would only
-    /// make the track quieter, so the width is left at 100 % — as it is
-    /// when the mono switch has just folded the side away.
+    /// `source_channels` is how many channels what is decoding has. A single
+    /// one has no side to widen, and the width's headroom would only make
+    /// the track quieter, so the width is left at 100 % — as it is when the
+    /// mono switch has just folded the side away.
     pub fn process(
         &mut self,
         buf: &mut [f32],
-        channels: usize,
         shared: &StereoShared,
         mono: bool,
-        mono_source: bool,
+        source_channels: usize,
     ) {
         if mono {
-            mono_fold(buf, channels);
+            mono_fold(buf, &self.layout, source_channels);
         }
-        let width = if mono || mono_source {
+        let width = if mono || source_channels == 1 {
             WIDTH_NEUTRAL
         } else {
             shared.width()
         };
         let target = StereoGains::from_settings(shared.balance(), width);
-        self.process_towards(buf, channels, target);
+        self.process_towards(buf, target);
     }
 
-    fn process_towards(&mut self, buf: &mut [f32], channels: usize, target: StereoGains) {
+    fn process_towards(&mut self, buf: &mut [f32], target: StereoGains) {
+        let channels = self.layout.channels();
         // Before anything moves `current`: a buffer with no whole frame
         // (a resampler holding back a short packet) must not use up a
         // change, or the next one would step to it without a ramp.
@@ -229,20 +268,18 @@ impl StereoProcessor {
         }
         if start == target {
             for frame in buf.chunks_exact_mut(channels) {
-                apply_frame(frame, target);
+                apply_frame(frame, &self.pairs, target);
             }
             return;
         }
         let frames = (buf.len() / channels) as f32;
         for (f, frame) in buf.chunks_exact_mut(channels).enumerate() {
-            apply_frame(frame, start.lerp(target, (f + 1) as f32 / frames));
+            apply_frame(
+                frame,
+                &self.pairs,
+                start.lerp(target, (f + 1) as f32 / frames),
+            );
         }
-    }
-}
-
-impl Default for StereoProcessor {
-    fn default() -> Self {
-        Self::new()
     }
 }
 

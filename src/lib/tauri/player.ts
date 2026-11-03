@@ -127,7 +127,17 @@ export function playerStop(): Promise<void> {
 export type OutputSampleFormat =
   "unknown" | "f32" | "s32" | "s24" | "s24-in-32" | "s16" | "u16" | "dop";
 
-export type TestTonePhase = "left" | "right" | "both";
+export type TestTonePhase =
+  | "left"
+  | "right"
+  | "both"
+  | "center"
+  | "lfe"
+  | "back-left"
+  | "back-right"
+  | "back-center"
+  | "side-left"
+  | "side-right";
 
 /** Payload of {@link TEST_TONE_EVENT}. */
 export type TestToneEvent =
@@ -136,6 +146,9 @@ export type TestToneEvent =
       sampleRate: number;
       channels: number;
       sampleFormat: OutputSampleFormat;
+      /** The beeps to come: left, right and both on a stereo output, each
+       *  speaker in turn on a wider one. */
+      phases: TestTonePhase[];
       /** Mono output plays both beeps on both sides. */
       mono: boolean;
     }

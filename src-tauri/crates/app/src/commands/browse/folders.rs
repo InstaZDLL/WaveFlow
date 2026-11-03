@@ -119,14 +119,25 @@ struct FolderNodeRaw {
 /// — the separator is ASCII on every platform we build for, so the
 /// increment cannot split a character.
 pub(crate) fn folder_prefix_range(dir: &str) -> (String, String) {
+    let separator = separator_of(dir);
     let mut low = dir.to_string();
-    if !low.ends_with(std::path::MAIN_SEPARATOR) {
-        low.push(std::path::MAIN_SEPARATOR);
+    if !low.ends_with(separator) {
+        low.push(separator);
     }
     let (head, sep) = low.split_at(low.len() - 1);
     let mut high = head.to_string();
     high.push(char::from(sep.as_bytes()[0] + 1));
     (low, high)
+}
+
+/// What separates the segments of a stored path. A share's locator uses `/`
+/// on every platform, and a Windows library holds both kinds.
+pub(crate) fn separator_of(path: &str) -> char {
+    if waveflow_core::network_locator::is_locator(path) {
+        '/'
+    } else {
+        std::path::MAIN_SEPARATOR
+    }
 }
 
 /// The parent of `dir`, or `None` once it reaches `root`.
@@ -136,12 +147,13 @@ pub(crate) fn folder_prefix_range(dir: &str) -> (String, String) {
 /// the root would list directories the scanner never indexed, i.e.
 /// nothing at all.
 pub(super) fn folder_parent(dir: &str, root: Option<&str>) -> Option<String> {
-    let trimmed = dir.trim_end_matches(std::path::MAIN_SEPARATOR);
-    let root = root.map(|r| r.trim_end_matches(std::path::MAIN_SEPARATOR));
+    let separator = separator_of(dir);
+    let trimmed = dir.trim_end_matches(separator);
+    let root = root.map(|r| r.trim_end_matches(separator));
     if root.is_some_and(|r| r.eq_ignore_ascii_case(trimmed)) {
         return None;
     }
-    let cut = trimmed.rfind(std::path::MAIN_SEPARATOR)?;
+    let cut = trimmed.rfind(separator)?;
     let parent = &trimmed[..cut];
     // Never above the root, even if one of its own segments repeats.
     match root {
@@ -231,7 +243,7 @@ pub async fn browse_folders(
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
 
     // See [`FOLDER_ROOT_SQL`] for why the stored path is trimmed.
-    let sep = std::path::MAIN_SEPARATOR.to_string();
+    let sep = separator_of(&path).to_string();
     let root: Option<(i64, String)> = sqlx::query_as(FOLDER_ROOT_SQL)
         .bind(library_id)
         .bind(library_id)
@@ -337,7 +349,7 @@ pub async fn list_folder_tracks(
     );
 
     let (low, high) = folder_prefix_range(&path);
-    let sep = std::path::MAIN_SEPARATOR.to_string();
+    let sep = separator_of(&path).to_string();
 
     let raw = sqlx::query_as::<_, LibraryTrackRawRow>(sqlx::AssertSqlSafe(sql))
         .bind(library_id)

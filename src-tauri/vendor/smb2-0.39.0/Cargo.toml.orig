@@ -1,0 +1,99 @@
+[package]
+name = "smb2"
+version = "0.39.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Pure-Rust SMB2/3 client library with pipelined I/O"
+keywords = ["smb", "smb2", "smb3", "cifs", "network"]
+categories = ["network-programming", "filesystem"]
+readme = "README.md"
+documentation = "https://docs.rs/smb2"
+exclude = [
+    # tests/ is dev-only: integration tests + Docker fixtures for smb2's own
+    # suite. Fixtures the published crate embeds (the `testing` feature's
+    # consumer Docker files, the ccache test vectors) live under src/, so
+    # excluding tests/ wholesale ships nothing the crate needs.
+    "tests/",
+]
+
+[package.metadata.docs.rs]
+all-features = true
+
+[dependencies]
+# Logging facade -- application picks the backend (env_logger, tracing, etc.)
+log = "0.4"
+
+# `dyn Transport` needs async methods on a trait object.
+async-trait = "0.1"
+
+# `FuturesUnordered` for pipelined concurrent `execute` calls.
+futures-util = { version = "0.3", default-features = false, features = ["std", "async-await"] }
+
+# Error handling
+thiserror = "2"
+
+# Enum conversion derives
+num_enum = "0.7"
+
+# Always on, whichever runtime runs the client: `sync` (channels, semaphores, `Notify`) works on any executor.
+# Everything that needs a running tokio reactor (sockets, timers, spawning) is behind the `tokio` feature below, so a
+# smol-only build can't compile a stray `tokio::time::sleep`. See `src/rt/CLAUDE.md`.
+tokio = { version = "1", features = ["sync"] }
+
+# The `smol` runtime backend: sockets, timers, and a global executor that works under any executor.
+smol = { version = "2.0.2", optional = true }
+
+# Crypto -- signing, encryption, key derivation
+hmac = "0.13"
+sha2 = "0.11"
+aes = "0.9.1"
+aes-gcm = "0.11.0"
+ccm = "0.6.1"
+cmac = "0.8.0"
+digest = "0.11"
+# Constant-time signature comparison. RustCrypto's own crate, already in the tree through aes-gcm, ccm, and digest.
+# 0.4.4 is the floor: earlier releases can branch on secret values (RUSTSEC-2026-0385).
+ctutils = "0.4.4"
+
+# NTLM authentication (MS-NLMP)
+md-5 = "0.11"
+md4 = "0.11"
+
+# Kerberos key derivation (AES string-to-key)
+pbkdf2 = "0.13.0"
+sha1 = "0.11"
+
+# Cryptographically secure random
+getrandom = "0.4"
+
+# Compression
+lz4_flex = "0.14"
+
+# Optional: `Serialize` derives on diagnostics types. Off by default.
+serde = { version = "1", optional = true, features = ["derive"] }
+
+[features]
+default = ["tokio"]
+# Runtime backends: at least one is required. With both on, a call made inside a tokio runtime runs on tokio and
+# everything else on smol. See `src/rt/CLAUDE.md`.
+tokio = ["tokio/net", "tokio/io-util", "tokio/rt", "tokio/time"]
+smol = ["dep:smol"]
+testing = []  # Enables smb2::testing module for Docker-based test servers
+fuzzing = []  # Exposes parser entry points for `fuzz/` targets; not for applications
+serde = ["dep:serde"]  # `Serialize` on `Diagnostics` types and the protocol enums they embed; `Serialize` + `Deserialize` on `WriteCheckpoint` and `FileIdentity`, so a checkpoint persists and loads back.
+# Unstable and not for applications: exposes `smb2::__bench`, which overrides the read-ahead tuning process-wide so
+# `benchmarks/read-ahead/` can compare candidates. No SemVer promise; it can change or go away in any release.
+__bench-tuning = []
+
+[dev-dependencies]
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "net", "io-util", "test-util"] }
+proptest = "1"
+env_logger = "0.11"
+serde_json = "1"  # JSON round-trip tests for the `serde` feature
+smol = "2.0.2"  # `block_on` for the tests that prove the client runs without a tokio runtime
+
+[[example]]
+name = "smol_list_shares"
+required-features = ["smol"]

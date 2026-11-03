@@ -272,7 +272,11 @@ pub async fn tag_workshop_open(
     let out = tokio::task::spawn_blocking(move || {
         rows.into_iter()
             .map(|(track_id, album_id, file_path, duration_ms)| {
-                let read = read_values(Path::new(&file_path));
+                let read = if waveflow_core::network_locator::is_locator(&file_path) {
+                    Err("on a network share, which WaveFlow only reads".to_string())
+                } else {
+                    read_values(Path::new(&file_path))
+                };
                 let (values, error) = match read {
                     Ok(values) => (values, None),
                     Err(err) => (Values::new(), Some(err)),
@@ -333,13 +337,16 @@ pub struct FilePreview {
     pub error: Option<String>,
 }
 
+/// The file a change applies to. A track on a share has none the workshop can
+/// write, so it reads as a track with no file.
 async fn track_path(pool: &sqlx::SqlitePool, track_id: i64) -> AppResult<Option<String>> {
-    Ok(
-        sqlx::query_scalar("SELECT file_path FROM track WHERE id = ? AND is_available = 1")
-            .bind(track_id)
-            .fetch_optional(pool)
-            .await?,
+    Ok(sqlx::query_scalar(
+        "SELECT file_path FROM track
+              WHERE id = ? AND is_available = 1 AND file_path NOT LIKE 'wfnet://%'",
     )
+    .bind(track_id)
+    .fetch_optional(pool)
+    .await?)
 }
 
 /// The files `changes` would rewrite and, for each, the fields: what the

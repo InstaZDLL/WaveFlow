@@ -91,6 +91,12 @@ Both funnel into `resume_last`, which holds a one-at-a-time guard (`AudioEngine:
 
 Two rules that are easy to get wrong: the check is **rooted** (a library that itself lives under a directory of that name is still an ordinary library, and testing every component of an absolute path would empty it), and the walk never prunes **its own root** for the same reason. Writing anywhere else in a library folder needs the same treatment or it will be indexed — including by the watcher, which would otherwise answer our own writes with a rescan. Layout: [`storage.md`](storage.md#inside-the-users-library-issue-695).
 
+### A stored track path may be a locator, not a file
+
+`track.file_path` and `library_folder.path` hold `wfnet://<uuid>/<path>` for a [network share](../features/library.md#network-shares). Code that opens, writes or creates anything from a stored path asks [`network_locator::is_locator`](../../src-tauri/crates/core/src/network_locator.rs) first, or goes through `netlib::refuse_if_network` (writes) or `netlib::local_copy` (a read of the whole file). Most reads fail softly on their own, but not every platform agrees on why: on Linux a locator read as a path is a relative one, so `create_dir_all` beside it would make `wfnet:/` in the working directory. A share is read-only: nothing is ever written on it, `.waveflow/` included. Never parse a locator as a URL (`#` and `?` are ordinary characters in it), and never join to it with `Path::join`, which would mix separators on Windows.
+
+**`is_available = 0` means the share answered and the file is gone**, never that the share does not answer: that value hides a track everywhere, so a listing that failed, stopped or came back empty writes nothing. Reachability lives in memory, in `netlib`.
+
 ### Library folders never overlap
 
 No library folder is, lies under or holds another, in any library of the profile. A folder owns the tracks its scan finds (`track.folder_id`), and removing it deletes them. Two folders where one holds the other both claim the files they share: each scan reads them again, the last to run takes them, and removing either can take tracks the other still shows — with their likes, ratings and playlist places.
@@ -170,6 +176,12 @@ Deep dive: [library § tag editing](../features/library.md#tag-editing).
 ---
 
 ## Audio
+
+### A channel is a speaker, not a number
+
+Anything that treats channels differently goes through `playback::channels::ChannelLayout`: the mixer, the balance and width, the mono fold, the test tone. **Why:** the same index is a different speaker from one place to the next. Channel 2 is the centre in WAVE and in a FLAC, the front right in an Opus file's table, a rear speaker on an ALSA device. Code that went by number sent the centre of a 5.1 Opus to the right speaker, kept only the front of a 7.1 on 5.1, and would have played a 5.1 out of the wrong speakers on Linux the moment it opened wider than stereo.
+
+**How not to break it:** a backend that opens an output publishes its layout with its channel count (`SharedPlayback.output_layout`, zero for the count's WAVE order). The ring holds the output's channels in the output's order, so nothing after the decoder permutes anything. A stage that needs "the left channels" asks the layout (`pairs`, `front_pair`), never `frame[0]`. A count alone is a guess, and `ChannelLayout::from_count` is where that guess lives: the file's or the device's own word comes first.
 
 ### The audio callback is hot
 
@@ -344,6 +356,8 @@ Every identifier the server supplies — track, album, artist, library, playlist
 The projection therefore lives in its own `remote_*` tables and is **reconstructible**: dropping it and re-fetching `GET /api/v2/sync/snapshot` is always a valid recovery, and is what the apply path does when it meets a known event it cannot apply. `remote_mutation` is the one exception — it holds writes the server has not seen yet, so it must survive a projection reset.
 
 Matching a local file to a server track is deliberately out of scope and needs its own RFC.
+
+A [network share](../features/library.md#a-transport-not-a-provider) is not covered by this: it has no user data and no catalogue, only files whose tags we read, so its tracks are ordinary `track` rows.
 
 **Two RFCs are numbered 003.** The desktop's [RFC-003](../rfcs/RFC-003-sync-architecture.md) (hybrid logical clocks, superseded) has nothing to do with the server's RFC-003 (sync v2, accepted). Any instruction naming "RFC-003" must name the repository too, or it will be read as the wrong document. On the desktop side the accepted design is **RFC-005**.
 

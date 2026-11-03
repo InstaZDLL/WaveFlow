@@ -811,7 +811,8 @@
       "filePath": "Ruta",
       "moveUp": "Subir la columna {{column}}",
       "moveDown": "Bajar la columna {{column}}"
-    }
+    },
+    "trackOnUnreachableShare": "Recurso de red inaccesible, y esta canción no está en caché"
   },
   "liked": {
     "badge": "Colección",
@@ -1102,7 +1103,8 @@
         "offline": "El modo sin conexión está activado",
         "unknown": "La reproducción ha fallado",
         "files-failed": "No se pueden reproducir estos archivos",
-        "picker-failed": "No se puede abrir el selector de archivos"
+        "picker-failed": "No se puede abrir el selector de archivos",
+        "network-source-lost": "Se ha perdido la conexión con el recurso de red"
       },
       "notice": {
         "exclusive-refused": "Este dispositivo rechaza el modo exclusivo: reproduciendo en modo compartido",
@@ -3212,6 +3214,13 @@
       "left": "Izquierda",
       "right": "Derecha",
       "both": "Ambos",
+      "center": "Centro",
+      "lfe": "Subwoofer",
+      "backLeft": "Trasero izquierdo",
+      "backRight": "Trasero derecho",
+      "backCenter": "Trasero central",
+      "sideLeft": "Lateral izquierdo",
+      "sideRight": "Lateral derecho",
       "mono": "Mono",
       "stereo": "Estéreo",
       "channels": "{{count}} canales",
@@ -3219,6 +3228,7 @@
       "shared": "Compartido",
       "sharedNote": "En modo compartido, el mezclador del sistema convierte después este formato al del dispositivo.",
       "monoNote": "La salida mono está activada: cada pitido suena en ambos lados.",
+      "surroundNote": "Salida envolvente: cada altavoz emite su pitido por turnos, el subwoofer con un tono grave.",
       "swapped": "¿El pitido izquierdo sonó a la derecha? Los canales están invertidos: revisa la conexión o la configuración de altavoces del sistema.",
       "interrupted": "Prueba interrumpida.",
       "failed": "No se pudo reproducir el tono de prueba: {{message}}",
@@ -3427,6 +3437,62 @@
         "title": "Botón Novedades en la barra superior",
         "subtitle": "Si lo ocultas, el panel sigue disponible aquí y en Acerca de."
       }
+    },
+    "networkLibrary": {
+      "title": "Recursos de red (WebDAV, SMB)",
+      "subtitle": "Lee un recurso compartido directamente, sin que el sistema lo monte. WaveFlow solo lee: los archivos nunca se modifican.",
+      "add": "Añadir un recurso",
+      "addConfirm": "Añadir y analizar",
+      "cancel": "Cancelar",
+      "test": "Probar la conexión",
+      "save": "Guardar",
+      "kind": "Tipo de recurso",
+      "kinds": {
+        "webdav": "WebDAV",
+        "smb": "SMB"
+      },
+      "name": "Nombre (opcional)",
+      "address": "Dirección",
+      "addressHint": {
+        "webdav": "https://nas.local/dav",
+        "smb": "nas.local o 192.168.1.10"
+      },
+      "folder": "Carpeta en el recurso (opcional)",
+      "username": "Nombre de usuario",
+      "password": "Contraseña",
+      "passwordNotice": "La contraseña se guarda sin cifrar en la base de datos del perfil, como las demás credenciales de WaveFlow, y nunca entra en una exportación de perfil ni en una copia de seguridad. Es preferible usar una cuenta de solo lectura.",
+      "plainHttpWarning": "Acepto enviar esta contraseña y mi música sin cifrar: con http://, cualquiera en esta red puede leerlas.",
+      "plainHttpBadge": "Conexión sin cifrar (http://)",
+      "passwordMissing": "Hay que volver a escribir la contraseña: no viaja con un perfil importado ni con una copia restaurada.",
+      "changePassword": "Cambiar la contraseña",
+      "remove": "Quitar",
+      "removeConfirm": "¿Quitar este recurso y sus canciones?",
+      "state": {
+        "online": "Conectado",
+        "unknown": "Aún sin comprobar",
+        "unreachable": "Inaccesible",
+        "auth_failed": "Acceso denegado"
+      },
+      "failure": {
+        "offline": "El modo sin conexión está activado.",
+        "unreachable": "No hay respuesta en esta dirección.",
+        "handshake": "Este servidor cerró la conexión durante la negociación. WaveFlow usa SMB 2 o posterior: un servidor limitado a SMB 1 hace exactamente esto.",
+        "tls": "Se rechaza el certificado de este servidor. WaveFlow siempre comprueba los certificados: hace falta uno válido, o http:// en una red de confianza.",
+        "auth": "Nombre de usuario o contraseña rechazados.",
+        "session-refused": "Este servidor rechazó la sesión sin pronunciarse sobre la contraseña. Puede que esta cuenta no tenga acceso, o que el servidor exija un cifrado que esta conexión no puede usar.",
+        "not-found": "Este recurso compartido o esta carpeta no existe.",
+        "protocol": "Este servidor no responde como un recurso compartido.",
+        "plain-http": "Una dirección http:// necesita tu conformidad abajo."
+      },
+      "testOk_one": "Conectado: {{count}} elemento en esta carpeta.",
+      "testOk_other": "Conectado: {{count}} elementos en esta carpeta.",
+      "cacheLimit": "Límite (GB)",
+      "cacheClear": "Vaciar la caché",
+      "testOk_many": "Conectado: {{count}} elementos en esta carpeta.",
+      "share": "Nombre del recurso",
+      "cacheUsed_one": "Caché local: {{size}}, {{count}} canción",
+      "cacheUsed_other": "Caché local: {{size}}, {{count}} canciones",
+      "cacheUsed_many": "Caché local: {{size}}, {{count}} canciones"
     }
   },
   "scanProgress": {

@@ -31,15 +31,33 @@ pub struct StreamInfo {
 /// this family: measured 7 for 7.1 AAC, 2 for every stream with a PCE, 64
 /// for AAC-ELD.
 pub fn decoder_channels(path: &Path, file_type: FileType) -> Result<Option<i64>, String> {
-    if !matches!(file_type, FileType::Mp4 | FileType::Aac) {
+    if !decoder_decides(file_type) {
         return Ok(None);
     }
+    channels_of(open_stream(path)?)
+}
+
+/// Whether [`decoder_channels`] has anything to say about this family.
+pub fn decoder_decides(file_type: FileType) -> bool {
+    matches!(file_type, FileType::Mp4 | FileType::Aac)
+}
+
+/// [`decoder_channels`] over any source, for a file that is not on this disk.
+/// `ext` is the extension it carries, as a hint for the probe.
+pub fn decoder_channels_from(
+    source: Box<dyn symphonia::core::io::MediaSource>,
+    ext: Option<&str>,
+) -> Result<Option<i64>, String> {
+    channels_of(open_source(source, ext)?)
+}
+
+fn channels_of(opened: OpenedStream) -> Result<Option<i64>, String> {
     let OpenedStream {
         mut format,
         track_id,
         mut decoder,
         ..
-    } = open_stream(path)?;
+    } = opened;
     if let Some(channels) = &decoder.codec_params().channels {
         return Ok(Some(channels.count() as i64));
     }
@@ -75,21 +93,28 @@ struct OpenedStream {
 }
 
 fn open_stream(path: &Path) -> Result<OpenedStream, String> {
+    let file = fs::File::open(path).map_err(|e| format!("open: {e}"))?;
+    open_source(Box::new(file), path.extension().and_then(|e| e.to_str()))
+}
+
+fn open_source(
+    source: Box<dyn symphonia::core::io::MediaSource>,
+    ext: Option<&str>,
+) -> Result<OpenedStream, String> {
     use symphonia::core::codecs::audio::AudioDecoderOptions;
     use symphonia::core::formats::probe::Hint;
     use symphonia::core::formats::{FormatOptions, TrackType};
     use symphonia::core::io::MediaSourceStream;
     use symphonia::core::meta::MetadataOptions;
 
-    let file = fs::File::open(path).map_err(|e| format!("open: {e}"))?;
     let mut hint = Hint::new();
-    if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
+    if let Some(ext) = ext {
         hint.with_extension(ext);
     }
     let format = symphonia::default::get_probe()
         .probe(
             &hint,
-            MediaSourceStream::new(Box::new(file), Default::default()),
+            MediaSourceStream::new(source, Default::default()),
             FormatOptions::default(),
             MetadataOptions::default(),
         )
@@ -134,6 +159,16 @@ const PLAYABLE_PROBE_PACKETS: usize = 64;
 /// will play: the scanner and the decoder cannot disagree. `None` when
 /// any of that fails.
 pub fn probe_playable_stream(path: &Path) -> Option<StreamInfo> {
+    let file = fs::File::open(path).ok()?;
+    probe_playable_source(Box::new(file), path.extension().and_then(|e| e.to_str()))
+}
+
+/// [`probe_playable_stream`] over any source, for a file that is not on this
+/// disk. `ext` is the extension it carries, as a hint for the probe.
+pub fn probe_playable_source(
+    source: Box<dyn symphonia::core::io::MediaSource>,
+    ext: Option<&str>,
+) -> Option<StreamInfo> {
     let OpenedStream {
         mut format,
         track_id,
@@ -142,7 +177,7 @@ pub fn probe_playable_stream(path: &Path) -> Option<StreamInfo> {
         num_frames,
         params,
         mut decoder,
-    } = open_stream(path).ok()?;
+    } = open_source(source, ext).ok()?;
     let codec = crate::audio_format::opus::codecs()
         .get_audio_decoder(params.codec)
         .map(|registered| crate::audio_format::codec_label(registered.codec.info.short_name));

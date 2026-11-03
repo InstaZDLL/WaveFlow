@@ -619,9 +619,13 @@ async fn enrich_album(
     album: &LocalAlbum,
     fields: Fields,
 ) -> AppResult<AlbumOutcome> {
-    // The files' own identifier, from the first track: a tagger writes
-    // the same release into every file of an album.
-    let first = album.tracks.first().map(|t| PathBuf::from(&t.file_path));
+    // The files' own identifier, from the first track on this machine: a
+    // tagger writes the same release into every file of an album.
+    let first = album
+        .tracks
+        .iter()
+        .find(|t| !waveflow_core::network_locator::is_locator(&t.file_path))
+        .map(|t| PathBuf::from(&t.file_path));
     let tagged = match first {
         Some(path) => tokio::task::spawn_blocking(move || tags::release_mbid(&path))
             .await

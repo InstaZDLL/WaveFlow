@@ -255,8 +255,8 @@ export function AudioPipelinePopover({ track }: AudioPipelinePopoverProps) {
   const isNormalize = !isDopNative && (snap?.normalize ?? false);
   const isReplayGain = !isDopNative && (snap?.replaygain ?? false);
   const isMono = !isDopNative && (snap?.mono ?? false);
-  // Balance and width act on the front pair, so a single-channel output
-  // has nothing for them to change. The width is also skipped for a mono
+  // Balance and width act on each left / right pair, so a single-channel
+  // output has nothing for them to change. The width is also skipped for a mono
   // track and once the mono switch has folded the side away.
   const hasPair = (snap?.outputChannels ?? 0) >= 2;
   const isBalanced = !isDopNative && hasPair && (snap?.balance ?? 0) !== 0;

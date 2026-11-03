@@ -1,3 +1,4 @@
+import { useBlockedTrackIds } from "../../lib/networkTracks";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Heart, Clock, Play } from "lucide-react";
@@ -236,6 +237,7 @@ function LikedTrackList({
   unlikeLabel,
 }: LikedTrackListProps) {
   "use no memo";
+  const blockedIds = useBlockedTrackIds();
   const { value: singleClickPlay } = useSingleClickPlay();
   const { parentRef, virtualizer, scrollMargin } =
     usePageVirtualizer<HTMLUListElement>({
@@ -257,6 +259,7 @@ function LikedTrackList({
         const track = tracks[index];
         if (!track) return null;
         const isCurrent = track.id === currentTrackId;
+        const isBlocked = blockedIds.has(track.id);
         return (
           // Row can't be a <button> because it contains action
           // buttons; nested buttons are invalid HTML. Keyboard
@@ -296,6 +299,8 @@ function LikedTrackList({
               transform: `translateY(${virtualRow.start - scrollMargin}px)`,
             }}
             className={`group grid grid-cols-[3rem_2.75rem_1fr_1fr_1fr_5rem_2.5rem] gap-4 px-5 items-center select-none transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500 ${
+              isBlocked ? "opacity-40 " : ""
+            }${
               index < tracks.length - 1
                 ? "border-b border-zinc-100 dark:border-zinc-800/60"
                 : ""

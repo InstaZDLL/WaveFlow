@@ -10,7 +10,10 @@ use symphonia::core::meta::MetadataOptions;
 
 use super::*;
 use crate::audio_format::opus::codecs;
-use crate::scanner::extract::{decoder_channels, probe_playable_stream, read_tagged_file};
+use crate::scanner::extract::{
+    decoder_channels, decoder_channels_from, decoder_decides, probe_playable_stream,
+    read_tagged_file,
+};
 
 /// FFmpeg's native encoder, 0.4 s at 48 kHz, one tone per channel in
 /// FFmpeg's channel order. `-aac_pns 0`: a tone has nothing to substitute,
@@ -329,6 +332,25 @@ fn xhe_aac_under_another_name_is_refused_all_the_same() {
     std::fs::rename(usac_file(dir.path()), &renamed).unwrap();
     let file_type = read_tagged_file(&renamed).unwrap().file_type();
     assert!(decoder_channels(&renamed, file_type).is_err());
+}
+
+/// A file on a share reaches the check as a source, not a path, under the
+/// same rule: it is counted, or it is refused.
+#[test]
+fn the_decoders_view_is_the_same_over_any_source() {
+    let dir = tempfile::tempdir().unwrap();
+    let source = |path: &Path| Box::new(File::open(path).unwrap());
+    assert_eq!(
+        decoder_channels_from(source(&fixture("sevenpointone.m4a")), Some("m4a")),
+        Ok(Some(8))
+    );
+    assert_eq!(
+        decoder_channels_from(source(&fixture("twopointone.aac")), Some("aac")),
+        Ok(Some(3))
+    );
+    assert!(decoder_channels_from(source(&usac_file(dir.path())), Some("m4a")).is_err());
+    assert!(decoder_decides(FileType::Mp4) && decoder_decides(FileType::Aac));
+    assert!(!decoder_decides(FileType::Flac));
 }
 
 #[test]

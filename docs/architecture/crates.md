@@ -7,7 +7,7 @@ src-tauri/
 ├── Cargo.toml         (virtual workspace root)
 ├── Cargo.lock
 ├── migrations/        (sqlx schema, per-profile + app-level)
-├── vendor/            (glib 0.18.5 RUSTSEC backport)
+├── vendor/            (glib 0.18.5 RUSTSEC backport, smb2 0.39.0 encryption fix)
 └── crates/
     ├── core/          (waveflow-core — portable business logic)
     │   └── src/
