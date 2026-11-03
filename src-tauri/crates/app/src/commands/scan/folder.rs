@@ -721,6 +721,7 @@ pub(crate) async fn scan_folder_inner(
                         SET bit_depth           = COALESCE(bit_depth, ?),
                             codec               = COALESCE(codec, ?),
                             musical_key         = COALESCE(musical_key, ?),
+                            rating              = COALESCE(?, rating),
                             title_from_filename = ?,
                             rg_track_gain_db    = ?,
                             rg_track_peak       = ?,
@@ -734,6 +735,16 @@ pub(crate) async fn scan_folder_inner(
                 .bind(extracted.bit_depth)
                 .bind(extracted.codec.as_deref())
                 .bind(extracted.musical_key.as_deref())
+                // On a deep rescan only, which the user asks for. It is the
+                // one way to bring back a rating an older build moved up a
+                // step: a scan read the MP3 frame through lofty's whole-star
+                // conversion and stored that, while the file kept the byte,
+                // and with the bytes unchanged nothing else reads it again.
+                // Not on the forced passes above, which reach this branch
+                // without being asked and have no business changing stars.
+                // The same rule as the rewriting branch: a file with no
+                // rating leaves the stored one alone.
+                .bind(extracted.rating.filter(|_| deep).map(i64::from))
                 // The one backfill site for the flag, and the only one
                 // that can reach a library scanned before the column
                 // existed. Those rows took the `NOT NULL DEFAULT 0` of

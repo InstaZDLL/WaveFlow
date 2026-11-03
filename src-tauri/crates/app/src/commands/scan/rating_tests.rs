@@ -75,8 +75,16 @@ impl Library {
 
     /// `(added, updated, skipped)`, with nothing allowed to have failed.
     async fn scan(&self) -> (u32, u32, u32) {
+        self.scan_with(false).await
+    }
+
+    async fn scan_deep(&self) -> (u32, u32, u32) {
+        self.scan_with(true).await
+    }
+
+    async fn scan_with(&self, deep: bool) -> (u32, u32, u32) {
         let artwork = self.dir.path().join("artwork");
-        let summary = scan_folder_inner(&self.pool, &artwork, 1, None, false)
+        let summary = scan_folder_inner(&self.pool, &artwork, 1, None, deep)
             .await
             .expect("scan");
         assert_eq!(summary.errors, 0, "every file here is readable");
@@ -678,4 +686,33 @@ async fn a_write_that_fails_is_reported() {
         .await
         .unwrap();
     assert!(!written);
+}
+
+/// A rating an older build moved up a step: it stored lofty's whole star
+/// while the file kept the byte. Only a deep rescan, which the user asks for,
+/// goes back to the file; a normal one has no reason to open it.
+#[tokio::test]
+async fn a_deep_rescan_brings_back_the_byte_in_the_file() {
+    let library = Library::new().await;
+    let path = add_file(&library, "moved-up.mp3");
+    let db_only = library.add_flac("db-only.flac");
+    library.scan().await;
+    rate_in_the_app(&library, &path, Some(TWO_STARS as u8)).await;
+    library.scan().await;
+    assert_eq!(library.rating(&path).await, Some(TWO_STARS));
+
+    // What the older scan left: the bytes as they were, a star more here.
+    library.rate(&path, Some(153)).await;
+    library.rate(&db_only, Some(FOUR_STARS)).await;
+
+    assert_eq!(library.scan().await, (0, 0, 2), "the fast path");
+    assert_eq!(library.rating(&path).await, Some(153));
+
+    assert_eq!(library.scan_deep().await, (0, 0, 2), "unchanged files");
+    assert_eq!(library.rating(&path).await, Some(TWO_STARS), "the byte");
+    assert_eq!(
+        library.rating(&db_only).await,
+        Some(FOUR_STARS),
+        "a file with no rating says nothing, on this branch too"
+    );
 }
