@@ -420,6 +420,8 @@ async fn every_star_survives_the_file_and_the_next_scan() {
             "{} as the writer left it",
             path.display()
         );
+        // Emptied here, so what the assertion below finds came from the file.
+        library.rate(path, None).await;
     }
     let (_, updated, _) = library.scan().await;
     assert_eq!(updated as usize, files.len(), "the rewriting branch");
