@@ -63,8 +63,8 @@ NODE_GEN="$VENV/bin/flatpak-node-generator"
 
 # ----------------------------------------------------------------------------
 # Cargo sources — straight read of src-tauri/Cargo.lock.
-# The local [patch.crates-io] entry for vendor/glib-0.18.5 is a path
-# dep, which the generator skips automatically (only registry +
+# The local [patch.crates-io] entries under vendor/ are path
+# deps, which the generator skips automatically (only registry +
 # git crates are emitted). The vendor dir reaches the sandbox via the
 # `type: dir` source in the manifest.
 echo "→ Generating cargo-sources.json"

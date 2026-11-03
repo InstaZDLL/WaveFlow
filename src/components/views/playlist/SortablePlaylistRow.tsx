@@ -1,3 +1,4 @@
+import { useTrackBlocked } from "../../../lib/networkTracks";
 import { type PlaylistTrack } from "./playlistTypes";
 import { formatDuration, type Track } from "../../../lib/tauri/track";
 import { memo } from "react";
@@ -95,6 +96,7 @@ export const SortablePlaylistRow = memo(function SortablePlaylistRow({
   onRowSelect,
   dragEnabled,
 }: SortablePlaylistRowProps) {
+  const blocked = useTrackBlocked(remote ? null : Number(track.id));
   // Disable dnd-kit's per-item layout animations: they trigger CSS
   // transitions on every neighbour the drag crosses, which is what
   // makes the row feel sluggish on long playlists. The visual jump
@@ -174,6 +176,8 @@ export const SortablePlaylistRow = memo(function SortablePlaylistRow({
         onContextMenuRow(e, track);
       }}
       className={`group grid ${gridCols} gap-4 px-5 items-center select-none transition-colors cursor-pointer border-b border-zinc-100 dark:border-zinc-800/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500 ${
+        blocked ? "opacity-40 " : ""
+      }${
         isRowSelected
           ? "bg-blue-500/15 ring-1 ring-inset ring-blue-500/40 dark:bg-blue-500/20"
           : isCurrent

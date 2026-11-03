@@ -778,7 +778,8 @@
       "filePath": "Jalur",
       "moveUp": "Naikkan kolom {{column}}",
       "moveDown": "Turunkan kolom {{column}}"
-    }
+    },
+    "trackOnUnreachableShare": "Folder berbagi jaringan tidak dapat dijangkau, dan lagu ini tidak ada di cache"
   },
   "liked": {
     "badge": "Koleksi",
@@ -1060,7 +1061,8 @@
         "offline": "Mode luring aktif",
         "unknown": "Pemutaran gagal",
         "files-failed": "Tidak dapat memutar file ini",
-        "picker-failed": "Tidak dapat membuka pemilih file"
+        "picker-failed": "Tidak dapat membuka pemilih file",
+        "network-source-lost": "Koneksi ke folder berbagi jaringan terputus"
       },
       "notice": {
         "exclusive-refused": "Perangkat ini menolak mode eksklusif: memutar dalam mode bersama",
@@ -3363,6 +3365,60 @@
         "title": "Tombol Yang baru di bilah atas",
         "subtitle": "Jika disembunyikan, panel tetap bisa dibuka dari sini dan dari Tentang."
       }
+    },
+    "networkLibrary": {
+      "title": "Berbagi jaringan (WebDAV, SMB)",
+      "subtitle": "Baca folder berbagi secara langsung, tanpa dipasang oleh sistem. WaveFlow hanya membaca: file di sana tidak pernah diubah.",
+      "add": "Tambah folder berbagi",
+      "addConfirm": "Tambah dan pindai",
+      "cancel": "Batal",
+      "test": "Uji koneksi",
+      "save": "Simpan",
+      "kind": "Jenis folder berbagi",
+      "kinds": {
+        "webdav": "WebDAV",
+        "smb": "SMB"
+      },
+      "name": "Nama (opsional)",
+      "address": "Alamat",
+      "addressHint": {
+        "webdav": "https://nas.local/dav",
+        "smb": "nas.local atau 192.168.1.10"
+      },
+      "folder": "Folder pada server (opsional)",
+      "username": "Nama pengguna",
+      "password": "Kata sandi",
+      "passwordNotice": "Kata sandi disimpan tanpa enkripsi di database profil, seperti kredensial WaveFlow lainnya, dan tidak pernah masuk ke ekspor profil atau cadangan. Sebaiknya gunakan akun hanya-baca.",
+      "plainHttpWarning": "Saya setuju mengirim kata sandi dan musik ini tanpa enkripsi: dengan http://, siapa pun di jaringan ini dapat membacanya.",
+      "plainHttpBadge": "Koneksi tanpa enkripsi (http://)",
+      "passwordMissing": "Kata sandi harus dimasukkan lagi: tidak ikut bersama profil yang diimpor atau cadangan yang dipulihkan.",
+      "changePassword": "Ubah kata sandi",
+      "remove": "Hapus",
+      "removeConfirm": "Hapus folder berbagi ini dan lagunya?",
+      "state": {
+        "online": "Terhubung",
+        "unknown": "Belum diperiksa",
+        "unreachable": "Tidak dapat dijangkau",
+        "auth_failed": "Akses ditolak"
+      },
+      "failure": {
+        "offline": "Mode luring aktif.",
+        "unreachable": "Tidak ada jawaban di alamat ini.",
+        "handshake": "Server ini menutup koneksi saat negosiasi. WaveFlow menggunakan SMB 2 atau yang lebih baru: server yang terbatas pada SMB 1 berperilaku persis seperti ini.",
+        "tls": "Sertifikat server ini ditolak. WaveFlow selalu memeriksa sertifikat: perlu yang valid, atau http:// di jaringan tepercaya.",
+        "auth": "Nama pengguna atau kata sandi ditolak.",
+        "session-refused": "Server ini menolak sesi tanpa menilai kata sandi. Akun ini mungkin tidak memiliki akses, atau server mewajibkan enkripsi yang tidak dapat digunakan koneksi ini.",
+        "not-found": "Berbagi atau folder ini tidak ada.",
+        "protocol": "Server ini tidak menjawab seperti folder berbagi.",
+        "plain-http": "Alamat http:// memerlukan persetujuan Anda di bawah."
+      },
+      "testOk_one": "Terhubung: {{count}} item di folder ini.",
+      "testOk_other": "Terhubung: {{count}} item di folder ini.",
+      "cacheLimit": "Batas (GB)",
+      "cacheClear": "Kosongkan cache",
+      "share": "Nama folder berbagi",
+      "cacheUsed_one": "Cache lokal: {{size}}, {{count}} lagu",
+      "cacheUsed_other": "Cache lokal: {{size}}, {{count}} lagu"
     }
   },
   "scanProgress": {

@@ -23,6 +23,7 @@ pub(crate) fn emit_track_changed(
     track: &QueueTrack,
     profile_id: Option<i64>,
 ) {
+    crate::audio::next_track::prewarm_soon(app);
     // A library track is now current, so any remote play queue the user
     // was on is over. This is the single choke point every local-start
     // path funnels through (play_tracks / next / previous / jump /

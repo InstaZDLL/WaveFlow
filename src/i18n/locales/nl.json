@@ -780,7 +780,8 @@
       "filePath": "Pad",
       "moveUp": "Kolom {{column}} omhoog",
       "moveDown": "Kolom {{column}} omlaag"
-    }
+    },
+    "trackOnUnreachableShare": "Netwerkshare onbereikbaar, en dit nummer staat niet in de cache"
   },
   "liked": {
     "badge": "Verzameling",
@@ -1062,7 +1063,8 @@
         "offline": "Offlinemodus staat aan",
         "unknown": "Afspelen is mislukt",
         "files-failed": "Deze bestanden kunnen niet worden afgespeeld",
-        "picker-failed": "De bestandskiezer kan niet worden geopend"
+        "picker-failed": "De bestandskiezer kan niet worden geopend",
+        "network-source-lost": "De verbinding met de netwerkshare is verbroken"
       },
       "notice": {
         "exclusive-refused": "Dit apparaat weigert de exclusieve modus: afspelen in gedeelde modus",
@@ -3365,6 +3367,60 @@
         "title": "Knop Wat is er nieuw in de bovenste balk",
         "subtitle": "Verborgen blijft het paneel hier en via Over bereikbaar."
       }
+    },
+    "networkLibrary": {
+      "title": "Netwerkshares (WebDAV, SMB)",
+      "subtitle": "Lees een share rechtstreeks, zonder dat het systeem die koppelt. WaveFlow leest alleen: bestanden daar worden nooit gewijzigd.",
+      "add": "Share toevoegen",
+      "addConfirm": "Toevoegen en scannen",
+      "cancel": "Annuleren",
+      "test": "Verbinding testen",
+      "save": "Opslaan",
+      "kind": "Type share",
+      "kinds": {
+        "webdav": "WebDAV",
+        "smb": "SMB"
+      },
+      "name": "Naam (optioneel)",
+      "address": "Adres",
+      "addressHint": {
+        "webdav": "https://nas.local/dav",
+        "smb": "nas.local of 192.168.1.10"
+      },
+      "folder": "Map op de share (optioneel)",
+      "username": "Gebruikersnaam",
+      "password": "Wachtwoord",
+      "passwordNotice": "Het wachtwoord wordt onversleuteld bewaard in de database van het profiel, net als de andere inloggegevens van WaveFlow, en komt nooit in een profielexport of back-up terecht. Een account met alleen leesrechten is de betere keuze.",
+      "plainHttpWarning": "Ik ga akkoord met het onversleuteld verzenden van dit wachtwoord en mijn muziek: met http:// kan iedereen op dit netwerk ze lezen.",
+      "plainHttpBadge": "Onversleutelde verbinding (http://)",
+      "passwordMissing": "Het wachtwoord moet opnieuw worden ingevoerd: het gaat niet mee met een geïmporteerd profiel of een herstelde back-up.",
+      "changePassword": "Wachtwoord wijzigen",
+      "remove": "Verwijderen",
+      "removeConfirm": "Deze share en de nummers ervan verwijderen?",
+      "state": {
+        "online": "Verbonden",
+        "unknown": "Nog niet gecontroleerd",
+        "unreachable": "Onbereikbaar",
+        "auth_failed": "Toegang geweigerd"
+      },
+      "failure": {
+        "offline": "De offlinemodus staat aan.",
+        "unreachable": "Geen antwoord op dit adres.",
+        "handshake": "Deze server heeft de verbinding verbroken tijdens de onderhandeling. WaveFlow spreekt SMB 2 en nieuwer: een server die beperkt is tot SMB 1 doet precies dit.",
+        "tls": "Het certificaat van deze server wordt geweigerd. WaveFlow controleert certificaten altijd: er is een geldig certificaat nodig, of http:// op een vertrouwd netwerk.",
+        "auth": "Gebruikersnaam of wachtwoord geweigerd.",
+        "session-refused": "Deze server heeft de sessie geweigerd zonder het wachtwoord te beoordelen. Dit account heeft misschien geen toegang, of de server vereist versleuteling die deze verbinding niet kan gebruiken.",
+        "not-found": "Deze share of map bestaat niet.",
+        "protocol": "Deze server antwoordt niet als een share.",
+        "plain-http": "Een http://-adres heeft hieronder je toestemming nodig."
+      },
+      "testOk_one": "Verbonden: {{count}} item in deze map.",
+      "testOk_other": "Verbonden: {{count}} items in deze map.",
+      "cacheLimit": "Limiet (GB)",
+      "cacheClear": "Cache legen",
+      "share": "Naam van de share",
+      "cacheUsed_one": "Lokale cache: {{size}}, {{count}} nummer",
+      "cacheUsed_other": "Lokale cache: {{size}}, {{count}} nummers"
     }
   },
   "scanProgress": {

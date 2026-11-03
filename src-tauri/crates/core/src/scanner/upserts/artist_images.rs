@@ -98,6 +98,11 @@ pub async fn maybe_link_artist_images(
     let Some(raw) = artist_raw else {
         return Ok(());
     };
+    // A track on a share has no directory on this machine to look in, and the
+    // walk this does per artist would be a round trip per directory there.
+    if crate::network_locator::is_locator_path(track_path) {
+        return Ok(());
+    }
     let names = split_artist_name(raw);
     let va_canon = canonical_name(VARIOUS_ARTISTS_LABEL);
     let parent = track_path.parent();

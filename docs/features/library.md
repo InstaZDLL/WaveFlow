@@ -267,6 +267,76 @@ UI: per-folder trash button in the Library → Folders tab, two-step confirm-on-
 
 **Library folders never overlap.** `add_folder_to_library` refuses a folder that is, lies under or holds a folder already in any library of the profile, with `AppError::FolderOverlap` ([why](../architecture/invariants.md#library-folders-never-overlap)). The comparison is by name, as paths are stored ([`scanner::folders`](../../src-tauri/crates/core/src/scanner/folders.rs): `relation`, `overlap`, and `indexing_folder` for the drop): `.` and `..` resolved, a trailing separator ignored, case ignored on Windows and macOS, links not followed. The frontend reads the folder in the way from the message (`parseFolderOverlap`) and [`ImportNoticeToast`](../../src/components/common/ImportNoticeToast.tsx) says it, once, from [`LibraryContext.addFolder`](../../src/contexts/LibraryContext.tsx) (which `importFolder` goes through), so the four places that add a folder (sidebar, Home, Library, onboarding) are covered without each handling it.
 
+## Network shares
+
+A WebDAV or SMB share can be added directly as a library folder (Settings → Storage and backups), without the system mounting it. A share mounted by the system still works as it always has: to the app that is an ordinary path.
+
+### A transport, not a provider
+
+[RFC-007](../rfcs/RFC-007-provider-plugin-world.md) says a provider lands in a projection of its own and that nothing it says ever reaches `track`. A share does not fall under that rule, and the difference is deliberate:
+
+|                     | A provider or the server (`remote_*`, `provider_*`)     | A share                                 |
+| ------------------- | ------------------------------------------------------- | --------------------------------------- |
+| Who owns the catalogue | The server: titles, albums and ids are its answers   | Nobody: there are files, and we read their tags with our own scanner |
+| Who owns likes, ratings, playlists | The server, which has an account and a journal | The user, here. A file server has no such notion |
+| Identity of a track | The server's id                                         | The path on the share, like any file    |
+
+Everything RFC-005 and RFC-007 give as a reason for a projection is about what a server says and owns. A share says nothing except file names and bytes, so its tracks are ordinary `track` rows: likes, ratings, playlists, smart playlists, history, Wrapped, gapless and crossfade all apply. A projection would have cost every one of those and bought nothing.
+
+### The locator
+
+[`track.file_path`](../../src-tauri/crates/core/src/network_locator.rs) is `wfnet://<source uuid>/<path on the share>`, and `library_folder.path` is the same for the folder. The path is the server's own spelling, **not percent-encoded**: `file_stem`, the folder tree and every display stay readable, and only the WebDAV client encodes, one segment at a time, when it builds a request. Nothing may hand a locator to a URL parser, since a `#` in a file name is an ordinary character. The uuid is the only link to the `network_source` row, so moving a NAS to another address rewrites nothing, and no credential ever reaches a path, a log or an export. Anything that opens files asks `network_locator::is_locator` first: on Linux a locator read as a path is a relative one, and creating a directory beside it would make `wfnet:/` in the working directory.
+
+The overlap rule of [library folders](../architecture/invariants.md#library-folders-never-overlap) applies through the same `relation`: two folders of one share carry the same uuid and compare by segment, and adding a second folder of a known address joins its source. A share that the system also mounts cannot be told apart from it, and its tracks are listed twice, with nothing lost.
+
+### Scanning
+
+[`scan_folder_inner`](../../src-tauri/crates/app/src/commands/scan/folder.rs) is the same function, single writer and transaction batches included. Three things differ, all at the front of it:
+
+- **The listing** ([`netlib::scan::walk`](../../src-tauri/crates/app/src/netlib/scan.rs)) goes directory by directory, four at a time, and prunes `.waveflow` as well as what a NAS or a Mac leaves there (`@eaDir`, `#recycle`, `.AppleDouble`, `.Trashes`, `._*`). It returns a whole list or an error, never part of one. **A share that does not answer, a listing cut short, an entry the server could not describe, or a folder that lists empty while the library holds tracks from it (a volume the server has not mounted), writes nothing**: the disappearance sweep runs only on a complete listing, because a track at `is_available = 0` disappears from every view. A subdirectory that vanished between its parent's listing and its own is passed over. One the account may not read (a system folder on a Windows share) is passed over too, and nothing under it is swept; a refusal on one path does not mark the share as refusing, which only a failed sign-in does. A share going away during extraction stops the scan like the stop button does, and for the same reason.
+- **Size and modification time come with the listing**, so a rescan that finds nothing changed reads no audio at all. There is no file system to watch: the listing is walked again 30 s after launch and every 6 hours, and on request. The sweep and the deep rescan work as for a local folder.
+- **Extraction** reads through [`RangeReader`](../../src-tauri/crates/app/src/netlib/reader.rs), four files at a time. `track.file_hash` is the same `hash_file` digest as a local copy's (`hash_reader`), so the two read as one for duplicates, the lyrics cache and an orphaned history. Its two 1 MiB windows are fetched in one request each and the tags are served from them. Measured on 11 synthetic five-minute files: a tag parse reads 8 to 24 KiB without a cover (FLAC, WAV, AIFF, MP3, M4A with `moov` at either end, ALAC, Vorbis, Opus), and 1.41 MB with a 1.4 MB embedded picture, about 358 KB of it outside the windows. So the hash is what the first scan pays: 2 MiB per file, about 20 GiB for 10 000 tracks, which by throughput alone is 3 minutes at 1 Gbit/s, 14 at 200 Mbit/s and 2.4 hours at 20 Mbit/s. A stopped first scan loses nothing: what is committed is skipped next time. The one-off backfill passes of a local folder do not run on a share, since they exist for rows older than a feature, and each would read every file again.
+
+A rating set in WaveFlow on such a track lives in the database alone, so a file changed on the share keeps it (`COALESCE(rating, ?)` in the update, for a share only). A sidecar cover is read from the listing, once per directory, when the file carries no picture; it is not refreshed when only the sidecar changes. DSF and DFF are not offered from a share: their pipeline opens a `File` and the files run to gigabytes.
+
+### Playback and the cache
+
+A track on a share goes through the ordinary `LoadAndPlay`, with the locator as its path, and `ActiveStream::open` hands it to [`netlib::media`](../../src-tauri/crates/app/src/netlib/media.rs), installed into the core as its opener. It streams rather than copying first, over the same [`ReadAhead`](../../src-tauri/crates/core/src/playback/read_ahead.rs) a mounted share gets: a thread pulls the file sequentially while the decoder reads what has arrived, and a seek or an index at the end of the file goes to the share through a `RangeReader`. Every byte also lands in the cache, whose entry is published when the file is whole. Over 512 MiB a file is read through the `RangeReader` alone and not cached.
+
+- **The cache** is `network-audio` in the profile's cache directory, so nothing is written next to the music. It has the mechanics of the [stream cache](../../src-tauri/crates/app/src/audio/stream_cache.rs): LRU, 5 GiB by default, set in the same card (`network.cache_max_gb`). There is no database row: the name comes from the locator, and the file's length and modification time hold what it was copied from, so a file changed on the share is fetched again. A copy opens at once, without asking the share, because the decoder opens the next track with a second of audio queued; the check runs in the background, and a stale copy plays that once.
+- **Gapless and crossfade.** The decoder opens the next track on its own thread half a second before a gapless end, with about a second of audio queued, so an open that waited on the network would cut the track playing. [`prewarm`](../../src-tauri/crates/app/src/netlib/media.rs) fetches the next track into the cache from the moment a track starts, one at a time, and [`next_track`](../../src-tauri/crates/app/src/audio/next_track.rs) offers the decoder a track on a share only once it is cached. If it is not ready in time the end of the track loads it like any other: a short gap instead of a cut.
+- **A dropped link.** The transfer is usually well ahead of playback, so the rest of the track often keeps playing. Otherwise a read tries again for 15 s, the source is marked unreachable and the error reaches the decoder, which stops with a message and does **not** advance the queue; pressing play again resumes by hand. A Stop or a load does not wait that out: `AudioEngine::send` releases a starved read, next to the same call for a live station, and a read that was released reports nothing.
+
+### Availability
+
+`track.is_available = 0` means the share answered and the file is gone. A share that does not answer changes no row: [`netlib`](../../src-tauri/crates/app/src/netlib/mod.rs) keeps a state per source in memory (`unknown`, `online`, `unreachable`, `auth_failed`), asks a source that is down again every minute, and asks nothing in offline mode. `is_blocked` crosses that with the cache. The queue steps over what is blocked (`first_playable`, bounded by the queue's length, so a whole queue on a dead share ends), and the views grey the same ids, from `network_blocked_tracks`, which is an empty list at no cost for anyone whose shares answer. Greyed rows stay listed, with their likes and playlists, and come back on their own.
+
+### What being read-only turns off
+
+The backend refuses (`netlib::refuse_if_network`) and the interface does not offer:
+
+| Feature | On a track on a share |
+| --- | --- |
+| Tag editor, embedded cover, replacing the file, reveal in explorer | Not offered |
+| Tag workshop | Listed with the reason, not selectable |
+| Rating, lyrics | In the database only |
+| Sidecar lyrics (`.lrc`), local artist images, Canvas next to the file | Not read; nothing is written on the share |
+| A `cover.jpg` added next to unchanged tracks after a scan | Picked up by a deep scan only: the [reconciliation](#folder-cover-reconciliation) does not run on a share |
+| Analysis, spectrogram | From the cached copy, else left for later: decoding would mean downloading the library |
+| Duplicates and the trash | Left out: a copy that cannot be verified is never offered for deletion |
+| The server source (upload, reconciliation) | Left out |
+| DLNA | Left out: it serves files |
+| MPD | Left out of its statistics. It has no library to browse, only the queue, which is what plays: a track on a share shows there, named by the share and its path, with no source id |
+| M3U export | Left out: a locator plays nowhere else |
+
+### Credentials and transport
+
+The password sits in clear in `network_source.secret`, like `auth_credential` and for the same reason ([RFC-007](../rfcs/RFC-007-provider-plugin-world.md): a keyring is worth making for all of them at once). It is never sent to the webview (`hasPassword` only), and the form advises a read-only account, since this is an account on someone's NAS rather than a token. **It does not leave in an archive**: `write_archive`, behind the profile export and the backups alike, blanks it in a copy and `VACUUM`s that copy before packing it, because an updated row leaves its bytes in a free page; changing a password or removing a source runs with `secure_delete` for the same reason. An imported profile keeps the source and asks for the password again.
+
+TLS is always verified and there is no exception: a self-signed server is refused with the cause named. `http://` is accepted only after an explicit warning, recorded on the source, since Basic then crosses the network in clear; a redirect from `https` to `http` is never followed, and an address holding credentials is refused. WebDAV uses Basic only, and a server that insists on Digest is named rather than blamed on the password.
+
+SMB goes through [`smb2`](https://crates.io/crates/smb2), pure Rust, SMB 2 and 3 only, with signing and encryption as the server asks, and pinned to one version, because how a share behaves is only known from what was tested. A NAS limited to SMB 1 therefore cannot be added: it closes the connection on the first request, which the form reports as a closed handshake and not as a silent address, and it can still be read through a folder the system has mounted. A share that requires encryption works on SMB 3.0 and 3.0.2 with AES-128-CCM and on SMB 3.1.1 with AES-128 or AES-256, through a copy of the crate patched in two lines ([`vendor/smb2-0.39.0/PATCHES.md`](../../src-tauri/vendor/smb2-0.39.0/PATCHES.md), which says what was measured and when to drop the copy). The server decides: one that does not ask for encryption gets signed traffic in clear, and WaveFlow has no setting to demand it. Only requiring it holds against an attacker on the network: one who rewrites the negotiation can keep a server that merely prefers encryption in clear, unless that server is limited to SMB 3.1.1. A server that requires it on SMB 2.x refuses the session with `STATUS_ACCESS_DENIED`, which the form keeps apart from a wrong password. A wrong password on a server that maps failures to a guest session is refused rather than accepted as a guest. Links on a share are not followed, since one can lead out of it or back into a parent.
+
 ## Drag-and-drop import
 
 [`hooks/useDragDropImport.ts`](../../src/hooks/useDragDropImport.ts) wires Tauri 2's window-level `onDragDropEvent` to [`commands/library.rs::import_dropped`](../../src-tauri/crates/app/src/commands/library.rs), with the rules in [`drop_import`](../../src-tauri/crates/app/src/drop_import.rs).

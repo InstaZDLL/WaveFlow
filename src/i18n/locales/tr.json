@@ -780,7 +780,8 @@
       "filePath": "Yol",
       "moveUp": "{{column}} sütununu yukarı taşı",
       "moveDown": "{{column}} sütununu aşağı taşı"
-    }
+    },
+    "trackOnUnreachableShare": "Ağ paylaşımına erişilemiyor ve bu parça önbellekte değil"
   },
   "liked": {
     "badge": "Koleksiyon",
@@ -1062,7 +1063,8 @@
         "offline": "Çevrimdışı mod açık",
         "unknown": "Oynatma başarısız oldu",
         "files-failed": "Bu dosyalar çalınamıyor",
-        "picker-failed": "Dosya seçici açılamıyor"
+        "picker-failed": "Dosya seçici açılamıyor",
+        "network-source-lost": "Ağ paylaşımıyla bağlantı kesildi"
       },
       "notice": {
         "exclusive-refused": "Bu aygıt özel modu kabul etmiyor: paylaşımlı modda çalınıyor",
@@ -3365,6 +3367,60 @@
         "title": "Üst çubukta Yenilikler düğmesi",
         "subtitle": "Gizliyken panele buradan ve Hakkında'dan ulaşabilirsiniz."
       }
+    },
+    "networkLibrary": {
+      "title": "Ağ paylaşımları (WebDAV, SMB)",
+      "subtitle": "Bir paylaşımı, sistem bağlamadan doğrudan okuyun. WaveFlow yalnızca okur: oradaki dosyalar asla değiştirilmez.",
+      "add": "Paylaşım ekle",
+      "addConfirm": "Ekle ve tara",
+      "cancel": "İptal",
+      "test": "Bağlantıyı dene",
+      "save": "Kaydet",
+      "kind": "Paylaşım türü",
+      "kinds": {
+        "webdav": "WebDAV",
+        "smb": "SMB"
+      },
+      "name": "Ad (isteğe bağlı)",
+      "address": "Adres",
+      "addressHint": {
+        "webdav": "https://nas.local/dav",
+        "smb": "nas.local veya 192.168.1.10"
+      },
+      "folder": "Paylaşımdaki klasör (isteğe bağlı)",
+      "username": "Kullanıcı adı",
+      "password": "Parola",
+      "passwordNotice": "Parola, WaveFlow'un diğer kimlik bilgileri gibi profil veritabanında şifresiz tutulur ve profil dışa aktarımına veya yedeğe asla girmez. Salt okunur bir hesap kullanmak daha iyidir.",
+      "plainHttpWarning": "Bu parolayı ve müziğimi şifresiz göndermeyi kabul ediyorum: http:// ile bu ağdaki herkes onları okuyabilir.",
+      "plainHttpBadge": "Şifresiz bağlantı (http://)",
+      "passwordMissing": "Parolanın yeniden girilmesi gerekir: içe aktarılan profille veya geri yüklenen yedekle taşınmaz.",
+      "changePassword": "Parolayı değiştir",
+      "remove": "Kaldır",
+      "removeConfirm": "Bu paylaşım ve parçaları kaldırılsın mı?",
+      "state": {
+        "online": "Bağlı",
+        "unknown": "Henüz denetlenmedi",
+        "unreachable": "Erişilemiyor",
+        "auth_failed": "Erişim reddedildi"
+      },
+      "failure": {
+        "offline": "Çevrimdışı mod açık.",
+        "unreachable": "Bu adresten yanıt yok.",
+        "handshake": "Bu sunucu el sıkışma sırasında bağlantıyı kapattı. WaveFlow, SMB 2 ve üstünü kullanır: yalnızca SMB 1 destekleyen bir sunucu tam olarak bunu yapar.",
+        "tls": "Bu sunucunun sertifikası reddedildi. WaveFlow sertifikaları her zaman denetler: geçerli bir sertifika ya da güvenilir bir ağda http:// gerekir.",
+        "auth": "Kullanıcı adı veya parola reddedildi.",
+        "session-refused": "Bu sunucu parolayı değerlendirmeden oturumu reddetti. Bu hesabın erişimi olmayabilir veya sunucu bu bağlantının kullanamadığı bir şifreleme gerektiriyor olabilir.",
+        "not-found": "Bu paylaşım veya klasör mevcut değil.",
+        "protocol": "Bu sunucu bir paylaşım gibi yanıt vermiyor.",
+        "plain-http": "Bir http:// adresi aşağıda onayınızı gerektirir."
+      },
+      "testOk_one": "Bağlandı: bu klasörde {{count}} öğe.",
+      "testOk_other": "Bağlandı: bu klasörde {{count}} öğe.",
+      "cacheLimit": "Sınır (GB)",
+      "cacheClear": "Önbelleği temizle",
+      "share": "Paylaşım adı",
+      "cacheUsed_one": "Yerel önbellek: {{size}}, {{count}} parça",
+      "cacheUsed_other": "Yerel önbellek: {{size}}, {{count}} parça"
     }
   },
   "scanProgress": {

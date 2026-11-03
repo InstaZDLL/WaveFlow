@@ -523,6 +523,11 @@ pub async fn apply_toggle(
                 "library_folder {folder_id} not found"
             )));
         };
+        // A share has no file system events to watch. Its listing is walked
+        // again instead (`netlib`).
+        if waveflow_core::network_locator::is_locator(&path) {
+            return Err(AppError::Other("a network folder cannot be watched".into()));
+        }
         // A folder that cannot be armed right now is logged and retried
         // until it can; the DB flag below is still updated so the UI
         // reflects the user's intent.
