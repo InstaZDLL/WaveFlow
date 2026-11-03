@@ -33,6 +33,8 @@ struct FakeState {
     bad_password: AtomicBool,
     audio_bytes: AtomicU64,
     image_bytes: AtomicU64,
+    /// An image takes its time to arrive, so that readers overlap.
+    slow_images: AtomicBool,
 }
 
 struct FakeFs(Arc<FakeState>);
@@ -121,6 +123,9 @@ impl NetworkFs for FakeFs {
     ) -> BoxFuture<'a, Result<Vec<u8>, NetError>> {
         Box::pin(async move {
             self.check()?;
+            if path.ends_with(".jpg") && self.0.slow_images.load(Ordering::Acquire) {
+                tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+            }
             let files = self.0.files.lock().unwrap();
             let (bytes, _) = files.get(path).ok_or(NetError::NotFound)?;
             let start = (offset as usize).min(bytes.len());
@@ -661,6 +666,23 @@ async fn a_rescan_after_a_first_scan_that_took_the_cover_reads_no_image() {
         image.len() as u64,
         "once for the directory"
     );
+
+    bench.scan().await.unwrap();
+    assert_eq!(bench.image_bytes(), image.len() as u64);
+}
+
+/// Tracks of one directory are extracted at once, and each asks for its cover:
+/// the ones that find it on its way wait for it rather than fetch it again.
+#[tokio::test(flavor = "multi_thread")]
+async fn tracks_extracted_at_once_fetch_their_cover_once() {
+    let _turn = SERIAL.lock().await;
+    let bench = Bench::new().await;
+    let image = b"a cover".to_vec();
+    for n in 1..=8u8 {
+        bench.put(&format!("Music/Album/{n}.wav"), album_wav(n, "Album"), 1);
+    }
+    bench.put("Music/Album/cover.jpg", image.clone(), 5);
+    bench.state.slow_images.store(true, Ordering::Release);
 
     bench.scan().await.unwrap();
     assert_eq!(bench.image_bytes(), image.len() as u64);

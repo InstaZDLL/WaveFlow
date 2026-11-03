@@ -16,7 +16,7 @@ use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::io::{Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, OnceLock};
 
 use futures::StreamExt;
 use sqlx::SqlitePool;
@@ -66,7 +66,9 @@ pub struct Listing {
     /// Share-relative directory → the image files in it.
     images: HashMap<String, Vec<(String, NetFile)>>,
     /// A sidecar is one file for a whole album: fetched once per directory.
-    covers: Mutex<HashMap<String, Option<ExtractedCover>>>,
+    /// The slot, not the map, is what is waited on: tracks of one directory are
+    /// extracted at once, and other directories have no reason to wait for it.
+    covers: Mutex<HashMap<String, Arc<OnceLock<Option<ExtractedCover>>>>>,
     /// Locators of the directories a parent named and this walk could not read:
     /// refused to the account, or not found. Nothing is known of what they hold,
     /// so nothing in them may be swept as gone.
@@ -264,15 +266,9 @@ impl Listing {
     pub fn folder_cover(&self, locator: &str, artwork_dir: &Path) -> Option<ExtractedCover> {
         let parsed = network_locator::parse(locator)?;
         let dir = network_locator::parent_dir(parsed.path);
-        if let Some(known) = self.covers.lock().ok()?.get(dir).cloned() {
-            return known;
-        }
-        let cover = self.fetch_folder_cover(dir, artwork_dir);
-        self.covers
-            .lock()
-            .ok()?
-            .insert(dir.to_string(), cover.clone());
-        cover
+        let slot = Arc::clone(self.covers.lock().ok()?.entry(dir.to_string()).or_default());
+        slot.get_or_init(|| self.fetch_folder_cover(dir, artwork_dir))
+            .clone()
     }
 
     /// What this walk shows of the sidecar a track's directory would use, with
