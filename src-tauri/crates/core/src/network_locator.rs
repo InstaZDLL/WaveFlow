@@ -48,7 +48,7 @@ pub fn is_locator_path(path: &Path) -> bool {
 pub fn parse(locator: &str) -> Option<Locator<'_>> {
     let rest = locator.strip_prefix(PREFIX)?;
     let (source, path) = rest.split_once('/').unwrap_or((rest, ""));
-    if source.is_empty() || !is_safe_path(path) {
+    if !is_safe_source(source) || !is_safe_path(path) {
         return None;
     }
     Some(Locator { source, path })
@@ -61,7 +61,7 @@ pub fn parse(locator: &str) -> Option<Locator<'_>> {
 /// holding their password.
 pub fn build(source: &str, path: &str) -> Option<String> {
     let path = path.trim_matches('/');
-    if source.is_empty() || !is_safe_path(path) {
+    if !is_safe_source(source) || !is_safe_path(path) {
         return None;
     }
     Some(if path.is_empty() {
@@ -69,6 +69,16 @@ pub fn build(source: &str, path: &str) -> Option<String> {
     } else {
         format!("{PREFIX}{source}/{path}")
     })
+}
+
+/// Whether a source reads like the identifier it is. Its first characters name
+/// a file in the audio cache, so a relative path in a stored locator would write
+/// outside it.
+fn is_safe_source(source: &str) -> bool {
+    !source.is_empty()
+        && source
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '-')
 }
 
 /// Whether a share-relative path stays inside its root: no empty, `.` or `..`
@@ -137,6 +147,16 @@ mod tests {
             assert_eq!(parse(path), None, "{path}");
         }
         assert_eq!(parse("wfnet://"), None);
+    }
+
+    #[test]
+    fn a_source_is_an_identifier_and_nothing_else() {
+        for source in [r"..\..\x", "..", "C:", "a.b", "a b", "é"] {
+            assert_eq!(build(source, "a.flac"), None, "{source}");
+            let locator = format!("wfnet://{source}/a.flac");
+            assert_eq!(parse(&locator), None, "{source}");
+        }
+        assert!(build("11111111-aaaa", "a.flac").is_some());
     }
 
     #[test]
