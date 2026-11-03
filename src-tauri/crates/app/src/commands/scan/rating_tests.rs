@@ -4,7 +4,9 @@
 //! never hold.
 
 use super::scan_folder_inner;
-use crate::commands::edit::{patch_file, rehash_track_file, TagPatch};
+use crate::commands::edit::{patch_file, rehash_track_file, TagPatch, TrackEdit};
+use crate::commands::scan::read_file_rating;
+use crate::commands::track::write_rating_and_rehash;
 use lofty::config::WriteOptions;
 use lofty::ogg::tag::VorbisComments;
 use lofty::tag::{Accessor, TagExt};
@@ -336,4 +338,344 @@ async fn a_replaced_file_keeps_the_rating_of_the_track() {
     assert_eq!(library.scan().await, (0, 1, 0));
     assert_eq!(library.id(&target).await, id);
     assert_eq!(library.rating(&target).await, Some(FOUR_STARS));
+}
+
+/// Everything the star widget can set, halves included.
+const EVERY_STAR: [u8; 10] = [26, 51, 77, 102, 128, 153, 179, 204, 230, 255];
+
+/// One real file of each container a rating has a route into.
+const CONTAINERS: [&str; 6] = ["mp3", "flac", "m4a", "ogg", "opus", "dsf"];
+
+fn add_file(library: &Library, name: &str) -> PathBuf {
+    let path = library.path(name);
+    let ext = path.extension().unwrap().to_str().unwrap();
+    if ext == "dsf" {
+        std::fs::write(&path, dsf_bytes()).unwrap();
+    } else {
+        let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("tests/fixtures/tags")
+            .join(format!("silence.{ext}"));
+        std::fs::copy(fixture, &path).unwrap();
+    }
+    path
+}
+
+fn holds(path: &Path, needle: &[u8]) -> bool {
+    let bytes = std::fs::read(path).unwrap();
+    bytes.windows(needle.len()).any(|window| window == needle)
+}
+
+/// What `set_track_rating` does, minus the Tauri state around it.
+async fn rate_in_the_app(library: &Library, path: &Path, rating: Option<u8>) {
+    let id = library.id(path).await;
+    assert!(
+        write_rating_and_rehash(&library.pool, id, path, rating)
+            .await
+            .unwrap(),
+        "{} did not take the rating",
+        path.display()
+    );
+    library.rate(path, rating.map(i64::from)).await;
+    move_mtime_forward(path);
+}
+
+fn save_title(path: &Path, title: &str) {
+    let edit = TrackEdit {
+        title: Some(title.to_string()),
+        ..Default::default()
+    };
+    patch_file(path, &TagPatch::Fields(&edit)).unwrap();
+    move_mtime_forward(path);
+}
+
+/// The contract, in every container, on every star: written, in the file,
+/// and the same value after the scan that reads it back. A rating used to
+/// stop at the database on four of these, and to come back a step higher
+/// on the MP3.
+#[tokio::test]
+async fn every_star_survives_the_file_and_the_next_scan() {
+    let library = Library::new().await;
+    let mut files = Vec::new();
+    for ext in CONTAINERS {
+        for star in EVERY_STAR {
+            files.push((add_file(&library, &format!("{star}.{ext}")), star));
+        }
+    }
+    let (added, _, _) = library.scan().await;
+    assert_eq!(added as usize, files.len());
+
+    for (path, star) in &files {
+        rate_in_the_app(&library, path, Some(*star)).await;
+        assert_eq!(
+            read_file_rating(path).unwrap(),
+            Some(*star),
+            "{} as the writer left it",
+            path.display()
+        );
+    }
+    let (_, updated, _) = library.scan().await;
+    assert_eq!(updated as usize, files.len(), "the rewriting branch");
+    for (path, star) in &files {
+        assert_eq!(
+            library.rating(path).await,
+            Some(i64::from(*star)),
+            "{} after the scan",
+            path.display()
+        );
+    }
+}
+
+/// What other software sees, without going through the reader above: the
+/// key and the scale, as bytes in the file.
+#[tokio::test]
+async fn the_file_holds_the_format_other_software_reads() {
+    let library = Library::new().await;
+    let flac = add_file(&library, "a.flac");
+    let ogg = add_file(&library, "a.ogg");
+    let opus = add_file(&library, "a.opus");
+    let m4a = add_file(&library, "a.m4a");
+    let mp3 = add_file(&library, "a.mp3");
+    library.scan().await;
+    for path in [&flac, &ogg, &opus, &m4a, &mp3] {
+        rate_in_the_app(&library, path, Some(FOUR_STARS as u8)).await;
+    }
+
+    for path in [&flac, &ogg, &opus] {
+        assert!(holds(path, b"RATING=80"), "{}", path.display());
+    }
+    assert!(holds(&m4a, b"com.apple.iTunes"));
+    assert!(holds(&m4a, b"RATING"));
+    assert!(holds(&mp3, b"POPM"));
+}
+
+/// A title saved over a rated file. The tag round trip used to drop the
+/// comment and the atom, and to rewrite the frame as five stars under
+/// another program's email.
+#[tokio::test]
+async fn a_saved_title_leaves_the_rating_in_the_file() {
+    let library = Library::new().await;
+    for ext in CONTAINERS {
+        for star in [102u8, 230] {
+            let path = add_file(&library, &format!("{star}.{ext}"));
+            library.scan().await;
+            rate_in_the_app(&library, &path, Some(star)).await;
+            save_title(&path, "a new title");
+            assert_eq!(
+                read_file_rating(&path).unwrap(),
+                Some(star),
+                "{}",
+                path.display()
+            );
+            if ext == "mp3" {
+                assert_eq!(popm_frames(&path), vec![(String::new(), star)]);
+            }
+        }
+    }
+}
+
+fn popm_frames(path: &Path) -> Vec<(String, u8)> {
+    use lofty::config::ParseOptions;
+    use lofty::file::AudioFile;
+    let mut file = std::fs::File::open(path).unwrap();
+    let mpeg = lofty::mpeg::MpegFile::read_from(&mut file, ParseOptions::new()).unwrap();
+    mpeg.id3v2()
+        .map(|tag| {
+            tag.into_iter()
+                .filter_map(|frame| match frame {
+                    lofty::id3::v2::Frame::Popularimeter(popm) => {
+                        Some((popm.email.to_string(), popm.rating))
+                    }
+                    _ => None,
+                })
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+/// Another program's frame, written by hand so no writer of ours is involved.
+fn write_popm(path: &Path, email: &str, byte: u8) {
+    use lofty::config::{ParseOptions, WriteOptions};
+    use lofty::file::AudioFile;
+    use lofty::id3::v2::{Frame, PopularimeterFrame};
+    use lofty::tag::TagExt;
+    let mut file = std::fs::File::open(path).unwrap();
+    let mpeg = lofty::mpeg::MpegFile::read_from(&mut file, ParseOptions::new()).unwrap();
+    drop(file);
+    let mut tag = mpeg.id3v2().cloned().unwrap_or_default();
+    tag.insert(Frame::Popularimeter(PopularimeterFrame::new(
+        email.to_string(),
+        byte,
+        7,
+    )));
+    tag.save_to_path(path, WriteOptions::default()).unwrap();
+    move_mtime_forward(path);
+}
+
+/// A zero from another program, often just the frame around its play count,
+/// is no rating: it used to arrive as one star.
+#[tokio::test]
+async fn a_popm_zero_from_another_program_is_no_rating() {
+    let library = Library::new().await;
+    let path = add_file(&library, "zero.mp3");
+    write_popm(&path, "someone@example.com", 0);
+    assert_eq!(library.scan().await, (1, 0, 0));
+    assert_eq!(library.rating(&path).await, None, "the import");
+
+    library.rate(&path, Some(FOUR_STARS)).await;
+    save_title(&path, "changed");
+    assert_eq!(library.scan().await, (0, 1, 0));
+    assert_eq!(library.rating(&path).await, Some(FOUR_STARS), "the rescan");
+}
+
+/// Another program's frame keeps its own scale, on which 1 is one star.
+#[tokio::test]
+async fn a_popm_from_another_program_is_read_on_its_scale() {
+    let library = Library::new().await;
+    let mut files = Vec::new();
+    for (byte, stars) in [(1u8, 1i64), (64, 2), (128, 3), (196, 4), (255, 5)] {
+        let path = add_file(&library, &format!("{byte}.mp3"));
+        write_popm(&path, "someone@example.com", byte);
+        files.push((path, stars));
+    }
+    library.scan().await;
+    for (path, stars) in &files {
+        assert_eq!(library.rating(path).await, Some(stars * 51), "{stars}");
+    }
+}
+
+/// A `.dsf` from elsewhere brings its rating, by the same rule.
+#[tokio::test]
+async fn a_rating_in_a_dsf_is_read_at_the_import() {
+    let library = Library::new().await;
+    let path = add_file(&library, "elsewhere.dsf");
+    patch_file(&path, &TagPatch::Rating(Some(230))).unwrap();
+    library.scan().await;
+    assert_eq!(library.rating(&path).await, Some(230));
+}
+
+fn write_ilst(path: &Path, atoms: &[(lofty::mp4::AtomIdent<'static>, &str)]) {
+    use lofty::config::{ParseOptions, WriteOptions};
+    use lofty::file::AudioFile;
+    use lofty::mp4::{Atom, AtomData};
+    use lofty::tag::TagExt;
+    let mut file = std::fs::File::open(path).unwrap();
+    let mp4 = lofty::mp4::Mp4File::read_from(&mut file, ParseOptions::new()).unwrap();
+    drop(file);
+    let mut ilst = mp4.ilst().cloned().unwrap_or_default();
+    for (ident, value) in atoms {
+        ilst.insert(Atom::new(
+            ident.clone(),
+            AtomData::UTF8((*value).to_string()),
+        ));
+    }
+    ilst.save_to_path(path, WriteOptions::default()).unwrap();
+    move_mtime_forward(path);
+}
+
+fn rate_atom() -> lofty::mp4::AtomIdent<'static> {
+    lofty::mp4::AtomIdent::Fourcc(*b"rate")
+}
+
+fn freeform_atom() -> lofty::mp4::AtomIdent<'static> {
+    lofty::mp4::AtomIdent::Freeform {
+        mean: "com.apple.iTunes".into(),
+        name: "RATING".into(),
+    }
+}
+
+/// `rate` is read, half stars included, and the app's own atom wins beside it.
+#[tokio::test]
+async fn an_m4a_rating_is_read_from_either_atom() {
+    let library = Library::new().await;
+    let rate = add_file(&library, "rate.m4a");
+    write_ilst(&rate, &[(rate_atom(), "90")]);
+    let both = add_file(&library, "both.m4a");
+    write_ilst(&both, &[(rate_atom(), "20"), (freeform_atom(), "80")]);
+    library.scan().await;
+    assert_eq!(library.rating(&rate).await, Some(230));
+    assert_eq!(library.rating(&both).await, Some(FOUR_STARS));
+}
+
+/// Clearing has to take both atoms: the rating would otherwise come back
+/// from the one left behind at the next scan.
+#[tokio::test]
+async fn clearing_an_m4a_takes_both_atoms() {
+    let library = Library::new().await;
+    let path = add_file(&library, "both.m4a");
+    write_ilst(&path, &[(rate_atom(), "20"), (freeform_atom(), "80")]);
+    library.scan().await;
+    assert_eq!(library.rating(&path).await, Some(FOUR_STARS));
+
+    rate_in_the_app(&library, &path, None).await;
+    assert_eq!(read_file_rating(&path).unwrap(), None);
+    assert!(!holds(&path, b"rate"), "the older atom went too");
+    assert!(!holds(&path, b"RATING"));
+
+    assert_eq!(library.scan().await, (0, 1, 0));
+    assert_eq!(library.rating(&path).await, None);
+}
+
+/// A clear in the other containers, every form of the field included.
+#[tokio::test]
+async fn clearing_takes_every_form_of_the_field() {
+    let library = Library::new().await;
+    let flac = add_file(&library, "a.flac");
+    retag_with_another_tool(
+        &flac,
+        "rated twice",
+        &[("RATING", "80"), ("RATING:someone@example.com", "40")],
+    );
+    let mp3 = add_file(&library, "a.mp3");
+    write_popm(&mp3, "someone@example.com", 196);
+    library.scan().await;
+
+    for path in [&flac, &mp3] {
+        rate_in_the_app(&library, path, None).await;
+        assert_eq!(read_file_rating(path).unwrap(), None, "{}", path.display());
+    }
+    library.scan().await;
+    assert_eq!(library.rating(&flac).await, None);
+    assert_eq!(library.rating(&mp3).await, None);
+}
+
+/// A plain number may be stars: some players write 1 to 5.
+#[tokio::test]
+async fn a_rating_of_one_to_five_is_stars() {
+    let library = Library::new().await;
+    let path = library.add_flac("stars.flac");
+    retag_with_another_tool(&path, "stars", &[("RATING", "4")]);
+    library.scan().await;
+    assert_eq!(library.rating(&path).await, Some(FOUR_STARS));
+}
+
+/// The rating is no custom column: the library has its own for it, and a
+/// second copy here would go stale with the first star changed.
+#[tokio::test]
+async fn the_rating_atom_is_not_offered_as_a_custom_tag() {
+    let library = Library::new().await;
+    let path = add_file(&library, "a.m4a");
+    library.scan().await;
+    rate_in_the_app(&library, &path, Some(FOUR_STARS as u8)).await;
+    library.scan().await;
+    let rows: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM track_tag WHERE key = 'RATING' COLLATE NOCASE")
+            .fetch_one(&library.pool)
+            .await
+            .unwrap();
+    assert_eq!(rows, 0);
+}
+
+/// A file that cannot take the rating is reported, not passed over, and the
+/// library has it all the same.
+#[tokio::test]
+async fn a_write_that_fails_is_reported() {
+    let library = Library::new().await;
+    let path = library.path("no-tags.dff");
+    std::fs::write(&path, dff_bytes()).unwrap();
+    library.scan().await;
+    let id = library.id(&path).await;
+    let written = write_rating_and_rehash(&library.pool, id, &path, Some(204))
+        .await
+        .unwrap();
+    assert!(!written);
 }

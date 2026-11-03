@@ -3822,6 +3822,9 @@
     "added_one": "{{count}}曲を再生キューに追加しました",
     "added_other": "{{count}}曲を再生キューに追加しました"
   },
+  "ratingNotice": {
+    "notInFile": "評価は WaveFlow にのみ保存されました。ファイルには書き込めませんでした。"
+  },
   "moodCuration": {
     "open": "ムードを編集",
     "title": "ムードを編集",

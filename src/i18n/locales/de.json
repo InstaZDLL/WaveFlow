@@ -3824,6 +3824,9 @@
     "added_one": "{{count}} Titel zur Warteschlange hinzugefügt",
     "added_other": "{{count}} Titel zur Warteschlange hinzugefügt"
   },
+  "ratingNotice": {
+    "notInFile": "Bewertung nur in WaveFlow gespeichert: Sie konnte nicht in die Datei geschrieben werden."
+  },
   "moodCuration": {
     "open": "Stimmungen bearbeiten",
     "title": "Stimmungen bearbeiten",

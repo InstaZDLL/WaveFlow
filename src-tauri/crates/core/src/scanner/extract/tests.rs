@@ -109,6 +109,52 @@ fn a_rating_is_read_from_both_shapes_lofty_has_used() {
     }
 }
 
+/// The two scales a plain number comes on, and where they meet.
+#[test]
+fn a_plain_number_is_stars_up_to_five_and_a_percentage_above() {
+    for (text, byte) in [
+        ("0", None),
+        ("1", Some(51)),
+        ("4", Some(204)),
+        ("5", Some(255)),
+        ("6", Some(15)),
+        ("10", Some(26)),
+        ("80", Some(204)),
+        ("100", Some(255)),
+        ("250", Some(255)),
+        (" 80 ", Some(204)),
+        ("four", None),
+        ("-1", None),
+    ] {
+        assert_eq!(rating_from_number(text), byte, "{text:?}");
+    }
+}
+
+/// Which frame speaks, and on which scale.
+#[test]
+fn the_frame_with_no_email_is_the_byte_and_the_others_a_star() {
+    let read = |frames: &[(&'static str, u8)]| rating_from_popm(frames.iter().copied());
+
+    assert_eq!(read(&[]), None, "no frame, no say");
+    for byte in [26, 51, 77, 102, 128, 153, 179, 204, 230, 255] {
+        assert_eq!(read(&[("", byte)]), Some(Some(byte)), "ours, exact");
+    }
+    assert_eq!(read(&[("", 0)]), Some(None), "unknown");
+    assert_eq!(read(&[("a@b", 0)]), Some(None), "not one star");
+    assert_eq!(read(&[("a@b", 1)]), Some(Some(51)), "one star");
+    assert_eq!(read(&[("a@b", 196)]), Some(Some(204)), "four stars");
+    assert_eq!(
+        read(&[("a@b", 255), ("", 102)]),
+        Some(Some(102)),
+        "ours, wherever it sits"
+    );
+    assert_eq!(
+        read(&[("a@b", 0), ("c@d", 128)]),
+        Some(Some(153)),
+        "the first that holds a rating"
+    );
+}
+
 /// A zero says the same as no rating at all, so it cannot replace the
 /// one the library holds. Both of the shapes that can carry one.
 #[test]

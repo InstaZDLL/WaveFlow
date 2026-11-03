@@ -330,16 +330,13 @@ pub fn file_type_label(ft: FileType) -> Option<String> {
 /// writes, so four stars stay four stars. It is lossy in one direction
 /// and unavoidably so: the byte another tagger wrote is mapped to a
 /// star by lofty before we ever see it, and half-stars have no
-/// representation there at all. A rating this app wrote is no exception
-/// once a scan reads it back: lofty maps 197 and above to five stars, so
-/// the 204 of four stars returns as 255 (measured). The file keeps the
-/// byte; the database takes what this answers.
+/// representation there at all. That is why a scan does not stop here for
+/// a frame: [`rating_from_popm`] reads them on the concrete tag, for the
+/// byte, and for the zero lofty would turn into one star.
 ///
-/// A zero answers `None`: it is what ID3 itself calls unknown, and no star
-/// the app can set. Read as a rating, it would replace the one the library
-/// holds, which a file saying nothing leaves alone. Only a zero that gets
-/// here as one: lofty has already turned a POPM frame's into one star, and
-/// this cannot tell that star from a real one (measured).
+/// A zero answers `None`: it is no star the app can set. Read as a rating,
+/// it would replace the one the library holds, which a file saying nothing
+/// leaves alone.
 pub fn extract_rating(tag: &Tag) -> Option<u8> {
     read_rating(tag).filter(|rating| *rating > 0)
 }
@@ -370,19 +367,70 @@ fn read_rating(tag: &Tag) -> Option<u8> {
                 }
             }
         }
-        if let Ok(val) = trimmed.parse::<u16>() {
-            let clamped = val.min(100);
-            // Rounded to the nearest byte, not truncated. The app writes
-            // this scale as `byte * 100 / 255`, so the two halves have
-            // to meet: truncating sent 128 back as 127, and the scan
-            // that follows a tag write overwrites `track.rating` with
-            // what it read. Every value the star widget produces —
-            // whole stars and halves, 26 through 255 — now survives the
-            // round trip exactly.
-            return Some(((clamped * 255 + 50) / 100) as u8);
+        if let Some(rating) = rating_from_number(trimmed) {
+            return Some(rating);
         }
     }
     None
+}
+
+/// A rating written as a plain number, as a 0-255 byte. `None` for a zero,
+/// which is no rating, and for anything that is not a number.
+///
+/// Most software writes this on a 0-100 scale, and so does this app. Some
+/// players write 1 to 5 instead. Those are read as stars: on the other
+/// scale they would be a fraction of one star, which no widget produces
+/// (half a star is 10).
+pub fn rating_from_number(text: &str) -> Option<u8> {
+    match text.trim().parse::<u16>().ok()? {
+        0 => None,
+        stars @ 1..=5 => Some((stars * 51) as u8),
+        percent => {
+            // Rounded to the nearest byte, not truncated. The app writes
+            // this scale as `byte * 100 / 255`, so the two halves have
+            // to meet: truncating sent 128 back as 127. Every value the
+            // star widget produces — whole stars and halves, 26 through
+            // 255 — survives the round trip exactly.
+            Some(((percent.min(100) * 255 + 50) / 100) as u8)
+        }
+    }
+}
+
+/// The rating the POPM frames of an ID3v2 tag hold, given as `(email, byte)`.
+/// The outer `None` means there is no frame, so the frames have no say.
+///
+/// A frame with no email is the one this app writes, and the only one it has
+/// ever written: its byte is the rating, on the app's own scale, half stars
+/// included. Lofty's generic tag cannot be asked for it, since it rounds
+/// every frame to a whole star on a scale of its own first (204, four stars,
+/// comes back as five).
+///
+/// A frame with an email belongs to another program, and there the rounding
+/// is what is wanted: there is no agreed scale, some write 1 for one star,
+/// and that byte taken as it is would show as no star at all. So it goes
+/// through lofty, which knows the scales of the emails it knows.
+///
+/// A zero is ID3's own word for unknown, and often sits beside a play count.
+pub fn rating_from_popm<'a>(frames: impl Iterator<Item = (&'a str, u8)>) -> Option<Option<u8>> {
+    let frames: Vec<(&str, u8)> = frames.collect();
+    if frames.is_empty() {
+        return None;
+    }
+    let rated = || frames.iter().filter(|(_, byte)| *byte > 0);
+    if let Some((_, byte)) = rated().find(|(email, _)| email.is_empty()) {
+        return Some(Some(*byte));
+    }
+    Some(rated().next().and_then(|(email, byte)| {
+        use lofty::id3::v2::{Frame, Id3v2Tag, PopularimeterFrame};
+        use lofty::tag::SplitTag;
+        let mut tag = Id3v2Tag::default();
+        tag.insert(Frame::Popularimeter(PopularimeterFrame::new(
+            (*email).to_string(),
+            *byte,
+            0,
+        )));
+        extract_rating(&tag.split_tag().1)
+    }))
 }
 
 /// Read the tagged musical key, if any. ID3v2 stores it as `TKEY`,

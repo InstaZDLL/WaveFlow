@@ -110,7 +110,7 @@ fn extract_dsd_file(
         // No embedded picture in DSF/DFF; folder-cover fallback
         // takes over via extract_folder_cover (called below).
         cover_art: extract_folder_cover(path, artwork_dir),
-        rating: None,
+        rating: meta.rating,
         // The DSF ID3v2 blob can carry ReplayGain frames, but our DSD
         // reader surfaces only the fields it models, not arbitrary tag
         // items. A DSD track falls back to the
@@ -290,6 +290,36 @@ fn untagged_file(
     }
 }
 
+/// The rating the file at `path` holds, as a scan would read it.
+pub(crate) fn read_file_rating(path: &Path) -> Result<Option<u8>, String> {
+    use waveflow_core::audio_format::dsd::metadata::read_metadata;
+    use waveflow_core::audio_format::dsd::parser::DsdContainer;
+
+    let ext = path
+        .extension()
+        .and_then(|s| s.to_str())
+        .unwrap_or_default()
+        .to_ascii_lowercase();
+    if matches!(ext.as_str(), "dsf" | "dff") {
+        let container = if ext == "dsf" {
+            DsdContainer::Dsf
+        } else {
+            DsdContainer::Dff
+        };
+        let mut file = std::fs::File::open(path).map_err(|e| e.to_string())?;
+        let meta = read_metadata(&mut file, container).map_err(|e| e.to_string())?;
+        return Ok(meta.rating);
+    }
+    let concrete = waveflow_core::scanner::extra_tags::read_concrete_tags(path)
+        .ok_or_else(|| "the tags could not be read".to_string())?;
+    if let Some(rating) = concrete.rating {
+        return Ok(rating);
+    }
+    let tagged = waveflow_core::scanner::extract::read_tagged_file(path)?;
+    let tag = tagged.primary_tag().or_else(|| tagged.first_tag());
+    Ok(tag.and_then(extract_rating))
+}
+
 pub(super) fn extract_file(
     path: &Path,
     artwork_dir: &Path,
@@ -427,10 +457,14 @@ pub(super) fn extract_file(
     // remainder it keeps for some formats is `pub(crate)`. Best-effort —
     // a file whose custom frames cannot be read is still a good track.
     let t_extra = Instant::now();
-    let extra_tags = waveflow_core::scanner::extra_tags::read_extra_tags(path);
+    let concrete = waveflow_core::scanner::extra_tags::read_concrete_tags(path);
     timings
         .extra_tag_us
         .fetch_add(t_extra.elapsed().as_micros() as u64, Ordering::Relaxed);
+    let (extra_tags, rating) = match concrete {
+        Some(tags) => (Some(tags.extra), tags.rating.unwrap_or(rating)),
+        None => (None, rating),
+    };
 
     // Folder cover fallback: scan the track's parent directory for a
     // sidecar cover.jpg / folder.png / front.webp / ... when the tag had

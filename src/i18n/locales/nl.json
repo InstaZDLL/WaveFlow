@@ -3824,6 +3824,9 @@
     "added_one": "{{count}} nummer aan de wachtrij toegevoegd",
     "added_other": "{{count}} nummers aan de wachtrij toegevoegd"
   },
+  "ratingNotice": {
+    "notInFile": "Beoordeling alleen in WaveFlow opgeslagen: deze kon niet naar het bestand worden geschreven."
+  },
   "moodCuration": {
     "open": "Stemmingen bewerken",
     "title": "Stemmingen bewerken",

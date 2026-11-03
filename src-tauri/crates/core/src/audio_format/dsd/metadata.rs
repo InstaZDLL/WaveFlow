@@ -38,6 +38,10 @@ pub struct DsdMetadata {
     /// `TCOM`, for the same reason: the editor writes it, so the scan
     /// has to read it back.
     pub composer: Option<String>,
+    /// `POPM`, as the 0-255 byte the library stores, by the rule every other
+    /// container's frames follow. The rating writer reaches a DSF too, so a
+    /// copy of the file on another machine brings its stars with it.
+    pub rating: Option<u8>,
 }
 
 impl DsdMetadata {
@@ -230,6 +234,11 @@ fn parse_id3v2_blob<R: Read + Seek>(reader: &mut R) -> DsdMetadata {
         genre: tag.genre().map(|s| s.to_string()),
         album_artist: non_empty(tag.album_artist()),
         composer: non_empty(tag.get("TCOM").and_then(|f| f.content().text())),
+        rating: crate::scanner::rating_from_popm(tag.frames().filter_map(|frame| {
+            let popm = frame.content().popularimeter()?;
+            Some((popm.user.as_str(), popm.rating))
+        }))
+        .flatten(),
     }
 }
 
@@ -272,6 +281,9 @@ impl DsdMetadata {
         }
         if other.composer.is_some() {
             self.composer = other.composer;
+        }
+        if other.rating.is_some() {
+            self.rating = other.rating;
         }
     }
 }

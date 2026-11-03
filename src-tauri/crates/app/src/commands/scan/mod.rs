@@ -11,6 +11,7 @@ mod progress;
 mod walk;
 
 pub use artist_images::*;
+pub(crate) use extract::read_file_rating;
 use extract::*;
 pub use folder::*;
 pub use progress::*;

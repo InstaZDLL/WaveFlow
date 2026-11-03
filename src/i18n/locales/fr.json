@@ -3931,6 +3931,9 @@
     "added_many": "{{count}} titres ajoutés à la file d'attente",
     "added_other": "{{count}} titres ajoutés à la file d'attente"
   },
+  "ratingNotice": {
+    "notInFile": "Note gardée dans WaveFlow seulement : elle n'a pas pu être écrite dans le fichier."
+  },
   "moodCuration": {
     "open": "Modifier les humeurs",
     "title": "Modifier les humeurs",
