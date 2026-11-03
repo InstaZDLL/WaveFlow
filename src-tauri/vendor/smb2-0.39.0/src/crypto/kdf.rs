@@ -363,7 +363,7 @@ mod tests {
         let preauth_hash = [0xCD; 64];
         let keys = derive_session_keys(&session_key, Dialect::Smb3_1_1, Some(&preauth_hash), 256);
 
-        assert_eq!(keys.signing_key.len(), 32);
+        assert_eq!(keys.signing_key.len(), 16);
         assert_eq!(keys.encryption_key.len(), 32);
         assert_eq!(keys.decryption_key.len(), 32);
     }

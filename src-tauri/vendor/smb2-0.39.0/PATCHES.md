@@ -33,6 +33,9 @@ patch is what exposes this against Samba: a server offering only AES-256 used to
 pick no cipher at all, and it would have stopped connecting even when it does not
 require encryption. The two patches go together.
 
+The crate's test `derive_keys_smb3_1_1_256_bit` asserted the 32-byte signing key, so
+it now asserts 16. With that, the crate's 1466 lib tests pass.
+
 ## Left out of this copy
 
 The ten `CLAUDE.md` files under `src/`. They are upstream's notes for its own coding
