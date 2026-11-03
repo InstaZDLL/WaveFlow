@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Network, Plus, ShieldAlert, Trash2 } from "lucide-react";
 
@@ -103,10 +103,16 @@ export function NetworkLibraryCard({ language }: { language: string }) {
 
   const plainHttp = form?.endpoint.trim().toLowerCase().startsWith("http://");
 
-  // A result speaks for what was tested: changing the form withdraws it.
+  // A result speaks for what was tested: changing the form withdraws it, and
+  // drops the answer to a test still on its way.
+  const editCount = useRef(0);
   const edit = (patch: Partial<NetworkSourceInput>) => {
+    editCount.current += 1;
     setForm((current) => current && { ...current, ...patch });
     setOutcome(null);
+  };
+  const showOutcome = (test: NetworkTestOutcome, asked: number) => {
+    if (editCount.current === asked) setOutcome(test);
   };
 
   const failure = (test: NetworkTestOutcome) =>
@@ -114,10 +120,11 @@ export function NetworkLibraryCard({ language }: { language: string }) {
 
   const onTest = async () => {
     if (!form) return;
+    const asked = editCount.current;
     setBusy(true);
     setError(null);
     try {
-      setOutcome(await testNetworkSource(withConsent(form)));
+      showOutcome(await testNetworkSource(withConsent(form)), asked);
     } catch (err) {
       setError(String(err));
     } finally {
@@ -127,18 +134,25 @@ export function NetworkLibraryCard({ language }: { language: string }) {
 
   const onAdd = async () => {
     if (!form) return;
+    const asked = editCount.current;
     setBusy(true);
     setError(null);
     try {
       let libraryId = selectedLibraryId ?? libraries[0]?.id;
       if (libraryId == null) {
+        // Tested first: a refused share would leave an empty library behind.
+        const test = await testNetworkSource(withConsent(form));
+        if (!test.ok) {
+          showOutcome(test, asked);
+          return;
+        }
         const created = await createLibrary({
           name: t("onboarding.defaultLibraryName"),
         });
         libraryId = created.id;
       }
       const added = await addNetworkSource(libraryId, withConsent(form));
-      setOutcome(added.test);
+      showOutcome(added.test, asked);
       if (added.folderId != null) {
         setForm(null);
         setOutcome(null);
