@@ -159,6 +159,19 @@ fn read_facts(path: &Path, artwork_dir: &Path) -> FileFacts {
             facts.duration_ms = waveflow_core::audio_format::held_duration_ms(path)
                 .map(|ms| ms as u64)
                 .unwrap_or(tagged.properties().duration().as_millis() as u64);
+            // lofty answers 0 for a WavPack file that does not state its length,
+            // and 0 is what the engine takes for a live stream. The scanner asks
+            // the decoder in the same case.
+            if facts.duration_ms == 0
+                && matches!(
+                    tagged.file_type(),
+                    lofty::file::FileType::WavPack | lofty::file::FileType::Ape
+                )
+            {
+                if let Some(stream) = extract::probe_playable_stream(path) {
+                    facts.duration_ms = stream.duration_ms.max(0) as u64;
+                }
+            }
             if let Some(tag) = tagged.primary_tag().or_else(|| tagged.first_tag()) {
                 if let Some(title) = tag.title().filter(|t| !t.trim().is_empty()) {
                     facts.title = title.into_owned();
