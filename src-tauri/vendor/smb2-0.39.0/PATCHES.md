@@ -63,7 +63,7 @@ frames through a proxy and asking Samba with `smbstatus`:
 - Refused, nothing sent in clear: a flipped ciphertext byte (the connection is torn
   down, and the copy cached after it is still identical), `ENCRYPT_DATA` cleared in the
   session setup response, the capability cleared from the negotiate request of a server
-  that requires encryption, or of any server on SMB 3.1.1.
+  that requires encryption or that is limited to SMB 3.1.1.
 - A connection cut under an encrypted stream comes back with new keys, still encrypted.
 
 Not measured: Windows Server, Kerberos. Under AES-256 with Kerberos, MS-SMB2 derives
@@ -72,13 +72,18 @@ WaveFlow only signs in with NTLM.
 
 ## Known limits, not patched
 
-- **Downgrade on SMB 3.0 and 3.0.2.** The crate has the message for
-  `FSCTL_VALIDATE_NEGOTIATE_INFO` and does not send it. An on-path attacker who clears
-  the capability from the negotiate request gets a session in clear, still signed, from
-  a server that prefers encryption without requiring it (measured on Samba with
-  `smb encrypt = desired`). A server that requires encryption refuses, and SMB 3.1.1
-  refuses through its preauthentication hash. The published crate never encrypted in
-  that case, so this is not a regression.
+- **Downgrade of the negotiation.** The crate has the message for
+  `FSCTL_VALIDATE_NEGOTIATE_INFO` and does not send it, so nothing checks the negotiation
+  below SMB 3.1.1. An on-path attacker who rewrites the negotiate request can move a
+  server off 3.1.1, whose preauthentication hash would catch it, as long as the server
+  accepts an older dialect. Measured on Samba with its default dialects:
+  - A server that only prefers encryption (`smb encrypt = desired`) ends up in clear,
+    still signed, on SMB 3.0.2 or 2.1.
+  - A server or a share that requires encryption stays encrypted on 3.0.2, or refuses.
+  - A server limited to SMB 3.1.1 catches the rewrite.
+
+  The published crate never encrypted on a server that only prefers it, and it has the
+  same gap in the negotiation, so this is not a regression.
 - **The server decides.** The client has no setting that demands encryption: a server
   that does not ask for it gets signed traffic in clear.
 - **HMAC-SHA256 on SMB 3.1.1.** With a server restricted to it, the crate offers the
