@@ -123,8 +123,11 @@ pub struct MpdStats {
 pub async fn stats(pool: &sqlx::SqlitePool) -> AppResult<MpdStats> {
     let row: (i64, i64, i64, i64) = sqlx::query_as(
         r#"
-        SELECT (SELECT COUNT(*) FROM artist),
-               (SELECT COUNT(*) FROM album),
+        SELECT (SELECT COUNT(DISTINCT ta.artist_id)
+                  FROM track_artist ta JOIN track t ON t.id = ta.track_id
+                 WHERE t.is_available = 1 AND t.file_path NOT LIKE 'wfnet://%'),
+               (SELECT COUNT(DISTINCT album_id) FROM track
+                 WHERE is_available = 1 AND file_path NOT LIKE 'wfnet://%'),
                (SELECT COUNT(*) FROM track
                  WHERE is_available = 1 AND file_path NOT LIKE 'wfnet://%'),
                (SELECT COALESCE(SUM(duration_ms), 0) / 1000

@@ -140,8 +140,9 @@ pub async fn refresh_folder_covers(
     let mut albums: HashMap<i64, (PathBuf, Option<i64>, Option<String>, Option<String>)> =
         HashMap::new();
     for (album_id, file_path, artwork_id, hash, source) in rows {
-        // A share's sidecar covers are read by the network scan, from its
-        // listing. There is no directory on this machine to read here.
+        // There is no directory on this machine to read for a share. Its sidecar
+        // covers are read from the listing, and only for files the scan extracts,
+        // so one added next to unchanged tracks waits for a deep scan.
         if crate::network_locator::is_locator(&file_path) {
             continue;
         }

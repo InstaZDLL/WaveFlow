@@ -60,8 +60,10 @@ impl Drop for ScrubbedCopy {
     }
 }
 
-/// A copy of the database with every `network_source.secret` blanked, or
-/// `None` when it holds none, so the common export copies nothing twice.
+/// A copy of the database with every `network_source.secret` blanked. The copy
+/// is what gets looked at and what gets archived, even when it holds none: a
+/// password saved while an export runs cannot pass between a check of the live
+/// file and the read of it.
 ///
 /// `VACUUM` is the point as much as the `UPDATE`: an updated row leaves its old
 /// bytes in a free page, and the archive is the whole file. A password changed
@@ -70,7 +72,7 @@ impl Drop for ScrubbedCopy {
 ///
 /// `write_archive` is a plain blocking function, so this drives sqlx on a thread
 /// of its own, which works wherever it was called from.
-fn database_without_secrets(db_path: &Path) -> AppResult<Option<ScrubbedCopy>> {
+fn database_without_secrets(db_path: &Path) -> AppResult<ScrubbedCopy> {
     std::thread::scope(|scope| {
         scope
             .spawn(|| scrub_on_this_thread(db_path))
@@ -79,35 +81,9 @@ fn database_without_secrets(db_path: &Path) -> AppResult<Option<ScrubbedCopy>> {
     })
 }
 
-fn scrub_on_this_thread(db_path: &Path) -> AppResult<Option<ScrubbedCopy>> {
+fn scrub_on_this_thread(db_path: &Path) -> AppResult<ScrubbedCopy> {
     use sqlx::{sqlite::SqliteConnectOptions, ConnectOptions, Connection};
 
-    // Any doubt here copies the database, never the other way round. A profile
-    // not migrated since has no such table, and that alone means no secret.
-    let has_secrets = crate::netlib::block_on(async {
-        let mut conn = SqliteConnectOptions::new()
-            .filename(db_path)
-            .read_only(true)
-            .connect()
-            .await?;
-        let has_table: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'network_source'",
-        )
-        .fetch_one(&mut conn)
-        .await?;
-        let count: i64 = if has_table == 0 {
-            0
-        } else {
-            sqlx::query_scalar("SELECT COUNT(*) FROM network_source WHERE secret IS NOT NULL")
-                .fetch_one(&mut conn)
-                .await?
-        };
-        let _ = conn.close().await;
-        Ok::<bool, sqlx::Error>(count > 0)
-    })?;
-    if !has_secrets {
-        return Ok(None);
-    }
     let copy = ScrubbedCopy(
         db_path.with_extension(format!("export-{}.tmp", uuid::Uuid::new_v4().simple())),
     );
@@ -120,13 +96,29 @@ fn scrub_on_this_thread(db_path: &Path) -> AppResult<Option<ScrubbedCopy>> {
         sqlx::query("PRAGMA journal_mode = DELETE")
             .execute(&mut conn)
             .await?;
-        sqlx::query("UPDATE network_source SET secret = NULL")
-            .execute(&mut conn)
-            .await?;
-        sqlx::query("VACUUM").execute(&mut conn).await?;
+        // A profile not migrated since has no such table, and that alone means
+        // no secret.
+        let has_table: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'network_source'",
+        )
+        .fetch_one(&mut conn)
+        .await?;
+        let secrets: i64 = if has_table == 0 {
+            0
+        } else {
+            sqlx::query_scalar("SELECT COUNT(*) FROM network_source WHERE secret IS NOT NULL")
+                .fetch_one(&mut conn)
+                .await?
+        };
+        if secrets > 0 {
+            sqlx::query("UPDATE network_source SET secret = NULL")
+                .execute(&mut conn)
+                .await?;
+            sqlx::query("VACUUM").execute(&mut conn).await?;
+        }
         conn.close().await
     })?;
-    Ok(Some(copy))
+    Ok(copy)
 }
 
 fn write_archive_into(
@@ -157,7 +149,7 @@ fn write_archive_into(
         // and an archive is made to travel. A copy with it blanked goes in
         // instead; an imported profile asks for it again.
         let scrubbed = database_without_secrets(db_path)?;
-        let mut src = File::open(scrubbed.as_ref().map_or(db_path, |copy| copy.path()))?;
+        let mut src = File::open(scrubbed.path())?;
         std::io::copy(&mut src, &mut zip)?;
     }
 

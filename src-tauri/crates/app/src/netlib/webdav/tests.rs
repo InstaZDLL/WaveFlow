@@ -201,3 +201,36 @@ fn an_entry_with_nothing_found_makes_the_listing_incomplete() {
         <status>HTTP/1.1 403 Forbidden</status></response></multistatus>"#;
     assert!(parse_multistatus(xml.as_bytes()).is_err());
 }
+
+/// What a server does to a collection asked for without its slash. The answer to
+/// the GET the client would turn it into is not a share, so this only passes when
+/// the first request already had the slash.
+#[tokio::test]
+async fn the_probe_asks_for_the_root_as_a_collection() {
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    tokio::spawn(async move {
+        while let Ok((mut socket, _)) = listener.accept().await {
+            let mut request = vec![0u8; 4096];
+            let read = socket.read(&mut request).await.unwrap_or(0);
+            let request = String::from_utf8_lossy(&request[..read]).to_string();
+            let answer = if request.starts_with("PROPFIND /dav/ ") {
+                let body = r#"<D:multistatus xmlns:D="DAV:"></D:multistatus>"#;
+                format!(
+                    "HTTP/1.1 207 Multi-Status\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                    body.len()
+                )
+            } else if request.starts_with("PROPFIND /dav ") {
+                "HTTP/1.1 301 Moved Permanently\r\nLocation: /dav/\r\nContent-Length: 0\r\nConnection: close\r\n\r\n".to_string()
+            } else {
+                "HTTP/1.1 200 OK\r\nContent-Length: 0\r\nConnection: close\r\n\r\n".to_string()
+            };
+            let _ = socket.write_all(answer.as_bytes()).await;
+        }
+    });
+
+    let fs = WebDavFs::new(&format!("http://{addr}/dav"), None, None, true).unwrap();
+    fs.probe().await.unwrap();
+}

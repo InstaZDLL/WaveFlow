@@ -530,16 +530,26 @@ fn items_result(base: &str, parent: &str, rows: &[TrackRow], total: i64) -> Brow
     }
 }
 
-/// An album DLNA has something to serve from: not one whose tracks are all on
-/// a network share, which it does not serve.
+/// An album DLNA has something to serve from: a track that is there and not on
+/// a network share, the same test as the query that lists its tracks.
 macro_rules! served_album {
     () => {
-        "al.id NOT IN (
+        "al.id IN (
             SELECT album_id FROM track
-             WHERE file_path LIKE 'wfnet://%' AND album_id IS NOT NULL
-            EXCEPT
-            SELECT album_id FROM track
-             WHERE file_path NOT LIKE 'wfnet://%' AND album_id IS NOT NULL)"
+             WHERE is_available = 1 AND file_path NOT LIKE 'wfnet://%'
+               AND album_id IS NOT NULL)"
+    };
+}
+
+/// An artist opens onto albums, so one with none to serve is a dead end, and a
+/// library on a share would otherwise list every artist of it as one.
+macro_rules! served_artist {
+    () => {
+        concat!(
+            "EXISTS (SELECT 1 FROM album al WHERE al.artist_id = ar.id AND ",
+            served_album!(),
+            ")"
+        )
     };
 }
 
@@ -575,7 +585,9 @@ macro_rules! playlist_rows {
 async fn root_counts(pool: &SqlitePool) -> Result<[i64; 5], sqlx::Error> {
     let (artists, albums, genres, playlists, folders): (i64, i64, i64, i64, i64) =
         sqlx::query_as(concat!(
-            "SELECT (SELECT COUNT(*) FROM artist),
+            "SELECT (SELECT COUNT(*) FROM artist ar WHERE ",
+            served_artist!(),
+            "),
                     (SELECT COUNT(*) FROM album al WHERE ",
             served_album!(),
             "),

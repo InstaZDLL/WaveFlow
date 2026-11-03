@@ -15,13 +15,9 @@ pub(super) async fn browse_artists(
     count: i64,
     offset: i64,
 ) -> Result<BrowseResult, sqlx::Error> {
-    // An artist opens onto albums, so one with none to serve is a dead end, and
-    // a library on a share would otherwise list every artist of it as one.
     let total: i64 = sqlx::query_scalar(concat!(
-        "SELECT COUNT(*) FROM artist ar
-          WHERE EXISTS (SELECT 1 FROM album al WHERE al.artist_id = ar.id AND ",
-        served_album!(),
-        ")"
+        "SELECT COUNT(*) FROM artist ar WHERE ",
+        served_artist!()
     ))
     .fetch_one(pool)
     .await?;
@@ -33,10 +29,9 @@ pub(super) async fn browse_artists(
         served_album!(),
         ")
            FROM artist ar
-          WHERE EXISTS (SELECT 1 FROM album al WHERE al.artist_id = ar.id AND ",
-        served_album!(),
-        ")
-          ORDER BY ar.canonical_name
+          WHERE ",
+        served_artist!(),
+        " ORDER BY ar.canonical_name
           LIMIT ? OFFSET ?",
     ))
     .bind(count)

@@ -486,9 +486,18 @@ async fn nothing_goes_out_in_offline_mode() {
     let _turn = SERIAL.lock().await;
     let bench = Bench::new().await;
     bench.put("Music/a.wav", wav(1), 1);
-    crate::offline::set(true);
-    let result = bench.scan().await;
-    crate::offline::set(false);
+    let result = {
+        // Reset by drop: a panic here must not leave the next test offline.
+        struct Offline;
+        impl Drop for Offline {
+            fn drop(&mut self) {
+                crate::offline::set(false);
+            }
+        }
+        crate::offline::set(true);
+        let _offline = Offline;
+        bench.scan().await
+    };
     assert!(result.is_err());
     assert_eq!(bench.state.audio_bytes.load(Ordering::Relaxed), 0);
 }

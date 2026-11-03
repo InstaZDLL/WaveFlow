@@ -96,7 +96,13 @@ impl NetworkTestOutcome {
 }
 
 fn row_from_input(input: &NetworkSourceInput) -> Result<store::SourceRow, NetError> {
-    let share = input.share.trim().trim_matches(['/', '\\']).to_string();
+    // WebDAV has none, and the form keeps what was typed before switching kind.
+    // A leftover would make the same server a second source, whose folders no
+    // longer compare with the first one's.
+    let share = match input.kind.as_str() {
+        "smb" => input.share.trim().trim_matches(['/', '\\']).to_string(),
+        _ => String::new(),
+    };
     let endpoint = match input.kind.as_str() {
         "webdav" => netlib::webdav::parse_endpoint(&input.endpoint, input.allow_plain_http)?
             .as_str()
@@ -392,4 +398,26 @@ pub async fn network_cache_limit_changed(app: AppHandle) -> AppResult<()> {
     let pool = state.require_profile_pool().await?;
     netlib::reload_cache_limit(&pool).await;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_share_name_left_from_the_smb_form_is_not_a_webdav_source() {
+        let input = NetworkSourceInput {
+            kind: "webdav".into(),
+            name: String::new(),
+            endpoint: "https://nas.local/dav".into(),
+            share: "music".into(),
+            root: String::new(),
+            username: None,
+            password: None,
+            allow_plain_http: false,
+        };
+        let row = row_from_input(&input).unwrap();
+        assert_eq!(row.share, "");
+        assert_eq!(row.name, "https://nas.local/dav");
+    }
 }

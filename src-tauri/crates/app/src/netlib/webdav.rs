@@ -131,7 +131,9 @@ impl WebDavFs {
     async fn propfind(&self, path: &str, depth: &str) -> Result<Vec<RawEntry>, NetError> {
         let method = Method::from_bytes(b"PROPFIND")
             .map_err(|_| NetError::Protocol("PROPFIND".to_string()))?;
-        let url = self.url_for(path, depth == "1")?;
+        // The root is a collection whatever the depth. Without its slash a server
+        // answers with a redirect, and following one turns PROPFIND into GET.
+        let url = self.url_for(path, depth == "1" || path.is_empty())?;
         let mut response = self
             .request(method, url.clone())
             .header("Depth", depth)

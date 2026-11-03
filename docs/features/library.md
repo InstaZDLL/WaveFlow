@@ -321,6 +321,7 @@ The backend refuses (`netlib::refuse_if_network`) and the interface does not off
 | Tag workshop | Listed with the reason, not selectable |
 | Rating, lyrics | In the database only |
 | Sidecar lyrics (`.lrc`), local artist images, Canvas next to the file | Not read; nothing is written on the share |
+| A `cover.jpg` added next to unchanged tracks after a scan | Picked up by a deep scan only: the [reconciliation](#folder-cover-reconciliation) does not run on a share |
 | Analysis, spectrogram | From the cached copy, else left for later: decoding would mean downloading the library |
 | Duplicates and the trash | Left out: a copy that cannot be verified is never offered for deletion |
 | The server source (upload, reconciliation) | Left out |

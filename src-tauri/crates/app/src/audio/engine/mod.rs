@@ -401,6 +401,8 @@ impl AudioEngine {
         // A window close may have sent it already, and then the channel is
         // closed: the thread is finishing or finished either way.
         let _ = self.cmd_tx.send(AudioCmd::Shutdown);
+        // Past the budget the play is lost, so a dead share must not spend it.
+        crate::netlib::media::release_starved_readers();
         let decoder = self
             .decoder
             .lock()
@@ -489,12 +491,14 @@ impl AudioEngine {
     /// The `Stop` an output rebuild sends straight down the channel, past
     /// [`Self::send`]: a live station reconnecting holds the decoder in a
     /// read on an empty buffer, released once the `Stop` is queued so the
-    /// rebuild does not wait for the station to come back.
+    /// rebuild does not wait for the station to come back. A network share
+    /// that stopped answering holds it the same way.
     fn stop_for_rebuild(&self) -> Result<(), String> {
         self.cmd_tx
             .send(AudioCmd::Stop)
             .map_err(|e| e.to_string())?;
         super::live::release_starved_reader();
+        crate::netlib::media::release_starved_readers();
         Ok(())
     }
 

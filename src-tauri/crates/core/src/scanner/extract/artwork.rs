@@ -130,36 +130,21 @@ pub fn extract_folder_cover(track_path: &Path, artwork_dir: &Path) -> Option<Ext
     let parent = track_path.parent()?;
     let entries = fs::read_dir(parent).ok()?;
 
-    // Index siblings by lowercased (stem, ext) for O(1) lookup against the
-    // priority lists above. Single read_dir pass — cheaper than 6×7 = 42
-    // `Path::exists` calls when the directory is large.
-    let mut candidates: HashMap<(String, String), PathBuf> = HashMap::new();
-    for entry in entries.flatten() {
-        let path = entry.path();
-        if !path.is_file() {
-            continue;
-        }
-        let stem = path
-            .file_stem()
-            .and_then(|s| s.to_str())
-            .map(|s| s.to_lowercase());
-        let ext = path
-            .extension()
-            .and_then(|s| s.to_str())
-            .map(|s| s.to_lowercase());
-        if let (Some(s), Some(e)) = (stem, ext) {
-            candidates.insert((s, e), path);
-        }
-    }
-
-    let picked = FOLDER_COVER_STEMS
-        .iter()
-        .flat_map(|stem| {
-            FOLDER_COVER_EXTENSIONS
-                .iter()
-                .map(move |ext| (stem.to_string(), ext.to_string()))
+    // Single read_dir pass: cheaper than 6×7 = 42 `Path::exists` calls when the
+    // directory is large.
+    let files: Vec<(String, PathBuf)> = entries
+        .flatten()
+        .filter_map(|entry| {
+            let path = entry.path();
+            if !path.is_file() {
+                return None;
+            }
+            let name = path.file_name()?.to_str()?.to_string();
+            Some((name, path))
         })
-        .find_map(|key| candidates.get(&key).cloned())?;
+        .collect();
+    let name = pick_folder_cover(files.iter().map(|(name, _)| name.as_str()))?;
+    let picked = files.iter().find(|(file, _)| file == name)?.1.clone();
 
     let bytes = fs::read(&picked).ok()?;
     store_folder_cover(
@@ -169,10 +154,10 @@ pub fn extract_folder_cover(track_path: &Path, artwork_dir: &Path) -> Option<Ext
     )
 }
 
-/// The sidecar cover among the file names of one directory, by the same
-/// priority [`extract_folder_cover`] applies. For a share, whose listing
-/// already holds the names and where asking for a directory again costs a
-/// round trip.
+/// The sidecar cover among the file names of one directory, in the priority
+/// order above: lowercased `(stem, ext)` looked up against both lists. A share
+/// calls this too, since its listing already holds the names and asking for a
+/// directory again costs a round trip.
 pub fn pick_folder_cover<'a>(names: impl IntoIterator<Item = &'a str>) -> Option<&'a str> {
     let mut candidates: HashMap<(String, String), &'a str> = HashMap::new();
     for name in names {
