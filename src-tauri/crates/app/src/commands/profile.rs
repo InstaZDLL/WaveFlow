@@ -179,6 +179,14 @@ pub async fn switch_profile(
         return Err(err);
     }
 
+    // The shares of the profile just left must not stay reachable from here:
+    // not their password, and not a locator that an imported copy of the
+    // profile shares with them. This also tells the views what is grey now.
+    crate::netlib::media::stop_prewarm();
+    if let Err(err) = crate::netlib::reload_active(&app).await {
+        tracing::warn!(%err, "network sources: reload after a profile switch failed");
+    }
+
     // Refresh the DLNA worker for the new profile if it's currently
     // serving — otherwise it keeps exposing the previous profile's
     // library over the LAN, and its pool becomes closed out from
@@ -290,6 +298,7 @@ pub async fn deactivate_profile(
     // profile this closes.
     let _switching = state.profile_switch_lock.clone().lock_owned().await;
     watcher.unwatch_all();
+    crate::netlib::clear();
     state.deactivate_profile().await;
     Ok(())
 }

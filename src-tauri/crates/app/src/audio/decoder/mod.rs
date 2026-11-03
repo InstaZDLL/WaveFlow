@@ -91,6 +91,22 @@ impl ErrorPayload {
     fn of(kind: &'static str, message: String) -> Self {
         Self { message, kind }
     }
+
+    /// [`Self::track_failed`], or the share behind the track going away,
+    /// which says something else to the user: this is not the track's fault.
+    fn from_failure(message: String) -> Self {
+        if message.contains(crate::netlib::UNREACHABLE_MESSAGE) {
+            Self::of("network-source-lost", message)
+        } else {
+            Self::track_failed(message)
+        }
+    }
+}
+
+/// A read let go because a command replaces or stops what plays. Not a
+/// failure of anything, and the command is already next in line.
+fn was_released(error: &str) -> bool {
+    error.contains(waveflow_core::playback::read_ahead::READ_RELEASED)
 }
 
 /// Common path for `LoadAndPlay` / `LoadUrlAndPlay` — fire the right
@@ -169,7 +185,9 @@ fn handle_playback_outcome(
                 source = source_label.as_deref().unwrap_or(""),
                 "playback failed"
             );
-            let _ = app.emit(EVENT_ERROR, ErrorPayload::track_failed(err.clone()));
+            if !was_released(&err) {
+                let _ = app.emit(EVENT_ERROR, ErrorPayload::from_failure(err.clone()));
+            }
             // Read the live `current_track_id` rather than the
             // id passed in from the original `LoadAndPlay` /
             // `LoadUrlAndPlay` command: `play_track`'s crossfade
@@ -391,6 +409,7 @@ fn decoder_loop(
                     }
                 };
 
+                let releases = crate::netlib::media::release_count();
                 let stream = match ActiveStream::open(
                     &path,
                     track_id,
@@ -404,7 +423,12 @@ fn decoder_loop(
                     Ok(s) => s,
                     Err(err) => {
                         tracing::warn!(?err, path = %path.display(), "open failed");
-                        let _ = app.emit(EVENT_ERROR, ErrorPayload::track_failed(err));
+                        let replaced = waveflow_core::network_locator::is_locator_path(&path)
+                            && crate::netlib::media::release_count() != releases;
+                        if !replaced && !was_released(&err) {
+                            let err = crate::netlib::explain_open_failure(&path, err);
+                            let _ = app.emit(EVENT_ERROR, ErrorPayload::from_failure(err));
+                        }
                         transition_state(&shared, &app, PlayerState::Idle, Some(track_id));
                         continue;
                     }

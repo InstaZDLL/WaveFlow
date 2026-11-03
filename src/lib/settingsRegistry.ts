@@ -785,6 +785,14 @@ export const SETTINGS = {
   ),
 
   // ---- Storage and backups ---------------------------------------------
+  // Mirrored by `netlib::cache::DEFAULT_MAX_GB`.
+  "network.cache_max_gb": setting(
+    "data",
+    "profile",
+    "int",
+    5,
+    "settings.networkLibrary.cacheLimit",
+  ),
   "media.clips_in_library": setting(
     "data",
     "app",

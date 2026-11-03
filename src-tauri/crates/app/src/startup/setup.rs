@@ -257,6 +257,10 @@ pub(crate) fn setup(
     });
     app.manage(watcher);
 
+    // WebDAV and SMB shares: the opener the decoder needs, and the sources of
+    // the active profile.
+    crate::netlib::start(app.handle().clone());
+
     // Scan-on-start. Honours `profile_setting['library.scan_on_start']`
     // (default OFF — opt in so power users with terabyte libraries
     // don't pay the I/O at every launch). The rescan walks every

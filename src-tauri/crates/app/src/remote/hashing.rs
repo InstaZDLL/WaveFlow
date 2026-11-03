@@ -246,6 +246,7 @@ pub async fn unlinked_tracks(pool: &SqlitePool) -> AppResult<Vec<(i64, String, i
         "SELECT t.id, t.file_path, t.file_size, t.file_modified
            FROM track t
           WHERE t.is_available = 1
+            AND t.file_path NOT LIKE 'wfnet://%'
             AND NOT EXISTS (SELECT 1 FROM remote_track_link l WHERE l.local_track_id = t.id)
           ORDER BY t.id",
     )

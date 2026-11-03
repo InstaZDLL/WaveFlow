@@ -22,10 +22,10 @@ pub use artist_images::{
     write_artist_image, ArtistImageDirCache, DirImageCandidate,
 };
 pub use artwork::{
-    extension_for_mime, extract_cover, extract_folder_cover, ArtworkSource, ExtractedCover,
-    FOLDER_COVER_EXTENSIONS,
+    extension_for_mime, extract_cover, extract_folder_cover, pick_folder_cover, store_folder_cover,
+    ArtworkSource, ExtractedCover, FOLDER_COVER_EXTENSIONS,
 };
-pub use probe::{probe_playable_stream, StreamInfo};
+pub use probe::{probe_playable_source, probe_playable_stream, StreamInfo};
 
 /// Extensions considered "audio files" by the scanner. Limited to
 /// formats the symphonia + cpal engine can actually decode and play,
@@ -130,11 +130,12 @@ pub fn is_scannable_audio(path: &Path) -> bool {
 }
 
 /// Bytes hashed from each of the file's head and tail in the partial
-/// path. 1 MiB each — large enough that distinct tracks differ inside
+/// path. Public for the network scan, which fetches these two windows in one
+/// request each and serves the tag read from them. 1 MiB each — large enough that distinct tracks differ inside
 /// the window (leading frames) and that tag rewrites land in it (ID3v2
 /// at the head, ID3v1 / APE / Lyrics3 at the tail), small enough that a
 /// multi-MB track reads ~2 MiB instead of its whole length.
-const HASH_CHUNK_BYTES: u64 = 1024 * 1024;
+pub const HASH_CHUNK_BYTES: u64 = 1024 * 1024;
 
 /// Content hash used for dedup + tag-edit detection.
 ///
@@ -153,8 +154,15 @@ const HASH_CHUNK_BYTES: u64 = 1024 * 1024;
 /// but different middle bytes would collide. For real music that does
 /// not occur. Smaller files (≤ `2 * HASH_CHUNK_BYTES`) are hashed whole.
 pub fn hash_file(path: &Path) -> std::io::Result<String> {
-    let mut file = fs::File::open(path)?;
+    let file = fs::File::open(path)?;
     let len = file.metadata()?.len();
+    hash_reader(file, len)
+}
+
+/// [`hash_file`] over any reader of `len` bytes: the same digest for the same
+/// bytes, so a file on a share and its copy on this disk are recognised as
+/// one (duplicates, the lyrics cache, an orphaned history finding its track).
+pub fn hash_reader<R: Read + Seek>(mut file: R, len: u64) -> std::io::Result<String> {
     let mut hasher = blake3::Hasher::new();
     hasher.update(&len.to_le_bytes());
 
@@ -436,6 +444,33 @@ pub fn read_tagged_file(path: &Path) -> Result<lofty::file::TaggedFile, String> 
         Probe::open(path)
             .map_err(|e| error_chain(&e))?
             .options(ParseOptions::new().parsing_mode(mode))
+            .guess_file_type()
+            .map_err(|e| error_chain(&e))?
+            .read()
+            .map_err(|e| error_chain(&e))
+    };
+    read(ParsingMode::BestAttempt).or_else(|first| read(ParsingMode::Relaxed).map_err(|_| first))
+}
+
+/// [`read_tagged_file`] over any reader, for a file that is not on this disk.
+/// `hint` stands in for the extension `Probe::open` would have read, and only
+/// counts when the content does not settle the format.
+pub fn read_tagged_from<R: Read + Seek>(
+    reader: &mut R,
+    hint: Option<FileType>,
+) -> Result<lofty::file::TaggedFile, String> {
+    use lofty::config::{ParseOptions, ParsingMode};
+    use lofty::probe::Probe;
+
+    let mut read = |mode: ParsingMode| -> Result<lofty::file::TaggedFile, String> {
+        reader
+            .seek(SeekFrom::Start(0))
+            .map_err(|e| error_chain(&e))?;
+        let mut probe = Probe::new(&mut *reader).options(ParseOptions::new().parsing_mode(mode));
+        if let Some(hint) = hint {
+            probe = probe.set_file_type(hint);
+        }
+        probe
             .guess_file_type()
             .map_err(|e| error_chain(&e))?
             .read()

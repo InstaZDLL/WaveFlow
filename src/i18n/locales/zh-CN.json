@@ -778,7 +778,8 @@
       "filePath": "路径",
       "moveUp": "上移“{{column}}”列",
       "moveDown": "下移“{{column}}”列"
-    }
+    },
+    "trackOnUnreachableShare": "无法访问网络共享,且此曲目不在缓存中"
   },
   "liked": {
     "badge": "收藏",
@@ -1060,7 +1061,8 @@
         "offline": "离线模式已开启",
         "unknown": "播放失败",
         "files-failed": "无法播放这些文件",
-        "picker-failed": "无法打开文件选择器"
+        "picker-failed": "无法打开文件选择器",
+        "network-source-lost": "与网络共享的连接已断开"
       },
       "notice": {
         "exclusive-refused": "此设备不接受独占模式：以共享模式播放",
@@ -3144,6 +3146,13 @@
       "left": "左",
       "right": "右",
       "both": "双声道",
+      "center": "中置",
+      "lfe": "低音炮",
+      "backLeft": "左后",
+      "backRight": "右后",
+      "backCenter": "后中置",
+      "sideLeft": "左侧",
+      "sideRight": "右侧",
       "mono": "单声道",
       "stereo": "立体声",
       "channels": "{{count}} 声道",
@@ -3151,6 +3160,7 @@
       "shared": "共享",
       "sharedNote": "在共享模式下，系统混音器随后会把此格式转换为设备自身的格式。",
       "monoNote": "单声道输出已开启：每个提示音都会从两侧同时发出。",
+      "surroundNote": "环绕声输出：每个扬声器依次发出提示音，低音炮使用低频音。",
       "swapped": "左侧提示音从右边发出？说明声道接反了：请检查插头或系统的扬声器设置。",
       "interrupted": "测试已中断。",
       "failed": "无法播放测试音：{{message}}",
@@ -3355,6 +3365,60 @@
         "title": "顶部栏的新功能按钮",
         "subtitle": "隐藏后，仍可在此处和“关于”中打开面板。"
       }
+    },
+    "networkLibrary": {
+      "title": "网络共享 (WebDAV、SMB)",
+      "subtitle": "直接读取共享,无需系统挂载。WaveFlow 只读取:共享上的文件绝不会被修改。",
+      "add": "添加共享",
+      "addConfirm": "添加并扫描",
+      "cancel": "取消",
+      "test": "测试连接",
+      "save": "保存",
+      "kind": "共享类型",
+      "kinds": {
+        "webdav": "WebDAV",
+        "smb": "SMB"
+      },
+      "name": "名称(可选)",
+      "address": "地址",
+      "addressHint": {
+        "webdav": "https://nas.local/dav",
+        "smb": "nas.local 或 192.168.1.10"
+      },
+      "folder": "共享上的文件夹(可选)",
+      "username": "用户名",
+      "password": "密码",
+      "passwordNotice": "密码与 WaveFlow 的其他凭据一样以明文保存在配置文件的数据库中,绝不会进入配置文件导出或备份。建议使用只读账户。",
+      "plainHttpWarning": "我同意不加密发送此密码和我的音乐:使用 http:// 时,此网络上的任何人都能读取它们。",
+      "plainHttpBadge": "未加密的连接 (http://)",
+      "passwordMissing": "需要重新输入密码:它不会随导入的配置文件或恢复的备份一起带来。",
+      "changePassword": "更改密码",
+      "remove": "移除",
+      "removeConfirm": "移除此共享及其曲目?",
+      "state": {
+        "online": "已连接",
+        "unknown": "尚未检查",
+        "unreachable": "无法访问",
+        "auth_failed": "访问被拒绝"
+      },
+      "failure": {
+        "offline": "离线模式已开启。",
+        "unreachable": "此地址没有响应。",
+        "handshake": "此服务器在协商期间关闭了连接。WaveFlow 使用 SMB 2 及更新版本：仅支持 SMB 1 的服务器正是如此表现。",
+        "tls": "此服务器的证书被拒绝。WaveFlow 始终验证证书:需要有效的证书,或在可信网络上使用 http://。",
+        "auth": "用户名或密码被拒绝。",
+        "session-refused": "此服务器未判定密码就拒绝了会话。此帐户可能没有访问权限，或者服务器要求此连接无法使用的加密。",
+        "not-found": "此共享或文件夹不存在。",
+        "protocol": "此服务器的响应不像共享。",
+        "plain-http": "http:// 地址需要您在下方同意。"
+      },
+      "testOk_one": "已连接:此文件夹中有 {{count}} 项。",
+      "testOk_other": "已连接:此文件夹中有 {{count}} 项。",
+      "cacheLimit": "上限 (GB)",
+      "cacheClear": "清空缓存",
+      "share": "共享名称",
+      "cacheUsed_one": "本地缓存:{{size}},{{count}} 首曲目",
+      "cacheUsed_other": "本地缓存:{{size}},{{count}} 首曲目"
     }
   },
   "scanProgress": {

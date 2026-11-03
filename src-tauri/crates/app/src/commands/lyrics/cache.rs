@@ -281,18 +281,19 @@ pub(super) async fn export_fetched_sidecar(
     // the same track twice in one library, or a copy the user keeps
     // elsewhere. Each copy is a file the user may open in another player,
     // so each gets its own sidecar; in practice there is one row.
-    let paths: Vec<String> =
-        match sqlx::query_scalar("SELECT file_path FROM track WHERE file_hash = ?")
-            .bind(file_hash)
-            .fetch_all(pool)
-            .await
-        {
-            Ok(rows) => rows,
-            Err(err) => {
-                tracing::debug!(?err, "lyrics sidecar export: track lookup failed");
-                return;
-            }
-        };
+    let paths: Vec<String> = match sqlx::query_scalar(
+        "SELECT file_path FROM track WHERE file_hash = ? AND file_path NOT LIKE 'wfnet://%'",
+    )
+    .bind(file_hash)
+    .fetch_all(pool)
+    .await
+    {
+        Ok(rows) => rows,
+        Err(err) => {
+            tracing::debug!(?err, "lyrics sidecar export: track lookup failed");
+            return;
+        }
+    };
 
     for path in paths {
         let content = content.to_string();

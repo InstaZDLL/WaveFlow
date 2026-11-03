@@ -26,6 +26,7 @@ pub mod inventory;
 pub mod lyrics;
 pub mod metadata;
 pub mod mood;
+pub mod network_locator;
 // Decoding for playback; the server, which plays nothing, leaves it off.
 #[cfg(feature = "playback")]
 #[cfg_attr(docsrs, doc(cfg(feature = "playback")))]

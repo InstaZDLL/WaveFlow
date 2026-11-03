@@ -625,9 +625,36 @@ pub async fn peek_step(
     let Some(index) = stepped_index(length, current, direction, repeat) else {
         return Ok(None);
     };
-    Ok(track_at_position(pool, index)
-        .await?
-        .map(|track| (index, track)))
+    first_playable(pool, index, length, direction, repeat).await
+}
+
+/// The entry at `index`, or the first one after it in `direction` that can
+/// play: a track on a share that is down, with no local copy, is stepped over
+/// rather than failed on. Bounded by the queue's length, and `None` when
+/// nothing is left, so a whole queue on a share ends instead of spinning.
+///
+/// What reaches a file on this machine does not change: a missing one is
+/// still the decoder's to report.
+async fn first_playable(
+    pool: &SqlitePool,
+    mut index: i64,
+    length: i64,
+    direction: Direction,
+    repeat: RepeatMode,
+) -> AppResult<Option<(i64, QueueTrack)>> {
+    for _ in 0..length.max(1) {
+        let Some(track) = track_at_position(pool, index).await? else {
+            return Ok(None);
+        };
+        if !crate::netlib::is_blocked(&track.file_path) {
+            return Ok(Some((index, track)));
+        }
+        match stepped_index(length, index, direction, repeat) {
+            Some(next) if next != index => index = next,
+            _ => return Ok(None),
+        }
+    }
+    Ok(None)
 }
 
 /// Move the cursor to an index [`peek_step`] or [`stepped_index`] already
@@ -668,7 +695,11 @@ pub async fn peek_next(pool: &SqlitePool, repeat: RepeatMode) -> AppResult<Optio
     let Some(next_index) = stepped_index(length, current, Direction::Next, repeat) else {
         return Ok(None);
     };
-    track_at_position(pool, next_index).await
+    Ok(
+        first_playable(pool, next_index, length, Direction::Next, repeat)
+            .await?
+            .map(|(_, track)| track),
+    )
 }
 
 /// How close to the end a stored position has to be to count as "the

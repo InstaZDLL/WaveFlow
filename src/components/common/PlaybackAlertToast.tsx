@@ -17,6 +17,7 @@ const ERROR_KINDS = new Set([
   "decoder-crashed",
   "decoder-stopped",
   "offline",
+  "network-source-lost",
   // Raised by the frontend's own "play without importing" paths.
   "files-failed",
   "picker-failed",

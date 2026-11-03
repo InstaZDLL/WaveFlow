@@ -15,6 +15,8 @@ use std::sync::atomic::{
 };
 use std::sync::Mutex;
 
+use waveflow_core::playback::channels::ChannelLayout;
+
 use super::engine::{AudioCmd, LastLoad};
 
 /// The sample format the output stream hands over: to the device itself
@@ -130,6 +132,10 @@ pub struct SharedPlayback {
     pub samples_played: AtomicU64,
     pub sample_rate: AtomicU32,
     pub channels: AtomicU16,
+    /// The speaker behind each channel of the open output, as
+    /// [`ChannelLayout::pack`] left it. Zero when the backend knows nothing
+    /// more than the count. Stored with `channels`, by the same backend.
+    pub output_layout: AtomicU64,
     /// [`OutputSampleFormat`] of the open stream, written next to
     /// `sample_rate` by every backend.
     pub sample_format: AtomicU8,
@@ -406,6 +412,7 @@ impl SharedPlayback {
             samples_played: AtomicU64::new(0),
             sample_rate: AtomicU32::new(0),
             channels: AtomicU16::new(0),
+            output_layout: AtomicU64::new(0),
             sample_format: AtomicU8::new(OutputSampleFormat::Unknown as u8),
             volume_bits: AtomicU32::new(1.0_f32.to_bits()),
             seek_generation: AtomicU64::new(0),
@@ -565,6 +572,15 @@ impl SharedPlayback {
 
     pub fn volume(&self) -> f32 {
         f32::from_bits(self.volume_bits.load(Ordering::Relaxed))
+    }
+
+    /// The speakers of the open output: what its backend published, or what
+    /// its channel count stands for.
+    pub fn output_layout(&self) -> ChannelLayout {
+        ChannelLayout::unpack(
+            self.output_layout.load(Ordering::Acquire),
+            usize::from(self.channels.load(Ordering::Acquire)),
+        )
     }
 
     pub fn sample_format(&self) -> OutputSampleFormat {

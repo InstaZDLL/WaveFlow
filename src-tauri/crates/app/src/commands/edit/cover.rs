@@ -41,6 +41,7 @@ pub async fn update_track_cover(
             .await?;
     let (file_path, album_id) =
         row.ok_or_else(|| AppError::Other(format!("track {track_id} not found")))?;
+    crate::netlib::refuse_if_network(&file_path)?;
 
     let bytes = std::fs::read(&image_path)
         .map_err(|e| AppError::Other(format!("cover read failed: {e}")))?;

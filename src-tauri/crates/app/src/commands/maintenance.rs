@@ -358,6 +358,7 @@ pub async fn reset_app(
     // because listing the profiles needs `app.db`.
     let cache_roots = super::storage::wipe_targets_outside_root(&state).await;
 
+    crate::netlib::clear();
     state.deactivate_profile().await;
     state.app_db.close().await;
 

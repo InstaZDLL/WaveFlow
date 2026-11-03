@@ -22,6 +22,7 @@ use crate::audio_format::dsd::dop::DsdToDop;
 use crate::audio_format::dsd::parser::DsdLayout;
 use crate::audio_format::dsd::pcm::DsdToPcm;
 
+use super::channels::{ChannelLayout, ChannelMixer};
 use super::read_ahead::ReadAhead;
 use super::replay_gain::TrackGain;
 use super::resampler::Resampler;
@@ -188,6 +189,12 @@ pub struct ActiveStream {
     pub backend: StreamBackend,
     pub resampler: Resampler,
     pub src_channels: usize,
+    /// The speaker behind each source channel, from the decoder's own
+    /// report once a packet has been decoded.
+    pub(super) src_layout: ChannelLayout,
+    /// What the source is mixed to the output with, and the output it was
+    /// built for. Rebuilt when either end changes.
+    pub(super) mixer: Option<(ChannelLayout, ChannelMixer)>,
     pub track_id: i64,
     pub duration_ms: u64,
     pub source_type: String,
@@ -357,6 +364,17 @@ fn read_ahead(path: &Path) -> Option<ReadAhead> {
     }
 }
 
+/// How the app opens a track that lives on a share. The core knows no
+/// source, credential or cache: only that a locator is not a file.
+pub type NetworkOpener = dyn Fn(&str) -> Result<Box<dyn MediaSource>, String> + Send + Sync;
+
+static NETWORK_OPENER: std::sync::OnceLock<Box<NetworkOpener>> = std::sync::OnceLock::new();
+
+/// Install [`NetworkOpener`]. Once per process; a second call is ignored.
+pub fn set_network_opener(opener: Box<NetworkOpener>) {
+    let _ = NETWORK_OPENER.set(opener);
+}
+
 impl ActiveStream {
     /// Open `path`, probe + build the codec, and stash everything
     /// needed to feed the resample/channel-convert pipeline. The
@@ -376,6 +394,27 @@ impl ActiveStream {
             .extension()
             .and_then(|s| s.to_str())
             .map(|s| s.to_ascii_lowercase());
+
+        // A track on a share: `path` is a locator, not a file. Decoded like
+        // any other source from here on, which is what gives it gapless,
+        // crossfade and seeking.
+        if let Some(locator) = path
+            .to_str()
+            .filter(|p| crate::network_locator::is_locator(p))
+        {
+            let opener = NETWORK_OPENER
+                .get()
+                .ok_or_else(|| "no network source support in this build".to_string())?;
+            return Self::open_from_source(
+                opener(locator)?,
+                ext.as_deref(),
+                track_id,
+                duration_ms,
+                source_type,
+                source_id,
+                replay_gain,
+            );
+        }
 
         // DSD has its own pipeline — symphonia doesn't decode it.
         // Branch up-front so we never hand a DSF / DFF file to the
@@ -535,6 +574,8 @@ impl ActiveStream {
             // the actual source rate, which AAC/M4A only reveals then).
             resampler: Resampler::Passthrough,
             src_channels: 0,
+            src_layout: ChannelLayout::from_count(0),
+            mixer: None,
             track_id,
             duration_ms,
             source_type,
@@ -741,9 +782,9 @@ impl ActiveStream {
         out: &mut Vec<f32>,
         interleaved_scratch: &mut Vec<f32>,
         dst_sample_rate: u32,
-        dst_channels: usize,
+        dst_layout: &ChannelLayout,
     ) -> Result<bool, String> {
-        let at_end = self.decode_packet(out, interleaved_scratch, dst_sample_rate, dst_channels)?;
+        let at_end = self.decode_packet(out, interleaved_scratch, dst_sample_rate, dst_layout)?;
         if at_end && !self.tail_flushed {
             self.tail_flushed = true;
             self.resampler
