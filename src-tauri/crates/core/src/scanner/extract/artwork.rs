@@ -109,8 +109,7 @@ pub fn extract_cover(tag: &Tag, artwork_dir: &Path) -> Option<ExtractedCover> {
 
 /// Canonical filename stems searched for in the track's parent directory
 /// when the audio file carries no embedded picture. Order matters — the
-/// first match wins. Mirrors the convention used by foobar2000, MusicBee,
-/// Plex and Kodi.
+/// first match wins. Mirrors the convention most music software follows.
 const FOLDER_COVER_STEMS: &[&str] = &["cover", "folder", "front", "albumart", "album", "artwork"];
 
 /// File extensions accepted as folder cover candidates. Limited to formats
