@@ -265,7 +265,7 @@ async fn an_origin_is_decided_once_from_the_typed_address() {
 
 /// The certificate of [`tls_redirecting_to`], for `feeds.example.org` and any name under
 /// it, trusted by a test's client as its own root so the check itself still runs.
-fn test_certificate() -> reqwest::Certificate {
+pub(super) fn test_certificate() -> reqwest::Certificate {
     reqwest::Certificate::from_der(include_bytes!("testdata/self-signed-cert.der")).unwrap()
 }
 

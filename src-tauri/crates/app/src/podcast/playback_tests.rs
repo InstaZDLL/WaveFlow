@@ -24,8 +24,8 @@ use super::refresh::PodcastError;
 use super::store;
 use super::stream::{EnclosureSource, Gate, ReadGuard, StreamRefusal};
 use super::tests::{
-    enabled_pool, fetcher, offline, online, public_fetcher, redirect, serve, tls_redirecting_to,
-    url, with_status, PUBLIC_HOST,
+    enabled_pool, fetcher, offline, online, public_fetcher, redirect, serve, test_certificate,
+    tls_redirecting_to, url, with_status, PUBLIC_HOST,
 };
 use crate::audio::state::{PlayerState, SharedPlayback};
 
@@ -406,7 +406,7 @@ async fn a_secure_enclosure_cannot_redirect_into_the_clear() {
     let fetcher = Fetcher::with(
         client_builder()
             .no_proxy()
-            .danger_accept_invalid_certs(true)
+            .add_root_certificate(test_certificate())
             .resolve(PUBLIC_HOST, ([127, 0, 0, 1], port).into()),
         online,
         Duration::from_secs(5),
