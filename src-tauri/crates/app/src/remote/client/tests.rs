@@ -224,3 +224,232 @@ fn percent_decode(segment: &str) -> String {
     }
     String::from_utf8(out).unwrap()
 }
+
+// Offline mode, against a real profile database and a server that counts what
+// reaches it.
+
+const PROFILE: i64 = 7;
+/// Long gone, so `try_build_for` refreshes before anything else.
+const LAPSED: Option<i64> = Some(1);
+
+/// Answers the refresh with a fresh pair. The other route is the toggle in
+/// Settings flipped while a request is in flight: offline from here on, and a
+/// `401` for the request that was already out.
+async fn answer(
+    axum::extract::State(seen): axum::extract::State<Arc<std::sync::Mutex<Vec<String>>>>,
+    request: axum::extract::Request,
+) -> axum::response::Response {
+    use axum::response::IntoResponse;
+    let path = request.uri().path().to_owned();
+    seen.lock().unwrap().push(path.clone());
+    match path.as_str() {
+        "/api/v2/auth/refresh" => axum::Json(serde_json::json!({
+            "access_token": "wfa_rotated",
+            "refresh_token": "wfr_rotated",
+            "expires_in": 3600,
+            "device_id": "dev",
+            "user": { "id": "acc", "username": "alice" },
+        }))
+        .into_response(),
+        "/goes-offline" => {
+            offline::flip_on_this_thread(true);
+            axum::http::StatusCode::UNAUTHORIZED.into_response()
+        }
+        _ => axum::http::StatusCode::OK.into_response(),
+    }
+}
+
+struct Bench {
+    /// Never dropped: its plugin runtime holds a blocking HTTP client, and that
+    /// cannot be dropped from inside an async test.
+    state: std::mem::ManuallyDrop<AppState>,
+    binding: RemoteBinding,
+    seen: Arc<std::sync::Mutex<Vec<String>>>,
+    _dir: tempfile::TempDir,
+}
+
+impl Bench {
+    /// A profile bound to the local server and signed in, its access token
+    /// lasting until `expires_at`.
+    async fn new(expires_at: Option<i64>) -> Self {
+        use sqlx::sqlite::SqliteConnectOptions;
+        use std::str::FromStr;
+
+        let seen = Arc::new(std::sync::Mutex::new(Vec::new()));
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let server_url = format!("http://{}", listener.local_addr().unwrap());
+        let router = axum::Router::new()
+            .fallback(answer)
+            .with_state(Arc::clone(&seen));
+        tokio::spawn(async move { axum::serve(listener, router).await });
+
+        let dir = tempfile::tempdir().unwrap();
+        let options = SqliteConnectOptions::from_str(&format!(
+            "sqlite://{}",
+            dir.path().join("profile.db").display()
+        ))
+        .unwrap()
+        .create_if_missing(true)
+        .foreign_keys(true);
+        let pool = sqlx::SqlitePool::connect_with(options).await.unwrap();
+        sqlx::migrate!("../../migrations/profile")
+            .run(&pool)
+            .await
+            .unwrap();
+
+        let binding = RemoteBinding {
+            server_url,
+            identity: RemoteIdentity::Waveflow {
+                account_id: "acc".into(),
+                device_id: "dev".into(),
+                cursor: 0,
+            },
+            active_library_id: None,
+            bootstrapped_at: None,
+        };
+        {
+            let mut conn = pool.acquire().await.unwrap();
+            binding::write(&mut conn, &binding).await.unwrap();
+            tokens::write(&mut conn, &signed_in(expires_at))
+                .await
+                .unwrap();
+        }
+
+        let app_db = sqlx::SqlitePool::connect("sqlite::memory:").await.unwrap();
+        let state = AppState::for_test(dir.path().to_path_buf(), app_db).await;
+        *state.profile.write().await = Some(crate::state::ActiveProfile::for_test(PROFILE, pool));
+        Self {
+            state: std::mem::ManuallyDrop::new(state),
+            binding,
+            seen,
+            _dir: dir,
+        }
+    }
+
+    fn seen(&self) -> Vec<String> {
+        self.seen.lock().unwrap().clone()
+    }
+
+    async fn stored(&self) -> TokenPair {
+        let pool = self
+            .state
+            .require_profile_pool_for(Some(PROFILE))
+            .await
+            .unwrap();
+        let mut conn = pool.acquire().await.unwrap();
+        tokens::read(&mut conn).await.unwrap().unwrap()
+    }
+
+    /// A refresh by another task, already stored.
+    async fn store_rotated(&self) {
+        let pool = self
+            .state
+            .require_profile_pool_for(Some(PROFILE))
+            .await
+            .unwrap();
+        let mut conn = pool.acquire().await.unwrap();
+        tokens::write(
+            &mut conn,
+            &TokenPair {
+                access_token: "wfa_theirs".into(),
+                refresh_token: "wfr_theirs".into(),
+                expires_at: None,
+                username: None,
+            },
+        )
+        .await
+        .unwrap();
+    }
+}
+
+fn signed_in(expires_at: Option<i64>) -> TokenPair {
+    TokenPair {
+        access_token: "wfa_old".into(),
+        refresh_token: "wfr_old".into(),
+        expires_at,
+        username: Some("alice".into()),
+    }
+}
+
+/// The control for the tests below: the same bench, online, does reach the
+/// server, so a count of zero there means something.
+#[tokio::test]
+async fn online_a_lapsed_token_is_refreshed_and_stored() {
+    let bench = Bench::new(LAPSED).await;
+    let _online = offline::scoped_to_this_thread(false);
+    let built = RemoteClient::try_build_for(&bench.state, PROFILE).await;
+    assert!(built.is_ok_and(|client| client.is_some()));
+    assert_eq!(bench.seen(), ["/api/v2/auth/refresh"]);
+    assert_eq!(bench.stored().await.refresh_token, "wfr_rotated");
+}
+
+#[tokio::test]
+async fn offline_a_lapsed_token_sends_nothing() {
+    let bench = Bench::new(LAPSED).await;
+    let _offline = offline::scoped_to_this_thread(true);
+    let built = RemoteClient::try_build_for(&bench.state, PROFILE).await;
+    assert_eq!(bench.seen(), Vec::<String>::new());
+    assert!(built.is_err());
+    assert_eq!(bench.stored().await, signed_in(LAPSED));
+}
+
+/// The path a person can reach: "Sync now" in Settings tests nothing before it
+/// builds its client.
+#[tokio::test]
+async fn offline_syncing_with_a_lapsed_token_sends_nothing() {
+    let bench = Bench::new(LAPSED).await;
+    let _offline = offline::scoped_to_this_thread(true);
+    let synced = crate::remote::sync::sync_now(&bench.state).await;
+    assert_eq!(bench.seen(), Vec::<String>::new());
+    assert!(synced.is_err());
+    assert_eq!(bench.stored().await, signed_in(LAPSED));
+}
+
+/// Adopting what another task stored asks nothing of the network, so offline
+/// does not stand in its way.
+#[tokio::test]
+async fn offline_a_pair_already_rotated_is_still_adopted() {
+    let bench = Bench::new(LAPSED).await;
+    bench.store_rotated().await;
+    let _offline = offline::scoped_to_this_thread(true);
+    let adopted = refresh(&bench.state, PROFILE, &bench.binding, &signed_in(LAPSED))
+        .await
+        .unwrap();
+    assert_eq!(adopted.refresh_token, "wfr_theirs");
+    assert_eq!(bench.seen(), Vec::<String>::new());
+}
+
+/// Offline since the request left: the `401` it comes back with spends no
+/// refresh token.
+#[tokio::test]
+async fn offline_since_the_request_left_a_401_does_not_refresh() {
+    let bench = Bench::new(None).await;
+    let _online = offline::scoped_to_this_thread(false);
+    let client = RemoteClient::try_build_for(&bench.state, PROFILE)
+        .await
+        .unwrap()
+        .unwrap();
+    let sent = client.send_ok(client.get("/goes-offline")).await;
+    assert_eq!(bench.seen(), ["/goes-offline"]);
+    assert!(sent.is_err());
+    assert_eq!(bench.stored().await, signed_in(None));
+}
+
+/// Nor is the request sent a second time, even with a fresh token already in
+/// the database to send it with. A replay is a request like any other.
+#[tokio::test]
+async fn offline_since_the_request_left_it_is_not_replayed() {
+    let bench = Bench::new(None).await;
+    let _online = offline::scoped_to_this_thread(false);
+    let client = RemoteClient::try_build_for(&bench.state, PROFILE)
+        .await
+        .unwrap()
+        .unwrap();
+    bench.store_rotated().await;
+    let failure = client
+        .send_ok(client.get("/goes-offline"))
+        .await
+        .unwrap_err();
+    assert_eq!(bench.seen(), ["/goes-offline"]);
+    assert_eq!(failure.kind, FailureKind::Transient);
+}

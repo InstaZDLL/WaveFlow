@@ -152,6 +152,17 @@ impl std::fmt::Display for RemoteFailure {
 }
 
 impl RemoteFailure {
+    /// Transient: offline is a state the user toggles back, not a reason to
+    /// give up on a queued write.
+    fn offline() -> Self {
+        Self {
+            kind: FailureKind::Transient,
+            status: None,
+            code: None,
+            message: "offline mode is on".into(),
+        }
+    }
+
     fn transport(error: reqwest::Error) -> Self {
         Self {
             // A transport error is a statement about the link, never
@@ -419,12 +430,7 @@ impl<'a> RemoteClient<'a> {
         builder: reqwest::RequestBuilder,
     ) -> Result<reqwest::Response, RemoteFailure> {
         if offline::is_offline() {
-            return Err(RemoteFailure {
-                kind: FailureKind::Transient,
-                status: None,
-                code: None,
-                message: "offline mode is on".into(),
-            });
+            return Err(RemoteFailure::offline());
         }
 
         let request = builder.build().map_err(RemoteFailure::transport)?;
@@ -461,6 +467,11 @@ impl<'a> RemoteClient<'a> {
         // (a drain reuses one across the batch) don't 401 on the stale one.
         if let Ok(mut guard) = self.access_token.write() {
             guard.clone_from(&fresh.access_token);
+        }
+        // The first request left before this could be tested again, and a
+        // refresh that adopted a stored pair asked the network nothing.
+        if offline::is_offline() {
+            return Err(RemoteFailure::offline());
         }
         let Ok(bearer) =
             reqwest::header::HeaderValue::from_str(&format!("Bearer {}", fresh.access_token))
@@ -508,6 +519,12 @@ impl<'a> RemoteClient<'a> {
 /// Single-flighted process-wide, with a re-read after taking the gate so
 /// a task that queued behind another adopts its result rather than
 /// spending a token that has already been rotated away.
+///
+/// In offline mode only that adoption can succeed. This is the one request of
+/// a [`RemoteClient`] that does not go through [`RemoteClient::send`], and
+/// [`RemoteClient::try_build_for`] makes it before the caller has asked for
+/// anything, so testing offline mode here is what keeps a lapsed token from
+/// going out with a client nobody meant to use yet.
 pub async fn refresh(
     state: &AppState,
     profile_id: i64,
@@ -539,6 +556,11 @@ pub async fn refresh(
             }
         }
         // Lease released before the request — see `try_build`.
+    }
+
+    // After the wait for the gate, which can outlast a toggle in Settings.
+    if offline::is_offline() {
+        return Err(AppError::Other("offline mode is on".into()));
     }
 
     let http = reqwest::Client::builder()

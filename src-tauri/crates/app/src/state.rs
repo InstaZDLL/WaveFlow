@@ -380,6 +380,36 @@ pub(crate) async fn resolve_target_profile(app_db: &SqlitePool) -> AppResult<Opt
 }
 
 impl AppState {
+    /// A state over `app_db` and no active profile, for a test that drives real
+    /// code paths through it: what would otherwise need a running Tauri app.
+    /// The DLNA and MPD workers are only spawned, never started.
+    #[cfg(all(test, feature = "sync_v2"))]
+    pub(crate) async fn for_test(root: std::path::PathBuf, app_db: SqlitePool) -> Self {
+        // Off the async context, for the reason `init` gives.
+        let plugins = tokio::task::spawn_blocking(|| PluginRuntime::new(RuntimeConfig::default()))
+            .await
+            .expect("plugin runtime join")
+            .expect("plugin runtime");
+        Self {
+            paths: AppPaths::from_root(root, None),
+            cache_root_fallback: None,
+            cache_move_lock: Arc::new(tokio::sync::Mutex::new(())),
+            app_db,
+            profile: Arc::new(RwLock::new(None)),
+            dlna: DlnaServer::spawn(),
+            mpd: MpdServer::spawn(),
+            drain: Arc::new(crate::sync::drain::DrainHandle),
+            drain_lock: Arc::new(tokio::sync::Mutex::new(())),
+            backfill_lock: Arc::new(tokio::sync::Mutex::new(())),
+            profile_switch_lock: Arc::new(tokio::sync::Mutex::new(())),
+            ws: Arc::new(crate::sync::ws::SubscribeHandle),
+            plugins,
+            plugin_locks: Arc::new(Mutex::new(HashMap::new())),
+            remote_playback: crate::remote_playback::RemotePlayback::default(),
+            external_playback: crate::external_playback::ExternalPlayback::default(),
+        }
+    }
+
     /// Initialize the application state during Tauri setup.
     ///
     /// Resolves filesystem paths, ensures the root directories exist, opens
