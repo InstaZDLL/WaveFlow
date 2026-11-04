@@ -344,8 +344,8 @@ async fn step_and_play<E: Turns>(
 /// session, unless something newer has taken over meanwhile. `true` when it was
 /// still this step's to give up.
 ///
-/// The session being gone counts as well as the intent: a profile switch drops
-/// it without claiming anything first.
+/// The session being gone counts as well as the intent: a profile switch and
+/// the hand-off of a crossfade drop it without claiming anything first.
 async fn give_up<E: Turns>(engine: &E, session: &RemotePlayback, intent: LoadIntent) -> bool {
     let _publish = engine.lock_publish().await;
     if engine.load_intent_superseded(intent) || !session.is_active() {

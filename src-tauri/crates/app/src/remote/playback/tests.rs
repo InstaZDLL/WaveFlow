@@ -84,7 +84,7 @@ async fn a_failed_step_leaves_a_session_started_meanwhile() {
     assert_eq!(current(&session).as_deref(), Some("other"));
 }
 
-/// A profile switch drops the session without claiming anything: gone is enough
+/// A profile switch or a crossfade drops the session without claiming: gone is enough
 /// to know this failure is nobody's business.
 #[tokio::test]
 async fn a_failed_step_stops_nothing_once_the_session_is_gone() {

@@ -447,15 +447,20 @@ async fn jump_and_play<E: Turns>(
     // As in `advance`: a jump that cannot play leaves no session pointing at a
     // file nothing is playing.
     match play.await {
+        Ok(()) => Ok(()),
         Err(err) if give_up(engine, session) => Err(err),
-        _ => Ok(()),
+        Err(err) => {
+            tracing::debug!(%err, "file jump failed after its session was dropped");
+            Ok(())
+        }
     }
 }
 
-/// Step the cursor and play what it lands on. `Ok(false)` when the queue
-/// ran off its end with repeat off: the session is cleared and the engine
-/// stopped. `intent` is the caller's, claimed where the step started (a key
-/// press, the end of a track), as for the remote queue (#622).
+/// Step the cursor and play what it lands on. `Ok(false)` when nothing new
+/// plays: the queue ran off its end with repeat off (the session is cleared and
+/// the engine stopped), or something newer took over or dropped the session,
+/// and then nothing is stopped. `intent` is the caller's, claimed where the step
+/// started (a key press, the end of a track), as for the remote queue (#622).
 pub async fn advance(app: &AppHandle, direction: Direction, intent: LoadIntent) -> AppResult<bool> {
     let state = app.state::<AppState>();
     let repeat = match state.require_profile_pool().await {
@@ -498,14 +503,18 @@ async fn step_and_play<E: Turns>(
     match play.await {
         Ok(()) => Ok(true),
         Err(err) if give_up(engine, session) => Err(err),
-        Err(_) => Ok(false),
+        Err(err) => {
+            tracing::debug!(%err, "file step failed after its session was dropped");
+            Ok(false)
+        }
     }
 }
 
 /// A move whose file could not be read stops the player and drops the session,
-/// unless the session has gone meanwhile: a profile switch drops it without the
-/// publish lock. `true` when it was still this move's to give up. Nothing newer
-/// can have claimed, since the lock is held from the claim to here.
+/// unless the session has gone meanwhile: a profile switch and the hand-off of
+/// a crossfade drop it without the publish lock. `true` when it was still this
+/// move's to give up. Nothing newer can have claimed, since the lock is held from
+/// the claim to here.
 fn give_up<E: Turns>(engine: &E, session: &ExternalPlayback) -> bool {
     if !session.is_active() {
         return false;

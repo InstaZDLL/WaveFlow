@@ -1045,7 +1045,8 @@ because one genuinely slow step must not be serialized:
   it. Again only if that fails: a jump puts the cursor back and what was playing
   goes on, a step has nothing to go back to and stops the player and drops the
   session. Neither does anything once the intent has been superseded or the
-  session is gone (a profile switch drops it without claiming), since
+  session is gone (a profile switch and the hand-off of a crossfade drop it
+  without claiming), since
   the failure is then nobody's business. Under the lock because a local producer
   claims and sends as one move, and a `Stop` decided outside it could land after
   that load.
