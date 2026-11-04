@@ -401,6 +401,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     // previous profile doesn't linger during the async fetch.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPlaybackState("idle");
+    setKeepPitchState(SETTINGS["audio.keep_pitch"].defaultValue);
+    setPitchSemitonesState(SETTINGS["audio.pitch_semitones"].defaultValue);
     setCurrentTrack(null);
     setCurrentRadioStation(null);
     setPlayerPosition(0);
