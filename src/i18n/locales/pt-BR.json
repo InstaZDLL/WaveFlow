@@ -3494,6 +3494,9 @@
       "cacheUsed_one": "Cache local: {{size}}, {{count}} faixa",
       "cacheUsed_other": "Cache local: {{size}}, {{count}} faixas",
       "cacheUsed_many": "Cache local: {{size}}, {{count}} faixas"
+    },
+    "podcasts": {
+      "title": "Podcasts"
     }
   },
   "scanProgress": {
@@ -3889,7 +3892,8 @@
       "spectrogram": "Espectro de uma faixa",
       "enrichment": "Enriquecimento da biblioteca",
       "release_radar": "Release Radar",
-      "tag_workshop": "Oficina de etiquetas"
+      "tag_workshop": "Oficina de etiquetas",
+      "podcast_refresh": "Atualização de podcasts"
     }
   },
   "smartRuleSummary": {

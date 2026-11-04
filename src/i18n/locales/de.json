@@ -3421,6 +3421,9 @@
       "share": "Name der Freigabe",
       "cacheUsed_one": "Lokaler Cache: {{size}}, {{count}} Titel",
       "cacheUsed_other": "Lokaler Cache: {{size}}, {{count}} Titel"
+    },
+    "podcasts": {
+      "title": "Podcasts"
     }
   },
   "scanProgress": {
@@ -3789,7 +3792,8 @@
       "spectrogram": "Spektrum eines Titels",
       "enrichment": "Bibliothek anreichern",
       "release_radar": "Release Radar",
-      "tag_workshop": "Tag-Werkstatt"
+      "tag_workshop": "Tag-Werkstatt",
+      "podcast_refresh": "Podcast-Aktualisierung"
     }
   },
   "smartRuleSummary": {

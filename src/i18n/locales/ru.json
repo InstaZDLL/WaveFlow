@@ -3569,6 +3569,9 @@
       "cacheUsed_other": "Локальный кэш: {{size}}, треков: {{count}}",
       "cacheUsed_few": "Локальный кэш: {{size}}, треков: {{count}}",
       "cacheUsed_many": "Локальный кэш: {{size}}, треков: {{count}}"
+    },
+    "podcasts": {
+      "title": "Подкасты"
     }
   },
   "scanProgress": {
@@ -3989,7 +3992,8 @@
       "spectrogram": "Спектр трека",
       "enrichment": "Обогащение медиатеки",
       "release_radar": "Release Radar",
-      "tag_workshop": "Мастерская тегов"
+      "tag_workshop": "Мастерская тегов",
+      "podcast_refresh": "Обновление подкастов"
     },
     "more_few": "Ещё {{count}} задачи",
     "more_many": "Ещё {{count}} задач"

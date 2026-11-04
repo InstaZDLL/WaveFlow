@@ -18,7 +18,7 @@ pub fn parse(content: &str) -> Result<Document, ParseError> {
         && content[6..]
             .chars()
             .next()
-            .is_none_or(|c| c.is_whitespace());
+            .map_or(true, |c| c.is_whitespace());
     if !opens_right {
         return Err(ParseError::NotTimedText);
     }

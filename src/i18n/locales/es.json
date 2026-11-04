@@ -3493,6 +3493,9 @@
       "cacheUsed_one": "Caché local: {{size}}, {{count}} canción",
       "cacheUsed_other": "Caché local: {{size}}, {{count}} canciones",
       "cacheUsed_many": "Caché local: {{size}}, {{count}} canciones"
+    },
+    "podcasts": {
+      "title": "Pódcasts"
     }
   },
   "scanProgress": {
@@ -3888,7 +3891,8 @@
       "spectrogram": "Espectro de una pista",
       "enrichment": "Enriquecimiento de la biblioteca",
       "release_radar": "Release Radar",
-      "tag_workshop": "Taller de etiquetas"
+      "tag_workshop": "Taller de etiquetas",
+      "podcast_refresh": "Actualización de pódcasts"
     }
   },
   "smartRuleSummary": {

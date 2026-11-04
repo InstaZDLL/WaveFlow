@@ -3419,6 +3419,9 @@
       "share": "共享名称",
       "cacheUsed_one": "本地缓存:{{size}},{{count}} 首曲目",
       "cacheUsed_other": "本地缓存:{{size}},{{count}} 首曲目"
+    },
+    "podcasts": {
+      "title": "播客"
     }
   },
   "scanProgress": {
@@ -3787,7 +3790,8 @@
       "spectrogram": "曲目频谱",
       "enrichment": "音乐库信息补全",
       "release_radar": "Release Radar",
-      "tag_workshop": "标签工坊"
+      "tag_workshop": "标签工坊",
+      "podcast_refresh": "刷新播客"
     }
   },
   "smartRuleSummary": {

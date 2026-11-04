@@ -134,7 +134,15 @@ async fn fill_imported_profile(
     //    immediately. This matches the create_profile flow and gives
     //    the user a usable profile by the time the call returns.
     let pool = db::profile_db::open(&paths.profile_db(new_profile_id), &paths.app_db).await?;
+    // 6. An archive may not have been written by a build that leaves these behind,
+    //    or by this person. Whatever it says, an imported profile holds no podcast
+    //    address and has not accepted the podcast warning.
+    let blanked = match pool.acquire().await {
+        Ok(mut conn) => blank_what_does_not_travel(&mut conn).await,
+        Err(err) => Err(err),
+    };
     pool.close().await;
+    blanked?;
     Ok(())
 }
 

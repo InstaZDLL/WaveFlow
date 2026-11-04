@@ -42,6 +42,31 @@ pub const MAX_TRANSCRIPT_BYTES: usize = 5 * 1024 * 1024;
 /// The longest time believed, in a duration or a chapter: 100 hours.
 pub(crate) const MAX_PLAUSIBLE_MS: u64 = 100 * 3_600_000;
 
+/// The largest side of a channel picture accepted, in pixels. Far above any
+/// real cover, and what keeps a small file that declares an enormous image from
+/// reaching the thumbnail job.
+const MAX_COVER_SIDE: u32 = 8_192;
+
+/// Whether bytes a feed pointed at may join the artwork cache: an image in a
+/// format covers come in, of a sane size. Reads the header only, so a
+/// decompression bomb is refused without being decoded.
+pub fn accepts_cover(bytes: &[u8]) -> bool {
+    use image::ImageFormat;
+    let Ok(reader) = image::ImageReader::new(std::io::Cursor::new(bytes)).with_guessed_format()
+    else {
+        return false;
+    };
+    if !matches!(
+        reader.format(),
+        Some(ImageFormat::Jpeg | ImageFormat::Png | ImageFormat::WebP | ImageFormat::Gif)
+    ) {
+        return false;
+    }
+    reader
+        .into_dimensions()
+        .is_ok_and(|(width, height)| width <= MAX_COVER_SIDE && height <= MAX_COVER_SIDE)
+}
+
 /// The audio formats an episode may be stored as, recognised from the bytes:
 /// `(suffix, content type)`. Anything else is refused: a feed that serves a
 /// page of HTML, or a binary, as its enclosure gets nothing written to disk.

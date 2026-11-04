@@ -60,15 +60,57 @@ impl Drop for ScrubbedCopy {
     }
 }
 
-/// A copy of the database with every `network_source.secret` blanked. The copy
-/// is what gets looked at and what gets archived, even when it holds none: a
-/// password saved while an export runs cannot pass between a check of the live
-/// file and the read of it.
+/// What stays behind when a profile travels: each table, how to count what it
+/// holds of that kind, and how to blank it.
+const BLANKED_IN_AN_ARCHIVE: [(&str, &str, &str); 4] = [
+    (
+        "network_source",
+        "SELECT COUNT(*) FROM network_source WHERE secret IS NOT NULL",
+        "UPDATE network_source SET secret = NULL",
+    ),
+    (
+        "podcast_channel",
+        "SELECT COUNT(*) FROM podcast_channel
+          WHERE feed_url IS NOT NULL OR site_url IS NOT NULL OR image_url IS NOT NULL
+             OR etag IS NOT NULL OR last_modified IS NOT NULL",
+        "UPDATE podcast_channel
+            SET feed_url = NULL, site_url = NULL, image_url = NULL,
+                etag = NULL, last_modified = NULL",
+    ),
+    (
+        "podcast_episode",
+        "SELECT COUNT(*) FROM podcast_episode
+          WHERE enclosure_url IS NOT NULL OR chapters_url IS NOT NULL OR transcripts IS NOT NULL",
+        "UPDATE podcast_episode
+            SET enclosure_url = NULL, chapters_url = NULL, transcripts = NULL",
+    ),
+    // Not a secret, but not the archive's to carry either: the warning was
+    // accepted by a person on a machine.
+    (
+        "profile_setting",
+        "SELECT COUNT(*) FROM profile_setting WHERE key = 'podcasts.enabled'",
+        "DELETE FROM profile_setting WHERE key = 'podcasts.enabled'",
+    ),
+];
+
+/// A copy of the database with every `network_source.secret` and every podcast
+/// address blanked. The copy is what gets looked at and what gets archived, even
+/// when it holds none: a password saved while an export runs cannot pass between
+/// a check of the live file and the read of it.
 ///
-/// `VACUUM` is the point as much as the `UPDATE`: an updated row leaves its old
-/// bytes in a free page, and the archive is the whole file. A password changed
-/// or a source removed earlier leaves none behind, because those writes run
-/// with `secure_delete` (`netlib::store`).
+/// A podcast address is here because a private feed holds its token in it, in
+/// the path as often as in the query, and the enclosures after it often do too.
+/// What survives is the hash a channel and an episode are known by, so
+/// subscribing to the same address again finds them with their positions. The
+/// deliberate way to carry addresses is an OPML export.
+///
+/// `VACUUM` is the point as much as the `UPDATE`, and it runs whatever was blanked:
+/// an updated row leaves its old bytes in the page, a removed one in a free page,
+/// and the archive is the whole file. Any write that makes a podcast row grow
+/// moves it, a position or an error word included, so no list of careful writers
+/// could keep an address out of those bytes, and a profile with no channel left has
+/// no row to blank but may still hold every address it ever had. The rebuild leaves
+/// nothing but what the rows now say.
 ///
 /// `write_archive` is a plain blocking function, so this drives sqlx on a thread
 /// of its own, which works wherever it was called from.
@@ -96,29 +138,39 @@ fn scrub_on_this_thread(db_path: &Path) -> AppResult<ScrubbedCopy> {
         sqlx::query("PRAGMA journal_mode = DELETE")
             .execute(&mut conn)
             .await?;
-        // A profile not migrated since has no such table, and that alone means
-        // no secret.
-        let has_table: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'network_source'",
-        )
-        .fetch_one(&mut conn)
-        .await?;
-        let secrets: i64 = if has_table == 0 {
-            0
-        } else {
-            sqlx::query_scalar("SELECT COUNT(*) FROM network_source WHERE secret IS NOT NULL")
-                .fetch_one(&mut conn)
-                .await?
-        };
-        if secrets > 0 {
-            sqlx::query("UPDATE network_source SET secret = NULL")
-                .execute(&mut conn)
-                .await?;
-            sqlx::query("VACUUM").execute(&mut conn).await?;
-        }
+        blank_what_does_not_travel(&mut conn).await?;
+        sqlx::query("VACUUM").execute(&mut conn).await?;
         conn.close().await
     })?;
     Ok(copy)
+}
+
+/// Runs [`BLANKED_IN_AN_ARCHIVE`] over a database. On a copy being archived, and
+/// again on a database just imported, since an archive may have been made by
+/// another build or by hand: a podcast address in one is not an address this
+/// person typed, and the refresh timer would otherwise contact what it names, the
+/// local network included, as soon as the warning is accepted here.
+pub(super) async fn blank_what_does_not_travel(
+    conn: &mut sqlx::SqliteConnection,
+) -> Result<(), sqlx::Error> {
+    for (table, count, blank) in BLANKED_IN_AN_ARCHIVE {
+        // A profile not migrated since has no such table, and that alone means
+        // nothing to blank.
+        let has_table: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?",
+        )
+        .bind(table)
+        .fetch_one(&mut *conn)
+        .await?;
+        if has_table == 0 {
+            continue;
+        }
+        let found: i64 = sqlx::query_scalar(count).fetch_one(&mut *conn).await?;
+        if found > 0 {
+            sqlx::query(blank).execute(&mut *conn).await?;
+        }
+    }
+    Ok(())
 }
 
 fn write_archive_into(

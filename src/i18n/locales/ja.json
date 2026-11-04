@@ -3419,6 +3419,9 @@
       "share": "共有名",
       "cacheUsed_one": "ローカルキャッシュ: {{size}}、{{count}} 曲",
       "cacheUsed_other": "ローカルキャッシュ: {{size}}、{{count}} 曲"
+    },
+    "podcasts": {
+      "title": "ポッドキャスト"
     }
   },
   "scanProgress": {
@@ -3787,7 +3790,8 @@
       "spectrogram": "トラックのスペクトル",
       "enrichment": "ライブラリ情報の補完",
       "release_radar": "Release Radar",
-      "tag_workshop": "タグ工房"
+      "tag_workshop": "タグ工房",
+      "podcast_refresh": "ポッドキャストの更新"
     }
   },
   "smartRuleSummary": {

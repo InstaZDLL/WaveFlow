@@ -691,3 +691,371 @@ async fn an_export_leaves_a_shares_password_behind() {
         .collect();
     assert!(leftovers.is_empty());
 }
+
+// ── a podcast's addresses ──────────────────────────────────────
+
+/// A private feed's token, exported by the real `write_archive`: the addresses
+/// are gone from the archive, in clear or in a free page, including ones written
+/// over or removed before the export. The hashes stay, so subscribing again finds
+/// the channel; the database at home keeps everything.
+#[tokio::test(flavor = "multi_thread")]
+async fn an_export_leaves_feed_addresses_behind() {
+    use std::io::Read;
+
+    const MARKER: &str = "f33d-t0k3n-a91c";
+    let dir = tempfile::tempdir().unwrap();
+    let profile = dir.path().join("profile");
+    std::fs::create_dir_all(profile.join("artwork")).unwrap();
+    let db = extracted(&profile).await;
+    let at = |path: &str| format!("https://feeds.example.org/{MARKER}/{path}?auth={MARKER}");
+
+    let pool = SqlitePoolOptions::new()
+        .max_connections(1)
+        .connect_with(
+            SqliteConnectOptions::new()
+                .filename(&db)
+                .journal_mode(sqlx::sqlite::SqliteJournalMode::Wal)
+                .foreign_keys(true),
+        )
+        .await
+        .unwrap();
+    let feed = |episode: &str| waveflow_core::podcast::Feed {
+        title: "Show".into(),
+        description: None,
+        author: None,
+        language: None,
+        site_url: Some(at("site")),
+        image_url: Some(at("cover.png")),
+        new_feed_url: None,
+        episodes: vec![waveflow_core::podcast::FeedEpisode {
+            guid: at(episode),
+            title: "One".into(),
+            description: None,
+            published_at: None,
+            duration_ms: None,
+            season: None,
+            episode_number: None,
+            enclosure_url: at(episode),
+            enclosure_type: None,
+            enclosure_length: None,
+            chapters_url: Some(at("chapters.json")),
+            inline_chapters: vec![],
+            transcripts: vec![waveflow_core::podcast::TranscriptRef {
+                url: at("t.vtt"),
+                kind: waveflow_core::podcast::TranscriptKind::Vtt,
+                language: None,
+            }],
+        }],
+    };
+    let validators = crate::podcast::fetch::Validators {
+        etag: Some(format!("\"{MARKER}\"")),
+        last_modified: None,
+    };
+    // A channel kept, with an address written over at a later refresh, and one
+    // removed: what is gone from the rows must be gone from the free pages too.
+    crate::podcast::store::apply_feed(&pool, "kept", &at("feed"), &feed("old"), &validators)
+        .await
+        .unwrap();
+    crate::podcast::store::apply_feed(&pool, "kept", &at("feed"), &feed("old"), &validators)
+        .await
+        .unwrap();
+    let removed =
+        crate::podcast::store::apply_feed(&pool, "gone", &at("gone"), &feed("gone"), &validators)
+            .await
+            .unwrap();
+    assert!(crate::podcast::store::delete_channel(&pool, removed)
+        .await
+        .unwrap());
+    sqlx::query("UPDATE podcast_episode SET position_ms = 4242")
+        .execute(&pool)
+        .await
+        .unwrap();
+    sqlx::query(
+        "INSERT INTO profile_setting (key, value, value_type, updated_at)
+         VALUES ('podcasts.enabled', 'true', 'bool', 0)",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+    sqlx::query("PRAGMA wal_checkpoint(TRUNCATE)")
+        .execute(&pool)
+        .await
+        .unwrap();
+    pool.close().await;
+    let at_home = std::fs::read(&db).unwrap();
+    assert!(
+        at_home
+            .windows(MARKER.len())
+            .any(|w| w == MARKER.as_bytes()),
+        "the test only proves something if the bytes were there"
+    );
+
+    let target = dir.path().join("weekend.waveflow");
+    let db_for_export = db.clone();
+    let profile_for_export = profile.clone();
+    let target_for_export = target.clone();
+    tokio::task::spawn_blocking(move || {
+        write_archive(
+            &target_for_export,
+            &profile_for_export,
+            &db_for_export,
+            &profile_for_export.join("artwork"),
+            None,
+            &manifest(ARCHIVE_VERSION),
+        )
+    })
+    .await
+    .unwrap()
+    .unwrap();
+
+    let mut archive = zip::ZipArchive::new(File::open(&target).unwrap()).unwrap();
+    let mut archived_db = Vec::new();
+    for index in 0..archive.len() {
+        let mut entry = archive.by_index(index).unwrap();
+        let name = entry.name().unwrap().to_string();
+        let mut bytes = Vec::new();
+        entry.read_to_end(&mut bytes).unwrap();
+        assert!(
+            !bytes.windows(MARKER.len()).any(|w| w == MARKER.as_bytes()),
+            "a feed address is in {name}"
+        );
+        if name == "data.db" {
+            archived_db = bytes;
+        }
+    }
+    assert!(!archived_db.is_empty());
+
+    // The channel travels, and what it is known by, and the position.
+    let restored = dir.path().join("restored.db");
+    std::fs::write(&restored, &archived_db).unwrap();
+    assert_eq!(
+        count(
+            &restored,
+            "SELECT COUNT(*) FROM podcast_channel WHERE feed_key = 'kept' AND feed_url IS NULL
+               AND site_url IS NULL AND image_url IS NULL AND etag IS NULL"
+        )
+        .await,
+        1
+    );
+    assert_eq!(
+        count(
+            &restored,
+            "SELECT COUNT(*) FROM podcast_episode WHERE position_ms = 4242 AND enclosure_url IS NULL
+               AND chapters_url IS NULL AND transcripts IS NULL"
+        )
+        .await,
+        1
+    );
+    // The warning does not travel with the channels.
+    assert_eq!(
+        count(
+            &restored,
+            "SELECT COUNT(*) FROM profile_setting WHERE key = 'podcasts.enabled'"
+        )
+        .await,
+        0
+    );
+
+    // The live database is untouched.
+    assert_eq!(
+        count(
+            &db,
+            "SELECT COUNT(*) FROM podcast_channel WHERE feed_url IS NOT NULL"
+        )
+        .await,
+        1
+    );
+    assert_eq!(
+        count(
+            &db,
+            "SELECT COUNT(*) FROM profile_setting WHERE key = 'podcasts.enabled'"
+        )
+        .await,
+        1
+    );
+}
+
+/// An archive holding the podcast switch on and a channel naming the local network,
+/// written by hand: `write_archive` would leave both behind.
+async fn profile_archive_with_setting(dir: &Path) -> (PathBuf, PathBuf) {
+    let profile = dir.join("profile");
+    std::fs::create_dir_all(profile.join("artwork")).unwrap();
+    let db = extracted(&profile).await;
+    exec(
+        &db,
+        "INSERT INTO profile_setting (key, value, value_type, updated_at)
+         VALUES ('podcasts.enabled', 'true', 'bool', 0);
+         INSERT INTO podcast_channel (feed_key, feed_url, title, created_at, updated_at)
+         VALUES ('k', 'http://192.168.1.1/admin', 'Router', 0, 0);",
+    )
+    .await;
+    let target = dir.join("handmade.waveflow");
+    let mut zip = ZipWriter::new(File::create(&target).unwrap());
+    let options = SimpleFileOptions::default();
+    zip.start_file(MANIFEST_FILENAME, options).unwrap();
+    zip.write_all(&serde_json::to_vec(&manifest(ARCHIVE_VERSION)).unwrap())
+        .unwrap();
+    zip.start_file("data.db", options).unwrap();
+    zip.write_all(&std::fs::read(&db).unwrap()).unwrap();
+    zip.finish().unwrap();
+    (target, db)
+}
+
+/// An archive that says the switch is on, as one from another build or another
+/// person could: the imported profile comes back off, so the warning shows again,
+/// and the addresses it names are gone, so accepting that warning here does not make
+/// the timer contact what somebody else wrote into the file.
+#[tokio::test]
+async fn an_imported_profile_comes_back_with_podcasts_off() {
+    let dir = tempfile::tempdir().unwrap();
+    let (archive, db_in_archive) = profile_archive_with_setting(dir.path()).await;
+    let root = dir.path().join("app");
+    std::fs::create_dir_all(&root).unwrap();
+    let paths = crate::paths::AppPaths::from_root(root.clone(), None);
+    let app_db = app_db(&root).await;
+
+    let imported = import_profile_inner(
+        &app_db,
+        &paths,
+        archive.to_string_lossy().into_owned(),
+        None,
+    )
+    .await
+    .unwrap();
+
+    assert_eq!(
+        count(
+            &db_in_archive,
+            "SELECT COUNT(*) FROM profile_setting WHERE key = 'podcasts.enabled'"
+        )
+        .await,
+        1,
+        "the test only proves something if the archive said so"
+    );
+    let pool = crate::db::profile_db::open(&paths.profile_db(imported.id), &paths.app_db)
+        .await
+        .unwrap();
+    assert!(!crate::podcast::store::is_enabled(&pool).await.unwrap());
+    let channels = crate::podcast::store::list_channels(&pool).await.unwrap();
+    assert_eq!(channels.len(), 1, "the channel itself comes along");
+    assert!(!channels[0].has_feed_address);
+    assert!(crate::podcast::store::refreshable(&pool)
+        .await
+        .unwrap()
+        .is_empty());
+    pool.close().await;
+}
+
+/// With no channel left there is no row to blank, and the bytes are still in the
+/// file: a removed row stays in a free page, and a row an ordinary write made grow
+/// left its old self behind in the page. The archive holds none of them.
+#[tokio::test(flavor = "multi_thread")]
+async fn an_export_after_unsubscribing_holds_no_trace_of_the_address() {
+    use std::io::Read;
+
+    const MARKER: &str = "g0ne-t0k3n-77ab";
+    let dir = tempfile::tempdir().unwrap();
+    let profile = dir.path().join("profile");
+    std::fs::create_dir_all(profile.join("artwork")).unwrap();
+    let db = extracted(&profile).await;
+    let at = |path: &str| format!("https://feeds.example.org/{MARKER}/{path}");
+    let pool = SqlitePoolOptions::new()
+        .max_connections(1)
+        .connect_with(
+            SqliteConnectOptions::new()
+                .filename(&db)
+                .journal_mode(sqlx::sqlite::SqliteJournalMode::Wal)
+                .foreign_keys(true),
+        )
+        .await
+        .unwrap();
+    let episode = |enclosure: String| waveflow_core::podcast::FeedEpisode {
+        guid: "the-guid".into(),
+        title: "One".into(),
+        description: None,
+        published_at: None,
+        duration_ms: None,
+        season: None,
+        episode_number: None,
+        enclosure_url: enclosure,
+        enclosure_type: None,
+        enclosure_length: None,
+        chapters_url: None,
+        inline_chapters: vec![],
+        transcripts: vec![],
+    };
+    let feed = |enclosure: String| waveflow_core::podcast::Feed {
+        title: "Show".into(),
+        description: None,
+        author: None,
+        language: None,
+        site_url: None,
+        image_url: None,
+        new_feed_url: None,
+        episodes: vec![episode(enclosure)],
+    };
+    let validators = crate::podcast::fetch::Validators::default();
+    let id =
+        crate::podcast::store::apply_feed(&pool, "k", &at("feed"), &feed(at("a")), &validators)
+            .await
+            .unwrap();
+    // An error word makes the row grow, an address is written over, the feed moves,
+    // and then the whole channel goes.
+    crate::podcast::store::record_failure(&pool, id, "too_many_redirects")
+        .await
+        .unwrap();
+    assert!(
+        crate::podcast::store::refresh_feed(&pool, id, &feed(at("b")), &validators)
+            .await
+            .unwrap()
+    );
+    assert!(
+        crate::podcast::store::move_channel(&pool, id, "k2", &at("moved"))
+            .await
+            .unwrap()
+    );
+    assert!(crate::podcast::store::delete_channel(&pool, id)
+        .await
+        .unwrap());
+    sqlx::query("PRAGMA wal_checkpoint(TRUNCATE)")
+        .execute(&pool)
+        .await
+        .unwrap();
+    pool.close().await;
+    assert!(
+        std::fs::read(&db)
+            .unwrap()
+            .windows(MARKER.len())
+            .any(|w| w == MARKER.as_bytes()),
+        "the test only proves something if the bytes were there"
+    );
+
+    let target = dir.path().join("after.waveflow");
+    let db_for_export = db.clone();
+    let profile_for_export = profile.clone();
+    let target_for_export = target.clone();
+    tokio::task::spawn_blocking(move || {
+        write_archive(
+            &target_for_export,
+            &profile_for_export,
+            &db_for_export,
+            &profile_for_export.join("artwork"),
+            None,
+            &manifest(ARCHIVE_VERSION),
+        )
+    })
+    .await
+    .unwrap()
+    .unwrap();
+    let mut archive = zip::ZipArchive::new(File::open(&target).unwrap()).unwrap();
+    for index in 0..archive.len() {
+        let mut entry = archive.by_index(index).unwrap();
+        let name = entry.name().unwrap().to_string();
+        let mut bytes = Vec::new();
+        entry.read_to_end(&mut bytes).unwrap();
+        assert!(
+            !bytes.windows(MARKER.len()).any(|w| w == MARKER.as_bytes()),
+            "a removed address is in {name}"
+        );
+    }
+}

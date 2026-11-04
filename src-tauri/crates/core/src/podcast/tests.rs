@@ -67,6 +67,30 @@ fn an_rss_feed_is_read_newest_first_and_an_item_without_audio_is_skipped() {
 }
 
 #[test]
+fn a_feed_may_say_it_has_moved() {
+    let moved = |address: &str| {
+        let document = format!(
+            "<rss xmlns:itunes=\"http://www.itunes.com/dtds/podcast-1.0.dtd\"><channel>\
+             <title>T</title><itunes:new-feed-url>{address}</itunes:new-feed-url>\
+             </channel></rss>"
+        );
+        parse_feed(document.as_bytes(), &base())
+            .unwrap()
+            .new_feed_url
+    };
+    assert_eq!(
+        moved("https://new.example.org/feed").as_deref(),
+        Some("https://new.example.org/feed")
+    );
+    assert_eq!(
+        moved("/elsewhere.xml").as_deref(),
+        Some("https://feeds.example.org/elsewhere.xml")
+    );
+    assert_eq!(moved("file:///etc/passwd"), None);
+    assert_eq!(moved("https://user:pw@new.example.org/"), None);
+}
+
+#[test]
 fn an_atom_feed_is_read() {
     let feed = parse_feed(
         br#"<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
@@ -765,4 +789,30 @@ fn a_transcript_is_refused_when_it_is_too_large_or_not_what_it_says() {
         encoding_rs::WINDOWS_1252.encode("WEBVTT\n\n00:01.000 --> 00:02.000\nCafé\n");
     let document = transcript::read(TranscriptKind::Vtt, &latin).unwrap();
     assert_eq!(document.lines[0].text(), "Café");
+}
+
+// ── channel pictures ────────────────────────────────────────────────
+
+#[test]
+fn a_cover_is_an_image_of_a_sane_size() {
+    let encode = |width, height| {
+        let mut bytes = std::io::Cursor::new(Vec::new());
+        image::RgbImage::new(width, height)
+            .write_to(&mut bytes, image::ImageFormat::Png)
+            .unwrap();
+        bytes.into_inner()
+    };
+    assert!(accepts_cover(&encode(8, 8)));
+    assert!(!accepts_cover(b"<html>not an image</html>"));
+    assert!(!accepts_cover(
+        b"<svg xmlns=\"http://www.w3.org/2000/svg\"/>"
+    ));
+    assert!(!accepts_cover(b""));
+
+    // A small file that declares an enormous image: only its header is read, so
+    // this is refused without allocating what it asks for.
+    let mut bomb = encode(8, 8);
+    bomb[16..20].copy_from_slice(&100_000u32.to_be_bytes());
+    bomb[20..24].copy_from_slice(&100_000u32.to_be_bytes());
+    assert!(!accepts_cover(&bomb));
 }

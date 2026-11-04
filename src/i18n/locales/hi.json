@@ -3421,6 +3421,9 @@
       "share": "शेयर का नाम",
       "cacheUsed_one": "स्थानीय कैश: {{size}}, {{count}} ट्रैक",
       "cacheUsed_other": "स्थानीय कैश: {{size}}, {{count}} ट्रैक"
+    },
+    "podcasts": {
+      "title": "पॉडकास्ट"
     }
   },
   "scanProgress": {
@@ -3789,7 +3792,8 @@
       "spectrogram": "ट्रैक का स्पेक्ट्रम",
       "enrichment": "लाइब्रेरी समृद्धि",
       "release_radar": "Release Radar",
-      "tag_workshop": "टैग वर्कशॉप"
+      "tag_workshop": "टैग वर्कशॉप",
+      "podcast_refresh": "पॉडकास्ट रीफ़्रेश"
     }
   },
   "smartRuleSummary": {

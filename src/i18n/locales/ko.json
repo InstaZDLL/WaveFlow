@@ -3419,6 +3419,9 @@
       "share": "공유 이름",
       "cacheUsed_one": "로컬 캐시: {{size}}, {{count}}곡",
       "cacheUsed_other": "로컬 캐시: {{size}}, {{count}}곡"
+    },
+    "podcasts": {
+      "title": "팟캐스트"
     }
   },
   "scanProgress": {
@@ -3787,7 +3790,8 @@
       "spectrogram": "트랙 스펙트럼",
       "enrichment": "라이브러리 정보 보강",
       "release_radar": "Release Radar",
-      "tag_workshop": "태그 작업실"
+      "tag_workshop": "태그 작업실",
+      "podcast_refresh": "팟캐스트 새로 고침"
     }
   },
   "smartRuleSummary": {

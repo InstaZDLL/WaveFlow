@@ -48,6 +48,9 @@ pub struct Feed {
     pub language: Option<String>,
     pub site_url: Option<String>,
     pub image_url: Option<String>,
+    /// `itunes:new-feed-url`: where this feed says it has moved. An address out
+    /// of a response like any other, judged before anything follows it.
+    pub new_feed_url: Option<String>,
     /// Newest first, at most [`MAX_EPISODES_PER_FEED`].
     pub episodes: Vec<FeedEpisode>,
 }
@@ -248,6 +251,8 @@ fn parse_rss(channel: Node<'_, '_>, base: &Url) -> Feed {
         language: text_of(channel, "language", 32),
         site_url: text_of(channel, "link", MAX_URL_CHARS).and_then(|link| address(&link, base)),
         image_url: channel_image(channel, base),
+        new_feed_url: text_of(channel, "new-feed-url", MAX_URL_CHARS)
+            .and_then(|moved| address(&moved, base)),
         episodes,
     }
 }
@@ -340,7 +345,7 @@ fn item_chapters(item: Node<'_, '_>, base: &Url) -> (Option<String>, Vec<Chapter
         .filter(|node| node.is_element() && node.tag_name().name() == "chapters")
     {
         if let Some(target) = node.attribute("url") {
-            let is_json = declared_type(node).is_none_or(|kind| kind.contains("json"));
+            let is_json = declared_type(node).map_or(true, |kind| kind.contains("json"));
             if url.is_none() && is_json {
                 url = address(target, base);
             }
@@ -392,6 +397,7 @@ fn parse_rdf(root: Node<'_, '_>, base: &Url) -> Feed {
             .children()
             .filter(|node| node.is_element() && node.tag_name().name() == "image")
             .find_map(|image| text_of(image, "url", MAX_URL_CHARS).and_then(|u| address(&u, base))),
+        new_feed_url: None,
         episodes,
     }
 }
@@ -451,6 +457,7 @@ fn parse_atom(root: Node<'_, '_>, base: &Url) -> Feed {
             .or_else(|| text_of(root, "icon", MAX_URL_CHARS))
             .and_then(|logo| address(&logo, base))
             .or_else(|| channel_image(root, base)),
+        new_feed_url: None,
         episodes,
     }
 }

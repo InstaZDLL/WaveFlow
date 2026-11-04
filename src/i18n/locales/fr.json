@@ -3493,6 +3493,9 @@
       "cacheUsed_one": "Cache local : {{size}}, {{count}} titre",
       "cacheUsed_other": "Cache local : {{size}}, {{count}} titres",
       "cacheUsed_many": "Cache local : {{size}}, {{count}} titres"
+    },
+    "podcasts": {
+      "title": "Podcasts"
     }
   },
   "scanProgress": {
@@ -3888,7 +3891,8 @@
       "spectrogram": "Spectre d'un titre",
       "enrichment": "Enrichissement de la bibliothèque",
       "release_radar": "Release Radar",
-      "tag_workshop": "Atelier de tags"
+      "tag_workshop": "Atelier de tags",
+      "podcast_refresh": "Actualisation des podcasts"
     }
   },
   "smartRuleSummary": {

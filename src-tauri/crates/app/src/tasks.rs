@@ -98,6 +98,9 @@ pub enum TaskKind {
     /// A tag workshop batch being written or undone
     /// ([`crate::commands::tag_workshop`]).
     TagWorkshop,
+    /// Podcast feeds being asked for, on the timer, by hand or from an OPML
+    /// list ([`crate::podcast::schedule`]).
+    PodcastRefresh,
 }
 
 impl TaskKind {
@@ -117,6 +120,7 @@ impl TaskKind {
             Self::Enrichment => "enrichment",
             Self::ReleaseRadar => "release_radar",
             Self::TagWorkshop => "tag_workshop",
+            Self::PodcastRefresh => "podcast_refresh",
         }
     }
 }

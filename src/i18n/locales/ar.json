@@ -3676,6 +3676,9 @@
       "cacheUsed_two": "ذاكرة التخزين المحلية: {{size}}، {{count}} مقطع",
       "cacheUsed_few": "ذاكرة التخزين المحلية: {{size}}، {{count}} مقطع",
       "cacheUsed_many": "ذاكرة التخزين المحلية: {{size}}، {{count}} مقطع"
+    },
+    "podcasts": {
+      "title": "البودكاست"
     }
   },
   "scanProgress": {
@@ -4144,7 +4147,8 @@
       "spectrogram": "طيف مقطوعة",
       "enrichment": "إثراء المكتبة",
       "release_radar": "Release Radar",
-      "tag_workshop": "ورشة الوسوم"
+      "tag_workshop": "ورشة الوسوم",
+      "podcast_refresh": "تحديث البودكاست"
     },
     "more_zero": "لا مهام أخرى",
     "more_two": "مهمتان أخريان",

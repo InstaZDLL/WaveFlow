@@ -3419,6 +3419,9 @@
       "share": "共用名稱",
       "cacheUsed_one": "本機快取:{{size}},{{count}} 首曲目",
       "cacheUsed_other": "本機快取:{{size}},{{count}} 首曲目"
+    },
+    "podcasts": {
+      "title": "Podcast"
     }
   },
   "scanProgress": {
@@ -3787,7 +3790,8 @@
       "spectrogram": "曲目頻譜",
       "enrichment": "音樂庫資訊補全",
       "release_radar": "Release Radar",
-      "tag_workshop": "標籤工坊"
+      "tag_workshop": "標籤工坊",
+      "podcast_refresh": "重新整理 Podcast"
     }
   },
   "smartRuleSummary": {

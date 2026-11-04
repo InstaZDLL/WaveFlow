@@ -3419,6 +3419,9 @@
       "share": "Nama folder berbagi",
       "cacheUsed_one": "Cache lokal: {{size}}, {{count}} lagu",
       "cacheUsed_other": "Cache lokal: {{size}}, {{count}} lagu"
+    },
+    "podcasts": {
+      "title": "Podcast"
     }
   },
   "scanProgress": {
@@ -3787,7 +3790,8 @@
       "spectrogram": "Spektrum lagu",
       "enrichment": "Pengayaan pustaka",
       "release_radar": "Release Radar",
-      "tag_workshop": "Bengkel tag"
+      "tag_workshop": "Bengkel tag",
+      "podcast_refresh": "Penyegaran podcast"
     }
   },
   "smartRuleSummary": {
