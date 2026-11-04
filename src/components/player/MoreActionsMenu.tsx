@@ -10,6 +10,8 @@ import {
   Moon,
   SlidersHorizontal,
   X,
+  Minus,
+  Plus,
 } from "lucide-react";
 
 import type { SleepTimerStatus } from "../../hooks/useSleepTimer";
@@ -19,6 +21,7 @@ import { usePlayer } from "../../hooks/usePlayer";
 import { useRadioTimeshift } from "../../hooks/useRadioTimeshift";
 import { getPlayerPosition } from "../../hooks/usePlayerPosition";
 import { isPodcastTrack } from "../../lib/playerSources";
+import { MAX_PITCH_SEMITONES } from "../../lib/tauri/player";
 import { formatDuration } from "../../lib/tauri/track";
 import { AbLoopButton } from "./AbLoopButton";
 import { EqPresetPanel } from "./EqPresetButton";
@@ -63,8 +66,17 @@ export function MoreActionsMenu({
   sleepTimer,
 }: MoreActionsMenuProps) {
   const { t } = useTranslation();
-  const { playbackSpeed, setPlaybackSpeed, currentTrack, durationMs, seek } =
-    usePlayer();
+  const {
+    playbackSpeed,
+    setPlaybackSpeed,
+    keepPitch,
+    setKeepPitch,
+    pitchSemitones,
+    setPitchSemitones,
+    currentTrack,
+    durationMs,
+    seek,
+  } = usePlayer();
   const isPodcast = isPodcastTrack(currentTrack);
   const desktopLyrics = useDesktopLyricsStatus();
   const timeshift = useRadioTimeshift();
@@ -105,11 +117,15 @@ export function MoreActionsMenu({
         ? t("sleepTimer.endOfTrackBadge")
         : null;
 
-  // Trigger badge priority: sleep-timer countdown > non-default speed.
-  // Both are mutually exclusive in the same corner so the user always
-  // sees the most time-sensitive signal first.
+  // Trigger badge priority: sleep-timer countdown > non-default speed >
+  // transposition. All in the same corner so the user always sees the most
+  // time-sensitive signal first.
   const isOffSpeed = Math.abs(playbackSpeed - 1.0) > 0.001;
-  const speedBadge = isOffSpeed ? formatSpeed(playbackSpeed) : null;
+  const speedBadge = isOffSpeed
+    ? formatSpeed(playbackSpeed)
+    : pitchSemitones !== 0
+      ? formatSemitones(pitchSemitones)
+      : null;
   const triggerBadge = sleepBadge && showSleepInMenu ? sleepBadge : speedBadge;
   const triggerBadgeTone =
     sleepBadge && showSleepInMenu
@@ -149,7 +165,9 @@ export function MoreActionsMenu({
         className={`relative p-2 rounded-lg transition-colors ${
           isOpen
             ? "text-emerald-500"
-            : (sleepArmed && showSleepInMenu) || isOffSpeed
+            : (sleepArmed && showSleepInMenu) ||
+                isOffSpeed ||
+                pitchSemitones !== 0
               ? "text-emerald-500 hover:text-emerald-400"
               : "text-zinc-400 hover:text-zinc-800 dark:hover:text-white"
         }`}
@@ -281,6 +299,59 @@ export function MoreActionsMenu({
                     </button>
                   );
                 })}
+              </div>
+
+              <div className="flex items-center justify-between gap-3 pt-1">
+                <span className="text-sm text-zinc-700 dark:text-zinc-300">
+                  {t("player.speed.keepPitch")}
+                </span>
+                <ToggleSwitch
+                  enabled={keepPitch}
+                  onToggle={() => setKeepPitch(!keepPitch)}
+                  label={t("player.speed.keepPitch")}
+                />
+              </div>
+
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-sm text-zinc-700 dark:text-zinc-300">
+                  {t("player.speed.transpose")}
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setPitchSemitones(pitchSemitones - 1)}
+                    disabled={pitchSemitones <= -MAX_PITCH_SEMITONES}
+                    aria-label={t("player.speed.transposeDown")}
+                    title={t("player.speed.transposeDown")}
+                    className="w-7 h-7 flex items-center justify-center rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 disabled:opacity-40 disabled:pointer-events-none transition-colors"
+                  >
+                    <Minus size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPitchSemitones(0)}
+                    disabled={pitchSemitones === 0}
+                    aria-label={t("player.speed.transposeReset")}
+                    title={t("player.speed.transposeReset")}
+                    className={`min-w-9 h-7 px-1 rounded-md text-sm font-bold tabular-nums transition-colors ${
+                      pitchSemitones === 0
+                        ? "text-zinc-400"
+                        : "text-emerald-600 dark:text-emerald-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                    }`}
+                  >
+                    {formatSemitones(pitchSemitones)}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPitchSemitones(pitchSemitones + 1)}
+                    disabled={pitchSemitones >= MAX_PITCH_SEMITONES}
+                    aria-label={t("player.speed.transposeUp")}
+                    title={t("player.speed.transposeUp")}
+                    className="w-7 h-7 flex items-center justify-center rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 disabled:opacity-40 disabled:pointer-events-none transition-colors"
+                  >
+                    <Plus size={14} />
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -446,6 +517,10 @@ function formatRemaining(ms: number): string {
     return `${m}m`;
   }
   return `${totalSec}s`;
+}
+
+function formatSemitones(value: number): string {
+  return value > 0 ? `+${value}` : `${value}`;
 }
 
 function formatSpeed(value: number): string {

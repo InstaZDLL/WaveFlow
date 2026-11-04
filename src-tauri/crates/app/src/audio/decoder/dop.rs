@@ -188,8 +188,8 @@ pub(super) fn restore_pcm_output(
 /// Holds the shared playback speed at 1.0 for the duration of a DoP
 /// track, and puts the user's value back on the way out.
 ///
-/// Speed is implemented by the resampler, which the DoP path doesn't
-/// run: the words go to the DAC at its fixed carrier rate whatever the
+/// Speed is implemented by the resampler and the stretcher, which the DoP
+/// path doesn't run: the words go to the DAC at its fixed carrier rate whatever the
 /// setting says. But [`SharedPlayback::current_position_ms`] still
 /// scales by it, so leaving a 1.5× in place would make the progress bar
 /// and the scrobble clock run away from music that plays at 1×. Pinning

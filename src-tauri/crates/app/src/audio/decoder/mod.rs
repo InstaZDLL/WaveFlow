@@ -945,6 +945,8 @@ fn apply_setting(cmd: &AudioCmd, shared: &SharedPlayback) -> bool {
             }
         }
         AudioCmd::SetEpisodeSpeed(_) => {}
+        AudioCmd::SetKeepPitch(on) => shared.keep_pitch.store(on, Ordering::Release),
+        AudioCmd::SetPitchSemitones(v) => shared.set_pitch_semitones(v),
         _ => return false,
     }
     true

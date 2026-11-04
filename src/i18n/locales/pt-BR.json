@@ -1091,7 +1091,11 @@
       "title": "Velocidade de reprodução",
       "slider": "Controle de velocidade",
       "custom": "Velocidade personalizada",
-      "pitchHint": "O tom acompanha a velocidade (sem time-stretching)."
+      "keepPitch": "Manter o tom",
+      "transpose": "Transpor",
+      "transposeDown": "Descer um semitom",
+      "transposeUp": "Subir um semitom",
+      "transposeReset": "Voltar ao tom original"
     },
     "seek": "Posição",
     "alert": {
@@ -1653,7 +1657,8 @@
         "dopNative": "DSD nativo",
         "volume": "Volume {{value}} %",
         "balance": "Balanço",
-        "width": "Largura {{value}}%"
+        "width": "Largura {{value}}%",
+        "pitch": "Tom {{value}}"
       }
     },
     "outputMode": {

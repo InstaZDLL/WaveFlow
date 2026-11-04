@@ -1048,7 +1048,11 @@
       "title": "播放速度",
       "slider": "速度滑块",
       "custom": "自定义速度",
-      "pitchHint": "音高随速度变化（无时间拉伸）。"
+      "keepPitch": "保持音高",
+      "transpose": "移调",
+      "transposeDown": "降低半音",
+      "transposeUp": "升高半音",
+      "transposeReset": "恢复原始音高"
     },
     "seek": "跳转",
     "alert": {
@@ -1596,7 +1600,8 @@
         "dopNative": "原生 DSD",
         "volume": "音量 {{value}}%",
         "balance": "平衡",
-        "width": "宽度 {{value}}%"
+        "width": "宽度 {{value}}%",
+        "pitch": "音高 {{value}}"
       }
     },
     "outputMode": {

@@ -406,6 +406,28 @@ pub(crate) async fn restore_profile_audio_settings(pool: &sqlx::SqlitePool, engi
         // lazy resampler init picks up the speed via
         // `stream.playback_speed = shared.playback_speed()`.
         engine.shared().restore_user_speed(speed);
+        // The same raw stores for what goes with the speed. A profile that
+        // never touched them keeps the pitch and does not transpose.
+        let keep_pitch = read_setting(pool, "audio.keep_pitch")
+            .await
+            .map_or(true, |v| v != "0" && !v.eq_ignore_ascii_case("false"));
+        engine
+            .shared()
+            .keep_pitch
+            .store(keep_pitch, std::sync::atomic::Ordering::Release);
+        let semitones = read_setting(pool, "audio.pitch_semitones")
+            .await
+            .and_then(|v| v.parse::<i32>().ok())
+            .map_or(0, |v| {
+                v.clamp(
+                    -crate::audio::state::MAX_PITCH_SEMITONES,
+                    crate::audio::state::MAX_PITCH_SEMITONES,
+                )
+            });
+        engine
+            .shared()
+            .pitch_semitones
+            .store(semitones, std::sync::atomic::Ordering::Release);
     }
     // Equalizer settings. Both halves are restored
     // unconditionally: a profile with no curve of its own must

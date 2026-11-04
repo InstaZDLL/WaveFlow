@@ -1048,7 +1048,11 @@
       "title": "재생 속도",
       "slider": "속도 슬라이더",
       "custom": "사용자 지정 속도",
-      "pitchHint": "속도에 따라 피치가 변합니다(타임 스트레칭 없음)."
+      "keepPitch": "음정 유지",
+      "transpose": "조옮김",
+      "transposeDown": "반음 내리기",
+      "transposeUp": "반음 올리기",
+      "transposeReset": "원래 음정으로"
     },
     "seek": "탐색",
     "alert": {
@@ -1596,7 +1600,8 @@
         "dopNative": "네이티브 DSD",
         "volume": "볼륨 {{value}}%",
         "balance": "밸런스",
-        "width": "폭 {{value}}%"
+        "width": "폭 {{value}}%",
+        "pitch": "음정 {{value}}"
       }
     },
     "outputMode": {

@@ -14,4 +14,5 @@ pub mod read_ahead;
 pub mod replay_gain;
 pub mod resampler;
 pub mod stream;
+pub mod stretch;
 pub mod timeshift;

@@ -1048,7 +1048,11 @@
       "title": "再生速度",
       "slider": "速度スライダー",
       "custom": "カスタム速度",
-      "pitchHint": "ピッチは速度に追従します（タイムストレッチなし）。"
+      "keepPitch": "音程を維持",
+      "transpose": "移調",
+      "transposeDown": "半音下げる",
+      "transposeUp": "半音上げる",
+      "transposeReset": "元の音程に戻す"
     },
     "seek": "再生位置",
     "alert": {
@@ -1596,7 +1600,8 @@
         "dopNative": "ネイティブ DSD",
         "volume": "音量 {{value}}%",
         "balance": "バランス",
-        "width": "幅 {{value}}%"
+        "width": "幅 {{value}}%",
+        "pitch": "音程 {{value}}"
       }
     },
     "outputMode": {

@@ -1,5 +1,65 @@
 use super::*;
 
+/// The clock does not care how the speed is made: it scales by it either way.
+#[test]
+fn the_pitch_lock_and_the_transposition_leave_the_clock_alone() {
+    let shared = SharedPlayback::new();
+    shared.sample_rate.store(48_000, Ordering::Relaxed);
+    shared.channels.store(2, Ordering::Relaxed);
+    shared.set_playback_speed(1.5);
+    shared.samples_played.store(96_000, Ordering::Relaxed);
+    let position = shared.current_position_ms();
+    assert_eq!(position, 1_500);
+    shared.keep_pitch.store(false, Ordering::Release);
+    assert_eq!(shared.current_position_ms(), position);
+    shared.set_pitch_semitones(4);
+    assert_eq!(shared.current_position_ms(), position);
+    assert_eq!(shared.session_listened_ms(), 1_500);
+}
+
+/// A change of speed or pitch restarts the clock, not the listen: what was heard
+/// stays heard, at the speed it played at, or the end of the track earns no
+/// credit. A seek or a new track does start over.
+#[test]
+fn a_change_of_speed_or_pitch_keeps_what_was_heard() {
+    let shared = SharedPlayback::new();
+    shared.sample_rate.store(48_000, Ordering::Relaxed);
+    shared.channels.store(2, Ordering::Relaxed);
+    // 10 s at 1×.
+    shared.samples_played.store(960_000, Ordering::Relaxed);
+    assert_eq!(shared.session_listened_ms(), 10_000);
+
+    // Then 2 s at 1.5×, which is 3 s of track.
+    shared.set_playback_speed(1.5);
+    assert_eq!(shared.session_listened_ms(), 10_000);
+    shared.samples_played.store(192_000, Ordering::Relaxed);
+    assert_eq!(shared.session_listened_ms(), 13_000);
+
+    // The decoder puts the file back at the position heard.
+    let position = shared.current_position_ms();
+    shared.rebase_clock(position);
+    assert_eq!(shared.session_listened_ms(), 13_000);
+    assert_eq!(shared.current_position_ms(), position);
+
+    shared.restart_clock(0, 0, false);
+    assert_eq!(shared.session_listened_ms(), 0);
+}
+
+#[test]
+fn the_transposition_is_clamped() {
+    let shared = SharedPlayback::new();
+    shared.set_pitch_semitones(40);
+    assert_eq!(
+        shared.pitch_semitones.load(Ordering::Relaxed),
+        MAX_PITCH_SEMITONES
+    );
+    shared.set_pitch_semitones(-40);
+    assert_eq!(
+        shared.pitch_semitones.load(Ordering::Relaxed),
+        -MAX_PITCH_SEMITONES
+    );
+}
+
 /// The three-state rule behind automatic ReplayGain (#587 × #618),
 /// and the regression it exists for.
 ///

@@ -14,10 +14,15 @@ import {
   type ShuffleMode,
 } from "../hooks/usePlayer";
 import { useProfile } from "../hooks/useProfile";
+import { SETTINGS } from "../lib/settingsRegistry";
 import { getTrack, type Track } from "../lib/tauri/track";
 import { queuePayloadToTrack } from "../lib/queueTrack";
 import {
   playerCycleRepeat,
+  MAX_PITCH_SEMITONES,
+  PITCH_RESET_EVENT,
+  playerGetKeepPitch,
+  playerGetPitchSemitones,
   playerGetSpeed,
   playerGetState,
   playerListOutputDevices,
@@ -28,6 +33,8 @@ import {
   playerResume,
   playerResumeLast,
   playerSeek,
+  playerSetKeepPitch,
+  playerSetPitchSemitones,
   playerSetSpeed,
   playerSetVolume,
   playerToggleShuffle,
@@ -203,6 +210,19 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   // debounce because the user picks discrete values from a menu and
   // each rebuild costs ~one rubato chunk of audio (negligible).
   const [playbackSpeed, setPlaybackSpeedState] = useState(1.0);
+  // What goes with it, on the same terms. Read from the backend with the
+  // speed, on every profile the app enters.
+  const [keepPitch, setKeepPitchState] = useState(
+    SETTINGS["audio.keep_pitch"].defaultValue,
+  );
+  const [pitchSemitones, setPitchSemitonesState] = useState(
+    SETTINGS["audio.pitch_semitones"].defaultValue,
+  );
+  // One for each: bumped by every decision on it, and by every read of a
+  // profile's values. An answer from before the latest one is dropped, whether
+  // a read or the rollback of a refused write.
+  const keepPitchRevision = useRef(0);
+  const semitonesRevision = useRef(0);
 
   // Live output-device sample rate (Hz) and channel count, as
   // reported by the engine snapshot. Used by the AudioQualityFooter
@@ -384,6 +404,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     // previous profile doesn't linger during the async fetch.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPlaybackState("idle");
+    setKeepPitchState(SETTINGS["audio.keep_pitch"].defaultValue);
+    setPitchSemitonesState(SETTINGS["audio.pitch_semitones"].defaultValue);
     setCurrentTrack(null);
     setCurrentRadioStation(null);
     setPlayerPosition(0);
@@ -395,6 +417,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
     let cancelled = false;
     (async () => {
+      // Taken before any of the reads: what the user decides while they are out
+      // is newer than what they answer.
+      const keepRead = ++keepPitchRevision.current;
+      const semitonesRead = ++semitonesRevision.current;
       try {
         const snap = await playerGetState();
         if (cancelled) return;
@@ -456,6 +482,21 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
           if (!cancelled) setPlaybackSpeedState(speed);
         } catch (err) {
           console.error("[PlayerContext] hydrate playback speed failed", err);
+        }
+        // Apart from the speed, so a failure here leaves what was read of it.
+        try {
+          const [keep, semitones] = await Promise.all([
+            playerGetKeepPitch(),
+            playerGetPitchSemitones(),
+          ]);
+          if (!cancelled && keepPitchRevision.current === keepRead) {
+            setKeepPitchState(keep);
+          }
+          if (!cancelled && semitonesRevision.current === semitonesRead) {
+            setPitchSemitonesState(semitones);
+          }
+        } catch (err) {
+          console.error("[PlayerContext] hydrate pitch failed", err);
         }
       } catch (err) {
         console.error("[PlayerContext] initial snapshot failed", err);
@@ -704,6 +745,66 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     },
     [activeProfileId],
   );
+
+  // One write at a time, so two quick clicks on the stepper reach the backend
+  // in the order they were made, and the last one is what stays saved.
+  const pitchWrites = useRef<Promise<unknown>>(Promise.resolve());
+
+  const setKeepPitch = useCallback(
+    (enabled: boolean) => {
+      const revision = ++keepPitchRevision.current;
+      setKeepPitchState(enabled);
+      pitchWrites.current = pitchWrites.current
+        .then(() => playerSetKeepPitch(enabled, activeProfileId ?? null))
+        .catch(async (err) => {
+          console.error("[PlayerContext] set keep pitch failed", err);
+          // Saved before applied: a refused value never reached the engine.
+          const held = await playerGetKeepPitch().catch(() => null);
+          if (held !== null && keepPitchRevision.current === revision) {
+            setKeepPitchState(held);
+          }
+        });
+    },
+    [activeProfileId],
+  );
+
+  const setPitchSemitones = useCallback(
+    (value: number) => {
+      const clamped = Math.max(
+        -MAX_PITCH_SEMITONES,
+        Math.min(MAX_PITCH_SEMITONES, Math.round(value)),
+      );
+      const revision = ++semitonesRevision.current;
+      setPitchSemitonesState(clamped);
+      pitchWrites.current = pitchWrites.current
+        .then(() => playerSetPitchSemitones(clamped, activeProfileId ?? null))
+        .catch(async (err) => {
+          console.error("[PlayerContext] set pitch semitones failed", err);
+          const held = await playerGetPitchSemitones().catch(() => null);
+          if (held !== null && semitonesRevision.current === revision) {
+            setPitchSemitonesState(held);
+          }
+        });
+    },
+    [activeProfileId],
+  );
+
+  // The Settings reset writes through its own accessors. It is the one other
+  // writer, and it only ever writes the defaults.
+  useEffect(() => {
+    const onReset = (event: Event) => {
+      const key = (event as CustomEvent<string>).detail;
+      if (key === "audio.keep_pitch") {
+        keepPitchRevision.current += 1;
+        setKeepPitchState(SETTINGS["audio.keep_pitch"].defaultValue);
+      } else if (key === "audio.pitch_semitones") {
+        semitonesRevision.current += 1;
+        setPitchSemitonesState(SETTINGS["audio.pitch_semitones"].defaultValue);
+      }
+    };
+    window.addEventListener(PITCH_RESET_EVENT, onReset);
+    return () => window.removeEventListener(PITCH_RESET_EVENT, onReset);
+  }, []);
 
   const toggleMute = useCallback(() => {
     lastLocalVolumeWriteRef.current = Date.now();
@@ -994,6 +1095,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         toggleMute,
         playbackSpeed,
         setPlaybackSpeed,
+        keepPitch,
+        setKeepPitch,
+        pitchSemitones,
+        setPitchSemitones,
         deviceSampleRate,
         deviceChannels,
         outputMode,

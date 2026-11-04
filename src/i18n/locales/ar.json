@@ -1188,7 +1188,11 @@
       "title": "سرعة التشغيل",
       "slider": "شريط السرعة",
       "custom": "سرعة مخصصة",
-      "pitchHint": "تتبع الطبقة الصوتية السرعة (من دون تمديد زمني)."
+      "keepPitch": "الحفاظ على طبقة الصوت",
+      "transpose": "تغيير المقام",
+      "transposeDown": "خفض نصف نغمة",
+      "transposeUp": "رفع نصف نغمة",
+      "transposeReset": "العودة إلى الطبقة الأصلية"
     },
     "seek": "الموضع",
     "alert": {
@@ -1783,7 +1787,8 @@
         "dopNative": "DSD أصلي",
         "volume": "مستوى الصوت {{value}}%",
         "balance": "التوازن",
-        "width": "العرض {{value}}%"
+        "width": "العرض {{value}}%",
+        "pitch": "الطبقة {{value}}"
       }
     },
     "outputMode": {

@@ -1050,7 +1050,11 @@
       "title": "प्लेबैक गति",
       "slider": "गति स्लाइडर",
       "custom": "कस्टम गति",
-      "pitchHint": "गति के साथ पिच भी बदलती है (कोई टाइम-स्ट्रेचिंग नहीं)।"
+      "keepPitch": "पिच बनाए रखें",
+      "transpose": "ट्रांसपोज़",
+      "transposeDown": "आधा स्वर नीचे",
+      "transposeUp": "आधा स्वर ऊपर",
+      "transposeReset": "मूल पिच पर लौटें"
     },
     "seek": "सीक",
     "alert": {
@@ -1598,7 +1602,8 @@
         "dopNative": "नेटिव DSD",
         "volume": "वॉल्यूम {{value}}%",
         "balance": "बैलेंस",
-        "width": "चौड़ाई {{value}}%"
+        "width": "चौड़ाई {{value}}%",
+        "pitch": "पिच {{value}}"
       }
     },
     "outputMode": {

@@ -517,6 +517,244 @@ fn a_dff_is_read_in_the_order_it_names() {
     );
 }
 
+fn open_tone(path: &Path) -> ActiveStream {
+    ActiveStream::open(
+        path,
+        0,
+        0,
+        String::new(),
+        None,
+        TrackGain::default(),
+        64,
+        false,
+    )
+    .unwrap()
+}
+
+fn decode_to_end(stream: &mut ActiveStream, rate: u32) -> Vec<f32> {
+    let (mut out, mut scratch) = (Vec::new(), Vec::new());
+    while !stream
+        .decode_next(&mut out, &mut scratch, rate, &stereo())
+        .unwrap()
+    {}
+    out
+}
+
+fn shift(speed: f32, keep_pitch: bool, semitones: f32) -> TimeShift {
+    TimeShift {
+        speed,
+        keep_pitch,
+        semitones,
+    }
+}
+
+/// At 1× with no transposition the audio is what it always was, to the bit,
+/// and no stretcher exists: exclusive output and DoP stay bit-perfect.
+#[test]
+fn at_one_times_nothing_is_built_and_nothing_changes() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("tone.wav");
+    write_wav(&path);
+    for rate in [44_100, 48_000] {
+        let reference = decode_to_end(&mut open_tone(&path), rate);
+        let mut stream = open_tone(&path);
+        stream.set_time_shift(shift(1.0, true, 0.0));
+        stream.set_output_gain(0.5);
+        assert_eq!(decode_to_end(&mut stream, rate), reference);
+        assert!(stream.stretcher.is_none());
+        assert_eq!(
+            stream.output_delay_frames(),
+            stream.resampler.output_delay_frames()
+        );
+    }
+}
+
+/// With the pitch kept the resampler keeps the true rate, and the length is the
+/// source's at the speed: to the frame with no resampling.
+#[test]
+fn keeping_the_pitch_gives_the_length_of_the_speed() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("tone.wav");
+    write_wav(&path);
+    for speed in [0.75_f32, 1.25, 2.0] {
+        let mut stream = open_tone(&path);
+        stream.set_time_shift(shift(speed, true, 0.0));
+        let out = decode_to_end(&mut stream, 44_100);
+        assert!(matches!(stream.resampler, Resampler::Passthrough));
+        assert!(stream.stretcher.is_some());
+        let expected = (44_100.0 / f64::from(speed)).round() as usize;
+        assert_eq!(out.len() / 2, expected, "speed {speed}");
+        assert_eq!(stream.output_delay_frames(), 0);
+    }
+}
+
+/// Through the resampler too, whose delay is dropped on the way in: a stretched
+/// stream starts on its first frame, for the gapless hand-off and for AutoMix.
+#[test]
+fn keeping_the_pitch_at_another_rate_adds_no_delay() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("tone.wav");
+    write_wav(&path);
+    let mut stream = open_tone(&path);
+    stream.set_time_shift(shift(1.25, true, 0.0));
+    let out = decode_to_end(&mut stream, 48_000);
+    assert!(stream.resampler.output_delay_frames() > 0);
+    assert_eq!(stream.output_delay_frames(), 0);
+    assert_eq!(out.len() / 2, 38_400);
+}
+
+/// The other mode is the fake source rate it always was, with no stretcher.
+#[test]
+fn a_speed_that_moves_the_pitch_goes_through_the_resampler() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("tone.wav");
+    write_wav(&path);
+    let mut stream = open_tone(&path);
+    stream.set_time_shift(shift(1.25, false, 0.0));
+    let out = decode_to_end(&mut stream, 44_100);
+    assert!(stream.stretcher.is_none());
+    assert!(matches!(stream.resampler, Resampler::Fft { .. }));
+    let delay = stream.resampler.output_delay_frames() as usize;
+    let expected = delay + (44_100.0_f64 / 1.25).round() as usize;
+    assert!(out.len() / 2 >= expected - 2 && out.len() / 2 <= expected + 2);
+}
+
+/// `seconds` of a sine as a 44.1 kHz 16-bit stereo WAV.
+fn write_sine_wav(path: &Path, freq: f64, seconds: f64) {
+    let rate = 44_100_u32;
+    let frames = (seconds * f64::from(rate)) as u32;
+    let data_len = frames * 4;
+    let mut bytes = Vec::new();
+    bytes.extend(b"RIFF");
+    bytes.extend((36 + data_len).to_le_bytes());
+    bytes.extend(b"WAVEfmt ");
+    bytes.extend(16_u32.to_le_bytes());
+    bytes.extend(1_u16.to_le_bytes());
+    bytes.extend(2_u16.to_le_bytes());
+    bytes.extend(rate.to_le_bytes());
+    bytes.extend((rate * 4).to_le_bytes());
+    bytes.extend(4_u16.to_le_bytes());
+    bytes.extend(16_u16.to_le_bytes());
+    bytes.extend(b"data");
+    bytes.extend(data_len.to_le_bytes());
+    for i in 0..frames {
+        let phase = 2.0 * std::f64::consts::PI * freq * f64::from(i) / f64::from(rate);
+        let sample = (phase.sin() * 9_000.0) as i16;
+        bytes.extend(sample.to_le_bytes());
+        bytes.extend(sample.to_le_bytes());
+    }
+    std::fs::write(path, bytes).unwrap();
+}
+
+/// Frequency of a pure tone in interleaved stereo, from its rising zero
+/// crossings over the steady middle.
+fn tone_frequency(out: &[f32], rate: u32) -> f64 {
+    let left: Vec<f32> = out.iter().step_by(2).copied().collect();
+    let part = &left[left.len() / 4..left.len() * 3 / 4];
+    let rising: Vec<f64> = part
+        .windows(2)
+        .enumerate()
+        .filter(|(_, w)| w[0] < 0.0 && w[1] >= 0.0)
+        .map(|(i, w)| i as f64 + f64::from(-w[0] / (w[1] - w[0])))
+        .collect();
+    (rising.len() - 1) as f64 * f64::from(rate) / (rising[rising.len() - 1] - rising[0])
+}
+
+/// The note lands in tune, the bass as well as the rest, whatever the speed, and
+/// the length is what the speed says. The stretcher's own transposition is out
+/// by up to 12 cents at 110 Hz, which is why it does not do this.
+#[test]
+fn a_transposition_is_in_tune_and_keeps_the_length_of_the_speed() {
+    let dir = tempfile::tempdir().unwrap();
+    for freq in [110.0_f64, 440.0, 2_000.0] {
+        let path = dir.path().join(format!("{freq}.wav"));
+        write_sine_wav(&path, freq, 3.0);
+        for (speed, keep_pitch, semitones) in [
+            (1.0_f32, true, 3.0_f32),
+            (1.0, true, -5.0),
+            (1.0, true, 7.0),
+            (1.25, true, 2.0),
+            (1.25, false, 2.0),
+        ] {
+            let mut stream = open_tone(&path);
+            stream.set_time_shift(shift(speed, keep_pitch, semitones));
+            let out = decode_to_end(&mut stream, 44_100);
+            assert!(stream.stretcher.is_some());
+            assert_eq!(stream.output_delay_frames(), 0);
+            let expected = (3.0 * 44_100.0 / f64::from(speed)).round() as usize;
+            // Two stages that each round to the frame.
+            assert!(
+                (out.len() / 2).abs_diff(expected) <= 1,
+                "{speed}× {semitones} st: {} for {expected}",
+                out.len() / 2
+            );
+            let want = freq
+                * 2f64.powf(f64::from(semitones) / 12.0)
+                * if keep_pitch { 1.0 } else { f64::from(speed) };
+            let cents = 1200.0 * (tone_frequency(&out, 44_100) / want).log2();
+            assert!(
+                cents.abs() < 1.0,
+                "{freq} Hz {speed}× {semitones} st: {cents} cents"
+            );
+        }
+    }
+}
+
+/// A seek drops what the stretcher held and starts over with no delay: the rest
+/// of the track comes out at its length, once.
+#[test]
+fn a_seek_starts_the_stretcher_over() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("tone.wav");
+    write_wav(&path);
+    let mut stream = open_tone(&path);
+    stream.set_time_shift(shift(1.25, true, 0.0));
+    let out = decode_to_end(&mut stream, 44_100);
+    assert_eq!(out.len() / 2, 35_280);
+
+    stream.seek_ms(0);
+    stream.rebuild_resampler(1.25, 44_100, 2).unwrap();
+    stream.reset_decoder();
+    assert!(stream.stretcher.is_none());
+    assert_eq!(decode_to_end(&mut stream, 44_100).len() / 2, 35_280);
+
+    let landed = stream.seek_ms(500);
+    stream.reset_decoder();
+    assert!(stream.stretcher.is_some());
+    let left = decode_to_end(&mut stream, 44_100).len() / 2;
+    let expected = (1_000 - landed) as f64 * 44.1 / 1.25;
+    assert!(
+        (left as f64 - expected).abs() < 40.0,
+        "{left} for {expected}"
+    );
+}
+
+/// Back at 1× mid-track, the stretcher is gone and the rest is the source's.
+#[test]
+fn leaving_the_shift_mid_track_drops_the_stretcher() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("tone.wav");
+    write_wav(&path);
+    let mut stream = open_tone(&path);
+    stream.set_time_shift(shift(1.5, true, 0.0));
+    let (mut out, mut scratch) = (Vec::new(), Vec::new());
+    for _ in 0..4 {
+        stream
+            .decode_next(&mut out, &mut scratch, 44_100, &stereo())
+            .unwrap();
+    }
+    assert!(stream.stretcher.is_some());
+    stream.set_time_shift(shift(1.0, true, 0.0));
+    stream.rebuild_resampler(1.0, 44_100, 2).unwrap();
+    stream.seek_ms(0);
+    stream.reset_decoder();
+    assert!(stream.stretcher.is_none());
+    assert_eq!(
+        decode_to_end(&mut stream, 44_100),
+        decode_to_end(&mut open_tone(&path), 44_100)
+    );
+}
+
 /// A `MediaSource` over bytes in memory that counts what is read from it.
 struct CountingSource {
     bytes: std::io::Cursor<Vec<u8>>,

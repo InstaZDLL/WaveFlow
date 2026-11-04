@@ -106,7 +106,7 @@ function formatSampleRate(hz: number | null | undefined): string | null {
  */
 export function AudioPipelinePopover({ track }: AudioPipelinePopoverProps) {
   const { t } = useTranslation();
-  const { playbackSpeed, volume } = usePlayer();
+  const { playbackSpeed, pitchSemitones, volume } = usePlayer();
   const [rawSnap, setRawSnap] = useState<PipelineSnapshot | null>(null);
   // A track change and an output rebuild can put two reads in flight at
   // once; the older one resolving second would pin a stale output
@@ -246,11 +246,12 @@ export function AudioPipelinePopover({ track }: AudioPipelinePopoverProps) {
     snap.outputChannels < track.channels;
   // Every DSP stage below is bypassed on the DoP path — the decoder
   // pushes the 24-bit words straight to the ring, so EQ / normalize /
-  // ReplayGain / mono / balance / width / speed are all inert whatever
+  // ReplayGain / mono / balance / width / speed / pitch are all inert whatever
   // the preference says. Reading the raw preferences here would badge the
   // stream with effects that aren't running, and cancel the bit-perfect
   // pill.
   const isSpeedShifted = !isDopNative && Math.abs(playbackSpeed - 1.0) > 0.001;
+  const isTransposed = !isDopNative && pitchSemitones !== 0;
   const isEq = !isDopNative && (snap?.eqEnabled ?? false);
   const isNormalize = !isDopNative && (snap?.normalize ?? false);
   const isReplayGain = !isDopNative && (snap?.replaygain ?? false);
@@ -302,6 +303,7 @@ export function AudioPipelinePopover({ track }: AudioPipelinePopoverProps) {
     !isResampling &&
     !isDownmixing &&
     !isSpeedShifted &&
+    !isTransposed &&
     !isEq &&
     !isNormalize &&
     !isReplayGain &&
@@ -401,6 +403,14 @@ export function AudioPipelinePopover({ track }: AudioPipelinePopoverProps) {
       key: "speed",
       label: t("playerBar.pipeline.chip.speed", {
         value: playbackSpeed.toFixed(2).replace(/\.?0+$/, ""),
+      }),
+      tone: "dsp",
+    });
+  if (isTransposed)
+    chips.push({
+      key: "pitch",
+      label: t("playerBar.pipeline.chip.pitch", {
+        value: `${pitchSemitones > 0 ? "+" : ""}${pitchSemitones}`,
       }),
       tone: "dsp",
     });
