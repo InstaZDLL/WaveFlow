@@ -226,3 +226,241 @@ fn the_blocks_we_did_not_edit_are_copied_through_byte_for_byte() {
         "the seek table survived a title edit"
     );
 }
+
+/// A rewrite's two files, for [`check_rewrite`] to compare.
+fn check(before: &[u8], after: &[u8]) -> io::Result<()> {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let before_path = dir.path().join("before.flac");
+    let after_path = dir.path().join("after.flac");
+    std::fs::write(&before_path, before).expect("seed");
+    std::fs::write(&after_path, after).expect("seed");
+    check_rewrite(&mut open(&before_path), &mut open(&after_path))
+}
+
+fn picture(kind: u32, data: &[u8]) -> Vec<u8> {
+    let mime = b"image/png";
+    let mut out = kind.to_be_bytes().to_vec();
+    out.extend_from_slice(&(mime.len() as u32).to_be_bytes());
+    out.extend_from_slice(mime);
+    out.extend_from_slice(&0u32.to_be_bytes());
+    out.extend_from_slice(&[0u8; 16]);
+    out.extend_from_slice(&(data.len() as u32).to_be_bytes());
+    out.extend_from_slice(data);
+    out
+}
+
+fn flac_of(blocks: &[(u8, &[u8])], audio: &[u8]) -> Vec<u8> {
+    let mut bytes = b"fLaC".to_vec();
+    for (i, (ty, content)) in blocks.iter().enumerate() {
+        bytes.extend_from_slice(&block(*ty, content, i + 1 == blocks.len()));
+    }
+    bytes.extend_from_slice(audio);
+    bytes
+}
+
+const FRONT: u32 = 3;
+const BACK: u32 = 4;
+
+#[test]
+fn a_rewrite_that_only_touched_the_tags_passes() {
+    let front = picture(FRONT, b"front");
+    let back = picture(BACK, b"back");
+    let before = flac_of(
+        &[
+            (0, &[1; 34]),
+            (3, &[2; 18]),
+            (4, b"old"),
+            (6, &front),
+            (6, &back),
+        ],
+        b"frames",
+    );
+    // lofty moves the blocks around, and a cover edit replaces the front.
+    let new_front = picture(FRONT, b"another front");
+    let after = flac_of(
+        &[
+            (0, &[1; 34]),
+            (3, &[2; 18]),
+            (1, &[0; 32]),
+            (4, b"new"),
+            (6, &back),
+            (6, &new_front),
+        ],
+        b"frames",
+    );
+    check(&before, &after).expect("nothing the edit may not touch moved");
+}
+
+#[test]
+fn a_rewrite_is_refused_for_each_thing_it_may_not_touch() {
+    let front = picture(FRONT, b"front");
+    let back = picture(BACK, b"back");
+    let streaminfo = [1u8; 34];
+    let seektable = [2u8; 18];
+    let whole: &[(u8, &[u8])] = &[
+        (0, &streaminfo),
+        (3, &seektable),
+        (4, b"old"),
+        (6, &front),
+        (6, &back),
+    ];
+    let before = flac_of(whole, b"frames");
+    let cases: Vec<(&str, Vec<u8>)> = vec![
+        ("one frame byte changed", flac_of(whole, b"frameZ")),
+        ("the frames cut short", flac_of(whole, b"frame")),
+        (
+            "the STREAMINFO changed",
+            flac_of(
+                &[
+                    (0, &[9; 34]),
+                    (3, &seektable),
+                    (4, b"old"),
+                    (6, &front),
+                    (6, &back),
+                ],
+                b"frames",
+            ),
+        ),
+        (
+            "the seek table gone",
+            flac_of(
+                &[(0, &streaminfo), (4, b"old"), (6, &front), (6, &back)],
+                b"frames",
+            ),
+        ),
+        (
+            "the back cover gone",
+            flac_of(
+                &[(0, &streaminfo), (3, &seektable), (4, b"old"), (6, &front)],
+                b"frames",
+            ),
+        ),
+        (
+            "the front cover gone",
+            flac_of(
+                &[(0, &streaminfo), (3, &seektable), (4, b"old"), (6, &back)],
+                b"frames",
+            ),
+        ),
+        ("no longer FLAC", b"RIFFnot this at all".to_vec()),
+    ];
+    for (what, after) in cases {
+        let err = check(&before, &after).expect_err(what);
+        assert_eq!(err.kind(), io::ErrorKind::InvalidData, "{what}");
+    }
+}
+
+#[test]
+fn a_picture_that_does_not_parse_has_to_stay_whole() {
+    let broken = [0u8, 0, 0, 3, 0xff, 0xff];
+    let before = flac_of(&[(0, &[1; 34]), (6, &broken)], b"frames");
+    check(&before, &before).expect("kept");
+    let after = flac_of(&[(0, &[1; 34])], b"frames");
+    assert!(check(&before, &after).is_err(), "lost");
+}
+
+#[test]
+fn the_check_sees_the_stream_behind_an_id3v2_tag() {
+    let mut tag = b"ID3\x04\x00\x00\x00\x00\x00\x04".to_vec();
+    tag.extend_from_slice(&[0u8; 4]);
+    let mut before = tag.clone();
+    before.extend_from_slice(&flac_of(&[(0, &[1; 34])], b"frames"));
+    let mut same = tag.clone();
+    same.extend_from_slice(&flac_of(&[(0, &[1; 34]), (1, &[0; 8])], b"frames"));
+    check(&before, &same).expect("the same stream");
+    let mut changed = tag;
+    changed.extend_from_slice(&flac_of(&[(0, &[1; 34])], b"framez"));
+    assert!(check(&before, &changed).is_err(), "the frames differ");
+}
+
+#[test]
+fn a_file_that_is_not_flac_has_nothing_to_answer_for() {
+    check(b"RIFF and whatever follows", b"something else entirely").expect("not ours to judge");
+}
+
+#[test]
+fn a_rewrite_that_damages_the_frames_leaves_the_original_in_place() {
+    use std::io::{Seek, SeekFrom, Write};
+
+    let before = flac_of(&[(0, &[1; 34]), (4, b"old")], b"frames");
+    let dir = tempfile::tempdir().expect("tempdir");
+    let path = dir.path().join("track.flac");
+    std::fs::write(&path, &before).expect("seed");
+
+    let outcome: Result<(), io::Error> = crate::tagio::rewrite_via_temp(&path, |file| {
+        file.seek(SeekFrom::End(-1))?;
+        file.write_all(b"Z")
+    });
+
+    assert_eq!(
+        outcome.expect_err("refused").kind(),
+        io::ErrorKind::InvalidData
+    );
+    assert_eq!(std::fs::read(&path).expect("read"), before);
+    assert_eq!(
+        std::fs::read_dir(dir.path()).expect("list").count(),
+        1,
+        "nothing beside the track"
+    );
+}
+
+#[test]
+fn growing_the_region_moves_the_frames_and_leaves_room() {
+    let audio: Vec<u8> = (0..200_000u32).map(|i| (i % 251) as u8).collect();
+    let (_dir, path) = flac_file(16, &audio);
+    let mut comments = VorbisComments::default();
+    comments.push("TITLE".to_string(), "T".repeat(4096));
+
+    let mut file = open(&path);
+    assert!(grow_comments_on_copy(&mut file, &comments).expect("grow"));
+
+    let blocks = read_flac_blocks(&mut file).expect("read").expect("blocks");
+    assert_eq!(blocks.last().map(|b| b.ty), Some(FLAC_BLOCK_PADDING));
+    assert_eq!(
+        blocks.last().map(|b| b.content.len() as u64),
+        Some(FLAC_REWRITE_PADDING)
+    );
+    let after = std::fs::read(&path).expect("read");
+    let region = 4 + region_len(&blocks) as usize;
+    assert_eq!(
+        &after[region..],
+        &audio[..],
+        "every frame, after the region"
+    );
+}
+
+#[test]
+fn growing_declines_what_it_cannot_write_or_would_shrink() {
+    use lofty::ogg::OggPictureStorage;
+    use lofty::picture::{Picture, PictureInformation, PictureType};
+
+    // Not at byte zero: an ID3v2 tag sits there.
+    let dir = tempfile::tempdir().expect("tempdir");
+    let path = dir.path().join("not.flac");
+    std::fs::write(&path, b"ID3\x04\x00\x00\x00\x00\x00\x00rest").expect("seed");
+    assert!(!grow_comments_on_copy(&mut open(&path), &VorbisComments::default()).expect("grow"));
+
+    // Pictures in the comments: the encoder here would drop them.
+    let (_dir, path) = flac_file(0, b"audio");
+    let before = std::fs::read(&path).expect("read");
+    let mut comments = VorbisComments::default();
+    comments
+        .insert_picture(
+            Picture::unchecked(vec![0xFF; 64])
+                .pic_type(PictureType::CoverFront)
+                .mime_type(lofty::picture::MimeType::Jpeg)
+                .build(),
+            Some(PictureInformation::default()),
+        )
+        .expect("insert");
+    assert!(!grow_comments_on_copy(&mut open(&path), &comments).expect("grow"));
+    assert_eq!(std::fs::read(&path).expect("read"), before);
+
+    // More padding than the rewrite would leave.
+    let (_dir, path) = flac_file(FLAC_REWRITE_PADDING as usize * 2, b"audio");
+    let before = std::fs::read(&path).expect("read");
+    let mut comments = VorbisComments::default();
+    comments.push("TITLE".to_string(), "T".to_string());
+    assert!(!grow_comments_on_copy(&mut open(&path), &comments).expect("grow"));
+    assert_eq!(std::fs::read(&path).expect("read"), before);
+}

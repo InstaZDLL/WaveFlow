@@ -675,6 +675,37 @@ async fn the_rating_atom_is_not_offered_as_a_custom_tag() {
     assert_eq!(rows, 0);
 }
 
+/// A FLAC with no room left took the rating into the database and reported a
+/// failed write. It reaches the file now, and the row follows the new bytes.
+#[tokio::test]
+async fn a_rating_on_a_flac_with_no_room_reaches_the_file_and_the_hash_follows() {
+    let library = Library::new().await;
+    let path = library.path("tight.flac");
+    std::fs::write(
+        &path,
+        crate::commands::edit::flac_rewrite_files::flac_without_room(),
+    )
+    .unwrap();
+    library.scan().await;
+    let id = library.id(&path).await;
+
+    let written = write_rating_and_rehash(&library.pool, id, &path, Some(FOUR_STARS as u8))
+        .await
+        .unwrap();
+
+    assert!(written, "the app is told the file took it");
+    assert_eq!(read_file_rating(&path).unwrap(), Some(FOUR_STARS as u8));
+    let bytes = std::fs::read(&path).unwrap();
+    let (hash, size): (String, i64) =
+        sqlx::query_as("SELECT file_hash, file_size FROM track WHERE id = ?")
+            .bind(id)
+            .fetch_one(&library.pool)
+            .await
+            .unwrap();
+    assert_eq!(hash, blake3::hash(&bytes).to_hex().to_string());
+    assert_eq!(size, bytes.len() as i64);
+}
+
 /// A file that cannot take the rating is reported, not passed over, and the
 /// library has it all the same.
 #[tokio::test]

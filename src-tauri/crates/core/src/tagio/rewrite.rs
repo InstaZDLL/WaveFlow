@@ -123,6 +123,10 @@ where
         super::ape::add_missing_ape_header(&mut file).map_err(E::from)?;
         body(&mut file)?;
         file.sync_all().map_err(E::from)?;
+        // The last moment an answer can still leave the original alone.
+        // Closed again before the rename, as the write handle was above.
+        let mut original = std::fs::File::open(path).map_err(E::from)?;
+        super::flac::check_rewrite(&mut original, &mut file).map_err(E::from)?;
     }
 
     let mut temp = temp;
