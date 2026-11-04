@@ -1050,7 +1050,11 @@
       "title": "Afspeelsnelheid",
       "slider": "Snelheidsschuifregelaar",
       "custom": "Aangepaste snelheid",
-      "pitchHint": "Toonhoogte volgt de snelheid (geen time-stretching)."
+      "keepPitch": "Toonhoogte behouden",
+      "transpose": "Transponeren",
+      "transposeDown": "Een halve toon lager",
+      "transposeUp": "Een halve toon hoger",
+      "transposeReset": "Terug naar de oorspronkelijke toonhoogte"
     },
     "seek": "Spoelen",
     "alert": {
@@ -1594,7 +1598,8 @@
         "dopNative": "Native DSD",
         "volume": "Volume {{value}} %",
         "balance": "Balans",
-        "width": "Breedte {{value}}%"
+        "width": "Breedte {{value}}%",
+        "pitch": "Toonhoogte {{value}}"
       }
     },
     "outputMode": {

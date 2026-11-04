@@ -186,10 +186,33 @@ pub async fn podcast_export_opml(
     state: State<'_, AppState>,
     path: String,
 ) -> AppResult<OpmlExportReport> {
-    let pool = state.require_profile_pool().await?;
-    let rows = store::export_rows(&pool).await?;
-    let without_address = store::count_without_address(&pool).await?;
-    let written = rows.len();
+    let (document, report) = {
+        let pool = state.require_profile_pool().await?;
+        opml_export(&pool).await?
+    };
+    // Through a partial file renamed into place, on the blocking pool: the
+    // destination is wherever the person picked, network shares included.
+    tokio::task::spawn_blocking(move || {
+        waveflow_core::atomic_write::write_bytes(Path::new(&path), document.as_bytes())
+    })
+    .await
+    .map_err(|err| AppError::Other(format!("opml write join: {err}")))?
+    .map_err(|err| AppError::Other(format!("opml write: {err}")))?;
+    Ok(report)
+}
+
+/// The document an export writes, and what it says about it. Apart from the file: the
+/// destination may be a share that takes its time, and a lease held across that would
+/// make a profile switch wait it out.
+pub(crate) async fn opml_export(
+    pool: &sqlx::SqlitePool,
+) -> Result<(String, OpmlExportReport), sqlx::Error> {
+    let rows = store::export_rows(pool).await?;
+    let without_address = store::count_without_address(pool).await?;
+    let report = OpmlExportReport {
+        written: rows.len() as u32,
+        without_address: without_address as u32,
+    };
     let document = write_opml(
         &rows
             .into_iter()
@@ -199,16 +222,5 @@ pub async fn podcast_export_opml(
             })
             .collect::<Vec<_>>(),
     );
-    // Through a partial file renamed into place, on the blocking pool: the
-    // destination is wherever the person picked, network shares included.
-    tokio::task::spawn_blocking(move || {
-        waveflow_core::atomic_write::write_bytes(Path::new(&path), document.as_bytes())
-    })
-    .await
-    .map_err(|err| AppError::Other(format!("opml write join: {err}")))?
-    .map_err(|err| AppError::Other(format!("opml write: {err}")))?;
-    Ok(OpmlExportReport {
-        written: written as u32,
-        without_address: without_address as u32,
-    })
+    Ok((document, report))
 }

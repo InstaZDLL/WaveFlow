@@ -14,8 +14,13 @@
 -- `last_error` holds one word from the list in `FetchFailure::code`, and no
 -- CHECK enforces it: the list will grow, and a CHECK could only follow by
 -- rebuilding the table.
+--
+-- AUTOINCREMENT on both tables, so an id is never used twice: a refresh or a download
+-- running while a channel is unsubscribed from writes by id, and must find nothing
+-- rather than the next channel to be followed. `sqlite_sequence` keeping a row also
+-- says this profile has held a channel, which `profile_io` needs to know.
 CREATE TABLE podcast_channel (
-    id                 INTEGER PRIMARY KEY,
+    id                 INTEGER PRIMARY KEY AUTOINCREMENT,
     feed_key           TEXT NOT NULL UNIQUE,
     feed_url           TEXT,
     title              TEXT NOT NULL,
@@ -40,7 +45,7 @@ CREATE TABLE podcast_channel (
 );
 
 CREATE TABLE podcast_episode (
-    id                     INTEGER PRIMARY KEY,
+    id                     INTEGER PRIMARY KEY AUTOINCREMENT,
     channel_id             INTEGER NOT NULL REFERENCES podcast_channel(id) ON DELETE CASCADE,
     item_key               TEXT NOT NULL,
     enclosure_url          TEXT,

@@ -1,8 +1,9 @@
 //! A channel and its episodes, read out of RSS 2.0, Atom or RSS 1.0.
 //!
 //! Parsing goes through `roxmltree` with a DTD refused outright, so an entity
-//! cannot be declared, let alone expanded, and with a node ceiling. The bytes
-//! are bounded before they are decoded, and every text kept afterwards. A
+//! cannot be declared, let alone expanded, with a node ceiling, and after
+//! [`xml_guard`](crate::xml_guard) has looked at what the ceiling does not count. The
+//! bytes are bounded before they are decoded, and every text kept afterwards. A
 //! parser's own message would quote the document, so a refusal is one value
 //! ([`FeedError`]) and carries nothing.
 
@@ -117,6 +118,9 @@ pub fn parse_feed(bytes: &[u8], base: &Url) -> Result<Feed, FeedError> {
 
 /// `text` as a tree, under the rules every XML document here is read by.
 pub(super) fn parse_xml(text: &str) -> Option<roxmltree::Document<'_>> {
+    if !crate::xml_guard::within_limits(text) {
+        return None;
+    }
     let options = roxmltree::ParsingOptions {
         // The default, written down because it is the protection: a document
         // declaring a DTD is refused, so no entity can be defined to expand.

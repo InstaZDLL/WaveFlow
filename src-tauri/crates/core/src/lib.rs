@@ -57,3 +57,4 @@ pub mod sync;
 pub mod tag_workshop;
 pub mod tagio;
 pub mod text_encoding;
+pub mod xml_guard;

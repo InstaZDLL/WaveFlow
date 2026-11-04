@@ -93,7 +93,8 @@ response:
   contacted, and never from https to http. This covers enclosures too, which
   `http_source` does not do today: it lets the client follow them, which is fine
   for a station and not for an address out of a feed.
-- **Bodies are bounded while they are read**: 16 MiB for a feed, each request under
+- **Bodies are bounded while they are read**: 32 MiB for a feed, since a daily show
+  keeping every episode really reaches 20, each request under
   a deadline.
 
 ## Decision 4 — a feed address never reaches a log
@@ -110,11 +111,27 @@ For the same reason, automatic backups do not carry feed addresses, under the sa
 rule as the network password. OPML export is a deliberate act and carries them.
 The export dialog says so.
 
+As built, the rule is wider than backups, because the path is the one the network
+password takes: **a manual profile export blanks them as well**, along with the site
+and picture addresses. **An import blanks them again**, whatever the archive says,
+since one may come from another build or from somebody else and an address in it is
+not one this person typed. What survives is a hash of the address and of the guid, so
+subscribing again finds the channel with its positions. After a restore, a channel
+lists as having no address until then.
+
+**An OPML list may name public addresses only.** It is a file someone may have been
+handed, not an address typed by the person it runs for, and a line naming the local
+network would make the app probe it, each line's result saying what answered. A feed on
+a NAS has to be typed, even from one's own export.
+
 ## Decision 5 — feeds are parsed as hostile documents
 
 `waveflow_core::podcast` takes the server's parser, so the two stop being two: DTD
 refused, a node ceiling, text bounded before it is parsed, at most 500 episodes
 per feed, titles and descriptions bounded. RSS 2.0, Atom and RSS 1.0.
+
+A title may come back empty: the parser has no locale to choose a word in, so the
+page shows its own, where the server's parser writes `Untitled`.
 
 **A refresh is conditional.** `ETag` and `Last-Modified` are stored per channel and
 sent back, so a feed that has not changed costs a `304`. **A feed that has moved
@@ -218,9 +235,10 @@ that is left open.
 it starts, and anything else that plays afterwards gets the global speed back. The
 speed is a column of `podcast_channel`.
 
-Pitch is not preserved today: 1.5× lifts a voice by about seven semitones. Time-stretching lands as its own lot on the existing
-board card, on the decoder thread and never in the callback. The library is chosen
-by measurement. Podcasts do not wait for it.
+Time-stretching landed as its own lot, on the decoder thread and never in the
+callback, with the library chosen by measurement:
+[playback / Playback speed and pitch](../features/playback.md#playback-speed-and-pitch).
+A voice keeps its pitch at 1.5× by default. Podcasts did not wait for it.
 
 ## The surface
 

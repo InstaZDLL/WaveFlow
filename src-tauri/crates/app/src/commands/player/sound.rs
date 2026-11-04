@@ -2,6 +2,7 @@
 //! crossfade, visualizer, speed and gapless, and the snapshot of all of
 //! them.
 
+use std::sync::atomic::Ordering;
 use std::sync::Arc;
 
 use serde::Serialize;
@@ -9,7 +10,12 @@ use tauri::AppHandle;
 use tokio::sync::RwLock;
 
 use crate::{
-    audio::{engine::AudioCmd, replay_gain::GainMode, state::SharedPlayback, AudioEngine},
+    audio::{
+        engine::AudioCmd,
+        replay_gain::GainMode,
+        state::{SharedPlayback, MAX_PITCH_SEMITONES},
+        AudioEngine,
+    },
     error::AppResult,
     state::{ActiveProfile, AppState},
 };
@@ -498,10 +504,7 @@ pub async fn player_get_visualizer(engine: tauri::State<'_, Arc<AudioEngine>>) -
 /// audio engine so the active stream's resampler is rebuilt against the
 /// new effective input rate. The engine gets the value that was saved.
 ///
-/// Pitch is NOT preserved (1.5× → ~ +7 semitones). Proper pitch-locked
-/// time-stretching would need a phase vocoder; this is intentionally
-/// the simple resampler-shift approach used by VLC's default playback
-/// rate, since it costs ~zero CPU and works on every codec.
+/// Whether the pitch follows is [`player_set_keep_pitch`]'s to say.
 #[tauri::command]
 pub async fn player_set_speed(
     state: tauri::State<'_, AppState>,
@@ -526,6 +529,61 @@ pub async fn player_set_speed(
 #[tauri::command]
 pub async fn player_get_speed(engine: tauri::State<'_, Arc<AudioEngine>>) -> AppResult<f32> {
     Ok(engine.shared().playback_speed())
+}
+
+/// Whether the speed leaves the pitch alone (`true`, the default), or the
+/// pitch follows it as on tape. Saved to
+/// `profile_setting['audio.keep_pitch']`, then applied.
+#[tauri::command]
+pub async fn player_set_keep_pitch(
+    state: tauri::State<'_, AppState>,
+    engine: tauri::State<'_, Arc<AudioEngine>>,
+    enabled: bool,
+    expected_profile_id: Option<i64>,
+) -> AppResult<()> {
+    save_then_apply(
+        &state.profile,
+        expected_profile_id,
+        &[bool_row("audio.keep_pitch", enabled)],
+        || engine.send(AudioCmd::SetKeepPitch(enabled)),
+    )
+    .await
+}
+
+#[tauri::command]
+pub async fn player_get_keep_pitch(engine: tauri::State<'_, Arc<AudioEngine>>) -> AppResult<bool> {
+    Ok(engine.shared().keep_pitch.load(Ordering::Relaxed))
+}
+
+/// Transpose by `value` semitones, saturated at the supported range. Saved
+/// to `profile_setting['audio.pitch_semitones']` as an int, then applied.
+/// The engine gets the value that was saved.
+#[tauri::command]
+pub async fn player_set_pitch_semitones(
+    state: tauri::State<'_, AppState>,
+    engine: tauri::State<'_, Arc<AudioEngine>>,
+    value: i32,
+    expected_profile_id: Option<i64>,
+) -> AppResult<()> {
+    let clamped = value.clamp(-MAX_PITCH_SEMITONES, MAX_PITCH_SEMITONES);
+    save_then_apply(
+        &state.profile,
+        expected_profile_id,
+        &[(
+            "audio.pitch_semitones",
+            clamped.to_string(),
+            SettingType::Int,
+        )],
+        || engine.send(AudioCmd::SetPitchSemitones(clamped)),
+    )
+    .await
+}
+
+#[tauri::command]
+pub async fn player_get_pitch_semitones(
+    engine: tauri::State<'_, Arc<AudioEngine>>,
+) -> AppResult<i32> {
+    Ok(engine.shared().pitch_semitones.load(Ordering::Relaxed))
 }
 
 /// Toggle gapless playback. Pushes the new value live to the audio

@@ -7891,6 +7891,7 @@ dependencies = [
  "ape-decoder",
  "async-trait",
  "blake3",
+ "cc",
  "chardetng",
  "chrono",
  "encoding_rs",
