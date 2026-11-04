@@ -44,11 +44,11 @@ fn measured_freq(signal: &[f32], channels: usize) -> f64 {
 #[test]
 fn the_cpp_runtime_is_not_imported() {
     let exe = std::fs::read(std::env::current_exe().unwrap()).unwrap();
-    // In the case the import table spells it; something else in this binary
-    // carries the name in lower case, as data.
-    let name = b"MSVCP140.dll";
+    // Put together here: written whole, the name would be in this very binary.
+    let name = ["msvcp", "140.dll"].concat().into_bytes();
     assert!(
-        !exe.windows(name.len()).any(|w| w == name),
+        !exe.windows(name.len())
+            .any(|w| w.eq_ignore_ascii_case(&name)),
         "this binary imports the C++ runtime"
     );
     // And the stretcher it would be for is in this binary.
