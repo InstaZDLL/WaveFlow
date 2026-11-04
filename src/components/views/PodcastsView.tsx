@@ -160,10 +160,16 @@ export function PodcastsView({
   }, [reload]);
   const downloads = usePodcastDownloads(failWith, onDownloadSettled);
 
-  const { currentTrack, isPlaying, togglePlayback } = usePlayer();
-  const episodeInPlayer = isPodcastTrack(currentTrack)
-    ? (currentTrack?.podcast_episode_id ?? null)
-    : null;
+  const { currentTrack, isPlaying, playbackState, togglePlayback } =
+    usePlayer();
+  // A stopped player still names what it played last, but no longer holds it: its
+  // row is then an ordinary one, under the same rules as the others.
+  const episodeInPlayer =
+    isPodcastTrack(currentTrack) &&
+    playbackState !== "idle" &&
+    playbackState !== "ended"
+      ? (currentTrack?.podcast_episode_id ?? null)
+      : null;
   const player = useMemo<PodcastPlayerState>(
     () => ({ episodeId: episodeInPlayer, playing: isPlaying }),
     [episodeInPlayer, isPlaying],
@@ -206,10 +212,21 @@ export function PodcastsView({
         void run("download", () => podcastDownloadEpisode(episode.id)),
       cancelDownload: (episode) =>
         void run("cancel", () => podcastCancelDownload(episode.id)),
+      // What plays keeps its open file, so the sound does not stop. Said out loud,
+      // since the next time it will need the network.
       deleteDownload: (episode) =>
-        void run("delete", () => podcastDeleteDownload(episode.id)),
+        void run("delete", () => podcastDeleteDownload(episode.id)).then(
+          (deleted) => {
+            if (deleted && episode.id === episodeInPlayer) {
+              setNotice({
+                text: t("podcasts.episode.deletedWhilePlaying"),
+                warn: false,
+              });
+            }
+          },
+        ),
     }),
-    [run, episodeInPlayer, togglePlayback],
+    [run, episodeInPlayer, togglePlayback, t],
   );
 
   const reportRefresh = useCallback(

@@ -4704,7 +4704,9 @@
       "seasonEpisode": "S{{season}} · É{{episode}}",
       "number": "Épisode {{episode}}",
       "remaining": "reste {{time}}",
-      "pause": "Mettre {{title}} en pause"
+      "pause": "Mettre {{title}} en pause",
+      "queued": "En attente",
+      "deletedWhilePlaying": "Le fichier est supprimé. La lecture en cours continue ; pour la relancer ensuite, il faudra le réseau ou un nouveau téléchargement."
     },
     "restored": {
       "title": "L'adresse de ce flux n'est plus connue",

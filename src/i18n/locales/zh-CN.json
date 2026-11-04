@@ -4562,7 +4562,9 @@
       "seasonEpisode": "第{{season}}季 · 第{{episode}}集",
       "number": "第 {{episode}} 集",
       "remaining": "剩余 {{time}}",
-      "pause": "暂停 {{title}}"
+      "pause": "暂停 {{title}}",
+      "queued": "等待中",
+      "deletedWhilePlaying": "文件已删除。当前播放会继续；之后要重新播放，需要联网或重新下载。"
     },
     "restored": {
       "title": "已不知道这个订阅源的地址",

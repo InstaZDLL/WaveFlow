@@ -4562,7 +4562,9 @@
       "seasonEpisode": "S{{season}} · E{{episode}}",
       "number": "Episode {{episode}}",
       "remaining": "sisa {{time}}",
-      "pause": "Jeda {{title}}"
+      "pause": "Jeda {{title}}",
+      "queued": "Menunggu",
+      "deletedWhilePlaying": "Berkas sudah dihapus. Yang sedang diputar tetap berjalan; untuk memulainya lagi perlu jaringan atau unduhan baru."
     },
     "restored": {
       "title": "Alamat umpan ini sudah tidak diketahui",

@@ -4567,7 +4567,9 @@
       "seasonEpisode": "S{{season}} · A{{episode}}",
       "number": "Aflevering {{episode}}",
       "remaining": "nog {{time}}",
-      "pause": "{{title}} pauzeren"
+      "pause": "{{title}} pauzeren",
+      "queued": "Wachten",
+      "deletedWhilePlaying": "Het bestand is verwijderd. Wat nu speelt gaat door; om het opnieuw te starten is netwerk of een nieuwe download nodig."
     },
     "restored": {
       "title": "Het adres van deze feed is niet meer bekend",

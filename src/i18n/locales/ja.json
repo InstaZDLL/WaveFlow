@@ -4562,7 +4562,9 @@
       "seasonEpisode": "S{{season}} · 第{{episode}}話",
       "number": "第{{episode}}話",
       "remaining": "残り{{time}}",
-      "pause": "{{title}} を一時停止"
+      "pause": "{{title}} を一時停止",
+      "queued": "待機中",
+      "deletedWhilePlaying": "ファイルを削除しました。再生中の音声は続きます。もう一度再生するには、ネットワークか再ダウンロードが必要です。"
     },
     "restored": {
       "title": "このフィードのアドレスが分からなくなりました",

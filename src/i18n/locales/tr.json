@@ -4567,7 +4567,9 @@
       "seasonEpisode": "S{{season}} · B{{episode}}",
       "number": "Bölüm {{episode}}",
       "remaining": "{{time}} kaldı",
-      "pause": "{{title}} duraklat"
+      "pause": "{{title}} duraklat",
+      "queued": "Bekliyor",
+      "deletedWhilePlaying": "Dosya silindi. Çalan bölüm devam ediyor; yeniden başlatmak için ağ ya da yeni bir indirme gerekecek."
     },
     "restored": {
       "title": "Bu akışın adresi artık bilinmiyor",

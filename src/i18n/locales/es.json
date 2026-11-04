@@ -4704,7 +4704,9 @@
       "seasonEpisode": "T{{season}} · E{{episode}}",
       "number": "Episodio {{episode}}",
       "remaining": "quedan {{time}}",
-      "pause": "Pausar {{title}}"
+      "pause": "Pausar {{title}}",
+      "queued": "En espera",
+      "deletedWhilePlaying": "El archivo se ha eliminado. Lo que suena sigue sonando; para volver a empezarlo hará falta la red o una nueva descarga."
     },
     "restored": {
       "title": "Ya no se conoce la dirección de este feed",

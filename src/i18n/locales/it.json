@@ -4704,7 +4704,9 @@
       "seasonEpisode": "S{{season}} · E{{episode}}",
       "number": "Episodio {{episode}}",
       "remaining": "ancora {{time}}",
-      "pause": "Metti in pausa {{title}}"
+      "pause": "Metti in pausa {{title}}",
+      "queued": "In attesa",
+      "deletedWhilePlaying": "Il file è stato eliminato. La riproduzione in corso continua; per riavviarla servirà la rete o un nuovo download."
     },
     "restored": {
       "title": "L'indirizzo di questo feed non è più noto",

@@ -382,7 +382,9 @@ function EpisodeDownload({
     return (
       <>
         <span className="pc-meta tabular-nums" role="status">
-          {percent != null ? (
+          {download.state === "queued" ? (
+            t("podcasts.episode.queued")
+          ) : percent != null ? (
             `${percent} %`
           ) : (
             <Loader2 size={14} className="animate-spin" aria-hidden="true" />

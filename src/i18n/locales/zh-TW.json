@@ -4562,7 +4562,9 @@
       "seasonEpisode": "第{{season}}季 · 第{{episode}}集",
       "number": "第 {{episode}} 集",
       "remaining": "剩餘 {{time}}",
-      "pause": "暫停 {{title}}"
+      "pause": "暫停 {{title}}",
+      "queued": "等待中",
+      "deletedWhilePlaying": "檔案已刪除。目前的播放會繼續；之後要重新播放，需要連網或重新下載。"
     },
     "restored": {
       "title": "已不知道這個訂閱來源的網址",

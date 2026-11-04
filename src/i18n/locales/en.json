@@ -4567,7 +4567,9 @@
       "seasonEpisode": "S{{season}} · E{{episode}}",
       "number": "Episode {{episode}}",
       "remaining": "{{time}} left",
-      "pause": "Pause {{title}}"
+      "pause": "Pause {{title}}",
+      "queued": "Waiting",
+      "deletedWhilePlaying": "The file is deleted. What is playing carries on; starting it again will need the network or a new download."
     },
     "restored": {
       "title": "This feed's address is no longer known",

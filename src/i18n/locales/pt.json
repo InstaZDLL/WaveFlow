@@ -4705,7 +4705,9 @@
       "seasonEpisode": "T{{season}} · E{{episode}}",
       "number": "Episódio {{episode}}",
       "remaining": "faltam {{time}}",
-      "pause": "Colocar {{title}} em pausa"
+      "pause": "Colocar {{title}} em pausa",
+      "queued": "Em espera",
+      "deletedWhilePlaying": "O ficheiro foi eliminado. O que está a tocar continua; para o voltar a iniciar será preciso rede ou uma nova transferência."
     },
     "restored": {
       "title": "O endereço deste feed já não é conhecido",
