@@ -48,6 +48,9 @@ export interface ScanSummary {
    *  `is_available = 0`. Their rows stay around so the user keeps
    *  liked / playlist / play-event history if the file comes back. */
   removed: number;
+  /** Files found at a new place whose row followed them, keeping their
+   *  rating, likes, plays and playlist places. */
+  moved: number;
 }
 
 /** Aggregate result of `rescan_library` — summed across every folder. */
@@ -60,6 +63,7 @@ export interface RescanSummary {
   skipped: number;
   errors: number;
   removed: number;
+  moved: number;
   /** The walk stopped early, so the counters cover only the folders it reached. */
   cancelled: boolean;
 }
@@ -147,9 +151,19 @@ export function parseFolderOverlap(err: unknown): FolderOverlap | null {
  */
 export type ImportNotice =
   | { kind: "overlap"; overlap: FolderOverlap }
+  | { kind: "unreachable"; folders: string[] }
   | { kind: "dropped"; summary: DropImportSummary };
 
 export const IMPORT_NOTICE_EVENT = "waveflow:import-notice";
+
+/**
+ * Library folders refused before the notice toast was listening: the scan at
+ * launch can fail ahead of the window. From the first call on, the backend's
+ * `library:folder-unreachable` event says it instead.
+ */
+export function takeUnreachableFolders(): Promise<string[]> {
+  return invoke<string[]>("take_unreachable_folders");
+}
 
 export function announceImport(notice: ImportNotice): void {
   window.dispatchEvent(

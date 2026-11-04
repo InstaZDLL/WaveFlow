@@ -4062,6 +4062,10 @@
       "same": "Ce dossier est déjà dans la bibliothèque : {{folder}}",
       "inside": "Ce dossier est déjà dans la bibliothèque, à l'intérieur de {{folder}}.",
       "contains": "Ce dossier contient {{folder}}, qui est déjà dans la bibliothèque. Ajoutez plutôt ses autres sous-dossiers."
+    },
+    "unreachable": {
+      "title": "Dossier de la bibliothèque injoignable",
+      "body": "Il est absent ou illisible, peut-être un disque débranché. Ses titres restent dans la bibliothèque, sans changement."
     }
   },
   "playlistImport": {

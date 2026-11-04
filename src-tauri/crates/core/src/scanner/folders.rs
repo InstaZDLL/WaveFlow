@@ -46,6 +46,15 @@ pub fn relation(candidate: &Path, folder: &Path) -> Option<FolderRelation> {
     }
 }
 
+/// Do these two files lie directly in one directory? Stored paths, so a
+/// locator on a share as much as a file on this disk: neither is opened.
+pub fn same_directory(a: &str, b: &str) -> bool {
+    match (Path::new(a).parent(), Path::new(b).parent()) {
+        (Some(a), Some(b)) => relation(a, b) == Some(FolderRelation::Same),
+        _ => false,
+    }
+}
+
 /// The library folder `candidate` overlaps, if any, and how. When it meets
 /// several, the same folder wins, then one holding it, then one under it:
 /// the first two say the candidate is already covered, which is the more

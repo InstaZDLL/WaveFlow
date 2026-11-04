@@ -162,14 +162,18 @@ pub async fn save_lyrics(
                 // cache row stays addressable. We update the track row +
                 // the lyrics row in the same transaction below.
                 let path_for_hash = file_path.clone();
-                let new_hash =
-                    tokio::task::spawn_blocking(move || hash_file_blake3(&path_for_hash))
-                        .await
-                        .map_err(|e| AppError::Other(format!("rehash panicked: {e}")))??;
+                let (new_hash, size) = tokio::task::spawn_blocking(move || {
+                    let hash = hash_file_blake3(&path_for_hash)?;
+                    let size = std::fs::metadata(&path_for_hash)?.len() as i64;
+                    Ok::<_, AppError>((hash, size))
+                })
+                .await
+                .map_err(|e| AppError::Other(format!("rehash panicked: {e}")))??;
 
                 let mut tx = pool.begin().await?;
-                sqlx::query("UPDATE track SET file_hash = ? WHERE id = ?")
+                sqlx::query("UPDATE track SET file_hash = ?, file_size = ? WHERE id = ?")
                     .bind(&new_hash)
+                    .bind(size)
                     .bind(track_id)
                     .execute(&mut *tx)
                     .await?;
