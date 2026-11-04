@@ -242,6 +242,15 @@ pub struct ActiveStream {
     pub packets_read: PacketTally,
     /// The resampler's tail has gone out after the end of the stream.
     tail_flushed: bool,
+    /// Seek by estimate rather than by reading up to the place.
+    ///
+    /// An accurate seek into an MP3 reads every frame header from the start of
+    /// the file, since the format keeps no index: nothing on a disk, and most of
+    /// an hour's download over a network to resume near its end. The estimate
+    /// lands within a few seconds on a variable bitrate. Set by a caller that
+    /// reads over a network and can live with that, and falls back when the
+    /// stream cannot estimate (no length, no duration).
+    pub coarse_seek: bool,
 }
 
 /// Running totals of the packets an [`ActiveStream`] has decoded.
@@ -600,6 +609,7 @@ impl ActiveStream {
             codec,
             packets_read: PacketTally::default(),
             tail_flushed: false,
+            coarse_seek: false,
         })
     }
 
@@ -685,6 +695,11 @@ impl ActiveStream {
     pub fn seek_ms(&mut self, ms: u64) -> u64 {
         // A seek back from the end makes the track's end come again.
         self.tail_flushed = false;
+        let mode = if self.coarse_seek {
+            SeekMode::Coarse
+        } else {
+            SeekMode::Accurate
+        };
         match &mut self.backend {
             StreamBackend::Symphonia {
                 format,
@@ -700,13 +715,17 @@ impl ActiveStream {
                 // input), so the option is always `Some`; we fall back
                 // to t=0 just to keep the call infallible.
                 let time = Time::try_from_secs_f64(ms as f64 / 1000.0).unwrap_or_default();
-                match format.seek(
-                    SeekMode::Accurate,
-                    SeekTo::Time {
-                        time,
-                        track_id: Some(*symphonia_track_id),
-                    },
-                ) {
+                let track_id = Some(*symphonia_track_id);
+                let to = || SeekTo::Time { time, track_id };
+                let sought = match format.seek(mode, to()) {
+                    // Nothing was read for this: an estimate needs a length
+                    // and a duration, and this stream lacks one.
+                    Err(symphonia::core::errors::Error::SeekError(
+                        symphonia::core::errors::SeekErrorKind::Unseekable,
+                    )) if mode == SeekMode::Coarse => format.seek(SeekMode::Accurate, to()),
+                    other => other,
+                };
+                match sought {
                     Ok(seeked) => {
                         extent.seeked(seeked.actual_ts.get());
                         let landed = format

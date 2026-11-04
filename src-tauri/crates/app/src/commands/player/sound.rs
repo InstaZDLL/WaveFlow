@@ -10,7 +10,7 @@ use tokio::sync::RwLock;
 
 use crate::{
     audio::{engine::AudioCmd, replay_gain::GainMode, state::SharedPlayback, AudioEngine},
-    error::AppResult,
+    error::{AppError, AppResult},
     state::{ActiveProfile, AppState},
 };
 
@@ -502,14 +502,30 @@ pub async fn player_get_visualizer(engine: tauri::State<'_, Arc<AudioEngine>>) -
 /// time-stretching would need a phase vocoder; this is intentionally
 /// the simple resampler-shift approach used by VLC's default playback
 /// rate, since it costs ~zero CPU and works on every codec.
+///
+/// During an episode the slider is that channel's: it writes
+/// `podcast_channel.playback_speed` and leaves this setting alone, so a speed
+/// chosen for a voice never reaches music (RFC-009, decision 12).
 #[tauri::command]
 pub async fn player_set_speed(
+    app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
     engine: tauri::State<'_, Arc<AudioEngine>>,
     value: f32,
     expected_profile_id: Option<i64>,
 ) -> AppResult<()> {
     let clamped = value.clamp(0.5, 2.0);
+    if let Some(entry) = state.podcast_playback.current() {
+        if expected_profile_id.is_some_and(|expected| expected != entry.profile_id) {
+            return Err(AppError::Other("podcast: profile_changed".into()));
+        }
+        return crate::podcast::playback::set_channel_speed(
+            &app,
+            entry.channel_id,
+            Some(f64::from(clamped)),
+        )
+        .await;
+    }
     save_then_apply(
         &state.profile,
         expected_profile_id,

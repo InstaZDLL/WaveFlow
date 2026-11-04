@@ -1080,6 +1080,10 @@
       "behind": "ライブから{{time}}遅れ",
       "goLive": "ライブに戻る",
       "behindState": "ライブから遅れています"
+    },
+    "podcast": {
+      "back15": "15 秒戻る",
+      "forward30": "30 秒進む"
     }
   },
   "queue": {

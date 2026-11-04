@@ -405,10 +405,7 @@ pub(crate) async fn restore_profile_audio_settings(pool: &sqlx::SqlitePool, engi
         // stream is decoding yet; the first track's
         // lazy resampler init picks up the speed via
         // `stream.playback_speed = shared.playback_speed()`.
-        engine
-            .shared()
-            .playback_speed_bits
-            .store(speed.to_bits(), std::sync::atomic::Ordering::Release);
+        engine.shared().restore_user_speed(speed);
     }
     // Equalizer settings. Both halves are restored
     // unconditionally: a profile with no curve of its own must

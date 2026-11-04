@@ -171,7 +171,7 @@ pub struct SharedPlayback {
     pub newest_load_intent: AtomicU64,
     /// The load the decoder has most recently **accepted**, payload
     /// included, so an output rebuild can put back exactly what its
-    /// `Stop` took away (#634). `None` until the first load of the
+    /// `Unload` took away (#634). `None` until the first load of the
     /// session.
     ///
     /// Written by the decoder in [`accept_load`](super::decoder), which is
@@ -365,6 +365,18 @@ pub struct SharedPlayback {
     /// Clamped to `[0.5, 2.0]` on every write. Pitch is NOT
     /// preserved — proper time-stretching would need a phase vocoder.
     pub playback_speed_bits: AtomicU32,
+    /// The speed the user chose (`audio.playback_speed`). The one above is what
+    /// plays, and equals this except while an episode decodes, which holds a
+    /// speed of its channel's for that long ([`Self::hold_episode_speed`]).
+    pub user_speed_bits: AtomicU32,
+    /// An episode is holding the speed. Written by the decoder alone.
+    pub episode_speed_held: AtomicBool,
+    /// Orders the writers of the three speed fields above against each other: a
+    /// settings restore from a webview can land while an episode starts, and
+    /// between its look at the flag and its store it would overwrite the
+    /// episode's speed for the whole episode. Taken by the decoder and the async
+    /// side, never by the audio callback, which reads none of this.
+    speed_writers: Mutex<()>,
     /// Set by `player_set_speed` to tell the decoder thread to rebuild
     /// every stream's resampler at the new speed on the next decode
     /// cycle. Cleared by the decoder once consumed.
@@ -450,6 +462,9 @@ impl SharedPlayback {
             next_wanted: AtomicBool::new(false),
             mixing: AtomicBool::new(false),
             playback_speed_bits: AtomicU32::new(1.0_f32.to_bits()),
+            user_speed_bits: AtomicU32::new(1.0_f32.to_bits()),
+            episode_speed_held: AtomicBool::new(false),
+            speed_writers: Mutex::new(()),
             speed_dirty: AtomicBool::new(false),
             dsd_taps: AtomicU32::new(256),
             dsd_dop_enabled: AtomicBool::new(false),
@@ -484,6 +499,72 @@ impl SharedPlayback {
         self.speed_dirty.store(true, Ordering::Release);
     }
 
+    fn lock_speed_writers(&self) -> std::sync::MutexGuard<'_, ()> {
+        // Guards nothing of its own, so a panic leaves nothing inconsistent.
+        self.speed_writers
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    /// The user moved their speed, with a stream decoding. Heard at once, unless
+    /// an episode is holding the speed: then it waits for the episode to end.
+    pub fn set_user_speed(&self, speed: f32) {
+        let _writing = self.lock_speed_writers();
+        let clamped = speed.clamp(0.5, 2.0);
+        self.user_speed_bits
+            .store(clamped.to_bits(), Ordering::Release);
+        if !self.episode_speed_held.load(Ordering::Acquire) {
+            self.set_playback_speed(clamped);
+        }
+    }
+
+    /// The user's speed, with no stream decoding: no clock to rebase and no
+    /// resampler to rebuild, so both are plain stores. The next stream takes it
+    /// when it opens. An episode keeps its own: `player_get_state` restores every
+    /// setting, and a window that mounts during one calls it.
+    pub fn restore_user_speed(&self, speed: f32) {
+        let _writing = self.lock_speed_writers();
+        let clamped = speed.clamp(0.5, 2.0);
+        self.user_speed_bits
+            .store(clamped.to_bits(), Ordering::Release);
+        if !self.episode_speed_held.load(Ordering::Acquire) {
+            self.playback_speed_bits
+                .store(clamped.to_bits(), Ordering::Release);
+        }
+    }
+
+    /// An episode starts: what plays from here on is its channel's speed, and the
+    /// user's stays as it is. A plain store, since this comes before the stream
+    /// exists and the clock has just restarted.
+    pub fn hold_episode_speed(&self, speed: f32) {
+        let _writing = self.lock_speed_writers();
+        self.episode_speed_held.store(true, Ordering::Release);
+        self.playback_speed_bits
+            .store(speed.clamp(0.5, 2.0).to_bits(), Ordering::Release);
+    }
+
+    /// The episode changed its channel's speed while it plays. Dropped when none
+    /// is decoding: a command that crossed the end of an episode must not reach
+    /// whatever plays next.
+    pub fn set_episode_speed(&self, speed: f32) {
+        let _writing = self.lock_speed_writers();
+        if self.episode_speed_held.load(Ordering::Acquire) {
+            self.set_playback_speed(speed);
+        }
+    }
+
+    /// The episode is done decoding: everything else plays at the user's speed.
+    /// Called on every way out of an episode, so no path after it has to know one
+    /// was there.
+    pub fn release_episode_speed(&self) {
+        let _writing = self.lock_speed_writers();
+        self.episode_speed_held.store(false, Ordering::Release);
+        self.playback_speed_bits.store(
+            self.user_speed_bits.load(Ordering::Acquire),
+            Ordering::Release,
+        );
+    }
+
     /// True when an A-B loop is currently armed (A < B and both set).
     pub fn ab_loop_armed(&self) -> Option<(u64, u64)> {
         let a = self.loop_a_ms.load(Ordering::Relaxed);
@@ -505,7 +586,7 @@ impl SharedPlayback {
     }
 
     /// Record the load the decoder has just accepted (#634). A command
-    /// that is not a load leaves the snapshot alone — including `Stop`,
+    /// that is not a load leaves the snapshot alone — including `Unload`,
     /// which is precisely what a rebuild sends before asking for this
     /// back.
     ///

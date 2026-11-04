@@ -29,7 +29,8 @@ use crate::error::{AppError, AppResult};
 ///     └── <profile_id>/
 ///         ├── artwork/          (per-profile artwork cache)
 ///         ├── remote-artwork/   (per-profile remote cover cache)
-///         └── remote-stream/    (per-profile remote audio cache)
+///         ├── remote-stream/    (per-profile remote audio cache)
+///         └── podcast-downloads/ (episodes downloaded, fetched again if lost)
 /// ```
 ///
 /// # Why two roots (issue #619)
@@ -292,6 +293,16 @@ impl AppPaths {
     #[cfg(feature = "sync_v2")]
     pub fn profile_remote_stream_dir(&self, profile_id: i64) -> PathBuf {
         self.profile_cache_dir(profile_id).join("remote-stream")
+    }
+
+    /// Episodes downloaded by this profile (RFC-009): the managed folder.
+    ///
+    /// Under the cache root and not in a library folder, so neither the scanner
+    /// nor the watcher sees it. It moves with the caches because the worst a lost
+    /// file costs is fetching the episode again, but nothing evicts it: a download
+    /// goes when its owner says so, up to the quota.
+    pub fn profile_podcast_download_dir(&self, profile_id: i64) -> PathBuf {
+        self.profile_cache_dir(profile_id).join("podcast-downloads")
     }
 
     /// Create the directory layout required for a brand-new profile.

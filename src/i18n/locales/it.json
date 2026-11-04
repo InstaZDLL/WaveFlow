@@ -1122,6 +1122,10 @@
       "behind": "{{time}} di ritardo sulla diretta",
       "goLive": "Torna alla diretta",
       "behindState": "In ritardo sulla diretta"
+    },
+    "podcast": {
+      "back15": "Indietro di 15 s",
+      "forward30": "Avanti di 30 s"
     }
   },
   "queue": {

@@ -296,7 +296,7 @@ pub(in crate::audio) enum FollowOutcome {
 /// A `Pause` raises it, and everything that asks for playback clears it:
 /// `Resume`, and any load, because a load is a request to play — which
 /// is also when the decoder clears its own `paused_output`. Every other
-/// command leaves it alone; a `Stop` in particular, since the rebuilds
+/// command leaves it alone; an `Unload` in particular, since the rebuilds
 /// send one and it decides nothing about whether the user wants to hear
 /// anything afterwards.
 ///
@@ -307,7 +307,8 @@ pub(super) fn pause_pending_after(cmd: &AudioCmd, current: bool) -> bool {
         AudioCmd::Resume
         | AudioCmd::LoadAndPlay { .. }
         | AudioCmd::LoadRemoteFileAndPlay { .. }
-        | AudioCmd::LoadUrlAndPlay { .. } => false,
+        | AudioCmd::LoadUrlAndPlay { .. }
+        | AudioCmd::LoadEpisodeAndPlay { .. } => false,
         _ => current,
     }
 }
@@ -366,7 +367,7 @@ pub(super) enum RebuildResume {
 ///
 /// **`Loading` counts as a session.** The decoder is inside `play_track`
 /// from the moment it accepts a load, so a track picked while the
-/// rebuild is between its `Stop` and its swap is a track this answer
+/// rebuild is between its `Unload` and its swap is a track this answer
 /// decides the fate of. It used to decide more than that: a
 /// `SwapProducer` reaching `play_track` was dropped on the floor, so
 /// answering `Nothing` here cost the swap itself and left the decoder

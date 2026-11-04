@@ -851,6 +851,12 @@ pub(super) fn play_track(
 /// be applied to the other one's gain.
 #[inline]
 fn apply_replay_gain(buf: &mut [f32], shared: &SharedPlayback, stream: &ActiveStream) {
+    // An episode carries no measured gain, and the empty one every other stream
+    // would pass down here means the fallback and the pre-amp: music's settings,
+    // applied to a voice nobody measured (RFC-009, decision 2).
+    if stream.source_type == crate::podcast::playback::SOURCE_TYPE {
+        return;
+    }
     let gain = effective_linear(
         stream.replay_gain,
         shared.replay_gain_settings(),

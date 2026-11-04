@@ -8,6 +8,7 @@ use rtrb::Producer;
 use super::super::replay_gain::TrackGain;
 use super::super::state::SharedPlayback;
 use super::resume::DetachedOrigin;
+use crate::podcast::playback::EpisodeLoad;
 
 /// Sequence number identifying one playback intent (#622).
 ///
@@ -121,9 +122,23 @@ pub enum AudioCmd {
         discard_on_failure: bool,
         replay_gain: TrackGain,
     },
+    /// Play a podcast episode under a negative `track_id`
+    /// ([`crate::podcast::playback`]). Boxed: it carries a whole row's worth of
+    /// display text, and this enum crosses a channel at every volume change.
+    LoadEpisodeAndPlay {
+        /// Ordering token for this load — see [`LoadIntent`].
+        intent: LoadIntent,
+        episode: Box<EpisodeLoad>,
+    },
     Pause,
     Resume,
+    /// Stop playing: what is still queued for the output is dropped unheard, and
+    /// the state lands on `Idle`.
     Stop,
+    /// Take the track away for an output rebuild, leaving the state and the pause
+    /// as they are: the rebuild reads those after this, to decide what it owes the
+    /// session, and sends the track back itself.
+    Unload,
     Seek(u64),
     SetVolume(f32),
     SetNormalize(bool),
@@ -140,6 +155,9 @@ pub enum AudioCmd {
     /// decoder rebuilds the active stream's resampler against the
     /// new effective source rate (`actual_rate * speed`).
     SetSpeed(f32),
+    /// Change the speed the episode decoding right now plays at, leaving the
+    /// user's own alone. Ignored when no episode is decoding.
+    SetEpisodeSpeed(f32),
     /// Left / right balance in percent, `-100` (left) to `100` (right).
     /// Clamped on the way in.
     SetBalance(i32),
@@ -275,9 +293,16 @@ impl std::fmt::Debug for AudioCmd {
                 "LoadRemoteFileAndPlay {{ track_id: {track_id}, start_ms: {start_ms}, intent: {} }}",
                 intent.get()
             ),
+            // `EpisodeLoad`'s own `Debug`, which holds no address.
+            AudioCmd::LoadEpisodeAndPlay { intent, episode } => write!(
+                f,
+                "LoadEpisodeAndPlay {{ {episode:?}, intent: {} }}",
+                intent.get()
+            ),
             AudioCmd::Pause => write!(f, "Pause"),
             AudioCmd::Resume => write!(f, "Resume"),
             AudioCmd::Stop => write!(f, "Stop"),
+            AudioCmd::Unload => write!(f, "Unload"),
             AudioCmd::Seek(ms) => write!(f, "Seek({ms})"),
             AudioCmd::SetVolume(v) => write!(f, "SetVolume({v})"),
             AudioCmd::SetNormalize(v) => write!(f, "SetNormalize({v})"),
@@ -286,6 +311,7 @@ impl std::fmt::Debug for AudioCmd {
             AudioCmd::SetReplayGain(v) => write!(f, "SetReplayGain({v})"),
             AudioCmd::SetGapless(v) => write!(f, "SetGapless({v})"),
             AudioCmd::SetSpeed(v) => write!(f, "SetSpeed({v})"),
+            AudioCmd::SetEpisodeSpeed(v) => write!(f, "SetEpisodeSpeed({v})"),
             AudioCmd::SetBalance(v) => write!(f, "SetBalance({v})"),
             AudioCmd::SetStereoWidth(v) => write!(f, "SetStereoWidth({v})"),
             AudioCmd::SetNextTrack {
@@ -322,7 +348,7 @@ impl std::fmt::Debug for AudioCmd {
 impl AudioCmd {
     /// The ordering token of a load command, `None` for everything else.
     ///
-    /// Only the three loads are arbitrated: they are the commands that
+    /// Only the four loads are arbitrated: they are the commands that
     /// *replace* what is playing. Pause, Seek, a volume change and the
     /// rest act on whatever is current, so they are always meant for the
     /// state they find. `SetNextTrack` is deliberately absent too — it
@@ -335,7 +361,8 @@ impl AudioCmd {
         match self {
             AudioCmd::LoadAndPlay { intent, .. }
             | AudioCmd::LoadRemoteFileAndPlay { intent, .. }
-            | AudioCmd::LoadUrlAndPlay { intent, .. } => Some(*intent),
+            | AudioCmd::LoadUrlAndPlay { intent, .. }
+            | AudioCmd::LoadEpisodeAndPlay { intent, .. } => Some(*intent),
             _ => None,
         }
     }

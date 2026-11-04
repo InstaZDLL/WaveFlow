@@ -52,7 +52,7 @@ fn nothing_loaded_means_nothing_to_resume() {
 #[test]
 fn a_track_still_loading_is_still_a_session() {
     // The decoder is inside `play_track` from the moment it accepts
-    // a load, so a track picked between the rebuild's `Stop` and its
+    // a load, so a track picked between the rebuild's `Unload` and its
     // swap is one this answer decides for. The swap now ends that
     // track instead of being dropped (#639), which leaves the
     // session loaded and stopped — `Nothing` would be the one answer
@@ -100,6 +100,8 @@ fn a_stop_decides_nothing_about_the_pause() {
     // The rebuilds send one, and it says nothing about whether the
     // user wants to hear anything afterwards. Clearing on it would
     // undo the pause this flag exists to carry.
+    assert!(pause_pending_after(&AudioCmd::Unload, true));
+    assert!(!pause_pending_after(&AudioCmd::Unload, false));
     assert!(pause_pending_after(&AudioCmd::Stop, true));
     assert!(!pause_pending_after(&AudioCmd::Stop, false));
     assert!(pause_pending_after(&AudioCmd::Seek(1_000), true));

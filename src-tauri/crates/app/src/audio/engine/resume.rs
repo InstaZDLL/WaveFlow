@@ -9,6 +9,7 @@ use super::super::replay_gain::TrackGain;
 use super::command::{AudioCmd, LoadIntent};
 use super::rebuild::DEVICE_LOSS_OWNERSHIP;
 use super::AudioEngine;
+use crate::podcast::playback::EpisodeLoad;
 
 /// A session a rebuild parked — the load, and where to pick it up.
 #[derive(Debug, Clone, PartialEq)]
@@ -37,6 +38,9 @@ impl ParkedSession {
             | LastLoadSource::RemoteFile { duration_ms, .. } => {
                 crate::queue::resume_position(self.start_ms, *duration_ms)
             }
+            LastLoadSource::Episode(episode) => {
+                crate::queue::resume_position(self.start_ms, episode.duration_ms)
+            }
             LastLoadSource::Url { .. } => self.start_ms,
         };
         self.load.into_command(intent, start_ms)
@@ -47,7 +51,7 @@ impl ParkedSession {
 ///
 /// The three output-rebuild paths ([`AudioEngine::set_output_device`],
 /// [`AudioEngine::set_exclusive_output`],
-/// [`AudioEngine::force_rebuild_output`]) have to put back what the `Stop`
+/// [`AudioEngine::force_rebuild_output`]) have to put back what the `Unload`
 /// they send takes away, and each of them used to re-dispatch a snapshot
 /// taken *before* that stop. A track the user picked in between was
 /// therefore loaded, unloaded by the stop, and its only replacement — the
@@ -115,6 +119,8 @@ pub(crate) enum LastLoadSource {
         fallback_url: Option<String>,
         replay_gain: TrackGain,
     },
+    /// A podcast episode. Its `Debug` holds no address.
+    Episode(Box<EpisodeLoad>),
 }
 
 /// Whose session a file played by [`AudioCmd::LoadRemoteFileAndPlay`]
@@ -225,6 +231,16 @@ impl LastLoad {
                     replay_gain: *replay_gain,
                 },
             }),
+            AudioCmd::LoadEpisodeAndPlay { intent, episode } => Some(Self {
+                intent: *intent,
+                track_id: episode.track_id,
+                start_ms: episode.start_ms,
+                // Inside the load, which is what the decoder announces.
+                title: None,
+                artist: None,
+                artwork_url: None,
+                source: LastLoadSource::Episode(episode.clone()),
+            }),
             _ => None,
         }
     }
@@ -312,6 +328,10 @@ impl LastLoad {
                 fallback_url,
                 replay_gain,
             },
+            LastLoadSource::Episode(mut episode) => {
+                episode.start_ms = start_ms;
+                AudioCmd::LoadEpisodeAndPlay { intent, episode }
+            }
         }
     }
 }
@@ -439,7 +459,7 @@ impl AudioEngine {
         }
     }
 
-    /// Put back what a rebuild's `Stop` took away (#634).
+    /// Put back what a rebuild's `Unload` took away (#634).
     ///
     /// Called after the producer swap, with the position captured before
     /// the stop. Re-dispatches the load the decoder accepted — which is
@@ -479,7 +499,7 @@ impl AudioEngine {
     ///   point is always a library track's, so parking one of those and
     ///   pressing Play brought back the last library track instead, which
     ///   is why #611 could only ever park a library track;
-    /// - the state lands on `Idle`, not `Paused`. The `Stop` this rebuild
+    /// - the state lands on `Idle`, not `Paused`. The `Unload` this rebuild
     ///   sent unloaded the track and the decoder ignores a `Resume` with
     ///   nothing loaded, so `Paused` on screen would make Play a dead
     ///   button;

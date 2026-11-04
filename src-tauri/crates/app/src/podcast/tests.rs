@@ -24,13 +24,13 @@ use super::refresh::{
 use super::schedule::{run_schedule, Schedule};
 use super::store;
 
-const PUBLIC_HOST: &str = "feeds.example.org";
+pub(super) const PUBLIC_HOST: &str = "feeds.example.org";
 
 // ── a server that does what the test says ───────────────────────────
 
 /// What one request is answered with.
 #[derive(Clone)]
-enum Reply {
+pub(super) enum Reply {
     /// These bytes, then the connection closes.
     Raw(Vec<u8>),
     /// A chunked body that never ends, as fast as it can.
@@ -43,7 +43,7 @@ enum Reply {
     Late(Vec<u8>),
 }
 
-fn with_status(status: &str, headers: &str, body: &[u8]) -> Reply {
+pub(super) fn with_status(status: &str, headers: &str, body: &[u8]) -> Reply {
     let mut out = format!(
         "HTTP/1.1 {status}\r\nContent-Length: {}\r\nConnection: close\r\n{headers}\r\n",
         body.len()
@@ -61,12 +61,12 @@ fn ok(body: &str) -> Reply {
     )
 }
 
-fn redirect(location: &str) -> Reply {
+pub(super) fn redirect(location: &str) -> Reply {
     with_status("302 Found", &format!("Location: {location}\r\n"), b"")
 }
 
-struct Server {
-    port: u16,
+pub(super) struct Server {
+    pub(super) port: u16,
     requests: Arc<Mutex<Vec<String>>>,
 }
 
@@ -76,24 +76,24 @@ impl Server {
         self.requests.lock().unwrap().clone()
     }
 
-    fn hits(&self) -> usize {
+    pub(super) fn hits(&self) -> usize {
         self.requests.lock().unwrap().len()
     }
 
     /// An address on this server, by IP: a local address, as far as `may_open`
     /// can tell.
-    fn local(&self, path: &str) -> String {
+    pub(super) fn local(&self, path: &str) -> String {
         format!("http://127.0.0.1:{}{path}", self.port)
     }
 
     /// An address on this server under a public name, which only a fetcher from
     /// [`public_fetcher`] resolves to it.
-    fn public(&self, path: &str) -> String {
+    pub(super) fn public(&self, path: &str) -> String {
         format!("http://{PUBLIC_HOST}:{}{path}", self.port)
     }
 }
 
-async fn serve(answer: impl Fn(&str) -> Reply + Send + Sync + 'static) -> Server {
+pub(super) async fn serve(answer: impl Fn(&str) -> Reply + Send + Sync + 'static) -> Server {
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let port = listener.local_addr().unwrap().port();
     let requests = Arc::new(Mutex::new(Vec::new()));
@@ -153,18 +153,18 @@ async fn serve(answer: impl Fn(&str) -> Reply + Send + Sync + 'static) -> Server
     Server { port, requests }
 }
 
-fn online() -> bool {
+pub(super) fn online() -> bool {
     false
 }
 
-fn offline() -> bool {
+pub(super) fn offline() -> bool {
     true
 }
 
 /// A deadline the slowest machine running the whole suite stays inside.
 const ROOMY: Duration = Duration::from_secs(30);
 
-fn fetcher() -> Fetcher {
+pub(super) fn fetcher() -> Fetcher {
     Fetcher::with(client_builder().no_proxy(), online, ROOMY).unwrap()
 }
 
@@ -180,7 +180,7 @@ fn impatient_fetcher() -> Fetcher {
 
 /// A fetcher that believes [`PUBLIC_HOST`] is the local test server, so an
 /// address that `may_open` calls public really reaches something here.
-fn public_fetcher(server: &Server) -> Fetcher {
+pub(super) fn public_fetcher(server: &Server) -> Fetcher {
     Fetcher::with(
         client_builder()
             .no_proxy()
@@ -191,7 +191,7 @@ fn public_fetcher(server: &Server) -> Fetcher {
     .unwrap()
 }
 
-fn url(raw: &str) -> Url {
+pub(super) fn url(raw: &str) -> Url {
     Url::parse(raw).unwrap()
 }
 
@@ -286,7 +286,7 @@ async fn a_secure_address_cannot_redirect_into_the_clear() {
 
 /// A blocking one-connection TLS server on a thread of its own, since `rustls`
 /// is what the app already has and it needs no async glue for this.
-async fn tls_redirecting_to(location: String) -> u16 {
+pub(super) async fn tls_redirecting_to(location: String) -> u16 {
     use rustls::pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer};
     let cert = CertificateDer::from(include_bytes!("testdata/self-signed-cert.der").to_vec());
     let key = PrivateKeyDer::Pkcs8(PrivatePkcs8KeyDer::from(
@@ -523,7 +523,7 @@ async fn switch(pool: &SqlitePool, on: bool) {
     .unwrap();
 }
 
-async fn enabled_pool() -> SqlitePool {
+pub(super) async fn enabled_pool() -> SqlitePool {
     let pool = pool().await;
     switch(&pool, true).await;
     pool
@@ -2114,6 +2114,7 @@ async fn a_private_feeds_token_reaches_no_log_line() {
     outputs.push(
         serde_json::to_string(&store::list_episodes(&pool, id, 10, 0).await.unwrap()).unwrap(),
     );
+    episode_life_with_a_token(&server, &mut outputs).await;
 
     CAPTURING.store(false, Ordering::SeqCst);
     let captured = String::from_utf8_lossy(&CAPTURED.lock().unwrap()).into_owned();
@@ -2124,6 +2125,10 @@ async fn a_private_feeds_token_reaches_no_log_line() {
     assert!(
         captured.contains("http_404"),
         "a failure is logged as its word"
+    );
+    assert!(
+        captured.contains("LoadEpisodeAndPlay"),
+        "the capture proves nothing about a load it never saw: {captured}"
     );
     assert!(
         !captured.contains(TOKEN),
@@ -2141,4 +2146,76 @@ async fn a_private_feeds_token_reaches_no_log_line() {
         .await
         .unwrap();
     assert!(stored.contains(TOKEN));
+}
+
+/// An episode played, sought and refused, with a token in the address of each hop,
+/// and the command that carries it printed the way every logger prints one.
+async fn episode_life_with_a_token(server: &Server, outputs: &mut Vec<String>) {
+    use std::io::{Read, Seek, SeekFrom};
+
+    use super::playback::{EpisodeLoad, EpisodeSource};
+    use super::stream::{EnclosureSource, Gate};
+    use crate::audio::engine::{AudioCmd, LastLoad, LoadIntent};
+
+    let open = |raw: String| {
+        let runtime = tokio::runtime::Handle::current();
+        let gate: Gate = Arc::new(|| Box::pin(async { Ok(()) }));
+        tokio::task::spawn_blocking(move || {
+            let address = url(&raw);
+            let origin = Origin::of(&address);
+            EnclosureSource::open(runtime, fetcher(), gate, address, origin).map(|mut source| {
+                // It reads what the host sent, and a seek that goes wrong says why.
+                let mut sink = [0u8; 256];
+                let read = source.read(&mut sink).map(|_| ());
+                let sought = source.seek(SeekFrom::Start(1 << 20)).map(|_| ());
+                (format!("{read:?}"), format!("{sought:?}"))
+            })
+        })
+    };
+    for path in [
+        format!("/audio/{TOKEN}/ok.mp3?auth={TOKEN}"),
+        format!("/moved/{TOKEN}/ok.mp3?auth={TOKEN}"),
+        format!("/looping/{TOKEN}/ok.mp3?auth={TOKEN}"),
+        format!("/page/{TOKEN}/ok.mp3?auth={TOKEN}"),
+        format!("/missing/{TOKEN}/ok.mp3?auth={TOKEN}"),
+    ] {
+        match open(server.local(&path)).await.unwrap() {
+            Ok((read, sought)) => {
+                tracing::warn!(read, sought, "episode stream");
+                outputs.push(read);
+                outputs.push(sought);
+            }
+            Err(refusal) => {
+                tracing::warn!(error = %refusal.message(), "episode open failed");
+                outputs.push(format!("{refusal:?}"));
+                outputs.push(refusal.message());
+            }
+        }
+    }
+
+    let enclosure = url(&server.local(&format!("/audio/{TOKEN}/ok.mp3?auth={TOKEN}")));
+    let command = AudioCmd::LoadEpisodeAndPlay {
+        intent: LoadIntent::from_raw(1),
+        episode: Box::new(EpisodeLoad {
+            episode_id: 1,
+            channel_id: 1,
+            profile_id: 1,
+            track_id: -1,
+            start_ms: 0,
+            duration_ms: 0,
+            title: "One".into(),
+            channel: "Private".into(),
+            artwork_path: None,
+            speed: 1.0,
+            source: EpisodeSource::Stream {
+                origin: Origin::of(&enclosure),
+                enclosure,
+                declared_type: None,
+            },
+        }),
+    };
+    let captured = LastLoad::capture(&command).expect("a load");
+    tracing::debug!(?command, ?captured, "dropping a load");
+    outputs.push(format!("{command:?}"));
+    outputs.push(format!("{captured:?}"));
 }

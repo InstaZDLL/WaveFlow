@@ -29,6 +29,7 @@ mod resume;
 pub use command::{AudioCmd, LoadIntent};
 pub use notice::{ExclusiveRefusal, OutputMode};
 pub(super) use rebuild::{FollowOutcome, REBUILD_SETTLE_WINDOW};
+pub(crate) use resume::LastLoadSource;
 pub use resume::{DetachedOrigin, LastLoad};
 
 use notice::PlaybackNotice;
@@ -465,7 +466,9 @@ impl AudioEngine {
             AudioCmd::LoadAndPlay { .. }
                 | AudioCmd::LoadRemoteFileAndPlay { .. }
                 | AudioCmd::LoadUrlAndPlay { .. }
+                | AudioCmd::LoadEpisodeAndPlay { .. }
                 | AudioCmd::Stop
+                | AudioCmd::Unload
                 | AudioCmd::Shutdown
         );
         self.cmd_tx.send(cmd).map_err(|e| {
@@ -478,6 +481,7 @@ impl AudioEngine {
         if releases {
             super::live::release_starved_reader();
             crate::netlib::media::release_starved_readers();
+            crate::podcast::stream::release_starved_reader();
         }
         // A pause on a live station is time behind live, counted by its
         // buffer — the same lifecycle as the pending pause, so a load
@@ -488,17 +492,19 @@ impl AudioEngine {
         Ok(())
     }
 
-    /// The `Stop` an output rebuild sends straight down the channel, past
+    /// The `Unload` an output rebuild sends straight down the channel, past
     /// [`Self::send`]: a live station reconnecting holds the decoder in a
-    /// read on an empty buffer, released once the `Stop` is queued so the
+    /// read on an empty buffer, released once the command is queued so the
     /// rebuild does not wait for the station to come back. A network share
-    /// that stopped answering holds it the same way.
+    /// that stopped answering holds it the same way, and so does an episode's
+    /// host.
     fn stop_for_rebuild(&self) -> Result<(), String> {
         self.cmd_tx
-            .send(AudioCmd::Stop)
+            .send(AudioCmd::Unload)
             .map_err(|e| e.to_string())?;
         super::live::release_starved_reader();
         crate::netlib::media::release_starved_readers();
+        crate::podcast::stream::release_starved_reader();
         Ok(())
     }
 

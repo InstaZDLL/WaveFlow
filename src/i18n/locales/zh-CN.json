@@ -1080,6 +1080,10 @@
       "behind": "落后直播 {{time}}",
       "goLive": "回到直播",
       "behindState": "落后于直播"
+    },
+    "podcast": {
+      "back15": "后退 15 秒",
+      "forward30": "前进 30 秒"
     }
   },
   "queue": {

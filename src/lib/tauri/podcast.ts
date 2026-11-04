@@ -109,7 +109,7 @@ const ERROR_PREFIX = "podcast: ";
 
 /**
  * The word a refused command rejected with: `disabled`, `offline`,
- * `profile_changed`, `channel_gone`, or one from `FetchFailure::code` (`address_refused`,
+ * `profile_changed`, `channel_gone`, `episode_gone`, `no_source`, or one from `FetchFailure::code` (`address_refused`,
  * `too_many_redirects`, `too_large`, `unreached`, `http_<status>`,
  * `invalid_feed`, `not_audio`, `quota_exceeded`). `null` for any other error.
  */
@@ -166,4 +166,63 @@ export function podcastExportOpml(
   path: string,
 ): Promise<PodcastOpmlExportReport> {
   return invoke<PodcastOpmlExportReport>("podcast_export_opml", { path });
+}
+
+/** Plays an episode with its channel as the queue. From disk when it is
+ *  downloaded, whatever the switch and offline mode say; otherwise rejects with
+ *  either of them off. A played one starts over, any other from its position. */
+export function podcastPlayEpisode(episodeId: number): Promise<void> {
+  return invoke("podcast_play_episode", { episodeId });
+}
+
+/** Marks one episode played or unplayed, which forgets its position. */
+export function podcastMarkPlayed(
+  episodeId: number,
+  played: boolean,
+): Promise<void> {
+  return invoke("podcast_mark_played", { episodeId, played });
+}
+
+/** Marks every episode of a channel played or unplayed. */
+export function podcastMarkChannelPlayed(
+  channelId: number,
+  played: boolean,
+): Promise<void> {
+  return invoke("podcast_mark_channel_played", { channelId, played });
+}
+
+/** One episode per channel, the one in progress or else the newest unplayed,
+ *  channels with one in progress first. Needs no request. */
+export function podcastToListen(): Promise<PodcastEpisode[]> {
+  return invoke<PodcastEpisode[]>("podcast_to_listen");
+}
+
+/** The speed a channel's episodes start at, `null` for the normal one. Heard at
+ *  once when one of them plays. Never reaches `audio.playback_speed`. */
+export function podcastSetChannelSpeed(
+  channelId: number,
+  speed: number | null,
+): Promise<void> {
+  return invoke("podcast_set_channel_speed", { channelId, speed });
+}
+
+/** The channel's episodes in the queue, in the shape of a remote queue so the
+ *  same view renders either; `null` when no episode is the queue. */
+export function podcastGetQueue(): Promise<{
+  entries: {
+    id: string;
+    title: string;
+    artist: string | null;
+    artist_id: string | null;
+    artwork_hash: string | null;
+    duration_ms: number | null;
+  }[];
+  index: number;
+} | null> {
+  return invoke("podcast_get_queue");
+}
+
+/** Jumps to an episode of that queue and plays it. */
+export function podcastQueueJump(index: number): Promise<void> {
+  return invoke("podcast_queue_jump", { index });
 }

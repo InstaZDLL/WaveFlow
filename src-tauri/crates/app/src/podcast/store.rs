@@ -517,6 +517,211 @@ pub(crate) async fn record_artwork(
     Ok(())
 }
 
+/// What playing an episode needs of its row and its channel's. Holds addresses,
+/// and stays in the backend.
+#[derive(Debug, Clone, PartialEq, FromRow)]
+pub(crate) struct PlayableEpisode {
+    pub id: i64,
+    pub channel_id: i64,
+    pub title: String,
+    pub duration_ms: Option<i64>,
+    pub position_ms: i64,
+    pub played_at: Option<i64>,
+    pub enclosure_url: Option<String>,
+    pub enclosure_type: Option<String>,
+    pub download_file: Option<String>,
+    pub channel_title: String,
+    pub feed_url: Option<String>,
+    pub artwork_hash: Option<String>,
+    pub playback_speed: Option<f64>,
+}
+
+pub(crate) async fn playable(
+    pool: &SqlitePool,
+    episode_id: i64,
+) -> Result<Option<PlayableEpisode>, sqlx::Error> {
+    sqlx::query_as(
+        "SELECT e.id, e.channel_id, e.title, e.duration_ms, e.position_ms, e.played_at,
+                e.enclosure_url, e.enclosure_type, e.download_file,
+                c.title AS channel_title, c.feed_url, c.artwork_hash, c.playback_speed
+           FROM podcast_episode e
+           JOIN podcast_channel c ON c.id = e.channel_id
+          WHERE e.id = ? AND e.deleted_at IS NULL",
+    )
+    .bind(episode_id)
+    .fetch_optional(pool)
+    .await
+}
+
+/// One row of a channel's queue.
+#[derive(Debug, Clone, PartialEq, Eq, FromRow)]
+pub(crate) struct QueueRow {
+    pub id: i64,
+    pub channel_id: i64,
+    pub title: String,
+    pub duration_ms: Option<i64>,
+    pub has_enclosure: bool,
+    pub downloaded: bool,
+}
+
+/// A channel's episodes in the page's order: newest first, undated ones last.
+pub(crate) async fn queue_rows(
+    pool: &SqlitePool,
+    channel_id: i64,
+) -> Result<Vec<QueueRow>, sqlx::Error> {
+    sqlx::query_as(
+        "SELECT id, channel_id, title, duration_ms,
+                enclosure_url IS NOT NULL AS has_enclosure,
+                download_file IS NOT NULL AS downloaded
+           FROM podcast_episode
+          WHERE channel_id = ? AND deleted_at IS NULL
+          ORDER BY published_at IS NULL, published_at DESC, id DESC",
+    )
+    .bind(channel_id)
+    .fetch_all(pool)
+    .await
+}
+
+pub(crate) async fn is_played(pool: &SqlitePool, episode_id: i64) -> Result<bool, sqlx::Error> {
+    let played: Option<i64> =
+        sqlx::query_scalar("SELECT played_at FROM podcast_episode WHERE id = ?")
+            .bind(episode_id)
+            .fetch_optional(pool)
+            .await?
+            .flatten();
+    Ok(played.is_some())
+}
+
+pub(crate) async fn note_opened(pool: &SqlitePool, episode_id: i64) -> Result<(), sqlx::Error> {
+    sqlx::query("UPDATE podcast_episode SET last_opened_at = ? WHERE id = ?")
+        .bind(Utc::now().timestamp_millis())
+        .bind(episode_id)
+        .execute(pool)
+        .await?;
+    Ok(())
+}
+
+/// Where an episode stands. Played, the position goes back to zero, since a played
+/// episode starts over whatever was stored. Whether this is what made it played is
+/// the answer. A row marked played keeps that mark while it is heard again: only a
+/// person takes it off.
+pub(crate) async fn save_position(
+    pool: &SqlitePool,
+    episode_id: i64,
+    position_ms: u64,
+    played: bool,
+) -> Result<bool, sqlx::Error> {
+    let now = Utc::now().timestamp_millis();
+    let position = if played {
+        0
+    } else {
+        i64::try_from(position_ms).unwrap_or(i64::MAX)
+    };
+    let flipped = sqlx::query_scalar::<_, i64>(
+        "UPDATE podcast_episode
+            SET position_ms = ?1,
+                played_at = CASE WHEN ?2 THEN COALESCE(played_at, ?3) ELSE played_at END
+          WHERE id = ?4
+          RETURNING played_at IS NOT NULL AND played_at = ?3",
+    )
+    .bind(position)
+    .bind(played)
+    .bind(now)
+    .bind(episode_id)
+    .fetch_optional(pool)
+    .await?;
+    Ok(played && flipped == Some(1))
+}
+
+/// Marked by hand. Either way the position is forgotten: played starts over, and
+/// unplayed is asked to be new again. The channel it belongs to is the answer, or
+/// `None` when there is no such row.
+pub(crate) async fn mark_played(
+    pool: &SqlitePool,
+    episode_id: i64,
+    played: bool,
+) -> Result<Option<i64>, sqlx::Error> {
+    sqlx::query_scalar(
+        "UPDATE podcast_episode
+            SET position_ms = 0,
+                played_at = CASE WHEN ?1 THEN COALESCE(played_at, ?2) ELSE NULL END
+          WHERE id = ?3 AND deleted_at IS NULL
+          RETURNING channel_id",
+    )
+    .bind(played)
+    .bind(Utc::now().timestamp_millis())
+    .bind(episode_id)
+    .fetch_optional(pool)
+    .await
+}
+
+/// [`mark_played`] for a whole channel, in one statement. How many rows it touched
+/// is the answer.
+pub(crate) async fn mark_channel_played(
+    pool: &SqlitePool,
+    channel_id: i64,
+    played: bool,
+) -> Result<u64, sqlx::Error> {
+    Ok(sqlx::query(
+        "UPDATE podcast_episode
+            SET position_ms = 0,
+                played_at = CASE WHEN ?1 THEN COALESCE(played_at, ?2) ELSE NULL END
+          WHERE channel_id = ?3 AND deleted_at IS NULL",
+    )
+    .bind(played)
+    .bind(Utc::now().timestamp_millis())
+    .bind(channel_id)
+    .execute(pool)
+    .await?
+    .rows_affected())
+}
+
+/// One episode per channel, across channels (decision 7): the one in progress, the
+/// most recently opened if several are, else the newest unplayed. Channels with one
+/// in progress first. Only what can play: a restored profile's episodes have no
+/// address until the feed is subscribed to again. Reads the two tables and nothing
+/// else.
+pub(crate) async fn to_listen(pool: &SqlitePool) -> Result<Vec<PodcastEpisode>, sqlx::Error> {
+    sqlx::query_as(sqlx::AssertSqlSafe(format!(
+        "{EPISODE_SELECT}
+          WHERE id IN (
+            SELECT id FROM (
+              SELECT id,
+                     ROW_NUMBER() OVER (
+                       PARTITION BY channel_id
+                       ORDER BY position_ms > 0 DESC,
+                                CASE WHEN position_ms > 0 THEN last_opened_at END DESC,
+                                published_at IS NULL, published_at DESC, id DESC
+                     ) AS place
+                FROM podcast_episode
+               WHERE deleted_at IS NULL
+                 AND played_at IS NULL
+                 AND (enclosure_url IS NOT NULL OR download_file IS NOT NULL)
+            ) WHERE place = 1
+          )
+          ORDER BY position_ms > 0 DESC,
+                   CASE WHEN position_ms > 0 THEN last_opened_at END DESC,
+                   published_at IS NULL, published_at DESC, id DESC"
+    )))
+    .fetch_all(pool)
+    .await
+}
+
+/// `None` is the normal speed. Whether a row was there is the answer.
+pub(crate) async fn set_channel_speed(
+    pool: &SqlitePool,
+    channel_id: i64,
+    speed: Option<f64>,
+) -> Result<bool, sqlx::Error> {
+    let updated = sqlx::query("UPDATE podcast_channel SET playback_speed = ? WHERE id = ?")
+        .bind(speed)
+        .bind(channel_id)
+        .execute(pool)
+        .await?
+        .rows_affected();
+    Ok(updated > 0)
+}
+
 /// Forgets a channel and, by the foreign key, its episodes. Whether a row was
 /// there to forget is the answer.
 pub(crate) async fn delete_channel(
