@@ -4697,7 +4697,8 @@
       "title": "O endereço deste feed já não é conhecido",
       "body": "Este canal vem de uma cópia de segurança ou de um perfil importado, que nunca guardam o endereço dos feeds, por isso já não se atualiza. Subscreve de novo o mesmo endereço ou importa outra vez o teu OPML: as tuas posições e o que já ouviste são mantidos.",
       "hint": "O mesmo endereço de antes. Um OPML só aceita endereços públicos: um feed na tua rede local escreve-se aqui.",
-      "summary": "Canais a subscrever de novo: {{n}}. Uma cópia de segurança não guarda o endereço dos feeds: escreve-o outra vez ou importa de novo o teu OPML e as tuas posições são mantidas."
+      "summary": "Canais a subscrever de novo: {{n}}. Uma cópia de segurança não guarda o endereço dos feeds: escreve-o outra vez ou importa de novo o teu OPML e as tuas posições são mantidas.",
+      "downloads": "Os episódios transferidos não acompanham uma cópia de segurança: terão de ser transferidos de novo."
     },
     "unsubscribe": {
       "title": "Cancelar a subscrição de {{title}}?",

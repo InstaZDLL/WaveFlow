@@ -4559,7 +4559,8 @@
       "title": "Bu akışın adresi artık bilinmiyor",
       "body": "Bu kanal bir yedekten ya da içe aktarılan bir profilden geliyor; bunlar akış adreslerini hiç saklamaz, bu yüzden kanal artık güncellenmiyor. Aynı adrese yeniden abone ol ya da OPML dosyanı yeniden içe aktar: kaldığın yerler ve dinlediklerinin kaydı korunur.",
       "hint": "Daha önceki adresin aynısı. OPML listesi yalnızca herkese açık adresleri kabul eder; yerel ağındaki bir akışı buraya yaz.",
-      "summary": "Yeniden abone olunacak kanal: {{n}}. Yedek, akış adreslerini saklamaz. Adresleri yeniden yaz ya da OPML dosyanı yeniden içe aktar; kaldığın yerler korunur."
+      "summary": "Yeniden abone olunacak kanal: {{n}}. Yedek, akış adreslerini saklamaz. Adresleri yeniden yaz ya da OPML dosyanı yeniden içe aktar; kaldığın yerler korunur.",
+      "downloads": "İndirilen bölümler yedekle birlikte taşınmaz: onları yeniden indirmen gerekir."
     },
     "unsubscribe": {
       "title": "{{title}} aboneliğinden çıkılsın mı?",

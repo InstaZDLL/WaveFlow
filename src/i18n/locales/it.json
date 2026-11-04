@@ -4696,7 +4696,8 @@
       "title": "L'indirizzo di questo feed non è più noto",
       "body": "Questo canale arriva da un backup o da un profilo importato, che non conservano mai l'indirizzo dei feed, quindi non si aggiorna più. Iscriviti di nuovo allo stesso indirizzo oppure importa di nuovo il tuo OPML: i punti in cui eri arrivato e ciò che hai già ascoltato vengono mantenuti.",
       "hint": "Lo stesso indirizzo di prima. Un OPML accetta solo indirizzi pubblici: un feed sulla tua rete locale si scrive qui.",
-      "summary": "Canali a cui iscriversi di nuovo: {{n}}. Un backup non conserva l'indirizzo dei feed: scrivilo di nuovo o importa di nuovo il tuo OPML e i tuoi punti di ascolto verranno mantenuti."
+      "summary": "Canali a cui iscriversi di nuovo: {{n}}. Un backup non conserva l'indirizzo dei feed: scrivilo di nuovo o importa di nuovo il tuo OPML e i tuoi punti di ascolto verranno mantenuti.",
+      "downloads": "Gli episodi scaricati non viaggiano con un backup: dovrai scaricarli di nuovo."
     },
     "unsubscribe": {
       "title": "Annullare l'iscrizione a {{title}}?",

@@ -4696,7 +4696,8 @@
       "title": "L'adresse de ce flux n'est plus connue",
       "body": "Cette chaîne vient d'une sauvegarde ou d'un profil importé, qui ne gardent jamais l'adresse des flux : elle ne se met donc plus à jour. Réabonnez-vous à la même adresse, ou réimportez votre OPML : vos positions et ce que vous avez écouté sont conservés.",
       "hint": "La même adresse qu'avant. Un OPML n'accepte que des adresses publiques : un flux sur votre réseau local se saisit ici.",
-      "summary": "Chaînes à réabonner : {{n}}. Une sauvegarde ne garde pas l'adresse des flux : saisissez-la de nouveau ou réimportez votre OPML, et vos positions sont conservées."
+      "summary": "Chaînes à réabonner : {{n}}. Une sauvegarde ne garde pas l'adresse des flux : saisissez-la de nouveau ou réimportez votre OPML, et vos positions sont conservées.",
+      "downloads": "Les épisodes téléchargés ne voyagent pas avec une sauvegarde : il faudra les télécharger de nouveau."
     },
     "unsubscribe": {
       "title": "Se désabonner de {{title}} ?",

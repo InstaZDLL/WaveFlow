@@ -4559,7 +4559,8 @@
       "title": "This feed's address is no longer known",
       "body": "This channel comes from a backup or an imported profile, which never keep feed addresses, so it no longer updates. Subscribe again to the same address, or import your OPML again: your positions and what you have played are kept.",
       "hint": "The same address as before. An OPML list only accepts public addresses, so a feed on your local network goes here.",
-      "summary": "Channels to subscribe to again: {{n}}. A backup does not keep feed addresses. Type them again or import your OPML again, and your positions are kept."
+      "summary": "Channels to subscribe to again: {{n}}. A backup does not keep feed addresses. Type them again or import your OPML again, and your positions are kept.",
+      "downloads": "Downloaded episodes do not travel with a backup: they have to be downloaded again."
     },
     "unsubscribe": {
       "title": "Unsubscribe from {{title}}?",

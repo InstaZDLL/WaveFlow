@@ -4554,7 +4554,8 @@
       "title": "Alamat umpan ini sudah tidak diketahui",
       "body": "Kanal ini berasal dari cadangan atau profil yang diimpor, yang tidak pernah menyimpan alamat umpan, sehingga kanal tidak lagi diperbarui. Berlangganan lagi ke alamat yang sama, atau impor ulang OPML-mu: posisi putar dan catatan yang sudah kamu dengar tetap tersimpan.",
       "hint": "Alamat yang sama seperti sebelumnya. Daftar OPML hanya menerima alamat publik, jadi umpan di jaringan lokalmu diketik di sini.",
-      "summary": "Kanal yang perlu dilanggani lagi: {{n}}. Cadangan tidak menyimpan alamat umpan. Ketik ulang alamatnya atau impor ulang OPML-mu, dan posisi putarmu tetap tersimpan."
+      "summary": "Kanal yang perlu dilanggani lagi: {{n}}. Cadangan tidak menyimpan alamat umpan. Ketik ulang alamatnya atau impor ulang OPML-mu, dan posisi putarmu tetap tersimpan.",
+      "downloads": "Episode yang diunduh tidak ikut dalam cadangan: episode itu harus diunduh lagi."
     },
     "unsubscribe": {
       "title": "Berhenti berlangganan {{title}}?",

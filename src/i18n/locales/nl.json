@@ -4559,7 +4559,8 @@
       "title": "Het adres van deze feed is niet meer bekend",
       "body": "Dit kanaal komt uit een back-up of een geïmporteerd profiel. Die bewaren nooit de adressen van feeds, dus het kanaal wordt niet meer bijgewerkt. Abonneer je opnieuw op hetzelfde adres of importeer je OPML opnieuw: je luisterposities en wat je hebt beluisterd blijven bewaard.",
       "hint": "Hetzelfde adres als eerder. Een OPML-lijst accepteert alleen openbare adressen, een feed op je lokale netwerk typ je hier in.",
-      "summary": "Kanalen om opnieuw op te abonneren: {{n}}. Een back-up bewaart geen feedadressen. Typ ze opnieuw in of importeer je OPML opnieuw, dan blijven je luisterposities bewaard."
+      "summary": "Kanalen om opnieuw op te abonneren: {{n}}. Een back-up bewaart geen feedadressen. Typ ze opnieuw in of importeer je OPML opnieuw, dan blijven je luisterposities bewaard.",
+      "downloads": "Gedownloade afleveringen gaan niet mee in een back-up: je moet ze opnieuw downloaden."
     },
     "unsubscribe": {
       "title": "Je abonnement op {{title}} opzeggen?",

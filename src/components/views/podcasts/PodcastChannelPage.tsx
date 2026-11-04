@@ -391,6 +391,7 @@ export function PodcastChannelPage({
         <div className="pc-card" data-podcast-restored>
           <h2 className="pc-title">{t("podcasts.restored.title")}</h2>
           <p className="pc-body mt-1">{t("podcasts.restored.body")}</p>
+          <p className="pc-body mt-1">{t("podcasts.restored.downloads")}</p>
           {enabled ? (
             <div className="mt-3">
               <PodcastSubscribeForm

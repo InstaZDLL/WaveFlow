@@ -4697,7 +4697,8 @@
       "title": "O endereço deste feed não é mais conhecido",
       "body": "Este canal vem de um backup ou de um perfil importado, que nunca guardam o endereço dos feeds, então ele não se atualiza mais. Assine de novo o mesmo endereço ou importe seu OPML outra vez: seus pontos de parada e o que você já ouviu são mantidos.",
       "hint": "O mesmo endereço de antes. Um OPML só aceita endereços públicos: um feed na sua rede local é digitado aqui.",
-      "summary": "Canais para assinar de novo: {{n}}. Um backup não guarda o endereço dos feeds: digite-o outra vez ou importe seu OPML de novo, e seus pontos de parada são mantidos."
+      "summary": "Canais para assinar de novo: {{n}}. Um backup não guarda o endereço dos feeds: digite-o outra vez ou importe seu OPML de novo, e seus pontos de parada são mantidos.",
+      "downloads": "Os episódios baixados não acompanham um backup: será preciso baixá-los de novo."
     },
     "unsubscribe": {
       "title": "Cancelar a assinatura de {{title}}?",

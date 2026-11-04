@@ -4559,7 +4559,8 @@
       "title": "Die Adresse dieses Feeds ist nicht mehr bekannt",
       "body": "Dieser Kanal stammt aus einer Sicherung oder einem importierten Profil. Diese speichern nie die Adressen von Feeds, deshalb wird der Kanal nicht mehr aktualisiert. Abonniere die gleiche Adresse erneut oder importiere deine OPML-Datei noch einmal: Deine Hörpositionen und was du gehört hast, bleiben erhalten.",
       "hint": "Die gleiche Adresse wie vorher. Eine OPML-Liste nimmt nur öffentliche Adressen an, einen Feed in deinem lokalen Netzwerk gibst du hier ein.",
-      "summary": "Kanäle zum erneuten Abonnieren: {{n}}. Eine Sicherung speichert keine Feed-Adressen. Gib sie noch einmal ein oder importiere deine OPML-Datei erneut, deine Hörpositionen bleiben erhalten."
+      "summary": "Kanäle zum erneuten Abonnieren: {{n}}. Eine Sicherung speichert keine Feed-Adressen. Gib sie noch einmal ein oder importiere deine OPML-Datei erneut, deine Hörpositionen bleiben erhalten.",
+      "downloads": "Heruntergeladene Folgen wandern nicht mit einem Backup mit: Sie müssen erneut heruntergeladen werden."
     },
     "unsubscribe": {
       "title": "{{title}} nicht mehr abonnieren?",
