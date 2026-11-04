@@ -1050,7 +1050,11 @@
       "title": "Playback speed",
       "slider": "Speed slider",
       "custom": "Custom speed",
-      "pitchHint": "Pitch follows speed (no time-stretching)."
+      "keepPitch": "Keep pitch",
+      "transpose": "Transpose",
+      "transposeDown": "Down one semitone",
+      "transposeUp": "Up one semitone",
+      "transposeReset": "Back to the original pitch"
     },
     "seek": "Seek",
     "alert": {
@@ -1594,7 +1598,8 @@
         "dopNative": "Native DSD",
         "volume": "Volume {{value}}%",
         "balance": "Balance",
-        "width": "Width {{value}}%"
+        "width": "Width {{value}}%",
+        "pitch": "Pitch {{value}}"
       }
     },
     "outputMode": {

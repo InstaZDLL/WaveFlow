@@ -57,7 +57,12 @@ import {
   playerSetGapless,
   playerSetKeepAwake,
   playerSetMatchSourceRate,
+  PITCH_RESET_EVENT,
+  playerGetKeepPitch,
+  playerGetPitchSemitones,
   playerSetBalance,
+  playerSetKeepPitch,
+  playerSetPitchSemitones,
   playerSetMono,
   playerSetNormalize,
   playerSetPauseOnDeviceLoss,
@@ -774,6 +779,26 @@ const ACCESSORS: Record<SettingKey, SettingAccessor> = {
     "audio.stereo_width",
     async (reads) => (await reads.audio()).stereo_width,
     inProfile(playerSetStereoWidth),
+  ),
+  "audio.keep_pitch": afterReset(
+    command("audio.keep_pitch", playerGetKeepPitch, inProfile(playerSetKeepPitch)),
+    async () => {
+      window.dispatchEvent(
+        new CustomEvent(PITCH_RESET_EVENT, { detail: "audio.keep_pitch" }),
+      );
+    },
+  ),
+  "audio.pitch_semitones": afterReset(
+    command(
+      "audio.pitch_semitones",
+      playerGetPitchSemitones,
+      inProfile(playerSetPitchSemitones),
+    ),
+    async () => {
+      window.dispatchEvent(
+        new CustomEvent(PITCH_RESET_EVENT, { detail: "audio.pitch_semitones" }),
+      );
+    },
   ),
   "audio.dsd_precision": command(
     "audio.dsd_precision",

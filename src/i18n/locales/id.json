@@ -1048,7 +1048,11 @@
       "title": "Kecepatan pemutaran",
       "slider": "Penggeser kecepatan",
       "custom": "Kecepatan kustom",
-      "pitchHint": "Nada mengikuti kecepatan (tanpa peregangan waktu)."
+      "keepPitch": "Pertahankan nada",
+      "transpose": "Transposisi",
+      "transposeDown": "Turun setengah nada",
+      "transposeUp": "Naik setengah nada",
+      "transposeReset": "Kembali ke nada asli"
     },
     "seek": "Geser posisi",
     "alert": {
@@ -1592,7 +1596,8 @@
         "dopNative": "DSD asli",
         "volume": "Volume {{value}}%",
         "balance": "Keseimbangan",
-        "width": "Lebar {{value}}%"
+        "width": "Lebar {{value}}%",
+        "pitch": "Nada {{value}}"
       }
     },
     "outputMode": {

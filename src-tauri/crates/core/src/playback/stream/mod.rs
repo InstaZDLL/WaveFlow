@@ -26,6 +26,7 @@ use super::channels::{ChannelLayout, ChannelMixer};
 use super::read_ahead::ReadAhead;
 use super::replay_gain::TrackGain;
 use super::resampler::Resampler;
+use super::stretch::{Stretcher, TimeShift};
 
 mod decode;
 mod dsd;
@@ -227,6 +228,21 @@ pub struct ActiveStream {
     /// built. Mirrored here so the decoder loop can skip rebuilds
     /// when nothing changed.
     pub playback_speed: f32,
+    /// Whether that speed leaves the pitch alone. Off, the pitch follows it,
+    /// through the resampler's fake source rate. See [`TimeShift`].
+    pub keep_pitch: bool,
+    /// Transposition, in semitones.
+    pub semitones: f32,
+    /// Built from the first packet while [`Self::time_shift`] asks for one.
+    /// `None` at 1× with no transposition: the samples never come near it.
+    pub(super) stretcher: Option<Stretcher>,
+    /// A packet on its way into the stretcher.
+    pub(super) stretch_input: Vec<f32>,
+    /// Samples still to drop ahead of the stretcher: the resampler's delay,
+    /// so a stretched stream starts on its first frame.
+    pub(super) stretch_skip: usize,
+    /// What ReplayGain is about to multiply this stream's output by.
+    pub(super) stretch_output_gain: f32,
     /// How long the container says the track is, read at open. For a
     /// player with no library to ask; the desktop app keeps the
     /// `duration_ms` its library supplies. `None` when the container
@@ -596,6 +612,12 @@ impl ActiveStream {
             src_sample_rate: 0,
             declared_sample_rate,
             playback_speed: 1.0,
+            keep_pitch: false,
+            semitones: 0.0,
+            stretcher: None,
+            stretch_input: Vec::new(),
+            stretch_skip: 0,
+            stretch_output_gain: 1.0,
             container_duration_ms,
             codec,
             packets_read: PacketTally::default(),
@@ -603,8 +625,43 @@ impl ActiveStream {
         })
     }
 
+    /// How this stream departs from the source's own time and pitch.
+    pub fn time_shift(&self) -> TimeShift {
+        TimeShift {
+            speed: self.playback_speed,
+            keep_pitch: self.keep_pitch,
+            semitones: self.semitones,
+        }
+    }
+
+    /// Take on `shift`, for a stream that has not decoded yet. One that has
+    /// goes through [`Self::rebuild_resampler`] too.
+    pub fn set_time_shift(&mut self, shift: TimeShift) {
+        self.playback_speed = shift.speed;
+        self.keep_pitch = shift.keep_pitch;
+        self.semitones = shift.semitones;
+    }
+
+    /// The gain that follows this stream's output, for the limiter that ends
+    /// the stretcher: see [`Stretcher::set_output_gain`].
+    pub fn set_output_gain(&mut self, gain: f32) {
+        self.stretch_output_gain = gain;
+    }
+
+    /// Frames of filter delay at the start of what [`Self::decode_next`]
+    /// gives: the resampler's, and none once stretched, where it is dropped
+    /// on the way in.
+    pub fn output_delay_frames(&self) -> u64 {
+        if self.time_shift().stretches() {
+            0
+        } else {
+            self.resampler.output_delay_frames()
+        }
+    }
+
     /// Rebuild the resampler so its effective input rate is
-    /// `src_sample_rate * speed`. Called by the decoder loop when the
+    /// `src_sample_rate * speed`, the speed being the resampler's part of it
+    /// ([`TimeShift::resampler_rate`]). Called by the decoder loop when the
     /// user changes playback speed mid-track. No-op when called before
     /// the first packet has been decoded (i.e. `src_sample_rate == 0`)
     /// — the lazy init path inside `decode_next` will pick up the
@@ -614,6 +671,9 @@ impl ActiveStream {
     /// the actual rubato configuration. The old resampler's pending
     /// queue is discarded; that costs at most one rubato chunk
     /// (~21 ms at 48 kHz) of audio, well below perceptible.
+    ///
+    /// The stretcher goes with it, and the next packet builds it anew for the
+    /// current [`Self::time_shift`].
     pub fn rebuild_resampler(
         &mut self,
         speed: f32,
@@ -621,10 +681,11 @@ impl ActiveStream {
         dst_channels: usize,
     ) -> Result<u32, String> {
         self.playback_speed = speed;
+        self.stretcher = None;
         if self.src_sample_rate == 0 {
             return Ok(0);
         }
-        let effective = ((self.src_sample_rate as f32) * speed).max(1.0) as u32;
+        let effective = self.time_shift().resampler_rate(self.src_sample_rate);
         self.resampler = Resampler::new(effective, dst_sample_rate, dst_channels)
             .map_err(|e| format!("resampler rebuild ({effective}→{dst_sample_rate}): {e}"))?;
         Ok(effective)
@@ -671,6 +732,12 @@ impl ActiveStream {
         }
         // What the resampler holds is the old position too.
         self.resampler.reset();
+        // And what the stretcher holds. A failure only drops it: the next
+        // packet builds another, which is what this was going to amount to.
+        if self.stretcher.as_mut().is_some_and(|s| s.reset().is_err()) {
+            self.stretcher = None;
+        }
+        self.stretch_skip = self.resampler_delay_samples();
     }
 
     /// Seek to `ms` milliseconds, and return where decoding resumes, in
@@ -796,14 +863,69 @@ impl ActiveStream {
         dst_sample_rate: u32,
         dst_layout: &ChannelLayout,
     ) -> Result<bool, String> {
+        let start = out.len();
         let at_end = self.decode_packet(out, interleaved_scratch, dst_sample_rate, dst_layout)?;
-        if at_end && !self.tail_flushed {
+        let tail = at_end && !self.tail_flushed;
+        if tail {
             self.tail_flushed = true;
             self.resampler
                 .finish(out)
                 .map_err(|e| format!("resampler tail: {e}"))?;
         }
+        if self.time_shift().stretches() {
+            self.stretch(out, start, tail, dst_sample_rate, dst_layout.channels())?;
+        }
         Ok(at_end)
+    }
+
+    /// The resampler's delay, in interleaved samples of its output.
+    fn resampler_delay_samples(&self) -> usize {
+        let channels = match &self.resampler {
+            Resampler::Passthrough => 0,
+            Resampler::Fft { channels, .. } => *channels,
+        };
+        self.resampler.output_delay_frames() as usize * channels
+    }
+
+    /// Put what `decode_next` just appended from `start` on through the
+    /// stretcher, and what it holds with it at the end of the stream.
+    fn stretch(
+        &mut self,
+        out: &mut Vec<f32>,
+        start: usize,
+        tail: bool,
+        dst_sample_rate: u32,
+        dst_channels: usize,
+    ) -> Result<(), String> {
+        // Nothing decoded yet: the source rate is not known, and nothing is
+        // waiting to go through.
+        if self.src_sample_rate == 0 {
+            return Ok(());
+        }
+        // A new logical stream can change the source rate, and with it what
+        // the stretcher has left to do.
+        let tempo = self.time_shift().stretch_tempo(self.src_sample_rate);
+        if self.stretcher.as_ref().map_or(true, |s| s.tempo() != tempo) {
+            let built =
+                Stretcher::new(dst_sample_rate, dst_channels, tempo).map_err(|e| e.to_string())?;
+            self.stretcher = Some(built);
+            self.stretch_skip = self.resampler_delay_samples();
+        }
+        let stretcher = self.stretcher.as_mut().expect("just built");
+        stretcher.set_output_gain(self.stretch_output_gain);
+        let skipped = self.stretch_skip.min(out.len() - start);
+        self.stretch_skip -= skipped;
+        self.stretch_input.clear();
+        self.stretch_input
+            .extend_from_slice(&out[start + skipped..]);
+        out.truncate(start);
+        stretcher
+            .process(&self.stretch_input, out)
+            .map_err(|e| e.to_string())?;
+        if tail {
+            stretcher.finish(out).map_err(|e| e.to_string())?;
+        }
+        Ok(())
     }
 }
 
