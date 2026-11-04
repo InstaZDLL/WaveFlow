@@ -1052,7 +1052,8 @@
       "transpose": "조옮김",
       "transposeDown": "반음 내리기",
       "transposeUp": "반음 올리기",
-      "transposeReset": "원래 음정으로"
+      "transposeReset": "원래 음정으로",
+      "transposeNotForEpisodes": "에피소드에는 적용되지 않습니다"
     },
     "seek": "탐색",
     "alert": {

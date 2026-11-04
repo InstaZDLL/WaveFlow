@@ -1054,7 +1054,8 @@
       "transpose": "Transpose",
       "transposeDown": "Down one semitone",
       "transposeUp": "Up one semitone",
-      "transposeReset": "Back to the original pitch"
+      "transposeReset": "Back to the original pitch",
+      "transposeNotForEpisodes": "Not applied to episodes"
     },
     "seek": "Seek",
     "alert": {

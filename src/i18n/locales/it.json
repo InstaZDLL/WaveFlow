@@ -1094,7 +1094,8 @@
       "transpose": "Trasposizione",
       "transposeDown": "Giù di un semitono",
       "transposeUp": "Su di un semitono",
-      "transposeReset": "Torna all'intonazione originale"
+      "transposeReset": "Torna all'intonazione originale",
+      "transposeNotForEpisodes": "Non si applica agli episodi"
     },
     "seek": "Posizione",
     "alert": {

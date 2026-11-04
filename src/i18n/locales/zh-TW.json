@@ -1052,7 +1052,8 @@
       "transpose": "移調",
       "transposeDown": "降低半音",
       "transposeUp": "升高半音",
-      "transposeReset": "恢復原始音高"
+      "transposeReset": "恢復原始音高",
+      "transposeNotForEpisodes": "不適用於單集"
     },
     "seek": "跳轉",
     "alert": {

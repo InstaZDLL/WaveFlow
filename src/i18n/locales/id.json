@@ -1052,7 +1052,8 @@
       "transpose": "Transposisi",
       "transposeDown": "Turun setengah nada",
       "transposeUp": "Naik setengah nada",
-      "transposeReset": "Kembali ke nada asli"
+      "transposeReset": "Kembali ke nada asli",
+      "transposeNotForEpisodes": "Tidak berlaku untuk episode"
     },
     "seek": "Geser posisi",
     "alert": {

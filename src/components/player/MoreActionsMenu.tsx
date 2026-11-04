@@ -78,6 +78,9 @@ export function MoreActionsMenu({
     seek,
   } = usePlayer();
   const isPodcast = isPodcastTrack(currentTrack);
+  // An episode plays untransposed, whatever the setting says for the music, and
+  // nothing here may suggest otherwise. The setting comes back with the next track.
+  const heardSemitones = isPodcast ? 0 : pitchSemitones;
   const desktopLyrics = useDesktopLyricsStatus();
   const timeshift = useRadioTimeshift();
   const [isOpen, setIsOpen] = useState(false);
@@ -123,8 +126,8 @@ export function MoreActionsMenu({
   const isOffSpeed = Math.abs(playbackSpeed - 1.0) > 0.001;
   const speedBadge = isOffSpeed
     ? formatSpeed(playbackSpeed)
-    : pitchSemitones !== 0
-      ? formatSemitones(pitchSemitones)
+    : heardSemitones !== 0
+      ? formatSemitones(heardSemitones)
       : null;
   const triggerBadge = sleepBadge && showSleepInMenu ? sleepBadge : speedBadge;
   const triggerBadgeTone =
@@ -167,7 +170,7 @@ export function MoreActionsMenu({
             ? "text-emerald-500"
             : (sleepArmed && showSleepInMenu) ||
                 isOffSpeed ||
-                pitchSemitones !== 0
+                heardSemitones !== 0
               ? "text-emerald-500 hover:text-emerald-400"
               : "text-zinc-400 hover:text-zinc-800 dark:hover:text-white"
         }`}
@@ -313,14 +316,23 @@ export function MoreActionsMenu({
               </div>
 
               <div className="flex items-center justify-between gap-3">
-                <span className="text-sm text-zinc-700 dark:text-zinc-300">
-                  {t("player.speed.transpose")}
-                </span>
+                <div className="min-w-0">
+                  <div className="text-sm text-zinc-700 dark:text-zinc-300">
+                    {t("player.speed.transpose")}
+                  </div>
+                  {isPodcast && (
+                    <div className="text-xs text-zinc-400">
+                      {t("player.speed.transposeNotForEpisodes")}
+                    </div>
+                  )}
+                </div>
                 <div className="flex items-center gap-1">
                   <button
                     type="button"
                     onClick={() => setPitchSemitones(pitchSemitones - 1)}
-                    disabled={pitchSemitones <= -MAX_PITCH_SEMITONES}
+                    disabled={
+                      isPodcast || pitchSemitones <= -MAX_PITCH_SEMITONES
+                    }
                     aria-label={t("player.speed.transposeDown")}
                     title={t("player.speed.transposeDown")}
                     className="w-7 h-7 flex items-center justify-center rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 disabled:opacity-40 disabled:pointer-events-none transition-colors"
@@ -330,21 +342,23 @@ export function MoreActionsMenu({
                   <button
                     type="button"
                     onClick={() => setPitchSemitones(0)}
-                    disabled={pitchSemitones === 0}
+                    disabled={heardSemitones === 0}
                     aria-label={t("player.speed.transposeReset")}
                     title={t("player.speed.transposeReset")}
                     className={`min-w-9 h-7 px-1 rounded-md text-sm font-bold tabular-nums transition-colors ${
-                      pitchSemitones === 0
+                      heardSemitones === 0
                         ? "text-zinc-400"
                         : "text-emerald-600 dark:text-emerald-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
                     }`}
                   >
-                    {formatSemitones(pitchSemitones)}
+                    {formatSemitones(heardSemitones)}
                   </button>
                   <button
                     type="button"
                     onClick={() => setPitchSemitones(pitchSemitones + 1)}
-                    disabled={pitchSemitones >= MAX_PITCH_SEMITONES}
+                    disabled={
+                      isPodcast || pitchSemitones >= MAX_PITCH_SEMITONES
+                    }
                     aria-label={t("player.speed.transposeUp")}
                     title={t("player.speed.transposeUp")}
                     className="w-7 h-7 flex items-center justify-center rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 disabled:opacity-40 disabled:pointer-events-none transition-colors"

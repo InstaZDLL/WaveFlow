@@ -1362,6 +1362,27 @@ fn giving_the_speed_back_leaves_the_position_where_it_was() {
     assert_eq!(shared.current_position_ms(), 13_000);
 }
 
+/// A voice has no use for a transposition, and it is the user's for the music: an
+/// episode plays without one, nothing is written away, and the next track has it.
+#[test]
+fn an_episode_plays_untransposed_and_the_next_track_is_transposed_again() {
+    let shared = SharedPlayback::new();
+    shared.set_pitch_semitones(3);
+    assert_eq!(shared.time_shift().semitones, 3.0);
+
+    shared.hold_episode_speed(1.5);
+    let shift = shared.time_shift();
+    assert_eq!((shift.speed, shift.semitones), (1.5, 0.0));
+    assert_eq!(shared.pitch_semitones.load(Ordering::Relaxed), 3);
+
+    // Changed during the episode, by a settings reset: heard after it.
+    shared.set_pitch_semitones(-2);
+    assert_eq!(shared.time_shift().semitones, 0.0);
+
+    shared.release_episode_speed();
+    assert_eq!(shared.time_shift().semitones, -2.0);
+}
+
 /// The user's slider has no business with an episode's speed, and the other way
 /// round: each waits for its own.
 #[test]

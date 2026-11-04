@@ -497,11 +497,20 @@ impl SharedPlayback {
     }
 
     /// How playback departs from the source's own time and pitch.
+    ///
+    /// An episode plays untransposed: a transposition is for playing along to
+    /// music, and a voice has no use for one. Read here rather than written away, so
+    /// `audio.pitch_semitones` stays what it was and the next track finds it.
     pub fn time_shift(&self) -> TimeShift {
+        let semitones = if self.episode_speed_held.load(Ordering::Acquire) {
+            0
+        } else {
+            self.pitch_semitones.load(Ordering::Relaxed)
+        };
         TimeShift {
             speed: self.playback_speed(),
             keep_pitch: self.keep_pitch.load(Ordering::Relaxed),
-            semitones: self.pitch_semitones.load(Ordering::Relaxed) as f32,
+            semitones: semitones as f32,
         }
     }
 
