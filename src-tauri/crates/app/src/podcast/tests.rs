@@ -2247,10 +2247,20 @@ async fn a_private_feeds_token_reaches_no_log_line() {
     use tracing_subscriber::util::SubscriberInitExt;
     tracing_subscriber::fmt()
         // The worst RUST_LOG someone can set: everything, and by name the places that
-        // write a host, which would win over a directive for their parent.
-        .with_env_filter(tracing_subscriber::EnvFilter::new(
-            "trace,reqwest::connect=trace,hyper_util::client::legacy::connect=trace,             hyper_util::client::legacy::pool=trace,rustls::client::hs=trace",
-        ))
+        // write a host.
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_new(
+                [
+                    "trace",
+                    "reqwest::connect=trace",
+                    "hyper_util::client::legacy::connect=trace",
+                    "hyper_util::client::legacy::pool=trace",
+                    "rustls::client::hs=trace",
+                ]
+                .join(","),
+            )
+            .expect("valid directives"),
+        )
         .with_ansi(false)
         .with_writer(|| Capture)
         .finish()
