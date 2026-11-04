@@ -45,11 +45,21 @@ const MAX_TABLES_OF_CONTENTS: usize = 64;
 const TAG_HEADER_LEN: usize = 10;
 const FRAME_HEADER_LEN: usize = 10;
 
-/// How far past the start of a file, or the end of a tag, another tag is looked for.
+/// How far past the start of a file, or the end of a tag, another tag is looked for
+/// at the least: what is read to look is [`HEAD_CHUNK`], and all of it is looked at.
 /// lofty looks 1024 bytes into junk before the first audio frame, and takes a tag
 /// that follows another after the ten bytes of a footer. symphonia's reader is
 /// guarded where it reads instead, see `audio_format::chapter_guard`.
 const HEAD_WINDOW: u64 = 4096;
+
+/// What lofty can lose past a tag's declared end when it has an extended header: in
+/// 2.3 an unsynchronised one is read through a stream that buffers 8 KiB and is then
+/// dropped, so its frames start that much later and end that much later too.
+const EXTENDED_HEADER_SLACK: u64 = 16 * 1024;
+
+/// What is looked through behind a chapter's name for the 0xff of unsynchronisation,
+/// past which a zlib stream would not be where its flags say.
+const COMPRESSED_BODY_PROBE: usize = 16;
 
 /// How much of the head is read at a time.
 const HEAD_CHUNK: usize = 64 * 1024;
@@ -96,14 +106,21 @@ pub fn check_reader<R: Read + Seek>(reader: &mut R) -> Result<(), NestedChapters
 /// The tag `reader` stands on, through the `id3` crate and only over the bytes that
 /// were checked. That crate reads frames until a count runs out, not until the tag
 /// ends: a tag declaring one byte would have it parse whatever follows, unseen here.
-/// Anything but a tag at this position is [`id3::ErrorKind::NoTag`].
+/// [`id3::ErrorKind::NoTag`] means these bytes are no tag at all, which a writer takes
+/// as leave to start a fresh one, so it is kept for that: a tag of a version nobody
+/// reads, or one that could not be read, stays an error of its own.
 pub fn read_id3_tag<R: Read + Seek>(reader: &mut R) -> Result<id3::Tag, id3::Error> {
-    let at = reader
-        .stream_position()
-        .map_err(|e| id3::Error::new(id3::ErrorKind::Io(e), "reading the tag's position"))?;
-    let Some(tag) = read_tag(reader, at) else {
-        return Err(id3::Error::new(id3::ErrorKind::NoTag, "no ID3v2 tag here"));
-    };
+    let at = reader.stream_position()?;
+    let mut magic = [0_u8; 3];
+    match reader.read_exact(&mut magic) {
+        Ok(()) if &magic == b"ID3" => {}
+        Ok(()) => return Err(id3::Error::new(id3::ErrorKind::NoTag, "no ID3v2 tag here")),
+        Err(e) if e.kind() == io::ErrorKind::UnexpectedEof => {
+            return Err(id3::Error::new(id3::ErrorKind::NoTag, "no ID3v2 tag here"));
+        }
+        Err(e) => return Err(e.into()),
+    }
+    let tag = read_declared(reader, at)?;
     check_tag(&tag).map_err(|refused| {
         id3::Error::new(id3::ErrorKind::UnsupportedFeature, refused.to_string())
     })?;
@@ -217,19 +234,27 @@ fn find_signature(chunk: &[u8]) -> Option<(usize, Signature)> {
 /// The tag at `at`, header and all, as far as the bytes go. `None` when these three
 /// letters start no tag a parser would take.
 fn read_tag<R: Read + Seek>(reader: &mut R, at: u64) -> Option<Vec<u8>> {
+    let tag = read_declared(reader, at).ok()?;
+    (&tag[..3] == b"ID3" && (2..=4).contains(&tag[3])).then_some(tag)
+}
+
+/// The ten bytes at `at` and as many behind them as they declare, as far as there are
+/// any. A tag with an extended header gets [`EXTENDED_HEADER_SLACK`] more.
+fn read_declared<R: Read + Seek>(reader: &mut R, at: u64) -> io::Result<Vec<u8>> {
     let mut header = [0_u8; TAG_HEADER_LEN];
-    reader.seek(SeekFrom::Start(at)).ok()?;
-    reader.read_exact(&mut header).ok()?;
-    if &header[..3] != b"ID3" || !(2..=4).contains(&header[3]) {
-        return None;
-    }
+    reader.seek(SeekFrom::Start(at))?;
+    reader.read_exact(&mut header)?;
+    let slack = if header[5] & 0x40 != 0 {
+        EXTENDED_HEADER_SLACK
+    } else {
+        0
+    };
     let mut bytes = header.to_vec();
     reader
         .by_ref()
-        .take(u64::from(synchsafe(&header[6..10])))
-        .read_to_end(&mut bytes)
-        .ok()?;
-    Some(bytes)
+        .take(u64::from(synchsafe(&header[6..10])) + slack)
+        .read_to_end(&mut bytes)?;
+    Ok(bytes)
 }
 
 /// From the start of a tag to what follows it. Not past a footer: lofty goes on right
@@ -240,7 +265,9 @@ fn tag_span(tag: &[u8]) -> u64 {
 
 /// The `ID3 ` chunks of the WAV or AIFF at `start`. A chunk of odd length is followed
 /// by a padding byte that lofty and symphonia do not agree on when it is not a zero,
-/// and both continuations are walked.
+/// and both continuations are walked. symphonia takes what it needs from a `COMM` or a
+/// `MARK` and looks for the next chunk right there, whatever length it declared, so
+/// the name of the chunk is looked for inside every other chunk than the audio.
 fn check_chunks<R: Read + Seek>(
     reader: &mut R,
     start: u64,
@@ -276,10 +303,16 @@ fn check_chunks<R: Read + Seek>(
         } else {
             u32::from_le_bytes(raw)
         });
-        if matches!(&header[..4], b"ID3 " | b"id3 ") {
+        if !matches!(&header[..4], b"SSND" | b"data") {
             let mut body = Vec::new();
             if reader.by_ref().take(size).read_to_end(&mut body).is_ok() {
-                check_tag(&body)?;
+                if matches!(&header[..4], b"ID3 " | b"id3 ") {
+                    check_tag(&body)?;
+                } else {
+                    pending.extend(body.windows(4).enumerate().filter_map(|(offset, name)| {
+                        matches!(name, b"ID3 " | b"id3 ").then_some(at + 8 + offset as u64)
+                    }));
+                }
             }
         }
         let next = at + 8 + size;
@@ -320,10 +353,14 @@ pub fn check_tag(tag: &[u8]) -> Result<(), NestedChapters> {
         return Ok(());
     }
     let flags = header[5];
-    let end = TAG_HEADER_LEN.saturating_add(synchsafe(&header[6..10]) as usize);
-    let body = &tag[TAG_HEADER_LEN..end.min(tag.len())];
     let unsynchronised = flags & 0x80 != 0;
     let extended = flags & 0x40 != 0;
+    let end = if extended {
+        tag.len()
+    } else {
+        TAG_HEADER_LEN.saturating_add(synchsafe(&header[6..10]) as usize)
+    };
+    let body = &tag[TAG_HEADER_LEN..end.min(tag.len())];
     let resynchronised;
     // In 2.3 this covers the bytes of the whole tag, frame headers too.
     let frames = if unsynchronised && major == 3 {
@@ -376,7 +413,8 @@ impl Audit {
             };
             let flags = u16::from_be_bytes([header[8], header[9]]);
             let body_start = at + FRAME_HEADER_LEN;
-            let Some(body) = frames.get(body_start..body_start.saturating_add(length)) else {
+            let body_end = body_start.saturating_add(length);
+            let Some(body) = frames.get(body_start..body_end) else {
                 break;
             };
             let id = &header[..4];
@@ -393,29 +431,33 @@ impl Audit {
                 match (level, self.in_step && flags == 0, children_of(id, body)) {
                     (Level::Top, true, Some(children)) => {
                         self.walk(children, Level::InsideChapter)?;
+                        // A name cut by the end of what was just walked alone.
+                        if !self.in_step {
+                            let from = body_end.saturating_sub(FRAME_HEADER_LEN - 1);
+                            self.count_names(frames, from.max(body_start), body_end + 3)?;
+                        }
                     }
                     (Level::Top, _, _) => {
                         self.in_step = false;
-                        self.count_names(body)?;
+                        self.count_names(frames, at + 1, body_end + 3)?;
                     }
                     (Level::InsideChapter, _, _) => {
                         self.in_step = false;
                         self.count(1)?;
-                        self.count_names(body)?;
+                        self.count_names(frames, at + 1, body_end + 3)?;
                     }
                 }
             } else if !(self.in_step && flags == 0 && read_to_its_end(id, body)) {
                 self.in_step = false;
-                self.count_names(body)?;
+                self.count_names(frames, at + 1, body_end + 3)?;
             }
-            at = body_start + length;
+            at = body_end;
         }
-        let rest = frames.get(at..).unwrap_or_default();
         // What stops a list inside a chapter leaves the parser partway through it.
-        if level == Level::InsideChapter && !rest.is_empty() {
+        if level == Level::InsideChapter && at < frames.len() {
             self.in_step = false;
         }
-        self.count_names(rest)
+        self.count_names(frames, at, frames.len())
     }
 
     fn count(&mut self, names: usize) -> Result<(), NestedChapters> {
@@ -427,20 +469,34 @@ impl Audit {
         }
     }
 
-    fn count_names(&mut self, bytes: &[u8]) -> Result<(), NestedChapters> {
-        for (offset, window) in bytes.windows(4).enumerate() {
-            if !is_chapter(window) {
+    /// The names starting between `from` and `to` in `frames`, wherever they end. A
+    /// parser that has lost the row reads straight across the frames it is made of, so
+    /// a name may start in one and end in the next, and its flags be further on.
+    fn count_names(&mut self, frames: &[u8], from: usize, to: usize) -> Result<(), NestedChapters> {
+        let to = to.min(frames.len());
+        let Some(starts) = frames.get(from..to) else {
+            return Ok(());
+        };
+        let names = starts
+            .iter()
+            .enumerate()
+            .filter(|(_, byte)| matches!(byte, b'C'))
+            .map(|(offset, _)| from + offset);
+        for start in names {
+            if !frames.get(start..start + 4).is_some_and(is_chapter) {
                 continue;
             }
-            if let Some(header) = bytes.get(offset + 4..offset + FRAME_HEADER_LEN) {
+            if let Some(header) = frames.get(start + 4..start + FRAME_HEADER_LEN) {
                 // In a frame that is unsynchronised, parsers read this header with the
                 // zero after a 0xff taken out, so its flags are not where they look.
                 if header.contains(&0xff) {
                     return Err(NestedChapters);
                 }
                 let flags = u16::from_be_bytes([header[4], header[5]]);
+                let after = &frames[start + FRAME_HEADER_LEN..];
+                let probe = &after[..after.len().min(COMPRESSED_BODY_PROBE)];
                 if flags & self.compression_flag() != 0
-                    && inflatable_after(&bytes[offset + FRAME_HEADER_LEN..])
+                    && (probe.contains(&0xff) || inflatable_after(after))
                 {
                     return Err(NestedChapters);
                 }
@@ -481,22 +537,21 @@ fn is_frame_id(id: &[u8]) -> bool {
         .all(|byte| byte.is_ascii_uppercase() || byte.is_ascii_digit())
 }
 
-/// Frames that no parser leaves partway: lofty reads these to the end or fails, which
-/// ends the tag, and symphonia and `id3` take a frame's bytes whole. The exceptions
-/// are lofty's: it stops a URL at its first zero and a comment's UTF-16 text at its
-/// first terminator, and a frame it has its own layout for has no free-length field
-/// at the end, the key-value lists included.
+/// Whether no parser can leave this frame partway. symphonia and `id3` take a frame's
+/// bytes whole, and lofty reads to the end or fails, which ends the tag, with these
+/// exceptions, read off its `parse_content`: it stops a URL at its first zero and a
+/// comment's UTF-16 text at its first terminator, and the frames with a layout of
+/// their own have no free-length field at the end, the key-value lists included.
 fn read_to_its_end(id: &[u8], body: &[u8]) -> bool {
     match id {
-        b"TIPL" | b"TMCL" => false,
+        b"TIPL" | b"TMCL" | b"IPLS" | b"RVA2" | b"OWNE" | b"ETCO" => false,
         b"COMM" | b"USLT" => comment_read_to_its_end(body),
-        b"WXXX" | b"APIC" | b"PRIV" | b"UFID" | b"POPM" | b"GEOB" | b"SYLT" => true,
-        _ if id[0] == b'T' => true,
+        b"WXXX" => true,
         _ if id[0] == b'W' => match body.iter().position(|byte| *byte == 0) {
             Some(zero) => zero + 1 == body.len(),
             None => true,
         },
-        _ => false,
+        _ => true,
     }
 }
 

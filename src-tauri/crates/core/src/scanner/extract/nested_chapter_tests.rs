@@ -533,9 +533,12 @@ fn tables_of_contents_that_name_each_other_are_refused() {
 #[test]
 fn a_shouted_title_is_a_title_behind_a_frame_that_ends_the_trust() {
     // One mention passes on any path, with flags that look compressed included.
-    let mut frames = frame(4, b"PCNT", 0, &[0, 0, 0, 1]);
+    let mut frames = frame(4, b"RVA2", 0, &[0; 4]);
     frames.extend_from_slice(&title(4, "CHAPTER 19 and something"));
-    assert_reads("shouted_once.mp3", mp3(&tag(&frames)));
+    assert_eq!(
+        crate::tagio::chapter_nesting::check_tag(&tag(&frames)),
+        Ok(())
+    );
 
     // A link in a chapter is read to its end, so it costs a long episode no trust.
     let mut episode = title(4, "Episode");
@@ -599,4 +602,113 @@ fn silence_behind_a_data_chunk_of_no_length_is_not_a_refusal() {
         crate::tagio::chapter_nesting::check_reader(&mut Cursor::new(wav)),
         Ok(())
     );
+}
+
+#[test]
+fn a_frame_lofty_reads_whole_keeps_a_long_episode_readable() {
+    let mut frames = frame(4, b"PCST", 0, &[0; 4]);
+    frames.extend_from_slice(&frame(4, b"GRP1", 0, b"\x03Show"));
+    frames.extend_from_slice(&episode(4, 40, |i| format!("CHAPTER {i}")));
+    assert_reads("pcst.mp3", mp3(&tag(&frames)));
+}
+
+#[test]
+fn what_an_extended_header_loses_past_the_end_of_the_tag_is_looked_at() {
+    // Unsynchronised 2.3: lofty reads the extended header through a stream that
+    // buffers 8 KiB and drops it, so the frames it reads start past all of that.
+    let mut bytes = b"ID3\x03\0\xc0".to_vec();
+    let chain = nested(3, &[b"CHAP"], 64);
+    // Enough for the chain, but all of it declared ahead of where the chain really is.
+    let declared = 6 + chain.len();
+    bytes.extend_from_slice(&synchsafe(declared));
+    bytes.extend_from_slice(&[0, 0, 0, 6, 0, 0, 0, 0, 0, 0]);
+    // Through `Probe`'s own buffer that is 8 KiB from the start of the file.
+    bytes.resize(8192, 0);
+    bytes.extend_from_slice(&chain);
+    assert_refused_everywhere("extended.mp3", mp3(&bytes));
+}
+
+#[test]
+fn a_name_cut_by_the_end_of_a_frame_is_still_a_name() {
+    // A URL lofty stops at its first zero, so it goes on at the "CH" behind it, with
+    // the next frame's id as the rest of the name.
+    let mut frames = Vec::new();
+    for _ in 0..8 {
+        frames.extend_from_slice(&frame(4, b"WOAR", 0, b"x\0CH"));
+        frames.extend_from_slice(&frame(4, b"AP00", 0, &[0; 4]));
+    }
+    assert_eq!(
+        crate::tagio::chapter_nesting::check_tag(&tag(&frames)),
+        Err(crate::tagio::chapter_nesting::NestedChapters)
+    );
+}
+
+#[test]
+fn a_compressed_body_behind_unsynchronised_lengths_is_refused() {
+    // Each 0xff 0x00 of the length moves the stream on by a byte a parser takes out.
+    let mut inside = chapter_prefix("c", 0);
+    inside.extend_from_slice(&nested(4, &[b"CHAP"], 64));
+    let mut child = b"CHAP".to_vec();
+    child.extend_from_slice(&[0x01, 0x02, 0x03, 0x04, 0, 0x09]);
+    child.extend_from_slice(&[0xff, 0, 0xff, 0, 0xff, 0, 0xff, 0]);
+    child.extend_from_slice(&zlib_stored(&inside));
+    let mut body = chapter_prefix("a", 0);
+    body.extend_from_slice(&child);
+    assert_refused_everywhere(
+        "zlib_unsync.mp3",
+        mp3(&tag(&frame(4, b"CHAP", 0x0002, &body))),
+    );
+}
+
+#[test]
+fn a_tag_chunk_inside_a_marker_chunk_that_declares_too_much_is_found() {
+    // symphonia reads a MARK's count and its markers, and looks for the next chunk right
+    // there, where a walk by declared lengths would have jumped past it.
+    let hostile = tag(&nested(4, &[b"CHAP"], 2_000));
+    let mut inside = vec![0_u8; 2];
+    inside.extend_from_slice(b"ID3 ");
+    inside.extend_from_slice(&(hostile.len() as u32).to_be_bytes());
+    inside.extend_from_slice(&hostile);
+    if inside.len() % 2 == 1 {
+        inside.push(0);
+    }
+    let mut body = b"AIFFCOMM".to_vec();
+    body.extend_from_slice(&18_u32.to_be_bytes());
+    body.extend_from_slice(&1_u16.to_be_bytes());
+    body.extend_from_slice(&800_u32.to_be_bytes());
+    body.extend_from_slice(&16_u16.to_be_bytes());
+    body.extend_from_slice(&[0x40, 0x0b, 0xfa, 0, 0, 0, 0, 0, 0, 0]);
+    body.extend_from_slice(b"MARK");
+    body.extend_from_slice(&(inside.len() as u32).to_be_bytes());
+    body.extend_from_slice(&inside);
+    body.extend_from_slice(b"SSND");
+    body.extend_from_slice(&1608_u32.to_be_bytes());
+    body.extend_from_slice(&[0; 1608]);
+    let mut form = b"FORM".to_vec();
+    // The reader counts each chunk by what it declares, so the form declares enough.
+    form.extend_from_slice(&(body.len() as u32 * 3).to_be_bytes());
+    form.extend_from_slice(&body);
+
+    let dir = tempfile::tempdir().expect("tempdir");
+    let path = write_in(dir.path(), "mark.aiff", &form);
+    on_stack(SMALL_STACK, move || {
+        assert!(probe_playable_stream(&path).is_none());
+    });
+}
+
+#[test]
+fn only_bytes_that_are_no_tag_read_as_no_tag() {
+    use crate::tagio::chapter_nesting::read_id3_tag;
+
+    // A writer starts afresh on `NoTag`, over a cover and ratings it could not read.
+    let future = b"ID3\x05\0\0\0\0\0\x10and sixteen bytes".to_vec();
+    let refused = read_id3_tag(&mut Cursor::new(future)).expect_err("nobody reads 2.5");
+    assert!(!matches!(refused.kind, id3::ErrorKind::NoTag), "{refused}");
+
+    let hostile = tag(&nested(4, &[b"CHAP"], 64));
+    let refused = read_id3_tag(&mut Cursor::new(hostile)).expect_err("nested");
+    assert!(!matches!(refused.kind, id3::ErrorKind::NoTag), "{refused}");
+
+    let empty = read_id3_tag(&mut Cursor::new(Vec::new())).expect_err("nothing here");
+    assert!(matches!(empty.kind, id3::ErrorKind::NoTag));
 }
