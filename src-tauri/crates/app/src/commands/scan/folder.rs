@@ -1431,13 +1431,30 @@ pub(crate) async fn scan_folder_inner(
     // per-file fast path can't see this on its own (issue #366) — see
     // `refresh_folder_covers`. Non-fatal: a scan that indexed every
     // track correctly must not fail because one cover couldn't be read.
-    let refreshed_covers = match refresh_folder_covers(pool, artwork_dir, folder_id).await {
+    let mut refreshed_covers = match refresh_folder_covers(pool, artwork_dir, folder_id).await {
         Ok(n) => n,
         Err(err) => {
             tracing::warn!(?err, "refresh_folder_covers failed (non-fatal)");
             0
         }
     };
+    // A share's albums are the listing's to answer for. Not after a stop: what
+    // is left could be reading from a share that went away.
+    if let Some(listing) = network.as_ref().filter(|_| !summary.cancelled) {
+        match crate::netlib::scan::refresh_covers(
+            pool,
+            listing,
+            artwork_dir,
+            folder_id,
+            deep,
+            &cancelled,
+        )
+        .await
+        {
+            Ok(n) => refreshed_covers += n,
+            Err(err) => tracing::warn!(?err, "network refresh_covers failed (non-fatal)"),
+        }
+    }
 
     // Give listening history back to tracks that were deleted and have
     // now been re-scanned (issue #367). Runs library-wide rather than

@@ -16,13 +16,17 @@ use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::io::{Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, OnceLock};
 
 use futures::StreamExt;
+use sqlx::SqlitePool;
+use waveflow_core::error::{CoreError, CoreResult};
 use waveflow_core::network_locator::{self, is_safe_path, LOCAL_ONLY_EXTENSIONS};
 use waveflow_core::scanner::{
+    apply_network_covers,
     extract::{pick_folder_cover, store_folder_cover},
-    is_reserved_dir_name, ExtractedCover, AUDIO_EXTENSIONS, HASH_CHUNK_BYTES,
+    is_reserved_dir_name, network_cover_candidates, ExtractedCover, SidecarStamp, AUDIO_EXTENSIONS,
+    HASH_CHUNK_BYTES,
 };
 
 use super::fs::{Entry, NetError};
@@ -40,6 +44,9 @@ pub const CONCURRENT_EXTRACTIONS: usize = 4;
 /// A guard against a link loop on the server.
 const MAX_DEPTH: usize = 64;
 
+/// The largest sidecar a scan reads.
+const MAX_COVER_BYTES: u64 = 32 * 1024 * 1024;
+
 /// A server's own bookkeeping, and what a Mac leaves on a share. Never music.
 const SKIPPED_DIRS: &[&str] = &["@eaDir", "#recycle", ".AppleDouble", ".Trashes"];
 
@@ -56,10 +63,12 @@ pub struct Listing {
     /// Locators, as `PathBuf` like the local walk's list.
     pub files: Vec<PathBuf>,
     meta: HashMap<String, NetFile>,
-    /// Share-relative directory → the image file names in it.
-    images: HashMap<String, Vec<String>>,
+    /// Share-relative directory → the image files in it.
+    images: HashMap<String, Vec<(String, NetFile)>>,
     /// A sidecar is one file for a whole album: fetched once per directory.
-    covers: Mutex<HashMap<String, Option<ExtractedCover>>>,
+    /// The slot, not the map, is what is waited on: tracks of one directory are
+    /// extracted at once, and other directories have no reason to wait for it.
+    covers: Mutex<HashMap<String, Arc<OnceLock<Option<ExtractedCover>>>>>,
     /// Locators of the directories a parent named and this walk could not read:
     /// refused to the account, or not found. Nothing is known of what they hold,
     /// so nothing in them may be swept as gone.
@@ -119,11 +128,13 @@ fn absorb(
                 next.push(path);
             }
         } else if is_image_name(&entry.name) {
-            listing
-                .images
-                .entry(dir.to_string())
-                .or_default()
-                .push(entry.name);
+            listing.images.entry(dir.to_string()).or_default().push((
+                entry.name,
+                NetFile {
+                    size: entry.size,
+                    modified_ms: entry.modified_ms,
+                },
+            ));
         } else if is_scannable_name(&entry.name) {
             if let Some(locator) = network_locator::build(uuid, &path) {
                 listing.meta.insert(
@@ -255,24 +266,42 @@ impl Listing {
     pub fn folder_cover(&self, locator: &str, artwork_dir: &Path) -> Option<ExtractedCover> {
         let parsed = network_locator::parse(locator)?;
         let dir = network_locator::parent_dir(parsed.path);
-        if let Some(known) = self.covers.lock().ok()?.get(dir).cloned() {
-            return known;
+        let slot = Arc::clone(self.covers.lock().ok()?.entry(dir.to_string()).or_default());
+        slot.get_or_init(|| self.fetch_folder_cover(dir, artwork_dir))
+            .clone()
+    }
+
+    /// What this walk shows of the sidecar a track's directory would use, with
+    /// nothing asked of the share. `None` for a directory it did not read, or
+    /// holding nothing worth reading.
+    pub fn listed_cover(&self, locator: &str) -> Option<SidecarStamp> {
+        let parsed = network_locator::parse(locator)?;
+        if parsed.source != self.source.uuid {
+            return None;
         }
-        let cover = self.fetch_folder_cover(dir, artwork_dir);
-        self.covers
-            .lock()
-            .ok()?
-            .insert(dir.to_string(), cover.clone());
-        cover
+        let (name, file) = self.sidecar_of(network_locator::parent_dir(parsed.path))?;
+        Some(SidecarStamp {
+            name: name.to_string(),
+            size: file.size as i64,
+            modified_ms: file.modified_ms,
+        })
+    }
+
+    fn sidecar_of(&self, dir: &str) -> Option<(&str, NetFile)> {
+        let listed = self.images.get(dir)?;
+        let name = pick_folder_cover(listed.iter().map(|(name, _)| name.as_str()))?;
+        let (_, file) = listed.iter().find(|(listed, _)| listed == name)?;
+        // A cover is not worth more than a track's worth of the budget.
+        (file.size > 0 && file.size <= MAX_COVER_BYTES).then_some((name, *file))
     }
 
     fn fetch_folder_cover(&self, dir: &str, artwork_dir: &Path) -> Option<ExtractedCover> {
-        let names = self.images.get(dir)?;
-        let name = pick_folder_cover(names.iter().map(String::as_str))?;
+        let (name, file) = self.sidecar_of(dir)?;
         let path = join(dir, name);
+        // Changed since the listing: the next one says what it is now, and
+        // reading to the old length would keep part of an image.
         let entry = super::block_on(self.source.stat(&path)).ok()?;
-        // A cover is not worth more than a track's worth of the budget.
-        if entry.size > 32 * 1024 * 1024 {
+        if entry.size != file.size {
             return None;
         }
         let mut reader =
@@ -286,6 +315,55 @@ impl Listing {
             artwork_dir,
         )
     }
+}
+
+/// The share's half of the folder-cover reconciliation, after a scan: the fast
+/// path skips unchanged tracks, so a sidecar added or replaced next to them
+/// reaches the album here.
+///
+/// `refresh_folder_covers` compares bytes, which on a share means downloading
+/// every cover on every scan. This compares what the listing shows of the
+/// sidecar with what it showed when the album last took stock of it, and reads
+/// the image only when they differ or the album has lost its cover since. A deep
+/// scan, which is the way to notice a change that kept the file's date, reads it
+/// regardless.
+///
+/// A sidecar the listing no longer shows changes nothing, nor does a read that
+/// fails, which the next scan tries again. A stop reads no further image and
+/// keeps those already read, which would otherwise be downloaded again. Takes a
+/// whole listing: [`walk`] gives no other.
+pub async fn refresh_covers(
+    pool: &SqlitePool,
+    listing: &Arc<Listing>,
+    artwork_dir: &Path,
+    folder_id: i64,
+    deep: bool,
+    should_stop: impl Fn() -> bool,
+) -> CoreResult<u32> {
+    let mut reads = Vec::new();
+    for candidate in network_cover_candidates(pool, folder_id).await? {
+        let Some(stamp) = listing.listed_cover(&candidate.locator) else {
+            continue;
+        };
+        if !deep && candidate.holds_a_cover() && candidate.seen.as_ref() == Some(&stamp) {
+            continue;
+        }
+        if should_stop() {
+            break;
+        }
+        let cover = tokio::task::spawn_blocking({
+            let listing = Arc::clone(listing);
+            let locator = candidate.locator.clone();
+            let artwork_dir = artwork_dir.to_path_buf();
+            move || listing.folder_cover(&locator, &artwork_dir)
+        })
+        .await
+        .map_err(|e| CoreError::Other(format!("network cover read join: {e}")))?;
+        if let Some(cover) = cover {
+            reads.push((candidate, stamp, cover));
+        }
+    }
+    apply_network_covers(pool, reads).await
 }
 
 #[cfg(test)]

@@ -28,6 +28,12 @@ async fn fixture_pool() -> SqlitePool {
                  folder_id INTEGER NOT NULL,
                  file_path TEXT NOT NULL,
                  is_available INTEGER NOT NULL DEFAULT 1
+             );
+             CREATE TABLE network_cover_seen (
+                 album_id INTEGER PRIMARY KEY,
+                 file_name TEXT NOT NULL,
+                 file_size INTEGER NOT NULL,
+                 file_modified INTEGER NOT NULL
              );",
     )
     .execute(&pool)
@@ -530,4 +536,242 @@ async fn an_embedded_album_stays_protected_regardless_of_the_shared_row() {
 
     assert_eq!(updated, 0);
     assert_eq!(album_artwork_hash(&pool, 10).await, Some(from_tag));
+}
+
+/// A stamp says what an album took from a share's listing. A local sidecar that
+/// replaces that picture ends it, or the share's image would be skipped once the
+/// local tracks are gone; one that changes nothing leaves it.
+#[tokio::test]
+async fn a_local_sidecar_that_replaces_the_cover_forgets_the_network_stamp() {
+    let music = tempfile::tempdir().unwrap();
+    let art = tempfile::tempdir().unwrap();
+    let pool = fixture_pool().await;
+
+    write_cover(music.path(), b"held already");
+    let held = blake3::hash(b"held already").to_hex().to_string();
+    seed_artwork(&pool, 1, &held, "folder").await;
+    seed_album(&pool, 10, music.path(), Some(1)).await;
+    sqlx::query(
+        "INSERT INTO network_cover_seen (album_id, file_name, file_size, file_modified)
+         VALUES (10, 'cover.jpg', 7, 5)",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+    let remembered = || async {
+        sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM network_cover_seen")
+            .fetch_one(&pool)
+            .await
+            .unwrap()
+    };
+
+    assert_eq!(
+        refresh_folder_covers(&pool, art.path(), 1).await.unwrap(),
+        0
+    );
+    assert_eq!(remembered().await, 1);
+
+    write_cover(music.path(), b"a local cover");
+    assert_eq!(
+        refresh_folder_covers(&pool, art.path(), 1).await.unwrap(),
+        1
+    );
+    assert_eq!(remembered().await, 0);
+}
+
+fn locator(path: &str) -> String {
+    format!("wfnet://11111111-aaaa/{path}")
+}
+
+fn cover_of(bytes: &[u8]) -> ExtractedCover {
+    ExtractedCover {
+        hash: blake3::hash(bytes).to_hex().to_string(),
+        format: "jpg".to_string(),
+        source: ArtworkSource::Folder,
+    }
+}
+
+fn stamp(modified_ms: i64) -> SidecarStamp {
+    SidecarStamp {
+        name: "cover.jpg".to_string(),
+        size: 7,
+        modified_ms,
+    }
+}
+
+async fn seed_network_album(
+    pool: &SqlitePool,
+    album_id: i64,
+    source: Option<&str>,
+    paths: &[&str],
+) {
+    sqlx::query("INSERT INTO album (id, artwork_source) VALUES (?, ?)")
+        .bind(album_id)
+        .bind(source)
+        .execute(pool)
+        .await
+        .unwrap();
+    for path in paths {
+        sqlx::query("INSERT INTO track (album_id, folder_id, file_path) VALUES (?, 1, ?)")
+            .bind(album_id)
+            .bind(path)
+            .execute(pool)
+            .await
+            .unwrap();
+    }
+}
+
+#[tokio::test]
+async fn a_network_album_resolves_against_its_first_directory() {
+    let pool = fixture_pool().await;
+    seed_network_album(
+        &pool,
+        10,
+        None,
+        &[
+            &locator("Music/CD2/1.flac"),
+            &locator("Music/CD1/2.flac"),
+            &locator("Music/CD3/3.flac"),
+        ],
+    )
+    .await;
+
+    let candidates = network_cover_candidates(&pool, 1).await.unwrap();
+
+    assert_eq!(candidates.len(), 1);
+    assert_eq!(candidates[0].locator, locator("Music/CD1/2.flac"));
+    assert_eq!(candidates[0].seen, None);
+}
+
+#[tokio::test]
+async fn a_network_album_out_of_a_sidecars_reach_is_not_a_candidate() {
+    let pool = fixture_pool().await;
+    seed_network_album(&pool, 10, Some("manual"), &[&locator("a/1.flac")]).await;
+    seed_network_album(&pool, 11, Some("embedded"), &[&locator("b/1.flac")]).await;
+    // The local pass owns an album with a local track.
+    seed_network_album(&pool, 12, None, &[&locator("c/1.flac"), "/music/c/2.flac"]).await;
+    // A stored locator that climbs out of its share names nothing to read.
+    seed_network_album(&pool, 13, None, &[&locator("../d/1.flac")]).await;
+    seed_network_album(&pool, 14, Some("folder"), &[&locator("e/1.flac")]).await;
+
+    let candidates = network_cover_candidates(&pool, 1).await.unwrap();
+
+    assert_eq!(
+        candidates.iter().map(|c| c.album_id).collect::<Vec<_>>(),
+        vec![14]
+    );
+}
+
+#[tokio::test]
+async fn a_network_cover_is_linked_and_remembered() {
+    let pool = fixture_pool().await;
+    seed_network_album(&pool, 10, None, &[&locator("a/1.flac")]).await;
+    let candidate = network_cover_candidates(&pool, 1).await.unwrap().remove(0);
+
+    let updated = apply_network_covers(&pool, vec![(candidate, stamp(5), cover_of(b"first"))])
+        .await
+        .unwrap();
+    assert_eq!(updated, 1);
+    assert_eq!(
+        album_artwork_hash(&pool, 10).await,
+        Some(cover_of(b"first").hash)
+    );
+
+    // The same bytes under a new date change nothing but what is remembered.
+    let candidate = network_cover_candidates(&pool, 1).await.unwrap().remove(0);
+    assert_eq!(candidate.seen, Some(stamp(5)));
+    let updated = apply_network_covers(&pool, vec![(candidate, stamp(6), cover_of(b"first"))])
+        .await
+        .unwrap();
+    assert_eq!(updated, 0);
+    let candidate = network_cover_candidates(&pool, 1).await.unwrap().remove(0);
+    assert_eq!(candidate.seen, Some(stamp(6)));
+}
+
+/// The compare-and-swap of the local pass, and nothing remembered: the next
+/// scan looks again rather than trusting a read that lost.
+#[tokio::test]
+async fn a_network_album_whose_cover_moved_mid_pass_is_left_alone() {
+    let pool = fixture_pool().await;
+    seed_network_album(&pool, 10, None, &[&locator("a/1.flac")]).await;
+    let candidate = network_cover_candidates(&pool, 1).await.unwrap().remove(0);
+
+    seed_artwork(&pool, 1, "chosen", "manual").await;
+    sqlx::query("UPDATE album SET artwork_id = 1, artwork_source = 'manual' WHERE id = 10")
+        .execute(&pool)
+        .await
+        .unwrap();
+
+    let updated = apply_network_covers(&pool, vec![(candidate, stamp(5), cover_of(b"late"))])
+        .await
+        .unwrap();
+
+    assert_eq!(updated, 0);
+    assert_eq!(
+        album_artwork_hash(&pool, 10).await,
+        Some("chosen".to_string())
+    );
+    let remembered: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM network_cover_seen")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(remembered, 0);
+}
+
+/// The same when the sidecar read is the picture the album was seen holding:
+/// there is nothing to write, so nothing else would notice that it moved. An
+/// album gone since is not remembered either, and costs the others nothing.
+#[tokio::test]
+async fn a_network_album_that_moved_off_the_picture_it_held_is_not_remembered() {
+    let pool = fixture_pool().await;
+    seed_network_album(&pool, 10, None, &[&locator("a/1.flac")]).await;
+    seed_network_album(&pool, 11, None, &[&locator("b/1.flac")]).await;
+    let mut candidates = network_cover_candidates(&pool, 1).await.unwrap();
+    candidates.sort_by_key(|candidate| candidate.album_id);
+    apply_network_covers(
+        &pool,
+        candidates
+            .into_iter()
+            .map(|candidate| (candidate, stamp(5), cover_of(b"held")))
+            .collect(),
+    )
+    .await
+    .unwrap();
+    sqlx::query("DELETE FROM network_cover_seen")
+        .execute(&pool)
+        .await
+        .unwrap();
+    let mut candidates = network_cover_candidates(&pool, 1).await.unwrap();
+    candidates.sort_by_key(|candidate| candidate.album_id);
+
+    seed_artwork(&pool, 900, "another", "folder").await;
+    sqlx::query("UPDATE album SET artwork_id = 900 WHERE id = 10")
+        .execute(&pool)
+        .await
+        .unwrap();
+    sqlx::query("DELETE FROM album WHERE id = 11")
+        .execute(&pool)
+        .await
+        .unwrap();
+
+    let updated = apply_network_covers(
+        &pool,
+        candidates
+            .into_iter()
+            .map(|candidate| (candidate, stamp(5), cover_of(b"held")))
+            .collect(),
+    )
+    .await
+    .unwrap();
+
+    assert_eq!(updated, 0);
+    assert_eq!(
+        album_artwork_hash(&pool, 10).await,
+        Some("another".to_string())
+    );
+    let remembered: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM network_cover_seen")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(remembered, 0);
 }

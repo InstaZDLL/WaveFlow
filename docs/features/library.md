@@ -33,6 +33,13 @@ Directory resolution (`read_dir` + read + blake3 per directory, potentially hund
 
 Because that walk can take seconds, the candidate list is a snapshot that may be stale by the time it is written. The update is therefore a compare-and-swap that also re-asserts the source allowlist (`link_folder_cover_if_eligible`): an album whose cover changed mid-walk — the user uploaded one, or a concurrent scan resolved a fresher sidecar — is left alone, and the count of refreshed covers comes from `rows_affected` so a skipped album never inflates the scan summary.
 
+**On a [network share](#network-shares)** comparing bytes would mean downloading every cover on every scan, so [`netlib::scan::refresh_covers`](../../src-tauri/crates/app/src/netlib/scan.rs) compares what the listing shows instead: the sidecar's name, size and modification time against what they were when the album last took stock of it (`network_cover_seen`). An unchanged rescan reads no image, and neither does the scan after the one that first read it. When they differ, or when the album has lost its cover since (an undone enrichment, a deleted artwork row), the image is fetched once for its directory and goes through the same write, so the restrictions above hold. A date that moved over the same bytes costs that one read and changes nothing. A read that fails is not remembered, and the next scan tries again.
+
+- **A scan stopped before this pass runs none of it**, and a failed listing yields no list, so it never gets here. A stop during the pass reads no further image and keeps those already read, as a stopped scan keeps what it committed: dropping them would only mean downloading them again.
+- **The first directory decides even when the walk could not read it.** Nothing is read for an album whose first directory was refused or lies in another folder or on another share; the scan of that folder answers for it.
+- **An album with a local track belongs to the local pass**, which resolves it against its local directories alone. Each album has one owner, so its picture does not depend on which folder was scanned last. A local sidecar it takes clears the album's `network_cover_seen` row, so the share's image is read again if the local tracks go.
+- **A deep scan reads the image regardless**, which is how to notice a change that kept the file's size and date.
+
 A tag edit that rewrites the audio file is normally detected, since it moves that file's mtime — this pass is specifically about the sidecar case. **But that is not guaranteed**: taggers commonly offer to preserve the modification date (Mp3tag ships that behaviour), and an ID3 rewrite often fits in the existing padding, so `size` doesn't move either. The file then looks untouched to the fast path and its new tags are never read — reported as issue #457 for a batch of genre edits.
 
 ### Deep rescan
@@ -331,7 +338,7 @@ The overlap rule of [library folders](../architecture/invariants.md#library-fold
 
 A share does not offer DSD (the pipeline opens a `File`, and these files run to gigabytes), nor WavPack and Monkey's Audio for now: what the scanner refuses of them, their rating and their pictures are all read from a path on this disk.
 
-A rating set in WaveFlow on such a track lives in the database alone, so a file changed on the share keeps it (`COALESCE(rating, ?)` in the update, for a share only). A sidecar cover is read from the listing, once per directory, when the file carries no picture; it is not refreshed when only the sidecar changes. DSF and DFF are not offered from a share: their pipeline opens a `File` and the files run to gigabytes.
+A rating set in WaveFlow on such a track lives in the database alone, so a file changed on the share keeps it (`COALESCE(rating, ?)` in the update, for a share only). A sidecar cover is found through the listing and read once per directory, when a file carries no picture or when the [reconciliation](#folder-cover-reconciliation) sees it added or changed next to unchanged tracks. DSF and DFF are not offered from a share: their pipeline opens a `File` and the files run to gigabytes.
 
 ### Playback and the cache
 
@@ -355,7 +362,6 @@ The backend refuses (`netlib::refuse_if_network`) and the interface does not off
 | Tag workshop | Listed with the reason, not selectable |
 | Rating, lyrics | In the database only |
 | Sidecar lyrics (`.lrc`), local artist images, Canvas next to the file | Not read; nothing is written on the share |
-| A `cover.jpg` added next to unchanged tracks after a scan | Picked up by a deep scan only: the [reconciliation](#folder-cover-reconciliation) does not run on a share |
 | Analysis, spectrogram | From the cached copy, else left for later: decoding would mean downloading the library |
 | Duplicates and the trash | Left out: a copy that cannot be verified is never offered for deletion |
 | The server source (upload, reconciliation) | Left out |
