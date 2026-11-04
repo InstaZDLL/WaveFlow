@@ -61,9 +61,10 @@ stays: subscriptions, positions and downloaded episodes.
 the setting and refuses when it is off, and so does the refresh timer. A bug in the
 interface cannot send traffic the user did not accept.
 
-Every request checks `offline::is_offline()` first. No request is made at startup:
-the first automatic refresh comes one interval after launch, every six hours,
-and only while the app runs. Subscribing fetches the feed before anything is
+Every request checks `offline::is_offline()` first. No request is made during
+startup. The six-hour interval counts from the last check, stored per profile, not
+from launch, so a session shorter than six hours still gets its check: when one is
+overdue it runs five minutes after launch, and only while the app runs. Subscribing fetches the feed before anything is
 stored, so a typo leaves nothing behind.
 
 ## Decision 2 — an episode is not a track
@@ -113,7 +114,15 @@ The export dialog says so.
 
 `waveflow_core::podcast` takes the server's parser, so the two stop being two: DTD
 refused, a node ceiling, text bounded before it is parsed, at most 500 episodes
-per feed, titles and descriptions bounded. RSS 2.0, Atom and RSS 1.0. A refresh
+per feed, titles and descriptions bounded. RSS 2.0, Atom and RSS 1.0.
+
+**A refresh is conditional.** `ETag` and `Last-Modified` are stored per channel and
+sent back, so a feed that has not changed costs a `304`. **A feed that has moved
+stays followed**: a permanent redirect, or `itunes:new-feed-url` from the same feed,
+updates the stored address, once the new address has passed decision 3, and a
+temporary redirect does not.
+
+A refresh
 matches on the item's guid, or its enclosure address when it has none, so a
 re-published episode is updated rather than duplicated, and one the user deleted
 stays deleted.
@@ -139,6 +148,10 @@ episode counts as played past 95 %, or within its last 30 seconds. Opening a pla
 episode starts it over. Marking played or unplayed by hand is available on each
 row and for a whole channel.
 
+**A "To listen" list at the top of the page** spans channels: one episode per
+channel, the one in progress first, else the newest unplayed. A channel's unplayed
+count shows on its row. Nothing here needs a request: it reads the two tables.
+
 ## Decision 8 — downloads
 
 To a managed folder under the app's cache root, never a library folder, so
@@ -152,10 +165,11 @@ usage, and deleting it keeps the row. Automatic downloads are out of scope here.
 ## Decision 9 — chapters
 
 Read from, in this order: the feed's `podcast:chapters` JSON file, fetched under
-decision 3 and bounded at 1 MiB; inline `psc:chapters`; `CHAP` frames in a
-downloaded MP3. The first source that gives at least one valid chapter wins, and
+decision 3 and bounded at 1 MiB; inline `psc:chapters`; `CHAP` frames in an MP3,
+from the file when downloaded, and from the start of the stream otherwise, under
+the same bound. The first source that gives at least one valid chapter wins, and
 sources are not merged. A chapter is a start time and a title, sorted, with
-impossible times dropped. A chapter's image and link are ignored here, since each
+impossible times dropped, and one the JSON marks `toc: false` is not listed. A chapter's image and link are ignored here, since each
 would be another address from a feed. The JSON file is fetched when the episode is
 opened, not at refresh, and cached with it. Whether the tag library exposes `CHAP`
 is to be measured in the lot; if it does not, that source waits.
@@ -199,8 +213,12 @@ that is left open.
 
 ## Decision 12 — speed
 
-The existing speed setting applies. Pitch is not preserved today: 1.5× lifts a voice
-by about seven semitones. Time-stretching lands as its own lot on the existing
+**A speed is remembered per channel and never leaks into music.** The global
+`audio.playback_speed` is left as it is: an episode applies its channel's speed when
+it starts, and anything else that plays afterwards gets the global speed back. The
+speed is a column of `podcast_channel`.
+
+Pitch is not preserved today: 1.5× lifts a voice by about seven semitones. Time-stretching lands as its own lot on the existing
 board card, on the decoder thread and never in the callback. The library is chosen
 by measurement. Podcasts do not wait for it.
 
