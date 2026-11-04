@@ -269,19 +269,18 @@ fn install_swapped_producer(
 }
 
 /// A `Stop` reaching a track: what is queued for the output is dropped rather
-/// than played out, and the state says so. Left to run, the ring went on sounding
-/// for about a second, the position moved on with it, and the state stayed on
-/// `Playing` for good. The rebuilds send `Unload` instead: they read the state
-/// afterwards to decide what they owe the session.
-fn stop_playing(
-    producer: &Producer<f32>,
-    shared: &SharedPlayback,
-    app: &AppHandle,
-    track_id: i64,
-) -> ControlFlow {
+/// than played out. Left to run, the ring went on sounding for about a second, the
+/// position moved on with it, and the state stayed on `Playing` for good.
+///
+/// The state follows from [`super::handle_playback_outcome`], with the stream gone:
+/// `AudioEngine::stop_and_wait` takes `Idle` to mean no file is open any more, and
+/// a reset then deletes the folder that file is in. The rebuilds send `Unload`
+/// instead, since they read the state afterwards to decide what they owe the
+/// session.
+fn stop_playing(producer: &Producer<f32>, shared: &SharedPlayback) -> ControlFlow {
     shared.paused_output.store(false, Ordering::Release);
     drain_ring_silent(producer, shared);
-    transition_state(shared, app, PlayerState::Idle, Some(track_id));
+    shared.stop_asked.store(true, Ordering::Release);
     ControlFlow::Break
 }
 
@@ -313,7 +312,7 @@ pub(super) fn drain_commands(
     loop {
         match cmd_rx.try_recv() {
             Ok(AudioCmd::Shutdown) => return ControlFlow::Shutdown,
-            Ok(AudioCmd::Stop) => return stop_playing(producer, shared, app, track_id),
+            Ok(AudioCmd::Stop) => return stop_playing(producer, shared),
             Ok(AudioCmd::Unload) => return ControlFlow::Break,
             Ok(AudioCmd::Seek(ms)) => return ControlFlow::Seek(ms),
             // One arm for the four loads: whichever arrives takes over
@@ -362,9 +361,7 @@ pub(super) fn drain_commands(
                             break;
                         }
                         Ok(AudioCmd::Shutdown) => return ControlFlow::Shutdown,
-                        Ok(AudioCmd::Stop) => {
-                            return stop_playing(producer, shared, app, track_id);
-                        }
+                        Ok(AudioCmd::Stop) => return stop_playing(producer, shared),
                         Ok(AudioCmd::Unload) => {
                             shared.paused_output.store(false, Ordering::Release);
                             return ControlFlow::Break;

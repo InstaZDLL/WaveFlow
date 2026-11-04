@@ -757,7 +757,10 @@ impl ActiveStream {
     /// The landing is at or before `ms`: symphonia's accurate seek stops
     /// on the packet that holds `ms` and the decoder plays that packet
     /// from its start, and a DSD seek rounds down to a whole interleave
-    /// cycle. A failed seek reports `ms`, the position the caller asked
+    /// cycle. With [`Self::coarse_seek`] it is an estimate on either side, which
+    /// no reader of the stream can tell apart from the truth on a variable
+    /// bitrate, so this reports `ms` too rather than a precision it does not
+    /// have. A failed seek reports `ms`, the position the caller asked
     /// for, since nothing better is known.
     pub fn seek_ms(&mut self, ms: u64) -> u64 {
         // A seek back from the end makes the track's end come again.

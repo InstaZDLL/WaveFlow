@@ -1343,6 +1343,25 @@ fn an_episode_holds_its_speed_and_gives_the_users_back() {
     assert_eq!(shared.playback_speed(), 1.25);
 }
 
+/// The clock scales by the speed, so giving the speed back must not move the place
+/// a stopped player reports.
+#[test]
+fn giving_the_speed_back_leaves_the_position_where_it_was() {
+    let shared = SharedPlayback::new();
+    shared.sample_rate.store(44_100, Ordering::Relaxed);
+    shared.channels.store(2, Ordering::Relaxed);
+    shared.restore_user_speed(1.25);
+    shared.restart_clock(10_000, 0, false);
+    shared.hold_episode_speed(1.5);
+    // Two seconds of output, three of the episode.
+    shared.samples_played.store(176_400, Ordering::Relaxed);
+    assert_eq!(shared.current_position_ms(), 13_000);
+
+    shared.release_episode_speed();
+    assert_eq!(shared.playback_speed(), 1.25);
+    assert_eq!(shared.current_position_ms(), 13_000);
+}
+
 /// The user's slider has no business with an episode's speed, and the other way
 /// round: each waits for its own.
 #[test]

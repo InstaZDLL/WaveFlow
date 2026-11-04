@@ -388,6 +388,9 @@ pub struct SharedPlayback {
     /// episode's speed for the whole episode. Taken by the decoder and the async
     /// side, never by the audio callback, which reads none of this.
     speed_writers: Mutex<()>,
+    /// A `Stop` ended the track being decoded, and the state has yet to say so: see
+    /// `decoder::control::stop_playing`. The decoder's alone.
+    pub stop_asked: AtomicBool,
     /// Set by `player_set_speed` to tell the decoder thread to rebuild
     /// every stream's resampler at the new speed on the next decode
     /// cycle. Cleared by the decoder once consumed.
@@ -479,6 +482,7 @@ impl SharedPlayback {
             user_speed_bits: AtomicU32::new(1.0_f32.to_bits()),
             episode_speed_held: AtomicBool::new(false),
             speed_writers: Mutex::new(()),
+            stop_asked: AtomicBool::new(false),
             speed_dirty: AtomicBool::new(false),
             dsd_taps: AtomicU32::new(256),
             dsd_dop_enabled: AtomicBool::new(false),
@@ -589,9 +593,12 @@ impl SharedPlayback {
 
     /// The episode is done decoding: everything else plays at the user's speed.
     /// Called on every way out of an episode, so no path after it has to know one
-    /// was there.
+    /// was there. The position stays where it was: the clock scales by the speed,
+    /// and a window asking after a stop would read another place.
     pub fn release_episode_speed(&self) {
         let _writing = self.lock_speed_writers();
+        let position_ms = self.current_position_ms();
+        self.restart_clock(position_ms, 0, false);
         self.episode_speed_held.store(false, Ordering::Release);
         self.playback_speed_bits.store(
             self.user_speed_bits.load(Ordering::Acquire),

@@ -180,6 +180,11 @@ fn handle_playback_outcome(
                     source_id: finished.source_id,
                 });
             }
+            // Past `play_track`, so its stream and whatever file it held are gone
+            // by the time anybody reads this.
+            if shared.stop_asked.swap(false, Ordering::AcqRel) {
+                transition_state(shared, app, PlayerState::Idle, Some(finished.track_id));
+            }
         }
         Err(err) => {
             tracing::warn!(
