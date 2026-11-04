@@ -38,19 +38,48 @@ fn measured_freq(signal: &[f32], channels: usize) -> f64 {
     spans * f64::from(RATE) / (rising[rising.len() - 1] - rising[0])
 }
 
+/// The DLLs a PE32+ image imports, from its import table. A search for the name
+/// in the file will not do: it is there as data whether imported or not.
+#[cfg(all(windows, target_env = "msvc"))]
+fn imported_dlls(image: &[u8]) -> Vec<String> {
+    let u16_at = |at: usize| usize::from(u16::from_le_bytes([image[at], image[at + 1]]));
+    let u32_at = |at: usize| u32::from_le_bytes(image[at..at + 4].try_into().unwrap()) as usize;
+    let pe = u32_at(0x3c);
+    let (sections, optional_len) = (u16_at(pe + 6), u16_at(pe + 20));
+    let optional = pe + 24;
+    let section_table = optional + optional_len;
+    let offset_of = |rva: usize| {
+        (0..sections)
+            .map(|i| section_table + i * 40)
+            .find_map(|at| {
+                let (start, size) = (u32_at(at + 12), u32_at(at + 16));
+                (start..start + size)
+                    .contains(&rva)
+                    .then(|| rva - start + u32_at(at + 20))
+            })
+            .expect("an address outside every section")
+    };
+    // The second data directory, after the PE32+ optional header's 112 bytes.
+    let mut descriptor = offset_of(u32_at(optional + 112 + 8));
+    let mut names = Vec::new();
+    while u32_at(descriptor + 12) != 0 {
+        let name = &image[offset_of(u32_at(descriptor + 12))..];
+        let end = name.iter().position(|b| *b == 0).unwrap();
+        names.push(String::from_utf8_lossy(&name[..end]).to_ascii_lowercase());
+        descriptor += 20;
+    }
+    names
+}
+
 /// The Windows app needs no redistributable: its C runtime is static, and the
 /// C++ here must not bring in the DLL it would then need to start at all.
 #[cfg(all(windows, target_env = "msvc"))]
 #[test]
 fn the_cpp_runtime_is_not_imported() {
     let exe = std::fs::read(std::env::current_exe().unwrap()).unwrap();
-    // Put together here: written whole, the name would be in this very binary.
-    let name = ["msvcp", "140.dll"].concat().into_bytes();
-    assert!(
-        !exe.windows(name.len())
-            .any(|w| w.eq_ignore_ascii_case(&name)),
-        "this binary imports the C++ runtime"
-    );
+    let dlls = imported_dlls(&exe);
+    assert!(dlls.iter().any(|d| d == "kernel32.dll"), "{dlls:?}");
+    assert!(!dlls.iter().any(|d| d.starts_with("msvcp")), "{dlls:?}");
     // And the stretcher it would be for is in this binary.
     assert!(Stretcher::new(RATE, 2, 1.25).is_ok());
 }
