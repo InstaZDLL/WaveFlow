@@ -1088,7 +1088,10 @@
     },
     "podcast": {
       "back15": "倒退 15 秒",
-      "forward30": "快轉 30 秒"
+      "forward30": "快轉 30 秒",
+      "previousChapter": "上一章",
+      "nextChapter": "下一章",
+      "chapterOf": "第 {{current}} 章，共 {{total}} 章"
     }
   },
   "queue": {
@@ -4569,7 +4572,9 @@
       "remaining": "剩餘 {{time}}",
       "pause": "暫停 {{title}}",
       "queued": "等待中",
-      "deletedWhilePlaying": "檔案已刪除。目前的播放會繼續；之後要重新播放，需要連網或重新下載。"
+      "deletedWhilePlaying": "檔案已刪除。目前的播放會繼續；之後要重新播放，需要連網或重新下載。",
+      "open": "開啟「{{title}}」",
+      "playAgainShort": "再聽一次"
     },
     "restored": {
       "title": "已不知道這個訂閱來源的網址",
@@ -4602,12 +4607,33 @@
       "no_source": "這一集既沒有檔案也沒有位址：請重新訂閱這個節目。",
       "not_seekable": "這個託管方不支援在這一集中跳轉。",
       "write_failed": "無法將檔案寫入磁碟。",
+      "invalid_document": "此檔案與其宣稱的內容不符。",
       "not_stored": "伺服器沒有保存這一集：需要它先下載。",
       "server_unreachable": "伺服器沒有回應。",
       "server_signed_out": "你已不再登入這台伺服器。",
       "server_refused": "伺服器拒絕了，或已不再有這一項。",
       "server_conflict": "伺服器已在追蹤這個訂閱來源，或無法再追蹤更多。",
       "destination_refused": "伺服器不允許連線到這個位址。"
+    },
+    "episodePage": {
+      "kicker": "單集"
+    },
+    "chapters": {
+      "title": "章節",
+      "none": "此單集沒有章節。",
+      "loading": "正在尋找章節…",
+      "failed": "無法讀取章節：{{reason}}",
+      "jump": "前往「{{title}}」，{{time}}"
+    },
+    "transcript": {
+      "title": "逐字稿",
+      "none": "此單集沒有逐字稿。",
+      "noEpisode": "播放單集即可查看其逐字稿。",
+      "loading": "正在取得逐字稿…",
+      "failed": "無法讀取逐字稿：{{reason}}",
+      "untimed": "此逐字稿沒有時間資訊，因此不會跟隨播放。",
+      "notPlaying": "此單集未在播放。點擊某一行即可從該處開始播放。",
+      "jump": "前往 {{time}}：{{text}}"
     },
     "server": {
       "title": "在你的伺服器上",

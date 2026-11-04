@@ -37,7 +37,10 @@ import {
   openPodcastWarning,
   openView,
 } from "../../lib/discovery";
-import { isPodcastTrack } from "../../lib/playerSources";
+import {
+  episodeInPlayer as episodeHeldBy,
+  serverEpisodeInPlayer as serverEpisodeHeldBy,
+} from "../../lib/playerSources";
 import { podcastFailureMessage } from "../../lib/podcastWords";
 import { getOfflineMode } from "../../lib/tauri/offline";
 import {
@@ -73,6 +76,7 @@ import { EmptyState } from "../common/EmptyState";
 import { PodcastDialogShell } from "../podcasts/PodcastDialogShell";
 import { channelTitle, formatBytes } from "./podcasts/format";
 import { PodcastChannelPage } from "./podcasts/PodcastChannelPage";
+import { PodcastEpisodePage } from "./podcasts/PodcastEpisodePage";
 import {
   PodcastChannelRow,
   PodcastChannelTile,
@@ -94,12 +98,17 @@ import { PodcastSubscribeForm } from "./podcasts/PodcastSubscribeForm";
 interface PodcastsViewProps {
   /** The channel on the history entry; `null` is the overview. */
   channelId: number | null;
+  /** The episode on the history entry; `null` is its channel, or the overview. */
+  episodeId: number | null;
   /** The bound server's channel on the history entry, by its id over there. */
   serverChannelId: string | null;
   onOpenChannel: (channelId: number | null) => void;
+  onOpenEpisode: (channelId: number, episodeId: number) => void;
   onOpenServerChannel: (channelId: string) => void;
   /** That channel is gone: replaces the entry, so Back has no ghost to reach. */
   onChannelGone: () => void;
+  /** That episode is gone: the same, to its channel. */
+  onEpisodeGone: (channelId: number) => void;
 }
 
 /** How many of "To listen" show until asked for the rest. */
@@ -153,10 +162,13 @@ const SERVER_REFRESH_READ_MS = 5_000;
  */
 export function PodcastsView({
   channelId,
+  episodeId,
   serverChannelId,
   onOpenChannel,
+  onOpenEpisode,
   onOpenServerChannel,
   onChannelGone,
+  onEpisodeGone,
 }: PodcastsViewProps) {
   const { t, i18n } = useTranslation();
   const { skin } = useSkin();
@@ -208,24 +220,15 @@ export function PodcastsView({
 
   const { currentTrack, isPlaying, playbackState, togglePlayback } =
     usePlayer();
-  // A stopped player still names what it played last, but no longer holds it: its
-  // row is then an ordinary one, under the same rules as the others.
-  const episodeInPlayer =
-    isPodcastTrack(currentTrack) &&
-    playbackState !== "idle" &&
-    playbackState !== "ended"
-      ? (currentTrack?.podcast_episode_id ?? null)
-      : null;
+  const episodeInPlayer = episodeHeldBy(currentTrack, playbackState);
   const player = useMemo<PodcastPlayerState>(
     () => ({ episodeId: episodeInPlayer, playing: isPlaying }),
     [episodeInPlayer, isPlaying],
   );
-  const serverEpisodeInPlayer =
-    isPodcastTrack(currentTrack) &&
-    playbackState !== "idle" &&
-    playbackState !== "ended"
-      ? (currentTrack?.podcast_server_episode_id ?? null)
-      : null;
+  const serverEpisodeInPlayer = serverEpisodeHeldBy(
+    currentTrack,
+    playbackState,
+  );
   const serverPlayer = useMemo<ServerPlayerState>(
     () => ({ episodeId: serverEpisodeInPlayer, playing: isPlaying }),
     [serverEpisodeInPlayer, isPlaying],
@@ -252,6 +255,7 @@ export function PodcastsView({
 
   const actions = useMemo<EpisodeActions>(
     () => ({
+      open: (episode) => onOpenEpisode(episode.channel_id, episode.id),
       // The episode already in the player pauses or carries on, from where it is
       // rather than from the last position written.
       play: (episode) =>
@@ -282,7 +286,7 @@ export function PodcastsView({
           },
         ),
     }),
-    [run, episodeInPlayer, togglePlayback, t],
+    [run, episodeInPlayer, togglePlayback, onOpenEpisode, t],
   );
 
   const network = enabled && !offline;
@@ -591,6 +595,31 @@ export function PodcastsView({
           onGone={onChannelGone}
           onRefresh={refreshServer}
           onUnsubscribe={setLeavingServer}
+        />
+        {dialogs}
+      </div>
+    );
+  }
+
+  if (channel && episodeId != null) {
+    return (
+      <div
+        data-podcasts
+        data-podcast-page="episode"
+        className="mx-auto max-w-[1440px] animate-fade-in space-y-6 pb-20"
+      >
+        {banners}
+        <PodcastEpisodePage
+          key={episodeId}
+          episodeId={episodeId}
+          channel={channel}
+          network={network}
+          download={downloads.get(episodeId)}
+          player={player}
+          actions={actions}
+          revision={revision}
+          onBack={() => onOpenChannel(channel.id)}
+          onGone={() => onEpisodeGone(channel.id)}
         />
         {dialogs}
       </div>
@@ -989,6 +1018,7 @@ function PodcastOverviewList({
                     network={network}
                     player={player}
                     onPlay={actions.play}
+                    onOpen={actions.open}
                   />
                 </div>
               )}

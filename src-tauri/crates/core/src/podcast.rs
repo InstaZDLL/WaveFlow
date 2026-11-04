@@ -10,6 +10,8 @@
 //! - [`opml`]: a subscription list, read under the same rules and written.
 //! - [`chapters`]: Podcasting 2.0 JSON and inline `psc:chapters`, and the rule
 //!   that picks one source.
+//! - [`id3`]: `CHAP` frames at the start of an MP3, in a flat walk that nothing
+//!   nested can overflow.
 //! - [`transcript`]: which of an episode's transcripts to open, and what it
 //!   becomes: a [`lyrics::Document`](crate::lyrics::Document) when it is timed.
 //! - [`address`]: what a feed may name, and the words a failure is stored as.
@@ -21,6 +23,7 @@
 pub mod address;
 pub mod chapters;
 pub mod feed;
+pub mod id3;
 pub mod opml;
 pub mod transcript;
 
@@ -112,5 +115,7 @@ fn is_mpeg_frame(head: &[u8]) -> bool {
         && sample_rate != 0b11
 }
 
+#[cfg(test)]
+mod extras_tests;
 #[cfg(test)]
 mod tests;

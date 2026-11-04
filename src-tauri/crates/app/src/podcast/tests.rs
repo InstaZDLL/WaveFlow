@@ -25,6 +25,7 @@ use super::schedule::{run_schedule, since_last_check, Schedule, UNREADABLE_RETRY
 use super::store;
 
 mod download;
+mod extras;
 
 pub(super) const PUBLIC_HOST: &str = "feeds.example.org";
 
@@ -2443,6 +2444,32 @@ async fn a_private_feeds_token_reaches_no_log_line() {
     for entry in std::fs::read_dir(downloads.path()).unwrap().flatten() {
         outputs.push(entry.file_name().to_string_lossy().into_owned());
     }
+
+    // Chapters and a transcript, each named by an address holding the token, and
+    // every way they can fail.
+    for path in ["/audio-ok", "/page", "/looping", "/gone"] {
+        let address = server.local(&format!("{path}/{TOKEN}/a.json?auth={TOKEN}"));
+        sqlx::query(
+            "UPDATE podcast_episode
+                SET chapters_url = ?, transcripts = ?, enclosure_url = ?, download_file = NULL,
+                    chapters_cache = NULL, chapters_checked_at = NULL, transcript_cache = NULL
+              WHERE id = ?",
+        )
+        .bind(&address)
+        .bind(serde_json::json!([{ "url": address, "kind": "vtt", "language": null }]).to_string())
+        .bind(&address)
+        .bind(episode_id)
+        .execute(&pool)
+        .await
+        .unwrap();
+        healthy.store(path != "/gone", Ordering::SeqCst);
+        let chapters =
+            super::extras::chapters(&leases, &fetcher, downloads.path(), episode_id, false).await;
+        let transcript = super::extras::transcript(&leases, &fetcher, episode_id).await;
+        tracing::warn!(?chapters, ?transcript, "episode extras");
+        outputs.push(format!("{chapters:?} {transcript:?}"));
+    }
+    healthy.store(true, Ordering::SeqCst);
 
     outputs.push(serde_json::to_string(&store::list_channels(&pool).await.unwrap()).unwrap());
     outputs.push(

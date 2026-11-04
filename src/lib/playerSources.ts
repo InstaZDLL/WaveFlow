@@ -69,6 +69,35 @@ export function isPodcastTrack(track: Track | null): boolean {
 }
 
 /**
+ * The episode the player holds. A stopped player still names what it played last,
+ * but no longer holds it, so that one answers like any other row.
+ */
+export function episodeInPlayer(
+  track: Track | null,
+  playbackState: string,
+): number | null {
+  if (!isPodcastTrack(track)) return null;
+  if (playbackState === "idle" || playbackState === "ended") return null;
+  return track?.podcast_episode_id ?? null;
+}
+
+/** The bound server's episode the player holds, under the same rule. */
+export function serverEpisodeInPlayer(
+  track: Track | null,
+  playbackState: string,
+): string | null {
+  if (!isPodcastTrack(track)) return null;
+  if (playbackState === "idle" || playbackState === "ended") return null;
+  return track?.podcast_server_episode_id ?? null;
+}
+
+/** An episode of this profile. Chapters and a transcript are for these alone: a bound
+ *  server's has neither, so nothing should offer them for it. */
+export function isLocalPodcastTrack(track: Track | null): boolean {
+  return isPodcastTrack(track) && track?.podcast_episode_id != null;
+}
+
+/**
  * Which queue in memory `track` belongs to ({@link DETACHED_QUEUES}), or `null`
  * when it is not one's: a library track, or radio, which has no queue.
  */

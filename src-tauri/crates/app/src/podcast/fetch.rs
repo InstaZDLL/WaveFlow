@@ -24,7 +24,9 @@
 
 use std::time::Duration;
 
-use reqwest::header::{HeaderMap, ETAG, IF_MODIFIED_SINCE, IF_NONE_MATCH, LAST_MODIFIED, LOCATION};
+use reqwest::header::{
+    HeaderMap, ETAG, IF_MODIFIED_SINCE, IF_NONE_MATCH, LAST_MODIFIED, LOCATION, RANGE,
+};
 use reqwest::StatusCode;
 use url::Url;
 use waveflow_core::podcast::address::{is_fetchable, next_hop};
@@ -290,6 +292,41 @@ impl Fetcher {
         let within = async {
             let response = self.open(url, origin, HeaderMap::new()).await?;
             read_bounded(response, max_bytes).await
+        };
+        tokio::time::timeout(SMALL_FILE_DEADLINE, within)
+            .await
+            .unwrap_or(Err(FetchFailure::Unreached.into()))
+    }
+
+    /// The first `max_bytes` of a file too large to want, such as an enclosure whose
+    /// tag is at its start, under the same rules. Asks for no more than that, and
+    /// stops reading a host that sends the whole file anyway. Unlike
+    /// [`Self::small_file`], more is not a failure: it is the case this is for.
+    pub(crate) async fn head_of(
+        &self,
+        url: &Url,
+        origin: Origin,
+        max_bytes: usize,
+    ) -> Result<Vec<u8>, FetchError> {
+        let within = async {
+            let mut headers = HeaderMap::new();
+            if let Ok(range) = format!("bytes=0-{}", max_bytes.saturating_sub(1)).parse() {
+                headers.insert(RANGE, range);
+            }
+            let mut response = self.open(url, origin, headers).await?;
+            let mut bytes = Vec::new();
+            while bytes.len() < max_bytes {
+                let Some(chunk) = response
+                    .chunk()
+                    .await
+                    .map_err(|_| FetchFailure::Unreached)?
+                else {
+                    break;
+                };
+                let room = max_bytes - bytes.len();
+                bytes.extend_from_slice(&chunk[..chunk.len().min(room)]);
+            }
+            Ok(bytes)
         };
         tokio::time::timeout(SMALL_FILE_DEADLINE, within)
             .await

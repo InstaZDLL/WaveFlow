@@ -6,17 +6,19 @@ import { usePlayer, type RightPanel } from "../../../hooks/usePlayer";
 import { NowPlayingPanel } from "../NowPlayingPanel";
 import { LyricsPanel } from "../LyricsPanel";
 import { QueuePanel } from "../QueuePanel";
+import { PodcastTranscriptPanel } from "../../podcasts/PodcastTranscriptPanel";
+import { isLocalPodcastTrack } from "../../../lib/playerSources";
 
 interface FluidSidePanelProps {
   onNavigateToArtist: (artistId: number) => void;
   onNavigateToRemoteArtist: (artistId: string) => void;
 }
 
-const TABS: RightPanel[] = ["nowPlaying", "lyrics", "queue"];
-
 /**
  * The Fluid skin's right edge: one panel with three tabs — Details,
- * Lyrics, Queue — where the other skins mount three panels in turn.
+ * Lyrics, Queue — where the other skins mount three panels in turn. During
+ * an episode of this profile, which has no lyrics, Transcript takes the place of
+ * Lyrics.
  * The three bodies are the existing panels in their embedded form (no
  * frame of their own, no header, no close button): the data, the
  * actions and the keyboard contract are theirs, only the shell is new.
@@ -28,7 +30,20 @@ export function FluidSidePanel({
   onNavigateToRemoteArtist,
 }: FluidSidePanelProps) {
   const { t } = useTranslation();
-  const { activeRightPanel, openRightPanel, closeRightPanel } = usePlayer();
+  const { activeRightPanel, openRightPanel, closeRightPanel, currentTrack } =
+    usePlayer();
+  // Three tabs, which is what the width holds. The panel that is up keeps its tab
+  // whatever plays: it was opened for a reason, and a tabpanel needs the tab it is
+  // labelled by. Otherwise an episode has a transcript and no lyrics, unless it is a
+  // bound server's, which has no transcript to offer.
+  const showsTranscript =
+    activeRightPanel === "transcript" ||
+    (isLocalPodcastTrack(currentTrack) && activeRightPanel !== "lyrics");
+  const TABS: RightPanel[] = [
+    "nowPlaying",
+    showsTranscript ? "transcript" : "lyrics",
+    "queue",
+  ];
   // One panel for the three tabs: the ids tie each tab to it, and it to
   // the open tab, so a screen reader can walk from one to the other.
   const baseId = useId();
@@ -37,6 +52,7 @@ export function FluidSidePanel({
   const labels: Record<RightPanel, string> = {
     nowPlaying: t("nowPlaying.fluid.details"),
     lyrics: t("lyrics.title"),
+    transcript: t("podcasts.transcript.title"),
     queue: t("queue.title"),
   };
 
@@ -119,6 +135,9 @@ export function FluidSidePanel({
             />
           )}
           {activeRightPanel === "lyrics" && <LyricsPanel embedded />}
+          {activeRightPanel === "transcript" && (
+            <PodcastTranscriptPanel embedded />
+          )}
           {activeRightPanel === "queue" && <QueuePanel embedded />}
         </div>
       </div>

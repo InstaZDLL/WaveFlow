@@ -1090,7 +1090,10 @@
     },
     "podcast": {
       "back15": "15 sn geri",
-      "forward30": "30 sn ileri"
+      "forward30": "30 sn ileri",
+      "previousChapter": "Önceki kısım",
+      "nextChapter": "Sonraki kısım",
+      "chapterOf": "Kısım {{current}} / {{total}}"
     }
   },
   "queue": {
@@ -4574,7 +4577,9 @@
       "remaining": "{{time}} kaldı",
       "pause": "{{title}} duraklat",
       "queued": "Bekliyor",
-      "deletedWhilePlaying": "Dosya silindi. Çalan bölüm devam ediyor; yeniden başlatmak için ağ ya da yeni bir indirme gerekecek."
+      "deletedWhilePlaying": "Dosya silindi. Çalan bölüm devam ediyor; yeniden başlatmak için ağ ya da yeni bir indirme gerekecek.",
+      "open": "“{{title}}” bölümünü aç",
+      "playAgainShort": "Yeniden dinle"
     },
     "restored": {
       "title": "Bu akışın adresi artık bilinmiyor",
@@ -4607,12 +4612,33 @@
       "no_source": "Bu bölümün ne dosyası ne de adresi var: kanala yeniden abone ol.",
       "not_seekable": "Bu barındırıcı bölüm içinde ilerleyip gerilemene izin vermiyor.",
       "write_failed": "Dosya diske yazılamadı.",
+      "invalid_document": "Bu dosya, söylediği şey değil.",
       "not_stored": "Sunucuda bu bölüm yok: önce indirmesi gerekir.",
       "server_unreachable": "Sunucu yanıt vermiyor.",
       "server_signed_out": "Bu sunucuda artık oturumunuz açık değil.",
       "server_refused": "Sunucu reddetti ya da bu öğeyi artık tanımıyor.",
       "server_conflict": "Sunucu bu akışı zaten izliyor ya da daha fazlasını izleyemiyor.",
       "destination_refused": "Sunucunun bu adrese erişme izni yok."
+    },
+    "episodePage": {
+      "kicker": "Bölüm"
+    },
+    "chapters": {
+      "title": "Kısımlar",
+      "none": "Bu bölümde kısım yok.",
+      "loading": "Kısımlar aranıyor…",
+      "failed": "Kısımlar okunamadı: {{reason}}",
+      "jump": "“{{title}}” kısmına git, {{time}}"
+    },
+    "transcript": {
+      "title": "Döküm",
+      "none": "Bu bölümün dökümü yok.",
+      "noEpisode": "Dökümünü görmek için bir bölüm başlatın.",
+      "loading": "Döküm alınıyor…",
+      "failed": "Döküm okunamadı: {{reason}}",
+      "untimed": "Bu dökümde zaman bilgisi yok, bu yüzden çalmayı takip etmez.",
+      "notPlaying": "Bu bölüm çalmıyor. Bir satıra tıklamak onu o andan başlatır.",
+      "jump": "{{time}} anına git: {{text}}"
     },
     "server": {
       "title": "Sunucunuzda",

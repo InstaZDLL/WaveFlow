@@ -1088,7 +1088,10 @@
     },
     "podcast": {
       "back15": "15초 뒤로",
-      "forward30": "30초 앞으로"
+      "forward30": "30초 앞으로",
+      "previousChapter": "이전 챕터",
+      "nextChapter": "다음 챕터",
+      "chapterOf": "챕터 {{current}}/{{total}}"
     }
   },
   "queue": {
@@ -4569,7 +4572,9 @@
       "remaining": "{{time}} 남음",
       "pause": "{{title}} 일시 정지",
       "queued": "대기 중",
-      "deletedWhilePlaying": "파일을 삭제했습니다. 재생 중인 내용은 계속됩니다. 다시 시작하려면 네트워크나 새 다운로드가 필요합니다."
+      "deletedWhilePlaying": "파일을 삭제했습니다. 재생 중인 내용은 계속됩니다. 다시 시작하려면 네트워크나 새 다운로드가 필요합니다.",
+      "open": "“{{title}}” 열기",
+      "playAgainShort": "다시 듣기"
     },
     "restored": {
       "title": "이 피드의 주소를 더 이상 알 수 없습니다",
@@ -4602,12 +4607,33 @@
       "no_source": "이 에피소드에는 파일도 주소도 없습니다. 채널을 다시 구독하세요.",
       "not_seekable": "이 호스트에서는 에피소드 안에서 위치를 옮길 수 없습니다.",
       "write_failed": "파일을 디스크에 쓸 수 없습니다.",
+      "invalid_document": "이 파일은 표시된 내용과 다릅니다.",
       "not_stored": "서버에 이 에피소드가 없습니다. 서버가 먼저 다운로드해야 합니다.",
       "server_unreachable": "서버가 응답하지 않습니다.",
       "server_signed_out": "이 서버에서 로그아웃된 상태입니다.",
       "server_refused": "서버가 거부했거나 이 항목을 더 이상 알지 못합니다.",
       "server_conflict": "서버가 이미 이 피드를 구독 중이거나 더 구독할 수 없습니다.",
       "destination_refused": "서버가 이 주소에 접근할 수 없습니다."
+    },
+    "episodePage": {
+      "kicker": "에피소드"
+    },
+    "chapters": {
+      "title": "챕터",
+      "none": "이 에피소드에는 챕터가 없습니다.",
+      "loading": "챕터를 찾는 중…",
+      "failed": "챕터를 읽을 수 없습니다: {{reason}}",
+      "jump": "“{{title}}”({{time}})(으)로 이동"
+    },
+    "transcript": {
+      "title": "스크립트",
+      "none": "이 에피소드에는 스크립트가 없습니다.",
+      "noEpisode": "에피소드를 재생하면 스크립트를 볼 수 있습니다.",
+      "loading": "스크립트를 가져오는 중…",
+      "failed": "스크립트를 읽을 수 없습니다: {{reason}}",
+      "untimed": "이 스크립트에는 시간 정보가 없어 재생을 따라가지 않습니다.",
+      "notPlaying": "이 에피소드는 재생 중이 아닙니다. 줄을 클릭하면 그 지점부터 재생합니다.",
+      "jump": "{{time}}(으)로 이동: {{text}}"
     },
     "server": {
       "title": "내 서버",

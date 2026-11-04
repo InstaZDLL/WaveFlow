@@ -1130,7 +1130,10 @@
     },
     "podcast": {
       "back15": "Indietro di 15 s",
-      "forward30": "Avanti di 30 s"
+      "forward30": "Avanti di 30 s",
+      "previousChapter": "Capitolo precedente",
+      "nextChapter": "Capitolo successivo",
+      "chapterOf": "Capitolo {{current}} di {{total}}"
     }
   },
   "queue": {
@@ -4711,7 +4714,9 @@
       "remaining": "ancora {{time}}",
       "pause": "Metti in pausa {{title}}",
       "queued": "In attesa",
-      "deletedWhilePlaying": "Il file è stato eliminato. La riproduzione in corso continua; per riavviarla servirà la rete o un nuovo download."
+      "deletedWhilePlaying": "Il file è stato eliminato. La riproduzione in corso continua; per riavviarla servirà la rete o un nuovo download.",
+      "open": "Apri «{{title}}»",
+      "playAgainShort": "Riascolta"
     },
     "restored": {
       "title": "L'indirizzo di questo feed non è più noto",
@@ -4744,12 +4749,33 @@
       "no_source": "Questo episodio non ha né un file né un indirizzo: abbonati di nuovo al canale.",
       "not_seekable": "Questo host non permette di spostarsi nell'episodio.",
       "write_failed": "Impossibile scrivere il file sul disco.",
+      "invalid_document": "Questo file non è ciò che dichiara di essere.",
       "not_stored": "Il server non conserva questo episodio: deve prima scaricarlo.",
       "server_unreachable": "Il server non risponde.",
       "server_signed_out": "Non hai più effettuato l'accesso a questo server.",
       "server_refused": "Il server ha rifiutato, o non conosce più questo elemento.",
       "server_conflict": "Il server segue già questo feed, o non può seguirne altri.",
       "destination_refused": "Il server non è autorizzato a raggiungere questo indirizzo."
+    },
+    "episodePage": {
+      "kicker": "Episodio"
+    },
+    "chapters": {
+      "title": "Capitoli",
+      "none": "Questo episodio non ha capitoli.",
+      "loading": "Ricerca dei capitoli…",
+      "failed": "Impossibile leggere i capitoli: {{reason}}",
+      "jump": "Vai a «{{title}}», {{time}}"
+    },
+    "transcript": {
+      "title": "Trascrizione",
+      "none": "Questo episodio non ha una trascrizione.",
+      "noEpisode": "Avvia un episodio per vederne la trascrizione.",
+      "loading": "Recupero della trascrizione…",
+      "failed": "Impossibile leggere la trascrizione: {{reason}}",
+      "untimed": "Questa trascrizione non ha tempi, quindi non segue la riproduzione.",
+      "notPlaying": "Questo episodio non è in riproduzione. Un clic su una riga lo avvia da quel punto.",
+      "jump": "Vai a {{time}}: {{text}}"
     },
     "server": {
       "title": "Sul tuo server",

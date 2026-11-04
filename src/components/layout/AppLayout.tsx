@@ -49,6 +49,7 @@ import { PluginAttentionToast } from "../common/PluginAttentionToast";
 import { ViewSuspenseFallback } from "../common/ViewSuspenseFallback";
 import { ViewErrorBoundary } from "../common/ViewErrorBoundary";
 import { PodcastDialogsHost } from "../podcasts/PodcastDialogsHost";
+import { PodcastTranscriptPanel } from "../podcasts/PodcastTranscriptPanel";
 import { retryableLazy } from "../../lib/preloadable";
 import {
   OPEN_TAG_WORKSHOP_EVENT,
@@ -166,10 +167,11 @@ type HistoryEntry =
       opened?: number;
     }
   | { id: "web-radio" }
-  // The channel open, so Back and Forward restore it; none is the overview.
+  // What is open, so Back and Forward restore it; none of them is the overview.
   | {
       id: "podcasts";
       channelId?: number | null;
+      episodeId?: number | null;
       /** A channel of the bound server: its id is the server's, and no row here. */
       serverChannelId?: string | null;
     }
@@ -612,6 +614,10 @@ export function AppLayout() {
     () => replaceEntry({ id: "podcasts" }),
     [replaceEntry],
   );
+  const leavePodcastEpisode = useCallback(
+    (channelId: number) => replaceEntry({ id: "podcasts", channelId }),
+    [replaceEntry],
+  );
 
   const openSettingsAt = useCallback(
     (settingsCategory: SettingsCategory) => {
@@ -774,6 +780,11 @@ export function AppLayout() {
                 ? (currentEntry.channelId ?? null)
                 : null
             }
+            episodeId={
+              currentEntry.id === "podcasts"
+                ? (currentEntry.episodeId ?? null)
+                : null
+            }
             serverChannelId={
               currentEntry.id === "podcasts"
                 ? (currentEntry.serverChannelId ?? null)
@@ -782,10 +793,14 @@ export function AppLayout() {
             onOpenChannel={(channelId) =>
               pushEntry({ id: "podcasts", channelId })
             }
+            onOpenEpisode={(channelId, episodeId) =>
+              pushEntry({ id: "podcasts", channelId, episodeId })
+            }
             onOpenServerChannel={(serverChannelId) =>
               pushEntry({ id: "podcasts", serverChannelId })
             }
             onChannelGone={leavePodcastChannel}
+            onEpisodeGone={leavePodcastEpisode}
           />
         );
       case "extensions":
@@ -1101,6 +1116,9 @@ export function AppLayout() {
                 />
               )}
               {!fluidPanel && activeRightPanel === "lyrics" && <LyricsPanel />}
+              {!fluidPanel && activeRightPanel === "transcript" && (
+                <PodcastTranscriptPanel />
+              )}
             </AnimatePresence>
           </div>
 
