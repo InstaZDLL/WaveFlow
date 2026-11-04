@@ -4575,7 +4575,11 @@
       "invalid_feed": "Dit is geen leesbare podcastfeed.",
       "not_audio": "Dit bestand is geen audio.",
       "quota_exceeded": "Het downloadlimiet is bereikt.",
-      "unknown": "Er ging iets mis."
+      "unknown": "Er ging iets mis.",
+      "episode_gone": "Deze aflevering bestaat niet meer.",
+      "no_source": "Deze aflevering heeft geen bestand en geen adres: abonneer je opnieuw op het kanaal.",
+      "not_seekable": "Deze host staat niet toe dat je door de aflevering beweegt.",
+      "write_failed": "Het bestand kon niet naar de schijf worden geschreven."
     }
   }
 }

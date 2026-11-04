@@ -129,7 +129,8 @@ const ERROR_PREFIX = "podcast: ";
 
 /**
  * The word a refused command rejected with: `disabled`, `offline`,
- * `profile_changed`, `channel_gone`, `open_failed`, or one from `FetchFailure::code` (`address_refused`,
+ * `profile_changed`, `channel_gone`, `episode_gone`, `open_failed`, `no_source`, `not_seekable`,
+ * `write_failed`, or one from `FetchFailure::code` (`address_refused`,
  * `too_many_redirects`, `too_large`, `unreached`, `http_<status>`,
  * `invalid_feed`, `not_audio`, `quota_exceeded`). `null` for any other error.
  */
@@ -241,4 +242,10 @@ export function podcastDeleteDownload(episodeId: number): Promise<void> {
 
 export function podcastDownloadUsage(): Promise<PodcastDownloadUsage> {
   return invoke<PodcastDownloadUsage>("podcast_download_usage");
+}
+
+/** The downloads under way, for a view opened meanwhile: no event replays for it.
+ *  Subscribe to {@link PODCAST_DOWNLOAD} first, then call this. */
+export function podcastDownloadQueue(): Promise<PodcastDownloadPayload[]> {
+  return invoke<PodcastDownloadPayload[]>("podcast_download_queue");
 }

@@ -4570,7 +4570,11 @@
       "invalid_feed": "Ini bukan umpan podcast yang bisa dibaca.",
       "not_audio": "File ini bukan audio.",
       "quota_exceeded": "Kuota unduhan sudah tercapai.",
-      "unknown": "Terjadi kesalahan."
+      "unknown": "Terjadi kesalahan.",
+      "episode_gone": "Episode ini sudah tidak ada.",
+      "no_source": "Episode ini tidak punya berkas maupun alamat: berlangganan lagi ke saluran ini.",
+      "not_seekable": "Host ini tidak mengizinkan berpindah posisi di dalam episode.",
+      "write_failed": "Berkas tidak dapat ditulis ke disk."
     }
   }
 }

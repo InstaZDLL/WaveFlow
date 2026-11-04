@@ -4712,7 +4712,11 @@
       "invalid_feed": "Questo non è un feed di podcast leggibile.",
       "not_audio": "Questo file non è un audio.",
       "quota_exceeded": "Hai raggiunto il limite dei download.",
-      "unknown": "Qualcosa è andato storto."
+      "unknown": "Qualcosa è andato storto.",
+      "episode_gone": "Questo episodio non esiste più.",
+      "no_source": "Questo episodio non ha né un file né un indirizzo: abbonati di nuovo al canale.",
+      "not_seekable": "Questo host non permette di spostarsi nell'episodio.",
+      "write_failed": "Impossibile scrivere il file sul disco."
     }
   }
 }

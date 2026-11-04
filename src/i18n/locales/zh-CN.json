@@ -4570,7 +4570,11 @@
       "invalid_feed": "这不是可以读取的播客订阅源。",
       "not_audio": "这个文件不是音频。",
       "quota_exceeded": "已达到下载上限。",
-      "unknown": "出了点问题。"
+      "unknown": "出了点问题。",
+      "episode_gone": "这一集已不存在。",
+      "no_source": "这一集既没有文件也没有地址：请重新订阅该频道。",
+      "not_seekable": "此托管方不支持在这一集中跳转。",
+      "write_failed": "无法将文件写入磁盘。"
     }
   }
 }

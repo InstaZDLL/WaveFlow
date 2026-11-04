@@ -4713,7 +4713,11 @@
       "invalid_feed": "Isto não é um feed de podcast que se consiga ler.",
       "not_audio": "Este ficheiro não é áudio.",
       "quota_exceeded": "Atingiste o limite de transferências.",
-      "unknown": "Algo correu mal."
+      "unknown": "Algo correu mal.",
+      "episode_gone": "Este episódio já não existe.",
+      "no_source": "Este episódio não tem ficheiro nem endereço: subscreve de novo o canal.",
+      "not_seekable": "Este servidor não permite avançar nem recuar no episódio.",
+      "write_failed": "Não foi possível escrever o ficheiro no disco."
     }
   }
 }

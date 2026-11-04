@@ -4570,7 +4570,11 @@
       "invalid_feed": "這不是可以讀取的 Podcast 訂閱來源。",
       "not_audio": "這個檔案不是音訊。",
       "quota_exceeded": "已達到下載上限。",
-      "unknown": "發生了一些問題。"
+      "unknown": "發生了一些問題。",
+      "episode_gone": "這一集已不存在。",
+      "no_source": "這一集既沒有檔案也沒有位址：請重新訂閱這個節目。",
+      "not_seekable": "這個託管方不支援在這一集中跳轉。",
+      "write_failed": "無法將檔案寫入磁碟。"
     }
   }
 }

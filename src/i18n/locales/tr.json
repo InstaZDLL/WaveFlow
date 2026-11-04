@@ -4575,7 +4575,11 @@
       "invalid_feed": "Bu, okunabilen bir podcast akışı değil.",
       "not_audio": "Bu dosya bir ses dosyası değil.",
       "quota_exceeded": "İndirme kotasına ulaşıldı.",
-      "unknown": "Bir şeyler ters gitti."
+      "unknown": "Bir şeyler ters gitti.",
+      "episode_gone": "Bu bölüm artık yok.",
+      "no_source": "Bu bölümün ne dosyası ne de adresi var: kanala yeniden abone ol.",
+      "not_seekable": "Bu barındırıcı bölüm içinde ilerleyip gerilemene izin vermiyor.",
+      "write_failed": "Dosya diske yazılamadı."
     }
   }
 }

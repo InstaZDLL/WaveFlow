@@ -3,6 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 
 import {
   PODCAST_DOWNLOAD,
+  podcastDownloadQueue,
   type PodcastDownloadPayload,
 } from "../lib/tauri/podcast";
 
@@ -32,10 +33,26 @@ export function usePodcastDownloads(
       if (payload.state === "failed") onFailed(payload.errorWord);
     })
       .then((unlisten) => {
-        if (cancelled) unlisten();
-        else off = unlisten;
+        if (cancelled) {
+          unlisten();
+          return;
+        }
+        off = unlisten;
+        // What moved while the page was closed: no event replays for it.
+        return podcastDownloadQueue().then((queue) => {
+          if (cancelled) return;
+          setActive((previous) => {
+            const next = new Map(previous);
+            for (const payload of queue) {
+              if (!next.has(payload.episodeId)) {
+                next.set(payload.episodeId, payload);
+              }
+            }
+            return next;
+          });
+        });
       })
-      .catch((err) => console.warn("[podcasts] listen failed", err));
+      .catch((err) => console.warn("[podcasts] downloads read failed", err));
     return () => {
       cancelled = true;
       off?.();

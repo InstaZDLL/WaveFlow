@@ -4712,7 +4712,11 @@
       "invalid_feed": "Ce n'est pas un flux de podcast lisible.",
       "not_audio": "Ce fichier n'est pas de l'audio.",
       "quota_exceeded": "Le quota de téléchargement est atteint.",
-      "unknown": "Quelque chose n'a pas fonctionné."
+      "unknown": "Quelque chose n'a pas fonctionné.",
+      "episode_gone": "Cet épisode n'existe plus.",
+      "no_source": "Cet épisode n'a ni fichier ni adresse : réabonnez-vous à la chaîne.",
+      "not_seekable": "Cet hôte ne permet pas de se déplacer dans l'épisode.",
+      "write_failed": "Le fichier n'a pas pu être écrit sur le disque."
     }
   }
 }

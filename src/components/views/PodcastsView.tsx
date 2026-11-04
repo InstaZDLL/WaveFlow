@@ -157,15 +157,18 @@ export function PodcastsView({
   /** Runs a command, says what went wrong, and re-reads what it may have moved. */
   const run = useCallback(
     async (label: string, command: () => Promise<unknown>) => {
+      let succeeded = true;
       try {
         await command();
       } catch (err) {
+        succeeded = false;
         const word = podcastErrorWord(err);
         if (word == null) console.error(`[podcasts] ${label} failed`, err);
         failWith(word);
       }
       void reload();
       setRevision((value) => value + 1);
+      return succeeded;
     },
     [failWith, reload],
   );
@@ -250,10 +253,10 @@ export function PodcastsView({
     if (!leaving) return;
     const id = leaving.id;
     setLeavingBusy(true);
-    await run("unsubscribe", () => podcastUnsubscribe(id));
+    const left = await run("unsubscribe", () => podcastUnsubscribe(id));
     setLeavingBusy(false);
     setLeaving(null);
-    if (channelId === id) onChannelGone();
+    if (left && channelId === id) onChannelGone();
   };
 
   const turnOn = () => openPodcastWarning();
@@ -460,7 +463,7 @@ export function PodcastsView({
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {enabled && library.channels.length > 0 && (
+          {enabled && library.channels.length > withoutAddress && (
             <button
               type="button"
               disabled={offline || refreshing}

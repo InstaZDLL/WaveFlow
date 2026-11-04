@@ -4575,7 +4575,11 @@
       "invalid_feed": "Das ist kein lesbarer Podcast-Feed.",
       "not_audio": "Diese Datei ist keine Audiodatei.",
       "quota_exceeded": "Das Download-Limit ist erreicht.",
-      "unknown": "Etwas ist schiefgelaufen."
+      "unknown": "Etwas ist schiefgelaufen.",
+      "episode_gone": "Diese Folge gibt es nicht mehr.",
+      "no_source": "Diese Folge hat weder Datei noch Adresse: Abonniere den Kanal erneut.",
+      "not_seekable": "Dieser Host erlaubt kein Springen innerhalb der Folge.",
+      "write_failed": "Die Datei konnte nicht auf die Festplatte geschrieben werden."
     }
   }
 }

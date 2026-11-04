@@ -4575,7 +4575,11 @@
       "invalid_feed": "This is not a podcast feed that can be read.",
       "not_audio": "This file is not audio.",
       "quota_exceeded": "The download quota has been reached.",
-      "unknown": "Something went wrong."
+      "unknown": "Something went wrong.",
+      "episode_gone": "This episode no longer exists.",
+      "no_source": "This episode has neither a file nor an address: subscribe to the channel again.",
+      "not_seekable": "This host does not allow moving around in the episode.",
+      "write_failed": "The file could not be written to disk."
     }
   }
 }

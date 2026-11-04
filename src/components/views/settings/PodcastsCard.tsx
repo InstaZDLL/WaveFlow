@@ -76,6 +76,31 @@ export function PodcastsCard() {
                   : "settings.podcasts.subtitleOff",
               )}
             </div>
+            {ready && !enabled && (
+              <p
+                role="status"
+                data-podcasts-stays
+                className="mt-2 text-xs settings-description"
+              >
+                {t("settings.podcasts.stays")}
+                {channels > 0 && (
+                  <> {t("settings.podcasts.staysCount", { n: channels })}</>
+                )}
+              </p>
+            )}
+            {(enabled || channels > 0) && (
+              <button
+                type="button"
+                onClick={() => openView({ view: "podcasts" })}
+                className="mt-2 rounded-full border border-zinc-200 px-3 py-1.5 text-xs font-semibold text-zinc-700 transition-colors hover:border-emerald-500 hover:text-emerald-600 dark:border-zinc-700 dark:text-zinc-200"
+              >
+                {t(
+                  enabled
+                    ? "settings.podcasts.open"
+                    : "settings.podcasts.seeStays",
+                )}
+              </button>
+            )}
           </div>
         </div>
         <ToggleSwitch
@@ -88,27 +113,6 @@ export function PodcastsCard() {
           disabled={!ready}
         />
       </div>
-      {ready && !enabled && (
-        <p
-          role="status"
-          data-podcasts-stays
-          className="mt-3 ps-8 text-xs settings-description"
-        >
-          {t("settings.podcasts.stays")}
-          {channels > 0 && (
-            <> {t("settings.podcasts.staysCount", { n: channels })}</>
-          )}
-        </p>
-      )}
-      {(enabled || channels > 0) && (
-        <button
-          type="button"
-          onClick={() => openView({ view: "podcasts" })}
-          className="mt-3 ms-8 rounded-full border border-zinc-200 px-3 py-1.5 text-xs font-semibold text-zinc-700 transition-colors hover:border-emerald-500 hover:text-emerald-600 dark:border-zinc-700 dark:text-zinc-200"
-        >
-          {t(enabled ? "settings.podcasts.open" : "settings.podcasts.seeStays")}
-        </button>
-      )}
     </div>
   );
 }
