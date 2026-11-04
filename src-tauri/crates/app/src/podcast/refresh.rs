@@ -267,7 +267,7 @@ async fn read_address(
             moved_to,
         } => {
             let address = moved_to.unwrap_or_else(|| url.clone());
-            let feed = read_feed(&bytes, &base)?;
+            let feed = read_feed(bytes, base).await?;
             if let Some(announced) = feed.new_feed_url.as_deref() {
                 if let Some(read) = read_announced(fetcher, &address, origin, announced).await? {
                     return Ok(read);
@@ -308,11 +308,14 @@ async fn read_announced(
             base,
             validators,
             moved_to,
-        }) => Ok(read_feed(&bytes, &base).ok().map(|feed| FeedRead::Fresh {
-            address: moved_to.unwrap_or(next),
-            feed,
-            validators,
-        })),
+        }) => Ok(read_feed(bytes, base)
+            .await
+            .ok()
+            .map(|feed| FeedRead::Fresh {
+                address: moved_to.unwrap_or(next),
+                feed,
+                validators,
+            })),
         Ok(FeedBody::NotModified { .. }) => Ok(None),
         Err(FetchError::Offline) => Err(PodcastError::Offline),
         Err(FetchError::Failed(failure)) => {
@@ -325,8 +328,12 @@ async fn read_announced(
     }
 }
 
-fn read_feed(bytes: &[u8], base: &Url) -> Result<Box<Feed>, PodcastError> {
-    parse_feed(bytes, base)
+/// On the blocking pool: a feed may be 16 MiB and a million nodes, and the runtime's
+/// workers are the ones every command waits on.
+async fn read_feed(bytes: Vec<u8>, base: Url) -> Result<Box<Feed>, PodcastError> {
+    tokio::task::spawn_blocking(move || parse_feed(&bytes, &base))
+        .await
+        .map_err(|err| PodcastError::Other(AppError::Other(format!("feed parse join: {err}"))))?
         .map(Box::new)
         .map_err(|_| PodcastError::Failed(FetchFailure::InvalidFeed))
 }
@@ -549,12 +556,16 @@ async fn update_artwork<L: Leases>(
         }
         Err(FetchError::Offline) => return,
     };
-    if !waveflow_core::podcast::accepts_cover(&bytes) {
-        tracing::debug!(channel_id, "podcast artwork refused: not a usable image");
-        return;
-    }
-    let Some(hash) = waveflow_core::artwork::metadata::store_bytes(&bytes, artwork_dir, true)
-    else {
+    let dir = artwork_dir.to_path_buf();
+    let stored = tokio::task::spawn_blocking(move || {
+        if !waveflow_core::podcast::accepts_cover(&bytes) {
+            tracing::debug!(channel_id, "podcast artwork refused: not a usable image");
+            return None;
+        }
+        waveflow_core::artwork::metadata::store_bytes(&bytes, &dir, true)
+    })
+    .await;
+    let Ok(Some(hash)) = stored else {
         return;
     };
     let Ok(pool) = leases.lease().await else {
