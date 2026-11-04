@@ -780,11 +780,15 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   // The Settings reset writes through its own accessors. It is the one other
   // writer, and it only ever writes the defaults.
   useEffect(() => {
-    const onReset = () => {
-      keepPitchRevision.current += 1;
-      semitonesRevision.current += 1;
-      setKeepPitchState(SETTINGS["audio.keep_pitch"].defaultValue);
-      setPitchSemitonesState(SETTINGS["audio.pitch_semitones"].defaultValue);
+    const onReset = (event: Event) => {
+      const key = (event as CustomEvent<string>).detail;
+      if (key === "audio.keep_pitch") {
+        keepPitchRevision.current += 1;
+        setKeepPitchState(SETTINGS["audio.keep_pitch"].defaultValue);
+      } else if (key === "audio.pitch_semitones") {
+        semitonesRevision.current += 1;
+        setPitchSemitonesState(SETTINGS["audio.pitch_semitones"].defaultValue);
+      }
     };
     window.addEventListener(PITCH_RESET_EVENT, onReset);
     return () => window.removeEventListener(PITCH_RESET_EVENT, onReset);

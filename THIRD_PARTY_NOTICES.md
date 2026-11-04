@@ -51,7 +51,8 @@ Geraint Luff / Signalsmith Audio Ltd. —
 
 MIT License
 
-Copyright (c) 2022 Geraint Luff / Signalsmith Audio Ltd.
+Copyright (c) 2022 Geraint Luff / Signalsmith Audio Ltd. (Signalsmith Stretch)
+Copyright (c) 2025 Signalsmith Audio (Signalsmith Linear)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

@@ -816,8 +816,9 @@ export function playerGetPitchSemitones(): Promise<number> {
 
 /**
  * Window event: the Settings reset put the pitch lock or the transposition
- * back to their default, behind the player's own state of them. A getter would
- * race the engine, which applies a command when its thread next looks.
+ * back to its default, behind the player's own state of it. A getter would race
+ * the engine, which applies a command when its thread next looks. The detail is
+ * the setting's key.
  */
 export const PITCH_RESET_EVENT = "waveflow:pitch-reset";
 

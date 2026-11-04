@@ -779,7 +779,9 @@ const ACCESSORS: Record<SettingKey, SettingAccessor> = {
   "audio.keep_pitch": afterReset(
     command("audio.keep_pitch", playerGetKeepPitch, inProfile(playerSetKeepPitch)),
     async () => {
-      window.dispatchEvent(new CustomEvent(PITCH_RESET_EVENT));
+      window.dispatchEvent(
+        new CustomEvent(PITCH_RESET_EVENT, { detail: "audio.keep_pitch" }),
+      );
     },
   ),
   "audio.pitch_semitones": afterReset(
@@ -789,7 +791,9 @@ const ACCESSORS: Record<SettingKey, SettingAccessor> = {
       inProfile(playerSetPitchSemitones),
     ),
     async () => {
-      window.dispatchEvent(new CustomEvent(PITCH_RESET_EVENT));
+      window.dispatchEvent(
+        new CustomEvent(PITCH_RESET_EVENT, { detail: "audio.pitch_semitones" }),
+      );
     },
   ),
   "audio.dsd_precision": command(
