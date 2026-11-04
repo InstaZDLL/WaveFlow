@@ -2243,15 +2243,18 @@ impl std::io::Write for Capture {
 /// lines, what the commands return, and what the frontend is handed.
 #[tokio::test]
 async fn a_private_feeds_token_reaches_no_log_line() {
+    use tracing_subscriber::layer::SubscriberExt;
     use tracing_subscriber::util::SubscriberInitExt;
     tracing_subscriber::fmt()
-        // Someone who sets RUST_LOG=trace gets this, and only this.
-        .with_env_filter(crate::logging::without_connection_lines(
-            tracing_subscriber::EnvFilter::new("trace"),
+        // The worst RUST_LOG someone can set: everything, and by name the places that
+        // write a host, which would win over a directive for their parent.
+        .with_env_filter(tracing_subscriber::EnvFilter::new(
+            "trace,reqwest::connect=trace,hyper_util::client::legacy::connect=trace,             hyper_util::client::legacy::pool=trace,rustls::client::hs=trace",
         ))
         .with_ansi(false)
         .with_writer(|| Capture)
         .finish()
+        .with(crate::logging::without_connection_lines())
         .try_init()
         .expect("no other test installs a global subscriber");
     CAPTURING.store(true, Ordering::SeqCst);

@@ -24,7 +24,12 @@ use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock};
 
 use tracing_appender::non_blocking::WorkerGuard;
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
+use tracing_subscriber::{
+    filter::{filter_fn, FilterFn},
+    layer::SubscriberExt,
+    util::SubscriberInitExt,
+    EnvFilter,
+};
 
 const APP_IDENTIFIER: &str = "app.waveflow";
 const LOG_FILE_PREFIX: &str = "waveflow";
@@ -103,15 +108,16 @@ fn resolve_log_dir() -> Option<PathBuf> {
 /// its path can, and that address must reach no log line. `rustls` writes nothing in this
 /// build, its logging being a feature nothing turns on, but any dependency that asks for
 /// its defaults would turn it on without a word.
-pub(crate) fn without_connection_lines(filter: EnvFilter) -> EnvFilter {
-    [
-        "reqwest::connect=info",
-        "hyper_util::client::legacy=info",
-        "rustls=info",
-    ]
-    .into_iter()
-    .fold(filter, |filter, directive| {
-        filter.add_directive(directive.parse().expect("a valid directive"))
+///
+/// A layer of its own, since a directive in the `EnvFilter` loses to a more precise one:
+/// `hyper_util::client::legacy::pool=trace` would bring those lines back.
+pub(crate) fn without_connection_lines() -> FilterFn<impl Fn(&tracing::Metadata<'_>) -> bool> {
+    const QUIET: [&str; 3] = ["reqwest::connect", "hyper_util::client::legacy", "rustls"];
+    filter_fn(|metadata| {
+        *metadata.level() <= tracing::Level::INFO
+            || !QUIET
+                .iter()
+                .any(|target| metadata.target().starts_with(target))
     })
 }
 
@@ -121,10 +127,8 @@ pub(crate) fn without_connection_lines(filter: EnvFilter) -> EnvFilter {
 /// [`FlushOnDrop`] the caller must hold for the whole program: let it
 /// fall out of scope early and the file sink closes with it.
 pub fn init_tracing() -> FlushOnDrop {
-    let filter = without_connection_lines(
-        EnvFilter::try_from_default_env()
-            .unwrap_or_else(|_| EnvFilter::new("info,sqlx=warn,lofty=error")),
-    );
+    let filter = EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| EnvFilter::new("info,sqlx=warn,lofty=error"));
 
     let stdout_layer = tracing_subscriber::fmt::layer()
         .with_writer(std::io::stdout)
@@ -170,6 +174,7 @@ pub fn init_tracing() -> FlushOnDrop {
     }
 
     tracing_subscriber::registry()
+        .with(without_connection_lines())
         .with(filter)
         .with(stdout_layer)
         .with(file_layer)
