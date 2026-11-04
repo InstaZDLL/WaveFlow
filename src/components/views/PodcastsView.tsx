@@ -4,6 +4,7 @@ import {
   useLayoutEffect,
   useMemo,
   useState,
+  type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
@@ -28,6 +29,7 @@ import { usePageVirtualizer } from "../../hooks/usePageVirtualizer";
 import { usePlayer } from "../../hooks/usePlayer";
 import { usePodcastDownloads } from "../../hooks/usePodcastDownloads";
 import { usePodcastLibrary } from "../../hooks/usePodcastLibrary";
+import { usePodcastServerOverview } from "../../hooks/usePodcastServer";
 import { usePodcastsEnabled } from "../../hooks/usePodcastsEnabled";
 import { useTasks } from "../../hooks/useTasks";
 import {
@@ -50,11 +52,23 @@ import {
   podcastPlayEpisode,
   podcastRefresh,
   podcastSetChannelSpeed,
+  podcastSubscribe,
   podcastUnsubscribe,
   type PodcastChannel,
   type PodcastEpisode,
   type PodcastRefreshSummary,
 } from "../../lib/tauri/podcast";
+import {
+  podcastServerClearPosition,
+  podcastServerDeleteEpisode,
+  podcastServerPlay,
+  podcastServerRefresh,
+  podcastServerRequestDownload,
+  podcastServerUnsubscribe,
+  type ServerChannel,
+  type ServerEpisode,
+  type ServerOverview,
+} from "../../lib/tauri/podcastServer";
 import { EmptyState } from "../common/EmptyState";
 import { PodcastDialogShell } from "../podcasts/PodcastDialogShell";
 import { channelTitle, formatBytes } from "./podcasts/format";
@@ -67,12 +81,23 @@ import {
   type EpisodeActions,
   type PodcastPlayerState,
 } from "./podcasts/PodcastItems";
+import {
+  ServerChannelPage,
+  ServerChannelRow,
+  ServerChannelTile,
+  ServerSectionHead,
+  type ServerEpisodeActions,
+  type ServerPlayerState,
+} from "./podcasts/PodcastServer";
 import { PodcastSubscribeForm } from "./podcasts/PodcastSubscribeForm";
 
 interface PodcastsViewProps {
   /** The channel on the history entry; `null` is the overview. */
   channelId: number | null;
+  /** The bound server's channel on the history entry, by its id over there. */
+  serverChannelId: string | null;
   onOpenChannel: (channelId: number | null) => void;
+  onOpenServerChannel: (channelId: string) => void;
   /** That channel is gone: replaces the entry, so Back has no ghost to reach. */
   onChannelGone: () => void;
 }
@@ -93,7 +118,10 @@ type OverviewRow =
   | { kind: "episode"; key: string; episode: PodcastEpisode }
   | { kind: "more"; key: string; hidden: number }
   | { kind: "tiles"; key: string; channels: PodcastChannel[] }
-  | { kind: "channel"; key: string; channel: PodcastChannel };
+  | { kind: "channel"; key: string; channel: PodcastChannel }
+  | { kind: "server-head"; key: string }
+  | { kind: "server-tiles"; key: string; channels: ServerChannel[] }
+  | { kind: "server-channel"; key: string; channel: ServerChannel };
 
 const ESTIMATES: Record<OverviewRow["kind"], number> = {
   heading: 72,
@@ -102,7 +130,14 @@ const ESTIMATES: Record<OverviewRow["kind"], number> = {
   more: 44,
   tiles: 280,
   channel: 80,
+  "server-head": 72,
+  "server-tiles": 280,
+  "server-channel": 80,
 };
+
+/** The server checks its feeds in the background and does not say when it is done, so
+ *  the page reads again once, after long enough for most of them. */
+const SERVER_REFRESH_READ_MS = 5_000;
 
 /**
  * Podcasts (RFC-009): what to listen to, the channels followed, one channel's
@@ -112,10 +147,15 @@ const ESTIMATES: Record<OverviewRow["kind"], number> = {
  * One view for every skin: `skin.layout` chooses the shapes (a band and tiles on
  * the fluid layout, rows on the classic one), and `podcasts.css` paints them from
  * the tokens of whichever material is on, never from a skin's id.
+ *
+ * A bound server's channels are a section of their own, read over the network when
+ * the page opens and absent whenever that cannot be done (RFC-009 decision 11).
  */
 export function PodcastsView({
   channelId,
+  serverChannelId,
   onOpenChannel,
+  onOpenServerChannel,
   onChannelGone,
 }: PodcastsViewProps) {
   const { t, i18n } = useTranslation();
@@ -134,6 +174,12 @@ export function PodcastsView({
   const [exportOpen, setExportOpen] = useState(false);
   const [leaving, setLeaving] = useState<PodcastChannel | null>(null);
   const [leavingBusy, setLeavingBusy] = useState(false);
+  const [leavingServer, setLeavingServer] = useState<ServerChannel | null>(
+    null,
+  );
+  const [deletingEpisode, setDeletingEpisode] = useState<ServerEpisode | null>(
+    null,
+  );
 
   useEffect(() => {
     getOfflineMode()
@@ -173,6 +219,16 @@ export function PodcastsView({
   const player = useMemo<PodcastPlayerState>(
     () => ({ episodeId: episodeInPlayer, playing: isPlaying }),
     [episodeInPlayer, isPlaying],
+  );
+  const serverEpisodeInPlayer =
+    isPodcastTrack(currentTrack) &&
+    playbackState !== "idle" &&
+    playbackState !== "ended"
+      ? (currentTrack?.podcast_server_episode_id ?? null)
+      : null;
+  const serverPlayer = useMemo<ServerPlayerState>(
+    () => ({ episodeId: serverEpisodeInPlayer, playing: isPlaying }),
+    [serverEpisodeInPlayer, isPlaying],
   );
 
   /** Runs a command, says what went wrong, and re-reads what it may have moved. */
@@ -228,6 +284,72 @@ export function PodcastsView({
     }),
     [run, episodeInPlayer, togglePlayback, t],
   );
+
+  const network = enabled && !offline;
+  const { overview: serverOverview, reload: reloadServer } =
+    usePodcastServerOverview(ready && network, serverChannelId);
+
+  const serverActions = useMemo<ServerEpisodeActions>(
+    () => ({
+      play: (episode) =>
+        void run("server play", () =>
+          episode.id === serverEpisodeInPlayer
+            ? togglePlayback()
+            : podcastServerPlay(episode.channel_id, episode.id),
+        ),
+      forgetPosition: (episode) =>
+        void run("server position", () =>
+          podcastServerClearPosition(episode.id),
+        ),
+      requestDownload: (episode) =>
+        void run("server download", () =>
+          podcastServerRequestDownload(episode.id),
+        ),
+      deleteEpisode: setDeletingEpisode,
+    }),
+    [run, serverEpisodeInPlayer, togglePlayback],
+  );
+
+  const refreshServer = useCallback(() => {
+    void run("server refresh", async () => {
+      await podcastServerRefresh();
+      setNotice({ text: t("podcasts.server.refreshAsked"), warn: false });
+      window.setTimeout(() => {
+        void reloadServer();
+        setRevision((value) => value + 1);
+      }, SERVER_REFRESH_READ_MS);
+    });
+  }, [run, t, reloadServer]);
+
+  const openServerSubscribed = useCallback(
+    (id: string) => {
+      void reloadServer();
+      onOpenServerChannel(id);
+    },
+    [reloadServer, onOpenServerChannel],
+  );
+
+  const confirmLeavingServer = async () => {
+    if (!leavingServer) return;
+    const id = leavingServer.id;
+    setLeavingBusy(true);
+    const left = await run("server unsubscribe", () =>
+      podcastServerUnsubscribe(id),
+    );
+    setLeavingBusy(false);
+    setLeavingServer(null);
+    void reloadServer();
+    if (left && serverChannelId === id) onChannelGone();
+  };
+
+  const confirmDeletingEpisode = async () => {
+    if (!deletingEpisode) return;
+    const id = deletingEpisode.id;
+    setLeavingBusy(true);
+    await run("server delete", () => podcastServerDeleteEpisode(id));
+    setLeavingBusy(false);
+    setDeletingEpisode(null);
+  };
 
   const reportRefresh = useCallback(
     (summary: PodcastRefreshSummary) => {
@@ -299,7 +421,6 @@ export function PodcastsView({
   };
 
   const turnOn = () => openPodcastWarning();
-  const network = enabled && !offline;
   const openChannel = useCallback(
     (id: number) => onOpenChannel(id),
     [onOpenChannel],
@@ -398,6 +519,42 @@ export function PodcastsView({
           {t("podcasts.unsubscribe.body")}
         </p>
       </PodcastDialogShell>
+      <PodcastDialogShell
+        isOpen={leavingServer != null}
+        mark="server-unsubscribe"
+        title={t("podcasts.server.unsubscribeTitle", {
+          title: leavingServer?.title.trim() || t("podcasts.untitledChannel"),
+        })}
+        onClose={() => setLeavingServer(null)}
+        confirm={{
+          label: t("podcasts.server.unsubscribeConfirm"),
+          danger: true,
+          busy: leavingBusy,
+          onConfirm: () => void confirmLeavingServer(),
+        }}
+      >
+        <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+          {t("podcasts.server.unsubscribeBody")}
+        </p>
+      </PodcastDialogShell>
+      <PodcastDialogShell
+        isOpen={deletingEpisode != null}
+        mark="server-delete-episode"
+        title={t("podcasts.server.deleteEpisodeTitle")}
+        onClose={() => setDeletingEpisode(null)}
+        confirm={{
+          label: t("podcasts.server.unsubscribeConfirm"),
+          danger: true,
+          busy: leavingBusy,
+          onConfirm: () => void confirmDeletingEpisode(),
+        }}
+      >
+        <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+          {t("podcasts.server.deleteEpisodeBody", {
+            title: deletingEpisode?.title.trim() || t("podcasts.untitledEpisode"),
+          })}
+        </p>
+      </PodcastDialogShell>
       {notice &&
         createPortal(
           <div
@@ -421,6 +578,32 @@ export function PodcastsView({
         )}
     </>
   );
+
+  if (serverChannelId != null) {
+    return (
+      <div
+        data-podcasts
+        data-podcast-page="server-channel"
+        className="mx-auto max-w-[1440px] animate-fade-in space-y-6 pb-20"
+      >
+        {banners}
+        <ServerChannelPage
+          key={serverChannelId}
+          channelId={serverChannelId}
+          canManage={serverOverview?.can_manage ?? false}
+          network={network}
+          player={serverPlayer}
+          actions={serverActions}
+          revision={revision}
+          onBack={() => onOpenChannel(null)}
+          onGone={onChannelGone}
+          onRefresh={refreshServer}
+          onUnsubscribe={setLeavingServer}
+        />
+        {dialogs}
+      </div>
+    );
+  }
 
   if (channel) {
     return (
@@ -565,6 +748,7 @@ export function PodcastsView({
       {enabled && (
         <div className="pc-card">
           <PodcastSubscribeForm
+            subscribe={podcastSubscribe}
             onSubscribed={(id) => void openSubscribed(id)}
             disabled={offline}
           />
@@ -600,7 +784,7 @@ export function PodcastsView({
         </div>
       ) : library.loading || !ready ? (
         <p className="pc-meta">{t("podcasts.loading")}</p>
-      ) : library.channels.length === 0 ? (
+      ) : library.channels.length === 0 && !serverOverview?.channels.length ? (
         <EmptyState
           icon={<Podcast size={36} strokeWidth={1.5} />}
           title={t("podcasts.empty.title")}
@@ -620,6 +804,16 @@ export function PodcastsView({
         player={player}
         actions={actions}
         onOpenChannel={openChannel}
+        server={serverOverview}
+        onOpenServerChannel={onOpenServerChannel}
+        serverHead={
+          <ServerSectionHead
+            canManage={serverOverview?.can_manage ?? false}
+            disabled={!network}
+            onRefresh={refreshServer}
+            onSubscribed={openServerSubscribed}
+          />
+        }
       />
       {dialogs}
     </div>
@@ -641,6 +835,9 @@ function PodcastOverviewList({
   player,
   actions,
   onOpenChannel,
+  server,
+  onOpenServerChannel,
+  serverHead,
 }: {
   channels: PodcastChannel[];
   toListen: PodcastEpisode[];
@@ -651,6 +848,10 @@ function PodcastOverviewList({
   player: PodcastPlayerState;
   actions: EpisodeActions;
   onOpenChannel: (channelId: number) => void;
+  /** `null` is no section: see `usePodcastServerOverview`. */
+  server: ServerOverview | null;
+  onOpenServerChannel: (channelId: string) => void;
+  serverHead: ReactNode;
 }) {
   const { t } = useTranslation();
   const [allShown, setAllShown] = useState(false);
@@ -662,8 +863,7 @@ function PodcastOverviewList({
 
   const rows = useMemo<OverviewRow[]>(() => {
     const out: OverviewRow[] = [];
-    if (channels.length === 0) return out;
-    if (toListen.length > 0 || toListenFailed) {
+    if (channels.length > 0 && (toListen.length > 0 || toListenFailed)) {
       out.push({
         kind: "heading",
         key: "h-listen",
@@ -686,11 +886,13 @@ function PodcastOverviewList({
         hidden: toListen.length - shown.length,
       });
     }
-    out.push({
-      kind: "heading",
-      key: "h-channels",
-      title: t("podcasts.channels"),
-    });
+    if (channels.length > 0) {
+      out.push({
+        kind: "heading",
+        key: "h-channels",
+        title: t("podcasts.channels"),
+      });
+    }
     if (fluid) {
       for (let start = 0; start < channels.length; start += columns) {
         out.push({
@@ -704,8 +906,30 @@ function PodcastOverviewList({
         out.push({ kind: "channel", key: `c-${channel.id}`, channel });
       }
     }
+    // A reader with nothing to read has no reason to hear about it. A manager has
+    // something to do there.
+    if (server && (server.channels.length > 0 || server.can_manage)) {
+      out.push({ kind: "server-head", key: "h-server" });
+      if (fluid) {
+        for (let start = 0; start < server.channels.length; start += columns) {
+          out.push({
+            kind: "server-tiles",
+            key: `st-${start}`,
+            channels: server.channels.slice(start, start + columns),
+          });
+        }
+      } else {
+        for (const channel of server.channels) {
+          out.push({
+            kind: "server-channel",
+            key: `sc-${channel.id}`,
+            channel,
+          });
+        }
+      }
+    }
     return out;
-  }, [channels, toListen, toListenFailed, allShown, fluid, columns, t]);
+  }, [channels, toListen, toListenFailed, allShown, fluid, columns, t, server]);
 
   const { parentRef, virtualizer, scrollMargin } = usePageVirtualizer({
     count: rows.length,
@@ -812,6 +1036,30 @@ function PodcastOverviewList({
                 <PodcastChannelRow
                   channel={row.channel}
                   onOpen={onOpenChannel}
+                />
+              )}
+              {row.kind === "server-head" && serverHead}
+              {row.kind === "server-tiles" && (
+                <div
+                  className="grid pb-6"
+                  style={{
+                    gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+                    gap: `${TILE_GAP}px`,
+                  }}
+                >
+                  {row.channels.map((channel) => (
+                    <ServerChannelTile
+                      key={channel.id}
+                      channel={channel}
+                      onOpen={onOpenServerChannel}
+                    />
+                  ))}
+                </div>
+              )}
+              {row.kind === "server-channel" && (
+                <ServerChannelRow
+                  channel={row.channel}
+                  onOpen={onOpenServerChannel}
                 />
               )}
             </div>

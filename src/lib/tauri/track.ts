@@ -57,6 +57,8 @@ export interface Track {
   remote_id?: string;
   /** Set while this is a podcast episode: which row of the page it is. */
   podcast_episode_id?: number;
+  /** Set while this is an episode of a bound server's channel. */
+  podcast_server_episode_id?: string;
 }
 
 /** Sort spec accepted by `listTracks` / `listAlbums` / `listArtists`. */

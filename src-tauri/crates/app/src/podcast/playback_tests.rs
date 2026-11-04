@@ -29,6 +29,9 @@ use super::tests::{
 };
 use crate::audio::state::{PlayerState, SharedPlayback};
 
+#[cfg(feature = "sync_v2")]
+mod server;
+
 // ── a server with a file on it ──────────────────────────────────────
 
 /// How a [`FileServer`] misbehaves.

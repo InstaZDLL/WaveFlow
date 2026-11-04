@@ -5,7 +5,8 @@
 //! ([`store`]), the passes that join the two ([`refresh`]), the timer
 //! ([`schedule`]), an episode playing ([`playback`], over [`stream`]) and the
 //! episodes kept on disk ([`download`]). The Tauri commands are
-//! `commands::podcast`.
+//! `commands::podcast`. A bound server's channels are read live by
+//! `remote::podcasts`, and `server` plays them in the same session.
 //!
 //! A podcast is outbound traffic in an app that otherwise needs none, so with
 //! `podcasts.enabled` off nothing here contacts anything and no timer runs. What
@@ -21,6 +22,8 @@ pub(crate) mod fetch;
 pub(crate) mod playback;
 pub(crate) mod refresh;
 pub(crate) mod schedule;
+#[cfg(feature = "sync_v2")]
+pub(crate) mod server;
 pub(crate) mod store;
 pub(crate) mod stream;
 

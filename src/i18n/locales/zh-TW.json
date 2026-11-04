@@ -4480,6 +4480,10 @@
         "stop": {
           "title": "如何全部停止",
           "body": "開啟離線模式可以全部停止。關閉 Podcast 則會徹底停止。"
+        },
+        "server": {
+          "title": "如果連結了伺服器",
+          "body": "如果這個設定檔連結了開啟 Podcast 的 WaveFlow 伺服器，它的節目也會顯示。這些內容經過你的伺服器：代管方看到的是你的伺服器，而不是你。"
         }
       }
     },
@@ -4597,7 +4601,36 @@
       "episode_gone": "這一集已不存在。",
       "no_source": "這一集既沒有檔案也沒有位址：請重新訂閱這個節目。",
       "not_seekable": "這個託管方不支援在這一集中跳轉。",
-      "write_failed": "無法將檔案寫入磁碟。"
+      "write_failed": "無法將檔案寫入磁碟。",
+      "not_stored": "伺服器沒有保存這一集：需要它先下載。",
+      "server_unreachable": "伺服器沒有回應。",
+      "server_signed_out": "你已不再登入這台伺服器。",
+      "server_refused": "伺服器拒絕了，或已不再有這一項。",
+      "server_conflict": "伺服器已在追蹤這個訂閱來源，或無法再追蹤更多。",
+      "destination_refused": "伺服器不允許連線到這個位址。"
+    },
+    "server": {
+      "title": "在你的伺服器上",
+      "chip": "伺服器",
+      "refresh": "在伺服器上檢查",
+      "refreshAsked": "伺服器正在檢查訂閱來源。新內容很快就會顯示。",
+      "subscribeOpen": "在伺服器上訂閱",
+      "subscribeLabel": "在伺服器上訂閱一個訂閱來源",
+      "subscribeHint": "伺服器會先讀取訂閱來源再加入。訂閱對這台伺服器上的所有帳號生效。",
+      "unsubscribe": "從伺服器移除",
+      "unsubscribeTitle": "要從伺服器移除 {{title}} 嗎？",
+      "unsubscribeBody": "節目、單集及其檔案都會從伺服器上消失，所有帳號都受影響。",
+      "unsubscribeConfirm": "移除",
+      "deleteEpisode": "從伺服器移除 {{title}}",
+      "deleteEpisodeTitle": "要從伺服器移除這一集嗎？",
+      "deleteEpisodeBody": "「{{title}}」及其檔案會從伺服器上消失，所有帳號都受影響。下次檢查時也不會回來。",
+      "requestDownload": "請伺服器下載 {{title}}",
+      "notStored": "不在伺服器上",
+      "notStoredHint": "伺服器只播放已下載的內容。管理員可以請它下載。",
+      "needsServer": "離線或 Podcast 已關閉：不會連線到伺服器。",
+      "downloading": "正在伺服器上下載…",
+      "downloadFailed": "在伺服器上失敗",
+      "forgetPosition": "從頭播放 {{title}}"
     }
   }
 }

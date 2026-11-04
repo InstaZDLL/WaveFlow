@@ -4485,6 +4485,10 @@
         "stop": {
           "title": "Hepsini nasıl durdurursun",
           "body": "Çevrimdışı mod hepsini durdurur. Podcast'leri kapatmak ise kalıcı olarak durdurur."
+        },
+        "server": {
+          "title": "Bağlı bir sunucu varsa",
+          "body": "Bu profil, podcast'leri açık bir WaveFlow sunucusuna bağlıysa onun kanalları da görünür. Bunlar sunucunuz üzerinden gelir: barındırıcı sizi değil, sunucunuzu görür."
         }
       }
     },
@@ -4602,7 +4606,36 @@
       "episode_gone": "Bu bölüm artık yok.",
       "no_source": "Bu bölümün ne dosyası ne de adresi var: kanala yeniden abone ol.",
       "not_seekable": "Bu barındırıcı bölüm içinde ilerleyip gerilemene izin vermiyor.",
-      "write_failed": "Dosya diske yazılamadı."
+      "write_failed": "Dosya diske yazılamadı.",
+      "not_stored": "Sunucuda bu bölüm yok: önce indirmesi gerekir.",
+      "server_unreachable": "Sunucu yanıt vermiyor.",
+      "server_signed_out": "Bu sunucuda artık oturumunuz açık değil.",
+      "server_refused": "Sunucu reddetti ya da bu öğeyi artık tanımıyor.",
+      "server_conflict": "Sunucu bu akışı zaten izliyor ya da daha fazlasını izleyemiyor.",
+      "destination_refused": "Sunucunun bu adrese erişme izni yok."
+    },
+    "server": {
+      "title": "Sunucunuzda",
+      "chip": "Sunucu",
+      "refresh": "Sunucuda denetle",
+      "refreshAsked": "Sunucu akışlarını denetliyor. Yenilikler birazdan görünür.",
+      "subscribeOpen": "Sunucuda abone ol",
+      "subscribeLabel": "Sunucuda bir akışa abone ol",
+      "subscribeHint": "Sunucu, akışı eklemeden önce okur. Abonelik bu sunucudaki tüm hesaplar için geçerlidir.",
+      "unsubscribe": "Sunucudan kaldır",
+      "unsubscribeTitle": "{{title}} sunucudan kaldırılsın mı?",
+      "unsubscribeBody": "Kanal, bölümleri ve dosyaları, tüm hesaplar için sunucudan kaldırılır.",
+      "unsubscribeConfirm": "Kaldır",
+      "deleteEpisode": "{{title}} sunucudan kaldır",
+      "deleteEpisodeTitle": "Bu bölüm sunucudan kaldırılsın mı?",
+      "deleteEpisodeBody": "“{{title}}” ve dosyası, tüm hesaplar için sunucudan kaldırılır. Bir sonraki denetimde geri gelmez.",
+      "requestDownload": "Sunucudan {{title}} bölümünü indirmesini iste",
+      "notStored": "Sunucuda yok",
+      "notStoredHint": "Sunucu yalnızca indirdiklerini oynatır. Bir yönetici bunu isteyebilir.",
+      "needsServer": "Çevrimdışı veya podcast'ler kapalı: sunucuya bağlanılmaz.",
+      "downloading": "Sunucuda indiriliyor…",
+      "downloadFailed": "Sunucuda başarısız",
+      "forgetPosition": "{{title}} bölümünü baştan başlat"
     }
   }
 }

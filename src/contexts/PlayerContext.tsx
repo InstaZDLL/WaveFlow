@@ -135,6 +135,9 @@ function radioMetadataToTrack(payload: RadioMetadata): Track {
     ...(payload.podcast_episode_id != null
       ? { podcast_episode_id: payload.podcast_episode_id }
       : {}),
+    ...(payload.podcast_server_episode_id != null
+      ? { podcast_server_episode_id: payload.podcast_server_episode_id }
+      : {}),
   };
 }
 

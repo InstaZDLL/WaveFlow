@@ -259,6 +259,7 @@ fn emit_now_playing(station: &Station, raw: Option<&str>) {
             is_podcast: false,
             podcast_episode_id: None,
             podcast_channel_id: None,
+            podcast_server_episode_id: None,
         },
     );
 }

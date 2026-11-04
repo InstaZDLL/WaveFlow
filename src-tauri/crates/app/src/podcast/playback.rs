@@ -1,6 +1,8 @@
 //! An episode playing: its session, where its audio comes from, its position.
 //!
-//! An episode is not a track. It plays under a negative id through a
+//! An episode is not a track. Most are the profile's own rows; one of a bound server's
+//! channel is the same session with another [`EpisodeHome`], whose requests and position
+//! are `super::server`'s. It plays under a negative id through a
 //! [`DetachedSession`], the queue in memory the remote queue and the files played
 //! without importing them use, so the ordering rules of #622 hold for it without a
 //! copy of them. Nothing here writes a `play_event`, and the decoder sends nothing
@@ -70,8 +72,8 @@ pub(crate) const SOURCE_TYPE: &str = "podcast";
 /// reaches every logger that prints a command.
 #[derive(Clone, PartialEq)]
 pub struct EpisodeLoad {
-    pub episode_id: i64,
-    pub channel_id: i64,
+    /// Whose row it is, and so where its position goes.
+    pub home: EpisodeHome,
     /// Whose database the position goes into, whatever is active by then.
     pub profile_id: i64,
     /// The negative sentinel it plays under.
@@ -91,9 +93,50 @@ impl std::fmt::Debug for EpisodeLoad {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "EpisodeLoad {{ episode_id: {}, track_id: {}, start_ms: {} }}",
-            self.episode_id, self.track_id, self.start_ms
+            "EpisodeLoad {{ home: {:?}, track_id: {}, start_ms: {} }}",
+            self.home, self.track_id, self.start_ms
         )
+    }
+}
+
+/// Whose an episode is. Its `Debug` holds no address.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum EpisodeHome {
+    /// A row of this profile.
+    Local { episode_id: i64, channel_id: i64 },
+    /// An id on the server the profile was bound to when it started.
+    #[cfg(feature = "sync_v2")]
+    Server(Box<super::server::ServerEpisodeRef>),
+}
+
+impl EpisodeHome {
+    /// Whether this is the episode the player's metadata names.
+    fn is_named_by(&self, metadata: &crate::audio::events::RadioMetadataPayload) -> bool {
+        match self {
+            Self::Local { episode_id, .. } => metadata.podcast_episode_id == Some(*episode_id),
+            #[cfg(feature = "sync_v2")]
+            Self::Server(place) => {
+                metadata.podcast_server_episode_id.as_deref() == Some(place.episode_id.as_str())
+            }
+        }
+    }
+
+    /// Its row in `podcast_episode`, when it has one.
+    fn local_episode(&self) -> Option<i64> {
+        match self {
+            Self::Local { episode_id, .. } => Some(*episode_id),
+            #[cfg(feature = "sync_v2")]
+            Self::Server(_) => None,
+        }
+    }
+
+    /// Whether this episode is in that row of `podcast_channel`.
+    pub(crate) fn is_of_channel(&self, id: i64) -> bool {
+        match self {
+            Self::Local { channel_id, .. } => *channel_id == id,
+            #[cfg(feature = "sync_v2")]
+            Self::Server(_) => false,
+        }
     }
 }
 
@@ -107,13 +150,31 @@ pub enum EpisodeSource {
         /// The type the feed declared, for the probe when the host says nothing.
         declared_type: Option<String>,
     },
+    /// A bound server's stream. Its address is a ticket, minted when it is opened and
+    /// so held nowhere here: this outlives one, and is printed.
+    #[cfg(feature = "sync_v2")]
+    Server {
+        /// The type the server names, for the probe when its answer says nothing.
+        declared_type: Option<String>,
+    },
+}
+
+impl EpisodeSource {
+    /// Whether playing from this contacts anybody, so the switch stops it.
+    fn makes_requests(&self) -> bool {
+        match self {
+            Self::File(_) => false,
+            Self::Stream { .. } => true,
+            #[cfg(feature = "sync_v2")]
+            Self::Server { .. } => true,
+        }
+    }
 }
 
 /// One episode of the queue. Its row is read again when it plays.
 #[derive(Debug, Clone)]
 pub struct EpisodeEntry {
-    pub episode_id: i64,
-    pub channel_id: i64,
+    pub home: EpisodeHome,
     pub profile_id: i64,
     pub title: String,
     pub channel: String,
@@ -126,9 +187,24 @@ pub type PodcastPlayback = DetachedSession<EpisodeEntry>;
 /// Wakes [`watch`] when a session starts.
 static SESSION_STARTED: Notify = Notify::const_new();
 
+/// A session was just installed: [`watch`] has a position to look after.
+pub(crate) fn notify_session_started() {
+    SESSION_STARTED.notify_one();
+}
+
+/// Whether the episode under the cursor is a server's, whose steps are
+/// `super::server`'s.
+#[cfg(feature = "sync_v2")]
+fn is_server_session(state: &AppState) -> bool {
+    state
+        .podcast_playback
+        .current()
+        .is_some_and(|entry| matches!(entry.home, EpisodeHome::Server(_)))
+}
+
 /// What the player shows while an episode's channel has no picture on disk, or
 /// the feed names no title.
-fn display_title(title: &str, channel: &str) -> String {
+pub(crate) fn display_title(title: &str, channel: &str) -> String {
     if title.trim().is_empty() {
         channel.to_owned()
     } else {
@@ -221,8 +297,10 @@ fn queue_of(
         .into_iter()
         .filter(|row| row.id == current || row.downloaded || (can_stream && row.has_enclosure))
         .map(|row| EpisodeEntry {
-            episode_id: row.id,
-            channel_id: row.channel_id,
+            home: EpisodeHome::Local {
+                episode_id: row.id,
+                channel_id: row.channel_id,
+            },
             profile_id,
             title: display_title(&row.title, channel),
             channel: channel.to_owned(),
@@ -231,7 +309,9 @@ fn queue_of(
         .collect();
     let index = entries
         .iter()
-        .position(|entry| entry.episode_id == current)
+        .position(|entry| {
+            matches!(entry.home, EpisodeHome::Local { episode_id, .. } if episode_id == current)
+        })
         .unwrap_or(0);
     (entries, index)
 }
@@ -266,7 +346,7 @@ pub(crate) async fn play_episode(app: &AppHandle, episode_id: i64) -> AppResult<
     state.remote_playback.clear();
     state.external_playback.clear();
     let revision = state.podcast_playback.set(DetachedQueue { entries, index });
-    SESSION_STARTED.notify_one();
+    notify_session_started();
     let played = send_load(app, &pool, profile_id, episode, source, intent).await;
     if played.is_err() {
         let _ = engine.send(AudioCmd::Stop);
@@ -284,11 +364,14 @@ async fn play_current(app: &AppHandle, intent: LoadIntent) -> AppResult<()> {
     let Some(entry) = state.podcast_playback.current() else {
         return Ok(());
     };
+    let Some(episode_id) = entry.home.local_episode() else {
+        return Ok(());
+    };
     let pool = state
         .require_profile_pool_for(Some(entry.profile_id))
         .await
         .map_err(|_| PodcastError::ProfileChanged)?;
-    let episode = store::playable(&pool, entry.episode_id)
+    let episode = store::playable(&pool, episode_id)
         .await?
         .ok_or(PodcastError::EpisodeGone)?;
     let enabled = store::is_enabled(&pool).await?;
@@ -322,8 +405,10 @@ async fn send_load(
         .as_deref()
         .and_then(|hash| existing_path(&state.paths.metadata_artwork_dir, hash));
     let load = EpisodeLoad {
-        episode_id: episode.id,
-        channel_id: episode.channel_id,
+        home: EpisodeHome::Local {
+            episode_id: episode.id,
+            channel_id: episode.channel_id,
+        },
         profile_id,
         track_id: crate::commands::player::next_radio_track_id(),
         start_ms,
@@ -345,7 +430,7 @@ async fn send_load(
 /// The OS media overlay and the tray say what plays. Discord's card is cleared
 /// rather than updated: it is not a track, and what somebody listens to in a
 /// podcast is not announced for them.
-fn announce(app: &AppHandle, load: &EpisodeLoad) {
+pub(crate) fn announce(app: &AppHandle, load: &EpisodeLoad) {
     if let Some(controls) = app.try_state::<crate::media_controls::MediaControlsHandle>() {
         controls.update_metadata(
             load.title.clone(),
@@ -379,6 +464,10 @@ pub(crate) enum Step {
 /// claimed where the step started (a key press, the end of an episode).
 pub(crate) async fn advance(app: &AppHandle, step: Step, intent: LoadIntent) -> AppResult<bool> {
     let state = app.state::<AppState>();
+    #[cfg(feature = "sync_v2")]
+    if is_server_session(&state) {
+        return super::server::advance(app, step, intent).await;
+    }
     let repeat = match state.require_profile_pool().await {
         Ok(pool) => crate::queue::read_repeat_mode(&pool).await,
         Err(_) => RepeatMode::Off,
@@ -406,7 +495,10 @@ pub(crate) async fn advance(app: &AppHandle, step: Step, intent: LoadIntent) -> 
             let Ok(pool) = state.require_profile_pool_for(Some(entry.profile_id)).await else {
                 break;
             };
-            if !store::nothing_to_hear(&pool, entry.episode_id)
+            let Some(episode_id) = entry.home.local_episode() else {
+                break;
+            };
+            if !store::nothing_to_hear(&pool, episode_id)
                 .await
                 .unwrap_or(false)
             {
@@ -429,6 +521,10 @@ pub(crate) async fn advance(app: &AppHandle, step: Step, intent: LoadIntent) -> 
 
 /// Moves the cursor to `index` and plays it: the queue panel's click.
 pub(crate) async fn jump_to(app: &AppHandle, index: usize) -> AppResult<()> {
+    #[cfg(feature = "sync_v2")]
+    if is_server_session(&app.state::<AppState>()) {
+        return super::server::jump_to(app, index).await;
+    }
     let engine = app.state::<Arc<AudioEngine>>();
     let intent = engine.next_load_intent();
     let _publish = engine.lock_publish().await;
@@ -452,6 +548,11 @@ pub(crate) async fn resume(app: &AppHandle, intent: LoadIntent) -> AppResult<boo
     let state = app.state::<AppState>();
     if !state.podcast_playback.is_active() {
         return Ok(false);
+    }
+    #[cfg(feature = "sync_v2")]
+    if is_server_session(&state) {
+        super::server::resume(app, intent).await?;
+        return Ok(true);
     }
     let engine = app.state::<Arc<AudioEngine>>();
     let _publish = engine.lock_publish().await;
@@ -477,17 +578,34 @@ pub(crate) fn counts_as_played(position_ms: u64, duration_ms: u64) -> bool {
 ///
 /// Parks behind a scan like any background writer, which a stopped player has time
 /// for and a playing one does not need: the next write says the same thing later.
-#[allow(clippy::too_many_arguments)]
 pub(crate) async fn record_position(
     app: &AppHandle,
     profile_id: i64,
-    episode_id: i64,
-    channel_id: i64,
+    home: &EpisodeHome,
     position_ms: u64,
     duration_ms: u64,
     finished: bool,
     announce_it: bool,
 ) {
+    let (episode_id, channel_id) = match home {
+        EpisodeHome::Local {
+            episode_id,
+            channel_id,
+        } => (*episode_id, *channel_id),
+        #[cfg(feature = "sync_v2")]
+        EpisodeHome::Server(place) => {
+            super::server::record_position(
+                app,
+                place,
+                position_ms,
+                duration_ms,
+                finished,
+                announce_it,
+            )
+            .await;
+            return;
+        }
+    };
     let state = app.state::<AppState>();
     // That profile's, or nobody's: this may land after a switch, and the id means
     // another episode there.
@@ -511,12 +629,10 @@ pub(crate) async fn record_position(
 }
 
 /// The decoder is done with an episode: stopped, replaced, ended or failed.
-#[allow(clippy::too_many_arguments)]
 pub(crate) async fn record_left(
     app: &AppHandle,
     profile_id: i64,
-    episode_id: i64,
-    channel_id: i64,
+    home: &EpisodeHome,
     position_ms: u64,
     duration_ms: u64,
     finished: bool,
@@ -524,8 +640,7 @@ pub(crate) async fn record_left(
     record_position(
         app,
         profile_id,
-        episode_id,
-        channel_id,
+        home,
         position_ms,
         duration_ms,
         finished,
@@ -545,27 +660,38 @@ pub(crate) enum SaveReason {
 
 /// Decides, from what the engine shows, when a position is due. Pure, so the rule
 /// can be tested without one.
-#[derive(Debug, Default)]
-pub(crate) struct SaveClock {
-    episode_id: Option<i64>,
+#[derive(Debug)]
+pub(crate) struct SaveClock<E> {
+    episode: Option<E>,
     last_saved: Option<Instant>,
     was_paused: bool,
     seek_generation: u64,
 }
 
-impl SaveClock {
+impl<E> Default for SaveClock<E> {
+    fn default() -> Self {
+        Self {
+            episode: None,
+            last_saved: None,
+            was_paused: false,
+            seek_generation: 0,
+        }
+    }
+}
+
+impl<E: PartialEq> SaveClock<E> {
     pub(crate) fn due(
         &mut self,
-        episode_id: i64,
+        episode: E,
         state: PlayerState,
         seek_generation: u64,
         now: Instant,
     ) -> Option<SaveReason> {
-        if self.episode_id != Some(episode_id) {
+        if self.episode.as_ref() != Some(&episode) {
             // An episode just opened is where its row says. The seek of its own
             // resume happened before this looked.
             *self = Self {
-                episode_id: Some(episode_id),
+                episode: Some(episode),
                 last_saved: Some(now),
                 was_paused: state == PlayerState::Paused,
                 seek_generation,
@@ -617,7 +743,7 @@ async fn watch(app: AppHandle) {
         // this be another episode's clock.
         let position_ms = shared.current_position_ms();
         let Some(metadata) = crate::audio::events::last_radio_metadata().filter(|metadata| {
-            metadata.podcast_episode_id == Some(entry.episode_id)
+            entry.home.is_named_by(metadata)
                 && metadata.track_id
                     == shared
                         .current_track_id
@@ -626,7 +752,7 @@ async fn watch(app: AppHandle) {
             continue;
         };
         let reason = clock.due(
-            entry.episode_id,
+            entry.home.clone(),
             shared.state(),
             shared
                 .seek_generation
@@ -639,8 +765,7 @@ async fn watch(app: AppHandle) {
         record_position(
             &app,
             entry.profile_id,
-            entry.episode_id,
-            entry.channel_id,
+            &entry.home,
             position_ms,
             metadata.duration_ms.unwrap_or(0).max(0) as u64,
             false,
@@ -683,8 +808,7 @@ async fn stop_stream_if_switched_off(app: &AppHandle) {
     let streaming = engine.shared().last_load().is_some_and(|load| {
         matches!(
             load.source,
-            LastLoadSource::Episode(ref episode)
-                if matches!(episode.source, EpisodeSource::Stream { .. })
+            LastLoadSource::Episode(ref episode) if episode.source.makes_requests()
         )
     });
     if streaming {
@@ -759,7 +883,11 @@ pub(crate) fn queue_payload(state: &AppState) -> Option<PodcastQueuePayload> {
         entries: entries
             .into_iter()
             .map(|entry| PodcastQueueEntry {
-                id: entry.episode_id.to_string(),
+                id: match &entry.home {
+                    EpisodeHome::Local { episode_id, .. } => episode_id.to_string(),
+                    #[cfg(feature = "sync_v2")]
+                    EpisodeHome::Server(place) => place.episode_id.clone(),
+                },
                 title: entry.title,
                 artist: Some(entry.channel),
                 artist_id: None,
@@ -789,7 +917,7 @@ pub(crate) async fn set_channel_speed(
     if state
         .podcast_playback
         .current()
-        .is_some_and(|entry| entry.channel_id == channel_id)
+        .is_some_and(|entry| entry.home.is_of_channel(channel_id))
     {
         app.state::<Arc<AudioEngine>>()
             .send(AudioCmd::SetEpisodeSpeed(channel_speed(speed)))?;

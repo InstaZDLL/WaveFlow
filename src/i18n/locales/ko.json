@@ -4480,6 +4480,10 @@
         "stop": {
           "title": "모두 멈추는 방법",
           "body": "오프라인 모드를 켜면 모두 멈춥니다. 팟캐스트를 끄면 완전히 멈춥니다."
+        },
+        "server": {
+          "title": "서버가 연결되어 있다면",
+          "body": "이 프로필이 팟캐스트를 켠 WaveFlow 서버에 연결되어 있으면 그 채널도 표시됩니다. 내 서버를 거치므로 호스트에는 내가 아니라 서버가 보입니다."
         }
       }
     },
@@ -4597,7 +4601,36 @@
       "episode_gone": "이 에피소드는 더 이상 없습니다.",
       "no_source": "이 에피소드에는 파일도 주소도 없습니다. 채널을 다시 구독하세요.",
       "not_seekable": "이 호스트에서는 에피소드 안에서 위치를 옮길 수 없습니다.",
-      "write_failed": "파일을 디스크에 쓸 수 없습니다."
+      "write_failed": "파일을 디스크에 쓸 수 없습니다.",
+      "not_stored": "서버에 이 에피소드가 없습니다. 서버가 먼저 다운로드해야 합니다.",
+      "server_unreachable": "서버가 응답하지 않습니다.",
+      "server_signed_out": "이 서버에서 로그아웃된 상태입니다.",
+      "server_refused": "서버가 거부했거나 이 항목을 더 이상 알지 못합니다.",
+      "server_conflict": "서버가 이미 이 피드를 구독 중이거나 더 구독할 수 없습니다.",
+      "destination_refused": "서버가 이 주소에 접근할 수 없습니다."
+    },
+    "server": {
+      "title": "내 서버",
+      "chip": "서버",
+      "refresh": "서버에서 확인",
+      "refreshAsked": "서버가 피드를 확인하고 있습니다. 새 항목이 곧 표시됩니다.",
+      "subscribeOpen": "서버에서 구독",
+      "subscribeLabel": "서버에서 피드 구독",
+      "subscribeHint": "서버는 피드를 읽은 뒤에 추가합니다. 구독은 이 서버의 모든 계정에 적용됩니다.",
+      "unsubscribe": "서버에서 삭제",
+      "unsubscribeTitle": "{{title}}을(를) 서버에서 삭제할까요?",
+      "unsubscribeBody": "채널과 에피소드, 해당 파일이 모든 계정에서 서버에서 사라집니다.",
+      "unsubscribeConfirm": "삭제",
+      "deleteEpisode": "서버에서 {{title}} 삭제",
+      "deleteEpisodeTitle": "이 에피소드를 서버에서 삭제할까요?",
+      "deleteEpisodeBody": "“{{title}}”과(와) 해당 파일이 모든 계정에서 서버에서 사라집니다. 다음 확인 때도 돌아오지 않습니다.",
+      "requestDownload": "서버에 {{title}} 다운로드 요청",
+      "notStored": "서버에 없음",
+      "notStoredHint": "서버는 다운로드한 것만 재생합니다. 관리자가 요청할 수 있습니다.",
+      "needsServer": "오프라인이거나 팟캐스트가 꺼져 있어 서버에 연결하지 않습니다.",
+      "downloading": "서버에서 다운로드 중…",
+      "downloadFailed": "서버에서 실패",
+      "forgetPosition": "{{title}} 처음부터 재생"
     }
   }
 }

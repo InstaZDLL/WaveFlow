@@ -4622,6 +4622,10 @@
         "stop": {
           "title": "Come fermare tutto",
           "body": "La modalità offline ferma tutto. Disattivare i podcast lo ferma per sempre."
+        },
+        "server": {
+          "title": "Se è collegato un server",
+          "body": "Se questo profilo è collegato a un server WaveFlow con i podcast attivi, compaiono anche i suoi canali. Passano dal tuo server WaveFlow: il server del podcast vede lui, non te."
         }
       }
     },
@@ -4739,7 +4743,36 @@
       "episode_gone": "Questo episodio non esiste più.",
       "no_source": "Questo episodio non ha né un file né un indirizzo: abbonati di nuovo al canale.",
       "not_seekable": "Questo host non permette di spostarsi nell'episodio.",
-      "write_failed": "Impossibile scrivere il file sul disco."
+      "write_failed": "Impossibile scrivere il file sul disco.",
+      "not_stored": "Il server non conserva questo episodio: deve prima scaricarlo.",
+      "server_unreachable": "Il server non risponde.",
+      "server_signed_out": "Non hai più effettuato l'accesso a questo server.",
+      "server_refused": "Il server ha rifiutato, o non conosce più questo elemento.",
+      "server_conflict": "Il server segue già questo feed, o non può seguirne altri.",
+      "destination_refused": "Il server non è autorizzato a raggiungere questo indirizzo."
+    },
+    "server": {
+      "title": "Sul tuo server",
+      "chip": "Server",
+      "refresh": "Controlla sul server",
+      "refreshAsked": "Il server sta controllando i suoi feed. Le novità arriveranno a breve.",
+      "subscribeOpen": "Iscriviti sul server",
+      "subscribeLabel": "Iscriviti a un feed sul server",
+      "subscribeHint": "Il server legge il feed prima di aggiungerlo. L'iscrizione vale per tutti gli account di questo server.",
+      "unsubscribe": "Rimuovi dal server",
+      "unsubscribeTitle": "Rimuovere {{title}} dal server?",
+      "unsubscribeBody": "Il canale, i suoi episodi e i relativi file spariscono dal server, per tutti i suoi account.",
+      "unsubscribeConfirm": "Rimuovi",
+      "deleteEpisode": "Rimuovi {{title}} dal server",
+      "deleteEpisodeTitle": "Rimuovere questo episodio dal server?",
+      "deleteEpisodeBody": "«{{title}}» e il suo file spariscono dal server, per tutti i suoi account. Non tornerà al prossimo controllo.",
+      "requestDownload": "Chiedi al server di scaricare {{title}}",
+      "notStored": "Non sul server",
+      "notStoredHint": "Il server riproduce solo ciò che ha scaricato. Un amministratore può chiederglielo.",
+      "needsServer": "Offline o podcast disattivati: il server non viene contattato.",
+      "downloading": "Download sul server…",
+      "downloadFailed": "Errore sul server",
+      "forgetPosition": "Riproduci {{title}} dall'inizio"
     }
   }
 }

@@ -3,11 +3,15 @@ import { useTranslation } from "react-i18next";
 import { Loader2, Plus } from "lucide-react";
 
 import { podcastFailureMessage } from "../../../lib/podcastWords";
-import { podcastErrorWord, podcastSubscribe } from "../../../lib/tauri/podcast";
+import { podcastErrorWord } from "../../../lib/tauri/podcast";
 
-interface PodcastSubscribeFormProps {
-  onSubscribed: (channelId: number) => void;
+interface PodcastSubscribeFormProps<Id> {
+  onSubscribed: (channelId: Id) => void;
+  /** Who is subscribed: this profile unless told otherwise. */
+  subscribe: (feedUrl: string) => Promise<{ id: Id }>;
   disabled?: boolean;
+  /** The field's name, when the form's place has more to say. */
+  label?: string;
   /** The line under the field, when the form's place has more to say. */
   hint?: string;
 }
@@ -17,11 +21,13 @@ interface PodcastSubscribeFormProps {
  * so a typo leaves nothing behind. Subscribing again to the address of a channel
  * a restored profile holds gives it its addresses back and keeps every position.
  */
-export function PodcastSubscribeForm({
+export function PodcastSubscribeForm<Id = number>({
   onSubscribed,
+  subscribe,
   disabled = false,
+  label,
   hint,
-}: PodcastSubscribeFormProps) {
+}: PodcastSubscribeFormProps<Id>) {
   const { t } = useTranslation();
   const fieldId = useId();
   const errorId = useId();
@@ -36,7 +42,7 @@ export function PodcastSubscribeForm({
     setBusy(true);
     setError(null);
     try {
-      const channel = await podcastSubscribe(typed);
+      const channel = await subscribe(typed);
       setAddress("");
       onSubscribed(channel.id);
     } catch (err) {
@@ -56,7 +62,7 @@ export function PodcastSubscribeForm({
       onSubmit={(event) => void submit(event)}
     >
       <label className="pc-label" htmlFor={fieldId}>
-        {t("podcasts.subscribe.label")}
+        {label ?? t("podcasts.subscribe.label")}
       </label>
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <input

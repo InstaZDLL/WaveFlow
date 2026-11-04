@@ -522,12 +522,20 @@ pub async fn player_set_speed(
         if expected_profile_id.is_some_and(|expected| expected != entry.profile_id) {
             return Err(AppError::Other("podcast: profile_changed".into()));
         }
-        return crate::podcast::playback::set_channel_speed(
-            &app,
-            entry.channel_id,
-            Some(f64::from(clamped)),
-        )
-        .await;
+        return match &entry.home {
+            crate::podcast::playback::EpisodeHome::Local { channel_id, .. } => {
+                crate::podcast::playback::set_channel_speed(
+                    &app,
+                    *channel_id,
+                    Some(f64::from(clamped)),
+                )
+                .await
+            }
+            #[cfg(feature = "sync_v2")]
+            crate::podcast::playback::EpisodeHome::Server(place) => {
+                crate::podcast::server::set_channel_speed(&app, place, clamped)
+            }
+        };
     }
     save_then_apply(
         &state.profile,

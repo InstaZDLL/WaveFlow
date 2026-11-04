@@ -99,8 +99,7 @@ pub enum AnalyticsMsg {
     /// follows finds the row already played. Holds no address, and is printed.
     EpisodeLeft {
         profile_id: i64,
-        episode_id: i64,
-        channel_id: i64,
+        home: crate::podcast::playback::EpisodeHome,
         position_ms: u64,
         duration_ms: u64,
         finished: bool,
@@ -149,8 +148,7 @@ async fn handle_message(
 
     if let AnalyticsMsg::EpisodeLeft {
         profile_id,
-        episode_id,
-        channel_id,
+        home,
         position_ms,
         duration_ms,
         finished,
@@ -159,8 +157,7 @@ async fn handle_message(
         crate::podcast::playback::record_left(
             app,
             *profile_id,
-            *episode_id,
-            *channel_id,
+            home,
             *position_ms,
             *duration_ms,
             *finished,
