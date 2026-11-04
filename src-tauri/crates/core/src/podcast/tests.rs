@@ -579,6 +579,8 @@ fn audio_is_recognised_by_its_bytes() {
     assert_eq!(sniff_audio(b"<html>").map(|f| f.0), None);
     // A page in UTF-16 starts with what looks like a frame sync.
     assert_eq!(sniff_audio(b"\xff\xfe<\0h\0t\0m\0").map(|f| f.0), None);
+    assert_eq!(sniff_audio(b"\xff\xfe{\0\"\0e\0r\0").map(|f| f.0), None);
+    assert_eq!(sniff_audio(b"\xff\xfe\n\0a\0").map(|f| f.0), None);
     assert_eq!(sniff_audio(b"\xfe\xff\0<\0h\0t\0m").map(|f| f.0), None);
     assert_eq!(sniff_audio(b"MZ\x90\0").map(|f| f.0), None);
 }

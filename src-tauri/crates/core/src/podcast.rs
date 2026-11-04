@@ -90,12 +90,15 @@ pub fn sniff_audio(head: &[u8]) -> Option<(&'static str, &'static str)> {
 }
 
 /// An MPEG audio frame header: eleven sync bits, a layer, and none of the values
-/// the format reserves. The last ones matter, because the sync alone also matches
-/// the byte order mark of a page in UTF-16.
+/// the format reserves. `FF FE` is refused whatever follows it: it is a valid frame
+/// on paper, in a layer no podcast uses, and it is how a page in UTF-16 starts.
 fn is_mpeg_frame(head: &[u8]) -> bool {
     let &[0xff, second, third, ..] = head else {
         return false;
     };
+    if second == 0xfe {
+        return false;
+    }
     let version = (second >> 3) & 0b11;
     let layer = (second >> 1) & 0b11;
     let bitrate = third >> 4;
