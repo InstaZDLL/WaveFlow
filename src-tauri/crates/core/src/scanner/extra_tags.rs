@@ -211,15 +211,17 @@ pub struct ConcreteTags {
 /// One parse for both, since this is the scan's hot path. `None` means
 /// could not read, as for [`read_extra_tags`].
 pub fn read_concrete_tags(path: &Path) -> Option<ConcreteTags> {
+    crate::tagio::chapter_nesting::check_file(path).ok()?;
     read_inner(Probe::open(path).ok()?)
 }
 
 /// [`read_concrete_tags`] over any reader, positioned at the start of the file.
 /// `hint` stands in for the extension `Probe::open` would have read.
 pub fn read_concrete_tags_from<R: std::io::Read + std::io::Seek>(
-    reader: R,
+    mut reader: R,
     hint: Option<FileType>,
 ) -> Option<ConcreteTags> {
+    crate::tagio::chapter_nesting::check_reader(&mut reader).ok()?;
     let probe = Probe::new(reader);
     read_inner(match hint {
         Some(hint) => probe.set_file_type(hint),

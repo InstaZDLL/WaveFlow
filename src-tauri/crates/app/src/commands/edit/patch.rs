@@ -455,6 +455,9 @@ pub(crate) fn patch_file(
         return patch_dsf(path, patch);
     }
 
+    // Every read below parses the tag, some of them inside the rewrite.
+    waveflow_core::tagio::chapter_nesting::check_file(path)?;
+
     let file_type = Probe::open(path)?
         .guess_file_type()?
         .file_type()

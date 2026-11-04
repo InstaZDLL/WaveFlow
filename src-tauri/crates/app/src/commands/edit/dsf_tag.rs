@@ -72,6 +72,7 @@ where
                 // leading to no tag at all describes a file with no
                 // metadata, not one whose metadata we failed to read.
                 // There is nothing there to lose, so it starts fresh.
+                waveflow_core::tagio::chapter_nesting::check_reader(&mut *handle)?;
                 match id3::Tag::read_from2(&mut *handle) {
                     Ok(tag) => Some(tag),
                     Err(err) if matches!(err.kind, id3::ErrorKind::NoTag) => None,

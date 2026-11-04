@@ -11,6 +11,7 @@
 
 pub mod aac;
 pub mod ape;
+mod chapter_guard;
 pub mod dsd;
 #[cfg(feature = "sqlite")]
 pub mod format_filter;
@@ -28,6 +29,7 @@ pub mod wavpack;
 use std::sync::OnceLock;
 
 use symphonia::core::codecs::registry::CodecRegistry;
+use symphonia::core::common::Tier;
 use symphonia::core::formats::probe::Probe;
 
 /// The format probe this app opens streams with: everything symphonia's
@@ -37,6 +39,9 @@ use symphonia::core::formats::probe::Probe;
 /// are three places that open a stream — playback, the analysis pass and the
 /// scanner's probe — and a reader only one of them knows about is the
 /// disagreement that puts an unplayable track in the library.
+///
+/// The two [`chapter_guard`] readers sit at the preferred tier so that symphonia's
+/// own ID3v2 parser only ever sees a tag that has been checked.
 pub fn probe() -> &'static Probe {
     static PROBE: OnceLock<Probe> = OnceLock::new();
     PROBE.get_or_init(|| {
@@ -44,6 +49,8 @@ pub fn probe() -> &'static Probe {
         symphonia::default::register_enabled_formats(&mut probe);
         probe.register_format::<wavpack::WavPackReader<'_>>();
         probe.register_format::<ape::ApeReader<'_>>();
+        probe.register_metadata_at_tier::<chapter_guard::GuardedId3v2Reader<'_>>(Tier::Preferred);
+        probe.register_format_at_tier::<chapter_guard::GuardedAiffReader<'_>>(Tier::Preferred);
         probe
     })
 }

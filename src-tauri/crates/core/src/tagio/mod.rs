@@ -15,6 +15,7 @@ use std::path::Path;
 use std::time::Duration;
 
 mod ape;
+pub mod chapter_nesting;
 mod dsf;
 mod flac;
 mod id3v2;

@@ -1802,3 +1802,125 @@ async fn a_track_on_a_share_is_never_a_candidate() {
     assert_eq!(library.track_count().await, 2);
     assert_eq!(library.track_path(77).await, "wfnet://0f0f/music/a.flac");
 }
+
+// ─── A tag no parser survives ───────────────────────────────────────────
+
+/// An ID3v2.4 tag holding `depth` chapter frames, each inside the last. Sixty-four
+/// of them are about two kilobytes, and end a process on the 2 MiB stack of a
+/// blocking task.
+fn nested_chapters(depth: usize) -> Vec<u8> {
+    fn synchsafe(value: usize) -> [u8; 4] {
+        [
+            ((value >> 21) & 0x7f) as u8,
+            ((value >> 14) & 0x7f) as u8,
+            ((value >> 7) & 0x7f) as u8,
+            (value & 0x7f) as u8,
+        ]
+    }
+    let mut frames = Vec::new();
+    for _ in 0..depth {
+        let mut body = b"c\0".to_vec();
+        body.extend_from_slice(&[0; 8]);
+        body.extend_from_slice(&[0xff; 8]);
+        body.extend_from_slice(&frames);
+        frames = b"CHAP".to_vec();
+        frames.extend_from_slice(&synchsafe(body.len()));
+        frames.extend_from_slice(&[0, 0]);
+        frames.extend_from_slice(&body);
+    }
+    let mut tag = b"ID3\x04\0\0".to_vec();
+    tag.extend_from_slice(&synchsafe(frames.len()));
+    tag.extend_from_slice(&frames);
+    tag
+}
+
+fn hostile_mp3(path: &Path) -> Vec<u8> {
+    let audio = std::fs::read(fixture("silence.mp3")).unwrap();
+    let bytes = [nested_chapters(64), audio].concat();
+    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    std::fs::write(path, &bytes).unwrap();
+    bytes
+}
+
+/// lofty, then symphonia as the last resort, then the audio that is still fine in a
+/// WAV: not one of them gets to read the tag, and the files around it are read.
+#[tokio::test]
+async fn a_tag_that_nests_chapters_stays_out_and_the_scan_goes_on() {
+    let library = Library::new().await;
+    library.flac("a.flac", &[("TITLE", "a")]);
+    hostile_mp3(&library.path("b.mp3"));
+    let wav = {
+        let mut body = b"WAVEfmt ".to_vec();
+        body.extend_from_slice(&16_u32.to_le_bytes());
+        body.extend_from_slice(&[1, 0, 1, 0]);
+        body.extend_from_slice(&8000_u32.to_le_bytes());
+        body.extend_from_slice(&16_000_u32.to_le_bytes());
+        body.extend_from_slice(&[2, 0, 16, 0]);
+        body.extend_from_slice(b"data");
+        body.extend_from_slice(&1600_u32.to_le_bytes());
+        body.extend_from_slice(&[0; 1600]);
+        let tag = nested_chapters(64);
+        body.extend_from_slice(b"id3 ");
+        body.extend_from_slice(&(tag.len() as u32).to_le_bytes());
+        body.extend_from_slice(&tag);
+        let mut riff = b"RIFF".to_vec();
+        riff.extend_from_slice(&(body.len() as u32).to_le_bytes());
+        riff.extend_from_slice(&body);
+        riff
+    };
+    std::fs::write(library.path("c.wav"), wav).unwrap();
+    library.flac("d.flac", &[("TITLE", "d")]);
+
+    let summary = library.scan().await;
+    assert_eq!(summary.errors, 2, "both are reported");
+    assert_eq!(library.track_count().await, 2, "and the others are read");
+
+    // The next scan meets the same files, and neither dies nor changes its mind.
+    let again = library.scan().await;
+    assert_eq!(again.errors, 2);
+    assert_eq!(library.track_count().await, 2);
+}
+
+/// A DSF's tag goes through another parser, with the same recursion. Its audio has
+/// nothing wrong with it, and its tag was only ever optional.
+#[tokio::test]
+async fn a_dsf_tag_that_nests_chapters_is_ignored_and_the_file_listed() {
+    let library = Library::new().await;
+    let mut bytes = dsf_bytes();
+    let offset = bytes.len() as u64;
+    bytes.extend_from_slice(&nested_chapters(2_000));
+    let total = bytes.len() as u64;
+    bytes[12..20].copy_from_slice(&total.to_le_bytes());
+    bytes[20..28].copy_from_slice(&offset.to_le_bytes());
+    let path = library.path("a.dsf");
+    std::fs::write(&path, &bytes).unwrap();
+
+    let summary = library.scan().await;
+    assert_eq!(summary.errors, 0);
+    assert_eq!(library.track_count().await, 1);
+
+    // But a write replaces the tag it read, so one it cannot read stops the write.
+    let edit = TrackEdit {
+        title: Some("x".to_string()),
+        ..Default::default()
+    };
+    assert!(patch_file(&path, &TagPatch::Fields(&edit)).is_err());
+    assert_eq!(std::fs::read(&path).unwrap(), bytes, "not one byte moved");
+}
+
+/// Every edit goes through `patch_file`, which parses the tag again inside the
+/// rewrite. Refused before it starts, the file stays as it was.
+#[test]
+fn an_edit_is_refused_on_a_tag_that_nests_chapters() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("a.mp3");
+    let bytes = hostile_mp3(&path);
+    let edit = TrackEdit {
+        title: Some("x".to_string()),
+        ..Default::default()
+    };
+    let refused = patch_file(&path, &TagPatch::Fields(&edit)).expect_err("refused");
+    assert!(refused.to_string().contains("chapter"), "{refused}");
+    assert!(patch_file(&path, &TagPatch::Rating(Some(204))).is_err());
+    assert_eq!(std::fs::read(&path).unwrap(), bytes, "not one byte moved");
+}

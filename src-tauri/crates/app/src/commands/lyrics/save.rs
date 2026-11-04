@@ -468,6 +468,8 @@ fn stamp_synced_lyrics(
 
     let key = SYNCED_LYRICS_KEYS[0]; // canonical "SYNCEDLYRICS"
 
+    waveflow_core::tagio::chapter_nesting::check_file(path)?;
+
     let file_type = match container {
         // DSF carries a plain ID3v2 tag; it is only kept somewhere else
         // in the file, and `with_dsf_tag` already writes it the safe

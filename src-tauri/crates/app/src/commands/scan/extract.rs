@@ -360,6 +360,9 @@ pub(super) fn extract_file(
     let tagged = match waveflow_core::scanner::extract::read_tagged_file(path) {
         Ok(tagged) => tagged,
         Err(err) => {
+            // Not over a tag it refuses to parse: that file stays out of the library,
+            // counted in the scan's errors, wherever its audio could still be played.
+            waveflow_core::tagio::chapter_nesting::check_file(path).map_err(|e| e.to_string())?;
             let stream = waveflow_core::scanner::extract::probe_playable_stream(path)
                 .ok_or_else(|| format!("lofty: {err}"))?;
             tracing::warn!(
@@ -447,6 +450,8 @@ pub(super) fn extract_network_file(
             reader
                 .seek(SeekFrom::Start(0))
                 .map_err(|e| format!("read: {e}"))?;
+            waveflow_core::tagio::chapter_nesting::check_reader(&mut reader)
+                .map_err(|e| e.to_string())?;
             let stream = waveflow_core::scanner::extract::probe_playable_source(
                 Box::new(reader),
                 path.extension().and_then(|e| e.to_str()),

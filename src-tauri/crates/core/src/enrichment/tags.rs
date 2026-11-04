@@ -21,6 +21,7 @@ use crate::metadata::musicbrainz::is_mbid;
 
 /// The release identifier `path`'s tags name, when they name a valid one.
 pub fn release_mbid(path: &Path) -> Option<String> {
+    crate::tagio::chapter_nesting::check_file(path).ok()?;
     // Tags only: the stream properties would cost a header walk the
     // engine has no use for.
     let tagged = Probe::open(path)

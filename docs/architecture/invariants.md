@@ -182,6 +182,18 @@ Containers the scanner indexes but nothing can tag are refused up front with a m
 
 Deep dive: [library § tag editing](../features/library.md#tag-editing).
 
+### A tag is checked before any parser reads it
+
+lofty, symphonia and the `id3` crate each read the frames inside a `CHAP` or `CTOC` with the function that reads the tag, so a chapter inside a chapter recurses once per level. None has a depth limit or an option for one, on the latest release of each (lofty 0.25.5, symphonia 0.6.1, id3 1.17.2). Measured on a 2 MiB stack, the size of a blocking task's: lofty dies at 64 levels in a release build, about two kilobytes of file, the `id3` crate at 128 and symphonia at 2048. A stack overflow ends the process and cannot be caught, and a scan would meet the same file again on the next launch.
+
+- **Before lofty or the `id3` crate**, call [`tagio::chapter_nesting::check_file`](../../src-tauri/crates/core/src/tagio/chapter_nesting.rs) or `check_reader`. [`read_tagged_file`](../../src-tauri/crates/core/src/scanner/extract/mod.rs), `read_tagged_from`, `read_concrete_tags` and `patch_file` already do: a new read should go through one of them, and a parse of its own needs the check.
+- **symphonia is guarded where it reads.** [`audio_format::probe()`](../../src-tauri/crates/core/src/audio_format/mod.rs) holds [`chapter_guard`](../../src-tauri/crates/core/src/audio_format/chapter_guard.rs)'s readers at the preferred tier, ahead of its own ID3v2 reader and of the AIFF reader that parses an `ID3 ` chunk, because a stream has no second look. Another reason never to build a probe of your own.
+- **A refused tag is a refused file.** It is counted in the scan's errors and stays out of the library, even where the last-resort listing of #873 could still play the audio; an edit fails and leaves the file as it was; a stream does not open. A `.dsf` or `.dff` keeps its audio with no tags, as it does for any tag it cannot read, and refuses a write, which would replace the tag it could not read.
+
+The check counts instead of parsing, because a walk that agreed with one parser could be led past what another one reads: lofty stops inside a chapter at a zero and reads what is left as the next frame. The top level of a tag, laid out by its declared lengths, holds at most one link of any chain, so every other link is the name `CHAP` or `CTOC` somewhere else, and at most three of those are allowed. A name in the body of a frame every parser reads to its end is not counted, as long as every frame before it was one too: a chapter titled "CHAPTER 12" is a title. A chapter frame that declares compression is refused without being inflated.
+
+The price of counting: an uppercase "CHAP" written four times into a free-form frame, behind a frame no parser is sure to finish, is refused like the real thing.
+
 ---
 
 ## Audio

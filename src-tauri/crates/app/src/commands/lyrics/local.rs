@@ -340,6 +340,7 @@ fn read_custom_lyrics_tag(
 /// sidecar, so a file the user placed deliberately always beats a
 /// field we are guessing about.
 pub(super) fn read_embedded_lyrics(path: &Path) -> Option<String> {
+    waveflow_core::tagio::chapter_nesting::check_file(path).ok()?;
     let probe = Probe::open(path).ok()?.guess_file_type().ok()?;
     let file_type = probe.file_type();
     let tagged = probe.read().ok()?;
@@ -396,6 +397,7 @@ pub(super) fn read_local_after_embedded(path: &Path) -> Option<(String, LyricsSo
 /// it under the sidecar is what makes the guess safe — a `.lrc` the
 /// user put next to the track is a statement, not a guess.
 fn read_description_lyrics(path: &Path) -> Option<String> {
+    waveflow_core::tagio::chapter_nesting::check_file(path).ok()?;
     let tagged = Probe::open(path).ok()?.read().ok()?;
     let text = tagged
         .primary_tag()
