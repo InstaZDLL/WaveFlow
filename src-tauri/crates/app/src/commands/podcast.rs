@@ -34,8 +34,8 @@ fn with_artwork_path(mut channel: PodcastChannel, state: &AppState) -> PodcastCh
 }
 
 /// Fetches the feed at `feed_url` and follows it. Refuses, and stores nothing,
-/// if it is not a feed. Subscribing to an address already followed answers the
-/// channel it belongs to without contacting anybody.
+/// if it is not a feed. Subscribing to the address a channel is stored under answers
+/// that channel without contacting anybody.
 #[tauri::command]
 pub async fn podcast_subscribe(
     app: AppHandle,

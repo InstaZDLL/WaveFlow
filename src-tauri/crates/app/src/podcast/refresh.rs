@@ -100,7 +100,8 @@ pub(crate) trait Leases: Sync {
 pub(crate) enum Subscribed {
     /// A new channel, or one a restored archive left without its address.
     Added(i64),
-    /// Already followed. Nothing was fetched.
+    /// Already followed. Nothing was fetched when the address is the one stored;
+    /// one that has moved is read first, which is how it is found to lead here.
     Already(i64),
 }
 

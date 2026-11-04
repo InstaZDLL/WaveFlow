@@ -42,7 +42,7 @@ A private feed carries its token in the path as often as in the query, so `redac
 
 `address_refused`, `too_many_redirects`, `too_large`, `unreached`, `http_<status>`, `invalid_feed`, `not_audio`, `quota_exceeded`
 
-No row sent to the webview holds an address either: a channel says `has_feed_address`, an episode `has_enclosure`, and whatever opens one asks by id. A refused command rejects with `podcast: <word>`, the list above plus `disabled`, `offline` and `profile_changed`.
+No row sent to the webview holds an address either: a channel says `has_feed_address`, an episode `has_enclosure`, and whatever opens one asks by id. A refused command rejects with `podcast: <word>`, the list above plus `disabled`, `offline`, `profile_changed` and `channel_gone` (unsubscribed from while a subscription to it was finishing).
 
 ### An address stays out of an archive
 
