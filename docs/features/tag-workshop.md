@@ -21,7 +21,7 @@ At most 5,000 files open at once (`MAX_FILES`), and the view says so when a sour
 
 One row per file, virtualized against the page scroller ([invariant](../architecture/invariants.md#virtual-scroll-everywhere)); the header stays at the top of the page while it scrolls. Three groups of columns can be shown or hidden: **Tags** (title, artists, album, album artist, year, genres, composer), **Numbers** (track, track total, disc, disc total) and **MusicBrainz IDs**. Every cell is an input; an edited cell is highlighted until it is written or discarded.
 
-Artists and genres are lists joined with `"; "`, the library's [one multi-artist separator](library.md#multi-artist), read as the scanner reads them, so an undo writes back every name; an Album Artist is kept whole, as the scanner keeps it.
+Artists and genres are lists joined with `"; "`, the library's [one multi-artist separator](library.md#multi-artist), read as the scanner reads them, so an undo writes back every name; an Album Artist is kept whole, as the scanner keeps it. The artist is one field here: an undo restores the names the library credits, as one `ARTIST` value. A file whose `ARTIST` was the credit as printed (`Beta feat. Alpha`) beside an `ARTISTS` list gets the names back, not that wording nor the second tag.
 
 The tools act on the ticked rows, or on every editable row when none is ticked:
 

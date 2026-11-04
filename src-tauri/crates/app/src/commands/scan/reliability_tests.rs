@@ -901,6 +901,28 @@ async fn a_split_of_one_joined_name_leaves_the_other_whole() {
     assert_eq!(library.names(&path).await, split, "changed file");
 }
 
+/// The first name leads the track, so the same names in another order are
+/// another credit.
+#[tokio::test]
+async fn a_file_that_reorders_a_split_credit_wins() {
+    let library = Library::new().await;
+    let path = library.flac("a.flac", &[("TITLE", "t"), ("ARTIST", "Beta, Alpha")]);
+    library.scan().await;
+    let phantom: i64 = sqlx::query_scalar("SELECT id FROM artist WHERE name = 'Beta, Alpha'")
+        .fetch_one(&library.pool)
+        .await
+        .unwrap();
+    crate::commands::artist_split::split_artist_inner(&library.pool, phantom)
+        .await
+        .unwrap();
+    assert_eq!(library.names(&path).await, ["Beta", "Alpha"]);
+
+    library.flac_at(&path, &[("TITLE", "t"), ("ARTIST", "Alpha, Beta")]);
+    move_mtime_forward(&path);
+    library.scan().await;
+    assert_eq!(library.names(&path).await, ["Alpha, Beta"]);
+}
+
 /// A file that does change its mind wins over a stored split: this is not
 /// the same credit any more.
 #[tokio::test]
