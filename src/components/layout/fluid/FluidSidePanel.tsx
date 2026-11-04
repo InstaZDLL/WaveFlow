@@ -31,15 +31,15 @@ export function FluidSidePanel({
   const { t } = useTranslation();
   const { activeRightPanel, openRightPanel, closeRightPanel, currentTrack } =
     usePlayer();
-  // The panel that is up keeps its tab whatever plays: it was opened for a reason,
-  // and a tabpanel needs the tab it is labelled by.
-  const episode = isPodcastTrack(currentTrack);
+  // Three tabs, which is what the width holds. The panel that is up keeps its tab
+  // whatever plays: it was opened for a reason, and a tabpanel needs the tab it is
+  // labelled by. Otherwise an episode has a transcript and no lyrics.
+  const showsTranscript =
+    activeRightPanel === "transcript" ||
+    (isPodcastTrack(currentTrack) && activeRightPanel !== "lyrics");
   const TABS: RightPanel[] = [
     "nowPlaying",
-    ...(episode || activeRightPanel === "transcript"
-      ? (["transcript"] as const)
-      : []),
-    ...(!episode || activeRightPanel === "lyrics" ? (["lyrics"] as const) : []),
+    showsTranscript ? "transcript" : "lyrics",
     "queue",
   ];
   // One panel for the three tabs: the ids tie each tab to it, and it to
