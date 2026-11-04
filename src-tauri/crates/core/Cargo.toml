@@ -108,6 +108,9 @@ serde_json = "1"
 # import). A read-only DOM over the borrowed string, already in the
 # lockfile through another dependency.
 roxmltree = "0.21"
+# Resolves and judges the addresses a podcast feed names (`podcast`).
+# Already in the tree through `reqwest`.
+url = "2"
 
 # Artwork pipeline (`artwork::thumbnails` + `artwork::metadata`):
 # `image` decodes the source covers, `fast_image_resize` SIMD-resizes

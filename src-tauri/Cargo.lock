@@ -7922,6 +7922,7 @@ dependencies = [
  "toml 1.1.8+spec-1.1.0",
  "tracing",
  "unicode-normalization",
+ "url",
  "usvg",
  "uuid 1.29.0",
  "wasmtime",
