@@ -927,6 +927,8 @@ fn apply_setting(cmd: &AudioCmd, shared: &SharedPlayback) -> bool {
                     .store(v.clamp(0.5, 2.0).to_bits(), Ordering::Release);
             }
         }
+        AudioCmd::SetKeepPitch(on) => shared.keep_pitch.store(on, Ordering::Release),
+        AudioCmd::SetPitchSemitones(v) => shared.set_pitch_semitones(v),
         _ => return false,
     }
     true
