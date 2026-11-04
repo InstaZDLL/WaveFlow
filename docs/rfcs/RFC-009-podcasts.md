@@ -218,9 +218,10 @@ that is left open.
 it starts, and anything else that plays afterwards gets the global speed back. The
 speed is a column of `podcast_channel`.
 
-Pitch is not preserved today: 1.5× lifts a voice by about seven semitones. Time-stretching lands as its own lot on the existing
-board card, on the decoder thread and never in the callback. The library is chosen
-by measurement. Podcasts do not wait for it.
+Time-stretching landed as its own lot, on the decoder thread and never in the
+callback, with the library chosen by measurement:
+[playback / Playback speed and pitch](../features/playback.md#playback-speed-and-pitch).
+A voice keeps its pitch at 1.5× by default. Podcasts did not wait for it.
 
 ## The surface
 
