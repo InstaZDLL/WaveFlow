@@ -3443,7 +3443,8 @@
       "staysCount": "保留的节目：{{n}} 个。",
       "open": "打开播客",
       "seeStays": "查看保留的内容",
-      "downloadQuota": "已下载单集的最大空间"
+      "downloadQuota": "已下载单集的最大空间",
+      "downloadQuotaHint": "下载达到此配额时会停止。已有的文件会保留。已用：{{used}}。"
     }
   },
   "scanProgress": {

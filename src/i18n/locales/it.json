@@ -3517,7 +3517,8 @@
       "staysCount": "Canali conservati: {{n}}.",
       "open": "Apri i podcast",
       "seeStays": "Vedi cosa resta",
-      "downloadQuota": "Spazio massimo per gli episodi scaricati"
+      "downloadQuota": "Spazio massimo per gli episodi scaricati",
+      "downloadQuotaHint": "Un download si ferma a questa quota. I file già presenti restano. In uso: {{used}}."
     }
   },
   "scanProgress": {

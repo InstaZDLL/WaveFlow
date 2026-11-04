@@ -3445,7 +3445,8 @@
       "staysCount": "Behaltene Kanäle: {{n}}.",
       "open": "Podcasts öffnen",
       "seeStays": "Ansehen, was bleibt",
-      "downloadQuota": "Maximaler Platz für heruntergeladene Folgen"
+      "downloadQuota": "Maximaler Platz für heruntergeladene Folgen",
+      "downloadQuotaHint": "Ein Download stoppt bei diesem Kontingent. Vorhandene Dateien bleiben. Belegt: {{used}}."
     }
   },
   "scanProgress": {

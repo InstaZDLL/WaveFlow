@@ -3443,7 +3443,8 @@
       "staysCount": "保留的節目：{{n}} 個。",
       "open": "開啟 Podcast",
       "seeStays": "查看保留的內容",
-      "downloadQuota": "已下載單集的最大空間"
+      "downloadQuota": "已下載單集的最大空間",
+      "downloadQuotaHint": "下載達到此配額時會停止。已有的檔案會保留。已用：{{used}}。"
     }
   },
   "scanProgress": {

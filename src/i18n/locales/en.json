@@ -3445,7 +3445,8 @@
       "staysCount": "Channels kept: {{n}}.",
       "open": "Open podcasts",
       "seeStays": "See what stays",
-      "downloadQuota": "Maximum space for downloaded episodes"
+      "downloadQuota": "Maximum space for downloaded episodes",
+      "downloadQuotaHint": "A download stops at this quota. Files already here stay. Used: {{used}}."
     }
   },
   "scanProgress": {

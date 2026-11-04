@@ -3443,7 +3443,8 @@
       "staysCount": "남아 있는 채널: {{n}}개.",
       "open": "팟캐스트 열기",
       "seeStays": "남는 것 보기",
-      "downloadQuota": "다운로드한 에피소드의 최대 공간"
+      "downloadQuota": "다운로드한 에피소드의 최대 공간",
+      "downloadQuotaHint": "이 용량에 도달하면 다운로드가 멈춥니다. 이미 있는 파일은 그대로 남습니다. 사용 중: {{used}}"
     }
   },
   "scanProgress": {

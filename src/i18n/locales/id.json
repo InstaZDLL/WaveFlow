@@ -3443,7 +3443,8 @@
       "staysCount": "Kanal yang disimpan: {{n}}.",
       "open": "Buka podcast",
       "seeStays": "Lihat yang tetap ada",
-      "downloadQuota": "Ruang maksimum untuk episode yang diunduh"
+      "downloadQuota": "Ruang maksimum untuk episode yang diunduh",
+      "downloadQuotaHint": "Unduhan berhenti pada kuota ini. Berkas yang sudah ada tetap tersimpan. Terpakai: {{used}}."
     }
   },
   "scanProgress": {

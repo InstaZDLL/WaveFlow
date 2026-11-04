@@ -3443,7 +3443,8 @@
       "staysCount": "残っている番組：{{n}}件。",
       "open": "ポッドキャストを開く",
       "seeStays": "残るものを見る",
-      "downloadQuota": "ダウンロードしたエピソードの最大容量"
+      "downloadQuota": "ダウンロードしたエピソードの最大容量",
+      "downloadQuotaHint": "この上限に達するとダウンロードは止まります。すでにあるファイルは残ります。使用量: {{used}}"
     }
   },
   "scanProgress": {

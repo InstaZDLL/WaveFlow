@@ -3517,7 +3517,8 @@
       "staysCount": "Chaînes conservées : {{n}}.",
       "open": "Ouvrir les podcasts",
       "seeStays": "Voir ce qui reste",
-      "downloadQuota": "Espace maximal pour les épisodes téléchargés"
+      "downloadQuota": "Espace maximal pour les épisodes téléchargés",
+      "downloadQuotaHint": "Un téléchargement s'arrête à ce quota. Les fichiers déjà là restent. Utilisé : {{used}}."
     }
   },
   "scanProgress": {

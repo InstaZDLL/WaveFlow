@@ -741,6 +741,7 @@ export const SETTINGS_CATEGORIES = [
           "settings.networkLibrary.subtitle",
           "settings.clipsInLibrary.title",
           "settings.clipsInLibrary.subtitle",
+          "settings.podcasts.downloadQuota",
           "settings.dataFolder.title",
           "settings.dataFolder.subtitle",
           "settings.openDataFolder",

@@ -3445,7 +3445,8 @@
       "staysCount": "Bewaarde kanalen: {{n}}.",
       "open": "Podcasts openen",
       "seeStays": "Bekijken wat blijft",
-      "downloadQuota": "Maximale ruimte voor gedownloade afleveringen"
+      "downloadQuota": "Maximale ruimte voor gedownloade afleveringen",
+      "downloadQuotaHint": "Een download stopt bij dit quotum. Bestanden die er al zijn blijven staan. In gebruik: {{used}}."
     }
   },
   "scanProgress": {

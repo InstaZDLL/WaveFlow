@@ -10,10 +10,12 @@ import {
 /**
  * The downloads moving right now, by episode. A row holds its own `downloaded`
  * once a re-read has brought it, so one that ended leaves this map. Calls
- * `onFailed` with the word of one that failed.
+ * `onFailed` with the word of one that failed, and `onSettled` for any that ended,
+ * which a list has to read its rows again for.
  */
 export function usePodcastDownloads(
   onFailed: (word: string | null) => void,
+  onSettled: () => void,
 ): ReadonlyMap<number, PodcastDownloadPayload> {
   const [active, setActive] = useState<
     ReadonlyMap<number, PodcastDownloadPayload>
@@ -31,6 +33,7 @@ export function usePodcastDownloads(
         return next;
       });
       if (payload.state === "failed") onFailed(payload.errorWord);
+      if (!moving) onSettled();
     })
       .then((unlisten) => {
         if (cancelled) {
@@ -57,7 +60,7 @@ export function usePodcastDownloads(
       cancelled = true;
       off?.();
     };
-  }, [onFailed]);
+  }, [onFailed, onSettled]);
 
   return active;
 }

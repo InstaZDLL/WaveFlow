@@ -4,6 +4,7 @@ import { BackupCard } from "../BackupCard";
 import { CacheLocationCard } from "../CacheLocationCard";
 import { ClipsInLibraryCard } from "../ClipsInLibraryCard";
 import { NetworkLibraryCard } from "../NetworkLibraryCard";
+import { PodcastQuotaCard } from "../PodcastQuotaCard";
 import { DiskUsageCard } from "../DiskUsageCard";
 import { MediaCachesCard } from "../MediaCachesCard";
 import { SettingsCategoryHeader } from "../SettingsCategoryHeader";
@@ -142,6 +143,7 @@ export function DataSection({
         <MediaCachesCard language={i18n.resolvedLanguage ?? i18n.language} />
         <NetworkLibraryCard language={i18n.resolvedLanguage ?? i18n.language} />
         <ClipsInLibraryCard />
+        <PodcastQuotaCard />
         <div className="settings-row flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <FolderOpen

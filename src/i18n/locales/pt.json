@@ -3518,7 +3518,8 @@
       "staysCount": "Canais mantidos: {{n}}.",
       "open": "Abrir os podcasts",
       "seeStays": "Ver o que fica",
-      "downloadQuota": "Espaço máximo para episódios transferidos"
+      "downloadQuota": "Espaço máximo para episódios transferidos",
+      "downloadQuotaHint": "Uma transferência para ao atingir esta quota. Os ficheiros que já cá estão ficam. Em uso: {{used}}."
     }
   },
   "scanProgress": {

@@ -3445,7 +3445,8 @@
       "staysCount": "Saklanan kanal: {{n}}.",
       "open": "Podcast'leri aç",
       "seeStays": "Nelerin kaldığını gör",
-      "downloadQuota": "İndirilen bölümler için en fazla alan"
+      "downloadQuota": "İndirilen bölümler için en fazla alan",
+      "downloadQuotaHint": "İndirme bu kotada durur. Zaten burada olan dosyalar kalır. Kullanılan: {{used}}."
     }
   },
   "scanProgress": {

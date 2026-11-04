@@ -2,14 +2,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 
 import {
-  PODCAST_DOWNLOAD,
   PODCAST_UPDATED,
   podcastDownloadUsage,
   podcastErrorWord,
   podcastListChannels,
   podcastToListen,
   type PodcastChannel,
-  type PodcastDownloadPayload,
   type PodcastDownloadUsage,
   type PodcastEpisode,
 } from "../lib/tauri/podcast";
@@ -93,18 +91,10 @@ export function usePodcastLibrary(): PodcastLibrary {
       window.clearTimeout(timer);
       timer = window.setTimeout(() => void reload(), RELOAD_DELAY_MS);
     };
-    const onDownload = (payload: PodcastDownloadPayload) => {
-      if (payload.state === "done" || payload.state === "cancelled") later();
-    };
-    Promise.all([
-      listen(PODCAST_UPDATED, later),
-      listen<PodcastDownloadPayload>(PODCAST_DOWNLOAD, (event) =>
-        onDownload(event.payload),
-      ),
-    ])
-      .then((offs) => {
-        if (cancelled) offs.forEach((off) => off());
-        else unlisteners.push(...offs);
+    listen(PODCAST_UPDATED, later)
+      .then((off) => {
+        if (cancelled) off();
+        else unlisteners.push(off);
       })
       .catch((err) => console.warn("[podcasts] listen failed", err))
       .finally(() => {

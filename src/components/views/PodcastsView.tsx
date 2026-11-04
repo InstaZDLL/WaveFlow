@@ -154,7 +154,11 @@ export function PodcastsView({
     },
     [t],
   );
-  const downloads = usePodcastDownloads(failWith);
+  const onDownloadSettled = useCallback(() => {
+    void reload();
+    setRevision((value) => value + 1);
+  }, [reload]);
+  const downloads = usePodcastDownloads(failWith, onDownloadSettled);
 
   const { currentTrack, isPlaying, togglePlayback } = usePlayer();
   const episodeInPlayer = isPodcastTrack(currentTrack)
