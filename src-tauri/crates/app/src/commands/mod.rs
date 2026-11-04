@@ -47,6 +47,7 @@ pub mod playlist_cover;
 pub mod playlist_import;
 pub mod plugin_store;
 pub mod plugins;
+pub mod podcast;
 pub mod preferences;
 pub mod profile;
 pub mod profile_io;

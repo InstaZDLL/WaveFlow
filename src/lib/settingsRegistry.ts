@@ -175,6 +175,15 @@ export const SETTINGS = {
     false,
     "settings.analyze.autoTitle",
   ),
+  // Off until the user opts in: a podcast is outbound traffic in an app that
+  // otherwise needs none. Mirrored in `podcast::store::is_enabled`.
+  "podcasts.enabled": setting(
+    "library",
+    "profile",
+    "bool",
+    false,
+    "settings.podcasts.title",
+  ),
   // Off until the user opts in: a pass sends the library's titles and
   // artist names to MusicBrainz. Mirrored in `commands::enrichment`.
   "enrichment.enabled": setting(

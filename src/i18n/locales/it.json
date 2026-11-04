@@ -3498,6 +3498,9 @@
       "cacheUsed_one": "Cache locale: {{size}}, {{count}} brano",
       "cacheUsed_other": "Cache locale: {{size}}, {{count}} brani",
       "cacheUsed_many": "Cache locale: {{size}}, {{count}} brani"
+    },
+    "podcasts": {
+      "title": "Podcast"
     }
   },
   "scanProgress": {
@@ -3893,7 +3896,8 @@
       "spectrogram": "Spettro di un brano",
       "enrichment": "Arricchimento della libreria",
       "release_radar": "Release Radar",
-      "tag_workshop": "Laboratorio tag"
+      "tag_workshop": "Laboratorio tag",
+      "podcast_refresh": "Aggiornamento dei podcast"
     }
   },
   "smartRuleSummary": {

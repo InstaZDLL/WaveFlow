@@ -624,6 +624,8 @@ impl AppState {
             crate::commands::enrichment::stop_for_profile_change();
             previous.close_when_idle().await;
         }
+        // Its podcast switch and its channels are not the last one's.
+        crate::podcast::schedule::profile_changed();
 
         Ok(())
     }

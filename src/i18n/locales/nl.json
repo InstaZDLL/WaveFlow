@@ -3426,6 +3426,9 @@
       "share": "Naam van de share",
       "cacheUsed_one": "Lokale cache: {{size}}, {{count}} nummer",
       "cacheUsed_other": "Lokale cache: {{size}}, {{count}} nummers"
+    },
+    "podcasts": {
+      "title": "Podcasts"
     }
   },
   "scanProgress": {
@@ -3794,7 +3797,8 @@
       "spectrogram": "Spectrum van een nummer",
       "enrichment": "Bibliotheek verrijken",
       "release_radar": "Release Radar",
-      "tag_workshop": "Tagwerkplaats"
+      "tag_workshop": "Tagwerkplaats",
+      "podcast_refresh": "Podcasts vernieuwen"
     }
   },
   "smartRuleSummary": {

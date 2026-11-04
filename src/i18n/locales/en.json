@@ -3426,6 +3426,9 @@
       "share": "Share name",
       "cacheUsed_one": "Local cache: {{size}}, {{count}} track",
       "cacheUsed_other": "Local cache: {{size}}, {{count}} tracks"
+    },
+    "podcasts": {
+      "title": "Podcasts"
     }
   },
   "scanProgress": {
@@ -3794,7 +3797,8 @@
       "spectrogram": "Track spectrum",
       "enrichment": "Library enrichment",
       "release_radar": "Release Radar",
-      "tag_workshop": "Tag workshop"
+      "tag_workshop": "Tag workshop",
+      "podcast_refresh": "Podcast refresh"
     }
   },
   "smartRuleSummary": {

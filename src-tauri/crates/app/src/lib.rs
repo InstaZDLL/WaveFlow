@@ -31,6 +31,7 @@ mod offline;
 mod paths;
 mod player_actions;
 mod plugin_attention;
+mod podcast;
 mod power;
 mod queue;
 mod render_mode;
@@ -302,6 +303,13 @@ pub fn run() {
             commands::smart_playlists::regenerate_custom_smart_playlist,
             commands::smart_playlists::get_custom_smart_playlist_rules,
             commands::smart_playlists::count_custom_smart_playlist,
+            commands::podcast::podcast_subscribe,
+            commands::podcast::podcast_unsubscribe,
+            commands::podcast::podcast_list_channels,
+            commands::podcast::podcast_list_episodes,
+            commands::podcast::podcast_refresh,
+            commands::podcast::podcast_import_opml,
+            commands::podcast::podcast_export_opml,
             commands::release_radar::release_radar_scan,
             commands::release_radar::release_radar_list,
             commands::release_radar::release_radar_refresh_playlist,

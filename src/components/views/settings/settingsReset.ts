@@ -142,6 +142,7 @@ import { applyWindowChrome } from "../../../hooks/useWindowChrome";
 import { SINGLE_CLICK_PLAY_EVENT } from "../../../hooks/useSingleClickPlay";
 import { AUTOPLAY_EVENT } from "../../../hooks/useAutoplay";
 import { ENRICHMENT_SETTING_EVENTS } from "../../../hooks/useEnrichmentSettings";
+import { PODCASTS_ENABLED_EVENT } from "../../../hooks/usePodcastsEnabled";
 import { cancelEnrichment } from "../../../lib/tauri/enrichment";
 import { GENERATOR_ALBUM_MODE_EVENT } from "../../../hooks/useGeneratorAlbumMode";
 import { CONTRAST_EVENT } from "../../../hooks/useContrastMode";
@@ -645,6 +646,9 @@ const ACCESSORS: Record<SettingKey, SettingAccessor> = {
     getAutoAnalyze,
     setAutoAnalyze,
   ),
+  // The backend's timer wakes on the write itself, and a running pass reads the
+  // switch before each channel, so turning it off here needs nothing more.
+  "podcasts.enabled": profileBool("podcasts.enabled", PODCASTS_ENABLED_EVENT),
   // The engine reads its switch when a pass starts, not during one: a
   // reset that turns it off stops the running pass too, as the card's
   // switch does.

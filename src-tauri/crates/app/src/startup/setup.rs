@@ -374,6 +374,12 @@ pub(crate) fn setup(
     app.manage(backup_handle.clone());
     backup::spawn_backup_loop(app.handle().clone(), backup_handle);
 
+    // Podcast refresh timer. Runs no timer while `podcasts.enabled` is off, and
+    // never asks anybody for anything at startup: the six hours count from the
+    // profile's last check, and an overdue one waits five minutes after launch.
+    // See [`crate::podcast::schedule`].
+    crate::podcast::schedule::spawn(app.handle().clone());
+
     // DLNA / UPnP MediaServer auto-start. Reads the persisted
     // `dlna.enabled` flag at boot and forwards the config to
     // the worker so users don't have to flip the toggle every

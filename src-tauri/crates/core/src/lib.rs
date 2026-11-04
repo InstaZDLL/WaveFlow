@@ -24,6 +24,7 @@ pub mod handoff;
 pub mod home_suggestion;
 pub mod inventory;
 pub mod lyrics;
+pub mod markup;
 pub mod metadata;
 pub mod mood;
 pub mod network_locator;
@@ -43,6 +44,7 @@ pub mod playlist_import;
 #[cfg(feature = "plugins")]
 #[cfg_attr(docsrs, doc(cfg(feature = "plugins")))]
 pub mod plugin;
+pub mod podcast;
 pub mod radio_playlist;
 pub mod release_radar;
 pub mod repository;
@@ -55,3 +57,4 @@ pub mod sync;
 pub mod tag_workshop;
 pub mod tagio;
 pub mod text_encoding;
+pub mod xml_guard;

@@ -3426,6 +3426,9 @@
       "share": "Paylaşım adı",
       "cacheUsed_one": "Yerel önbellek: {{size}}, {{count}} parça",
       "cacheUsed_other": "Yerel önbellek: {{size}}, {{count}} parça"
+    },
+    "podcasts": {
+      "title": "Podcast'ler"
     }
   },
   "scanProgress": {
@@ -3794,7 +3797,8 @@
       "spectrogram": "Parça spektrumu",
       "enrichment": "Kitaplık zenginleştirme",
       "release_radar": "Release Radar",
-      "tag_workshop": "Etiket atölyesi"
+      "tag_workshop": "Etiket atölyesi",
+      "podcast_refresh": "Podcast yenileme"
     }
   },
   "smartRuleSummary": {
