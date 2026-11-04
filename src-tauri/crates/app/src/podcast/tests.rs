@@ -21,7 +21,7 @@ use super::refresh::{
     import_pass, refresh_pass, subscribe, Leases, PassObserver, PassOutcome, PodcastError,
     Subscribed,
 };
-use super::schedule::{run_schedule, Schedule};
+use super::schedule::{run_schedule, since_last_check, Schedule, UNREADABLE_RETRY};
 use super::store;
 
 mod download;
@@ -802,14 +802,18 @@ async fn a_guid_is_stored_only_as_its_hash() {
     );
 }
 
-/// Unsubscribing while the feed is being read has to stick: the refresh must not
-/// create the row again, under a new id and with the positions lost.
+/// Unsubscribing while the feed is being read has to stick: the refresh must not create
+/// the row again, and must not write into the channel followed next, which an id used
+/// twice would hand it.
 #[tokio::test]
 async fn a_refresh_in_flight_does_not_bring_back_a_channel() {
     let pool = enabled_pool().await;
     let slow = Arc::new(AtomicBool::new(false));
     let state = Arc::clone(&slow);
-    let server = serve(move |_| {
+    let server = serve(move |path| {
+        if path == "/next" {
+            return ok(&rss(&[("n", "Next")]));
+        }
         let Reply::Raw(bytes) = ok(&rss(&[("a", "One")])) else {
             unreachable!()
         };
@@ -828,28 +832,184 @@ async fn a_refresh_in_flight_does_not_bring_back_a_channel() {
         .channel_id();
     slow.store(true, Ordering::SeqCst);
     let hits = server.hits();
-    let fetcher = fetcher();
+    let client = fetcher();
     let recorder = Recorder::default();
-    let (summary, ()) = tokio::join!(
-        refresh_pass(&leases, &fetcher, None, cache.path(), &recorder),
+    let (summary, next) = tokio::join!(
+        refresh_pass(&leases, &client, None, cache.path(), &recorder),
         async {
             while server.hits() == hits {
                 tokio::time::sleep(Duration::from_millis(5)).await;
             }
             assert!(store::delete_channel(&pool, id).await.unwrap());
+            subscribe(&leases, &client, &server.local("/next"), cache.path())
+                .await
+                .unwrap()
+                .channel_id()
         }
     );
     let summary = summary.unwrap();
     assert_eq!((summary.refreshed, summary.failed), (0, 0));
+    assert_ne!(next, id, "an id was used twice");
     assert_eq!(
         count(&pool, "SELECT COUNT(*) FROM podcast_channel").await,
-        0
+        1
     );
+    let episodes = store::list_episodes(&pool, next, 10, 0).await.unwrap();
+    assert_eq!(episodes.len(), 1);
     assert_eq!(
-        count(&pool, "SELECT COUNT(*) FROM podcast_episode").await,
-        0
+        episodes[0].title, "Next",
+        "the old feed went into the new channel"
     );
     assert!(recorder.changed.lock().unwrap().is_empty());
+}
+
+/// The switch is read before each request, not only where a channel begins: turned off
+/// while a feed is on its way, it stops the picture and the announced address after it.
+#[tokio::test]
+async fn the_switch_turned_off_mid_channel_stops_the_next_request() {
+    let pool = enabled_pool().await;
+    let slow = Arc::new(AtomicBool::new(false));
+    let state = Arc::clone(&slow);
+    let feed = "<rss xmlns:itunes=\"http://www.itunes.com/dtds/podcast-1.0.dtd\"><channel>\
+                <title>T</title><itunes:image href=\"/moved-cover.png\"/>\
+                </channel></rss>";
+    let announcing = "<rss xmlns:itunes=\"http://www.itunes.com/dtds/podcast-1.0.dtd\"><channel>\
+                      <title>T</title><itunes:new-feed-url>/announced</itunes:new-feed-url>\
+                      </channel></rss>";
+    let server = serve(move |path| {
+        let body = if path == "/announcing" {
+            announcing
+        } else {
+            feed
+        };
+        if path.ends_with(".png") || path == "/announced" {
+            return with_status("200 OK", "", b"");
+        }
+        let Reply::Raw(bytes) = ok(body) else {
+            unreachable!()
+        };
+        if state.load(Ordering::SeqCst) {
+            Reply::Late(bytes)
+        } else {
+            Reply::Raw(bytes)
+        }
+    })
+    .await;
+    let leases = TestLeases(pool.clone());
+    let cache = cache_dir();
+    let client = fetcher();
+
+    // A subscription: the feed is on its way when the switch goes off.
+    slow.store(true, Ordering::SeqCst);
+    let hits = server.hits();
+    let address = server.local("/feed");
+    let (subscribed, ()) =
+        tokio::join!(subscribe(&leases, &client, &address, cache.path()), async {
+            while server.hits() == hits {
+                tokio::time::sleep(Duration::from_millis(5)).await;
+            }
+            switch(&pool, false).await;
+        });
+    assert!(
+        subscribed.is_ok(),
+        "what was read is stored: {subscribed:?}"
+    );
+    assert!(
+        !server.seen().iter().any(|r| r.contains(".png")),
+        "the picture was asked for with the switch off"
+    );
+
+    // An announced address, the same way.
+    switch(&pool, true).await;
+    let hits = server.hits();
+    let address = server.local("/announcing");
+    let (subscribed, ()) =
+        tokio::join!(subscribe(&leases, &client, &address, cache.path()), async {
+            while server.hits() == hits {
+                tokio::time::sleep(Duration::from_millis(5)).await;
+            }
+            switch(&pool, false).await;
+        });
+    assert!(
+        matches!(subscribed, Err(PodcastError::Disabled)),
+        "{subscribed:?}"
+    );
+    assert!(
+        !server.seen().iter().any(|r| r.contains("/announced")),
+        "the announced address was asked for with the switch off"
+    );
+}
+
+/// A permanent redirect too long to be stored would leave the channel unreadable for good.
+#[tokio::test]
+async fn a_move_too_long_to_keep_leaves_the_address() {
+    let pool = enabled_pool().await;
+    let (server, moved) = moving_server(|path| match path {
+        "/feed" => {
+            let long = format!(
+                "/{}",
+                "a".repeat(waveflow_core::podcast::address::MAX_URL_CHARS)
+            );
+            with_status(
+                "301 Moved Permanently",
+                &format!("Location: {long}\r\n"),
+                b"",
+            )
+        }
+        _ => ok(&rss(&[("a", "One")])),
+    })
+    .await;
+    let leases = TestLeases(pool.clone());
+    let cache = cache_dir();
+    let id = subscribe(&leases, &fetcher(), &server.local("/feed"), cache.path())
+        .await
+        .unwrap()
+        .channel_id();
+    moved.store(true, Ordering::SeqCst);
+    let summary = refresh_pass(
+        &leases,
+        &fetcher(),
+        None,
+        cache.path(),
+        &Recorder::default(),
+    )
+    .await
+    .unwrap();
+    assert_eq!(summary.failed, 1);
+    assert_eq!(stored_address(&pool, id).await, server.local("/feed"));
+    moved.store(false, Ordering::SeqCst);
+    let summary = refresh_pass(
+        &leases,
+        &fetcher(),
+        None,
+        cache.path(),
+        &Recorder::default(),
+    )
+    .await
+    .unwrap();
+    assert_eq!(summary.failed, 0, "the channel can still be asked");
+}
+
+/// The export's document and its count, apart from the file it goes to.
+#[tokio::test]
+async fn an_export_says_what_it_wrote_and_what_it_could_not() {
+    let pool = enabled_pool().await;
+    let server = serve(|_| ok(&rss(&[("a", "One")]))).await;
+    let leases = TestLeases(pool.clone());
+    let cache = cache_dir();
+    for path in ["/one", "/two"] {
+        subscribe(&leases, &fetcher(), &server.local(path), cache.path())
+            .await
+            .unwrap();
+    }
+    sqlx::query("UPDATE podcast_channel SET feed_url = NULL WHERE id = 1")
+        .execute(&pool)
+        .await
+        .unwrap();
+    let (document, report) = crate::commands::podcast::opml_export(&pool).await.unwrap();
+    assert_eq!((report.written, report.without_address), (1, 1));
+    assert!(document.contains("/two"));
+    assert!(!document.contains("/one"));
 }
 
 /// An unchanged feed costs a 304: its validators go back, and nothing is
@@ -1516,6 +1676,73 @@ async fn a_pass_that_stamps_nothing_does_not_spin() {
     assert!(timer.last_check.lock().unwrap().is_none());
 }
 
+/// A stamp from the future is a clock that moved back. Read as "just now" it would read
+/// so again at every wake, and no check would ever come.
+#[test]
+fn a_last_check_in_the_future_counts_as_never() {
+    assert_eq!(since_last_check(None, 1_000), None);
+    assert_eq!(since_last_check(Some(2_000), 1_000), None);
+    assert_eq!(
+        since_last_check(Some(1_000), 1_000),
+        Some(Duration::from_millis(0))
+    );
+    assert_eq!(
+        since_last_check(Some(400), 1_000),
+        Some(Duration::from_millis(600))
+    );
+}
+
+/// Settings that cannot be read are not an answer: nothing goes out on them, the loop
+/// does not spin, and it does not stay parked for good either.
+#[tokio::test(start_paused = true)]
+async fn unreadable_settings_are_looked_at_again() {
+    let reads = Arc::new(AtomicUsize::new(0));
+    let refreshes = Arc::new(AtomicUsize::new(0));
+    let readable = Arc::new(AtomicBool::new(false));
+    let wake = Arc::new(Notify::new());
+    let handle = {
+        let (reads, refreshes, readable, wake) = (
+            Arc::clone(&reads),
+            Arc::clone(&refreshes),
+            Arc::clone(&readable),
+            Arc::clone(&wake),
+        );
+        tokio::spawn(async move {
+            let read = || {
+                reads.fetch_add(1, Ordering::SeqCst);
+                let answer = if readable.load(Ordering::SeqCst) {
+                    Schedule::On {
+                        since_last_check: None,
+                    }
+                } else {
+                    Schedule::Unreadable
+                };
+                async move { answer }
+            };
+            let refresh = || {
+                refreshes.fetch_add(1, Ordering::SeqCst);
+                async {}
+            };
+            run_schedule(&wake, read, refresh).await;
+        })
+    };
+    settle().await;
+    assert_eq!(reads.load(Ordering::SeqCst), 1);
+    tokio::time::advance(UNREADABLE_RETRY * 2).await;
+    settle().await;
+    assert!(reads.load(Ordering::SeqCst) >= 2, "stayed parked");
+    assert!(reads.load(Ordering::SeqCst) <= 3, "spun");
+    assert_eq!(refreshes.load(Ordering::SeqCst), 0);
+
+    readable.store(true, Ordering::SeqCst);
+    tokio::time::advance(UNREADABLE_RETRY).await;
+    settle().await;
+    tokio::time::advance(GRACE).await;
+    settle().await;
+    assert_eq!(refreshes.load(Ordering::SeqCst), 1);
+    handle.abort();
+}
+
 /// What the loop reads: a full pass stamps the profile, a pass over one channel
 /// or one that reached nobody does not.
 #[tokio::test]
@@ -2048,7 +2275,10 @@ async fn a_private_feeds_token_reaches_no_log_line() {
     }
 
     tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::TRACE)
+        // Someone who sets RUST_LOG=trace gets this, and only this.
+        .with_env_filter(crate::logging::without_connection_lines(
+            tracing_subscriber::EnvFilter::new("trace"),
+        ))
         .with_ansi(false)
         .with_writer(|| Capture)
         .finish()
@@ -2135,6 +2365,30 @@ async fn a_private_feeds_token_reaches_no_log_line() {
         outputs.push(format!("{err:?}"));
         outputs.push(crate::error::AppError::from(err).to_string());
     }
+    // A token in the host name: that goes into the connection, and past the code that
+    // logs one. Once a name the client resolves itself, once one it asks the system for.
+    let token_host = format!("{TOKEN}.feeds.example.org");
+    let in_host = Fetcher::with(
+        client_builder()
+            .no_proxy()
+            .resolve(&token_host, ([127, 0, 0, 1], server.port).into()),
+        online,
+        ROOMY,
+    )
+    .unwrap();
+    subscribe(
+        &leases,
+        &in_host,
+        &format!("http://{token_host}:{}/hosted", server.port),
+        cache.path(),
+    )
+    .await
+    .unwrap();
+    let unresolved = format!("http://{TOKEN}.invalid/feed.xml");
+    let err = subscribe(&leases, &fetcher, &unresolved, cache.path())
+        .await
+        .unwrap_err();
+    outputs.push(format!("{err:?}"));
     let report = import_pass(
         &leases,
         &public_fetcher(&server),

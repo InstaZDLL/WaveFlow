@@ -32,6 +32,9 @@ pub(crate) const REFRESH_INTERVAL: Duration = Duration::from_secs(6 * 60 * 60);
 /// could not stamp the profile, in offline mode, from running again at once.
 pub(crate) const OVERDUE_GRACE: Duration = Duration::from_secs(5 * 60);
 
+/// How long before looking again at a profile whose settings could not be read.
+pub(crate) const UNREADABLE_RETRY: Duration = Duration::from_secs(60);
+
 /// One way for everything that can change the answer to "should this run".
 static WAKE: Notify = Notify::const_new();
 
@@ -230,6 +233,9 @@ pub(crate) fn spawn(app: AppHandle) {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Schedule {
     Off,
+    /// The settings could not be read. Not an answer: nothing goes out on it, and
+    /// nothing will wake the loop if it parks, so it looks again.
+    Unreadable,
     On {
         /// `None` when this profile has never been checked.
         since_last_check: Option<Duration>,
@@ -238,19 +244,31 @@ pub(crate) enum Schedule {
 
 async fn read_schedule(app: &AppHandle) -> Schedule {
     let state = app.state::<AppState>();
+    // No active profile: activating one wakes the loop.
     let Ok(pool) = state.require_profile_pool().await else {
         return Schedule::Off;
     };
-    if !store::is_enabled(&pool).await.unwrap_or(false) {
-        return Schedule::Off;
-    }
-    let last = store::last_check_at(&pool).await.unwrap_or(None);
-    let now = chrono::Utc::now().timestamp_millis();
-    Schedule::On {
-        // A stamp from the future is a clock that moved back, and reads as now.
-        since_last_check: last
-            .map(|at| Duration::from_millis(now.saturating_sub(at).max(0) as u64)),
-    }
+    let read = async {
+        if !store::is_enabled(&pool).await? {
+            return Ok(Schedule::Off);
+        }
+        let last = store::last_check_at(&pool).await?;
+        Ok::<_, sqlx::Error>(Schedule::On {
+            since_last_check: since_last_check(last, chrono::Utc::now().timestamp_millis()),
+        })
+    };
+    read.await.unwrap_or_else(|err| {
+        tracing::warn!(%err, "podcast schedule: settings not read, looking again soon");
+        Schedule::Unreadable
+    })
+}
+
+/// How long ago a check stamped `last` was. One from the future is a clock that moved
+/// back and says nothing, so it counts as never: read as "just now" it would read so
+/// again at every wake, and no check would ever come.
+pub(crate) fn since_last_check(last: Option<i64>, now: i64) -> Option<Duration> {
+    last.filter(|at| *at <= now)
+        .map(|at| Duration::from_millis(now.saturating_sub(at) as u64))
 }
 
 /// How long to wait before the next check.
@@ -276,9 +294,19 @@ where
     RF: Future<Output = ()>,
 {
     loop {
-        let Schedule::On { since_last_check } = read().await else {
-            wake.notified().await;
-            continue;
+        let since_last_check = match read().await {
+            Schedule::On { since_last_check } => since_last_check,
+            Schedule::Off => {
+                wake.notified().await;
+                continue;
+            }
+            Schedule::Unreadable => {
+                tokio::select! {
+                    _ = tokio::time::sleep(UNREADABLE_RETRY) => {}
+                    _ = wake.notified() => {}
+                }
+                continue;
+            }
         };
         tokio::select! {
             _ = tokio::time::sleep(wait_before_check(since_last_check)) => {}

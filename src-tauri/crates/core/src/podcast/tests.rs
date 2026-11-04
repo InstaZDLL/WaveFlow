@@ -540,6 +540,18 @@ fn a_redirect_never_leaves_https_for_http() {
     }
 }
 
+/// A redirect is stored when it is permanent, so one the next refresh could not
+/// read back is refused, and the channel stays where it can be asked.
+#[test]
+fn a_redirect_too_long_to_keep_is_refused() {
+    let current = Url::parse("https://feeds.example.org/show.xml").unwrap();
+    let long = format!("https://cdn.example.org/{}", "a".repeat(MAX_URL_CHARS));
+    assert_eq!(next_hop(&current, &long), Err(FetchFailure::AddressRefused));
+    let fits = format!("https://cdn.example.org/{}", "a".repeat(100));
+    let kept = next_hop(&current, &fits).unwrap();
+    assert_eq!(parse_address(kept.as_str()), Some(kept));
+}
+
 /// The list the RFC fixes: nothing else may ever be stored or logged.
 #[test]
 fn a_failure_is_one_word_from_the_list() {

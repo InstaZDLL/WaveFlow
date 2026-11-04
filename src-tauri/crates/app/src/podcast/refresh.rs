@@ -208,7 +208,7 @@ pub(crate) async fn subscribe<L: Leases>(
         address,
         feed,
         validators,
-    } = read_address(fetcher, &url, &Validators::default()).await?
+    } = read_address(leases, fetcher, &url, &Validators::default()).await?
     else {
         return Err(PodcastError::Failed(FetchFailure::InvalidFeed));
     };
@@ -251,7 +251,8 @@ enum FeedRead {
 
 /// The feed at `url`, following it when it says it has moved, by a permanent
 /// redirect or by `itunes:new-feed-url`.
-async fn read_address(
+async fn read_address<L: Leases>(
+    leases: &L,
     fetcher: &Fetcher,
     url: &Url,
     validators: &Validators,
@@ -270,6 +271,8 @@ async fn read_address(
             let address = moved_to.unwrap_or_else(|| url.clone());
             let feed = read_feed(bytes, base).await?;
             if let Some(announced) = feed.new_feed_url.as_deref() {
+                // One more request: the switch may have gone off during that one.
+                enabled_or_refuse(leases).await?;
                 if let Some(read) = read_announced(fetcher, &address, origin, announced).await? {
                     return Ok(read);
                 }
@@ -441,8 +444,9 @@ async fn refresh_channel<L: Leases>(
     source: &ChannelSource,
     artwork_dir: &Path,
 ) -> Result<Refreshed, PodcastError> {
-    // Read per channel, not once per pass: turning the switch off stops the
-    // requests here and now, not when a pass over a hundred feeds has ended.
+    // Read before each request of a channel, not once per pass: turning the switch off
+    // stops the next one, not whatever comes after a hundred feeds. A request already
+    // on its way finishes, and what it brought is stored: that contacts nobody.
     enabled_or_refuse(leases).await?;
     // A stored address that no longer parses was stored by something else, and
     // is refused the way a typed one would be.
@@ -452,7 +456,7 @@ async fn refresh_channel<L: Leases>(
         etag: source.etag.clone(),
         last_modified: source.last_modified.clone(),
     };
-    let read = read_address(fetcher, &url, &validators).await?;
+    let read = read_address(leases, fetcher, &url, &validators).await?;
     let (FeedRead::Unchanged { address } | FeedRead::Fresh { address, .. }) = &read;
     let current = settle_address(leases, source.id, &url, address).await?;
     // The picture needs fetching when its address moved, or when the cache lost
@@ -540,6 +544,9 @@ async fn update_artwork<L: Leases>(
     if known.is_some_and(|hash| {
         waveflow_core::artwork::metadata::existing_path(artwork_dir, hash).is_some()
     }) {
+        return;
+    }
+    if enabled_or_refuse(leases).await.is_err() {
         return;
     }
     let bytes = match fetcher
