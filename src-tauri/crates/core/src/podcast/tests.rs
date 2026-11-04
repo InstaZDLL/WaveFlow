@@ -302,7 +302,7 @@ fn a_document_that_decodes_too_large_is_refused() {
 }
 
 /// Episodes are built only up to a bound before the newest are picked, whatever a document
-/// holds: past it, an item is not looked at.
+/// holds: past it, an item with an enclosure is not read.
 #[test]
 fn only_so_many_items_are_read() {
     let items: String = (0..20_010)
