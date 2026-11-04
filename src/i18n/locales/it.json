@@ -1090,7 +1090,11 @@
       "title": "Velocità di riproduzione",
       "slider": "Cursore della velocità",
       "custom": "Velocità personalizzata",
-      "pitchHint": "Il tono segue la velocità (nessun time-stretching)."
+      "keepPitch": "Mantieni l'intonazione",
+      "transpose": "Trasposizione",
+      "transposeDown": "Giù di un semitono",
+      "transposeUp": "Su di un semitono",
+      "transposeReset": "Torna all'intonazione originale"
     },
     "seek": "Posizione",
     "alert": {
@@ -1648,7 +1652,8 @@
         "dopNative": "DSD nativo",
         "volume": "Volume {{value}} %",
         "balance": "Bilanciamento",
-        "width": "Ampiezza {{value}}%"
+        "width": "Ampiezza {{value}}%",
+        "pitch": "Intonazione {{value}}"
       }
     },
     "outputMode": {

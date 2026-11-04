@@ -369,6 +369,20 @@ export const SETTINGS = {
     100,
     "settings.stereoImage.width.title",
   ),
+  "audio.keep_pitch": setting(
+    "playback",
+    "profile",
+    "bool",
+    true,
+    "player.speed.keepPitch",
+  ),
+  "audio.pitch_semitones": setting(
+    "playback",
+    "profile",
+    "int",
+    0,
+    "player.speed.transpose",
+  ),
   "audio.dsd_precision": setting<DsdPrecisionTaps>(
     "playback",
     "profile",

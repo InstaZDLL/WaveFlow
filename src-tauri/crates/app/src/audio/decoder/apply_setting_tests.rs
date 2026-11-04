@@ -17,6 +17,8 @@ fn every_setting_lands_without_a_track() {
         AudioCmd::SetReplayGain(true),
         AudioCmd::SetGapless(false),
         AudioCmd::SetSpeed(1.5),
+        AudioCmd::SetKeepPitch(false),
+        AudioCmd::SetPitchSemitones(-3),
         AudioCmd::SetBalance(-40),
         AudioCmd::SetStereoWidth(150),
     ] {
@@ -31,6 +33,8 @@ fn every_setting_lands_without_a_track() {
     assert!(shared.replaygain_enabled.load(Ordering::Acquire));
     assert!(!shared.gapless_enabled.load(Ordering::Acquire));
     assert!((shared.playback_speed() - 1.5).abs() < f32::EPSILON);
+    assert!(!shared.keep_pitch.load(Ordering::Acquire));
+    assert_eq!(shared.pitch_semitones.load(Ordering::Acquire), -3);
 }
 
 #[test]

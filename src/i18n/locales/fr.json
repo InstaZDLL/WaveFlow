@@ -1090,7 +1090,11 @@
       "title": "Vitesse de lecture",
       "slider": "Curseur de vitesse",
       "custom": "Vitesse personnalisée",
-      "pitchHint": "La hauteur suit la vitesse (pas d'étirement temporel)."
+      "keepPitch": "Conserver la hauteur",
+      "transpose": "Transposition",
+      "transposeDown": "Baisser d'un demi-ton",
+      "transposeUp": "Monter d'un demi-ton",
+      "transposeReset": "Revenir à la hauteur d'origine"
     },
     "seek": "Position",
     "alert": {
@@ -1648,7 +1652,8 @@
         "dopNative": "DSD natif",
         "volume": "Volume {{value}} %",
         "balance": "Balance",
-        "width": "Largeur {{value}} %"
+        "width": "Largeur {{value}} %",
+        "pitch": "Hauteur {{value}}"
       }
     },
     "outputMode": {
