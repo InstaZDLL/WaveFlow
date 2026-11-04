@@ -48,6 +48,7 @@ import { RatingNoticeToast } from "../common/RatingNoticeToast";
 import { PluginAttentionToast } from "../common/PluginAttentionToast";
 import { ViewSuspenseFallback } from "../common/ViewSuspenseFallback";
 import { ViewErrorBoundary } from "../common/ViewErrorBoundary";
+import { PodcastDialogsHost } from "../podcasts/PodcastDialogsHost";
 import { retryableLazy } from "../../lib/preloadable";
 import {
   OPEN_TAG_WORKSHOP_EVENT,
@@ -103,6 +104,9 @@ const PlayerBarTour = retryableLazy(() =>
 );
 const PluginUIView = retryableLazy(() =>
   import("../views/PluginUIView").then((module) => module.PluginUIView),
+);
+const PodcastsView = retryableLazy(() =>
+  import("../views/PodcastsView").then((module) => module.PodcastsView),
 );
 const AboutView = retryableLazy(() =>
   import("../views/AboutView").then((module) => module.AboutView),
@@ -162,6 +166,8 @@ type HistoryEntry =
       opened?: number;
     }
   | { id: "web-radio" }
+  // The channel open, so Back and Forward restore it; none is the overview.
+  | { id: "podcasts"; channelId?: number | null }
   | { id: "release-radar" }
   // The files it opened travel on the entry, so Back returns to the same
   // table; `opened` tells two openings of the same source apart, each a
@@ -596,6 +602,12 @@ export function AppLayout() {
     [replaceEntry],
   );
 
+  // Off a channel that is gone: replaced, so Back does not lead to it again.
+  const leavePodcastChannel = useCallback(
+    () => replaceEntry({ id: "podcasts" }),
+    [replaceEntry],
+  );
+
   const openSettingsAt = useCallback(
     (settingsCategory: SettingsCategory) => {
       pushEntry({ id: "settings", settingsCategory });
@@ -748,6 +760,21 @@ export function AppLayout() {
         );
       case "web-radio":
         return <WebRadioView />;
+      case "podcasts":
+        return (
+          <PodcastsView
+            key={activeProfile?.id ?? 0}
+            channelId={
+              currentEntry.id === "podcasts"
+                ? (currentEntry.channelId ?? null)
+                : null
+            }
+            onOpenChannel={(channelId) =>
+              pushEntry({ id: "podcasts", channelId })
+            }
+            onChannelGone={leavePodcastChannel}
+          />
+        );
       case "extensions":
         return <ExtensionsView />;
       case "release-radar":
@@ -1099,6 +1126,7 @@ export function AppLayout() {
             />
           </Suspense>
         )}
+        <PodcastDialogsHost />
         {whatsNew.shown && (
           <Suspense fallback={null}>
             <WhatsNewPanel

@@ -7,6 +7,7 @@ import { EnrichmentCard } from "../EnrichmentCard";
 import { RadioCatalogueCard } from "../RadioCatalogueCard";
 import { SettingsCategoryHeader } from "../SettingsCategoryHeader";
 import { SettingsGroup } from "../SettingsGroup";
+import { PodcastsCard } from "../PodcastsCard";
 import { ToggleSwitch } from "../ToggleSwitch";
 import {
   ArrowDownAZ,
@@ -443,6 +444,9 @@ export function LibrarySection({
       </SettingsGroup>
       <SettingsGroup id="enrichment" reveal={targetGroup === "enrichment"}>
         <EnrichmentCard />
+      </SettingsGroup>
+      <SettingsGroup id="podcasts" reveal={targetGroup === "podcasts"}>
+        <PodcastsCard />
       </SettingsGroup>
       <SettingsGroup id="biographies" reveal={targetGroup === "biographies"}>
         <ArtistBioSourceCard />

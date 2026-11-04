@@ -1,0 +1,413 @@
+/* ============================================================
+   Podcasts — the page's shapes, painted from tokens
+   ============================================================
+   `--pc-*` is what the page draws with. The classic layout maps it to
+   the zinc scale and the accent; the fluid layout maps it to `--fe-*`,
+   which every material on that layout already redeclares, so Fluid,
+   Liquid, Pulse, Editorial and Lounge need no rule of their own for a
+   colour. The view branches on `skin.layout` for its shapes, and
+   nothing here names a skin but the corners and the rules Editorial
+   writes at the end. */
+
+[data-podcasts] {
+  --pc-ink: var(--color-zinc-900);
+  --pc-ink-2: var(--color-zinc-600);
+  --pc-ink-3: var(--color-zinc-500);
+  --pc-surface: var(--color-zinc-50);
+  --pc-surface-raised: #fff;
+  --pc-tone: rgb(0 0 0 / 0.04);
+  --pc-tone-strong: rgb(0 0 0 / 0.08);
+  --pc-hairline: rgb(0 0 0 / 0.08);
+  --pc-accent: var(--accent-500);
+  --pc-accent-ink: #fff;
+  --pc-warn: var(--color-amber-700);
+  --pc-radius: 0.875rem;
+  --pc-radius-small: 0.625rem;
+}
+.dark [data-podcasts] {
+  --pc-ink: #fff;
+  --pc-ink-2: var(--color-zinc-300);
+  --pc-ink-3: var(--color-zinc-400);
+  --pc-surface: rgb(255 255 255 / 0.03);
+  --pc-surface-raised: var(--color-zinc-900);
+  --pc-tone: rgb(255 255 255 / 0.05);
+  --pc-tone-strong: rgb(255 255 255 / 0.1);
+  --pc-hairline: rgb(255 255 255 / 0.08);
+  --pc-accent: var(--accent-400);
+  --pc-accent-ink: #0b0b0e;
+  --pc-warn: var(--color-amber-300);
+}
+:root[data-layout="fluid"] [data-podcasts] {
+  --pc-ink: var(--fe-ink);
+  --pc-ink-2: var(--fe-ink-2);
+  --pc-ink-3: var(--fe-ink-3);
+  --pc-surface: var(--fe-surface);
+  --pc-surface-raised: var(--fe-surface-2);
+  --pc-tone: var(--fe-tone-1);
+  --pc-tone-strong: var(--fe-tone-3);
+  --pc-hairline: var(--fe-hairline);
+  --pc-accent: var(--fe-accent);
+  --pc-accent-ink: var(--fe-accent-ink);
+  --pc-warn: color-mix(in srgb, var(--color-amber-400) 70%, var(--fe-ink));
+}
+
+/* ── Text ──────────────────────────────────────────────────── */
+[data-podcasts] .pc-title {
+  color: var(--pc-ink);
+  font-size: 0.9375rem;
+  font-weight: 540;
+}
+[data-podcasts] .pc-body {
+  color: var(--pc-ink-2);
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+[data-podcasts] .pc-meta {
+  color: var(--pc-ink-3);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+[data-podcasts] .pc-meta__part + .pc-meta__part::before {
+  content: "·";
+  margin-inline-end: 0.5rem;
+  opacity: 0.6;
+}
+[data-podcasts] .pc-label {
+  color: var(--pc-ink-2);
+  font-size: 0.8125rem;
+  font-weight: 540;
+}
+[data-podcasts] .pc-error {
+  color: var(--pc-warn);
+  font-size: 0.875rem;
+}
+[data-podcasts] .pc-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  color: var(--pc-ink-2);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  text-underline-offset: 2px;
+}
+[data-podcasts] .pc-link:hover {
+  color: var(--pc-ink);
+  text-decoration: underline;
+}
+[data-podcasts] .pc-heading {
+  padding: 1.5rem 0 0.75rem;
+}
+[data-podcasts] .pc-heading__title {
+  color: var(--pc-ink);
+  font-size: 1.25rem;
+  font-weight: 560;
+  letter-spacing: -0.015em;
+}
+[data-podcasts] .pc-more {
+  padding: 0.5rem 0 0.75rem;
+}
+
+/* ── Controls ──────────────────────────────────────────────── */
+[data-podcasts] .pc-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 2.5rem;
+  padding: 0 1rem;
+  border-radius: 9999px;
+  background-color: var(--pc-tone-strong);
+  color: var(--pc-ink);
+  font-size: 0.875rem;
+  font-weight: 540;
+  white-space: nowrap;
+  transition:
+    filter 180ms ease-out,
+    background-color 180ms ease-out;
+}
+[data-podcasts] .pc-button[data-primary] {
+  background-color: var(--pc-accent);
+  color: var(--pc-accent-ink);
+}
+[data-podcasts] .pc-button:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+[data-podcasts] .pc-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+[data-podcasts] .pc-icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex-shrink: 0;
+  border-radius: var(--pc-radius-small);
+  color: var(--pc-ink-3);
+  transition:
+    color 180ms ease-out,
+    background-color 180ms ease-out;
+}
+[data-podcasts] .pc-icon-btn:hover:not(:disabled) {
+  color: var(--pc-ink);
+  background-color: var(--pc-tone-strong);
+}
+[data-podcasts] .pc-icon-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+[data-podcasts] .pc-icon-btn[aria-pressed="true"] {
+  color: var(--pc-accent);
+}
+[data-podcasts] .pc-play {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex-shrink: 0;
+  border-radius: 9999px;
+  background-color: var(--pc-tone-strong);
+  color: var(--pc-ink);
+  transition:
+    color 180ms ease-out,
+    background-color 180ms ease-out;
+}
+[data-podcasts] .pc-play:hover:not(:disabled) {
+  background-color: var(--pc-accent);
+  color: var(--pc-accent-ink);
+}
+[data-podcasts] .pc-play:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+[data-podcasts] .pc-field {
+  height: 2.5rem;
+  padding: 0 0.875rem;
+  border-radius: var(--pc-radius-small);
+  background-color: var(--pc-tone);
+  box-shadow: inset 0 0 0 1px var(--pc-hairline);
+  color: var(--pc-ink);
+  font-size: 0.875rem;
+}
+[data-podcasts] .pc-field::placeholder {
+  color: var(--pc-ink-3);
+}
+[data-podcasts] .pc-field:disabled {
+  opacity: 0.6;
+}
+[data-podcasts] .pc-field--select {
+  height: 2.25rem;
+  padding: 0 0.5rem;
+}
+/* The list of a native select draws on the system's ground. */
+[data-podcasts] .pc-field--select option {
+  background-color: var(--pc-surface-raised);
+  color: var(--pc-ink);
+}
+[data-podcasts] .pc-speed {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-inline-start: 0.25rem;
+}
+
+/* ── Blocks ────────────────────────────────────────────────── */
+[data-podcasts] .pc-card {
+  padding: 1rem 1.25rem;
+  border-radius: var(--pc-radius);
+  background-color: var(--pc-surface);
+  box-shadow: inset 0 0 0 1px var(--pc-hairline);
+}
+[data-podcasts] .pc-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--pc-radius-small);
+  background-color: var(--pc-tone);
+  color: var(--pc-ink-2);
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+[data-podcasts] .pc-notice[data-tone="warn"] {
+  color: var(--pc-warn);
+}
+[data-podcasts] .pc-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.0625rem 0.5rem;
+  border-radius: 9999px;
+  box-shadow: inset 0 0 0 1px var(--pc-hairline);
+  color: var(--pc-ink-3);
+  font-size: 0.6875rem;
+  font-weight: 540;
+  white-space: nowrap;
+}
+[data-podcasts] .pc-chip[data-tone="warn"] {
+  color: var(--pc-warn);
+}
+[data-podcasts] .pc-count {
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  background-color: var(--pc-tone-strong);
+  color: var(--pc-ink-2);
+  font-size: 0.75rem;
+  font-weight: 540;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+[data-podcasts] .pc-count--over {
+  position: absolute;
+  inset-block-end: 0.5rem;
+  inset-inline-start: 0.5rem;
+  background-color: rgb(0 0 0 / 0.72);
+  color: #fff;
+}
+
+/* ── A cover ───────────────────────────────────────────────── */
+[data-podcasts] .pc-cover {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: inherit;
+  background-color: var(--pc-tone-strong);
+  color: var(--pc-ink-3);
+}
+[data-podcasts] .pc-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+[data-podcasts] .pc-cover--hero {
+  border-radius: 1rem;
+}
+
+/* ── An episode ────────────────────────────────────────────── */
+[data-podcasts] .pc-episode {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+  padding: 0.875rem 0.5rem;
+  border-radius: var(--pc-radius-small);
+  box-shadow: 0 1px 0 var(--pc-hairline);
+  transition: background-color 180ms ease-out;
+}
+[data-podcasts] .pc-episode:hover {
+  background-color: var(--pc-tone);
+}
+[data-podcasts] .pc-episode[data-played] .pc-title {
+  color: var(--pc-ink-3);
+}
+[data-podcasts] .pc-episode__art {
+  width: 3rem;
+  height: 3rem;
+  flex-shrink: 0;
+  border-radius: var(--pc-radius-small);
+}
+[data-podcasts] .pc-episode__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+  flex-shrink: 0;
+}
+[data-podcasts] .pc-progress {
+  height: 3px;
+  margin-top: 0.5rem;
+  max-width: 24rem;
+  overflow: hidden;
+  border-radius: 9999px;
+  background-color: var(--pc-tone-strong);
+}
+[data-podcasts] .pc-progress > span {
+  display: block;
+  width: var(--pc-progress, 0%);
+  height: 100%;
+  border-radius: inherit;
+  background-color: var(--pc-accent);
+}
+
+/* ── A channel ─────────────────────────────────────────────── */
+[data-podcasts] .pc-channel-row {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  width: 100%;
+  padding: 0.625rem 0.5rem;
+  border-radius: var(--pc-radius-small);
+  text-align: start;
+  transition: background-color 180ms ease-out;
+}
+[data-podcasts] .pc-channel-row:hover {
+  background-color: var(--pc-tone);
+}
+[data-podcasts] .pc-channel-row__art {
+  width: 3.5rem;
+  height: 3.5rem;
+  flex-shrink: 0;
+  border-radius: var(--pc-radius-small);
+}
+[data-podcasts] .pc-channel-tile {
+  display: block;
+  min-width: 0;
+  text-align: start;
+}
+[data-podcasts] .pc-channel-tile__art {
+  position: relative;
+  display: block;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: var(--pc-radius);
+}
+[data-podcasts] .pc-channel-tile__art > .pc-cover {
+  width: 100%;
+  height: 100%;
+}
+[data-podcasts] .fe-tile > .pc-cover {
+  width: 100%;
+  height: 100%;
+}
+
+/* ── The page's own toast ──────────────────────────────────── */
+.pc-toast {
+  position: fixed;
+  inset-block-end: 6.5rem;
+  inset-inline-start: 50%;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: min(32rem, calc(100vw - 2rem));
+  padding: 0.75rem 0.5rem 0.75rem 1rem;
+  border-radius: 0.875rem;
+  background-color: var(--pc-surface-raised);
+  box-shadow:
+    inset 0 0 0 1px var(--pc-hairline),
+    0 18px 40px -18px rgb(0 0 0 / 0.6);
+  color: var(--pc-ink);
+  font-size: 0.875rem;
+  line-height: 1.4;
+  transform: translateX(-50%);
+}
+[dir="rtl"] .pc-toast {
+  transform: translateX(50%);
+}
+.pc-toast[data-tone="warn"] {
+  color: var(--pc-warn);
+}
+
+/* ── Editorial: paper has corners and rules, not tones ─────── */
+:root[data-skin="editorial"] [data-podcasts] {
+  --pc-radius: 0;
+  --pc-radius-small: 0;
+}
+:root[data-skin="editorial"] [data-podcasts] .pc-play,
+:root[data-skin="editorial"] [data-podcasts] .pc-count,
+:root[data-skin="editorial"] [data-podcasts] .pc-chip {
+  border-radius: 0;
+}
+:root[data-skin="editorial"] [data-podcasts] .pc-episode {
+  box-shadow: none;
+  border-block-end: 1px dotted var(--fe-hairline-strong);
+  border-radius: 0;
+}

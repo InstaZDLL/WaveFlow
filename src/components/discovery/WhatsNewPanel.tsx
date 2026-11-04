@@ -16,9 +16,11 @@ import {
 import { useLibrary } from "../../hooks/useLibrary";
 import { useModalA11y } from "../../hooks/useModalA11y";
 import { usePlayer } from "../../hooks/usePlayer";
+import { usePodcastsEnabled } from "../../hooks/usePodcastsEnabled";
 import { useWhatsNewAutoOpen, useWindowFocused } from "../../hooks/useWhatsNew";
 import {
   openPlaylistImport,
+  openPodcastWarning,
   openView,
   requestLyricsEditor,
 } from "../../lib/discovery";
@@ -69,6 +71,7 @@ export function WhatsNewPanel({
   const { currentTrack, openRightPanel, openTheater, playTracks } = usePlayer();
   const autoOpen = useWhatsNewAutoOpen();
   const focused = useWindowFocused();
+  const { enabled: podcastsOn } = usePodcastsEnabled();
 
   const holdsMusic = libraries.some((library) => library.track_count > 0);
   // The editor is keyed on the library row, which these do not have.
@@ -132,6 +135,9 @@ export function WhatsNewPanel({
     if (target.action.kind === "theater" && !currentTrack) {
       return t("whatsNew.needs.startsPlayback");
     }
+    if (target.action.kind === "podcasts" && !podcastsOn) {
+      return t("whatsNew.needs.podcastsWarning");
+    }
     return null;
   };
 
@@ -181,6 +187,10 @@ export function WhatsNewPanel({
         }
         case "playlistImport":
           openPlaylistImport();
+          return;
+        case "podcasts":
+          if (podcastsOn) openView({ view: "podcasts" });
+          else openPodcastWarning({ openPage: true });
           return;
       }
     } catch (err) {

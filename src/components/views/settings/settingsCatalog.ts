@@ -473,6 +473,17 @@ export const SETTINGS_CATEGORIES = [
         ],
       },
       {
+        id: "podcasts",
+        labelKey: "settings.organization.groups.podcasts",
+        hintKey: "settings.organization.groupHints.podcasts",
+        searchKeys: [
+          "settings.podcasts.title",
+          "settings.podcasts.subtitleOn",
+          "settings.podcasts.subtitleOff",
+          "settings.podcasts.stays",
+        ],
+      },
+      {
         id: "biographies",
         labelKey: "settings.organization.groups.biographies",
         hintKey: "settings.organization.groupHints.biographies",

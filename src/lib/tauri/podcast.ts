@@ -16,6 +16,26 @@ export interface PodcastUpdatedPayload {
   channel_id: number | null;
 }
 
+/** Emitted as a download moves along. */
+export const PODCAST_DOWNLOAD = "podcast:download";
+
+export type PodcastDownloadState =
+  "queued" | "running" | "done" | "failed" | "cancelled";
+
+export interface PodcastDownloadPayload {
+  episodeId: number;
+  state: PodcastDownloadState;
+  receivedBytes: number;
+  totalBytes: number | null;
+  /** One word when `state` is `failed`. */
+  errorWord: string | null;
+}
+
+export interface PodcastDownloadUsage {
+  usedBytes: number;
+  quotaBytes: number;
+}
+
 /** Mirrors `podcast::store::PodcastChannel`. */
 export interface PodcastChannel {
   id: number;
@@ -109,7 +129,7 @@ const ERROR_PREFIX = "podcast: ";
 
 /**
  * The word a refused command rejected with: `disabled`, `offline`,
- * `profile_changed`, `channel_gone`, or one from `FetchFailure::code` (`address_refused`,
+ * `profile_changed`, `channel_gone`, `open_failed`, or one from `FetchFailure::code` (`address_refused`,
  * `too_many_redirects`, `too_large`, `unreached`, `http_<status>`,
  * `invalid_feed`, `not_audio`, `quota_exceeded`). `null` for any other error.
  */
@@ -166,4 +186,59 @@ export function podcastExportOpml(
   path: string,
 ): Promise<PodcastOpmlExportReport> {
   return invoke<PodcastOpmlExportReport>("podcast_export_opml", { path });
+}
+
+/** Opens the channel's website in the person's browser. Its address stays in
+ *  the backend, which checks it is an http or https one. */
+export function podcastOpenSite(channelId: number): Promise<void> {
+  return invoke("podcast_open_site", { channelId });
+}
+
+/** Starts an episode, from its position; a played one starts over. */
+export function podcastPlayEpisode(episodeId: number): Promise<void> {
+  return invoke("podcast_play_episode", { episodeId });
+}
+
+export function podcastMarkPlayed(
+  episodeId: number,
+  played: boolean,
+): Promise<void> {
+  return invoke("podcast_mark_played", { episodeId, played });
+}
+
+export function podcastMarkChannelPlayed(
+  channelId: number,
+  played: boolean,
+): Promise<void> {
+  return invoke("podcast_mark_channel_played", { channelId, played });
+}
+
+/** One episode per channel: the one in progress first, else the newest unplayed. */
+export function podcastToListen(): Promise<PodcastEpisode[]> {
+  return invoke<PodcastEpisode[]>("podcast_to_listen");
+}
+
+/** `null` puts the channel back on the normal speed. */
+export function podcastSetChannelSpeed(
+  channelId: number,
+  speed: number | null,
+): Promise<void> {
+  return invoke("podcast_set_channel_speed", { channelId, speed });
+}
+
+export function podcastDownloadEpisode(episodeId: number): Promise<void> {
+  return invoke("podcast_download_episode", { episodeId });
+}
+
+export function podcastCancelDownload(episodeId: number): Promise<void> {
+  return invoke("podcast_cancel_download", { episodeId });
+}
+
+/** Removes the file and keeps the row. */
+export function podcastDeleteDownload(episodeId: number): Promise<void> {
+  return invoke("podcast_delete_download", { episodeId });
+}
+
+export function podcastDownloadUsage(): Promise<PodcastDownloadUsage> {
+  return invoke<PodcastDownloadUsage>("podcast_download_usage");
 }

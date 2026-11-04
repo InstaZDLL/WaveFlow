@@ -484,6 +484,7 @@
 @import "./styles/skins/pulse.css";
 @import "./styles/skins/editorial.css";
 @import "./styles/skins/lounge.css";
+@import "./styles/podcasts.css";
 
 /* The desktop lyrics window (#582) is transparent at the OS level, and
    the document has to be too, or it paints an opaque box over the
