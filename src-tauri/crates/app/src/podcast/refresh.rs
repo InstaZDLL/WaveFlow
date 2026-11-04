@@ -465,21 +465,14 @@ async fn refresh_channel<L: Leases>(
     // leave a channel at its new address with the old one's episodes.
     let pool = leases.lease().await?;
     let current = settle_address(&pool, source.id, &url, address).await?;
+    let settled = current == *address;
     // The picture needs fetching when its address moved, or when the cache lost
     // it: a cleared cache must not leave a channel without one for as long as
     // its feed does not change.
     let (refreshed, image_url, known) = match read {
-        FeedRead::Unchanged { .. } => {
-            with_busy_retry(|| store::record_unchanged(&pool, source.id)).await?;
-            (
-                Refreshed::Unchanged,
-                source.image_url.clone(),
-                source.artwork_hash.as_deref(),
-            )
-        }
         FeedRead::Fresh {
             feed, validators, ..
-        } => {
+        } if settled => {
             let image_url = feed.image_url.clone();
             let still_followed =
                 with_busy_retry(|| store::refresh_feed(&pool, source.id, &feed, &validators))
@@ -492,6 +485,16 @@ async fn refresh_channel<L: Leases>(
                 .as_deref()
                 .filter(|_| image_url == source.image_url);
             (Refreshed::Changed, image_url, known)
+        }
+        // A feed read at an address another channel follows is that channel's, and this
+        // one keeps what it has.
+        FeedRead::Unchanged { .. } | FeedRead::Fresh { .. } => {
+            with_busy_retry(|| store::record_unchanged(&pool, source.id)).await?;
+            (
+                Refreshed::Unchanged,
+                source.image_url.clone(),
+                source.artwork_hash.as_deref(),
+            )
         }
     };
     drop(pool);

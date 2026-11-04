@@ -1995,7 +1995,7 @@ async fn a_move_is_kept_when_the_feed_has_not_changed() {
 }
 
 /// A move onto an address another channel follows is refused: two rows cannot be
-/// one address, and the channel stays where it was.
+/// one address, and the channel stays where it was, with what it had.
 #[tokio::test]
 async fn a_move_onto_a_followed_address_leaves_the_channel() {
     let pool = enabled_pool().await;
@@ -2025,6 +2025,11 @@ async fn a_move_onto_a_followed_address_leaves_the_channel() {
     .unwrap();
     assert_eq!(summary.failed, 0);
     assert_eq!(stored_address(&pool, first).await, server.local("/feed"));
+    let episodes = store::list_episodes(&pool, first, 10, 0).await.unwrap();
+    assert!(
+        !episodes.is_empty() && episodes.iter().all(|episode| episode.title != "Other"),
+        "the other channel's episodes were stored under this one"
+    );
 }
 
 /// Subscribing through an address that has moved stores where it leads, and one
