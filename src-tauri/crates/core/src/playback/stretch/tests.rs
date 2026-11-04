@@ -63,6 +63,25 @@ fn only_a_real_shift_stretches() {
     assert_eq!(tape(1.25, 0.0).resampler_rate(44_100), 55_125);
 }
 
+/// A rebuild drains the ring, so it comes only when the audio changes.
+#[test]
+fn only_a_change_of_the_audio_counts() {
+    let shift = |speed, keep_pitch, semitones| TimeShift {
+        speed,
+        keep_pitch,
+        semitones,
+    };
+    let plain = shift(1.0, true, 0.0);
+    assert!(plain.same_audio(&shift(1.0, false, 0.0)));
+    assert!(!plain.same_audio(&shift(1.25, true, 0.0)));
+    assert!(!plain.same_audio(&shift(1.25, false, 0.0)));
+    assert!(!plain.same_audio(&shift(1.0, true, 2.0)));
+    assert!(!shift(1.25, true, 0.0).same_audio(&shift(1.25, false, 0.0)));
+    assert!(!shift(1.25, true, 0.0).same_audio(&shift(1.5, true, 0.0)));
+    assert!(!shift(1.0, true, 2.0).same_audio(&shift(1.0, true, 3.0)));
+    assert!(shift(1.25, true, 2.0).same_audio(&shift(1.25, true, 2.0)));
+}
+
 /// The resampler's part and the stretcher's always make up the speed asked for,
 /// or the clock would drift from the audio.
 #[test]

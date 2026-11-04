@@ -102,10 +102,6 @@ impl PlayerState {
 /// How far the pitch can be transposed, each way, in semitones.
 pub const MAX_PITCH_SEMITONES: i32 = 12;
 
-/// Any source rate: two shifts that tell the resampler the same at this one are
-/// the same shift.
-const RATE_PROBE: u32 = 48_000;
-
 /// Lock-free state block shared between threads.
 ///
 /// Layout invariants:
@@ -377,11 +373,6 @@ pub struct SharedPlayback {
     /// Transposition in semitones, clamped to
     /// `±`[`MAX_PITCH_SEMITONES`] on every write.
     pub pitch_semitones: AtomicI32,
-    /// Set when [`Self::keep_pitch`] or [`Self::pitch_semitones`] changed
-    /// what the decoder has to do. Apart from [`Self::speed_dirty`], which
-    /// the DoP path reads as "the user asked for a speed": neither of these
-    /// concerns that path, and it must leave them for the next PCM track.
-    pub shift_dirty: AtomicBool,
     /// Set by `player_set_speed` to tell the decoder thread to rebuild
     /// every stream's resampler at the new speed on the next decode
     /// cycle. Cleared by the decoder once consumed.
@@ -469,7 +460,6 @@ impl SharedPlayback {
             playback_speed_bits: AtomicU32::new(1.0_f32.to_bits()),
             keep_pitch: AtomicBool::new(true),
             pitch_semitones: AtomicI32::new(0),
-            shift_dirty: AtomicBool::new(false),
             speed_dirty: AtomicBool::new(false),
             dsd_taps: AtomicU32::new(256),
             dsd_dop_enabled: AtomicBool::new(false),
@@ -492,34 +482,15 @@ impl SharedPlayback {
         }
     }
 
-    /// Flag the decoder only when `apply` changes what it has to do: at 1×
-    /// with no transposition, keeping the pitch or not is the same audio,
-    /// and a rebuild would only cost a drained ring.
-    fn change_shift(&self, apply: impl FnOnce()) {
-        let before = self.time_shift();
-        apply();
-        let after = self.time_shift();
-        if before.stretches() != after.stretches()
-            || before.resampler_rate(RATE_PROBE) != after.resampler_rate(RATE_PROBE)
-        {
-            self.shift_dirty.store(true, Ordering::Release);
-        }
-    }
-
-    /// Whether the speed keeps the pitch, on a track that is playing. The
-    /// position is unaffected: either way the clock scales by the speed.
-    pub fn set_keep_pitch(&self, on: bool) {
-        self.change_shift(|| self.keep_pitch.store(on, Ordering::Release));
-    }
-
-    /// Transpose by `semitones`, on a track that is playing.
+    /// Transpose by `semitones`, clamped to what is supported. The decoder
+    /// compares [`Self::time_shift`] with what its stream was built for, and
+    /// rebuilds when the audio differs, whoever wrote it: the profile restore
+    /// writes these too, with nothing to tell it.
     pub fn set_pitch_semitones(&self, semitones: i32) {
-        self.change_shift(|| {
-            self.pitch_semitones.store(
-                semitones.clamp(-MAX_PITCH_SEMITONES, MAX_PITCH_SEMITONES),
-                Ordering::Release,
-            );
-        });
+        self.pitch_semitones.store(
+            semitones.clamp(-MAX_PITCH_SEMITONES, MAX_PITCH_SEMITONES),
+            Ordering::Release,
+        );
     }
 
     /// Write a new playback speed and flag the decoder to rebuild its

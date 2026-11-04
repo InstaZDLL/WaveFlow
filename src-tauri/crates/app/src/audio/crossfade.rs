@@ -55,6 +55,16 @@ impl MixWindow {
         }
     }
 
+    /// A plain crossfade over `fade_ms` of the outgoing track's own time, at
+    /// the output's `rate`. The fade starts when that much of the track is
+    /// left, so at another speed it lasts that much less or more on the output:
+    /// timed on the output's clock, at 1.25× a 6 s fade outlasted the track by
+    /// 1.2 s, and the outgoing side stopped with a fifth of its gain to go.
+    pub fn over_track_time(fade_ms: u64, rate: u32, speed: f32) -> Self {
+        let frames = (fade_ms * u64::from(rate)) / 1000;
+        Self::fixed((frames as f64 / f64::from(speed.max(0.01))).round() as u64)
+    }
+
     /// An AutoMix plan, from where the outgoing track stands.
     ///
     /// `now_us` is the outgoing track's position as the clock counts it

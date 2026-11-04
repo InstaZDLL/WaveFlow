@@ -39,10 +39,10 @@
 | ReplayGain pre-amp / fallback / clipping  | command layer                                                                       | decoder (re-read per buffer) |
 | `mono_enabled`, `stereo` (balance, width) | decoder (`AudioCmd::Set*`), command layer (profile restore)                         | decoder (re-read per buffer) |
 | `playback_speed_bits`, `speed_dirty`      | command layer / decoder                                                             | decoder + UI position math   |
-| `keep_pitch`, `pitch_semitones`, `shift_dirty` | decoder (on a command)                                                         | decoder                      |
+| `keep_pitch`, `pitch_semitones`           | decoder (on a command), profile restore                                             | decoder                      |
 | `current_track_id`, `seek_generation`     | decoder                                                                             | UI                           |
 
-`playback_speed_bits` is read on every position computation (UI 4 Hz + analytics) — see [`current_position_ms`](../../src-tauri/crates/app/src/audio/state.rs) and [playback / Playback speed and pitch](../features/playback.md#playback-speed-and-pitch). `speed_dirty` and `shift_dirty` are one-shot flags the decoder consumes once per `'pkt` loop iteration to rebuild the resampler and the stretcher.
+`playback_speed_bits` is read on every position computation (UI 4 Hz + analytics) — see [`current_position_ms`](../../src-tauri/crates/app/src/audio/state.rs) and [playback / Playback speed and pitch](../features/playback.md#playback-speed-and-pitch). `speed_dirty` is a one-shot flag the decoder consumes once per `'pkt` loop iteration to rebuild the resampler and the stretcher, which it also does when the pitch settings differ from what the stream was built for.
 
 ## Exclusive output (opt-in)
 

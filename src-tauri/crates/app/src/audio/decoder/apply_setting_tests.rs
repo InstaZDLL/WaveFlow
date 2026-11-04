@@ -35,8 +35,6 @@ fn every_setting_lands_without_a_track() {
     assert!((shared.playback_speed() - 1.5).abs() < f32::EPSILON);
     assert!(!shared.keep_pitch.load(Ordering::Acquire));
     assert_eq!(shared.pitch_semitones.load(Ordering::Acquire), -3);
-    // Nothing decodes: nothing to rebuild.
-    assert!(!shared.shift_dirty.load(Ordering::Acquire));
 }
 
 #[test]

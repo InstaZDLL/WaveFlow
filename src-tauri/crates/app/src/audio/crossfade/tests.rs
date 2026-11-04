@@ -37,3 +37,17 @@ fn equal_power_clamps_out_of_range_t() {
     assert_eq!(equal_power_gains(-0.5), equal_power_gains(0.0));
     assert_eq!(equal_power_gains(1.5), equal_power_gains(1.0));
 }
+
+/// A fade is as long as the track time left when it starts, whatever the speed.
+#[test]
+fn a_plain_fade_lasts_its_track_time_at_any_speed() {
+    assert_eq!(
+        MixWindow::over_track_time(6_000, 44_100, 1.0).fade,
+        MixWindow::fixed(264_600).fade
+    );
+    assert_eq!(
+        MixWindow::over_track_time(6_000, 44_100, 1.25).fade,
+        211_680
+    );
+    assert_eq!(MixWindow::over_track_time(6_000, 44_100, 0.5).fade, 529_200);
+}

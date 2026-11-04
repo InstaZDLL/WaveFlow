@@ -108,6 +108,21 @@ impl TimeShift {
     }
 }
 
+/// Any source rate: two shifts that come to the same at this one are the same.
+const RATE_PROBE: u32 = 48_000;
+
+impl TimeShift {
+    /// Whether a stream built for one can play the other as it is. At 1× with
+    /// no transposition, keeping the pitch or not is the same audio, and a
+    /// rebuild would only cost a drained ring.
+    pub fn same_audio(&self, other: &Self) -> bool {
+        self.resampler_rate(RATE_PROBE) == other.resampler_rate(RATE_PROBE)
+            && self.stretches() == other.stretches()
+            && (!self.stretches()
+                || self.stretch_tempo(RATE_PROBE) == other.stretch_tempo(RATE_PROBE))
+    }
+}
+
 /// The library failed to allocate, or was given a channel count it refuses.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StretchError(pub String);

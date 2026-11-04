@@ -727,9 +727,9 @@ Why this library is in [Choosing the library](#choosing-the-library).
 
 ### A change during a track
 
-`SharedPlayback::speed_dirty` and `shift_dirty` are polled once per `'pkt` iteration. The two are apart because the DoP path reads the first as "the user asked for a speed"; the second it leaves for the next PCM track, which takes the current values when it opens.
+`SharedPlayback::speed_dirty` is polled once per `'pkt` iteration, and the pitch settings are compared there with what the stream was built for, whoever wrote them: the profile restore writes them too, with nothing to tell it. DoP has no stream to compare; the next PCM track takes the current values when it opens.
 
-Every active stream is rebuilt (primary and prepared next), the local buffers are cleared and the ring is drained, so the audible transition is < 20 ms. Changing the pitch lock at 1× with no transposition changes no audio, and asks for nothing.
+Every active stream is rebuilt (primary and prepared next), the local buffers are cleared and the ring is drained, so the audible transition is < 20 ms. Changing the pitch lock at 1× with no transposition changes no audio, and costs nothing (`TimeShift::same_audio`).
 
 **The file goes back to the position heard.** What the ring and the buffers held was the audio right after it. Decoding on from where the decoder had got to skipped that audio, up to a ring's worth per change, with the clock staying behind: the lyrics ran late after each one. Not during a fade (the swap at its end restarts the clock on the incoming track), nor on a live stream, which has nowhere to go back to.
 
@@ -743,7 +743,7 @@ Both `current_position_ms()` and `session_listened_ms()` multiply the wall-clock
 
 ### Fades and AutoMix
 
-Nothing is turned off. `MixWindow::automix` places a fade in output frames from track time and the speed, and `faded_track_ms` sums what the fade has taken at the speed of each chunk, both of them unchanged, since a frame out is still `speed` frames of track. A stretched stream starts on its first frame, so `ActiveStream::output_delay_frames` is 0 there and AutoMix has no delay to take off. The gapless swap hands over at the exact end of the outgoing track.
+Nothing is turned off. `MixWindow::automix` places a fade in output frames from track time and the speed, and `faded_track_ms` sums what the fade has taken at the speed of each chunk, both of them unchanged, since a frame out is still `speed` frames of track. A plain fade is its length of track time too (`MixWindow::over_track_time`), so at 1.25× a 6 s fade lasts 4.8 s on the output, as long as what is left of the track. A stretched stream starts on its first frame, so `ActiveStream::output_delay_frames` is 0 there and AutoMix has no delay to take off. The gapless swap hands over at the exact end of the outgoing track.
 
 ### Persistence & commands
 

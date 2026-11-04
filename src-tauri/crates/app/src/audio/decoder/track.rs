@@ -85,10 +85,8 @@ pub(super) fn play_track(
     // inside decode_next builds against the correct effective input
     // rate from the very first packet. Without this, a track that
     // starts while speed != 1.0 would briefly resample at 1.0× and
-    // then trigger a rebuild on the next speed_dirty cycle. What the DoP
-    // path left raised is already in the value taken here.
+    // then trigger a rebuild on the next speed_dirty cycle.
     stream.set_time_shift(shared.time_shift());
-    shared.shift_dirty.store(false, Ordering::Release);
     // How far before the asked position the primary's last seek landed:
     // the clock counts from the position asked for, the audio from the
     // packet that holds it. AutoMix places its fade on the track's own
@@ -225,10 +223,14 @@ pub(super) fn play_track(
         // local already-resampled buffers. `set_playback_speed`
         // already rebased the position counters so the progress bar
         // stays continuous.
+        //
+        // The pitch settings have no flag: compared with what the stream
+        // was built for, a change comes through whoever made it, and one
+        // that leaves the audio as it was costs no drained ring. The DoP
+        // path has no stream to compare, and leaves them for the next one.
         let speed_changed = shared.speed_dirty.swap(false, Ordering::AcqRel);
-        let shift_changed = shared.shift_dirty.swap(false, Ordering::AcqRel);
-        if speed_changed || shift_changed {
-            let shift = shared.time_shift();
+        let shift = shared.time_shift();
+        if speed_changed || !stream.time_shift().same_audio(&shift) {
             stream.set_time_shift(shift);
             if let Err(err) = stream.rebuild_resampler(shift.speed, dst_sample_rate, dst_channels) {
                 tracing::warn!(?err, "resampler rebuild on speed change failed");
@@ -263,6 +265,11 @@ pub(super) fn play_track(
                 continue;
             }
             drain_ring_silent(producer, shared);
+        } else if stream.time_shift() != shift {
+            stream.set_time_shift(shift);
+            if let Some(next) = pending_next.as_mut() {
+                next.set_time_shift(shift);
+            }
         }
 
         // A-B repeat: when an A-B loop is armed and we've reached B,
@@ -426,7 +433,11 @@ pub(super) fn play_track(
                     mix_active = true;
                     shared.mixing.store(true, Ordering::Release);
                     faded_track_ms = 0.0;
-                    mix_window = MixWindow::fixed((effective_ms * dst_sample_rate as u64) / 1000);
+                    mix_window = MixWindow::over_track_time(
+                        effective_ms,
+                        dst_sample_rate,
+                        shared.playback_speed(),
+                    );
                     // One-shot — consume the dynamic override so the
                     // next prefetch starts from a clean slate.
                     shared.pending_next_crossfade_ms.store(0, Ordering::Release);

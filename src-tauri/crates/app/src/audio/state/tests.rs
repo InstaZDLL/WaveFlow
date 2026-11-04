@@ -10,40 +10,11 @@ fn the_pitch_lock_and_the_transposition_leave_the_clock_alone() {
     shared.samples_played.store(96_000, Ordering::Relaxed);
     let position = shared.current_position_ms();
     assert_eq!(position, 1_500);
-    shared.set_keep_pitch(false);
+    shared.keep_pitch.store(false, Ordering::Release);
     assert_eq!(shared.current_position_ms(), position);
     shared.set_pitch_semitones(4);
     assert_eq!(shared.current_position_ms(), position);
     assert_eq!(shared.session_listened_ms(), 1_500);
-}
-
-/// A rebuild drains the ring, so it is asked for only when the audio changes:
-/// at 1× with no transposition, keeping the pitch or not is the same audio, and
-/// the DoP path's own flag is left out of it.
-#[test]
-fn only_a_change_of_the_audio_asks_for_a_rebuild() {
-    let shared = SharedPlayback::new();
-    assert!(shared.time_shift().keep_pitch);
-    assert!(!shared.time_shift().stretches());
-
-    shared.set_keep_pitch(false);
-    assert!(!shared.shift_dirty.load(Ordering::Acquire));
-    shared.set_keep_pitch(true);
-    assert!(!shared.shift_dirty.load(Ordering::Acquire));
-
-    shared.set_pitch_semitones(0);
-    assert!(!shared.shift_dirty.load(Ordering::Acquire));
-    shared.set_pitch_semitones(2);
-    assert!(shared.shift_dirty.swap(false, Ordering::AcqRel));
-    assert!(!shared.speed_dirty.load(Ordering::Acquire));
-
-    shared.set_pitch_semitones(0);
-    shared.shift_dirty.store(false, Ordering::Release);
-    shared
-        .playback_speed_bits
-        .store(1.25_f32.to_bits(), Ordering::Release);
-    shared.set_keep_pitch(false);
-    assert!(shared.shift_dirty.swap(false, Ordering::AcqRel));
 }
 
 #[test]

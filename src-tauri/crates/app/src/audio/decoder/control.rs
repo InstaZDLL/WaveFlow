@@ -328,7 +328,7 @@ pub(super) fn drain_commands(
             Ok(AudioCmd::SetBalance(pct)) => shared.stereo.set_balance(pct),
             Ok(AudioCmd::SetStereoWidth(pct)) => shared.stereo.set_width(pct),
             Ok(AudioCmd::SetSpeed(v)) => shared.set_playback_speed(v),
-            Ok(AudioCmd::SetKeepPitch(on)) => shared.set_keep_pitch(on),
+            Ok(AudioCmd::SetKeepPitch(on)) => shared.keep_pitch.store(on, Ordering::Release),
             Ok(AudioCmd::SetPitchSemitones(v)) => shared.set_pitch_semitones(v),
             Ok(AudioCmd::Pause) => {
                 transition_state(shared, app, PlayerState::Paused, Some(track_id));
@@ -369,7 +369,9 @@ pub(super) fn drain_commands(
                         Ok(AudioCmd::SetBalance(pct)) => shared.stereo.set_balance(pct),
                         Ok(AudioCmd::SetStereoWidth(pct)) => shared.stereo.set_width(pct),
                         Ok(AudioCmd::SetSpeed(v)) => shared.set_playback_speed(v),
-                        Ok(AudioCmd::SetKeepPitch(on)) => shared.set_keep_pitch(on),
+                        Ok(AudioCmd::SetKeepPitch(on)) => {
+                            shared.keep_pitch.store(on, Ordering::Release)
+                        }
                         Ok(AudioCmd::SetPitchSemitones(v)) => shared.set_pitch_semitones(v),
                         // Same three-in-one arm as above. A stale load
                         // found while paused is skipped without clearing
