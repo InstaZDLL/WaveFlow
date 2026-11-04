@@ -77,6 +77,11 @@ impl Origin {
         }
     }
 
+    /// For what no person typed here: it reaches nothing local.
+    pub(crate) fn public() -> Self {
+        Self { public: true }
+    }
+
     pub(crate) fn is_public(self) -> bool {
         self.public
     }
@@ -160,6 +165,12 @@ impl Fetcher {
             offline,
             feed_deadline,
         })
+    }
+
+    /// Whether a request made now would be refused. For work that goes on reading
+    /// a body after [`Self::open`] has judged the hops.
+    pub(crate) fn is_offline(&self) -> bool {
+        (self.offline)()
     }
 
     /// Opens `url` under every rule above, following redirects by hand, and

@@ -379,6 +379,8 @@ pub(crate) fn setup(
     // profile's last check, and an overdue one waits five minutes after launch.
     // See [`crate::podcast::schedule`].
     crate::podcast::schedule::spawn(app.handle().clone());
+    // What a crash left in the downloaded episodes' folder. Local files only.
+    crate::podcast::download::spawn_sweeper(app.handle().clone());
 
     // DLNA / UPnP MediaServer auto-start. Reads the persisted
     // `dlna.enabled` flag at boot and forwards the config to

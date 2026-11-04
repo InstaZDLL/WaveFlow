@@ -80,9 +80,13 @@ const BLANKED_IN_AN_ARCHIVE: [(&str, &str, &str); 4] = [
     (
         "podcast_episode",
         "SELECT COUNT(*) FROM podcast_episode
-          WHERE enclosure_url IS NOT NULL OR chapters_url IS NOT NULL OR transcripts IS NOT NULL",
+          WHERE enclosure_url IS NOT NULL OR chapters_url IS NOT NULL OR transcripts IS NOT NULL
+             OR download_file IS NOT NULL",
+        // The downloaded files stay on this machine, so the rows must not say
+        // an episode is on disk where the archive lands.
         "UPDATE podcast_episode
-            SET enclosure_url = NULL, chapters_url = NULL, transcripts = NULL",
+            SET enclosure_url = NULL, chapters_url = NULL, transcripts = NULL,
+                download_file = NULL, download_size = NULL, downloaded_at = NULL",
     ),
     // Not a secret, but not the archive's to carry either: the warning was
     // accepted by a person on a machine.

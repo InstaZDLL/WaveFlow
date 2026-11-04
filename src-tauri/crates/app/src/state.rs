@@ -626,6 +626,7 @@ impl AppState {
         }
         // Its podcast switch and its channels are not the last one's.
         crate::podcast::schedule::profile_changed();
+        crate::podcast::download::profile_changed();
 
         Ok(())
     }

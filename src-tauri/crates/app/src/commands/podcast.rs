@@ -14,6 +14,7 @@ use waveflow_core::podcast::opml::{read_opml, write_opml};
 use waveflow_core::podcast::{FetchFailure, OpmlEntry, MAX_FEED_BYTES};
 
 use crate::error::{AppError, AppResult};
+use crate::podcast::download::{self, DownloadState, DownloadUpdate, Job};
 use crate::podcast::fetch::Fetcher;
 use crate::podcast::refresh::{
     self, Leases, OpmlImportReport, PodcastError, RefreshSummary, Subscribed,
@@ -65,18 +66,24 @@ pub async fn podcast_subscribe(
     Ok(with_artwork_path(channel, &state))
 }
 
-/// Stops following a channel and forgets its episodes. Available with the switch
-/// off: leaving must not depend on having opted in.
+/// Stops following a channel, forgets its episodes and removes the files they had
+/// downloaded. Available with the switch off: leaving must not depend on having
+/// opted in.
 #[tauri::command]
 pub async fn podcast_unsubscribe(
     app: AppHandle,
     state: State<'_, AppState>,
     channel_id: i64,
 ) -> AppResult<()> {
-    let pool = state.require_profile_pool().await?;
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
+    for job in download::queue().cancel_channel(profile_id, channel_id) {
+        download::emit(&app, job.episode_id, DownloadState::Cancelled);
+    }
+    let files = store::downloads_of_channel(&pool, channel_id).await?;
     if store::delete_channel(&pool, channel_id).await? {
         emit_updated(&app, Some(channel_id));
     }
+    download::remove_files(state.paths.profile_podcast_download_dir(profile_id), files).await;
     Ok(())
 }
 
@@ -196,4 +203,107 @@ pub async fn podcast_export_opml(
         written: written as u32,
         without_address: without_address as u32,
     })
+}
+
+/// Puts an episode in line to be kept on disk, one at a time. Answers once it is in
+/// line: the event `podcast:download` says the rest. Refused with the switch off or
+/// in offline mode, before anything is contacted. Asking for one already in line or
+/// already on disk starts nothing.
+#[tauri::command]
+pub async fn podcast_download_episode(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    episode_id: i64,
+) -> AppResult<()> {
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
+    if !store::is_enabled(&pool).await? {
+        return Err(PodcastError::Disabled.into());
+    }
+    if crate::offline::is_offline() {
+        return Err(PodcastError::Offline.into());
+    }
+    let episode = store::episode_download(&pool, episode_id)
+        .await?
+        .ok_or_else(|| AppError::Other(format!("podcast: {}", download::EPISODE_GONE)))?;
+    // A row restored from an archive until the feed is subscribed to again.
+    if episode.enclosure_url.is_none() {
+        return Err(PodcastError::Failed(FetchFailure::AddressRefused).into());
+    }
+    download::enqueue(
+        &app,
+        Job {
+            profile_id,
+            channel_id: episode.channel_id,
+            episode_id,
+        },
+    );
+    Ok(())
+}
+
+/// Takes an episode out of the line, or stops it where it is, and nothing is left on
+/// the disk. Nothing happens for one that is neither.
+#[tauri::command]
+pub async fn podcast_cancel_download(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    episode_id: i64,
+) -> AppResult<()> {
+    let profile_id = state.require_profile_id().await?;
+    if download::queue().cancel(profile_id, episode_id) {
+        download::emit(&app, episode_id, DownloadState::Cancelled);
+    }
+    Ok(())
+}
+
+/// Removes an episode's file and keeps its row, so its position stays. Available
+/// with the switch off and offline: what was kept stays removable.
+#[tauri::command]
+pub async fn podcast_delete_download(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    episode_id: i64,
+) -> AppResult<()> {
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
+    if download::queue().cancel(profile_id, episode_id) {
+        download::emit(&app, episode_id, DownloadState::Cancelled);
+    }
+    let dir = state.paths.profile_podcast_download_dir(profile_id);
+    if download::delete_download(&pool, &dir, episode_id).await? {
+        emit_updated(&app, None);
+    }
+    Ok(())
+}
+
+/// What the kept episodes weigh and what they may.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PodcastDownloadUsage {
+    pub used_bytes: u64,
+    pub quota_bytes: u64,
+}
+
+#[tauri::command]
+pub async fn podcast_download_usage(state: State<'_, AppState>) -> AppResult<PodcastDownloadUsage> {
+    let pool = state.require_profile_pool().await?;
+    Ok(PodcastDownloadUsage {
+        used_bytes: store::download_used_bytes(&pool, None).await?,
+        quota_bytes: store::download_quota_bytes(&pool).await?,
+    })
+}
+
+/// The downloads under way for the active profile, for a page opened meanwhile: no
+/// event replays for it. Numbers come with the next `podcast:download`.
+#[tauri::command]
+pub async fn podcast_download_queue(state: State<'_, AppState>) -> AppResult<Vec<DownloadUpdate>> {
+    let profile_id = state.require_profile_id().await?;
+    let (running, waiting) = download::queue().in_flight(profile_id);
+    Ok(running
+        .into_iter()
+        .map(|id| DownloadUpdate::at(id, DownloadState::Running))
+        .chain(
+            waiting
+                .into_iter()
+                .map(|id| DownloadUpdate::at(id, DownloadState::Queued)),
+        )
+        .collect())
 }

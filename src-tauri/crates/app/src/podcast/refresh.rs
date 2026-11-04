@@ -35,7 +35,7 @@ use crate::error::AppError;
 const MAX_COVER_BYTES: usize = waveflow_core::artwork::metadata::MAX_BYTES;
 
 /// How often a pass parked behind a library scan looks again.
-const SCAN_WAIT_POLL: Duration = Duration::from_millis(500);
+pub(super) const SCAN_WAIT_POLL: Duration = Duration::from_millis(500);
 
 /// Attempts at a write that keeps meeting a busy database.
 const MAX_WRITE_ATTEMPTS: u32 = 5;
@@ -658,7 +658,7 @@ async fn wait_out_library_scan(observer: &impl PassObserver) {
 /// Runs a write again while it meets a busy database, with a short backoff: a
 /// library scan or a play being recorded can hold the single writer for a
 /// moment, and a lost write here would be a feed fetched for nothing.
-async fn with_busy_retry<T, F, Fut>(mut write: F) -> Result<T, sqlx::Error>
+pub(super) async fn with_busy_retry<T, F, Fut>(mut write: F) -> Result<T, sqlx::Error>
 where
     F: FnMut() -> Fut,
     Fut: Future<Output = Result<T, sqlx::Error>>,
