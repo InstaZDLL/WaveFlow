@@ -3,7 +3,6 @@ import {
   useEffect,
   useLayoutEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
 import { createPortal } from "react-dom";
@@ -670,9 +669,7 @@ function PodcastOverviewList({
     getItemKey: (index) => rows[index]?.key ?? index,
   });
 
-  const measuredRef = useRef<HTMLElement | null>(null);
   useLayoutEffect(() => {
-    measuredRef.current = parentRef.current;
     const element = parentRef.current;
     if (!element) return;
     const measure = () => {

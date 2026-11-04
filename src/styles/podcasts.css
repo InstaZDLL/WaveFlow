@@ -191,6 +191,10 @@
 [data-podcasts] .pc-field::placeholder {
   color: var(--pc-ink-3);
 }
+[data-podcasts] .pc-field:focus-visible {
+  outline: 2px solid var(--pc-accent);
+  outline-offset: 1px;
+}
 [data-podcasts] .pc-field:disabled {
   opacity: 0.6;
 }
@@ -400,6 +404,9 @@
 :root[data-skin="editorial"] [data-podcasts] {
   --pc-radius: 0;
   --pc-radius-small: 0;
+  /* The primary action in ink: the accent is the rubric's. */
+  --pc-accent: var(--ed-ink);
+  --pc-accent-ink: var(--ed-paper);
 }
 :root[data-skin="editorial"] [data-podcasts] .pc-play,
 :root[data-skin="editorial"] [data-podcasts] .pc-count,
@@ -410,4 +417,10 @@
   box-shadow: none;
   border-block-end: 1px dotted var(--fe-hairline-strong);
   border-radius: 0;
+}
+:root[data-skin="editorial"] [data-podcasts] .pc-button {
+  border-radius: 0;
+}
+:root[data-skin="editorial"] [data-podcasts] .pc-cover--hero {
+  border-radius: 0 !important;
 }

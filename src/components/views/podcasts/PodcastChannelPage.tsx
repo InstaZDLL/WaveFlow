@@ -193,6 +193,15 @@ export function PodcastChannelPage({
     if (revision > 0) reload();
   }, [revision, reload]);
 
+  // The row that led here is gone with the list it was in, which leaves the focus
+  // on the body: a keyboard carries on from the top of this page, not of the app.
+  const backRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (document.activeElement === document.body) {
+      backRef.current?.focus({ preventScroll: true });
+    }
+  }, []);
+
   const { parentRef, virtualizer, scrollMargin } = usePageVirtualizer({
     count: pages.episodes.length,
     estimateSize: () => 112,
@@ -222,7 +231,12 @@ export function PodcastChannelPage({
 
   return (
     <div className="space-y-6">
-      <button type="button" className="pc-link pc-back" onClick={onBack}>
+      <button
+        ref={backRef}
+        type="button"
+        className="pc-link pc-back"
+        onClick={onBack}
+      >
         <ArrowLeft size={14} className="rtl:rotate-180" aria-hidden="true" />
         {t("podcasts.channel.back")}
       </button>
