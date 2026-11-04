@@ -190,6 +190,24 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const playingEpisodeId = isPodcastTrack(currentTrack)
     ? (currentTrack?.podcast_episode_id ?? null)
     : null;
+  // The episode whose transcript was asked for, and the one in the player then.
+  // Another episode in the player ends the request for good, so the panel follows it
+  // and does not go back when that one comes round again. The player leaving episodes
+  // altogether leaves what someone was reading.
+  const [transcriptRequest, setTranscriptRequest] = useState<{
+    episodeId: number;
+    whilePlaying: number | null;
+  } | null>(null);
+  if (
+    transcriptRequest &&
+    transcriptRequest.whilePlaying !== playingEpisodeId
+  ) {
+    setTranscriptRequest(
+      playingEpisodeId == null
+        ? { episodeId: transcriptRequest.episodeId, whilePlaying: null }
+        : null,
+    );
+  }
   // Stable Web Radio station identity, separate from the now-playing
   // song (which the ICY de-interleaver overwrites). Set from
   // `player:radio-metadata`, hydrated on mount, cleared when a library
@@ -422,6 +440,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     // would linger true through the `currentTrack` null window and reopen
     // the view once the new profile's first track lands.
     setImmersiveOpen(false);
+    // An episode's id means something else in the next profile, and what the panel
+    // holds is the last one's. Closed for the same reason the view above is.
+    setTranscriptRequest(null);
+    setActiveRightPanel((panel) => (panel === "transcript" ? null : panel));
 
     let cancelled = false;
     (async () => {
@@ -1001,13 +1023,6 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     [],
   );
   const closeRightPanel = useCallback(() => setActiveRightPanel(null), []);
-  // The episode whose transcript was asked for, and the one in the player then. A
-  // new episode in the player is worked out rather than written, so the panel follows
-  // it without an effect.
-  const [transcriptRequest, setTranscriptRequest] = useState<{
-    episodeId: number;
-    whilePlaying: number | null;
-  } | null>(null);
   const openTranscript = useCallback(
     (episodeId: number) => {
       setTranscriptRequest({ episodeId, whilePlaying: playingEpisodeId });
@@ -1015,10 +1030,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     },
     [playingEpisodeId],
   );
-  const transcriptEpisodeId =
-    transcriptRequest && transcriptRequest.whilePlaying === playingEpisodeId
-      ? transcriptRequest.episodeId
-      : (playingEpisodeId ?? transcriptRequest?.episodeId ?? null);
+  const transcriptEpisodeId = transcriptRequest?.episodeId ?? playingEpisodeId;
   const toggleDeviceMenu = useCallback(
     () => setIsDeviceMenuOpen((p) => !p),
     [],

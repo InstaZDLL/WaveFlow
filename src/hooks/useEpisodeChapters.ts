@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { usePlayer } from "./usePlayer";
 import { useProfile } from "./useProfile";
+import { episodeInPlayer } from "../lib/playerSources";
 import {
   podcastEpisodeChapters,
   podcastErrorWord,
@@ -15,11 +17,12 @@ const inFlight = new Map<string, Promise<PodcastEpisodeChapters>>();
 function ask(
   profileId: number | null,
   episodeId: number,
+  again: boolean,
 ): Promise<PodcastEpisodeChapters> {
   const key = `${profileId ?? 0}:${episodeId}`;
   const running = inFlight.get(key);
   if (running) return running;
-  const request = podcastEpisodeChapters(episodeId).finally(() =>
+  const request = podcastEpisodeChapters(episodeId, again).finally(() =>
     inFlight.delete(key),
   );
   inFlight.set(key, request);
@@ -39,6 +42,7 @@ interface Read {
  */
 export function useEpisodeChapters(episodeId: number | null) {
   const { activeProfile } = useProfile();
+  const { currentTrack, playbackState, durationMs } = usePlayer();
   const profileId = activeProfile?.id ?? null;
   const [attempt, setAttempt] = useState(0);
   const [read, setRead] = useState<Read | null>(null);
@@ -47,7 +51,7 @@ export function useEpisodeChapters(episodeId: number | null) {
   useEffect(() => {
     if (episodeId == null) return;
     let cancelled = false;
-    ask(profileId, episodeId)
+    ask(profileId, episodeId, attempt > 0)
       .then((answer) => {
         if (!cancelled) {
           setRead({
@@ -65,12 +69,25 @@ export function useEpisodeChapters(episodeId: number | null) {
     return () => {
       cancelled = true;
     };
-  }, [episodeId, profileId, key]);
+  }, [episodeId, profileId, key, attempt]);
 
   const retry = useCallback(() => setAttempt((value) => value + 1), []);
   const settled = read?.key === key ? read : null;
+  // A chapter past the end of what the player measured is an impossible time like
+  // any other. Only here is that known: a feed's declared length is not to be
+  // believed, and going there would end the episode and mark it played.
+  const end =
+    episodeId != null &&
+    episodeInPlayer(currentTrack, playbackState) === episodeId
+      ? durationMs
+      : 0;
+  const all = settled?.chapters;
+  const chapters = useMemo(
+    () => (all ?? []).filter((chapter) => end <= 0 || chapter.start_ms < end),
+    [all, end],
+  );
   return {
-    chapters: settled?.chapters ?? [],
+    chapters,
     failure: settled?.failure ?? null,
     loading: episodeId != null && settled == null,
     retry,

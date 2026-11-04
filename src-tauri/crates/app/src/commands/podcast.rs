@@ -140,11 +140,13 @@ pub async fn podcast_get_episode(
 
 /// An episode's chapters, from the first source that has any. Called when an episode
 /// is opened: what was kept answers with nobody contacted, and so does the switch
-/// off or offline mode, with what can be read here.
+/// off or offline mode, with what can be read here. `again` is a person asking once
+/// more, past an answer of nothing that still holds.
 #[tauri::command]
 pub async fn podcast_episode_chapters(
     state: State<'_, AppState>,
     episode_id: i64,
+    again: Option<bool>,
 ) -> AppResult<EpisodeChapters> {
     let (_, profile_id) = state.require_profile_snapshot().await?;
     let leases = ProfileLeases {
@@ -153,7 +155,14 @@ pub async fn podcast_episode_chapters(
     };
     let fetcher = Fetcher::new().map_err(PodcastError::from)?;
     let downloads = state.paths.profile_podcast_download_dir(profile_id);
-    Ok(extras::chapters(&leases, &fetcher, &downloads, episode_id).await?)
+    Ok(extras::chapters(
+        &leases,
+        &fetcher,
+        &downloads,
+        episode_id,
+        again.unwrap_or(false),
+    )
+    .await?)
 }
 
 /// An episode's transcript. Only for a panel someone has opened, so that it is not

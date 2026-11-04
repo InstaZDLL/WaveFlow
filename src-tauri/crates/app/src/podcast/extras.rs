@@ -168,12 +168,14 @@ async fn read_file_tag(path: std::path::PathBuf) -> Vec<Chapter> {
 }
 
 /// An episode's chapters, the first source with a valid one winning: the feed's
-/// chapter file, its inline list, the tag of the MP3.
+/// chapter file, its inline list, the tag of the MP3. `again` is someone pressing
+/// Retry, which an answer of nothing does not hold against.
 pub(crate) async fn chapters<L: Leases>(
     leases: &L,
     fetcher: &Fetcher,
     downloads: &Path,
     episode_id: i64,
+    again: bool,
 ) -> Result<EpisodeChapters, PodcastError> {
     let (row, enabled) = {
         let pool = leases.lease().await?;
@@ -186,7 +188,8 @@ pub(crate) async fn chapters<L: Leases>(
     // Read against the row and not a clock, so a cache that says nothing readable is
     // no answer, however recently it was written.
     let unreadable = row.chapters_cache.is_some() && cached.is_none();
-    let recent = !unreadable
+    let recent = !again
+        && !unreadable
         && row
             .chapters_checked_at
             .is_some_and(|at| Utc::now().timestamp_millis() - at < RECHECK_AFTER_MS);
@@ -217,10 +220,12 @@ pub(crate) async fn chapters<L: Leases>(
 
     let mut from_file = None;
     if let Some(raw) = row.chapters_url.as_deref() {
-        if !may_ask {
+        // An answer that holds comes first: it needs nobody.
+        if recent {
+        } else if !may_ask {
             settled = false;
             failure = Some(refusal());
-        } else if !recent {
+        } else {
             let asked = ask_chapter_file(fetcher, raw, origin).await;
             settled = asked.settled;
             failure = asked.failure;
@@ -235,7 +240,7 @@ pub(crate) async fn chapters<L: Leases>(
         .unwrap_or_default();
 
     let mut from_tag = Vec::new();
-    if from_file.as_ref().is_none_or(Vec::is_empty) && inline.is_empty() {
+    if from_file.as_ref().map_or(true, Vec::is_empty) && inline.is_empty() {
         let on_disk = row
             .download_file
             .as_deref()
@@ -248,10 +253,11 @@ pub(crate) async fn chapters<L: Leases>(
         } else if let Some(url) =
             enclosure.filter(|url| id3::may_carry_tag(row.enclosure_type.as_deref(), url))
         {
-            if !may_ask {
+            if recent {
+            } else if !may_ask {
                 settled = false;
                 failure = failure.or_else(|| Some(refusal()));
-            } else if !recent {
+            } else {
                 let asked = ask_stream_tag(fetcher, &url, origin).await;
                 settled = settled && asked.settled;
                 failure = failure.or(asked.failure);

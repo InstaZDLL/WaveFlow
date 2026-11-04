@@ -194,8 +194,9 @@ fn read_text(kind: TranscriptKind, text: &str) -> Result<Document, ParseError> {
         TranscriptKind::Vtt => vtt::parse(text),
         TranscriptKind::Srt => srt::parse(text),
         TranscriptKind::TranscriptJson => transcript_json::parse(text),
-        // An error page served as text: its words, at least, and not its tags.
-        TranscriptKind::Text if opens_as_html(text) => Ok(untimed(&markup::html_to_text(text))),
+        // An error page served as text. Refused and not stripped: what was read is
+        // kept with no expiry, and a 200 saying "too many requests" must not be.
+        TranscriptKind::Text if opens_as_html(text) => Err(ParseError::NotTimedText),
         TranscriptKind::Text => Ok(untimed(text)),
         TranscriptKind::Html => Ok(untimed(&markup::html_to_text(text))),
     }

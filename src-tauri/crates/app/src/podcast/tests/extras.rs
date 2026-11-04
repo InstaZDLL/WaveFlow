@@ -81,6 +81,7 @@ async fn open_chapters(
         fetcher,
         Path::new("/nowhere"),
         episode,
+        false,
     )
     .await
 }
@@ -444,6 +445,84 @@ async fn a_failure_that_says_something_holds_and_one_that_does_not_is_asked_agai
 }
 
 #[tokio::test]
+async fn an_answer_of_nothing_holds_off_and_offline_and_retry_goes_past_it() {
+    let server = serve(|line| {
+        if line.contains("/gone") {
+            with_status("404 Not Found", "", b"")
+        } else {
+            with_status("200 OK", "", b"no tag here")
+        }
+    })
+    .await;
+    let online_fetcher = public_fetcher(&server);
+    let offline = offline_fetcher(&server);
+    let pool = enabled_pool().await;
+    let bare_mp3 = row(
+        &pool,
+        Row {
+            enclosure: Some(server.public("/a.mp3")),
+            ..Row::default()
+        },
+    )
+    .await;
+    let gone_file = row(
+        &pool,
+        Row {
+            chapters_url: Some(server.public("/gone")),
+            ..Row::default()
+        },
+    )
+    .await;
+    for episode in [bare_mp3, gone_file] {
+        open_chapters(&pool, &online_fetcher, episode)
+            .await
+            .unwrap();
+    }
+    let hits = server.hits();
+
+    // Rather than a failure to read what is known to have none.
+    for episode in [bare_mp3, gone_file] {
+        let answer = open_chapters(&pool, &offline, episode).await.unwrap();
+        assert_eq!(answer.failure, None, "offline");
+    }
+    switch(&pool, false).await;
+    for episode in [bare_mp3, gone_file] {
+        let answer = open_chapters(&pool, &online_fetcher, episode)
+            .await
+            .unwrap();
+        assert_eq!(answer.failure, None, "off");
+    }
+    switch(&pool, true).await;
+    assert_eq!(server.hits(), hits, "somebody was contacted");
+
+    // Someone pressing Retry is asked for by name.
+    let answer = chapters(
+        &TestLeases(pool.clone()),
+        &online_fetcher,
+        Path::new("/nowhere"),
+        gone_file,
+        true,
+    )
+    .await
+    .unwrap();
+    assert_eq!(answer.failure.as_deref(), Some("http_404"));
+    assert_eq!(server.hits(), hits + 1);
+
+    // It still asks nobody with the switch off.
+    switch(&pool, false).await;
+    chapters(
+        &TestLeases(pool.clone()),
+        &online_fetcher,
+        Path::new("/nowhere"),
+        gone_file,
+        true,
+    )
+    .await
+    .unwrap();
+    assert_eq!(server.hits(), hits + 1);
+}
+
+#[tokio::test]
 async fn off_or_offline_asks_nobody_and_reads_what_is_here() {
     let server = serve(|_| json_reply(CHAPTER_FILE)).await;
     let online_fetcher = public_fetcher(&server);
@@ -532,6 +611,7 @@ async fn a_downloaded_files_tag_needs_nobody_whatever_the_switches_say() {
         &offline_fetcher(&server),
         folder.path(),
         episode,
+        false,
     )
     .await
     .unwrap();
@@ -559,6 +639,7 @@ async fn a_downloaded_files_tag_needs_nobody_whatever_the_switches_say() {
         &offline_fetcher(&server),
         folder.path(),
         episode,
+        false,
     )
     .await
     .unwrap();

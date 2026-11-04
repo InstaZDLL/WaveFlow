@@ -16,6 +16,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 
+import { usePageTop } from "../../../hooks/usePageTop";
 import { usePlayer } from "../../../hooks/usePlayer";
 import {
   PODCAST_UPDATED,
@@ -59,6 +60,12 @@ function useEpisodeRow(
     podcastGetEpisode(episodeId)
       .then((row) => {
         if (mine !== seq.current) return;
+        // An entry kept across a profile switch names another profile's rows: the
+        // same id may well be an episode here, of some other channel.
+        if (row.channel_id !== channelId) {
+          goneRef.current();
+          return;
+        }
         setEpisode(row);
         setFailedWord(undefined);
       })
@@ -72,7 +79,7 @@ function useEpisodeRow(
         if (word == null) console.error("[podcasts] episode read failed", err);
         setFailedWord(word);
       });
-  }, [episodeId]);
+  }, [episodeId, channelId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -133,6 +140,7 @@ export function PodcastEpisodePage({
   onGone,
 }: PodcastEpisodePageProps) {
   const { t, i18n } = useTranslation();
+  usePageTop();
   const { openTranscript } = usePlayer();
   const { episode, failedWord, reload } = useEpisodeRow(
     episodeId,

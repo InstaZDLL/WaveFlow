@@ -55,7 +55,7 @@ interface PlayerContextValue {
   /** Closes whichever panel is up. */
   closeRightPanel: () => void;
   /** Whose transcript the panel shows: the one asked for by name until the player
-   *  moves to another episode, then that one. */
+   *  moves to another episode, then that one for good. */
   transcriptEpisodeId: number | null;
   /** Opens the transcript panel on an episode, playing or not. */
   openTranscript: (episodeId: number) => void;

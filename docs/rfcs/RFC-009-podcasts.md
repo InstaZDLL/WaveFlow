@@ -218,7 +218,7 @@ elsewhere or written to a file.
 first and four requests at most, since a host may serve an error page as its WebVTT. The
 text is kept as fetched and read again through the same readers each time, and a feed
 that names other sources drops what was kept. An episode has a page, which is what
-opening it means for its chapters; playing it asks for them too, for the player's list.
+opening it means for its chapters; the player's panel and menu ask for them when opened.
 
 ## Decision 11 — the server
 

@@ -447,13 +447,14 @@ fn the_panel_gets_text_times_and_speakers_and_no_markup() {
 }
 
 #[test]
-fn a_page_passed_off_as_a_timed_transcript_is_refused_and_as_text_loses_its_tags() {
+fn a_page_passed_off_as_a_transcript_is_refused_and_a_declared_page_loses_its_tags() {
     let page = b"<!DOCTYPE html><html><body><h1>Not found</h1><script>x()</script></body></html>";
     assert!(transcript::read(TranscriptKind::Vtt, page).is_err());
     assert!(transcript::read(TranscriptKind::Srt, page).is_err());
     assert!(transcript::read(TranscriptKind::TranscriptJson, page).is_err());
-    let as_text = transcript::read(TranscriptKind::Text, page).unwrap();
-    let lines = transcript::lines_of(&as_text);
+    assert!(transcript::read(TranscriptKind::Text, page).is_err());
+    let declared = transcript::read(TranscriptKind::Html, page).unwrap();
+    let lines = transcript::lines_of(&declared);
     assert_eq!(lines.len(), 1);
     assert_eq!(lines[0].text, "Not found");
     assert_eq!(lines[0].start_ms, None);
@@ -471,7 +472,8 @@ fn a_kept_transcript_is_read_like_one_just_fetched() {
     let huge = format!("WEBVTT\n\n{}", "x".repeat(11 * 1024 * 1024));
     assert!(transcript::read_cache(TranscriptKind::Vtt, &huge).is_err());
     // Text in a single-byte encoding grows when kept, and is still read back.
-    let latin: Vec<u8> = std::iter::repeat_n(0xe9_u8, 4 * 1024 * 1024)
+    let latin: Vec<u8> = std::iter::repeat(0xe9_u8)
+        .take(4 * 1024 * 1024)
         .chain(b"\nline\n".iter().copied())
         .collect();
     let kept = transcript::decode(&latin);

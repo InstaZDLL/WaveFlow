@@ -253,9 +253,11 @@ export function podcastGetEpisode(episodeId: number): Promise<PodcastEpisode> {
  *  with what can be read here. */
 export function podcastEpisodeChapters(
   episodeId: number,
+  again = false,
 ): Promise<PodcastEpisodeChapters> {
   return invoke<PodcastEpisodeChapters>("podcast_episode_chapters", {
     episodeId,
+    again,
   });
 }
 

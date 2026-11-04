@@ -2464,7 +2464,7 @@ async fn a_private_feeds_token_reaches_no_log_line() {
         .unwrap();
         healthy.store(path != "/gone", Ordering::SeqCst);
         let chapters =
-            super::extras::chapters(&leases, &fetcher, downloads.path(), episode_id).await;
+            super::extras::chapters(&leases, &fetcher, downloads.path(), episode_id, false).await;
         let transcript = super::extras::transcript(&leases, &fetcher, episode_id).await;
         tracing::warn!(?chapters, ?transcript, "episode extras");
         outputs.push(format!("{chapters:?} {transcript:?}"));
