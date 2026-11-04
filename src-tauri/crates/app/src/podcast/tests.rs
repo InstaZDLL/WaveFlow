@@ -1463,6 +1463,19 @@ async fn the_switch_is_read_again_when_the_wait_ends() {
     assert_eq!(timer.count(), 0);
 }
 
+/// A pass run by hand during the wait stamps the profile without waking the loop.
+/// When the old wait ends the check is no longer due, and no host is asked twice.
+#[tokio::test(start_paused = true)]
+async fn a_check_run_by_hand_moves_the_next_one() {
+    let timer = Timer::start(true, None);
+    timer.advance(Duration::from_secs(60)).await;
+    *timer.last_check.lock().unwrap() = Some(tokio::time::Instant::now());
+    timer.advance(GRACE).await;
+    assert_eq!(timer.count(), 0, "asked again right after a check by hand");
+    timer.advance(INTERVAL - GRACE).await;
+    assert_eq!(timer.count(), 1);
+}
+
 /// A pass that reached nobody, in offline mode, stamps nothing. It must come back
 /// after the grace and not spin, and it runs when offline mode ends.
 #[tokio::test(start_paused = true)]

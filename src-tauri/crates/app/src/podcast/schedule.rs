@@ -265,8 +265,9 @@ fn wait_before_check(since_last_check: Option<Duration>) -> Duration {
 /// The loop itself, with what it asks and what it runs passed in so a test can
 /// run it on a clock it controls.
 ///
-/// The switch is read again when the wait ends: it may have been turned off by a
-/// path that did not wake this, and the answer must be the one that holds now.
+/// Everything is read again when the wait ends: the switch may have been turned off,
+/// or a check run, by a path that did not wake this, and the answer must be the one
+/// that holds now.
 pub(crate) async fn run_schedule<S, SF, R, RF>(wake: &Notify, read: S, refresh: R)
 where
     S: Fn() -> SF,
@@ -283,8 +284,12 @@ where
             _ = tokio::time::sleep(wait_before_check(since_last_check)) => {}
             _ = wake.notified() => continue,
         }
-        if matches!(read().await, Schedule::On { .. }) {
-            refresh().await;
+        // A pass run by hand during the wait stamped the profile without waking this,
+        // and asking every host again now would be asking for nothing.
+        if let Schedule::On { since_last_check } = read().await {
+            if wait_before_check(since_last_check) <= OVERDUE_GRACE {
+                refresh().await;
+            }
         }
     }
 }
