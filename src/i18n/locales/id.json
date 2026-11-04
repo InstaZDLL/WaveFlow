@@ -3067,7 +3067,8 @@
         "lyricsDisplay": "Tampilan lirik",
         "diskUsage": "Ruang disk",
         "globalShortcuts": "Pintasan global",
-        "enrichment": "Pengayaan"
+        "enrichment": "Pengayaan",
+        "podcasts": "Podcast"
       },
       "navHints": {
         "general": "Bahasa, mulai, pemutaran",
@@ -3118,7 +3119,8 @@
         "reset": "Mulai lagi dengan aplikasi yang bersih",
         "diskUsage": "Apa yang disimpan WaveFlow di komputer ini",
         "globalShortcuts": "Dari aplikasi mana pun",
-        "enrichment": "Genre, tanggal, kredit, dan sampul dari MusicBrainz"
+        "enrichment": "Genre, tanggal, kredit, dan sampul dari MusicBrainz",
+        "podcasts": "Ikuti umpan, setelah kamu setuju"
       }
     },
     "desktopLyrics": {
@@ -3421,7 +3423,13 @@
       "cacheUsed_other": "Cache lokal: {{size}}, {{count}} lagu"
     },
     "podcasts": {
-      "title": "Podcast"
+      "title": "Podcast",
+      "subtitleOn": "Aktif: umpan diperiksa setiap enam jam selama aplikasi berjalan.",
+      "subtitleOff": "Mati: tidak ada yang dihubungi. Mengaktifkannya melewati sebuah peringatan dulu.",
+      "stays": "Yang tetap ada: langgananmu, posisi putarmu, dan episode yang sudah diunduh.",
+      "staysCount": "Kanal yang disimpan: {{n}}.",
+      "open": "Buka podcast",
+      "seeStays": "Lihat yang tetap ada"
     }
   },
   "scanProgress": {
@@ -4353,7 +4361,8 @@
     "needs": {
       "library": "Fitur ini perlu musik di pustaka Anda terlebih dahulu.",
       "track": "Putar lagu dari pustaka Anda untuk membuka editor dengan liriknya.",
-      "startsPlayback": "Tidak ada yang diputar: mencobanya akan memutar pustaka Anda secara acak."
+      "startsPlayback": "Tidak ada yang diputar: mencobanya akan memutar pustaka Anda secara acak.",
+      "podcastsWarning": "Tombolnya membuka peringatan dulu: tidak ada yang aktif tanpa persetujuanmu."
     },
     "pages": {
       "fluidInterface": {
@@ -4395,7 +4404,173 @@
         "title": "Impor daftar putar Anda",
         "body": "Berkas M3U, CSV, atau JSON, atau tautan daftar putar Deezer publik. Lagu yang belum Anda miliki tetap memegang tempatnya dan mengisinya sendiri saat tiba di pustaka Anda.",
         "keywords": "M3U|CSV|JSON|Deezer|ISRC|Lagu yang kurang"
+      },
+      "podcasts": {
+        "title": "Podcast telah hadir",
+        "body": "Berlangganan umpan, lanjutkan dari terakhir kamu berhenti, unduh untuk nanti. Podcast tetap mati sampai kamu setuju: sebuah podcast datang langsung dari penyedianya, yang melihat apa yang kamu putar.",
+        "keywords": "RSS|OPML|Untuk didengar|Luring"
       }
+    }
+  },
+  "podcasts": {
+    "kicker": "Dengarkan",
+    "channels": "Kanal",
+    "channelsCount_other": "{{count}} kanal",
+    "unplayedCount_other": "{{count}} belum didengar",
+    "episodesCount_other": "{{count}} episode",
+    "usage": "{{used}} diunduh dari {{quota}}",
+    "refreshAll": "Periksa semua",
+    "refreshing": "Memeriksa…",
+    "openSettings": "Pengaturan podcast",
+    "loading": "Memuat…",
+    "retry": "Coba lagi",
+    "showMore": "Tampilkan lebih banyak",
+    "showLess": "Tampilkan lebih sedikit",
+    "untitledChannel": "Kanal tanpa judul",
+    "untitledEpisode": "Episode tanpa judul",
+    "offlineBanner": "Mode luring: tidak ada umpan yang dihubungi. Hanya episode yang sudah diunduh yang bisa diputar.",
+    "off": {
+      "body": "Podcast dimatikan: tidak ada yang dihubungi. Langgananmu, posisi putarmu, dan episode yang sudah diunduh tetap ada.",
+      "action": "Aktifkan podcast…"
+    },
+    "empty": {
+      "title": "Belum ada langganan",
+      "body": "Ketik alamat umpan di atas, atau impor daftar OPML.",
+      "bodyOff": "Aktifkan podcast untuk mengikuti umpan pertamamu."
+    },
+    "dialog": {
+      "cancel": "Batal",
+      "close": "Tutup"
+    },
+    "warning": {
+      "title": "Sebelum mengaktifkan podcast",
+      "lead": "Tidak ada yang berubah sampai kamu mengonfirmasi. Inilah yang berubah setelahnya.",
+      "confirm": "Saya mengerti, aktifkan",
+      "failed": "Pengaktifan tidak bisa disimpan. Podcast tetap mati.",
+      "points": {
+        "hosts": {
+          "title": "Apa yang dilihat penyedia",
+          "body": "Umpan dan episode datang langsung dari penyedia tiap podcast. Penyedia itu, dan layanan pengukuran yang sering dilewati episode, melihat alamat IP-mu dan apa yang kamu putar."
+        },
+        "checks": {
+          "title": "Kapan WaveFlow memeriksa",
+          "body": "Umpan diperiksa setiap enam jam selama aplikasi berjalan, dan hanya saat itu."
+        },
+        "downloads": {
+          "title": "Ruang di disk",
+          "body": "Episode yang diunduh memakai ruang di disk, hingga batas kuota."
+        },
+        "stop": {
+          "title": "Cara menghentikan semuanya",
+          "body": "Mode luring menghentikan semuanya. Mematikan podcast menghentikannya untuk selamanya."
+        }
+      }
+    },
+    "subscribe": {
+      "label": "Berlangganan umpan",
+      "action": "Berlangganan",
+      "hint": "Alamat umpan RSS, dengan http atau https. Umpan dibaca dulu sebelum ditambahkan, jadi salah ketik tidak meninggalkan jejak."
+    },
+    "opml": {
+      "import": "Impor OPML",
+      "export": "Ekspor OPML",
+      "importDialogTitle": "Impor daftar umpan",
+      "exportDialogTitle": "Ekspor daftar umpan (berisi alamat-alamatnya)",
+      "exportTitle": "Ekspor langgananmu",
+      "exportBody": "File ini berisi alamat setiap umpan yang kamu ikuti. Alamat umpan privat kadang membawa akses pribadimu, jadi bagikan hanya kepada orang yang kamu percaya.",
+      "exportConfirm": "Pilih file…",
+      "exportMissing": "Kanal yang dipulihkan tanpa alamat, jadi tidak ada di file: {{missing}}.",
+      "exported": "Daftar disimpan. Umpan yang ditulis: {{written}} · Tanpa alamat: {{missing}}.",
+      "publicOnly": "Daftar OPML hanya menerima alamat publik. Umpan di jaringan lokalmu diketik sendiri di atas.",
+      "report": {
+        "title": "Impor daftar",
+        "summary": "Ditambahkan: {{added}} · Sudah diikuti: {{already}} · Gagal: {{failed}} · Dalam daftar: {{total}}",
+        "more": "Dan {{n}} lagi.",
+        "theFile": "File",
+        "outcome": {
+          "cancelled": "Impor dihentikan sebelum selesai.",
+          "offline": "Mode luring menghentikan impor.",
+          "disabled": "Podcast dimatikan selama impor.",
+          "profile_changed": "Profil berubah selama impor, sehingga impor berhenti.",
+          "already_running": "Pemeriksaan sedang berjalan. Coba lagi setelah selesai."
+        }
+      }
+    },
+    "refresh": {
+      "done": "Pemeriksaan selesai. Diperbarui: {{refreshed}} · Tidak berubah: {{unchanged}} · Gagal: {{failed}}",
+      "cancelled": "Pemeriksaan dihentikan.",
+      "offline": "Mode luring menghentikan pemeriksaan.",
+      "disabled": "Podcast dimatikan.",
+      "profile_changed": "Profil berubah selama pemeriksaan, sehingga pemeriksaan berhenti.",
+      "already_running": "Pemeriksaan sedang berjalan."
+    },
+    "toListen": {
+      "title": "Untuk didengar",
+      "failed": "Daftar ini tidak bisa dibaca.",
+      "inProgress": "Lanjutkan dari terakhir",
+      "newest": "Episode terbaru",
+      "resume": "Lanjutkan",
+      "listen": "Dengarkan",
+      "showAll": "Tampilkan semua ({{n}} lagi)"
+    },
+    "channel": {
+      "kicker": "Podcast",
+      "back": "Semua kanal",
+      "checked": "diperiksa pada {{when}}",
+      "refresh": "Periksa",
+      "markAllPlayed": "Tandai semua sudah didengar",
+      "markAllUnplayed": "Tandai semua belum didengar",
+      "openSite": "Situs kanal",
+      "unsubscribe": "Berhenti berlangganan",
+      "speed": "Kecepatan",
+      "speedNormal": "Normal",
+      "noEpisodes": "Kanal ini tidak punya episode.",
+      "lastFailure": "Pemeriksaan terakhir: {{reason}}",
+      "restoredChip": "Berlangganan lagi",
+      "failedChip": "Gagal"
+    },
+    "episode": {
+      "play": "Putar {{title}}",
+      "playAgain": "Putar {{title}} lagi",
+      "resume": "Lanjutkan {{title}}",
+      "markPlayed": "Tandai {{title}} sudah didengar",
+      "markUnplayed": "Tandai {{title}} belum didengar",
+      "download": "Unduh {{title}}",
+      "cancelDownload": "Batalkan unduhan {{title}}",
+      "deleteDownload": "Hapus file {{title}} ({{size}})",
+      "downloaded": "Diunduh",
+      "needsNetwork": "Tidak tersedia saat luring atau saat podcast dimatikan: hanya episode yang sudah diunduh yang bisa diputar.",
+      "noAddress": "Alamat episode ini tidak diketahui: berlangganan lagi ke kanalnya.",
+      "seasonEpisode": "S{{season}} · E{{episode}}",
+      "number": "Episode {{episode}}",
+      "remaining": "sisa {{time}}"
+    },
+    "restored": {
+      "title": "Alamat umpan ini sudah tidak diketahui",
+      "body": "Kanal ini berasal dari cadangan atau profil yang diimpor, yang tidak pernah menyimpan alamat umpan, sehingga kanal tidak lagi diperbarui. Berlangganan lagi ke alamat yang sama, atau impor ulang OPML-mu: posisi putar dan catatan yang sudah kamu dengar tetap tersimpan.",
+      "hint": "Alamat yang sama seperti sebelumnya. Daftar OPML hanya menerima alamat publik, jadi umpan di jaringan lokalmu diketik di sini.",
+      "summary": "Kanal yang perlu dilanggani lagi: {{n}}. Cadangan tidak menyimpan alamat umpan. Ketik ulang alamatnya atau impor ulang OPML-mu, dan posisi putarmu tetap tersimpan."
+    },
+    "unsubscribe": {
+      "title": "Berhenti berlangganan {{title}}?",
+      "body": "Kanal, episodenya, posisi putarmu, dan unduhannya akan dilupakan. Kamu bisa berlangganan lagi, tetapi tidak bisa kembali ke posisi terakhirmu.",
+      "confirm": "Berhenti berlangganan"
+    },
+    "errors": {
+      "disabled": "Podcast dimatikan.",
+      "offline": "Mode luring aktif: tidak ada yang dihubungi.",
+      "profile_changed": "Profil berubah sementara itu: tidak ada lagi yang ditulis.",
+      "channel_gone": "Kanal ini tidak lagi diikuti.",
+      "open_failed": "Peramban tidak bisa dibuka.",
+      "address_refused": "Alamat ini ditolak: harus http atau https, menyebut nama host, dan tidak boleh berisi kredensial. Umpan publik tidak boleh mengarah ke jaringan lokal.",
+      "too_many_redirects": "Umpan mengalihkan ke terlalu banyak alamat berturut-turut.",
+      "too_large": "File terlalu besar.",
+      "unreached": "Host tidak bisa dihubungi.",
+      "http": "Host menjawab dengan kesalahan ({{status}}).",
+      "invalid_feed": "Ini bukan umpan podcast yang bisa dibaca.",
+      "not_audio": "File ini bukan audio.",
+      "quota_exceeded": "Kuota unduhan sudah tercapai.",
+      "unknown": "Terjadi kesalahan."
     }
   }
 }

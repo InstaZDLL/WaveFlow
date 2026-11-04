@@ -3069,7 +3069,8 @@
         "lyricsDisplay": "Weergave van songteksten",
         "diskUsage": "Schijfruimte",
         "globalShortcuts": "Globale sneltoetsen",
-        "enrichment": "Verrijking"
+        "enrichment": "Verrijking",
+        "podcasts": "Podcasts"
       },
       "navHints": {
         "general": "Taal, opstarten, afspelen",
@@ -3120,7 +3121,8 @@
         "reset": "Opnieuw beginnen met een verse app",
         "diskUsage": "Wat WaveFlow op deze computer bewaart",
         "globalShortcuts": "Vanuit elke toepassing",
-        "enrichment": "Genres, datums, credits en hoezen van MusicBrainz"
+        "enrichment": "Genres, datums, credits en hoezen van MusicBrainz",
+        "podcasts": "Feeds volgen, met jouw toestemming"
       }
     },
     "desktopLyrics": {
@@ -3423,7 +3425,13 @@
       "cacheUsed_other": "Lokale cache: {{size}}, {{count}} nummers"
     },
     "podcasts": {
-      "title": "Podcasts"
+      "title": "Podcasts",
+      "subtitleOn": "Aan: feeds worden elke zes uur gecontroleerd zolang de app draait.",
+      "subtitleOff": "Uit: er wordt niets benaderd. Aanzetten gaat eerst via een waarschuwing.",
+      "stays": "Wat blijft: je abonnementen, je luisterposities en je gedownloade afleveringen.",
+      "staysCount": "Bewaarde kanalen: {{n}}.",
+      "open": "Podcasts openen",
+      "seeStays": "Bekijken wat blijft"
     }
   },
   "scanProgress": {
@@ -4355,7 +4363,8 @@
     "needs": {
       "library": "Hiervoor is eerst muziek in je bibliotheek nodig.",
       "track": "Speel een nummer uit je bibliotheek af om de editor op de songtekst ervan te openen.",
-      "startsPlayback": "Er speelt niets: proberen start je bibliotheek in willekeurige volgorde."
+      "startsPlayback": "Er speelt niets: proberen start je bibliotheek in willekeurige volgorde.",
+      "podcastsWarning": "De knop opent eerst een waarschuwing: zonder jouw akkoord gaat er niets aan."
     },
     "pages": {
       "fluidInterface": {
@@ -4397,7 +4406,176 @@
         "title": "Haal je afspeellijsten binnen",
         "body": "Een M3U-, CSV- of JSON-bestand, of de link naar een openbare Deezer-afspeellijst. Nummers die je niet hebt houden hun plek en vullen die vanzelf zodra ze in je bibliotheek komen.",
         "keywords": "M3U|CSV|JSON|Deezer|ISRC|Ontbrekende nummers"
+      },
+      "podcasts": {
+        "title": "Podcasts zijn er",
+        "body": "Abonneer je op een feed, ga verder waar je was gebleven en download voor later. Ze blijven uit tot je akkoord gaat: een podcast komt rechtstreeks van de aanbieder, en die ziet wat je afspeelt.",
+        "keywords": "RSS|OPML|Om te beluisteren|Offline"
       }
+    }
+  },
+  "podcasts": {
+    "kicker": "Luisteren",
+    "channels": "Kanalen",
+    "channelsCount_one": "{{count}} kanaal",
+    "channelsCount_other": "{{count}} kanalen",
+    "unplayedCount_one": "{{count}} niet beluisterd",
+    "unplayedCount_other": "{{count}} niet beluisterd",
+    "episodesCount_one": "{{count}} aflevering",
+    "episodesCount_other": "{{count}} afleveringen",
+    "usage": "{{used}} van {{quota}} gedownload",
+    "refreshAll": "Alles controleren",
+    "refreshing": "Bezig met controleren…",
+    "openSettings": "Podcastinstellingen",
+    "loading": "Laden…",
+    "retry": "Opnieuw proberen",
+    "showMore": "Meer tonen",
+    "showLess": "Minder tonen",
+    "untitledChannel": "Kanaal zonder titel",
+    "untitledEpisode": "Aflevering zonder titel",
+    "offlineBanner": "Offlinemodus: er wordt geen feed benaderd. Alleen gedownloade afleveringen kun je afspelen.",
+    "off": {
+      "body": "Podcasts staan uit: er wordt niets benaderd. Je abonnementen, je luisterposities en je gedownloade afleveringen blijven bewaard.",
+      "action": "Podcasts aanzetten…"
+    },
+    "empty": {
+      "title": "Geen abonnementen",
+      "body": "Typ hierboven het adres van een feed of importeer een OPML-lijst.",
+      "bodyOff": "Zet podcasts aan om je eerste feed te volgen."
+    },
+    "dialog": {
+      "cancel": "Annuleren",
+      "close": "Sluiten"
+    },
+    "warning": {
+      "title": "Voordat je podcasts aanzet",
+      "lead": "Er verandert niets zolang je niet bevestigt. Dit verandert er daarna.",
+      "confirm": "Begrepen, aanzetten",
+      "failed": "Het aanzetten kon niet worden opgeslagen. Podcasts blijven uit.",
+      "points": {
+        "hosts": {
+          "title": "Wat de aanbieders zien",
+          "body": "Feeds en afleveringen komen rechtstreeks van de aanbieder van elke podcast. Die aanbieder, en de meetdiensten waarlangs afleveringen vaak lopen, zien je IP-adres en wat je afspeelt."
+        },
+        "checks": {
+          "title": "Wanneer WaveFlow controleert",
+          "body": "Feeds worden elke zes uur gecontroleerd zolang de app draait, en alleen dan."
+        },
+        "downloads": {
+          "title": "Schijfruimte",
+          "body": "Gedownloade afleveringen nemen schijfruimte in beslag, tot aan het limiet."
+        },
+        "stop": {
+          "title": "Hoe je alles stopt",
+          "body": "De offlinemodus stopt alles. Podcasts uitzetten stopt het definitief."
+        }
+      }
+    },
+    "subscribe": {
+      "label": "Op een feed abonneren",
+      "action": "Abonneren",
+      "hint": "Het adres van de RSS-feed, met http of https. De feed wordt gelezen voordat hij wordt toegevoegd, dus een typefout laat niets achter."
+    },
+    "opml": {
+      "import": "OPML importeren",
+      "export": "OPML exporteren",
+      "importDialogTitle": "Een lijst met feeds importeren",
+      "exportDialogTitle": "De lijst met feeds exporteren (met hun adressen)",
+      "exportTitle": "Je abonnementen exporteren",
+      "exportBody": "Dit bestand bevat het adres van elke feed die je volgt. Het adres van een privéfeed bevat soms je persoonlijke toegang, dus deel het bestand alleen met mensen die je vertrouwt.",
+      "exportConfirm": "Bestand kiezen…",
+      "exportMissing": "Teruggezette kanalen zonder adres, dus niet in het bestand: {{missing}}.",
+      "exported": "Lijst opgeslagen. Feeds geschreven: {{written}} · Zonder adres: {{missing}}.",
+      "publicOnly": "Een OPML-lijst accepteert alleen openbare adressen. Een feed op je lokale netwerk typ je hierboven zelf in.",
+      "report": {
+        "title": "Import van de lijst",
+        "summary": "Toegevoegd: {{added}} · Al gevolgd: {{already}} · Mislukt: {{failed}} · In de lijst: {{total}}",
+        "more": "En nog {{n}}.",
+        "theFile": "Het bestand",
+        "outcome": {
+          "cancelled": "De import is voor het einde gestopt.",
+          "offline": "De offlinemodus heeft de import gestopt.",
+          "disabled": "Podcasts zijn tijdens de import uitgezet.",
+          "profile_changed": "Het profiel is tijdens de import gewijzigd, dus de import is gestopt.",
+          "already_running": "Er loopt al een controle. Probeer het opnieuw als die klaar is."
+        }
+      }
+    },
+    "refresh": {
+      "done": "Controle klaar. Bijgewerkt: {{refreshed}} · Ongewijzigd: {{unchanged}} · Mislukt: {{failed}}",
+      "cancelled": "De controle is gestopt.",
+      "offline": "De offlinemodus heeft de controle gestopt.",
+      "disabled": "Podcasts staan uit.",
+      "profile_changed": "Het profiel is tijdens de controle gewijzigd, dus de controle is gestopt.",
+      "already_running": "Er loopt al een controle."
+    },
+    "toListen": {
+      "title": "Om te beluisteren",
+      "failed": "Deze lijst kon niet worden gelezen.",
+      "inProgress": "Verdergaan waar je was",
+      "newest": "Nieuwste aflevering",
+      "resume": "Hervatten",
+      "listen": "Luisteren",
+      "showAll": "Alles tonen ({{n}} meer)"
+    },
+    "channel": {
+      "kicker": "Podcast",
+      "back": "Alle kanalen",
+      "checked": "gecontroleerd op {{when}}",
+      "refresh": "Controleren",
+      "markAllPlayed": "Alles als beluisterd markeren",
+      "markAllUnplayed": "Alles als niet beluisterd markeren",
+      "openSite": "Website van het kanaal",
+      "unsubscribe": "Abonnement opzeggen",
+      "speed": "Snelheid",
+      "speedNormal": "Normaal",
+      "noEpisodes": "Dit kanaal heeft geen afleveringen.",
+      "lastFailure": "Laatste controle: {{reason}}",
+      "restoredChip": "Opnieuw abonneren",
+      "failedChip": "Mislukt"
+    },
+    "episode": {
+      "play": "{{title}} afspelen",
+      "playAgain": "{{title}} opnieuw afspelen",
+      "resume": "{{title}} hervatten",
+      "markPlayed": "{{title}} als beluisterd markeren",
+      "markUnplayed": "{{title}} als niet beluisterd markeren",
+      "download": "{{title}} downloaden",
+      "cancelDownload": "Download van {{title}} annuleren",
+      "deleteDownload": "Bestand van {{title}} verwijderen ({{size}})",
+      "downloaded": "Gedownload",
+      "needsNetwork": "Offline of met podcasts uit niet beschikbaar: alleen een gedownloade aflevering kun je afspelen.",
+      "noAddress": "Het adres van deze aflevering is niet bekend: abonneer je opnieuw op het kanaal.",
+      "seasonEpisode": "S{{season}} · A{{episode}}",
+      "number": "Aflevering {{episode}}",
+      "remaining": "nog {{time}}"
+    },
+    "restored": {
+      "title": "Het adres van deze feed is niet meer bekend",
+      "body": "Dit kanaal komt uit een back-up of een geïmporteerd profiel. Die bewaren nooit de adressen van feeds, dus het kanaal wordt niet meer bijgewerkt. Abonneer je opnieuw op hetzelfde adres of importeer je OPML opnieuw: je luisterposities en wat je hebt beluisterd blijven bewaard.",
+      "hint": "Hetzelfde adres als eerder. Een OPML-lijst accepteert alleen openbare adressen, een feed op je lokale netwerk typ je hier in.",
+      "summary": "Kanalen om opnieuw op te abonneren: {{n}}. Een back-up bewaart geen feedadressen. Typ ze opnieuw in of importeer je OPML opnieuw, dan blijven je luisterposities bewaard."
+    },
+    "unsubscribe": {
+      "title": "Je abonnement op {{title}} opzeggen?",
+      "body": "Het kanaal, de afleveringen, je luisterposities en de downloads worden vergeten. Je kunt je weer abonneren, maar je weet dan niet meer waar je was gebleven.",
+      "confirm": "Abonnement opzeggen"
+    },
+    "errors": {
+      "disabled": "Podcasts staan uit.",
+      "offline": "De offlinemodus staat aan: er is niets benaderd.",
+      "profile_changed": "Het profiel is ondertussen gewijzigd: er is verder niets geschreven.",
+      "channel_gone": "Dit kanaal wordt niet meer gevolgd.",
+      "open_failed": "De browser kon niet worden geopend.",
+      "address_refused": "Dit adres wordt geweigerd: het moet met http of https beginnen, een host noemen en mag geen inloggegevens bevatten. Een openbare feed mag niet naar het lokale netwerk leiden.",
+      "too_many_redirects": "De feed verwijst door via te veel adressen achter elkaar.",
+      "too_large": "Het bestand is te groot.",
+      "unreached": "De host kon niet worden bereikt.",
+      "http": "De host antwoordde met een fout ({{status}}).",
+      "invalid_feed": "Dit is geen leesbare podcastfeed.",
+      "not_audio": "Dit bestand is geen audio.",
+      "quota_exceeded": "Het downloadlimiet is bereikt.",
+      "unknown": "Er ging iets mis."
     }
   }
 }

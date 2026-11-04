@@ -3069,7 +3069,8 @@
         "lyricsDisplay": "Şarkı sözü görünümü",
         "diskUsage": "Disk alanı",
         "globalShortcuts": "Genel kısayollar",
-        "enrichment": "Zenginleştirme"
+        "enrichment": "Zenginleştirme",
+        "podcasts": "Podcast'ler"
       },
       "navHints": {
         "general": "Dil, başlangıç, oynatma",
@@ -3120,7 +3121,8 @@
         "reset": "Uygulamayı sıfırdan başlat",
         "diskUsage": "WaveFlow'un bu bilgisayarda tuttukları",
         "globalShortcuts": "Herhangi bir uygulamadan",
-        "enrichment": "MusicBrainz'den türler, tarihler, katkıda bulunanlar ve kapaklar"
+        "enrichment": "MusicBrainz'den türler, tarihler, katkıda bulunanlar ve kapaklar",
+        "podcasts": "Sen izin verince akışları takip et"
       }
     },
     "desktopLyrics": {
@@ -3423,7 +3425,13 @@
       "cacheUsed_other": "Yerel önbellek: {{size}}, {{count}} parça"
     },
     "podcasts": {
-      "title": "Podcast'ler"
+      "title": "Podcast'ler",
+      "subtitleOn": "Açık: akışlar, uygulama çalıştığı sürece her altı saatte bir denetlenir.",
+      "subtitleOff": "Kapalı: hiçbir yere bağlanılmaz. Açmadan önce bir uyarı gösterilir.",
+      "stays": "Kalanlar: aboneliklerin, kaldığın yerler ve indirdiğin bölümler.",
+      "staysCount": "Saklanan kanal: {{n}}.",
+      "open": "Podcast'leri aç",
+      "seeStays": "Nelerin kaldığını gör"
     }
   },
   "scanProgress": {
@@ -4355,7 +4363,8 @@
     "needs": {
       "library": "Bunun için önce kitaplığınızda müzik olmalı.",
       "track": "Düzenleyiciyi şarkı sözleriyle açmak için kitaplığınızdan bir parça çalın.",
-      "startsPlayback": "Şu anda hiçbir şey çalmıyor: denediğinizde kitaplığınız karışık çalmaya başlar."
+      "startsPlayback": "Şu anda hiçbir şey çalmıyor: denediğinizde kitaplığınız karışık çalmaya başlar.",
+      "podcastsWarning": "Düğme önce bir uyarı açar: senin onayın olmadan hiçbir şey açılmaz."
     },
     "pages": {
       "fluidInterface": {
@@ -4397,7 +4406,176 @@
         "title": "Çalma listelerinizi aktarın",
         "body": "Bir M3U, CSV veya JSON dosyası ya da herkese açık bir Deezer çalma listesinin bağlantısı. Sizde olmayan parçalar yerlerini korur ve kitaplığınıza geldiklerinde kendiliğinden oraya yerleşir.",
         "keywords": "M3U|CSV|JSON|Deezer|ISRC|Eksik parçalar"
+      },
+      "podcasts": {
+        "title": "Podcast'ler geldi",
+        "body": "Bir akışa abone ol, kaldığın yerden devam et, sonrası için indir. Sen kabul edene kadar kapalı kalırlar: bir podcast doğrudan barındırıcısından gelir ve barındırıcı ne dinlediğini görür.",
+        "keywords": "RSS|OPML|Dinlenecekler|Çevrimdışı"
       }
+    }
+  },
+  "podcasts": {
+    "kicker": "Dinle",
+    "channels": "Kanallar",
+    "channelsCount_one": "{{count}} kanal",
+    "channelsCount_other": "{{count}} kanal",
+    "unplayedCount_one": "{{count}} dinlenmemiş",
+    "unplayedCount_other": "{{count}} dinlenmemiş",
+    "episodesCount_one": "{{count}} bölüm",
+    "episodesCount_other": "{{count}} bölüm",
+    "usage": "{{quota}} içinden {{used}} indirildi",
+    "refreshAll": "Hepsini denetle",
+    "refreshing": "Denetleniyor…",
+    "openSettings": "Podcast ayarları",
+    "loading": "Yükleniyor…",
+    "retry": "Yeniden dene",
+    "showMore": "Daha fazla göster",
+    "showLess": "Daha az göster",
+    "untitledChannel": "Başlıksız kanal",
+    "untitledEpisode": "Başlıksız bölüm",
+    "offlineBanner": "Çevrimdışı mod: hiçbir akışa bağlanılmaz. Yalnızca indirilmiş bölümler çalınır.",
+    "off": {
+      "body": "Podcast'ler kapalı: hiçbir yere bağlanılmaz. Aboneliklerin, kaldığın yerler ve indirdiğin bölümler burada durur.",
+      "action": "Podcast'leri aç…"
+    },
+    "empty": {
+      "title": "Abonelik yok",
+      "body": "Yukarıya bir akışın adresini yaz ya da bir OPML listesi içe aktar.",
+      "bodyOff": "İlk akışını takip etmek için podcast'leri aç."
+    },
+    "dialog": {
+      "cancel": "İptal",
+      "close": "Kapat"
+    },
+    "warning": {
+      "title": "Podcast'leri açmadan önce",
+      "lead": "Sen onaylayana kadar hiçbir şey değişmez. Onayladıktan sonra şunlar değişir.",
+      "confirm": "Anladım, aç",
+      "failed": "Bu ayar kaydedilemedi. Podcast'ler kapalı kalıyor.",
+      "points": {
+        "hosts": {
+          "title": "Barındıranların gördükleri",
+          "body": "Akışlar ve bölümler doğrudan her podcast'in barındırıcısından gelir. Barındırıcı ve bölümlerin sık sık içinden geçtiği ölçüm hizmetleri, IP adresini ve ne dinlediğini görür."
+        },
+        "checks": {
+          "title": "WaveFlow ne zaman denetler",
+          "body": "Akışlar, uygulama çalıştığı sürece her altı saatte bir denetlenir; yalnızca o zaman."
+        },
+        "downloads": {
+          "title": "Disk alanı",
+          "body": "İndirilen bölümler, belirlenen kotaya kadar disk alanı kaplar."
+        },
+        "stop": {
+          "title": "Hepsini nasıl durdurursun",
+          "body": "Çevrimdışı mod hepsini durdurur. Podcast'leri kapatmak ise kalıcı olarak durdurur."
+        }
+      }
+    },
+    "subscribe": {
+      "label": "Bir akışa abone ol",
+      "action": "Abone ol",
+      "hint": "RSS akışının adresi, http veya https ile. Akış eklenmeden önce okunur; bu yüzden yazım hatası arkasında bir iz bırakmaz."
+    },
+    "opml": {
+      "import": "OPML içe aktar",
+      "export": "OPML dışa aktar",
+      "importDialogTitle": "Akış listesini içe aktar",
+      "exportDialogTitle": "Akış listesini dışa aktar (adresleri içerir)",
+      "exportTitle": "Aboneliklerini dışa aktar",
+      "exportBody": "Bu dosya takip ettiğin her akışın adresini içerir. Özel bir akışın adresi bazen kişisel erişimini de taşır; dosyayı yalnızca güvendiğin kişilerle paylaş.",
+      "exportConfirm": "Dosyayı seç…",
+      "exportMissing": "Adressiz geri yüklenen kanallar, bu yüzden dosyada yok: {{missing}}.",
+      "exported": "Liste kaydedildi. Yazılan akış: {{written}} · Adressiz: {{missing}}.",
+      "publicOnly": "OPML listesi yalnızca herkese açık adresleri kabul eder. Yerel ağındaki bir akışı yukarıya elle yazmalısın.",
+      "report": {
+        "title": "Liste içe aktarma",
+        "summary": "Eklenen: {{added}} · Zaten takipte: {{already}} · Başarısız: {{failed}} · Listede: {{total}}",
+        "more": "Ve {{n}} tane daha.",
+        "theFile": "Dosya",
+        "outcome": {
+          "cancelled": "İçe aktarma bitmeden durduruldu.",
+          "offline": "Çevrimdışı mod içe aktarmayı durdurdu.",
+          "disabled": "İçe aktarma sırasında podcast'ler kapatıldı.",
+          "profile_changed": "İçe aktarma sırasında profil değişti, bu yüzden içe aktarma durdu.",
+          "already_running": "Bir denetim zaten sürüyor. Bitince yeniden dene."
+        }
+      }
+    },
+    "refresh": {
+      "done": "Denetim bitti. Güncellenen: {{refreshed}} · Değişmeyen: {{unchanged}} · Başarısız: {{failed}}",
+      "cancelled": "Denetim durduruldu.",
+      "offline": "Çevrimdışı mod denetimi durdurdu.",
+      "disabled": "Podcast'ler kapalı.",
+      "profile_changed": "Denetim sırasında profil değişti, bu yüzden denetim durdu.",
+      "already_running": "Bir denetim zaten sürüyor."
+    },
+    "toListen": {
+      "title": "Dinlenecekler",
+      "failed": "Bu liste okunamadı.",
+      "inProgress": "Kaldığın yerden devam et",
+      "newest": "Son bölüm",
+      "resume": "Devam et",
+      "listen": "Dinle",
+      "showAll": "Hepsini göster ({{n}} tane daha)"
+    },
+    "channel": {
+      "kicker": "Podcast",
+      "back": "Tüm kanallar",
+      "checked": "{{when}} tarihinde denetlendi",
+      "refresh": "Denetle",
+      "markAllPlayed": "Hepsini dinlendi olarak işaretle",
+      "markAllUnplayed": "Hepsini dinlenmedi olarak işaretle",
+      "openSite": "Kanalın sitesi",
+      "unsubscribe": "Abonelikten çık",
+      "speed": "Hız",
+      "speedNormal": "Normal",
+      "noEpisodes": "Bu kanalda hiç bölüm yok.",
+      "lastFailure": "Son denetim: {{reason}}",
+      "restoredChip": "Yeniden abone ol",
+      "failedChip": "Başarısız"
+    },
+    "episode": {
+      "play": "{{title}} bölümünü çal",
+      "playAgain": "{{title}} bölümünü yeniden çal",
+      "resume": "{{title}} bölümüne devam et",
+      "markPlayed": "{{title}} bölümünü dinlendi olarak işaretle",
+      "markUnplayed": "{{title}} bölümünü dinlenmedi olarak işaretle",
+      "download": "{{title}} bölümünü indir",
+      "cancelDownload": "{{title}} bölümünün indirmesini iptal et",
+      "deleteDownload": "{{title}} bölümünün dosyasını sil ({{size}})",
+      "downloaded": "İndirildi",
+      "needsNetwork": "Çevrimdışıyken ya da podcast'ler kapalıyken kullanılamaz: yalnızca indirilmiş bölüm çalınır.",
+      "noAddress": "Bu bölümün adresi bilinmiyor: kanala yeniden abone ol.",
+      "seasonEpisode": "S{{season}} · B{{episode}}",
+      "number": "Bölüm {{episode}}",
+      "remaining": "{{time}} kaldı"
+    },
+    "restored": {
+      "title": "Bu akışın adresi artık bilinmiyor",
+      "body": "Bu kanal bir yedekten ya da içe aktarılan bir profilden geliyor; bunlar akış adreslerini hiç saklamaz, bu yüzden kanal artık güncellenmiyor. Aynı adrese yeniden abone ol ya da OPML dosyanı yeniden içe aktar: kaldığın yerler ve dinlediklerinin kaydı korunur.",
+      "hint": "Daha önceki adresin aynısı. OPML listesi yalnızca herkese açık adresleri kabul eder; yerel ağındaki bir akışı buraya yaz.",
+      "summary": "Yeniden abone olunacak kanal: {{n}}. Yedek, akış adreslerini saklamaz. Adresleri yeniden yaz ya da OPML dosyanı yeniden içe aktar; kaldığın yerler korunur."
+    },
+    "unsubscribe": {
+      "title": "{{title}} aboneliğinden çıkılsın mı?",
+      "body": "Kanal, bölümleri, kaldığın yerler ve indirmeleri unutulacak. Yeniden abone olabilirsin ama nerede kaldığını bulamazsın.",
+      "confirm": "Abonelikten çık"
+    },
+    "errors": {
+      "disabled": "Podcast'ler kapalı.",
+      "offline": "Çevrimdışı mod açık: hiçbir yere bağlanılmadı.",
+      "profile_changed": "Bu arada profil değişti: başka hiçbir şey yazılmadı.",
+      "channel_gone": "Bu kanal artık takip edilmiyor.",
+      "open_failed": "Tarayıcı açılamadı.",
+      "address_refused": "Bu adres reddedildi: http ya da https olmalı, bir sunucu adı içermeli ve içinde kullanıcı bilgisi bulunmamalı. Herkese açık bir akış yerel ağa yönlendiremez.",
+      "too_many_redirects": "Akış, art arda çok fazla adrese yönlendiriyor.",
+      "too_large": "Dosya çok büyük.",
+      "unreached": "Sunucuya ulaşılamadı.",
+      "http": "Sunucu bir hatayla yanıt verdi ({{status}}).",
+      "invalid_feed": "Bu, okunabilen bir podcast akışı değil.",
+      "not_audio": "Bu dosya bir ses dosyası değil.",
+      "quota_exceeded": "İndirme kotasına ulaşıldı.",
+      "unknown": "Bir şeyler ters gitti."
     }
   }
 }
