@@ -13,6 +13,7 @@ use std::path::Path;
 
 use symphonia::core::codecs::audio::{AudioDecoder, AudioDecoderOptions};
 use symphonia::core::formats::probe::Hint;
+use symphonia::core::formats::well_known::FORMAT_ID_OGG;
 use symphonia::core::formats::{FormatOptions, FormatReader, SeekMode, SeekTo, TrackType};
 use symphonia::core::io::{MediaSource, MediaSourceStream};
 use symphonia::core::meta::MetadataOptions;
@@ -29,6 +30,9 @@ use super::resampler::Resampler;
 
 mod decode;
 mod dsd;
+mod tags;
+
+pub use tags::{StreamTags, TagSink};
 
 use dsd::{aligned_byte_offset, dsd_byte_offset_for_ms, dsd_ms_for_byte_offset, interleave_stride};
 
@@ -242,6 +246,8 @@ pub struct ActiveStream {
     pub packets_read: PacketTally,
     /// The resampler's tail has gone out after the end of the stream.
     tail_flushed: bool,
+    /// Who is told what each chained stream names ([`Self::watch_tags`]).
+    tag_watch: Option<tags::TagWatch>,
 }
 
 /// Running totals of the packets an [`ActiveStream`] has decoded.
@@ -600,7 +606,20 @@ impl ActiveStream {
             codec,
             packets_read: PacketTally::default(),
             tail_flushed: false,
+            tag_watch: None,
         })
+    }
+
+    /// Hand `sink` the song this stream names, from its first packet on, and
+    /// again each time a chained stream takes over. Ogg only: it is the one
+    /// container here whose tags change along the way, and a tag at the head
+    /// of any other stream says nothing about what plays now.
+    pub fn watch_tags(&mut self, sink: TagSink) {
+        if let StreamBackend::Symphonia { format, .. } = &self.backend {
+            if format.format_info().format == FORMAT_ID_OGG {
+                self.tag_watch = Some(tags::TagWatch::new(sink));
+            }
+        }
     }
 
     /// Rebuild the resampler so its effective input rate is
