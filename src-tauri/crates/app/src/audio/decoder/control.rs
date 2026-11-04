@@ -9,6 +9,7 @@ use crossbeam_channel::{Receiver, TryRecvError};
 use rtrb::Producer;
 use tauri::AppHandle;
 use waveflow_core::playback::stream::ActiveStream;
+use waveflow_core::playback::stretch::TimeShift;
 
 use super::super::engine::AudioCmd;
 use super::super::replay_gain::TrackGain;
@@ -327,6 +328,8 @@ pub(super) fn drain_commands(
             Ok(AudioCmd::SetBalance(pct)) => shared.stereo.set_balance(pct),
             Ok(AudioCmd::SetStereoWidth(pct)) => shared.stereo.set_width(pct),
             Ok(AudioCmd::SetSpeed(v)) => shared.set_playback_speed(v),
+            Ok(AudioCmd::SetKeepPitch(on)) => shared.set_keep_pitch(on),
+            Ok(AudioCmd::SetPitchSemitones(v)) => shared.set_pitch_semitones(v),
             Ok(AudioCmd::Pause) => {
                 transition_state(shared, app, PlayerState::Paused, Some(track_id));
                 shared.paused_output.store(true, Ordering::Release);
@@ -366,6 +369,8 @@ pub(super) fn drain_commands(
                         Ok(AudioCmd::SetBalance(pct)) => shared.stereo.set_balance(pct),
                         Ok(AudioCmd::SetStereoWidth(pct)) => shared.stereo.set_width(pct),
                         Ok(AudioCmd::SetSpeed(v)) => shared.set_playback_speed(v),
+                        Ok(AudioCmd::SetKeepPitch(on)) => shared.set_keep_pitch(on),
+                        Ok(AudioCmd::SetPitchSemitones(v)) => shared.set_pitch_semitones(v),
                         // Same three-in-one arm as above. A stale load
                         // found while paused is skipped without clearing
                         // `paused_output`: the player stays paused rather
@@ -513,7 +518,7 @@ fn take_next(
                         source_type,
                         source_id,
                         replay_gain,
-                        shared.playback_speed(),
+                        shared.time_shift(),
                         shared.dsd_taps.load(Ordering::Acquire) as usize,
                     );
                 }
@@ -558,7 +563,7 @@ fn store_next(
     source_type: String,
     source_id: Option<i64>,
     replay_gain: TrackGain,
-    speed: f32,
+    shift: TimeShift,
     dsd_taps: usize,
 ) {
     match ActiveStream::open(
@@ -580,7 +585,7 @@ fn store_next(
             // first packet decode builds the resampler at the right
             // effective rate (avoids a rebuild + tiny gap when the
             // crossfade mix starts).
-            s.playback_speed = speed;
+            s.set_time_shift(shift);
             *pending_next = Some(s);
         }
         Err(err) => {

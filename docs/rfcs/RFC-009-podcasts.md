@@ -177,10 +177,10 @@ that is left open.
 
 ## Decision 12 — speed
 
-The existing speed setting applies. Pitch is not preserved today: 1.5× lifts a voice
-by about seven semitones. Time-stretching lands as its own lot on the existing
-board card, on the decoder thread and never in the callback. The library is chosen
-by measurement. Podcasts do not wait for it.
+The existing speed setting applies. Time-stretching landed as its own lot, on the
+decoder thread and never in the callback, with the library chosen by measurement:
+[playback / Playback speed and pitch](../features/playback.md#playback-speed-and-pitch).
+A voice keeps its pitch at 1.5× by default. Podcasts did not wait for it.
 
 ## The surface
 

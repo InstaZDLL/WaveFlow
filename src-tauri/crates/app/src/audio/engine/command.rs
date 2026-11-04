@@ -140,6 +140,10 @@ pub enum AudioCmd {
     /// decoder rebuilds the active stream's resampler against the
     /// new effective source rate (`actual_rate * speed`).
     SetSpeed(f32),
+    /// Whether the speed leaves the pitch alone, or the pitch follows it.
+    SetKeepPitch(bool),
+    /// Transposition in semitones. Clamped on the way in.
+    SetPitchSemitones(i32),
     /// Left / right balance in percent, `-100` (left) to `100` (right).
     /// Clamped on the way in.
     SetBalance(i32),
@@ -286,6 +290,8 @@ impl std::fmt::Debug for AudioCmd {
             AudioCmd::SetReplayGain(v) => write!(f, "SetReplayGain({v})"),
             AudioCmd::SetGapless(v) => write!(f, "SetGapless({v})"),
             AudioCmd::SetSpeed(v) => write!(f, "SetSpeed({v})"),
+            AudioCmd::SetKeepPitch(v) => write!(f, "SetKeepPitch({v})"),
+            AudioCmd::SetPitchSemitones(v) => write!(f, "SetPitchSemitones({v})"),
             AudioCmd::SetBalance(v) => write!(f, "SetBalance({v})"),
             AudioCmd::SetStereoWidth(v) => write!(f, "SetStereoWidth({v})"),
             AudioCmd::SetNextTrack {

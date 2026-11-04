@@ -25,7 +25,7 @@ use tokio::sync::mpsc::UnboundedSender;
 use super::analytics::AnalyticsMsg;
 use super::engine::{AudioCmd, LoadIntent};
 use super::events::{emit_radio_metadata, RadioMetadataPayload};
-use super::state::{PlayerState, SharedPlayback};
+use super::state::{PlayerState, SharedPlayback, MAX_PITCH_SEMITONES};
 use waveflow_core::playback::stream::ActiveStream;
 
 mod control;
@@ -900,11 +900,11 @@ fn decoder_loop(
 /// For the loops that have no track to apply them to (the idle loop, the
 /// test tone): there they used to fall into the catch-all and be lost.
 ///
-/// The speed is the one store that differs. With no stream decoding there
-/// is no clock to rebase and no resampler to rebuild, so it is written the
-/// way the boot-time restore writes it, without `set_playback_speed`'s
-/// rebase, seek generation and dirty flag; the next track's stream takes
-/// the speed when it opens.
+/// The speed, the pitch lock and the transposition are the stores that
+/// differ. With no stream decoding there is no clock to rebase and no
+/// resampler to rebuild, so they are written the way the boot-time restore
+/// writes them, without `set_playback_speed`'s rebase, seek generation and
+/// dirty flag; the next track's stream takes them when it opens.
 fn apply_setting(cmd: &AudioCmd, shared: &SharedPlayback) -> bool {
     match *cmd {
         AudioCmd::SetVolume(v) => shared.set_volume(v),
@@ -922,6 +922,11 @@ fn apply_setting(cmd: &AudioCmd, shared: &SharedPlayback) -> bool {
                     .store(v.clamp(0.5, 2.0).to_bits(), Ordering::Release);
             }
         }
+        AudioCmd::SetKeepPitch(on) => shared.keep_pitch.store(on, Ordering::Release),
+        AudioCmd::SetPitchSemitones(v) => shared.pitch_semitones.store(
+            v.clamp(-MAX_PITCH_SEMITONES, MAX_PITCH_SEMITONES),
+            Ordering::Release,
+        ),
         _ => return false,
     }
     true

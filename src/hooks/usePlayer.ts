@@ -99,10 +99,16 @@ interface PlayerContextValue {
   setVolume: (value: number) => void;
   toggleMute: () => void;
 
-  // Playback speed multiplier, clamped to [0.5, 2.0]. Pitch follows
-  // speed (no time-stretching). Persisted per-profile.
+  // Playback speed multiplier, clamped to [0.5, 2.0]. Persisted
+  // per-profile, like the two below.
   playbackSpeed: number;
   setPlaybackSpeed: (value: number) => void;
+  // Whether the speed leaves the pitch alone, or the pitch follows it.
+  keepPitch: boolean;
+  setKeepPitch: (enabled: boolean) => void;
+  // Transposition in whole semitones.
+  pitchSemitones: number;
+  setPitchSemitones: (value: number) => void;
 
   // Live output-device fields, refreshed on every `player:track-changed`
   // so WASAPI exclusive re-opens are reflected. Both are `null` before

@@ -14,10 +14,15 @@ import {
   type ShuffleMode,
 } from "../hooks/usePlayer";
 import { useProfile } from "../hooks/useProfile";
+import { SETTINGS } from "../lib/settingsRegistry";
 import { getTrack, type Track } from "../lib/tauri/track";
 import { queuePayloadToTrack } from "../lib/queueTrack";
 import {
   playerCycleRepeat,
+  MAX_PITCH_SEMITONES,
+  PITCH_RESET_EVENT,
+  playerGetKeepPitch,
+  playerGetPitchSemitones,
   playerGetSpeed,
   playerGetState,
   playerListOutputDevices,
@@ -28,6 +33,8 @@ import {
   playerResume,
   playerResumeLast,
   playerSeek,
+  playerSetKeepPitch,
+  playerSetPitchSemitones,
   playerSetSpeed,
   playerSetVolume,
   playerToggleShuffle,
@@ -200,6 +207,14 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   // debounce because the user picks discrete values from a menu and
   // each rebuild costs ~one rubato chunk of audio (negligible).
   const [playbackSpeed, setPlaybackSpeedState] = useState(1.0);
+  // What goes with it, on the same terms. Read from the backend with the
+  // speed, on every profile the app enters.
+  const [keepPitch, setKeepPitchState] = useState(
+    SETTINGS["audio.keep_pitch"].defaultValue,
+  );
+  const [pitchSemitones, setPitchSemitonesState] = useState(
+    SETTINGS["audio.pitch_semitones"].defaultValue,
+  );
 
   // Live output-device sample rate (Hz) and channel count, as
   // reported by the engine snapshot. Used by the AudioQualityFooter
@@ -448,8 +463,16 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         // would force the audio settings cards to know about it
         // too, and they don't).
         try {
-          const speed = await playerGetSpeed();
-          if (!cancelled) setPlaybackSpeedState(speed);
+          const [speed, keep, semitones] = await Promise.all([
+            playerGetSpeed(),
+            playerGetKeepPitch(),
+            playerGetPitchSemitones(),
+          ]);
+          if (!cancelled) {
+            setPlaybackSpeedState(speed);
+            setKeepPitchState(keep);
+            setPitchSemitonesState(semitones);
+          }
         } catch (err) {
           console.error("[PlayerContext] hydrate playback speed failed", err);
         }
@@ -692,6 +715,47 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     },
     [activeProfileId],
   );
+
+  const setKeepPitch = useCallback(
+    (enabled: boolean) => {
+      setKeepPitchState(enabled);
+      playerSetKeepPitch(enabled, activeProfileId ?? null).catch((err) => {
+        console.error("[PlayerContext] set keep pitch failed", err);
+        playerGetKeepPitch()
+          .then(setKeepPitchState)
+          .catch(() => {});
+      });
+    },
+    [activeProfileId],
+  );
+
+  const setPitchSemitones = useCallback(
+    (value: number) => {
+      const clamped = Math.max(
+        -MAX_PITCH_SEMITONES,
+        Math.min(MAX_PITCH_SEMITONES, Math.round(value)),
+      );
+      setPitchSemitonesState(clamped);
+      playerSetPitchSemitones(clamped, activeProfileId ?? null).catch((err) => {
+        console.error("[PlayerContext] set pitch semitones failed", err);
+        playerGetPitchSemitones()
+          .then(setPitchSemitonesState)
+          .catch(() => {});
+      });
+    },
+    [activeProfileId],
+  );
+
+  // The Settings reset writes through its own accessors. It is the one other
+  // writer, and it only ever writes the defaults.
+  useEffect(() => {
+    const onReset = () => {
+      setKeepPitchState(SETTINGS["audio.keep_pitch"].defaultValue);
+      setPitchSemitonesState(SETTINGS["audio.pitch_semitones"].defaultValue);
+    };
+    window.addEventListener(PITCH_RESET_EVENT, onReset);
+    return () => window.removeEventListener(PITCH_RESET_EVENT, onReset);
+  }, []);
 
   const toggleMute = useCallback(() => {
     lastLocalVolumeWriteRef.current = Date.now();
@@ -982,6 +1046,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         toggleMute,
         playbackSpeed,
         setPlaybackSpeed,
+        keepPitch,
+        setKeepPitch,
+        pitchSemitones,
+        setPitchSemitones,
         deviceSampleRate,
         deviceChannels,
         outputMode,

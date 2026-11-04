@@ -11,11 +11,12 @@
 //! touch it.
 
 use std::sync::atomic::{
-    AtomicBool, AtomicI64, AtomicU16, AtomicU32, AtomicU64, AtomicU8, Ordering,
+    AtomicBool, AtomicI32, AtomicI64, AtomicU16, AtomicU32, AtomicU64, AtomicU8, Ordering,
 };
 use std::sync::Mutex;
 
 use waveflow_core::playback::channels::ChannelLayout;
+use waveflow_core::playback::stretch::TimeShift;
 
 use super::engine::{AudioCmd, LastLoad};
 
@@ -97,6 +98,13 @@ impl PlayerState {
         }
     }
 }
+
+/// How far the pitch can be transposed, each way, in semitones.
+pub const MAX_PITCH_SEMITONES: i32 = 12;
+
+/// Any source rate: two shifts that tell the resampler the same at this one are
+/// the same shift.
+const RATE_PROBE: u32 = 48_000;
 
 /// Lock-free state block shared between threads.
 ///
@@ -358,13 +366,22 @@ pub struct SharedPlayback {
     /// fade under way plays to its end.
     pub mixing: AtomicBool,
     /// Playback speed multiplier, stored as `f32` bits. `1.0` is
-    /// normal; `<1.0` is slower / lower-pitched, `>1.0` is faster /
-    /// higher-pitched. The decoder achieves this by feeding rubato a
-    /// fake source rate of `actual_rate * speed`, so 1 source sample
-    /// of audio produces fewer output samples at the device rate.
-    /// Clamped to `[0.5, 2.0]` on every write. Pitch is NOT
-    /// preserved — proper time-stretching would need a phase vocoder.
+    /// normal. Clamped to `[0.5, 2.0]` on every write. How the decoder
+    /// makes it is [`Self::keep_pitch`]'s to say; either way one output
+    /// sample covers `speed` source samples, and the clock scales by it.
     pub playback_speed_bits: AtomicU32,
+    /// Whether the speed leaves the pitch alone (the stretcher on the
+    /// decoder thread), or the pitch follows it (the resampler's fake
+    /// source rate of `actual_rate * speed`, as on tape).
+    pub keep_pitch: AtomicBool,
+    /// Transposition in semitones, clamped to
+    /// `±`[`MAX_PITCH_SEMITONES`] on every write.
+    pub pitch_semitones: AtomicI32,
+    /// Set when [`Self::keep_pitch`] or [`Self::pitch_semitones`] changed
+    /// what the decoder has to do. Apart from [`Self::speed_dirty`], which
+    /// the DoP path reads as "the user asked for a speed": neither of these
+    /// concerns that path, and it must leave them for the next PCM track.
+    pub shift_dirty: AtomicBool,
     /// Set by `player_set_speed` to tell the decoder thread to rebuild
     /// every stream's resampler at the new speed on the next decode
     /// cycle. Cleared by the decoder once consumed.
@@ -450,6 +467,9 @@ impl SharedPlayback {
             next_wanted: AtomicBool::new(false),
             mixing: AtomicBool::new(false),
             playback_speed_bits: AtomicU32::new(1.0_f32.to_bits()),
+            keep_pitch: AtomicBool::new(true),
+            pitch_semitones: AtomicI32::new(0),
+            shift_dirty: AtomicBool::new(false),
             speed_dirty: AtomicBool::new(false),
             dsd_taps: AtomicU32::new(256),
             dsd_dop_enabled: AtomicBool::new(false),
@@ -461,6 +481,45 @@ impl SharedPlayback {
     /// Current playback speed multiplier, clamped to `[0.5, 2.0]`.
     pub fn playback_speed(&self) -> f32 {
         f32::from_bits(self.playback_speed_bits.load(Ordering::Relaxed))
+    }
+
+    /// How playback departs from the source's own time and pitch.
+    pub fn time_shift(&self) -> TimeShift {
+        TimeShift {
+            speed: self.playback_speed(),
+            keep_pitch: self.keep_pitch.load(Ordering::Relaxed),
+            semitones: self.pitch_semitones.load(Ordering::Relaxed) as f32,
+        }
+    }
+
+    /// Flag the decoder only when `apply` changes what it has to do: at 1×
+    /// with no transposition, keeping the pitch or not is the same audio,
+    /// and a rebuild would only cost a drained ring.
+    fn change_shift(&self, apply: impl FnOnce()) {
+        let before = self.time_shift();
+        apply();
+        let after = self.time_shift();
+        if before.stretches() != after.stretches()
+            || before.resampler_rate(RATE_PROBE) != after.resampler_rate(RATE_PROBE)
+        {
+            self.shift_dirty.store(true, Ordering::Release);
+        }
+    }
+
+    /// Whether the speed keeps the pitch, on a track that is playing. The
+    /// position is unaffected: either way the clock scales by the speed.
+    pub fn set_keep_pitch(&self, on: bool) {
+        self.change_shift(|| self.keep_pitch.store(on, Ordering::Release));
+    }
+
+    /// Transpose by `semitones`, on a track that is playing.
+    pub fn set_pitch_semitones(&self, semitones: i32) {
+        self.change_shift(|| {
+            self.pitch_semitones.store(
+                semitones.clamp(-MAX_PITCH_SEMITONES, MAX_PITCH_SEMITONES),
+                Ordering::Release,
+            );
+        });
     }
 
     /// Write a new playback speed and flag the decoder to rebuild its
@@ -669,9 +728,9 @@ impl SharedPlayback {
     /// display — the user wants to know "where am I in the song",
     /// not "how long has this session been running".
     ///
-    /// At non-1× playback speeds, the decoder feeds rubato a fake
-    /// source rate of `actual_rate * speed` so each cpal output sample
-    /// represents `speed` source samples of audio. We scale the
+    /// At non-1× playback speeds each cpal output sample represents
+    /// `speed` source samples of audio, whether the stretcher or the
+    /// resampler's fake source rate made it so. We scale the
     /// callback-derived delta by `speed` so the progress bar advances
     /// in track-time, not wall-clock-time.
     ///

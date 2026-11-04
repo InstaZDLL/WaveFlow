@@ -85,8 +85,10 @@ pub(super) fn play_track(
     // inside decode_next builds against the correct effective input
     // rate from the very first packet. Without this, a track that
     // starts while speed != 1.0 would briefly resample at 1.0× and
-    // then trigger a rebuild on the next speed_dirty cycle.
-    stream.playback_speed = shared.playback_speed();
+    // then trigger a rebuild on the next speed_dirty cycle. What the DoP
+    // path left raised is already in the value taken here.
+    stream.set_time_shift(shared.time_shift());
+    shared.shift_dirty.store(false, Ordering::Release);
     // How far before the asked position the primary's last seek landed:
     // the clock counts from the position asked for, the audio from the
     // packet that holds it. AutoMix places its fade on the track's own
@@ -217,24 +219,49 @@ pub(super) fn play_track(
             }
         }
 
-        // Speed change pending? Rebuild every active stream's
+        // Speed or pitch change pending? Rebuild every active stream's
         // resampler at the new effective input rate, drain the ring
         // so we don't bleed old-speed audio for a second, and flush
         // local already-resampled buffers. `set_playback_speed`
         // already rebased the position counters so the progress bar
-        // stays continuous; this branch only handles the DSP side.
-        if shared.speed_dirty.swap(false, Ordering::AcqRel) {
-            let speed = shared.playback_speed();
-            if let Err(err) = stream.rebuild_resampler(speed, dst_sample_rate, dst_channels) {
+        // stays continuous.
+        let speed_changed = shared.speed_dirty.swap(false, Ordering::AcqRel);
+        let shift_changed = shared.shift_dirty.swap(false, Ordering::AcqRel);
+        if speed_changed || shift_changed {
+            let shift = shared.time_shift();
+            stream.set_time_shift(shift);
+            if let Err(err) = stream.rebuild_resampler(shift.speed, dst_sample_rate, dst_channels) {
                 tracing::warn!(?err, "resampler rebuild on speed change failed");
             }
             if let Some(next) = pending_next.as_mut() {
-                if let Err(err) = next.rebuild_resampler(speed, dst_sample_rate, dst_channels) {
+                next.set_time_shift(shift);
+                if let Err(err) = next.rebuild_resampler(shift.speed, dst_sample_rate, dst_channels)
+                {
                     tracing::warn!(?err, "secondary resampler rebuild on speed change failed");
                 }
             }
             primary_resampled.clear();
             secondary_resampled.clear();
+            // What the ring and those buffers held was the audio right after
+            // what has been heard. The clock stays there, so the file goes
+            // back there: decoding on from where it had got to skipped that
+            // audio, up to a ring's worth per change, and left the clock
+            // behind what played, lyrics with it. Not during a fade, which
+            // the swap at its end puts right, nor on a live stream, which has
+            // nowhere to go back to.
+            if !mix_active && stream.duration_ms > 0 {
+                let ms = shared.current_position_ms();
+                primary_at_eof = false;
+                tail_drain = None;
+                primary_slip_ms = ms.saturating_sub(stream.seek_ms(ms));
+                reset_clock(shared, ms);
+                spectrum_analyzer.discard_pending();
+                stream.reset_decoder();
+                drain_ring_silent(producer, shared);
+                let _ = app.emit(EVENT_POSITION, PositionPayload { ms });
+                last_position_emit = Instant::now();
+                continue;
+            }
             drain_ring_silent(producer, shared);
         }
 
@@ -365,7 +392,7 @@ pub(super) fn play_track(
                             now_us,
                             dst_sample_rate,
                             shared.playback_speed(),
-                            stream.resampler.output_delay_frames(),
+                            stream.output_delay_frames(),
                         ) {
                             Some(window) => {
                                 tracing::info!(
@@ -432,6 +459,7 @@ pub(super) fn play_track(
             // or EOF).
             while !primary_at_eof && primary_resampled.len() / dst_channels < CROSSFADE_MIN_FRAMES {
                 let prev_len = primary_resampled.len();
+                stream.set_output_gain(replay_gain_of(shared, &stream));
                 primary_at_eof = stream.decode_next(
                     &mut primary_resampled,
                     &mut interleaved_scratch,
@@ -450,6 +478,7 @@ pub(super) fn play_track(
                 && secondary_resampled.len() / dst_channels < CROSSFADE_MIN_FRAMES
             {
                 let prev_len = secondary_resampled.len();
+                secondary.set_output_gain(replay_gain_of(shared, secondary));
                 secondary_at_eof = secondary.decode_next(
                     &mut secondary_resampled,
                     &mut interleaved_scratch,
@@ -463,7 +492,7 @@ pub(super) fn play_track(
                 // Nothing to move for the plain fade, which starts the
                 // incoming track on its first frame.
                 if !incoming_delay_taken {
-                    mix_window.start_incoming_earlier(secondary.resampler.output_delay_frames());
+                    mix_window.start_incoming_earlier(secondary.output_delay_frames());
                     incoming_delay_taken = true;
                 }
             }
@@ -638,6 +667,7 @@ pub(super) fn play_track(
             // secondary stream during a recent crossfade swap.
             if primary_resampled.is_empty() && !primary_at_eof {
                 let prev_len = primary_resampled.len();
+                stream.set_output_gain(replay_gain_of(shared, &stream));
                 primary_at_eof = stream.decode_next(
                     &mut primary_resampled,
                     &mut interleaved_scratch,
@@ -851,11 +881,7 @@ pub(super) fn play_track(
 /// be applied to the other one's gain.
 #[inline]
 fn apply_replay_gain(buf: &mut [f32], shared: &SharedPlayback, stream: &ActiveStream) {
-    let gain = effective_linear(
-        stream.replay_gain,
-        shared.replay_gain_settings(),
-        shared.listening_to(&stream.source_type),
-    );
+    let gain = replay_gain_of(shared, stream);
     if gain == 1.0 {
         return;
     }
@@ -864,12 +890,22 @@ fn apply_replay_gain(buf: &mut [f32], shared: &SharedPlayback, stream: &ActiveSt
     }
 }
 
+/// The gain [`apply_replay_gain`] multiplies this stream's buffers by.
+#[inline]
+fn replay_gain_of(shared: &SharedPlayback, stream: &ActiveStream) -> f32 {
+    effective_linear(
+        stream.replay_gain,
+        shared.replay_gain_settings(),
+        shared.listening_to(&stream.source_type),
+    )
+}
+
 /// Final safety clamp before samples reach the SPSC ring (and the cpal
 /// callback / WASAPI-exclusive thread that drain it). Decoded PCM is
 /// already within `[-1.0, 1.0]`, so for an untouched stream this is the
 /// identity and bit-perfect output is preserved — it only bites when a
 /// gain stage (ReplayGain, normalize, EQ peaking, or a speed-resample
-/// overshoot) pushes a peak past unity, where the un-clamped value would
+/// overshoot the stretcher's limiter did not already take down) pushes a peak past unity, where the un-clamped value would
 /// hard-clip and distort the DAC. Runs on the decoder thread, never in
 /// the hot callback.
 #[inline]

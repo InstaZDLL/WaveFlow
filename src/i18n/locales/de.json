@@ -1050,7 +1050,11 @@
       "title": "Wiedergabegeschwindigkeit",
       "slider": "Geschwindigkeitsregler",
       "custom": "Eigene Geschwindigkeit",
-      "pitchHint": "Tonhöhe folgt der Geschwindigkeit (kein Time-Stretching)."
+      "keepPitch": "Tonhöhe beibehalten",
+      "transpose": "Transponieren",
+      "transposeDown": "Einen Halbton tiefer",
+      "transposeUp": "Einen Halbton höher",
+      "transposeReset": "Zurück zur Originaltonhöhe"
     },
     "seek": "Suchlauf",
     "alert": {
@@ -1594,7 +1598,8 @@
         "dopNative": "Natives DSD",
         "volume": "Lautstärke {{value}} %",
         "balance": "Balance",
-        "width": "Breite {{value}} %"
+        "width": "Breite {{value}} %",
+        "pitch": "Tonhöhe {{value}}"
       }
     },
     "outputMode": {
