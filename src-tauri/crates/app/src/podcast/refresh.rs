@@ -332,7 +332,7 @@ async fn read_announced(
     }
 }
 
-/// On the blocking pool: a feed may be 16 MiB and a million nodes, and the runtime's
+/// On the blocking pool: a feed may be 32 MiB and a million nodes, and the runtime's
 /// workers are the ones every command waits on.
 async fn read_feed(bytes: Vec<u8>, base: Url) -> Result<Box<Feed>, PodcastError> {
     tokio::task::spawn_blocking(move || parse_feed(&bytes, &base))

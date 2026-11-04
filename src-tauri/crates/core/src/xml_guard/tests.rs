@@ -169,25 +169,94 @@ fn real_shapes_are_read() {
     assert_eq!(ttml::parse(lyrics).unwrap().lines.len(), 1);
 }
 
-/// What the limits still let through costs little: as many attributes as a tag may
-/// have, on every tag of the largest feed read. The bound is for a debug build.
+/// The most a tag may cost inside the limits: as many attributes as it may have, each
+/// with a prefix only the last namespace in scope resolves, which the parser looks up
+/// from the first.
+fn worst_tags_inside_the_limits() -> String {
+    let namespaces: String = (0..MAX_NAMESPACES_IN_SCOPE)
+        .map(|index| format!(" xmlns:n{index}=\"u{index}\""))
+        .collect();
+    let last = MAX_NAMESPACES_IN_SCOPE - 1;
+    let attributes: String = (0..MAX_ATTRIBUTES_PER_TAG)
+        .map(|index| format!(" n{last}:a{index}=\"\""))
+        .collect();
+    let element = format!("<n{last}:b{attributes}/>");
+    let count = (crate::podcast::MAX_FEED_BYTES - namespaces.len() - 100) / element.len();
+    format!(
+        "<rss{namespaces}><channel><title>T</title>{}</channel></rss>",
+        element.repeat(count)
+    )
+}
+
+/// What the limits still let through costs little, on the largest feed read. The bound
+/// is for a debug build on a loaded machine.
 #[test]
 fn the_worst_document_inside_the_limits_stays_cheap() {
-    let list: String = (0..MAX_ATTRIBUTES_PER_TAG)
-        .map(|index| format!(" a{index}=\"\""))
-        .collect();
-    let element = format!("<b{list}/>");
-    let count = (crate::podcast::MAX_FEED_BYTES - 100) / element.len();
-    let document = format!(
-        "<rss><channel><title>T</title>{}</channel></rss>",
-        element.repeat(count)
-    );
+    let document = worst_tags_inside_the_limits();
     let started = Instant::now();
     assert!(parse_feed(document.as_bytes(), &base()).is_ok());
     assert!(
-        started.elapsed() < Duration::from_secs(60),
+        started.elapsed() < Duration::from_secs(120),
         "{:?}",
         started.elapsed()
     );
-    println!("worst inside the limits: {:?}", started.elapsed());
+}
+
+/// Not a test but a measurement, for a release build:
+/// `cargo test --release -p waveflow-core --lib -- xml_guard --ignored --nocapture`
+#[test]
+#[ignore = "a measurement: prints what the largest documents admitted cost"]
+fn measure_the_largest_documents_admitted() {
+    let max = crate::podcast::MAX_FEED_BYTES;
+    let fill = |unit: &str| unit.repeat((max - 100) / unit.len());
+    let shapes = [
+        (
+            "attributes and prefixes on every tag",
+            worst_tags_inside_the_limits(),
+        ),
+        (
+            "bare elements up to the node ceiling",
+            format!(
+                "<rss><channel><title>T</title>{}</channel></rss>",
+                "<a/>".repeat(990_000)
+            ),
+        ),
+        (
+            "items with a whole description each",
+            format!(
+                "<rss><channel><title>T</title>{}</channel></rss>",
+                fill(&format!(
+                    "<item><guid>g</guid><title>t</title><description>{}</description>\
+                     <enclosure url=\"https://c.example.org/a\"/></item>",
+                    "word ".repeat(6_400)
+                ))
+            ),
+        ),
+        (
+            "the smallest items that are episodes",
+            format!(
+                "<rss><channel><title>T</title>{}</channel></rss>",
+                "<item><enclosure url=\"https://c.example.org/a\"/></item>".repeat(330_000)
+            ),
+        ),
+        (
+            "a list of one address, over and over",
+            format!(
+                "<opml><body>{}</body></opml>",
+                "<outline xmlUrl=\"https://c.example.org/a\"/>".repeat(700_000)
+            ),
+        ),
+    ];
+    for (name, document) in shapes {
+        let started = Instant::now();
+        let is_feed = parse_feed(document.as_bytes(), &base()).is_ok();
+        let as_feed = started.elapsed();
+        let started = Instant::now();
+        let is_list = read_opml(document.as_bytes()).is_some();
+        println!(
+            "{name}: {} MiB, as a feed {as_feed:?} ({is_feed}), as a list {:?} ({is_list})",
+            document.len() / (1024 * 1024),
+            started.elapsed()
+        );
+    }
 }

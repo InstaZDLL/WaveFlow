@@ -31,7 +31,7 @@ Every request checks `offline::is_offline()` first, each hop of a redirect inclu
 - **http or https, a host, no user information**, and a hop is checked for that before it is contacted.
 - **`may_open` for every hop**, against an `Origin` decided once from the address the person typed. A feed whose address is public can only lead to public addresses, so a feed on the internet cannot make the player reach the user's router. A feed typed with a local address may name local ones. As with the artwork downloader, DNS rebinding is not defended against.
 - **Redirects are followed by hand, at most five**, and never from https to http. The client follows none by itself.
-- **Bodies are bounded while they are read**: 16 MiB for a feed, 4 MiB for a picture. A declared length past the ceiling is refused unread, and one that lies is stopped where it passes it.
+- **Bodies are bounded while they are read**: 32 MiB for a feed, 4 MiB for a picture. A declared length past the ceiling is refused unread, and one that lies is stopped where it passes it.
 - **Each request runs under a deadline**, redirects and body included: 60 s for a feed, 30 s for a small file.
 
 `Fetcher::open` answers a `reqwest::Response` and leaves the deadline to its caller, so a stream and a download can use the same rules on budgets of their own.
@@ -83,7 +83,7 @@ A channel's picture is fetched at subscribe and whenever its address moves, unde
 
 A subscription fetches the feed before anything is stored, so a typo leaves nothing behind. Subscribing to an address already followed answers its channel without contacting anybody.
 
-**OPML** import subscribes to each feed of a list in turn, and one that fails is reported by its title and word while the next is tried. A list is a file someone may have been handed, so **it may name public addresses only**: a feed on the local network has to be typed, or a list could make the app probe the network, each line's word saying what answered. It reads only a regular file named `.opml` or `.xml`, at most 16 MiB, and at most 2 000 feeds. Folders may nest to any depth.
+**OPML** import subscribes to each feed of a list in turn, and one that fails is reported by its title and word while the next is tried. A list is a file someone may have been handed, so **it may name public addresses only**: a feed on the local network has to be typed, or a list could make the app probe the network, each line's word saying what answered. It reads only a regular file named `.opml` or `.xml`, at most 32 MiB, and at most 2 000 feeds. Folders may nest to any depth.
 
 A refresh writes into the row it read, by id, and never creates one, so unsubscribing while a feed is being read sticks.
 

@@ -12,7 +12,7 @@
 //! scan that is linear whatever it is given, and one past these limits is refused
 //! without being parsed.
 //!
-//! The limits sit far above what real documents use. Seventeen public feeds, from a
+//! The limits sit far above what real documents use. Fourteen public feeds, from a
 //! few KiB to 20 MiB, used at most 9 attributes on a tag, 8 namespaces in scope and 13
 //! copies in the whole document; TTML lyrics use fewer.
 //!

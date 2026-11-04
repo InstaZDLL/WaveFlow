@@ -70,7 +70,7 @@ pub fn cue_to_text(raw: &str) -> String {
 /// characters dropped, at most `limit` characters.
 ///
 /// What is read is bounded first, by the `limit` text is at worst eight bytes
-/// a character of, so a single text node of 16 MiB costs what its bound says.
+/// a character of, so a single text node of many megabytes costs what its bound says.
 pub fn html_to_line(raw: &str, limit: usize) -> String {
     collapse(&html_to_text(clip(raw, limit.saturating_mul(8))), limit)
 }
