@@ -30,6 +30,7 @@
 use std::collections::{HashSet, VecDeque};
 use std::future::Future;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicI64, Ordering};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
@@ -850,12 +851,21 @@ pub(crate) async fn sweep(
     })
 }
 
-/// Another profile became active: what a crash left in its folder has not been
-/// looked at yet.
 static SWEEP_WAKE: Notify = Notify::const_new();
 
-pub(crate) fn profile_changed() {
+/// The profile whose view is on screen. Episode ids are only unique inside a profile,
+/// so an event about another profile's job would land on an episode of this one's.
+static ACTIVE_PROFILE: AtomicI64 = AtomicI64::new(0);
+
+/// Another profile became active: what a crash left in its folder has not been
+/// looked at yet, and its view hears nothing more of the last one's jobs.
+pub(crate) fn profile_changed(profile_id: i64) {
+    ACTIVE_PROFILE.store(profile_id, Ordering::SeqCst);
     SWEEP_WAKE.notify_one();
+}
+
+pub(super) fn is_active(profile_id: i64) -> bool {
+    ACTIVE_PROFILE.load(Ordering::SeqCst) == profile_id
 }
 
 /// Sweeps the active profile at launch, and each profile as it becomes active.
@@ -902,6 +912,7 @@ async fn sweep_active_profile(app: &AppHandle) {
 /// Reports one download to the page and the status bar.
 struct AppObserver<'a> {
     app: &'a AppHandle,
+    profile_id: i64,
     task: Option<crate::tasks::TaskHandle>,
 }
 
@@ -910,7 +921,9 @@ impl DownloadObserver for AppObserver<'_> {
         if let Some(task) = self.task.as_ref() {
             task.progress(update.received_bytes, update.total_bytes.unwrap_or(0));
         }
-        let _ = self.app.emit(PODCAST_DOWNLOAD, update);
+        if is_active(self.profile_id) {
+            let _ = self.app.emit(PODCAST_DOWNLOAD, update);
+        }
     }
 
     fn titled(&self, title: &str) {
@@ -955,7 +968,11 @@ async fn run_job(app: &AppHandle, job: Job, cancel: watch::Sender<bool>) {
             stop.send_replace(true);
         }),
     );
-    let observer = AppObserver { app, task };
+    let observer = AppObserver {
+        app,
+        profile_id: job.profile_id,
+        task,
+    };
     let dir = state.paths.profile_podcast_download_dir(job.profile_id);
     let leases = ProfileLeases {
         state: &state,
@@ -978,7 +995,7 @@ async fn run_job(app: &AppHandle, job: Job, cancel: watch::Sender<bool>) {
     };
     let last = match &ended {
         Ended::Stored { size } => {
-            if size.is_some() {
+            if size.is_some() && is_active(job.profile_id) {
                 emit_updated(app, Some(job.channel_id));
             }
             DownloadUpdate {
@@ -993,7 +1010,9 @@ async fn run_job(app: &AppHandle, job: Job, cancel: watch::Sender<bool>) {
             ..DownloadUpdate::at(job.episode_id, DownloadState::Failed)
         },
     };
-    let _ = app.emit(PODCAST_DOWNLOAD, last);
+    if is_active(job.profile_id) {
+        let _ = app.emit(PODCAST_DOWNLOAD, last);
+    }
 }
 
 /// Removes the files a channel held, after its rows have gone. One that refuses

@@ -1440,6 +1440,15 @@ async fn a_panic_in_a_download_retires_the_worker() {
     assert_eq!(QUEUE.push(job(1, 1, 11)), Pushed::QueuedStartWorker);
 }
 
+/// Another profile's job says nothing to the view on screen, whose episode of the
+/// same number it would land on. The only test that touches this flag.
+#[test]
+fn only_the_active_profile_hears_about_its_downloads() {
+    crate::podcast::download::profile_changed(5);
+    assert!(crate::podcast::download::is_active(5));
+    assert!(!crate::podcast::download::is_active(4));
+}
+
 // ── where it goes ───────────────────────────────────────────────────
 
 /// Under the caches and per profile, and moved with them. Nowhere near a library
