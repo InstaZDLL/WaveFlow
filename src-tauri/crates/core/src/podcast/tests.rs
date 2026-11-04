@@ -90,6 +90,34 @@ fn a_feed_may_say_it_has_moved() {
     assert_eq!(moved("https://user:pw@new.example.org/"), None);
 }
 
+/// An address in a text node is judged whole. Cut to a bound, one that is too long
+/// would become an address the feed never named; decoded a second time, its query
+/// would change.
+#[test]
+fn an_address_in_a_text_node_is_neither_cut_nor_decoded_twice() {
+    let site = |address: &str| {
+        let document =
+            format!("<rss><channel><title>T</title><link>{address}</link></channel></rss>");
+        parse_feed(document.as_bytes(), &base()).unwrap().site_url
+    };
+    let too_long = format!("https://example.org/{}", "a".repeat(MAX_URL_CHARS));
+    assert_eq!(site(&too_long), None);
+    assert_eq!(
+        site("  https://example.org/?a=1&amp;lt=2  ").as_deref(),
+        Some("https://example.org/?a=1&lt=2")
+    );
+    let feed = parse_feed(
+        format!(
+            "<feed xmlns=\"http://www.w3.org/2005/Atom\"><title>T</title><logo>{too_long}</logo>\
+             <icon>https://example.org/icon.png</icon></feed>"
+        )
+        .as_bytes(),
+        &base(),
+    )
+    .unwrap();
+    assert_eq!(feed.image_url, None, "a logo too long is refused, not cut");
+}
+
 #[test]
 fn an_atom_feed_is_read() {
     let feed = parse_feed(

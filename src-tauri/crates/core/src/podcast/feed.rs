@@ -173,6 +173,18 @@ fn text_of(node: Node<'_, '_>, name: &str, limit: usize) -> Option<String> {
         .find(|text| !text.is_empty())
 }
 
+/// The text of the first child called `name` that has any, as written apart from
+/// the whitespace around it. For an address: cutting it to a bound would name a
+/// place the feed never named, and decoding it again would change its query, so
+/// [`address`] judges it whole and refuses it when it is too long.
+fn url_text_of<'a>(node: Node<'a, '_>, name: &str) -> Option<&'a str> {
+    node.children()
+        .filter(|candidate| candidate.is_element() && candidate.tag_name().name() == name)
+        .filter_map(|candidate| candidate.text())
+        .map(str::trim)
+        .find(|text| !text.is_empty())
+}
+
 /// Every text descendant, markup removed, whitespace collapsed, bounded.
 ///
 /// Iterative, through `descendants`, so a deeply nested document cannot drive
@@ -224,7 +236,7 @@ fn channel_image(node: Node<'_, '_>, base: &Url) -> Option<String> {
             image
                 .attribute("href")
                 .and_then(|href| address(href, base))
-                .or_else(|| text_of(image, "url", MAX_URL_CHARS).and_then(|u| address(&u, base)))
+                .or_else(|| url_text_of(image, "url").and_then(|u| address(u, base)))
         })
 }
 
@@ -249,10 +261,9 @@ fn parse_rss(channel: Node<'_, '_>, base: &Url) -> Feed {
             .or_else(|| text_of(channel, "summary", MAX_DESCRIPTION_CHARS)),
         author: author_of(channel),
         language: text_of(channel, "language", 32),
-        site_url: text_of(channel, "link", MAX_URL_CHARS).and_then(|link| address(&link, base)),
+        site_url: url_text_of(channel, "link").and_then(|link| address(link, base)),
         image_url: channel_image(channel, base),
-        new_feed_url: text_of(channel, "new-feed-url", MAX_URL_CHARS)
-            .and_then(|moved| address(&moved, base)),
+        new_feed_url: url_text_of(channel, "new-feed-url").and_then(|moved| address(moved, base)),
         episodes,
     }
 }
@@ -391,12 +402,12 @@ fn parse_rdf(root: Node<'_, '_>, base: &Url) -> Feed {
         author: channel.and_then(|channel| text_of(channel, "creator", MAX_TITLE_CHARS)),
         language: channel.and_then(|channel| text_of(channel, "language", 32)),
         site_url: channel
-            .and_then(|channel| text_of(channel, "link", MAX_URL_CHARS))
-            .and_then(|link| address(&link, base)),
+            .and_then(|channel| url_text_of(channel, "link"))
+            .and_then(|link| address(link, base)),
         image_url: root
             .children()
             .filter(|node| node.is_element() && node.tag_name().name() == "image")
-            .find_map(|image| text_of(image, "url", MAX_URL_CHARS).and_then(|u| address(&u, base))),
+            .find_map(|image| url_text_of(image, "url").and_then(|u| address(u, base))),
         new_feed_url: None,
         episodes,
     }
@@ -453,9 +464,9 @@ fn parse_atom(root: Node<'_, '_>, base: &Url) -> Feed {
             .next()
             .and_then(|link| link.attribute("href"))
             .and_then(|href| address(href, base)),
-        image_url: text_of(root, "logo", MAX_URL_CHARS)
-            .or_else(|| text_of(root, "icon", MAX_URL_CHARS))
-            .and_then(|logo| address(&logo, base))
+        image_url: url_text_of(root, "logo")
+            .or_else(|| url_text_of(root, "icon"))
+            .and_then(|logo| address(logo, base))
             .or_else(|| channel_image(root, base)),
         new_feed_url: None,
         episodes,
