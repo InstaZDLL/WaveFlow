@@ -289,9 +289,53 @@ async fn a_secure_address_cannot_redirect_into_the_clear() {
     assert_eq!(clear.hits(), 0, "the clear server was contacted");
 }
 
+/// A feed reached over TLS through a temporary redirect announces an address in the
+/// clear. What it is judged by is where it was served from, not the address that led
+/// there, and that one being in the clear gives the announcement nothing.
+#[tokio::test]
+async fn a_secure_feed_cannot_announce_the_clear_whatever_led_to_it() {
+    let announced = serve(|_| ok(&rss(&[("a", "Clear")]))).await;
+    let body = feed_announcing(&announced.public("/new"));
+    let port = tls_answering(format!(
+        "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+        body.len()
+    ))
+    .await;
+    let target = format!("https://{PUBLIC_HOST}:{port}/feed");
+    let start = serve(move |_| redirect(&target)).await;
+    let pool = enabled_pool().await;
+    let fetcher = Fetcher::with(
+        client_builder()
+            .no_proxy()
+            .add_root_certificate(test_certificate())
+            .resolve(PUBLIC_HOST, ([127, 0, 0, 1], port).into()),
+        online,
+        ROOMY,
+    )
+    .unwrap();
+    let id = subscribe(
+        &TestLeases(pool.clone()),
+        &fetcher,
+        &start.public("/feed"),
+        cache_dir().path(),
+    )
+    .await
+    .unwrap()
+    .channel_id();
+    assert_eq!(announced.hits(), 0, "the clear address was contacted");
+    assert_eq!(stored_address(&pool, id).await, start.public("/feed"));
+}
+
+async fn tls_redirecting_to(location: String) -> u16 {
+    tls_answering(format!(
+        "HTTP/1.1 302 Found\r\nLocation: {location}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+    ))
+    .await
+}
+
 /// A blocking one-connection TLS server on a thread of its own, since `rustls`
 /// is what the app already has and it needs no async glue for this.
-async fn tls_redirecting_to(location: String) -> u16 {
+async fn tls_answering(response: String) -> u16 {
     use rustls::pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer};
     let cert = CertificateDer::from(include_bytes!("testdata/self-signed-cert.der").to_vec());
     let key = PrivateKeyDer::Pkcs8(PrivatePkcs8KeyDer::from(
@@ -319,10 +363,7 @@ async fn tls_redirecting_to(location: String) -> u16 {
                 _ => return,
             }
         }
-        let _ = write!(
-            stream,
-            "HTTP/1.1 302 Found\r\nLocation: {location}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
-        );
+        let _ = stream.write_all(response.as_bytes());
         let _ = stream.flush();
     });
     port
