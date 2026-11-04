@@ -210,6 +210,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   // debounce because the user picks discrete values from a menu and
   // each rebuild costs ~one rubato chunk of audio (negligible).
   const [playbackSpeed, setPlaybackSpeedState] = useState(1.0);
+  const speedEventsRef = useRef(0);
   // What goes with it, on the same terms. Read from the backend with the
   // speed, on every profile the app enters.
   const [keepPitch, setKeepPitchState] = useState(
@@ -478,8 +479,13 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         // would force the audio settings cards to know about it
         // too, and they don't).
         try {
+          // An episode changing the speed while this is on its way has the
+          // newer answer: `player:speed-changed` counts itself here.
+          const speedEvents = speedEventsRef.current;
           const speed = await playerGetSpeed();
-          if (!cancelled) setPlaybackSpeedState(speed);
+          if (!cancelled && speedEvents === speedEventsRef.current) {
+            setPlaybackSpeedState(speed);
+          }
         } catch (err) {
           console.error("[PlayerContext] hydrate playback speed failed", err);
         }
@@ -643,6 +649,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
           // An episode took its channel's speed, or gave the user's back. A
           // slider moved by hand gets no such echo.
           await listen<{ speed: number }>("player:speed-changed", (e) => {
+            speedEventsRef.current += 1;
             setPlaybackSpeedState(e.payload.speed);
           }),
         );

@@ -149,7 +149,7 @@ An episode **counts as played past 95 %, or within its last 30 seconds**, or whe
 
 **A speed chosen for a channel never reaches music.** `audio.playback_speed` is never written from here. The speed is a column of `podcast_channel`, `NULL` meaning the normal one and not the global: a speed chosen for music does not reach a voice either.
 
-It travels with the load, and the decoder holds it for as long as that load decodes (`SharedPlayback::hold_episode_speed`, released by a guard on every way out, a panic included). So everything that plays afterwards, by whatever path, finds the user's speed in place without knowing an episode was there. A slider moved during an episode writes the channel's and is heard at once (`AudioCmd::SetEpisodeSpeed`); `player:speed-changed` tells every window when the engine moved the speed by itself.
+Whether the pitch follows the speed is the user's own `audio.keep_pitch`, on by default, so a voice at 1.5× stays the same voice: an episode goes through the same `TimeShift` as anything else. It travels with the load, and the decoder holds it for as long as that load decodes (`SharedPlayback::hold_episode_speed`, released by a guard on every way out, a panic included). So everything that plays afterwards, by whatever path, finds the user's speed in place without knowing an episode was there. A slider moved during an episode writes the channel's and is heard at once (`AudioCmd::SetEpisodeSpeed`); `player:speed-changed` tells every window when the engine moved the speed by itself.
 
 ### The player
 

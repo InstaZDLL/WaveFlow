@@ -70,6 +70,8 @@ export interface TrackLyrics {
   /** True for a file played without importing it: synced, no library row,
    *  so the same mutations don't apply. */
   isFile: boolean;
+  /** True for a podcast episode: no library row, and no lyrics looked up. */
+  isPodcast: boolean;
   /** Active synced line index (`-1` when none / not synced). */
   activeIndex: number;
   /** Active word index inside the active line (`-1` when no word stamps). */
@@ -416,6 +418,7 @@ export function useTrackLyrics(): TrackLyrics {
     isRadio,
     isRemote,
     isFile,
+    isPodcast,
     activeIndex,
     activeWordIndex,
     activeLine,

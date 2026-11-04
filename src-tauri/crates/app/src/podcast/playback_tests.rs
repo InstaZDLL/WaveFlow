@@ -1152,6 +1152,52 @@ async fn to_listen_keeps_one_episode_per_channel() {
     assert_eq!(listed, vec![a_progress, b_new, d_disk]);
 }
 
+/// A queue lives in memory: the end of an episode passes over what was heard since,
+/// and what went away since, and stops only on something to hear.
+#[tokio::test]
+async fn the_end_of_an_episode_passes_over_what_there_is_nothing_to_hear_in() {
+    let pool = enabled_pool().await;
+    let ch = channel(&pool, "a", None).await;
+    let row = |key| Row {
+        key,
+        enclosure: Some(ENCLOSURE),
+        ..Row::default()
+    };
+    let new = episode(&pool, ch, row("new")).await;
+    let part = episode(
+        &pool,
+        ch,
+        Row {
+            position_ms: 5_000,
+            ..row("part")
+        },
+    )
+    .await;
+    let heard = episode(
+        &pool,
+        ch,
+        Row {
+            played_at: Some(1),
+            ..row("heard")
+        },
+    )
+    .await;
+    let removed = episode(
+        &pool,
+        ch,
+        Row {
+            deleted_at: Some(1),
+            ..row("removed")
+        },
+    )
+    .await;
+    assert!(!store::nothing_to_hear(&pool, new).await.unwrap());
+    assert!(!store::nothing_to_hear(&pool, part).await.unwrap());
+    assert!(store::nothing_to_hear(&pool, heard).await.unwrap());
+    assert!(store::nothing_to_hear(&pool, removed).await.unwrap());
+    assert!(store::nothing_to_hear(&pool, removed + 999).await.unwrap());
+}
+
 /// Episode rows go with their channel, and a session has nothing left to write to.
 #[tokio::test]
 async fn forgetting_a_channel_takes_its_episodes_and_its_speed() {

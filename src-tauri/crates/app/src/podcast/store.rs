@@ -582,14 +582,21 @@ pub(crate) async fn queue_rows(
     .await
 }
 
-pub(crate) async fn is_played(pool: &SqlitePool, episode_id: i64) -> Result<bool, sqlx::Error> {
-    let played: Option<i64> =
-        sqlx::query_scalar("SELECT played_at FROM podcast_episode WHERE id = ?")
-            .bind(episode_id)
-            .fetch_optional(pool)
-            .await?
-            .flatten();
-    Ok(played.is_some())
+/// Whether the end of the episode before it should pass this one over: heard
+/// already, or gone. A queue lives in memory, and a row may have been removed since
+/// it was made.
+pub(crate) async fn nothing_to_hear(
+    pool: &SqlitePool,
+    episode_id: i64,
+) -> Result<bool, sqlx::Error> {
+    let heard: Option<bool> = sqlx::query_scalar(
+        "SELECT played_at IS NOT NULL OR deleted_at IS NOT NULL
+           FROM podcast_episode WHERE id = ?",
+    )
+    .bind(episode_id)
+    .fetch_optional(pool)
+    .await?;
+    Ok(heard.unwrap_or(true))
 }
 
 pub(crate) async fn note_opened(pool: &SqlitePool, episode_id: i64) -> Result<(), sqlx::Error> {

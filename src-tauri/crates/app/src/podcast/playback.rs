@@ -415,7 +415,7 @@ pub(crate) async fn advance(app: &AppHandle, step: Step, intent: LoadIntent) -> 
             let Ok(pool) = state.require_profile_pool_for(Some(entry.profile_id)).await else {
                 break;
             };
-            if !store::is_played(&pool, entry.episode_id)
+            if !store::nothing_to_hear(&pool, entry.episode_id)
                 .await
                 .unwrap_or(false)
             {
