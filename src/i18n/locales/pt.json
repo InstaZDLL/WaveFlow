@@ -1095,7 +1095,8 @@
       "transpose": "Transpor",
       "transposeDown": "Descer um semitom",
       "transposeUp": "Subir um semitom",
-      "transposeReset": "Voltar ao tom original"
+      "transposeReset": "Voltar ao tom original",
+      "transposeNotForEpisodes": "Não se aplica aos episódios"
     },
     "seek": "Posição",
     "alert": {

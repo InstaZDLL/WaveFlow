@@ -1192,7 +1192,8 @@
       "transpose": "تغيير المقام",
       "transposeDown": "خفض نصف نغمة",
       "transposeUp": "رفع نصف نغمة",
-      "transposeReset": "العودة إلى الطبقة الأصلية"
+      "transposeReset": "العودة إلى الطبقة الأصلية",
+      "transposeNotForEpisodes": "لا ينطبق على الحلقات"
     },
     "seek": "الموضع",
     "alert": {

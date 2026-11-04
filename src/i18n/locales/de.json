@@ -1054,7 +1054,8 @@
       "transpose": "Transponieren",
       "transposeDown": "Einen Halbton tiefer",
       "transposeUp": "Einen Halbton höher",
-      "transposeReset": "Zurück zur Originaltonhöhe"
+      "transposeReset": "Zurück zur Originaltonhöhe",
+      "transposeNotForEpisodes": "Gilt nicht für Episoden"
     },
     "seek": "Suchlauf",
     "alert": {

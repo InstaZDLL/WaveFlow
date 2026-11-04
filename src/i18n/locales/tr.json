@@ -1054,7 +1054,8 @@
       "transpose": "Transpoze",
       "transposeDown": "Yarım ton aşağı",
       "transposeUp": "Yarım ton yukarı",
-      "transposeReset": "Özgün perdeye dön"
+      "transposeReset": "Özgün perdeye dön",
+      "transposeNotForEpisodes": "Bölümlere uygulanmaz"
     },
     "seek": "Oynatma konumu",
     "alert": {

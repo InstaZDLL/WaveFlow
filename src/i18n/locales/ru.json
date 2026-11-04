@@ -1138,7 +1138,8 @@
       "transpose": "Транспонирование",
       "transposeDown": "На полутон ниже",
       "transposeUp": "На полутон выше",
-      "transposeReset": "Вернуть исходную высоту"
+      "transposeReset": "Вернуть исходную высоту",
+      "transposeNotForEpisodes": "Не применяется к выпускам"
     },
     "seek": "Позиция",
     "alert": {
