@@ -10,8 +10,8 @@ export const PODCAST_DOWNLOAD_QUOTA_EVENT = "waveflow:podcast-download-quota";
  * backend applies.
  */
 export function parsePodcastDownloadQuota(raw: string | null): number {
-  const value = Number(raw);
-  return raw !== null && Number.isInteger(value) && value >= 1
+  const value = raw !== null && /^\+?\d+$/.test(raw) ? Number(raw) : 0;
+  return Number.isSafeInteger(value) && value >= 1
     ? value
     : SETTINGS["podcasts.download_quota_gb"].defaultValue;
 }
