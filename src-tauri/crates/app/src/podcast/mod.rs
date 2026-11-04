@@ -3,8 +3,9 @@
 //! The pure half, what a feed means, is [`waveflow_core::podcast`]. What lives
 //! here needs the app: the network ([`fetch`]), the profile's database
 //! ([`store`]), the passes that join the two ([`refresh`]), the timer
-//! ([`schedule`]), and an episode playing ([`playback`], over [`stream`]). The
-//! Tauri commands are `commands::podcast`.
+//! ([`schedule`]), an episode playing ([`playback`], over [`stream`]) and the
+//! episodes kept on disk ([`download`]). The Tauri commands are
+//! `commands::podcast`.
 //!
 //! A podcast is outbound traffic in an app that otherwise needs none, so with
 //! `podcasts.enabled` off nothing here contacts anything and no timer runs. What
@@ -15,6 +16,7 @@
 //!
 //! [RFC-009]: ../../../../docs/rfcs/RFC-009-podcasts.md
 
+pub(crate) mod download;
 pub(crate) mod fetch;
 pub(crate) mod playback;
 pub(crate) mod refresh;

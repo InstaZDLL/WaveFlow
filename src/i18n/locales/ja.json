@@ -3301,6 +3301,10 @@
         "plugins": {
           "label": "プラグイン",
           "description": "インストール済みのプラグインとそのデータ。"
+        },
+        "podcastDownloads": {
+          "label": "ダウンロードしたポッドキャストのエピソード",
+          "description": "このコンピューターに残すことにしたエピソードです。エピソードから削除できます。"
         }
       },
       "confirmEmptyLabel": "空にすることを確定：{{item}}",
@@ -3438,7 +3442,8 @@
       "stays": "残るもの：登録した番組、再生位置、ダウンロード済みのエピソード。",
       "staysCount": "残っている番組：{{n}}件。",
       "open": "ポッドキャストを開く",
-      "seeStays": "残るものを見る"
+      "seeStays": "残るものを見る",
+      "downloadQuota": "ダウンロードしたエピソードの最大容量"
     }
   },
   "scanProgress": {
@@ -3808,7 +3813,8 @@
       "enrichment": "ライブラリ情報の補完",
       "release_radar": "Release Radar",
       "tag_workshop": "タグ工房",
-      "podcast_refresh": "ポッドキャストの更新"
+      "podcast_refresh": "ポッドキャストの更新",
+      "podcast_download": "ポッドキャストのダウンロード"
     }
   },
   "smartRuleSummary": {

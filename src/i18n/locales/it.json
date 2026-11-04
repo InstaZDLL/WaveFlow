@@ -3372,6 +3372,10 @@
         "plugins": {
           "label": "Plugin",
           "description": "Plugin installati e i loro dati."
+        },
+        "podcastDownloads": {
+          "label": "Episodi di podcast scaricati",
+          "description": "Quelli che hai scelto di tenere su questo computer. Si rimuovono dall'episodio."
         }
       },
       "confirmEmptyLabel": "Conferma lo svuotamento: {{item}}",
@@ -3512,7 +3516,8 @@
       "stays": "Cosa resta: i tuoi abbonamenti, i punti in cui eri arrivato e gli episodi scaricati.",
       "staysCount": "Canali conservati: {{n}}.",
       "open": "Apri i podcast",
-      "seeStays": "Vedi cosa resta"
+      "seeStays": "Vedi cosa resta",
+      "downloadQuota": "Spazio massimo per gli episodi scaricati"
     }
   },
   "scanProgress": {
@@ -3909,7 +3914,8 @@
       "enrichment": "Arricchimento della libreria",
       "release_radar": "Release Radar",
       "tag_workshop": "Laboratorio tag",
-      "podcast_refresh": "Aggiornamento dei podcast"
+      "podcast_refresh": "Aggiornamento dei podcast",
+      "podcast_download": "Download di podcast"
     }
   },
   "smartRuleSummary": {

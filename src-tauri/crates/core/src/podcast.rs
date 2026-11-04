@@ -73,9 +73,7 @@ pub fn accepts_cover(bytes: &[u8]) -> bool {
 /// `(suffix, content type)`. Anything else is refused: a feed that serves a
 /// page of HTML, or a binary, as its enclosure gets nothing written to disk.
 pub fn sniff_audio(head: &[u8]) -> Option<(&'static str, &'static str)> {
-    if head.starts_with(b"ID3")
-        || (head.len() >= 2 && head[0] == 0xff && (head[1] & 0xe0) == 0xe0 && (head[1] & 0x06) != 0)
-    {
+    if head.starts_with(b"ID3") || is_mpeg_frame(head) {
         Some(("mp3", "audio/mpeg"))
     } else if head.len() >= 12 && &head[4..8] == b"ftyp" {
         Some(("m4a", "audio/mp4"))
@@ -91,6 +89,27 @@ pub fn sniff_audio(head: &[u8]) -> Option<(&'static str, &'static str)> {
     } else {
         None
     }
+}
+
+/// An MPEG audio frame header: eleven sync bits, a layer, and none of the values
+/// the format reserves. `FF FE` is refused whatever follows it: it is a valid frame
+/// on paper, in a layer no podcast uses, and it is how a page in UTF-16 starts.
+fn is_mpeg_frame(head: &[u8]) -> bool {
+    let &[0xff, second, third, ..] = head else {
+        return false;
+    };
+    if second == 0xfe {
+        return false;
+    }
+    let version = (second >> 3) & 0b11;
+    let layer = (second >> 1) & 0b11;
+    let bitrate = third >> 4;
+    let sample_rate = (third >> 2) & 0b11;
+    (second & 0xe0) == 0xe0
+        && version != 0b01
+        && layer != 0
+        && bitrate != 0xf
+        && sample_rate != 0b11
 }
 
 #[cfg(test)]

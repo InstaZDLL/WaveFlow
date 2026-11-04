@@ -3301,6 +3301,10 @@
         "plugins": {
           "label": "插件",
           "description": "已安装的插件及其数据。"
+        },
+        "podcastDownloads": {
+          "label": "已下载的播客单集",
+          "description": "你选择保留在这台电脑上的单集。可在单集处移除。"
         }
       },
       "confirmEmptyLabel": "确认清空：{{item}}",
@@ -3438,7 +3442,8 @@
       "stays": "保留的内容：你的订阅、播放进度和已下载的单集。",
       "staysCount": "保留的节目：{{n}} 个。",
       "open": "打开播客",
-      "seeStays": "查看保留的内容"
+      "seeStays": "查看保留的内容",
+      "downloadQuota": "已下载单集的最大空间"
     }
   },
   "scanProgress": {
@@ -3808,7 +3813,8 @@
       "enrichment": "音乐库信息补全",
       "release_radar": "Release Radar",
       "tag_workshop": "标签工坊",
-      "podcast_refresh": "刷新播客"
+      "podcast_refresh": "刷新播客",
+      "podcast_download": "播客下载"
     }
   },
   "smartRuleSummary": {

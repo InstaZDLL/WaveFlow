@@ -3301,6 +3301,10 @@
         "plugins": {
           "label": "Plugin",
           "description": "Plugin yang terpasang dan datanya."
+        },
+        "podcastDownloads": {
+          "label": "Episode podcast yang diunduh",
+          "description": "Episode yang Anda pilih untuk disimpan di komputer ini. Dihapus dari episodenya."
         }
       },
       "confirmEmptyLabel": "Konfirmasi pengosongan: {{item}}",
@@ -3438,7 +3442,8 @@
       "stays": "Yang tetap ada: langgananmu, posisi putarmu, dan episode yang sudah diunduh.",
       "staysCount": "Kanal yang disimpan: {{n}}.",
       "open": "Buka podcast",
-      "seeStays": "Lihat yang tetap ada"
+      "seeStays": "Lihat yang tetap ada",
+      "downloadQuota": "Ruang maksimum untuk episode yang diunduh"
     }
   },
   "scanProgress": {
@@ -3808,7 +3813,8 @@
       "enrichment": "Pengayaan pustaka",
       "release_radar": "Release Radar",
       "tag_workshop": "Bengkel tag",
-      "podcast_refresh": "Penyegaran podcast"
+      "podcast_refresh": "Penyegaran podcast",
+      "podcast_download": "Unduhan podcast"
     }
   },
   "smartRuleSummary": {

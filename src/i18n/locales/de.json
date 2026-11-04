@@ -3303,6 +3303,10 @@
         "plugins": {
           "label": "Plugins",
           "description": "Installierte Plugins und ihre Daten."
+        },
+        "podcastDownloads": {
+          "label": "Heruntergeladene Podcast-Folgen",
+          "description": "Die Folgen, die du auf diesem Computer behalten wolltest. Lassen sich an der Folge entfernen."
         }
       },
       "confirmEmptyLabel": "Leeren bestätigen: {{item}}",
@@ -3440,7 +3444,8 @@
       "stays": "Das bleibt erhalten: deine Abos, deine Hörpositionen und deine heruntergeladenen Folgen.",
       "staysCount": "Behaltene Kanäle: {{n}}.",
       "open": "Podcasts öffnen",
-      "seeStays": "Ansehen, was bleibt"
+      "seeStays": "Ansehen, was bleibt",
+      "downloadQuota": "Maximaler Platz für heruntergeladene Folgen"
     }
   },
   "scanProgress": {
@@ -3810,7 +3815,8 @@
       "enrichment": "Bibliothek anreichern",
       "release_radar": "Release Radar",
       "tag_workshop": "Tag-Werkstatt",
-      "podcast_refresh": "Podcast-Aktualisierung"
+      "podcast_refresh": "Podcast-Aktualisierung",
+      "podcast_download": "Podcast-Download"
     }
   },
   "smartRuleSummary": {

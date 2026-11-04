@@ -770,6 +770,17 @@ async fn an_export_leaves_feed_addresses_behind() {
         .execute(&pool)
         .await
         .unwrap();
+    // A downloaded episode: its file stays here, in the folder of the caches, so
+    // the row must not promise it where the archive lands.
+    sqlx::query(
+        "UPDATE podcast_episode
+            SET download_file = '1.mp3', download_size = 4096, downloaded_at = 1",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+    std::fs::create_dir_all(profile.join("podcast-downloads")).unwrap();
+    std::fs::write(profile.join("podcast-downloads/1.mp3"), MARKER).unwrap();
     sqlx::query(
         "INSERT INTO profile_setting (key, value, value_type, updated_at)
          VALUES ('podcasts.enabled', 'true', 'bool', 0)",
@@ -841,7 +852,8 @@ async fn an_export_leaves_feed_addresses_behind() {
         count(
             &restored,
             "SELECT COUNT(*) FROM podcast_episode WHERE position_ms = 4242 AND enclosure_url IS NULL
-               AND chapters_url IS NULL AND transcripts IS NULL"
+               AND chapters_url IS NULL AND transcripts IS NULL
+               AND download_file IS NULL AND download_size IS NULL AND downloaded_at IS NULL"
         )
         .await,
         1

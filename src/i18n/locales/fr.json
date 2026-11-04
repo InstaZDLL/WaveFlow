@@ -3372,6 +3372,10 @@
         "plugins": {
           "label": "Greffons",
           "description": "Greffons installés et leurs données."
+        },
+        "podcastDownloads": {
+          "label": "Épisodes de podcast téléchargés",
+          "description": "Ceux que vous avez choisi de garder sur cet ordinateur. Se retirent depuis l'épisode."
         }
       },
       "confirmEmptyLabel": "Confirmer le vidage : {{item}}",
@@ -3512,7 +3516,8 @@
       "stays": "Ce qui reste : vos abonnements, vos positions et vos épisodes téléchargés.",
       "staysCount": "Chaînes conservées : {{n}}.",
       "open": "Ouvrir les podcasts",
-      "seeStays": "Voir ce qui reste"
+      "seeStays": "Voir ce qui reste",
+      "downloadQuota": "Espace maximal pour les épisodes téléchargés"
     }
   },
   "scanProgress": {
@@ -3909,7 +3914,8 @@
       "enrichment": "Enrichissement de la bibliothèque",
       "release_radar": "Release Radar",
       "tag_workshop": "Atelier de tags",
-      "podcast_refresh": "Actualisation des podcasts"
+      "podcast_refresh": "Actualisation des podcasts",
+      "podcast_download": "Téléchargement de podcast"
     }
   },
   "smartRuleSummary": {

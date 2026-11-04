@@ -3301,6 +3301,10 @@
         "plugins": {
           "label": "플러그인",
           "description": "설치된 플러그인과 그 데이터."
+        },
+        "podcastDownloads": {
+          "label": "다운로드한 팟캐스트 에피소드",
+          "description": "이 컴퓨터에 보관하기로 한 에피소드입니다. 에피소드에서 제거할 수 있습니다."
         }
       },
       "confirmEmptyLabel": "비우기 확인: {{item}}",
@@ -3438,7 +3442,8 @@
       "stays": "남는 것: 구독 목록, 재생 위치, 다운로드한 에피소드.",
       "staysCount": "남아 있는 채널: {{n}}개.",
       "open": "팟캐스트 열기",
-      "seeStays": "남는 것 보기"
+      "seeStays": "남는 것 보기",
+      "downloadQuota": "다운로드한 에피소드의 최대 공간"
     }
   },
   "scanProgress": {
@@ -3808,7 +3813,8 @@
       "enrichment": "라이브러리 정보 보강",
       "release_radar": "Release Radar",
       "tag_workshop": "태그 작업실",
-      "podcast_refresh": "팟캐스트 새로 고침"
+      "podcast_refresh": "팟캐스트 새로 고침",
+      "podcast_download": "팟캐스트 다운로드"
     }
   },
   "smartRuleSummary": {

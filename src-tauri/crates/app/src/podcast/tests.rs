@@ -24,7 +24,15 @@ use super::refresh::{
 use super::schedule::{run_schedule, since_last_check, Schedule, UNREADABLE_RETRY};
 use super::store;
 
+mod download;
+
 pub(super) const PUBLIC_HOST: &str = "feeds.example.org";
+
+/// The head of a chunked answer.
+const CHUNKED_HEAD: &[u8] = b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n";
+
+/// One chunk holding the start of an MP3.
+const AUDIO_CHUNK: &[u8] = b"10\r\nID3\x04\0\0\0\0\0\0\0\0\0\0\0\0\r\n";
 
 // ── a server that does what the test says ───────────────────────────
 
@@ -41,6 +49,10 @@ pub(super) enum Reply {
     Silence,
     /// These bytes, after long enough for a test to do something meanwhile.
     Late(Vec<u8>),
+    /// A chunked body that starts like an MP3 and never ends, as fast as it can.
+    AudioFlood,
+    /// A chunked body that starts like an MP3, then a byte now and then, for ever.
+    AudioTrickle,
 }
 
 pub(super) fn with_status(status: &str, headers: &str, body: &[u8]) -> Reply {
@@ -145,6 +157,19 @@ pub(super) async fn serve(answer: impl Fn(&str) -> Reply + Send + Sync + 'static
                     }
                     Reply::Silence => {
                         tokio::time::sleep(Duration::from_secs(600)).await;
+                    }
+                    Reply::AudioFlood => {
+                        let _ = stream.write_all(CHUNKED_HEAD).await;
+                        let _ = stream.write_all(AUDIO_CHUNK).await;
+                        let chunk = format!("10000\r\n{}\r\n", "x".repeat(0x10000));
+                        while stream.write_all(chunk.as_bytes()).await.is_ok() {}
+                    }
+                    Reply::AudioTrickle => {
+                        let _ = stream.write_all(CHUNKED_HEAD).await;
+                        let _ = stream.write_all(AUDIO_CHUNK).await;
+                        while stream.write_all(b"1\r\nx\r\n").await.is_ok() {
+                            tokio::time::sleep(Duration::from_millis(50)).await;
+                        }
                     }
                 }
             });
@@ -2239,6 +2264,16 @@ impl std::io::Write for Capture {
 #[tokio::test]
 async fn a_private_feeds_token_reaches_no_log_line() {
     use tracing_subscriber::util::SubscriberInitExt;
+
+    #[derive(Default)]
+    struct RecordingUpdates(Mutex<Vec<super::download::DownloadUpdate>>);
+
+    impl super::download::DownloadObserver for RecordingUpdates {
+        fn update(&self, update: super::download::DownloadUpdate) {
+            self.0.lock().unwrap().push(update);
+        }
+    }
+
     tracing_subscriber::fmt()
         // Someone who sets RUST_LOG=trace gets this, and only this.
         .with_env_filter(crate::logging::without_connection_lines(
@@ -2256,6 +2291,9 @@ async fn a_private_feeds_token_reaches_no_log_line() {
     let server = serve(move |path| {
         if path.contains("/cover") {
             return with_status("200 OK", "", b"<html>not a picture</html>");
+        }
+        if path.contains("/audio-ok") {
+            return with_status("200 OK", "", b"ID3\x04\0\0\0\0\0\0\0\0\0\0\0\0");
         }
         if path.contains("/moved") {
             return redirect(&format!("/next/{TOKEN}/feed.xml?auth={TOKEN}"));
@@ -2364,6 +2402,48 @@ async fn a_private_feeds_token_reaches_no_log_line() {
     .await
     .unwrap();
     outputs.push(serde_json::to_string(&report).unwrap());
+
+    // A download that lands, and every way one can fail, each by an enclosure's
+    // address holding the token.
+    let downloads = tempfile::tempdir().unwrap();
+    let episode_id: i64 = sqlx::query_scalar("SELECT id FROM podcast_episode LIMIT 1")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    for path in ["/audio-ok", "/page", "/looping", "/flood", "/gone"] {
+        sqlx::query(
+            "UPDATE podcast_episode
+                SET enclosure_url = ?, download_file = NULL, download_size = NULL WHERE id = ?",
+        )
+        .bind(server.local(&format!("{path}/{TOKEN}/a.mp3?auth={TOKEN}")))
+        .bind(episode_id)
+        .execute(&pool)
+        .await
+        .unwrap();
+        healthy.store(path != "/gone", Ordering::SeqCst);
+        let seen = RecordingUpdates::default();
+        let (_keep, cancel) = tokio::sync::watch::channel(false);
+        let ended = super::download::download_episode(
+            &leases,
+            &fetcher,
+            downloads.path(),
+            episode_id,
+            super::download::Pace {
+                max_bytes: 1024 * 1024,
+                ..super::download::Pace::standard()
+            },
+            cancel,
+            &seen,
+        )
+        .await;
+        outputs.push(format!("{ended:?}"));
+        outputs.push(serde_json::to_string(&*seen.0.lock().unwrap()).unwrap());
+    }
+    healthy.store(true, Ordering::SeqCst);
+    for entry in std::fs::read_dir(downloads.path()).unwrap().flatten() {
+        outputs.push(entry.file_name().to_string_lossy().into_owned());
+    }
+
     outputs.push(serde_json::to_string(&store::list_channels(&pool).await.unwrap()).unwrap());
     outputs.push(
         serde_json::to_string(&store::list_episodes(&pool, id, 10, 0).await.unwrap()).unwrap(),
@@ -2383,6 +2463,10 @@ async fn a_private_feeds_token_reaches_no_log_line() {
     assert!(
         captured.contains("LoadEpisodeAndPlay"),
         "the capture proves nothing about a load it never saw: {captured}"
+    );
+    assert!(
+        captured.contains("podcast download failed"),
+        "the capture saw no download fail: {captured}"
     );
     assert!(
         !captured.contains(TOKEN),

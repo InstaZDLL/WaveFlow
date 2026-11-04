@@ -3303,6 +3303,10 @@
         "plugins": {
           "label": "Eklentiler",
           "description": "Yüklü eklentiler ve verileri."
+        },
+        "podcastDownloads": {
+          "label": "İndirilen podcast bölümleri",
+          "description": "Bu bilgisayarda tutmayı seçtikleriniz. Bölümün kendisinden kaldırılır."
         }
       },
       "confirmEmptyLabel": "Boşaltmayı onayla: {{item}}",
@@ -3440,7 +3444,8 @@
       "stays": "Kalanlar: aboneliklerin, kaldığın yerler ve indirdiğin bölümler.",
       "staysCount": "Saklanan kanal: {{n}}.",
       "open": "Podcast'leri aç",
-      "seeStays": "Nelerin kaldığını gör"
+      "seeStays": "Nelerin kaldığını gör",
+      "downloadQuota": "İndirilen bölümler için en fazla alan"
     }
   },
   "scanProgress": {
@@ -3810,7 +3815,8 @@
       "enrichment": "Kitaplık zenginleştirme",
       "release_radar": "Release Radar",
       "tag_workshop": "Etiket atölyesi",
-      "podcast_refresh": "Podcast yenileme"
+      "podcast_refresh": "Podcast yenileme",
+      "podcast_download": "Podcast indirme"
     }
   },
   "smartRuleSummary": {

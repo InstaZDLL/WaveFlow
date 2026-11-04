@@ -622,6 +622,9 @@ impl AppState {
             self.podcast_playback.clear();
             previous
         };
+        // Before the drain, which may take seconds: the new profile's view is up from
+        // now on, and must not hear about the old one's downloads.
+        crate::podcast::download::profile_changed(profile_id);
         if let Some(previous) = previous {
             // The enrichment pass holds its lease for as long as the
             // library takes; it stops at its next album instead of being

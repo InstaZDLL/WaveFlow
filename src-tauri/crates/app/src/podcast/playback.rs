@@ -40,6 +40,7 @@ use waveflow_core::artwork::metadata::existing_path;
 use waveflow_core::podcast::address::parse_address;
 use waveflow_core::podcast::FetchFailure;
 
+use super::download::{episode_of, stored_file};
 use super::fetch::{Fetcher, Origin};
 use super::refresh::PodcastError;
 use super::schedule::emit_updated;
@@ -136,23 +137,13 @@ fn display_title(title: &str, channel: &str) -> String {
 }
 
 /// A downloaded file's path, when `name` is this episode's file in the managed
-/// folder and is there.
-///
-/// `download_file` may have come out of an archive somebody made, so it is hostile
-/// here: it has to read `<episode id>.<letters and digits>`, the one shape a download
-/// writes. That leaves no separator, no `..`, no absolute path, no drive prefix, no
-/// `wfnet://` locator and no alternate data stream, on any system, and no other
-/// episode's file. Anything else is no file of ours, and the episode streams.
+/// folder and is there. The shape of the name is [`stored_file`]'s rule, the one a
+/// download writes and removes by; what this adds is that it is no other episode's.
 pub(crate) fn downloaded_file(downloads: &Path, episode_id: i64, name: &str) -> Option<PathBuf> {
-    let (id, suffix) = name.split_once('.')?;
-    if id != episode_id.to_string()
-        || suffix.is_empty()
-        || !suffix.bytes().all(|byte| byte.is_ascii_alphanumeric())
-    {
+    if episode_of(name)? != episode_id {
         return None;
     }
-    let path = downloads.join(name);
-    path.is_file().then_some(path)
+    stored_file(downloads, name)
 }
 
 /// Where this episode's bytes come from, or why it cannot play.

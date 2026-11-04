@@ -16,21 +16,25 @@ export interface PodcastUpdatedPayload {
   channel_id: number | null;
 }
 
-/** Emitted as a download moves along. */
+/** Emitted as a download moves, at most about four times a second. */
 export const PODCAST_DOWNLOAD = "podcast:download";
 
 export type PodcastDownloadState =
   "queued" | "running" | "done" | "failed" | "cancelled";
 
+/** Mirrors `podcast::download::DownloadUpdate`. Holds no address and no path. */
 export interface PodcastDownloadPayload {
   episodeId: number;
   state: PodcastDownloadState;
   receivedBytes: number;
+  /** What the host declared, which may be untrue. `null` when it declared nothing. */
   totalBytes: number | null;
-  /** One word when `state` is `failed`. */
+  /** With `failed` only: `disabled`, `offline`, `episode_gone`, `write_failed`, or
+   *  one from `FetchFailure::code`. See {@link podcastErrorWord}. */
   errorWord: string | null;
 }
 
+/** Mirrors `commands::podcast::PodcastDownloadUsage`. */
 export interface PodcastDownloadUsage {
   usedBytes: number;
   quotaBytes: number;
@@ -145,7 +149,7 @@ export function podcastSubscribe(feedUrl: string): Promise<PodcastChannel> {
   return invoke<PodcastChannel>("podcast_subscribe", { feedUrl });
 }
 
-/** Stops following a channel and forgets its episodes. */
+/** Stops following a channel, forgets its episodes and removes their downloads. */
 export function podcastUnsubscribe(channelId: number): Promise<void> {
   return invoke("podcast_unsubscribe", { channelId });
 }
@@ -233,15 +237,18 @@ export function podcastSetChannelSpeed(
   return invoke("podcast_set_channel_speed", { channelId, speed });
 }
 
+/** Puts an episode in line to be kept on disk. Resolves once it is in line:
+ *  {@link PODCAST_DOWNLOAD} says the rest. Rejects with the switch off or offline. */
 export function podcastDownloadEpisode(episodeId: number): Promise<void> {
   return invoke("podcast_download_episode", { episodeId });
 }
 
+/** Takes an episode out of the line, or stops it where it is. */
 export function podcastCancelDownload(episodeId: number): Promise<void> {
   return invoke("podcast_cancel_download", { episodeId });
 }
 
-/** Removes the file and keeps the row. */
+/** Removes an episode's file. Its row and its position stay. */
 export function podcastDeleteDownload(episodeId: number): Promise<void> {
   return invoke("podcast_delete_download", { episodeId });
 }

@@ -173,6 +173,12 @@ impl Fetcher {
         self.offline
     }
 
+    /// Whether a request made now would be refused. For work that goes on reading
+    /// a body after [`Self::open`] has judged the hops.
+    pub(crate) fn is_offline(&self) -> bool {
+        (self.offline)()
+    }
+
     /// Opens `url` under every rule above, following redirects by hand, and
     /// answers the response that carries the body, or a 304.
     ///

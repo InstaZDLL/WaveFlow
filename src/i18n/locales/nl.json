@@ -3303,6 +3303,10 @@
         "plugins": {
           "label": "Plug-ins",
           "description": "Geïnstalleerde plug-ins en hun gegevens."
+        },
+        "podcastDownloads": {
+          "label": "Gedownloade podcastafleveringen",
+          "description": "De afleveringen die je op deze computer wilde bewaren. Verwijder ze vanuit de aflevering."
         }
       },
       "confirmEmptyLabel": "Leegmaken bevestigen: {{item}}",
@@ -3440,7 +3444,8 @@
       "stays": "Wat blijft: je abonnementen, je luisterposities en je gedownloade afleveringen.",
       "staysCount": "Bewaarde kanalen: {{n}}.",
       "open": "Podcasts openen",
-      "seeStays": "Bekijken wat blijft"
+      "seeStays": "Bekijken wat blijft",
+      "downloadQuota": "Maximale ruimte voor gedownloade afleveringen"
     }
   },
   "scanProgress": {
@@ -3810,7 +3815,8 @@
       "enrichment": "Bibliotheek verrijken",
       "release_radar": "Release Radar",
       "tag_workshop": "Tagwerkplaats",
-      "podcast_refresh": "Podcasts vernieuwen"
+      "podcast_refresh": "Podcasts vernieuwen",
+      "podcast_download": "Podcastdownload"
     }
   },
   "smartRuleSummary": {

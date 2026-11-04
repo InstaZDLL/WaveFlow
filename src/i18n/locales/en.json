@@ -3303,6 +3303,10 @@
         "plugins": {
           "label": "Plugins",
           "description": "Installed plugins and their data."
+        },
+        "podcastDownloads": {
+          "label": "Downloaded podcast episodes",
+          "description": "The ones you chose to keep on this computer. Removed from the episode."
         }
       },
       "confirmEmptyLabel": "Confirm emptying: {{item}}",
@@ -3440,7 +3444,8 @@
       "stays": "What stays: your subscriptions, positions and downloaded episodes.",
       "staysCount": "Channels kept: {{n}}.",
       "open": "Open podcasts",
-      "seeStays": "See what stays"
+      "seeStays": "See what stays",
+      "downloadQuota": "Maximum space for downloaded episodes"
     }
   },
   "scanProgress": {
@@ -3810,7 +3815,8 @@
       "enrichment": "Library enrichment",
       "release_radar": "Release Radar",
       "tag_workshop": "Tag workshop",
-      "podcast_refresh": "Podcast refresh"
+      "podcast_refresh": "Podcast refresh",
+      "podcast_download": "Podcast download"
     }
   },
   "smartRuleSummary": {

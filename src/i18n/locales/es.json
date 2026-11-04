@@ -3372,6 +3372,10 @@
         "plugins": {
           "label": "Complementos",
           "description": "Complementos instalados y sus datos."
+        },
+        "podcastDownloads": {
+          "label": "Episodios de pódcast descargados",
+          "description": "Los que elegiste guardar en este equipo. Se quitan desde el episodio."
         }
       },
       "confirmEmptyLabel": "Confirmar el vaciado: {{item}}",
@@ -3512,7 +3516,8 @@
       "stays": "Lo que se conserva: tus suscripciones, tus posiciones y tus episodios descargados.",
       "staysCount": "Canales conservados: {{n}}.",
       "open": "Abrir los podcasts",
-      "seeStays": "Ver lo que se conserva"
+      "seeStays": "Ver lo que se conserva",
+      "downloadQuota": "Espacio máximo para los episodios descargados"
     }
   },
   "scanProgress": {
@@ -3909,7 +3914,8 @@
       "enrichment": "Enriquecimiento de la biblioteca",
       "release_radar": "Release Radar",
       "tag_workshop": "Taller de etiquetas",
-      "podcast_refresh": "Actualización de pódcasts"
+      "podcast_refresh": "Actualización de pódcasts",
+      "podcast_download": "Descarga de pódcast"
     }
   },
   "smartRuleSummary": {

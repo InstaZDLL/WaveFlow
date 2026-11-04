@@ -3301,6 +3301,10 @@
         "plugins": {
           "label": "外掛程式",
           "description": "已安裝的外掛程式及其資料。"
+        },
+        "podcastDownloads": {
+          "label": "已下載的 Podcast 單集",
+          "description": "你選擇保留在這台電腦上的單集。可在單集處移除。"
         }
       },
       "confirmEmptyLabel": "確認清空：{{item}}",
@@ -3438,7 +3442,8 @@
       "stays": "保留的內容：你的訂閱、播放進度和已下載的單集。",
       "staysCount": "保留的節目：{{n}} 個。",
       "open": "開啟 Podcast",
-      "seeStays": "查看保留的內容"
+      "seeStays": "查看保留的內容",
+      "downloadQuota": "已下載單集的最大空間"
     }
   },
   "scanProgress": {
@@ -3808,7 +3813,8 @@
       "enrichment": "音樂庫資訊補全",
       "release_radar": "Release Radar",
       "tag_workshop": "標籤工坊",
-      "podcast_refresh": "重新整理 Podcast"
+      "podcast_refresh": "重新整理 Podcast",
+      "podcast_download": "Podcast 下載"
     }
   },
   "smartRuleSummary": {
