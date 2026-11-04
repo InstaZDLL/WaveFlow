@@ -751,7 +751,7 @@ Nothing is turned off. `MixWindow::automix` places a fade in output frames from 
 
 ### UI
 
-Speed lives inside the player-bar overflow ("⋯") menu — range slider (step 0.05) + five preset buttons (0.75 / 1 / 1.25 / 1.5 / 2) — with the **Keep pitch** switch and a **Transpose** stepper under them, rather than a dedicated pill, since most users never touch it. The stepper's value goes back to 0 when clicked. When speed ≠ 1×, the "⋯" trigger surfaces a compact `1.25×` badge in emerald so the user keeps a live indicator without opening the menu, and `+3` when only the pitch is moved. In the pipeline popover either one takes the bit-perfect pill away, and shows its own chip.
+Speed lives inside the player-bar overflow ("⋯") menu — range slider (step 0.05) + five preset buttons (0.75 / 1 / 1.25 / 1.5 / 2) — with the **Keep pitch** switch and a **Transpose** stepper under them, rather than a dedicated pill, since most users never touch it. The stepper's value goes back to 0 when clicked. When speed ≠ 1×, the "⋯" trigger surfaces a compact `1.25×` badge in emerald so the user keeps a live indicator without opening the menu, and `+3` when only the pitch is moved. In the pipeline popover either one takes the bit-perfect pill away, and shows its own chip. During a podcast episode a transposition does neither, since [it is not applied](podcasts.md#speed): the stepper is disabled and says so.
 
 ### Choosing the library
 
