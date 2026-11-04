@@ -1130,7 +1130,10 @@
     },
     "podcast": {
       "back15": "Reculer de 15 s",
-      "forward30": "Avancer de 30 s"
+      "forward30": "Avancer de 30 s",
+      "previousChapter": "Chapitre précédent",
+      "nextChapter": "Chapitre suivant",
+      "chapterOf": "Chapitre {{current}} sur {{total}}"
     }
   },
   "queue": {
@@ -4707,7 +4710,9 @@
       "remaining": "reste {{time}}",
       "pause": "Mettre {{title}} en pause",
       "queued": "En attente",
-      "deletedWhilePlaying": "Le fichier est supprimé. La lecture en cours continue ; pour la relancer ensuite, il faudra le réseau ou un nouveau téléchargement."
+      "deletedWhilePlaying": "Le fichier est supprimé. La lecture en cours continue ; pour la relancer ensuite, il faudra le réseau ou un nouveau téléchargement.",
+      "open": "Ouvrir « {{title}} »",
+      "playAgainShort": "Réécouter"
     },
     "restored": {
       "title": "L'adresse de ce flux n'est plus connue",
@@ -4739,7 +4744,28 @@
       "episode_gone": "Cet épisode n'existe plus.",
       "no_source": "Cet épisode n'a ni fichier ni adresse : réabonnez-vous à la chaîne.",
       "not_seekable": "Cet hôte ne permet pas de se déplacer dans l'épisode.",
-      "write_failed": "Le fichier n'a pas pu être écrit sur le disque."
+      "write_failed": "Le fichier n'a pas pu être écrit sur le disque.",
+      "invalid_document": "Ce fichier n'est pas ce qu'il prétend être."
+    },
+    "episodePage": {
+      "kicker": "Épisode"
+    },
+    "chapters": {
+      "title": "Chapitres",
+      "none": "Cet épisode n'a pas de chapitres.",
+      "loading": "Recherche des chapitres…",
+      "failed": "Les chapitres n'ont pas pu être lus : {{reason}}",
+      "jump": "Aller à « {{title}} », {{time}}"
+    },
+    "transcript": {
+      "title": "Transcription",
+      "none": "Cet épisode n'a pas de transcription.",
+      "noEpisode": "Lancez un épisode pour voir sa transcription.",
+      "loading": "Récupération de la transcription…",
+      "failed": "La transcription n'a pas pu être lue : {{reason}}",
+      "untimed": "Cette transcription n'a pas de minutage : elle ne suit pas la lecture.",
+      "notPlaying": "Cet épisode n'est pas en cours de lecture. Un clic sur une ligne le lance à ce moment.",
+      "jump": "Aller à {{time}} : {{text}}"
     }
   }
 }

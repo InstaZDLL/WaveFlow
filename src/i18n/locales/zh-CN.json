@@ -1088,7 +1088,10 @@
     },
     "podcast": {
       "back15": "后退 15 秒",
-      "forward30": "前进 30 秒"
+      "forward30": "前进 30 秒",
+      "previousChapter": "上一章",
+      "nextChapter": "下一章",
+      "chapterOf": "第 {{current}} 章，共 {{total}} 章"
     }
   },
   "queue": {
@@ -4565,7 +4568,9 @@
       "remaining": "剩余 {{time}}",
       "pause": "暂停 {{title}}",
       "queued": "等待中",
-      "deletedWhilePlaying": "文件已删除。当前播放会继续；之后要重新播放，需要联网或重新下载。"
+      "deletedWhilePlaying": "文件已删除。当前播放会继续；之后要重新播放，需要联网或重新下载。",
+      "open": "打开“{{title}}”",
+      "playAgainShort": "再听一遍"
     },
     "restored": {
       "title": "已不知道这个订阅源的地址",
@@ -4597,7 +4602,28 @@
       "episode_gone": "这一集已不存在。",
       "no_source": "这一集既没有文件也没有地址：请重新订阅该频道。",
       "not_seekable": "此托管方不支持在这一集中跳转。",
-      "write_failed": "无法将文件写入磁盘。"
+      "write_failed": "无法将文件写入磁盘。",
+      "invalid_document": "此文件与其声明的内容不符。"
+    },
+    "episodePage": {
+      "kicker": "单集"
+    },
+    "chapters": {
+      "title": "章节",
+      "none": "此单集没有章节。",
+      "loading": "正在查找章节…",
+      "failed": "无法读取章节：{{reason}}",
+      "jump": "转到“{{title}}”，{{time}}"
+    },
+    "transcript": {
+      "title": "文字稿",
+      "none": "此单集没有文字稿。",
+      "noEpisode": "播放单集即可查看其文字稿。",
+      "loading": "正在获取文字稿…",
+      "failed": "无法读取文字稿：{{reason}}",
+      "untimed": "此文字稿没有时间信息，因此不会跟随播放。",
+      "notPlaying": "此单集未在播放。点击某一行即可从该处开始播放。",
+      "jump": "转到 {{time}}：{{text}}"
     }
   }
 }

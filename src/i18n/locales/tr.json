@@ -1090,7 +1090,10 @@
     },
     "podcast": {
       "back15": "15 sn geri",
-      "forward30": "30 sn ileri"
+      "forward30": "30 sn ileri",
+      "previousChapter": "Önceki kısım",
+      "nextChapter": "Sonraki kısım",
+      "chapterOf": "Kısım {{current}} / {{total}}"
     }
   },
   "queue": {
@@ -4570,7 +4573,9 @@
       "remaining": "{{time}} kaldı",
       "pause": "{{title}} duraklat",
       "queued": "Bekliyor",
-      "deletedWhilePlaying": "Dosya silindi. Çalan bölüm devam ediyor; yeniden başlatmak için ağ ya da yeni bir indirme gerekecek."
+      "deletedWhilePlaying": "Dosya silindi. Çalan bölüm devam ediyor; yeniden başlatmak için ağ ya da yeni bir indirme gerekecek.",
+      "open": "“{{title}}” bölümünü aç",
+      "playAgainShort": "Yeniden dinle"
     },
     "restored": {
       "title": "Bu akışın adresi artık bilinmiyor",
@@ -4602,7 +4607,28 @@
       "episode_gone": "Bu bölüm artık yok.",
       "no_source": "Bu bölümün ne dosyası ne de adresi var: kanala yeniden abone ol.",
       "not_seekable": "Bu barındırıcı bölüm içinde ilerleyip gerilemene izin vermiyor.",
-      "write_failed": "Dosya diske yazılamadı."
+      "write_failed": "Dosya diske yazılamadı.",
+      "invalid_document": "Bu dosya, söylediği şey değil."
+    },
+    "episodePage": {
+      "kicker": "Bölüm"
+    },
+    "chapters": {
+      "title": "Kısımlar",
+      "none": "Bu bölümde kısım yok.",
+      "loading": "Kısımlar aranıyor…",
+      "failed": "Kısımlar okunamadı: {{reason}}",
+      "jump": "“{{title}}” kısmına git, {{time}}"
+    },
+    "transcript": {
+      "title": "Döküm",
+      "none": "Bu bölümün dökümü yok.",
+      "noEpisode": "Dökümünü görmek için bir bölüm başlatın.",
+      "loading": "Döküm alınıyor…",
+      "failed": "Döküm okunamadı: {{reason}}",
+      "untimed": "Bu dökümde zaman bilgisi yok, bu yüzden çalmayı takip etmez.",
+      "notPlaying": "Bu bölüm çalmıyor. Bir satıra tıklamak onu o andan başlatır.",
+      "jump": "{{time}} anına git: {{text}}"
     }
   }
 }

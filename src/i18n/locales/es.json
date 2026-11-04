@@ -1130,7 +1130,10 @@
     },
     "podcast": {
       "back15": "Retroceder 15 s",
-      "forward30": "Avanzar 30 s"
+      "forward30": "Avanzar 30 s",
+      "previousChapter": "Capítulo anterior",
+      "nextChapter": "Capítulo siguiente",
+      "chapterOf": "Capítulo {{current}} de {{total}}"
     }
   },
   "queue": {
@@ -4707,7 +4710,9 @@
       "remaining": "quedan {{time}}",
       "pause": "Pausar {{title}}",
       "queued": "En espera",
-      "deletedWhilePlaying": "El archivo se ha eliminado. Lo que suena sigue sonando; para volver a empezarlo hará falta la red o una nueva descarga."
+      "deletedWhilePlaying": "El archivo se ha eliminado. Lo que suena sigue sonando; para volver a empezarlo hará falta la red o una nueva descarga.",
+      "open": "Abrir «{{title}}»",
+      "playAgainShort": "Volver a escuchar"
     },
     "restored": {
       "title": "Ya no se conoce la dirección de este feed",
@@ -4739,7 +4744,28 @@
       "episode_gone": "Este episodio ya no existe.",
       "no_source": "Este episodio no tiene archivo ni dirección: vuelve a suscribirte al canal.",
       "not_seekable": "Este servidor no permite moverse por el episodio.",
-      "write_failed": "No se pudo escribir el archivo en el disco."
+      "write_failed": "No se pudo escribir el archivo en el disco.",
+      "invalid_document": "Este archivo no es lo que dice ser."
+    },
+    "episodePage": {
+      "kicker": "Episodio"
+    },
+    "chapters": {
+      "title": "Capítulos",
+      "none": "Este episodio no tiene capítulos.",
+      "loading": "Buscando capítulos…",
+      "failed": "No se han podido leer los capítulos: {{reason}}",
+      "jump": "Ir a «{{title}}», {{time}}"
+    },
+    "transcript": {
+      "title": "Transcripción",
+      "none": "Este episodio no tiene transcripción.",
+      "noEpisode": "Reproduce un episodio para ver su transcripción.",
+      "loading": "Obteniendo la transcripción…",
+      "failed": "No se ha podido leer la transcripción: {{reason}}",
+      "untimed": "Esta transcripción no tiene tiempos, así que no sigue la reproducción.",
+      "notPlaying": "Este episodio no se está reproduciendo. Al hacer clic en una línea empieza en ese momento.",
+      "jump": "Ir a {{time}}: {{text}}"
     }
   }
 }

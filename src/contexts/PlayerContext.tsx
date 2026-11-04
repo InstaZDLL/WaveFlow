@@ -62,6 +62,7 @@ import {
   isRadioTrack,
   isRemoteTrack,
   isStreamTrack,
+  isPodcastTrack,
 } from "../lib/playerSources";
 
 /**
@@ -157,7 +158,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   // so we model "which is open" as a single value rather than three
   // booleans — that guarantees mutual exclusion by construction.
   const [activeRightPanel, setActiveRightPanel] = useState<
-    "queue" | "nowPlaying" | "lyrics" | null
+    "queue" | "nowPlaying" | "lyrics" | "transcript" | null
   >(null);
   const isQueueOpen = activeRightPanel === "queue";
   const isNowPlayingOpen = activeRightPanel === "nowPlaying";
@@ -186,6 +187,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   // Backend-synced state
   const [playbackState, setPlaybackState] = useState<PlaybackState>("idle");
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
+  const playingEpisodeId = isPodcastTrack(currentTrack)
+    ? (currentTrack?.podcast_episode_id ?? null)
+    : null;
   // Stable Web Radio station identity, separate from the now-playing
   // song (which the ICY de-interleaver overwrites). Set from
   // `player:radio-metadata`, hydrated on mount, cleared when a library
@@ -992,10 +996,29 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   // a tab opens its panel whatever is up, and the shell's close button
   // closes whichever it is.
   const openRightPanel = useCallback(
-    (panel: "queue" | "nowPlaying" | "lyrics") => setActiveRightPanel(panel),
+    (panel: "queue" | "nowPlaying" | "lyrics" | "transcript") =>
+      setActiveRightPanel(panel),
     [],
   );
   const closeRightPanel = useCallback(() => setActiveRightPanel(null), []);
+  // The episode whose transcript was asked for, and the one in the player then. A
+  // new episode in the player is worked out rather than written, so the panel follows
+  // it without an effect.
+  const [transcriptRequest, setTranscriptRequest] = useState<{
+    episodeId: number;
+    whilePlaying: number | null;
+  } | null>(null);
+  const openTranscript = useCallback(
+    (episodeId: number) => {
+      setTranscriptRequest({ episodeId, whilePlaying: playingEpisodeId });
+      setActiveRightPanel("transcript");
+    },
+    [playingEpisodeId],
+  );
+  const transcriptEpisodeId =
+    transcriptRequest && transcriptRequest.whilePlaying === playingEpisodeId
+      ? transcriptRequest.episodeId
+      : (playingEpisodeId ?? transcriptRequest?.episodeId ?? null);
   const toggleDeviceMenu = useCallback(
     () => setIsDeviceMenuOpen((p) => !p),
     [],
@@ -1081,6 +1104,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         toggleLyrics,
         openRightPanel,
         closeRightPanel,
+        transcriptEpisodeId,
+        openTranscript,
         isDeviceMenuOpen,
         toggleDeviceMenu,
         immersiveOpen,

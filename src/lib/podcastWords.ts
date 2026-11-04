@@ -17,6 +17,7 @@ const KNOWN_WORDS = new Set([
   "too_large",
   "unreached",
   "invalid_feed",
+  "invalid_document",
   "not_audio",
   "quota_exceeded",
 ]);

@@ -1130,7 +1130,10 @@
     },
     "podcast": {
       "back15": "Indietro di 15 s",
-      "forward30": "Avanti di 30 s"
+      "forward30": "Avanti di 30 s",
+      "previousChapter": "Capitolo precedente",
+      "nextChapter": "Capitolo successivo",
+      "chapterOf": "Capitolo {{current}} di {{total}}"
     }
   },
   "queue": {
@@ -4707,7 +4710,9 @@
       "remaining": "ancora {{time}}",
       "pause": "Metti in pausa {{title}}",
       "queued": "In attesa",
-      "deletedWhilePlaying": "Il file è stato eliminato. La riproduzione in corso continua; per riavviarla servirà la rete o un nuovo download."
+      "deletedWhilePlaying": "Il file è stato eliminato. La riproduzione in corso continua; per riavviarla servirà la rete o un nuovo download.",
+      "open": "Apri «{{title}}»",
+      "playAgainShort": "Riascolta"
     },
     "restored": {
       "title": "L'indirizzo di questo feed non è più noto",
@@ -4739,7 +4744,28 @@
       "episode_gone": "Questo episodio non esiste più.",
       "no_source": "Questo episodio non ha né un file né un indirizzo: abbonati di nuovo al canale.",
       "not_seekable": "Questo host non permette di spostarsi nell'episodio.",
-      "write_failed": "Impossibile scrivere il file sul disco."
+      "write_failed": "Impossibile scrivere il file sul disco.",
+      "invalid_document": "Questo file non è ciò che dichiara di essere."
+    },
+    "episodePage": {
+      "kicker": "Episodio"
+    },
+    "chapters": {
+      "title": "Capitoli",
+      "none": "Questo episodio non ha capitoli.",
+      "loading": "Ricerca dei capitoli…",
+      "failed": "Impossibile leggere i capitoli: {{reason}}",
+      "jump": "Vai a «{{title}}», {{time}}"
+    },
+    "transcript": {
+      "title": "Trascrizione",
+      "none": "Questo episodio non ha una trascrizione.",
+      "noEpisode": "Avvia un episodio per vederne la trascrizione.",
+      "loading": "Recupero della trascrizione…",
+      "failed": "Impossibile leggere la trascrizione: {{reason}}",
+      "untimed": "Questa trascrizione non ha tempi, quindi non segue la riproduzione.",
+      "notPlaying": "Questo episodio non è in riproduzione. Un clic su una riga lo avvia da quel punto.",
+      "jump": "Vai a {{time}}: {{text}}"
     }
   }
 }

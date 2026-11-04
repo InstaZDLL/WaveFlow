@@ -1088,7 +1088,10 @@
     },
     "podcast": {
       "back15": "Mundur 15 dtk",
-      "forward30": "Maju 30 dtk"
+      "forward30": "Maju 30 dtk",
+      "previousChapter": "Bab sebelumnya",
+      "nextChapter": "Bab berikutnya",
+      "chapterOf": "Bab {{current}} dari {{total}}"
     }
   },
   "queue": {
@@ -4565,7 +4568,9 @@
       "remaining": "sisa {{time}}",
       "pause": "Jeda {{title}}",
       "queued": "Menunggu",
-      "deletedWhilePlaying": "Berkas sudah dihapus. Yang sedang diputar tetap berjalan; untuk memulainya lagi perlu jaringan atau unduhan baru."
+      "deletedWhilePlaying": "Berkas sudah dihapus. Yang sedang diputar tetap berjalan; untuk memulainya lagi perlu jaringan atau unduhan baru.",
+      "open": "Buka “{{title}}”",
+      "playAgainShort": "Dengarkan lagi"
     },
     "restored": {
       "title": "Alamat umpan ini sudah tidak diketahui",
@@ -4597,7 +4602,28 @@
       "episode_gone": "Episode ini sudah tidak ada.",
       "no_source": "Episode ini tidak punya berkas maupun alamat: berlangganan lagi ke saluran ini.",
       "not_seekable": "Host ini tidak mengizinkan berpindah posisi di dalam episode.",
-      "write_failed": "Berkas tidak dapat ditulis ke disk."
+      "write_failed": "Berkas tidak dapat ditulis ke disk.",
+      "invalid_document": "Berkas ini bukan seperti yang diklaimnya."
+    },
+    "episodePage": {
+      "kicker": "Episode"
+    },
+    "chapters": {
+      "title": "Bab",
+      "none": "Episode ini tidak memiliki bab.",
+      "loading": "Mencari bab…",
+      "failed": "Bab tidak dapat dibaca: {{reason}}",
+      "jump": "Buka “{{title}}”, {{time}}"
+    },
+    "transcript": {
+      "title": "Transkrip",
+      "none": "Episode ini tidak memiliki transkrip.",
+      "noEpisode": "Putar episode untuk melihat transkripnya.",
+      "loading": "Mengambil transkrip…",
+      "failed": "Transkrip tidak dapat dibaca: {{reason}}",
+      "untimed": "Transkrip ini tidak memiliki penanda waktu, jadi tidak mengikuti pemutaran.",
+      "notPlaying": "Episode ini tidak sedang diputar. Mengeklik baris akan memulainya dari saat itu.",
+      "jump": "Buka {{time}}: {{text}}"
     }
   }
 }

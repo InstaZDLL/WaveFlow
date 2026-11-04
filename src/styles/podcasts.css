@@ -287,6 +287,61 @@
   border-radius: 1rem;
 }
 
+/* ── Chapters ──────────────────────────────────────────────── */
+[data-podcasts] .pc-chapter {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.5rem;
+  border-radius: var(--pc-radius-small);
+  color: var(--pc-ink-2);
+  font-size: 0.875rem;
+  line-height: 1.35;
+  text-align: start;
+  transition: background-color 180ms ease-out;
+}
+[data-podcasts] .pc-chapter:hover {
+  background-color: var(--pc-tone);
+  color: var(--pc-ink);
+}
+[data-podcasts] .pc-chapter:focus-visible {
+  outline: 2px solid var(--pc-accent);
+  outline-offset: -2px;
+}
+[data-podcasts] .pc-chapter[data-current] {
+  background-color: var(--pc-tone);
+  box-shadow: inset 2px 0 0 var(--pc-accent);
+  color: var(--pc-ink);
+  font-weight: 540;
+}
+[dir="rtl"] [data-podcasts] .pc-chapter[data-current] {
+  box-shadow: inset -2px 0 0 var(--pc-accent);
+}
+[data-podcasts] .pc-chapter__time {
+  flex-shrink: 0;
+  min-width: 3.25rem;
+  color: var(--pc-ink-3);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+[data-podcasts] .pc-chapter__title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+[data-podcasts] .pc-title--link {
+  cursor: pointer;
+  text-underline-offset: 2px;
+}
+[data-podcasts] .pc-title--link:hover {
+  text-decoration: underline;
+}
+[data-podcasts] .pc-title--link:focus-visible {
+  outline: 2px solid var(--pc-accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
 /* ── An episode ────────────────────────────────────────────── */
 [data-podcasts] .pc-episode {
   display: flex;

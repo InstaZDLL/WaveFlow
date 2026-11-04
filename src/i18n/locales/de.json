@@ -1090,7 +1090,10 @@
     },
     "podcast": {
       "back15": "15 s zurück",
-      "forward30": "30 s vor"
+      "forward30": "30 s vor",
+      "previousChapter": "Vorheriges Kapitel",
+      "nextChapter": "Nächstes Kapitel",
+      "chapterOf": "Kapitel {{current}} von {{total}}"
     }
   },
   "queue": {
@@ -4570,7 +4573,9 @@
       "remaining": "noch {{time}}",
       "pause": "{{title}} pausieren",
       "queued": "Wartet",
-      "deletedWhilePlaying": "Die Datei ist gelöscht. Die laufende Wiedergabe geht weiter; für einen Neustart braucht es das Netz oder einen neuen Download."
+      "deletedWhilePlaying": "Die Datei ist gelöscht. Die laufende Wiedergabe geht weiter; für einen Neustart braucht es das Netz oder einen neuen Download.",
+      "open": "„{{title}}“ öffnen",
+      "playAgainShort": "Noch einmal hören"
     },
     "restored": {
       "title": "Die Adresse dieses Feeds ist nicht mehr bekannt",
@@ -4602,7 +4607,28 @@
       "episode_gone": "Diese Folge gibt es nicht mehr.",
       "no_source": "Diese Folge hat weder Datei noch Adresse: Abonniere den Kanal erneut.",
       "not_seekable": "Dieser Host erlaubt kein Springen innerhalb der Folge.",
-      "write_failed": "Die Datei konnte nicht auf die Festplatte geschrieben werden."
+      "write_failed": "Die Datei konnte nicht auf die Festplatte geschrieben werden.",
+      "invalid_document": "Diese Datei ist nicht das, was sie vorgibt zu sein."
+    },
+    "episodePage": {
+      "kicker": "Folge"
+    },
+    "chapters": {
+      "title": "Kapitel",
+      "none": "Diese Folge hat keine Kapitel.",
+      "loading": "Kapitel werden gesucht…",
+      "failed": "Die Kapitel konnten nicht gelesen werden: {{reason}}",
+      "jump": "Zu „{{title}}“ springen, {{time}}"
+    },
+    "transcript": {
+      "title": "Transkript",
+      "none": "Diese Folge hat kein Transkript.",
+      "noEpisode": "Spiele eine Folge ab, um ihr Transkript zu sehen.",
+      "loading": "Transkript wird abgerufen…",
+      "failed": "Das Transkript konnte nicht gelesen werden: {{reason}}",
+      "untimed": "Dieses Transkript hat keine Zeitangaben und folgt der Wiedergabe daher nicht.",
+      "notPlaying": "Diese Folge läuft gerade nicht. Ein Klick auf eine Zeile startet sie an dieser Stelle.",
+      "jump": "Zu {{time}} springen: {{text}}"
     }
   }
 }
