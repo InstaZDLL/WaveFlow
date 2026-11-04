@@ -4520,7 +4520,9 @@
       "newest": "最新一集",
       "resume": "繼續",
       "listen": "播放",
-      "showAll": "顯示全部（還有 {{n}} 個）"
+      "showAll": "顯示全部（還有 {{n}} 個）",
+      "playing": "正在播放",
+      "pause": "暫停"
     },
     "channel": {
       "kicker": "Podcast",
@@ -4552,7 +4554,8 @@
       "noAddress": "不知道這一集的網址，請重新訂閱這個節目。",
       "seasonEpisode": "第{{season}}季 · 第{{episode}}集",
       "number": "第 {{episode}} 集",
-      "remaining": "剩餘 {{time}}"
+      "remaining": "剩餘 {{time}}",
+      "pause": "暫停 {{title}}"
     },
     "restored": {
       "title": "已不知道這個訂閱來源的網址",

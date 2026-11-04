@@ -5035,7 +5035,9 @@
       "newest": "أحدث حلقة",
       "resume": "متابعة",
       "listen": "استماع",
-      "showAll": "عرض الكل ({{n}} أخرى)"
+      "showAll": "عرض الكل ({{n}} أخرى)",
+      "playing": "قيد التشغيل",
+      "pause": "إيقاف مؤقت"
     },
     "channel": {
       "kicker": "بودكاست",
@@ -5067,7 +5069,8 @@
       "noAddress": "عنوان هذه الحلقة غير معروف: اشترك في القناة من جديد.",
       "seasonEpisode": "م{{season}} · ح{{episode}}",
       "number": "الحلقة {{episode}}",
-      "remaining": "المتبقي {{time}}"
+      "remaining": "المتبقي {{time}}",
+      "pause": "إيقاف {{title}} مؤقتًا"
     },
     "restored": {
       "title": "لم يعد عنوان هذه الخلاصة معروفًا",

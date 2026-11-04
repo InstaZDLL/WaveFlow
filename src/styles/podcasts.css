@@ -303,6 +303,17 @@
 [data-podcasts] .pc-episode[data-played] .pc-title {
   color: var(--pc-ink-3);
 }
+[data-podcasts] .pc-episode[data-current] {
+  background-color: var(--pc-tone);
+  box-shadow:
+    inset 2px 0 0 var(--pc-accent),
+    0 1px 0 var(--pc-hairline);
+}
+[dir="rtl"] [data-podcasts] .pc-episode[data-current] {
+  box-shadow:
+    inset -2px 0 0 var(--pc-accent),
+    0 1px 0 var(--pc-hairline);
+}
 [data-podcasts] .pc-episode__art {
   width: 3rem;
   height: 3rem;

@@ -4525,7 +4525,9 @@
       "newest": "Latest episode",
       "resume": "Resume",
       "listen": "Listen",
-      "showAll": "Show all ({{n}} more)"
+      "showAll": "Show all ({{n}} more)",
+      "playing": "Now playing",
+      "pause": "Pause"
     },
     "channel": {
       "kicker": "Podcast",
@@ -4557,7 +4559,8 @@
       "noAddress": "This episode's address is not known: subscribe to the channel again.",
       "seasonEpisode": "S{{season}} · E{{episode}}",
       "number": "Episode {{episode}}",
-      "remaining": "{{time}} left"
+      "remaining": "{{time}} left",
+      "pause": "Pause {{title}}"
     },
     "restored": {
       "title": "This feed's address is no longer known",

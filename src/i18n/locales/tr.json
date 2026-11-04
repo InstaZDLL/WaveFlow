@@ -4525,7 +4525,9 @@
       "newest": "Son bölüm",
       "resume": "Devam et",
       "listen": "Dinle",
-      "showAll": "Hepsini göster ({{n}} tane daha)"
+      "showAll": "Hepsini göster ({{n}} tane daha)",
+      "playing": "Şu an çalıyor",
+      "pause": "Duraklat"
     },
     "channel": {
       "kicker": "Podcast",
@@ -4557,7 +4559,8 @@
       "noAddress": "Bu bölümün adresi bilinmiyor: kanala yeniden abone ol.",
       "seasonEpisode": "S{{season}} · B{{episode}}",
       "number": "Bölüm {{episode}}",
-      "remaining": "{{time}} kaldı"
+      "remaining": "{{time}} kaldı",
+      "pause": "{{title}} duraklat"
     },
     "restored": {
       "title": "Bu akışın adresi artık bilinmiyor",

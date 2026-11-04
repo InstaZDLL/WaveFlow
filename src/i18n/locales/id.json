@@ -4520,7 +4520,9 @@
       "newest": "Episode terbaru",
       "resume": "Lanjutkan",
       "listen": "Dengarkan",
-      "showAll": "Tampilkan semua ({{n}} lagi)"
+      "showAll": "Tampilkan semua ({{n}} lagi)",
+      "playing": "Sedang diputar",
+      "pause": "Jeda"
     },
     "channel": {
       "kicker": "Podcast",
@@ -4552,7 +4554,8 @@
       "noAddress": "Alamat episode ini tidak diketahui: berlangganan lagi ke kanalnya.",
       "seasonEpisode": "S{{season}} · E{{episode}}",
       "number": "Episode {{episode}}",
-      "remaining": "sisa {{time}}"
+      "remaining": "sisa {{time}}",
+      "pause": "Jeda {{title}}"
     },
     "restored": {
       "title": "Alamat umpan ini sudah tidak diketahui",

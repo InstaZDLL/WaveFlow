@@ -4662,7 +4662,9 @@
       "newest": "Ultimo episodio",
       "resume": "Riprendi",
       "listen": "Ascolta",
-      "showAll": "Mostra tutto (altri {{n}})"
+      "showAll": "Mostra tutto (altri {{n}})",
+      "playing": "In riproduzione",
+      "pause": "Pausa"
     },
     "channel": {
       "kicker": "Podcast",
@@ -4694,7 +4696,8 @@
       "noAddress": "L'indirizzo di questo episodio non è noto: iscriviti di nuovo al canale.",
       "seasonEpisode": "S{{season}} · E{{episode}}",
       "number": "Episodio {{episode}}",
-      "remaining": "ancora {{time}}"
+      "remaining": "ancora {{time}}",
+      "pause": "Metti in pausa {{title}}"
     },
     "restored": {
       "title": "L'indirizzo di questo feed non è più noto",

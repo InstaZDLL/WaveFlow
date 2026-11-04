@@ -6,6 +6,7 @@ import {
   CheckCheck,
   ExternalLink,
   Loader2,
+  Pause,
   Play,
   RefreshCw,
   Undo2,
@@ -33,6 +34,7 @@ import {
   PodcastCover,
   PodcastEpisodeRow,
   type EpisodeActions,
+  type PodcastPlayerState,
 } from "./PodcastItems";
 import { PodcastSubscribeForm } from "./PodcastSubscribeForm";
 
@@ -151,6 +153,7 @@ interface PodcastChannelPageProps {
   /** A refresh over the network is running, here or for every channel. */
   refreshing: boolean;
   downloads: ReadonlyMap<number, PodcastDownloadPayload>;
+  player: PodcastPlayerState;
   actions: EpisodeActions;
   /** Set each time the episodes changed by a hand here. */
   revision: number;
@@ -171,6 +174,7 @@ export function PodcastChannelPage({
   offline,
   refreshing,
   downloads,
+  player,
   actions,
   revision,
   onBack,
@@ -214,17 +218,22 @@ export function PodcastChannelPage({
     if (!complete && lastIndex >= episodes.length - LOAD_AHEAD) loadMore();
   }, [complete, lastIndex, episodes.length, loadMore]);
 
-  // What the primary action starts: the episode in progress, else the newest
-  // not played yet, among those loaded.
+  // What the primary action starts: the episode in the player if it is one of
+  // these, else the one in progress, else the newest not played yet, among those
+  // loaded.
   const next = useMemo(
     () =>
+      episodes.find((episode) => episode.id === player.episodeId) ??
       episodes.find((episode) => isInProgress(episode)) ??
       episodes.find(
         (episode) => episode.played_at == null && isPlayable(episode),
       ),
-    [episodes],
+    [episodes, player.episodeId],
   );
-  const canPlayNext = next != null && (next.downloaded || network);
+  const nextIsCurrent = next != null && next.id === player.episodeId;
+  const sounding = nextIsCurrent && player.playing;
+  const canPlayNext =
+    next != null && (nextIsCurrent || next.downloaded || network);
 
   const speedValue =
     channel.playback_speed == null ? "" : String(channel.playback_speed);
@@ -302,11 +311,17 @@ export function PodcastChannelPage({
                 onClick={() => actions.play(next)}
                 className="inline-flex items-center gap-2 rounded-full bg-emerald-500 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <Play size={14} className="fill-current" strokeWidth={0} />
+                {sounding ? (
+                  <Pause size={14} className="fill-current" strokeWidth={0} />
+                ) : (
+                  <Play size={14} className="fill-current" strokeWidth={0} />
+                )}
                 {t(
-                  isInProgress(next)
-                    ? "podcasts.toListen.resume"
-                    : "podcasts.toListen.listen",
+                  sounding
+                    ? "podcasts.toListen.pause"
+                    : nextIsCurrent || isInProgress(next)
+                      ? "podcasts.toListen.resume"
+                      : "podcasts.toListen.listen",
                 )}
               </button>
             )}
@@ -461,6 +476,7 @@ export function PodcastChannelPage({
                   episode={episode}
                   network={network}
                   download={downloads.get(episode.id)}
+                  player={player}
                   actions={actions}
                 />
               </div>

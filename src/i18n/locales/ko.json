@@ -4520,7 +4520,9 @@
       "newest": "최신 에피소드",
       "resume": "이어 듣기",
       "listen": "듣기",
-      "showAll": "모두 보기({{n}}개 더)"
+      "showAll": "모두 보기({{n}}개 더)",
+      "playing": "재생 중",
+      "pause": "일시 정지"
     },
     "channel": {
       "kicker": "팟캐스트",
@@ -4552,7 +4554,8 @@
       "noAddress": "이 에피소드의 주소를 알 수 없습니다. 채널을 다시 구독하세요.",
       "seasonEpisode": "시즌 {{season}} · {{episode}}화",
       "number": "에피소드 {{episode}}",
-      "remaining": "{{time}} 남음"
+      "remaining": "{{time}} 남음",
+      "pause": "{{title}} 일시 정지"
     },
     "restored": {
       "title": "이 피드의 주소를 더 이상 알 수 없습니다",

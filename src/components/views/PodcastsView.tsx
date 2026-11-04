@@ -25,6 +25,7 @@ import {
 
 import { useSkin } from "../../hooks/useSkin";
 import { usePageVirtualizer } from "../../hooks/usePageVirtualizer";
+import { usePlayer } from "../../hooks/usePlayer";
 import { usePodcastDownloads } from "../../hooks/usePodcastDownloads";
 import { usePodcastLibrary } from "../../hooks/usePodcastLibrary";
 import { usePodcastsEnabled } from "../../hooks/usePodcastsEnabled";
@@ -34,6 +35,7 @@ import {
   openPodcastWarning,
   openView,
 } from "../../lib/discovery";
+import { isPodcastTrack } from "../../lib/playerSources";
 import { podcastFailureMessage } from "../../lib/podcastWords";
 import { getOfflineMode } from "../../lib/tauri/offline";
 import {
@@ -63,6 +65,7 @@ import {
   PodcastEpisodeRow,
   PodcastLeadBand,
   type EpisodeActions,
+  type PodcastPlayerState,
 } from "./podcasts/PodcastItems";
 import { PodcastSubscribeForm } from "./podcasts/PodcastSubscribeForm";
 
@@ -153,6 +156,15 @@ export function PodcastsView({
   );
   const downloads = usePodcastDownloads(failWith);
 
+  const { currentTrack, isPlaying, togglePlayback } = usePlayer();
+  const episodeInPlayer = isPodcastTrack(currentTrack)
+    ? (currentTrack?.podcast_episode_id ?? null)
+    : null;
+  const player = useMemo<PodcastPlayerState>(
+    () => ({ episodeId: episodeInPlayer, playing: isPlaying }),
+    [episodeInPlayer, isPlaying],
+  );
+
   /** Runs a command, says what went wrong, and re-reads what it may have moved. */
   const run = useCallback(
     async (label: string, command: () => Promise<unknown>) => {
@@ -174,7 +186,14 @@ export function PodcastsView({
 
   const actions = useMemo<EpisodeActions>(
     () => ({
-      play: (episode) => void run("play", () => podcastPlayEpisode(episode.id)),
+      // The episode already in the player pauses or carries on, from where it is
+      // rather than from the last position written.
+      play: (episode) =>
+        void run("play", () =>
+          episode.id === episodeInPlayer
+            ? togglePlayback()
+            : podcastPlayEpisode(episode.id),
+        ),
       togglePlayed: (episode) =>
         void run("mark", () =>
           podcastMarkPlayed(episode.id, episode.played_at == null),
@@ -186,7 +205,7 @@ export function PodcastsView({
       deleteDownload: (episode) =>
         void run("delete", () => podcastDeleteDownload(episode.id)),
     }),
-    [run],
+    [run, episodeInPlayer, togglePlayback],
   );
 
   const reportRefresh = useCallback(
@@ -397,6 +416,7 @@ export function PodcastsView({
           offline={offline}
           refreshing={refreshing}
           downloads={downloads}
+          player={player}
           actions={actions}
           revision={revision}
           onBack={() => onOpenChannel(null)}
@@ -576,6 +596,7 @@ export function PodcastsView({
         fluid={fluid}
         network={network}
         downloads={downloads}
+        player={player}
         actions={actions}
         onOpenChannel={openChannel}
       />
@@ -596,6 +617,7 @@ function PodcastOverviewList({
   fluid,
   network,
   downloads,
+  player,
   actions,
   onOpenChannel,
 }: {
@@ -605,6 +627,7 @@ function PodcastOverviewList({
   fluid: boolean;
   network: boolean;
   downloads: ReturnType<typeof usePodcastDownloads>;
+  player: PodcastPlayerState;
   actions: EpisodeActions;
   onOpenChannel: (channelId: number) => void;
 }) {
@@ -723,6 +746,7 @@ function PodcastOverviewList({
                     episode={row.episode}
                     channel={byId.get(row.episode.channel_id)}
                     network={network}
+                    player={player}
                     onPlay={actions.play}
                   />
                 </div>
@@ -733,6 +757,7 @@ function PodcastOverviewList({
                   channel={byId.get(row.episode.channel_id)}
                   network={network}
                   download={downloads.get(row.episode.id)}
+                  player={player}
                   actions={actions}
                 />
               )}

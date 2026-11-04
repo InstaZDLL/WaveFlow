@@ -4525,7 +4525,9 @@
       "newest": "Neueste Folge",
       "resume": "Fortsetzen",
       "listen": "Anhören",
-      "showAll": "Alle anzeigen ({{n}} weitere)"
+      "showAll": "Alle anzeigen ({{n}} weitere)",
+      "playing": "Wird gerade abgespielt",
+      "pause": "Pause"
     },
     "channel": {
       "kicker": "Podcast",
@@ -4557,7 +4559,8 @@
       "noAddress": "Die Adresse dieser Folge ist nicht bekannt. Abonniere den Kanal erneut.",
       "seasonEpisode": "S{{season}} · F{{episode}}",
       "number": "Folge {{episode}}",
-      "remaining": "noch {{time}}"
+      "remaining": "noch {{time}}",
+      "pause": "{{title}} pausieren"
     },
     "restored": {
       "title": "Die Adresse dieses Feeds ist nicht mehr bekannt",

@@ -4662,7 +4662,9 @@
       "newest": "Dernier épisode",
       "resume": "Reprendre",
       "listen": "Écouter",
-      "showAll": "Tout afficher ({{n}} de plus)"
+      "showAll": "Tout afficher ({{n}} de plus)",
+      "playing": "En cours de lecture",
+      "pause": "Pause"
     },
     "channel": {
       "kicker": "Podcast",
@@ -4694,7 +4696,8 @@
       "noAddress": "L'adresse de cet épisode n'est pas connue : réabonnez-vous à la chaîne.",
       "seasonEpisode": "S{{season}} · É{{episode}}",
       "number": "Épisode {{episode}}",
-      "remaining": "reste {{time}}"
+      "remaining": "reste {{time}}",
+      "pause": "Mettre {{title}} en pause"
     },
     "restored": {
       "title": "L'adresse de ce flux n'est plus connue",

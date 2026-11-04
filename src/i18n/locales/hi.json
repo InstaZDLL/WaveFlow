@@ -4525,7 +4525,9 @@
       "newest": "सबसे नया एपिसोड",
       "resume": "जारी रखें",
       "listen": "सुनें",
-      "showAll": "सभी दिखाएँ ({{n}} और)"
+      "showAll": "सभी दिखाएँ ({{n}} और)",
+      "playing": "अभी चल रहा है",
+      "pause": "रोकें"
     },
     "channel": {
       "kicker": "पॉडकास्ट",
@@ -4557,7 +4559,8 @@
       "noAddress": "इस एपिसोड का पता मालूम नहीं है: चैनल की सदस्यता दोबारा लें।",
       "seasonEpisode": "सीज़न {{season}} · एपिसोड {{episode}}",
       "number": "एपिसोड {{episode}}",
-      "remaining": "{{time}} बाकी"
+      "remaining": "{{time}} बाकी",
+      "pause": "{{title}} रोकें"
     },
     "restored": {
       "title": "इस फ़ीड का पता अब मालूम नहीं है",

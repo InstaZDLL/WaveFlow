@@ -55,6 +55,8 @@ export interface Track {
    * the track to the server without this.
    */
   remote_id?: string;
+  /** Set while this is a podcast episode: which row of the page it is. */
+  podcast_episode_id?: number;
 }
 
 /** Sort spec accepted by `listTracks` / `listAlbums` / `listArtists`. */

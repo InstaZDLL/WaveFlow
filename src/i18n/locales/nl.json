@@ -4525,7 +4525,9 @@
       "newest": "Nieuwste aflevering",
       "resume": "Hervatten",
       "listen": "Luisteren",
-      "showAll": "Alles tonen ({{n}} meer)"
+      "showAll": "Alles tonen ({{n}} meer)",
+      "playing": "Speelt nu af",
+      "pause": "Pauzeren"
     },
     "channel": {
       "kicker": "Podcast",
@@ -4557,7 +4559,8 @@
       "noAddress": "Het adres van deze aflevering is niet bekend: abonneer je opnieuw op het kanaal.",
       "seasonEpisode": "S{{season}} · A{{episode}}",
       "number": "Aflevering {{episode}}",
-      "remaining": "nog {{time}}"
+      "remaining": "nog {{time}}",
+      "pause": "{{title}} pauzeren"
     },
     "restored": {
       "title": "Het adres van deze feed is niet meer bekend",

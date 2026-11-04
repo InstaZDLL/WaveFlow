@@ -4520,7 +4520,9 @@
       "newest": "最新のエピソード",
       "resume": "続きから",
       "listen": "再生",
-      "showAll": "すべて表示（ほか{{n}}件）"
+      "showAll": "すべて表示（ほか{{n}}件）",
+      "playing": "再生中",
+      "pause": "一時停止"
     },
     "channel": {
       "kicker": "ポッドキャスト",
@@ -4552,7 +4554,8 @@
       "noAddress": "このエピソードのアドレスが分かりません。番組をもう一度登録してください。",
       "seasonEpisode": "S{{season}} · 第{{episode}}話",
       "number": "第{{episode}}話",
-      "remaining": "残り{{time}}"
+      "remaining": "残り{{time}}",
+      "pause": "{{title}} を一時停止"
     },
     "restored": {
       "title": "このフィードのアドレスが分からなくなりました",

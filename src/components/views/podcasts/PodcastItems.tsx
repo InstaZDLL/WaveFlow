@@ -4,6 +4,7 @@ import {
   Check,
   Download,
   Loader2,
+  Pause,
   Play,
   Podcast,
   RotateCcw,
@@ -142,6 +143,12 @@ export function PodcastChannelTile({ channel, onOpen }: ChannelItemProps) {
   );
 }
 
+/** The episode the player holds, and whether it is sounding. */
+export interface PodcastPlayerState {
+  episodeId: number | null;
+  playing: boolean;
+}
+
 export interface EpisodeActions {
   play: (episode: PodcastEpisode) => void;
   togglePlayed: (episode: PodcastEpisode) => void;
@@ -158,6 +165,7 @@ interface EpisodeRowProps {
   network: boolean;
   /** Set while this episode's download moves. */
   download?: PodcastDownloadPayload;
+  player: PodcastPlayerState;
   actions: EpisodeActions;
 }
 
@@ -214,22 +222,28 @@ export function PodcastEpisodeRow({
   channel,
   network,
   download,
+  player,
   actions,
 }: EpisodeRowProps) {
   const { t, i18n } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const title = episodeTitle(t, episode);
   const meta = useEpisodeMeta(episode, channel);
-  const blocker = playBlocker(episode, network);
+  // The episode in the player answers to the player, whatever else is off.
+  const current = player.episodeId === episode.id;
+  const sounding = current && player.playing;
+  const blocker = current ? null : playBlocker(episode, network);
   const played = episode.played_at != null;
   const progress = progressOf(episode);
   const inProgress = isInProgress(episode);
   const playLabel = t(
-    played
-      ? "podcasts.episode.playAgain"
-      : inProgress
+    sounding
+      ? "podcasts.episode.pause"
+      : current || inProgress
         ? "podcasts.episode.resume"
-        : "podcasts.episode.play",
+        : played
+          ? "podcasts.episode.playAgain"
+          : "podcasts.episode.play",
     { title },
   );
 
@@ -237,6 +251,8 @@ export function PodcastEpisodeRow({
     <div
       className="pc-episode"
       data-played={played || undefined}
+      data-current={current || undefined}
+      aria-current={current || undefined}
       data-episode-id={episode.id}
     >
       {channel && (
@@ -249,12 +265,14 @@ export function PodcastEpisodeRow({
       <button
         type="button"
         className="pc-play"
-        disabled={blocker != null || !isPlayable(episode)}
+        disabled={blocker != null || (!current && !isPlayable(episode))}
         aria-label={playLabel}
         title={blocker ? t(blocker) : playLabel}
         onClick={() => actions.play(episode)}
       >
-        {played ? (
+        {sounding ? (
+          <Pause size={15} className="fill-current" strokeWidth={0} />
+        ) : played && !current ? (
           <RotateCcw size={15} />
         ) : (
           <Play
@@ -431,18 +449,22 @@ export function PodcastLeadBand({
   episode,
   channel,
   network,
+  player,
   onPlay,
 }: {
   episode: PodcastEpisode;
   channel?: PodcastChannel;
   network: boolean;
+  player: PodcastPlayerState;
   onPlay: (episode: PodcastEpisode) => void;
 }) {
   const { t } = useTranslation();
   const title = episodeTitle(t, episode);
   const meta = useEpisodeMeta(episode);
-  const blocker = playBlocker(episode, network);
-  const inProgress = isInProgress(episode);
+  const current = player.episodeId === episode.id;
+  const sounding = current && player.playing;
+  const blocker = current ? null : playBlocker(episode, network);
+  const inProgress = current || isInProgress(episode);
   const blurSrc = resolveRemoteImage(channel?.artwork_path, null);
   return (
     <section
@@ -472,9 +494,11 @@ export function PodcastLeadBand({
         <div className="min-w-[16rem] flex-1">
           <p className="fe-editorial fe-ink-2 text-[1.375rem] leading-tight">
             {t(
-              inProgress
-                ? "podcasts.toListen.inProgress"
-                : "podcasts.toListen.newest",
+              sounding
+                ? "podcasts.toListen.playing"
+                : inProgress
+                  ? "podcasts.toListen.inProgress"
+                  : "podcasts.toListen.newest",
             )}
           </p>
           <h3 className="fe-title fe-ink mt-1.5 truncate text-[1.625rem]">
@@ -495,18 +519,29 @@ export function PodcastLeadBand({
           onClick={() => onPlay(episode)}
         >
           <span className="fe-cta__icon">
-            <Play
-              size={14}
-              className="translate-x-px fill-current"
-              strokeWidth={0}
-              aria-hidden="true"
-            />
+            {sounding ? (
+              <Pause
+                size={14}
+                className="fill-current"
+                strokeWidth={0}
+                aria-hidden="true"
+              />
+            ) : (
+              <Play
+                size={14}
+                className="translate-x-px fill-current"
+                strokeWidth={0}
+                aria-hidden="true"
+              />
+            )}
           </span>
           <span>
             {t(
-              inProgress
-                ? "podcasts.toListen.resume"
-                : "podcasts.toListen.listen",
+              sounding
+                ? "podcasts.toListen.pause"
+                : inProgress
+                  ? "podcasts.toListen.resume"
+                  : "podcasts.toListen.listen",
             )}
           </span>
         </button>
