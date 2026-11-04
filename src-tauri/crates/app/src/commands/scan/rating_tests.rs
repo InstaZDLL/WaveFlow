@@ -149,7 +149,7 @@ fn move_mtime_forward(path: &Path) {
 }
 
 /// A real DSF: the chunk chain, and a silence nothing decodes here.
-fn dsf_bytes() -> Vec<u8> {
+pub(super) fn dsf_bytes() -> Vec<u8> {
     let audio = vec![0x69u8; 8192];
     let audio_end = 28u64 + 52 + 12 + audio.len() as u64;
     let mut bytes = b"DSD ".to_vec();

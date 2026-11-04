@@ -7,6 +7,7 @@ pub use waveflow_core::scanner::canonical_name;
 mod artist_images;
 mod extract;
 mod folder;
+mod moved;
 mod progress;
 mod walk;
 
@@ -25,3 +26,6 @@ mod counter_tests;
 
 #[cfg(test)]
 mod rating_tests;
+
+#[cfg(test)]
+mod reliability_tests;

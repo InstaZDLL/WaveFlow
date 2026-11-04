@@ -4067,6 +4067,10 @@
       "same": "Questa cartella è già nella libreria: {{folder}}",
       "inside": "Questa cartella è già nella libreria, dentro {{folder}}.",
       "contains": "Questa cartella contiene {{folder}}, che è già nella libreria. Aggiungi piuttosto le sue altre sottocartelle."
+    },
+    "unreachable": {
+      "title": "Cartella della libreria non raggiungibile",
+      "body": "Manca o non è leggibile, forse un disco scollegato. I suoi brani restano nella libreria, senza modifiche."
     }
   },
   "playlistImport": {

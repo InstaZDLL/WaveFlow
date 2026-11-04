@@ -35,6 +35,7 @@ pub struct RescanSummary {
     pub skipped: u32,
     pub errors: u32,
     pub removed: u32,
+    pub moved: u32,
     /// Set when a folder scan was stopped from the task bar. The walk
     /// gives up at that point, so the counters describe the folders it
     /// got through, not the library.
@@ -357,6 +358,7 @@ pub async fn rescan_library(
                     skipped,
                     errors,
                     removed,
+                    moved,
                     cancelled,
                     ..
                 } = summary;
@@ -366,6 +368,7 @@ pub async fn rescan_library(
                 total.skipped += skipped;
                 total.errors += errors;
                 total.removed += removed;
+                total.moved += moved;
                 // `cancelled` used to be dropped by the `..` here, and
                 // the loop walked on to the next folder. Stopping a
                 // library-wide rescan then killed one folder and

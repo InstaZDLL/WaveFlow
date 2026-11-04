@@ -3958,6 +3958,10 @@
       "same": "This folder is already in the library: {{folder}}",
       "inside": "This folder is already in the library, inside {{folder}}.",
       "contains": "This folder contains {{folder}}, which is already in the library. Add its other subfolders instead."
+    },
+    "unreachable": {
+      "title": "Library folder out of reach",
+      "body": "It is missing or cannot be read, perhaps a drive that is unplugged. Its tracks stay in the library, unchanged."
     }
   },
   "playlistImport": {

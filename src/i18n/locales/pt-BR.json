@@ -4068,6 +4068,10 @@
       "same": "Esta pasta já está na biblioteca: {{folder}}",
       "inside": "Esta pasta já está na biblioteca, dentro de {{folder}}.",
       "contains": "Esta pasta contém {{folder}}, que já está na biblioteca. Adicione as outras subpastas dela."
+    },
+    "unreachable": {
+      "title": "Pasta da biblioteca inacessível",
+      "body": "Ela não foi encontrada ou não pode ser lida; talvez seja um disco desconectado. As faixas continuam na biblioteca, sem alterações."
     }
   },
   "playlistImport": {

@@ -138,6 +138,7 @@ async fn an_album_artist_moves_the_track_to_that_album() {
         false,
         Some(1),
         None,
+        "/music/x.flac",
     )
     .await
     .unwrap();
