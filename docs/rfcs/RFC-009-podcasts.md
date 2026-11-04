@@ -228,6 +228,27 @@ A channel subscribed in both places shows twice, once per source, and each keeps
 its own position. Merging them would need an identity the two do not share, and
 that is left open.
 
+As built, [Podcasts / The channels of a bound server](../features/podcasts.md#the-channels-of-a-bound-server):
+
+- **The switch holds here too.** Decision 1 is about traffic to each podcast's host,
+  and this goes to a host the person already chose, but one rule is simpler than two:
+  off means no row and no request. The warning says what a linked server adds.
+- **The ticket is not in the load.** It lasts about an hour, as an episode may, so the
+  decoder mints it when it opens the stream and again when a request answers 404, and
+  it goes through the enclosure's reader, so decision 4 covers it.
+- **The original bytes**, whatever the transcode preference says: resuming is a seek,
+  and a transcode cannot seek.
+- **An episode that counts as heard loses its bookmark**, by the rule of decision 7.
+  The server keeps no played state, so the next one after an end is the next stored
+  one, heard or not, and there is no unplayed count.
+- **A position is pinned to the profile, the server and the account** that was
+  listening, and dropped otherwise. One that cannot be sent is lost: it is never kept
+  as a local row.
+- **Speed lasts as long as the app runs**: decision 12's column belongs to a local
+  channel.
+- **The server has no chapters and no transcripts** at 2.1.0, so decisions 9 and 10
+  stop at local channels.
+
 ## Decision 12 — speed
 
 **A speed is remembered per channel and never leaks into music.** The global

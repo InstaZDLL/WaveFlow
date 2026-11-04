@@ -321,14 +321,6 @@ export function PodcastsView({
     });
   }, [run, t, reloadServer]);
 
-  const openServerSubscribed = useCallback(
-    (id: string) => {
-      void reloadServer();
-      onOpenServerChannel(id);
-    },
-    [reloadServer, onOpenServerChannel],
-  );
-
   const confirmLeavingServer = async () => {
     if (!leavingServer) return;
     const id = leavingServer.id;
@@ -670,7 +662,11 @@ export function PodcastsView({
               {t("settings.podcasts.title")}
             </h1>
             <div className="mt-1 text-sm text-zinc-500">
-              {t("podcasts.channelsCount", { count: library.channels.length })}
+              {t("podcasts.channelsCount", {
+                count:
+                  library.channels.length +
+                  (serverOverview?.channels.length ?? 0),
+              })}
               {" · "}
               {t("podcasts.unplayedCount", { count: unplayed })}
               {library.usage && library.usage.usedBytes > 0 && (
@@ -811,7 +807,7 @@ export function PodcastsView({
             canManage={serverOverview?.can_manage ?? false}
             disabled={!network}
             onRefresh={refreshServer}
-            onSubscribed={openServerSubscribed}
+            onSubscribed={onOpenServerChannel}
           />
         }
       />

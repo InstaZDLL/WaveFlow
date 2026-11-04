@@ -29,6 +29,7 @@
 
 use std::collections::HashMap;
 use std::sync::{Arc, LazyLock, Mutex};
+use std::time::Duration;
 
 use tauri::{AppHandle, Emitter, Manager};
 use url::Url;
@@ -67,6 +68,9 @@ pub struct ServerEpisodeRef {
     pub episode_id: String,
     pub channel_id: String,
 }
+
+/// All of what writing one position may take: its turn, a token refresh, the request.
+const POSITION_BUDGET: Duration = Duration::from_secs(8);
 
 /// One write at a time, in the order they were asked for: a tick still on its way
 /// must not land after the end that cleared the bookmark.
@@ -412,17 +416,24 @@ pub(crate) async fn record_position(
             return;
         }
     }
-    let _order = POSITION_WRITES.lock().await;
-    let Some(client) = client_in_scope(&state, &place.scope).await else {
-        tracing::debug!("podcast: server position dropped, its server is no longer bound");
-        return;
+    let write = async {
+        let _order = POSITION_WRITES.lock().await;
+        let Some(client) = client_in_scope(&state, &place.scope).await else {
+            tracing::debug!("podcast: server position dropped, its server is no longer bound");
+            return;
+        };
+        let written = match position_write(position_ms, duration_ms, finished) {
+            Some(position) => podcasts::save_position(&client, &place.episode_id, position).await,
+            None => podcasts::clear_position(&client, &place.episode_id).await,
+        };
+        if let Err(err) = written {
+            tracing::debug!(status = ?err.status, "podcast: server position not written");
+        }
     };
-    let written = match position_write(position_ms, duration_ms, finished) {
-        Some(position) => podcasts::save_position(&client, &place.episode_id, position).await,
-        None => podcasts::clear_position(&client, &place.episode_id).await,
-    };
-    if let Err(err) = written {
-        tracing::debug!(status = ?err.status, "podcast: server position not written");
+    // This runs on the task that also steps to the next episode, and a token refresh
+    // on a server that hangs would otherwise take the whole of its own deadline.
+    if tokio::time::timeout(POSITION_BUDGET, write).await.is_err() {
+        tracing::debug!("podcast: server position not written in time");
     }
     if announce_it {
         let _ = app.emit(
@@ -433,7 +444,7 @@ pub(crate) async fn record_position(
 }
 
 /// A speed moved during a server's episode: heard at once, and kept for the channel
-/// while the app runs. `None` is the normal one.
+/// while the app runs.
 pub(crate) fn set_channel_speed(
     app: &AppHandle,
     place: &ServerEpisodeRef,
