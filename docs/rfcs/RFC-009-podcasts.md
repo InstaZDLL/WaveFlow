@@ -18,14 +18,14 @@ server is then one more place the same page reads from.
 
 Most of what a podcast needs is already in the app, under another name:
 
-| Need                                   | What exists                                                                                                                                                          |
-| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Need                                    | What exists                                                                                                                                                                      |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Something that plays and is not a track | `DetachedSession`, used by [`external_playback`](../../src-tauri/crates/app/src/external_playback.rs) and `remote_playback`: negative id, no history, no statistics, no scrobble |
-| An HTTP stream with seeking            | [`audio::http_source`](../../src-tauri/crates/app/src/audio/http_source.rs) and its Range reopen; to be measured on large files                                     |
-| A rule for addresses out of a response | `web_radio_custom::may_open`                                                                                                                                         |
-| Bytes on disk the scanner never sees   | The managed folder of [`remote/download.rs`](../../src-tauri/crates/app/src/remote/download.rs)                                                                      |
-| A hostile XML reader                   | `roxmltree`, already a dependency of `waveflow-core`; the server's feed parser is built on it                                                                        |
-| Timed text                             | [`waveflow_core::lyrics`](../../src-tauri/crates/core/src/lyrics.rs): one `Document` model with readers per format                                                   |
+| An HTTP stream with seeking             | [`audio::http_source`](../../src-tauri/crates/app/src/audio/http_source.rs) and its Range reopen; to be measured on large files                                                  |
+| A rule for addresses out of a response  | `web_radio_custom::may_open`                                                                                                                                                     |
+| Bytes on disk the scanner never sees    | The managed folder of [`remote/download.rs`](../../src-tauri/crates/app/src/remote/download.rs)                                                                                  |
+| A hostile XML reader                    | `roxmltree`, already a dependency of `waveflow-core`; the server's feed parser is built on it                                                                                    |
+| Timed text                              | [`waveflow_core::lyrics`](../../src-tauri/crates/core/src/lyrics.rs): one `Document` model with readers per format                                                               |
 
 ## Decision 1 — standalone first, in the app, off by default
 
@@ -188,8 +188,19 @@ the same bound. The first source that gives at least one valid chapter wins, and
 sources are not merged. A chapter is a start time and a title, sorted, with
 impossible times dropped, and one the JSON marks `toc: false` is not listed. A chapter's image and link are ignored here, since each
 would be another address from a feed. The JSON file is fetched when the episode is
-opened, not at refresh, and cached with it. Whether the tag library exposes `CHAP`
-is to be measured in the lot; if it does not, that source waits.
+opened, not at refresh, and cached with it.
+
+**Measured, and not through the tag library.** lofty exposes `CHAP` through
+`ChapterFrame::parse`, and reads a good tag well. It reads the frames inside a chapter
+with the function that reads the tag, so a chapter nested in a chapter recurses once
+per level: 840 KB of nesting, under the bound, overflows an 8 MiB stack, which ends the
+process. These bytes come from a host a feed named. So
+[`podcast::id3`](../../src-tauri/crates/core/src/podcast/id3.rs) reads them in one flat
+walk, about a hundred lines, skipping a nested chapter like any other frame and opening
+no frame that declares compression or encryption. A file is walked with seeks, so a
+cover ahead of the chapters costs nothing. The start of a stream is one request for the
+first 1 MiB, so chapters behind a large cover are not found until the episode is
+downloaded.
 
 ## Decision 10 — transcripts
 
@@ -199,9 +210,15 @@ then Podcasting 2.0 JSON, then plain text or HTML with its tags stripped. The ti
 ones become a `lyrics::Document`, through new `vtt`, `srt` and `transcript_json`
 readers in core. The panel follows the position line by line as the lyrics panel
 does, and a click seeks. It is a panel of its own, mutually exclusive with the
-others through `PlayerContext`, and it reuses the line renderer, not the lyrics
+others through `PlayerContext`, and it reuses how a line reads, not the lyrics
 providers or the editor: a transcript is not lyrics and is never looked up
 elsewhere or written to a file.
+
+**As built**, a transcript that does not hold up gives way to the feed's next, best kind
+first and four requests at most, since a host may serve an error page as its WebVTT. The
+text is kept as fetched and read again through the same readers each time, and a feed
+that names other sources drops what was kept. An episode has a page, which is what
+opening it means for its chapters; playing it asks for them too, for the player's list.
 
 ## Decision 11 — the server
 
@@ -253,16 +270,16 @@ events.
 
 ## Lots
 
-| Lot | Scope                                                                 | Depends on |
-| --- | --------------------------------------------------------------------- | ---------- |
+| Lot | Scope                                                                                               | Depends on |
+| --- | --------------------------------------------------------------------------------------------------- | ---------- |
 | 1   | `waveflow_core::podcast`: feed parser, OPML, chapter and transcript readers, tests on hostile input | —          |
-| 2   | Migration, fetch rules, subscribe, refresh, OPML import and export, commands, setting | 1          |
-| 3   | Playback: session, stream with hand-followed redirects, resume, played state | 2          |
-| 4   | Downloads: managed folder, quota, cancel, Disk usage                  | 2          |
-| 5   | The page, the activation warning, sidebar, settings, 17 locales, What's new, documentation | 2          |
-| 6   | Chapters and the transcript panel                                     | 3, 5       |
-| 7   | The server's podcasts                                                 | 3, 5       |
-| 8   | Speed without changing pitch                                          | none       |
+| 2   | Migration, fetch rules, subscribe, refresh, OPML import and export, commands, setting               | 1          |
+| 3   | Playback: session, stream with hand-followed redirects, resume, played state                        | 2          |
+| 4   | Downloads: managed folder, quota, cancel, Disk usage                                                | 2          |
+| 5   | The page, the activation warning, sidebar, settings, 17 locales, What's new, documentation          | 2          |
+| 6   | Chapters and the transcript panel                                                                   | 3, 5       |
+| 7   | The server's podcasts                                                                               | 3, 5       |
+| 8   | Speed without changing pitch                                                                        | none       |
 
 ## Out of scope
 

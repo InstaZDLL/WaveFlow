@@ -2,14 +2,15 @@
 
 Standalone podcasts in the desktop app, off by default. The design and its reasoning are in [RFC-009](../rfcs/RFC-009-podcasts.md); this page says what exists today.
 
-| Lot  | What                                                                                | State     |
-| ---- | ----------------------------------------------------------------------------------- | --------- |
-| 1    | `waveflow_core::podcast`: feeds, OPML, chapters, transcripts, on hostile input      | This page |
-| 2    | Tables, fetch rules, subscribe, refresh, OPML import and export, commands, setting  | This page |
-| 3    | Playback: session, stream with hand-followed redirects, resume, played state, speed | This page |
-| 4    | Downloads: managed folder, quota, cancel, Disk usage                                | This page |
-| 5    | The page, the activation warning, sidebar, settings, What's new                     | This page |
-| 6, 7 | Chapters and transcript panel, the server's podcasts                                | Not yet   |
+| Lot | What                                                                                | State     |
+| --- | ----------------------------------------------------------------------------------- | --------- |
+| 1   | `waveflow_core::podcast`: feeds, OPML, chapters, transcripts, on hostile input      | This page |
+| 2   | Tables, fetch rules, subscribe, refresh, OPML import and export, commands, setting  | This page |
+| 3   | Playback: session, stream with hand-followed redirects, resume, played state, speed | This page |
+| 4   | Downloads: managed folder, quota, cancel, Disk usage                                | This page |
+| 5   | The page, the activation warning, sidebar, settings, What's new                     | This page |
+| 6   | Chapters and the transcript panel                                                   | This page |
+| 7   | The server's podcasts                                                               | Not yet   |
 
 ## The switch
 
@@ -31,6 +32,7 @@ Turning off asks for nothing. The Settings row then says what stays: subscriptio
 
 - **The overview** is one virtual list through `usePageVirtualizer`, rows of different heights under one measure: "To listen" first, six until asked for the rest, then the channels with their unplayed count. On the fluid layout the first episode to listen to is the Home's band, its cover lighting its end of it through `PrecomputedBlur`.
 - **A channel** is its hero, then its episodes in a virtual list, read a page of 200 at a time as the list nears the last row loaded. A change re-reads what was loaded, so the list keeps its length under the scroll.
+- **An episode** has a page of its own, reached from its title and kept on the history entry: what it says of itself and its [chapters](#chapters). Opening it is what asks for them. A row removed in the meantime sends Back to its channel.
 - **The episode in the player** carries the accent's edge, and its button pauses and carries on, from where it is rather than from the last position written. The player names it through `podcast_episode_id` on the track. A row's position is the one stored, which `podcast:updated` brings at a pause, a seek and an end, not a live one.
 - **A download** shows on its row: waiting in line, then a percentage, a button that cancels it, and a chip once it is kept. A page opened meanwhile reads what is moving from `podcast_download_queue`, and the rows are read again when one ends. The quota is under Settings → Storage, beside what is used, for someone with podcasts on or files kept.
 - **Deleting the file of the episode playing** does not stop the sound: measured on Windows, the file goes at once while the decoder keeps its open handle, and it can still seek and pause. The page says so, since the next start will need the network or a new download.
@@ -69,7 +71,7 @@ Every request checks `offline::is_offline()` first, each hop of a redirect inclu
 
 A private feed carries its token in the path as often as in the query, so `redact_url`, which masks userinfo and query, is not enough. **A feed or enclosure address is not logged at all, redacted or not**, and neither is a `reqwest::Error`, whose text quotes it. A failure is logged and stored as one word from `FetchFailure::code`:
 
-`address_refused`, `too_many_redirects`, `too_large`, `unreached`, `http_<status>`, `invalid_feed`, `not_audio`, `quota_exceeded`
+`address_refused`, `too_many_redirects`, `too_large`, `unreached`, `http_<status>`, `invalid_feed`, `invalid_document`, `not_audio`, `quota_exceeded`
 
 No row sent to the webview holds an address either: a channel says `has_feed_address`, an episode `has_enclosure`, and whatever opens one asks by id. A refused command rejects with `podcast: <word>`, the list above plus `disabled`, `offline`, `profile_changed`, `channel_gone` (unsubscribed from while a subscription to it was finishing), `episode_gone` (no such row, or one the user removed), `no_source` (no file and no address: a restored profile, until the feed is subscribed to again) and `open_failed` (the desktop would not open a channel's website). A failed download carries the same words in its event, plus `write_failed` for a disk or a database that refused.
 
@@ -146,31 +148,66 @@ A refresh and an import each take a `TaskHandle` of kind `podcast_refresh`, one 
 
 **The event** `podcast:download` carries `{ episodeId, state, receivedBytes, totalBytes, errorWord }`, `state` being `queued`, `running`, `done`, `failed` or `cancelled`, at most about four times a second, and only about the active profile: an episode's id is unique inside a profile only, so a job of the last one says nothing more once it has been left. A view opened meanwhile subscribes first, then calls `podcast_download_queue`. `done` is followed by `podcast:updated`.
 
-## Chapters and transcripts
+## Chapters
 
-The readers exist; fetching and showing them is a later lot.
+[`podcast::extras`](../../src-tauri/crates/app/src/podcast/extras.rs) over [`waveflow_core::podcast::chapters`](../../src-tauri/crates/core/src/podcast/chapters.rs). Nothing is fetched at a refresh. **Opening an episode asks for them**, through `podcast_episode_chapters`: its page, or the player once it plays one.
 
-**Chapters** come from the first source with a valid chapter, in this order, and sources are not merged: the feed's `podcast:chapters` JSON file, inline `psc:chapters`, `CHAP` frames in an MP3 (`chapters::choose`). A chapter is a start time and a title, sorted, with impossible times dropped, and one the JSON marks `toc: false` is not listed. Its image and link are ignored, since each would be another address out of a feed.
+**The first source with a valid chapter wins, and sources are not merged:** the feed's `podcast:chapters` JSON file, at most 1 MiB, inline `psc:chapters`, `CHAP` frames in an MP3. A chapter is a start time and a title, sorted, with impossible times dropped, and one the JSON marks `toc: false` is not listed. Its image and link are ignored, since each would be another address out of a feed.
 
-**Transcripts** are chosen by format (`transcript::choose`): WebVTT, then SRT, then Podcasting 2.0 JSON, then plain text or HTML. The timed ones become a `lyrics::Document` through `lyrics::vtt`, `lyrics::srt` and `lyrics::transcript_json`, so the panel can reuse the line renderer. They are readers only, and not a `lyrics::Format`: a transcript is never looked up elsewhere or written to a file. A publisher writing one JSON segment per word gets its words gathered into lines.
+**`CHAP` frames** come from the downloaded file when there is one, and otherwise from the start of the stream: a `Range` request for the first 1 MiB, and a host that sends the whole file anyway is cut off there. It is only asked of an enclosure that can hold such a tag, by what the feed declares of it, and only once nothing above has a chapter, since it is one more request an episode's host and its measurement services see. Chapters behind a cover larger than that bound are out of reach of the stream; in a file, a cover is seeked past. They are read by [`podcast::id3`](../../src-tauri/crates/core/src/podcast/id3.rs) and not by lofty, whose `ChapterFrame::parse` recurses on a chapter nested in a chapter: 840 KB of nesting overflowed an 8 MiB stack, which ends the process. This walk is flat, and opens no frame that declares compression, encryption or its own unsynchronisation.
+
+**What is kept** is the list that won, with where it came from, in `chapters_cache`. It is read again each time by the same rules as a fresh one (`chapters::read_cache`), since a row may have come from an archive somebody made: empty, or not what it should be, means to be found again, however recently it was written. An answer from the JSON file holds until the feed changes. One from below it holds for a day and then the JSON file is asked again. So does an answer of nothing, in `chapters_checked_at`, or a page with no chapters would read its enclosure at every opening. A failure that says something about the file holds the same way: a 404, a refused address, a file that is not one. One that does not (no answer, a 5xx, a 429) is not written, and the next opening asks again. A refresh whose feed names another chapter file, another inline list or another enclosure blanks the cache, and an answer found meanwhile is not written over it. An archive blanks both columns, so the first opening after a restore finds them again.
+
+**Off or offline, nobody is asked**, and what can be read here still is: the kept list, the inline one, the tag of a file on disk. Such an answer is not kept, since a better source was not asked. With nothing here, `failure` carries the word.
+
+**Showing them.** On an episode's page, one virtual list through `usePageVirtualizer`. In the player, in the Now Playing panel, a virtual list against a scroller of its own, since the panel is a column and a feed may name 2 000; it stays out of the way when there are none. The chapter under the position is marked and comes from [`usePlayerPositionValue`](../../src/hooks/usePlayerPosition.ts), so a list re-renders when it changes and not four times a second. A click goes to that moment: a seek when the player holds the episode, otherwise `podcast_play_episode` with `at_ms`, which wins over the stored position and over a played episode starting from the top. A title is React text. The "⋯" menu shows the chapter around the position with previous and next while an episode plays. Previous means the start of this one for the first three seconds past it, as a previous-track button does, and then the one before.
+
+## Transcripts
+
+[`podcast::extras`](../../src-tauri/crates/app/src/podcast/extras.rs) over [`waveflow_core::podcast::transcript`](../../src-tauri/crates/core/src/podcast/transcript.rs). `podcast_episode_transcript` is called **only by a panel someone opened**.
+
+**Which one.** WebVTT, then SRT, then Podcasting 2.0 JSON, then plain text or HTML with its tags stripped, each at most 5 MiB, in the order the feed gave them within a kind. A body that is not what it says gives way to the next, four requests at most: a host may serve an error page as its WebVTT while its text is fine. An HTML page served as text is stripped too. Every one failing is a word, the first one's, and nothing is kept. The timed ones become a `lyrics::Document` through `lyrics::vtt`, `lyrics::srt` and `lyrics::transcript_json`. They are readers only, and not a `lyrics::Format`: a transcript is never looked up elsewhere or written to a file. A publisher writing one JSON segment per word gets its words gathered into lines.
+
+**What is kept** is the text as fetched, in UTF-8, in `transcript_cache` with its kind, and read again through the same reader each time (`transcript::read_cache`). A cache that does not read is fetched again. It is read apart from everything else, since it may be megabytes: no list selects it. A feed naming other transcripts blanks it, and so does an archive.
+
+**Off or offline, nobody is asked.** The kept text still reads; with none, the command refuses with the word and the panel says it.
+
+**The panel**, [`PodcastTranscriptPanel`](../../src/components/podcasts/PodcastTranscriptPanel.tsx), is a [right panel](ui.md#panels) of its own, mutually exclusive with the others through `PlayerContext`, `activeRightPanel === "transcript"`. It opens from the "⋯" menu during an episode and from an episode's page, for any episode, and on the fluid layout it takes the tab Lyrics has otherwise, since an episode has none. It takes how a line reads from the lyrics panel (`lyricsLineClass`), and neither their providers nor their editor. Not the fluid layout's fade and blur by distance from the sung line either, which would leave most of the panel unreadable: a transcript is there to be read, so its buttons sit one level below what that rule selects. A transcript may hold 50 000 lines of any height, so it is virtual against the panel's scroller, with each row measured. A line is React text: a tag that got past the readers shows as the characters it is, and nothing from a transcript reaches the DOM as markup.
+
+It follows the position line by line, and a click goes to that moment by the same path as a chapter. A hand on the list (the wheel, a press, a key) leaves it alone for eight seconds, so reading ahead is not pulled back at the next line. An untimed one says it cannot follow, and has no click. For an episode that is not playing, it says a click will start it. When the player moves to another episode the panel follows, and otherwise keeps what was asked for.
+
+### How close a line or a chapter is
+
+The position is what the engine reports, and after a seek into a stream it is an estimate. A file on disk seeks accurately. **An MP3 at a variable bitrate over a network lands where its bytes average out**, since the format keeps no index and an accurate seek would read the file up to there ([The stream](#the-stream)). Measured by matching decoded samples against the whole file decoded from its start, after a coarse seek:
+
+| File                                                                 | Heard minus shown           |
+| -------------------------------------------------------------------- | --------------------------- |
+| A real episode at a constant bitrate, 128 kbit/s, 15 min             | at most 1 ms                |
+| The same speech at a variable bitrate (LAME V5), 10 min              | median 6.3 s, at most 9.1 s |
+| Made to be bad: speech, then noise, silence, noise (LAME V2), 25 min | median 69 s, at most 161 s  |
+
+The line or the chapter marked is then that far from what is heard, from that seek on, and a click on one lands that far from it: the marking and the landing both trust the same estimate, so they agree with each other and not with the sound. Playing from the start without a seek is exact. Nothing here corrects it, because a reader of the stream cannot tell: an episode that has to be right has to be downloaded.
 
 ## Commands
 
-| Command                    | Does                                                            |
-| -------------------------- | --------------------------------------------------------------- |
-| `podcast_subscribe`        | Fetches and follows a feed; answers its channel                 |
-| `podcast_unsubscribe`      | Forgets a channel and its episodes, and removes their downloads |
-| `podcast_list_channels`    | Every channel of the active profile                             |
-| `podcast_list_episodes`    | A page of a channel's episodes, newest first                    |
-| `podcast_refresh`          | Asks one channel, or all of them                                |
-| `podcast_open_site`        | Opens a channel's website in the browser, by id                 |
-| `podcast_import_opml`      | Subscribes to every feed of a file                              |
-| `podcast_export_opml`      | Writes every address to a file                                  |
-| `podcast_download_episode` | Puts an episode in line to be kept on disk                      |
-| `podcast_cancel_download`  | Takes it out of the line, or stops it where it is               |
-| `podcast_delete_download`  | Removes its file; the row stays                                 |
-| `podcast_download_usage`   | `{ usedBytes, quotaBytes }`                                     |
-| `podcast_download_queue`   | What is under way, for a view opened meanwhile                  |
+| Command                      | Does                                                            |
+| ---------------------------- | --------------------------------------------------------------- |
+| `podcast_subscribe`          | Fetches and follows a feed; answers its channel                 |
+| `podcast_unsubscribe`        | Forgets a channel and its episodes, and removes their downloads |
+| `podcast_list_channels`      | Every channel of the active profile                             |
+| `podcast_list_episodes`      | A page of a channel's episodes, newest first                    |
+| `podcast_get_episode`        | One episode, for its page                                       |
+| `podcast_episode_chapters`   | Its chapters, fetching what was not kept                        |
+| `podcast_episode_transcript` | Its transcript, for a panel someone opened                      |
+| `podcast_refresh`            | Asks one channel, or all of them                                |
+| `podcast_open_site`          | Opens a channel's website in the browser, by id                 |
+| `podcast_import_opml`        | Subscribes to every feed of a file                              |
+| `podcast_export_opml`        | Writes every address to a file                                  |
+| `podcast_download_episode`   | Puts an episode in line to be kept on disk                      |
+| `podcast_cancel_download`    | Takes it out of the line, or stops it where it is               |
+| `podcast_delete_download`    | Removes its file; the row stays                                 |
+| `podcast_download_usage`     | `{ usedBytes, quotaBytes }`                                     |
+| `podcast_download_queue`     | What is under way, for a view opened meanwhile                  |
 
 Typed wrappers are in [`src/lib/tauri/podcast.ts`](../../src/lib/tauri/podcast.ts). The event `podcast:updated` carries `channel_id`, and `podcast:download` is described under [Downloads](#downloads).
 
@@ -178,7 +215,7 @@ Typed wrappers are in [`src/lib/tauri/podcast.ts`](../../src/lib/tauri/podcast.t
 
 [`podcast::playback`](../../src-tauri/crates/app/src/podcast/playback.rs) over [`podcast::stream`](../../src-tauri/crates/app/src/podcast/stream.rs). **An episode is not a track.** It has no `track` row and plays under a negative id through a `DetachedSession`, the queue in memory the remote queue and the [files played without importing them](playback.md#playing-files-without-importing-them) use, so the ordering rules of #622 hold for it. It writes no `play_event`, sends no scrobble and no "playing now", and counts in no statistic. It takes no fade, no gapless hand-off and no AutoMix: the prefetch is only answered for a library track. ReplayGain does not touch it, neither its fallback nor its pre-amp, since nothing measured it. Discord's card is cleared rather than updated; the OS media overlay and the tray say what plays.
 
-`podcast_play_episode(episode_id)` claims its `LoadIntent` first, and a refusal changes nothing: what plays keeps playing.
+`podcast_play_episode(episode_id, at_ms)` claims its `LoadIntent` first, and a refusal changes nothing: what plays keeps playing.
 
 ### Where the bytes come from
 
@@ -193,7 +230,7 @@ The decoder reads on the thread it takes its commands on, so a task pulls the bo
 
 **A seek is a `Range` request**, starting from where the last one landed, so a measurement service in front of the file is not told about every jump, and falling back to the enclosure's own address when that has expired. A `206` to the very first request is the only proof a host can seek: plenty do without saying `Accept-Ranges`, and some say it and do not. A `200` or a `206` from elsewhere is refused, and what was playing goes on. A jump forward of at most 256 KiB is read through instead.
 
-**An accurate seek into an MP3 cannot be used over a network**, because the format keeps no index: symphonia reads every frame header from the start of the file, or from where it is, to the place. Measured on a 57 MB file, resuming at 20 minutes read 19.2 MB that way, and 3 KB in one request with the coarse seek a stream sets (`ActiveStream::coarse_seek`), which lands 14 ms off on a constant bitrate and within a few seconds on a variable one. It falls back to the accurate one when it has no length or duration to estimate from. A file on disk keeps the accurate one.
+**An accurate seek into an MP3 cannot be used over a network**, because the format keeps no index: symphonia reads every frame header from the start of the file, or from where it is, to the place. Measured on a 57 MB file, resuming at 20 minutes read 19.2 MB that way, and 3 KB in one request with the coarse seek a stream sets (`ActiveStream::coarse_seek`), which lands within a millisecond of where it says on a constant bitrate, and [further on a variable one](#how-close-a-line-or-a-chapter-is), up to 9 s on speech. It falls back to the accurate one when it has no length or duration to estimate from. A file on disk keeps the accurate one.
 
 ### The queue
 
@@ -215,4 +252,4 @@ Whether the pitch follows the speed is the user's own `audio.keep_pitch`, on by 
 
 ### The player
 
-Back 15 s and forward 30 s are in the "⋯" menu, only while an episode plays. The bar and the mini-player show its title, its channel and the channel's picture from the artwork cache, through `player:radio-metadata` with `is_podcast`, so the webview makes no request for them. No lyrics are looked up for an episode: its title sent to a provider would be one more thing leaving about what someone hears.
+Back 15 s and forward 30 s are in the "⋯" menu, only while an episode plays, with the [chapter around the position](#chapters) and the [transcript](#transcripts). The bar and the mini-player show its title, its channel and the channel's picture from the artwork cache, through `player:radio-metadata` with `is_podcast`, so the webview makes no request for them. No lyrics are looked up for an episode: its title sent to a provider would be one more thing leaving about what someone hears.
