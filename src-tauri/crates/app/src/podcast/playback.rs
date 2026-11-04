@@ -551,8 +551,7 @@ pub(crate) async fn resume(app: &AppHandle, intent: LoadIntent) -> AppResult<boo
     }
     #[cfg(feature = "sync_v2")]
     if is_server_session(&state) {
-        super::server::resume(app, intent).await?;
-        return Ok(true);
+        return super::server::resume(app, intent).await;
     }
     let engine = app.state::<Arc<AudioEngine>>();
     let _publish = engine.lock_publish().await;

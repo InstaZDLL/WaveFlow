@@ -11,9 +11,10 @@
 //!
 //! A refusal changes nothing: what plays keeps playing. So [`play_episode`] reads the
 //! channel before it takes the publish lock, and a step, which moved the cursor under
-//! that lock, reads the episode after letting it go and rolls back if it lost its
-//! place meanwhile, as the remote queue does. Holding the lock across a request would
-//! park every other surface for the length of a network call.
+//! that lock, reads the episode after letting it go. Either takes the lock again to
+//! publish, and only if nothing newer got there first: a step that fails after being
+//! overtaken stops nothing. Holding the lock across a request would park every other
+//! surface for the length of a network call.
 //!
 //! ## The ticket
 //!
@@ -190,8 +191,8 @@ fn read_refusal(failure: &crate::remote::client::RemoteFailure) -> AppError {
 
 /// The cover, in the cache of this profile's server covers. Asks the server the first
 /// time and not after. A cover nobody could fetch is a player with no picture.
-async fn artwork_path(state: &AppState, hash: Option<&str>) -> Option<String> {
-    crate::remote::artwork::cached_path(state, hash?)
+async fn artwork_path(state: &AppState, profile_id: i64, hash: Option<&str>) -> Option<String> {
+    crate::remote::artwork::cached_path_for(state, profile_id, hash?)
         .await
         .ok()
         .map(|path| path.to_string_lossy().into_owned())
@@ -261,11 +262,17 @@ pub(crate) async fn play_episode(
         .iter()
         .find(|episode| episode.id == episode_id)
         .ok_or(PodcastError::EpisodeGone)?;
-    let artwork = artwork_path(&state, episode.artwork_hash.as_deref()).await;
+    let artwork = artwork_path(&state, profile_id, episode.artwork_hash.as_deref()).await;
     let load = load_of(episode, &scope, artwork);
 
     // Everything from here on is local.
     let _publish = engine.lock_publish().await;
+    // A profile switch clears a session and claims no intent, so nothing else would
+    // stop this one's queue from being installed in the next profile.
+    state
+        .require_profile_pool_for(Some(profile_id))
+        .await
+        .map_err(|_| PodcastError::ProfileChanged)?;
     if !engine.claim_dispatch(intent) {
         tracing::debug!("server episode superseded before it started; not installing it");
         return Ok(());
@@ -316,9 +323,21 @@ async fn play_current(app: &AppHandle, intent: LoadIntent) -> AppResult<()> {
     if !episode.is_stored() {
         return Err(podcast_refusal(NOT_STORED));
     }
-    let artwork = artwork_path(&state, episode.artwork_hash.as_deref()).await;
+    let artwork = artwork_path(
+        &state,
+        place.scope.profile_id,
+        episode.artwork_hash.as_deref(),
+    )
+    .await;
     let engine = app.state::<Arc<AudioEngine>>();
-    if engine.load_intent_superseded(intent) {
+    let _publish = engine.lock_publish().await;
+    // A newer pick, or a session gone or moved on during the read: not this load's
+    // place any more, and nothing it says should reach the OS overlay.
+    let still_here = state
+        .podcast_playback
+        .current()
+        .is_some_and(|now| now.home == entry.home);
+    if engine.load_intent_superseded(intent) || !still_here {
         return Ok(());
     }
     let load = load_of(&episode, &place.scope, artwork);
@@ -354,11 +373,27 @@ pub(crate) async fn advance(app: &AppHandle, step: Step, intent: LoadIntent) -> 
         }
     }
     if let Err(err) = play_current(app, intent).await {
-        let _ = engine.send(AudioCmd::Stop);
-        state.podcast_playback.clear();
-        return Err(err);
+        return if give_up(app, intent).await {
+            Err(err)
+        } else {
+            Ok(false)
+        };
     }
     Ok(true)
+}
+
+/// A step whose episode could not be read stops the player and drops the session,
+/// unless something newer has taken over meanwhile: then that is what the person can
+/// hear, and this failure is nobody's business. `true` when it was still this step's.
+async fn give_up(app: &AppHandle, intent: LoadIntent) -> bool {
+    let engine = app.state::<Arc<AudioEngine>>();
+    let _publish = engine.lock_publish().await;
+    if engine.load_intent_superseded(intent) {
+        return false;
+    }
+    let _ = engine.send(AudioCmd::Stop);
+    app.state::<AppState>().podcast_playback.clear();
+    true
 }
 
 /// Moves the cursor to `index` and plays it: the queue panel's click.
@@ -375,23 +410,52 @@ pub(crate) async fn jump_to(app: &AppHandle, index: usize) -> AppResult<()> {
             return Ok(());
         }
     }
-    play_current(app, intent).await.inspect_err(|_| {
-        let _ = engine.send(AudioCmd::Stop);
-        state.podcast_playback.clear();
-    })
+    if let Err(err) = play_current(app, intent).await {
+        if give_up(app, intent).await {
+            return Err(err);
+        }
+    }
+    Ok(())
 }
 
 /// Play from a stopped player while a server's episode is the session: from where the
-/// server says it was left.
-pub(crate) async fn resume(app: &AppHandle, intent: LoadIntent) -> AppResult<()> {
+/// server says it was left. `false` when that server is no longer this profile's, say
+/// after signing out: the session is dropped, and the caller goes on with what Play
+/// would otherwise do, rather than refusing at every press.
+pub(crate) async fn resume(app: &AppHandle, intent: LoadIntent) -> AppResult<bool> {
+    let state = app.state::<AppState>();
+    let Some(entry) = state.podcast_playback.current() else {
+        return Ok(false);
+    };
+    let EpisodeHome::Server(place) = &entry.home else {
+        return Ok(false);
+    };
+    let still_bound = match state
+        .require_profile_pool_for(Some(place.scope.profile_id))
+        .await
+    {
+        Ok(pool) => {
+            may_ask(&pool, crate::offline::is_offline()).await?;
+            let mut conn = pool.acquire().await?;
+            // The two rows and no request: a server that is merely not answering is
+            // still this one, and the read below says so.
+            place.scope.is_current(&mut conn).await?
+        }
+        Err(_) => false,
+    };
+    if !still_bound {
+        state.podcast_playback.clear();
+        return Ok(false);
+    }
     let engine = app.state::<Arc<AudioEngine>>();
     {
         let _publish = engine.lock_publish().await;
         if !engine.claim_dispatch(intent) {
-            return Ok(());
+            return Ok(true);
         }
     }
-    play_current(app, intent).await
+    play_current(app, intent).await?;
+    Ok(true)
 }
 
 /// What a position comes to on the server: a bookmark, or none once it counts as
