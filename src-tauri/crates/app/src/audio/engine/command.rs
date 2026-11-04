@@ -137,8 +137,8 @@ pub enum AudioCmd {
     /// consecutive queued tracks when no crossfade is configured).
     SetGapless(bool),
     /// Update the playback speed multiplier. Pushed live so the
-    /// decoder rebuilds the active stream's resampler against the
-    /// new effective source rate (`actual_rate * speed`).
+    /// decoder rebuilds the active stream's resampler and stretcher,
+    /// which between them make the speed (`TimeShift`).
     SetSpeed(f32),
     /// Whether the speed leaves the pitch alone, or the pitch follows it.
     SetKeepPitch(bool),

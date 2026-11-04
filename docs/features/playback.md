@@ -735,11 +735,11 @@ Every active stream is rebuilt (primary and prepared next), the local buffers ar
 
 ### Position continuity
 
-`set_playback_speed` snapshots the current position **at the old speed**, rebases `samples_played` to 0 and stores the snapshot in `base_offset_ms` before flipping the speed atomic. Without this, the next call to `current_position_ms()` would re-scale the existing samples_played counter by the new factor — the progress bar would jump backwards (slowing down) or forwards (speeding up) at the exact moment the user changed speed. Tested in [`audio/state.rs::speed_change_preserves_position_continuity`](../../src-tauri/crates/app/src/audio/state.rs). The pitch lock and the transposition leave the clock alone: it scales by the speed however the speed is made.
+`set_playback_speed` snapshots the current position **at the old speed**, rebases `samples_played` to 0 and stores the snapshot in `base_offset_ms` before flipping the speed atomic. Without this, the next call to `current_position_ms()` would re-scale the existing samples_played counter by the new factor — the progress bar would jump backwards (slowing down) or forwards (speeding up) at the exact moment the user changed speed. Tested in [`audio/state.rs::speed_change_preserves_position_continuity`](../../src-tauri/crates/app/src/audio/state.rs). The pitch lock and the transposition leave the position alone: it scales by the speed however the speed is made.
 
 ### Analytics accounting
 
-Both `current_position_ms()` and `session_listened_ms()` multiply the wall-clock delta by the active speed, so analytics credit and the 15 s "Recently played" threshold fire on **track-time covered**, not wall-clock listened. Listening to a 6 min track at 2× for 3 min wall-clock counts as 6 min of that track for the heatmap / Top Tracks aggregates.
+Both `current_position_ms()` and `session_listened_ms()` multiply the wall-clock delta by the active speed, so analytics credit and the 15 s "Recently played" threshold fire on **track-time covered**, not wall-clock listened. Listening to a 6 min track at 2× for 3 min wall-clock counts as 6 min of that track for the heatmap / Top Tracks aggregates. A change of speed or pitch during a listen keeps what was heard (`SharedPlayback::rebase_clock`, carried as time because it was counted at the old speed): it used to start the count over, so a change at 4:50 of a 5:00 track left 10 s of listening, no completion and no scrobble. A seek or a new track does start over.
 
 ### Fades and AutoMix
 
@@ -770,6 +770,8 @@ Measured over 1 368 renders, on a real podcast, four genres of music and synthet
 | pitch_shift           | MIT        | Rust                                 | 1.6 – 4 %   | 11 %     | 6.3 / 2.7             | 4.67             | level down by up to 12 dB, stereo phase broken                           |
 
 The crates that wrap these C++ libraries generate their bindings with `bindgen`, which needs libclang, and neither `org.gnome.Sdk` nor the `rust-stable` extension has it (`signalsmith-stretch` fails to build there, reproduced). So the headers are vendored under [`crates/core/vendor/signalsmith-stretch`](../../src-tauri/crates/core/vendor/signalsmith-stretch), `build.rs` compiles a small shim with `cc`, and the FFI is declared by hand. Upstream version: 1.3.1.
+
+**It is the only C++ in the app, and on Windows that matters.** The Windows binary links its C runtime statically and needs no redistributable; a `std::vector` makes it import `MSVCP140.dll` for one function, and then it does not start on a machine without one. The shim defines that function and `build.rs` stops the header from declaring it imported. `the_cpp_runtime_is_not_imported` fails if anything brings the import back. Linux and macOS link their system C++ library, which WebKitGTK and the system already need.
 
 ## Playing files without importing them
 

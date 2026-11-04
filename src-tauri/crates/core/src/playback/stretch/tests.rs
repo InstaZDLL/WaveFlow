@@ -38,6 +38,23 @@ fn measured_freq(signal: &[f32], channels: usize) -> f64 {
     spans * f64::from(RATE) / (rising[rising.len() - 1] - rising[0])
 }
 
+/// The Windows app needs no redistributable: its C runtime is static, and the
+/// C++ here must not bring in the DLL it would then need to start at all.
+#[cfg(all(windows, target_env = "msvc"))]
+#[test]
+fn the_cpp_runtime_is_not_imported() {
+    let exe = std::fs::read(std::env::current_exe().unwrap()).unwrap();
+    // In the case the import table spells it; something else in this binary
+    // carries the name in lower case, as data.
+    let name = b"MSVCP140.dll";
+    assert!(
+        !exe.windows(name.len()).any(|w| w == name),
+        "this binary imports the C++ runtime"
+    );
+    // And the stretcher it would be for is in this binary.
+    assert!(Stretcher::new(RATE, 2, 1.25).is_ok());
+}
+
 /// Decided by the shift alone: at 1× with no transposition nothing stretches,
 /// tape or not, and that is what keeps a bit-perfect output bit-perfect.
 #[test]

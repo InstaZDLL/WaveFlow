@@ -228,8 +228,17 @@ pub(super) fn play_track(
         // was built for, a change comes through whoever made it, and one
         // that leaves the audio as it was costs no drained ring. The DoP
         // path has no stream to compare, and leaves them for the next one.
+        //
+        // The speed stays out of the comparison, its flag is what says it
+        // moved. The profile restore writes it raw, ahead of the rebase that
+        // only `set_playback_speed` does, and the position that comes out of
+        // the clock then is the old samples at the new speed: going back
+        // there would land anywhere in the track.
         let speed_changed = shared.speed_dirty.swap(false, Ordering::AcqRel);
-        let shift = shared.time_shift();
+        let mut shift = shared.time_shift();
+        if !speed_changed {
+            shift.speed = stream.playback_speed;
+        }
         if speed_changed || !stream.time_shift().same_audio(&shift) {
             stream.set_time_shift(shift);
             if let Err(err) = stream.rebuild_resampler(shift.speed, dst_sample_rate, dst_channels) {
@@ -256,7 +265,8 @@ pub(super) fn play_track(
                 primary_at_eof = false;
                 tail_drain = None;
                 primary_slip_ms = ms.saturating_sub(stream.seek_ms(ms));
-                reset_clock(shared, ms);
+                shared.rebase_clock(ms);
+                shared.seek_generation.fetch_add(1, Ordering::Release);
                 spectrum_analyzer.discard_pending();
                 stream.reset_decoder();
                 drain_ring_silent(producer, shared);

@@ -6,6 +6,16 @@
 
 #include <cstddef>
 #include <new>
+#include <stdexcept>
+
+#ifdef _MSC_VER
+// What `std::vector` calls when asked for more than it can ever hold, and the
+// one thing it needs from MSVCP140.dll, which the app must not depend on: see
+// `build.rs`. Thrown like the original, into the catches below.
+namespace std {
+[[noreturn]] void __cdecl _Xlength_error(const char *message) { throw length_error(message); }
+} // namespace std
+#endif
 
 namespace {
 

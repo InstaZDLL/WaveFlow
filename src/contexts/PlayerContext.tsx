@@ -215,6 +215,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [pitchSemitones, setPitchSemitonesState] = useState(
     SETTINGS["audio.pitch_semitones"].defaultValue,
   );
+  // One for each: bumped by every decision on it, and by every read of a
+  // profile's values. An answer from before the latest one is dropped, whether
+  // a read or the rollback of a refused write.
+  const keepPitchRevision = useRef(0);
+  const semitonesRevision = useRef(0);
 
   // Live output-device sample rate (Hz) and channel count, as
   // reported by the engine snapshot. Used by the AudioQualityFooter
@@ -407,6 +412,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
     let cancelled = false;
     (async () => {
+      // Taken before any of the reads: what the user decides while they are out
+      // is newer than what they answer.
+      const keepRead = ++keepPitchRevision.current;
+      const semitonesRead = ++semitonesRevision.current;
       try {
         const snap = await playerGetState();
         if (cancelled) return;
@@ -463,18 +472,25 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         // would force the audio settings cards to know about it
         // too, and they don't).
         try {
-          const [speed, keep, semitones] = await Promise.all([
-            playerGetSpeed(),
+          const speed = await playerGetSpeed();
+          if (!cancelled) setPlaybackSpeedState(speed);
+        } catch (err) {
+          console.error("[PlayerContext] hydrate playback speed failed", err);
+        }
+        // Apart from the speed, so a failure here leaves what was read of it.
+        try {
+          const [keep, semitones] = await Promise.all([
             playerGetKeepPitch(),
             playerGetPitchSemitones(),
           ]);
-          if (!cancelled) {
-            setPlaybackSpeedState(speed);
+          if (!cancelled && keepPitchRevision.current === keepRead) {
             setKeepPitchState(keep);
+          }
+          if (!cancelled && semitonesRevision.current === semitonesRead) {
             setPitchSemitonesState(semitones);
           }
         } catch (err) {
-          console.error("[PlayerContext] hydrate playback speed failed", err);
+          console.error("[PlayerContext] hydrate pitch failed", err);
         }
       } catch (err) {
         console.error("[PlayerContext] initial snapshot failed", err);
@@ -716,15 +732,24 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     [activeProfileId],
   );
 
+  // One write at a time, so two quick clicks on the stepper reach the backend
+  // in the order they were made, and the last one is what stays saved.
+  const pitchWrites = useRef<Promise<unknown>>(Promise.resolve());
+
   const setKeepPitch = useCallback(
     (enabled: boolean) => {
+      const revision = ++keepPitchRevision.current;
       setKeepPitchState(enabled);
-      playerSetKeepPitch(enabled, activeProfileId ?? null).catch((err) => {
-        console.error("[PlayerContext] set keep pitch failed", err);
-        playerGetKeepPitch()
-          .then(setKeepPitchState)
-          .catch(() => {});
-      });
+      pitchWrites.current = pitchWrites.current
+        .then(() => playerSetKeepPitch(enabled, activeProfileId ?? null))
+        .catch(async (err) => {
+          console.error("[PlayerContext] set keep pitch failed", err);
+          // Saved before applied: a refused value never reached the engine.
+          const held = await playerGetKeepPitch().catch(() => null);
+          if (held !== null && keepPitchRevision.current === revision) {
+            setKeepPitchState(held);
+          }
+        });
     },
     [activeProfileId],
   );
@@ -735,13 +760,17 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         -MAX_PITCH_SEMITONES,
         Math.min(MAX_PITCH_SEMITONES, Math.round(value)),
       );
+      const revision = ++semitonesRevision.current;
       setPitchSemitonesState(clamped);
-      playerSetPitchSemitones(clamped, activeProfileId ?? null).catch((err) => {
-        console.error("[PlayerContext] set pitch semitones failed", err);
-        playerGetPitchSemitones()
-          .then(setPitchSemitonesState)
-          .catch(() => {});
-      });
+      pitchWrites.current = pitchWrites.current
+        .then(() => playerSetPitchSemitones(clamped, activeProfileId ?? null))
+        .catch(async (err) => {
+          console.error("[PlayerContext] set pitch semitones failed", err);
+          const held = await playerGetPitchSemitones().catch(() => null);
+          if (held !== null && semitonesRevision.current === revision) {
+            setPitchSemitonesState(held);
+          }
+        });
     },
     [activeProfileId],
   );
@@ -750,6 +779,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   // writer, and it only ever writes the defaults.
   useEffect(() => {
     const onReset = () => {
+      keepPitchRevision.current += 1;
+      semitonesRevision.current += 1;
       setKeepPitchState(SETTINGS["audio.keep_pitch"].defaultValue);
       setPitchSemitonesState(SETTINGS["audio.pitch_semitones"].defaultValue);
     };

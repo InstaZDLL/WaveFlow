@@ -159,7 +159,6 @@ pub struct Stretcher {
 // The library instance is plain memory reached only through `&mut self`, and
 // it keeps no reference to the thread that made it.
 unsafe impl Send for Stretcher {}
-unsafe impl Sync for Stretcher {}
 
 impl Stretcher {
     /// A stretcher at the output's `rate`, playing `tempo` times as fast.
@@ -303,6 +302,9 @@ impl Stretcher {
     /// a stream gives nothing back until the pre-roll is full.
     pub fn process(&mut self, input: &[f32], out: &mut Vec<f32>) -> Result<(), StretchError> {
         debug_assert!(input.len() % self.channels == 0, "input not whole frames");
+        if input.is_empty() {
+            return Ok(());
+        }
         self.frames_in += (input.len() / self.channels) as u64;
         if self.started {
             return self.run(input, out);

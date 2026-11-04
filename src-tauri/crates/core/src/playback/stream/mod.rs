@@ -897,9 +897,14 @@ impl ActiveStream {
         dst_sample_rate: u32,
         dst_channels: usize,
     ) -> Result<(), String> {
+        // Nothing decoded yet: the source rate is not known, and nothing is
+        // waiting to go through.
+        if self.src_sample_rate == 0 {
+            return Ok(());
+        }
         // A new logical stream can change the source rate, and with it what
         // the stretcher has left to do.
-        let tempo = self.time_shift().stretch_tempo(self.src_sample_rate.max(1));
+        let tempo = self.time_shift().stretch_tempo(self.src_sample_rate);
         if self.stretcher.as_ref().map_or(true, |s| s.tempo() != tempo) {
             let built =
                 Stretcher::new(dst_sample_rate, dst_channels, tempo).map_err(|e| e.to_string())?;

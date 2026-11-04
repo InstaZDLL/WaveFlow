@@ -373,6 +373,9 @@ pub struct SharedPlayback {
     /// Transposition in semitones, clamped to
     /// `±`[`MAX_PITCH_SEMITONES`] on every write.
     pub pitch_semitones: AtomicI32,
+    /// Track time already heard in this listen when the clock last restarted
+    /// for a change of speed or pitch: see [`Self::rebase_clock`].
+    pub listened_carry_ms: AtomicU64,
     /// Set by `player_set_speed` to tell the decoder thread to rebuild
     /// every stream's resampler at the new speed on the next decode
     /// cycle. Cleared by the decoder once consumed.
@@ -460,6 +463,7 @@ impl SharedPlayback {
             playback_speed_bits: AtomicU32::new(1.0_f32.to_bits()),
             keep_pitch: AtomicBool::new(true),
             pitch_semitones: AtomicI32::new(0),
+            listened_carry_ms: AtomicU64::new(0),
             speed_dirty: AtomicBool::new(false),
             dsd_taps: AtomicU32::new(256),
             dsd_dop_enabled: AtomicBool::new(false),
@@ -507,7 +511,7 @@ impl SharedPlayback {
     pub fn set_playback_speed(&self, speed: f32) {
         let clamped = speed.clamp(0.5, 2.0);
         let pos = self.current_position_ms();
-        self.restart_clock(pos, 0, false);
+        self.rebase_clock(pos);
         self.seek_generation.fetch_add(1, Ordering::Release);
         self.playback_speed_bits
             .store(clamped.to_bits(), Ordering::Release);
@@ -743,6 +747,18 @@ impl SharedPlayback {
         (base + track_delta_ms).max(0) as u64
     }
 
+    /// Restart the position clock at `base_ms` within the same listen: a change
+    /// of speed or pitch, as opposed to a seek or a new track. What has been
+    /// heard so far stays heard. It was counted at the speed it played at, so
+    /// it is carried as time rather than left to the sample counter: restarted
+    /// with the rest, a change at 4:50 of a 5:00 track left 10 s of listening,
+    /// no completion and no scrobble.
+    pub fn rebase_clock(&self, base_ms: u64) {
+        let heard = self.session_listened_ms();
+        self.restart_clock(base_ms, 0, false);
+        self.listened_carry_ms.store(heard, Ordering::Relaxed);
+    }
+
     /// Restart the position clock at `base_ms`, with `lead_in_samples`
     /// still queued in the ring ahead of that point. `lead_in_is_previous_track`
     /// says whose audio those samples are: the finished track's tail after
@@ -764,6 +780,7 @@ impl SharedPlayback {
         lead_in_is_previous_track: bool,
     ) {
         self.samples_played.store(0, Ordering::Relaxed);
+        self.listened_carry_ms.store(0, Ordering::Relaxed);
         self.clock_lead_in.store(lead_in_samples, Ordering::Relaxed);
         self.lead_in_is_previous_track
             .store(lead_in_is_previous_track, Ordering::Relaxed);
@@ -793,7 +810,7 @@ impl SharedPlayback {
         };
         let wall_ms = (heard * 1000) / (sr * ch);
         let speed = self.playback_speed();
-        (wall_ms as f32 * speed) as u64
+        self.listened_carry_ms.load(Ordering::Relaxed) + (wall_ms as f32 * speed) as u64
     }
 }
 

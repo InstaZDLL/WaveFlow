@@ -17,6 +17,34 @@ fn the_pitch_lock_and_the_transposition_leave_the_clock_alone() {
     assert_eq!(shared.session_listened_ms(), 1_500);
 }
 
+/// A change of speed or pitch restarts the clock, not the listen: what was heard
+/// stays heard, at the speed it played at, or the end of the track earns no
+/// credit. A seek or a new track does start over.
+#[test]
+fn a_change_of_speed_or_pitch_keeps_what_was_heard() {
+    let shared = SharedPlayback::new();
+    shared.sample_rate.store(48_000, Ordering::Relaxed);
+    shared.channels.store(2, Ordering::Relaxed);
+    // 10 s at 1×.
+    shared.samples_played.store(960_000, Ordering::Relaxed);
+    assert_eq!(shared.session_listened_ms(), 10_000);
+
+    // Then 2 s at 1.5×, which is 3 s of track.
+    shared.set_playback_speed(1.5);
+    assert_eq!(shared.session_listened_ms(), 10_000);
+    shared.samples_played.store(192_000, Ordering::Relaxed);
+    assert_eq!(shared.session_listened_ms(), 13_000);
+
+    // The decoder puts the file back at the position heard.
+    let position = shared.current_position_ms();
+    shared.rebase_clock(position);
+    assert_eq!(shared.session_listened_ms(), 13_000);
+    assert_eq!(shared.current_position_ms(), position);
+
+    shared.restart_clock(0, 0, false);
+    assert_eq!(shared.session_listened_ms(), 0);
+}
+
 #[test]
 fn the_transposition_is_clamped() {
     let shared = SharedPlayback::new();
