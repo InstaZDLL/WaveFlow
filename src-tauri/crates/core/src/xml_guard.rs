@@ -23,6 +23,11 @@
 /// The most attributes one tag may carry, namespace declarations included.
 const MAX_ATTRIBUTES_PER_TAG: usize = 32;
 
+/// The most attributes one document may carry. Each takes room in the tree whatever
+/// its size in the text, and the largest feed read could otherwise hold over six million
+/// of them. The 20 MiB feed that sized this holds a few hundred thousand tags.
+const MAX_ATTRIBUTES_PER_DOCUMENT: usize = 2_000_000;
+
 /// The most namespaces in scope at any element.
 const MAX_NAMESPACES_IN_SCOPE: usize = 32;
 
@@ -37,6 +42,7 @@ pub fn within_limits(xml: &str) -> bool {
     // The namespaces in scope at each open element, with the document at the bottom.
     let mut scopes: Vec<usize> = vec![0];
     let mut copies = 0usize;
+    let mut attributes = 0usize;
     let mut at = 0usize;
     while let Some(found) = xml[at..].find('<') {
         let open = at + found;
@@ -71,7 +77,8 @@ pub fn within_limits(xml: &str) -> bool {
             let Some(tag) = read_start_tag(bytes, open + 1) else {
                 return false;
             };
-            if tag.attributes > MAX_ATTRIBUTES_PER_TAG {
+            attributes += tag.attributes;
+            if tag.attributes > MAX_ATTRIBUTES_PER_TAG || attributes > MAX_ATTRIBUTES_PER_DOCUMENT {
                 return false;
             }
             let scope = scopes.last().copied().unwrap_or(0) + tag.declarations;

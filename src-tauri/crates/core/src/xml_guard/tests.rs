@@ -79,6 +79,10 @@ fn each_limit_sits_exactly_where_it_says() {
     let siblings = "<a xmlns:n=\"u\"></a>".repeat(MAX_NAMESPACES_IN_SCOPE * 2);
     assert!(within_limits(&format!("<rss>{siblings}</rss>")));
 
+    let spread = |tags: usize| format!("<rss>{}</rss>", "<a b=\"\"/>".repeat(tags));
+    assert!(within_limits(&spread(MAX_ATTRIBUTES_PER_DOCUMENT)));
+    assert!(!within_limits(&spread(MAX_ATTRIBUTES_PER_DOCUMENT + 1)));
+
     // The root copies its 9, and each child the 10 it has in scope.
     let copies = |children: usize| namespaces_over_children(9, children);
     let fits = (MAX_NAMESPACE_COPIES - 9) / 10;
@@ -181,7 +185,8 @@ fn worst_tags_inside_the_limits() -> String {
         .map(|index| format!(" n{last}:a{index}=\"\""))
         .collect();
     let element = format!("<n{last}:b{attributes}/>");
-    let count = (crate::podcast::MAX_FEED_BYTES - namespaces.len() - 100) / element.len();
+    let count = ((crate::podcast::MAX_FEED_BYTES - namespaces.len() - 100) / element.len())
+        .min((MAX_ATTRIBUTES_PER_DOCUMENT - MAX_NAMESPACES_IN_SCOPE) / MAX_ATTRIBUTES_PER_TAG);
     format!(
         "<rss{namespaces}><channel><title>T</title>{}</channel></rss>",
         element.repeat(count)
