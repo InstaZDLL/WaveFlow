@@ -75,7 +75,8 @@ pub fn extension_for_mime(mime: Option<&MimeType>) -> &'static str {
     }
 }
 
-/// Extract the first picture from the given tag, hash-address it, and write
+/// Extract the front cover from the given tag, or its first picture when none
+/// says it is one, hash-address it, and write
 /// it to `<artwork_dir>/<hash>.<ext>` if missing. Returns the identifying
 /// `ExtractedCover` or `None` when the tag has no pictures.
 ///
@@ -83,7 +84,11 @@ pub fn extension_for_mime(mime: Option<&MimeType>) -> &'static str {
 /// match (because blake3 hashes are content-addressed), so we never
 /// overwrite on re-scan.
 pub fn extract_cover(tag: &Tag, artwork_dir: &Path) -> Option<ExtractedCover> {
-    let picture = tag.pictures().first()?;
+    // Not simply the first: a replaced cover lands behind the images a file
+    // already holds, its back cover and booklet among them.
+    let picture = tag
+        .get_picture_type(lofty::picture::PictureType::CoverFront)
+        .or_else(|| tag.pictures().first())?;
     let bytes = picture.data();
     if bytes.is_empty() {
         return None;

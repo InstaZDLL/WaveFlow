@@ -14,6 +14,9 @@ const FLAC_MAX_METADATA: u64 = 64 * 1024 * 1024;
 /// The room a rewrite leaves behind it, so the next edits of this file fit
 /// in place instead of copying it again.
 const FLAC_REWRITE_PADDING: u64 = 8192;
+/// More metadata blocks than a real file holds. Nothing else bounds the count
+/// but the file's size, and a block can be as short as its header.
+const FLAC_MAX_BLOCKS: usize = 1 << 16;
 /// The picture types a cover edit replaces, as `TagPatch::Cover` defines
 /// it: `Other` and `CoverFront`. Every other image survives one.
 const FLAC_PICTURE_OTHER: u32 = 0;
@@ -239,7 +242,8 @@ fn encode_region(kept: &[&FlacBlock], comments: &[u8], padding: Option<u64>) -> 
 ///
 /// Only the comments change, which keeps the promise of the in-place path:
 /// the other blocks go through byte for byte, among them a picture lofty
-/// cannot parse, which it would discard on its way through.
+/// cannot parse, which it would discard on its way through. That path comes
+/// first, so what is left here is a region that has to grow.
 fn grow_comments_on_copy(
     file: &mut std::fs::File,
     comments: &lofty::ogg::tag::VorbisComments,
@@ -254,8 +258,8 @@ fn grow_comments_on_copy(
     };
     let region = region_len(&blocks);
     let out = encode_region(&kept_blocks(&blocks), &encoded, Some(FLAC_REWRITE_PADDING));
-    // Growing is what this is for. A region it would shrink is one with too
-    // much padding for a single block, and lofty's `splice` truncates a
+    // Growing is what this is for. A region it would shrink is one with more
+    // padding than a single block holds, and lofty's `splice` truncates a
     // stream with no frames behind the region to the wrong length.
     if out.len() as u64 <= region {
         return Ok(false);
@@ -324,11 +328,16 @@ pub fn save_flac_comments(
     flac: &mut lofty::flac::FlacFile,
     file: &mut std::fs::File,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let grown = match flac.vorbis_comments() {
-        Some(comments) => grow_comments_on_copy(file, comments)?,
+    let written = match flac.vorbis_comments() {
+        // In place first, on the copy too: a second pass over a file whose
+        // comments already fit has nothing to grow, and lofty is the one route
+        // that does not carry the other blocks through byte for byte.
+        Some(comments) => {
+            try_flac_in_place(file, comments)? || grow_comments_on_copy(file, comments)?
+        }
         None => false,
     };
-    if !grown {
+    if !written {
         save_with_lofty(flac, file)?;
     }
     check_comments_landed(flac, file)
@@ -353,7 +362,8 @@ struct FlacLayout {
 }
 
 /// The layout of a FLAC file, behind the ID3v2 tag some carry. `None` for a
-/// file that does not read as one to its end.
+/// file that does not read as one to its end, and an error for one with more
+/// blocks than [`FLAC_MAX_BLOCKS`], which is nothing to rewrite on trust.
 fn read_layout(file: &mut std::fs::File) -> io::Result<Option<FlacLayout>> {
     use std::io::{Read, Seek, SeekFrom};
 
@@ -403,6 +413,12 @@ fn read_layout(file: &mut std::fs::File) -> io::Result<Option<FlacLayout>> {
         if at + 4 + block_len > len {
             return Ok(None);
         }
+        if blocks.len() == FLAC_MAX_BLOCKS {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "this FLAC file holds too many metadata blocks to rewrite",
+            ));
+        }
         blocks.push((header[0] & 0x7f, at + 4, block_len));
         at += 4 + block_len;
         if header[0] & 0x80 != 0 {
@@ -414,22 +430,47 @@ fn read_layout(file: &mut std::fs::File) -> io::Result<Option<FlacLayout>> {
     }
 }
 
-/// The contents of the blocks `wanted` picks, in the order of the file.
-fn read_contents(
+/// Whether `file` reads as a FLAC, behind an ID3v2 tag or not. Leaves the
+/// handle at the start, where a parser reading through it next expects it.
+pub(super) fn is_flac(file: &mut std::fs::File) -> io::Result<bool> {
+    use std::io::Seek;
+
+    let layout = read_layout(file)?;
+    file.rewind()?;
+    Ok(layout.is_some())
+}
+
+/// Hand `visit` the contents of each block `wanted` picks, in the order of the
+/// file, one at a time: a block is at most 16 MiB, and a file can hold many.
+fn visit_blocks(
     file: &mut std::fs::File,
     layout: &FlacLayout,
     wanted: impl Fn(u8) -> bool,
-) -> io::Result<Vec<Vec<u8>>> {
+    mut visit: impl FnMut(&[u8]),
+) -> io::Result<()> {
     use std::io::{Read, Seek, SeekFrom};
 
-    let mut contents = Vec::new();
+    let mut content = Vec::new();
     for &(_, at, len) in layout.blocks.iter().filter(|(ty, ..)| wanted(*ty)) {
-        let mut content = vec![0u8; len as usize];
+        content.resize(len as usize, 0);
         file.seek(SeekFrom::Start(at))?;
         file.read_exact(&mut content)?;
-        contents.push(content);
+        visit(&content);
     }
-    Ok(contents)
+    Ok(())
+}
+
+/// The digest of each block `wanted` picks, in the order of the file.
+fn block_digests(
+    file: &mut std::fs::File,
+    layout: &FlacLayout,
+    wanted: impl Fn(u8) -> bool,
+) -> io::Result<Vec<blake3::Hash>> {
+    let mut digests = Vec::new();
+    visit_blocks(file, layout, wanted, |content| {
+        digests.push(blake3::hash(content));
+    })?;
+    Ok(digests)
 }
 
 /// A picture block's type and image, by the block's own lengths. `None` for
@@ -513,34 +554,37 @@ pub(super) fn check_rewrite(
     let structural = |ty: u8| {
         ty != FLAC_BLOCK_PADDING && ty != FLAC_BLOCK_VORBIS_COMMENT && ty != FLAC_BLOCK_PICTURE
     };
-    if read_contents(original, &before, structural)?
-        != read_contents(rewritten, &after, structural)?
+    if block_digests(original, &before, structural)?
+        != block_digests(rewritten, &after, structural)?
     {
         return refuse("changed the stream's own metadata");
     }
 
+    let is_cover = |kind: u32| kind == FLAC_PICTURE_OTHER || kind == FLAC_PICTURE_FRONT;
     let is_picture = |ty: u8| ty == FLAC_BLOCK_PICTURE;
-    let pictures_after = read_contents(rewritten, &after, is_picture)?;
-    let images_after: Vec<&[u8]> = pictures_after
-        .iter()
-        .filter_map(|block| picture_parts(block).map(|(_, image)| image))
-        .collect();
-    let mut had_a_cover = false;
-    for block in read_contents(original, &before, is_picture)? {
-        match picture_parts(&block) {
-            Some((FLAC_PICTURE_OTHER | FLAC_PICTURE_FRONT, _)) => had_a_cover = true,
-            Some((_, image)) if images_after.contains(&image) => {}
-            // One that does not parse survives by being copied whole.
-            None if pictures_after.contains(&block) => {}
-            _ => return refuse("lost an embedded image"),
+    let mut images_after = std::collections::HashSet::new();
+    let mut blocks_after = std::collections::HashSet::new();
+    let mut has_a_cover = false;
+    visit_blocks(rewritten, &after, is_picture, |block| {
+        blocks_after.insert(blake3::hash(block));
+        if let Some((kind, image)) = picture_parts(block) {
+            images_after.insert(blake3::hash(image));
+            has_a_cover |= is_cover(kind);
         }
+    })?;
+    let mut had_a_cover = false;
+    let mut lost_an_image = false;
+    visit_blocks(original, &before, is_picture, |block| {
+        match picture_parts(block) {
+            Some((kind, _)) if is_cover(kind) => had_a_cover = true,
+            Some((_, image)) => lost_an_image |= !images_after.contains(&blake3::hash(image)),
+            // One that does not parse survives by being copied whole.
+            None => lost_an_image |= !blocks_after.contains(&blake3::hash(block)),
+        }
+    })?;
+    if lost_an_image {
+        return refuse("lost an embedded image");
     }
-    let has_a_cover = pictures_after.iter().any(|block| {
-        matches!(
-            picture_parts(block),
-            Some((FLAC_PICTURE_OTHER | FLAC_PICTURE_FRONT, _))
-        )
-    });
     if had_a_cover && !has_a_cover {
         return refuse("lost the front cover");
     }

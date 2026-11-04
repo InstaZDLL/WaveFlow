@@ -89,6 +89,7 @@ const SEEDED_COMMENTS: &[(&str, &str)] = &[
     ("ARTIST", "Someone"),
     ("ARTIST", "Someone Else"),
     ("CATALOGNUMBER", "WF-001"),
+    ("ENCODER", "some encoder 1.2"),
     ("MY_OWN_FIELD", "kept"),
     ("replaygain_track_gain", "-6.50 dB"),
     (
@@ -226,6 +227,14 @@ fn comments_in(bytes: &[u8]) -> Vec<(String, String)> {
         .collect()
 }
 
+/// The vendor string, which the file holds apart from its comments.
+fn vendor_in(bytes: &[u8]) -> String {
+    let (blocks, _) = split(bytes);
+    let block = &blocks_of(&blocks, COMMENTS)[0];
+    let vendor_len = u32::from_le_bytes(block[..4].try_into().unwrap()) as usize;
+    String::from_utf8(block[4..4 + vendor_len].to_vec()).unwrap()
+}
+
 fn holds(comments: &[(String, String)], key: &str, value: &str) -> bool {
     comments
         .iter()
@@ -258,6 +267,7 @@ fn only_the_comments_changed(before: &[u8], path: &Path) {
     for (key, value) in SEEDED_COMMENTS.iter().filter(|(key, _)| *key != "TITLE") {
         assert!(holds(&comments, key, value), "{key} survives");
     }
+    assert_eq!(vendor_in(&after), "another tagger", "the vendor string");
 }
 
 fn title_too_long_for_the_room() -> TrackEdit {
@@ -519,6 +529,78 @@ fn an_id3v2_tag_seeds_the_comments_a_file_does_not_have() {
         "TITLE",
         "A title longer than the one in the file"
     ));
+}
+
+#[test]
+fn a_cover_on_a_file_with_only_an_id3v2_tag_seeds_the_comments_too() {
+    // An image alone would be what the library reads first, with no title.
+    let (streaminfo, frames) = tone();
+    let flac = file_from(&[streaminfo], &frames);
+    let before = behind_id3v2(&flac);
+    let (_dir, path) = on_disk(&before);
+    let prefix = before.len() - flac.len();
+
+    patch_file(
+        &path,
+        &TagPatch::Cover {
+            bytes: &[0x33; 64],
+            mime: &MimeType::Png,
+        },
+    )
+    .expect("edit");
+
+    let after = std::fs::read(&path).unwrap();
+    assert!(holds(
+        &comments_in(&after[prefix..]),
+        "ARTIST",
+        "From the ID3v2 tag"
+    ));
+    assert_eq!(blocks_of(&split(&after[prefix..]).0, PICTURE).len(), 1);
+}
+
+#[test]
+fn a_cover_replaces_one_kept_in_the_comments() {
+    use lofty::picture::{Picture, PictureInformation, PictureType};
+
+    let old = Picture::unchecked(vec![0x44; 64])
+        .pic_type(PictureType::CoverFront)
+        .mime_type(MimeType::Png)
+        .build();
+    let encoded = String::from_utf8(old.as_flac_bytes(PictureInformation::default(), true))
+        .expect("base64 is text");
+    let (streaminfo, frames) = tone();
+    let before = file_from(
+        &[
+            streaminfo,
+            (
+                COMMENTS,
+                comments_block(&[
+                    ("TITLE", "Before"),
+                    ("METADATA_BLOCK_PICTURE", encoded.as_str()),
+                ]),
+            ),
+        ],
+        &frames,
+    );
+    let (_dir, path) = on_disk(&before);
+    let cover = [0x33; 64];
+
+    patch_file(
+        &path,
+        &TagPatch::Cover {
+            bytes: &cover,
+            mime: &MimeType::Png,
+        },
+    )
+    .expect("edit");
+
+    let after = std::fs::read(&path).unwrap();
+    let (blocks, new_frames) = split(&after);
+    let pictures = blocks_of(&blocks, PICTURE);
+    assert_eq!(pictures.len(), 1, "the new cover alone");
+    assert!(pictures[0].ends_with(&cover));
+    assert_eq!(new_frames, frames);
+    assert!(holds(&comments_in(&after), "TITLE", "Before"));
 }
 
 /// The other containers `patch_file` rewrites: the same two edits, with far

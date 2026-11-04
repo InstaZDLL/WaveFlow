@@ -374,6 +374,101 @@ fn the_check_sees_the_stream_behind_an_id3v2_tag() {
 }
 
 #[test]
+fn a_file_with_more_blocks_than_any_real_one_is_refused() {
+    // A block can be as short as its header, so the file's size alone would
+    // let a crafted one make the check hold millions of them.
+    let mut crafted = b"fLaC".to_vec();
+    crafted.extend_from_slice(&block(0, &[1; 34], false));
+    for _ in 0..FLAC_MAX_BLOCKS {
+        crafted.extend_from_slice(&block(FLAC_BLOCK_PADDING, &[], false));
+    }
+    crafted.extend_from_slice(&block(FLAC_BLOCK_PADDING, &[], true));
+    let err = check(&crafted, &crafted).expect_err("refused");
+    assert_eq!(err.kind(), io::ErrorKind::InvalidData);
+}
+
+/// The way a second pass over a file comes here: nothing to grow, and lofty
+/// would discard the picture it cannot parse.
+#[test]
+fn comments_that_fit_the_copy_stay_off_the_route_through_lofty() {
+    use lofty::config::ParseOptions;
+    use lofty::file::AudioFile;
+    use lofty::flac::FlacFile;
+
+    let broken = [0u8, 0, 0, 3, 0xff, 0xff];
+    let mut comments = VorbisComments::default();
+    comments.push("TITLE".to_string(), "Before".to_string());
+    let encoded = encode_vorbis_comments(&comments);
+    let bytes = flac_of(
+        &[(0, &[1; 34]), (4, &encoded), (6, &broken), (1, &[0; 512])],
+        b"frames",
+    );
+    let dir = tempfile::tempdir().expect("tempdir");
+    let path = dir.path().join("track.flac");
+    std::fs::write(&path, &bytes).expect("seed");
+
+    let mut file = open(&path);
+    let options = ParseOptions::new().read_properties(false);
+    let mut flac = FlacFile::read_from(&mut file, options).expect("read");
+    let mut edited = VorbisComments::default();
+    edited.push("TITLE".to_string(), "After".to_string());
+    flac.set_vorbis_comments(edited);
+    save_flac_comments(&mut flac, &mut file).expect("save");
+
+    assert_eq!(
+        std::fs::metadata(&path).expect("meta").len(),
+        bytes.len() as u64,
+        "it fit"
+    );
+    let blocks = read_flac_blocks(&mut file).expect("read").expect("blocks");
+    assert!(blocks
+        .iter()
+        .any(|block| block.ty == FLAC_BLOCK_PICTURE && block.content == broken));
+}
+
+#[test]
+fn a_rewrite_hands_its_body_the_copy_from_the_start() {
+    // lofty's readers parse from wherever the handle stands.
+    use std::io::Seek;
+
+    for bytes in [
+        flac_of(&[(0, &[1; 34]), (4, b"old")], b"frames"),
+        b"not a flac at all".to_vec(),
+    ] {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let path = dir.path().join("track");
+        std::fs::write(&path, &bytes).expect("seed");
+        let outcome: Result<(), io::Error> = crate::tagio::rewrite_via_temp(&path, |file| {
+            assert_eq!(file.stream_position()?, 0);
+            Ok(())
+        });
+        outcome.expect("rewrite");
+    }
+}
+
+#[test]
+fn an_ape_tag_behind_the_frames_does_not_fail_the_check() {
+    // A headerless one gets a header on a rewrite of any other container.
+    // Here the writer never reaches it, and a changed tail reads as changed
+    // audio.
+    let mut footer = b"APETAGEX".to_vec();
+    for field in [2000u32, 32, 0, 0, 0, 0] {
+        footer.extend_from_slice(&field.to_le_bytes());
+    }
+    let mut audio = b"frames".to_vec();
+    audio.extend_from_slice(&footer);
+    let before = flac_of(&[(0, &[1; 34]), (4, b"old")], &audio);
+    let dir = tempfile::tempdir().expect("tempdir");
+    let path = dir.path().join("track.flac");
+    std::fs::write(&path, &before).expect("seed");
+
+    let outcome: Result<(), io::Error> = crate::tagio::rewrite_via_temp(&path, |_| Ok(()));
+
+    outcome.expect("nothing the edit may not touch moved");
+    assert_eq!(std::fs::read(&path).expect("read"), before);
+}
+
+#[test]
 fn a_file_that_is_not_flac_has_nothing_to_answer_for() {
     check(b"RIFF and whatever follows", b"something else entirely").expect("not ours to judge");
 }
