@@ -39,6 +39,28 @@ What was stored stays readable, and a downloaded episode stays playable. The
 switch is one setting, `podcasts.enabled`, default `false`, through
 `useProfileSetting` and `settingsRegistry.ts`.
 
+**Turning it on goes through a warning the user accepts explicitly.** A dialog, with
+`useModalA11y`, says in plain words what changes before anything does:
+
+- feeds and episodes come straight from each podcast's host, so that host, and the
+  measurement services episodes are often redirected through, see the user's IP
+  address and what they play;
+- feeds are checked every six hours while the app runs, and only then;
+- downloads take disk space, up to the quota;
+- offline mode stops all of it, and turning podcasts off stops it for good.
+
+Keyboard focus starts on Cancel. **Only the dialog's confirmation writes
+`podcasts.enabled`.** Nothing else turns it on: not the Settings row, which opens the
+dialog, not opening an OPML file, not onboarding or What's new, which may point to it
+but do not enable it. Resetting settings returns it to off. A profile imported or
+restored comes back with it off, since the acceptance belongs to the person on this
+machine, so the warning shows again. Turning it off asks for nothing, and says what
+stays: subscriptions, positions and downloaded episodes.
+
+**The backend enforces it.** Every `podcast_*` command that would make a request reads
+the setting and refuses when it is off, and so does the refresh timer. A bug in the
+interface cannot send traffic the user did not accept.
+
 Every request checks `offline::is_offline()` first. No request is made at startup:
 the first automatic refresh comes one interval after launch, every six hours,
 and only while the app runs. Subscribing fetches the feed before anything is
@@ -201,7 +223,7 @@ events.
 | 2   | Migration, fetch rules, subscribe, refresh, OPML import and export, commands, setting | 1          |
 | 3   | Playback: session, stream with hand-followed redirects, resume, played state | 2          |
 | 4   | Downloads: managed folder, quota, cancel, Disk usage                  | 2          |
-| 5   | The page, sidebar, settings, 17 locales, What's new, documentation    | 2          |
+| 5   | The page, the activation warning, sidebar, settings, 17 locales, What's new, documentation | 2          |
 | 6   | Chapters and the transcript panel                                     | 3, 5       |
 | 7   | The server's podcasts                                                 | 3, 5       |
 | 8   | Speed without changing pitch                                          | none       |
@@ -220,7 +242,8 @@ channel subscribed both locally and on the server. Publishing or editing a feed.
   is contacted, https to http refused, a lying `Content-Length`, a body that never
   ends, HTML in place of audio.
 - A test that a private feed's token, in path and query, reaches no log line.
-- With the switch off, and in offline mode, no request is made.
+- With the switch off, and in offline mode, no request is made, whichever command is called.
+- Only the warning's confirmation turns the switch on, and an imported profile comes back off.
 - Database tests on the really migrated schema with foreign keys on.
 - A played episode leaves `play_event` and the scrobble queue empty.
 - Against real public feeds in a sandbox, muted, and heard by a person before a PR.
