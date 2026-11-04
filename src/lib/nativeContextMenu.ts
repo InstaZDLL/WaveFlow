@@ -12,8 +12,9 @@
  * propagation cannot let the browser menu through.
  *
  * A text field keeps its menu, for copy, paste and the spell checker. Under
- * `tauri dev`, Shift + right click keeps the rest of it, which is the way to
- * Inspect there.
+ * `tauri dev`, Shift + right click brings the browser menu back everywhere,
+ * over the app's own menus too since they never get the event, which is the
+ * way to Inspect there.
  *
  * Imported once, for its listener, from `main.tsx`, which every window loads.
  */
@@ -47,7 +48,10 @@ if (typeof document !== "undefined") {
     "contextmenu",
     (event) => {
       if (isTextField(event.target)) return;
-      if (import.meta.env.DEV && event.shiftKey) return;
+      if (import.meta.env.DEV && event.shiftKey) {
+        event.stopPropagation();
+        return;
+      }
       event.preventDefault();
     },
     true,
