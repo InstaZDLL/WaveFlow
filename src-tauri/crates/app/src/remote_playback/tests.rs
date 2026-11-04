@@ -12,6 +12,37 @@ fn clear_if_undoes_only_its_own_install() {
 }
 
 #[test]
+fn restore_if_puts_back_what_a_start_replaced() {
+    let playback = RemotePlayback::default();
+    playback.set(RemoteQueue {
+        entries: vec![entry("a"), entry("b")],
+        index: 1,
+    });
+    let before = playback.queue();
+    let mine = playback.set(RemoteQueue {
+        entries: vec![entry("c")],
+        index: 0,
+    });
+    assert!(playback.restore_if(mine, before));
+    assert_eq!(playback.cursor(), Some(1));
+    assert_eq!(playback.current().map(|e| e.id).as_deref(), Some("b"));
+    // The revision moved with it: this start cannot undo anything else.
+    assert!(!playback.clear_if(mine));
+}
+
+#[test]
+fn restore_if_leaves_a_session_the_user_navigated_alone() {
+    let playback = RemotePlayback::default();
+    let mine = playback.set(RemoteQueue {
+        entries: vec![entry("a"), entry("b")],
+        index: 0,
+    });
+    playback.seek_to(1);
+    assert!(!playback.restore_if(mine, None));
+    assert_eq!(playback.current().map(|e| e.id).as_deref(), Some("b"));
+}
+
+#[test]
 fn clear_if_leaves_a_session_the_user_navigated_alone() {
     // The start that installed the session is rolling back because its
     // own load was superseded — by a jump inside that very session.

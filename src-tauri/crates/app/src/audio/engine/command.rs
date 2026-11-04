@@ -60,7 +60,7 @@ impl LoadIntent {
     /// goes through [`AudioEngine::next_load_intent`] so every intent on
     /// one engine comes from the same monotonic counter.
     #[cfg(test)]
-    pub(crate) fn from_raw(n: u64) -> Self {
+    pub(crate) const fn from_raw(n: u64) -> Self {
         Self(n)
     }
 }

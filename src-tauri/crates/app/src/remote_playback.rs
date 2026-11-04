@@ -39,7 +39,9 @@
 //! while starting. `clear_if` rather than `clear` because by then the
 //! session may be a newer one someone else installed — or the same one
 //! the user has navigated inside, which is why every navigation takes a
-//! fresh revision too.
+//! fresh revision too. A start that failed is undone the same way
+//! ([`RemotePlayback::restore_if`]), or the queue it could not play from would
+//! take over Next.
 //!
 //! ## Shared with the files played without importing them
 //!
@@ -188,6 +190,35 @@ impl<E: Clone> DetachedSession<E> {
         let had = guard.is_some();
         *guard = None;
         had
+    }
+
+    /// [`Self::clear_if`] for a caller that can put back what it replaced: a
+    /// start that could not play, whose `queue` is still what is being heard.
+    pub fn restore_if(&self, revision: u64, queue: Option<DetachedQueue<E>>) -> bool {
+        let mut guard = self.inner.lock().expect("detached session poisoned");
+        if self.revisions.load(Ordering::Acquire) != revision {
+            return false;
+        }
+        self.revisions.fetch_add(1, Ordering::AcqRel);
+        *guard = queue;
+        true
+    }
+
+    /// The whole queue and its cursor, to put back with [`Self::restore_if`].
+    pub fn queue(&self) -> Option<DetachedQueue<E>> {
+        self.inner
+            .lock()
+            .expect("detached session poisoned")
+            .clone()
+    }
+
+    /// Where the cursor is, if a session is active.
+    pub fn cursor(&self) -> Option<usize> {
+        self.inner
+            .lock()
+            .expect("detached session poisoned")
+            .as_ref()
+            .map(|queue| queue.index)
     }
 
     /// The entry the cursor points at, cloned out of the lock.

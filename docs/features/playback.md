@@ -1012,7 +1012,7 @@ indexed read, and the alternative — dropping the lock for it and taking it
 again — would reopen the window it exists to close.
 
 What stays outside is the preparation that precedes the queue: the profile
-snapshot and the pool lease. Two paths are shaped differently, each
+snapshot and the pool lease. Three paths are shaped differently, each
 because one genuinely slow step must not be serialized:
 
 - **`player_play_tracks` claims twice.** It cannot peek — replacing the
@@ -1026,10 +1026,24 @@ because one genuinely slow step must not be serialized:
   the file is gone, an HTTP round-trip to mint a streaming ticket. Both
   branches re-take it and re-claim immediately before they publish, and
   the same intent re-claims successfully as long as nothing newer did.
-- **A remote session rolls back instead.** `play_entries` claims, then
-  mints a streaming ticket over HTTP; holding the publish lock across a
-  network call would park every other surface, so it keeps the
-  `load_intent_superseded` + `clear_if` rollback described above.
+- **A remote session rolls back instead.** `play_entries` claims and
+  installs under the publish lock, then mints a streaming ticket over HTTP
+  outside it; holding the lock across a network call would park every other
+  surface, so it keeps the `load_intent_superseded` + `clear_if` rollback
+  described above. A start that failed puts back the queues it replaced, since
+  what they were driving is still playing and a queue nothing plays from would
+  take over Next.
+- **A step or a jump in a remote queue takes the lock twice.** Once to look
+  for a session and claim, in that order since a claim with no load behind it
+  would have the decoder drop an older load still on its way, and to move the
+  cursor, an overtaken move moving nothing, with the ticket round-trip outside
+  it. Again only if that fails: a jump puts the cursor back and what was playing
+  goes on, a step has nothing to go back to and stops the player and drops the
+  session. Neither does anything once the intent has been superseded or the
+  session is gone (radio and a profile switch drop it without claiming), since
+  the failure is then nobody's business. Under the lock because a local producer
+  claims and sends as one move, and a `Stop` decided outside it could land after
+  that load.
 
 `SetNextTrack` takes no claim: it arms the gapless prefetch rather than
 taking over, and dropping one would cost a gapless hand-off to prevent

@@ -488,7 +488,8 @@ async fn try_remote_advance(app: &AppHandle, direction: Direction, label: &str) 
     match crate::remote::playback::advance(app, direction, intent).await {
         // A track was actually loaded.
         Ok(true) => Some(Moved::Track),
-        // End of queue (repeat off) — the session stopped, nothing new plays.
+        // End of queue (repeat off) — the session stopped, nothing new plays —
+        // or overtaken by something newer, which is what plays.
         Ok(false) => Some(Moved::Nothing),
         Err(err) => {
             tracing::warn!(%err, surface = label, "remote player action: advance failed");
