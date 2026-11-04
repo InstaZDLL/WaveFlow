@@ -98,15 +98,21 @@ fn resolve_log_dir() -> Option<PathBuf> {
     })
 }
 
-/// Takes out, whatever `RUST_LOG` says, the two places below this app that write the
-/// host of a connection at debug and trace. A private feed's host can hold its token as
-/// well as its path can, and that address must reach no log line.
+/// Takes out, whatever `RUST_LOG` says, the places below this app that write the host of
+/// a connection at debug and trace. A private feed's host can hold its token as well as
+/// its path can, and that address must reach no log line. `rustls` writes nothing in this
+/// build, its logging being a feature nothing turns on, but any dependency that asks for
+/// its defaults would turn it on without a word.
 pub(crate) fn without_connection_lines(filter: EnvFilter) -> EnvFilter {
-    ["reqwest::connect=info", "hyper_util::client::legacy=info"]
-        .into_iter()
-        .fold(filter, |filter, directive| {
-            filter.add_directive(directive.parse().expect("a valid directive"))
-        })
+    [
+        "reqwest::connect=info",
+        "hyper_util::client::legacy=info",
+        "rustls=info",
+    ]
+    .into_iter()
+    .fold(filter, |filter, directive| {
+        filter.add_directive(directive.parse().expect("a valid directive"))
+    })
 }
 
 /// Install the global tracing subscriber.

@@ -263,8 +263,13 @@ async fn an_origin_is_decided_once_from_the_typed_address() {
         .is_ok());
 }
 
-/// A real TLS server answers a redirect into the clear. The test certificate is
-/// self-signed and only this test's client skips checking it.
+/// The certificate of [`tls_redirecting_to`], for `feeds.example.org` and any name under
+/// it, trusted by a test's client as its own root so the check itself still runs.
+fn test_certificate() -> reqwest::Certificate {
+    reqwest::Certificate::from_der(include_bytes!("testdata/self-signed-cert.der")).unwrap()
+}
+
+/// A real TLS server answers a redirect into the clear.
 #[tokio::test]
 async fn a_secure_address_cannot_redirect_into_the_clear() {
     let clear = serve(|_| ok("<rss/>")).await;
@@ -273,7 +278,7 @@ async fn a_secure_address_cannot_redirect_into_the_clear() {
     let fetcher = Fetcher::with(
         client_builder()
             .no_proxy()
-            .danger_accept_invalid_certs(true)
+            .add_root_certificate(test_certificate())
             .resolve(PUBLIC_HOST, ([127, 0, 0, 1], port).into()),
         online,
         Duration::from_secs(5),
@@ -2346,6 +2351,26 @@ async fn a_private_feeds_token_reaches_no_log_line() {
     )
     .await
     .unwrap();
+    // The same name over TLS, where the handshake carries it too.
+    let tls_port = tls_redirecting_to(server.local("/clear")).await;
+    let over_tls = Fetcher::with(
+        client_builder()
+            .no_proxy()
+            .add_root_certificate(test_certificate())
+            .resolve(&token_host, ([127, 0, 0, 1], tls_port).into()),
+        online,
+        ROOMY,
+    )
+    .unwrap();
+    assert_eq!(
+        fetch(&over_tls, &format!("https://{token_host}:{tls_port}/feed"))
+            .await
+            .err(),
+        failed(FetchFailure::AddressRefused),
+        "the handshake went through and the redirect was judged"
+    );
+    // What `rustls` says of a handshake once a dependency turns its logging on.
+    tracing::debug!(target: "rustls::client::hs", "No cached session for {token_host}");
     let unresolved = format!("http://{TOKEN}.invalid/feed.xml");
     let err = subscribe(&leases, &fetcher, &unresolved, cache.path())
         .await
