@@ -60,37 +60,62 @@ impl Drop for ScrubbedCopy {
     }
 }
 
-/// What stays behind when a profile travels: each table, how to count what it
-/// holds of that kind, and how to blank it.
-const BLANKED_IN_AN_ARCHIVE: [(&str, &str, &str); 4] = [
-    (
-        "network_source",
-        "SELECT COUNT(*) FROM network_source WHERE secret IS NOT NULL",
-        "UPDATE network_source SET secret = NULL",
-    ),
-    (
-        "podcast_channel",
-        "SELECT COUNT(*) FROM podcast_channel
-          WHERE feed_url IS NOT NULL OR site_url IS NOT NULL OR image_url IS NOT NULL
-             OR etag IS NOT NULL OR last_modified IS NOT NULL",
-        "UPDATE podcast_channel
-            SET feed_url = NULL, site_url = NULL, image_url = NULL,
-                etag = NULL, last_modified = NULL",
-    ),
-    (
-        "podcast_episode",
-        "SELECT COUNT(*) FROM podcast_episode
-          WHERE enclosure_url IS NOT NULL OR chapters_url IS NOT NULL OR transcripts IS NOT NULL",
-        "UPDATE podcast_episode
-            SET enclosure_url = NULL, chapters_url = NULL, transcripts = NULL",
-    ),
+/// What stays behind when a profile travels.
+struct Blanked {
+    table: &'static str,
+    /// Counts what the table holds of that kind.
+    count: &'static str,
+    blank: &'static str,
+    /// Whether what it holds is a secret, so that its old bytes must not come along
+    /// either. A rebuild is what guarantees that.
+    secret: bool,
+}
+
+const BLANKED_IN_AN_ARCHIVE: [Blanked; 4] = [
+    Blanked {
+        table: "network_source",
+        count: "SELECT COUNT(*) FROM network_source WHERE secret IS NOT NULL",
+        blank: "UPDATE network_source SET secret = NULL",
+        secret: true,
+    },
+    Blanked {
+        table: "podcast_channel",
+        count: "SELECT COUNT(*) FROM podcast_channel
+                 WHERE feed_url IS NOT NULL OR site_url IS NOT NULL OR image_url IS NOT NULL
+                    OR etag IS NOT NULL OR last_modified IS NOT NULL",
+        blank: "UPDATE podcast_channel
+                   SET feed_url = NULL, site_url = NULL, image_url = NULL,
+                       etag = NULL, last_modified = NULL",
+        secret: true,
+    },
+    // The addresses, and what an archive has no business vouching for: a downloaded
+    // file is not in it, a name there could point anywhere the folder lets it, and a
+    // cache would be shown as if a host had answered with it.
+    Blanked {
+        table: "podcast_episode",
+        count: "SELECT COUNT(*) FROM podcast_episode
+                 WHERE enclosure_url IS NOT NULL OR chapters_url IS NOT NULL
+                    OR transcripts IS NOT NULL OR download_file IS NOT NULL
+                    OR download_size IS NOT NULL OR downloaded_at IS NOT NULL
+                    OR chapters_checked_at IS NOT NULL OR chapters_cache IS NOT NULL
+                    OR transcript_checked_at IS NOT NULL OR transcript_kind IS NOT NULL
+                    OR transcript_cache IS NOT NULL",
+        blank: "UPDATE podcast_episode
+                   SET enclosure_url = NULL, chapters_url = NULL, transcripts = NULL,
+                       download_file = NULL, download_size = NULL, downloaded_at = NULL,
+                       chapters_checked_at = NULL, chapters_cache = NULL,
+                       transcript_checked_at = NULL, transcript_kind = NULL,
+                       transcript_cache = NULL",
+        secret: true,
+    },
     // Not a secret, but not the archive's to carry either: the warning was
     // accepted by a person on a machine.
-    (
-        "profile_setting",
-        "SELECT COUNT(*) FROM profile_setting WHERE key = 'podcasts.enabled'",
-        "DELETE FROM profile_setting WHERE key = 'podcasts.enabled'",
-    ),
+    Blanked {
+        table: "profile_setting",
+        count: "SELECT COUNT(*) FROM profile_setting WHERE key = 'podcasts.enabled'",
+        blank: "DELETE FROM profile_setting WHERE key = 'podcasts.enabled'",
+        secret: false,
+    },
 ];
 
 /// A copy of the database with every `network_source.secret` and every podcast
@@ -104,13 +129,15 @@ const BLANKED_IN_AN_ARCHIVE: [(&str, &str, &str); 4] = [
 /// subscribing to the same address again finds them with their positions. The
 /// deliberate way to carry addresses is an OPML export.
 ///
-/// `VACUUM` is the point as much as the `UPDATE`, and it runs whatever was blanked:
-/// an updated row leaves its old bytes in the page, a removed one in a free page,
-/// and the archive is the whole file. Any write that makes a podcast row grow
-/// moves it, a position or an error word included, so no list of careful writers
-/// could keep an address out of those bytes, and a profile with no channel left has
-/// no row to blank but may still hold every address it ever had. The rebuild leaves
-/// nothing but what the rows now say.
+/// `VACUUM` is the point as much as the `UPDATE`: an updated row leaves its old bytes
+/// in the page, a removed one in a free page, and the archive is the whole file. It
+/// is costly on a large library, so it runs when it has something to clear: a secret
+/// was blanked, or this profile has ever held a channel. Any write that makes a podcast
+/// row grow moves it, a position or an error word included, so no list of careful
+/// writers could keep an address out of those bytes, and a profile with no channel left
+/// has no row to blank but may still hold every address it ever had. A share's password
+/// removed earlier leaves none behind, because those writes run with `secure_delete`
+/// (`netlib::store`).
 ///
 /// `write_archive` is a plain blocking function, so this drives sqlx on a thread
 /// of its own, which works wherever it was called from.
@@ -134,43 +161,85 @@ fn scrub_on_this_thread(db_path: &Path) -> AppResult<ScrubbedCopy> {
         let mut conn = SqliteConnectOptions::new()
             .filename(copy.path())
             .connect()
-            .await?;
-        sqlx::query("PRAGMA journal_mode = DELETE")
-            .execute(&mut conn)
-            .await?;
-        blank_what_does_not_travel(&mut conn).await?;
-        sqlx::query("VACUUM").execute(&mut conn).await?;
-        conn.close().await
+            .await
+            .map_err(AppError::from)?;
+        // A throwaway: nothing here has to survive a crash, and a rebuild without a
+        // journal or a sync costs a third of what it does with them (measured on 394 MB).
+        for pragma in ["PRAGMA journal_mode = OFF", "PRAGMA synchronous = OFF"] {
+            sqlx::query(pragma)
+                .execute(&mut conn)
+                .await
+                .map_err(AppError::from)?;
+        }
+        let blanked_a_secret = blank_what_does_not_travel(&mut conn).await?;
+        if blanked_a_secret || has_ever_held_a_channel(&mut conn).await? {
+            sqlx::query("VACUUM")
+                .execute(&mut conn)
+                .await
+                .map_err(AppError::from)?;
+        }
+        conn.close().await.map_err(AppError::from)
     })?;
     Ok(copy)
 }
 
-/// Runs [`BLANKED_IN_AN_ARCHIVE`] over a database. On a copy being archived, and
-/// again on a database just imported, since an archive may have been made by
-/// another build or by hand: a podcast address in one is not an address this
-/// person typed, and the refresh timer would otherwise contact what it names, the
-/// local network included, as soon as the warning is accepted here.
+async fn has_table(conn: &mut sqlx::SqliteConnection, name: &str) -> Result<bool, sqlx::Error> {
+    let found: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?")
+            .bind(name)
+            .fetch_one(&mut *conn)
+            .await?;
+    Ok(found > 0)
+}
+
+/// `podcast_channel` is `AUTOINCREMENT`, and `sqlite_sequence` keeps its row once one
+/// has been inserted, however many are left.
+pub(super) async fn has_ever_held_a_channel(
+    conn: &mut sqlx::SqliteConnection,
+) -> Result<bool, sqlx::Error> {
+    if !has_table(conn, "sqlite_sequence").await? {
+        return Ok(false);
+    }
+    let found: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM sqlite_sequence WHERE name = 'podcast_channel'")
+            .fetch_one(&mut *conn)
+            .await?;
+    Ok(found > 0)
+}
+
+/// Runs [`BLANKED_IN_AN_ARCHIVE`] over a database, and answers whether a secret was
+/// among what it blanked. On a copy being archived, and again on a database just
+/// imported, since an archive may have been made by another build or by hand: a
+/// podcast address in one is not an address this person typed, and the refresh timer
+/// would otherwise contact what it names, the local network included, as soon as the
+/// warning is accepted here.
+///
+/// Counted again afterwards, and refused if anything is left, whatever left it: the
+/// promise is that none of it comes along, not that an `UPDATE` was run.
 pub(super) async fn blank_what_does_not_travel(
     conn: &mut sqlx::SqliteConnection,
-) -> Result<(), sqlx::Error> {
-    for (table, count, blank) in BLANKED_IN_AN_ARCHIVE {
+) -> AppResult<bool> {
+    let mut blanked_a_secret = false;
+    for item in BLANKED_IN_AN_ARCHIVE {
         // A profile not migrated since has no such table, and that alone means
         // nothing to blank.
-        let has_table: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?",
-        )
-        .bind(table)
-        .fetch_one(&mut *conn)
-        .await?;
-        if has_table == 0 {
+        if !has_table(conn, item.table).await? {
             continue;
         }
-        let found: i64 = sqlx::query_scalar(count).fetch_one(&mut *conn).await?;
+        let found: i64 = sqlx::query_scalar(item.count).fetch_one(&mut *conn).await?;
         if found > 0 {
-            sqlx::query(blank).execute(&mut *conn).await?;
+            sqlx::query(item.blank).execute(&mut *conn).await?;
+            blanked_a_secret = blanked_a_secret || item.secret;
+            let left: i64 = sqlx::query_scalar(item.count).fetch_one(&mut *conn).await?;
+            if left > 0 {
+                return Err(AppError::Other(format!(
+                    "archive: unreadable: {} kept what must not travel",
+                    item.table
+                )));
+            }
         }
     }
-    Ok(())
+    Ok(blanked_a_secret)
 }
 
 fn write_archive_into(

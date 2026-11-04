@@ -98,14 +98,27 @@ fn resolve_log_dir() -> Option<PathBuf> {
     })
 }
 
+/// Takes out, whatever `RUST_LOG` says, the two places below this app that write the
+/// host of a connection at debug and trace. A private feed's host can hold its token as
+/// well as its path can, and that address must reach no log line.
+pub(crate) fn without_connection_lines(filter: EnvFilter) -> EnvFilter {
+    ["reqwest::connect=info", "hyper_util::client::legacy=info"]
+        .into_iter()
+        .fold(filter, |filter, directive| {
+            filter.add_directive(directive.parse().expect("a valid directive"))
+        })
+}
+
 /// Install the global tracing subscriber.
 ///
 /// Parks the file writer's guard in [`LOG_GUARD`] and returns a
 /// [`FlushOnDrop`] the caller must hold for the whole program: let it
 /// fall out of scope early and the file sink closes with it.
 pub fn init_tracing() -> FlushOnDrop {
-    let filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new("info,sqlx=warn,lofty=error"));
+    let filter = without_connection_lines(
+        EnvFilter::try_from_default_env()
+            .unwrap_or_else(|_| EnvFilter::new("info,sqlx=warn,lofty=error")),
+    );
 
     let stdout_layer = tracing_subscriber::fmt::layer()
         .with_writer(std::io::stdout)

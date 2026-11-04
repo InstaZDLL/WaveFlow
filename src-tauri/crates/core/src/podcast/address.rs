@@ -79,13 +79,17 @@ pub fn is_fetchable(url: &Url) -> bool {
 /// Where a redirect from `current` to `location` leads. Refused when it would
 /// leave https for http, or does not name a place a fetch may try: a hop that
 /// was secure must not hand its request, and the token a private feed carries
-/// in it, to a clear one.
+/// in it, to a clear one. One too long to be kept is refused too: a permanent
+/// redirect is stored, and [`parse_address`] would not read it back.
 pub fn next_hop(current: &Url, location: &str) -> Result<Url, FetchFailure> {
     let mut next = current
         .join(location.trim())
         .map_err(|_| FetchFailure::TooManyRedirects)?;
     next.set_fragment(None);
-    if !is_fetchable(&next) || (current.scheme() == "https" && next.scheme() == "http") {
+    if !is_fetchable(&next)
+        || (current.scheme() == "https" && next.scheme() == "http")
+        || next.as_str().chars().count() > MAX_URL_CHARS
+    {
         return Err(FetchFailure::AddressRefused);
     }
     Ok(next)

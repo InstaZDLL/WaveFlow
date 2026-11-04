@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 
 use sha2::{Digest, Sha384};
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
-use sqlx::{ConnectOptions, Connection};
+use sqlx::{ConnectOptions, Connection, SqlitePool};
 use zip::write::SimpleFileOptions;
 use zip::ZipWriter;
 
@@ -875,9 +875,10 @@ async fn an_export_leaves_feed_addresses_behind() {
     );
 }
 
-/// An archive holding the podcast switch on and a channel naming the local network,
-/// written by hand: `write_archive` would leave both behind.
-async fn profile_archive_with_setting(dir: &Path) -> (PathBuf, PathBuf) {
+/// An archive holding the podcast switch on, a channel naming the local network and
+/// what an archive has no business vouching for, written by hand: `write_archive` would
+/// leave all of it behind. `extra` is run over its database first.
+async fn profile_archive_with_setting(dir: &Path, extra: &'static str) -> (PathBuf, PathBuf) {
     let profile = dir.join("profile");
     std::fs::create_dir_all(profile.join("artwork")).unwrap();
     let db = extracted(&profile).await;
@@ -886,9 +887,16 @@ async fn profile_archive_with_setting(dir: &Path) -> (PathBuf, PathBuf) {
         "INSERT INTO profile_setting (key, value, value_type, updated_at)
          VALUES ('podcasts.enabled', 'true', 'bool', 0);
          INSERT INTO podcast_channel (feed_key, feed_url, title, created_at, updated_at)
-         VALUES ('k', 'http://192.168.1.1/admin', 'Router', 0, 0);",
+         VALUES ('k', 'http://192.168.1.1/admin', 'Router', 0, 0);
+         INSERT INTO podcast_episode
+            (channel_id, item_key, title, enclosure_url, download_file, download_size,
+             downloaded_at, chapters_checked_at, chapters_cache, transcript_checked_at,
+             transcript_kind, transcript_cache, position_ms, first_seen_at, updated_at)
+         VALUES (1, 'i', 'One', 'http://192.168.1.1/a.mp3', '../../secrets.txt', 9, 1, 1,
+                 '[]', 1, 'vtt', 'WEBVTT', 4242, 0, 0);",
     )
     .await;
+    exec(&db, extra).await;
     let target = dir.join("handmade.waveflow");
     let mut zip = ZipWriter::new(File::create(&target).unwrap());
     let options = SimpleFileOptions::default();
@@ -908,7 +916,7 @@ async fn profile_archive_with_setting(dir: &Path) -> (PathBuf, PathBuf) {
 #[tokio::test]
 async fn an_imported_profile_comes_back_with_podcasts_off() {
     let dir = tempfile::tempdir().unwrap();
-    let (archive, db_in_archive) = profile_archive_with_setting(dir.path()).await;
+    let (archive, db_in_archive) = profile_archive_with_setting(dir.path(), "SELECT 1;").await;
     let root = dir.path().join("app");
     std::fs::create_dir_all(&root).unwrap();
     let paths = crate::paths::AppPaths::from_root(root.clone(), None);
@@ -943,7 +951,239 @@ async fn an_imported_profile_comes_back_with_podcasts_off() {
         .await
         .unwrap()
         .is_empty());
+    // A path and a cache are not the archive's to provide. The position is the user's.
+    let vouched: (i64, i64) = sqlx::query_as(
+        "SELECT COUNT(*), position_ms FROM podcast_episode
+          WHERE enclosure_url IS NULL AND download_file IS NULL AND download_size IS NULL
+            AND downloaded_at IS NULL AND chapters_checked_at IS NULL AND chapters_cache IS NULL
+            AND transcript_checked_at IS NULL AND transcript_kind IS NULL
+            AND transcript_cache IS NULL",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(vouched, (1, 4242));
     pool.close().await;
+}
+
+/// A trigger brought by an archive runs on every later write, so it could put back what
+/// the blanking removed. It goes first, along with a view, and a changed trigger of our
+/// own is restored; the ones the migrations made stay.
+#[tokio::test]
+async fn an_imported_trigger_cannot_undo_the_blanking() {
+    let dir = tempfile::tempdir().unwrap();
+    let (archive, _) = profile_archive_with_setting(
+        dir.path(),
+        "CREATE TRIGGER evil_channel AFTER UPDATE ON podcast_channel BEGIN
+            UPDATE podcast_channel SET feed_url = 'http://192.168.1.1/x' WHERE feed_url IS NULL;
+         END;
+         CREATE TRIGGER \"evil \"\"quoted\" AFTER DELETE ON profile_setting BEGIN
+            INSERT INTO profile_setting (key, value, value_type, updated_at)
+            VALUES ('podcasts.enabled', 'true', 'bool', 0);
+         END;
+         CREATE VIEW evil_view AS SELECT 1;",
+    )
+    .await;
+    let root = dir.path().join("app");
+    std::fs::create_dir_all(&root).unwrap();
+    let paths = crate::paths::AppPaths::from_root(root.clone(), None);
+    let app_db = app_db(&root).await;
+    let imported = import_profile_inner(
+        &app_db,
+        &paths,
+        archive.to_string_lossy().into_owned(),
+        None,
+    )
+    .await
+    .unwrap();
+    let pool = crate::db::profile_db::open(&paths.profile_db(imported.id), &paths.app_db)
+        .await
+        .unwrap();
+    assert!(!crate::podcast::store::is_enabled(&pool).await.unwrap());
+    let channels = crate::podcast::store::list_channels(&pool).await.unwrap();
+    assert!(!channels[0].has_feed_address);
+    let names = |pool: SqlitePool| async move {
+        let mut names: Vec<(String,)> = sqlx::query_as(
+            "SELECT name FROM sqlite_master WHERE type IN ('trigger', 'view') ORDER BY name",
+        )
+        .fetch_all(&pool)
+        .await
+        .unwrap();
+        names.sort();
+        pool.close().await;
+        names
+    };
+    let found = names(pool).await;
+    assert!(!found.is_empty(), "the migrations' own triggers stay");
+    assert!(
+        found.iter().all(|(name,)| !name.starts_with("evil")),
+        "{found:?}"
+    );
+    let clean = dir.path().join("clean");
+    std::fs::create_dir_all(&clean).unwrap();
+    let reference = crate::db::profile_db::open(&extracted(&clean).await, &paths.app_db)
+        .await
+        .unwrap();
+    assert_eq!(found, names(reference).await);
+}
+
+/// One of our own triggers, changed or removed by an archive, is put back as the
+/// migrations made it: `sqlx` believes they ran and would not run them again.
+#[tokio::test]
+async fn an_imported_profile_gets_our_own_triggers_back() {
+    let dir = tempfile::tempdir().unwrap();
+    let clean = dir.path().join("clean");
+    std::fs::create_dir_all(&clean).unwrap();
+    let db = extracted(&clean).await;
+    let mut conn = SqliteConnectOptions::new()
+        .filename(&db)
+        .connect()
+        .await
+        .unwrap();
+    let expected: Vec<(String, String)> =
+        sqlx::query_as("SELECT name, sql FROM sqlite_master WHERE type = 'trigger' ORDER BY name")
+            .fetch_all(&mut conn)
+            .await
+            .unwrap();
+    let (first, second) = (&expected[0].0, &expected[1].0);
+    sqlx::query(sqlx::AssertSqlSafe(format!("DROP TRIGGER \"{first}\"")))
+        .execute(&mut conn)
+        .await
+        .unwrap();
+    sqlx::query(sqlx::AssertSqlSafe(format!("DROP TRIGGER \"{second}\"")))
+        .execute(&mut conn)
+        .await
+        .unwrap();
+    sqlx::query(sqlx::AssertSqlSafe(format!(
+        "CREATE TRIGGER \"{second}\" AFTER INSERT ON profile_setting BEGIN SELECT 1; END"
+    )))
+    .execute(&mut conn)
+    .await
+    .unwrap();
+    super::import::drop_schema_the_migrations_did_not_make(&mut conn)
+        .await
+        .unwrap();
+    let after: Vec<(String, String)> =
+        sqlx::query_as("SELECT name, sql FROM sqlite_master WHERE type = 'trigger' ORDER BY name")
+            .fetch_all(&mut conn)
+            .await
+            .unwrap();
+    assert_eq!(after, expected);
+    conn.close().await.unwrap();
+}
+
+/// Whatever keeps a value in place after the `UPDATE` is met by a refusal, not by a
+/// report of success: here a trigger the blanking does not know about, on a database
+/// that reached it without going through an import.
+#[tokio::test]
+async fn what_survives_the_blanking_refuses_the_archive() {
+    let dir = tempfile::tempdir().unwrap();
+    let clean = dir.path().join("clean");
+    std::fs::create_dir_all(&clean).unwrap();
+    let db = extracted(&clean).await;
+    exec(
+        &db,
+        "INSERT INTO podcast_channel (feed_key, feed_url, title, created_at, updated_at)
+         VALUES ('k', 'https://feeds.example.org/token', 'T', 0, 0);
+         CREATE TRIGGER keep AFTER UPDATE ON podcast_channel BEGIN
+            UPDATE podcast_channel SET feed_url = 'https://feeds.example.org/token'
+             WHERE feed_url IS NULL;
+         END;",
+    )
+    .await;
+    let mut conn = SqliteConnectOptions::new()
+        .filename(&db)
+        .connect()
+        .await
+        .unwrap();
+    let refused = blank_what_does_not_travel(&mut conn).await;
+    conn.close().await.unwrap();
+    assert!(refused.is_err(), "{refused:?}");
+}
+
+/// The rebuild costs seconds on a large library, so it runs when it has something to
+/// clear. Here it has not, and the old bytes of a playlist name are still in the file:
+/// that is the rebuild not having run.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_profile_that_never_held_a_channel_is_archived_without_a_rebuild() {
+    use std::io::Read;
+
+    const MARKER: &str = "n0t-a-s3cret-playlist-name-41";
+    let dir = tempfile::tempdir().unwrap();
+    let profile = dir.path().join("profile");
+    std::fs::create_dir_all(profile.join("artwork")).unwrap();
+    let db = extracted(&profile).await;
+    exec(
+        &db,
+        "INSERT INTO playlist (name, is_smart, created_at, updated_at)
+         VALUES ('n0t-a-s3cret-playlist-name-41', 0, 1, 1);
+         DELETE FROM playlist;",
+    )
+    .await;
+    let mut conn = SqliteConnectOptions::new()
+        .filename(&db)
+        .connect()
+        .await
+        .unwrap();
+    assert!(!has_ever_held_a_channel(&mut conn).await.unwrap());
+    conn.close().await.unwrap();
+
+    let target = dir.path().join("plain.waveflow");
+    let (for_db, for_profile, for_target) = (db.clone(), profile.clone(), target.clone());
+    tokio::task::spawn_blocking(move || {
+        write_archive(
+            &for_target,
+            &for_profile,
+            &for_db,
+            &for_profile.join("artwork"),
+            None,
+            &manifest(ARCHIVE_VERSION),
+        )
+    })
+    .await
+    .unwrap()
+    .unwrap();
+    let mut archive = zip::ZipArchive::new(File::open(&target).unwrap()).unwrap();
+    let mut bytes = Vec::new();
+    archive
+        .by_name("data.db")
+        .unwrap()
+        .read_to_end(&mut bytes)
+        .unwrap();
+    assert!(bytes.windows(MARKER.len()).any(|w| w == MARKER.as_bytes()));
+    // The copy is a usable database all the same, with no journal beside it.
+    let leftovers: Vec<_> = std::fs::read_dir(db.parent().unwrap())
+        .unwrap()
+        .flatten()
+        .filter(|e| e.file_name().to_string_lossy().contains("export-"))
+        .collect();
+    assert!(leftovers.is_empty());
+    let restored = dir.path().join("restored.db");
+    std::fs::write(&restored, &bytes).unwrap();
+    assert_eq!(count(&restored, "SELECT COUNT(*) FROM playlist").await, 0);
+}
+
+/// Once a profile has held a channel, it is known for good, row or no row.
+#[tokio::test]
+async fn a_channel_once_held_is_remembered() {
+    let dir = tempfile::tempdir().unwrap();
+    let clean = dir.path().join("clean");
+    std::fs::create_dir_all(&clean).unwrap();
+    let db = extracted(&clean).await;
+    exec(
+        &db,
+        "INSERT INTO podcast_channel (feed_key, title, created_at, updated_at)
+         VALUES ('k', 'T', 0, 0);
+         DELETE FROM podcast_channel;",
+    )
+    .await;
+    let mut conn = SqliteConnectOptions::new()
+        .filename(&db)
+        .connect()
+        .await
+        .unwrap();
+    assert!(has_ever_held_a_channel(&mut conn).await.unwrap());
+    conn.close().await.unwrap();
 }
 
 /// With no channel left there is no row to blank, and the bytes are still in the
