@@ -133,8 +133,7 @@ fn read_dsf(path: &Path) -> Result<Values, String> {
     }
     file.seek(SeekFrom::Start(layout.metadata_offset))
         .map_err(|e| e.to_string())?;
-    waveflow_core::tagio::chapter_nesting::check_reader(&mut file).map_err(|e| e.to_string())?;
-    let tag = match id3::Tag::read_from2(&mut file) {
+    let tag = match waveflow_core::tagio::chapter_nesting::read_id3_tag(&mut file) {
         Ok(tag) => tag,
         Err(err) if matches!(err.kind, id3::ErrorKind::NoTag) => return Ok(values),
         Err(err) => return Err(err.to_string()),

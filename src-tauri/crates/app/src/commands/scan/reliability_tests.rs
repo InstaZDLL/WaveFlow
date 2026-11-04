@@ -1871,12 +1871,12 @@ async fn a_tag_that_nests_chapters_stays_out_and_the_scan_goes_on() {
     std::fs::write(library.path("c.wav"), wav).unwrap();
     library.flac("d.flac", &[("TITLE", "d")]);
 
-    let summary = library.scan().await;
+    let summary = library.try_scan(1, false).await.expect("the scan finishes");
     assert_eq!(summary.errors, 2, "both are reported");
     assert_eq!(library.track_count().await, 2, "and the others are read");
 
     // The next scan meets the same files, and neither dies nor changes its mind.
-    let again = library.scan().await;
+    let again = library.try_scan(1, false).await.expect("so does the next");
     assert_eq!(again.errors, 2);
     assert_eq!(library.track_count().await, 2);
 }

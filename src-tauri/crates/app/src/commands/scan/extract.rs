@@ -403,7 +403,7 @@ pub(super) fn extract_file(
         // `Tag` drops everything it cannot map onto an `ItemKey`, and the
         // remainder it keeps for some formats is `pub(crate)`. Best-effort —
         // a file whose custom frames cannot be read is still a good track.
-        || waveflow_core::scanner::extra_tags::read_concrete_tags(path),
+        || waveflow_core::scanner::extra_tags::read_concrete_tags_already_checked(path),
         // Folder cover fallback: scan the track's parent directory for a
         // sidecar cover.jpg / folder.png / front.webp / ... when the tag had
         // no embedded picture. Common for CD rips and lossless libraries

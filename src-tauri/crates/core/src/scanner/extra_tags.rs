@@ -215,6 +215,12 @@ pub fn read_concrete_tags(path: &Path) -> Option<ConcreteTags> {
     read_inner(Probe::open(path).ok()?)
 }
 
+/// [`read_concrete_tags`] for a scan that has just had `read_tagged_file` accept this
+/// file, so as not to read the whole tag a third time for a check already made.
+pub fn read_concrete_tags_already_checked(path: &Path) -> Option<ConcreteTags> {
+    read_inner(Probe::open(path).ok()?)
+}
+
 /// [`read_concrete_tags`] over any reader, positioned at the start of the file.
 /// `hint` stands in for the extension `Probe::open` would have read.
 pub fn read_concrete_tags_from<R: std::io::Read + std::io::Seek>(

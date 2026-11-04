@@ -96,10 +96,11 @@ fn mp3(tag: &[u8]) -> Vec<u8> {
 }
 
 /// What `lofty` inflates with no compression library needed to write it: zlib's
-/// stored blocks, then the checksum.
+/// stored blocks, then the checksum. Three bytes to the block, so that no name of four
+/// is left to read in the bytes, as it would not be in anything really compressed.
 fn zlib_stored(data: &[u8]) -> Vec<u8> {
     let mut out = vec![0x78, 0x01];
-    let mut chunks = data.chunks(0xffff).peekable();
+    let mut chunks = data.chunks(3).peekable();
     while let Some(chunk) = chunks.next() {
         out.push(u8::from(chunks.peek().is_none()));
         out.extend_from_slice(&(chunk.len() as u16).to_le_bytes());
@@ -442,4 +443,160 @@ fn an_honest_aiff_keeps_its_tag_chunk() {
         assert!(read_tagged_file(&path).is_ok());
         assert!(probe_playable_stream(&path).is_some());
     });
+}
+
+#[test]
+fn a_comment_lofty_stops_reading_early_hides_nothing() {
+    // UTF-16 with a byte-order mark: an empty description, then a text lofty ends at
+    // its first terminator, reading what is left as the next frame.
+    let mut body = vec![1];
+    body.extend_from_slice(b"eng");
+    body.extend_from_slice(&[0xff, 0xfe, 0, 0]);
+    body.extend_from_slice(&[0xff, 0xfe, b'A', 0, 0, 0]);
+    body.extend_from_slice(&nested(4, &[b"CHAP"], 64));
+    assert_refused_everywhere("comment.mp3", mp3(&tag(&frame(4, b"COMM", 0, &body))));
+}
+
+#[test]
+fn a_tag_behind_a_footer_flag_or_an_ape_tag_is_found() {
+    let hostile = tag(&nested(4, &[b"CHAP"], 64));
+    // The bit means nothing in 2.2, and lofty does not step over a footer between
+    // two tags of its own.
+    let bare_v22 = [b'I', b'D', b'3', 2, 0, 0x10, 0, 0, 0, 0].to_vec();
+    assert_refused_everywhere("v22.mp3", mp3(&[bare_v22, hostile.clone()].concat()));
+    let with_footer = tag_with(4, 0x10, &title(4, "b"));
+    assert_refused_everywhere(
+        "footer.mp3",
+        mp3(&[tag(&title(4, "a")), with_footer, hostile.clone()].concat()),
+    );
+
+    // Far behind what the APE tag declares, since lofty walks its items instead.
+    let mut ape = b"APETAGEX".to_vec();
+    ape.extend_from_slice(&2000_u32.to_le_bytes());
+    ape.extend_from_slice(&5000_u32.to_le_bytes());
+    ape.extend_from_slice(&100_u32.to_le_bytes());
+    ape.extend_from_slice(&0xa000_0000_u32.to_le_bytes());
+    ape.extend_from_slice(&[0; 8]);
+    for index in 0..100 {
+        ape.extend_from_slice(&1000_u32.to_le_bytes());
+        ape.extend_from_slice(&2_u32.to_le_bytes());
+        ape.extend_from_slice(format!("item{index}\0").as_bytes());
+        ape.extend_from_slice(&[0x5a; 1000]);
+    }
+    let dir = tempfile::tempdir().expect("tempdir");
+    let bytes = mp3(&[ape, hostile].concat());
+    let path = write_in(dir.path(), "ape.mp3", &bytes);
+    on_stack(SMALL_STACK, move || {
+        assert!(read_tagged_file(&path).is_err());
+        assert!(read_concrete_tags(&path).is_none());
+    });
+}
+
+#[test]
+fn a_chapter_whose_flags_hide_behind_unsynchronisation_is_refused() {
+    let mut inside = chapter_prefix("c", 0);
+    inside.extend_from_slice(&nested(4, &[b"CHAP"], 64));
+    let mut packed = synchsafe(inside.len()).to_vec();
+    packed.extend_from_slice(&zlib_stored(&inside));
+    // Unsynchronised, a parser reads this length as 0xff 0x01 0x02 0x03, then flags.
+    let mut child = b"CHAP".to_vec();
+    child.extend_from_slice(&[0xff, 0, 0x01, 0x02, 0x03, 0, 0x09]);
+    child.extend_from_slice(&packed);
+    let mut body = chapter_prefix("a", 0);
+    body.extend_from_slice(&child);
+    assert_refused_everywhere("unsync.mp3", mp3(&tag(&frame(4, b"CHAP", 0x0002, &body))));
+}
+
+#[test]
+fn tables_of_contents_that_name_each_other_are_refused() {
+    // No nesting in the bytes: symphonia recurses on the entries.
+    let chain = |tables: usize| {
+        let mut frames = Vec::new();
+        for index in 0..tables {
+            let mut body = format!("t{index}\0").into_bytes();
+            body.extend_from_slice(&[if index == 0 { 0x03 } else { 0x01 }, 1]);
+            body.extend_from_slice(format!("t{}\0", index + 1).as_bytes());
+            frames.extend_from_slice(&frame(4, b"CTOC", 0, &body));
+        }
+        frames
+    };
+    // The one that recurses goes first: lofty has no such path and would answer first.
+    let dir = tempfile::tempdir().expect("tempdir");
+    let path = write_in(dir.path(), "tables.mp3", &mp3(&tag(&chain(100_000))));
+    on_stack(SMALL_STACK, move || {
+        assert!(probe_playable_stream(&path).is_none());
+    });
+    assert_refused_everywhere("tables.mp3", mp3(&tag(&chain(100_000))));
+    assert_reads("few_tables.mp3", mp3(&tag(&chain(40))));
+}
+
+#[test]
+fn a_shouted_title_is_a_title_behind_a_frame_that_ends_the_trust() {
+    // One mention passes on any path, with flags that look compressed included.
+    let mut frames = frame(4, b"PCNT", 0, &[0, 0, 0, 1]);
+    frames.extend_from_slice(&title(4, "CHAPTER 19 and something"));
+    assert_reads("shouted_once.mp3", mp3(&tag(&frames)));
+
+    // A link in a chapter is read to its end, so it costs a long episode no trust.
+    let mut episode = title(4, "Episode");
+    for index in 0..40 {
+        let mut body = chapter_prefix(&format!("c{index}"), index * 1000);
+        body.extend_from_slice(&title(4, &format!("CHAPTER {index}")));
+        let mut link = vec![3];
+        link.extend_from_slice(b"site\0https://example.com/");
+        body.extend_from_slice(&frame(4, b"WXXX", 0, &link));
+        episode.extend_from_slice(&frame(4, b"CHAP", 0, &body));
+    }
+    assert_reads("linked.mp3", mp3(&tag(&episode)));
+}
+
+#[test]
+fn a_tag_that_declares_less_than_it_holds_gives_the_id3_crate_only_that() {
+    use crate::tagio::chapter_nesting::read_id3_tag;
+
+    // That crate reads frames until a count runs out, not to the end of the tag.
+    let mut lying = b"ID3\x04\0\0".to_vec();
+    lying.extend_from_slice(&synchsafe(1));
+    lying.extend_from_slice(&nested(4, &[b"CHAP"], 2_000));
+    on_stack(SMALL_STACK, move || {
+        let _ = read_id3_tag(&mut Cursor::new(lying));
+    });
+
+    // Nor a length with its top bit set, which it reads as more than lofty does.
+    let mut high = b"ID3\x04\0\0".to_vec();
+    high.extend_from_slice(&[0, 0, 0x80, 0]);
+    high.extend_from_slice(&nested(4, &[b"CHAP"], 2_000));
+    on_stack(SMALL_STACK, move || {
+        let _ = read_id3_tag(&mut Cursor::new(high));
+    });
+
+    let good = tag(&title(4, "Kept"));
+    on_stack(HONEST_STACK, move || {
+        use id3::TagLike;
+        let read = read_id3_tag(&mut Cursor::new(good)).expect("a good tag reads");
+        assert_eq!(read.title(), Some("Kept"));
+    });
+    assert!(matches!(
+        read_id3_tag(&mut Cursor::new(b"not a tag at all".to_vec())),
+        Err(id3::Error {
+            kind: id3::ErrorKind::NoTag,
+            ..
+        })
+    ));
+}
+
+#[test]
+fn silence_behind_a_data_chunk_of_no_length_is_not_a_refusal() {
+    let mut wav = b"RIFF\0\0\0\0WAVEfmt ".to_vec();
+    wav.extend_from_slice(&16_u32.to_le_bytes());
+    wav.extend_from_slice(&[1, 0, 1, 0]);
+    wav.extend_from_slice(&8000_u32.to_le_bytes());
+    wav.extend_from_slice(&16_000_u32.to_le_bytes());
+    wav.extend_from_slice(&[2, 0, 16, 0]);
+    wav.extend_from_slice(b"data\0\0\0\0");
+    wav.extend_from_slice(&vec![0; 1024 * 1024]);
+    assert_eq!(
+        crate::tagio::chapter_nesting::check_reader(&mut Cursor::new(wav)),
+        Ok(())
+    );
 }

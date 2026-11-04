@@ -212,13 +212,9 @@ fn read_first_comt_text(file: &mut File, chunk_size: u64) -> Option<String> {
 
 fn parse_id3v2_blob<R: Read + Seek>(reader: &mut R) -> DsdMetadata {
     use id3::TagLike;
-    if crate::tagio::chapter_nesting::check_reader(reader).is_err() {
-        tracing::warn!("a DSD file's ID3v2 tag nests chapter frames; ignoring the tag");
-        return DsdMetadata::default();
-    }
     // The `id3` crate parses an ID3v2 tag from any Read source —
     // ideal for the DSF footer where lofty would refuse the stream.
-    let tag = match id3::Tag::read_from2(reader) {
+    let tag = match crate::tagio::chapter_nesting::read_id3_tag(reader) {
         Ok(t) => t,
         Err(err) => {
             tracing::debug!(?err, "DSD ID3v2 parse failed");

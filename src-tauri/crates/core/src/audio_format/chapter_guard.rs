@@ -6,6 +6,9 @@
 //! own readers, at the preferred tier, and a tag refused here refuses the stream.
 //! That covers what no path check could: a stream has no second look, and the tag
 //! comes from whichever host served it.
+//!
+//! The price is an AIFF served with no way to seek, which no longer opens: its chunks
+//! cannot be seen before its reader goes through them.
 
 use std::io::Cursor;
 
