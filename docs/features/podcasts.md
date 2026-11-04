@@ -32,7 +32,7 @@ Every request checks `offline::is_offline()` first, each hop of a redirect inclu
 - **http or https, a host, no user information**, and a hop is checked for that before it is contacted.
 - **`may_open` for every hop**, against an `Origin` decided once from the address the person typed. A feed whose address is public can only lead to public addresses, so a feed on the internet cannot make the player reach the user's router. A feed typed with a local address may name local ones. As with the artwork downloader, DNS rebinding is not defended against.
 - **Redirects are followed by hand, at most five**, and never from https to http. The client follows none by itself.
-- **Bodies are bounded while they are read**: 16 MiB for a feed, 4 MiB for a picture. A declared length past the ceiling is refused unread, and one that lies is stopped where it passes it.
+- **Bodies are bounded while they are read**: 32 MiB for a feed, 4 MiB for a picture. A declared length past the ceiling is refused unread, and one that lies is stopped where it passes it.
 - **Each request runs under a deadline**, redirects and body included: 60 s for a feed, 30 s for a small file.
 
 `Fetcher::open` answers a `reqwest::Response` and leaves the deadline to its caller, so a stream and a download can use the same rules on budgets of their own.
@@ -59,7 +59,7 @@ An **OPML export** carries the addresses: it is a deliberate act, and the dialog
 
 ## Reading a feed
 
-[`waveflow_core::podcast`](../../src-tauri/crates/core/src/podcast.rs) reads RSS 2.0, Atom and RSS 1.0 with `roxmltree`. A DTD is refused outright, so no entity can be declared, let alone expanded. There is a node ceiling, the bytes are bounded before they are decoded, and every text kept afterwards. The parser spends quadratic time on attributes and namespaces, which its ceiling does not count, and cannot be stopped once it runs, so [`xml_guard`](../../src-tauri/crates/core/src/xml_guard.rs), a linear scan, refuses first what real documents never do: more than 32 attributes on a tag, 32 namespaces in scope, 100 000 copies of them in a document. TTML lyrics pass through the same guard. Bytes that are not in the encoding the document declares refuse it, since guessing would store mojibake as a title.
+[`waveflow_core::podcast`](../../src-tauri/crates/core/src/podcast.rs) reads RSS 2.0, Atom and RSS 1.0 with `roxmltree`. A DTD is refused outright, so no entity can be declared, let alone expanded. There is a node ceiling, the bytes are bounded before they are decoded, and every text kept afterwards. The parser spends quadratic time on attributes and namespaces, which its ceiling does not count, and cannot be stopped once it runs, so [`xml_guard`](../../src-tauri/crates/core/src/xml_guard.rs), a linear scan, refuses first what real documents never do: more than 32 attributes on a tag or 2 million in a document, 32 namespaces in scope, 100 000 copies of them in a document. A document may decode to at most twice its byte bound, and at most 20 000 episodes are built from it before the newest are picked. TTML lyrics pass through the same guard. Bytes that are not in the encoding the document declares refuse it, since guessing would store mojibake as a title.
 
 - **At most 500 episodes a feed**, newest first. Two items with one guid keep the newer.
 - **An item without a usable enclosure is not an episode**: not http(s), holding credentials, or declared as video, an image, a page or a PDF. A missing or odd type proves nothing, since feeds get this wrong, and the bytes decide when a file is opened.
@@ -84,7 +84,7 @@ A channel's picture is fetched at subscribe and whenever its address moves, unde
 
 A subscription fetches the feed before anything is stored, so a typo leaves nothing behind. Subscribing to an address already followed answers its channel without contacting anybody.
 
-**OPML** import subscribes to each feed of a list in turn, and one that fails is reported by its title and word while the next is tried. A list is a file someone may have been handed, so **it may name public addresses only**: a feed on the local network has to be typed, or a list could make the app probe the network, each line's word saying what answered. It reads only a regular file named `.opml` or `.xml`, at most 16 MiB, and at most 2 000 feeds. Folders may nest to any depth.
+**OPML** import subscribes to each feed of a list in turn, and one that fails is reported by its title and word while the next is tried. A list is a file someone may have been handed, so **it may name public addresses only**: a feed on the local network has to be typed, or a list could make the app probe the network, each line's word saying what answered. It reads only a regular file named `.opml` or `.xml`, at most 32 MiB, and at most 2 000 feeds. Folders may nest to any depth.
 
 A refresh writes into the row it read, by id, and never creates one, so unsubscribing while a feed is being read sticks.
 

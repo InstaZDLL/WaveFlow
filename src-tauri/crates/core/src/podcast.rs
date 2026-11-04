@@ -30,8 +30,10 @@ pub use feed::{Feed, FeedEpisode, FeedError, MAX_EPISODES_PER_FEED};
 pub use opml::OpmlEntry;
 pub use transcript::{TranscriptKind, TranscriptRef};
 
-/// The largest feed read, in bytes. Also the fetcher's bound while it reads.
-pub const MAX_FEED_BYTES: usize = 16 * 1024 * 1024;
+/// The largest feed read, in bytes. Also the fetcher's bound while it reads. A daily
+/// show's feed really is this kind of size: one keeping every episode since 2017 weighs
+/// 20 MiB.
+pub const MAX_FEED_BYTES: usize = 32 * 1024 * 1024;
 
 /// The largest chapter file read, in bytes.
 pub const MAX_CHAPTERS_BYTES: usize = 1024 * 1024;

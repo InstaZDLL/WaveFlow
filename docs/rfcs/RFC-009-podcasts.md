@@ -93,7 +93,8 @@ response:
   contacted, and never from https to http. This covers enclosures too, which
   `http_source` does not do today: it lets the client follow them, which is fine
   for a station and not for an address out of a feed.
-- **Bodies are bounded while they are read**: 16 MiB for a feed, each request under
+- **Bodies are bounded while they are read**: 32 MiB for a feed, since a daily show
+  keeping every episode really reaches 20, each request under
   a deadline.
 
 ## Decision 4 — a feed address never reaches a log

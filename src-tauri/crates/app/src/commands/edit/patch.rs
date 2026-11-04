@@ -194,6 +194,10 @@ pub(super) fn apply_patch(tag: &mut lofty::tag::Tag, patch: &TagPatch<'_>) {
         }
     }
     if let Some(a) = edit.artist.as_ref() {
+        // `ARTISTS` goes with it: it outranks `ARTIST` at the next scan
+        // (`scanner::artist_credit`), so left in place it would bring back
+        // the names this edit replaced.
+        tag.remove_key(ItemKey::TrackArtists);
         if a.trim().is_empty() {
             tag.remove_artist();
         } else {

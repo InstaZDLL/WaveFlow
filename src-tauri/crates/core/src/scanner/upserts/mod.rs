@@ -143,32 +143,8 @@ pub fn now_millis() -> i64 {
 // build (which skips this whole `upserts` module) can still consume it
 // from the always-compiled `extract` module. Re-exported here for
 // backwards source compatibility with existing imports.
-pub use super::canonical::canonical_name;
+pub use super::canonical::{canonical_name, split_artist_name};
 use super::extract::ArtworkSource;
-
-/// Split a raw artist string into individual names. Only `"; "` is
-/// honoured as a separator — the convention used by MusicBrainz Picard,
-/// foobar2000, Beets and Mp3Tag for multi-value artist fields. We
-/// deliberately do **not** split on `", "` even though plenty of
-/// ad-hoc taggers use it, because a comma can be part of the name
-/// itself (`"Tyler, The Creator"`, `"Earth, Wind & Fire"`,
-/// `"Crosby, Stills, Nash & Young"`); the earlier comma split
-/// silently fragmented those into multiple artists.
-///
-/// Libraries that stored multi-artist values comma-joined will see
-/// every track listed under the combined-name artist; the user can
-/// re-tag with `; ` (the round-trip is documented in CLAUDE.md and
-/// `docs/features/library.md`) to opt back in to per-artist linking.
-///
-/// Returns the trimmed, non-empty names in the order they appeared —
-/// the first entry is treated as the primary artist by the caller.
-pub fn split_artist_name(raw: &str) -> Vec<String> {
-    raw.split("; ")
-        .map(|s| s.trim())
-        .filter(|s| !s.is_empty())
-        .map(|s| s.to_string())
-        .collect()
-}
 
 /// Upsert an artwork row keyed on its content hash. Existing rows are
 /// returned as-is; new rows are inserted with the caller's
@@ -274,6 +250,7 @@ pub async fn upsert_album(
     is_compilation: bool,
     track_primary_artist_id: Option<i64>,
     year: Option<i64>,
+    track_path: &str,
 ) -> CoreResult<Option<i64>> {
     let title = title.trim();
     if title.is_empty() {
@@ -315,15 +292,26 @@ pub async fn upsert_album(
     // incoming track has no explicit album_artist tag and isn't itself
     // flagged as compilation; otherwise the explicit fields take
     // precedence and the regular upsert path runs.
+    //
+    // Only a compilation with a track in this file's own directory, which
+    // covers the file's own row and a file added beside the others. The title
+    // alone would hand it every album of that name, one track at a time: a
+    // band's "Greatest Hits" scanned after any compilation called that.
     if existing.is_none() && album_artist_text.is_none() && !is_compilation {
-        existing = sqlx::query_scalar(
-            "SELECT id FROM album
-              WHERE canonical_title = ? AND is_compilation = 1
-              LIMIT 1",
+        let rows: Vec<(i64, String)> = sqlx::query_as(
+            "SELECT al.id, t.file_path
+               FROM album al
+               JOIN track t ON t.album_id = al.id
+              WHERE al.canonical_title = ? AND al.is_compilation = 1
+              ORDER BY al.id",
         )
         .bind(&canon)
-        .fetch_optional(&mut *conn)
+        .fetch_all(&mut *conn)
         .await?;
+        existing = rows
+            .into_iter()
+            .find(|(_, path)| super::folders::same_directory(path, track_path))
+            .map(|(id, _)| id);
     }
     if let Some(id) = existing {
         // Backfill album_artist / is_compilation on the existing row

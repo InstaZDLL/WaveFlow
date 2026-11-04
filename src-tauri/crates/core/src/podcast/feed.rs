@@ -24,6 +24,14 @@ const MAX_FEED_NODES: u32 = 1_000_000;
 /// How many episodes one refresh keeps from a feed, newest first.
 pub const MAX_EPISODES_PER_FEED: usize = 500;
 
+/// How many episodes are built from one document before the newest are picked. Far
+/// above any real feed, the largest of which holds some 3 000, and what keeps hundreds of
+/// thousands of tiny items from each costing a dozen strings first.
+const MAX_EPISODES_BUILT: usize = 20_000;
+
+/// The most text one document may decode to. A legacy encoding can triple its bytes.
+const MAX_DECODED_BYTES: usize = 2 * MAX_FEED_BYTES;
+
 /// The longest text kept from a title, in characters.
 const MAX_TITLE_CHARS: usize = 500;
 
@@ -140,13 +148,13 @@ pub(super) fn decode(bytes: &[u8]) -> Option<String> {
     }
     if let Some((encoding, _)) = encoding_rs::Encoding::for_bom(bytes) {
         let (text, _, malformed) = encoding.decode(bytes);
-        return (!malformed).then(|| text.into_owned());
+        return (!malformed && text.len() <= MAX_DECODED_BYTES).then(|| text.into_owned());
     }
     let encoding = declared_encoding(bytes)
         .and_then(|label| encoding_rs::Encoding::for_label(label.as_bytes()))
         .unwrap_or(encoding_rs::UTF_8);
     let (text, malformed) = encoding.decode_without_bom_handling(bytes);
-    (!malformed).then(|| text.into_owned())
+    (!malformed && text.len() <= MAX_DECODED_BYTES).then(|| text.into_owned())
 }
 
 /// The label in `<?xml … encoding="…"?>`, if the document opens with one.
@@ -258,6 +266,7 @@ fn parse_rss(channel: Node<'_, '_>, base: &Url) -> Feed {
         .children()
         .filter(|node| node.is_element() && node.tag_name().name() == "item")
         .filter_map(|item| rss_item(item, base))
+        .take(MAX_EPISODES_BUILT)
         .collect();
     Feed {
         title: text_of(channel, "title", MAX_TITLE_CHARS).unwrap_or_default(),
@@ -396,6 +405,7 @@ fn parse_rdf(root: Node<'_, '_>, base: &Url) -> Feed {
         .children()
         .filter(|node| node.is_element() && node.tag_name().name() == "item")
         .filter_map(|item| rss_item(item, base))
+        .take(MAX_EPISODES_BUILT)
         .collect();
     Feed {
         title: channel
@@ -455,6 +465,7 @@ fn parse_atom(root: Node<'_, '_>, base: &Url) -> Feed {
         .children()
         .filter(|node| node.is_element() && node.tag_name().name() == "entry")
         .filter_map(|entry| atom_entry(entry, base))
+        .take(MAX_EPISODES_BUILT)
         .collect();
     Feed {
         title: text_of(root, "title", MAX_TITLE_CHARS).unwrap_or_default(),

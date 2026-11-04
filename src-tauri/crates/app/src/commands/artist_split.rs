@@ -114,6 +114,44 @@ pub(crate) fn split_fragments(name: &str) -> Vec<String> {
         .collect()
 }
 
+/// Do `stored` credits say what `tagged` says, with a joined name the user
+/// split? A scan has to tell that from a stale row, since nothing else marks
+/// a split: it is the one edit of the credits that leaves the file as it was.
+///
+/// Value by value, since a split dissolves one artist and leaves the others:
+/// each name of the file is either there as it is or there in fragments, in
+/// the file's order, and nothing else is. The first name leads the track, so
+/// a file that reorders them says something else: it has changed its mind,
+/// and wins. A name listed twice is one credit, as a split makes it.
+pub(crate) fn is_split_of(stored: &[String], tagged: &[String]) -> bool {
+    use waveflow_core::scanner::canonical_name;
+    if stored.len() <= tagged.len() {
+        return false;
+    }
+    let stored: Vec<String> = stored.iter().map(|name| canonical_name(name)).collect();
+    let mut expanded: Vec<String> = Vec::with_capacity(stored.len());
+    let mut account = |name: String| {
+        if !expanded.contains(&name) {
+            expanded.push(name);
+        }
+    };
+    for name in tagged {
+        let whole = canonical_name(name);
+        if stored.contains(&whole) {
+            account(whole);
+            continue;
+        }
+        for fragment in split_fragments(name) {
+            let fragment = canonical_name(&fragment);
+            if !stored.contains(&fragment) {
+                return false;
+            }
+            account(fragment);
+        }
+    }
+    expanded == stored
+}
+
 pub(crate) async fn split_artist_inner(
     pool: &SqlitePool,
     artist_id: i64,

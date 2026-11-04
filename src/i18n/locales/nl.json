@@ -3967,6 +3967,10 @@
       "same": "Deze map staat al in de bibliotheek: {{folder}}",
       "inside": "Deze map staat al in de bibliotheek, binnen {{folder}}.",
       "contains": "Deze map bevat {{folder}}, die al in de bibliotheek staat. Voeg liever de andere submappen toe."
+    },
+    "unreachable": {
+      "title": "Bibliotheekmap niet bereikbaar",
+      "body": "De map ontbreekt of is niet leesbaar, misschien is er een schijf losgekoppeld. De nummers blijven ongewijzigd in de bibliotheek."
     }
   },
   "playlistImport": {

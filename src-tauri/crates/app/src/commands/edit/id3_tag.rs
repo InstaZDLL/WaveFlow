@@ -106,6 +106,20 @@ pub(super) fn apply_patch_id3(tag: &mut id3::Tag, patch: &TagPatch<'_>) {
         }
     }
     if let Some(a) = edit.artist.as_ref() {
+        // The lofty side's rule: a `TXXX:ARTISTS` left in place would bring
+        // back the names this edit replaced.
+        // Whatever its case, as the reader takes it.
+        let stale: Vec<String> = tag
+            .extended_texts()
+            .filter(|text| {
+                text.description
+                    .eq_ignore_ascii_case(waveflow_core::audio_format::dsd::metadata::ARTISTS_TXXX)
+            })
+            .map(|text| text.description.clone())
+            .collect();
+        for description in &stale {
+            tag.remove_extended_text(Some(description), None);
+        }
         if a.trim().is_empty() {
             tag.remove_artist();
         } else {
