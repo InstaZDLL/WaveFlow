@@ -284,6 +284,43 @@ fn too_many_bytes_or_nodes_are_refused() {
     );
 }
 
+/// A legacy encoding can triple a document's size: within the byte bound, past what is
+/// decoded.
+#[test]
+fn a_document_that_decodes_too_large_is_refused() {
+    let wrap = |fill: usize| {
+        let mut bytes =
+            b"<?xml version=\"1.0\" encoding=\"windows-1252\"?><rss><channel><title>".to_vec();
+        bytes.extend(std::iter::repeat(0x80u8).take(fill));
+        bytes.extend_from_slice(b"</title></channel></rss>");
+        bytes
+    };
+    let too_much = wrap(MAX_FEED_BYTES - 100);
+    assert!(too_much.len() <= MAX_FEED_BYTES);
+    assert_eq!(parse_feed(&too_much, &base()), Err(FeedError::Invalid));
+    assert!(parse_feed(&wrap(1024), &base()).is_ok());
+}
+
+/// Episodes are built only up to a bound before the newest are picked, whatever a document
+/// holds: past it, an item is not looked at.
+#[test]
+fn only_so_many_items_are_read() {
+    let items: String = (0..20_010)
+        .map(|index| {
+            format!(
+                "<item><guid>g{index}</guid><enclosure url=\"https://c.example.org/a\"/></item>"
+            )
+        })
+        .collect();
+    let document = format!("<rss><channel><title>T</title>{items}</channel></rss>");
+    let feed = parse_feed(document.as_bytes(), &base()).unwrap();
+    assert_eq!(feed.episodes.len(), MAX_EPISODES_PER_FEED);
+    assert!(feed
+        .episodes
+        .iter()
+        .all(|episode| { episode.guid[1..].parse::<usize>().unwrap() < 20_000 }));
+}
+
 /// Neither `roxmltree` nor anything here recurses on depth: this comes back,
 /// rather than taking the stack with it, and the text inside is still read.
 #[test]
