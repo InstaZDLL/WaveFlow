@@ -564,10 +564,12 @@ export function WebRadioView() {
         const url = await pluginStreamUrl(PLUGIN_ID, track.id);
         if (streamReqRef.current !== token) return;
         // Hand off to the cpal engine. `playerPlayUrl` returns the
-        // negative sentinel track id — we don't need it here, the
-        // PlayerContext picks the metadata up off the
-        // `player:radio-metadata` event the decoder emits.
-        await playerPlayUrl({
+        // negative sentinel track id — we only look at whether there is
+        // one: the PlayerContext picks the metadata up off the
+        // `player:radio-metadata` event the decoder emits, and `null`
+        // means a newer pick overtook this station, which then never
+        // plays and must not light its row.
+        const started = await playerPlayUrl({
           url,
           title: track.title,
           artist: track.artist,
@@ -579,7 +581,7 @@ export function WebRadioView() {
         // audible, but UX-wise the row should now show Pause so a
         // second click toggles off cleanly.
         setLoadingId(null);
-        setPlayingId(track.id);
+        if (started !== null) setPlayingId(track.id);
       } catch (e) {
         if (streamReqRef.current !== token) return;
         setError(e instanceof Error ? e.message : String(e));

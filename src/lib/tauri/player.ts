@@ -273,8 +273,8 @@ export interface PlayUrlArgs {
  * library row, no `play_event` credit. Metadata supplied here drives
  * the PlayerBar / OS overlay via the `player:radio-metadata` event.
  */
-export function playerPlayUrl(args: PlayUrlArgs): Promise<number> {
-  return invoke<number>("player_play_url", {
+export function playerPlayUrl(args: PlayUrlArgs): Promise<number | null> {
+  return invoke<number | null>("player_play_url", {
     url: args.url,
     title: args.title,
     artist: args.artist,

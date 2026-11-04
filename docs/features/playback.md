@@ -955,7 +955,12 @@ and a rollback that ignored them would clear the queue the user can
 hear. Without that, a remote start the user had already
 abandoned would reinstall itself on top of the clear
 `emit_track_changed` performs, which is the invariant that module
-documents.
+documents. A **station** claims like any other load, under the lock, and only
+then clears the sessions and names itself to the OS overlay. One that lost its
+turn publishes none of that and `player_play_url` answers `null`, so Web Radio
+does not light its row. Its time-shift buffer, its titles and an HLS playlist
+are opened by the decoder from the load, so none of them starts, and the station
+on air keeps its own.
 
 ### Claiming the dispatch before publishing it
 
@@ -1040,7 +1045,7 @@ because one genuinely slow step must not be serialized:
   it. Again only if that fails: a jump puts the cursor back and what was playing
   goes on, a step has nothing to go back to and stops the player and drops the
   session. Neither does anything once the intent has been superseded or the
-  session is gone (radio and a profile switch drop it without claiming), since
+  session is gone (a profile switch drops it without claiming), since
   the failure is then nobody's business. Under the lock because a local producer
   claims and sends as one move, and a `Stop` decided outside it could land after
   that load.

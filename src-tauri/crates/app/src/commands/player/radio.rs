@@ -6,7 +6,11 @@ use std::sync::Arc;
 use tauri::{AppHandle, Manager};
 
 use crate::{
-    audio::{engine::AudioCmd, replay_gain::TrackGain, AudioEngine},
+    audio::{
+        engine::{AudioCmd, LoadIntent, Turns},
+        replay_gain::TrackGain,
+        AudioEngine,
+    },
     error::{AppError, AppResult},
     state::AppState,
 };
@@ -45,6 +49,10 @@ pub(crate) fn next_radio_track_id() -> i64 {
 /// can't get the decoder to open an arbitrary local file via this
 /// path. Other paranoia (size limits, redirect caps) is delegated to
 /// `HttpMediaSource::open`.
+///
+/// Answers the synthetic track id, or `None` for a station overtaken by a
+/// newer pick before its turn came: nothing of it was published, so the caller
+/// has nothing to show as playing.
 #[tauri::command]
 pub async fn player_play_url(
     app: AppHandle,
@@ -54,7 +62,7 @@ pub async fn player_play_url(
     artist: Option<String>,
     artwork_url: Option<String>,
     ext_hint: Option<String>,
-) -> AppResult<i64> {
+) -> AppResult<Option<i64>> {
     tracing::info!(
         url = %crate::audio::http_source::redact_url(&url),
         title = ?title,
@@ -77,6 +85,63 @@ pub async fn player_play_url(
         return Err(AppError::Other("offline mode is enabled".into()));
     }
 
+    let track_id = next_radio_track_id();
+    // A station's HTTP probe happens on the decoder thread, but waiting for
+    // the publish lock below is not free — and a click on a library track
+    // must still be able to overtake this one (#622).
+    let intent = engine.next_load_intent();
+
+    let published = publish_on_turn(&**engine, intent, || {
+        publish_station(
+            &app,
+            &engine,
+            intent,
+            track_id,
+            url,
+            title,
+            artist,
+            artwork_url,
+            ext_hint,
+        )
+    })
+    .await?;
+    Ok(published.then_some(track_id))
+}
+
+/// Run `publish` if this intent still has its turn, under the publish lock like
+/// every other producer (#632). `false` when something newer has claimed: then
+/// nothing is published at all, so the sessions, the OS overlay and the player
+/// stay what that newer pick made them. What a station carries beyond this (its
+/// time-shift buffer, its titles, an HLS playlist) is opened by the decoder from
+/// the load, so a station that never sends one starts none of it, and the one on
+/// air keeps its own.
+async fn publish_on_turn<E: Turns>(
+    engine: &E,
+    intent: LoadIntent,
+    publish: impl FnOnce() -> AppResult<()>,
+) -> AppResult<bool> {
+    let _publish = engine.lock_publish().await;
+    if !engine.claim_dispatch(intent) {
+        tracing::debug!("station superseded before it started; not playing it");
+        return Ok(false);
+    }
+    publish()?;
+    Ok(true)
+}
+
+/// Everything a station changes as it takes over, in order.
+#[allow(clippy::too_many_arguments)]
+fn publish_station(
+    app: &AppHandle,
+    engine: &AudioEngine,
+    intent: LoadIntent,
+    track_id: i64,
+    url: String,
+    title: Option<String>,
+    artist: Option<String>,
+    artwork_url: Option<String>,
+    ext_hint: Option<String>,
+) -> AppResult<()> {
     // Starting a radio stream ends any remote play queue. Radio takes the
     // URL path too, so it never passes through `emit_track_changed` where
     // the clear otherwise happens — clear it here explicitly.
@@ -84,12 +149,6 @@ pub async fn player_play_url(
         state.remote_playback.clear();
         state.external_playback.clear();
     }
-
-    let track_id = next_radio_track_id();
-    // A station's HTTP probe happens on the decoder thread, but the
-    // metadata push below is not free — and a click on a library track
-    // must still be able to overtake this one (#622).
-    let intent = engine.next_load_intent();
 
     // Push the metadata to the OS overlay before dispatching the
     // command so the SMTC / MPRIS tile updates while the HTTP probe
@@ -132,9 +191,7 @@ pub async fn player_play_url(
         artwork_url,
         // A live station: nothing knows its loudness.
         replay_gain: TrackGain::default(),
-    })?;
-
-    Ok(track_id)
+    })
 }
 
 /// Snapshot the current radio session's metadata, or `None` when no
@@ -149,3 +206,6 @@ pub async fn get_current_radio_metadata(
 ) -> AppResult<Option<crate::audio::events::RadioMetadataPayload>> {
     Ok(crate::audio::events::last_radio_metadata())
 }
+
+#[cfg(test)]
+mod tests;
