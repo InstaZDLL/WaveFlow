@@ -1084,6 +1084,10 @@
       "behind": "{{time}} di belakang siaran langsung",
       "goLive": "Kembali ke siaran langsung",
       "behindState": "Di belakang siaran langsung"
+    },
+    "podcast": {
+      "back15": "Mundur 15 dtk",
+      "forward30": "Maju 30 dtk"
     }
   },
   "queue": {

@@ -754,3 +754,148 @@ fn leaving_the_shift_mid_track_drops_the_stretcher() {
         decode_to_end(&mut open_tone(&path), 44_100)
     );
 }
+
+/// A `MediaSource` over bytes in memory that counts what is read from it.
+struct CountingSource {
+    bytes: std::io::Cursor<Vec<u8>>,
+    read: std::sync::Arc<std::sync::atomic::AtomicU64>,
+    seeks: std::sync::Arc<std::sync::atomic::AtomicU64>,
+}
+
+impl std::io::Read for CountingSource {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        let n = std::io::Read::read(&mut self.bytes, buf)?;
+        self.read
+            .fetch_add(n as u64, std::sync::atomic::Ordering::SeqCst);
+        Ok(n)
+    }
+}
+
+impl std::io::Seek for CountingSource {
+    fn seek(&mut self, to: std::io::SeekFrom) -> std::io::Result<u64> {
+        self.seeks.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        std::io::Seek::seek(&mut self.bytes, to)
+    }
+}
+
+impl MediaSource for CountingSource {
+    fn is_seekable(&self) -> bool {
+        true
+    }
+
+    fn byte_len(&self) -> Option<u64> {
+        Some(self.bytes.get_ref().len() as u64)
+    }
+}
+
+/// `minutes` of constant-bitrate MP3 with no audio in it: MPEG-1 Layer III at
+/// 128 kbit/s and 44.1 kHz, a frame every 26.12 ms, and no index, which is what
+/// makes an accurate seek read its way there.
+fn silent_mp3(minutes: u64) -> Vec<u8> {
+    const FRAME: usize = 417;
+    let frames = (minutes * 60 * 44_100 / 1152) as usize;
+    let mut bytes = Vec::with_capacity(frames * FRAME);
+    for _ in 0..frames {
+        bytes.extend([0xFF, 0xFB, 0x90, 0x00]);
+        bytes.resize(bytes.len() + FRAME - 4, 0);
+    }
+    bytes
+}
+
+/// Over a network what a seek reads is what it costs. Resuming twenty minutes into
+/// an episode must not fetch twenty minutes of it, and the estimate has to land
+/// close enough to resume from.
+#[test]
+fn a_coarse_seek_reads_a_few_blocks_where_an_accurate_one_reads_the_file() {
+    use std::sync::atomic::{AtomicU64, Ordering};
+    use std::sync::Arc;
+
+    let bytes = silent_mp3(60);
+    let total = bytes.len() as u64;
+    let target_ms = 20 * 60 * 1000;
+    let read_by = |coarse: bool| {
+        let (read, seeks) = (Arc::new(AtomicU64::new(0)), Arc::new(AtomicU64::new(0)));
+        let source = CountingSource {
+            bytes: std::io::Cursor::new(bytes.clone()),
+            read: Arc::clone(&read),
+            seeks: Arc::clone(&seeks),
+        };
+        let mut stream = ActiveStream::open_from_source(
+            Box::new(source),
+            Some("mp3"),
+            0,
+            0,
+            String::new(),
+            None,
+            TrackGain::default(),
+        )
+        .unwrap();
+        stream.coarse_seek = coarse;
+        let (read_at_open, seeks_at_open) =
+            (read.load(Ordering::SeqCst), seeks.load(Ordering::SeqCst));
+        let landed = stream.seek_ms(target_ms);
+        (
+            landed,
+            read.load(Ordering::SeqCst) - read_at_open,
+            seeks.load(Ordering::SeqCst) - seeks_at_open,
+            read_at_open,
+        )
+    };
+
+    let (accurate_landed, accurate_read, _, _) = read_by(false);
+    let (coarse_landed, coarse_read, coarse_seeks, read_at_open) = read_by(true);
+    eprintln!(
+        "file {total} B, open {read_at_open} B; accurate read {accurate_read} B, \
+         coarse read {coarse_read} B in {coarse_seeks} seeks; landed {coarse_landed} ms"
+    );
+    assert!(
+        accurate_read > total / 4,
+        "accurate read {accurate_read} of {total}"
+    );
+    assert!(
+        coarse_read < 512 * 1024,
+        "coarse read {coarse_read} of {total}"
+    );
+    assert!(accurate_landed.abs_diff(target_ms) < 1000);
+    assert!(
+        coarse_landed.abs_diff(target_ms) < 5000,
+        "landed at {coarse_landed}"
+    );
+}
+
+/// A stream that cannot estimate, with no length to go by, still seeks: the way it
+/// always has.
+#[test]
+fn a_coarse_seek_with_nothing_to_estimate_from_falls_back() {
+    struct NoLength(std::io::Cursor<Vec<u8>>);
+    impl std::io::Read for NoLength {
+        fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+            std::io::Read::read(&mut self.0, buf)
+        }
+    }
+    impl std::io::Seek for NoLength {
+        fn seek(&mut self, to: std::io::SeekFrom) -> std::io::Result<u64> {
+            std::io::Seek::seek(&mut self.0, to)
+        }
+    }
+    impl MediaSource for NoLength {
+        fn is_seekable(&self) -> bool {
+            true
+        }
+        fn byte_len(&self) -> Option<u64> {
+            None
+        }
+    }
+    let mut stream = ActiveStream::open_from_source(
+        Box::new(NoLength(std::io::Cursor::new(silent_mp3(2)))),
+        Some("mp3"),
+        0,
+        0,
+        String::new(),
+        None,
+        TrackGain::default(),
+    )
+    .unwrap();
+    stream.coarse_seek = true;
+    assert!(stream.seek_ms(60_000).abs_diff(60_000) < 1000);
+}

@@ -1086,6 +1086,10 @@
       "behind": "{{time}} achter op live",
       "goLive": "Terug naar live",
       "behindState": "Achter op live"
+    },
+    "podcast": {
+      "back15": "15 s terug",
+      "forward30": "30 s vooruit"
     }
   },
   "queue": {

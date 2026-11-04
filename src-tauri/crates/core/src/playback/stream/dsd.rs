@@ -92,6 +92,7 @@ impl ActiveStream {
                 codec,
                 packets_read: PacketTally::default(),
                 tail_flushed: false,
+                coarse_seek: false,
             });
         }
         let converter = Box::new(DsdToPcm::new_with_taps(&layout, dsd_taps));
@@ -136,6 +137,7 @@ impl ActiveStream {
             codec,
             packets_read: PacketTally::default(),
             tail_flushed: false,
+            coarse_seek: false,
         })
     }
 

@@ -193,7 +193,7 @@ The decoder's last stage is a `[-1.0, 1.0]` safety clamp ([`decoder::clamp_to_un
 ### Every load command carries its intent
 
 A command that hands the decoder a track — `LoadAndPlay`,
-`LoadRemoteFileAndPlay`, `LoadUrlAndPlay` — MUST carry a `LoadIntent`
+`LoadRemoteFileAndPlay`, `LoadUrlAndPlay`, `LoadEpisodeAndPlay` — MUST carry a `LoadIntent`
 claimed from `AudioEngine::next_load_intent` **at the moment the intent
 starts**: before the profile snapshot, the queue read and the ReplayGain
 lookup, not just before the send. The decoder drops any load older than one
@@ -219,7 +219,7 @@ the preparation that precedes the claim (#632).
 
 **An output rebuild re-dispatches the decoder's own load, under that
 load's own intent.** It is the one place a load is sent without a fresh
-token, and deliberately so: the rebuild is putting back what its `Stop`
+token, and deliberately so: the rebuild is putting back what its `Unload`
 took away, so it has to be accepted when nothing newer has arrived and to
 give way when something has. Read what to put back from
 `SharedPlayback::last_load` — written by the decoder at receipt, so it
@@ -364,7 +364,7 @@ A private feed carries its token in the path as often as in the query, so [`reda
 
 The same reasoning keeps addresses out of what leaves the machine without being asked: [`profile_io`](../../src-tauri/crates/app/src/commands/profile_io/archive.rs) blanks them in every archive, on the path a share's password takes, and rebuilds the copy with `VACUUM` once a profile has ever held a channel, since any write that makes a row grow leaves its old bytes behind. An import blanks them again, after dropping the triggers and views the migrations did not make. A guid is stored only as a hash, because it is often the enclosure's address. No row sent to the webview holds an address. An OPML export is the one deliberate way out.
 
-The failure mode is quiet: an address in a debug line looks like any other, and lands in the log file a user attaches to a bug report. Anything a feed names goes through [`podcast::fetch`](../../src-tauri/crates/app/src/podcast/fetch.rs), which judges each hop by `may_open` before contacting it, follows redirects by hand and never from https to http, and bounds the body while reading. `http_source` still logs through `redact_url`, which is fine for a station and has to be reviewed before an episode goes through it. A private feed's host can hold its token too, and `reqwest` and `hyper_util` write the host at debug, so `logging::without_connection_lines` takes those two out whatever `RUST_LOG` says. Test: `a_private_feeds_token_reaches_no_log_line`, every level of every crate captured.
+The failure mode is quiet: an address in a debug line looks like any other, and lands in the log file a user attaches to a bug report. Anything a feed names goes through [`podcast::fetch`](../../src-tauri/crates/app/src/podcast/fetch.rs), which judges each hop by `may_open` before contacting it, follows redirects by hand and never from https to http, and bounds the body while reading. An episode does not go through `http_source`, which lets its client follow redirects and logs through `redact_url`, fine for a station: [`podcast::stream`](../../src-tauri/crates/app/src/podcast/stream.rs) is its own source over the fetcher, and `EpisodeLoad`'s `Debug` holds no address, since every logger of a command prints it. A private feed's host can hold its token too, and `reqwest` and `hyper_util` write the host at debug, so `logging::without_connection_lines` takes those two out whatever `RUST_LOG` says. Test: `a_private_feeds_token_reaches_no_log_line`, every level of every crate captured.
 
 ### A server identifier is one path segment
 

@@ -1086,6 +1086,10 @@
       "behind": "Canlı yayının {{time}} gerisinde",
       "goLive": "Canlı yayına dön",
       "behindState": "Canlı yayının gerisinde"
+    },
+    "podcast": {
+      "back15": "15 sn geri",
+      "forward30": "30 sn ileri"
     }
   },
   "queue": {

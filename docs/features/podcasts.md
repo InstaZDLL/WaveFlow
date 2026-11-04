@@ -2,13 +2,14 @@
 
 Standalone podcasts in the desktop app, off by default. The design and its reasoning are in [RFC-009](../rfcs/RFC-009-podcasts.md); this page says what exists today.
 
-| Lot  | What                                                                                                     | State     |
-| ---- | -------------------------------------------------------------------------------------------------------- | --------- |
-| 1    | `waveflow_core::podcast`: feeds, OPML, chapters, transcripts, on hostile input                           | This page |
-| 2    | Tables, fetch rules, subscribe, refresh, OPML import and export, commands, setting                       | This page |
-| 5    | The page, the activation warning, sidebar, settings, What's new                                          | This page |
-| 3, 4 | Playback, downloads: the page calls them under fixed names, and until they land an action says it failed | Not yet   |
-| 6, 7 | Chapters and transcript panel, the server's podcasts                                                     | Not yet   |
+| Lot  | What                                                                                           | State     |
+| ---- | ---------------------------------------------------------------------------------------------- | --------- |
+| 1    | `waveflow_core::podcast`: feeds, OPML, chapters, transcripts, on hostile input                 | This page |
+| 2    | Tables, fetch rules, subscribe, refresh, OPML import and export, commands, setting             | This page |
+| 3    | Playback: session, stream with hand-followed redirects, resume, played state, speed            | This page |
+| 5    | The page, the activation warning, sidebar, settings, What's new                                | This page |
+| 4    | Downloads: the page calls them under fixed names, and until they land an action says it failed | Not yet   |
+| 6, 7 | Chapters and transcript panel, the server's podcasts                                           | Not yet   |
 
 ## The switch
 
@@ -67,7 +68,7 @@ A private feed carries its token in the path as often as in the query, so `redac
 
 `address_refused`, `too_many_redirects`, `too_large`, `unreached`, `http_<status>`, `invalid_feed`, `not_audio`, `quota_exceeded`
 
-No row sent to the webview holds an address either: a channel says `has_feed_address`, an episode `has_enclosure`, and whatever opens one asks by id. A refused command rejects with `podcast: <word>`, the list above plus `disabled`, `offline`, `profile_changed`, `channel_gone` (unsubscribed from while a subscription to it was finishing) and `open_failed` (the desktop would not open a channel's website).
+No row sent to the webview holds an address either: a channel says `has_feed_address`, an episode `has_enclosure`, and whatever opens one asks by id. A refused command rejects with `podcast: <word>`, the list above plus `disabled`, `offline`, `profile_changed`, `channel_gone` (unsubscribed from while a subscription to it was finishing), `episode_gone` (no such row, or one the user removed), `no_source` (no file and no address: a restored profile, until the feed is subscribed to again) and `open_failed` (the desktop would not open a channel's website).
 
 ### An address stays out of an archive
 
@@ -136,3 +137,46 @@ The readers exist; fetching and showing them is a later lot.
 | `podcast_export_opml`   | Writes every address to a file                  |
 
 Typed wrappers are in [`src/lib/tauri/podcast.ts`](../../src/lib/tauri/podcast.ts). The event `podcast:updated` carries `channel_id`.
+
+## Playing an episode
+
+[`podcast::playback`](../../src-tauri/crates/app/src/podcast/playback.rs) over [`podcast::stream`](../../src-tauri/crates/app/src/podcast/stream.rs). **An episode is not a track.** It has no `track` row and plays under a negative id through a `DetachedSession`, the queue in memory the remote queue and the [files played without importing them](playback.md#playing-files-without-importing-them) use, so the ordering rules of #622 hold for it. It writes no `play_event`, sends no scrobble and no "playing now", and counts in no statistic. It takes no fade, no gapless hand-off and no AutoMix: the prefetch is only answered for a library track. ReplayGain does not touch it, neither its fallback nor its pre-amp, since nothing measured it. Discord's card is cleared rather than updated; the OS media overlay and the tray say what plays.
+
+`podcast_play_episode(episode_id)` claims its `LoadIntent` first, and a refusal changes nothing: what plays keeps playing.
+
+### Where the bytes come from
+
+- **A downloaded file plays from disk, with no request, whatever the switch and offline mode say.** `download_file` is a file name inside the profile's managed folder (`profile_podcast_download_dir`). It may have come out of an archive somebody made, so it is treated as hostile: only `<this episode's id>.<letters and digits>` opens anything, which leaves no separator, `..`, absolute path, drive prefix, locator or alternate data stream on any system. Anything else is no file of ours, and the episode streams.
+- **Otherwise it is a request**, refused with `podcast: disabled` or `podcast: offline` before anything changes. The decoder asks both again before every request of a stream, a seek included, and the switch going off stops a stream on the spot, while a downloaded episode plays on. Offline mode turned on stops the transfer where it is.
+
+### The stream
+
+An enclosure goes through [`Fetcher::open`](../../src-tauri/crates/app/src/podcast/fetch.rs), never `audio::http_source`, which lets its client follow redirects and logs its address through `redact_url`: `may_open` at each hop against the feed's own origin, redirects by hand and at most five, never from https to http, and failures as one word. A `Content-Type` of `text/*` is `not_audio`. No command, no `Debug` and no event holds the address; the bar is told about the episode, not where it lives.
+
+The decoder reads on the thread it takes its commands on, so a task pulls the body into a short queue (64 of the host's chunks) and a read waits on that. Short on purpose: pulling the file ahead would spend a listener's data on an hour they may never hear. A read that gets nothing for 30 s fails with `unreached`, and a Stop or a load queued for the decoder lets go of a read that has been waiting a second. A body that breaks off is taken up again where it stopped, three times without a byte in between: a long pause outlives a connection.
+
+**A seek is a `Range` request**, starting from where the last one landed, so a measurement service in front of the file is not told about every jump, and falling back to the enclosure's own address when that has expired. A `206` to the very first request is the only proof a host can seek: plenty do without saying `Accept-Ranges`, and some say it and do not. A `200` or a `206` from elsewhere is refused, and what was playing goes on. A jump forward of at most 256 KiB is read through instead.
+
+**An accurate seek into an MP3 cannot be used over a network**, because the format keeps no index: symphonia reads every frame header from the start of the file, or from where it is, to the place. Measured on a 57 MB file, resuming at 20 minutes read 19.2 MB that way, and 3 KB in one request with the coarse seek a stream sets (`ActiveStream::coarse_seek`), which lands 14 ms off on a constant bitrate and within a few seconds on a variable one. It falls back to the accurate one when it has no length or duration to estimate from. A file on disk keeps the accurate one.
+
+### The queue
+
+The channel's episodes, in memory, newest first as the page lists them, and only what is on disk when no request may be made. Next and Previous follow it, and media keys, the tray and MPD reach it through `player_actions`. A person goes where they asked. At the natural end of an episode the next one that **has not been heard** follows, or a channel's back catalogue would replay itself through what they already know. Play from a stopped player picks the episode under the cursor back up from its row.
+
+### Resume
+
+The position is written at a pause, at a seek, at the end of a session and every 15 s, from the async side and never from the audio path. The decoder reports where an episode was left (`AnalyticsMsg::EpisodeLeft`), which covers a stop, another track and the exit, whose wait on the analytics channel covers this too. A pause, a seek and the ticks are seen by a task that reads the engine's atomics once a second while a session is active and sleeps otherwise. `podcast:updated` follows a pause, a seek, an end and an episode turning played, and not the ticks, which would have the page read its list every 15 s.
+
+An episode **counts as played past 95 %, or within its last 30 seconds**, or when it ran to its end whatever its declared length said. Its position then goes back to zero, and **opening it starts it over**. Heard again it stays played: only a person takes that off, by `podcast_mark_played` or `podcast_mark_channel_played`, which forget the position either way. A position is pinned to the profile the episode began in, and dropped when that profile is gone.
+
+`podcast_to_listen` is one episode per channel, the one in progress (the most recently opened if several are) or else the newest unplayed, channels with one in progress first, and only what can play. It reads the two tables.
+
+### Speed
+
+**A speed chosen for a channel never reaches music.** `audio.playback_speed` is never written from here. The speed is a column of `podcast_channel`, `NULL` meaning the normal one and not the global: a speed chosen for music does not reach a voice either.
+
+Whether the pitch follows the speed is the user's own `audio.keep_pitch`, on by default, so a voice at 1.5× stays the same voice: an episode goes through the same `TimeShift` as anything else. It travels with the load, and the decoder holds it for as long as that load decodes (`SharedPlayback::hold_episode_speed`, released by a guard on every way out, a panic included). So everything that plays afterwards, by whatever path, finds the user's speed in place without knowing an episode was there. A slider moved during an episode writes the channel's and is heard at once (`AudioCmd::SetEpisodeSpeed`); `player:speed-changed` tells every window when the engine moved the speed by itself.
+
+### The player
+
+Back 15 s and forward 30 s are in the "⋯" menu, only while an episode plays. The bar and the mini-player show its title, its channel and the channel's picture from the artwork cache, through `player:radio-metadata` with `is_podcast`, so the webview makes no request for them. No lyrics are looked up for an episode: its title sent to a provider would be one more thing leaving about what someone hears.
