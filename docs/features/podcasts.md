@@ -46,9 +46,9 @@ No row sent to the webview holds an address either: a channel says `has_feed_add
 
 ### An address stays out of an archive
 
-A backup or a profile export is made to travel, so `profile_io` blanks every podcast address in the copy it archives, on the same path as a share's password, and always `VACUUM`s it. A row an ordinary write made grow, or one removed, leaves its old bytes in the file, addresses included, and even a profile with no channel left may hold every address it ever had; the rebuild leaves nothing but what the rows now say.
+A backup or a profile export is made to travel, so `profile_io` blanks every podcast address in the copy it archives, on the same path as a share's password, along with what an archive has no business vouching for: the name of a downloaded file and the chapter and transcript caches. It then `VACUUM`s the copy if a secret was blanked or the profile has ever held a channel, which `sqlite_sequence` remembers. A row an ordinary write made grow, or one removed, leaves its old bytes in the file, addresses included, and even a profile with no channel left may hold every address it ever had. A profile that never held one pays nothing for this.
 
-The import runs the same blanking, whatever the archive says: one may come from another build or from somebody else, and an address in it is not one this person typed, so the timer must not contact what it names.
+The import runs the same blanking, whatever the archive says: one may come from another build or from somebody else, and an address in it is not one this person typed, so the timer must not contact what it names. Before it, every trigger and view the migrations did not make is dropped, since a trigger is code the archive brought along and could undo the blanking on any later write, and one of ours that was changed or removed is put back. What survives the blanking anyway refuses the archive.
 
 What survives is what a channel and an episode are known by: `feed_key` and `item_key`, hashes of the address and the guid. Subscribing again to the same address, by hand or through OPML, finds the row and gives it its addresses back, with every position and played state intact. Until then the channel lists as `has_feed_address: false`, and nothing refreshes it.
 
@@ -58,7 +58,7 @@ An **OPML export** carries the addresses: it is a deliberate act, and the dialog
 
 ## Reading a feed
 
-[`waveflow_core::podcast`](../../src-tauri/crates/core/src/podcast.rs) reads RSS 2.0, Atom and RSS 1.0 with `roxmltree`. A DTD is refused outright, so no entity can be declared, let alone expanded. There is a node ceiling, the bytes are bounded before they are decoded, and every text kept afterwards. Bytes that are not in the encoding the document declares refuse it, since guessing would store mojibake as a title.
+[`waveflow_core::podcast`](../../src-tauri/crates/core/src/podcast.rs) reads RSS 2.0, Atom and RSS 1.0 with `roxmltree`. A DTD is refused outright, so no entity can be declared, let alone expanded. There is a node ceiling, the bytes are bounded before they are decoded, and every text kept afterwards. The parser spends quadratic time on attributes and namespaces, which its ceiling does not count, and cannot be stopped once it runs, so [`xml_guard`](../../src-tauri/crates/core/src/xml_guard.rs), a linear scan, refuses first what real documents never do: more than 32 attributes on a tag, 32 namespaces in scope, 100 000 copies of them in a document. TTML lyrics pass through the same guard. Bytes that are not in the encoding the document declares refuse it, since guessing would store mojibake as a title.
 
 - **At most 500 episodes a feed**, newest first. Two items with one guid keep the newer.
 - **An item without a usable enclosure is not an episode**: not http(s), holding credentials, or declared as video, an image, a page or a PDF. A missing or odd type proves nothing, since feeds get this wrong, and the bytes decide when a file is opened.
