@@ -1,53 +1,8 @@
-use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use super::*;
-use crate::audio::state::SharedPlayback;
+use crate::audio::engine::TestEngine as Engine;
 use crate::error::AppError;
-
-/// The engine's arbitration as it really is, on the real high-water mark, with
-/// the one command these rules are about counted instead of sent.
-struct Engine {
-    shared: SharedPlayback,
-    publish: tokio::sync::Mutex<()>,
-    stops: AtomicUsize,
-}
-
-impl Engine {
-    fn new() -> Self {
-        Self {
-            shared: SharedPlayback::new(),
-            publish: tokio::sync::Mutex::new(()),
-            stops: AtomicUsize::new(0),
-        }
-    }
-
-    fn stops(&self) -> usize {
-        self.stops.load(Ordering::SeqCst)
-    }
-
-    /// What a newer pick does before it publishes anything.
-    fn newer_pick_claims(&self) {
-        assert!(self.shared.try_claim_load(NEWER.get()));
-    }
-}
-
-impl Turns for Engine {
-    async fn lock_publish(&self) -> tokio::sync::MutexGuard<'_, ()> {
-        self.publish.lock().await
-    }
-
-    fn claim_dispatch(&self, intent: LoadIntent) -> bool {
-        self.shared.try_claim_load(intent.get())
-    }
-
-    fn load_intent_superseded(&self, intent: LoadIntent) -> bool {
-        intent.get() < self.shared.newest_load_intent.load(Ordering::Acquire)
-    }
-
-    fn stop(&self) {
-        self.stops.fetch_add(1, Ordering::SeqCst);
-    }
-}
 
 const STEP: LoadIntent = LoadIntent::from_raw(5);
 const NEWER: LoadIntent = LoadIntent::from_raw(6);
@@ -102,7 +57,7 @@ async fn a_failed_step_leaves_a_newer_pick_playing() {
     let engine = Engine::new();
     let session = session(&["a", "b"]);
     let played = step(&engine, &session, RepeatMode::Off, async {
-        engine.newer_pick_claims();
+        engine.claims(NEWER);
         // What `emit_track_changed` does for a library track.
         session.clear();
         Err(refused())
@@ -119,7 +74,7 @@ async fn a_failed_step_leaves_a_session_started_meanwhile() {
     let engine = Engine::new();
     let session = session(&["a", "b"]);
     let played = step(&engine, &session, RepeatMode::Off, async {
-        engine.newer_pick_claims();
+        engine.claims(NEWER);
         session.set(queue(&["other"]));
         Err(refused())
     })
@@ -129,8 +84,8 @@ async fn a_failed_step_leaves_a_session_started_meanwhile() {
     assert_eq!(current(&session).as_deref(), Some("other"));
 }
 
-/// Radio and a profile switch drop the session without claiming anything before
-/// their load: gone is enough to know this failure is nobody's business.
+/// A profile switch drops the session without claiming anything: gone is enough
+/// to know this failure is nobody's business.
 #[tokio::test]
 async fn a_failed_step_stops_nothing_once_the_session_is_gone() {
     let engine = Engine::new();
@@ -173,7 +128,7 @@ async fn giving_up_waits_for_a_publisher_already_at_work() {
             tokio::task::yield_now().await;
         }
         assert_eq!(engine.stops(), 0, "stopped under a publisher's feet");
-        engine.newer_pick_claims();
+        engine.claims(NEWER);
         session.clear();
         drop(guard);
     };
@@ -188,7 +143,7 @@ async fn giving_up_waits_for_a_publisher_already_at_work() {
 async fn a_step_overtaken_before_its_turn_moves_nothing() {
     let engine = Engine::new();
     let session = session(&["a", "b"]);
-    engine.newer_pick_claims();
+    engine.claims(NEWER);
     let asked = AtomicBool::new(false);
     let played = step(&engine, &session, RepeatMode::Off, async {
         asked.store(true, Ordering::SeqCst);
@@ -206,7 +161,7 @@ async fn a_step_overtaken_before_its_turn_moves_nothing() {
 async fn an_overtaken_step_at_the_end_of_the_queue_stops_nothing() {
     let engine = Engine::new();
     let session = session(&["a"]);
-    engine.newer_pick_claims();
+    engine.claims(NEWER);
     let played = step(&engine, &session, RepeatMode::Off, async { Ok(()) }).await;
     assert!(matches!(played, Ok(false)), "{played:?}");
     assert_eq!(engine.stops(), 0);
@@ -224,7 +179,7 @@ async fn a_step_finding_no_session_stops_and_claims_nothing() {
     let played = step(&engine, &session, RepeatMode::Off, async { Ok(()) }).await;
     assert!(matches!(played, Ok(false)), "{played:?}");
     assert_eq!(engine.stops(), 0);
-    assert_eq!(engine.shared.newest_load_intent.load(Ordering::Acquire), 0);
+    assert_eq!(engine.newest_claim(), 0);
 }
 
 // What a step still does.
@@ -272,7 +227,7 @@ async fn the_request_runs_outside_the_publish_lock() {
 async fn a_jump_overtaken_before_its_turn_moves_nothing() {
     let engine = Engine::new();
     let session = session(&["a", "b"]);
-    engine.newer_pick_claims();
+    engine.claims(NEWER);
     let asked = AtomicBool::new(false);
     let played = jump_and_play(&engine, &session, 1, STEP, async {
         asked.store(true, Ordering::SeqCst);
@@ -305,7 +260,7 @@ async fn a_failed_jump_leaves_a_newer_pick_playing() {
     let engine = Engine::new();
     let session = session(&["a", "b"]);
     let played = jump_and_play(&engine, &session, 1, STEP, async {
-        engine.newer_pick_claims();
+        engine.claims(NEWER);
         session.clear();
         Err(refused())
     })
@@ -332,7 +287,7 @@ async fn a_failed_jump_leaves_the_cursor_of_a_newer_move() {
     let engine = Engine::new();
     let session = session(&["a", "b", "c"]);
     let played = jump_and_play(&engine, &session, 1, STEP, async {
-        engine.newer_pick_claims();
+        engine.claims(NEWER);
         session.seek_to(2);
         Err(refused())
     })
@@ -347,7 +302,7 @@ async fn a_jump_finding_no_session_claims_nothing() {
     let session = RemotePlayback::default();
     let played = jump_and_play(&engine, &session, 1, STEP, async { Ok(()) }).await;
     assert!(played.is_ok());
-    assert_eq!(engine.shared.newest_load_intent.load(Ordering::Acquire), 0);
+    assert_eq!(engine.newest_claim(), 0);
 }
 
 // A start that did not reach the engine.

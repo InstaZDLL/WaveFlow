@@ -17,16 +17,17 @@
 //! The tags of a file are read when it plays, not when it is queued:
 //! opening a folder of a thousand files reads one.
 
+use std::future::Future;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use tauri::{AppHandle, Manager};
 use waveflow_core::playback::replay_gain::TrackGain;
 
-use crate::audio::engine::{DetachedOrigin, LoadIntent};
+use crate::audio::engine::{DetachedOrigin, LoadIntent, Turns};
 use crate::audio::{AudioCmd, AudioEngine};
 use crate::error::{AppError, AppResult};
-use crate::queue::Direction;
+use crate::queue::{Direction, RepeatMode};
 use crate::remote_playback::{DetachedQueue, DetachedSession};
 use crate::state::AppState;
 
@@ -415,20 +416,39 @@ async fn play_entries(
 pub async fn jump_to(app: &AppHandle, index: usize) -> AppResult<()> {
     let engine = app.state::<Arc<AudioEngine>>();
     let intent = engine.next_load_intent();
-    // The cursor moves only for a jump that still has its turn (#632).
+    let state = app.state::<AppState>();
+    jump_and_play(
+        &**engine,
+        &state.external_playback,
+        index,
+        intent,
+        play_current(app, 0, intent),
+    )
+    .await
+}
+
+async fn jump_and_play<E: Turns>(
+    engine: &E,
+    session: &ExternalPlayback,
+    index: usize,
+    intent: LoadIntent,
+    play: impl Future<Output = AppResult<()>>,
+) -> AppResult<()> {
+    // The cursor moves only for a jump that still has its turn (#632). The
+    // session is looked at first: a claim with no load behind it would have
+    // the decoder drop an older load still on its way.
     let _publish = engine.lock_publish().await;
-    if !engine.claim_dispatch(intent) {
+    if !session.is_active() || !engine.claim_dispatch(intent) {
         return Ok(());
     }
-    let state = app.state::<AppState>();
-    match state.external_playback.seek_to(index) {
-        // As in `advance`: a jump that cannot play leaves no session
-        // pointing at a file nothing is playing.
-        Some(_) => play_current(app, 0, intent).await.inspect_err(|_| {
-            let _ = engine.send(AudioCmd::Stop);
-            state.external_playback.clear();
-        }),
-        None => Ok(()),
+    if session.seek_to(index).is_none() {
+        return Ok(());
+    }
+    // As in `advance`: a jump that cannot play leaves no session pointing at a
+    // file nothing is playing.
+    match play.await {
+        Err(err) if give_up(engine, session) => Err(err),
+        _ => Ok(()),
     }
 }
 
@@ -443,26 +463,56 @@ pub async fn advance(app: &AppHandle, direction: Direction, intent: LoadIntent) 
         Err(_) => crate::queue::RepeatMode::Off,
     };
     let engine = app.state::<Arc<AudioEngine>>();
+    step_and_play(
+        &**engine,
+        &state.external_playback,
+        direction,
+        repeat,
+        intent,
+        play_current(app, 0, intent),
+    )
+    .await
+}
+
+async fn step_and_play<E: Turns>(
+    engine: &E,
+    session: &ExternalPlayback,
+    direction: Direction,
+    repeat: RepeatMode,
+    intent: LoadIntent,
+    play: impl Future<Output = AppResult<()>>,
+) -> AppResult<bool> {
     // A step overtaken by a newer pick moves nothing (#632): it would
-    // otherwise walk the cursor away from the file it never played.
+    // otherwise walk the cursor away from the file it never played. Nor is a
+    // session gone since the caller looked a queue that ran out, which is what
+    // stops the player: whoever dropped it has a load on its way, that a `Stop`
+    // would land behind and a claim here would have the decoder drop.
     let _publish = engine.lock_publish().await;
-    if !engine.claim_dispatch(intent) {
+    if !session.is_active() || !engine.claim_dispatch(intent) {
         return Ok(false);
     }
-    match state.external_playback.step(direction, repeat) {
-        Some(_) => {
-            if let Err(err) = play_current(app, 0, intent).await {
-                let _ = engine.send(AudioCmd::Stop);
-                state.external_playback.clear();
-                return Err(err);
-            }
-            Ok(true)
-        }
-        None => {
-            let _ = engine.send(AudioCmd::Stop);
-            Ok(false)
-        }
+    if session.step(direction, repeat).is_none() {
+        engine.stop();
+        return Ok(false);
     }
+    match play.await {
+        Ok(()) => Ok(true),
+        Err(err) if give_up(engine, session) => Err(err),
+        Err(_) => Ok(false),
+    }
+}
+
+/// A move whose file could not be read stops the player and drops the session,
+/// unless the session has gone meanwhile: a profile switch drops it without the
+/// publish lock. `true` when it was still this move's to give up. Nothing newer
+/// can have claimed, since the lock is held from the claim to here.
+fn give_up<E: Turns>(engine: &E, session: &ExternalPlayback) -> bool {
+    if !session.is_active() {
+        return false;
+    }
+    engine.stop();
+    session.clear();
+    true
 }
 
 /// Read the file under the cursor and hand it to the engine, to play from

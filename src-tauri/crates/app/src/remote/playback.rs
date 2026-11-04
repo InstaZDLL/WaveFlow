@@ -34,7 +34,7 @@ use tauri::{AppHandle, Manager};
 
 use crate::{
     audio::{
-        engine::{AudioCmd, LoadIntent},
+        engine::{AudioCmd, LoadIntent, Turns},
         AudioEngine,
     },
     error::AppResult,
@@ -344,8 +344,8 @@ async fn step_and_play<E: Turns>(
 /// session, unless something newer has taken over meanwhile. `true` when it was
 /// still this step's to give up.
 ///
-/// The session being gone counts as well as the intent: radio and a profile
-/// switch drop it without claiming anything first.
+/// The session being gone counts as well as the intent: a profile switch drops
+/// it without claiming anything first.
 async fn give_up<E: Turns>(engine: &E, session: &RemotePlayback, intent: LoadIntent) -> bool {
     let _publish = engine.lock_publish().await;
     if engine.load_intent_superseded(intent) || !session.is_active() {
@@ -354,34 +354,6 @@ async fn give_up<E: Turns>(engine: &E, session: &RemotePlayback, intent: LoadInt
     engine.stop();
     session.clear();
     true
-}
-
-/// What moving through the queue asks of the engine: whose turn it is, and the
-/// one command that ends a session. A trait so these rules can be tested, since
-/// an [`AudioEngine`] cannot be built without a running app and an audio device.
-trait Turns {
-    fn lock_publish(&self) -> impl Future<Output = tokio::sync::MutexGuard<'_, ()>> + Send;
-    fn claim_dispatch(&self, intent: LoadIntent) -> bool;
-    fn load_intent_superseded(&self, intent: LoadIntent) -> bool;
-    fn stop(&self);
-}
-
-impl Turns for AudioEngine {
-    fn lock_publish(&self) -> impl Future<Output = tokio::sync::MutexGuard<'_, ()>> + Send {
-        AudioEngine::lock_publish(self)
-    }
-
-    fn claim_dispatch(&self, intent: LoadIntent) -> bool {
-        AudioEngine::claim_dispatch(self, intent)
-    }
-
-    fn load_intent_superseded(&self, intent: LoadIntent) -> bool {
-        AudioEngine::load_intent_superseded(self, intent)
-    }
-
-    fn stop(&self) {
-        let _ = self.send(AudioCmd::Stop);
-    }
 }
 
 /// Prefer a confirmed local reconciliation link for the entry under the
