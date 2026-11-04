@@ -28,6 +28,7 @@
 //! seek, and resuming is a seek.
 
 use std::collections::HashMap;
+use std::future::Future;
 use std::sync::{Arc, LazyLock, Mutex};
 use std::time::Duration;
 
@@ -111,6 +112,18 @@ pub(crate) async fn ready_client(state: &AppState) -> AppResult<Option<(RemoteCl
     Ok(RemoteClient::try_build_for(state, profile_id)
         .await?
         .map(|client| (client, profile_id)))
+}
+
+/// Runs `work` so that whoever waits for it can give up without stopping it.
+///
+/// For anything that builds a client while somebody may stop waiting. A client may have
+/// to refresh its token, and the server spends the old one the moment it is asked: a
+/// future dropped before the answer is stored loses the new pair too, and leaves the
+/// profile signed out with a valid session on the server.
+pub(crate) async fn detached<T: Send + 'static>(
+    work: impl Future<Output = T> + Send + 'static,
+) -> Option<T> {
+    tauri::async_runtime::spawn(work).await.ok()
 }
 
 /// A client still speaking for `scope`, or `None`: another profile, another server,
@@ -416,23 +429,33 @@ pub(crate) async fn record_position(
             return;
         }
     }
-    let write = async {
-        let _order = POSITION_WRITES.lock().await;
-        let Some(client) = client_in_scope(&state, &place.scope).await else {
-            tracing::debug!("podcast: server position dropped, its server is no longer bound");
-            return;
-        };
-        let written = match position_write(position_ms, duration_ms, finished) {
-            Some(position) => podcasts::save_position(&client, &place.episode_id, position).await,
-            None => podcasts::clear_position(&client, &place.episode_id).await,
-        };
-        if let Err(err) = written {
-            tracing::debug!(status = ?err.status, "podcast: server position not written");
+    let write = {
+        let (app, place) = (app.clone(), place.clone());
+        async move {
+            let state = app.state::<AppState>();
+            let _order = POSITION_WRITES.lock().await;
+            let Some(client) = client_in_scope(&state, &place.scope).await else {
+                tracing::debug!("podcast: server position dropped, its server is no longer bound");
+                return;
+            };
+            let written = match position_write(position_ms, duration_ms, finished) {
+                Some(position) => {
+                    podcasts::save_position(&client, &place.episode_id, position).await
+                }
+                None => podcasts::clear_position(&client, &place.episode_id).await,
+            };
+            if let Err(err) = written {
+                tracing::debug!(status = ?err.status, "podcast: server position not written");
+            }
         }
     };
     // This runs on the task that also steps to the next episode, and a token refresh
-    // on a server that hangs would otherwise take the whole of its own deadline.
-    if tokio::time::timeout(POSITION_BUDGET, write).await.is_err() {
+    // on a server that hangs would otherwise take the whole of its own deadline. Only
+    // the wait gives up: see [`detached`].
+    if tokio::time::timeout(POSITION_BUDGET, detached(write))
+        .await
+        .is_err()
+    {
         tracing::debug!("podcast: server position not written in time");
     }
     if announce_it {
@@ -516,7 +539,12 @@ pub(crate) fn open_stream(
         let (app, scope, episode_id) = (app.clone(), place.scope.clone(), place.episode_id.clone());
         Arc::new(move || {
             let (app, scope, episode_id) = (app.clone(), scope.clone(), episode_id.clone());
-            Box::pin(async move { mint(&app, &scope, &episode_id).await })
+            // Under the stream's deadline and a Stop's letting go: see [`detached`].
+            Box::pin(async move {
+                detached(async move { mint(&app, &scope, &episode_id).await })
+                    .await
+                    .unwrap_or(Err(StreamRefusal::Released))
+            })
         })
     };
     EnclosureSource::open_renewing(

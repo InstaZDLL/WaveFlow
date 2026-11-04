@@ -8,7 +8,7 @@ use tokio::runtime::Handle;
 
 use super::super::playback::{EpisodeHome, EpisodeLoad, EpisodeSource};
 use super::super::refresh::PodcastError;
-use super::super::server::{may_ask, position_write, queue_of, ServerEpisodeRef};
+use super::super::server::{detached, may_ask, position_write, queue_of, ServerEpisodeRef};
 use super::super::store;
 use super::super::stream::{EnclosureSource, Gate, Renew, StreamRefusal};
 use super::super::tests::{enabled_pool, fetcher, serve, url, with_status, Reply};
@@ -92,6 +92,28 @@ fn an_episode_with_no_file_on_the_server_cannot_start() {
         queue_of(&episodes, "gone", &scope()).unwrap_err(),
         "episode_gone"
     );
+}
+
+// ── a wait given up on ──────────────────────────────────────────────
+
+/// A token refresh may be inside: the old token is spent the moment the server is
+/// asked, so what comes back has to reach the database whoever stopped listening.
+#[tokio::test]
+async fn giving_up_on_a_wait_does_not_stop_the_work_behind_it() {
+    let finished = Arc::new(AtomicUsize::new(0));
+    let flag = Arc::clone(&finished);
+    let waited = tokio::time::timeout(
+        std::time::Duration::from_millis(20),
+        detached(async move {
+            tokio::time::sleep(std::time::Duration::from_millis(150)).await;
+            flag.store(1, Ordering::SeqCst);
+        }),
+    )
+    .await;
+    assert!(waited.is_err(), "the wait gave up");
+    assert_eq!(finished.load(Ordering::SeqCst), 0);
+    tokio::time::sleep(std::time::Duration::from_millis(400)).await;
+    assert_eq!(finished.load(Ordering::SeqCst), 1, "the work went on");
 }
 
 // ── the position ────────────────────────────────────────────────────
