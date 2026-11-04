@@ -3267,6 +3267,10 @@
           "label": "离线的服务器曲目",
           "description": "你选择离线保留的曲目。可从曲目或专辑中移除。"
         },
+        "podcastDownloads": {
+          "label": "已下载的播客单集",
+          "description": "你选择保留在这台电脑上的单集。可在单集处移除。"
+        },
         "manualMedia": {
           "label": "手动设置的媒体",
           "description": "你自己设置的动态封面和 Canvas 片段。"
@@ -3421,7 +3425,8 @@
       "cacheUsed_other": "本地缓存:{{size}},{{count}} 首曲目"
     },
     "podcasts": {
-      "title": "播客"
+      "title": "播客",
+      "downloadQuota": "已下载单集的最大空间"
     }
   },
   "scanProgress": {
@@ -3791,7 +3796,8 @@
       "enrichment": "音乐库信息补全",
       "release_radar": "Release Radar",
       "tag_workshop": "标签工坊",
-      "podcast_refresh": "刷新播客"
+      "podcast_refresh": "刷新播客",
+      "podcast_download": "播客下载"
     }
   },
   "smartRuleSummary": {

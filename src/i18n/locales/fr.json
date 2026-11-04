@@ -3338,6 +3338,10 @@
           "label": "Titres du serveur hors ligne",
           "description": "Ceux que vous avez choisi de garder hors ligne. Se retirent depuis le titre ou l'album."
         },
+        "podcastDownloads": {
+          "label": "Épisodes de podcast téléchargés",
+          "description": "Ceux que vous avez choisi de garder sur cet ordinateur. Se retirent depuis l'épisode."
+        },
         "manualMedia": {
           "label": "Médias choisis à la main",
           "description": "Pochettes animées et clips Canvas que vous avez définis vous-même."
@@ -3495,7 +3499,8 @@
       "cacheUsed_many": "Cache local : {{size}}, {{count}} titres"
     },
     "podcasts": {
-      "title": "Podcasts"
+      "title": "Podcasts",
+      "downloadQuota": "Espace maximal pour les épisodes téléchargés"
     }
   },
   "scanProgress": {
@@ -3892,7 +3897,8 @@
       "enrichment": "Enrichissement de la bibliothèque",
       "release_radar": "Release Radar",
       "tag_workshop": "Atelier de tags",
-      "podcast_refresh": "Actualisation des podcasts"
+      "podcast_refresh": "Actualisation des podcasts",
+      "podcast_download": "Téléchargement de podcast"
     }
   },
   "smartRuleSummary": {

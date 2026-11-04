@@ -802,6 +802,14 @@ export const SETTINGS = {
     5,
     "settings.networkLibrary.cacheLimit",
   ),
+  // Mirrored by `podcast::store::DEFAULT_DOWNLOAD_QUOTA_GB`.
+  "podcasts.download_quota_gb": setting(
+    "data",
+    "profile",
+    "int",
+    10,
+    "settings.podcasts.downloadQuota",
+  ),
   "media.clips_in_library": setting(
     "data",
     "app",

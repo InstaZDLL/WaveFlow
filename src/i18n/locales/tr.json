@@ -3269,6 +3269,10 @@
           "label": "Çevrimdışı sunucu parçaları",
           "description": "Çevrimdışı tutmayı seçtikleriniz. Parçadan veya albümden kaldırılır."
         },
+        "podcastDownloads": {
+          "label": "İndirilen podcast bölümleri",
+          "description": "Bu bilgisayarda tutmayı seçtikleriniz. Bölümün kendisinden kaldırılır."
+        },
         "manualMedia": {
           "label": "Elle seçilen medya",
           "description": "Kendiniz belirlediğiniz hareketli kapaklar ve Canvas klipleri."
@@ -3423,7 +3427,8 @@
       "cacheUsed_other": "Yerel önbellek: {{size}}, {{count}} parça"
     },
     "podcasts": {
-      "title": "Podcast'ler"
+      "title": "Podcast'ler",
+      "downloadQuota": "İndirilen bölümler için en fazla alan"
     }
   },
   "scanProgress": {
@@ -3793,7 +3798,8 @@
       "enrichment": "Kitaplık zenginleştirme",
       "release_radar": "Release Radar",
       "tag_workshop": "Etiket atölyesi",
-      "podcast_refresh": "Podcast yenileme"
+      "podcast_refresh": "Podcast yenileme",
+      "podcast_download": "Podcast indirme"
     }
   },
   "smartRuleSummary": {

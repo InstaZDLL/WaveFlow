@@ -694,6 +694,7 @@ export const SETTINGS_CATEGORIES = [
           "settings.diskUsage.items.motionCache.label",
           "settings.diskUsage.items.canvasCache.label",
           "settings.diskUsage.items.remoteStream.label",
+          "settings.diskUsage.items.podcastDownloads.label",
           "settings.diskUsage.items.backups.label",
           "settings.diskUsage.items.logs.label",
           "settings.diskUsage.items.databases.label",

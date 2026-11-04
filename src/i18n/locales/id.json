@@ -3267,6 +3267,10 @@
           "label": "Lagu server luring",
           "description": "Yang Anda pilih untuk disimpan luring. Dihapus dari lagu atau albumnya."
         },
+        "podcastDownloads": {
+          "label": "Episode podcast yang diunduh",
+          "description": "Episode yang Anda pilih untuk disimpan di komputer ini. Dihapus dari episodenya."
+        },
         "manualMedia": {
           "label": "Media pilihan sendiri",
           "description": "Sampul animasi dan klip Canvas yang Anda atur sendiri."
@@ -3421,7 +3425,8 @@
       "cacheUsed_other": "Cache lokal: {{size}}, {{count}} lagu"
     },
     "podcasts": {
-      "title": "Podcast"
+      "title": "Podcast",
+      "downloadQuota": "Ruang maksimum untuk episode yang diunduh"
     }
   },
   "scanProgress": {
@@ -3791,7 +3796,8 @@
       "enrichment": "Pengayaan pustaka",
       "release_radar": "Release Radar",
       "tag_workshop": "Bengkel tag",
-      "podcast_refresh": "Penyegaran podcast"
+      "podcast_refresh": "Penyegaran podcast",
+      "podcast_download": "Unduhan podcast"
     }
   },
   "smartRuleSummary": {

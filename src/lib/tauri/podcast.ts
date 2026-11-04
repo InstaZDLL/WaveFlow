@@ -16,6 +16,34 @@ export interface PodcastUpdatedPayload {
   channel_id: number | null;
 }
 
+/** Emitted as a download moves, at most about four times a second. */
+export const PODCAST_DOWNLOAD = "podcast:download";
+
+export type PodcastDownloadState =
+  | "queued"
+  | "running"
+  | "done"
+  | "failed"
+  | "cancelled";
+
+/** Mirrors `podcast::download::DownloadUpdate`. Holds no address and no path. */
+export interface PodcastDownloadPayload {
+  episodeId: number;
+  state: PodcastDownloadState;
+  receivedBytes: number;
+  /** What the host declared, which may be untrue. `null` when it declared nothing. */
+  totalBytes: number | null;
+  /** With `failed` only: `disabled`, `offline`, `episode_gone`, `write_failed`, or
+   *  one from `FetchFailure::code`. See {@link podcastErrorWord}. */
+  errorWord: string | null;
+}
+
+/** Mirrors `commands::podcast::PodcastDownloadUsage`. */
+export interface PodcastDownloadUsage {
+  usedBytes: number;
+  quotaBytes: number;
+}
+
 /** Mirrors `podcast::store::PodcastChannel`. */
 export interface PodcastChannel {
   id: number;
@@ -109,7 +137,7 @@ const ERROR_PREFIX = "podcast: ";
 
 /**
  * The word a refused command rejected with: `disabled`, `offline`,
- * `profile_changed`, `channel_gone`, or one from `FetchFailure::code` (`address_refused`,
+ * `profile_changed`, `channel_gone`, `episode_gone`, or one from `FetchFailure::code` (`address_refused`,
  * `too_many_redirects`, `too_large`, `unreached`, `http_<status>`,
  * `invalid_feed`, `not_audio`, `quota_exceeded`). `null` for any other error.
  */
@@ -124,7 +152,7 @@ export function podcastSubscribe(feedUrl: string): Promise<PodcastChannel> {
   return invoke<PodcastChannel>("podcast_subscribe", { feedUrl });
 }
 
-/** Stops following a channel and forgets its episodes. */
+/** Stops following a channel, forgets its episodes and removes their downloads. */
 export function podcastUnsubscribe(channelId: number): Promise<void> {
   return invoke("podcast_unsubscribe", { channelId });
 }
@@ -166,4 +194,30 @@ export function podcastExportOpml(
   path: string,
 ): Promise<PodcastOpmlExportReport> {
   return invoke<PodcastOpmlExportReport>("podcast_export_opml", { path });
+}
+
+/** Puts an episode in line to be kept on disk. Resolves once it is in line:
+ *  {@link PODCAST_DOWNLOAD} says the rest. Rejects with the switch off or offline. */
+export function podcastDownloadEpisode(episodeId: number): Promise<void> {
+  return invoke("podcast_download_episode", { episodeId });
+}
+
+/** Takes an episode out of the line, or stops it where it is. */
+export function podcastCancelDownload(episodeId: number): Promise<void> {
+  return invoke("podcast_cancel_download", { episodeId });
+}
+
+/** Removes an episode's file. Its row and its position stay. */
+export function podcastDeleteDownload(episodeId: number): Promise<void> {
+  return invoke("podcast_delete_download", { episodeId });
+}
+
+export function podcastDownloadUsage(): Promise<PodcastDownloadUsage> {
+  return invoke<PodcastDownloadUsage>("podcast_download_usage");
+}
+
+/** The downloads under way, for a view opened meanwhile: no event replays for it.
+ *  Subscribe to {@link PODCAST_DOWNLOAD} first, then call this. */
+export function podcastDownloadQueue(): Promise<PodcastDownloadPayload[]> {
+  return invoke<PodcastDownloadPayload[]>("podcast_download_queue");
 }

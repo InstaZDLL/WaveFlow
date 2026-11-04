@@ -3267,6 +3267,10 @@
           "label": "オフラインのサーバー曲",
           "description": "オフラインで保持すると選んだ曲。曲またはアルバムから削除します。"
         },
+        "podcastDownloads": {
+          "label": "ダウンロードしたポッドキャストのエピソード",
+          "description": "このコンピューターに残すことにしたエピソードです。エピソードから削除できます。"
+        },
         "manualMedia": {
           "label": "手動で設定したメディア",
           "description": "自分で設定したアニメーションジャケットと Canvas クリップ。"
@@ -3421,7 +3425,8 @@
       "cacheUsed_other": "ローカルキャッシュ: {{size}}、{{count}} 曲"
     },
     "podcasts": {
-      "title": "ポッドキャスト"
+      "title": "ポッドキャスト",
+      "downloadQuota": "ダウンロードしたエピソードの最大容量"
     }
   },
   "scanProgress": {
@@ -3791,7 +3796,8 @@
       "enrichment": "ライブラリ情報の補完",
       "release_radar": "Release Radar",
       "tag_workshop": "タグ工房",
-      "podcast_refresh": "ポッドキャストの更新"
+      "podcast_refresh": "ポッドキャストの更新",
+      "podcast_download": "ポッドキャストのダウンロード"
     }
   },
   "smartRuleSummary": {
