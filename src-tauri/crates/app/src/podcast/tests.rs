@@ -2142,3 +2142,38 @@ async fn a_private_feeds_token_reaches_no_log_line() {
         .unwrap();
     assert!(stored.contains(TOKEN));
 }
+
+/// Only an http or https address with no credentials in it reaches the browser,
+/// whatever a row came to hold: a `file:` or a `javascript:` link opened by the
+/// desktop's handler is a program started by a feed.
+#[tokio::test]
+async fn only_a_web_address_is_opened_as_a_channels_site() {
+    let pool = pool().await;
+    let id: i64 = sqlx::query_scalar(
+        "INSERT INTO podcast_channel (feed_key, feed_url, title, created_at, updated_at)
+         VALUES ('key', 'https://feeds.example.org/feed', 'A', 0, 0) RETURNING id",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(store::site_to_open(&pool, id).await.unwrap(), None);
+    assert_eq!(store::site_to_open(&pool, id + 1).await.unwrap(), None);
+    for (site, opened) in [
+        ("https://example.org/show", true),
+        ("http://example.org/show", true),
+        ("file:///C:/Windows/System32/calc.exe", false),
+        ("javascript:alert(1)", false),
+        ("mailto:someone@example.org", false),
+        ("https://user:secret@example.org/", false),
+        ("not an address", false),
+    ] {
+        sqlx::query("UPDATE podcast_channel SET site_url = ? WHERE id = ?")
+            .bind(site)
+            .bind(id)
+            .execute(&pool)
+            .await
+            .unwrap();
+        let answer = store::site_to_open(&pool, id).await.unwrap();
+        assert_eq!(answer.is_some(), opened, "{site}");
+    }
+}

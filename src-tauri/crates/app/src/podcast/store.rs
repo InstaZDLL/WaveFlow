@@ -7,7 +7,8 @@
 use chrono::Utc;
 use serde::Serialize;
 use sqlx::{FromRow, SqliteConnection, SqlitePool};
-use waveflow_core::podcast::address::item_key;
+use url::Url;
+use waveflow_core::podcast::address::{item_key, parse_address};
 use waveflow_core::podcast::{Feed, FeedEpisode};
 
 use super::fetch::Validators;
@@ -515,6 +516,21 @@ pub(crate) async fn record_artwork(
         .execute(pool)
         .await?;
     Ok(())
+}
+
+/// The website a channel's feed names, if it is one a browser may be sent to:
+/// the parser only keeps such an address, and this holds for a row it did not
+/// write as well. Goes no further than the command that opens it.
+pub(crate) async fn site_to_open(
+    pool: &SqlitePool,
+    channel_id: i64,
+) -> Result<Option<Url>, sqlx::Error> {
+    let site: Option<Option<String>> =
+        sqlx::query_scalar("SELECT site_url FROM podcast_channel WHERE id = ?")
+            .bind(channel_id)
+            .fetch_optional(pool)
+            .await?;
+    Ok(site.flatten().as_deref().and_then(parse_address))
 }
 
 /// Forgets a channel and, by the foreign key, its episodes. Whether a row was

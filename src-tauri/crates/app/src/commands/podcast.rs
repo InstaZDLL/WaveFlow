@@ -117,6 +117,21 @@ pub async fn podcast_refresh(app: AppHandle, channel_id: Option<i64>) -> AppResu
     }
 }
 
+/// Opens the website a channel's feed names in the person's browser. By id, as
+/// everything here: the address stays in the backend, since a private feed's
+/// link may hold its token like any other. The app itself contacts nobody, so
+/// this is not refused by the switch or by offline mode. An opener's error text
+/// may quote the address, so a failure is a word.
+#[tauri::command]
+pub async fn podcast_open_site(state: State<'_, AppState>, channel_id: i64) -> AppResult<()> {
+    let pool = state.require_profile_pool().await?;
+    let site = store::site_to_open(&pool, channel_id)
+        .await?
+        .ok_or(PodcastError::Failed(FetchFailure::AddressRefused))?;
+    crate::external_open::open_url(site.as_str())
+        .map_err(|_| AppError::Other("podcast: open_failed".into()))
+}
+
 /// Subscribes to every feed of an OPML file, one at a time.
 #[tauri::command]
 pub async fn podcast_import_opml(app: AppHandle, path: String) -> AppResult<OpmlImportReport> {
