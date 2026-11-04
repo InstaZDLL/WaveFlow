@@ -47,15 +47,33 @@ export function PodcastPlayerMenu({
   return (
     <>
       {chapters.length > 0 && (
-        <div className="p-1" data-podcast-chapter-menu>
-          {current >= 0 && (
-            <div className="px-2 pb-1 pt-0.5">
-              <div className="text-xs text-zinc-400">
-                {t("player.podcast.chapterOf", {
-                  current: current + 1,
-                  total: chapters.length,
-                })}
-              </div>
+        <div className="flex items-center gap-1 p-1" data-podcast-chapter-menu>
+          <button
+            type="button"
+            disabled={!canGoBack}
+            aria-label={t("player.podcast.previousChapter")}
+            title={t("player.podcast.previousChapter")}
+            onClick={() =>
+              go(previousChapterStart(chapters, getPlayerPosition()))
+            }
+            className="shrink-0 rounded-lg p-2 text-zinc-700 transition-colors hover:bg-zinc-100 disabled:pointer-events-none disabled:opacity-40 dark:text-zinc-200 dark:hover:bg-zinc-800"
+          >
+            <ChevronsLeft
+              size={16}
+              className="rtl:rotate-180"
+              aria-hidden="true"
+            />
+          </button>
+          <div className="min-w-0 flex-1 text-center">
+            <div className="truncate text-xs text-zinc-400">
+              {current >= 0
+                ? t("player.podcast.chapterOf", {
+                    current: current + 1,
+                    total: chapters.length,
+                  })
+                : t("podcasts.chapters.title")}
+            </div>
+            {current >= 0 && (
               <div
                 className="truncate text-sm text-zinc-700 dark:text-zinc-200"
                 dir="auto"
@@ -63,44 +81,22 @@ export function PodcastPlayerMenu({
               >
                 {chapters[current].title}
               </div>
-            </div>
-          )}
-          <div className="grid grid-cols-2 gap-1">
-            <button
-              type="button"
-              disabled={!canGoBack}
-              onClick={() =>
-                go(previousChapterStart(chapters, getPlayerPosition()))
-              }
-              className="flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-sm text-zinc-700 transition-colors hover:bg-zinc-100 disabled:pointer-events-none disabled:opacity-40 dark:text-zinc-200 dark:hover:bg-zinc-800"
-            >
-              <ChevronsLeft
-                size={14}
-                className="shrink-0 rtl:rotate-180"
-                aria-hidden="true"
-              />
-              <span className="truncate">
-                {t("player.podcast.previousChapter")}
-              </span>
-            </button>
-            <button
-              type="button"
-              disabled={!canGoNext}
-              onClick={() =>
-                go(nextChapterStart(chapters, getPlayerPosition()))
-              }
-              className="flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-sm text-zinc-700 transition-colors hover:bg-zinc-100 disabled:pointer-events-none disabled:opacity-40 dark:text-zinc-200 dark:hover:bg-zinc-800"
-            >
-              <span className="truncate">
-                {t("player.podcast.nextChapter")}
-              </span>
-              <ChevronsRight
-                size={14}
-                className="shrink-0 rtl:rotate-180"
-                aria-hidden="true"
-              />
-            </button>
+            )}
           </div>
+          <button
+            type="button"
+            disabled={!canGoNext}
+            aria-label={t("player.podcast.nextChapter")}
+            title={t("player.podcast.nextChapter")}
+            onClick={() => go(nextChapterStart(chapters, getPlayerPosition()))}
+            className="shrink-0 rounded-lg p-2 text-zinc-700 transition-colors hover:bg-zinc-100 disabled:pointer-events-none disabled:opacity-40 dark:text-zinc-200 dark:hover:bg-zinc-800"
+          >
+            <ChevronsRight
+              size={16}
+              className="rtl:rotate-180"
+              aria-hidden="true"
+            />
+          </button>
         </div>
       )}
       <div className="p-1">

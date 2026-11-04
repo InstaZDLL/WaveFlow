@@ -412,12 +412,14 @@ export function PodcastLeadBand({
   network,
   player,
   onPlay,
+  onOpen,
 }: {
   episode: PodcastEpisode;
   channel?: PodcastChannel;
   network: boolean;
   player: PodcastPlayerState;
   onPlay: (episode: PodcastEpisode) => void;
+  onOpen: (episode: PodcastEpisode) => void;
 }) {
   const { t } = useTranslation();
   const title = episodeTitle(t, episode);
@@ -463,7 +465,14 @@ export function PodcastLeadBand({
             )}
           </p>
           <h3 className="fe-title fe-ink mt-1.5 truncate text-[1.625rem]">
-            {title}
+            <button
+              type="button"
+              className="pc-title--link max-w-full truncate text-start"
+              aria-label={t("podcasts.episode.open", { title })}
+              onClick={() => onOpen(episode)}
+            >
+              {title}
+            </button>
           </h3>
           <p className="fe-ink-2 mt-1 truncate text-[0.9375rem]">
             {channel ? channelTitle(t, channel) : ""}

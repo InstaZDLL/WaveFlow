@@ -797,6 +797,7 @@ function PodcastOverviewList({
                     network={network}
                     player={player}
                     onPlay={actions.play}
+                    onOpen={actions.open}
                   />
                 </div>
               )}

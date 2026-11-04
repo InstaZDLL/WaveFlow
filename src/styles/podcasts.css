@@ -342,6 +342,19 @@
   border-radius: 2px;
 }
 
+/* ── A transcript's lines ──────────────────────────────────────
+   The panel is out of the page's `[data-podcasts]`, and reads the fluid
+   layout's ink directly, for every material on it. */
+:root[data-layout="fluid"] [data-transcript-line] {
+  color: var(--fe-ink-2) !important;
+}
+:root[data-layout="fluid"] [data-transcript-line][data-past] {
+  color: var(--fe-ink-3) !important;
+}
+:root[data-layout="fluid"] [data-transcript-line][aria-current] {
+  color: var(--fe-ink) !important;
+}
+
 /* ── An episode ────────────────────────────────────────────── */
 [data-podcasts] .pc-episode {
   display: flex;

@@ -190,7 +190,7 @@ function TranscriptLines({
   const virtualizer = useVirtualizer({
     count: lines.length,
     getScrollElement: () => scrollRef.current,
-    estimateSize: () => 52,
+    estimateSize: () => 38,
     overscan: 10,
   });
 
@@ -200,20 +200,22 @@ function TranscriptLines({
   const noteMoved = useCallback(() => {
     movedAt.current = performance.now();
   }, []);
-  const placed = useRef(false);
   useEffect(() => {
     if (active < 0) return;
     if (performance.now() - movedAt.current < FOLLOW_PAUSE_MS) return;
     const scroller = scrollRef.current;
     const target = virtualizer.getOffsetForIndex(active, "center");
     if (!scroller || !target) return;
-    // By hand and not `scrollToIndex`: that one does not glide over rows of
-    // different heights. The first placement jumps.
-    scroller.scrollTo({
-      top: target[0],
-      behavior: placed.current && !reducedMotion ? "smooth" : "auto",
-    });
-    placed.current = true;
+    // The next line glides, by hand since `scrollToIndex` does not glide over rows
+    // of different heights. A jump goes through it: the rows it lands on have
+    // only been estimated, and it settles once they are measured.
+    const nearby =
+      Math.abs(target[0] - scroller.scrollTop) < scroller.clientHeight;
+    if (nearby && !reducedMotion) {
+      scroller.scrollTo({ top: target[0], behavior: "smooth" });
+    } else {
+      virtualizer.scrollToIndex(active, { align: "center" });
+    }
   }, [active, reducedMotion, virtualizer]);
 
   const go = (line: PodcastTranscriptLine) => {
@@ -284,23 +286,29 @@ function TranscriptLines({
                   </div>
                 )}
                 {timed ? (
-                  <button
-                    type="button"
-                    dir="auto"
-                    data-transcript-line={row.index}
-                    aria-current={row.index === active || undefined}
-                    aria-label={t("podcasts.transcript.jump", {
-                      time: formatDuration(line.start_ms ?? 0),
-                      text: line.text,
-                    })}
-                    onClick={() => go(line)}
-                    className={`block w-full text-start ${lyricsLineClass(
-                      row.index === active,
-                      row.index < active,
-                    )}`}
-                  >
-                    {line.text}
-                  </button>
+                  // One level down from the `li` on purpose: the fluid layout fades
+                  // and blurs `li > button` by its distance from the sung line, and
+                  // a transcript is there to be read.
+                  <div>
+                    <button
+                      type="button"
+                      dir="auto"
+                      data-transcript-line={row.index}
+                      data-past={row.index < active || undefined}
+                      aria-current={row.index === active || undefined}
+                      aria-label={t("podcasts.transcript.jump", {
+                        time: formatDuration(line.start_ms ?? 0),
+                        text: line.text,
+                      })}
+                      onClick={() => go(line)}
+                      className={`block w-full text-start ${lyricsLineClass(
+                        row.index === active,
+                        row.index < active,
+                      )}`}
+                    >
+                      {line.text}
+                    </button>
+                  </div>
                 ) : (
                   <p
                     dir="auto"

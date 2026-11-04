@@ -49,6 +49,11 @@ function useEpisodeRow(
     undefined,
   );
   const seq = useRef(0);
+  // A prop that is new at each render of the view must not make this read again.
+  const goneRef = useRef(onGone);
+  useEffect(() => {
+    goneRef.current = onGone;
+  }, [onGone]);
   const reload = useCallback(() => {
     const mine = ++seq.current;
     podcastGetEpisode(episodeId)
@@ -61,13 +66,13 @@ function useEpisodeRow(
         if (mine !== seq.current) return;
         const word = podcastErrorWord(err);
         if (word === "episode_gone") {
-          onGone();
+          goneRef.current();
           return;
         }
         if (word == null) console.error("[podcasts] episode read failed", err);
         setFailedWord(word);
       });
-  }, [episodeId, onGone]);
+  }, [episodeId]);
 
   useEffect(() => {
     let cancelled = false;
