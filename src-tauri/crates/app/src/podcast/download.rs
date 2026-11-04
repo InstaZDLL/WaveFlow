@@ -776,9 +776,12 @@ pub(crate) struct Swept {
 /// legitimately not recorded yet. A name in the folder that is not ours is left
 /// alone, since nothing here knows it.
 ///
-/// The folder is listed before the rows are read, and each row's file looked for
-/// after: a download only records its row once the file has its name and stays
-/// `writing` until it has, so one finishing during a sweep cannot pass for an orphan.
+/// The order is what keeps a download finishing during a sweep from passing for an
+/// orphan. It records its row once the file has its name, and stops `writing` after
+/// that, so: the folder is listed, what is `writing` is left out of it, and only then
+/// are the rows read. A file listed whose download has already stopped `writing` has
+/// its row among them. `writing` is asked again before each removal, for a download
+/// that began meanwhile, and each row's file is looked for last.
 ///
 /// `check_rows` is false when the folder cannot be trusted to hold what the rows
 /// name: the caches' drive is unplugged and this session fell back to the default
@@ -804,6 +807,10 @@ pub(crate) async fn sweep(
     })
     .await
     .map_err(on_blocking_pool)?;
+    let listed: Vec<String> = listed
+        .into_iter()
+        .filter(|name| !episode_of(name).is_some_and(&writing))
+        .collect();
 
     let rows = store::all_downloads(pool).await?;
     let recorded: HashSet<String> = rows.iter().map(|(_, name)| name.clone()).collect();
