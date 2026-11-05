@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { listen } from "@tauri-apps/api/event";
 import { HardDrive } from "lucide-react";
 
 import { usePodcastDownloadQuota } from "../../../hooks/usePodcastDownloadQuota";
 import { usePodcastsEnabled } from "../../../hooks/usePodcastsEnabled";
 import { useProfile } from "../../../hooks/useProfile";
 import {
+  PODCAST_DOWNLOAD,
   podcastDownloadUsage,
+  type PodcastDownloadPayload,
   type PodcastDownloadUsage,
 } from "../../../lib/tauri/podcast";
 import { formatBytes } from "../podcasts/format";
@@ -24,29 +27,50 @@ export function PodcastQuotaCard() {
   const activeProfileId = activeProfile?.id ?? null;
   const [usage, setUsage] = useState<PodcastDownloadUsage | null>(null);
 
+  // A download can end while this is on screen. Subscribes first, then reads, so
+  // one ending between the two is heard rather than lost.
   useEffect(() => {
     let cancelled = false;
-    podcastDownloadUsage()
-      .then((value) => {
-        if (!cancelled) setUsage(value);
+    let off: (() => void) | undefined;
+    let latest = 0;
+    const read = () => {
+      const seq = ++latest;
+      podcastDownloadUsage()
+        .then((value) => {
+          if (!cancelled && seq === latest) setUsage(value);
+        })
+        .catch((err) => {
+          console.warn("[PodcastQuotaCard] reading the usage failed", err);
+          if (!cancelled && seq === latest) setUsage(null);
+        });
+    };
+    listen<PodcastDownloadPayload>(PODCAST_DOWNLOAD, ({ payload }) => {
+      if (payload.state === "done") read();
+    })
+      .then((unlisten) => {
+        if (cancelled) unlisten();
+        else off = unlisten;
       })
-      .catch((err) => {
-        console.warn("[PodcastQuotaCard] reading the usage failed", err);
-        if (!cancelled) setUsage(null);
+      .catch((err) => console.warn("[PodcastQuotaCard] listening failed", err))
+      .finally(() => {
+        if (!cancelled) read();
       });
     return () => {
       cancelled = true;
+      off?.();
     };
   }, [activeProfileId, quota.value]);
 
   const used = usage?.usedBytes ?? 0;
   if (!enabled && used === 0) return null;
 
-  // Empty or nonsense puts back what was shown: `key` redraws the field from the
-  // value, and the backend reads the same rule.
-  const commit = (raw: string) => {
-    const next = Number(raw);
-    if (Number.isSafeInteger(next) && next >= 1 && next !== quota.value) {
+  // Empty or nonsense puts back what was shown, which `key` cannot do since the
+  // value has not changed. The backend reads the same rule.
+  const commit = (input: HTMLInputElement) => {
+    const next = Number(input.value);
+    if (!Number.isSafeInteger(next) || next < 1) {
+      input.value = String(quota.value);
+    } else if (next !== quota.value) {
       void quota.setValue(next);
     }
   };
@@ -82,9 +106,9 @@ export function PodcastQuotaCard() {
           disabled={!quota.ready}
           defaultValue={quota.value}
           aria-label={t("settings.podcasts.downloadQuota")}
-          onBlur={(event) => commit(event.target.value)}
+          onBlur={(event) => commit(event.target)}
           onKeyDown={(event) => {
-            if (event.key === "Enter") commit(event.currentTarget.value);
+            if (event.key === "Enter") commit(event.currentTarget);
           }}
           className="w-20 rounded-lg bg-zinc-100 px-2 py-1 text-zinc-900 dark:bg-zinc-800 dark:text-white"
         />

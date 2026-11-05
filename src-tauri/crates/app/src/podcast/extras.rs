@@ -29,8 +29,8 @@ use waveflow_core::podcast::id3;
 use waveflow_core::podcast::transcript::{self, TranscriptKind, TranscriptLine};
 use waveflow_core::podcast::{FetchFailure, MAX_CHAPTERS_BYTES, MAX_TRANSCRIPT_BYTES};
 
+use super::download::stored_file;
 use super::fetch::{FetchError, Fetcher, Origin};
-use super::playback::downloaded_file;
 use super::refresh::{with_busy_retry, Leases, PodcastError};
 use super::store::{self, ChapterSources};
 
@@ -244,7 +244,7 @@ pub(crate) async fn chapters<L: Leases>(
         let on_disk = row
             .download_file
             .as_deref()
-            .and_then(|name| downloaded_file(downloads, episode_id, name));
+            .and_then(|name| stored_file(downloads, episode_id, name));
         let enclosure = row.enclosure_url.as_deref().and_then(parse_address);
         if let Some(path) = on_disk {
             from_tag = read_file_tag(path).await;

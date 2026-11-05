@@ -289,8 +289,13 @@ async fn an_origin_is_decided_once_from_the_typed_address() {
         .is_ok());
 }
 
-/// A real TLS server answers a redirect into the clear. The test certificate is
-/// self-signed and only this test's client skips checking it.
+/// The certificate of [`tls_redirecting_to`], for `feeds.example.org` and any name under
+/// it, trusted by a test's client as its own root so the check itself still runs.
+pub(super) fn test_certificate() -> reqwest::Certificate {
+    reqwest::Certificate::from_der(include_bytes!("testdata/self-signed-cert.der")).unwrap()
+}
+
+/// A real TLS server answers a redirect into the clear.
 #[tokio::test]
 async fn a_secure_address_cannot_redirect_into_the_clear() {
     let clear = serve(|_| ok("<rss/>")).await;
@@ -299,7 +304,7 @@ async fn a_secure_address_cannot_redirect_into_the_clear() {
     let fetcher = Fetcher::with(
         client_builder()
             .no_proxy()
-            .danger_accept_invalid_certs(true)
+            .add_root_certificate(test_certificate())
             .resolve(PUBLIC_HOST, ([127, 0, 0, 1], port).into()),
         online,
         Duration::from_secs(5),
@@ -310,9 +315,53 @@ async fn a_secure_address_cannot_redirect_into_the_clear() {
     assert_eq!(clear.hits(), 0, "the clear server was contacted");
 }
 
+/// A feed reached over TLS through a temporary redirect announces an address in the
+/// clear. What it is judged by is where it was served from, not the address that led
+/// there, and that one being in the clear gives the announcement nothing.
+#[tokio::test]
+async fn a_secure_feed_cannot_announce_the_clear_whatever_led_to_it() {
+    let announced = serve(|_| ok(&rss(&[("a", "Clear")]))).await;
+    let body = feed_announcing(&announced.public("/new"));
+    let port = tls_answering(format!(
+        "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+        body.len()
+    ))
+    .await;
+    let target = format!("https://{PUBLIC_HOST}:{port}/feed");
+    let start = serve(move |_| redirect(&target)).await;
+    let pool = enabled_pool().await;
+    let fetcher = Fetcher::with(
+        client_builder()
+            .no_proxy()
+            .add_root_certificate(test_certificate())
+            .resolve(PUBLIC_HOST, ([127, 0, 0, 1], port).into()),
+        online,
+        ROOMY,
+    )
+    .unwrap();
+    let id = subscribe(
+        &TestLeases(pool.clone()),
+        &fetcher,
+        &start.public("/feed"),
+        cache_dir().path(),
+    )
+    .await
+    .unwrap()
+    .channel_id();
+    assert_eq!(announced.hits(), 0, "the clear address was contacted");
+    assert_eq!(stored_address(&pool, id).await, start.public("/feed"));
+}
+
+pub(super) async fn tls_redirecting_to(location: String) -> u16 {
+    tls_answering(format!(
+        "HTTP/1.1 302 Found\r\nLocation: {location}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+    ))
+    .await
+}
+
 /// A blocking one-connection TLS server on a thread of its own, since `rustls`
 /// is what the app already has and it needs no async glue for this.
-pub(super) async fn tls_redirecting_to(location: String) -> u16 {
+async fn tls_answering(response: String) -> u16 {
     use rustls::pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer};
     let cert = CertificateDer::from(include_bytes!("testdata/self-signed-cert.der").to_vec());
     let key = PrivateKeyDer::Pkcs8(PrivatePkcs8KeyDer::from(
@@ -340,10 +389,7 @@ pub(super) async fn tls_redirecting_to(location: String) -> u16 {
                 _ => return,
             }
         }
-        let _ = write!(
-            stream,
-            "HTTP/1.1 302 Found\r\nLocation: {location}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
-        );
+        let _ = stream.write_all(response.as_bytes());
         let _ = stream.flush();
     });
     port
@@ -1975,7 +2021,7 @@ async fn a_move_is_kept_when_the_feed_has_not_changed() {
 }
 
 /// A move onto an address another channel follows is refused: two rows cannot be
-/// one address, and the channel stays where it was.
+/// one address, and the channel stays where it was, with what it had.
 #[tokio::test]
 async fn a_move_onto_a_followed_address_leaves_the_channel() {
     let pool = enabled_pool().await;
@@ -2005,6 +2051,11 @@ async fn a_move_onto_a_followed_address_leaves_the_channel() {
     .unwrap();
     assert_eq!(summary.failed, 0);
     assert_eq!(stored_address(&pool, first).await, server.local("/feed"));
+    let episodes = store::list_episodes(&pool, first, 10, 0).await.unwrap();
+    assert!(
+        !episodes.is_empty() && episodes.iter().all(|episode| episode.title != "Other"),
+        "the other channel's episodes were stored under this one"
+    );
 }
 
 /// Subscribing through an address that has moved stores where it leads, and one
@@ -2264,6 +2315,7 @@ impl std::io::Write for Capture {
 /// lines, what the commands return, and what the frontend is handed.
 #[tokio::test]
 async fn a_private_feeds_token_reaches_no_log_line() {
+    use tracing_subscriber::layer::SubscriberExt;
     use tracing_subscriber::util::SubscriberInitExt;
 
     #[derive(Default)]
@@ -2276,13 +2328,25 @@ async fn a_private_feeds_token_reaches_no_log_line() {
     }
 
     tracing_subscriber::fmt()
-        // Someone who sets RUST_LOG=trace gets this, and only this.
-        .with_env_filter(crate::logging::without_connection_lines(
-            tracing_subscriber::EnvFilter::new("trace"),
-        ))
+        // The worst RUST_LOG someone can set: everything, and by name the places that
+        // write a host.
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_new(
+                [
+                    "trace",
+                    "reqwest::connect=trace",
+                    "hyper_util::client::legacy::connect=trace",
+                    "hyper_util::client::legacy::pool=trace",
+                    "rustls::client::hs=trace",
+                ]
+                .join(","),
+            )
+            .expect("valid directives"),
+        )
         .with_ansi(false)
         .with_writer(|| Capture)
         .finish()
+        .with(crate::logging::without_connection_lines())
         .try_init()
         .expect("no other test installs a global subscriber");
     CAPTURING.store(true, Ordering::SeqCst);
@@ -2385,6 +2449,26 @@ async fn a_private_feeds_token_reaches_no_log_line() {
     )
     .await
     .unwrap();
+    // The same name over TLS, where the handshake carries it too.
+    let tls_port = tls_redirecting_to(server.local("/clear")).await;
+    let over_tls = Fetcher::with(
+        client_builder()
+            .no_proxy()
+            .add_root_certificate(test_certificate())
+            .resolve(&token_host, ([127, 0, 0, 1], tls_port).into()),
+        online,
+        ROOMY,
+    )
+    .unwrap();
+    assert_eq!(
+        fetch(&over_tls, &format!("https://{token_host}:{tls_port}/feed"))
+            .await
+            .err(),
+        failed(FetchFailure::AddressRefused),
+        "the handshake went through and the redirect was judged"
+    );
+    // What `rustls` says of a handshake once a dependency turns its logging on.
+    tracing::debug!(target: "rustls::client::hs", "No cached session for {token_host}");
     let unresolved = format!("http://{TOKEN}.invalid/feed.xml");
     let err = subscribe(&leases, &fetcher, &unresolved, cache.path())
         .await

@@ -20,7 +20,11 @@ export interface PodcastUpdatedPayload {
 export const PODCAST_DOWNLOAD = "podcast:download";
 
 export type PodcastDownloadState =
-  "queued" | "running" | "done" | "failed" | "cancelled";
+  | "queued"
+  | "running"
+  | "done"
+  | "failed"
+  | "cancelled";
 
 /** Mirrors `podcast::download::DownloadUpdate`. Holds no address and no path. */
 export interface PodcastDownloadPayload {
@@ -166,8 +170,8 @@ const ERROR_PREFIX = "podcast: ";
 
 /**
  * The word a refused command rejected with: `disabled`, `offline`,
- * `profile_changed`, `channel_gone`, `episode_gone`, `open_failed`, `no_source`, `not_seekable`,
- * `write_failed`, or one from `FetchFailure::code` (`address_refused`,
+ * `profile_changed`, `channel_gone`, `episode_gone`, `no_source`, `open_failed`,
+ * `not_seekable`, `write_failed`, or one from `FetchFailure::code` (`address_refused`,
  * `too_many_redirects`, `too_large`, `unreached`, `http_<status>`,
  * `invalid_feed`, `not_audio`, `quota_exceeded`). `null` for any other error.
  */
@@ -230,6 +234,32 @@ export function podcastExportOpml(
  *  the backend, which checks it is an http or https one. */
 export function podcastOpenSite(channelId: number): Promise<void> {
   return invoke("podcast_open_site", { channelId });
+}
+
+/** Puts an episode in line to be kept on disk. Resolves once it is in line:
+ *  {@link PODCAST_DOWNLOAD} says the rest. Rejects with the switch off or offline. */
+export function podcastDownloadEpisode(episodeId: number): Promise<void> {
+  return invoke("podcast_download_episode", { episodeId });
+}
+
+/** Takes an episode out of the line, or stops it where it is. */
+export function podcastCancelDownload(episodeId: number): Promise<void> {
+  return invoke("podcast_cancel_download", { episodeId });
+}
+
+/** Removes an episode's file. Its row and its position stay. */
+export function podcastDeleteDownload(episodeId: number): Promise<void> {
+  return invoke("podcast_delete_download", { episodeId });
+}
+
+export function podcastDownloadUsage(): Promise<PodcastDownloadUsage> {
+  return invoke<PodcastDownloadUsage>("podcast_download_usage");
+}
+
+/** The downloads under way, for a view opened meanwhile: no event replays for it.
+ *  Subscribe to {@link PODCAST_DOWNLOAD} first, then call this. */
+export function podcastDownloadQueue(): Promise<PodcastDownloadPayload[]> {
+  return invoke<PodcastDownloadPayload[]>("podcast_download_queue");
 }
 
 /** Plays an episode with its channel as the queue. From disk when it is
@@ -300,32 +330,6 @@ export function podcastSetChannelSpeed(
   speed: number | null,
 ): Promise<void> {
   return invoke("podcast_set_channel_speed", { channelId, speed });
-}
-
-/** Puts an episode in line to be kept on disk. Resolves once it is in line:
- *  {@link PODCAST_DOWNLOAD} says the rest. Rejects with the switch off or offline. */
-export function podcastDownloadEpisode(episodeId: number): Promise<void> {
-  return invoke("podcast_download_episode", { episodeId });
-}
-
-/** Takes an episode out of the line, or stops it where it is. */
-export function podcastCancelDownload(episodeId: number): Promise<void> {
-  return invoke("podcast_cancel_download", { episodeId });
-}
-
-/** Removes an episode's file. Its row and its position stay. */
-export function podcastDeleteDownload(episodeId: number): Promise<void> {
-  return invoke("podcast_delete_download", { episodeId });
-}
-
-export function podcastDownloadUsage(): Promise<PodcastDownloadUsage> {
-  return invoke<PodcastDownloadUsage>("podcast_download_usage");
-}
-
-/** The downloads under way, for a view opened meanwhile: no event replays for it.
- *  Subscribe to {@link PODCAST_DOWNLOAD} first, then call this. */
-export function podcastDownloadQueue(): Promise<PodcastDownloadPayload[]> {
-  return invoke<PodcastDownloadPayload[]>("podcast_download_queue");
 }
 
 /** The channel's episodes in the queue, in the shape of a remote queue so the

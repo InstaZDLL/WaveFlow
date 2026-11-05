@@ -11,9 +11,10 @@ use lofty::prelude::{Accessor, AudioFile};
 use lofty::tag::ItemKey;
 
 use waveflow_core::scanner::{
-    extract_album_artist, extract_compilation_flag, extract_cover, extract_folder_cover,
-    extract_musical_key, extract_rating, extract_replay_gain, file_type_label, hash_file,
-    hash_reader, split_genres, ExtractedCover, ExtractedFile, ReplayGainTags,
+    extract_album_artist, extract_artists, extract_compilation_flag, extract_cover,
+    extract_folder_cover, extract_musical_key, extract_rating, extract_replay_gain,
+    file_type_label, hash_file, hash_reader, split_genres, ExtractedCover, ExtractedFile,
+    ReplayGainTags,
 };
 
 use crate::error::AppResult;
@@ -556,7 +557,7 @@ fn from_tagged(
     ) = match tag {
         Some(tag) => (
             tag.title().map(|s| s.into_owned()),
-            tag.artist().map(|s| s.into_owned()),
+            extract_artists(tag),
             tag.album().map(|s| s.into_owned()),
             extract_album_artist(tag),
             extract_compilation_flag(tag),

@@ -71,10 +71,12 @@ fn read_lofty(path: &Path) -> Result<Values, String> {
         Field::Title,
         tag.title().map(|s| s.into_owned()),
     );
+    // Every name, the way the scanner reads them: this is also what an undo
+    // writes back, and the first alone would lose the others.
     put(
         &mut values,
         Field::Artist,
-        tag.artist().map(|s| s.into_owned()),
+        waveflow_core::scanner::extract_artists(tag),
     );
     put(
         &mut values,
@@ -138,7 +140,11 @@ fn read_dsf(path: &Path) -> Result<Values, String> {
     };
     let number = |n: Option<u32>| n.map(|n| n.to_string());
     put(&mut values, Field::Title, tag.title().map(str::to_owned));
-    put(&mut values, Field::Artist, tag.artist().map(str::to_owned));
+    put(
+        &mut values,
+        Field::Artist,
+        waveflow_core::audio_format::dsd::metadata::id3_artists(&tag),
+    );
     put(&mut values, Field::Album, tag.album().map(str::to_owned));
     put(
         &mut values,

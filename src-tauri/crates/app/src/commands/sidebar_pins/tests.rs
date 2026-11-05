@@ -181,7 +181,11 @@ async fn merging_an_implicit_compilation_carries_its_pin() {
              VALUES (11, 'Hits', 'hits', 2, 0)",
         "INSERT INTO album (id, title, canonical_title, artist_id, is_compilation)
              VALUES (12, 'Hits', 'hits', 3, 0)",
-        "UPDATE track SET album_id = 11 WHERE id = 1",
+        "UPDATE track SET album_id = 11, file_path = '/comp/a.flac' WHERE id = 1",
+        "INSERT INTO track (id, library_id, file_path, file_hash, file_size, file_modified,
+                            title, duration_ms, added_at, album_id, is_available)
+             VALUES (101, 1, '/comp/b.flac', 'b', 1, 0, 'b', 1000, 0, 10, 1),
+                    (102, 1, '/comp/c.flac', 'c', 1, 0, 'c', 1000, 0, 12, 1)",
     ] {
         sqlx::raw_sql(statement).execute(&pool).await.unwrap();
     }

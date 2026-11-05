@@ -330,6 +330,7 @@ pub fn run() {
             commands::release_radar::release_radar_list,
             commands::release_radar::release_radar_refresh_playlist,
             commands::scan::scan_folder,
+            commands::scan::take_unreachable_folders,
             commands::scan::rescan_local_artist_images,
             commands::deezer::search_artists_deezer,
             commands::deezer::set_artist_artwork_from_deezer,

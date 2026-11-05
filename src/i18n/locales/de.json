@@ -3985,6 +3985,10 @@
       "same": "Dieser Ordner ist bereits in der Bibliothek: {{folder}}",
       "inside": "Dieser Ordner ist bereits in der Bibliothek, innerhalb von {{folder}}.",
       "contains": "Dieser Ordner enthält {{folder}}, der bereits in der Bibliothek ist. Füge stattdessen seine anderen Unterordner hinzu."
+    },
+    "unreachable": {
+      "title": "Bibliotheksordner nicht erreichbar",
+      "body": "Er fehlt oder lässt sich nicht lesen, vielleicht ist ein Laufwerk nicht angeschlossen. Seine Titel bleiben unverändert in der Bibliothek."
     }
   },
   "playlistImport": {

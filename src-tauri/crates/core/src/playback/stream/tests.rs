@@ -755,6 +755,253 @@ fn leaving_the_shift_mid_track_drops_the_stretcher() {
     );
 }
 
+/// Chained Ogg Opus, built by hand so what each stream names is visible next
+/// to the assertions. Each stream is a real Opus stream of 20 ms CELT frames,
+/// its pages checksummed since the reader verifies them.
+#[cfg(feature = "opus")]
+mod chained {
+    use super::*;
+    use std::io::Cursor;
+    use std::sync::{Arc, Mutex};
+
+    fn crc(data: &[u8]) -> u32 {
+        let mut crc = 0u32;
+        for byte in data {
+            crc ^= u32::from(*byte) << 24;
+            for _ in 0..8 {
+                crc = if crc & 0x8000_0000 != 0 {
+                    (crc << 1) ^ 0x04C1_1DB7
+                } else {
+                    crc << 1
+                };
+            }
+        }
+        crc
+    }
+
+    /// One page holding one packet of under 64 KiB, in whole segments.
+    fn page(flags: u8, granule: u64, serial: u32, sequence: u32, packet: &[u8]) -> Vec<u8> {
+        let mut lacing = vec![255u8; packet.len() / 255];
+        lacing.push((packet.len() % 255) as u8);
+        let mut page = b"OggS\0".to_vec();
+        page.push(flags);
+        page.extend_from_slice(&granule.to_le_bytes());
+        page.extend_from_slice(&serial.to_le_bytes());
+        page.extend_from_slice(&sequence.to_le_bytes());
+        page.extend_from_slice(&0u32.to_le_bytes());
+        page.push(lacing.len() as u8);
+        page.extend_from_slice(&lacing);
+        page.extend_from_slice(packet);
+        let checksum = crc(&page);
+        page[22..26].copy_from_slice(&checksum.to_le_bytes());
+        page
+    }
+
+    fn opus_stream(serial: u32, comments: &[&str]) -> Vec<u8> {
+        let mut head = b"OpusHead".to_vec();
+        head.push(1); // version
+        head.push(2); // channels
+        head.extend_from_slice(&0u16.to_le_bytes()); // pre-skip
+        head.extend_from_slice(&48_000u32.to_le_bytes());
+        head.extend_from_slice(&0i16.to_le_bytes()); // output gain
+        head.push(0); // channel mapping family
+
+        let mut tags = b"OpusTags".to_vec();
+        tags.extend_from_slice(&4u32.to_le_bytes());
+        tags.extend_from_slice(b"test");
+        tags.extend_from_slice(&(comments.len() as u32).to_le_bytes());
+        for comment in comments {
+            tags.extend_from_slice(&(comment.len() as u32).to_le_bytes());
+            tags.extend_from_slice(comment.as_bytes());
+        }
+
+        let mut out = page(0x02, 0, serial, 0, &head);
+        out.extend_from_slice(&page(0, 0, serial, 1, &tags));
+        // TOC 0xFC: CELT fullband, 20 ms, stereo, one frame.
+        let frame = [0xFC, 0xFF, 0xFE];
+        for n in 0..FRAMES_PER_STREAM {
+            let flags = if n + 1 == FRAMES_PER_STREAM { 0x04 } else { 0 };
+            let granule = u64::from(n + 1) * 960;
+            out.extend_from_slice(&page(flags, granule, serial, n + 2, &frame));
+        }
+        out
+    }
+
+    const FRAMES_PER_STREAM: u32 = 50;
+
+    /// Forward-only, as a live station is to the reader.
+    struct Live(Cursor<Vec<u8>>);
+
+    impl Read for Live {
+        fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+            self.0.read(buf)
+        }
+    }
+
+    impl Seek for Live {
+        fn seek(&mut self, _pos: SeekFrom) -> std::io::Result<u64> {
+            Err(std::io::ErrorKind::Unsupported.into())
+        }
+    }
+
+    impl MediaSource for Live {
+        fn is_seekable(&self) -> bool {
+            false
+        }
+
+        fn byte_len(&self) -> Option<u64> {
+            None
+        }
+    }
+
+    /// Decode all of `bytes`. Returns what the sink heard, with how many
+    /// frames had come out each time, and the frames in all.
+    fn heard(bytes: Vec<u8>, watch: bool) -> (Vec<(usize, StreamTags)>, usize) {
+        let mut stream = ActiveStream::open_from_source(
+            Box::new(Live(Cursor::new(bytes))),
+            Some("ogg"),
+            -1,
+            0,
+            "radio".to_string(),
+            None,
+            TrackGain::default(),
+        )
+        .expect("opens");
+        let frames = Arc::new(Mutex::new(0usize));
+        let log = Arc::new(Mutex::new(Vec::new()));
+        if watch {
+            let (frames, log) = (Arc::clone(&frames), Arc::clone(&log));
+            stream.watch_tags(Box::new(move |tags| {
+                log.lock().unwrap().push((*frames.lock().unwrap(), tags));
+            }));
+        }
+        let dst = stereo();
+        let (mut out, mut scratch) = (Vec::new(), Vec::new());
+        loop {
+            out.clear();
+            let ended = stream
+                .decode_next(&mut out, &mut scratch, 48_000, &dst)
+                .expect("decodes");
+            *frames.lock().unwrap() += out.len() / 2;
+            if ended {
+                break;
+            }
+        }
+        let total = *frames.lock().unwrap();
+        let log = log.lock().unwrap().clone();
+        (log, total)
+    }
+
+    fn named(title: &str, artist: Option<&str>) -> StreamTags {
+        StreamTags {
+            title: Some(title.to_string()),
+            artist: artist.map(str::to_string),
+        }
+    }
+
+    #[test]
+    fn each_stream_names_its_song_when_the_audio_reaches_it() {
+        let mut bytes = opus_stream(1, &["TITLE=First", "ARTIST=One", "ENCODER=x"]);
+        bytes.extend(opus_stream(2, &["TITLE=Second", "ARTIST=Two"]));
+        bytes.extend(opus_stream(3, &["TITLE=Third"]));
+        let (log, total) = heard(bytes, true);
+
+        let per_stream = FRAMES_PER_STREAM as usize * 960;
+        assert_eq!(total, 3 * per_stream);
+        let songs: Vec<_> = log.iter().map(|(_, tags)| tags.clone()).collect();
+        assert_eq!(
+            songs,
+            vec![
+                named("First", Some("One")),
+                named("Second", Some("Two")),
+                named("Third", None),
+            ]
+        );
+        // The first before any audio, the others at the join.
+        let at: Vec<_> = log.iter().map(|(frames, _)| *frames).collect();
+        assert_eq!(at, vec![0, per_stream, 2 * per_stream]);
+    }
+
+    #[test]
+    fn a_stream_that_names_nothing_clears_the_song_before_it() {
+        let mut bytes = opus_stream(1, &["TITLE=First"]);
+        bytes.extend(opus_stream(2, &[]));
+        bytes.extend(opus_stream(3, &["ARTIST=Only a station"]));
+        bytes.extend(opus_stream(4, &["TITLE=Fourth"]));
+        let (log, _) = heard(bytes, true);
+        let titles: Vec<_> = log.iter().map(|(_, tags)| tags.title.as_deref()).collect();
+        assert_eq!(titles, vec![Some("First"), None, None, Some("Fourth")]);
+    }
+
+    #[test]
+    fn a_first_stream_with_no_tags_does_not_hide_the_next_one() {
+        let mut bytes = opus_stream(1, &[]);
+        bytes.extend(opus_stream(2, &["TITLE=Second"]));
+        let (log, _) = heard(bytes, true);
+        assert_eq!(log[0].1, StreamTags::default());
+        assert_eq!(log[1].1, named("Second", None));
+    }
+
+    #[test]
+    fn values_are_bounded_on_one_line_and_noise_is_dropped() {
+        let long = format!("TITLE={}", "é".repeat(5_000));
+        let many: Vec<String> = (0..200).map(|n| format!("ARTIST=Artist {n}")).collect();
+        let mut comments = vec![long.as_str()];
+        comments.extend(many.iter().map(String::as_str));
+        let mut bytes = opus_stream(1, &comments);
+        bytes.extend(opus_stream(2, &["TITLE= -", "ARTIST="]));
+        bytes.extend(opus_stream(
+            3,
+            &["TITLE=Two\nlines\u{7}", "ARTIST=A", "ARTIST=B"],
+        ));
+        let (log, _) = heard(bytes, true);
+
+        let first = &log[0].1;
+        let title = first.title.as_deref().unwrap();
+        assert!(title.len() <= 512 && title.chars().all(|c| c == 'é'));
+        let artist = first.artist.as_deref().unwrap();
+        assert!(artist.len() <= 512 && artist.starts_with("Artist 0; Artist 1; "));
+
+        assert_eq!(log[1].1, StreamTags::default());
+        // Separated as every multi-artist value in the app is.
+        assert_eq!(log[2].1, named("Two lines", Some("A; B")));
+    }
+
+    #[test]
+    fn the_audio_is_the_same_whether_the_tags_are_watched_or_not() {
+        let mut bytes = opus_stream(1, &["TITLE=First"]);
+        bytes.extend(opus_stream(2, &["TITLE=Second"]));
+        let (log, watched) = heard(bytes.clone(), true);
+        let (none, plain) = heard(bytes, false);
+        assert_eq!(log.len(), 2);
+        assert!(none.is_empty());
+        assert_eq!(watched, plain);
+    }
+
+    #[test]
+    fn a_container_other_than_ogg_is_not_watched() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("t.wav");
+        write_wav(&path);
+        let mut stream = ActiveStream::open(
+            &path,
+            -1,
+            0,
+            "radio".to_string(),
+            None,
+            TrackGain::default(),
+            0,
+            false,
+        )
+        .unwrap();
+        stream.watch_tags(Box::new(|_| panic!("a WAV has no chained streams")));
+        let (mut out, mut scratch) = (Vec::new(), Vec::new());
+        stream
+            .decode_next(&mut out, &mut scratch, 48_000, &stereo())
+            .unwrap();
+    }
+}
+
 /// A `MediaSource` over bytes in memory that counts what is read from it.
 struct CountingSource {
     bytes: std::io::Cursor<Vec<u8>>,

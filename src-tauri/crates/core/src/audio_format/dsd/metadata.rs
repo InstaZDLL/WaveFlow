@@ -223,7 +223,7 @@ fn parse_id3v2_blob<R: Read + Seek>(reader: &mut R) -> DsdMetadata {
     };
     DsdMetadata {
         title: tag.title().map(|s| s.to_string()),
-        artist: tag.artist().map(|s| s.to_string()),
+        artist: id3_artists(&tag),
         album: tag.album().map(|s| s.to_string()),
         year: tag.year().map(|y| y as i64),
         track_number: tag.track().map(|t| t as i64),
@@ -240,6 +240,22 @@ fn parse_id3v2_blob<R: Read + Seek>(reader: &mut R) -> DsdMetadata {
         }))
         .flatten(),
     }
+}
+
+/// The description of the `TXXX` frame that holds the `ARTISTS` tag.
+pub const ARTISTS_TXXX: &str = "ARTISTS";
+
+/// The credit an ID3v2 tag read by the `id3` crate gives a track, by the rule
+/// every other container goes through ([`crate::scanner::artist_credit`]).
+/// The crate hands `TPE1` and a `TXXX` back whole, NUL separators included.
+pub fn id3_artists(tag: &id3::Tag) -> Option<String> {
+    use id3::TagLike;
+    crate::scanner::artist_credit(
+        tag.extended_texts()
+            .filter(|text| text.description.eq_ignore_ascii_case(ARTISTS_TXXX))
+            .map(|text| text.value.as_str()),
+        tag.artist(),
+    )
 }
 
 /// A text frame's value, trimmed, or `None` when it holds nothing — the

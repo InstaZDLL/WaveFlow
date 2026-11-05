@@ -262,22 +262,36 @@ export function PodcastsView({
   );
 
   const importList = async () => {
-    const picked = await showOpenDialog({
-      multiple: false,
-      directory: false,
-      title: t("podcasts.opml.importDialogTitle"),
-      filters: [{ name: "OPML", extensions: ["opml", "xml"] }],
-    });
+    let picked: string | string[] | null;
+    try {
+      picked = await showOpenDialog({
+        multiple: false,
+        directory: false,
+        title: t("podcasts.opml.importDialogTitle"),
+        filters: [{ name: "OPML", extensions: ["opml", "xml"] }],
+      });
+    } catch (err) {
+      console.warn("[podcasts] the open dialog failed", err);
+      failWith(null);
+      return;
+    }
     if (typeof picked === "string") importPodcastOpml(picked);
   };
 
   const exportList = async () => {
     setExportOpen(false);
-    const path = await showSaveDialog({
-      title: t("podcasts.opml.exportDialogTitle"),
-      defaultPath: "waveflow-podcasts.opml",
-      filters: [{ name: "OPML", extensions: ["opml"] }],
-    });
+    let path: string | null;
+    try {
+      path = await showSaveDialog({
+        title: t("podcasts.opml.exportDialogTitle"),
+        defaultPath: "waveflow-podcasts.opml",
+        filters: [{ name: "OPML", extensions: ["opml"] }],
+      });
+    } catch (err) {
+      console.warn("[podcasts] the save dialog failed", err);
+      failWith(null);
+      return;
+    }
     if (!path) return;
     await run("export", async () => {
       const report = await podcastExportOpml(path);

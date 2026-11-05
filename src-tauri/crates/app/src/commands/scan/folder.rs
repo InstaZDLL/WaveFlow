@@ -20,10 +20,12 @@ use waveflow_core::scanner::{
 };
 
 use crate::{
+    commands::artist_split::is_split_of,
     error::{AppError, AppResult},
     state::AppState,
 };
 
+use super::moved::relink_moved_files;
 use super::*;
 
 /// Walk an existing `library_folder` on disk, extract tags from every audio
@@ -158,7 +160,7 @@ pub(crate) async fn scan_folder_inner(
     // with it and comes back: the walk reports through it (files found,
     // the directory it is in, no total yet) and watches its stop flag.
     let folder_path_owned = folder_path.clone();
-    let (listed, task, network) = tokio::task::spawn_blocking(move || {
+    let (walked, task, network) = tokio::task::spawn_blocking(move || {
         // A share is listed in its own way, and what it answers replaces the
         // `fs::metadata` calls and file opens below. Its walk gives a whole
         // list or none (`netlib::scan`): the sweep at the end of this function
@@ -176,15 +178,18 @@ pub(crate) async fn scan_folder_inner(
             );
             return match walked {
                 Ok(Some(listing)) => (
-                    Some(listing.files.clone()),
+                    Ok(Some(FolderWalk {
+                        files: listing.files.clone(),
+                        unreadable: Vec::new(),
+                    })),
                     task,
-                    Ok(Some(Arc::new(listing))),
+                    Some(Arc::new(listing)),
                 ),
-                Ok(None) => (None, task, Ok(None)),
-                Err(err) => (None, task, Err(err)),
+                Ok(None) => (Ok(None), task, None),
+                Err(err) => (Err(format!("network share: {err}")), task, None),
             };
         }
-        let listed = collect_scannable_files_with(
+        let walked = collect_scannable_files_with(
             Path::new(&folder_path_owned),
             |found, dir| {
                 if let Some(task) = task.as_ref() {
@@ -194,13 +199,29 @@ pub(crate) async fn scan_folder_inner(
             },
             || task.as_ref().is_some_and(|t| t.is_cancelling()),
         );
-        (listed, task, Ok(None))
+        (walked, task, None)
     })
     .await
     .map_err(|e| AppError::Other(format!("walk task failed: {e}")))?;
-    // Nothing was read and nothing is written: an unreachable share is not an
-    // empty folder.
-    let network = network.map_err(|err| AppError::Other(format!("network share: {err}")))?;
+    // Nothing was read and nothing is written: a folder that does not answer
+    // is not an empty folder. A share's whole list or none; a local folder's
+    // root, a drive that is not plugged in. A local error names the folder and
+    // reaches the user from here, whichever way the scan started: a rescan of
+    // the library and the one at launch only count it.
+    let walked = match walked {
+        Ok(walked) => walked,
+        Err(reason) if waveflow_core::network_locator::is_locator(&folder_path) => {
+            return Err(AppError::Other(reason));
+        }
+        Err(reason) => {
+            return Err(folder_unreachable(
+                app_handle,
+                folder_id,
+                &folder_path,
+                reason,
+            ));
+        }
+    };
     let is_network = network.is_some();
     // A share going away is a stop too: every file left would wait out its
     // timeout to fail, and like a stop it leaves the sweep out.
@@ -216,7 +237,11 @@ pub(crate) async fn scan_folder_inner(
     // Asked once more on the way out: the walk only looks every few
     // entries, and a stop that lands after its last look with nothing
     // found would meet no loop to notice it before the sweep.
-    let Some(audio_files) = listed.filter(|_| !cancelled()) else {
+    let Some(FolderWalk {
+        files: audio_files,
+        unreadable,
+    }) = walked.filter(|_| !cancelled())
+    else {
         tracing::info!(folder_id, walk_ms, "scan stopped while listing files");
         let summary = ScanSummary {
             folder_id,
@@ -291,14 +316,18 @@ pub(crate) async fn scan_folder_inner(
     // matters because a library with no ReplayGain tags at all would
     // otherwise re-read every file on every scan and lose the fast
     // path permanently.
-    let rg_backfill_key = format!("scan.rg_backfill_done.{folder_id}");
     //
-    // Not on a share, for this pass and the three below: they exist for rows
-    // older than a feature, a share's rows are not, and each pass would read
-    // every file of the folder again.
-    let rg_backfill_pending = !is_network
-        && !rg_missing.is_empty()
-        && marker_absent(pool, &rg_backfill_key, folder_id).await;
+    // Not on a share, for this pass and the others below: they exist for rows
+    // older than a feature, a share's rows are not in any release, and each
+    // pass would read every file of the folder again. A deep rescan reaches a
+    // share's rows if one ever needs it.
+    let rg_backfill = ForcedPass::load(
+        pool,
+        "rg_backfill",
+        folder_id,
+        is_network || rg_missing.is_empty(),
+    )
+    .await;
 
     // Custom tags (#588) land in `track_tag` at scan time, and every
     // file of a library that predates the feature still matches on
@@ -312,24 +341,14 @@ pub(crate) async fn scan_folder_inner(
     // with no custom tags has no `track_tag` rows either, so "has none"
     // and "was never read" are the same shape. The marker is the only
     // thing that separates a first pass from a second.
-    let tag_backfill_key = format!("scan.tag_backfill_done.{folder_id}");
-    let tag_backfill_pending =
-        !is_network && marker_absent(pool, &tag_backfill_key, folder_id).await;
-    // How many passes have already been spent on this folder without
-    // reading every file. A file whose tags cannot be read is usually
-    // transient -- an antivirus holding it, a share that dropped -- so
-    // the pass is worth repeating. But some are not: a truncated
-    // container fails identically every time, and holding the marker
-    // back for it makes every future scan of that folder re-read every
-    // file in it, for the life of the install. Retry a few times, then
-    // accept the folder as read.
-    let tag_backfill_attempt_key = format!("scan.tag_backfill_attempts.{folder_id}");
-    let tag_backfill_attempts = if tag_backfill_pending {
-        read_counter(pool, &tag_backfill_attempt_key, folder_id).await
-    } else {
-        0
-    };
-    const TAG_BACKFILL_MAX_ATTEMPTS: i64 = 3;
+    //
+    // A file whose tags cannot be read is usually transient -- an antivirus
+    // holding it, a share that dropped -- so the pass is worth repeating. But
+    // some are not: a truncated container fails identically every time, and
+    // holding the marker back for it would make every future scan of that
+    // folder re-read every file in it, for the life of the install. So it
+    // retries a few times, then accepts the folder as read.
+    let tag_backfill = ForcedPass::load(pool, "tag_backfill", folder_id, is_network).await;
 
     // Several genres per track (#729) are read since a library already
     // holds one per track — the first value, or a "Rock; Jazz" kept whole
@@ -340,29 +359,19 @@ pub(crate) async fn scan_folder_inner(
     // is usually transient and its genres would otherwise stay stale for
     // good; but only for a few scans, as the custom-tag pass does, so a
     // permanently unreadable file does not re-read the folder forever.
-    let genre_backfill_key = format!("scan.genre_backfill_done.{folder_id}");
-    let genre_backfill_pending =
-        !is_network && marker_absent(pool, &genre_backfill_key, folder_id).await;
-    let genre_backfill_attempt_key = format!("scan.genre_backfill_attempts.{folder_id}");
-    let genre_backfill_attempts = if genre_backfill_pending {
-        read_counter(pool, &genre_backfill_attempt_key, folder_id).await
-    } else {
-        0
-    };
+    let genre_backfill = ForcedPass::load(pool, "genre_backfill", folder_id, is_network).await;
 
     // The track and disc totals (album completeness) are read since a
     // library already holds rows without them, and the fast path never
     // reopens an unchanged file: one forced pass per folder fills them,
     // with the genre pass's marker and retry budget.
-    let totals_backfill_key = format!("scan.totals_backfill_done.{folder_id}");
-    let totals_backfill_pending =
-        !is_network && marker_absent(pool, &totals_backfill_key, folder_id).await;
-    let totals_backfill_attempt_key = format!("scan.totals_backfill_attempts.{folder_id}");
-    let totals_backfill_attempts = if totals_backfill_pending {
-        read_counter(pool, &totals_backfill_attempt_key, folder_id).await
-    } else {
-        0
-    };
+    let totals_backfill = ForcedPass::load(pool, "totals_backfill", folder_id, is_network).await;
+
+    // Every artist of a file is read since a library already holds the first
+    // one alone, and the fast path never reopens an unchanged file. One forced
+    // pass per folder lets the unchanged-file branch relink them, with the
+    // same marker and retry budget.
+    let artist_backfill = ForcedPass::load(pool, "artist_backfill", folder_id, is_network).await;
 
     let meta_load_ms = t_scan.elapsed().as_millis();
 
@@ -373,6 +382,31 @@ pub(crate) async fn scan_folder_inner(
         return Err(AppError::Other(
             "network share: the folder is empty, and the library has tracks from it".into(),
         ));
+    }
+    // The same on a local disk, as far as one can tell. A drive that is not
+    // mounted leaves its mount point behind on Linux, an ordinary empty
+    // directory: a folder that was a mount point when it held files and is not
+    // one now. Anything else that lists empty is what it looks like: somebody
+    // emptied it, and its tracks go below.
+    let was_mount_key = format!("scan.root_was_mount.{folder_id}");
+    if !is_network && audio_files.is_empty() && !existing_meta.is_empty() {
+        let was_mount = read_counter(pool, &was_mount_key, folder_id).await == 1;
+        if drive_is_away(Path::new(&folder_path), was_mount) {
+            return Err(folder_unreachable(
+                app_handle,
+                folder_id,
+                &folder_path,
+                "it is empty, and its files were on a drive that is not mounted".to_string(),
+            ));
+        }
+    }
+    if !is_network && !audio_files.is_empty() {
+        let is_mount = i64::from(is_mount_point(Path::new(&folder_path)));
+        if read_counter(pool, &was_mount_key, folder_id).await != is_mount {
+            if let Err(err) = write_counter(pool, &was_mount_key, is_mount).await {
+                tracing::warn!(?err, folder_id, "could not record the folder's mount point");
+            }
+        }
     }
 
     let total_files = audio_files.len();
@@ -456,13 +490,14 @@ pub(crate) async fn scan_folder_inner(
                     }),
                 };
                 if let Some((disk_size, disk_mtime_ms)) = current {
-                    let needs_rg_backfill = rg_backfill_pending && rg_missing.contains(&path_str);
+                    let needs_rg_backfill = rg_backfill.pending && rg_missing.contains(&path_str);
                     if disk_size == stored_size
                         && disk_mtime_ms == stored_mtime
                         && !needs_rg_backfill
-                        && !tag_backfill_pending
-                        && !genre_backfill_pending
-                        && !totals_backfill_pending
+                        && !tag_backfill.pending
+                        && !genre_backfill.pending
+                        && !totals_backfill.pending
+                        && !artist_backfill.pending
                     {
                         summary.skipped += 1;
                         maybe_emit_progress(
@@ -494,6 +529,20 @@ pub(crate) async fn scan_folder_inner(
         }
         to_extract.push(path);
     }
+    // A directory the walk could not read matters when it holds tracks of this
+    // folder: what is left in the map by now, and the sweep leaves them alone.
+    // Each is an error the user is told of. One that holds none is nothing to
+    // report, and the root of a drive always has one (`lost+found`, `System
+    // Volume Information`): counted, it would be an error at every scan.
+    let unread_dirs = unreadable
+        .iter()
+        .filter(|dir| {
+            existing_meta
+                .keys()
+                .any(|path| missed(std::slice::from_ref(dir), Path::new(path)))
+        })
+        .count();
+    summary.errors += unread_dirs as u32;
     let stat_ms = t_scan.elapsed().as_millis();
     let to_extract_count = to_extract.len();
 
@@ -518,7 +567,7 @@ pub(crate) async fn scan_folder_inner(
     // inserted earlier in THIS scan is ever probed later.
     const PROBE_CHUNK: usize = 900;
     type ExistingTrackProbe = (i64, i64, String, i64, Option<i64>);
-    let existing_probe: HashMap<String, ExistingTrackProbe> = if to_extract.is_empty() {
+    let mut existing_probe: HashMap<String, ExistingTrackProbe> = if to_extract.is_empty() {
         HashMap::new()
     } else {
         let t_db = Instant::now();
@@ -550,6 +599,40 @@ pub(crate) async fn scan_folder_inner(
             .fetch_add(t_db.elapsed().as_micros() as u64, Ordering::Relaxed);
         probe
     };
+
+    // A file with no row may be one that moved. Settled before anything is
+    // read, so it then goes down the path of a row that exists and keeps what
+    // the user set. Not on a share, whose rows have nothing to gain from it
+    // and whose files cannot be asked whether they are gone. Non-fatal: the
+    // files are then new tracks, as they were before this existed.
+    if !is_network && !summary.cancelled {
+        let new_paths: Vec<PathBuf> = to_extract
+            .iter()
+            .filter(|path| !existing_probe.contains_key(path.to_string_lossy().as_ref()))
+            .cloned()
+            .collect();
+        if !new_paths.is_empty() {
+            match relink_moved_files(pool, library_id, folder_id, new_paths).await {
+                Ok(moved) => {
+                    for file in moved {
+                        existing_meta.remove(&file.old_path);
+                        existing_probe.insert(
+                            file.new_path,
+                            (
+                                file.track_id,
+                                file.file_modified,
+                                file.file_hash,
+                                file.added_at,
+                                file.album_id,
+                            ),
+                        );
+                        summary.moved += 1;
+                    }
+                }
+                Err(err) => tracing::warn!(?err, folder_id, "move detection failed (non-fatal)"),
+            }
+        }
+    }
     let mut previous_album_ids = HashSet::new();
 
     // ─── Phase 2: Parallel extract + transactional DB writes ──────
@@ -624,15 +707,21 @@ pub(crate) async fn scan_folder_inner(
     // A track the backfill pass was meant to re-read but couldn't:
     // the marker below must not be written, or that file would keep
     // its empty ReplayGain columns for good.
-    let mut rg_backfill_failed = false;
+    //
+    // A directory the walk could not read holds every pass back the same way,
+    // spending a retry: its files were not read, and once it can be they
+    // would take the fast path and keep what they have.
+    let walk_incomplete = unread_dirs > 0;
+    let mut rg_backfill_failed = walk_incomplete;
 
     // Same idea for the custom-tag pass: a file it was meant to read
     // but could not must stop the marker being written, or that track
     // keeps empty columns for the life of the install — the pass never
     // runs twice.
-    let mut tag_backfill_failed = false;
-    let mut genre_backfill_failed = false;
-    let mut totals_backfill_failed = false;
+    let mut tag_backfill_failed = walk_incomplete;
+    let mut genre_backfill_failed = walk_incomplete;
+    let mut totals_backfill_failed = walk_incomplete;
+    let mut artist_backfill_failed = walk_incomplete;
 
     while let Some((path, result)) = extraction_stream.next().await {
         if cancelled() {
@@ -671,7 +760,7 @@ pub(crate) async fn scan_folder_inner(
             Ok(Ok(e)) => e,
             Ok(Err(err)) => {
                 tracing::warn!(path = %path.display(), error = %err, "extraction failed");
-                if rg_backfill_pending && rg_missing.contains(path.to_string_lossy().as_ref()) {
+                if rg_backfill.pending && rg_missing.contains(path.to_string_lossy().as_ref()) {
                     rg_backfill_failed = true;
                 }
                 // Deliberately *not* blocking the custom-tag marker. A
@@ -685,19 +774,21 @@ pub(crate) async fn scan_folder_inner(
                 // its fast path. The case that does block it is below:
                 // extraction succeeded and only the tag read failed,
                 // which nothing else reports and nothing else retries.
-                genre_backfill_failed |= genre_backfill_pending;
-                totals_backfill_failed |= totals_backfill_pending;
+                genre_backfill_failed |= genre_backfill.pending;
+                totals_backfill_failed |= totals_backfill.pending;
+                artist_backfill_failed |= artist_backfill.pending;
                 summary.errors += 1;
                 emit_tick(processed, &summary, &path);
                 continue;
             }
             Err(err) => {
                 tracing::warn!(path = %path.display(), error = %err, "extraction panicked");
-                if rg_backfill_pending && rg_missing.contains(path.to_string_lossy().as_ref()) {
+                if rg_backfill.pending && rg_missing.contains(path.to_string_lossy().as_ref()) {
                     rg_backfill_failed = true;
                 }
-                genre_backfill_failed |= genre_backfill_pending;
-                totals_backfill_failed |= totals_backfill_pending;
+                genre_backfill_failed |= genre_backfill.pending;
+                totals_backfill_failed |= totals_backfill.pending;
+                artist_backfill_failed |= artist_backfill.pending;
                 summary.errors += 1;
                 emit_tick(processed, &summary, &path);
                 continue;
@@ -713,7 +804,7 @@ pub(crate) async fn scan_folder_inner(
         // runs twice, so those tracks would keep empty columns for the
         // life of the install. The same rule the ReplayGain backfill
         // beside it follows.
-        if tag_backfill_pending && extracted.extra_tags.is_none() {
+        if tag_backfill.pending && extracted.extra_tags.is_none() {
             tag_backfill_failed = true;
         }
 
@@ -874,8 +965,19 @@ pub(crate) async fn scan_folder_inner(
                     // it back into the phantom on an unchanged-file rescan.
                     // A brand-new scan never lands here (it starts at one
                     // phantom row), so this only ever protects a split the
-                    // user (or the split_artist command) already made.
-                    let user_split = splits.len() == 1 && current_count > 1;
+                    // user (or the split_artist command) already made. The
+                    // same when one value among several was split: the count
+                    // alone no longer tells, the names do.
+                    let user_split = (splits.len() == 1 && current_count > 1)
+                        || (current_count as usize > splits.len()
+                            && is_split_of(
+                                &stored_credits(&mut tx, existing_track_id)
+                                    .await?
+                                    .into_iter()
+                                    .map(|(_, name)| name)
+                                    .collect::<Vec<_>>(),
+                                &splits,
+                            ));
                     if !user_split && current_count as usize != splits.len() {
                         multi_artist_renormalised = true;
                         let mut ids = Vec::new();
@@ -983,8 +1085,37 @@ pub(crate) async fn scan_folder_inner(
                 // Hash or mtime changed → full re-write of the track row
                 // and its many-to-many links. Falls through to the
                 // shared insert/update path below.
-                let artist_ids = upsert_cache.artist_list(&mut tx, &extracted.artist).await?;
+                //
+                // A split the user made on what the file still says stays:
+                // this branch is what any rating or tag written from the app
+                // leads to, so a file "changing" says nothing about its
+                // credits. The album stays where the split left it too, keyed
+                // on the artist the split did not touch.
+                let stored = stored_credits(&mut tx, existing_track_id).await?;
+                let tagged = extracted
+                    .artist
+                    .as_deref()
+                    .map(split_artist_name)
+                    .unwrap_or_default();
+                let names: Vec<String> = stored.iter().map(|(_, name)| name.clone()).collect();
+                let user_split = is_split_of(&names, &tagged);
+                let artist_ids = if user_split {
+                    stored.iter().map(|(id, _)| *id).collect()
+                } else {
+                    upsert_cache.artist_list(&mut tx, &extracted.artist).await?
+                };
                 let artist_id = artist_ids.first().copied();
+                let album_key_artist = if user_split {
+                    let keyed: Option<i64> =
+                        sqlx::query_scalar("SELECT artist_id FROM album WHERE id = ?")
+                            .bind(old_album_id)
+                            .fetch_optional(&mut *tx)
+                            .await?
+                            .flatten();
+                    keyed.or(artist_id)
+                } else {
+                    artist_id
+                };
                 let album_id = match &extracted.album {
                     Some(a) => {
                         upsert_album(
@@ -992,8 +1123,9 @@ pub(crate) async fn scan_folder_inner(
                             a,
                             extracted.album_artist.as_deref(),
                             extracted.is_compilation,
-                            artist_id,
+                            album_key_artist,
                             extracted.year,
+                            &extracted.abs_path,
                         )
                         .await?
                     }
@@ -1204,6 +1336,7 @@ pub(crate) async fn scan_folder_inner(
                         extracted.is_compilation,
                         artist_id,
                         extracted.year,
+                        &extracted.abs_path,
                     )
                     .await?
                 }
@@ -1361,9 +1494,11 @@ pub(crate) async fn scan_folder_inner(
     let sweep: Vec<&String> = if summary.cancelled {
         Vec::new()
     } else {
+        // A directory the walk could not read says nothing about its files.
         existing_meta
             .keys()
             .filter(|path| !network.as_ref().is_some_and(|n| n.is_under_refused(path)))
+            .filter(|path| !missed(&unreadable, Path::new(path.as_str())))
             .collect()
     };
     for missing_path in sweep {
@@ -1474,7 +1609,7 @@ pub(crate) async fn scan_folder_inner(
     // when the scan changed what the library holds: matching reads the
     // whole library, and a watcher rescan that found nothing new would
     // pay that for nothing.
-    let brought_tracks = summary.added + summary.updated > 0
+    let brought_tracks = summary.added + summary.updated + summary.moved > 0
         || crate::commands::playlist_import::available_in_folder(pool, folder_id).await
             != available_before;
     if brought_tracks {
@@ -1490,155 +1625,28 @@ pub(crate) async fn scan_folder_inner(
     // did not reach most of the folder, and recording it as done would
     // leave those files without their tags permanently. A stop does not
     // spend one of the folder's retries either.
-    let spent_attempts = if tag_backfill_pending && !summary.cancelled && tag_backfill_failed {
-        let spent = tag_backfill_attempts + 1;
-        if let Err(err) = write_counter(pool, &tag_backfill_attempt_key, spent).await {
-            tracing::warn!(?err, folder_id, "could not record a tag-backfill attempt");
-        }
-        spent
-    } else {
-        tag_backfill_attempts
-    };
-    // Out of retries: some files stayed unreadable across several
-    // scans, so the folder is accepted as read rather than re-walked in
-    // full forever.
-    let give_up = tag_backfill_failed && spent_attempts >= TAG_BACKFILL_MAX_ATTEMPTS;
-    if give_up {
-        tracing::info!(
-            folder_id,
-            attempts = spent_attempts,
-            "tags stayed unreadable across several scans; accepting the folder as read"
-        );
-    }
-    if tag_backfill_pending && !summary.cancelled && (!tag_backfill_failed || give_up) {
-        if let Err(err) = sqlx::query(
-            "INSERT INTO profile_setting (key, value, value_type, updated_at)
-             VALUES (?, 'true', 'bool', ?)
-             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
-        )
-        .bind(&tag_backfill_key)
-        .bind(now_millis())
-        .execute(pool)
-        .await
-        {
-            tracing::warn!(
-                ?err,
-                folder_id,
-                key = %tag_backfill_key,
-                "could not persist the custom-tag backfill marker (non-fatal); \
-                 the next scan will run the pass again"
-            );
-        }
-    }
+    tag_backfill
+        .settle(pool, folder_id, summary.cancelled, tag_backfill_failed)
+        .await;
 
-    // The genre pass is done once it read the whole folder; a stopped scan
-    // did not, and runs it again next time without spending a retry. A
-    // file that failed spends one, and past the last the folder is
-    // accepted as read.
-    let genre_spent = if genre_backfill_pending && !summary.cancelled && genre_backfill_failed {
-        let spent = genre_backfill_attempts + 1;
-        if let Err(err) = write_counter(pool, &genre_backfill_attempt_key, spent).await {
-            tracing::warn!(?err, folder_id, "could not record a genre-backfill attempt");
-        }
-        spent
-    } else {
-        genre_backfill_attempts
-    };
-    let genre_give_up = genre_backfill_failed && genre_spent >= TAG_BACKFILL_MAX_ATTEMPTS;
-    if genre_backfill_pending && !summary.cancelled && (!genre_backfill_failed || genre_give_up) {
-        if let Err(err) = sqlx::query(
-            "INSERT INTO profile_setting (key, value, value_type, updated_at)
-             VALUES (?, 'true', 'bool', ?)
-             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
-        )
-        .bind(&genre_backfill_key)
-        .bind(now_millis())
-        .execute(pool)
-        .await
-        {
-            tracing::warn!(
-                ?err,
-                folder_id,
-                key = %genre_backfill_key,
-                "could not persist the genre backfill marker (non-fatal); \
-                 the next scan will run the pass again"
-            );
-        }
-    }
+    genre_backfill
+        .settle(pool, folder_id, summary.cancelled, genre_backfill_failed)
+        .await;
+    totals_backfill
+        .settle(pool, folder_id, summary.cancelled, totals_backfill_failed)
+        .await;
+    artist_backfill
+        .settle(pool, folder_id, summary.cancelled, artist_backfill_failed)
+        .await;
 
-    // The totals pass, settled exactly like the genre pass above.
-    let totals_spent = if totals_backfill_pending && !summary.cancelled && totals_backfill_failed {
-        let spent = totals_backfill_attempts + 1;
-        if let Err(err) = write_counter(pool, &totals_backfill_attempt_key, spent).await {
-            tracing::warn!(
-                ?err,
-                folder_id,
-                "could not record a totals-backfill attempt"
-            );
-        }
-        spent
-    } else {
-        totals_backfill_attempts
-    };
-    let totals_give_up = totals_backfill_failed && totals_spent >= TAG_BACKFILL_MAX_ATTEMPTS;
-    if totals_backfill_pending && !summary.cancelled && (!totals_backfill_failed || totals_give_up)
-    {
-        if let Err(err) = sqlx::query(
-            "INSERT INTO profile_setting (key, value, value_type, updated_at)
-             VALUES (?, 'true', 'bool', ?)
-             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
-        )
-        .bind(&totals_backfill_key)
-        .bind(now_millis())
-        .execute(pool)
-        .await
-        {
-            tracing::warn!(
-                ?err,
-                folder_id,
-                key = %totals_backfill_key,
-                "could not persist the totals backfill marker (non-fatal); \
-                 the next scan will run the pass again"
-            );
-        }
-    }
-
-    // Mark the one-off ReplayGain backfill done for this folder — but
-    // only if every track it was meant to re-read actually got read. A
-    // file that failed extraction this time (locked, unreadable,
-    // mid-write) must be picked up by the next scan rather than written
-    // off. The marker is still set when a file turned out to carry no
-    // ReplayGain tags at all: re-reading those on every future scan is
-    // exactly what it exists to prevent.
-    //
-    // `!summary.cancelled` since the scan became interruptible (#601):
-    // a stopped pass never reached most of the folder, and recording
-    // the backfill as done would leave those files without their
-    // ReplayGain columns permanently — the pass only ever runs once.
-    if rg_backfill_pending && !rg_backfill_failed && !summary.cancelled {
-        // Non-fatal: the scan itself is already committed, and losing
-        // the marker only costs one more backfill pass. But it must
-        // not be lost silently — an unwritable marker makes every
-        // future scan re-read the whole folder, which looks exactly
-        // like the fast path being broken for no reason.
-        if let Err(err) = sqlx::query(
-            "INSERT INTO profile_setting (key, value, value_type, updated_at)
-             VALUES (?, 'true', 'bool', ?)
-             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
-        )
-        .bind(&rg_backfill_key)
-        .bind(now_millis())
-        .execute(pool)
-        .await
-        {
-            tracing::warn!(
-                ?err,
-                folder_id,
-                key = %rg_backfill_key,
-                "could not persist the ReplayGain backfill marker (non-fatal);                  the next scan will run the pass again"
-            );
-        }
-    }
+    // The ReplayGain pass the same way. A file that failed extraction this
+    // time (locked, unreadable, mid-write) is picked up by the next scan, a few
+    // times, rather than written off; the marker is still set when a file
+    // turned out to carry no ReplayGain tags at all, since re-reading those on
+    // every future scan is exactly what it exists to prevent.
+    rg_backfill
+        .settle(pool, folder_id, summary.cancelled, rg_backfill_failed)
+        .await;
 
     // Per-phase breakdown so a slow scan on a big library is diagnosable
     // from the log alone. `*_ms` are wall-clock deltas between phases;
@@ -1653,6 +1661,7 @@ pub(crate) async fn scan_folder_inner(
         updated = summary.updated,
         skipped = summary.skipped,
         removed = summary.removed,
+        moved = summary.moved,
         errors = summary.errors,
         refreshed_covers,
         reattached_plays,
@@ -1709,6 +1718,66 @@ pub(crate) async fn scan_folder_inner(
     }
 
     Ok(summary)
+}
+
+/// Folders refused before anything could hear of it, `None` once something
+/// does: the scan at launch can fail in milliseconds, ahead of the window.
+static UNREACHABLE_UNHEARD: std::sync::Mutex<Option<Vec<String>>> =
+    std::sync::Mutex::new(Some(Vec::new()));
+
+/// What the notice toast asks for when it starts listening, and from then on
+/// it hears the event.
+#[tauri::command]
+pub fn take_unreachable_folders() -> Vec<String> {
+    UNREACHABLE_UNHEARD
+        .lock()
+        .ok()
+        .and_then(|mut unheard| unheard.take())
+        .unwrap_or_default()
+}
+
+/// The refusal of a folder that does not answer. Announced as well as
+/// returned: a rescan of the library, the scan at launch and the watcher only
+/// count or log what they get back, so the toast is what tells the user.
+fn folder_unreachable(
+    app_handle: Option<&tauri::AppHandle>,
+    folder_id: i64,
+    path: &str,
+    reason: String,
+) -> AppError {
+    tracing::warn!(folder_id, path, %reason, "library folder cannot be read; nothing changed");
+    if let Ok(mut unheard) = UNREACHABLE_UNHEARD.lock() {
+        if let Some(unheard) = unheard.as_mut().filter(|u| !u.iter().any(|p| p == path)) {
+            unheard.push(path.to_string());
+        }
+    }
+    if let Some(app) = app_handle {
+        let _ = app.emit(
+            "library:folder-unreachable",
+            serde_json::json!({ "folder_id": folder_id, "path": path }),
+        );
+    }
+    AppError::FolderUnreachable {
+        path: path.to_string(),
+        reason,
+    }
+}
+
+/// A track's credits as they stand, in order.
+async fn stored_credits(
+    tx: &mut sqlx::SqliteConnection,
+    track_id: i64,
+) -> Result<Vec<(i64, String)>, sqlx::Error> {
+    sqlx::query_as(
+        "SELECT ta.artist_id, a.name
+           FROM track_artist ta
+           JOIN artist a ON a.id = ta.artist_id
+          WHERE ta.track_id = ?
+          ORDER BY ta.position",
+    )
+    .bind(track_id)
+    .fetch_all(&mut *tx)
+    .await
 }
 
 /// Sync-emit shim — converts an `ExtractedFile` into the wire shape
