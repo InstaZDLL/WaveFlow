@@ -4492,6 +4492,10 @@
         "stop": {
           "title": "Hoe je alles stopt",
           "body": "De offlinemodus stopt alles. Podcasts uitzetten stopt het definitief."
+        },
+        "server": {
+          "title": "Als er een server is gekoppeld",
+          "body": "Is dit profiel gekoppeld aan een WaveFlow-server met podcasts aan, dan verschijnen ook de kanalen daarvan. Die lopen via je server: de aanbieder ziet je server, niet jou."
         }
       }
     },
@@ -4612,7 +4616,13 @@
       "no_source": "Deze aflevering heeft geen bestand en geen adres: abonneer je opnieuw op het kanaal.",
       "not_seekable": "Deze host staat niet toe dat je door de aflevering beweegt.",
       "write_failed": "Het bestand kon niet naar de schijf worden geschreven.",
-      "invalid_document": "Dit bestand is niet wat het beweert te zijn."
+      "invalid_document": "Dit bestand is niet wat het beweert te zijn.",
+      "not_stored": "De server heeft deze aflevering niet: die moet hij eerst downloaden.",
+      "server_unreachable": "De server antwoordt niet.",
+      "server_signed_out": "Je bent niet meer aangemeld bij deze server.",
+      "server_refused": "De server heeft geweigerd, of kent dit item niet meer.",
+      "server_conflict": "De server volgt deze feed al, of kan er geen meer volgen.",
+      "destination_refused": "De server mag dit adres niet bereiken."
     },
     "episodePage": {
       "kicker": "Aflevering"
@@ -4633,6 +4643,29 @@
       "untimed": "Dit transcript heeft geen tijdcodes en volgt het afspelen dus niet.",
       "notPlaying": "Deze aflevering wordt niet afgespeeld. Een klik op een regel start hem op dat moment.",
       "jump": "Ga naar {{time}}: {{text}}"
+    },
+    "server": {
+      "title": "Op je server",
+      "chip": "Server",
+      "refresh": "Controleren op de server",
+      "refreshAsked": "De server controleert zijn feeds. Nieuwe afleveringen verschijnen zo.",
+      "subscribeOpen": "Abonneren op de server",
+      "subscribeLabel": "Abonneren op een feed op de server",
+      "subscribeHint": "De server leest de feed voordat hij die toevoegt. Het abonnement geldt voor alle accounts op deze server.",
+      "unsubscribe": "Van de server verwijderen",
+      "unsubscribeTitle": "{{title}} van de server verwijderen?",
+      "unsubscribeBody": "Het kanaal, de afleveringen en hun bestanden verdwijnen van de server, voor alle accounts.",
+      "removeConfirm": "Verwijderen",
+      "deleteEpisode": "{{title}} van de server verwijderen",
+      "deleteEpisodeTitle": "Deze aflevering van de server verwijderen?",
+      "deleteEpisodeBody": "‘{{title}}’ en het bestand verdwijnen van de server, voor alle accounts. De aflevering komt bij de volgende controle niet terug.",
+      "requestDownload": "De server vragen {{title}} te downloaden",
+      "notStored": "Niet op de server",
+      "notStoredHint": "De server speelt alleen af wat hij heeft gedownload. Een beheerder kan hem dat vragen.",
+      "needsServer": "Offline of podcasts uit: er wordt geen contact gemaakt met de server.",
+      "downloading": "Downloaden op de server…",
+      "downloadFailed": "Mislukt op de server",
+      "forgetPosition": "{{title}} vanaf het begin afspelen"
     }
   }
 }

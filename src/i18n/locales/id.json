@@ -4487,6 +4487,10 @@
         "stop": {
           "title": "Cara menghentikan semuanya",
           "body": "Mode luring menghentikan semuanya. Mematikan podcast menghentikannya untuk selamanya."
+        },
+        "server": {
+          "title": "Jika server tertaut",
+          "body": "Jika profil ini tertaut ke server WaveFlow yang podcast-nya aktif, kanalnya ikut tampil. Semuanya lewat server Anda: penyedia melihat server Anda, bukan Anda."
         }
       }
     },
@@ -4607,7 +4611,13 @@
       "no_source": "Episode ini tidak punya berkas maupun alamat: berlangganan lagi ke saluran ini.",
       "not_seekable": "Host ini tidak mengizinkan berpindah posisi di dalam episode.",
       "write_failed": "Berkas tidak dapat ditulis ke disk.",
-      "invalid_document": "Berkas ini bukan seperti yang diklaimnya."
+      "invalid_document": "Berkas ini bukan seperti yang diklaimnya.",
+      "not_stored": "Server tidak menyimpan episode ini: server harus mengunduhnya dulu.",
+      "server_unreachable": "Server tidak menjawab.",
+      "server_signed_out": "Anda tidak lagi masuk ke server ini.",
+      "server_refused": "Server menolak, atau tidak lagi mengenal item ini.",
+      "server_conflict": "Server sudah mengikuti umpan ini, atau tidak bisa mengikuti lebih banyak lagi.",
+      "destination_refused": "Server tidak diizinkan menjangkau alamat ini."
     },
     "episodePage": {
       "kicker": "Episode"
@@ -4628,6 +4638,29 @@
       "untimed": "Transkrip ini tidak memiliki penanda waktu, jadi tidak mengikuti pemutaran.",
       "notPlaying": "Episode ini tidak sedang diputar. Mengeklik baris akan memulainya dari saat itu.",
       "jump": "Buka {{time}}: {{text}}"
+    },
+    "server": {
+      "title": "Di server Anda",
+      "chip": "Server",
+      "refresh": "Periksa di server",
+      "refreshAsked": "Server sedang memeriksa umpannya. Yang baru akan segera tampil.",
+      "subscribeOpen": "Berlangganan di server",
+      "subscribeLabel": "Berlangganan umpan di server",
+      "subscribeHint": "Server membaca umpan sebelum menambahkannya. Langganan berlaku untuk semua akun di server ini.",
+      "unsubscribe": "Hapus dari server",
+      "unsubscribeTitle": "Hapus {{title}} dari server?",
+      "unsubscribeBody": "Kanal, episode, dan berkasnya hilang dari server, untuk semua akun di dalamnya.",
+      "removeConfirm": "Hapus",
+      "deleteEpisode": "Hapus {{title}} dari server",
+      "deleteEpisodeTitle": "Hapus episode ini dari server?",
+      "deleteEpisodeBody": "“{{title}}” dan berkasnya hilang dari server, untuk semua akun di dalamnya. Episode ini tidak akan kembali pada pemeriksaan berikutnya.",
+      "requestDownload": "Minta server mengunduh {{title}}",
+      "notStored": "Tidak ada di server",
+      "notStoredHint": "Server hanya memutar yang sudah diunduhnya. Administrator bisa memintanya.",
+      "needsServer": "Offline atau podcast nonaktif: server tidak dihubungi.",
+      "downloading": "Mengunduh di server…",
+      "downloadFailed": "Gagal di server",
+      "forgetPosition": "Putar {{title}} dari awal"
     }
   }
 }

@@ -326,6 +326,24 @@ pub fn run() {
             commands::podcast::podcast_delete_download,
             commands::podcast::podcast_download_usage,
             commands::podcast::podcast_download_queue,
+            #[cfg(feature = "sync_v2")]
+            commands::podcast_server::podcast_server_overview,
+            #[cfg(feature = "sync_v2")]
+            commands::podcast_server::podcast_server_channel,
+            #[cfg(feature = "sync_v2")]
+            commands::podcast_server::podcast_server_play,
+            #[cfg(feature = "sync_v2")]
+            commands::podcast_server::podcast_server_clear_position,
+            #[cfg(feature = "sync_v2")]
+            commands::podcast_server::podcast_server_subscribe,
+            #[cfg(feature = "sync_v2")]
+            commands::podcast_server::podcast_server_refresh,
+            #[cfg(feature = "sync_v2")]
+            commands::podcast_server::podcast_server_unsubscribe,
+            #[cfg(feature = "sync_v2")]
+            commands::podcast_server::podcast_server_request_download,
+            #[cfg(feature = "sync_v2")]
+            commands::podcast_server::podcast_server_delete_episode,
             commands::release_radar::release_radar_scan,
             commands::release_radar::release_radar_list,
             commands::release_radar::release_radar_refresh_playlist,

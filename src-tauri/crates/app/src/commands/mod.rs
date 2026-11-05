@@ -48,6 +48,8 @@ pub mod playlist_import;
 pub mod plugin_store;
 pub mod plugins;
 pub mod podcast;
+#[cfg(feature = "sync_v2")]
+pub mod podcast_server;
 pub mod preferences;
 pub mod profile;
 pub mod profile_io;

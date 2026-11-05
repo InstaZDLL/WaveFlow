@@ -4629,6 +4629,10 @@
         "stop": {
           "title": "Cómo parar todo",
           "body": "El modo sin conexión lo detiene todo. Desactivar los podcasts lo detiene para siempre."
+        },
+        "server": {
+          "title": "Si hay un servidor vinculado",
+          "body": "Si este perfil está vinculado a un servidor WaveFlow con los podcasts activados, sus canales también aparecen. Pasan por tu servidor WaveFlow: el servidor del podcast lo ve a él, no a ti."
         }
       }
     },
@@ -4749,7 +4753,13 @@
       "no_source": "Este episodio no tiene archivo ni dirección: vuelve a suscribirte al canal.",
       "not_seekable": "Este servidor no permite moverse por el episodio.",
       "write_failed": "No se pudo escribir el archivo en el disco.",
-      "invalid_document": "Este archivo no es lo que dice ser."
+      "invalid_document": "Este archivo no es lo que dice ser.",
+      "not_stored": "El servidor no guarda este episodio: primero tiene que descargarlo.",
+      "server_unreachable": "El servidor no responde.",
+      "server_signed_out": "Ya no has iniciado sesión en este servidor.",
+      "server_refused": "El servidor lo ha rechazado, o ya no conoce este elemento.",
+      "server_conflict": "El servidor ya sigue este feed, o no puede seguir más.",
+      "destination_refused": "El servidor no tiene permiso para acceder a esta dirección."
     },
     "episodePage": {
       "kicker": "Episodio"
@@ -4770,6 +4780,29 @@
       "untimed": "Esta transcripción no tiene tiempos, así que no sigue la reproducción.",
       "notPlaying": "Este episodio no se está reproduciendo. Al hacer clic en una línea empieza en ese momento.",
       "jump": "Ir a {{time}}: {{text}}"
+    },
+    "server": {
+      "title": "En tu servidor",
+      "chip": "Servidor",
+      "refresh": "Buscar novedades en el servidor",
+      "refreshAsked": "El servidor está revisando sus feeds. Las novedades llegarán en breve.",
+      "subscribeOpen": "Suscribirse en el servidor",
+      "subscribeLabel": "Suscribirse a un feed en el servidor",
+      "subscribeHint": "El servidor lee el feed antes de añadirlo. La suscripción vale para todas las cuentas de este servidor.",
+      "unsubscribe": "Eliminar del servidor",
+      "unsubscribeTitle": "¿Eliminar {{title}} del servidor?",
+      "unsubscribeBody": "El canal, sus episodios y sus archivos desaparecen del servidor, para todas sus cuentas.",
+      "removeConfirm": "Eliminar",
+      "deleteEpisode": "Eliminar {{title}} del servidor",
+      "deleteEpisodeTitle": "¿Eliminar este episodio del servidor?",
+      "deleteEpisodeBody": "«{{title}}» y su archivo desaparecen del servidor, para todas sus cuentas. No volverá en la próxima búsqueda de novedades.",
+      "requestDownload": "Pedir al servidor que descargue {{title}}",
+      "notStored": "No está en el servidor",
+      "notStoredHint": "El servidor solo reproduce lo que ha descargado. Un administrador puede pedírselo.",
+      "needsServer": "Sin conexión o con los podcasts desactivados: no se contacta con el servidor.",
+      "downloading": "Descargando en el servidor…",
+      "downloadFailed": "Error en el servidor",
+      "forgetPosition": "Reproducir {{title}} desde el principio"
     }
   }
 }

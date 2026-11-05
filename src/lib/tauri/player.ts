@@ -332,6 +332,8 @@ export interface RadioMetadata {
   is_podcast: boolean;
   podcast_episode_id: number | null;
   podcast_channel_id: number | null;
+  /** The episode's id on a bound server, when it is one of that server's. */
+  podcast_server_episode_id: string | null;
 }
 
 /**

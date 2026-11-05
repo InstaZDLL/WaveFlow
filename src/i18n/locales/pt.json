@@ -4630,6 +4630,10 @@
         "stop": {
           "title": "Como parar tudo",
           "body": "O modo offline pára tudo. Desativar os podcasts pára tudo para sempre."
+        },
+        "server": {
+          "title": "Se houver um servidor associado",
+          "body": "Se este perfil estiver associado a um servidor WaveFlow com os podcasts ativos, os respetivos canais também aparecem. Passam pelo seu servidor WaveFlow: o servidor do podcast vê-o a ele, não a si."
         }
       }
     },
@@ -4750,7 +4754,13 @@
       "no_source": "Este episódio não tem ficheiro nem endereço: subscreve de novo o canal.",
       "not_seekable": "Este servidor não permite avançar nem recuar no episódio.",
       "write_failed": "Não foi possível escrever o ficheiro no disco.",
-      "invalid_document": "Este ficheiro não é o que diz ser."
+      "invalid_document": "Este ficheiro não é o que diz ser.",
+      "not_stored": "O servidor não guarda este episódio: tem de o descarregar primeiro.",
+      "server_unreachable": "O servidor não responde.",
+      "server_signed_out": "Já não tem sessão iniciada neste servidor.",
+      "server_refused": "O servidor recusou, ou já não conhece este item.",
+      "server_conflict": "O servidor já segue este feed, ou não pode seguir mais.",
+      "destination_refused": "O servidor não tem autorização para aceder a este endereço."
     },
     "episodePage": {
       "kicker": "Episódio"
@@ -4771,6 +4781,29 @@
       "untimed": "Esta transcrição não tem tempos, por isso não acompanha a reprodução.",
       "notPlaying": "Este episódio não está a ser reproduzido. Clicar numa linha inicia-o nesse momento.",
       "jump": "Ir para {{time}}: {{text}}"
+    },
+    "server": {
+      "title": "No seu servidor",
+      "chip": "Servidor",
+      "refresh": "Verificar no servidor",
+      "refreshAsked": "O servidor está a verificar os seus feeds. As novidades chegam em breve.",
+      "subscribeOpen": "Subscrever no servidor",
+      "subscribeLabel": "Subscrever um feed no servidor",
+      "subscribeHint": "O servidor lê o feed antes de o adicionar. A subscrição vale para todas as contas deste servidor.",
+      "unsubscribe": "Remover do servidor",
+      "unsubscribeTitle": "Remover {{title}} do servidor?",
+      "unsubscribeBody": "O canal, os episódios e os respetivos ficheiros desaparecem do servidor, para todas as contas.",
+      "removeConfirm": "Remover",
+      "deleteEpisode": "Remover {{title}} do servidor",
+      "deleteEpisodeTitle": "Remover este episódio do servidor?",
+      "deleteEpisodeBody": "«{{title}}» e o respetivo ficheiro desaparecem do servidor, para todas as contas. Não voltará na próxima verificação.",
+      "requestDownload": "Pedir ao servidor que descarregue {{title}}",
+      "notStored": "Não está no servidor",
+      "notStoredHint": "O servidor só reproduz o que descarregou. Um administrador pode pedir-lho.",
+      "needsServer": "Offline ou podcasts desativados: o servidor não é contactado.",
+      "downloading": "A descarregar no servidor…",
+      "downloadFailed": "Falha no servidor",
+      "forgetPosition": "Reproduzir {{title}} desde o início"
     }
   }
 }

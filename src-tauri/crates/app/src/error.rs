@@ -155,6 +155,19 @@ pub enum AppError {
     #[error("the library folder {path} cannot be read: {reason}")]
     FolderUnreachable { path: String, reason: String },
 
+    /// A remote server answered a token refresh with this status. Its own variant
+    /// because a 401 means the account is signed out, where any other failure of a
+    /// refresh says nothing about it.
+    #[cfg(feature = "sync_v2")]
+    #[error("token refresh rejected with status {0}")]
+    RemoteRefreshRejected(u16),
+
+    /// A token refresh that got no answer anyone can read, so nothing is known of the
+    /// account.
+    #[cfg(feature = "sync_v2")]
+    #[error("token refresh failed: {0}")]
+    RemoteRefreshUnanswered(String),
+
     #[error("{0}")]
     Other(String),
 }

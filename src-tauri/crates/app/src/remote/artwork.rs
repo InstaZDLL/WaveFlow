@@ -107,12 +107,19 @@ fn existing(dir: &Path, hash: &str) -> Option<PathBuf> {
 /// Returns a path rather than bytes: the caller hands it to the webview's
 /// asset protocol, which streams the file itself.
 pub async fn cached_path(state: &AppState, hash: &str) -> AppResult<PathBuf> {
-    if !is_hash(hash) {
-        return Err(AppError::Other("invalid artwork hash".into()));
-    }
     // Pin the profile for the whole call: a switch mid-download must not write
     // one profile's cover into another's cache.
     let profile_id = state.require_profile_id().await?;
+    cached_path_for(state, profile_id, hash).await
+}
+
+/// [`cached_path`] for a profile the caller captured earlier. When a switch has
+/// replaced it, a first download fails rather than asking the other profile's
+/// server.
+pub async fn cached_path_for(state: &AppState, profile_id: i64, hash: &str) -> AppResult<PathBuf> {
+    if !is_hash(hash) {
+        return Err(AppError::Other("invalid artwork hash".into()));
+    }
     let dir = state.paths.profile_remote_artwork_dir(profile_id);
 
     if let Some(path) = existing(&dir, hash) {

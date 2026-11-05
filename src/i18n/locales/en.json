@@ -4492,6 +4492,10 @@
         "stop": {
           "title": "How to stop all of it",
           "body": "Offline mode stops all of it. Turning podcasts off stops it for good."
+        },
+        "server": {
+          "title": "If a server is linked",
+          "body": "If this profile is linked to a WaveFlow server with podcasts turned on, its channels show too. They go through your server: the host sees your server, not you."
         }
       }
     },
@@ -4612,7 +4616,13 @@
       "no_source": "This episode has neither a file nor an address: subscribe to the channel again.",
       "not_seekable": "This host does not allow moving around in the episode.",
       "write_failed": "The file could not be written to disk.",
-      "invalid_document": "This file is not what it claims to be."
+      "invalid_document": "This file is not what it claims to be.",
+      "not_stored": "The server does not hold this episode: it has to download it first.",
+      "server_unreachable": "The server is not answering.",
+      "server_signed_out": "You are no longer signed in to this server.",
+      "server_refused": "The server refused, or no longer knows this item.",
+      "server_conflict": "The server already follows this feed, or cannot follow any more.",
+      "destination_refused": "The server is not allowed to reach this address."
     },
     "episodePage": {
       "kicker": "Episode"
@@ -4633,6 +4643,29 @@
       "untimed": "This transcript has no timing, so it does not follow playback.",
       "notPlaying": "This episode is not playing. Clicking a line starts it at that moment.",
       "jump": "Go to {{time}}: {{text}}"
+    },
+    "server": {
+      "title": "On your server",
+      "chip": "Server",
+      "refresh": "Check on the server",
+      "refreshAsked": "The server is checking its feeds. Anything new will show shortly.",
+      "subscribeOpen": "Subscribe on the server",
+      "subscribeLabel": "Subscribe to a feed on the server",
+      "subscribeHint": "The server reads the feed before adding it. The subscription applies to every account on this server.",
+      "unsubscribe": "Remove from the server",
+      "unsubscribeTitle": "Remove {{title}} from the server?",
+      "unsubscribeBody": "The channel, its episodes and their files leave the server, for every account on it.",
+      "removeConfirm": "Remove",
+      "deleteEpisode": "Remove {{title}} from the server",
+      "deleteEpisodeTitle": "Remove this episode from the server?",
+      "deleteEpisodeBody": "“{{title}}” and its file leave the server, for every account on it. It will not come back at the next check.",
+      "requestDownload": "Ask the server to download {{title}}",
+      "notStored": "Not on the server",
+      "notStoredHint": "The server only plays what it has downloaded. An administrator can ask it to.",
+      "needsServer": "Offline or podcasts off: the server is not contacted.",
+      "downloading": "Downloading on the server…",
+      "downloadFailed": "Failed on the server",
+      "forgetPosition": "Restart {{title}} from the beginning"
     }
   }
 }

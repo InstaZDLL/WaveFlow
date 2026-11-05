@@ -33,6 +33,13 @@
 //!
 //! A long pause outlives the connection, since a host drops one that sends nothing
 //! for a while. The read that finds that out reopens where it stopped.
+//!
+//! ## An address that does not last
+//!
+//! A bound server's episode has no enclosure of its own to fall back on, only a ticket
+//! good for about an hour, which an episode easily is. So it opens from a [`Renew`],
+//! and a request that answers 404 asks for another once and tries that. A second 404
+//! is a real one.
 
 use std::future::Future;
 use std::io::{self, Read, Seek, SeekFrom};
@@ -84,6 +91,13 @@ pub(crate) enum StreamRefusal {
     /// Offline mode is on. Nothing was contacted.
     Offline,
     Failed(FetchFailure),
+    /// A bound server holds no file of this episode: it was never downloaded there,
+    /// or it was deleted since.
+    #[cfg_attr(not(feature = "sync_v2"), allow(dead_code))]
+    NotStored,
+    /// A bound server refused the account's token: it has to sign in again.
+    #[cfg_attr(not(feature = "sync_v2"), allow(dead_code))]
+    SignedOut,
     /// A command replaces this stream and it was still waiting.
     Released,
 }
@@ -105,6 +119,8 @@ impl StreamRefusal {
             Self::Disabled => "podcast: disabled".to_owned(),
             Self::Offline => "podcast: offline".to_owned(),
             Self::Failed(failure) => format!("podcast: {}", failure.code()),
+            Self::NotStored => "podcast: not_stored".to_owned(),
+            Self::SignedOut => "podcast: server_signed_out".to_owned(),
             Self::Released => READ_RELEASED.to_owned(),
         }
     }
@@ -122,6 +138,11 @@ impl StreamRefusal {
 /// a seek as it does for the first byte.
 pub(crate) type Gate =
     Arc<dyn Fn() -> Pin<Box<dyn Future<Output = Result<(), StreamRefusal>> + Send>> + Send + Sync>;
+
+/// Mints a fresh address for what plays, when the one held no longer answers.
+#[cfg_attr(not(feature = "sync_v2"), allow(dead_code))]
+pub(crate) type Renew =
+    Arc<dyn Fn() -> Pin<Box<dyn Future<Output = Result<Url, StreamRefusal>> + Send>> + Send + Sync>;
 
 /// Lets a command let go of a stream from another thread.
 #[derive(Default)]
@@ -252,6 +273,12 @@ enum Next {
     Released,
 }
 
+/// What the first request of a stream asks for.
+enum Start {
+    At(Url),
+    Renewing(Renew),
+}
+
 /// A seekable [`MediaSource`] over an enclosure.
 pub(crate) struct EnclosureSource {
     runtime: Handle,
@@ -262,6 +289,8 @@ pub(crate) struct EnclosureSource {
     enclosure: Url,
     /// Where the last request landed, which a seek tries first.
     landed: Url,
+    /// How to get another address, when this one is made to run out.
+    renew: Option<Renew>,
     guard: Arc<ReadGuard>,
     body: Option<Body>,
     /// What is left of the chunk being read.
@@ -292,16 +321,48 @@ impl EnclosureSource {
         enclosure: Url,
         origin: Origin,
     ) -> Result<Self, StreamRefusal> {
+        Self::open_from(runtime, fetcher, gate, Start::At(enclosure), origin)
+    }
+
+    /// [`Self::open`] for an address that does not last: `renew` gives the first one
+    /// and any that come after. See the module doc.
+    #[cfg_attr(not(feature = "sync_v2"), allow(dead_code))]
+    pub(crate) fn open_renewing(
+        runtime: Handle,
+        fetcher: Fetcher,
+        gate: Gate,
+        renew: Renew,
+        origin: Origin,
+    ) -> Result<Self, StreamRefusal> {
+        Self::open_from(runtime, fetcher, gate, Start::Renewing(renew), origin)
+    }
+
+    fn open_from(
+        runtime: Handle,
+        fetcher: Fetcher,
+        gate: Gate,
+        start: Start,
+        origin: Origin,
+    ) -> Result<Self, StreamRefusal> {
         let guard = Arc::new(ReadGuard::default());
         set_current(&guard);
         let started = Instant::now();
-        let response = runtime.block_on(async {
+        let renew = match &start {
+            Start::At(_) => None,
+            Start::Renewing(renew) => Some(Arc::clone(renew)),
+        };
+        let (enclosure, response) = runtime.block_on(async {
             let open = async {
                 gate().await?;
-                fetcher
+                let enclosure = match start {
+                    Start::At(enclosure) => enclosure,
+                    Start::Renewing(renew) => renew().await?,
+                };
+                let response = fetcher
                     .open(&enclosure, origin, request_headers(0))
                     .await
-                    .map_err(StreamRefusal::from)
+                    .map_err(StreamRefusal::from)?;
+                Ok((enclosure, response))
             };
             tokio::select! {
                 opened = tokio::time::timeout(OPEN_DEADLINE, open) => {
@@ -361,6 +422,7 @@ impl EnclosureSource {
             origin,
             enclosure,
             landed,
+            renew,
             guard,
             body: None,
             chunk: Vec::new(),
@@ -412,10 +474,10 @@ impl EnclosureSource {
         {
             self.requests += 1;
         }
-        let answer = self.runtime.block_on(async {
+        let (answer, renewed) = self.runtime.block_on(async {
             let ask = async {
                 (self.gate)().await?;
-                match self
+                let asked = match self
                     .fetcher
                     .open(&self.landed, self.origin, request_headers(target))
                     .await
@@ -428,7 +490,21 @@ impl EnclosureSource {
                         .open(&self.enclosure, self.origin, request_headers(target))
                         .await
                         .map_err(StreamRefusal::from),
-                    Err(err) => Err(err.into()),
+                    Err(err) => Err(StreamRefusal::from(err)),
+                };
+                match (asked, &self.renew) {
+                    // Nothing here tells an expired address from a missing file. What
+                    // mints the next one does.
+                    (Err(StreamRefusal::Failed(FetchFailure::Status(404))), Some(renew)) => {
+                        let fresh = renew().await?;
+                        let response = self
+                            .fetcher
+                            .open(&fresh, self.origin, request_headers(target))
+                            .await
+                            .map_err(StreamRefusal::from)?;
+                        Ok((response, Some(fresh)))
+                    }
+                    (asked, _) => asked.map(|response| (response, None)),
                 }
             };
             tokio::select! {
@@ -438,6 +514,9 @@ impl EnclosureSource {
                 () = self.guard.let_go(started) => Err(StreamRefusal::Released),
             }
         })?;
+        if let Some(fresh) = renewed {
+            self.enclosure = fresh;
+        }
         // A 200 is the file from its first byte, and a 206 from anywhere else is
         // somebody else's bytes: either would play the wrong place.
         let starts_there = answer.status() == StatusCode::PARTIAL_CONTENT

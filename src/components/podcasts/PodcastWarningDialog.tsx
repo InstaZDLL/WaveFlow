@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Eye, HardDrive, Power, RefreshCw } from "lucide-react";
+import { Eye, HardDrive, Power, RefreshCw, Server } from "lucide-react";
 
 import { usePodcastsEnabled } from "../../hooks/usePodcastsEnabled";
 import { PodcastDialogShell } from "./PodcastDialogShell";
@@ -9,6 +9,7 @@ const POINTS = [
   { id: "hosts", Icon: Eye },
   { id: "checks", Icon: RefreshCw },
   { id: "downloads", Icon: HardDrive },
+  { id: "server", Icon: Server },
   { id: "stop", Icon: Power },
 ] as const;
 

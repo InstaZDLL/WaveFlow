@@ -30,6 +30,9 @@ use super::tests::{
 };
 use crate::audio::state::{PlayerState, SharedPlayback};
 
+#[cfg(feature = "sync_v2")]
+mod server;
+
 // ── a server with a file on it ──────────────────────────────────────
 
 /// How a [`FileServer`] misbehaves.
@@ -1398,8 +1401,10 @@ fn a_speed_changed_during_an_episode_is_what_a_rebuild_brings_back() {
     shared.record_accepted_load(&AudioCmd::LoadEpisodeAndPlay {
         intent: LoadIntent::from_raw(1),
         episode: Box::new(super::playback::EpisodeLoad {
-            episode_id: 1,
-            channel_id: 1,
+            home: super::playback::EpisodeHome::Local {
+                episode_id: 1,
+                channel_id: 1,
+            },
             profile_id: 1,
             track_id: -1,
             start_ms: 0,

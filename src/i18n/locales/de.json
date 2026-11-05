@@ -4492,6 +4492,10 @@
         "stop": {
           "title": "So hältst du alles an",
           "body": "Der Offline-Modus stoppt alles. Wenn du Podcasts ausschaltest, hört es dauerhaft auf."
+        },
+        "server": {
+          "title": "Wenn ein Server verbunden ist",
+          "body": "Ist dieses Profil mit einem WaveFlow-Server verbunden, auf dem Podcasts aktiviert sind, erscheinen auch dessen Kanäle. Sie laufen über deinen Server: Der Anbieter sieht deinen Server, nicht dich."
         }
       }
     },
@@ -4612,7 +4616,13 @@
       "no_source": "Diese Folge hat weder Datei noch Adresse: Abonniere den Kanal erneut.",
       "not_seekable": "Dieser Host erlaubt kein Springen innerhalb der Folge.",
       "write_failed": "Die Datei konnte nicht auf die Festplatte geschrieben werden.",
-      "invalid_document": "Diese Datei ist nicht das, was sie vorgibt zu sein."
+      "invalid_document": "Diese Datei ist nicht das, was sie vorgibt zu sein.",
+      "not_stored": "Der Server hat diese Folge nicht: Er muss sie zuerst herunterladen.",
+      "server_unreachable": "Der Server antwortet nicht.",
+      "server_signed_out": "Du bist bei diesem Server nicht mehr angemeldet.",
+      "server_refused": "Der Server hat abgelehnt oder kennt diesen Eintrag nicht mehr.",
+      "server_conflict": "Der Server folgt diesem Feed bereits oder kann keinen weiteren folgen.",
+      "destination_refused": "Der Server darf diese Adresse nicht aufrufen."
     },
     "episodePage": {
       "kicker": "Folge"
@@ -4633,6 +4643,29 @@
       "untimed": "Dieses Transkript hat keine Zeitangaben und folgt der Wiedergabe daher nicht.",
       "notPlaying": "Diese Folge läuft gerade nicht. Ein Klick auf eine Zeile startet sie an dieser Stelle.",
       "jump": "Zu {{time}} springen: {{text}}"
+    },
+    "server": {
+      "title": "Auf deinem Server",
+      "chip": "Server",
+      "refresh": "Auf dem Server prüfen",
+      "refreshAsked": "Der Server prüft seine Feeds. Neues erscheint in Kürze.",
+      "subscribeOpen": "Auf dem Server abonnieren",
+      "subscribeLabel": "Einen Feed auf dem Server abonnieren",
+      "subscribeHint": "Der Server liest den Feed, bevor er ihn hinzufügt. Das Abo gilt für alle Konten dieses Servers.",
+      "unsubscribe": "Vom Server entfernen",
+      "unsubscribeTitle": "{{title}} vom Server entfernen?",
+      "unsubscribeBody": "Der Kanal, seine Folgen und deren Dateien verschwinden vom Server, für alle seine Konten.",
+      "removeConfirm": "Entfernen",
+      "deleteEpisode": "{{title}} vom Server entfernen",
+      "deleteEpisodeTitle": "Diese Folge vom Server entfernen?",
+      "deleteEpisodeBody": "„{{title}}“ und die zugehörige Datei verschwinden vom Server, für alle seine Konten. Bei der nächsten Prüfung kommt die Folge nicht zurück.",
+      "requestDownload": "Server bitten, {{title}} herunterzuladen",
+      "notStored": "Nicht auf dem Server",
+      "notStoredHint": "Der Server spielt nur ab, was er heruntergeladen hat. Ein Administrator kann ihn darum bitten.",
+      "needsServer": "Offline oder Podcasts aus: Der Server wird nicht kontaktiert.",
+      "downloading": "Download auf dem Server…",
+      "downloadFailed": "Fehler auf dem Server",
+      "forgetPosition": "{{title}} von vorn abspielen"
     }
   }
 }

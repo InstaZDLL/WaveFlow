@@ -167,9 +167,14 @@ type HistoryEntry =
       opened?: number;
     }
   | { id: "web-radio" }
-  // The channel and the episode open, so Back and Forward restore them; none is
-  // the overview.
-  | { id: "podcasts"; channelId?: number | null; episodeId?: number | null }
+  // What is open, so Back and Forward restore it; none of them is the overview.
+  | {
+      id: "podcasts";
+      channelId?: number | null;
+      episodeId?: number | null;
+      /** A channel of the bound server: its id is the server's, and no row here. */
+      serverChannelId?: string | null;
+    }
   | { id: "release-radar" }
   // The files it opened travel on the entry, so Back returns to the same
   // table; `opened` tells two openings of the same source apart, each a
@@ -780,11 +785,19 @@ export function AppLayout() {
                 ? (currentEntry.episodeId ?? null)
                 : null
             }
+            serverChannelId={
+              currentEntry.id === "podcasts"
+                ? (currentEntry.serverChannelId ?? null)
+                : null
+            }
             onOpenChannel={(channelId) =>
               pushEntry({ id: "podcasts", channelId })
             }
             onOpenEpisode={(channelId, episodeId) =>
               pushEntry({ id: "podcasts", channelId, episodeId })
+            }
+            onOpenServerChannel={(serverChannelId) =>
+              pushEntry({ id: "podcasts", serverChannelId })
             }
             onChannelGone={leavePodcastChannel}
             onEpisodeGone={leavePodcastEpisode}

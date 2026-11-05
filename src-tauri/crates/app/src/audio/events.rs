@@ -75,6 +75,9 @@ pub struct RadioMetadataPayload {
     pub is_podcast: bool,
     pub podcast_episode_id: Option<i64>,
     pub podcast_channel_id: Option<i64>,
+    /// The episode's id on a bound server, when it is one of that server's: a row
+    /// of its page rather than of the two above.
+    pub podcast_server_episode_id: Option<String>,
 }
 
 /// Last emitted radio metadata, kept process-wide so a webview that

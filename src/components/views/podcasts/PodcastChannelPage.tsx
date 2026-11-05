@@ -19,6 +19,7 @@ import {
   PODCAST_UPDATED,
   podcastErrorWord,
   podcastListEpisodes,
+  podcastSubscribe,
   type PodcastChannel,
   type PodcastDownloadPayload,
   type PodcastEpisode,
@@ -415,6 +416,7 @@ export function PodcastChannelPage({
           {enabled ? (
             <div className="mt-3">
               <PodcastSubscribeForm
+                subscribe={podcastSubscribe}
                 onSubscribed={onResubscribed}
                 disabled={offline}
                 hint={t("podcasts.restored.hint")}

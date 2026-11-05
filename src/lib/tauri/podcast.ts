@@ -171,7 +171,9 @@ const ERROR_PREFIX = "podcast: ";
 /**
  * The word a refused command rejected with: `disabled`, `offline`,
  * `profile_changed`, `channel_gone`, `episode_gone`, `no_source`, `open_failed`,
- * `not_seekable`, `write_failed`, or one from `FetchFailure::code` (`address_refused`,
+ * `not_seekable`, `write_failed`, on a bound server's channel `not_stored`,
+ * `server_unreachable`, `server_signed_out`, `server_refused`, `server_conflict`,
+ * `destination_refused`, or one from `FetchFailure::code` (`address_refused`,
  * `too_many_redirects`, `too_large`, `unreached`, `http_<status>`,
  * `invalid_feed`, `not_audio`, `quota_exceeded`). `null` for any other error.
  */

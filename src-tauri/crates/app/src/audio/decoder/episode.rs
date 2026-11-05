@@ -19,7 +19,7 @@ use super::{
     handle_playback_outcome, restore_pcm_output, transition_state, unpause_and_drain_ring,
     was_released, ErrorPayload, PlaybackEnd, EVENT_ERROR,
 };
-use crate::podcast::playback::{EpisodeLoad, EpisodeSource, SOURCE_TYPE};
+use crate::podcast::playback::{EpisodeHome, EpisodeLoad, EpisodeSource, SOURCE_TYPE};
 use crate::podcast::stream;
 
 /// Tauri event: the engine changed the speed by itself, because an episode took
@@ -68,6 +68,14 @@ fn announce_speed(app: &AppHandle, before: f32, now: f32) {
 /// The episode as the player bar shows it. Nothing here is an address: there is
 /// no station to favourite, and its picture is a file of ours.
 fn metadata(load: &EpisodeLoad, duration_ms: u64) -> RadioMetadataPayload {
+    let (podcast_episode_id, podcast_channel_id, podcast_server_episode_id) = match &load.home {
+        EpisodeHome::Local {
+            episode_id,
+            channel_id,
+        } => (Some(*episode_id), Some(*channel_id), None),
+        #[cfg(feature = "sync_v2")]
+        EpisodeHome::Server(place) => (None, None, Some(place.episode_id.clone())),
+    };
     RadioMetadataPayload {
         track_id: load.track_id,
         title: Some(load.title.clone()),
@@ -84,8 +92,9 @@ fn metadata(load: &EpisodeLoad, duration_ms: u64) -> RadioMetadataPayload {
         is_file: false,
         file_path: None,
         is_podcast: true,
-        podcast_episode_id: Some(load.episode_id),
-        podcast_channel_id: Some(load.channel_id),
+        podcast_episode_id,
+        podcast_channel_id,
+        podcast_server_episode_id,
     }
 }
 
@@ -115,24 +124,40 @@ fn open_stream(
             let source =
                 crate::podcast::playback::open_stream(app, load.profile_id, enclosure, *origin)
                     .map_err(|refusal| refusal.message())?;
-            // What the host says it is, or else what the feed said.
-            let hint = stream::ext_hint(source.content_type())
-                .or_else(|| stream::ext_hint(declared_type.as_deref()));
-            let mut opened = ActiveStream::open_from_source(
-                Box::new(source) as Box<dyn MediaSource>,
-                hint,
-                load.track_id,
-                load.duration_ms,
-                SOURCE_TYPE.to_string(),
-                None,
-                TrackGain::default(),
-            )?;
-            // Over a network, an accurate seek into an MP3 reads the file up to
-            // there: most of an hour's download to resume near its end.
-            opened.coarse_seek = true;
-            Ok(opened)
+            open_over_network(load, source, declared_type.as_deref())
+        }
+        #[cfg(feature = "sync_v2")]
+        EpisodeSource::Server { declared_type } => {
+            let EpisodeHome::Server(place) = &load.home else {
+                return Err("podcast: no_source".to_owned());
+            };
+            let source = crate::podcast::server::open_stream(app, place)
+                .map_err(|refusal| refusal.message())?;
+            open_over_network(load, source, declared_type.as_deref())
         }
     }
+}
+
+fn open_over_network(
+    load: &EpisodeLoad,
+    source: stream::EnclosureSource,
+    declared_type: Option<&str>,
+) -> Result<ActiveStream, String> {
+    // What the host says it is, or else what the feed said.
+    let hint = stream::ext_hint(source.content_type()).or_else(|| stream::ext_hint(declared_type));
+    let mut opened = ActiveStream::open_from_source(
+        Box::new(source) as Box<dyn MediaSource>,
+        hint,
+        load.track_id,
+        load.duration_ms,
+        SOURCE_TYPE.to_string(),
+        None,
+        TrackGain::default(),
+    )?;
+    // Over a network, an accurate seek into an MP3 reads the file up to
+    // there: most of an hour's download to resume near its end.
+    opened.coarse_seek = true;
+    Ok(opened)
 }
 
 /// Plays one episode to its end or until something replaces it.
@@ -208,8 +233,7 @@ pub(super) fn play_episode(
     // Ahead of the end's own message, which may step to the next episode.
     let _ = analytics_tx.send(AnalyticsMsg::EpisodeLeft {
         profile_id: load.profile_id,
-        episode_id: load.episode_id,
-        channel_id: load.channel_id,
+        home: load.home.clone(),
         position_ms,
         duration_ms,
         finished,

@@ -7,7 +7,7 @@ import { NowPlayingPanel } from "../NowPlayingPanel";
 import { LyricsPanel } from "../LyricsPanel";
 import { QueuePanel } from "../QueuePanel";
 import { PodcastTranscriptPanel } from "../../podcasts/PodcastTranscriptPanel";
-import { isPodcastTrack } from "../../../lib/playerSources";
+import { isLocalPodcastTrack } from "../../../lib/playerSources";
 
 interface FluidSidePanelProps {
   onNavigateToArtist: (artistId: number) => void;
@@ -17,7 +17,8 @@ interface FluidSidePanelProps {
 /**
  * The Fluid skin's right edge: one panel with three tabs — Details,
  * Lyrics, Queue — where the other skins mount three panels in turn. During
- * an episode, which has no lyrics, Transcript takes the place of Lyrics.
+ * an episode of this profile, which has no lyrics, Transcript takes the place of
+ * Lyrics.
  * The three bodies are the existing panels in their embedded form (no
  * frame of their own, no header, no close button): the data, the
  * actions and the keyboard contract are theirs, only the shell is new.
@@ -33,10 +34,11 @@ export function FluidSidePanel({
     usePlayer();
   // Three tabs, which is what the width holds. The panel that is up keeps its tab
   // whatever plays: it was opened for a reason, and a tabpanel needs the tab it is
-  // labelled by. Otherwise an episode has a transcript and no lyrics.
+  // labelled by. Otherwise an episode has a transcript and no lyrics, unless it is a
+  // bound server's, which has no transcript to offer.
   const showsTranscript =
     activeRightPanel === "transcript" ||
-    (isPodcastTrack(currentTrack) && activeRightPanel !== "lyrics");
+    (isLocalPodcastTrack(currentTrack) && activeRightPanel !== "lyrics");
   const TABS: RightPanel[] = [
     "nowPlaying",
     showsTranscript ? "transcript" : "lyrics",

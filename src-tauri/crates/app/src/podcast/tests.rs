@@ -2644,7 +2644,7 @@ async fn only_a_web_address_is_opened_as_a_channels_site() {
 async fn episode_life_with_a_token(server: &Server, outputs: &mut Vec<String>) {
     use std::io::{Read, Seek, SeekFrom};
 
-    use super::playback::{EpisodeLoad, EpisodeSource};
+    use super::playback::{EpisodeHome, EpisodeLoad, EpisodeSource};
     use super::stream::{EnclosureSource, Gate};
     use crate::audio::engine::{AudioCmd, LastLoad, LoadIntent};
 
@@ -2688,8 +2688,10 @@ async fn episode_life_with_a_token(server: &Server, outputs: &mut Vec<String>) {
     let command = AudioCmd::LoadEpisodeAndPlay {
         intent: LoadIntent::from_raw(1),
         episode: Box::new(EpisodeLoad {
-            episode_id: 1,
-            channel_id: 1,
+            home: EpisodeHome::Local {
+                episode_id: 1,
+                channel_id: 1,
+            },
             profile_id: 1,
             track_id: -1,
             start_ms: 0,

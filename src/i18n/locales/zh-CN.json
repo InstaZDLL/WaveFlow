@@ -4487,6 +4487,10 @@
         "stop": {
           "title": "如何全部停止",
           "body": "开启离线模式可以全部停止。关闭播客则会彻底停止。"
+        },
+        "server": {
+          "title": "如果关联了服务器",
+          "body": "如果这个配置文件关联了开启播客的 WaveFlow 服务器，它的节目也会显示。这些内容经过你的服务器：托管方看到的是你的服务器，而不是你。"
         }
       }
     },
@@ -4607,7 +4611,13 @@
       "no_source": "这一集既没有文件也没有地址：请重新订阅该频道。",
       "not_seekable": "此托管方不支持在这一集中跳转。",
       "write_failed": "无法将文件写入磁盘。",
-      "invalid_document": "此文件与其声明的内容不符。"
+      "invalid_document": "此文件与其声明的内容不符。",
+      "not_stored": "服务器没有保存这一集：需要它先下载。",
+      "server_unreachable": "服务器没有响应。",
+      "server_signed_out": "你已不再登录这台服务器。",
+      "server_refused": "服务器拒绝了，或已不再有这一项。",
+      "server_conflict": "服务器已在关注这个订阅源，或无法再关注更多。",
+      "destination_refused": "服务器不允许访问这个地址。"
     },
     "episodePage": {
       "kicker": "单集"
@@ -4628,6 +4638,29 @@
       "untimed": "此文字稿没有时间信息，因此不会跟随播放。",
       "notPlaying": "此单集未在播放。点击某一行即可从该处开始播放。",
       "jump": "转到 {{time}}：{{text}}"
+    },
+    "server": {
+      "title": "在你的服务器上",
+      "chip": "服务器",
+      "refresh": "在服务器上检查",
+      "refreshAsked": "服务器正在检查订阅源。新内容很快就会显示。",
+      "subscribeOpen": "在服务器上订阅",
+      "subscribeLabel": "在服务器上订阅一个订阅源",
+      "subscribeHint": "服务器会先读取订阅源再添加。订阅对这台服务器上的所有账户生效。",
+      "unsubscribe": "从服务器移除",
+      "unsubscribeTitle": "要从服务器移除 {{title}} 吗？",
+      "unsubscribeBody": "节目、单集及其文件都会从服务器上消失，所有账户都受影响。",
+      "removeConfirm": "移除",
+      "deleteEpisode": "从服务器移除 {{title}}",
+      "deleteEpisodeTitle": "要从服务器移除这一集吗？",
+      "deleteEpisodeBody": "“{{title}}”及其文件会从服务器上消失，所有账户都受影响。下次检查时也不会回来。",
+      "requestDownload": "请服务器下载 {{title}}",
+      "notStored": "不在服务器上",
+      "notStoredHint": "服务器只播放已下载的内容。管理员可以请它下载。",
+      "needsServer": "离线或播客已关闭：不会联系服务器。",
+      "downloading": "正在服务器上下载…",
+      "downloadFailed": "在服务器上失败",
+      "forgetPosition": "从头播放 {{title}}"
     }
   }
 }

@@ -10,7 +10,7 @@ Standalone podcasts in the desktop app, off by default. The design and its reaso
 | 4   | Downloads: managed folder, quota, cancel, Disk usage                                | This page |
 | 5   | The page, the activation warning, sidebar, settings, What's new                     | This page |
 | 6   | Chapters and the transcript panel                                                   | This page |
-| 7   | The server's podcasts                                                               | Not yet   |
+| 7   | The channels of a bound server                                                      | This page |
 
 ## The switch
 
@@ -20,7 +20,7 @@ Standalone podcasts in the desktop app, off by default. The design and its reaso
 
 ### The warning
 
-[`PodcastWarningDialog`](../../src/components/podcasts/PodcastWarningDialog.tsx) says what changes, in plain words, before anything does: feeds and episodes come straight from each podcast's host, which sees the IP address and what is played, and so do the measurement services episodes often pass through; a check every six hours while the app runs, and only then; downloads take space up to the quota; offline mode stops all of it, and turning podcasts off stops it for good.
+[`PodcastWarningDialog`](../../src/components/podcasts/PodcastWarningDialog.tsx) says what changes, in plain words, before anything does: feeds and episodes come straight from each podcast's host, which sees the IP address and what is played, and so do the measurement services episodes often pass through; a check every six hours while the app runs, and only then; downloads take space up to the quota; a linked server's channels show too, through that server; offline mode stops all of it, and turning podcasts off stops it for good.
 
 It is the one caller of `acceptWarning`. Everything else only asks for it, through `openPodcastWarning()` in [`discovery.ts`](../../src/lib/discovery.ts): the Settings row, the page's button, the page of What's new. An OPML file cannot be opened with the switch off, since the page shows no import then, and onboarding does not mention it. Cancel comes first in the DOM and nothing in the body takes the focus, so `useModalA11y` starts on it, and Enter on an opening dialog accepts nothing. Cancel, Escape and the backdrop leave the switch as it was. The hook takes a refused write back rather than rejecting, so the dialog reads the switch once the write has settled: still off, it stays open and says so.
 
@@ -209,7 +209,7 @@ The line or the chapter marked is then that far from what is heard, from that se
 | `podcast_download_usage`     | `{ usedBytes, quotaBytes }`                                     |
 | `podcast_download_queue`     | What is under way, for a view opened meanwhile                  |
 
-Typed wrappers are in [`src/lib/tauri/podcast.ts`](../../src/lib/tauri/podcast.ts). The event `podcast:updated` carries `channel_id`, and `podcast:download` is described under [Downloads](#downloads).
+Typed wrappers are in [`src/lib/tauri/podcast.ts`](../../src/lib/tauri/podcast.ts). The event `podcast:updated` carries `channel_id`, and `podcast:download` is described under [Downloads](#downloads). A bound server's channels have [commands of their own](#the-channels-of-a-bound-server).
 
 ## Playing an episode
 
@@ -253,3 +253,53 @@ Whether the pitch follows the speed is the user's own `audio.keep_pitch`, on by 
 ### The player
 
 Back 15 s and forward 30 s are in the "⋯" menu, only while an episode plays or is paused, with the [chapter around the position](#chapters), since a seek does nothing for a stopped one. The [transcript](#transcripts) stays there for as long as it is on the bar. The bar and the mini-player show its title, its channel and the channel's picture from the artwork cache, through `player:radio-metadata` with `is_podcast`, so the webview makes no request for them. No lyrics are looked up for an episode: its title sent to a provider would be one more thing leaving about what someone hears.
+
+## The channels of a bound server
+
+[`remote::podcasts`](../../src-tauri/crates/app/src/remote/podcasts.rs) reads them, [`podcast::server`](../../src-tauri/crates/app/src/podcast/server.rs) plays them, and [`PodcastServer.tsx`](../../src/components/views/podcasts/PodcastServer.tsx) draws them. When a bound server answers `GET /api/v2/podcasts` with `enabled: true`, its channels are a section of the same page, each with a chip that says whose it is. Nothing changed on the server: this is `waveflow-server` 2.1, its RFC-025 decisions 7 to 14.
+
+**The same switch.** With `podcasts.enabled` off, nothing here makes a request and there is no sidebar row. The traffic goes to a host the person already chose rather than to each podcast's, but the rule stays one rule, and the warning says what a linked server adds. Offline mode the same. Both are asked by `may_ask` before each gesture builds its client, so before the token refresh that may take, and again by the stream's gate before each of its requests. A refresh that follows a request answered 401 belongs to that gesture, and checks only offline mode.
+
+**Live, not mirrored.** Channels and episodes are in neither the server's journal nor its snapshot, so nothing goes through the projection or the outbound queue, and no local table holds them. The overview is read when the page opens and when it moves between the overview and a channel. A channel is read when it opens, after a position was written at a pause, a seek or an end (`podcast:server-updated`), and every 5 s while the server downloads one of its episodes, since nothing else would say when it is done. A refresh runs in the background over there, so the page reads again once, 5 s later. Both are read again when the binding changes (`waveflow:remote-changed`), since a sign-in waits on the browser for minutes and may land while this page is open, under the same profile. A channel read that answers `server_signed_out` drops the rows it had, which are nobody's to act on by then.
+
+**Absent, not failed.** `podcast_server_overview` answers `null` for every reason there is no section: switched off here, offline, no server, a Subsonic binding, signed out, `enabled: false` over there, unreachable, an answer nobody can read. The page goes on without it. Asked of a server afterwards, a gesture says what went wrong in a word from a fixed list: `server_unreachable`, `server_signed_out`, `server_refused`, `server_conflict`, `not_stored`, or a feed's own reason. The status decides the word, never what the server wrote.
+
+**No address on this side.** A manager's answer holds the feed's and the cover's address, and any reader's the channel's site. The wire types do not declare them, so they are dropped at the door: a row cannot carry one to the webview or to a log line (decision 4 of the RFC). The feed a manager types goes to the server in a request body and is kept nowhere. The failure a channel or an episode has stored is read the same way: a word off the list comes in as `unavailable`, which the page reads as a failure it cannot name, so no text of the server's goes on to the webview there.
+
+### Playing one
+
+`podcast_server_play(channel_id, episode_id)` reads the channel first, so a refusal changes nothing, and `not_stored` for anything but a `completed` episode: the server downloads, and never relays. Then it is the same session as a local episode, under another `EpisodeHome`, so one detached queue at a time and media keys, the tray and MPD through `player_actions`, with no `play_event`, no scrobble and no local row of any kind. The queue is the channel's stored episodes. The server keeps no played state, so the episode after one that ended is the next stored one, heard or not.
+
+A step reads the episode again after letting go of the publish lock, since holding it across a request would park every other surface, and takes it again to publish. A step overtaken meanwhile publishes nothing and, if it fails, stops nothing. A jump in the queue reads before anything moves, so a refusal leaves what plays alone, then under one hold of the lock looks at the session, claims its turn and moves the cursor, in that order: another queue installed during the read is not its to touch. A step does the same check, for both kinds of session. A session whose server is no longer the profile's, after signing out say, is dropped when Play finds out, and Play goes on with what it would otherwise do.
+
+**The stream routes take an episode id.** The ticket is not in the load, which is printed and kept for an output rebuild, and which a ticket would outlive: one lasts about an hour, as an episode may. The decoder mints it when it opens the stream, and a request that answers 404 mints another once and tries again, a `not_stored` from the mint being the real one. It goes through `EnclosureSource` under `Origin::of` the server's own address, so it reaches no log line, redacted or not, and a server on the local network may stream from there while one on the internet cannot lead back into it. Every request asks the switch, offline mode and whether this is still the server the profile is bound to. Always the original bytes: a transcode cannot seek, and resuming is a seek.
+
+A token refresh that fails is not a change of profile: the rows say which it was, without a request. The server's 401 to it reads `server_signed_out`, and anything else, no answer above all, `server_unreachable`, including when the refresh follows a request answered 401, which then comes back as transient. The refresh itself checks offline mode, and only offline mode: it serves every remote feature, so the switch is asked by the gesture that needs it.
+
+**The position is the server's, never a local row.** `PUT /api/v2/bookmarks/{id}` at a pause, a seek, the end of a session and every 15 s, and `DELETE` once it counts as heard by the rule above, since that is how the server's own web client says an episode is done. Writes go through one queue, whose place is taken when they are asked for, so a late tick cannot land after the end or the gesture that cleared the bookmark, and whoever waits gives up after 8 s while the write keeps its place. A person forgetting a position queues there too, for the account the gesture was made on. Only the wait gives up: the write itself goes on in a task of its own, and so does a ticket's mint under a Stop, because either may hold a token refresh, whose rotated pair would be lost and the profile signed out. A plain request: these rows are outside what the server can recognize as a replay. `ServerScope` pins each one to the profile, the server and the account that was listening, read from the client that started it and asked of every client after, so a switch of any of the three drops it rather than writing somebody else's position. A position that cannot be sent is lost: there is no local row to hold it for later. That includes the very last one when the switch goes off during a stream.
+
+**Speed** has no row to go in. A slider moved during a server's episode is heard at once and lasts for the channel while the app runs. `audio.playback_speed` stays as it is.
+
+### Managing
+
+`can_manage` from the overview decides whether the controls exist: subscribe, ask the server to check its feeds, remove a channel, ask it to download an episode, remove an episode. Without it they are absent. A refusal reads as 404 over there, also for a channel deleted a moment ago, so `server_refused` says only that and no role is ever inferred from one. Removing anything is for every account on that server, so the two that remove ask first and say so; a removed episode leaves the listing for good, since a refresh does not bring it back.
+
+**A channel subscribed in both places shows twice**, once per source, and each keeps its own position. Merging them would need an identity the two do not share.
+
+### What the server has none of
+
+No chapters and no transcripts: at 2.1.0 its feed parser reads neither and its answers carry neither, so a server's channel shows none of them. Nothing offers them either: the "⋯" menu and the Details panel ask for `podcast_episode_id`, which such an episode does not have, the fluid panel keeps its Lyrics tab, and a transcript panel that was following the player closes when one starts. One opened on a local episode by name stays, as it does for a track. No played state, no unplayed count and no site link either. "To listen" stays local, since it is defined as needing no request.
+
+| Command                           | Does                                                           |
+| --------------------------------- | -------------------------------------------------------------- |
+| `podcast_server_overview`         | `{ enabled, can_manage, channels }`, or `null` for no section  |
+| `podcast_server_channel`          | One channel with its episodes and this account's positions     |
+| `podcast_server_play`             | Plays a stored episode, with the stored ones as the queue      |
+| `podcast_server_clear_position`   | Forgets where this account stopped                             |
+| `podcast_server_subscribe`        | Subscribes the server; it reads the feed first                 |
+| `podcast_server_refresh`          | Asks it to check every channel, in the background              |
+| `podcast_server_unsubscribe`      | Removes a channel, its episodes and their files                |
+| `podcast_server_request_download` | Asks it to keep an episode; the status says the rest           |
+| `podcast_server_delete_episode`   | Removes an episode and its file, for good                      |
+
+Typed wrappers are in [`src/lib/tauri/podcastServer.ts`](../../src/lib/tauri/podcastServer.ts). All of them need the `sync_v2` feature, in the default set; without it the invoke fails and there is no section.

@@ -136,6 +136,9 @@ function radioMetadataToTrack(payload: RadioMetadata): Track {
     ...(payload.podcast_episode_id != null
       ? { podcast_episode_id: payload.podcast_episode_id }
       : {}),
+    ...(payload.podcast_server_episode_id != null
+      ? { podcast_server_episode_id: payload.podcast_server_episode_id }
+      : {}),
   };
 }
 
@@ -207,6 +210,15 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         ? { episodeId: transcriptRequest.episodeId, whilePlaying: null }
         : null,
     );
+  }
+  // A bound server's episode has no transcript, so a panel that was following the
+  // player has nothing to show for it. One opened on a local episode by name stays.
+  if (
+    activeRightPanel === "transcript" &&
+    transcriptRequest == null &&
+    currentTrack?.podcast_server_episode_id != null
+  ) {
+    setActiveRightPanel(null);
   }
   // Stable Web Radio station identity, separate from the now-playing
   // song (which the ICY de-interleaver overwrites). Set from

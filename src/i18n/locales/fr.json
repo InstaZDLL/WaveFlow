@@ -4629,6 +4629,10 @@
         "stop": {
           "title": "Comment tout arrêter",
           "body": "Le mode hors ligne arrête tout. Couper les podcasts l'arrête pour de bon."
+        },
+        "server": {
+          "title": "Si un serveur est lié",
+          "body": "Si ce profil est lié à un serveur WaveFlow dont les podcasts sont activés, ses chaînes s'affichent aussi. Elles passent par votre serveur : c'est lui que l'hébergeur voit, pas vous."
         }
       }
     },
@@ -4749,7 +4753,13 @@
       "no_source": "Cet épisode n'a ni fichier ni adresse : réabonnez-vous à la chaîne.",
       "not_seekable": "Cet hôte ne permet pas de se déplacer dans l'épisode.",
       "write_failed": "Le fichier n'a pas pu être écrit sur le disque.",
-      "invalid_document": "Ce fichier n'est pas ce qu'il prétend être."
+      "invalid_document": "Ce fichier n'est pas ce qu'il prétend être.",
+      "not_stored": "Le serveur ne garde pas cet épisode : il faut d'abord qu'il le télécharge.",
+      "server_unreachable": "Le serveur ne répond pas.",
+      "server_signed_out": "Vous n'êtes plus connecté à ce serveur.",
+      "server_refused": "Le serveur a refusé, ou ne connaît plus cet élément.",
+      "server_conflict": "Le serveur suit déjà ce flux, ou ne peut plus en suivre davantage.",
+      "destination_refused": "Le serveur n'a pas le droit de joindre cette adresse."
     },
     "episodePage": {
       "kicker": "Épisode"
@@ -4770,6 +4780,29 @@
       "untimed": "Cette transcription n'a pas de minutage : elle ne suit pas la lecture.",
       "notPlaying": "Cet épisode n'est pas en cours de lecture. Un clic sur une ligne le lance à ce moment.",
       "jump": "Aller à {{time}} : {{text}}"
+    },
+    "server": {
+      "title": "Sur votre serveur",
+      "chip": "Serveur",
+      "refresh": "Vérifier sur le serveur",
+      "refreshAsked": "Le serveur vérifie ses flux. Les nouveautés arrivent d'ici peu.",
+      "subscribeOpen": "S'abonner sur le serveur",
+      "subscribeLabel": "S'abonner à un flux sur le serveur",
+      "subscribeHint": "Le serveur lit le flux avant de l'ajouter. L'abonnement vaut pour tous les comptes de ce serveur.",
+      "unsubscribe": "Supprimer du serveur",
+      "unsubscribeTitle": "Supprimer {{title}} du serveur ?",
+      "unsubscribeBody": "La chaîne, ses épisodes et leurs fichiers disparaissent du serveur, pour tous ses comptes.",
+      "removeConfirm": "Supprimer",
+      "deleteEpisode": "Supprimer {{title}} du serveur",
+      "deleteEpisodeTitle": "Supprimer cet épisode du serveur ?",
+      "deleteEpisodeBody": "« {{title}} » et son fichier disparaissent du serveur, pour tous ses comptes. Il ne reviendra pas à la prochaine vérification.",
+      "requestDownload": "Demander au serveur de télécharger {{title}}",
+      "notStored": "Pas sur le serveur",
+      "notStoredHint": "Le serveur ne lit que ce qu'il a téléchargé. Un administrateur peut le lui demander.",
+      "needsServer": "Hors ligne ou podcasts coupés : le serveur n'est pas contacté.",
+      "downloading": "Téléchargement sur le serveur…",
+      "downloadFailed": "Échec sur le serveur",
+      "forgetPosition": "Reprendre {{title}} du début"
     }
   }
 }

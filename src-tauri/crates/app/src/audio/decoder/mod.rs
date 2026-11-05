@@ -553,6 +553,7 @@ fn decoder_loop(
                         is_podcast: false,
                         podcast_episode_id: None,
                         podcast_channel_id: None,
+                        podcast_server_episode_id: None,
                     },
                 );
 
@@ -776,6 +777,7 @@ fn decoder_loop(
                         is_podcast: false,
                         podcast_episode_id: None,
                         podcast_channel_id: None,
+                        podcast_server_episode_id: None,
                     },
                 );
 

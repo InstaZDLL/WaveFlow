@@ -90,7 +90,7 @@ pub async fn podcast_unsubscribe(
         if state
             .podcast_playback
             .current()
-            .is_some_and(|entry| entry.channel_id == channel_id)
+            .is_some_and(|entry| entry.home.is_of_channel(channel_id))
         {
             state.podcast_playback.clear();
             let _ = app.state::<Arc<AudioEngine>>().send(AudioCmd::Stop);

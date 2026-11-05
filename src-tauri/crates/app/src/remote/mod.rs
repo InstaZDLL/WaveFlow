@@ -90,6 +90,10 @@
 //!   journal, acknowledge, and recover by re-snapshotting when a known
 //!   event cannot be applied.
 //!
+//! - [`podcasts`] — the server's podcasts, read when the page opens and written
+//!   as they are asked for. Nothing of them is in the projection or the queue:
+//!   they are in neither the journal nor the snapshot.
+//!
 //! - [`socket`] — the wake-up channel. Pure latency: it carries notice
 //!   that a newer cursor may exist, never state, so removing it would
 //!   leave the projection correct and merely slower to notice another
@@ -122,6 +126,7 @@ pub mod lyrics;
 pub mod mirror;
 pub mod mutation;
 pub mod playback;
+pub mod podcasts;
 pub mod probe;
 pub mod projection;
 pub mod read;
@@ -132,3 +137,34 @@ pub mod sync;
 pub mod tokens;
 pub mod upload;
 pub mod write;
+
+/// What a test elsewhere in the crate needs to name a server it does not contact.
+#[cfg(test)]
+pub(crate) mod test_support {
+    use super::binding::{RemoteBinding, RemoteIdentity};
+    use super::client::RemoteClient;
+    use super::podcasts::ServerScope;
+    use super::tokens::TokenPair;
+
+    /// The scope of an account on a server, in profile 1.
+    pub(crate) fn scope_on(server_url: &str, account_id: &str) -> ServerScope {
+        let binding = RemoteBinding {
+            server_url: server_url.to_owned(),
+            identity: RemoteIdentity::Waveflow {
+                account_id: account_id.to_owned(),
+                device_id: "dev-1".to_owned(),
+                cursor: 0,
+            },
+            active_library_id: None,
+            bootstrapped_at: None,
+        };
+        let pair = TokenPair {
+            access_token: "access-token".to_owned(),
+            refresh_token: "refresh-token".to_owned(),
+            expires_at: None,
+            username: None,
+        };
+        let client = RemoteClient::from_parts(&binding, &pair).unwrap();
+        ServerScope::of(&client, 1).unwrap()
+    }
+}
