@@ -4655,7 +4655,7 @@
       "unsubscribe": "सर्वर से हटाएँ",
       "unsubscribeTitle": "{{title}} को सर्वर से हटाएँ?",
       "unsubscribeBody": "चैनल, उसके एपिसोड और उनकी फ़ाइलें सर्वर से हट जाएँगी, सभी खातों के लिए।",
-      "unsubscribeConfirm": "हटाएँ",
+      "removeConfirm": "हटाएँ",
       "deleteEpisode": "{{title}} को सर्वर से हटाएँ",
       "deleteEpisodeTitle": "इस एपिसोड को सर्वर से हटाएँ?",
       "deleteEpisodeBody": "“{{title}}” और उसकी फ़ाइल सर्वर से हट जाएँगी, सभी खातों के लिए। अगली जाँच में यह वापस नहीं आएगा।",

@@ -4650,7 +4650,7 @@
       "unsubscribe": "サーバーから削除",
       "unsubscribeTitle": "{{title}}をサーバーから削除しますか？",
       "unsubscribeBody": "番組、エピソード、そのファイルが、全アカウントについてサーバーから消えます。",
-      "unsubscribeConfirm": "削除",
+      "removeConfirm": "削除",
       "deleteEpisode": "{{title}}をサーバーから削除",
       "deleteEpisodeTitle": "このエピソードをサーバーから削除しますか？",
       "deleteEpisodeBody": "「{{title}}」とそのファイルが、全アカウントについてサーバーから消えます。次の確認でも戻りません。",

@@ -4792,7 +4792,7 @@
       "unsubscribe": "Supprimer du serveur",
       "unsubscribeTitle": "Supprimer {{title}} du serveur ?",
       "unsubscribeBody": "La chaîne, ses épisodes et leurs fichiers disparaissent du serveur, pour tous ses comptes.",
-      "unsubscribeConfirm": "Supprimer",
+      "removeConfirm": "Supprimer",
       "deleteEpisode": "Supprimer {{title}} du serveur",
       "deleteEpisodeTitle": "Supprimer cet épisode du serveur ?",
       "deleteEpisodeBody": "« {{title}} » et son fichier disparaissent du serveur, pour tous ses comptes. Il ne reviendra pas à la prochaine vérification.",

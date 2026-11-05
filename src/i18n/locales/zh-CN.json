@@ -4650,7 +4650,7 @@
       "unsubscribe": "从服务器移除",
       "unsubscribeTitle": "要从服务器移除 {{title}} 吗？",
       "unsubscribeBody": "节目、单集及其文件都会从服务器上消失，所有账户都受影响。",
-      "unsubscribeConfirm": "移除",
+      "removeConfirm": "移除",
       "deleteEpisode": "从服务器移除 {{title}}",
       "deleteEpisodeTitle": "要从服务器移除这一集吗？",
       "deleteEpisodeBody": "“{{title}}”及其文件会从服务器上消失，所有账户都受影响。下次检查时也不会回来。",

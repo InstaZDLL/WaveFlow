@@ -4793,7 +4793,7 @@
       "unsubscribe": "Remover do servidor",
       "unsubscribeTitle": "Remover {{title}} do servidor?",
       "unsubscribeBody": "O canal, os episódios e os arquivos deles somem do servidor, para todas as contas.",
-      "unsubscribeConfirm": "Remover",
+      "removeConfirm": "Remover",
       "deleteEpisode": "Remover {{title}} do servidor",
       "deleteEpisodeTitle": "Remover este episódio do servidor?",
       "deleteEpisodeBody": "“{{title}}” e o arquivo dele somem do servidor, para todas as contas. Ele não volta na próxima verificação.",

@@ -5165,7 +5165,7 @@
       "unsubscribe": "إزالة من الخادم",
       "unsubscribeTitle": "هل تريد إزالة {{title}} من الخادم؟",
       "unsubscribeBody": "تختفي القناة وحلقاتها وملفاتها من الخادم، لكل حساباته.",
-      "unsubscribeConfirm": "إزالة",
+      "removeConfirm": "إزالة",
       "deleteEpisode": "إزالة {{title}} من الخادم",
       "deleteEpisodeTitle": "هل تريد إزالة هذه الحلقة من الخادم؟",
       "deleteEpisodeBody": "يختفي «{{title}}» وملفه من الخادم، لكل حساباته. ولن يعود عند الفحص التالي.",

@@ -4650,7 +4650,7 @@
       "unsubscribe": "Hapus dari server",
       "unsubscribeTitle": "Hapus {{title}} dari server?",
       "unsubscribeBody": "Kanal, episode, dan berkasnya hilang dari server, untuk semua akun di dalamnya.",
-      "unsubscribeConfirm": "Hapus",
+      "removeConfirm": "Hapus",
       "deleteEpisode": "Hapus {{title}} dari server",
       "deleteEpisodeTitle": "Hapus episode ini dari server?",
       "deleteEpisodeBody": "“{{title}}” dan berkasnya hilang dari server, untuk semua akun di dalamnya. Episode ini tidak akan kembali pada pemeriksaan berikutnya.",

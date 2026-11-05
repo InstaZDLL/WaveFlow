@@ -4650,7 +4650,7 @@
       "unsubscribe": "서버에서 삭제",
       "unsubscribeTitle": "{{title}}을(를) 서버에서 삭제할까요?",
       "unsubscribeBody": "채널과 에피소드, 해당 파일이 모든 계정에서 서버에서 사라집니다.",
-      "unsubscribeConfirm": "삭제",
+      "removeConfirm": "삭제",
       "deleteEpisode": "서버에서 {{title}} 삭제",
       "deleteEpisodeTitle": "이 에피소드를 서버에서 삭제할까요?",
       "deleteEpisodeBody": "“{{title}}”과(와) 해당 파일이 모든 계정에서 서버에서 사라집니다. 다음 확인 때도 돌아오지 않습니다.",

@@ -4650,7 +4650,7 @@
       "unsubscribe": "從伺服器移除",
       "unsubscribeTitle": "要從伺服器移除 {{title}} 嗎？",
       "unsubscribeBody": "節目、單集及其檔案都會從伺服器上消失，所有帳號都受影響。",
-      "unsubscribeConfirm": "移除",
+      "removeConfirm": "移除",
       "deleteEpisode": "從伺服器移除 {{title}}",
       "deleteEpisodeTitle": "要從伺服器移除這一集嗎？",
       "deleteEpisodeBody": "「{{title}}」及其檔案會從伺服器上消失，所有帳號都受影響。下次檢查時也不會回來。",

@@ -4792,7 +4792,7 @@
       "unsubscribe": "Eliminar del servidor",
       "unsubscribeTitle": "¿Eliminar {{title}} del servidor?",
       "unsubscribeBody": "El canal, sus episodios y sus archivos desaparecen del servidor, para todas sus cuentas.",
-      "unsubscribeConfirm": "Eliminar",
+      "removeConfirm": "Eliminar",
       "deleteEpisode": "Eliminar {{title}} del servidor",
       "deleteEpisodeTitle": "¿Eliminar este episodio del servidor?",
       "deleteEpisodeBody": "«{{title}}» y su archivo desaparecen del servidor, para todas sus cuentas. No volverá en la próxima búsqueda de novedades.",

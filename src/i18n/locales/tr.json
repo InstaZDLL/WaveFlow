@@ -4655,7 +4655,7 @@
       "unsubscribe": "Sunucudan kaldır",
       "unsubscribeTitle": "{{title}} sunucudan kaldırılsın mı?",
       "unsubscribeBody": "Kanal, bölümleri ve dosyaları, tüm hesaplar için sunucudan kaldırılır.",
-      "unsubscribeConfirm": "Kaldır",
+      "removeConfirm": "Kaldır",
       "deleteEpisode": "{{title}} sunucudan kaldır",
       "deleteEpisodeTitle": "Bu bölüm sunucudan kaldırılsın mı?",
       "deleteEpisodeBody": "“{{title}}” ve dosyası, tüm hesaplar için sunucudan kaldırılır. Bir sonraki denetimde geri gelmez.",

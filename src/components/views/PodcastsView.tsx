@@ -3,6 +3,7 @@ import {
   useEffect,
   useLayoutEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -314,11 +315,16 @@ export function PodcastsView({
     [run, serverEpisodeInPlayer, togglePlayback],
   );
 
+  // A view left, or another profile's, has nothing to read again.
+  const refreshRead = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(refreshRead.current), []);
+
   const refreshServer = useCallback(() => {
     void run("server refresh", async () => {
       await podcastServerRefresh();
       setNotice({ text: t("podcasts.server.refreshAsked"), warn: false });
-      window.setTimeout(() => {
+      window.clearTimeout(refreshRead.current);
+      refreshRead.current = window.setTimeout(() => {
         void reloadServer();
         setRevision((value) => value + 1);
       }, SERVER_REFRESH_READ_MS);
@@ -537,7 +543,7 @@ export function PodcastsView({
         })}
         onClose={() => setLeavingServer(null)}
         confirm={{
-          label: t("podcasts.server.unsubscribeConfirm"),
+          label: t("podcasts.server.removeConfirm"),
           danger: true,
           busy: leavingBusy,
           onConfirm: () => void confirmLeavingServer(),
@@ -553,7 +559,7 @@ export function PodcastsView({
         title={t("podcasts.server.deleteEpisodeTitle")}
         onClose={() => setDeletingEpisode(null)}
         confirm={{
-          label: t("podcasts.server.unsubscribeConfirm"),
+          label: t("podcasts.server.removeConfirm"),
           danger: true,
           busy: leavingBusy,
           onConfirm: () => void confirmDeletingEpisode(),

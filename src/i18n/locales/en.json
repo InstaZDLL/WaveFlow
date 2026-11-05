@@ -4655,7 +4655,7 @@
       "unsubscribe": "Remove from the server",
       "unsubscribeTitle": "Remove {{title}} from the server?",
       "unsubscribeBody": "The channel, its episodes and their files leave the server, for every account on it.",
-      "unsubscribeConfirm": "Remove",
+      "removeConfirm": "Remove",
       "deleteEpisode": "Remove {{title}} from the server",
       "deleteEpisodeTitle": "Remove this episode from the server?",
       "deleteEpisodeBody": "“{{title}}” and its file leave the server, for every account on it. It will not come back at the next check.",

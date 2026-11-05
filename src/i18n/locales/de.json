@@ -4655,7 +4655,7 @@
       "unsubscribe": "Vom Server entfernen",
       "unsubscribeTitle": "{{title}} vom Server entfernen?",
       "unsubscribeBody": "Der Kanal, seine Folgen und deren Dateien verschwinden vom Server, für alle seine Konten.",
-      "unsubscribeConfirm": "Entfernen",
+      "removeConfirm": "Entfernen",
       "deleteEpisode": "{{title}} vom Server entfernen",
       "deleteEpisodeTitle": "Diese Folge vom Server entfernen?",
       "deleteEpisodeBody": "„{{title}}“ und die zugehörige Datei verschwinden vom Server, für alle seine Konten. Bei der nächsten Prüfung kommt die Folge nicht zurück.",

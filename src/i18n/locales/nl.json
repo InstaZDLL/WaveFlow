@@ -4655,7 +4655,7 @@
       "unsubscribe": "Van de server verwijderen",
       "unsubscribeTitle": "{{title}} van de server verwijderen?",
       "unsubscribeBody": "Het kanaal, de afleveringen en hun bestanden verdwijnen van de server, voor alle accounts.",
-      "unsubscribeConfirm": "Verwijderen",
+      "removeConfirm": "Verwijderen",
       "deleteEpisode": "{{title}} van de server verwijderen",
       "deleteEpisodeTitle": "Deze aflevering van de server verwijderen?",
       "deleteEpisodeBody": "‘{{title}}’ en het bestand verdwijnen van de server, voor alle accounts. De aflevering komt bij de volgende controle niet terug.",
