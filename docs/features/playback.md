@@ -1038,7 +1038,9 @@ because one genuinely slow step must not be serialized:
   described above. A start that failed puts back the queues it replaced, files
   and episodes included (waking the episode's position watcher), since what
   they were driving is still playing and a queue nothing plays from would
-  take over Next.
+  take over Next. Not once the session was cleared meanwhile: a profile switch
+  and the hand-off of a crossfade clear every session without claiming, and the
+  queues they dropped are no longer this start's to put back.
 - **A step or a jump in a remote queue takes the lock twice.** Once to look
   for a session and claim, in that order since a claim with no load behind it
   would have the decoder drop an older load still on its way, and to move the
