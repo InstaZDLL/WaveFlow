@@ -528,8 +528,9 @@ impl<'a> RemoteClient<'a> {
     }
 }
 
-/// Whether a failed refresh leaves the question of the account open: no answer, or an
-/// answer from a server that is not well. Only its 401 says the session is over.
+/// Whether a failed refresh leaves the question of the account open: no answer, one
+/// nobody can read, or one from a server that is not well. Only its 401 says the session
+/// is over.
 fn says_nothing_of_the_account(err: &AppError) -> bool {
     match err {
         AppError::RemoteRefreshUnanswered(_) => true,
@@ -609,8 +610,8 @@ pub async fn refresh(
     }
 
     let fresh: AuthTokensResponse = response.json().await.map_err(|err| {
-        AppError::Other(format!(
-            "malformed refresh response: {}",
+        AppError::RemoteRefreshUnanswered(format!(
+            "malformed response: {}",
             describe_http_error(&err)
         ))
     })?;
