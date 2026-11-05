@@ -30,11 +30,13 @@ use waveflow_core::playback::stream::ActiveStream;
 
 mod control;
 mod dop;
+mod episode;
 mod tone;
 mod track;
 
 use control::{accept_load, discard_unplayable, drain_ring_silent};
 use dop::{maybe_match_source_rate, maybe_switch_dop_output, play_dop_track, restore_pcm_output};
+use episode::play_episode;
 use tone::{play_test_tone, ToneEnd};
 use track::play_track;
 
@@ -177,6 +179,11 @@ fn handle_playback_outcome(
                     source_type: finished.source_type,
                     source_id: finished.source_id,
                 });
+            }
+            // Past `play_track`, so its stream and whatever file it held are gone
+            // by the time anybody reads this.
+            if shared.stop_asked.swap(false, Ordering::AcqRel) {
+                transition_state(shared, app, PlayerState::Idle, Some(finished.track_id));
             }
         }
         Err(err) => {
@@ -543,6 +550,9 @@ fn decoder_loop(
                         remote_track_id: remote_meta.remote_id,
                         is_file,
                         file_path: is_file.then(|| path.display().to_string()),
+                        is_podcast: false,
+                        podcast_episode_id: None,
+                        podcast_channel_id: None,
                     },
                 );
 
@@ -763,6 +773,9 @@ fn decoder_loop(
                         remote_track_id: remote_meta.remote_id,
                         is_file: false,
                         file_path: None,
+                        is_podcast: false,
+                        podcast_episode_id: None,
+                        podcast_channel_id: None,
                     },
                 );
 
@@ -869,6 +882,21 @@ fn decoder_loop(
                 );
                 handle_playback_outcome(outcome, &shared, &app, analytics_tx, Some(redacted));
             }
+            AudioCmd::LoadEpisodeAndPlay {
+                // Arbitrated on receipt (#622).
+                intent: _,
+                episode,
+            } => {
+                play_episode(
+                    *episode,
+                    producer,
+                    &shared,
+                    cmd_rx,
+                    &app,
+                    &mut pending_cmd,
+                    analytics_tx,
+                );
+            }
             AudioCmd::SwapProducer(new_producer) => {
                 // The output thread was rebuilt on a different cpal
                 // device; the consumer half of the old ring went with
@@ -909,7 +937,8 @@ fn decoder_loop(
 /// is no clock to rebase and no resampler to rebuild, so it is written the
 /// way the boot-time restore writes it, without `set_playback_speed`'s
 /// rebase, seek generation and dirty flag; the next track's stream takes
-/// the speed when it opens.
+/// the speed when it opens. An episode's speed lasts as long as it decodes,
+/// so all that is kept of one here is what its load would come back at.
 fn apply_setting(cmd: &AudioCmd, shared: &SharedPlayback) -> bool {
     match *cmd {
         AudioCmd::SetVolume(v) => shared.set_volume(v),
@@ -922,11 +951,10 @@ fn apply_setting(cmd: &AudioCmd, shared: &SharedPlayback) -> bool {
         AudioCmd::SetStereoWidth(pct) => shared.stereo.set_width(pct),
         AudioCmd::SetSpeed(v) => {
             if v.is_finite() {
-                shared
-                    .playback_speed_bits
-                    .store(v.clamp(0.5, 2.0).to_bits(), Ordering::Release);
+                shared.restore_user_speed(v);
             }
         }
+        AudioCmd::SetEpisodeSpeed(v) => shared.set_episode_speed(v),
         AudioCmd::SetKeepPitch(on) => shared.keep_pitch.store(on, Ordering::Release),
         AudioCmd::SetPitchSemitones(v) => shared.set_pitch_semitones(v),
         _ => return false,

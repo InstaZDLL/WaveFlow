@@ -1052,7 +1052,8 @@
       "transpose": "移調",
       "transposeDown": "半音下げる",
       "transposeUp": "半音上げる",
-      "transposeReset": "元の音程に戻す"
+      "transposeReset": "元の音程に戻す",
+      "transposeNotForEpisodes": "エピソードには適用されません"
     },
     "seek": "再生位置",
     "alert": {
@@ -1084,6 +1085,10 @@
       "behind": "ライブから{{time}}遅れ",
       "goLive": "ライブに戻る",
       "behindState": "ライブから遅れています"
+    },
+    "podcast": {
+      "back15": "15 秒戻る",
+      "forward30": "30 秒進む"
     }
   },
   "queue": {

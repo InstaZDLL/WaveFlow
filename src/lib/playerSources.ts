@@ -58,13 +58,42 @@ export function isFileTrack(track: Track | null): boolean {
 }
 
 /**
+ * A podcast episode. It plays under the same negative sentinel id, with
+ * `"Podcast"` as its `codec`, set by `radioMetadataToTrack` from the event's
+ * `is_podcast` flag. One entry of a queue that advances: Previous / Next stay
+ * on, Shuffle off, and its timeline is bounded and seekable.
+ */
+export function isPodcastTrack(track: Track | null): boolean {
+  if (track === null) return false;
+  return track.id < 0 && track.codec === "Podcast";
+}
+
+/**
+ * Which queue in memory `track` belongs to ({@link DETACHED_QUEUES}), or `null`
+ * when it is not one's: a library track, or radio, which has no queue.
+ */
+export function detachedQueueOf(
+  track: Track | null,
+): "remote" | "file" | "podcast" | null {
+  if (isRemoteTrack(track)) return "remote";
+  if (isFileTrack(track)) return "file";
+  if (isPodcastTrack(track)) return "podcast";
+  return null;
+}
+
+/**
  * Any track with no library row — radio, a remote-queue track, a file
- * played without importing it. Surfaces that gate a library affordance
+ * played without importing it, a podcast episode. Surfaces that gate a library affordance
  * (♥ like, artist slideshow, "go to album", start radio) on
  * `!isRadioTrack` should use this instead, or they light those up where
  * they would fail. The transport controls are the deliberate exception:
  * remote tracks and files advance, so they check the kinds apart.
  */
 export function isStreamTrack(track: Track | null): boolean {
-  return isRadioTrack(track) || isRemoteTrack(track) || isFileTrack(track);
+  return (
+    isRadioTrack(track) ||
+    isRemoteTrack(track) ||
+    isFileTrack(track) ||
+    isPodcastTrack(track)
+  );
 }

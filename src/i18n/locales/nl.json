@@ -1054,7 +1054,8 @@
       "transpose": "Transponeren",
       "transposeDown": "Een halve toon lager",
       "transposeUp": "Een halve toon hoger",
-      "transposeReset": "Terug naar de oorspronkelijke toonhoogte"
+      "transposeReset": "Terug naar de oorspronkelijke toonhoogte",
+      "transposeNotForEpisodes": "Geldt niet voor afleveringen"
     },
     "seek": "Spoelen",
     "alert": {
@@ -1086,6 +1087,10 @@
       "behind": "{{time}} achter op live",
       "goLive": "Terug naar live",
       "behindState": "Achter op live"
+    },
+    "podcast": {
+      "back15": "15 s terug",
+      "forward30": "30 s vooruit"
     }
   },
   "queue": {

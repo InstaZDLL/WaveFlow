@@ -67,8 +67,9 @@ pub async fn play_entries(
     }
 
     // One detached queue at a time: the remote one now drives next /
-    // previous, not files played without importing them.
+    // previous, not files played without importing them, nor episodes.
     app.state::<AppState>().external_playback.clear();
+    app.state::<AppState>().podcast_playback.clear();
     let revision = app
         .state::<AppState>()
         .remote_playback

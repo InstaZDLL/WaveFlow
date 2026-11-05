@@ -1052,7 +1052,8 @@
       "transpose": "移調",
       "transposeDown": "降低半音",
       "transposeUp": "升高半音",
-      "transposeReset": "恢復原始音高"
+      "transposeReset": "恢復原始音高",
+      "transposeNotForEpisodes": "不適用於單集"
     },
     "seek": "跳轉",
     "alert": {
@@ -1084,6 +1085,10 @@
       "behind": "落後直播 {{time}}",
       "goLive": "回到直播",
       "behindState": "落後於直播"
+    },
+    "podcast": {
+      "back15": "倒退 15 秒",
+      "forward30": "快轉 30 秒"
     }
   },
   "queue": {

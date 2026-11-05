@@ -31,9 +31,8 @@ import { useSlideshowLayer } from "../../hooks/useSlideshowLayer";
 import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
 import { useWebRadioFavorites } from "../../hooks/useWebRadioFavorites";
 import {
-  isFileTrack,
+  detachedQueueOf,
   isRadioTrack,
-  isRemoteTrack,
   isStreamTrack,
 } from "../../lib/playerSources";
 import { Artwork } from "../common/Artwork";
@@ -129,13 +128,10 @@ export function MiniPlayer() {
   // `RemoteQueueView`, and without it this list showed whatever local
   // queue happened to be sitting there while a remote track played
   // (#685). Only one is live at a time.
-  // Files played without importing them have an in-memory queue of the
-  // same shape, read and jumped through their own commands.
-  const detachedSource = isRemoteTrack(currentTrack)
-    ? "remote"
-    : isFileTrack(currentTrack)
-      ? "file"
-      : null;
+  // Files played without importing them and a channel's episodes have an
+  // in-memory queue of the same shape, read and jumped through their own
+  // commands.
+  const detachedSource = detachedQueueOf(currentTrack);
   const isRemoteSession = detachedSource !== null;
 
   // Local: load once, refetch on `player:queue-changed`, guarded by a
@@ -688,9 +684,7 @@ export function MiniPlayer() {
               onNext={next}
               onCycleRepeat={cycleRepeatMode}
               onToggleShuffle={toggleShuffle}
-              shuffleDisabled={
-                isRemoteTrack(currentTrack) || isFileTrack(currentTrack)
-              }
+              shuffleDisabled={detachedSource !== null}
               volume={volume}
               onSetVolume={setVolume}
               onToggleMute={toggleMute}

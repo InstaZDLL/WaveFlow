@@ -77,7 +77,7 @@ impl Origin {
         }
     }
 
-    /// For what no person typed here: it reaches nothing local.
+    /// The stricter of the two rules, for an address with no typed one behind it.
     pub(crate) fn public() -> Self {
         Self { public: true }
     }
@@ -165,6 +165,12 @@ impl Fetcher {
             offline,
             feed_deadline,
         })
+    }
+
+    /// How offline mode is asked about, for what reads a body long after opening
+    /// it.
+    pub(crate) fn offline_check(&self) -> fn() -> bool {
+        self.offline
     }
 
     /// Whether a request made now would be refused. For work that goes on reading

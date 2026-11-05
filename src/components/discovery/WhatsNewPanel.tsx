@@ -22,11 +22,7 @@ import {
   openView,
   requestLyricsEditor,
 } from "../../lib/discovery";
-import {
-  isFileTrack,
-  isRadioTrack,
-  isRemoteTrack,
-} from "../../lib/playerSources";
+import { isStreamTrack } from "../../lib/playerSources";
 import { listAlbums } from "../../lib/tauri/browse";
 import { openTagWorkshop } from "../../lib/tagWorkshop";
 import type { WhatsNewPage, WhatsNewRelease } from "../../lib/whatsNew";
@@ -72,11 +68,7 @@ export function WhatsNewPanel({
 
   const holdsMusic = libraries.some((library) => library.track_count > 0);
   // The editor is keyed on the library row, which these do not have.
-  const hasLibraryTrack =
-    currentTrack != null &&
-    !isRadioTrack(currentTrack) &&
-    !isRemoteTrack(currentTrack) &&
-    !isFileTrack(currentTrack);
+  const hasLibraryTrack = currentTrack != null && !isStreamTrack(currentTrack);
 
   // After the hook's own focus, which goes to the first control (the close
   // button): Enter and Space should carry on through the pages.

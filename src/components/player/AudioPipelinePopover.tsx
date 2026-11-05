@@ -6,6 +6,7 @@ import type { QueueTrackPayload } from "../../lib/tauri/player";
 import { playerGetAudioSettings, playerGetState } from "../../lib/tauri/player";
 import { playerGetEq } from "../../lib/tauri/eq";
 import { usePlayer } from "../../hooks/usePlayer";
+import { isPodcastTrack } from "../../lib/playerSources";
 
 interface AudioPipelinePopoverProps {
   track: QueueTrackPayload;
@@ -106,7 +107,7 @@ function formatSampleRate(hz: number | null | undefined): string | null {
  */
 export function AudioPipelinePopover({ track }: AudioPipelinePopoverProps) {
   const { t } = useTranslation();
-  const { playbackSpeed, pitchSemitones, volume } = usePlayer();
+  const { playbackSpeed, pitchSemitones, volume, currentTrack } = usePlayer();
   const [rawSnap, setRawSnap] = useState<PipelineSnapshot | null>(null);
   // A track change and an output rebuild can put two reads in flight at
   // once; the older one resolving second would pin a stale output
@@ -251,7 +252,8 @@ export function AudioPipelinePopover({ track }: AudioPipelinePopoverProps) {
   // stream with effects that aren't running, and cancel the bit-perfect
   // pill.
   const isSpeedShifted = !isDopNative && Math.abs(playbackSpeed - 1.0) > 0.001;
-  const isTransposed = !isDopNative && pitchSemitones !== 0;
+  const isTransposed =
+    !isDopNative && !isPodcastTrack(currentTrack) && pitchSemitones !== 0;
   const isEq = !isDopNative && (snap?.eqEnabled ?? false);
   const isNormalize = !isDopNative && (snap?.normalize ?? false);
   const isReplayGain = !isDopNative && (snap?.replaygain ?? false);

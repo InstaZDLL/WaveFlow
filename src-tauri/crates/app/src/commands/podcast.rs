@@ -6,16 +6,20 @@
 
 use std::io::Read;
 use std::path::Path;
+use std::sync::Arc;
 
 use serde::Serialize;
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Manager, State};
 use waveflow_core::artwork::metadata::existing_path;
 use waveflow_core::podcast::opml::{read_opml, write_opml};
 use waveflow_core::podcast::{FetchFailure, OpmlEntry, MAX_FEED_BYTES};
 
+use crate::audio::engine::AudioCmd;
+use crate::audio::AudioEngine;
 use crate::error::{AppError, AppResult};
 use crate::podcast::download::{self, DownloadState, DownloadUpdate, Job};
 use crate::podcast::fetch::Fetcher;
+use crate::podcast::playback::{self, PodcastQueuePayload};
 use crate::podcast::refresh::{
     self, Leases, OpmlImportReport, PodcastError, RefreshSummary, Subscribed,
 };
@@ -81,6 +85,15 @@ pub async fn podcast_unsubscribe(
     }
     let files = store::downloads_of_channel(&pool, channel_id).await?;
     if store::delete_channel(&pool, channel_id).await? {
+        // Its episode is gone with it, and leaving a channel ends the requests.
+        if state
+            .podcast_playback
+            .current()
+            .is_some_and(|entry| entry.channel_id == channel_id)
+        {
+            state.podcast_playback.clear();
+            let _ = app.state::<Arc<AudioEngine>>().send(AudioCmd::Stop);
+        }
         emit_updated(&app, Some(channel_id));
     }
     download::remove_files(state.paths.profile_podcast_download_dir(profile_id), files).await;
@@ -236,10 +249,10 @@ pub async fn podcast_download_episode(
     }
     let episode = store::episode_download(&pool, episode_id)
         .await?
-        .ok_or_else(|| AppError::Other(format!("podcast: {}", download::EPISODE_GONE)))?;
+        .ok_or(PodcastError::EpisodeGone)?;
     // A row restored from an archive until the feed is subscribed to again.
     if episode.enclosure_url.is_none() {
-        return Err(PodcastError::Failed(FetchFailure::AddressRefused).into());
+        return Err(PodcastError::NoSource.into());
     }
     download::enqueue(
         &app,
@@ -318,4 +331,73 @@ pub async fn podcast_download_queue(state: State<'_, AppState>) -> AppResult<Vec
                 .map(|id| DownloadUpdate::at(id, DownloadState::Queued)),
         )
         .collect())
+}
+
+/// Plays an episode, with its channel as the queue. From disk when it is downloaded,
+/// whatever the switch and offline mode say. Otherwise refused with either of them
+/// off, before anything changes or anybody is contacted.
+#[tauri::command]
+pub async fn podcast_play_episode(app: AppHandle, episode_id: i64) -> AppResult<()> {
+    playback::play_episode(&app, episode_id).await
+}
+
+/// Marks one episode played or unplayed. Available with the switch off.
+#[tauri::command]
+pub async fn podcast_mark_played(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    episode_id: i64,
+    played: bool,
+) -> AppResult<()> {
+    let pool = state.require_profile_pool().await?;
+    let channel = store::mark_played(&pool, episode_id, played)
+        .await?
+        .ok_or(PodcastError::EpisodeGone)?;
+    emit_updated(&app, Some(channel));
+    Ok(())
+}
+
+/// Marks every episode of a channel played or unplayed.
+#[tauri::command]
+pub async fn podcast_mark_channel_played(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    channel_id: i64,
+    played: bool,
+) -> AppResult<()> {
+    let pool = state.require_profile_pool().await?;
+    store::mark_channel_played(&pool, channel_id, played).await?;
+    emit_updated(&app, Some(channel_id));
+    Ok(())
+}
+
+/// One episode per channel: the one in progress, else the newest unplayed.
+#[tauri::command]
+pub async fn podcast_to_listen(state: State<'_, AppState>) -> AppResult<Vec<PodcastEpisode>> {
+    let pool = state.require_profile_pool().await?;
+    Ok(store::to_listen(&pool).await?)
+}
+
+/// The speed a channel's episodes start at, `None` for the normal one. Heard at once
+/// when one of them plays. `audio.playback_speed` stays as it is.
+#[tauri::command]
+pub async fn podcast_set_channel_speed(
+    app: AppHandle,
+    channel_id: i64,
+    speed: Option<f64>,
+) -> AppResult<()> {
+    playback::set_channel_speed(&app, channel_id, speed).await
+}
+
+/// The channel's episodes in the queue, for the queue panel; `None` when no episode
+/// is the queue.
+#[tauri::command]
+pub fn podcast_get_queue(state: State<'_, AppState>) -> Option<PodcastQueuePayload> {
+    playback::queue_payload(&state)
+}
+
+/// Jumps to an episode of that queue and plays it.
+#[tauri::command]
+pub async fn podcast_queue_jump(app: AppHandle, index: usize) -> AppResult<()> {
+    playback::jump_to(&app, index).await
 }

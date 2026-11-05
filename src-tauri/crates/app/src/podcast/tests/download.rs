@@ -977,7 +977,7 @@ async fn deleting_a_download_keeps_the_row_with_the_switch_off_too() {
     switch(&pool, false).await;
     // A downloaded episode stays readable with the switch off.
     let name = recorded(&pool, episode).await.0.unwrap();
-    assert!(stored_file(dir.path(), &name).is_some());
+    assert!(stored_file(dir.path(), episode, &name).is_some());
 
     assert!(delete_download(&pool, dir.path(), episode).await.unwrap());
     assert!(names_in(dir.path()).is_empty());
@@ -1045,7 +1045,7 @@ async fn a_stored_name_that_is_not_ours_is_never_opened_or_removed() {
     ];
 
     for name in hostile {
-        assert_eq!(stored_file(&dir, name), None, "{name}");
+        assert_eq!(stored_file(&dir, episode, name), None, "{name}");
 
         // By the delete command.
         store::record_download(&pool, episode, name, 7)
@@ -1064,7 +1064,7 @@ async fn a_stored_name_that_is_not_ours_is_never_opened_or_removed() {
         assert_eq!(recorded(&pool, episode).await.0, None, "{name} stayed");
 
         // By unsubscribing, which removes what the rows name.
-        crate::podcast::download::remove_files(dir.clone(), vec![name.to_owned()]).await;
+        crate::podcast::download::remove_files(dir.clone(), vec![(episode, name.to_owned())]).await;
         assert!(
             precious.is_file(),
             "{name} reached outside by unsubscribing"
@@ -1081,7 +1081,7 @@ async fn a_stored_name_that_is_not_ours_is_never_opened_or_removed() {
                 .unwrap()
                 .download_file
                 .as_deref()
-                .and_then(|stored| stored_file(&dir, stored)),
+                .and_then(|stored| stored_file(&dir, episode, stored)),
             None,
             "{name}"
         );
@@ -1091,6 +1091,86 @@ async fn a_stored_name_that_is_not_ours_is_never_opened_or_removed() {
         dir.join("precious.mp3").is_file(),
         "a name that is not ours in the folder is left alone"
     );
+}
+
+/// A row naming another episode's file reaches nothing: deleting this one must not
+/// take that one with it, and playing it must not play that one.
+#[tokio::test]
+async fn a_stored_name_of_another_episode_is_not_this_ones() {
+    let pool = enabled_pool().await;
+    let dir = folder();
+    let (_, mine) = episode_at(&pool, Some(SECURE_FEED), "https://example.org/m.mp3").await;
+    let (_, other) = episode_at(&pool, Some(SECURE_FEED), "https://example.org/o.mp3").await;
+    let name = format!("{other}.mp3");
+    std::fs::write(dir.path().join(&name), audio(64)).unwrap();
+    store::record_download(&pool, other, &name, 64)
+        .await
+        .unwrap();
+    store::record_download(&pool, mine, &name, 64)
+        .await
+        .unwrap();
+    assert_eq!(stored_file(dir.path(), mine, &name), None);
+    assert!(stored_file(dir.path(), other, &name).is_some());
+
+    delete_download(&pool, dir.path(), mine).await.unwrap();
+
+    assert_eq!(names_in(dir.path()), std::slice::from_ref(&name));
+    assert_eq!(recorded(&pool, mine).await.0, None);
+    assert_eq!(
+        recorded(&pool, other).await.0.as_deref(),
+        Some(name.as_str())
+    );
+}
+
+/// The two lots meeting: what a download put in place is what playing the episode
+/// opens, from its position, whatever the switch and offline mode say, and deleting
+/// it makes the episode a request again.
+#[tokio::test]
+async fn a_downloaded_episode_plays_from_disk_at_its_position() {
+    use super::super::playback::{resolve_source, start_position, EpisodeSource};
+
+    let server = serve(|_| audio_reply(4096)).await;
+    let pool = enabled_pool().await;
+    let dir = folder();
+    let (_, episode) =
+        episode_at(&pool, Some(&server.local("/feed")), &server.local("/a.mp3")).await;
+    let ended = run(
+        &TestLeases(pool.clone()),
+        &fetcher(),
+        dir.path(),
+        episode,
+        quick(),
+    )
+    .await;
+    assert_eq!(ended, Ended::Stored { size: Some(4096) });
+    assert!(store::save_position(&pool, episode, 4242, false)
+        .await
+        .is_ok());
+    let hits = server.hits();
+
+    let row = store::playable(&pool, episode).await.unwrap().unwrap();
+    assert_eq!(start_position(&row), 4242);
+    for (enabled, is_offline) in [(true, false), (false, false), (true, true), (false, true)] {
+        let source = resolve_source(&row, dir.path(), enabled, is_offline).unwrap();
+        assert!(
+            matches!(&source, EpisodeSource::File(path)
+                if *path == dir.path().join(format!("{episode}.mp3"))),
+            "switch {enabled}, offline {is_offline}"
+        );
+    }
+    assert_eq!(server.hits(), hits, "playing it asked nobody");
+
+    delete_download(&pool, dir.path(), episode).await.unwrap();
+    let row = store::playable(&pool, episode).await.unwrap().unwrap();
+    assert_eq!(start_position(&row), 4242, "the position stays");
+    assert!(matches!(
+        resolve_source(&row, dir.path(), true, false),
+        Ok(EpisodeSource::Stream { .. })
+    ));
+    assert!(matches!(
+        resolve_source(&row, dir.path(), false, false),
+        Err(PodcastError::Disabled)
+    ));
 }
 
 /// A size out of a made-up archive buys no room under the quota.

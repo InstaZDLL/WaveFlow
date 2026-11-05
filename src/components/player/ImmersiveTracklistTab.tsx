@@ -9,11 +9,7 @@ import {
 import { usePlayerQueue } from "../../hooks/usePlayerQueue";
 import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
 import { usePlayer } from "../../hooks/usePlayer";
-import {
-  isFileTrack,
-  isRadioTrack,
-  isRemoteTrack,
-} from "../../lib/playerSources";
+import { detachedQueueOf, isRadioTrack } from "../../lib/playerSources";
 import { RemoteQueueView } from "../layout/RemoteQueueView";
 import { playerJumpToIndex } from "../../lib/tauri/player";
 import { formatDuration } from "../../lib/tauri/track";
@@ -39,13 +35,11 @@ const ROW_HEIGHT = 56;
  */
 export function ImmersiveTracklistTab() {
   const { currentTrack } = usePlayer();
-  if (isRemoteTrack(currentTrack) || isFileTrack(currentTrack)) {
+  const detachedSource = detachedQueueOf(currentTrack);
+  if (detachedSource) {
     return (
       <div className="flex-1 min-h-0 flex flex-col px-6 pb-8">
-        <RemoteQueueView
-          source={isFileTrack(currentTrack) ? "file" : "remote"}
-          whole
-        />
+        <RemoteQueueView key={detachedSource} source={detachedSource} whole />
       </div>
     );
   }

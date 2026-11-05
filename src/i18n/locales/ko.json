@@ -1052,7 +1052,8 @@
       "transpose": "조옮김",
       "transposeDown": "반음 내리기",
       "transposeUp": "반음 올리기",
-      "transposeReset": "원래 음정으로"
+      "transposeReset": "원래 음정으로",
+      "transposeNotForEpisodes": "에피소드에는 적용되지 않습니다"
     },
     "seek": "탐색",
     "alert": {
@@ -1084,6 +1085,10 @@
       "behind": "실시간보다 {{time}} 늦음",
       "goLive": "실시간으로 돌아가기",
       "behindState": "실시간보다 늦음"
+    },
+    "podcast": {
+      "back15": "15초 뒤로",
+      "forward30": "30초 앞으로"
     }
   },
   "queue": {

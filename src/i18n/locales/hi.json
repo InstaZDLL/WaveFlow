@@ -1054,7 +1054,8 @@
       "transpose": "ट्रांसपोज़",
       "transposeDown": "आधा स्वर नीचे",
       "transposeUp": "आधा स्वर ऊपर",
-      "transposeReset": "मूल पिच पर लौटें"
+      "transposeReset": "मूल पिच पर लौटें",
+      "transposeNotForEpisodes": "एपिसोड पर लागू नहीं होता"
     },
     "seek": "सीक",
     "alert": {
@@ -1086,6 +1087,10 @@
       "behind": "लाइव से {{time}} पीछे",
       "goLive": "लाइव पर लौटें",
       "behindState": "लाइव से पीछे"
+    },
+    "podcast": {
+      "back15": "15 सेकंड पीछे",
+      "forward30": "30 सेकंड आगे"
     }
   },
   "queue": {
