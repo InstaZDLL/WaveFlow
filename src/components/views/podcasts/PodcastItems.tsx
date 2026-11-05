@@ -423,9 +423,11 @@ function EpisodeDownload({
     );
   }
   const label = t(
-    network && episode.has_enclosure
-      ? "podcasts.episode.download"
-      : "podcasts.episode.needsNetwork",
+    !episode.has_enclosure
+      ? "podcasts.episode.noAddress"
+      : network
+        ? "podcasts.episode.download"
+        : "podcasts.episode.needsNetwork",
     { title },
   );
   return (
