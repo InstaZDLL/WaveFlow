@@ -5,13 +5,15 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
 use tokio::runtime::Handle;
+use waveflow_core::podcast::FetchFailure;
 
 use super::super::playback::{
     EpisodeEntry, EpisodeHome, EpisodeLoad, EpisodeSource, PodcastPlayback,
 };
 use super::super::refresh::PodcastError;
 use super::super::server::{
-    claim_jump, detached, jump_target, may_ask, position_write, queue_of, ServerEpisodeRef,
+    claim_jump, detached, jump_target, may_ask, position_write, queue_of, NoClient,
+    ServerEpisodeRef,
 };
 use super::super::store;
 use super::super::stream::{EnclosureSource, Gate, Renew, StreamRefusal};
@@ -207,6 +209,31 @@ fn a_jump_overtaken_during_its_read_moves_nothing() {
     });
     assert!(!moved);
     assert_eq!(cursor(&session), 0);
+}
+
+// ── no client ───────────────────────────────────────────────────────
+
+/// A refresh that got no answer is a server not answering. Taken for a change of profile,
+/// it read as a wrong sentence, and ended a stream without a word.
+#[test]
+fn a_network_gone_during_a_refresh_is_not_a_change_of_profile() {
+    assert_eq!(
+        NoClient::Unreachable.refusal().to_string(),
+        "podcast: server_unreachable"
+    );
+    assert_eq!(
+        NoClient::ScopeGone.refusal().to_string(),
+        "podcast: profile_changed"
+    );
+    assert_eq!(
+        NoClient::Unreachable.stream_refusal(),
+        StreamRefusal::Failed(FetchFailure::Unreached)
+    );
+    // Quiet: the decoder knows this one, and it is nobody's fault here.
+    assert_eq!(
+        NoClient::ScopeGone.stream_refusal(),
+        StreamRefusal::Released
+    );
 }
 
 // ── a wait given up on ──────────────────────────────────────────────

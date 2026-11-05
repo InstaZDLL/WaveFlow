@@ -63,6 +63,9 @@ pub const PODCAST_SERVER_UPDATED: &str = "podcast:server-updated";
 /// The word for an episode the server holds no file of.
 const NOT_STORED: &str = "not_stored";
 
+/// The word for a server that did not answer.
+const UNREACHABLE: &str = "server_unreachable";
+
 /// Where a server's episode is, for the session and the decoder.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ServerEpisodeRef {
@@ -110,9 +113,13 @@ pub(crate) async fn ready_client(state: &AppState) -> AppResult<Option<(RemoteCl
         profile_id
         // The lease ends here: holding it across a request would stall a switch.
     };
-    Ok(RemoteClient::try_build_for(state, profile_id)
-        .await?
-        .map(|client| (client, profile_id)))
+    match RemoteClient::try_build_for(state, profile_id).await {
+        Ok(client) => Ok(client.map(|client| (client, profile_id))),
+        // A token refresh that got no answer. Its text is the client's own, and what
+        // the page wants is a word.
+        Err(AppError::Other(_)) => Err(podcast_refusal(UNREACHABLE)),
+        Err(err) => Err(err),
+    }
 }
 
 /// Runs `work` so that whoever waits for it can give up without stopping it.
@@ -127,14 +134,57 @@ pub(crate) async fn detached<T: Send + 'static>(
     tauri::async_runtime::spawn(work).await.ok()
 }
 
-/// A client still speaking for `scope`, or `None`: another profile, another server,
-/// another account, signed out.
-async fn client_in_scope<'a>(state: &'a AppState, scope: &ServerScope) -> Option<RemoteClient<'a>> {
-    RemoteClient::try_build_for(state, scope.profile_id)
-        .await
-        .ok()
-        .flatten()
-        .filter(|client| scope.holds_for(client))
+/// Why there is no client for a scope. Not the same thing to the person listening: one
+/// says the episode is no longer theirs to play, the other that the server did not answer.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum NoClient {
+    /// Another profile, another server, another account, signed out.
+    ScopeGone,
+    /// The scope stands, and a token refresh failed: the network, most of the time.
+    Unreachable,
+}
+
+impl NoClient {
+    pub(crate) fn refusal(self) -> AppError {
+        match self {
+            Self::ScopeGone => PodcastError::ProfileChanged.into(),
+            Self::Unreachable => podcast_refusal(UNREACHABLE),
+        }
+    }
+
+    pub(crate) fn stream_refusal(self) -> StreamRefusal {
+        match self {
+            // Nothing here is for whoever is bound now, so nothing to say to them.
+            Self::ScopeGone => StreamRefusal::Released,
+            Self::Unreachable => StreamRefusal::Failed(FetchFailure::Unreached),
+        }
+    }
+}
+
+/// Whether the rows say `scope` still stands. No request.
+async fn scope_stands(state: &AppState, scope: &ServerScope) -> bool {
+    let Ok(pool) = state.require_profile_pool_for(Some(scope.profile_id)).await else {
+        return false;
+    };
+    let Ok(mut conn) = pool.acquire().await else {
+        return false;
+    };
+    scope.is_current(&mut conn).await.unwrap_or(false)
+}
+
+/// A client still speaking for `scope`. Building one may refresh its token, so a failure
+/// is told apart by what the rows say afterwards: signed out while that refresh queued,
+/// or a profile switch, leaves the scope gone, and a network that went away does not.
+async fn client_in_scope<'a>(
+    state: &'a AppState,
+    scope: &ServerScope,
+) -> Result<RemoteClient<'a>, NoClient> {
+    match RemoteClient::try_build_for(state, scope.profile_id).await {
+        Ok(Some(client)) if scope.holds_for(&client) => Ok(client),
+        Ok(_) => Err(NoClient::ScopeGone),
+        Err(_) if scope_stands(state, scope).await => Err(NoClient::Unreachable),
+        Err(_) => Err(NoClient::ScopeGone),
+    }
 }
 
 fn entry_of(episode: &ServerEpisode, scope: &ServerScope) -> EpisodeEntry {
@@ -312,7 +362,7 @@ async fn read_for_player(
     }
     let client = client_in_scope(state, &place.scope)
         .await
-        .ok_or(PodcastError::ProfileChanged)?;
+        .map_err(NoClient::refusal)?;
     let episode = podcasts::episode(&client, &place.episode_id)
         .await
         .map_err(|err| read_refusal(&err))?;
@@ -551,9 +601,12 @@ pub(crate) async fn record_position(
         async move {
             let state = app.state::<AppState>();
             let _order = POSITION_WRITES.lock().await;
-            let Some(client) = client_in_scope(&state, &place.scope).await else {
-                tracing::debug!("podcast: server position dropped, its server is no longer bound");
-                return;
+            let client = match client_in_scope(&state, &place.scope).await {
+                Ok(client) => client,
+                Err(why) => {
+                    tracing::debug!(?why, "podcast: server position dropped");
+                    return;
+                }
             };
             let written = match position_write(position_ms, duration_ms, finished) {
                 Some(position) => {
@@ -628,7 +681,7 @@ async fn mint(
     let state = app.state::<AppState>();
     let client = client_in_scope(&state, scope)
         .await
-        .ok_or(StreamRefusal::Released)?;
+        .map_err(NoClient::stream_refusal)?;
     let address = mint_ticket(&client, episode_id)
         .await
         .map_err(|err| match err.status {

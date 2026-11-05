@@ -14,6 +14,7 @@ import {
   Trash2,
 } from "lucide-react";
 
+import { usePageTop } from "../../../hooks/usePageTop";
 import { usePageVirtualizer } from "../../../hooks/usePageVirtualizer";
 import { usePodcastServerChannel } from "../../../hooks/usePodcastServer";
 import { useRemoteArtworkSrc } from "../../../hooks/useRemoteArtworkSrc";
@@ -422,6 +423,7 @@ export function ServerChannelPage({
   onUnsubscribe: (channel: ServerChannel) => void;
 }) {
   const { t, i18n } = useTranslation();
+  usePageTop();
   const { channel, loading, failedWord, reload } = usePodcastServerChannel(
     channelId,
     revision,
