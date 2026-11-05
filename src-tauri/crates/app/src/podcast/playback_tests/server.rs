@@ -6,17 +6,23 @@ use std::sync::Arc;
 
 use tokio::runtime::Handle;
 
-use super::super::playback::{EpisodeHome, EpisodeLoad, EpisodeSource};
+use super::super::playback::{
+    EpisodeEntry, EpisodeHome, EpisodeLoad, EpisodeSource, PodcastPlayback,
+};
 use super::super::refresh::PodcastError;
-use super::super::server::{detached, may_ask, position_write, queue_of, ServerEpisodeRef};
+use super::super::server::{
+    claim_jump, detached, jump_target, may_ask, position_write, queue_of, ServerEpisodeRef,
+};
 use super::super::store;
 use super::super::stream::{EnclosureSource, Gate, Renew, StreamRefusal};
 use super::super::tests::{enabled_pool, fetcher, serve, url, with_status, Reply};
 use super::open_gate;
 use crate::audio::analytics::AnalyticsMsg;
 use crate::audio::engine::{AudioCmd, LastLoad, LoadIntent};
+use crate::audio::state::SharedPlayback;
 use crate::remote::podcasts::{ServerEpisode, ServerScope};
 use crate::remote::test_support::scope_on;
+use crate::remote_playback::DetachedQueue;
 
 const TICKET: &str = "sealed-ticket-9c2e";
 
@@ -92,6 +98,115 @@ fn an_episode_with_no_file_on_the_server_cannot_start() {
         queue_of(&episodes, "gone", &scope()).unwrap_err(),
         "episode_gone"
     );
+}
+
+// ── a jump in the queue ─────────────────────────────────────────────
+
+fn server_entry(id: &str) -> EpisodeEntry {
+    EpisodeEntry {
+        home: EpisodeHome::Server(Box::new(place(id))),
+        profile_id: 1,
+        title: id.to_owned(),
+        channel: "Show".to_owned(),
+        duration_ms: None,
+    }
+}
+
+fn local_entry(id: i64) -> EpisodeEntry {
+    EpisodeEntry {
+        home: EpisodeHome::Local {
+            episode_id: id,
+            channel_id: 1,
+        },
+        profile_id: 1,
+        title: id.to_string(),
+        channel: "Show".to_owned(),
+        duration_ms: None,
+    }
+}
+
+fn session_of(entries: Vec<EpisodeEntry>) -> PodcastPlayback {
+    let session = PodcastPlayback::default();
+    session.set(DetachedQueue { entries, index: 0 });
+    session
+}
+
+fn cursor(session: &PodcastPlayback) -> usize {
+    session.snapshot().expect("a session").1
+}
+
+#[test]
+fn a_jump_names_the_servers_row_it_was_asked_for_and_nothing_else() {
+    let servers = session_of(vec![server_entry("e1"), server_entry("e2")]);
+    assert_eq!(jump_target(&servers, 1), Some(place("e2")));
+    // Past the end lands on the last row, as moving the cursor does.
+    assert_eq!(jump_target(&servers, 9), Some(place("e2")));
+    assert_eq!(jump_target(&PodcastPlayback::default(), 0), None);
+    assert_eq!(jump_target(&session_of(Vec::new()), 0), None);
+    assert_eq!(jump_target(&session_of(vec![local_entry(1)]), 0), None);
+}
+
+#[test]
+fn a_jump_with_its_turn_moves_the_cursor() {
+    let session = session_of(vec![server_entry("e1"), server_entry("e2")]);
+    let mut asked = 0;
+    let moved = claim_jump(&session, 1, &place("e2"), || {
+        asked += 1;
+        true
+    });
+    assert!(moved);
+    assert_eq!(asked, 1);
+    assert_eq!(cursor(&session), 1);
+}
+
+/// The row was read outside the lock. Whatever is installed since is another queue, whose
+/// cursor is not this click's, and whose load must not be overtaken by a claim that
+/// sends nothing.
+#[test]
+fn a_jump_that_finds_another_queue_neither_claims_nor_moves_it() {
+    let prepared = place("e2");
+    let never = || -> bool { panic!("a jump for another queue asked for its turn") };
+
+    let local = session_of(vec![local_entry(1), local_entry(2)]);
+    assert!(!claim_jump(&local, 1, &prepared, never));
+    assert_eq!(cursor(&local), 0);
+
+    let other_channel = session_of(vec![server_entry("e8"), server_entry("e9")]);
+    assert!(!claim_jump(&other_channel, 1, &prepared, never));
+    assert_eq!(cursor(&other_channel), 0);
+
+    // The same ids on another server, or for another account, are other episodes.
+    let elsewhere = session_of(vec![
+        server_entry("e1"),
+        EpisodeEntry {
+            home: EpisodeHome::Server(Box::new(ServerEpisodeRef {
+                scope: scope_on("https://music.example", "acc-2"),
+                episode_id: "e2".to_owned(),
+                channel_id: "c1".to_owned(),
+            })),
+            ..server_entry("e2")
+        },
+    ]);
+    assert!(!claim_jump(&elsewhere, 1, &prepared, never));
+    assert_eq!(cursor(&elsewhere), 0);
+
+    let gone = PodcastPlayback::default();
+    assert!(!claim_jump(&gone, 1, &prepared, never));
+}
+
+#[test]
+fn a_jump_overtaken_during_its_read_moves_nothing() {
+    let shared = SharedPlayback::new();
+    let jump = LoadIntent::claim(&shared);
+    let newer = LoadIntent::claim(&shared);
+    assert!(shared.try_claim_load(newer.get()));
+
+    let session = session_of(vec![server_entry("e1"), server_entry("e2")]);
+    let moved = claim_jump(&session, 1, &place("e2"), || {
+        shared.try_claim_load(jump.get())
+    });
+    assert!(!moved);
+    assert_eq!(cursor(&session), 0);
 }
 
 // ── a wait given up on ──────────────────────────────────────────────

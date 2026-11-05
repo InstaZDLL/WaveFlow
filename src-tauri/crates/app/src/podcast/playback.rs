@@ -195,7 +195,7 @@ pub(crate) fn notify_session_started() {
 /// Whether the episode under the cursor is a server's, whose steps are
 /// `super::server`'s.
 #[cfg(feature = "sync_v2")]
-fn is_server_session(state: &AppState) -> bool {
+pub(super) fn is_server_session(state: &AppState) -> bool {
     state
         .podcast_playback
         .current()
@@ -471,6 +471,12 @@ pub(crate) async fn advance(app: &AppHandle, step: Step, intent: LoadIntent) -> 
     let engine = app.state::<Arc<AudioEngine>>();
     // A step overtaken by a newer pick moves nothing (#632).
     let _publish = engine.lock_publish().await;
+    // Nor one that finds a server's queue where it found this one: that cursor is
+    // not its to move, and `play_current` would load nothing for it.
+    #[cfg(feature = "sync_v2")]
+    if is_server_session(&state) {
+        return Ok(false);
+    }
     if !engine.claim_dispatch(intent) {
         return Ok(false);
     }
@@ -524,10 +530,15 @@ pub(crate) async fn jump_to(app: &AppHandle, index: usize) -> AppResult<()> {
     let engine = app.state::<Arc<AudioEngine>>();
     let intent = engine.next_load_intent();
     let _publish = engine.lock_publish().await;
+    let state = app.state::<AppState>();
+    // Installed since the look above: this index was for another queue.
+    #[cfg(feature = "sync_v2")]
+    if is_server_session(&state) {
+        return Ok(());
+    }
     if !engine.claim_dispatch(intent) {
         return Ok(());
     }
-    let state = app.state::<AppState>();
     if state.podcast_playback.seek_to(index).is_none() {
         return Ok(());
     }

@@ -9,9 +9,9 @@
 //!
 //! ## Requests come first
 //!
-//! A refusal changes nothing: what plays keeps playing. So [`play_episode`] reads the
-//! channel before it takes the publish lock, and a step, which moved the cursor under
-//! that lock, reads the episode after letting it go. Either takes the lock again to
+//! A refusal changes nothing: what plays keeps playing. So [`play_episode`] and
+//! [`jump_to`] read before they take the publish lock, and a step, which has to move the
+//! cursor under that lock to know where it lands, reads the episode after letting it go. Either takes the lock again to
 //! publish, and only if nothing newer got there first: a step that fails after being
 //! overtaken stops nothing. Holding the lock across a request would park every other
 //! surface for the length of a network call.
@@ -40,8 +40,8 @@ use waveflow_core::podcast::FetchFailure;
 
 use super::fetch::Fetcher;
 use super::playback::{
-    announce, display_title, notify_session_started, EpisodeEntry, EpisodeHome, EpisodeLoad,
-    EpisodeSource, Step,
+    announce, display_title, is_server_session, notify_session_started, EpisodeEntry, EpisodeHome,
+    EpisodeLoad, EpisodeSource, PodcastPlayback, Step,
 };
 use super::refresh::PodcastError;
 use super::store;
@@ -296,17 +296,13 @@ pub(crate) async fn play_episode(
     played
 }
 
-/// Reads the episode under the cursor again and plays it from where the server says.
-/// For a step, a jump and Play from a stopped player. `Ok` without a load when a newer
-/// pick overtook it during the read.
-async fn play_current(app: &AppHandle, intent: LoadIntent) -> AppResult<()> {
-    let state = app.state::<AppState>();
-    let Some(entry) = state.podcast_playback.current() else {
-        return Ok(());
-    };
-    let EpisodeHome::Server(place) = &entry.home else {
-        return Ok(());
-    };
+/// What the player needs of a server's episode, read now: the row, and its cover. Moves
+/// nothing, so whoever calls this can still refuse with nothing to undo. Refused for an
+/// episode the server no longer holds a file of.
+async fn read_for_player(
+    state: &AppState,
+    place: &ServerEpisodeRef,
+) -> AppResult<(ServerEpisode, Option<String>)> {
     {
         let pool = state
             .require_profile_pool_for(Some(place.scope.profile_id))
@@ -314,7 +310,7 @@ async fn play_current(app: &AppHandle, intent: LoadIntent) -> AppResult<()> {
             .map_err(|_| PodcastError::ProfileChanged)?;
         may_ask(&pool, crate::offline::is_offline()).await?;
     }
-    let client = client_in_scope(&state, &place.scope)
+    let client = client_in_scope(state, &place.scope)
         .await
         .ok_or(PodcastError::ProfileChanged)?;
     let episode = podcasts::episode(&client, &place.episode_id)
@@ -324,11 +320,26 @@ async fn play_current(app: &AppHandle, intent: LoadIntent) -> AppResult<()> {
         return Err(podcast_refusal(NOT_STORED));
     }
     let artwork = artwork_path(
-        &state,
+        state,
         place.scope.profile_id,
         episode.artwork_hash.as_deref(),
     )
     .await;
+    Ok((episode, artwork))
+}
+
+/// Reads the episode under the cursor again and plays it from where the server says.
+/// For a step and Play from a stopped player. `Ok` without a load when a newer pick
+/// overtook it during the read.
+async fn play_current(app: &AppHandle, intent: LoadIntent) -> AppResult<()> {
+    let state = app.state::<AppState>();
+    let Some(entry) = state.podcast_playback.current() else {
+        return Ok(());
+    };
+    let EpisodeHome::Server(place) = &entry.home else {
+        return Ok(());
+    };
+    let (episode, artwork) = read_for_player(&state, place).await?;
     let engine = app.state::<Arc<AudioEngine>>();
     let _publish = engine.lock_publish().await;
     // A newer pick, or a session gone or moved on during the read: not this load's
@@ -358,9 +369,10 @@ pub(crate) async fn advance(app: &AppHandle, step: Step, intent: LoadIntent) -> 
     };
     let engine = app.state::<Arc<AudioEngine>>();
     {
-        // A step overtaken by a newer pick moves nothing (#632).
+        // A step overtaken by a newer pick moves nothing (#632). Nor does one that finds
+        // another queue where it found a server's: that cursor is not its to move.
         let _publish = engine.lock_publish().await;
-        if !engine.claim_dispatch(intent) {
+        if !is_server_session(&state) || !engine.claim_dispatch(intent) {
             return Ok(false);
         }
         let direction = match step {
@@ -396,26 +408,67 @@ async fn give_up(app: &AppHandle, intent: LoadIntent) -> bool {
     true
 }
 
-/// Moves the cursor to `index` and plays it: the queue panel's click.
+/// The server's episode at `index` of the session, clamped as `seek_to` clamps it.
+/// `None` with no session, or when that row is not a server's.
+pub(crate) fn jump_target(session: &PodcastPlayback, index: usize) -> Option<ServerEpisodeRef> {
+    let (entries, _) = session.snapshot()?;
+    let last = entries.len().checked_sub(1)?;
+    match &entries.get(index.min(last))?.home {
+        EpisodeHome::Server(place) => Some((**place).clone()),
+        EpisodeHome::Local { .. } => None,
+    }
+}
+
+/// Moves the cursor for a jump that prepared `place`, under the publish lock.
+///
+/// In this order. The session is looked at first: the row was read outside the lock, and
+/// another queue may have been installed since, whose cursor is not this click's to move.
+/// A jump that finds that has no business claiming either, which would only overtake what
+/// is on its way for that queue. Then its turn, and only then the cursor (#632).
+pub(crate) fn claim_jump(
+    session: &PodcastPlayback,
+    index: usize,
+    place: &ServerEpisodeRef,
+    claim: impl FnOnce() -> bool,
+) -> bool {
+    if jump_target(session, index).as_ref() != Some(place) {
+        return false;
+    }
+    claim() && session.seek_to(index).is_some()
+}
+
+/// Goes to `index` of the queue: the queue panel's click.
+///
+/// Reads first, since nothing has to move to know which row was clicked, so a refusal
+/// changes nothing and what plays keeps playing. The claim and everything it authorizes
+/// then happen under one hold of the publish lock.
 pub(crate) async fn jump_to(app: &AppHandle, index: usize) -> AppResult<()> {
     let engine = app.state::<Arc<AudioEngine>>();
     let intent = engine.next_load_intent();
     let state = app.state::<AppState>();
-    {
-        let _publish = engine.lock_publish().await;
-        if !engine.claim_dispatch(intent) {
-            return Ok(());
-        }
-        if state.podcast_playback.seek_to(index).is_none() {
-            return Ok(());
-        }
+    let Some(place) = jump_target(&state.podcast_playback, index) else {
+        return Ok(());
+    };
+    let (episode, artwork) = read_for_player(&state, &place).await?;
+
+    let _publish = engine.lock_publish().await;
+    if !claim_jump(&state.podcast_playback, index, &place, || {
+        engine.claim_dispatch(intent)
+    }) {
+        tracing::debug!("server episode jump overtaken; moving nothing");
+        return Ok(());
     }
-    if let Err(err) = play_current(app, intent).await {
-        if give_up(app, intent).await {
-            return Err(err);
-        }
-    }
-    Ok(())
+    let load = load_of(&episode, &place.scope, artwork);
+    announce(app, &load);
+    engine
+        .send(AudioCmd::LoadEpisodeAndPlay {
+            intent,
+            episode: Box::new(load),
+        })
+        .inspect_err(|_| {
+            let _ = engine.send(AudioCmd::Stop);
+            state.podcast_playback.clear();
+        })
 }
 
 /// Play from a stopped player while a server's episode is the session: from where the
