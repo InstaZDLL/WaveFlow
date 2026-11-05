@@ -77,12 +77,9 @@ const MAX_CHUNKS: usize = 65_536;
 /// again so that each name reads the rest of the file: refused, not read on.
 const MAX_SCAN_BYTES: u64 = 1024 * 1024 * 1024;
 
-/// The longest tag a header can declare, with what an extended one may add. A chunk
-/// declares up to 4 GiB, and no parser makes a tag of more than this out of it.
-const MAX_TAG_LEN: u64 = TAG_HEADER_LEN as u64 + (1 << 28) + EXTENDED_HEADER_SLACK;
-
 /// The file was refused: its chapter frames nest, one of them hides its content, or
-/// looking for them would have cost more than any good file does.
+/// the check could not finish, by cost or by a read that failed. A check that stops
+/// before a parser would has not seen what the parser is about to read.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct NestedChapters;
 
@@ -90,7 +87,7 @@ impl fmt::Display for NestedChapters {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(
             "refusing to read the ID3v2 tags: their chapter frames nest, \
-             or looking for them costs too much",
+             or they could not be looked through",
         )
     }
 }
@@ -98,7 +95,9 @@ impl fmt::Display for NestedChapters {
 impl std::error::Error for NestedChapters {}
 
 /// Whether the file at `path` is safe to hand to a tag parser. A file that cannot be
-/// opened or read passes: the parser is about to meet the same error and report it.
+/// opened passes, the one way this ends without looking: nothing is known of its bytes,
+/// the parser opens it next and reports why it cannot, and that says more than this
+/// would about a locked or a missing file.
 pub fn check_file(path: &Path) -> Result<(), NestedChapters> {
     match std::fs::File::open(path) {
         Ok(mut file) => check_reader(&mut file),
@@ -109,43 +108,46 @@ pub fn check_file(path: &Path) -> Result<(), NestedChapters> {
 /// [`check_file`] over a reader, from where it stands, which is where it is left.
 pub fn check_reader<R: Read + Seek>(reader: &mut R) -> Result<(), NestedChapters> {
     let Ok(start) = reader.stream_position() else {
-        return Ok(());
+        return Err(NestedChapters);
     };
     let mut budgeted = Budgeted {
         inner: &mut *reader,
         left: MAX_SCAN_BYTES,
-        ran_out: false,
+        gave_up: false,
     };
     let verdict = check_tags_from(&mut budgeted, start);
-    let ran_out = budgeted.ran_out;
+    let gave_up = budgeted.gave_up;
     if reader.seek(SeekFrom::Start(start)).is_err() {
         tracing::warn!("could not rewind after looking at a file's tags");
     }
-    if ran_out {
+    if gave_up {
         return Err(NestedChapters);
     }
     verdict
 }
 
-/// A reader that fails once it has given [`MAX_SCAN_BYTES`], and remembers why: every
-/// failed read in the walk below passes the file on to a parser that is about to meet
-/// the same error, and this one is not that.
+/// A reader that fails once it has given [`MAX_SCAN_BYTES`], and remembers that it, or
+/// the reader under it, failed at all. The walk below stops quietly on a read it cannot
+/// finish, as it must at the end of a file: this is what tells the two apart, so that
+/// no stop on a failed read reads as nothing found.
 struct Budgeted<'a, R> {
     inner: &'a mut R,
     left: u64,
-    ran_out: bool,
+    gave_up: bool,
 }
 
 impl<R: Read> Read for Budgeted<'_, R> {
     fn read(&mut self, buffer: &mut [u8]) -> io::Result<usize> {
         if self.left == 0 && !buffer.is_empty() {
-            self.ran_out = true;
+            self.gave_up = true;
             return Err(io::ErrorKind::Other.into());
         }
         let most = buffer
             .len()
             .min(usize::try_from(self.left).unwrap_or(usize::MAX));
-        let read = self.inner.read(&mut buffer[..most])?;
+        let read = self.inner.read(&mut buffer[..most]).inspect_err(|e| {
+            self.gave_up |= e.kind() != io::ErrorKind::Interrupted;
+        })?;
         self.left -= read as u64;
         Ok(read)
     }
@@ -153,7 +155,7 @@ impl<R: Read> Read for Budgeted<'_, R> {
 
 impl<R: Seek> Seek for Budgeted<'_, R> {
     fn seek(&mut self, to: SeekFrom) -> io::Result<u64> {
-        self.inner.seek(to)
+        self.inner.seek(to).inspect_err(|_| self.gave_up = true)
     }
 }
 
@@ -321,7 +323,9 @@ fn tag_span(tag: &[u8]) -> u64 {
 /// by a padding byte that lofty and symphonia do not agree on when it is not a zero,
 /// and both continuations are walked. symphonia takes what it needs from a `COMM` or a
 /// `MARK` and looks for the next chunk right there, whatever length it declared, so
-/// the name of the chunk is looked for inside every other chunk than the audio. Those
+/// the name of the chunk is looked for inside every other chunk than the audio. And
+/// it reads the tag in a chunk as far as the tag declares, whatever the chunk declared,
+/// so that is how far it is read here. Those
 /// four letters in audio that is no such container, which the form type behind them
 /// tells, as it tells every parser, would walk garbage for nothing.
 fn check_chunks<R: Read + Seek>(
@@ -371,10 +375,8 @@ fn check_chunks<R: Read + Seek>(
         });
         let next = at + 8 + size;
         if matches!(&header[..4], b"ID3 " | b"id3 ") {
-            let mut body = Vec::new();
-            let most = size.min(MAX_TAG_LEN);
-            if reader.by_ref().take(most).read_to_end(&mut body).is_ok() {
-                check_tag(&body)?;
+            if let Ok(tag) = read_declared(reader, at + 8) {
+                check_tag(&tag)?;
             }
         } else if !matches!(&header[..4], b"SSND" | b"data") {
             let mut from = at + 8;

@@ -849,3 +849,149 @@ fn a_good_tag_behind_an_ape_tag_costs_one_reading_or_so() {
     assert_eq!(check_reader(&mut file), Ok(()));
     assert!(file.read <= 64 * size, "{}", file.read);
 }
+
+// Every bound of the check stops it before a parser would stop. Stopping has to mean
+// refused, or that no parser goes further: these say which, for each one.
+
+/// An AIFF whose `ID3 ` chunk declares `chunk_len` and holds `tag`.
+fn aiff_with_short_tag_chunk(chunk_len: u32, tag: &[u8]) -> Vec<u8> {
+    let mut body = b"AIFFCOMM".to_vec();
+    body.extend_from_slice(&18_u32.to_be_bytes());
+    body.extend_from_slice(&1_u16.to_be_bytes());
+    body.extend_from_slice(&800_u32.to_be_bytes());
+    body.extend_from_slice(&16_u16.to_be_bytes());
+    body.extend_from_slice(&[0x40, 0x0b, 0xfa, 0, 0, 0, 0, 0, 0, 0]);
+    // Further than the search of the head reads, or it would find the tag by chance.
+    body.extend_from_slice(b"JUNK");
+    body.extend_from_slice(&100_000_u32.to_be_bytes());
+    body.extend_from_slice(&[0; 100_000]);
+    body.extend_from_slice(b"ID3 ");
+    body.extend_from_slice(&chunk_len.to_be_bytes());
+    body.extend_from_slice(tag);
+    if tag.len() % 2 == 1 {
+        body.push(0);
+    }
+    body.extend_from_slice(b"SSND");
+    body.extend_from_slice(&1608_u32.to_be_bytes());
+    body.extend_from_slice(&[0; 1608]);
+    let mut form = b"FORM".to_vec();
+    form.extend_from_slice(&(body.len() as u32 * 3).to_be_bytes());
+    form.extend_from_slice(&body);
+    form
+}
+
+/// symphonia reads the tag in a chunk as far as the tag declares, not the chunk.
+#[test]
+fn a_tag_that_runs_past_the_end_of_its_chunk_is_read_as_far_as_it_declares() {
+    let hostile = tag(&nested(4, &[b"CHAP"], 2_000));
+    let dir = tempfile::tempdir().expect("tempdir");
+    let path = write_in(
+        dir.path(),
+        "short_chunk.aiff",
+        &aiff_with_short_tag_chunk(10, &hostile),
+    );
+    on_stack(SMALL_STACK, move || {
+        assert!(probe_playable_stream(&path).is_none());
+    });
+}
+
+/// A reader that stops answering partway, as a share can: a parser after it may be
+/// answered, so what was not seen was not passed.
+struct FailsAfter {
+    inner: Cursor<Vec<u8>>,
+    left: usize,
+}
+
+impl std::io::Read for FailsAfter {
+    fn read(&mut self, buffer: &mut [u8]) -> std::io::Result<usize> {
+        if self.left == 0 {
+            return Err(std::io::ErrorKind::ConnectionReset.into());
+        }
+        let most = buffer.len().min(self.left);
+        let read = self.inner.read(&mut buffer[..most])?;
+        self.left -= read;
+        Ok(read)
+    }
+}
+
+impl std::io::Seek for FailsAfter {
+    fn seek(&mut self, to: std::io::SeekFrom) -> std::io::Result<u64> {
+        self.inner.seek(to)
+    }
+}
+
+#[test]
+fn a_read_that_fails_partway_is_not_a_clean_bill() {
+    use crate::tagio::chapter_nesting::{check_reader, NestedChapters};
+
+    let bytes = mp3(&tag(&nested(4, &[b"CHAP"], 64)));
+    let mut failing = FailsAfter {
+        inner: Cursor::new(bytes),
+        left: 100,
+    };
+    assert_eq!(check_reader(&mut failing), Err(NestedChapters));
+}
+
+/// The bound on chunks: past it the file is refused, whatever lies behind.
+#[test]
+fn a_tag_behind_more_chunks_than_the_walk_allows_is_refused() {
+    let mut body = b"AIFF".to_vec();
+    for _ in 0..70_000 {
+        body.extend_from_slice(b"JUNK\0\0\0\0");
+    }
+    let hostile = tag(&nested(4, &[b"CHAP"], 64));
+    body.extend_from_slice(b"ID3 ");
+    body.extend_from_slice(&(hostile.len() as u32).to_be_bytes());
+    body.extend_from_slice(&hostile);
+    let mut form = b"FORM".to_vec();
+    form.extend_from_slice(&(body.len() as u32).to_be_bytes());
+    form.extend_from_slice(&body);
+    assert_refused_everywhere("many_chunks.aiff", form);
+}
+
+/// The window behind the head: past it the check says nothing is there, and that holds
+/// only because no parser looks further. lofty stops at the first audio frame or at a
+/// kilobyte of junk, for each format it reads a tag of.
+#[test]
+fn a_tag_past_the_window_reaches_no_parser() {
+    use crate::tagio::chapter_nesting::check_file;
+
+    let hostile = tag(&nested(4, &[b"CHAP"], 2_000));
+    let junk = vec![0x5a_u8; 70_000];
+    let dir = tempfile::tempdir().expect("tempdir");
+    for name in [
+        "a.mp3", "a.aac", "a.flac", "a.ape", "a.mpc", "a.wv", "a.ogg",
+    ] {
+        for lead in [junk.clone(), audio().repeat(5)] {
+            let bytes = [lead, hostile.clone(), audio()].concat();
+            let path = write_in(dir.path(), name, &bytes);
+            assert_eq!(check_file(&path), Ok(()), "{name} is past the window");
+            on_stack(SMALL_STACK, move || {
+                // Refused or read, it does not matter here: dying is the failure.
+                let _ = read_tagged_file(&path);
+                let _ = read_concrete_tags(&path);
+                let _ = probe_playable_stream(&path);
+            });
+        }
+    }
+}
+
+/// The versions the check passes unread: 2.2 has no chapter frame, the next one has no
+/// parser, and neither gets anyone to recurse.
+#[test]
+fn a_tag_of_a_version_with_no_chapter_frame_reaches_no_recursion() {
+    use crate::tagio::chapter_nesting::{check_tag, read_id3_tag};
+
+    for major in [2_u8, 5] {
+        let bytes = tag_with(major, 0, &nested(4, &[b"CHAP"], 2_000));
+        assert_eq!(check_tag(&bytes), Ok(()));
+        let dir = tempfile::tempdir().expect("tempdir");
+        let path = write_in(dir.path(), "version.mp3", &mp3(&bytes));
+        on_stack(SMALL_STACK, move || {
+            let _ = read_tagged_file(&path);
+            let _ = read_concrete_tags(&path);
+            let _ = probe_playable_stream(&path);
+            let _ = read_id3_tag(&mut Cursor::new(bytes));
+        });
+    }
+}
