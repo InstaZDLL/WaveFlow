@@ -1331,6 +1331,46 @@ async fn a_sweep_removes_what_a_crash_left_and_nothing_else() {
     );
 }
 
+/// A download finishing during a sweep. Its file was listed while it ran, and by the
+/// time anybody asks it has written its row and stopped being in flight. Reading the
+/// rows before the folder would miss that row and remove the file as an orphan, and
+/// the row would then promise bytes that are gone.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_download_finishing_during_a_sweep_keeps_its_file() {
+    let pool = enabled_pool().await;
+    let dir = folder();
+    let (_, episode) = episode_at(&pool, Some(SECURE_FEED), "https://example.org/a.mp3").await;
+    let name = format!("{episode}.mp3");
+    std::fs::write(dir.path().join(&name), audio(64)).unwrap();
+
+    // Asked right after the listing: the download records its row and is done.
+    let handle = tokio::runtime::Handle::current();
+    let finished = AtomicBool::new(false);
+    let (writer, file) = (pool.clone(), name.clone());
+    let writing = move |_| {
+        if !finished.swap(true, Ordering::SeqCst) {
+            let (writer, file, handle) = (writer.clone(), file.clone(), handle.clone());
+            std::thread::spawn(move || {
+                handle
+                    .block_on(store::record_download(&writer, episode, &file, 64))
+                    .unwrap()
+            })
+            .join()
+            .unwrap();
+        }
+        false
+    };
+
+    let swept = sweep(&pool, dir.path(), writing, true).await.unwrap();
+
+    assert_eq!(swept, Swept::default());
+    assert_eq!(names_in(dir.path()), std::slice::from_ref(&name));
+    assert_eq!(
+        recorded(&pool, episode).await.0.as_deref(),
+        Some(name.as_str())
+    );
+}
+
 /// A download under way is not a crash's leftovers.
 #[tokio::test]
 async fn a_sweep_leaves_the_download_under_way_alone() {
