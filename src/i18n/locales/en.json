@@ -1054,7 +1054,8 @@
       "transpose": "Transpose",
       "transposeDown": "Down one semitone",
       "transposeUp": "Up one semitone",
-      "transposeReset": "Back to the original pitch"
+      "transposeReset": "Back to the original pitch",
+      "transposeNotForEpisodes": "Not applied to episodes"
     },
     "seek": "Seek",
     "alert": {
@@ -1086,6 +1087,13 @@
       "behind": "{{time}} behind live",
       "goLive": "Back to live",
       "behindState": "Behind live"
+    },
+    "podcast": {
+      "back15": "Back 15 s",
+      "forward30": "Forward 30 s",
+      "previousChapter": "Previous chapter",
+      "nextChapter": "Next chapter",
+      "chapterOf": "Chapter {{current}} of {{total}}"
     }
   },
   "queue": {
@@ -3074,7 +3082,8 @@
         "lyricsDisplay": "Showing lyrics",
         "diskUsage": "Disk space",
         "globalShortcuts": "Global shortcuts",
-        "enrichment": "Enrichment"
+        "enrichment": "Enrichment",
+        "podcasts": "Podcasts"
       },
       "navHints": {
         "general": "Language, startup, playback",
@@ -3125,7 +3134,8 @@
         "reset": "Start over with a fresh app",
         "diskUsage": "What WaveFlow keeps on this computer",
         "globalShortcuts": "From any application",
-        "enrichment": "Genres, dates, credits and covers from MusicBrainz"
+        "enrichment": "Genres, dates, credits and covers from MusicBrainz",
+        "podcasts": "Follow feeds, once you agree"
       }
     },
     "desktopLyrics": {
@@ -3297,6 +3307,10 @@
         "plugins": {
           "label": "Plugins",
           "description": "Installed plugins and their data."
+        },
+        "podcastDownloads": {
+          "label": "Downloaded podcast episodes",
+          "description": "The ones you chose to keep on this computer. Removed from the episode."
         }
       },
       "confirmEmptyLabel": "Confirm emptying: {{item}}",
@@ -3426,6 +3440,17 @@
       "share": "Share name",
       "cacheUsed_one": "Local cache: {{size}}, {{count}} track",
       "cacheUsed_other": "Local cache: {{size}}, {{count}} tracks"
+    },
+    "podcasts": {
+      "title": "Podcasts",
+      "subtitleOn": "On: feeds are checked every six hours while the app is running.",
+      "subtitleOff": "Off: nothing is contacted. Turning them on goes through a warning.",
+      "stays": "What stays: your subscriptions, positions and downloaded episodes.",
+      "staysCount": "Channels kept: {{n}}.",
+      "open": "Open podcasts",
+      "seeStays": "See what stays",
+      "downloadQuota": "Maximum space for downloaded episodes",
+      "downloadQuotaHint": "A download stops at this quota. Files already here stay. Used: {{used}}."
     }
   },
   "scanProgress": {
@@ -3794,7 +3819,9 @@
       "spectrogram": "Track spectrum",
       "enrichment": "Library enrichment",
       "release_radar": "Release Radar",
-      "tag_workshop": "Tag workshop"
+      "tag_workshop": "Tag workshop",
+      "podcast_refresh": "Podcast refresh",
+      "podcast_download": "Podcast download"
     }
   },
   "smartRuleSummary": {
@@ -4360,7 +4387,8 @@
     "needs": {
       "library": "This needs some music in your library first.",
       "track": "Play a track from your library to open the editor on its lyrics.",
-      "startsPlayback": "Nothing is playing: trying it starts your library on shuffle."
+      "startsPlayback": "Nothing is playing: trying it starts your library on shuffle.",
+      "podcastsWarning": "The button opens a warning first: nothing turns on without your agreement."
     },
     "pages": {
       "fluidInterface": {
@@ -4402,7 +4430,242 @@
         "title": "Bring your playlists in",
         "body": "An M3U, CSV or JSON file, or the link to a public Deezer playlist. Tracks you don't have keep their place, and slip in by themselves once they reach your library.",
         "keywords": "M3U|CSV|JSON|Deezer|ISRC|Missing tracks"
+      },
+      "podcasts": {
+        "title": "Podcasts are here",
+        "body": "Subscribe to a feed, pick up where you left off, download for later. They stay off until you accept: a podcast comes straight from its host, which sees what you play.",
+        "keywords": "RSS|OPML|To listen|Offline"
       }
+    }
+  },
+  "podcasts": {
+    "kicker": "Listen",
+    "channels": "Channels",
+    "channelsCount_one": "{{count}} channel",
+    "channelsCount_other": "{{count}} channels",
+    "unplayedCount_one": "{{count}} unplayed",
+    "unplayedCount_other": "{{count}} unplayed",
+    "episodesCount_one": "{{count}} episode",
+    "episodesCount_other": "{{count}} episodes",
+    "usage": "{{used}} downloaded of {{quota}}",
+    "refreshAll": "Check all",
+    "refreshing": "Checking…",
+    "openSettings": "Podcast settings",
+    "loading": "Loading…",
+    "retry": "Try again",
+    "showMore": "Show more",
+    "showLess": "Show less",
+    "untitledChannel": "Untitled channel",
+    "untitledEpisode": "Untitled episode",
+    "offlineBanner": "Offline mode: no feed is contacted. Only downloaded episodes play.",
+    "off": {
+      "body": "Podcasts are off: nothing is contacted. Your subscriptions, positions and downloaded episodes stay here.",
+      "action": "Turn podcasts on…"
+    },
+    "empty": {
+      "title": "No subscriptions",
+      "body": "Type a feed's address above, or import an OPML list.",
+      "bodyOff": "Turn podcasts on to follow your first feed."
+    },
+    "dialog": {
+      "cancel": "Cancel",
+      "close": "Close"
+    },
+    "warning": {
+      "title": "Before you turn podcasts on",
+      "lead": "Nothing changes until you confirm. This is what changes after that.",
+      "confirm": "I understand, turn on",
+      "failed": "This could not be saved. Podcasts stay off.",
+      "points": {
+        "hosts": {
+          "title": "What hosts can see",
+          "body": "Feeds and episodes come straight from each podcast's host. That host, and the measurement services episodes often pass through, see your IP address and what you play."
+        },
+        "checks": {
+          "title": "When WaveFlow checks",
+          "body": "Feeds are checked every six hours while the app is running, and only then."
+        },
+        "downloads": {
+          "title": "Disk space",
+          "body": "Downloaded episodes take up disk space, up to the quota."
+        },
+        "stop": {
+          "title": "How to stop all of it",
+          "body": "Offline mode stops all of it. Turning podcasts off stops it for good."
+        },
+        "server": {
+          "title": "If a server is linked",
+          "body": "If this profile is linked to a WaveFlow server with podcasts turned on, its channels show too. They go through your server: the host sees your server, not you."
+        }
+      }
+    },
+    "subscribe": {
+      "label": "Subscribe to a feed",
+      "action": "Subscribe",
+      "hint": "The RSS feed's address, http or https. The feed is read before it is added, so a typo leaves nothing behind."
+    },
+    "opml": {
+      "import": "Import OPML",
+      "export": "Export OPML",
+      "importDialogTitle": "Import a list of feeds",
+      "exportDialogTitle": "Export the list of feeds (it contains their addresses)",
+      "exportTitle": "Export your subscriptions",
+      "exportBody": "This file contains the address of every feed you follow. A private feed's address sometimes carries your personal access to it, so share the file only with people you trust.",
+      "exportConfirm": "Choose the file…",
+      "exportMissing": "Channels restored without an address, so not in the file: {{missing}}.",
+      "exported": "List saved. Feeds written: {{written}} · Without an address: {{missing}}.",
+      "publicOnly": "An OPML list only accepts public addresses. A feed on your local network has to be typed by hand, above.",
+      "report": {
+        "title": "List import",
+        "summary": "Added: {{added}} · Already followed: {{already}} · Failed: {{failed}} · In the list: {{total}}",
+        "more": "And {{n}} more.",
+        "theFile": "The file",
+        "outcome": {
+          "cancelled": "The import was stopped before the end.",
+          "offline": "Offline mode stopped the import.",
+          "disabled": "Podcasts were turned off during the import.",
+          "profile_changed": "The profile changed during the import, which stopped.",
+          "already_running": "A check is already running. Try again once it ends."
+        }
+      }
+    },
+    "refresh": {
+      "done": "Check finished. Updated: {{refreshed}} · Unchanged: {{unchanged}} · Failed: {{failed}}",
+      "cancelled": "The check was stopped.",
+      "offline": "Offline mode stopped the check.",
+      "disabled": "Podcasts are off.",
+      "profile_changed": "The profile changed during the check, which stopped.",
+      "already_running": "A check is already running."
+    },
+    "toListen": {
+      "title": "To listen",
+      "failed": "This list could not be read.",
+      "inProgress": "Pick up where you left off",
+      "newest": "Latest episode",
+      "resume": "Resume",
+      "listen": "Listen",
+      "showAll": "Show all ({{n}} more)",
+      "playing": "Now playing",
+      "pause": "Pause"
+    },
+    "channel": {
+      "kicker": "Podcast",
+      "back": "All channels",
+      "checked": "checked {{when}}",
+      "refresh": "Check",
+      "markAllPlayed": "Mark all played",
+      "markAllUnplayed": "Mark all unplayed",
+      "openSite": "Channel website",
+      "unsubscribe": "Unsubscribe",
+      "speed": "Speed",
+      "speedNormal": "Normal",
+      "noEpisodes": "This channel has no episodes.",
+      "lastFailure": "Last check: {{reason}}",
+      "restoredChip": "Subscribe again",
+      "failedChip": "Failed"
+    },
+    "episode": {
+      "play": "Play {{title}}",
+      "playAgain": "Play {{title}} again",
+      "resume": "Resume {{title}}",
+      "markPlayed": "Mark {{title}} as played",
+      "markUnplayed": "Mark {{title}} as unplayed",
+      "download": "Download {{title}}",
+      "cancelDownload": "Cancel the download of {{title}}",
+      "deleteDownload": "Delete the file of {{title}} ({{size}})",
+      "downloaded": "Downloaded",
+      "needsNetwork": "Not available offline or with podcasts off: only a downloaded episode plays.",
+      "noAddress": "This episode's address is not known: subscribe to the channel again.",
+      "seasonEpisode": "S{{season}} · E{{episode}}",
+      "number": "Episode {{episode}}",
+      "remaining": "{{time}} left",
+      "pause": "Pause {{title}}",
+      "queued": "Waiting",
+      "deletedWhilePlaying": "The file is deleted. What is playing carries on; starting it again will need the network or a new download.",
+      "open": "Open “{{title}}”",
+      "playAgainShort": "Play again"
+    },
+    "restored": {
+      "title": "This feed's address is no longer known",
+      "body": "This channel comes from a backup or an imported profile, which never keep feed addresses, so it no longer updates. Subscribe again to the same address, or import your OPML again: your positions and what you have played are kept.",
+      "hint": "The same address as before. An OPML list only accepts public addresses, so a feed on your local network goes here.",
+      "summary": "Channels to subscribe to again: {{n}}. A backup does not keep feed addresses. Type them again or import your OPML again, and your positions are kept.",
+      "downloads": "Downloaded episodes do not travel with a backup: they have to be downloaded again."
+    },
+    "unsubscribe": {
+      "title": "Unsubscribe from {{title}}?",
+      "body": "The channel, its episodes, your positions and its downloads will be forgotten. You can subscribe again, but not get back where you were.",
+      "confirm": "Unsubscribe"
+    },
+    "errors": {
+      "disabled": "Podcasts are off.",
+      "offline": "Offline mode is on: nothing was contacted.",
+      "profile_changed": "The profile changed meanwhile: nothing more was written.",
+      "channel_gone": "This channel is no longer followed.",
+      "open_failed": "The browser could not be opened.",
+      "address_refused": "This address is refused: it must be http or https, name a host, and hold no credentials. A public feed cannot lead to the local network.",
+      "too_many_redirects": "The feed sends you through too many addresses in a row.",
+      "too_large": "The file is too large.",
+      "unreached": "The host could not be reached.",
+      "http": "The host answered with an error ({{status}}).",
+      "invalid_feed": "This is not a podcast feed that can be read.",
+      "not_audio": "This file is not audio.",
+      "quota_exceeded": "The download quota has been reached.",
+      "unknown": "Something went wrong.",
+      "episode_gone": "This episode no longer exists.",
+      "no_source": "This episode has neither a file nor an address: subscribe to the channel again.",
+      "not_seekable": "This host does not allow moving around in the episode.",
+      "write_failed": "The file could not be written to disk.",
+      "invalid_document": "This file is not what it claims to be.",
+      "not_stored": "The server does not hold this episode: it has to download it first.",
+      "server_unreachable": "The server is not answering.",
+      "server_signed_out": "You are no longer signed in to this server.",
+      "server_refused": "The server refused, or no longer knows this item.",
+      "server_conflict": "The server already follows this feed, or cannot follow any more.",
+      "destination_refused": "The server is not allowed to reach this address."
+    },
+    "episodePage": {
+      "kicker": "Episode"
+    },
+    "chapters": {
+      "title": "Chapters",
+      "none": "This episode has no chapters.",
+      "loading": "Looking for chapters…",
+      "failed": "The chapters could not be read: {{reason}}",
+      "jump": "Go to “{{title}}”, {{time}}"
+    },
+    "transcript": {
+      "title": "Transcript",
+      "none": "This episode has no transcript.",
+      "noEpisode": "Play an episode to see its transcript.",
+      "loading": "Getting the transcript…",
+      "failed": "The transcript could not be read: {{reason}}",
+      "untimed": "This transcript has no timing, so it does not follow playback.",
+      "notPlaying": "This episode is not playing. Clicking a line starts it at that moment.",
+      "jump": "Go to {{time}}: {{text}}"
+    },
+    "server": {
+      "title": "On your server",
+      "chip": "Server",
+      "refresh": "Check on the server",
+      "refreshAsked": "The server is checking its feeds. Anything new will show shortly.",
+      "subscribeOpen": "Subscribe on the server",
+      "subscribeLabel": "Subscribe to a feed on the server",
+      "subscribeHint": "The server reads the feed before adding it. The subscription applies to every account on this server.",
+      "unsubscribe": "Remove from the server",
+      "unsubscribeTitle": "Remove {{title}} from the server?",
+      "unsubscribeBody": "The channel, its episodes and their files leave the server, for every account on it.",
+      "removeConfirm": "Remove",
+      "deleteEpisode": "Remove {{title}} from the server",
+      "deleteEpisodeTitle": "Remove this episode from the server?",
+      "deleteEpisodeBody": "“{{title}}” and its file leave the server, for every account on it. It will not come back at the next check.",
+      "requestDownload": "Ask the server to download {{title}}",
+      "notStored": "Not on the server",
+      "notStoredHint": "The server only plays what it has downloaded. An administrator can ask it to.",
+      "needsServer": "Offline or podcasts off: the server is not contacted.",
+      "downloading": "Downloading on the server…",
+      "downloadFailed": "Failed on the server",
+      "forgetPosition": "Restart {{title}} from the beginning"
     }
   }
 }

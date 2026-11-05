@@ -57,6 +57,7 @@ export interface DiskUsageEntry {
     | "remoteArtwork"
     | "remoteStream"
     | "remoteDownloads"
+    | "podcastDownloads"
     | "manualMedia"
     | "databases"
     | "databaseSnapshots"

@@ -187,6 +187,10 @@ impl RemoteFailure {
 struct ErrorBody {
     code: String,
     message: String,
+    /// A feed the server would not subscribe to says why, as a word from a fixed
+    /// list. It is the part worth keeping: the message is one fixed sentence.
+    #[serde(default)]
+    reason: Option<String>,
 }
 
 /// Shape returned by `/auth/login`, `/auth/refresh` and `/oauth/token`.
@@ -225,6 +229,9 @@ struct RefreshCtx<'a> {
 pub struct RemoteClient<'a> {
     base_url: String,
     device_id: Option<String>,
+    /// The account of the binding the rest of this client was built from, read
+    /// with it, so what names a server and an account is one snapshot.
+    account_id: Option<String>,
     /// Shared so a `401` refresh can publish the rotated token in place:
     /// a client is reused across a whole drain batch, and without this
     /// every entry after a mid-batch rotation would 401 once on the stale
@@ -294,10 +301,14 @@ impl<'a> RemoteClient<'a> {
         Ok(Some(client))
     }
 
-    fn from_parts(binding: &RemoteBinding, pair: &TokenPair) -> AppResult<Self> {
+    pub(super) fn from_parts(binding: &RemoteBinding, pair: &TokenPair) -> AppResult<Self> {
         Ok(Self {
             base_url: binding.server_url.trim_end_matches('/').to_string(),
             device_id: binding.identity.device_id().map(str::to_owned),
+            account_id: match &binding.identity {
+                RemoteIdentity::Waveflow { account_id, .. } => Some(account_id.clone()),
+                RemoteIdentity::Subsonic { .. } => None,
+            },
             access_token: Arc::new(RwLock::new(pair.access_token.clone())),
             http: reqwest::Client::builder()
                 .timeout(REQUEST_TIMEOUT)
@@ -380,6 +391,11 @@ impl<'a> RemoteClient<'a> {
         &self.base_url
     }
 
+    /// The account this client speaks for, when the binding names one.
+    pub fn account_id(&self) -> Option<&str> {
+        self.account_id.as_deref()
+    }
+
     /// The current access token, cloned out of the shared cell. Owned
     /// rather than borrowed so a caller (the socket upgrade) isn't tied to
     /// the lock guard's lifetime.
@@ -446,15 +462,24 @@ impl<'a> RemoteClient<'a> {
         // pre-emptive refresh covers the common lapse; this handles the
         // narrow race where the token expired (or was rotated) between that
         // check and the server reading it. Refresh once — single-flighted
-        // process-wide — and replay with the fresh token. Anything that
-        // stops us (no refresh context, an uncloneable request, a failed
-        // refresh) falls through to surfacing the original 401 as
-        // `Unauthorized`, and the queue retries later.
+        // process-wide — and replay with the fresh token. What stops us (no
+        // refresh context, an uncloneable request, a refresh refused) falls
+        // through to surfacing the original 401 as `Unauthorized`, and the
+        // queue retries later. A refresh that got no verdict is not one of
+        // them: the account may be fine, so it is transient.
         let (Some(ctx), Some(mut replay)) = (self.refresh_ctx.as_ref(), replay) else {
             return Self::interpret(response).await;
         };
         let fresh = match refresh(ctx.state, ctx.profile_id, &ctx.binding, &ctx.pair).await {
             Ok(pair) => pair,
+            Err(err) if offline::is_offline() || says_nothing_of_the_account(&err) => {
+                return Err(RemoteFailure {
+                    kind: FailureKind::Transient,
+                    status: None,
+                    code: None,
+                    message: "the token could not be refreshed".into(),
+                });
+            }
             Err(_) => return Self::interpret(response).await,
         };
         // Publish the rotated token so later requests on this same client
@@ -489,7 +514,7 @@ impl<'a> RemoteClient<'a> {
             None => Ok(response),
             Some(kind) => {
                 let (code, message) = match response.json::<ErrorBody>().await {
-                    Ok(body) => (Some(body.code), body.message),
+                    Ok(body) => (Some(body.code), body.reason.unwrap_or(body.message)),
                     Err(_) => (None, "no error body".to_string()),
                 };
                 Err(RemoteFailure {
@@ -503,11 +528,28 @@ impl<'a> RemoteClient<'a> {
     }
 }
 
+/// Whether a failed refresh leaves the question of the account open: no answer, one
+/// nobody can read, or one from a server that is not well. Only its 401 says the session
+/// is over.
+fn says_nothing_of_the_account(err: &AppError) -> bool {
+    match err {
+        AppError::RemoteRefreshUnanswered(_) => true,
+        AppError::RemoteRefreshRejected(status) => *status != 401,
+        _ => false,
+    }
+}
+
 /// Exchange the stored refresh token for a fresh pair and persist it.
 ///
 /// Single-flighted process-wide, with a re-read after taking the gate so
 /// a task that queued behind another adopts its result rather than
 /// spending a token that has already been rotated away.
+///
+/// In offline mode only that adoption can succeed. This is the one request of
+/// a [`RemoteClient`] that does not go through [`RemoteClient::send`], and
+/// [`RemoteClient::try_build_for`] makes it before the caller has asked for
+/// anything, so testing offline mode here is what keeps a lapsed token from
+/// going out with a client nobody meant to use yet.
 pub async fn refresh(
     state: &AppState,
     profile_id: i64,
@@ -541,6 +583,11 @@ pub async fn refresh(
         // Lease released before the request — see `try_build`.
     }
 
+    // After the wait for the gate, which can outlast a toggle in Settings.
+    if offline::is_offline() {
+        return Err(AppError::Other("offline mode is on".into()));
+    }
+
     let http = reqwest::Client::builder()
         .timeout(REQUEST_TIMEOUT)
         .build()
@@ -555,23 +602,16 @@ pub async fn refresh(
         .json(&serde_json::json!({ "refresh_token": known.refresh_token }))
         .send()
         .await
-        .map_err(|err| {
-            AppError::Other(format!(
-                "token refresh failed: {}",
-                describe_http_error(&err)
-            ))
-        })?;
+        .map_err(|err| AppError::RemoteRefreshUnanswered(describe_http_error(&err)))?;
 
     let status = response.status().as_u16();
     if classify_status(status).is_some() {
-        return Err(AppError::Other(format!(
-            "token refresh rejected with status {status}"
-        )));
+        return Err(AppError::RemoteRefreshRejected(status));
     }
 
     let fresh: AuthTokensResponse = response.json().await.map_err(|err| {
-        AppError::Other(format!(
-            "malformed refresh response: {}",
+        AppError::RemoteRefreshUnanswered(format!(
+            "malformed response: {}",
             describe_http_error(&err)
         ))
     })?;

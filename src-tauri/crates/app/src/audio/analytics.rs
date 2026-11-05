@@ -93,6 +93,17 @@ pub enum AnalyticsMsg {
         /// this drives has to be ordered from the moment the track ended.
         intent: LoadIntent,
     },
+    /// The decoder is done with a podcast episode, however that came about:
+    /// where it was left, for its row. No `play_event`: an episode is not a track.
+    /// Sent before the [`Self::RemoteTrackEnded`] of the same end, so the step that
+    /// follows finds the row already played. Holds no address, and is printed.
+    EpisodeLeft {
+        profile_id: i64,
+        home: crate::podcast::playback::EpisodeHome,
+        position_ms: u64,
+        duration_ms: u64,
+        finished: bool,
+    },
     /// Sent by the decoder right after the crossfade swap has
     /// happened and the second decoder is now the primary. Writes a
     /// `play_event` for the just-faded-out track AND advances the
@@ -135,6 +146,26 @@ async fn handle_message(
 
     let state = app.state::<AppState>();
 
+    if let AnalyticsMsg::EpisodeLeft {
+        profile_id,
+        home,
+        position_ms,
+        duration_ms,
+        finished,
+    } = msg
+    {
+        crate::podcast::playback::record_left(
+            app,
+            *profile_id,
+            home,
+            *position_ms,
+            *duration_ms,
+            *finished,
+        )
+        .await;
+        return Ok(());
+    }
+
     // A remote-queue track has no library row: it writes no play_event and
     // needs no profile pool. Handle it before acquiring the pool so a
     // missing or momentarily-unavailable profile can't strand remote
@@ -151,6 +182,19 @@ async fn handle_message(
         });
         if pause_after {
             tracing::info!("sleep-timer end-of-track armed: skipping the auto-advance");
+            return Ok(());
+        }
+        // An episode: the next one of its channel that has not been heard.
+        if state.podcast_playback.is_active() {
+            if let Err(err) = crate::podcast::playback::advance(
+                app,
+                crate::podcast::playback::Step::Ended,
+                *intent,
+            )
+            .await
+            {
+                tracing::warn!(%err, "episode auto-advance failed");
+            }
             return Ok(());
         }
         // A file played without importing it: its own queue moves on.
@@ -306,7 +350,9 @@ async fn handle_message(
         }
         // Handled before the pool acquisition above (no play_event, no
         // pool needed).
-        AnalyticsMsg::RemoteTrackEnded { .. } | AnalyticsMsg::Flush(_) => {}
+        AnalyticsMsg::RemoteTrackEnded { .. }
+        | AnalyticsMsg::EpisodeLeft { .. }
+        | AnalyticsMsg::Flush(_) => {}
         AnalyticsMsg::PrefetchNext => {
             // Only a library track hands over to the library queue. A
             // remote track or a file played without importing it plays
@@ -455,7 +501,7 @@ pub(crate) fn dynamic_crossfade_ms(
     scaled.max(1500.min(base_ms))
 }
 
-async fn insert_play_event(
+pub(crate) async fn insert_play_event(
     pool: &sqlx::SqlitePool,
     track_id: i64,
     listened_ms: u64,

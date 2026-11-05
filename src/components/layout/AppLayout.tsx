@@ -48,6 +48,8 @@ import { RatingNoticeToast } from "../common/RatingNoticeToast";
 import { PluginAttentionToast } from "../common/PluginAttentionToast";
 import { ViewSuspenseFallback } from "../common/ViewSuspenseFallback";
 import { ViewErrorBoundary } from "../common/ViewErrorBoundary";
+import { PodcastDialogsHost } from "../podcasts/PodcastDialogsHost";
+import { PodcastTranscriptPanel } from "../podcasts/PodcastTranscriptPanel";
 import { retryableLazy } from "../../lib/preloadable";
 import {
   OPEN_TAG_WORKSHOP_EVENT,
@@ -103,6 +105,9 @@ const PlayerBarTour = retryableLazy(() =>
 );
 const PluginUIView = retryableLazy(() =>
   import("../views/PluginUIView").then((module) => module.PluginUIView),
+);
+const PodcastsView = retryableLazy(() =>
+  import("../views/PodcastsView").then((module) => module.PodcastsView),
 );
 const AboutView = retryableLazy(() =>
   import("../views/AboutView").then((module) => module.AboutView),
@@ -162,6 +167,14 @@ type HistoryEntry =
       opened?: number;
     }
   | { id: "web-radio" }
+  // What is open, so Back and Forward restore it; none of them is the overview.
+  | {
+      id: "podcasts";
+      channelId?: number | null;
+      episodeId?: number | null;
+      /** A channel of the bound server: its id is the server's, and no row here. */
+      serverChannelId?: string | null;
+    }
   | { id: "release-radar" }
   // The files it opened travel on the entry, so Back returns to the same
   // table; `opened` tells two openings of the same source apart, each a
@@ -596,6 +609,16 @@ export function AppLayout() {
     [replaceEntry],
   );
 
+  // Off a channel that is gone: replaced, so Back does not lead to it again.
+  const leavePodcastChannel = useCallback(
+    () => replaceEntry({ id: "podcasts" }),
+    [replaceEntry],
+  );
+  const leavePodcastEpisode = useCallback(
+    (channelId: number) => replaceEntry({ id: "podcasts", channelId }),
+    [replaceEntry],
+  );
+
   const openSettingsAt = useCallback(
     (settingsCategory: SettingsCategory) => {
       pushEntry({ id: "settings", settingsCategory });
@@ -748,6 +771,38 @@ export function AppLayout() {
         );
       case "web-radio":
         return <WebRadioView />;
+      case "podcasts":
+        return (
+          <PodcastsView
+            key={activeProfile?.id ?? 0}
+            channelId={
+              currentEntry.id === "podcasts"
+                ? (currentEntry.channelId ?? null)
+                : null
+            }
+            episodeId={
+              currentEntry.id === "podcasts"
+                ? (currentEntry.episodeId ?? null)
+                : null
+            }
+            serverChannelId={
+              currentEntry.id === "podcasts"
+                ? (currentEntry.serverChannelId ?? null)
+                : null
+            }
+            onOpenChannel={(channelId) =>
+              pushEntry({ id: "podcasts", channelId })
+            }
+            onOpenEpisode={(channelId, episodeId) =>
+              pushEntry({ id: "podcasts", channelId, episodeId })
+            }
+            onOpenServerChannel={(serverChannelId) =>
+              pushEntry({ id: "podcasts", serverChannelId })
+            }
+            onChannelGone={leavePodcastChannel}
+            onEpisodeGone={leavePodcastEpisode}
+          />
+        );
       case "extensions":
         return <ExtensionsView />;
       case "release-radar":
@@ -1061,6 +1116,9 @@ export function AppLayout() {
                 />
               )}
               {!fluidPanel && activeRightPanel === "lyrics" && <LyricsPanel />}
+              {!fluidPanel && activeRightPanel === "transcript" && (
+                <PodcastTranscriptPanel />
+              )}
             </AnimatePresence>
           </div>
 
@@ -1099,6 +1157,7 @@ export function AppLayout() {
             />
           </Suspense>
         )}
+        <PodcastDialogsHost />
         {whatsNew.shown && (
           <Suspense fallback={null}>
             <WhatsNewPanel

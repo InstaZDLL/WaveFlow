@@ -914,6 +914,13 @@ fn apply_replay_gain(buf: &mut [f32], shared: &SharedPlayback, stream: &ActiveSt
 /// The gain [`apply_replay_gain`] multiplies this stream's buffers by.
 #[inline]
 fn replay_gain_of(shared: &SharedPlayback, stream: &ActiveStream) -> f32 {
+    // An episode carries no measured gain, and the empty one every other stream
+    // would pass down here means the fallback and the pre-amp: music's settings,
+    // applied to a voice nobody measured (RFC-009, decision 2). Here and not in
+    // `apply_replay_gain`, since a stretched stream takes its gain from this too.
+    if stream.source_type == crate::podcast::playback::SOURCE_TYPE {
+        return 1.0;
+    }
     effective_linear(
         stream.replay_gain,
         shared.replay_gain_settings(),

@@ -116,6 +116,29 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
     steps:
+      - name: Free disk space on a small runner
+        # `ubuntu-latest` lands on two fleets the job can't choose between.
+        # Azure gives it about 89 GB free; AWS (a few percent of jobs) about
+        # 19 GB, and this job peaks at about 21 GB, so every AWS run died in
+        # the last `cargo test` with "No space left on device" while every
+        # Azure run passed. The header of the job log names the cloud.
+        #
+        # These three SDKs, which nothing here uses, hold 20.9 GB on both
+        # fleets. Only when the disk is small, because removing them takes
+        # between one and two minutes and Azure doesn't need the room. This
+        # rather than less debug info: it leaves the cache key alone, and
+        # `line-tables-only` would give back only 7 GB.
+        if: runner.os == 'Linux'
+        run: |
+          avail=$(df --output=avail -BM / | tail -1 | tr -dc '0-9')
+          echo "Free at job start: ${avail} MiB"
+          if [ "$avail" -lt 40960 ]; then
+            sudo rm -rf /usr/local/lib/android /usr/share/dotnet /usr/local/.ghcup
+            avail=$(df --output=avail -BM / | tail -1 | tr -dc '0-9')
+            echo "Free after cleanup: ${avail} MiB"
+          fi
+          echo "DISK_FREE_AT_START=${avail}" >> "$GITHUB_ENV"
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
 
       - name: Install Linux build dependencies
@@ -254,6 +277,25 @@ jobs:
           --manifest-path src-tauri/Cargo.toml
           -p waveflow-core
           --features sqlite
+
+      - name: Disk margin
+        # What the cleanup above is there to protect, in every run. The warning
+        # is on what the job used rather than on what is left, so it fires on
+        # Azure too: running out shows up in whichever pull request draws a small
+        # runner, not in the one that used the room up. A small runner has about
+        # 40 GB after the cleanup and the job ends at about 20; warn at 30 GiB.
+        # This reads the end of the job, and the peak measured 2 GB above it: the
+        # 10 GB left at the threshold cover that without sampling during the job.
+        if: always() && runner.os == 'Linux'
+        run: |
+          df -h /
+          du -sh src-tauri/target || true
+          avail=$(df --output=avail -BM / | tail -1 | tr -dc '0-9')
+          used=$((DISK_FREE_AT_START - avail))
+          echo "Disk used by the job: ${used} MiB, free at the end: ${avail} MiB"
+          if [ "$used" -gt 30720 ]; then
+            echo "::warning title=Rust job disk margin::The job used ${used} MiB of disk; a small runner has about 40 GB"
+          fi
 
   flatpak-sources:
     name: Flatpak sources

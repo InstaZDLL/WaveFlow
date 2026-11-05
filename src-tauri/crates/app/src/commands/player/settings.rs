@@ -405,10 +405,7 @@ pub(crate) async fn restore_profile_audio_settings(pool: &sqlx::SqlitePool, engi
         // stream is decoding yet; the first track's
         // lazy resampler init picks up the speed via
         // `stream.playback_speed = shared.playback_speed()`.
-        engine
-            .shared()
-            .playback_speed_bits
-            .store(speed.to_bits(), std::sync::atomic::Ordering::Release);
+        engine.shared().restore_user_speed(speed);
         // The same raw stores for what goes with the speed. A profile that
         // never touched them keeps the pitch and does not transpose.
         let keep_pitch = read_setting(pool, "audio.keep_pitch")

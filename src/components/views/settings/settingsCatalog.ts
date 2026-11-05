@@ -473,6 +473,17 @@ export const SETTINGS_CATEGORIES = [
         ],
       },
       {
+        id: "podcasts",
+        labelKey: "settings.organization.groups.podcasts",
+        hintKey: "settings.organization.groupHints.podcasts",
+        searchKeys: [
+          "settings.podcasts.title",
+          "settings.podcasts.subtitleOn",
+          "settings.podcasts.subtitleOff",
+          "settings.podcasts.stays",
+        ],
+      },
+      {
         id: "biographies",
         labelKey: "settings.organization.groups.biographies",
         hintKey: "settings.organization.groupHints.biographies",
@@ -694,6 +705,7 @@ export const SETTINGS_CATEGORIES = [
           "settings.diskUsage.items.motionCache.label",
           "settings.diskUsage.items.canvasCache.label",
           "settings.diskUsage.items.remoteStream.label",
+          "settings.diskUsage.items.podcastDownloads.label",
           "settings.diskUsage.items.backups.label",
           "settings.diskUsage.items.logs.label",
           "settings.diskUsage.items.databases.label",
@@ -729,6 +741,7 @@ export const SETTINGS_CATEGORIES = [
           "settings.networkLibrary.subtitle",
           "settings.clipsInLibrary.title",
           "settings.clipsInLibrary.subtitle",
+          "settings.podcasts.downloadQuota",
           "settings.dataFolder.title",
           "settings.dataFolder.subtitle",
           "settings.openDataFolder",

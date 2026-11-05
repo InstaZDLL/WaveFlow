@@ -1052,7 +1052,8 @@
       "transpose": "移調",
       "transposeDown": "降低半音",
       "transposeUp": "升高半音",
-      "transposeReset": "恢復原始音高"
+      "transposeReset": "恢復原始音高",
+      "transposeNotForEpisodes": "不適用於單集"
     },
     "seek": "跳轉",
     "alert": {
@@ -1084,6 +1085,13 @@
       "behind": "落後直播 {{time}}",
       "goLive": "回到直播",
       "behindState": "落後於直播"
+    },
+    "podcast": {
+      "back15": "倒退 15 秒",
+      "forward30": "快轉 30 秒",
+      "previousChapter": "上一章",
+      "nextChapter": "下一章",
+      "chapterOf": "第 {{current}} 章，共 {{total}} 章"
     }
   },
   "queue": {
@@ -3072,7 +3080,8 @@
         "lyricsDisplay": "歌詞顯示",
         "diskUsage": "磁碟空間",
         "globalShortcuts": "全域快速鍵",
-        "enrichment": "資訊補全"
+        "enrichment": "資訊補全",
+        "podcasts": "Podcast"
       },
       "navHints": {
         "general": "語言、啟動、播放",
@@ -3123,7 +3132,8 @@
         "reset": "將應用程式還原為全新狀態",
         "diskUsage": "WaveFlow 在這台電腦上保存的內容",
         "globalShortcuts": "在任何應用程式中",
-        "enrichment": "來自 MusicBrainz 的曲風、日期、製作人員與封面"
+        "enrichment": "來自 MusicBrainz 的曲風、日期、製作人員與封面",
+        "podcasts": "經你同意後訂閱訂閱來源"
       }
     },
     "desktopLyrics": {
@@ -3295,6 +3305,10 @@
         "plugins": {
           "label": "外掛程式",
           "description": "已安裝的外掛程式及其資料。"
+        },
+        "podcastDownloads": {
+          "label": "已下載的 Podcast 單集",
+          "description": "你選擇保留在這台電腦上的單集。可在單集處移除。"
         }
       },
       "confirmEmptyLabel": "確認清空：{{item}}",
@@ -3424,6 +3438,17 @@
       "share": "共用名稱",
       "cacheUsed_one": "本機快取:{{size}},{{count}} 首曲目",
       "cacheUsed_other": "本機快取:{{size}},{{count}} 首曲目"
+    },
+    "podcasts": {
+      "title": "Podcast",
+      "subtitleOn": "已開啟：應用程式執行期間，訂閱來源每六小時檢查一次。",
+      "subtitleOff": "已關閉：不會連線到任何地方。開啟前會先顯示一則提醒。",
+      "stays": "保留的內容：你的訂閱、播放進度和已下載的單集。",
+      "staysCount": "保留的節目：{{n}} 個。",
+      "open": "開啟 Podcast",
+      "seeStays": "查看保留的內容",
+      "downloadQuota": "已下載單集的最大空間",
+      "downloadQuotaHint": "下載達到此配額時會停止。已有的檔案會保留。已用：{{used}}。"
     }
   },
   "scanProgress": {
@@ -3792,7 +3817,9 @@
       "spectrogram": "曲目頻譜",
       "enrichment": "音樂庫資訊補全",
       "release_radar": "Release Radar",
-      "tag_workshop": "標籤工坊"
+      "tag_workshop": "標籤工坊",
+      "podcast_refresh": "重新整理 Podcast",
+      "podcast_download": "Podcast 下載"
     }
   },
   "smartRuleSummary": {
@@ -4358,7 +4385,8 @@
     "needs": {
       "library": "需要先在音樂庫中加入音樂。",
       "track": "播放音樂庫中的一首曲目，即可在編輯器中開啟它的歌詞。",
-      "startsPlayback": "目前沒有播放內容：試用時會隨機播放你的音樂庫。"
+      "startsPlayback": "目前沒有播放內容：試用時會隨機播放你的音樂庫。",
+      "podcastsWarning": "按下按鈕會先顯示一則提醒，未經你同意不會開啟任何內容。"
     },
     "pages": {
       "fluidInterface": {
@@ -4400,7 +4428,239 @@
         "title": "匯入你的播放清單",
         "body": "支援 M3U、CSV、JSON 檔案，或公開的 Deezer 播放清單連結。你沒有的曲目會保留位置，等它們進入音樂庫後自動補上。",
         "keywords": "M3U|CSV|JSON|Deezer|ISRC|缺少的曲目"
+      },
+      "podcasts": {
+        "title": "Podcast 來了",
+        "body": "訂閱一個訂閱來源，從上次聽到的地方繼續，下載後稍後再聽。在你同意之前它們一直關閉：Podcast 直接來自它的代管方，代管方能看到你播放的內容。",
+        "keywords": "RSS|OPML|待聽|離線"
       }
+    }
+  },
+  "podcasts": {
+    "kicker": "收聽",
+    "channels": "節目",
+    "channelsCount_other": "{{count}} 個節目",
+    "unplayedCount_other": "{{count}} 集未聽",
+    "episodesCount_other": "{{count}} 集",
+    "usage": "已下載 {{used}}，上限 {{quota}}",
+    "refreshAll": "全部檢查",
+    "refreshing": "正在檢查…",
+    "openSettings": "Podcast 設定",
+    "loading": "載入中…",
+    "retry": "重試",
+    "showMore": "顯示更多",
+    "showLess": "收合",
+    "untitledChannel": "未命名節目",
+    "untitledEpisode": "未命名單集",
+    "offlineBanner": "離線模式：不會連線到任何訂閱來源，只能播放已下載的單集。",
+    "off": {
+      "body": "Podcast 已關閉，不會連線到任何地方。你的訂閱、播放進度和已下載的單集都會保留。",
+      "action": "開啟 Podcast…"
+    },
+    "empty": {
+      "title": "還沒有訂閱",
+      "body": "在上方輸入訂閱來源的網址，或匯入 OPML 清單。",
+      "bodyOff": "開啟 Podcast 後，才能訂閱第一個訂閱來源。"
+    },
+    "dialog": {
+      "cancel": "取消",
+      "close": "關閉"
+    },
+    "warning": {
+      "title": "開啟 Podcast 之前",
+      "lead": "在你確認之前，什麼都不會改變。開啟之後會發生以下這些事。",
+      "confirm": "我了解了，開啟",
+      "failed": "無法儲存這個設定，Podcast 仍然關閉。",
+      "points": {
+        "hosts": {
+          "title": "代管方能看到什麼",
+          "body": "訂閱來源和單集都直接來自各個 Podcast 的代管方。代管方，以及單集常會經過的統計服務，能看到你的 IP 位址和你播放的內容。"
+        },
+        "checks": {
+          "title": "WaveFlow 何時檢查",
+          "body": "只有在應用程式執行期間，訂閱來源才會每六小時檢查一次。"
+        },
+        "downloads": {
+          "title": "磁碟空間",
+          "body": "已下載的單集會佔用磁碟空間，最多到上限為止。"
+        },
+        "stop": {
+          "title": "如何全部停止",
+          "body": "開啟離線模式可以全部停止。關閉 Podcast 則會徹底停止。"
+        },
+        "server": {
+          "title": "如果連結了伺服器",
+          "body": "如果這個設定檔連結了開啟 Podcast 的 WaveFlow 伺服器，它的節目也會顯示。這些內容經過你的伺服器：代管方看到的是你的伺服器，而不是你。"
+        }
+      }
+    },
+    "subscribe": {
+      "label": "訂閱一個訂閱來源",
+      "action": "訂閱",
+      "hint": "RSS 訂閱來源的網址，以 http 或 https 開頭。加入之前會先讀取訂閱來源，所以輸入錯誤也不會留下任何東西。"
+    },
+    "opml": {
+      "import": "匯入 OPML",
+      "export": "匯出 OPML",
+      "importDialogTitle": "匯入訂閱來源清單",
+      "exportDialogTitle": "匯出訂閱來源清單（其中包含訂閱來源的網址）",
+      "exportTitle": "匯出你的訂閱",
+      "exportBody": "這個檔案包含你所有訂閱來源的網址。私人訂閱來源的網址有時帶有你的個人存取憑證，請只分享給你信任的人。",
+      "exportConfirm": "選擇檔案…",
+      "exportMissing": "還原後沒有網址、因此不在檔案中的節目：{{missing}} 個。",
+      "exported": "清單已儲存。已寫入的訂閱來源：{{written}} · 沒有網址：{{missing}}。",
+      "publicOnly": "OPML 清單只接受公開網址。區域網路中的訂閱來源，請在上方手動輸入。",
+      "report": {
+        "title": "匯入清單",
+        "summary": "已加入：{{added}} · 已訂閱過：{{already}} · 失敗：{{failed}} · 清單中共有：{{total}}",
+        "more": "另有 {{n}} 個。",
+        "theFile": "檔案",
+        "outcome": {
+          "cancelled": "匯入在完成之前被停止了。",
+          "offline": "離線模式停止了匯入。",
+          "disabled": "匯入期間 Podcast 被關閉了。",
+          "profile_changed": "匯入期間設定檔發生了變化，匯入已停止。",
+          "already_running": "已經在檢查了。請等它結束後再試。"
+        }
+      }
+    },
+    "refresh": {
+      "done": "檢查完成。已更新：{{refreshed}} · 無變化：{{unchanged}} · 失敗：{{failed}}",
+      "cancelled": "檢查已停止。",
+      "offline": "離線模式停止了檢查。",
+      "disabled": "Podcast 已關閉。",
+      "profile_changed": "檢查期間設定檔發生了變化，檢查已停止。",
+      "already_running": "已經在檢查了。"
+    },
+    "toListen": {
+      "title": "待聽",
+      "failed": "無法讀取這份清單。",
+      "inProgress": "繼續收聽",
+      "newest": "最新一集",
+      "resume": "繼續",
+      "listen": "播放",
+      "showAll": "顯示全部（還有 {{n}} 個）",
+      "playing": "正在播放",
+      "pause": "暫停"
+    },
+    "channel": {
+      "kicker": "Podcast",
+      "back": "所有節目",
+      "checked": "{{when}}檢查",
+      "refresh": "檢查",
+      "markAllPlayed": "全部標為已聽",
+      "markAllUnplayed": "全部標為未聽",
+      "openSite": "節目網站",
+      "unsubscribe": "取消訂閱",
+      "speed": "速度",
+      "speedNormal": "正常",
+      "noEpisodes": "這個節目沒有單集。",
+      "lastFailure": "上次檢查：{{reason}}",
+      "restoredChip": "需重新訂閱",
+      "failedChip": "失敗"
+    },
+    "episode": {
+      "play": "播放 {{title}}",
+      "playAgain": "再次播放 {{title}}",
+      "resume": "繼續播放 {{title}}",
+      "markPlayed": "將 {{title}} 標為已聽",
+      "markUnplayed": "將 {{title}} 標為未聽",
+      "download": "下載 {{title}}",
+      "cancelDownload": "取消下載 {{title}}",
+      "deleteDownload": "刪除 {{title}} 的檔案（{{size}}）",
+      "downloaded": "已下載",
+      "needsNetwork": "離線或 Podcast 關閉時無法使用，只能播放已下載的單集。",
+      "noAddress": "不知道這一集的網址，請重新訂閱這個節目。",
+      "seasonEpisode": "第{{season}}季 · 第{{episode}}集",
+      "number": "第 {{episode}} 集",
+      "remaining": "剩餘 {{time}}",
+      "pause": "暫停 {{title}}",
+      "queued": "等待中",
+      "deletedWhilePlaying": "檔案已刪除。目前的播放會繼續；之後要重新播放，需要連網或重新下載。",
+      "open": "開啟「{{title}}」",
+      "playAgainShort": "再聽一次"
+    },
+    "restored": {
+      "title": "已不知道這個訂閱來源的網址",
+      "body": "這個節目來自備份或匯入的設定檔，它們不會保存訂閱來源的網址，所以它不再更新。請用同一個網址重新訂閱，或重新匯入你的 OPML，你的播放進度和已聽記錄都會保留。",
+      "hint": "和之前相同的網址。OPML 清單只接受公開網址，區域網路中的訂閱來源請在這裡輸入。",
+      "summary": "需要重新訂閱的節目：{{n}} 個。備份不會保存訂閱來源的網址。請重新輸入網址或重新匯入 OPML，你的播放進度會保留。",
+      "downloads": "已下載的單集不會隨備份一起保存，需要重新下載。"
+    },
+    "unsubscribe": {
+      "title": "取消訂閱 {{title}}？",
+      "body": "這個節目、它的單集、你的播放進度和下載的檔案都會被清除。你可以重新訂閱，但找不回之前聽到的位置。",
+      "confirm": "取消訂閱"
+    },
+    "errors": {
+      "disabled": "Podcast 已關閉。",
+      "offline": "離線模式已開啟，沒有連線到任何地方。",
+      "profile_changed": "期間設定檔發生了變化，沒有再寫入更多內容。",
+      "channel_gone": "已不再訂閱這個節目。",
+      "open_failed": "無法開啟瀏覽器。",
+      "address_refused": "這個網址不能用。它必須以 http 或 https 開頭、包含主機名稱，且不能帶有帳號和密碼。公開的訂閱來源不能指向區域網路。",
+      "too_many_redirects": "這個訂閱來源被連續轉到了太多個網址。",
+      "too_large": "檔案太大了。",
+      "unreached": "連不上代管方。",
+      "http": "代管方回傳了錯誤（{{status}}）。",
+      "invalid_feed": "這不是可以讀取的 Podcast 訂閱來源。",
+      "not_audio": "這個檔案不是音訊。",
+      "quota_exceeded": "已達到下載上限。",
+      "unknown": "發生了一些問題。",
+      "episode_gone": "這一集已不存在。",
+      "no_source": "這一集既沒有檔案也沒有位址：請重新訂閱這個節目。",
+      "not_seekable": "這個託管方不支援在這一集中跳轉。",
+      "write_failed": "無法將檔案寫入磁碟。",
+      "invalid_document": "此檔案與其宣稱的內容不符。",
+      "not_stored": "伺服器沒有保存這一集：需要它先下載。",
+      "server_unreachable": "伺服器沒有回應。",
+      "server_signed_out": "你已不再登入這台伺服器。",
+      "server_refused": "伺服器拒絕了，或已不再有這一項。",
+      "server_conflict": "伺服器已在追蹤這個訂閱來源，或無法再追蹤更多。",
+      "destination_refused": "伺服器不允許連線到這個位址。"
+    },
+    "episodePage": {
+      "kicker": "單集"
+    },
+    "chapters": {
+      "title": "章節",
+      "none": "此單集沒有章節。",
+      "loading": "正在尋找章節…",
+      "failed": "無法讀取章節：{{reason}}",
+      "jump": "前往「{{title}}」，{{time}}"
+    },
+    "transcript": {
+      "title": "逐字稿",
+      "none": "此單集沒有逐字稿。",
+      "noEpisode": "播放單集即可查看其逐字稿。",
+      "loading": "正在取得逐字稿…",
+      "failed": "無法讀取逐字稿：{{reason}}",
+      "untimed": "此逐字稿沒有時間資訊，因此不會跟隨播放。",
+      "notPlaying": "此單集未在播放。點擊某一行即可從該處開始播放。",
+      "jump": "前往 {{time}}：{{text}}"
+    },
+    "server": {
+      "title": "在你的伺服器上",
+      "chip": "伺服器",
+      "refresh": "在伺服器上檢查",
+      "refreshAsked": "伺服器正在檢查訂閱來源。新內容很快就會顯示。",
+      "subscribeOpen": "在伺服器上訂閱",
+      "subscribeLabel": "在伺服器上訂閱一個訂閱來源",
+      "subscribeHint": "伺服器會先讀取訂閱來源再加入。訂閱對這台伺服器上的所有帳號生效。",
+      "unsubscribe": "從伺服器移除",
+      "unsubscribeTitle": "要從伺服器移除 {{title}} 嗎？",
+      "unsubscribeBody": "節目、單集及其檔案都會從伺服器上消失，所有帳號都受影響。",
+      "removeConfirm": "移除",
+      "deleteEpisode": "從伺服器移除 {{title}}",
+      "deleteEpisodeTitle": "要從伺服器移除這一集嗎？",
+      "deleteEpisodeBody": "「{{title}}」及其檔案會從伺服器上消失，所有帳號都受影響。下次檢查時也不會回來。",
+      "requestDownload": "請伺服器下載 {{title}}",
+      "notStored": "不在伺服器上",
+      "notStoredHint": "伺服器只播放已下載的內容。管理員可以請它下載。",
+      "needsServer": "離線或 Podcast 已關閉：不會連線到伺服器。",
+      "downloading": "正在伺服器上下載…",
+      "downloadFailed": "在伺服器上失敗",
+      "forgetPosition": "從頭播放 {{title}}"
     }
   }
 }

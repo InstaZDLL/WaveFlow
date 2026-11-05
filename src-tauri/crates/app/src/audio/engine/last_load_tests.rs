@@ -93,13 +93,14 @@ fn a_library_track_is_captured_too() {
 
 #[test]
 fn nothing_but_a_load_is_captured() {
-    // `Stop` above all: it is what a rebuild sends just before asking
+    // `Unload` above all: it is what a rebuild sends just before asking
     // for this snapshot back, and clearing on it would leave every
     // rebuild with nothing to resume.
     for cmd in [
         AudioCmd::Pause,
         AudioCmd::Resume,
         AudioCmd::Stop,
+        AudioCmd::Unload,
         AudioCmd::Seek(123),
         AudioCmd::SetVolume(0.5),
         AudioCmd::SetMono(true),

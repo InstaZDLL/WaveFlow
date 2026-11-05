@@ -8,11 +8,7 @@ import { ListMusic, Radio } from "lucide-react";
 import { Artwork } from "../common/Artwork";
 import { usePlayerQueue } from "../../hooks/usePlayerQueue";
 import { usePlayer } from "../../hooks/usePlayer";
-import {
-  isFileTrack,
-  isRadioTrack,
-  isRemoteTrack,
-} from "../../lib/playerSources";
+import { detachedQueueOf, isRadioTrack } from "../../lib/playerSources";
 import { RemoteQueueView } from "../layout/RemoteQueueView";
 import {
   playerJumpToIndex,
@@ -34,12 +30,11 @@ import {
  */
 export function ImmersiveQueueTab() {
   const { currentTrack } = usePlayer();
-  if (isRemoteTrack(currentTrack) || isFileTrack(currentTrack)) {
+  const detachedSource = detachedQueueOf(currentTrack);
+  if (detachedSource) {
     return (
       <div className="flex-1 min-h-0 flex flex-col px-6 pb-8">
-        <RemoteQueueView
-          source={isFileTrack(currentTrack) ? "file" : "remote"}
-        />
+        <RemoteQueueView key={detachedSource} source={detachedSource} />
       </div>
     );
   }

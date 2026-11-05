@@ -16,7 +16,7 @@ use crate::{
         state::{SharedPlayback, MAX_PITCH_SEMITONES},
         AudioEngine,
     },
-    error::AppResult,
+    error::{AppError, AppResult},
     state::{ActiveProfile, AppState},
 };
 
@@ -505,14 +505,38 @@ pub async fn player_get_visualizer(engine: tauri::State<'_, Arc<AudioEngine>>) -
 /// new effective input rate. The engine gets the value that was saved.
 ///
 /// Whether the pitch follows is [`player_set_keep_pitch`]'s to say.
+///
+/// During an episode the slider is that channel's: it writes
+/// `podcast_channel.playback_speed` and leaves this setting alone, so a speed
+/// chosen for a voice never reaches music (RFC-009, decision 12).
 #[tauri::command]
 pub async fn player_set_speed(
+    app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
     engine: tauri::State<'_, Arc<AudioEngine>>,
     value: f32,
     expected_profile_id: Option<i64>,
 ) -> AppResult<()> {
     let clamped = value.clamp(0.5, 2.0);
+    if let Some(entry) = state.podcast_playback.current() {
+        if expected_profile_id.is_some_and(|expected| expected != entry.profile_id) {
+            return Err(AppError::Other("podcast: profile_changed".into()));
+        }
+        return match &entry.home {
+            crate::podcast::playback::EpisodeHome::Local { channel_id, .. } => {
+                crate::podcast::playback::set_channel_speed(
+                    &app,
+                    *channel_id,
+                    Some(f64::from(clamped)),
+                )
+                .await
+            }
+            #[cfg(feature = "sync_v2")]
+            crate::podcast::playback::EpisodeHome::Server(place) => {
+                crate::podcast::server::set_channel_speed(&app, place, clamped)
+            }
+        };
+    }
     save_then_apply(
         &state.profile,
         expected_profile_id,

@@ -31,6 +31,7 @@ mod offline;
 mod paths;
 mod player_actions;
 mod plugin_attention;
+mod podcast;
 mod power;
 mod queue;
 mod render_mode;
@@ -302,6 +303,47 @@ pub fn run() {
             commands::smart_playlists::regenerate_custom_smart_playlist,
             commands::smart_playlists::get_custom_smart_playlist_rules,
             commands::smart_playlists::count_custom_smart_playlist,
+            commands::podcast::podcast_subscribe,
+            commands::podcast::podcast_unsubscribe,
+            commands::podcast::podcast_list_channels,
+            commands::podcast::podcast_list_episodes,
+            commands::podcast::podcast_get_episode,
+            commands::podcast::podcast_episode_chapters,
+            commands::podcast::podcast_episode_transcript,
+            commands::podcast::podcast_refresh,
+            commands::podcast::podcast_open_site,
+            commands::podcast::podcast_import_opml,
+            commands::podcast::podcast_export_opml,
+            commands::podcast::podcast_play_episode,
+            commands::podcast::podcast_mark_played,
+            commands::podcast::podcast_mark_channel_played,
+            commands::podcast::podcast_to_listen,
+            commands::podcast::podcast_set_channel_speed,
+            commands::podcast::podcast_get_queue,
+            commands::podcast::podcast_queue_jump,
+            commands::podcast::podcast_download_episode,
+            commands::podcast::podcast_cancel_download,
+            commands::podcast::podcast_delete_download,
+            commands::podcast::podcast_download_usage,
+            commands::podcast::podcast_download_queue,
+            #[cfg(feature = "sync_v2")]
+            commands::podcast_server::podcast_server_overview,
+            #[cfg(feature = "sync_v2")]
+            commands::podcast_server::podcast_server_channel,
+            #[cfg(feature = "sync_v2")]
+            commands::podcast_server::podcast_server_play,
+            #[cfg(feature = "sync_v2")]
+            commands::podcast_server::podcast_server_clear_position,
+            #[cfg(feature = "sync_v2")]
+            commands::podcast_server::podcast_server_subscribe,
+            #[cfg(feature = "sync_v2")]
+            commands::podcast_server::podcast_server_refresh,
+            #[cfg(feature = "sync_v2")]
+            commands::podcast_server::podcast_server_unsubscribe,
+            #[cfg(feature = "sync_v2")]
+            commands::podcast_server::podcast_server_request_download,
+            #[cfg(feature = "sync_v2")]
+            commands::podcast_server::podcast_server_delete_episode,
             commands::release_radar::release_radar_scan,
             commands::release_radar::release_radar_list,
             commands::release_radar::release_radar_refresh_playlist,

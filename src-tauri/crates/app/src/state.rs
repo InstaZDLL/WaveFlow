@@ -338,6 +338,8 @@ pub struct AppState {
     pub remote_playback: crate::remote_playback::RemotePlayback,
     /// Files played without importing them ([`crate::external_playback`]).
     pub external_playback: crate::external_playback::ExternalPlayback,
+    /// A channel's episodes ([`crate::podcast::playback`]).
+    pub podcast_playback: crate::podcast::playback::PodcastPlayback,
 }
 
 /// Pick the profile to activate on startup.
@@ -511,6 +513,7 @@ impl AppState {
             plugin_locks: Arc::new(Mutex::new(HashMap::new())),
             remote_playback: crate::remote_playback::RemotePlayback::default(),
             external_playback: crate::external_playback::ExternalPlayback::default(),
+            podcast_playback: crate::podcast::playback::PodcastPlayback::default(),
         };
 
         state.bootstrap().await?;
@@ -615,8 +618,13 @@ impl AppState {
             // The files' queue reads the profile's repeat mode and is
             // checked against its library: it goes with the profile too.
             self.external_playback.clear();
+            // A channel's episodes are that profile's rows.
+            self.podcast_playback.clear();
             previous
         };
+        // Before the drain, which may take seconds: the new profile's view is up from
+        // now on, and must not hear about the old one's downloads.
+        crate::podcast::download::profile_changed(profile_id);
         if let Some(previous) = previous {
             // The enrichment pass holds its lease for as long as the
             // library takes; it stops at its next album instead of being
@@ -624,6 +632,8 @@ impl AppState {
             crate::commands::enrichment::stop_for_profile_change();
             previous.close_when_idle().await;
         }
+        // Its podcast switch and its channels are not the last one's.
+        crate::podcast::schedule::profile_changed();
 
         Ok(())
     }
@@ -643,6 +653,8 @@ impl AppState {
             // The files' queue reads the profile's repeat mode and is
             // checked against its library: it goes with the profile too.
             self.external_playback.clear();
+            // A channel's episodes are that profile's rows.
+            self.podcast_playback.clear();
             previous
         };
         if let Some(previous) = previous {

@@ -1,5 +1,9 @@
 //! Synced lyrics as a document: one model, and readers and writers for
 //! the formats WaveFlow stores — plain text, LRC, Enhanced LRC and TTML.
+//! A podcast's timed transcript reads into the same model, through [`vtt`],
+//! [`srt`] and [`transcript_json`], so the panel that follows it can reuse the
+//! line renderer. Those three are readers only, and are not a [`Format`]: a
+//! transcript is never stored as lyrics or written to a file.
 //!
 //! The lyrics editor holds a [`Document`] while the user types and syncs,
 //! and writes it in the format they pick; the app's lyrics commands read
@@ -17,12 +21,16 @@
 //! assert_eq!(ttml::parse(&xml).unwrap().lines.len(), 2);
 //! ```
 
+mod cue;
 pub mod lrc;
 pub mod model;
 pub mod plain;
 pub mod resolve;
+pub mod srt;
 pub mod time;
+pub mod transcript_json;
 pub mod ttml;
+pub mod vtt;
 
 #[cfg(test)]
 mod tests;
@@ -36,6 +44,9 @@ pub enum ParseError {
     Xml(String),
     #[error("not a TTML document (root element is <{0}>)")]
     NotTtml(String),
+    /// Carries nothing from the document, which came from a third party.
+    #[error("not a timed text document")]
+    NotTimedText,
 }
 
 /// Why a document could not be written in the format asked for.

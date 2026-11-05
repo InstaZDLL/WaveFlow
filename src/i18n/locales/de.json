@@ -1054,7 +1054,8 @@
       "transpose": "Transponieren",
       "transposeDown": "Einen Halbton tiefer",
       "transposeUp": "Einen Halbton höher",
-      "transposeReset": "Zurück zur Originaltonhöhe"
+      "transposeReset": "Zurück zur Originaltonhöhe",
+      "transposeNotForEpisodes": "Gilt nicht für Episoden"
     },
     "seek": "Suchlauf",
     "alert": {
@@ -1086,6 +1087,13 @@
       "behind": "{{time}} hinter dem Live-Stream",
       "goLive": "Zurück zum Live-Stream",
       "behindState": "Hinter dem Live-Stream"
+    },
+    "podcast": {
+      "back15": "15 s zurück",
+      "forward30": "30 s vor",
+      "previousChapter": "Vorheriges Kapitel",
+      "nextChapter": "Nächstes Kapitel",
+      "chapterOf": "Kapitel {{current}} von {{total}}"
     }
   },
   "queue": {
@@ -3074,7 +3082,8 @@
         "lyricsDisplay": "Songtextanzeige",
         "diskUsage": "Speicherplatz",
         "globalShortcuts": "Globale Tastenkürzel",
-        "enrichment": "Anreicherung"
+        "enrichment": "Anreicherung",
+        "podcasts": "Podcasts"
       },
       "navHints": {
         "general": "Sprache, Start, Wiedergabe",
@@ -3125,7 +3134,8 @@
         "reset": "Mit einer frischen App neu beginnen",
         "diskUsage": "Was WaveFlow auf diesem Computer speichert",
         "globalShortcuts": "Aus jeder Anwendung",
-        "enrichment": "Genres, Daten, Credits und Cover von MusicBrainz"
+        "enrichment": "Genres, Daten, Credits und Cover von MusicBrainz",
+        "podcasts": "Feeds abonnieren, wenn du zustimmst"
       }
     },
     "desktopLyrics": {
@@ -3297,6 +3307,10 @@
         "plugins": {
           "label": "Plugins",
           "description": "Installierte Plugins und ihre Daten."
+        },
+        "podcastDownloads": {
+          "label": "Heruntergeladene Podcast-Folgen",
+          "description": "Die Folgen, die du auf diesem Computer behalten wolltest. Lassen sich an der Folge entfernen."
         }
       },
       "confirmEmptyLabel": "Leeren bestätigen: {{item}}",
@@ -3426,6 +3440,17 @@
       "share": "Name der Freigabe",
       "cacheUsed_one": "Lokaler Cache: {{size}}, {{count}} Titel",
       "cacheUsed_other": "Lokaler Cache: {{size}}, {{count}} Titel"
+    },
+    "podcasts": {
+      "title": "Podcasts",
+      "subtitleOn": "Eingeschaltet: Feeds werden alle sechs Stunden geprüft, solange die App läuft.",
+      "subtitleOff": "Ausgeschaltet: Es wird nichts abgerufen. Zum Einschalten erscheint zuerst ein Hinweis.",
+      "stays": "Das bleibt erhalten: deine Abos, deine Hörpositionen und deine heruntergeladenen Folgen.",
+      "staysCount": "Behaltene Kanäle: {{n}}.",
+      "open": "Podcasts öffnen",
+      "seeStays": "Ansehen, was bleibt",
+      "downloadQuota": "Maximaler Platz für heruntergeladene Folgen",
+      "downloadQuotaHint": "Ein Download stoppt bei diesem Kontingent. Vorhandene Dateien bleiben. Belegt: {{used}}."
     }
   },
   "scanProgress": {
@@ -3794,7 +3819,9 @@
       "spectrogram": "Spektrum eines Titels",
       "enrichment": "Bibliothek anreichern",
       "release_radar": "Release Radar",
-      "tag_workshop": "Tag-Werkstatt"
+      "tag_workshop": "Tag-Werkstatt",
+      "podcast_refresh": "Podcast-Aktualisierung",
+      "podcast_download": "Podcast-Download"
     }
   },
   "smartRuleSummary": {
@@ -4360,7 +4387,8 @@
     "needs": {
       "library": "Dafür braucht es zuerst Musik in deiner Bibliothek.",
       "track": "Spiele einen Titel aus deiner Bibliothek ab, um den Editor mit seinem Liedtext zu öffnen.",
-      "startsPlayback": "Gerade läuft nichts: Beim Ausprobieren startet deine Bibliothek in zufälliger Reihenfolge."
+      "startsPlayback": "Gerade läuft nichts: Beim Ausprobieren startet deine Bibliothek in zufälliger Reihenfolge.",
+      "podcastsWarning": "Die Schaltfläche öffnet zuerst einen Hinweis: Ohne deine Zustimmung wird nichts eingeschaltet."
     },
     "pages": {
       "fluidInterface": {
@@ -4402,7 +4430,242 @@
         "title": "Hol deine Playlists herein",
         "body": "Eine M3U-, CSV- oder JSON-Datei oder der Link zu einer öffentlichen Deezer-Playlist. Titel, die du nicht hast, behalten ihren Platz und rücken von selbst nach, sobald sie in deiner Bibliothek ankommen.",
         "keywords": "M3U|CSV|JSON|Deezer|ISRC|Fehlende Titel"
+      },
+      "podcasts": {
+        "title": "Podcasts sind da",
+        "body": "Abonniere einen Feed, hör dort weiter, wo du aufgehört hast, und lade Folgen für später herunter. Sie bleiben ausgeschaltet, bis du zustimmst: Ein Podcast kommt direkt von seinem Anbieter, und der sieht, was du abspielst.",
+        "keywords": "RSS|OPML|Zum Anhören|Offline"
       }
+    }
+  },
+  "podcasts": {
+    "kicker": "Hören",
+    "channels": "Kanäle",
+    "channelsCount_one": "{{count}} Kanal",
+    "channelsCount_other": "{{count}} Kanäle",
+    "unplayedCount_one": "{{count}} ungehört",
+    "unplayedCount_other": "{{count}} ungehört",
+    "episodesCount_one": "{{count}} Folge",
+    "episodesCount_other": "{{count}} Folgen",
+    "usage": "{{used}} von {{quota}} heruntergeladen",
+    "refreshAll": "Alle prüfen",
+    "refreshing": "Prüfe …",
+    "openSettings": "Podcast-Einstellungen",
+    "loading": "Wird geladen …",
+    "retry": "Erneut versuchen",
+    "showMore": "Mehr anzeigen",
+    "showLess": "Weniger anzeigen",
+    "untitledChannel": "Kanal ohne Titel",
+    "untitledEpisode": "Folge ohne Titel",
+    "offlineBanner": "Offline-Modus: Es wird kein Feed abgerufen. Nur heruntergeladene Folgen lassen sich abspielen.",
+    "off": {
+      "body": "Podcasts sind ausgeschaltet: Es wird nichts abgerufen. Deine Abos, deine Hörpositionen und deine heruntergeladenen Folgen bleiben erhalten.",
+      "action": "Podcasts einschalten …"
+    },
+    "empty": {
+      "title": "Keine Abos",
+      "body": "Gib oben die Adresse eines Feeds ein oder importiere eine OPML-Liste.",
+      "bodyOff": "Schalte Podcasts ein, um deinen ersten Feed zu abonnieren."
+    },
+    "dialog": {
+      "cancel": "Abbrechen",
+      "close": "Schließen"
+    },
+    "warning": {
+      "title": "Bevor du Podcasts einschaltest",
+      "lead": "Es ändert sich nichts, bis du bestätigst. Das ändert sich danach.",
+      "confirm": "Verstanden, einschalten",
+      "failed": "Das Einschalten konnte nicht gespeichert werden. Podcasts bleiben ausgeschaltet.",
+      "points": {
+        "hosts": {
+          "title": "Was die Anbieter sehen",
+          "body": "Feeds und Folgen kommen direkt vom Anbieter des jeweiligen Podcasts. Er und die Messdienste, über die Folgen oft laufen, sehen deine IP-Adresse und was du abspielst."
+        },
+        "checks": {
+          "title": "Wann WaveFlow prüft",
+          "body": "Feeds werden alle sechs Stunden geprüft, solange die App läuft, und nur dann."
+        },
+        "downloads": {
+          "title": "Speicherplatz",
+          "body": "Heruntergeladene Folgen belegen Speicherplatz, bis zum festgelegten Limit."
+        },
+        "stop": {
+          "title": "So hältst du alles an",
+          "body": "Der Offline-Modus stoppt alles. Wenn du Podcasts ausschaltest, hört es dauerhaft auf."
+        },
+        "server": {
+          "title": "Wenn ein Server verbunden ist",
+          "body": "Ist dieses Profil mit einem WaveFlow-Server verbunden, auf dem Podcasts aktiviert sind, erscheinen auch dessen Kanäle. Sie laufen über deinen Server: Der Anbieter sieht deinen Server, nicht dich."
+        }
+      }
+    },
+    "subscribe": {
+      "label": "Einen Feed abonnieren",
+      "action": "Abonnieren",
+      "hint": "Die Adresse des RSS-Feeds, mit http oder https. Der Feed wird gelesen, bevor er hinzugefügt wird. Ein Tippfehler hinterlässt also nichts."
+    },
+    "opml": {
+      "import": "OPML importieren",
+      "export": "OPML exportieren",
+      "importDialogTitle": "Eine Feed-Liste importieren",
+      "exportDialogTitle": "Feed-Liste exportieren (sie enthält die Adressen)",
+      "exportTitle": "Deine Abos exportieren",
+      "exportBody": "Diese Datei enthält die Adresse jedes Feeds, dem du folgst. Die Adresse eines privaten Feeds enthält manchmal deinen persönlichen Zugang. Teile die Datei deshalb nur mit Menschen, denen du vertraust.",
+      "exportConfirm": "Datei auswählen …",
+      "exportMissing": "Wiederhergestellte Kanäle ohne Adresse, daher nicht in der Datei: {{missing}}.",
+      "exported": "Liste gespeichert. Geschriebene Feeds: {{written}} · Ohne Adresse: {{missing}}.",
+      "publicOnly": "Eine OPML-Liste nimmt nur öffentliche Adressen an. Einen Feed in deinem lokalen Netzwerk gibst du oben von Hand ein.",
+      "report": {
+        "title": "Import der Liste",
+        "summary": "Hinzugefügt: {{added}} · Schon abonniert: {{already}} · Fehlgeschlagen: {{failed}} · In der Liste: {{total}}",
+        "more": "Und {{n}} weitere.",
+        "theFile": "Die Datei",
+        "outcome": {
+          "cancelled": "Der Import wurde vor dem Ende abgebrochen.",
+          "offline": "Der Offline-Modus hat den Import gestoppt.",
+          "disabled": "Podcasts wurden während des Imports ausgeschaltet.",
+          "profile_changed": "Das Profil hat sich während des Imports geändert, deshalb wurde er gestoppt.",
+          "already_running": "Es läuft bereits eine Prüfung. Versuche es erneut, wenn sie fertig ist."
+        }
+      }
+    },
+    "refresh": {
+      "done": "Prüfung abgeschlossen. Aktualisiert: {{refreshed}} · Unverändert: {{unchanged}} · Fehlgeschlagen: {{failed}}",
+      "cancelled": "Die Prüfung wurde abgebrochen.",
+      "offline": "Der Offline-Modus hat die Prüfung gestoppt.",
+      "disabled": "Podcasts sind ausgeschaltet.",
+      "profile_changed": "Das Profil hat sich während der Prüfung geändert, deshalb wurde sie gestoppt.",
+      "already_running": "Es läuft bereits eine Prüfung."
+    },
+    "toListen": {
+      "title": "Zum Anhören",
+      "failed": "Diese Liste konnte nicht gelesen werden.",
+      "inProgress": "Weiterhören",
+      "newest": "Neueste Folge",
+      "resume": "Fortsetzen",
+      "listen": "Anhören",
+      "showAll": "Alle anzeigen ({{n}} weitere)",
+      "playing": "Wird gerade abgespielt",
+      "pause": "Pause"
+    },
+    "channel": {
+      "kicker": "Podcast",
+      "back": "Alle Kanäle",
+      "checked": "geprüft am {{when}}",
+      "refresh": "Prüfen",
+      "markAllPlayed": "Alle als gehört markieren",
+      "markAllUnplayed": "Alle als ungehört markieren",
+      "openSite": "Website des Kanals",
+      "unsubscribe": "Abo beenden",
+      "speed": "Tempo",
+      "speedNormal": "Normal",
+      "noEpisodes": "Dieser Kanal hat keine Folgen.",
+      "lastFailure": "Letzte Prüfung: {{reason}}",
+      "restoredChip": "Neu abonnieren",
+      "failedChip": "Fehlgeschlagen"
+    },
+    "episode": {
+      "play": "{{title}} abspielen",
+      "playAgain": "{{title}} noch einmal abspielen",
+      "resume": "{{title}} fortsetzen",
+      "markPlayed": "{{title}} als gehört markieren",
+      "markUnplayed": "{{title}} als ungehört markieren",
+      "download": "{{title}} herunterladen",
+      "cancelDownload": "Download von {{title}} abbrechen",
+      "deleteDownload": "Datei von {{title}} löschen ({{size}})",
+      "downloaded": "Heruntergeladen",
+      "needsNetwork": "Offline oder bei ausgeschalteten Podcasts nicht verfügbar: Nur heruntergeladene Folgen lassen sich abspielen.",
+      "noAddress": "Die Adresse dieser Folge ist nicht bekannt. Abonniere den Kanal erneut.",
+      "seasonEpisode": "S{{season}} · F{{episode}}",
+      "number": "Folge {{episode}}",
+      "remaining": "noch {{time}}",
+      "pause": "{{title}} pausieren",
+      "queued": "Wartet",
+      "deletedWhilePlaying": "Die Datei ist gelöscht. Die laufende Wiedergabe geht weiter; für einen Neustart braucht es das Netz oder einen neuen Download.",
+      "open": "„{{title}}“ öffnen",
+      "playAgainShort": "Noch einmal hören"
+    },
+    "restored": {
+      "title": "Die Adresse dieses Feeds ist nicht mehr bekannt",
+      "body": "Dieser Kanal stammt aus einer Sicherung oder einem importierten Profil. Diese speichern nie die Adressen von Feeds, deshalb wird der Kanal nicht mehr aktualisiert. Abonniere die gleiche Adresse erneut oder importiere deine OPML-Datei noch einmal: Deine Hörpositionen und was du gehört hast, bleiben erhalten.",
+      "hint": "Die gleiche Adresse wie vorher. Eine OPML-Liste nimmt nur öffentliche Adressen an, einen Feed in deinem lokalen Netzwerk gibst du hier ein.",
+      "summary": "Kanäle zum erneuten Abonnieren: {{n}}. Eine Sicherung speichert keine Feed-Adressen. Gib sie noch einmal ein oder importiere deine OPML-Datei erneut, deine Hörpositionen bleiben erhalten.",
+      "downloads": "Heruntergeladene Folgen wandern nicht mit einem Backup mit: Sie müssen erneut heruntergeladen werden."
+    },
+    "unsubscribe": {
+      "title": "{{title}} nicht mehr abonnieren?",
+      "body": "Der Kanal, seine Folgen, deine Hörpositionen und seine Downloads werden vergessen. Du kannst ihn wieder abonnieren, aber nicht mehr dort weiterhören, wo du aufgehört hast.",
+      "confirm": "Abo beenden"
+    },
+    "errors": {
+      "disabled": "Podcasts sind ausgeschaltet.",
+      "offline": "Der Offline-Modus ist an: Es wurde nichts abgerufen.",
+      "profile_changed": "Das Profil hat sich inzwischen geändert: Es wurde nichts weiter geschrieben.",
+      "channel_gone": "Diesen Kanal gibt es in deinen Abos nicht mehr.",
+      "open_failed": "Der Browser konnte nicht geöffnet werden.",
+      "address_refused": "Diese Adresse wird abgelehnt: Sie muss mit http oder https beginnen, einen Host nennen und darf keine Zugangsdaten enthalten. Ein öffentlicher Feed darf nicht ins lokale Netzwerk führen.",
+      "too_many_redirects": "Der Feed leitet über zu viele Adressen hintereinander weiter.",
+      "too_large": "Die Datei ist zu groß.",
+      "unreached": "Der Host war nicht erreichbar.",
+      "http": "Der Host hat mit einem Fehler geantwortet ({{status}}).",
+      "invalid_feed": "Das ist kein lesbarer Podcast-Feed.",
+      "not_audio": "Diese Datei ist keine Audiodatei.",
+      "quota_exceeded": "Das Download-Limit ist erreicht.",
+      "unknown": "Etwas ist schiefgelaufen.",
+      "episode_gone": "Diese Folge gibt es nicht mehr.",
+      "no_source": "Diese Folge hat weder Datei noch Adresse: Abonniere den Kanal erneut.",
+      "not_seekable": "Dieser Host erlaubt kein Springen innerhalb der Folge.",
+      "write_failed": "Die Datei konnte nicht auf die Festplatte geschrieben werden.",
+      "invalid_document": "Diese Datei ist nicht das, was sie vorgibt zu sein.",
+      "not_stored": "Der Server hat diese Folge nicht: Er muss sie zuerst herunterladen.",
+      "server_unreachable": "Der Server antwortet nicht.",
+      "server_signed_out": "Du bist bei diesem Server nicht mehr angemeldet.",
+      "server_refused": "Der Server hat abgelehnt oder kennt diesen Eintrag nicht mehr.",
+      "server_conflict": "Der Server folgt diesem Feed bereits oder kann keinen weiteren folgen.",
+      "destination_refused": "Der Server darf diese Adresse nicht aufrufen."
+    },
+    "episodePage": {
+      "kicker": "Folge"
+    },
+    "chapters": {
+      "title": "Kapitel",
+      "none": "Diese Folge hat keine Kapitel.",
+      "loading": "Kapitel werden gesucht…",
+      "failed": "Die Kapitel konnten nicht gelesen werden: {{reason}}",
+      "jump": "Zu „{{title}}“ springen, {{time}}"
+    },
+    "transcript": {
+      "title": "Transkript",
+      "none": "Diese Folge hat kein Transkript.",
+      "noEpisode": "Spiele eine Folge ab, um ihr Transkript zu sehen.",
+      "loading": "Transkript wird abgerufen…",
+      "failed": "Das Transkript konnte nicht gelesen werden: {{reason}}",
+      "untimed": "Dieses Transkript hat keine Zeitangaben und folgt der Wiedergabe daher nicht.",
+      "notPlaying": "Diese Folge läuft gerade nicht. Ein Klick auf eine Zeile startet sie an dieser Stelle.",
+      "jump": "Zu {{time}} springen: {{text}}"
+    },
+    "server": {
+      "title": "Auf deinem Server",
+      "chip": "Server",
+      "refresh": "Auf dem Server prüfen",
+      "refreshAsked": "Der Server prüft seine Feeds. Neues erscheint in Kürze.",
+      "subscribeOpen": "Auf dem Server abonnieren",
+      "subscribeLabel": "Einen Feed auf dem Server abonnieren",
+      "subscribeHint": "Der Server liest den Feed, bevor er ihn hinzufügt. Das Abo gilt für alle Konten dieses Servers.",
+      "unsubscribe": "Vom Server entfernen",
+      "unsubscribeTitle": "{{title}} vom Server entfernen?",
+      "unsubscribeBody": "Der Kanal, seine Folgen und deren Dateien verschwinden vom Server, für alle seine Konten.",
+      "removeConfirm": "Entfernen",
+      "deleteEpisode": "{{title}} vom Server entfernen",
+      "deleteEpisodeTitle": "Diese Folge vom Server entfernen?",
+      "deleteEpisodeBody": "„{{title}}“ und die zugehörige Datei verschwinden vom Server, für alle seine Konten. Bei der nächsten Prüfung kommt die Folge nicht zurück.",
+      "requestDownload": "Server bitten, {{title}} herunterzuladen",
+      "notStored": "Nicht auf dem Server",
+      "notStoredHint": "Der Server spielt nur ab, was er heruntergeladen hat. Ein Administrator kann ihn darum bitten.",
+      "needsServer": "Offline oder Podcasts aus: Der Server wird nicht kontaktiert.",
+      "downloading": "Download auf dem Server…",
+      "downloadFailed": "Fehler auf dem Server",
+      "forgetPosition": "{{title}} von vorn abspielen"
     }
   }
 }

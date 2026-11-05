@@ -218,7 +218,7 @@ The decoder's last stage is a `[-1.0, 1.0]` safety clamp ([`decoder::clamp_to_un
 ### Every load command carries its intent
 
 A command that hands the decoder a track — `LoadAndPlay`,
-`LoadRemoteFileAndPlay`, `LoadUrlAndPlay` — MUST carry a `LoadIntent`
+`LoadRemoteFileAndPlay`, `LoadUrlAndPlay`, `LoadEpisodeAndPlay` — MUST carry a `LoadIntent`
 claimed from `AudioEngine::next_load_intent` **at the moment the intent
 starts**: before the profile snapshot, the queue read and the ReplayGain
 lookup, not just before the send. The decoder drops any load older than one
@@ -244,7 +244,7 @@ the preparation that precedes the claim (#632).
 
 **An output rebuild re-dispatches the decoder's own load, under that
 load's own intent.** It is the one place a load is sent without a fresh
-token, and deliberately so: the rebuild is putting back what its `Stop`
+token, and deliberately so: the rebuild is putting back what its `Unload`
 took away, so it has to be accepted when nothing newer has arrived and to
 give way when something has. Read what to put back from
 `SharedPlayback::last_load` — written by the decoder at receipt, so it
@@ -359,7 +359,7 @@ So a blurred cover goes through [`PrecomputedBlur`](../../src/components/common/
 
 ### Right panels are flex siblings, not overlays
 
-`NowPlayingPanel` / `QueuePanel` / `LyricsPanel` are mounted as flex children of the outer row in `AppLayout`. The center column has `min-w-0` so wide tables collapse instead of pushing the panel off-screen.
+`NowPlayingPanel` / `QueuePanel` / `LyricsPanel` / `PodcastTranscriptPanel` are mounted as flex children of the outer row in `AppLayout`. The center column has `min-w-0` so wide tables collapse instead of pushing the panel off-screen.
 
 ### Adding a new player-bar action
 
@@ -382,6 +382,14 @@ MusicBrainz allows one request a second per IP and throttles anonymous agents fi
 The log file is what a user attaches to a bug report, so nothing in it may let a reader act as them. A URL is logged through [`redact_url`](../../src-tauri/crates/app/src/audio/http_source.rs) — which drops userinfo, query and fragment, and masks the bearer ticket a remote server's stream URL carries in its path (`/api/v2/stream/<ticket>`) — and a `reqwest::Error` through [`describe_http_error`](../../src-tauri/crates/core/src/error.rs) before it is formatted, because reqwest prints the full request URL in both `Display` and `Debug`. That holds for an error that is only _returned_, too: every caller logs what it gets, and some show it in the UI. The metadata providers keep the error itself, stripped with `without_url()` ([`metadata::redact`](../../src-tauri/crates/core/src/metadata/mod.rs)), and render it through the same function.
 
 `describe_http_error` is not `without_url()` plus `Display`: that reads only "error sending request", and the reason the request failed — the refused connection, the DNS failure, the timeout, the TLS handshake — lives in the error's `source()` chain. It takes the URL off the first layer, walks the chain ([`describe_error`](../../src-tauri/crates/core/src/error.rs), depth-capped, a layer restating its parent skipped) and cuts any URL a deeper layer prints anyway — a redirect target in a policy's refusal — down to its origin. Rendering a `reqwest::Error` any other way loses either the secret's protection or the cause; a lyrics provider whose URLs hold a token keeps the stripped error as its variant's `source`, and the caller walks it with `describe_error`. A `reqwest::Error` of another major version, wrapped by a dependency (the updater plugin's), cannot be named here: it goes through `describe_error_without_urls`, the same walk with every URL in it cut to its origin.
+
+### A podcast address reaches no log and no archive
+
+A private feed carries its token in the path as often as in the query, so [`redact_url`](#no-secret-reaches-the-log), which masks the userinfo and the query, is not enough for it. **A feed, enclosure, picture, chapter or transcript address out of a feed is not logged at all, redacted or not**, and neither is a `reqwest::Error`, whose text quotes it. A failure is logged, stored and returned as one word from [`FetchFailure::code`](../../src-tauri/crates/core/src/podcast/address.rs).
+
+The same reasoning keeps addresses out of what leaves the machine without being asked: [`profile_io`](../../src-tauri/crates/app/src/commands/profile_io/archive.rs) blanks them in every archive, on the path a share's password takes, and rebuilds the copy with `VACUUM` once a profile has ever held a channel, since any write that makes a row grow leaves its old bytes behind. An import blanks them again, after dropping the triggers and views the migrations did not make. A guid is stored only as a hash, because it is often the enclosure's address. No row sent to the webview holds an address, and neither does a `podcast:download` event, or a downloaded file's name, which is the episode's id and a suffix from its bytes. An OPML export is the one deliberate way out.
+
+The failure mode is quiet: an address in a debug line looks like any other, and lands in the log file a user attaches to a bug report. Anything a feed names goes through [`podcast::fetch`](../../src-tauri/crates/app/src/podcast/fetch.rs), which judges each hop by `may_open` before contacting it, follows redirects by hand and never from https to http, and bounds the body while reading. An episode does not go through `http_source`, which lets its client follow redirects and logs through `redact_url`, fine for a station: [`podcast::stream`](../../src-tauri/crates/app/src/podcast/stream.rs) is its own source over the fetcher, and `EpisodeLoad`'s `Debug` holds no address, since every logger of a command prints it. A private feed's host can hold its token too, and `reqwest` and `hyper_util` write the host at debug, as `rustls` would if a dependency turned its logging on, so `logging::without_connection_lines` takes all three out whatever `RUST_LOG` says. Test: `a_private_feeds_token_reaches_no_log_line`, every level of every crate captured.
 
 ### A server identifier is one path segment
 

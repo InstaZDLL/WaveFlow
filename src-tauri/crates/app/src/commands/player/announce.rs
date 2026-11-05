@@ -34,6 +34,7 @@ pub(crate) fn emit_track_changed(
     if let Some(state) = app.try_state::<AppState>() {
         state.remote_playback.clear();
         state.external_playback.clear();
+        state.podcast_playback.clear();
     }
     let payload = queue_track_to_payload_with_paths(paths, track.clone(), profile_id);
     let tooltip = match payload.artist_name.as_deref() {

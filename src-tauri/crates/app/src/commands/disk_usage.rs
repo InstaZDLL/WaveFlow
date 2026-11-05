@@ -12,7 +12,7 @@
 //! - **kept** — what the user would have to redo: the library's own
 //!   covers (the database points at them), downloaded artist pictures,
 //!   the clips and covers set by hand, the offline copies asked of a
-//!   server, the databases and the copies taken before an upgrade, the
+//!   server, the podcast episodes downloaded, the databases and the copies taken before an upgrade, the
 //!   backups, the logs, the plugins. Shown, with no button: the place to
 //!   act on each is its own card, where the consequence is explained.
 //!
@@ -284,6 +284,11 @@ pub async fn disk_usage(
                 false,
             ));
         }
+        items.push(Item::tree(
+            "podcastDownloads",
+            vec![paths.profile_podcast_download_dir(id)],
+            false,
+        ));
         items.push(Item::tree(
             "manualMedia",
             vec![paths.profile_motion_dir(id), paths.profile_canvas_dir(id)],

@@ -15,8 +15,12 @@ use crate::lyrics::ParseError;
 /// the head, matched by `itunes:key`, or from inline `x-translation` /
 /// `x-roman` spans.
 pub fn parse(xml: &str) -> Result<Document, ParseError> {
-    let tree = roxmltree::Document::parse(xml.trim_start_matches('\u{feff}'))
-        .map_err(|e| ParseError::Xml(e.to_string()))?;
+    let xml = xml.trim_start_matches('\u{feff}');
+    // Lyrics come from files and providers nobody here vouches for.
+    if !crate::xml_guard::within_limits(xml) {
+        return Err(ParseError::Xml("past what is read".to_owned()));
+    }
+    let tree = roxmltree::Document::parse(xml).map_err(|e| ParseError::Xml(e.to_string()))?;
     let root = tree.root_element();
     if root.tag_name().name() != "tt" {
         return Err(ParseError::NotTtml(root.tag_name().name().to_string()));

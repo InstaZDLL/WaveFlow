@@ -1095,7 +1095,8 @@
       "transpose": "Transpor",
       "transposeDown": "Descer um semitom",
       "transposeUp": "Subir um semitom",
-      "transposeReset": "Voltar ao tom original"
+      "transposeReset": "Voltar ao tom original",
+      "transposeNotForEpisodes": "Não se aplica aos episódios"
     },
     "seek": "Posição",
     "alert": {
@@ -1127,6 +1128,13 @@
       "behind": "{{time}} atrás do direto",
       "goLive": "Voltar ao direto",
       "behindState": "Atrás do direto"
+    },
+    "podcast": {
+      "back15": "Recuar 15 s",
+      "forward30": "Avançar 30 s",
+      "previousChapter": "Capítulo anterior",
+      "nextChapter": "Capítulo seguinte",
+      "chapterOf": "Capítulo {{current}} de {{total}}"
     }
   },
   "queue": {
@@ -3141,7 +3149,8 @@
         "lyricsDisplay": "Apresentação das letras",
         "diskUsage": "Espaço em disco",
         "globalShortcuts": "Atalhos globais",
-        "enrichment": "Enriquecimento"
+        "enrichment": "Enriquecimento",
+        "podcasts": "Podcasts"
       },
       "navHints": {
         "general": "Idioma, arranque, reprodução",
@@ -3192,7 +3201,8 @@
         "reset": "Recomeçar com uma aplicação nova",
         "diskUsage": "O que o WaveFlow guarda neste computador",
         "globalShortcuts": "A partir de qualquer aplicação",
-        "enrichment": "Géneros, datas, créditos e capas a partir do MusicBrainz"
+        "enrichment": "Géneros, datas, créditos e capas a partir do MusicBrainz",
+        "podcasts": "Seguir feeds, só se quiseres"
       }
     },
     "desktopLyrics": {
@@ -3367,6 +3377,10 @@
         "plugins": {
           "label": "Plugins",
           "description": "Plugins instalados e os seus dados."
+        },
+        "podcastDownloads": {
+          "label": "Episódios de podcast transferidos",
+          "description": "Os que escolheu manter neste computador. Removem-se a partir do episódio."
         }
       },
       "confirmEmptyLabel": "Confirmar esvaziamento: {{item}}",
@@ -3499,6 +3513,17 @@
       "cacheUsed_one": "Cache local: {{size}}, {{count}} faixa",
       "cacheUsed_other": "Cache local: {{size}}, {{count}} faixas",
       "cacheUsed_many": "Cache local: {{size}}, {{count}} faixas"
+    },
+    "podcasts": {
+      "title": "Podcasts",
+      "subtitleOn": "Ativos: os feeds são verificados de seis em seis horas enquanto a aplicação está aberta.",
+      "subtitleOff": "Desativados: nada é contactado. Para os ativar, passa-se por um aviso.",
+      "stays": "O que fica: as tuas subscrições, as tuas posições e os episódios descarregados.",
+      "staysCount": "Canais mantidos: {{n}}.",
+      "open": "Abrir os podcasts",
+      "seeStays": "Ver o que fica",
+      "downloadQuota": "Espaço máximo para episódios transferidos",
+      "downloadQuotaHint": "Uma transferência para ao atingir esta quota. Os ficheiros que já cá estão ficam. Em uso: {{used}}."
     }
   },
   "scanProgress": {
@@ -3894,7 +3919,9 @@
       "spectrogram": "Espectro de uma faixa",
       "enrichment": "Enriquecimento da biblioteca",
       "release_radar": "Release Radar",
-      "tag_workshop": "Oficina de etiquetas"
+      "tag_workshop": "Oficina de etiquetas",
+      "podcast_refresh": "Atualização de podcasts",
+      "podcast_download": "Transferência de podcast"
     }
   },
   "smartRuleSummary": {
@@ -4495,7 +4522,8 @@
     "needs": {
       "library": "Primeiro é preciso ter música na sua biblioteca.",
       "track": "Reproduza uma faixa da sua biblioteca para abrir o editor com a respetiva letra.",
-      "startsPlayback": "Nada está a tocar: experimentar inicia a sua biblioteca em ordem aleatória."
+      "startsPlayback": "Nada está a tocar: experimentar inicia a sua biblioteca em ordem aleatória.",
+      "podcastsWarning": "O botão abre primeiro um aviso: nada se ativa sem a tua autorização."
     },
     "pages": {
       "fluidInterface": {
@@ -4537,7 +4565,245 @@
         "title": "Importe as suas playlists",
         "body": "Um ficheiro M3U, CSV ou JSON, ou a ligação de uma playlist pública do Deezer. As faixas que não tem mantêm o seu lugar e ocupam-no sozinhas quando chegam à sua biblioteca.",
         "keywords": "M3U|CSV|JSON|Deezer|ISRC|Faixas em falta"
+      },
+      "podcasts": {
+        "title": "Chegaram os podcasts",
+        "body": "Subscreve um feed, retoma onde ficaste, descarrega para mais tarde. Ficam desativados até aceitares: um podcast vem diretamente do seu servidor, que vê aquilo que ouves.",
+        "keywords": "RSS|OPML|Para ouvir|Offline"
       }
+    }
+  },
+  "podcasts": {
+    "kicker": "Ouvir",
+    "channels": "Canais",
+    "channelsCount_one": "{{count}} canal",
+    "channelsCount_many": "{{count}} de canais",
+    "channelsCount_other": "{{count}} canais",
+    "unplayedCount_one": "{{count}} por ouvir",
+    "unplayedCount_many": "{{count}} de por ouvir",
+    "unplayedCount_other": "{{count}} por ouvir",
+    "episodesCount_one": "{{count}} episódio",
+    "episodesCount_many": "{{count}} de episódios",
+    "episodesCount_other": "{{count}} episódios",
+    "usage": "{{used}} descarregados de {{quota}}",
+    "refreshAll": "Verificar tudo",
+    "refreshing": "A verificar…",
+    "openSettings": "Definições dos podcasts",
+    "loading": "A carregar…",
+    "retry": "Tentar novamente",
+    "showMore": "Mostrar mais",
+    "showLess": "Mostrar menos",
+    "untitledChannel": "Canal sem título",
+    "untitledEpisode": "Episódio sem título",
+    "offlineBanner": "Modo offline: nenhum feed é contactado. Só se podem ouvir os episódios descarregados.",
+    "off": {
+      "body": "Os podcasts estão desativados: nada é contactado. As tuas subscrições, as posições em que ficaste e os episódios descarregados continuam aqui.",
+      "action": "Ativar os podcasts…"
+    },
+    "empty": {
+      "title": "Nenhuma subscrição",
+      "body": "Escreve acima o endereço de um feed ou importa uma lista OPML.",
+      "bodyOff": "Ativa os podcasts para seguir o teu primeiro feed."
+    },
+    "dialog": {
+      "cancel": "Cancelar",
+      "close": "Fechar"
+    },
+    "warning": {
+      "title": "Antes de ativar os podcasts",
+      "lead": "Nada muda até confirmares. Isto é o que muda depois.",
+      "confirm": "Percebi, ativar",
+      "failed": "Não foi possível guardar a escolha. Os podcasts continuam desativados.",
+      "points": {
+        "hosts": {
+          "title": "O que os servidores veem",
+          "body": "Os feeds e os episódios vêm diretamente do servidor de cada podcast. Esse servidor, e os serviços de medição por onde os episódios passam muitas vezes, veem o teu endereço IP e aquilo que ouves."
+        },
+        "checks": {
+          "title": "Quando o WaveFlow verifica",
+          "body": "Os feeds são verificados de seis em seis horas enquanto a aplicação está aberta, e só nessa altura."
+        },
+        "downloads": {
+          "title": "Espaço no disco",
+          "body": "Os episódios descarregados ocupam espaço no disco, até ao limite que definiste (a quota)."
+        },
+        "stop": {
+          "title": "Como parar tudo",
+          "body": "O modo offline pára tudo. Desativar os podcasts pára tudo para sempre."
+        },
+        "server": {
+          "title": "Se houver um servidor associado",
+          "body": "Se este perfil estiver associado a um servidor WaveFlow com os podcasts ativos, os respetivos canais também aparecem. Passam pelo seu servidor WaveFlow: o servidor do podcast vê-o a ele, não a si."
+        }
+      }
+    },
+    "subscribe": {
+      "label": "Subscrever um feed",
+      "action": "Subscrever",
+      "hint": "O endereço do feed RSS, com http ou https. O feed é lido antes de ser adicionado, por isso um erro ao escrever não deixa rasto."
+    },
+    "opml": {
+      "import": "Importar OPML",
+      "export": "Exportar OPML",
+      "importDialogTitle": "Importar uma lista de feeds",
+      "exportDialogTitle": "Exportar a lista de feeds (contém os respetivos endereços)",
+      "exportTitle": "Exportar as tuas subscrições",
+      "exportBody": "Este ficheiro contém o endereço de cada um dos teus feeds. Por vezes o endereço de um feed privado inclui o teu acesso pessoal: partilha-o só com pessoas de confiança.",
+      "exportConfirm": "Escolher o ficheiro…",
+      "exportMissing": "Canais restaurados sem endereço, por isso ausentes do ficheiro: {{missing}}.",
+      "exported": "Lista guardada. Feeds escritos: {{written}} · Sem endereço: {{missing}}.",
+      "publicOnly": "Uma lista OPML só aceita endereços públicos. Um feed na tua rede local escreve-se à mão, acima.",
+      "report": {
+        "title": "Importação da lista",
+        "summary": "Adicionados: {{added}} · Já seguidos: {{already}} · Falhados: {{failed}} · Na lista: {{total}}",
+        "more": "E mais {{n}}.",
+        "theFile": "O ficheiro",
+        "outcome": {
+          "cancelled": "A importação foi interrompida antes do fim.",
+          "offline": "O modo offline interrompeu a importação.",
+          "disabled": "Os podcasts foram desativados durante a importação.",
+          "profile_changed": "O perfil mudou durante a importação, que parou.",
+          "already_running": "Já há uma verificação a decorrer. Tenta novamente quando terminar."
+        }
+      }
+    },
+    "refresh": {
+      "done": "Verificação concluída. Atualizados: {{refreshed}} · Sem alterações: {{unchanged}} · Falhados: {{failed}}",
+      "cancelled": "A verificação foi interrompida.",
+      "offline": "O modo offline interrompeu a verificação.",
+      "disabled": "Os podcasts estão desativados.",
+      "profile_changed": "O perfil mudou durante a verificação, que parou.",
+      "already_running": "Já há uma verificação a decorrer."
+    },
+    "toListen": {
+      "title": "Para ouvir",
+      "failed": "Não foi possível ler esta lista.",
+      "inProgress": "Para retomar",
+      "newest": "Último episódio",
+      "resume": "Retomar",
+      "listen": "Ouvir",
+      "showAll": "Mostrar tudo (mais {{n}})",
+      "playing": "A reproduzir",
+      "pause": "Pausa"
+    },
+    "channel": {
+      "kicker": "Podcast",
+      "back": "Todos os canais",
+      "checked": "verificado em {{when}}",
+      "refresh": "Verificar",
+      "markAllPlayed": "Marcar tudo como ouvido",
+      "markAllUnplayed": "Marcar tudo como por ouvir",
+      "openSite": "Site do canal",
+      "unsubscribe": "Cancelar subscrição",
+      "speed": "Velocidade",
+      "speedNormal": "Normal",
+      "noEpisodes": "Este canal não tem episódios.",
+      "lastFailure": "Última verificação: {{reason}}",
+      "restoredChip": "Subscrever de novo",
+      "failedChip": "Falhou"
+    },
+    "episode": {
+      "play": "Ouvir {{title}}",
+      "playAgain": "Ouvir {{title}} outra vez",
+      "resume": "Retomar {{title}}",
+      "markPlayed": "Marcar {{title}} como ouvido",
+      "markUnplayed": "Marcar {{title}} como por ouvir",
+      "download": "Descarregar {{title}}",
+      "cancelDownload": "Cancelar a transferência de {{title}}",
+      "deleteDownload": "Eliminar o ficheiro de {{title}} ({{size}})",
+      "downloaded": "Descarregado",
+      "needsNetwork": "Indisponível offline ou com os podcasts desativados: só se pode ouvir um episódio descarregado.",
+      "noAddress": "O endereço deste episódio não é conhecido: subscreve o canal de novo.",
+      "seasonEpisode": "T{{season}} · E{{episode}}",
+      "number": "Episódio {{episode}}",
+      "remaining": "faltam {{time}}",
+      "pause": "Colocar {{title}} em pausa",
+      "queued": "Em espera",
+      "deletedWhilePlaying": "O ficheiro foi eliminado. O que está a tocar continua; para o voltar a iniciar será preciso rede ou uma nova transferência.",
+      "open": "Abrir «{{title}}»",
+      "playAgainShort": "Ouvir de novo"
+    },
+    "restored": {
+      "title": "O endereço deste feed já não é conhecido",
+      "body": "Este canal vem de uma cópia de segurança ou de um perfil importado, que nunca guardam o endereço dos feeds, por isso já não se atualiza. Subscreve de novo o mesmo endereço ou importa outra vez o teu OPML: as tuas posições e o que já ouviste são mantidos.",
+      "hint": "O mesmo endereço de antes. Um OPML só aceita endereços públicos: um feed na tua rede local escreve-se aqui.",
+      "summary": "Canais a subscrever de novo: {{n}}. Uma cópia de segurança não guarda o endereço dos feeds: escreve-o outra vez ou importa de novo o teu OPML e as tuas posições são mantidas.",
+      "downloads": "Os episódios transferidos não acompanham uma cópia de segurança: terão de ser transferidos de novo."
+    },
+    "unsubscribe": {
+      "title": "Cancelar a subscrição de {{title}}?",
+      "body": "O canal, os seus episódios, as tuas posições e as suas transferências serão esquecidos. Podes subscrever de novo, mas não recuperar o ponto em que ficaste.",
+      "confirm": "Cancelar subscrição"
+    },
+    "errors": {
+      "disabled": "Os podcasts estão desativados.",
+      "offline": "O modo offline está ativo: nada foi contactado.",
+      "profile_changed": "O perfil mudou entretanto: não foi escrito mais nada.",
+      "channel_gone": "Este canal já não é seguido.",
+      "open_failed": "Não foi possível abrir o navegador.",
+      "address_refused": "Este endereço é recusado: tem de começar por http ou https, indicar um servidor e não conter utilizador nem palavra-passe. Um feed público não pode levar à rede local.",
+      "too_many_redirects": "O feed encaminha-te por demasiados endereços seguidos.",
+      "too_large": "O ficheiro é demasiado grande.",
+      "unreached": "Não foi possível contactar o servidor.",
+      "http": "O servidor respondeu com um erro ({{status}}).",
+      "invalid_feed": "Isto não é um feed de podcast que se consiga ler.",
+      "not_audio": "Este ficheiro não é áudio.",
+      "quota_exceeded": "Atingiste o limite de transferências.",
+      "unknown": "Algo correu mal.",
+      "episode_gone": "Este episódio já não existe.",
+      "no_source": "Este episódio não tem ficheiro nem endereço: subscreve de novo o canal.",
+      "not_seekable": "Este servidor não permite avançar nem recuar no episódio.",
+      "write_failed": "Não foi possível escrever o ficheiro no disco.",
+      "invalid_document": "Este ficheiro não é o que diz ser.",
+      "not_stored": "O servidor não guarda este episódio: tem de o descarregar primeiro.",
+      "server_unreachable": "O servidor não responde.",
+      "server_signed_out": "Já não tem sessão iniciada neste servidor.",
+      "server_refused": "O servidor recusou, ou já não conhece este item.",
+      "server_conflict": "O servidor já segue este feed, ou não pode seguir mais.",
+      "destination_refused": "O servidor não tem autorização para aceder a este endereço."
+    },
+    "episodePage": {
+      "kicker": "Episódio"
+    },
+    "chapters": {
+      "title": "Capítulos",
+      "none": "Este episódio não tem capítulos.",
+      "loading": "A procurar capítulos…",
+      "failed": "Não foi possível ler os capítulos: {{reason}}",
+      "jump": "Ir para «{{title}}», {{time}}"
+    },
+    "transcript": {
+      "title": "Transcrição",
+      "none": "Este episódio não tem transcrição.",
+      "noEpisode": "Reproduza um episódio para ver a transcrição.",
+      "loading": "A obter a transcrição…",
+      "failed": "Não foi possível ler a transcrição: {{reason}}",
+      "untimed": "Esta transcrição não tem tempos, por isso não acompanha a reprodução.",
+      "notPlaying": "Este episódio não está a ser reproduzido. Clicar numa linha inicia-o nesse momento.",
+      "jump": "Ir para {{time}}: {{text}}"
+    },
+    "server": {
+      "title": "No seu servidor",
+      "chip": "Servidor",
+      "refresh": "Verificar no servidor",
+      "refreshAsked": "O servidor está a verificar os seus feeds. As novidades chegam em breve.",
+      "subscribeOpen": "Subscrever no servidor",
+      "subscribeLabel": "Subscrever um feed no servidor",
+      "subscribeHint": "O servidor lê o feed antes de o adicionar. A subscrição vale para todas as contas deste servidor.",
+      "unsubscribe": "Remover do servidor",
+      "unsubscribeTitle": "Remover {{title}} do servidor?",
+      "unsubscribeBody": "O canal, os episódios e os respetivos ficheiros desaparecem do servidor, para todas as contas.",
+      "removeConfirm": "Remover",
+      "deleteEpisode": "Remover {{title}} do servidor",
+      "deleteEpisodeTitle": "Remover este episódio do servidor?",
+      "deleteEpisodeBody": "«{{title}}» e o respetivo ficheiro desaparecem do servidor, para todas as contas. Não voltará na próxima verificação.",
+      "requestDownload": "Pedir ao servidor que descarregue {{title}}",
+      "notStored": "Não está no servidor",
+      "notStoredHint": "O servidor só reproduz o que descarregou. Um administrador pode pedir-lho.",
+      "needsServer": "Offline ou podcasts desativados: o servidor não é contactado.",
+      "downloading": "A descarregar no servidor…",
+      "downloadFailed": "Falha no servidor",
+      "forgetPosition": "Reproduzir {{title}} desde o início"
     }
   }
 }
