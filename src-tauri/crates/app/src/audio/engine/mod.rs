@@ -569,7 +569,9 @@ impl AudioEngine {
     /// AFTER it drops the active stream (and therefore the
     /// underlying `File` / `HttpMediaSource` handle), so once this
     /// returns we know the audio side is no longer holding any file
-    /// open under the data dir.
+    /// open under the data dir. A track that ran out by itself is
+    /// already gone: the state is `Ended`, and the decoder's idle loop
+    /// answers the `Stop` with the same `Idle`.
     ///
     /// Polls `shared.state` every 10 ms via `tokio::time::sleep` so
     /// the wait yields to the runtime instead of pinning a worker
@@ -578,11 +580,6 @@ impl AudioEngine {
     /// surface or swallow the error depending on whether it's a
     /// hard requirement or best-effort.
     pub async fn stop_and_wait(&self, timeout: Duration) -> AppResult<()> {
-        use std::sync::atomic::Ordering;
-        use std::time::Instant;
-
-        use crate::audio::state::PlayerState;
-
         // Channel-closed (decoder dead) → nothing left holding files,
         // treat as already-stopped. Any other send error propagates.
         match self.send(AudioCmd::Stop) {
@@ -590,18 +587,28 @@ impl AudioEngine {
             Err(_) => return Ok(()),
         }
 
-        let deadline = Instant::now() + timeout;
-        let idle_marker = PlayerState::Idle as u8;
-        while self.shared.state.load(Ordering::Acquire) != idle_marker {
-            if Instant::now() >= deadline {
-                return Err(AppError::Audio(
-                    "audio engine did not reach Idle within timeout".into(),
-                ));
-            }
-            tokio::time::sleep(Duration::from_millis(10)).await;
-        }
-        Ok(())
+        wait_for_idle(&self.shared, timeout).await
     }
+}
+
+/// The wait of [`AudioEngine::stop_and_wait`]. `Idle` is the only state that ends
+/// it: `Ended` says a track ran out, not that a `Stop` was answered.
+pub(super) async fn wait_for_idle(shared: &SharedPlayback, timeout: Duration) -> AppResult<()> {
+    use std::sync::atomic::Ordering;
+
+    use crate::audio::state::PlayerState;
+
+    let deadline = Instant::now() + timeout;
+    let idle_marker = PlayerState::Idle as u8;
+    while shared.state.load(Ordering::Acquire) != idle_marker {
+        if Instant::now() >= deadline {
+            return Err(AppError::Audio(
+                "audio engine did not reach Idle within timeout".into(),
+            ));
+        }
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    }
+    Ok(())
 }
 
 #[cfg(test)]

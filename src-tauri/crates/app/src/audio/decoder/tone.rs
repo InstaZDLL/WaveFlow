@@ -150,7 +150,13 @@ pub(super) fn play_test_tone(
     let end = loop {
         match cmd_rx.try_recv() {
             Ok(AudioCmd::Shutdown) | Err(TryRecvError::Disconnected) => break ToneEnd::Shutdown,
-            Ok(AudioCmd::Stop | AudioCmd::Unload) => break ToneEnd::Done,
+            // Handed on rather than used up: a tone started from a player on
+            // `Ended` leaves it there, and the idle loop is what answers that.
+            Ok(AudioCmd::Stop) => {
+                *pending_cmd = Some(AudioCmd::Stop);
+                break ToneEnd::Done;
+            }
+            Ok(AudioCmd::Unload) => break ToneEnd::Done,
             Ok(
                 cmd @ (AudioCmd::LoadAndPlay { .. }
                 | AudioCmd::LoadRemoteFileAndPlay { .. }
