@@ -70,18 +70,10 @@ pub async fn podcast_server_play(
     server::play_episode(&app, &channel_id, &episode_id).await
 }
 
-/// Forgets where this account stopped in an episode. In turn with the writes of the
-/// player, or one already on its way would bring the bookmark back.
+/// Forgets where this account stopped in an episode.
 #[tauri::command]
-pub async fn podcast_server_clear_position(
-    state: tauri::State<'_, AppState>,
-    episode_id: String,
-) -> AppResult<()> {
-    let _order = server::POSITION_WRITES.lock().await;
-    let client = client(&state).await?;
-    podcasts::clear_position(&client, &episode_id)
-        .await
-        .map_err(refused)
+pub async fn podcast_server_clear_position(app: AppHandle, episode_id: String) -> AppResult<()> {
+    server::forget_position(&app, episode_id).await
 }
 
 /// Subscribes the server to a feed. For an account that may manage podcasts: the page

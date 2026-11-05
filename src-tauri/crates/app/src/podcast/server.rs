@@ -80,9 +80,39 @@ pub struct ServerEpisodeRef {
 /// All of what writing one position may take: its turn, a token refresh, the request.
 const POSITION_BUDGET: Duration = Duration::from_secs(8);
 
-/// One write at a time, in the order they were asked for: a tick still on its way
-/// must not land after the end that cleared the bookmark.
-pub(crate) static POSITION_WRITES: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+/// Work that runs one at a time, in the order it was asked for.
+#[derive(Default)]
+pub(crate) struct WriteQueue {
+    last: Mutex<Option<tauri::async_runtime::JoinHandle<()>>>,
+}
+
+impl WriteQueue {
+    /// Puts `work` behind what is queued, and answers with what it comes to.
+    ///
+    /// The place is taken here, before any await, so the order is that of the calls: a
+    /// lock taken inside the task would rank them by which task got scheduled first.
+    /// Nothing stops the work once it is here. Dropping the answer gives up the wait and
+    /// no more, as [`detached`] does and for the same reason.
+    pub(crate) fn enqueue<T: Send + 'static>(
+        &self,
+        work: impl Future<Output = T> + Send + 'static,
+    ) -> tokio::sync::oneshot::Receiver<T> {
+        let (done, answer) = tokio::sync::oneshot::channel();
+        let mut last = self.last.lock().expect("write queue poisoned");
+        let before = last.take();
+        *last = Some(tauri::async_runtime::spawn(async move {
+            if let Some(before) = before {
+                let _ = before.await;
+            }
+            let _ = done.send(work.await);
+        }));
+        answer
+    }
+}
+
+/// A tick still on its way must not land after the end, or the gesture, that cleared the
+/// bookmark.
+static POSITION_WRITES: LazyLock<WriteQueue> = LazyLock::new(WriteQueue::default);
 
 /// The speed of a server's channel. The slider has no row of the channel to write to,
 /// so this lasts as long as the app does: a voice keeps it through the queue, and it
@@ -610,24 +640,22 @@ pub(crate) async fn record_position(
     finished: bool,
     announce_it: bool,
 ) {
-    let state = app.state::<AppState>();
-    {
-        let Ok(pool) = state
-            .require_profile_pool_for(Some(place.scope.profile_id))
-            .await
-        else {
-            tracing::debug!("podcast: server position dropped, its profile is gone");
-            return;
-        };
-        if may_ask(&pool, crate::offline::is_offline()).await.is_err() {
-            return;
-        }
-    }
     let write = {
         let (app, place) = (app.clone(), place.clone());
         async move {
             let state = app.state::<AppState>();
-            let _order = POSITION_WRITES.lock().await;
+            {
+                let Ok(pool) = state
+                    .require_profile_pool_for(Some(place.scope.profile_id))
+                    .await
+                else {
+                    tracing::debug!("podcast: server position dropped, its profile is gone");
+                    return;
+                };
+                if may_ask(&pool, crate::offline::is_offline()).await.is_err() {
+                    return;
+                }
+            }
             let client = match client_in_scope(&state, &place.scope).await {
                 Ok(client) => client,
                 Err(why) => {
@@ -648,8 +676,8 @@ pub(crate) async fn record_position(
     };
     // This runs on the task that also steps to the next episode, and a token refresh
     // on a server that hangs would otherwise take the whole of its own deadline. Only
-    // the wait gives up: see [`detached`].
-    if tokio::time::timeout(POSITION_BUDGET, detached(write))
+    // the wait gives up: the write keeps its place in the queue.
+    if tokio::time::timeout(POSITION_BUDGET, POSITION_WRITES.enqueue(write))
         .await
         .is_err()
     {
@@ -661,6 +689,32 @@ pub(crate) async fn record_position(
             serde_json::json!({ "channel_id": place.channel_id }),
         );
     }
+}
+
+/// Forgets where this account stopped in an episode: a person's gesture, so it says what
+/// went wrong. Behind the writes already asked for, or one of them would bring the
+/// bookmark back, and for the account the gesture was made on, whichever is bound by the
+/// time its turn comes.
+pub(crate) async fn forget_position(app: &AppHandle, episode_id: String) -> AppResult<()> {
+    let state = app.state::<AppState>();
+    let (client, profile_id) = ready_client(&state)
+        .await?
+        .ok_or_else(|| podcast_refusal(SIGNED_OUT))?;
+    let scope = ServerScope::of(&client, profile_id).ok_or_else(|| podcast_refusal(SIGNED_OUT))?;
+    drop(client);
+    let app = app.clone();
+    POSITION_WRITES
+        .enqueue(async move {
+            let state = app.state::<AppState>();
+            let client = client_in_scope(&state, &scope)
+                .await
+                .map_err(NoClient::refusal)?;
+            podcasts::clear_position(&client, &episode_id)
+                .await
+                .map_err(|failure| podcast_refusal(&failure_word(&failure)))
+        })
+        .await
+        .map_err(|_| podcast_refusal(UNREACHABLE))?
 }
 
 /// A speed moved during a server's episode: heard at once, and kept for the channel

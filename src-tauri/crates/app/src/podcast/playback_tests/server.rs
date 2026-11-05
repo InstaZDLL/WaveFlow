@@ -13,7 +13,7 @@ use super::super::playback::{
 use super::super::refresh::PodcastError;
 use super::super::server::{
     claim_jump, detached, jump_target, may_ask, position_write, queue_of, why_no_client, NoClient,
-    ServerEpisodeRef,
+    ServerEpisodeRef, WriteQueue,
 };
 use super::super::store;
 use super::super::stream::{EnclosureSource, Gate, Renew, StreamRefusal};
@@ -260,6 +260,60 @@ fn only_the_servers_401_to_a_refresh_says_the_account_is_signed_out() {
     for err in [&refused, &unwell, &no_answer] {
         assert_eq!(why_no_client(err, false), NoClient::ScopeGone);
     }
+}
+
+// ── the order of the writes ─────────────────────────────────────────
+
+/// A write held up, and another asked for behind it: however the tasks get scheduled, a
+/// tick on its way cannot land after the end that cleared the bookmark.
+#[tokio::test]
+async fn writes_land_in_the_order_they_were_asked_for() {
+    let queue = WriteQueue::default();
+    let landed = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let (release, held) = tokio::sync::oneshot::channel::<()>();
+
+    let first = {
+        let landed = Arc::clone(&landed);
+        queue.enqueue(async move {
+            let _ = held.await;
+            landed.lock().unwrap().push(0);
+        })
+    };
+    let answers: Vec<_> = (1..50)
+        .map(|turn| {
+            let landed = Arc::clone(&landed);
+            queue.enqueue(async move {
+                landed.lock().unwrap().push(turn);
+                turn
+            })
+        })
+        .collect();
+
+    tokio::time::sleep(std::time::Duration::from_millis(30)).await;
+    assert!(
+        landed.lock().unwrap().is_empty(),
+        "the first holds the rest"
+    );
+    release.send(()).unwrap();
+    first.await.unwrap();
+    for (expected, answer) in (1..50).zip(answers) {
+        assert_eq!(answer.await.unwrap(), expected);
+    }
+    assert_eq!(*landed.lock().unwrap(), (0..50).collect::<Vec<_>>());
+}
+
+#[tokio::test]
+async fn a_write_nobody_waits_for_keeps_its_place_and_lands() {
+    let queue = WriteQueue::default();
+    let landed = Arc::new(AtomicUsize::new(0));
+    let flag = Arc::clone(&landed);
+    drop(queue.enqueue(async move {
+        tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+        flag.store(1, Ordering::SeqCst);
+    }));
+    let seen = Arc::clone(&landed);
+    let after = queue.enqueue(async move { seen.load(Ordering::SeqCst) });
+    assert_eq!(after.await.unwrap(), 1);
 }
 
 // ── a wait given up on ──────────────────────────────────────────────
