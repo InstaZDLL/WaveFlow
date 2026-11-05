@@ -1,8 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
-import { usePlayer } from "./usePlayer";
 import { useProfile } from "./useProfile";
-import { episodeInPlayer } from "../lib/playerSources";
 import {
   podcastEpisodeChapters,
   podcastErrorWord,
@@ -42,7 +40,6 @@ interface Read {
  */
 export function useEpisodeChapters(episodeId: number | null) {
   const { activeProfile } = useProfile();
-  const { currentTrack, playbackState, durationMs } = usePlayer();
   const profileId = activeProfile?.id ?? null;
   const [attempt, setAttempt] = useState(0);
   const [read, setRead] = useState<Read | null>(null);
@@ -73,21 +70,8 @@ export function useEpisodeChapters(episodeId: number | null) {
 
   const retry = useCallback(() => setAttempt((value) => value + 1), []);
   const settled = read?.key === key ? read : null;
-  // A chapter past the end of what the player measured is an impossible time like
-  // any other. Only here is that known: a feed's declared length is not to be
-  // believed, and going there would end the episode and mark it played.
-  const end =
-    episodeId != null &&
-    episodeInPlayer(currentTrack, playbackState) === episodeId
-      ? durationMs
-      : 0;
-  const all = settled?.chapters;
-  const chapters = useMemo(
-    () => (all ?? []).filter((chapter) => end <= 0 || chapter.start_ms < end),
-    [all, end],
-  );
   return {
-    chapters,
+    chapters: settled?.chapters ?? [],
     failure: settled?.failure ?? null,
     loading: episodeId != null && settled == null,
     retry,
