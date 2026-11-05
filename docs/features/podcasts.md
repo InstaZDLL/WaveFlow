@@ -2,21 +2,48 @@
 
 Standalone podcasts in the desktop app, off by default. The design and its reasoning are in [RFC-009](../rfcs/RFC-009-podcasts.md); this page says what exists today.
 
-| Lot | What                                                                               | State     |
-| --- | ---------------------------------------------------------------------------------- | --------- |
-| 1   | `waveflow_core::podcast`: feeds, OPML, chapters, transcripts, on hostile input     | This page |
-| 2   | Tables, fetch rules, subscribe, refresh, OPML import and export, commands, setting | This page |
-| 3   | Playback: session, stream with hand-followed redirects, resume, played state, speed | This page |
-| 4   | Downloads: managed folder, quota, cancel, Disk usage                               | This page |
-| 5+  | The page, chapters and transcript panel, the server's podcasts                     | Not yet   |
-
-There is no Podcasts page yet, so what is reachable from the interface is the player while an episode plays and the line for downloaded episodes in Settings → Storage and backups → Disk space. The commands and the settings exist for the lots that build on them.
+| Lot  | What                                                                                | State     |
+| ---- | ----------------------------------------------------------------------------------- | --------- |
+| 1    | `waveflow_core::podcast`: feeds, OPML, chapters, transcripts, on hostile input      | This page |
+| 2    | Tables, fetch rules, subscribe, refresh, OPML import and export, commands, setting  | This page |
+| 3    | Playback: session, stream with hand-followed redirects, resume, played state, speed | This page |
+| 4    | Downloads: managed folder, quota, cancel, Disk usage                                | This page |
+| 5    | The page, the activation warning, sidebar, settings, What's new                     | This page |
+| 6, 7 | Chapters and transcript panel, the server's podcasts                                | Not yet   |
 
 ## The switch
 
-`podcasts.enabled`, per profile, default `false`. Turning it on is an explicit choice: only the confirmation of the warning dialog writes it, through `acceptWarning` of [`usePodcastsEnabled`](../../src/hooks/usePodcastsEnabled.ts). The dialog is a later lot. Resetting settings returns it to off, and a profile imported or restored comes back off, since having accepted belongs to the person on this machine: the archive leaves the setting behind, and the import removes it whatever the archive says.
+`podcasts.enabled`, per profile, default `false`. Turning it on is an explicit choice: only the confirmation of the warning dialog writes it, through `acceptWarning` of [`usePodcastsEnabled`](../../src/hooks/usePodcastsEnabled.ts). Resetting settings returns it to off, and a profile imported or restored comes back off, since having accepted belongs to the person on this machine: the archive leaves the setting behind, and the import removes it whatever the archive says.
 
 **The backend enforces it.** Off, every command that would contact anybody refuses with `podcast: disabled` before doing so, and so does the timer, which then does not run at all. A bug in the interface cannot send traffic the user did not accept. What was stored stays readable, and unsubscribing and exporting still work, since leaving must not depend on having opted in.
+
+### The warning
+
+[`PodcastWarningDialog`](../../src/components/podcasts/PodcastWarningDialog.tsx) says what changes, in plain words, before anything does: feeds and episodes come straight from each podcast's host, which sees the IP address and what is played, and so do the measurement services episodes often pass through; a check every six hours while the app runs, and only then; downloads take space up to the quota; offline mode stops all of it, and turning podcasts off stops it for good.
+
+It is the one caller of `acceptWarning`. Everything else only asks for it, through `openPodcastWarning()` in [`discovery.ts`](../../src/lib/discovery.ts): the Settings row, the page's button, the page of What's new. An OPML file cannot be opened with the switch off, since the page shows no import then, and onboarding does not mention it. Cancel comes first in the DOM and nothing in the body takes the focus, so `useModalA11y` starts on it, and Enter on an opening dialog accepts nothing. Cancel, Escape and the backdrop leave the switch as it was. The hook takes a refused write back rather than rejecting, so the dialog reads the switch once the write has settled: still off, it stays open and says so.
+
+Turning off asks for nothing. The Settings row then says what stays: subscriptions, positions and downloaded episodes.
+
+## The page
+
+[`PodcastsView`](../../src/components/views/PodcastsView.tsx), the `podcasts` view. The sidebar has a row only while the switch is on. A view declared once: `skin.layout` chooses the shapes, a band and tiles on the fluid layout, rows on the classic one, and [`podcasts.css`](../../src/styles/podcasts.css) paints them from `--pc-*` tokens, which the classic layout maps to the zinc scale and the fluid one to `--fe-*`, so every material on it follows. Only Editorial writes rules of its own, for corners and dotted rules. The channel open is on the history entry, so Back restores it, and an entry whose channel has been forgotten is replaced rather than left as a ghost.
+
+- **The overview** is one virtual list through `usePageVirtualizer`, rows of different heights under one measure: "To listen" first, six until asked for the rest, then the channels with their unplayed count. On the fluid layout the first episode to listen to is the Home's band, its cover lighting its end of it through `PrecomputedBlur`.
+- **A channel** is its hero, then its episodes in a virtual list, read a page of 200 at a time as the list nears the last row loaded. A change re-reads what was loaded, so the list keeps its length under the scroll.
+- **The episode in the player** carries the accent's edge, and its button pauses and carries on, from where it is rather than from the last position written. The player names it through `podcast_episode_id` on the track. A row's position is the one stored, which `podcast:updated` brings at a pause, a seek and an end, not a live one.
+- **A download** shows on its row: waiting in line, then a percentage, a button that cancels it, and a chip once it is kept. A page opened meanwhile reads what is moving from `podcast_download_queue`, and the rows are read again when one ends. The quota is under Settings → Storage, beside what is used, for someone with podcasts on or files kept.
+- **Deleting the file of the episode playing** does not stop the sound: measured on Windows, the file goes at once while the decoder keeps its open handle, and it can still seek and pause. The page says so, since the next start will need the network or a new download.
+- **Text is text.** Descriptions come from the backend stripped of markup and are drawn as React text. A title the feed left empty becomes a translated word. A cover is the cached file, by the asset protocol, so opening the page contacts no host and the CSP did not change.
+- **With the switch off** the page still reads what was stored, reached from Settings ("See what stays"): no subscription, no refresh, no import. Export and unsubscribe stay, since leaving must not depend on having opted in, and only a downloaded episode can play.
+- **Offline**, a banner says so, and subscribing, refreshing, importing, downloading and streaming are off.
+- **A failure is a sentence.** [`podcastFailureMessage`](../../src/lib/podcastWords.ts) turns every word a command or `last_error` may hold into a translated message, a status included. An error without a word is logged and reads as "something went wrong": its text is shown to nobody, since nothing vouches for it.
+
+**After a restore**, a channel whose address was blanked stays listed with a chip, and its page explains why it no longer updates and offers the field to subscribe again, or to import the OPML again: the row is found by the hash of the address, so every position is kept. Downloaded files do not travel with an archive, and the card says so: such an episode has to be downloaded again. The overview counts such channels at the top. A list only takes public addresses, so a feed on the local network has to be typed, and both the overview and the channel's card say so; an OPML whose entry was refused says it again in its report.
+
+An **OPML import** is run by [`PodcastDialogsHost`](../../src/components/podcasts/PodcastDialogsHost.tsx), mounted by the layout, so the report still reaches someone who left the page during a long list. It lists the first 50 failures by title and word. An **OPML export** first shows a dialog saying the file holds every feed's address and that a private feed's may carry personal access, then opens the system's save dialog, whose title says it again.
+
+**A channel's website** is opened by id through `podcast_open_site`: the address stays in the backend, is checked again to be http or https with no credentials, and an opener's failure is one word (`open_failed`), since its text may quote the address. Nothing is contacted by the app, so neither the switch nor offline mode refuses it.
 
 ## The timer
 
@@ -44,7 +71,7 @@ A private feed carries its token in the path as often as in the query, so `redac
 
 `address_refused`, `too_many_redirects`, `too_large`, `unreached`, `http_<status>`, `invalid_feed`, `not_audio`, `quota_exceeded`
 
-No row sent to the webview holds an address either: a channel says `has_feed_address`, an episode `has_enclosure`, and whatever opens one asks by id. A refused command rejects with `podcast: <word>`, the list above plus `disabled`, `offline`, `profile_changed`, `channel_gone` (unsubscribed from while a subscription to it was finishing), `episode_gone` (no such row, or one the user removed) and `no_source` (no file and no address: a restored profile, until the feed is subscribed to again). A failed download carries the same words in its event, plus `write_failed` for a disk or a database that refused.
+No row sent to the webview holds an address either: a channel says `has_feed_address`, an episode `has_enclosure`, and whatever opens one asks by id. A refused command rejects with `podcast: <word>`, the list above plus `disabled`, `offline`, `profile_changed`, `channel_gone` (unsubscribed from while a subscription to it was finishing), `episode_gone` (no such row, or one the user removed), `no_source` (no file and no address: a restored profile, until the feed is subscribed to again) and `open_failed` (the desktop would not open a channel's website). A failed download carries the same words in its event, plus `write_failed` for a disk or a database that refused.
 
 ### An address stays out of an archive
 
@@ -129,20 +156,21 @@ The readers exist; fetching and showing them is a later lot.
 
 ## Commands
 
-| Command                 | Does                                                                     |
-| ----------------------- | ------------------------------------------------------------------------ |
-| `podcast_subscribe`     | Fetches and follows a feed; answers its channel                          |
-| `podcast_unsubscribe`   | Forgets a channel and its episodes, and removes their downloads          |
-| `podcast_list_channels` | Every channel of the active profile                                      |
-| `podcast_list_episodes` | A page of a channel's episodes, newest first                             |
-| `podcast_refresh`       | Asks one channel, or all of them                                         |
-| `podcast_import_opml`   | Subscribes to every feed of a file                                       |
-| `podcast_export_opml`   | Writes every address to a file                                           |
-| `podcast_download_episode` | Puts an episode in line to be kept on disk                            |
-| `podcast_cancel_download` | Takes it out of the line, or stops it where it is                      |
-| `podcast_delete_download` | Removes its file; the row stays                                        |
-| `podcast_download_usage` | `{ usedBytes, quotaBytes }`                                             |
-| `podcast_download_queue` | What is under way, for a view opened meanwhile                          |
+| Command                    | Does                                                            |
+| -------------------------- | --------------------------------------------------------------- |
+| `podcast_subscribe`        | Fetches and follows a feed; answers its channel                 |
+| `podcast_unsubscribe`      | Forgets a channel and its episodes, and removes their downloads |
+| `podcast_list_channels`    | Every channel of the active profile                             |
+| `podcast_list_episodes`    | A page of a channel's episodes, newest first                    |
+| `podcast_refresh`          | Asks one channel, or all of them                                |
+| `podcast_open_site`        | Opens a channel's website in the browser, by id                 |
+| `podcast_import_opml`      | Subscribes to every feed of a file                              |
+| `podcast_export_opml`      | Writes every address to a file                                  |
+| `podcast_download_episode` | Puts an episode in line to be kept on disk                      |
+| `podcast_cancel_download`  | Takes it out of the line, or stops it where it is               |
+| `podcast_delete_download`  | Removes its file; the row stays                                 |
+| `podcast_download_usage`   | `{ usedBytes, quotaBytes }`                                     |
+| `podcast_download_queue`   | What is under way, for a view opened meanwhile                  |
 
 Typed wrappers are in [`src/lib/tauri/podcast.ts`](../../src/lib/tauri/podcast.ts). The event `podcast:updated` carries `channel_id`, and `podcast:download` is described under [Downloads](#downloads).
 

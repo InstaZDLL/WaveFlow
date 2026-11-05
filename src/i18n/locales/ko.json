@@ -3077,7 +3077,8 @@
         "lyricsDisplay": "가사 표시",
         "diskUsage": "디스크 공간",
         "globalShortcuts": "전역 단축키",
-        "enrichment": "정보 보강"
+        "enrichment": "정보 보강",
+        "podcasts": "팟캐스트"
       },
       "navHints": {
         "general": "언어, 시작, 재생",
@@ -3128,7 +3129,8 @@
         "reset": "처음 설치한 상태로 다시 시작",
         "diskUsage": "WaveFlow가 이 컴퓨터에 보관하는 것",
         "globalShortcuts": "어떤 앱에서든",
-        "enrichment": "MusicBrainz의 장르, 날짜, 크레딧, 커버"
+        "enrichment": "MusicBrainz의 장르, 날짜, 크레딧, 커버",
+        "podcasts": "동의한 뒤에 피드 구독하기"
       }
     },
     "desktopLyrics": {
@@ -3277,10 +3279,6 @@
           "label": "오프라인 서버 트랙",
           "description": "오프라인으로 보관하기로 한 트랙. 트랙이나 앨범에서 제거합니다."
         },
-        "podcastDownloads": {
-          "label": "다운로드한 팟캐스트 에피소드",
-          "description": "이 컴퓨터에 보관하기로 한 에피소드입니다. 에피소드에서 제거할 수 있습니다."
-        },
         "manualMedia": {
           "label": "직접 지정한 미디어",
           "description": "직접 지정한 움직이는 커버와 Canvas 클립."
@@ -3304,6 +3302,10 @@
         "plugins": {
           "label": "플러그인",
           "description": "설치된 플러그인과 그 데이터."
+        },
+        "podcastDownloads": {
+          "label": "다운로드한 팟캐스트 에피소드",
+          "description": "이 컴퓨터에 보관하기로 한 에피소드입니다. 에피소드에서 제거할 수 있습니다."
         }
       },
       "confirmEmptyLabel": "비우기 확인: {{item}}",
@@ -3436,7 +3438,14 @@
     },
     "podcasts": {
       "title": "팟캐스트",
-      "downloadQuota": "다운로드한 에피소드의 최대 공간"
+      "subtitleOn": "켜짐: 앱이 실행 중일 때 6시간마다 피드를 확인합니다.",
+      "subtitleOff": "꺼짐: 어디에도 연결하지 않습니다. 켜기 전에 안내가 표시됩니다.",
+      "stays": "남는 것: 구독 목록, 재생 위치, 다운로드한 에피소드.",
+      "staysCount": "남아 있는 채널: {{n}}개.",
+      "open": "팟캐스트 열기",
+      "seeStays": "남는 것 보기",
+      "downloadQuota": "다운로드한 에피소드의 최대 공간",
+      "downloadQuotaHint": "이 용량에 도달하면 다운로드가 멈춥니다. 이미 있는 파일은 그대로 남습니다. 사용 중: {{used}}"
     }
   },
   "scanProgress": {
@@ -4373,7 +4382,8 @@
     "needs": {
       "library": "먼저 라이브러리에 음악이 있어야 합니다.",
       "track": "라이브러리의 곡을 재생하면 그 가사로 편집기를 열 수 있습니다.",
-      "startsPlayback": "재생 중인 곡이 없습니다. 사용해 보면 라이브러리를 무작위로 재생합니다."
+      "startsPlayback": "재생 중인 곡이 없습니다. 사용해 보면 라이브러리를 무작위로 재생합니다.",
+      "podcastsWarning": "버튼을 누르면 먼저 안내가 표시됩니다. 동의하지 않으면 아무것도 켜지지 않습니다."
     },
     "pages": {
       "fluidInterface": {
@@ -4415,7 +4425,183 @@
         "title": "재생목록 가져오기",
         "body": "M3U, CSV, JSON 파일 또는 공개 Deezer 재생목록 링크에서 가져옵니다. 없는 곡도 자리를 유지하며, 라이브러리에 들어오면 자동으로 채워집니다.",
         "keywords": "M3U|CSV|JSON|Deezer|ISRC|없는 곡"
+      },
+      "podcasts": {
+        "title": "팟캐스트가 찾아왔습니다",
+        "body": "피드를 구독하고, 듣던 곳부터 이어 듣고, 나중을 위해 다운로드하세요. 동의하기 전까지는 꺼져 있습니다. 팟캐스트는 호스트에서 바로 오기 때문에, 호스트에는 내가 듣는 내용이 보입니다.",
+        "keywords": "RSS|OPML|들을 것|오프라인"
       }
+    }
+  },
+  "podcasts": {
+    "kicker": "듣기",
+    "channels": "채널",
+    "channelsCount_other": "채널 {{count}}개",
+    "unplayedCount_other": "안 들은 항목 {{count}}개",
+    "episodesCount_other": "에피소드 {{count}}개",
+    "usage": "{{quota}} 중 {{used}} 다운로드됨",
+    "refreshAll": "모두 확인",
+    "refreshing": "확인하는 중…",
+    "openSettings": "팟캐스트 설정",
+    "loading": "불러오는 중…",
+    "retry": "다시 시도",
+    "showMore": "더 보기",
+    "showLess": "간단히 보기",
+    "untitledChannel": "제목 없는 채널",
+    "untitledEpisode": "제목 없는 에피소드",
+    "offlineBanner": "오프라인 모드: 어떤 피드에도 연결하지 않습니다. 다운로드한 에피소드만 재생됩니다.",
+    "off": {
+      "body": "팟캐스트가 꺼져 있습니다. 어디에도 연결하지 않습니다. 구독 목록, 재생 위치, 다운로드한 에피소드는 그대로 남아 있습니다.",
+      "action": "팟캐스트 켜기…"
+    },
+    "empty": {
+      "title": "구독 중인 채널이 없습니다",
+      "body": "위에 피드 주소를 입력하거나 OPML 목록을 가져오세요.",
+      "bodyOff": "첫 피드를 구독하려면 팟캐스트를 켜세요."
+    },
+    "dialog": {
+      "cancel": "취소",
+      "close": "닫기"
+    },
+    "warning": {
+      "title": "팟캐스트를 켜기 전에",
+      "lead": "확인하기 전까지는 아무것도 바뀌지 않습니다. 켜면 다음과 같이 달라집니다.",
+      "confirm": "이해했습니다, 켜기",
+      "failed": "설정을 저장하지 못했습니다. 팟캐스트는 꺼진 상태로 유지됩니다.",
+      "points": {
+        "hosts": {
+          "title": "호스트에게 보이는 정보",
+          "body": "피드와 에피소드는 각 팟캐스트의 호스트에서 바로 가져옵니다. 호스트와, 에피소드가 흔히 거치는 측정 서비스에는 내 IP 주소와 재생하는 내용이 보입니다."
+        },
+        "checks": {
+          "title": "WaveFlow가 확인하는 때",
+          "body": "피드는 앱이 실행 중일 때만 6시간마다 확인합니다."
+        },
+        "downloads": {
+          "title": "디스크 공간",
+          "body": "다운로드한 에피소드는 한도까지 디스크 공간을 차지합니다."
+        },
+        "stop": {
+          "title": "모두 멈추는 방법",
+          "body": "오프라인 모드를 켜면 모두 멈춥니다. 팟캐스트를 끄면 완전히 멈춥니다."
+        }
+      }
+    },
+    "subscribe": {
+      "label": "피드 구독",
+      "action": "구독",
+      "hint": "RSS 피드 주소(http 또는 https)입니다. 추가하기 전에 피드를 먼저 읽어 보므로, 잘못 입력해도 아무것도 남지 않습니다."
+    },
+    "opml": {
+      "import": "OPML 가져오기",
+      "export": "OPML 내보내기",
+      "importDialogTitle": "피드 목록 가져오기",
+      "exportDialogTitle": "피드 목록 내보내기(피드 주소가 들어 있습니다)",
+      "exportTitle": "구독 목록 내보내기",
+      "exportBody": "이 파일에는 구독 중인 모든 피드의 주소가 들어 있습니다. 비공개 피드의 주소에는 나만의 접근 정보가 포함되어 있을 수 있으니, 믿을 수 있는 사람에게만 공유하세요.",
+      "exportConfirm": "파일 선택…",
+      "exportMissing": "주소 없이 복원되어 파일에 포함되지 않은 채널: {{missing}}개.",
+      "exported": "목록을 저장했습니다. 내보낸 피드: {{written}}개 · 주소 없음: {{missing}}개.",
+      "publicOnly": "OPML 목록에는 공개 주소만 쓸 수 있습니다. 내 로컬 네트워크의 피드는 위에 직접 입력하세요.",
+      "report": {
+        "title": "목록 가져오기",
+        "summary": "추가됨: {{added}} · 이미 구독 중: {{already}} · 실패: {{failed}} · 목록 전체: {{total}}",
+        "more": "그 외 {{n}}개.",
+        "theFile": "파일",
+        "outcome": {
+          "cancelled": "가져오기가 끝나기 전에 중단되었습니다.",
+          "offline": "오프라인 모드 때문에 가져오기가 중단되었습니다.",
+          "disabled": "가져오는 중에 팟캐스트가 꺼졌습니다.",
+          "profile_changed": "가져오는 중에 프로필이 바뀌어 가져오기가 중단되었습니다.",
+          "already_running": "이미 확인 중입니다. 끝난 뒤에 다시 시도하세요."
+        }
+      }
+    },
+    "refresh": {
+      "done": "확인을 마쳤습니다. 업데이트됨: {{refreshed}} · 변경 없음: {{unchanged}} · 실패: {{failed}}",
+      "cancelled": "확인이 중단되었습니다.",
+      "offline": "오프라인 모드 때문에 확인이 중단되었습니다.",
+      "disabled": "팟캐스트가 꺼져 있습니다.",
+      "profile_changed": "확인하는 중에 프로필이 바뀌어 확인이 중단되었습니다.",
+      "already_running": "이미 확인 중입니다."
+    },
+    "toListen": {
+      "title": "들을 것",
+      "failed": "이 목록을 불러오지 못했습니다.",
+      "inProgress": "이어 듣기",
+      "newest": "최신 에피소드",
+      "resume": "이어 듣기",
+      "listen": "듣기",
+      "showAll": "모두 보기({{n}}개 더)",
+      "playing": "재생 중",
+      "pause": "일시 정지"
+    },
+    "channel": {
+      "kicker": "팟캐스트",
+      "back": "모든 채널",
+      "checked": "{{when}} 확인",
+      "refresh": "확인",
+      "markAllPlayed": "모두 들음으로 표시",
+      "markAllUnplayed": "모두 안 들음으로 표시",
+      "openSite": "채널 웹사이트",
+      "unsubscribe": "구독 취소",
+      "speed": "속도",
+      "speedNormal": "보통",
+      "noEpisodes": "이 채널에는 에피소드가 없습니다.",
+      "lastFailure": "마지막 확인: {{reason}}",
+      "restoredChip": "다시 구독 필요",
+      "failedChip": "실패"
+    },
+    "episode": {
+      "play": "{{title}} 재생",
+      "playAgain": "{{title}} 다시 재생",
+      "resume": "{{title}} 이어 재생",
+      "markPlayed": "{{title}}을(를) 들음으로 표시",
+      "markUnplayed": "{{title}}을(를) 안 들음으로 표시",
+      "download": "{{title}} 다운로드",
+      "cancelDownload": "{{title}} 다운로드 취소",
+      "deleteDownload": "{{title}} 파일 삭제({{size}})",
+      "downloaded": "다운로드됨",
+      "needsNetwork": "오프라인이거나 팟캐스트가 꺼져 있으면 쓸 수 없습니다. 다운로드한 에피소드만 재생됩니다.",
+      "noAddress": "이 에피소드의 주소를 알 수 없습니다. 채널을 다시 구독하세요.",
+      "seasonEpisode": "시즌 {{season}} · {{episode}}화",
+      "number": "에피소드 {{episode}}",
+      "remaining": "{{time}} 남음",
+      "pause": "{{title}} 일시 정지",
+      "queued": "대기 중",
+      "deletedWhilePlaying": "파일을 삭제했습니다. 재생 중인 내용은 계속됩니다. 다시 시작하려면 네트워크나 새 다운로드가 필요합니다."
+    },
+    "restored": {
+      "title": "이 피드의 주소를 더 이상 알 수 없습니다",
+      "body": "이 채널은 백업이나 가져온 프로필에서 왔습니다. 이런 곳에는 피드 주소가 남지 않아서 더 이상 업데이트되지 않습니다. 같은 주소로 다시 구독하거나 OPML을 다시 가져오세요. 재생 위치와 들은 기록은 그대로 유지됩니다.",
+      "hint": "이전과 같은 주소입니다. OPML 목록에는 공개 주소만 쓸 수 있으니, 내 로컬 네트워크의 피드는 여기에 입력하세요.",
+      "summary": "다시 구독해야 하는 채널: {{n}}개. 백업에는 피드 주소가 남지 않습니다. 주소를 다시 입력하거나 OPML을 다시 가져오세요. 재생 위치는 그대로 유지됩니다.",
+      "downloads": "다운로드한 에피소드는 백업에 포함되지 않습니다. 다시 다운로드해야 합니다."
+    },
+    "unsubscribe": {
+      "title": "{{title}} 구독을 취소할까요?",
+      "body": "채널, 에피소드, 재생 위치, 다운로드한 파일이 모두 지워집니다. 다시 구독할 수는 있지만, 듣던 위치는 되돌릴 수 없습니다.",
+      "confirm": "구독 취소"
+    },
+    "errors": {
+      "disabled": "팟캐스트가 꺼져 있습니다.",
+      "offline": "오프라인 모드가 켜져 있습니다. 어디에도 연결하지 않았습니다.",
+      "profile_changed": "그사이 프로필이 바뀌어 더 이상 기록하지 않았습니다.",
+      "channel_gone": "이 채널은 더 이상 구독 중이 아닙니다.",
+      "open_failed": "브라우저를 열 수 없었습니다.",
+      "address_refused": "이 주소는 사용할 수 없습니다. http 또는 https여야 하고, 호스트 이름이 있어야 하며, 아이디나 비밀번호가 들어 있으면 안 됩니다. 공개 피드에서 로컬 네트워크로 연결할 수는 없습니다.",
+      "too_many_redirects": "피드가 너무 많은 주소로 연달아 넘겨집니다.",
+      "too_large": "파일이 너무 큽니다.",
+      "unreached": "호스트에 연결할 수 없었습니다.",
+      "http": "호스트가 오류로 응답했습니다({{status}}).",
+      "invalid_feed": "읽을 수 있는 팟캐스트 피드가 아닙니다.",
+      "not_audio": "이 파일은 오디오가 아닙니다.",
+      "quota_exceeded": "다운로드 한도에 도달했습니다.",
+      "unknown": "문제가 생겼습니다.",
+      "episode_gone": "이 에피소드는 더 이상 없습니다.",
+      "no_source": "이 에피소드에는 파일도 주소도 없습니다. 채널을 다시 구독하세요.",
+      "not_seekable": "이 호스트에서는 에피소드 안에서 위치를 옮길 수 없습니다.",
+      "write_failed": "파일을 디스크에 쓸 수 없습니다."
     }
   }
 }

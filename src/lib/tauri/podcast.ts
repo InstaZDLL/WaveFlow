@@ -137,7 +137,8 @@ const ERROR_PREFIX = "podcast: ";
 
 /**
  * The word a refused command rejected with: `disabled`, `offline`,
- * `profile_changed`, `channel_gone`, `episode_gone`, `no_source`, or one from `FetchFailure::code` (`address_refused`,
+ * `profile_changed`, `channel_gone`, `episode_gone`, `no_source`, `open_failed`,
+ * `not_seekable`, `write_failed`, or one from `FetchFailure::code` (`address_refused`,
  * `too_many_redirects`, `too_large`, `unreached`, `http_<status>`,
  * `invalid_feed`, `not_audio`, `quota_exceeded`). `null` for any other error.
  */
@@ -194,6 +195,12 @@ export function podcastExportOpml(
   path: string,
 ): Promise<PodcastOpmlExportReport> {
   return invoke<PodcastOpmlExportReport>("podcast_export_opml", { path });
+}
+
+/** Opens the channel's website in the person's browser. Its address stays in
+ *  the backend, which checks it is an http or https one. */
+export function podcastOpenSite(channelId: number): Promise<void> {
+  return invoke("podcast_open_site", { channelId });
 }
 
 /** Puts an episode in line to be kept on disk. Resolves once it is in line:

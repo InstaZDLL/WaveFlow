@@ -181,6 +181,37 @@ export function openPlaylistImport(): void {
 }
 
 /**
+ * Ask for the warning that comes before podcasts turn on. It only asks: the
+ * dialog's own confirmation is the one thing that enables them (RFC-009), so a
+ * row in Settings, a page of What's new or a button on the podcasts page can
+ * lead here and none of them can do more.
+ */
+export const OPEN_PODCAST_WARNING_EVENT = "waveflow:open-podcast-warning";
+
+export interface PodcastWarningRequest {
+  /** Go to the podcasts page once accepted, for a request made elsewhere. */
+  openPage?: boolean;
+}
+
+export function openPodcastWarning(request: PodcastWarningRequest = {}): void {
+  window.dispatchEvent(
+    new CustomEvent<PodcastWarningRequest>(OPEN_PODCAST_WARNING_EVENT, {
+      detail: request,
+    }),
+  );
+}
+
+/** Ask for an OPML list to be read: the layout runs it, so the report still
+ *  reaches someone who left the page during a long list. */
+export const IMPORT_PODCAST_OPML_EVENT = "waveflow:import-podcast-opml";
+
+export function importPodcastOpml(path: string): void {
+  window.dispatchEvent(
+    new CustomEvent<string>(IMPORT_PODCAST_OPML_EVENT, { detail: path }),
+  );
+}
+
+/**
  * Ask for the lyrics editor. The panel that owns it may not be mounted yet
  * (it is being opened by the same gesture), so the request waits here for
  * it to take: the event reaches a panel already there, its mount finds the

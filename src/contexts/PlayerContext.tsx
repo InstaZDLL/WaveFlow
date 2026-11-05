@@ -132,6 +132,9 @@ function radioMetadataToTrack(payload: RadioMetadata): Track {
     // Absent for radio, which has no server track — and absent is what
     // "local" reads as everywhere this field appears.
     ...(payload.remote_track_id ? { remote_id: payload.remote_track_id } : {}),
+    ...(payload.podcast_episode_id != null
+      ? { podcast_episode_id: payload.podcast_episode_id }
+      : {}),
   };
 }
 

@@ -308,6 +308,7 @@ pub fn run() {
             commands::podcast::podcast_list_channels,
             commands::podcast::podcast_list_episodes,
             commands::podcast::podcast_refresh,
+            commands::podcast::podcast_open_site,
             commands::podcast::podcast_import_opml,
             commands::podcast::podcast_export_opml,
             commands::podcast::podcast_play_episode,
