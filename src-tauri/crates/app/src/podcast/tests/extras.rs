@@ -798,15 +798,6 @@ async fn a_feed_that_names_other_sources_makes_what_was_kept_stale() {
         .unwrap();
     assert_eq!(kept().await, (None, Some("t".into())));
 
-    // The same address under another type: what it can hold has changed.
-    keep().await;
-    let mut retyped = moved.clone();
-    retyped.episodes[0].enclosure_type = Some("audio/mp4".to_owned());
-    store::refresh_feed(&pool, channel, &retyped, &Validators::default())
-        .await
-        .unwrap();
-    assert_eq!(kept().await, (None, Some("t".into())));
-
     // Another transcript drops the transcript and only it.
     keep().await;
     let moved = feed_with(
@@ -817,6 +808,15 @@ async fn a_feed_that_names_other_sources_makes_what_was_kept_stale() {
         .await
         .unwrap();
     assert_eq!(kept().await, (Some("c".into()), None));
+
+    // The same address under another type: what it can hold has changed.
+    keep().await;
+    let mut retyped = moved.clone();
+    retyped.episodes[0].enclosure_type = Some("audio/mp4".to_owned());
+    store::refresh_feed(&pool, channel, &retyped, &Validators::default())
+        .await
+        .unwrap();
+    assert_eq!(kept().await, (None, Some("t".into())));
 }
 
 #[tokio::test]
