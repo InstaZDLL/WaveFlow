@@ -1048,7 +1048,11 @@
       "title": "再生速度",
       "slider": "速度スライダー",
       "custom": "カスタム速度",
-      "pitchHint": "ピッチは速度に追従します（タイムストレッチなし）。"
+      "keepPitch": "音程を維持",
+      "transpose": "移調",
+      "transposeDown": "半音下げる",
+      "transposeUp": "半音上げる",
+      "transposeReset": "元の音程に戻す"
     },
     "seek": "再生位置",
     "alert": {
@@ -1592,7 +1596,8 @@
         "dopNative": "ネイティブ DSD",
         "volume": "音量 {{value}}%",
         "balance": "バランス",
-        "width": "幅 {{value}}%"
+        "width": "幅 {{value}}%",
+        "pitch": "音程 {{value}}"
       }
     },
     "outputMode": {
@@ -3961,6 +3966,10 @@
       "same": "このフォルダーは既にライブラリにあります: {{folder}}",
       "inside": "このフォルダーは既にライブラリにあります({{folder}} の中)。",
       "contains": "このフォルダーには、既にライブラリにある {{folder}} が含まれています。代わりに他のサブフォルダーを追加してください。"
+    },
+    "unreachable": {
+      "title": "ライブラリフォルダーにアクセスできません",
+      "body": "フォルダーが見つからないか読み取れません。ドライブが外れている可能性があります。曲はそのままライブラリに残ります。"
     }
   },
   "playlistImport": {

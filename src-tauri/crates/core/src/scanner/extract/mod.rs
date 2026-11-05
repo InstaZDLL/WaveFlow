@@ -552,6 +552,18 @@ pub fn extract_album_artist(tag: &Tag) -> Option<String> {
     }
 }
 
+/// The credit the tag gives a track: see [`artist_credit`]. Every value, not
+/// `Accessor::artist`, which is the first one only. lofty already turns a
+/// multi-value `TPE1`, repeated Vorbis `ARTIST` comments and several `©ART`
+/// into one item each, and maps `ARTISTS` from whichever frame or atom the
+/// container keeps it in.
+pub fn extract_artists(tag: &Tag) -> Option<String> {
+    super::canonical::artist_credit(
+        tag.get_strings(ItemKey::TrackArtists),
+        tag.get_strings(ItemKey::TrackArtist),
+    )
+}
+
 /// Read the compilation flag (`TCMP` / `cpil` / `COMPILATION` / `Compilation`).
 /// Lofty stores the value as a stringified `0` / `1` regardless of the
 /// underlying container; anything that parses to a non-zero integer or the

@@ -762,9 +762,8 @@ export function playerSetDsdDop(
 
 /**
  * Update playback speed. Clamped to `[0.5, 2.0]` on the engine side;
- * out-of-range values are saturated. Pitch is NOT preserved — 1.5×
- * lifts the pitch by ~7 semitones (resampler-shift, same as VLC's
- * default playback rate).
+ * out-of-range values are saturated. Whether the pitch follows is
+ * {@link playerSetKeepPitch}'s to say.
  */
 export function playerSetSpeed(
   value: number,
@@ -776,6 +775,52 @@ export function playerSetSpeed(
 export function playerGetSpeed(): Promise<number> {
   return invoke<number>("player_get_speed");
 }
+
+/**
+ * Whether the speed leaves the pitch alone, or the pitch follows it as on
+ * tape. Saved before it is applied: a refused write rejects and leaves the
+ * engine where it was.
+ */
+export function playerSetKeepPitch(
+  enabled: boolean,
+  expectedProfileId: number | null = null,
+): Promise<void> {
+  return announceSettingWrite(
+    invoke<void>("player_set_keep_pitch", { enabled, expectedProfileId }),
+  );
+}
+
+export function playerGetKeepPitch(): Promise<boolean> {
+  return invoke<boolean>("player_get_keep_pitch");
+}
+
+/** How far the pitch can be transposed, each way, in semitones. */
+export const MAX_PITCH_SEMITONES = 12;
+
+/** Transpose by whole semitones. Saved before it is applied, like the rest. */
+export function playerSetPitchSemitones(
+  value: number,
+  expectedProfileId: number | null = null,
+): Promise<void> {
+  return announceSettingWrite(
+    invoke<void>("player_set_pitch_semitones", {
+      value: Math.round(value),
+      expectedProfileId,
+    }),
+  );
+}
+
+export function playerGetPitchSemitones(): Promise<number> {
+  return invoke<number>("player_get_pitch_semitones");
+}
+
+/**
+ * Window event: the Settings reset put the pitch lock or the transposition
+ * back to its default, behind the player's own state of it. A getter would race
+ * the engine, which applies a command when its thread next looks. The detail is
+ * the setting's key.
+ */
+export const PITCH_RESET_EVENT = "waveflow:pitch-reset";
 
 // ── Output device picker ───────────────────────────────────────────
 

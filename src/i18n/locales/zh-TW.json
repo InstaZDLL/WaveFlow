@@ -1048,7 +1048,11 @@
       "title": "播放速度",
       "slider": "速度滑桿",
       "custom": "自訂速度",
-      "pitchHint": "音高會隨速度變化（不進行時間伸縮處理）。"
+      "keepPitch": "保持音高",
+      "transpose": "移調",
+      "transposeDown": "降低半音",
+      "transposeUp": "升高半音",
+      "transposeReset": "恢復原始音高"
     },
     "seek": "跳轉",
     "alert": {
@@ -1592,7 +1596,8 @@
         "dopNative": "原生 DSD",
         "volume": "音量 {{value}}%",
         "balance": "平衡",
-        "width": "寬度 {{value}}%"
+        "width": "寬度 {{value}}%",
+        "pitch": "音高 {{value}}"
       }
     },
     "outputMode": {
@@ -3961,6 +3966,10 @@
       "same": "此資料夾已在音樂庫中：{{folder}}",
       "inside": "此資料夾已在音樂庫中，位於 {{folder}} 內。",
       "contains": "此資料夾包含已在音樂庫中的 {{folder}}。請改為加入它的其他子資料夾。"
+    },
+    "unreachable": {
+      "title": "無法存取媒體庫資料夾",
+      "body": "該資料夾不存在或無法讀取，可能是磁碟未連接。其中的曲目仍保留在媒體庫中，沒有任何變更。"
     }
   },
   "playlistImport": {

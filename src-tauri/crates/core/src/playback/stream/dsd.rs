@@ -82,10 +82,17 @@ impl ActiveStream {
                 // another one on top would fight it.
                 declared_sample_rate: None,
                 playback_speed: 1.0,
+                keep_pitch: false,
+                semitones: 0.0,
+                stretcher: None,
+                stretch_input: Vec::new(),
+                stretch_skip: 0,
+                stretch_output_gain: 1.0,
                 container_duration_ms,
                 codec,
                 packets_read: PacketTally::default(),
                 tail_flushed: false,
+                tag_watch: None,
             });
         }
         let converter = Box::new(DsdToPcm::new_with_taps(&layout, dsd_taps));
@@ -120,10 +127,17 @@ impl ActiveStream {
             src_sample_rate: 0,
             declared_sample_rate,
             playback_speed: 1.0,
+            keep_pitch: false,
+            semitones: 0.0,
+            stretcher: None,
+            stretch_input: Vec::new(),
+            stretch_skip: 0,
+            stretch_output_gain: 1.0,
             container_duration_ms,
             codec,
             packets_read: PacketTally::default(),
             tail_flushed: false,
+            tag_watch: None,
         })
     }
 

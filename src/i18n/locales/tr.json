@@ -1050,7 +1050,11 @@
       "title": "Oynatma hızı",
       "slider": "Hız kaydırıcı",
       "custom": "Özel hız",
-      "pitchHint": "Ton, hızı takip eder (zaman genişletme yok)."
+      "keepPitch": "Perdeyi koru",
+      "transpose": "Transpoze",
+      "transposeDown": "Yarım ton aşağı",
+      "transposeUp": "Yarım ton yukarı",
+      "transposeReset": "Özgün perdeye dön"
     },
     "seek": "Oynatma konumu",
     "alert": {
@@ -1594,7 +1598,8 @@
         "dopNative": "Doğrudan DSD",
         "volume": "Ses %{{value}}",
         "balance": "Denge",
-        "width": "Genişlik %{{value}}"
+        "width": "Genişlik %{{value}}",
+        "pitch": "Perde {{value}}"
       }
     },
     "outputMode": {
@@ -3963,6 +3968,10 @@
       "same": "Bu klasör zaten kitaplıkta: {{folder}}",
       "inside": "Bu klasör zaten kitaplıkta, {{folder}} içinde.",
       "contains": "Bu klasör, zaten kitaplıkta olan {{folder}} klasörünü içeriyor. Bunun yerine diğer alt klasörlerini ekleyin."
+    },
+    "unreachable": {
+      "title": "Kitaplık klasörüne ulaşılamıyor",
+      "body": "Klasör yok veya okunamıyor; sürücü çıkarılmış olabilir. Parçaları kitaplıkta olduğu gibi kalır."
     }
   },
   "playlistImport": {

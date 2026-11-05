@@ -20,7 +20,18 @@ impl ActiveStream {
         dst_sample_rate: u32,
         dst_layout: &ChannelLayout,
     ) -> Result<bool, String> {
+        // The first stream's song, now that this load is the one being served.
+        // Later ones are read where the reader reports the change, below.
+        if let (Some(watch), StreamBackend::Symphonia { format, .. }) =
+            (self.tag_watch.as_mut(), &mut self.backend)
+        {
+            if !watch.announced {
+                watch.announced = true;
+                watch.stream_started(format.as_mut());
+            }
+        }
         let dst_channels = dst_layout.channels();
+        let shift = self.time_shift();
         // Snapshot fields used after `&mut backend` so the borrow
         // checker doesn't complain when we reach for `self.resampler`
         // or `self.src_channels` inside the match arms.
@@ -63,6 +74,9 @@ impl ActiveStream {
                         // about this one.
                         *extent = StreamExtent::new(track.start_ts.get(), None, None);
                         *spec_captured = false;
+                        if let Some(watch) = self.tag_watch.as_mut() {
+                            watch.stream_started(format.as_mut());
+                        }
                         // Chained streams can follow one another with no
                         // audio between them: they count toward the bound.
                         // Checked once the decoder is rebuilt, since the
@@ -135,7 +149,7 @@ impl ActiveStream {
                             .map_err(|e| format!("resampler tail: {e}"))?;
                         self.src_channels = channels;
                         self.src_sample_rate = rate;
-                        let effective_rate = ((rate as f32) * self.playback_speed).max(1.0) as u32;
+                        let effective_rate = shift.resampler_rate(rate);
                         self.resampler =
                             Resampler::new(effective_rate, dst_sample_rate, dst_channels)
                                 .map_err(|e| format!("resampler init: {e}"))?;
@@ -237,11 +251,11 @@ impl ActiveStream {
                 // actual source rate.
                 if matches!(self.resampler, Resampler::Passthrough)
                     && (converter.output_rate_hz != dst_sample_rate
-                        || (self.playback_speed - 1.0).abs() > f32::EPSILON)
+                        || shift.resampler_rate(converter.output_rate_hz)
+                            != converter.output_rate_hz)
                 {
                     self.src_sample_rate = converter.output_rate_hz;
-                    let effective_rate =
-                        ((converter.output_rate_hz as f32) * self.playback_speed).max(1.0) as u32;
+                    let effective_rate = shift.resampler_rate(converter.output_rate_hz);
                     self.resampler = Resampler::new(effective_rate, dst_sample_rate, dst_channels)
                         .map_err(|e| format!("dsd resampler init: {e}"))?;
                 } else if self.src_sample_rate == 0 {

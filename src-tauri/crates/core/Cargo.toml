@@ -46,9 +46,10 @@ musicbrainz = ["dep:tokio", "tokio/time"]
 # this; `waveflow-server` does not (the HTTP/WS surface doesn't run
 # guest WASM in v1, so the ~5 MiB Cranelift codegen tree would be
 # pure bloat).
-# Decoding for playback (`playback`): the resampler is the one dependency
-# it adds, and the server does not need it.
-playback = ["dep:rubato"]
+# Decoding for playback (`playback`): the resampler and the C++ compile of
+# the vendored time-stretch library are what it adds, and the server needs
+# neither.
+playback = ["dep:rubato", "dep:cc"]
 plugins = [
     "dep:wasmtime",
     "dep:wasmtime-wasi",
@@ -271,6 +272,10 @@ encoding_rs = "0.8.42"
 # the lockfile through other crates.
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Storage_FileSystem"] }
+
+[build-dependencies]
+# Compiles the C++ shim over the vendored Signalsmith Stretch headers.
+cc = { version = "1", optional = true }
 
 [dev-dependencies]
 # Sandboxed scratch directories for the smart-playlist cover render

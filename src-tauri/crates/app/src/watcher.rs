@@ -465,7 +465,10 @@ async fn run_scan(app: &AppHandle, folder_id: i64, library_id: i64) {
     // a manual rescan when a big folder is touched.
     match scan_folder_inner(&pool, &artwork_dir, folder_id, Some(app), false).await {
         Ok(summary) => {
-            let changed = summary.added > 0 || summary.updated > 0 || summary.removed > 0;
+            let changed = summary.added > 0
+                || summary.updated > 0
+                || summary.removed > 0
+                || summary.moved > 0;
             tracing::info!(
                 folder_id,
                 library_id,

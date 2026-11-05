@@ -1050,7 +1050,11 @@
       "title": "Wiedergabegeschwindigkeit",
       "slider": "Geschwindigkeitsregler",
       "custom": "Eigene Geschwindigkeit",
-      "pitchHint": "Tonhöhe folgt der Geschwindigkeit (kein Time-Stretching)."
+      "keepPitch": "Tonhöhe beibehalten",
+      "transpose": "Transponieren",
+      "transposeDown": "Einen Halbton tiefer",
+      "transposeUp": "Einen Halbton höher",
+      "transposeReset": "Zurück zur Originaltonhöhe"
     },
     "seek": "Suchlauf",
     "alert": {
@@ -1594,7 +1598,8 @@
         "dopNative": "Natives DSD",
         "volume": "Lautstärke {{value}} %",
         "balance": "Balance",
-        "width": "Breite {{value}} %"
+        "width": "Breite {{value}} %",
+        "pitch": "Tonhöhe {{value}}"
       }
     },
     "outputMode": {
@@ -3963,6 +3968,10 @@
       "same": "Dieser Ordner ist bereits in der Bibliothek: {{folder}}",
       "inside": "Dieser Ordner ist bereits in der Bibliothek, innerhalb von {{folder}}.",
       "contains": "Dieser Ordner enthält {{folder}}, der bereits in der Bibliothek ist. Füge stattdessen seine anderen Unterordner hinzu."
+    },
+    "unreachable": {
+      "title": "Bibliotheksordner nicht erreichbar",
+      "body": "Er fehlt oder lässt sich nicht lesen, vielleicht ist ein Laufwerk nicht angeschlossen. Seine Titel bleiben unverändert in der Bibliothek."
     }
   },
   "playlistImport": {

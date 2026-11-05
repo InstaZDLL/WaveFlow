@@ -93,7 +93,8 @@ response:
   contacted, and never from https to http. This covers enclosures too, which
   `http_source` does not do today: it lets the client follow them, which is fine
   for a station and not for an address out of a feed.
-- **Bodies are bounded while they are read**: 16 MiB for a feed, each request under
+- **Bodies are bounded while they are read**: 32 MiB for a feed, since a daily show
+  keeping every episode really reaches 20, each request under
   a deadline.
 
 ## Decision 4 — a feed address never reaches a log
@@ -234,9 +235,10 @@ that is left open.
 it starts, and anything else that plays afterwards gets the global speed back. The
 speed is a column of `podcast_channel`.
 
-Pitch is not preserved today: 1.5× lifts a voice by about seven semitones. Time-stretching lands as its own lot on the existing
-board card, on the decoder thread and never in the callback. The library is chosen
-by measurement. Podcasts do not wait for it.
+Time-stretching landed as its own lot, on the decoder thread and never in the
+callback, with the library chosen by measurement:
+[playback / Playback speed and pitch](../features/playback.md#playback-speed-and-pitch).
+A voice keeps its pitch at 1.5× by default. Podcasts did not wait for it.
 
 ## The surface
 

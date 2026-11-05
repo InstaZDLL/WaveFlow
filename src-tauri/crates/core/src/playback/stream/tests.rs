@@ -516,3 +516,488 @@ fn a_dff_is_read_in_the_order_it_names() {
         ChannelLayout::from_count(6)
     );
 }
+
+fn open_tone(path: &Path) -> ActiveStream {
+    ActiveStream::open(
+        path,
+        0,
+        0,
+        String::new(),
+        None,
+        TrackGain::default(),
+        64,
+        false,
+    )
+    .unwrap()
+}
+
+fn decode_to_end(stream: &mut ActiveStream, rate: u32) -> Vec<f32> {
+    let (mut out, mut scratch) = (Vec::new(), Vec::new());
+    while !stream
+        .decode_next(&mut out, &mut scratch, rate, &stereo())
+        .unwrap()
+    {}
+    out
+}
+
+fn shift(speed: f32, keep_pitch: bool, semitones: f32) -> TimeShift {
+    TimeShift {
+        speed,
+        keep_pitch,
+        semitones,
+    }
+}
+
+/// At 1× with no transposition the audio is what it always was, to the bit,
+/// and no stretcher exists: exclusive output and DoP stay bit-perfect.
+#[test]
+fn at_one_times_nothing_is_built_and_nothing_changes() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("tone.wav");
+    write_wav(&path);
+    for rate in [44_100, 48_000] {
+        let reference = decode_to_end(&mut open_tone(&path), rate);
+        let mut stream = open_tone(&path);
+        stream.set_time_shift(shift(1.0, true, 0.0));
+        stream.set_output_gain(0.5);
+        assert_eq!(decode_to_end(&mut stream, rate), reference);
+        assert!(stream.stretcher.is_none());
+        assert_eq!(
+            stream.output_delay_frames(),
+            stream.resampler.output_delay_frames()
+        );
+    }
+}
+
+/// With the pitch kept the resampler keeps the true rate, and the length is the
+/// source's at the speed: to the frame with no resampling.
+#[test]
+fn keeping_the_pitch_gives_the_length_of_the_speed() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("tone.wav");
+    write_wav(&path);
+    for speed in [0.75_f32, 1.25, 2.0] {
+        let mut stream = open_tone(&path);
+        stream.set_time_shift(shift(speed, true, 0.0));
+        let out = decode_to_end(&mut stream, 44_100);
+        assert!(matches!(stream.resampler, Resampler::Passthrough));
+        assert!(stream.stretcher.is_some());
+        let expected = (44_100.0 / f64::from(speed)).round() as usize;
+        assert_eq!(out.len() / 2, expected, "speed {speed}");
+        assert_eq!(stream.output_delay_frames(), 0);
+    }
+}
+
+/// Through the resampler too, whose delay is dropped on the way in: a stretched
+/// stream starts on its first frame, for the gapless hand-off and for AutoMix.
+#[test]
+fn keeping_the_pitch_at_another_rate_adds_no_delay() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("tone.wav");
+    write_wav(&path);
+    let mut stream = open_tone(&path);
+    stream.set_time_shift(shift(1.25, true, 0.0));
+    let out = decode_to_end(&mut stream, 48_000);
+    assert!(stream.resampler.output_delay_frames() > 0);
+    assert_eq!(stream.output_delay_frames(), 0);
+    assert_eq!(out.len() / 2, 38_400);
+}
+
+/// The other mode is the fake source rate it always was, with no stretcher.
+#[test]
+fn a_speed_that_moves_the_pitch_goes_through_the_resampler() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("tone.wav");
+    write_wav(&path);
+    let mut stream = open_tone(&path);
+    stream.set_time_shift(shift(1.25, false, 0.0));
+    let out = decode_to_end(&mut stream, 44_100);
+    assert!(stream.stretcher.is_none());
+    assert!(matches!(stream.resampler, Resampler::Fft { .. }));
+    let delay = stream.resampler.output_delay_frames() as usize;
+    let expected = delay + (44_100.0_f64 / 1.25).round() as usize;
+    assert!(out.len() / 2 >= expected - 2 && out.len() / 2 <= expected + 2);
+}
+
+/// `seconds` of a sine as a 44.1 kHz 16-bit stereo WAV.
+fn write_sine_wav(path: &Path, freq: f64, seconds: f64) {
+    let rate = 44_100_u32;
+    let frames = (seconds * f64::from(rate)) as u32;
+    let data_len = frames * 4;
+    let mut bytes = Vec::new();
+    bytes.extend(b"RIFF");
+    bytes.extend((36 + data_len).to_le_bytes());
+    bytes.extend(b"WAVEfmt ");
+    bytes.extend(16_u32.to_le_bytes());
+    bytes.extend(1_u16.to_le_bytes());
+    bytes.extend(2_u16.to_le_bytes());
+    bytes.extend(rate.to_le_bytes());
+    bytes.extend((rate * 4).to_le_bytes());
+    bytes.extend(4_u16.to_le_bytes());
+    bytes.extend(16_u16.to_le_bytes());
+    bytes.extend(b"data");
+    bytes.extend(data_len.to_le_bytes());
+    for i in 0..frames {
+        let phase = 2.0 * std::f64::consts::PI * freq * f64::from(i) / f64::from(rate);
+        let sample = (phase.sin() * 9_000.0) as i16;
+        bytes.extend(sample.to_le_bytes());
+        bytes.extend(sample.to_le_bytes());
+    }
+    std::fs::write(path, bytes).unwrap();
+}
+
+/// Frequency of a pure tone in interleaved stereo, from its rising zero
+/// crossings over the steady middle.
+fn tone_frequency(out: &[f32], rate: u32) -> f64 {
+    let left: Vec<f32> = out.iter().step_by(2).copied().collect();
+    let part = &left[left.len() / 4..left.len() * 3 / 4];
+    let rising: Vec<f64> = part
+        .windows(2)
+        .enumerate()
+        .filter(|(_, w)| w[0] < 0.0 && w[1] >= 0.0)
+        .map(|(i, w)| i as f64 + f64::from(-w[0] / (w[1] - w[0])))
+        .collect();
+    (rising.len() - 1) as f64 * f64::from(rate) / (rising[rising.len() - 1] - rising[0])
+}
+
+/// The note lands in tune, the bass as well as the rest, whatever the speed, and
+/// the length is what the speed says. The stretcher's own transposition is out
+/// by up to 12 cents at 110 Hz, which is why it does not do this.
+#[test]
+fn a_transposition_is_in_tune_and_keeps_the_length_of_the_speed() {
+    let dir = tempfile::tempdir().unwrap();
+    for freq in [110.0_f64, 440.0, 2_000.0] {
+        let path = dir.path().join(format!("{freq}.wav"));
+        write_sine_wav(&path, freq, 3.0);
+        for (speed, keep_pitch, semitones) in [
+            (1.0_f32, true, 3.0_f32),
+            (1.0, true, -5.0),
+            (1.0, true, 7.0),
+            (1.25, true, 2.0),
+            (1.25, false, 2.0),
+        ] {
+            let mut stream = open_tone(&path);
+            stream.set_time_shift(shift(speed, keep_pitch, semitones));
+            let out = decode_to_end(&mut stream, 44_100);
+            assert!(stream.stretcher.is_some());
+            assert_eq!(stream.output_delay_frames(), 0);
+            let expected = (3.0 * 44_100.0 / f64::from(speed)).round() as usize;
+            // Two stages that each round to the frame.
+            assert!(
+                (out.len() / 2).abs_diff(expected) <= 1,
+                "{speed}× {semitones} st: {} for {expected}",
+                out.len() / 2
+            );
+            let want = freq
+                * 2f64.powf(f64::from(semitones) / 12.0)
+                * if keep_pitch { 1.0 } else { f64::from(speed) };
+            let cents = 1200.0 * (tone_frequency(&out, 44_100) / want).log2();
+            assert!(
+                cents.abs() < 1.0,
+                "{freq} Hz {speed}× {semitones} st: {cents} cents"
+            );
+        }
+    }
+}
+
+/// A seek drops what the stretcher held and starts over with no delay: the rest
+/// of the track comes out at its length, once.
+#[test]
+fn a_seek_starts_the_stretcher_over() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("tone.wav");
+    write_wav(&path);
+    let mut stream = open_tone(&path);
+    stream.set_time_shift(shift(1.25, true, 0.0));
+    let out = decode_to_end(&mut stream, 44_100);
+    assert_eq!(out.len() / 2, 35_280);
+
+    stream.seek_ms(0);
+    stream.rebuild_resampler(1.25, 44_100, 2).unwrap();
+    stream.reset_decoder();
+    assert!(stream.stretcher.is_none());
+    assert_eq!(decode_to_end(&mut stream, 44_100).len() / 2, 35_280);
+
+    let landed = stream.seek_ms(500);
+    stream.reset_decoder();
+    assert!(stream.stretcher.is_some());
+    let left = decode_to_end(&mut stream, 44_100).len() / 2;
+    let expected = (1_000 - landed) as f64 * 44.1 / 1.25;
+    assert!(
+        (left as f64 - expected).abs() < 40.0,
+        "{left} for {expected}"
+    );
+}
+
+/// Back at 1× mid-track, the stretcher is gone and the rest is the source's.
+#[test]
+fn leaving_the_shift_mid_track_drops_the_stretcher() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("tone.wav");
+    write_wav(&path);
+    let mut stream = open_tone(&path);
+    stream.set_time_shift(shift(1.5, true, 0.0));
+    let (mut out, mut scratch) = (Vec::new(), Vec::new());
+    for _ in 0..4 {
+        stream
+            .decode_next(&mut out, &mut scratch, 44_100, &stereo())
+            .unwrap();
+    }
+    assert!(stream.stretcher.is_some());
+    stream.set_time_shift(shift(1.0, true, 0.0));
+    stream.rebuild_resampler(1.0, 44_100, 2).unwrap();
+    stream.seek_ms(0);
+    stream.reset_decoder();
+    assert!(stream.stretcher.is_none());
+    assert_eq!(
+        decode_to_end(&mut stream, 44_100),
+        decode_to_end(&mut open_tone(&path), 44_100)
+    );
+}
+
+/// Chained Ogg Opus, built by hand so what each stream names is visible next
+/// to the assertions. Each stream is a real Opus stream of 20 ms CELT frames,
+/// its pages checksummed since the reader verifies them.
+#[cfg(feature = "opus")]
+mod chained {
+    use super::*;
+    use std::io::Cursor;
+    use std::sync::{Arc, Mutex};
+
+    fn crc(data: &[u8]) -> u32 {
+        let mut crc = 0u32;
+        for byte in data {
+            crc ^= u32::from(*byte) << 24;
+            for _ in 0..8 {
+                crc = if crc & 0x8000_0000 != 0 {
+                    (crc << 1) ^ 0x04C1_1DB7
+                } else {
+                    crc << 1
+                };
+            }
+        }
+        crc
+    }
+
+    /// One page holding one packet of under 64 KiB, in whole segments.
+    fn page(flags: u8, granule: u64, serial: u32, sequence: u32, packet: &[u8]) -> Vec<u8> {
+        let mut lacing = vec![255u8; packet.len() / 255];
+        lacing.push((packet.len() % 255) as u8);
+        let mut page = b"OggS\0".to_vec();
+        page.push(flags);
+        page.extend_from_slice(&granule.to_le_bytes());
+        page.extend_from_slice(&serial.to_le_bytes());
+        page.extend_from_slice(&sequence.to_le_bytes());
+        page.extend_from_slice(&0u32.to_le_bytes());
+        page.push(lacing.len() as u8);
+        page.extend_from_slice(&lacing);
+        page.extend_from_slice(packet);
+        let checksum = crc(&page);
+        page[22..26].copy_from_slice(&checksum.to_le_bytes());
+        page
+    }
+
+    fn opus_stream(serial: u32, comments: &[&str]) -> Vec<u8> {
+        let mut head = b"OpusHead".to_vec();
+        head.push(1); // version
+        head.push(2); // channels
+        head.extend_from_slice(&0u16.to_le_bytes()); // pre-skip
+        head.extend_from_slice(&48_000u32.to_le_bytes());
+        head.extend_from_slice(&0i16.to_le_bytes()); // output gain
+        head.push(0); // channel mapping family
+
+        let mut tags = b"OpusTags".to_vec();
+        tags.extend_from_slice(&4u32.to_le_bytes());
+        tags.extend_from_slice(b"test");
+        tags.extend_from_slice(&(comments.len() as u32).to_le_bytes());
+        for comment in comments {
+            tags.extend_from_slice(&(comment.len() as u32).to_le_bytes());
+            tags.extend_from_slice(comment.as_bytes());
+        }
+
+        let mut out = page(0x02, 0, serial, 0, &head);
+        out.extend_from_slice(&page(0, 0, serial, 1, &tags));
+        // TOC 0xFC: CELT fullband, 20 ms, stereo, one frame.
+        let frame = [0xFC, 0xFF, 0xFE];
+        for n in 0..FRAMES_PER_STREAM {
+            let flags = if n + 1 == FRAMES_PER_STREAM { 0x04 } else { 0 };
+            let granule = u64::from(n + 1) * 960;
+            out.extend_from_slice(&page(flags, granule, serial, n + 2, &frame));
+        }
+        out
+    }
+
+    const FRAMES_PER_STREAM: u32 = 50;
+
+    /// Forward-only, as a live station is to the reader.
+    struct Live(Cursor<Vec<u8>>);
+
+    impl Read for Live {
+        fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+            self.0.read(buf)
+        }
+    }
+
+    impl Seek for Live {
+        fn seek(&mut self, _pos: SeekFrom) -> std::io::Result<u64> {
+            Err(std::io::ErrorKind::Unsupported.into())
+        }
+    }
+
+    impl MediaSource for Live {
+        fn is_seekable(&self) -> bool {
+            false
+        }
+
+        fn byte_len(&self) -> Option<u64> {
+            None
+        }
+    }
+
+    /// Decode all of `bytes`. Returns what the sink heard, with how many
+    /// frames had come out each time, and the frames in all.
+    fn heard(bytes: Vec<u8>, watch: bool) -> (Vec<(usize, StreamTags)>, usize) {
+        let mut stream = ActiveStream::open_from_source(
+            Box::new(Live(Cursor::new(bytes))),
+            Some("ogg"),
+            -1,
+            0,
+            "radio".to_string(),
+            None,
+            TrackGain::default(),
+        )
+        .expect("opens");
+        let frames = Arc::new(Mutex::new(0usize));
+        let log = Arc::new(Mutex::new(Vec::new()));
+        if watch {
+            let (frames, log) = (Arc::clone(&frames), Arc::clone(&log));
+            stream.watch_tags(Box::new(move |tags| {
+                log.lock().unwrap().push((*frames.lock().unwrap(), tags));
+            }));
+        }
+        let dst = stereo();
+        let (mut out, mut scratch) = (Vec::new(), Vec::new());
+        loop {
+            out.clear();
+            let ended = stream
+                .decode_next(&mut out, &mut scratch, 48_000, &dst)
+                .expect("decodes");
+            *frames.lock().unwrap() += out.len() / 2;
+            if ended {
+                break;
+            }
+        }
+        let total = *frames.lock().unwrap();
+        let log = log.lock().unwrap().clone();
+        (log, total)
+    }
+
+    fn named(title: &str, artist: Option<&str>) -> StreamTags {
+        StreamTags {
+            title: Some(title.to_string()),
+            artist: artist.map(str::to_string),
+        }
+    }
+
+    #[test]
+    fn each_stream_names_its_song_when_the_audio_reaches_it() {
+        let mut bytes = opus_stream(1, &["TITLE=First", "ARTIST=One", "ENCODER=x"]);
+        bytes.extend(opus_stream(2, &["TITLE=Second", "ARTIST=Two"]));
+        bytes.extend(opus_stream(3, &["TITLE=Third"]));
+        let (log, total) = heard(bytes, true);
+
+        let per_stream = FRAMES_PER_STREAM as usize * 960;
+        assert_eq!(total, 3 * per_stream);
+        let songs: Vec<_> = log.iter().map(|(_, tags)| tags.clone()).collect();
+        assert_eq!(
+            songs,
+            vec![
+                named("First", Some("One")),
+                named("Second", Some("Two")),
+                named("Third", None),
+            ]
+        );
+        // The first before any audio, the others at the join.
+        let at: Vec<_> = log.iter().map(|(frames, _)| *frames).collect();
+        assert_eq!(at, vec![0, per_stream, 2 * per_stream]);
+    }
+
+    #[test]
+    fn a_stream_that_names_nothing_clears_the_song_before_it() {
+        let mut bytes = opus_stream(1, &["TITLE=First"]);
+        bytes.extend(opus_stream(2, &[]));
+        bytes.extend(opus_stream(3, &["ARTIST=Only a station"]));
+        bytes.extend(opus_stream(4, &["TITLE=Fourth"]));
+        let (log, _) = heard(bytes, true);
+        let titles: Vec<_> = log.iter().map(|(_, tags)| tags.title.as_deref()).collect();
+        assert_eq!(titles, vec![Some("First"), None, None, Some("Fourth")]);
+    }
+
+    #[test]
+    fn a_first_stream_with_no_tags_does_not_hide_the_next_one() {
+        let mut bytes = opus_stream(1, &[]);
+        bytes.extend(opus_stream(2, &["TITLE=Second"]));
+        let (log, _) = heard(bytes, true);
+        assert_eq!(log[0].1, StreamTags::default());
+        assert_eq!(log[1].1, named("Second", None));
+    }
+
+    #[test]
+    fn values_are_bounded_on_one_line_and_noise_is_dropped() {
+        let long = format!("TITLE={}", "é".repeat(5_000));
+        let many: Vec<String> = (0..200).map(|n| format!("ARTIST=Artist {n}")).collect();
+        let mut comments = vec![long.as_str()];
+        comments.extend(many.iter().map(String::as_str));
+        let mut bytes = opus_stream(1, &comments);
+        bytes.extend(opus_stream(2, &["TITLE= -", "ARTIST="]));
+        bytes.extend(opus_stream(
+            3,
+            &["TITLE=Two\nlines\u{7}", "ARTIST=A", "ARTIST=B"],
+        ));
+        let (log, _) = heard(bytes, true);
+
+        let first = &log[0].1;
+        let title = first.title.as_deref().unwrap();
+        assert!(title.len() <= 512 && title.chars().all(|c| c == 'é'));
+        let artist = first.artist.as_deref().unwrap();
+        assert!(artist.len() <= 512 && artist.starts_with("Artist 0; Artist 1; "));
+
+        assert_eq!(log[1].1, StreamTags::default());
+        // Separated as every multi-artist value in the app is.
+        assert_eq!(log[2].1, named("Two lines", Some("A; B")));
+    }
+
+    #[test]
+    fn the_audio_is_the_same_whether_the_tags_are_watched_or_not() {
+        let mut bytes = opus_stream(1, &["TITLE=First"]);
+        bytes.extend(opus_stream(2, &["TITLE=Second"]));
+        let (log, watched) = heard(bytes.clone(), true);
+        let (none, plain) = heard(bytes, false);
+        assert_eq!(log.len(), 2);
+        assert!(none.is_empty());
+        assert_eq!(watched, plain);
+    }
+
+    #[test]
+    fn a_container_other_than_ogg_is_not_watched() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("t.wav");
+        write_wav(&path);
+        let mut stream = ActiveStream::open(
+            &path,
+            -1,
+            0,
+            "radio".to_string(),
+            None,
+            TrackGain::default(),
+            0,
+            false,
+        )
+        .unwrap();
+        stream.watch_tags(Box::new(|_| panic!("a WAV has no chained streams")));
+        let (mut out, mut scratch) = (Vec::new(), Vec::new());
+        stream
+            .decode_next(&mut out, &mut scratch, 48_000, &stereo())
+            .unwrap();
+    }
+}

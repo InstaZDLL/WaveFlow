@@ -21,12 +21,16 @@
 //!   stream. A multivariant playlist plays its best audio-only variant.
 //!   Encrypted segments and fragmented MP4 are refused.
 //!
+//! A title comes from the stream's ICY blocks, recorded at the offset they
+//! arrived at, or from the comment header of a chained Ogg stream, which the
+//! decoder reaches when the listener does ([`TitleGate`]).
+//!
 //! Nothing here runs on the audio callback; the ingest thread and the
 //! decoder thread may block, the callback never waits on either.
 
 use std::io::{self, Read, Seek, SeekFrom};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex, Weak};
+use std::sync::{Arc, Mutex, PoisonError, Weak};
 use std::time::{Duration, Instant};
 
 use serde::Serialize;
@@ -34,6 +38,7 @@ use symphonia::core::io::MediaSource;
 use tauri::{AppHandle, Emitter};
 use waveflow_core::playback::hls::playlist::{self as hls, HlsError, Playlist};
 use waveflow_core::playback::hls::ts::{self, AudioKind, TsDemuxer};
+use waveflow_core::playback::stream::{StreamTags, TagSink};
 use waveflow_core::playback::timeshift::{Buffer, End};
 
 use super::events::{emit_radio_metadata, RadioMetadataPayload};
@@ -131,8 +136,7 @@ pub fn note_paused(paused: bool) {
 /// The decoder's side of a live station.
 pub struct LiveSource {
     buffer: Arc<Buffer>,
-    station: Station,
-    last_title: Option<String>,
+    now_playing: Arc<NowPlaying>,
 }
 
 impl LiveSource {
@@ -146,9 +150,17 @@ impl LiveSource {
         }
         Self {
             buffer,
-            station,
-            last_title: None,
+            now_playing: Arc::new(NowPlaying {
+                station,
+                gate: Mutex::new(TitleGate::default()),
+            }),
         }
+    }
+
+    /// Where the decoder sends what the stream's own tags name.
+    pub fn tag_sink(&self) -> TagSink {
+        let now_playing = Arc::clone(&self.now_playing);
+        Box::new(move |tags| now_playing.tags_read(tags))
     }
 }
 
@@ -166,10 +178,7 @@ impl Read for LiveSource {
             match self.buffer.read(buf, READ_WAIT) {
                 Ok(n) => {
                     if let Some(title) = self.buffer.take_title() {
-                        if title != self.last_title {
-                            self.last_title = title.clone();
-                            emit_now_playing(&self.station, title.as_deref());
-                        }
+                        self.now_playing.icy_title_passed(title.as_deref());
                     }
                     return Ok(n);
                 }
@@ -221,21 +230,99 @@ fn split_artist_title(raw: &str) -> (String, Option<String>) {
     }
 }
 
-/// Emit `player:radio-metadata` with the song being heard. `raw` is the
-/// `StreamTitle`, or `None` when the station cleared it (back to "just the
-/// station"). Keeps the station artwork on every update and falls back to
-/// the station name for the artist line.
-fn emit_now_playing(station: &Station, raw: Option<&str>) {
+/// A song as the player bar shows it: its title, and its artist if known.
+type SongLine = (String, Option<String>);
+
+/// A song from a stream's own tags. No title is no song, whatever else the
+/// header says: some stations put only their own name in `ARTIST`. Most Ogg
+/// stations put the whole `Artist - Title` in `TITLE`, like a `StreamTitle`.
+fn song_from_tags(tags: StreamTags) -> Option<SongLine> {
+    let title = tags.title?;
+    Some(match tags.artist {
+        Some(artist) => (title, Some(artist)),
+        None => split_artist_title(&title),
+    })
+}
+
+/// Decides what a station's titles change on screen. A stream may name its
+/// song twice over, ICY blocks interleaved with Ogg pages, and the two
+/// usually agree: each change goes out once, since each one starts a cover
+/// lookup. Where they differ ICY decides, as it did before Ogg tags were read,
+/// and a stream's header no longer clears or replaces it once it has spoken.
+#[derive(Default)]
+struct TitleGate {
+    shown: Option<SongLine>,
+    icy_spoke: bool,
+}
+
+impl TitleGate {
+    fn show(&mut self, song: Option<SongLine>) -> Option<Option<SongLine>> {
+        if song == self.shown {
+            return None;
+        }
+        self.shown = song.clone();
+        Some(song)
+    }
+
+    /// What to show after a `StreamTitle` change, `None` for no change.
+    fn icy(&mut self, raw: Option<&str>) -> Option<Option<SongLine>> {
+        self.icy_spoke |= raw.is_some();
+        self.show(raw.map(split_artist_title))
+    }
+
+    /// What to show after a new logical stream, `None` for no change.
+    fn tags(&mut self, tags: StreamTags) -> Option<Option<SongLine>> {
+        if self.icy_spoke {
+            return None;
+        }
+        self.show(song_from_tags(tags))
+    }
+}
+
+/// The song line of the station being played.
+struct NowPlaying {
+    station: Station,
+    gate: Mutex<TitleGate>,
+}
+
+impl NowPlaying {
+    /// The reader passed the offset of a `StreamTitle` change.
+    fn icy_title_passed(&self, raw: Option<&str>) {
+        let change = self
+            .gate
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .icy(raw);
+        if let Some(song) = change {
+            emit_now_playing(&self.station, song);
+        }
+    }
+
+    /// The decoder reached a new logical stream.
+    fn tags_read(&self, tags: StreamTags) {
+        let change = self
+            .gate
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .tags(tags);
+        if let Some(song) = change {
+            emit_now_playing(&self.station, song);
+        }
+    }
+}
+
+/// Emit `player:radio-metadata` with the song being heard, or `None` when the
+/// station stopped naming one (back to "just the station"). Keeps the station
+/// artwork on every update and falls back to the station name for the artist
+/// line. What the stream said stays out of the log.
+fn emit_now_playing(station: &Station, song: Option<SongLine>) {
     tracing::info!(
         track_id = station.track_id,
-        stream_title = ?raw,
-        "radio ICY now-playing"
+        has_title = song.is_some(),
+        "radio now-playing changed"
     );
-    let (title, artist) = match raw {
-        Some(raw) => {
-            let (title, artist) = split_artist_title(raw);
-            (Some(title), artist.or_else(|| station.artist.clone()))
-        }
+    let (title, artist) = match song {
+        Some((title, artist)) => (Some(title), artist.or_else(|| station.artist.clone())),
         None => (None, station.artist.clone()),
     };
     emit_radio_metadata(

@@ -1091,7 +1091,11 @@
       "title": "Velocidade de reprodução",
       "slider": "Controle de velocidade",
       "custom": "Velocidade personalizada",
-      "pitchHint": "O tom acompanha a velocidade (sem time-stretching)."
+      "keepPitch": "Manter o tom",
+      "transpose": "Transpor",
+      "transposeDown": "Descer um semitom",
+      "transposeUp": "Subir um semitom",
+      "transposeReset": "Voltar ao tom original"
     },
     "seek": "Posição",
     "alert": {
@@ -1649,7 +1653,8 @@
         "dopNative": "DSD nativo",
         "volume": "Volume {{value}} %",
         "balance": "Balanço",
-        "width": "Largura {{value}}%"
+        "width": "Largura {{value}}%",
+        "pitch": "Tom {{value}}"
       }
     },
     "outputMode": {
@@ -4073,6 +4078,10 @@
       "same": "Esta pasta já está na biblioteca: {{folder}}",
       "inside": "Esta pasta já está na biblioteca, dentro de {{folder}}.",
       "contains": "Esta pasta contém {{folder}}, que já está na biblioteca. Adicione as outras subpastas dela."
+    },
+    "unreachable": {
+      "title": "Pasta da biblioteca inacessível",
+      "body": "Ela não foi encontrada ou não pode ser lida; talvez seja um disco desconectado. As faixas continuam na biblioteca, sem alterações."
     }
   },
   "playlistImport": {

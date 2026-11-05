@@ -87,3 +87,81 @@ fn split_artist_title_splits_on_separator() {
         ("Artist - ".to_string(), None)
     );
 }
+
+fn tags(title: Option<&str>, artist: Option<&str>) -> StreamTags {
+    StreamTags {
+        title: title.map(str::to_string),
+        artist: artist.map(str::to_string),
+    }
+}
+
+fn song(title: &str, artist: Option<&str>) -> SongLine {
+    (title.to_string(), artist.map(str::to_string))
+}
+
+#[test]
+fn a_title_with_no_artist_is_split_like_a_stream_title() {
+    assert_eq!(
+        song_from_tags(tags(Some("Air - Talisman"), None)),
+        Some(song("Talisman", Some("Air")))
+    );
+    assert_eq!(
+        song_from_tags(tags(Some("Dance Wave!"), None)),
+        Some(song("Dance Wave!", None))
+    );
+    // An `ARTIST` of its own leaves a dash in the title alone.
+    assert_eq!(
+        song_from_tags(tags(Some("Side - B"), Some("Azuma"))),
+        Some(song("Side - B", Some("Azuma")))
+    );
+    // A station's own name in `ARTIST`, and no title: no song.
+    assert_eq!(song_from_tags(tags(None, Some("A Station"))), None);
+}
+
+#[test]
+fn each_chained_stream_changes_the_line_and_one_without_a_title_clears_it() {
+    let mut gate = TitleGate::default();
+    // A stream that names nothing, on a line that shows nothing: no event.
+    assert_eq!(gate.tags(tags(None, None)), None);
+    assert_eq!(
+        gate.tags(tags(Some("First"), Some("One"))),
+        Some(Some(song("First", Some("One"))))
+    );
+    // A reconnect brings the same header again: no second cover lookup.
+    assert_eq!(gate.tags(tags(Some("First"), Some("One"))), None);
+    assert_eq!(gate.tags(tags(None, None)), Some(None));
+}
+
+#[test]
+fn icy_and_tags_naming_the_same_song_change_the_line_once() {
+    let mut gate = TitleGate::default();
+    assert_eq!(
+        gate.tags(tags(Some("Air - Talisman"), None)),
+        Some(Some(song("Talisman", Some("Air"))))
+    );
+    assert_eq!(gate.icy(Some("Air - Talisman")), None);
+}
+
+#[test]
+fn icy_decides_once_it_has_spoken() {
+    let mut gate = TitleGate::default();
+    assert_eq!(
+        gate.icy(Some("Moby - Porcelain")),
+        Some(Some(song("Porcelain", Some("Moby"))))
+    );
+    // Neither a header naming nothing nor one naming something else.
+    assert_eq!(gate.tags(tags(None, None)), None);
+    assert_eq!(gate.tags(tags(Some("Other"), None)), None);
+    // The station clearing its title is still heard.
+    assert_eq!(gate.icy(None), Some(None));
+}
+
+#[test]
+fn a_stream_title_that_was_never_set_leaves_the_tags_in_charge() {
+    let mut gate = TitleGate::default();
+    assert_eq!(gate.icy(None), None);
+    assert_eq!(
+        gate.tags(tags(Some("Song"), None)),
+        Some(Some(song("Song", None)))
+    );
+}

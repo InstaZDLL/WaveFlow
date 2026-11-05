@@ -1048,7 +1048,11 @@
       "title": "Kecepatan pemutaran",
       "slider": "Penggeser kecepatan",
       "custom": "Kecepatan kustom",
-      "pitchHint": "Nada mengikuti kecepatan (tanpa peregangan waktu)."
+      "keepPitch": "Pertahankan nada",
+      "transpose": "Transposisi",
+      "transposeDown": "Turun setengah nada",
+      "transposeUp": "Naik setengah nada",
+      "transposeReset": "Kembali ke nada asli"
     },
     "seek": "Geser posisi",
     "alert": {
@@ -1592,7 +1596,8 @@
         "dopNative": "DSD asli",
         "volume": "Volume {{value}}%",
         "balance": "Keseimbangan",
-        "width": "Lebar {{value}}%"
+        "width": "Lebar {{value}}%",
+        "pitch": "Nada {{value}}"
       }
     },
     "outputMode": {
@@ -3961,6 +3966,10 @@
       "same": "Folder ini sudah ada di pustaka: {{folder}}",
       "inside": "Folder ini sudah ada di pustaka, di dalam {{folder}}.",
       "contains": "Folder ini berisi {{folder}}, yang sudah ada di pustaka. Tambahkan subfolder lainnya saja."
+    },
+    "unreachable": {
+      "title": "Folder pustaka tidak dapat dijangkau",
+      "body": "Folder hilang atau tidak dapat dibaca, mungkin drive-nya sedang dilepas. Lagu-lagunya tetap ada di pustaka tanpa perubahan."
     }
   },
   "playlistImport": {
