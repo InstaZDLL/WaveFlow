@@ -67,6 +67,20 @@ fn the_front_cover_is_the_one_extracted_wherever_it_sits() {
         blake3::hash(&[0x11; 32]).to_hex().to_string()
     );
 
+    // An empty front cover behind a real image does not hide it.
+    let mut hollow = Tag::new(TagType::VorbisComments);
+    hollow.push_picture(picture(PictureType::Other, 0x33));
+    hollow.push_picture(
+        Picture::unchecked(Vec::new())
+            .pic_type(PictureType::CoverFront)
+            .mime_type(MimeType::Png)
+            .build(),
+    );
+    assert_eq!(
+        extracted(&hollow),
+        blake3::hash(&[0x33; 32]).to_hex().to_string()
+    );
+
     // No front cover among them: the first, as ever.
     let mut unmarked = Tag::new(TagType::VorbisComments);
     unmarked.push_picture(picture(PictureType::Other, 0x33));

@@ -85,10 +85,13 @@ pub fn extension_for_mime(mime: Option<&MimeType>) -> &'static str {
 /// overwrite on re-scan.
 pub fn extract_cover(tag: &Tag, artwork_dir: &Path) -> Option<ExtractedCover> {
     // Not simply the first: a replaced cover lands behind the images a file
-    // already holds, its back cover and booklet among them.
-    let picture = tag
-        .get_picture_type(lofty::picture::PictureType::CoverFront)
-        .or_else(|| tag.pictures().first())?;
+    // already holds, its back cover and booklet among them. An empty front
+    // cover is passed over rather than taken, or it would hide the rest.
+    let pictures = tag.pictures();
+    let picture = pictures
+        .iter()
+        .find(|p| p.pic_type() == lofty::picture::PictureType::CoverFront && !p.data().is_empty())
+        .or_else(|| pictures.first())?;
     let bytes = picture.data();
     if bytes.is_empty() {
         return None;
