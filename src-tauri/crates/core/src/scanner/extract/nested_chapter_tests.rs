@@ -995,3 +995,41 @@ fn a_tag_of_a_version_with_no_chapter_frame_reaches_no_recursion() {
         });
     }
 }
+
+/// A reader interrupted once: nothing failed, so the read is tried again, and the tag
+/// behind it is looked at like any other.
+struct InterruptedOnce {
+    inner: Cursor<Vec<u8>>,
+    interrupted: bool,
+}
+
+impl std::io::Read for InterruptedOnce {
+    fn read(&mut self, buffer: &mut [u8]) -> std::io::Result<usize> {
+        if !self.interrupted {
+            self.interrupted = true;
+            return Err(std::io::ErrorKind::Interrupted.into());
+        }
+        self.inner.read(buffer)
+    }
+}
+
+impl std::io::Seek for InterruptedOnce {
+    fn seek(&mut self, to: std::io::SeekFrom) -> std::io::Result<u64> {
+        self.inner.seek(to)
+    }
+}
+
+#[test]
+fn a_read_that_is_interrupted_is_tried_again_and_hides_nothing() {
+    use crate::tagio::chapter_nesting::{check_reader, NestedChapters};
+
+    let interrupted = |bytes: Vec<u8>| InterruptedOnce {
+        inner: Cursor::new(bytes),
+        interrupted: false,
+    };
+    let hostile = mp3(&tag(&nested(4, &[b"CHAP"], 64)));
+    assert_eq!(check_reader(&mut interrupted(hostile)), Err(NestedChapters));
+    // And it costs a good file nothing.
+    let good = mp3(&tag(&title(4, "Kept")));
+    assert_eq!(check_reader(&mut interrupted(good)), Ok(()));
+}

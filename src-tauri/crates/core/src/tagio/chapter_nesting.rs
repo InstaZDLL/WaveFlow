@@ -255,9 +255,13 @@ fn read_at<R: Read + Seek>(reader: &mut R, at: u64, buffer: &mut [u8]) -> io::Re
     reader.seek(SeekFrom::Start(at))?;
     let mut filled = 0;
     while filled < buffer.len() {
-        match reader.read(&mut buffer[filled..])? {
-            0 => break,
-            read => filled += read,
+        match reader.read(&mut buffer[filled..]) {
+            Ok(0) => break,
+            Ok(read) => filled += read,
+            // What `read_exact` and `read_to_end` do by themselves. Nothing failed, so
+            // the reader under the check does not count it, and this must not end the walk.
+            Err(e) if e.kind() == io::ErrorKind::Interrupted => {}
+            Err(e) => return Err(e),
         }
     }
     Ok(filled)
