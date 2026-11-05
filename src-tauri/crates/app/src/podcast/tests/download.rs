@@ -7,8 +7,8 @@ use std::sync::atomic::AtomicI64;
 use tokio::sync::watch;
 
 use super::super::download::{
-    delete_download, download_episode, stored_file, sweep, DownloadObserver, DownloadState,
-    DownloadUpdate, Ended, Job, Pace, Pushed, Queue, Swept, EPISODE_GONE,
+    delete_download, download_episode, record_in_place, stored_file, sweep, DownloadObserver,
+    DownloadState, DownloadUpdate, Ended, Job, Pace, Pushed, Queue, Swept, EPISODE_GONE,
 };
 use super::*;
 
@@ -952,6 +952,86 @@ async fn unsubscribing_during_a_download_leaves_no_file() {
     assert!(names_in(dir.path()).is_empty());
 }
 
+/// An episode removed while its body was being read stays removed, and its hidden row
+/// holds no file against the quota.
+#[tokio::test]
+async fn removing_an_episode_during_its_download_leaves_no_file() {
+    let bytes = {
+        let mut out =
+            b"HTTP/1.1 200 OK\r\nContent-Length: 4096\r\nConnection: close\r\n\r\n".to_vec();
+        out.extend_from_slice(&audio(4096));
+        out
+    };
+    let server = serve(move |_| Reply::Late(bytes.clone())).await;
+    let pool = enabled_pool().await;
+    let dir = folder();
+    let (_, episode) =
+        episode_at(&pool, Some(&server.local("/feed")), &server.local("/a.mp3")).await;
+    let leases = TestLeases(pool.clone());
+    let fetcher = fetcher();
+    let (_keep, cancel) = watch::channel(false);
+    let seen = Seen::default();
+    let download = download_episode(
+        &leases,
+        &fetcher,
+        dir.path(),
+        episode,
+        quick(),
+        cancel,
+        &seen,
+    );
+    let ended = tokio::join!(download, async {
+        while server.hits() == 0 {
+            tokio::time::sleep(Duration::from_millis(5)).await;
+        }
+        sqlx::query("UPDATE podcast_episode SET deleted_at = 1 WHERE id = ?")
+            .bind(episode)
+            .execute(&pool)
+            .await
+            .unwrap();
+    })
+    .0;
+
+    assert_eq!(ended, Ended::Failed(EPISODE_GONE.to_owned()));
+    assert!(names_in(dir.path()).is_empty());
+    assert_eq!(recorded(&pool, episode).await, (None, None, None));
+}
+
+/// A delete sets the flag, then reads the row. One that read it just before the row was
+/// written found nothing to remove, so what writes the row has to look at the flag
+/// again, or the episode the user removed stays on disk.
+#[tokio::test]
+async fn a_delete_landing_as_the_row_is_written_leaves_nothing() {
+    let pool = enabled_pool().await;
+    let dir = folder();
+    let (_, episode) = episode_at(&pool, Some(SECURE_FEED), "https://example.org/a.mp3").await;
+    let name = format!("{episode}.mp3");
+    let target = dir.path().join(&name);
+    std::fs::write(&target, audio(64)).unwrap();
+    let (stop, cancel) = watch::channel(true);
+
+    let result = record_in_place(&pool, &target, episode, &name, 64, &cancel).await;
+
+    assert!(matches!(
+        result,
+        Err(crate::podcast::download::Stop::Cancelled)
+    ));
+    assert!(!target.exists());
+    assert_eq!(recorded(&pool, episode).await, (None, None, None));
+
+    // Nobody asked: the row stays, and a delete arriving now finds it.
+    std::fs::write(&target, audio(64)).unwrap();
+    stop.send_replace(false);
+    let result = record_in_place(&pool, &target, episode, &name, 64, &cancel).await;
+    assert!(matches!(result, Ok(64)));
+    assert_eq!(
+        recorded(&pool, episode).await.0.as_deref(),
+        Some(name.as_str())
+    );
+    assert!(delete_download(&pool, dir.path(), episode).await.unwrap());
+    assert!(!target.exists());
+}
+
 #[tokio::test]
 async fn deleting_a_download_keeps_the_row_with_the_switch_off_too() {
     let server = serve(|_| audio_reply(4096)).await;
@@ -1059,7 +1139,9 @@ async fn a_stored_name_that_is_not_ours_is_never_opened_or_removed() {
         store::record_download(&pool, episode, name, 7)
             .await
             .unwrap();
-        sweep(&pool, &dir, |_| false, true).await.unwrap();
+        sweep(&pool, &dir, outer.path(), |_| false, true)
+            .await
+            .unwrap();
         assert!(precious.is_file(), "{name} reached outside by a sweep");
         assert_eq!(recorded(&pool, episode).await.0, None, "{name} stayed");
 
@@ -1220,7 +1302,9 @@ async fn a_sweep_removes_what_a_crash_left_and_nothing_else() {
     // Not ours: nothing here knows what it is.
     std::fs::write(dir.path().join("desktop.ini"), b"[.]").unwrap();
 
-    let swept = sweep(&pool, dir.path(), |_| false, true).await.unwrap();
+    let swept = sweep(&pool, dir.path(), dir.path(), |_| false, true)
+        .await
+        .unwrap();
 
     assert_eq!(
         swept,
@@ -1245,7 +1329,9 @@ async fn a_sweep_removes_what_a_crash_left_and_nothing_else() {
         "the quota counts what is left"
     );
     assert_eq!(
-        sweep(&pool, dir.path(), |_| false, true).await.unwrap(),
+        sweep(&pool, dir.path(), dir.path(), |_| false, true)
+            .await
+            .unwrap(),
         Swept::default(),
         "a second look finds nothing"
     );
@@ -1262,7 +1348,7 @@ async fn a_sweep_leaves_the_download_under_way_alone() {
     std::fs::write(&partial, b"x").unwrap();
     std::fs::write(&renamed, b"x").unwrap();
 
-    let swept = sweep(&pool, dir.path(), move |id| id == writing, true)
+    let swept = sweep(&pool, dir.path(), dir.path(), move |id| id == writing, true)
         .await
         .unwrap();
 
@@ -1282,13 +1368,61 @@ async fn a_sweep_of_a_folder_it_cannot_trust_keeps_the_rows() {
         .await
         .unwrap();
 
-    let swept = sweep(&pool, dir.path(), |_| false, false).await.unwrap();
+    let swept = sweep(&pool, dir.path(), dir.path(), |_| false, false)
+        .await
+        .unwrap();
 
     assert_eq!(swept.orphan_rows, 0);
     assert_eq!(
         recorded(&pool, episode).await.0.as_deref(),
         Some(name.as_str())
     );
+}
+
+/// The same drive, gone after launch: a sweep on a profile switch cannot tell a file
+/// that is gone from a folder that does not answer, and must not clear what it cannot
+/// see. The next one, with the drive back, would remove the files as orphans.
+#[tokio::test]
+async fn a_folder_that_does_not_answer_clears_no_row() {
+    let pool = enabled_pool().await;
+    let outer = folder();
+    let (_, episode) = episode_at(&pool, Some(SECURE_FEED), "https://example.org/a.mp3").await;
+    let name = format!("{episode}.mp3");
+    store::record_download(&pool, episode, &name, 10)
+        .await
+        .unwrap();
+
+    // The caches' root is not there: a drive unplugged.
+    let unplugged = outer.path().join("unplugged");
+    let dir = unplugged.join("profiles/1/podcast-downloads");
+    let swept = sweep(&pool, &dir, &unplugged, |_| false, true)
+        .await
+        .unwrap();
+    assert_eq!(swept.orphan_rows, 0);
+    assert_eq!(
+        recorded(&pool, episode).await.0.as_deref(),
+        Some(name.as_str())
+    );
+
+    // The folder cannot be listed, whatever the reason.
+    let not_a_folder = outer.path().join("not-a-folder");
+    std::fs::write(&not_a_folder, b"x").unwrap();
+    let swept = sweep(&pool, &not_a_folder, outer.path(), |_| false, true)
+        .await
+        .unwrap();
+    assert_eq!(swept.orphan_rows, 0);
+    assert_eq!(
+        recorded(&pool, episode).await.0.as_deref(),
+        Some(name.as_str())
+    );
+
+    // The root answers and the folder is gone: so is the file, and the row goes.
+    let removed = outer.path().join("removed");
+    let swept = sweep(&pool, &removed, outer.path(), |_| false, true)
+        .await
+        .unwrap();
+    assert_eq!(swept.orphan_rows, 1);
+    assert_eq!(recorded(&pool, episode).await, (None, None, None));
 }
 
 /// A task dropped halfway, the way a runtime going down drops one, takes its partial

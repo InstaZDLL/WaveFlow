@@ -10,7 +10,7 @@ Standalone podcasts in the desktop app, off by default. The design and its reaso
 | 4   | Downloads: managed folder, quota, cancel, Disk usage                               | This page |
 | 5+  | The page, chapters and transcript panel, the server's podcasts                     | Not yet   |
 
-There is no page yet, so the only part of this reachable from the interface is the player while an episode plays: the commands and the setting exist for the lots that build on them.
+There is no Podcasts page yet, so what is reachable from the interface is the player while an episode plays and the line for downloaded episodes in Settings → Storage and backups → Disk space. The commands and the settings exist for the lots that build on them.
 
 ## The switch
 
@@ -113,11 +113,11 @@ A refresh and an import each take a `TaskHandle` of kind `podcast_refresh`, one 
 
 **Cancelling** is `podcast_cancel_download` or the status bar: the job takes a `TaskHandle` of kind `podcast_download`, and the registry calls the stop the job already has, which interrupts a wait on a host too. Nothing stays.
 
-**Deleting** removes the file, then what the row says of it, and the row stays with its position. Unsubscribing takes the channel's jobs out of the line, stops the one running, and removes its files once the rows have gone.
+**Deleting** removes the file, then what the row says of it, and the row stays with its position. It stops a download of that episode first, and one too far along to stop looks again once its row is written, so what was removed does not come back. Unsubscribing takes the channel's jobs out of the line, stops the one running, and removes its files once the rows have gone.
 
-**What a crash leaves** is cleaned up by `sweep`, at launch and each time a profile becomes active, parked behind a scan: a partial file, a file no row names (killed between the rename and the row), a row whose file is gone. A name that is not ours is left alone. When the caches' drive is unplugged and the session fell back to the default location, rows are kept, or every download would be lost by the time it returns.
+**What a crash leaves** is cleaned up by `sweep`, at launch and each time a profile becomes active, parked behind a scan: a partial file, a file no row names (killed between the rename and the row), a row whose file is gone. A name that is not ours is left alone. **A folder that does not answer clears no row:** one that cannot be listed, one missing along with the caches' root, as on a drive unplugged after launch, and a session that fell back to the default location because it was unplugged at launch. Clearing them would lose every download by the time the drive returns, since the next sweep would find files no row names.
 
-**The event** `podcast:download` carries `{ episodeId, state, receivedBytes, totalBytes, errorWord }`, `state` being `queued`, `running`, `done`, `failed` or `cancelled`, at most about four times a second, and only about the active profile: an episode's id is unique inside a profile only, so a job of the last one says nothing more once it has been left. A view opened meanwhile subscribes first, then calls `podcast_download_queue`. `done` is followed by `podcast:updated`.
+**The event** `podcast:download` carries `{ episodeId, state, receivedBytes, totalBytes, errorWord }`, `state` being `queued`, `running`, `done`, `failed` or `cancelled`, at most about four times a second, and only about the active profile: an episode's id is unique inside a profile only, so a job of the last one says nothing more once it has been left. A view opened meanwhile subscribes first, then calls `podcast_download_queue`. A `done` that brought a new file is followed by `podcast:updated`; one for an episode already on disk changes nothing, and is not.
 
 ## Chapters and transcripts
 

@@ -799,7 +799,8 @@ pub(crate) async fn download_used_bytes(
 }
 
 /// Records a file put in place. False, with nothing written, when the episode is
-/// gone: the channel was unsubscribed from while the body was being read.
+/// gone: the channel was unsubscribed from while the body was being read, or the
+/// user removed the episode, whose hidden row must not hold a file against the quota.
 pub(crate) async fn record_download(
     pool: &SqlitePool,
     episode_id: i64,
@@ -809,7 +810,7 @@ pub(crate) async fn record_download(
     let updated = sqlx::query(
         "UPDATE podcast_episode
             SET download_file = ?, download_size = ?, downloaded_at = ?
-          WHERE id = ?",
+          WHERE id = ? AND deleted_at IS NULL",
     )
     .bind(file)
     .bind(size as i64)

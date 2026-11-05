@@ -166,7 +166,7 @@ pub(crate) enum Ended {
 /// Why a download stopped short, kept apart from the word so nothing can be
 /// logged but the word.
 #[derive(Debug)]
-enum Stop {
+pub(super) enum Stop {
     Cancelled,
     ProfileChanged,
     Word(String),
@@ -582,14 +582,37 @@ async fn finish<L: Leases>(
     rename_into_place(partial.path.clone(), target.clone()).await?;
     // Renamed, so the guard's remove finds nothing.
     drop(partial);
-    match with_busy_retry(|| store::record_download(&pool, episode_id, &final_name, size)).await {
+    record_in_place(&pool, &target, episode_id, &final_name, size, &cancel).await
+}
+
+/// Writes the row of a file now under its name, and takes the file back when it must
+/// not stay.
+///
+/// `cancel` is read again once the row is written. A delete sets it before it reads
+/// the row, so one that landed after the check before the rename is seen here, and
+/// one that lands later finds the row and removes the file itself. Either way, what
+/// the user removed does not come back.
+pub(super) async fn record_in_place(
+    pool: &sqlx::SqlitePool,
+    target: &Path,
+    episode_id: i64,
+    file: &str,
+    size: u64,
+    cancel: &watch::Receiver<bool>,
+) -> Result<u64, Stop> {
+    match with_busy_retry(|| store::record_download(pool, episode_id, file, size)).await {
+        Ok(true) if *cancel.borrow() => {
+            remove_quietly(target).await;
+            with_busy_retry(|| store::clear_download(pool, episode_id)).await?;
+            Err(Stop::Cancelled)
+        }
         Ok(true) => Ok(size),
         Ok(false) => {
-            remove_quietly(&target).await;
+            remove_quietly(target).await;
             Err(Stop::Word(EPISODE_GONE.to_owned()))
         }
         Err(err) => {
-            remove_quietly(&target).await;
+            remove_quietly(target).await;
             Err(err.into())
         }
     }
@@ -798,12 +821,15 @@ pub(crate) struct Swept {
 /// its row among them. `writing` is asked again before each removal, for a download
 /// that began meanwhile, and each row's file is looked for last.
 ///
-/// `check_rows` is false when the folder cannot be trusted to hold what the rows
-/// name: the caches' drive is unplugged and this session fell back to the default
-/// location, and clearing the rows would lose every download by the time it returns.
+/// A row is cleared only when the folder answers for it. `check_rows` is false when
+/// this session fell back to the default location because the caches' drive was
+/// unplugged at launch, and [`folder_answers`] covers one that goes away afterwards:
+/// clearing the rows would lose every download by the time the drive returns, since
+/// the next sweep would then find files no row names.
 pub(crate) async fn sweep(
     pool: &sqlx::SqlitePool,
     dir: &Path,
+    cache_root: &Path,
     writing: impl Fn(i64) -> bool + Send + 'static,
     check_rows: bool,
 ) -> Result<Swept, sqlx::Error> {
@@ -830,6 +856,7 @@ pub(crate) async fn sweep(
     let rows = store::all_downloads(pool).await?;
     let recorded: HashSet<String> = rows.iter().map(|(_, name)| name.clone()).collect();
     let folder = dir.to_path_buf();
+    let root = cache_root.to_path_buf();
     let (partial_files, orphan_files, gone) = tokio::task::spawn_blocking(move || {
         let (mut partials, mut orphans) = (0, 0);
         for name in listed {
@@ -845,6 +872,7 @@ pub(crate) async fn sweep(
                 }
             }
         }
+        let check_rows = check_rows && folder_answers(&folder, &root);
         let gone: Vec<i64> = rows
             .iter()
             .filter(|(id, name)| check_rows && stored_file(&folder, *id, name).is_none())
@@ -863,6 +891,18 @@ pub(crate) async fn sweep(
         orphan_files,
         orphan_rows: gone.len(),
     })
+}
+
+/// Whether a file missing from `folder` is really gone. A folder that cannot be listed
+/// says nothing about what is in it. One that is not there says the same when the
+/// caches' root is not there either, which is what a drive unplugged looks like; under
+/// a root that is there, it has been removed.
+fn folder_answers(folder: &Path, cache_root: &Path) -> bool {
+    match std::fs::read_dir(folder) {
+        Ok(_) => true,
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => cache_root.is_dir(),
+        Err(_) => false,
+    }
 }
 
 static SWEEP_WAKE: Notify = Notify::const_new();
@@ -908,7 +948,7 @@ async fn sweep_active_profile(app: &AppHandle) {
     let dir = state.paths.profile_podcast_download_dir(profile_id);
     let check_rows = state.cache_root_fallback.is_none();
     let writing = move |episode_id| queue().in_flight(profile_id).0 == Some(episode_id);
-    match sweep(&pool, &dir, writing, check_rows).await {
+    match sweep(&pool, &dir, &state.paths.cache_root, writing, check_rows).await {
         Ok(swept) if swept != Swept::default() => tracing::info!(
             profile_id,
             partial_files = swept.partial_files,
