@@ -52,6 +52,11 @@ pub(crate) enum PodcastError {
     /// The active profile changed while this was running. Nothing more was
     /// written.
     ProfileChanged,
+    /// No such episode, or one the user removed.
+    EpisodeGone,
+    /// An episode with no file and no address: a restored profile, until the
+    /// feed is subscribed to again.
+    NoSource,
     Database(sqlx::Error),
     Other(AppError),
 }
@@ -80,6 +85,8 @@ impl From<PodcastError> for AppError {
                 AppError::Other(format!("podcast: {}", failure.code()))
             }
             PodcastError::ProfileChanged => AppError::Other("podcast: profile_changed".into()),
+            PodcastError::EpisodeGone => AppError::Other("podcast: episode_gone".into()),
+            PodcastError::NoSource => AppError::Other("podcast: no_source".into()),
             PodcastError::Database(err) => AppError::Database(err),
             PodcastError::Other(err) => err,
         }
@@ -671,7 +678,7 @@ async fn wait_out_library_scan(observer: &impl PassObserver) {
 /// Runs a write again while it meets a busy database, with a short backoff: a
 /// library scan or a play being recorded can hold the single writer for a
 /// moment, and a lost write here would be a feed fetched for nothing.
-async fn with_busy_retry<T, F, Fut>(mut write: F) -> Result<T, sqlx::Error>
+pub(crate) async fn with_busy_retry<T, F, Fut>(mut write: F) -> Result<T, sqlx::Error>
 where
     F: FnMut() -> Fut,
     Fut: Future<Output = Result<T, sqlx::Error>>,

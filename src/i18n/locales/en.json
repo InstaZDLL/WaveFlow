@@ -1054,7 +1054,8 @@
       "transpose": "Transpose",
       "transposeDown": "Down one semitone",
       "transposeUp": "Up one semitone",
-      "transposeReset": "Back to the original pitch"
+      "transposeReset": "Back to the original pitch",
+      "transposeNotForEpisodes": "Not applied to episodes"
     },
     "seek": "Seek",
     "alert": {
@@ -1086,6 +1087,10 @@
       "behind": "{{time}} behind live",
       "goLive": "Back to live",
       "behindState": "Behind live"
+    },
+    "podcast": {
+      "back15": "Back 15 s",
+      "forward30": "Forward 30 s"
     }
   },
   "queue": {

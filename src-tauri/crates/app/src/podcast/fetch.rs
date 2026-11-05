@@ -77,6 +77,11 @@ impl Origin {
         }
     }
 
+    /// The stricter of the two rules, for an address with no typed one behind it.
+    pub(crate) fn public() -> Self {
+        Self { public: true }
+    }
+
     pub(crate) fn is_public(self) -> bool {
         self.public
     }
@@ -160,6 +165,12 @@ impl Fetcher {
             offline,
             feed_deadline,
         })
+    }
+
+    /// How offline mode is asked about, for what reads a body long after opening
+    /// it.
+    pub(crate) fn offline_check(&self) -> fn() -> bool {
+        self.offline
     }
 
     /// Opens `url` under every rule above, following redirects by hand, and

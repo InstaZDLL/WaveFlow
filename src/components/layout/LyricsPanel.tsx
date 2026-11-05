@@ -82,6 +82,7 @@ export function LyricsPanel({
     isRadio,
     isRemote,
     isFile,
+    isPodcast,
     activeIndex,
     activeWordIndex,
     activeBackgroundWordIndex,
@@ -158,7 +159,7 @@ export function LyricsPanel({
   // A radio session and a remote-source stream both lack a library row, so
   // the row-scoped actions (edit / import / refetch / clear / the provider
   // picker) apply to neither — they're keyed by track_id / file_hash.
-  const noLibraryRow = isRadio || isRemote || isFile;
+  const noLibraryRow = isRadio || isRemote || isFile || isPodcast;
 
   // The "What's new" panel asks for the editor, on a panel it may have just
   // opened. The editor reads its lyrics once, when it opens, so a request

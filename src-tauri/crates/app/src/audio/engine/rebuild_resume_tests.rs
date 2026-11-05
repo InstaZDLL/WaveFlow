@@ -1,5 +1,6 @@
 use super::super::replay_gain::TrackGain;
 use super::super::state::PlayerState;
+use super::rebuild::lets_go_of_readers;
 use super::rebuild::{endpoint_moved, rebuild_resume, RebuildResume};
 use super::{pause_pending_after, AudioCmd, LoadIntent};
 
@@ -52,7 +53,7 @@ fn nothing_loaded_means_nothing_to_resume() {
 #[test]
 fn a_track_still_loading_is_still_a_session() {
     // The decoder is inside `play_track` from the moment it accepts
-    // a load, so a track picked between the rebuild's `Stop` and its
+    // a load, so a track picked between the rebuild's `Unload` and its
     // swap is one this answer decides for. The swap now ends that
     // track instead of being dropped (#639), which leaves the
     // session loaded and stopped — `Nothing` would be the one answer
@@ -100,6 +101,8 @@ fn a_stop_decides_nothing_about_the_pause() {
     // The rebuilds send one, and it says nothing about whether the
     // user wants to hear anything afterwards. Clearing on it would
     // undo the pause this flag exists to carry.
+    assert!(pause_pending_after(&AudioCmd::Unload, true));
+    assert!(!pause_pending_after(&AudioCmd::Unload, false));
     assert!(pause_pending_after(&AudioCmd::Stop, true));
     assert!(!pause_pending_after(&AudioCmd::Stop, false));
     assert!(pause_pending_after(&AudioCmd::Seek(1_000), true));
@@ -130,4 +133,30 @@ fn an_endpoint_nobody_can_name_is_never_a_move() {
     assert!(!endpoint_moved(None, Some("Speakers")));
     assert!(!endpoint_moved(Some("Headphones"), None));
     assert!(!endpoint_moved(None, None));
+}
+
+/// A load already overtaken is dropped unread by the decoder, so a slow read must
+/// not be let go for it: that would end the stream still playing.
+#[test]
+fn only_what_will_be_served_lets_go_of_a_read() {
+    let load = |intent| AudioCmd::LoadAndPlay {
+        intent: LoadIntent::from_raw(intent),
+        path: "track.flac".into(),
+        start_ms: 0,
+        track_id: 1,
+        duration_ms: 0,
+        source_type: "manual".into(),
+        source_id: None,
+        replay_gain: TrackGain::default(),
+    };
+    assert!(lets_go_of_readers(&load(5), 5));
+    assert!(lets_go_of_readers(&load(6), 5));
+    assert!(!lets_go_of_readers(&load(4), 5));
+
+    for cmd in [AudioCmd::Stop, AudioCmd::Unload, AudioCmd::Shutdown] {
+        assert!(lets_go_of_readers(&cmd, 5), "{cmd:?}");
+    }
+    for cmd in [AudioCmd::Pause, AudioCmd::Seek(0), AudioCmd::SetVolume(0.0)] {
+        assert!(!lets_go_of_readers(&cmd, 5), "{cmd:?}");
+    }
 }

@@ -244,7 +244,7 @@ pub(super) fn accept_load(cmd: &AudioCmd, shared: &SharedPlayback) -> bool {
 /// decoder writing into a ring whose consumer went away with the old
 /// output thread: every `push` succeeds, nothing is ever read, and the
 /// session is silent until something else rebuilds the output. The
-/// engine sends a `Stop` before the swap precisely so this never
+/// engine sends an `Unload` before the swap precisely so this never
 /// happens, but on the pre-release branch the two are separated by a
 /// full exclusive device open, and a track the user picks inside that
 /// window puts the decoder back inside `play_track` before the producer
@@ -253,7 +253,7 @@ pub(super) fn accept_load(cmd: &AudioCmd, shared: &SharedPlayback) -> bool {
 /// **Ending the track is not incidental.** The resampler is built
 /// against the output's sample rate, read once when the track started;
 /// a producer swapped in underneath a running track would play it at
-/// the wrong speed. `Break` ends it exactly as the `Stop` the rebuild
+/// the wrong speed. `Break` ends it exactly as the `Unload` the rebuild
 /// already sends does: the queue does not advance, and a listen is
 /// credited under the same 15-second rule as any other interruption —
 /// which a track the user picked inside a device open cannot have
@@ -265,6 +265,22 @@ fn install_swapped_producer(
 ) -> ControlFlow {
     *producer = new_producer;
     tracing::info!("decoder picked up a new ring producer mid-track; ending it for the rebuild");
+    ControlFlow::Break
+}
+
+/// A `Stop` reaching a track: what is queued for the output is dropped rather
+/// than played out. Left to run, the ring went on sounding for about a second, the
+/// position moved on with it, and the state stayed on `Playing` for good.
+///
+/// The state follows from [`super::handle_playback_outcome`], with the stream gone:
+/// `AudioEngine::stop_and_wait` takes `Idle` to mean no file is open any more, and
+/// a reset then deletes the folder that file is in. The rebuilds send `Unload`
+/// instead, since they read the state afterwards to decide what they owe the
+/// session.
+fn stop_playing(producer: &Producer<f32>, shared: &SharedPlayback) -> ControlFlow {
+    shared.paused_output.store(false, Ordering::Release);
+    drain_ring_silent(producer, shared);
+    shared.stop_asked.store(true, Ordering::Release);
     ControlFlow::Break
 }
 
@@ -296,9 +312,10 @@ pub(super) fn drain_commands(
     loop {
         match cmd_rx.try_recv() {
             Ok(AudioCmd::Shutdown) => return ControlFlow::Shutdown,
-            Ok(AudioCmd::Stop) => return ControlFlow::Break,
+            Ok(AudioCmd::Stop) => return stop_playing(producer, shared),
+            Ok(AudioCmd::Unload) => return ControlFlow::Break,
             Ok(AudioCmd::Seek(ms)) => return ControlFlow::Seek(ms),
-            // One arm for the three loads: whichever arrives takes over
+            // One arm for the four loads: whichever arrives takes over
             // from the track being decoded. A load older than one already
             // delivered is skipped and decoding continues — acting on it
             // would stop the current track to install a selection the user
@@ -306,7 +323,8 @@ pub(super) fn drain_commands(
             Ok(
                 cmd @ (AudioCmd::LoadAndPlay { .. }
                 | AudioCmd::LoadRemoteFileAndPlay { .. }
-                | AudioCmd::LoadUrlAndPlay { .. }),
+                | AudioCmd::LoadUrlAndPlay { .. }
+                | AudioCmd::LoadEpisodeAndPlay { .. }),
             ) => {
                 if !accept_load(&cmd, shared) {
                     continue;
@@ -327,7 +345,8 @@ pub(super) fn drain_commands(
             Ok(AudioCmd::SetGapless(on)) => shared.gapless_enabled.store(on, Ordering::Release),
             Ok(AudioCmd::SetBalance(pct)) => shared.stereo.set_balance(pct),
             Ok(AudioCmd::SetStereoWidth(pct)) => shared.stereo.set_width(pct),
-            Ok(AudioCmd::SetSpeed(v)) => shared.set_playback_speed(v),
+            Ok(AudioCmd::SetSpeed(v)) => shared.set_user_speed(v),
+            Ok(AudioCmd::SetEpisodeSpeed(v)) => shared.set_episode_speed(v),
             Ok(AudioCmd::SetKeepPitch(on)) => shared.keep_pitch.store(on, Ordering::Release),
             Ok(AudioCmd::SetPitchSemitones(v)) => shared.set_pitch_semitones(v),
             Ok(AudioCmd::Pause) => {
@@ -342,7 +361,8 @@ pub(super) fn drain_commands(
                             break;
                         }
                         Ok(AudioCmd::Shutdown) => return ControlFlow::Shutdown,
-                        Ok(AudioCmd::Stop) => {
+                        Ok(AudioCmd::Stop) => return stop_playing(producer, shared),
+                        Ok(AudioCmd::Unload) => {
                             shared.paused_output.store(false, Ordering::Release);
                             return ControlFlow::Break;
                         }
@@ -368,19 +388,21 @@ pub(super) fn drain_commands(
                         }
                         Ok(AudioCmd::SetBalance(pct)) => shared.stereo.set_balance(pct),
                         Ok(AudioCmd::SetStereoWidth(pct)) => shared.stereo.set_width(pct),
-                        Ok(AudioCmd::SetSpeed(v)) => shared.set_playback_speed(v),
+                        Ok(AudioCmd::SetSpeed(v)) => shared.set_user_speed(v),
+                        Ok(AudioCmd::SetEpisodeSpeed(v)) => shared.set_episode_speed(v),
                         Ok(AudioCmd::SetKeepPitch(on)) => {
                             shared.keep_pitch.store(on, Ordering::Release)
                         }
                         Ok(AudioCmd::SetPitchSemitones(v)) => shared.set_pitch_semitones(v),
-                        // Same three-in-one arm as above. A stale load
+                        // Same one arm as above. A stale load
                         // found while paused is skipped without clearing
                         // `paused_output`: the player stays paused rather
                         // than resuming on a superseded selection (#622).
                         Ok(
                             cmd @ (AudioCmd::LoadAndPlay { .. }
                             | AudioCmd::LoadRemoteFileAndPlay { .. }
-                            | AudioCmd::LoadUrlAndPlay { .. }),
+                            | AudioCmd::LoadUrlAndPlay { .. }
+                            | AudioCmd::LoadEpisodeAndPlay { .. }),
                         ) => {
                             if !accept_load(&cmd, shared) {
                                 continue;
@@ -391,7 +413,7 @@ pub(super) fn drain_commands(
                         }
                         Ok(AudioCmd::Pause) => {}
                         Ok(AudioCmd::PlayTestTone) => test_tone_yields(app),
-                        // The `Stop` the engine sends first should
+                        // The `Unload` the engine sends first should
                         // take us out of here before the swap arrives —
                         // a rebuild treats a paused session as one to
                         // park, so it does send one. This arm is what

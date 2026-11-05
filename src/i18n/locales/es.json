@@ -1094,7 +1094,8 @@
       "transpose": "Transponer",
       "transposeDown": "Bajar un semitono",
       "transposeUp": "Subir un semitono",
-      "transposeReset": "Volver al tono original"
+      "transposeReset": "Volver al tono original",
+      "transposeNotForEpisodes": "No se aplica a los episodios"
     },
     "seek": "Posición",
     "alert": {
@@ -1126,6 +1127,10 @@
       "behind": "{{time}} de retraso sobre el directo",
       "goLive": "Volver al directo",
       "behindState": "Con retraso sobre el directo"
+    },
+    "podcast": {
+      "back15": "Retroceder 15 s",
+      "forward30": "Avanzar 30 s"
     }
   },
   "queue": {

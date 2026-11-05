@@ -92,6 +92,7 @@ impl ActiveStream {
                 codec,
                 packets_read: PacketTally::default(),
                 tail_flushed: false,
+                coarse_seek: false,
                 tag_watch: None,
             });
         }
@@ -137,6 +138,7 @@ impl ActiveStream {
             codec,
             packets_read: PacketTally::default(),
             tail_flushed: false,
+            coarse_seek: false,
             tag_watch: None,
         })
     }

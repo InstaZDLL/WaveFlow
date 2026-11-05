@@ -1192,7 +1192,8 @@
       "transpose": "تغيير المقام",
       "transposeDown": "خفض نصف نغمة",
       "transposeUp": "رفع نصف نغمة",
-      "transposeReset": "العودة إلى الطبقة الأصلية"
+      "transposeReset": "العودة إلى الطبقة الأصلية",
+      "transposeNotForEpisodes": "لا ينطبق على الحلقات"
     },
     "seek": "الموضع",
     "alert": {
@@ -1224,6 +1225,10 @@
       "behind": "متأخر {{time}} عن البث المباشر",
       "goLive": "العودة إلى البث المباشر",
       "behindState": "متأخر عن البث المباشر"
+    },
+    "podcast": {
+      "back15": "رجوع 15 ثانية",
+      "forward30": "تقدم 30 ثانية"
     }
   },
   "queue": {

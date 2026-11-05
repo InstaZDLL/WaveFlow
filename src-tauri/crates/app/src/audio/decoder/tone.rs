@@ -150,11 +150,12 @@ pub(super) fn play_test_tone(
     let end = loop {
         match cmd_rx.try_recv() {
             Ok(AudioCmd::Shutdown) | Err(TryRecvError::Disconnected) => break ToneEnd::Shutdown,
-            Ok(AudioCmd::Stop) => break ToneEnd::Done,
+            Ok(AudioCmd::Stop | AudioCmd::Unload) => break ToneEnd::Done,
             Ok(
                 cmd @ (AudioCmd::LoadAndPlay { .. }
                 | AudioCmd::LoadRemoteFileAndPlay { .. }
-                | AudioCmd::LoadUrlAndPlay { .. }),
+                | AudioCmd::LoadUrlAndPlay { .. }
+                | AudioCmd::LoadEpisodeAndPlay { .. }),
             ) => {
                 *pending_cmd = Some(cmd);
                 break ToneEnd::Done;

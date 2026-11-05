@@ -1095,7 +1095,8 @@
       "transpose": "Transpor",
       "transposeDown": "Descer um semitom",
       "transposeUp": "Subir um semitom",
-      "transposeReset": "Voltar ao tom original"
+      "transposeReset": "Voltar ao tom original",
+      "transposeNotForEpisodes": "Não se aplica aos episódios"
     },
     "seek": "Posição",
     "alert": {
@@ -1127,6 +1128,10 @@
       "behind": "{{time}} atrás do ao vivo",
       "goLive": "Voltar para o ao vivo",
       "behindState": "Atrás do ao vivo"
+    },
+    "podcast": {
+      "back15": "Voltar 15 s",
+      "forward30": "Avançar 30 s"
     }
   },
   "queue": {

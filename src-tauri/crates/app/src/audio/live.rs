@@ -343,6 +343,9 @@ fn emit_now_playing(station: &Station, song: Option<SongLine>) {
             remote_track_id: None,
             is_file: false,
             file_path: None,
+            is_podcast: false,
+            podcast_episode_id: None,
+            podcast_channel_id: None,
         },
     );
 }

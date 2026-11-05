@@ -1054,7 +1054,8 @@
       "transpose": "Transponieren",
       "transposeDown": "Einen Halbton tiefer",
       "transposeUp": "Einen Halbton höher",
-      "transposeReset": "Zurück zur Originaltonhöhe"
+      "transposeReset": "Zurück zur Originaltonhöhe",
+      "transposeNotForEpisodes": "Gilt nicht für Episoden"
     },
     "seek": "Suchlauf",
     "alert": {
@@ -1086,6 +1087,10 @@
       "behind": "{{time}} hinter dem Live-Stream",
       "goLive": "Zurück zum Live-Stream",
       "behindState": "Hinter dem Live-Stream"
+    },
+    "podcast": {
+      "back15": "15 s zurück",
+      "forward30": "30 s vor"
     }
   },
   "queue": {
