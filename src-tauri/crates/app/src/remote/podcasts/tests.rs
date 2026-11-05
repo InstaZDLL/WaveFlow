@@ -456,6 +456,62 @@ fn a_word_comes_from_the_status_and_never_from_what_the_server_wrote() {
     }
 }
 
+/// What the server stored as a failure reaches the webview as one of the words, from
+/// any request, and an address in its place goes no further than the door.
+#[test]
+fn a_stored_failure_off_the_list_stops_at_the_door() {
+    let channel_with = |error: &str| -> ServerChannel {
+        serde_json::from_str(&format!(
+            r#"{{"id":"c1","title":"Show","description":null,"artwork_hash":null,
+                "error":{error},"refreshed_at":null,"episode_count":0}}"#
+        ))
+        .unwrap()
+    };
+    let episode_with = |error: &str| -> ServerEpisode {
+        serde_json::from_str(
+            &episode_json("e1", "error", "null")
+                .replace(r#""error":null"#, &format!(r#""error":{error}"#)),
+        )
+        .unwrap()
+    };
+
+    for (stored, word) in [
+        (r#""unreached""#, Some("unreached")),
+        (r#""http_503""#, Some("http_503")),
+        (r#""invalid_feed""#, Some("invalid_feed")),
+        (r#""quota_exceeded""#, Some("quota_exceeded")),
+        (r#""not_audio""#, Some("not_audio")),
+        (r#""unavailable""#, Some("unavailable")),
+        ("null", None),
+    ] {
+        assert_eq!(channel_with(stored).error.as_deref(), word, "{stored}");
+        assert_eq!(episode_with(stored).error.as_deref(), word, "{stored}");
+    }
+
+    let leak = format!(r#""https://feeds.example.org/{FEED_TOKEN}.xml""#);
+    let channel = channel_with(&leak);
+    let episode = episode_with(&leak);
+    assert_eq!(channel.error.as_deref(), Some("unavailable"));
+    assert_eq!(episode.error.as_deref(), Some("unavailable"));
+    for output in [
+        serde_json::to_string(&channel).unwrap(),
+        serde_json::to_string(&episode).unwrap(),
+    ] {
+        assert!(!output.contains(FEED_TOKEN), "{output}");
+    }
+}
+
+/// With a function reading the field, serde no longer takes one left out for `None`.
+#[test]
+fn a_stored_failure_may_be_left_out() {
+    let channel: ServerChannel = serde_json::from_str(
+        r#"{"id":"c1","title":"Show","description":null,"artwork_hash":null,
+            "refreshed_at":null,"episode_count":0}"#,
+    )
+    .unwrap();
+    assert_eq!(channel.error, None);
+}
+
 #[test]
 fn a_reason_off_the_list_is_not_passed_on() {
     for (reason, word) in [

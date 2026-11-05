@@ -264,7 +264,7 @@ Back 15 s and forward 30 s are in the "⋯" menu, only while an episode plays or
 
 **Absent, not failed.** `podcast_server_overview` answers `null` for every reason there is no section: switched off here, offline, no server, a Subsonic binding, signed out, `enabled: false` over there, unreachable, an answer nobody can read. The page goes on without it. Asked of a server afterwards, a gesture says what went wrong in a word from a fixed list: `server_unreachable`, `server_signed_out`, `server_refused`, `server_conflict`, `not_stored`, or a feed's own reason. The status decides the word, never what the server wrote.
 
-**No address on this side.** A manager's answer holds the feed's and the cover's address, and any reader's the channel's site. The wire types do not declare them, so they are dropped at the door: a row cannot carry one to the webview or to a log line (decision 4 of the RFC). The feed a manager types goes to the server in a request body and is kept nowhere.
+**No address on this side.** A manager's answer holds the feed's and the cover's address, and any reader's the channel's site. The wire types do not declare them, so they are dropped at the door: a row cannot carry one to the webview or to a log line (decision 4 of the RFC). The feed a manager types goes to the server in a request body and is kept nowhere. The failure a channel or an episode has stored is read the same way: a word off the list comes in as `unavailable`, which the page reads as a failure it cannot name, so no text of the server's goes on to the webview there.
 
 ### Playing one
 

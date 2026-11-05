@@ -48,6 +48,10 @@ const CONFLICT: &str = "server_conflict";
 const ADDRESS_REFUSED: &str = "address_refused";
 const INVALID_FEED: &str = "invalid_feed";
 
+/// A failure stored over there that has no word of its own here. The server's own word
+/// for its side failing, which the page reads as a failure it cannot name.
+const UNNAMED_FAILURE: &str = "unavailable";
+
 /// A stored episode's `status`: the only one a stream route plays.
 const STORED: &str = "completed";
 
@@ -63,6 +67,7 @@ pub struct ServerChannel {
     /// The cover in the server's artwork store, fetched by hash.
     pub artwork_hash: Option<String>,
     /// Why the server's last fetch of the feed failed, as a word.
+    #[serde(default, deserialize_with = "stored_word")]
     pub error: Option<String>,
     pub refreshed_at: Option<i64>,
     pub episode_count: i64,
@@ -86,6 +91,7 @@ pub struct ServerEpisode {
     /// plays: the server downloads, and never relays.
     pub status: String,
     /// Why its download failed, as a word.
+    #[serde(default, deserialize_with = "stored_word")]
     pub error: Option<String>,
     pub size: Option<i64>,
     pub content_type: Option<String>,
@@ -189,19 +195,45 @@ pub fn failure_word(failure: &RemoteFailure) -> String {
 /// A feed refusal's reason, when it is one the list holds. `destination_refused` is
 /// the server's own: it reached a host its rules forbid.
 fn feed_word(reason: &str) -> &str {
-    let is_status = reason.strip_prefix("http_").is_some_and(|status| {
+    if is_feed_word(reason) {
+        reason
+    } else {
+        INVALID_FEED
+    }
+}
+
+fn is_feed_word(word: &str) -> bool {
+    let is_status = word.strip_prefix("http_").is_some_and(|status| {
         status.len() == 3 && status.bytes().all(|byte| byte.is_ascii_digit())
     });
-    match reason {
-        "destination_refused"
-        | "address_refused"
-        | "too_many_redirects"
-        | "too_large"
-        | "unreached"
-        | "invalid_feed" => reason,
-        _ if is_status => reason,
-        _ => INVALID_FEED,
-    }
+    is_status
+        || matches!(
+            word,
+            "destination_refused"
+                | "address_refused"
+                | "too_many_redirects"
+                | "too_large"
+                | "unreached"
+                | "invalid_feed"
+        )
+}
+
+/// The `error` of a channel or an episode, as it comes in. Off the list it is a server's
+/// failure nobody here can name, and not a bad feed, since a download fails here too.
+/// At the door, so that no answer carries the text on to the webview, whichever request
+/// brought it.
+fn stored_word<'de, D>(answer: D) -> Result<Option<String>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let word = Option::<String>::deserialize(answer)?;
+    Ok(word.map(|word| {
+        if is_feed_word(&word) || matches!(word.as_str(), "quota_exceeded" | "not_audio") {
+            word
+        } else {
+            UNNAMED_FAILURE.to_owned()
+        }
+    }))
 }
 
 /// The overview, when there is a section to show: the server answered, and its
