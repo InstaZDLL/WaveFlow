@@ -3349,6 +3349,10 @@
           "label": "Faixas do servidor offline",
           "description": "As que escolheu guardar offline. Removem-se a partir da faixa ou do álbum."
         },
+        "podcastDownloads": {
+          "label": "Episódios de podcast transferidos",
+          "description": "Os que escolheu manter neste computador. Removem-se a partir do episódio."
+        },
         "manualMedia": {
           "label": "Multimédia escolhida à mão",
           "description": "Capas animadas e clips Canvas que definiu."
@@ -3506,7 +3510,8 @@
       "cacheUsed_many": "Cache local: {{size}}, {{count}} faixas"
     },
     "podcasts": {
-      "title": "Podcasts"
+      "title": "Podcasts",
+      "downloadQuota": "Espaço máximo para episódios transferidos"
     }
   },
   "scanProgress": {
@@ -3903,7 +3908,8 @@
       "enrichment": "Enriquecimento da biblioteca",
       "release_radar": "Release Radar",
       "tag_workshop": "Oficina de etiquetas",
-      "podcast_refresh": "Atualização de podcasts"
+      "podcast_refresh": "Atualização de podcasts",
+      "podcast_download": "Transferência de podcast"
     }
   },
   "smartRuleSummary": {

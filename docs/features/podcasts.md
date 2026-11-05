@@ -7,9 +7,10 @@ Standalone podcasts in the desktop app, off by default. The design and its reaso
 | 1   | `waveflow_core::podcast`: feeds, OPML, chapters, transcripts, on hostile input     | This page |
 | 2   | Tables, fetch rules, subscribe, refresh, OPML import and export, commands, setting | This page |
 | 3   | Playback: session, stream with hand-followed redirects, resume, played state, speed | This page |
-| 4+  | Downloads, the page, chapters and transcript panel, the server's podcasts          | Not yet   |
+| 4   | Downloads: managed folder, quota, cancel, Disk usage                               | This page |
+| 5+  | The page, chapters and transcript panel, the server's podcasts                     | Not yet   |
 
-There is no page yet, so the only part of this reachable from the interface is the player while an episode plays: the commands and the setting exist for the lots that build on them.
+There is no Podcasts page yet, so what is reachable from the interface is the player while an episode plays and the line for downloaded episodes in Settings → Storage and backups → Disk space. The commands and the settings exist for the lots that build on them.
 
 ## The switch
 
@@ -43,7 +44,7 @@ A private feed carries its token in the path as often as in the query, so `redac
 
 `address_refused`, `too_many_redirects`, `too_large`, `unreached`, `http_<status>`, `invalid_feed`, `not_audio`, `quota_exceeded`
 
-No row sent to the webview holds an address either: a channel says `has_feed_address`, an episode `has_enclosure`, and whatever opens one asks by id. A refused command rejects with `podcast: <word>`, the list above plus `disabled`, `offline`, `profile_changed`, `channel_gone` (unsubscribed from while a subscription to it was finishing), `episode_gone` (no such row, or one the user removed) and `no_source` (no file and no address: a restored profile, until the feed is subscribed to again).
+No row sent to the webview holds an address either: a channel says `has_feed_address`, an episode `has_enclosure`, and whatever opens one asks by id. A refused command rejects with `podcast: <word>`, the list above plus `disabled`, `offline`, `profile_changed`, `channel_gone` (unsubscribed from while a subscription to it was finishing), `episode_gone` (no such row, or one the user removed) and `no_source` (no file and no address: a restored profile, until the feed is subscribed to again). A failed download carries the same words in its event, plus `write_failed` for a disk or a database that refused.
 
 ### An address stays out of an archive
 
@@ -90,6 +91,34 @@ A refresh writes into the row it read, by id, and never creates one, so unsubscr
 
 A refresh and an import each take a `TaskHandle` of kind `podcast_refresh`, one pass at a time. A pass parks behind a running scan and retries a write on `SQLITE_BUSY`. No database lease is held across a network wait: the pool is leased again around each write, pinned to the profile the pass began for, and a profile switch stops the pass instead of letting it write into the wrong profile.
 
+## Downloads
+
+[`podcast::download`](../../src-tauri/crates/app/src/podcast/download.rs) keeps an episode on disk, one at a time, the others waiting in line.
+
+**The folder** is `<cache_root>/profiles/<id>/podcast-downloads`, per profile and never a library folder, so neither the scanner nor the watcher sees it. It moves with the caches, since the worst a lost file costs is fetching the episode again. Nothing evicts it. An archive or a backup does not carry the files, and blanks `download_file`, `download_size` and `downloaded_at`, so a restored row does not promise a file that stayed behind.
+
+**The name** is the episode's id and a suffix chosen from the first bytes (`sniff_audio`), such as `42.mp3`. Nothing a feed says names a path. A body that is not audio is refused as `not_audio` before anything is created, and so is one too short to judge. `stored_file` is how anything opens or removes a stored name, playback included: one that is not this episode's, in that shape, is refused rather than joined to a path, since a row may have come from somewhere else.
+
+**The enclosure** goes through `Fetcher::open`, each hop judged against the address its channel was typed with. A channel with no address reaches nothing local.
+
+**Two ceilings, counted while the body is read**: 1 GiB an episode (`too_large`) and the quota, 10 GiB by default (`quota_exceeded`), through the setting `podcasts.download_quota_gb` and [`usePodcastDownloadQuota`](../../src/hooks/usePodcastDownloadQuota.ts). What counts against the quota is what the rows record. A declared length past a ceiling is refused without reading, which only ever costs a host its own episode; a length that understates gains nothing, since only what arrives is stored, and one that overstates ends in `unreached` with nothing left.
+
+**Time.** Opening runs under 60 s, every hop included. A body has six hours, and must bring 64 KiB in every minute: a deadline long enough for a slow line would let a host sending a byte now and then hold up the line behind it for hours.
+
+**Bytes reach their name in one rename**, on the disk first, and the row comes last. A partial file is `<id>.part`, removed however the download ends. On Windows the rename is retried for a moment, since an indexer or an antivirus commonly opens a file the moment it is closed.
+
+**The switch and offline mode** are looked at again every second while a body is read, and stop it: `disabled` or `offline`, with nothing left. Both also refuse a download that has not started. A file already on disk stays readable and removable with either on.
+
+**The profile.** No lease is held across the network. The pool is leased again for each check, pinned to the profile the download began for, so a switch stops the download within a second and writes nothing, in either profile. The lease is held across the rename and the row. A job in line for a profile no longer active ends there, without an event.
+
+**Cancelling** is `podcast_cancel_download` or the status bar: the job takes a `TaskHandle` of kind `podcast_download`, and the registry calls the stop the job already has, which interrupts a wait on a host too. Nothing stays.
+
+**Deleting** removes the file, then what the row says of it, and the row stays with its position. It stops a download of that episode first, and one too far along to stop looks again once its row is written, so what was removed does not come back. Unsubscribing takes the channel's jobs out of the line, stops the one running, and removes its files once the rows have gone.
+
+**What a crash leaves** is cleaned up by `sweep`, at launch and each time a profile becomes active, parked behind a scan: a partial file, a file no row names (killed between the rename and the row), a row whose file is gone. A name that is not ours is left alone. **A folder that does not answer clears no row:** one that cannot be listed or is missing, as on a drive unplugged after launch, and a session that fell back to the default location because it was unplugged at launch. Clearing them would lose every download by the time the drive returns, since the next sweep would find files no row names. The root being there proves nothing, since it can be an empty mount point. A folder removed by hand keeps its rows until a download makes it again, and those episodes stream meanwhile.
+
+**The event** `podcast:download` carries `{ episodeId, state, receivedBytes, totalBytes, errorWord }`, `state` being `queued`, `running`, `done`, `failed` or `cancelled`, at most about four times a second, and only about the active profile: an episode's id is unique inside a profile only, so a job of the last one says nothing more once it has been left. A view opened meanwhile subscribes first, then calls `podcast_download_queue`. A `done` that brought a new file is followed by `podcast:updated`; one for an episode already on disk changes nothing, and is not.
+
 ## Chapters and transcripts
 
 The readers exist; fetching and showing them is a later lot.
@@ -103,14 +132,19 @@ The readers exist; fetching and showing them is a later lot.
 | Command                 | Does                                                                     |
 | ----------------------- | ------------------------------------------------------------------------ |
 | `podcast_subscribe`     | Fetches and follows a feed; answers its channel                          |
-| `podcast_unsubscribe`   | Forgets a channel and its episodes                                       |
+| `podcast_unsubscribe`   | Forgets a channel and its episodes, and removes their downloads          |
 | `podcast_list_channels` | Every channel of the active profile                                      |
 | `podcast_list_episodes` | A page of a channel's episodes, newest first                             |
 | `podcast_refresh`       | Asks one channel, or all of them                                         |
 | `podcast_import_opml`   | Subscribes to every feed of a file                                       |
 | `podcast_export_opml`   | Writes every address to a file                                           |
+| `podcast_download_episode` | Puts an episode in line to be kept on disk                            |
+| `podcast_cancel_download` | Takes it out of the line, or stops it where it is                      |
+| `podcast_delete_download` | Removes its file; the row stays                                        |
+| `podcast_download_usage` | `{ usedBytes, quotaBytes }`                                             |
+| `podcast_download_queue` | What is under way, for a view opened meanwhile                          |
 
-Typed wrappers are in [`src/lib/tauri/podcast.ts`](../../src/lib/tauri/podcast.ts). The event `podcast:updated` carries `channel_id`.
+Typed wrappers are in [`src/lib/tauri/podcast.ts`](../../src/lib/tauri/podcast.ts). The event `podcast:updated` carries `channel_id`, and `podcast:download` is described under [Downloads](#downloads).
 
 ## Playing an episode
 

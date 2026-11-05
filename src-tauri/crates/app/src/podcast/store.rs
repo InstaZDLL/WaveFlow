@@ -21,6 +21,15 @@ pub(crate) const ENABLED_KEY: &str = "podcasts.enabled";
 /// check. Not a preference, so not in `settingsRegistry.ts`.
 const LAST_CHECK_KEY: &str = "podcasts.last_check_at";
 
+/// The most this profile keeps downloaded, in GiB. Mirrored in
+/// `settingsRegistry.ts`, where the frontend reads and resets it.
+pub(crate) const DOWNLOAD_QUOTA_KEY: &str = "podcasts.download_quota_gb";
+
+/// The quota nobody has changed.
+pub(crate) const DEFAULT_DOWNLOAD_QUOTA_GB: u64 = 10;
+
+const GIB: u64 = 1024 * 1024 * 1024;
+
 /// How many rows one channel keeps once they have left its feed. A feed may
 /// hand out 500 fresh guids at every refresh, and without a ceiling that is a
 /// table growing without end. Only rows nobody has touched are removed.
@@ -727,6 +736,136 @@ pub(crate) async fn set_channel_speed(
         .await?
         .rows_affected();
     Ok(updated > 0)
+}
+
+/// What a download needs of an episode.
+#[derive(Debug, Clone, PartialEq, Eq, FromRow)]
+pub(crate) struct EpisodeDownload {
+    pub channel_id: i64,
+    pub title: String,
+    pub enclosure_url: Option<String>,
+    /// The address its channel was typed with, which decides what the enclosure
+    /// may reach.
+    pub feed_url: Option<String>,
+    pub download_file: Option<String>,
+}
+
+/// An episode that can still be asked for: one the user removed is gone.
+pub(crate) async fn episode_download(
+    pool: &SqlitePool,
+    episode_id: i64,
+) -> Result<Option<EpisodeDownload>, sqlx::Error> {
+    sqlx::query_as(
+        "SELECT e.channel_id, e.title, e.enclosure_url, c.feed_url, e.download_file
+           FROM podcast_episode e
+           JOIN podcast_channel c ON c.id = e.channel_id
+          WHERE e.id = ? AND e.deleted_at IS NULL",
+    )
+    .bind(episode_id)
+    .fetch_optional(pool)
+    .await
+}
+
+/// The quota in bytes. A value nobody could have meant is no answer.
+pub(crate) async fn download_quota_bytes(pool: &SqlitePool) -> Result<u64, sqlx::Error> {
+    let value: Option<String> =
+        sqlx::query_scalar("SELECT value FROM profile_setting WHERE key = ?")
+            .bind(DOWNLOAD_QUOTA_KEY)
+            .fetch_optional(pool)
+            .await?;
+    let gigabytes = value
+        .and_then(|value| value.parse::<u64>().ok())
+        .filter(|gigabytes| *gigabytes >= 1)
+        .unwrap_or(DEFAULT_DOWNLOAD_QUOTA_GB);
+    Ok(gigabytes.saturating_mul(GIB))
+}
+
+/// What the kept episodes weigh, read from the rows: a stray file in the folder
+/// is not a download. `except` leaves out the episode being fetched again, whose
+/// old file is gone. A negative size counts for nothing: a row may have come from
+/// an archive somebody made, and it must not buy room under the quota.
+pub(crate) async fn download_used_bytes(
+    pool: &SqlitePool,
+    except: Option<i64>,
+) -> Result<u64, sqlx::Error> {
+    let used: i64 = sqlx::query_scalar(
+        "SELECT COALESCE(SUM(MAX(download_size, 0)), 0) FROM podcast_episode
+          WHERE download_file IS NOT NULL AND id IS NOT ?",
+    )
+    .bind(except)
+    .fetch_one(pool)
+    .await?;
+    Ok(used.max(0) as u64)
+}
+
+/// Records a file put in place. False, with nothing written, when the episode is
+/// gone: the channel was unsubscribed from while the body was being read, or the
+/// user removed the episode, whose hidden row must not hold a file against the quota.
+pub(crate) async fn record_download(
+    pool: &SqlitePool,
+    episode_id: i64,
+    file: &str,
+    size: u64,
+) -> Result<bool, sqlx::Error> {
+    let updated = sqlx::query(
+        "UPDATE podcast_episode
+            SET download_file = ?, download_size = ?, downloaded_at = ?
+          WHERE id = ? AND deleted_at IS NULL",
+    )
+    .bind(file)
+    .bind(size as i64)
+    .bind(Utc::now().timestamp_millis())
+    .bind(episode_id)
+    .execute(pool)
+    .await?
+    .rows_affected();
+    Ok(updated > 0)
+}
+
+/// The episode has no file any more, and keeps its row.
+pub(crate) async fn clear_download(pool: &SqlitePool, episode_id: i64) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        "UPDATE podcast_episode
+            SET download_file = NULL, download_size = NULL, downloaded_at = NULL
+          WHERE id = ?",
+    )
+    .bind(episode_id)
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+pub(crate) async fn download_file_of(
+    pool: &SqlitePool,
+    episode_id: i64,
+) -> Result<Option<String>, sqlx::Error> {
+    let file: Option<Option<String>> =
+        sqlx::query_scalar("SELECT download_file FROM podcast_episode WHERE id = ?")
+            .bind(episode_id)
+            .fetch_optional(pool)
+            .await?;
+    Ok(file.flatten())
+}
+
+/// `(episode, file name)` of every download this profile holds.
+pub(crate) async fn all_downloads(pool: &SqlitePool) -> Result<Vec<(i64, String)>, sqlx::Error> {
+    sqlx::query_as("SELECT id, download_file FROM podcast_episode WHERE download_file IS NOT NULL")
+        .fetch_all(pool)
+        .await
+}
+
+/// `(episode, file name)` of one channel's downloads, read before the channel goes.
+pub(crate) async fn downloads_of_channel(
+    pool: &SqlitePool,
+    channel_id: i64,
+) -> Result<Vec<(i64, String)>, sqlx::Error> {
+    sqlx::query_as(
+        "SELECT id, download_file FROM podcast_episode
+          WHERE channel_id = ? AND download_file IS NOT NULL",
+    )
+    .bind(channel_id)
+    .fetch_all(pool)
+    .await
 }
 
 /// Forgets a channel and, by the foreign key, its episodes. Whether a row was

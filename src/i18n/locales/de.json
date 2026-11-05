@@ -3279,6 +3279,10 @@
           "label": "Offline-Server-Titel",
           "description": "Die du offline behalten wolltest. Werden am Titel oder Album entfernt."
         },
+        "podcastDownloads": {
+          "label": "Heruntergeladene Podcast-Folgen",
+          "description": "Die Folgen, die du auf diesem Computer behalten wolltest. Lassen sich an der Folge entfernen."
+        },
         "manualMedia": {
           "label": "Von Hand gewählte Medien",
           "description": "Animierte Cover und Canvas-Clips, die du selbst festgelegt hast."
@@ -3433,7 +3437,8 @@
       "cacheUsed_other": "Lokaler Cache: {{size}}, {{count}} Titel"
     },
     "podcasts": {
-      "title": "Podcasts"
+      "title": "Podcasts",
+      "downloadQuota": "Maximaler Platz für heruntergeladene Folgen"
     }
   },
   "scanProgress": {
@@ -3803,7 +3808,8 @@
       "enrichment": "Bibliothek anreichern",
       "release_radar": "Release Radar",
       "tag_workshop": "Tag-Werkstatt",
-      "podcast_refresh": "Podcast-Aktualisierung"
+      "podcast_refresh": "Podcast-Aktualisierung",
+      "podcast_download": "Podcast-Download"
     }
   },
   "smartRuleSummary": {

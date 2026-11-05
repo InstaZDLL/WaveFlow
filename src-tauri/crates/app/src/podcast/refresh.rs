@@ -35,7 +35,7 @@ use crate::error::AppError;
 const MAX_COVER_BYTES: usize = waveflow_core::artwork::metadata::MAX_BYTES;
 
 /// How often a pass parked behind a library scan looks again.
-const SCAN_WAIT_POLL: Duration = Duration::from_millis(500);
+pub(super) const SCAN_WAIT_POLL: Duration = Duration::from_millis(500);
 
 /// Attempts at a write that keeps meeting a busy database.
 const MAX_WRITE_ATTEMPTS: u32 = 5;

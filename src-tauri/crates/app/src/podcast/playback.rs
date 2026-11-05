@@ -40,6 +40,7 @@ use waveflow_core::artwork::metadata::existing_path;
 use waveflow_core::podcast::address::parse_address;
 use waveflow_core::podcast::FetchFailure;
 
+use super::download::stored_file;
 use super::fetch::{Fetcher, Origin};
 use super::refresh::PodcastError;
 use super::schedule::emit_updated;
@@ -135,26 +136,6 @@ fn display_title(title: &str, channel: &str) -> String {
     }
 }
 
-/// A downloaded file's path, when `name` is this episode's file in the managed
-/// folder and is there.
-///
-/// `download_file` may have come out of an archive somebody made, so it is hostile
-/// here: it has to read `<episode id>.<letters and digits>`, the one shape a download
-/// writes. That leaves no separator, no `..`, no absolute path, no drive prefix, no
-/// `wfnet://` locator and no alternate data stream, on any system, and no other
-/// episode's file. Anything else is no file of ours, and the episode streams.
-pub(crate) fn downloaded_file(downloads: &Path, episode_id: i64, name: &str) -> Option<PathBuf> {
-    let (id, suffix) = name.split_once('.')?;
-    if id != episode_id.to_string()
-        || suffix.is_empty()
-        || !suffix.bytes().all(|byte| byte.is_ascii_alphanumeric())
-    {
-        return None;
-    }
-    let path = downloads.join(name);
-    path.is_file().then_some(path)
-}
-
 /// Where this episode's bytes come from, or why it cannot play.
 ///
 /// A file on disk needs nobody, so it comes first and the two switches do not
@@ -168,7 +149,7 @@ pub(crate) fn resolve_source(
     if let Some(path) = episode
         .download_file
         .as_deref()
-        .and_then(|name| downloaded_file(downloads, episode.id, name))
+        .and_then(|name| stored_file(downloads, episode.id, name))
     {
         return Ok(EpisodeSource::File(path));
     }

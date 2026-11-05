@@ -3348,6 +3348,10 @@
           "label": "Brani del server offline",
           "description": "Quelli che hai scelto di tenere offline. Si rimuovono dal brano o dall'album."
         },
+        "podcastDownloads": {
+          "label": "Episodi di podcast scaricati",
+          "description": "Quelli che hai scelto di tenere su questo computer. Si rimuovono dall'episodio."
+        },
         "manualMedia": {
           "label": "Contenuti scelti a mano",
           "description": "Copertine animate e clip Canvas impostate da te."
@@ -3505,7 +3509,8 @@
       "cacheUsed_many": "Cache locale: {{size}}, {{count}} brani"
     },
     "podcasts": {
-      "title": "Podcast"
+      "title": "Podcast",
+      "downloadQuota": "Spazio massimo per gli episodi scaricati"
     }
   },
   "scanProgress": {
@@ -3902,7 +3907,8 @@
       "enrichment": "Arricchimento della libreria",
       "release_radar": "Release Radar",
       "tag_workshop": "Laboratorio tag",
-      "podcast_refresh": "Aggiornamento dei podcast"
+      "podcast_refresh": "Aggiornamento dei podcast",
+      "podcast_download": "Download di podcast"
     }
   },
   "smartRuleSummary": {

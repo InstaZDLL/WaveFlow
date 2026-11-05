@@ -15,10 +15,11 @@ use url::Url;
 use waveflow_core::playback::read_ahead::READ_RELEASED;
 use waveflow_core::podcast::FetchFailure;
 
+use super::download::stored_file;
 use super::fetch::{client_builder, Fetcher, Origin};
 use super::playback::{
-    channel_speed, counts_as_played, downloaded_file, ext_hint_for_tests, resolve_source,
-    start_position, EpisodeSource, SaveClock, SaveReason, SAVE_EVERY,
+    channel_speed, counts_as_played, ext_hint_for_tests, resolve_source, start_position,
+    EpisodeSource, SaveClock, SaveReason, SAVE_EVERY,
 };
 use super::refresh::PodcastError;
 use super::store;
@@ -796,7 +797,7 @@ async fn a_download_name_out_of_an_archive_is_hostile() {
     std::fs::write(inside.join(&other), b"somebody else's").unwrap();
     std::fs::write(dir.path().join(&own), b"outside").unwrap();
     assert_eq!(
-        downloaded_file(&inside, id, &own),
+        stored_file(&inside, id, &own),
         Some(inside.join(&own)),
         "this test proves nothing if its own file does not open"
     );
@@ -831,7 +832,7 @@ async fn a_download_name_out_of_an_archive_is_hostile() {
         ".mp3".to_owned(),
     ];
     for name in names {
-        assert_eq!(downloaded_file(&inside, id, &name), None, "{name:?}");
+        assert_eq!(stored_file(&inside, id, &name), None, "{name:?}");
         store_download(&pool, id, &name).await;
         let row = playable(&pool, id).await;
         // Off, a hostile name refuses instead of opening anything.

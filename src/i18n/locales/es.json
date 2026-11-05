@@ -3348,6 +3348,10 @@
           "label": "Pistas del servidor sin conexión",
           "description": "Las que elegiste guardar sin conexión. Se quitan desde la pista o el álbum."
         },
+        "podcastDownloads": {
+          "label": "Episodios de pódcast descargados",
+          "description": "Los que elegiste guardar en este equipo. Se quitan desde el episodio."
+        },
         "manualMedia": {
           "label": "Medios elegidos a mano",
           "description": "Portadas animadas y clips de Canvas que definiste tú."
@@ -3505,7 +3509,8 @@
       "cacheUsed_many": "Caché local: {{size}}, {{count}} canciones"
     },
     "podcasts": {
-      "title": "Pódcasts"
+      "title": "Pódcasts",
+      "downloadQuota": "Espacio máximo para los episodios descargados"
     }
   },
   "scanProgress": {
@@ -3902,7 +3907,8 @@
       "enrichment": "Enriquecimiento de la biblioteca",
       "release_radar": "Release Radar",
       "tag_workshop": "Taller de etiquetas",
-      "podcast_refresh": "Actualización de pódcasts"
+      "podcast_refresh": "Actualización de pódcasts",
+      "podcast_download": "Descarga de pódcast"
     }
   },
   "smartRuleSummary": {

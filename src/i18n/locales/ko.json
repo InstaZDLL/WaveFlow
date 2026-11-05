@@ -3277,6 +3277,10 @@
           "label": "오프라인 서버 트랙",
           "description": "오프라인으로 보관하기로 한 트랙. 트랙이나 앨범에서 제거합니다."
         },
+        "podcastDownloads": {
+          "label": "다운로드한 팟캐스트 에피소드",
+          "description": "이 컴퓨터에 보관하기로 한 에피소드입니다. 에피소드에서 제거할 수 있습니다."
+        },
         "manualMedia": {
           "label": "직접 지정한 미디어",
           "description": "직접 지정한 움직이는 커버와 Canvas 클립."
@@ -3431,7 +3435,8 @@
       "cacheUsed_other": "로컬 캐시: {{size}}, {{count}}곡"
     },
     "podcasts": {
-      "title": "팟캐스트"
+      "title": "팟캐스트",
+      "downloadQuota": "다운로드한 에피소드의 최대 공간"
     }
   },
   "scanProgress": {
@@ -3801,7 +3806,8 @@
       "enrichment": "라이브러리 정보 보강",
       "release_radar": "Release Radar",
       "tag_workshop": "태그 작업실",
-      "podcast_refresh": "팟캐스트 새로 고침"
+      "podcast_refresh": "팟캐스트 새로 고침",
+      "podcast_download": "팟캐스트 다운로드"
     }
   },
   "smartRuleSummary": {

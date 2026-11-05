@@ -3279,6 +3279,10 @@
           "label": "ऑफ़लाइन सर्वर ट्रैक",
           "description": "जिन्हें आपने ऑफ़लाइन रखने के लिए चुना। ट्रैक या एल्बम से हटाए जाते हैं।"
         },
+        "podcastDownloads": {
+          "label": "डाउनलोड किए गए पॉडकास्ट एपिसोड",
+          "description": "वे एपिसोड जिन्हें आपने इस कंप्यूटर पर रखना चुना। एपिसोड से ही हटाए जाते हैं।"
+        },
         "manualMedia": {
           "label": "खुद चुना गया मीडिया",
           "description": "आपके खुद सेट किए एनिमेटेड कवर और Canvas क्लिप।"
@@ -3433,7 +3437,8 @@
       "cacheUsed_other": "स्थानीय कैश: {{size}}, {{count}} ट्रैक"
     },
     "podcasts": {
-      "title": "पॉडकास्ट"
+      "title": "पॉडकास्ट",
+      "downloadQuota": "डाउनलोड किए गए एपिसोड के लिए अधिकतम जगह"
     }
   },
   "scanProgress": {
@@ -3803,7 +3808,8 @@
       "enrichment": "लाइब्रेरी समृद्धि",
       "release_radar": "Release Radar",
       "tag_workshop": "टैग वर्कशॉप",
-      "podcast_refresh": "पॉडकास्ट रीफ़्रेश"
+      "podcast_refresh": "पॉडकास्ट रीफ़्रेश",
+      "podcast_download": "पॉडकास्ट डाउनलोड"
     }
   },
   "smartRuleSummary": {

@@ -3279,6 +3279,10 @@
           "label": "Offline servernummers",
           "description": "Die je offline wilde bewaren. Verwijder je via het nummer of album."
         },
+        "podcastDownloads": {
+          "label": "Gedownloade podcastafleveringen",
+          "description": "De afleveringen die je op deze computer wilde bewaren. Verwijder ze vanuit de aflevering."
+        },
         "manualMedia": {
           "label": "Zelf gekozen media",
           "description": "Geanimeerde hoezen en Canvas-clips die je zelf hebt ingesteld."
@@ -3433,7 +3437,8 @@
       "cacheUsed_other": "Lokale cache: {{size}}, {{count}} nummers"
     },
     "podcasts": {
-      "title": "Podcasts"
+      "title": "Podcasts",
+      "downloadQuota": "Maximale ruimte voor gedownloade afleveringen"
     }
   },
   "scanProgress": {
@@ -3803,7 +3808,8 @@
       "enrichment": "Bibliotheek verrijken",
       "release_radar": "Release Radar",
       "tag_workshop": "Tagwerkplaats",
-      "podcast_refresh": "Podcasts vernieuwen"
+      "podcast_refresh": "Podcasts vernieuwen",
+      "podcast_download": "Podcastdownload"
     }
   },
   "smartRuleSummary": {

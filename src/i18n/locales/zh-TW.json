@@ -3277,6 +3277,10 @@
           "label": "離線的伺服器曲目",
           "description": "你選擇離線保留的曲目。可從曲目或專輯中移除。"
         },
+        "podcastDownloads": {
+          "label": "已下載的 Podcast 單集",
+          "description": "你選擇保留在這台電腦上的單集。可在單集處移除。"
+        },
         "manualMedia": {
           "label": "手動設定的媒體",
           "description": "你自己設定的動態封面和 Canvas 片段。"
@@ -3431,7 +3435,8 @@
       "cacheUsed_other": "本機快取:{{size}},{{count}} 首曲目"
     },
     "podcasts": {
-      "title": "Podcast"
+      "title": "Podcast",
+      "downloadQuota": "已下載單集的最大空間"
     }
   },
   "scanProgress": {
@@ -3801,7 +3806,8 @@
       "enrichment": "音樂庫資訊補全",
       "release_radar": "Release Radar",
       "tag_workshop": "標籤工坊",
-      "podcast_refresh": "重新整理 Podcast"
+      "podcast_refresh": "重新整理 Podcast",
+      "podcast_download": "Podcast 下載"
     }
   },
   "smartRuleSummary": {

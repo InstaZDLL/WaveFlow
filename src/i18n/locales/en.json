@@ -3279,6 +3279,10 @@
           "label": "Offline server tracks",
           "description": "The ones you chose to keep offline. Removed from the track or the album."
         },
+        "podcastDownloads": {
+          "label": "Downloaded podcast episodes",
+          "description": "The ones you chose to keep on this computer. Removed from the episode."
+        },
         "manualMedia": {
           "label": "Media set by hand",
           "description": "Animated covers and Canvas clips you set yourself."
@@ -3433,7 +3437,8 @@
       "cacheUsed_other": "Local cache: {{size}}, {{count}} tracks"
     },
     "podcasts": {
-      "title": "Podcasts"
+      "title": "Podcasts",
+      "downloadQuota": "Maximum space for downloaded episodes"
     }
   },
   "scanProgress": {
@@ -3803,7 +3808,8 @@
       "enrichment": "Library enrichment",
       "release_radar": "Release Radar",
       "tag_workshop": "Tag workshop",
-      "podcast_refresh": "Podcast refresh"
+      "podcast_refresh": "Podcast refresh",
+      "podcast_download": "Podcast download"
     }
   },
   "smartRuleSummary": {
