@@ -67,16 +67,31 @@ const HEAD_CHUNK: usize = 64 * 1024;
 /// Long enough that a signature cut by the end of a chunk is whole in the next one.
 const SIGNATURE_OVERLAP: usize = 8;
 
-/// The chunks walked in a WAV or AIFF. A real one has a handful.
+/// The chunks walked in a WAV or AIFF, visited and waiting. A real one has a handful.
 const MAX_CHUNKS: usize = 65_536;
 
-/// The tag was refused: its chapter frames nest, or one of them hides its content.
+/// What one check may read from one file, however it comes to. A tag takes 256 MiB at
+/// the very most and the audio is not read, so a good file stays far under this, the
+/// exception being one read to its end for an APE tag or zeros at its head, and over a
+/// gigabyte. Only bytes made for it go further, by naming a tag or a chunk again and
+/// again so that each name reads the rest of the file: refused, not read on.
+const MAX_SCAN_BYTES: u64 = 1024 * 1024 * 1024;
+
+/// The longest tag a header can declare, with what an extended one may add. A chunk
+/// declares up to 4 GiB, and no parser makes a tag of more than this out of it.
+const MAX_TAG_LEN: u64 = TAG_HEADER_LEN as u64 + (1 << 28) + EXTENDED_HEADER_SLACK;
+
+/// The file was refused: its chapter frames nest, one of them hides its content, or
+/// looking for them would have cost more than any good file does.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct NestedChapters;
 
 impl fmt::Display for NestedChapters {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str("the ID3v2 tag nests chapter frames, refusing to read it")
+        f.write_str(
+            "refusing to read the ID3v2 tags: their chapter frames nest, \
+             or looking for them costs too much",
+        )
     }
 }
 
@@ -96,11 +111,50 @@ pub fn check_reader<R: Read + Seek>(reader: &mut R) -> Result<(), NestedChapters
     let Ok(start) = reader.stream_position() else {
         return Ok(());
     };
-    let verdict = check_tags_from(reader, start);
+    let mut budgeted = Budgeted {
+        inner: &mut *reader,
+        left: MAX_SCAN_BYTES,
+        ran_out: false,
+    };
+    let verdict = check_tags_from(&mut budgeted, start);
+    let ran_out = budgeted.ran_out;
     if reader.seek(SeekFrom::Start(start)).is_err() {
         tracing::warn!("could not rewind after looking at a file's tags");
     }
+    if ran_out {
+        return Err(NestedChapters);
+    }
     verdict
+}
+
+/// A reader that fails once it has given [`MAX_SCAN_BYTES`], and remembers why: every
+/// failed read in the walk below passes the file on to a parser that is about to meet
+/// the same error, and this one is not that.
+struct Budgeted<'a, R> {
+    inner: &'a mut R,
+    left: u64,
+    ran_out: bool,
+}
+
+impl<R: Read> Read for Budgeted<'_, R> {
+    fn read(&mut self, buffer: &mut [u8]) -> io::Result<usize> {
+        if self.left == 0 && !buffer.is_empty() {
+            self.ran_out = true;
+            return Err(io::ErrorKind::Other.into());
+        }
+        let most = buffer
+            .len()
+            .min(usize::try_from(self.left).unwrap_or(usize::MAX));
+        let read = self.inner.read(&mut buffer[..most])?;
+        self.left -= read as u64;
+        Ok(read)
+    }
+}
+
+impl<R: Seek> Seek for Budgeted<'_, R> {
+    fn seek(&mut self, to: SeekFrom) -> io::Result<u64> {
+        self.inner.seek(to)
+    }
 }
 
 /// The tag `reader` stands on, through the `id3` crate and only over the bytes that
@@ -267,7 +321,9 @@ fn tag_span(tag: &[u8]) -> u64 {
 /// by a padding byte that lofty and symphonia do not agree on when it is not a zero,
 /// and both continuations are walked. symphonia takes what it needs from a `COMM` or a
 /// `MARK` and looks for the next chunk right there, whatever length it declared, so
-/// the name of the chunk is looked for inside every other chunk than the audio.
+/// the name of the chunk is looked for inside every other chunk than the audio. Those
+/// four letters in audio that is no such container, which the form type behind them
+/// tells, as it tells every parser, would walk garbage for nothing.
 fn check_chunks<R: Read + Seek>(
     reader: &mut R,
     start: u64,
@@ -276,14 +332,24 @@ fn check_chunks<R: Read + Seek>(
     let Ok(len) = reader.seek(SeekFrom::End(0)) else {
         return Ok(());
     };
+    let mut form = [0_u8; 12];
+    if reader.seek(SeekFrom::Start(start)).is_err() || reader.read_exact(&mut form).is_err() {
+        return Ok(());
+    }
+    let known = if big_endian {
+        matches!(&form[8..], b"AIFF" | b"AIFC")
+    } else {
+        &form[8..] == b"WAVE"
+    };
+    if !known {
+        return Ok(());
+    }
+    let mut buffer = vec![0_u8; HEAD_CHUNK];
     let mut pending = vec![start + 12];
     let mut seen = std::collections::HashSet::new();
     while let Some(at) = pending.pop() {
         if !seen.insert(at) {
             continue;
-        }
-        if seen.len() > MAX_CHUNKS {
-            return Err(NestedChapters);
         }
         let mut header = [0_u8; 8];
         if reader.seek(SeekFrom::Start(at)).is_err() || reader.read_exact(&mut header).is_err() {
@@ -292,8 +358,8 @@ fn check_chunks<R: Read + Seek>(
         // Silence behind a `data` chunk whose length was never written is a chunk
         // with no name and no length, every eight bytes. Not a reason to give up.
         if header == [0; 8] {
-            if let Some(next) = past_zero_chunks(reader, at) {
-                pending.push(next);
+            if let Some(next) = past_zero_chunks(reader, at, &mut buffer) {
+                queue_chunk(&mut pending, seen.len(), next)?;
             }
             continue;
         }
@@ -303,35 +369,56 @@ fn check_chunks<R: Read + Seek>(
         } else {
             u32::from_le_bytes(raw)
         });
-        if !matches!(&header[..4], b"SSND" | b"data") {
+        let next = at + 8 + size;
+        if matches!(&header[..4], b"ID3 " | b"id3 ") {
             let mut body = Vec::new();
-            if reader.by_ref().take(size).read_to_end(&mut body).is_ok() {
-                if matches!(&header[..4], b"ID3 " | b"id3 ") {
-                    check_tag(&body)?;
-                } else {
-                    pending.extend(body.windows(4).enumerate().filter_map(|(offset, name)| {
-                        matches!(name, b"ID3 " | b"id3 ").then_some(at + 8 + offset as u64)
-                    }));
+            let most = size.min(MAX_TAG_LEN);
+            if reader.by_ref().take(most).read_to_end(&mut body).is_ok() {
+                check_tag(&body)?;
+            }
+        } else if !matches!(&header[..4], b"SSND" | b"data") {
+            let mut from = at + 8;
+            let end = next.min(len);
+            while from < end {
+                let most = (end - from + 3).min(HEAD_CHUNK as u64) as usize;
+                let Ok(read) = read_at(reader, from, &mut buffer[..most]) else {
+                    break;
+                };
+                for (offset, name) in buffer[..read].windows(4).enumerate() {
+                    if matches!(name, b"ID3 " | b"id3 ") {
+                        queue_chunk(&mut pending, seen.len(), from + offset as u64)?;
+                    }
                 }
+                if read <= 3 {
+                    break;
+                }
+                from += read as u64 - 3;
             }
         }
-        let next = at + 8 + size;
         if next < len {
-            pending.push(next);
+            queue_chunk(&mut pending, seen.len(), next)?;
             if size % 2 == 1 {
-                pending.push(next + 1);
+                queue_chunk(&mut pending, seen.len(), next + 1)?;
             }
         }
     }
     Ok(())
 }
 
+/// One more position to walk, unless there are already more than a file has reason for.
+fn queue_chunk(pending: &mut Vec<u64>, visited: usize, at: u64) -> Result<(), NestedChapters> {
+    if visited + pending.len() >= MAX_CHUNKS {
+        return Err(NestedChapters);
+    }
+    pending.push(at);
+    Ok(())
+}
+
 /// Where the run of empty chunks at `at` ends, on the eight-byte steps it is made of.
-fn past_zero_chunks<R: Read + Seek>(reader: &mut R, at: u64) -> Option<u64> {
-    let mut buffer = vec![0_u8; HEAD_CHUNK];
+fn past_zero_chunks<R: Read + Seek>(reader: &mut R, at: u64, buffer: &mut [u8]) -> Option<u64> {
     let mut from = at;
     loop {
-        let read = read_at(reader, from, &mut buffer).ok()?;
+        let read = read_at(reader, from, buffer).ok()?;
         if read == 0 {
             return None;
         }
@@ -434,22 +521,22 @@ impl Audit {
                         // A name cut by the end of what was just walked alone.
                         if !self.in_step {
                             let from = body_end.saturating_sub(FRAME_HEADER_LEN - 1);
-                            self.count_names(frames, from.max(body_start), body_end + 3)?;
+                            self.count_names(frames, from.max(body_start), body_end)?;
                         }
                     }
                     (Level::Top, _, _) => {
                         self.in_step = false;
-                        self.count_names(frames, at + 1, body_end + 3)?;
+                        self.count_names(frames, at + 1, body_end)?;
                     }
                     (Level::InsideChapter, _, _) => {
                         self.in_step = false;
                         self.count(1)?;
-                        self.count_names(frames, at + 1, body_end + 3)?;
+                        self.count_names(frames, at + 1, body_end)?;
                     }
                 }
             } else if !(self.in_step && flags == 0 && read_to_its_end(id, body)) {
                 self.in_step = false;
-                self.count_names(frames, at + 1, body_end + 3)?;
+                self.count_names(frames, at + 1, body_end)?;
             }
             at = body_end;
         }
@@ -469,9 +556,11 @@ impl Audit {
         }
     }
 
-    /// The names starting between `from` and `to` in `frames`, wherever they end. A
+    /// The names starting from `from` and before `to` in `frames`, wherever they end. A
     /// parser that has lost the row reads straight across the frames it is made of, so
-    /// a name may start in one and end in the next, and its flags be further on.
+    /// a name may start in one and end in the next, and its flags be further on. `to` is
+    /// the end of a frame at the most: what starts there is the next frame of the row,
+    /// which the walk reaches and judges for itself.
     fn count_names(&mut self, frames: &[u8], from: usize, to: usize) -> Result<(), NestedChapters> {
         let to = to.min(frames.len());
         let Some(starts) = frames.get(from..to) else {

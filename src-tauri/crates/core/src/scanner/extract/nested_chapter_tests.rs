@@ -712,3 +712,140 @@ fn only_bytes_that_are_no_tag_read_as_no_tag() {
     let empty = read_id3_tag(&mut Cursor::new(Vec::new())).expect_err("nothing here");
     assert!(matches!(empty.kind, id3::ErrorKind::NoTag));
 }
+
+/// A frame ends the trust, and what follows it is judged by the row: the chapter
+/// behind it is a frame of that row, not a name hiding in the frame before it.
+#[test]
+fn flat_chapters_behind_a_frame_that_ends_the_trust_are_flat() {
+    let mut toc = b"toc\0".to_vec();
+    toc.extend_from_slice(&[0x03, 8]);
+    for index in 0..8 {
+        toc.extend_from_slice(format!("c{index}\0").as_bytes());
+    }
+    let contents = frame(4, b"CTOC", 0, &toc);
+    let chapters = episode(4, 8, |i| format!("Chapter {i}"));
+
+    let people = frame(4, b"TIPL", 0, b"\x03producer\0someone\0");
+    assert_reads(
+        "people.mp3",
+        mp3(&tag(&[people, contents.clone(), chapters.clone()].concat())),
+    );
+
+    // The flag asks a tagger to drop the frame if the file changes. Nothing else.
+    let flagged = frame(4, b"TPE1", 0x4000, b"\x03Someone");
+    assert_reads(
+        "flagged.mp3",
+        mp3(&tag(&[flagged, contents, chapters].concat())),
+    );
+}
+
+/// A reader that says how much was read from it, and stops a check that has already
+/// gone far past anything a good file could ask for.
+struct Counted {
+    inner: Cursor<Vec<u8>>,
+    read: u64,
+}
+
+impl Counted {
+    /// Twice the budget: well past it, and well before a runaway takes a minute.
+    const GONE_TOO_FAR: u64 = 2 * 1024 * 1024 * 1024;
+
+    fn new(bytes: Vec<u8>) -> Self {
+        Self {
+            inner: Cursor::new(bytes),
+            read: 0,
+        }
+    }
+}
+
+impl std::io::Read for Counted {
+    fn read(&mut self, buffer: &mut [u8]) -> std::io::Result<usize> {
+        assert!(self.read < Self::GONE_TOO_FAR, "the check read without end");
+        let read = self.inner.read(buffer)?;
+        self.read += read as u64;
+        Ok(read)
+    }
+}
+
+impl std::io::Seek for Counted {
+    fn seek(&mut self, to: std::io::SeekFrom) -> std::io::Result<u64> {
+        self.inner.seek(to)
+    }
+}
+
+/// A WAV with `body` as its one chunk before the audio.
+fn wav_with_list(body: &[u8]) -> Vec<u8> {
+    let mut riff = b"WAVELIST".to_vec();
+    riff.extend_from_slice(&(body.len() as u32).to_le_bytes());
+    riff.extend_from_slice(body);
+    let mut out = b"RIFF".to_vec();
+    out.extend_from_slice(&(riff.len() as u32).to_le_bytes());
+    out.extend_from_slice(&riff);
+    out
+}
+
+/// The name of a tag chunk that declares more than the file holds, so that reading it
+/// reads everything behind it.
+fn greedy_chunk_name() -> Vec<u8> {
+    [b"ID3 ".as_slice(), &u32::MAX.to_le_bytes()].concat()
+}
+
+#[test]
+fn a_tag_chunk_named_again_and_again_does_not_read_the_file_again_and_again() {
+    use crate::tagio::chapter_nesting::{check_reader, NestedChapters};
+
+    // Fewer names than the walk allows, each with a mebibyte behind it to read.
+    let mut body = greedy_chunk_name().repeat(30_000);
+    body.resize(1024 * 1024, 0x5a);
+    let mut file = Counted::new(wav_with_list(&body));
+    assert_eq!(check_reader(&mut file), Err(NestedChapters));
+    assert!(
+        file.read <= 1024 * 1024 * 1024 + 1024 * 1024,
+        "{}",
+        file.read
+    );
+}
+
+#[test]
+fn a_chunk_stuffed_with_the_name_of_a_tag_chunk_is_refused_without_queueing_them() {
+    use crate::tagio::chapter_nesting::{check_reader, NestedChapters};
+
+    // More names than the walk would ever visit: it says so at the first chunk.
+    let body = greedy_chunk_name().repeat(200_000);
+    let size = body.len() as u64;
+    let mut file = Counted::new(wav_with_list(&body));
+    assert_eq!(check_reader(&mut file), Err(NestedChapters));
+    assert!(file.read <= size + 64 * 1024, "{}", file.read);
+}
+
+#[test]
+fn tags_named_again_and_again_behind_an_ape_tag_do_not_read_the_file_again_and_again() {
+    use crate::tagio::chapter_nesting::{check_reader, NestedChapters};
+
+    // Behind an APE tag nothing is jumped over, so each of these is a tag to read. 2.2
+    // has no chapters to look for, which leaves the reading.
+    let mut bytes = b"APETAGEX".to_vec();
+    bytes.resize(32, 0);
+    bytes.extend_from_slice(&b"ID3\x02\0\0\x7f\x7f\x7f\x7f".repeat(50_000));
+    let mut file = Counted::new(bytes);
+    assert_eq!(check_reader(&mut file), Err(NestedChapters));
+    assert!(
+        file.read <= 1024 * 1024 * 1024 + 1024 * 1024,
+        "{}",
+        file.read
+    );
+}
+
+#[test]
+fn a_good_tag_behind_an_ape_tag_costs_one_reading_or_so() {
+    use crate::tagio::chapter_nesting::check_reader;
+
+    let mut bytes = b"APETAGEX".to_vec();
+    bytes.resize(32, 0);
+    bytes.extend_from_slice(&tag(&episode(4, 40, |i| format!("Chapter {i}"))));
+    bytes.extend_from_slice(&audio());
+    let size = bytes.len() as u64;
+    let mut file = Counted::new(bytes);
+    assert_eq!(check_reader(&mut file), Ok(()));
+    assert!(file.read <= 64 * size, "{}", file.read);
+}

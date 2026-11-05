@@ -71,8 +71,9 @@ impl MetadataReader for GuardedId3v2Reader<'_> {
         let size = header[6..10].iter().fold(0_usize, |value, byte| {
             (value << 7) | usize::from(byte & 0x7f)
         });
-        let body = self.reader.read_boxed_slice_exact(size)?;
-        let tag = [header.as_slice(), &body].concat();
+        let mut tag = vec![0_u8; header.len() + size];
+        tag[..header.len()].copy_from_slice(&header);
+        self.reader.read_buf_exact(&mut tag[header.len()..])?;
         if chapter_nesting::check_tag(&tag).is_err() {
             return decode_error(NESTED);
         }
