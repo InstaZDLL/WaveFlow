@@ -162,6 +162,11 @@ pub enum AppError {
     #[error("token refresh rejected with status {0}")]
     RemoteRefreshRejected(u16),
 
+    /// A token refresh that got no answer, so nothing is known of the account.
+    #[cfg(feature = "sync_v2")]
+    #[error("token refresh failed: {0}")]
+    RemoteRefreshUnanswered(String),
+
     #[error("{0}")]
     Other(String),
 }

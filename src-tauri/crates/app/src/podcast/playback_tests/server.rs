@@ -249,7 +249,7 @@ fn a_network_gone_during_a_refresh_is_not_a_change_of_profile() {
 fn only_the_servers_401_to_a_refresh_says_the_account_is_signed_out() {
     let refused = AppError::RemoteRefreshRejected(401);
     let unwell = AppError::RemoteRefreshRejected(503);
-    let no_answer = AppError::Other("token refresh failed: connection refused".into());
+    let no_answer = AppError::RemoteRefreshUnanswered("connection refused".into());
 
     assert_eq!(why_no_client(&refused, true), NoClient::SignedOut);
     assert_eq!(why_no_client(&unwell, true), NoClient::Unreachable);

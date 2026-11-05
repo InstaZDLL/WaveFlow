@@ -120,7 +120,11 @@ pub(crate) async fn ready_client(state: &AppState) -> AppResult<Option<(RemoteCl
         Ok(client) => Ok(client.map(|client| (client, profile_id))),
         // A token refresh that failed. Its text is the client's own, and what the page
         // wants is a word.
-        Err(err @ (AppError::RemoteRefreshRejected(_) | AppError::Other(_))) => {
+        Err(
+            err @ (AppError::RemoteRefreshRejected(_)
+            | AppError::RemoteRefreshUnanswered(_)
+            | AppError::Other(_)),
+        ) => {
             // A refresh takes its time, and the profile it was for may be gone by now.
             let stands = state
                 .require_profile_pool_for(Some(profile_id))
