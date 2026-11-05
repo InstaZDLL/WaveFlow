@@ -220,11 +220,14 @@ export function PodcastChannelPage({
 
   // What the primary action starts: the episode in the player if it is one of
   // these, else the one in progress, else the newest not played yet, among those
-  // loaded.
+  // loaded and able to play. A restored profile keeps positions on episodes that
+  // have lost their address.
   const next = useMemo(
     () =>
       episodes.find((episode) => episode.id === player.episodeId) ??
-      episodes.find((episode) => isInProgress(episode)) ??
+      episodes.find(
+        (episode) => isInProgress(episode) && isPlayable(episode),
+      ) ??
       episodes.find(
         (episode) => episode.played_at == null && isPlayable(episode),
       ),

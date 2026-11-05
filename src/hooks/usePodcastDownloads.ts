@@ -24,8 +24,13 @@ export function usePodcastDownloads(
   useEffect(() => {
     let cancelled = false;
     let off: (() => void) | undefined;
+    // Ended since listening began: the queue, read a moment earlier, may still name
+    // them, and no later event would take them off again.
+    const ended = new Set<number>();
     listen<PodcastDownloadPayload>(PODCAST_DOWNLOAD, ({ payload }) => {
       const moving = payload.state === "queued" || payload.state === "running";
+      if (moving) ended.delete(payload.episodeId);
+      else ended.add(payload.episodeId);
       setActive((previous) => {
         const next = new Map(previous);
         if (moving) next.set(payload.episodeId, payload);
@@ -47,7 +52,10 @@ export function usePodcastDownloads(
           setActive((previous) => {
             const next = new Map(previous);
             for (const payload of queue) {
-              if (!next.has(payload.episodeId)) {
+              if (
+                !next.has(payload.episodeId) &&
+                !ended.has(payload.episodeId)
+              ) {
                 next.set(payload.episodeId, payload);
               }
             }
