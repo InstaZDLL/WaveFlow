@@ -13,6 +13,7 @@ import {
   UserMinus,
 } from "lucide-react";
 
+import { usePageTop } from "../../../hooks/usePageTop";
 import { usePageVirtualizer } from "../../../hooks/usePageVirtualizer";
 import {
   PODCAST_UPDATED,
@@ -187,6 +188,7 @@ export function PodcastChannelPage({
   onTurnOn,
 }: PodcastChannelPageProps) {
   const { t, i18n } = useTranslation();
+  usePageTop();
   const pages = useEpisodePages(channel.id);
   const { reload } = pages;
   const [descriptionOpen, setDescriptionOpen] = useState(false);

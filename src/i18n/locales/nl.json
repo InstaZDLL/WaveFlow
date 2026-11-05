@@ -1090,7 +1090,10 @@
     },
     "podcast": {
       "back15": "15 s terug",
-      "forward30": "30 s vooruit"
+      "forward30": "30 s vooruit",
+      "previousChapter": "Vorig hoofdstuk",
+      "nextChapter": "Volgend hoofdstuk",
+      "chapterOf": "Hoofdstuk {{current}} van {{total}}"
     }
   },
   "queue": {
@@ -4574,7 +4577,9 @@
       "remaining": "nog {{time}}",
       "pause": "{{title}} pauzeren",
       "queued": "Wachten",
-      "deletedWhilePlaying": "Het bestand is verwijderd. Wat nu speelt gaat door; om het opnieuw te starten is netwerk of een nieuwe download nodig."
+      "deletedWhilePlaying": "Het bestand is verwijderd. Wat nu speelt gaat door; om het opnieuw te starten is netwerk of een nieuwe download nodig.",
+      "open": "‘{{title}}’ openen",
+      "playAgainShort": "Opnieuw luisteren"
     },
     "restored": {
       "title": "Het adres van deze feed is niet meer bekend",
@@ -4606,7 +4611,28 @@
       "episode_gone": "Deze aflevering bestaat niet meer.",
       "no_source": "Deze aflevering heeft geen bestand en geen adres: abonneer je opnieuw op het kanaal.",
       "not_seekable": "Deze host staat niet toe dat je door de aflevering beweegt.",
-      "write_failed": "Het bestand kon niet naar de schijf worden geschreven."
+      "write_failed": "Het bestand kon niet naar de schijf worden geschreven.",
+      "invalid_document": "Dit bestand is niet wat het beweert te zijn."
+    },
+    "episodePage": {
+      "kicker": "Aflevering"
+    },
+    "chapters": {
+      "title": "Hoofdstukken",
+      "none": "Deze aflevering heeft geen hoofdstukken.",
+      "loading": "Hoofdstukken zoeken…",
+      "failed": "De hoofdstukken konden niet worden gelezen: {{reason}}",
+      "jump": "Ga naar ‘{{title}}’, {{time}}"
+    },
+    "transcript": {
+      "title": "Transcript",
+      "none": "Deze aflevering heeft geen transcript.",
+      "noEpisode": "Speel een aflevering af om het transcript te zien.",
+      "loading": "Transcript ophalen…",
+      "failed": "Het transcript kon niet worden gelezen: {{reason}}",
+      "untimed": "Dit transcript heeft geen tijdcodes en volgt het afspelen dus niet.",
+      "notPlaying": "Deze aflevering wordt niet afgespeeld. Een klik op een regel start hem op dat moment.",
+      "jump": "Ga naar {{time}}: {{text}}"
     }
   }
 }

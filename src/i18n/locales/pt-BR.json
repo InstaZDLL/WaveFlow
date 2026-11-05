@@ -1131,7 +1131,10 @@
     },
     "podcast": {
       "back15": "Voltar 15 s",
-      "forward30": "Avançar 30 s"
+      "forward30": "Avançar 30 s",
+      "previousChapter": "Capítulo anterior",
+      "nextChapter": "Próximo capítulo",
+      "chapterOf": "Capítulo {{current}} de {{total}}"
     }
   },
   "queue": {
@@ -4712,7 +4715,9 @@
       "remaining": "faltam {{time}}",
       "pause": "Pausar {{title}}",
       "queued": "Aguardando",
-      "deletedWhilePlaying": "O arquivo foi excluído. O que está tocando continua; para iniciar de novo será preciso rede ou um novo download."
+      "deletedWhilePlaying": "O arquivo foi excluído. O que está tocando continua; para iniciar de novo será preciso rede ou um novo download.",
+      "open": "Abrir “{{title}}”",
+      "playAgainShort": "Ouvir de novo"
     },
     "restored": {
       "title": "O endereço deste feed não é mais conhecido",
@@ -4744,7 +4749,28 @@
       "episode_gone": "Este episódio não existe mais.",
       "no_source": "Este episódio não tem arquivo nem endereço: assine o canal de novo.",
       "not_seekable": "Este servidor não permite avançar nem voltar no episódio.",
-      "write_failed": "Não foi possível gravar o arquivo no disco."
+      "write_failed": "Não foi possível gravar o arquivo no disco.",
+      "invalid_document": "Este arquivo não é o que diz ser."
+    },
+    "episodePage": {
+      "kicker": "Episódio"
+    },
+    "chapters": {
+      "title": "Capítulos",
+      "none": "Este episódio não tem capítulos.",
+      "loading": "Procurando capítulos…",
+      "failed": "Não foi possível ler os capítulos: {{reason}}",
+      "jump": "Ir para “{{title}}”, {{time}}"
+    },
+    "transcript": {
+      "title": "Transcrição",
+      "none": "Este episódio não tem transcrição.",
+      "noEpisode": "Reproduza um episódio para ver a transcrição.",
+      "loading": "Obtendo a transcrição…",
+      "failed": "Não foi possível ler a transcrição: {{reason}}",
+      "untimed": "Esta transcrição não tem tempos, então não acompanha a reprodução.",
+      "notPlaying": "Este episódio não está tocando. Clicar em uma linha inicia nesse momento.",
+      "jump": "Ir para {{time}}: {{text}}"
     }
   }
 }

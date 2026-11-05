@@ -19,12 +19,11 @@ import type {
   PodcastDownloadPayload,
   PodcastEpisode,
 } from "../../../lib/tauri/podcast";
+import { playBlocker, progressOf, useEpisodeMeta } from "./episodeMeta";
 import {
   channelTitle,
   episodeTitle,
   formatBytes,
-  formatDate,
-  formatLength,
   isInProgress,
   isPlayable,
 } from "./format";
@@ -150,6 +149,8 @@ export interface PodcastPlayerState {
 }
 
 export interface EpisodeActions {
+  /** Its page, where its chapters are asked for. */
+  open: (episode: PodcastEpisode) => void;
   play: (episode: PodcastEpisode) => void;
   togglePlayed: (episode: PodcastEpisode) => void;
   download: (episode: PodcastEpisode) => void;
@@ -167,54 +168,6 @@ interface EpisodeRowProps {
   download?: PodcastDownloadPayload;
   player: PodcastPlayerState;
   actions: EpisodeActions;
-}
-
-/** Why the play button is off, or `null` when it is on. */
-function playBlocker(episode: PodcastEpisode, network: boolean): string | null {
-  if (episode.downloaded) return null;
-  if (!episode.has_enclosure) return "podcasts.episode.noAddress";
-  return network ? null : "podcasts.episode.needsNetwork";
-}
-
-/** Date, length, what is left. Tabular, in the row's quiet line. */
-function useEpisodeMeta(episode: PodcastEpisode, channel?: PodcastChannel) {
-  const { t, i18n } = useTranslation();
-  const locale = i18n.language;
-  const parts: string[] = [];
-  if (channel) parts.push(channelTitle(t, channel));
-  if (episode.season != null && episode.episode_number != null) {
-    parts.push(
-      t("podcasts.episode.seasonEpisode", {
-        season: episode.season,
-        episode: episode.episode_number,
-      }),
-    );
-  } else if (episode.episode_number != null) {
-    parts.push(
-      t("podcasts.episode.number", { episode: episode.episode_number }),
-    );
-  }
-  if (episode.published_at != null) {
-    parts.push(formatDate(episode.published_at, locale));
-  }
-  if (episode.duration_ms != null) {
-    parts.push(
-      isInProgress(episode) && episode.duration_ms > episode.position_ms
-        ? t("podcasts.episode.remaining", {
-            time: formatLength(
-              episode.duration_ms - episode.position_ms,
-              locale,
-            ),
-          })
-        : formatLength(episode.duration_ms, locale),
-    );
-  }
-  return parts;
-}
-
-function progressOf(episode: PodcastEpisode): number | null {
-  if (!isInProgress(episode) || !episode.duration_ms) return null;
-  return Math.min(100, (episode.position_ms / episode.duration_ms) * 100);
 }
 
 export function PodcastEpisodeRow({
@@ -283,9 +236,15 @@ export function PodcastEpisodeRow({
         )}
       </button>
       <div className="min-w-0 flex-1">
-        <div className="pc-title truncate" title={title}>
+        <button
+          type="button"
+          className="pc-title pc-title--link block max-w-full truncate text-start"
+          title={title}
+          aria-label={t("podcasts.episode.open", { title })}
+          onClick={() => actions.open(episode)}
+        >
           {title}
-        </div>
+        </button>
         <div className="pc-meta mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
           {meta.map((part, index) => (
             <span key={index} className="pc-meta__part">
@@ -357,7 +316,7 @@ export function PodcastEpisodeRow({
   );
 }
 
-function EpisodeDownload({
+export function EpisodeDownload({
   episode,
   download,
   network,
@@ -455,12 +414,14 @@ export function PodcastLeadBand({
   network,
   player,
   onPlay,
+  onOpen,
 }: {
   episode: PodcastEpisode;
   channel?: PodcastChannel;
   network: boolean;
   player: PodcastPlayerState;
   onPlay: (episode: PodcastEpisode) => void;
+  onOpen: (episode: PodcastEpisode) => void;
 }) {
   const { t } = useTranslation();
   const title = episodeTitle(t, episode);
@@ -506,7 +467,14 @@ export function PodcastLeadBand({
             )}
           </p>
           <h3 className="fe-title fe-ink mt-1.5 truncate text-[1.625rem]">
-            {title}
+            <button
+              type="button"
+              className="pc-title--link max-w-full truncate text-start"
+              aria-label={t("podcasts.episode.open", { title })}
+              onClick={() => onOpen(episode)}
+            >
+              {title}
+            </button>
           </h3>
           <p className="fe-ink-2 mt-1 truncate text-[0.9375rem]">
             {channel ? channelTitle(t, channel) : ""}

@@ -204,6 +204,19 @@ pub(crate) async fn list_episodes(
     .await
 }
 
+/// One episode as the page shows it. One the user removed is gone.
+pub(crate) async fn episode(
+    pool: &SqlitePool,
+    id: i64,
+) -> Result<Option<PodcastEpisode>, sqlx::Error> {
+    sqlx::query_as(sqlx::AssertSqlSafe(format!(
+        "{EPISODE_SELECT} WHERE id = ? AND deleted_at IS NULL"
+    )))
+    .bind(id)
+    .fetch_optional(pool)
+    .await
+}
+
 /// A channel by the hash of its address, and whether it still holds one.
 pub(crate) async fn find_by_key(
     pool: &SqlitePool,
@@ -381,6 +394,14 @@ async fn store_episodes(
     prune(conn, channel_id).await
 }
 
+/// A feed that now names other sources makes what was found through the old ones
+/// stale. Rows on the old side of `ON CONFLICT`, the feed's on the `excluded` side.
+const SAME_CHAPTER_SOURCES: &str = "chapters_url IS excluded.chapters_url
+    AND inline_chapters IS excluded.inline_chapters
+    AND enclosure_url IS excluded.enclosure_url
+    AND enclosure_type IS excluded.enclosure_type";
+const SAME_TRANSCRIPTS: &str = "transcripts IS excluded.transcripts";
+
 async fn upsert_episode(
     conn: &mut SqliteConnection,
     channel_id: i64,
@@ -393,7 +414,7 @@ async fn upsert_episode(
     let transcripts = (!episode.transcripts.is_empty())
         .then(|| serde_json::to_string(&episode.transcripts).ok())
         .flatten();
-    sqlx::query(
+    sqlx::query(sqlx::AssertSqlSafe(format!(
         "INSERT INTO podcast_episode
             (channel_id, item_key, enclosure_url, enclosure_type, enclosure_length, title,
              description, published_at, duration_ms, season, episode_number, chapters_url,
@@ -412,9 +433,14 @@ async fn upsert_episode(
             chapters_url = excluded.chapters_url,
             inline_chapters = excluded.inline_chapters,
             transcripts = excluded.transcripts,
+            chapters_cache = CASE WHEN {SAME_CHAPTER_SOURCES} THEN chapters_cache END,
+            chapters_checked_at = CASE WHEN {SAME_CHAPTER_SOURCES} THEN chapters_checked_at END,
+            transcript_cache = CASE WHEN {SAME_TRANSCRIPTS} THEN transcript_cache END,
+            transcript_kind = CASE WHEN {SAME_TRANSCRIPTS} THEN transcript_kind END,
+            transcript_checked_at = CASE WHEN {SAME_TRANSCRIPTS} THEN transcript_checked_at END,
             updated_at = excluded.updated_at
-         WHERE podcast_episode.deleted_at IS NULL",
-    )
+         WHERE podcast_episode.deleted_at IS NULL"
+    )))
     .bind(channel_id)
     .bind(item_key(&episode.guid))
     .bind(&episode.enclosure_url)
@@ -576,6 +602,113 @@ pub(crate) async fn playable(
     .bind(episode_id)
     .fetch_optional(pool)
     .await
+}
+
+/// Where an episode's chapters may come from. Holds addresses, and stays in the
+/// backend.
+#[derive(Debug, Clone, PartialEq, Eq, FromRow)]
+pub(crate) struct ChapterSources {
+    pub chapters_url: Option<String>,
+    pub inline_chapters: Option<String>,
+    pub enclosure_url: Option<String>,
+    pub enclosure_type: Option<String>,
+    pub download_file: Option<String>,
+    pub feed_url: Option<String>,
+    pub chapters_checked_at: Option<i64>,
+    pub chapters_cache: Option<String>,
+}
+
+pub(crate) async fn chapter_sources(
+    pool: &SqlitePool,
+    episode_id: i64,
+) -> Result<Option<ChapterSources>, sqlx::Error> {
+    sqlx::query_as(
+        "SELECT e.chapters_url, e.inline_chapters, e.enclosure_url, e.enclosure_type,
+                e.download_file, c.feed_url, e.chapters_checked_at, e.chapters_cache
+           FROM podcast_episode e
+           JOIN podcast_channel c ON c.id = e.channel_id
+          WHERE e.id = ? AND e.deleted_at IS NULL",
+    )
+    .bind(episode_id)
+    .fetch_optional(pool)
+    .await
+}
+
+/// What was found, or `None` for nothing, and when. Written only while the row still
+/// names the sources it was found through: a refresh that changed them meanwhile
+/// has just said this is stale.
+pub(crate) async fn record_chapters(
+    pool: &SqlitePool,
+    episode_id: i64,
+    sources: &ChapterSources,
+    cache: Option<&str>,
+) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        "UPDATE podcast_episode
+            SET chapters_cache = ?, chapters_checked_at = ?
+          WHERE id = ?
+            AND chapters_url IS ? AND inline_chapters IS ?
+            AND enclosure_url IS ? AND enclosure_type IS ?",
+    )
+    .bind(cache)
+    .bind(Utc::now().timestamp_millis())
+    .bind(episode_id)
+    .bind(&sources.chapters_url)
+    .bind(&sources.inline_chapters)
+    .bind(&sources.enclosure_url)
+    .bind(&sources.enclosure_type)
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+/// Where an episode's transcript may come from. Holds addresses, and stays in the
+/// backend. Read apart from everything else: a kept one may be megabytes.
+#[derive(Debug, Clone, PartialEq, Eq, FromRow)]
+pub(crate) struct TranscriptSources {
+    pub transcripts: Option<String>,
+    pub feed_url: Option<String>,
+    pub transcript_kind: Option<String>,
+    pub transcript_cache: Option<String>,
+}
+
+pub(crate) async fn transcript_sources(
+    pool: &SqlitePool,
+    episode_id: i64,
+) -> Result<Option<TranscriptSources>, sqlx::Error> {
+    sqlx::query_as(
+        "SELECT e.transcripts, c.feed_url, e.transcript_kind, e.transcript_cache
+           FROM podcast_episode e
+           JOIN podcast_channel c ON c.id = e.channel_id
+          WHERE e.id = ? AND e.deleted_at IS NULL",
+    )
+    .bind(episode_id)
+    .fetch_optional(pool)
+    .await
+}
+
+/// Keeps a transcript with its episode, under the same condition as
+/// [`record_chapters`].
+pub(crate) async fn record_transcript(
+    pool: &SqlitePool,
+    episode_id: i64,
+    transcripts: &str,
+    kind: &str,
+    text: &str,
+) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        "UPDATE podcast_episode
+            SET transcript_kind = ?, transcript_cache = ?, transcript_checked_at = ?
+          WHERE id = ? AND transcripts IS ?",
+    )
+    .bind(kind)
+    .bind(text)
+    .bind(Utc::now().timestamp_millis())
+    .bind(episode_id)
+    .bind(transcripts)
+    .execute(pool)
+    .await?;
+    Ok(())
 }
 
 /// One row of a channel's queue.

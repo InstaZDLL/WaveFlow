@@ -36,6 +36,7 @@ import {
 } from "../../lib/tauri/lyrics";
 import { LyricsEditorModal } from "../common/LyricsEditorModal";
 import { useLyricsShare } from "../../hooks/useLyricsShare";
+import { lyricsLineClass } from "../../lib/lyricsLine";
 import { shareableLyricLines } from "../../lib/lyricsCard";
 import { BackgroundVocals, InterludeDots } from "../player/LyricsVoiceParts";
 import { ContextTip } from "../discovery/ContextTip";
@@ -429,13 +430,7 @@ export function LyricsPanel({
                     <button
                       type="button"
                       onClick={() => handleSeekToLine(line)}
-                      className={`block w-full ${align} text-base leading-relaxed cursor-pointer transition-all select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded ${
-                        isActive
-                          ? "text-zinc-900 dark:text-white font-semibold scale-[1.02]"
-                          : isPast
-                            ? "text-zinc-300 dark:text-zinc-600"
-                            : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
-                      }`}
+                      className={`block w-full ${align} ${lyricsLineClass(isActive, isPast)}`}
                     >
                       {hasWords ? (
                         <span>

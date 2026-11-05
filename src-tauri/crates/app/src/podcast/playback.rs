@@ -226,9 +226,14 @@ fn queue_of(
     (entries, index)
 }
 
-/// Starts `episode_id`, with its channel as the queue. A refusal changes nothing:
+/// Starts `episode_id`, with its channel as the queue, at `at_ms` when a person
+/// picked a moment and from where it belongs otherwise. A refusal changes nothing:
 /// what plays keeps playing.
-pub(crate) async fn play_episode(app: &AppHandle, episode_id: i64) -> AppResult<()> {
+pub(crate) async fn play_episode(
+    app: &AppHandle,
+    episode_id: i64,
+    at_ms: Option<u64>,
+) -> AppResult<()> {
     let engine = app.state::<Arc<AudioEngine>>();
     // Claimed before anything is read (#622): a track picked while this prepares
     // is the newer choice.
@@ -257,7 +262,7 @@ pub(crate) async fn play_episode(app: &AppHandle, episode_id: i64) -> AppResult<
     state.external_playback.clear();
     let revision = state.podcast_playback.set(DetachedQueue { entries, index });
     SESSION_STARTED.notify_one();
-    let played = send_load(app, &pool, profile_id, episode, source, intent).await;
+    let played = send_load(app, &pool, profile_id, episode, source, at_ms, intent).await;
     if played.is_err() {
         let _ = engine.send(AudioCmd::Stop);
         state.podcast_playback.clear_if(revision);
@@ -288,7 +293,7 @@ async fn play_current(app: &AppHandle, intent: LoadIntent) -> AppResult<()> {
         enabled,
         crate::offline::is_offline(),
     )?;
-    send_load(app, &pool, entry.profile_id, episode, source, intent).await
+    send_load(app, &pool, entry.profile_id, episode, source, None, intent).await
 }
 
 /// Hands the episode to the decoder and tells the surfaces outside the window. The
@@ -299,9 +304,10 @@ async fn send_load(
     profile_id: i64,
     episode: PlayableEpisode,
     source: EpisodeSource,
+    at_ms: Option<u64>,
     intent: LoadIntent,
 ) -> AppResult<()> {
-    let start_ms = start_position(&episode);
+    let start_ms = at_ms.unwrap_or_else(|| start_position(&episode));
     if let Err(err) = store::note_opened(pool, episode.id).await {
         // A column nobody needs to hear this episode.
         tracing::warn!(%err, "podcast: opened time not saved");

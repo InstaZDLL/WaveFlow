@@ -62,6 +62,7 @@ import {
   isRadioTrack,
   isRemoteTrack,
   isStreamTrack,
+  isPodcastTrack,
 } from "../lib/playerSources";
 
 /**
@@ -157,7 +158,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   // so we model "which is open" as a single value rather than three
   // booleans — that guarantees mutual exclusion by construction.
   const [activeRightPanel, setActiveRightPanel] = useState<
-    "queue" | "nowPlaying" | "lyrics" | null
+    "queue" | "nowPlaying" | "lyrics" | "transcript" | null
   >(null);
   const isQueueOpen = activeRightPanel === "queue";
   const isNowPlayingOpen = activeRightPanel === "nowPlaying";
@@ -186,6 +187,27 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   // Backend-synced state
   const [playbackState, setPlaybackState] = useState<PlaybackState>("idle");
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
+  const playingEpisodeId = isPodcastTrack(currentTrack)
+    ? (currentTrack?.podcast_episode_id ?? null)
+    : null;
+  // The episode whose transcript was asked for, and the one in the player then.
+  // Another episode in the player ends the request for good, so the panel follows it
+  // and does not go back when that one comes round again. The player leaving episodes
+  // altogether leaves what someone was reading.
+  const [transcriptRequest, setTranscriptRequest] = useState<{
+    episodeId: number;
+    whilePlaying: number | null;
+  } | null>(null);
+  if (
+    transcriptRequest &&
+    transcriptRequest.whilePlaying !== playingEpisodeId
+  ) {
+    setTranscriptRequest(
+      playingEpisodeId == null
+        ? { episodeId: transcriptRequest.episodeId, whilePlaying: null }
+        : null,
+    );
+  }
   // Stable Web Radio station identity, separate from the now-playing
   // song (which the ICY de-interleaver overwrites). Set from
   // `player:radio-metadata`, hydrated on mount, cleared when a library
@@ -418,6 +440,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     // would linger true through the `currentTrack` null window and reopen
     // the view once the new profile's first track lands.
     setImmersiveOpen(false);
+    // An episode's id means something else in the next profile, and what the panel
+    // holds is the last one's. Closed for the same reason the view above is.
+    setTranscriptRequest(null);
+    setActiveRightPanel((panel) => (panel === "transcript" ? null : panel));
 
     let cancelled = false;
     (async () => {
@@ -992,10 +1018,19 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   // a tab opens its panel whatever is up, and the shell's close button
   // closes whichever it is.
   const openRightPanel = useCallback(
-    (panel: "queue" | "nowPlaying" | "lyrics") => setActiveRightPanel(panel),
+    (panel: "queue" | "nowPlaying" | "lyrics" | "transcript") =>
+      setActiveRightPanel(panel),
     [],
   );
   const closeRightPanel = useCallback(() => setActiveRightPanel(null), []);
+  const openTranscript = useCallback(
+    (episodeId: number) => {
+      setTranscriptRequest({ episodeId, whilePlaying: playingEpisodeId });
+      setActiveRightPanel("transcript");
+    },
+    [playingEpisodeId],
+  );
+  const transcriptEpisodeId = transcriptRequest?.episodeId ?? playingEpisodeId;
   const toggleDeviceMenu = useCallback(
     () => setIsDeviceMenuOpen((p) => !p),
     [],
@@ -1081,6 +1116,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         toggleLyrics,
         openRightPanel,
         closeRightPanel,
+        transcriptEpisodeId,
+        openTranscript,
         isDeviceMenuOpen,
         toggleDeviceMenu,
         immersiveOpen,

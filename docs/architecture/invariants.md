@@ -342,7 +342,7 @@ So a blurred cover goes through [`PrecomputedBlur`](../../src/components/common/
 
 ### Right panels are flex siblings, not overlays
 
-`NowPlayingPanel` / `QueuePanel` / `LyricsPanel` are mounted as flex children of the outer row in `AppLayout`. The center column has `min-w-0` so wide tables collapse instead of pushing the panel off-screen.
+`NowPlayingPanel` / `QueuePanel` / `LyricsPanel` / `PodcastTranscriptPanel` are mounted as flex children of the outer row in `AppLayout`. The center column has `min-w-0` so wide tables collapse instead of pushing the panel off-screen.
 
 ### Adding a new player-bar action
 

@@ -98,6 +98,39 @@ export interface PodcastEpisode {
   has_transcript: boolean;
 }
 
+/** Mirrors `waveflow_core::podcast::chapters::Chapter`. */
+export interface PodcastChapter {
+  start_ms: number;
+  /** Text. Never markup. */
+  title: string;
+}
+
+/** Mirrors `podcast::extras::EpisodeChapters`. */
+export interface PodcastEpisodeChapters {
+  chapters: PodcastChapter[];
+  source: "json" | "inline" | "id3" | null;
+  /** A word, when there are none and something could not be asked or answered. */
+  failure: string | null;
+}
+
+/** Mirrors `waveflow_core::podcast::transcript::TranscriptLine`. */
+export interface PodcastTranscriptLine {
+  start_ms: number | null;
+  end_ms: number | null;
+  speaker: string | null;
+  /** Text. Never markup. */
+  text: string;
+}
+
+/** Mirrors `podcast::extras::EpisodeTranscript`. */
+export interface PodcastEpisodeTranscript {
+  /** False when the feed names none. */
+  available: boolean;
+  /** Its lines carry times, so the panel can follow the position. */
+  timed: boolean;
+  lines: PodcastTranscriptLine[];
+}
+
 /** How a pass over several channels ended. */
 export type PodcastPassOutcome =
   | "done"
@@ -231,9 +264,41 @@ export function podcastDownloadQueue(): Promise<PodcastDownloadPayload[]> {
 
 /** Plays an episode with its channel as the queue. From disk when it is
  *  downloaded, whatever the switch and offline mode say; otherwise rejects with
- *  either of them off. A played one starts over, any other from its position. */
-export function podcastPlayEpisode(episodeId: number): Promise<void> {
-  return invoke("podcast_play_episode", { episodeId });
+ *  either of them off. A played one starts over, any other from its position,
+ *  unless `atMs` names the moment someone picked. */
+export function podcastPlayEpisode(
+  episodeId: number,
+  atMs?: number,
+): Promise<void> {
+  return invoke("podcast_play_episode", { episodeId, atMs });
+}
+
+/** One episode, for its page. */
+export function podcastGetEpisode(episodeId: number): Promise<PodcastEpisode> {
+  return invoke<PodcastEpisode>("podcast_get_episode", { episodeId });
+}
+
+/** An episode's chapters. What this is for is opening an episode: it fetches what
+ *  it has not kept, unless the switch or offline mode stops it, and always answers
+ *  with what can be read here. */
+export function podcastEpisodeChapters(
+  episodeId: number,
+  again = false,
+): Promise<PodcastEpisodeChapters> {
+  return invoke<PodcastEpisodeChapters>("podcast_episode_chapters", {
+    episodeId,
+    again,
+  });
+}
+
+/** An episode's transcript, for a panel someone opened. With nothing kept, rejects
+ *  with the switch off or in offline mode. */
+export function podcastEpisodeTranscript(
+  episodeId: number,
+): Promise<PodcastEpisodeTranscript> {
+  return invoke<PodcastEpisodeTranscript>("podcast_episode_transcript", {
+    episodeId,
+  });
 }
 
 /** Marks one episode played or unplayed, which forgets its position. */

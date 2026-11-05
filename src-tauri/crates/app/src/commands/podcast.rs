@@ -18,6 +18,7 @@ use crate::audio::engine::AudioCmd;
 use crate::audio::AudioEngine;
 use crate::error::{AppError, AppResult};
 use crate::podcast::download::{self, DownloadState, DownloadUpdate, Job};
+use crate::podcast::extras::{self, EpisodeChapters, EpisodeTranscript};
 use crate::podcast::fetch::Fetcher;
 use crate::podcast::playback::{self, PodcastQueuePayload};
 use crate::podcast::refresh::{
@@ -123,6 +124,62 @@ pub async fn podcast_list_episodes(
     let pool = state.require_profile_pool().await?;
     let limit = limit.unwrap_or(MAX_EPISODE_PAGE).clamp(1, MAX_EPISODE_PAGE);
     Ok(store::list_episodes(&pool, channel_id, limit, offset.unwrap_or(0).max(0)).await?)
+}
+
+/// One episode, for its page.
+#[tauri::command]
+pub async fn podcast_get_episode(
+    state: State<'_, AppState>,
+    episode_id: i64,
+) -> AppResult<PodcastEpisode> {
+    let pool = state.require_profile_pool().await?;
+    Ok(store::episode(&pool, episode_id)
+        .await?
+        .ok_or(PodcastError::EpisodeGone)?)
+}
+
+/// An episode's chapters, from the first source that has any. Called when an episode
+/// is opened: what was kept answers with nobody contacted, and so does the switch
+/// off or offline mode, with what can be read here. `again` is a person asking once
+/// more, past an answer of nothing that still holds.
+#[tauri::command]
+pub async fn podcast_episode_chapters(
+    state: State<'_, AppState>,
+    episode_id: i64,
+    again: Option<bool>,
+) -> AppResult<EpisodeChapters> {
+    let (_, profile_id) = state.require_profile_snapshot().await?;
+    let leases = ProfileLeases {
+        state: &state,
+        profile_id,
+    };
+    let fetcher = Fetcher::new().map_err(PodcastError::from)?;
+    let downloads = state.paths.profile_podcast_download_dir(profile_id);
+    Ok(extras::chapters(
+        &leases,
+        &fetcher,
+        &downloads,
+        episode_id,
+        again.unwrap_or(false),
+    )
+    .await?)
+}
+
+/// An episode's transcript. Only for a panel someone has opened, so that it is not
+/// asked for on anyone's behalf. What was kept answers with nobody contacted; with
+/// nothing kept, refused with the switch off or in offline mode.
+#[tauri::command]
+pub async fn podcast_episode_transcript(
+    state: State<'_, AppState>,
+    episode_id: i64,
+) -> AppResult<EpisodeTranscript> {
+    let (_, profile_id) = state.require_profile_snapshot().await?;
+    let leases = ProfileLeases {
+        state: &state,
+        profile_id,
+    };
+    let fetcher = Fetcher::new().map_err(PodcastError::from)?;
+    Ok(extras::transcript(&leases, &fetcher, episode_id).await?)
 }
 
 /// Asks one channel, or all of them, for its feed. Refused with the switch off
@@ -350,10 +407,15 @@ pub async fn podcast_download_queue(state: State<'_, AppState>) -> AppResult<Vec
 
 /// Plays an episode, with its channel as the queue. From disk when it is downloaded,
 /// whatever the switch and offline mode say. Otherwise refused with either of them
-/// off, before anything changes or anybody is contacted.
+/// off, before anything changes or anybody is contacted. `at_ms` is a moment someone
+/// picked, a chapter or a line of its transcript, and wins over the position.
 #[tauri::command]
-pub async fn podcast_play_episode(app: AppHandle, episode_id: i64) -> AppResult<()> {
-    playback::play_episode(&app, episode_id).await
+pub async fn podcast_play_episode(
+    app: AppHandle,
+    episode_id: i64,
+    at_ms: Option<u64>,
+) -> AppResult<()> {
+    playback::play_episode(&app, episode_id, at_ms).await
 }
 
 /// Marks one episode played or unplayed. Available with the switch off.

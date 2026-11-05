@@ -32,6 +32,8 @@ pub enum FetchFailure {
     Status(u16),
     /// A body that is not a feed.
     InvalidFeed,
+    /// A chapter file or a transcript that is not what it says it is.
+    InvalidDocument,
     /// A body that is not audio.
     NotAudio,
     /// The download folder is at its quota.
@@ -48,6 +50,7 @@ impl FetchFailure {
             Self::Unreached => "unreached".to_owned(),
             Self::Status(status) => format!("http_{status}"),
             Self::InvalidFeed => "invalid_feed".to_owned(),
+            Self::InvalidDocument => "invalid_document".to_owned(),
             Self::NotAudio => "not_audio".to_owned(),
             Self::QuotaExceeded => "quota_exceeded".to_owned(),
         }

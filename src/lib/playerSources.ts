@@ -69,6 +69,19 @@ export function isPodcastTrack(track: Track | null): boolean {
 }
 
 /**
+ * The episode the player holds. A stopped player still names what it played last,
+ * but no longer holds it, so that one answers like any other row.
+ */
+export function episodeInPlayer(
+  track: Track | null,
+  playbackState: string,
+): number | null {
+  if (!isPodcastTrack(track)) return null;
+  if (playbackState === "idle" || playbackState === "ended") return null;
+  return track?.podcast_episode_id ?? null;
+}
+
+/**
  * Which queue in memory `track` belongs to ({@link DETACHED_QUEUES}), or `null`
  * when it is not one's: a library track, or radio, which has no queue.
  */

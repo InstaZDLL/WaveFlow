@@ -1090,7 +1090,10 @@
     },
     "podcast": {
       "back15": "Back 15 s",
-      "forward30": "Forward 30 s"
+      "forward30": "Forward 30 s",
+      "previousChapter": "Previous chapter",
+      "nextChapter": "Next chapter",
+      "chapterOf": "Chapter {{current}} of {{total}}"
     }
   },
   "queue": {
@@ -4574,7 +4577,9 @@
       "remaining": "{{time}} left",
       "pause": "Pause {{title}}",
       "queued": "Waiting",
-      "deletedWhilePlaying": "The file is deleted. What is playing carries on; starting it again will need the network or a new download."
+      "deletedWhilePlaying": "The file is deleted. What is playing carries on; starting it again will need the network or a new download.",
+      "open": "Open “{{title}}”",
+      "playAgainShort": "Play again"
     },
     "restored": {
       "title": "This feed's address is no longer known",
@@ -4606,7 +4611,28 @@
       "episode_gone": "This episode no longer exists.",
       "no_source": "This episode has neither a file nor an address: subscribe to the channel again.",
       "not_seekable": "This host does not allow moving around in the episode.",
-      "write_failed": "The file could not be written to disk."
+      "write_failed": "The file could not be written to disk.",
+      "invalid_document": "This file is not what it claims to be."
+    },
+    "episodePage": {
+      "kicker": "Episode"
+    },
+    "chapters": {
+      "title": "Chapters",
+      "none": "This episode has no chapters.",
+      "loading": "Looking for chapters…",
+      "failed": "The chapters could not be read: {{reason}}",
+      "jump": "Go to “{{title}}”, {{time}}"
+    },
+    "transcript": {
+      "title": "Transcript",
+      "none": "This episode has no transcript.",
+      "noEpisode": "Play an episode to see its transcript.",
+      "loading": "Getting the transcript…",
+      "failed": "The transcript could not be read: {{reason}}",
+      "untimed": "This transcript has no timing, so it does not follow playback.",
+      "notPlaying": "This episode is not playing. Clicking a line starts it at that moment.",
+      "jump": "Go to {{time}}: {{text}}"
     }
   }
 }

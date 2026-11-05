@@ -25,6 +25,7 @@ import { MAX_PITCH_SEMITONES } from "../../lib/tauri/player";
 import { formatDuration } from "../../lib/tauri/track";
 import { AbLoopButton } from "./AbLoopButton";
 import { EqPresetPanel } from "./EqPresetButton";
+import { PodcastPlayerMenu } from "../podcasts/PodcastPlayerMenu";
 
 const SLEEP_PRESETS_MIN = [5, 15, 30, 45, 60, 90];
 const SPEED_PRESETS = [0.75, 1.0, 1.25, 1.5, 2.0];
@@ -55,7 +56,7 @@ interface MoreActionsMenuProps {
  * Overflow popover for the player bar's secondary actions. Hosts
  * Sleep timer, A-B loop, playback speed, EQ presets, the desktop
  * lyrics window (#582) and, during a podcast episode, the jumps back and
- * forward. Sleep timer / A-B loop / EQ can be pinned to
+ * forward, its chapters and its transcript. Sleep timer / A-B loop / EQ can be pinned to
  * the bar via Settings; speed and desktop lyrics have no pin, so the
  * menu always has something in it.
  */
@@ -76,6 +77,7 @@ export function MoreActionsMenu({
     currentTrack,
     durationMs,
     seek,
+    openTranscript,
     playbackState,
   } = usePlayer();
   const isPodcast = isPodcastTrack(currentTrack);
@@ -266,6 +268,19 @@ export function MoreActionsMenu({
                 </div>
                 <div className="my-1 h-px bg-zinc-100 dark:bg-zinc-800" />
               </>
+            )}
+
+            {isPodcast && currentTrack?.podcast_episode_id != null && (
+              <PodcastPlayerMenu
+                episodeId={currentTrack.podcast_episode_id}
+                canJump={canJump}
+                onOpenTranscript={() => {
+                  setIsOpen(false);
+                  if (currentTrack.podcast_episode_id != null) {
+                    openTranscript(currentTrack.podcast_episode_id);
+                  }
+                }}
+              />
             )}
 
             <div className="px-3 py-2 space-y-2">
