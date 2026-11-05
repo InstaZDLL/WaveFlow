@@ -21,7 +21,8 @@
     └── <profile_id>/
         ├── artwork/             (per-profile embedded artwork cache)
         ├── remote-artwork/      (per-profile remote cover cache)
-        └── remote-stream/       (per-profile remote audio cache)
+        ├── remote-stream/       (per-profile remote audio cache)
+        └── podcast-downloads/   (episodes downloaded, fetched again if lost)
 ```
 
 `<app_data_dir>` resolves via Tauri's `app_data_dir()`, which honours the bundle identifier (`app.waveflow`):
@@ -36,7 +37,7 @@ The inner `waveflow/` segment is a hardcoded subdirectory in [`paths.rs`](../../
 
 Artwork landed on the system drive whatever drive WaveFlow was installed on, and a `C:` that is critically low on space takes the machine down with it. Settings → Storage and backups → Folders and caches can point `cache_root` elsewhere; the choice lives in `app_setting['storage.cache_root']`, app-wide.
 
-**The split is not "big things move" — it is _evictable moves, chosen stays_.** Everything under `cache_root` is content-addressed or LRU-evicted, so the worst case of a failed move, a missing drive or a half-copy is a re-fetch. Databases, hand-picked motion covers and Canvas clips, and offline downloads would have to be recreated by hand, so moving them would be a migration rather than a setting — that is the heavier option the issue offers, and deliberately not the one taken.
+**The split is not "big things move" — it is _evictable moves, chosen stays_.** Everything under `cache_root` is content-addressed or LRU-evicted, or in the case of a podcast episode downloaded, kept under a quota and fetched again from its host, so the worst case of a failed move, a missing drive or a half-copy is a re-fetch. Databases, hand-picked motion covers and Canvas clips, and offline downloads would have to be recreated by hand, so moving them would be a migration rather than a setting — that is the heavier option the issue offers, and deliberately not the one taken.
 
 Five things follow from that, each of which is a silent failure if skipped:
 

@@ -77,7 +77,7 @@ pub async fn podcast_unsubscribe(
 ) -> AppResult<()> {
     let (pool, profile_id) = state.require_profile_snapshot().await?;
     for job in download::queue().cancel_channel(profile_id, channel_id) {
-        download::emit(&app, job.episode_id, DownloadState::Cancelled);
+        download::emit(&app, profile_id, job.episode_id, DownloadState::Cancelled);
     }
     let files = store::downloads_of_channel(&pool, channel_id).await?;
     if store::delete_channel(&pool, channel_id).await? {
@@ -262,7 +262,7 @@ pub async fn podcast_cancel_download(
 ) -> AppResult<()> {
     let profile_id = state.require_profile_id().await?;
     if download::queue().cancel(profile_id, episode_id) {
-        download::emit(&app, episode_id, DownloadState::Cancelled);
+        download::emit(&app, profile_id, episode_id, DownloadState::Cancelled);
     }
     Ok(())
 }
@@ -277,7 +277,7 @@ pub async fn podcast_delete_download(
 ) -> AppResult<()> {
     let (pool, profile_id) = state.require_profile_snapshot().await?;
     if download::queue().cancel(profile_id, episode_id) {
-        download::emit(&app, episode_id, DownloadState::Cancelled);
+        download::emit(&app, profile_id, episode_id, DownloadState::Cancelled);
     }
     let dir = state.paths.profile_podcast_download_dir(profile_id);
     if download::delete_download(&pool, &dir, episode_id).await? {

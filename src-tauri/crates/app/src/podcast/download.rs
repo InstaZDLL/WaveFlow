@@ -935,9 +935,12 @@ impl DownloadObserver for AppObserver<'_> {
     }
 }
 
-/// See [`PODCAST_DOWNLOAD`].
-pub(crate) fn emit(app: &AppHandle, episode_id: i64, state: DownloadState) {
-    let _ = app.emit(PODCAST_DOWNLOAD, DownloadUpdate::at(episode_id, state));
+/// See [`PODCAST_DOWNLOAD`]. Says nothing about a profile that has been left: a
+/// command may still be on its way when the switch lands.
+pub(crate) fn emit(app: &AppHandle, profile_id: i64, episode_id: i64, state: DownloadState) {
+    if is_active(profile_id) {
+        let _ = app.emit(PODCAST_DOWNLOAD, DownloadUpdate::at(episode_id, state));
+    }
 }
 
 /// Puts an episode in line and starts the worker when none is running.
@@ -946,7 +949,7 @@ pub(crate) fn enqueue(app: &AppHandle, job: Job) {
     if pushed == Pushed::Already {
         return;
     }
-    emit(app, job.episode_id, DownloadState::Queued);
+    emit(app, job.profile_id, job.episode_id, DownloadState::Queued);
     if pushed == Pushed::QueuedStartWorker {
         let app = app.clone();
         tauri::async_runtime::spawn(async move {

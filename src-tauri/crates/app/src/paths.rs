@@ -41,9 +41,10 @@ use crate::error::{AppError, AppResult};
 /// tree can be pointed somewhere else.
 ///
 /// The split is not "big things move". It is **evictable moves, chosen
-/// stays**: every directory under `cache_root` is content-addressed or
-/// LRU-evicted, so the worst case of a failed or missing move is a
-/// re-fetch. The databases, the manual motion covers, the manual Canvas
+/// stays**: every directory under `cache_root` is content-addressed,
+/// LRU-evicted or, for podcast episodes, kept under a quota and fetched
+/// again from their host, so the worst case of a failed or missing move
+/// is a re-fetch. The databases, the manual motion covers, the manual Canvas
 /// clips and the offline downloads are things the user would have to
 /// recreate by hand, so moving them would be a migration rather than a
 /// setting, and they stay put.
