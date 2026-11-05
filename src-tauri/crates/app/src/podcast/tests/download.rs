@@ -516,7 +516,7 @@ async fn a_secure_enclosure_cannot_redirect_into_the_clear() {
     let tls = Fetcher::with(
         client_builder()
             .no_proxy()
-            .danger_accept_invalid_certs(true)
+            .add_root_certificate(test_certificate())
             .resolve(PUBLIC_HOST, ([127, 0, 0, 1], port).into()),
         online,
         Duration::from_secs(5),
