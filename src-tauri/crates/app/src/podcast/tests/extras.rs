@@ -798,6 +798,15 @@ async fn a_feed_that_names_other_sources_makes_what_was_kept_stale() {
         .unwrap();
     assert_eq!(kept().await, (None, Some("t".into())));
 
+    // The same address under another type: what it can hold has changed.
+    keep().await;
+    let mut retyped = moved.clone();
+    retyped.episodes[0].enclosure_type = Some("audio/mp4".to_owned());
+    store::refresh_feed(&pool, channel, &retyped, &Validators::default())
+        .await
+        .unwrap();
+    assert_eq!(kept().await, (None, Some("t".into())));
+
     // Another transcript drops the transcript and only it.
     keep().await;
     let moved = feed_with(
@@ -832,6 +841,44 @@ async fn a_refresh_during_a_fetch_is_not_undone_by_what_it_found() {
     set_chapters_url(&pool, episode, "https://x.example.org/other.json").await;
     let answer = opening.await.unwrap().unwrap();
     assert_eq!(titles(&answer), ["First", "Second"]);
+    assert_eq!(cached(&pool, episode).await, (None, None));
+
+    // The same for a new type on the enclosure the answer was read from.
+    let server = serve(|_| {
+        Reply::Late(
+            match with_status(
+                "200 OK",
+                "Content-Type: audio/mpeg\r\n",
+                &tagged_mp3("From the tag"),
+            ) {
+                Reply::Raw(bytes) => bytes,
+                _ => unreachable!(),
+            },
+        )
+    })
+    .await;
+    let fetcher = public_fetcher(&server);
+    let episode = row(
+        &pool,
+        Row {
+            enclosure: Some(server.public("/a.mp3")),
+            enclosure_type: Some("audio/mpeg".into()),
+            ..Row::default()
+        },
+    )
+    .await;
+    let opening = {
+        let pool = pool.clone();
+        tokio::spawn(async move { open_chapters(&pool, &fetcher, episode).await })
+    };
+    tokio::time::sleep(Duration::from_millis(100)).await;
+    sqlx::query("UPDATE podcast_episode SET enclosure_type = 'audio/mp4' WHERE id = ?")
+        .bind(episode)
+        .execute(&pool)
+        .await
+        .unwrap();
+    let answer = opening.await.unwrap().unwrap();
+    assert_eq!(titles(&answer), ["From the tag"]);
     assert_eq!(cached(&pool, episode).await, (None, None));
 }
 

@@ -398,7 +398,8 @@ async fn store_episodes(
 /// stale. Rows on the old side of `ON CONFLICT`, the feed's on the `excluded` side.
 const SAME_CHAPTER_SOURCES: &str = "chapters_url IS excluded.chapters_url
     AND inline_chapters IS excluded.inline_chapters
-    AND enclosure_url IS excluded.enclosure_url";
+    AND enclosure_url IS excluded.enclosure_url
+    AND enclosure_type IS excluded.enclosure_type";
 const SAME_TRANSCRIPTS: &str = "transcripts IS excluded.transcripts";
 
 async fn upsert_episode(
@@ -646,7 +647,8 @@ pub(crate) async fn record_chapters(
         "UPDATE podcast_episode
             SET chapters_cache = ?, chapters_checked_at = ?
           WHERE id = ?
-            AND chapters_url IS ? AND inline_chapters IS ? AND enclosure_url IS ?",
+            AND chapters_url IS ? AND inline_chapters IS ?
+            AND enclosure_url IS ? AND enclosure_type IS ?",
     )
     .bind(cache)
     .bind(Utc::now().timestamp_millis())
@@ -654,6 +656,7 @@ pub(crate) async fn record_chapters(
     .bind(&sources.chapters_url)
     .bind(&sources.inline_chapters)
     .bind(&sources.enclosure_url)
+    .bind(&sources.enclosure_type)
     .execute(pool)
     .await?;
     Ok(())

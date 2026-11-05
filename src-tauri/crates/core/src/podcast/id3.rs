@@ -66,9 +66,10 @@ fn walk<R: Read + Seek>(reader: &mut R, mut budget: usize) -> Option<Vec<Chapter
         _ => return None,
     };
     let flags = header[5];
-    // Unsynchronised as a whole, which only 2.3 does: every length below would be
-    // off by the bytes it inserted, and nothing real does this to a chapter.
-    if version == Version::V3 && flags & 0x80 != 0 {
+    // Unsynchronised as a whole: the bytes it inserted would be read as a time or a
+    // title, and in 2.3 every length below would be off by them too. Nothing real does
+    // this to a chapter, so it is not undone.
+    if flags & 0x80 != 0 {
         return None;
     }
     let size = synchsafe(&header[6..10])?;

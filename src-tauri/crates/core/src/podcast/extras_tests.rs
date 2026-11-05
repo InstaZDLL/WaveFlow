@@ -258,9 +258,10 @@ fn what_is_no_tag_gives_nothing() {
     ] {
         assert_eq!(read(bytes), Vec::new());
     }
-    // Unsynchronised as a whole, in the one version that does it.
+    // Unsynchronised as a whole, in either version.
     let frames = chapter_frame("c", 0, "Title");
     assert_eq!(read(&tag(3, 0x80, &frames)), Vec::new());
+    assert_eq!(read(&tag(4, 0x80, &frames)), Vec::new());
     // Padding ends the walk. So does a million empty frames, with nothing to read.
     assert_eq!(read(&tag(4, 0, &[0_u8; 4096])), Vec::new());
     for _ in 0..100_000 {
