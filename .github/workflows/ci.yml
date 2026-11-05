@@ -283,7 +283,9 @@ jobs:
         # is on what the job used rather than on what is left, so it fires on
         # Azure too: running out shows up in whichever pull request draws a small
         # runner, not in the one that used the room up. A small runner has about
-        # 40 GB after the cleanup and the job uses about 20; warn at 30 GiB.
+        # 40 GB after the cleanup and the job ends at about 20; warn at 30 GiB.
+        # This reads the end of the job, and the peak measured 2 GB above it: the
+        # 10 GB left at the threshold cover that without sampling during the job.
         if: always() && runner.os == 'Linux'
         run: |
           df -h /
