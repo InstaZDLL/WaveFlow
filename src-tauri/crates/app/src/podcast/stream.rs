@@ -95,6 +95,9 @@ pub(crate) enum StreamRefusal {
     /// or it was deleted since.
     #[cfg_attr(not(feature = "sync_v2"), allow(dead_code))]
     NotStored,
+    /// A bound server refused the account's token: it has to sign in again.
+    #[cfg_attr(not(feature = "sync_v2"), allow(dead_code))]
+    SignedOut,
     /// A command replaces this stream and it was still waiting.
     Released,
 }
@@ -117,6 +120,7 @@ impl StreamRefusal {
             Self::Offline => "podcast: offline".to_owned(),
             Self::Failed(failure) => format!("podcast: {}", failure.code()),
             Self::NotStored => "podcast: not_stored".to_owned(),
+            Self::SignedOut => "podcast: server_signed_out".to_owned(),
             Self::Released => READ_RELEASED.to_owned(),
         }
     }

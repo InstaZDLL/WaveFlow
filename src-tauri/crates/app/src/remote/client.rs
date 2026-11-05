@@ -580,9 +580,7 @@ pub async fn refresh(
 
     let status = response.status().as_u16();
     if classify_status(status).is_some() {
-        return Err(AppError::Other(format!(
-            "token refresh rejected with status {status}"
-        )));
+        return Err(AppError::RemoteRefreshRejected(status));
     }
 
     let fresh: AuthTokensResponse = response.json().await.map_err(|err| {

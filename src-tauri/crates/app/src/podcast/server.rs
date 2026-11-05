@@ -66,6 +66,9 @@ const NOT_STORED: &str = "not_stored";
 /// The word for a server that did not answer.
 const UNREACHABLE: &str = "server_unreachable";
 
+/// The word for a server that no longer takes this account's token.
+const SIGNED_OUT: &str = "server_signed_out";
+
 /// Where a server's episode is, for the session and the decoder.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ServerEpisodeRef {
@@ -115,9 +118,11 @@ pub(crate) async fn ready_client(state: &AppState) -> AppResult<Option<(RemoteCl
     };
     match RemoteClient::try_build_for(state, profile_id).await {
         Ok(client) => Ok(client.map(|client| (client, profile_id))),
-        // A token refresh that got no answer. Its text is the client's own, and what
-        // the page wants is a word.
-        Err(AppError::Other(_)) => Err(podcast_refusal(UNREACHABLE)),
+        // A token refresh that failed. Its text is the client's own, and what the page
+        // wants is a word.
+        Err(err @ (AppError::RemoteRefreshRejected(_) | AppError::Other(_))) => {
+            Err(why_no_client(&err, true).refusal())
+        }
         Err(err) => Err(err),
     }
 }
@@ -140,14 +145,29 @@ pub(crate) async fn detached<T: Send + 'static>(
 pub(crate) enum NoClient {
     /// Another profile, another server, another account, signed out.
     ScopeGone,
-    /// The scope stands, and a token refresh failed: the network, most of the time.
+    /// The scope stands, and the server refused the account's token.
+    SignedOut,
+    /// The scope stands, and a token refresh failed some other way: the network, most
+    /// of the time.
     Unreachable,
+}
+
+/// Why building a client failed. A sign-out or a profile switch while the refresh queued
+/// leaves the scope gone, whatever the error says, and the server says the rest: its 401
+/// to a refresh is the one answer that means the session is over.
+pub(crate) fn why_no_client(err: &AppError, scope_stands: bool) -> NoClient {
+    match err {
+        _ if !scope_stands => NoClient::ScopeGone,
+        AppError::RemoteRefreshRejected(401) => NoClient::SignedOut,
+        _ => NoClient::Unreachable,
+    }
 }
 
 impl NoClient {
     pub(crate) fn refusal(self) -> AppError {
         match self {
             Self::ScopeGone => PodcastError::ProfileChanged.into(),
+            Self::SignedOut => podcast_refusal(SIGNED_OUT),
             Self::Unreachable => podcast_refusal(UNREACHABLE),
         }
     }
@@ -156,6 +176,7 @@ impl NoClient {
         match self {
             // Nothing here is for whoever is bound now, so nothing to say to them.
             Self::ScopeGone => StreamRefusal::Released,
+            Self::SignedOut => StreamRefusal::SignedOut,
             Self::Unreachable => StreamRefusal::Failed(FetchFailure::Unreached),
         }
     }
@@ -173,8 +194,7 @@ async fn scope_stands(state: &AppState, scope: &ServerScope) -> bool {
 }
 
 /// A client still speaking for `scope`. Building one may refresh its token, so a failure
-/// is told apart by what the rows say afterwards: signed out while that refresh queued,
-/// or a profile switch, leaves the scope gone, and a network that went away does not.
+/// is told apart by what the rows say afterwards and what the server answered.
 async fn client_in_scope<'a>(
     state: &'a AppState,
     scope: &ServerScope,
@@ -182,8 +202,7 @@ async fn client_in_scope<'a>(
     match RemoteClient::try_build_for(state, scope.profile_id).await {
         Ok(Some(client)) if scope.holds_for(&client) => Ok(client),
         Ok(_) => Err(NoClient::ScopeGone),
-        Err(_) if scope_stands(state, scope).await => Err(NoClient::Unreachable),
-        Err(_) => Err(NoClient::ScopeGone),
+        Err(err) => Err(why_no_client(&err, scope_stands(state, scope).await)),
     }
 }
 
@@ -297,9 +316,8 @@ pub(crate) async fn play_episode(
     let state = app.state::<AppState>();
     let (client, profile_id) = ready_client(&state)
         .await?
-        .ok_or_else(|| podcast_refusal("server_signed_out"))?;
-    let scope =
-        ServerScope::of(&client, profile_id).ok_or_else(|| podcast_refusal("server_signed_out"))?;
+        .ok_or_else(|| podcast_refusal(SIGNED_OUT))?;
+    let scope = ServerScope::of(&client, profile_id).ok_or_else(|| podcast_refusal(SIGNED_OUT))?;
     let channel = podcasts::channel(&client, channel_id)
         .await
         .map_err(|err| {

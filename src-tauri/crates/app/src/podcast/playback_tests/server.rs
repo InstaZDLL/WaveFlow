@@ -12,7 +12,7 @@ use super::super::playback::{
 };
 use super::super::refresh::PodcastError;
 use super::super::server::{
-    claim_jump, detached, jump_target, may_ask, position_write, queue_of, NoClient,
+    claim_jump, detached, jump_target, may_ask, position_write, queue_of, why_no_client, NoClient,
     ServerEpisodeRef,
 };
 use super::super::store;
@@ -22,6 +22,7 @@ use super::open_gate;
 use crate::audio::analytics::AnalyticsMsg;
 use crate::audio::engine::{AudioCmd, LastLoad, LoadIntent};
 use crate::audio::state::SharedPlayback;
+use crate::error::AppError;
 use crate::remote::podcasts::{ServerEpisode, ServerScope};
 use crate::remote::test_support::scope_on;
 use crate::remote_playback::DetachedQueue;
@@ -234,6 +235,31 @@ fn a_network_gone_during_a_refresh_is_not_a_change_of_profile() {
         NoClient::ScopeGone.stream_refusal(),
         StreamRefusal::Released
     );
+    assert_eq!(
+        NoClient::SignedOut.refusal().to_string(),
+        "podcast: server_signed_out"
+    );
+    assert_eq!(
+        NoClient::SignedOut.stream_refusal().message(),
+        "podcast: server_signed_out"
+    );
+}
+
+#[test]
+fn only_the_servers_401_to_a_refresh_says_the_account_is_signed_out() {
+    let refused = AppError::RemoteRefreshRejected(401);
+    let unwell = AppError::RemoteRefreshRejected(503);
+    let no_answer = AppError::Other("token refresh failed: connection refused".into());
+
+    assert_eq!(why_no_client(&refused, true), NoClient::SignedOut);
+    assert_eq!(why_no_client(&unwell, true), NoClient::Unreachable);
+    assert_eq!(why_no_client(&no_answer, true), NoClient::Unreachable);
+
+    // Whatever the error, a scope that no longer stands has nothing to say to whoever
+    // is bound now.
+    for err in [&refused, &unwell, &no_answer] {
+        assert_eq!(why_no_client(err, false), NoClient::ScopeGone);
+    }
 }
 
 // ── a wait given up on ──────────────────────────────────────────────
