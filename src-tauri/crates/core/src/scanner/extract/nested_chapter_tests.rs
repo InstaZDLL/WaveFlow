@@ -692,7 +692,8 @@ fn a_tag_chunk_inside_a_marker_chunk_that_declares_too_much_is_found() {
     let dir = tempfile::tempdir().expect("tempdir");
     let path = write_in(dir.path(), "mark.aiff", &form);
     on_stack(SMALL_STACK, move || {
-        assert!(probe_playable_stream(&path).is_none());
+        let _ = read_tagged_file(&path);
+        let _ = probe_playable_stream(&path);
     });
 }
 
@@ -791,30 +792,15 @@ fn greedy_chunk_name() -> Vec<u8> {
 }
 
 #[test]
-fn a_tag_chunk_named_again_and_again_does_not_read_the_file_again_and_again() {
-    use crate::tagio::chapter_nesting::{check_reader, NestedChapters};
+fn the_name_of_a_tag_chunk_inside_another_chunk_costs_nothing() {
+    use crate::tagio::chapter_nesting::check_reader;
 
-    // Fewer names than the walk allows, each with a mebibyte behind it to read.
-    let mut body = greedy_chunk_name().repeat(30_000);
-    body.resize(1024 * 1024, 0x5a);
-    let mut file = Counted::new(wav_with_list(&body));
-    assert_eq!(check_reader(&mut file), Err(NestedChapters));
-    assert!(
-        file.read <= 1024 * 1024 * 1024 + 1024 * 1024,
-        "{}",
-        file.read
-    );
-}
-
-#[test]
-fn a_chunk_stuffed_with_the_name_of_a_tag_chunk_is_refused_without_queueing_them() {
-    use crate::tagio::chapter_nesting::{check_reader, NestedChapters};
-
-    // More names than the walk would ever visit: it says so at the first chunk.
+    // lofty goes by the declared lengths and does not look in there, and symphonia is
+    // not shown this chunk at all, so nothing has to read it, and nothing is queued.
     let body = greedy_chunk_name().repeat(200_000);
     let size = body.len() as u64;
     let mut file = Counted::new(wav_with_list(&body));
-    assert_eq!(check_reader(&mut file), Err(NestedChapters));
+    assert_eq!(check_reader(&mut file), Ok(()));
     assert!(file.read <= size + 64 * 1024, "{}", file.read);
 }
 
@@ -1032,4 +1018,276 @@ fn a_read_that_is_interrupted_is_tried_again_and_hides_nothing() {
     // And it costs a good file nothing.
     let good = mp3(&tag(&title(4, "Kept")));
     assert_eq!(check_reader(&mut interrupted(good)), Ok(()));
+}
+
+const AIFF_COMM_BODY: [u8; 18] = [
+    0, 2, // channels
+    0, 0, 0x03, 0x20, // 800 frames
+    0, 16, // bits
+    0x40, 0x0e, 0xac, 0x44, 0, 0, 0, 0, 0, 0, // 44 100 Hz
+];
+
+fn iff_chunk(name: &[u8; 4], body: &[u8]) -> Vec<u8> {
+    let mut chunk = name.to_vec();
+    chunk.extend_from_slice(&(body.len() as u32).to_be_bytes());
+    chunk.extend_from_slice(body);
+    if body.len() % 2 == 1 {
+        chunk.push(0);
+    }
+    chunk
+}
+
+fn form(kind: &[u8; 4], chunks: &[Vec<u8>]) -> Vec<u8> {
+    let body = [kind.as_slice(), &chunks.concat()].concat();
+    let mut out = b"FORM".to_vec();
+    out.extend_from_slice(&(body.len() as u32).to_be_bytes());
+    out.extend_from_slice(&body);
+    out
+}
+
+/// A `SSND` body whose `at`-th byte starts `what`, the rest of it silence.
+fn sound_holding(at: usize, what: &[u8]) -> Vec<u8> {
+    let mut body = vec![0_u8; at];
+    body.extend_from_slice(what);
+    body.resize(body.len() + 64, 0);
+    body
+}
+
+fn tag_chunk_named(hostile: &[u8]) -> Vec<u8> {
+    let mut chunk = b"ID3 ".to_vec();
+    chunk.extend_from_slice(&(hostile.len() as u32).to_be_bytes());
+    chunk.extend_from_slice(hostile);
+    chunk
+}
+
+/// The audio does not go through a parser: what matters here is that nothing dies.
+fn assert_survives(name: &str, bytes: Vec<u8>) {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let path = write_in(dir.path(), name, &bytes);
+    on_stack(SMALL_STACK, move || {
+        let _ = read_tagged_file(&path);
+        let _ = read_concrete_tags(&path);
+        let _ = probe_playable_stream(&path);
+    });
+}
+
+/// symphonia reads the 18 bytes of a `COMM` that declares 26 and takes the rest for a
+/// chunk it skips, which lands it inside the audio, on a chunk no walk by the declared
+/// lengths ever looks at. Past 64 KiB, or the search of the head would see it by chance.
+#[test]
+fn a_tag_chunk_in_the_audio_that_a_long_common_chunk_lands_on_is_out_of_reach() {
+    const INTO_THE_AUDIO: u32 = 100_000;
+    let mut common = AIFF_COMM_BODY.to_vec();
+    common.extend_from_slice(b"XXXX");
+    common.extend_from_slice(&INTO_THE_AUDIO.to_be_bytes());
+    let hostile = tag(&nested(4, &[b"CHAP"], 2_000));
+    let sound = sound_holding(INTO_THE_AUDIO as usize, &tag_chunk_named(&hostile));
+    assert_survives(
+        "long_comm.aiff",
+        form(
+            b"AIFF",
+            &[iff_chunk(b"COMM", &common), iff_chunk(b"SSND", &sound)],
+        ),
+    );
+}
+
+/// A tag chunk of ten bytes, whose tag declares far more and is read that far, so that
+/// the reader goes on inside the audio.
+#[test]
+fn a_tag_that_declares_its_way_into_the_audio_is_out_of_reach() {
+    const INTO_THE_AUDIO: usize = 100_000;
+    let mut harmless = b"ID3\x04\0\0".to_vec();
+    harmless.extend_from_slice(&synchsafe(INTO_THE_AUDIO));
+    let hostile = tag(&nested(4, &[b"CHAP"], 2_000));
+    // The tag starts 18 bytes before the sound chunk's body and ends 10 past its own
+    // header's size: this is where the reader goes on.
+    let sound = sound_holding(INTO_THE_AUDIO - 8, &tag_chunk_named(&hostile));
+    assert_survives(
+        "long_tag.aiff",
+        form(
+            b"AIFF",
+            &[
+                iff_chunk(b"COMM", &AIFF_COMM_BODY),
+                // Far enough that the search of the head has given up before the tag.
+                iff_chunk(b"APPL", &vec![0; 5_000]),
+                iff_chunk(b"ID3 ", &harmless),
+                iff_chunk(b"SSND", &sound),
+            ],
+        ),
+    );
+}
+
+/// What a good AIFF has to keep: the same packets, in every shape of one.
+#[test]
+fn a_good_aiff_plays_the_same_through_the_guard() {
+    use symphonia::core::formats::probe::Hint;
+    use symphonia::core::formats::{FormatReader, SeekMode, SeekTo};
+    use symphonia::core::io::MediaSourceStream;
+    use symphonia::core::units::Timestamp;
+
+    fn packets(format: &mut dyn FormatReader) -> Vec<Vec<u8>> {
+        let mut all = Vec::new();
+        while let Ok(Some(packet)) = format.next_packet() {
+            all.push(packet.data.to_vec());
+        }
+        all
+    }
+
+    let frames: Vec<u8> = (0..1600_u16).flat_map(u16::to_be_bytes).collect();
+    let sound = |offset: usize| {
+        let mut body = (offset as u32).to_be_bytes().to_vec();
+        body.extend_from_slice(&[0; 4]);
+        body.resize(body.len() + offset, 0x5a);
+        body.extend_from_slice(&frames);
+        body
+    };
+    let mut aifc_common = AIFF_COMM_BODY.to_vec();
+    aifc_common.extend_from_slice(b"NONE");
+    aifc_common.extend_from_slice(b"\x0enot compressed\0");
+    let good_tag = tag(&title(4, "Kept"));
+
+    let shapes = [
+        (
+            "plain",
+            form(
+                b"AIFF",
+                &[
+                    iff_chunk(b"COMM", &AIFF_COMM_BODY),
+                    iff_chunk(b"SSND", &sound(0)),
+                ],
+            ),
+        ),
+        (
+            "sound first",
+            form(
+                b"AIFF",
+                &[
+                    iff_chunk(b"SSND", &sound(0)),
+                    iff_chunk(b"COMM", &AIFF_COMM_BODY),
+                ],
+            ),
+        ),
+        (
+            "padded, with text and a tag on either side",
+            form(
+                b"AIFF",
+                &[
+                    iff_chunk(b"NAME", b"odd"),
+                    iff_chunk(b"COMM", &AIFF_COMM_BODY),
+                    iff_chunk(b"ID3 ", &good_tag),
+                    iff_chunk(b"SSND", &sound(1)),
+                    iff_chunk(b"ANNO", b"behind the audio"),
+                ],
+            ),
+        ),
+        (
+            "compressed by name only",
+            form(
+                b"AIFC",
+                &[
+                    iff_chunk(b"COMM", &aifc_common),
+                    iff_chunk(b"SSND", &sound(0)),
+                ],
+            ),
+        ),
+    ];
+    for (shape, bytes) in shapes {
+        let mut direct = symphonia::default::formats::AiffReader::try_new(
+            MediaSourceStream::new(Box::new(Cursor::new(bytes.clone())), Default::default()),
+            Default::default(),
+        )
+        .unwrap_or_else(|e| panic!("{shape}, without the guard: {e}"));
+        let mut guarded = crate::audio_format::probe()
+            .probe(
+                &Hint::new(),
+                MediaSourceStream::new(Box::new(Cursor::new(bytes)), Default::default()),
+                Default::default(),
+                Default::default(),
+            )
+            .unwrap_or_else(|e| panic!("{shape}, through the guard: {e}"));
+
+        let seek_to = |format: &mut dyn FormatReader| {
+            let to = SeekTo::Timestamp {
+                ts: Timestamp::from(400_i64),
+                track_id: format.tracks()[0].id,
+            };
+            format.seek(SeekMode::Accurate, to).map(|at| at.actual_ts)
+        };
+        let expected = packets(&mut direct);
+        assert!(!expected.is_empty(), "{shape}");
+        assert_eq!(expected, packets(&mut *guarded), "{shape}");
+        assert_eq!(
+            seek_to(&mut direct).ok(),
+            seek_to(&mut *guarded).ok(),
+            "{shape}: the seek"
+        );
+        assert_eq!(
+            packets(&mut direct),
+            packets(&mut *guarded),
+            "{shape}: after it"
+        );
+    }
+}
+
+/// Opening a file on a share or behind a URL fetches what it reads: the audio stays
+/// where it is until it is played, which is why the chunks are not searched instead.
+#[test]
+fn opening_an_aiff_does_not_read_its_audio() {
+    use std::sync::atomic::{AtomicU64, Ordering};
+    use std::sync::Arc;
+    use symphonia::core::formats::probe::Hint;
+    use symphonia::core::io::{MediaSource, MediaSourceStream};
+
+    struct Counting {
+        inner: Cursor<Vec<u8>>,
+        read: Arc<AtomicU64>,
+    }
+    impl std::io::Read for Counting {
+        fn read(&mut self, buffer: &mut [u8]) -> std::io::Result<usize> {
+            let read = self.inner.read(buffer)?;
+            self.read.fetch_add(read as u64, Ordering::Relaxed);
+            Ok(read)
+        }
+    }
+    impl std::io::Seek for Counting {
+        fn seek(&mut self, to: std::io::SeekFrom) -> std::io::Result<u64> {
+            self.inner.seek(to)
+        }
+    }
+    impl MediaSource for Counting {
+        fn is_seekable(&self) -> bool {
+            true
+        }
+        fn byte_len(&self) -> Option<u64> {
+            Some(self.inner.get_ref().len() as u64)
+        }
+    }
+
+    // The sound chunk's offset and block size, then the audio.
+    let mut audio = vec![0_u8; 8];
+    audio.resize(64 * 1024 * 1024, 0x11);
+    let bytes = form(
+        b"AIFF",
+        &[
+            iff_chunk(b"COMM", &AIFF_COMM_BODY),
+            iff_chunk(b"SSND", &audio),
+        ],
+    );
+    let read = Arc::new(AtomicU64::new(0));
+    let source = Counting {
+        inner: Cursor::new(bytes),
+        read: Arc::clone(&read),
+    };
+    let opened = crate::audio_format::probe().probe(
+        &Hint::new(),
+        MediaSourceStream::new(Box::new(source), Default::default()),
+        Default::default(),
+        Default::default(),
+    );
+    assert!(opened.is_ok());
+    assert!(
+        read.load(Ordering::Relaxed) < 2 * 1024 * 1024,
+        "{} bytes to open",
+        read.load(Ordering::Relaxed)
+    );
 }

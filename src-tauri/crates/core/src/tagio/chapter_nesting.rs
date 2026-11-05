@@ -67,14 +67,15 @@ const HEAD_CHUNK: usize = 64 * 1024;
 /// Long enough that a signature cut by the end of a chunk is whole in the next one.
 const SIGNATURE_OVERLAP: usize = 8;
 
-/// The chunks walked in a WAV or AIFF, visited and waiting. A real one has a handful.
+/// The chunks walked in a WAV or AIFF, visited and waiting. A real one has a handful,
+/// and silence behind a chunk of no length does not count, however long.
 const MAX_CHUNKS: usize = 65_536;
 
 /// What one check may read from one file, however it comes to. A tag takes 256 MiB at
 /// the very most and the audio is not read, so a good file stays far under this, the
 /// exception being one read to its end for an APE tag or zeros at its head, and over a
-/// gigabyte. Only bytes made for it go further, by naming a tag or a chunk again and
-/// again so that each name reads the rest of the file: refused, not read on.
+/// gigabyte. Only bytes made for it go further, by naming a tag again and again so that
+/// each name reads the rest of the file: refused, not read on.
 const MAX_SCAN_BYTES: u64 = 1024 * 1024 * 1024;
 
 /// The file was refused: its chapter frames nest, one of them hides its content, or
@@ -281,7 +282,9 @@ fn find_signature(chunk: &[u8]) -> Option<(usize, Signature)> {
         .enumerate()
         .find_map(|(offset, window)| {
             let signature = match window {
-                [b'I', b'D', b'3', ..] => Signature::Id3,
+                // By its version too: `ID3 ` is the name of a chunk, and each of those
+                // read as a tag would read the rest of this block again to find nothing.
+                [b'I', b'D', b'3', 2..=4, ..] => Signature::Id3,
                 [b'A', b'P', b'E', b'T', b'A', b'G', b'E', b'X'] => Signature::Ape,
                 [b'R', b'I', b'F', b'F', ..] => Signature::Riff,
                 [b'F', b'O', b'R', b'M', ..] => Signature::Form,
@@ -323,15 +326,14 @@ fn tag_span(tag: &[u8]) -> u64 {
     (TAG_HEADER_LEN as u64) + u64::from(synchsafe(&tag[6..10]))
 }
 
-/// The `ID3 ` chunks of the WAV or AIFF at `start`. A chunk of odd length is followed
-/// by a padding byte that lofty and symphonia do not agree on when it is not a zero,
-/// and both continuations are walked. symphonia takes what it needs from a `COMM` or a
-/// `MARK` and looks for the next chunk right there, whatever length it declared, so
-/// the name of the chunk is looked for inside every other chunk than the audio. And
-/// it reads the tag in a chunk as far as the tag declares, whatever the chunk declared,
-/// so that is how far it is read here. Those
-/// four letters in audio that is no such container, which the form type behind them
-/// tells, as it tells every parser, would walk garbage for nothing.
+/// The `ID3 ` chunks of the WAV or AIFF at `start`, for lofty, which goes by declared
+/// lengths. A chunk of odd length is followed by a padding byte that it takes or not
+/// by what comes next when that is not a zero, and both continuations are walked. A
+/// tag is read as far as it declares, which covers whatever the chunk lets a parser
+/// read of it. Those four letters in audio that is no such container, which the form
+/// type behind them tells, as it tells every parser, would walk garbage for nothing.
+/// symphonia does not go by these lengths, and never sees these chunks: see
+/// `audio_format::chapter_guard`.
 fn check_chunks<R: Read + Seek>(
     reader: &mut R,
     start: u64,
@@ -381,24 +383,6 @@ fn check_chunks<R: Read + Seek>(
         if matches!(&header[..4], b"ID3 " | b"id3 ") {
             if let Ok(tag) = read_declared(reader, at + 8) {
                 check_tag(&tag)?;
-            }
-        } else if !matches!(&header[..4], b"SSND" | b"data") {
-            let mut from = at + 8;
-            let end = next.min(len);
-            while from < end {
-                let most = (end - from + 3).min(HEAD_CHUNK as u64) as usize;
-                let Ok(read) = read_at(reader, from, &mut buffer[..most]) else {
-                    break;
-                };
-                for (offset, name) in buffer[..read].windows(4).enumerate() {
-                    if matches!(name, b"ID3 " | b"id3 ") {
-                        queue_chunk(&mut pending, seen.len(), from + offset as u64)?;
-                    }
-                }
-                if read <= 3 {
-                    break;
-                }
-                from += read as u64 - 3;
             }
         }
         if next < len {
