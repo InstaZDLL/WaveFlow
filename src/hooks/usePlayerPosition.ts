@@ -40,3 +40,11 @@ function subscribe(listener: () => void): () => void {
 export function usePlayerPosition(): number {
   return useSyncExternalStore(subscribe, getPlayerPosition);
 }
+
+/**
+ * Something worked out from the position, such as the line under it: re-renders the
+ * caller when that changes, not on every tick. `select` must answer a primitive.
+ */
+export function usePlayerPositionValue<T>(select: (ms: number) => T): T {
+  return useSyncExternalStore(subscribe, () => select(positionMs));
+}

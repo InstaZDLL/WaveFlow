@@ -36,7 +36,8 @@ export type FeatureArtKind =
   | "lyricsEditor"
   | "theater"
   | "releaseRadar"
-  | "playlistImport";
+  | "playlistImport"
+  | "podcasts";
 
 /** A row that rises in on a loop, to its own resting opacity. */
 function rowStyle(delay: number, opacity: number): CSSProperties {
@@ -823,6 +824,47 @@ const SCENES: Record<FeatureArtKind, ReactNode> = {
           fill="var(--disc-accent)"
         />
       ))}
+    </>
+  ),
+  // A microphone, its signal going out as it would from a feed.
+  podcasts: (
+    <>
+      <rect
+        x="68"
+        y="18"
+        width="24"
+        height="40"
+        rx="12"
+        fill="currentColor"
+        opacity="0.28"
+      />
+      <path
+        d="M60 42a20 20 0 0 0 40 0M80 62v12M68 74h24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinecap="round"
+        opacity="0.6"
+      />
+      {[0, 1, 2].map((i) => (
+        <circle
+          key={i}
+          className="fa-feed"
+          style={{ animationDelay: `${i * 0.6}s` }}
+          cx={114 + i * 12}
+          cy="38"
+          r="3.5"
+          fill="var(--disc-accent)"
+        />
+      ))}
+      <rect
+        x="72"
+        y="26"
+        width="16"
+        height="4"
+        rx="2"
+        fill="var(--disc-accent)"
+      />
     </>
   ),
   // A file's entries travelling into a list, a missing one held in place.

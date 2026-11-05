@@ -1,6 +1,24 @@
 use super::*;
 
 #[test]
+fn only_a_401_or_a_sign_out_to_a_refresh_says_anything_of_the_account() {
+    for open in [
+        AppError::RemoteRefreshUnanswered("connection refused".into()),
+        AppError::RemoteRefreshRejected(503),
+        AppError::RemoteRefreshRejected(429),
+    ] {
+        assert!(says_nothing_of_the_account(&open), "{open}");
+    }
+    for settled in [
+        AppError::RemoteRefreshRejected(401),
+        AppError::Other("signed out while a token refresh was queued".into()),
+        AppError::NoActiveProfile,
+    ] {
+        assert!(!says_nothing_of_the_account(&settled), "{settled}");
+    }
+}
+
+#[test]
 fn success_is_not_a_failure() {
     for status in [200, 201, 204, 299] {
         assert_eq!(classify_status(status), None, "status {status}");

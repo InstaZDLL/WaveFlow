@@ -16,6 +16,7 @@ import {
   Sparkles,
   Radio,
   Radar,
+  Podcast,
   Puzzle,
   PlayCircle,
   FileAudio,
@@ -65,6 +66,7 @@ import {
   resolvePlaylistColor,
 } from "../../lib/playlistVisuals";
 import { PlaylistIcon } from "../../lib/PlaylistIcon";
+import { usePodcastsEnabled } from "../../hooks/usePodcastsEnabled";
 import { resolveRemoteImage } from "../../lib/tauri/artwork";
 import {
   OPEN_PLAYLIST_IMPORT_EVENT,
@@ -159,6 +161,9 @@ export function Sidebar({
   // (the user has no way back without going to Settings, and the
   // raw error surfaced in the view).
   const showWebRadio = usePluginAvailability("web-radio");
+  // Off, no row at all: nothing here is reachable by a stray click, and the
+  // warning is what turns it on.
+  const { enabled: showPodcasts } = usePodcastsEnabled();
   // Dynamic entries for every enabled `ui`-world plugin — label + icon
   // + landing path all come from each plugin's `manifest()`, so a new
   // UI plugin appears here without any hardcoded per-plugin wiring.
@@ -459,6 +464,15 @@ export function Sidebar({
             label={t("sidebar.nav.webRadio")}
             active={activeView === "web-radio"}
             onClick={() => setActiveView("web-radio")}
+          />
+        )}
+        {showPodcasts && (
+          <NavItem
+            collapsed={collapsed}
+            icon={<Podcast size={18} />}
+            label={t("settings.podcasts.title")}
+            active={activeView === "podcasts"}
+            onClick={() => setActiveView("podcasts")}
           />
         )}
         {/* Native, not a plugin entry: always here, and it sends

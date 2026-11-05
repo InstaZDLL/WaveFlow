@@ -311,7 +311,7 @@ impl AudioEngine {
         // before the open. An exclusive open costs tens to hundreds of
         // milliseconds, and a Pause the user hits during it reaches the
         // decoder first: resuming on the strength of a stale `Play`
-        // would start a track they had just stopped. The `Stop` above
+        // would start a track they had just stopped. The `Unload` above
         // does not clear either input — it unloads the track without
         // touching the state or `paused_output` — so this reads what the
         // user last asked for.
@@ -364,7 +364,7 @@ impl AudioEngine {
     ///    device (broken HDMI sink, exclusive-mode conflict, …), bail
     ///    out before touching the old one so the user keeps hearing
     ///    audio through whatever was already working;
-    /// 3. send `Stop` so the decoder unwinds out of `play_track` and
+    /// 3. send `Unload` so the decoder unwinds out of `play_track` and
     ///    parks at the top-level command loop;
     /// 4. tear the old output thread down (releases the cpal device);
     /// 5. send `SwapProducer` so the decoder picks up the new ring;
@@ -462,7 +462,7 @@ impl AudioEngine {
             guard.handle.as_ref().map(|h| h.exclusive),
             entering_exclusive,
         );
-        // Stop is sent here rather than twice: the step below skips its own
+        // Unload is sent here rather than twice: the step below skips its own
         // send when this one already happened.
         let stopped_early = pre_release && was_playing;
         // The device to put back if the replacement will not open at all.
@@ -556,9 +556,9 @@ impl AudioEngine {
         // walk back out of `play_track` and start polling for fresh
         // commands at the top level. The crossbeam channel is FIFO,
         // so the SwapProducer we send next won't be picked up before
-        // Stop is processed.
+        // Unload is processed.
         //
-        // If either Stop or SwapProducer fails to send, the decoder
+        // If either Unload or SwapProducer fails to send, the decoder
         // has died (engine teardown / crash). Tear the freshly opened
         // output back down so it doesn't outlive the engine.
         let send_result = (|| {
@@ -585,7 +585,7 @@ impl AudioEngine {
             // SwapProducer send failed the closure had already run
             // `guard.take()`, so no output thread remains — the exclusive
             // flag must stop claiming one and Settings must re-read (#405).
-            // No-ops when an earlier Stop send failed before guard.take(),
+            // No-ops when an earlier Unload send failed before guard.take(),
             // where the old stream is still installed and the flag accurate.
             self.publish_output_lost_if_gone(&guard.handle);
             return Err(err);
@@ -615,7 +615,7 @@ impl AudioEngine {
         // before the open. An exclusive open costs tens to hundreds of
         // milliseconds, and a Pause the user hits during it reaches the
         // decoder first: resuming on the strength of a stale `Play`
-        // would start a track they had just stopped. The `Stop` above
+        // would start a track they had just stopped. The `Unload` above
         // does not clear either input — it unloads the track without
         // touching the state or `paused_output` — so this reads what the
         // user last asked for.
@@ -734,7 +734,7 @@ impl AudioEngine {
         // An explicit user toggle clears any #322 flap-storm suppression so
         // re-enabling exclusive actually retries it (and disabling resets
         // the counter for next time). Deferred until after the pre-release
-        // teardown so a failed Stop send above — which leaves the old stream
+        // teardown so a failed Unload send above — which leaves the old stream
         // intact and rolls the preference back — doesn't also wipe the
         // suppression state that still describes that surviving stream.
         self.reset_exclusive_suppression();
@@ -778,7 +778,7 @@ impl AudioEngine {
                     // shared → exclusive where even the shared fallback
                     // failed: the old shared stream is untouched and still
                     // running. Roll the preference back to match it — same
-                    // as the failed-Stop path — otherwise a later
+                    // as the failed-Unload path — otherwise a later
                     // device-error rebuild would read the new pref and flip
                     // to the exclusive mode this toggle never applied.
                     self.exclusive_output
@@ -811,7 +811,7 @@ impl AudioEngine {
         })();
         if let Err(err) = send_result {
             handle.stop();
-            // A failing `Stop` send bails before the old handle is taken,
+            // A failing `Unload` send bails before the old handle is taken,
             // so `guard` still describes a live stream and the flag stays
             // accurate; the later steps leave no output at all. The helper
             // tells those two apart and only publishes for the second.
@@ -829,7 +829,7 @@ impl AudioEngine {
         // before the open. An exclusive open costs tens to hundreds of
         // milliseconds, and a Pause the user hits during it reaches the
         // decoder first: resuming on the strength of a stale `Play`
-        // would start a track they had just stopped. The `Stop` above
+        // would start a track they had just stopped. The `Unload` above
         // does not clear either input — it unloads the track without
         // touching the state or `paused_output` — so this reads what the
         // user last asked for.

@@ -16,6 +16,9 @@ export type ViewId =
   | "genre-detail"
   | "year-detail"
   | "web-radio"
+  // Standalone podcasts (RFC-009). The channel open, if any, is on the history
+  // entry (see AppLayout `HistoryEntry`).
+  | "podcasts"
   // The native Release Radar: recent releases of the library's artists.
   | "release-radar"
   // The tag workshop: many files' tags edited at once. Its source is on

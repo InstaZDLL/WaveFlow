@@ -14,7 +14,12 @@ import {
 import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
 import { useAlbumMotionArtwork } from "../../hooks/useAlbumMotionArtwork";
 import { useSlideshowLayer } from "../../hooks/useSlideshowLayer";
-import { isRemoteTrack, isStreamTrack } from "../../lib/playerSources";
+import {
+  isPodcastTrack,
+  isRemoteTrack,
+  isStreamTrack,
+} from "../../lib/playerSources";
+import { PodcastPanelChapters } from "../podcasts/PodcastChapters";
 import {
   remoteArtwork,
   remoteGetArtist,
@@ -365,6 +370,9 @@ export function NowPlayingPanel({
   // Embedded, the sections under the cover carry the panel's inset
   // themselves: the cover is the one thing that runs edge to edge.
   const inset = embedded ? "mx-6" : "";
+  const podcastEpisodeId = isPodcastTrack(currentTrack)
+    ? (currentTrack?.podcast_episode_id ?? null)
+    : null;
 
   // Cover ↔ artist slideshow (issue #466) — the ambient fallback, one rung
   // below the motion cover (Canvas > motion > slideshow > cover).
@@ -753,6 +761,16 @@ export function NowPlayingPanel({
                 </div>
               </div>
             )
+          )}
+
+          {/* An episode's chapters, and a list of its own for the moment it
+                is on: this panel's page is not the place to scroll 2 000. */}
+          {podcastEpisodeId != null && (
+            <PodcastPanelChapters
+              key={podcastEpisodeId}
+              episodeId={podcastEpisodeId}
+              className={`pt-4 border-t border-zinc-100 dark:border-zinc-800 ${inset}`}
+            />
           )}
 
           {/* About the artist */}

@@ -1094,7 +1094,8 @@
       "transpose": "Transposition",
       "transposeDown": "Baisser d'un demi-ton",
       "transposeUp": "Monter d'un demi-ton",
-      "transposeReset": "Revenir à la hauteur d'origine"
+      "transposeReset": "Revenir à la hauteur d'origine",
+      "transposeNotForEpisodes": "Ne s'applique pas aux épisodes"
     },
     "seek": "Position",
     "alert": {
@@ -1126,6 +1127,13 @@
       "behind": "{{time}} de retard sur le direct",
       "goLive": "Revenir au direct",
       "behindState": "En retard sur le direct"
+    },
+    "podcast": {
+      "back15": "Reculer de 15 s",
+      "forward30": "Avancer de 30 s",
+      "previousChapter": "Chapitre précédent",
+      "nextChapter": "Chapitre suivant",
+      "chapterOf": "Chapitre {{current}} sur {{total}}"
     }
   },
   "queue": {
@@ -3140,7 +3148,8 @@
         "lyricsDisplay": "Affichage des paroles",
         "diskUsage": "Espace disque",
         "globalShortcuts": "Raccourcis globaux",
-        "enrichment": "Enrichissement"
+        "enrichment": "Enrichissement",
+        "podcasts": "Podcasts"
       },
       "navHints": {
         "general": "Langue, démarrage, lecture",
@@ -3191,7 +3200,8 @@
         "reset": "Repartir d'une application neuve",
         "diskUsage": "Ce que WaveFlow garde sur cet ordinateur",
         "globalShortcuts": "Depuis n'importe quelle application",
-        "enrichment": "Genres, dates, crédits et pochettes depuis MusicBrainz"
+        "enrichment": "Genres, dates, crédits et pochettes depuis MusicBrainz",
+        "podcasts": "Suivre des flux, sur votre accord"
       }
     },
     "desktopLyrics": {
@@ -3366,6 +3376,10 @@
         "plugins": {
           "label": "Greffons",
           "description": "Greffons installés et leurs données."
+        },
+        "podcastDownloads": {
+          "label": "Épisodes de podcast téléchargés",
+          "description": "Ceux que vous avez choisi de garder sur cet ordinateur. Se retirent depuis l'épisode."
         }
       },
       "confirmEmptyLabel": "Confirmer le vidage : {{item}}",
@@ -3498,6 +3512,17 @@
       "cacheUsed_one": "Cache local : {{size}}, {{count}} titre",
       "cacheUsed_other": "Cache local : {{size}}, {{count}} titres",
       "cacheUsed_many": "Cache local : {{size}}, {{count}} titres"
+    },
+    "podcasts": {
+      "title": "Podcasts",
+      "subtitleOn": "Actifs : les flux sont vérifiés toutes les six heures quand l'application tourne.",
+      "subtitleOff": "Coupés : rien n'est contacté. Les activer passe par un avertissement.",
+      "stays": "Ce qui reste : vos abonnements, vos positions et vos épisodes téléchargés.",
+      "staysCount": "Chaînes conservées : {{n}}.",
+      "open": "Ouvrir les podcasts",
+      "seeStays": "Voir ce qui reste",
+      "downloadQuota": "Espace maximal pour les épisodes téléchargés",
+      "downloadQuotaHint": "Un téléchargement s'arrête à ce quota. Les fichiers déjà là restent. Utilisé : {{used}}."
     }
   },
   "scanProgress": {
@@ -3893,7 +3918,9 @@
       "spectrogram": "Spectre d'un titre",
       "enrichment": "Enrichissement de la bibliothèque",
       "release_radar": "Release Radar",
-      "tag_workshop": "Atelier de tags"
+      "tag_workshop": "Atelier de tags",
+      "podcast_refresh": "Actualisation des podcasts",
+      "podcast_download": "Téléchargement de podcast"
     }
   },
   "smartRuleSummary": {
@@ -4494,7 +4521,8 @@
     "needs": {
       "library": "Il faut d'abord de la musique dans votre bibliothèque.",
       "track": "Lancez un titre de votre bibliothèque pour ouvrir l'éditeur sur ses paroles.",
-      "startsPlayback": "Rien n'est en lecture : l'essai lance votre bibliothèque en aléatoire."
+      "startsPlayback": "Rien n'est en lecture : l'essai lance votre bibliothèque en aléatoire.",
+      "podcastsWarning": "Le bouton ouvre d'abord un avertissement : rien ne s'active sans votre accord."
     },
     "pages": {
       "fluidInterface": {
@@ -4536,7 +4564,245 @@
         "title": "Importez vos playlists",
         "body": "Un fichier M3U, CSV ou JSON, ou le lien d'une playlist Deezer publique. Les titres que vous n'avez pas gardent leur place, et s'y glissent d'eux-mêmes quand ils arrivent dans votre bibliothèque.",
         "keywords": "M3U|CSV|JSON|Deezer|ISRC|Titres manquants"
+      },
+      "podcasts": {
+        "title": "Les podcasts arrivent",
+        "body": "Abonnez-vous à un flux, reprenez où vous en étiez, téléchargez pour plus tard. Ils restent coupés tant que vous n'avez pas accepté : un podcast vient directement de son hébergeur, qui voit ce que vous écoutez.",
+        "keywords": "RSS|OPML|À écouter|Hors ligne"
       }
+    }
+  },
+  "podcasts": {
+    "kicker": "Écouter",
+    "channels": "Chaînes",
+    "channelsCount_one": "{{count}} chaîne",
+    "channelsCount_many": "{{count}} de chaînes",
+    "channelsCount_other": "{{count}} chaînes",
+    "unplayedCount_one": "{{count}} non écouté",
+    "unplayedCount_many": "{{count}} de non écoutés",
+    "unplayedCount_other": "{{count}} non écoutés",
+    "episodesCount_one": "{{count}} épisode",
+    "episodesCount_many": "{{count}} d'épisodes",
+    "episodesCount_other": "{{count}} épisodes",
+    "usage": "{{used}} téléchargés sur {{quota}}",
+    "refreshAll": "Tout vérifier",
+    "refreshing": "Vérification…",
+    "openSettings": "Réglages des podcasts",
+    "loading": "Chargement…",
+    "retry": "Réessayer",
+    "showMore": "Afficher plus",
+    "showLess": "Afficher moins",
+    "untitledChannel": "Chaîne sans titre",
+    "untitledEpisode": "Épisode sans titre",
+    "offlineBanner": "Mode hors ligne : aucun flux n'est contacté. Seuls les épisodes téléchargés se lisent.",
+    "off": {
+      "body": "Les podcasts sont coupés : rien n'est contacté. Vos abonnements, vos positions et vos épisodes téléchargés restent là.",
+      "action": "Activer les podcasts…"
+    },
+    "empty": {
+      "title": "Aucun abonnement",
+      "body": "Saisissez l'adresse d'un flux ci-dessus, ou importez une liste OPML.",
+      "bodyOff": "Activez les podcasts pour suivre un premier flux."
+    },
+    "dialog": {
+      "cancel": "Annuler",
+      "close": "Fermer"
+    },
+    "warning": {
+      "title": "Avant d'activer les podcasts",
+      "lead": "Rien ne change tant que vous n'avez pas confirmé. Voici ce qui change ensuite.",
+      "confirm": "J'ai compris, activer",
+      "failed": "L'activation n'a pas pu être enregistrée. Les podcasts restent coupés.",
+      "points": {
+        "hosts": {
+          "title": "Ce que les hébergeurs voient",
+          "body": "Les flux et les épisodes viennent directement de l'hébergeur de chaque podcast. Lui, et les services de mesure par lesquels les épisodes passent souvent, voient votre adresse IP et ce que vous écoutez."
+        },
+        "checks": {
+          "title": "Quand WaveFlow vérifie",
+          "body": "Les flux sont vérifiés toutes les six heures quand l'application tourne, et seulement à ce moment-là."
+        },
+        "downloads": {
+          "title": "La place sur le disque",
+          "body": "Les épisodes téléchargés prennent de la place, jusqu'au quota."
+        },
+        "stop": {
+          "title": "Comment tout arrêter",
+          "body": "Le mode hors ligne arrête tout. Couper les podcasts l'arrête pour de bon."
+        },
+        "server": {
+          "title": "Si un serveur est lié",
+          "body": "Si ce profil est lié à un serveur WaveFlow dont les podcasts sont activés, ses chaînes s'affichent aussi. Elles passent par votre serveur : c'est lui que l'hébergeur voit, pas vous."
+        }
+      }
+    },
+    "subscribe": {
+      "label": "S'abonner à un flux",
+      "action": "S'abonner",
+      "hint": "L'adresse du flux RSS, en http ou https. Le flux est lu avant d'être ajouté : une faute de frappe ne laisse aucune trace."
+    },
+    "opml": {
+      "import": "Importer un OPML",
+      "export": "Exporter un OPML",
+      "importDialogTitle": "Importer une liste de flux",
+      "exportDialogTitle": "Exporter la liste de flux (elle contient leurs adresses)",
+      "exportTitle": "Exporter vos abonnements",
+      "exportBody": "Ce fichier contient l'adresse de chacun de vos flux. Un flux privé y porte parfois son accès personnel : ne le partagez qu'avec des personnes de confiance.",
+      "exportConfirm": "Choisir le fichier…",
+      "exportMissing": "Chaînes restaurées sans adresse, donc absentes du fichier : {{missing}}.",
+      "exported": "Liste enregistrée. Flux écrits : {{written}} · Sans adresse : {{missing}}.",
+      "publicOnly": "Une liste OPML n'accepte que des adresses publiques. Un flux sur votre réseau local se saisit à la main, ci-dessus.",
+      "report": {
+        "title": "Import de la liste",
+        "summary": "Ajoutés : {{added}} · Déjà suivis : {{already}} · Échecs : {{failed}} · Dans la liste : {{total}}",
+        "more": "Et {{n}} de plus.",
+        "theFile": "Le fichier",
+        "outcome": {
+          "cancelled": "L'import a été arrêté avant la fin.",
+          "offline": "Le mode hors ligne a arrêté l'import.",
+          "disabled": "Les podcasts ont été coupés pendant l'import.",
+          "profile_changed": "Le profil a changé pendant l'import, qui s'est arrêté.",
+          "already_running": "Une vérification est déjà en cours. Réessayez quand elle sera terminée."
+        }
+      }
+    },
+    "refresh": {
+      "done": "Vérification terminée. Mis à jour : {{refreshed}} · Inchangés : {{unchanged}} · Échecs : {{failed}}",
+      "cancelled": "La vérification a été arrêtée.",
+      "offline": "Le mode hors ligne a arrêté la vérification.",
+      "disabled": "Les podcasts sont coupés.",
+      "profile_changed": "Le profil a changé pendant la vérification, qui s'est arrêtée.",
+      "already_running": "Une vérification est déjà en cours."
+    },
+    "toListen": {
+      "title": "À écouter",
+      "failed": "Cette liste n'a pas pu être lue.",
+      "inProgress": "À reprendre",
+      "newest": "Dernier épisode",
+      "resume": "Reprendre",
+      "listen": "Écouter",
+      "showAll": "Tout afficher ({{n}} de plus)",
+      "playing": "En cours de lecture",
+      "pause": "Pause"
+    },
+    "channel": {
+      "kicker": "Podcast",
+      "back": "Toutes les chaînes",
+      "checked": "vérifié le {{when}}",
+      "refresh": "Vérifier",
+      "markAllPlayed": "Tout marquer écouté",
+      "markAllUnplayed": "Tout marquer non écouté",
+      "openSite": "Site de la chaîne",
+      "unsubscribe": "Se désabonner",
+      "speed": "Vitesse",
+      "speedNormal": "Normale",
+      "noEpisodes": "Cette chaîne n'a pas d'épisode.",
+      "lastFailure": "Dernière vérification : {{reason}}",
+      "restoredChip": "À réabonner",
+      "failedChip": "Échec"
+    },
+    "episode": {
+      "play": "Écouter {{title}}",
+      "playAgain": "Réécouter {{title}}",
+      "resume": "Reprendre {{title}}",
+      "markPlayed": "Marquer {{title}} comme écouté",
+      "markUnplayed": "Marquer {{title}} comme non écouté",
+      "download": "Télécharger {{title}}",
+      "cancelDownload": "Annuler le téléchargement de {{title}}",
+      "deleteDownload": "Supprimer le fichier de {{title}} ({{size}})",
+      "downloaded": "Téléchargé",
+      "needsNetwork": "Indisponible hors ligne ou podcasts coupés : seul un épisode téléchargé se lit.",
+      "noAddress": "L'adresse de cet épisode n'est pas connue : réabonnez-vous à la chaîne.",
+      "seasonEpisode": "S{{season}} · É{{episode}}",
+      "number": "Épisode {{episode}}",
+      "remaining": "reste {{time}}",
+      "pause": "Mettre {{title}} en pause",
+      "queued": "En attente",
+      "deletedWhilePlaying": "Le fichier est supprimé. La lecture en cours continue ; pour la relancer ensuite, il faudra le réseau ou un nouveau téléchargement.",
+      "open": "Ouvrir « {{title}} »",
+      "playAgainShort": "Réécouter"
+    },
+    "restored": {
+      "title": "L'adresse de ce flux n'est plus connue",
+      "body": "Cette chaîne vient d'une sauvegarde ou d'un profil importé, qui ne gardent jamais l'adresse des flux : elle ne se met donc plus à jour. Réabonnez-vous à la même adresse, ou réimportez votre OPML : vos positions et ce que vous avez écouté sont conservés.",
+      "hint": "La même adresse qu'avant. Un OPML n'accepte que des adresses publiques : un flux sur votre réseau local se saisit ici.",
+      "summary": "Chaînes à réabonner : {{n}}. Une sauvegarde ne garde pas l'adresse des flux : saisissez-la de nouveau ou réimportez votre OPML, et vos positions sont conservées.",
+      "downloads": "Les épisodes téléchargés ne voyagent pas avec une sauvegarde : il faudra les télécharger de nouveau."
+    },
+    "unsubscribe": {
+      "title": "Se désabonner de {{title}} ?",
+      "body": "La chaîne, ses épisodes, vos positions et ses téléchargements seront oubliés. Vous pourrez vous réabonner, mais pas retrouver où vous en étiez.",
+      "confirm": "Se désabonner"
+    },
+    "errors": {
+      "disabled": "Les podcasts sont coupés.",
+      "offline": "Le mode hors ligne est actif : rien n'a été contacté.",
+      "profile_changed": "Le profil a changé entre-temps : rien de plus n'a été écrit.",
+      "channel_gone": "Cette chaîne n'est plus suivie.",
+      "open_failed": "Le navigateur n'a pas pu être ouvert.",
+      "address_refused": "Cette adresse est refusée : il faut du http ou du https, un hôte, et aucun identifiant dans l'adresse. Un flux public ne peut pas mener au réseau local.",
+      "too_many_redirects": "Le flux renvoie vers trop d'adresses successives.",
+      "too_large": "Le fichier est trop volumineux.",
+      "unreached": "L'hôte n'a pas pu être joint.",
+      "http": "L'hôte a répondu par une erreur ({{status}}).",
+      "invalid_feed": "Ce n'est pas un flux de podcast lisible.",
+      "not_audio": "Ce fichier n'est pas de l'audio.",
+      "quota_exceeded": "Le quota de téléchargement est atteint.",
+      "unknown": "Quelque chose n'a pas fonctionné.",
+      "episode_gone": "Cet épisode n'existe plus.",
+      "no_source": "Cet épisode n'a ni fichier ni adresse : réabonnez-vous à la chaîne.",
+      "not_seekable": "Cet hôte ne permet pas de se déplacer dans l'épisode.",
+      "write_failed": "Le fichier n'a pas pu être écrit sur le disque.",
+      "invalid_document": "Ce fichier n'est pas ce qu'il prétend être.",
+      "not_stored": "Le serveur ne garde pas cet épisode : il faut d'abord qu'il le télécharge.",
+      "server_unreachable": "Le serveur ne répond pas.",
+      "server_signed_out": "Vous n'êtes plus connecté à ce serveur.",
+      "server_refused": "Le serveur a refusé, ou ne connaît plus cet élément.",
+      "server_conflict": "Le serveur suit déjà ce flux, ou ne peut plus en suivre davantage.",
+      "destination_refused": "Le serveur n'a pas le droit de joindre cette adresse."
+    },
+    "episodePage": {
+      "kicker": "Épisode"
+    },
+    "chapters": {
+      "title": "Chapitres",
+      "none": "Cet épisode n'a pas de chapitres.",
+      "loading": "Recherche des chapitres…",
+      "failed": "Les chapitres n'ont pas pu être lus : {{reason}}",
+      "jump": "Aller à « {{title}} », {{time}}"
+    },
+    "transcript": {
+      "title": "Transcription",
+      "none": "Cet épisode n'a pas de transcription.",
+      "noEpisode": "Lancez un épisode pour voir sa transcription.",
+      "loading": "Récupération de la transcription…",
+      "failed": "La transcription n'a pas pu être lue : {{reason}}",
+      "untimed": "Cette transcription n'a pas de minutage : elle ne suit pas la lecture.",
+      "notPlaying": "Cet épisode n'est pas en cours de lecture. Un clic sur une ligne le lance à ce moment.",
+      "jump": "Aller à {{time}} : {{text}}"
+    },
+    "server": {
+      "title": "Sur votre serveur",
+      "chip": "Serveur",
+      "refresh": "Vérifier sur le serveur",
+      "refreshAsked": "Le serveur vérifie ses flux. Les nouveautés arrivent d'ici peu.",
+      "subscribeOpen": "S'abonner sur le serveur",
+      "subscribeLabel": "S'abonner à un flux sur le serveur",
+      "subscribeHint": "Le serveur lit le flux avant de l'ajouter. L'abonnement vaut pour tous les comptes de ce serveur.",
+      "unsubscribe": "Supprimer du serveur",
+      "unsubscribeTitle": "Supprimer {{title}} du serveur ?",
+      "unsubscribeBody": "La chaîne, ses épisodes et leurs fichiers disparaissent du serveur, pour tous ses comptes.",
+      "removeConfirm": "Supprimer",
+      "deleteEpisode": "Supprimer {{title}} du serveur",
+      "deleteEpisodeTitle": "Supprimer cet épisode du serveur ?",
+      "deleteEpisodeBody": "« {{title}} » et son fichier disparaissent du serveur, pour tous ses comptes. Il ne reviendra pas à la prochaine vérification.",
+      "requestDownload": "Demander au serveur de télécharger {{title}}",
+      "notStored": "Pas sur le serveur",
+      "notStoredHint": "Le serveur ne lit que ce qu'il a téléchargé. Un administrateur peut le lui demander.",
+      "needsServer": "Hors ligne ou podcasts coupés : le serveur n'est pas contacté.",
+      "downloading": "Téléchargement sur le serveur…",
+      "downloadFailed": "Échec sur le serveur",
+      "forgetPosition": "Reprendre {{title}} du début"
     }
   }
 }

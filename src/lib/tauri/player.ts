@@ -326,6 +326,14 @@ export interface RadioMetadata {
   is_file: boolean;
   /** That file's path; `null` for every other source. */
   file_path: string | null;
+  /** `true` for a podcast episode: no library row, a finite and seekable
+   *  track whose queue advances. `artwork_url` is a file in the artwork cache,
+   *  and nothing here holds its address. */
+  is_podcast: boolean;
+  podcast_episode_id: number | null;
+  podcast_channel_id: number | null;
+  /** The episode's id on a bound server, when it is one of that server's. */
+  podcast_server_episode_id: string | null;
 }
 
 /**

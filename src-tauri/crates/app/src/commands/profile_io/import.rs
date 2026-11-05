@@ -134,7 +134,88 @@ async fn fill_imported_profile(
     //    immediately. This matches the create_profile flow and gives
     //    the user a usable profile by the time the call returns.
     let pool = db::profile_db::open(&paths.profile_db(new_profile_id), &paths.app_db).await?;
+    // 6. An archive may not have been written by a build that leaves these behind,
+    //    or by this person. Whatever it says, an imported profile holds no podcast
+    //    address and has not accepted the podcast warning, and nothing left in its
+    //    schema can put them back: a trigger is code the archive brought along.
+    let cleaned = clean_imported_database(&pool).await;
     pool.close().await;
+    cleaned
+}
+
+async fn clean_imported_database(pool: &SqlitePool) -> AppResult<()> {
+    let mut conn = pool.acquire().await?;
+    drop_schema_the_migrations_did_not_make(&mut conn).await?;
+    blank_what_does_not_travel(&mut conn).await?;
+    Ok(())
+}
+
+/// The triggers and views this build's migrations make, as `(type, name, sql)`, from
+/// a database made here and now by running them.
+async fn migrated_triggers_and_views() -> AppResult<Vec<(String, String, String)>> {
+    let options = waveflow_core::repository::sqlite::collation::register(
+        sqlx::sqlite::SqliteConnectOptions::new().in_memory(true),
+    );
+    let reference = sqlx::sqlite::SqlitePoolOptions::new()
+        .max_connections(1)
+        .connect_with(options)
+        .await?;
+    sqlx::migrate!("../../migrations/profile")
+        .run(&reference)
+        .await?;
+    let rows = triggers_and_views(&reference).await;
+    reference.close().await;
+    Ok(rows?)
+}
+
+async fn triggers_and_views(
+    conn: impl sqlx::SqliteExecutor<'_>,
+) -> Result<Vec<(String, String, String)>, sqlx::Error> {
+    sqlx::query_as(
+        "SELECT type, name, COALESCE(sql, '') FROM sqlite_master WHERE type IN ('trigger', 'view')",
+    )
+    .fetch_all(conn)
+    .await
+}
+
+/// Whitespace aside, since an older build's archive may hold CRLF migrations.
+fn same_sql(left: &str, right: &str) -> bool {
+    left.split_whitespace().eq(right.split_whitespace())
+}
+
+/// Drops every trigger and view the migrations did not make, and puts back one they
+/// did if the archive changed it. A trigger runs on every later write, so one brought
+/// by a crafted archive could undo the blanking, or anything else, at any time.
+pub(super) async fn drop_schema_the_migrations_did_not_make(
+    conn: &mut sqlx::SqliteConnection,
+) -> AppResult<()> {
+    let expected = migrated_triggers_and_views().await?;
+    for (kind, name, sql) in triggers_and_views(&mut *conn).await? {
+        let known = expected.iter().find(|(k, n, _)| *k == kind && *n == name);
+        if known.is_some_and(|(_, _, wanted)| same_sql(wanted, &sql)) {
+            continue;
+        }
+        tracing::warn!(kind, "imported profile: removed from its schema");
+        let keyword = if kind == "view" { "VIEW" } else { "TRIGGER" };
+        let quoted = name.replace('"', "\"\"");
+        sqlx::query(sqlx::AssertSqlSafe(format!("DROP {keyword} \"{quoted}\"")))
+            .execute(&mut *conn)
+            .await?;
+        if let Some((_, _, wanted)) = known {
+            sqlx::query(sqlx::AssertSqlSafe(wanted.clone()))
+                .execute(&mut *conn)
+                .await?;
+        }
+    }
+    // One the archive dropped: `sqlx` believes the migration ran, and will not run it.
+    let left = triggers_and_views(&mut *conn).await?;
+    for (kind, name, wanted) in &expected {
+        if !left.iter().any(|(k, n, _)| k == kind && n == name) {
+            sqlx::query(sqlx::AssertSqlSafe(wanted.clone()))
+                .execute(&mut *conn)
+                .await?;
+        }
+    }
     Ok(())
 }
 

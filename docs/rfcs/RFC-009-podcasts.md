@@ -18,14 +18,14 @@ server is then one more place the same page reads from.
 
 Most of what a podcast needs is already in the app, under another name:
 
-| Need                                   | What exists                                                                                                                                                          |
-| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Need                                    | What exists                                                                                                                                                                      |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Something that plays and is not a track | `DetachedSession`, used by [`external_playback`](../../src-tauri/crates/app/src/external_playback.rs) and `remote_playback`: negative id, no history, no statistics, no scrobble |
-| An HTTP stream with seeking            | [`audio::http_source`](../../src-tauri/crates/app/src/audio/http_source.rs) and its Range reopen; to be measured on large files                                     |
-| A rule for addresses out of a response | `web_radio_custom::may_open`                                                                                                                                         |
-| Bytes on disk the scanner never sees   | The managed folder of [`remote/download.rs`](../../src-tauri/crates/app/src/remote/download.rs)                                                                      |
-| A hostile XML reader                   | `roxmltree`, already a dependency of `waveflow-core`; the server's feed parser is built on it                                                                        |
-| Timed text                             | [`waveflow_core::lyrics`](../../src-tauri/crates/core/src/lyrics.rs): one `Document` model with readers per format                                                   |
+| An HTTP stream with seeking             | [`audio::http_source`](../../src-tauri/crates/app/src/audio/http_source.rs) and its Range reopen; to be measured on large files                                                  |
+| A rule for addresses out of a response  | `web_radio_custom::may_open`                                                                                                                                                     |
+| Bytes on disk the scanner never sees    | The managed folder of [`remote/download.rs`](../../src-tauri/crates/app/src/remote/download.rs)                                                                                  |
+| A hostile XML reader                    | `roxmltree`, already a dependency of `waveflow-core`; the server's feed parser is built on it                                                                                    |
+| Timed text                              | [`waveflow_core::lyrics`](../../src-tauri/crates/core/src/lyrics.rs): one `Document` model with readers per format                                                               |
 
 ## Decision 1 — standalone first, in the app, off by default
 
@@ -93,7 +93,8 @@ response:
   contacted, and never from https to http. This covers enclosures too, which
   `http_source` does not do today: it lets the client follow them, which is fine
   for a station and not for an address out of a feed.
-- **Bodies are bounded while they are read**: 16 MiB for a feed, each request under
+- **Bodies are bounded while they are read**: 32 MiB for a feed, since a daily show
+  keeping every episode really reaches 20, each request under
   a deadline.
 
 ## Decision 4 — a feed address never reaches a log
@@ -110,11 +111,27 @@ For the same reason, automatic backups do not carry feed addresses, under the sa
 rule as the network password. OPML export is a deliberate act and carries them.
 The export dialog says so.
 
+As built, the rule is wider than backups, because the path is the one the network
+password takes: **a manual profile export blanks them as well**, along with the site
+and picture addresses. **An import blanks them again**, whatever the archive says,
+since one may come from another build or from somebody else and an address in it is
+not one this person typed. What survives is a hash of the address and of the guid, so
+subscribing again finds the channel with its positions. After a restore, a channel
+lists as having no address until then.
+
+**An OPML list may name public addresses only.** It is a file someone may have been
+handed, not an address typed by the person it runs for, and a line naming the local
+network would make the app probe it, each line's result saying what answered. A feed on
+a NAS has to be typed, even from one's own export.
+
 ## Decision 5 — feeds are parsed as hostile documents
 
 `waveflow_core::podcast` takes the server's parser, so the two stop being two: DTD
 refused, a node ceiling, text bounded before it is parsed, at most 500 episodes
 per feed, titles and descriptions bounded. RSS 2.0, Atom and RSS 1.0.
+
+A title may come back empty: the parser has no locale to choose a word in, so the
+page shows its own, where the server's parser writes `Untitled`.
 
 **A refresh is conditional.** `ETag` and `Last-Modified` are stored per channel and
 sent back, so a feed that has not changed costs a `304`. **A feed that has moved
@@ -171,8 +188,19 @@ the same bound. The first source that gives at least one valid chapter wins, and
 sources are not merged. A chapter is a start time and a title, sorted, with
 impossible times dropped, and one the JSON marks `toc: false` is not listed. A chapter's image and link are ignored here, since each
 would be another address from a feed. The JSON file is fetched when the episode is
-opened, not at refresh, and cached with it. Whether the tag library exposes `CHAP`
-is to be measured in the lot; if it does not, that source waits.
+opened, not at refresh, and cached with it.
+
+**Measured, and not through the tag library.** lofty exposes `CHAP` through
+`ChapterFrame::parse`, and reads a good tag well. It reads the frames inside a chapter
+with the function that reads the tag, so a chapter nested in a chapter recurses once
+per level: 840 KB of nesting, under the bound, overflows an 8 MiB stack, which ends the
+process. These bytes come from a host a feed named. So
+[`podcast::id3`](../../src-tauri/crates/core/src/podcast/id3.rs) reads them in one flat
+walk, about a hundred lines, skipping a nested chapter like any other frame and opening
+no frame that declares compression or encryption. A file is walked with seeks, so a
+cover ahead of the chapters costs nothing. The start of a stream is one request for the
+first 1 MiB, so chapters behind a large cover are not found until the episode is
+downloaded.
 
 ## Decision 10 — transcripts
 
@@ -182,9 +210,15 @@ then Podcasting 2.0 JSON, then plain text or HTML with its tags stripped. The ti
 ones become a `lyrics::Document`, through new `vtt`, `srt` and `transcript_json`
 readers in core. The panel follows the position line by line as the lyrics panel
 does, and a click seeks. It is a panel of its own, mutually exclusive with the
-others through `PlayerContext`, and it reuses the line renderer, not the lyrics
+others through `PlayerContext`, and it reuses how a line reads, not the lyrics
 providers or the editor: a transcript is not lyrics and is never looked up
 elsewhere or written to a file.
+
+**As built**, a transcript that does not hold up gives way to the feed's next, best kind
+first and four requests at most, since a host may serve an error page as its WebVTT. The
+text is kept as fetched and read again through the same readers each time, and a feed
+that names other sources drops what was kept. An episode has a page, which is what
+opening it means for its chapters; the player's panel and menu ask for them when opened.
 
 ## Decision 11 — the server
 
@@ -211,6 +245,27 @@ A channel subscribed in both places shows twice, once per source, and each keeps
 its own position. Merging them would need an identity the two do not share, and
 that is left open.
 
+As built, [Podcasts / The channels of a bound server](../features/podcasts.md#the-channels-of-a-bound-server):
+
+- **The switch holds here too.** Decision 1 is about traffic to each podcast's host,
+  and this goes to a host the person already chose, but one rule is simpler than two:
+  off means no row and no request. The warning says what a linked server adds.
+- **The ticket is not in the load.** It lasts about an hour, as an episode may, so the
+  decoder mints it when it opens the stream and again when a request answers 404, and
+  it goes through the enclosure's reader, so decision 4 covers it.
+- **The original bytes**, whatever the transcode preference says: resuming is a seek,
+  and a transcode cannot seek.
+- **An episode that counts as heard loses its bookmark**, by the rule of decision 7.
+  The server keeps no played state, so the next one after an end is the next stored
+  one, heard or not, and there is no unplayed count.
+- **A position is pinned to the profile, the server and the account** that was
+  listening, and dropped otherwise. One that cannot be sent is lost: it is never kept
+  as a local row.
+- **Speed lasts as long as the app runs**: decision 12's column belongs to a local
+  channel.
+- **The server has no chapters and no transcripts** at 2.1.0, so decisions 9 and 10
+  stop at local channels.
+
 ## Decision 12 — speed
 
 **A speed is remembered per channel and never leaks into music.** The global
@@ -236,16 +291,16 @@ events.
 
 ## Lots
 
-| Lot | Scope                                                                 | Depends on |
-| --- | --------------------------------------------------------------------- | ---------- |
+| Lot | Scope                                                                                               | Depends on |
+| --- | --------------------------------------------------------------------------------------------------- | ---------- |
 | 1   | `waveflow_core::podcast`: feed parser, OPML, chapter and transcript readers, tests on hostile input | —          |
-| 2   | Migration, fetch rules, subscribe, refresh, OPML import and export, commands, setting | 1          |
-| 3   | Playback: session, stream with hand-followed redirects, resume, played state | 2          |
-| 4   | Downloads: managed folder, quota, cancel, Disk usage                  | 2          |
-| 5   | The page, the activation warning, sidebar, settings, 17 locales, What's new, documentation | 2          |
-| 6   | Chapters and the transcript panel                                     | 3, 5       |
-| 7   | The server's podcasts                                                 | 3, 5       |
-| 8   | Speed without changing pitch                                          | none       |
+| 2   | Migration, fetch rules, subscribe, refresh, OPML import and export, commands, setting               | 1          |
+| 3   | Playback: session, stream with hand-followed redirects, resume, played state                        | 2          |
+| 4   | Downloads: managed folder, quota, cancel, Disk usage                                                | 2          |
+| 5   | The page, the activation warning, sidebar, settings, 17 locales, What's new, documentation          | 2          |
+| 6   | Chapters and the transcript panel                                                                   | 3, 5       |
+| 7   | The server's podcasts                                                                               | 3, 5       |
+| 8   | Speed without changing pitch                                                                        | none       |
 
 ## Out of scope
 

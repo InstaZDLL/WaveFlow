@@ -2,7 +2,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { usePlayer } from "./usePlayer";
 import { useLyricsTimeline, type ActiveInterlude } from "./useLyricsTimeline";
-import { isFileTrack, isRadioTrack, isRemoteTrack } from "../lib/playerSources";
+import {
+  isFileTrack,
+  isPodcastTrack,
+  isRadioTrack,
+  isRemoteTrack,
+} from "../lib/playerSources";
 import { pickFile } from "../lib/tauri/dialog";
 import { remoteGetPlayQueue } from "../lib/tauri/remoteServer";
 import {
@@ -65,6 +70,8 @@ export interface TrackLyrics {
   /** True for a file played without importing it: synced, no library row,
    *  so the same mutations don't apply. */
   isFile: boolean;
+  /** True for a podcast episode: no library row, and no lyrics looked up. */
+  isPodcast: boolean;
   /** Active synced line index (`-1` when none / not synced). */
   activeIndex: number;
   /** Active word index inside the active line (`-1` when no word stamps). */
@@ -147,6 +154,10 @@ export function useTrackLyrics(): TrackLyrics {
   const fileArtist = isFile ? (currentTrack?.artist_name ?? null) : null;
   const fileTitle = isFile ? (currentTrack?.title ?? null) : null;
 
+  // A podcast episode: a voice with no lyrics to look for, and its title sent to
+  // a lyrics provider would be one more thing leaving about what someone hears.
+  const isPodcast = isPodcastTrack(currentTrack);
+
   // Live mirror of `trackId` so async handlers can detect when the user
   // switched tracks during an `await` — without it the closure carries
   // whatever `trackId` was current at call time and a stale
@@ -160,7 +171,7 @@ export function useTrackLyrics(): TrackLyrics {
   // Previous streaming state (radio OR remote) so the fetch effect can
   // tell a context switch — into, out of, or between streaming sources —
   // from a same-context library track change.
-  const isStream = isRadio || isRemote || isFile;
+  const isStream = isRadio || isRemote || isFile || isPodcast;
   const prevIsStreamRef = useRef(isStream);
 
   // ── Fetch when the focused track changes ─────────────────────────
@@ -199,33 +210,35 @@ export function useTrackLyrics(): TrackLyrics {
     // with no parsed song yet (favicon-only, pre-ICY) has nothing to
     // search — resolve to null so the consumer shows "not found" instead
     // of firing a blank query.
-    const request = isRadio
-      ? radioArtist && radioTitle
-        ? fetchRadioLyrics(radioArtist, radioTitle, trackId)
-        : Promise.resolve<LyricsPayload | null>(null)
-      : isRemote
-        ? remoteArtist && remoteTitle
-          ? // The lyrics are keyed by the server track id, which lives on
-            // the live remote queue's current entry (the synthesized Track
-            // only carries the negative sentinel). Resolve it, then fetch.
-            remoteGetPlayQueue().then((q) => {
-              const remoteId = q?.entries[q.index]?.id ?? null;
-              return remoteId
-                ? fetchRemoteLyrics(
-                    remoteId,
-                    remoteArtist,
-                    remoteTitle,
-                    remoteDurationMs,
-                    trackId,
-                  )
-                : null;
-            })
+    const request = isPodcast
+      ? Promise.resolve<LyricsPayload | null>(null)
+      : isRadio
+        ? radioArtist && radioTitle
+          ? fetchRadioLyrics(radioArtist, radioTitle, trackId)
           : Promise.resolve<LyricsPayload | null>(null)
-        : isFile
-          ? fileArtist && fileTitle
-            ? fetchRadioLyrics(fileArtist, fileTitle, trackId)
+        : isRemote
+          ? remoteArtist && remoteTitle
+            ? // The lyrics are keyed by the server track id, which lives on
+              // the live remote queue's current entry (the synthesized Track
+              // only carries the negative sentinel). Resolve it, then fetch.
+              remoteGetPlayQueue().then((q) => {
+                const remoteId = q?.entries[q.index]?.id ?? null;
+                return remoteId
+                  ? fetchRemoteLyrics(
+                      remoteId,
+                      remoteArtist,
+                      remoteTitle,
+                      remoteDurationMs,
+                      trackId,
+                    )
+                  : null;
+              })
             : Promise.resolve<LyricsPayload | null>(null)
-          : fetchLyrics(trackId);
+          : isFile
+            ? fileArtist && fileTitle
+              ? fetchRadioLyrics(fileArtist, fileTitle, trackId)
+              : Promise.resolve<LyricsPayload | null>(null)
+            : fetchLyrics(trackId);
     request
       .then((p) => {
         if (stale()) return;
@@ -268,6 +281,7 @@ export function useTrackLyrics(): TrackLyrics {
     isFile,
     fileArtist,
     fileTitle,
+    isPodcast,
   ]);
 
   // ── Parse, and follow the position ───────────────────────────────
@@ -404,6 +418,7 @@ export function useTrackLyrics(): TrackLyrics {
     isRadio,
     isRemote,
     isFile,
+    isPodcast,
     activeIndex,
     activeWordIndex,
     activeLine,

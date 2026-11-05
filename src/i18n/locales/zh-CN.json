@@ -1052,7 +1052,8 @@
       "transpose": "移调",
       "transposeDown": "降低半音",
       "transposeUp": "升高半音",
-      "transposeReset": "恢复原始音高"
+      "transposeReset": "恢复原始音高",
+      "transposeNotForEpisodes": "不适用于单集"
     },
     "seek": "跳转",
     "alert": {
@@ -1084,6 +1085,13 @@
       "behind": "落后直播 {{time}}",
       "goLive": "回到直播",
       "behindState": "落后于直播"
+    },
+    "podcast": {
+      "back15": "后退 15 秒",
+      "forward30": "前进 30 秒",
+      "previousChapter": "上一章",
+      "nextChapter": "下一章",
+      "chapterOf": "第 {{current}} 章，共 {{total}} 章"
     }
   },
   "queue": {
@@ -3072,7 +3080,8 @@
         "lyricsDisplay": "歌词显示",
         "diskUsage": "磁盘空间",
         "globalShortcuts": "全局快捷键",
-        "enrichment": "信息补全"
+        "enrichment": "信息补全",
+        "podcasts": "播客"
       },
       "navHints": {
         "general": "语言、启动、播放",
@@ -3123,7 +3132,8 @@
         "reset": "将应用恢复到全新状态",
         "diskUsage": "WaveFlow 在这台电脑上保存的内容",
         "globalShortcuts": "在任何应用中",
-        "enrichment": "来自 MusicBrainz 的流派、日期、制作人员和封面"
+        "enrichment": "来自 MusicBrainz 的流派、日期、制作人员和封面",
+        "podcasts": "经你同意后订阅订阅源"
       }
     },
     "desktopLyrics": {
@@ -3295,6 +3305,10 @@
         "plugins": {
           "label": "插件",
           "description": "已安装的插件及其数据。"
+        },
+        "podcastDownloads": {
+          "label": "已下载的播客单集",
+          "description": "你选择保留在这台电脑上的单集。可在单集处移除。"
         }
       },
       "confirmEmptyLabel": "确认清空：{{item}}",
@@ -3424,6 +3438,17 @@
       "share": "共享名称",
       "cacheUsed_one": "本地缓存:{{size}},{{count}} 首曲目",
       "cacheUsed_other": "本地缓存:{{size}},{{count}} 首曲目"
+    },
+    "podcasts": {
+      "title": "播客",
+      "subtitleOn": "已开启：应用运行期间，订阅源每六小时检查一次。",
+      "subtitleOff": "已关闭：不会连接任何地方。开启前会先显示一份提示。",
+      "stays": "保留的内容：你的订阅、播放进度和已下载的单集。",
+      "staysCount": "保留的节目：{{n}} 个。",
+      "open": "打开播客",
+      "seeStays": "查看保留的内容",
+      "downloadQuota": "已下载单集的最大空间",
+      "downloadQuotaHint": "下载达到此配额时会停止。已有的文件会保留。已用：{{used}}。"
     }
   },
   "scanProgress": {
@@ -3792,7 +3817,9 @@
       "spectrogram": "曲目频谱",
       "enrichment": "音乐库信息补全",
       "release_radar": "Release Radar",
-      "tag_workshop": "标签工坊"
+      "tag_workshop": "标签工坊",
+      "podcast_refresh": "刷新播客",
+      "podcast_download": "播客下载"
     }
   },
   "smartRuleSummary": {
@@ -4358,7 +4385,8 @@
     "needs": {
       "library": "需要先在音乐库中添加音乐。",
       "track": "播放音乐库中的一首曲目，即可在编辑器中打开它的歌词。",
-      "startsPlayback": "当前没有播放内容：试用时会随机播放你的音乐库。"
+      "startsPlayback": "当前没有播放内容：试用时会随机播放你的音乐库。",
+      "podcastsWarning": "点击按钮会先显示一份提示，未经你同意不会开启任何内容。"
     },
     "pages": {
       "fluidInterface": {
@@ -4400,7 +4428,239 @@
         "title": "导入你的播放列表",
         "body": "支持 M3U、CSV、JSON 文件，或公开的 Deezer 播放列表链接。你没有的曲目会保留位置，等它们进入音乐库后自动补上。",
         "keywords": "M3U|CSV|JSON|Deezer|ISRC|缺失曲目"
+      },
+      "podcasts": {
+        "title": "播客来了",
+        "body": "订阅一个订阅源，从上次听到的地方继续，下载后稍后再听。在你同意之前它们一直关闭：播客直接来自它的托管方，托管方能看到你播放的内容。",
+        "keywords": "RSS|OPML|待听|离线"
       }
+    }
+  },
+  "podcasts": {
+    "kicker": "收听",
+    "channels": "节目",
+    "channelsCount_other": "{{count}} 个节目",
+    "unplayedCount_other": "{{count}} 集未听",
+    "episodesCount_other": "{{count}} 集",
+    "usage": "已下载 {{used}}，上限 {{quota}}",
+    "refreshAll": "全部检查",
+    "refreshing": "正在检查…",
+    "openSettings": "播客设置",
+    "loading": "加载中…",
+    "retry": "重试",
+    "showMore": "显示更多",
+    "showLess": "收起",
+    "untitledChannel": "未命名节目",
+    "untitledEpisode": "未命名单集",
+    "offlineBanner": "离线模式：不会连接任何订阅源，只能播放已下载的单集。",
+    "off": {
+      "body": "播客已关闭，不会连接任何地方。你的订阅、播放进度和已下载的单集都会保留。",
+      "action": "开启播客…"
+    },
+    "empty": {
+      "title": "还没有订阅",
+      "body": "在上方输入订阅源的地址，或导入 OPML 列表。",
+      "bodyOff": "开启播客后，才能订阅第一个订阅源。"
+    },
+    "dialog": {
+      "cancel": "取消",
+      "close": "关闭"
+    },
+    "warning": {
+      "title": "开启播客之前",
+      "lead": "在你确认之前，什么都不会改变。开启之后会发生以下这些事。",
+      "confirm": "我明白了，开启",
+      "failed": "没能保存这个设置，播客仍然关闭。",
+      "points": {
+        "hosts": {
+          "title": "托管方能看到什么",
+          "body": "订阅源和单集都直接来自各个播客的托管方。托管方，以及单集常常会经过的统计服务，能看到你的 IP 地址和你播放的内容。"
+        },
+        "checks": {
+          "title": "WaveFlow 何时检查",
+          "body": "只有在应用运行期间，订阅源才会每六小时检查一次。"
+        },
+        "downloads": {
+          "title": "磁盘空间",
+          "body": "已下载的单集会占用磁盘空间，最多到上限为止。"
+        },
+        "stop": {
+          "title": "如何全部停止",
+          "body": "开启离线模式可以全部停止。关闭播客则会彻底停止。"
+        },
+        "server": {
+          "title": "如果关联了服务器",
+          "body": "如果这个配置文件关联了开启播客的 WaveFlow 服务器，它的节目也会显示。这些内容经过你的服务器：托管方看到的是你的服务器，而不是你。"
+        }
+      }
+    },
+    "subscribe": {
+      "label": "订阅一个订阅源",
+      "action": "订阅",
+      "hint": "RSS 订阅源的地址，以 http 或 https 开头。添加之前会先读取订阅源，所以输错了也不会留下任何东西。"
+    },
+    "opml": {
+      "import": "导入 OPML",
+      "export": "导出 OPML",
+      "importDialogTitle": "导入订阅源列表",
+      "exportDialogTitle": "导出订阅源列表（其中包含订阅源的地址）",
+      "exportTitle": "导出你的订阅",
+      "exportBody": "这个文件包含你所有订阅源的地址。私有订阅源的地址有时带有你的个人访问凭据，请只分享给你信任的人。",
+      "exportConfirm": "选择文件…",
+      "exportMissing": "恢复后没有地址、因此不在文件中的节目：{{missing}} 个。",
+      "exported": "列表已保存。已写入的订阅源：{{written}} · 没有地址：{{missing}}。",
+      "publicOnly": "OPML 列表只接受公开地址。本地网络中的订阅源，请在上方手动输入。",
+      "report": {
+        "title": "导入列表",
+        "summary": "已添加：{{added}} · 已订阅过：{{already}} · 失败：{{failed}} · 列表中共有：{{total}}",
+        "more": "另有 {{n}} 个。",
+        "theFile": "文件",
+        "outcome": {
+          "cancelled": "导入在完成之前被停止了。",
+          "offline": "离线模式停止了导入。",
+          "disabled": "导入期间播客被关闭了。",
+          "profile_changed": "导入期间配置文件发生了变化，导入已停止。",
+          "already_running": "已经在检查了。请等它结束后再试。"
+        }
+      }
+    },
+    "refresh": {
+      "done": "检查完成。已更新：{{refreshed}} · 无变化：{{unchanged}} · 失败：{{failed}}",
+      "cancelled": "检查已停止。",
+      "offline": "离线模式停止了检查。",
+      "disabled": "播客已关闭。",
+      "profile_changed": "检查期间配置文件发生了变化，检查已停止。",
+      "already_running": "已经在检查了。"
+    },
+    "toListen": {
+      "title": "待听",
+      "failed": "无法读取这个列表。",
+      "inProgress": "继续收听",
+      "newest": "最新一集",
+      "resume": "继续",
+      "listen": "播放",
+      "showAll": "显示全部（还有 {{n}} 个）",
+      "playing": "正在播放",
+      "pause": "暂停"
+    },
+    "channel": {
+      "kicker": "播客",
+      "back": "所有节目",
+      "checked": "{{when}}检查",
+      "refresh": "检查",
+      "markAllPlayed": "全部标为已听",
+      "markAllUnplayed": "全部标为未听",
+      "openSite": "节目网站",
+      "unsubscribe": "取消订阅",
+      "speed": "速度",
+      "speedNormal": "正常",
+      "noEpisodes": "这个节目没有单集。",
+      "lastFailure": "上次检查：{{reason}}",
+      "restoredChip": "需重新订阅",
+      "failedChip": "失败"
+    },
+    "episode": {
+      "play": "播放 {{title}}",
+      "playAgain": "再次播放 {{title}}",
+      "resume": "继续播放 {{title}}",
+      "markPlayed": "将 {{title}} 标为已听",
+      "markUnplayed": "将 {{title}} 标为未听",
+      "download": "下载 {{title}}",
+      "cancelDownload": "取消下载 {{title}}",
+      "deleteDownload": "删除 {{title}} 的文件（{{size}}）",
+      "downloaded": "已下载",
+      "needsNetwork": "离线或播客关闭时无法使用，只能播放已下载的单集。",
+      "noAddress": "不知道这一集的地址，请重新订阅这个节目。",
+      "seasonEpisode": "第{{season}}季 · 第{{episode}}集",
+      "number": "第 {{episode}} 集",
+      "remaining": "剩余 {{time}}",
+      "pause": "暂停 {{title}}",
+      "queued": "等待中",
+      "deletedWhilePlaying": "文件已删除。当前播放会继续；之后要重新播放，需要联网或重新下载。",
+      "open": "打开“{{title}}”",
+      "playAgainShort": "再听一遍"
+    },
+    "restored": {
+      "title": "已不知道这个订阅源的地址",
+      "body": "这个节目来自备份或导入的配置文件，它们不会保存订阅源的地址，所以它不再更新。请用同一个地址重新订阅，或重新导入你的 OPML，你的播放进度和已听记录都会保留。",
+      "hint": "和之前相同的地址。OPML 列表只接受公开地址，本地网络中的订阅源请在这里输入。",
+      "summary": "需要重新订阅的节目：{{n}} 个。备份不会保存订阅源的地址。请重新输入地址或重新导入 OPML，你的播放进度会保留。",
+      "downloads": "已下载的单集不会随备份一起保存，需要重新下载。"
+    },
+    "unsubscribe": {
+      "title": "取消订阅 {{title}}？",
+      "body": "这个节目、它的单集、你的播放进度和下载的文件都会被清除。你可以重新订阅，但找不回之前听到的位置。",
+      "confirm": "取消订阅"
+    },
+    "errors": {
+      "disabled": "播客已关闭。",
+      "offline": "离线模式已开启，没有连接任何地方。",
+      "profile_changed": "期间配置文件发生了变化，没有再写入更多内容。",
+      "channel_gone": "已不再订阅这个节目。",
+      "open_failed": "无法打开浏览器。",
+      "address_refused": "这个地址不能用。它必须以 http 或 https 开头，包含主机名，且不能带有账号和密码。公开的订阅源不能指向本地网络。",
+      "too_many_redirects": "这个订阅源被连续转到了太多个地址。",
+      "too_large": "文件太大了。",
+      "unreached": "连接不上托管方。",
+      "http": "托管方返回了错误（{{status}}）。",
+      "invalid_feed": "这不是可以读取的播客订阅源。",
+      "not_audio": "这个文件不是音频。",
+      "quota_exceeded": "已达到下载上限。",
+      "unknown": "出了点问题。",
+      "episode_gone": "这一集已不存在。",
+      "no_source": "这一集既没有文件也没有地址：请重新订阅该频道。",
+      "not_seekable": "此托管方不支持在这一集中跳转。",
+      "write_failed": "无法将文件写入磁盘。",
+      "invalid_document": "此文件与其声明的内容不符。",
+      "not_stored": "服务器没有保存这一集：需要它先下载。",
+      "server_unreachable": "服务器没有响应。",
+      "server_signed_out": "你已不再登录这台服务器。",
+      "server_refused": "服务器拒绝了，或已不再有这一项。",
+      "server_conflict": "服务器已在关注这个订阅源，或无法再关注更多。",
+      "destination_refused": "服务器不允许访问这个地址。"
+    },
+    "episodePage": {
+      "kicker": "单集"
+    },
+    "chapters": {
+      "title": "章节",
+      "none": "此单集没有章节。",
+      "loading": "正在查找章节…",
+      "failed": "无法读取章节：{{reason}}",
+      "jump": "转到“{{title}}”，{{time}}"
+    },
+    "transcript": {
+      "title": "文字稿",
+      "none": "此单集没有文字稿。",
+      "noEpisode": "播放单集即可查看其文字稿。",
+      "loading": "正在获取文字稿…",
+      "failed": "无法读取文字稿：{{reason}}",
+      "untimed": "此文字稿没有时间信息，因此不会跟随播放。",
+      "notPlaying": "此单集未在播放。点击某一行即可从该处开始播放。",
+      "jump": "转到 {{time}}：{{text}}"
+    },
+    "server": {
+      "title": "在你的服务器上",
+      "chip": "服务器",
+      "refresh": "在服务器上检查",
+      "refreshAsked": "服务器正在检查订阅源。新内容很快就会显示。",
+      "subscribeOpen": "在服务器上订阅",
+      "subscribeLabel": "在服务器上订阅一个订阅源",
+      "subscribeHint": "服务器会先读取订阅源再添加。订阅对这台服务器上的所有账户生效。",
+      "unsubscribe": "从服务器移除",
+      "unsubscribeTitle": "要从服务器移除 {{title}} 吗？",
+      "unsubscribeBody": "节目、单集及其文件都会从服务器上消失，所有账户都受影响。",
+      "removeConfirm": "移除",
+      "deleteEpisode": "从服务器移除 {{title}}",
+      "deleteEpisodeTitle": "要从服务器移除这一集吗？",
+      "deleteEpisodeBody": "“{{title}}”及其文件会从服务器上消失，所有账户都受影响。下次检查时也不会回来。",
+      "requestDownload": "请服务器下载 {{title}}",
+      "notStored": "不在服务器上",
+      "notStoredHint": "服务器只播放已下载的内容。管理员可以请它下载。",
+      "needsServer": "离线或播客已关闭：不会联系服务器。",
+      "downloading": "正在服务器上下载…",
+      "downloadFailed": "在服务器上失败",
+      "forgetPosition": "从头播放 {{title}}"
     }
   }
 }

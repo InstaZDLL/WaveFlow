@@ -667,7 +667,7 @@ export function ImmersiveView({
                 error={lyrics.error}
                 excludedGenre={lyrics.excludedGenre}
                 staticText={lyrics.radioPlainText}
-                isRadio={lyrics.isRadio}
+                isRadio={lyrics.isRadio || lyrics.isPodcast}
                 onSeek={lyrics.seekToLine}
                 onImport={() => void lyrics.importLyrics()}
                 onRefetch={() => void lyrics.refetch()}

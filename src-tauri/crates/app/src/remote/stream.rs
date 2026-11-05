@@ -28,7 +28,7 @@ use sqlx::SqlitePool;
 
 use crate::{
     error::{AppError, AppResult},
-    remote::client::RemoteClient,
+    remote::client::{FailureKind, RemoteClient, RemoteFailure},
     state::AppState,
 };
 
@@ -246,26 +246,38 @@ pub async fn raw_ticket_url(
         return Err(AppError::Other("offline".into()));
     }
     let client = client(state, profile_id).await?;
+    mint_ticket(&client, track_id)
+        .await
+        .map_err(|err| AppError::Other(format!("stream ticket: {}", err.message)))
+}
 
+/// A stream URL for `id` on `client`'s server, which is a track or a stored
+/// podcast episode: the route looks both up.
+pub(crate) async fn mint_ticket(
+    client: &RemoteClient<'_>,
+    id: &str,
+) -> Result<String, RemoteFailure> {
     let resp: StreamTicketResponse = client
         .send_json(client.request(
             reqwest::Method::POST,
             &format!(
                 "/api/v2/tracks/{}/stream-ticket",
-                super::client::segment(track_id)?
+                super::client::segment(id)?
             ),
         ))
-        .await
-        .map_err(|err| AppError::Other(format!("stream ticket: {}", err.message)))?;
+        .await?;
 
     // Trust only our own base. A relative path is the contract; an absolute
     // or protocol-relative one would move playback off the authenticated
     // host, so refuse it rather than follow it.
     let rel = resp.url;
     if !rel.starts_with('/') || rel.starts_with("//") {
-        return Err(AppError::Other(
-            "remote server returned a non-relative stream URL".into(),
-        ));
+        return Err(RemoteFailure {
+            kind: FailureKind::Permanent,
+            status: None,
+            code: None,
+            message: "remote server returned a non-relative stream URL".into(),
+        });
     }
     Ok(format!("{}{}", client.base_url(), rel))
 }

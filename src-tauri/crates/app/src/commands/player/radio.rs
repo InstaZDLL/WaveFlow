@@ -83,6 +83,7 @@ pub async fn player_play_url(
     if let Some(state) = app.try_state::<AppState>() {
         state.remote_playback.clear();
         state.external_playback.clear();
+        state.podcast_playback.clear();
     }
 
     let track_id = next_radio_track_id();

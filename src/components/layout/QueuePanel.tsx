@@ -53,7 +53,7 @@ import {
   type QueueTrackPayload,
 } from "../../lib/tauri/player";
 import { RemoteQueueView } from "./RemoteQueueView";
-import { isFileTrack, isRemoteTrack } from "../../lib/playerSources";
+import { detachedQueueOf } from "../../lib/playerSources";
 
 /**
  * Right-hand queue panel. Shows:
@@ -75,12 +75,11 @@ export function QueuePanel({
   // A remote play session has its own in-memory queue, shown by a
   // dedicated view — the local `player_get_queue` path (and its jump /
   // reorder) act on the library queue, which isn't what's playing here.
-  const isRemote = isRemoteTrack(currentTrack);
-  // Files played without importing them, the same.
-  const isFile = isFileTrack(currentTrack);
+  // Files played without importing them and a channel's episodes, the same.
+  const detachedSource = detachedQueueOf(currentTrack);
   // Either way the header's count and Save act on the library queue,
   // which is not what plays.
-  const isDetached = isRemote || isFile;
+  const isDetached = detachedSource !== null;
   const [snapshot, setSnapshot] = useState<PlayerQueueSnapshot | null>(null);
 
   // Seq counter so overlapping refetches never resolve in the
@@ -301,12 +300,10 @@ export function QueuePanel({
         }}
       />
 
-      {isRemote ? (
-        // Keyed by source so a switch between the two mounts afresh rather
-        // than showing one queue's rows under the other's jumps.
-        <RemoteQueueView key="remote" />
-      ) : isFile ? (
-        <RemoteQueueView key="file" source="file" />
+      {detachedSource ? (
+        // Keyed by source so a switch between them mounts afresh rather
+        // than showing one queue's rows under another's jumps.
+        <RemoteQueueView key={detachedSource} source={detachedSource} />
       ) : total === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center text-center">
           <div className="w-24 h-24 bg-zinc-100 dark:bg-zinc-800 rounded-2xl flex items-center justify-center mb-6 shadow-inner">
