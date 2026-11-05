@@ -436,6 +436,40 @@ fn a_failed_start_puts_back_the_episodes_it_replaced() {
     );
 }
 
+/// A profile switch during the ticket clears every session and claims nothing.
+/// Putting the files back would give the next profile the last one's queue.
+#[test]
+fn a_failed_start_puts_nothing_back_after_a_profile_switch() {
+    let session = RemotePlayback::default();
+    let files = no_files();
+    let before = SessionsBefore {
+        remote: Some(queue(&["old"])),
+        files: Some(DetachedQueue {
+            entries: vec![ExternalEntry {
+                path: "/music/a.flac".into(),
+            }],
+            index: 0,
+        }),
+        episodes: None,
+    };
+    let revision = session.set(queue(&["c"]));
+    // What `activate_profile` does to the three sessions.
+    session.clear();
+    files.clear();
+    let settled = settle_start(
+        &session,
+        &files,
+        &no_episodes(),
+        revision,
+        false,
+        before,
+        Err(refused()),
+    );
+    assert!(settled.is_err());
+    assert!(!session.is_active());
+    assert!(!files.is_active());
+}
+
 #[test]
 fn a_failed_start_keeps_the_queue_someone_has_since_moved_in() {
     let session = RemotePlayback::default();

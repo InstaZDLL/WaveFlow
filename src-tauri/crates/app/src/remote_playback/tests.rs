@@ -30,6 +30,25 @@ fn restore_if_puts_back_what_a_start_replaced() {
     assert!(!playback.clear_if(mine));
 }
 
+/// A profile switch clears without installing anything, and the revision
+/// does not move: the session being gone is what says it is not ours any more.
+#[test]
+fn restore_if_puts_nothing_back_once_the_session_was_cleared() {
+    let playback = RemotePlayback::default();
+    playback.set(RemoteQueue {
+        entries: vec![entry("a")],
+        index: 0,
+    });
+    let before = playback.queue();
+    let mine = playback.set(RemoteQueue {
+        entries: vec![entry("c")],
+        index: 0,
+    });
+    playback.clear();
+    assert!(!playback.restore_if(mine, before));
+    assert!(!playback.is_active());
+}
+
 #[test]
 fn restore_if_leaves_a_session_the_user_navigated_alone() {
     let playback = RemotePlayback::default();

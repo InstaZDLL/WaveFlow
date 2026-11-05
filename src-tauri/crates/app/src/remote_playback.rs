@@ -194,9 +194,14 @@ impl<E: Clone> DetachedSession<E> {
 
     /// [`Self::clear_if`] for a caller that can put back what it replaced: a
     /// start that could not play, whose `queue` is still what is being heard.
+    ///
+    /// Not once the session has been cleared since: [`Self::clear`] keeps the
+    /// revision, and what clears a session without installing one, a profile
+    /// switch or the hand-off of a crossfade, has made it nobody's. Putting the
+    /// queues back then would hand a profile the queues of the one it replaced.
     pub fn restore_if(&self, revision: u64, queue: Option<DetachedQueue<E>>) -> bool {
         let mut guard = self.inner.lock().expect("detached session poisoned");
-        if self.revisions.load(Ordering::Acquire) != revision {
+        if guard.is_none() || self.revisions.load(Ordering::Acquire) != revision {
             return false;
         }
         self.revisions.fetch_add(1, Ordering::AcqRel);
