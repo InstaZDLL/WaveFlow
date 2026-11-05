@@ -82,7 +82,7 @@ const POSITION_BUDGET: Duration = Duration::from_secs(8);
 
 /// One write at a time, in the order they were asked for: a tick still on its way
 /// must not land after the end that cleared the bookmark.
-static POSITION_WRITES: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+pub(crate) static POSITION_WRITES: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 
 /// The speed of a server's channel. The slider has no row of the channel to write to,
 /// so this lasts as long as the app does: a voice keeps it through the queue, and it
