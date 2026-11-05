@@ -518,8 +518,8 @@ pub(crate) async fn record_artwork(
 }
 
 /// What playing an episode needs of its row and its channel's. Holds addresses,
-/// and stays in the backend.
-#[derive(Debug, Clone, PartialEq, FromRow)]
+/// and stays in the backend. No `Debug`, so no logger can print them.
+#[derive(Clone, PartialEq, FromRow)]
 pub(crate) struct PlayableEpisode {
     pub id: i64,
     pub channel_id: i64,

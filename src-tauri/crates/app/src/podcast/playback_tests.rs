@@ -1383,6 +1383,44 @@ fn an_episode_plays_untransposed_and_the_next_track_is_transposed_again() {
     assert_eq!(shared.time_shift().semitones, -2.0);
 }
 
+/// An output rebuild sends the decoder's recorded load back. Moved since that load
+/// started, the channel's speed is what it has to come back at.
+#[test]
+fn a_speed_changed_during_an_episode_is_what_a_rebuild_brings_back() {
+    use crate::audio::engine::{AudioCmd, LastLoadSource, LoadIntent};
+
+    let recorded = |shared: &SharedPlayback| match shared.last_load().map(|load| load.source) {
+        Some(LastLoadSource::Episode(episode)) => episode.speed,
+        _ => panic!("the episode's load was not recorded"),
+    };
+    let shared = SharedPlayback::new();
+    shared.record_accepted_load(&AudioCmd::LoadEpisodeAndPlay {
+        intent: LoadIntent::from_raw(1),
+        episode: Box::new(super::playback::EpisodeLoad {
+            episode_id: 1,
+            channel_id: 1,
+            profile_id: 1,
+            track_id: -1,
+            start_ms: 0,
+            duration_ms: 0,
+            title: "One".into(),
+            channel: "The Show".into(),
+            artwork_path: None,
+            speed: 1.0,
+            source: EpisodeSource::File("1.mp3".into()),
+        }),
+    });
+    shared.hold_episode_speed(1.0);
+    shared.set_episode_speed(1.5);
+    assert_eq!(recorded(&shared), 1.5);
+
+    // Nothing decoding: the load keeps it, and what plays next does not hear it.
+    shared.release_episode_speed();
+    shared.set_episode_speed(1.75);
+    assert_eq!(recorded(&shared), 1.75);
+    assert_eq!(shared.playback_speed(), 1.0);
+}
+
 /// The user's slider has no business with an episode's speed, and the other way
 /// round: each waits for its own.
 #[test]

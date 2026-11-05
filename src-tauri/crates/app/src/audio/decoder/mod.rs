@@ -938,7 +938,7 @@ fn decoder_loop(
 /// way the boot-time restore writes it, without `set_playback_speed`'s
 /// rebase, seek generation and dirty flag; the next track's stream takes
 /// the speed when it opens. An episode's speed lasts as long as it decodes,
-/// so there is nothing to keep of one here.
+/// so all that is kept of one here is what its load would come back at.
 fn apply_setting(cmd: &AudioCmd, shared: &SharedPlayback) -> bool {
     match *cmd {
         AudioCmd::SetVolume(v) => shared.set_volume(v),
@@ -954,7 +954,7 @@ fn apply_setting(cmd: &AudioCmd, shared: &SharedPlayback) -> bool {
                 shared.restore_user_speed(v);
             }
         }
-        AudioCmd::SetEpisodeSpeed(_) => {}
+        AudioCmd::SetEpisodeSpeed(v) => shared.set_episode_speed(v),
         AudioCmd::SetKeepPitch(on) => shared.keep_pitch.store(on, Ordering::Release),
         AudioCmd::SetPitchSemitones(v) => shared.set_pitch_semitones(v),
         _ => return false,
