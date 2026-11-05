@@ -1035,8 +1035,9 @@ because one genuinely slow step must not be serialized:
   installs under the publish lock, then mints a streaming ticket over HTTP
   outside it; holding the lock across a network call would park every other
   surface, so it keeps the `load_intent_superseded` + `clear_if` rollback
-  described above. A start that failed puts back the queues it replaced, since
-  what they were driving is still playing and a queue nothing plays from would
+  described above. A start that failed puts back the queues it replaced, files
+  and episodes included (waking the episode's position watcher), since what
+  they were driving is still playing and a queue nothing plays from would
   take over Next.
 - **A step or a jump in a remote queue takes the lock twice.** Once to look
   for a session and claim, in that order since a claim with no load behind it

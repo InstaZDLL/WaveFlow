@@ -39,6 +39,7 @@ use crate::{
     },
     error::AppResult,
     external_playback::{ExternalEntry, ExternalPlayback},
+    podcast::playback::{EpisodeEntry, PodcastPlayback},
     queue::{Direction, RepeatMode},
     remote_playback::{DetachedQueue, RemoteEntry, RemotePlayback, RemoteQueue},
     state::AppState,
@@ -87,6 +88,7 @@ pub async fn play_entries(
         let before = SessionsBefore {
             remote: state.remote_playback.queue(),
             files: state.external_playback.queue(),
+            episodes: state.podcast_playback.queue(),
         };
         // One detached queue at a time: the remote one now drives next /
         // previous, not files played without importing them, nor episodes.
@@ -100,6 +102,7 @@ pub async fn play_entries(
     settle_start(
         &state.remote_playback,
         &state.external_playback,
+        &state.podcast_playback,
         revision,
         engine.load_intent_superseded(intent),
         before,
@@ -111,6 +114,7 @@ pub async fn play_entries(
 struct SessionsBefore {
     remote: Option<RemoteQueue>,
     files: Option<DetachedQueue<ExternalEntry>>,
+    episodes: Option<DetachedQueue<EpisodeEntry>>,
 }
 
 /// What a start leaves behind once its first load is settled.
@@ -128,6 +132,7 @@ struct SessionsBefore {
 fn settle_start(
     remote: &RemotePlayback,
     files: &ExternalPlayback,
+    episodes: &PodcastPlayback,
     revision: u64,
     overtaken: bool,
     before: SessionsBefore,
@@ -141,6 +146,12 @@ fn settle_start(
         tracing::debug!("remote session could not start; put back what it replaced");
         if let Some(queue) = before.files {
             files.set(queue);
+        }
+        if let Some(queue) = before.episodes {
+            episodes.set(queue);
+            // The position of the episode still playing is saved again: the
+            // watcher went to sleep when the start cleared its session.
+            crate::podcast::playback::notify_session_started();
         }
     }
     played

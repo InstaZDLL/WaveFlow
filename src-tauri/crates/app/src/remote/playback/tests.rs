@@ -311,11 +311,16 @@ fn nothing_before() -> SessionsBefore {
     SessionsBefore {
         remote: None,
         files: None,
+        episodes: None,
     }
 }
 
 fn no_files() -> ExternalPlayback {
     ExternalPlayback::default()
+}
+
+fn no_episodes() -> PodcastPlayback {
+    PodcastPlayback::default()
 }
 
 /// Left installed, a queue nothing plays from takes over Next: the next press
@@ -328,6 +333,7 @@ fn a_failed_start_leaves_no_session_behind() {
     let settled = settle_start(
         &session,
         &no_files(),
+        &no_episodes(),
         revision,
         false,
         nothing_before(),
@@ -345,11 +351,13 @@ fn a_failed_start_puts_back_the_remote_queue_it_replaced() {
     let before = SessionsBefore {
         remote: session.queue(),
         files: None,
+        episodes: None,
     };
     let revision = session.set(queue(&["c"]));
     let settled = settle_start(
         &session,
         &no_files(),
+        &no_episodes(),
         revision,
         false,
         before,
@@ -371,12 +379,61 @@ fn a_failed_start_puts_back_the_files_it_replaced() {
             }],
             index: 0,
         }),
+        episodes: None,
     };
     let revision = session.set(queue(&["c"]));
-    let settled = settle_start(&session, &files, revision, false, before, Err(refused()));
+    let settled = settle_start(
+        &session,
+        &files,
+        &no_episodes(),
+        revision,
+        false,
+        before,
+        Err(refused()),
+    );
     assert!(settled.is_err());
     assert!(!session.is_active());
     assert!(files.is_active());
+}
+
+/// An episode still playing keeps its queue, and its position is saved again.
+#[test]
+fn a_failed_start_puts_back_the_episodes_it_replaced() {
+    let session = RemotePlayback::default();
+    let episodes = no_episodes();
+    let before = SessionsBefore {
+        remote: None,
+        files: None,
+        episodes: Some(DetachedQueue {
+            entries: vec![EpisodeEntry {
+                home: crate::podcast::playback::EpisodeHome::Local {
+                    episode_id: 7,
+                    channel_id: 1,
+                },
+                profile_id: 1,
+                title: "Episode".into(),
+                channel: "Show".into(),
+                duration_ms: None,
+            }],
+            index: 0,
+        }),
+    };
+    let revision = session.set(queue(&["c"]));
+    let settled = settle_start(
+        &session,
+        &no_files(),
+        &episodes,
+        revision,
+        false,
+        before,
+        Err(refused()),
+    );
+    assert!(settled.is_err());
+    assert!(!session.is_active());
+    assert_eq!(
+        episodes.current().map(|entry| entry.title).as_deref(),
+        Some("Episode")
+    );
 }
 
 #[test]
@@ -387,6 +444,7 @@ fn a_failed_start_keeps_the_queue_someone_has_since_moved_in() {
     let settled = settle_start(
         &session,
         &no_files(),
+        &no_episodes(),
         revision,
         false,
         nothing_before(),
@@ -403,11 +461,13 @@ fn an_overtaken_start_rolls_its_install_back_and_restores_nothing() {
     let before = SessionsBefore {
         remote: Some(queue(&["old"])),
         files: None,
+        episodes: None,
     };
     let revision = session.set(queue(&["a", "b"]));
     let settled = settle_start(
         &session,
         &no_files(),
+        &no_episodes(),
         revision,
         true,
         before,
@@ -423,9 +483,18 @@ fn a_start_that_worked_stays_installed() {
     let before = SessionsBefore {
         remote: Some(queue(&["old"])),
         files: None,
+        episodes: None,
     };
     let revision = session.set(queue(&["a", "b"]));
-    let settled = settle_start(&session, &no_files(), revision, false, before, Ok(()));
+    let settled = settle_start(
+        &session,
+        &no_files(),
+        &no_episodes(),
+        revision,
+        false,
+        before,
+        Ok(()),
+    );
     assert!(settled.is_ok());
     assert_eq!(current(&session).as_deref(), Some("a"));
 }
