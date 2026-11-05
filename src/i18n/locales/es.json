@@ -4091,6 +4091,10 @@
       "same": "Esta carpeta ya está en la biblioteca: {{folder}}",
       "inside": "Esta carpeta ya está en la biblioteca, dentro de {{folder}}.",
       "contains": "Esta carpeta contiene {{folder}}, que ya está en la biblioteca. Añade mejor sus otras subcarpetas."
+    },
+    "unreachable": {
+      "title": "Carpeta de la biblioteca inaccesible",
+      "body": "No está o no se puede leer; quizá sea un disco desconectado. Sus canciones siguen en la biblioteca, sin cambios."
     }
   },
   "playlistImport": {

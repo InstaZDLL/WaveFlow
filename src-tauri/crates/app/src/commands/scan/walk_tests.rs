@@ -58,8 +58,9 @@ fn listing_reports_what_it_has_found() {
     let mut reports: Vec<(usize, PathBuf)> = Vec::new();
     let found =
         collect_scannable_files_with(root, |n, d| reports.push((n, d.to_path_buf())), || false)
+            .unwrap()
             .unwrap();
-    assert_eq!(found.len(), 80);
+    assert_eq!(found.files.len(), 80);
     assert!(reports.len() > 1, "{reports:?}");
     assert!(
         reports.windows(2).all(|w| w[0].0 <= w[1].0),
@@ -88,5 +89,78 @@ fn a_stopped_listing_returns_no_partial_list() {
             asked.get() > 1
         },
     );
-    assert!(listed.is_none());
+    assert!(listed.unwrap().is_none());
+}
+
+/// A root that cannot be read is an error, never an empty list: the scan
+/// sweeps whatever the list leaves out.
+#[test]
+fn a_missing_root_is_an_error() {
+    let dir = tempfile::tempdir().unwrap();
+    let listed = collect_scannable_files_with(&dir.path().join("gone"), |_, _| {}, || false);
+    assert!(listed.is_err());
+}
+
+/// A file where the folder was is no folder, not even when it is audio.
+#[test]
+fn a_root_that_is_a_file_is_an_error() {
+    let dir = tempfile::tempdir().unwrap();
+    let file = dir.path().join("a.flac");
+    write(&file);
+    let listed = collect_scannable_files_with(&file, |_, _| {}, || false);
+    assert!(listed.is_err());
+}
+
+/// An empty folder that answers is the one case an empty list is the truth.
+#[test]
+fn an_empty_root_lists_nothing_and_misses_nothing() {
+    let dir = tempfile::tempdir().unwrap();
+    let walk = collect_scannable_files_with(dir.path(), |_, _| {}, || false)
+        .unwrap()
+        .unwrap();
+    assert!(walk.files.is_empty());
+    assert!(walk.unreadable.is_empty());
+}
+
+/// A link to the folder is the folder: a library kept behind one still scans.
+#[cfg(unix)]
+#[test]
+fn a_root_behind_a_link_is_walked() {
+    let dir = tempfile::tempdir().unwrap();
+    write(&dir.path().join("real/a.flac"));
+    let link = dir.path().join("link");
+    std::os::unix::fs::symlink(dir.path().join("real"), &link).unwrap();
+    let walk = collect_scannable_files_with(&link, |_, _| {}, || false)
+        .unwrap()
+        .unwrap();
+    assert_eq!(walk.files.len(), 1);
+}
+
+/// A directory the walk may not enter ends nothing, and its files are the
+/// ones the sweep has to leave alone, by component and not by prefix.
+#[cfg(unix)]
+#[test]
+fn an_unreadable_directory_is_reported_and_the_walk_goes_on() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    write(&root.join("locked/a.flac"));
+    write(&root.join("locked2/b.flac"));
+    let locked = root.join("locked");
+    std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o000)).unwrap();
+    if std::fs::read_dir(&locked).is_ok() {
+        // Running as root: permissions do not stop anything here.
+        std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o755)).unwrap();
+        return;
+    }
+    let walk = collect_scannable_files_with(root, |_, _| {}, || false)
+        .unwrap()
+        .unwrap();
+    std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o755)).unwrap();
+
+    assert_eq!(walk.files.len(), 1);
+    assert_eq!(walk.unreadable.as_slice(), std::slice::from_ref(&locked));
+    assert!(missed(&walk.unreadable, &locked.join("a.flac")));
+    assert!(!missed(&walk.unreadable, &root.join("locked2/b.flac")));
 }

@@ -176,7 +176,7 @@ fn read_facts(path: &Path, artwork_dir: &Path) -> FileFacts {
                 if let Some(title) = tag.title().filter(|t| !t.trim().is_empty()) {
                     facts.title = title.into_owned();
                 }
-                facts.artist = tag.artist().map(|a| a.into_owned());
+                facts.artist = waveflow_core::scanner::extract_artists(tag);
                 facts.cover = extract::extract_cover(tag, artwork_dir).map(cover_path);
                 let gain = waveflow_core::scanner::replay_gain::extract_replay_gain(tag);
                 facts.replay_gain = TrackGain {

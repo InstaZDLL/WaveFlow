@@ -82,6 +82,14 @@ fn seconds_to_ms(seconds: f64) -> Option<u64> {
     (ms < MAX_TIME_MS).then_some(ms as u64)
 }
 
+/// A cue's text, with the room a space takes after each word.
+fn chars_in(cue: &Cue) -> usize {
+    cue.words
+        .iter()
+        .map(|word| word.text.chars().count() + 1)
+        .sum()
+}
+
 fn gather(segments: Vec<Segment>) -> Vec<Cue> {
     let mut cues: Vec<Cue> = Vec::new();
     let mut open = false;
@@ -102,6 +110,7 @@ fn gather(segments: Vec<Segment>) -> Vec<Cue> {
         let only_punctuation = !segment.body.chars().any(char::is_alphanumeric);
         let continues = cues.last().filter(|_| open).is_some_and(|cue| {
             cue.speaker == segment.speaker
+                && chars_in(cue) + segment.body.chars().count() <= MAX_CUE_CHARS
                 && (only_punctuation
                     || (cue.words.len() < MAX_WORDS_PER_LINE
                         && segment

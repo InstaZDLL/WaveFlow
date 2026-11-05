@@ -313,6 +313,21 @@ pub(super) fn pause_pending_after(cmd: &AudioCmd, current: bool) -> bool {
     }
 }
 
+/// Whether a command, once queued, asks a read the decoder is blocked in to let go.
+///
+/// What stops or replaces what plays does, and a load only while it is still the
+/// newest. A load already overtaken gets here too, since the remote queue mints its
+/// ticket between its claim and its send, and the decoder will drop it unread: a
+/// slow read let go for it would end the stream that is playing, for nothing.
+///
+/// Pure so the rule can be exercised without an engine.
+pub(super) fn lets_go_of_readers(cmd: &AudioCmd, newest_intent: u64) -> bool {
+    match cmd.load_intent() {
+        Some(intent) => intent.get() >= newest_intent,
+        None => matches!(cmd, AudioCmd::Stop | AudioCmd::Unload | AudioCmd::Shutdown),
+    }
+}
+
 /// Whether a default-device change is worth a rebuild.
 ///
 /// Pure so the decision can be tested without a sound card;

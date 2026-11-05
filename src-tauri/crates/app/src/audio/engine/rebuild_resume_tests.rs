@@ -1,5 +1,6 @@
 use super::super::replay_gain::TrackGain;
 use super::super::state::PlayerState;
+use super::rebuild::lets_go_of_readers;
 use super::rebuild::{endpoint_moved, rebuild_resume, RebuildResume};
 use super::{pause_pending_after, AudioCmd, LoadIntent};
 
@@ -132,4 +133,30 @@ fn an_endpoint_nobody_can_name_is_never_a_move() {
     assert!(!endpoint_moved(None, Some("Speakers")));
     assert!(!endpoint_moved(Some("Headphones"), None));
     assert!(!endpoint_moved(None, None));
+}
+
+/// A load already overtaken is dropped unread by the decoder, so a slow read must
+/// not be let go for it: that would end the stream still playing.
+#[test]
+fn only_what_will_be_served_lets_go_of_a_read() {
+    let load = |intent| AudioCmd::LoadAndPlay {
+        intent: LoadIntent::from_raw(intent),
+        path: "track.flac".into(),
+        start_ms: 0,
+        track_id: 1,
+        duration_ms: 0,
+        source_type: "manual".into(),
+        source_id: None,
+        replay_gain: TrackGain::default(),
+    };
+    assert!(lets_go_of_readers(&load(5), 5));
+    assert!(lets_go_of_readers(&load(6), 5));
+    assert!(!lets_go_of_readers(&load(4), 5));
+
+    for cmd in [AudioCmd::Stop, AudioCmd::Unload, AudioCmd::Shutdown] {
+        assert!(lets_go_of_readers(&cmd, 5), "{cmd:?}");
+    }
+    for cmd in [AudioCmd::Pause, AudioCmd::Seek(0), AudioCmd::SetVolume(0.0)] {
+        assert!(!lets_go_of_readers(&cmd, 5), "{cmd:?}");
+    }
 }

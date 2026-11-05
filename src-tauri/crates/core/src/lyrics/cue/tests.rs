@@ -106,6 +106,32 @@ fn a_json_transcript_of_sentences_stays_as_written() {
     assert_eq!(document.lines[1].agent.as_deref(), Some("v2"));
 }
 
+/// A segment is bounded by itself, so what is gathered from many must be too: long words,
+/// and punctuation, which joins the word before it whatever the count.
+#[test]
+fn a_line_gathered_from_segments_stays_within_the_bound() {
+    let segments = |bodies: &[String]| {
+        let segments: Vec<String> = bodies
+            .iter()
+            .enumerate()
+            .map(|(at, body)| format!(r#"{{"startTime":{},"body":"{body}"}}"#, at as f64 / 100.0))
+            .collect();
+        format!(r#"{{"segments":[{}]}}"#, segments.join(","))
+    };
+    let long = "x".repeat(MAX_CUE_CHARS - 100);
+    let document =
+        transcript_json::parse(&segments(&[long.clone(), long.clone(), long.clone()])).unwrap();
+    assert_eq!(document.lines.len(), 3, "nothing is lost for it");
+
+    let mut flood = vec!["word".to_owned()];
+    flood.extend(std::iter::repeat_n(",".to_owned(), MAX_CUE_CHARS * 2));
+    for document in [document, transcript_json::parse(&segments(&flood)).unwrap()] {
+        assert!(texts(&document)
+            .iter()
+            .all(|text| text.chars().count() <= MAX_CUE_CHARS));
+    }
+}
+
 #[test]
 fn a_transcript_of_single_words_is_gathered_into_lines() {
     let words = |list: &[(f64, &str)]| {

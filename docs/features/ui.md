@@ -218,6 +218,10 @@ Once open, [`ContextMenu`](../../src/components/common/ContextMenu.tsx) focuses 
 
 Two surfaces needed more than a key handler: history rows had no `tabIndex` at all (unreachable by keyboard, menu or not) and are now focusable with Enter/Space playing the row, and the immersive title takes `tabIndex` + `aria-haspopup="menu"` only while a menu is available — deliberately not `role="button"`, since it opens a menu but remains the heading.
 
+### The webview's own menu
+
+A right click outside our menus used to open the browser's: Back, Refresh, Save as, Print and More tools under WebView2, Back, Forward, Stop and Reload under WebKitGTK, Reload under WKWebView, plus Inspect in a debug build. [`nativeContextMenu`](../../src/lib/nativeContextMenu.ts), imported from `main.tsx` and so in the main window, the mini-player and the desktop lyrics, prevents that default during capture. Only the default: the app's own menus still receive the event, and a handler that stops its propagation cannot let the browser menu through. The splash loads none of the bundle and has a line of its own ([`splash.js`](../../public/splash.js)). A text field (`<input>` of a text kind, `<textarea>`, `contenteditable`) keeps the native menu, for copy, paste and the spell checker; elsewhere, selected text is copied with Ctrl+C. **Under `tauri dev`, Shift + right click** brings the whole menu back, Inspect included, over the app's own menus too since they never get the event; a production bundle has no such branch.
+
 - [`LyricsPanel`](../../src/components/layout/LyricsPanel.tsx) — synced or static lyrics with auto-scroll.
 - [`NowPlayingChevronTab`](../../src/components/layout/NowPlayingChevronTab.tsx) — right-edge floating tab that opens `NowPlayingPanel`, and switches to it from `LyricsPanel` / `QueuePanel`. Hidden only when Now Playing is itself the open panel.
 

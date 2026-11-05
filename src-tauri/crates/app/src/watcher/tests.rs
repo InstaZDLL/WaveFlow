@@ -47,6 +47,23 @@ fn a_lost_events_signal_asks_for_a_scan() {
     assert!(!is_our_own_media(Path::new("/music"), &rescan));
 }
 
+/// A rename is what a move in a watched folder looks like, on every backend:
+/// a change of name, or the removal and the creation it is reported as. Each
+/// asks for the scan that recognises the file at its new place.
+#[test]
+fn a_rename_asks_for_a_scan() {
+    use notify::event::{CreateKind, ModifyKind, RemoveKind, RenameMode};
+    for kind in [
+        EventKind::Modify(ModifyKind::Name(RenameMode::Both)),
+        EventKind::Modify(ModifyKind::Name(RenameMode::From)),
+        EventKind::Modify(ModifyKind::Name(RenameMode::To)),
+        EventKind::Remove(RemoveKind::File),
+        EventKind::Create(CreateKind::File),
+    ] {
+        assert!(is_relevant_event(&Event::new(kind)), "{kind:?}");
+    }
+}
+
 #[test]
 fn reads_and_unflagged_others_do_not() {
     assert!(!is_relevant_event(&Event::new(EventKind::Access(

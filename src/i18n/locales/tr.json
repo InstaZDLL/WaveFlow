@@ -3982,6 +3982,10 @@
       "same": "Bu klasör zaten kitaplıkta: {{folder}}",
       "inside": "Bu klasör zaten kitaplıkta, {{folder}} içinde.",
       "contains": "Bu klasör, zaten kitaplıkta olan {{folder}} klasörünü içeriyor. Bunun yerine diğer alt klasörlerini ekleyin."
+    },
+    "unreachable": {
+      "title": "Kitaplık klasörüne ulaşılamıyor",
+      "body": "Klasör yok veya okunamıyor; sürücü çıkarılmış olabilir. Parçaları kitaplıkta olduğu gibi kalır."
     }
   },
   "playlistImport": {

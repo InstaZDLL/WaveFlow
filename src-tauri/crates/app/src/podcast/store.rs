@@ -543,8 +543,8 @@ pub(crate) async fn site_to_open(
 }
 
 /// What playing an episode needs of its row and its channel's. Holds addresses,
-/// and stays in the backend.
-#[derive(Debug, Clone, PartialEq, FromRow)]
+/// and stays in the backend. No `Debug`, so no logger can print them.
+#[derive(Clone, PartialEq, FromRow)]
 pub(crate) struct PlayableEpisode {
     pub id: i64,
     pub channel_id: i64,
@@ -569,34 +569,6 @@ pub(crate) async fn playable(
         "SELECT e.id, e.channel_id, e.title, e.duration_ms, e.position_ms, e.played_at,
                 e.enclosure_url, e.enclosure_type, e.download_file,
                 c.title AS channel_title, c.feed_url, c.artwork_hash, c.playback_speed
-           FROM podcast_episode e
-           JOIN podcast_channel c ON c.id = e.channel_id
-          WHERE e.id = ? AND e.deleted_at IS NULL",
-    )
-    .bind(episode_id)
-    .fetch_optional(pool)
-    .await
-}
-
-/// What a download needs of an episode.
-#[derive(Debug, Clone, PartialEq, Eq, FromRow)]
-pub(crate) struct EpisodeDownload {
-    pub channel_id: i64,
-    pub title: String,
-    pub enclosure_url: Option<String>,
-    /// The address its channel was typed with, which decides what the enclosure
-    /// may reach.
-    pub feed_url: Option<String>,
-    pub download_file: Option<String>,
-}
-
-/// An episode that can still be asked for: one the user removed is gone.
-pub(crate) async fn episode_download(
-    pool: &SqlitePool,
-    episode_id: i64,
-) -> Result<Option<EpisodeDownload>, sqlx::Error> {
-    sqlx::query_as(
-        "SELECT e.channel_id, e.title, e.enclosure_url, c.feed_url, e.download_file
            FROM podcast_episode e
            JOIN podcast_channel c ON c.id = e.channel_id
           WHERE e.id = ? AND e.deleted_at IS NULL",
@@ -782,6 +754,34 @@ pub(crate) async fn set_channel_speed(
     Ok(updated > 0)
 }
 
+/// What a download needs of an episode.
+#[derive(Debug, Clone, PartialEq, Eq, FromRow)]
+pub(crate) struct EpisodeDownload {
+    pub channel_id: i64,
+    pub title: String,
+    pub enclosure_url: Option<String>,
+    /// The address its channel was typed with, which decides what the enclosure
+    /// may reach.
+    pub feed_url: Option<String>,
+    pub download_file: Option<String>,
+}
+
+/// An episode that can still be asked for: one the user removed is gone.
+pub(crate) async fn episode_download(
+    pool: &SqlitePool,
+    episode_id: i64,
+) -> Result<Option<EpisodeDownload>, sqlx::Error> {
+    sqlx::query_as(
+        "SELECT e.channel_id, e.title, e.enclosure_url, c.feed_url, e.download_file
+           FROM podcast_episode e
+           JOIN podcast_channel c ON c.id = e.channel_id
+          WHERE e.id = ? AND e.deleted_at IS NULL",
+    )
+    .bind(episode_id)
+    .fetch_optional(pool)
+    .await
+}
+
 /// The quota in bytes. A value nobody could have meant is no answer.
 pub(crate) async fn download_quota_bytes(pool: &SqlitePool) -> Result<u64, sqlx::Error> {
     let value: Option<String> =
@@ -815,7 +815,8 @@ pub(crate) async fn download_used_bytes(
 }
 
 /// Records a file put in place. False, with nothing written, when the episode is
-/// gone: the channel was unsubscribed from while the body was being read.
+/// gone: the channel was unsubscribed from while the body was being read, or the
+/// user removed the episode, whose hidden row must not hold a file against the quota.
 pub(crate) async fn record_download(
     pool: &SqlitePool,
     episode_id: i64,
@@ -825,7 +826,7 @@ pub(crate) async fn record_download(
     let updated = sqlx::query(
         "UPDATE podcast_episode
             SET download_file = ?, download_size = ?, downloaded_at = ?
-          WHERE id = ?",
+          WHERE id = ? AND deleted_at IS NULL",
     )
     .bind(file)
     .bind(size as i64)
@@ -869,13 +870,13 @@ pub(crate) async fn all_downloads(pool: &SqlitePool) -> Result<Vec<(i64, String)
         .await
 }
 
-/// The file names one channel's episodes hold, read before the channel goes.
+/// `(episode, file name)` of one channel's downloads, read before the channel goes.
 pub(crate) async fn downloads_of_channel(
     pool: &SqlitePool,
     channel_id: i64,
-) -> Result<Vec<String>, sqlx::Error> {
-    sqlx::query_scalar(
-        "SELECT download_file FROM podcast_episode
+) -> Result<Vec<(i64, String)>, sqlx::Error> {
+    sqlx::query_as(
+        "SELECT id, download_file FROM podcast_episode
           WHERE channel_id = ? AND download_file IS NOT NULL",
     )
     .bind(channel_id)

@@ -276,11 +276,12 @@ async fn read_address<L: Leases>(
             moved_to,
         } => {
             let address = moved_to.unwrap_or_else(|| url.clone());
-            let feed = read_feed(bytes, base).await?;
+            let feed = read_feed(bytes, base.clone()).await?;
             if let Some(announced) = feed.new_feed_url.as_deref() {
                 // One more request: the switch may have gone off during that one.
                 enabled_or_refuse(leases).await?;
-                if let Some(read) = read_announced(fetcher, &address, origin, announced).await? {
+                let read = read_announced(fetcher, &base, &address, origin, announced).await?;
+                if let Some(read) = read {
                     return Ok(read);
                 }
             }
@@ -295,18 +296,20 @@ async fn read_address<L: Leases>(
 
 /// The feed at an address a feed announced, or `None` to stay where it is.
 ///
-/// It is put through the rules of a redirect, and judged by where the announcing
-/// feed was, so a public feed cannot announce the user's router. It is read before
+/// It is put through the rules of a redirect, and judged by `served_from`, where the
+/// announcing feed really was and not the address that led there: a public feed cannot
+/// announce the user's router, nor a secure one the clear. It is read before
 /// it is believed: a typo in someone's feed must not cost its subscribers the
 /// show. The feed found there is not asked in turn; if it has moved again, the
 /// next refresh finds out.
 async fn read_announced(
     fetcher: &Fetcher,
+    served_from: &Url,
     address: &Url,
     origin: Origin,
     announced: &str,
 ) -> Result<Option<FeedRead>, PodcastError> {
-    let Ok(next) = next_hop(address, announced) else {
+    let Ok(next) = next_hop(served_from, announced) else {
         tracing::debug!("podcast feed announced an address that is refused");
         return Ok(None);
     };
@@ -465,29 +468,22 @@ async fn refresh_channel<L: Leases>(
     };
     let read = read_address(leases, fetcher, &url, &validators).await?;
     let (FeedRead::Unchanged { address } | FeedRead::Fresh { address, .. }) = &read;
-    let current = settle_address(leases, source.id, &url, address).await?;
+    // One lease for the address and what was read there, so a change of profile cannot
+    // leave a channel at its new address with the old one's episodes.
+    let pool = leases.lease().await?;
+    let current = settle_address(&pool, source.id, &url, address).await?;
+    let settled = current == *address;
     // The picture needs fetching when its address moved, or when the cache lost
     // it: a cleared cache must not leave a channel without one for as long as
     // its feed does not change.
     let (refreshed, image_url, known) = match read {
-        FeedRead::Unchanged { .. } => {
-            let pool = leases.lease().await?;
-            with_busy_retry(|| store::record_unchanged(&pool, source.id)).await?;
-            (
-                Refreshed::Unchanged,
-                source.image_url.clone(),
-                source.artwork_hash.as_deref(),
-            )
-        }
         FeedRead::Fresh {
             feed, validators, ..
-        } => {
+        } if settled => {
             let image_url = feed.image_url.clone();
-            let still_followed = {
-                let pool = leases.lease().await?;
+            let still_followed =
                 with_busy_retry(|| store::refresh_feed(&pool, source.id, &feed, &validators))
-                    .await?
-            };
+                    .await?;
             if !still_followed {
                 return Ok(Refreshed::Gone);
             }
@@ -497,7 +493,18 @@ async fn refresh_channel<L: Leases>(
                 .filter(|_| image_url == source.image_url);
             (Refreshed::Changed, image_url, known)
         }
+        // A feed read at an address another channel follows is that channel's, and this
+        // one keeps what it has.
+        FeedRead::Unchanged { .. } | FeedRead::Fresh { .. } => {
+            with_busy_retry(|| store::record_unchanged(&pool, source.id)).await?;
+            (
+                Refreshed::Unchanged,
+                source.image_url.clone(),
+                source.artwork_hash.as_deref(),
+            )
+        }
     };
+    drop(pool);
     update_artwork(
         leases,
         fetcher,
@@ -513,8 +520,8 @@ async fn refresh_channel<L: Leases>(
 
 /// The address a channel goes on with: `address` when it has moved there, `url`
 /// when it has not, or when another channel already follows the new one.
-async fn settle_address<L: Leases>(
-    leases: &L,
+async fn settle_address(
+    pool: &SqlitePool,
     channel_id: i64,
     url: &Url,
     address: &Url,
@@ -522,10 +529,9 @@ async fn settle_address<L: Leases>(
     if address == url {
         return Ok(url.clone());
     }
-    let pool = leases.lease().await?;
     let key = feed_key(address);
     let moved =
-        with_busy_retry(|| store::move_channel(&pool, channel_id, &key, address.as_str())).await?;
+        with_busy_retry(|| store::move_channel(pool, channel_id, &key, address.as_str())).await?;
     tracing::info!(channel_id, moved, "podcast feed has moved");
     Ok(if moved { address.clone() } else { url.clone() })
 }

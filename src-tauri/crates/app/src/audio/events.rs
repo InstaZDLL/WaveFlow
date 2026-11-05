@@ -3,8 +3,8 @@
 //! Some events are emitted from more than one place in the engine —
 //! `player:radio-metadata`, for instance, fires once up front from the
 //! [`super::decoder`] loop (static station name) and again from
-//! [`super::http_source`] every time the live ICY `StreamTitle`
-//! changes. The wire shape MUST stay byte-identical to the frontend's
+//! [`super::live`] every time the song the stream names changes. The wire
+//! shape MUST stay byte-identical to the frontend's
 //! `RadioMetadataPayload` listener, so it lives here once rather than
 //! being copy-pasted into each emitter (which risks silent drift if one
 //! copy gains a field or a serde rename the other doesn't).
@@ -25,7 +25,8 @@ pub const EVENT_RADIO_METADATA: &str = "player:radio-metadata";
 ///
 /// - **Now playing** (`title` / `artist` / `artwork_url`) — the live
 ///   song from ICY metadata. Equals the station on the first emit,
-///   then tracks each `StreamTitle` change.
+///   then tracks each `StreamTitle` change, or each logical stream of a
+///   chained Ogg station.
 /// - **Station identity** (`station_*`) — the *stable* stream so a
 ///   favorite can be built (and the PlayerBar / mini-player can keep
 ///   the station name + cover) even after the now-playing line has been

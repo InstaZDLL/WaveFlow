@@ -3980,6 +3980,10 @@
       "same": "Folder ini sudah ada di pustaka: {{folder}}",
       "inside": "Folder ini sudah ada di pustaka, di dalam {{folder}}.",
       "contains": "Folder ini berisi {{folder}}, yang sudah ada di pustaka. Tambahkan subfolder lainnya saja."
+    },
+    "unreachable": {
+      "title": "Folder pustaka tidak dapat dijangkau",
+      "body": "Folder hilang atau tidak dapat dibaca, mungkin drive-nya sedang dilepas. Lagu-lagunya tetap ada di pustaka tanpa perubahan."
     }
   },
   "playlistImport": {

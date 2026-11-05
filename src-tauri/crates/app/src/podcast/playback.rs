@@ -40,7 +40,7 @@ use waveflow_core::artwork::metadata::existing_path;
 use waveflow_core::podcast::address::parse_address;
 use waveflow_core::podcast::FetchFailure;
 
-use super::download::{episode_of, stored_file};
+use super::download::stored_file;
 use super::fetch::{Fetcher, Origin};
 use super::refresh::PodcastError;
 use super::schedule::emit_updated;
@@ -136,16 +136,6 @@ fn display_title(title: &str, channel: &str) -> String {
     }
 }
 
-/// A downloaded file's path, when `name` is this episode's file in the managed
-/// folder and is there. The shape of the name is [`stored_file`]'s rule, the one a
-/// download writes and removes by; what this adds is that it is no other episode's.
-pub(crate) fn downloaded_file(downloads: &Path, episode_id: i64, name: &str) -> Option<PathBuf> {
-    if episode_of(name)? != episode_id {
-        return None;
-    }
-    stored_file(downloads, name)
-}
-
 /// Where this episode's bytes come from, or why it cannot play.
 ///
 /// A file on disk needs nobody, so it comes first and the two switches do not
@@ -159,7 +149,7 @@ pub(crate) fn resolve_source(
     if let Some(path) = episode
         .download_file
         .as_deref()
-        .and_then(|name| downloaded_file(downloads, episode.id, name))
+        .and_then(|name| stored_file(downloads, episode.id, name))
     {
         return Ok(EpisodeSource::File(path));
     }

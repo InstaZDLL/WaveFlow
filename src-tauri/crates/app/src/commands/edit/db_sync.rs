@@ -133,6 +133,10 @@ pub(crate) async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) 
                 ),
                 None => (carried_album_artist.as_deref(), carried_is_compilation),
             };
+            let track_path: String = sqlx::query_scalar("SELECT file_path FROM track WHERE id = ?")
+                .bind(track_id)
+                .fetch_one(&mut *tx)
+                .await?;
             // upsert_album now takes &mut SqliteConnection, so we
             // can call it directly inside the open transaction —
             // no commit/reopen dance needed.
@@ -143,6 +147,7 @@ pub(crate) async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) 
                 is_compilation,
                 aid,
                 edit.year,
+                &track_path,
             )
             .await?;
             if let Some(id) = aid {
