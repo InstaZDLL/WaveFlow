@@ -223,7 +223,7 @@ export function ImmersiveSidePanel({
           staticText={lyrics.radioPlainText}
           // Hides the import / refetch CTA — neither applies without a
           // library row, which a remote-source stream also lacks.
-          isRadio={lyrics.isRadio || lyrics.isRemote}
+          isRadio={lyrics.isRadio || lyrics.isRemote || lyrics.isPodcast}
           onSeek={lyrics.seekToLine}
           onImport={() => void lyrics.importLyrics()}
           onRefetch={() => void lyrics.refetch()}

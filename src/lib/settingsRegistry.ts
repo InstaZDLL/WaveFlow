@@ -175,6 +175,15 @@ export const SETTINGS = {
     false,
     "settings.analyze.autoTitle",
   ),
+  // Off until the user opts in: a podcast is outbound traffic in an app that
+  // otherwise needs none. Mirrored in `podcast::store::is_enabled`.
+  "podcasts.enabled": setting(
+    "library",
+    "profile",
+    "bool",
+    false,
+    "settings.podcasts.title",
+  ),
   // Off until the user opts in: a pass sends the library's titles and
   // artist names to MusicBrainz. Mirrored in `commands::enrichment`.
   "enrichment.enabled": setting(
@@ -806,6 +815,14 @@ export const SETTINGS = {
     "int",
     5,
     "settings.networkLibrary.cacheLimit",
+  ),
+  // Mirrored by `podcast::store::DEFAULT_DOWNLOAD_QUOTA_GB`.
+  "podcasts.download_quota_gb": setting(
+    "data",
+    "profile",
+    "int",
+    10,
+    "settings.podcasts.downloadQuota",
   ),
   "media.clips_in_library": setting(
     "data",

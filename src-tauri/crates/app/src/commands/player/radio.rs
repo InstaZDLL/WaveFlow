@@ -148,6 +148,7 @@ fn publish_station(
     if let Some(state) = app.try_state::<AppState>() {
         state.remote_playback.clear();
         state.external_playback.clear();
+        state.podcast_playback.clear();
     }
 
     // Push the metadata to the OS overlay before dispatching the

@@ -5,6 +5,8 @@ import {
   MessageSquareQuote,
   MoreHorizontal,
   Radio,
+  RotateCcw,
+  RotateCw,
   Moon,
   SlidersHorizontal,
   X,
@@ -17,15 +19,20 @@ import { useDesktopLyricsStatus } from "../../hooks/useDesktopLyricsStatus";
 import { ToggleSwitch } from "../common/ToggleSwitch";
 import { usePlayer } from "../../hooks/usePlayer";
 import { useRadioTimeshift } from "../../hooks/useRadioTimeshift";
+import { getPlayerPosition } from "../../hooks/usePlayerPosition";
+import { isPodcastTrack } from "../../lib/playerSources";
 import { MAX_PITCH_SEMITONES } from "../../lib/tauri/player";
 import { formatDuration } from "../../lib/tauri/track";
 import { AbLoopButton } from "./AbLoopButton";
 import { EqPresetPanel } from "./EqPresetButton";
+import { PodcastPlayerMenu } from "../podcasts/PodcastPlayerMenu";
 
 const SLEEP_PRESETS_MIN = [5, 15, 30, 45, 60, 90];
 const SPEED_PRESETS = [0.75, 1.0, 1.25, 1.5, 2.0];
 const SPEED_MIN = 0.5;
 const SPEED_MAX = 2.0;
+const PODCAST_BACK_MS = 15_000;
+const PODCAST_FORWARD_MS = 30_000;
 
 interface MoreActionsMenuProps {
   /** When `true`, A-B loop is pinned as a primary button in the bar
@@ -47,8 +54,9 @@ interface MoreActionsMenuProps {
 
 /**
  * Overflow popover for the player bar's secondary actions. Hosts
- * Sleep timer, A-B loop, playback speed, EQ presets and the desktop
- * lyrics window (#582). Sleep timer / A-B loop / EQ can be pinned to
+ * Sleep timer, A-B loop, playback speed, EQ presets, the desktop
+ * lyrics window (#582) and, during a podcast episode, the jumps back and
+ * forward, its chapters and its transcript. Sleep timer / A-B loop / EQ can be pinned to
  * the bar via Settings; speed and desktop lyrics have no pin, so the
  * menu always has something in it.
  */
@@ -66,7 +74,20 @@ export function MoreActionsMenu({
     setKeepPitch,
     pitchSemitones,
     setPitchSemitones,
+    currentTrack,
+    durationMs,
+    seek,
+    openTranscript,
+    playbackState,
   } = usePlayer();
+  const isPodcast = isPodcastTrack(currentTrack);
+  // A stopped episode stays on the bar, and the decoder ignores a seek with nothing
+  // open: the bar would show a place nothing plays from.
+  const canJump =
+    isPodcast && (playbackState === "playing" || playbackState === "paused");
+  // An episode plays untransposed, whatever the setting says for the music, and
+  // nothing here may suggest otherwise. The setting comes back with the next track.
+  const heardSemitones = isPodcast ? 0 : pitchSemitones;
   const desktopLyrics = useDesktopLyricsStatus();
   const timeshift = useRadioTimeshift();
   const [isOpen, setIsOpen] = useState(false);
@@ -112,14 +133,24 @@ export function MoreActionsMenu({
   const isOffSpeed = Math.abs(playbackSpeed - 1.0) > 0.001;
   const speedBadge = isOffSpeed
     ? formatSpeed(playbackSpeed)
-    : pitchSemitones !== 0
-      ? formatSemitones(pitchSemitones)
+    : heardSemitones !== 0
+      ? formatSemitones(heardSemitones)
       : null;
   const triggerBadge = sleepBadge && showSleepInMenu ? sleepBadge : speedBadge;
   const triggerBadgeTone =
     sleepBadge && showSleepInMenu
       ? "bg-emerald-500 text-white"
       : "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40";
+
+  // Read when pressed rather than subscribed to: the menu has no reason to
+  // re-render four times a second for two buttons.
+  const jump = (deltaMs: number) => {
+    const target = getPlayerPosition() + deltaMs;
+    const last = durationMs > 0 ? durationMs : target;
+    seek(Math.max(0, Math.min(target, last))).catch((err) =>
+      console.error("[MoreActionsMenu] jump failed", err),
+    );
+  };
 
   const handleCustomSleep = (event: React.FormEvent) => {
     event.preventDefault();
@@ -146,7 +177,7 @@ export function MoreActionsMenu({
             ? "text-emerald-500"
             : (sleepArmed && showSleepInMenu) ||
                 isOffSpeed ||
-                pitchSemitones !== 0
+                heardSemitones !== 0
               ? "text-emerald-500 hover:text-emerald-400"
               : "text-zinc-400 hover:text-zinc-800 dark:hover:text-white"
         }`}
@@ -213,6 +244,45 @@ export function MoreActionsMenu({
               </>
             )}
 
+            {/* Only an episode: a jump this long means nothing in a song. Stays
+                open on a press, since the next jump is usually one away. */}
+            {canJump && (
+              <>
+                <div className="grid grid-cols-2 gap-1 p-1">
+                  <button
+                    type="button"
+                    onClick={() => jump(-PODCAST_BACK_MS)}
+                    className="flex items-center justify-center gap-2 px-2 py-2 rounded-lg text-sm text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                  >
+                    <RotateCcw size={14} aria-hidden="true" />
+                    {t("player.podcast.back15")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => jump(PODCAST_FORWARD_MS)}
+                    className="flex items-center justify-center gap-2 px-2 py-2 rounded-lg text-sm text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                  >
+                    <RotateCw size={14} aria-hidden="true" />
+                    {t("player.podcast.forward30")}
+                  </button>
+                </div>
+                <div className="my-1 h-px bg-zinc-100 dark:bg-zinc-800" />
+              </>
+            )}
+
+            {isPodcast && currentTrack?.podcast_episode_id != null && (
+              <PodcastPlayerMenu
+                episodeId={currentTrack.podcast_episode_id}
+                canJump={canJump}
+                onOpenTranscript={() => {
+                  setIsOpen(false);
+                  if (currentTrack.podcast_episode_id != null) {
+                    openTranscript(currentTrack.podcast_episode_id);
+                  }
+                }}
+              />
+            )}
+
             <div className="px-3 py-2 space-y-2">
               <div className="flex items-center justify-between">
                 <div className="text-xs font-bold uppercase tracking-widest text-zinc-400">
@@ -266,14 +336,23 @@ export function MoreActionsMenu({
               </div>
 
               <div className="flex items-center justify-between gap-3">
-                <span className="text-sm text-zinc-700 dark:text-zinc-300">
-                  {t("player.speed.transpose")}
-                </span>
+                <div className="min-w-0">
+                  <div className="text-sm text-zinc-700 dark:text-zinc-300">
+                    {t("player.speed.transpose")}
+                  </div>
+                  {isPodcast && (
+                    <div className="text-xs text-zinc-400">
+                      {t("player.speed.transposeNotForEpisodes")}
+                    </div>
+                  )}
+                </div>
                 <div className="flex items-center gap-1">
                   <button
                     type="button"
                     onClick={() => setPitchSemitones(pitchSemitones - 1)}
-                    disabled={pitchSemitones <= -MAX_PITCH_SEMITONES}
+                    disabled={
+                      isPodcast || pitchSemitones <= -MAX_PITCH_SEMITONES
+                    }
                     aria-label={t("player.speed.transposeDown")}
                     title={t("player.speed.transposeDown")}
                     className="w-7 h-7 flex items-center justify-center rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 disabled:opacity-40 disabled:pointer-events-none transition-colors"
@@ -283,21 +362,23 @@ export function MoreActionsMenu({
                   <button
                     type="button"
                     onClick={() => setPitchSemitones(0)}
-                    disabled={pitchSemitones === 0}
+                    disabled={heardSemitones === 0}
                     aria-label={t("player.speed.transposeReset")}
                     title={t("player.speed.transposeReset")}
                     className={`min-w-9 h-7 px-1 rounded-md text-sm font-bold tabular-nums transition-colors ${
-                      pitchSemitones === 0
+                      heardSemitones === 0
                         ? "text-zinc-400"
                         : "text-emerald-600 dark:text-emerald-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
                     }`}
                   >
-                    {formatSemitones(pitchSemitones)}
+                    {formatSemitones(heardSemitones)}
                   </button>
                   <button
                     type="button"
                     onClick={() => setPitchSemitones(pitchSemitones + 1)}
-                    disabled={pitchSemitones >= MAX_PITCH_SEMITONES}
+                    disabled={
+                      isPodcast || pitchSemitones >= MAX_PITCH_SEMITONES
+                    }
                     aria-label={t("player.speed.transposeUp")}
                     title={t("player.speed.transposeUp")}
                     className="w-7 h-7 flex items-center justify-center rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 disabled:opacity-40 disabled:pointer-events-none transition-colors"

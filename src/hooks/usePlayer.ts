@@ -37,7 +37,7 @@ export interface PlaybackAlert {
 export type PlaybackState = "idle" | "loading" | "playing" | "paused" | "ended";
 
 /** The three right-edge panels; one of them is up at most. */
-export type RightPanel = "queue" | "nowPlaying" | "lyrics";
+export type RightPanel = "queue" | "nowPlaying" | "lyrics" | "transcript";
 
 interface PlayerContextValue {
   // UI-only state (not persisted)
@@ -54,6 +54,11 @@ interface PlayerContextValue {
   openRightPanel: (panel: RightPanel) => void;
   /** Closes whichever panel is up. */
   closeRightPanel: () => void;
+  /** Whose transcript the panel shows: the one asked for by name until the player
+   *  moves to another episode, then that one for good. */
+  transcriptEpisodeId: number | null;
+  /** Opens the transcript panel on an episode, playing or not. */
+  openTranscript: (episodeId: number) => void;
   isDeviceMenuOpen: boolean;
   toggleDeviceMenu: () => void;
 

@@ -62,6 +62,7 @@ import {
   isRadioTrack,
   isRemoteTrack,
   isStreamTrack,
+  isPodcastTrack,
 } from "../lib/playerSources";
 
 /**
@@ -112,12 +113,15 @@ function radioMetadataToTrack(payload: RadioMetadata): Track {
     // labels the source, "Remote server" keeps them on (a remote queue does
     // advance) and labels it as such. See `isRadioTrack` / `isRemoteTrack`.
     // A file played without importing it has no sentinel codec: it is told
-    // apart by its `file_path` instead (`isFileTrack`).
-    codec: payload.is_file
-      ? null
-      : payload.is_remote
-        ? "Remote server"
-        : "Web Radio",
+    // apart by its `file_path` instead (`isFileTrack`). A podcast episode is
+    // `"Podcast"`, which `isPodcastTrack` reads.
+    codec: payload.is_podcast
+      ? "Podcast"
+      : payload.is_file
+        ? null
+        : payload.is_remote
+          ? "Remote server"
+          : "Web Radio",
     musical_key: null,
     file_path: payload.file_path ?? "",
     file_size: 0,
@@ -129,6 +133,12 @@ function radioMetadataToTrack(payload: RadioMetadata): Track {
     // Absent for radio, which has no server track — and absent is what
     // "local" reads as everywhere this field appears.
     ...(payload.remote_track_id ? { remote_id: payload.remote_track_id } : {}),
+    ...(payload.podcast_episode_id != null
+      ? { podcast_episode_id: payload.podcast_episode_id }
+      : {}),
+    ...(payload.podcast_server_episode_id != null
+      ? { podcast_server_episode_id: payload.podcast_server_episode_id }
+      : {}),
   };
 }
 
@@ -151,7 +161,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   // so we model "which is open" as a single value rather than three
   // booleans — that guarantees mutual exclusion by construction.
   const [activeRightPanel, setActiveRightPanel] = useState<
-    "queue" | "nowPlaying" | "lyrics" | null
+    "queue" | "nowPlaying" | "lyrics" | "transcript" | null
   >(null);
   const isQueueOpen = activeRightPanel === "queue";
   const isNowPlayingOpen = activeRightPanel === "nowPlaying";
@@ -180,6 +190,36 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   // Backend-synced state
   const [playbackState, setPlaybackState] = useState<PlaybackState>("idle");
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
+  const playingEpisodeId = isPodcastTrack(currentTrack)
+    ? (currentTrack?.podcast_episode_id ?? null)
+    : null;
+  // The episode whose transcript was asked for, and the one in the player then.
+  // Another episode in the player ends the request for good, so the panel follows it
+  // and does not go back when that one comes round again. The player leaving episodes
+  // altogether leaves what someone was reading.
+  const [transcriptRequest, setTranscriptRequest] = useState<{
+    episodeId: number;
+    whilePlaying: number | null;
+  } | null>(null);
+  if (
+    transcriptRequest &&
+    transcriptRequest.whilePlaying !== playingEpisodeId
+  ) {
+    setTranscriptRequest(
+      playingEpisodeId == null
+        ? { episodeId: transcriptRequest.episodeId, whilePlaying: null }
+        : null,
+    );
+  }
+  // A bound server's episode has no transcript, so a panel that was following the
+  // player has nothing to show for it. One opened on a local episode by name stays.
+  if (
+    activeRightPanel === "transcript" &&
+    transcriptRequest == null &&
+    currentTrack?.podcast_server_episode_id != null
+  ) {
+    setActiveRightPanel(null);
+  }
   // Stable Web Radio station identity, separate from the now-playing
   // song (which the ICY de-interleaver overwrites). Set from
   // `player:radio-metadata`, hydrated on mount, cleared when a library
@@ -207,6 +247,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   // debounce because the user picks discrete values from a menu and
   // each rebuild costs ~one rubato chunk of audio (negligible).
   const [playbackSpeed, setPlaybackSpeedState] = useState(1.0);
+  const speedEventsRef = useRef(0);
   // What goes with it, on the same terms. Read from the backend with the
   // speed, on every profile the app enters.
   const [keepPitch, setKeepPitchState] = useState(
@@ -411,6 +452,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     // would linger true through the `currentTrack` null window and reopen
     // the view once the new profile's first track lands.
     setImmersiveOpen(false);
+    // An episode's id means something else in the next profile, and what the panel
+    // holds is the last one's. Closed for the same reason the view above is.
+    setTranscriptRequest(null);
+    setActiveRightPanel((panel) => (panel === "transcript" ? null : panel));
 
     let cancelled = false;
     (async () => {
@@ -451,17 +496,18 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
               // A remote-queue track is not a favouritable station — its
               // URL is an expiring ticket, not a stable stream.
               setCurrentRadioStation(
-                radio.is_remote || radio.is_file
+                radio.is_remote || radio.is_file || radio.is_podcast
                   ? null
                   : radioStationFromMetadata(radio),
               );
               setDurationMs(radio.duration_ms ?? 0);
               // Upgrade the placeholder to the real cover: the remote hash
               // for a remote track, a Deezer lookup for a radio song.
-              // A file brings its own cover, read from it.
+              // A file brings its own cover, read from it, and an episode its
+              // channel's, already in the cache.
               if (radio.is_remote) {
                 fetchRemoteArtworkInto(radio.artwork_hash);
-              } else if (!radio.is_file) {
+              } else if (!radio.is_file && !radio.is_podcast) {
                 fetchRadioArtworkInto(radio.title, radio.artist);
               }
             }
@@ -474,8 +520,13 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         // would force the audio settings cards to know about it
         // too, and they don't).
         try {
+          // An episode changing the speed while this is on its way has the
+          // newer answer: `player:speed-changed` counts itself here.
+          const speedEvents = speedEventsRef.current;
           const speed = await playerGetSpeed();
-          if (!cancelled) setPlaybackSpeedState(speed);
+          if (!cancelled && speedEvents === speedEventsRef.current) {
+            setPlaybackSpeedState(speed);
+          }
         } catch (err) {
           console.error("[PlayerContext] hydrate playback speed failed", err);
         }
@@ -617,7 +668,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
             // Remote-queue tracks aren't favouritable stations (expiring
             // ticket URL, not a stable stream) — leave the station null.
             setCurrentRadioStation(
-              e.payload.is_remote || e.payload.is_file
+              e.payload.is_remote || e.payload.is_file || e.payload.is_podcast
                 ? null
                 : radioStationFromMetadata(e.payload),
             );
@@ -626,12 +677,21 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
             // A remote track has a real cover behind a Bearer endpoint;
             // radio only carries the station favicon, so fetch the song's
             // album cover from Deezer instead. Either swaps in async.
-            // A file brings its own cover, read from it.
+            // A file brings its own cover, read from it, and an episode its
+            // channel's, already in the cache: no request from here.
             if (e.payload.is_remote) {
               fetchRemoteArtworkInto(e.payload.artwork_hash);
-            } else if (!e.payload.is_file) {
+            } else if (!e.payload.is_file && !e.payload.is_podcast) {
               fetchRadioArtworkInto(e.payload.title, e.payload.artist);
             }
+          }),
+        );
+        unlisten.push(
+          // An episode took its channel's speed, or gave the user's back. A
+          // slider moved by hand gets no such echo.
+          await listen<{ speed: number }>("player:speed-changed", (e) => {
+            speedEventsRef.current += 1;
+            setPlaybackSpeedState(e.payload.speed);
           }),
         );
         unlisten.push(
@@ -970,10 +1030,19 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   // a tab opens its panel whatever is up, and the shell's close button
   // closes whichever it is.
   const openRightPanel = useCallback(
-    (panel: "queue" | "nowPlaying" | "lyrics") => setActiveRightPanel(panel),
+    (panel: "queue" | "nowPlaying" | "lyrics" | "transcript") =>
+      setActiveRightPanel(panel),
     [],
   );
   const closeRightPanel = useCallback(() => setActiveRightPanel(null), []);
+  const openTranscript = useCallback(
+    (episodeId: number) => {
+      setTranscriptRequest({ episodeId, whilePlaying: playingEpisodeId });
+      setActiveRightPanel("transcript");
+    },
+    [playingEpisodeId],
+  );
+  const transcriptEpisodeId = transcriptRequest?.episodeId ?? playingEpisodeId;
   const toggleDeviceMenu = useCallback(
     () => setIsDeviceMenuOpen((p) => !p),
     [],
@@ -1059,6 +1128,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         toggleLyrics,
         openRightPanel,
         closeRightPanel,
+        transcriptEpisodeId,
+        openTranscript,
         isDeviceMenuOpen,
         toggleDeviceMenu,
         immersiveOpen,

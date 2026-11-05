@@ -68,6 +68,16 @@ pub struct RadioMetadataPayload {
     /// Where that file is, for the surfaces that act on it (add it to the
     /// library, show it in its folder). `None` for every other source.
     pub file_path: Option<String>,
+    /// `true` for a podcast episode ([`crate::podcast::playback`]): finite and
+    /// seekable, one entry of a queue that advances, with no library row. Its
+    /// `artwork_url` is a file in the artwork cache, and no field here holds its
+    /// address.
+    pub is_podcast: bool,
+    pub podcast_episode_id: Option<i64>,
+    pub podcast_channel_id: Option<i64>,
+    /// The episode's id on a bound server, when it is one of that server's: a row
+    /// of its page rather than of the two above.
+    pub podcast_server_episode_id: Option<String>,
 }
 
 /// Last emitted radio metadata, kept process-wide so a webview that

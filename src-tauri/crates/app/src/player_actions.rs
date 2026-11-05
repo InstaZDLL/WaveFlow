@@ -190,6 +190,12 @@ pub async fn resume_last(app: &AppHandle) -> AppResult<()> {
         }
         return sent;
     }
+    // A channel's episodes are still the queue, stopped rather than finished:
+    // the episode under the cursor picks up from its row, since the resume point
+    // below only ever names a library track.
+    if crate::podcast::playback::resume(app, intent).await? {
+        return Ok(());
+    }
     // One lock for both: two awaits could straddle a profile switch and
     // pair one profile's resume point with the other's id.
     let (pool, profile_id) = state.require_profile_snapshot().await?;
@@ -341,6 +347,9 @@ pub async fn step(app: &AppHandle, direction: Direction, label: &str) -> Moved {
 
 /// Advance to the next queue entry.
 pub async fn next(app: &AppHandle, label: &str) -> Moved {
+    if let Some(moved) = try_podcast_advance(app, Direction::Next, label).await {
+        return moved;
+    }
     if let Some(moved) = try_external_advance(app, Direction::Next, label).await {
         return moved;
     }
@@ -357,6 +366,9 @@ pub async fn previous(app: &AppHandle, label: &str) -> Moved {
     if engine.shared().current_position_ms() > PREVIOUS_RESTART_THRESHOLD_MS {
         let _ = engine.send(AudioCmd::Seek(0));
         return Moved::Restarted;
+    }
+    if let Some(moved) = try_podcast_advance(app, Direction::Previous, label).await {
+        return moved;
     }
     if let Some(moved) = try_external_advance(app, Direction::Previous, label).await {
         return moved;
@@ -452,6 +464,24 @@ pub async fn toggle_like_current(app: &AppHandle, label: &str) {
     }
     if let Err(err) = commands::track::toggle_like(app, track_id).await {
         tracing::warn!(%err, surface = label, "player action: like failed");
+    }
+}
+
+/// When a channel's episodes are the queue, advance it instead of the local
+/// one. Same contract as [`try_remote_advance`].
+async fn try_podcast_advance(app: &AppHandle, direction: Direction, label: &str) -> Option<Moved> {
+    if !app.state::<AppState>().podcast_playback.is_active() {
+        return None;
+    }
+    let intent = app.state::<Arc<AudioEngine>>().next_load_intent();
+    let step = crate::podcast::playback::Step::Asked(direction);
+    match crate::podcast::playback::advance(app, step, intent).await {
+        Ok(true) => Some(Moved::Track),
+        Ok(false) => Some(Moved::Nothing),
+        Err(err) => {
+            tracing::warn!(%err, surface = label, "episode player action: advance failed");
+            Some(Moved::Nothing)
+        }
     }
 }
 

@@ -30,13 +30,14 @@ mod turns;
 pub use command::{AudioCmd, LoadIntent};
 pub use notice::{ExclusiveRefusal, OutputMode};
 pub(super) use rebuild::{FollowOutcome, REBUILD_SETTLE_WINDOW};
+pub(crate) use resume::LastLoadSource;
 pub use resume::{DetachedOrigin, LastLoad};
 #[cfg(test)]
 pub(crate) use turns::TestEngine;
 pub(crate) use turns::Turns;
 
 use notice::PlaybackNotice;
-use rebuild::{pause_pending_after, FlapWindow, RebuildGate};
+use rebuild::{lets_go_of_readers, pause_pending_after, FlapWindow, RebuildGate};
 use resume::ParkedSession;
 
 /// Handle stored in Tauri state. Cloning an `Arc<AudioEngine>` is cheap.
@@ -405,8 +406,11 @@ impl AudioEngine {
         // A window close may have sent it already, and then the channel is
         // closed: the thread is finishing or finished either way.
         let _ = self.cmd_tx.send(AudioCmd::Shutdown);
-        // Past the budget the play is lost, so a dead share must not spend it.
+        // Past the budget the play is lost, so a dead share, a station that is
+        // reconnecting or an episode's host must not spend it.
         crate::netlib::media::release_starved_readers();
+        super::live::release_starved_reader();
+        crate::podcast::stream::release_starved_reader();
         let decoder = self
             .decoder
             .lock()
@@ -464,13 +468,11 @@ impl AudioEngine {
         // otherwise wait for the station to come back or give up. Released
         // after the send, so the command is waiting when the decoder sees
         // the stream end, and is served before that end is declared.
-        let releases = matches!(
-            cmd,
-            AudioCmd::LoadAndPlay { .. }
-                | AudioCmd::LoadRemoteFileAndPlay { .. }
-                | AudioCmd::LoadUrlAndPlay { .. }
-                | AudioCmd::Stop
-                | AudioCmd::Shutdown
+        let releases = lets_go_of_readers(
+            &cmd,
+            self.shared
+                .newest_load_intent
+                .load(std::sync::atomic::Ordering::Acquire),
         );
         self.cmd_tx.send(cmd).map_err(|e| {
             // Nothing was queued, so the intent this recorded is one the
@@ -482,6 +484,7 @@ impl AudioEngine {
         if releases {
             super::live::release_starved_reader();
             crate::netlib::media::release_starved_readers();
+            crate::podcast::stream::release_starved_reader();
         }
         // A pause on a live station is time behind live, counted by its
         // buffer — the same lifecycle as the pending pause, so a load
@@ -492,17 +495,19 @@ impl AudioEngine {
         Ok(())
     }
 
-    /// The `Stop` an output rebuild sends straight down the channel, past
+    /// The `Unload` an output rebuild sends straight down the channel, past
     /// [`Self::send`]: a live station reconnecting holds the decoder in a
-    /// read on an empty buffer, released once the `Stop` is queued so the
+    /// read on an empty buffer, released once the command is queued so the
     /// rebuild does not wait for the station to come back. A network share
-    /// that stopped answering holds it the same way.
+    /// that stopped answering holds it the same way, and so does an episode's
+    /// host.
     fn stop_for_rebuild(&self) -> Result<(), String> {
         self.cmd_tx
-            .send(AudioCmd::Stop)
+            .send(AudioCmd::Unload)
             .map_err(|e| e.to_string())?;
         super::live::release_starved_reader();
         crate::netlib::media::release_starved_readers();
+        crate::podcast::stream::release_starved_reader();
         Ok(())
     }
 

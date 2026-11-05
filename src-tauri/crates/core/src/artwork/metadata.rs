@@ -21,7 +21,7 @@ const USER_AGENT: &str = "WaveFlow/0.1";
 /// Hard cap on a single image download. Deezer's `picture_xl` is ~200 KB; we
 /// allow 4 MB to leave headroom for upstream changes without exposing the
 /// process to runaway responses.
-const MAX_BYTES: usize = 4 * 1024 * 1024;
+pub const MAX_BYTES: usize = 4 * 1024 * 1024;
 
 /// Resolve the absolute on-disk path for a hash, regardless of whether the
 /// file exists yet.
@@ -138,10 +138,22 @@ async fn download_and_cache_inner(
         tracing::warn!(url = %redact_url(url), len = bytes.len(), "metadata artwork rejected (size)");
         return None;
     }
+    store_bytes(&bytes, dir, generate_thumbnails)
+}
 
-    let hash = blake3::hash(&bytes).to_hex().to_string();
+/// Writes bytes someone else fetched into the cache under their blake3 hash, and
+/// answers it. For a caller whose download has rules of its own, such as a
+/// podcast picture, whose address is not to be logged even redacted.
+///
+/// The bytes are not looked at beyond their size: the caller has already decided
+/// they are an image.
+pub fn store_bytes(bytes: &[u8], dir: &Path, generate_thumbnails: bool) -> Option<String> {
+    if bytes.is_empty() || bytes.len() > MAX_BYTES {
+        return None;
+    }
+    let hash = blake3::hash(bytes).to_hex().to_string();
     let out = path_for_hash(dir, &hash);
-    if let Err(err) = crate::atomic_write::store_content_addressed(&out, &bytes) {
+    if let Err(err) = crate::atomic_write::store_content_addressed(&out, bytes) {
         tracing::warn!(path = %out.display(), ?err, "metadata artwork write failed");
         return None;
     }

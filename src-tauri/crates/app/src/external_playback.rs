@@ -397,6 +397,7 @@ async fn play_entries(
     let state = app.state::<AppState>();
     // One detached queue at a time: these files now drive next / previous.
     state.remote_playback.clear();
+    state.podcast_playback.clear();
     let revision = state
         .external_playback
         .set(DetachedQueue { entries, index });

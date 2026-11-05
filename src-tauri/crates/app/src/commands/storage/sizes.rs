@@ -79,6 +79,10 @@ pub(super) async fn cache_dirs(
             format!("{rel}/remote-artwork"),
             paths.profile_remote_artwork_dir(id),
         ));
+        dirs.push((
+            format!("{rel}/podcast-downloads"),
+            paths.profile_podcast_download_dir(id),
+        ));
         #[cfg(feature = "sync_v2")]
         dirs.push((
             format!("{rel}/remote-stream"),

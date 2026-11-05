@@ -383,7 +383,16 @@ pub async fn player_next(
     let intent = engine.next_load_intent();
     // A remote play queue takes over next/previous while it is active: its
     // tracks stream by URL and have no row in the local `queue_item` table.
-    // Files played without importing them, the same way.
+    // Files played without importing them, the same way, and a channel's episodes.
+    if state.podcast_playback.is_active() {
+        crate::podcast::playback::advance(
+            &app,
+            crate::podcast::playback::Step::Asked(Direction::Next),
+            intent,
+        )
+        .await?;
+        return Ok(());
+    }
     if state.external_playback.is_active() {
         crate::external_playback::advance(&app, Direction::Next, intent).await?;
         return Ok(());
@@ -479,6 +488,15 @@ pub async fn player_previous(
     // one: past 3 s, "previous" restarts the current track.
     if engine.shared().current_position_ms() > 3000 {
         return engine.send(AudioCmd::Seek(0));
+    }
+    if state.podcast_playback.is_active() {
+        crate::podcast::playback::advance(
+            &app,
+            crate::podcast::playback::Step::Asked(Direction::Previous),
+            intent,
+        )
+        .await?;
+        return Ok(());
     }
     if state.external_playback.is_active() {
         crate::external_playback::advance(&app, Direction::Previous, intent).await?;

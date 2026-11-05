@@ -24,7 +24,9 @@ export type WhatsNewAction =
   /** The workshop on the album playing, else on the one added last. */
   | { kind: "tagWorkshop" }
   /** The playlist import dialog. */
-  | { kind: "playlistImport" };
+  | { kind: "playlistImport" }
+  /** The podcasts page if they are on, else the warning: never turns them on. */
+  | { kind: "podcasts" };
 
 /**
  * What the action needs before it can show anything. Without it the panel
@@ -129,6 +131,12 @@ export const WHATS_NEW_RELEASES: WhatsNewRelease[] = [
         art: "playlistImport",
         color: "#14b8a6",
         action: { kind: "playlistImport" },
+      },
+      {
+        id: "podcasts",
+        art: "podcasts",
+        color: "#a855f7",
+        action: { kind: "podcasts" },
       },
     ],
   },

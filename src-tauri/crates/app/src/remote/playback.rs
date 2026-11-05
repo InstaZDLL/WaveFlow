@@ -89,8 +89,9 @@ pub async fn play_entries(
             files: state.external_playback.queue(),
         };
         // One detached queue at a time: the remote one now drives next /
-        // previous, not files played without importing them.
+        // previous, not files played without importing them, nor episodes.
         state.external_playback.clear();
+        state.podcast_playback.clear();
         let revision = state.remote_playback.set(RemoteQueue { entries, index });
         (revision, before)
     };
