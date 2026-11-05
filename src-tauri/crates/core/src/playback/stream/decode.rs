@@ -20,6 +20,16 @@ impl ActiveStream {
         dst_sample_rate: u32,
         dst_layout: &ChannelLayout,
     ) -> Result<bool, String> {
+        // The first stream's song, now that this load is the one being served.
+        // Later ones are read where the reader reports the change, below.
+        if let (Some(watch), StreamBackend::Symphonia { format, .. }) =
+            (self.tag_watch.as_mut(), &mut self.backend)
+        {
+            if !watch.announced {
+                watch.announced = true;
+                watch.stream_started(format.as_mut());
+            }
+        }
         let dst_channels = dst_layout.channels();
         let shift = self.time_shift();
         // Snapshot fields used after `&mut backend` so the borrow
@@ -64,6 +74,9 @@ impl ActiveStream {
                         // about this one.
                         *extent = StreamExtent::new(track.start_ts.get(), None, None);
                         *spec_captured = false;
+                        if let Some(watch) = self.tag_watch.as_mut() {
+                            watch.stream_started(format.as_mut());
+                        }
                         // Chained streams can follow one another with no
                         // audio between them: they count toward the bound.
                         // Checked once the decoder is rebuilt, since the

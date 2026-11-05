@@ -258,9 +258,10 @@ fn what_is_no_tag_gives_nothing() {
     ] {
         assert_eq!(read(bytes), Vec::new());
     }
-    // Unsynchronised as a whole, in the one version that does it.
+    // Unsynchronised as a whole, in either version.
     let frames = chapter_frame("c", 0, "Title");
     assert_eq!(read(&tag(3, 0x80, &frames)), Vec::new());
+    assert_eq!(read(&tag(4, 0x80, &frames)), Vec::new());
     // Padding ends the walk. So does a million empty frames, with nothing to read.
     assert_eq!(read(&tag(4, 0, &[0_u8; 4096])), Vec::new());
     for _ in 0..100_000 {
@@ -469,7 +470,7 @@ fn a_kept_transcript_is_read_like_one_just_fetched() {
     assert!(transcript::read_cache(TranscriptKind::Vtt, "<html>").is_err());
     assert!(transcript::read_cache(TranscriptKind::Srt, "garbage").is_err());
     // A kept text larger than a body may grow to.
-    let huge = format!("WEBVTT\n\n{}", "x".repeat(11 * 1024 * 1024));
+    let huge = format!("WEBVTT\n\n{}", "x".repeat(16 * 1024 * 1024));
     assert!(transcript::read_cache(TranscriptKind::Vtt, &huge).is_err());
     // Text in a single-byte encoding grows when kept, and is still read back.
     let latin: Vec<u8> = std::iter::repeat(0xe9_u8)
@@ -478,5 +479,13 @@ fn a_kept_transcript_is_read_like_one_just_fetched() {
         .collect();
     let kept = transcript::decode(&latin);
     assert!(kept.len() > latin.len());
+    assert!(transcript::read_cache(TranscriptKind::Text, &kept).is_ok());
+    // The widest there is: every byte of a body under the bound becomes three, or a
+    // kept transcript would be refused at each opening and asked for again.
+    let thai = vec![0xa1_u8; 4 * 1024 * 1024];
+    let kept = encoding_rs::WINDOWS_874
+        .decode_without_bom_handling(&thai)
+        .0;
+    assert_eq!(kept.len(), thai.len() * 3);
     assert!(transcript::read_cache(TranscriptKind::Text, &kept).is_ok());
 }

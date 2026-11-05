@@ -78,8 +78,13 @@ export function MoreActionsMenu({
     durationMs,
     seek,
     openTranscript,
+    playbackState,
   } = usePlayer();
   const isPodcast = isPodcastTrack(currentTrack);
+  // A stopped episode stays on the bar, and the decoder ignores a seek with nothing
+  // open: the bar would show a place nothing plays from.
+  const canJump =
+    isPodcast && (playbackState === "playing" || playbackState === "paused");
   // An episode plays untransposed, whatever the setting says for the music, and
   // nothing here may suggest otherwise. The setting comes back with the next track.
   const heardSemitones = isPodcast ? 0 : pitchSemitones;
@@ -241,7 +246,7 @@ export function MoreActionsMenu({
 
             {/* Only an episode: a jump this long means nothing in a song. Stays
                 open on a press, since the next jump is usually one away. */}
-            {isPodcast && (
+            {canJump && (
               <>
                 <div className="grid grid-cols-2 gap-1 p-1">
                   <button
@@ -268,6 +273,7 @@ export function MoreActionsMenu({
             {isPodcast && currentTrack?.podcast_episode_id != null && (
               <PodcastPlayerMenu
                 episodeId={currentTrack.podcast_episode_id}
+                canJump={canJump}
                 onOpenTranscript={() => {
                   setIsOpen(false);
                   if (currentTrack.podcast_episode_id != null) {

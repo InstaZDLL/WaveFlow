@@ -791,10 +791,10 @@ fn decoder_loop(
                 // A remote-queue track is a finite file: open it seekable
                 // (no ICY, range-capable) so the scrubber works. Radio goes
                 // through the time-shift buffer, which re-emits
-                // `player:radio-metadata` with the `StreamTitle` of what is
-                // heard while keeping the station's cover + name; it stays
-                // forward-only.
+                // `player:radio-metadata` with the song of what is heard while
+                // keeping the station's cover + name; it stays forward-only.
                 let mut live_hint: Option<String> = None;
+                let mut tag_sink = None;
                 let opened: Result<Box<dyn symphonia::core::io::MediaSource>, String> = if finite {
                     // A cache target only ever accompanies a finite
                     // remote-queue track, so the seekable open is the only
@@ -824,6 +824,7 @@ fn decoder_loop(
                         if let Some(hint) = hint {
                             live_hint = Some(hint.to_string());
                         }
+                        tag_sink = Some(source.tag_sink());
                         Box::new(source) as Box<dyn symphonia::core::io::MediaSource>
                     })
                 };
@@ -840,7 +841,7 @@ fn decoder_loop(
                     }
                 };
 
-                let stream = match ActiveStream::open_from_source(
+                let mut stream = match ActiveStream::open_from_source(
                     http_source,
                     live_hint.as_deref().or(ext_hint.as_deref()),
                     track_id,
@@ -866,6 +867,10 @@ fn decoder_loop(
                         continue;
                     }
                 };
+                // A chained Ogg station names each song in the stream itself.
+                if let Some(sink) = tag_sink {
+                    stream.watch_tags(sink);
+                }
 
                 let outcome = play_track(
                     stream,
@@ -935,7 +940,7 @@ fn decoder_loop(
 /// way the boot-time restore writes it, without `set_playback_speed`'s
 /// rebase, seek generation and dirty flag; the next track's stream takes
 /// the speed when it opens. An episode's speed lasts as long as it decodes,
-/// so there is nothing to keep of one here.
+/// so all that is kept of one here is what its load would come back at.
 fn apply_setting(cmd: &AudioCmd, shared: &SharedPlayback) -> bool {
     match *cmd {
         AudioCmd::SetVolume(v) => shared.set_volume(v),
@@ -951,7 +956,7 @@ fn apply_setting(cmd: &AudioCmd, shared: &SharedPlayback) -> bool {
                 shared.restore_user_speed(v);
             }
         }
-        AudioCmd::SetEpisodeSpeed(_) => {}
+        AudioCmd::SetEpisodeSpeed(v) => shared.set_episode_speed(v),
         AudioCmd::SetKeepPitch(on) => shared.keep_pitch.store(on, Ordering::Release),
         AudioCmd::SetPitchSemitones(v) => shared.set_pitch_semitones(v),
         _ => return false,

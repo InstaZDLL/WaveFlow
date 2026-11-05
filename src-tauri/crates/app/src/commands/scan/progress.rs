@@ -177,6 +177,89 @@ pub(super) async fn marker_absent(pool: &sqlx::SqlitePool, key: &str, folder_id:
     }
 }
 
+/// Settle a folder's one-off pass at the end of a scan. Done once it read the
+/// whole folder; a stopped scan did not, and runs it again next time without
+/// spending a retry. A file that failed spends one, and past the last the
+/// folder is accepted as read, since a permanently unreadable file must not
+/// cost the folder its fast path for good.
+pub(super) struct ForcedPass {
+    pub(super) done_key: String,
+    pub(super) attempts_key: String,
+    pub(super) pending: bool,
+    pub(super) attempts: i64,
+}
+
+impl ForcedPass {
+    pub(super) const MAX_ATTEMPTS: i64 = 3;
+
+    /// `name` keys the two settings: `scan.<name>_done.<folder>` and
+    /// `scan.<name>_attempts.<folder>`. `skip` says this folder has nothing
+    /// for the pass to do.
+    pub(super) async fn load(
+        pool: &sqlx::SqlitePool,
+        name: &str,
+        folder_id: i64,
+        skip: bool,
+    ) -> Self {
+        let done_key = format!("scan.{name}_done.{folder_id}");
+        let attempts_key = format!("scan.{name}_attempts.{folder_id}");
+        let pending = !skip && marker_absent(pool, &done_key, folder_id).await;
+        let attempts = if pending {
+            read_counter(pool, &attempts_key, folder_id).await
+        } else {
+            0
+        };
+        Self {
+            done_key,
+            attempts_key,
+            pending,
+            attempts,
+        }
+    }
+
+    pub(super) async fn settle(
+        &self,
+        pool: &sqlx::SqlitePool,
+        folder_id: i64,
+        cancelled: bool,
+        failed: bool,
+    ) {
+        if !self.pending || cancelled {
+            return;
+        }
+        let spent = if failed {
+            let spent = self.attempts + 1;
+            if let Err(err) = write_counter(pool, &self.attempts_key, spent).await {
+                tracing::warn!(?err, folder_id, key = %self.attempts_key, "could not record a backfill attempt");
+            }
+            spent
+        } else {
+            self.attempts
+        };
+        if failed && spent < Self::MAX_ATTEMPTS {
+            return;
+        }
+        if let Err(err) = sqlx::query(
+            "INSERT INTO profile_setting (key, value, value_type, updated_at)
+             VALUES (?, 'true', 'bool', ?)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+        )
+        .bind(&self.done_key)
+        .bind(now_millis())
+        .execute(pool)
+        .await
+        {
+            tracing::warn!(
+                ?err,
+                folder_id,
+                key = %self.done_key,
+                "could not persist a backfill marker (non-fatal); \
+                 the next scan will run the pass again"
+            );
+        }
+    }
+}
+
 /// Outcome of a `scan_folder` call, returned to the frontend so the UI can
 /// display a toast like "120 nouveaux titres · 3 mises à jour · 1 erreur".
 #[derive(Debug, Serialize, Default)]
@@ -192,6 +275,10 @@ pub struct ScanSummary {
     /// liked / playlist / play-event history) so the user can recover
     /// it by putting the file back.
     pub removed: u32,
+    /// Files found at a new place whose row followed them, keeping what the
+    /// user set on the track. Also counted as `updated` or `skipped`, by
+    /// what the extraction then made of the file.
+    pub moved: u32,
     /// The user stopped this scan (issue #601). Everything written
     /// before the stop is committed and correct; what the walk had not
     /// reached yet is simply untouched, and the next scan picks it up.

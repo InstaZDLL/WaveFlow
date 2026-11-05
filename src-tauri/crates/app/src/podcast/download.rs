@@ -166,7 +166,7 @@ pub(crate) enum Ended {
 /// Why a download stopped short, kept apart from the word so nothing can be
 /// logged but the word.
 #[derive(Debug)]
-enum Stop {
+pub(super) enum Stop {
     Cancelled,
     ProfileChanged,
     Word(String),
@@ -193,9 +193,9 @@ impl From<PodcastError> for Stop {
             PodcastError::Disabled => Self::Word("disabled".to_owned()),
             PodcastError::Offline => Self::Word("offline".to_owned()),
             PodcastError::Failed(failure) => failure.into(),
-            PodcastError::EpisodeGone => Self::Word("episode_gone".to_owned()),
-            PodcastError::NoSource => Self::Word("no_source".to_owned()),
             PodcastError::ProfileChanged => Self::ProfileChanged,
+            PodcastError::EpisodeGone => Self::Word(EPISODE_GONE.to_owned()),
+            PodcastError::NoSource => Self::Word("no_source".to_owned()),
             PodcastError::Database(err) => err.into(),
             PodcastError::Other(_) => Self::Word(WRITE_FAILED.to_owned()),
         }
@@ -226,7 +226,7 @@ fn file_name(episode_id: i64, suffix: &str) -> String {
 /// letters only. So no separator, no `..`, no absolute path, no drive prefix, no
 /// `wfnet://` locator and no alternate data stream: `download_file` may have come
 /// out of an archive somebody made, and what passes here gets opened and removed.
-pub(crate) fn episode_of(name: &str) -> Option<i64> {
+fn episode_of(name: &str) -> Option<i64> {
     let (id, suffix) = name.split_once('.')?;
     if suffix.is_empty() || !suffix.bytes().all(|byte| byte.is_ascii_alphanumeric()) {
         return None;
@@ -237,11 +237,23 @@ pub(crate) fn episode_of(name: &str) -> Option<i64> {
     id.parse().ok()
 }
 
-/// The file `name` in `dir`, if it is there. What playback opens: a name that does
-/// not have the shape of one of ours is refused rather than joined, since a row may
-/// have come from somewhere else.
-pub(crate) fn stored_file(dir: &Path, name: &str) -> Option<PathBuf> {
-    episode_of(name)?;
+/// The file `name` in `dir`, when it is this episode's and is there.
+///
+/// `download_file` may have come out of an archive somebody made, so it is hostile
+/// here: it has to read `<episode id>.<letters and digits>`, the one shape a download
+/// writes. That leaves no separator, no `..`, no absolute path, no drive prefix, no
+/// `wfnet://` locator and no alternate data stream, on any system, no other
+/// episode's file and no partial one. Whatever opens or removes a stored name goes
+/// through here; anything else is no file of ours, and nothing touches it.
+pub(crate) fn stored_file(dir: &Path, episode_id: i64, name: &str) -> Option<PathBuf> {
+    let (id, suffix) = name.split_once('.')?;
+    if id != episode_id.to_string()
+        || suffix.is_empty()
+        || suffix == PARTIAL_SUFFIX
+        || !suffix.bytes().all(|byte| byte.is_ascii_alphanumeric())
+    {
+        return None;
+    }
     let path = dir.join(name);
     path.is_file().then_some(path)
 }
@@ -354,7 +366,7 @@ async fn fetch_and_store<L: Leases>(
     if source
         .download_file
         .as_deref()
-        .and_then(|name| stored_file(dir, name))
+        .and_then(|name| stored_file(dir, episode_id, name))
         .is_some()
     {
         return Ok(None);
@@ -366,8 +378,8 @@ async fn fetch_and_store<L: Leases>(
     let enclosure = source
         .enclosure_url
         .as_deref()
-        .and_then(parse_address)
-        .ok_or(FetchFailure::AddressRefused)?;
+        .ok_or(PodcastError::NoSource)?;
+    let enclosure = parse_address(enclosure).ok_or(FetchFailure::AddressRefused)?;
     // A channel without an address is not one somebody typed here, so it reaches
     // nothing local. A restored one has no enclosure either, until it is subscribed
     // to again.
@@ -570,14 +582,37 @@ async fn finish<L: Leases>(
     rename_into_place(partial.path.clone(), target.clone()).await?;
     // Renamed, so the guard's remove finds nothing.
     drop(partial);
-    match with_busy_retry(|| store::record_download(&pool, episode_id, &final_name, size)).await {
+    record_in_place(&pool, &target, episode_id, &final_name, size, &cancel).await
+}
+
+/// Writes the row of a file now under its name, and takes the file back when it must
+/// not stay.
+///
+/// `cancel` is read again once the row is written. A delete sets it before it reads
+/// the row, so one that landed after the check before the rename is seen here, and
+/// one that lands later finds the row and removes the file itself. Either way, what
+/// the user removed does not come back.
+pub(super) async fn record_in_place(
+    pool: &sqlx::SqlitePool,
+    target: &Path,
+    episode_id: i64,
+    file: &str,
+    size: u64,
+    cancel: &watch::Receiver<bool>,
+) -> Result<u64, Stop> {
+    match with_busy_retry(|| store::record_download(pool, episode_id, file, size)).await {
+        Ok(true) if *cancel.borrow() => {
+            remove_quietly(target).await;
+            with_busy_retry(|| store::clear_download(pool, episode_id)).await?;
+            Err(Stop::Cancelled)
+        }
         Ok(true) => Ok(size),
         Ok(false) => {
-            remove_quietly(&target).await;
+            remove_quietly(target).await;
             Err(Stop::Word(EPISODE_GONE.to_owned()))
         }
         Err(err) => {
-            remove_quietly(&target).await;
+            remove_quietly(target).await;
             Err(err.into())
         }
     }
@@ -786,9 +821,15 @@ pub(crate) struct Swept {
 /// its row among them. `writing` is asked again before each removal, for a download
 /// that began meanwhile, and each row's file is looked for last.
 ///
-/// `check_rows` is false when the folder cannot be trusted to hold what the rows
-/// name: the caches' drive is unplugged and this session fell back to the default
-/// location, and clearing the rows would lose every download by the time it returns.
+/// A row is cleared only when the folder can be listed. `check_rows` is false when
+/// this session fell back to the default location because the caches' drive was
+/// unplugged at launch, and a folder that cannot be listed covers one that goes away
+/// afterwards: clearing the rows would lose every download by the time the drive
+/// returns, since the next sweep would then find files no row names. A missing folder
+/// proves nothing either, and neither does the root above it, which can be an empty
+/// mount point; the profile's folders are even made again on it at each switch. A
+/// folder removed by hand keeps its rows until a download makes it again, and the
+/// episodes stream meanwhile.
 pub(crate) async fn sweep(
     pool: &sqlx::SqlitePool,
     dir: &Path,
@@ -833,9 +874,10 @@ pub(crate) async fn sweep(
                 }
             }
         }
+        let check_rows = check_rows && std::fs::read_dir(&folder).is_ok();
         let gone: Vec<i64> = rows
             .iter()
-            .filter(|(_, name)| check_rows && stored_file(&folder, name).is_none())
+            .filter(|(id, name)| check_rows && stored_file(&folder, *id, name).is_none())
             .map(|(episode_id, _)| *episode_id)
             .collect();
         (partials, orphans, gone)
@@ -937,9 +979,12 @@ impl DownloadObserver for AppObserver<'_> {
     }
 }
 
-/// See [`PODCAST_DOWNLOAD`].
-pub(crate) fn emit(app: &AppHandle, episode_id: i64, state: DownloadState) {
-    let _ = app.emit(PODCAST_DOWNLOAD, DownloadUpdate::at(episode_id, state));
+/// See [`PODCAST_DOWNLOAD`]. Says nothing about a profile that has been left: a
+/// command may still be on its way when the switch lands.
+pub(crate) fn emit(app: &AppHandle, profile_id: i64, episode_id: i64, state: DownloadState) {
+    if is_active(profile_id) {
+        let _ = app.emit(PODCAST_DOWNLOAD, DownloadUpdate::at(episode_id, state));
+    }
 }
 
 /// Puts an episode in line and starts the worker when none is running.
@@ -948,7 +993,7 @@ pub(crate) fn enqueue(app: &AppHandle, job: Job) {
     if pushed == Pushed::Already {
         return;
     }
-    emit(app, job.episode_id, DownloadState::Queued);
+    emit(app, job.profile_id, job.episode_id, DownloadState::Queued);
     if pushed == Pushed::QueuedStartWorker {
         let app = app.clone();
         tauri::async_runtime::spawn(async move {
@@ -1019,10 +1064,10 @@ async fn run_job(app: &AppHandle, job: Job, cancel: watch::Sender<bool>) {
 
 /// Removes the files a channel held, after its rows have gone. One that refuses
 /// stays until the next sweep, which finds a file no row names.
-pub(crate) async fn remove_files(dir: PathBuf, names: Vec<String>) {
+pub(crate) async fn remove_files(dir: PathBuf, files: Vec<(i64, String)>) {
     let _ = tokio::task::spawn_blocking(move || {
-        for name in names {
-            if let Some(path) = stored_file(&dir, &name) {
+        for (episode_id, name) in files {
+            if let Some(path) = stored_file(&dir, episode_id, &name) {
                 if let Err(err) = std::fs::remove_file(path) {
                     tracing::debug!(kind = ?err.kind(), "podcast download: a file stayed");
                 }
@@ -1043,7 +1088,7 @@ pub(crate) async fn delete_download(
     let Some(name) = store::download_file_of(pool, episode_id).await? else {
         return Ok(false);
     };
-    if let Some(path) = stored_file(dir, &name) {
+    if let Some(path) = stored_file(dir, episode_id, &name) {
         tokio::task::spawn_blocking(move || std::fs::remove_file(path))
             .await
             .map_err(|err| {

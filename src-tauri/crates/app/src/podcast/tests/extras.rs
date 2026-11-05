@@ -808,13 +808,24 @@ async fn a_feed_that_names_other_sources_makes_what_was_kept_stale() {
         .await
         .unwrap();
     assert_eq!(kept().await, (Some("c".into()), None));
+
+    // The same address under another type: what it can hold has changed.
+    keep().await;
+    let mut retyped = moved.clone();
+    retyped.episodes[0].enclosure_type = Some("audio/mp4".to_owned());
+    store::refresh_feed(&pool, channel, &retyped, &Validators::default())
+        .await
+        .unwrap();
+    assert_eq!(kept().await, (None, Some("t".into())));
 }
 
 #[tokio::test]
 async fn a_refresh_during_a_fetch_is_not_undone_by_what_it_found() {
     // The row names another file by the time the first one's answer is written.
     let pool = enabled_pool().await;
-    let server = serve(|_| Reply::Late(json_body(CHAPTER_FILE))).await;
+    let release = Arc::new(Notify::new());
+    let held = Arc::clone(&release);
+    let server = serve(move |_| Reply::Held(json_body(CHAPTER_FILE), Arc::clone(&held))).await;
     let fetcher = public_fetcher(&server);
     let episode = row(
         &pool,
@@ -828,11 +839,58 @@ async fn a_refresh_during_a_fetch_is_not_undone_by_what_it_found() {
         let pool = pool.clone();
         tokio::spawn(async move { open_chapters(&pool, &fetcher, episode).await })
     };
-    tokio::time::sleep(Duration::from_millis(100)).await;
+    wait_for_a_request(&server).await;
     set_chapters_url(&pool, episode, "https://x.example.org/other.json").await;
+    release.notify_one();
     let answer = opening.await.unwrap().unwrap();
     assert_eq!(titles(&answer), ["First", "Second"]);
     assert_eq!(cached(&pool, episode).await, (None, None));
+
+    // The same for a new type on the enclosure the answer was read from.
+    let release = Arc::new(Notify::new());
+    let held = Arc::clone(&release);
+    let server = serve(move |_| {
+        let Reply::Raw(bytes) = with_status(
+            "200 OK",
+            "Content-Type: audio/mpeg\r\n",
+            &tagged_mp3("From the tag"),
+        ) else {
+            unreachable!()
+        };
+        Reply::Held(bytes, Arc::clone(&held))
+    })
+    .await;
+    let fetcher = public_fetcher(&server);
+    let episode = row(
+        &pool,
+        Row {
+            enclosure: Some(server.public("/a.mp3")),
+            enclosure_type: Some("audio/mpeg".into()),
+            ..Row::default()
+        },
+    )
+    .await;
+    let opening = {
+        let pool = pool.clone();
+        tokio::spawn(async move { open_chapters(&pool, &fetcher, episode).await })
+    };
+    wait_for_a_request(&server).await;
+    sqlx::query("UPDATE podcast_episode SET enclosure_type = 'audio/mp4' WHERE id = ?")
+        .bind(episode)
+        .execute(&pool)
+        .await
+        .unwrap();
+    release.notify_one();
+    let answer = opening.await.unwrap().unwrap();
+    assert_eq!(titles(&answer), ["From the tag"]);
+    assert_eq!(cached(&pool, episode).await, (None, None));
+}
+
+/// Until the host has been asked, which is after the row was read.
+async fn wait_for_a_request(server: &Server) {
+    while server.hits() == 0 {
+        tokio::time::sleep(Duration::from_millis(5)).await;
+    }
 }
 
 fn json_body(body: &str) -> Vec<u8> {

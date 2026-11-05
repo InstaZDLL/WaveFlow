@@ -29,15 +29,22 @@ pub(crate) async fn rehash_track_file(
     path: &std::path::Path,
 ) -> AppResult<String> {
     let path_owned = path.to_path_buf();
-    let new_hash = tokio::task::spawn_blocking(move || -> Result<String, std::io::Error> {
-        let bytes = std::fs::read(&path_owned)?;
-        Ok(blake3::hash(&bytes).to_hex().to_string())
-    })
-    .await
-    .map_err(|e| AppError::Other(format!("rehash join: {e}")))?
-    .map_err(|e| AppError::Other(format!("rehash read: {e}")))?;
-    sqlx::query("UPDATE track SET file_hash = ? WHERE id = ?")
+    let (new_hash, size) =
+        tokio::task::spawn_blocking(move || -> Result<(String, i64), std::io::Error> {
+            let bytes = std::fs::read(&path_owned)?;
+            Ok((
+                blake3::hash(&bytes).to_hex().to_string(),
+                bytes.len() as i64,
+            ))
+        })
+        .await
+        .map_err(|e| AppError::Other(format!("rehash join: {e}")))?
+        .map_err(|e| AppError::Other(format!("rehash read: {e}")))?;
+    // The size with it: a write can change the length, and a row that kept
+    // the old one could not be recognised if the file then moved.
+    sqlx::query("UPDATE track SET file_hash = ?, file_size = ? WHERE id = ?")
         .bind(&new_hash)
+        .bind(size)
         .bind(track_id)
         .execute(pool)
         .await

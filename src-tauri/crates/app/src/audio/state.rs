@@ -18,7 +18,7 @@ use std::sync::Mutex;
 use waveflow_core::playback::channels::ChannelLayout;
 use waveflow_core::playback::stretch::TimeShift;
 
-use super::engine::{AudioCmd, LastLoad};
+use super::engine::{AudioCmd, LastLoad, LastLoadSource};
 
 /// The sample format the output stream hands over: to the device itself
 /// in exclusive mode, to the system mixer in shared mode, which then
@@ -590,13 +590,23 @@ impl SharedPlayback {
             .store(speed.clamp(0.5, 2.0).to_bits(), Ordering::Release);
     }
 
-    /// The episode changed its channel's speed while it plays. Dropped when none
-    /// is decoding: a command that crossed the end of an episode must not reach
-    /// whatever plays next.
+    /// The episode's channel changed its speed. Heard at once while one decodes, and
+    /// dropped otherwise: a command that crossed the end of an episode must not reach
+    /// whatever plays next. Recorded either way, since the load an output rebuild
+    /// sends back has to play at it too.
     pub fn set_episode_speed(&self, speed: f32) {
         let _writing = self.lock_speed_writers();
         if self.episode_speed_held.load(Ordering::Acquire) {
             self.set_playback_speed(speed);
+        }
+        if let Ok(mut last_load) = self.last_load.lock() {
+            if let Some(LastLoad {
+                source: LastLoadSource::Episode(episode),
+                ..
+            }) = last_load.as_mut()
+            {
+                episode.speed = speed.clamp(0.5, 2.0);
+            }
         }
     }
 

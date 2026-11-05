@@ -15,17 +15,18 @@ use url::Url;
 use waveflow_core::playback::read_ahead::READ_RELEASED;
 use waveflow_core::podcast::FetchFailure;
 
+use super::download::stored_file;
 use super::fetch::{client_builder, Fetcher, Origin};
 use super::playback::{
-    channel_speed, counts_as_played, downloaded_file, ext_hint_for_tests, resolve_source,
-    start_position, EpisodeSource, SaveClock, SaveReason, SAVE_EVERY,
+    channel_speed, counts_as_played, ext_hint_for_tests, resolve_source, start_position,
+    EpisodeSource, SaveClock, SaveReason, SAVE_EVERY,
 };
 use super::refresh::PodcastError;
 use super::store;
 use super::stream::{EnclosureSource, Gate, ReadGuard, StreamRefusal};
 use super::tests::{
-    enabled_pool, fetcher, offline, online, public_fetcher, redirect, serve, tls_redirecting_to,
-    url, with_status, PUBLIC_HOST,
+    enabled_pool, fetcher, offline, online, public_fetcher, redirect, serve, test_certificate,
+    tls_redirecting_to, url, with_status, PUBLIC_HOST,
 };
 use crate::audio::state::{PlayerState, SharedPlayback};
 
@@ -409,7 +410,7 @@ async fn a_secure_enclosure_cannot_redirect_into_the_clear() {
     let fetcher = Fetcher::with(
         client_builder()
             .no_proxy()
-            .danger_accept_invalid_certs(true)
+            .add_root_certificate(test_certificate())
             .resolve(PUBLIC_HOST, ([127, 0, 0, 1], port).into()),
         online,
         Duration::from_secs(5),
@@ -799,7 +800,7 @@ async fn a_download_name_out_of_an_archive_is_hostile() {
     std::fs::write(inside.join(&other), b"somebody else's").unwrap();
     std::fs::write(dir.path().join(&own), b"outside").unwrap();
     assert_eq!(
-        downloaded_file(&inside, id, &own),
+        stored_file(&inside, id, &own),
         Some(inside.join(&own)),
         "this test proves nothing if its own file does not open"
     );
@@ -834,7 +835,7 @@ async fn a_download_name_out_of_an_archive_is_hostile() {
         ".mp3".to_owned(),
     ];
     for name in names {
-        assert_eq!(downloaded_file(&inside, id, &name), None, "{name:?}");
+        assert_eq!(stored_file(&inside, id, &name), None, "{name:?}");
         store_download(&pool, id, &name).await;
         let row = playable(&pool, id).await;
         // Off, a hostile name refuses instead of opening anything.
@@ -1384,6 +1385,46 @@ fn an_episode_plays_untransposed_and_the_next_track_is_transposed_again() {
 
     shared.release_episode_speed();
     assert_eq!(shared.time_shift().semitones, -2.0);
+}
+
+/// An output rebuild sends the decoder's recorded load back. Moved since that load
+/// started, the channel's speed is what it has to come back at.
+#[test]
+fn a_speed_changed_during_an_episode_is_what_a_rebuild_brings_back() {
+    use crate::audio::engine::{AudioCmd, LastLoadSource, LoadIntent};
+
+    let recorded = |shared: &SharedPlayback| match shared.last_load().map(|load| load.source) {
+        Some(LastLoadSource::Episode(episode)) => episode.speed,
+        _ => panic!("the episode's load was not recorded"),
+    };
+    let shared = SharedPlayback::new();
+    shared.record_accepted_load(&AudioCmd::LoadEpisodeAndPlay {
+        intent: LoadIntent::from_raw(1),
+        episode: Box::new(super::playback::EpisodeLoad {
+            home: super::playback::EpisodeHome::Local {
+                episode_id: 1,
+                channel_id: 1,
+            },
+            profile_id: 1,
+            track_id: -1,
+            start_ms: 0,
+            duration_ms: 0,
+            title: "One".into(),
+            channel: "The Show".into(),
+            artwork_path: None,
+            speed: 1.0,
+            source: EpisodeSource::File("1.mp3".into()),
+        }),
+    });
+    shared.hold_episode_speed(1.0);
+    shared.set_episode_speed(1.5);
+    assert_eq!(recorded(&shared), 1.5);
+
+    // Nothing decoding: the load keeps it, and what plays next does not hear it.
+    shared.release_episode_speed();
+    shared.set_episode_speed(1.75);
+    assert_eq!(recorded(&shared), 1.75);
+    assert_eq!(shared.playback_speed(), 1.0);
 }
 
 /// The user's slider has no business with an episode's speed, and the other way

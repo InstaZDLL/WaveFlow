@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from "react";
+import { listen } from "@tauri-apps/api/event";
 import { useTranslation } from "react-i18next";
 import { AlertTriangle, CheckCircle2, X } from "lucide-react";
 
 import {
+  announceImport,
   IMPORT_NOTICE_EVENT,
+  takeUnreachableFolders,
   type ImportNotice,
 } from "../../lib/tauri/library";
 
@@ -23,6 +26,12 @@ interface Shown {
  * `waveflow:import-notice` ({@link announceImport}), so the four places
  * that add a folder and the drop are covered without each knowing.
  *
+ * Also the library folders a scan could not read, however that scan started:
+ * the backend's `library:folder-unreachable`, since a rescan of the library
+ * and the one at launch only count the failure, and what was refused before
+ * this was listening. Their tracks were left as they are, and that is what
+ * the user needs to hear.
+ *
  * Bottom centre, apart from the scan's card at the bottom right: a drop
  * shows both, the copy here and the scan's outcome there. A notice that
  * needs looking at (a refusal, a failure, a cut) stays until dismissed.
@@ -38,7 +47,21 @@ export function ImportNoticeToast() {
       const notice = (event as CustomEvent<ImportNotice>).detail;
       if (!notice) return;
       next += 1;
-      setShown({ notice, key: next });
+      // A rescan can find several drives gone, one event each: the notice
+      // grows rather than naming only the last.
+      setShown((current) => ({
+        key: next,
+        notice:
+          notice.kind === "unreachable" &&
+          current?.notice.kind === "unreachable"
+            ? {
+                kind: "unreachable",
+                folders: [
+                  ...new Set([...current.notice.folders, ...notice.folders]),
+                ],
+              }
+            : notice,
+      }));
       if (timer.current != null) window.clearTimeout(timer.current);
       timer.current = null;
       if (!needsAttention(notice)) {
@@ -46,8 +69,22 @@ export function ImportNoticeToast() {
       }
     };
     window.addEventListener(IMPORT_NOTICE_EVENT, onNotice);
+    const unlisten = listen<{ path: string }>(
+      "library:folder-unreachable",
+      (event) => {
+        announceImport({ kind: "unreachable", folders: [event.payload.path] });
+      },
+    );
+    // After the listener is up, so nothing falls between the two.
+    void unlisten
+      .then(() => takeUnreachableFolders())
+      .then((folders) => {
+        if (folders.length > 0) announceImport({ kind: "unreachable", folders });
+      })
+      .catch((err) => console.error("[ImportNoticeToast]", err));
     return () => {
       window.removeEventListener(IMPORT_NOTICE_EVENT, onNotice);
+      void unlisten.then((stop) => stop());
       if (timer.current != null) window.clearTimeout(timer.current);
     };
   }, []);
@@ -66,6 +103,9 @@ export function ImportNoticeToast() {
         folder: notice.overlap.folder,
       }),
     ];
+  } else if (notice.kind === "unreachable") {
+    title = t("importNotice.unreachable.title");
+    lines = [...notice.folders, t("importNotice.unreachable.body")];
   } else {
     const s = notice.summary;
     // Files dropped again after their folder left the library are not
@@ -148,7 +188,7 @@ export function ImportNoticeToast() {
 
 /** A refusal, a failure, a cut or a stop: kept on screen until read. */
 function needsAttention(notice: ImportNotice): boolean {
-  if (notice.kind === "overlap") return true;
+  if (notice.kind === "overlap" || notice.kind === "unreachable") return true;
   const s = notice.summary;
   return (
     s.refused > 0 ||

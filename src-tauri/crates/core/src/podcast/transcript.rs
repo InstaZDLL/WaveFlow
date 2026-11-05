@@ -17,9 +17,10 @@ const MAX_TEXT_LINES: usize = 50_000;
 /// The longest line of an untimed transcript kept, in characters.
 const MAX_TEXT_LINE_CHARS: usize = 4_000;
 
-/// The largest cached text read. Larger than a body may be, since text in a
-/// single-byte encoding grows when it is kept as UTF-8.
-const MAX_CACHE_BYTES: usize = MAX_TRANSCRIPT_BYTES * 2;
+/// The largest cached text read. Larger than a body may be, since it is kept as
+/// UTF-8, where one byte of a single-byte encoding can become three: all of Thai in
+/// windows-874, `€` in windows-1252.
+const MAX_CACHE_BYTES: usize = MAX_TRANSCRIPT_BYTES * 3;
 
 /// The formats a `podcast:transcript` may be in, as WaveFlow reads them.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

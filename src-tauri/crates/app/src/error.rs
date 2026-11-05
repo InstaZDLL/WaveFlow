@@ -149,6 +149,12 @@ pub enum AppError {
         existing: String,
     },
 
+    /// A library folder whose scan stopped before it wrote anything,
+    /// because nothing it could list says what became of its tracks. They
+    /// stay available.
+    #[error("the library folder {path} cannot be read: {reason}")]
+    FolderUnreachable { path: String, reason: String },
+
     #[error("{0}")]
     Other(String),
 }
