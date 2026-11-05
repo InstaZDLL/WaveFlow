@@ -50,6 +50,8 @@ pub(super) enum Reply {
     Silence,
     /// These bytes, after long enough for a test to do something meanwhile.
     Late(Vec<u8>),
+    /// These bytes, once the test says so.
+    Held(Vec<u8>, Arc<Notify>),
     /// A chunked body that starts like an MP3 and never ends, as fast as it can.
     AudioFlood,
     /// A chunked body that starts like an MP3, then a byte now and then, for ever.
@@ -153,6 +155,11 @@ pub(super) async fn serve(answer: impl Fn(&str) -> Reply + Send + Sync + 'static
                     }
                     Reply::Late(bytes) => {
                         tokio::time::sleep(Duration::from_millis(300)).await;
+                        let _ = stream.write_all(&bytes).await;
+                        let _ = stream.shutdown().await;
+                    }
+                    Reply::Held(bytes, release) => {
+                        release.notified().await;
                         let _ = stream.write_all(&bytes).await;
                         let _ = stream.shutdown().await;
                     }
