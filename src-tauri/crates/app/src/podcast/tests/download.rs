@@ -1139,9 +1139,7 @@ async fn a_stored_name_that_is_not_ours_is_never_opened_or_removed() {
         store::record_download(&pool, episode, name, 7)
             .await
             .unwrap();
-        sweep(&pool, &dir, outer.path(), |_| false, true)
-            .await
-            .unwrap();
+        sweep(&pool, &dir, |_| false, true).await.unwrap();
         assert!(precious.is_file(), "{name} reached outside by a sweep");
         assert_eq!(recorded(&pool, episode).await.0, None, "{name} stayed");
 
@@ -1302,9 +1300,7 @@ async fn a_sweep_removes_what_a_crash_left_and_nothing_else() {
     // Not ours: nothing here knows what it is.
     std::fs::write(dir.path().join("desktop.ini"), b"[.]").unwrap();
 
-    let swept = sweep(&pool, dir.path(), dir.path(), |_| false, true)
-        .await
-        .unwrap();
+    let swept = sweep(&pool, dir.path(), |_| false, true).await.unwrap();
 
     assert_eq!(
         swept,
@@ -1329,9 +1325,7 @@ async fn a_sweep_removes_what_a_crash_left_and_nothing_else() {
         "the quota counts what is left"
     );
     assert_eq!(
-        sweep(&pool, dir.path(), dir.path(), |_| false, true)
-            .await
-            .unwrap(),
+        sweep(&pool, dir.path(), |_| false, true).await.unwrap(),
         Swept::default(),
         "a second look finds nothing"
     );
@@ -1348,7 +1342,7 @@ async fn a_sweep_leaves_the_download_under_way_alone() {
     std::fs::write(&partial, b"x").unwrap();
     std::fs::write(&renamed, b"x").unwrap();
 
-    let swept = sweep(&pool, dir.path(), dir.path(), move |id| id == writing, true)
+    let swept = sweep(&pool, dir.path(), move |id| id == writing, true)
         .await
         .unwrap();
 
@@ -1368,9 +1362,7 @@ async fn a_sweep_of_a_folder_it_cannot_trust_keeps_the_rows() {
         .await
         .unwrap();
 
-    let swept = sweep(&pool, dir.path(), dir.path(), |_| false, false)
-        .await
-        .unwrap();
+    let swept = sweep(&pool, dir.path(), |_| false, false).await.unwrap();
 
     assert_eq!(swept.orphan_rows, 0);
     assert_eq!(
@@ -1392,35 +1384,28 @@ async fn a_folder_that_does_not_answer_clears_no_row() {
         .await
         .unwrap();
 
-    // The caches' root is not there: a drive unplugged.
-    let unplugged = outer.path().join("unplugged");
-    let dir = unplugged.join("profiles/1/podcast-downloads");
-    let swept = sweep(&pool, &dir, &unplugged, |_| false, true)
-        .await
-        .unwrap();
+    // Missing, under a root that may be an empty mount point.
+    let missing = outer.path().join("profiles/1/podcast-downloads");
+    let swept = sweep(&pool, &missing, |_| false, true).await.unwrap();
     assert_eq!(swept.orphan_rows, 0);
     assert_eq!(
         recorded(&pool, episode).await.0.as_deref(),
         Some(name.as_str())
     );
 
-    // The folder cannot be listed, whatever the reason.
+    // There and not a folder: it cannot be listed, whatever the reason.
     let not_a_folder = outer.path().join("not-a-folder");
     std::fs::write(&not_a_folder, b"x").unwrap();
-    let swept = sweep(&pool, &not_a_folder, outer.path(), |_| false, true)
-        .await
-        .unwrap();
+    let swept = sweep(&pool, &not_a_folder, |_| false, true).await.unwrap();
     assert_eq!(swept.orphan_rows, 0);
     assert_eq!(
         recorded(&pool, episode).await.0.as_deref(),
         Some(name.as_str())
     );
 
-    // The root answers and the folder is gone: so is the file, and the row goes.
-    let removed = outer.path().join("removed");
-    let swept = sweep(&pool, &removed, outer.path(), |_| false, true)
-        .await
-        .unwrap();
+    // A folder that lists without the file: it is gone, and the row goes.
+    std::fs::create_dir_all(&missing).unwrap();
+    let swept = sweep(&pool, &missing, |_| false, true).await.unwrap();
     assert_eq!(swept.orphan_rows, 1);
     assert_eq!(recorded(&pool, episode).await, (None, None, None));
 }

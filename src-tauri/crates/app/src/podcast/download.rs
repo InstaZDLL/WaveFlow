@@ -821,15 +821,18 @@ pub(crate) struct Swept {
 /// its row among them. `writing` is asked again before each removal, for a download
 /// that began meanwhile, and each row's file is looked for last.
 ///
-/// A row is cleared only when the folder answers for it. `check_rows` is false when
+/// A row is cleared only when the folder can be listed. `check_rows` is false when
 /// this session fell back to the default location because the caches' drive was
-/// unplugged at launch, and [`folder_answers`] covers one that goes away afterwards:
-/// clearing the rows would lose every download by the time the drive returns, since
-/// the next sweep would then find files no row names.
+/// unplugged at launch, and a folder that cannot be listed covers one that goes away
+/// afterwards: clearing the rows would lose every download by the time the drive
+/// returns, since the next sweep would then find files no row names. A missing folder
+/// proves nothing either, and neither does the root above it, which can be an empty
+/// mount point; the profile's folders are even made again on it at each switch. A
+/// folder removed by hand keeps its rows until a download makes it again, and the
+/// episodes stream meanwhile.
 pub(crate) async fn sweep(
     pool: &sqlx::SqlitePool,
     dir: &Path,
-    cache_root: &Path,
     writing: impl Fn(i64) -> bool + Send + 'static,
     check_rows: bool,
 ) -> Result<Swept, sqlx::Error> {
@@ -856,7 +859,6 @@ pub(crate) async fn sweep(
     let rows = store::all_downloads(pool).await?;
     let recorded: HashSet<String> = rows.iter().map(|(_, name)| name.clone()).collect();
     let folder = dir.to_path_buf();
-    let root = cache_root.to_path_buf();
     let (partial_files, orphan_files, gone) = tokio::task::spawn_blocking(move || {
         let (mut partials, mut orphans) = (0, 0);
         for name in listed {
@@ -872,7 +874,7 @@ pub(crate) async fn sweep(
                 }
             }
         }
-        let check_rows = check_rows && folder_answers(&folder, &root);
+        let check_rows = check_rows && std::fs::read_dir(&folder).is_ok();
         let gone: Vec<i64> = rows
             .iter()
             .filter(|(id, name)| check_rows && stored_file(&folder, *id, name).is_none())
@@ -891,18 +893,6 @@ pub(crate) async fn sweep(
         orphan_files,
         orphan_rows: gone.len(),
     })
-}
-
-/// Whether a file missing from `folder` is really gone. A folder that cannot be listed
-/// says nothing about what is in it. One that is not there says the same when the
-/// caches' root is not there either, which is what a drive unplugged looks like; under
-/// a root that is there, it has been removed.
-fn folder_answers(folder: &Path, cache_root: &Path) -> bool {
-    match std::fs::read_dir(folder) {
-        Ok(_) => true,
-        Err(err) if err.kind() == std::io::ErrorKind::NotFound => cache_root.is_dir(),
-        Err(_) => false,
-    }
 }
 
 static SWEEP_WAKE: Notify = Notify::const_new();
@@ -948,7 +938,7 @@ async fn sweep_active_profile(app: &AppHandle) {
     let dir = state.paths.profile_podcast_download_dir(profile_id);
     let check_rows = state.cache_root_fallback.is_none();
     let writing = move |episode_id| queue().in_flight(profile_id).0 == Some(episode_id);
-    match sweep(&pool, &dir, &state.paths.cache_root, writing, check_rows).await {
+    match sweep(&pool, &dir, writing, check_rows).await {
         Ok(swept) if swept != Swept::default() => tracing::info!(
             profile_id,
             partial_files = swept.partial_files,
