@@ -105,6 +105,7 @@ async fn fill_imported_profile(
     let metadata_artwork_dir = paths.metadata_artwork_dir.clone();
 
     // 3. Extract — also blocking.
+    let source_for_avatar = source_path.clone();
     tokio::task::spawn_blocking(move || {
         extract_archive(
             Path::new(&source_path),
@@ -116,6 +117,9 @@ async fn fill_imported_profile(
     })
     .await
     .map_err(|e| AppError::Other(format!("import extract join: {e}")))??;
+
+    // 3b. The picture, which `extract_archive` leaves in the archive.
+    import_avatar(app_db, paths, new_profile_id, source_for_avatar).await?;
 
     // 4. Normalise the bundled `_sqlx_migrations.checksum` column against
     //    the local migration files before running the migrator. Archives
@@ -141,6 +145,47 @@ async fn fill_imported_profile(
     let cleaned = clean_imported_database(&pool).await;
     pool.close().await;
     cleaned
+}
+
+/// Give the imported profile the archive's picture, made again from its
+/// bytes by the decoder a picked file goes through: an archive may have
+/// been written by hand, and its `avatar.png` is no more trusted than any
+/// file on the disk. A picture the decoder refuses is left out, with a
+/// line in the log; the rest of the profile is worth more than its
+/// picture, and the user can set one again. A read or a write that fails
+/// fails the import, which then removes the profile whole.
+async fn import_avatar(
+    app_db: &SqlitePool,
+    paths: &AppPaths,
+    profile_id: i64,
+    source_path: String,
+) -> AppResult<()> {
+    let paths_for_blocking = paths.clone();
+    let stored = tokio::task::spawn_blocking(move || -> AppResult<Option<String>> {
+        let Some(read) = read_avatar_entry(Path::new(&source_path))? else {
+            return Ok(None);
+        };
+        let png =
+            match read.and_then(|bytes| waveflow_core::artwork::avatar::normalize_avatar(&bytes)) {
+                Ok(png) => png,
+                Err(refusal) => {
+                    tracing::warn!(%refusal, "imported profile: its picture was left out");
+                    return Ok(None);
+                }
+            };
+        crate::commands::profile_avatar::store_picture(&paths_for_blocking, profile_id, &png)
+            .map(Some)
+    })
+    .await
+    .map_err(|e| AppError::Other(format!("import avatar join: {e}")))??;
+    if let Some(hash) = stored {
+        sqlx::query("UPDATE profile SET avatar_hash = ? WHERE id = ?")
+            .bind(hash)
+            .bind(profile_id)
+            .execute(app_db)
+            .await?;
+    }
+    Ok(())
 }
 
 async fn clean_imported_database(pool: &SqlitePool) -> AppResult<()> {

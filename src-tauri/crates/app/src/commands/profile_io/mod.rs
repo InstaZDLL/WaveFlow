@@ -10,6 +10,9 @@
 //!   - `data.db` — the per-profile SQLite database (playlists, liked,
 //!     stats, EQ, sleep-timer / A-B visibility, shortcut overrides…).
 //!   - `artwork/**` — manual covers the user uploaded.
+//!   - `avatar.png` — the profile's picture, when it has one. Made again
+//!     from its bytes on import, never copied: an archive may have been
+//!     written by hand.
 //!   - `metadata_artwork/**` — *optional*, gated by the
 //!     `backup.include_metadata_artwork` app setting (default ON). This
 //!     is the shared Deezer cover/artist-picture cache; bundling it

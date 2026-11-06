@@ -89,6 +89,10 @@
       "namePlaceholder": "Your name",
       "nameRequired": "Enter a name for this profile."
     },
+    "photo": {
+      "title": "A picture for this profile",
+      "lede": "Optional: it replaces the initial in the sidebar and the profile menu. You can change or remove it later in Settings → General."
+    },
     "folder": {
       "title": "Where's your music?",
       "lede": "Choose the folder that holds your albums. WaveFlow starts reading it right away, in the background, while you carry on with the tour.",
@@ -1225,6 +1229,22 @@
       "warning": "All libraries, playlists and listening history for this profile will be lost. This action cannot be undone.",
       "submit": "Delete profile",
       "submitting": "Deleting…"
+    },
+    "picture": {
+      "title": "Profile picture",
+      "subtitle": "An image from your computer, cropped to a square. It replaces the initial wherever the profile appears.",
+      "choose": "Choose a picture",
+      "change": "Change picture",
+      "remove": "Remove",
+      "pickerTitle": "Choose a profile picture",
+      "formats": "PNG, JPEG, WebP or GIF, up to 20 MB. Only a cropped copy is kept.",
+      "errors": {
+        "tooLarge": "This image is too large: 20 MB and 50 megapixels at most.",
+        "unsupported": "This file is not a PNG, JPEG, WebP or GIF image.",
+        "unreadable": "This image is damaged or incomplete and can't be read.",
+        "failed": "The picture couldn't be saved.",
+        "removeFailed": "The picture couldn't be removed."
+      }
     }
   },
   "libraryModal": {
@@ -3174,6 +3194,7 @@
         "diagnostics": "Updates, troubleshooting and application reset."
       },
       "groups": {
+        "profile": "Profile",
         "language": "Language",
         "startup": "Startup and notifications",
         "scanning": "Import and scanning",
@@ -3228,6 +3249,7 @@
         "diagnostics": "Updates, logs, reset"
       },
       "groupHints": {
+        "profile": "How it shows up in the app",
         "language": "Applies right away, no restart",
         "startup": "What happens when WaveFlow opens and closes",
         "listening": "How tracks start and what plays next",

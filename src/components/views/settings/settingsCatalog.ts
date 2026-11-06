@@ -14,6 +14,16 @@ export const SETTINGS_CATEGORIES = [
     hintKey: "settings.organization.navHints.general",
     groups: [
       {
+        id: "profile",
+        labelKey: "settings.organization.groups.profile",
+        hintKey: "settings.organization.groupHints.profile",
+        searchKeys: [
+          "profiles.picture.title",
+          "profiles.picture.subtitle",
+          "profiles.picture.choose",
+        ],
+      },
+      {
         id: "language",
         labelKey: "settings.organization.groups.language",
         hintKey: "settings.organization.groupHints.language",

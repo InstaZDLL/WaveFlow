@@ -293,7 +293,20 @@ fn write_archive_into(
         }
     }
 
-    // 4. metadata_artwork/** — shared Deezer cache, opt-out. Files are
+    // 4. avatar.png — the profile's picture, when it has one. Already a
+    //    PNG of a few kilobytes, stored rather than deflated again. An
+    //    older build ignores the entry, as it ignores any it does not know.
+    let avatar = profile_dir.join(crate::paths::PROFILE_AVATAR_FILE);
+    if avatar.is_file() {
+        zip.start_file(
+            crate::paths::PROFILE_AVATAR_FILE,
+            opts.compression_method(CompressionMethod::Stored),
+        )?;
+        let mut src = File::open(&avatar)?;
+        std::io::copy(&mut src, &mut zip)?;
+    }
+
+    // 5. metadata_artwork/** — shared Deezer cache, opt-out. Files are
     //    already JPEG/PNG/WebP so deflate barely helps, but we keep the
     //    same compression setting for archive uniformity.
     if let Some(meta_dir) = metadata_artwork_dir {
@@ -319,6 +332,26 @@ fn write_archive_into(
 
     zip.finish()?;
     Ok(())
+}
+
+/// The bytes of the archive's `avatar.png`, bounded like a picked file,
+/// or `None` when the archive has none; an entry past the cap is refused,
+/// which is not a failure to read. What the bytes are is not trusted: the
+/// caller runs them through the same decoder as a file from the disk.
+pub(super) fn read_avatar_entry(
+    source: &Path,
+) -> AppResult<Option<Result<Vec<u8>, waveflow_core::artwork::avatar::AvatarRefusal>>> {
+    let file = File::open(source)?;
+    let mut archive =
+        ZipArchive::new(file).map_err(|e| AppError::Other(format!("open archive: {e}")))?;
+    let mut entry = match archive.by_name(crate::paths::PROFILE_AVATAR_FILE) {
+        Ok(entry) => entry,
+        Err(zip::result::ZipError::FileNotFound) => return Ok(None),
+        Err(e) => return Err(e.into()),
+    };
+    Ok(Some(crate::commands::profile_avatar::read_bounded(
+        &mut entry,
+    )?))
 }
 
 pub(super) fn read_manifest(source: &Path) -> AppResult<ArchiveManifest> {

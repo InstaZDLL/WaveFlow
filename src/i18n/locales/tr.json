@@ -89,6 +89,10 @@
       "namePlaceholder": "Adın",
       "nameRequired": "Bu profil için bir ad gir."
     },
+    "photo": {
+      "title": "Bu profil için bir fotoğraf",
+      "lede": "İsteğe bağlı: kenar çubuğunda ve profil menüsünde baş harfin yerini alır. Sonradan Ayarlar → Genel bölümünden değiştirebilir ya da kaldırabilirsin."
+    },
     "folder": {
       "title": "Müziğin nerede?",
       "lede": "Albümlerinin bulunduğu klasörü seç. Okuma hemen arka planda başlar; sen de bu arada tura devam edersin.",
@@ -1225,6 +1229,22 @@
       "warning": "Bu profile ait tüm kütüphaneler, çalma listeleri ve dinleme geçmişi kaybolacak. Bu işlem geri alınamaz.",
       "submit": "Profili sil",
       "submitting": "Siliniyor…"
+    },
+    "picture": {
+      "title": "Profil fotoğrafı",
+      "subtitle": "Bilgisayarından bir görsel, kare olarak kırpılır. Profilin göründüğü her yerde baş harfin yerini alır.",
+      "choose": "Fotoğraf seç",
+      "change": "Fotoğrafı değiştir",
+      "remove": "Kaldır",
+      "pickerTitle": "Bir profil fotoğrafı seç",
+      "formats": "PNG, JPEG, WebP veya GIF, en fazla 20 MB. Yalnızca kırpılmış bir kopya saklanır.",
+      "errors": {
+        "tooLarge": "Bu görsel çok büyük: en fazla 20 MB ve 50 megapiksel.",
+        "unsupported": "Bu dosya bir PNG, JPEG, WebP veya GIF görseli değil.",
+        "unreadable": "Bu görsel bozuk ya da eksik, okunamıyor.",
+        "failed": "Fotoğraf kaydedilemedi.",
+        "removeFailed": "Fotoğraf kaldırılamadı."
+      }
     }
   },
   "libraryModal": {
@@ -3174,6 +3194,7 @@
         "diagnostics": "Güncellemeler, sorun giderme ve uygulamayı sıfırlama."
       },
       "groups": {
+        "profile": "Profil",
         "language": "Dil",
         "startup": "Başlangıç ve bildirimler",
         "scanning": "İçe aktarma ve tarama",
@@ -3228,6 +3249,7 @@
         "diagnostics": "Güncellemeler, günlükler, sıfırlama"
       },
       "groupHints": {
+        "profile": "Uygulamada nasıl göründüğü",
         "language": "Yeniden başlatmadan hemen uygulanır",
         "startup": "WaveFlow açılırken ve kapanırken olanlar",
         "listening": "Parçaların nasıl başladığı ve sırada ne çalacağı",

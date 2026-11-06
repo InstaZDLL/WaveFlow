@@ -52,6 +52,7 @@ pub mod podcast;
 pub mod podcast_server;
 pub mod preferences;
 pub mod profile;
+pub mod profile_avatar;
 pub mod profile_io;
 pub mod radio;
 pub mod ready;

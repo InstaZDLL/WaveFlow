@@ -19,6 +19,36 @@ use crate::{
 // (`crate::commands::profile::Profile`) keep resolving.
 pub use waveflow_core::domain::profile::{CreateProfileInput, Profile};
 
+/// A profile as the interface receives it: the row, plus where its
+/// picture is on disk when it has one.
+///
+/// The path is resolved here rather than stored: the row says *whether*
+/// there is a picture (`avatar_hash`), the layout says *where*
+/// ([`AppPaths::profile_avatar`]). The frontend loads it through the
+/// asset protocol, keyed on the hash so a new picture is not served from
+/// the webview's cache of the old one.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct ProfileView {
+    #[serde(flatten)]
+    pub profile: Profile,
+    pub avatar_path: Option<String>,
+}
+
+impl ProfileView {
+    pub fn new(paths: &AppPaths, profile: Profile) -> Self {
+        let avatar_path = profile.avatar_hash.as_ref().map(|_| {
+            paths
+                .profile_avatar(profile.id)
+                .to_string_lossy()
+                .into_owned()
+        });
+        Self {
+            profile,
+            avatar_path,
+        }
+    }
+}
+
 fn now_millis() -> i64 {
     Utc::now().timestamp_millis()
 }
@@ -29,14 +59,21 @@ fn profile_repo(state: &AppState) -> SqliteProfileRepository {
 
 /// List every profile registered in `app.db`, most-recently-used first.
 #[tauri::command]
-pub async fn list_profiles(state: tauri::State<'_, AppState>) -> AppResult<Vec<Profile>> {
-    Ok(profile_repo(&state).list_all().await?)
+pub async fn list_profiles(state: tauri::State<'_, AppState>) -> AppResult<Vec<ProfileView>> {
+    Ok(profile_repo(&state)
+        .list_all()
+        .await?
+        .into_iter()
+        .map(|p| ProfileView::new(&state.paths, p))
+        .collect())
 }
 
 /// Return the currently active profile (the one whose `data.db` is opened),
 /// or `None` if no profile has been activated yet.
 #[tauri::command]
-pub async fn get_active_profile(state: tauri::State<'_, AppState>) -> AppResult<Option<Profile>> {
+pub async fn get_active_profile(
+    state: tauri::State<'_, AppState>,
+) -> AppResult<Option<ProfileView>> {
     let Some(profile_id) = ({
         let guard = state.profile.read().await;
         guard.as_ref().map(|p| p.profile_id)
@@ -44,7 +81,10 @@ pub async fn get_active_profile(state: tauri::State<'_, AppState>) -> AppResult<
         return Ok(None);
     };
 
-    Ok(profile_repo(&state).get(profile_id).await?)
+    Ok(profile_repo(&state)
+        .get(profile_id)
+        .await?
+        .map(|p| ProfileView::new(&state.paths, p)))
 }
 
 /// Create a new profile.
@@ -59,7 +99,7 @@ pub async fn get_active_profile(state: tauri::State<'_, AppState>) -> AppResult<
 pub async fn create_profile(
     state: tauri::State<'_, AppState>,
     input: CreateProfileInput,
-) -> AppResult<Profile> {
+) -> AppResult<ProfileView> {
     let name = input.name.trim().to_string();
     if name.is_empty() {
         return Err(AppError::Other("profile name cannot be empty".into()));
@@ -71,7 +111,10 @@ pub async fn create_profile(
     let draft = ProfileDraft {
         name: name.clone(),
         color_id: color_id.clone(),
-        avatar_hash: input.avatar_hash.clone(),
+        // A hash names a picture already stored for *this* profile, which
+        // a profile being created cannot have: the picture is set
+        // afterwards, through `set_profile_avatar`.
+        avatar_hash: None,
         now_ms: now,
     };
     let profile_id = repo.insert(&draft).await?;
@@ -113,20 +156,23 @@ pub async fn create_profile(
         return Err(init_err);
     }
 
-    Ok(Profile {
-        id: profile_id,
-        // Single-tenant: the desktop's `profile` table has no
-        // `user_id` column. The `0` sentinel is what
-        // `#[sqlx(default)]` would hand back from a `SELECT` that
-        // omits the column anyway, so writing it explicitly here
-        // keeps the round-trip consistent.
-        user_id: 0,
-        name,
-        color_id,
-        avatar_hash: input.avatar_hash,
-        data_dir: rel_dir,
-        created_at: now,
-        last_used_at: now,
+    Ok(ProfileView {
+        avatar_path: None,
+        profile: Profile {
+            id: profile_id,
+            // Single-tenant: the desktop's `profile` table has no
+            // `user_id` column. The `0` sentinel is what
+            // `#[sqlx(default)]` would hand back from a `SELECT` that
+            // omits the column anyway, so writing it explicitly here
+            // keeps the round-trip consistent.
+            user_id: 0,
+            name,
+            color_id,
+            avatar_hash: None,
+            data_dir: rel_dir,
+            created_at: now,
+            last_used_at: now,
+        },
     })
 }
 
@@ -140,7 +186,7 @@ pub async fn switch_profile(
     engine: tauri::State<'_, Arc<AudioEngine>>,
     watcher: tauri::State<'_, Arc<crate::watcher::WatcherManager>>,
     profile_id: i64,
-) -> AppResult<Profile> {
+) -> AppResult<ProfileView> {
     // One switch at a time, from the first step to the last, on success
     // and on failure alike. See [`AppState::profile_switch_lock`].
     let _switching = state.profile_switch_lock.clone().lock_owned().await;
@@ -255,10 +301,13 @@ pub async fn switch_profile(
     .execute(&state.app_db)
     .await?;
 
-    Ok(Profile {
-        last_used_at: now,
-        ..profile
-    })
+    Ok(ProfileView::new(
+        &state.paths,
+        Profile {
+            last_used_at: now,
+            ..profile
+        },
+    ))
 }
 
 /// Rename an existing profile in place. Trims and validates the new
@@ -272,7 +321,7 @@ pub async fn rename_profile(
     state: tauri::State<'_, AppState>,
     profile_id: i64,
     name: String,
-) -> AppResult<Profile> {
+) -> AppResult<ProfileView> {
     let trimmed = name.trim().to_string();
     if trimmed.is_empty() {
         return Err(AppError::Other("profile name cannot be empty".into()));
@@ -284,6 +333,7 @@ pub async fn rename_profile(
     }
     repo.get(profile_id)
         .await?
+        .map(|p| ProfileView::new(&state.paths, p))
         .ok_or(AppError::ProfileNotFound(profile_id))
 }
 

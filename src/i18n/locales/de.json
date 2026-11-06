@@ -89,6 +89,10 @@
       "namePlaceholder": "Dein Name",
       "nameRequired": "Gib einen Namen für dieses Profil ein."
     },
+    "photo": {
+      "title": "Ein Bild für dieses Profil",
+      "lede": "Optional: Es ersetzt den Anfangsbuchstaben in der Seitenleiste und im Profilmenü. Du kannst es später unter Einstellungen → Allgemein ändern oder entfernen."
+    },
     "folder": {
       "title": "Wo ist deine Musik?",
       "lede": "Wähle den Ordner mit deinen Alben. WaveFlow liest ihn sofort im Hintergrund ein, während du mit der Tour weitermachst.",
@@ -1225,6 +1229,22 @@
       "warning": "Sämtliche Bibliotheken, Playlists und der Hörverlauf dieses Profils gehen verloren. Diese Aktion kann nicht rückgängig gemacht werden.",
       "submit": "Profil löschen",
       "submitting": "Wird gelöscht…"
+    },
+    "picture": {
+      "title": "Profilbild",
+      "subtitle": "Ein Bild von deinem Computer, quadratisch zugeschnitten. Es ersetzt den Anfangsbuchstaben überall, wo das Profil erscheint.",
+      "choose": "Bild auswählen",
+      "change": "Bild ändern",
+      "remove": "Entfernen",
+      "pickerTitle": "Profilbild auswählen",
+      "formats": "PNG, JPEG, WebP oder GIF, höchstens 20 MB. Nur eine zugeschnittene Kopie wird behalten.",
+      "errors": {
+        "tooLarge": "Dieses Bild ist zu groß: höchstens 20 MB und 50 Megapixel.",
+        "unsupported": "Diese Datei ist kein PNG-, JPEG-, WebP- oder GIF-Bild.",
+        "unreadable": "Dieses Bild ist beschädigt oder unvollständig und kann nicht gelesen werden.",
+        "failed": "Das Bild konnte nicht gespeichert werden.",
+        "removeFailed": "Das Bild konnte nicht entfernt werden."
+      }
     }
   },
   "libraryModal": {
@@ -3174,6 +3194,7 @@
         "diagnostics": "Updates, Fehlerbehebung und Zurücksetzen der Anwendung."
       },
       "groups": {
+        "profile": "Profil",
         "language": "Sprache",
         "startup": "Start und Benachrichtigungen",
         "scanning": "Import und Scan",
@@ -3228,6 +3249,7 @@
         "diagnostics": "Updates, Logs, Zurücksetzen"
       },
       "groupHints": {
+        "profile": "Wie es in der App erscheint",
         "language": "Gilt sofort, ohne Neustart",
         "startup": "Was beim Öffnen und Schließen von WaveFlow passiert",
         "listening": "Wie Titel starten und was danach läuft",

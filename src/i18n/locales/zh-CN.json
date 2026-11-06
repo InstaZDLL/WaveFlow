@@ -89,6 +89,10 @@
       "namePlaceholder": "你的名字",
       "nameRequired": "请为此个人资料输入名称。"
     },
+    "photo": {
+      "title": "为此个人资料添加照片",
+      "lede": "可选：它会在侧边栏和个人资料菜单中取代首字母。之后可以在“设置 → 常规”中更换或移除。"
+    },
     "folder": {
       "title": "你的音乐在哪里？",
       "lede": "选择存放专辑的文件夹。读取会立即在后台开始，你可以同时继续浏览引导。",
@@ -1223,6 +1227,22 @@
       "warning": "此个人资料的所有音乐库、播放列表和收听记录都会丢失。此操作无法撤销。",
       "submit": "删除个人资料",
       "submitting": "正在删除…"
+    },
+    "picture": {
+      "title": "个人资料照片",
+      "subtitle": "来自电脑的一张图片，裁剪为正方形。凡是显示该个人资料的地方，都会用它取代首字母。",
+      "choose": "选择照片",
+      "change": "更换照片",
+      "remove": "移除",
+      "pickerTitle": "选择个人资料照片",
+      "formats": "PNG、JPEG、WebP 或 GIF，最大 20 MB。只保留裁剪后的副本。",
+      "errors": {
+        "tooLarge": "图片太大：最大 20 MB，最多 5000 万像素。",
+        "unsupported": "此文件不是 PNG、JPEG、WebP 或 GIF 图片。",
+        "unreadable": "此图片已损坏或不完整，无法读取。",
+        "failed": "无法保存照片。",
+        "removeFailed": "无法移除照片。"
+      }
     }
   },
   "libraryModal": {
@@ -3172,6 +3192,7 @@
         "diagnostics": "更新、故障排查和重置应用。"
       },
       "groups": {
+        "profile": "个人资料",
         "language": "语言",
         "startup": "启动与通知",
         "scanning": "导入与扫描",
@@ -3226,6 +3247,7 @@
         "diagnostics": "更新、日志、重置"
       },
       "groupHints": {
+        "profile": "它在应用中的样子",
         "language": "立即生效，无需重启",
         "startup": "WaveFlow 打开和关闭时的行为",
         "listening": "曲目如何开始播放以及接下来播放什么",

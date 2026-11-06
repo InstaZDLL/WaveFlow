@@ -89,6 +89,10 @@
       "namePlaceholder": "이름",
       "nameRequired": "이 프로필의 이름을 입력하세요."
     },
+    "photo": {
+      "title": "이 프로필의 사진",
+      "lede": "선택 사항입니다. 사이드바와 프로필 메뉴에서 첫 글자 대신 표시됩니다. 나중에 설정 → 일반에서 바꾸거나 제거할 수 있습니다."
+    },
     "folder": {
       "title": "음악은 어디에 있나요?",
       "lede": "앨범이 들어 있는 폴더를 선택하세요. 곧바로 백그라운드에서 읽기 시작하니, 그동안 둘러보기를 계속하시면 됩니다.",
@@ -1223,6 +1227,22 @@
       "warning": "이 프로필의 모든 라이브러리, 재생 목록, 재생 기록이 사라집니다. 이 작업은 되돌릴 수 없습니다.",
       "submit": "프로필 삭제",
       "submitting": "삭제 중…"
+    },
+    "picture": {
+      "title": "프로필 사진",
+      "subtitle": "컴퓨터에 있는 이미지를 정사각형으로 잘라 사용합니다. 프로필이 표시되는 모든 곳에서 첫 글자 대신 보입니다.",
+      "choose": "사진 선택",
+      "change": "사진 변경",
+      "remove": "제거",
+      "pickerTitle": "프로필 사진 선택",
+      "formats": "PNG, JPEG, WebP, GIF, 최대 20MB. 잘라낸 사본만 보관됩니다.",
+      "errors": {
+        "tooLarge": "이미지가 너무 큽니다. 최대 20MB, 5,000만 화소까지 가능합니다.",
+        "unsupported": "이 파일은 PNG, JPEG, WebP, GIF 이미지가 아닙니다.",
+        "unreadable": "이미지가 손상되었거나 불완전해서 읽을 수 없습니다.",
+        "failed": "사진을 저장하지 못했습니다.",
+        "removeFailed": "사진을 제거하지 못했습니다."
+      }
     }
   },
   "libraryModal": {
@@ -3172,6 +3192,7 @@
         "diagnostics": "업데이트, 문제 해결 및 앱 초기화를 수행합니다."
       },
       "groups": {
+        "profile": "프로필",
         "language": "언어",
         "startup": "시작 및 알림",
         "scanning": "가져오기 및 스캔",
@@ -3226,6 +3247,7 @@
         "diagnostics": "업데이트, 로그, 초기화"
       },
       "groupHints": {
+        "profile": "앱에서 보이는 모습",
         "language": "다시 시작하지 않아도 바로 적용",
         "startup": "WaveFlow를 열고 닫을 때의 동작",
         "listening": "곡이 시작되는 방식과 다음에 재생될 곡",

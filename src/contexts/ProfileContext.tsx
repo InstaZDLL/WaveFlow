@@ -6,6 +6,8 @@ import {
   getActiveProfile,
   listProfiles,
   renameProfile as apiRenameProfile,
+  setProfileAvatar as apiSetProfileAvatar,
+  clearProfileAvatar as apiClearProfileAvatar,
   switchProfile as apiSwitchProfile,
   type CreateProfileInput,
   type Profile,
@@ -127,6 +129,30 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     [refresh],
   );
 
+  // The returned row replaces the one held, in the list and as the active
+  // profile, so every avatar repaints at once; the list is not re-read,
+  // since a picture changes neither its order nor its members. A refusal
+  // is the caller's to show, not the provider's `error`.
+  const applyUpdated = useCallback((updated: Profile) => {
+    setProfiles((list) => list.map((p) => (p.id === updated.id ? updated : p)));
+    setActiveProfile((current) =>
+      current && current.id === updated.id ? updated : current,
+    );
+    return updated;
+  }, []);
+
+  const setProfileAvatar = useCallback(
+    async (profileId: number, filePath: string) =>
+      applyUpdated(await apiSetProfileAvatar(profileId, filePath)),
+    [applyUpdated],
+  );
+
+  const clearProfileAvatar = useCallback(
+    async (profileId: number) =>
+      applyUpdated(await apiClearProfileAvatar(profileId)),
+    [applyUpdated],
+  );
+
   return (
     <ProfileContext.Provider
       value={{
@@ -139,6 +165,8 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         createProfile,
         deleteProfile,
         renameProfile,
+        setProfileAvatar,
+        clearProfileAvatar,
       }}
     >
       {children}

@@ -20,6 +20,11 @@ interface ProfileContextValue {
   deleteProfile: (profileId: number) => Promise<void>;
   /** Rename a profile in place. Safe against the active profile. */
   renameProfile: (profileId: number, name: string) => Promise<Profile>;
+  /** Make the image at `filePath` the profile's picture (see
+   *  `setProfileAvatar`). Rejects with the backend's refusal. */
+  setProfileAvatar: (profileId: number, filePath: string) => Promise<Profile>;
+  /** Remove the profile's picture. */
+  clearProfileAvatar: (profileId: number) => Promise<Profile>;
 }
 
 export const ProfileContext = createContext<ProfileContextValue | null>(null);

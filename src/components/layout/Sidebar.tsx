@@ -57,7 +57,8 @@ import { useLibraryPlaylists } from "../../hooks/useLibraryPlaylists";
 import { usePlaylistContextMenu } from "../../hooks/usePlaylistContextMenu";
 import { resolvePluginIcon } from "../../lib/pluginIcons";
 import { RELEASE_RADAR_PLUGIN_ID } from "../../lib/tauri/releaseRadar";
-import { getProfileColor, profileInitial } from "../../lib/profileColors";
+import { getProfileColor } from "../../lib/profileColors";
+import { ProfileAvatar } from "../common/ProfileAvatar";
 import { pickFolder } from "../../lib/tauri/dialog";
 import type { ImportPlaylistResult } from "../../lib/tauri/playlist";
 import { getProfileStats, type ProfileStats } from "../../lib/tauri/browse";
@@ -414,11 +415,10 @@ export function Sidebar({
           <div
             className={`flex items-center min-w-0 ${collapsed ? "" : "space-x-3"}`}
           >
-            <div
-              className={`w-6 h-6 rounded-full ${profileColor.avatarBg} ${profileColor.avatarText} flex items-center justify-center text-xs font-bold shrink-0`}
-            >
-              {activeProfile ? profileInitial(activeProfile.name) : ""}
-            </div>
+            <ProfileAvatar
+              profile={activeProfile}
+              className="w-6 h-6 rounded-full text-xs font-bold"
+            />
             <span
               className={`min-w-0 flex flex-col text-left ${collapsed ? "sr-only" : ""}`}
             >
