@@ -432,7 +432,12 @@ export function TopBar({
     // which painted over the open profile menu (issue #390). `z-30` keeps
     // the header — and everything it contains — above content chrome while
     // staying below the PlayerBar (`z-50`); see the layer scale in app.css.
-    <header className="h-16 flex items-center justify-between px-6 z-30 sticky top-0 bg-zinc-50/80 backdrop-blur-md dark:bg-zinc-900/80 wf-glass">
+    <header
+      // The bar itself, for Studio's stylesheet, which draws it flat
+      // (`studio.css`); the zones inside carry their own marks.
+      data-topbar
+      className="h-16 flex items-center justify-between px-6 z-30 sticky top-0 bg-zinc-50/80 backdrop-blur-md dark:bg-zinc-900/80 wf-glass"
+    >
       {/* Navigation Arrows + sidebar toggle (#167). The toggle sits
           left of the back/forward chevrons because that's where the
           sidebar's right edge would be when visible — keeps muscle

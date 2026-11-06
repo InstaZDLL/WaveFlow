@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import { useTranslation } from "react-i18next";
 import {
   Folder,
@@ -6,7 +12,6 @@ import {
   Heart,
   Clock,
   ListMusic,
-  Music2,
   Sparkles,
   RefreshCw,
   X,
@@ -14,8 +19,6 @@ import {
 } from "lucide-react";
 import { useWrappedBannerVisibility } from "../../hooks/useWrappedBannerVisibility";
 import type { ViewId } from "../../types";
-import { ActionLink } from "../common/ActionLink";
-import { StatCard } from "../common/StatCard";
 import { EmptyState } from "../common/EmptyState";
 import { Artwork } from "../common/Artwork";
 import { ArtistLink } from "../common/ArtistLink";
@@ -95,7 +98,7 @@ function ClassicHomeView({
   onNavigateToPlaylist,
   onNavigateToWrapped,
 }: HomeViewProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { activeProfile } = useProfile();
   const {
     libraries,
@@ -295,185 +298,115 @@ function ClassicHomeView({
   // Right-click on a recently added album: pin it to the sidebar.
   const albumMenu = useAlbumArtistContextMenu();
 
-  const bannerClasses =
-    "relative overflow-hidden rounded-3xl bg-linear-to-br from-emerald-50 to-white shadow-sm border border-emerald-100/50 dark:from-emerald-900/40 dark:to-zinc-800/40 dark:border-zinc-800 dark:shadow-none p-10";
+  const greeting = `${t(`home.greeting.${getGreetingKey()}`)}${
+    greetingName ? `, ${greetingName}` : ""
+  }`;
+
+  // Studio's Home: a short header and the library's figures in one row,
+  // then the music — the suggestion, the mixes, the moods, the history.
+  // Flat surfaces, hairlines, the covers as the only colour; nothing
+  // here animates on its own or blurs (`docs/design/studio-refined.md`).
   return (
-    <div className="space-y-8 animate-fade-in pb-20">
-      <div className="space-y-8">
-        {/* Welcome Banner */}
-        <div className={bannerClasses}>
-          {/* The two glows: radial gradients, the shape a blurred disc
-              has, sized to the disc plus its blur. They were discs under
-              `blur-3xl`, which the "ready to listen" dot's pulse made
-              WebKitGTK recompute every frame — 12 frames a second without
-              a GPU (`home-orb` in app.css). */}
-          <div
-            aria-hidden="true"
-            className="home-orb absolute -top-56 -left-48 w-[36rem] h-[36rem] [--orb:var(--color-emerald-300)] [--orb-alpha:30%] dark:[--orb:var(--color-emerald-400)] dark:[--orb-alpha:25%]"
-          />
-          <div
-            aria-hidden="true"
-            className="home-orb absolute -bottom-64 -right-32 w-[44rem] h-[44rem] [--orb:var(--color-emerald-400)] [--orb-alpha:20%] dark:[--orb:var(--color-emerald-500)]"
-          />
-
-          <div className="relative max-w-3xl">
-            <div className="inline-flex items-center space-x-2 bg-emerald-50 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40 dark:border-emerald-400/40 px-3 py-1 rounded-full text-xs font-semibold mb-6 backdrop-blur-sm">
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              <span>{t("home.banner.badge")}</span>
-            </div>
-
-            <h1 className="font-bold mb-2 text-zinc-900 dark:text-white text-4xl">
-              {t(`home.greeting.${getGreetingKey()}`)}
-              {greetingName && `, ${greetingName}`}
+    <div className="space-y-10 animate-fade-in pb-16">
+      <div className="space-y-5">
+        <header className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
+          <div className="min-w-0">
+            <p className="flex items-center gap-2 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+              <span
+                aria-hidden="true"
+                className="h-1.5 w-1.5 rounded-full bg-emerald-500"
+              />
+              {t("home.banner.badge")}
+            </p>
+            <h1 className="mt-1.5 text-[1.75rem] leading-tight font-semibold tracking-[-0.02em] text-zinc-900 dark:text-white">
+              {greeting}
             </h1>
-            <p className="text-zinc-500 dark:text-zinc-400 mb-8 max-w-2xl">
+            <p className="mt-1 max-w-2xl text-sm text-zinc-500 dark:text-zinc-400">
               {t("home.banner.subtitle")}
             </p>
-
-            <div className="flex flex-wrap gap-6">
-              <ActionLink
-                icon={<Folder size={16} />}
-                label={
-                  isImporting
-                    ? t("library.actions.importing")
-                    : t("home.banner.importFolder")
-                }
-                highlight
-                onClick={handleImport}
-              />
-              {hasLibrary && (
-                <ActionLink
-                  icon={<Library size={16} />}
-                  label={t("home.banner.browseLibrary")}
-                  onClick={() => onNavigate("library")}
-                />
-              )}
-            </div>
           </div>
-        </div>
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            {hasLibrary && (
+              <button
+                type="button"
+                onClick={() => onNavigate("library")}
+                className={STUDIO_BUTTON_SECONDARY}
+              >
+                <Library size={15} aria-hidden="true" />
+                {t("home.banner.browseLibrary")}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={handleImport}
+              disabled={isImporting}
+              className={STUDIO_BUTTON_PRIMARY}
+            >
+              {isImporting ? (
+                <Loader2
+                  size={15}
+                  className="animate-spin"
+                  aria-hidden="true"
+                />
+              ) : (
+                <Folder size={15} aria-hidden="true" />
+              )}
+              {isImporting
+                ? t("library.actions.importing")
+                : t("home.banner.importFolder")}
+            </button>
+          </div>
+        </header>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <StatCard
-            icon={<Library />}
-            accent="emerald"
-            count={totalTracks.toString()}
+        {/* The library's figures, one row of four, parted by hairlines:
+            the container's tone shows through a 1 px gap. */}
+        <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-zinc-200 bg-zinc-200 lg:grid-cols-4 dark:border-zinc-800 dark:bg-zinc-800">
+          <StatItem
+            icon={<Library size={16} />}
+            count={totalTracks.toLocaleString(i18n.language)}
             label={t("home.stats.library")}
             onClick={() => onNavigate("library")}
           />
-          <StatCard
-            icon={<Heart className="fill-current" />}
-            accent="pink"
-            count={likedCount.toString()}
+          <StatItem
+            icon={<Heart size={16} />}
+            count={likedCount.toLocaleString(i18n.language)}
             label={t("home.stats.liked")}
             onClick={() => onNavigate("liked")}
           />
-          <StatCard
-            icon={<Clock />}
-            accent="blue"
-            count={recentCount.toString()}
+          <StatItem
+            icon={<Clock size={16} />}
+            count={recentCount.toLocaleString(i18n.language)}
             label={t("home.stats.recent")}
             onClick={() => onNavigate("recent")}
           />
-          <StatCard
-            icon={<ListMusic />}
-            accent="purple"
-            count={userPlaylists.length.toString()}
+          <StatItem
+            icon={<ListMusic size={16} />}
+            count={userPlaylists.length.toLocaleString(i18n.language)}
             label={t("home.stats.playlists")}
             onClick={onNavigateToPlaylists}
           />
         </div>
       </div>
 
-      {/* First steps — the features worth finding, ticked as they are
-          used. Renders nothing once closed or complete. */}
-      <FirstStepsCard />
-
       {/* Suggestion of the day — one track and why: a forgotten
           favourite, one in line with the recent listening, or one never
           played. Hidden when the library has nothing to suggest. */}
       <HomeSuggestionCard />
-
-      {/* Wrapped year-in-review banner — gated by
-          `useWrappedBannerVisibility`: hidden by default and auto-
-          surfaces during the Wrapped season (Dec 1 → Jan 31). Users
-          can force it on, force it off, or dismiss it for the current
-          recap year from the close button below. */}
-      {wrappedYears.length > 0 && wrappedBanner.shouldShow(wrappedYears[0]) && (
-        <div
-          className="relative overflow-hidden w-full text-left rounded-3xl p-8 group transition-transform hover:scale-[1.01]"
-          style={{
-            background:
-              "linear-gradient(135deg,#1d0e3a 0%,#3a1052 50%,#7c2d12 100%)",
-          }}
-        >
-          <div
-            aria-hidden="true"
-            className="home-orb absolute -top-56 -right-48 w-[36rem] h-[36rem] [--orb:var(--color-fuchsia-400)] [--orb-alpha:30%]"
-          />
-          <div
-            aria-hidden="true"
-            className="home-orb absolute -bottom-64 -left-48 w-[40rem] h-[40rem] [--orb:var(--color-orange-400)] [--orb-alpha:25%]"
-          />
-          {/* Dismiss button — persists the year so the banner stays
-              hidden until the next recap year is available. Sits in
-              its own stacking context above the navigate trigger so
-              clicks don't fall through. */}
-          <button
-            type="button"
-            onClick={() => wrappedBanner.dismissYear(wrappedYears[0])}
-            aria-label={t("home.wrapped.dismiss")}
-            className="absolute top-3 right-3 z-10 p-1.5 rounded-full text-white/70 hover:text-white hover:bg-white/15 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
-          >
-            <X size={18} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            onClick={() => onNavigateToWrapped(wrappedYears[0])}
-            className="relative w-full text-left flex items-center gap-6 text-white"
-          >
-            <div className="w-16 h-16 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center">
-              <Sparkles size={32} />
-            </div>
-            <div className="flex-1 min-w-0 pr-6">
-              <div className="uppercase tracking-[0.4em] text-xs text-white/70 mb-1">
-                {t("home.wrapped.eyebrow")}
-              </div>
-              <div className="text-3xl font-extrabold leading-tight">
-                {t("home.wrapped.title", { year: wrappedYears[0] })}
-              </div>
-              <div className="text-sm text-white/70 mt-1">
-                {t("home.wrapped.subtitle")}
-              </div>
-            </div>
-            <div className="hidden md:inline-block px-4 py-2 rounded-full bg-white text-zinc-900 font-semibold text-sm group-hover:scale-105 transition-transform">
-              {t("home.wrapped.cta")}
-            </div>
-          </button>
-        </div>
-      )}
-
-      {/* Mood radios — BPM/loudness-filtered queues. Hidden entirely
-          when the library has zero analysed tracks (component decides
-          internally so HomeView stays declarative). */}
-      <MoodRadioGrid />
 
       {/* Daily Mix — generated from listening history. Hidden when the
           user has too few play_events for a meaningful split (the
           backend returns an empty list and skips re-generation in that
           case); the regen button stays available so the section
           re-appears as soon as enough listening data piles up. */}
-      <div className="space-y-8">
-        <section>
-          <div className="flex items-end justify-between mb-6">
-            <h2 className="text-2xl font-bold inline-block border-b-4 border-violet-500 pb-1 text-zinc-900 dark:text-white">
-              {t("home.dailyMix.title", "Pour vous")}
-            </h2>
+      <section>
+        <SectionHeading
+          title={t("home.dailyMix.title", "Pour vous")}
+          action={
             <button
               type="button"
               onClick={handleRegenerateMixes}
               disabled={isRegenerating}
-              className="inline-flex items-center gap-2 text-sm font-medium text-violet-600 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className={STUDIO_TEXT_ACTION}
             >
               {isRegenerating ? (
                 <Loader2 size={14} className="animate-spin" />
@@ -484,212 +417,277 @@ function ClassicHomeView({
                 ? t("home.dailyMix.regenerating", "Génération…")
                 : t("home.dailyMix.regenerate", "Régénérer")}
             </button>
+          }
+        />
+        {smartPlaylists.length === 0 && playlistsLoading ? (
+          <HomeGridSkeleton label={t("home.dailyMix.title", "Pour vous")} />
+        ) : smartPlaylists.length === 0 ? (
+          <div className="flex min-h-32 items-center justify-center rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+            <EmptyState
+              icon={<Sparkles size={28} />}
+              title={t("home.dailyMix.emptyTitle")}
+              description={t("home.dailyMix.emptyDescription")}
+              size="sm"
+            />
           </div>
-          {smartPlaylists.length === 0 && playlistsLoading ? (
-            <HomeBannerSkeleton label={t("home.dailyMix.title", "Pour vous")} />
-          ) : smartPlaylists.length === 0 ? (
-            <div className="relative overflow-hidden min-h-32 rounded-3xl border flex items-center justify-center p-8 border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-800/40 dark:shadow-none">
-              <EmptyState
-                icon={<Sparkles size={32} />}
-                title={t("home.dailyMix.emptyTitle")}
-                description={t("home.dailyMix.emptyDescription")}
-                size="sm"
-              />
-            </div>
-          ) : (
-            <div className="flex flex-wrap gap-4">
-              {smartPlaylists.map((pl) => {
-                const cover = resolveRemoteImage(pl.cover_path, null);
-                // Per-family styling, so each family reads as a distinct
-                // surface — eyebrow, gradient and focus ring — without
-                // needing a carousel of its own.
-                const style = smartFamilyStyle(smartPlaylistKind(pl));
-                const eyebrow = t(style.labelKey);
-                const fallbackGradient = style.gradient;
-                const ringTint = style.ring;
-                return (
-                  <button
-                    key={`smart-${pl.id}`}
-                    type="button"
-                    onClick={() => onNavigateToPlaylist(pl.id)}
-                    className={`group relative overflow-hidden rounded-2xl bg-zinc-100 dark:bg-zinc-800 aspect-16/7 basis-70 grow max-w-100 text-left focus:outline-none focus-visible:ring-2 ${ringTint} transition-transform hover:-translate-y-0.5`}
-                  >
+        ) : (
+          <div className={STUDIO_GRID}>
+            {smartPlaylists.map((pl) => {
+              const cover = resolveRemoteImage(pl.cover_path, null);
+              // The family names the mix under its title; the cover is
+              // its only colour.
+              const style = smartFamilyStyle(smartPlaylistKind(pl));
+              return (
+                <button
+                  key={`smart-${pl.id}`}
+                  type="button"
+                  onClick={() => onNavigateToPlaylist(pl.id)}
+                  className={STUDIO_TILE}
+                >
+                  <span className="relative block aspect-square w-full overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">
                     {cover ? (
                       <img
                         src={cover}
                         alt=""
-                        className="absolute inset-0 w-full h-full object-cover"
+                        className="absolute inset-0 h-full w-full object-cover"
                         loading="lazy"
                       />
                     ) : (
-                      <div className={`absolute inset-0 ${fallbackGradient}`} />
+                      <span className="absolute inset-0 flex items-center justify-center text-zinc-400 dark:text-zinc-500">
+                        <Sparkles size={28} aria-hidden="true" />
+                      </span>
                     )}
-                    <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/30 to-transparent" />
-                    <div className="absolute inset-x-0 bottom-0 p-4 text-white">
-                      <div className="text-xs uppercase tracking-widest opacity-80">
-                        {eyebrow}
-                      </div>
-                      <div className="text-xl font-bold leading-tight mt-1 truncate">
-                        {pl.name}
-                      </div>
-                      <div className="text-xs opacity-75 mt-0.5">
+                  </span>
+                  <span className="mt-2.5 block min-w-0">
+                    <span className="block truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                      {pl.name}
+                    </span>
+                    <span className="block truncate text-xs text-zinc-500 dark:text-zinc-400">
+                      {t(style.labelKey)}
+                      <span aria-hidden="true"> · </span>
+                      <span className="tabular-nums">
                         {t("home.dailyMix.trackCount", {
                           count: pl.track_count,
                         })}
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </section>
+                      </span>
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </section>
 
-        {/* Récemment joués */}
-        <section>
-          <div className="flex items-end justify-between mb-6">
-            <h2 className="text-2xl font-bold inline-block border-b-4 border-emerald-500 pb-1 text-zinc-900 dark:text-white">
-              {t("home.recentlyPlayed.title")}
-            </h2>
-            {recentPlays.length > 0 && (
+      {/* First steps — the features worth finding, ticked as they are
+          used. Renders nothing once closed or complete. */}
+      <FirstStepsCard />
+
+      {/* Wrapped year-in-review banner — gated by
+          `useWrappedBannerVisibility`: hidden by default and auto-
+          surfaces during the Wrapped season (Dec 1 → Jan 31). Users
+          can force it on, force it off, or dismiss it for the current
+          recap year from the close button below. */}
+      {wrappedYears.length > 0 && wrappedBanner.shouldShow(wrappedYears[0]) && (
+        <div className="relative rounded-xl border border-zinc-200 bg-white transition-colors hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700">
+          <button
+            type="button"
+            onClick={() => onNavigateToWrapped(wrappedYears[0])}
+            className="flex w-full items-center gap-4 rounded-xl p-4 pe-14 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+          >
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+              <Sparkles size={20} aria-hidden="true" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-emerald-600 dark:text-emerald-400">
+                {t("home.wrapped.eyebrow")}
+              </span>
+              <span className="block truncate text-base font-semibold text-zinc-900 dark:text-white">
+                {t("home.wrapped.title", { year: wrappedYears[0] })}
+              </span>
+              <span className="block truncate text-sm text-zinc-500 dark:text-zinc-400">
+                {t("home.wrapped.subtitle")}
+              </span>
+            </span>
+            {/* The visibility sits on its own box: the button style carries
+                `inline-flex`, which would compete with `hidden` on one element. */}
+            <span className="hidden md:inline-flex">
+              <span className={STUDIO_BUTTON_SECONDARY}>
+                {t("home.wrapped.cta")}
+              </span>
+            </span>
+          </button>
+          {/* Dismiss button — persists the year so the banner stays
+              hidden until the next recap year is available. Sits beside
+              the navigate trigger, not inside it. */}
+          <button
+            type="button"
+            onClick={() => wrappedBanner.dismissYear(wrappedYears[0])}
+            aria-label={t("home.wrapped.dismiss")}
+            className="absolute end-3 top-3 rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 dark:hover:bg-white/5 dark:hover:text-zinc-200"
+          >
+            <X size={16} aria-hidden="true" />
+          </button>
+        </div>
+      )}
+
+      {/* Mood radios — BPM/loudness-filtered queues. Hidden entirely
+          when the library has zero analysed tracks (component decides
+          internally so HomeView stays declarative). */}
+      <MoodRadioGrid />
+
+      {/* Récemment joués */}
+      <section>
+        <SectionHeading
+          title={t("home.recentlyPlayed.title")}
+          action={
+            recentPlays.length > 0 ? (
               <button
                 type="button"
                 onClick={() => onNavigate("recent")}
-                className="text-sm font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors"
+                className={STUDIO_TEXT_ACTION}
               >
                 {t("home.seeAll")}
               </button>
-            )}
-          </div>
-          {recentPlays.length === 0 && recentPlaysLoading ? (
-            <HomeCarouselSkeleton label={t("home.recentlyPlayed.title")} />
-          ) : recentPlays.length === 0 ? (
-            <div className="relative overflow-hidden min-h-80 rounded-3xl border flex items-center justify-center p-8 border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-800/40 dark:shadow-none">
-              <EmptyState
-                icon={<Clock size={32} />}
-                title={t("home.recentlyPlayed.emptyTitle")}
-                description={t("home.recentlyPlayed.emptyDescription")}
-                size="sm"
+            ) : null
+          }
+        />
+        {recentPlays.length === 0 && recentPlaysLoading ? (
+          <HomeGridSkeleton label={t("home.recentlyPlayed.title")} />
+        ) : recentPlays.length === 0 ? (
+          <div className="flex min-h-48 items-center justify-center rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+            <EmptyState
+              icon={<Clock size={28} />}
+              title={t("home.recentlyPlayed.emptyTitle")}
+              description={t("home.recentlyPlayed.emptyDescription")}
+              size="sm"
+            >
+              <svg
+                viewBox="0 0 400 40"
+                preserveAspectRatio="none"
+                aria-hidden="true"
+                className="mt-6 h-8 w-80 text-zinc-300 dark:text-zinc-700"
               >
-                <svg
-                  viewBox="0 0 400 40"
-                  preserveAspectRatio="none"
-                  aria-hidden="true"
-                  className="mt-8 w-96 h-10 text-emerald-400 dark:text-emerald-400/60"
-                >
-                  {WAVEFORM_HEIGHTS.map((h, i) => {
-                    const barWidth = 2.5;
-                    const gap = 2.5;
-                    const totalWidth =
-                      WAVEFORM_BAR_COUNT * (barWidth + gap) - gap;
-                    const startX = (400 - totalWidth) / 2;
-                    const x = startX + i * (barWidth + gap);
-                    const barH = h * 36;
-                    const y = (40 - barH) / 2;
-                    return (
-                      <rect
-                        key={i}
-                        x={x}
-                        y={y}
-                        width={barWidth}
-                        height={barH}
-                        rx={1}
-                        fill="currentColor"
-                      />
-                    );
-                  })}
-                </svg>
-              </EmptyState>
-            </div>
-          ) : (
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-4">
-              {recentPlays.map((play, idx) => {
-                const isCurrent = play.track_id === currentTrack?.id;
-                return (
-                  <div
-                    key={`${play.track_id}-${play.played_at}`}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => handlePlayRecent(idx)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        handlePlayRecent(idx);
-                      }
-                    }}
-                    className="group flex flex-col items-stretch text-left rounded-2xl p-3 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 cursor-pointer"
-                  >
-                    <Artwork
-                      path={play.artwork_path}
-                      path1x={play.artwork_path_1x}
-                      path2x={play.artwork_path_2x}
-                      // Carousel tile renders at ~200 px wide; the 128 px
-                      // 2x thumbnail upscales to a visibly soft image on a
-                      // HiDPI display (effective 400 device px). Serve the
-                      // original artwork — typically 600-1500 px square,
-                      // small enough to decode instantly and crisp at any
-                      // card size.
-                      size="full"
-                      alt={play.album_title ?? play.title}
-                      className="w-full aspect-square shadow-sm group-hover:shadow-md transition-shadow"
-                      iconSize={36}
-                      rounded="2xl"
+                {WAVEFORM_HEIGHTS.map((h, i) => {
+                  const barWidth = 2.5;
+                  const gap = 2.5;
+                  const totalWidth =
+                    WAVEFORM_BAR_COUNT * (barWidth + gap) - gap;
+                  const startX = (400 - totalWidth) / 2;
+                  const x = startX + i * (barWidth + gap);
+                  const barH = h * 36;
+                  const y = (40 - barH) / 2;
+                  return (
+                    <rect
+                      key={i}
+                      x={x}
+                      y={y}
+                      width={barWidth}
+                      height={barH}
+                      rx={1}
+                      fill="currentColor"
                     />
-                    <div className="mt-3 min-w-0">
-                      <div
-                        className={`text-sm font-semibold truncate ${
-                          isCurrent
-                            ? "text-emerald-600 dark:text-emerald-400"
-                            : "text-zinc-800 dark:text-zinc-200"
-                        }`}
-                      >
-                        {play.title}
-                      </div>
-                      <ArtistLink
-                        name={play.artist_name}
-                        artistIds={play.artist_ids}
-                        onNavigate={onNavigateToArtist}
-                        fallback="—"
-                        className="text-xs text-zinc-500 truncate block"
-                      />
+                  );
+                })}
+              </svg>
+            </EmptyState>
+          </div>
+        ) : (
+          <div className={STUDIO_GRID}>
+            {recentPlays.map((play, idx) => {
+              const isCurrent = play.track_id === currentTrack?.id;
+              return (
+                <div
+                  key={`${play.track_id}-${play.played_at}`}
+                  role="button"
+                  tabIndex={0}
+                  aria-current={isCurrent ? "true" : undefined}
+                  onClick={() => handlePlayRecent(idx)}
+                  onKeyDown={(e) => {
+                    // The artist link inside is a button of its own: its
+                    // Enter opens the artist, not the track.
+                    if (e.target !== e.currentTarget) return;
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handlePlayRecent(idx);
+                    }
+                  }}
+                  className={`${STUDIO_TILE} cursor-pointer`}
+                >
+                  <Artwork
+                    path={play.artwork_path}
+                    path1x={play.artwork_path_1x}
+                    path2x={play.artwork_path_2x}
+                    // Carousel tile renders at ~200 px wide; the 128 px
+                    // 2x thumbnail upscales to a visibly soft image on a
+                    // HiDPI display (effective 400 device px). Serve the
+                    // original artwork — typically 600-1500 px square,
+                    // small enough to decode instantly and crisp at any
+                    // card size.
+                    size="full"
+                    alt={play.album_title ?? play.title}
+                    className={`w-full aspect-square ${
+                      isCurrent
+                        ? "ring-2 ring-emerald-500 ring-offset-2 ring-offset-white dark:ring-offset-zinc-900"
+                        : ""
+                    }`}
+                    iconSize={32}
+                    rounded="lg"
+                  />
+                  <div className="mt-2.5 min-w-0">
+                    <div
+                      className={`truncate text-sm font-medium ${
+                        isCurrent
+                          ? "text-emerald-600 dark:text-emerald-400"
+                          : "text-zinc-900 dark:text-zinc-100"
+                      }`}
+                    >
+                      {play.title}
                     </div>
+                    <ArtistLink
+                      name={play.artist_name}
+                      artistIds={play.artist_ids}
+                      onNavigate={onNavigateToArtist}
+                      fallback="—"
+                      className="block truncate text-xs text-zinc-500 dark:text-zinc-400"
+                    />
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </section>
-      </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
 
       {/* Récemment ajoutés — render while loading (skeleton) or once
           we have data; only suppress when the library is empty AND
           nothing is loading, which is the "no library yet" state where
-          the welcome banner handles the empty case on its own. */}
+          the header's import action handles the empty case on its own. */}
       {hasLibrary && (recentAlbumsLoading || recentAlbums.length > 0) && (
         <section>
-          <div className="flex items-end justify-between mb-6">
-            <h2 className="text-2xl font-bold inline-block border-b-4 border-emerald-500 pb-1 text-zinc-900 dark:text-white">
-              {t("home.recentlyAdded.title")}
-            </h2>
-            <button
-              type="button"
-              onClick={() => onNavigate("library")}
-              className="text-sm font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors"
-            >
-              {t("home.seeAll")}
-            </button>
-          </div>
+          <SectionHeading
+            title={t("home.recentlyAdded.title")}
+            action={
+              <button
+                type="button"
+                onClick={() => onNavigate("library")}
+                className={STUDIO_TEXT_ACTION}
+              >
+                {t("home.seeAll")}
+              </button>
+            }
+          />
           {recentAlbums.length === 0 && recentAlbumsLoading ? (
-            <HomeCarouselSkeleton label={t("home.recentlyAdded.title")} />
+            <HomeGridSkeleton label={t("home.recentlyAdded.title")} />
           ) : (
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-4">
+            <div className={STUDIO_GRID}>
               {recentAlbums.map((album) => (
                 <button
                   key={album.id}
                   type="button"
                   onClick={() => onNavigateToAlbum(album.id)}
                   {...albumMenu.bind({ kind: "album", id: album.id })}
-                  className="group flex flex-col items-stretch text-left rounded-2xl p-3 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                  className={STUDIO_TILE}
                 >
                   <Artwork
                     path={album.artwork_path}
@@ -698,19 +696,16 @@ function ClassicHomeView({
                     // See "Récemment joués" comment above — same reason.
                     size="full"
                     alt={album.title}
-                    className="w-full aspect-square shadow-sm group-hover:shadow-md transition-shadow"
-                    iconSize={36}
-                    rounded="2xl"
+                    className="w-full aspect-square"
+                    iconSize={32}
+                    rounded="lg"
                   />
-                  <div className="mt-3 min-w-0">
-                    <div className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 truncate">
+                  <div className="mt-2.5 min-w-0">
+                    <div className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
                       {album.title}
                     </div>
-                    <div className="text-xs text-zinc-500 truncate flex items-center gap-1">
-                      <Music2 size={11} className="shrink-0" />
-                      <span className="truncate">
-                        {album.artist_name ?? t("library.table.unknown")}
-                      </span>
+                    <div className="truncate text-xs text-zinc-500 dark:text-zinc-400">
+                      {album.artist_name ?? t("library.table.unknown")}
                     </div>
                   </div>
                 </button>
@@ -724,40 +719,92 @@ function ClassicHomeView({
   );
 }
 
-interface HomeSkeletonProps {
-  label: string;
-}
+/* Studio's vocabulary for the Home, in one place: one grid for every
+   row of covers (so a mix, a play and an album are the same size), one
+   tile, three kinds of action. */
+const STUDIO_GRID =
+  "grid grid-cols-[repeat(auto-fill,minmax(9.5rem,1fr))] gap-x-5 gap-y-6";
+const STUDIO_TILE =
+  "group -m-2 flex min-w-0 flex-col items-stretch rounded-xl p-2 text-left transition-colors hover:bg-zinc-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 dark:hover:bg-white/5";
+const STUDIO_BUTTON_PRIMARY =
+  "inline-flex h-8 items-center gap-2 rounded-lg bg-emerald-600 px-3 text-sm font-medium text-white transition-colors hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:opacity-60 dark:bg-emerald-500 dark:text-zinc-950 dark:hover:bg-emerald-400 dark:focus-visible:ring-offset-zinc-900";
+const STUDIO_BUTTON_SECONDARY =
+  "inline-flex h-8 items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 text-sm font-medium text-zinc-700 transition-colors hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-white";
+const STUDIO_TEXT_ACTION =
+  "inline-flex items-center gap-1.5 rounded-md px-1.5 py-1 text-sm font-medium text-zinc-500 transition-colors hover:text-zinc-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-50 dark:text-zinc-400 dark:hover:text-white";
 
-function HomeBannerSkeleton({ label }: HomeSkeletonProps) {
+/** A section's title, with its one action (see all, regenerate) on the
+ *  right, on the title's baseline. */
+function SectionHeading({
+  title,
+  action,
+}: {
+  title: string;
+  action?: ReactNode;
+}) {
   return (
-    <div
-      role="status"
-      aria-busy="true"
-      aria-label={label}
-      className="flex flex-wrap gap-4 animate-pulse"
-    >
-      {Array.from({ length: 3 }).map((_, i) => (
-        <div
-          key={i}
-          className="aspect-16/7 basis-70 grow max-w-100 rounded-2xl bg-zinc-200/70 dark:bg-zinc-700/40"
-        />
-      ))}
+    <div className="mb-4 flex items-center justify-between gap-4">
+      <h2 className="text-lg font-semibold tracking-[-0.01em] text-zinc-900 dark:text-white">
+        {title}
+      </h2>
+      {action}
     </div>
   );
 }
 
-function HomeCarouselSkeleton({ label }: HomeSkeletonProps) {
-  const tile = "bg-zinc-200/70 dark:bg-zinc-700/40";
+/** One figure of the library's row: icon, count, label — the whole cell
+ *  a button to the page it counts. */
+function StatItem({
+  icon,
+  count,
+  label,
+  onClick,
+}: {
+  icon: ReactNode;
+  count: string;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex min-w-0 items-center gap-3 bg-white px-4 py-3 text-left transition-colors hover:bg-zinc-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500 dark:bg-zinc-900 dark:hover:bg-zinc-800/70"
+    >
+      <span
+        aria-hidden="true"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-zinc-100 text-zinc-500 dark:bg-white/5 dark:text-zinc-400"
+      >
+        {icon}
+      </span>
+      <span className="min-w-0">
+        <span className="block text-base font-semibold leading-tight tabular-nums text-zinc-900 dark:text-white">
+          {count}
+        </span>
+        <span className="block truncate text-xs text-zinc-500 dark:text-zinc-400">
+          {label}
+        </span>
+      </span>
+    </button>
+  );
+}
+
+interface HomeSkeletonProps {
+  label: string;
+}
+
+function HomeGridSkeleton({ label }: HomeSkeletonProps) {
+  const tile = "bg-zinc-200/70 dark:bg-zinc-800";
   return (
     <div
       role="status"
       aria-busy="true"
       aria-label={label}
-      className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-4 animate-pulse"
+      className={`${STUDIO_GRID} animate-pulse motion-reduce:animate-none`}
     >
       {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} className="p-3 space-y-3">
-          <div className={`w-full aspect-square rounded-2xl ${tile}`} />
+        <div key={i} className="space-y-2.5">
+          <div className={`aspect-square w-full rounded-lg ${tile}`} />
           <div className={`h-3 w-3/4 rounded ${tile}`} />
           <div className={`h-3 w-1/2 rounded ${tile}`} />
         </div>

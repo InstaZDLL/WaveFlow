@@ -67,19 +67,6 @@ export interface NavItemProps {
  *  (256 px), icons only (80 px), hidden. */
 export type SidebarMode = "full" | "icons" | "hidden";
 
-export type StatCardAccent = "emerald" | "pink" | "blue" | "purple";
-
-export interface StatCardProps {
-  icon: ReactNode;
-  accent: StatCardAccent;
-  count: string;
-  label: string;
-  /** Required: each card is a shortcut. It was optional, and the
-   *  Playlists card shipped without one — a card that lifted on hover
-   *  and did nothing. */
-  onClick: () => void;
-}
-
 export interface TabProps {
   icon: ReactNode;
   label: string;
@@ -97,12 +84,5 @@ export interface MenuActionItemProps {
   icon: ReactNode;
   label: string;
   danger?: boolean;
-  onClick?: () => void;
-}
-
-export interface ActionLinkProps {
-  icon: ReactNode;
-  label: string;
-  highlight?: boolean;
   onClick?: () => void;
 }

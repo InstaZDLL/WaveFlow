@@ -1,0 +1,268 @@
+/* ============================================================
+   Studio — Studio Refined, the classic layout's material
+   ============================================================
+   Studio is the one skin on the classic layout, and the one safe mode
+   and the crash marker fall back to (`RECOVERY_SKIN_ID`). Its direction
+   is written in `docs/design/studio-refined.md`: precise, compact,
+   music first — a neutral canvas, flat surfaces one step apart, 1 px
+   lines where two of them meet, the theme's accent spent on the open
+   item, the playing row and the focus ring, the covers as the only
+   colour.
+
+   Being the fallback sets the rule for this file, and it is not a
+   matter of taste: **nothing here may cost a frame on a machine
+   without a GPU.** So it writes only colours, borders, radii, padding,
+   sizes and 1 px inset shadows with no blur (a line, not a shadow). No
+   `backdrop-filter`, no `filter`, no mask, no gradient, no animation,
+   no blurred shadow, no `will-change`. A skin that makes the webview
+   unusable must never be the one recovery lands on; a stylesheet that
+   only draws flat boxes cannot be that skin.
+
+   Every rule is keyed on `:root[data-skin="studio"]` and on the
+   `data-*` marks the components carry (`data-topbar`, `data-nav-item`,
+   `data-sidebar-row`, `data-track-head`, `data-artwork-placeholder`,
+   …), never on a utility class — the same contract the fluid layout's
+   stylesheets keep. The rules are
+   not layered, so they win over Tailwind's utilities (which live in
+   `@layer utilities`) without `!important`. The Home's own shapes are
+   in the classic Home's markup (`HomeView`), since no other skin
+   renders it. */
+
+:root[data-skin="studio"] {
+  /* The page under the top bar: the theme's ambient with the centre
+     column's 50 % zinc wash over it, the same colour the column paints,
+     so the bar can be opaque without showing a seam. */
+  --studio-canvas: color-mix(
+    in srgb,
+    var(--color-zinc-50) 50%,
+    var(--ambient-bg)
+  );
+  --studio-field: #ffffff;
+  --studio-line: var(--color-zinc-200);
+  --studio-line-strong: var(--color-zinc-300);
+  /* Tones over a surface: hover, then open. */
+  --studio-tone: rgb(24 24 27 / 0.045);
+  --studio-tone-strong: rgb(24 24 27 / 0.075);
+  --studio-ink: var(--color-zinc-900);
+  --studio-ink-2: var(--color-zinc-600);
+  --studio-ink-3: var(--color-zinc-500);
+  /* The theme's accent (or the picked one, or the cover's: the accent
+     mode decides upstream). 500 on the light ground, 600 for text. */
+  --studio-accent: var(--accent-500);
+  --studio-accent-text: var(--accent-600);
+  --studio-accent-soft: color-mix(in srgb, var(--accent-500) 10%, transparent);
+}
+
+:root[data-skin="studio"].dark {
+  --studio-canvas: color-mix(
+    in srgb,
+    var(--color-zinc-900) 50%,
+    var(--ambient-bg)
+  );
+  --studio-field: rgb(255 255 255 / 0.05);
+  --studio-line: var(--color-zinc-800);
+  --studio-line-strong: var(--color-zinc-700);
+  --studio-tone: rgb(255 255 255 / 0.05);
+  --studio-tone-strong: rgb(255 255 255 / 0.085);
+  --studio-ink: #ffffff;
+  --studio-ink-2: var(--color-zinc-300);
+  --studio-ink-3: var(--color-zinc-400);
+  --studio-accent: var(--accent-400);
+  --studio-accent-text: var(--accent-400);
+  --studio-accent-soft: color-mix(in srgb, var(--accent-400) 12%, transparent);
+}
+
+/* ── Top bar: opaque, one line under it, controls on one 32 px grid ── */
+
+/* The bar was a translucent sheet over a backdrop blur: the one blur
+   Studio drew everywhere, repainted under every scroll of the page. It
+   is the page's own colour now, parted from the content by a line. */
+:root[data-skin="studio"] [data-topbar] {
+  height: 3.5rem;
+  padding-inline: 1.25rem;
+  background-color: var(--studio-canvas);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: inset 0 -1px 0 var(--studio-line);
+}
+
+:root[data-skin="studio"] [data-topbar-left] > button,
+:root[data-skin="studio"] [data-topbar-whatsnew] {
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border-radius: 0.5rem;
+}
+
+:root[data-skin="studio"] [data-topbar-left] > button svg {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+:root[data-skin="studio"] [data-topbar-search] {
+  margin-inline: 1.5rem;
+}
+
+:root[data-skin="studio"] [data-topbar-search-field] {
+  height: 2.25rem;
+  padding-block: 0;
+  padding-inline: 0.75rem 0.375rem;
+  border-radius: 0.5rem;
+  border-color: var(--studio-line);
+  background-color: var(--studio-field);
+  transition:
+    border-color 150ms ease-out,
+    box-shadow 150ms ease-out;
+}
+
+:root[data-skin="studio"] [data-topbar-search-field]:hover {
+  border-color: var(--studio-line-strong);
+}
+
+/* Focus: the accent's edge and a 3 px ring of its tint — a ring, not a
+   glow: no blur. */
+:root[data-skin="studio"] [data-topbar-search-field]:focus-within {
+  border-color: var(--studio-accent);
+  box-shadow: 0 0 0 3px var(--studio-accent-soft);
+}
+
+:root[data-skin="studio"] [data-topbar-search-field] > svg:first-child {
+  margin-inline-end: 0.5rem;
+  width: 1rem;
+  height: 1rem;
+}
+
+:root[data-skin="studio"] [data-topbar-profile] {
+  height: 2rem;
+  padding-block: 0;
+  padding-inline: 0.25rem 0.5rem;
+  border-radius: 0.5rem;
+}
+
+/* ── Sidebar: dense rows, one selected state ── */
+
+:root[data-skin="studio"] [data-sidebar-brand] {
+  margin-bottom: 1.25rem;
+  font-size: 1.0625rem;
+  letter-spacing: -0.01em;
+}
+
+:root[data-skin="studio"] [data-sidebar-profile] {
+  padding: 0.375rem 0.5rem;
+  border-radius: 0.5rem;
+}
+
+:root[data-skin="studio"] [data-sidebar-nav] {
+  padding-top: 0.5rem;
+}
+
+/* One row height for the navigation (32 px) and one for the covers'
+   rows (40 px), 1 px apart: the playlists the column can show grow by
+   a sixth at the same height. */
+:root[data-skin="studio"] [data-sidebar] [data-nav-item] {
+  min-height: 2rem;
+  padding-block: 0.3125rem;
+  border-radius: 0.375rem;
+  color: var(--studio-ink-2);
+}
+
+:root[data-skin="studio"] [data-sidebar] [data-sidebar-row] {
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+}
+
+:root[data-skin="studio"]
+  [data-sidebar]
+  :is([data-nav-item], [data-sidebar-row]):not(:last-child) {
+  margin-block-end: 1px;
+}
+
+:root[data-skin="studio"]
+  [data-sidebar]
+  :is([data-nav-item], [data-sidebar-row]):hover {
+  background-color: var(--studio-tone);
+  color: var(--studio-ink);
+}
+
+/* The open item: a tone up, its ink, the accent on its icon and as a
+   2 px edge on its start side (the end side in a right-to-left
+   language). */
+:root[data-skin="studio"]
+  [data-sidebar]
+  :is([data-nav-item], [data-sidebar-row])[data-active] {
+  background-color: var(--studio-tone-strong);
+  color: var(--studio-ink);
+  box-shadow: inset 2px 0 0 var(--studio-accent);
+}
+
+:root[dir="rtl"][data-skin="studio"]
+  [data-sidebar]
+  :is([data-nav-item], [data-sidebar-row])[data-active] {
+  box-shadow: inset -2px 0 0 var(--studio-accent);
+}
+
+:root[data-skin="studio"]
+  [data-sidebar]
+  [data-nav-item][data-active]
+  > span:first-child {
+  color: var(--studio-accent-text);
+}
+
+:root[data-skin="studio"] [data-sidebar-section-title] {
+  margin-bottom: 0.25rem;
+  padding-inline: 0.625rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--studio-ink-3);
+}
+
+/* ── Track tables: rounder to match the cards, a quieter header ──
+   The rows keep their own states (the playing row's tint, the blue
+   selection), which every list of tracks draws the same way. */
+
+:root[data-skin="studio"] [data-track-table] {
+  border-radius: 0.75rem;
+}
+
+:root[data-skin="studio"] [data-track-head] {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--studio-ink-3);
+}
+
+/* ── A missing cover: a neutral tile, not the accent's gradient ── */
+
+:root[data-skin="studio"] [data-artwork-placeholder] {
+  background: var(--studio-tone-strong);
+  border-color: var(--studio-line);
+}
+
+:root[data-skin="studio"] [data-artwork-placeholder] > svg {
+  color: var(--studio-ink-3);
+}
+
+/* ── The breathing glows: off ──
+   An empty state or a profile's initial sits on a soft glow that
+   breathes forever (`.soft-glow` + `animate-breathing`, app.css): a
+   gradient repainted every frame, the kind of loop Studio draws none of.
+   The icon and the text stay. */
+
+:root[data-skin="studio"] .soft-glow {
+  display: none;
+}
+
+/* ── High contrast: the lines that part the surfaces read at once ── */
+
+:root[data-skin="studio"][data-contrast="high"] {
+  --studio-line: var(--color-zinc-500);
+  --studio-line-strong: var(--color-zinc-600);
+}
+
+:root[data-skin="studio"][data-contrast="high"].dark {
+  --studio-line: var(--color-zinc-500);
+  --studio-line-strong: var(--color-zinc-400);
+}
