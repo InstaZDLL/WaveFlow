@@ -509,10 +509,12 @@ function ClassicHomeView({
                 {t("home.wrapped.subtitle")}
               </span>
             </span>
-            <span
-              className={`hidden md:inline-flex ${STUDIO_BUTTON_SECONDARY}`}
-            >
-              {t("home.wrapped.cta")}
+            {/* The visibility sits on its own box: the button style carries
+                `inline-flex`, which would compete with `hidden` on one element. */}
+            <span className="hidden md:inline-flex">
+              <span className={STUDIO_BUTTON_SECONDARY}>
+                {t("home.wrapped.cta")}
+              </span>
             </span>
           </button>
           {/* Dismiss button — persists the year so the banner stays
