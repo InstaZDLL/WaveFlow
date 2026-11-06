@@ -1622,6 +1622,46 @@ fn a_ttml_the_editor_cannot_read_is_refused() {
     assert!(read_lyrics_document("<tt><p>".into(), Some(LyricsFormat::Ttml)).is_err());
 }
 
+/// Asked for by opening a track's lyrics, long after any scan: the tag is checked
+/// here too, and the answer is that it holds none.
+#[test]
+fn no_lyrics_are_read_from_a_tag_that_nests_chapters() {
+    let mut frames = Vec::new();
+    for _ in 0..64 {
+        let mut body = b"c\0".to_vec();
+        body.extend_from_slice(&[0; 8]);
+        body.extend_from_slice(&[0xff; 8]);
+        body.extend_from_slice(&frames);
+        let size = body.len();
+        frames = b"CHAP".to_vec();
+        frames.extend_from_slice(&[
+            ((size >> 21) & 0x7f) as u8,
+            ((size >> 14) & 0x7f) as u8,
+            ((size >> 7) & 0x7f) as u8,
+            (size & 0x7f) as u8,
+        ]);
+        frames.extend_from_slice(&[0, 0]);
+        frames.extend_from_slice(&body);
+    }
+    let size = frames.len();
+    let mut bytes = b"ID3\x04\0\0".to_vec();
+    bytes.extend_from_slice(&[
+        ((size >> 21) & 0x7f) as u8,
+        ((size >> 14) & 0x7f) as u8,
+        ((size >> 7) & 0x7f) as u8,
+        (size & 0x7f) as u8,
+    ]);
+    bytes.extend_from_slice(&frames);
+    let fixture =
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/tags/silence.mp3");
+    bytes.extend_from_slice(&std::fs::read(fixture).unwrap());
+
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("a.mp3");
+    std::fs::write(&path, bytes).unwrap();
+    assert!(local::read_embedded_lyrics(&path).is_none());
+}
+
 /// The second pass of a save, the one that stamps the synced key: it rewrites
 /// the file every time, so on a FLAC with all the room it needs it used to
 /// fail with a warning in the log and no stamp.

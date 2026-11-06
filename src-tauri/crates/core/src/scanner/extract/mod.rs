@@ -593,6 +593,7 @@ pub fn read_tagged_file(path: &Path) -> Result<lofty::file::TaggedFile, String> 
     use lofty::config::{ParseOptions, ParsingMode};
     use lofty::probe::Probe;
 
+    crate::tagio::chapter_nesting::check_file(path).map_err(|e| e.to_string())?;
     let read = |mode: ParsingMode| -> Result<lofty::file::TaggedFile, String> {
         Probe::open(path)
             .map_err(|e| error_chain(&e))?
@@ -618,6 +619,10 @@ pub fn read_tagged_from<R: Read + Seek>(
     use lofty::config::{ParseOptions, ParsingMode};
     use lofty::probe::Probe;
 
+    reader
+        .seek(SeekFrom::Start(0))
+        .map_err(|e| error_chain(&e))?;
+    crate::tagio::chapter_nesting::check_reader(reader).map_err(|e| e.to_string())?;
     let mut read = |mode: ParsingMode| -> Result<lofty::file::TaggedFile, String> {
         reader
             .seek(SeekFrom::Start(0))
@@ -654,5 +659,7 @@ fn error_chain(err: &dyn std::error::Error) -> String {
     out
 }
 
+#[cfg(test)]
+mod nested_chapter_tests;
 #[cfg(test)]
 mod tests;

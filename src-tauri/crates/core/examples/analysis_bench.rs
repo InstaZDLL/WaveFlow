@@ -107,6 +107,8 @@ fn path_key(path: &str) -> String {
 }
 
 fn tag_bpm(path: &Path) -> Option<f64> {
+    // A bench walks a whole library, and one file can end it like it would the app.
+    waveflow_core::tagio::chapter_nesting::check_file(path).ok()?;
     let tagged = lofty::read_from_path(path).ok()?;
     for tag in tagged.tags() {
         for key in [ItemKey::Bpm, ItemKey::IntegerBpm] {

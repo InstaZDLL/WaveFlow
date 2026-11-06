@@ -496,7 +496,13 @@ fn stamp_synced_lyrics(
                 changed
             });
         }
-        LyricsContainer::Lofty(file_type) => file_type,
+        // Every read below parses the tag. A DSF is checked above by
+        // `with_dsf_tag`, at the tag itself: the file check would also walk
+        // its audio, as `patch_file` does not, and could fail this pass alone.
+        LyricsContainer::Lofty(file_type) => {
+            waveflow_core::tagio::chapter_nesting::check_file(path)?;
+            file_type
+        }
     };
 
     /// Remove every spelling of the key, then write the canonical one if
