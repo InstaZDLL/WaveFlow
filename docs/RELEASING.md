@@ -435,7 +435,7 @@ The payloads are cached five minutes at the edge, not a year: re-running the rel
 
 A tag's files keep their address: `releases/<tag>/` is rewritten in place if a tag is ever published again. Do not rebuild a tag with different bytes. Should it happen, an installation that read the old manifest, or a cache that kept the old file, gets bytes whose signature does not match: the install stops with an error, the updater tries the other host, and nothing wrong is installed. Publishing a new version is the way out.
 
-One mirror runs at a time across tags (the `r2-mirror` concurrency group, the `r2-publish` resource group on GitLab), so two releases cannot interleave the read and the write of a channel's manifest.
+One mirror runs at a time per channel on GitHub (the `r2-mirror-stable` and `r2-mirror-beta` concurrency groups; a newer release of the same channel replaces a pending older one, which is what its manifest would say anyway) and one publish at a time on GitLab (the `r2-publish` resource group), so two releases cannot interleave the read and the write of a channel's manifest. These locks belong to each platform and are not shared: during a switch, stop releases on one before the other publishes to the bucket.
 
 Nothing is ever deleted from the bucket. A release is about 400 MB across the three platforms; prune old `releases/<tag>/` folders by hand (or with a lifecycle rule on that prefix) when the storage bill says so, never the one the current manifests name.
 

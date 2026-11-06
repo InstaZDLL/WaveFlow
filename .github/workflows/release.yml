@@ -798,11 +798,14 @@ jobs:
     if: ${{ !cancelled() && needs.updater-manifest.result != 'skipped' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    # One mirror at a time across every tag: the release's own group is per
-    # ref, and two tags published together would each read the channel's
-    # manifest before either wrote it, the older one possibly writing last.
+    # One mirror at a time per channel across tags: the release's own group
+    # is per ref, and two tags published together would each read the
+    # channel's manifest before either wrote it, the older one possibly
+    # writing last. GitHub keeps one pending run per group and cancels the
+    # one before it, so the group is the channel: only an older release of
+    # the same channel can be dropped, never the other channel's.
     concurrency:
-      group: r2-mirror
+      group: r2-mirror-${{ contains(github.event.inputs.tag_name || github.ref_name, '-') && 'beta' || 'stable' }}
       cancel-in-progress: false
     permissions:
       contents: read
