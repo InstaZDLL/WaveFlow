@@ -44,4 +44,11 @@ while IFS= read -r -d '' f; do
   fi
 done < <(find "$work/squashfs-root" -type f -print0)
 echo "Checked $checked ELF files in the AppImage."
+# The find above runs in a process substitution, where set -e does not
+# see it fail: an extraction that moved or came out empty would leave
+# nothing checked and the release passing.
+if [ "$checked" -eq 0 ]; then
+  echo "::error::no ELF file found in the extracted AppImage: the glibc floor was not checked"
+  exit 1
+fi
 exit "$failed"
