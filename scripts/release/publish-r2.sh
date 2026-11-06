@@ -28,7 +28,8 @@
 #
 # Environment:
 #   R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY  an R2 API token's S3 keys
-#   R2_ACCOUNT_ID                          the Cloudflare account id
+#   R2_ACCOUNT_ID                          the Cloudflare account id, or its
+#                                          S3 endpoint https://<id>.r2.cloudflarestorage.com
 #   R2_BUCKET                              the bucket's name
 #   R2_PUBLIC_URL     the bucket's public domain, as compiled into the
 #                     app (default https://download.waveflow.app)
@@ -58,12 +59,32 @@ r2_state() {
   esac
 }
 
+# The account id, or the S3 endpoint the dashboard shows right beside it,
+# https://<id>.r2.cloudflarestorage.com: the secret has been set to the second
+# once already (on the server's repository), and the upload then failed on
+# DNS with nothing saying why. Prints the bare id; anything else is refused
+# by name.
+r2_account() {
+  local account="${R2_ACCOUNT_ID#https://}"
+  account="${account%%/*}"
+  account="${account%%.*}"
+  case "$account" in
+    "" | *[!0-9a-f]*) ;;
+    *) if [ "${#account}" -eq 32 ]; then echo "$account"; return 0; fi ;;
+  esac
+  echo "::error::R2_ACCOUNT_ID is neither an account id nor https://<id>.r2.cloudflarestorage.com" >&2
+  return 1
+}
+
 state="$(r2_state)"
 if [ "${1:-}" = "--check" ]; then
   if [ "$state" = "partial" ]; then
     echo "::error::R2 mirror half configured: set all four of R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_ACCOUNT_ID, R2_BUCKET, or none" >&2
     exit 1
   fi
+  # Checked here too, so a wrong id stops the job before the build's
+  # files are fetched rather than at the first upload.
+  if [ "$state" = "configured" ]; then r2_account >/dev/null || exit 1; fi
   echo "$state"
   exit 0
 fi
@@ -114,7 +135,12 @@ export AWS_DEFAULT_REGION=auto
 # request; Cloudflare's guidance is to send them only where required.
 export AWS_REQUEST_CHECKSUM_CALCULATION=when_required
 export AWS_RESPONSE_CHECKSUM_VALIDATION=when_required
-endpoint="https://$R2_ACCOUNT_ID.r2.cloudflarestorage.com"
+if [ "$state" = "absent" ]; then
+  endpoint="https://$R2_ACCOUNT_ID.r2.cloudflarestorage.com"
+else
+  account="$(r2_account)"
+  endpoint="https://$account.r2.cloudflarestorage.com"
+fi
 
 run() {
   if [ "$dry_run" = "1" ]; then
