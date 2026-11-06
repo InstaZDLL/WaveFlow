@@ -25,6 +25,11 @@ class NotAVersion(ValueError):
     pass
 
 
+def is_number(text: str) -> bool:
+    # ASCII only: "²".isdigit() is true, and int() refuses it.
+    return text.isascii() and text.isdigit()
+
+
 def key(version: str):
     text = version.strip()
     if text.startswith("v"):
@@ -32,7 +37,7 @@ def key(version: str):
     text = text.split("+", 1)[0]
     core, dash, pre = text.partition("-")
     numbers = core.split(".")
-    if not numbers or not all(part.isdigit() for part in numbers):
+    if not numbers or not all(is_number(part) for part in numbers):
         raise NotAVersion(f"{version!r} is not a version")
     parts = pre.split(".") if dash else []
     if any(not part for part in parts):
@@ -41,7 +46,7 @@ def key(version: str):
         tuple(int(part) for part in numbers),
         # A release sorts after every pre-release of the same core.
         (1,) if not parts else (0,) + tuple(
-            (0, int(p), "") if p.isdigit() else (1, 0, p) for p in parts
+            (0, int(p), "") if is_number(p) else (1, 0, p) for p in parts
         ),
     )
 
@@ -66,7 +71,7 @@ def self_test() -> int:
     expect("a leading v is ignored", not newer("v2.0.1", "2.0.1") and newer("v2.0.2", "2.0.1"))
     expect("build metadata is ignored", not newer("2.0.1+r2", "2.0.1+gh"))
     expect("2.0.10 is newer than 2.0.9", newer("2.0.10", "2.0.9"))
-    for bad in ("abc", "", "2.0.x", "2.0.1-", "2.0.1-beta..1"):
+    for bad in ("abc", "", "2.0.x", "2.0.1-", "2.0.1-beta..1", "2.0.²"):
         try:
             key(bad)
         except NotAVersion:
@@ -87,6 +92,9 @@ def main(argv: list[str]) -> int:
         return 0 if newer(argv[1], argv[2]) else 1
     except NotAVersion as err:
         print(f"::error::cannot compare versions: {err}", file=sys.stderr)
+        return 2
+    except Exception as err:  # anything else is a failure too, never a "no"
+        print(f"::error::cannot compare versions: {err!r}", file=sys.stderr)
         return 2
 
 
